@@ -1,1 +1,1 @@
-export * from './drizzle-adapter';
+export { drizzleAdapter } from './drizzle-adapter';

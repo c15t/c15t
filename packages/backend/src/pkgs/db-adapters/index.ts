@@ -7,8 +7,16 @@
  */
 
 // Export core types and utilities
-export * from './types';
-export * from './utils';
+export type {
+	Adapter,
+	KyselyAdapterConfig,
+	AdapterSchemaCreation,
+	AdapterInstance,
+	Where,
+	TableFields,
+	WhereCondition,
+} from './types';
+export { applyDefaultValue } from './utils';
 
 // Export all adapters and related utilities
 export { kyselyAdapter } from './adapters/kysely-adapter';

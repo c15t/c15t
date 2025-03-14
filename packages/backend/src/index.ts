@@ -14,43 +14,6 @@
  */
 export * from './core';
 
-/**
- * Error codes used throughout the system for consistent error handling
- */
-export * from './pkgs/errors/codes';
-
-//------------------------------------------------------------------------------
-// Data Model and Database Adapters
-//------------------------------------------------------------------------------
-
-/**
- * Data model - field definitions and utilities
- */
-export * from './pkgs/data-model/fields';
-
-/**
- * Data model - type definitions
- */
-export * from './pkgs/data-model/schema/types';
-
-/**
- * Data model - schema parsing utilities
- */
-export {
-	parseInputData,
-	parseEntityOutputData,
-	getAllFields,
-} from './pkgs/data-model/schema/parser';
-
-/**
- * Schema retrieval and utilities
- */
-export {
-	getSchema,
-	getSchemaForTable,
-	getSchemaForEntity,
-} from './pkgs/data-model/schema/get-schema';
-
 //------------------------------------------------------------------------------
 // Client
 //------------------------------------------------------------------------------
@@ -91,12 +54,3 @@ export * from './plugins/geo';
  * All system types bundled under a namespace to avoid conflicts
  */
 export * as Types from './pkgs/types';
-
-/**
- * Plugin type extension point for type augmentation
- */
-declare module './pkgs/types/plugins' {
-	interface PluginTypes {
-		// Plugin type interfaces will be added here
-	}
-}

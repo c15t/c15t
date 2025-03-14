@@ -1,5 +1,5 @@
-import { Adapter } from '~/pkgs/db-adapters/types';
-import { createWithHook } from './create-hooks';
+import { Adapter } from '~/pkgs/db-adapters';
+import { createWithHooks } from './create-hooks';
 import type {
 	CreateWithHooksProps,
 	HookContext,
@@ -44,7 +44,7 @@ export function getWithHooks(adapter: Adapter, ctx: HookContext) {
 			customFn,
 			context,
 		}: CreateWithHooksProps<TInputData>) =>
-			createWithHook<TInputData, TOutputData>(adapter, ctx, {
+			createWithHooks<TInputData, TOutputData>(adapter, ctx, {
 				data,
 				model,
 				customFn,

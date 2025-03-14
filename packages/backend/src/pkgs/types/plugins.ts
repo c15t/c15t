@@ -10,7 +10,7 @@ import type { Endpoint } from 'better-call';
 import type { Migration } from 'kysely';
 
 import { C15TMiddleware } from '~/pkgs/api-router';
-import type { Field } from '~/pkgs/data-model/fields';
+import type { Field } from '~/pkgs/data-model';
 import type { C15TContext, HookEndpointContext } from './context';
 import type { DeepPartial, LiteralString } from './helper';
 import type { C15TOptions } from './options';

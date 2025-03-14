@@ -1,1 +1,1 @@
-export * from './memory-adapter';
+export { type MemoryDB, memoryAdapter } from './memory-adapter';

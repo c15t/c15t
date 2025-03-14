@@ -1,5 +1,4 @@
-import { createAuthMiddleware } from '~/pkgs/api-router/call';
-import { wildcardMatch } from '~/pkgs/api-router/utils/wildcard';
+import { createAuthMiddleware, wildcardMatch } from '~/pkgs/api-router';
 import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
 import type { GenericEndpointContext } from '~/pkgs/types';
 import { getHost, getOrigin, getProtocol } from '~/pkgs/utils/url';

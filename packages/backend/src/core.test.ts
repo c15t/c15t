@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { memoryAdapter } from '~/pkgs/db-adapters/adapters/memory-adapter';
+import { memoryAdapter } from '~/pkgs/db-adapters';
 import type { C15TPlugin } from '~/pkgs/types';
 import { c15tInstance } from './core';
 

@@ -1,4 +1,4 @@
-import { createAuthEndpoint } from '~/pkgs/api-router/call';
+import { createAuthEndpoint } from '~/pkgs/api-router';
 
 /**
  * Response type for the status endpoint

@@ -1,5 +1,5 @@
 import type { EntityName } from '~/pkgs/data-model/schema/types';
-import type { Adapter } from '~/pkgs/db-adapters/types';
+import type { Adapter } from '~/pkgs/db-adapters';
 import type { CreateWithHooksProps, HookContext } from './types';
 import { processHooks } from './utils';
 
@@ -21,7 +21,7 @@ import { processHooks } from './utils';
  *
  * @example
  * ```typescript
- * const subject = await createWithHook(
+ * const subject = await createWithHooks(
  *   mysqlAdapter,
  *   { hooks: subjectHooks, options: config },
  *   {
@@ -31,7 +31,7 @@ import { processHooks } from './utils';
  * );
  * ```
  */
-export async function createWithHook<
+export async function createWithHooks<
 	TInputData extends Record<string, unknown> = Record<string, unknown>,
 	TOutputData extends Record<string, unknown> = TInputData,
 >(

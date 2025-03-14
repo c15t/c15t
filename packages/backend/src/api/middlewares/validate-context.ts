@@ -1,5 +1,5 @@
-import { createAuthMiddleware } from '~/pkgs/api-router/call';
-import { Adapter } from '~/pkgs/db-adapters/types';
+import { createAuthMiddleware } from '~/pkgs/api-router';
+import { Adapter } from '~/pkgs/db-adapters';
 import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
 import type { C15TContext, C15TPlugin } from '~/pkgs/types';
 

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { EntityOutputFields } from '~/db/schema/definition';
-import { createAuthEndpoint } from '~/pkgs/api-router/call';
+import { createAuthEndpoint } from '~/pkgs/api-router';
 import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
 import type { C15TContext } from '~/pkgs/types';
 

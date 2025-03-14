@@ -1,5 +1,5 @@
 import type { EntityName, EntityTypeMap } from '~/pkgs/data-model/schema/types';
-import { Where } from '~/pkgs/db-adapters/types';
+import { Where } from '~/pkgs/db-adapters';
 import type { C15TOptions, GenericEndpointContext } from '~/pkgs/types';
 
 /**
@@ -130,7 +130,7 @@ export interface CustomOperationFunction<
  * @typeParam TData - The data type being created
  *
  * @remarks
- * This is the parameter object for the createWithHook function.
+ * This is the parameter object for the createWithHooks function.
  */
 export interface CreateWithHooksProps<
 	TData extends Record<string, unknown> = Record<string, unknown>,

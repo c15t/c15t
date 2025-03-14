@@ -6,8 +6,19 @@
  * and helper types used throughout the system.
  */
 
-export * from './api';
-export * from './context';
-export * from './options';
-export * from './plugins';
-export * from './helper';
+export type {
+	FilterActions,
+	ApiPath,
+	ApiPathBase,
+	ApiMiddleware,
+} from './api';
+export type {
+	HookEndpointContext,
+	GenericEndpointContext,
+	BaseContext,
+	RegistryContext,
+	BaseC15TContext,
+} from './context';
+export type { C15TOptions } from './options';
+export type { C15TPlugin, C15TPluginSchema } from './plugins';
+export type { C15TContext } from './context';

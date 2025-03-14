@@ -1,1 +1,1 @@
-export * from './prisma-adapter';
+export { prismaAdapter, type PrismaConfig } from './prisma-adapter';

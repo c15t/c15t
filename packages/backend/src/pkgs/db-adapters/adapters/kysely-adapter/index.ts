@@ -1,3 +1,10 @@
-export * from './dialect';
-export * from './types';
-export * from './kysely-adapter';
+export { kyselyAdapter } from './kysely-adapter';
+export type {
+	KyselyDatabaseType,
+	PostgresPoolConfig,
+	MysqlPoolConfig,
+	SQLiteDatabaseConfig,
+	DialectConfig,
+	KyselyInstanceConfig,
+} from './types';
+export { createKyselyAdapter } from './dialect';

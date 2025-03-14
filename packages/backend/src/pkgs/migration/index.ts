@@ -23,7 +23,7 @@ export { analyzeSchemaChanges } from './schema-comparison';
 export { matchType, getType } from './type-mapping';
 
 // Schema generation utilities
-export * from './get-schema';
+export { getSchema } from './get-schema';
 
 // Types
 export type {

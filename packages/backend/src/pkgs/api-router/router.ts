@@ -5,7 +5,7 @@ import {
 	type UnionToIntersection,
 	createRouter,
 } from 'better-call';
-import { getIp } from '~/pkgs/api-router/utils/ip';
+import { getIp } from '~/pkgs/api-router';
 import type { C15TContext, C15TOptions, C15TPlugin } from '~/pkgs/types';
 
 import { logger } from '~/pkgs/logger';

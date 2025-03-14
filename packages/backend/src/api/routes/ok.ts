@@ -1,5 +1,4 @@
-import { createAuthEndpoint } from '~/pkgs/api-router/call';
-import { HIDE_METADATA } from '~/pkgs/api-router/utils/hide-metadata';
+import { HIDE_METADATA, createAuthEndpoint } from '~/pkgs/api-router';
 
 export const ok = createAuthEndpoint(
 	'/ok',

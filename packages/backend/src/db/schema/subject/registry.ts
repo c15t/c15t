@@ -1,5 +1,5 @@
 import { getWithHooks } from '~/pkgs/data-model/hooks';
-import { Adapter } from '~/pkgs/db-adapters/types';
+import { Adapter } from '~/pkgs/db-adapters';
 import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
 import type { GenericEndpointContext, RegistryContext } from '~/pkgs/types';
 import { validateEntityOutput } from '../definition';
