@@ -9,9 +9,9 @@ import type { C15TMiddleware } from '~/api/call';
 import type { Logger } from '../utils/logger';
 import type { C15TContext, C15TPlugin } from './index';
 
-import type { DatabaseConfiguration } from '~/db/adapters/kysely-adapter/types';
 import type { EntityName } from '~/db/core/types';
 import type { DatabaseHook } from '~/db/hooks/types';
+import type { DatabaseConfiguration } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
 
 // Import table configuration types from the schema module
 import type { TablesConfig } from '~/db/schema/types';

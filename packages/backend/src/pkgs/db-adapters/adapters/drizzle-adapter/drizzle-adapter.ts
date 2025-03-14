@@ -17,7 +17,7 @@ import { getConsentTables } from '../..';
 
 import { generateId } from '~/db/core/fields';
 import type { EntityName } from '~/db/core/types';
-import { applyDefaultValue } from '../utils';
+import { applyDefaultValue } from '../../utils';
 
 /**
  * Database interface for Drizzle ORM integration

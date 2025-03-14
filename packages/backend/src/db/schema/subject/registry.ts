@@ -1,6 +1,6 @@
-import type { Adapter } from '~/db/adapters/types';
 import { getWithHooks } from '~/db/hooks';
 import { BASE_ERROR_CODES, C15TError } from '~/error';
+import { Adapter } from '~/pkgs/db-adapters/types';
 import type { GenericEndpointContext, RegistryContext } from '~/types';
 import { validateEntityOutput } from '../definition';
 import type { Subject } from './schema';

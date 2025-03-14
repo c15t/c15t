@@ -1,4 +1,4 @@
-import type { Where } from '~/db/adapters/types';
+import { Where } from '~/pkgs/db-adapters/types';
 import type { C15TOptions, GenericEndpointContext } from '~/types';
 import type { EntityName, EntityTypeMap } from '../core/types';
 

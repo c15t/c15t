@@ -1,5 +1,5 @@
-import type { Where } from '~/db/adapters/types';
 import { getWithHooks } from '~/db/hooks';
+import { Where } from '~/pkgs/db-adapters/types';
 import type { RegistryContext } from '~/types';
 import type { GenericEndpointContext } from '~/types';
 import { validateEntityOutput } from '../definition';

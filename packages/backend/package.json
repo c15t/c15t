@@ -140,7 +140,9 @@
 		"@types/better-sqlite3": "^7.6.12",
 		"@types/node": "^22.13.10",
 		"@types/pg": "^8.11.11",
+		"@vitest/browser": "^3.0.8",
 		"knip": "^5.45.0",
-		"typescript": "^5.8.2"
+		"typescript": "^5.8.2",
+		"vitest": "^3.0.8"
 	}
 }

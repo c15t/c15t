@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
-import type { Where } from '~/db/adapters/types';
+
 import { getWithHooks } from '~/db/hooks';
+import { Where } from '~/pkgs/db-adapters';
 import type { GenericEndpointContext, RegistryContext } from '~/types';
 import { validateEntityOutput } from '../definition';
 import type { ConsentPolicy } from './schema';

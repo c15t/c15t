@@ -412,12 +412,18 @@ importers:
       '@types/pg':
         specifier: ^8.11.11
         version: 8.11.11
+      '@vitest/browser':
+        specifier: ^3.0.8
+        version: 3.0.8(@testing-library/dom@10.4.0)(@types/node@22.13.10)(playwright@1.51.0)(typescript@5.8.2)(vite@6.2.0(@types/node@22.13.10)(jiti@2.4.2)(lightningcss@1.29.2)(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0))(vitest@3.0.8)
       knip:
         specifier: ^5.45.0
         version: 5.45.0(@types/node@22.13.10)(typescript@5.8.2)
       typescript:
         specifier: ^5.8.2
         version: 5.8.2
+      vitest:
+        specifier: ^3.0.8
+        version: 3.0.8(@types/debug@4.1.12)(@types/node@22.13.10)(@vitest/browser@3.0.8)(happy-dom@17.2.2)(jiti@2.4.2)(jsdom@26.0.0)(lightningcss@1.29.2)(msw@2.7.3(@types/node@22.13.10)(typescript@5.8.2))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   packages/cli:
     dependencies:
@@ -9060,7 +9066,6 @@ snapshots:
       '@inquirer/type': 3.0.4(@types/node@22.13.10)
     optionalDependencies:
       '@types/node': 22.13.10
-    optional: true
 
   '@inquirer/confirm@5.1.6(@types/node@22.13.9)':
     dependencies:
@@ -9081,7 +9086,6 @@ snapshots:
       yoctocolors-cjs: 2.1.2
     optionalDependencies:
       '@types/node': 22.13.10
-    optional: true
 
   '@inquirer/core@10.1.7(@types/node@22.13.9)':
     dependencies:
@@ -9101,7 +9105,6 @@ snapshots:
   '@inquirer/type@3.0.4(@types/node@22.13.10)':
     optionalDependencies:
       '@types/node': 22.13.10
-    optional: true
 
   '@inquirer/type@3.0.4(@types/node@22.13.9)':
     optionalDependencies:
@@ -11059,7 +11062,6 @@ snapshots:
       - typescript
       - utf-8-validate
       - vite
-    optional: true
 
   '@vitest/browser@3.0.8(@testing-library/dom@10.4.0)(@types/node@22.13.9)(playwright@1.51.0)(typescript@5.8.2)(vite@6.2.0(@types/node@22.13.9)(jiti@2.4.2)(lightningcss@1.29.2)(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0))(vitest@3.0.8)':
     dependencies:
@@ -13841,7 +13843,6 @@ snapshots:
       typescript: 5.8.2
     transitivePeerDependencies:
       - '@types/node'
-    optional: true
 
   msw@2.7.3(@types/node@22.13.9)(typescript@5.8.2):
     dependencies:

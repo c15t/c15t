@@ -9,6 +9,7 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			'~': resolve(__dirname, './src'),
+			'@doubletie/db-adapters': resolve(__dirname, './src/pkgs/db-adapters'),
 		},
 	},
 });

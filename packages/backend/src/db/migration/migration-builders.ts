@@ -2,7 +2,7 @@ import type { ColumnDataType, Expression, Kysely } from 'kysely';
 import type {
 	Database,
 	KyselyDatabaseType,
-} from '~/db/adapters/kysely-adapter/types';
+} from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
 import type { C15TOptions } from '~/types';
 import { createLogger } from '~/utils/logger';
 import { getType } from './type-mapping';

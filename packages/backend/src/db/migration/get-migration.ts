@@ -1,6 +1,7 @@
 import type { C15TOptions } from '~/types';
 import { createLogger } from '../../utils/logger';
-import { createKyselyAdapter } from '../adapters/kysely-adapter/dialect';
+
+import { createKyselyAdapter } from '~/pkgs/db-adapters';
 import {
 	buildColumnAddMigrations,
 	buildTableCreateMigrations,

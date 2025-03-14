@@ -1,5 +1,5 @@
-import type { Adapter } from '../adapters/types';
-import type { EntityName } from '../core/types';
+import type { EntityName } from '~/db/core/types';
+import type { Adapter } from '~/pkgs/db-adapters/types';
 import type { HookContext, UpdateWithHooksProps } from './types';
 import { processHooks } from './utils';
 

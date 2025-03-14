@@ -1,7 +1,7 @@
+import type { EntityInput, EntityName } from '~/db/core/types';
+import type { C15TDBSchema } from '~/db/schema/definition';
 import type { C15TOptions } from '~/types';
-import type { EntityInput, EntityName } from '../core/types';
-import type { C15TDBSchema } from '../schema/definition';
-import type { KyselyAdapterConfig } from './kysely-adapter';
+import { KyselyDatabaseType } from './adapters';
 
 /**
  * Type representing the fields of a database table for a specific entity
@@ -194,7 +194,14 @@ export interface Adapter {
 	) => Promise<AdapterSchemaCreation>;
 
 	/** Optional adapter-specific configuration */
-	options?: KyselyAdapterConfig | Record<string, unknown>;
+	options?: Record<string, unknown> | KyselyAdapterConfig | any;
+}
+
+/**
+ * Configuration options for the Kysely adapter
+ */
+export interface KyselyAdapterConfig {
+	type?: KyselyDatabaseType;
 }
 
 /**

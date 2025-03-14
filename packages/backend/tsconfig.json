@@ -4,7 +4,8 @@
 		"baseUrl": ".",
 		"lib": ["dom", "dom.iterable", "esnext"],
 		"paths": {
-			"~/*": ["./src/*"]
+			"~/*": ["./src/*"],
+			"@doubletie/db-adapters": ["./src/pkgs/db-adapters/*"]
 		}
 	},
 	"include": ["src"],

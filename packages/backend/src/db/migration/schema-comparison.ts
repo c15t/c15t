@@ -1,5 +1,6 @@
 import type { TableMetadata } from 'kysely';
 import type { Field } from '~/db/core/fields';
+import { KyselyDatabaseType } from '~/pkgs/db-adapters/adapters';
 /**
  * Schema comparison functionality for database migrations
  *
@@ -21,7 +22,6 @@ import type { Field } from '~/db/core/fields';
  */
 import type { C15TOptions } from '~/types';
 import { createLogger } from '../../utils/logger';
-import type { KyselyDatabaseType } from '../adapters/kysely-adapter/types';
 import { getSchema } from '../core/get-schema';
 import type { TableSchemaDefinition } from './get-schema/types';
 import { matchType } from './type-mapping';

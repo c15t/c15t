@@ -1,5 +1,5 @@
-import type { Adapter } from '~/db/adapters/types';
 import type { EntityName } from '~/db/core/types';
+import { Adapter } from '~/pkgs/db-adapters/types';
 import type {
 	CustomOperationFunction,
 	HookContext,

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DatabaseConfiguration } from './db/adapters/kysely-adapter';
-import { memoryAdapter } from './db/adapters/memory-adapter';
+import type { DatabaseConfiguration } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
+import { memoryAdapter } from '~/pkgs/db-adapters/adapters/memory-adapter';
 import { init } from './init';
 import type { C15TPlugin } from './types';
 

@@ -23,10 +23,14 @@ import type {
 	EntityOutput,
 	EntityTypeMap,
 } from '~/db/core/types';
-import { getConsentTables } from '../..';
-import type { C15TOptions } from '../../../types';
-import type { Adapter, TableFields, Where } from '../types';
-import { applyDefaultValue } from '../utils';
+import { C15TOptions } from '~/types';
+import {
+	Adapter,
+	TableFields,
+	Where,
+	applyDefaultValue,
+	getConsentTables,
+} from '../..';
 import type { Database, KyselyDatabaseType } from './types';
 
 /**
