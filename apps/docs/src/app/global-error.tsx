@@ -8,7 +8,12 @@ export default function GlobalError({
 	error,
 }: { error: Error & { digest?: string } }) {
 	useEffect(() => {
-		Sentry.captureException(error);
+		try {
+			Sentry.captureException(error);
+		} catch (sentryError) {
+			console.error('Failed to report error to Sentry:', sentryError);
+			console.error('Original error:', error);
+		}
 	}, [error]);
 
 	return (
