@@ -1,6 +1,6 @@
 'use client';
 
-import * as React from 'react';
+import { createContext } from 'react';
 import type { ConsentManagerContextValue } from '../types/consent-manager';
 
 /**
@@ -12,6 +12,6 @@ import type { ConsentManagerContextValue } from '../types/consent-manager';
  *
  * @internal
  */
-export const ConsentStateContext = React.createContext<
+export const ConsentStateContext = createContext<
 	ConsentManagerContextValue | undefined
 >(undefined);

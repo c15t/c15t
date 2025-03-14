@@ -12,6 +12,7 @@ import { useTheme } from 'next-themes';
 import {
 	Component,
 	type ComponentProps,
+	type ErrorInfo,
 	type ReactNode,
 	useEffect,
 	useState,
@@ -52,8 +53,9 @@ export class ErrorBoundary extends Component<
 		return { hasError: true, error };
 	}
 
-	componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+	componentDidCatch(error: Error, errorInfo: ErrorInfo) {
 		// You can log the error to an error reporting service
+		// biome-ignore lint/suspicious/noConsole: debug error
 		console.error('ErrorBoundary caught an error', error, errorInfo);
 	}
 

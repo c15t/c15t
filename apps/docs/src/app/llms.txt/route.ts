@@ -23,6 +23,7 @@ export async function GET() {
 					content: await processContent(content),
 				};
 			} catch (error) {
+				// biome-ignore lint/suspicious/noConsole: debug error
 				console.error(`Error processing file ${file}:`, error);
 				return null; // Handle error appropriately
 			}

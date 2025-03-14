@@ -1,6 +1,6 @@
 'use client';
 
-import type React from 'react';
+import type { FC } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '~/lib/cn';
 
@@ -58,7 +58,7 @@ function hexToRgb(hex: string): number[] {
 	return [red, green, blue];
 }
 
-const Particles: React.FC<ParticlesProps> = ({
+const Particles: FC<ParticlesProps> = ({
 	className = '',
 	quantity = 100,
 	staticity = 50,
