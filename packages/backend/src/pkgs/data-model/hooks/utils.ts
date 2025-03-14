@@ -1,5 +1,5 @@
+import type { EntityName, EntityTypeMap } from '~/pkgs/data-model/schema/types';
 import type { GenericEndpointContext } from '~/types';
-import type { EntityName, EntityTypeMap } from '../core/types';
 import type { DatabaseHook, HookOperation, HookPhase } from './types';
 
 /**

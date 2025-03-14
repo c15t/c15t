@@ -13,19 +13,24 @@ export type {
 	EntityField,
 } from './types';
 
-// Export schema utilities
+// Export the functions from their new locations
 export {
 	getConsentTables,
+	type C15TDBSchema,
+} from './definition';
+
+export {
 	parseInputData,
 	parseEntityOutputData,
 	getAllFields,
-} from './schemas';
-
-// Re-export the C15TDBSchema type directly
-export type { C15TDBSchema } from '~/db/schema/definition';
+} from './parser';
 
 // Export get-schema utilities
 export {
+	getSchema,
 	getSchemaForTable,
 	getSchemaForEntity,
 } from './get-schema';
+
+// Re-export all the table definitions
+export * from './schemas';

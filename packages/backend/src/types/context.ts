@@ -3,10 +3,10 @@ import type {
 	EndpointOptions,
 	InputContext,
 } from 'better-call';
-import type { getConsentTables } from '~/db';
-import type { EntityName } from '~/db/core/types';
 import type { createRegistry } from '~/db/create-registry';
-import type { DatabaseHook } from '~/db/hooks/types';
+import type { getConsentTables } from '~/db/schema/definition';
+import type { DatabaseHook } from '~/pkgs/data-model/hooks/types';
+import type { EntityName } from '~/pkgs/data-model/schema/types';
 import { Adapter } from '~/pkgs/db-adapters/types';
 import type { createLogger } from '~/utils';
 import type { C15TOptions } from './index';

@@ -1,9 +1,9 @@
 import { defu } from 'defu';
-import { getConsentTables } from './db';
-import { generateId } from './db/core/fields/id-generator';
-import type { EntityName } from './db/core/types';
 import { createRegistry } from './db/create-registry';
-import { getAdapter } from './db/utils';
+import { getConsentTables } from './db/schema/definition';
+
+import { generateId } from './pkgs/data-model/fields/id-generator';
+import type { EntityName } from './pkgs/data-model/schema/types';
 import {
 	BASE_ERROR_CODES,
 	type C15TError,
@@ -14,6 +14,7 @@ import {
 	ok,
 } from './pkgs/errors';
 
+import { getAdapter } from './pkgs/db-adapters';
 /**
  * c15t Initialization Module
  *

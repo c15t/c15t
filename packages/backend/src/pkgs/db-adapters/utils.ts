@@ -1,4 +1,4 @@
-import type { Field, Primitive } from '~/db/core/fields/field-types';
+import type { Field, Primitive } from '~/pkgs/data-model/fields/field-types';
 
 /**
  * Applies the default value of a field if the provided value is undefined or null.

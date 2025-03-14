@@ -3,11 +3,15 @@ import type {
 	EntityName,
 	EntityOutput,
 	EntityTypeMap,
-} from '~/db/core/types';
+} from '~/pkgs/data-model/schema/types';
 import type { C15TOptions } from '~/types';
 import { getConsentTables } from '../../schema';
 
-import { type Field, type Primitive, generateId } from '~/db/core/fields';
+import {
+	type Field,
+	type Primitive,
+	generateId,
+} from '~/pkgs/data-model/fields';
 
 import type { Adapter, TableFields, Where } from '../../types';
 import { applyDefaultValue } from '../../utils';

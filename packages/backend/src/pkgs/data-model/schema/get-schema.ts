@@ -1,7 +1,7 @@
-import type { Field } from '~/db/core/fields';
-import type { EntityName } from '~/db/core/types';
+import type { Field } from '~/pkgs/data-model/fields';
+import type { EntityName } from '~/pkgs/data-model/schema/types';
 import type { C15TOptions } from '~/types';
-import { getConsentTables } from '../index';
+import { getConsentTables } from './schemas';
 import type { TableDefinition } from './types';
 
 /**

@@ -9,7 +9,7 @@ import type { UnionToIntersection } from '@better-fetch/fetch';
 import type { Endpoint } from 'better-call';
 import type { Migration } from 'kysely';
 import type { C15TMiddleware } from '~/api/call';
-import type { Field } from '~/db/core/fields';
+import type { Field } from '~/pkgs/data-model/fields';
 import type {
 	C15TContext,
 	C15TOptions,

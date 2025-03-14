@@ -1,4 +1,4 @@
-import type { Field } from '~/db/core/fields';
+import type { Field } from '~/pkgs/data-model/fields';
 import type { C15TOptions } from '~/types';
 import { consentPolicySchema } from './schema';
 

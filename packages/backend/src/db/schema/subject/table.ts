@@ -1,5 +1,6 @@
-import type { Field } from '~/db/core/fields';
-import { COMMON_TIMEZONES } from '~/db/core/fields';
+import type { Field } from '~/pkgs/data-model/fields';
+
+import { COMMON_TIMEZONES } from '~/pkgs/data-model/fields/field-factory';
 import type { C15TOptions } from '~/types';
 import { subjectSchema } from './schema';
 

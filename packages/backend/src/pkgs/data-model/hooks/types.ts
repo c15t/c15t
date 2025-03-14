@@ -1,6 +1,6 @@
+import type { EntityName, EntityTypeMap } from '~/pkgs/data-model/schema/types';
 import { Where } from '~/pkgs/db-adapters/types';
 import type { C15TOptions, GenericEndpointContext } from '~/types';
-import type { EntityName, EntityTypeMap } from '../core/types';
 
 /**
  * Defines execution phases when hooks can run in the database operation lifecycle.

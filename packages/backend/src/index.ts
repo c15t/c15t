@@ -20,6 +20,38 @@ export * from './core';
 export * from './pkgs/errors/codes';
 
 //------------------------------------------------------------------------------
+// Data Model and Database Adapters
+//------------------------------------------------------------------------------
+
+/**
+ * Data model - field definitions and utilities
+ */
+export * from './pkgs/data-model/fields';
+
+/**
+ * Data model - type definitions
+ */
+export * from './pkgs/data-model/schema/types';
+
+/**
+ * Data model - schema parsing utilities
+ */
+export {
+	parseInputData,
+	parseEntityOutputData,
+	getAllFields,
+} from './pkgs/data-model/schema/parser';
+
+/**
+ * Schema retrieval and utilities
+ */
+export {
+	getSchema,
+	getSchemaForTable,
+	getSchemaForEntity,
+} from './pkgs/data-model/schema/get-schema';
+
+//------------------------------------------------------------------------------
 // Utilities and Helpers
 //------------------------------------------------------------------------------
 

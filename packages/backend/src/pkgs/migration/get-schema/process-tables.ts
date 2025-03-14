@@ -1,5 +1,5 @@
-import type { Field } from '~/db/core/fields';
 import type { C15TDBSchema } from '~/db/schema/definition';
+import type { Field } from '~/pkgs/data-model/fields';
 import { processFields } from './process-fields';
 import type { SchemaDefinition } from './types';
 

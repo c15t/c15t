@@ -1,4 +1,4 @@
-import { getWithHooks } from '~/db/hooks';
+import { getWithHooks } from '~/pkgs/data-model/hooks';
 import { Where } from '~/pkgs/db-adapters/types';
 import type { GenericEndpointContext, RegistryContext } from '~/types';
 import { validateEntityOutput } from '../definition';

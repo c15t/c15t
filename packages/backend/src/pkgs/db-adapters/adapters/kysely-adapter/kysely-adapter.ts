@@ -16,13 +16,17 @@ import type {
 import type { InsertExpression } from 'node_modules/kysely/dist/esm/parser/insert-values-parser';
 import type { TableReference } from 'node_modules/kysely/dist/esm/parser/table-parser';
 import superjson from 'superjson';
-import { type Field, type Primitive, generateId } from '~/db/core/fields';
+import {
+	type Field,
+	type Primitive,
+	generateId,
+} from '~/pkgs/data-model/fields';
 import type {
 	EntityInput,
 	EntityName,
 	EntityOutput,
 	EntityTypeMap,
-} from '~/db/core/types';
+} from '~/pkgs/data-model/schema/types';
 import { C15TOptions } from '~/types';
 import {
 	Adapter,

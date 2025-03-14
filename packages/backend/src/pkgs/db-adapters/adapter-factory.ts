@@ -1,10 +1,10 @@
-import { getConsentTables } from '~/db';
-import { kyselyAdapter } from '~/pkgs/db-adapters/adapters/kysely-adapter';
-import { createKyselyAdapter } from '~/pkgs/db-adapters/adapters/kysely-adapter/dialect';
-import { memoryAdapter } from '~/pkgs/db-adapters/adapters/memory-adapter';
+import { getConsentTables } from '~/pkgs/data-model/schema';
 import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
 import type { C15TOptions } from '~/types';
 import { createLogger } from '~/utils/logger';
+import { kyselyAdapter } from './adapters/kysely-adapter';
+import { createKyselyAdapter } from './adapters/kysely-adapter/dialect';
+import { memoryAdapter } from './adapters/memory-adapter';
 
 /**
  * Creates and configures the appropriate database adapter based on C15T options

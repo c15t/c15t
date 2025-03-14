@@ -17,3 +17,6 @@ export { prismaAdapter } from './adapters/prisma-adapter';
 export { memoryAdapter } from './adapters/memory-adapter';
 export { drizzleAdapter } from './adapters/drizzle-adapter';
 export { createKyselyAdapter } from './adapters/kysely-adapter/dialect';
+
+// Export the adapter factory
+export { getAdapter } from './adapter-factory';

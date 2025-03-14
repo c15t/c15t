@@ -93,4 +93,7 @@ export {
 	parseInputData,
 	parseEntityOutputData,
 	getAllFields,
-} from './parser';
+} from '~/pkgs/data-model/schema/parser';
+
+// Schemas export
+export * from './schemas';

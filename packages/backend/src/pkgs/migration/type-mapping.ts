@@ -1,4 +1,4 @@
-import type { Field, FieldType } from '~/db/core/fields';
+import type { Field, FieldType } from '~/pkgs/data-model/fields';
 /**
  * Database type mapping functionality
  *

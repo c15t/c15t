@@ -1,4 +1,4 @@
-import type { EntityName } from '~/db/core/types';
+import type { EntityName } from '~/pkgs/data-model/schema/types';
 import { Adapter } from '~/pkgs/db-adapters/types';
 import type {
 	CustomOperationFunction,

@@ -5,7 +5,7 @@
  * These types define the common structure of entity configurations used throughout
  * the c15t consent management system.
  */
-import type { Field } from '~/db/core/fields';
+import type { Field } from '~/pkgs/data-model/fields';
 
 import type { AuditLogEntityConfig } from './audit-log/types';
 import type { ConsentGeoLocationEntityConfig } from './consent-geo-location/types';

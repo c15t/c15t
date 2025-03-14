@@ -1,6 +1,6 @@
 import type { Database as SQLiteDatabase } from 'better-sqlite3';
 import type { Dialect, Kysely, MysqlPool, PostgresPool } from 'kysely';
-import type { EntityTypeMap } from '~/db/core/types';
+import type { EntityTypeMap } from '~/pkgs/data-model/schema/types';
 import type { Database as KyselyDatabase } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
 import { AdapterInstance } from '~/pkgs/db-adapters/types';
 

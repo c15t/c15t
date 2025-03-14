@@ -15,8 +15,8 @@ import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
 import type { Adapter, C15TOptions, Where } from '~/types';
 import { getConsentTables } from '../..';
 
-import { generateId } from '~/db/core/fields';
-import type { EntityName } from '~/db/core/types';
+import { generateId } from '~/pkgs/data-model/fields';
+import type { EntityName } from '~/pkgs/data-model/schema/types';
 import { applyDefaultValue } from '../../utils';
 
 /**

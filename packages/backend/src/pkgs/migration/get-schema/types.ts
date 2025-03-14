@@ -1,4 +1,4 @@
-import type { Field } from '~/db/core/fields';
+import type { Field } from '~/pkgs/data-model/fields';
 
 /**
  * Represents a complete table definition within the schema

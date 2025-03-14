@@ -1,7 +1,7 @@
 import type { GenericEndpointContext, RegistryContext } from '~/types';
 import type { PurposeJunction } from './schema';
 
-import { getWithHooks } from '~/db/hooks';
+import { getWithHooks } from '~/pkgs/data-model/hooks';
 import { validateEntityOutput } from '../definition';
 
 /**

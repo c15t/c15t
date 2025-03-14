@@ -1,21 +1,21 @@
 /**
  * Schema Re-exports
  *
- * This file re-exports the actual schema tables from their original locations
- * while preserving the ability to call functions from the new packages structure.
+ * This file re-exports the schema tables directly from their original locations.
+ * It serves as the central hub for accessing all schema definitions.
  */
 
-// Re-export the schema utilities from the original schema definition
-export { getConsentTables, type C15TDBSchema } from '~/db/schema/definition';
+// Export the getConsentTables function and schema type
+export { getConsentTables, type C15TDBSchema } from './definition';
 
-// Re-export the parser functions that we want to provide
+// Export the parser functions
 export {
 	parseInputData,
 	parseEntityOutputData,
 	getAllFields,
-} from '~/db/schema/parser';
+} from './parser';
 
-// Export the complete schema tables from their original location
+// Export the complete schema tables directly from their source locations
 export * from '~/db/schema/subject';
 export * from '~/db/schema/consent';
 export * from '~/db/schema/consent-policy';

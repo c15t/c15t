@@ -1,20 +1,17 @@
+import type { PluginSchema } from '~/pkgs/data-model/schema/types';
 import type { C15TOptions } from '~/types';
-import type { PluginSchema } from '../core/types';
-import {
-	getAuditLogTable,
-	getConsentGeoLocationTable,
-	getConsentPolicyTable,
-	// getGeoLocationTable,
-	getConsentRecordTable,
-	getConsentTable,
-	getConsentWithdrawalTable,
-	getDomainTable,
-	getGeoLocationTable,
-	getPurposeJunctionTable,
-	getPurposeTable,
-	getSubjectTable,
-} from './index';
+import { getAuditLogTable } from './audit-log/table';
+import { getConsentGeoLocationTable } from './consent-geo-location/table';
+import { getConsentPolicyTable } from './consent-policy/table';
+import { getPurposeJunctionTable } from './consent-purpose-junction/table';
+import { getPurposeTable } from './consent-purpose/table';
+import { getConsentRecordTable } from './consent-record/table';
+import { getConsentWithdrawalTable } from './consent-withdrawal/table';
+import { getConsentTable } from './consent/table';
+import { getDomainTable } from './domain/table';
+import { getGeoLocationTable } from './geo-location/table';
 import type { InferTableShape } from './schemas';
+import { getSubjectTable } from './subject/table';
 
 /**
  * Retrieves all consent-related database table definitions

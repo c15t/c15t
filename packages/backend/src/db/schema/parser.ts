@@ -1,6 +1,6 @@
+import type { Field } from '~/pkgs/data-model/fields';
 import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
 import type { C15TOptions, C15TPluginSchema } from '~/types';
-import type { Field } from '../core/fields';
 
 /**
  * Parses and transforms output data according to schema field definitions.
