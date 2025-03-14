@@ -1,45 +1,9 @@
-import { createApiRouter, getEndpoints } from '~/pkgs/api-router';
-import type { C15TContext, C15TOptions, C15TPlugin } from '~/pkgs/types';
+import { createApiRouter } from '~/pkgs/api-router';
+import type { C15TContext, C15TOptions } from '~/pkgs/types';
 import { originCheckMiddleware } from './middlewares/origin-check';
 import { validateContextMiddleware } from './middlewares/validate-context';
 import { baseEndpoints } from './routes';
 import { ok } from './routes/ok';
-
-/**
- * Retrieves and configures endpoints from plugins and core functionality
- *
- * This function collects endpoints from plugins, combines them with
- * base endpoints, and builds an API object with properly configured
- * handlers.
- *
- * @remarks
- * Plugin endpoints are merged with core endpoints, with core endpoints
- * taking precedence in case of naming conflicts.
- *
- * @typeParam ContextType - The specific context type extending C15TContext
- * @typeParam OptionsType - Configuration options type extending C15TOptions
- * @param ctx - The consent management context (or promise resolving to it)
- * @param options - Configuration options for the consent system
- * @returns Object containing API handlers and middleware configurations
- *
- * @example
- * ```typescript
- * const { api, middlewares } = getEndpointsFromCtx(contextInstance, {
- *   plugins: [analyticsPlugin(), geoPlugin()]
- * });
- *
- * // Use the configured API
- * const response = await api.getConsentStatus({
- *   params: { subjectId: "sub_x1pftyoufsm7xgo1kv" }
- * });
- * ```
- */
-export function getEndpointsFromCtx<
-	ContextType extends C15TContext,
-	OptionsType extends C15TOptions,
->(ctx: Promise<ContextType> | ContextType, options: OptionsType) {
-	return getEndpoints(ctx, options, baseEndpoints, ok);
-}
 
 /**
  * Creates a router for handling API requests
