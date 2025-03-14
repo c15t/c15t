@@ -1,4 +1,4 @@
-import type { EntityName } from '~/pkgs/data-model/schema/types';
+import type { EntityName } from '~/pkgs/data-model';
 import type { Adapter } from '~/pkgs/db-adapters';
 import type { HookContext, UpdateWithHooksProps } from './types';
 import { processHooks } from './utils';

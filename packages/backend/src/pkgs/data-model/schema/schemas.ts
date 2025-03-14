@@ -13,14 +13,14 @@ export {
 } from './parser';
 
 // Export the complete schema tables directly from their source locations
-export * from '~/db/schema/subject';
-export * from '~/db/schema/consent';
-export * from '~/db/schema/consent-policy';
-export * from '~/db/schema/consent-purpose';
-export * from '~/db/schema/consent-purpose-junction';
-export * from '~/db/schema/consent-record';
-export * from '~/db/schema/consent-withdrawal';
-export * from '~/db/schema/consent-geo-location';
-export * from '~/db/schema/geo-location';
-export * from '~/db/schema/domain';
-export * from '~/db/schema/audit-log';
+export * from '~/schema/subject';
+export * from '~/schema/consent';
+export * from '~/schema/consent-policy';
+export * from '~/schema/consent-purpose';
+export * from '~/schema/consent-purpose-junction';
+export * from '~/schema/consent-record';
+export * from '~/schema/consent-withdrawal';
+export * from '~/schema/consent-geo-location';
+export * from '~/schema/geo-location';
+export * from '~/schema/domain';
+export * from '~/schema/audit-log';

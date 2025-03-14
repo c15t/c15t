@@ -16,19 +16,18 @@ import type {
 import type { InsertExpression } from 'node_modules/kysely/dist/esm/parser/insert-values-parser';
 import type { TableReference } from 'node_modules/kysely/dist/esm/parser/table-parser';
 import superjson from 'superjson';
-import { getConsentTables } from '~/db/schema/definition';
 import {
+	type EntityInput,
+	type EntityName,
+	type EntityOutput,
+	type EntityTypeMap,
 	type Field,
 	type Primitive,
 	generateId,
-} from '~/pkgs/data-model/fields';
-import type {
-	EntityInput,
-	EntityName,
-	EntityOutput,
-	EntityTypeMap,
-} from '~/pkgs/data-model/schema/types';
+} from '~/pkgs/data-model';
+
 import { C15TOptions } from '~/pkgs/types';
+import { getConsentTables } from '~/schema/definition';
 import { Adapter, TableFields, Where, applyDefaultValue } from '../..';
 import type { Database, KyselyDatabaseType } from './types';
 

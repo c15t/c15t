@@ -1,6 +1,6 @@
 import { defu } from 'defu';
-import { createRegistry } from './db/create-registry';
-import { getConsentTables } from './db/schema/definition';
+import { createRegistry } from './schema/create-registry';
+import { getConsentTables } from './schema/definition';
 
 import { generateId } from './pkgs/data-model/fields/id-generator';
 import type { EntityName } from './pkgs/data-model/schema/types';

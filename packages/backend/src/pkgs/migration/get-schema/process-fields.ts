@@ -1,6 +1,5 @@
-import type { C15TDBSchema } from '~/db/schema/definition';
-import type { Field } from '~/pkgs/data-model/fields';
-import type { EntityName } from '~/pkgs/data-model/schema/types';
+import type { EntityName, Field } from '~/pkgs/data-model';
+import type { C15TDBSchema } from '~/schema/definition';
 
 /**
  * Processes field definitions for a table

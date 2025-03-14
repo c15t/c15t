@@ -10,7 +10,12 @@ export type {
 	TableDefinition,
 	SchemaMap,
 	EntitySchemaConfig,
+	EntityTypeMap,
 	EntityField,
+	EntityInput,
+	EntityName,
+	PluginSchema,
+	EntityOutput,
 } from './types';
 
 export {

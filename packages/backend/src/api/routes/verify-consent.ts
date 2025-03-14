@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import type { EntityOutputFields } from '~/db/schema/definition';
 import { createAuthEndpoint } from '~/pkgs/api-router';
 import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
 import type { C15TContext } from '~/pkgs/types';
+import type { EntityOutputFields } from '~/schema/definition';
 
 // Schema for the base verification criteria (at least domain is required)
 const baseVerificationSchema = z.object({

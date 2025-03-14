@@ -21,6 +21,7 @@ export {
 	dateField,
 	stringArrayField,
 	numberArrayField,
+	COMMON_TIMEZONES,
 } from './field-factory';
 
 // Export field options

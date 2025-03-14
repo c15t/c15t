@@ -1,4 +1,4 @@
-import type { EntityName, EntityTypeMap } from '~/pkgs/data-model/schema/types';
+import type { EntityName, EntityTypeMap } from '~/pkgs/data-model';
 import { Where } from '~/pkgs/db-adapters';
 import type { C15TOptions, GenericEndpointContext } from '~/pkgs/types';
 

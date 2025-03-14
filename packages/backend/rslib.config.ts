@@ -56,31 +56,30 @@ export default defineConfig({
 	source: {
 		entry: {
 			index: ['./src/index.ts'],
-			'pkgs/migration/index': ['./src/pkgs/migration/index.ts'],
-			'pkgs/db-adapters/index': ['./src/pkgs/db-adapters/index.ts'],
-			'pkgs/db-adapters/adapters/prisma-adapter/index': [
-				'./src/pkgs/db-adapters/adapters/prisma-adapter/index.ts',
-			],
-			'pkgs/db-adapters/adapters/drizzle-adapter/index': [
-				'./src/pkgs/db-adapters/adapters/drizzle-adapter/index.ts',
-			],
-			'pkgs/db-adapters/adapters/memory-adapter/index': [
-				'./src/pkgs/db-adapters/adapters/memory-adapter/index.ts',
-			],
-			'pkgs/db-adapters/adapters/kysely-adapter/index': [
-				'./src/pkgs/db-adapters/adapters/kysely-adapter/index.ts',
-			],
-			'pkgs/data-model/index': ['./src/pkgs/data-model/index.ts'],
-			'pkgs/data-model/fields/index': ['./src/pkgs/data-model/fields/index.ts'],
-			'pkgs/data-model/schema/index': ['./src/pkgs/data-model/schema/index.ts'],
-			'pkgs/errors/index': ['./src/pkgs/errors/index.ts'],
-			'pkgs/logger/index': ['./src/pkgs/logger/index.ts'],
-			'types/index': ['./src/types/index.ts'],
-			'utils/index': ['./src/utils/index.ts'],
 			'client/index': ['./src/client/index.ts'],
 			'integrations/index': ['./src/integrations/index.ts'],
 			'integrations/next': ['./src/integrations/next.ts'],
 			'integrations/react': ['./src/integrations/react.ts'],
+			'pkgs/data-model/fields/index': ['./src/pkgs/data-model/fields/index.ts'],
+			'pkgs/data-model/index': ['./src/pkgs/data-model/index.ts'],
+			'pkgs/data-model/schema/index': ['./src/pkgs/data-model/schema/index.ts'],
+			'pkgs/db-adapters/adapters/drizzle-adapter/index': [
+				'./src/pkgs/db-adapters/adapters/drizzle-adapter/index.ts',
+			],
+			'pkgs/db-adapters/adapters/kysely-adapter/index': [
+				'./src/pkgs/db-adapters/adapters/kysely-adapter/index.ts',
+			],
+			'pkgs/db-adapters/adapters/memory-adapter/index': [
+				'./src/pkgs/db-adapters/adapters/memory-adapter/index.ts',
+			],
+			'pkgs/db-adapters/adapters/prisma-adapter/index': [
+				'./src/pkgs/db-adapters/adapters/prisma-adapter/index.ts',
+			],
+			'pkgs/db-adapters/index': ['./src/pkgs/db-adapters/index.ts'],
+			'pkgs/errors/index': ['./src/pkgs/errors/index.ts'],
+			'pkgs/logger/index': ['./src/pkgs/logger/index.ts'],
+			'pkgs/migration/index': ['./src/pkgs/migration/index.ts'],
+			'pkgs/types/index': ['./src/pkgs/types/index.ts'],
 		},
 	},
 	lib: [

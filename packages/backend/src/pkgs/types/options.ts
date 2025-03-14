@@ -1,4 +1,6 @@
 import type { C15TMiddleware } from '~/pkgs/api-router';
+import type { DatabaseHook, EntityName } from '~/pkgs/data-model';
+import type { DatabaseConfiguration } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
 /**
  * c15t Consent Management System Configuration Types
  *
@@ -10,12 +12,8 @@ import type { Logger } from '~/pkgs/logger';
 import type { C15TContext } from './context';
 import type { C15TPlugin } from './plugins';
 
-import type { DatabaseHook } from '~/pkgs/data-model/hooks/types';
-import type { EntityName } from '~/pkgs/data-model/schema/types';
-import type { DatabaseConfiguration } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
-
 // Import table configuration types from the schema module
-import type { TablesConfig } from '~/db/schema/types';
+import type { TablesConfig } from '~/schema/types';
 
 /**
  * Main configuration options for the c15t consent management system

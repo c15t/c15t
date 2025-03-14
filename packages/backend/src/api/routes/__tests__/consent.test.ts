@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { c15tInstance } from '~/core';
-import type { ConsentPolicy } from '~/db/schema';
 import { memoryAdapter } from '~/pkgs/db-adapters';
 import { BASE_ERROR_CODES } from '~/pkgs/errors';
 import type { C15TContext } from '~/pkgs/types';
+import type { ConsentPolicy } from '~/schema';
 import { setConsent } from '../set-consent';
 
 describe('Consent Endpoints', () => {

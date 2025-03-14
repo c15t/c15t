@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import type { Consent, ConsentRecord } from '~/db/schema';
 import { createAuthEndpoint } from '~/pkgs/api-router';
 import { Adapter } from '~/pkgs/db-adapters';
 import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
 import type { C15TContext } from '~/pkgs/types';
+import type { Consent, ConsentRecord } from '~/schema';
 
 const ConsentType = z.enum([
 	'cookie_banner',

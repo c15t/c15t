@@ -1,5 +1,5 @@
 import type { TableMetadata } from 'kysely';
-import type { Field } from '~/pkgs/data-model/fields';
+import type { Field } from '~/pkgs/data-model';
 import type { KyselyDatabaseType } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
 import { createLogger } from '~/pkgs/logger';
 import type { C15TOptions } from '~/pkgs/types';

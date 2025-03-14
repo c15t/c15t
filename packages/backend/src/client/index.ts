@@ -1,4 +1,4 @@
-import type { ConsentPurpose } from '~/db/schema/consent-purpose';
+import type { ConsentPurpose } from '~/schema/consent-purpose';
 import type { FetchOptions, ResponseContext, c15tClientOptions } from './types';
 
 /**
