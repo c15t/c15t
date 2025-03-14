@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { z } from 'zod';
 import type { ConsentRecord } from '~/db/schema/consent-record/schema';
-import { BASE_ERROR_CODES, C15TError } from '~/error';
+import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
 import type { C15TContext } from '../../types';
 import { createAuthEndpoint } from '../call';
 

@@ -1,6 +1,8 @@
 import type { TableMetadata } from 'kysely';
 import type { Field } from '~/db/core/fields';
-import { KyselyDatabaseType } from '~/pkgs/db-adapters/adapters';
+import type { KyselyDatabaseType } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
+import type { C15TOptions } from '~/types';
+import { createLogger } from '~/utils/logger';
 /**
  * Schema comparison functionality for database migrations
  *
@@ -20,12 +22,13 @@ import { KyselyDatabaseType } from '~/pkgs/db-adapters/adapters';
  *
  * @module migration/schema-comparison
  */
-import type { C15TOptions } from '~/types';
-import { createLogger } from '../../utils/logger';
-import { getSchema } from '../core/get-schema';
-import type { TableSchemaDefinition } from './get-schema/types';
+import { getSchema } from './get-schema';
 import { matchType } from './type-mapping';
-import type { ColumnsToAdd, TableToCreate } from './types';
+import type {
+	ColumnsToAdd,
+	TableSchemaDefinition,
+	TableToCreate,
+} from './types';
 
 /**
  * Analyzes schema differences between the expected schema and actual database
@@ -184,23 +187,24 @@ function handleExistingTable(
 	for (const [fieldName, field] of Object.entries(value.fields)) {
 		// Check if the field exists in the actual database table
 		const column = table.columns.find((c) => c.name === fieldName);
+		const typedField = field as Field;
 
 		// If the field doesn't exist in the database, mark it to be added
 		if (!column) {
-			toBeAddedFields[fieldName] = field;
+			toBeAddedFields[fieldName] = typedField;
 			continue; // Skip the rest of this iteration
 		}
 
 		// Field exists, so check if its type matches the expected type
 		// If types match, no action needed so continue to next field
-		if (matchType(column.dataType, field.type, dbType)) {
+		if (matchType(column.dataType, typedField.type, dbType)) {
 			continue;
 		}
 
 		// If we reach here, the field exists but has a different type
 		// We don't alter column types to avoid data loss, just log a warning
 		logger.warn(
-			`Field ${fieldName} in table ${tableName} has a different type in the database. Expected ${field.type} but got ${column.dataType}.`
+			`Field ${fieldName} in table ${tableName} has a different type in the database. Expected ${typedField.type} but got ${column.dataType}.`
 		);
 	}
 

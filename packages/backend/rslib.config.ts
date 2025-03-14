@@ -56,20 +56,23 @@ export default defineConfig({
 	source: {
 		entry: {
 			index: ['./src/index.ts'],
-			'db/migration/index': ['./src/db/migration/index.ts'],
+			'pkgs/migration/index': ['./src/pkgs/migration/index.ts'],
+			'pkgs/db-adapters/index': ['./src/pkgs/db-adapters/index.ts'],
+			'pkgs/db-adapters/adapters/prisma-adapter/index': [
+				'./src/pkgs/db-adapters/adapters/prisma-adapter/index.ts',
+			],
+			'pkgs/db-adapters/adapters/drizzle-adapter/index': [
+				'./src/pkgs/db-adapters/adapters/drizzle-adapter/index.ts',
+			],
+			'pkgs/db-adapters/adapters/memory-adapter/index': [
+				'./src/pkgs/db-adapters/adapters/memory-adapter/index.ts',
+			],
+			'pkgs/db-adapters/adapters/kysely-adapter/index': [
+				'./src/pkgs/db-adapters/adapters/kysely-adapter/index.ts',
+			],
 			'types/index': ['./src/types/index.ts'],
 			'utils/index': ['./src/utils/index.ts'],
 			'client/index': ['./src/client/index.ts'],
-			'db/adapters/prisma': ['./src/db/adapters/prisma-adapter/index.ts'],
-			'db/adapters/drizzle': [
-				'./src/db/adapters/drizzle-adapter/drizzle-adapter.ts',
-			],
-			'db/adapters/memory': [
-				'./src/db/adapters/memory-adapter/memory-adapter.ts',
-			],
-			'db/adapters/kysely': [
-				'./src/db/adapters/kysely-adapter/kysely-adapter.ts',
-			],
 			'error/index': ['./src/error/index.ts'],
 			'error/codes': ['./src/error/codes.ts'],
 			'integrations/index': ['./src/integrations/index.ts'],

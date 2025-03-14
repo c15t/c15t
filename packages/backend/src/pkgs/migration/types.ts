@@ -44,3 +44,11 @@ export interface MigrationResult {
 	runMigrations: () => Promise<void>;
 	compileMigrations: () => Promise<string>;
 }
+
+/**
+ * Re-export TableSchemaDefinition from get-schema
+ */
+export type {
+	SchemaDefinition,
+	TableSchemaDefinition,
+} from './get-schema/types';

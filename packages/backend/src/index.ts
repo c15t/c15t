@@ -17,7 +17,7 @@ export * from './core';
 /**
  * Error codes used throughout the system for consistent error handling
  */
-export * from './error/codes';
+export * from './pkgs/errors/codes';
 
 //------------------------------------------------------------------------------
 // Utilities and Helpers

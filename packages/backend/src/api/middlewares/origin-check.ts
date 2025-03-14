@@ -1,4 +1,4 @@
-import { BASE_ERROR_CODES, C15TError } from '~/error';
+import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
 import type { GenericEndpointContext } from '~/types';
 import { getHost, getOrigin, getProtocol } from '~/utils/url';
 import { wildcardMatch } from '~/utils/wildcard';

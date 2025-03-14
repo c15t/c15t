@@ -1,5 +1,5 @@
 import type { C15TInstance } from '~/core';
-import { BASE_ERROR_CODES } from '~/error/codes';
+import { BASE_ERROR_CODES } from '~/pkgs/errors/codes';
 import type { C15TContext } from '~/types';
 
 /**

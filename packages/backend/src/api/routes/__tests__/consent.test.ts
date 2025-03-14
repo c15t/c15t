@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { c15tInstance } from '~/core';
 import type { ConsentPolicy } from '~/db/schema';
-import { BASE_ERROR_CODES } from '~/error';
 import { memoryAdapter } from '~/pkgs/db-adapters';
+import { BASE_ERROR_CODES } from '~/pkgs/errors';
 import type { C15TContext } from '~/types';
 import { setConsent } from '../set-consent';
 

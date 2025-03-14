@@ -1,6 +1,13 @@
 import { router } from './api/index';
-import { BASE_ERROR_CODES, failAsync, okAsync, safeResultAsync } from './error';
-import type { C15TResult, C15TResultAsync } from './error/results';
+import {
+	BASE_ERROR_CODES,
+	type C15TResult,
+	type C15TResultAsync,
+	failAsync,
+	okAsync,
+	safeResultAsync,
+} from './pkgs/errors';
+
 import { init } from './init';
 import type {
 	C15TContext,

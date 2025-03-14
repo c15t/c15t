@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { EntityOutputFields } from '~/db/schema/definition';
-import { BASE_ERROR_CODES, C15TError } from '~/error';
+import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
 import type { C15TContext } from '../../types';
 import { createAuthEndpoint } from '../call';
 

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { Consent, ConsentRecord } from '~/db/schema';
-import { BASE_ERROR_CODES, C15TError } from '~/error';
 import { Adapter } from '~/pkgs/db-adapters/types';
+import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
 import type { C15TContext } from '../../types';
 import { createAuthEndpoint } from '../call';
 

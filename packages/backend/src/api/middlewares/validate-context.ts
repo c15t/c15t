@@ -1,5 +1,5 @@
-import { BASE_ERROR_CODES, C15TError } from '~/error';
 import { Adapter } from '~/pkgs/db-adapters/types';
+import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
 import type { C15TContext, C15TPlugin } from '~/types';
 import { createAuthMiddleware } from '../call';
 

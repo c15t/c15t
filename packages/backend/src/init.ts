@@ -7,10 +7,13 @@ import { getAdapter } from './db/utils';
 import {
 	BASE_ERROR_CODES,
 	type C15TError,
+	type C15TResult,
+	fail,
 	failAsync,
 	fromPromise,
-} from './error';
-import { type C15TResult, fail, ok } from './error/results';
+	ok,
+} from './pkgs/errors';
+
 /**
  * c15t Initialization Module
  *
