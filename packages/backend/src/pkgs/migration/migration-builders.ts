@@ -3,8 +3,8 @@ import type {
 	Database,
 	KyselyDatabaseType,
 } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
+import { createLogger } from '~/pkgs/logger';
 import type { C15TOptions } from '~/pkgs/types';
-import { createLogger } from '~/utils/logger';
 import { getType } from './type-mapping';
 import type { ColumnsToAdd, MigrationOperation, TableToCreate } from './types';
 

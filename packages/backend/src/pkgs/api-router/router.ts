@@ -5,10 +5,10 @@ import {
 	type UnionToIntersection,
 	createRouter,
 } from 'better-call';
+import { getIp } from '~/pkgs/api-router/utils/ip';
 import type { C15TContext, C15TOptions, C15TPlugin } from '~/pkgs/types';
-import { getIp } from '~/utils/ip';
 
-import { logger } from '~/utils/logger';
+import { logger } from '~/pkgs/logger';
 import { C15TEndpoint } from './call';
 import { toEndpoints } from './to-endpoints';
 

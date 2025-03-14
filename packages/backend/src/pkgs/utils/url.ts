@@ -1,5 +1,5 @@
 import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
-import { env } from '../utils/env';
+import { env } from './env';
 
 /**
  * Regular expression to match trailing slashes in URLs

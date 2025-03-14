@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { EntityOutputFields } from '~/db/schema/definition';
 import { createAuthEndpoint } from '~/pkgs/api-router/call';
 import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
-import { logger } from '~/utils';
+import { logger } from '~/pkgs/logger';
 
 // Define the schema for validating request parameters
 const getConsentHistorySchema = z.object({

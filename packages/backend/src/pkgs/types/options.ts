@@ -6,7 +6,7 @@ import type { C15TMiddleware } from '~/pkgs/api-router';
  * It includes types for setting up storage, API endpoints, cookies, rate limiting,
  * analytics, geo-targeting, plugins, logging, and other advanced features.
  */
-import type { Logger } from '~/utils/logger';
+import type { Logger } from '~/pkgs/logger';
 import type { C15TContext } from './context';
 import type { C15TPlugin } from './plugins';
 

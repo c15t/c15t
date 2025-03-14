@@ -14,3 +14,7 @@ export * from './call';
 
 // Re-export endpoint conversion utilities
 export * from './to-endpoints';
+
+export { HIDE_METADATA } from './utils/hide-metadata';
+export { wildcardMatch } from './utils/wildcard';
+export { getIp } from './utils/ip';

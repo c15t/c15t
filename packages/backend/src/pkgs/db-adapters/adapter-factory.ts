@@ -1,7 +1,7 @@
 import { getConsentTables } from '~/db/schema';
 import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
+import { createLogger } from '~/pkgs/logger';
 import type { C15TOptions } from '~/pkgs/types';
-import { createLogger } from '~/utils/logger';
 import { kyselyAdapter } from './adapters/kysely-adapter';
 import { createKyselyAdapter } from './adapters/kysely-adapter/dialect';
 import { memoryAdapter } from './adapters/memory-adapter';

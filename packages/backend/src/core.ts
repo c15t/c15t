@@ -14,7 +14,7 @@ import type {
 	C15TPlugin,
 	FilterActions,
 } from '~/pkgs/types';
-import { getBaseURL } from '~/utils';
+import { getBaseURL } from '~/pkgs/utils';
 import { init } from './init';
 
 /**

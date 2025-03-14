@@ -1,5 +1,4 @@
 import type { Adapter } from '~/pkgs/db-adapters';
-import type { C15TOptions } from '~/pkgs/types';
 /**
  * Migration execution functionality
  *
@@ -7,7 +6,8 @@ import type { C15TOptions } from '~/pkgs/types';
  *
  * @module migration/migration-execution
  */
-import { createLogger } from '~/utils/logger';
+import { createLogger } from '~/pkgs/logger';
+import type { C15TOptions } from '~/pkgs/types';
 import type { MigrationOperation } from './types';
 
 /**

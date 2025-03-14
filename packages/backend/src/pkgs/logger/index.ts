@@ -9,3 +9,12 @@ export {
 	logError,
 	logErrorAsync,
 } from './logging';
+
+export {
+	createLogger,
+	logger,
+	type LogLevel,
+	levels,
+	shouldPublishLog,
+	type Logger,
+} from './logger';
