@@ -10,6 +10,26 @@ import type { C15TContext, HookEndpointContext } from '~/types';
 import type { C15TEndpoint, C15TMiddleware } from './call';
 
 /**
+ * Hook definition for request/response processing
+ */
+interface Hook {
+	/**
+	 * Optional matcher function to determine if hook should run
+	 */
+	match?: (context: HookEndpointContext) => boolean;
+
+	/**
+	 * Function to run before request processing
+	 */
+	before?: C15TMiddleware;
+
+	/**
+	 * Function to run after request processing
+	 */
+	after?: C15TMiddleware;
+}
+
+/**
  * Internal context type combining endpoint and input contexts with C15T-specific properties
  *
  * @internal
@@ -250,14 +270,14 @@ async function runBeforeHooks(
 /**
  * Executes after hooks on the response context
  *
- * Runs through all matching hooks in sequence, allowing them to
- * modify the response before it's sent.
+ * Runs through all matching hooks in sequence after the endpoint handler has completed,
+ * allowing post-processing of responses.
  *
  * @internal
  * @param context - The endpoint context to pass to hooks
  * @param hooks - Array of hook definitions with matchers and handlers
- * @returns Modified response with updated headers
- * @throws Will propagate any non-APIError exceptions thrown by hook handlers
+ * @returns An object potentially containing a modified response
+ * @throws Will propagate any errors thrown by hook handlers that aren't caught internally
  */
 async function runAfterHooks(
 	context: HookEndpointContext,
@@ -266,57 +286,51 @@ async function runAfterHooks(
 		handler: C15TMiddleware;
 	}[]
 ) {
+	let headers: Headers | null = null;
+	let response: unknown = null;
 	for (const hook of hooks) {
 		if (hook.matcher(context)) {
-			const result = (await hook.handler(context).catch((e) => {
-				if (e instanceof APIError) {
-					return {
-						response: e,
-						headers: e.headers ? new Headers(e.headers) : null,
-					};
-				}
-				throw e;
-			})) as {
-				response: unknown;
-				headers: Headers;
-			};
-			if (result.headers) {
-				result.headers.forEach((value, key) => {
-					if (context.context.responseHeaders) {
-						if (key.toLowerCase() === 'set-cookie') {
-							context.context.responseHeaders.append(key, value);
-						} else {
-							context.context.responseHeaders.set(key, value);
-						}
-					} else {
-						context.context.responseHeaders = new Headers();
-						context.context.responseHeaders.set(key, value);
-					}
-				});
+			const result = await hook.handler({
+				...context,
+				returnHeaders: true,
+			});
+			if (
+				result &&
+				typeof result === 'object' &&
+				'response' in result &&
+				result.response !== undefined
+			) {
+				response = result.response;
 			}
-			if (result.response) {
-				context.context.returned = result.response;
+			if (
+				result &&
+				typeof result === 'object' &&
+				'headers' in result &&
+				result.headers
+			) {
+				if (!headers) {
+					headers = new Headers();
+				}
+				(result.headers as Headers).forEach((value, key) => {
+					headers?.set(key, value);
+				});
 			}
 		}
 	}
-	return {
-		response: context.context.returned,
-		headers: context.context.responseHeaders,
-	};
+	return { response, headers };
 }
 
 /**
  * Extracts hook definitions from the C15T context
  *
- * Collects hooks from core configuration and plugins, organizing them
- * into before and after hooks.
+ * Organizes hooks into before and after categories for processing.
  *
  * @internal
- * @param C15TContext - The consent management context
- * @returns Object containing arrays of before and after hooks
+ * @param context - The C15T context containing hook definitions
+ * @returns Object with before and after hook arrays
  */
-function getHooks(C15TContext: C15TContext) {
-	const plugins = C15TContext.options.plugins || [];
+function getHooks(context: C15TContext) {
+	const hooks = (context.hooks || []) as Hook[];
 	const beforeHooks: {
 		matcher: (context: HookEndpointContext) => boolean;
 		handler: C15TMiddleware;
@@ -325,44 +339,21 @@ function getHooks(C15TContext: C15TContext) {
 		matcher: (context: HookEndpointContext) => boolean;
 		handler: C15TMiddleware;
 	}[] = [];
-	if (C15TContext.options.hooks?.before) {
-		beforeHooks.push({
-			matcher: () => true,
-			handler: C15TContext.options.hooks.before,
-		});
-	}
-	if (C15TContext.options.hooks?.after) {
-		afterHooks.push({
-			matcher: () => true,
-			handler: C15TContext.options.hooks.after,
-		});
-	}
-	const pluginBeforeHooks = plugins
-		.map((plugin) => {
-			if (plugin.hooks?.before) {
-				return plugin.hooks.before;
-			}
-		})
-		.filter(
-			(plugin): plugin is NonNullable<typeof plugin> => plugin !== undefined
-		)
-		.flat();
-	const pluginAfterHooks = plugins
-		.map((plugin) => {
-			if (plugin.hooks?.after) {
-				return plugin.hooks.after;
-			}
-		})
-		.filter(
-			(plugin): plugin is NonNullable<typeof plugin> => plugin !== undefined
-		)
-		.flat();
 
-	/**
-	 * Add plugin added hooks at last
-	 */
-	pluginBeforeHooks.length && beforeHooks.push(...pluginBeforeHooks);
-	pluginAfterHooks.length && afterHooks.push(...pluginAfterHooks);
+	for (const hook of hooks) {
+		if (typeof hook.before === 'function') {
+			beforeHooks.push({
+				matcher: hook.match || (() => true),
+				handler: hook.before,
+			});
+		}
+		if (typeof hook.after === 'function') {
+			afterHooks.push({
+				matcher: hook.match || (() => true),
+				handler: hook.after,
+			});
+		}
+	}
 
 	return {
 		beforeHooks,

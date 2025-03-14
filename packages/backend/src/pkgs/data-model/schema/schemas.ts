@@ -5,9 +5,6 @@
  * It serves as the central hub for accessing all schema definitions.
  */
 
-// Export the getConsentTables function and schema type
-export { getConsentTables, type C15TDBSchema } from './definition';
-
 // Export the parser functions
 export {
 	parseInputData,

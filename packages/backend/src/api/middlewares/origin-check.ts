@@ -1,8 +1,8 @@
+import { createAuthMiddleware } from '~/pkgs/api-router/call';
 import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
 import type { GenericEndpointContext } from '~/types';
 import { getHost, getOrigin, getProtocol } from '~/utils/url';
 import { wildcardMatch } from '~/utils/wildcard';
-import { createAuthMiddleware } from '../call';
 
 /**
  * Regular expression for validating relative URLs

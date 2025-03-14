@@ -1,5 +1,5 @@
+import { createAuthEndpoint } from '~/pkgs/api-router/call';
 import { HIDE_METADATA } from '~/utils/hide-metadata';
-import { createAuthEndpoint } from '../call';
 
 function sanitize(input: string): string {
 	return input

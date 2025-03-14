@@ -16,6 +16,7 @@ import type {
 import type { InsertExpression } from 'node_modules/kysely/dist/esm/parser/insert-values-parser';
 import type { TableReference } from 'node_modules/kysely/dist/esm/parser/table-parser';
 import superjson from 'superjson';
+import { getConsentTables } from '~/db/schema/definition';
 import {
 	type Field,
 	type Primitive,
@@ -28,13 +29,7 @@ import type {
 	EntityTypeMap,
 } from '~/pkgs/data-model/schema/types';
 import { C15TOptions } from '~/types';
-import {
-	Adapter,
-	TableFields,
-	Where,
-	applyDefaultValue,
-	getConsentTables,
-} from '../..';
+import { Adapter, TableFields, Where, applyDefaultValue } from '../..';
 import type { Database, KyselyDatabaseType } from './types';
 
 /**

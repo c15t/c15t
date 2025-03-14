@@ -1,6 +1,6 @@
 import type { z } from 'zod';
+import type { C15TDBSchema } from '~/db/schema/definition';
 import type { Field } from '~/pkgs/data-model/fields';
-import type { C15TDBSchema } from '../schema/definition';
 
 /**
  * Entity field configuration

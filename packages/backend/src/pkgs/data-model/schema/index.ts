@@ -13,12 +13,6 @@ export type {
 	EntityField,
 } from './types';
 
-// Export the functions from their new locations
-export {
-	getConsentTables,
-	type C15TDBSchema,
-} from './definition';
-
 export {
 	parseInputData,
 	parseEntityOutputData,

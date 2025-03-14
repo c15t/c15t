@@ -1,19 +1,10 @@
-import {
-	APIError,
-	type Endpoint,
-	type Middleware,
-	type UnionToIntersection,
-	createRouter,
-} from 'better-call';
+import { createApiRouter, getEndpoints } from '~/pkgs/api-router';
 import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
-import { getIp } from '~/utils/ip';
 
-import { logger } from '~/utils/logger';
 import { originCheckMiddleware } from './middlewares/origin-check';
 import { validateContextMiddleware } from './middlewares/validate-context';
 import { baseEndpoints } from './routes';
 import { ok } from './routes/ok';
-import { toEndpoints } from './to-endpoints';
 
 /**
  * Retrieves and configures endpoints from plugins and core functionality
@@ -34,7 +25,7 @@ import { toEndpoints } from './to-endpoints';
  *
  * @example
  * ```typescript
- * const { api, middlewares } = getEndpoints(contextInstance, {
+ * const { api, middlewares } = getEndpointsFromCtx(contextInstance, {
  *   plugins: [analyticsPlugin(), geoPlugin()]
  * });
  *
@@ -44,73 +35,11 @@ import { toEndpoints } from './to-endpoints';
  * });
  * ```
  */
-export function getEndpoints<
+export function getEndpointsFromCtx<
 	ContextType extends C15TContext,
 	OptionsType extends C15TOptions,
 >(ctx: Promise<ContextType> | ContextType, options: OptionsType) {
-	const pluginEndpoints = options.plugins?.reduce<Record<string, Endpoint>>(
-		(acc, plugin) => {
-			if (plugin.endpoints) {
-				Object.assign(acc, plugin.endpoints);
-			}
-			return acc;
-		},
-		{}
-	);
-
-	/**
-	 * Type representing the intersection of all plugin endpoint types
-	 *
-	 * @internal
-	 */
-	type PluginEndpoint = UnionToIntersection<
-		OptionsType['plugins'] extends Array<infer PluginType>
-			? PluginType extends C15TPlugin
-				? PluginType extends {
-						endpoints: infer EndpointType;
-					}
-					? EndpointType
-					: Record<string, never>
-				: Record<string, never>
-			: Record<string, never>
-	>;
-
-	const middlewares =
-		options.plugins
-			?.map((plugin) =>
-				plugin.middlewares?.map((m) => {
-					const middleware = (async (context: { context: ContextType }) => {
-						return m.middleware({
-							...context,
-							context: {
-								...ctx,
-								...context.context,
-							},
-						});
-					}) as Middleware;
-					middleware.options = m.middleware.options;
-					return {
-						path: m.path,
-						middleware,
-					};
-				})
-			)
-			.filter(
-				(plugin): plugin is NonNullable<typeof plugin> => plugin !== undefined
-			)
-			.flat() || [];
-
-	const endpoints = {
-		...baseEndpoints,
-		...pluginEndpoints,
-		ok,
-		// error,
-	};
-	const api = toEndpoints(endpoints, ctx);
-	return {
-		api: api as typeof endpoints & PluginEndpoint,
-		middlewares,
-	};
+	return getEndpoints(ctx, options, baseEndpoints, ok);
 }
 
 /**
@@ -164,140 +93,16 @@ export const router = <
 	ctx: ContextType,
 	options: OptionsType
 ) => {
-	const { api, middlewares } = getEndpoints(ctx, options);
-
-	// Check for baseURL and properly handle it
-	let basePath = '';
-	try {
-		if (ctx.baseURL) {
-			const url = new URL(ctx.baseURL);
-			basePath = url.pathname;
-		}
-	} catch {
-		basePath = '/api/c15t';
-	}
-	// Ensure we have a valid basePath
-	if (!basePath || basePath === '/') {
-		basePath = '/api/c15t';
-	}
-
-	/**
-	 * Configure and create the router instance
-	 *
-	 * @internal
-	 */
-	const routerInstance = createRouter(api, {
-		routerContext: ctx,
-		openapi: {
-			disabled: false,
+	const coreMiddlewares = [
+		{
+			path: '/**',
+			middleware: validateContextMiddleware,
 		},
-		basePath,
-		routerMiddleware: [
-			{
-				path: '/**',
-				middleware: validateContextMiddleware,
-			},
-			{
-				path: '/**',
-				middleware: originCheckMiddleware,
-			},
-			...middlewares,
-		],
-		async onRequest(req) {
-			// Add IP address to context
-			(ctx as C15TContext).ipAddress = getIp(req, options);
-			(ctx as C15TContext).userAgent = req.headers.get('user-agent');
-
-			for (const plugin of ctx.options.plugins || []) {
-				if (plugin.onRequest) {
-					const response = await plugin.onRequest(req, ctx);
-					if (response && 'response' in response) {
-						return response.response;
-					}
-				}
-			}
-			return req;
+		{
+			path: '/**',
+			middleware: originCheckMiddleware,
 		},
+	];
 
-		/**
-		 * Handle response processing through plugins
-		 *
-		 * @internal
-		 * @param res - The response to process
-		 * @returns The processed response
-		 */
-		async onResponse(res) {
-			for (const plugin of ctx.options.plugins || []) {
-				if (plugin.onResponse) {
-					const response = await plugin.onResponse(res, ctx);
-					if (response) {
-						return response.response;
-					}
-				}
-			}
-			return res;
-		},
-
-		/**
-		 * Handle errors that occur during request processing
-		 *
-		 * @internal
-		 * @param e - The error that occurred
-		 */
-		onError(e) {
-			if (e instanceof APIError && e.status === 'FOUND') {
-				return;
-			}
-			if (options.onAPIError?.throw) {
-				throw e;
-			}
-			if (options.onAPIError?.onError) {
-				options.onAPIError.onError(e, ctx);
-				return;
-			}
-
-			const optLogLevel = options.logger?.level;
-			const log =
-				optLogLevel === 'error' ||
-				optLogLevel === 'warn' ||
-				optLogLevel === 'debug'
-					? logger
-					: undefined;
-			if (options.logger?.disabled !== true) {
-				if (
-					e &&
-					typeof e === 'object' &&
-					'message' in e &&
-					typeof e.message === 'string' &&
-					(e.message.includes('no column') ||
-						e.message.includes('column') ||
-						e.message.includes('relation') ||
-						e.message.includes('table') ||
-						e.message.includes('does not exist'))
-				) {
-					ctx.logger?.error(e.message);
-					return;
-				}
-
-				if (e instanceof APIError) {
-					if (e.status === 'INTERNAL_SERVER_ERROR') {
-						ctx.logger.error(e.status, e);
-					}
-					log?.error(e.message);
-				} else {
-					ctx.logger?.error(
-						e && typeof e === 'object' && 'name' in e ? (e.name as string) : '',
-						e
-					);
-				}
-			}
-		},
-	});
-
-	return routerInstance;
+	return createApiRouter(ctx, options, baseEndpoints, ok, coreMiddlewares);
 };
-
-// export * from './routes';
-// export * from './middlewares';
-export * from './call';
-export { APIError } from 'better-call';

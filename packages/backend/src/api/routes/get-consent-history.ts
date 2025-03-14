@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import type { EntityOutputFields } from '~/db/schema/definition';
+import { createAuthEndpoint } from '~/pkgs/api-router/call';
+import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
 import { logger } from '~/utils';
-import { APIError } from '..';
-import { createAuthEndpoint } from '../call';
 
 // Define the schema for validating request parameters
 const getConsentHistorySchema = z.object({
@@ -33,10 +33,13 @@ export const getConsentHistory = createAuthEndpoint(
 			const { registry } = ctx.context;
 
 			if (!registry) {
-				throw new APIError('INTERNAL_SERVER_ERROR', {
-					message: 'Registry not available',
-					status: 503,
-				});
+				throw new C15TError(
+					'The registry service is currently unavailable. Please check the service status and try again later.',
+					{
+						code: BASE_ERROR_CODES.INITIALIZATION_FAILED,
+						status: 503,
+					}
+				);
 			}
 
 			let subjectConsents = await registry.findConsents({

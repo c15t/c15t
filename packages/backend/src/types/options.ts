@@ -1,4 +1,4 @@
-import type { C15TMiddleware } from '~/api/call';
+import type { C15TMiddleware } from '~/pkgs/api-router';
 /**
  * c15t Consent Management System Configuration Types
  *

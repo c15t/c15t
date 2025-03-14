@@ -1,4 +1,4 @@
-import { createAuthEndpoint } from '../call';
+import { createAuthEndpoint } from '~/pkgs/api-router/call';
 
 export const showConsentBanner = createAuthEndpoint(
 	'/show-consent-banner',
