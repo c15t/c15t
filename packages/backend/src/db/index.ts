@@ -2,29 +2,11 @@
  * Database Module - Main Entry Point
  *
  * This module provides a type-safe interface for interacting with the database.
+ * It re-exports components from the new data-model package structure.
  */
 
-// Schema-related exports
-export {
-	getConsentTables,
-	parseInputData,
-	parseEntityOutputData,
-	getAllFields,
-} from './schema/index';
+// Re-export from new package location
+export * from '~/pkgs/data-model';
 
-// Field-related exports
-export type {
-	Field,
-	FieldType,
-} from './core/fields';
-
-export {
-	stringField,
-	numberField,
-	booleanField,
-	dateField,
-	stringArrayField,
-	numberArrayField,
-} from './core/fields';
-
+// Keep the adapter factory export here for backwards compatibility
 export { getAdapter } from './utils/adapter-factory';

@@ -11,7 +11,7 @@ import {
 	like,
 	or,
 } from 'drizzle-orm';
-import { BASE_ERROR_CODES, C15TError } from '~/error';
+import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
 import type { Adapter, C15TOptions, Where } from '~/types';
 import { getConsentTables } from '../..';
 

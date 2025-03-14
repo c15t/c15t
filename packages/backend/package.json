@@ -42,6 +42,31 @@
 			"import": "./dist/pkgs/migration/index.js",
 			"require": "./dist/pkgs/migration/index.cjs"
 		},
+		"./pkgs/data-model": {
+			"types": "./dist/pkgs/data-model/index.d.ts",
+			"import": "./dist/pkgs/data-model/index.js",
+			"require": "./dist/pkgs/data-model/index.cjs"
+		},
+		"./pkgs/data-model/fields": {
+			"types": "./dist/pkgs/data-model/fields/index.d.ts",
+			"import": "./dist/pkgs/data-model/fields/index.js",
+			"require": "./dist/pkgs/data-model/fields/index.cjs"
+		},
+		"./pkgs/data-model/schema": {
+			"types": "./dist/pkgs/data-model/schema/index.d.ts",
+			"import": "./dist/pkgs/data-model/schema/index.js",
+			"require": "./dist/pkgs/data-model/schema/index.cjs"
+		},
+		"./pkgs/errors": {
+			"types": "./dist/pkgs/errors/index.d.ts",
+			"import": "./dist/pkgs/errors/index.js",
+			"require": "./dist/pkgs/errors/index.cjs"
+		},
+		"./pkgs/logger": {
+			"types": "./dist/pkgs/logger/index.d.ts",
+			"import": "./dist/pkgs/logger/index.js",
+			"require": "./dist/pkgs/logger/index.cjs"
+		},
 		"./pkgs/db-adapters": {
 			"types": "./dist/pkgs/db-adapters/index.d.ts",
 			"import": "./dist/pkgs/db-adapters/index.js",
@@ -71,16 +96,6 @@
 			"types": "./dist/plugins/geo.d.ts",
 			"import": "./dist/plugins/geo.js",
 			"require": "./dist/plugins/geo.cjs"
-		},
-		"./error": {
-			"types": "./dist/error/index.d.ts",
-			"import": "./dist/error/index.js",
-			"require": "./dist/error/index.cjs"
-		},
-		"./error/codes": {
-			"types": "./dist/error/codes.d.ts",
-			"import": "./dist/error/codes.js",
-			"require": "./dist/error/codes.cjs"
 		},
 		"./package.json": "./package.json",
 		"./integrations": {
