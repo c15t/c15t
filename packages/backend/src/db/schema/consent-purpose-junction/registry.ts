@@ -1,4 +1,4 @@
-import type { GenericEndpointContext, RegistryContext } from '~/types';
+import type { GenericEndpointContext, RegistryContext } from '~/pkgs/types';
 import type { PurposeJunction } from './schema';
 
 import { getWithHooks } from '~/pkgs/data-model/hooks';

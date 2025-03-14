@@ -1,5 +1,5 @@
 import { createEndpoint, createMiddleware } from 'better-call';
-import type { C15TContext } from '~/types';
+import type { C15TContext } from '~/pkgs/types';
 
 /**
  * Middleware that provides access to the C15T context

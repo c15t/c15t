@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { C15TContext } from '~/types';
+import type { C15TContext } from '~/pkgs/types';
 
 /**
  * Creates a mock context for testing API endpoints

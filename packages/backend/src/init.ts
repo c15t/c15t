@@ -14,7 +14,6 @@ import {
 	ok,
 } from './pkgs/errors';
 
-import { getAdapter } from './pkgs/db-adapters';
 /**
  * c15t Initialization Module
  *
@@ -35,8 +34,9 @@ import type {
 	C15TOptions,
 	C15TPlugin,
 	RegistryContext,
-} from './types';
-import { createLogger, env, getBaseURL, isProduction } from './utils';
+} from '~/pkgs/types';
+import { createLogger, env, getBaseURL, isProduction } from '~/utils';
+import { getAdapter } from './pkgs/db-adapters';
 
 /**
  * Helper function to convert a Promise to a C15T-specific ResultAsync

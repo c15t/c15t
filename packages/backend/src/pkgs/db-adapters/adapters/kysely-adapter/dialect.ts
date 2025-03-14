@@ -6,7 +6,7 @@ import {
 	PostgresDialect,
 	SqliteDialect,
 } from 'kysely';
-import type { C15TOptions } from '~/types';
+import type { C15TOptions } from '~/pkgs/types';
 import type {
 	Database,
 	DatabaseConfiguration,

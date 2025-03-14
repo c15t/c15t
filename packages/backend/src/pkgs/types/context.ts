@@ -9,7 +9,7 @@ import type { DatabaseHook } from '~/pkgs/data-model/hooks/types';
 import type { EntityName } from '~/pkgs/data-model/schema/types';
 import { Adapter } from '~/pkgs/db-adapters/types';
 import type { createLogger } from '~/utils';
-import type { C15TOptions } from './index';
+import type { C15TOptions } from './options';
 
 /**
  * Extended endpoint context for hooks
@@ -47,12 +47,14 @@ export type HookEndpointContext<
 	};
 
 /**
- * Standard endpoint context for c15t handlers
+ * Generic endpoint context type
  *
- * A simplified context type that includes the c15t context,
- * used by endpoint handlers throughout the system.
+ * A simplified context type for endpoint handlers that don't need
+ * access to input-specific context properties.
  *
  * @typeParam TOptions - Endpoint configuration options type
+ *
+ * @see HookEndpointContext for a more complete context type with input context
  */
 export type GenericEndpointContext<
 	TOptions extends EndpointOptions = EndpointOptions,
@@ -64,10 +66,9 @@ export type GenericEndpointContext<
 };
 
 /**
- * Base shared context for all c15t components
+ * Base context interface
  *
- * Contains the minimal set of properties needed by all components
- * in the c15t system, including configuration options and logging.
+ * Defines the minimal required properties for a c15t context.
  */
 export interface BaseContext {
 	/**
@@ -82,10 +83,10 @@ export interface BaseContext {
 }
 
 /**
- * Registry-specific context for database adapters
+ * Registry context interface
  *
- * Extends the base context with properties needed for
- * database operations and entity management.
+ * Extends the base context with registry-specific properties
+ * for database access and entity management.
  */
 export interface RegistryContext extends BaseContext {
 	/**
@@ -108,10 +109,10 @@ export interface RegistryContext extends BaseContext {
 }
 
 /**
- * Base context without plugin-specific extensions
+ * Base C15T context interface
  *
- * This interface defines the core context properties available to all
- * components in the c15t system before plugin extensions are applied.
+ * Defines the core properties available in all c15t application contexts.
+ * This forms the foundation for the complete context used throughout the system.
  */
 export interface BaseC15TContext {
 	/**
@@ -179,54 +180,32 @@ export interface BaseC15TContext {
 }
 
 /**
- * Extended context type with plugin extensions
+ * Complete C15T context type
  *
- * This type extends the base context with plugin-specific properties,
- * allowing plugins to add their own functionality to the context.
+ * This type combines the base context with plugin-specific context extensions.
+ * It's the primary context type used throughout the system.
  *
- * @typeParam TPluginContext - Record of plugin-specific context extensions
- *
- * @example
- * ```ts
- * // Plugin extending the context with analytics capabilities
- * interface AnalyticsContext {
- *   analytics: {
- *     trackEvent: (event: string, data: unknown) => void;
- *     getSessionId: () => string;
- *   }
- * }
- *
- * // Using the extended context in a component
- * function handleConsent(ctx: C15TContext<AnalyticsContext>) {
- *   // Base context is available
- *   const { baseURL, logger } = ctx;
- *
- *   // Plugin context is also available
- *   ctx.analytics.trackEvent('consent_given', { timestamp: Date.now() });
- * }
- * ```
+ * @typeParam TPluginContext - Record of plugin-specific context properties
  */
 export type C15TContext<
 	TPluginContext extends Record<string, unknown> = Record<string, unknown>,
 > = BaseC15TContext & TPluginContext;
 
 /**
- * Helper to extract context with a specific plugin's context type
+ * Context with a specific plugin
  *
- * This utility type makes it easier to work with context that has been
- * extended by a specific plugin, providing proper type information.
+ * This utility type makes it easier to create contexts with
+ * a specific plugin's context properties.
  *
- * @typeParam TPluginName - The name of the plugin providing the context extension
- * @typeParam TPluginContext - The type of the context extension provided by the plugin
+ * @typeParam TPluginName - The name of the plugin
+ * @typeParam TPluginContext - The plugin-specific context properties
  *
  * @example
  * ```ts
- * // Working with a specific plugin's context
- * function useGeoPlugin(ctx: ContextWithPlugin<'geo', GeoPluginContext>) {
- *   // TypeScript knows that ctx.geo exists and has the right type
- *   const country = ctx.geo.getCurrentCountry();
- *   return country;
- * }
+ * type AnalyticsContextType = { trackEvent: (name: string) => void };
+ * type ContextWithAnalytics = ContextWithPlugin<'analytics', AnalyticsContextType>;
+ *
+ * // Now you can access context.analytics.trackEvent
  * ```
  */
 export type ContextWithPlugin<

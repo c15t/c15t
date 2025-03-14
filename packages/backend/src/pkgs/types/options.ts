@@ -6,8 +6,9 @@ import type { C15TMiddleware } from '~/pkgs/api-router';
  * It includes types for setting up storage, API endpoints, cookies, rate limiting,
  * analytics, geo-targeting, plugins, logging, and other advanced features.
  */
-import type { Logger } from '../utils/logger';
-import type { C15TContext, C15TPlugin } from './index';
+import type { Logger } from '~/utils/logger';
+import type { C15TContext } from './context';
+import type { C15TPlugin } from './plugins';
 
 import type { DatabaseHook } from '~/pkgs/data-model/hooks/types';
 import type { EntityName } from '~/pkgs/data-model/schema/types';
@@ -28,11 +29,11 @@ import type { TablesConfig } from '~/db/schema/types';
  * @example
  * ```ts
  * // Basic configuration
- * const config: C15TOptions = {
- *   appName: 'My Application',
- *   baseURL: 'https://example.com',
- *   secret: 'strong-secret-key',
- *   plugins: [geoPlugin, analyticsPlugin]
+ * const options: C15TOptions = {
+ *   appName: "My App",
+ *   secret: process.env.SECRET_KEY,
+ *   baseURL: "https://example.com",
+ *   trustedOrigins: ["https://example.com"]
  * };
  * ```
  */

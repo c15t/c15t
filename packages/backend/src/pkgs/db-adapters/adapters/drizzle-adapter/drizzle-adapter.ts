@@ -11,12 +11,11 @@ import {
 	like,
 	or,
 } from 'drizzle-orm';
-import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
-import type { Adapter, C15TOptions, Where } from '~/types';
-import { getConsentTables } from '../..';
-
+import { getConsentTables } from '~/db/schema/definition';
 import { generateId } from '~/pkgs/data-model/fields';
 import type { EntityName } from '~/pkgs/data-model/schema/types';
+import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
+import type { Adapter, C15TOptions, Where } from '~/pkgs/types';
 import { applyDefaultValue } from '../../utils';
 
 /**

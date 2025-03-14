@@ -1,6 +1,5 @@
 import { createApiRouter, getEndpoints } from '~/pkgs/api-router';
-import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
-
+import type { C15TContext, C15TOptions, C15TPlugin } from '~/pkgs/types';
 import { originCheckMiddleware } from './middlewares/origin-check';
 import { validateContextMiddleware } from './middlewares/validate-context';
 import { baseEndpoints } from './routes';

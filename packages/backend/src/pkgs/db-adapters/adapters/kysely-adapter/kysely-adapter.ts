@@ -28,7 +28,7 @@ import type {
 	EntityOutput,
 	EntityTypeMap,
 } from '~/pkgs/data-model/schema/types';
-import { C15TOptions } from '~/types';
+import { C15TOptions } from '~/pkgs/types';
 import { Adapter, TableFields, Where, applyDefaultValue } from '../..';
 import type { Database, KyselyDatabaseType } from './types';
 

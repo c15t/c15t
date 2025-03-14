@@ -99,12 +99,12 @@ export * from './plugins/geo';
 /**
  * All system types bundled under a namespace to avoid conflicts
  */
-export * as Types from './types';
+export * as Types from './pkgs/types';
 
 /**
  * Plugin type extension point for type augmentation
  */
-declare module './types/plugins' {
+declare module './pkgs/types/plugins' {
 	interface PluginTypes {
 		// Plugin type interfaces will be added here
 	}

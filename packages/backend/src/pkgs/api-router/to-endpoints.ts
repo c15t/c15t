@@ -6,7 +6,7 @@ import {
 	toResponse,
 } from 'better-call';
 import defu from 'defu';
-import type { C15TContext, HookEndpointContext } from '~/types';
+import type { C15TContext, HookEndpointContext } from '~/pkgs/types';
 import type { C15TEndpoint, C15TMiddleware } from './call';
 
 /**

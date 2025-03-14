@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DatabaseConfiguration } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
 import { memoryAdapter } from '~/pkgs/db-adapters/adapters/memory-adapter';
+import type { C15TPlugin } from '~/pkgs/types';
 import { init } from './init';
-import type { C15TPlugin } from './types';
 
 describe('init', () => {
 	beforeEach(() => {

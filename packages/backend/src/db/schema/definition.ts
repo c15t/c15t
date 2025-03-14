@@ -1,5 +1,5 @@
 import type { PluginSchema } from '~/pkgs/data-model/schema/types';
-import type { C15TOptions } from '~/types';
+import type { C15TOptions } from '~/pkgs/types';
 import { getAuditLogTable } from './audit-log/table';
 import { getConsentGeoLocationTable } from './consent-geo-location/table';
 import { getConsentPolicyTable } from './consent-policy/table';

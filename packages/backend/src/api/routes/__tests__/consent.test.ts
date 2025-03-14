@@ -3,7 +3,7 @@ import { c15tInstance } from '~/core';
 import type { ConsentPolicy } from '~/db/schema';
 import { memoryAdapter } from '~/pkgs/db-adapters';
 import { BASE_ERROR_CODES } from '~/pkgs/errors';
-import type { C15TContext } from '~/types';
+import type { C15TContext } from '~/pkgs/types';
 import { setConsent } from '../set-consent';
 
 describe('Consent Endpoints', () => {

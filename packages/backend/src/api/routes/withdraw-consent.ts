@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { EntityOutputFields } from '~/db/schema/definition';
 import { createAuthEndpoint } from '~/pkgs/api-router/call';
 import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
-import type { C15TContext } from '../../types';
+import type { C15TContext } from '~/pkgs/types';
 
 // Define the schemas for validating request body
 // We'll have three different schemas for the three identification methods

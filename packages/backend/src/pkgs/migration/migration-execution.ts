@@ -1,5 +1,5 @@
 import type { Adapter } from '~/pkgs/db-adapters';
-import type { C15TOptions } from '~/types';
+import type { C15TOptions } from '~/pkgs/types';
 /**
  * Migration execution functionality
  *

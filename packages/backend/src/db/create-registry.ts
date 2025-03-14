@@ -1,4 +1,4 @@
-import type { RegistryContext } from '~/types/context';
+import type { RegistryContext } from '~/pkgs/types';
 
 import {
 	auditLogRegistry,

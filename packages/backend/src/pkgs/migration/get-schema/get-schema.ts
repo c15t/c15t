@@ -1,5 +1,5 @@
 import { getConsentTables } from '~/db/schema/definition';
-import type { C15TOptions } from '~/types';
+import type { C15TOptions } from '~/pkgs/types';
 import { processTablesIntoSchema } from './process-tables';
 import type { SchemaDefinition } from './types';
 
@@ -15,7 +15,7 @@ import type { SchemaDefinition } from './types';
  *
  * @example
  * ```typescript
- * import type { C15TOptions } from '~/types';
+ * import type { C15TOptions } from ~/pkgs/types";
  *
  * // Your configuration
  * const c15tConfig: C15TOptions = {

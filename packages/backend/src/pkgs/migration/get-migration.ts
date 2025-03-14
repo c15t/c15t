@@ -1,4 +1,4 @@
-import type { C15TOptions } from '~/types';
+import type { C15TOptions } from '~/pkgs/types';
 import { createLogger } from '~/utils/logger';
 
 import { createKyselyAdapter } from '~/pkgs/db-adapters';

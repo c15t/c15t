@@ -1,6 +1,6 @@
 import { getWithHooks } from '~/pkgs/data-model/hooks';
 import { Where } from '~/pkgs/db-adapters/types';
-import type { GenericEndpointContext, RegistryContext } from '~/types';
+import type { GenericEndpointContext, RegistryContext } from '~/pkgs/types';
 import { validateEntityOutput } from '../definition';
 import type { ConsentPurpose } from './schema';
 

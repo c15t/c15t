@@ -2,7 +2,7 @@ import superjson from 'superjson';
 import { z } from 'zod';
 import type { Field } from '~/pkgs/data-model/fields';
 import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
-import type { C15TOptions, C15TPluginSchema } from '~/types';
+import type { C15TOptions, C15TPluginSchema } from '~/pkgs/types';
 
 /**
  * Parses and transforms output data according to schema field definitions.

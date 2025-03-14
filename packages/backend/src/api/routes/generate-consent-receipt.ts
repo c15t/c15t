@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { ConsentRecord } from '~/db/schema/consent-record/schema';
 import { createAuthEndpoint } from '~/pkgs/api-router/call';
 import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
-import type { C15TContext } from '../../types';
+import type { C15TContext } from '~/pkgs/types';
 
 // Define the schema for validating request parameters
 const generateConsentReceiptSchema = z.object({

@@ -1,6 +1,6 @@
 //@ts-nocheck
 import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
-import type { C15TOptions } from '~/types';
+import type { C15TOptions } from '~/pkgs/types';
 
 import { getConsentTables } from '~/db/schema/definition';
 import { generateId } from '~/pkgs/data-model/fields';

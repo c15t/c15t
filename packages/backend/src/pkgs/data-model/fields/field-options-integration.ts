@@ -1,4 +1,4 @@
-import type { C15TOptions } from '~/types';
+import type { C15TOptions } from '~/pkgs/types';
 import type { InferFieldsInput, InferFieldsOutput } from './field-inference';
 import type { Field } from './field-types';
 

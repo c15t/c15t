@@ -5,7 +5,7 @@ import type {
 	EntityOutput,
 	EntityTypeMap,
 } from '~/pkgs/data-model/schema/types';
-import type { C15TOptions } from '~/types';
+import type { C15TOptions } from '~/pkgs/types';
 
 import {
 	type Field,

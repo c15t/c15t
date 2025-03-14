@@ -8,14 +8,14 @@ import {
 	safeResultAsync,
 } from './pkgs/errors';
 
-import { init } from './init';
 import type {
 	C15TContext,
 	C15TOptions,
 	C15TPlugin,
 	FilterActions,
-} from './types';
-import { getBaseURL } from './utils';
+} from '~/pkgs/types';
+import { getBaseURL } from '~/utils';
+import { init } from './init';
 
 /**
  * Interface representing a configured c15t consent management instance.

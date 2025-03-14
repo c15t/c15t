@@ -31,14 +31,15 @@ export type LiteralString = '' | (string & Record<never, never>);
  *
  * @example
  * ```ts
- * interface Subject {
- *   id: number;
+ * interface User {
+ *   id: string;
  *   name: string;
  *   email?: string;
+ *   phone?: number;
  * }
  *
- * // RequiredKeysOf<Subject> will be 'id' | 'name'
- * type RequiredsubjectFields = RequiredKeysOf<Subject>;
+ * // RequiredKeys will be 'id' | 'name'
+ * type RequiredKeys = RequiredKeysOf<User>;
  * ```
  */
 export type RequiredKeysOf<BaseType extends object> = Exclude<
@@ -51,12 +52,33 @@ export type RequiredKeysOf<BaseType extends object> = Exclude<
 >;
 
 /**
- * Makes all properties in an object type optional recursively
+ * Makes all properties in an object optional recursively
  *
- * Unlike TypeScript's built-in Partial<T>, this type makes nested object
- * properties optional as well. Functions are preserved as-is.
+ * This is like TypeScript's built-in Partial<T>, but it goes deeper into
+ * nested objects to make their properties optional too.
  *
  * @typeParam T - The type to make deeply partial
+ *
+ * @example
+ * ```ts
+ * interface User {
+ *   id: string;
+ *   name: string;
+ *   settings: {
+ *     theme: string;
+ *     notifications: boolean;
+ *   }
+ * }
+ *
+ * // All properties are optional, including nested ones
+ * const partialUser: DeepPartial<User> = {
+ *   name: 'Alice',
+ *   settings: {
+ *     theme: 'dark'
+ *     // notifications is optional
+ *   }
+ * };
+ * ```
  */
 export type DeepPartial<T> = T extends (...args: unknown[]) => unknown
 	? T
@@ -65,22 +87,12 @@ export type DeepPartial<T> = T extends (...args: unknown[]) => unknown
 		: T;
 
 /**
- * Recursively expands object types for better IntelliSense
+ * Expands object types recursively for better IDE type information
  *
- * This utility improves type display in editors by expanding nested type
- * definitions. Particularly useful when working with complex types
- * created through composition or manipulation.
+ * This utility type improves TypeScript's display of complex nested types
+ * by expanding them into their constituent parts.
  *
  * @typeParam T - The type to expand recursively
- *
- * @example
- * ```ts
- * // Before expansion: Intersection of multiple types
- * type ComplexType = TypeA & TypeB & { extraProp: string };
- *
- * // After expansion: Flat object type with all properties visible
- * type ExpandedType = ExpandRecursively<ComplexType>;
- * ```
  */
 export type ExpandRecursively<T> = T extends infer O
 	? { [K in keyof O]: O[K] }

@@ -1,5 +1,5 @@
 import { getWithHooks } from '~/pkgs/data-model/hooks';
-import type { GenericEndpointContext, RegistryContext } from '~/types';
+import type { GenericEndpointContext, RegistryContext } from '~/pkgs/types';
 import { validateEntityOutput } from '../definition';
 import type { ConsentGeoLocation } from './schema';
 

@@ -1,5 +1,5 @@
 import type { Field } from '~/pkgs/data-model/fields';
-import type { C15TOptions } from '~/types';
+import type { C15TOptions } from '~/pkgs/types';
 import { domainSchema } from './schema';
 
 /**
