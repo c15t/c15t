@@ -1,5 +1,5 @@
-import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
 import { createLogger } from '~/pkgs/logger';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { C15TOptions } from '~/pkgs/types';
 import { getConsentTables } from '~/schema';
 import { kyselyAdapter } from './adapters/kysely-adapter';

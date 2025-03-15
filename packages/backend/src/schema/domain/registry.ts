@@ -1,6 +1,6 @@
 import { getWithHooks } from '~/pkgs/data-model';
 import { Where } from '~/pkgs/db-adapters';
-import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { GenericEndpointContext, RegistryContext } from '~/pkgs/types';
 import { validateEntityOutput } from '../definition';
 import type { Domain } from './schema';

@@ -1,5 +1,5 @@
 import type { C15TInstance } from '~/core';
-import { ERROR_CODES } from '~/pkgs/errors';
+import { ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext } from '~/pkgs/types';
 
 /**

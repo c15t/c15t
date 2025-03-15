@@ -132,6 +132,18 @@ export const ERROR_CODES = Object.freeze({
 	 * configuration errors or other internal issues.
 	 */
 	API_RETRIEVAL_ERROR: 'API retrieval error',
+
+	/**
+	 * Validation of input data failed.
+	 * This may occur when input data does not meet schema requirements or other validation rules.
+	 */
+	VALIDATION_ERROR: 'Validation error',
+
+	/**
+	 * An unexpected error occurred.
+	 * This is a general error for unexpected exceptions that don't fit other categories.
+	 */
+	UNEXPECTED: 'Unexpected error'
 });
 
 /**

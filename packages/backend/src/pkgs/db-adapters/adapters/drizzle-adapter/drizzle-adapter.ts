@@ -12,7 +12,7 @@ import {
 	or,
 } from 'drizzle-orm';
 import { type EntityName, generateId } from '~/pkgs/data-model';
-import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { Adapter, C15TOptions, Where } from '~/pkgs/types';
 import { getConsentTables } from '~/schema/definition';
 import { applyDefaultValue } from '../../utils';

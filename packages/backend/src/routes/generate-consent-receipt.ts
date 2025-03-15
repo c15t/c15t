@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { z } from 'zod';
 import { C15T_ERROR_CODES } from '~/error-codes';
 import { createAuthEndpoint } from '~/pkgs/api-router';
-import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext } from '~/pkgs/types';
 import type { ConsentRecord } from '~/schema/consent-record/schema';
 

@@ -1,5 +1,5 @@
 import { createAuthMiddleware, wildcardMatch } from '~/pkgs/api-router';
-import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { GenericEndpointContext } from '~/pkgs/types';
 import { getHost, getOrigin, getProtocol } from '~/pkgs/utils/url';
 

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { C15T_ERROR_CODES } from '~/error-codes';
 import { createAuthEndpoint } from '~/pkgs/api-router';
 import { Adapter } from '~/pkgs/db-adapters';
-import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext } from '~/pkgs/types';
 import type { Consent, ConsentRecord } from '~/schema';
 

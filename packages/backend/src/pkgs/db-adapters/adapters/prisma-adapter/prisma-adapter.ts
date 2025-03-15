@@ -1,5 +1,5 @@
 //@ts-nocheck
-import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { C15TOptions } from '~/pkgs/types';
 
 import { type EntityName, generateId } from '~/pkgs/data-model';

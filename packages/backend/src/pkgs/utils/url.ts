@@ -1,4 +1,4 @@
-import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import { env } from './env';
 
 /**

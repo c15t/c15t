@@ -1,27 +1,27 @@
-# DoubleTie Errors Package
+# DoubleTie Results Package
 
-A standardized error handling system for TypeScript applications. This package provides consistent error handling patterns, error codes, and utilities that make it easier to develop robust applications.
+A comprehensive outcome handling system for TypeScript applications. This package provides consistent patterns for managing both successful results and errors, making it easier to develop robust, predictable applications.
 
 ## Key Features
 
+- Complete implementation of the Result pattern (built on [neverthrow](https://github.com/supermacro/neverthrow))
 - A standardized error class (`DoubleTieError`) with rich context information
 - Standard error codes categorized by domain and purpose
-- Utilities for working with the Result pattern (using [neverthrow](https://github.com/supermacro/neverthrow))
 - Recovery mechanisms for handling expected errors
-- Pipeline patterns for common error handling scenarios
-- Extensibility points for adding custom error types and codes
+- Processing pipelines for validation and data retrieval
+- Extensibility points for custom error types and domain-specific results
 
 ## Installation
 
 ```bash
-npm install @doubletie/errors
+npm install @doubletie/results
 ```
 
 ## Package Structure
 
-The errors package is organized into logical directories for better discoverability:
+The results package is organized into logical directories for better discoverability:
 
-- **core/** - Core error functionality
+- **core/** - Core functionality
   - **error-class.ts** - Defines the `DoubleTieError` class
   - **error-codes.ts** - Contains error code definitions and utilities
 - **results/** - Result pattern utilities
@@ -35,29 +35,9 @@ The errors package is organized into logical directories for better discoverabil
 
 ## Usage
 
-### Basic Error Handling
-
-The most basic usage involves creating and throwing a `DoubleTieError`:
-
-```typescript
-import { DoubleTieError, ERROR_CODES } from '@doubletie/errors';
-
-function getUserById(id: string) {
-  const user = userRepository.findById(id);
-  if (!user) {
-    throw new DoubleTieError('User not found', {
-      code: ERROR_CODES.NOT_FOUND, 
-      status: 404,
-      meta: { userId: id }
-    });
-  }
-  return user;
-}
-```
-
 ### Working with Results
 
-Using the Result pattern for error handling:
+Using the Result pattern for comprehensive outcome handling:
 
 ```typescript
 import { 
@@ -65,7 +45,7 @@ import {
   ok, 
   fail, 
   ERROR_CODES 
-} from '@doubletie/errors';
+} from '@doubletie/results';
 
 function getUser(id: string): AppResult<User> {
   const user = users.find(u => u.id === id);
@@ -99,7 +79,7 @@ import {
   AppResultAsync, 
   tryCatchAsync, 
   ERROR_CODES 
-} from '@doubletie/errors';
+} from '@doubletie/results';
 
 async function fetchUserData(id: string): Promise<AppResultAsync<UserData>> {
   return tryCatchAsync(
@@ -133,7 +113,7 @@ You can easily wrap promises with result handling:
 import { 
   promiseToResult, 
   ERROR_CODES 
-} from '@doubletie/errors';
+} from '@doubletie/results';
 
 async function fetchData() {
   const resultAsync = promiseToResult(
@@ -146,12 +126,32 @@ async function fetchData() {
 }
 ```
 
+### Error Handling
+
+The package provides a standardized error class for consistent error handling:
+
+```typescript
+import { DoubleTieError, ERROR_CODES } from '@doubletie/results';
+
+function getUserById(id: string) {
+  const user = userRepository.findById(id);
+  if (!user) {
+    throw new DoubleTieError('User not found', {
+      code: ERROR_CODES.NOT_FOUND, 
+      status: 404,
+      meta: { userId: id }
+    });
+  }
+  return user;
+}
+```
+
 ### Validation Pipelines
 
 Creating validation pipelines with Zod:
 
 ```typescript
-import { validationPipeline, ERROR_CODES } from '@doubletie/errors';
+import { validationPipeline, ERROR_CODES } from '@doubletie/results';
 import { z } from 'zod';
 
 const userSchema = z.object({
@@ -188,7 +188,7 @@ Recovering from expected errors with fallbacks:
 import { 
   withFallbackForCodes, 
   ERROR_CODES 
-} from '@doubletie/errors';
+} from '@doubletie/results';
 
 const userResult = await getUserById(userId);
 const safeUserResult = withFallbackForCodes(
@@ -212,7 +212,7 @@ You can extend the error system with your own domain-specific error codes:
 import { 
   createErrorCodes, 
   DoubleTieError 
-} from '@doubletie/errors';
+} from '@doubletie/results';
 
 const BILLING_ERROR_CODES = createErrorCodes({
   PAYMENT_FAILED: 'Payment processing failed',
@@ -237,7 +237,7 @@ throw new DoubleTieError('Credit card declined', {
 For better error typing and handling:
 
 ```typescript
-import { DoubleTieError } from '@doubletie/errors';
+import { DoubleTieError } from '@doubletie/results';
 import { BILLING_ERROR_CODES } from './billing-errors';
 
 const BillingError = DoubleTieError.createSubclass('BillingError');
@@ -281,25 +281,25 @@ You can create your own categories with the `createErrorCategories` utility.
 
 ### Types
 
-#### `AppResult<T>` (renamed from `DoubleTieResult`)
+#### `AppResult<T>`
 
 ```typescript
 type AppResult<T> = Result<T, DoubleTieError>;
 ```
 
-#### `AppResultAsync<T>` (renamed from `DoubleTieResultAsync`)
+#### `AppResultAsync<T>`
 
 ```typescript
 type AppResultAsync<T> = ResultAsync<T, DoubleTieError>;
 ```
 
-#### `ErrorCodeValue` (renamed from `ErrorMessage`)
+#### `ErrorCodeValue`
 
 ```typescript
 type ErrorCodeValue = string;
 ```
 
-#### `ErrorTransformer` (renamed from `ErrorMapper`)
+#### `ErrorTransformer`
 
 ```typescript
 type ErrorTransformer = (error: Error) => DoubleTieError;
@@ -333,11 +333,11 @@ function retrievalPipeline<RawData, TransformedData>(fetcher: () => Promise<RawD
 
 ## Testing
 
-The errors package includes comprehensive tests to ensure reliability. Run tests with:
+The results package includes comprehensive tests to ensure reliability. Run tests with:
 
 ```bash
 cd packages/backend
-npx vitest run src/pkgs/errors
+npx vitest run src/pkgs/results
 ```
 
 ## License

@@ -1,5 +1,5 @@
 import type { Field } from '~/pkgs/data-model';
-import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { C15TOptions, C15TPluginSchema } from '~/pkgs/types';
 
 /**

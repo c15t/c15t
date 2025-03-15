@@ -5,7 +5,7 @@ import {
 	failAsync,
 	okAsync,
 	tryCatchAsync,
-} from './pkgs/errors';
+} from './pkgs/results';
 import { router } from './router';
 
 import type {

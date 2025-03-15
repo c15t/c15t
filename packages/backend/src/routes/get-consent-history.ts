@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { createAuthEndpoint } from '~/pkgs/api-router';
-import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
 import { logger } from '~/pkgs/logger';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { EntityOutputFields } from '~/schema/definition';
 
 // Define the schema for validating request parameters
