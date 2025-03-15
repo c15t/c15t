@@ -40,13 +40,13 @@ The errors package is organized into logical directories for better discoverabil
 The most basic usage involves creating and throwing a `DoubleTieError`:
 
 ```typescript
-import { DoubleTieError, CORE_ERROR_CODES } from '@doubletie/errors';
+import { DoubleTieError, ERROR_CODES } from '@doubletie/errors';
 
 function getUserById(id: string) {
   const user = userRepository.findById(id);
   if (!user) {
     throw new DoubleTieError('User not found', {
-      code: CORE_ERROR_CODES.NOT_FOUND, 
+      code: ERROR_CODES.NOT_FOUND, 
       status: 404,
       meta: { userId: id }
     });
@@ -61,17 +61,17 @@ Using the Result pattern for error handling:
 
 ```typescript
 import { 
-  DoubleTieResult, 
+  AppResult, 
   ok, 
   fail, 
-  CORE_ERROR_CODES 
+  ERROR_CODES 
 } from '@doubletie/errors';
 
-function getUser(id: string): DoubleTieResult<User> {
+function getUser(id: string): AppResult<User> {
   const user = users.find(u => u.id === id);
   if (!user) {
     return fail('User not found', {
-      code: CORE_ERROR_CODES.NOT_FOUND,
+      code: ERROR_CODES.NOT_FOUND,
       status: 404,
       meta: { userId: id }
     });
@@ -96,13 +96,13 @@ For asynchronous operations:
 
 ```typescript
 import { 
-  DoubleTieResultAsync, 
-  safeResultAsync, 
-  CORE_ERROR_CODES 
+  AppResultAsync, 
+  tryCatchAsync, 
+  ERROR_CODES 
 } from '@doubletie/errors';
 
-async function fetchUserData(id: string): Promise<DoubleTieResultAsync<UserData>> {
-  return safeResultAsync(
+async function fetchUserData(id: string): Promise<AppResultAsync<UserData>> {
+  return tryCatchAsync(
     async () => {
       const response = await fetch(`/api/users/${id}`);
       if (!response.ok) {
@@ -110,7 +110,7 @@ async function fetchUserData(id: string): Promise<DoubleTieResultAsync<UserData>
       }
       return response.json();
     },
-    CORE_ERROR_CODES.NETWORK_ERROR
+    ERROR_CODES.NETWORK_ERROR
   );
 }
 
@@ -125,12 +125,33 @@ if (userDataResult.isOk()) {
 }
 ```
 
+### Converting Promises to Results
+
+You can easily wrap promises with result handling:
+
+```typescript
+import { 
+  promiseToResult, 
+  ERROR_CODES 
+} from '@doubletie/errors';
+
+async function fetchData() {
+  const resultAsync = promiseToResult(
+    fetch('https://api.example.com/users')
+      .then(res => res.json()),
+    ERROR_CODES.NETWORK_ERROR
+  );
+  
+  return resultAsync;
+}
+```
+
 ### Validation Pipelines
 
 Creating validation pipelines with Zod:
 
 ```typescript
-import { validationPipeline, CORE_ERROR_CODES } from '@doubletie/errors';
+import { validationPipeline, ERROR_CODES } from '@doubletie/errors';
 import { z } from 'zod';
 
 const userSchema = z.object({
@@ -161,18 +182,18 @@ if (result.isOk()) {
 
 ### Recovery Mechanisms
 
-Recovering from expected errors:
+Recovering from expected errors with fallbacks:
 
 ```typescript
 import { 
-  recoverFromCodes, 
-  CORE_ERROR_CODES 
+  withFallbackForCodes, 
+  ERROR_CODES 
 } from '@doubletie/errors';
 
 const userResult = await getUserById(userId);
-const safeUserResult = recoverFromCodes(
+const safeUserResult = withFallbackForCodes(
   userResult,
-  [CORE_ERROR_CODES.NOT_FOUND],
+  [ERROR_CODES.NOT_FOUND],
   { id: userId, name: 'Guest User', isDefault: true }
 );
 
@@ -255,6 +276,60 @@ Errors are organized into categories for better management:
 - **unexpected** - Unexpected errors that don't fit other categories
 
 You can create your own categories with the `createErrorCategories` utility.
+
+## API Reference
+
+### Types
+
+#### `AppResult<T>` (renamed from `DoubleTieResult`)
+
+```typescript
+type AppResult<T> = Result<T, DoubleTieError>;
+```
+
+#### `AppResultAsync<T>` (renamed from `DoubleTieResultAsync`)
+
+```typescript
+type AppResultAsync<T> = ResultAsync<T, DoubleTieError>;
+```
+
+#### `ErrorCodeValue` (renamed from `ErrorMessage`)
+
+```typescript
+type ErrorCodeValue = string;
+```
+
+#### `ErrorTransformer` (renamed from `ErrorMapper`)
+
+```typescript
+type ErrorTransformer = (error: Error) => DoubleTieError;
+```
+
+### Core Functions
+
+#### Result Helpers
+
+```typescript
+function ok<T>(value: T): AppResult<T>;
+function fail<T>(message: string, options: DoubleTieErrorOptions): AppResult<T>;
+function tryCatch<T>(fn: () => T, errorCode?: ErrorCodeValue): AppResult<T>;
+function tryCatchAsync<T>(fn: () => Promise<T>, errorCode?: ErrorCodeValue): AppResultAsync<T>;
+function promiseToResult<T>(promise: Promise<T>, errorCode?: ErrorCodeValue): AppResultAsync<T>;
+```
+
+#### Recovery Utilities
+
+```typescript
+function withFallbackForCodes<T>(result: AppResult<T>, codes: ErrorCodeValue[], defaultValue: T): AppResult<T>;
+function withFallbackForCategory<T>(result: AppResult<T>, category: string, defaultValue: T): AppResult<T>;
+```
+
+#### Pipeline Utilities
+
+```typescript
+function validationPipeline<Input, Output>(schema: ZodSchema<Input>, transformer: (data: Input) => Output): (data: unknown) => AppResult<Output>;
+function retrievalPipeline<RawData, TransformedData>(fetcher: () => Promise<RawData>, transformer: (data: RawData) => TransformedData, errorCode?: ErrorCodeValue): () => AppResultAsync<TransformedData>;
+```
 
 ## Testing
 
