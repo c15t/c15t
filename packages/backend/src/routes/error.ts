@@ -1,4 +1,4 @@
-import { HIDE_METADATA, createAuthEndpoint } from '~/pkgs/api-router';
+import { HIDE_METADATA, createSDKEndpoint } from '~/pkgs/api-router';
 
 function sanitize(input: string): string {
 	return input
@@ -93,7 +93,7 @@ const html = (errorCode = 'Unknown') => `<!DOCTYPE html>
 </body>
 </html>`;
 
-export const error = createAuthEndpoint(
+export const error = createSDKEndpoint(
 	'/error',
 	{
 		method: 'GET',

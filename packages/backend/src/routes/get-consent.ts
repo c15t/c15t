@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { C15T_ERROR_CODES } from '~/error-codes';
-import { createAuthEndpoint } from '~/pkgs/api-router';
+import { createSDKEndpoint } from '~/pkgs/api-router';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext } from '~/pkgs/types';
 import type { EntityOutputFields } from '~/schema/definition';
@@ -58,7 +58,7 @@ export interface GetConsentResponse {
  *
  * @endpoint GET /consent/get
  */
-export const getConsent = createAuthEndpoint(
+export const getConsent = createSDKEndpoint(
 	'/consent/get',
 	{
 		method: 'GET',

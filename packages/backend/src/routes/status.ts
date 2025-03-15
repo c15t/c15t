@@ -1,4 +1,4 @@
-import { createAuthEndpoint } from '~/pkgs/api-router';
+import { createSDKEndpoint } from '~/pkgs/api-router';
 
 /**
  * Response type for the status endpoint
@@ -41,7 +41,7 @@ export interface StatusResponse {
  * }
  * ```
  */
-export const status = createAuthEndpoint(
+export const status = createSDKEndpoint(
 	'/status',
 	{
 		method: 'GET',

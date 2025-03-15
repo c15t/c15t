@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { C15T_ERROR_CODES } from '~/error-codes';
-import { createAuthEndpoint } from '~/pkgs/api-router';
+import { createSDKEndpoint } from '~/pkgs/api-router';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext } from '~/pkgs/types';
 import type { EntityOutputFields } from '~/schema/definition';
@@ -62,7 +62,7 @@ export interface WithdrawConsentResponse {
  *
  * @endpoint POST /consent/withdraw
  */
-export const withdrawConsent = createAuthEndpoint(
+export const withdrawConsent = createSDKEndpoint(
 	'/consent/withdraw',
 	{
 		method: 'POST',

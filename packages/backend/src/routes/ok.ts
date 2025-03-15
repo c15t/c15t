@@ -1,6 +1,6 @@
-import { HIDE_METADATA, createAuthEndpoint } from '~/pkgs/api-router';
+import { HIDE_METADATA, createSDKEndpoint } from '~/pkgs/api-router';
 
-export const ok = createAuthEndpoint(
+export const ok = createSDKEndpoint(
 	'/ok',
 	{
 		method: 'GET',

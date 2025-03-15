@@ -1,4 +1,4 @@
-import { createAuthMiddleware } from '~/pkgs/api-router';
+import { createSDKMiddleware } from '~/pkgs/api-router';
 import { Adapter } from '~/pkgs/db-adapters';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext, C15TPlugin } from '~/pkgs/types';
@@ -84,7 +84,7 @@ function validatePlugins(
  * });
  * ```
  */
-export const validateContextMiddleware = createAuthMiddleware(async (ctx) => {
+export const validateContextMiddleware = createSDKMiddleware(async (ctx) => {
 	const { context } = ctx;
 
 	// Basic context validation

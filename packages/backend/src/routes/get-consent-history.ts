@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createAuthEndpoint } from '~/pkgs/api-router';
+import { createSDKEndpoint } from '~/pkgs/api-router';
 import { logger } from '~/pkgs/logger';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { EntityOutputFields } from '~/schema/definition';
@@ -21,7 +21,7 @@ const getConsentHistorySchema = z.object({
  *
  * @endpoint GET /consent/history
  */
-export const getConsentHistory = createAuthEndpoint(
+export const getConsentHistory = createSDKEndpoint(
 	'/consent/history',
 	{
 		method: 'GET',

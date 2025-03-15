@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { z } from 'zod';
 import { C15T_ERROR_CODES } from '~/error-codes';
-import { createAuthEndpoint } from '~/pkgs/api-router';
+import { createSDKEndpoint } from '~/pkgs/api-router';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext } from '~/pkgs/types';
 import type { ConsentRecord } from '~/schema/consent-record/schema';
@@ -24,7 +24,7 @@ const generateConsentReceiptSchema = z.object({
  *
  * @endpoint GET /consent/receipt
  */
-export const generateConsentReceipt = createAuthEndpoint(
+export const generateConsentReceipt = createSDKEndpoint(
 	'/consent/receipt',
 	{
 		method: 'GET',

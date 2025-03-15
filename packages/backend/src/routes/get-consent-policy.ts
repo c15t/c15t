@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createAuthEndpoint } from '~/pkgs/api-router';
+import { createSDKEndpoint } from '~/pkgs/api-router';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext } from '~/pkgs/types';
 import type { EntityOutputFields } from '~/schema/definition';
@@ -118,7 +118,7 @@ export interface GetPolicyResponse {
  * @throws {DoubleTieError} BAD_REQUEST - When request parameters are invalid
  * @throws {DoubleTieError} NOT_FOUND - When the domain or policy version doesn't exist
  */
-export const getConsentPolicy = createAuthEndpoint(
+export const getConsentPolicy = createSDKEndpoint(
 	'/consent/policy',
 	{
 		method: 'GET',

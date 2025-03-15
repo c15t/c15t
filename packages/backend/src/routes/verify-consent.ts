@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createAuthEndpoint } from '~/pkgs/api-router';
+import { createSDKEndpoint } from '~/pkgs/api-router';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext } from '~/pkgs/types';
 import type { EntityOutputFields } from '~/schema/definition';
@@ -62,7 +62,7 @@ export interface VerifyConsentResponse {
  *
  * @endpoint GET /consent/verify
  */
-export const verifyConsent = createAuthEndpoint(
+export const verifyConsent = createSDKEndpoint(
 	'/consent/verify',
 	{
 		method: 'GET',

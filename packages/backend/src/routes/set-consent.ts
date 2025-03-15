@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { C15T_ERROR_CODES } from '~/error-codes';
-import { createAuthEndpoint } from '~/pkgs/api-router';
+import { createSDKEndpoint } from '~/pkgs/api-router';
 import { Adapter } from '~/pkgs/db-adapters';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext } from '~/pkgs/types';
@@ -105,7 +105,7 @@ export interface SetConsentResponse {
  * }
  * ```
  */
-export const setConsent = createAuthEndpoint(
+export const setConsent = createSDKEndpoint(
 	'/consent/set',
 	{
 		method: 'POST',

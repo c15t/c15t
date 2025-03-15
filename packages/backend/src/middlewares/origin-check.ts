@@ -1,4 +1,4 @@
-import { createAuthMiddleware, wildcardMatch } from '~/pkgs/api-router';
+import { createSDKMiddleware, wildcardMatch } from '~/pkgs/api-router';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { GenericEndpointContext } from '~/pkgs/types';
 import { getHost, getOrigin, getProtocol } from '~/pkgs/utils/url';
@@ -62,7 +62,7 @@ const VALID_RELATIVE_URL_REGEX =
  * });
  * ```
  */
-export const originCheckMiddleware = createAuthMiddleware(async (ctx) => {
+export const originCheckMiddleware = createSDKMiddleware(async (ctx) => {
 	if (ctx.request?.method !== 'POST' || !ctx.request) {
 		return;
 	}
@@ -183,7 +183,7 @@ export const originCheckMiddleware = createAuthMiddleware(async (ctx) => {
 export const originCheck = (
 	getValue: (ctx: GenericEndpointContext) => string
 ) =>
-	createAuthMiddleware(async (ctx) => {
+	createSDKMiddleware(async (ctx) => {
 		if (!ctx.request) {
 			return;
 		}

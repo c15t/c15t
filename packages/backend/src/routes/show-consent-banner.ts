@@ -1,6 +1,6 @@
-import { createAuthEndpoint } from '~/pkgs/api-router';
+import { createSDKEndpoint } from '~/pkgs/api-router';
 
-export const showConsentBanner = createAuthEndpoint(
+export const showConsentBanner = createSDKEndpoint(
 	'/show-consent-banner',
 	{
 		method: 'GET',

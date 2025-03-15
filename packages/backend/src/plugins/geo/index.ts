@@ -50,7 +50,7 @@
 //  */
 
 // import type { c15tClient } from '~/client';
-// import { createAuthEndpoint, createAuthMiddleware } from '../../api/call';
+// import { createSDKEndpoint, createSDKMiddleware } from '../../api/call';
 // import type {
 // 	C15TPlugin,
 // 	LoggerMetadata,
@@ -208,7 +208,7 @@
 // 	 * Middleware that detects visitor location from IP address
 // 	 * Adds geo information to the request context
 // 	 */
-// 	const geoMiddleware = createAuthMiddleware(
+// 	const geoMiddleware = createSDKMiddleware(
 // 		async (ctx: MiddlewareContext<MiddlewareOptions>) => {
 // 			// Skip if disabled
 // 			if (options?.enabled === false) {
@@ -338,7 +338,7 @@
 // 			 *   "defaultPurposes": []
 // 			 * }
 // 			 */
-// 			getJurisdiction: createAuthEndpoint(
+// 			getJurisdiction: createSDKEndpoint(
 // 				'/jurisdiction',
 // 				{
 // 					method: 'GET',
@@ -410,7 +410,7 @@
 // 			 *   "source": "cloudflare-headers"
 // 			 * }
 // 			 */
-// 			getGeoInfo: createAuthEndpoint(
+// 			getGeoInfo: createSDKEndpoint(
 // 				'/location',
 // 				{
 // 					method: 'GET',

@@ -62,10 +62,10 @@ type InternalContext = InputContext<string, EndpointOptions> &
  * @example
  * ```typescript
  * const api = toEndpoints({
- *   getSubject: createAuthEndpoint(async (ctx) => {
+ *   getSubject: createSDKEndpoint(async (ctx) => {
  *     return { name: "Subject" };
  *   }),
- *   updateSubject: createAuthEndpoint(async (ctx) => {
+ *   updateSubject: createSDKEndpoint(async (ctx) => {
  *     // Process update logic
  *   })
  * }, contextPromise);

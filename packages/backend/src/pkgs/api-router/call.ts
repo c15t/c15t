@@ -17,7 +17,7 @@ import type { C15TContext } from '~/pkgs/types';
  *
  * @example
  * ```typescript
- * // This middleware is typically used internally by createAuthMiddleware and createAuthEndpoint
+ * // This middleware is typically used internally by createSDKMiddleware and createSDKEndpoint
  * const myMiddleware = createMiddleware.create({
  *   use: [optionsMiddleware]
  * });
@@ -51,7 +51,7 @@ export const optionsMiddleware = createMiddleware(async () => {
  * @example
  * ```typescript
  * // Create a custom authentication middleware
- * const verifySubjectMiddleware = createAuthMiddleware(async (context) => {
+ * const verifySubjectMiddleware = createSDKMiddleware(async (context) => {
  *   const { subjectId } = context.params;
  *
  *   // Verify the subject exists
@@ -75,7 +75,7 @@ export const optionsMiddleware = createMiddleware(async () => {
  * router.use('/subjects/**', verifySubjectMiddleware);
  * ```
  */
-export const createAuthMiddleware = createMiddleware.create({
+export const createSDKMiddleware = createMiddleware.create({
 	use: [
 		optionsMiddleware,
 		/**
@@ -110,7 +110,7 @@ export const createAuthMiddleware = createMiddleware.create({
  * @example
  * ```typescript
  * // Create a consent status endpoint
- * export const getConsentStatus = createAuthEndpoint(async (context) => {
+ * export const getConsentStatus = createSDKEndpoint(async (context) => {
  *   const { subjectId, domain } = context.params;
  *
  *   // Get consent status from storage
@@ -126,7 +126,7 @@ export const createAuthMiddleware = createMiddleware.create({
  * });
  *
  * // Create a consent update endpoint with error handling
- * export const updateConsent = createAuthEndpoint(async (context) => {
+ * export const updateConsent = createSDKEndpoint(async (context) => {
  *   const { subjectId, domain, purposes } = context.params;
  *
  *   try {
@@ -148,30 +148,30 @@ export const createAuthMiddleware = createMiddleware.create({
  * });
  * ```
  */
-export const createAuthEndpoint = createEndpoint.create({
+export const createSDKEndpoint = createEndpoint.create({
 	use: [optionsMiddleware],
 });
 
 /**
  * Type definition for a C15T endpoint handler
  *
- * Represents the function signature returned by createAuthEndpoint.
+ * Represents the function signature returned by createSDKEndpoint.
  * Used for type checking when building API endpoints.
  *
  * @remarks
  * This type is used extensively in the toEndpoints function and
  * when defining route handlers for the consent management system.
  */
-export type C15TEndpoint = ReturnType<typeof createAuthEndpoint>;
+export type C15TEndpoint = ReturnType<typeof createSDKEndpoint>;
 
 /**
  * Type definition for a C15T middleware handler
  *
- * Represents the function signature returned by createAuthMiddleware.
+ * Represents the function signature returned by createSDKMiddleware.
  * Used for type checking when building middleware chains.
  *
  * @remarks
  * This type is used when defining hooks and custom middleware
  * for the consent management system pipeline.
  */
-export type C15TMiddleware = ReturnType<typeof createAuthMiddleware>;
+export type C15TMiddleware = ReturnType<typeof createSDKMiddleware>;
