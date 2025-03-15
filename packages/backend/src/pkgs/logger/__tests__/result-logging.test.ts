@@ -16,7 +16,7 @@ describe('result-logging', () => {
 				message: 'Test error',
 				code: 'TEST_ERROR',
 				status: 400,
-				data: { test: true },
+				meta: { test: true },
 				category: 'test',
 				stack: 'Error stack',
 			};
@@ -32,7 +32,7 @@ describe('result-logging', () => {
 			expect(logger.error).toHaveBeenCalledWith('Error occurred: Test error', {
 				code: 'TEST_ERROR',
 				status: 400,
-				data: { test: true },
+				meta: { test: true },
 				category: 'test',
 				stack: 'Error stack',
 			});
@@ -101,7 +101,7 @@ describe('result-logging', () => {
 				{
 					code: undefined,
 					status: undefined,
-					data: undefined,
+					meta: undefined,
 					category: undefined,
 					stack: undefined,
 				}
@@ -139,7 +139,7 @@ describe('result-logging', () => {
 				{
 					code: 'ASYNC_TEST_ERROR',
 					status: 500,
-					data: undefined,
+					meta: undefined,
 					category: undefined,
 					stack: undefined,
 				}

@@ -1,5 +1,5 @@
 import { formatMessage } from './console-formatter';
-import { levels, shouldLog } from './log-levels';
+import { levels, shouldPublishLog } from './log-levels';
 import { LogEntry, LogLevel, Logger, LoggerOptions } from './types';
 
 /**
@@ -54,7 +54,7 @@ export const createLogger = (options?: LoggerOptions | Logger): Logger => {
 		message: string,
 		args: unknown[] = []
 	): void => {
-		if (!enabled || !shouldLog(logLevel, level)) {
+		if (!enabled || !shouldPublishLog(logLevel, level)) {
 			return;
 		}
 

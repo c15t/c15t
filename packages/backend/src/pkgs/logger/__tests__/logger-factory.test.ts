@@ -31,9 +31,9 @@ describe('logger-factory', () => {
 		});
 
 		it('should respect log level option', () => {
-			// Mock the shouldLog function to return expected values for our test
-			const originalShouldPublishLog = logLevels.shouldLog;
-			vi.spyOn(logLevels, 'shouldLog').mockImplementation(
+			// Mock the shouldPublishLog function to return expected values for our test
+			const originalShouldPublishLog = logLevels.shouldPublishLog;
+			vi.spyOn(logLevels, 'shouldPublishLog').mockImplementation(
 				(currentLevel, messageLevel) => {
 					if (currentLevel === 'warn') {
 						return messageLevel === 'warn' || messageLevel === 'error';
@@ -56,7 +56,7 @@ describe('logger-factory', () => {
 			expect(console.debug).not.toHaveBeenCalled();
 
 			// Restore the original function
-			vi.mocked(logLevels.shouldLog).mockRestore();
+			vi.mocked(logLevels.shouldPublishLog).mockRestore();
 		});
 
 		it('should use custom log handler when provided', () => {
@@ -66,8 +66,8 @@ describe('logger-factory', () => {
 				level: 'debug',
 			});
 
-			// Mock shouldLog to always return true for this test
-			vi.spyOn(logLevels, 'shouldLog').mockReturnValue(true);
+			// Mock shouldPublishLog to always return true for this test
+			vi.spyOn(logLevels, 'shouldPublishLog').mockReturnValue(true);
 
 			logger.info('Info message');
 			logger.error('Error message');
@@ -79,12 +79,12 @@ describe('logger-factory', () => {
 			// 'success' should be treated as 'info' when using custom log handler
 			expect(customLog).toHaveBeenCalledWith('info', 'Success message');
 
-			vi.mocked(logLevels.shouldLog).mockRestore();
+			vi.mocked(logLevels.shouldPublishLog).mockRestore();
 		});
 
 		it('should format messages with timestamp and level', () => {
-			// Mock shouldLog to return true for this test
-			vi.spyOn(logLevels, 'shouldLog').mockReturnValue(true);
+			// Mock shouldPublishLog to return true for this test
+			vi.spyOn(logLevels, 'shouldPublishLog').mockReturnValue(true);
 
 			const logger = createLogger();
 			logger.error('Test message');
@@ -104,28 +104,28 @@ describe('logger-factory', () => {
 			// Check that timestamp matches ISO format
 			expect(firstCallArg).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
 
-			vi.mocked(logLevels.shouldLog).mockRestore();
+			vi.mocked(logLevels.shouldPublishLog).mockRestore();
 		});
 
 		it('should pass additional arguments to console methods', () => {
-			// Mock shouldLog to return true for this test
-			vi.spyOn(logLevels, 'shouldLog').mockReturnValue(true);
+			// Mock shouldPublishLog to return true for this test
+			vi.spyOn(logLevels, 'shouldPublishLog').mockReturnValue(true);
 
 			const logger = createLogger();
-			const data = { userId: 'user123' };
+			const meta = { userId: 'user123' };
 
-			logger.error('Error with data', data);
+			logger.error('Error with meta', meta);
 
 			expect(console.error).toHaveBeenCalled();
 			const mockedConsoleError = vi.mocked(console.error);
-			expect(mockedConsoleError.mock.calls[0]?.[1]).toBe(data);
+			expect(mockedConsoleError.mock.calls[0]?.[1]).toBe(meta);
 
-			vi.mocked(logLevels.shouldLog).mockRestore();
+			vi.mocked(logLevels.shouldPublishLog).mockRestore();
 		});
 
 		it('should use custom app name when provided', () => {
-			// Mock shouldLog to return true for this test
-			vi.spyOn(logLevels, 'shouldLog').mockReturnValue(true);
+			// Mock shouldPublishLog to return true for this test
+			vi.spyOn(logLevels, 'shouldPublishLog').mockReturnValue(true);
 
 			// Create a logger with a custom app name
 			const customAppName = 'test-app';
@@ -146,7 +146,7 @@ describe('logger-factory', () => {
 			// And doesn't contain the default app name
 			expect(logMessage).not.toContain('[🪢 doubletie]');
 
-			vi.mocked(logLevels.shouldLog).mockRestore();
+			vi.mocked(logLevels.shouldPublishLog).mockRestore();
 		});
 	});
 });

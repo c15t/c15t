@@ -41,7 +41,7 @@ describe('logger integration', () => {
 			expect(mockedConsoleError.mock.calls[0]?.[1]).toEqual({
 				code: 'INTEGRATION_TEST',
 				status: undefined,
-				data: undefined,
+				meta: undefined,
 				category: undefined,
 				stack: undefined,
 			});

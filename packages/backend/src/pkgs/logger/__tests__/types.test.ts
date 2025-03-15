@@ -71,7 +71,7 @@ describe('types', () => {
 				message: 'Test error',
 				code: 'TEST_ERROR',
 				status: 400,
-				data: { test: true },
+				meta: { test: true },
 				category: 'test',
 				stack: 'Error stack trace',
 			};
@@ -79,7 +79,7 @@ describe('types', () => {
 			expect(fullError).toHaveProperty('message');
 			expect(fullError).toHaveProperty('code');
 			expect(fullError).toHaveProperty('status');
-			expect(fullError).toHaveProperty('data');
+			expect(fullError).toHaveProperty('meta');
 			expect(fullError).toHaveProperty('category');
 			expect(fullError).toHaveProperty('stack');
 		});
