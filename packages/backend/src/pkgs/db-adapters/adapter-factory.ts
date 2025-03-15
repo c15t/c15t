@@ -25,7 +25,7 @@ import { memoryAdapter } from './adapters/memory-adapter';
  * ```
  */
 export async function getAdapter(options: C15TOptions) {
-	const logger = createLogger();
+	const logger = createLogger({appName: 'c15t'});
 
 	// If no database is configured, use an in-memory adapter for development
 	if (!options.database) {

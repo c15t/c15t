@@ -136,8 +136,11 @@ export function createMockContext(): C15TContext {
 		options: {
 			plugins: [],
 			logger: {
-				level: 'info',
-				disabled: false,
+				info: () => {},
+				success: () => {},
+				warn: () => {},
+				error: () => {},
+				debug: () => {},
 			},
 		},
 		baseURL: 'http://localhost:3000',
