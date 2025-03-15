@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createAuthEndpoint } from '~/pkgs/api-router';
-import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
 import type { C15TContext } from '~/pkgs/types';
 import type { EntityOutputFields } from '~/schema/definition';
 
@@ -115,8 +115,8 @@ export interface GetPolicyResponse {
  * @returns {Object} data.policy - The consent policy information
  * @returns {Object} [data.subjectConsentStatus] - Subject's consent status if subject identifiers were provided
  *
- * @throws {C15TError} BAD_REQUEST - When request parameters are invalid
- * @throws {C15TError} NOT_FOUND - When the domain or policy version doesn't exist
+ * @throws {DoubleTieError} BAD_REQUEST - When request parameters are invalid
+ * @throws {DoubleTieError} NOT_FOUND - When the domain or policy version doesn't exist
  */
 export const getConsentPolicy = createAuthEndpoint(
 	'/consent/policy',
@@ -129,8 +129,8 @@ export const getConsentPolicy = createAuthEndpoint(
 			const validatedData = getPolicySchema.safeParse(ctx.query);
 
 			if (!validatedData.success) {
-				throw new C15TError('BAD_REQUEST', {
-					code: BASE_ERROR_CODES.BAD_REQUEST,
+				throw new DoubleTieError('BAD_REQUEST', {
+					code: ERROR_CODES.BAD_REQUEST,
 					status: 400,
 					data: {
 						message: 'Invalid request data',
@@ -143,8 +143,8 @@ export const getConsentPolicy = createAuthEndpoint(
 			const { registry } = ctx.context as C15TContext;
 
 			if (!registry) {
-				throw new C15TError('INTERNAL_SERVER_ERROR', {
-					code: BASE_ERROR_CODES.INTERNAL_SERVER_ERROR,
+				throw new DoubleTieError('INTERNAL_SERVER_ERROR', {
+					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
 					status: 503,
 					data: {
 						message: 'Registry not available',
@@ -159,10 +159,10 @@ export const getConsentPolicy = createAuthEndpoint(
 					domain = await registry.findDomain(params.domain);
 				}
 			} catch {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The specified domain could not be found. Please verify the domain name and try again.',
 					{
-						code: BASE_ERROR_CODES.NOT_FOUND,
+						code: ERROR_CODES.NOT_FOUND,
 						status: 404,
 						data: {
 							domain: params.domain,
@@ -172,10 +172,10 @@ export const getConsentPolicy = createAuthEndpoint(
 			}
 
 			if (!domain) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The specified domain could not be found. Please verify the domain name and try again.',
 					{
-						code: BASE_ERROR_CODES.NOT_FOUND,
+						code: ERROR_CODES.NOT_FOUND,
 						status: 404,
 						data: {
 							domain: params.domain,
@@ -191,12 +191,12 @@ export const getConsentPolicy = createAuthEndpoint(
 					policy = await registry.findPolicy(domain.id, params.version);
 				}
 			} catch {
-				throw new C15TError(
+				throw new DoubleTieError(
 					params.version
 						? `The specified policy version ${params.version} for domain ${params.domain} could not be found. Please verify the version number and domain name, and try again.`
 						: `No policy could be found for the domain ${params.domain}. Please ensure the domain name is correct and try again.`,
 					{
-						code: BASE_ERROR_CODES.NOT_FOUND,
+						code: ERROR_CODES.NOT_FOUND,
 						status: 404,
 						data: {
 							domain: params.domain,
@@ -207,12 +207,12 @@ export const getConsentPolicy = createAuthEndpoint(
 			}
 
 			if (!policy) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					params.version
 						? `The specified policy version ${params.version} for domain ${params.domain} could not be found. Please verify the version number and domain name, and try again.`
 						: `No policy could be found for the domain ${params.domain}. Please ensure the domain name is correct and try again.`,
 					{
-						code: BASE_ERROR_CODES.NOT_FOUND,
+						code: ERROR_CODES.NOT_FOUND,
 						status: 404,
 						data: {
 							domain: params.domain,
@@ -299,12 +299,12 @@ export const getConsentPolicy = createAuthEndpoint(
 			const context = ctx.context as C15TContext;
 			context.logger?.error?.('Error getting consent policy:', error);
 
-			if (error instanceof C15TError) {
+			if (error instanceof DoubleTieError) {
 				throw error;
 			}
 			if (error instanceof z.ZodError) {
-				throw new C15TError('BAD_REQUEST', {
-					code: BASE_ERROR_CODES.BAD_REQUEST,
+				throw new DoubleTieError('BAD_REQUEST', {
+					code: ERROR_CODES.BAD_REQUEST,
 					status: 400,
 					data: {
 						message: 'Invalid request data',
@@ -313,8 +313,8 @@ export const getConsentPolicy = createAuthEndpoint(
 				});
 			}
 
-			throw new C15TError('INTERNAL_SERVER_ERROR', {
-				code: BASE_ERROR_CODES.INTERNAL_SERVER_ERROR,
+			throw new DoubleTieError('INTERNAL_SERVER_ERROR', {
+				code: ERROR_CODES.INTERNAL_SERVER_ERROR,
 				status: 503,
 				data: {
 					message: 'Failed to get consent policy',

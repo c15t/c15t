@@ -1,6 +1,6 @@
 import { getWithHooks } from '~/pkgs/data-model';
 import { Where } from '~/pkgs/db-adapters';
-import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
 import type { GenericEndpointContext, RegistryContext } from '~/pkgs/types';
 import { validateEntityOutput } from '../definition';
 import type { Domain } from './schema';
@@ -102,8 +102,8 @@ export function domainRegistry({ adapter, ...ctx }: RegistryContext) {
 			);
 
 			if (!domain) {
-				throw new C15TError('Failed to create domain', {
-					code: BASE_ERROR_CODES.INTERNAL_SERVER_ERROR,
+				throw new DoubleTieError('Failed to create domain', {
+					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
 					status: 503,
 				});
 			}

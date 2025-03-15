@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { C15T_ERROR_CODES } from '~/error-codes';
 import { createAuthEndpoint } from '~/pkgs/api-router';
 import { Adapter } from '~/pkgs/db-adapters';
-import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
 import type { C15TContext } from '~/pkgs/types';
 import type { Consent, ConsentRecord } from '~/schema';
 
@@ -124,10 +125,10 @@ export const setConsent = createAuthEndpoint(
 			});
 
 			if (!subject) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'A valid Subject ID is required to proceed with the consent operation. Please provide a Subject ID.',
 					{
-						code: BASE_ERROR_CODES.MISSING_REQUIRED_PARAMETER,
+						code: ERROR_CODES.MISSING_REQUIRED_PARAMETER,
 						status: 400,
 					}
 				);
@@ -146,10 +147,10 @@ export const setConsent = createAuthEndpoint(
 				policyId = pid;
 
 				if (!policyId) {
-					throw new C15TError(
+					throw new DoubleTieError(
 						'A valid Policy ID is required to proceed with the consent operation. Please provide a Policy ID.',
 						{
-							code: BASE_ERROR_CODES.MISSING_REQUIRED_PARAMETER,
+							code: ERROR_CODES.MISSING_REQUIRED_PARAMETER,
 							status: 400,
 						}
 					);
@@ -158,19 +159,19 @@ export const setConsent = createAuthEndpoint(
 				// Verify the policy exists and is active
 				const policy = await registry.findConsentPolicyById(policyId);
 				if (!policy) {
-					throw new C15TError(
+					throw new DoubleTieError(
 						'The specified consent policy could not be found. Please verify the policy ID and try again.',
 						{
-							code: BASE_ERROR_CODES.NOT_FOUND,
+							code: ERROR_CODES.NOT_FOUND,
 							status: 404,
 						}
 					);
 				}
 				if (!policy.isActive) {
-					throw new C15TError(
+					throw new DoubleTieError(
 						'The consent policy is no longer active and cannot be used. Please use an active policy version.',
 						{
-							code: BASE_ERROR_CODES.CONFLICT,
+							code: ERROR_CODES.CONFLICT,
 							status: 409,
 						}
 					);
@@ -180,10 +181,10 @@ export const setConsent = createAuthEndpoint(
 					type.replace('_', ' ')
 				);
 				if (!policy) {
-					throw new C15TError(
+					throw new DoubleTieError(
 						'Failed to create or find the required policy. Please try again later or contact support if the issue persists.',
 						{
-							code: BASE_ERROR_CODES.FAILED_TO_CREATE_PURPOSE,
+							code: C15T_ERROR_CODES.FAILED_TO_CREATE_PURPOSE,
 							status: 500,
 						}
 					);
@@ -271,10 +272,10 @@ export const setConsent = createAuthEndpoint(
 			});
 
 			if (!result || !result.consent || !result.record) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'Failed to create the consent record. Please try again later or contact support if the issue persists.',
 					{
-						code: BASE_ERROR_CODES.FAILED_TO_CREATE_CONSENT,
+						code: C15T_ERROR_CODES.FAILED_TO_CREATE_CONSENT,
 						status: 500,
 					}
 				);
@@ -297,14 +298,14 @@ export const setConsent = createAuthEndpoint(
 			const context = ctx.context as C15TContext;
 			context.logger?.error?.('Error setting consent:', error);
 
-			if (error instanceof C15TError) {
+			if (error instanceof DoubleTieError) {
 				throw error;
 			}
 			if (error instanceof z.ZodError) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The consent data provided is invalid. Please ensure all required fields are correctly filled and formatted.',
 					{
-						code: BASE_ERROR_CODES.BAD_REQUEST,
+						code: ERROR_CODES.BAD_REQUEST,
 						status: 400,
 						data: {
 							details: error.errors,
@@ -313,10 +314,10 @@ export const setConsent = createAuthEndpoint(
 				);
 			}
 
-			throw new C15TError(
+			throw new DoubleTieError(
 				'Failed to set consent. Please try again later or contact support if the issue persists.',
 				{
-					code: BASE_ERROR_CODES.FAILED_TO_CREATE_CONSENT,
+					code: C15T_ERROR_CODES.FAILED_TO_CREATE_CONSENT,
 					status: 500,
 					data: {
 						error: error instanceof Error ? error.message : String(error),

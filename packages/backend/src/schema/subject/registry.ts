@@ -1,6 +1,6 @@
 import { getWithHooks } from '~/pkgs/data-model';
 import { Adapter } from '~/pkgs/db-adapters';
-import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
 import type { GenericEndpointContext, RegistryContext } from '~/pkgs/types';
 import { validateEntityOutput } from '../definition';
 import type { Subject } from './schema';
@@ -103,10 +103,10 @@ export function subjectRegistry({ adapter, ...ctx }: RegistryContext) {
 							subjectByExternalIdFound: !!subjectByExternalId,
 						}
 					);
-					throw new C15TError(
+					throw new DoubleTieError(
 						'The specified subject could not be found. Please verify the subject identifiers and try again.',
 						{
-							code: BASE_ERROR_CODES.NOT_FOUND,
+							code: ERROR_CODES.NOT_FOUND,
 							status: 404,
 							data: {
 								providedSubjectId: subjectId,
@@ -126,10 +126,10 @@ export function subjectRegistry({ adapter, ...ctx }: RegistryContext) {
 							subjectByExternalIdId: subjectByExternalId.id,
 						}
 					);
-					throw new C15TError(
+					throw new DoubleTieError(
 						'The provided subjectId and externalSubjectId do not match the same subject. Please ensure both identifiers refer to the same subject.',
 						{
-							code: BASE_ERROR_CODES.CONFLICT,
+							code: ERROR_CODES.CONFLICT,
 							status: 409,
 							data: {
 								providedSubjectId: subjectId,
@@ -150,8 +150,8 @@ export function subjectRegistry({ adapter, ...ctx }: RegistryContext) {
 				if (subject) {
 					return subject;
 				}
-				throw new C15TError('Subject not found', {
-					code: BASE_ERROR_CODES.NOT_FOUND,
+				throw new DoubleTieError('Subject not found', {
+					code: ERROR_CODES.NOT_FOUND,
 					status: 404,
 				});
 			}
@@ -203,10 +203,10 @@ export function subjectRegistry({ adapter, ...ctx }: RegistryContext) {
 							error: error instanceof Error ? error.message : 'Unknown error',
 						}
 					);
-					throw new C15TError(
+					throw new DoubleTieError(
 						'Failed to create or find subject with external ID',
 						{
-							code: BASE_ERROR_CODES.INTERNAL_SERVER_ERROR,
+							code: ERROR_CODES.INTERNAL_SERVER_ERROR,
 							status: 500,
 							data: {
 								error: error instanceof Error ? error.message : 'Unknown error',
@@ -233,8 +233,8 @@ export function subjectRegistry({ adapter, ...ctx }: RegistryContext) {
 					ipAddress,
 					error: error instanceof Error ? error.message : 'Unknown error',
 				});
-				throw new C15TError('Failed to create anonymous subject', {
-					code: BASE_ERROR_CODES.INTERNAL_SERVER_ERROR,
+				throw new DoubleTieError('Failed to create anonymous subject', {
+					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
 					status: 500,
 					data: {
 						error: error instanceof Error ? error.message : 'Unknown error',

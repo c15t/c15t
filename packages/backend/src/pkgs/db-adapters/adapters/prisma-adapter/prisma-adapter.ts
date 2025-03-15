@@ -1,5 +1,5 @@
 //@ts-nocheck
-import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
 import type { C15TOptions } from '~/pkgs/types';
 
 import { type EntityName, generateId } from '~/pkgs/data-model';
@@ -344,16 +344,16 @@ export const prismaAdapter =
 			 *
 			 * @param data - The data for the create operation
 			 * @returns The created record
-			 * @throws {C15TError} When the model does not exist in the database
+			 * @throws {DoubleTieError} When the model does not exist in the database
 			 */
 			async create(data) {
 				const { model, data: values, select } = data;
 				const transformed = transformInput(values, model, 'create');
 				if (!db[getEntityName(model)]) {
-					throw new C15TError(
+					throw new DoubleTieError(
 						`The model "${model}" does not exist in the Prisma client. Please verify the model name and ensure it is defined in your Prisma schema.`,
 						{
-							code: BASE_ERROR_CODES.DATABASE_QUERY_ERROR,
+							code: ERROR_CODES.DATABASE_QUERY_ERROR,
 							status: 500,
 							data: {
 								model,
@@ -376,16 +376,16 @@ export const prismaAdapter =
 			 *
 			 * @param data - The data for the find operation
 			 * @returns The found record or null if not found
-			 * @throws {C15TError} When the model does not exist in the database
+			 * @throws {DoubleTieError} When the model does not exist in the database
 			 */
 			async findOne(data) {
 				const { model, where, select } = data;
 				const whereClause = convertWhereClause(model, where);
 				if (!db[getEntityName(model)]) {
-					throw new C15TError(
+					throw new DoubleTieError(
 						`The model "${model}" does not exist in the Prisma client. Please verify the model name and ensure it is defined in your Prisma schema.`,
 						{
-							code: BASE_ERROR_CODES.DATABASE_QUERY_ERROR,
+							code: ERROR_CODES.DATABASE_QUERY_ERROR,
 							status: 500,
 							data: {
 								model,
@@ -408,16 +408,16 @@ export const prismaAdapter =
 			 *
 			 * @param data - The data for the find operation
 			 * @returns Array of matching records
-			 * @throws {C15TError} When the model does not exist in the database
+			 * @throws {DoubleTieError} When the model does not exist in the database
 			 */
 			async findMany(data) {
 				const { model, where, limit, offset, sortBy } = data;
 				const whereClause = convertWhereClause(model, where);
 				if (!db[getEntityName(model)]) {
-					throw new C15TError(
+					throw new DoubleTieError(
 						`The model "${model}" does not exist in the Prisma client. Please verify the model name and ensure it is defined in your Prisma schema.`,
 						{
-							code: BASE_ERROR_CODES.DATABASE_QUERY_ERROR,
+							code: ERROR_CODES.DATABASE_QUERY_ERROR,
 							status: 500,
 							data: {
 								model,
@@ -450,16 +450,16 @@ export const prismaAdapter =
 			 *
 			 * @param data - The data for the count operation
 			 * @returns The count of matching records
-			 * @throws {C15TError} When the model does not exist in the database
+			 * @throws {DoubleTieError} When the model does not exist in the database
 			 */
 			async count(data) {
 				const { model, where } = data;
 				const whereClause = convertWhereClause(model, where);
 				if (!db[getEntityName(model)]) {
-					throw new C15TError(
+					throw new DoubleTieError(
 						`The model "${model}" does not exist in the Prisma client. Please verify the model name and ensure it is defined in your Prisma schema.`,
 						{
-							code: BASE_ERROR_CODES.DATABASE_QUERY_ERROR,
+							code: ERROR_CODES.DATABASE_QUERY_ERROR,
 							status: 500,
 							data: {
 								model,
@@ -481,7 +481,7 @@ export const prismaAdapter =
 			 *
 			 * @param data - The data for the update operation
 			 * @returns The updated record or null if not found
-			 * @throws {C15TError} When the model does not exist in the database
+			 * @throws {DoubleTieError} When the model does not exist in the database
 			 */
 			async update(data) {
 				const { model, where, update } = data;
@@ -504,7 +504,7 @@ export const prismaAdapter =
 			 *
 			 * @param data - The data for the update operation
 			 * @returns The number of records updated
-			 * @throws {C15TError} When the model does not exist in the database
+			 * @throws {DoubleTieError} When the model does not exist in the database
 			 */
 			async updateMany(data) {
 				const { model, where, update } = data;
@@ -521,7 +521,7 @@ export const prismaAdapter =
 			 * Deletes a single record matching the where conditions
 			 *
 			 * @param data - The data for the delete operation
-			 * @throws {C15TError} When the model does not exist in the database (but catches and ignores if record not found)
+			 * @throws {DoubleTieError} When the model does not exist in the database (but catches and ignores if record not found)
 			 */
 			async delete(data) {
 				const { model, where } = data;
@@ -540,7 +540,7 @@ export const prismaAdapter =
 			 *
 			 * @param data - The data for the delete operation
 			 * @returns The number of records deleted
-			 * @throws {C15TError} When the model does not exist in the database
+			 * @throws {DoubleTieError} When the model does not exist in the database
 			 */
 			async deleteMany(data) {
 				const { model, where } = data;

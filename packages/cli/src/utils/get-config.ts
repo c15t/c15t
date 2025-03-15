@@ -5,7 +5,7 @@ import babelPresetReact from '@babel/preset-react';
 // @ts-ignore
 import babelPresetTypescript from '@babel/preset-typescript';
 import { logger } from '@c15t/backend';
-import { C15TError } from '@c15t/backend/error';
+import { DoubleTieError } from '@c15t/backend/error';
 import type { C15TOptions } from '@c15t/backend/types';
 import { loadConfig } from 'c12';
 import { addSvelteKitEnvModules } from './add-svelte-kit-env-modules';
@@ -279,7 +279,7 @@ export async function getConfig({
 
 			try {
 				if (!fs.existsSync(resolvedPath)) {
-					throw new C15TError(
+					throw new DoubleTieError(
 						`Configuration file not found: ${resolvedPath}\nMake sure the path is correct and the file exists.`
 					);
 				}
@@ -295,7 +295,7 @@ export async function getConfig({
 				configFile = extractOptionsFromConfig(config);
 
 				if (!configFile) {
-					throw new C15TError(
+					throw new DoubleTieError(
 						// biome-ignore lint/style/useTemplate: keep it split so its easier to read
 						`Found config file at ${resolvedPath} but couldn't extract c15t options.\n` +
 							`Make sure you're exporting c15t with one of these patterns:\n` +
@@ -309,10 +309,10 @@ export async function getConfig({
 				// Check if file exists but imports failed
 				if (fs.existsSync(resolvedPath)) {
 					failedImports.push(resolvedPath);
-					if (e instanceof C15TError) {
+					if (e instanceof DoubleTieError) {
 						throw e; // Rethrow our own errors
 					}
-					throw new C15TError(
+					throw new DoubleTieError(
 						// biome-ignore lint/style/useTemplate: keep it split so its easier to read
 						`Config file found at ${resolvedPath} but failed to load.\n` +
 							'This usually happens because of import problems:\n' +
@@ -377,7 +377,7 @@ export async function getConfig({
 								'This module cannot be imported from a Client Component module'
 							)
 						) {
-							throw new C15TError(
+							throw new DoubleTieError(
 								// biome-ignore lint/style/useTemplate: keep it split so its easier to read
 								`Found config file at ${fullPath}, but it imports 'server-only'.\n` +
 									`Please temporarily remove the 'server-only' import while using the CLI,\n` +
@@ -423,7 +423,7 @@ export async function getConfig({
 					);
 				}
 
-				throw new C15TError('Unable to load any c15t configuration file');
+				throw new DoubleTieError('Unable to load any c15t configuration file');
 			}
 
 			logger.error(
@@ -440,7 +440,7 @@ export const c15t = c15tInstance({
 });
 			`);
 
-			throw new C15TError(
+			throw new DoubleTieError(
 				'No c15t config file found. Create a c15t.ts file or specify with --config'
 			);
 		}
@@ -464,7 +464,7 @@ export const c15t = c15tInstance({
 			process.exit(1);
 		}
 
-		if (e instanceof C15TError) {
+		if (e instanceof DoubleTieError) {
 			logger.error(`❌ ${e.message}`);
 		} else {
 			logger.error(`❌ Couldn't read your c15t configuration`);

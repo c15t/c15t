@@ -5,13 +5,12 @@ import { getConsentTables } from './schema/definition';
 import { generateId } from './pkgs/data-model/fields/id-generator';
 import type { EntityName } from './pkgs/data-model/schema/types';
 import {
-	BASE_ERROR_CODES,
-	type C15TError,
-	type C15TResult,
+	ERROR_CODES,
+	type SDKResult,
 	fail,
 	failAsync,
-	fromPromise,
 	ok,
+	promiseToResult,
 } from './pkgs/errors';
 
 import { getAdapter } from '~/pkgs/db-adapters';
@@ -38,23 +37,6 @@ import type {
 	RegistryContext,
 } from '~/pkgs/types';
 import { env, getBaseURL, isProduction } from '~/pkgs/utils';
-/**
- * Helper function to convert a Promise to a C15T-specific ResultAsync
- *
- * @param promise - The promise to convert to a ResultAsync
- * @returns A ResultAsync that captures errors as C15TError objects
- */
-const fromC15TPromise = <T>(promise: Promise<T>) => {
-	return fromPromise(
-		promise,
-		(error): C15TError => ({
-			message: error instanceof Error ? error.message : String(error),
-			code: BASE_ERROR_CODES.UNKNOWN_ERROR,
-			name: 'C15TError',
-			data: { error },
-		})
-	);
-};
 
 /**
  * Default secret used when no secret is provided
@@ -97,10 +79,13 @@ const DEFAULT_SECRET = 'c15t-default-secret-please-change-in-production';
  */
 export const init = async <P extends C15TPlugin[]>(
 	options: C15TOptions<P>
-): Promise<C15TResult<C15TContext>> => {
+): Promise<SDKResult<C15TContext>> => {
 	try {
 		// Initialize core components
-		const adapterResult = await fromC15TPromise(getAdapter(options));
+		const adapterResult = await promiseToResult(
+			getAdapter(options),
+			ERROR_CODES.INITIALIZATION_FAILED
+		);
 
 		return adapterResult.andThen((adapter) => {
 			const logger = createLogger(options.logger);
@@ -168,8 +153,8 @@ export const init = async <P extends C15TPlugin[]>(
 		return failAsync(
 			`Failed to initialize consent system: ${error instanceof Error ? error.message : String(error)}`,
 			{
-				code: BASE_ERROR_CODES.INITIALIZATION_FAILED,
-				data: { error },
+				code: ERROR_CODES.INITIALIZATION_FAILED,
+				meta: { error },
 			}
 		);
 	}
@@ -184,7 +169,7 @@ export const init = async <P extends C15TPlugin[]>(
  * @param ctx - The current consent context
  * @returns A Result with the updated context after plugin initialization
  */
-function runPluginInit(ctx: C15TContext): C15TResult<C15TContext> {
+function runPluginInit(ctx: C15TContext): SDKResult<C15TContext> {
 	try {
 		let options = ctx.options;
 		const plugins = options.plugins || [];
@@ -213,8 +198,8 @@ function runPluginInit(ctx: C15TContext): C15TResult<C15TContext> {
 		return fail(
 			`Plugin initialization failed: ${error instanceof Error ? error.message : String(error)}`,
 			{
-				code: BASE_ERROR_CODES.PLUGIN_INITIALIZATION_FAILED,
-				data: { error },
+				code: ERROR_CODES.PLUGIN_INITIALIZATION_FAILED,
+				meta: { error },
 			}
 		);
 	}

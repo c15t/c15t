@@ -1,6 +1,6 @@
 import { createAuthMiddleware } from '~/pkgs/api-router';
 import { Adapter } from '~/pkgs/db-adapters';
-import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
 import type { C15TContext, C15TPlugin } from '~/pkgs/types';
 
 /**
@@ -66,7 +66,7 @@ function validatePlugins(
  * - Plugin initialization status
  * - Required services and dependencies
  *
- * @throws {C15TError} Throws appropriate errors for:
+ * @throws {DoubleTieError} Throws appropriate errors for:
  * - INVALID_CONFIGURATION: When context or options are invalid
  * - STORAGE_ERROR: When storage adapter is not available
  * - INITIALIZATION_FAILED: When required services failed to initialize
@@ -89,10 +89,10 @@ export const validateContextMiddleware = createAuthMiddleware(async (ctx) => {
 
 	// Basic context validation
 	if (!context || typeof context !== 'object') {
-		throw new C15TError(
+		throw new DoubleTieError(
 			'The context configuration is incomplete. Please ensure all required configuration options are provided and properly formatted.',
 			{
-				code: BASE_ERROR_CODES.INVALID_CONFIGURATION,
+				code: ERROR_CODES.INVALID_CONFIGURATION,
 				status: 500,
 				data: redactContext(context),
 			}
@@ -104,10 +104,10 @@ export const validateContextMiddleware = createAuthMiddleware(async (ctx) => {
 
 	// Validate required configuration
 	if (!typedContext.options) {
-		throw new C15TError(
+		throw new DoubleTieError(
 			'The context configuration is missing required options. Please ensure the options object is properly configured.',
 			{
-				code: BASE_ERROR_CODES.INVALID_CONFIGURATION,
+				code: ERROR_CODES.INVALID_CONFIGURATION,
 				status: 500,
 			}
 		);
@@ -131,10 +131,10 @@ export const validateContextMiddleware = createAuthMiddleware(async (ctx) => {
 
 	// Validate logger (make it optional for memory adapter in development)
 	if (!typedContext.logger && process.env.NODE_ENV === 'production') {
-		throw new C15TError(
+		throw new DoubleTieError(
 			'Logger is required in production environment. Please configure a logger for your application.',
 			{
-				code: BASE_ERROR_CODES.INVALID_CONFIGURATION,
+				code: ERROR_CODES.INVALID_CONFIGURATION,
 				status: 500,
 				data: {
 					environment: process.env.NODE_ENV,
@@ -149,10 +149,10 @@ export const validateContextMiddleware = createAuthMiddleware(async (ctx) => {
 		typedContext.plugins as C15TPlugin[] | undefined
 	);
 	if (failedPlugins) {
-		throw new C15TError(
+		throw new DoubleTieError(
 			'Plugin initialization failed. Some plugins could not be initialized properly. Please check your plugin configuration.',
 			{
-				code: BASE_ERROR_CODES.PLUGIN_INITIALIZATION_FAILED,
+				code: ERROR_CODES.PLUGIN_INITIALIZATION_FAILED,
 				status: 500,
 				data: {
 					failedPlugins,

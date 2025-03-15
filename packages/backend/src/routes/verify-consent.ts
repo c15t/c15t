@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createAuthEndpoint } from '~/pkgs/api-router';
-import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
 import type { C15TContext } from '~/pkgs/types';
 import type { EntityOutputFields } from '~/schema/definition';
 
@@ -73,10 +73,10 @@ export const verifyConsent = createAuthEndpoint(
 			const validatedData = verifyConsentSchema.safeParse(ctx.query);
 
 			if (!validatedData.success) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The request data is invalid. Please ensure all required fields are correctly filled and formatted.',
 					{
-						code: BASE_ERROR_CODES.BAD_REQUEST,
+						code: ERROR_CODES.BAD_REQUEST,
 						status: 400,
 						data: {
 							details: validatedData.error.errors,
@@ -89,10 +89,10 @@ export const verifyConsent = createAuthEndpoint(
 			const { registry } = ctx.context as C15TContext;
 
 			if (!registry) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The registry service is currently unavailable. Please check the service status and try again later.',
 					{
-						code: BASE_ERROR_CODES.INITIALIZATION_FAILED,
+						code: ERROR_CODES.INITIALIZATION_FAILED,
 						status: 503,
 					}
 				);
@@ -240,14 +240,14 @@ export const verifyConsent = createAuthEndpoint(
 			const context = ctx.context as C15TContext;
 			context.logger?.error?.('Error verifying consent:', error);
 
-			if (error instanceof C15TError) {
+			if (error instanceof DoubleTieError) {
 				throw error;
 			}
 			if (error instanceof z.ZodError) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The request data is invalid. Please ensure all required fields are correctly filled and formatted.',
 					{
-						code: BASE_ERROR_CODES.BAD_REQUEST,
+						code: ERROR_CODES.BAD_REQUEST,
 						status: 400,
 						data: {
 							details: error.errors,
@@ -256,10 +256,10 @@ export const verifyConsent = createAuthEndpoint(
 				);
 			}
 
-			throw new C15TError(
+			throw new DoubleTieError(
 				'Failed to verify consent. Please try again later or contact support if the issue persists.',
 				{
-					code: BASE_ERROR_CODES.INTERNAL_SERVER_ERROR,
+					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
 					status: 503,
 					data: {
 						details:

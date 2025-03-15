@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { c15tInstance } from '~/core';
 import { memoryAdapter } from '~/pkgs/db-adapters';
-import { BASE_ERROR_CODES } from '~/pkgs/errors';
+import { ERROR_CODES } from '~/pkgs/errors';
 import type { C15TContext } from '~/pkgs/types';
 import type { ConsentPolicy } from '~/schema';
 import { setConsent } from '../set-consent';
@@ -151,8 +151,8 @@ describe('Consent Endpoints', () => {
 						}),
 					})
 				).rejects.toMatchObject({
-					name: 'C15TError',
-					code: BASE_ERROR_CODES.NOT_FOUND,
+					name: 'DoubleTieError',
+					code: ERROR_CODES.NOT_FOUND,
 					status: 404,
 				});
 			});
@@ -210,8 +210,8 @@ describe('Consent Endpoints', () => {
 						}),
 					})
 				).rejects.toMatchObject({
-					name: 'C15TError',
-					code: BASE_ERROR_CODES.BAD_REQUEST,
+					name: 'DoubleTieError',
+					code: ERROR_CODES.BAD_REQUEST,
 					status: 400,
 				});
 			});
@@ -244,8 +244,8 @@ describe('Consent Endpoints', () => {
 						}),
 					})
 				).rejects.toMatchObject({
-					name: 'C15TError',
-					code: BASE_ERROR_CODES.NOT_FOUND,
+					name: 'DoubleTieError',
+					code: ERROR_CODES.NOT_FOUND,
 					status: 404,
 				});
 			});

@@ -1,4 +1,4 @@
-import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
 import { createLogger } from '~/pkgs/logger';
 import type { C15TOptions } from '~/pkgs/types';
 import { getConsentTables } from '~/schema';
@@ -16,7 +16,7 @@ import { memoryAdapter } from './adapters/memory-adapter';
  *
  * @param options - The C15T configuration options
  * @returns A configured database adapter instance
- * @throws {C15TError} If the database adapter initialization fails
+ * @throws {DoubleTieError} If the database adapter initialization fails
  *
  * @example
  * ```typescript
@@ -25,7 +25,7 @@ import { memoryAdapter } from './adapters/memory-adapter';
  * ```
  */
 export async function getAdapter(options: C15TOptions) {
-	const logger = createLogger({appName: 'c15t'});
+	const logger = createLogger({ appName: 'c15t' });
 
 	// If no database is configured, use an in-memory adapter for development
 	if (!options.database) {
@@ -52,8 +52,8 @@ export async function getAdapter(options: C15TOptions) {
 	// Otherwise, create a Kysely adapter
 	const { kysely, databaseType } = await createKyselyAdapter(options);
 	if (!kysely) {
-		throw new C15TError('Failed to initialize database adapter', {
-			code: BASE_ERROR_CODES.INTERNAL_SERVER_ERROR,
+		throw new DoubleTieError('Failed to initialize database adapter', {
+			code: ERROR_CODES.INTERNAL_SERVER_ERROR,
 			status: 500,
 		});
 	}

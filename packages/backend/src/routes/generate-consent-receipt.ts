@@ -1,7 +1,8 @@
 import crypto from 'node:crypto';
 import { z } from 'zod';
+import { C15T_ERROR_CODES } from '~/error-codes';
 import { createAuthEndpoint } from '~/pkgs/api-router';
-import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
 import type { C15TContext } from '~/pkgs/types';
 import type { ConsentRecord } from '~/schema/consent-record/schema';
 
@@ -34,10 +35,10 @@ export const generateConsentReceipt = createAuthEndpoint(
 			const validatedData = generateConsentReceiptSchema.safeParse(ctx.query);
 
 			if (!validatedData.success) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The request parameters are invalid. Please ensure all required fields are correctly filled and formatted.',
 					{
-						code: BASE_ERROR_CODES.BAD_REQUEST,
+						code: ERROR_CODES.BAD_REQUEST,
 						status: 400,
 						data: {
 							details: validatedData.error.errors,
@@ -50,10 +51,10 @@ export const generateConsentReceipt = createAuthEndpoint(
 			const { registry } = ctx.context as C15TContext;
 
 			if (!registry) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The registry service is currently unavailable. Please check the service status and try again later.',
 					{
-						code: BASE_ERROR_CODES.INITIALIZATION_FAILED,
+						code: ERROR_CODES.INITIALIZATION_FAILED,
 						status: 503,
 					}
 				);
@@ -63,10 +64,10 @@ export const generateConsentReceipt = createAuthEndpoint(
 			const consentResult = await registry.findConsentById(params.consentId);
 			//@ts-expect-error
 			if (!consentResult || !consentResult.consent) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The specified consent record could not be found. Please verify the consent ID and try again.',
 					{
-						code: BASE_ERROR_CODES.CONSENT_NOT_FOUND,
+						code: C15T_ERROR_CODES.CONSENT_NOT_FOUND,
 						status: 404,
 						data: {
 							consentId: params.consentId,
@@ -80,10 +81,10 @@ export const generateConsentReceipt = createAuthEndpoint(
 			const subjectRecord = consentResult.subject;
 
 			if (!subjectRecord) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The subject associated with this consent record could not be found. Please verify the subject exists and is correctly linked.',
 					{
-						code: BASE_ERROR_CODES.NOT_FOUND,
+						code: ERROR_CODES.NOT_FOUND,
 						status: 404,
 						data: {
 							consentId: params.consentId,
@@ -212,14 +213,14 @@ export const generateConsentReceipt = createAuthEndpoint(
 			const context = ctx.context as C15TContext;
 			context.logger?.error?.('Error generating consent receipt:', error);
 
-			if (error instanceof C15TError) {
+			if (error instanceof DoubleTieError) {
 				throw error;
 			}
 			if (error instanceof z.ZodError) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The request parameters are invalid. Please ensure all required fields are correctly filled and formatted.',
 					{
-						code: BASE_ERROR_CODES.BAD_REQUEST,
+						code: ERROR_CODES.BAD_REQUEST,
 						status: 400,
 						data: {
 							details: error.errors,
@@ -228,10 +229,10 @@ export const generateConsentReceipt = createAuthEndpoint(
 				);
 			}
 
-			throw new C15TError(
+			throw new DoubleTieError(
 				'Failed to generate consent receipt. Please try again later or contact support if the issue persists.',
 				{
-					code: BASE_ERROR_CODES.INTERNAL_SERVER_ERROR,
+					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
 					status: 500,
 					data: {
 						details:

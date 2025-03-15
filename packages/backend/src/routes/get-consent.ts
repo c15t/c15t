@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { C15T_ERROR_CODES } from '~/error-codes';
 import { createAuthEndpoint } from '~/pkgs/api-router';
-import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
 import type { C15TContext } from '~/pkgs/types';
 import type { EntityOutputFields } from '~/schema/definition';
 
@@ -68,10 +69,10 @@ export const getConsent = createAuthEndpoint(
 			const validatedData = getConsentSchema.safeParse(ctx.query);
 
 			if (!validatedData.success) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The request data is invalid. Please ensure all required fields are correctly filled and formatted.',
 					{
-						code: BASE_ERROR_CODES.BAD_REQUEST,
+						code: ERROR_CODES.BAD_REQUEST,
 						status: 400,
 						data: {
 							details: validatedData.error.errors,
@@ -84,10 +85,10 @@ export const getConsent = createAuthEndpoint(
 			const { registry } = ctx.context as C15TContext;
 
 			if (!registry) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The registry service is currently unavailable. Please check the service status and try again later.',
 					{
-						code: BASE_ERROR_CODES.INITIALIZATION_FAILED,
+						code: ERROR_CODES.INITIALIZATION_FAILED,
 						status: 503,
 					}
 				);
@@ -119,10 +120,10 @@ export const getConsent = createAuthEndpoint(
 				case 'ipAddress': {
 					// For IP address lookups, we require a domain
 					if (!params.domain) {
-						throw new C15TError(
+						throw new DoubleTieError(
 							'A domain must be specified when using an IP address for identification. Please include a valid domain in your request.',
 							{
-								code: BASE_ERROR_CODES.MISSING_REQUIRED_PARAMETER,
+								code: ERROR_CODES.MISSING_REQUIRED_PARAMETER,
 								status: 400,
 								data: {
 									ipAddress: params.ipAddress,
@@ -198,14 +199,14 @@ export const getConsent = createAuthEndpoint(
 			const context = ctx.context as C15TContext;
 			context.logger?.error?.('Error getting consent:', error);
 
-			if (error instanceof C15TError) {
+			if (error instanceof DoubleTieError) {
 				throw error;
 			}
 			if (error instanceof z.ZodError) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The request data is invalid. Please ensure all required fields are correctly filled and formatted.',
 					{
-						code: BASE_ERROR_CODES.BAD_REQUEST,
+						code: ERROR_CODES.BAD_REQUEST,
 						status: 400,
 						data: {
 							details: error.errors,
@@ -214,10 +215,10 @@ export const getConsent = createAuthEndpoint(
 				);
 			}
 
-			throw new C15TError(
+			throw new DoubleTieError(
 				'Failed to retrieve consent information. Please try again later or contact support if the issue persists.',
 				{
-					code: BASE_ERROR_CODES.FAILED_TO_GET_CONSENT,
+					code: C15T_ERROR_CODES.FAILED_TO_GET_CONSENT,
 					status: 503,
 					data: {
 						details:

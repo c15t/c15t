@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createAuthEndpoint } from '~/pkgs/api-router';
-import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
 import { logger } from '~/pkgs/logger';
 import type { EntityOutputFields } from '~/schema/definition';
 
@@ -33,10 +33,10 @@ export const getConsentHistory = createAuthEndpoint(
 			const { registry } = ctx.context;
 
 			if (!registry) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The registry service is currently unavailable. Please check the service status and try again later.',
 					{
-						code: BASE_ERROR_CODES.INITIALIZATION_FAILED,
+						code: ERROR_CODES.INITIALIZATION_FAILED,
 						status: 503,
 					}
 				);

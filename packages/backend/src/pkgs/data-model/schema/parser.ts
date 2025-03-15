@@ -1,5 +1,5 @@
 import type { Field } from '~/pkgs/data-model';
-import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
 import type { C15TOptions, C15TPluginSchema } from '~/pkgs/types';
 
 /**
@@ -92,7 +92,7 @@ export type FieldConflictResolution = {
  * @param conflictResolution - How to handle conflicting field definitions
  * @returns Combined fields from configuration and plugins
  *
- * @throws {C15TError} When field conflicts are detected and strategy is 'error'
+ * @throws {DoubleTieError} When field conflicts are detected and strategy is 'error'
  *
  * @example
  * ```typescript
@@ -121,10 +121,10 @@ export function getAllFields(
 
 				// Handle conflict based on strategy
 				if (conflictResolution.strategy === 'error') {
-					throw new C15TError(
+					throw new DoubleTieError(
 						'A field conflict was detected in the schema. Multiple definitions exist for the same field.',
 						{
-							code: BASE_ERROR_CODES.CONFLICT,
+							code: ERROR_CODES.CONFLICT,
 							status: 500,
 							data: {
 								field: key,
@@ -215,8 +215,8 @@ export type ExtraFieldsConfig = {
  *
  * @returns The validated and transformed data
  *
- * @throws {C15TError} When a required field is missing during creation
- * @throws {C15TError} When extra fields are detected and strategy is 'error'
+ * @throws {DoubleTieError} When a required field is missing during creation
+ * @throws {DoubleTieError} When extra fields are detected and strategy is 'error'
  *
  * @example
  * ```typescript
@@ -339,8 +339,8 @@ export function parseInputData<EntityType extends Record<string, unknown>>(
 			}
 
 			if (fields[key]?.required && action === 'create') {
-				throw new C15TError('Missing required field', {
-					code: BASE_ERROR_CODES.BAD_REQUEST,
+				throw new DoubleTieError('Missing required field', {
+					code: ERROR_CODES.BAD_REQUEST,
 					status: 400,
 					data: {
 						message: `${key} is required`,
@@ -367,8 +367,8 @@ export function parseInputData<EntityType extends Record<string, unknown>>(
 		if (unallowedFields.length > 0) {
 			switch (extraFieldsConfig.strategy) {
 				case 'error':
-					throw new C15TError('Unexpected fields found', {
-						code: BASE_ERROR_CODES.BAD_REQUEST,
+					throw new DoubleTieError('Unexpected fields found', {
+						code: ERROR_CODES.BAD_REQUEST,
 						status: 400,
 						data: {
 							message: `Unexpected fields found: ${unallowedFields.join(', ')}`,
@@ -397,8 +397,8 @@ export function parseInputData<EntityType extends Record<string, unknown>>(
 					break;
 				default:
 					// Default to error strategy for type safety
-					throw new C15TError('Unexpected fields found', {
-						code: BASE_ERROR_CODES.BAD_REQUEST,
+					throw new DoubleTieError('Unexpected fields found', {
+						code: ERROR_CODES.BAD_REQUEST,
 						status: 400,
 						data: {
 							message: `Unexpected fields found: ${unallowedFields.join(', ')}`,

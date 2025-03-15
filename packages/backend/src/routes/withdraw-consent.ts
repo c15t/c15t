@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { C15T_ERROR_CODES } from '~/error-codes';
 import { createAuthEndpoint } from '~/pkgs/api-router';
-import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
 import type { C15TContext } from '~/pkgs/types';
 import type { EntityOutputFields } from '~/schema/definition';
 
@@ -72,10 +73,10 @@ export const withdrawConsent = createAuthEndpoint(
 			const validatedData = withdrawConsentSchema.safeParse(ctx.body);
 
 			if (!validatedData.success) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The request data is invalid. Please ensure all required fields are correctly filled and formatted.',
 					{
-						code: BASE_ERROR_CODES.BAD_REQUEST,
+						code: ERROR_CODES.BAD_REQUEST,
 						status: 400,
 						data: { details: validatedData.error.errors },
 					}
@@ -86,10 +87,10 @@ export const withdrawConsent = createAuthEndpoint(
 			const { registry } = ctx.context as C15TContext;
 
 			if (!registry) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The registry service is currently unavailable. Please check the service status and try again later.',
 					{
-						code: BASE_ERROR_CODES.INITIALIZATION_FAILED,
+						code: ERROR_CODES.INITIALIZATION_FAILED,
 						status: 503,
 					}
 				);
@@ -103,10 +104,10 @@ export const withdrawConsent = createAuthEndpoint(
 				const record = await registry.findConsentById(params.consentId);
 
 				if (!record) {
-					throw new C15TError(
+					throw new DoubleTieError(
 						'The specified consent record could not be found. Please verify the consent ID and try again.',
 						{
-							code: BASE_ERROR_CODES.CONSENT_NOT_FOUND,
+							code: C15T_ERROR_CODES.CONSENT_NOT_FOUND,
 							status: 404,
 							data: { consentId: params.consentId },
 						}
@@ -114,10 +115,10 @@ export const withdrawConsent = createAuthEndpoint(
 				}
 
 				if (record.status !== 'active') {
-					throw new C15TError(
+					throw new DoubleTieError(
 						'The consent has already been withdrawn. No further action is required.',
 						{
-							code: BASE_ERROR_CODES.CONFLICT,
+							code: ERROR_CODES.CONFLICT,
 							status: 409,
 							data: {
 								consentId: params.consentId,
@@ -143,10 +144,10 @@ export const withdrawConsent = createAuthEndpoint(
 				}
 
 				if (!subjectRecord) {
-					throw new C15TError(
+					throw new DoubleTieError(
 						'The specified subject could not be found. Please verify the subject ID or external ID and try again.',
 						{
-							code: BASE_ERROR_CODES.NOT_FOUND,
+							code: ERROR_CODES.NOT_FOUND,
 							status: 404,
 							data:
 								params.identifierType === 'subjectId'
@@ -168,10 +169,10 @@ export const withdrawConsent = createAuthEndpoint(
 				);
 
 				if (recordsToWithdraw.length === 0) {
-					throw new C15TError(
+					throw new DoubleTieError(
 						'No active consent records were found for this subject and domain. Please ensure the subject and domain are correct.',
 						{
-							code: BASE_ERROR_CODES.CONSENT_NOT_FOUND,
+							code: C15T_ERROR_CODES.CONSENT_NOT_FOUND,
 							status: 404,
 							data: {
 								domain: params.domain,
@@ -264,24 +265,24 @@ export const withdrawConsent = createAuthEndpoint(
 			const context = ctx.context as C15TContext;
 			context.logger?.error?.('Error withdrawing consent:', error);
 
-			if (error instanceof C15TError) {
+			if (error instanceof DoubleTieError) {
 				throw error;
 			}
 			if (error instanceof z.ZodError) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					'The request data is invalid. Please ensure all required fields are correctly filled and formatted.',
 					{
-						code: BASE_ERROR_CODES.BAD_REQUEST,
+						code: ERROR_CODES.BAD_REQUEST,
 						status: 400,
 						data: { details: error.errors },
 					}
 				);
 			}
 
-			throw new C15TError(
+			throw new DoubleTieError(
 				'Failed to withdraw consent. Please try again later or contact support if the issue persists.',
 				{
-					code: BASE_ERROR_CODES.INTERNAL_SERVER_ERROR,
+					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
 					status: 503,
 					data: {
 						error: error instanceof Error ? error.message : String(error),

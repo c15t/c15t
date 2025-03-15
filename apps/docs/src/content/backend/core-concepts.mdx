@@ -220,28 +220,28 @@ const formatResponse = (data: unknown): C15TResponse => ({
 
 ```typescript
 // Authentication errors
-class AuthenticationError extends C15TError {
+class AuthenticationError extends DoubleTieError {
   constructor(message: string) {
     super(message, 401);
   }
 }
 
 // Authorization errors
-class AuthorizationError extends C15TError {
+class AuthorizationError extends DoubleTieError {
   constructor(message: string) {
     super(message, 403);
   }
 }
 
 // Validation errors
-class ValidationError extends C15TError {
+class ValidationError extends DoubleTieError {
   constructor(message: string, details?: Record<string, unknown>) {
     super(message, 400, details);
   }
 }
 
 // Database errors
-class DatabaseError extends C15TError {
+class DatabaseError extends DoubleTieError {
   constructor(message: string) {
     super(message, 500);
   }

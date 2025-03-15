@@ -12,7 +12,7 @@ import {
 	or,
 } from 'drizzle-orm';
 import { type EntityName, generateId } from '~/pkgs/data-model';
-import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
 import type { Adapter, C15TOptions, Where } from '~/pkgs/types';
 import { getConsentTables } from '~/schema/definition';
 import { applyDefaultValue } from '../../utils';
@@ -42,7 +42,7 @@ export interface DB {
  * @param config - Configuration options for the Drizzle adapter
  * @param options - C15T options
  * @returns An object containing entity transformation utilities
- * @throws {C15TError} If the schema is not found or if a model or field doesn't exist
+ * @throws {DoubleTieError} If the schema is not found or if a model or field doesn't exist
  */
 const createEntityTransformer = (
 	db: DB,
@@ -73,15 +73,15 @@ const createEntityTransformer = (
 	 * @internal
 	 * @param entityName - The entity name to get the schema for
 	 * @returns The schema model for the entity
-	 * @throws {C15TError} If the schema is not found or the model doesn't exist in the schema
+	 * @throws {DoubleTieError} If the schema is not found or the model doesn't exist in the schema
 	 */
 	function getSchema(entityName: string) {
 		const schema = config.schema || db._.fullSchema;
 		if (!schema) {
-			throw new C15TError(
+			throw new DoubleTieError(
 				'The schema could not be found. Please ensure the schema is properly configured in the adapter.',
 				{
-					code: BASE_ERROR_CODES.DATABASE_CONNECTION_ERROR,
+					code: ERROR_CODES.DATABASE_CONNECTION_ERROR,
 					status: 500,
 					data: {
 						provider: config.provider,
@@ -92,10 +92,10 @@ const createEntityTransformer = (
 		const model = getEntityName(entityName);
 		const schemaModel = schema[model];
 		if (!schemaModel) {
-			throw new C15TError(
+			throw new DoubleTieError(
 				`The model "${model}" does not exist in the schema. Please verify the model name and ensure it is defined in your schema.`,
 				{
-					code: BASE_ERROR_CODES.DATABASE_QUERY_ERROR,
+					code: ERROR_CODES.DATABASE_QUERY_ERROR,
 					status: 404,
 					data: {
 						model,
@@ -134,7 +134,7 @@ const createEntityTransformer = (
 	 * @param where - Array of where conditions from C15T
 	 * @param model - The model name
 	 * @returns Array of Drizzle ORM conditions
-	 * @throws {C15TError} If a field doesn't exist or if the operator value is invalid
+	 * @throws {DoubleTieError} If a field doesn't exist or if the operator value is invalid
 	 */
 	function convertWhereClause<EntityType extends EntityName>(
 		where: Where<EntityType>[],
@@ -151,10 +151,10 @@ const createEntityTransformer = (
 			}
 			const field = getField(model, w.field);
 			if (!schemaModel[field]) {
-				throw new C15TError(
+				throw new DoubleTieError(
 					`The field "${field}" does not exist in model "${model}". Please verify the field name and ensure it is defined in your schema.`,
 					{
-						code: BASE_ERROR_CODES.DATABASE_QUERY_ERROR,
+						code: ERROR_CODES.DATABASE_QUERY_ERROR,
 						status: 404,
 						data: {
 							model,
@@ -166,10 +166,10 @@ const createEntityTransformer = (
 			}
 			if (w.operator === 'in') {
 				if (!Array.isArray(w.value)) {
-					throw new C15TError(
+					throw new DoubleTieError(
 						`The value for the field "${field}" must be an array when using the "in" operator.`,
 						{
-							code: BASE_ERROR_CODES.BAD_REQUEST,
+							code: ERROR_CODES.BAD_REQUEST,
 							status: 400,
 							data: {
 								field,
@@ -205,10 +205,10 @@ const createEntityTransformer = (
 				const field = getField(model, w.field);
 				if (w.operator === 'in') {
 					if (!Array.isArray(w.value)) {
-						throw new C15TError(
+						throw new DoubleTieError(
 							`The value for the field "${field}" must be an array when using the "in" operator.`,
 							{
-								code: BASE_ERROR_CODES.BAD_REQUEST,
+								code: ERROR_CODES.BAD_REQUEST,
 								status: 400,
 								data: {
 									field,
@@ -436,7 +436,7 @@ export interface DrizzleAdapterConfig {
  * @param schema - The schema to check
  * @param model - The model name
  * @param values - The values to validate against the schema
- * @throws {C15TError} If the schema is missing or a field doesn't exist
+ * @throws {DoubleTieError} If the schema is missing or a field doesn't exist
  */
 function checkMissingFields(
 	schema: Record<string, unknown>,
@@ -444,17 +444,17 @@ function checkMissingFields(
 	values: Record<string, unknown>
 ) {
 	if (!schema) {
-		throw new C15TError(
+		throw new DoubleTieError(
 			'The schema could not be found. Please ensure the schema is properly configured in the adapter.',
 			{
-				code: BASE_ERROR_CODES.DATABASE_CONNECTION_ERROR,
+				code: ERROR_CODES.DATABASE_CONNECTION_ERROR,
 				status: 500,
 			}
 		);
 	}
 	for (const key in values) {
 		if (!schema[key]) {
-			throw new C15TError(
+			throw new DoubleTieError(
 				`The field "${key}" does not exist in the "${model}" schema. Please update your drizzle schema or re-generate using "npx @c15t/cli generate".`
 			);
 		}
@@ -539,7 +539,7 @@ export const drizzleAdapter =
 			 *
 			 * @param data - The data for the create operation
 			 * @returns The created record
-			 * @throws {C15TError} If the model or fields don't exist
+			 * @throws {DoubleTieError} If the model or fields don't exist
 			 */
 			async create(data) {
 				const { model, data: values } = data;
@@ -555,7 +555,7 @@ export const drizzleAdapter =
 			 *
 			 * @param data - The data for the find operation
 			 * @returns The found record or null if not found
-			 * @throws {C15TError} If the model or fields don't exist
+			 * @throws {DoubleTieError} If the model or fields don't exist
 			 */
 			async findOne(data) {
 				const { model, where, select } = data;
@@ -576,7 +576,7 @@ export const drizzleAdapter =
 			 *
 			 * @param data - The data for the find operation
 			 * @returns Array of matching records
-			 * @throws {C15TError} If the model or fields don't exist
+			 * @throws {DoubleTieError} If the model or fields don't exist
 			 */
 			async findMany(data) {
 				const { model, where, sortBy, limit, offset } = data;
@@ -600,7 +600,7 @@ export const drizzleAdapter =
 			 *
 			 * @param data - The data for the count operation
 			 * @returns The count of matching records
-			 * @throws {C15TError} If the model or fields don't exist
+			 * @throws {DoubleTieError} If the model or fields don't exist
 			 */
 			async count(data) {
 				const { model, where } = data;
@@ -617,7 +617,7 @@ export const drizzleAdapter =
 			 *
 			 * @param data - The data for the update operation
 			 * @returns The updated record
-			 * @throws {C15TError} If the model or fields don't exist
+			 * @throws {DoubleTieError} If the model or fields don't exist
 			 */
 			async update(data) {
 				const { model, where, update } = data;
@@ -636,7 +636,7 @@ export const drizzleAdapter =
 			 *
 			 * @param data - The data for the update operation
 			 * @returns The number of records updated
-			 * @throws {C15TError} If the model or fields don't exist
+			 * @throws {DoubleTieError} If the model or fields don't exist
 			 */
 			async updateMany(data) {
 				const { model, where, update: values } = data;
@@ -654,7 +654,7 @@ export const drizzleAdapter =
 			 * Deletes a single record matching the where conditions
 			 *
 			 * @param data - The data for the delete operation
-			 * @throws {C15TError} If the model or fields don't exist
+			 * @throws {DoubleTieError} If the model or fields don't exist
 			 */
 			async delete(data) {
 				const { model, where } = data;
@@ -668,7 +668,7 @@ export const drizzleAdapter =
 			 *
 			 * @param data - The data for the delete operation
 			 * @returns The number of records deleted
-			 * @throws {C15TError} If the model or fields don't exist
+			 * @throws {DoubleTieError} If the model or fields don't exist
 			 */
 			async deleteMany(data) {
 				const { model, where } = data;

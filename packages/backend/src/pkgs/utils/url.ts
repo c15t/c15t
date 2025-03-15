@@ -1,4 +1,4 @@
-import { BASE_ERROR_CODES, C15TError } from '~/pkgs/errors';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/errors';
 import { env } from './env';
 
 /**
@@ -14,7 +14,7 @@ const TRAILING_SLASHES_REGEX = /\/+$/;
  * @param url - The URL to check for path components
  * @returns Boolean indicating whether the URL has a non-root path
  *
- * @throws {C15TError} When the provided URL is invalid
+ * @throws {DoubleTieError} When the provided URL is invalid
  *
  * @internal
  */
@@ -23,10 +23,10 @@ function checkHasPath(url: string): boolean {
 		const parsedUrl = new URL(url);
 		return parsedUrl.pathname !== '/';
 	} catch {
-		throw new C15TError(
+		throw new DoubleTieError(
 			`Invalid base URL: ${url}. Please provide a valid base URL.`,
 			{
-				code: BASE_ERROR_CODES.BAD_REQUEST,
+				code: ERROR_CODES.BAD_REQUEST,
 				status: 400,
 				data: {
 					url,
@@ -46,7 +46,7 @@ function checkHasPath(url: string): boolean {
  * @param path - The path to append if needed (defaults to '/api/auth')
  * @returns The URL with the path component
  *
- * @throws {C15TError} When the provided URL is invalid
+ * @throws {DoubleTieError} When the provided URL is invalid
  *
  * @internal
  */
@@ -71,7 +71,7 @@ function withPath(url: string, path = '/api/auth') {
  * @param path - Optional path to append to the URL if it doesn't have one
  * @returns The determined base URL or undefined if unable to determine
  *
- * @throws {C15TError} When the provided URL is invalid
+ * @throws {DoubleTieError} When the provided URL is invalid
  *
  * @example
  * ```ts

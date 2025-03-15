@@ -1,5 +1,5 @@
 import type { C15TInstance } from '~/core';
-import { BASE_ERROR_CODES } from '~/pkgs/errors/codes';
+import { ERROR_CODES } from '~/pkgs/errors';
 import type { C15TContext } from '~/pkgs/types';
 
 /**
@@ -39,7 +39,7 @@ export function toNextJsHandler(instance: C15TInstance) {
 					return new Response(
 						JSON.stringify({
 							error: true,
-							code: BASE_ERROR_CODES.REQUEST_HANDLER_ERROR,
+							code: ERROR_CODES.REQUEST_HANDLER_ERROR,
 							message: 'Invalid JSON in request body',
 							details: error instanceof Error ? error.message : 'Unknown error',
 						}),
@@ -90,14 +90,13 @@ export function toNextJsHandler(instance: C15TInstance) {
 				(error) => {
 					// Convert c15t errors to Response objects
 					const status = error.status || 500;
-					const message =
-						error.message || BASE_ERROR_CODES.INTERNAL_SERVER_ERROR;
+					const message = error.message || ERROR_CODES.INTERNAL_SERVER_ERROR;
 					return new Response(
 						JSON.stringify({
 							error: true,
-							code: error.code || BASE_ERROR_CODES.INTERNAL_SERVER_ERROR,
+							code: error.code || ERROR_CODES.INTERNAL_SERVER_ERROR,
 							message,
-							data: error.data,
+							meta: error.meta,
 						}),
 						{
 							status,
@@ -115,9 +114,9 @@ export function toNextJsHandler(instance: C15TInstance) {
 			return new Response(
 				JSON.stringify({
 					error: true,
-					code: BASE_ERROR_CODES.INTERNAL_SERVER_ERROR,
+					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
 					message: 'An unexpected error occurred',
-					data: { error: String(error) },
+					meta: { error: String(error) },
 				}),
 				{
 					status: 500,
