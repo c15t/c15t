@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { levels, shouldPublishLog } from '../log-levels';
+import { levels, shouldLog } from '../log-levels';
 import * as logLevelsModule from '../log-levels';
 import type { LogLevel } from '../types';
 
@@ -15,7 +15,7 @@ describe('log-levels', () => {
 		});
 
 		it('should be defined in correct order for log level comparison', () => {
-			// The order is important for shouldPublishLog function
+			// The order is important for shouldLog function
 			// The earlier in the array, the higher the priority
 			expect(levels.indexOf('info')).toBeLessThan(levels.indexOf('debug'));
 			expect(levels.indexOf('warn')).toBeLessThan(levels.indexOf('debug'));
@@ -23,27 +23,27 @@ describe('log-levels', () => {
 		});
 	});
 
-	describe('shouldPublishLog', () => {
+	describe('shouldLog', () => {
 		// Define the expected behavior for our tests
 		it('should allow messages with level equal to or more important than the current level', () => {
 			// Test 'info' level
-			expect(shouldPublishLog('info', 'info')).toBe(true);
+			expect(shouldLog('info', 'info')).toBe(true);
 
 			// Test 'warn' level
-			expect(shouldPublishLog('warn', 'warn')).toBe(true);
-			expect(shouldPublishLog('warn', 'error')).toBe(true);
-			expect(shouldPublishLog('warn', 'info')).toBe(false);
+			expect(shouldLog('warn', 'warn')).toBe(true);
+			expect(shouldLog('warn', 'error')).toBe(true);
+			expect(shouldLog('warn', 'info')).toBe(false);
 
 			// Test 'error' level
-			expect(shouldPublishLog('error', 'error')).toBe(true);
-			expect(shouldPublishLog('error', 'warn')).toBe(false);
-			expect(shouldPublishLog('error', 'info')).toBe(false);
+			expect(shouldLog('error', 'error')).toBe(true);
+			expect(shouldLog('error', 'warn')).toBe(false);
+			expect(shouldLog('error', 'info')).toBe(false);
 
 			// Test 'debug' level
-			expect(shouldPublishLog('debug', 'debug')).toBe(true);
-			expect(shouldPublishLog('debug', 'error')).toBe(false);
-			expect(shouldPublishLog('debug', 'warn')).toBe(false);
-			expect(shouldPublishLog('debug', 'info')).toBe(false);
+			expect(shouldLog('debug', 'debug')).toBe(true);
+			expect(shouldLog('debug', 'error')).toBe(false);
+			expect(shouldLog('debug', 'warn')).toBe(false);
+			expect(shouldLog('debug', 'info')).toBe(false);
 		});
 
 		it('should use array comparison for determining log level priority', () => {

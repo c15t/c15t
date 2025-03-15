@@ -1,15 +1,14 @@
 # DoubleTie Logger
 
-A lightweight, customizable logging utility for Node.js and TypeScript applications. It provides structured logging capabilities, error logging utilities for the Result pattern, and flexible configuration options.
+A lightweight, customizable logging utility for Node.js and TypeScript applications. It provides structured logging capabilities, Result pattern integration, and flexible configuration options.
 
 ## Features
 
 - Configurable log levels (`info`, `success`, `warn`, `error`, `debug`)
 - Color-coded console output for better readability
 - Custom log handlers for integration with other logging systems
-- Error logging utilities for [neverthrow](https://github.com/supermacro/neverthrow) Result types
+- Integration with Result pattern for error handling
 - TypeScript support with comprehensive type definitions
-- Support for passing existing Logger instances
 - Customizable application name in log messages
 
 ## Installation
@@ -18,9 +17,32 @@ A lightweight, customizable logging utility for Node.js and TypeScript applicati
 npm install @doubletie/logger
 ```
 
+## Core Concepts
+
+The logger provides a simple interface for outputting logs at different severity levels. The main interface is:
+
+```typescript
+interface Logger {
+  info(message: string, data?: object): void;
+  success(message: string, data?: object): void;
+  warn(message: string, data?: object): void;
+  error(message: string, data?: object): void;
+  debug(message: string, data?: object): void;
+}
+```
+
+### Log Levels
+
+Log levels are ordered by severity:
+- `error` - Critical issues that require immediate attention
+- `warn` - Potential problems that should be investigated
+- `info` - General informational messages about system operation
+- `success` - Successful operations (treated as info level in custom handlers)
+- `debug` - Detailed information for debugging purposes
+
 ## Usage
 
-### Basic Logging
+### Creating a Logger
 
 ```typescript
 import { createLogger } from '@doubletie/logger';
@@ -28,102 +50,38 @@ import { createLogger } from '@doubletie/logger';
 // Create a logger with default settings (only logs errors)
 const logger = createLogger();
 
-// Log messages at different levels
-logger.error('This is an error message');
-logger.warn('This is a warning');
-logger.info('This is an info message'); // Won't be logged with default settings
-logger.debug('This is a debug message'); // Won't be logged with default settings
-logger.success('This is a success message'); // Won't be logged with default settings
-```
-
-### Customizing Log Levels
-
-```typescript
-import { createLogger } from '@doubletie/logger';
-
 // Create a logger that logs all message types
-const logger = createLogger({ level: 'debug' });
-
-// Now all messages will be logged
-logger.info('Application started');
-logger.debug('Initializing components', { component: 'database' });
-logger.warn('Configuration missing, using defaults');
-logger.error('Failed to connect', { retry: true });
-```
-
-### Custom Application Name
-
-```typescript
-import { createLogger } from '@doubletie/logger';
+const verboseLogger = createLogger({ level: 'debug' });
 
 // Create a logger with a custom application name
-const logger = createLogger({ appName: 'my-service' });
-
-// The logs will now display the custom app name
-logger.info('Service initialized');
-// Output example: 2023-03-15T12:34:56.789Z INFO [my-service]: Service initialized
+const appLogger = createLogger({ appName: 'my-service' });
 ```
 
-### Disabling Logging
+### Logging at Different Levels
 
 ```typescript
-import { createLogger } from '@doubletie/logger';
+// Critical issues
+logger.error('Failed to connect to database', { retryCount: 3, timeout: 5000 });
 
-// Create a logger with logging disabled
-const logger = createLogger({ disabled: true });
+// Warnings about potential issues
+logger.warn('Configuration missing, using defaults', { config: 'cache.json' });
 
-// No messages will be logged
-logger.error('This won\'t be logged');
+// General information
+logger.info('Application started', { environment: 'production', version: '1.2.3' });
+
+// Success messages
+logger.success('User registered successfully', { userId: 'user123' });
+
+// Debug information
+logger.debug('Processing request', { requestId: 'req-123', payload: { name: 'Test' } });
 ```
 
-### Custom Log Handler
+### Integration with Result Types
+
+When working with Result types from libraries like [neverthrow](https://github.com/supermacro/neverthrow), you can use these utilities to log errors without disrupting the flow:
 
 ```typescript
-import { createLogger } from '@doubletie/logger';
-
-// Create a logger with a custom log handler
-const logger = createLogger({
-  level: 'info',
-  log: (level, message, ...args) => {
-    // Send logs to a custom logging service
-    myLoggingService.send({
-      level,
-      message,
-      timestamp: new Date().toISOString(),
-      data: args[0] || {},
-    });
-  },
-});
-
-logger.info('User logged in', { userId: 'user123' });
-```
-
-### Using Existing Logger Instances
-
-```typescript
-import { createLogger, Logger } from '@doubletie/logger';
-
-// Create a logger with specific options
-const baseLogger = createLogger({ level: 'warn' });
-
-// In another part of your application, you can pass the
-// existing logger instance to createLogger
-function setupService(options: { logger?: Logger }) {
-  // If a logger is provided, it will be used as-is
-  // Otherwise, a new one will be created with default settings
-  const serviceLogger = createLogger(options.logger);
-  
-  serviceLogger.info('Service initializing');
-}
-
-// Pass the existing logger to the service
-setupService({ logger: baseLogger });
-```
-
-### Error Logging with Result Types
-
-```typescript
-import { logError, logErrorAsync } from '@doubletie/logger';
+import { logResult, logResultAsync } from '@doubletie/logger';
 import { createLogger } from '@doubletie/logger';
 import { ok, err, okAsync, errAsync } from 'neverthrow';
 
@@ -134,7 +92,7 @@ function processData(input: string) {
   const result = validate(input); // Returns Result<ValidData, Error>
   
   // Log any errors but continue with the Result
-  return logError(result, logger, 'Validation error:');
+  return logResult(result, logger, 'Validation error:');
 }
 
 // Log errors from a ResultAsync
@@ -142,11 +100,53 @@ async function fetchData(url: string) {
   const resultAsync = fetchAsync(url); // Returns ResultAsync<Response, Error>
   
   // Log any errors but continue with the ResultAsync
-  return logErrorAsync(resultAsync, logger, 'Fetch error:');
+  return logResultAsync(resultAsync, logger, 'Fetch error:');
 }
 ```
 
+### Custom Log Handler
+
+```typescript
+import { createLogger } from '@doubletie/logger';
+
+// Create a logger with a custom log handler
+const logger = createLogger({
+  level: 'info',
+  log: (level, message, data) => {
+    // Send logs to a custom logging service
+    myLoggingService.send({
+      level,
+      message,
+      timestamp: new Date().toISOString(),
+      data: data || {},
+    });
+  },
+});
+
+logger.info('User logged in', { userId: 'user123' });
+```
+
 ## API Reference
+
+### Core Functions
+
+#### `createLogger(options?: LoggerOptions | Logger): Logger`
+
+Creates a configured logger instance with methods for each log level.
+
+#### `isLogLevelEnabled(currentLogLevel: LogLevel, logLevel: LogLevel): boolean`
+
+Determines if a log message should be published based on configured log level.
+
+### Result Logging Functions
+
+#### `logResult<T, E extends LoggableError>(result: Result<T, E>, logger, message?): Result<T, E>`
+
+Logs any errors in a Result without changing the Result.
+
+#### `logResultAsync<T, E extends LoggableError>(resultAsync: ResultAsync<T, E>, logger, message?): ResultAsync<T, E>`
+
+Logs any errors in a ResultAsync without changing the ResultAsync.
 
 ### Types
 
@@ -156,88 +156,57 @@ async function fetchData(url: string) {
 type LogLevel = 'info' | 'success' | 'warn' | 'error' | 'debug';
 ```
 
+#### `Logger`
+
+```typescript
+type Logger = {
+  info(message: string, data?: object): void;
+  success(message: string, data?: object): void;
+  warn(message: string, data?: object): void;
+  error(message: string, data?: object): void;
+  debug(message: string, data?: object): void;
+};
+```
+
 #### `LoggerOptions`
 
 ```typescript
 interface LoggerOptions {
   disabled?: boolean;
   level?: Exclude<LogLevel, 'success'>;
-  log?: (level: Exclude<LogLevel, 'success'>, message: string, ...args: unknown[]) => void;
+  log?: (level: LogLevel, message: string, data?: object) => void;
   appName?: string;
 }
 ```
 
-#### `Logger`
+#### `LoggableError`
 
 ```typescript
-type Logger = Record<LogLevel, (message: string, ...args: unknown[]) => void>;
-```
-
-#### `BaseError`
-
-```typescript
-interface BaseError {
+interface LoggableError {
   message: string;
   code?: string | number;
   status?: number;
-  data?: Record<string, unknown>;
+  meta?: Record<string, unknown>;
   category?: string;
   stack?: string;
 }
 ```
 
-### Functions
+## Best Practices
 
-#### `createLogger(options?: LoggerOptions | Logger)`
+1. **Use Structured Logging**
+   - Always include relevant data objects with your log messages
+   - This makes logs easier to search and analyze
 
-Creates a configured logger instance with methods for each log level. If passed an existing Logger instance, it will return that instance unchanged.
+2. **Choose Appropriate Log Levels**
+   - Use `error` only for actual errors that require attention
+   - Use `warn` for potentially problematic situations
+   - Use `info` for normal operation events
+   - Use `debug` only for detailed troubleshooting information
 
-```typescript
-function createLogger(options?: LoggerOptions | Logger): Logger;
-```
-
-#### `shouldPublishLog(currentLogLevel: LogLevel, logLevel: LogLevel)`
-
-Determines if a log message should be published based on configured log level.
-
-```typescript
-function shouldPublishLog(currentLogLevel: LogLevel, logLevel: LogLevel): boolean;
-```
-
-#### `logError<ValueType, ErrorType extends BaseError>(result: Result<ValueType, ErrorType>, logger, message?)`
-
-Logs any errors in a Result without changing the Result.
-
-```typescript
-function logError<ValueType, ErrorType extends BaseError>(
-  result: Result<ValueType, ErrorType>,
-  logger: { error: (message: string, ...args: unknown[]) => void },
-  message?: string
-): Result<ValueType, ErrorType>;
-```
-
-#### `logErrorAsync<ValueType, ErrorType extends BaseError>(resultAsync: ResultAsync<ValueType, ErrorType>, logger, message?)`
-
-Logs any errors in a ResultAsync without changing the ResultAsync.
-
-```typescript
-function logErrorAsync<ValueType, ErrorType extends BaseError>(
-  resultAsync: ResultAsync<ValueType, ErrorType>,
-  logger: { error: (message: string, ...args: unknown[]) => void },
-  message?: string
-): ResultAsync<ValueType, ErrorType>;
-```
-
-## Package Structure
-
-This package is organized into several focused modules:
-
-- `types.ts` - All type definitions for the logger
-- `log-levels.ts` - Log level management and filtering
-- `console-formatter.ts` - Formatting utilities for console output
-- `logger-factory.ts` - Logger creation functionality
-- `result-logging.ts` - Error logging utilities for Result types
-- `index.ts` - Main exports
+3. **Include Context**
+   - Add request IDs, user IDs, or transaction IDs to logs
+   - This helps correlate related log entries
 
 ## License
 

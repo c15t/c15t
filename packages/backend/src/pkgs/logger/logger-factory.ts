@@ -1,6 +1,6 @@
 import { formatMessage } from './console-formatter';
-import { levels, shouldPublishLog } from './log-levels';
-import { LogHandlerParams, LogLevel, Logger, LoggerOptions } from './types';
+import { levels, shouldLog } from './log-levels';
+import { LogEntry, LogLevel, Logger, LoggerOptions } from './types';
 
 /**
  * Creates a configured logger instance with methods for each log level.
@@ -54,7 +54,7 @@ export const createLogger = (options?: LoggerOptions | Logger): Logger => {
 		message: string,
 		args: unknown[] = []
 	): void => {
-		if (!enabled || !shouldPublishLog(logLevel, level)) {
+		if (!enabled || !shouldLog(logLevel, level)) {
 			return;
 		}
 
@@ -88,8 +88,7 @@ export const createLogger = (options?: LoggerOptions | Logger): Logger => {
 	return Object.fromEntries(
 		levels.map((level) => [
 			level,
-			(...[message, ...args]: LogHandlerParams) =>
-				logFunc(level, message, args),
+			(...[message, ...args]: LogEntry) => logFunc(level, message, args),
 		])
 	) as Logger;
 };

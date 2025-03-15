@@ -1,5 +1,5 @@
 import type { Result, ResultAsync } from 'neverthrow';
-import { BaseError } from './types';
+import { LoggableError } from './types';
 
 /**
  * Logs any errors in a Result without changing the Result.
@@ -10,7 +10,7 @@ import { BaseError } from './types';
  * and log the error if present, then returns the original Result.
  *
  * @typeParam ValueType - The type of the successful value in the Result
- * @typeParam ErrorType - The type of the error in the Result, must extend BaseError
+ * @typeParam ErrorType - The type of the error in the Result, must extend LoggableError
  *
  * @param result - The Result that may contain an error
  * @param logger - Logger instance with an error method
@@ -19,7 +19,7 @@ import { BaseError } from './types';
  *
  * @example
  * ```ts
- * import { logError } from '@doubletie/logger';
+ * import { logResult } from '@doubletie/logger';
  * import { createLogger } from '@doubletie/logger';
  * import { ok, err } from 'neverthrow';
  *
@@ -27,12 +27,12 @@ import { BaseError } from './types';
  * const result = err({ message: 'Failed operation', code: 'OP_FAILED' });
  *
  * // Log the error but continue processing the Result
- * const processedResult = logError(result, logger);
+ * const processedResult = logResult(result, logger);
  * ```
  *
  * @public
  */
-export const logError = <ValueType, ErrorType extends BaseError>(
+export const logResult = <ValueType, ErrorType extends LoggableError>(
 	result: Result<ValueType, ErrorType>,
 	logger: { error: (message: string, ...args: unknown[]) => void },
 	message = 'Error occurred:'
@@ -41,7 +41,7 @@ export const logError = <ValueType, ErrorType extends BaseError>(
 		logger.error(`${message} ${error.message}`, {
 			code: error.code,
 			status: error.status,
-			data: error.data,
+			meta: error.meta,
 			category: error.category,
 			stack: error.stack,
 		});
@@ -58,7 +58,7 @@ export const logError = <ValueType, ErrorType extends BaseError>(
  * and log the error if present, then returns the original ResultAsync.
  *
  * @typeParam ValueType - The type of the successful value in the ResultAsync
- * @typeParam ErrorType - The type of the error in the ResultAsync, must extend BaseError
+ * @typeParam ErrorType - The type of the error in the ResultAsync, must extend LoggableError
  *
  * @param resultAsync - The ResultAsync that may contain an error
  * @param logger - Logger instance with an error method
@@ -67,7 +67,7 @@ export const logError = <ValueType, ErrorType extends BaseError>(
  *
  * @example
  * ```ts
- * import { logErrorAsync } from '@doubletie/logger';
+ * import { logResultAsync } from '@doubletie/logger';
  * import { createLogger } from '@doubletie/logger';
  * import { okAsync, errAsync } from 'neverthrow';
  *
@@ -75,12 +75,12 @@ export const logError = <ValueType, ErrorType extends BaseError>(
  * const resultAsync = errAsync({ message: 'Failed async operation', code: 'ASYNC_FAILED' });
  *
  * // Log the error but continue processing the ResultAsync
- * const processedResultAsync = logErrorAsync(resultAsync, logger);
+ * const processedResultAsync = logResultAsync(resultAsync, logger);
  * ```
  *
  * @public
  */
-export const logErrorAsync = <ValueType, ErrorType extends BaseError>(
+export const logResultAsync = <ValueType, ErrorType extends LoggableError>(
 	resultAsync: ResultAsync<ValueType, ErrorType>,
 	logger: { error: (message: string, ...args: unknown[]) => void },
 	message = 'Error occurred:'
@@ -89,7 +89,7 @@ export const logErrorAsync = <ValueType, ErrorType extends BaseError>(
 		logger.error(`${message} ${error.message}`, {
 			code: error.code,
 			status: error.status,
-			data: error.data,
+			meta: error.meta,
 			category: error.category,
 			stack: error.stack,
 		});

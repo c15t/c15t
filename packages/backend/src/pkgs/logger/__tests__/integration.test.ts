@@ -1,8 +1,8 @@
 import { err, errAsync } from 'neverthrow';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createLogger } from '../logger-factory';
-import { logError, logErrorAsync } from '../result-logging';
-import type { BaseError } from '../types';
+import { logResult, logResultAsync } from '../result-logging';
+import type { LoggableError } from '../types';
 
 describe('logger integration', () => {
 	beforeEach(() => {
@@ -22,14 +22,14 @@ describe('logger integration', () => {
 			const logger = createLogger();
 
 			// Create an error result
-			const testError: BaseError = {
+			const testError: LoggableError = {
 				message: 'Integration test error',
 				code: 'INTEGRATION_TEST',
 			};
 			const errorResult = err(testError);
 
 			// Log the error using the result logging utility
-			logError(errorResult, logger);
+			logResult(errorResult, logger);
 
 			// Verify that console.error was called with a formatted message
 			expect(console.error).toHaveBeenCalledTimes(1);
@@ -63,12 +63,12 @@ describe('logger integration', () => {
 			expect(console.warn).toHaveBeenCalledTimes(1);
 
 			// Create an error for result logging
-			const testError: BaseError = {
+			const testError: LoggableError = {
 				message: 'Integration error',
 			};
 
 			// Log using the result logging utility
-			logError(err(testError), logger);
+			logResult(err(testError), logger);
 
 			expect(console.error).toHaveBeenCalledTimes(1);
 		});
@@ -90,11 +90,11 @@ describe('logger integration', () => {
 			expect(customLogHandler).toHaveBeenCalledTimes(2);
 
 			// Use result logging
-			const testError: BaseError = {
+			const testError: LoggableError = {
 				message: 'Result error',
 			};
 
-			logError(err(testError), logger);
+			logResult(err(testError), logger);
 
 			// Check that the custom handler was called again
 			expect(customLogHandler).toHaveBeenCalledTimes(3);
@@ -108,13 +108,13 @@ describe('logger integration', () => {
 		it('should support async result logging with the logger', async () => {
 			const logger = createLogger();
 
-			const testError: BaseError = {
+			const testError: LoggableError = {
 				message: 'Async integration error',
 			};
 
 			const errorResultAsync = errAsync(testError);
 
-			await logErrorAsync(errorResultAsync, logger).match(
+			await logResultAsync(errorResultAsync, logger).match(
 				() => {},
 				() => {}
 			);
@@ -160,11 +160,11 @@ describe('logger integration', () => {
 			);
 
 			// Check that the custom app name works with result logging too
-			const testError: BaseError = {
+			const testError: LoggableError = {
 				message: 'Integration error with custom app name',
 			};
 
-			logError(err(testError), logger);
+			logResult(err(testError), logger);
 
 			expect(mockedConsoleError.mock.calls[1]?.[0]).toContain(
 				`[${customAppName}]`

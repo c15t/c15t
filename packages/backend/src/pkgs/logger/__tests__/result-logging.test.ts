@@ -1,10 +1,10 @@
 import { Result, ResultAsync, err, errAsync, ok, okAsync } from 'neverthrow';
 import { describe, expect, it, vi } from 'vitest';
-import { logError, logErrorAsync } from '../result-logging';
-import type { BaseError } from '../types';
+import { logResult, logResultAsync } from '../result-logging';
+import type { LoggableError } from '../types';
 
 describe('result-logging', () => {
-	describe('logError', () => {
+	describe('logResult', () => {
 		it('should log error from a Result and return the original Result', () => {
 			// Create a mock logger
 			const logger = {
@@ -12,7 +12,7 @@ describe('result-logging', () => {
 			};
 
 			// Create a sample error
-			const testError: BaseError = {
+			const testError: LoggableError = {
 				message: 'Test error',
 				code: 'TEST_ERROR',
 				status: 400,
@@ -22,10 +22,10 @@ describe('result-logging', () => {
 			};
 
 			// Create an error Result
-			const errorResult: Result<string, BaseError> = err(testError);
+			const errorResult: Result<string, LoggableError> = err(testError);
 
 			// Log the error
-			const result = logError(errorResult, logger);
+			const result = logResult(errorResult, logger);
 
 			// Verify the logger was called with the correct arguments
 			expect(logger.error).toHaveBeenCalledTimes(1);
@@ -52,9 +52,9 @@ describe('result-logging', () => {
 				error: vi.fn(),
 			};
 
-			const successResult: Result<string, BaseError> = ok('Success');
+			const successResult: Result<string, LoggableError> = ok('Success');
 
-			const result = logError(successResult, logger);
+			const result = logResult(successResult, logger);
 
 			// Verify logger was not called
 			expect(logger.error).not.toHaveBeenCalled();
@@ -68,13 +68,13 @@ describe('result-logging', () => {
 				error: vi.fn(),
 			};
 
-			const testError: BaseError = {
+			const testError: LoggableError = {
 				message: 'Test error',
 			};
 
-			const errorResult: Result<string, BaseError> = err(testError);
+			const errorResult: Result<string, LoggableError> = err(testError);
 
-			logError(errorResult, logger, 'Custom prefix:');
+			logResult(errorResult, logger, 'Custom prefix:');
 
 			expect(logger.error).toHaveBeenCalledWith(
 				'Custom prefix: Test error',
@@ -88,13 +88,13 @@ describe('result-logging', () => {
 			};
 
 			// Create a minimal error with just the required message property
-			const minimalError: BaseError = {
+			const minimalError: LoggableError = {
 				message: 'Minimal error',
 			};
 
-			const errorResult: Result<string, BaseError> = err(minimalError);
+			const errorResult: Result<string, LoggableError> = err(minimalError);
 
-			logError(errorResult, logger);
+			logResult(errorResult, logger);
 
 			expect(logger.error).toHaveBeenCalledWith(
 				'Error occurred: Minimal error',
@@ -109,22 +109,22 @@ describe('result-logging', () => {
 		});
 	});
 
-	describe('logErrorAsync', () => {
+	describe('logResultAsync', () => {
 		it('should log error from a ResultAsync and return the original ResultAsync', async () => {
 			const logger = {
 				error: vi.fn(),
 			};
 
-			const testError: BaseError = {
+			const testError: LoggableError = {
 				message: 'Async test error',
 				code: 'ASYNC_TEST_ERROR',
 				status: 500,
 			};
 
-			const errorResultAsync: ResultAsync<string, BaseError> =
+			const errorResultAsync: ResultAsync<string, LoggableError> =
 				errAsync(testError);
 
-			const resultAsync = logErrorAsync(errorResultAsync, logger);
+			const resultAsync = logResultAsync(errorResultAsync, logger);
 
 			// Wait for the async operation to complete
 			await resultAsync.match(
@@ -151,10 +151,10 @@ describe('result-logging', () => {
 				error: vi.fn(),
 			};
 
-			const successResultAsync: ResultAsync<string, BaseError> =
+			const successResultAsync: ResultAsync<string, LoggableError> =
 				okAsync('Async Success');
 
-			const resultAsync = logErrorAsync(successResultAsync, logger);
+			const resultAsync = logResultAsync(successResultAsync, logger);
 
 			await resultAsync.match(
 				() => {},
@@ -169,14 +169,14 @@ describe('result-logging', () => {
 				error: vi.fn(),
 			};
 
-			const testError: BaseError = {
+			const testError: LoggableError = {
 				message: 'Async error',
 			};
 
-			const errorResultAsync: ResultAsync<string, BaseError> =
+			const errorResultAsync: ResultAsync<string, LoggableError> =
 				errAsync(testError);
 
-			const resultAsync = logErrorAsync(
+			const resultAsync = logResultAsync(
 				errorResultAsync,
 				logger,
 				'Async error:'

@@ -26,6 +26,9 @@ export const levels = ['error', 'warn', 'info', 'success', 'debug'] as const;
  * }
  * ```
  *
+ * @remarks
+ * This function is also exported as `isLogLevelEnabled` which is a more intuitive name.
+ *
  * @public
  */
 export function shouldPublishLog(
@@ -45,3 +48,22 @@ export function shouldPublishLog(
 	// Lower index = more important.
 	return messageLevelIndex <= currentLevelIndex;
 }
+
+/**
+ * Determines if a message at the given log level should be displayed.
+ *
+ * @param currentLogLevel - The configured log level threshold for the logger
+ * @param logLevel - The level of the message being evaluated
+ * @returns Boolean indicating whether the message should be published
+ *
+ * @example
+ * ```ts
+ * // Check if an error message should be shown at the current log level
+ * if (isLogLevelEnabled('warn', 'error')) {
+ *   // This will return true as error is more severe than warn
+ * }
+ * ```
+ *
+ * @public
+ */
+export const isLogLevelEnabled = shouldPublishLog;

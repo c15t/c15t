@@ -16,7 +16,7 @@
  *
  * @example
  * ```ts
- * import { createLogger, logError } from '@doubletie/logger';
+ * import { createLogger, logResult } from '@doubletie/logger';
  *
  * // Create a custom logger
  * const logger = createLogger({ level: 'debug' });
@@ -34,14 +34,15 @@ export type {
 	LogLevel,
 	Logger,
 	LoggerOptions,
-	LogHandlerParams,
-	BaseError,
+	LogEntry,
+	LoggableError,
 } from './types';
 
 // Log level handling
 export {
 	levels,
 	shouldPublishLog,
+	shouldPublishLog as isLogLevelEnabled,
 } from './log-levels';
 
 // Logger creation
@@ -52,6 +53,8 @@ export {
 
 // Result-based error logging
 export {
-	logError,
-	logErrorAsync,
+	logResult,
+	logResultAsync,
+	logResult as logError,
+	logResultAsync as logErrorAsync,
 } from './result-logging';

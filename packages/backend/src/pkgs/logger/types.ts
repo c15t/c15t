@@ -73,9 +73,10 @@ export interface LoggerOptions {
  *
  * @internal
  */
-export type LogHandlerParams = Parameters<
-	NonNullable<LoggerOptions['log']>
-> extends [LogLevel, ...infer Rest]
+export type LogEntry = Parameters<NonNullable<LoggerOptions['log']>> extends [
+	LogLevel,
+	...infer Rest,
+]
 	? Rest
 	: never;
 
@@ -87,7 +88,7 @@ export type LogHandlerParams = Parameters<
  *
  * @public
  */
-export type Logger = Record<LogLevel, (...params: LogHandlerParams) => void>;
+export type Logger = Record<LogLevel, (...params: LogEntry) => void>;
 
 /**
  * Base error interface that must be implemented by errors used with the logger.
@@ -98,7 +99,7 @@ export type Logger = Record<LogLevel, (...params: LogHandlerParams) => void>;
  *
  * @public
  */
-export interface BaseError {
+export interface LoggableError {
 	/** The error message */
 	message: string;
 
@@ -108,8 +109,8 @@ export interface BaseError {
 	/** Optional HTTP status code */
 	status?: number;
 
-	/** Optional additional error data */
-	data?: Record<string, unknown>;
+	/** Optional additional error metadata */
+	meta?: Record<string, unknown>;
 
 	/** Optional error category */
 	category?: string;

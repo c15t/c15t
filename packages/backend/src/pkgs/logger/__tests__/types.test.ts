@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { BaseError, LogLevel, Logger, LoggerOptions } from '../types';
+import type { LogLevel, LoggableError, Logger, LoggerOptions } from '../types';
 
 describe('types', () => {
 	// These tests mainly serve as type checks during compilation
@@ -57,17 +57,17 @@ describe('types', () => {
 		});
 	});
 
-	describe('BaseError', () => {
+	describe('LoggableError', () => {
 		it('should allow creating error objects with required properties', () => {
-			// Create a minimal BaseError
-			const minimalError: BaseError = {
+			// Create a minimal LoggableError
+			const minimalError: LoggableError = {
 				message: 'Test error',
 			};
 
 			expect(minimalError).toHaveProperty('message');
 
-			// Create a complete BaseError
-			const fullError: BaseError = {
+			// Create a complete LoggableError
+			const fullError: LoggableError = {
 				message: 'Test error',
 				code: 'TEST_ERROR',
 				status: 400,
