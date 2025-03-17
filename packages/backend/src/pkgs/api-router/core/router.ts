@@ -5,12 +5,11 @@ import {
 	type UnionToIntersection,
 	createRouter,
 } from 'better-call';
-import { getIp } from '~/pkgs/api-router';
+import { getIp } from '../utils/ip';
 import type { C15TContext, C15TOptions, C15TPlugin } from '~/pkgs/types';
-
 import { logger } from '~/pkgs/logger';
-import { C15TEndpoint } from './call';
-import { toEndpoints } from './to-endpoints';
+import type { DoubleTieEndpoint } from './endpoint';
+import { toEndpoints } from '../endpoints/converter';
 
 /**
  * Retrieves and configures endpoints from plugins and core functionality
@@ -25,10 +24,10 @@ import { toEndpoints } from './to-endpoints';
  *
  * @typeParam ContextType - The specific context type extending C15TContext
  * @typeParam OptionsType - Configuration options type extending C15TOptions
- * @param ctx - The consent management context (or promise resolving to it)
- * @param options - Configuration options for the consent system
+ * @param ctx - The application context (or promise resolving to it)
+ * @param options - Configuration options for the API system
  * @param baseEndpoints - The core endpoints to include
- * @param okEndpoint - The OK endpoint for health checks
+ * @param healthCheckEndpoint - The health check endpoint for system monitoring
  * @returns Object containing API handlers and middleware configurations
  */
 export function getEndpoints<
@@ -38,7 +37,7 @@ export function getEndpoints<
 	ctx: Promise<ContextType> | ContextType,
 	options: OptionsType,
 	baseEndpoints: Record<string, Endpoint>,
-	okEndpoint: Endpoint
+	healthCheckEndpoint: Endpoint
 ) {
 	const pluginEndpoints = options.plugins?.reduce<Record<string, Endpoint>>(
 		(acc, plugin) => {
@@ -95,12 +94,12 @@ export function getEndpoints<
 	const endpoints = {
 		...baseEndpoints,
 		...pluginEndpoints,
-		ok: okEndpoint,
+		ok: healthCheckEndpoint,
 	};
 
 	// Add type assertion to fix the type compatibility issue
 	const api = toEndpoints(
-		endpoints as unknown as Record<string, C15TEndpoint>,
+		endpoints as unknown as Record<string, DoubleTieEndpoint>,
 		ctx
 	);
 
@@ -113,21 +112,62 @@ export function getEndpoints<
 /**
  * Creates a router for handling API requests
  *
- * Sets up routing with proper error handling, CORS, and response processing.
- * Integrates plugin-provided middlewares and response handlers.
+ * Sets up a fully configured API router with error handling, middleware integration,
+ * plugin support, and standardized response processing.
  *
  * @remarks
- * This router automatically applies the provided middlewares to all routes
- * and handles error conditions appropriately based on configuration.
+ * This router factory handles common API concerns including:
+ * - Base URL and path prefix configuration
+ * - Plugin middleware registration
+ * - Error handling and logging
+ * - Request/response lifecycle hooks
+ * - OpenAPI documentation generation
+ *
+ * It allows for a modular approach to API design where middleware, plugins, and
+ * endpoints can be composed independently and registered with the router.
  *
  * @typeParam ContextType - The specific context type extending C15TContext
  * @typeParam OptionsType - Configuration options type extending C15TOptions
- * @param ctx - The initialized consent management context
- * @param options - Configuration options for the consent system
- * @param baseEndpoints - The core endpoints to include
- * @param okEndpoint - The OK endpoint for health checks
+ * @param ctx - The initialized application context
+ * @param options - Configuration options for the API system
+ * @param baseEndpoints - The core endpoints to include in the API
+ * @param healthCheckEndpoint - The health check endpoint for monitoring
  * @param coreMiddlewares - Core middlewares to apply to all routes
  * @returns A configured router with handler and endpoint functions
+ * 
+ * @example
+ * ```typescript
+ * // Create a router with authentication and logging
+ * const router = createApiRouter(
+ *   appContext,
+ *   {
+ *     baseURL: 'https://api.example.com',
+ *     plugins: [authPlugin, loggingPlugin],
+ *     onAPIError: {
+ *       throw: false,
+ *       onError: (error, ctx) => {
+ *         // Custom error handling
+ *         logger.error('API error', { error, path: ctx.path });
+ *         return new Response('Custom error response', { status: 500 });
+ *       }
+ *     }
+ *   },
+ *   { 
+ *     getUser: userEndpoints.getUser,
+ *     updateUser: userEndpoints.updateUser
+ *   },
+ *   healthEndpoint,
+ *   [
+ *     { 
+ *       path: '/users/**', 
+ *       middleware: authMiddleware 
+ *     }
+ *   ]
+ * );
+ * 
+ * // Use the router in your application
+ * app.use('/api', router.handler);
+ * ```
  */
 export const createApiRouter = <
 	ContextType extends C15TContext,
@@ -136,14 +176,14 @@ export const createApiRouter = <
 	ctx: ContextType,
 	options: OptionsType,
 	baseEndpoints: Record<string, Endpoint>,
-	okEndpoint: Endpoint,
+	healthCheckEndpoint: Endpoint,
 	coreMiddlewares: { path: string; middleware: Middleware }[]
 ) => {
 	const { api, middlewares } = getEndpoints(
 		ctx,
 		options,
 		baseEndpoints,
-		okEndpoint
+		healthCheckEndpoint
 	);
 
 	// Check for baseURL and properly handle it
@@ -154,11 +194,11 @@ export const createApiRouter = <
 			basePath = url.pathname;
 		}
 	} catch {
-		basePath = '/api/c15t';
+		basePath = '/api/doubletie';
 	}
 	// Ensure we have a valid basePath
 	if (!basePath || basePath === '/') {
-		basePath = '/api/c15t';
+		basePath = '/api/doubletie';
 	}
 
 	/**
@@ -300,4 +340,4 @@ export const createApiRouter = <
 	};
 
 	return routerInstance;
-};
+}; 

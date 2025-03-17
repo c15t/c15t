@@ -19,3 +19,30 @@
 export const HIDE_METADATA = {
 	isAction: false as const,
 };
+
+/**
+ * Adds metadata to an object to mark it as a non-action
+ * 
+ * This utility function adds the isAction: false metadata to any object,
+ * making it easier to mark objects that should not be treated as actions
+ * by the system.
+ * 
+ * @param obj - The object to add metadata to
+ * @returns A new object with the added metadata
+ * 
+ * @example
+ * ```ts
+ * // Mark an object as not being an action
+ * const nonActionObject = hideMetadata({
+ *   name: 'example',
+ *   value: 123
+ * });
+ * // Result: { name: 'example', value: 123, isAction: false }
+ * ```
+ */
+export function hideMetadata<T extends object>(obj: T): T & { isAction: false } {
+  return {
+    ...obj,
+    isAction: false
+  };
+}
