@@ -4,9 +4,9 @@ import path from 'node:path';
 import babelPresetReact from '@babel/preset-react';
 // @ts-ignore
 import babelPresetTypescript from '@babel/preset-typescript';
-import { logger } from '@c15t/backend';
-import { DoubleTieError } from '@c15t/backend/error';
-import type { C15TOptions } from '@c15t/backend/types';
+import { logger } from '@c15t/backend/pkgs/logger';
+import { DoubleTieError } from '@c15t/backend/pkgs/results';
+import type { C15TOptions } from '@c15t/backend/pkgs/types';
 import { loadConfig } from 'c12';
 import { addSvelteKitEnvModules } from './add-svelte-kit-env-modules';
 

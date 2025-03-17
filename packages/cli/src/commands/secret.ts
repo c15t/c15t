@@ -1,5 +1,5 @@
 import Crypto from 'node:crypto';
-import { logger } from '@c15t/backend';
+import { logger } from '@c15t/backend/pkgs/logger';
 import chalk from 'chalk';
 import { Command } from 'commander';
 

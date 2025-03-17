@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { logger } from '@c15t/backend';
+import { logger } from '@c15t/backend/pkgs/logger';
 import { getAdapter, getMigrations } from '@c15t/backend/db';
 import chalk from 'chalk';
 import { Command } from 'commander';

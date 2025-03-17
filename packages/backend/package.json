@@ -32,17 +32,17 @@
 			"import": "./dist/integrations/react.js",
 			"require": "./dist/integrations/react.cjs"
 		},
-		"./pkgs/data-model/fields/index": {
+		"./pkgs/data-model/fields": {
 			"types": "./dist/pkgs/data-model/fields/index.d.ts",
 			"import": "./dist/pkgs/data-model/fields/index.js",
 			"require": "./dist/pkgs/data-model/fields/index.cjs"
 		},
-		"./pkgs/data-model/index": {
+		"./pkgs/data-model": {
 			"types": "./dist/pkgs/data-model/index.d.ts",
 			"import": "./dist/pkgs/data-model/index.js",
 			"require": "./dist/pkgs/data-model/index.cjs"
 		},
-		"./pkgs/data-model/schema/index": {
+		"./pkgs/data-model/schema": {
 			"types": "./dist/pkgs/data-model/schema/index.d.ts",
 			"import": "./dist/pkgs/data-model/schema/index.js",
 			"require": "./dist/pkgs/data-model/schema/index.cjs"
@@ -67,27 +67,27 @@
 			"import": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.js",
 			"require": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.cjs"
 		},
-		"./pkgs/db-adapters/index": {
+		"./pkgs/db-adapters": {
 			"types": "./dist/pkgs/db-adapters/index.d.ts",
 			"import": "./dist/pkgs/db-adapters/index.js",
 			"require": "./dist/pkgs/db-adapters/index.cjs"
 		},
-		"./pkgs/errors/index": {
-			"types": "./dist/pkgs/errors/index.d.ts",
-			"import": "./dist/pkgs/errors/index.js",
-			"require": "./dist/pkgs/errors/index.cjs"
+		"./pkgs/results": {
+			"types": "./dist/pkgs/results/index.d.ts",
+			"import": "./dist/pkgs/results/index.js",
+			"require": "./dist/pkgs/results/index.cjs"
 		},
-		"./pkgs/logger/index": {
+		"./pkgs/logger": {
 			"types": "./dist/pkgs/logger/index.d.ts",
 			"import": "./dist/pkgs/logger/index.js",
 			"require": "./dist/pkgs/logger/index.cjs"
 		},
-		"./pkgs/migration/index": {
+		"./pkgs/migration": {
 			"types": "./dist/pkgs/migration/index.d.ts",
 			"import": "./dist/pkgs/migration/index.js",
 			"require": "./dist/pkgs/migration/index.cjs"
 		},
-		"./pkgs/types/index": {
+		"./pkgs/types": {
 			"types": "./dist/pkgs/types/index.d.ts",
 			"import": "./dist/pkgs/types/index.js",
 			"require": "./dist/pkgs/types/index.cjs"

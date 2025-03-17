@@ -1,4 +1,4 @@
-import { logger } from '@c15t/backend';
+import { logger } from '@c15t/backend/pkgs/logger';
 import type { Adapter, C15TOptions } from '@c15t/backend/types';
 import { generateDrizzleSchema } from './drizzle';
 import { generateMigrations } from './kysely';
