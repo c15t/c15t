@@ -76,7 +76,7 @@ export default defineConfig({
 				'./src/pkgs/db-adapters/adapters/prisma-adapter/index.ts',
 			],
 			'pkgs/db-adapters/index': ['./src/pkgs/db-adapters/index.ts'],
-			'pkgs/errors/index': ['./src/pkgs/errors/index.ts'],
+			'pkgs/results/index': ['./src/pkgs/results/index.ts'],
 			'pkgs/logger/index': ['./src/pkgs/logger/index.ts'],
 			'pkgs/migration/index': ['./src/pkgs/migration/index.ts'],
 			'pkgs/types/index': ['./src/pkgs/types/index.ts'],
