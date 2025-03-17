@@ -1,5 +1,5 @@
 import type { Result, ResultAsync } from 'neverthrow';
-import { LoggableError } from './types';
+import type { LoggableError } from './types';
 
 /**
  * Logs any errors in a Result without changing the Result.

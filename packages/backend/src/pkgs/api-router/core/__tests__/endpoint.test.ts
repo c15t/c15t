@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { optionsMiddleware } from '../context';
-import { DoubleTieEndpoint, createSDKEndpoint } from '../endpoint';
+import { type DoubleTieEndpoint, createSDKEndpoint } from '../endpoint';
 
 /**
  * Mock context and response types for testing

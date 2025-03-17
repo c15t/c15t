@@ -6,9 +6,13 @@ import { createLogger } from '../logger-factory';
 describe('logger-factory', () => {
 	// Mock console methods
 	beforeEach(() => {
+		// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 		vi.spyOn(console, 'log').mockImplementation(() => {});
+		// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 		vi.spyOn(console, 'error').mockImplementation(() => {});
+		// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 		vi.spyOn(console, 'debug').mockImplementation(() => {});
 	});
 
@@ -19,9 +23,9 @@ describe('logger-factory', () => {
 	describe('createLogger', () => {
 		it('should create a logger with all log level methods', () => {
 			const logger = createLogger();
-			levels.forEach((level) => {
+			for (const level of levels) {
 				expect(typeof logger[level]).toBe('function');
-			});
+			}
 		});
 
 		it('should respect disabled option', () => {
@@ -32,7 +36,6 @@ describe('logger-factory', () => {
 
 		it('should respect log level option', () => {
 			// Mock the shouldPublishLog function to return expected values for our test
-			const originalShouldPublishLog = logLevels.shouldPublishLog;
 			vi.spyOn(logLevels, 'shouldPublishLog').mockImplementation(
 				(currentLevel, messageLevel) => {
 					if (currentLevel === 'warn') {
@@ -102,6 +105,7 @@ describe('logger-factory', () => {
 			expect(firstCallArg).toContain('Test message');
 
 			// Check that timestamp matches ISO format
+			// biome-ignore lint/performance/useTopLevelRegex: its okay its a test
 			expect(firstCallArg).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
 
 			vi.mocked(logLevels.shouldPublishLog).mockRestore();

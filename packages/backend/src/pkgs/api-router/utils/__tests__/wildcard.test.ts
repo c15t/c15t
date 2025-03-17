@@ -81,7 +81,7 @@ describe('wildcardMatch', () => {
 	// Custom separators
 	describe('Custom separators', () => {
 		test('should work with dot as separator', () => {
-			const matcher = wildcardMatch('*' + '.' + 'example' + '.' + 'com', {
+			const matcher = wildcardMatch('*.example.com', {
 				separator: '.',
 			});
 

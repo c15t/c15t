@@ -37,6 +37,7 @@ describe('console-formatter', () => {
 			expect(formattedMessage).toContain('Test message');
 
 			// Verify formatting includes timestamp (ISO format)
+			// biome-ignore lint/performance/useTopLevelRegex: its okay its a test
 			expect(formattedMessage).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
 		});
 

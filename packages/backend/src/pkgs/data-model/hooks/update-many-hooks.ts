@@ -1,5 +1,5 @@
 import type { EntityName } from '~/pkgs/data-model';
-import { Adapter } from '~/pkgs/db-adapters';
+import type { Adapter } from '~/pkgs/db-adapters';
 import type {
 	CustomOperationFunction,
 	HookContext,

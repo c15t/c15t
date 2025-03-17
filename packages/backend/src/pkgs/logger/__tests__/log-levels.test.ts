@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { levels, shouldPublishLog } from '../log-levels';
-import * as logLevelsModule from '../log-levels';
 import type { LogLevel } from '../types';
 
 describe('log-levels', () => {

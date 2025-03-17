@@ -9,7 +9,7 @@ import type { UnionToIntersection } from '@better-fetch/fetch';
 import type { Endpoint } from 'better-call';
 import type { Migration } from 'kysely';
 
-import { DoubleTieMiddleware } from '~/pkgs/api-router';
+import type { DoubleTieMiddleware } from '~/pkgs/api-router';
 import type { Field } from '~/pkgs/data-model';
 import type { C15TContext, HookEndpointContext } from './context';
 import type { DeepPartial, LiteralString } from './helper';

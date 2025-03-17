@@ -1,4 +1,11 @@
-import { Result, ResultAsync, err, errAsync, ok, okAsync } from 'neverthrow';
+import {
+	type Result,
+	type ResultAsync,
+	err,
+	errAsync,
+	ok,
+	okAsync,
+} from 'neverthrow';
 import { describe, expect, it, vi } from 'vitest';
 import { logResult, logResultAsync } from '../result-logging';
 import type { LoggableError } from '../types';
@@ -128,7 +135,9 @@ describe('result-logging', () => {
 
 			// Wait for the async operation to complete
 			await resultAsync.match(
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 				() => {},
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 				() => {}
 			);
 
@@ -157,7 +166,9 @@ describe('result-logging', () => {
 			const resultAsync = logResultAsync(successResultAsync, logger);
 
 			await resultAsync.match(
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 				() => {},
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 				() => {}
 			);
 
@@ -183,7 +194,9 @@ describe('result-logging', () => {
 			);
 
 			await resultAsync.match(
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 				() => {},
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 				() => {}
 			);
 

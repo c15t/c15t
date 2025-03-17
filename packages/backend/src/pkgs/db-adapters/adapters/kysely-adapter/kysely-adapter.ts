@@ -26,9 +26,14 @@ import {
 	generateId,
 } from '~/pkgs/data-model';
 
-import { C15TOptions } from '~/pkgs/types';
+import type { C15TOptions } from '~/pkgs/types';
 import { getConsentTables } from '~/schema/definition';
-import { Adapter, TableFields, Where, applyDefaultValue } from '../..';
+import {
+	type Adapter,
+	type TableFields,
+	type Where,
+	applyDefaultValue,
+} from '../..';
 import type { Database, KyselyDatabaseType } from './types';
 
 /**

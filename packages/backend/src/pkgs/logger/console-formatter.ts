@@ -1,4 +1,4 @@
-import { LogLevel } from './types';
+import type { LogLevel } from './types';
 
 /**
  * ANSI color codes for terminal output formatting.

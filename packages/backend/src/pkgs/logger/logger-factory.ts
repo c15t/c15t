@@ -1,6 +1,6 @@
 import { formatMessage } from './console-formatter';
 import { levels, shouldPublishLog } from './log-levels';
-import { LogEntry, LogLevel, Logger, LoggerOptions } from './types';
+import type { LogEntry, LogLevel, Logger, LoggerOptions } from './types';
 
 /**
  * Creates a configured logger instance with methods for each log level.

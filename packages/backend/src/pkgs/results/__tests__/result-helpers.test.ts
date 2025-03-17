@@ -1,5 +1,5 @@
 import { ResultAsync } from 'neverthrow';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DoubleTieError } from '../core/error-class';
 import { ERROR_CODES } from '../core/error-codes';
 import {

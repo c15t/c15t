@@ -136,10 +136,15 @@ export function createMockContext(): C15TContext {
 		options: {
 			plugins: [],
 			logger: {
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 				info: () => {},
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 				success: () => {},
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 				warn: () => {},
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 				error: () => {},
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 				debug: () => {},
 			},
 		},

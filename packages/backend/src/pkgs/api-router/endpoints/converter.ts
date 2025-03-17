@@ -7,6 +7,7 @@ import {
 } from 'better-call';
 import defu from 'defu';
 import type { C15TContext, HookEndpointContext } from '~/pkgs/types';
+import type { DoubleTieMiddleware } from '../core';
 import type { DoubleTieEndpoint } from '../core/endpoint';
 import { runAfterHooks, runBeforeHooks } from '../hooks/processor';
 import type { Hook } from '../hooks/types';
@@ -38,11 +39,11 @@ function getHooks(context: C15TContext) {
 	const hooks = (context.hooks || []) as Hook[];
 	const beforeHooks: {
 		matcher: (context: HookEndpointContext) => boolean;
-		handler: any;
+		handler: DoubleTieMiddleware;
 	}[] = [];
 	const afterHooks: {
 		matcher: (context: HookEndpointContext) => boolean;
-		handler: any;
+		handler: DoubleTieMiddleware;
 	}[] = [];
 
 	for (const hook of hooks) {

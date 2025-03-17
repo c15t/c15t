@@ -1,4 +1,4 @@
-import { type Result, type ResultAsync } from 'neverthrow';
+import type { Result, ResultAsync } from 'neverthrow';
 import type { ZodFormattedError } from 'zod';
 
 /**

@@ -9,7 +9,7 @@
  */
 
 // Hook types
-export { type Hook } from './types';
+export type { Hook } from './types';
 
 // Hook processing
 export {

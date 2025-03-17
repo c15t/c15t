@@ -81,7 +81,7 @@ export const createSDKEndpoint = createEndpoint.create({
  * @see C15TEndpoint For the higher-level endpoint type used in API routing
  */
 export interface DoubleTieEndpoint<
-	RequestType = unknown,
+	_RequestType = unknown,
 	ResponseType = unknown,
 > {
 	/**

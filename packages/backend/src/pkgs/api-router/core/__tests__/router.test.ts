@@ -1,6 +1,7 @@
-import { createRouter } from 'better-call';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { type Endpoint, createRouter } from 'better-call';
+import { type Mock, beforeEach, describe, expect, test, vi } from 'vitest';
 import { logger } from '~/pkgs/logger';
+import type { C15TContext, C15TOptions } from '~/pkgs/types';
 import { toEndpoints } from '../../endpoints/converter';
 import { getIp } from '../../utils/ip';
 import { createApiRouter, getEndpoints } from '../router';
@@ -37,11 +38,11 @@ vi.mock('../../endpoints/converter', () => ({
 }));
 
 describe('Router Module', () => {
-	let mockContext: any;
-	let mockOptions: any;
-	let mockEndpoints: any;
-	let mockHealthEndpoint: any;
-	let mockOnRequest: any;
+	let mockContext: C15TContext;
+	let mockOptions: C15TOptions;
+	let mockEndpoints: Record<string, Endpoint>;
+	let mockHealthEndpoint: Endpoint;
+	let mockOnRequest: unknown;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -49,17 +50,19 @@ describe('Router Module', () => {
 		mockOnRequest = vi.fn().mockResolvedValue({
 			response: { modified: true },
 		});
-
 		// Create a basic mock context with required fields
 		mockContext = {
 			appName: 'test-app',
 			trustedOrigins: ['https://example.com'],
 			secret: 'test-secret',
-			logger: { info: vi.fn(), error: vi.fn() },
+			logger,
+			//@ts-expect-error
+			adapter: {}, // Add missing required field
+			//@ts-expect-error
+			registry: {}, // Add missing required field
+			//@ts-expect-error
+			tables: {}, // Add missing required field
 			generateId: () => 'mock-id',
-			adapter: { name: 'mock-adapter' },
-			registry: { endpoints: {} },
-			tables: { users: {} },
 			baseURL: 'https://api.doubletie.com',
 			hooks: [],
 			session: null,
@@ -76,17 +79,20 @@ describe('Router Module', () => {
 					name: 'Test Plugin',
 					type: 'api',
 					endpoints: {
+						//@ts-expect-error
 						pluginEndpoint: { path: '/plugin' },
 					},
 					middlewares: [
 						{
 							path: '/plugin-path',
+							//@ts-expect-error
 							middleware: {
 								options: { method: 'GET' },
 							},
 						},
 					],
-					onRequest: mockOnRequest,
+					// biome-ignore lint/suspicious/noExplicitAny: its okay its a test
+					onRequest: mockOnRequest as any,
 					onResponse: vi.fn(),
 				},
 			],
@@ -97,9 +103,11 @@ describe('Router Module', () => {
 		};
 
 		mockEndpoints = {
+			//@ts-expect-error
 			testEndpoint: { path: '/test' },
 		};
 
+		//@ts-expect-error
 		mockHealthEndpoint = { path: '/health' };
 	});
 
@@ -107,10 +115,10 @@ describe('Router Module', () => {
 		test('should merge base endpoints with plugin endpoints', () => {
 			// Use type assertion to bypass type checking
 			const result = getEndpoints(
-				mockContext as any,
-				mockOptions as any,
-				mockEndpoints as any,
-				mockHealthEndpoint as any
+				mockContext,
+				mockOptions,
+				mockEndpoints,
+				mockHealthEndpoint
 			);
 
 			expect(toEndpoints).toHaveBeenCalled();
@@ -123,10 +131,10 @@ describe('Router Module', () => {
 
 			// Use type assertion to bypass type checking
 			const result = getEndpoints(
-				contextPromise as any,
-				mockOptions as any,
-				mockEndpoints as any,
-				mockHealthEndpoint as any
+				contextPromise,
+				mockOptions,
+				mockEndpoints,
+				mockHealthEndpoint
 			);
 
 			expect(toEndpoints).toHaveBeenCalled();
@@ -141,10 +149,10 @@ describe('Router Module', () => {
 
 			// Use type assertion to bypass type checking
 			createApiRouter(
-				mockContext as any,
-				mockOptions as any,
-				mockEndpoints as any,
-				mockHealthEndpoint as any,
+				mockContext,
+				mockOptions,
+				mockEndpoints,
+				mockHealthEndpoint,
 				coreMiddlewares
 			);
 
@@ -154,14 +162,14 @@ describe('Router Module', () => {
 		test('should handle onRequest and add IP to context', () => {
 			// Use type assertion to bypass type checking
 			createApiRouter(
-				mockContext as any,
-				mockOptions as any,
-				mockEndpoints as any,
-				mockHealthEndpoint as any,
+				mockContext,
+				mockOptions,
+				mockEndpoints,
+				mockHealthEndpoint,
 				[]
 			);
 
-			const routerConfig = (createRouter as any).mock.calls[0][1];
+			const routerConfig = (createRouter as Mock).mock.calls[0]?.[1];
 			const mockRequest = new Request('https://api.example.com');
 
 			// Call the onRequest handler directly
@@ -174,14 +182,14 @@ describe('Router Module', () => {
 		test('should handle errors in request processing', async () => {
 			// Use type assertion to bypass type checking
 			createApiRouter(
-				mockContext as any,
-				mockOptions as any,
-				mockEndpoints as any,
-				mockHealthEndpoint as any,
+				mockContext,
+				mockOptions,
+				mockEndpoints,
+				mockHealthEndpoint,
 				[]
 			);
 
-			const routerConfig = (createRouter as any).mock.calls[0][1];
+			const routerConfig = (createRouter as Mock).mock.calls[0]?.[1];
 			const error = new Error('Processing error');
 
 			// Call the onError handler directly

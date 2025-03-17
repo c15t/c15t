@@ -24,6 +24,8 @@ describe('types', () => {
 				level: 'warn',
 				log: (level, message, ...args) => {
 					// This is just for type checking
+					// biome-ignore lint/suspicious/noConsole: its okay its a test
+					// biome-ignore lint/suspicious/noConsoleLog: its okay its a test
 					console.log(level, message, args);
 				},
 			};
@@ -42,11 +44,16 @@ describe('types', () => {
 		it('should have methods for all log levels', () => {
 			// Create an object that satisfies the Logger type
 			const logger: Logger = {
-				info: (message: string, ...args: unknown[]) => {},
-				success: (message: string, ...args: unknown[]) => {},
-				warn: (message: string, ...args: unknown[]) => {},
-				error: (message: string, ...args: unknown[]) => {},
-				debug: (message: string, ...args: unknown[]) => {},
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
+				info: (_message: string, ..._args: unknown[]) => {},
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
+				success: (_message: string, ..._args: unknown[]) => {},
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
+				warn: (_message: string, ..._args: unknown[]) => {},
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
+				error: (_message: string, ..._args: unknown[]) => {},
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
+				debug: (_message: string, ..._args: unknown[]) => {},
 			};
 
 			expect(logger).toHaveProperty('info');

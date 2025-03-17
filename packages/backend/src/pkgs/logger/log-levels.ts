@@ -1,4 +1,4 @@
-import { LogLevel } from './types';
+import type { LogLevel } from './types';
 
 /**
  * Array of all available log levels in order of importance.

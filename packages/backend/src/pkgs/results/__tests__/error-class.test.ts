@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { DoubleTieError } from '../core/error-class';
 import { ERROR_CATEGORIES, ERROR_CODES } from '../core/error-codes';
 

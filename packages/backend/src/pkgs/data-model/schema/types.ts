@@ -41,6 +41,7 @@ export interface TableDefinition {
 	/**
 	 * Zod schema for the table
 	 */
+	// biome-ignore lint/suspicious/noExplicitAny: we might not know the type
 	schema: z.ZodType<any>;
 
 	/**

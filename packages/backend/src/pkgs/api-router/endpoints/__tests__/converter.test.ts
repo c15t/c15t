@@ -1,5 +1,4 @@
 import { APIError } from 'better-call';
-import defu from 'defu';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { runAfterHooks, runBeforeHooks } from '../../hooks/processor';
 import { toEndpoints } from '../converter';
@@ -35,8 +34,11 @@ vi.mock('defu', () => ({
 }));
 
 describe('Endpoints Converter Module', () => {
+	// biome-ignore lint/suspicious/noExplicitAny: its okay its a test
 	let mockContext: any;
+	// biome-ignore lint/suspicious/noExplicitAny: its okay its a test
 	let mockEndpoints: any;
+	// biome-ignore lint/suspicious/noExplicitAny: its okay its a test
 	let mockHeaders: any;
 
 	beforeEach(() => {
@@ -69,13 +71,16 @@ describe('Endpoints Converter Module', () => {
 		};
 
 		// Mock hook processing with basic responses
+		// biome-ignore lint/suspicious/noExplicitAny: its okay its a test
 		(runBeforeHooks as any).mockResolvedValue({ context: {} });
+		// biome-ignore lint/suspicious/noExplicitAny: its okay its a test
 		(runAfterHooks as any).mockResolvedValue({ response: null, headers: null });
 	});
 
 	describe('toEndpoints', () => {
 		test('should create API functions from endpoint definitions', () => {
 			// Use type assertion to bypass type checking
+			// biome-ignore lint/suspicious/noExplicitAny: its okay its a test
 			const api = toEndpoints(mockEndpoints as any, mockContext as any);
 
 			expect(api).toHaveProperty('testEndpoint');
@@ -84,6 +89,7 @@ describe('Endpoints Converter Module', () => {
 
 		test('should call runBeforeHooks during execution', async () => {
 			// Use type assertion to bypass type checking
+			// biome-ignore lint/suspicious/noExplicitAny: its okay
 			const api = toEndpoints(mockEndpoints as any, mockContext as any);
 
 			try {
@@ -104,6 +110,7 @@ describe('Endpoints Converter Module', () => {
 			const contextPromise = Promise.resolve(mockContext);
 
 			// Use type assertion to bypass type checking
+			// biome-ignore lint/suspicious/noExplicitAny: its okay its a test
 			const api = toEndpoints(mockEndpoints as any, contextPromise as any);
 
 			try {
@@ -116,9 +123,11 @@ describe('Endpoints Converter Module', () => {
 
 		test('should short-circuit when before hook returns non-context result', async () => {
 			const shortCircuitResponse = { data: 'short-circuit' };
+			// biome-ignore lint/suspicious/noExplicitAny: its okay its a test
 			(runBeforeHooks as any).mockResolvedValue(shortCircuitResponse);
 
 			// Use type assertion to bypass type checking
+			// biome-ignore lint/suspicious/noExplicitAny: its okay its a test
 			const api = toEndpoints(mockEndpoints as any, mockContext as any);
 
 			const result = await api.testEndpoint({});
@@ -138,11 +147,12 @@ describe('Endpoints Converter Module', () => {
 			mockEndpoints.testEndpoint.mockRejectedValue(error);
 
 			// Use type assertion to bypass type checking
+			// biome-ignore lint/suspicious/noExplicitAny: its okay its a test
 			const api = toEndpoints(mockEndpoints as any, mockContext as any);
 
 			try {
 				await api.testEndpoint({});
-			} catch (e) {
+			} catch {
 				// Expected - the error should be caught and passed to runAfterHooks
 			}
 

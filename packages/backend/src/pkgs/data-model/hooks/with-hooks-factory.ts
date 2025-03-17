@@ -1,4 +1,4 @@
-import { Adapter } from '~/pkgs/db-adapters';
+import type { Adapter } from '~/pkgs/db-adapters';
 import { createWithHooks } from './create-hooks';
 import type {
 	CreateWithHooksProps,

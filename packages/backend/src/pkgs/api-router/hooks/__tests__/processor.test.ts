@@ -1,6 +1,5 @@
-import defu from 'defu';
-import { Mock, beforeEach, describe, expect, test, vi } from 'vitest';
-import type { BaseC15TContext, HookEndpointContext } from '~/pkgs/types';
+import { type Mock, beforeEach, describe, expect, test, vi } from 'vitest';
+import type { HookEndpointContext } from '~/pkgs/types';
 import { runAfterHooks, runBeforeHooks } from '../processor';
 
 // Mock defu
@@ -40,6 +39,7 @@ describe('Hook Processor Module', () => {
 				query: {},
 				params: {},
 				request: {} as Request,
+				// biome-ignore lint/suspicious/noExplicitAny: its okay its a test
 				context: {} as any,
 			};
 
@@ -109,6 +109,7 @@ describe('Hook Processor Module', () => {
 				query: {},
 				params: {},
 				request: {} as Request,
+				// biome-ignore lint/suspicious/noExplicitAny: its okay its a test
 				context: {} as any,
 			};
 
@@ -120,13 +121,13 @@ describe('Hook Processor Module', () => {
 
 			const hooks: Hook[] = [
 				{
-					matcher: (ctx: HookEndpointContext) => true,
+					matcher: (_ctx: HookEndpointContext) => true,
 					handler: vi.fn().mockResolvedValue({
 						context: { headers: headers1 },
 					}),
 				},
 				{
-					matcher: (ctx: HookEndpointContext) => true,
+					matcher: (_ctx: HookEndpointContext) => true,
 					handler: vi.fn().mockResolvedValue({
 						context: { headers: headers2 },
 					}),
@@ -154,6 +155,7 @@ describe('Hook Processor Module', () => {
 				query: {},
 				params: {},
 				request: {} as Request,
+				// biome-ignore lint/suspicious/noExplicitAny: its okay its a test
 				context: {} as any,
 			};
 
@@ -161,11 +163,11 @@ describe('Hook Processor Module', () => {
 
 			const hooks: Hook[] = [
 				{
-					matcher: (ctx: HookEndpointContext) => true,
+					matcher: (_ctx: HookEndpointContext) => true,
 					handler: vi.fn().mockResolvedValue(shortCircuitResponse),
 				},
 				{
-					matcher: (ctx: HookEndpointContext) => true,
+					matcher: (_ctx: HookEndpointContext) => true,
 					handler: vi.fn().mockResolvedValue({
 						context: { shouldNotRun: true },
 					}),
@@ -256,6 +258,7 @@ describe('Hook Processor Module', () => {
 				query: {},
 				params: {},
 				request: {} as Request,
+				// biome-ignore lint/suspicious/noExplicitAny: its okay its a test
 				context: {} as any,
 			};
 
@@ -267,13 +270,13 @@ describe('Hook Processor Module', () => {
 
 			const hooks: Hook[] = [
 				{
-					matcher: (ctx: HookEndpointContext) => true,
+					matcher: (_ctx: HookEndpointContext) => true,
 					handler: vi.fn().mockResolvedValue({
 						headers: headers1,
 					}),
 				},
 				{
-					matcher: (ctx: HookEndpointContext) => true,
+					matcher: (_ctx: HookEndpointContext) => true,
 					handler: vi.fn().mockResolvedValue({
 						headers: headers2,
 					}),
@@ -301,12 +304,13 @@ describe('Hook Processor Module', () => {
 				query: {},
 				params: {},
 				request: {} as Request,
+				// biome-ignore lint/suspicious/noExplicitAny: its okay its a test
 				context: {} as any,
 			};
 
 			const hooks: Hook[] = [
 				{
-					matcher: (ctx: HookEndpointContext) => false,
+					matcher: (_ctx: HookEndpointContext) => false,
 					handler: vi.fn(),
 				},
 			];

@@ -1,7 +1,7 @@
 import type { EntityInput, EntityName } from '~/pkgs/data-model';
 import type { C15TOptions } from '~/pkgs/types';
 import type { C15TDBSchema } from '~/schema/definition';
-import { KyselyDatabaseType } from './adapters';
+import type { KyselyDatabaseType } from './adapters';
 
 /**
  * Type representing the fields of a database table for a specific entity
@@ -194,6 +194,7 @@ export interface Adapter {
 	) => Promise<AdapterSchemaCreation>;
 
 	/** Optional adapter-specific configuration */
+	// biome-ignore lint/suspicious/noExplicitAny: we might not know the type
 	options?: Record<string, unknown> | KyselyAdapterConfig | any;
 }
 

@@ -269,11 +269,13 @@ export const createApiRouter = <
 			if (errorCode === 'UNAUTHORIZED') {
 				logger.warn('Unauthorized access', {
 					error: e instanceof Error ? e.message : String(e),
+					// biome-ignore lint/suspicious/noExplicitAny: its okay
 					path: e instanceof APIError ? (e as any).path : undefined,
 				});
 			} else if (errorCode === 'NOT_FOUND') {
 				logger.debug('Resource not found', {
 					error: e instanceof Error ? e.message : String(e),
+					// biome-ignore lint/suspicious/noExplicitAny: its okay
 					path: e instanceof APIError ? (e as any).path : undefined,
 				});
 			} else {
@@ -286,7 +288,7 @@ export const createApiRouter = <
 	routerInstance.handler = async (
 		...args: Parameters<typeof _handler>
 	): Promise<Response> => {
-		const [req] = args;
+		// const [req] = args;
 		try {
 			return await _handler(...args);
 		} catch (error) {

@@ -170,19 +170,18 @@ export const retrievalPipeline = <TRawData, TTransformedData>(
 						status: 404,
 						cause: error,
 					});
-				} else {
-					// All other errors use BAD_REQUEST
-					return new DoubleTieError(
-						error instanceof Error
-							? error.message
-							: 'Failed to retrieve resource',
-						{
-							code: ERROR_CODES.BAD_REQUEST,
-							status: 400,
-							cause: error instanceof Error ? error : undefined,
-						}
-					);
 				}
+				// All other errors use BAD_REQUEST
+				return new DoubleTieError(
+					error instanceof Error
+						? error.message
+						: 'Failed to retrieve resource',
+					{
+						code: ERROR_CODES.BAD_REQUEST,
+						status: 400,
+						cause: error instanceof Error ? error : undefined,
+					}
+				);
 			}
 		);
 	};

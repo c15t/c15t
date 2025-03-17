@@ -1,11 +1,4 @@
-import {
-	ResultAsync,
-	err,
-	errAsync,
-	fromPromise,
-	ok,
-	okAsync,
-} from 'neverthrow';
+import { ResultAsync, err, errAsync, fromPromise, ok } from 'neverthrow';
 import { DoubleTieError } from '../core/error-class';
 import { ERROR_CODES } from '../core/error-codes';
 import type {
@@ -27,7 +20,7 @@ import type {
  * const result = ok('John Doe');
  * ```
  */
-export { ok };
+export { ok } from 'neverthrow';
 
 /**
  * Creates a failure result containing a DoubleTieError with the provided message and options.

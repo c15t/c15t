@@ -6,9 +6,13 @@ import type { LoggableError } from '../types';
 
 describe('logger integration', () => {
 	beforeEach(() => {
+		// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 		vi.spyOn(console, 'log').mockImplementation(() => {});
+		// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 		vi.spyOn(console, 'error').mockImplementation(() => {});
+		// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 		vi.spyOn(console, 'debug').mockImplementation(() => {});
 	});
 
@@ -115,7 +119,9 @@ describe('logger integration', () => {
 			const errorResultAsync = errAsync(testError);
 
 			await logResultAsync(errorResultAsync, logger).match(
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 				() => {},
+				// biome-ignore lint/suspicious/noEmptyBlockStatements: its okay its a test
 				() => {}
 			);
 

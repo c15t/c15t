@@ -1,15 +1,11 @@
-import { Result, ResultAsync } from 'neverthrow';
 // packages/backend/src/pkgs/errors/__tests__/neverthrow-integration.test.ts
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
 	DoubleTieError,
 	ERROR_CODES,
-	errAsync,
 	fail,
 	failAsync,
 	ok,
-	okAsync,
-	tryCatch,
 	tryCatchAsync,
 } from '../index';
 
