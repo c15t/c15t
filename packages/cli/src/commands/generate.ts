@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { getAdapter } from '@c15t/backend/pkgs/db-adapters';
 import { logger } from '@c15t/backend/pkgs/logger';
 import chalk from 'chalk';
 import { Command } from 'commander';
@@ -9,7 +10,6 @@ import yoctoSpinner from 'yocto-spinner';
 import { z } from 'zod';
 import { getGenerator } from '../generators';
 import { getConfig } from '../utils/get-config';
-import { getAdapter } from '@c15t/backend/pkgs/db-adapters';
 
 export async function generateAction(opts: unknown) {
 	const options = z
