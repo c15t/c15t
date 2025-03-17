@@ -9,7 +9,7 @@ import type { UnionToIntersection } from '@better-fetch/fetch';
 import type { Endpoint } from 'better-call';
 import type { Migration } from 'kysely';
 
-import { C15TMiddleware } from '~/pkgs/api-router';
+import { DoubleTieMiddleware } from '~/pkgs/api-router';
 import type { Field } from '~/pkgs/data-model';
 import type { C15TContext, HookEndpointContext } from './context';
 import type { DeepPartial, LiteralString } from './helper';
@@ -178,7 +178,7 @@ export interface C15TPlugin {
 		 */
 		before?: {
 			matcher: (context: HookEndpointContext) => boolean;
-			handler: C15TMiddleware;
+			handler: DoubleTieMiddleware;
 		}[];
 
 		/**
@@ -187,7 +187,7 @@ export interface C15TPlugin {
 		 */
 		after?: {
 			matcher: (context: HookEndpointContext) => boolean;
-			handler: C15TMiddleware;
+			handler: DoubleTieMiddleware;
 		}[];
 	};
 

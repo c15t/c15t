@@ -1,4 +1,4 @@
-import type { C15TMiddleware } from '~/pkgs/api-router';
+import type { DoubleTieMiddleware } from '~/pkgs/api-router';
 import type { DatabaseHook, EntityName } from '~/pkgs/data-model';
 import type { DatabaseConfiguration } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
 /**
@@ -173,11 +173,11 @@ export interface C15TOptions<P extends C15TPlugin[] = C15TPlugin[]> {
 		/**
 		 * Before a request is processed
 		 */
-		before?: C15TMiddleware;
+		before?: DoubleTieMiddleware;
 		/**
 		 * After a request is processed
 		 */
-		after?: C15TMiddleware;
+		after?: DoubleTieMiddleware;
 	};
 
 	/**

@@ -19,18 +19,18 @@ import type { SDKResult, ValidationErrorDetails } from '../types';
  * It first validates the input using a Zod schema, and if valid, transforms it using
  * the provided transformer function. If validation fails, it returns a well-structured
  * error with validation details.
- * 
+ *
  * The validation pipeline is particularly useful for:
  * - API request body validation
  * - Form data validation
  * - Configuration validation
  * - Data import/export validation
- * 
+ *
  * The transformer function allows you to adapt the validated data to the shape
  * expected by your application logic.
- * 
+ *
  * @see ValidationErrorDetails for the structure of validation errors
- * 
+ *
  * @example
  * ```typescript
  * import { z } from 'zod';
@@ -43,10 +43,10 @@ import type { SDKResult, ValidationErrorDetails } from '../types';
  *   age: z.number().int().min(18).optional(),
  *   role: z.enum(['admin', 'user', 'guest'])
  * });
- * 
+ *
  * // Type inferred from schema
  * type UserInput = z.infer<typeof userSchema>;
- * 
+ *
  * // Type for the transformed output
  * interface UserRecord {
  *   id: string;
@@ -73,7 +73,7 @@ import type { SDKResult, ValidationErrorDetails } from '../types';
  * // Using the pipeline
  * function createUser(rawData: unknown) {
  *   const result = validateUser(rawData);
- *   
+ *
  *   return result.match(
  *     (user) => {
  *       // Work with validated and transformed data
@@ -113,8 +113,8 @@ export const validationPipeline = <TInput, TOutput>(
 				status: 400,
 				cause: error instanceof Error ? error : undefined,
 				meta: {
-					inputData: parseResult.data
-				}
+					inputData: parseResult.data,
+				},
 			});
 		}
 	};

@@ -103,4 +103,4 @@ export const createSDKMiddleware = createMiddleware.create({
  * This type is used when defining hooks and custom middleware
  * for the request pipeline.
  */
-export type DoubleTieMiddleware = ReturnType<typeof createSDKMiddleware>; 
+export type DoubleTieMiddleware = ReturnType<typeof createSDKMiddleware>;

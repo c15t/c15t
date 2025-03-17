@@ -1,57 +1,57 @@
 /**
  * # DoubleTie Results Package
- * 
+ *
  * A comprehensive outcome handling system for TypeScript applications that implements
  * the Result pattern for managing both successful results and errors in a type-safe way.
- * 
+ *
  * ## Key Features
- * 
+ *
  * - **Type-safe Result pattern**: Based on the neverthrow library for handling outcomes
  * - **Structured error handling**: Rich error objects with codes, categories, and metadata
  * - **Recovery utilities**: Tools for gracefully handling expected error conditions
  * - **Processing pipelines**: Standardized patterns for validation and data retrieval
  * - **Zero dependency** (except for neverthrow)
- * 
+ *
  * ## Example Usage
- * 
+ *
  * ```typescript
- * import { 
- *   DoubleTieError, 
- *   ERROR_CODES, 
- *   ok, 
+ * import {
+ *   DoubleTieError,
+ *   ERROR_CODES,
+ *   ok,
  *   fail,
  *   tryCatchAsync
  * } from '@doubletie/results';
- * 
+ *
  * // Create a function that returns a Result
  * async function getUserById(id: string) {
  *   return tryCatchAsync(
  *     async () => {
  *       const response = await fetch(`/api/users/${id}`);
- *       
+ *
  *       if (!response.ok) {
  *         if (response.status === 404) {
- *           throw new DoubleTieError('User not found', { 
+ *           throw new DoubleTieError('User not found', {
  *             code: ERROR_CODES.NOT_FOUND,
  *             status: 404
  *           });
  *         }
- *         
- *         throw new DoubleTieError('Failed to fetch user', { 
+ *
+ *         throw new DoubleTieError('Failed to fetch user', {
  *           code: ERROR_CODES.API_ERROR,
  *           status: response.status
  *         });
  *       }
- *       
+ *
  *       return response.json();
  *     },
  *     ERROR_CODES.UNKNOWN_ERROR
  *   );
  * }
- * 
+ *
  * // Use the Result pattern to handle both success and error cases
  * const result = await getUserById('123');
- * 
+ *
  * result.match(
  *   (user) => {
  *     console.log(`Found user: ${user.name}`);
@@ -66,7 +66,7 @@
  *   }
  * );
  * ```
- * 
+ *
  * @packageDocumentation
  */
 

@@ -36,11 +36,11 @@ export { ok };
  * @param message - Human-readable error message
  * @param options - Error options including code, status, and other metadata
  * @returns A Result containing the error
- * 
+ *
  * @remarks
  * This is the counterpart to the `ok` function and should be used when an operation
  * fails and you want to create a Result representing the failure.
- * 
+ *
  * @see ok for creating successful results
  * @see DoubleTieError for more details on the error options
  *
@@ -52,7 +52,7 @@ export { ok };
  *   status: 404,
  *   meta: { userId: '123' }
  * });
- * 
+ *
  * // Use with match for safe handling
  * result.match(
  *   (user) => console.log(user), // Will not be called
@@ -74,11 +74,11 @@ export function fail<TValue>(
  * @param message - Human-readable error message
  * @param options - Error options including code, status, and other metadata
  * @returns A ResultAsync containing the error
- * 
+ *
  * @remarks
- * This is the asynchronous counterpart to the `fail` function and should be used when an 
+ * This is the asynchronous counterpart to the `fail` function and should be used when an
  * operation fails and you want to create a ResultAsync representing the failure.
- * 
+ *
  * @see okAsync for creating successful async results
  * @see fail for the synchronous version
  *
@@ -90,7 +90,7 @@ export function fail<TValue>(
  *   status: 401,
  *   meta: { attempt: 3 }
  * });
- * 
+ *
  * // Chain with other async operations
  * const profile = await result
  *   .orElse(err => {
@@ -117,14 +117,14 @@ export function failAsync<TValue>(
  * @param errorCode - The error code to use if the function throws (defaults to UNKNOWN_ERROR)
  * @param errorMapper - Optional function to customize how errors are transformed into DoubleTieErrors
  * @returns A Result containing either the function's return value or a DoubleTieError
- * 
+ *
  * @remarks
  * This function is useful for wrapping existing code that uses try/catch
  * to make it work with the Result pattern. It allows safe execution of
  * operations that might throw exceptions.
- * 
+ *
  * @see tryCatchAsync for the asynchronous version
- * 
+ *
  * @example
  * ```typescript
  * // Wrap a function that might throw
@@ -140,7 +140,7 @@ export function failAsync<TValue>(
  *     })
  *   );
  * };
- * 
+ *
  * // Use the wrapped function
  * const configResult = parseConfig(rawConfig);
  * configResult.match(
@@ -180,15 +180,15 @@ export function tryCatch<TValue>(
  * @param errorCode - The error code to use if the function throws (defaults to UNKNOWN_ERROR)
  * @param errorMapper - Optional function to customize how errors are transformed into DoubleTieErrors
  * @returns A ResultAsync containing either the function's return value or a DoubleTieError
- * 
+ *
  * @remarks
  * This function is useful for wrapping existing asynchronous code that uses try/catch
  * to make it work with the Result pattern. It allows safe execution of
  * operations that might throw exceptions.
- * 
+ *
  * @see tryCatch for the synchronous version
  * @see promiseToResult for wrapping an existing Promise
- * 
+ *
  * @example
  * ```typescript
  * // Wrap an async function that might throw
@@ -210,7 +210,7 @@ export function tryCatch<TValue>(
  *     })
  *   );
  * };
- * 
+ *
  * // Use the wrapped function
  * const userData = await fetchUserData('123')
  *   .match(
@@ -256,14 +256,14 @@ export function tryCatchAsync<TValue>(
  * @param promise - The Promise to convert
  * @param errorCode - The error code to use if the Promise rejects (defaults to UNKNOWN_ERROR)
  * @returns A ResultAsync containing either the Promise's resolved value or a DoubleTieError
- * 
+ *
  * @remarks
  * This function is useful for wrapping existing Promise-based APIs to make them
  * work with the Result pattern. Unlike tryCatchAsync, this function takes an
  * already-created Promise rather than a function that returns a Promise.
- * 
+ *
  * @see tryCatchAsync for wrapping async functions
- * 
+ *
  * @example
  * ```typescript
  * // Wrap an existing Promise
@@ -275,10 +275,10 @@ export function tryCatchAsync<TValue>(
  *       }
  *       return response.json();
  *     });
- *   
+ *
  *   return promiseToResult(promise, ERROR_CODES.API_ERROR);
  * };
- * 
+ *
  * // Use the wrapped function
  * const result = await fetchData('https://api.example.com/data');
  * result.match(

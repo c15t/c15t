@@ -32,14 +32,14 @@ import { optionsMiddleware } from './context';
  * interface UserRequest {
  *   userId: string;
  * }
- * 
+ *
  * interface UserResponse {
  *   id: string;
  *   name: string;
  *   email: string;
  *   status: 'active' | 'inactive';
  * }
- * 
+ *
  * export const getUser = createSDKEndpoint<UserRequest, UserResponse>(async (context) => {
  *   const { userId } = context.params;
  *
@@ -76,30 +76,33 @@ export const createSDKEndpoint = createEndpoint.create({
  * @remarks
  * This type is used extensively in the toEndpoints function and
  * when defining route handlers for the API system.
- * 
+ *
  * @see createSDKEndpoint For creating properly typed endpoint handlers
  * @see C15TEndpoint For the higher-level endpoint type used in API routing
  */
-export interface DoubleTieEndpoint<RequestType = unknown, ResponseType = unknown> {
+export interface DoubleTieEndpoint<
+	RequestType = unknown,
+	ResponseType = unknown,
+> {
 	/**
 	 * The endpoint handler function
-	 * 
+	 *
 	 * @param context - The request context containing params, query, headers, etc.
 	 * @returns Promise resolving to the response data
 	 */
 	(context: unknown): Promise<ResponseType>;
-	
+
 	/**
 	 * The path pattern for this endpoint
 	 */
 	path?: string;
-	
+
 	/**
 	 * Configuration options for this endpoint
 	 */
-	options?: { 
-		method: string; 
+	options?: {
+		method: string;
 		use: unknown[];
 		[key: string]: unknown;
 	};
-} 
+}

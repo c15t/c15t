@@ -12,15 +12,15 @@ import { isTest } from '../../utils/env';
  * @param req - The request object or headers to extract the IP from
  * @param options - Configuration options containing IP address settings
  * @returns The client IP address or null if tracking is disabled or no IP can be found
- * 
+ *
  * @remarks
  * The function checks headers in the following order:
  * 1. Custom headers specified in options.advanced.ipAddress.ipAddressHeaders
  * 2. Standard headers like x-forwarded-for, cf-connecting-ip, etc.
- * 
+ *
  * For headers that may contain multiple IPs (like x-forwarded-for), it takes the
  * first one in the list, which typically represents the client's actual IP.
- * 
+ *
  * @example
  * ```typescript
  * // Get IP address from a Request object
@@ -33,7 +33,7 @@ import { isTest } from '../../utils/env';
  *     }
  *   }
  * });
- * 
+ *
  * // Log the client IP if found
  * if (clientIp) {
  *   console.log(`Request from IP: ${clientIp}`);

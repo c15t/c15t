@@ -5,11 +5,11 @@ import {
 	type UnionToIntersection,
 	createRouter,
 } from 'better-call';
-import { getIp } from '../utils/ip';
-import type { C15TContext, C15TOptions, C15TPlugin } from '~/pkgs/types';
 import { logger } from '~/pkgs/logger';
-import type { DoubleTieEndpoint } from './endpoint';
+import type { C15TContext, C15TOptions, C15TPlugin } from '~/pkgs/types';
 import { toEndpoints } from '../endpoints/converter';
+import { getIp } from '../utils/ip';
+import type { DoubleTieEndpoint } from './endpoint';
 
 /**
  * Retrieves and configures endpoints from plugins and core functionality
@@ -134,7 +134,7 @@ export function getEndpoints<
  * @param healthCheckEndpoint - The health check endpoint for monitoring
  * @param coreMiddlewares - Core middlewares to apply to all routes
  * @returns A configured router with handler and endpoint functions
- * 
+ *
  * @example
  * ```typescript
  * // Create a router with authentication and logging
@@ -152,19 +152,19 @@ export function getEndpoints<
  *       }
  *     }
  *   },
- *   { 
+ *   {
  *     getUser: userEndpoints.getUser,
  *     updateUser: userEndpoints.updateUser
  *   },
  *   healthEndpoint,
  *   [
- *     { 
- *       path: '/users/**', 
- *       middleware: authMiddleware 
+ *     {
+ *       path: '/users/**',
+ *       middleware: authMiddleware
  *     }
  *   ]
  * );
- * 
+ *
  * // Use the router in your application
  * app.use('/api', router.handler);
  * ```
@@ -340,4 +340,4 @@ export const createApiRouter = <
 	};
 
 	return routerInstance;
-}; 
+};

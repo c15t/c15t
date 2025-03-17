@@ -17,12 +17,12 @@ import type { ErrorCategory, ErrorMessageType, SDKResult } from '../types';
  * This function implements the "fallback value" pattern for error recovery.
  * It's particularly useful for handling expected error conditions like "not found"
  * where you want to provide a default value instead of propagating the error.
- * 
+ *
  * The function does not modify the original result if it is successful or
  * if the error doesn't match any of the specified codes.
- * 
+ *
  * @see withFallbackForCategory for recovery based on error category
- * 
+ *
  * @example
  * ```typescript
  * import { withFallbackForCodes, ERROR_CODES } from '@doubletie/results';
@@ -30,19 +30,19 @@ import type { ErrorCategory, ErrorMessageType, SDKResult } from '../types';
  * // Recover from not found errors with a default user
  * const getUserById = async (userId: string) => {
  *   const result = await fetchUserFromDatabase(userId);
- *   
+ *
  *   return withFallbackForCodes(
  *     result,
  *     [ERROR_CODES.NOT_FOUND, ERROR_CODES.RESOURCE_DELETED],
- *     { 
- *       id: userId, 
- *       name: 'Unknown User', 
+ *     {
+ *       id: userId,
+ *       name: 'Unknown User',
  *       isDefault: true,
  *       email: 'unknown@example.com'
  *     }
  *   );
  * };
- * 
+ *
  * // Usage with pattern matching
  * const userResult = await getUserById('123');
  * userResult.match(
@@ -80,16 +80,16 @@ export const withFallbackForCodes = <TValue>(
  * @param defaultValue - Value to return if the error category matches
  * @returns The original result if successful or if error category doesn't match,
  *          or a new successful result with the default value
- * 
+ *
  * @remarks
  * This function is similar to `withFallbackForCodes` but matches errors based on
  * their category rather than specific error codes. This is useful when you want to
  * handle all errors in a particular domain (e.g., network, database, validation)
  * in a consistent way.
- * 
+ *
  * The function does not modify the original result if it is successful or
  * if the error's category doesn't match the specified category.
- * 
+ *
  * @see withFallbackForCodes for recovery based on specific error codes
  * @see ERROR_CATEGORIES for predefined categories
  *
@@ -100,7 +100,7 @@ export const withFallbackForCodes = <TValue>(
  * // Recover from all network-related errors with a cached value
  * const fetchData = async (url: string, cachedData: ApiResponse) => {
  *   const result = await makeApiRequest(url);
- *   
+ *
  *   return withFallbackForCategory(
  *     result,
  *     ERROR_CATEGORIES.NETWORK,
@@ -111,7 +111,7 @@ export const withFallbackForCodes = <TValue>(
  *     }
  *   );
  * };
- * 
+ *
  * // Usage with pattern matching
  * const dataResult = await fetchData('/api/stats', cachedStats);
  * dataResult.match(

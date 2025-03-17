@@ -6,31 +6,31 @@
  * while maintaining separation from specific route implementations.
  *
  * ## Key Features
- * 
+ *
  * - **Type-safe endpoint definitions**: Strong TypeScript typing for request/response handling
  * - **Middleware support**: Pre/post request processing with powerful hook system
  * - **Plugin architecture**: Extensible system for adding custom functionality
  * - **Error handling**: Standardized error management with detailed logging
  * - **IP address tracking**: Utilities for client IP detection with privacy controls
- * 
+ *
  * ## Example Usage
- * 
+ *
  * ```typescript
- * import { 
- *   createSDKEndpoint, 
- *   createSDKMiddleware, 
+ * import {
+ *   createSDKEndpoint,
+ *   createSDKMiddleware,
  *   createApiRouter,
  *   toEndpoints,
  *   wildcardMatch
  * } from '@doubletie/api-router';
- * 
+ *
  * // Create an endpoint
  * const getUserEndpoint = createSDKEndpoint(async (context) => {
  *   const { userId } = context.params;
  *   const user = await getUserById(userId);
  *   return { user };
  * });
- * 
+ *
  * // Create a middleware
  * const authMiddleware = createSDKMiddleware(async (context) => {
  *   const token = context.headers.get('Authorization');
@@ -42,7 +42,7 @@
  *   }
  *   return { context: { user: await validateToken(token) } };
  * });
- * 
+ *
  * // Setup router
  * const router = createApiRouter(context, options, {
  *   getUser: getUserEndpoint
@@ -50,7 +50,7 @@
  *   { path: '/users/**', middleware: authMiddleware }
  * ]);
  * ```
- * 
+ *
  * @packageDocumentation
  */
 

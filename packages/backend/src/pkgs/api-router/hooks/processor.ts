@@ -12,12 +12,12 @@ import type { DoubleTieMiddleware } from '../core/context';
  * @param hooks - Array of hook definitions with matchers and handlers
  * @returns Modified context or hook response
  * @throws Will propagate any errors thrown by hook handlers that aren't caught internally
- * 
+ *
  * @example
  * ```typescript
  * // Process before hooks for a request
  * const beforeResult = await runBeforeHooks(context, [
- *   { 
+ *   {
  *     matcher: ctx => ctx.path.startsWith('/users'),
  *     handler: authMiddleware
  *   },
@@ -26,7 +26,7 @@ import type { DoubleTieMiddleware } from '../core/context';
  *     handler: cacheMiddleware
  *   }
  * ]);
- * 
+ *
  * // Check if we should continue with normal processing
  * if ('context' in beforeResult) {
  *   // Apply context modifications and continue
@@ -87,12 +87,12 @@ export async function runBeforeHooks(
  * @param hooks - Array of hook definitions with matchers and handlers
  * @returns An object potentially containing a modified response
  * @throws Will propagate any errors thrown by hook handlers that aren't caught internally
- * 
+ *
  * @example
  * ```typescript
  * // Process after hooks for a response
  * const afterResult = await runAfterHooks(context, [
- *   { 
+ *   {
  *     matcher: ctx => true, // Run for all responses
  *     handler: loggingMiddleware
  *   },
@@ -101,12 +101,12 @@ export async function runBeforeHooks(
  *     handler: cachingMiddleware
  *   }
  * ]);
- * 
+ *
  * // Apply any response modifications from hooks
  * if (afterResult.response) {
  *   response = afterResult.response;
  * }
- * 
+ *
  * // Apply any header modifications from hooks
  * if (afterResult.headers) {
  *   afterResult.headers.forEach((value, key) => {
@@ -154,4 +154,4 @@ export async function runAfterHooks(
 		}
 	}
 	return { response, headers };
-} 
+}

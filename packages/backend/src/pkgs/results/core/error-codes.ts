@@ -143,7 +143,7 @@ export const ERROR_CODES = Object.freeze({
 	 * An unexpected error occurred.
 	 * This is a general error for unexpected exceptions that don't fit other categories.
 	 */
-	UNEXPECTED: 'Unexpected error'
+	UNEXPECTED: 'Unexpected error',
 });
 
 /**
