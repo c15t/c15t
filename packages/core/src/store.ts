@@ -559,7 +559,7 @@ export const createConsentManagerStore = (
 	}));
 
 	if (typeof window !== 'undefined') {
-	// biome-ignore lint/suspicious/noExplicitAny: its okay
+		// biome-ignore lint/suspicious/noExplicitAny: its okay
 		(window as any)[namespace] = store;
 
 		// Auto-fetch consent banner information if no stored consent
