@@ -1,0 +1,1299 @@
+diff --git a/packages/backend/src/routes/generate-consent-receipt.ts b/packages/backend/src/routes/generate-consent-receipt.ts
+deleted file mode 100644
+index 0024808..0000000
+--- a/packages/backend/src/routes/generate-consent-receipt.ts
++++ /dev/null
+@@ -1,245 +0,0 @@
+-import crypto from 'node:crypto';
+-import { z } from 'zod';
+-import { C15T_ERROR_CODES } from '~/error-codes';
+-import { createSDKEndpoint } from '~/pkgs/api-router';
+-import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
+-import type { C15TContext } from '~/pkgs/types';
+-import type { ConsentRecord } from '~/schema/consent-record/schema';
+-
+-// Define the schema for validating request parameters
+-const generateConsentReceiptSchema = z.object({
+-	consentId: z.string(),
+-	includeSignature: z.boolean().default(true),
+-});
+-
+-/**
+- * Endpoint for generating a standardized consent receipt.
+- *
+- * This endpoint generates a detailed receipt document that provides formal proof of consent,
+- * following industry standards for consent documentation. The receipt includes comprehensive
+- * information about who gave consent, what they consented to, and all metadata associated
+- * with the consent event.
+- *
+- * Optionally, the receipt can include a cryptographic signature for verification purposes.
+- *
+- * @endpoint GET /consent/receipt
+- */
+-export const generateConsentReceipt = createSDKEndpoint(
+-	'/consent/receipt',
+-	{
+-		method: 'GET',
+-		query: generateConsentReceiptSchema,
+-	},
+-	async (ctx) => {
+-		try {
+-			const validatedData = generateConsentReceiptSchema.safeParse(ctx.query);
+-
+-			if (!validatedData.success) {
+-				throw new DoubleTieError(
+-					'The request parameters are invalid. Please ensure all required fields are correctly filled and formatted.',
+-					{
+-						code: ERROR_CODES.BAD_REQUEST,
+-						status: 400,
+-						data: {
+-							details: validatedData.error.errors,
+-						},
+-					}
+-				);
+-			}
+-
+-			const params = validatedData.data;
+-			const { registry } = ctx.context as C15TContext;
+-
+-			if (!registry) {
+-				throw new DoubleTieError(
+-					'The registry service is currently unavailable. Please check the service status and try again later.',
+-					{
+-						code: ERROR_CODES.INITIALIZATION_FAILED,
+-						status: 503,
+-					}
+-				);
+-			}
+-
+-			// Get the consent record with related information
+-			const consentResult = await registry.findConsentById(params.consentId);
+-			//@ts-expect-error
+-			if (!consentResult || !consentResult.consent) {
+-				throw new DoubleTieError(
+-					'The specified consent record could not be found. Please verify the consent ID and try again.',
+-					{
+-						code: C15T_ERROR_CODES.CONSENT_NOT_FOUND,
+-						status: 404,
+-						data: {
+-							consentId: params.consentId,
+-						},
+-					}
+-				);
+-			}
+-			//@ts-expect-error
+-			const record = consentResult.consent;
+-			//@ts-expect-error
+-			const subjectRecord = consentResult.subject;
+-
+-			if (!subjectRecord) {
+-				throw new DoubleTieError(
+-					'The subject associated with this consent record could not be found. Please verify the subject exists and is correctly linked.',
+-					{
+-						code: ERROR_CODES.NOT_FOUND,
+-						status: 404,
+-						data: {
+-							consentId: params.consentId,
+-						},
+-					}
+-				);
+-			}
+-
+-			// Get consent records related to this consent
+-			let records: ConsentRecord[] = [];
+-
+-			try {
+-				if (registry.getRecords) {
+-					//@ts-expect-error
+-					records = await registry.getRecords(consentResult.consent.id);
+-				}
+-			} catch (error) {
+-				// Log error but continue processing
+-				if (ctx.context?.logger) {
+-					ctx.context.logger.error(
+-						`Error retrieving records for consent ${params.consentId}:`,
+-						error
+-					);
+-				}
+-			}
+-
+-			// Get domain information
+-			const domain = {
+-				id: record.domainId,
+-				domain: record.domainId,
+-				name: `Domain for ${record.domainId}`,
+-			};
+-
+-			// Generate a unique receipt ID
+-			const receiptId = `CR${Date.now().toString().slice(-7)}${Math.floor(Math.random() * 1000)}`;
+-
+-			// Map consent preferences to services and purposes
+-			const services = Object.entries(record.preferences || {}).map(
+-				([key, value]) => {
+-					// Convert key to a more readable service name
+-					const serviceName = key.charAt(0).toUpperCase() + key.slice(1);
+-
+-					return {
+-						service: serviceName,
+-						purposes: [
+-							{
+-								consentPurpose: key,
+-								purposeDescription: `${value ? 'Enabled' : 'Disabled'} ${key} tracking and functionality`,
+-								consentType: 'EXPLICIT',
+-								purposeCategory: [serviceName],
+-								termination: record.policyId
+-									? `As specified in policy ${record.policyId}`
+-									: 'Until consent is withdrawn',
+-								thirdPartyDisclosure: false,
+-							},
+-						],
+-					};
+-				}
+-			);
+-
+-			// Extract metadata from consent records
+-			const metadata = {
+-				deviceInfo:
+-					//@ts-expect-error
+-					records.length > 0 && records[0]?.recordMetadata?.deviceInfo
+-						? //@ts-expect-error
+-							records[0].recordMetadata.deviceInfo
+-						: 'Not recorded',
+-				ipAddress: record.ipAddress || 'Not recorded',
+-				policyId: record.policyId,
+-				...record.metadata,
+-			};
+-
+-			// Create the receipt object
+-			const receipt = {
+-				version: '1.0.0',
+-				jurisdiction: 'GDPR', // Default to GDPR
+-				consentTimestamp: record.givenAt || new Date(),
+-				collectionMethod:
+-					//@ts-expect-error
+-					records.length > 0 && records[0]?.recordTypeDetail
+-						? //@ts-expect-error
+-							records[0].recordTypeDetail
+-						: 'API',
+-				consentReceiptID: receiptId,
+-				publicKey: process.env.CONSENT_RECEIPT_PUBLIC_KEY || 'not-configured',
+-				subject: {
+-					id: subjectRecord.id,
+-					idType: 'UUID',
+-				},
+-				dataController: {
+-					id: domain.domain,
+-					name: domain.name || domain.domain,
+-					on_behalf: [],
+-				},
+-				policyURL: `https://${domain.domain}/privacy`,
+-				services,
+-				sensitive: false,
+-				spiCat: [],
+-				metadata,
+-			};
+-
+-			// Add signature if requested
+-			if (params.includeSignature) {
+-				// Create a hash of the receipt data as a signature
+-				const receiptString = JSON.stringify(receipt);
+-				const signature = crypto
+-					.createHash('sha256')
+-					.update(receiptString)
+-					.digest('hex');
+-
+-				//@ts-expect-error
+-				receipt.signature = signature;
+-			}
+-
+-			// Return the completed receipt
+-			return {
+-				success: true,
+-				data: {
+-					receipt,
+-					receiptId,
+-					timestamp: new Date().toISOString(),
+-				},
+-			};
+-		} catch (error) {
+-			const context = ctx.context as C15TContext;
+-			context.logger?.error?.('Error generating consent receipt:', error);
+-
+-			if (error instanceof DoubleTieError) {
+-				throw error;
+-			}
+-			if (error instanceof z.ZodError) {
+-				throw new DoubleTieError(
+-					'The request parameters are invalid. Please ensure all required fields are correctly filled and formatted.',
+-					{
+-						code: ERROR_CODES.BAD_REQUEST,
+-						status: 400,
+-						data: {
+-							details: error.errors,
+-						},
+-					}
+-				);
+-			}
+-
+-			throw new DoubleTieError(
+-				'Failed to generate consent receipt. Please try again later or contact support if the issue persists.',
+-				{
+-					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+-					status: 500,
+-					data: {
+-						details:
+-							error instanceof Error ? { message: error.message } : { error },
+-					},
+-				}
+-			);
+-		}
+-	}
+-);
+diff --git a/packages/backend/src/routes/get-consent-history.ts b/packages/backend/src/routes/get-consent-history.ts
+deleted file mode 100644
+index 0ecaaf0..0000000
+--- a/packages/backend/src/routes/get-consent-history.ts
++++ /dev/null
+@@ -1,131 +0,0 @@
+-import { z } from 'zod';
+-import { createSDKEndpoint } from '~/pkgs/api-router';
+-import { logger } from '~/pkgs/logger';
+-import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
+-import type { EntityOutputFields } from '~/schema/definition';
+-
+-// Define the schema for validating request parameters
+-const getConsentHistorySchema = z.object({
+-	subjectId: z.string(),
+-	domain: z.string().optional(),
+-	limit: z.coerce.number().int().positive().max(1000).default(100),
+-	offset: z.coerce.number().int().min(0).default(0),
+-});
+-
+-/**
+- * Endpoint for retrieving a subject's complete consent history.
+- *
+- * This endpoint returns comprehensive information about a subject's consent records,
+- * including all consent entries, withdrawals, related evidence records, and audit logs.
+- * It supports optional domain filtering and pagination to manage large result sets.
+- *
+- * @endpoint GET /consent/history
+- */
+-export const getConsentHistory = createSDKEndpoint(
+-	'/consent/history',
+-	{
+-		method: 'GET',
+-		query: getConsentHistorySchema,
+-	},
+-	async (ctx) => {
+-		try {
+-			const params = getConsentHistorySchema.parse(ctx.query);
+-			const { registry } = ctx.context;
+-
+-			if (!registry) {
+-				throw new DoubleTieError(
+-					'The registry service is currently unavailable. Please check the service status and try again later.',
+-					{
+-						code: ERROR_CODES.INITIALIZATION_FAILED,
+-						status: 503,
+-					}
+-				);
+-			}
+-
+-			let subjectConsents = await registry.findConsents({
+-				subjectId: params.subjectId,
+-			});
+-			if (params.domain) {
+-				subjectConsents = subjectConsents.filter(
+-					(consent) => consent.domainId === params.domain
+-				);
+-			}
+-
+-			// Sort consents by givenAt date
+-			subjectConsents.sort((a, b) => b.givenAt.getTime() - a.givenAt.getTime());
+-
+-			// Apply pagination
+-			const start = params.offset;
+-			const end = start + params.limit;
+-			const paginatedConsents = subjectConsents.slice(start, end);
+-
+-			// Process each consent to include withdrawals and records
+-			const processedConsents = await Promise.all(
+-				paginatedConsents.map(async (consent) => {
+-					const consentWithdrawals = await registry.getWithdrawals(consent.id);
+-					const records = await registry.getRecords(consent.id);
+-
+-					return {
+-						id: consent.id,
+-						domainId: consent.domainId,
+-						status: consent.status as string,
+-						givenAt: consent.givenAt.toISOString(),
+-						consentWithdrawals: consentWithdrawals.map((consentWithdrawal) => ({
+-							id: consentWithdrawal.id,
+-							createdAt: consentWithdrawal.createdAt.toISOString(),
+-							reason: consentWithdrawal.withdrawalReason,
+-							method: consentWithdrawal.withdrawalMethod,
+-							actor:
+-								(consentWithdrawal.metadata as Record<string, unknown>)
+-									?.actor || 'system',
+-							metadata: consentWithdrawal.metadata,
+-						})),
+-						consentRecords: records.map(
+-							(record: EntityOutputFields<'consentRecord'>) => ({
+-								id: record.id,
+-								createdAt: record.createdAt.toISOString(),
+-								type: record.actionType,
+-								details: record.id,
+-							})
+-						),
+-					};
+-				})
+-			);
+-
+-			// Get audit logs if available
+-			let auditLogs: Array<{
+-				id: string;
+-				createdAt: string;
+-				actionType: string;
+-				details: Record<string, unknown>;
+-			}> = [];
+-			if ('findAuditLogs' in registry) {
+-				const logs = await registry.findAuditLogs(params.subjectId);
+-				auditLogs = logs.map((log: EntityOutputFields<'auditLog'>) => ({
+-					id: log.id,
+-					createdAt: log.createdAt.toISOString(),
+-					actionType: log.actionType as string,
+-					details: log.changes as Record<string, unknown>,
+-				}));
+-			}
+-
+-			const response = {
+-				success: true,
+-				data: {
+-					consents: processedConsents,
+-					auditLogs,
+-					pagination: {
+-						total: subjectConsents.length,
+-						offset: params.offset,
+-						limit: params.limit,
+-					},
+-				},
+-			};
+-
+-			return response;
+-		} catch (error) {
+-			logger.error('Error getting consent history:', error);
+-			throw error;
+-		}
+-	}
+-);
+diff --git a/packages/backend/src/routes/get-consent-policy.ts b/packages/backend/src/routes/get-consent-policy.ts
+deleted file mode 100644
+index ef143c8..0000000
+--- a/packages/backend/src/routes/get-consent-policy.ts
++++ /dev/null
+@@ -1,327 +0,0 @@
+-import { z } from 'zod';
+-import { createSDKEndpoint } from '~/pkgs/api-router';
+-import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
+-import type { C15TContext } from '~/pkgs/types';
+-import type { EntityOutputFields } from '~/schema/definition';
+-
+-// Define the schema for the base parameters (domain is always required)
+-const baseParamsSchema = z.object({
+-	domain: z.string(),
+-	version: z.string().optional(),
+-	includePreferences: z.boolean().optional().default(true),
+-});
+-
+-// Define schemas for the different identification methods (all optional)
+-const subjectIdentifierSchema = z.object({
+-	subjectId: z.string().optional(),
+-	externalId: z.string().optional(),
+-	ipAddress: z.string().optional(),
+-});
+-
+-// Combine the schemas
+-const getPolicySchema = baseParamsSchema.merge(subjectIdentifierSchema);
+-
+-export interface GetPolicyResponse {
+-	success: boolean;
+-	data: {
+-		policy: {
+-			id: string;
+-			domain: string;
+-			version: string;
+-			content: string;
+-			availablePreferences?: Record<string, unknown>;
+-			createdAt: string;
+-		};
+-		subjectConsentStatus?: {
+-			hasConsent: boolean;
+-			currentPreferences: Record<string, string | null> | null;
+-			consentedAt: string | null;
+-			needsRenewal: boolean;
+-			identifiedBy: string | null;
+-		};
+-	};
+-}
+-
+-/**
+- * Endpoint for retrieving consent policy information.
+- *
+- * This endpoint allows clients to retrieve the consent policy for a domain.
+- * It supports retrieving the latest policy or a specific version.
+- * It can also return personalized policy information if subject identifiers are provided.
+- *
+- * @endpoint GET /consent/policy
+- * @requestExample
+- * ```
+- * // Basic policy request
+- * GET /api/consent/policy?domain=example.com
+- * ```
+- *
+- * @requestExample
+- * ```
+- * // Specific version
+- * GET /api/consent/policy?domain=example.com&version=1.2
+- * ```
+- *
+- * @requestExample
+- * ```
+- * // With subject context
+- * GET /api/consent/policy?domain=example.com&subjectId=550e8400-e29b-41d4-a716-446655440000
+- * ```
+- *
+- * @responseExample
+- * ```json
+- * {
+- *   "success": true,
+- *   "data": {
+- *     "policy": {
+- *       "id": 1,
+- *       "domain": "example.com",
+- *       "version": "1.0",
+- *       "content": {
+- *         "title": "Privacy Policy",
+- *         "description": "How we use your data",
+- *         "lastUpdated": "2023-04-01"
+- *       },
+- *       "availablePreferences": {
+- *         "marketing": {
+- *           "title": "Marketing",
+- *           "description": "Allow us to send you marketing communications",
+- *           "default": false
+- *         },
+- *         "analytics": {
+- *           "title": "Analytics",
+- *           "description": "Allow us to collect usage data to improve our service",
+- *           "default": true
+- *         }
+- *       },
+- *       "createdAt": "2023-04-01T12:34:56.789Z"
+- *     },
+- *     "subjectConsentStatus": {
+- *       "hasConsent": true,
+- *       "currentPreferences": {
+- *         "marketing": null,
+- *         "analytics": "2023-04-02T10:30:00.000Z"
+- *       },
+- *       "consentedAt": "2023-04-02T10:30:00.000Z",
+- *       "needsRenewal": false
+- *     }
+- *   }
+- * }
+- * ```
+- *
+- * @returns {Object} Result of getting policy
+- * @returns {boolean} success - Whether the request was successful
+- * @returns {Object} data - The policy data
+- * @returns {Object} data.policy - The consent policy information
+- * @returns {Object} [data.subjectConsentStatus] - Subject's consent status if subject identifiers were provided
+- *
+- * @throws {DoubleTieError} BAD_REQUEST - When request parameters are invalid
+- * @throws {DoubleTieError} NOT_FOUND - When the domain or policy version doesn't exist
+- */
+-export const getConsentPolicy = createSDKEndpoint(
+-	'/consent/policy',
+-	{
+-		method: 'GET',
+-		query: getPolicySchema,
+-	},
+-	async (ctx) => {
+-		try {
+-			const validatedData = getPolicySchema.safeParse(ctx.query);
+-
+-			if (!validatedData.success) {
+-				throw new DoubleTieError('BAD_REQUEST', {
+-					code: ERROR_CODES.BAD_REQUEST,
+-					status: 400,
+-					data: {
+-						message: 'Invalid request data',
+-						details: validatedData.error.errors,
+-					},
+-				});
+-			}
+-
+-			const params = validatedData.data;
+-			const { registry } = ctx.context as C15TContext;
+-
+-			if (!registry) {
+-				throw new DoubleTieError('INTERNAL_SERVER_ERROR', {
+-					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+-					status: 503,
+-					data: {
+-						message: 'Registry not available',
+-					},
+-				});
+-			}
+-
+-			// Find domain
+-			let domain: EntityOutputFields<'domain'> | null = null;
+-			try {
+-				if (registry.findDomain) {
+-					domain = await registry.findDomain(params.domain);
+-				}
+-			} catch {
+-				throw new DoubleTieError(
+-					'The specified domain could not be found. Please verify the domain name and try again.',
+-					{
+-						code: ERROR_CODES.NOT_FOUND,
+-						status: 404,
+-						data: {
+-							domain: params.domain,
+-						},
+-					}
+-				);
+-			}
+-
+-			if (!domain) {
+-				throw new DoubleTieError(
+-					'The specified domain could not be found. Please verify the domain name and try again.',
+-					{
+-						code: ERROR_CODES.NOT_FOUND,
+-						status: 404,
+-						data: {
+-							domain: params.domain,
+-						},
+-					}
+-				);
+-			}
+-
+-			// Find the policy
+-			let policy: EntityOutputFields<'consentPolicy'> | null = null;
+-			try {
+-				if (registry.findPolicy) {
+-					policy = await registry.findPolicy(domain.id, params.version);
+-				}
+-			} catch {
+-				throw new DoubleTieError(
+-					params.version
+-						? `The specified policy version ${params.version} for domain ${params.domain} could not be found. Please verify the version number and domain name, and try again.`
+-						: `No policy could be found for the domain ${params.domain}. Please ensure the domain name is correct and try again.`,
+-					{
+-						code: ERROR_CODES.NOT_FOUND,
+-						status: 404,
+-						data: {
+-							domain: params.domain,
+-							version: params.version,
+-						},
+-					}
+-				);
+-			}
+-
+-			if (!policy) {
+-				throw new DoubleTieError(
+-					params.version
+-						? `The specified policy version ${params.version} for domain ${params.domain} could not be found. Please verify the version number and domain name, and try again.`
+-						: `No policy could be found for the domain ${params.domain}. Please ensure the domain name is correct and try again.`,
+-					{
+-						code: ERROR_CODES.NOT_FOUND,
+-						status: 404,
+-						data: {
+-							domain: params.domain,
+-							version: params.version,
+-						},
+-					}
+-				);
+-			}
+-
+-			// Format basic response
+-			const response: GetPolicyResponse = {
+-				success: true,
+-				data: {
+-					policy: {
+-						id: policy.id,
+-						domain: params.domain,
+-						version: policy.version,
+-						content: policy.content,
+-						availablePreferences: params.includePreferences
+-							? //@ts-expect-error
+-								policy.availablePreferences
+-							: undefined,
+-						createdAt: policy.createdAt.toISOString(),
+-					},
+-				},
+-			};
+-
+-			// If subject identifiers were provided, try to find the subject's consent status
+-			if (params.subjectId || params.externalId || params.ipAddress) {
+-				let subjectRecord: EntityOutputFields<'subject'> | null = null;
+-				let identifierUsed: string | null = null;
+-
+-				// Try to find subject by subjectId
+-				if (params.subjectId) {
+-					subjectRecord = await registry.findSubjectById(params.subjectId);
+-					if (subjectRecord) {
+-						identifierUsed = 'subjectId';
+-					}
+-				}
+-
+-				// If not found and externalId provided, try that
+-				if (!subjectRecord && params.externalId) {
+-					subjectRecord = await registry.findSubjectByExternalId(
+-						params.externalId
+-					);
+-					if (subjectRecord) {
+-						identifierUsed = 'externalId';
+-					}
+-				}
+-
+-				// If we found a subject, get their consent status
+-				if (subjectRecord) {
+-					// Get subject's active consents for this domain
+-					const subjectConsents = await registry.findConsents({
+-						subjectId: subjectRecord.id,
+-						domainId: domain.id,
+-						status: 'active',
+-					});
+-
+-					// Get the latest active consent
+-					const subjectConsent =
+-						subjectConsents.length > 0 ? subjectConsents[0] : null;
+-
+-					// Add subject consent info to response
+-					response.data.subjectConsentStatus = {
+-						hasConsent: !!subjectConsent,
+-						currentPreferences: subjectConsent
+-							? // @ts-expect-error
+-								subjectConsent.preferences
+-							: null,
+-						consentedAt: subjectConsent
+-							? subjectConsent.givenAt.toISOString() || null
+-							: null,
+-						needsRenewal: subjectConsent
+-							? subjectConsent.policyId !== policy.id
+-							: true,
+-						identifiedBy: identifierUsed,
+-					};
+-				}
+-			}
+-
+-			return response;
+-		} catch (error) {
+-			const context = ctx.context as C15TContext;
+-			context.logger?.error?.('Error getting consent policy:', error);
+-
+-			if (error instanceof DoubleTieError) {
+-				throw error;
+-			}
+-			if (error instanceof z.ZodError) {
+-				throw new DoubleTieError('BAD_REQUEST', {
+-					code: ERROR_CODES.BAD_REQUEST,
+-					status: 400,
+-					data: {
+-						message: 'Invalid request data',
+-						details: error.errors,
+-					},
+-				});
+-			}
+-
+-			throw new DoubleTieError('INTERNAL_SERVER_ERROR', {
+-				code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+-				status: 503,
+-				data: {
+-					message: 'Failed to get consent policy',
+-					details:
+-						error instanceof Error ? { message: error.message } : { error },
+-				},
+-			});
+-		}
+-	}
+-);
+diff --git a/packages/backend/src/routes/verify-consent.ts b/packages/backend/src/routes/verify-consent.ts
+deleted file mode 100644
+index ef46fab..0000000
+--- a/packages/backend/src/routes/verify-consent.ts
++++ /dev/null
+@@ -1,272 +0,0 @@
+-import { z } from 'zod';
+-import { createSDKEndpoint } from '~/pkgs/api-router';
+-import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
+-import type { C15TContext } from '~/pkgs/types';
+-import type { EntityOutputFields } from '~/schema/definition';
+-
+-// Schema for the base verification criteria (at least domain is required)
+-const baseVerificationSchema = z.object({
+-	domain: z.string(),
+-	requiredPreferences: z.record(z.string().datetime().nullable()).optional(),
+-	requireExactMatch: z.boolean().optional().default(false),
+-	policyVersion: z.string().optional(),
+-});
+-
+-// Define schemas for the different identification methods
+-// At least one identifier must be provided
+-const identifierSchema = z
+-	.object({
+-		subjectId: z.string().optional(),
+-		externalId: z.string().optional(),
+-		ipAddress: z.string().optional(),
+-	})
+-	.refine(
+-		(data) =>
+-			data.subjectId !== undefined ||
+-			data.externalId !== undefined ||
+-			data.ipAddress !== undefined,
+-		{
+-			message:
+-				'At least one identifier (subjectId, externalId, or ipAddress) must be provided',
+-		}
+-	);
+-
+-// Combine the schemas
+-const verifyConsentSchema = baseVerificationSchema.and(identifierSchema);
+-
+-export interface VerifyConsentResponse {
+-	success: boolean;
+-	data: {
+-		verified: boolean;
+-		consentDetails: {
+-			id: string;
+-			givenAt: string;
+-			policyVersion: string;
+-			preferences: Record<string, string | null>;
+-		} | null;
+-		identifiedBy: string | null;
+-		verificationResults: {
+-			hasActiveConsent: boolean;
+-			meetsPreferenceRequirements: boolean;
+-			matchesPolicyVersion: boolean;
+-		};
+-	};
+-}
+-
+-/**
+- * Endpoint for verifying if a subject has given consent.
+- *
+- * This endpoint allows checking if a subject has provided consent for a specific domain
+- * and verifies if the consent meets specific criteria (required preferences, policy version).
+- * Subjects can be identified by subjectId, externalId, or ipAddress.
+- *
+- * @endpoint GET /consent/verify
+- */
+-export const verifyConsent = createSDKEndpoint(
+-	'/consent/verify',
+-	{
+-		method: 'GET',
+-		query: verifyConsentSchema,
+-	},
+-	async (ctx) => {
+-		try {
+-			const validatedData = verifyConsentSchema.safeParse(ctx.query);
+-
+-			if (!validatedData.success) {
+-				throw new DoubleTieError(
+-					'The request data is invalid. Please ensure all required fields are correctly filled and formatted.',
+-					{
+-						code: ERROR_CODES.BAD_REQUEST,
+-						status: 400,
+-						data: {
+-							details: validatedData.error.errors,
+-						},
+-					}
+-				);
+-			}
+-
+-			const params = validatedData.data;
+-			const { registry } = ctx.context as C15TContext;
+-
+-			if (!registry) {
+-				throw new DoubleTieError(
+-					'The registry service is currently unavailable. Please check the service status and try again later.',
+-					{
+-						code: ERROR_CODES.INITIALIZATION_FAILED,
+-						status: 503,
+-					}
+-				);
+-			}
+-
+-			// Find subject based on provided identifiers
+-			let subjectRecord: EntityOutputFields<'subject'> | null = null;
+-			let identifierUsed: string | null = null;
+-
+-			// Try to find subject by subjectId (most precise)
+-			if (params.subjectId) {
+-				subjectRecord = await registry.findSubjectById(params.subjectId);
+-				if (subjectRecord) {
+-					identifierUsed = 'subjectId';
+-				}
+-			}
+-
+-			// If not found and externalId provided, try that
+-			if (!subjectRecord && params.externalId) {
+-				subjectRecord = await registry.findSubjectByExternalId(
+-					params.externalId
+-				);
+-				if (subjectRecord) {
+-					identifierUsed = 'externalId';
+-				}
+-			}
+-
+-			// If no subject found, return negative verification
+-			if (!subjectRecord) {
+-				return {
+-					success: true,
+-					data: {
+-						verified: false,
+-						consentDetails: null,
+-						identifiedBy: null,
+-						verificationResults: {
+-							hasActiveConsent: false,
+-							meetsPreferenceRequirements: false,
+-							matchesPolicyVersion: false,
+-						},
+-					},
+-				};
+-			}
+-
+-			// Find active consents for this subject
+-			const subjectConsents = await registry.findConsents({
+-				subjectId: subjectRecord.id,
+-			});
+-
+-			// Filter for active consents that match the domain
+-			const activeConsents = subjectConsents.filter(
+-				(consent) =>
+-					consent.status === 'active' && consent.domainId === params.domain
+-			);
+-
+-			// Sort consents by givenAt date, most recent first
+-			activeConsents.sort(
+-				(a, b) => new Date(b.givenAt).getTime() - new Date(a.givenAt).getTime()
+-			);
+-
+-			// Get the most recent active consent for this domain, if any
+-			const record = activeConsents.length > 0 ? activeConsents[0] : null;
+-
+-			// If no consent found, return negative verification
+-			if (!record) {
+-				return {
+-					success: true,
+-					data: {
+-						verified: false,
+-						consentDetails: null,
+-						identifiedBy: identifierUsed,
+-						verificationResults: {
+-							hasActiveConsent: false,
+-							meetsPreferenceRequirements: false,
+-							matchesPolicyVersion: false,
+-						},
+-					},
+-				};
+-			}
+-
+-			// Verify consent meets criteria if specified
+-			let meetsPreferenceRequirements = true;
+-			if (params.requiredPreferences) {
+-				const preferences =
+-					(record.metadata as Record<string, unknown>)?.preferences || {};
+-
+-				// Check if all required preferences are present and have the correct values
+-				for (const [key, requiredValue] of Object.entries(
+-					params.requiredPreferences
+-				)) {
+-					//@ts-expect-error
+-					const hasPreference = key in preferences;
+-					//@ts-expect-error
+-					const preferenceEnabled = hasPreference && preferences[key] !== null;
+-
+-					if (params.requireExactMatch) {
+-						// Exact match requires preference to exist and match value exactly
+-						if (
+-							!hasPreference ||
+-							preferenceEnabled !== (requiredValue !== null)
+-						) {
+-							meetsPreferenceRequirements = false;
+-							break;
+-						}
+-					} else if (requiredValue !== null && !preferenceEnabled) {
+-						// Non-exact match only checks if required trues are true
+-						meetsPreferenceRequirements = false;
+-						break;
+-					}
+-				}
+-			}
+-
+-			// Verify policy version if specified
+-			const matchesPolicyVersion = params.policyVersion
+-				? record.policyId === params.policyVersion
+-				: true;
+-
+-			// Determine overall verification result
+-			const verified =
+-				record.status === 'active' &&
+-				meetsPreferenceRequirements &&
+-				matchesPolicyVersion;
+-
+-			// Return verification result
+-			return {
+-				success: true,
+-				data: {
+-					verified,
+-					consentDetails: {
+-						id: record.id,
+-						givenAt: record.givenAt.toISOString(),
+-						policyVersion: record.policyId || '',
+-						preferences:
+-							(record.metadata as Record<string, unknown>)?.preferences || {},
+-					},
+-					identifiedBy: identifierUsed,
+-					verificationResults: {
+-						hasActiveConsent: record.status === 'active',
+-						meetsPreferenceRequirements,
+-						matchesPolicyVersion,
+-					},
+-				},
+-			};
+-		} catch (error) {
+-			const context = ctx.context as C15TContext;
+-			context.logger?.error?.('Error verifying consent:', error);
+-
+-			if (error instanceof DoubleTieError) {
+-				throw error;
+-			}
+-			if (error instanceof z.ZodError) {
+-				throw new DoubleTieError(
+-					'The request data is invalid. Please ensure all required fields are correctly filled and formatted.',
+-					{
+-						code: ERROR_CODES.BAD_REQUEST,
+-						status: 400,
+-						data: {
+-							details: error.errors,
+-						},
+-					}
+-				);
+-			}
+-
+-			throw new DoubleTieError(
+-				'Failed to verify consent. Please try again later or contact support if the issue persists.',
+-				{
+-					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+-					status: 503,
+-					data: {
+-						details:
+-							error instanceof Error ? { message: error.message } : { error },
+-					},
+-				}
+-			);
+-		}
+-	}
+-);
+diff --git a/packages/backend/src/routes/withdraw-consent.ts b/packages/backend/src/routes/withdraw-consent.ts
+deleted file mode 100644
+index 8936f33..0000000
+--- a/packages/backend/src/routes/withdraw-consent.ts
++++ /dev/null
+@@ -1,294 +0,0 @@
+-import { z } from 'zod';
+-import { C15T_ERROR_CODES } from '~/error-codes';
+-import { createSDKEndpoint } from '~/pkgs/api-router';
+-import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
+-import type { C15TContext } from '~/pkgs/types';
+-import type { EntityOutputFields } from '~/schema/definition';
+-
+-// Define the schemas for validating request body
+-// We'll have three different schemas for the three identification methods
+-const withdrawByConsentIdSchema = z.object({
+-	consentId: z.string(),
+-	identifierType: z.literal('consentId'),
+-	reason: z.string().optional(),
+-	method: z.string().min(1).max(50),
+-	actor: z.string().optional(),
+-	metadata: z.record(z.any()).optional(),
+-});
+-
+-const withdrawBySubjectIdSchema = z.object({
+-	subjectId: z.string(),
+-	domain: z.string(),
+-	identifierType: z.literal('subjectId'),
+-	reason: z.string().optional(),
+-	method: z.string().min(1).max(50),
+-	actor: z.string().optional(),
+-	metadata: z.record(z.any()).optional(),
+-});
+-
+-const withdrawByExternalIdSchema = z.object({
+-	externalId: z.string(),
+-	domain: z.string(),
+-	identifierType: z.literal('externalId'),
+-	reason: z.string().optional(),
+-	method: z.string().min(1).max(50),
+-	actor: z.string().optional(),
+-	metadata: z.record(z.any()).optional(),
+-});
+-
+-// Combined schema using discriminated union
+-const withdrawConsentSchema = z.discriminatedUnion('identifierType', [
+-	withdrawByConsentIdSchema,
+-	withdrawBySubjectIdSchema,
+-	withdrawByExternalIdSchema,
+-]);
+-
+-export interface WithdrawConsentResponse {
+-	success: boolean;
+-	data: {
+-		withdrawalIds: string[];
+-		consentIds: string[];
+-		revokedAt: string;
+-	};
+-}
+-
+-/**
+- * Endpoint for withdrawing previously given consent.
+- *
+- * This endpoint allows clients to revoke a subject's consent by specifying either:
+- * 1. The specific consent ID to withdraw
+- * 2. The subject ID and domain to withdraw all active consents for that subject on that domain
+- * 3. The external subject ID and domain to withdraw all active consents for that subject on that domain
+- *
+- * @endpoint POST /consent/withdraw
+- */
+-export const withdrawConsent = createSDKEndpoint(
+-	'/consent/withdraw',
+-	{
+-		method: 'POST',
+-		body: withdrawConsentSchema,
+-	},
+-	async (ctx) => {
+-		try {
+-			const validatedData = withdrawConsentSchema.safeParse(ctx.body);
+-
+-			if (!validatedData.success) {
+-				throw new DoubleTieError(
+-					'The request data is invalid. Please ensure all required fields are correctly filled and formatted.',
+-					{
+-						code: ERROR_CODES.BAD_REQUEST,
+-						status: 400,
+-						data: { details: validatedData.error.errors },
+-					}
+-				);
+-			}
+-
+-			const params = validatedData.data;
+-			const { registry } = ctx.context as C15TContext;
+-
+-			if (!registry) {
+-				throw new DoubleTieError(
+-					'The registry service is currently unavailable. Please check the service status and try again later.',
+-					{
+-						code: ERROR_CODES.INITIALIZATION_FAILED,
+-						status: 503,
+-					}
+-				);
+-			}
+-
+-			// Find the consent records to withdraw based on the identifier type
+-			let recordsToWithdraw: EntityOutputFields<'consent'>[] = [];
+-
+-			if (params.identifierType === 'consentId') {
+-				// Find by consent ID
+-				const record = await registry.findConsentById(params.consentId);
+-
+-				if (!record) {
+-					throw new DoubleTieError(
+-						'The specified consent record could not be found. Please verify the consent ID and try again.',
+-						{
+-							code: C15T_ERROR_CODES.CONSENT_NOT_FOUND,
+-							status: 404,
+-							data: { consentId: params.consentId },
+-						}
+-					);
+-				}
+-
+-				if (record.status !== 'active') {
+-					throw new DoubleTieError(
+-						'The consent has already been withdrawn. No further action is required.',
+-						{
+-							code: ERROR_CODES.CONFLICT,
+-							status: 409,
+-							data: {
+-								consentId: params.consentId,
+-								currentStatus: record.status,
+-							},
+-						}
+-					);
+-				}
+-
+-				recordsToWithdraw = [record];
+-			} else if (
+-				params.identifierType === 'subjectId' ||
+-				params.identifierType === 'externalId'
+-			) {
+-				// Find subject
+-				let subjectRecord: EntityOutputFields<'subject'> | null = null;
+-				if (params.identifierType === 'subjectId') {
+-					subjectRecord = await registry.findSubjectById(params.subjectId);
+-				} else {
+-					subjectRecord = await registry.findSubjectByExternalId(
+-						params.externalId
+-					);
+-				}
+-
+-				if (!subjectRecord) {
+-					throw new DoubleTieError(
+-						'The specified subject could not be found. Please verify the subject ID or external ID and try again.',
+-						{
+-							code: ERROR_CODES.NOT_FOUND,
+-							status: 404,
+-							data:
+-								params.identifierType === 'subjectId'
+-									? { subjectId: params.subjectId }
+-									: { externalId: params.externalId },
+-						}
+-					);
+-				}
+-
+-				// Find all active consents for this subject and domain
+-				const subjectConsents = await registry.findConsents({
+-					subjectId: subjectRecord.id,
+-				});
+-
+-				// Filter for active consents with matching domain
+-				recordsToWithdraw = subjectConsents.filter(
+-					(consent) =>
+-						consent.status === 'active' && consent.domainId === params.domain
+-				);
+-
+-				if (recordsToWithdraw.length === 0) {
+-					throw new DoubleTieError(
+-						'No active consent records were found for this subject and domain. Please ensure the subject and domain are correct.',
+-						{
+-							code: C15T_ERROR_CODES.CONSENT_NOT_FOUND,
+-							status: 404,
+-							data: {
+-								domain: params.domain,
+-								...(params.identifierType === 'subjectId'
+-									? { subjectId: params.subjectId }
+-									: { externalId: params.externalId }),
+-							},
+-						}
+-					);
+-				}
+-			}
+-
+-			// Get device info from request
+-			const requestHeaders = ctx.request?.headers as
+-				| Record<string, string>
+-				| undefined;
+-			const deviceInfo = requestHeaders?.['user-agent'] || '';
+-			// @ts-expect-error
+-			const ipAddress = ctx.request?.ip || '';
+-
+-			// Process each consent record to withdraw
+-			const withdrawalResults: Array<{
+-				id: string;
+-				consentId: string;
+-				revokedAt: string;
+-			}> = [];
+-
+-			const currentTime = new Date();
+-
+-			for (const record of recordsToWithdraw) {
+-				// Use the revokeConsent method from the internal adapter
+-				const withdrawalResult = await registry.revokeConsent({
+-					consentId: record.id,
+-					reason: params.reason || '',
+-					actor: params.actor || 'system',
+-					metadata: params.metadata || {},
+-				});
+-
+-				// Add consent record for the consentWithdrawal
+-				await registry.createConsentRecord({
+-					subjectId: record.subjectId,
+-					consentId: record.id,
+-					actionType: 'withdraw_consent',
+-					details: {
+-						reason: params.reason,
+-						method: params.method,
+-						identifierType: params.identifierType,
+-						withdrawnAt: currentTime.toISOString(),
+-					},
+-					createdAt: currentTime,
+-					updatedAt: currentTime,
+-				});
+-
+-				// Log the action in the audit log
+-				await registry.createAuditLog({
+-					subjectId: record.subjectId,
+-					entityType: 'consent',
+-					entityId: record.id,
+-					actionType: 'withdraw_consent',
+-					changes: {
+-						policyVersion: record.policyId,
+-					},
+-					metadata: {
+-						source: 'api',
+-						...params.metadata,
+-					},
+-					ipAddress,
+-					userAgent: deviceInfo,
+-					createdAt: currentTime,
+-				});
+-
+-				withdrawalResults.push({
+-					id: withdrawalResult?.id || `wdr_${record.id}`,
+-					consentId: record.id,
+-					revokedAt: currentTime.toISOString(),
+-				});
+-			}
+-
+-			// Return success response with consentWithdrawal details
+-			return {
+-				success: true,
+-				data: {
+-					withdrawalIds: withdrawalResults.map((wr) => wr.id),
+-					consentIds: withdrawalResults.map((wr) => wr.consentId),
+-					revokedAt:
+-						withdrawalResults[0]?.revokedAt || currentTime.toISOString(),
+-				},
+-			};
+-		} catch (error) {
+-			const context = ctx.context as C15TContext;
+-			context.logger?.error?.('Error withdrawing consent:', error);
+-
+-			if (error instanceof DoubleTieError) {
+-				throw error;
+-			}
+-			if (error instanceof z.ZodError) {
+-				throw new DoubleTieError(
+-					'The request data is invalid. Please ensure all required fields are correctly filled and formatted.',
+-					{
+-						code: ERROR_CODES.BAD_REQUEST,
+-						status: 400,
+-						data: { details: error.errors },
+-					}
+-				);
+-			}
+-
+-			throw new DoubleTieError(
+-				'Failed to withdraw consent. Please try again later or contact support if the issue persists.',
+-				{
+-					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+-					status: 503,
+-					data: {
+-						error: error instanceof Error ? error.message : String(error),
+-					},
+-				}
+-			);
+-		}
+-	}
+-);
