@@ -1,0 +1,71 @@
+{
+	"name": "@doubletie/core",
+	"version": "0.0.1",
+	"description": "A type-safe, functional query builder and model layer built on top of Kysely",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/consentdotio/doubletie.git"
+	},
+	"license": "MIT",
+	"author": "Christopher Burns <christopher@doubletie.com>",
+	"type": "module",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		},
+		"./schema": {
+			"import": "./dist/schema/index.js",
+			"require": "./dist/schema/index.cjs"
+		},
+		"./entity": {
+			"import": "./dist/entity/index.js",
+			"require": "./dist/entity/index.cjs"
+		},
+		"./db": {
+			"import": "./dist/db/index.js",
+			"require": "./dist/db/index.cjs"
+		},
+		"./validation": {
+			"import": "./dist/validation/index.js",
+			"require": "./dist/validation/index.cjs"
+		},
+		"./config": {
+			"import": "./dist/config/index.js",
+			"require": "./dist/config/index.cjs"
+		}
+	},
+	"main": "dist/index.cjs",
+	"module": "dist/index.js",
+	"scripts": {
+		"build": "rslib build",
+		"check-types": "tsc --noEmit",
+		"clean": "rm -rf dist",
+		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"lint": "pnpm biome lint ./src",
+		"prepublishOnly": "npm run build",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"valid": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@standard-schema/spec": "^1.0.0",
+		"better-sqlite3": "^11.8.1",
+		"kysely": "^0.27.6",
+		"nanoid": "^5.1.3",
+		"uuid": "^9.0.0",
+		"zod": "^3.24.2"
+	},
+	"devDependencies": {
+		"@doubletie/typescript-config": "workspace:*",
+		"@types/better-sqlite3": "^7.6.12",
+		"@vitest/browser": "^3.0.8",
+		"vitest": "^3.0.8"
+	},
+	"engines": {
+		"node": ">=16.2.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

@@ -1,0 +1,8 @@
+{
+	"extends": "@doubletie/typescript-config/base.json",
+	"compilerOptions": {
+		"types": ["vitest/importMeta", "vitest"]
+	},
+	"include": ["src"],
+	"exclude": ["node_modules", "dist", "vitest.config.ts"]
+}

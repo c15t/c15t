@@ -1,0 +1,56 @@
+{
+	"name": "@doubletie/query-builder",
+	"version": "0.0.1",
+	"description": "A type-safe, functional query builder and model layer built on top of Kysely",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/consentdotio/doubletie.git"
+	},
+	"license": "MIT",
+	"author": "Christopher Burns <christopher@doubletie.com>",
+	"type": "module",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"main": "dist/index.cjs",
+	"module": "dist/index.js",
+	"scripts": {
+		"build": "rslib build",
+		"check-types": "tsc --noEmit",
+		"clean": "rm -rf dist",
+		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"lint": "pnpm biome lint ./src",
+		"prepublishOnly": "npm run build",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"valid": "tsc --noEmit"
+	},
+	"dependencies": {
+		"base-x": "^5.0.1",
+		"url-slug": "^4.0.1"
+	},
+	"devDependencies": {
+		"@doubletie/typescript-config": "workspace:*",
+		"@types/better-sqlite3": "^7.6.12",
+		"@types/node": "^22.13.10",
+		"@types/pg": "^8.11.11",
+		"@types/rollup": "^0.54.0",
+		"better-sqlite3": "^11.8.1",
+		"dotenv": "^16.4.7",
+		"kysely": "0.27.6",
+		"typescript": "5.8.2",
+		"vitest": "^3.0.8"
+	},
+	"peerDependencies": {
+		"kysely": "~0.27.6"
+	},
+	"engines": {
+		"node": ">=16.2.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

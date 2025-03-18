@@ -1,0 +1,397 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Database Adapters > Adapters can generate SQL for tables > mysql-product-sql 1`] = `
+"CREATE TABLE IF NOT EXISTS \`product\` (
+  \`id\` BIGINT PRIMARY KEY AUTO_INCREMENT NOT NULL UNIQUE DEFAULT null,
+  \`name\` VARCHAR(255) NOT NULL,
+  \`price\` DECIMAL(10, 2) NOT NULL,
+  \`sku\` VARCHAR(255) NOT NULL UNIQUE,
+  \`inStock\` TINYINT(1) NULL DEFAULT true,
+  \`categories\` TEXT NULL DEFAULT ,
+  \`createdAt\` TIMESTAMP NOT NULL DEFAULT null,
+  PRIMARY KEY (\`id\`)
+);"
+`;
+
+exports[`Database Adapters > Adapters can generate SQL for tables > mysql-user-sql 1`] = `
+"CREATE TABLE IF NOT EXISTS \`user\` (
+  \`id\` VARCHAR(36) PRIMARY KEY NOT NULL UNIQUE DEFAULT null,
+  \`username\` VARCHAR(255) NOT NULL UNIQUE,
+  \`email\` VARCHAR(255) NOT NULL UNIQUE,
+  \`active\` TINYINT(1) NULL DEFAULT true,
+  \`preferences\` JSON NULL DEFAULT [object Object],
+  \`tags\` TEXT NULL DEFAULT ,
+  \`createdAt\` TIMESTAMP NOT NULL DEFAULT null,
+  \`updatedAt\` TIMESTAMP NOT NULL DEFAULT null,
+  \`deletedAt\` TIMESTAMP NULL,
+  PRIMARY KEY (\`id\`)
+);"
+`;
+
+exports[`Database Adapters > Adapters can generate SQL for tables > postgres-product-sql 1`] = `
+"CREATE TABLE IF NOT EXISTS "product" (
+  "id" BIGINT NOT NULL PRIMARY KEY UNIQUE DEFAULT NULL,
+  "name" VARCHAR NOT NULL,
+  "price" REAL NOT NULL,
+  "sku" VARCHAR NOT NULL UNIQUE,
+  "inStock" BOOLEAN DEFAULT 'TRUE',
+  "categories" TEXT[] DEFAULT '''[]''::jsonb',
+  "createdAt" TIMESTAMP NOT NULL DEFAULT NULL
+);
+"
+`;
+
+exports[`Database Adapters > Adapters can generate SQL for tables > postgres-user-sql 1`] = `
+"CREATE TABLE IF NOT EXISTS "user" (
+  "id" UUID NOT NULL PRIMARY KEY UNIQUE DEFAULT gen_random_uuid(),
+  "username" VARCHAR NOT NULL UNIQUE,
+  "email" VARCHAR NOT NULL UNIQUE,
+  "active" BOOLEAN DEFAULT 'TRUE',
+  "preferences" JSONB DEFAULT '''{"theme":"light","notifications":true}''::jsonb',
+  "tags" TEXT[] DEFAULT '''[]''::jsonb',
+  "createdAt" TIMESTAMP NOT NULL DEFAULT NULL,
+  "updatedAt" TIMESTAMP NOT NULL DEFAULT NULL,
+  "deletedAt" TIMESTAMP
+);
+"
+`;
+
+exports[`Database Adapters > Adapters can generate SQL for tables > sqlite-product-sql 1`] = `
+"CREATE TABLE IF NOT EXISTS "product" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE DEFAULT NULL,
+  "name" TEXT NOT NULL DEFAULT NULL,
+  "price" REAL NOT NULL DEFAULT NULL,
+  "sku" TEXT NOT NULL UNIQUE DEFAULT NULL,
+  "inStock" INTEGER DEFAULT '1',
+  "categories" TEXT DEFAULT '''[]''',
+  "createdAt" TEXT NOT NULL DEFAULT NULL
+);"
+`;
+
+exports[`Database Adapters > Adapters can generate SQL for tables > sqlite-user-sql 1`] = `
+"CREATE TABLE IF NOT EXISTS "user" (
+  "id" TEXT PRIMARY KEY NOT NULL UNIQUE DEFAULT NULL,
+  "username" TEXT NOT NULL UNIQUE DEFAULT NULL,
+  "email" TEXT NOT NULL UNIQUE DEFAULT NULL,
+  "active" INTEGER DEFAULT '1',
+  "preferences" TEXT DEFAULT '''{"theme":"light","notifications":true}''',
+  "tags" TEXT DEFAULT '''[]''',
+  "createdAt" TEXT NOT NULL DEFAULT NULL,
+  "updatedAt" TEXT NOT NULL DEFAULT NULL,
+  "deletedAt" TEXT DEFAULT NULL
+);"
+`;
+
+exports[`Database Adapters > Adapters can transform data to and from database format > mysql-from-db 1`] = `
+{
+  "attendees": [
+    {
+      "id": 1,
+      "name": "John Doe",
+      "role": "Speaker",
+    },
+    {
+      "id": 2,
+      "name": "Jane Smith",
+      "role": "Attendee",
+    },
+  ],
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Annual Conference",
+  "startDate": 2023-06-15T09:00:00.000Z,
+}
+`;
+
+exports[`Database Adapters > Adapters can transform data to and from database format > mysql-to-db 1`] = `
+{
+  "attendees": "[{"id":1,"name":"John Doe","role":"Speaker"},{"id":2,"name":"Jane Smith","role":"Attendee"}]",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Annual Conference",
+  "startDate": 2023-06-15T09:00:00.000Z,
+}
+`;
+
+exports[`Database Adapters > Adapters can transform data to and from database format > postgres-from-db 1`] = `
+{
+  "attendees": [
+    {
+      "id": 1,
+      "name": "John Doe",
+      "role": "Speaker",
+    },
+    {
+      "id": 2,
+      "name": "Jane Smith",
+      "role": "Attendee",
+    },
+  ],
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Annual Conference",
+  "startDate": "2023-06-15T09:00:00.000Z",
+}
+`;
+
+exports[`Database Adapters > Adapters can transform data to and from database format > postgres-to-db 1`] = `
+{
+  "attendees": "[{"id":1,"name":"John Doe","role":"Speaker"},{"id":2,"name":"Jane Smith","role":"Attendee"}]",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Annual Conference",
+  "startDate": 2023-06-15T09:00:00.000Z,
+}
+`;
+
+exports[`Database Adapters > Adapters can transform data to and from database format > sqlite-from-db 1`] = `
+{
+  "attendees": [
+    {
+      "id": 1,
+      "name": "John Doe",
+      "role": "Speaker",
+    },
+    {
+      "id": 2,
+      "name": "Jane Smith",
+      "role": "Attendee",
+    },
+  ],
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Annual Conference",
+  "startDate": "2023-06-15T09:00:00.000Z",
+}
+`;
+
+exports[`Database Adapters > Adapters can transform data to and from database format > sqlite-to-db 1`] = `
+{
+  "attendees": "[{"id":1,"name":"John Doe","role":"Speaker"},{"id":2,"name":"Jane Smith","role":"Attendee"}]",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Annual Conference",
+  "startDate": 2023-06-15T09:00:00.000Z,
+}
+`;
+
+exports[`Database Adapters > MySQL adapter generates correct table definitions > mysql-product-table-def 1`] = `
+{
+  "columns": [
+    {
+      "autoIncrement": true,
+      "defaultValue": null,
+      "name": "id",
+      "nullable": false,
+      "primaryKey": true,
+      "type": "BIGINT",
+      "unique": true,
+    },
+    {
+      "autoIncrement": false,
+      "name": "name",
+      "nullable": false,
+      "type": "VARCHAR(255)",
+    },
+    {
+      "autoIncrement": false,
+      "name": "price",
+      "nullable": false,
+      "type": "DECIMAL(10, 2)",
+    },
+    {
+      "autoIncrement": false,
+      "name": "sku",
+      "nullable": false,
+      "type": "VARCHAR(255)",
+      "unique": true,
+    },
+    {
+      "autoIncrement": false,
+      "defaultValue": true,
+      "name": "inStock",
+      "nullable": true,
+      "type": "TINYINT(1)",
+    },
+    {
+      "autoIncrement": false,
+      "defaultValue": [],
+      "name": "categories",
+      "nullable": true,
+      "type": "TEXT",
+    },
+    {
+      "autoIncrement": false,
+      "defaultValue": null,
+      "name": "createdAt",
+      "nullable": false,
+      "type": "TIMESTAMP",
+    },
+  ],
+  "foreignKeys": [],
+  "indexes": [],
+  "name": "product",
+  "options": {},
+  "primaryKey": {
+    "columns": [
+      "id",
+    ],
+    "name": "pk_product",
+  },
+}
+`;
+
+exports[`Database Adapters > Postgres adapter generates correct table definitions > postgres-user-table-def 1`] = `
+{
+  "columns": [
+    {
+      "defaultValue": "gen_random_uuid()",
+      "name": "id",
+      "nullable": false,
+      "primaryKey": true,
+      "type": "UUID",
+      "unique": true,
+    },
+    {
+      "name": "username",
+      "nullable": false,
+      "type": "VARCHAR",
+      "unique": true,
+    },
+    {
+      "name": "email",
+      "nullable": false,
+      "type": "VARCHAR",
+      "unique": true,
+    },
+    {
+      "defaultValue": "TRUE",
+      "name": "active",
+      "nullable": true,
+      "type": "BOOLEAN",
+    },
+    {
+      "defaultValue": "'{"theme":"light","notifications":true}'::jsonb",
+      "name": "preferences",
+      "nullable": true,
+      "type": "JSONB",
+    },
+    {
+      "defaultValue": "'[]'::jsonb",
+      "name": "tags",
+      "nullable": true,
+      "type": "TEXT[]",
+    },
+    {
+      "defaultValue": null,
+      "name": "createdAt",
+      "nullable": false,
+      "type": "TIMESTAMP",
+    },
+    {
+      "defaultValue": null,
+      "name": "updatedAt",
+      "nullable": false,
+      "type": "TIMESTAMP",
+    },
+    {
+      "name": "deletedAt",
+      "nullable": true,
+      "type": "TIMESTAMP",
+    },
+  ],
+  "foreignKeys": [],
+  "indexes": [],
+  "name": "user",
+  "options": {},
+  "primaryKey": {
+    "columns": [
+      "id",
+    ],
+    "name": "pk_user",
+  },
+}
+`;
+
+exports[`Database Adapters > SQLite adapter generates correct table definitions > sqlite-user-table-def 1`] = `
+{
+  "columns": [
+    {
+      "defaultValue": null,
+      "name": "id",
+      "nullable": false,
+      "primaryKey": true,
+      "type": "TEXT",
+      "unique": true,
+    },
+    {
+      "defaultValue": null,
+      "name": "username",
+      "nullable": false,
+      "primaryKey": false,
+      "type": "TEXT",
+      "unique": true,
+    },
+    {
+      "defaultValue": null,
+      "name": "email",
+      "nullable": false,
+      "primaryKey": false,
+      "type": "TEXT",
+      "unique": true,
+    },
+    {
+      "defaultValue": "1",
+      "name": "active",
+      "nullable": true,
+      "primaryKey": false,
+      "type": "INTEGER",
+      "unique": false,
+    },
+    {
+      "defaultValue": "'{"theme":"light","notifications":true}'",
+      "name": "preferences",
+      "nullable": true,
+      "primaryKey": false,
+      "type": "TEXT",
+      "unique": false,
+    },
+    {
+      "defaultValue": "'[]'",
+      "name": "tags",
+      "nullable": true,
+      "primaryKey": false,
+      "type": "TEXT",
+      "unique": false,
+    },
+    {
+      "defaultValue": null,
+      "name": "createdAt",
+      "nullable": false,
+      "primaryKey": false,
+      "type": "TEXT",
+      "unique": false,
+    },
+    {
+      "defaultValue": null,
+      "name": "updatedAt",
+      "nullable": false,
+      "primaryKey": false,
+      "type": "TEXT",
+      "unique": false,
+    },
+    {
+      "defaultValue": null,
+      "name": "deletedAt",
+      "nullable": true,
+      "primaryKey": false,
+      "type": "TEXT",
+      "unique": false,
+    },
+  ],
+  "foreignKeys": [],
+  "indexes": [],
+  "name": "user",
+  "options": {},
+  "primaryKey": {
+    "columns": [
+      "id",
+    ],
+    "name": "pk_user",
+  },
+}
+`;

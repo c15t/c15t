@@ -1,0 +1,12 @@
+.github
+node_modules
+src
+.gitignore
+.prettierignore
+.prettierrc.json
+package-lock.json
+tsconfig-base.json
+tsconfig-cjs.json
+tsconfig.json
+./src/test.ts
+.env

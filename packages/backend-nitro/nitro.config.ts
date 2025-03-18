@@ -30,6 +30,7 @@ export default defineNitroConfig({
 			},
 		},
 	},
+	errorHandler: '~/error',
 	experimental: {
 		openAPI: true,
 	},

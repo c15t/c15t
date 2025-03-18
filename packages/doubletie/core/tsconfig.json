@@ -1,0 +1,12 @@
+{
+	"extends": "@doubletie/typescript-config/base.json",
+	"compilerOptions": {
+		"types": ["vitest/importMeta", "vitest"]
+	},
+	"include": [
+		"src",
+		"examples/example-build-validation.ts",
+		"examples/example-relationships.ts"
+	],
+	"exclude": ["node_modules", "dist", "vitest.config.ts"]
+}

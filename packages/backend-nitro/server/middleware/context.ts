@@ -66,24 +66,24 @@ export function getContext(): C15TContext {
  * Middleware to attach context to each request
  */
 export default defineEventHandler((event) => {
-  try {
-    // Attach context to event
-    const context = getContext();
-    event.context.c15t = context;
+	try {
+		// Attach context to event
+		const context = getContext();
+		event.context.c15t = context;
 
-    // Create request-specific logger
-    context.logger.debug('Request context initialized', {
-      path: event.path,
-      method: event.method,
-    });
-  } catch (error) {
-    const context = getContext();
-    const url = getRequestURL(event);
-    
-    // Log error and throw for all routes
-    context.logger.error(`Context initialization error for ${url.pathname}:`, {
-      error,
-    });
-    throw error;
-  }
+		// Create request-specific logger
+		context.logger.debug('Request context initialized', {
+			path: event.path,
+			method: event.method,
+		});
+	} catch (error) {
+		const context = getContext();
+		const url = getRequestURL(event);
+
+		// Log error and throw for all routes
+		context.logger.error(`Context initialization error for ${url.pathname}:`, {
+			error,
+		});
+		throw error;
+	}
 });

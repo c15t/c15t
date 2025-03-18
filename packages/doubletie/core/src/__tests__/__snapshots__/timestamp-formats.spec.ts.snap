@@ -1,0 +1,36 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Timestamp Formats > Entity handles different timestamp formats correctly 1`] = `
+{
+  "createdAt": "2024-01-01T12:00:00.000Z",
+  "customDaysSinceEpoch": 19723,
+  "endTime": 1704369600000,
+  "expiresAt": 1706702400,
+  "id": "event-123",
+  "lastRegistrationDate": 2024-01-01T12:00:00.000Z,
+  "name": "Annual Conference",
+  "startTime": 1704196800,
+  "utcCreatedAt": "2024-01-01T12:00:00.000Z",
+}
+`;
+
+exports[`Timestamp Formats > Format conversions work correctly 1`] = `
+{
+  "customTime": "2024-01-01",
+  "dateTime": 2024-01-01T12:00:00.000Z,
+  "id": "format-test",
+  "isoTime": "2024-01-01T12:00:00.000Z",
+  "unixMsTime": 1704110400000,
+  "unixTime": 1704110400,
+}
+`;
+
+exports[`Timestamp Formats > UserActivity entity with different timestamp usage 1`] = `
+{
+  "action": "login",
+  "createdAt": "2024-01-01T12:00:00.000Z",
+  "id": "activity-456",
+  "updatedAt": 1704110400,
+  "userId": "user-789",
+}
+`;

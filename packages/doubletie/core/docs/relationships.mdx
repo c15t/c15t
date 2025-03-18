@@ -1,0 +1,548 @@
+# Entity Relationships
+
+Doubletie Core provides a robust system for defining relationships between entities. This document covers the different types of relationships supported, how to configure them, and best practices for using them effectively.
+
+## Introduction
+
+Entity relationships are a key aspect of database modeling that represent how different entities (tables) are connected to each other. Doubletie Core supports the four standard relationship types:
+
+- One-to-One (1:1)
+- One-to-Many (1:M) 
+- Many-to-One (M:1)
+- Many-to-Many (M:M)
+
+These relationships are configured using the `withReferences` builder method, which ensures type safety at both build time and runtime.
+
+## Basic Usage
+
+Before diving into specific relationship types, here's the general pattern for defining references:
+
+```typescript
+const entityWithReferences = baseEntity.withReferences(refs => ({
+  // Define references here
+  fieldName: refs.to(targetEntity, 'targetFieldName', relationshipConfig)
+}));
+```
+
+Each reference consists of:
+- A source field in your entity
+- A target entity and field being referenced
+- Optional relationship configuration
+
+## Type-Safe Relationship Configuration
+
+Doubletie Core provides full type safety for relationship configurations:
+
+1. **Type-safe field reference**: The `fieldName` parameter in `refs.to()` is validated against the target entity's fields
+2. **Type-safe foreign keys**: For one-to-many relationships, the `foreignKey` is validated to ensure it exists in the target entity
+3. **Relationship validation**: Different relationship types have appropriate validation at both build time and runtime
+
+Here's an example of type-safe foreign key validation:
+
+```typescript
+// This will pass - 'authorId' exists in postEntity
+const userWithPosts = userEntity.withReferences(refs => ({
+  posts: refs.to(postEntity, 'id', {
+    type: 'oneToMany',
+    foreignKey: 'authorId'  // TypeScript validates this is a real field in postEntity
+  })
+}));
+
+// This would cause a TypeScript error - 'nonExistentField' doesn't exist in postEntity
+const userWithPostsError = userEntity.withReferences(refs => ({
+  posts: refs.to(postEntity, 'id', {
+    type: 'oneToMany',
+    foreignKey: 'nonExistentField'  // Type error during build
+  })
+}));
+```
+
+Validation happens at two levels:
+
+1. **Build time (TypeScript)**: Checks field names, foreign keys, and configuration integrity
+2. **Runtime**: Additional validation ensures all references are valid when the code executes
+
+## Relationship Types
+
+### One-to-One (1:1)
+
+A one-to-one relationship means that each record in the first table corresponds to exactly one record in the second table, and vice versa.
+
+**Example:**
+
+```typescript
+// User has one profile
+const userEntity = defineEntity({
+  name: 'user',
+  fields: {
+    id: field('uuid', { required: true }),
+    name: field('string', { required: true }),
+    // Other fields...
+  }
+});
+
+const profileEntity = defineEntity({
+  name: 'profile',
+  fields: {
+    id: field('uuid', { required: true }),
+    userId: field('uuid', { required: true }),
+    bio: field('text'),
+    avatar: field('string')
+    // Other fields...
+  }
+});
+
+// From profile to user
+const profileWithUser = profileEntity.withReferences(refs => ({
+  userId: refs.to(userEntity, 'id', {
+    type: 'oneToOne'
+  })
+}));
+
+// From user to profile (inverse relationship)
+const userWithProfile = userEntity.withReferences(refs => ({
+  profile: refs.to(profileEntity, 'id', {
+    type: 'oneToOne',
+    foreignKey: 'userId'  // Specifies which field in profileEntity connects back to this entity
+  })
+}));
+```
+
+**Key points about one-to-one relationships:**
+- For direct references (profile to user), the reference field typically contains the foreign key.
+- For inverse references (user to profile), you need to specify the `foreignKey` parameter.
+- One-to-one relationships often use unique constraints on the foreign key field.
+
+### One-to-Many (1:M)
+
+A one-to-many relationship means that a record in the first table can be associated with multiple records in the second table, but a record in the second table is only associated with one record in the first table.
+
+**Example:**
+
+```typescript
+const authorEntity = defineEntity({
+  name: 'author',
+  fields: {
+    id: field('uuid', { required: true }),
+    name: field('string', { required: true })
+    // Other fields...
+  }
+});
+
+const bookEntity = defineEntity({
+  name: 'book',
+  fields: {
+    id: field('uuid', { required: true }),
+    title: field('string', { required: true }),
+    authorId: field('uuid', { required: true })
+    // Other fields...
+  }
+});
+
+// From the "one" side (author has many books)
+const authorWithBooks = authorEntity.withReferences(refs => ({
+  books: refs.to(bookEntity, 'id', {
+    type: 'oneToMany',
+    foreignKey: 'authorId'  // Field in books table that references the author
+  })
+}));
+```
+
+**Key points about one-to-many relationships:**
+- When referenced from the "one" side, you must specify the `foreignKey` parameter.
+- The field name you choose (e.g., "books") typically represents a collection of items.
+- The foreign key exists in the "many" side of the relationship.
+
+### Many-to-One (M:1)
+
+A many-to-one relationship is the inverse of a one-to-many relationship. It means that many records in the current table can point to a single record in another table.
+
+**Example:**
+
+```typescript
+// From the "many" side (many books have one author)
+const bookWithAuthor = bookEntity.withReferences(refs => ({
+  authorId: refs.to(authorEntity, 'id', {
+    type: 'manyToOne'
+  })
+}));
+```
+
+**Key points about many-to-one relationships:**
+- This is the default relationship type if none is specified.
+- The foreign key field exists directly in the entity that contains the reference.
+- The field name typically matches the foreign key column name.
+
+### Many-to-Many (M:M)
+
+A many-to-many relationship means that multiple records in the first table can be associated with multiple records in the second table. This requires a join/junction table to link the two entities.
+
+**Example:**
+
+```typescript
+const studentEntity = defineEntity({
+  name: 'student',
+  fields: {
+    id: field('uuid', { required: true }),
+    name: field('string', { required: true })
+    // Other fields...
+  }
+});
+
+const courseEntity = defineEntity({
+  name: 'course',
+  fields: {
+    id: field('uuid', { required: true }),
+    title: field('string', { required: true })
+    // Other fields...
+  }
+});
+
+// Student can be enrolled in many courses
+const studentWithCourses = studentEntity.withReferences(refs => ({
+  courses: refs.to(courseEntity, 'id', {
+    type: 'manyToMany',
+    joinTable: {
+      tableName: 'student_courses',       // Name of the join table
+      sourceColumn: 'studentId',          // Column that references the student
+      targetColumn: 'courseId',           // Column that references the course
+      additionalColumns: {                // Optional additional columns in the join table
+        enrollmentDate: field('date', { required: true }),
+        grade: field('string', { required: false })
+      }
+    }
+  })
+}));
+
+// Course can have many students
+const courseWithStudents = courseEntity.withReferences(refs => ({
+  students: refs.to(studentEntity, 'id', {
+    type: 'manyToMany',
+    joinTable: {
+      tableName: 'student_courses',       // The same join table name
+      sourceColumn: 'courseId',           // Now the course is the source
+      targetColumn: 'studentId'           // And student is the target
+    }
+  })
+}));
+```
+
+**Key points about many-to-many relationships:**
+- Always requires a `joinTable` configuration.
+- Both sides of the relationship can specify the same join table.
+- The field names usually represent collections (plural nouns).
+- Additional columns can be defined for the join table to store relationship attributes.
+
+## Configuration Options
+
+### RelationshipConfig Interface
+
+The `RelationshipConfig` interface provides several options for configuring relationships:
+
+```typescript
+interface RelationshipConfig {
+  /**
+   * Type of relationship
+   * @default 'manyToOne'
+   */
+  type?: 'oneToOne' | 'oneToMany' | 'manyToOne' | 'manyToMany';
+  
+  /**
+   * Configuration for join table (only used in many-to-many relationships)
+   */
+  joinTable?: JoinTableConfig;
+  
+  /**
+   * Foreign key column name in the target entity that references this entity
+   * (used in oneToMany relationships)
+   */
+  foreignKey?: string;
+  
+  /**
+   * Whether to cascade deletions
+   * @default false
+   */
+  cascade?: boolean;
+  
+  /**
+   * Custom fetch strategy
+   * @default 'lazy'
+   */
+  fetch?: 'lazy' | 'eager';
+}
+```
+
+### Join Table Configuration
+
+For many-to-many relationships, the `JoinTableConfig` interface provides options for configuring the join table:
+
+```typescript
+interface JoinTableConfig {
+  /**
+   * Name of the join table
+   */
+  tableName: string;
+  
+  /**
+   * Column in the join table that references the source entity
+   */
+  sourceColumn?: string;
+  
+  /**
+   * Column in the join table that references the target entity
+   */
+  targetColumn?: string;
+  
+  /**
+   * Additional columns to include in the join table
+   */
+  additionalColumns?: Record<string, SchemaField>;
+}
+```
+
+## Additional Configuration Examples
+
+### Cascade Deletions
+
+```typescript
+// Delete all user's posts when the user is deleted
+const userWithPosts = userEntity.withReferences(refs => ({
+  posts: refs.to(postEntity, 'id', {
+    type: 'oneToMany',
+    foreignKey: 'userId',
+    cascade: true
+  })
+}));
+```
+
+### Eager Loading
+
+```typescript
+// Automatically load the author when fetching a book
+const bookWithEagerAuthor = bookEntity.withReferences(refs => ({
+  authorId: refs.to(authorEntity, 'id', {
+    type: 'manyToOne',
+    fetch: 'eager'
+  })
+}));
+```
+
+## Best Practices
+
+### 1. Naming Conventions
+
+- For one-to-many and many-to-many relationships, use plural names for collections (e.g., `posts`, `courses`).
+- For many-to-one and one-to-one relationships, use singular names that reflect the relationship (e.g., `author`, `profile`).
+- For foreign keys, use the pattern `[entity]Id` (e.g., `userId`, `postId`).
+
+### 2. Bidirectional Relationships
+
+When defining relationships between two entities, consider whether you need the relationship defined in both directions:
+
+```typescript
+// One way: Author -> Books
+const authorWithBooks = authorEntity.withReferences(refs => ({
+  books: refs.to(bookEntity, 'id', {
+    type: 'oneToMany',
+    foreignKey: 'authorId'
+  })
+}));
+
+// And the other way: Book -> Author
+const bookWithAuthor = bookEntity.withReferences(refs => ({
+  authorId: refs.to(authorEntity, 'id', {
+    type: 'manyToOne'
+  })
+}));
+```
+
+### 3. Join Table Naming
+
+For many-to-many relationships, use a consistent naming pattern for join tables:
+
+- Option 1: `[entity1]_[entity2]` (e.g., `student_courses`)
+- Option 2: `[entity1]_to_[entity2]` (e.g., `student_to_course`)
+
+### 4. Self-Referencing Relationships
+
+Entities can also reference themselves, which is useful for hierarchical or recursive relationships:
+
+```typescript
+// Employees with managers
+const employeeEntity = defineEntity({
+  name: 'employee',
+  fields: {
+    id: field('uuid', { required: true }),
+    name: field('string', { required: true }),
+    managerId: field('uuid', { required: false }) // nullable for top-level managers
+  }
+});
+
+const employeeWithManager = employeeEntity.withReferences(refs => ({
+  // Self-reference: employees have one manager
+  managerId: refs.to(employeeEntity, 'id', {
+    type: 'manyToOne'
+  }),
+  // Inverse relationship: managers have many direct reports
+  directReports: refs.to(employeeEntity, 'id', {
+    type: 'oneToMany',
+    foreignKey: 'managerId'
+  })
+}));
+```
+
+## Type Safety
+
+All relationships defined with `withReferences` are fully type-safe:
+
+- The target entity and field are validated at build time
+- Invalid relationships will cause TypeScript compile errors
+- Autocomplete will suggest available fields from the target entity
+
+## Complete Example
+
+Here's a more complete example showing multiple entities and their relationships:
+
+```typescript
+import { defineEntity, field } from '@doubletie/core';
+
+// Define entities
+const userEntity = defineEntity({
+  name: 'user',
+  fields: {
+    id: field('uuid', { required: true }),
+    username: field('string', { required: true }),
+    email: field('string', { required: true })
+  }
+});
+
+const profileEntity = defineEntity({
+  name: 'profile',
+  fields: {
+    id: field('uuid', { required: true }),
+    userId: field('uuid', { required: true }),
+    bio: field('text'),
+    avatarUrl: field('string')
+  }
+});
+
+const postEntity = defineEntity({
+  name: 'post',
+  fields: {
+    id: field('uuid', { required: true }),
+    title: field('string', { required: true }),
+    content: field('text', { required: true }),
+    authorId: field('uuid', { required: true }),
+    createdAt: field('date', { required: true })
+  }
+});
+
+const tagEntity = defineEntity({
+  name: 'tag',
+  fields: {
+    id: field('uuid', { required: true }),
+    name: field('string', { required: true })
+  }
+});
+
+const commentEntity = defineEntity({
+  name: 'comment',
+  fields: {
+    id: field('uuid', { required: true }),
+    content: field('text', { required: true }),
+    authorId: field('uuid', { required: true }),
+    postId: field('uuid', { required: true }),
+    createdAt: field('date', { required: true })
+  }
+});
+
+// Define relationships
+const userWithReferences = userEntity.withReferences(refs => ({
+  // One-to-one relationship
+  profile: refs.to(profileEntity, 'id', {
+    type: 'oneToOne',
+    foreignKey: 'userId'
+  }),
+  
+  // One-to-many relationship
+  posts: refs.to(postEntity, 'id', {
+    type: 'oneToMany',
+    foreignKey: 'authorId'
+  }),
+  
+  // One-to-many relationship
+  comments: refs.to(commentEntity, 'id', {
+    type: 'oneToMany',
+    foreignKey: 'authorId'
+  })
+}));
+
+const profileWithReferences = profileEntity.withReferences(refs => ({
+  // Many-to-one relationship
+  userId: refs.to(userEntity, 'id', {
+    type: 'oneToOne'
+  })
+}));
+
+const postWithReferences = postEntity.withReferences(refs => ({
+  // Many-to-one relationship
+  authorId: refs.to(userEntity, 'id', {
+    type: 'manyToOne'
+  }),
+  
+  // One-to-many relationship
+  comments: refs.to(commentEntity, 'id', {
+    type: 'oneToMany',
+    foreignKey: 'postId'
+  }),
+  
+  // Many-to-many relationship
+  tags: refs.to(tagEntity, 'id', {
+    type: 'manyToMany',
+    joinTable: {
+      tableName: 'post_tags',
+      sourceColumn: 'postId',
+      targetColumn: 'tagId',
+      additionalColumns: {
+        addedAt: field('date', { required: true })
+      }
+    }
+  })
+}));
+
+const commentWithReferences = commentEntity.withReferences(refs => ({
+  // Many-to-one relationship
+  authorId: refs.to(userEntity, 'id', {
+    type: 'manyToOne'
+  }),
+  
+  // Many-to-one relationship
+  postId: refs.to(postEntity, 'id', {
+    type: 'manyToOne'
+  })
+}));
+
+const tagWithReferences = tagEntity.withReferences(refs => ({
+  // Many-to-many relationship
+  posts: refs.to(postEntity, 'id', {
+    type: 'manyToMany',
+    joinTable: {
+      tableName: 'post_tags',
+      sourceColumn: 'tagId',
+      targetColumn: 'postId'
+    }
+  })
+}));
+
+export {
+  userWithReferences as userEntity,
+  profileWithReferences as profileEntity,
+  postWithReferences as postEntity,
+  commentWithReferences as commentEntity,
+  tagWithReferences as tagEntity
+};
+```
+
+## Conclusion
+
+Entity relationships are a powerful feature of Doubletie Core that enable you to model complex data structures with confidence. The type-safe reference system ensures that your relationships are valid at both build time and runtime, reducing the risk of errors and improving the developer experience. 

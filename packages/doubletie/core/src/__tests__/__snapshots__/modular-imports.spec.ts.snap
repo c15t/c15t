@@ -1,0 +1,20 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Modular Imports > Database module can be imported independently > postgres-sql 1`] = `
+"CREATE TABLE IF NOT EXISTS "user" (
+  "id" UUID NOT NULL PRIMARY KEY UNIQUE DEFAULT NULL,
+  "username" VARCHAR(50) NOT NULL UNIQUE,
+  "email" VARCHAR NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT NULL
+);
+"
+`;
+
+exports[`Modular Imports > Database module can be imported independently > sqlite-sql 1`] = `
+"CREATE TABLE IF NOT EXISTS "user" (
+  "id" TEXT PRIMARY KEY NOT NULL UNIQUE DEFAULT NULL,
+  "username" TEXT NOT NULL UNIQUE DEFAULT NULL,
+  "email" TEXT NOT NULL DEFAULT NULL,
+  "createdAt" TEXT NOT NULL DEFAULT NULL
+);"
+`;
