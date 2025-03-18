@@ -56,6 +56,7 @@ export default defineConfig({
 	source: {
 		entry: {
 			index: ['./src/index.ts'],
+			'schema/index': ['./src/schema/index.ts'],
 			'client/index': ['./src/client/index.ts'],
 			'integrations/index': ['./src/integrations/index.ts'],
 			'integrations/next': ['./src/integrations/next.ts'],

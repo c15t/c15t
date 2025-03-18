@@ -17,6 +17,11 @@
 			"import": "./dist/client/index.js",
 			"require": "./dist/client/index.cjs"
 		},
+		"./schema": {
+			"types": "./dist/schema/index.d.ts",
+			"import": "./dist/schema/index.js",
+			"require": "./dist/schema/index.cjs"
+		},
 		"./integrations": {
 			"types": "./dist/integrations/index.d.ts",
 			"import": "./dist/integrations/index.js",

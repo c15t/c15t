@@ -4,11 +4,12 @@ import path from 'node:path';
 import babelPresetReact from '@babel/preset-react';
 // @ts-ignore
 import babelPresetTypescript from '@babel/preset-typescript';
-import { logger } from '@c15t/backend/pkgs/logger';
+
 import { DoubleTieError } from '@c15t/backend/pkgs/results';
 import type { C15TOptions } from '@c15t/backend/pkgs/types';
 import { loadConfig } from 'c12';
 import { addSvelteKitEnvModules } from './add-svelte-kit-env-modules';
+import logger from './logger';
 
 /**
  * List of possible config file names and locations to search
@@ -174,16 +175,16 @@ type config = {
 function extractOptionsFromConfig(config: config): C15TOptions | null {
 	// First check for direct exports of the c15t instance
 	if (config.c15t && typeof config.c15t === 'function') {
-		return config.c15t();
+		return config.c15t;
 	}
 	if (config.default && typeof config.default === 'function') {
-		return config.default();
+		return config.default;
 	}
 	if (config.c15tInstance && typeof config.c15tInstance === 'function') {
-		return config.c15tInstance();
+		return config.c15tInstance;
 	}
 	if (config.consent && typeof config.consent === 'function') {
-		return config.consent();
+		return config.consent;
 	}
 
 	// Then check for options objects
@@ -280,7 +281,12 @@ export async function getConfig({
 			try {
 				if (!fs.existsSync(resolvedPath)) {
 					throw new DoubleTieError(
-						`Configuration file not found: ${resolvedPath}\nMake sure the path is correct and the file exists.`
+						`Configuration file not found: ${resolvedPath}\nMake sure the path is correct and the file exists.`,
+						{
+							code: 'CONFIG_FILE_NOT_FOUND',
+							status: 404,
+							category: 'CONFIG_FILE_NOT_FOUND',
+						}
 					);
 				}
 
@@ -302,7 +308,12 @@ export async function getConfig({
 							'- export const c15t = c15tInstance({...})\n' +
 							'- export const consent = c15tInstance({...})\n' +
 							'- export const c15tInstance = c15tInstance({...})\n' +
-							'- export default c15tInstance({...})'
+							'- export default c15tInstance({...})',
+						{
+							code: 'CONFIG_FILE_LOAD_ERROR',
+							status: 500,
+							category: 'CONFIG_FILE_LOAD_ERROR',
+						}
 					);
 				}
 			} catch (e) {
@@ -319,7 +330,13 @@ export async function getConfig({
 							'- Check for invalid import paths\n' +
 							'- Ensure all dependencies are installed\n' +
 							'- Verify path aliases in tsconfig.json\n\n' +
-							`Error details: ${e instanceof Error ? e.message : String(e)}`
+							`Error details: ${e instanceof Error ? e.message : String(e)}`,
+						{
+							code: 'CONFIG_FILE_LOAD_ERROR',
+							status: 500,
+							category: 'CONFIG_FILE_LOAD_ERROR',
+							cause: e,
+						}
 					);
 				}
 				// Re-throw the error for the outer catch block to handle
@@ -381,7 +398,12 @@ export async function getConfig({
 								// biome-ignore lint/style/useTemplate: keep it split so its easier to read
 								`Found config file at ${fullPath}, but it imports 'server-only'.\n` +
 									`Please temporarily remove the 'server-only' import while using the CLI,\n` +
-									'and you can add it back afterwards.'
+									'and you can add it back afterwards.',
+								{
+									code: 'SERVER_ONLY_IMPORT_DETECTED',
+									status: 500,
+									category: 'SERVER_ONLY_IMPORT_DETECTED',
+								}
 							);
 						}
 
@@ -423,7 +445,11 @@ export async function getConfig({
 					);
 				}
 
-				throw new DoubleTieError('Unable to load any c15t configuration file');
+				throw new DoubleTieError('Unable to load any c15t configuration file', {
+					code: 'CONFIG_FILE_LOAD_ERROR',
+					status: 500,
+					category: 'CONFIG_FILE_LOAD_ERROR',
+				});
 			}
 
 			logger.error(
@@ -441,7 +467,12 @@ export const c15t = c15tInstance({
 			`);
 
 			throw new DoubleTieError(
-				'No c15t config file found. Create a c15t.ts file or specify with --config'
+				'No c15t config file found. Create a c15t.ts file or specify with --config',
+				{
+					code: 'CONFIG_FILE_NOT_FOUND',
+					status: 404,
+					category: 'CONFIG_FILE_NOT_FOUND',
+				}
 			);
 		}
 

@@ -1,8 +1,6 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-
 import { getAdapter } from '@c15t/backend/pkgs/db-adapters';
-import { logger } from '@c15t/backend/pkgs/logger';
 import { getMigrations } from '@c15t/backend/pkgs/migrations';
 import chalk from 'chalk';
 import { Command } from 'commander';
@@ -10,6 +8,7 @@ import prompts from 'prompts';
 import yoctoSpinner from 'yocto-spinner';
 import { z } from 'zod';
 import { getConfig } from '../utils/get-config';
+import logger from '../utils/logger';
 export async function migrateAction(opts: unknown) {
 	const options = z
 		.object({

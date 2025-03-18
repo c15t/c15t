@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { getConsentTables } from '@c15t/backend/db';
+import { getConsentTables } from '@c15t/backend/schema';
 import { produceSchema } from '@mrleebo/prisma-ast';
 
 import { capitalizeFirstLetter } from '../utils/capitalize-first-letter';

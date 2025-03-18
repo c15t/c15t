@@ -1,6 +1,9 @@
 import { existsSync } from 'node:fs';
-import { type Field, getConsentTables } from '@c15t/backend/db';
+
 import type { SchemaGenerator } from './types';
+
+import { Field } from '@c15t/backend/pkgs/data-model/fields';
+import { getConsentTables } from '@c15t/backend/schema';
 
 export function convertToSnakeCase(str: string) {
 	// Guard against undefined or null strings
