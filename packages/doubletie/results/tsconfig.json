@@ -1,0 +1,9 @@
+{
+	"extends": "@c15t/typescript-config/base.json",
+	"compilerOptions": {
+		"baseUrl": ".",
+		"lib": ["dom", "dom.iterable", "esnext"]
+	},
+	"include": ["src"],
+	"exclude": ["node_modules"]
+}
