@@ -17,7 +17,6 @@ export * from './core';
 // Export the C15TInstance type explicitly for easier consumption
 export type { C15TInstance } from './core';
 
-
 /**
  * Selected client types needed for common use cases
  */
