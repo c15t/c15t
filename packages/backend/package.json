@@ -12,12 +12,12 @@
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
 		},
-		"./client/index": {
+		"./client": {
 			"types": "./dist/client/index.d.ts",
 			"import": "./dist/client/index.js",
 			"require": "./dist/client/index.cjs"
 		},
-		"./integrations/index": {
+		"./integrations": {
 			"types": "./dist/integrations/index.d.ts",
 			"import": "./dist/integrations/index.js",
 			"require": "./dist/integrations/index.cjs"
@@ -47,22 +47,22 @@
 			"import": "./dist/pkgs/data-model/schema/index.js",
 			"require": "./dist/pkgs/data-model/schema/index.cjs"
 		},
-		"./pkgs/db-adapters/adapters/drizzle-adapter/index": {
+		"./pkgs/db-adapters/adapters/drizzle-adapter": {
 			"types": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.d.ts",
 			"import": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.js",
 			"require": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.cjs"
 		},
-		"./pkgs/db-adapters/adapters/kysely-adapter/index": {
+		"./pkgs/db-adapters/adapters/kysely-adapter":{
 			"types": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.d.ts",
 			"import": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.js",
 			"require": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.cjs"
 		},
-		"./pkgs/db-adapters/adapters/memory-adapter/index": {
+		"./pkgs/db-adapters/adapters/memory-adapter": {
 			"types": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.d.ts",
 			"import": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.js",
 			"require": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.cjs"
 		},
-		"./pkgs/db-adapters/adapters/prisma-adapter/index": {
+		"./pkgs/db-adapters/adapters/prisma-adapter": {
 			"types": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.d.ts",
 			"import": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.js",
 			"require": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.cjs"
