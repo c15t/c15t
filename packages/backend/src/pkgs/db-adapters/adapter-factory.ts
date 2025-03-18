@@ -1,7 +1,7 @@
 import { createLogger } from '~/pkgs/logger';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
-import type { C15TOptions } from '~/pkgs/types';
 import { getConsentTables } from '~/schema';
+import type { C15TOptions } from '~/types';
 import { kyselyAdapter } from './adapters/kysely-adapter';
 import { createKyselyAdapter } from './adapters/kysely-adapter/dialect';
 import { memoryAdapter } from './adapters/memory-adapter';

@@ -1,7 +1,7 @@
 import { defu } from 'defu';
-import { createRegistry } from './schema/create-registry';
-import { getConsentTables } from './schema/definition';
-
+import { getAdapter } from '~/pkgs/db-adapters';
+import { createLogger } from '~/pkgs/logger';
+import type { RegistryContext } from '~/pkgs/types';
 import { generateId } from './pkgs/data-model/fields/id-generator';
 import type { EntityName } from './pkgs/data-model/schema/types';
 import {
@@ -12,9 +12,10 @@ import {
 	ok,
 	promiseToResult,
 } from './pkgs/results';
+import { createRegistry } from './schema/create-registry';
+import { getConsentTables } from './schema/definition';
 
-import { getAdapter } from '~/pkgs/db-adapters';
-import { createLogger } from '~/pkgs/logger';
+import { env, getBaseURL, isProduction } from '~/pkgs/utils';
 /**
  * c15t Initialization Module
  *
@@ -30,13 +31,7 @@ import { createLogger } from '~/pkgs/logger';
  *
  * This is an internal module typically not used directly by consumers of the c15t library.
  */
-import type {
-	C15TContext,
-	C15TOptions,
-	C15TPlugin,
-	RegistryContext,
-} from '~/pkgs/types';
-import { env, getBaseURL, isProduction } from '~/pkgs/utils';
+import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
 
 /**
  * Default secret used when no secret is provided

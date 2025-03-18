@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { C15T_ERROR_CODES } from '~/error-codes';
 import { createSDKEndpoint } from '~/pkgs/api-router';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
-import type { C15TContext } from '~/pkgs/types';
 import type { EntityOutputFields } from '~/schema/definition';
+import type { C15TContext } from '~/types';
 
 // Define schemas for the different identification methods
 const getBySubjectIdSchema = z.object({

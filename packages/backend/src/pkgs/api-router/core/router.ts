@@ -6,7 +6,7 @@ import {
 	createRouter,
 } from 'better-call';
 import { logger } from '~/pkgs/logger';
-import type { C15TContext, C15TOptions, C15TPlugin } from '~/pkgs/types';
+import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
 import { toEndpoints } from '../endpoints/converter';
 import { getIp } from '../utils/ip';
 import type { DoubleTieEndpoint } from './endpoint';

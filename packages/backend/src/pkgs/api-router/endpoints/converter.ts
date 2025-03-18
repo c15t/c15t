@@ -6,7 +6,8 @@ import {
 	toResponse,
 } from 'better-call';
 import defu from 'defu';
-import type { C15TContext, HookEndpointContext } from '~/pkgs/types';
+import type { HookEndpointContext } from '~/pkgs/types';
+import type { C15TContext } from '~/types';
 import type { DoubleTieMiddleware } from '../core';
 import type { DoubleTieEndpoint } from '../core/endpoint';
 import { runAfterHooks, runBeforeHooks } from '../hooks/processor';

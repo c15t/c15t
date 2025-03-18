@@ -1,7 +1,10 @@
 import { type Endpoint, createRouter } from 'better-call';
 import { type Mock, beforeEach, describe, expect, test, vi } from 'vitest';
+import type { Adapter } from '~/pkgs/db-adapters';
 import { logger } from '~/pkgs/logger';
-import type { C15TContext, C15TOptions } from '~/pkgs/types';
+import type { getConsentTables } from '~/schema';
+import type { createRegistry } from '~/schema/create-registry';
+import type { C15TContext, C15TOptions } from '~/types';
 import { toEndpoints } from '../../endpoints/converter';
 import { getIp } from '../../utils/ip';
 import { createApiRouter, getEndpoints } from '../router';
@@ -56,12 +59,9 @@ describe('Router Module', () => {
 			trustedOrigins: ['https://example.com'],
 			secret: 'test-secret',
 			logger,
-			//@ts-expect-error
-			adapter: {}, // Add missing required field
-			//@ts-expect-error
-			registry: {}, // Add missing required field
-			//@ts-expect-error
-			tables: {}, // Add missing required field
+			adapter: {} as Adapter, // Add missing required field
+			registry: {} as ReturnType<typeof createRegistry>, // Add missing required field
+			tables: {} as ReturnType<typeof getConsentTables>, // Add missing required field
 			generateId: () => 'mock-id',
 			baseURL: 'https://api.doubletie.com',
 			hooks: [],

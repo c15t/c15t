@@ -8,13 +8,13 @@ import type { Adapter } from '~/pkgs/db-adapters/types';
 import type { createLogger } from '~/pkgs/logger';
 import type { createRegistry } from '~/schema/create-registry';
 import type { getConsentTables } from '~/schema/definition';
-import type { C15TOptions } from './options';
+import type { DoubleTieOptions } from './options';
 
 /**
  * Extended endpoint context for hooks
  *
  * This type extends the standard endpoint context with additional properties
- * specific to c15t hooks, allowing hooks to access the complete c15t context.
+ * specific to DoubleTie hooks, allowing hooks to access the complete DoubleTie context.
  *
  * @typeParam TOptions - Endpoint configuration options type
  *
@@ -25,9 +25,9 @@ export type HookEndpointContext<
 > = EndpointContext<string, TOptions> &
 	Omit<InputContext<string, TOptions>, 'method'> & {
 		/**
-		 * The c15t context with possible hook-specific extensions
+		 * The DoubleTie context with possible hook-specific extensions
 		 */
-		context: C15TContext & {
+		context: DoubleTieContext & {
 			/**
 			 * Value returned by the endpoint handler, available in 'after' hooks
 			 */
@@ -59,21 +59,21 @@ export type GenericEndpointContext<
 	TOptions extends EndpointOptions = EndpointOptions,
 > = EndpointContext<string, TOptions> & {
 	/**
-	 * The c15t application context
+	 * The DoubleTie application context
 	 */
-	context: C15TContext;
+	context: DoubleTieContext;
 };
 
 /**
  * Base context interface
  *
- * Defines the minimal required properties for a c15t context.
+ * Defines the minimal required properties for a DoubleTie context.
  */
 export interface BaseContext {
 	/**
-	 * Configuration options for the c15t system
+	 * Configuration options for the DoubleTie system
 	 */
-	options: C15TOptions;
+	options: DoubleTieOptions;
 
 	/**
 	 * Logger instance for recording events and errors
@@ -108,21 +108,21 @@ export interface RegistryContext extends BaseContext {
 }
 
 /**
- * Base C15T context interface
+ * Base DoubleTie context interface
  *
- * Defines the core properties available in all c15t application contexts.
+ * Defines the core properties available in all DoubleTie application contexts.
  * This forms the foundation for the complete context used throughout the system.
  */
-export interface BaseC15TContext {
+export interface BaseDoubleTieContext {
 	/**
-	 * Application name displayed in consent dialogs
+	 * Application name displayed in application dialogs
 	 */
 	appName: string;
 
 	/**
-	 * Configuration options for the c15t system
+	 * Configuration options for the DoubleTie system
 	 */
-	options: C15TOptions;
+	options: DoubleTieOptions;
 
 	/**
 	 * List of origins that are trusted for CORS and CSRF protection
@@ -163,7 +163,7 @@ export interface BaseC15TContext {
 	registry: ReturnType<typeof createRegistry>;
 
 	/**
-	 * Database tables for the consent system
+	 * Database tables for the system
 	 */
 	tables: ReturnType<typeof getConsentTables>;
 
@@ -173,22 +173,22 @@ export interface BaseC15TContext {
 	ipAddress?: string | null;
 
 	/**
-	 * Subject agent of the client
+	 * User agent of the client
 	 */
 	userAgent?: string | null;
 }
 
 /**
- * Complete C15T context type
+ * Complete DoubleTie context type
  *
  * This type combines the base context with plugin-specific context extensions.
  * It's the primary context type used throughout the system.
  *
  * @typeParam TPluginContext - Record of plugin-specific context properties
  */
-export type C15TContext<
+export type DoubleTieContext<
 	TPluginContext extends Record<string, unknown> = Record<string, unknown>,
-> = BaseC15TContext & TPluginContext;
+> = BaseDoubleTieContext & TPluginContext;
 
 /**
  * Context with a specific plugin
@@ -210,4 +210,4 @@ export type C15TContext<
 export type ContextWithPlugin<
 	TPluginName extends string,
 	TPluginContext extends Record<string, unknown>,
-> = C15TContext<Record<TPluginName, TPluginContext>>;
+> = DoubleTieContext<Record<TPluginName, TPluginContext>>;

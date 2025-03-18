@@ -3,8 +3,8 @@ import { C15T_ERROR_CODES } from '~/error-codes';
 import { createSDKEndpoint } from '~/pkgs/api-router';
 import type { Adapter } from '~/pkgs/db-adapters';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
-import type { C15TContext } from '~/pkgs/types';
 import type { Consent, ConsentRecord } from '~/schema';
+import type { C15TContext } from '~/types';
 
 const ConsentType = z.enum([
 	'cookie_banner',

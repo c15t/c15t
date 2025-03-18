@@ -4,7 +4,7 @@ import type {
 	KyselyDatabaseType,
 } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
 import { createLogger } from '~/pkgs/logger';
-import type { C15TOptions } from '~/pkgs/types';
+import type { C15TOptions } from '~/types';
 import { getType } from './type-mapping';
 import type { ColumnsToAdd, MigrationOperation, TableToCreate } from './types';
 

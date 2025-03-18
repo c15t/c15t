@@ -8,14 +8,10 @@ import {
 } from './pkgs/results';
 import { router } from './router';
 
-import type {
-	C15TContext,
-	C15TOptions,
-	C15TPlugin,
-	FilterActions,
-} from '~/pkgs/types';
 import { getBaseURL } from '~/pkgs/utils';
+import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
 import { init } from './init';
+import type { FilterActions } from './pkgs/types';
 
 /**
  * Interface representing a configured c15t consent management instance.

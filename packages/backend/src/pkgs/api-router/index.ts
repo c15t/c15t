@@ -65,3 +65,5 @@ export * from './endpoints';
 
 // Utility functions
 export * from './utils';
+
+export type { Endpoint } from 'better-call';

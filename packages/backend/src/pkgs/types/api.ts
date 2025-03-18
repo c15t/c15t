@@ -1,9 +1,10 @@
 /**
- * API Types for c15t
+ * API Types for DoubleTie SDK Framework
  *
- * Definitions for API routes, request handlers, and endpoint configuration
+ * Defines base API types for the DoubleTie framework that can be extended by
+ * specific implementations like c15t.
  */
-import type { Endpoint } from 'better-call';
+import type { Endpoint } from '~/pkgs/api-router';
 
 /**
  * Filter action methods from an object type
@@ -16,12 +17,12 @@ import type { Endpoint } from 'better-call';
  * @example
  * ```ts
  * interface APIHandlers {
- *   getSubject: (id: string) => Promise<Subject>;
- *   userData: Subject;
- *   updateSubject: (subject: Subject) => Promise<void>;
+ *   getUser: (id: string) => Promise<User>;
+ *   userData: User;
+ *   updateUser: (user: User) => Promise<void>;
  * }
  *
- * // ActionKeys will be 'getSubject' | 'updateSubject'
+ * // ActionKeys will be 'getUser' | 'updateUser'
  * type ActionKeys = FilterActions<APIHandlers>[keyof FilterActions<APIHandlers>];
  * ```
  */
@@ -32,14 +33,14 @@ export type FilterActions<TObject extends Record<string, unknown>> = {
 };
 
 /**
- * Base API path template literal for c15t endpoints
+ * Base API path template literal
  *
- * This type defines the base path for all API routes in the c15t system.
+ * This type defines the base path pattern for all API routes.
  * Used as a foundation for building type-safe API route paths.
  *
  * @see ApiPath for complete path patterns
  */
-export type ApiPathBase = `/api/c15t`;
+export type ApiPathBase = `/api`;
 
 /**
  * API route path with strict type checking
@@ -51,19 +52,16 @@ export type ApiPathBase = `/api/c15t`;
  * @example
  * ```ts
  * // Valid API path
- * const consentPath: ApiPath = '/api/c15t/consent';
+ * const userPath: ApiPath = '/api/users';
  *
  * // Invalid - would cause a type error
- * const invalidPath: ApiPath = '/api/c15t/unknown-endpoint';
+ * const invalidPath: ApiPath = '/api/unknown-endpoint';
  * ```
  */
 export type ApiPath =
 	| `${ApiPathBase}`
-	| `${ApiPathBase}/consent`
-	| `${ApiPathBase}/consent/:id`
-	| `${ApiPathBase}/jurisdictions`
-	| `${ApiPathBase}/jurisdictions/:code`
-	| `${ApiPathBase}/plugins/:id`;
+	| `${ApiPathBase}/:endpoint`
+	| `${ApiPathBase}/:endpoint/:id`;
 
 /**
  * Strongly-typed middleware configuration
@@ -75,9 +73,9 @@ export type ApiPath =
  *
  * @example
  * ```ts
- * // Register a middleware for the consent endpoint
+ * // Register a middleware for an endpoint
  * const authMiddleware: ApiMiddleware = {
- *   path: '/api/c15t/consent',
+ *   path: '/api/users',
  *   middleware: async (ctx, next) => {
  *     // Verify authentication
  *     if (!ctx.request.headers.get('Authorization')) {

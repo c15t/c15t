@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { memoryAdapter } from '~/pkgs/db-adapters';
-import type { C15TPlugin } from '~/pkgs/types';
+import type { C15TPlugin } from '~/types';
 import { c15tInstance } from './core';
 
 describe('c15tInstance', () => {

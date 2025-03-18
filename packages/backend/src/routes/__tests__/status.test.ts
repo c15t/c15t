@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { C15TContext } from '~/pkgs/types';
 import { createMockContext } from '~/pkgs/utils/test-mocks';
+import type { C15TContext } from '~/types';
 import { status } from '../status';
 
 describe('Status Endpoint', () => {

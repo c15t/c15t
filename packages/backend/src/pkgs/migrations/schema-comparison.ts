@@ -2,26 +2,7 @@ import type { TableMetadata } from 'kysely';
 import type { Field } from '~/pkgs/data-model';
 import type { KyselyDatabaseType } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
 import { createLogger } from '~/pkgs/logger';
-import type { C15TOptions } from '~/pkgs/types';
-/**
- * Schema comparison functionality for database migrations
- *
- * This module analyzes differences between the expected schema definition and the
- * actual database schema to determine what tables need to be created and what
- * columns need to be added to existing tables.
- *
- * The comparison process follows these steps:
- * 1. Load the expected schema from configuration
- * 2. Compare it with tables in the actual database
- * 3. Identify tables that don't exist but should be created
- * 4. Identify columns that need to be added to existing tables
- *
- * @remarks
- * This is a core part of the migration system and is used by the main migration
- * generator to determine what database changes are needed.
- *
- * @module migration/schema-comparison
- */
+import type { C15TOptions } from '~/types';
 import { getSchema } from './get-schema';
 import { matchType } from './type-mapping';
 import type {

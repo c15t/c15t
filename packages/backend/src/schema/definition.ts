@@ -1,5 +1,5 @@
 import type { PluginSchema } from '~/pkgs/data-model';
-import type { C15TOptions } from '~/pkgs/types';
+import type { C15TOptions } from '~/types';
 import { getAuditLogTable } from './audit-log/table';
 import { getConsentGeoLocationTable } from './consent-geo-location/table';
 import { getConsentPolicyTable } from './consent-policy/table';
@@ -50,7 +50,7 @@ export const getConsentTables = (options: C15TOptions) => {
 					...acc[key]?.fields,
 					...value.fields,
 				},
-				entityName: value.entityName || key,
+				entityName: key,
 			};
 		}
 		return acc;

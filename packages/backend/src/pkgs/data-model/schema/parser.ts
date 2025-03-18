@@ -1,6 +1,6 @@
 import type { Field } from '~/pkgs/data-model';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
-import type { C15TOptions, C15TPluginSchema } from '~/pkgs/types';
+import type { C15TOptions, C15TPluginSchema } from '~/types';
 
 /**
  * Parses and transforms output data according to schema field definitions.

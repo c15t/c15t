@@ -1,13 +1,6 @@
 import type { Adapter } from '~/pkgs/db-adapters';
-/**
- * Migration execution functionality
- *
- * This module handles executing or compiling migrations.
- *
- * @module migration/migration-execution
- */
 import { createLogger } from '~/pkgs/logger';
-import type { C15TOptions } from '~/pkgs/types';
+import type { C15TOptions } from '~/types';
 import type { MigrationOperation } from './types';
 
 /**

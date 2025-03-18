@@ -1,6 +1,6 @@
 import type { EntityName, Field } from '~/pkgs/data-model';
-import type { C15TOptions } from '~/pkgs/types';
 import { getConsentTables } from '~/schema/definition';
+import type { C15TOptions } from '~/types';
 import type { TableDefinition } from './types';
 
 /**

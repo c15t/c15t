@@ -1,9 +1,3 @@
-/**
- * Types used throughout the migration system
- *
- * @module migration/types
- */
-
 import type {
 	AlterTableColumnAlteringBuilder,
 	CreateTableBuilder,

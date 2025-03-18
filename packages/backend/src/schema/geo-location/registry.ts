@@ -3,6 +3,7 @@ import type { Where } from '~/pkgs/db-adapters';
 import type { GenericEndpointContext, RegistryContext } from '~/pkgs/types';
 import { validateEntityOutput } from '../definition';
 import type { GeoLocation } from './schema';
+
 /**
  * Creates and returns a set of geo-location-related adapter methods to interact with the database.
  * These methods provide a consistent interface for creating and finding

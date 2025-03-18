@@ -1,15 +1,4 @@
 import type { Field, FieldType } from '~/pkgs/data-model';
-/**
- * Database type mapping functionality
- *
- * This module handles mapping between abstract field types and
- * database-specific column types. It provides utilities for:
- * 1. Converting between c15t field types and database-specific types
- * 2. Checking type compatibility across different databases
- * 3. Determining appropriate database types based on field attributes
- *
- * @module migration/type-mapping
- */
 import type { KyselyDatabaseType } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
 
 /**

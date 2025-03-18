@@ -7,8 +7,8 @@ import {
 	type Primitive,
 	generateId,
 } from '~/pkgs/data-model';
-import type { C15TOptions } from '~/pkgs/types';
 import { getConsentTables } from '~/schema';
+import type { C15TOptions } from '~/types';
 
 import type { Adapter, TableFields, Where } from '../../types';
 import { applyDefaultValue } from '../../utils';

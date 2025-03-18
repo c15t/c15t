@@ -1,5 +1,5 @@
 import type { Field } from '~/pkgs/data-model';
-import type { C15TOptions } from '~/pkgs/types';
+import type { C15TOptions } from '~/types';
 import { consentSchema } from './schema';
 /**
  * Generates the database table configuration for the consent entity.

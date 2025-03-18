@@ -1,5 +1,5 @@
-import type { C15TOptions } from '~/pkgs/types';
 import { getConsentTables } from '~/schema/definition';
+import type { C15TOptions } from '~/types';
 import { processTablesIntoSchema } from './process-tables';
 import type { SchemaDefinition } from './types';
 

@@ -1,19 +1,12 @@
 import type { UnionToIntersection } from '@better-fetch/fetch';
-/**
- * Plugin System for c15t Consent Management
- *
- * This module defines the plugin system architecture for the c15t consent management system.
- * Plugins provide a way to extend functionality with additional features like analytics,
- * geolocation, custom consent flows, and more.
- */
 import type { Endpoint } from 'better-call';
 import type { Migration } from 'kysely';
 
 import type { DoubleTieMiddleware } from '~/pkgs/api-router';
 import type { Field } from '~/pkgs/data-model';
-import type { C15TContext, HookEndpointContext } from './context';
+import type { DoubleTieContext, HookEndpointContext } from './context';
 import type { DeepPartial, LiteralString } from './helper';
-import type { C15TOptions } from './options';
+import type { DoubleTieOptions } from './options';
 
 /**
  * Context object provided to plugin hooks
@@ -78,12 +71,12 @@ export interface PluginHook {
 }
 
 /**
- * Core c15t plugin interface
+ * Core DoubleTie plugin interface
  *
- * Defines the structure that all c15t plugins must conform to,
+ * Defines the structure that all DoubleTie plugins must conform to,
  * including lifecycle methods, hooks, endpoints, and type information.
  */
-export interface C15TPlugin {
+export interface DoubleTiePlugin {
 	/**
 	 * Unique identifier for the plugin
 	 * Must be a string literal for type safety
@@ -104,13 +97,13 @@ export interface C15TPlugin {
 	 * The init function is called when the plugin is initialized.
 	 * You can return a new context or modify the existing context.
 	 *
-	 * @param ctx - The c15t context
+	 * @param ctx - The DoubleTie context
 	 * @returns An object with context or options modifications, or undefined
 	 */
-	init?: (ctx: C15TContext) =>
+	init?: (ctx: DoubleTieContext) =>
 		| {
-				context?: DeepPartial<Omit<C15TContext, 'options'>>;
-				options?: Partial<C15TOptions>;
+				context?: DeepPartial<Omit<DoubleTieContext, 'options'>>;
+				options?: Partial<DoubleTieOptions>;
 		  }
 		| undefined;
 
@@ -135,12 +128,12 @@ export interface C15TPlugin {
 	 * Handler for intercepting and potentially modifying incoming requests
 	 *
 	 * @param request - The incoming HTTP request
-	 * @param ctx - The c15t context
+	 * @param ctx - The DoubleTie context
 	 * @returns A modified request, a response to short-circuit handling, or undefined to continue
 	 */
 	onRequest?: (
 		request: Request,
-		ctx: C15TContext
+		ctx: DoubleTieContext
 	) => Promise<
 		| {
 				response: Response;
@@ -155,12 +148,12 @@ export interface C15TPlugin {
 	 * Handler for intercepting and potentially modifying outgoing responses
 	 *
 	 * @param response - The outgoing HTTP response
-	 * @param ctx - The c15t context
+	 * @param ctx - The DoubleTie context
 	 * @returns A modified response or undefined to continue with the original
 	 */
 	onResponse?: (
 		response: Response,
-		ctx: C15TContext
+		ctx: DoubleTieContext
 	) => Promise<
 		| {
 				response: Response;
@@ -218,7 +211,7 @@ export interface C15TPlugin {
 	 * } as AuthPluginSchema
 	 * ```
 	 */
-	schema?: C15TPluginSchema;
+	schema?: DoubleTiePluginSchema;
 
 	/**
 	 * The migrations of the plugin. If you define schema that will automatically create
@@ -257,13 +250,13 @@ export interface C15TPlugin {
  * Extracts type definitions from all plugins in a configuration
  *
  * This utility type extracts the combined type information from all plugins
- * in a c15t configuration, making it available to the type system.
+ * in a DoubleTie configuration, making it available to the type system.
  *
- * @typeParam TOptions - The c15t configuration options type
+ * @typeParam TOptions - The DoubleTie configuration options type
  */
-export type ExtractPluginTypeDefinitions<TOptions extends C15TOptions> =
+export type ExtractPluginTypeDefinitions<TOptions extends DoubleTieOptions> =
 	TOptions['plugins'] extends Array<infer Plugin>
-		? Plugin extends C15TPlugin
+		? Plugin extends DoubleTiePlugin
 			? Plugin extends { $Infer: infer PluginTypes }
 				? PluginTypes extends Record<string, unknown>
 					? PluginTypes
@@ -278,7 +271,7 @@ export type ExtractPluginTypeDefinitions<TOptions extends C15TOptions> =
  * This utility type filters plugins from a configuration to only include
  * those matching a specific type.
  *
- * @typeParam O - The c15t configuration options type
+ * @typeParam O - The DoubleTie configuration options type
  * @typeParam T - The plugin type to extract
  *
  * @example
@@ -288,10 +281,10 @@ export type ExtractPluginTypeDefinitions<TOptions extends C15TOptions> =
  * ```
  */
 export type ExtractPluginType<
-	O extends C15TOptions,
+	O extends DoubleTieOptions,
 	T extends string,
 > = O['plugins'] extends Array<infer P>
-	? P extends C15TPlugin
+	? P extends DoubleTiePlugin
 		? P extends { type: T }
 			? P
 			: never
@@ -317,7 +310,7 @@ export type ExtractPluginType<
  *   });
  * ```
  */
-export type PluginFactory<T extends C15TPlugin> = (
+export type PluginFactory<T extends DoubleTiePlugin> = (
 	options?: Omit<T, 'id' | 'type'> & { id?: string }
 ) => T;
 
@@ -327,11 +320,11 @@ export type PluginFactory<T extends C15TPlugin> = (
  * This utility type combines the error codes from all plugins in a configuration
  * to create a complete set of possible error codes.
  *
- * @typeParam O - The c15t configuration options type
+ * @typeParam O - The DoubleTie configuration options type
  */
-export type InferPluginErrorCodes<O extends C15TOptions> =
+export type InferPluginErrorCodes<O extends DoubleTieOptions> =
 	O['plugins'] extends Array<infer P>
-		? P extends C15TPlugin
+		? P extends DoubleTiePlugin
 			? P['$ERROR_CODES'] extends infer EC
 				? EC extends Record<string, unknown>
 					? EC
@@ -345,33 +338,31 @@ export type InferPluginErrorCodes<O extends C15TOptions> =
  *
  * Defines the database schema extensions that a plugin may require.
  */
-export type C15TPluginSchema = {
-	[table in string]: {
+export interface DoubleTiePluginSchema {
+	[tableName: string]: {
 		/**
-		 * Field definitions for this table
+		 * Should migrations be created for this table when using auto migrations
+		 *
+		 * If you want to create migrations manually using the migrations
+		 * option or any other way you can disable migration per table.
+		 *
+		 * @default true
 		 */
-		fields: {
-			[field in string]: Field;
-		};
+		createMigrations?: boolean;
 
 		/**
-		 * Whether to disable automatic migration generation for this table
+		 * Fields to add to the table
 		 */
-		disableMigration?: boolean;
-
-		/**
-		 * Custom entity name for this table
-		 */
-		entityName?: string;
+		fields: Record<string, Field>;
 	};
-};
+}
 
 /**
  * Analytics plugin interface
  *
  * Defines the specialized interface for plugins that provide analytics functionality.
  */
-export interface AnalyticsPlugin extends C15TPlugin {
+export interface AnalyticsPlugin extends DoubleTiePlugin {
 	type: 'analytics';
 	analyticsOptions?: {
 		/**
@@ -391,7 +382,7 @@ export interface AnalyticsPlugin extends C15TPlugin {
  *
  * Defines the specialized interface for plugins that provide geolocation functionality.
  */
-export interface GeoPlugin extends C15TPlugin {
+export interface GeoPlugin extends DoubleTiePlugin {
 	type: 'geo';
 	geoOptions?: {
 		/**
@@ -413,7 +404,7 @@ export interface GeoPlugin extends C15TPlugin {
  * @returns True if the plugin is an analytics plugin
  */
 export function isAnalyticsPlugin(
-	plugin: C15TPlugin
+	plugin: DoubleTiePlugin
 ): plugin is AnalyticsPlugin {
 	return plugin.type === 'analytics';
 }
@@ -424,7 +415,7 @@ export function isAnalyticsPlugin(
  * @param plugin - The plugin to check
  * @returns True if the plugin is a geolocation plugin
  */
-export function isGeoPlugin(plugin: C15TPlugin): plugin is GeoPlugin {
+export function isGeoPlugin(plugin: DoubleTiePlugin): plugin is GeoPlugin {
 	return plugin.type === 'geo';
 }
 
@@ -436,10 +427,10 @@ export function isGeoPlugin(plugin: C15TPlugin): plugin is GeoPlugin {
  *
  * @typeParam PluginArray - Array of plugin types
  */
-export type InferPluginContexts<PluginArray extends C15TPlugin[]> =
+export type InferPluginContexts<PluginArray extends DoubleTiePlugin[]> =
 	UnionToIntersection<
 		PluginArray extends Array<infer SinglePlugin>
-			? SinglePlugin extends C15TPlugin
+			? SinglePlugin extends DoubleTiePlugin
 				? SinglePlugin extends { $InferContext: infer ContextType }
 					? ContextType extends Record<string, unknown>
 						? ContextType

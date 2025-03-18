@@ -1,7 +1,7 @@
 import { createSDKMiddleware } from '~/pkgs/api-router';
 import type { Adapter } from '~/pkgs/db-adapters';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
-import type { C15TContext, C15TPlugin } from '~/pkgs/types';
+import type { C15TContext, C15TPlugin } from '~/types';
 
 /**
  * Redacts sensitive information from context for error reporting

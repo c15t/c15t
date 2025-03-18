@@ -1,6 +1,6 @@
 import type { EntityInput, EntityName } from '~/pkgs/data-model';
-import type { C15TOptions } from '~/pkgs/types';
 import type { C15TDBSchema } from '~/schema/definition';
+import type { C15TOptions } from '~/types';
 import type { KyselyDatabaseType } from './adapters';
 
 /**

@@ -1,5 +1,5 @@
 import { COMMON_TIMEZONES, type Field } from '~/pkgs/data-model';
-import type { C15TOptions } from '~/pkgs/types';
+import type { C15TOptions } from '~/types';
 import { subjectSchema } from './schema';
 
 /**

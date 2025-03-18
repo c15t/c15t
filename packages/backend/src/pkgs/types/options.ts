@@ -1,25 +1,18 @@
 import type { DoubleTieMiddleware } from '~/pkgs/api-router';
 import type { DatabaseHook, EntityName } from '~/pkgs/data-model';
 import type { DatabaseConfiguration } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
-/**
- * c15t Consent Management System Configuration Types
- *
- * This module defines the configuration options for the c15t consent management system.
- * It includes types for setting up storage, API endpoints, cookies, rate limiting,
- * analytics, geo-targeting, plugins, logging, and other advanced features.
- */
 import type { Logger } from '~/pkgs/logger';
-import type { C15TContext } from './context';
-import type { C15TPlugin } from './plugins';
+import type { DoubleTieContext } from './context';
+import type { DoubleTiePlugin } from './plugins';
 
 // Import table configuration types from the schema module
 import type { TablesConfig } from '~/schema/types';
 
 /**
- * Main configuration options for the c15t consent management system
+ * Main configuration options for the DoubleTie SDK framework
  *
  * This interface provides a comprehensive set of options for configuring
- * all aspects of the consent management system, including core functionality,
+ * all aspects of the framework, including core functionality,
  * database settings, UI components, and plugin extensions.
  *
  * @typeParam P - Array of plugin types to be used with this configuration
@@ -27,7 +20,7 @@ import type { TablesConfig } from '~/schema/types';
  * @example
  * ```ts
  * // Basic configuration
- * const options: C15TOptions = {
+ * const options: DoubleTieOptions = {
  *   appName: "My App",
  *   secret: process.env.SECRET_KEY,
  *   baseURL: "https://example.com",
@@ -35,7 +28,9 @@ import type { TablesConfig } from '~/schema/types';
  * };
  * ```
  */
-export interface C15TOptions<P extends C15TPlugin[] = C15TPlugin[]> {
+export interface DoubleTieOptions<
+	P extends DoubleTiePlugin[] = DoubleTiePlugin[],
+> {
 	/**
 	 * The base URL for the API (optional if running in a browser)
 	 * @example "https://example.com"
@@ -50,7 +45,7 @@ export interface C15TOptions<P extends C15TPlugin[] = C15TPlugin[]> {
 	basePath?: string;
 
 	/**
-	 * Application name shown in consent dialogs
+	 * Application name shown in application dialogs
 	 * @example "My App"
 	 */
 	appName?: string;
@@ -81,7 +76,7 @@ export interface C15TOptions<P extends C15TPlugin[] = C15TPlugin[]> {
 
 	/**
 	 * Plugins to extend functionality
-	 * Array of plugin objects that add features to the consent system
+	 * Array of plugin objects that add features to the system
 	 */
 	plugins?: P;
 
@@ -134,7 +129,7 @@ export interface C15TOptions<P extends C15TPlugin[] = C15TPlugin[]> {
 
 		/**
 		 * Function to generate IDs
-		 * Custom ID generation for consent records and other entities
+		 * Custom ID generation for records and other entities
 		 */
 		generateId?: (options: { model: EntityName; size?: number }) => string;
 
@@ -164,7 +159,7 @@ export interface C15TOptions<P extends C15TPlugin[] = C15TPlugin[]> {
 		 * @param error
 		 * @param ctx - Auth context
 		 */
-		onError?: (error: unknown, ctx: C15TContext) => void | Promise<void>;
+		onError?: (error: unknown, ctx: DoubleTieContext) => void | Promise<void>;
 	};
 	/**
 	 * Hooks

@@ -1,6 +1,6 @@
 import type { C15TInstance } from '~/core';
 import { ERROR_CODES } from '~/pkgs/results';
-import type { C15TContext } from '~/pkgs/types';
+import type { C15TContext } from '~/types';
 
 /**
  * Convert a c15t handler to a Next.js API route handler.
