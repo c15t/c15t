@@ -85,6 +85,7 @@ describe('logger integration', () => {
 			const logger = createLogger({
 				level: 'info', // Change from 'debug' to 'info' to allow info, warn, and error logs
 				log: customLogHandler,
+				appName: 'c15t',
 			});
 
 			// Use direct logging

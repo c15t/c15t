@@ -11,7 +11,7 @@ import type { LogEntry, LogLevel, Logger, LoggerOptions } from './types';
  * @example
  * ```ts
  * // Create a logger that only shows warnings and errors
- * const logger = createLogger({ level: 'warn' });
+ * const logger = createLogger({ level: 'warn', appName: 'c15t' });
  *
  * // These will be output
  * logger.error('This is an error');

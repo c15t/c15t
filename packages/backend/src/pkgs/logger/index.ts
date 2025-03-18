@@ -19,7 +19,7 @@
  * import { createLogger, logResult } from '@doubletie/logger';
  *
  * // Create a custom logger
- * const logger = createLogger({ level: 'debug' });
+ * const logger = createLogger({ level: 'debug', appName: 'c15t' });
  *
  * // Log messages at different levels
  * logger.info('Application started');
