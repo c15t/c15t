@@ -163,11 +163,14 @@ function formatSQL(
 	// Database-specific transaction syntax
 	// Only use transactions for non-D1 databases
 	const useTransactions = dbType !== 'd1';
-	const transactionStart = useTransactions
-		? dbType === 'mysql'
-			? 'START TRANSACTION;'
-			: 'BEGIN;'
-		: '';
+	let transactionStart = '';
+	if (useTransactions) {
+		if (dbType === 'mysql') {
+			transactionStart = 'START TRANSACTION;';
+		} else {
+			transactionStart = 'BEGIN;';
+		}
+	}
 	const transactionEnd = useTransactions ? 'COMMIT;' : '';
 
 	// Generate timestamp for the migration, or use the provided one
