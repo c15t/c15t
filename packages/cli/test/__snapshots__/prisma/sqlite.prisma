@@ -34,7 +34,6 @@ model ConsentPurpose {
   isActive                Boolean
   createdAt               DateTime
   updatedAt               DateTime
-  consents                Consent[]
   consentpurposejunctions ConsentPurposeJunction[]
 }
 
@@ -72,7 +71,6 @@ model Consent {
   domainId                String
   domain                  Domain                   @relation(fields: [domainId], references: [id], onDelete: Cascade)
   purposeIds              String?
-  consentpurpose          ConsentPurpose           @relation(fields: [purposeIds], references: [id], onDelete: Cascade)
   metadata                String?
   policyId                String?
   consentpolicy           ConsentPolicy            @relation(fields: [policyId], references: [id], onDelete: Cascade)

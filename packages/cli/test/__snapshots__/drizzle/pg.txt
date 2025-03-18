@@ -51,7 +51,7 @@ export const consent = pgTable("consent", {
   id: text("id").primaryKey(),
   subjectId: text('subject_id').notNull().references(()=> subject.id, { onDelete: 'cascade' }),
   domainId: text('domain_id').notNull().references(()=> domain.id, { onDelete: 'cascade' }),
-  purposeIds: json('purpose_ids').references(()=> consentPurpose.id, { onDelete: 'cascade' }),
+  purposeIds: json('purpose_ids'),
   metadata: json('metadata'),
   policyId: text('policy_id').references(()=> consentPolicy.id, { onDelete: 'cascade' }),
   ipAddress: text('ip_address'),

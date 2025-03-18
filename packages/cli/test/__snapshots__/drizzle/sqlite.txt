@@ -51,7 +51,7 @@ export const consent = sqliteTable("consent", {
   id: text("id").primaryKey(),
   subjectId: text('subject_id').notNull().references(()=> subject.id, { onDelete: 'cascade' }),
   domainId: text('domain_id').notNull().references(()=> domain.id, { onDelete: 'cascade' }),
-  purposeIds: text('purpose_ids').references(()=> consentPurpose.id, { onDelete: 'cascade' }),
+  purposeIds: text('purpose_ids'),
   metadata: text('metadata'),
   policyId: text('policy_id').references(()=> consentPolicy.id, { onDelete: 'cascade' }),
   ipAddress: text('ip_address'),

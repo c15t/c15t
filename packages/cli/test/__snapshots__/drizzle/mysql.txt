@@ -51,7 +51,7 @@ export const consent = mysqlTable("consent", {
   id: varchar("id", { length: 36 }).primaryKey(),
   subjectId: varchar('subject_id', { length: 36 }).notNull().references(()=> subject.id, { onDelete: 'cascade' }),
   domainId: varchar('domain_id', { length: 36 }).notNull().references(()=> domain.id, { onDelete: 'cascade' }),
-  purposeIds: json('purpose_ids').references(()=> consentPurpose.id, { onDelete: 'cascade' }),
+  purposeIds: json('purpose_ids'),
   metadata: json('metadata'),
   policyId: varchar('policy_id', { length: 36 }).references(()=> consentPolicy.id, { onDelete: 'cascade' }),
   ipAddress: text('ip_address'),

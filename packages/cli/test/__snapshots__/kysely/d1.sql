@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS "consent" (
   "id" text NOT NULL PRIMARY KEY,
   "subjectId" text NOT NULL REFERENCES "subject" ("id"),
   "domainId" text NOT NULL REFERENCES "domain" ("id"),
-  "purposeIds" text REFERENCES "consentPurpose" ("id"),
+  "purposeIds" text,
   "metadata" text,
   "policyId" text REFERENCES "consentPolicy" ("id"),
   "ipAddress" text,
