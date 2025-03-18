@@ -52,7 +52,7 @@
 			"import": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.js",
 			"require": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.cjs"
 		},
-		"./pkgs/db-adapters/adapters/kysely-adapter":{
+		"./pkgs/db-adapters/adapters/kysely-adapter": {
 			"types": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.d.ts",
 			"import": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.js",
 			"require": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.cjs"
