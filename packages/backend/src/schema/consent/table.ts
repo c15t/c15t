@@ -28,7 +28,7 @@ export function getConsentTable(
 	const subjectConfig = options.tables?.subject;
 	const domainConfig = options.tables?.domain;
 	const policyConfig = options.tables?.consentPolicy;
-	const purposeConfig = options.tables?.consentPurpose;
+	// const purposeConfig = options.tables?.consentPurpose;
 
 	return {
 		/**
@@ -85,11 +85,12 @@ export function getConsentTable(
 				type: 'json',
 				required: false,
 				fieldName: consentConfig?.fields?.purposeIds || 'purposeIds',
-				references: {
-					model: purposeConfig?.entityName || 'consentPurpose',
-					field: 'id',
-					type: 'array', // Indicates this is an array of references
-				},
+        // TODO: add references to consentPurpose
+				// references: {
+				// 	model: purposeConfig?.entityName || 'consentPurpose',
+				// 	field: 'id',
+				// 	type: 'array', // Indicates this is an array of references
+				// },
 			},
 
 			/**
