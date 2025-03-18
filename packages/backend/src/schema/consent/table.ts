@@ -85,7 +85,7 @@ export function getConsentTable(
 				type: 'json',
 				required: false,
 				fieldName: consentConfig?.fields?.purposeIds || 'purposeIds',
-        // TODO: add references to consentPurpose
+				// TODO: add references to consentPurpose
 				// references: {
 				// 	model: purposeConfig?.entityName || 'consentPurpose',
 				// 	field: 'id',
