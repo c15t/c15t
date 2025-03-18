@@ -14,19 +14,9 @@
  */
 export * from './core';
 
-//------------------------------------------------------------------------------
-// Client
-//------------------------------------------------------------------------------
+// Export the C15TInstance type explicitly for easier consumption
+export type { C15TInstance } from './core';
 
-/**
- * Client-side integration for implementing consent in browsers
- */
-export * from './client';
-
-/**
- * All client-related types bundled under a namespace to avoid conflicts
- */
-export * as ClientTypes from './client/types';
 
 /**
  * Selected client types needed for common use cases

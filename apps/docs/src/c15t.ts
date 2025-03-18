@@ -1,4 +1,4 @@
-import { c15tInstance } from '@c15t/backend';
+import { type C15TInstance, c15tInstance } from '@c15t/backend';
 import { LibsqlDialect } from '@libsql/kysely-libsql';
 
 const libsql = new LibsqlDialect({
@@ -28,7 +28,7 @@ const libsql = new LibsqlDialect({
  * @throws {Error} When required environment variables are missing
  * @see {@link https://docs.c15t.dev/configuration} for more configuration options
  */
-export const c15t = c15tInstance({
+export const c15t: C15TInstance = c15tInstance({
 	appName: 'Next.js Example App',
 	// basePath: '/api/c15t',
 	// Add any trusted origins if needed

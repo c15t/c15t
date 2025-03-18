@@ -260,7 +260,7 @@ export const c15tInstance = <
 		});
 	};
 
-	// Create and return the simplified instance with access to the context
+	// Create and return the instance with a type assertion to prevent internal references from leaking
 	return {
 		handler,
 		getApi,
