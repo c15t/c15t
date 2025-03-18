@@ -1,7 +1,7 @@
-import { drizzleAdapter } from '@c15t/backend/db/adapters/drizzle';
-import { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
-import { prismaAdapter } from '@c15t/backend/db/adapters/prisma';
-import type { C15TOptions } from '@c15t/backend/types';
+import { drizzleAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/drizzle-adapter';
+import { kyselyAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/kysely-adapter';
+import { prismaAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/prisma-adapter';
+import type { C15TOptions } from '@c15t/backend/pkgs/types';
 import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 import { generateDrizzleSchema } from '../src/generators/drizzle';
