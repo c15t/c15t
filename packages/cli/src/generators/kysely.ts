@@ -1,4 +1,4 @@
-import { getMigrations } from '@c15t/backend/db';
+import { getMigrations } from '@c15t/backend/pkgs/migrations';
 import type { SchemaGenerator } from './types';
 
 // Table definition regex for create table statements

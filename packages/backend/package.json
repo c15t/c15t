@@ -82,10 +82,10 @@
 			"import": "./dist/pkgs/logger/index.js",
 			"require": "./dist/pkgs/logger/index.cjs"
 		},
-		"./pkgs/migration": {
-			"types": "./dist/pkgs/migration/index.d.ts",
-			"import": "./dist/pkgs/migration/index.js",
-			"require": "./dist/pkgs/migration/index.cjs"
+		"./pkgs/migrations": {
+			"types": "./dist/pkgs/migrations/index.d.ts",
+			"import": "./dist/pkgs/migrations/index.js",
+			"require": "./dist/pkgs/migrations/index.cjs"
 		},
 		"./pkgs/types": {
 			"types": "./dist/pkgs/types/index.d.ts",
