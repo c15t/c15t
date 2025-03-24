@@ -28,7 +28,7 @@ pnpm add @c15t/dev-tools
 
 ```tsx
 import { ConsentManagerProvider, CookieBanner, ConsentManagerDialog } from "@c15t/react";
-import { DevTools } from "@c15t/dev-tools";
+import { C15TDevTools } from "@c15t/dev-tools";
 
 export default function App() {
   return (
