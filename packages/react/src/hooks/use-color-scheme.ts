@@ -26,12 +26,12 @@ export function useColorScheme(colorScheme: ColorScheme) {
 		// Handle different color scheme settings
 		switch (colorScheme) {
 			case 'light': {
-				localStorage.c15tTheme = 'light';
+				localStorage.setItem('c15tTheme', 'light');
 				document.documentElement.classList.remove('c15t-dark');
 				break;
 			}
 			case 'dark': {
-				localStorage.c15tTheme = 'dark';
+				localStorage.setItem('c15tTheme', 'dark');
 				document.documentElement.classList.add('c15t-dark');
 				break;
 			}
