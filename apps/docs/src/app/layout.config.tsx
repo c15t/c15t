@@ -1,9 +1,8 @@
-import type { LinkItemType } from 'fumadocs-ui/layouts/links';
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import Image from 'next/image';
-import { GithubIcon } from '~/components/icons/github';
 import GetStarted from '../../public/cookie-banner.png';
 
+import { GithubInfo } from 'fumadocs-ui/components/github-info';
 import {
 	Book,
 	Cookie,
@@ -13,36 +12,35 @@ import {
 } from 'lucide-react';
 import { LogoWithBadge } from '~/components/logo';
 
-export const linkItems: LinkItemType[] = [
-	{
-		type: 'icon',
-		url: 'https://github.com/c15t/c15t',
-		text: 'Github',
-		icon: <GithubIcon className="h-5 w-5" />,
-		external: true,
-	},
-];
-
 /**
- * Shared layout configurations
+ * Defines the navigation structure and menu items for the docs.
  *
- * you can configure layouts individually from:
- * Home Layout: app/(home)/layout.tsx
- * Docs Layout: app/docs/layout.tsx
+ * @see BaseLayoutProps for all available configuration options
  */
 export const docsOptions: BaseLayoutProps = {
 	nav: {
 		title: <LogoWithBadge />,
 		transparentMode: 'top',
 	},
-	links: [...linkItems],
+	links: [
+		{
+			type: 'custom',
+			children: <GithubInfo owner="c15t" repo="c15t" />,
+		},
+	],
 };
 
+/**
+ * Layout configuration specific to the home page
+ *
+ * @see BaseLayoutProps for all available configuration options
+ */
 export const homePageOptions: BaseLayoutProps = {
 	nav: {
 		title: <LogoWithBadge />,
 		transparentMode: 'top',
 	},
+
 	links: [
 		{
 			text: 'Getting Started',
@@ -63,7 +61,7 @@ export const homePageOptions: BaseLayoutProps = {
 							<div className="-mx-3 -mt-3">
 								<Image
 									src={GetStarted}
-									alt="Perview"
+									alt="Preview of getting started guide"
 									className="rounded-t-lg object-cover"
 									style={{
 										maskImage:
@@ -90,7 +88,6 @@ export const homePageOptions: BaseLayoutProps = {
 						className: 'lg:col-start-2',
 					},
 				},
-
 				{
 					icon: <MessageSquare />,
 					text: 'Consent Dialog',
@@ -123,10 +120,10 @@ export const homePageOptions: BaseLayoutProps = {
 				},
 			],
 		},
-
-		// {
-		// 	text: 'Release Notes',
-		// 	url: '/docs/release-notes',
-		// },
+		{
+			type: 'custom',
+			secondary: true,
+			children: <GithubInfo owner="c15t" repo="c15t" />,
+		},
 	],
 };
