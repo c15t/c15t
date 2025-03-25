@@ -15,7 +15,7 @@ import {
 } from '../utils/translations';
 
 import { GlobalThemeContext } from '~/context/theme-context';
-
+import { useColorScheme } from '../hooks/use-color-scheme';
 /**
  * Provider component for consent management functionality.
  *
@@ -41,6 +41,7 @@ export function ConsentManagerProvider({
 	disableAnimation = false,
 	scrollLock = false,
 	trapFocus = true,
+	colorScheme = 'system',
 }: ConsentManagerProviderProps) {
 	const preparedTranslationConfig = useMemo(() => {
 		const mergedConfig = mergeTranslationConfigs(
@@ -124,6 +125,8 @@ export function ConsentManagerProvider({
 			trapFocus,
 		};
 	}, [theme, noStyle, disableAnimation, scrollLock, trapFocus]);
+
+	useColorScheme(colorScheme);
 
 	return (
 		<ConsentStateContext.Provider value={contextValue}>

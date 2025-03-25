@@ -11,7 +11,7 @@ import type {
 import type { ReactNode } from 'react';
 import type { ConsentManagerDialogTheme } from '../components/consent-manager-dialog/theme';
 import type { CookieBannerTheme } from '../components/cookie-banner/theme';
-
+import type { ColorScheme } from '../hooks/use-color-scheme';
 /**
  * Configuration options for the ConsentManagerProvider component.
  *
@@ -119,6 +119,13 @@ export interface ConsentManagerProviderProps extends NamespaceProps {
 	 * @default true
 	 */
 	trapFocus?: boolean;
+
+	/**
+	 * @remarks
+	 * Color scheme to use for the consent manager, defaults to 'system'
+	 * @default 'system'
+	 */
+	colorScheme?: ColorScheme;
 }
 
 /**

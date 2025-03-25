@@ -110,7 +110,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .branding {
+:global(.c15t-dark) .branding {
 	color: var(--dialog-foreground-color-dark);
 }
 
@@ -138,7 +138,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .footer {
+:global(.c15t-dark) .footer {
 	border-color: var(--dialog-stroke-color-dark);
 }
 
@@ -151,7 +151,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .overlay {
+:global(.c15t-dark) .overlay {
 	background-color: var(--dialog-overlay-background-color-dark);
 	color: var(--dialog-link-text-color-dark);
 }
@@ -167,7 +167,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .card {
+:global(.c15t-dark) .card {
 	background-color: var(--dialog-background-color-dark);
 	color: var(--dialog-foreground-color-dark);
 	border-color: var(--dialog-border-color-dark);
@@ -199,7 +199,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .description {
+:global(.c15t-dark) .description {
 	color: var(--dialog-muted-color-dark);
 }
 
@@ -221,6 +221,6 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .footer {
+:global(.c15t-dark) .footer {
 	border-color: var(--dialog-stroke-color-dark);
 }
