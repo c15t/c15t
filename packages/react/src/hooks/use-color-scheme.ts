@@ -3,9 +3,9 @@ import { useEffect } from 'react';
 export type ColorScheme = 'light' | 'dark' | 'system';
 
 /**
- * Hook to manage color scheme preferences for components
+ * Manage color scheme preferences for components
  *
- * @param colorScheme - The desired color scheme ('light', 'dark', or 'system')
+ * @param colorScheme - 'light' | 'dark' | 'system'
  *
  * @example
  * ```tsx

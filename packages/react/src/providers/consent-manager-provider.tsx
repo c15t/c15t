@@ -126,6 +126,7 @@ export function ConsentManagerProvider({
 		};
 	}, [theme, noStyle, disableAnimation, scrollLock, trapFocus]);
 
+	// Set the color scheme
 	useColorScheme(colorScheme);
 
 	return (
