@@ -89,9 +89,13 @@ export type ThemeContextValue<Theme = unknown> = {
  *
  * @public
  */
-export const GlobalThemeContext =
-	createContext<ThemeContextValue<unknown> | null>(null);
-
+export const GlobalThemeContext = createContext<ThemeContextValue>({
+	theme: undefined,
+	noStyle: false,
+	disableAnimation: false,
+	scrollLock: false,
+	trapFocus: true,
+});
 /**
  * Context for providing theme values to components.
  *

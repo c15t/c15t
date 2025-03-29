@@ -1,0 +1,19 @@
+{
+	"extends": ["//"],
+	"tasks": {
+		"build": {
+			"env": [
+				"C15T_SECRET",
+				"SENTRY_PROJECT",
+				"SENTRY_DSN",
+				"SENTRY_ORG",
+				"SENTRY_AUTH_TOKEN"
+			],
+			"inputs": ["$TURBO_DEFAULT$"]
+		},
+		"dev": {
+			"inputs": ["$TURBO_DEFAULT$"]
+		},
+		"test": {}
+	}
+}

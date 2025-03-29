@@ -21,6 +21,8 @@ export interface VerifyConsentResponse {
 	reasons?: string[];
 }
 
+export type VerifyConsentRequest = z.infer<typeof verifyConsentSchema>;
+
 /**
  * Endpoint for verifying existing consent records.
  *

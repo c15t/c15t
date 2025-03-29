@@ -1,4 +1,7 @@
+import { c15tClientExample } from '~/examples/c15t-client-example';
+
 export const pages = {
+	'c15tClient.ts': c15tClientExample,
 	'CustomWidget.tsx': `'use client';
   
 import { useConsentManager } from '@c15t/react';
@@ -38,11 +41,14 @@ export function CustomWidget() {
 import { ExampleContent } from './ExampleContent';
 import { clearLocalStorage } from './lib/utils';
 import { CustomWidget } from './CustomWidget';
+import { c15tClient } from './c15tClient';
+
 export default function App() {
     // Clear localStorage on mount to ensure a clean state
     clearLocalStorage();
     return (
         <ConsentManagerProvider 
+            clientConfig={clientConfig}
             initialGdprTypes={['necessary', 'marketing']}
         >
             <CustomWidget />

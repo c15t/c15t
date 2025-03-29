@@ -1,7 +1,10 @@
+import { c15tClientExample } from '~/examples/c15t-client-example';
+
 export const pages = {
 	'App.tsx': `import { ConsentManagerProvider, ConsentManagerDialog, CookieBanner } from '@c15t/react';
 import { ExampleContent } from './ExampleContent';
 import { clearLocalStorage } from './lib/utils';
+import { c15tClient } from './c15tClient';
 
 export default function App() {
     // Clear localStorage on mount to ensure a clean state
@@ -9,7 +12,8 @@ export default function App() {
 
     return (
         <ConsentManagerProvider 
-            initialGdprTypes={['necessary', 'marketing', 'analytics']}
+            config={c15tClient}
+            initialGdprTypes={['necessary', 'marketing']}
         >
             <CookieBanner />
             <ConsentManagerDialog />
@@ -17,7 +21,7 @@ export default function App() {
         </ConsentManagerProvider>
     );
 }`,
-
+	'c15tClient.ts': c15tClientExample,
 	'ExampleContent.tsx': `import { useConsentManager } from '@c15t/react';
 import { setupDarkMode } from './lib/utils';
 import { useEffect } from 'react';

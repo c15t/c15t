@@ -12,11 +12,6 @@
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
 		},
-		"./client": {
-			"types": "./dist/client/index.d.ts",
-			"import": "./dist/client/index.js",
-			"require": "./dist/client/index.cjs"
-		},
 		"./schema": {
 			"types": "./dist/schema/index.d.ts",
 			"import": "./dist/schema/index.js",
@@ -31,11 +26,6 @@
 			"types": "./dist/integrations/next.d.ts",
 			"import": "./dist/integrations/next.js",
 			"require": "./dist/integrations/next.cjs"
-		},
-		"./integrations/react": {
-			"types": "./dist/integrations/react.d.ts",
-			"import": "./dist/integrations/react.js",
-			"require": "./dist/integrations/react.cjs"
 		},
 		"./pkgs/data-model/fields": {
 			"types": "./dist/pkgs/data-model/fields/index.d.ts",

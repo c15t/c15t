@@ -500,6 +500,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@c15t/backend':
+        specifier: workspace:*
+        version: link:../backend
       zustand:
         specifier: ^5.0.3
         version: 5.0.3(@types/react@19.0.10)(react@19.0.0)

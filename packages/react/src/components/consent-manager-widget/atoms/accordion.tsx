@@ -1,4 +1,4 @@
-import type { AllConsentNames } from 'c15t';
+import type { AllConsentNames, ConsentType } from 'c15t';
 
 import {
 	type ComponentPropsWithoutRef,
@@ -71,11 +71,13 @@ const ConsentManagerWidgetAccordionItems = () => {
 	);
 
 	function formatConsentName(name: AllConsentNames) {
-		return name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+		return name
+			.replace(/_/g, ' ')
+			.replace(/\b\w/g, (c: string) => c.toUpperCase());
 	}
 
 	const { consentTypes } = useTranslations();
-	return getDisplayedConsents().map((consent) => (
+	return getDisplayedConsents().map((consent: ConsentType) => (
 		<ConsentManagerWidgetAccordionItem
 			value={consent.name}
 			key={consent.name}

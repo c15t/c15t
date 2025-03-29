@@ -1,5 +1,3 @@
-// client/types.ts
-
 /**
  * Configuration options for initializing a c15t client.
  *
@@ -133,7 +131,11 @@ export interface c15tClientOptions {
  * };
  * ```
  */
-export interface FetchOptions<ResponseType = unknown> {
+export interface FetchOptions<
+	ResponseType = unknown,
+	BodyType = unknown,
+	QueryType = unknown,
+> {
 	/**
 	 * HTTP method for the request.
 	 *
@@ -157,7 +159,7 @@ export interface FetchOptions<ResponseType = unknown> {
 	 * };
 	 * ```
 	 */
-	body?: Record<string, unknown>;
+	body?: BodyType;
 
 	/**
 	 * Query parameters to include in the request URL.
@@ -176,7 +178,7 @@ export interface FetchOptions<ResponseType = unknown> {
 	 * };
 	 * ```
 	 */
-	query?: Record<string, string | number | boolean | string[] | undefined>;
+	query?: QueryType;
 
 	/**
 	 * Custom headers to include with this specific request.

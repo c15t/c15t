@@ -41,7 +41,6 @@ export default function App() {
         </div>
     );
 }`,
-
 	'AccessibleModal.tsx': `import { useRef, useEffect } from 'react';
 import { useFocusTrap } from '@c15t/react';
 

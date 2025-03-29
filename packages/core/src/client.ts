@@ -1,5 +1,57 @@
-import type { ConsentPurpose } from '~/schema/consent-purpose';
 import type { FetchOptions, ResponseContext, c15tClientOptions } from './types';
+
+import type {
+	SetConsentRequest,
+	SetConsentResponse,
+	ShowConsentBannerResponse,
+	VerifyConsentRequest,
+	VerifyConsentResponse,
+} from '@c15t/backend';
+
+/**
+ * Default consent banner API URL
+ */
+const DEFAULT_API_BASE_URL = '/api/c15t';
+
+/**
+ * Regex pattern to detect absolute URLs (with protocol)
+ */
+const ABSOLUTE_URL_REGEX = /^https?:\/\//i;
+
+/**
+ * Regex pattern to remove trailing slashes
+ */
+const TRAILING_SLASHES_REGEX = /\/+$/;
+
+/**
+ * Regex pattern to remove leading slashes
+ */
+const LEADING_SLASHES_REGEX = /^\/+/;
+
+/**
+ * API endpoint paths
+ */
+const API_ENDPOINTS = {
+	/**
+	 * Path for the consent banner information endpoint
+	 */
+	SHOW_CONSENT_BANNER: '/show-consent-banner',
+
+	/**
+	 * Path for listing consent purposes
+	 */
+	LIST_PURPOSES: '/list-purposes',
+
+	/**
+	 * Path for setting consent
+	 */
+	SET_CONSENT: '/consent/set',
+
+	/**
+	 * Path for verifying consent
+	 */
+	VERIFY_CONSENT: '/consent/verify',
+};
 
 /**
  * Client for interacting with the c15t consent management API.
@@ -15,7 +67,7 @@ import type { FetchOptions, ResponseContext, c15tClientOptions } from './types';
  *
  * @example
  * ```typescript
- * import { createConsentClient } from '@c15t/client';
+ * import { createConsentClient } from '@c15t/core';
  *
  * const client = createConsentClient({
  *   baseURL: 'https://example.com/api',
@@ -74,6 +126,34 @@ export class c15tClient {
 	}
 
 	/**
+	 * Resolves a URL path against a base URL, handling both absolute and relative base URLs.
+	 *
+	 * @param baseURL - The base URL (can be absolute or relative)
+	 * @param path - The path to append
+	 * @returns The resolved URL string
+	 */
+	private resolveUrl(baseURL: string, path: string): string {
+		// Case 1: baseURL is already an absolute URL (includes protocol)
+		if (ABSOLUTE_URL_REGEX.test(baseURL)) {
+			try {
+				return new URL(path, baseURL).toString();
+			} catch {
+				// Fallback to string concatenation if URL constructor fails
+				const cleanBase = baseURL.replace(TRAILING_SLASHES_REGEX, '');
+				const cleanPath = path.replace(LEADING_SLASHES_REGEX, '');
+				return `${cleanBase}/${cleanPath}`;
+			}
+		}
+
+		// Case 2: baseURL is relative (like '/api/c15t')
+		// For relative URLs, we use string concatenation with proper slash handling
+		const cleanBase = baseURL.replace(TRAILING_SLASHES_REGEX, ''); // Remove trailing slashes
+		const cleanPath = path.replace(LEADING_SLASHES_REGEX, ''); // Remove leading slashes
+
+		return `${cleanBase}/${cleanPath}`;
+	}
+
+	/**
 	 * Generic method for making HTTP requests to the API.
 	 *
 	 * This internal method handles constructing the request, processing the response,
@@ -87,12 +167,22 @@ export class c15tClient {
 	 * @throws Will throw an error if options.throw is true and the request fails
 	 * @internal This method is not intended to be used directly, use the public API methods instead
 	 */
-	private async fetcher<ResponseType>(
+	private async fetcher<ResponseType, BodyType = unknown, QueryType = unknown>(
 		path: string,
-		options: FetchOptions<ResponseType> = {}
+		options: FetchOptions<ResponseType, BodyType, QueryType> = {}
 	): Promise<ResponseContext<ResponseType>> {
 		try {
-			const url = new URL(path, this.baseURL);
+			// Use the resolveUrl method instead of direct URL construction
+			const urlString = this.resolveUrl(this.baseURL, path);
+
+			// Create URL object for search params (this should work even with relative URLs
+			// since we're creating it in the browser context)
+			const url = new URL(
+				urlString,
+				typeof window !== 'undefined'
+					? window.location.href
+					: 'http://localhost'
+			);
 
 			// Add query parameters
 			if (options.query) {
@@ -115,6 +205,9 @@ export class c15tClient {
 					...this.headers,
 					...options.headers,
 				},
+				mode: 'no-cors',
+				// credentials: 'include', // Include cookies in requests
+				// mode: 'cors', // Enable CORS
 			};
 
 			// Add body for non-GET requests
@@ -218,152 +311,6 @@ export class c15tClient {
 		}
 	}
 
-	// /**
-	//  * Retrieves the current consent preferences.
-	//  *
-	//  * This method fetches the current consent settings for the subject,
-	//  * including which purposes they have consented to and when the
-	//  * consent was last updated.
-	//  *
-	//  * @example
-	//  * ```typescript
-	//  * const { data, error } = await client.getConsent();
-	//  *
-	//  * if (data) {
-	//  *   console.log('Subject consented to analytics:', data.preferences.analytics);
-	//  *   console.log('Consent last updated:', data.updatedAt);
-	//  * }
-	//  * ```
-	//  *
-	//  * @param options - Optional fetch configuration options
-	//  * @returns Response context containing the consent preferences if successful
-	//  */
-	// async getConsent(
-	// 	options?: FetchOptions<ConsentPreference>
-	// ): Promise<ResponseContext<ConsentPreference>> {
-	// 	return this.fetcher<ConsentPreference>('/get-consent', {
-	// 		method: 'GET',
-	// 		...options,
-	// 	});
-	// }
-
-	/**
-	 * Lists all available consent purposes.
-	 *
-	 * This method retrieves all consent purposes configured in the system,
-	 * including their IDs, names, descriptions, and whether they are required
-	 * or optional.
-	 *
-	 * @throws Will throw an error if options.throw is true and the request fails
-	 *
-	 * @example
-	 * ```typescript
-	 * const { data, error } = await client.listPurposes();
-	 *
-	 * if (error) {
-	 *   console.error('Failed to fetch purposes:', error.message);
-	 *   return;
-	 * }
-	 *
-	 * if (data) {
-	 *   // Display available consent purposes to the subject
-	 *   data.forEach(consentPurpose => {
-	 *     console.log(`${consentPurpose.name}: ${consentPurpose.description}`);
-	 *     console.log(`Required: ${consentPurpose.required}`);
-	 *   });
-	 * }
-	 * ```
-	 *
-	 * @param options - Optional fetch configuration options
-	 * @returns Response context containing the list of consent purposes if successful
-	 */
-	async listPurposes(
-		options?: FetchOptions<ConsentPurpose[]>
-	): Promise<ResponseContext<ConsentPurpose[]>> {
-		return this.fetcher<ConsentPurpose[]>('/list-purposes', {
-			method: 'GET',
-			...options,
-		});
-	}
-
-	// /**
-	//  * Updates the subject's consent preferences.
-	//  *
-	//  * This method sends the subject's updated consent choices to the server,
-	//  * recording which purposes they have agreed to and which they have declined.
-	//  *
-	//  * @example
-	//  * ```typescript
-	//  * const { data, error } = await client.updateConsent({
-	//  *   analytics: true,
-	//  *   marketing: false,
-	//  *   preferences: true
-	//  * });
-	//  *
-	//  * if (data) {
-	//  *   console.log('Consent updated successfully');
-	//  *   console.log('New preferences:', data.preferences);
-	//  * }
-	//  * ```
-	//  *
-	//  * @param preferences - Record mapping consentPurpose IDs to boolean consent values
-	//  * @param options - Optional fetch configuration options
-	//  * @returns Response context containing the updated consent preferences if successful
-	//  */
-	// async updateConsent(
-	// 	preferences: Record<string, boolean>,
-	// 	options?: FetchOptions<ConsentPreference>
-	// ): Promise<ResponseContext<ConsentPreference>> {
-	// 	return this.fetcher<ConsentPreference>('/update-consent', {
-	// 		method: 'POST',
-	// 		body: { preferences },
-	// 		...options,
-	// 	});
-	// }
-
-	// /**
-	//  * Retrieves the history of consent changes.
-	//  *
-	//  * This method fetches a chronological record of consent preference changes,
-	//  * showing when and how consent settings were modified.
-	//  *
-	//  * @example
-	//  * ```typescript
-	//  * // Get consent history for a specific subject
-	//  * const { data } = await client.getConsentHistory({
-	//  *   subjectId: 'sub_x1pftyoufsm7xgo1kv',
-	//  *   limit: 10
-	//  * });
-	//  *
-	//  * if (data) {
-	//  *   data.forEach(event => {
-	//  *     console.log(`Change at ${event.timestamp}`);
-	//  *     console.log(`Changed purposes: ${Object.keys(event.changes).join(', ')}`);
-	//  *   });
-	//  * }
-	//  * ```
-	//  *
-	//  * @param query - Query parameters to filter the history results
-	//  * @param options - Optional fetch configuration options
-	//  * @returns Response context containing the list of consent change events if successful
-	//  */
-	// async getConsentHistory(
-	// 	query?: {
-	// 		recordId?: string;
-	// 		subjectId?: string;
-	// 		deviceId?: string;
-	// 		limit?: number;
-	// 		offset?: number;
-	// 	},
-	// 	options?: FetchOptions<ConsentChangeEvent[]>
-	// ): Promise<ResponseContext<ConsentChangeEvent[]>> {
-	// 	return this.fetcher<ConsentChangeEvent[]>('/consent-history', {
-	// 		method: 'GET',
-	// 		query,
-	// 		...options,
-	// 	});
-	// }
-
 	/**
 	 * Makes a custom API request to any endpoint.
 	 *
@@ -403,11 +350,139 @@ export class c15tClient {
 	 * });
 	 * ```
 	 */
-	async $fetch<ResponseType>(
+	async $fetch<ResponseType, BodyType, QueryType>(
 		path: string,
-		options?: FetchOptions<ResponseType>
+		options?: FetchOptions<ResponseType, BodyType, QueryType>
 	): Promise<ResponseContext<ResponseType>> {
-		return this.fetcher<ResponseType>(path, options);
+		return this.fetcher<ResponseType, BodyType, QueryType>(path, options);
+	}
+
+	/**
+	 * Checks if a consent banner should be shown based on the user's location.
+	 *
+	 * This method determines whether a consent banner should be displayed
+	 * based on the user's location and applicable privacy regulations.
+	 *
+	 * @example
+	 * ```typescript
+	 * const { data, error } = await client.showConsentBanner();
+	 *
+	 * if (data) {
+	 *   if (data.showConsentBanner) {
+	 *     console.log(`Banner required due to ${data.jurisdiction.code}: ${data.jurisdiction.message}`);
+	 *     console.log(`User location: ${data.location.countryCode}`);
+	 *     showConsentBanner();
+	 *   } else {
+	 *     console.log('No consent banner required in this jurisdiction');
+	 *   }
+	 * }
+	 * ```
+	 *
+	 * @param options - Optional fetch configuration options
+	 * @returns Response context containing the consent banner information if successful
+	 */
+	async showConsentBanner(
+		options?: FetchOptions<ShowConsentBannerResponse>
+	): Promise<ResponseContext<ShowConsentBannerResponse>> {
+		return this.fetcher<ShowConsentBannerResponse>(
+			API_ENDPOINTS.SHOW_CONSENT_BANNER,
+			{
+				method: 'GET',
+				...options,
+			}
+		);
+	}
+
+	/**
+	 * Sets consent preferences for a subject.
+	 *
+	 * This method allows setting different types of consent including cookie preferences,
+	 * privacy policy acceptance, marketing preferences, etc.
+	 *
+	 * @example
+	 * ```typescript
+	 * // Set cookie banner preferences
+	 * const { data } = await client.setConsent({
+	 *   type: 'cookie_banner',
+	 *   domain: 'example.com',
+	 *   preferences: {
+	 *     analytics: true,
+	 *     marketing: false,
+	 *     necessary: true
+	 *   }
+	 * });
+	 *
+	 * // Accept privacy policy
+	 * const { data } = await client.setConsent({
+	 *   type: 'privacy_policy',
+	 *   domain: 'example.com',
+	 *   policyId: 'pol_xyz789',
+	 *   metadata: {
+	 *     source: 'account_creation',
+	 *     acceptanceMethod: 'checkbox'
+	 *   }
+	 * });
+	 * ```
+	 *
+	 * @param request - The consent request data
+	 * @param options - Optional fetch configuration
+	 * @returns Response containing the created consent record
+	 */
+	async setConsent(
+		options?: FetchOptions<SetConsentResponse, SetConsentRequest>
+	): Promise<ResponseContext<SetConsentResponse>> {
+		return this.fetcher<SetConsentResponse, SetConsentRequest>(
+			API_ENDPOINTS.SET_CONSENT,
+			{
+				method: 'POST',
+				...options,
+			}
+		);
+	}
+
+	/**
+	 * Verifies if valid consent exists for a given subject, domain, and consent type.
+	 *
+	 * This method checks if the subject has given valid consent for specific purposes
+	 * or policies. It can verify both cookie banner consent and policy-based consent.
+	 *
+	 * @example
+	 * ```typescript
+	 * // Verify cookie banner consent
+	 * const { data } = await client.verifyConsent({
+	 *   type: 'cookie_banner',
+	 *   domain: 'example.com',
+	 *   preferences: ['marketing', 'analytics']
+	 * });
+	 *
+	 * if (data?.isValid) {
+	 *   console.log('Consent is valid');
+	 * } else {
+	 *   console.log('Consent is invalid:', data?.reasons);
+	 * }
+	 *
+	 * // Verify privacy policy consent
+	 * const { data } = await client.verifyConsent({
+	 *   type: 'privacy_policy',
+	 *   domain: 'example.com',
+	 *   policyId: 'pol_xyz789'
+	 * });
+	 * ```
+	 *
+	 * @param request - The verify consent request data
+	 * @param options - Optional fetch configuration
+	 * @returns Response indicating if the consent is valid and any failure reasons
+	 */
+	async verifyConsent(
+		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequest>
+	): Promise<ResponseContext<VerifyConsentResponse>> {
+		return this.fetcher<VerifyConsentResponse, VerifyConsentRequest>(
+			API_ENDPOINTS.VERIFY_CONSENT,
+			{
+				method: 'POST',
+				...options,
+			}
+		);
 	}
 }
 
@@ -422,7 +497,7 @@ export class c15tClient {
  *
  * @example
  * ```typescript
- * import { createConsentClient } from '@c15t/client';
+ * import { createConsentClient } from '@c15t/core';
  *
  * // Create a client for your application
  * const client = createConsentClient({
@@ -436,36 +511,17 @@ export class c15tClient {
  *     customFetchImpl: customFetch
  *   }
  * });
- *
- * // Use the client in your application
- * async function handleConsentFlow() {
- *   // Get available purposes
- *   const { data: purposes, error } = await client.listPurposes();
- *
- *   if (error) {
- *     console.error('Failed to load consent purposes:', error.message);
- *     return;
- *   }
- *
- *   // Display purposes to subject and collect their choices
- *   // ...
- *
- *   // Then update their consent
- *   const userChoices = {
- *     analytics: true,
- *     marketing: false
- *   };
- *
- *   await client.$fetch('/update-consent', {
- *     method: 'POST',
- *     body: { preferences: userChoices }
- *   });
- * }
  * ```
  *
  * @param options - Configuration options for the client
  * @returns A new c15tClient instance
  */
 export function createConsentClient(options: c15tClientOptions): c15tClient {
-	return new c15tClient(options);
+	// If no baseURL provided, use the default
+	const clientOptions = {
+		...options,
+		baseURL: options.baseURL || DEFAULT_API_BASE_URL,
+	};
+
+	return new c15tClient(clientOptions);
 }

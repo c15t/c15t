@@ -145,5 +145,21 @@ function checkJurisdiction(countryCode: string | null) {
 		}
 	}
 
-	return { showConsentBanner, jurisdictionCode, message };
+	return {
+		showConsentBanner,
+		jurisdictionCode,
+		message,
+	};
 }
+
+export type ShowConsentBannerResponse = {
+	showConsentBanner: boolean;
+	jurisdiction: {
+		code: string;
+		message: string;
+	};
+	location: {
+		countryCode: string;
+		regionCode: string;
+	};
+};

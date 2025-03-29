@@ -8,6 +8,7 @@ import {
 import { RootProvider } from 'fumadocs-ui/provider';
 import { Fira_Mono, Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
+import { c15tClient } from '~/c15t-client';
 import { cn } from '~/lib/cn';
 import { SandPackCSS } from './styles/sandpack-styles';
 
@@ -34,7 +35,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 			</head>
 			<body className="flex min-h-screen flex-col">
 				<RootProvider>
-					<ConsentManagerProvider initialGdprTypes={['necessary', 'marketing']}>
+					<ConsentManagerProvider client={c15tClient}>
 						<CookieBanner />
 						<ConsentManagerDialog />
 						{process.env.NODE_ENV === 'development' && <C15TDevTools />}

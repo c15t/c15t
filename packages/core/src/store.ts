@@ -5,24 +5,21 @@
  */
 
 import { createStore } from 'zustand/vanilla';
+import { createConsentClient } from './client';
 import {
 	getEffectiveConsents,
 	hasConsentFor,
 	hasConsented,
 } from './libs/consent-utils';
-import {
-	DEFAULT_CONSENT_BANNER_API_URL,
-	fetchConsentBannerInfo as fetchConsentBanner,
-} from './libs/fetch-consent-banner';
 import { createTrackingBlocker } from './libs/tracking-blocker';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
 import { initialState } from './store.initial-state';
 import type { PrivacyConsentState } from './store.type';
-import {
-	type ConsentState,
-	type TranslationConfig,
-	consentTypes,
-} from './types';
+
+import type { ShowConsentBannerResponse } from '@c15t/backend';
+import type { ConsentState } from './types/compliance';
+import { consentTypes } from './types/gdpr';
+import type { TranslationConfig } from './types/translations';
 
 /** Storage key for persisting consent data in localStorage */
 const STORAGE_KEY = 'privacy-consent-storage';
@@ -43,6 +40,7 @@ interface StoredConsent {
 	} | null;
 }
 
+const DEFAULT_API_BASE_URL = '/api/c15t';
 /**
  * Retrieves stored consent data from localStorage.
  *
@@ -56,23 +54,48 @@ interface StoredConsent {
  * @internal
  */
 const getStoredConsent = (): StoredConsent | null => {
-	if (typeof window === 'undefined') return null;
+	if (typeof window === 'undefined') {
+		return null;
+	}
 
 	const stored = localStorage.getItem(STORAGE_KEY);
-	if (!stored) return null;
+	if (!stored) {
+		return null;
+	}
 
 	try {
 		return JSON.parse(stored);
 	} catch (e) {
+		// biome-ignore lint/suspicious/noConsole: <explanation>
 		console.error('Failed to parse stored consent:', e);
 		return null;
 	}
 };
 
-interface StoreConfig {
+/**
+ * Configuration options for the consent manager store.
+ *
+ * @remarks
+ * These options control the behavior of the store,
+ * including tracking blocker configuration and API endpoints.
+ *
+ * @public
+ */
+export interface StoreConfig {
+	/**
+	 * Configuration for the tracking blocker.
+	 */
 	trackingBlockerConfig?: TrackingBlockerConfig;
-	/** URL to fetch consent banner information from */
+
+	/**
+	 * URL to fetch consent banner information from.
+	 */
 	consentBannerApiUrl?: string;
+
+	/**
+	 * Base URL for the consent client.
+	 */
+	apiBaseURL?: string;
 }
 
 /**
@@ -240,13 +263,7 @@ export const createConsentManagerStore = (
 		 * 5. Triggers callbacks
 		 */
 		saveConsents: (type) => {
-			const {
-				callbacks,
-				updateConsentMode,
-				consents,
-				consentTypes,
-				includeNonDisplayedConsents,
-			} = get();
+			const { callbacks, updateConsentMode, consents, consentTypes } = get();
 			const newConsents = { ...consents };
 			if (type === 'all') {
 				for (const consent of consentTypes) {
@@ -376,18 +393,12 @@ export const createConsentManagerStore = (
 		/**
 		 * Fetches consent banner information from the API and updates the store.
 		 *
-		 * @param url - The URL to fetch consent banner information from
-		 * @returns A promise that resolves when the fetch is complete
-		 *
-		 * @remarks
-		 * This function:
-		 * 1. Fetches consent banner information from the API
-		 * 2. Updates the store with the location and jurisdiction information
-		 * 3. Sets the showPopup state based on the API response
-		 * 4. Updates the detected country based on the location information
-		 * 5. Prevents multiple simultaneous requests
+		 * @param url - Optional custom URL to fetch consent banner information from
+		 * @returns A promise that resolves with the consent banner response when the fetch is complete
 		 */
-		fetchConsentBannerInfo: async (url) => {
+		fetchConsentBannerInfo: async (
+			url?: string
+		): Promise<ShowConsentBannerResponse | undefined> => {
 			// Skip if not in browser environment
 			if (typeof window === 'undefined') {
 				return undefined;
@@ -403,53 +414,64 @@ export const createConsentManagerStore = (
 			// Set loading state to true
 			set({ isLoadingConsentInfo: true });
 
-			// Use the extracted fetchConsentBanner function
+			// Create a client for this request
+			const client = createConsentClient({
+				baseURL: url || config?.apiBaseURL || DEFAULT_API_BASE_URL,
+			});
+
 			try {
-				const apiUrl =
-					url || config?.consentBannerApiUrl || DEFAULT_CONSENT_BANNER_API_URL;
+				// Make the API request
+				const { data, error } = await client.showConsentBanner();
 
-				return await fetchConsentBanner(
-					get().hasConsented,
-					(data) => {
-						// Update store with location and jurisdiction information
-						// and set showPopup based on API response
-						set({
-							locationInfo: data.location,
-							jurisdictionInfo: data.jurisdiction,
-							isLoadingConsentInfo: false,
-							// Only update showPopup if we don't have stored consent
-							...(get().consentInfo === null
-								? { showPopup: data.showConsentBanner }
-								: {}),
-						});
+				if (error) {
+					throw new Error(
+						`Failed to fetch consent banner info: ${error.message}`
+					);
+				}
 
-						// Update detected country if location information is available
-						if (data.location?.countryCode) {
-							get().setDetectedCountry(data.location.countryCode);
-						}
+				if (!data) {
+					throw new Error('No data returned from consent banner API');
+				}
 
-						// Call the onLocationDetected callback if it exists
-						get().callbacks.onLocationDetected?.(data.location);
-					},
-					(errorMessage) => {
-						// Set loading state to false on error
-						set({ isLoadingConsentInfo: false });
+				// Update store with location and jurisdiction information
+				// and set showPopup based on API response
+				set({
+					locationInfo: data.location,
+					jurisdictionInfo: data.jurisdiction,
+					isLoadingConsentInfo: false,
+					// Only update showPopup if we don't have stored consent
+					...(get().consentInfo === null
+						? { showPopup: data.showConsentBanner }
+						: {}),
+				});
 
-						// Call the onError callback if it exists
-						get().callbacks.onError?.(errorMessage);
+				// Update detected country if location information is available
+				if (data.location?.countryCode) {
+					get().setDetectedCountry(data.location.countryCode);
+				}
 
-						// If fetch fails, default to showing the banner to be safe
-						if (get().consentInfo === null) {
-							set({ showPopup: true });
-						}
-					},
-					apiUrl
-				);
+				// Call the onLocationDetected callback if it exists
+				get().callbacks.onLocationDetected?.(data.location);
+
+				return data;
 			} catch (error) {
-				// This catch block should not be reached as errors are handled in the fetchConsentBanner function
-				// But we keep it as a safety measure
-				console.error('Unexpected error in fetchConsentBannerInfo:', error);
+				console.error('Error fetching consent banner information:', error);
+
+				// Set loading state to false on error
 				set({ isLoadingConsentInfo: false });
+
+				// Call the onError callback if it exists
+				const errorMessage =
+					error instanceof Error
+						? error.message
+						: 'Unknown error fetching consent banner information';
+				get().callbacks.onError?.(errorMessage);
+
+				// If fetch fails, default to showing the banner to be safe
+				if (get().consentInfo === null) {
+					set({ showPopup: true });
+				}
+
 				return undefined;
 			}
 		},

@@ -57,10 +57,8 @@ export default defineConfig({
 		entry: {
 			index: ['./src/index.ts'],
 			'schema/index': ['./src/schema/index.ts'],
-			'client/index': ['./src/client/index.ts'],
 			'integrations/index': ['./src/integrations/index.ts'],
 			'integrations/next': ['./src/integrations/next.ts'],
-			'integrations/react': ['./src/integrations/react.ts'],
 			'pkgs/data-model/fields/index': ['./src/pkgs/data-model/fields/index.ts'],
 			'pkgs/data-model/index': ['./src/pkgs/data-model/index.ts'],
 			'pkgs/data-model/schema/index': ['./src/pkgs/data-model/schema/index.ts'],

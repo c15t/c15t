@@ -3,6 +3,7 @@
 import {
 	type ComplianceRegion,
 	type PrivacyConsentState,
+	type StoreConfig,
 	createConsentManagerStore,
 	defaultTranslationConfig,
 } from 'c15t';
@@ -14,18 +15,23 @@ import {
 	mergeTranslationConfigs,
 } from '../utils/translations';
 
-import { GlobalThemeContext } from '~/context/theme-context';
+import { GlobalThemeContext } from '../context/theme-context';
 import { useColorScheme } from '../hooks/use-color-scheme';
+/**
+ * @packageDocumentation
+ * Provider component for consent management functionality.
+ */
+
 /**
  * Provider component for consent management functionality.
  *
  * @remarks
  * This component initializes and manages the consent management system, including:
  * - Setting up the consent store with initial configuration
+ * - Using the provided API client instance
  * - Detecting user's region for compliance
  * - Managing consent state updates
  * - Providing access to consent management throughout the app
- * - Injecting default styles (unless noStyle is true)
  *
  * @public
  */
@@ -37,6 +43,7 @@ export function ConsentManagerProvider({
 	noStyle = false,
 	translationConfig,
 	trackingBlockerConfig,
+	client,
 	theme,
 	disableAnimation = false,
 	scrollLock = false,
@@ -58,9 +65,13 @@ export function ConsentManagerProvider({
 
 	// Create a stable reference to the store with prepared translation config
 	const store = useMemo(() => {
-		const store = createConsentManagerStore(namespace, {
+		// Create the store
+		const storeConfig: StoreConfig = {
 			trackingBlockerConfig,
-		});
+		};
+
+		const store = createConsentManagerStore(namespace, storeConfig);
+
 		// Set translation config immediately
 		store.getState().setTranslationConfig(preparedTranslationConfig);
 
@@ -96,7 +107,7 @@ export function ConsentManagerProvider({
 		setDetectedCountry(country);
 
 		// Subscribe to state changes
-		const unsubscribe = store.subscribe((newState) => {
+		const unsubscribe = store.subscribe((newState: PrivacyConsentState) => {
 			setState(newState);
 		});
 
@@ -111,8 +122,9 @@ export function ConsentManagerProvider({
 		() => ({
 			state,
 			store,
+			client,
 		}),
-		[state, store]
+		[state, store, client]
 	);
 
 	// Pass theme context values

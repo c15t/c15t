@@ -1,38 +1,29 @@
-// CookieBanner
+// Export components
 export { CookieBanner } from './components/cookie-banner/cookie-banner';
 export type { CookieBannerProps } from './components/cookie-banner/cookie-banner';
-export type { CookieBannerTheme } from './components/cookie-banner/theme';
-
-// ConsentManagerDialog
-export { ConsentManagerDialog } from './components/consent-manager-dialog/consent-manager-dialog';
-export type { ConsentManagerDialogProps } from './components/consent-manager-dialog/consent-manager-dialog';
-export type { ConsentManagerDialogTheme } from './components/consent-manager-dialog/theme';
-
-// ConsentManagerWidget
 export { ConsentManagerWidget } from './components/consent-manager-widget/consent-manager-widget';
 export type { ConsentManagerWidgetProps } from './components/consent-manager-widget/types';
-export type { ConsentManagerWidgetTheme } from './components/consent-manager-widget/theme';
-
-// Hooks
-export * from '~/hooks';
-
-// Providers
+export { ConsentManagerDialog } from './components/consent-manager-dialog/consent-manager-dialog';
+export type { ConsentManagerDialogProps } from './components/consent-manager-dialog/consent-manager-dialog';
 export { ConsentManagerProvider } from './providers/consent-manager-provider';
 
-// Types
-export type { ThemeValue, ClassNameStyle } from './types/theme';
+// Export hooks
+export { useConsentManager } from './hooks/use-consent-manager';
+export { useTranslations } from './hooks/use-translations';
+export { useColorScheme } from './hooks/use-color-scheme';
+
+// Export new client hook
+export { useConsentClient } from './hooks/use-consent-client';
+
+// Export client
+export {
+	createConsentClient,
+	type c15tClient,
+	type c15tClientOptions,
+} from 'c15t';
+
+// Export types
 export type { ConsentManagerProviderProps } from './types/consent-manager';
 
-// Re-export types and constants
-export { consentTypes } from 'c15t';
-export type {
-	CallbackFunction,
-	Callbacks,
-	AllConsentNames,
-	ConsentType,
-	ConsentState,
-	ComplianceRegion,
-	ComplianceSettings,
-	PrivacySettings,
-	HasConsentedProps,
-} from 'c15t';
+// Export utilities
+export * from './utils/translations';

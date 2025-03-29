@@ -3,7 +3,7 @@ import { C15T_ERROR_CODES } from '~/error-codes';
 import { createSDKEndpoint } from '~/pkgs/api-router';
 import type { Adapter } from '~/pkgs/db-adapters';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
-import type { Consent, ConsentRecord } from '~/schema';
+import type { Consent, ConsentRecord, PolicyType } from '~/schema';
 import { PolicyTypeSchema } from '~/schema/consent-policy';
 import type { C15TContext } from '~/types';
 
@@ -42,10 +42,19 @@ const setConsentSchema = z.discriminatedUnion('type', [
 ]);
 
 export interface SetConsentResponse {
-	success: boolean;
-	consentId: string;
-	timestamp: string;
+	id: string;
+	subjectId: string;
+	externalSubjectId: string | undefined;
+	domainId: string;
+	domain: string;
+	type: PolicyType;
+	status: string;
+	recordId: string;
+	metadata: Record<string, unknown>;
+	givenAt: string;
 }
+
+export type SetConsentRequest = z.infer<typeof setConsentSchema>;
 
 /**
  * Endpoint for creating a new consent record.

@@ -1,3 +1,4 @@
+import { createConsentClient } from 'c15t';
 import type { ReactNode } from 'react';
 import { expect } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -12,6 +13,9 @@ interface ComponentStyles {
 	}[];
 	noStyle?: boolean;
 }
+const c15tClient = createConsentClient({
+	baseURL: '/api/c15t',
+});
 
 async function testComponentStyles({
 	component,
@@ -19,7 +23,9 @@ async function testComponentStyles({
 	noStyle = false,
 }: ComponentStyles) {
 	const { getByTestId } = render(
-		<ConsentManagerProvider>{component}</ConsentManagerProvider>
+		<ConsentManagerProvider client={c15tClient}>
+			{component}
+		</ConsentManagerProvider>
 	);
 
 	for (const { testId, styles } of testCases) {
