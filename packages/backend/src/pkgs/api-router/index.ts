@@ -8,8 +8,8 @@ import {
 } from 'h3';
 import { routes } from '~/routes';
 import type { RouterProps } from './types';
-import { getIp } from './utils/ip';
 import { isOriginTrusted } from './utils/cors';
+import { getIp } from './utils/ip';
 
 export { defineRoute } from './utils/define-route';
 
