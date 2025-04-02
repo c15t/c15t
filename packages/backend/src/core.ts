@@ -136,7 +136,7 @@ export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
  * ```
  */
 export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
-	options: C15TOptions<PluginTypes>
+	options: C15TOptions<PluginTypes> & { trustedOrigins: string[] }
 ): C15TInstance<PluginTypes> => {
 	const contextPromise = init(options as C15TOptions);
 	let apiHandler: ((request: Request) => Promise<Response>) | null = null;
@@ -165,16 +165,8 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 				ctx.baseURL = baseURL;
 			}
 
-			// Extract trusted origins logic to avoid nested ternaries
-			let originsFromOptions: string[] = [];
-			if (options.trustedOrigins) {
-				originsFromOptions = Array.isArray(options.trustedOrigins)
-					? options.trustedOrigins
-					: options.trustedOrigins(new Request(ctx.baseURL));
-			}
-
-			ctx.trustedOrigins = [
-				...originsFromOptions,
+			const trustedOrigins = [
+				...(options.trustedOrigins || []),
 				ctx.options.baseURL || '',
 				ctx.baseURL || '',
 			].filter(Boolean);
@@ -183,7 +175,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 				options: ctx.options,
 				context: {
 					adapter: ctx.adapter,
-					trustedOrigins: ctx.trustedOrigins,
+					trustedOrigins: trustedOrigins,
 					registry: ctx.registry,
 				},
 			});

@@ -9,6 +9,7 @@ import {
 import { routes } from '~/routes';
 import type { RouterProps } from './types';
 import { getIp } from './utils/ip';
+import { isOriginTrusted } from './utils/cors';
 
 export { defineRoute } from './utils/define-route';
 
@@ -27,9 +28,13 @@ export function createApiHandler({ options, context }: RouterProps) {
 	const corsHandler = defineEventHandler((event: H3Event) => {
 		if (
 			handleCors(event, {
-				origin: '*',
+				origin: (origin: string) => {
+					return isOriginTrusted(origin, context.trustedOrigins);
+				},
 				methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
 				allowHeaders: ['Content-Type', 'Authorization'],
+				credentials: true, // Allow credentials if needed
+				maxAge: '600', // Cache preflight requests for 10 minutes
 			})
 		) {
 			return;

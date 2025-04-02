@@ -9,12 +9,13 @@ const app = new Hono();
 
 app.on(['POST', 'GET', 'OPTIONS', 'HEAD'], '/*', async (c) => {
 	try {
-		const { TURSO_DATABASE_URL, TURSO_AUTH_TOKEN } = env<{
+		const { TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, TRUSTED_ORIGINS } = env<{
 			TURSO_DATABASE_URL: string;
 			TURSO_AUTH_TOKEN: string;
+			TRUSTED_ORIGINS: string;
 		}>(c);
 
-		if (!TURSO_DATABASE_URL || !TURSO_AUTH_TOKEN) {
+		if (!TURSO_DATABASE_URL || !TURSO_AUTH_TOKEN || !TRUSTED_ORIGINS) {
 			return new Response(
 				JSON.stringify({
 					error: true,
@@ -29,15 +30,13 @@ app.on(['POST', 'GET', 'OPTIONS', 'HEAD'], '/*', async (c) => {
 				}
 			);
 		}
-
 		const c15t = c15tInstance({
-			// secret: process.env.C15T_SECRET,
-			// baseURL: process.env.C15T_BASE_URL,
 			database: new LibsqlDialect({
 				url: TURSO_DATABASE_URL,
 				authToken: TURSO_AUTH_TOKEN,
 			}),
 			basePath: '/',
+			trustedOrigins: JSON.parse(TRUSTED_ORIGINS),
 		});
 
 		const result = await c15t.handler(c.req.raw);
@@ -53,6 +52,7 @@ app.on(['POST', 'GET', 'OPTIONS', 'HEAD'], '/*', async (c) => {
 					{
 						status: error.status || 500,
 						headers: {
+							...c.res.headers,
 							'Content-Type': 'application/json',
 						},
 					}
