@@ -7,12 +7,6 @@
  */
 
 export type {
-	FilterActions,
-	ApiPath,
-	ApiPathBase,
-	ApiMiddleware,
-} from './api';
-export type {
 	HookEndpointContext,
 	GenericEndpointContext,
 	BaseContext,
@@ -20,5 +14,5 @@ export type {
 	BaseDoubleTieContext,
 } from './context';
 export type { DoubleTieOptions } from './options';
-export type { DoubleTiePlugin, DoubleTiePluginSchema } from './plugins';
 export type { DoubleTieContext } from './context';
+export type { PluginHookContext, PluginHook } from './plugins';

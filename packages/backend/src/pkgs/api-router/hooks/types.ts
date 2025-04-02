@@ -1,5 +1,5 @@
 import type { HookEndpointContext } from '~/pkgs/types';
-import type { DoubleTieMiddleware } from '../core/context';
+import type { DoubleTieMiddleware } from '~/pkgs/types/options';
 
 /**
  * Hook definition for request/response processing in the API pipeline

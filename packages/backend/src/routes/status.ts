@@ -1,4 +1,4 @@
-import { createSDKEndpoint } from '~/pkgs/api-router';
+import { defineRoute } from '~/pkgs/api-router/utils/define-route';
 
 /**
  * Response type for the status endpoint
@@ -41,22 +41,20 @@ export interface StatusResponse {
  * }
  * ```
  */
-export const status = createSDKEndpoint(
-	'/status',
-	{
-		method: 'GET',
-	},
-	async (ctx) => {
+export const status = defineRoute<StatusResponse>({
+	path: '/status',
+	method: 'get',
+	handler: async (event) => {
 		const response: StatusResponse = {
 			status: 'ok',
-			version: '1.0.0',
+			version: '2.0.0',
 			timestamp: new Date().toISOString(),
 			storage: {
-				type: ctx.context?.adapter?.id ?? 'Unavailable',
-				available: !!ctx.context?.adapter,
+				type: event.context.adapter?.id ?? 'Unavailable',
+				available: !!event.context.adapter,
 			},
 		};
 
 		return response;
-	}
-);
+	},
+});

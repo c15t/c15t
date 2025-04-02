@@ -15,9 +15,7 @@ import { createTrackingBlocker } from './libs/tracking-blocker';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
 import { initialState } from './store.initial-state';
 import type { PrivacyConsentState } from './store.type';
-
-import type { ShowConsentBannerResponse } from '@c15t/backend';
-import type { ConsentState } from './types/compliance';
+import type { ConsentBannerResponse, ConsentState } from './types/compliance';
 import { consentTypes } from './types/gdpr';
 import type { TranslationConfig } from './types/translations';
 
@@ -387,7 +385,7 @@ export const createConsentManagerStore = (
 		 * @returns A promise that resolves with the consent banner response when the fetch is complete
 		 */
 		fetchConsentBannerInfo: async (): Promise<
-			ShowConsentBannerResponse | undefined
+			ConsentBannerResponse | undefined
 		> => {
 			// Skip if not in browser environment
 			if (typeof window === 'undefined') {
@@ -421,7 +419,13 @@ export const createConsentManagerStore = (
 				// Update store with location and jurisdiction information
 				// and set showPopup based on API response
 				set({
-					locationInfo: data.location,
+					locationInfo:
+						data.location?.countryCode && data.location?.regionCode
+							? {
+									countryCode: data.location.countryCode,
+									regionCode: data.location.regionCode,
+								}
+							: { countryCode: '', regionCode: '' },
 					jurisdictionInfo: data.jurisdiction,
 					isLoadingConsentInfo: false,
 					// Only update showPopup if we don't have stored consent
@@ -436,10 +440,17 @@ export const createConsentManagerStore = (
 				}
 
 				// Call the onLocationDetected callback if it exists
-				get().callbacks.onLocationDetected?.(data.location);
+				if (data.location?.countryCode && data.location?.regionCode) {
+					get().callbacks.onLocationDetected?.({
+						countryCode: data.location.countryCode,
+						regionCode: data.location.regionCode,
+					});
+				}
 
-				return data;
+				// Type assertion to ensure data matches ConsentBannerResponse type
+				return data as ConsentBannerResponse;
 			} catch (error) {
+				// biome-ignore lint/suspicious/noConsole: <explanation>
 				console.error('Error fetching consent banner information:', error);
 
 				// Set loading state to false on error

@@ -7,7 +7,7 @@ const app = new Hono();
 
 // Initialize c15t instance
 
-app.on(['POST', 'GET'], '/api/c15t/*', async (c) => {
+app.on(['POST', 'GET', 'OPTIONS', 'HEAD'], '/*', async (c) => {
 	try {
 		const { TURSO_DATABASE_URL, TURSO_AUTH_TOKEN } = env<{
 			TURSO_DATABASE_URL: string;
@@ -37,7 +37,7 @@ app.on(['POST', 'GET'], '/api/c15t/*', async (c) => {
 				url: TURSO_DATABASE_URL,
 				authToken: TURSO_AUTH_TOKEN,
 			}),
-			basePath: '/api/c15t',
+			basePath: '/',
 		});
 
 		const result = await c15t.handler(c.req.raw);

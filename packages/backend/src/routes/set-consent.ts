@@ -1,13 +1,13 @@
+import { createError } from 'h3';
 import { z } from 'zod';
-import { C15T_ERROR_CODES } from '~/error-codes';
-import { createSDKEndpoint } from '~/pkgs/api-router';
-import type { Adapter } from '~/pkgs/db-adapters';
-import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
-import type { Consent, ConsentRecord, PolicyType } from '~/schema';
+import { defineRoute } from '~/pkgs/api-router/utils/define-route';
+import type {} from '~/pkgs/data-model';
+import type { Adapter } from '~/pkgs/db-adapters/types';
+import { ERROR_CODES } from '~/pkgs/results';
+import type { Consent } from '~/schema/consent';
 import { PolicyTypeSchema } from '~/schema/consent-policy';
-import type { C15TContext } from '~/types';
+import type { ConsentRecord } from '~/schema/consent-record';
 
-// Base schema for all consent types
 const baseConsentSchema = z.object({
 	subjectId: z.string().optional(),
 	externalSubjectId: z.string().optional(),
@@ -35,7 +35,7 @@ const otherConsentSchema = baseConsentSchema.extend({
 	preferences: z.record(z.boolean()).optional(),
 });
 
-const setConsentSchema = z.discriminatedUnion('type', [
+export const SetConsentRequestBody = z.discriminatedUnion('type', [
 	cookieBannerSchema,
 	policyBasedSchema,
 	otherConsentSchema,
@@ -44,286 +44,200 @@ const setConsentSchema = z.discriminatedUnion('type', [
 export interface SetConsentResponse {
 	id: string;
 	subjectId: string;
-	externalSubjectId: string | undefined;
+	externalSubjectId?: string;
 	domainId: string;
 	domain: string;
-	type: PolicyType;
+	type: z.infer<typeof PolicyTypeSchema>;
 	status: string;
 	recordId: string;
-	metadata: Record<string, unknown>;
+	metadata?: Record<string, unknown>;
 	givenAt: string;
 }
 
-export type SetConsentRequest = z.infer<typeof setConsentSchema>;
-
-/**
- * Endpoint for creating a new consent record.
- *
- * This endpoint allows clients to create a new consent record for a subject. It supports
- * different types of consent:
- * - cookie_banner: For cookie preferences
- * - privacy_policy: For privacy policy acceptance
- * - dpa: For data processing agreement acceptance
- * - terms_and_conditions: For terms and conditions acceptance
- * - marketing_communications: For marketing preferences
- * - age_verification: For age verification
- * - other: For other types of consent
- *
- * @endpoint POST /consents
- * @requestExample
- * ```json
- * // Cookie Banner
- * {
- *   "type": "cookie_banner",
- *   "domain": "example.com",
- *   "preferences": {
- *     "experience": true,
- *     "functionality": true,
- *     "marketing": true,
- *     "measurement": false,
- *     "necessary": true
- *   },
- *   "metadata": {
- *     "source": "banner",
- *     "displayedTo": "subject",
- *     "language": "en-US"
- *   }
- * }
- *
- * // Privacy Policy
- * {
- *   "type": "privacy_policy",
- *   "subjectId": "sub_x1pftyoufsm7xgo1kv",
- *   "domain": "example.com",
- *   "policyId": "pol_xyz789",
- *   "metadata": {
- *     "source": "account_creation",
- *     "acceptanceMethod": "checkbox"
- *   }
- * }
- * ```
- */
-export const setConsent = createSDKEndpoint(
-	'/consent/set',
-	{
-		method: 'POST',
-		body: setConsentSchema,
+export const setConsent = defineRoute({
+	path: '/consent/set',
+	method: 'post',
+	validations: {
+		body: SetConsentRequestBody,
 	},
-	async (ctx) => {
-		try {
-			const body = setConsentSchema.parse(ctx.body);
-			const { type, subjectId, externalSubjectId, domain, metadata } = body;
-			const { registry, adapter } = ctx.context as C15TContext;
+	handler: async (event) => {
+		const { body } = event.context.validated;
+		const { registry, adapter } = event.context;
+		const { type, subjectId, externalSubjectId, domain, metadata } = body;
 
-			// Find or create subject
-			const subject = await registry.findOrCreateSubject({
-				subjectId,
-				externalSubjectId,
-				ipAddress: ctx.context.ipAddress || 'unknown',
-			});
+		const subject = await registry.findOrCreateSubject({
+			subjectId,
+			externalSubjectId,
+			ipAddress: event.context.ipAddress || 'unknown',
+		});
 
-			if (!subject) {
-				throw new DoubleTieError(
-					'A valid Subject ID is required to proceed with the consent operation. Please provide a Subject ID.',
-					{
-						code: ERROR_CODES.MISSING_REQUIRED_PARAMETER,
-						status: 400,
-					}
-				);
-			}
-
-			// Find or create domain
-			const domainRecord = await registry.findOrCreateDomain(domain);
-
-			const now = new Date();
-			let policyId: string | undefined;
-			let purposeIds: string[] = [];
-
-			// Handle policy creation/finding
-			if ('policyId' in body) {
-				const { policyId: pid } = body;
-				policyId = pid;
-
-				if (!policyId) {
-					throw new DoubleTieError(
-						'A valid Policy ID is required to proceed with the consent operation. Please provide a Policy ID.',
-						{
-							code: ERROR_CODES.MISSING_REQUIRED_PARAMETER,
-							status: 400,
-						}
-					);
-				}
-
-				// Verify the policy exists and is active
-				const policy = await registry.findConsentPolicyById(policyId);
-				if (!policy) {
-					throw new DoubleTieError(
-						'The specified consent policy could not be found. Please verify the policy ID and try again.',
-						{
-							code: ERROR_CODES.NOT_FOUND,
-							status: 404,
-						}
-					);
-				}
-				if (!policy.isActive) {
-					throw new DoubleTieError(
-						'The consent policy is no longer active and cannot be used. Please use an active policy version.',
-						{
-							code: ERROR_CODES.CONFLICT,
-							status: 409,
-						}
-					);
-				}
-			} else {
-				const policy = await registry.findOrCreatePolicy(type);
-				if (!policy) {
-					throw new DoubleTieError(
-						'Failed to create or find the required policy. Please try again later or contact support if the issue persists.',
-						{
-							code: C15T_ERROR_CODES.FAILED_TO_CREATE_PURPOSE,
-							status: 500,
-						}
-					);
-				}
-				policyId = policy.id;
-			}
-
-			// Handle purposes if they exist
-			if ('preferences' in body && body.preferences) {
-				purposeIds = await Promise.all(
-					Object.entries(body.preferences)
-						.filter(([_, isConsented]) => isConsented)
-						.map(async ([purposeCode]) => {
-							let existingPurpose =
-								await registry.findConsentPurposeByCode(purposeCode);
-							if (!existingPurpose) {
-								existingPurpose = await registry.createConsentPurpose({
-									code: purposeCode,
-									name: purposeCode,
-									description: `Auto-created consentPurpose for ${purposeCode}`,
-									isActive: true,
-									isEssential: false,
-									dataCategory: 'functional',
-									legalBasis: 'consent',
-									createdAt: now,
-									updatedAt: now,
-								});
-							}
-							return existingPurpose.id;
-						})
-				);
-			}
-
-			// Execute all consent-related operations in a transaction
-			const result = await adapter.transaction({
-				callback: async (tx: Adapter) => {
-					// Create consent record
-					const consentRecord = (await tx.create({
-						model: 'consent',
-						data: {
-							subjectId: subject.id,
-							domainId: domainRecord.id,
-							policyId,
-							purposeIds,
-							status: 'active',
-							isActive: true,
-							givenAt: now,
-							ipAddress: ctx.context.ipAddress || 'unknown',
-							agent: ctx.context.userAgent || 'unknown',
-							history: [],
-						},
-					})) as unknown as Consent;
-
-					// Create record entry
-					const record = (await tx.create({
-						model: 'consentRecord',
-						data: {
-							subjectId: subject.id,
-							consentId: consentRecord.id,
-							actionType: 'consent_given',
-							details: metadata,
-							createdAt: now,
-						},
-					})) as unknown as ConsentRecord;
-
-					// Create audit log entry
-					await tx.create({
-						model: 'auditLog',
-						data: {
-							subjectId: subject.id,
-							entityType: 'consent',
-							entityId: consentRecord.id,
-							actionType: 'consent_given',
-							details: {
-								consentId: consentRecord.id,
-								type,
-							},
-							timestamp: now,
-							ipAddress: ctx.context.ipAddress || 'unknown',
-							agent: ctx.context.userAgent || 'unknown',
-						},
-					});
-
-					return {
-						consent: consentRecord,
-						record,
-					};
+		if (!subject) {
+			throw createError({
+				statusCode: 400,
+				statusText: ERROR_CODES.BAD_REQUEST,
+				data: {
+					message: 'Invalid subject ID',
 				},
 			});
+		}
 
-			if (!result || !result.consent || !result.record) {
-				throw new DoubleTieError(
-					'Failed to create the consent record. Please try again later or contact support if the issue persists.',
-					{
-						code: C15T_ERROR_CODES.FAILED_TO_CREATE_CONSENT,
-						status: 500,
-					}
-				);
-			}
+		const domainRecord = await registry.findOrCreateDomain(domain);
 
-			// Return response
-			return {
-				id: result.consent.id,
-				subjectId: subject.id,
-				externalSubjectId: subject.externalId ?? undefined,
-				domainId: domainRecord.id,
-				domain: domainRecord.name,
-				type,
-				status: result.consent.status,
-				recordId: result.record.id,
-				metadata,
-				givenAt: result.consent.givenAt.toISOString(),
-			};
-		} catch (error) {
-			const context = ctx.context as C15TContext;
-			context.logger?.error?.('Error setting consent:', error);
+		const now = new Date();
+		let policyId: string | undefined;
+		let purposeIds: string[] = [];
 
-			if (error instanceof DoubleTieError) {
-				throw error;
-			}
-			if (error instanceof z.ZodError) {
-				throw new DoubleTieError(
-					'The consent data provided is invalid. Please ensure all required fields are correctly filled and formatted.',
-					{
-						code: ERROR_CODES.BAD_REQUEST,
-						status: 400,
-						data: {
-							details: error.errors,
-						},
-					}
-				);
-			}
+		if ('policyId' in body) {
+			const { policyId: pid } = body;
+			policyId = pid;
 
-			throw new DoubleTieError(
-				'Failed to set consent. Please try again later or contact support if the issue persists.',
-				{
-					code: C15T_ERROR_CODES.FAILED_TO_CREATE_CONSENT,
-					status: 500,
+			if (!policyId) {
+				throw createError({
+					statusCode: 400,
+					statusText: ERROR_CODES.BAD_REQUEST,
 					data: {
-						error: error instanceof Error ? error.message : String(error),
+						message: 'Policy ID is required',
 					},
-				}
+				});
+			}
+
+			// Verify the policy exists and is active
+			const policy = await registry.findConsentPolicyById(policyId);
+			if (!policy) {
+				throw createError({
+					statusCode: 404,
+					statusText: ERROR_CODES.NOT_FOUND,
+					data: {
+						message: 'Policy not found',
+					},
+				});
+			}
+			if (!policy.isActive) {
+				throw createError({
+					statusCode: 409,
+					statusText: ERROR_CODES.CONFLICT,
+					data: {
+						message: 'Policy is not active',
+					},
+				});
+			}
+		} else {
+			const policy = await registry.findOrCreatePolicy(type);
+			if (!policy) {
+				throw createError({
+					statusCode: 500,
+					statusText: ERROR_CODES.INTERNAL_SERVER_ERROR,
+					data: {
+						message: 'Failed to create or find policy',
+					},
+				});
+			}
+			policyId = policy.id;
+		}
+
+		// Handle purposes if they exist
+		if ('preferences' in body && body.preferences) {
+			purposeIds = await Promise.all(
+				Object.entries(body.preferences)
+					.filter(([_, isConsented]) => isConsented)
+					.map(async ([purposeCode]) => {
+						let existingPurpose =
+							await registry.findConsentPurposeByCode(purposeCode);
+						if (!existingPurpose) {
+							existingPurpose = await registry.createConsentPurpose({
+								code: purposeCode,
+								name: purposeCode,
+								description: `Auto-created consentPurpose for ${purposeCode}`,
+								isActive: true,
+								isEssential: false,
+								dataCategory: 'functional',
+								legalBasis: 'consent',
+								createdAt: now,
+								updatedAt: now,
+							});
+						}
+						return existingPurpose.id;
+					})
 			);
 		}
-	}
-);
+
+		const result = await adapter.transaction({
+			callback: async (tx: Adapter) => {
+				// Create consent record
+				const consentRecord = (await tx.create({
+					model: 'consent',
+					data: {
+						subjectId: subject.id,
+						domainId: domainRecord.id,
+						policyId,
+						purposeIds,
+						status: 'active',
+						isActive: true,
+						givenAt: now,
+						ipAddress: event.context.ipAddress || 'unknown',
+						agent: event.context.userAgent || 'unknown',
+						history: [],
+					},
+				})) as unknown as Consent;
+
+				// Create record entry
+				const record = (await tx.create({
+					model: 'consentRecord',
+					data: {
+						subjectId: subject.id,
+						consentId: consentRecord.id,
+						actionType: 'consent_given',
+						details: metadata,
+						createdAt: now,
+					},
+				})) as unknown as ConsentRecord;
+
+				// Create audit log entry
+				await tx.create({
+					model: 'auditLog',
+					data: {
+						subjectId: subject.id,
+						entityType: 'consent',
+						entityId: consentRecord.id,
+						actionType: 'consent_given',
+						details: {
+							consentId: consentRecord.id,
+							type,
+						},
+						timestamp: now,
+						ipAddress: event.context.ipAddress || 'unknown',
+						agent: event.context.userAgent || 'unknown',
+					},
+				});
+
+				return {
+					consent: consentRecord,
+					record,
+				};
+			},
+		});
+
+		if (!result || !result.consent || !result.record) {
+			throw createError({
+				statusCode: 500,
+				statusText: ERROR_CODES.INTERNAL_SERVER_ERROR,
+				data: {
+					message: 'Failed to create consent record',
+				},
+			});
+		}
+
+		return {
+			id: result.consent.id,
+			subjectId: subject.id,
+			externalSubjectId: subject.externalId ?? undefined,
+			domainId: domainRecord.id,
+			domain: domainRecord.name,
+			type,
+			status: result.consent.status,
+			recordId: result.record.id,
+			metadata,
+			givenAt: result.consent.givenAt.toISOString(),
+		};
+	},
+});

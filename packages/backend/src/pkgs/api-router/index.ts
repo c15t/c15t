@@ -1,69 +1,54 @@
-/**
- * # DoubleTie API Router Package
- *
- * A flexible, type-safe API routing system for TypeScript applications built on the better-call library.
- * This package provides utilities for creating, configuring, and consuming API endpoints
- * while maintaining separation from specific route implementations.
- *
- * ## Key Features
- *
- * - **Type-safe endpoint definitions**: Strong TypeScript typing for request/response handling
- * - **Middleware support**: Pre/post request processing with powerful hook system
- * - **Plugin architecture**: Extensible system for adding custom functionality
- * - **Error handling**: Standardized error management with detailed logging
- * - **IP address tracking**: Utilities for client IP detection with privacy controls
- *
- * ## Example Usage
- *
- * ```typescript
- * import {
- *   createSDKEndpoint,
- *   createSDKMiddleware,
- *   createApiRouter,
- *   toEndpoints,
- *   wildcardMatch
- * } from '@doubletie/api-router';
- *
- * // Create an endpoint
- * const getUserEndpoint = createSDKEndpoint(async (context) => {
- *   const { userId } = context.params;
- *   const user = await getUserById(userId);
- *   return { user };
- * });
- *
- * // Create a middleware
- * const authMiddleware = createSDKMiddleware(async (context) => {
- *   const token = context.headers.get('Authorization');
- *   if (!token) {
- *     throw new APIError({
- *       message: 'Unauthorized',
- *       status: 'UNAUTHORIZED'
- *     });
- *   }
- *   return { context: { user: await validateToken(token) } };
- * });
- *
- * // Setup router
- * const router = createApiRouter(context, options, {
- *   getUser: getUserEndpoint
- * }, healthCheckEndpoint, [
- *   { path: '/users/**', middleware: authMiddleware }
- * ]);
- * ```
- *
- * @packageDocumentation
- */
+import {
+	type H3Event,
+	createApp,
+	createRouter,
+	defineEventHandler,
+	handleCors,
+	toWebHandler,
+} from 'h3';
+import { routes } from '~/routes';
+import type { RouterProps } from './types';
+import { getIp } from './utils/ip';
 
-// Core functionality - endpoint and middleware creation, router
-export * from './core';
+export { defineRoute } from './utils/define-route';
 
-// Hook system for request/response processing
-export * from './hooks';
+export function createApiHandler({ options, context }: RouterProps) {
+	// Create an app instance
+	const app = createApp({
+		onRequest(event) {
+			event.context.ipAddress = getIp(event.headers, options);
+			event.context.userAgent = event.node.req.headers['user-agent'] || null;
+			event.context.registry = context.registry;
+			event.context.adapter = context.adapter;
+		},
+	});
 
-// Endpoint conversion utilities
-export * from './endpoints';
+	// Create CORS handler
+	const corsHandler = defineEventHandler((event: H3Event) => {
+		if (
+			handleCors(event, {
+				origin: '*',
+				methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+				allowHeaders: ['Content-Type', 'Authorization'],
+			})
+		) {
+			return;
+		}
+	});
 
-// Utility functions
-export * from './utils';
+	// Add CORS handler before router
+	app.use(corsHandler);
 
-export type { Endpoint } from 'better-call';
+	// Create a new router and register it in app
+	const router = createRouter();
+	app.use(router);
+
+	// Initialize routes
+	for (const route of routes) {
+		router[route.method](route.path, route.handler);
+	}
+
+	const handler = toWebHandler(app);
+
+	return { handler };
+}

@@ -1,6 +1,6 @@
 import defu from 'defu';
 import type { HookEndpointContext } from '~/pkgs/types';
-import type { DoubleTieMiddleware } from '../core/context';
+import type { DoubleTieMiddleware } from '~/pkgs/types/options';
 
 /**
  * Executes before hooks on the request context

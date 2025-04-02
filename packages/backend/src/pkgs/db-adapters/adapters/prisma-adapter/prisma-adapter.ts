@@ -355,7 +355,7 @@ export const prismaAdapter =
 						{
 							code: ERROR_CODES.DATABASE_QUERY_ERROR,
 							status: 500,
-							data: {
+							meta: {
 								model,
 								availableModels: Object.keys(prisma).filter(
 									(key) => !key.startsWith('$') && !key.startsWith('_')
@@ -387,7 +387,7 @@ export const prismaAdapter =
 						{
 							code: ERROR_CODES.DATABASE_QUERY_ERROR,
 							status: 500,
-							data: {
+							meta: {
 								model,
 								availableModels: Object.keys(prisma).filter(
 									(key) => !key.startsWith('$') && !key.startsWith('_')
@@ -419,7 +419,7 @@ export const prismaAdapter =
 						{
 							code: ERROR_CODES.DATABASE_QUERY_ERROR,
 							status: 500,
-							data: {
+							meta: {
 								model,
 								availableModels: Object.keys(prisma).filter(
 									(key) => !key.startsWith('$') && !key.startsWith('_')
@@ -461,7 +461,7 @@ export const prismaAdapter =
 						{
 							code: ERROR_CODES.DATABASE_QUERY_ERROR,
 							status: 500,
-							data: {
+							meta: {
 								model,
 								availableModels: Object.keys(prisma).filter(
 									(key) => !key.startsWith('$') && !key.startsWith('_')

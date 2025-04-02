@@ -222,10 +222,10 @@ export type NamespaceProps = {
  */
 export type LocationInfo = {
 	/** ISO country code (e.g., 'US', 'GB', 'DE') */
-	countryCode: string;
+	countryCode: string | null;
 
 	/** Region or state code within the country (e.g., 'CA', 'ENG') */
-	regionCode?: string;
+	regionCode: string | null;
 };
 
 /**

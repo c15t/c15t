@@ -1,7 +1,7 @@
 import type { ZodSchema } from 'zod';
 import { ERROR_CODES } from '../core/error-codes';
 import { fail, ok } from '../results/result-helpers';
-import type { SDKResult, ValidationErrorDetails } from '../types';
+import type { SDKResult } from '../types';
 
 /**
  * Creates a validation pipeline that validates input data with a Zod schema
@@ -93,15 +93,58 @@ export const validationPipeline = <TInput, TOutput>(
 	transformer: (data: TInput) => TOutput
 ): ((data: unknown) => SDKResult<TOutput>) => {
 	return (data: unknown) => {
-		const parseResult = schema.safeParse(data);
+		// Preprocess the data to handle stringified values
+		const preprocessData = (value: unknown): unknown => {
+			if (typeof value !== 'object' || value === null) {
+				// Try parsing stringified JSON values
+				if (typeof value === 'string') {
+					try {
+						// Check if it's a stringified array
+						if (value.startsWith('[') && value.endsWith(']')) {
+							return JSON.parse(value);
+						}
+						// Check if it's a stringified boolean
+						if (value.toLowerCase() === 'true') {
+							return true;
+						}
+						if (value.toLowerCase() === 'false') {
+							return false;
+						}
+						// Check if it's a stringified object
+						if (value.startsWith('{') && value.endsWith('}')) {
+							return JSON.parse(value);
+						}
+					} catch {
+						// If parsing fails, return original value
+						return value;
+					}
+				}
+				return value;
+			}
+
+			// Handle arrays
+			if (Array.isArray(value)) {
+				return value.map(preprocessData);
+			}
+
+			// Handle objects
+			const processed: Record<string, unknown> = {};
+			for (const [key, val] of Object.entries(value)) {
+				processed[key] = preprocessData(val);
+			}
+			return processed;
+		};
+
+		const preprocessedData = preprocessData(data);
+		const parseResult = schema.safeParse(preprocessedData);
 
 		if (!parseResult.success) {
 			return fail<TOutput>('Validation failed', {
 				code: ERROR_CODES.INVALID_REQUEST,
 				status: 400,
 				meta: {
-					validationErrors: parseResult.error.format(),
-				} as ValidationErrorDetails,
+					validationErrors: parseResult.error.issues,
+				},
 			});
 		}
 

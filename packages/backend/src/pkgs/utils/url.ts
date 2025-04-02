@@ -28,7 +28,7 @@ function checkHasPath(url: string): boolean {
 			{
 				code: ERROR_CODES.BAD_REQUEST,
 				status: 400,
-				data: {
+				meta: {
 					url,
 				},
 			}

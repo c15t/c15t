@@ -37,13 +37,13 @@ export const c15t: C15TInstance = c15tInstance({
 	// database: memoryAdapter({}),
 	database: libsql,
 	// Configure consent options
-	consent: {
-		expiresIn: 60 * 60 * 24 * 365, // 1 year in seconds
-		updateAge: 60 * 60 * 24, // 24 hours in seconds
-	},
+	// consent: {
+	// 	expiresIn: 60 * 60 * 24 * 365, // 1 year in seconds
+	// 	updateAge: 60 * 60 * 24, // 24 hours in seconds
+	// },
 	// plugins: [geo(), analytics()],
 	// Enable analytics plugin if needed
-	analytics: {
-		enabled: true,
-	},
+	// analytics: {
+	// 	enabled: true,
+	// },
 });

@@ -17,7 +17,7 @@ import type { TablesConfig } from '~/schema/types';
  * This interface extends the base DoubleTie options with additional options
  * specific to consent management functionality.
  *
- * @typeParam P - Array of plugin types to be used with this configuration
+ * @typeParam PluginType - Array of plugin types to be used with this configuration
  *
  * @example
  * ```ts
@@ -30,11 +30,8 @@ import type { TablesConfig } from '~/schema/types';
  * };
  * ```
  */
-export interface C15TOptions<P extends C15TPlugin[] = C15TPlugin[]>
-	extends DoubleTieOptions<P> {
-	/**
-	 * Database tables configuration for consent
-	 * Contains all consent entity table configurations
-	 */
+export interface C15TOptions<PluginType extends C15TPlugin[] = C15TPlugin[]>
+	extends Omit<DoubleTieOptions, 'plugins'> {
+	plugins?: PluginType;
 	tables?: TablesConfig;
 }

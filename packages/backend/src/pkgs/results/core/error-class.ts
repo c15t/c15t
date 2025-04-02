@@ -95,7 +95,6 @@ export class DoubleTieError extends Error {
 			category = ERROR_CATEGORIES.UNEXPECTED,
 			cause,
 			meta = {},
-			data,
 		}: DoubleTieErrorOptions
 	) {
 		super(message, { cause });
@@ -105,9 +104,7 @@ export class DoubleTieError extends Error {
 		this.status = status;
 		this.category = category;
 		this.cause = cause;
-
-		// Handle backward compatibility with data property
-		this.meta = data ? { ...meta, ...data } : meta;
+		this.meta = meta;
 
 		if (Error.captureStackTrace) {
 			Error.captureStackTrace(this, this.constructor);
@@ -282,5 +279,46 @@ export class DoubleTieError extends Error {
 
 		Object.defineProperty(ErrorSubclass, 'name', { value: name });
 		return ErrorSubclass;
+	}
+
+	/**
+	 * Format a validation error into a more user-friendly message.
+	 * Especially useful for displaying validation errors from the meta field.
+	 *
+	 * @param error - The DoubleTieError containing validation details
+	 * @returns A formatted string with validation error details
+	 *
+	 * @example
+	 * ```typescript
+	 * try {
+	 *   // some operation that might throw a validation error
+	 * } catch (err) {
+	 *   if (DoubleTieError.isDoubleTieError(err)) {
+	 *     console.error(DoubleTieError.formatValidationError(err));
+	 *   }
+	 * }
+	 * ```
+	 */
+	static formatValidationError(error: DoubleTieError): string {
+		if (!error.meta) {
+			return error.message;
+		}
+
+		let formattedMessage = `${error.message} (${error.code})`;
+
+		// Extract validation errors from meta
+		if (error.meta.validationErrors) {
+			formattedMessage += `\nValidation Errors: ${JSON.stringify(error.meta.validationErrors, null, 2)}`;
+		}
+
+		// Include other helpful meta information
+		const otherMeta = { ...error.meta };
+		otherMeta.validationErrors = undefined;
+
+		if (Object.keys(otherMeta).length > 0) {
+			formattedMessage += `\nAdditional Context: ${JSON.stringify(otherMeta, null, 2)}`;
+		}
+
+		return formattedMessage;
 	}
 }

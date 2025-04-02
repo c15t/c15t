@@ -4,7 +4,7 @@
  * Extends DoubleTie API types with definitions specific to consent management,
  * including consent-related API routes, request handlers, and endpoint configuration.
  */
-import type { Endpoint } from '~/pkgs/api-router';
+import type { Endpoint } from './plugins';
 
 /**
  * Base API path template literal for c15t consent endpoints

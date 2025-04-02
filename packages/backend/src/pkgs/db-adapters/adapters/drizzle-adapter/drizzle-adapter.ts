@@ -83,7 +83,7 @@ const createEntityTransformer = (
 				{
 					code: ERROR_CODES.DATABASE_CONNECTION_ERROR,
 					status: 500,
-					data: {
+					meta: {
 						provider: config.provider,
 					},
 				}
@@ -97,7 +97,7 @@ const createEntityTransformer = (
 				{
 					code: ERROR_CODES.DATABASE_QUERY_ERROR,
 					status: 404,
-					data: {
+					meta: {
 						model,
 						availableModels: Object.keys(schema),
 					},
@@ -156,7 +156,7 @@ const createEntityTransformer = (
 					{
 						code: ERROR_CODES.DATABASE_QUERY_ERROR,
 						status: 404,
-						data: {
+						meta: {
 							model,
 							field,
 							availableFields: Object.keys(schemaModel),
@@ -171,7 +171,7 @@ const createEntityTransformer = (
 						{
 							code: ERROR_CODES.BAD_REQUEST,
 							status: 400,
-							data: {
+							meta: {
 								field,
 								operator: w.operator,
 								expectedType: 'array',
@@ -210,7 +210,7 @@ const createEntityTransformer = (
 							{
 								code: ERROR_CODES.BAD_REQUEST,
 								status: 400,
-								data: {
+								meta: {
 									field,
 									operator: w.operator,
 									expectedType: 'array',

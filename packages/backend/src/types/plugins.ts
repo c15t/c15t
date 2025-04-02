@@ -1,8 +1,65 @@
-import type { Endpoint } from '~/pkgs/api-router';
-import type { DoubleTiePlugin, DoubleTiePluginSchema } from '~/pkgs/types';
+import type { Field } from '~/pkgs/data-model';
 import type { DeepPartial } from '~/pkgs/types/helper';
 import type { C15TContext } from './context';
 import type { C15TOptions } from './options';
+
+/**
+ * Middleware function for processing API requests
+ */
+export type DoubleTieMiddleware = (
+	req: Request,
+	context: Record<string, unknown>,
+	next: () => Promise<Response>
+) => Promise<Response>;
+
+/**
+ * API endpoint handler function type
+ *
+ * This matches the Endpoint type from the better-call package
+ */
+export type Endpoint = (inputCtx: Record<string, unknown>) => Promise<unknown>;
+
+/**
+ * Base plugin interface for all plugins
+ */
+export interface DoubleTiePlugin {
+	/**
+	 * Unique identifier for the plugin
+	 */
+	id: string;
+
+	/**
+	 * Name of the plugin
+	 */
+	name: string;
+
+	/**
+	 * Type of plugin
+	 */
+	type: string;
+
+	/**
+	 * Schema the plugin needs
+	 */
+	schema?: DoubleTiePluginSchema;
+}
+
+/**
+ * Plugin schema definition
+ */
+export interface DoubleTiePluginSchema {
+	[tableName: string]: {
+		/**
+		 * Should migrations be created for this table
+		 */
+		createMigrations?: boolean;
+
+		/**
+		 * Fields to add to the table
+		 */
+		fields: Record<string, Field>;
+	};
+}
 
 /**
  * Context object provided to consent plugin hooks
@@ -75,7 +132,18 @@ export interface PluginHook {
  * Extends the base DoubleTie plugin interface with consent management specific
  * functionality for controlling consent flows, storage, and integration.
  */
-export interface C15TPlugin extends DoubleTiePlugin {
+export interface C15TPlugin extends Omit<DoubleTiePlugin, 'endpoints'> {
+	/**
+	 * Unique identifier for the plugin
+	 * Must be a string literal for type safety
+	 */
+	id: string;
+
+	/**
+	 * Name of the plugin
+	 */
+	name: string;
+
 	/**
 	 * Type of consent plugin for classification and type guards
 	 */
@@ -102,6 +170,24 @@ export interface C15TPlugin extends DoubleTiePlugin {
 	endpoints?: {
 		[key: string]: Endpoint;
 	};
+
+	/**
+	 * Handler for intercepting and potentially modifying outgoing responses
+	 *
+	 * @param response - The outgoing HTTP response
+	 * @param ctx - The context
+	 * @returns A modified response or undefined to continue with the original
+	 */
+	onResponse?: (
+		response: Response,
+		ctx: C15TContext
+	) => Promise<
+		| {
+				response: Response;
+				context?: Record<string, unknown>;
+		  }
+		| undefined
+	>;
 
 	/**
 	 * Schema the plugin needs for consent data

@@ -1,21 +1,12 @@
 import { setConsent } from './set-consent';
 import { showConsentBanner } from './show-consent-banner';
 import { status } from './status';
+import type { Route } from './types';
 import { verifyConsent } from './verify-consent';
-export * from './error';
-export * from './ok';
 
-export const baseEndpoints = {
-	setConsent,
-	showConsentBanner,
+export const routes: Route[] = [
 	status,
+	showConsentBanner,
+	setConsent,
 	verifyConsent,
-};
-
-// export response and bodytypes
-export type { SetConsentResponse, SetConsentRequest } from './set-consent';
-export type { ShowConsentBannerResponse } from './show-consent-banner';
-export type {
-	VerifyConsentResponse,
-	VerifyConsentRequest,
-} from './verify-consent';
+];

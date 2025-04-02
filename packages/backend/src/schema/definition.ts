@@ -1,5 +1,6 @@
 import { ZodError } from 'node_modules/zod/lib/ZodError';
-import type { PluginSchema } from '~/pkgs/data-model';
+import type { Field, PluginSchema } from '~/pkgs/data-model';
+import { logger } from '~/pkgs/logger';
 import type { C15TOptions } from '~/types';
 import { getAuditLogTable } from './audit-log/table';
 import { getConsentGeoLocationTable } from './consent-geo-location/table';
@@ -49,7 +50,7 @@ export const getConsentTables = (options: C15TOptions) => {
 			acc[key] = {
 				fields: {
 					...acc[key]?.fields,
-					...value.fields,
+					...(value as { fields: Record<string, Field> }).fields,
 				},
 				entityName: key,
 			};
@@ -216,10 +217,9 @@ export function validateEntityOutput<TableName extends keyof C15TDBSchema>(
 		return table.schema.parse(processedData) as EntityOutputFields<TableName>;
 	} catch (error) {
 		if (error instanceof ZodError) {
-			console.log(
-				'[validateEntityOutput] Validation failed:',
-				table,
-				error.issues
+			logger.error(
+				`[validateEntityOutput] Validation failed for table ${String(tableName)}`,
+				{ table, issues: error.issues }
 			);
 		}
 		throw error;

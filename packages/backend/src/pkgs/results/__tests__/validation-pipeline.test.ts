@@ -66,13 +66,34 @@ describe('validationPipeline', () => {
 		expect(error.meta.validationErrors).toBeDefined();
 
 		// Check that validation errors contain the expected fields
-		const validationErrors = error.meta.validationErrors as Record<
-			string,
-			{ _errors: string[] }
-		>;
-		expect(validationErrors.name?._errors).toBeDefined();
-		expect(validationErrors.email?._errors).toBeDefined();
-		expect(validationErrors.age?._errors).toBeDefined();
+		const validationErrors = error.meta.validationErrors as z.ZodIssue[];
+
+		// Verify we have all three validation errors
+		expect(validationErrors).toHaveLength(3);
+
+		// Find errors for each field by their path
+		const nameError = validationErrors.find((e) => e.path[0] === 'name');
+		const emailError = validationErrors.find((e) => e.path[0] === 'email');
+		const ageError = validationErrors.find((e) => e.path[0] === 'age');
+
+		// Verify each error exists
+		expect(nameError).toBeDefined();
+		expect(emailError).toBeDefined();
+		expect(ageError).toBeDefined();
+
+		// Verify specific error messages
+		expect(nameError?.message).toBe(
+			'String must contain at least 2 character(s)'
+		);
+		expect(emailError?.message).toBe('Invalid email');
+		expect(ageError?.message).toBe(
+			'Number must be greater than or equal to 18'
+		);
+
+		// Verify error codes
+		expect(nameError?.code).toBe('too_small');
+		expect(emailError?.code).toBe('invalid_string');
+		expect(ageError?.code).toBe('too_small');
 	});
 
 	it('should return an error result when transformer throws', () => {

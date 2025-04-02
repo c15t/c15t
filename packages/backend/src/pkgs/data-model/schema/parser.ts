@@ -126,7 +126,7 @@ export function getAllFields(
 						{
 							code: ERROR_CODES.CONFLICT,
 							status: 500,
-							data: {
+							meta: {
 								field: key,
 								table,
 								definedIn: origins.join(', '),
@@ -160,8 +160,8 @@ export function getAllFields(
 		const pluginSchema = plugin.schema as C15TPluginSchema | undefined;
 		if (pluginSchema?.[table]) {
 			addFields(
-				pluginSchema[table].fields,
-				`plugin: ${plugin.name || 'unnamed'}`
+				pluginSchema[table].fields as Record<string, Field>,
+				`plugin: ${(plugin as { name?: string }).name || 'unnamed'}`
 			);
 		}
 	}
@@ -342,7 +342,7 @@ export function parseInputData<EntityType extends Record<string, unknown>>(
 				throw new DoubleTieError('Missing required field', {
 					code: ERROR_CODES.BAD_REQUEST,
 					status: 400,
-					data: {
+					meta: {
 						message: `${key} is required`,
 					},
 				});
@@ -370,7 +370,7 @@ export function parseInputData<EntityType extends Record<string, unknown>>(
 					throw new DoubleTieError('Unexpected fields found', {
 						code: ERROR_CODES.BAD_REQUEST,
 						status: 400,
-						data: {
+						meta: {
 							message: `Unexpected fields found: ${unallowedFields.join(', ')}`,
 						},
 					});
@@ -400,7 +400,7 @@ export function parseInputData<EntityType extends Record<string, unknown>>(
 					throw new DoubleTieError('Unexpected fields found', {
 						code: ERROR_CODES.BAD_REQUEST,
 						status: 400,
-						data: {
+						meta: {
 							message: `Unexpected fields found: ${unallowedFields.join(', ')}`,
 						},
 					});

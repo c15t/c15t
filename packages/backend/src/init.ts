@@ -32,6 +32,7 @@ import { env, getBaseURL, isProduction } from '~/pkgs/utils';
  * This is an internal module typically not used directly by consumers of the c15t library.
  */
 import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
+import type { DoubleTieOptions } from './pkgs/types/options';
 
 /**
  * Default secret used when no secret is provided
@@ -121,7 +122,7 @@ export const init = async <P extends C15TPlugin[]>(
 			// Create registry context - just what registries need
 			const registryContext: RegistryContext = {
 				adapter,
-				options: finalOptions,
+				options: finalOptions as unknown as DoubleTieOptions,
 				logger,
 				hooks: options.databaseHooks || [],
 				generateId: generateIdFunc,
@@ -130,7 +131,7 @@ export const init = async <P extends C15TPlugin[]>(
 			// Create full application context
 			const ctx: C15TContext = {
 				appName: finalOptions.appName || 'c15t Consent Manager',
-				options: finalOptions,
+				options: finalOptions as unknown as DoubleTieOptions,
 				trustedOrigins: getTrustedOrigins(finalOptions),
 				baseURL: baseURL || '',
 				secret,
@@ -166,16 +167,20 @@ export const init = async <P extends C15TPlugin[]>(
  */
 function runPluginInit(ctx: C15TContext): SDKResult<C15TContext> {
 	try {
-		let options = ctx.options;
+		let options = ctx.options as unknown as C15TOptions<C15TPlugin[]>;
 		const plugins = options.plugins || [];
 		let context: C15TContext = ctx;
 
 		for (const plugin of plugins) {
-			if (plugin.init) {
-				const result = plugin.init(ctx);
+			// Type assertion for plugin to C15TPlugin
+			const typedPlugin = plugin as C15TPlugin;
+			if (typedPlugin.init) {
+				const result = typedPlugin.init(ctx);
 				if (typeof result === 'object') {
 					if (result.options) {
-						options = defu(result.options, options);
+						options = defu(result.options, options) as C15TOptions<
+							C15TPlugin[]
+						>;
 					}
 					if (result.context) {
 						context = {
@@ -187,7 +192,7 @@ function runPluginInit(ctx: C15TContext): SDKResult<C15TContext> {
 			}
 		}
 
-		context.options = options;
+		context.options = options as unknown as DoubleTieOptions;
 		return ok(context);
 	} catch (error) {
 		return fail(
@@ -224,7 +229,7 @@ function getInternalPlugins(_options: C15TOptions): C15TPlugin[] {
  * @param options - The c15t configuration options
  * @returns An array of trusted origin URLs
  */
-function getTrustedOrigins(options: C15TOptions): string[] {
+function getTrustedOrigins(options: C15TOptions<C15TPlugin[]>): string[] {
 	const baseURL = getBaseURL(options.baseURL, options.basePath);
 	if (!baseURL) {
 		return [];

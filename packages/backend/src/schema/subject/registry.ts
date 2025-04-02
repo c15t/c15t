@@ -109,7 +109,7 @@ export function subjectRegistry({ adapter, ...ctx }: RegistryContext) {
 						{
 							code: ERROR_CODES.NOT_FOUND,
 							status: 404,
-							data: {
+							meta: {
 								providedSubjectId: subjectId,
 								providedExternalId: externalSubjectId,
 							},
@@ -133,7 +133,7 @@ export function subjectRegistry({ adapter, ...ctx }: RegistryContext) {
 						{
 							code: ERROR_CODES.CONFLICT,
 							status: 409,
-							data: {
+							meta: {
 								providedSubjectId: subjectId,
 								providedExternalId: externalSubjectId,
 								subjectByIdId: subjectById.id,
@@ -210,7 +210,7 @@ export function subjectRegistry({ adapter, ...ctx }: RegistryContext) {
 						{
 							code: ERROR_CODES.INTERNAL_SERVER_ERROR,
 							status: 500,
-							data: {
+							meta: {
 								error: error instanceof Error ? error.message : 'Unknown error',
 							},
 						}
@@ -238,7 +238,7 @@ export function subjectRegistry({ adapter, ...ctx }: RegistryContext) {
 				throw new DoubleTieError('Failed to create anonymous subject', {
 					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
 					status: 500,
-					data: {
+					meta: {
 						error: error instanceof Error ? error.message : 'Unknown error',
 					},
 				});

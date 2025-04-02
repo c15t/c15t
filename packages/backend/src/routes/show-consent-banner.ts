@@ -1,53 +1,31 @@
-import { createSDKEndpoint } from '~/pkgs/api-router';
+import { defineRoute } from '~/pkgs/api-router/utils/define-route';
 
-export const showConsentBanner = createSDKEndpoint(
-	'/show-consent-banner',
-	{
-		method: 'GET',
-		metadata: {
-			openapi: {
-				responses: {
-					'200': {
-						description: 'Cookie Banner Requirement',
-						content: {
-							'application/json': {
-								schema: {
-									type: 'object',
-									properties: {
-										showConsentBanner: { type: 'boolean' },
-										jurisdiction: {
-											type: 'object',
-											properties: {
-												code: { type: 'string' },
-												message: { type: 'string' },
-											},
-										},
-										location: {
-											type: 'object',
-											properties: {
-												countryCode: { type: 'string' },
-												regionCode: { type: 'string' },
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	},
-	async (c) => {
+export interface ShowConsentBannerResponse {
+	showConsentBanner: boolean;
+	jurisdiction: {
+		code: string;
+		message: string;
+	};
+	location: {
+		countryCode: string | null;
+		regionCode: string | null;
+	};
+}
+
+export const showConsentBanner = defineRoute<ShowConsentBannerResponse>({
+	path: '/show-consent-banner',
+	method: 'get',
+	handler: async (event) => {
 		const countryCode =
-			c.headers?.get('cf-ipcountry') ||
-			c.headers?.get('x-vercel-ip-country') ||
-			c.headers?.get('x-amz-cf-ipcountry') ||
-			c.headers?.get('x-country-code');
+			event.headers.get('cf-ipcountry') ||
+			event.headers.get('x-vercel-ip-country') ||
+			event.headers.get('x-amz-cf-ipcountry') ||
+			event.headers.get('x-country-code');
 
 		const regionCode =
-			c.headers?.get('x-vercel-ip-country-region') ||
-			c.headers?.get('x-region-code');
+			event.headers.get('x-vercel-ip-country-region') ||
+			event.headers.get('x-region-code');
+
 		const { showConsentBanner, jurisdictionCode, message } = checkJurisdiction(
 			countryCode ?? null
 		);
@@ -60,8 +38,8 @@ export const showConsentBanner = createSDKEndpoint(
 			},
 			location: { countryCode, regionCode },
 		};
-	}
-);
+	},
+});
 
 function checkJurisdiction(countryCode: string | null) {
 	const jurisdictions = {
@@ -151,15 +129,3 @@ function checkJurisdiction(countryCode: string | null) {
 		message,
 	};
 }
-
-export type ShowConsentBannerResponse = {
-	showConsentBanner: boolean;
-	jurisdiction: {
-		code: string;
-		message: string;
-	};
-	location: {
-		countryCode: string;
-		regionCode: string;
-	};
-};
