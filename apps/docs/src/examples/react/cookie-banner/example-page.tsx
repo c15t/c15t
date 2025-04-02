@@ -5,14 +5,15 @@ export const pages = {
 	'App.tsx': `import { ConsentManagerProvider, ConsentManagerDialog, CookieBanner } from '@c15t/react';
 import { ExampleContent } from './ExampleContent';
 import { clearLocalStorage } from './lib/utils';
-import { c15tClient } from './c15tClient';
+import { clientConfig } from './c15tClient';
+
 export default function App() {
     // Clear localStorage on mount to ensure a clean state
     clearLocalStorage();
 
     return (
         <ConsentManagerProvider 
-            clientConfig={clientConfig}
+            client={c15tClient}
             initialGdprTypes={['necessary', 'marketing']}
         >
             <CookieBanner />
