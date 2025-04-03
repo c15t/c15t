@@ -64,7 +64,7 @@ export const setConsent = defineRoute({
 		const { body } = event.context.validated;
 		const { registry, adapter } = event.context;
 		const { type, subjectId, externalSubjectId, domain, metadata } = body;
-		console.log('body', body);
+
 		const subject = await registry.findOrCreateSubject({
 			subjectId,
 			externalSubjectId,
@@ -226,8 +226,6 @@ export const setConsent = defineRoute({
 				},
 			});
 		}
-
-		console.log('result', result);
 
 		return {
 			id: result.consent.id,

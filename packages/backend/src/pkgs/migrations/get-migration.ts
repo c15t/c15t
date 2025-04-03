@@ -5,6 +5,7 @@ import { analyzeSchemaChanges } from './schema-comparison';
 import { buildColumnAddMigrations } from './migration-builders';
 import { createMigrationExecutors } from './migration-execution';
 import { buildTableCreateMigrations } from './migration-builders';
+import type { MigrationResult } from './types';
 /*
  * Generates database migrations based on schema differences
  *
