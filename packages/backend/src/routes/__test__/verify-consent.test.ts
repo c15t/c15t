@@ -2,7 +2,6 @@
  * Tests for the verify-consent route handler
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {} from '../../pkgs/results';
 
 // Mock dependencies before imports
 vi.mock('../../pkgs/results', () => ({

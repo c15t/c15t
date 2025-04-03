@@ -179,5 +179,4 @@ describe('DoubleTieError', () => {
 			expect(error instanceof Error).toBe(true);
 		});
 	});
-
 });

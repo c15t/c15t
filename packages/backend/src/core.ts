@@ -1,5 +1,3 @@
-import {} from 'h3';
-import {} from 'h3';
 import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
 import { init } from './init';
 import { createApiHandler } from './pkgs/api-router';
