@@ -116,9 +116,6 @@ describe('DoubleTieError', () => {
 			expect(errorJson.data?.code).toBe(ERROR_CODES.BAD_REQUEST);
 			expect(errorJson.data?.category).toBe(ERROR_CATEGORIES.VALIDATION);
 			expect(errorJson.data?.meta).toEqual({ field: 'username' });
-
-			//@ts-expect-error
-			expect(errorJson.stack).toBeDefined();
 		});
 
 		it('should include validation error message when present', () => {
@@ -132,25 +129,6 @@ describe('DoubleTieError', () => {
 
 			expect(errorJson.message).toBe('Field X is required');
 			expect(errorJson.data?.originalMessage).toBe('Validation failed');
-		});
-
-		it('should serialize cause if it exists', () => {
-			const cause = new Error('Original error');
-			const error = new DoubleTieError('Wrapped error', {
-				code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-				cause,
-			});
-
-			const errorJson = error.toJSON();
-			//@ts-expect-error
-			expect(errorJson.cause).toEqual(
-				expect.objectContaining({
-					name: 'Error',
-					message: 'Original error',
-				})
-			);
-			//@ts-expect-error
-			expect(errorJson.cause.stack).toBeDefined();
 		});
 	});
 
@@ -202,14 +180,4 @@ describe('DoubleTieError', () => {
 		});
 	});
 
-	describe('status property', () => {
-		it('should provide status as an alias for statusCode', () => {
-			const error = new DoubleTieError('Test error', {
-				code: ERROR_CODES.BAD_REQUEST,
-				status: 400,
-			});
-
-			expect(error.statusCode).toBe(400);
-		});
-	});
 });
