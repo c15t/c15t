@@ -167,21 +167,14 @@ export function createMockContext(): C15TContext {
 			deleteMany: vi.fn(),
 		},
 		logger: {
-			info: vi.fn(),
 			error: vi.fn(),
 			warn: vi.fn(),
+			info: vi.fn(),
 			debug: vi.fn(),
 			success: vi.fn(),
 		},
 		options: {
 			plugins: [],
-			logger: {
-				info: vi.fn(),
-				success: vi.fn(),
-				warn: vi.fn(),
-				error: vi.fn(),
-				debug: vi.fn(),
-			},
 		},
 		baseURL: 'http://localhost:3000',
 		ipAddress: '127.0.0.1',

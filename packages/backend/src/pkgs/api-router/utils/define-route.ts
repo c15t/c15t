@@ -14,6 +14,11 @@ import {
 	validationPipeline,
 } from '~/pkgs/results';
 import type { Route } from '~/routes/types';
+import type {
+	Endpoint,
+	EndpointHandler,
+	EndpointOptions,
+} from '../../types/endpoints';
 
 // Define more precise types for validation data
 type ValidatedData<
@@ -91,7 +96,78 @@ export function defineRoute<
 			TParamsSchema extends never ? undefined : TParamsSchema
 		>
 	) => Promise<TResponse>;
-}): Route & { responseType: TResponse } {
+}): Route & { responseType: TResponse };
+
+/**
+ * Creates a simple endpoint with optional middleware
+ *
+ * @param path - The path for this endpoint
+ * @param handler - Handler function for the endpoint
+ * @param options - Optional configuration options
+ * @returns An Endpoint object
+ */
+export function defineRoute(
+	path: string,
+	handler: EndpointHandler,
+	options?: EndpointOptions
+): Endpoint;
+
+// Implementation
+export function defineRoute<
+	TResponse = unknown,
+	TBodySchema extends ZodType = never,
+	TQuerySchema extends ZodType = never,
+	TParamsSchema extends ZodType = never,
+>(
+	pathOrConfig:
+		| string
+		| {
+				path: string;
+				method: RouterMethod;
+				validations?: {
+					body?: TBodySchema;
+					query?: TQuerySchema;
+					params?: TParamsSchema;
+				};
+				handler: (
+					event: ValidatedEvent<
+						TBodySchema extends never ? undefined : TBodySchema,
+						TQuerySchema extends never ? undefined : TQuerySchema,
+						TParamsSchema extends never ? undefined : TParamsSchema
+					>
+				) => Promise<TResponse>;
+		  },
+	handlerOrUndefined?: EndpointHandler,
+	options?: EndpointOptions
+): (Route & { responseType: TResponse }) | Endpoint {
+	// Simple endpoint case
+	if (typeof pathOrConfig === 'string' && handlerOrUndefined) {
+		// Create an endpoint directly with H3 patterns
+		return {
+			path: pathOrConfig,
+			handler: handlerOrUndefined,
+			options,
+		};
+	}
+
+	// Full route definition case
+	const config = pathOrConfig as {
+		path: string;
+		method: RouterMethod;
+		validations?: {
+			body?: TBodySchema;
+			query?: TQuerySchema;
+			params?: TParamsSchema;
+		};
+		handler: (
+			event: ValidatedEvent<
+				TBodySchema extends never ? undefined : TBodySchema,
+				TQuerySchema extends never ? undefined : TQuerySchema,
+				TParamsSchema extends never ? undefined : TParamsSchema
+			>
+		) => Promise<TResponse>;
+	};
+
 	const handler = defineEventHandler(async (event) => {
 		const logger = event.context.logger || createLogger();
 		const validated = {
@@ -113,7 +189,7 @@ export function defineRoute<
 					config.validations.body,
 					(data) => data
 				);
-				const result = validateBody(body);
+				const result = await validateBody(body);
 				result.match(
 					(data) => {
 						validated.body = data;
@@ -137,7 +213,7 @@ export function defineRoute<
 					config.validations.query,
 					(data) => data
 				);
-				const result = validateQuery(query);
+				const result = await validateQuery(query);
 				result.match(
 					(data) => {
 						validated.query = data;
@@ -161,7 +237,7 @@ export function defineRoute<
 					config.validations.params,
 					(data) => data
 				);
-				const result = validateParams(params);
+				const result = await validateParams(params);
 				result.match(
 					(data) => {
 						validated.params = data;

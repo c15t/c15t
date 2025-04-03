@@ -1,5 +1,6 @@
 import type { DoubleTieErrorOptions, ErrorMessageType } from '../types';
-import { ERROR_CATEGORIES } from './error-codes';
+import { ERROR_CATEGORIES, ERROR_CODES } from './error-codes';
+import { withSpan } from './tracing';
 
 /**
  * Custom error class for DoubleTie errors.
@@ -89,23 +90,45 @@ export class DoubleTieError extends Error {
 	 */
 	constructor(
 		message: string,
-		{
-			code,
-			status = 500,
-			category = ERROR_CATEGORIES.UNEXPECTED,
-			cause,
-			meta = {},
-		}: DoubleTieErrorOptions
+		options: DoubleTieErrorOptions = {
+			code: ERROR_CODES.UNKNOWN_ERROR,
+			status: 500,
+			category: ERROR_CATEGORIES.UNEXPECTED,
+			cause: undefined,
+			meta: {},
+		}
 	) {
-		super(message, { cause });
+		super(message, { cause: options.cause });
+
+		// Initialize properties
 		this.name = this.constructor.name;
+		this.code = options.code ?? ERROR_CODES.UNKNOWN_ERROR;
+		this.status = options.status ?? 500;
+		this.category = options.category ?? ERROR_CATEGORIES.UNEXPECTED;
+		this.cause = options.cause;
+		this.meta = options.meta ?? {};
 
-		this.code = code;
-		this.status = status;
-		this.category = category;
-		this.cause = cause;
-		this.meta = meta;
+		// Add tracing after initialization
+		void withSpan('create_doubletie_error', async (span) => {
+			span.setAttributes({
+				'error.name': this.name,
+				'error.message': message,
+				'error.code': this.code,
+				'error.status': this.status,
+				'error.category': this.category,
+				'error.has_cause': !!this.cause,
+				'error.cause_type': this.cause
+					? this.cause.constructor.name
+					: undefined,
+				'error.has_meta': !!this.meta,
+			});
 
+			if (this.cause) {
+				span.recordException(this.cause);
+			}
+		});
+
+		// Capture stack trace
 		if (Error.captureStackTrace) {
 			Error.captureStackTrace(this, this.constructor);
 		}
@@ -199,7 +222,7 @@ export class DoubleTieError extends Error {
 	 * ```
 	 */
 	toJSON(): Record<string, unknown> {
-		return {
+		const json = {
 			name: this.name,
 			message: this.message,
 			code: this.code,
@@ -216,6 +239,18 @@ export class DoubleTieError extends Error {
 						}
 					: this.cause,
 		};
+
+		// Add tracing without affecting return value
+		void withSpan('error_to_json', async (span) => {
+			span.setAttributes({
+				'json.has_category': !!json.category,
+				'json.has_meta': !!json.meta,
+				'json.has_stack': !!json.stack,
+				'json.has_cause': !!json.cause,
+			});
+		});
+
+		return json;
 	}
 
 	/**

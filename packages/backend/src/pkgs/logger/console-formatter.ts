@@ -64,7 +64,7 @@ export const levelColors: Record<LogLevel, string> = {
 export const formatMessage = (
 	level: LogLevel,
 	message: string,
-	appName = '🪢 doubletie'
+	appName = 'c15t'
 ): string => {
 	const timestamp = new Date().toISOString();
 	return `${colors.dim}${timestamp}${colors.reset} ${

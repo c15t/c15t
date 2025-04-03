@@ -1,8 +1,4 @@
-import type {
-	EndpointContext,
-	EndpointOptions,
-	InputContext,
-} from 'better-call';
+import type { H3Event } from 'h3';
 import type { DatabaseHook, EntityName } from '~/pkgs/data-model';
 import type { Adapter } from '~/pkgs/db-adapters/types';
 import type { createLogger } from '~/pkgs/logger';
@@ -15,49 +11,31 @@ import type { DoubleTieOptions } from './options';
  *
  * This type extends the standard endpoint context with additional properties
  * specific to DoubleTie hooks, allowing hooks to access the complete DoubleTie context.
- *
- * @typeParam TOptions - Endpoint configuration options type
- *
- * @see GenericEndpointContext for a simpler context type without input context inclusion
  */
-export type HookEndpointContext<
-	TOptions extends EndpointOptions = EndpointOptions,
-> = EndpointContext<string, TOptions> &
-	Omit<InputContext<string, TOptions>, 'method'> & {
+export type HookEndpointContext = H3Event & {
+	/**
+	 * The DoubleTie context with possible hook-specific extensions
+	 */
+	context: DoubleTieContext & {
 		/**
-		 * The DoubleTie context with possible hook-specific extensions
+		 * Value returned by the endpoint handler, available in 'after' hooks
 		 */
-		context: DoubleTieContext & {
-			/**
-			 * Value returned by the endpoint handler, available in 'after' hooks
-			 */
-			returned?: unknown;
-
-			/**
-			 * Response headers, available in 'after' hooks
-			 */
-			responseHeaders?: Headers;
-		};
+		returned?: unknown;
 
 		/**
-		 * Request headers
+		 * Response headers, available in 'after' hooks
 		 */
-		headers?: Headers;
+		responseHeaders?: Headers;
 	};
+};
 
 /**
  * Generic endpoint context type
  *
  * A simplified context type for endpoint handlers that don't need
  * access to input-specific context properties.
- *
- * @typeParam TOptions - Endpoint configuration options type
- *
- * @see HookEndpointContext for a more complete context type with input context
  */
-export type GenericEndpointContext<
-	TOptions extends EndpointOptions = EndpointOptions,
-> = EndpointContext<string, TOptions> & {
+export type GenericEndpointContext = H3Event & {
 	/**
 	 * The DoubleTie application context
 	 */
@@ -211,3 +189,15 @@ export type ContextWithPlugin<
 	TPluginName extends string,
 	TPluginContext extends Record<string, unknown>,
 > = DoubleTieContext<Record<TPluginName, TPluginContext>>;
+
+/**
+ * Context for hooks
+ *
+ * Used for database hooks
+ */
+export type HookContext = {
+	options: DoubleTieOptions;
+	hooks: DatabaseHook[];
+	logger: ReturnType<typeof createLogger>;
+	generateId: (options: { model: EntityName; size?: number }) => string;
+};

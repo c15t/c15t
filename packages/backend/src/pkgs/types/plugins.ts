@@ -1,21 +1,11 @@
 import type { UnionToIntersection } from '@better-fetch/fetch';
-import type { Endpoint } from 'better-call';
+import type { H3Event } from 'h3';
 import type { Migration } from 'kysely';
-
-// Define DoubleTieMiddleware type here
-/**
- * Middleware function for processing API requests
- */
-export type DoubleTieMiddleware = (
-	req: Request,
-	context: Record<string, unknown>,
-	next: () => Promise<Response>
-) => Promise<Response>;
-
 import type { Field } from '~/pkgs/data-model';
 import type { DoubleTieContext, HookEndpointContext } from './context';
+import type { Endpoint, EndpointMiddleware } from './endpoints';
 import type { DeepPartial, LiteralString } from './helper';
-import type { DoubleTieOptions } from './options';
+import type { DoubleTieMiddleware, DoubleTieOptions } from './options';
 
 /**
  * Context object provided to plugin hooks
@@ -126,49 +116,21 @@ export interface DoubleTiePlugin {
 
 	/**
 	 * Middleware functions to process requests for specific paths
-	 * Each middleware includes a path pattern and the middleware function
 	 */
 	middlewares?: {
 		path: string;
-		middleware: Endpoint;
+		middleware: EndpointMiddleware;
 	}[];
 
 	/**
 	 * Handler for intercepting and potentially modifying incoming requests
-	 *
-	 * @param request - The incoming HTTP request
-	 * @param ctx - The DoubleTie context
-	 * @returns A modified request, a response to short-circuit handling, or undefined to continue
 	 */
-	onRequest?: (
-		request: Request,
-		ctx: DoubleTieContext
-	) => Promise<
-		| {
-				response: Response;
-		  }
-		| {
-				request: Request;
-		  }
-		| undefined
-	>;
+	onRequest?: (event: H3Event, ctx: DoubleTieContext) => Promise<unknown>;
 
 	/**
 	 * Handler for intercepting and potentially modifying outgoing responses
-	 *
-	 * @param response - The outgoing HTTP response
-	 * @param ctx - The DoubleTie context
-	 * @returns A modified response or undefined to continue with the original
 	 */
-	onResponse?: (
-		response: Response,
-		ctx: DoubleTieContext
-	) => Promise<
-		| {
-				response: Response;
-		  }
-		| undefined
-	>;
+	onResponse?: (event: H3Event, ctx: DoubleTieContext) => Promise<unknown>;
 
 	/**
 	 * Request lifecycle hooks for executing code before or after endpoint handling

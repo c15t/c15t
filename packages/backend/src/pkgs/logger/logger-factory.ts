@@ -1,5 +1,6 @@
 import { formatMessage } from './console-formatter';
 import { levels, shouldPublishLog } from './log-levels';
+import { withLogSpan } from './telemetry';
 import type { LogEntry, LogLevel, Logger, LoggerOptions } from './types';
 
 /**
@@ -38,7 +39,7 @@ export const createLogger = (options?: LoggerOptions | Logger): Logger => {
 	const loggerOptions = options as LoggerOptions;
 	const enabled = loggerOptions?.disabled !== true;
 	const logLevel = loggerOptions?.level ?? 'error';
-	const appName = loggerOptions?.appName ?? '🪢 doubletie';
+	const appName = loggerOptions?.appName ?? 'c15t';
 
 	/**
 	 * Internal function that handles the actual logging logic.
@@ -49,48 +50,56 @@ export const createLogger = (options?: LoggerOptions | Logger): Logger => {
 	 *
 	 * @internal
 	 */
-	const logFunc = (
+	const logFunc = async (
 		level: LogLevel,
 		message: string,
 		args: unknown[] = []
-	): void => {
+	): Promise<void> => {
 		if (!enabled || !shouldPublishLog(logLevel, level)) {
 			return;
 		}
 
-		const formattedMessage = formatMessage(level, message, appName);
+		await withLogSpan(level, message, args, async () => {
+			const formattedMessage = formatMessage(level, message, appName);
 
-		if (!loggerOptions || typeof loggerOptions.log !== 'function') {
-			if (level === 'error') {
-				// biome-ignore lint/suspicious/noConsole: Logger implementation
-				console.error(formattedMessage, ...args);
-			} else if (level === 'warn') {
-				// biome-ignore lint/suspicious/noConsole: Logger implementation
-				console.warn(formattedMessage, ...args);
-			} else if (level === 'info') {
-				// biome-ignore lint/suspicious/noConsole: Logger implementation
-				// biome-ignore lint/suspicious/noConsoleLog: Logger implementation
-				console.log(formattedMessage, ...args);
-			} else if (level === 'debug') {
-				// biome-ignore lint/suspicious/noConsole: Logger implementation
-				console.debug(formattedMessage, ...args);
-			} else if (level === 'success') {
-				// biome-ignore lint/suspicious/noConsole: Logger implementation
-				// biome-ignore lint/suspicious/noConsoleLog: Logger implementation
-				console.log(formattedMessage, ...args);
+			if (!loggerOptions || typeof loggerOptions.log !== 'function') {
+				if (level === 'error') {
+					// biome-ignore lint/suspicious/noConsole: Logger implementation
+					console.error(formattedMessage, ...args);
+				} else if (level === 'warn') {
+					// biome-ignore lint/suspicious/noConsole: Logger implementation
+					console.warn(formattedMessage, ...args);
+				} else if (level === 'info') {
+					// biome-ignore lint/suspicious/noConsole: Logger implementation
+					// biome-ignore lint/suspicious/noConsoleLog: Logger implementation
+					console.log(formattedMessage, ...args);
+				} else if (level === 'debug') {
+					// biome-ignore lint/suspicious/noConsole: Logger implementation
+					console.debug(formattedMessage, ...args);
+				} else if (level === 'success') {
+					// biome-ignore lint/suspicious/noConsole: Logger implementation
+					// biome-ignore lint/suspicious/noConsoleLog: Logger implementation
+					console.log(formattedMessage, ...args);
+				}
+				return;
 			}
-			return;
-		}
 
-		loggerOptions.log(level === 'success' ? 'info' : level, message, ...args);
+			loggerOptions.log(level === 'success' ? 'info' : level, message, ...args);
+		});
 	};
 
 	return Object.fromEntries(
 		levels.map((level) => [
 			level,
-			(...[message, ...args]: LogEntry) => logFunc(level, message, args),
+			(...[message, ...args]: LogEntry) => {
+				// Return the promise but don't await it
+				return logFunc(level, message, args).catch((error) => {
+					// biome-ignore lint/suspicious/noConsole: <explanation>
+					console.error('Logger error:', error);
+				});
+			},
 		])
-	) as Logger;
+	) as unknown as Logger;
 };
 
 /**

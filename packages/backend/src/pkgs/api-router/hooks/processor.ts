@@ -49,10 +49,7 @@ export async function runBeforeHooks(
 	} = {};
 	for (const hook of hooks) {
 		if (hook.matcher(context)) {
-			const result = await hook.handler({
-				...context,
-				returnHeaders: false,
-			});
+			const result = await hook.handler(context, async () => Promise.resolve());
 			if (result && typeof result === 'object') {
 				if ('context' in result && typeof result.context === 'object') {
 					const { headers, ...rest } = result.context as {
@@ -126,10 +123,7 @@ export async function runAfterHooks(
 	let response: unknown = null;
 	for (const hook of hooks) {
 		if (hook.matcher(context)) {
-			const result = await hook.handler({
-				...context,
-				returnHeaders: true,
-			});
+			const result = await hook.handler(context, async () => Promise.resolve());
 			if (
 				result &&
 				typeof result === 'object' &&

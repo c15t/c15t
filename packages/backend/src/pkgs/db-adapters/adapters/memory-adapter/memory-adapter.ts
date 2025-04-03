@@ -165,12 +165,17 @@ const createEntityTransformer = (options: C15TOptions) => {
 			model: EntityType,
 			action: 'update' | 'create'
 		): Record<string, unknown> {
+			const advancedOptions =
+				(options.advanced as {
+					generateId?: (params: { model: string; size?: number }) => string;
+				}) || {};
+
 			const transformedData: Record<string, unknown> =
 				action === 'update'
 					? {}
 					: {
-							id: options.advanced?.generateId
-								? options.advanced.generateId({
+							id: advancedOptions.generateId
+								? advancedOptions.generateId({
 										model,
 									})
 								: data.id || generateId(schema[model].entityPrefix),

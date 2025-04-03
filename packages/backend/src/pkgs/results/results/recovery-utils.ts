@@ -1,4 +1,5 @@
 import { err, ok } from 'neverthrow';
+import { withSpan } from '../core/tracing';
 import type { ErrorCategory, ErrorMessageType, SDKResult } from '../types';
 
 /**
@@ -61,10 +62,30 @@ export const withFallbackForCodes = <TValue>(
 	errorCodes: ErrorMessageType[],
 	defaultValue: TValue
 ): SDKResult<TValue> => {
+	void withSpan('recovery_with_fallback_codes', async (span) => {
+		span.setAttributes({
+			'recovery.type': 'error_codes',
+			'recovery.codes': errorCodes.join(','),
+			'result.is_error': result.isErr(),
+		});
+	});
+
 	return result.orElse((error) => {
 		if (error.code && errorCodes.includes(error.code)) {
+			void withSpan('recovery_with_fallback_codes', async (span) => {
+				span.setAttributes({
+					'recovery.matched': true,
+					'recovery.error_code': error.code,
+				});
+			});
 			return ok(defaultValue);
 		}
+		void withSpan('recovery_with_fallback_codes', async (span) => {
+			span.setAttributes({
+				'recovery.matched': false,
+				'recovery.error_code': error.code,
+			});
+		});
 		return err(error);
 	});
 };
@@ -130,10 +151,30 @@ export const withFallbackForCategory = <TValue>(
 	category: ErrorCategory,
 	defaultValue: TValue
 ): SDKResult<TValue> => {
+	void withSpan('recovery_with_fallback_category', async (span) => {
+		span.setAttributes({
+			'recovery.type': 'error_category',
+			'recovery.category': category,
+			'result.is_error': result.isErr(),
+		});
+	});
+
 	return result.orElse((error) => {
 		if (error.category === category) {
+			void withSpan('recovery_with_fallback_category', async (span) => {
+				span.setAttributes({
+					'recovery.matched': true,
+					'recovery.error_category': error.category,
+				});
+			});
 			return ok(defaultValue);
 		}
+		void withSpan('recovery_with_fallback_category', async (span) => {
+			span.setAttributes({
+				'recovery.matched': false,
+				'recovery.error_category': error.category,
+			});
+		});
 		return err(error);
 	});
 };

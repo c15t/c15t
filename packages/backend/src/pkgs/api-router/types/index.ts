@@ -1,14 +1,62 @@
 import type { Adapter } from '~/pkgs/db-adapters/types';
 import type { createRegistry } from '~/schema/create-registry';
-import type { C15TOptions } from '~/types';
+import type { DoubleTieOptions } from '../../types/options';
 
-interface Context {
-	adapter: Adapter;
-	trustedOrigins: string[];
+export interface H3EventContext {
+	/**
+	 * IP address of the client
+	 */
+	ipAddress?: string | null;
+
+	/**
+	 * User agent string
+	 */
+	userAgent?: string | null;
+
+	/**
+	 * Registry for database operations
+	 */
 	registry: ReturnType<typeof createRegistry>;
+
+	/**
+	 * Database adapter
+	 */
+	adapter: Adapter;
+
+	/**
+	 * Trusted origins for CORS
+	 */
+	trustedOrigins: string[];
+
+	/**
+	 * Any other context properties
+	 */
+	[key: string]: unknown;
 }
 
 export interface RouterProps {
-	options: C15TOptions;
-	context: Context;
+	/**
+	 * Configuration options
+	 */
+	options: DoubleTieOptions;
+
+	/**
+	 * Router context
+	 */
+	context: {
+		/**
+		 * Database adapter
+		 */
+		adapter: Adapter;
+
+		/**
+		 * Trusted origins for CORS
+		 */
+		trustedOrigins: string[];
+
+		/**
+		 * Registry for database operations
+		 */
+		registry: ReturnType<typeof createRegistry>;
+	};
 }

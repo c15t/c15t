@@ -1,3 +1,5 @@
+import type { Tracer } from '@opentelemetry/api';
+
 /**
  * Represents the available log severity levels.
  *
@@ -62,6 +64,26 @@ export interface LoggerOptions {
 	 * @default '🪢 doubletie'
 	 */
 	appName?: string;
+
+	/**
+	 * OpenTelemetry configuration options
+	 */
+	telemetry?: {
+		/**
+		 * Custom tracer to use for OpenTelemetry integration
+		 */
+		tracer?: Tracer;
+
+		/**
+		 * Whether to disable OpenTelemetry tracing
+		 */
+		disabled?: boolean;
+
+		/**
+		 * Additional attributes to add to all spans
+		 */
+		defaultAttributes?: Record<string, string | number | boolean>;
+	};
 }
 
 /**

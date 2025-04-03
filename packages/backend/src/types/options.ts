@@ -8,9 +8,9 @@
 import type { DoubleTieOptions } from '~/pkgs/types/options';
 import type { C15TPlugin } from './plugins';
 
+import type { LoggerOptions } from '~/pkgs/logger';
 // Import table configuration types from the schema module
 import type { TablesConfig } from '~/schema/types';
-
 /**
  * Main configuration options for the c15t consent management system
  *
@@ -34,4 +34,5 @@ export interface C15TOptions<PluginType extends C15TPlugin[] = C15TPlugin[]>
 	extends Omit<DoubleTieOptions, 'plugins'> {
 	plugins?: PluginType;
 	tables?: TablesConfig;
+	logger?: LoggerOptions;
 }

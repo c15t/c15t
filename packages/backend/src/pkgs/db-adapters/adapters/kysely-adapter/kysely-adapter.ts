@@ -332,10 +332,15 @@ const createEntityTransformer = (
 			if (action === 'create') {
 				// If an ID is provided in the input data, use it
 				// Otherwise generate a new one with the appropriate prefix
+				const advancedOptions =
+					(options.advanced as {
+						generateId?: (params: { model: string; size?: number }) => string;
+						disableTransactions?: boolean;
+					}) || {};
 				transformedData.id =
 					data.id ||
-					(options.advanced?.generateId
-						? options.advanced.generateId({ model })
+					(advancedOptions.generateId
+						? advancedOptions.generateId({ model })
 						: generateId(schema[model].entityPrefix));
 			}
 
@@ -1140,7 +1145,11 @@ export const kyselyAdapter =
 				const { callback } = data;
 
 				// Check if transactions are explicitly disabled
-				if (opts.advanced?.disableTransactions) {
+				const advancedOptions =
+					(opts.advanced as {
+						disableTransactions?: boolean;
+					}) || {};
+				if (advancedOptions.disableTransactions) {
 					const regularAdapter = kyselyAdapter(db, config)(opts);
 					return await callback(regularAdapter);
 				}

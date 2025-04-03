@@ -101,7 +101,7 @@ describe('logger-factory', () => {
 
 			// Check that the message contains the expected parts
 			expect(firstCallArg).toContain('ERROR');
-			expect(firstCallArg).toContain('[🪢 doubletie]');
+			expect(firstCallArg).toContain('[c15t]');
 			expect(firstCallArg).toContain('Test message');
 
 			// Check that timestamp matches ISO format

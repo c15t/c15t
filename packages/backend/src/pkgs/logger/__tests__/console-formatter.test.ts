@@ -33,7 +33,7 @@ describe('console-formatter', () => {
 
 			// Verify the message contains the main components
 			expect(formattedMessage).toContain('ERROR');
-			expect(formattedMessage).toContain('[🪢 doubletie]');
+			expect(formattedMessage).toContain('[c15t]');
 			expect(formattedMessage).toContain('Test message');
 
 			// Verify formatting includes timestamp (ISO format)

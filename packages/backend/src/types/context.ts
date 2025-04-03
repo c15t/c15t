@@ -1,5 +1,12 @@
-import type { BaseDoubleTieContext } from '~/pkgs/types/context';
-import type { getConsentTables } from '~/schema/definition';
+import type { H3Event } from 'h3';
+import type { Adapter } from '~/pkgs/db-adapters/types';
+import type { Logger } from '~/pkgs/logger';
+import type { DoubleTieContext } from '~/pkgs/types/context';
+import type { DeepPartial } from '~/pkgs/types/helper';
+import type { getConsentTables } from '~/schema';
+import type { createRegistry } from '~/schema/create-registry';
+import type { C15TOptions } from './options';
+import type { C15TPlugin, InferPluginContexts } from './plugins';
 
 /**
  * Enhanced base C15T context interface for consent management
@@ -7,7 +14,7 @@ import type { getConsentTables } from '~/schema/definition';
  * Extends the DoubleTie base context with additional properties specifically
  * needed for consent management functionality.
  */
-export interface BaseC15TContext extends BaseDoubleTieContext {
+export interface BaseC15TContext extends DoubleTieContext {
 	/**
 	 * Database tables specifically for the consent system
 	 */
@@ -33,27 +40,62 @@ export interface BaseC15TContext extends BaseDoubleTieContext {
  * @typeParam TPluginContext - Record of plugin-specific context properties
  */
 export type C15TContext<
-	TPluginContext extends Record<string, unknown> = Record<string, unknown>,
-> = BaseC15TContext & TPluginContext;
+	PluginContexts extends Record<string, unknown> = InferPluginContexts<
+		C15TPlugin[]
+	>,
+> = DoubleTieContext<PluginContexts>;
 
 /**
- * Context with a specific consent plugin
- *
- * This utility type makes it easier to create contexts with
- * a specific consent plugin's context properties.
- *
- * @typeParam TPluginName - The name of the plugin
- * @typeParam TPluginContext - The plugin-specific context properties
- *
- * @example
- * ```ts
- * type AnalyticsContextType = { trackEvent: (name: string) => void };
- * type ContextWithAnalytics = ContextWithPlugin<'analytics', AnalyticsContextType>;
- *
- * // Now you can access context.analytics.trackEvent
- * ```
+ * Context for H3 event handlers
  */
-export type ContextWithPlugin<
-	TPluginName extends string,
-	TPluginContext extends Record<string, unknown>,
-> = C15TContext<Record<TPluginName, TPluginContext>>;
+export type C15TEventContext = H3Event & {
+	context: C15TContext;
+};
+
+/**
+ * Hook context for plugins
+ */
+export interface C15THookContext {
+	/**
+	 * Logger instance
+	 */
+	logger: Logger;
+
+	/**
+	 * Database adapter
+	 */
+	adapter: Adapter;
+
+	/**
+	 * Registry for database operations
+	 */
+	registry: ReturnType<typeof createRegistry>;
+
+	/**
+	 * Configuration options
+	 */
+	options: C15TOptions;
+
+	/**
+	 * Function to perform database operations
+	 */
+	dbHandler?: <T>(fn: () => Promise<T>) => Promise<T>;
+
+	/**
+	 * The path of the current request
+	 */
+	path?: string;
+
+	/**
+	 * Custom attributes for the context
+	 */
+	[key: string]: unknown;
+}
+
+/**
+ * Plugin initialization result
+ */
+export type PluginInitResult = {
+	context?: DeepPartial<Omit<C15TContext, 'options'>>;
+	options?: Partial<C15TOptions>;
+};

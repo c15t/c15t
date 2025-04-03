@@ -2,6 +2,9 @@ import { defu } from 'defu';
 import { getAdapter } from '~/pkgs/db-adapters';
 import { createLogger } from '~/pkgs/logger';
 import type { RegistryContext } from '~/pkgs/types';
+import { env, getBaseURL, isProduction } from '~/pkgs/utils';
+import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
+import type { DatabaseHook } from './pkgs/data-model';
 import { generateId } from './pkgs/data-model/fields/id-generator';
 import type { EntityName } from './pkgs/data-model/schema/types';
 import {
@@ -12,10 +15,15 @@ import {
 	ok,
 	promiseToResult,
 } from './pkgs/results';
+import { initTelemetry } from './pkgs/telemetry';
+import {
+	type TelemetryConfig,
+	createTelemetryOptions,
+} from './pkgs/telemetry/utils';
+import type { DoubleTieOptions } from './pkgs/types/options';
 import { createRegistry } from './schema/create-registry';
 import { getConsentTables } from './schema/definition';
 
-import { env, getBaseURL, isProduction } from '~/pkgs/utils';
 /**
  * c15t Initialization Module
  *
@@ -31,8 +39,6 @@ import { env, getBaseURL, isProduction } from '~/pkgs/utils';
  *
  * This is an internal module typically not used directly by consumers of the c15t library.
  */
-import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
-import type { DoubleTieOptions } from './pkgs/types/options';
 
 /**
  * Default secret used when no secret is provided
@@ -77,6 +83,24 @@ export const init = async <P extends C15TPlugin[]>(
 	options: C15TOptions<P>
 ): Promise<SDKResult<C15TContext>> => {
 	try {
+		// Type-safe handling of options
+		const loggerOptions = options.logger;
+		const baseUrlStr = options.baseURL as string | undefined;
+		const basePathStr = options.basePath as string | undefined;
+		const databaseHooks = (options.databaseHooks as DatabaseHook[]) || [];
+
+		// Create telemetry options directly using h3 patterns
+		const telemetryOptions = createTelemetryOptions(
+			String(options.appName || 'c15t'),
+			options.telemetry as TelemetryConfig
+		);
+
+		// Initialize telemetry with direct options instead of conversion
+		initTelemetry({
+			...options,
+			telemetry: telemetryOptions,
+		} as DoubleTieOptions);
+
 		// Initialize core components
 		const adapterResult = await promiseToResult(
 			getAdapter(options),
@@ -84,10 +108,10 @@ export const init = async <P extends C15TPlugin[]>(
 		);
 
 		return adapterResult.andThen((adapter) => {
-			const logger = createLogger(options.logger);
-			const baseURL = getBaseURL(options.baseURL, options.basePath);
+			const logger = createLogger(loggerOptions);
+			const baseURL = getBaseURL(baseUrlStr, basePathStr);
 			const secret =
-				options.secret ||
+				(options.secret as string) ||
 				env.C15T_SECRET ||
 				env.CONSENT_SECRET ||
 				DEFAULT_SECRET;
@@ -99,13 +123,14 @@ export const init = async <P extends C15TPlugin[]>(
 				);
 			}
 
-			// Create normalized options
-			const finalOptions = {
+			// Create normalized options directly with h3 patterns
+			const finalOptions: DoubleTieOptions = {
 				...options,
 				secret,
 				baseURL: baseURL ? new URL(baseURL).origin : '',
-				basePath: options.basePath || '/api/c15t',
+				basePath: basePathStr || '/api/c15t',
 				plugins: [...(options.plugins || []), ...getInternalPlugins(options)],
+				telemetry: telemetryOptions,
 			};
 
 			// Create ID generator
@@ -119,19 +144,19 @@ export const init = async <P extends C15TPlugin[]>(
 				);
 			};
 
-			// Create registry context - just what registries need
+			// Create registry context
 			const registryContext: RegistryContext = {
 				adapter,
-				options: finalOptions as unknown as DoubleTieOptions,
+				options: finalOptions,
 				logger,
-				hooks: options.databaseHooks || [],
+				hooks: databaseHooks,
 				generateId: generateIdFunc,
 			};
 
 			// Create full application context
 			const ctx: C15TContext = {
-				appName: finalOptions.appName || 'c15t Consent Manager',
-				options: finalOptions as unknown as DoubleTieOptions,
+				appName: (finalOptions.appName as string) || 'c15t Consent Manager',
+				options: finalOptions,
 				trustedOrigins: getTrustedOrigins(finalOptions),
 				baseURL: baseURL || '',
 				secret,
@@ -230,15 +255,19 @@ function getInternalPlugins(_options: C15TOptions): C15TPlugin[] {
  * @returns An array of trusted origin URLs
  */
 function getTrustedOrigins(options: C15TOptions<C15TPlugin[]>): string[] {
-	const baseURL = getBaseURL(options.baseURL, options.basePath);
+	const baseUrlStr = options.baseURL as string | undefined;
+	const basePathStr = options.basePath as string | undefined;
+	const baseURL = getBaseURL(baseUrlStr, basePathStr);
+
 	if (!baseURL) {
 		return [];
 	}
 
 	const trustedOrigins = [new URL(baseURL).origin];
 
-	if (options.trustedOrigins && Array.isArray(options.trustedOrigins)) {
-		trustedOrigins.push(...options.trustedOrigins);
+	const optionOrigins = options.trustedOrigins as string[] | undefined;
+	if (optionOrigins && Array.isArray(optionOrigins)) {
+		trustedOrigins.push(...optionOrigins);
 	}
 
 	const envTrustedOrigins = env.C15T_TRUSTED_ORIGINS;
