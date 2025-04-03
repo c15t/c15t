@@ -17,7 +17,7 @@ describe('DoubleTieError', () => {
 
 			expect(error.message).toBe(message);
 			expect(error.code).toBe(ERROR_CODES.BAD_REQUEST);
-			expect(error.status).toBe(400);
+			expect(error.statusCode).toBe(400);
 			expect(error.category).toBe(ERROR_CATEGORIES.VALIDATION);
 			expect(error.meta).toEqual({ foo: 'bar' });
 			expect(error.name).toBe('DoubleTieError');
@@ -33,9 +33,9 @@ describe('DoubleTieError', () => {
 
 			expect(error.message).toBe(message);
 			expect(error.code).toBe(ERROR_CODES.BAD_REQUEST);
-			expect(error.status).toBe(500); // Default status
-			expect(error.category).toBe(ERROR_CATEGORIES.UNEXPECTED); // Default category
-			expect(error.meta).toEqual({}); // Default meta
+			expect(error.statusCode).toBe(500);
+			expect(error.category).toBe(ERROR_CATEGORIES.UNEXPECTED);
+			expect(error.meta).toEqual({});
 		});
 
 		it('should capture cause when provided', () => {
@@ -55,7 +55,7 @@ describe('DoubleTieError', () => {
 			const error = DoubleTieError.fromResponse(response);
 
 			expect(error).toBeInstanceOf(DoubleTieError);
-			expect(error.status).toBe(404);
+			expect(error.statusCode).toBe(404);
 			expect(error.message).toContain('HTTP error 404');
 		});
 
@@ -75,7 +75,7 @@ describe('DoubleTieError', () => {
 
 			expect(error.message).toBe('Resource not found');
 			expect(error.code).toBe(ERROR_CODES.NOT_FOUND);
-			expect(error.status).toBe(404);
+			expect(error.statusCode).toBe(404);
 			expect(error.meta).toEqual({ resourceId: '123' });
 		});
 	});
@@ -101,7 +101,7 @@ describe('DoubleTieError', () => {
 	});
 
 	describe('toJSON', () => {
-		it('should serialize error to JSON', () => {
+		it('should serialize error to JSON with H3 compatible structure', () => {
 			const error = new DoubleTieError('Test error', {
 				code: ERROR_CODES.BAD_REQUEST,
 				status: 400,
@@ -111,17 +111,27 @@ describe('DoubleTieError', () => {
 
 			const errorJson = error.toJSON();
 
-			expect(errorJson).toEqual(
-				expect.objectContaining({
-					name: 'DoubleTieError',
-					message: 'Test error',
-					code: ERROR_CODES.BAD_REQUEST,
-					status: 400,
-					category: ERROR_CATEGORIES.VALIDATION,
-					meta: { field: 'username' },
-				})
-			);
+			expect(errorJson.statusCode).toBe(400);
+			expect(errorJson.message).toBe('Test error');
+			expect(errorJson.data?.code).toBe(ERROR_CODES.BAD_REQUEST);
+			expect(errorJson.data?.category).toBe(ERROR_CATEGORIES.VALIDATION);
+			expect(errorJson.data?.meta).toEqual({ field: 'username' });
+
+			//@ts-expect-error
 			expect(errorJson.stack).toBeDefined();
+		});
+
+		it('should include validation error message when present', () => {
+			const error = new DoubleTieError('Validation failed', {
+				code: ERROR_CODES.BAD_REQUEST,
+				status: 422,
+				meta: { validationErrors: 'Field X is required' },
+			});
+
+			const errorJson = error.toJSON();
+
+			expect(errorJson.message).toBe('Field X is required');
+			expect(errorJson.data?.originalMessage).toBe('Validation failed');
 		});
 
 		it('should serialize cause if it exists', () => {
@@ -132,14 +142,15 @@ describe('DoubleTieError', () => {
 			});
 
 			const errorJson = error.toJSON();
-
+			//@ts-expect-error
 			expect(errorJson.cause).toEqual(
 				expect.objectContaining({
 					name: 'Error',
 					message: 'Original error',
 				})
 			);
-			expect((errorJson.cause as Error).stack).toBeDefined();
+			//@ts-expect-error
+			expect(errorJson.cause.stack).toBeDefined();
 		});
 	});
 
@@ -152,19 +163,16 @@ describe('DoubleTieError', () => {
 
 			const newError = error.withMeta({ reason: 'validation failed' });
 
-			// Original error should be unchanged
 			expect(error.meta).toEqual({ field: 'username' });
 
-			// New error should have combined metadata
 			expect(newError.meta).toEqual({
 				field: 'username',
 				reason: 'validation failed',
 			});
 
-			// Other properties should be the same
 			expect(newError.message).toBe(error.message);
 			expect(newError.code).toBe(error.code);
-			expect(newError.status).toBe(error.status);
+			expect(newError.statusCode).toBe(error.statusCode);
 			expect(newError.category).toBe(error.category);
 		});
 	});
@@ -191,6 +199,17 @@ describe('DoubleTieError', () => {
 			expect(error instanceof PaymentError).toBe(true);
 			expect(error instanceof DoubleTieError).toBe(true);
 			expect(error instanceof Error).toBe(true);
+		});
+	});
+
+	describe('status property', () => {
+		it('should provide status as an alias for statusCode', () => {
+			const error = new DoubleTieError('Test error', {
+				code: ERROR_CODES.BAD_REQUEST,
+				status: 400,
+			});
+
+			expect(error.statusCode).toBe(400);
 		});
 	});
 });

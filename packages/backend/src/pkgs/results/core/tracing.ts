@@ -35,7 +35,7 @@ export async function withSpan<T>(
 				span.setAttributes({
 					'error.type': 'DoubleTieError',
 					'error.code': error.code,
-					'error.status': error.status,
+					'error.statusCode': error.statusCode,
 					'error.message': error.message,
 				});
 

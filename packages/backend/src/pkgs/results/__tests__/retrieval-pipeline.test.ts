@@ -62,7 +62,7 @@ describe('retrievalPipeline', () => {
 
 		expect(error).toBeInstanceOf(DoubleTieError);
 		expect(error.code).toBe(ERROR_CODES.NOT_FOUND);
-		expect(error.status).toBe(404);
+		expect(error.statusCode).toBe(404);
 		expect(error.message).toBe('Resource not found');
 
 		// Verify fetcher was called but transformer wasn't
@@ -81,7 +81,7 @@ describe('retrievalPipeline', () => {
 
 		expect(error).toBeInstanceOf(DoubleTieError);
 		expect(error.code).toBe(ERROR_CODES.NOT_FOUND);
-		expect(error.status).toBe(404);
+		expect(error.statusCode).toBe(404);
 	});
 
 	it('should return a not found error when fetcher rejects with not found message', async () => {
@@ -96,7 +96,7 @@ describe('retrievalPipeline', () => {
 
 		expect(error).toBeInstanceOf(DoubleTieError);
 		expect(error.code).toBe(ERROR_CODES.NOT_FOUND);
-		expect(error.status).toBe(404);
+		expect(error.statusCode).toBe(404);
 		expect(error.cause).toBe(notFoundError);
 	});
 
@@ -112,7 +112,7 @@ describe('retrievalPipeline', () => {
 
 		expect(error).toBeInstanceOf(DoubleTieError);
 		expect(error.code).toBe(ERROR_CODES.BAD_REQUEST);
-		expect(error.status).toBe(400);
+		expect(error.statusCode).toBe(400);
 		expect(error.cause).toBe(connectionError);
 	});
 
@@ -151,7 +151,7 @@ describe('retrievalPipeline', () => {
 
 		expect(error).toBeInstanceOf(DoubleTieError);
 		expect(error.code).toBe(ERROR_CODES.BAD_REQUEST);
-		expect(error.status).toBe(400);
+		expect(error.statusCode).toBe(400);
 		expect(error.cause).toBe(transformerError);
 	});
 });

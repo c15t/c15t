@@ -344,6 +344,15 @@ export const memoryAdapter =
 		const { transformInput, transformOutput, convertWhereClause, getField } =
 			createEntityTransformer(options);
 
+		const schema = getConsentTables(options);
+
+		// Pre-initialize all tables
+		for (const model in schema) {
+			if (!db[model]) {
+				db[model] = [];
+			}
+		}
+
 		return {
 			id: 'memory',
 			/**

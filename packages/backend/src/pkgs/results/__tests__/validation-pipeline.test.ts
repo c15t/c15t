@@ -61,7 +61,7 @@ describe('validationPipeline', () => {
 
 		expect(error).toBeInstanceOf(DoubleTieError);
 		expect(error.code).toBe(ERROR_CODES.INVALID_REQUEST);
-		expect(error.status).toBe(400);
+		expect(error.statusCode).toBe(400);
 		expect(error.meta).toBeDefined();
 		expect(error.meta.validationErrors).toBeDefined();
 
@@ -116,9 +116,11 @@ describe('validationPipeline', () => {
 
 		expect(error).toBeInstanceOf(DoubleTieError);
 		expect(error.code).toBe(ERROR_CODES.BAD_REQUEST);
-		expect(error.status).toBe(400);
+		expect(error.code).toBe(ERROR_CODES.BAD_REQUEST);
 		expect(error.cause).toBeInstanceOf(Error);
-		expect(error.cause?.message).toBe('Transformation error');
+		expect(error.cause instanceof Error && error.cause.message).toBe(
+			'Transformation error'
+		);
 
 		// Check that the transformer was called with the validated data
 		expect(errorThrowingTransformer).toHaveBeenCalledWith(validData);

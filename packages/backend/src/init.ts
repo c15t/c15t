@@ -1,3 +1,6 @@
+import { Resource } from '@opentelemetry/resources';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-base';
 import { defu } from 'defu';
 import { getAdapter } from '~/pkgs/db-adapters';
 import { createLogger } from '~/pkgs/logger';
@@ -15,7 +18,7 @@ import {
 	ok,
 	promiseToResult,
 } from './pkgs/results';
-import { initTelemetry } from './pkgs/telemetry';
+import { setTelemetrySdk } from './pkgs/telemetry';
 import {
 	type TelemetryConfig,
 	createTelemetryOptions,
@@ -45,6 +48,9 @@ import { getConsentTables } from './schema/definition';
  * This should only be used in development environments
  */
 const DEFAULT_SECRET = 'c15t-default-secret-please-change-in-production';
+
+// SDK instance should be at module level for proper lifecycle management
+let telemetrySdk: NodeSDK | undefined;
 
 /**
  * Initializes the c15t consent management system using Result pattern
@@ -89,26 +95,101 @@ export const init = async <P extends C15TPlugin[]>(
 		const basePathStr = options.basePath as string | undefined;
 		const databaseHooks = (options.databaseHooks as DatabaseHook[]) || [];
 
-		// Create telemetry options directly using h3 patterns
+		// Create a single logger instance early in the initialization process
+		const logger = createLogger({
+			...loggerOptions,
+			appName: String(options.appName || 'c15t'), // Ensure consistent app name and type safety
+		});
+
+		// Create telemetry options
 		const telemetryOptions = createTelemetryOptions(
 			String(options.appName || 'c15t'),
 			options.telemetry as TelemetryConfig
 		);
 
-		// Initialize telemetry with direct options instead of conversion
-		initTelemetry({
-			...options,
-			telemetry: telemetryOptions,
-		} as DoubleTieOptions);
+		// Initialize telemetry directly here instead of using a separate function
+		let telemetryInitialized = false;
+		try {
+			// Skip if SDK already initialized or telemetry is disabled
+			if (telemetrySdk) {
+				logger.debug('Telemetry SDK already initialized, skipping');
+				telemetryInitialized = true;
+			} else if (telemetryOptions?.disabled) {
+				logger.info('Telemetry is disabled by configuration');
+				telemetryInitialized = false;
+			} else {
+				// Create a telemetry resource with provided values or safe defaults
+				const resource = new Resource({
+					'service.name': String(options?.appName || 'c15t'),
+					'service.version': String(process.env.npm_package_version || '1.0.0'),
+					...(telemetryOptions?.defaultAttributes || {}),
+				});
+				logger.debug('Initializing telemetry with resource attributes', {
+					attributes: resource.attributes,
+				});
+
+				// Use provided tracer or fallback to console exporter
+				const traceExporter = telemetryOptions?.tracer
+					? undefined // SDK will use the provided tracer
+					: new ConsoleSpanExporter();
+
+				// Create and start the SDK
+				telemetrySdk = new NodeSDK({
+					resource,
+					traceExporter,
+				});
+
+				// Share the SDK reference with the telemetry module so shutdown can work
+				setTelemetrySdk(telemetrySdk);
+
+				telemetrySdk.start();
+				logger.info('Telemetry successfully initialized');
+				telemetryInitialized = true;
+			}
+		} catch (error) {
+			// Log the error but don't crash the application
+			logger.error('Telemetry initialization failed', {
+				error: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : undefined,
+			});
+			logger.warn('Continuing without telemetry');
+			telemetryInitialized = false;
+		}
+
+		// Log telemetry initialization status
+		if (telemetryOptions?.disabled) {
+			logger.info('Telemetry is disabled by configuration');
+		} else if (telemetryInitialized) {
+			logger.info('Telemetry initialized successfully');
+		} else {
+			logger.warn(
+				'Telemetry initialization failed, continuing without telemetry'
+			);
+		}
 
 		// Initialize core components
+		logger.info('Initializing adapter', {
+			storage:
+				options.storage && typeof options.storage === 'object'
+					? ((options.storage as Record<string, unknown>).type as string) ||
+						'unknown'
+					: 'unknown',
+			clientVersion: options.clientVersion || 'not provided',
+			appName: options.appName,
+			baseURL: options.baseURL,
+		});
+
 		const adapterResult = await promiseToResult(
 			getAdapter(options),
 			ERROR_CODES.INITIALIZATION_FAILED
 		);
 
+		// After getting adapter
+		logger.debug('Adapter initialization result', {
+			success: adapterResult.isOk(),
+		});
+
 		return adapterResult.andThen((adapter) => {
-			const logger = createLogger(loggerOptions);
 			const baseURL = getBaseURL(baseUrlStr, basePathStr);
 			const secret =
 				(options.secret as string) ||
@@ -123,7 +204,7 @@ export const init = async <P extends C15TPlugin[]>(
 				);
 			}
 
-			// Create normalized options directly with h3 patterns
+			// Create normalized options directly with h3 patterns but no version field
 			const finalOptions: DoubleTieOptions = {
 				...options,
 				secret,
@@ -160,7 +241,7 @@ export const init = async <P extends C15TPlugin[]>(
 				trustedOrigins: getTrustedOrigins(finalOptions),
 				baseURL: baseURL || '',
 				secret,
-				logger,
+				logger, // Use the shared logger instance
 				generateId: generateIdFunc,
 				adapter,
 				registry: createRegistry(registryContext),
@@ -171,6 +252,12 @@ export const init = async <P extends C15TPlugin[]>(
 			return runPluginInit(ctx);
 		});
 	} catch (error) {
+		const errorLogger = createLogger(options.logger);
+		errorLogger.error('Initialization failed', {
+			error: error instanceof Error ? error.message : String(error),
+			stack: error instanceof Error ? error.stack : undefined,
+		});
+
 		return failAsync(
 			`Failed to initialize consent system: ${error instanceof Error ? error.message : String(error)}`,
 			{

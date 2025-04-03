@@ -11,6 +11,7 @@
  * - **Recovery utilities**: Tools for gracefully handling expected error conditions
  * - **Processing pipelines**: Standardized patterns for validation and data retrieval
  * - **Zero dependency** (except for neverthrow)
+ * - **H3.js integration**: Full integration with H3.js error handling
  *
  * ## Example Usage
  *
@@ -118,3 +119,10 @@ export {
 // Export pipeline utilities
 export { validationPipeline } from './pipeline/validation-pipeline';
 export { retrievalPipeline } from './pipeline/retrieval-pipeline';
+
+// Export H3.js integration helpers
+export {
+	createH3ErrorHandler,
+	withH3ErrorHandling,
+	createRequestError,
+} from './h3-integration';

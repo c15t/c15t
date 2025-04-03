@@ -1,6 +1,5 @@
 import type { H3Event, H3EventContext, RouterMethod } from 'h3';
 import {
-	createError,
 	defineEventHandler,
 	getQuery as h3GetQuery,
 	getRouterParams as h3GetRouterParams,
@@ -142,7 +141,7 @@ export function defineRoute<
 ): (Route & { responseType: TResponse }) | Endpoint {
 	// Simple endpoint case
 	if (typeof pathOrConfig === 'string' && handlerOrUndefined) {
-		// Create an endpoint directly with H3 patterns
+		// Create an endpoint directly with H3 patterns - log will happen in the handler
 		return {
 			path: pathOrConfig,
 			handler: handlerOrUndefined,
@@ -168,8 +167,17 @@ export function defineRoute<
 		) => Promise<TResponse>;
 	};
 
+	// We'll log the route definition when the handler is first used
 	const handler = defineEventHandler(async (event) => {
+		// Get the logger from the event context or create one if needed
 		const logger = event.context.logger || createLogger();
+		logger.debug(`Handling request for ${config.method} ${config.path}`);
+
+		// Ensure the logger is always in the context for handlers to use
+		if (!event.context.logger) {
+			event.context.logger = logger;
+		}
+
 		const validated = {
 			body: undefined,
 			query: undefined,
@@ -195,11 +203,16 @@ export function defineRoute<
 						validated.body = data;
 					},
 					(error) => {
-						logger.warn('Body validation failed', { error });
-						throw createError({
-							statusCode: 422,
-							statusMessage: 'Body validation failed',
-							data: error,
+						logger.error('Validation error (body)', { error });
+						throw new DoubleTieError('Body validation failed', {
+							code: ERROR_CODES.BAD_REQUEST,
+							status: 422,
+							cause: error instanceof Error ? error : undefined,
+							meta: {
+								validationErrors: error,
+								requestPath: config.path,
+								requestMethod: config.method,
+							},
 						});
 					}
 				);
@@ -219,11 +232,16 @@ export function defineRoute<
 						validated.query = data;
 					},
 					(error) => {
-						logger.warn('Query validation failed', { error });
-						throw createError({
-							statusCode: 422,
-							statusMessage: 'Query validation failed',
-							data: error,
+						logger.error('Query validation failed', { error });
+						throw new DoubleTieError('Query validation failed', {
+							code: ERROR_CODES.BAD_REQUEST,
+							status: 422,
+							cause: error instanceof Error ? error : undefined,
+							meta: {
+								validationErrors: error,
+								requestPath: config.path,
+								requestMethod: config.method,
+							},
 						});
 					}
 				);
@@ -243,11 +261,16 @@ export function defineRoute<
 						validated.params = data;
 					},
 					(error) => {
-						logger.warn('Path parameters validation failed', { error });
-						throw createError({
-							statusCode: 422,
-							statusMessage: 'Path parameters validation failed',
-							data: error,
+						logger.error('Path parameters validation failed', { error });
+						throw new DoubleTieError('Path parameters validation failed', {
+							code: ERROR_CODES.BAD_REQUEST,
+							status: 422,
+							cause: error instanceof Error ? error : undefined,
+							meta: {
+								validationErrors: error,
+								requestPath: config.path,
+								requestMethod: config.method,
+							},
 						});
 					}
 				);
@@ -265,7 +288,35 @@ export function defineRoute<
 				validated,
 			};
 
-			return await config.handler(eventWithContext);
+			// Call the handler and get its response
+			logger.debug(`Executing handler for ${config.method} ${config.path}`);
+			const response = await config.handler(eventWithContext);
+			logger.debug(
+				`Handler execution complete for ${config.method} ${config.path}, response type: ${typeof response}`
+			);
+
+			// Handle different response types
+			if (response === undefined || response === null) {
+				logger.warn(
+					`Handler for ${config.method} ${config.path} returned ${response === null ? 'null' : 'undefined'}`
+				);
+				return {}; // Return empty object instead of null/undefined
+			}
+
+			// For primitive values (which H3 might handle incorrectly)
+			if (
+				typeof response === 'boolean' ||
+				typeof response === 'number' ||
+				typeof response === 'string'
+			) {
+				logger.warn(
+					`Handler for ${config.method} ${config.path} returned primitive ${typeof response}, wrapping in object`
+				);
+				return { value: response }; // Wrap primitives in an object
+			}
+
+			// Return objects as-is (H3 will handle serialization)
+			return response;
 		} catch (error) {
 			// If it's already a DoubleTieError, rethrow it
 			if (error instanceof DoubleTieError) {
@@ -277,6 +328,7 @@ export function defineRoute<
 
 			// Extract validation details for better error messages
 			let validationErrors: unknown = 'Unknown validation error';
+			let statusCode = 422; // Default to validation error status
 
 			if (error instanceof Error) {
 				validationErrors = error.message;
@@ -289,6 +341,7 @@ export function defineRoute<
 				) {
 					try {
 						validationErrors = error.format();
+						statusCode = 422; // Zod errors are definitely validation errors
 					} catch {
 						// If formatting fails, fall back to the error message
 						validationErrors = `Validation error: ${error.message}`;
@@ -296,9 +349,13 @@ export function defineRoute<
 				}
 			}
 
+			// Log the validation error details
+			logger.error('Validation failed', { error });
+			logger.error('Validation error details', { validationErrors });
+
 			throw new DoubleTieError('Validation failed', {
 				code: ERROR_CODES.BAD_REQUEST,
-				status: 422,
+				status: statusCode,
 				cause: error instanceof Error ? error : undefined,
 				meta: {
 					validationErrors,
@@ -309,6 +366,7 @@ export function defineRoute<
 		}
 	});
 
+	// Return the route definition
 	return {
 		path: config.path,
 		method: config.method,

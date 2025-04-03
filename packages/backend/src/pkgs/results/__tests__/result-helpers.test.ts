@@ -43,7 +43,7 @@ describe('result-helpers', () => {
 			expect(error).toBeInstanceOf(DoubleTieError);
 			expect(error.message).toBe(errorMessage);
 			expect(error.code).toBe(ERROR_CODES.NOT_FOUND);
-			expect(error.status).toBe(404);
+			expect(error.statusCode).toBe(404);
 			expect(error.meta).toEqual({ userId: '123' });
 		});
 	});
@@ -71,7 +71,7 @@ describe('result-helpers', () => {
 			expect(error).toBeInstanceOf(DoubleTieError);
 			expect(error.message).toBe(errorMessage);
 			expect(error.code).toBe(ERROR_CODES.DATABASE_CONNECTION_ERROR);
-			expect(error.status).toBe(500);
+			expect(error.statusCode).toBe(500);
 			expect(error.meta).toEqual({ connectionId: 'db1' });
 		});
 	});

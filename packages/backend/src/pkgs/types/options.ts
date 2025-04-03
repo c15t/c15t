@@ -177,9 +177,66 @@ export interface DoubleTieOptions {
 		after?: DoubleTieMiddleware;
 	};
 
+	/**
+	 * OpenTelemetry configuration for observability
+	 *
+	 * Controls how telemetry data is collected and exported, allowing
+	 * users to integrate with their own observability stack.
+	 *
+	 * @example
+	 * ```typescript
+	 * // Basic configuration
+	 * telemetry: {
+	 *   disabled: false,
+	 *   defaultAttributes: {
+	 *     'deployment.environment': 'production'
+	 *   }
+	 * }
+	 * ```
+	 *
+	 * @example
+	 * ```typescript
+	 * // Using a custom tracer
+	 * import { trace } from '@opentelemetry/api';
+	 *
+	 * const tracer = trace.getTracer('my-custom-tracer');
+	 *
+	 * telemetry: {
+	 *   tracer,
+	 *   defaultAttributes: {
+	 *     'service.instance.id': instanceId
+	 *   }
+	 * }
+	 * ```
+	 */
 	telemetry?: {
+		/**
+		 * Custom OpenTelemetry tracer to use
+		 *
+		 * If provided, this tracer will be used instead of creating a new one.
+		 * This allows for integration with existing OpenTelemetry setups.
+		 */
 		tracer?: Tracer;
+
+		/**
+		 * Whether to disable telemetry collection
+		 *
+		 * When set to true, no telemetry data will be collected or exported.
+		 * Useful for development environments or when running tests.
+		 *
+		 * @default false
+		 */
 		disabled?: boolean;
+
+		/**
+		 * Default attributes to add to all telemetry spans
+		 *
+		 * These attributes will be added to every span created by the system,
+		 * useful for adding environment, deployment, or instance information.
+		 *
+		 * Required attributes like 'service.name' and 'service.version' will be
+		 * automatically added based on application configuration.
+		 */
 		defaultAttributes?: Record<string, string | number | boolean>;
 	};
 

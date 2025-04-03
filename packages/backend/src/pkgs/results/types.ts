@@ -1,3 +1,4 @@
+import type { H3Error } from 'h3';
 import type { Result, ResultAsync } from 'neverthrow';
 import type { ZodFormattedError } from 'zod';
 
@@ -80,21 +81,21 @@ export type ErrorCategoryMap = Readonly<Record<string, ErrorCategory>>;
  *
  * @remarks
  * This interface defines the public API of the DoubleTieError class.
- * It extends the standard Error class with additional properties and methods
+ * It extends the H3Error class with additional properties and methods
  * specific to the DoubleTie error handling system.
  *
  * @see DoubleTieErrorOptions for the options used to construct a DoubleTieError
  */
-export interface DoubleTieError extends Error {
+export interface DoubleTieError
+	extends H3Error<{
+		code: ErrorMessageType;
+		category?: string;
+		meta?: Record<string, unknown>;
+	}> {
 	/**
 	 * Error code identifying the error type
 	 */
 	readonly code: ErrorMessageType;
-
-	/**
-	 * HTTP status code if applicable
-	 */
-	readonly status: number;
 
 	/**
 	 * Category for grouping related errors
@@ -102,19 +103,9 @@ export interface DoubleTieError extends Error {
 	readonly category: ErrorCategory;
 
 	/**
-	 * Original error that caused this error
-	 */
-	readonly cause?: Error;
-
-	/**
 	 * Additional metadata about the error
 	 */
 	readonly meta: Record<string, unknown>;
-
-	/**
-	 * Converts the error to a JSON-serializable object
-	 */
-	toJSON(): Record<string, unknown>;
 
 	/**
 	 * Creates a new error instance with additional metadata
@@ -171,12 +162,6 @@ export interface DoubleTieErrorOptions {
 	 * Can contain any contextual information that might help debugging.
 	 */
 	meta?: Record<string, unknown>;
-
-	/**
-	 * @deprecated Use meta instead
-	 * Additional data about the error (backward compatibility).
-	 */
-	data?: Record<string, unknown>;
 }
 
 /**

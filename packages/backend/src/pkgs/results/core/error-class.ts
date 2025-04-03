@@ -1,18 +1,17 @@
+import { H3Error } from 'h3';
 import type { DoubleTieErrorOptions, ErrorMessageType } from '../types';
 import { ERROR_CATEGORIES, ERROR_CODES } from './error-codes';
 import { withSpan } from './tracing';
 
 /**
- * Custom error class for DoubleTie errors.
+ * Custom error class for DoubleTie errors that extends H3Error.
  *
- * This class extends the standard Error object with additional properties
- * such as error codes, status codes, and contextual data to provide
- * rich error information for applications.
+ * This class directly extends H3Error to provide seamless integration with H3.js
+ * while adding application-specific error properties and context.
  *
  * @remarks
  * The DoubleTieError is designed to be compatible with HTTP responses and API error handling
- * while providing rich context for debugging and error reporting. Use this as the base
- * for all application errors.
+ * while providing rich context for debugging and error reporting.
  *
  * @example
  * ```typescript
@@ -33,18 +32,17 @@ import { withSpan } from './tracing';
  * }
  * ```
  */
-export class DoubleTieError extends Error {
+export class DoubleTieError extends H3Error<{
+	code: ErrorMessageType;
+	category?: string;
+	meta?: Record<string, unknown>;
+	originalMessage?: string;
+}> {
 	/**
 	 * Error code as defined in ERROR_CODES or custom error codes.
 	 * Used to uniquely identify the error type.
 	 */
 	readonly code: ErrorMessageType;
-
-	/**
-	 * HTTP status code if applicable.
-	 * Defaults to 500 (Internal Server Error) if not specified.
-	 */
-	readonly status: number;
 
 	/**
 	 * Error category that groups related errors.
@@ -53,12 +51,6 @@ export class DoubleTieError extends Error {
 	 * @see ERROR_CATEGORIES for predefined categories
 	 */
 	readonly category: string;
-
-	/**
-	 * Original error that caused this error.
-	 * Useful for wrapping and preserving the original error stack trace.
-	 */
-	readonly cause?: Error;
 
 	/**
 	 * Additional metadata about the error.
@@ -76,7 +68,6 @@ export class DoubleTieError extends Error {
 	 * @param options.category - Error category (defaults to 'unexpected')
 	 * @param options.cause - Original error that caused this error
 	 * @param options.meta - Additional metadata about the error
-	 * @param options.data - Legacy parameter (use meta instead)
 	 *
 	 * @example
 	 * ```typescript
@@ -103,10 +94,16 @@ export class DoubleTieError extends Error {
 		// Initialize properties
 		this.name = this.constructor.name;
 		this.code = options.code ?? ERROR_CODES.UNKNOWN_ERROR;
-		this.status = options.status ?? 500;
+		this.statusCode = options.status ?? 500;
 		this.category = options.category ?? ERROR_CATEGORIES.UNEXPECTED;
-		this.cause = options.cause;
 		this.meta = options.meta ?? {};
+
+		// Set H3Error data property with our structured data
+		this.data = {
+			code: this.code,
+			category: this.category,
+			meta: this.meta,
+		};
 
 		// Add tracing after initialization
 		void withSpan('create_doubletie_error', async (span) => {
@@ -114,16 +111,17 @@ export class DoubleTieError extends Error {
 				'error.name': this.name,
 				'error.message': message,
 				'error.code': this.code,
-				'error.status': this.status,
+				'error.status': this.statusCode,
 				'error.category': this.category,
 				'error.has_cause': !!this.cause,
-				'error.cause_type': this.cause
-					? this.cause.constructor.name
-					: undefined,
+				'error.cause_type':
+					this.cause instanceof Error
+						? this.cause.constructor.name
+						: typeof this.cause,
 				'error.has_meta': !!this.meta,
 			});
 
-			if (this.cause) {
+			if (this.cause instanceof Error) {
 				span.recordException(this.cause);
 			}
 		});
@@ -135,24 +133,82 @@ export class DoubleTieError extends Error {
 	}
 
 	/**
+	 * Type guard to check if an unknown error is a DoubleTieError.
+	 *
+	 * @param error - The error to check
+	 * @returns True if the error is a DoubleTieError, false otherwise
+	 */
+	static isDoubleTieError(error: unknown): error is DoubleTieError {
+		return error instanceof DoubleTieError;
+	}
+
+	/**
+	 * Convert the error to a JSON-serializable object.
+	 */
+	toJSON(): Pick<
+		H3Error<{
+			code: string;
+			category?: string;
+			meta?: Record<string, unknown>;
+			originalMessage?: string;
+		}>,
+		'message' | 'data' | 'statusCode' | 'statusMessage'
+	> {
+		// Extract validation error details if present
+		const validationErrorMessage = this.meta?.validationErrors
+			? String(this.meta.validationErrors)
+			: undefined;
+
+		// Parse stack trace into an array if available
+		const stackTrace = this.stack
+			? this.stack
+					.split('\n')
+					.map((line) => line.trim())
+					.filter((line) => line && !line.includes('Error: '))
+			: [];
+
+		// Create the result object with proper structure matching H3Error toJSON return type
+		return {
+			statusCode: this.statusCode,
+			message: validationErrorMessage || this.message,
+			statusMessage: this.statusMessage,
+			data: {
+				code: this.code,
+				category: this.category,
+				meta: this.meta,
+				//@ts-expect-error
+				stack: stackTrace,
+				// Add originalMessage if we're showing validation error as main message
+				...(validationErrorMessage && this.message
+					? { originalMessage: this.message }
+					: {}),
+				// Add cause information if available
+				...(this.cause
+					? {
+							cause:
+								this.cause instanceof Error
+									? {
+											name: this.cause.name,
+											message: this.cause.message,
+											stack: this.cause.stack
+												? this.cause.stack
+														.split('\n')
+														.map((line) => line.trim())
+												: undefined,
+										}
+									: this.cause,
+						}
+					: {}),
+			},
+		};
+	}
+
+	/**
 	 * Creates a DoubleTieError from an HTTP response object.
 	 *
 	 * @param response - The HTTP Response object
 	 * @param data - Optional response data that was already parsed
 	 * @returns A new DoubleTieError instance with information from the response
-	 *
-	 * @example
-	 * ```typescript
-	 * try {
-	 *   const response = await fetch('/api/users/123');
-	 *   if (!response.ok) {
-	 *     throw DoubleTieError.fromResponse(response);
-	 *   }
-	 *   // Process successful response
-	 * } catch (err) {
-	 *   // Handle error
-	 * }
-	 * ```
 	 */
 	static fromResponse(response: Response, data?: unknown): DoubleTieError {
 		// Extract error message from response or data
@@ -186,100 +242,18 @@ export class DoubleTieError extends Error {
 	}
 
 	/**
-	 * Type guard to check if an unknown error is a DoubleTieError.
-	 *
-	 * @param error - The error to check
-	 * @returns True if the error is a DoubleTieError, false otherwise
-	 *
-	 * @example
-	 * ```typescript
-	 * try {
-	 *   // some operation
-	 * } catch (err) {
-	 *   if (DoubleTieError.isDoubleTieError(err)) {
-	 *     // Handle DoubleTieError
-	 *   } else {
-	 *     // Handle other errors
-	 *   }
-	 * }
-	 * ```
-	 */
-	static isDoubleTieError(error: unknown): error is DoubleTieError {
-		return error instanceof DoubleTieError;
-	}
-
-	/**
-	 * Convert the error to a JSON-serializable object.
-	 * Useful for logging or sending error details to clients.
-	 *
-	 * @returns A JSON-serializable object representation of the error
-	 *
-	 * @example
-	 * ```typescript
-	 * const error = new DoubleTieError('Not found', { code: ERROR_CODES.NOT_FOUND });
-	 * console.log(JSON.stringify(error.toJSON()));
-	 * // {"message":"Not found","code":"NOT_FOUND","status":404,...}
-	 * ```
-	 */
-	toJSON(): Record<string, unknown> {
-		const json = {
-			name: this.name,
-			message: this.message,
-			code: this.code,
-			status: this.status,
-			category: this.category,
-			meta: this.meta,
-			stack: this.stack,
-			cause:
-				this.cause instanceof Error
-					? {
-							name: this.cause.name,
-							message: this.cause.message,
-							stack: this.cause.stack,
-						}
-					: this.cause,
-		};
-
-		// Add tracing without affecting return value
-		void withSpan('error_to_json', async (span) => {
-			span.setAttributes({
-				'json.has_category': !!json.category,
-				'json.has_meta': !!json.meta,
-				'json.has_stack': !!json.stack,
-				'json.has_cause': !!json.cause,
-			});
-		});
-
-		return json;
-	}
-
-	/**
 	 * Creates a new error instance with additional metadata merged with the original.
 	 * Does not modify the original error instance.
 	 *
 	 * @param additionalMeta - Additional metadata to add to the error
 	 * @returns A new DoubleTieError instance with the combined metadata
-	 *
-	 * @example
-	 * ```typescript
-	 * const baseError = new DoubleTieError('Processing failed', {
-	 *   code: ERROR_CODES.PROCESSING_ERROR,
-	 *   meta: { step: 'validation' }
-	 * });
-	 *
-	 * // Add request context without modifying the original error
-	 * const enrichedError = baseError.withMeta({
-	 *   requestId: '123abc',
-	 *   timestamp: new Date()
-	 * });
-	 * ```
 	 */
 	withMeta(additionalMeta: Record<string, unknown>): DoubleTieError {
 		return new DoubleTieError(this.message, {
 			code: this.code,
-			status: this.status,
+			status: this.statusCode,
 			category: this.category,
-			cause: this.cause,
+			cause: this.cause instanceof Error ? this.cause : undefined,
 			meta: { ...this.meta, ...additionalMeta },
 		});
 	}
@@ -290,19 +264,6 @@ export class DoubleTieError extends Error {
 	 *
 	 * @param name - The name for the new error class
 	 * @returns A new error class extending DoubleTieError
-	 *
-	 * @example
-	 * ```typescript
-	 * // Create a domain-specific error class
-	 * const PaymentError = DoubleTieError.createSubclass('PaymentError');
-	 *
-	 * // Use the custom error class
-	 * throw new PaymentError('Payment processing failed', {
-	 *   code: ERROR_CODES.PAYMENT_FAILED,
-	 *   status: 400,
-	 *   meta: { transactionId: 'tx_123' }
-	 * });
-	 * ```
 	 */
 	static createSubclass(name: string): typeof DoubleTieError {
 		const ErrorSubclass = class extends DoubleTieError {
@@ -322,17 +283,6 @@ export class DoubleTieError extends Error {
 	 *
 	 * @param error - The DoubleTieError containing validation details
 	 * @returns A formatted string with validation error details
-	 *
-	 * @example
-	 * ```typescript
-	 * try {
-	 *   // some operation that might throw a validation error
-	 * } catch (err) {
-	 *   if (DoubleTieError.isDoubleTieError(err)) {
-	 *     console.error(DoubleTieError.formatValidationError(err));
-	 *   }
-	 * }
-	 * ```
 	 */
 	static formatValidationError(error: DoubleTieError): string {
 		if (!error.meta) {
@@ -346,9 +296,10 @@ export class DoubleTieError extends Error {
 			formattedMessage += `\nValidation Errors: ${JSON.stringify(error.meta.validationErrors, null, 2)}`;
 		}
 
-		// Include other helpful meta information
-		const otherMeta = { ...error.meta };
-		otherMeta.validationErrors = undefined;
+		// Create a new object without validationErrors instead of using delete
+		const otherMeta = Object.fromEntries(
+			Object.entries(error.meta).filter(([key]) => key !== 'validationErrors')
+		);
 
 		if (Object.keys(otherMeta).length > 0) {
 			formattedMessage += `\nAdditional Context: ${JSON.stringify(otherMeta, null, 2)}`;

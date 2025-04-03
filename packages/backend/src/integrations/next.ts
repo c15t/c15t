@@ -89,7 +89,7 @@ export function toNextJsHandler(instance: C15TInstance) {
 				(response) => response,
 				(error) => {
 					// Convert c15t errors to Response objects
-					const status = error.status || 500;
+					const status = error.statusCode || 500;
 					const message = error.message || ERROR_CODES.INTERNAL_SERVER_ERROR;
 					return new Response(
 						JSON.stringify({
