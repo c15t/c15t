@@ -116,7 +116,6 @@ describe('validationPipeline', () => {
 
 		expect(error).toBeInstanceOf(DoubleTieError);
 		expect(error.code).toBe(ERROR_CODES.BAD_REQUEST);
-		expect(error.code).toBe(ERROR_CODES.BAD_REQUEST);
 		expect(error.cause).toBeInstanceOf(Error);
 		expect(error.cause instanceof Error && error.cause.message).toBe(
 			'Transformation error'

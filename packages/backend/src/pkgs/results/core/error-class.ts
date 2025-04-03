@@ -176,8 +176,7 @@ export class DoubleTieError extends H3Error<{
 				code: this.code,
 				category: this.category,
 				meta: this.meta,
-				//@ts-expect-error
-				stack: stackTrace,
+				...(process.env.NODE_ENV === 'production' ? {} : { stack: stackTrace }),
 				// Add originalMessage if we're showing validation error as main message
 				...(validationErrorMessage && this.message
 					? { originalMessage: this.message }

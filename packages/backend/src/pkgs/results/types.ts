@@ -89,7 +89,7 @@ export type ErrorCategoryMap = Readonly<Record<string, ErrorCategory>>;
 export interface DoubleTieError
 	extends H3Error<{
 		code: ErrorMessageType;
-		category?: string;
+		category?: ErrorCategory;
 		meta?: Record<string, unknown>;
 	}> {
 	/**
