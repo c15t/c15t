@@ -14,9 +14,23 @@ interface ErrorData {
 
 const app = new Hono();
 
-// Initialize c15t instance
+// Add a dedicated CORS handler for preflight requests
+app.options('*', (c) => {
+	const origin = c.req.header('origin') || '*';
+	return new Response(null, {
+		status: 204,
+		headers: {
+			'Access-Control-Allow-Origin': origin,
+			'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+			'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+			'Access-Control-Max-Age': '86400', // 24 hours
+			'Access-Control-Allow-Credentials': 'true',
+		},
+	});
+});
 
-app.on(['POST', 'GET', 'OPTIONS', 'HEAD'], '/*', async (c) => {
+// Initialize c15t instance
+app.on(['POST', 'GET', 'HEAD'], '/*', async (c) => {
 	const { TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, TRUSTED_ORIGINS } = env<{
 		TURSO_DATABASE_URL: string;
 		TURSO_AUTH_TOKEN: string;
@@ -38,13 +52,38 @@ app.on(['POST', 'GET', 'OPTIONS', 'HEAD'], '/*', async (c) => {
 			}
 		);
 	}
+
+	// Parse trusted origins with fallback and safety handling
+	let trustedOrigins: string[] = [];
+	try {
+		// Try to parse as JSON first
+		trustedOrigins = JSON.parse(TRUSTED_ORIGINS);
+
+		// If it's not an array, create an array
+		if (!Array.isArray(trustedOrigins)) {
+			trustedOrigins = [String(trustedOrigins)];
+		}
+	} catch (e) {
+		// If JSON parsing fails, try as comma-separated string
+		trustedOrigins = TRUSTED_ORIGINS.split(',').map((origin) => origin.trim());
+	}
+
+	// Log the trusted origins for debugging
+	console.log('Configured trusted origins:', trustedOrigins);
+
 	const c15t = c15tInstance({
 		database: new LibsqlDialect({
 			url: TURSO_DATABASE_URL,
 			authToken: TURSO_AUTH_TOKEN,
 		}),
 		basePath: '/',
-		trustedOrigins: JSON.parse(TRUSTED_ORIGINS),
+		trustedOrigins: trustedOrigins,
+		// Add explicit CORS configuration
+		cors: true,
+		// Enable advanced CSRF checks disable for broader origin support
+		advanced: {
+			disableCSRFCheck: true,
+		},
 		logger: {
 			level: 'debug',
 			appName: 'c15t-core',
@@ -59,7 +98,7 @@ app.on(['POST', 'GET', 'OPTIONS', 'HEAD'], '/*', async (c) => {
 	});
 
 	const result = await c15t.handler(c.req.raw);
-	return result.match(
+	const response = await result.match(
 		(response) => response,
 		(error) => {
 			// Get standard fields from the error
@@ -99,6 +138,22 @@ app.on(['POST', 'GET', 'OPTIONS', 'HEAD'], '/*', async (c) => {
 			);
 		}
 	);
+
+	// Add CORS headers to the response
+	const origin = c.req.header('origin');
+	if (origin) {
+		const newHeaders = new Headers(response.headers);
+		newHeaders.set('Access-Control-Allow-Origin', origin);
+		newHeaders.set('Access-Control-Allow-Credentials', 'true');
+
+		return new Response(response.body, {
+			status: response.status,
+			statusText: response.statusText,
+			headers: newHeaders,
+		});
+	}
+
+	return response;
 });
 
 export default app;

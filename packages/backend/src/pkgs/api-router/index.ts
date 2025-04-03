@@ -62,11 +62,33 @@ export function createApiHandler({ options, context }: RouterProps) {
 	// Create CORS handler using h3's built-in handleCors
 	app.use(
 		eventHandler((event) => {
-			logger.debug(`Processing CORS for: ${event.method} ${event.path}`);
+			const origin = event.headers.get('origin');
+			logger.debug(`Processing CORS for: ${event.method} ${event.path}`, {
+				origin,
+				trustedOrigins: event.context.trustedOrigins,
+			});
+
+			// Check if the origin is trusted
+			const isTrusted = origin
+				? isOriginTrusted(origin, event.context.trustedOrigins)
+				: false;
+
+			logger.debug(
+				`Origin trust check: ${origin} -> ${isTrusted ? 'trusted' : 'not trusted'}`
+			);
+
 			if (
 				handleCors(event, {
-					origin: (origin: string) =>
-						isOriginTrusted(origin, event.context.trustedOrigins),
+					origin: (originStr: string) => {
+						const originResult = isOriginTrusted(
+							originStr,
+							event.context.trustedOrigins
+						);
+						logger.debug(
+							`CORS check for origin: ${originStr} -> ${originResult ? 'allowed' : 'blocked'}`
+						);
+						return originResult;
+					},
 					methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
 					allowHeaders: ['Content-Type', 'Authorization'],
 					credentials: true,

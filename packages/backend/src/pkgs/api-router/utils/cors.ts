@@ -15,11 +15,21 @@ export function isOriginTrusted(
 	trustedDomains: string[]
 ): boolean {
 	try {
+		// Special case: if "*" is in trusted domains, allow all origins
+		if (trustedDomains.includes('*')) {
+			return true;
+		}
+
 		// Parse the origin URL to get just the hostname
 		const url = new URL(origin);
 		const originHostname = url.hostname.toLowerCase();
 
 		return trustedDomains.some((domain) => {
+			// Handle empty domains (which might come from splitting empty strings)
+			if (!domain || domain.trim() === '') {
+				return false;
+			}
+
 			const strippedDomain = domain.replace(STRIP_REGEX, '').toLowerCase();
 
 			if (strippedDomain.startsWith('*.')) {
@@ -31,7 +41,8 @@ export function isOriginTrusted(
 
 			return originHostname === strippedDomain;
 		});
-	} catch {
+	} catch (error) {
+		console.error('Error validating origin:', error);
 		return false;
 	}
 }
