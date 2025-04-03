@@ -47,6 +47,7 @@ export const withRequestSpan = async <T>(
 	options?: DoubleTieOptions
 ): Promise<T> => {
 	const span = createRequestSpan(method, path, options);
+
 	if (!span) {
 		return operation();
 	}

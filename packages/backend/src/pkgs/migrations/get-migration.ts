@@ -1,6 +1,11 @@
 import { createKyselyAdapter } from '~/pkgs/db-adapters';
 import { createLogger } from '~/pkgs/logger';
 import type { C15TOptions } from '~/types';
+import { analyzeSchemaChanges } from './schema-comparison';
+import { buildColumnAddMigrations } from './migration-builders';
+import { createMigrationExecutors } from './migration-execution';
+import { buildTableCreateMigrations } from './migration-builders';
+/*
  * Generates database migrations based on schema differences
  *
  * This is the main entry point for the migration system. It orchestrates
