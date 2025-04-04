@@ -302,6 +302,9 @@ export const createConsentManagerStore = (
 				updateConsentMode();
 				callbacks.onConsentGiven?.();
 				callbacks.onPreferenceExpressed?.();
+			} else {
+				const error = consent.error?.message || 'Failed to save consents';
+				callbacks.onError?.(error);
 			}
 		},
 
