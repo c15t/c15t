@@ -36,10 +36,10 @@ export function createH3ErrorHandler() {
 	return eventHandler((event) => {
 		// Attach our error handler to the event context
 		event.context._onError = (error: unknown) => {
-			console.log('Error handler called:', error);
+			event.context.logger.error('Error in H3 error handler', { error });
 			// Handle DoubleTieError instances
 			if (error instanceof DoubleTieError) {
-				console.log(
+				event.context.logger.error(
 					'Handling DoubleTieError:',
 					error.statusCode,
 					error.message
@@ -49,7 +49,7 @@ export function createH3ErrorHandler() {
 			}
 
 			// For other errors, create a new DoubleTieError
-			console.log('Handling generic error');
+			event.context.logger.error('Handling generic error', { error });
 			const dtError = new DoubleTieError(
 				error instanceof Error ? error.message : String(error),
 				{
@@ -64,7 +64,7 @@ export function createH3ErrorHandler() {
 
 		// We need to call event.node.req.on('error') to handle connection errors
 		event.node.req.on('error', (err) => {
-			console.error('Request error event triggered:', err);
+			event.context.logger.error('Request error event triggered:', { err });
 			if (event.context._onError) {
 				event.context._onError(err);
 			}
@@ -104,11 +104,11 @@ export function withH3ErrorHandling(
 		try {
 			return await handler(event);
 		} catch (error) {
-			console.log('Error caught in withH3ErrorHandling:', error);
+			event.context.logger.error('Error caught in withH3ErrorHandling:', { error });
 
 			// Handle DoubleTieError instances
 			if (error instanceof DoubleTieError) {
-				console.log(
+				event.context.logger.error(
 					'Handling DoubleTieError in wrapper:',
 					error.statusCode,
 					error.message

@@ -8,7 +8,7 @@ const LOGGER_TRACER_NAME = '@doubletie/logger';
  */
 const LOG_LEVEL_TO_SPAN_STATUS: Record<LogLevel, SpanStatusCode> = {
 	error: SpanStatusCode.ERROR,
-	warn: SpanStatusCode.ERROR,
+	warn: SpanStatusCode.OK,
 	info: SpanStatusCode.OK,
 	success: SpanStatusCode.OK,
 	debug: SpanStatusCode.OK,
