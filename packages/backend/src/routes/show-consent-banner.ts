@@ -20,8 +20,7 @@ export const showConsentBanner = defineRoute<ShowConsentBannerResponse>({
 			event.headers.get('cf-ipcountry') ||
 			event.headers.get('x-vercel-ip-country') ||
 			event.headers.get('x-amz-cf-ipcountry') ||
-			event.headers.get('x-country-code') ||
-			'GB';
+			event.headers.get('x-country-code')
 
 		const regionCode =
 			event.headers.get('x-vercel-ip-country-region') ||
