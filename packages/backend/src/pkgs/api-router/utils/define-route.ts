@@ -4,7 +4,7 @@ import {
 	getQuery as h3GetQuery,
 	getRouterParams as h3GetRouterParams,
 	readBody,
-  readFormData
+	readFormData,
 } from 'h3';
 import type { ZodType, z } from 'zod';
 import { createLogger } from '~/pkgs/logger';
