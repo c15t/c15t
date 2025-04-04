@@ -4,6 +4,7 @@ import {
 	getQuery as h3GetQuery,
 	getRouterParams as h3GetRouterParams,
 	readBody,
+  readFormData
 } from 'h3';
 import type { ZodType, z } from 'zod';
 import { createLogger } from '~/pkgs/logger';
@@ -191,7 +192,11 @@ export function defineRoute<
 		try {
 			// Validate body if schema provided
 			if (config.validations?.body) {
-				const body = await readBody(event);
+				const contentType = event.headers.get('content-type');
+				const body = contentType?.includes('multipart/form-data')
+					? Object.fromEntries(await readFormData(event))
+					: await readBody(event);
+
 				logger.debug('Validating request body', { body });
 				const validateBody = validationPipeline(
 					config.validations.body,
