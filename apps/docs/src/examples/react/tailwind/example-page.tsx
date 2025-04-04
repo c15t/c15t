@@ -11,7 +11,7 @@ export default function App() {
 
     return (
         <ConsentManagerProvider 
-            config={c15tClient}
+            client={c15tClient}
             initialGdprTypes={['necessary', 'marketing']}
         >
             <CookieBanner 

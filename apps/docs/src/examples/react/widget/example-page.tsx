@@ -48,7 +48,7 @@ export default function App() {
     clearLocalStorage();
     return (
         <ConsentManagerProvider 
-            config={c15tClient}
+            client={c15tClient}
             initialGdprTypes={['necessary', 'marketing']}
         >
             <CustomWidget />
