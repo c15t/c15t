@@ -104,7 +104,9 @@ export function withH3ErrorHandling(
 		try {
 			return await handler(event);
 		} catch (error) {
-			event.context.logger.error('Error caught in withH3ErrorHandling:', { error });
+			event.context.logger.error('Error caught in withH3ErrorHandling:', {
+				error,
+			});
 
 			// Handle DoubleTieError instances
 			if (error instanceof DoubleTieError) {

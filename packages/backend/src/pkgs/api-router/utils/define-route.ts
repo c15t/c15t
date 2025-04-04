@@ -350,11 +350,11 @@ export function defineRoute<
 			}
 
 			// Log the validation error details
-      logger.error('Validation failed', {
-          error,
-          validationErrors,
-        });
-        
+			logger.error('Validation failed', {
+				error,
+				validationErrors,
+			});
+
 			throw new DoubleTieError('Validation failed', {
 				code: ERROR_CODES.BAD_REQUEST,
 				status: statusCode,
