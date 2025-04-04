@@ -251,7 +251,7 @@ export const createConsentManagerStore = (
 		 * 4. Updates UI state
 		 * 5. Triggers callbacks
 		 */
-		saveConsents: (type) => {
+		saveConsents: async (type) => {
 			const { callbacks, updateConsentMode, consents, consentTypes } = get();
 			const newConsents = { ...consents };
 			if (type === 'all') {
@@ -269,26 +269,40 @@ export const createConsentManagerStore = (
 				type: type as 'necessary' | 'all' | 'custom',
 			};
 
-			localStorage.setItem(
-				STORAGE_KEY,
-				JSON.stringify({
-					consents: newConsents,
-					consentInfo,
-				})
-			);
-
-			// Update tracking blocker with new consents
-			trackingBlocker?.updateConsents(newConsents);
-
-			set({
-				consents: newConsents,
-				showPopup: false,
-				consentInfo,
+			const consent = await client?.setConsent({
+				body: {
+					type: 'cookie_banner',
+					domain: window.location.hostname,
+					preferences: newConsents,
+					metadata: {
+						source: 'consent_widget',
+						acceptanceMethod: type,
+					},
+				},
 			});
 
-			updateConsentMode();
-			callbacks.onConsentGiven?.();
-			callbacks.onPreferenceExpressed?.();
+			if (consent.ok) {
+				localStorage.setItem(
+					STORAGE_KEY,
+					JSON.stringify({
+						consents: newConsents,
+						consentInfo,
+					})
+				);
+
+				// Update tracking blocker with new consents
+				trackingBlocker?.updateConsents(newConsents);
+
+				set({
+					consents: newConsents,
+					showPopup: false,
+					consentInfo,
+				});
+
+				updateConsentMode();
+				callbacks.onConsentGiven?.();
+				callbacks.onPreferenceExpressed?.();
+			}
 		},
 
 		/**

@@ -55,13 +55,8 @@ export const ConsentButton = forwardRef<
 		},
 		ref
 	) => {
-		const {
-			saveConsents,
-			setShowPopup,
-			setIsPrivacyDialogOpen,
-			client,
-			consents,
-		} = useConsentManager();
+		const { saveConsents, setShowPopup, setIsPrivacyDialogOpen } =
+			useConsentManager();
 		const { noStyle: contextNoStyle } = useTheme();
 
 		const buttonStyle = useStyles(themeKey ?? 'button', {
@@ -82,64 +77,16 @@ export const ConsentButton = forwardRef<
 			switch (action) {
 				case 'accept-consent': {
 					saveConsents('all');
-					client?.setConsent({
-						body: {
-							type: 'cookie_banner',
-							domain: window.location.hostname,
-							preferences: {
-								analytics: true,
-								marketing: true,
-								necessary: true,
-								functional: true,
-								experience: true,
-							},
-							metadata: {
-								source: 'cookie_banner',
-								acceptanceMethod: 'accept_all_button',
-							},
-						},
-					});
 					break;
 				}
 				case 'reject-consent': {
 					saveConsents('necessary');
-					client?.setConsent({
-						body: {
-							type: 'cookie_banner',
-							domain: window.location.hostname,
-							preferences: {
-								analytics: false,
-								marketing: false,
-								necessary: true,
-								functional: false,
-								experience: false,
-							},
-							metadata: {
-								source: 'cookie_banner',
-								acceptanceMethod: 'reject_all_button',
-							},
-						},
-					});
 					break;
 				}
 				case 'custom-consent': {
 					// Save consents first to ensure store is updated
 					saveConsents('custom');
 
-					client?.setConsent({
-						body: {
-							type: 'cookie_banner',
-							domain: window.location.hostname,
-							preferences: {
-								...consents,
-								necessary: true, // Always ensure necessary is true
-							},
-							metadata: {
-								source: 'consent_widget',
-								acceptanceMethod: 'save_preferences_button',
-							},
-						},
-					});
 					break;
 				}
 				case 'open-consent-dialog': {
@@ -167,8 +114,6 @@ export const ConsentButton = forwardRef<
 			setIsPrivacyDialogOpen,
 			setShowPopup,
 			action,
-			client?.setConsent,
-			consents,
 		]);
 
 		const Comp = asChild ? Slot : 'button';
