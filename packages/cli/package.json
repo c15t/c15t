@@ -10,11 +10,12 @@
 	},
 	"files": ["dist"],
 	"scripts": {
-		"build": "unbuild",
+		"build": "rslib build",
 		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"lint": "pnpm biome lint ./src",
 		"start": "node ./dist/index.mjs",
-		"stub": "unbuild --stub",
+		"knip": "knip",
+		"dev": "rslib dev",
 		"test": "vitest"
 	},
 	"dependencies": {
@@ -22,7 +23,6 @@
 		"@babel/preset-typescript": "^7.26.0",
 		"@c15t/backend": "workspace:*",
 		"@mrleebo/prisma-ast": "^0.12.1",
-		"@prisma/client": "^6.5.0",
 		"@types/better-sqlite3": "^7.6.12",
 		"@types/prompts": "^2.4.9",
 		"better-sqlite3": "^11.8.1",
@@ -30,17 +30,13 @@
 		"chalk": "^5.4.1",
 		"commander": "^13.1.0",
 		"dotenv": "^16.4.7",
-		"drizzle-orm": "^0.40.0",
 		"fs-extra": "^11.3.0",
-		"get-tsconfig": "^4.10.0",
-		"prisma": "^6.4.1",
 		"prompts": "^2.4.2",
-		"tinyexec": "^0.3.2",
-		"unbuild": "^3.5.0",
 		"yocto-spinner": "^0.2.1",
 		"zod": "^3.24.2"
 	},
 	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
 		"@types/fs-extra": "^11.0.4",
 		"vitest": "^3.0.8"
 	},

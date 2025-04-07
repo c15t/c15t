@@ -2,10 +2,11 @@
 	"extends": "@c15t/typescript-config/node.json",
 	"compilerOptions": {
 		"baseUrl": ".",
+		"lib": ["esnext"],
 		"paths": {
 			"~/*": ["./src/*"]
 		}
 	},
-	"include": ["src"],
+	"include": ["src", "./src/types/babel-presets.d.ts"],
 	"exclude": ["node_modules"]
 }

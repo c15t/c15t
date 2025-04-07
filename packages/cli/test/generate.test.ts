@@ -1,7 +1,10 @@
+import type { C15TOptions } from '@c15t/backend';
+import type { Adapter } from '@c15t/backend/pkgs/db-adapters';
 import { drizzleAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/drizzle-adapter';
 import { kyselyAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/kysely-adapter';
 import { prismaAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/prisma-adapter';
-import type { C15TOptions } from '@c15t/backend/pkgs/types';
+import type { PrismaConfig } from '@c15t/backend/pkgs/db-adapters/adapters/prisma-adapter';
+
 import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 import { generateDrizzleSchema } from '../src/generators/drizzle';
@@ -16,16 +19,26 @@ interface TestOptions extends C15TOptions {
 	_testTimestamp?: string;
 }
 
-describe('generate', async () => {
+type AdapterConfig = PrismaConfig;
+
+type AdapterFactory = (
+	db: unknown,
+	config: AdapterConfig
+) => (options: C15TOptions) => Adapter;
+
+describe('generate', () => {
 	// Helper function to create adapter configuration
-	const createAdapter = (adapterFn, provider, additionalOptions = {}) => {
-		return adapterFn(
-			{},
-			{
-				provider,
-				...additionalOptions,
-			}
-		)({} as C15TOptions);
+	const createAdapter = (
+		adapterFn: unknown,
+		provider: string,
+		additionalOptions = {}
+	): Adapter => {
+		const config = {
+			provider,
+			...additionalOptions,
+		} as AdapterConfig;
+
+		return (adapterFn as AdapterFactory)({}, config)({} as C15TOptions);
 	};
 
 	// Prisma schema generation tests
@@ -46,7 +59,7 @@ describe('generate', async () => {
 				filePath: 'prisma/u.prisma',
 				snapshotPath: './__snapshots__/prisma/sqlite.prisma',
 			},
-		];
+		] as const;
 
 		it.each(prismaTestCases)(
 			'should generate prisma schema for $provider',
@@ -64,7 +77,7 @@ describe('generate', async () => {
 					},
 				});
 
-				expect(schema.code).toMatchFileSnapshot(snapshotPath);
+				await expect(schema.code).toMatchFileSnapshot(snapshotPath);
 			}
 		);
 	});
@@ -78,7 +91,7 @@ describe('generate', async () => {
 				provider: 'sqlite',
 				snapshotPath: './__snapshots__/drizzle/sqlite.txt',
 			},
-		];
+		] as const;
 
 		it.each(drizzleTestCases)(
 			'should generate drizzle schema for $provider',
@@ -96,14 +109,13 @@ describe('generate', async () => {
 					},
 				});
 
-				expect(schema.code).toMatchFileSnapshot(snapshotPath);
+				await expect(schema.code).toMatchFileSnapshot(snapshotPath);
 			}
 		);
 	});
 
 	// Kysely schema generation tests
 	describe('kysely schema generation', () => {
-		// Skip PostgreSQL tests in CI environment or when no real connection is available
 		const kyselyTestCases = [
 			{
 				provider: 'sqlite',
@@ -125,7 +137,7 @@ describe('generate', async () => {
 				snapshotPath: './__snapshots__/kysely/mysql.sql',
 				getDatabase: () => new Database(':memory:'),
 			},
-		];
+		] as const;
 
 		it.each(kyselyTestCases)(
 			'should generate kysely schema for $provider',
@@ -142,12 +154,11 @@ describe('generate', async () => {
 						adapter,
 						options: {
 							database: getDatabase(),
-							_testTimestamp: TEST_TIMESTAMP, // Custom option for tests
+							_testTimestamp: TEST_TIMESTAMP,
 						} as TestOptions,
 					});
 
-					// The SQL is now formatted in the generator itself with a fixed timestamp
-					expect(schema.code).toMatchFileSnapshot(snapshotPath);
+					await expect(schema.code).toMatchFileSnapshot(snapshotPath);
 				} finally {
 					// Restore original NODE_ENV
 					process.env.NODE_ENV = originalNodeEnv;

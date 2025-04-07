@@ -7,6 +7,9 @@
     "packages/backend": {
       "$include": "./packages/backend/knip.json"
     },
+    "packages/cli": {
+      "$include": "./packages/cli/knip.json"
+    },
     "packages/*": {
       "entry": ["src/index.ts"],
       "project": "**/*.{js,ts,jsx,tsx}",
