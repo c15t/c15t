@@ -39,7 +39,7 @@
 	--dialog-card-gap: 0.375rem;
 	--dialog-header-gap: 0.375rem;
 	--dialog-content-gap: 1rem;
-	--dialog-footer-padding-top: 1rem;
+	--dialog-footer-padding-y: 1rem;
 
 	/* Layout */
 	--dialog-card-radius: 1.25rem;
@@ -214,8 +214,8 @@
 	align-items: center;
 	justify-content: center;
 	font-size: var(--dialog-footer-font-size);
-	padding: var(--dialog-card-padding);
-	padding-top: var(--dialog-footer-padding-top);
+	padding-top: var(--dialog-footer-padding-y);
+  padding-bottom: var(--dialog-footer-padding-y);
 	border-top: var(--dialog-border-width) var(--dialog-border-style)
 		var(--dialog-stroke-color);
 }
