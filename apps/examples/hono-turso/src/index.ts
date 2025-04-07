@@ -14,23 +14,8 @@ interface ErrorData {
 
 const app = new Hono();
 
-// Add a dedicated CORS handler for preflight requests
-app.options('*', (c) => {
-	const origin = c.req.header('origin') || '*';
-	return new Response(null, {
-		status: 204,
-		headers: {
-			'Access-Control-Allow-Origin': origin,
-			'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-			'Access-Control-Max-Age': '86400', // 24 hours
-			'Access-Control-Allow-Credentials': 'true',
-		},
-	});
-});
-
 // Initialize c15t instance
-app.on(['POST', 'GET', 'HEAD'], '/*', async (c) => {
+app.on(['POST', 'GET', 'OPTIONS', 'HEAD'], '/*', async (c) => {
 	const { TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, TRUSTED_ORIGINS } = env<{
 		TURSO_DATABASE_URL: string;
 		TURSO_AUTH_TOKEN: string;
@@ -63,13 +48,10 @@ app.on(['POST', 'GET', 'HEAD'], '/*', async (c) => {
 		if (!Array.isArray(trustedOrigins)) {
 			trustedOrigins = [String(trustedOrigins)];
 		}
-	} catch (e) {
+	} catch {
 		// If JSON parsing fails, try as comma-separated string
 		trustedOrigins = TRUSTED_ORIGINS.split(',').map((origin) => origin.trim());
 	}
-
-	// Log the trusted origins for debugging
-	console.log('Configured trusted origins:', trustedOrigins);
 
 	const c15t = c15tInstance({
 		database: new LibsqlDialect({
@@ -109,6 +91,7 @@ app.on(['POST', 'GET', 'HEAD'], '/*', async (c) => {
 			const errorData = (error.data as ErrorData) || {};
 			const errorCode = errorData?.code || 'UNKNOWN_ERROR';
 			const errorMeta = errorData?.meta || {};
+
 			// Stack trace can be extracted from error.data.stack if it exists there
 			const stack =
 				errorData?.stack ||
@@ -138,20 +121,6 @@ app.on(['POST', 'GET', 'HEAD'], '/*', async (c) => {
 			);
 		}
 	);
-
-	// Add CORS headers to the response
-	const origin = c.req.header('origin');
-	if (origin) {
-		const newHeaders = new Headers(response.headers);
-		newHeaders.set('Access-Control-Allow-Origin', origin);
-		newHeaders.set('Access-Control-Allow-Credentials', 'true');
-
-		return new Response(response.body, {
-			status: response.status,
-			statusText: response.statusText,
-			headers: newHeaders,
-		});
-	}
 
 	return response;
 });
