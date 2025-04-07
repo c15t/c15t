@@ -2,7 +2,7 @@
 	"extends": "@c15t/typescript-config/base.json",
 	"compilerOptions": {
 		"baseUrl": ".",
-		"lib": ["dom", "dom.iterable", "esnext"],
+		"lib": ["esnext"],
 		"paths": {
 			"~/*": ["./src/*"]
 		}

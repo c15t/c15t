@@ -442,6 +442,9 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
+      '@c15t/typescript-config':
+        specifier: workspace:*
+        version: link:../../internals/typescript-config
       '@types/fs-extra':
         specifier: ^11.0.4
         version: 11.0.4

@@ -36,6 +36,7 @@
 		"zod": "^3.24.2"
 	},
 	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
 		"@types/fs-extra": "^11.0.4",
 		"vitest": "^3.0.8"
 	},
