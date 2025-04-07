@@ -3,6 +3,7 @@
  */
 
 import type { Adapter } from '~/pkgs/db-adapters/types';
+import type { Logger } from '~/pkgs/logger';
 import type { createRegistry } from '~/schema/create-registry';
 
 declare module 'h3' {
@@ -27,5 +28,15 @@ declare module 'h3' {
 		 * The database adapter
 		 */
 		adapter: Adapter;
+
+		/**
+		 * The trusted origins for CORS
+		 */
+		trustedOrigins: string[];
+
+		/**
+		 * The logger
+		 */
+		logger: Logger;
 	}
 }

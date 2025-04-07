@@ -12,6 +12,7 @@ describe('init', () => {
 	it('should initialize with basic config', async () => {
 		const result = await init({
 			baseURL: 'http://localhost:3000',
+			appName: 'c15t Consent Manager',
 			database: memoryAdapter({}),
 		});
 
@@ -197,7 +198,7 @@ describe('init', () => {
 		const result = await init({
 			baseURL: 'http://localhost:3000',
 			database: memoryAdapter({}),
-			trustedOrigins: ['http://trusted.test'],
+			trustedOrigins: ['http://trusted.test', 'http://localhost:3000'],
 		});
 
 		expect(result.isOk()).toBe(true);

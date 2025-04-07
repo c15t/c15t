@@ -2,12 +2,12 @@ import { Resource } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-base';
 import { defu } from 'defu';
+import type { DatabaseHook } from '~/pkgs/data-model';
 import { getAdapter } from '~/pkgs/db-adapters';
 import { createLogger } from '~/pkgs/logger';
 import type { RegistryContext } from '~/pkgs/types';
 import { env, getBaseURL, isProduction } from '~/pkgs/utils';
 import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
-import type { DatabaseHook } from './pkgs/data-model';
 import { generateId } from './pkgs/data-model/fields/id-generator';
 import type { EntityName } from './pkgs/data-model/schema/types';
 import {
@@ -89,21 +89,22 @@ export const init = async <P extends C15TPlugin[]>(
 	options: C15TOptions<P>
 ): Promise<SDKResult<C15TContext>> => {
 	try {
-		// Type-safe handling of options
+		// Type-safe handling of options with explicit type assertions
 		const loggerOptions = options.logger;
-		const baseUrlStr = options.baseURL as string | undefined;
+		const baseUrlStr = options.baseURL;
 		const basePathStr = options.basePath as string | undefined;
-		const databaseHooks = (options.databaseHooks as DatabaseHook[]) || [];
+		const databaseHooks = (options.databaseHooks || []) as DatabaseHook[];
+		const appName = options.appName || 'c15t';
 
 		// Create a single logger instance early in the initialization process
 		const logger = createLogger({
 			...loggerOptions,
-			appName: String(options.appName || 'c15t'), // Ensure consistent app name and type safety
+			appName: String(appName),
 		});
 
 		// Create telemetry options
 		const telemetryOptions = createTelemetryOptions(
-			String(options.appName || 'c15t'),
+			String(appName),
 			options.telemetry as TelemetryConfig
 		);
 
@@ -120,7 +121,7 @@ export const init = async <P extends C15TPlugin[]>(
 			} else {
 				// Create a telemetry resource with provided values or safe defaults
 				const resource = new Resource({
-					'service.name': String(options?.appName || 'c15t'),
+					'service.name': String(appName),
 					'service.version': String(process.env.npm_package_version || '1.0.0'),
 					...(telemetryOptions?.defaultAttributes || {}),
 				});
@@ -175,8 +176,8 @@ export const init = async <P extends C15TPlugin[]>(
 						'unknown'
 					: 'unknown',
 			clientVersion: options.clientVersion || 'not provided',
-			appName: options.appName,
-			baseURL: options.baseURL,
+			appName,
+			baseURL: baseUrlStr,
 		});
 
 		const adapterResult = await promiseToResult(
@@ -190,7 +191,7 @@ export const init = async <P extends C15TPlugin[]>(
 		});
 
 		return adapterResult.andThen((adapter) => {
-			const baseURL = getBaseURL(baseUrlStr, basePathStr);
+			const resolvedBaseURL = getBaseURL(baseUrlStr, basePathStr);
 			const secret =
 				(options.secret as string) ||
 				env.C15T_SECRET ||
@@ -208,7 +209,7 @@ export const init = async <P extends C15TPlugin[]>(
 			const finalOptions: DoubleTieOptions = {
 				...options,
 				secret,
-				baseURL: baseURL ? new URL(baseURL).origin : '',
+				baseURL: resolvedBaseURL ? new URL(resolvedBaseURL).origin : '',
 				basePath: basePathStr || '/api/c15t',
 				plugins: [...(options.plugins || []), ...getInternalPlugins(options)],
 				telemetry: telemetryOptions,
@@ -236,12 +237,12 @@ export const init = async <P extends C15TPlugin[]>(
 
 			// Create full application context
 			const ctx: C15TContext = {
-				appName: (finalOptions.appName as string) || 'c15t Consent Manager',
+				appName: String(appName),
 				options: finalOptions,
-				trustedOrigins: getTrustedOrigins(finalOptions),
-				baseURL: baseURL || '',
+				trustedOrigins: options.trustedOrigins || [],
+				baseURL: resolvedBaseURL || '',
 				secret,
-				logger, // Use the shared logger instance
+				logger,
 				generateId: generateIdFunc,
 				adapter,
 				registry: createRegistry(registryContext),
@@ -330,37 +331,4 @@ function getInternalPlugins(_options: C15TOptions): C15TPlugin[] {
 	const plugins: C15TPlugin[] = [];
 
 	return plugins;
-}
-
-/**
- * Builds a list of trusted origins for CORS
- *
- * This function determines which origins should be trusted for
- * cross-origin requests based on configuration and environment.
- *
- * @param options - The c15t configuration options
- * @returns An array of trusted origin URLs
- */
-function getTrustedOrigins(options: C15TOptions<C15TPlugin[]>): string[] {
-	const baseUrlStr = options.baseURL as string | undefined;
-	const basePathStr = options.basePath as string | undefined;
-	const baseURL = getBaseURL(baseUrlStr, basePathStr);
-
-	if (!baseURL) {
-		return [];
-	}
-
-	const trustedOrigins = [new URL(baseURL).origin];
-
-	const optionOrigins = options.trustedOrigins as string[] | undefined;
-	if (optionOrigins && Array.isArray(optionOrigins)) {
-		trustedOrigins.push(...optionOrigins);
-	}
-
-	const envTrustedOrigins = env.C15T_TRUSTED_ORIGINS;
-	if (envTrustedOrigins) {
-		trustedOrigins.push(...envTrustedOrigins.split(','));
-	}
-
-	return trustedOrigins;
 }
