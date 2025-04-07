@@ -1,8 +1,7 @@
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { logger } from '@c15t/backend';
-import { getAdapter } from '@c15t/backend/db';
+import { getAdapter } from '@c15t/backend/pkgs/db-adapters';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import prompts from 'prompts';
@@ -10,6 +9,7 @@ import yoctoSpinner from 'yocto-spinner';
 import { z } from 'zod';
 import { getGenerator } from '../generators';
 import { getConfig } from '../utils/get-config';
+import logger from '../utils/logger';
 
 export async function generateAction(opts: unknown) {
 	const options = z
@@ -37,7 +37,7 @@ export async function generateAction(opts: unknown) {
 		return;
 	}
 
-	const adapter = await getAdapter(config).catch((e) => {
+	const adapter = await getAdapter(config).catch((e: Error) => {
 		logger.error(e.message);
 		process.exit(1);
 	});

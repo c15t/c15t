@@ -174,11 +174,31 @@ export const pages = {
 }`,
 
 	'script.js': `
-import { createConsentManagerStore } from 'https://cdn.skypack.dev/c15t';
+import { createConsentManagerStore, createConsentClient } from 'https://cdn.skypack.dev/c15t';
 
-// Create the consent manager store
-const consentManager = createConsentManagerStore();
-console.log(consentManager.getState())
+// Configuration for the consent manager
+const config = {
+    client: {
+        baseURL: '/api/c15t-demo',
+        defaultPreferences: {
+            analytics: true,
+            marketing: true,
+            preferences: true,
+        }
+    },
+    store: {
+        namespace: 'c15tExample',
+        trackingBlockerConfig: {
+            disableAutomaticBlocking: false
+        }
+    }
+};
+
+// Create the client and store
+const client = createConsentClient(config.client);
+const consentManager = createConsentManagerStore(client, config.store.namespace, {
+    trackingBlockerConfig: config.store.trackingBlockerConfig
+});
 
 // Get the cookie banner element
 const cookieBanner = document.getElementById('cookie-banner');
@@ -187,23 +207,55 @@ const rejectButton = document.getElementById('reject-button');
 
 // Show the banner if consent hasn't been given yet
 if (consentManager.getState().showPopup) {
-  cookieBanner.classList.add('show');
+    cookieBanner.classList.add('show');
 }
 
 // Handle accept all
-acceptButton.addEventListener('click', () => {
-  console.log('accept all')
-  consentManager.getState().saveConsents('all');
-  cookieBanner.classList.remove('show');
+acceptButton.addEventListener('click', async () => {
+    console.log('accept all');
+    const state = consentManager.getState();
+    state.saveConsents('all');
+    
+    try {
+        const { data } = await client.setConsent({
+            type: 'cookie_banner',
+            domain: window.location.hostname,
+            preferences: state.consents,
+            metadata: {
+                source: 'cookie_banner',
+                acceptanceMethod: 'accept_all_button'
+            }
+        });
+        console.log('Consent saved:', data);
+    } catch (error) {
+        console.error('Failed to save consent:', error);
+    }
+    
+    cookieBanner.classList.remove('show');
 });
 
 // Handle reject all
-rejectButton.addEventListener('click', () => {
-  console.log('reject all')
-  consentManager.getState().saveConsents('necessary');
-  cookieBanner.classList.remove('show');
+rejectButton.addEventListener('click', async () => {
+    console.log('reject all');
+    const state = consentManager.getState();
+    state.saveConsents('necessary');
+    
+    try {
+        const { data } = await client.setConsent({
+            type: 'cookie_banner',
+            domain: window.location.hostname,
+            preferences: state.consents,
+            metadata: {
+                source: 'cookie_banner',
+                acceptanceMethod: 'reject_all_button'
+            }
+        });
+        console.log('Consent saved:', data);
+    } catch (error) {
+        console.error('Failed to save consent:', error);
+    }
+    
+    cookieBanner.classList.remove('show');
 });
-
-
 `,
 };

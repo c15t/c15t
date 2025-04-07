@@ -1,138 +1,122 @@
+/**
+ * @packageDocumentation
+ * Type definitions for the consent manager components.
+ */
+
 import type {
 	AllConsentNames,
-	ComplianceRegion,
 	ComplianceSettings,
-	NamespaceProps,
-	PrivacyConsentState,
 	TrackingBlockerConfig,
 	TranslationConfig,
-	createConsentManagerStore,
+	c15tClient,
 } from 'c15t';
 import type { ReactNode } from 'react';
-import type { ConsentManagerDialogTheme } from '../components/consent-manager-dialog/theme';
-import type { CookieBannerTheme } from '../components/cookie-banner/theme';
 
 /**
- * Configuration options for the ConsentManagerProvider component.
- *
- * @remarks
- * These props allow you to configure the initial state and behavior of the consent manager,
- * including GDPR types, compliance settings, and namespace configuration.
+ * Configuration options for the ConsentManagerProvider.
  *
  * @public
  */
-export interface ConsentManagerProviderProps extends NamespaceProps {
+export interface ConsentManagerProviderProps {
 	/**
-	 * @remarks
-	 * React elements to be rendered within the consent manager context.
+	 * React children to render within the provider.
 	 */
 	children: ReactNode;
 
 	/**
-	 * @remarks
-	 * Array of consent types to be pre-configured for GDPR compliance.
-	 * These types define what kinds of cookies and tracking are initially allowed.
+	 * Initial GDPR consent types to activate.
 	 */
 	initialGdprTypes?: AllConsentNames[];
 
 	/**
-	 * @remarks
-	 * Region-specific compliance settings that define how the consent manager
-	 * should behave in different geographical regions.
+	 * Initial compliance settings for different regions.
 	 */
-	initialComplianceSettings?: Record<ComplianceRegion, ComplianceSettings>;
+	initialComplianceSettings?: Record<string, Partial<ComplianceSettings>>;
+
 	/**
-	 * @remarks
-	 * Whether to skip injecting default styles
+	 * Custom namespace for the store instance.
+	 * @default 'c15tStore'
+	 */
+	namespace?: string;
+
+	/**
+	 * Whether to disable default styles.
 	 * @default false
 	 */
 	noStyle?: boolean;
 
 	/**
-	 * @remarks
-	 * Whether to disable animations
+	 * Custom translation configuration.
+	 */
+	translationConfig?: Partial<TranslationConfig>;
+
+	/**
+	 * Configuration for the tracking blocker.
+	 */
+	trackingBlockerConfig?: TrackingBlockerConfig;
+
+	/**
+	 * An existing c15tClient instance to use.
+	 * This is required for the provider to work properly.
+	 */
+	client: c15tClient;
+
+	/**
+	 * Visual theme to apply.
+	 */
+	theme?: 'light' | 'dark';
+
+	/**
+	 * Whether to disable animations.
 	 * @default false
 	 */
 	disableAnimation?: boolean;
 
 	/**
-	 * @remarks
-	 * Theme configuration for the consent manager
-	 */
-	theme?: CookieBannerTheme & ConsentManagerDialogTheme;
-
-	/**
-	 * @remarks
-	 * The configuration allows you to:
-	 * - Define translations for multiple languages through the translations object
-	 * - Set a default language via defaultLanguage prop
-	 * - Control automatic language switching based on browser settings with disableAutoLanguageSwitch
-	 * - Override specific translation keys while keeping defaults for others
-	 *
-	 * @example
-	 * ```tsx
-	 * <ConsentManagerProvider
-	 *   translationConfig={{
-	 *     translations: {
-	 *       de: {
-	 *         cookieBanner: {
-	 *           title: 'Cookie-Einstellungen',
-	 *           description: 'Wir verwenden Cookies...'
-	 *         }
-	 *       }
-	 *     },
-	 *     defaultLanguage: 'en',
-	 *     disableAutoLanguageSwitch: false
-	 *   }}
-	 * >
-	 *   {children}
-	 * </ConsentManagerProvider>
-	 * ```
-	 */
-	translationConfig?: Partial<TranslationConfig>;
-
-	/**
-	 * @remarks
-	 * The configuration allows you to:
-	 * - Define translations for multiple languages through the translations object
-	 * - Set a default language via defaultLanguage prop
-	 * - Control automatic language switching based on browser settings with disableAutoLanguageSwitch
-	 * - Override specific translation keys while keeping defaults for others
-	 *
-	 * @example
-	 * ```tsx
-	 * <ConsentManagerProvider
-	 *   trackingBlockerConfig={{}}
-	 * />
-	 */
-	trackingBlockerConfig?: TrackingBlockerConfig;
-
-	/**
-	 * @remarks
-	 * Whether to lock the scroll when a modal is open, scroll lock will show the overlay
+	 * Whether to lock scroll when dialogs are open.
 	 * @default false
 	 */
 	scrollLock?: boolean;
 
 	/**
-	 * Whether to trap focus when a dialog is open
+	 * Whether to trap focus within dialogs.
 	 * @default true
 	 */
 	trapFocus?: boolean;
+
+	/**
+	 * Color scheme preference.
+	 * @default 'system'
+	 */
+	colorScheme?: 'light' | 'dark' | 'system';
 }
 
 /**
- * Internal context value interface for the consent manager.
- *
- * @remarks
- * Combines both the current state and store instance for complete
- * consent management functionality.
- *
- * @internal
+ * Props for components that need to check consent status.
  */
-export interface ConsentManagerContextValue {
-	/** Current privacy consent state */
-	state: PrivacyConsentState;
-	/** Store instance for managing consent state */
-	store: ReturnType<typeof createConsentManagerStore>;
+export interface HasConsentedProps {
+	/**
+	 * The consent type to check for.
+	 */
+	consentType?: AllConsentNames;
+
+	/**
+	 * Content to render when consent is granted.
+	 */
+	children: ReactNode;
+
+	/**
+	 * Optional content to render when consent is not granted.
+	 */
+	fallback?: ReactNode;
+}
+
+/**
+ * Props for components that need to access a specific store namespace.
+ */
+export interface NamespaceProps {
+	/**
+	 * Namespace for the consent store instance.
+	 */
+	namespace?: string;
 }

@@ -1,4 +1,3 @@
-import './styles/global.css';
 import { C15TDevTools } from '@c15t/dev-tools';
 import {
 	ConsentManagerDialog,
@@ -8,8 +7,14 @@ import {
 import { RootProvider } from 'fumadocs-ui/provider';
 import { Fira_Mono, Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
+
+import { c15tClient } from '~/c15t-client';
 import { cn } from '~/lib/cn';
+
+import { PostHogProvider } from './posthog-provider';
 import { SandPackCSS } from './styles/sandpack-styles';
+
+import './styles/global.css';
 
 const inter = Inter({
 	subsets: ['latin'],
@@ -33,14 +38,16 @@ export default function Layout({ children }: { children: ReactNode }) {
 				<SandPackCSS />
 			</head>
 			<body className="flex min-h-screen flex-col">
-				<RootProvider>
-					<ConsentManagerProvider initialGdprTypes={['necessary', 'marketing']}>
-						<CookieBanner />
-						<ConsentManagerDialog />
-						{process.env.NODE_ENV === 'development' && <C15TDevTools />}
-						{children}
-					</ConsentManagerProvider>
-				</RootProvider>
+				<PostHogProvider>
+					<RootProvider>
+						<ConsentManagerProvider client={c15tClient}>
+							<CookieBanner />
+							<ConsentManagerDialog />
+							{process.env.NODE_ENV === 'development' && <C15TDevTools />}
+							{children}
+						</ConsentManagerProvider>
+					</RootProvider>
+				</PostHogProvider>
 			</body>
 		</html>
 	);

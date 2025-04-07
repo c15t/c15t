@@ -1,0 +1,86 @@
+---
+title: Memory Adapter
+description: The Memory adapter stores all data in-memory, making it perfect for development, testing, and prototyping. Data is lost when the application restarts.
+---
+## Installation
+
+The Memory adapter is included in the core package and requires no additional dependencies:
+
+```typescript
+import { memoryAdapter } from '@c15t/backend/db/adapters/memory';
+```
+
+## Configuration
+
+The Memory adapter accepts minimal configuration:
+
+```typescript
+import { c15tInstance } from '@c15t/backend';
+import { memoryAdapter } from '@c15t/backend/db/adapters/memory';
+
+const instance = c15tInstance({
+  baseURL: 'http://localhost:3000',
+  database: memoryAdapter({
+    // Optional: Pre-populate with initial data
+    initialData: {
+      users: [
+        { id: '1', name: 'Admin User', email: 'admin@example.com' }
+      ]
+    },
+    // Optional: Set persistence to localStorage in browser environments
+    persistence: 'localStorage'
+  }),
+});
+```
+
+## Usage Examples
+
+### Basic CRUD Operations
+
+```typescript
+// Create a new record
+const user = await instance.database.create('users', {
+  name: 'John Doe',
+  email: 'john@example.com'
+});
+
+// Find records
+const users = await instance.database.find('users', {
+  where: { email: 'john@example.com' }
+});
+
+// Update a record
+const updatedUser = await instance.database.update(
+  'users',
+  { where: { id: user.id } },
+  { name: 'John Smith' }
+);
+
+// Delete a record
+await instance.database.delete('users', { where: { id: user.id } });
+```
+
+## Best Practices
+
+- **Use for development only** - The memory adapter is not suitable for production use as data is lost on restart
+- **Test with realistic data volumes** - Pre-populate with a representative data set to test performance
+- **Reset between tests** - Create a new instance for each test to ensure a clean environment
+
+## Limitations
+
+- No persistence across application restarts
+- Not suitable for production environments
+- Limited query capabilities compared to SQL-based adapters
+- No support for complex joins or transactions
+
+## When to Use
+
+- During development and prototyping
+- For automated testing
+- For demos and examples
+- When you need a lightweight, zero-configuration database
+
+## Related Resources
+
+- [Core Concepts](/backend/core-concepts)
+- [Database Adapter Interface](/backend/database-adapters)

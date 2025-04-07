@@ -43,6 +43,16 @@ interface TrackingBlocker {
 }
 
 /**
+ * Regex pattern to remove 'www.' prefix from domain
+ */
+const WWW_PREFIX_REGEX = /^www\./;
+
+/**
+ * Regex pattern to remove port numbers from domain
+ */
+const PORT_NUMBER_REGEX = /:\d+$/;
+
+/**
  * Creates a tracking blocker instance that handles blocking of tracking scripts and network requests
  */
 export function createTrackingBlocker(
@@ -67,8 +77,8 @@ export function createTrackingBlocker(
 	function normalizeDomain(domain: string): string {
 		return domain
 			.toLowerCase()
-			.replace(/^www\./, '')
-			.replace(/:\d+$/, '') // Remove port numbers
+			.replace(WWW_PREFIX_REGEX, '')
+			.replace(PORT_NUMBER_REGEX, '') // Remove port numbers
 			.trim();
 	}
 
@@ -118,7 +128,7 @@ export function createTrackingBlocker(
 
 			const isAllowed = consents[requiredConsent] === true;
 			return isAllowed;
-		} catch (error) {
+		} catch {
 			return true;
 		}
 	}

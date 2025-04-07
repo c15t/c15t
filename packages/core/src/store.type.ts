@@ -183,12 +183,9 @@ export interface PrivacyConsentState {
 
 	/**
 	 * Fetches consent banner information from the API and updates the store.
-	 * @param url - The URL to fetch consent banner information from
 	 * @returns A promise that resolves with the consent banner response when the fetch is complete, or undefined if it fails
 	 */
-	fetchConsentBannerInfo: (
-		url?: string
-	) => Promise<ConsentBannerResponse | undefined>;
+	fetchConsentBannerInfo: () => Promise<ConsentBannerResponse | undefined>;
 
 	/** Retrieves the list of consent types that should be displayed */
 	getDisplayedConsents: () => typeof consentTypes;

@@ -9,38 +9,36 @@ datasource db {
 }
 
 model Subject {
-  id                 String              @id
-  isIdentified       Boolean
-  externalId         String?             @db.Text
-  identityProvider   String?             @db.Text
-  lastIpAddress      String?             @db.Text
-  createdAt          DateTime
-  updatedAt          DateTime
-  subjectTimezone    String
-  consents           Consent[]
-  consentrecords     ConsentRecord[]
-  consentwithdrawals ConsentWithdrawal[]
-  auditlogs          AuditLog[]
+  id               String          @id
+  isIdentified     Boolean
+  externalId       String?         @db.Text
+  identityProvider String?         @db.Text
+  lastIpAddress    String?         @db.Text
+  createdAt        DateTime
+  updatedAt        DateTime
+  subjectTimezone  String
+  consents         Consent[]
+  consentrecords   ConsentRecord[]
+  auditlogs        AuditLog[]
 }
 
 model ConsentPurpose {
-  id                      String                   @id
-  code                    String                   @db.Text
-  name                    String                   @db.Text
-  description             String                   @db.Text
-  isEssential             Boolean
-  dataCategory            String?                  @db.Text
-  legalBasis              String?                  @db.Text
-  isActive                Boolean
-  createdAt               DateTime
-  updatedAt               DateTime
-  consents                Consent[]
-  consentpurposejunctions ConsentPurposeJunction[]
+  id           String   @id
+  code         String   @db.Text
+  name         String   @db.Text
+  description  String   @db.Text
+  isEssential  Boolean
+  dataCategory String?  @db.Text
+  legalBasis   String?  @db.Text
+  isActive     Boolean
+  createdAt    DateTime
+  updatedAt    DateTime
 }
 
 model ConsentPolicy {
   id             String    @id
   version        String    @db.Text
+  type           String    @db.Text
   name           String    @db.Text
   effectiveDate  DateTime
   expirationDate DateTime?
@@ -66,6 +64,7 @@ model Domain {
 }
 
 model Consent {
+<<<<<<< HEAD
   id                      String                   @id
   subjectId               String
   subject                 Subject                  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
@@ -99,6 +98,25 @@ model ConsentPurposeJunction {
   metadata       Json?
   createdAt      DateTime
   updatedAt      DateTime?
+=======
+  id               String          @id
+  subjectId        String
+  subject          Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  domainId         String
+  domain           Domain          @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  purposeIds       Json?
+  metadata         Json?
+  policyId         String?
+  consentpolicy    ConsentPolicy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  ipAddress        String?         @db.Text
+  userAgent        String?         @db.Text
+  status           String          @db.Text
+  withdrawalReason String?         @db.Text
+  givenAt          DateTime
+  validUntil       DateTime?
+  isActive         Boolean
+  consentrecords   ConsentRecord[]
+>>>>>>> main
 }
 
 model ConsentRecord {
@@ -110,34 +128,6 @@ model ConsentRecord {
   actionType String   @db.Text
   details    Json?
   createdAt  DateTime
-}
-
-model ConsentGeoLocation {
-  id        String   @id
-  consentId String
-  consent   Consent  @relation(fields: [consentId], references: [id], onDelete: Cascade)
-  ip        String   @db.Text
-  country   String?  @db.Text
-  region    String?  @db.Text
-  city      String?  @db.Text
-  latitude  Int?
-  longitude Int?
-  timezone  String?  @db.Text
-  createdAt DateTime
-}
-
-model ConsentWithdrawal {
-  id               String   @id
-  consentId        String
-  consent          Consent  @relation(fields: [consentId], references: [id], onDelete: Cascade)
-  subjectId        String
-  subject          Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  withdrawalReason String?  @db.Text
-  withdrawalMethod String   @db.Text
-  ipAddress        String?  @db.Text
-  userAgent        String?  @db.Text
-  metadata         Json?
-  createdAt        DateTime
 }
 
 model AuditLog {
@@ -153,14 +143,4 @@ model AuditLog {
   metadata      Json?
   createdAt     DateTime
   eventTimezone String
-}
-
-model GeoLocation {
-  id              String   @id
-  countryCode     String   @db.Text
-  countryName     String   @db.Text
-  regionCode      String?  @db.Text
-  regionName      String?  @db.Text
-  regulatoryZones Json?
-  createdAt       DateTime
 }

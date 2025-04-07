@@ -5,7 +5,7 @@
 
   [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
   [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
-  [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
+  [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE.md)
   [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
 </div>
 
@@ -100,13 +100,13 @@ pnpm test
 ## 📚 Documentation
 
 - [Getting Started](https://c15t.com/docs)
-- [Core Concepts](https://c15t.com/docs/concepts)
-- [API Reference](https://c15t.com/docs/api)
+- [Core Concepts](https://c15t.com/docs/core)
+- [API Reference](https://c15t.com/docs/core/api-reference)
 - [UI Components](https://c15t.com/docs/framework/react)
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md).
+We welcome contributions! Please see our [Contributing Guide](https://c15t.com/docs/getting-started/open-source/contributing).
 
 - 🐛 [Report bugs](https://github.com/c15t/c15t/issues/new?template=bug_report.yml)
 - ✨ [Request features](https://github.com/c15t/c15t/issues/new?template=feature_request.yml)
@@ -117,7 +117,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md).
 
 ## 📜 License
 
-[GNU General Public License v3.0](LICENSE) - See [LICENSE](LICENSE) for details.
+[GNU General Public License v3.0](LICENSE.md) - See [LICENSE](LICENSE.md) for details.
 
 ---
 

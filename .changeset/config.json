@@ -4,6 +4,7 @@
 	"commit": false,
 	"fixed": [["c15t", "@c15t/react", "@c15t/dev-tools"]],
 	"linked": [],
+  "ignore": ["@c15t-examples/*"],
 	"access": "public",
 	"baseBranch": "main",
 	"updateInternalDependencies": "patch"

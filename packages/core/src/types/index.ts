@@ -34,7 +34,7 @@
  * const region: ComplianceRegion = 'gdpr';
  * ```
  */
-import type {
+export type {
 	ComplianceRegion,
 	ComplianceSettings,
 	ConsentBannerResponse,
@@ -45,18 +45,6 @@ import type {
 	NamespaceProps,
 	PrivacySettings,
 } from './compliance';
-
-export type {
-	ConsentState,
-	ComplianceRegion,
-	ComplianceSettings,
-	JurisdictionInfo,
-	LocationInfo,
-	ConsentBannerResponse,
-	PrivacySettings,
-	HasConsentedProps,
-	NamespaceProps,
-};
 
 /**
  * @module
@@ -83,10 +71,7 @@ export type {
  * }
  * ```
  */
-import { type AllConsentNames, type ConsentType, consentTypes } from './gdpr';
-
-export { consentTypes };
-export type { AllConsentNames, ConsentType };
+export { type AllConsentNames, type ConsentType, consentTypes } from './gdpr';
 
 /**
  * @module
@@ -126,9 +111,7 @@ export type { AllConsentNames, ConsentType };
  *   () => console.log('System ready');
  * ```
  */
-import type { CallbackFunction, Callbacks } from './callbacks';
-
-export type { CallbackFunction, Callbacks };
+export type { CallbackFunction, Callbacks } from './callbacks';
 
 /**
  * @module
@@ -152,3 +135,25 @@ export type {
 	TranslationConfig,
 	Translations,
 } from './translations';
+
+/**
+ * @module
+ * Consent Purpose Types
+ *
+ * @remarks
+ * Exports types for consent purposes and their configurations:
+ */
+export type { ConsentPurpose } from './consent-purpose';
+
+/**
+ * @module
+ * Client Types
+ *
+ * @remarks
+ * Exports types for the c15t client and its configuration options:
+ */
+export type {
+	c15tClientOptions,
+	FetchOptions,
+	ResponseContext,
+} from './client';

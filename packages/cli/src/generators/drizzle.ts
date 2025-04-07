@@ -1,6 +1,12 @@
 import { existsSync } from 'node:fs';
-import { type Field, getConsentTables } from '@c15t/backend/db';
+import type { Field } from '@c15t/backend/pkgs/data-model/fields';
+import { getConsentTables } from '@c15t/backend/schema';
 import type { SchemaGenerator } from './types';
+
+interface TableDefinition {
+	modelName: string;
+	fields: Record<string, Field>;
+}
 
 export function convertToSnakeCase(str: string) {
 	// Guard against undefined or null strings
@@ -15,7 +21,10 @@ export const generateDrizzleSchema: SchemaGenerator = async ({
 	file,
 	adapter,
 }) => {
-	const tables = getConsentTables(options);
+	const tables = getConsentTables(options) as unknown as Record<
+		string,
+		TableDefinition
+	>;
 	const filePath = file || './auth-schema.ts';
 	const databaseType = adapter.options?.provider;
 	const usePlural = adapter.options?.usePlural;
@@ -43,15 +52,19 @@ export const generateDrizzleSchema: SchemaGenerator = async ({
 	for (const table in tables) {
 		if (Object.prototype.hasOwnProperty.call(tables, table)) {
 			// Use the table name as fallback if modelName is undefined
+			const tableDefinition = tables[table];
+			if (!tableDefinition) {
+				continue;
+			}
 			let modelName = usePlural
-				? `${tables[table].modelName}s`
-				: tables[table].modelName;
+				? `${tableDefinition.modelName}s`
+				: tableDefinition.modelName;
 
 			if (!modelName) {
 				modelName = table;
 			}
 
-			const fields = tables[table].fields;
+			const fields = tableDefinition.fields;
 
 			function getMySQLStringType(field: Field, name: string): string {
 				if (field.unique) {
@@ -134,27 +147,39 @@ export const generateDrizzleSchema: SchemaGenerator = async ({
 				code += '\n\n';
 			}
 
-			const schema = `export const ${modelName} = ${databaseType}Table("${tableNameForSQL}", {
-  id: ${id},
-${Object.keys(fields)
-	.map((field) => {
-		if (Object.prototype.hasOwnProperty.call(fields, field)) {
-			const attr = fields[field];
-			return `  ${field}: ${getType(field, attr)}${
-				attr.required ? '.notNull()' : ''
-			}${attr.unique ? '.unique()' : ''}${
-				attr.references
-					? `.references(()=> ${
-							usePlural ? `${attr.references.model}s` : attr.references.model
-						}.${attr.references.field}, { onDelete: 'cascade' })`
-					: ''
-			}`;
-		}
-		return '';
-	})
-	.filter(Boolean)
-	.join(',\n')}
-});`;
+			// Generate fields with proper indentation
+			const fieldDefinitions = Object.keys(fields)
+				.map((field) => {
+					if (Object.prototype.hasOwnProperty.call(fields, field)) {
+						const attr = fields[field];
+						if (!attr) {
+							return '';
+						}
+
+						return `  ${field}: ${getType(field, attr)}${
+							attr.required ? '.notNull()' : ''
+						}${attr.unique ? '.unique()' : ''}${
+							attr.references
+								? `.references(()=> ${
+										usePlural
+											? `${attr.references.model}s`
+											: attr.references.model
+									}.${attr.references.field}, { onDelete: 'cascade' })`
+								: ''
+						}`;
+					}
+					return '';
+				})
+				.filter(Boolean)
+				.join(',\n');
+
+			const schema = [
+				`export const ${modelName} = ${databaseType}Table("${tableNameForSQL}", {`,
+				`  id: ${id},`,
+				fieldDefinitions,
+				'});',
+			].join('\n');
+
 			code += schema;
 		}
 	}

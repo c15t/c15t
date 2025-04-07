@@ -27,6 +27,7 @@ export const consentPurpose = pgTable("consent_purpose", {
 export const consentPolicy = pgTable("consent_policy", {
   id: text("id").primaryKey(),
   version: text('version').notNull(),
+  type: text('type').notNull(),
   name: text('name').notNull(),
   effectiveDate: timestamp('effective_date').notNull(),
   expirationDate: timestamp('expiration_date'),
@@ -51,7 +52,11 @@ export const consent = pgTable("consent", {
   id: text("id").primaryKey(),
   subjectId: text('subject_id').notNull().references(()=> subject.id, { onDelete: 'cascade' }),
   domainId: text('domain_id').notNull().references(()=> domain.id, { onDelete: 'cascade' }),
+<<<<<<< HEAD
   purposeIds: text('purpose_ids').references(()=> consentPurpose.id, { onDelete: 'cascade' }),
+=======
+  purposeIds: json('purpose_ids'),
+>>>>>>> main
   metadata: json('metadata'),
   policyId: text('policy_id').references(()=> consentPolicy.id, { onDelete: 'cascade' }),
   ipAddress: text('ip_address'),
@@ -63,47 +68,12 @@ export const consent = pgTable("consent", {
   isActive: boolean('is_active').notNull()
 });
 
-export const consentPurposeJunction = pgTable("consent_purpose_junction", {
-  id: text("id").primaryKey(),
-  consentId: text('consent_id').notNull().references(()=> consent.id, { onDelete: 'cascade' }),
-  purposeId: text('purpose_id').notNull().references(()=> consentPurpose.id, { onDelete: 'cascade' }),
-  status: text('status').notNull(),
-  metadata: json('metadata'),
-  createdAt: timestamp('created_at').notNull(),
-  updatedAt: timestamp('updated_at')
-});
-
 export const consentRecord = pgTable("consent_record", {
   id: text("id").primaryKey(),
   subjectId: text('subject_id').notNull().references(()=> subject.id, { onDelete: 'cascade' }),
   consentId: text('consent_id').references(()=> consent.id, { onDelete: 'cascade' }),
   actionType: text('action_type').notNull(),
   details: json('details'),
-  createdAt: timestamp('created_at').notNull()
-});
-
-export const consentGeoLocation = pgTable("consent_geo_location", {
-  id: text("id").primaryKey(),
-  consentId: text('consent_id').notNull().references(()=> consent.id, { onDelete: 'cascade' }),
-  ip: text('ip').notNull(),
-  country: text('country'),
-  region: text('region'),
-  city: text('city'),
-  latitude: integer('latitude'),
-  longitude: integer('longitude'),
-  timezone: text('timezone'),
-  createdAt: timestamp('created_at').notNull()
-});
-
-export const consentWithdrawal = pgTable("consent_withdrawal", {
-  id: text("id").primaryKey(),
-  consentId: text('consent_id').notNull().references(()=> consent.id, { onDelete: 'cascade' }),
-  subjectId: text('subject_id').notNull().references(()=> subject.id, { onDelete: 'cascade' }),
-  withdrawalReason: text('withdrawal_reason'),
-  withdrawalMethod: text('withdrawal_method').notNull(),
-  ipAddress: text('ip_address'),
-  userAgent: text('user_agent'),
-  metadata: json('metadata'),
   createdAt: timestamp('created_at').notNull()
 });
 
@@ -119,14 +89,4 @@ export const auditLog = pgTable("audit_log", {
   metadata: json('metadata'),
   createdAt: timestamp('created_at').notNull(),
   eventTimezone: text('event_timezone').notNull()
-});
-
-export const geoLocation = pgTable("geo_location", {
-  id: text("id").primaryKey(),
-  countryCode: text('country_code').notNull(),
-  countryName: text('country_name').notNull(),
-  regionCode: text('region_code'),
-  regionName: text('region_name'),
-  regulatoryZones: json('regulatory_zones'),
-  createdAt: timestamp('created_at').notNull()
 });

@@ -1,5 +1,6 @@
 {
 	"name": "@c15t-examples/hono-turso",
+	"private": true,
 	"scripts": {
 		"deploy": "wrangler deploy --minify",
 		"dev": "wrangler dev",

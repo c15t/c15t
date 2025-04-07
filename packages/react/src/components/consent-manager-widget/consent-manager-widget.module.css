@@ -83,7 +83,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .card {
+:global(.c15t-dark) .card {
 	background-color: var(--widget-background-color-dark);
 	border-color: var(--widget-border-color-dark);
 }
@@ -113,7 +113,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .title {
+:global(.c15t-dark) .title {
 	color: var(--widget-text-color-dark);
 }
 
@@ -122,7 +122,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .description {
+:global(.c15t-dark) .description {
 	color: var(--widget-text-muted-color-dark);
 }
 
@@ -140,7 +140,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .footer {
+:global(.c15t-dark) .footer {
 	background-color: var(--widget-footer-background-color-dark);
 }
 
@@ -181,7 +181,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .branding {
+:global(.c15t-dark) .branding {
 	border-color: var(--widget-border-color-dark);
 }
 
@@ -198,7 +198,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .brandingLink {
+:global(.c15t-dark) .brandingLink {
 	color: var(--widget-link-text-color-dark);
 }
 
@@ -259,7 +259,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .accordionItem {
+:global(.c15t-dark) .accordionItem {
 	border-color: var(--widget-accordion-border-color-dark);
 	background-color: var(--widget-accordion-background-color-dark);
 }
@@ -281,12 +281,12 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .accordionTrigger {
+:global(.c15t-dark) .accordionTrigger {
 	color: var(--widget-accordion-text-color-dark);
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .accordionTrigger:hover {
+:global(.c15t-dark) .accordionTrigger:hover {
 	background-color: var(--widget-accordion-background-hover-dark);
 }
 
@@ -306,7 +306,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .accordionContent {
+:global(.c15t-dark) .accordionContent {
 	color: var(--widget-accordion-content-color-dark);
 }
 
@@ -319,7 +319,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .accordionArrow {
+:global(.c15t-dark) .accordionArrow {
 	color: var(--widget-accordion-arrow-color-dark);
 }
 
@@ -342,7 +342,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .switch {
+:global(.c15t-dark) .switch {
 	background-color: var(--widget-accordion-background-hover-dark);
 }
 
@@ -351,7 +351,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.dark) .switch[data-state="checked"] {
+:global(.c15t-dark) .switch[data-state="checked"] {
 	background-color: var(--widget-accordion-focus-ring-dark);
 }
 

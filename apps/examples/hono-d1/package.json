@@ -1,5 +1,6 @@
 {
 	"name": "@c15t-examples/hono-d1",
+	"private": true,
 	"scripts": {
 		"deploy": "wrangler deploy --minify",
 		"dev": "wrangler dev",

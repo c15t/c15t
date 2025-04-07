@@ -1,4 +1,7 @@
+import { c15tClientExample } from '~/examples/c15t-client-example';
+
 export const pages = {
+	'c15t.ts': c15tClientExample,
 	'CustomWidget.tsx': `'use client';
   
 import { useConsentManager } from '@c15t/react';
@@ -35,14 +38,17 @@ export function CustomWidget() {
   );
 }`,
 	'App.tsx': `import { ConsentManagerProvider, ConsentManagerDialog, CookieBanner } from '@c15t/react';
-import { ExampleContent } from './ExampleContent';
+import { ExampleContent } from './example-content';
 import { clearLocalStorage } from './lib/utils';
 import { CustomWidget } from './CustomWidget';
+import { c15tClient } from './c15t';
+
 export default function App() {
     // Clear localStorage on mount to ensure a clean state
     clearLocalStorage();
     return (
         <ConsentManagerProvider 
+            client={c15tClient}
             initialGdprTypes={['necessary', 'marketing']}
         >
             <CustomWidget />
@@ -50,7 +56,7 @@ export default function App() {
         </ConsentManagerProvider>
     );
 }`,
-	'ExampleContent.tsx': `import { useConsentManager } from '@c15t/react';
+	'example-content.tsx': `import { useConsentManager } from '@c15t/react';
 import { useEffect } from 'react';
 import { setupDarkMode } from './lib/utils';
 export function ExampleContent() {

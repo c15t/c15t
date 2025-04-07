@@ -1,8 +1,14 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
   "workspaces": {
-    "packages/c15t": {
-      "$include": "./packages/c15t/knip.json"
+    "packages/core": {
+      "$include": "./packages/core/knip.json"
+    },
+    "packages/backend": {
+      "$include": "./packages/backend/knip.json"
+    },
+    "packages/cli": {
+      "$include": "./packages/cli/knip.json"
     },
     "packages/*": {
       "entry": ["src/index.ts"],

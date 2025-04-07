@@ -75,15 +75,20 @@ export const ConsentButton = forwardRef<
 
 		const buttonClick = useCallback(() => {
 			switch (action) {
-				case 'accept-consent':
+				case 'accept-consent': {
 					saveConsents('all');
 					break;
-				case 'reject-consent':
+				}
+				case 'reject-consent': {
 					saveConsents('necessary');
 					break;
-				case 'custom-consent':
+				}
+				case 'custom-consent': {
+					// Save consents first to ensure store is updated
 					saveConsents('custom');
+
 					break;
+				}
 				case 'open-consent-dialog': {
 					setIsPrivacyDialogOpen(true);
 					setShowPopup(false, true);

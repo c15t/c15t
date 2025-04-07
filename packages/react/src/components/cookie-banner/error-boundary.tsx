@@ -45,7 +45,7 @@ interface ErrorBoundaryState {
  *
  * @example
  * ```tsx
- * <ErrorBoundary fallback={<ErrorMessage />}>
+ * <ErrorBoundary fallback={<ErrorMessageType />}>
  *   <ComponentThatMayError />
  * </ErrorBoundary>
  * ```

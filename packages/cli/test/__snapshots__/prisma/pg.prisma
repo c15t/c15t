@@ -9,38 +9,36 @@ datasource db {
 }
 
 model Subject {
-  id                 String              @id
-  isIdentified       Boolean
-  externalId         String?
-  identityProvider   String?
-  lastIpAddress      String?
-  createdAt          DateTime
-  updatedAt          DateTime
-  subjectTimezone    String
-  consents           Consent[]
-  consentrecords     ConsentRecord[]
-  consentwithdrawals ConsentWithdrawal[]
-  auditlogs          AuditLog[]
+  id               String          @id
+  isIdentified     Boolean
+  externalId       String?
+  identityProvider String?
+  lastIpAddress    String?
+  createdAt        DateTime
+  updatedAt        DateTime
+  subjectTimezone  String
+  consents         Consent[]
+  consentrecords   ConsentRecord[]
+  auditlogs        AuditLog[]
 }
 
 model ConsentPurpose {
-  id                      String                   @id
-  code                    String
-  name                    String
-  description             String
-  isEssential             Boolean
-  dataCategory            String?
-  legalBasis              String?
-  isActive                Boolean
-  createdAt               DateTime
-  updatedAt               DateTime
-  consents                Consent[]
-  consentpurposejunctions ConsentPurposeJunction[]
+  id           String   @id
+  code         String
+  name         String
+  description  String
+  isEssential  Boolean
+  dataCategory String?
+  legalBasis   String?
+  isActive     Boolean
+  createdAt    DateTime
+  updatedAt    DateTime
 }
 
 model ConsentPolicy {
   id             String    @id
   version        String
+  type           String
   name           String
   effectiveDate  DateTime
   expirationDate DateTime?
@@ -71,7 +69,7 @@ model Consent {
   subject                 Subject                  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   domainId                String
   domain                  Domain                   @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  purposeIds              String?
+  purposeIds              Json?
   consentpurpose          ConsentPurpose           @relation(fields: [purposeIds], references: [id], onDelete: Cascade)
   metadata                Json?
   policyId                String?
@@ -112,34 +110,6 @@ model ConsentRecord {
   createdAt  DateTime
 }
 
-model ConsentGeoLocation {
-  id        String   @id
-  consentId String
-  consent   Consent  @relation(fields: [consentId], references: [id], onDelete: Cascade)
-  ip        String
-  country   String?
-  region    String?
-  city      String?
-  latitude  Int?
-  longitude Int?
-  timezone  String?
-  createdAt DateTime
-}
-
-model ConsentWithdrawal {
-  id               String   @id
-  consentId        String
-  consent          Consent  @relation(fields: [consentId], references: [id], onDelete: Cascade)
-  subjectId        String
-  subject          Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  withdrawalReason String?
-  withdrawalMethod String
-  ipAddress        String?
-  userAgent        String?
-  metadata         Json?
-  createdAt        DateTime
-}
-
 model AuditLog {
   id            String   @id
   entityType    String
@@ -153,14 +123,4 @@ model AuditLog {
   metadata      Json?
   createdAt     DateTime
   eventTimezone String
-}
-
-model GeoLocation {
-  id              String   @id
-  countryCode     String
-  countryName     String
-  regionCode      String?
-  regionName      String?
-  regulatoryZones Json?
-  createdAt       DateTime
 }

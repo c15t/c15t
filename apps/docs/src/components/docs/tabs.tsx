@@ -127,6 +127,7 @@ export function Tabs({
 	return (
 		<Primitive.Tabs
 			value={value}
+			// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: okay with the complexity of 16 out of 15
 			onValueChange={(v: string) => {
 				if (updateAnchor) {
 					const id = valueToIdMap.get(v);

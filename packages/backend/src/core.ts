@@ -1,14 +1,15 @@
-import { router } from './api/index';
-import { BASE_ERROR_CODES, failAsync, okAsync, safeResultAsync } from './error';
-import type { C15TResult, C15TResultAsync } from './error/results';
+import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
 import { init } from './init';
-import type {
-	C15TContext,
-	C15TOptions,
-	C15TPlugin,
-	FilterActions,
-} from './types';
-import { getBaseURL } from './utils';
+import { createApiHandler } from './pkgs/api-router';
+import {
+	ERROR_CODES,
+	type SDKResult,
+	type SDKResultAsync,
+	failAsync,
+	okAsync,
+} from './pkgs/results';
+import { routes } from './routes';
+import type { Route } from './routes/types';
 
 /**
  * Interface representing a configured c15t consent management instance.
@@ -20,7 +21,7 @@ import { getBaseURL } from './utils';
  * management system. It includes methods for handling requests, accessing API
  * endpoints, and managing the system's configuration.
  *
- * All asynchronous operations return {@link C15TResultAsync} types for
+ * All asynchronous operations return {@link SDKResultAsync} types for
  * consistent error handling across the system.
  *
  * @example
@@ -52,7 +53,7 @@ export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
 	 * );
 	 * ```
 	 */
-	handler: (request: Request) => Promise<C15TResultAsync<Response>>;
+	handler: (request: Request) => Promise<SDKResultAsync<Response>>;
 
 	/**
 	 * Retrieves available API endpoints and their configurations.
@@ -70,9 +71,7 @@ export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
 	 * );
 	 * ```
 	 */
-	getApi: () => Promise<
-		C15TResultAsync<FilterActions<ReturnType<typeof router>['endpoints']>>
-	>;
+	getApi: () => Promise<SDKResultAsync<Route[]>>;
 
 	/**
 	 * The configuration options used for this instance.
@@ -86,7 +85,7 @@ export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
 	 * The context is wrapped in a Result type to ensure error handling
 	 * consistency. Access should be handled using Result pattern methods.
 	 */
-	$context: Promise<C15TResult<C15TContext>>;
+	$context: Promise<SDKResult<C15TContext>>;
 }
 
 /**
@@ -135,132 +134,103 @@ export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
  * });
  * ```
  */
-export const c15tInstance = <
-	PluginTypes extends C15TPlugin[] = C15TPlugin[],
-	ConfigOptions extends C15TOptions<PluginTypes> = C15TOptions<PluginTypes>,
->(
-	options: ConfigOptions
+export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
+	options: C15TOptions<PluginTypes>
 ): C15TInstance<PluginTypes> => {
+	// Initialize context directly without retry
 	const contextPromise = init(options);
+	let webHandler: ((request: Request) => Promise<Response>) | null = null;
 
 	/**
-	 * Processes incoming requests and routes them to the appropriate handler
-	 * using the Result pattern for error handling
-	 *
-	 * @param request - The incoming web request
-	 * @returns A Promise resolving to a Result containing a web response
+	 * Creates or returns the cached H3 app handler
+	 */
+	const getHandler = async (
+		ctx: C15TContext
+	): Promise<(request: Request) => Promise<Response>> => {
+		// Initialize the app once and cache it
+		if (!webHandler) {
+			// Use createApiHandler instead of direct H3 app creation
+			// This ensures the registry and other context items are properly passed to event handlers
+			const { handler } = createApiHandler({
+				options: ctx.options,
+				context: {
+					adapter: ctx.adapter,
+					registry: ctx.registry,
+					trustedOrigins: ctx.trustedOrigins,
+					logger: ctx.logger,
+				},
+			});
+
+			// Cache the handler
+			webHandler = handler;
+		}
+
+		return webHandler;
+	};
+
+	/**
+	 * Handles incoming requests using H3
 	 */
 	const handler = async (
 		request: Request
-	): Promise<C15TResultAsync<Response>> => {
-		const contextResult = await contextPromise;
+	): Promise<SDKResultAsync<Response>> => {
+		try {
+			const contextResult = await contextPromise;
 
-		// Map the Result to a ResultAsync for proper chaining
-		return contextResult.asyncAndThen((ctx: C15TContext) => {
-			const basePath = ctx.options.basePath || '/api/c15t';
-			const url = new URL(request.url);
-			if (ctx.options.baseURL) {
-				// If baseURL is provided but doesn't include the basePath, add it
-				const baseURL = new URL(ctx.options.baseURL);
-				if (!baseURL.pathname || baseURL.pathname === '/') {
-					ctx.options.baseURL = `${baseURL.origin}${basePath}`;
-					ctx.baseURL = ctx.options.baseURL;
+			return contextResult.match(
+				// Success case
+				async (ctx) => {
+					try {
+						// Get the web handler which accepts standard Request objects
+						const handler = await getHandler(ctx);
+
+						// Simply call the handler with the request
+						const response = await handler(request);
+						return okAsync(response);
+					} catch (error) {
+						return failAsync('Request handling failed', {
+							code: ERROR_CODES.REQUEST_HANDLER_ERROR,
+							cause: error instanceof Error ? error : undefined,
+						});
+					}
+				},
+				// Error case
+				(error) => {
+					// Handle initialization errors without special version handling
+					return failAsync(`Context initialization failed: ${error.message}`, {
+						code: ERROR_CODES.INITIALIZATION_FAILED,
+						cause: error,
+					});
 				}
-			} else {
-				const baseURL =
-					getBaseURL(undefined, basePath) || `${url.origin}${basePath}`;
-				ctx.options.baseURL = baseURL;
-				ctx.baseURL = baseURL;
-			}
-
-			// Extract trusted origins logic to avoid nested ternaries
-			let originsFromOptions: string[] = [];
-			if (options.trustedOrigins) {
-				originsFromOptions = Array.isArray(options.trustedOrigins)
-					? options.trustedOrigins
-					: options.trustedOrigins(request);
-			}
-
-			ctx.trustedOrigins = [
-				...originsFromOptions,
-				ctx.options.baseURL || '',
-				url.origin,
-			];
-
-			try {
-				const { handler } = router(ctx, options);
-
-				// Use safeResultAsync instead of fromPromise
-				return safeResultAsync(
-					handler(request),
-					BASE_ERROR_CODES.REQUEST_HANDLER_ERROR
-				);
-			} catch (error) {
-				const safeErrorMessage =
-					error instanceof Error
-						? error.message.split('\n')[0]
-						: 'An unknown error occurred';
-				return failAsync(`Error processing request: ${safeErrorMessage}`, {
-					code: BASE_ERROR_CODES.REQUEST_HANDLER_ERROR,
-					status: 500,
-					data: { url: request.url },
-				});
-			}
-		});
+			);
+		} catch (error) {
+			return failAsync(
+				`Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
+				{
+					code: ERROR_CODES.UNKNOWN_ERROR,
+					cause: error instanceof Error ? error : undefined,
+				}
+			);
+		}
 	};
 
-	/**
-	 * Method to get API endpoints using the Result pattern
-	 *
-	 * @returns A Promise resolving to a Result containing the available API endpoints
-	 */
-	const getApi = async (): Promise<
-		C15TResultAsync<FilterActions<ReturnType<typeof router>['endpoints']>>
-	> => {
-		const contextResult = await contextPromise;
-
-		return contextResult.asyncAndThen((context: C15TContext) => {
-			// Make sure context has a valid baseURL before calling router
-			if (!context.baseURL) {
-				try {
-					const basePath = context.options.basePath || '/api/c15t';
-					const baseURL = getBaseURL(context.options.baseURL, basePath);
-					if (baseURL) {
-						context.baseURL = baseURL;
-					}
-				} catch (error) {
-					return failAsync(
-						`Failed to determine base URL: ${error instanceof Error ? error.message : String(error)}`,
-						{
-							code: BASE_ERROR_CODES.API_RETRIEVAL_ERROR,
-						}
-					);
-				}
-			}
-
-			try {
-				const { endpoints } = router(context, options);
-				// Convert endpoints to the expected FilterActions type and wrap in okAsync
-				const typedEndpoints = endpoints as unknown as FilterActions<
-					ReturnType<typeof router>['endpoints']
-				>;
-				return okAsync(typedEndpoints);
-			} catch (error) {
-				return failAsync(
-					`Failed to get API endpoints: ${error instanceof Error ? error.message : String(error)}`,
-					{
-						code: BASE_ERROR_CODES.API_RETRIEVAL_ERROR,
-						data: { error },
-					}
-				);
-			}
-		});
-	};
-
-	// Create and return the simplified instance with access to the context
+	// Return the instance
 	return {
 		handler,
-		getApi,
+		getApi: async (): Promise<SDKResultAsync<Route[]>> => {
+			const contextResult = await contextPromise;
+
+			return contextResult.match(
+				// Success case - just return the routes
+				() => okAsync(routes),
+				// Error case
+				(error) =>
+					failAsync(`API retrieval failed: ${error.message}`, {
+						code: ERROR_CODES.API_RETRIEVAL_ERROR,
+						cause: error,
+					})
+			);
+		},
 		options,
 		$context: contextPromise,
 	};

@@ -1,8 +1,8 @@
 'use client';
 
+import { Slot } from '@radix-ui/react-slot';
 import { type HTMLAttributes, forwardRef } from 'react';
 
-import { Slot } from '@radix-ui/react-slot';
 import type { ExtendThemeKeys } from '~/types/theme';
 import { useStyles } from '~/utils/use-styles';
 

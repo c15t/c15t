@@ -42,19 +42,10 @@ CREATE TABLE IF NOT EXISTS "domain" (
   "updatedAt" timestamp with time zone
 );
 
-CREATE TABLE IF NOT EXISTS "geoLocation" (
-  "id" varchar(255) NOT NULL PRIMARY KEY,
-  "countryCode" text NOT NULL,
-  "countryName" text NOT NULL,
-  "regionCode" text,
-  "regionName" text,
-  "regulatoryZones" text,
-  "createdAt" timestamp with time zone NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS "consentPolicy" (
   "id" varchar(255) NOT NULL PRIMARY KEY,
   "version" text NOT NULL,
+  "type" text NOT NULL,
   "name" varchar(255) NOT NULL,
   "effectiveDate" date NOT NULL,
   "expirationDate" date,
@@ -68,7 +59,7 @@ CREATE TABLE IF NOT EXISTS "consent" (
   "id" varchar(255) NOT NULL PRIMARY KEY,
   "subjectId" text NOT NULL REFERENCES "subject" ("id"),
   "domainId" text NOT NULL REFERENCES "domain" ("id"),
-  "purposeIds" text REFERENCES "consentPurpose" ("id"),
+  "purposeIds" text,
   "metadata" jsonb,
   "policyId" text REFERENCES "consentPolicy" ("id"),
   "ipAddress" text,
@@ -80,47 +71,12 @@ CREATE TABLE IF NOT EXISTS "consent" (
   "isActive" boolean NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS "consentPurposeJunction" (
-  "id" varchar(255) NOT NULL PRIMARY KEY,
-  "consentId" text NOT NULL REFERENCES "consent" ("id"),
-  "purposeId" text NOT NULL REFERENCES "consentPurpose" ("id"),
-  "status" text NOT NULL,
-  "metadata" jsonb,
-  "createdAt" timestamp with time zone NOT NULL,
-  "updatedAt" timestamp with time zone
-);
-
 CREATE TABLE IF NOT EXISTS "consentRecord" (
   "id" varchar(255) NOT NULL PRIMARY KEY,
   "subjectId" text NOT NULL REFERENCES "subject" ("id"),
   "consentId" text REFERENCES "consent" ("id"),
   "actionType" text NOT NULL,
   "details" text,
-  "createdAt" timestamp with time zone NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS "consentGeoLocation" (
-  "id" varchar(255) NOT NULL PRIMARY KEY,
-  "consentId" text NOT NULL REFERENCES "consent" ("id"),
-  "ip" text NOT NULL,
-  "country" text,
-  "region" text,
-  "city" text,
-  "latitude" integer,
-  "longitude" integer,
-  "timezone" text,
-  "createdAt" timestamp with time zone NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS "consentWithdrawal" (
-  "id" varchar(255) NOT NULL PRIMARY KEY,
-  "consentId" text NOT NULL REFERENCES "consent" ("id"),
-  "subjectId" text NOT NULL REFERENCES "subject" ("id"),
-  "withdrawalReason" text,
-  "withdrawalMethod" text NOT NULL,
-  "ipAddress" text,
-  "userAgent" text,
-  "metadata" jsonb,
   "createdAt" timestamp with time zone NOT NULL
 );
 
@@ -146,19 +102,11 @@ BEGIN;
 
 DROP TABLE IF EXISTS "auditLog";
 
-DROP TABLE IF EXISTS "consentWithdrawal";
-
-DROP TABLE IF EXISTS "consentGeoLocation";
-
 DROP TABLE IF EXISTS "consentRecord";
-
-DROP TABLE IF EXISTS "consentPurposeJunction";
 
 DROP TABLE IF EXISTS "consent";
 
 DROP TABLE IF EXISTS "consentPolicy";
-
-DROP TABLE IF EXISTS "geoLocation";
 
 DROP TABLE IF EXISTS "domain";
 

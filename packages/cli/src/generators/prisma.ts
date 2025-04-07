@@ -1,11 +1,17 @@
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { getConsentTables } from '@c15t/backend/db';
+import type { Field } from '@c15t/backend/pkgs/data-model/fields';
+import { getConsentTables } from '@c15t/backend/schema';
 import { produceSchema } from '@mrleebo/prisma-ast';
 
 import { capitalizeFirstLetter } from '../utils/capitalize-first-letter';
 import type { SchemaGenerator } from './types';
+
+interface TableDefinition {
+	modelName: string;
+	fields: Record<string, Field>;
+}
 
 export const generatePrismaSchema: SchemaGenerator = async ({
 	adapter,
@@ -13,7 +19,10 @@ export const generatePrismaSchema: SchemaGenerator = async ({
 	file,
 }) => {
 	const provider = adapter.options?.provider || 'postgresql';
-	const tables = getConsentTables(options);
+	const tables = getConsentTables(options) as unknown as Record<
+		string,
+		TableDefinition
+	>;
 	const filePath = file || './prisma/schema.prisma';
 	const schemaPrismaExist = existsSync(path.join(process.cwd(), filePath));
 	let schemaPrisma = '';
@@ -27,7 +36,7 @@ export const generatePrismaSchema: SchemaGenerator = async ({
 	}
 
 	// Create a map to store many-to-many relationships
-	const manyToManyRelations = new Map();
+	const manyToManyRelations = new Map<string, Set<string>>();
 
 	// First pass: identify many-to-many relationships
 	for (const table in tables) {
@@ -46,7 +55,7 @@ export const generatePrismaSchema: SchemaGenerator = async ({
 						}
 						manyToManyRelations
 							.get(referencedModel)
-							.add(capitalizeFirstLetter(table));
+							?.add(capitalizeFirstLetter(table));
 					}
 				}
 			}
@@ -55,7 +64,11 @@ export const generatePrismaSchema: SchemaGenerator = async ({
 
 	const schema = produceSchema(schemaPrisma, (builder) => {
 		// Define the Prisma type mapping function
-		function getPrismaType(type, isOptional, isBigint) {
+		function getPrismaType(
+			type: string,
+			isOptional: boolean,
+			isBigint: boolean
+		): string {
 			// Detect JSON fields based on type only
 			const isJsonField = type === 'json' || type === 'jsonb';
 
@@ -127,6 +140,10 @@ export const generatePrismaSchema: SchemaGenerator = async ({
 						});
 
 						if (existingField) {
+							continue;
+						}
+
+						if (!attr) {
 							continue;
 						}
 

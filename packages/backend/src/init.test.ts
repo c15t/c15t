@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DatabaseConfiguration } from './db/adapters/kysely-adapter';
-import { memoryAdapter } from './db/adapters/memory-adapter';
+import type { DatabaseConfiguration } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
+import { memoryAdapter } from '~/pkgs/db-adapters/adapters/memory-adapter';
+import type { C15TPlugin } from '~/types';
 import { init } from './init';
-import type { C15TPlugin } from './types';
 
 describe('init', () => {
 	beforeEach(() => {
@@ -12,6 +12,7 @@ describe('init', () => {
 	it('should initialize with basic config', async () => {
 		const result = await init({
 			baseURL: 'http://localhost:3000',
+			appName: 'c15t Consent Manager',
 			database: memoryAdapter({}),
 		});
 
@@ -197,7 +198,7 @@ describe('init', () => {
 		const result = await init({
 			baseURL: 'http://localhost:3000',
 			database: memoryAdapter({}),
-			trustedOrigins: ['http://trusted.test'],
+			trustedOrigins: ['http://trusted.test', 'http://localhost:3000'],
 		});
 
 		expect(result.isOk()).toBe(true);

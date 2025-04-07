@@ -1,3 +1,8 @@
+/**
+ * @packageDocumentation
+ * Hook for accessing and managing consent state.
+ */
+
 import { useContext } from 'react';
 import { ConsentStateContext } from '../context/consent-manager-context';
 
@@ -10,6 +15,7 @@ import { ConsentStateContext } from '../context/consent-manager-context';
  * - Methods to update consents
  * - Compliance settings and region detection
  * - State persistence and retrieval
+ * - The API client (if configured)
  *
  * The hook must be used within a ConsentManagerProvider component.
  *
@@ -28,8 +34,13 @@ export function useConsentManager() {
 		);
 	}
 
+	const storeState = context.store.getState();
+
+	// Combine state from context and methods from store
 	return {
 		...context.state,
-		...context.store.getState(),
+		...storeState,
+		// Include client in returned object if available
+		...(context.client ? { client: context.client } : {}),
 	};
 }

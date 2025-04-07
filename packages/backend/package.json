@@ -1,95 +1,22 @@
 {
 	"name": "@c15t/backend",
-	"version": "0.0.1-rc.10",
+	"version": "0.0.1-rc.13",
 	"license": "GPL-3.0-only",
 	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
 		},
-		"./types": {
-			"types": "./dist/types/index.d.ts",
-			"import": "./dist/types/index.js",
-			"require": "./dist/types/index.cjs"
+		"./schema": {
+			"types": "./dist/schema/index.d.ts",
+			"import": "./dist/schema/index.js",
+			"require": "./dist/schema/index.cjs"
 		},
-		"./utils": {
-			"types": "./dist/utils/index.d.ts",
-			"import": "./dist/utils/index.js",
-			"require": "./dist/utils/index.cjs"
-		},
-		"./client": {
-			"types": "./dist/client/index.d.ts",
-			"import": "./dist/client/index.js",
-			"require": "./dist/client/index.cjs"
-		},
-		"./db": {
-			"types": "./dist/db/index.d.ts",
-			"import": "./dist/db/index.js",
-			"require": "./dist/db/index.cjs"
-		},
-		"./db/migration": {
-			"types": "./dist/db/migration/index.d.ts",
-			"import": "./dist/db/migration/index.js",
-			"require": "./dist/db/migration/index.cjs"
-		},
-		"./db/adapters/prisma": {
-			"import": {
-				"types": "./dist/db/adapters/prisma-adapter/index.d.ts",
-				"import": "./dist/db/adapters/prisma.js"
-			},
-			"require": {
-				"types": "./dist/db/adapters/prisma-adapter/index.d.ts",
-				"default": "./dist/db/adapters/prisma.cjs"
-			}
-		},
-		"./db/adapters/drizzle": {
-			"import": {
-				"types": "./dist/db/adapters/drizzle-adapter/index.d.ts",
-				"import": "./dist/db/adapters/drizzle.js"
-			},
-			"require": {
-				"types": "./dist/db/adapters/drizzle-adapter/index.d.ts",
-				"default": "./dist/db/adapters/drizzle.cjs"
-			}
-		},
-		"./db/adapters/kysely": {
-			"import": {
-				"types": "./dist/db/adapters/kysely-adapter/index.d.ts",
-				"import": "./dist/db/adapters/kysely.js"
-			},
-			"require": {
-				"types": "./dist/db/adapters/kysely-adapter/index.d.ts",
-				"default": "./dist/db/adapters/kysely.cjs"
-			}
-		},
-		"./db/adapters/memory": {
-			"import": {
-				"types": "./dist/db/adapters/memory-adapter/index.d.ts",
-				"import": "./dist/db/adapters/memory.js"
-			},
-			"require": {
-				"types": "./dist/db/adapters/memory-adapter/index.d.ts",
-				"default": "./dist/db/adapters/memory.cjs"
-			}
-		},
-		"./plugins/geo": {
-			"types": "./dist/plugins/geo.d.ts",
-			"import": "./dist/plugins/geo.js",
-			"require": "./dist/plugins/geo.cjs"
-		},
-		"./error": {
-			"types": "./dist/error/index.d.ts",
-			"import": "./dist/error/index.js",
-			"require": "./dist/error/index.cjs"
-		},
-		"./error/codes": {
-			"types": "./dist/error/codes.d.ts",
-			"import": "./dist/error/codes.js",
-			"require": "./dist/error/codes.cjs"
-		},
-		"./package.json": "./package.json",
 		"./integrations": {
 			"types": "./dist/integrations/index.d.ts",
 			"import": "./dist/integrations/index.js",
@@ -100,10 +27,65 @@
 			"import": "./dist/integrations/next.js",
 			"require": "./dist/integrations/next.cjs"
 		},
-		"./integrations/react": {
-			"types": "./dist/integrations/react.d.ts",
-			"import": "./dist/integrations/react.js",
-			"require": "./dist/integrations/react.cjs"
+		"./pkgs/data-model/fields": {
+			"types": "./dist/pkgs/data-model/fields/index.d.ts",
+			"import": "./dist/pkgs/data-model/fields/index.js",
+			"require": "./dist/pkgs/data-model/fields/index.cjs"
+		},
+		"./pkgs/data-model": {
+			"types": "./dist/pkgs/data-model/index.d.ts",
+			"import": "./dist/pkgs/data-model/index.js",
+			"require": "./dist/pkgs/data-model/index.cjs"
+		},
+		"./pkgs/data-model/schema": {
+			"types": "./dist/pkgs/data-model/schema/index.d.ts",
+			"import": "./dist/pkgs/data-model/schema/index.js",
+			"require": "./dist/pkgs/data-model/schema/index.cjs"
+		},
+		"./pkgs/db-adapters/adapters/drizzle-adapter": {
+			"types": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.d.ts",
+			"import": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.js",
+			"require": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.cjs"
+		},
+		"./pkgs/db-adapters/adapters/kysely-adapter": {
+			"types": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.d.ts",
+			"import": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.js",
+			"require": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.cjs"
+		},
+		"./pkgs/db-adapters/adapters/memory-adapter": {
+			"types": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.d.ts",
+			"import": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.js",
+			"require": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.cjs"
+		},
+		"./pkgs/db-adapters/adapters/prisma-adapter": {
+			"types": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.d.ts",
+			"import": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.js",
+			"require": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.cjs"
+		},
+		"./pkgs/db-adapters": {
+			"types": "./dist/pkgs/db-adapters/index.d.ts",
+			"import": "./dist/pkgs/db-adapters/index.js",
+			"require": "./dist/pkgs/db-adapters/index.cjs"
+		},
+		"./pkgs/results": {
+			"types": "./dist/pkgs/results/index.d.ts",
+			"import": "./dist/pkgs/results/index.js",
+			"require": "./dist/pkgs/results/index.cjs"
+		},
+		"./pkgs/logger": {
+			"types": "./dist/pkgs/logger/index.d.ts",
+			"import": "./dist/pkgs/logger/index.js",
+			"require": "./dist/pkgs/logger/index.cjs"
+		},
+		"./pkgs/migrations": {
+			"types": "./dist/pkgs/migrations/index.d.ts",
+			"import": "./dist/pkgs/migrations/index.js",
+			"require": "./dist/pkgs/migrations/index.cjs"
+		},
+		"./pkgs/types": {
+			"types": "./dist/pkgs/types/index.d.ts",
+			"import": "./dist/pkgs/types/index.js",
+			"require": "./dist/pkgs/types/index.cjs"
 		}
 	},
 	"main": "./dist/index.cjs",
@@ -119,29 +101,31 @@
 		"test": "vitest"
 	},
 	"dependencies": {
-		"@better-fetch/fetch": "^1.1.15",
-		"base-x": "^5.0.0",
-		"better-call": "^1.0.4",
+		"base-x": "^5.0.1",
 		"better-sqlite3": "^11.8.1",
 		"defu": "^6.1.4",
 		"drizzle-orm": "^0.40.0",
+		"h3": "^1.15.1",
 		"kysely": "^0.27.6",
 		"mysql2": "^3.13.0",
 		"neverthrow": "^8.2.0",
-		"pg": "^8.13.3",
+		"pg": "^8.14.0",
 		"superjson": "^2.2.2",
-		"zod": "^3.24.2"
+		"zod": "^3.24.2",
+		"@opentelemetry/api": "^1.7.0",
+		"@opentelemetry/sdk-node": "^0.48.0",
+		"@opentelemetry/sdk-trace-base": "^1.22.0",
+		"@opentelemetry/resources": "^1.22.0"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@libsql/kysely-libsql": "^0.4.1",
 		"@types/better-sqlite3": "^7.6.12",
-		"@types/node": "^22.13.9",
+		"@types/node": "^22.13.10",
 		"@types/pg": "^8.11.11",
-		"@vitest/ui": "^3.0.8",
+		"@vitest/browser": "^3.0.8",
 		"knip": "^5.45.0",
-		"tarn": "^3.0.2",
-		"tedious": "^18.6.1",
-		"typescript": "^5.8.2"
+		"typescript": "^5.8.2",
+		"vitest": "^3.0.8"
 	}
 }

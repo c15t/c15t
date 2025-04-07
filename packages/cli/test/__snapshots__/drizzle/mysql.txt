@@ -27,6 +27,7 @@ export const consentPurpose = mysqlTable("consent_purpose", {
 export const consentPolicy = mysqlTable("consent_policy", {
   id: varchar("id", { length: 36 }).primaryKey(),
   version: text('version').notNull(),
+  type: text('type').notNull(),
   name: text('name').notNull(),
   effectiveDate: timestamp('effective_date').notNull(),
   expirationDate: timestamp('expiration_date'),
@@ -63,47 +64,12 @@ export const consent = mysqlTable("consent", {
   isActive: boolean('is_active').notNull()
 });
 
-export const consentPurposeJunction = mysqlTable("consent_purpose_junction", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  consentId: varchar('consent_id', { length: 36 }).notNull().references(()=> consent.id, { onDelete: 'cascade' }),
-  purposeId: varchar('purpose_id', { length: 36 }).notNull().references(()=> consentPurpose.id, { onDelete: 'cascade' }),
-  status: text('status').notNull(),
-  metadata: json('metadata'),
-  createdAt: timestamp('created_at').notNull(),
-  updatedAt: timestamp('updated_at')
-});
-
 export const consentRecord = mysqlTable("consent_record", {
   id: varchar("id", { length: 36 }).primaryKey(),
   subjectId: varchar('subject_id', { length: 36 }).notNull().references(()=> subject.id, { onDelete: 'cascade' }),
   consentId: varchar('consent_id', { length: 36 }).references(()=> consent.id, { onDelete: 'cascade' }),
   actionType: text('action_type').notNull(),
   details: json('details'),
-  createdAt: timestamp('created_at').notNull()
-});
-
-export const consentGeoLocation = mysqlTable("consent_geo_location", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  consentId: varchar('consent_id', { length: 36 }).notNull().references(()=> consent.id, { onDelete: 'cascade' }),
-  ip: text('ip').notNull(),
-  country: text('country'),
-  region: text('region'),
-  city: text('city'),
-  latitude: int('latitude'),
-  longitude: int('longitude'),
-  timezone: text('timezone'),
-  createdAt: timestamp('created_at').notNull()
-});
-
-export const consentWithdrawal = mysqlTable("consent_withdrawal", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  consentId: varchar('consent_id', { length: 36 }).notNull().references(()=> consent.id, { onDelete: 'cascade' }),
-  subjectId: varchar('subject_id', { length: 36 }).notNull().references(()=> subject.id, { onDelete: 'cascade' }),
-  withdrawalReason: text('withdrawal_reason'),
-  withdrawalMethod: text('withdrawal_method').notNull(),
-  ipAddress: text('ip_address'),
-  userAgent: text('user_agent'),
-  metadata: json('metadata'),
   createdAt: timestamp('created_at').notNull()
 });
 
@@ -119,14 +85,4 @@ export const auditLog = mysqlTable("audit_log", {
   metadata: json('metadata'),
   createdAt: timestamp('created_at').notNull(),
   eventTimezone: text('event_timezone').notNull()
-});
-
-export const geoLocation = mysqlTable("geo_location", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  countryCode: text('country_code').notNull(),
-  countryName: text('country_name').notNull(),
-  regionCode: text('region_code'),
-  regionName: text('region_name'),
-  regulatoryZones: json('regulatory_zones'),
-  createdAt: timestamp('created_at').notNull()
 });

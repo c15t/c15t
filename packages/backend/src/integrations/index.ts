@@ -4,7 +4,4 @@
  */
 
 // Export Next.js integration
-export * from './next';
-
-// Export React integration
-export * from './react';
+export { toNextJsHandler } from './next';
