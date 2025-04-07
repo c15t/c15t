@@ -1,13 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-// @ts-ignore
 import babelPresetReact from '@babel/preset-react';
-// @ts-ignore
 import babelPresetTypescript from '@babel/preset-typescript';
-
+import type { C15TOptions } from '@c15t/backend';
 import { DoubleTieError } from '@c15t/backend/pkgs/results';
-import type { C15TOptions } from '@c15t/backend/pkgs/types';
 import { loadConfig } from 'c12';
+
 import { addSvelteKitEnvModules } from './add-svelte-kit-env-modules';
 import logger from './logger';
 
@@ -218,20 +216,22 @@ function findDirectories(cwd: string, patterns: string[]): string[] {
 	for (const pattern of patterns) {
 		// Handle glob patterns by expanding the star
 		if (pattern.includes('*')) {
-			const [prefix, _] = pattern.split('*');
-			const basePath = path.join(cwd, prefix);
+			const [prefix] = pattern.split('*');
+			if (prefix) {
+				const basePath = path.join(cwd, prefix);
 
-			try {
-				if (fs.existsSync(basePath)) {
-					const entries = fs.readdirSync(basePath, { withFileTypes: true });
-					for (const entry of entries) {
-						if (entry.isDirectory()) {
-							results.push(path.join(prefix, entry.name));
+				try {
+					if (fs.existsSync(basePath)) {
+						const entries = fs.readdirSync(basePath, { withFileTypes: true });
+						for (const entry of entries) {
+							if (entry.isDirectory()) {
+								results.push(path.join(prefix, entry.name));
+							}
 						}
 					}
+				} catch {
+					// Ignore errors and continue
 				}
-			} catch {
-				// Ignore errors and continue
 			}
 		} else if (
 			fs.existsSync(path.join(cwd, pattern)) &&
@@ -335,7 +335,7 @@ export async function getConfig({
 							code: 'CONFIG_FILE_LOAD_ERROR',
 							status: 500,
 							category: 'CONFIG_FILE_LOAD_ERROR',
-							cause: e,
+							cause: e instanceof Error ? e : new Error(String(e)),
 						}
 					);
 				}

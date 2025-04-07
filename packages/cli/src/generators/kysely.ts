@@ -72,6 +72,9 @@ function formatSQL(
 
 				if (match) {
 					const [_, tableName, columnsStr] = match;
+					if (!columnsStr) {
+						return `${statement.trim()};`;
+					}
 
 					// Add DROP TABLE to rollback statements
 					rollbackStatements.unshift(`DROP TABLE IF EXISTS "${tableName}"`);
@@ -199,6 +202,15 @@ ${transactionEnd}
 */`;
 }
 
+interface DatabaseOptions {
+	database?: {
+		options?: {
+			provider?: string;
+			[key: string]: unknown;
+		};
+	};
+}
+
 /**
  * Generates SQL migration files for Kysely
  *
@@ -223,14 +235,11 @@ export const generateMigrations: SchemaGenerator = async ({
 		databaseType = adapter.options.provider;
 	}
 	// If not found in adapter, try to get from options
-	else if (
-		options.database &&
-		'options' in options.database &&
-		options.database.options &&
-		typeof options.database.options === 'object' &&
-		'provider' in options.database.options
-	) {
-		databaseType = options.database.options.provider as string;
+	else {
+		const dbOptions = (options as DatabaseOptions).database?.options;
+		if (dbOptions?.provider) {
+			databaseType = dbOptions.provider;
+		}
 	}
 
 	// Check if we're in a test environment or have a test timestamp
