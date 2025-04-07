@@ -1,0 +1,121 @@
+---
+title: React
+description: Setting up c15t in your React application. 
+---
+import CookieBannerExample from '../../../examples/react/cookie-banner';
+import { HomeIcon, CodeIcon, LanguagesIcon, CookieIcon, LayersIcon, ToggleRightIcon } from 'lucide-react';
+
+<CookieBannerExample/>
+
+## Why @c15t/react?
+
+Building privacy-compliant interfaces isn't just about showing a cookie banner - it's about managing user consent, respecting privacy choices, and maintaining detailed records. We've packaged all of this complexity into simple, customizable components that:
+
+- **Just work out of the box** - Drop our components in and get instant privacy compliance
+- **Look and feel native** - Seamlessly match your application's design
+- **Handle the legal stuff** - Built-in support for GDPR, CCPA, and other privacy regulations
+- **Manage consent automatically** - Smart state management that remembers user preferences
+- **Stay up to date** - Automatic updates when regulations change
+
+## Getting Started
+
+<Steps>
+<Step>
+
+### Install the package:
+
+```package-install
+@c15t/react
+```
+
+</Step>
+
+<Step>
+
+### Initialize the consent client:
+
+```tsx title="lib/c15t-client.ts"
+import { createConsentClient } from '@c15t/react';
+
+const client = createConsentClient({
+  backendURL: 'https://your-instance.c15t.dev/',
+  // ... other configuration options
+});
+```
+
+</Step>
+
+<Step>
+
+### Add the privacy banner to your app:
+
+```tsx title="App.tsx"
+import {
+	ConsentManagerDialog,
+	ConsentManagerProvider,
+	CookieBanner,
+} from "@c15t/react";
+import { c15tClient } from './lib/c15t-client';
+
+export default function Layout({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider client={c15tClient}>
+      <CookieBanner />
+      <ConsentManagerDialog />
+      {children}
+    </ConsentManagerProvider>
+  )
+}
+```
+</Step>
+<Step>
+
+### That's it! You now have a fully compliant privacy system.
+
+</Step>
+</Steps>
+
+## Core Components
+
+<Cards>
+  <Card 
+    icon={<CookieIcon />}
+    title="Cookie Banner"
+    description="The friendly first-touch privacy notice that greets users. Customizable, accessible, and designed to get out of the way."
+    href="/docs/framework/react/cookie-banner"
+  />
+  <Card 
+   icon={<LayersIcon />}
+    title="Consent Manager Dialog"
+    description="A detailed privacy preferences interface that lets users fine-tune their choices. Built with accessibility and usability in mind."
+    href="/docs/framework/react/consent-manager-dialog"
+  />
+  <Card 
+    icon={<ToggleRightIcon />}
+    title="Consent Manager Widget"
+    description="The engine that powers granular consent management. Easily embed detailed privacy controls anywhere in your app."
+    href="/docs/framework/react/consent-manager-widget"
+  />
+    <Card 
+    icon={<CodeIcon />}
+    title="Dev Tools"
+    description="A tool to help you manage your privacy consent state."
+    href="/docs/framework/react/dev-tools"
+  />
+</Cards>
+
+## Guides
+<Cards>
+  <Card 
+    icon={<HomeIcon />}
+    title="Customization" 
+    description="Customize the c15t components to match your brand"
+    href="/docs/framework/react/customization" 
+  />
+  <Card 
+    icon={<LanguagesIcon />}
+    title="Internationalization" 
+    description="Translate the c15t components into any language"
+    href="/docs/framework/react/guides/translation" 
+  />
+</Cards>

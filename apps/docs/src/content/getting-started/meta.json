@@ -4,11 +4,17 @@
 	"pages": [
 		"---Getting Started---",
 		"index",
-		"hosting",
+		"../installation/guides",
 		"ai-tools-integrations",
 		"--- Open Source ---",
 		"open-source/why-open-source",
 		"open-source/contributing",
-		"open-source/license"
+		"open-source/license",
+		"--- Backend Installation ---",
+		"../installation/backend/managed",
+		"../installation/backend/next-js",
+		"../installation/backend/hono",
+		"--- Frontend Installation ---",
+		"../installation/frontend/react"
 	]
 }

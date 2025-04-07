@@ -1,0 +1,43 @@
+---
+title: Installation
+description: Installation guides for c15t backend and frontend components.
+---
+
+import { HomeIcon, CodeIcon, LanguagesIcon, CookieIcon, LayersIcon, ToggleRightIcon } from 'lucide-react';
+import { RiNextjsLine, RiReactjsLine } from '@remixicon/react';
+import { CompactLogo } from '../../components/icons/consent';
+import HonoIcon from '../../components/icons/hono';
+
+## Backend
+
+<Cards>
+  <Card 
+    icon={<CompactLogo />}
+    title="Managed (Recommended)"
+    description="The easiest way to get started with c15t is to use Consent.io's managed service."
+    href="/docs/installation/backend/managed"
+  />
+  <Card 
+   icon={<RiNextjsLine />}
+    title="Next.js"
+    description="Add c15t to your Next.js application with support for multiple database adapters."
+    href="/docs/installation/backend/next-js"
+  />
+  <Card 
+    icon={<HonoIcon />}
+    title="Hono"
+    description="Implement a self-hosted backend with Hono, perfect for edge runtimes like Cloudflare Workers."
+    href="/docs/installation/backend/hono"
+  />
+</Cards>
+
+## Frontend
+
+<Cards>
+  <Card 
+    icon={<RiReactjsLine />}
+    title="React"
+    description="Set up c15t in your React application with our easy-to-use components and hooks."
+    href="/docs/installation/frontend/react"
+  />
+</Cards>

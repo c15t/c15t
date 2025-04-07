@@ -1,0 +1,149 @@
+---
+title: Next.js
+description: c15t/backend provides a Next.js backend implementation with support for multiple database adapters.
+---
+
+## Overview
+
+The Next.js backend integration allows you to easily add c15t's consent management functionality to your Next.js application. It supports multiple database adapters for production use, including:
+
+- PostgreSQL (via Kysely, Prisma, or Drizzle)
+- MySQL (via Kysely, Prisma, or Drizzle)
+- SQLite (via Kysely, Prisma, or Drizzle)
+
+### Setup Steps
+
+<Steps>
+<Step>
+Choose and set up your database adapter. Here are examples for each supported adapter:
+
+#### Kysely (Recommended)
+
+```typescript
+import { c15tInstance } from '@c15t/backend';
+import { toNextJsHandler } from '@c15t/backend/integrations';
+import { Kysely, PostgresDialect } from 'kysely';
+import { Pool } from 'pg';
+
+// Create a database connection pool
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+});
+
+// Initialize Kysely
+const db = new Kysely({
+  dialect: new PostgresDialect({ pool })
+});
+
+// Create and export the API route handler
+export const { GET, POST } = toNextJsHandler(
+  c15tInstance({
+    appName: 'Next.js App',
+    basePath: '/api/c15t',
+    database: { db, type: 'postgres' },
+    trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL],
+  })
+);
+```
+
+#### Prisma
+
+```typescript
+import { c15tInstance } from '@c15t/backend';
+import { toNextJsHandler } from '@c15t/backend/integrations';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+export const { GET, POST } = toNextJsHandler(
+  c15tInstance({
+    appName: 'Next.js App',
+    basePath: '/api/c15t',
+    database: prismaAdapter({ 
+      client: prisma,
+      provider: 'postgresql' // or 'mysql', 'sqlite'
+    }),
+    trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL],
+  })
+);
+```
+
+#### Drizzle
+
+```typescript
+import { c15tInstance } from '@c15t/backend';
+import { toNextJsHandler } from '@c15t/backend/integrations';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import * as schema from './schema';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+});
+
+const db = drizzle(pool);
+
+export const { GET, POST } = toNextJsHandler(
+  c15tInstance({
+    appName: 'Next.js App',
+    basePath: '/api/c15t',
+    database: drizzleAdapter({
+      client: db,
+      schema
+    }),
+    trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL],
+  })
+);
+```
+</Step>
+
+<Step>
+Initialize your React client with the URL:
+
+```typescript
+'use client';
+import { ConsentManagerProvider, createConsentClient } from '@c15t/react';
+
+const client = createConsentClient({
+  backendURL: process.env.NEXT_PUBLIC_C15T_URL,
+  // ... other configuration options
+});
+
+export default function Layout({ children }: { children: ReactNode }) {
+  return (
+    <html>
+      <body>
+        <ConsentManagerProvider client={client}>
+          {children}
+        </ConsentManagerProvider>
+      </body>
+    </html>
+  );
+}
+```
+</Step>
+
+</Steps>
+
+## API Route Setup
+
+### App Directory
+Place the API route handler in `/api/c15t/[...all]/route.ts`.
+
+```typescript
+import { c15tInstance } from '@c15t/backend';
+import { toNextJsHandler } from '@c15t/backend/integrations';
+// Import your chosen database adapter and configuration
+
+export const { GET, POST } = toNextJsHandler(
+  c15tInstance({
+    appName: 'Next.js App',
+    basePath: '/api/c15t',
+    database: // Your database configuration here
+    trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL],
+  })
+);
+```

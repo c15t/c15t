@@ -1,0 +1,144 @@
+---
+title: Hono
+description: Implement a self-hosted backend with Hono.
+---
+
+## Overview
+
+The Hono backend integration allows you to add c15t to your Hono applications. It's particularly well-suited for runtimes like Cloudflare Workers, while also supporting traditional Node.js environments.
+
+## Setup Steps
+
+<Steps>
+<Step>
+Install the required dependencies:
+
+```package-install
+@c15t/backend hono
+```
+</Step>
+
+<Step>
+Create your Hono application with c15t integration:
+
+```typescript
+import { Hono } from 'hono';
+import { c15tInstance } from '@c15t/backend';
+import { env } from 'hono/adapter';
+
+const app = new Hono();
+
+// Initialize c15t middleware
+app.on(['POST', 'GET', 'OPTIONS', 'HEAD'], '/*', async (c) => {
+  // Get environment variables
+  const { DATABASE_URL, DATABASE_AUTH_TOKEN, TRUSTED_ORIGINS } = env<{
+    DATABASE_URL: string;
+    DATABASE_AUTH_TOKEN: string;
+    TRUSTED_ORIGINS: string;
+  }>(c);
+
+  // Initialize c15t instance
+  const c15t = c15tInstance({
+    database: // Your database configuration here
+    basePath: '/',
+    trustedOrigins: TRUSTED_ORIGINS.split(','),
+    cors: true,
+    logger: {
+      level: 'debug',
+      appName: 'c15t-core',
+    },
+  });
+
+  // Handle the request
+  const result = await c15t.handler(c.req.raw);
+  return result.match(
+    (response) => response,
+    (error) => {
+      const statusCode = error.statusCode || 500;
+      return new Response(
+        JSON.stringify({
+          error: true,
+          message: error.message,
+          statusCode,
+        }),
+        {
+          status: statusCode,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+  );
+});
+
+export default app;
+```
+</Step>
+
+<Step>
+Configure your database adapter. Here are examples for common setups:
+
+#### Turso (SQLite)
+
+```typescript
+import { LibsqlDialect } from '@libsql/kysely-libsql';
+
+const c15t = c15tInstance({
+  database: new LibsqlDialect({
+    url: env.DATABASE_URL,
+    authToken: env.DATABASE_AUTH_TOKEN,
+  }),
+  // ... other configuration
+});
+```
+
+#### PlanetScale (MySQL)
+
+```typescript
+import { PlanetScaleDialect } from 'kysely-planetscale';
+
+const c15t = c15tInstance({
+  database: new PlanetScaleDialect({
+    url: env.DATABASE_URL,
+  }),
+  // ... other configuration
+});
+```
+
+#### Neon (PostgreSQL)
+
+```typescript
+import { NeonDialect } from 'kysely-neon';
+
+const c15t = c15tInstance({
+  database: new NeonDialect({
+    connectionString: env.DATABASE_URL,
+  }),
+  // ... other configuration
+});
+```
+</Step>
+
+</Steps>
+
+## Deployment
+
+### Cloudflare Workers
+
+1. Update your `wrangler.toml`:
+
+```toml
+name = "your-app-name"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+TRUSTED_ORIGINS = "["localhost","vercel.app"]"
+```
+
+2. Deploy your application:
+
+```bash
+wrangler deploy
+```

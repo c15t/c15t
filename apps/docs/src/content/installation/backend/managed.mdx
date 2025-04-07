@@ -1,0 +1,59 @@
+---
+title: Managed (Recommended)
+description: The easiest way to get started with c15t is to use Consent.io's managed service.
+---
+
+Consent.io's managed service provides:
+- Zero maintenance overhead
+- Automatic updates and security patches
+- High availability and scalability
+- Built-in monitoring and analytics
+
+### Setup Steps
+
+<Steps>
+<Step>
+Create an account on [Consent.io](https://consent.io/dashboard)
+</Step>
+
+<Step>
+Create a new instance in your dashboard
+
+![New Instance Form](/content/getting-started/hosting/new-instance.png) 
+
+</Step>
+
+<Step>
+Copy the provided instance URL
+
+![Instance Details](/content/getting-started/hosting/instance-details.png) 
+
+</Step>
+
+<Step>
+Initialize your c15t client with the URL:
+
+```typescript
+'use client';
+import { ConsentManagerProvider, createConsentClient } from '@c15t/react';
+
+const client = createConsentClient({
+  backendURL: 'https://your-instance.c15t.dev/',
+  // ... other configuration options
+});
+
+export default function Layout({ children }: { children: ReactNode }) {
+  return (
+    <html>
+      <body>
+        <ConsentManagerProvider client={client}>
+          {children}
+        </ConsentManagerProvider>
+      </body>
+    </html>
+	);
+}
+```
+</Step>
+
+</Steps>
