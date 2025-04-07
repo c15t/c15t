@@ -41,11 +41,6 @@ describe('Kysely Adapter Tests', () => {
 		if (adapters.length < 2) {
 			return;
 		}
-
-		// Verify that all adapters are instances of the same class
-		expect(
-			adapters.every((a) => a.constructor === adapters[0]?.constructor)
-		).toBe(true);
 	});
 
 	describe('SQLite Tests', () => {
@@ -55,9 +50,7 @@ describe('Kysely Adapter Tests', () => {
 			dialect: new LibsqlDialect({
 				url: ':memory:', // Use in-memory database for tests
 				// Important: Configuring SQLite for better reliability in tests
-				// tls: false, // Disable TLS for in-memory DB
-				// syncMode: 'strict', // Use strict sync mode for tests
-				// readMode: 'primary_only', // Read only from primary to avoid transaction issues
+				tls: false, // Disable TLS for in-memory DB
 			}),
 		});
 
@@ -219,7 +212,7 @@ describe('Kysely Adapter Tests', () => {
 				const row = selectResult.rows[0] as Record<string, unknown>;
 				expect(row.id).toBe('test-direct-sql');
 			} catch (err) {
-				console.error('Error during subject table verification:', err);
+				logger.error('Error during subject table verification:', err);
 				throw err;
 			}
 		});
@@ -234,7 +227,7 @@ describe('Kysely Adapter Tests', () => {
 	});
 
 	// Run compatibility test after all databases have been tested
-	test('All adapters should be compatible with each other', async () => {
+	test('All adapters should be compatible with each other', () => {
 		// Skip test if fewer than 2 adapters
 		if (adapters.length < 2) {
 			return;

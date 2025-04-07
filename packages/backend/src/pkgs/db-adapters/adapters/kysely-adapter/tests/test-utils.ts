@@ -111,7 +111,7 @@ export async function runMigrations(
 		}
 
 		// Run our test migrations
-		const runResult = await db.transaction().execute(async (trx) => {
+		await db.transaction().execute(async (trx) => {
 			// Create tables
 			// Basic subject table with required fields
 			await trx.schema
@@ -351,12 +351,16 @@ export async function runAdapterTests(opts: {
 				},
 			});
 
+			// biome-ignore lint/suspicious/noMisplacedAssertion: its in a harness test suite
 			expect(res).toBeDefined();
 			// @ts-expect-error - id is not a field on the subject model
+			// biome-ignore lint/suspicious/noMisplacedAssertion: its in a harness test suite
 			expect(res.id).toBeDefined();
 			// @ts-expect-error - id is not a field on the subject model
+			// biome-ignore lint/suspicious/noMisplacedAssertion: its in a harness test suite
 			expect(typeof res.id).toBe('string');
 			// @ts-expect-error - id is not a field on the subject model
+			// biome-ignore lint/suspicious/noMisplacedAssertion: its in a harness test suite
 			expect(res.id.length).toBeGreaterThan(0);
 		}
 	);
@@ -393,8 +397,10 @@ export async function runAdapterTests(opts: {
 				],
 			});
 
+			// biome-ignore lint/suspicious/noMisplacedAssertion: its in a harness test suite
 			expect(res).toBeDefined();
 			// @ts-expect-error - id is not a field on the subject model
+			// biome-ignore lint/suspicious/noMisplacedAssertion: its in a harness test suite
 			expect(res.id).toBe(recordId);
 
 			// Test a failed transaction
@@ -416,7 +422,7 @@ export async function runAdapterTests(opts: {
 						throw new Error('Test transaction rollback');
 					},
 				});
-			} catch (err) {
+			} catch (_err) {
 				// Expected error
 			}
 
@@ -431,6 +437,7 @@ export async function runAdapterTests(opts: {
 				],
 			});
 
+			// biome-ignore lint/suspicious/noMisplacedAssertion: its in a harness test suite
 			expect(rollbackRes).toBeNull();
 		}
 	);

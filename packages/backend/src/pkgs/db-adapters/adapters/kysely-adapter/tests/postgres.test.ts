@@ -44,6 +44,7 @@ describe('Kysely Adapter Tests', () => {
 		}
 
 		// Verify that all adapters are instances of the same class
+		// biome-ignore lint/suspicious/noMisplacedAssertion: its in a harness test suite
 		expect(
 			adapters.every((a) => a.constructor === adapters[0]?.constructor)
 		).toBe(true);
