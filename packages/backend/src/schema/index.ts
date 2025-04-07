@@ -42,14 +42,11 @@
  * Each table definition includes field specifications, relationships, and metadata.
  */
 export * from './audit-log';
-export * from './consent-geo-location';
 export * from './consent-policy';
 export * from './consent-purpose';
 export * from './consent-record';
-export * from './consent-withdrawal';
 export * from './consent';
 export * from './domain';
-export * from './geo-location';
 export * from './subject';
 
 // Schema Type Exports

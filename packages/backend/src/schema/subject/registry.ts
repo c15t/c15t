@@ -1,5 +1,4 @@
 import { getWithHooks } from '~/pkgs/data-model';
-import type { Adapter } from '~/pkgs/db-adapters';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { GenericEndpointContext, RegistryContext } from '~/pkgs/types';
 import { validateEntityOutput } from '../definition';
@@ -32,7 +31,7 @@ import type { Subject } from './schema';
  * ```
  */
 export function subjectRegistry({ adapter, ...ctx }: RegistryContext) {
-	const { createWithHooks, updateWithHooks } = getWithHooks(adapter, ctx);
+	const { createWithHooks } = getWithHooks(adapter, ctx);
 
 	return {
 		/**
@@ -292,84 +291,6 @@ export function subjectRegistry({ adapter, ...ctx }: RegistryContext) {
 			return subject
 				? validateEntityOutput('subject', subject, ctx.options)
 				: null;
-		},
-
-		/**
-		 * Updates an existing subject record by ID.
-		 *
-		 * Applies any configured hooks during the update process and
-		 * processes the output according to schema configuration.
-		 *
-		 * @param subjectId - The unique identifier of the subject to update
-		 * @param data - The fields to update on the subject record
-		 * @param context - Optional endpoint context for hooks
-		 * @returns The updated subject if successful, null if subject not found or hooks prevented update
-		 */
-		updateSubject: async (
-			subjectId: string,
-			data: Partial<Subject> & Record<string, unknown>,
-			context?: GenericEndpointContext
-		) => {
-			const subject = await updateWithHooks({
-				data: {
-					...data,
-					updatedAt: new Date(),
-				},
-				where: [
-					{
-						field: 'id',
-						value: subjectId,
-					},
-				],
-				model: 'subject',
-				customFn: undefined,
-				context,
-			});
-			return subject
-				? validateEntityOutput('subject', subject, ctx.options)
-				: null;
-		},
-
-		/**
-		 * Soft deletes a subject and all associated consents from the database.
-		 *
-		 * This is a cascading operation that marks the subject as deleted by setting
-		 * its status to 'deleted' and removes all associated consent records.
-		 * The subject record itself remains in the database but is inactive.
-		 *
-		 * @param subjectId - The unique identifier of the subject to soft delete
-		 * @returns A promise that resolves when the soft deletion is complete
-		 */
-		deleteSubject: async (subjectId: string) => {
-			await adapter.transaction({
-				callback: async (tx: Adapter) => {
-					// Update the subject record
-					await tx.update({
-						model: 'subject',
-						where: [
-							{
-								field: 'id',
-								value: subjectId,
-							},
-						],
-						update: {
-							status: 'deleted',
-							updatedAt: new Date(),
-						},
-					});
-
-					// Delete all related records
-					await tx.deleteMany({
-						model: 'consent',
-						where: [
-							{
-								field: 'subjectId',
-								value: subjectId,
-							},
-						],
-					});
-				},
-			});
 		},
 	};
 }

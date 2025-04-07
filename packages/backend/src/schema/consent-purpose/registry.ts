@@ -1,48 +1,94 @@
 import { getWithHooks } from '~/pkgs/data-model';
-import type { Where } from '~/pkgs/db-adapters';
 import type { GenericEndpointContext, RegistryContext } from '~/pkgs/types';
 import { validateEntityOutput } from '../definition';
 import type { ConsentPurpose } from './schema';
 
 /**
- * Creates and returns a set of consent consentPurpose-related adapter methods to interact with the database.
- * These methods provide a consistent interface for creating, finding, and updating
- * consent consentPurpose records while applying hooks and enforcing data validation rules.
+ * Creates and returns a set of consent purpose adapter methods to interact with the database.
+ * These methods provide a consistent interface for creating and finding
+ * consent purpose records while applying hooks and enforcing data validation rules.
  *
- * @param adapter - The database adapter used for direct database operations
- * @param ctx - The context object containing the database adapter, hooks, and options
- * @returns An object containing type-safe consent consentPurpose operations
+ * The consent purpose registry manages purpose definitions that describe specific
+ * data processing activities for which consent may be given. Each purpose has a unique
+ * code, name, description, and essential status flag indicating whether it's required
+ * for core system functionality.
+ *
+ * @param params - Registry context parameters
+ * @param params.adapter - The database adapter used for direct database operations
+ * @param params.ctx - Additional context properties containing hooks and options
+ * @returns An object containing type-safe consent purpose operations
  *
  * @example
- * ```typescript
- * const purposeAdapter = createConsentPurposeAdapter(
- *   databaseAdapter,
- *   createWithHooks,
- *   updateWithHooks,
- *   c15tOptions
- * );
+ * ```ts
+ * const registry = consentPurposeRegistry({
+ *   adapter: databaseAdapter,
+ *   hooks: customHooks,
+ *   options: validationOptions
+ * });
  *
- * // Create a new consent consentPurpose
- * const consentPurpose = await purposeAdapter.createConsentPurpose({
- *   code: 'pur_e8zyhgozr3im7xj59it',
+ * // Create a marketing purpose
+ * const marketingPurpose = await registry.createConsentPurpose({
+ *   code: 'marketing',
  *   name: 'Marketing Communications',
- *   description: 'Allow us to send you marketing materials',
+ *   description: 'Allow us to send you promotional materials and offers',
  *   isEssential: false
  * });
  * ```
+ *
+ * @see {@link RegistryContext} For details on the context parameters
+ * @see {@link ConsentPurpose} For the structure of consent purpose objects
  */
 export function consentPurposeRegistry({ adapter, ...ctx }: RegistryContext) {
-	const { createWithHooks, updateWithHooks } = getWithHooks(adapter, ctx);
+	const { createWithHooks } = getWithHooks(adapter, ctx);
 	return {
 		/**
-		 * Creates a new consent consentPurpose record in the database.
-		 * Automatically sets creation and update timestamps and applies any
+		 * Creates a new consent purpose record in the database.
+		 *
+		 * This method creates a purpose definition that subjects can consent to.
+		 * Purposes represent specific data processing activities (such as marketing,
+		 * analytics, or personalization) that require user consent. The method
+		 * automatically sets creation and update timestamps and applies any
 		 * configured hooks during the creation process.
 		 *
 		 * @param consentPurpose - ConsentPurpose data to create (without id and timestamps)
-		 * @param context - Optional endpoint context for hooks
-		 * @returns The created consentPurpose with all fields populated
-		 * @throws May throw an error if hooks prevent creation or if database operations fail
+		 * @param consentPurpose.code - Unique code identifying the purpose (e.g., 'marketing')
+		 * @param consentPurpose.name - Human-readable name for the purpose
+		 * @param consentPurpose.description - Detailed explanation of what the purpose entails
+		 * @param consentPurpose.isEssential - Whether this purpose is required for core functionality
+		 * @param context - Optional endpoint context for hooks execution
+		 * @returns Promise resolving to the created purpose with all fields populated
+		 * @throws {Error} When the creation operation fails or returns null
+		 * @throws May also throw errors if hooks prevent creation or if validation fails
+		 *
+		 * @example
+		 * ```ts
+		 * // Create an analytics purpose
+		 * const analyticsPurpose = await registry.createConsentPurpose({
+		 *   code: 'analytics',
+		 *   name: 'Usage Analytics',
+		 *   description: 'Collect anonymous usage data to improve our services',
+		 *   isEssential: false,
+		 *   metadata: {
+		 *     category: 'Tracking',
+		 *     dataRetention: '90 days'
+		 *   }
+		 * });
+		 *
+		 * // Create an essential purpose
+		 * const essentialPurpose = await registry.createConsentPurpose({
+		 *   code: 'security',
+		 *   name: 'Security & Fraud Prevention',
+		 *   description: 'Process data necessary to protect against unauthorized access',
+		 *   isEssential: true,
+		 *   metadata: {
+		 *     category: 'Core',
+		 *     legalBasis: 'legitimate interest'
+		 *   }
+		 * });
+		 * ```
+		 *
+		 * @see {@link ConsentPurpose} For the complete structure of consent purpose objects
+		 * @see {@link GenericEndpointContext} For details on the context object
 		 */
 		createConsentPurpose: async (
 			consentPurpose: Omit<ConsentPurpose, 'id' | 'createdAt' | 'updatedAt'> &
@@ -62,7 +108,7 @@ export function consentPurposeRegistry({ adapter, ...ctx }: RegistryContext) {
 
 			if (!createdPurpose) {
 				throw new Error(
-					'Failed to create consent consentPurpose - operation returned null'
+					'Failed to create consent purpose - operation returned null'
 				);
 			}
 
@@ -74,64 +120,29 @@ export function consentPurposeRegistry({ adapter, ...ctx }: RegistryContext) {
 		},
 
 		/**
-		 * Finds all consent purposes, optionally including inactive ones.
-		 * Returns purposes with processed output fields according to the schema configuration.
+		 * Finds a consent purpose by its unique code.
 		 *
-		 * @param includeInactive - Whether to include inactive purposes (default: false)
-		 * @returns Array of consent purposes matching the criteria
-		 */
-		findConsentPurposes: async (includeInactive?: boolean) => {
-			const whereConditions: Where<'consentPurpose'> = [];
-
-			if (!includeInactive) {
-				whereConditions.push({
-					field: 'isActive',
-					value: true,
-				});
-			}
-
-			const purposes = await adapter.findMany({
-				model: 'consentPurpose',
-				where: whereConditions,
-				sortBy: {
-					field: 'createdAt',
-					direction: 'asc',
-				},
-			});
-
-			return purposes.map((consentPurpose) =>
-				validateEntityOutput('consentPurpose', consentPurpose, ctx.options)
-			);
-		},
-
-		/**
-		 * Finds a consent consentPurpose by its unique ID.
-		 * Returns the consentPurpose with processed output fields according to the schema configuration.
+		 * This method retrieves a single consent purpose that matches the provided code.
+		 * The code serves as a unique identifier for purposes across the system.
+		 * The resulting purpose is validated against the schema before being returned.
 		 *
-		 * @param purposeId - The unique identifier of the consentPurpose
-		 * @returns The consentPurpose object if found, null otherwise
-		 */
-		findConsentPurposeById: async (purposeId: string) => {
-			const consentPurpose = await adapter.findOne({
-				model: 'consentPurpose',
-				where: [
-					{
-						field: 'id',
-						value: purposeId,
-					},
-				],
-			});
-			return consentPurpose
-				? validateEntityOutput('consentPurpose', consentPurpose, ctx.options)
-				: null;
-		},
-
-		/**
-		 * Finds a consent consentPurpose by its unique code.
-		 * Returns the consentPurpose with processed output fields according to the schema configuration.
+		 * @param code - The unique code of the purpose to find
+		 * @returns Promise resolving to the validated purpose object if found, null otherwise
 		 *
-		 * @param code - The unique code of the consentPurpose
-		 * @returns The consentPurpose object if found, null otherwise
+		 * @example
+		 * ```ts
+		 * // Find the marketing purpose
+		 * const marketingPurpose = await registry.findConsentPurposeByCode('marketing');
+		 * if (marketingPurpose) {
+		 *   console.log(`Found purpose: ${marketingPurpose.name}`);
+		 *   console.log(`Description: ${marketingPurpose.description}`);
+		 *   console.log(`Essential: ${marketingPurpose.isEssential ? 'Yes' : 'No'}`);
+		 * } else {
+		 *   console.log('Purpose not found');
+		 * }
+		 * ```
+		 *
+		 * @see {@link ConsentPurpose} For the structure of the returned purpose object
 		 */
 		findConsentPurposeByCode: async (code: string) => {
 			const consentPurpose = await adapter.findOne({
@@ -142,43 +153,6 @@ export function consentPurposeRegistry({ adapter, ...ctx }: RegistryContext) {
 						value: code,
 					},
 				],
-			});
-			return consentPurpose
-				? validateEntityOutput('consentPurpose', consentPurpose, ctx.options)
-				: null;
-		},
-
-		/**
-     * 
-		/**
-     * 
-		 * Updates an existing consent consentPurpose record by ID.
-		 * Applies any configured hooks during the update process and
-		 * processes the output according to schema configuration.
-		 *
-		 * @param purposeId - The unique identifier of the consentPurpose to update
-		 * @param data - The fields to update on the consentPurpose record
-		 * @param context - Optional endpoint context for hooks
-		 * @returns The updated consentPurpose if successful, null if not found or hooks prevented update
-		 */
-		updateConsentPurpose: async (
-			purposeId: string,
-			data: Partial<ConsentPurpose>,
-			context?: GenericEndpointContext
-		) => {
-			const consentPurpose = await updateWithHooks({
-				data: {
-					...data,
-					updatedAt: new Date(),
-				},
-				where: [
-					{
-						field: 'id',
-						value: purposeId,
-					},
-				],
-				model: 'consentPurpose',
-				context,
 			});
 			return consentPurpose
 				? validateEntityOutput('consentPurpose', consentPurpose, ctx.options)

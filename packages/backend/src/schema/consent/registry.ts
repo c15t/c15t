@@ -1,64 +1,79 @@
 import { getWithHooks } from '~/pkgs/data-model';
-import type { Where } from '~/pkgs/db-adapters';
 import type { GenericEndpointContext, RegistryContext } from '~/pkgs/types';
 import { validateEntityOutput } from '../definition';
 import type { Consent } from './schema';
-
-export interface FindConsentsParams {
-	subjectId?: string;
-	domainId?: string;
-	status?: string;
-	purposeIds?: string[];
-	includeInactive?: boolean;
-}
-
-export interface RevokeConsentParams {
-	consentId: string;
-	reason: string;
-	actor: string;
-	metadata?: Record<string, unknown>;
-	context?: GenericEndpointContext;
-}
 
 /**
  * Creates and returns a set of consent-related adapter methods to interact with the database.
  * These methods provide a consistent interface for creating, finding, and updating
  * consent records while applying hooks and enforcing data validation rules.
  *
- * @param adapter - The database adapter used for direct database operations
- * @param ctx - The context object containing the database adapter, hooks, and options
+ * The consent registry manages user consent records, tracking permissions granted by subjects
+ * for specific purposes within domains. It ensures proper creation and modification of consent
+ * records while maintaining data integrity and audit trails.
+ *
+ * @param params - Registry context parameters
+ * @param params.adapter - The database adapter used for direct database operations
+ * @param params.ctx - Additional context properties containing hooks and options
  * @returns An object containing type-safe consent operations
  *
  * @example
- * ```typescript
- * const consentAdapter = createConsentAdapter(
- *   databaseAdapter,
- *   createWithHooks,
- *   updateWithHooks,
- *   c15tOptions
- * );
+ * ```ts
+ * const registry = consentRegistry({
+ *   adapter: databaseAdapter,
+ *   hooks: customHooks,
+ *   options: validationOptions
+ * });
  *
- * // Create a new consent record
- * const consent = await consentAdapter.createConsent({
+ * // Create and manage consent records
+ * const consent = await registry.createConsent({
  *   subjectId: 'sub_x1pftyoufsm7xgo1kv',
  *   domainId: 'dom_x1pftyoufsm7xgo1kv',
  *   purposeIds: ['pur_e8zyhgozr3im7xj59it'],
  *   status: 'active'
  * });
  * ```
+ *
+ * @see {@link RegistryContext} For details on the context parameters
+ * @see {@link Consent} For the structure of consent objects
  */
 export function consentRegistry({ adapter, ...ctx }: RegistryContext) {
 	const { createWithHooks, updateWithHooks } = getWithHooks(adapter, ctx);
 	const registry = {
 		/**
 		 * Creates a new consent record in the database.
-		 * Automatically sets creation timestamp and applies any
-		 * configured hooks during the creation process.
+		 *
+		 * This method creates a new consent record representing a subject's permission
+		 * for specific purposes within a domain. It automatically sets the creation
+		 * timestamp and applies any configured hooks during the creation process.
 		 *
 		 * @param consent - Consent data to create (without id and timestamp)
-		 * @param context - Optional endpoint context for hooks
-		 * @returns The created consent with all fields populated
-		 * @throws May throw an error if hooks prevent creation or if database operations fail
+		 * @param consent.subjectId - Unique identifier of the subject giving consent
+		 * @param consent.domainId - Domain identifier where the consent applies
+		 * @param consent.purposeIds - Array of purpose identifiers covered by this consent
+		 * @param consent.status - Current status of the consent (e.g., 'active', 'withdrawn')
+		 * @param context - Optional endpoint context for hooks execution
+		 * @returns Promise resolving to the created consent with all fields populated
+		 * @throws {Error} When the creation operation fails or returns null
+		 * @throws May also throw errors if hooks prevent creation or if validation fails
+		 *
+		 * @example
+		 * ```ts
+		 * // Create a new active consent
+		 * const newConsent = await registry.createConsent({
+		 *   subjectId: 'sub_abc123',
+		 *   domainId: 'dom_xyz789',
+		 *   purposeIds: ['pur_marketing', 'pur_analytics'],
+		 *   status: 'active',
+		 *   metadata: {
+		 *     source: 'web_form',
+		 *     ipAddress: '192.168.1.1'
+		 *   }
+		 * });
+		 * ```
+		 *
+		 * @see {@link Consent} For the complete structure of consent objects
+		 * @see {@link GenericEndpointContext} For details on the context object
 		 */
 		createConsent: async (
 			consent: Omit<Consent, 'id' | 'createdAt'> & Partial<Consent>,
@@ -81,148 +96,50 @@ export function consentRegistry({ adapter, ...ctx }: RegistryContext) {
 		},
 
 		/**
-		 * Finds all consents matching specified filters.
-		 * Returns consents with processed output fields according to the schema configuration.
-		 *
-		 * @param params - Filter parameters
-		 * @returns Array of consents matching the criteria
-		 */
-		findConsents: async (params: FindConsentsParams = {}) => {
-			const whereConditions: Where<'consent'> = [];
-
-			if (!params.includeInactive) {
-				whereConditions.push({
-					field: 'isActive',
-					value: true,
-				});
-			}
-
-			if (params.subjectId) {
-				whereConditions.push({
-					field: 'subjectId',
-					value: params.subjectId,
-				});
-			}
-
-			if (params.domainId) {
-				whereConditions.push({
-					field: 'domainId',
-					value: params.domainId,
-				});
-			}
-
-			if (params.status) {
-				whereConditions.push({
-					field: 'status',
-					value: params.status,
-				});
-			}
-
-			if (params.purposeIds && params.purposeIds.length > 0) {
-				whereConditions.push({
-					field: 'purposeIds',
-					operator: 'contains',
-					value: params.purposeIds,
-				});
-			}
-
-			const consents = await adapter.findMany({
-				model: 'consent',
-				where: whereConditions,
-				sortBy: {
-					field: 'givenAt',
-					direction: 'desc',
-				},
-			});
-
-			return consents.map((consent) =>
-				validateEntityOutput('consent', consent, ctx.options)
-			);
-		},
-
-		/**
-		 * Finds a consent by its unique ID.
-		 * Returns the consent with processed output fields according to the schema configuration.
-		 *
-		 * @param consentId - The unique identifier of the consent
-		 * @returns The consent object if found, null otherwise
-		 */
-		findConsentById: async (consentId: string) => {
-			const consent = await adapter.findOne({
-				model: 'consent',
-				where: [
-					{
-						field: 'id',
-						value: consentId,
-					},
-				],
-			});
-			return consent
-				? validateEntityOutput('consent', consent, ctx.options)
-				: null;
-		},
-
-		/**
-		 * Finds all consents for a specific subject.
-		 * Returns consents with processed output fields according to the schema configuration.
-		 *
-		 * @param subjectId - The subject ID to find consents for
-		 * @returns Array of consents associated with the subject
-		 */
-		findConsentsBySubjectId: async (subjectId: string) => {
-			const consents = await adapter.findMany({
-				model: 'consent',
-				where: [
-					{
-						field: 'subjectId',
-						value: subjectId,
-					},
-				],
-				sortBy: {
-					field: 'givenAt',
-					direction: 'desc',
-				},
-			});
-			return consents.map((consent) =>
-				validateEntityOutput('consent', consent, ctx.options)
-			);
-		},
-
-		/**
-		 * Finds all consents for a specific domain.
-		 * Returns consents with processed output fields according to the schema configuration.
-		 *
-		 * @param domainId - The domain ID to find consents for
-		 * @returns Array of consents associated with the domain
-		 */
-		findConsentsByDomainId: async (domainId: string) => {
-			const consents = await adapter.findMany({
-				model: 'consent',
-				where: [
-					{
-						field: 'domainId',
-						value: domainId,
-					},
-				],
-				sortBy: {
-					field: 'givenAt',
-					direction: 'desc',
-				},
-			});
-			return consents.map((consent) =>
-				validateEntityOutput('consent', consent, ctx.options)
-			);
-		},
-
-		/**
 		 * Updates an existing consent record by ID.
-		 * Applies any configured hooks during the update process and
-		 * processes the output according to schema configuration.
+		 *
+		 * This method modifies an existing consent record, typically used for
+		 * status changes (e.g., withdrawing consent) or metadata updates.
+		 * Applies configured hooks during the update process and validates
+		 * the output according to schema configuration.
 		 *
 		 * @param consentId - The unique identifier of the consent to update
 		 * @param data - The fields to update on the consent record
-		 * @param context - Optional endpoint context for hooks
-		 * @returns The updated consent if successful, null if not found or hooks prevented update
+		 * @param data.status - New status for the consent
+		 * @param data.metadata - Updated metadata information
+		 * @param data.purposeIds - Modified list of purpose identifiers
+		 * @param context - Optional endpoint context for hooks execution
+		 * @returns Promise resolving to the updated consent if successful, null if not found
+		 * @throws May throw errors if hooks prevent update or if validation fails
+		 *
+		 * @example
+		 * ```ts
+		 * // Withdraw a consent
+		 * const updatedConsent = await registry.updateConsent(
+		 *   'cns_abc123',
+		 *   {
+		 *     status: 'withdrawn',
+		 *     metadata: {
+		 *       withdrawalReason: 'User request',
+		 *       withdrawalDate: new Date()
+		 *     }
+		 *   }
+		 * );
+		 *
+		 * // Update purposes for an active consent
+		 * const modifiedConsent = await registry.updateConsent(
+		 *   'cns_xyz789',
+		 *   {
+		 *     purposeIds: ['pur_marketing'], // Remove analytics purpose
+		 *     metadata: {
+		 *       modificationReason: 'User preference update'
+		 *     }
+		 *   }
+		 * );
+		 * ```
+		 *
+		 * @see {@link Consent} For the complete structure of consent objects
+		 * @see {@link GenericEndpointContext} For details on the context object
 		 */
 		updateConsent: async (
 			consentId: string,
@@ -245,135 +162,6 @@ export function consentRegistry({ adapter, ...ctx }: RegistryContext) {
 			return consent
 				? validateEntityOutput('consent', consent, ctx.options)
 				: null;
-		},
-
-		/**
-		 * Updates consent status to withdrawn.
-		 * Also records the withdrawal reason if provided.
-		 *
-		 * @param consentId - The unique identifier of the consent to update
-		 * @param withdrawalReason - Optional reason for consentWithdrawal
-		 * @param context - Optional endpoint context for hooks
-		 * @returns The updated consent with withdrawn status
-		 */
-		updateWithdrawal: async (
-			consentId: string,
-			withdrawalReason?: string,
-			context?: GenericEndpointContext
-		) => {
-			const updateData: Partial<Consent> = {
-				status: 'withdrawn',
-			};
-
-			if (withdrawalReason) {
-				updateData.withdrawalReason = withdrawalReason;
-			}
-
-			const consent = await updateWithHooks<Consent>({
-				data: updateData,
-				where: [
-					{
-						field: 'id',
-						value: consentId,
-					},
-				],
-				model: 'consent',
-				context,
-			});
-
-			return consent
-				? validateEntityOutput('consent', consent, ctx.options)
-				: null;
-		},
-
-		/**
-		 * Revokes a consent and records the revocation details.
-		 *
-		 * @param params - Revocation parameters including reason and actor
-		 * @returns The updated consent with revocation details
-		 */
-		revokeConsent: async ({
-			consentId,
-			reason,
-			actor,
-			metadata,
-			context,
-		}: RevokeConsentParams) => {
-			const consent = await registry.findConsentById(consentId);
-			if (!consent) {
-				throw new Error('Consent not found');
-			}
-
-			const updateData: Partial<Consent> = {
-				status: 'withdrawn',
-				withdrawalReason: reason,
-				metadata: {
-					...(consent.metadata as Record<string, unknown>),
-					consentWithdrawal: {
-						actor,
-						timestamp: new Date().toISOString(),
-						...metadata,
-					},
-				},
-			};
-
-			return registry.updateConsent(consentId, updateData, context);
-		},
-
-		/**
-		 * Gets all records associated with a consent.
-		 *
-		 * @param consentId - The ID of the consent
-		 * @returns Array of records associated with the consent
-		 */
-		getRecords: async (consentId: string) => {
-			const records = await adapter.findMany({
-				model: 'consentRecord',
-				where: [
-					{
-						field: 'consentId',
-						value: consentId,
-					},
-				],
-				sortBy: {
-					field: 'createdAt',
-					direction: 'desc',
-				},
-			});
-
-			return records.map((record) =>
-				validateEntityOutput('consentRecord', record, ctx.options)
-			);
-		},
-
-		/**
-		 * Gets all consentWithdrawals associated with a consent.
-		 *
-		 * @param consentId - The ID of the consent
-		 * @returns Array of consentWithdrawals associated with the consent
-		 */
-		getWithdrawals: async (consentId: string) => {
-			const consentWithdrawals = await adapter.findMany({
-				model: 'consentWithdrawal',
-				where: [
-					{
-						field: 'consentId',
-						value: consentId,
-					},
-				],
-				sortBy: {
-					field: 'createdAt',
-					direction: 'desc',
-				},
-			});
-
-			return consentWithdrawals.map((consentWithdrawal) =>
-				validateEntityOutput(
-					'consentWithdrawal',
-					consentWithdrawal,
-					ctx.options
-				)
-			);
 		},
 	};
 

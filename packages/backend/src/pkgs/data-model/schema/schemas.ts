@@ -18,8 +18,5 @@ export * from '~/schema/consent';
 export * from '~/schema/consent-policy';
 export * from '~/schema/consent-purpose';
 export * from '~/schema/consent-record';
-export * from '~/schema/consent-withdrawal';
-export * from '~/schema/consent-geo-location';
-export * from '~/schema/geo-location';
 export * from '~/schema/domain';
 export * from '~/schema/audit-log';

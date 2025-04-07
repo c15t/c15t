@@ -3,14 +3,11 @@ import type { Field, PluginSchema } from '~/pkgs/data-model';
 import { logger } from '~/pkgs/logger';
 import type { C15TOptions } from '~/types';
 import { getAuditLogTable } from './audit-log/table';
-import { getConsentGeoLocationTable } from './consent-geo-location/table';
 import { getConsentPolicyTable } from './consent-policy/table';
 import { getPurposeTable } from './consent-purpose/table';
 import { getConsentRecordTable } from './consent-record/table';
-import { getConsentWithdrawalTable } from './consent-withdrawal/table';
 import { getConsentTable } from './consent/table';
 import { getDomainTable } from './domain/table';
-import { getGeoLocationTable } from './geo-location/table';
 import type { InferTableShape } from './schemas';
 import { getSubjectTable } from './subject/table';
 
@@ -79,16 +76,7 @@ export const getConsentTables = (options: C15TOptions) => {
 		domain: getDomainTable(options, domain?.fields),
 		consent: getConsentTable(options, consent?.fields),
 		consentRecord: getConsentRecordTable(options, record?.fields),
-		consentGeoLocation: getConsentGeoLocationTable(
-			options,
-			consentGeoLocation?.fields
-		),
-		consentWithdrawal: getConsentWithdrawalTable(
-			options,
-			consentWithdrawal?.fields
-		),
 		auditLog: getAuditLogTable(options, auditLog?.fields),
-		geoLocation: getGeoLocationTable(options, geoLocation?.fields),
 		...pluginTables,
 	};
 };

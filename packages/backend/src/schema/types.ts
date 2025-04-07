@@ -8,14 +8,11 @@
 import type { Field } from '~/pkgs/data-model';
 
 import type { AuditLogEntityConfig } from './audit-log/types';
-import type { ConsentGeoLocationEntityConfig } from './consent-geo-location/types';
 import type { ConsentPolicyEntityConfig } from './consent-policy/types';
 import type { ConsentPurposeEntityConfig } from './consent-purpose/types';
 import type { ConsentRecordEntityConfig } from './consent-record/types';
-import type { ConsentWithdrawalEntityConfig } from './consent-withdrawal/types';
 import type { ConsentEntityConfig } from './consent/types';
 import type { DomainEntityConfig } from './domain/types';
-import type { GeoLocationEntityConfig } from './geo-location/types';
 import type { SubjectEntityConfig } from './subject/types';
 
 /**
@@ -86,12 +83,6 @@ export interface TablesConfig {
 	domain?: DomainEntityConfig;
 
 	/**
-	 * Geo location configuration
-	 * @default entityName: "geoLocation", entityPrefix: "geo"
-	 */
-	geoLocation?: GeoLocationEntityConfig;
-
-	/**
 	 * ConsentPurpose entity configuration
 	 * @default entityName: "consentPurpose", entityPrefix: "pur"
 	 */
@@ -110,23 +101,10 @@ export interface TablesConfig {
 	consent?: ConsentEntityConfig;
 
 	/**
-	 * Consent geo location configuration
-	 * @default entityName: "consentGeoLocation", entityPrefix: "cgl"
-	 */
-	consentGeoLocation?: ConsentGeoLocationEntityConfig;
-
-	/**
 	 * Record entity configuration
 	 * @default entityName: "record", entityPrefix: "rec"
 	 */
 	record?: ConsentRecordEntityConfig;
-
-	/**
-	 * Withdrawal configuration
-	 * @default entityName: "consentWithdrawal", entityPrefix: "wdr"
-	 */
-	consentWithdrawal?: ConsentWithdrawalEntityConfig;
-
 	/**
 	 * Audit log configuration
 	 * @default entityName: "auditLog", entityPrefix: "log"
@@ -136,11 +114,8 @@ export interface TablesConfig {
 
 export type { AuditLogEntityConfig } from './audit-log/types';
 export type { ConsentEntityConfig } from './consent/types';
-export type { ConsentGeoLocationEntityConfig } from './consent-geo-location/types';
 export type { ConsentPolicyEntityConfig } from './consent-policy/types';
 export type { ConsentPurposeEntityConfig } from './consent-purpose/types';
 export type { ConsentRecordEntityConfig } from './consent-record/types';
-export type { ConsentWithdrawalEntityConfig } from './consent-withdrawal/types';
 export type { DomainEntityConfig } from './domain/types';
-export type { GeoLocationEntityConfig } from './geo-location/types';
 export type { SubjectEntityConfig } from './subject/types';
