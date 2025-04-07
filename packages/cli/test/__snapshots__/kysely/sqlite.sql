@@ -42,16 +42,6 @@ CREATE TABLE IF NOT EXISTS "domain" (
   "updatedAt" date
 );
 
-CREATE TABLE IF NOT EXISTS "geoLocation" (
-  "id" text NOT NULL PRIMARY KEY,
-  "countryCode" text NOT NULL,
-  "countryName" text NOT NULL,
-  "regionCode" text,
-  "regionName" text,
-  "regulatoryZones" text,
-  "createdAt" date NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS "consentPolicy" (
   "id" text NOT NULL PRIMARY KEY,
   "version" text NOT NULL,
@@ -81,47 +71,12 @@ CREATE TABLE IF NOT EXISTS "consent" (
   "isActive" integer NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS "consentPurposeJunction" (
-  "id" text NOT NULL PRIMARY KEY,
-  "consentId" text NOT NULL REFERENCES "consent" ("id"),
-  "purposeId" text NOT NULL REFERENCES "consentPurpose" ("id"),
-  "status" text NOT NULL,
-  "metadata" text -- stored as JSON,
-  "createdAt" date NOT NULL,
-  "updatedAt" date
-);
-
 CREATE TABLE IF NOT EXISTS "consentRecord" (
   "id" text NOT NULL PRIMARY KEY,
   "subjectId" text NOT NULL REFERENCES "subject" ("id"),
   "consentId" text REFERENCES "consent" ("id"),
   "actionType" text NOT NULL,
   "details" text,
-  "createdAt" date NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS "consentGeoLocation" (
-  "id" text NOT NULL PRIMARY KEY,
-  "consentId" text NOT NULL REFERENCES "consent" ("id"),
-  "ip" text NOT NULL,
-  "country" text,
-  "region" text,
-  "city" text,
-  "latitude" integer,
-  "longitude" integer,
-  "timezone" text,
-  "createdAt" date NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS "consentWithdrawal" (
-  "id" text NOT NULL PRIMARY KEY,
-  "consentId" text NOT NULL REFERENCES "consent" ("id"),
-  "subjectId" text NOT NULL REFERENCES "subject" ("id"),
-  "withdrawalReason" text,
-  "withdrawalMethod" text NOT NULL,
-  "ipAddress" text,
-  "userAgent" text,
-  "metadata" text -- stored as JSON,
   "createdAt" date NOT NULL
 );
 
@@ -147,19 +102,11 @@ BEGIN;
 
 DROP TABLE IF EXISTS "auditLog";
 
-DROP TABLE IF EXISTS "consentWithdrawal";
-
-DROP TABLE IF EXISTS "consentGeoLocation";
-
 DROP TABLE IF EXISTS "consentRecord";
-
-DROP TABLE IF EXISTS "consentPurposeJunction";
 
 DROP TABLE IF EXISTS "consent";
 
 DROP TABLE IF EXISTS "consentPolicy";
-
-DROP TABLE IF EXISTS "geoLocation";
 
 DROP TABLE IF EXISTS "domain";
 
