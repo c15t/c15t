@@ -19,7 +19,6 @@ import type { Subject } from './schema';
  * const subjectAdapter = createSubjectAdapter(
  *   databaseAdapter,
  *   createWithHooks,
- *   updateWithHooks,
  *   c15tOptions
  * );
  *
