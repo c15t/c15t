@@ -435,6 +435,9 @@ importers:
       prompts:
         specifier: ^2.4.2
         version: 2.4.2
+      yocto-spinner:
+        specifier: ^0.2.1
+        version: 0.2.1
       zod:
         specifier: ^3.24.2
         version: 3.24.2
