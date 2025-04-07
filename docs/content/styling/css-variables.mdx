@@ -1,0 +1,184 @@
+---
+title: Styling with CSS Variables
+description: Learn how to use CSS custom properties (CSS variables) to create flexible and dynamic themes for @c15t/react components.
+---
+import CSSVariablesCookieBannerExample from '~/examples/react/css-variables/index';
+
+
+
+CSS Variables (also known as CSS Custom Properties) provide a powerful way to create dynamic, maintainable themes for @c15t/react components. This approach is particularly useful for dark mode, theming, and responsive design.
+
+## Basic Usage
+
+Each @c15t/react component has a set of predefined CSS variables that you can override:
+
+```tsx
+<CookieBanner 
+  theme={{
+    'banner.root': {
+      style: {
+        '--banner-background-color': 'white',
+        '--banner-text-color': '#333',
+        '--banner-border-radius': '0.5rem',
+        '--banner-box-shadow': '0 4px 6px rgba(0, 0, 0, 0.1)'
+      }
+    }
+  }}
+/>
+```
+
+This approach allows you to:
+- Apply consistent theming across components
+- Create dynamic themes that respond to user preferences
+- Implement dark mode with minimal code duplication
+
+## Example
+
+Here's a live example of CSS variables in action:
+
+<CSSVariablesCookieBannerExample />
+
+## Available CSS Variables
+
+Each component in @c15t/react has its own set of CSS variables. Common patterns include:
+
+- `--{component}-background-color`: Background color of the component
+- `--{component}-text-color`: Text color of the component
+- `--{component}-border-radius`: Border radius of the component
+- `--{component}-border-color`: Border color of the component
+- `--{component}-padding`: Padding of the component
+
+Check each component's reference documentation for a complete list of available CSS variables.
+
+## Implementing Dark Mode
+
+CSS Variables are particularly effective for implementing dark mode:
+
+```tsx
+<CookieBanner 
+  theme={{
+    'banner.root': {
+      style: {
+        '--banner-background-color': isDarkMode ? '#1f2937' : 'white',
+        '--banner-text-color': isDarkMode ? 'white' : '#333',
+        '--banner-border-color': isDarkMode ? '#374151' : '#e5e7eb',
+        '--banner-button-background': isDarkMode ? '#4b5563' : '#f3f4f6'
+      }
+    }
+  }}
+/>
+```
+
+## Nested CSS Variables
+
+You can target nested elements with their specific CSS variables:
+
+```tsx
+<CookieBanner 
+  theme={{
+    'banner.root': {
+      style: {
+        '--banner-background-color': 'white',
+        '--banner-border-radius': '0.5rem'
+      }
+    },
+    'banner.header.title': {
+      style: {
+        '--banner-title-font-size': '1.25rem',
+        '--banner-title-font-weight': '600'
+      }
+    },
+    'banner.footer.accept-button': {
+      style: {
+        '--banner-button-background': 'blue',
+        '--banner-button-text-color': 'white'
+      }
+    }
+  }}
+/>
+```
+
+## Responsive Design with CSS Variables
+
+CSS Variables work well with media queries for responsive design:
+
+```tsx
+<CookieBanner 
+  theme={{
+    'banner.root': {
+      style: {
+        '--banner-padding': '1rem',
+        '--banner-font-size': '0.875rem',
+        '@media (min-width: 768px)': {
+          '--banner-padding': '1.5rem',
+          '--banner-font-size': '1rem'
+        },
+        '@media (min-width: 1024px)': {
+          '--banner-padding': '2rem',
+          '--banner-font-size': '1.125rem'
+        }
+      }
+    }
+  }}
+/>
+```
+
+## Creating a Theme System with CSS Variables
+
+You can create a comprehensive theme system using CSS variables:
+
+```tsx
+// Theme variables for light and dark modes
+const themes = {
+  light: {
+    '--color-background': 'white',
+    '--color-text': '#333',
+    '--color-primary': '#3b82f6',
+    '--color-secondary': '#6b7280',
+    '--color-border': '#e5e7eb',
+    '--shadow-sm': '0 1px 2px rgba(0, 0, 0, 0.05)',
+    '--shadow-md': '0 4px 6px rgba(0, 0, 0, 0.1)'
+  },
+  dark: {
+    '--color-background': '#1f2937',
+    '--color-text': 'white',
+    '--color-primary': '#60a5fa',
+    '--color-secondary': '#9ca3af',
+    '--color-border': '#374151',
+    '--shadow-sm': '0 1px 2px rgba(0, 0, 0, 0.3)',
+    '--shadow-md': '0 4px 6px rgba(0, 0, 0, 0.4)'
+  }
+};
+
+// Apply the current theme to components
+<CookieBanner 
+  theme={{
+    'banner.root': {
+      style: {
+        '--banner-background-color': 'var(--color-background)',
+        '--banner-text-color': 'var(--color-text)',
+        '--banner-border-color': 'var(--color-border)',
+        '--banner-box-shadow': 'var(--shadow-md)'
+      }
+    }
+  }}
+/>
+```
+
+## Best Practices for CSS Variables
+
+1. **Naming Convention**
+   - Use a consistent naming pattern: `--component-property-state`
+   - Use kebab-case for variable names
+
+2. **Fallback Values**
+   - Always provide fallback values for critical styling
+   - Use the `var()` function's second parameter for fallbacks
+
+3. **Scoping**
+   - Scope variables appropriately to avoid leakage
+   - Consider organizing variables by component or feature
+
+4. **Performance**
+   - Minimize the number of CSS variable changes during runtime
+   - Batch variable updates when possible

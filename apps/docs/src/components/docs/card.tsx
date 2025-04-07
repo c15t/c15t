@@ -79,3 +79,53 @@ export function Card({
 		</E>
 	);
 }
+
+export type CardSlimProps = HTMLAttributes<HTMLElement> & {
+	icon?: ReactNode;
+	content: ReactNode;
+	href: string;
+	external?: boolean;
+};
+
+export function CardSlim({
+	icon,
+	content,
+	href,
+	external,
+	...props
+}: CardSlimProps): ReactElement {
+	return (
+		<Link
+			{...props}
+			href={href}
+			external={external}
+			className={cn(
+				'text-base font-normal no-underline flex rounded-md border hover:shadow-sm mb-4',
+				'border-fd-border text-fd-foreground',
+				props.className
+			)}
+		>
+			{icon && (
+				<div className="flex w-14 items-center justify-center border-r border-fd-border">
+					<div className="text-fd-muted-foreground">{icon}</div>
+				</div>
+			)}
+			<div className="flex-auto p-4 [&>p]:m-0">{content}</div>
+			<div className="flex w-14 items-center justify-center text-fd-muted-foreground">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					fill="none"
+				>
+					<path
+						fill="currentColor"
+						fillRule="evenodd"
+						d="M9.53 2.22L9 1.69 7.94 2.75l.53.53 3.97 3.97H1v1.5h11.44l-3.97 3.97-.53.53L9 14.31l.53-.53 5.074-5.073a1 1 0 000-1.414L9.53 2.22z"
+						clipRule="evenodd"
+					/>
+				</svg>
+			</div>
+		</Link>
+	);
+}

@@ -1,0 +1,159 @@
+---
+title: Styling with Inline Styles
+description: Learn how to use inline style objects to customize @c15t/react components for dynamic and programmatic styling.
+---
+import CSSCookieBannerExample from '~/examples/react/css/index';
+
+Inline styles provide a direct way to style @c15t/react components using JavaScript objects. This approach is particularly useful for dynamic styles that need to be calculated at runtime or when you need to apply styles programmatically.
+
+## Basic Usage
+
+You can apply inline styles to components using the style object:
+
+```tsx
+<CookieBanner 
+  theme={{
+    'banner.root': {
+      style: {
+        backgroundColor: 'white',
+        padding: '1rem',
+        borderRadius: '0.5rem',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+      }
+    },
+    'banner.header.title': {
+      style: {
+        fontSize: '1.25rem',
+        fontWeight: 600,
+        color: '#333'
+      }
+    }
+  }}
+/>
+```
+
+This approach allows you to:
+- Apply styles directly without external CSS
+- Calculate style values dynamically at runtime
+- Maintain all styling within your JavaScript code
+
+## Example
+
+Here's a live example of inline styles in action:
+
+<CSSCookieBannerExample />
+
+## Style Property Names
+
+When using inline styles, CSS property names are written in camelCase rather than kebab-case:
+
+| CSS Property | JavaScript Style Property |
+|------------|------------------------|
+| `background-color` | `backgroundColor` |
+| `font-size` | `fontSize` |
+| `border-radius` | `borderRadius` |
+| `padding-top` | `paddingTop` |
+
+## Dynamic Styling
+
+Inline styles excel at dynamic styling based on component state or props:
+
+```tsx
+<CookieBanner 
+  theme={{
+    'banner.root': {
+      style: {
+        backgroundColor: isImportant ? '#fff8e6' : 'white',
+        borderColor: isPending ? '#d97706' : '#e5e7eb',
+        borderWidth: hasError ? '2px' : '1px',
+        opacity: isDisabled ? 0.7 : 1
+      }
+    }
+  }}
+/>
+```
+
+## Combining with Other Styling Methods
+
+You can combine inline styles with class names for maximum flexibility:
+
+```tsx
+<CookieBanner 
+  theme={{
+    'banner.root': {
+      className: 'banner-container',
+      style: {
+        backgroundColor: theme === 'light' ? 'white' : '#1f2937'
+      }
+    },
+    'banner.header.title': {
+      className: 'banner-title',
+      style: {
+        color: theme === 'light' ? '#111827' : 'white'
+      }
+    }
+  }}
+/>
+```
+
+## Nested Styles
+
+You can target nested elements with their own style objects:
+
+```tsx
+<CookieBanner 
+  theme={{
+    'banner.root': {
+      style: {
+        padding: '1.5rem',
+        backgroundColor: 'white'
+      }
+    },
+    'banner.header': {
+      style: {
+        marginBottom: '1rem'
+      }
+    },
+    'banner.header.title': {
+      style: {
+        fontSize: '1.25rem',
+        fontWeight: 600
+      }
+    },
+    'banner.footer.accept-button': {
+      style: {
+        backgroundColor: 'blue',
+        color: 'white',
+        padding: '0.5rem 1rem',
+        borderRadius: '0.25rem'
+      }
+    }
+  }}
+/>
+```
+
+## Units and Values
+
+When specifying dimensions in inline styles:
+
+- Pixel values can be provided as numbers: `width: 100` (becomes `width: 100px`)
+- Other units must be strings: `fontSize: '1.25rem'`, `width: '50%'`
+- Unitless values like `fontWeight` and `opacity` are provided as numbers
+
+## Best Practices for Inline Styles
+
+1. **Performance Considerations**
+   - Prefer CSS classes for static styles
+   - Use inline styles for truly dynamic values
+
+2. **Readability and Maintenance**
+   - Group related styles together
+   - Use descriptive variable names for complex style calculations
+
+3. **Browser Compatibility**
+   - Be aware that some CSS features like media queries can't be used directly in inline styles
+   - Consider CSS Variables or class-based styling for more complex responsive designs
+
+4. **Avoid Overuse**
+   - Inline styles don't benefit from CSS cascading and inheritance
+   - Use sparingly for specific dynamic styling needs 
