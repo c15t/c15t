@@ -37,7 +37,7 @@ export async function generateAction(opts: unknown) {
 		return;
 	}
 
-	const adapter = await getAdapter(config).catch((e) => {
+	const adapter = await getAdapter(config).catch((e: Error) => {
 		logger.error(e.message);
 		process.exit(1);
 	});

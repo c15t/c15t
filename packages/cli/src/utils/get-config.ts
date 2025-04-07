@@ -494,12 +494,14 @@ export const c15t = c15tInstance({
 			);
 			process.exit(1);
 		}
-
 		if (e instanceof DoubleTieError) {
-			logger.error(`❌ ${e.message}`);
+			logger.error(`❌ ${(e as DoubleTieError).message}`);
+		} else if (e instanceof Error) {
+			logger.error(`❌ Couldn't read your c15t configuration`);
+			logger.error(`   Error: ${e.message}`);
 		} else {
 			logger.error(`❌ Couldn't read your c15t configuration`);
-			logger.error(`   Error: ${e instanceof Error ? e.message : String(e)}`);
+			logger.error(`   Error: ${String(e)}`);
 		}
 
 		if (failedImports.length > 0) {
