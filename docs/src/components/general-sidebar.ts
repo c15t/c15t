@@ -138,7 +138,7 @@ const stylingPages: PageTree.Node[] = [
 		type: 'page',
 		name: 'General Styling',
 		description: 'Core concepts of the theming system',
-		url: '/docs/styling/general',
+		url: '/docs/styling',
 	},
 	{
 		$id: 'styling/classnames',
@@ -167,6 +167,102 @@ const stylingPages: PageTree.Node[] = [
 		name: 'Inline Styles',
 		description: 'Styling with JavaScript style objects',
 		url: '/docs/styling/inline-styles',
+	},
+];
+
+// Backend pages
+const backendPages: PageTree.Node[] = [
+	{
+		$id: 'backend-separator',
+		type: 'separator',
+		name: 'Backend',
+	},
+	{
+		$id: 'backend/index',
+		type: 'page',
+		name: 'Overview',
+		description: 'Backend integration overview',
+		url: '/docs/backend',
+	},
+	{
+		$id: 'backend/core-concepts',
+		type: 'page',
+		name: 'Core Concepts',
+		description: 'Fundamental backend concepts',
+		url: '/docs/backend/core-concepts',
+	},
+	{
+		$id: 'backend/database-adapters',
+		type: 'page',
+		name: 'Database Adapters',
+		description: 'Overview of database adapters',
+		url: '/docs/backend/database-adapters',
+	},
+	{
+		$id: 'backend/plugins',
+		type: 'page',
+		name: 'Plugins',
+		description: 'Backend plugin system',
+		url: '/docs/backend/plugins',
+	},
+	{
+		$id: 'backend-databases-separator',
+		type: 'separator',
+		name: 'Databases',
+	},
+	{
+		$id: 'backend/databases/postgres',
+		type: 'page',
+		name: 'PostgreSQL',
+		description: 'PostgreSQL integration',
+		url: '/docs/backend/databases/postgres',
+	},
+	{
+		$id: 'backend/databases/mysql',
+		type: 'page',
+		name: 'MySQL',
+		description: 'MySQL integration',
+		url: '/docs/backend/databases/mysql',
+	},
+	{
+		$id: 'backend/databases/sqlite',
+		type: 'page',
+		name: 'SQLite',
+		description: 'SQLite integration',
+		url: '/docs/backend/databases/sqlite',
+	},
+	{
+		$id: 'backend-adapters-separator',
+		type: 'separator',
+		name: 'Database Adapters',
+	},
+	{
+		$id: 'backend/adapters/memory',
+		type: 'page',
+		name: 'Memory',
+		description: 'In-memory database adapter',
+		url: '/docs/backend/adapters/memory',
+	},
+	{
+		$id: 'backend/adapters/kysely',
+		type: 'page',
+		name: 'Kysely',
+		description: 'Kysely database adapter',
+		url: '/docs/backend/adapters/kysely',
+	},
+	{
+		$id: 'backend/adapters/prisma',
+		type: 'page',
+		name: 'Prisma',
+		description: 'Prisma database adapter',
+		url: '/docs/backend/adapters/prisma',
+	},
+	{
+		$id: 'backend/adapters/drizzle',
+		type: 'page',
+		name: 'Drizzle',
+		description: 'Drizzle database adapter',
+		url: '/docs/backend/adapters/drizzle',
 	},
 ];
 
@@ -235,9 +331,9 @@ export const nextjsNavigation: PageTree.Root = {
 		},
 		...nextjsPages,
 		...reactComponentsNavigation,
-		...generalPages,
 		...hooksPages,
 		...stylingPages,
+		...backendPages,
 	],
 };
 
@@ -252,7 +348,6 @@ export const reactNavigation: PageTree.Root = {
 		},
 		...reactPages,
 		...reactComponentsNavigation,
-		...generalPages,
 		...hooksPages,
 		...stylingPages,
 	],

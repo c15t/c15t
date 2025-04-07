@@ -1,0 +1,11 @@
+{
+	"title": "styling",
+	"root": true,
+	"pages": [
+		"index",
+		"classnames",
+		"tailwind",
+		"css-variables",
+		"inline-styles"
+	]
+}

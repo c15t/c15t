@@ -1,0 +1,10 @@
+{
+	"title": "react",
+	"root": true,
+	"pages": [
+		"cookie-banner",
+		"consent-manager-dialog",
+		"consent-manager-widget",
+		"dev-tool"
+	]
+}

@@ -1,0 +1,330 @@
+---
+title: Database Adapters
+description: Comprehensive guide to the database adapter system in C15T Backend, covering available adapters, query interface, and performance considerations.
+---
+
+The C15T Backend package provides a flexible database adapter system that allows you to use different database backends while maintaining a consistent interface.
+
+## Overview
+
+Database adapters provide a standardized way to interact with different database systems. Each adapter implements the `DatabaseAdapter` interface:
+
+```typescript
+interface DatabaseAdapter {
+  create: <T extends Record<string, unknown>>(table: string, data: T) => Promise<T>;
+  find: <T extends Record<string, unknown>>(table: string, query: Query) => Promise<T[]>;
+  update: <T extends Record<string, unknown>>(table: string, query: Query, data: Partial<T>) => Promise<T>;
+  delete: (table: string, query: Query) => Promise<void>;
+}
+```
+
+## Available Adapters
+
+### Memory Adapter
+
+The memory adapter is perfect for development and testing. It stores data in memory and is reset when the application restarts.
+
+```typescript
+import { memoryAdapter } from '@c15t/backend/db/adapters/memory';
+
+const instance = c15tInstance({
+  baseURL: 'http://localhost:3000',
+  database: memoryAdapter({}),
+});
+```
+
+#### Features
+- In-memory storage
+- No persistence
+- Fast for development
+- Automatic cleanup
+
+### Kysely Adapter
+
+The Kysely adapter provides type-safe SQL query building with support for multiple databases.
+
+```typescript
+import { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
+
+const instance = c15tInstance({
+  baseURL: 'http://localhost:3000',
+  database: kyselyAdapter({
+    dialect: 'postgres',
+    connection: {
+      host: 'localhost',
+      port: 5432,
+      database: 'c15t',
+      user: 'postgres',
+      password: 'password',
+    },
+  }),
+});
+```
+
+#### Supported Databases
+- PostgreSQL
+- MySQL
+- SQLite
+- Microsoft SQL Server
+
+#### Features
+- Type-safe queries
+- Query building
+- Transaction support
+- Connection pooling
+
+### Prisma Adapter
+
+The Prisma adapter integrates with Prisma ORM for type-safe database access.
+
+```typescript
+import { prismaAdapter } from '@c15t/backend/db/adapters/prisma';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+const instance = c15tInstance({
+  baseURL: 'http://localhost:3000',
+  database: prismaAdapter({ client: prisma }),
+});
+```
+
+#### Features
+- Prisma ORM integration
+- Type safety
+- Schema management
+- Migration support
+
+### Drizzle Adapter
+
+The Drizzle adapter provides integration with Drizzle ORM.
+
+```typescript
+import { drizzleAdapter } from '@c15t/backend/db/adapters/drizzle';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: 'postgres://user:password@localhost:5432/c15t',
+});
+
+const db = drizzle(pool);
+
+const instance = c15tInstance({
+  baseURL: 'http://localhost:3000',
+  database: drizzleAdapter({ client: db }),
+});
+```
+
+#### Features
+- Drizzle ORM integration
+- Type safety
+- Schema management
+- Query building
+
+## Creating Custom Adapters
+
+You can create custom adapters by implementing the `DatabaseAdapter` interface:
+
+```typescript
+class CustomAdapter implements DatabaseAdapter {
+  async create<T extends Record<string, unknown>>(
+    table: string,
+    data: T
+  ): Promise<T> {
+    // Implementation
+  }
+
+  async find<T extends Record<string, unknown>>(
+    table: string,
+    query: Query
+  ): Promise<T[]> {
+    // Implementation
+  }
+
+  async update<T extends Record<string, unknown>>(
+    table: string,
+    query: Query,
+    data: Partial<T>
+  ): Promise<T> {
+    // Implementation
+  }
+
+  async delete(table: string, query: Query): Promise<void> {
+    // Implementation
+  }
+}
+```
+
+## Query Interface
+
+The query interface is consistent across all adapters:
+
+```typescript
+interface Query {
+  where?: Record<string, unknown>;
+  orderBy?: Record<string, 'asc' | 'desc'>;
+  limit?: number;
+  offset?: number;
+  include?: Record<string, boolean>;
+}
+```
+
+### Example Queries
+
+```typescript
+// Find with conditions
+const users = await adapter.find('users', {
+  where: { active: true },
+  orderBy: { createdAt: 'desc' },
+  limit: 10,
+});
+
+// Update with conditions
+const updated = await adapter.update(
+  'users',
+  { where: { id: '123' } },
+  { name: 'New Name' }
+);
+
+// Delete with conditions
+await adapter.delete('users', { where: { id: '123' } });
+```
+
+## Transaction Support
+
+Some adapters support transactions:
+
+```typescript
+// Kysely adapter example
+const result = await adapter.transaction(async (trx) => {
+  await trx.create('users', { name: 'John' });
+  await trx.create('profiles', { userId: '123' });
+  return 'success';
+});
+```
+
+## Error Handling
+
+Adapters handle errors consistently:
+
+```typescript
+try {
+  const result = await adapter.create('users', data);
+} catch (error) {
+  if (error instanceof DatabaseError) {
+    // Handle database-specific errors
+  } else {
+    // Handle other errors
+  }
+}
+```
+
+## Best Practices
+
+1. **Connection Management**
+   ```typescript
+   // Create a single connection pool
+   const pool = new Pool({
+     max: 20, // Maximum number of connections
+     idleTimeoutMillis: 30000,
+   });
+   ```
+
+2. **Error Handling**
+   ```typescript
+   const adapter = kyselyAdapter({
+     dialect: 'postgres',
+     connection: {
+       // ... connection config
+     },
+     onError: (error) => {
+       // Log errors
+       console.error('Database error:', error);
+     },
+   });
+   ```
+
+3. **Query Optimization**
+   ```typescript
+   // Use indexes
+   await adapter.create('users', {
+     email: 'user@example.com',
+     // Add indexed fields
+   });
+
+   // Use appropriate query conditions
+   const users = await adapter.find('users', {
+     where: { email: { $like: '%@example.com' } },
+     limit: 100,
+   });
+   ```
+
+## Migration Support
+
+Adapters that support migrations provide methods for managing database schema:
+
+```typescript
+// Kysely adapter example
+const migrations = await adapter.getMigrations();
+await adapter.runMigrations(migrations);
+```
+
+## Performance Considerations
+
+1. **Connection Pooling**
+   - Configure appropriate pool size
+   - Monitor connection usage
+   - Handle connection errors
+
+2. **Query Optimization**
+   - Use indexes
+   - Limit result sets
+   - Optimize join operations
+
+3. **Caching**
+   - Implement caching where appropriate
+   - Use appropriate cache invalidation
+   - Monitor cache hit rates
+
+## Security
+
+1. **Input Validation**
+   ```typescript
+   // Validate input before database operations
+   const validatedData = validateUserInput(data);
+   await adapter.create('users', validatedData);
+   ```
+
+2. **SQL Injection Prevention**
+   - Use parameterized queries
+   - Validate input
+   - Escape special characters
+
+3. **Access Control**
+   - Implement row-level security
+   - Use appropriate database roles
+   - Monitor access patterns
+
+## Monitoring and Debugging
+
+1. **Query Logging**
+   ```typescript
+   const adapter = kyselyAdapter({
+     dialect: 'postgres',
+     connection: {
+       // ... connection config
+     },
+     debug: true, // Enable query logging
+   });
+   ```
+
+2. **Performance Monitoring**
+   - Track query execution time
+   - Monitor connection pool usage
+   - Log slow queries
+
+3. **Error Tracking**
+   - Log database errors
+   - Track failed queries
+   - Monitor connection issues 

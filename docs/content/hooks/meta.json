@@ -1,0 +1,8 @@
+{
+	"title": "react",
+	"root": true,
+	"pages": [
+		"use-consent-manager",
+		"use-focus-trap"
+	]
+}

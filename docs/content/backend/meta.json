@@ -1,0 +1,19 @@
+{
+	"title": "Backend",
+	"root": true,
+	"pages": [
+		"index",
+		"core-concepts",
+		"database-adapters",
+		"plugins",
+		"--- Databases ---",
+		"databases/postgres",
+		"databases/mysql",
+		"databases/sqlite",
+		"--- DatabaseAdapters ---",
+		"adapters/memory",
+		"adapters/kysely",
+		"adapters/prisma",
+		"adapters/drizzle"
+	]
+}
