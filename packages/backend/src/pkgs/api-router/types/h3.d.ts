@@ -3,8 +3,8 @@
  */
 
 import type { Adapter } from '~/pkgs/db-adapters/types';
-import type { createRegistry } from '~/schema/create-registry';
 import type { Logger } from '~/pkgs/logger';
+import type { createRegistry } from '~/schema/create-registry';
 
 declare module 'h3' {
 	interface H3EventContext {
