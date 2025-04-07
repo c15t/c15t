@@ -1,4 +1,5 @@
 import { getWithHooks } from '~/pkgs/data-model';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { GenericEndpointContext, RegistryContext } from '~/pkgs/types';
 
 import type { AuditLog } from './schema';
@@ -101,7 +102,13 @@ export function auditLogRegistry({ adapter, ...ctx }: RegistryContext) {
 			});
 
 			if (!createdLog) {
-				throw new Error('Failed to create audit log - operation returned null');
+				throw new DoubleTieError(
+					'Failed to create audit log - operation returned null',
+					{
+						code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+						status: 500,
+					}
+				);
 			}
 
 			return createdLog as AuditLog;

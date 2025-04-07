@@ -2,6 +2,7 @@ import { getWithHooks } from '~/pkgs/data-model';
 import type { Where } from '~/pkgs/db-adapters';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { GenericEndpointContext, RegistryContext } from '~/pkgs/types';
+
 import { validateEntityOutput } from '../definition';
 import type { Domain } from './schema';
 
@@ -96,7 +97,13 @@ export function domainRegistry({ adapter, ...ctx }: RegistryContext) {
 			});
 
 			if (!createdDomain) {
-				throw new Error('Failed to create domain - operation returned null');
+				throw new DoubleTieError(
+					'Failed to create domain - operation returned null',
+					{
+						code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+						status: 500,
+					}
+				);
 			}
 
 			return createdDomain as Domain;

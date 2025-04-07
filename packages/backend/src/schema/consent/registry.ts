@@ -1,5 +1,7 @@
 import { getWithHooks } from '~/pkgs/data-model';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { GenericEndpointContext, RegistryContext } from '~/pkgs/types';
+
 import { validateEntityOutput } from '../definition';
 import type { Consent } from './schema';
 
@@ -89,7 +91,13 @@ export function consentRegistry({ adapter, ...ctx }: RegistryContext) {
 			});
 
 			if (!createdConsent) {
-				throw new Error('Failed to create consent - operation returned null');
+				throw new DoubleTieError(
+					'Failed to create consent - operation returned null',
+					{
+						code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+						status: 500,
+					}
+				);
 			}
 
 			return createdConsent as Consent;
