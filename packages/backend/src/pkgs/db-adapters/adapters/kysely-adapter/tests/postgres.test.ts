@@ -9,25 +9,12 @@ import { getMigrations } from '~/pkgs/migrations';
 import { type KyselyDatabaseType, kyselyAdapter } from '../index';
 import type { Database } from '../types';
 import {
+	DbConfig,
 	createOptions,
 	expectedTables,
 	runAdapterTests,
 	verifyRequiredTables,
 } from './test-utils';
-
-/**
- * Database configuration interface for test setup
- */
-interface DbConfig {
-	name: string;
-	instance: Kysely<Database>;
-	type: string;
-	connectionString?: string;
-	cleanup?: () => Promise<void>;
-	skipGenerateIdTest?: boolean;
-	migrationErrorPattern?: RegExp;
-	disableTransactions?: boolean;
-}
 
 describe('Kysely Adapter Tests', () => {
 	// Global timeout for all tests
