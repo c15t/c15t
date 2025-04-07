@@ -124,6 +124,9 @@ export const initialState: Omit<
 	saveConsents: () => {
 		/* no-op */
 	},
+	resetConsents: () => {
+		/* no-op */
+	},
 	setGdprTypes: () => {
 		/* no-op */
 	},
