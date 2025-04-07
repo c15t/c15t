@@ -136,7 +136,6 @@ export interface DoubleTieOptions {
 		disableTransactions?: boolean;
 	};
 
-
 	/**
 	 * Hooks
 	 */
