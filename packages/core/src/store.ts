@@ -38,7 +38,6 @@ interface StoredConsent {
 	} | null;
 }
 
-const DEFAULT_API_BASE_URL = '/api/c15t';
 /**
  * Retrieves stored consent data from localStorage.
  *

@@ -11,7 +11,7 @@ import type {
 /**
  * Default consent banner API URL
  */
-const DEFAULT_API_BASE_URL = '/api/c15t';
+const DEFAULT_BACKEND_URL = '/api/c15t';
 
 /**
  * Regex pattern to detect absolute URLs (with protocol)
@@ -517,7 +517,7 @@ export function createConsentClient(options: c15tClientOptions): c15tClient {
 	// If no backendURL provided, use the default
 	const clientOptions = {
 		...options,
-		backendURL: options.backendURL || DEFAULT_API_BASE_URL,
+		backendURL: options.backendURL || DEFAULT_BACKEND_URL,
 	};
 
 	return new c15tClient(clientOptions);
