@@ -70,8 +70,7 @@ const API_ENDPOINTS = {
  * import { createConsentClient } from '@c15t/core';
  *
  * const client = createConsentClient({
- *   baseURL: 'https://example.com/api',
- *   headers: { 'X-API-Key': 'your-api-key' }
+ *   backendURL: 'https://example.com/api',
  * });
  *
  * // Get current consent
@@ -90,7 +89,7 @@ export class c15tClient {
 	 *
 	 * @internal
 	 */
-	private baseURL: string;
+	private backendURL: string;
 
 	/**
 	 * Default headers to include with all requests
@@ -110,12 +109,12 @@ export class c15tClient {
 	 * Creates a new c15t client instance.
 	 *
 	 * @param options - Configuration options for the client
-	 * @throws Will throw an error if the baseURL is invalid or if required options are missing
+	 * @throws Will throw an error if the backendURL is invalid or if required options are missing
 	 */
 	constructor(options: c15tClientOptions) {
-		this.baseURL = options.baseURL.endsWith('/')
-			? options.baseURL.slice(0, -1)
-			: options.baseURL;
+		this.backendURL = options.backendURL.endsWith('/')
+			? options.backendURL.slice(0, -1)
+			: options.backendURL;
 
 		this.headers = {
 			'Content-Type': 'application/json',
@@ -126,29 +125,29 @@ export class c15tClient {
 	}
 
 	/**
-	 * Resolves a URL path against a base URL, handling both absolute and relative base URLs.
+	 * Resolves a URL path against the backend URL, handling both absolute and relative URLs.
 	 *
-	 * @param baseURL - The base URL (can be absolute or relative)
+	 * @param backendURL - The backend URL (can be absolute or relative)
 	 * @param path - The path to append
 	 * @returns The resolved URL string
 	 */
-	private resolveUrl(baseURL: string, path: string): string {
-		// Case 1: baseURL is already an absolute URL (includes protocol)
-		if (ABSOLUTE_URL_REGEX.test(baseURL)) {
-			const baseUrlObj = new URL(baseURL);
+	private resolveUrl(backendURL: string, path: string): string {
+		// Case 1: backendURL is already an absolute URL (includes protocol)
+		if (ABSOLUTE_URL_REGEX.test(backendURL)) {
+			const backendURLObj = new URL(backendURL);
 			// Remove trailing slashes from base path and leading slashes from the path to join
-			const basePath = baseUrlObj.pathname.replace(TRAILING_SLASHES_REGEX, '');
+			const basePath = backendURLObj.pathname.replace(TRAILING_SLASHES_REGEX, '');
 			const cleanPath = path.replace(LEADING_SLASHES_REGEX, '');
 			// Combine the paths with a single slash
 			const newPath = `${basePath}/${cleanPath}`;
 			// Set the new path on the URL object
-			baseUrlObj.pathname = newPath;
-			return baseUrlObj.toString();
+			backendURLObj.pathname = newPath;
+			return backendURLObj.toString();
 		}
 
-		// Case 2: baseURL is relative (like '/api/c15t')
+		// Case 2: backendURL is relative (like '/api/c15t')
 		// For relative URLs, we use string concatenation with proper slash handling
-		const cleanBase = baseURL.replace(TRAILING_SLASHES_REGEX, '');
+		const cleanBase = backendURL.replace(TRAILING_SLASHES_REGEX, '');
 		const cleanPath = path.replace(LEADING_SLASHES_REGEX, '');
 		return `${cleanBase}/${cleanPath}`;
 	}
@@ -161,7 +160,7 @@ export class c15tClient {
 	 * error handling and response formatting.
 	 *
 	 * @typeParam ResponseType - The expected type of the response data
-	 * @param path - API endpoint path (will be appended to the baseURL)
+	 * @param path - API endpoint path (will be appended to the backendURL)
 	 * @param options - Request configuration options
 	 * @returns A response context object containing the data, response metadata, and any errors
 	 * @throws Will throw an error if options.throw is true and the request fails
@@ -173,7 +172,7 @@ export class c15tClient {
 	): Promise<ResponseContext<ResponseType>> {
 		try {
 			// Use the resolveUrl method instead of direct URL construction
-			const urlString = this.resolveUrl(this.baseURL, path);
+			const urlString = this.resolveUrl(this.backendURL, path);
 
 			// Create URL object for search params (this should work even with relative URLs
 			// since we're creating it in the browser context)
@@ -492,7 +491,7 @@ export class c15tClient {
  * It provides a convenient factory function that instantiates a properly configured
  * client based on the provided options.
  *
- * @throws Will throw an error if the baseURL is invalid or if required options are missing
+ * @throws Will throw an error if the backendURL is invalid or if required options are missing
  *
  * @example
  * ```typescript
@@ -500,11 +499,7 @@ export class c15tClient {
  *
  * // Create a client for your application
  * const client = createConsentClient({
- *   baseURL: 'https://api.example.com/consent',
- *   headers: {
- *     'X-API-Key': process.env.API_KEY,
- *     'user-agent': 'MyConsentApp/1.0'
- *   },
+ *   backendURL: 'https://api.example.com/consent',
  *   fetchOptions: {
  *     // Optional custom fetch implementation
  *     customFetchImpl: customFetch
@@ -516,10 +511,10 @@ export class c15tClient {
  * @returns A new c15tClient instance
  */
 export function createConsentClient(options: c15tClientOptions): c15tClient {
-	// If no baseURL provided, use the default
+	// If no backendURL provided, use the default
 	const clientOptions = {
 		...options,
-		baseURL: options.baseURL || DEFAULT_API_BASE_URL,
+		backendURL: options.backendURL || DEFAULT_API_BASE_URL,
 	};
 
 	return new c15tClient(clientOptions);

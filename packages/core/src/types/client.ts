@@ -8,20 +8,12 @@
  * ```typescript
  * // Basic client configuration
  * const options: c15tClientOptions = {
- *   baseURL: 'https://api.example.com/consent',
- *   headers: {
- *     'X-API-Key': 'your-api-key',
- *     'Authorization': 'Bearer token'
- *   }
+ *   backendURL: 'https://api.example.com/consent',
  * };
  *
  * // Advanced configuration with plugins and custom fetch
  * const advancedOptions: c15tClientOptions = {
- *   baseURL: 'https://api.example.com/consent',
- *   headers: {
- *     'X-API-Key': 'your-api-key',
- *     'Authorization': 'Bearer token'
- *   },
+ *   backendURL: 'https://api.example.com/consent',
  *   fetchOptions: {
  *     customFetchImpl: nodeFetch // Use node-fetch in Node.js environments
  *   },
@@ -34,23 +26,14 @@
  */
 export interface c15tClientOptions {
 	/**
-	 * Base URL for API endpoints.
+	 * Backend URL for API endpoints. Can be absolute or relative.
+	 * If absolute (starts with http:// or https://), the full URL will be used.
+	 * If relative (starts with /), it will be appended to the origin.
 	 *
-	 * The URL should point to the root of the c15t API without a trailing slash.
-	 * All endpoint paths will be appended to this base URL.
-	 *
-	 * @example 'https://api.example.com/consent'
+	 * @example 'https://api.example.com/consent' or '/api/c15t'
+	 * @default '/api/c15t'
 	 */
-	baseURL: string;
-
-	/**
-	 * Base path for API endpoints.
-	 *
-	 * The path will be appended to the base URL without a leading slash.
-	 *
-	 * @example 'consent'
-	 */
-	basePath?: string;
+	backendURL: string;
 
 	/**
 	 * Default request headers to include with all API requests.
@@ -396,7 +379,7 @@ export interface ResponseContext<ResponseType = unknown> {
  *
  * // Using the plugin
  * const client = createConsentClient({
- *   baseURL: 'https://api.example.com',
+ *   backendURL: 'https://api.example.com',
  *   plugins: [analyticsPlugin({ trackPageviews: true })]
  * });
  *

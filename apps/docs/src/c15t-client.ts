@@ -10,7 +10,7 @@ import { env } from './env';
  * and exposes hooks and utilities for consent management.
  */
 export const c15tClient = createConsentClient({
-	baseURL: env.NEXT_PUBLIC_C15T_URL as string,
+	backendURL: env.NEXT_PUBLIC_C15T_URL as string,
 	// defaultPreferences: {
 	// 	analytics: true,
 	// 	marketing: true,

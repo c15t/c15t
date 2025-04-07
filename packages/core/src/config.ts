@@ -20,10 +20,8 @@ import type { c15tClientOptions } from './types/client';
  * // Creating a complete c15t configuration
  * const config: c15tConfig = {
  *   client: {
- *     baseURL: 'https://api.example.com/consent',
- *     headers: {
- *       'X-API-Key': process.env.API_KEY,
- *     }
+ *     backendURL: 'https://api.example.com/consent',
+ *
  *   },
  *   store: {
  *     namespace: 'myApp',
@@ -101,8 +99,7 @@ export interface ConsentManagerInstance {
  * // Create a unified consent management system
  * const { store, client } = createConsentManager({
  *   client: {
- *     baseURL: 'https://api.example.com/consent',
- *     headers: { 'X-API-Key': 'your-api-key' }
+ *     backendURL: 'https://api.example.com/consent',
  *   },
  *   store: {
  *     namespace: 'myConsentManager',

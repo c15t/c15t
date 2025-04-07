@@ -20,7 +20,7 @@ async function testComponentStyles({
 	noStyle = false,
 }: ComponentStyles) {
 	const c15tClient = createConsentClient({
-		baseURL: '/api/c15t',
+		backendURL: '/api/c15t',
 	});
 
 	const { getByTestId } = render(

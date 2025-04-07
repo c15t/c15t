@@ -14,7 +14,7 @@ interface ComponentStyles {
 	noStyle?: boolean;
 }
 const c15tClient = createConsentClient({
-	baseURL: '/api/c15t',
+	backendURL: '/api/c15t',
 });
 
 async function testComponentStyles({
