@@ -62,7 +62,7 @@ export const withFallbackForCodes = <TValue>(
 	errorCodes: ErrorMessageType[],
 	defaultValue: TValue
 ): SDKResult<TValue> => {
-	void withSpan('recovery_with_fallback_codes', async (span) => {
+	withSpan('recovery_with_fallback_codes', async (span) => {
 		span.setAttributes({
 			'recovery.type': 'error_codes',
 			'recovery.codes': errorCodes.join(','),
@@ -72,7 +72,7 @@ export const withFallbackForCodes = <TValue>(
 
 	return result.orElse((error) => {
 		if (error.code && errorCodes.includes(error.code)) {
-			void withSpan('recovery_with_fallback_codes', async (span) => {
+			withSpan('recovery_with_fallback_codes', async (span) => {
 				span.setAttributes({
 					'recovery.matched': true,
 					'recovery.error_code': error.code,
@@ -80,7 +80,8 @@ export const withFallbackForCodes = <TValue>(
 			});
 			return ok(defaultValue);
 		}
-		void withSpan('recovery_with_fallback_codes', async (span) => {
+
+		withSpan('recovery_with_fallback_codes', async (span) => {
 			span.setAttributes({
 				'recovery.matched': false,
 				'recovery.error_code': error.code,
@@ -151,7 +152,7 @@ export const withFallbackForCategory = <TValue>(
 	category: ErrorCategory,
 	defaultValue: TValue
 ): SDKResult<TValue> => {
-	void withSpan('recovery_with_fallback_category', async (span) => {
+	withSpan('recovery_with_fallback_category', async (span) => {
 		span.setAttributes({
 			'recovery.type': 'error_category',
 			'recovery.category': category,
@@ -161,7 +162,7 @@ export const withFallbackForCategory = <TValue>(
 
 	return result.orElse((error) => {
 		if (error.category === category) {
-			void withSpan('recovery_with_fallback_category', async (span) => {
+			withSpan('recovery_with_fallback_category', async (span) => {
 				span.setAttributes({
 					'recovery.matched': true,
 					'recovery.error_category': error.category,
@@ -169,7 +170,7 @@ export const withFallbackForCategory = <TValue>(
 			});
 			return ok(defaultValue);
 		}
-		void withSpan('recovery_with_fallback_category', async (span) => {
+		withSpan('recovery_with_fallback_category', async (span) => {
 			span.setAttributes({
 				'recovery.matched': false,
 				'recovery.error_category': error.category,

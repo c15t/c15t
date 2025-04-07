@@ -106,7 +106,7 @@ export class DoubleTieError extends H3Error<{
 		};
 
 		// Add tracing after initialization
-		void withSpan('create_doubletie_error', async (span) => {
+		withSpan('create_doubletie_error', async (span) => {
 			span.setAttributes({
 				'error.name': this.name,
 				'error.message': message,
