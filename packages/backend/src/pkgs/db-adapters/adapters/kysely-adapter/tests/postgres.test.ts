@@ -9,7 +9,7 @@ import { getMigrations } from '~/pkgs/migrations';
 import { type KyselyDatabaseType, kyselyAdapter } from '../index';
 import type { Database } from '../types';
 import {
-	DbConfig,
+	type DbConfig,
 	createOptions,
 	expectedTables,
 	runAdapterTests,
