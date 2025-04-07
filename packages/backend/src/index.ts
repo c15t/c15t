@@ -8,19 +8,21 @@
 //------------------------------------------------------------------------------
 // Core API
 //------------------------------------------------------------------------------
-
-/**
- * Core factory function and types for creating c15t instances
- */
 export { c15tInstance, type C15TInstance } from './core';
 
 //------------------------------------------------------------------------------
 // Types
 //------------------------------------------------------------------------------
-/**
- * All system types bundled under a namespace to avoid conflicts
- */
 export * as Types from './pkgs/types';
+
+export type {
+	C15TContext,
+	C15TOptions,
+	C15TPlugin,
+	InferPluginContexts,
+	ApiPathBase,
+	ApiPath,
+} from './types';
 
 // Export all the response types to make them available for client applications
 export type {
