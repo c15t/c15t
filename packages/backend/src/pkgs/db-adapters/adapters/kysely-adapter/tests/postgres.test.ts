@@ -86,7 +86,7 @@ describe('Kysely Adapter Tests', () => {
 									`DROP TABLE IF EXISTS "${table}" CASCADE`
 								);
 							} catch (err) {
-								logger.debug(`Error dropping table ${table}:`, err);
+								logger.warn(`Error dropping table ${table}:`, err);
 							}
 						}
 

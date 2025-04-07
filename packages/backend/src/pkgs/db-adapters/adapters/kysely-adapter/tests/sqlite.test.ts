@@ -66,7 +66,7 @@ describe('Kysely Adapter Tests', () => {
 						try {
 							await sqliteKy.schema.dropTable(table).ifExists().execute();
 						} catch (err) {
-							logger.debug(`Error dropping table ${table}:`, err);
+							logger.warn(`Error dropping table ${table}:`, err);
 						}
 					}
 
