@@ -15,7 +15,7 @@
 		"lint": "pnpm biome lint ./src",
 		"start": "node ./dist/index.mjs",
 		"knip": "knip",
-		"dev": "rslib dev",
+		"dev": "rslib build --watch",
 		"test": "vitest"
 	},
 	"dependencies": {

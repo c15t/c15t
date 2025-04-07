@@ -1,0 +1,131 @@
+---
+title: Hosting Options
+description: "c15t offers two main options for hosting the backend: using Consent.io's managed service or self-hosting your own instance."
+---
+
+## Using Consent.io (Recommended)
+
+The easiest way to get started with c15t is to use Consent.io's managed service. This option provides:
+
+- Zero maintenance overhead
+- Automatic updates and security patches
+- High availability and scalability
+- Built-in monitoring and analytics
+
+### Setup Steps
+
+<Steps>
+<Step>
+Create an account on [Consent.io](https://consent.io/dashboard)
+</Step>
+
+<Step>
+Create a new instance in your dashboard
+
+![New Instance Form](/content/getting-started/hosting/new-instance.png) 
+
+</Step>
+
+<Step>
+Copy the provided instance URL
+
+![Instance Details](/content/getting-started/hosting/instance-details.png) 
+
+</Step>
+
+<Step>
+Initialize your c15t client with the URL:
+
+```typescript
+'use client';
+import { ConsentManagerProvider, createConsentClient } from '@c15t/react';
+
+const client = createConsentClient({
+  backendURL: 'https://your-instance.consent.dev/',
+  // ... other configuration options
+});
+
+export default function Layout({ children }: { children: ReactNode }) {
+  return (
+    <html>
+      <body>
+        <ConsentManagerProvider client={client}>
+          {children}
+        </ConsentManagerProvider>
+      </body>
+    </html>
+	);
+}
+```
+</Step>
+
+</Steps>
+
+## Self-Hosting
+
+For organizations that need complete control over their data or have specific compliance requirements, c15t supports self-hosting.
+
+### Setup Steps
+
+1. Install the backend package:
+```bash
+npm install @c15t/backend
+```
+
+2. Create a server instance:
+```typescript
+import { c15tInstance } from '@c15t/backend';
+import { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
+
+const instance = c15tInstance({
+  baseURL: 'https://your-domain.com',
+  database: kyselyAdapter({
+    dialect: 'postgres',
+    connection: {
+      host: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT || '5432'),
+      database: process.env.DB_NAME,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+    },
+  }),
+});
+```
+
+3. Set up your client to use your self-hosted backend:
+```typescript
+import { c15tInstance } from '@c15t/react';
+
+const instance = c15tInstance({
+  backendURL: 'https://your-domain.com/api/c15t',
+  // ... other configuration options
+});
+```
+
+### Database Options
+
+The backend supports multiple database adapters:
+
+- **Kysely**: Type-safe SQL query builder (recommended for production)
+- **Prisma**: Full-featured ORM with migrations
+- **Drizzle**: Lightweight SQL ORM
+- **Memory**: In-memory storage (for development/testing only)
+
+## Comparing Options
+
+| Feature | Consent.io | Self-Hosted |
+|---------|------------|-------------|
+| Setup Complexity | Low | High |
+| Maintenance | Low | Required |
+| Control | Limited | Full |
+| Updates | Managed | Manual |
+| Cost | Plan-based | Infrastructure costs |
+| Compliance | Standard | Customizable |
+
+Choose the option that best fits your organization's needs, considering factors like:
+
+- Technical expertise available
+- Data sovereignty requirements
+- Compliance needs
+- Budget constraints
+- Scalability requirements 
