@@ -70,7 +70,7 @@ export interface DoubleTieOptions {
 	 * Can be an array of origin strings or a function that returns origins based on the request
 	 * @example ["https://example.com", "https://www.example.com"]
 	 */
-	trustedOrigins?: string[] | ((request: Request) => string[]);
+	trustedOrigins?: string[];
 
 	/**
 	 * Plugins to extend functionality

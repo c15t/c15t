@@ -32,7 +32,38 @@ import type { TablesConfig } from '~/schema/types';
  */
 export interface C15TOptions<PluginType extends C15TPlugin[] = C15TPlugin[]>
 	extends Omit<DoubleTieOptions, 'plugins'> {
+	/**
+	 * The base URL for the API
+	 */
+	baseURL?: string;
+
+	/**
+	 * Trusted origins for CORS
+	 */
+	trustedOrigins?: string[];
+
+	/**
+	 * Application name shown in application dialogs
+	 */
+	appName?: string;
+
+	/**
+	 * Secret used for signing cookies and tokens
+	 */
+	secret?: string;
+
+	/**
+	 * Plugins specific to C15T
+	 */
 	plugins?: PluginType;
+
+	/**
+	 * Tables configuration
+	 */
 	tables?: TablesConfig;
+
+	/**
+	 * Logger configuration
+	 */
 	logger?: LoggerOptions;
 }
