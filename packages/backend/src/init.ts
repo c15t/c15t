@@ -13,12 +13,12 @@ import type { EntityName } from './pkgs/data-model/schema/types';
 import {
 	ERROR_CODES,
 	type SDKResult,
+	type TelemetryConfig,
+	createTelemetryOptions,
 	fail,
 	failAsync,
 	ok,
 	promiseToResult,
-	type TelemetryConfig,
-	createTelemetryOptions,
 } from './pkgs/results';
 
 import type { DoubleTieOptions } from './pkgs/types/options';

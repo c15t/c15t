@@ -124,4 +124,7 @@ export {
 } from './h3-integration';
 
 // Export telemetry options
-export { createTelemetryOptions,type TelemetryConfig } from './create-telemetry-options';
+export {
+	createTelemetryOptions,
+	type TelemetryConfig,
+} from './create-telemetry-options';

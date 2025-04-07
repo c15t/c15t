@@ -72,8 +72,12 @@ describe('setConsent', () => {
 		transaction: vi.fn().mockImplementation(async ({ callback }) => {
 			return callback({
 				create: vi.fn().mockImplementation(({ model }) => {
-					if (model === 'consent') { return mockConsent; }
-					if (model === 'consentRecord') { return mockRecord; }
+					if (model === 'consent') {
+						return mockConsent;
+					}
+					if (model === 'consentRecord') {
+						return mockRecord;
+					}
 					return { id: `${model}-1` };
 				}),
 			});

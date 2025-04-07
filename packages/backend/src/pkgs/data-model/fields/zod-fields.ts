@@ -1,8 +1,5 @@
 import { z } from 'zod';
-import type {
-	Field,
-	FieldType,
-} from './field-types';
+import type { Field, FieldType } from './field-types';
 
 /**
  * Base Zod schema for field configuration options

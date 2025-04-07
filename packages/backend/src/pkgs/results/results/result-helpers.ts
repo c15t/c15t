@@ -59,7 +59,7 @@ export function fail<TValue>(
 	options: ConstructorParameters<typeof DoubleTieError>[1]
 ): SDKResult<TValue> {
 	const error = new DoubleTieError(message, options);
-	 withSpan('create_error_result', async (span) => {
+	withSpan('create_error_result', async (span) => {
 		span.setAttributes({
 			'error.message': message,
 			'error.code': options?.code,
@@ -109,7 +109,7 @@ export function failAsync<TValue>(
 	options: ConstructorParameters<typeof DoubleTieError>[1]
 ): SDKResultAsync<TValue> {
 	const error = new DoubleTieError(message, options);
-	 withSpan('create_error_result_async', async (span) => {
+	withSpan('create_error_result_async', async (span) => {
 		span.setAttributes({
 			'error.message': message,
 			'error.code': options?.code,
@@ -168,7 +168,7 @@ export function tryCatch<TValue>(
 ): SDKResult<TValue> {
 	try {
 		const result = fn();
-		 withSpan('try_catch', async (span) => {
+		withSpan('try_catch', async (span) => {
 			span.setAttributes({
 				'operation.success': true,
 				'result.type': typeof result,
@@ -176,7 +176,7 @@ export function tryCatch<TValue>(
 		});
 		return ok(result);
 	} catch (error) {
-		 withSpan('try_catch', async (span) => {
+		withSpan('try_catch', async (span) => {
 			span.setAttributes({
 				'operation.success': false,
 				'error.type':
@@ -187,7 +187,7 @@ export function tryCatch<TValue>(
 
 		if (errorMapper && error instanceof Error) {
 			const mappedError = errorMapper(error);
-			 withSpan('try_catch', async (span) => {
+			withSpan('try_catch', async (span) => {
 				span.setAttributes({
 					'error.mapped': true,
 					'error.mapped_code': mappedError.code,
@@ -271,7 +271,7 @@ export function tryCatchAsync<TValue>(
 				});
 				return result;
 			} catch (error) {
-				 withSpan('try_catch_async', async (span) => {
+				withSpan('try_catch_async', async (span) => {
 					span.setAttributes({
 						'operation.success': false,
 						'error.type':
@@ -283,7 +283,7 @@ export function tryCatchAsync<TValue>(
 
 				if (errorMapper && error instanceof Error) {
 					const mappedError = errorMapper(error);
-					 withSpan('try_catch_async', async (span) => {
+					withSpan('try_catch_async', async (span) => {
 						span.setAttributes({
 							'error.mapped': true,
 							'error.mapped_code': mappedError.code,
@@ -372,7 +372,7 @@ export function promiseToResult<TValue>(
 			}
 		);
 	}).map((result) => {
-		 withSpan('promise_to_result', async (span) => {
+		withSpan('promise_to_result', async (span) => {
 			span.setAttributes({
 				'operation.success': true,
 				'result.type': typeof result,
