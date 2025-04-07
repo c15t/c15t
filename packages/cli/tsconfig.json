@@ -1,5 +1,5 @@
 {
-	"extends": "@c15t/typescript-config/react-library.json",
+	"extends": "@c15t/typescript-config/base.json",
 	"compilerOptions": {
 		"baseUrl": ".",
 		"lib": ["dom", "dom.iterable", "esnext"],
@@ -7,6 +7,6 @@
 			"~/*": ["./src/*"]
 		}
 	},
-	"include": ["src", "test", "./src/types/babel-presets.d.ts"],
+	"include": ["src", "./src/types/babel-presets.d.ts"],
 	"exclude": ["node_modules"]
 }
