@@ -189,8 +189,7 @@ describe('Kysely Adapter Tests', () => {
 				const row = selectResult.rows[0] as Record<string, unknown>;
 				expect(row.id).toBe('test-direct-sql');
 			} catch (err) {
-				// biome-ignore lint/suspicious/noConsole: <explanation>
-				console.error('Error during subject table verification:', err);
+				logger.error('Error during subject table verification:', err);
 				throw err;
 			}
 		});
