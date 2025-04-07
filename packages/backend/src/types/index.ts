@@ -11,7 +11,7 @@
 // Re-export extended types that override doubletie base types
 export type { C15TOptions } from './options';
 export type { C15TContext } from './context';
-export type { C15TPlugin, C15TPluginSchema } from './plugins';
+export type { C15TPlugin } from './plugins';
 
 // Export consent management specific types
 export type { InferPluginContexts } from './plugins';

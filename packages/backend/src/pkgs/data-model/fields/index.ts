@@ -14,22 +14,12 @@ export type {
 } from './field-types';
 
 // Export factory functions
-export {
-	stringField,
-	numberField,
-	booleanField,
-	dateField,
-	stringArrayField,
-	numberArrayField,
-	COMMON_TIMEZONES,
-} from './field-factory';
+export { COMMON_TIMEZONES } from './field-factory';
 
 // Export field options
 export type {
 	NumberFieldOptions,
 	StringFieldOptions,
-	JsonFieldOptions,
-	TimezoneFieldOptions,
 	DateFieldOptions,
 } from './field-factory';
 
@@ -39,23 +29,14 @@ export { generateId } from './id-generator';
 // Export SuperJSON utilities
 export {
 	getDatabaseType,
-	transformForDb,
-	parseFromDb,
-	normalizeDatabaseType,
 	type DatabaseType,
 } from './superjson-utils';
 
 // Export Zod utilities
-export {
-	validateField,
-	createFieldValueSchema,
-} from './zod-fields';
+export { validateField } from './zod-fields';
 
 // Export field inference utilities
 export type {
 	InferFieldOutput,
 	InferFieldInput,
-	InferFieldsOutput,
-	InferFieldsInput,
-	TransformOutputFn,
 } from './field-inference';

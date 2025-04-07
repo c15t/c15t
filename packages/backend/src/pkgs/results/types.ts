@@ -1,6 +1,5 @@
 import type { H3Error } from 'h3';
 import type { Result, ResultAsync } from 'neverthrow';
-import type { ZodFormattedError } from 'zod';
 
 /**
  * Represents a category of errors for better organization and filtering.
@@ -40,40 +39,6 @@ export type ErrorCategory = string;
  * ```
  */
 export type ErrorMessageType = string;
-
-/**
- * Represents a collection of error codes mapped to their message values.
- *
- * @remarks
- * This type is used to define constants like ERROR_CODES that provide
- * a centralized registry of all error codes used in the application.
- *
- * @example
- * ```typescript
- * const MY_ERROR_CODES: ErrorCodeMap = {
- *   INVALID_INPUT: 'INVALID_INPUT',
- *   CONNECTION_FAILED: 'CONNECTION_FAILED'
- * } as const;
- * ```
- */
-export type ErrorCodeMap = Readonly<Record<string, ErrorMessageType>>;
-
-/**
- * Represents a collection of error categories mapped to their string values.
- *
- * @remarks
- * This type is used to define constants like ERROR_CATEGORIES that provide
- * a centralized registry of all error categories used in the application.
- *
- * @example
- * ```typescript
- * const MY_ERROR_CATEGORIES: ErrorCategoryMap = {
- *   DATABASE: 'database',
- *   NETWORK: 'network'
- * } as const;
- * ```
- */
-export type ErrorCategoryMap = Readonly<Record<string, ErrorCategory>>;
 
 /**
  * Forward declaration of the DoubleTieError class to avoid circular imports.
@@ -249,32 +214,3 @@ export type SDKResultAsync<TValue> = ResultAsync<TValue, DoubleTieError>;
 export type ErrorTransformer<TError extends Error = Error> = (
 	error: TError
 ) => DoubleTieError;
-
-/**
- * Details about validation errors produced by validation pipelines.
- * Contains structured information about what failed in a validation.
- *
- * @remarks
- * This interface is designed to work with Zod validation errors and
- * provides a structured way to access validation failure details.
- *
- * @example
- * ```typescript
- * // Inside a validation error handler
- * const handleValidationError = (details: ValidationErrorDetails) => {
- *   console.error('Validation failed:');
- *   console.error(JSON.stringify(details.validationErrors, null, 2));
- * };
- * ```
- */
-export interface ValidationErrorDetails {
-	/**
-	 * Formatted validation errors from Zod schema validation
-	 */
-	validationErrors: ZodFormattedError<unknown, string>;
-
-	/**
-	 * Additional context information about the validation failure
-	 */
-	[key: string]: unknown;
-}

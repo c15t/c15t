@@ -1,6 +1,4 @@
-import type { Adapter } from '~/pkgs/db-adapters';
 import { createLogger } from '~/pkgs/logger';
-import type { C15TOptions } from '~/types';
 import type { MigrationOperation } from './types';
 
 /**
@@ -71,33 +69,4 @@ export function createMigrationExecutors(migrations: MigrationOperation[]) {
 	}
 
 	return { runMigrations, compileMigrations };
-}
-
-/**
- * Executes a single migration operation
- *
- * This is a convenience function for executing a single migration operation
- * rather than a batch of operations.
- *
- * @param params - Parameters for the migration execution
- * @param params.migration - The migration operation to execute
- * @param params.adapter - The database adapter to use
- * @param params.options - The C15T configuration options
- * @returns A promise that resolves when the migration is complete
- */
-export async function executeMigration(params: {
-	migration: MigrationOperation;
-	adapter: Adapter;
-	options: C15TOptions;
-}): Promise<void> {
-	const { migration } = params;
-	const logger = createLogger(params.options.logger);
-
-	try {
-		await migration.execute();
-	} catch (error) {
-		const sql = migration.compile().sql;
-		logger.error(`Migration failed! SQL:\n${sql}`);
-		throw error;
-	}
 }

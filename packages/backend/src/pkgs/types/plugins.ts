@@ -20,30 +20,6 @@ export interface PluginHookContext {
 }
 
 /**
- * Plugin hook definition
- *
- * Defines a hook that can be registered by a plugin to intercept
- * and modify request processing at specific points in the lifecycle.
- */
-export interface PluginHook {
-	/**
-	 * A function to determine if this hook should run for the current request
-	 *
-	 * @param context - The hook context with request details
-	 * @returns True if the hook should run, false otherwise
-	 */
-	matcher: (context: PluginHookContext) => boolean;
-
-	/**
-	 * The hook handler that runs if matcher returns true
-	 *
-	 * @param context - The hook context with request details
-	 * @returns A Promise that resolves when the hook completes, or void
-	 */
-	handler: (context: PluginHookContext) => Promise<void> | void;
-}
-
-/**
  * Core DoubleTie plugin interface
  *
  * Defines the structure that all DoubleTie plugins must conform to,

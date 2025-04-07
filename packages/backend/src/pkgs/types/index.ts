@@ -15,4 +15,4 @@ export type {
 } from './context';
 export type { DoubleTieOptions } from './options';
 export type { DoubleTieContext } from './context';
-export type { PluginHookContext, PluginHook } from './plugins';
+export type { PluginHookContext } from './plugins';

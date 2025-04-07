@@ -2,7 +2,6 @@ import { eventHandler, sendError } from 'h3';
 import type { H3Event } from 'h3';
 import { DoubleTieError } from './core/error-class';
 import { ERROR_CODES } from './core/error-codes';
-import type { ErrorMessageType } from './types';
 
 // Extend the H3 context type to include our custom _onError property
 declare module 'h3' {
@@ -139,58 +138,5 @@ export function withH3ErrorHandling(
 
 			return sendError(event, dtError);
 		}
-	});
-}
-
-/**
- * Creates a new DoubleTieError from an H3 request context
- *
- * @param message - The error message
- * @param code - The error code
- * @param status - The HTTP status code
- * @param event - The H3 event
- * @param meta - Additional metadata to include
- * @returns A new DoubleTieError with request context info
- *
- * @example
- * ```typescript
- * app.use('/api/users/:id', eventHandler(async (event) => {
- *   const userId = event.context.params.id;
- *
- *   const user = await getUserById(userId);
- *   if (!user) {
- *     throw createRequestError(
- *       'User not found',
- *       ERROR_CODES.NOT_FOUND,
- *       404,
- *       event,
- *       { userId }
- *     );
- *   }
- *
- *   return user;
- * }));
- * ```
- */
-export function createRequestError(
-	message: string,
-	code: ErrorMessageType,
-	status: number,
-	event: H3Event,
-	meta: Record<string, unknown> = {}
-) {
-	// Extract useful request information
-	const requestInfo = {
-		method: event.method,
-		path: event.path,
-		params: event.context.params,
-		query: event.context.query,
-		...meta,
-	};
-
-	return new DoubleTieError(message, {
-		code,
-		status,
-		meta: requestInfo,
 	});
 }

@@ -135,7 +135,7 @@ export type ValidatedField<TFieldType extends FieldType> = z.infer<
 /**
  * Creates a Zod schema for a field's value based on its type
  */
-export function createFieldValueSchema<TFieldType extends FieldType>(
+function createFieldValueSchema<TFieldType extends FieldType>(
 	field: ValidatedField<TFieldType>
 ): z.ZodType<InferValueType<TFieldType>> {
 	type ValueType = InferValueType<TFieldType>;

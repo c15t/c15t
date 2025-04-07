@@ -8,8 +8,6 @@
 export type {
 	SchemaDefinition,
 	TableDefinition,
-	SchemaMap,
-	EntitySchemaConfig,
 	EntityTypeMap,
 	EntityField,
 	EntityInput,
@@ -17,19 +15,6 @@ export type {
 	PluginSchema,
 	EntityOutput,
 } from './types';
-
-export {
-	parseInputData,
-	parseEntityOutputData,
-	getAllFields,
-} from './parser';
-
-// Export get-schema utilities
-export {
-	getSchema,
-	getSchemaForTable,
-	getSchemaForEntity,
-} from './get-schema';
 
 // Re-export all the table definitions
 export * from './schemas';

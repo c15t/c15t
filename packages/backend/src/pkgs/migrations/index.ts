@@ -11,10 +11,7 @@
 
 // Core migration functionality
 export { getMigrations } from './get-migration';
-export {
-	createMigrationExecutors,
-	executeMigration,
-} from './migration-execution';
+export { createMigrationExecutors } from './migration-execution';
 export {
 	buildTableCreateMigrations,
 	buildColumnAddMigrations,

@@ -12,10 +12,7 @@
 /**
  * Core factory function and types for creating c15t instances
  */
-export * from './core';
-
-// Export the C15TInstance type explicitly for easier consumption
-export type { C15TInstance } from './core';
+export { c15tInstance, type C15TInstance } from './core';
 
 //------------------------------------------------------------------------------
 // Types
@@ -26,4 +23,10 @@ export type { C15TInstance } from './core';
 export * as Types from './pkgs/types';
 
 // Export all the response types to make them available for client applications
-export * from './response-types';
+export type {
+	SetConsentResponse,
+	ShowConsentBannerResponse,
+	VerifyConsentResponse,
+	SetConsentRequestBody,
+	VerifyConsentRequestBody,
+} from './response-types';

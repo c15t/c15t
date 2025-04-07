@@ -14,17 +14,6 @@ export interface EntityField extends Field {
 }
 
 /**
- * Entity schema configuration
- * Defines configuration for a database entity schema
- */
-export interface EntitySchemaConfig {
-	/**
-	 * Fields to include in the schema
-	 */
-	fields: Record<string, EntityField>;
-}
-
-/**
  * Table definition for creating schema definitions
  */
 export interface TableDefinition {
@@ -63,16 +52,6 @@ export interface SchemaDefinition {
 	 * Map of table name to table definition
 	 */
 	[tableName: string]: TableDefinition;
-}
-
-/**
- * Map of schema name to schema definition
- */
-export interface SchemaMap {
-	/**
-	 * Map of schema name to schema definition
-	 */
-	[schemaName: string]: SchemaDefinition;
 }
 
 /**

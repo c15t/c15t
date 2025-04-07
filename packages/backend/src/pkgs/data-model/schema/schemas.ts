@@ -5,13 +5,6 @@
  * It serves as the central hub for accessing all schema definitions.
  */
 
-// Export the parser functions
-export {
-	parseInputData,
-	parseEntityOutputData,
-	getAllFields,
-} from './parser';
-
 // Export the complete schema tables directly from their source locations
 export * from '~/schema/subject';
 export * from '~/schema/consent';

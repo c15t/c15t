@@ -89,13 +89,10 @@ export { DoubleTieError } from './core/error-class';
 export type {
 	DoubleTieErrorOptions,
 	ErrorCategory,
-	ErrorCategoryMap,
-	ErrorCodeMap,
 	ErrorMessageType,
 	ErrorTransformer,
 	SDKResult,
 	SDKResultAsync,
-	ValidationErrorDetails,
 } from './types';
 
 // Export our error classes, codes, and categories
@@ -124,5 +121,4 @@ export { retrievalPipeline } from './pipeline/retrieval-pipeline';
 export {
 	createH3ErrorHandler,
 	withH3ErrorHandling,
-	createRequestError,
 } from './h3-integration';

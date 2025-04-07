@@ -147,11 +147,6 @@ export interface C15TPlugin extends Omit<DoubleTiePlugin, 'endpoints'> {
 }
 
 /**
- * C15T consent plugin schema definition
- */
-export type C15TPluginSchema = DoubleTiePluginSchema;
-
-/**
  * Infer context extensions from a collection of consent plugins
  */
 export type InferPluginContexts<_PluginArray extends C15TPlugin[]> = Record<
