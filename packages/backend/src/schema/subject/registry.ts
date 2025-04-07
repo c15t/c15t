@@ -7,7 +7,7 @@ import type { Subject } from './schema';
 /**
  * Creates and returns a set of subject-related adapter methods to interact with the database.
  *
- * These methods provide a consistent interface for creating, finding, updating, and deleting
+ * These methods provide a consistent interface for creating and finding
  * subject records while applying hooks and enforcing data validation rules.
  *
  * @param adapter - The database adapter used for direct database operations
