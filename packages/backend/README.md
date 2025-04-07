@@ -13,17 +13,8 @@ A robust consent management system backend that provides flexible database adapt
 ### Core Functionality
 - **Consent Management**: Track and manage user consent preferences
 - **Audit Logging**: Comprehensive logging of all consent-related actions
-- **Geo-location Support**: Track user locations for compliance
 - **Domain Management**: Handle multiple domains and subdomains
 - **Policy Management**: Version and manage consent policies
-
-### API Endpoints
-- `/api/c15t/status`: System status and configuration
-- `/api/c15t/consent`: Consent management endpoints
-- `/api/c15t/policy`: Policy management endpoints
-- `/api/c15t/audit`: Audit log access
-- `/api/c15t/domain`: Domain management
-- `/api/c15t/geo-location`: Geo-location tracking
 
 ## Getting Started
 
