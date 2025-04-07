@@ -29,7 +29,6 @@ interface RouterProps {
 
 export function Router({ onClose: _onClose }: RouterProps) {
 	const privacyConsent = getStore() as PrivacyConsentState;
-	// const { clearAllData, setIsPrivacyDialogOpen, setShowPopup } = privacyConsent;
 
 	const [activeSection, setActiveSection] = useState<TabSection>('Consents');
 
@@ -76,19 +75,6 @@ export function Router({ onClose: _onClose }: RouterProps) {
 				return [];
 		}
 	})();
-
-	// const handleResetConsent = useCallback(() => {
-	// 	clearAllData();
-	// 	onClose();
-	// }, [clearAllData, onClose]);
-
-	// const handleOpenPrivacyModal = useCallback(() => {
-	// 	setIsPrivacyDialogOpen(true);
-	// }, [setIsPrivacyDialogOpen]);
-
-	// const handleOpenCookiePopup = useCallback(() => {
-	// 	setShowPopup(true);
-	// }, [setShowPopup]);
 
 	return (
 		<>

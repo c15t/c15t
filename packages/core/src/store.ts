@@ -192,7 +192,6 @@ export const createConsentManagerStore = (
 
 				return { consents: newConsents };
 			});
-			get().updateConsentMode();
 		},
 
 		/**
@@ -251,7 +250,7 @@ export const createConsentManagerStore = (
 		 * 5. Triggers callbacks
 		 */
 		saveConsents: async (type) => {
-			const { callbacks, updateConsentMode, consents, consentTypes } = get();
+			const { callbacks, consents, consentTypes } = get();
 			const newConsents = { ...consents };
 			if (type === 'all') {
 				for (const consent of consentTypes) {
@@ -298,7 +297,6 @@ export const createConsentManagerStore = (
 					consentInfo,
 				});
 
-				updateConsentMode();
 				callbacks.onConsentGiven?.();
 				callbacks.onPreferenceExpressed?.();
 			} else {
@@ -317,7 +315,7 @@ export const createConsentManagerStore = (
 		 * 3. Removes stored consent from localStorage
 		 */
 		resetConsents: () => {
-			set((state) => {
+			set(() => {
 				const resetState = {
 					consents: consentTypes.reduce((acc, consent) => {
 						acc[consent.name] = consent.defaultValue;
@@ -386,14 +384,6 @@ export const createConsentManagerStore = (
 		 * @param location - The location information
 		 */
 		setLocationInfo: (location) => set({ locationInfo: location }),
-
-		/**
-		 * Updates the applicable jurisdiction information.
-		 *
-		 * @param jurisdiction - The jurisdiction information
-		 */
-		setJurisdictionInfo: (jurisdiction) =>
-			set({ jurisdictionInfo: jurisdiction }),
 
 		/**
 		 * Fetches consent banner information from the API and updates the store.
@@ -509,48 +499,6 @@ export const createConsentManagerStore = (
 		},
 
 		/**
-		 * Clears all consent data and resets to initial state.
-		 *
-		 * @remarks
-		 * This function:
-		 * 1. Resets state to initial values
-		 * 2. Removes stored consent from localStorage
-		 */
-		clearAllData: () => {
-			set(initialState);
-			localStorage.removeItem(STORAGE_KEY);
-		},
-
-		/**
-		 * Updates the consent mode in external systems.
-		 *
-		 * @remarks
-		 * Currently commented out, but designed to update Google Tag Manager
-		 * consent states based on user preferences.
-		 */
-		updateConsentMode: () => {
-			const effectiveConsents = get().getEffectiveConsents();
-			// if (typeof window !== 'undefined' && window.gtag) {
-			//   window.gtag('consent', 'update', {
-			//     'ad_storage': effectiveConsents.marketing ? 'granted' : 'denied',
-			//     'analytics_storage': effectiveConsents.measurement ? 'granted' : 'denied',
-			//     'ad_user_data': effectiveConsents.ad_user_data ? 'granted' : 'denied',
-			//     'ad_personalization': effectiveConsents.ad_personalization ? 'granted' : 'denied',
-			//   });
-			// }
-		},
-
-		/**
-		 * Updates privacy-related settings.
-		 *
-		 * @param settings - New privacy settings
-		 */
-		setPrivacySettings: (settings) =>
-			set((state) => ({
-				privacySettings: { ...state.privacySettings, ...settings },
-			})),
-
-		/**
 		 * Gets the effective consent states after applying privacy settings.
 		 *
 		 * @returns The effective consent states considering Do Not Track
@@ -576,14 +524,6 @@ export const createConsentManagerStore = (
 		},
 
 		/**
-		 * Controls whether non-displayed consents should be included.
-		 *
-		 * @param include - Whether to include non-displayed consents
-		 */
-		setIncludeNonDisplayedConsents: (include) =>
-			set({ includeNonDisplayedConsents: include }),
-
-		/**
 		 * Updates the translation configuration.
 		 * @param config - The new translation configuration
 		 */
@@ -600,15 +540,7 @@ export const createConsentManagerStore = (
 		if (!getStoredConsent()) {
 			// Immediately invoke the fetch and wait for it to complete
 			// This ensures we have location data before deciding to show the banner
-			store
-				.getState()
-				.fetchConsentBannerInfo()
-				.catch(() => {
-					// If fetch fails, we've already set showPopup to true in the error handler
-					console.log(
-						'Failed to fetch consent banner information, defaulting to showing banner'
-					);
-				});
+			store.getState().fetchConsentBannerInfo();
 		}
 	}
 

@@ -176,12 +176,6 @@ export interface PrivacyConsentState {
 	setLocationInfo: (location: LocationInfo | null) => void;
 
 	/**
-	 * Updates the applicable jurisdiction information.
-	 * @param jurisdiction - The jurisdiction information
-	 */
-	setJurisdictionInfo: (jurisdiction: JurisdictionInfo | null) => void;
-
-	/**
 	 * Fetches consent banner information from the API and updates the store.
 	 * @returns A promise that resolves with the consent banner response when the fetch is complete, or undefined if it fails
 	 */
@@ -193,18 +187,6 @@ export interface PrivacyConsentState {
 	/** Checks if the user has provided any form of consent */
 	hasConsented: () => boolean;
 
-	/** Clears all consent data and resets to initial state */
-	clearAllData: () => void;
-
-	/** Updates the consent mode in external systems (e.g., analytics) */
-	updateConsentMode: () => void;
-
-	/**
-	 * Updates privacy-related settings.
-	 * @param settings - New privacy settings
-	 */
-	setPrivacySettings: (settings: Partial<PrivacySettings>) => void;
-
 	/** Gets the effective consent states after applying privacy settings */
 	getEffectiveConsents: () => ConsentState;
 
@@ -213,10 +195,4 @@ export interface PrivacyConsentState {
 	 * @param consentType - The consent type to check
 	 */
 	hasConsentFor: (consentType: AllConsentNames) => boolean;
-
-	/**
-	 * Controls whether non-displayed consents should be included.
-	 * @param include - Whether to include non-displayed consents
-	 */
-	setIncludeNonDisplayedConsents: (include: boolean) => void;
 }

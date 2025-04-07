@@ -112,23 +112,39 @@ export const initialState: Omit<
 	consentTypes: consentTypes,
 
 	// Initialize all methods as no-ops
-	setConsent: () => {},
-	setShowPopup: () => {},
-	setIsPrivacyDialogOpen: () => {},
-	saveConsents: () => {},
-	resetConsents: () => {},
-	setGdprTypes: () => {},
-	setComplianceSetting: () => {},
-	resetComplianceSettings: () => {},
-	setCallback: () => {},
-	setDetectedCountry: () => {},
-	setLocationInfo: () => {},
-	setJurisdictionInfo: () => {},
+	setConsent: () => {
+		/* no-op */
+	},
+	setShowPopup: () => {
+		/* no-op */
+	},
+	setIsPrivacyDialogOpen: () => {
+		/* no-op */
+	},
+	saveConsents: () => {
+		/* no-op */
+	},
+	setGdprTypes: () => {
+		/* no-op */
+	},
+	setComplianceSetting: () => {
+		/* no-op */
+	},
+	resetComplianceSettings: () => {
+		/* no-op */
+	},
+	setCallback: () => {
+		/* no-op */
+	},
+	setDetectedCountry: () => {
+		/* no-op */
+	},
+	setLocationInfo: () => {
+		/* no-op */
+	},
 	getDisplayedConsents: () => [],
 	hasConsented: () => false,
-	setTranslationConfig: () => {},
-	clearAllData: () => {},
-	updateConsentMode: () => {},
-	setPrivacySettings: () => {},
-	setIncludeNonDisplayedConsents: () => {},
+	setTranslationConfig: () => {
+		/* no-op */
+	},
 };

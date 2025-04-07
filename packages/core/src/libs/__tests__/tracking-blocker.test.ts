@@ -67,7 +67,7 @@ describe('TrackingBlocker', () => {
 
 	test('blocks fetch requests to tracking domains when consent not granted', async () => {
 		// Create tracking blocker with default consents (all false except necessary)
-		const _trackingBlocker = createTrackingBlocker({}, BLOCKED_CONSENT);
+		createTrackingBlocker({}, BLOCKED_CONSENT);
 
 		// Try to fetch from a tracking domain (Google Analytics)
 		await expect(
@@ -89,7 +89,7 @@ describe('TrackingBlocker', () => {
 
 	test('blocks XMLHttpRequest to tracking domains when consent not granted', () => {
 		// Create tracking blocker with default consents
-		const _trackingBlocker = createTrackingBlocker({}, BLOCKED_CONSENT);
+		createTrackingBlocker({}, BLOCKED_CONSENT);
 		// Create new XMLHttpRequest
 		const xhr = new XMLHttpRequest();
 
@@ -135,7 +135,7 @@ describe('TrackingBlocker', () => {
 
 	test('allows XMLHttpRequest to tracking domains after consent granted', () => {
 		// Create tracking blocker with default consents
-		const trackingBlocker = createTrackingBlocker({}, ALLOWED_CONSENT);
+		createTrackingBlocker({}, ALLOWED_CONSENT);
 
 		// Create new XMLHttpRequest
 		const xhr = new XMLHttpRequest();
@@ -147,7 +147,7 @@ describe('TrackingBlocker', () => {
 	});
 
 	test('allows requests to non-tracking domains regardless of consent', async () => {
-		const trackingBlocker = createTrackingBlocker({}, BLOCKED_CONSENT);
+		createTrackingBlocker({}, BLOCKED_CONSENT);
 
 		// Try fetch to non-tracking domain
 		const fetchSpy = vi.spyOn(window, 'fetch');
@@ -198,7 +198,7 @@ describe('TrackingBlocker', () => {
 	});
 
 	test('handles subdomains correctly', async () => {
-		const trackingBlocker = createTrackingBlocker({}, BLOCKED_CONSENT);
+		createTrackingBlocker({}, BLOCKED_CONSENT);
 
 		// Should block request to subdomain of google-analytics.com
 		await expect(
@@ -210,7 +210,7 @@ describe('TrackingBlocker', () => {
 
 	test('can be disabled via config', async () => {
 		// Create tracking blocker with automatic blocking disabled
-		const trackingBlocker = createTrackingBlocker(
+		createTrackingBlocker(
 			{
 				disableAutomaticBlocking: true,
 			},
