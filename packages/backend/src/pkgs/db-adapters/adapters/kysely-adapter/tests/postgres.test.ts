@@ -1,65 +1,33 @@
-import { Kysely, sql } from 'kysely';
-import { PostgresDialect } from 'kysely';
-import pg from 'pg';
+import { PGlite } from '@electric-sql/pglite';
+import { Kysely } from 'kysely';
+import { KyselyPGlite } from 'kysely-pglite';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 
-import { getMigrations } from '~/db/migration';
-import type { C15TOptions } from '~/types';
-import { logger } from '~/utils/logger';
-import { runAdapterTests } from '../../test';
-import type { Adapter } from '../../types';
+import type { Adapter } from '~/pkgs/db-adapters';
+import { logger } from '~/pkgs/logger';
+import { getMigrations } from '~/pkgs/migrations';
+import { type KyselyDatabaseType, kyselyAdapter } from '../index';
+import type { Database } from '../types';
 import {
-	type Database as DB,
-	type KyselyDatabaseType,
-	kyselyAdapter,
-} from '../index';
+	createOptions,
+	expectedTables,
+	runAdapterTests,
+	verifyRequiredTables,
+} from './test-utils';
 
 /**
  * Database configuration interface for test setup
  */
 interface DbConfig {
 	name: string;
-	instance: Kysely<DB>;
+	instance: Kysely<Database>;
 	type: string;
-	connectionString: string;
+	connectionString?: string;
 	cleanup?: () => Promise<void>;
 	skipGenerateIdTest?: boolean;
 	migrationErrorPattern?: RegExp;
 	disableTransactions?: boolean;
 }
-
-/**
- * Helper to create C15T options for a database
- */
-function createOptions(dbConfig: DbConfig): C15TOptions {
-	return {
-		database: {
-			db: dbConfig.instance,
-			type: dbConfig.type as KyselyDatabaseType,
-		},
-		secret: 'test-secret-for-encryption',
-		advanced: {
-			disableTransactions: dbConfig.disableTransactions,
-		},
-	};
-}
-
-/**
- * Expected tables based on c15t schema
- */
-const expectedTables = [
-	'subject',
-	'consentPurpose',
-	'domain',
-	'geoLocation',
-	'consentPolicy',
-	'consent',
-	'consentPurposeJunction',
-	'consentRecord',
-	'consentGeoLocation',
-	'consentWithdrawal',
-	'auditLog',
-];
 
 describe('Kysely Adapter Tests', () => {
 	// Global timeout for all tests
@@ -82,92 +50,94 @@ describe('Kysely Adapter Tests', () => {
 	});
 
 	describe('Postgres Tests', () => {
-		// Set up test database connection details (usually from env vars in real projects)
-		const connectionString =
-			process.env.POSTGRES_CONNECTION_STRING ||
-			'postgres://postgres:postgres@localhost:5432/c15t_test';
+		// Initialize PGlite for in-memory Postgres
+		let pgLiteClient: PGlite;
 
-		// Create Kysely instance with Postgres dialect
-		const pgPool = new pg.Pool({
-			connectionString,
-			max: 10,
-		});
+		// Create Kysely instance with PGlite
+		let postgresKy: Kysely<Database>;
 
-		const postgresKy = new Kysely<DB>({
-			dialect: new PostgresDialect({
-				pool: pgPool,
-			}),
-		});
-
-		const postgresConfig: DbConfig = {
-			name: 'Postgres',
-			instance: postgresKy,
-			type: 'postgres',
-			connectionString,
-			cleanup: async () => {
-				try {
-					// Drop all test tables to clean up
-					for (const table of expectedTables) {
-						try {
-							await postgresKy.schema.dropTable(table).ifExists().execute();
-						} catch {
-							// Ignore errors during cleanup
-						}
-					}
-
-					// Also try to drop the migrations table
-					try {
-						await postgresKy.schema
-							.dropTable('c15t_migrations')
-							.ifExists()
-							.execute();
-					} catch {
-						// Ignore errors during cleanup
-					}
-				} catch {
-					// Ignore errors during cleanup
-				}
-			},
-		};
-
+		let postgresConfig: DbConfig;
 		let postgresAdapter: Adapter;
 
 		// Setup before tests
 		beforeAll(async () => {
+			// Create in-memory PGlite instance
+			pgLiteClient = new PGlite();
+			logger.info('Created in-memory PGlite instance');
+
+			// Create Kysely instance with KyselyPGlite dialect
+			const kyselyPGlite = new KyselyPGlite(pgLiteClient);
+
+			postgresKy = new Kysely<Database>({
+				dialect: kyselyPGlite.dialect,
+			});
+
+			postgresConfig = {
+				name: 'PGlite',
+				instance: postgresKy,
+				type: 'postgres',
+				cleanup: async () => {
+					try {
+						// Drop all test tables to clean up
+						for (const table of expectedTables) {
+							try {
+								await pgLiteClient.query(
+									`DROP TABLE IF EXISTS "${table}" CASCADE`
+								);
+							} catch (err) {
+								logger.debug(`Error dropping table ${table}:`, err);
+							}
+						}
+
+						// Also try to drop the migrations table
+						try {
+							await pgLiteClient.query(
+								`DROP TABLE IF EXISTS "c15t_migrations" CASCADE`
+							);
+						} catch (err) {
+							logger.debug('Error dropping migrations table:', err);
+						}
+					} catch (err) {
+						logger.error('Error during cleanup:', err);
+					}
+				},
+			};
+
 			// Clean up any existing tables
 			await postgresConfig.cleanup?.();
 
-			// Create configuration options
+			// Create configuration options using shared function
 			const options = createOptions(postgresConfig);
-			logger.info('Created test options for Postgres');
+			logger.info('Created test options for PGlite');
 
-			// Use the getMigrations function from the migration system
-			logger.info('Getting migrations for Postgres test');
+			// Initialize migrations
+			logger.info('Getting migrations for PGlite test');
 			const migrationResult = await getMigrations({
 				...options,
-				logger: { level: 'info' }, // Use info level for more visibility
+				logger: { level: 'info' },
 			});
 
-			logger.info('Running migrations for Postgres test');
-			// Run migrations using the project's migration system
-			await migrationResult.runMigrations();
-			logger.info('Completed migrations for Postgres test');
+			// Run migrations
+			logger.info('Running migrations for PGlite test');
+			try {
+				await migrationResult.runMigrations();
+				logger.info('Successfully completed migrations for PGlite test');
+			} catch (err) {
+				logger.error('Failed to run migrations:', err);
+				throw err;
+			}
 
 			// Check which tables were created
-			const tables = await postgresKy.introspection.getTables();
-			logger.info(
-				`Tables created by migration: ${tables.map((t) => t.name).join(', ')}`
+			const tablesResult = await pgLiteClient.query(
+				"SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'"
 			);
+			const tables = (tablesResult.rows as Array<{ table_name: string }>).map(
+				(row) => row.table_name
+			);
+			logger.info(`Tables created by migration: ${tables.join(', ')}`);
 
-			// If migrations didn't create the tables we need, create the basic ones required for tests
-			if (!tables.some((t) => t.name === 'subject')) {
-				logger.warn(
-					'Migration did not create the required tables. Creating the minimal required schema for tests.'
-				);
-
-				// Create the minimal required schema for tests
-				await createRequiredTestTables(postgresKy);
-			}
+			// Verify that the necessary tables exist using shared function
+			await verifyRequiredTables(tables, logger);
 
 			// Create the adapter for tests to use
 			postgresAdapter = kyselyAdapter(postgresConfig.instance, {
@@ -176,35 +146,30 @@ describe('Kysely Adapter Tests', () => {
 
 			// Add to the adapter collection for compatibility test
 			adapters.push(postgresAdapter);
-			logger.info('Postgres test setup complete');
+			logger.info('PGlite test setup complete');
 		}, hookTimeout);
 
 		afterAll(async () => {
-			// Temporarily disable cleanup to inspect tables
-			// await postgresConfig.cleanup?.();
-			await pgPool.end();
-			logger.info('Pool closed, but tables preserved for inspection');
+			// Clean up the tables when finished
+			await postgresConfig.cleanup?.();
+			logger.info('PGlite test cleanup complete');
 		}, hookTimeout);
 
 		// Test to verify tables are created
-		test('Postgres: verify database tables', async () => {
+		test('PGlite: verify database tables', async () => {
 			let tables: string[] = [];
 
-			// For Postgres, query the information_schema
+			// Query using PGlite
 			try {
-				const result = await sql`
-					SELECT table_name 
-					FROM information_schema.tables 
-					WHERE table_schema = 'public' 
-					AND table_type = 'BASE TABLE'
-				`.execute(postgresKy);
-
-				// Type the rows first, then map
-				const typedRows = result.rows as Array<{ table_name: string }>;
-				tables = typedRows.map((row) => row.table_name);
-				logger.info(`Found tables in Postgres: ${tables.join(', ')}`);
-			} catch {
-				// Handle error
+				const result = await pgLiteClient.query(
+					"SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'"
+				);
+				tables = (result.rows as Array<{ table_name: string }>).map(
+					(row) => row.table_name
+				);
+				logger.info(`Found tables in PGlite: ${tables.join(', ')}`);
+			} catch (error) {
+				logger.error('Error querying tables:', error);
 			}
 
 			// Verify that all expected tables exist
@@ -216,12 +181,36 @@ describe('Kysely Adapter Tests', () => {
 			expect(tables.length).toBeGreaterThanOrEqual(expectedTables.length);
 		});
 
-		// Run the adapter tests for Postgres
+		// Before running the adapter tests, verify we can access the subject table
+		test('PGlite: verify subject table is accessible', async () => {
+			// Check if we can insert and select from the subject table
+			try {
+				// Insert test data
+				await pgLiteClient.query(
+					`INSERT INTO "subject" (id, "isIdentified", "createdAt", "updatedAt") 
+					 VALUES ('test-direct-sql', false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
+				);
+
+				// Select the test data
+				const selectResult = await pgLiteClient.query(
+					`SELECT * FROM "subject" WHERE id = 'test-direct-sql'`
+				);
+
+				// Verify we got a result
+				expect(selectResult.rows.length).toBeGreaterThan(0);
+				const row = selectResult.rows[0] as Record<string, unknown>;
+				expect(row.id).toBe('test-direct-sql');
+			} catch (err) {
+				// biome-ignore lint/suspicious/noConsole: <explanation>
+				console.error('Error during subject table verification:', err);
+				throw err;
+			}
+		});
+
+		// Run the adapter tests for PGlite
 		runAdapterTests({
-			name: 'Postgres',
+			name: 'PGlite',
 			getAdapter: async () => postgresAdapter,
-			skipGenerateIdTest: postgresConfig.skipGenerateIdTest,
-			skipTransactionTest: postgresConfig.disableTransactions,
 		});
 	});
 
@@ -238,43 +227,3 @@ describe('Kysely Adapter Tests', () => {
 		).toBe(true);
 	});
 });
-
-/**
- * Creates minimal required tables for testing purposes if migrations don't create them
- * This is a fallback to ensure tests can run, while still using the migration system first
- */
-async function createRequiredTestTables(db: Kysely<DB>): Promise<void> {
-	// Create the subject table (required for tests)
-	await db.schema
-		.createTable('subject')
-		.ifNotExists()
-		.addColumn('id', 'text', (col) => col.primaryKey().notNull())
-		.addColumn('isIdentified', 'boolean', (col) =>
-			col.notNull().defaultTo(false)
-		)
-		.addColumn('externalId', 'text')
-		.addColumn('identityProvider', 'text')
-		.addColumn('lastIpAddress', 'text')
-		.addColumn('subjectTimezone', 'text')
-		.addColumn('createdAt', 'timestamp', (col) =>
-			col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
-		)
-		.addColumn('updatedAt', 'timestamp', (col) =>
-			col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
-		)
-		.execute();
-	logger.info('Created subject table');
-
-	// Create minimal versions of other tables needed for tests
-	for (const table of expectedTables.filter((t) => t !== 'subject')) {
-		await db.schema
-			.createTable(table)
-			.ifNotExists()
-			.addColumn('id', 'text', (col) => col.primaryKey().notNull())
-			.addColumn('createdAt', 'timestamp', (col) =>
-				col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
-			)
-			.execute();
-		logger.info(`Created ${table} table`);
-	}
-}

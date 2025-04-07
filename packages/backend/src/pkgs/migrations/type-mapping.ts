@@ -145,7 +145,7 @@ export function matchType(
 	if (fieldType === 'string[]' || fieldType === 'number[]') {
 		return columnDataType.toLowerCase().includes('json');
 	}
-	const types = map[dbType as keyof typeof map];
+	const types = map[dbType];
 	const type = Array.isArray(fieldType)
 		? types.string.map((t) => t.toLowerCase())
 		: types[fieldType].map((t) => t.toLowerCase());
@@ -237,10 +237,8 @@ export function getType(field: Field, dbType: KyselyDatabaseType = 'sqlite') {
 
 	// Handle json type
 	if (type === 'json') {
-		return typeMap.json[dbType as keyof typeof typeMap.json];
+		return typeMap.json[dbType];
 	}
 
-	return typeMap[type as keyof typeof typeMap][
-		dbType as keyof (typeof typeMap)[keyof typeof typeMap]
-	];
+	return typeMap[type][dbType];
 }

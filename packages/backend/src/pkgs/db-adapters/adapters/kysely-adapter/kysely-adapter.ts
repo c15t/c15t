@@ -176,8 +176,9 @@ const createEntityTransformer = (
 			? (modelFields as Record<string, Field>)[field as string]
 			: undefined;
 		if (!f) {
-			// Field not found in schema
-			return undefined;
+			// biome-ignore lint/suspicious/noConsoleLog: no Logger implementation
+			// biome-ignore lint/suspicious/noConsole: no Logger implementation
+			console.log('Field not found', model, field);
 		}
 		return f?.fieldName || (field as string);
 	}
@@ -264,10 +265,7 @@ const createEntityTransformer = (
 			return value === 1;
 		}
 		if (f?.type === 'date' && value) {
-			const date = new Date(value as string);
-			if (!Number.isNaN(date.getTime())) {
-				return date;
-			}
+			return new Date(value as string);
 		}
 		// Handle JSON field type
 		if (f?.type === 'json' && value !== null && value !== undefined) {
@@ -280,56 +278,16 @@ const createEntityTransformer = (
 			}
 			// For SQLite and other databases or string JSON from any database
 			if (typeof value === 'string') {
-				const mysqlDatePatterns = [
-					// biome-ignore lint/performance/useTopLevelRegex: <explanation>
-					/^\d{4}-\d{2}-\d{2}$/, // YYYY-MM-DD
-					// biome-ignore lint/performance/useTopLevelRegex: <explanation>
-					/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/, // YYYY-MM-DD HH:MM:SS
-					// biome-ignore lint/performance/useTopLevelRegex: <explanation>
-					/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+$/, // YYYY-MM-DD HH:MM:
-					// 	// biome-ignore lint/performance/useTopLevelRegex: <explanation>SS.mmm
-					// biome-ignore lint/performance/useTopLevelRegex: <explanation>
-					/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?$/, // ISO format
-				];
-
-				// Check if it's a MySQL date format or looks like a date field
-				const isDateField = [
-					'createdAt',
-					'updatedAt',
-					'deletedAt',
-					'date',
-					'timestamp',
-					'time',
-				].some((pattern) =>
-					field.toLowerCase().includes(pattern.toLowerCase())
-				);
-				const isDateString = mysqlDatePatterns.some((pattern) =>
-					pattern.test(value)
-				);
-
-				if (isDateString || isDateField) {
+				try {
+					// Use SuperJSON to parse the JSON string, preserving complex types
+					return superjson.parse(value as string);
+				} catch {
+					// If SuperJSON parsing fails, try standard JSON.parse as fallback
 					try {
-						// For MySQL date-only format, add time component for proper parsing
-						let dateInput = value;
-						// biome-ignore lint/performance/useTopLevelRegex: <explanation>
-						if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-							dateInput = `${value}T00:00:00Z`;
-						}
-
-						// Convert MySQL space-separated datetime to ISO format
-						// biome-ignore lint/performance/useTopLevelRegex: <explanation>
-						if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(value)) {
-							dateInput = `${value.replace(' ', 'T')}Z`;
-						}
-
-						const dateObj = new Date(dateInput);
-
-						// Check if valid date was created
-						if (!Number.isNaN(dateObj.getTime())) {
-							return dateObj;
-						}
+						return JSON.parse(value as string);
 					} catch {
-						// Error parsing date
+						// If all parsing fails, return the original value
+						return value;
 					}
 				}
 			}

@@ -1,6 +1,10 @@
 import { type Kysely, type Migration, sql } from 'kysely';
-import type { C15TOptions } from '../../../../types';
-import type { Adapter } from '../../../adapters/types';
+import { beforeEach, expect, test } from 'vitest';
+
+import type { Adapter } from '~/pkgs/db-adapters';
+import type { Logger } from '~/pkgs/logger';
+import type { C15TOptions } from '~/types';
+import type { KyselyDatabaseType } from '../index';
 import type { Database } from '../types';
 
 /**
@@ -10,29 +14,60 @@ export interface DbConfig {
 	name: string;
 	instance: Kysely<Database>;
 	type: string;
-	connectionString: string;
-	cleanup: () => Promise<void>;
+	connectionString?: string;
+	cleanup?: () => Promise<void>;
 	skipGenerateIdTest?: boolean;
 	migrationErrorPattern?: RegExp;
 	disableTransactions?: boolean;
 }
 
 /**
- * Expected tables to be created by the migrations
+ * Expected tables to be created by the migrations.
+ * These match the tables created by the actual migration system.
  */
 export const expectedTables = [
 	'subject',
-	'consent_purpose',
-	'consent_policy',
+	'consentPurpose',
 	'domain',
-	'geo_location',
+	'consentPolicy',
 	'consent',
-	'consent_purpose_junction',
-	'consent_geo_location',
-	'consent_withdrawal',
-	'audit_log',
-	'consent_record',
+	'consentRecord',
+	'auditLog',
 ];
+
+/**
+ * Helper to create C15T options for a database
+ */
+export function createOptions(dbConfig: DbConfig): C15TOptions {
+	return {
+		database: {
+			db: dbConfig.instance,
+			type: dbConfig.type as KyselyDatabaseType,
+		},
+		secret: 'test-secret-for-encryption',
+		advanced: {
+			disableTransactions: dbConfig.disableTransactions,
+		},
+	};
+}
+
+/**
+ * Function to verify that required tables exist
+ */
+export async function verifyRequiredTables(
+	tables: string[],
+	logger: Logger
+): Promise<void> {
+	// Verify that the necessary tables exist
+	const missingTables = expectedTables.filter(
+		(table) => !tables.includes(table)
+	);
+	if (missingTables.length > 0) {
+		const error = `Migration failed to create required tables: ${missingTables.join(', ')}`;
+		logger.error(error);
+		throw new Error(error);
+	}
+}
 
 /**
  * Run migrations on a database
@@ -64,11 +99,11 @@ export async function runMigrations(
 		}
 
 		// Check if we already have the initial migration
-		const hasMigration = await db
-			.selectFrom(migrationTableName)
-			.select('name')
-			.where('name', '=', 'initial')
-			.executeTakeFirst();
+		// We need to use raw SQL here since the migration table might not be part of our Database type
+		// Compile the query first
+		const query = sql`SELECT name FROM ${sql.raw(migrationTableName)} WHERE name = 'initial'`;
+		const hasResult = await db.executeQuery(query.compile(db));
+		const hasMigration = hasResult.rows.length > 0;
 
 		if (hasMigration) {
 			// Migration already run
@@ -93,7 +128,7 @@ export async function runMigrations(
 				.addColumn('updatedAt', 'timestamp', (col) => col.notNull())
 				.execute();
 
-			// Create other tables
+			// Create other tables - these should match the expectedTables list
 			for (const table of [
 				'consentPurpose',
 				'domain',
@@ -116,19 +151,12 @@ export async function runMigrations(
 			// Record the migration
 			if (disableTransactions) {
 				// Use direct SQL for SQLite
-				await trx.executeQuery(sql`
-					INSERT INTO ${sql.identifier([migrationTableName])} (name, timestamp)
-					VALUES ('initial', CURRENT_TIMESTAMP)
-				`);
+				const insertQuery = sql`INSERT INTO ${sql.raw(migrationTableName)} (name, timestamp) VALUES ('initial', CURRENT_TIMESTAMP)`;
+				await trx.executeQuery(insertQuery.compile(trx));
 			} else {
-				// Use Kysely for other databases
-				await trx
-					.insertInto(migrationTableName)
-					.values({
-						name: 'initial',
-						timestamp: new Date(),
-					})
-					.execute();
+				// Use raw SQL to insert into the migration table since it might not be in our Database type
+				const insertQuery = sql`INSERT INTO ${sql.raw(migrationTableName)} (name, timestamp) VALUES ('initial', CURRENT_TIMESTAMP)`;
+				await trx.executeQuery(insertQuery.compile(trx));
 			}
 		});
 
@@ -136,7 +164,7 @@ export async function runMigrations(
 	} catch (err) {
 		// If error matches pattern, this is expected
 		const errorMessage = err instanceof Error ? err.message : String(err);
-		if (errorPattern && errorPattern.test(errorMessage)) {
+		if (errorPattern?.test(errorMessage)) {
 			return;
 		}
 
@@ -146,60 +174,43 @@ export async function runMigrations(
 }
 
 /**
- * Create C15T options for testing
- */
-export function createOptions(dbConfig: DbConfig): C15TOptions {
-	return {
-		database: {
-			db: dbConfig.instance,
-			type: dbConfig.type as any,
-		},
-		secret: 'test-secret-for-encryption',
-	};
-}
-
-/**
  * Create test migrations for database setup
  */
 export function createTestMigrations(): Record<string, Migration> {
 	return {
 		initial: {
 			async up(db) {
-				try {
-					// Create the subject table with required fields
-					await db.schema
-						.createTable('subject')
-						.addColumn('id', 'text', (col) => col.primaryKey().notNull())
-						.addColumn('isIdentified', 'boolean', (col) => col.notNull())
-						.addColumn('externalId', 'text')
-						.addColumn('identityProvider', 'text')
-						.addColumn('lastIpAddress', 'text')
-						.addColumn('subjectTimezone', 'text')
-						.addColumn('createdAt', 'timestamp', (col) => col.notNull())
-						.addColumn('updatedAt', 'timestamp', (col) => col.notNull())
-						.execute();
+				// Create the subject table with required fields
+				await db.schema
+					.createTable('subject')
+					.addColumn('id', 'text', (col) => col.primaryKey().notNull())
+					.addColumn('isIdentified', 'boolean', (col) => col.notNull())
+					.addColumn('externalId', 'text')
+					.addColumn('identityProvider', 'text')
+					.addColumn('lastIpAddress', 'text')
+					.addColumn('subjectTimezone', 'text')
+					.addColumn('createdAt', 'timestamp', (col) => col.notNull())
+					.addColumn('updatedAt', 'timestamp', (col) => col.notNull())
+					.execute();
 
-					// Create other tables
-					for (const table of [
-						'consentPurpose',
-						'domain',
-						'geoLocation',
-						'consentPolicy',
-						'consent',
-						'consentPurposeJunction',
-						'consentRecord',
-						'consentGeoLocation',
-						'consentWithdrawal',
-						'auditLog',
-					]) {
-						await db.schema
-							.createTable(table)
-							.addColumn('id', 'text', (col) => col.primaryKey().notNull())
-							.addColumn('createdAt', 'timestamp', (col) => col.notNull())
-							.execute();
-					}
-				} catch (err) {
-					throw err;
+				// Create other tables - these should match the expectedTables list
+				for (const table of [
+					'consentPurpose',
+					'domain',
+					'geoLocation',
+					'consentPolicy',
+					'consent',
+					'consentPurposeJunction',
+					'consentRecord',
+					'consentGeoLocation',
+					'consentWithdrawal',
+					'auditLog',
+				]) {
+					await db.schema
+						.createTable(table)
+						.addColumn('id', 'text', (col) => col.primaryKey().notNull())
+						.addColumn('createdAt', 'timestamp', (col) => col.notNull())
+						.execute();
 				}
 			},
 
@@ -221,7 +232,7 @@ export function createTestMigrations(): Record<string, Migration> {
 					]) {
 						await db.schema.dropTable(table).execute();
 					}
-				} catch (err) {
+				} catch {
 					// Ignore errors in migration down
 				}
 			},
@@ -358,7 +369,7 @@ export async function runAdapterTests(opts: {
 
 			// Run a successful transaction
 			await adapter.transaction({
-				callback: async (txAdapter) => {
+				callback: async (txAdapter: Adapter) => {
 					await txAdapter.create({
 						model: 'subject',
 						data: {
@@ -389,7 +400,7 @@ export async function runAdapterTests(opts: {
 			// Test a failed transaction
 			try {
 				await adapter.transaction({
-					callback: async (txAdapter) => {
+					callback: async (txAdapter: Adapter) => {
 						// Create a record first
 						await txAdapter.create({
 							model: 'subject',

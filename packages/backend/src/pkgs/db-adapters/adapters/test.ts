@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 
 import type { C15TOptions } from '~/types';
-import type { Adapter } from './types';
+import type { Adapter } from '../types';
 
 interface AdapterTestOptions {
 	name: string;
