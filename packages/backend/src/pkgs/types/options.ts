@@ -6,7 +6,6 @@ import type { H3Event } from 'h3';
 // Import table configuration types from the schema module
 import type { TablesConfig } from '~/schema/types';
 import type { LoggerOptions } from '../logger';
-import type { DoubleTieContext } from './context';
 import type { DoubleTiePlugin } from './plugins';
 
 /**
@@ -121,13 +120,6 @@ export interface DoubleTieOptions {
 		};
 
 		/**
-		 * Disable trusted origins check
-		 *
-		 * ⚠︎ This is a security risk and it may expose your application to CSRF attacks
-		 */
-		disableCSRFCheck?: boolean;
-
-		/**
 		 * Function to generate IDs
 		 * Custom ID generation for records and other entities
 		 */
@@ -142,25 +134,6 @@ export interface DoubleTieOptions {
 		 * @default false
 		 */
 		disableTransactions?: boolean;
-	};
-
-	/**
-	 * API error handling
-	 */
-	onAPIError?: {
-		/**
-		 * Throw an error on API error
-		 *
-		 * @default false
-		 */
-		throw?: boolean;
-		/**
-		 * Custom error handler
-		 *
-		 * @param error
-		 * @param ctx - Auth context
-		 */
-		onError?: (error: unknown, ctx: DoubleTieContext) => void | Promise<void>;
 	};
 
 	/**
