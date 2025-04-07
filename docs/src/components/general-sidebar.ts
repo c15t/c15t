@@ -192,7 +192,7 @@ const javascriptPages: PageTree.Node[] = [
 
 export const reactComponentsNavigation: PageTree.Node[] = [
 	{
-		$id: 'react-components-pages',
+		$id: 'react-components',
 		type: 'separator',
 		name: 'React Components',
 	},
