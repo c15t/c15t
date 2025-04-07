@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { defineRoute } from '~/pkgs/api-router/utils/define-route';
-import type {} from '~/pkgs/data-model';
 import type { Adapter } from '~/pkgs/db-adapters/types';
 import { createLogger } from '~/pkgs/logger';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';

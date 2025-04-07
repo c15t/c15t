@@ -1,5 +1,3 @@
-import type {} from './field-types';
-
 /**
  * Configuration options specific to number fields.
  * Provides additional validation options for number fields.
