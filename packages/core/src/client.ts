@@ -136,7 +136,10 @@ export class c15tClient {
 		if (ABSOLUTE_URL_REGEX.test(backendURL)) {
 			const backendURLObj = new URL(backendURL);
 			// Remove trailing slashes from base path and leading slashes from the path to join
-			const basePath = backendURLObj.pathname.replace(TRAILING_SLASHES_REGEX, '');
+			const basePath = backendURLObj.pathname.replace(
+				TRAILING_SLASHES_REGEX,
+				''
+			);
 			const cleanPath = path.replace(LEADING_SLASHES_REGEX, '');
 			// Combine the paths with a single slash
 			const newPath = `${basePath}/${cleanPath}`;
