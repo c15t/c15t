@@ -9,12 +9,10 @@ export default defineConfig({
 	},
 	lib: [
 		{
-			bundle: false,
 			dts: true,
 			format: 'esm',
 		},
 		{
-			bundle: false,
 			dts: true,
 			format: 'cjs',
 		},
