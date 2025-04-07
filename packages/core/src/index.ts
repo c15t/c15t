@@ -4,9 +4,8 @@
  */
 
 // Re-export store
-export { createConsentManagerStore } from './store';
+export { createConsentManagerStore, type StoreConfig } from './store';
 export type { PrivacyConsentState } from './store.type';
-export type { StoreConfig } from './store';
 
 // Re-export all utilities
 export * from './libs/consent-utils';

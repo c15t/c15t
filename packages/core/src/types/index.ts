@@ -138,15 +138,6 @@ export type {
 
 /**
  * @module
- * Consent Purpose Types
- *
- * @remarks
- * Exports types for consent purposes and their configurations:
- */
-export type { ConsentPurpose } from './consent-purpose';
-
-/**
- * @module
  * Client Types
  *
  * @remarks

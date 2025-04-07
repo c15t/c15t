@@ -8,8 +8,3 @@ export type { ClassValue } from 'clsx';
 export function cnExt(...classes: ClassValue[]) {
 	return clsx(...classes);
 }
-
-/**
- * A direct export of `clsx` without `tailwind-merge`.
- */
-export const cn = clsx;

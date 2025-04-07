@@ -18,26 +18,7 @@ type PolymorphicComponentProp<
 > = PropsWithChildren<Props & AsProp<T>> &
 	Omit<ComponentPropsWithoutRef<T>, PropsToOmit<T, Props>>;
 
-export type PolymorphicRef<T extends ElementType> =
-	ComponentPropsWithRef<T>['ref'];
-
-type PolymorphicComponentPropWithRef<
-	T extends ElementType,
-	Props extends Record<string, unknown> = Record<string, unknown>,
-> = PolymorphicComponentProp<T, Props> & { ref?: PolymorphicRef<T> };
-
-export type PolymorphicComponentPropsWithRef<
-	T extends ElementType,
-	P extends Record<string, unknown> = Record<string, unknown>,
-> = PolymorphicComponentPropWithRef<T, P>;
-
 export type PolymorphicComponentProps<
 	T extends ElementType,
 	P extends Record<string, unknown> = Record<string, unknown>,
 > = PolymorphicComponentProp<T, P>;
-
-export type PolymorphicComponent<P extends Record<string, unknown>> = <
-	T extends ElementType,
->(
-	props: PolymorphicComponentPropsWithRef<T, P>
-) => ReactNode;

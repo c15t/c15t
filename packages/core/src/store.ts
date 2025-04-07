@@ -614,5 +614,3 @@ export const createConsentManagerStore = (
 
 	return store;
 };
-
-export default createConsentManagerStore;

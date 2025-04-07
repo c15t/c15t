@@ -30,10 +30,3 @@ export interface ConsentButtonProps
 	 */
 	onClick?: () => void;
 }
-
-export interface ConsentButtonStyles {
-	/** @remarks Styles for the root container element */
-	acceptButton?: ThemeValue & ButtonSharedProps;
-	rejectButton?: ThemeValue & ButtonSharedProps;
-	customizeButton?: ThemeValue & ButtonSharedProps;
-}

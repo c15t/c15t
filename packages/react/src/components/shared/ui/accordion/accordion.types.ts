@@ -57,17 +57,6 @@ export type AccordionIconCSSVariables = {
 };
 
 /**
- * CSS variables for the accordion arrow component
- */
-export type AccordionArrowCSSVariables = {
-	'--accordion-icon-size': string;
-	'--accordion-arrow-color': string;
-	'--accordion-icon-color': string;
-	'--accordion-duration': string;
-	'--accordion-ease': string;
-};
-
-/**
  * CSS variables for the accordion content component
  */
 export type AccordionContentCSSVariables = {

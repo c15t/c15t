@@ -90,33 +90,3 @@ export interface ConsentManagerProviderProps {
 	 */
 	colorScheme?: 'light' | 'dark' | 'system';
 }
-
-/**
- * Props for components that need to check consent status.
- */
-export interface HasConsentedProps {
-	/**
-	 * The consent type to check for.
-	 */
-	consentType?: AllConsentNames;
-
-	/**
-	 * Content to render when consent is granted.
-	 */
-	children: ReactNode;
-
-	/**
-	 * Optional content to render when consent is not granted.
-	 */
-	fallback?: ReactNode;
-}
-
-/**
- * Props for components that need to access a specific store namespace.
- */
-export interface NamespaceProps {
-	/**
-	 * Namespace for the consent store instance.
-	 */
-	namespace?: string;
-}
