@@ -167,37 +167,3 @@ export interface BaseDoubleTieContext {
 export type DoubleTieContext<
 	TPluginContext extends Record<string, unknown> = Record<string, unknown>,
 > = BaseDoubleTieContext & TPluginContext;
-
-/**
- * Context with a specific plugin
- *
- * This utility type makes it easier to create contexts with
- * a specific plugin's context properties.
- *
- * @typeParam TPluginName - The name of the plugin
- * @typeParam TPluginContext - The plugin-specific context properties
- *
- * @example
- * ```ts
- * type AnalyticsContextType = { trackEvent: (name: string) => void };
- * type ContextWithAnalytics = ContextWithPlugin<'analytics', AnalyticsContextType>;
- *
- * // Now you can access context.analytics.trackEvent
- * ```
- */
-export type ContextWithPlugin<
-	TPluginName extends string,
-	TPluginContext extends Record<string, unknown>,
-> = DoubleTieContext<Record<TPluginName, TPluginContext>>;
-
-/**
- * Context for hooks
- *
- * Used for database hooks
- */
-export type HookContext = {
-	options: DoubleTieOptions;
-	hooks: DatabaseHook[];
-	logger: ReturnType<typeof createLogger>;
-	generateId: (options: { model: EntityName; size?: number }) => string;
-};

@@ -41,19 +41,6 @@ export const SetConsentRequestBody = z.discriminatedUnion('type', [
 	otherConsentSchema,
 ]);
 
-export interface SetConsentResponse {
-	id: string;
-	subjectId: string;
-	externalSubjectId?: string;
-	domainId: string;
-	domain: string;
-	type: z.infer<typeof PolicyTypeSchema>;
-	status: string;
-	recordId: string;
-	metadata?: Record<string, unknown>;
-	givenAt: string;
-}
-
 export const setConsent = defineRoute({
 	path: '/consent/set',
 	method: 'post',

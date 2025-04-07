@@ -42,7 +42,6 @@ export type {
 export {
 	levels,
 	shouldPublishLog,
-	shouldPublishLog as isLogLevelEnabled,
 } from './log-levels';
 
 // Logger creation

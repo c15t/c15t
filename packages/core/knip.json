@@ -1,0 +1,19 @@
+{
+	"$schema": "https://unpkg.com/knip@latest/schema.json",
+	"project": "**/*.{js,ts,jsx,tsx}",
+	"ignoreDependencies": [
+		"typescript",
+		"@c15t/typescript-config",
+		"@better-fetch/fetch",
+		"drizzle-orm"
+	],
+	"ignoreBinaries": ["biome", "rslib"],
+	"ignore": ["**/*.spec.{js,ts}", "**/*.test.{js,ts}"],
+	"rules": {
+		"exports": "warn",
+		"types": "warn",
+		"dependencies": "error",
+		"files": "warn"
+	},
+	"ignoreExportsUsedInFile": true
+}

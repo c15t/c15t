@@ -1,6 +1,5 @@
 import type { Tracer } from '@opentelemetry/api';
 import type { DoubleTieOptions } from '../types';
-import type { Endpoint, EndpointHandler } from '../types/endpoints';
 
 /**
  * Configuration options for the telemetry system
@@ -20,27 +19,6 @@ export interface TelemetryConfig {
 	 * Default attributes to add to all telemetry spans
 	 */
 	defaultAttributes?: Record<string, string | number | boolean>;
-}
-
-/**
- * Creates an endpoint handler that works directly with H3
- *
- * @param handler - The endpoint handler function
- * @param path - The endpoint path
- * @param options - Optional configuration for the endpoint
- * @returns An Endpoint object with the handler function
- */
-export function createEndpoint(
-	handler: EndpointHandler,
-	path: string,
-	options?: Endpoint['options']
-): Endpoint {
-	// Create an endpoint directly compatible with H3
-	return {
-		handler,
-		path,
-		options,
-	};
 }
 
 /**

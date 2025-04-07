@@ -8,7 +8,7 @@ import {
 } from 'h3';
 import { routes } from '~/routes';
 import { withRequestSpan } from './telemetry';
-import type { RouterProps } from './types';
+import type { RouterProps } from './types/router-props';
 import { isOriginTrusted } from './utils/cors';
 
 import type { Readable } from 'node:stream';

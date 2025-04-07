@@ -101,7 +101,6 @@
 		"test": "vitest"
 	},
 	"dependencies": {
-		"@better-fetch/fetch": "^1.1.15",
 		"base-x": "^5.0.1",
 		"better-sqlite3": "^11.8.1",
 		"defu": "^6.1.4",
@@ -115,10 +114,8 @@
 		"zod": "^3.24.2",
 		"@opentelemetry/api": "^1.7.0",
 		"@opentelemetry/sdk-node": "^0.48.0",
-		"@opentelemetry/sdk-trace-node": "^1.22.0",
 		"@opentelemetry/sdk-trace-base": "^1.22.0",
-		"@opentelemetry/resources": "^1.22.0",
-		"@opentelemetry/semantic-conventions": "^1.22.0"
+		"@opentelemetry/resources": "^1.22.0"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

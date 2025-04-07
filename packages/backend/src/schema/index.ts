@@ -44,7 +44,6 @@
 export * from './audit-log';
 export * from './consent-geo-location';
 export * from './consent-policy';
-export * from './consent-purpose-junction';
 export * from './consent-purpose';
 export * from './consent-record';
 export * from './consent-withdrawal';

@@ -100,56 +100,6 @@ export interface DoubleTiePlugin {
 }
 
 /**
- * Context object provided to consent plugin hooks
- */
-export interface PluginHookContext {
-	/**
-	 * The path of the current request
-	 */
-	path: string;
-
-	/**
-	 * Geolocation information (added by the geo plugin)
-	 */
-	geo?: {
-		/**
-		 * IP address of the request
-		 */
-		ip: string;
-
-		/**
-		 * Country code (ISO 3166-1 alpha-2)
-		 */
-		country?: string;
-
-		/**
-		 * Region or state code
-		 */
-		region?: string;
-
-		/**
-		 * Source of the geolocation data
-		 */
-		source: string;
-	};
-}
-
-/**
- * Plugin hook definition for consent management
- */
-export interface PluginHook {
-	/**
-	 * A function to determine if this hook should run for the current consent request
-	 */
-	matcher: (context: PluginHookContext) => boolean;
-
-	/**
-	 * The hook handler that runs if matcher returns true
-	 */
-	handler: (context: PluginHookContext) => Promise<void> | void;
-}
-
-/**
  * Core c15t consent plugin interface
  */
 export interface C15TPlugin extends Omit<DoubleTiePlugin, 'endpoints'> {
@@ -200,58 +150,6 @@ export interface C15TPlugin extends Omit<DoubleTiePlugin, 'endpoints'> {
  * C15T consent plugin schema definition
  */
 export type C15TPluginSchema = DoubleTiePluginSchema;
-
-/**
- * Analytics plugin for consent management
- */
-export interface AnalyticsPlugin extends C15TPlugin {
-	type: 'analytics';
-	analyticsOptions?: {
-		/**
-		 * List of consent events to track
-		 */
-		trackingEvents: string[];
-
-		/**
-		 * Whether to anonymize subject data for privacy compliance
-		 */
-		anonymizeData?: boolean;
-	};
-}
-
-/**
- * Geo-targeting plugin for consent management
- */
-export interface GeoPlugin extends C15TPlugin {
-	type: 'geo';
-	geoOptions?: {
-		/**
-		 * Default jurisdiction to use when geolocation fails
-		 */
-		defaultJurisdiction?: string;
-
-		/**
-		 * Service URL for IP address lookups
-		 */
-		ipLookupService?: string;
-	};
-}
-
-/**
- * Type guard for analytics plugins
- */
-export function isAnalyticsPlugin(
-	plugin: C15TPlugin
-): plugin is AnalyticsPlugin {
-	return plugin.type === 'analytics';
-}
-
-/**
- * Type guard for geo plugins
- */
-export function isGeoPlugin(plugin: C15TPlugin): plugin is GeoPlugin {
-	return plugin.type === 'geo';
-}
 
 /**
  * Infer context extensions from a collection of consent plugins

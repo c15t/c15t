@@ -17,7 +17,6 @@ export * from '~/schema/subject';
 export * from '~/schema/consent';
 export * from '~/schema/consent-policy';
 export * from '~/schema/consent-purpose';
-export * from '~/schema/consent-purpose-junction';
 export * from '~/schema/consent-record';
 export * from '~/schema/consent-withdrawal';
 export * from '~/schema/consent-geo-location';

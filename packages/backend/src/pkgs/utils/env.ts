@@ -35,25 +35,6 @@ export const isProduction =
 	typeof process !== 'undefined' && process.env.NODE_ENV === 'production';
 
 /**
- * Determines if the application is running in development mode
- *
- * Checks if NODE_ENV is set to 'development'. This is useful for
- * conditionally enabling debugging features in development environments.
- *
- * @returns Boolean indicating whether the application is running in development mode
- *
- * @example
- * ```ts
- * // Enable development-only features
- * if (isDevelopment) {
- *   enableDebugTools();
- * }
- * ```
- */
-export const isDevelopment =
-	typeof process !== 'undefined' && process.env.NODE_ENV === 'development';
-
-/**
  * Converts a string or boolean value to a boolean
  *
  * @param val - The value to convert to boolean

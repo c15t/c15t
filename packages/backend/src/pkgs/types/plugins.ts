@@ -1,4 +1,3 @@
-import type { UnionToIntersection } from '@better-fetch/fetch';
 import type { H3Event } from 'h3';
 import type { Migration } from 'kysely';
 import type { Field } from '~/pkgs/data-model';
@@ -18,31 +17,6 @@ export interface PluginHookContext {
 	 * The path of the current request
 	 */
 	path: string;
-
-	/**
-	 * Geolocation information (added by the geo plugin)
-	 */
-	geo?: {
-		/**
-		 * IP address of the request
-		 */
-		ip: string;
-
-		/**
-		 * Country code (ISO 3166-1 alpha-2)
-		 */
-		country?: string;
-
-		/**
-		 * Region or state code
-		 */
-		region?: string;
-
-		/**
-		 * Source of the geolocation data
-		 */
-		source: string;
-	};
 }
 
 /**
@@ -218,93 +192,6 @@ export interface DoubleTiePlugin {
 }
 
 /**
- * Extracts type definitions from all plugins in a configuration
- *
- * This utility type extracts the combined type information from all plugins
- * in a DoubleTie configuration, making it available to the type system.
- *
- * @typeParam TOptions - The DoubleTie configuration options type
- */
-export type ExtractPluginTypeDefinitions<TOptions extends DoubleTieOptions> =
-	TOptions['plugins'] extends Array<infer Plugin>
-		? Plugin extends DoubleTiePlugin
-			? Plugin extends { $Infer: infer PluginTypes }
-				? PluginTypes extends Record<string, unknown>
-					? PluginTypes
-					: Record<string, never>
-				: Record<string, never>
-			: Record<string, never>
-		: Record<string, never>;
-
-/**
- * Extracts plugins of a specific type from a configuration
- *
- * This utility type filters plugins from a configuration to only include
- * those matching a specific type.
- *
- * @typeParam O - The DoubleTie configuration options type
- * @typeParam T - The plugin type to extract
- *
- * @example
- * ```ts
- * // Get all analytics plugins from the configuration
- * type AnalyticsPlugins = ExtractPluginType<MyConfig, 'analytics'>;
- * ```
- */
-export type ExtractPluginType<
-	O extends DoubleTieOptions,
-	T extends string,
-> = O['plugins'] extends Array<infer P>
-	? P extends DoubleTiePlugin
-		? P extends { type: T }
-			? P
-			: never
-		: never
-	: never;
-
-/**
- * Plugin factory function type
- *
- * This utility type defines the signature for factory functions that create
- * plugin instances with type safety.
- *
- * @typeParam T - The plugin type to create
- *
- * @example
- * ```ts
- * const createAnalyticsPlugin: PluginFactory<AnalyticsPlugin> =
- *   (options) => ({
- *     id: 'analytics',
- *     type: 'analytics',
- *     name: 'Analytics Plugin',
- *     ...options
- *   });
- * ```
- */
-export type PluginFactory<T extends DoubleTiePlugin> = (
-	options?: Omit<T, 'id' | 'type'> & { id?: string }
-) => T;
-
-/**
- * Extracts error codes from all plugins in a configuration
- *
- * This utility type combines the error codes from all plugins in a configuration
- * to create a complete set of possible error codes.
- *
- * @typeParam O - The DoubleTie configuration options type
- */
-export type InferPluginErrorCodes<O extends DoubleTieOptions> =
-	O['plugins'] extends Array<infer P>
-		? P extends DoubleTiePlugin
-			? P['$ERROR_CODES'] extends infer EC
-				? EC extends Record<string, unknown>
-					? EC
-					: Record<string, never>
-				: Record<string, never>
-			: Record<string, never>
-		: Record<string, never>;
-
-/**
  * Plugin schema definition
  *
  * Defines the database schema extensions that a plugin may require.
@@ -327,87 +214,3 @@ export interface DoubleTiePluginSchema {
 		fields: Record<string, Field>;
 	};
 }
-
-/**
- * Analytics plugin interface
- *
- * Defines the specialized interface for plugins that provide analytics functionality.
- */
-export interface AnalyticsPlugin extends DoubleTiePlugin {
-	type: 'analytics';
-	analyticsOptions?: {
-		/**
-		 * List of events to track
-		 */
-		trackingEvents: string[];
-
-		/**
-		 * Whether to anonymize subject data
-		 */
-		anonymizeData?: boolean;
-	};
-}
-
-/**
- * Geolocation plugin interface
- *
- * Defines the specialized interface for plugins that provide geolocation functionality.
- */
-export interface GeoPlugin extends DoubleTiePlugin {
-	type: 'geo';
-	geoOptions?: {
-		/**
-		 * Default jurisdiction to use when geolocation fails
-		 */
-		defaultJurisdiction?: string;
-
-		/**
-		 * Service URL for IP address lookups
-		 */
-		ipLookupService?: string;
-	};
-}
-
-/**
- * Type guard for analytics plugins
- *
- * @param plugin - The plugin to check
- * @returns True if the plugin is an analytics plugin
- */
-export function isAnalyticsPlugin(
-	plugin: DoubleTiePlugin
-): plugin is AnalyticsPlugin {
-	return plugin.type === 'analytics';
-}
-
-/**
- * Type guard for geolocation plugins
- *
- * @param plugin - The plugin to check
- * @returns True if the plugin is a geolocation plugin
- */
-export function isGeoPlugin(plugin: DoubleTiePlugin): plugin is GeoPlugin {
-	return plugin.type === 'geo';
-}
-
-/**
- * Infers the combined context extensions from an array of plugins
- *
- * This utility type extracts and combines all context extensions provided
- * by an array of plugins.
- *
- * @typeParam PluginArray - Array of plugin types
- */
-export type InferPluginContexts<PluginArray extends DoubleTiePlugin[]> =
-	UnionToIntersection<
-		PluginArray extends Array<infer SinglePlugin>
-			? SinglePlugin extends DoubleTiePlugin
-				? SinglePlugin extends { $InferContext: infer ContextType }
-					? ContextType extends Record<string, unknown>
-						? ContextType
-						: Record<string, never>
-					: Record<string, never>
-				: Record<string, never>
-			: Record<string, never>
-	> &
-		Record<string, unknown>;

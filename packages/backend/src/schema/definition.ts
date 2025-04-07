@@ -5,7 +5,6 @@ import type { C15TOptions } from '~/types';
 import { getAuditLogTable } from './audit-log/table';
 import { getConsentGeoLocationTable } from './consent-geo-location/table';
 import { getConsentPolicyTable } from './consent-policy/table';
-import { getPurposeJunctionTable } from './consent-purpose-junction/table';
 import { getPurposeTable } from './consent-purpose/table';
 import { getConsentRecordTable } from './consent-record/table';
 import { getConsentWithdrawalTable } from './consent-withdrawal/table';
@@ -79,10 +78,6 @@ export const getConsentTables = (options: C15TOptions) => {
 		consentPolicy: getConsentPolicyTable(options, consentPolicy?.fields),
 		domain: getDomainTable(options, domain?.fields),
 		consent: getConsentTable(options, consent?.fields),
-		consentPurposeJunction: getPurposeJunctionTable(
-			options,
-			consentPurposeJunction?.fields
-		),
 		consentRecord: getConsentRecordTable(options, record?.fields),
 		consentGeoLocation: getConsentGeoLocationTable(
 			options,
@@ -132,16 +127,6 @@ export type C15TDBSchema = ReturnType<typeof getConsentTables>;
  */
 export type EntityOutputFields<TableName extends keyof C15TDBSchema> =
 	InferTableShape<TableName>;
-
-/**
- * Type to get all input fields of a table by its name
- * This type extracts only the fields that are allowed for input operations,
- * automatically excluding fields marked with { input: false }.
- */
-export type EntityInputFields<TableName extends keyof C15TDBSchema> = Omit<
-	InferTableShape<TableName>,
-	'id' | 'createdAt' | 'updatedAt'
->;
 
 /**
  * Validates output data against table schema using Zod

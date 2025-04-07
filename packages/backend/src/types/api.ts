@@ -1,13 +1,4 @@
 /**
- * API Types for c15t Consent Management
- *
- * Extends DoubleTie API types with definitions specific to consent management,
- * including consent-related API routes, request handlers, and endpoint configuration.
- */
-
-import type { Endpoint } from '~/pkgs/types/endpoints';
-
-/**
  * Base API path template literal for c15t consent endpoints
  *
  * This type defines the base path for all consent API routes in the c15t system.
@@ -40,38 +31,3 @@ export type ApiPath =
 	| `${ApiPathBase}/jurisdictions`
 	| `${ApiPathBase}/jurisdictions/:code`
 	| `${ApiPathBase}/plugins/:id`;
-
-/**
- * Strongly-typed middleware configuration for consent API
- *
- * Defines the structure for consent API middleware registrations,
- * ensuring that both the path and middleware function are properly typed.
- *
- * @see ApiPath for valid consent path patterns
- *
- * @example
- * ```ts
- * // Register a middleware for the consent endpoint
- * const authMiddleware: ApiMiddleware = {
- *   path: '/api/c15t/consent',
- *   middleware: async (ctx, next) => {
- *     // Verify authentication
- *     if (!ctx.request.headers.get('Authorization')) {
- *       return ctx.json({ error: 'Unauthorized' }, { status: 401 });
- *     }
- *     return next();
- *   }
- * };
- * ```
- */
-export interface ApiMiddleware {
-	/**
-	 * The consent API path to apply this middleware to
-	 */
-	path: ApiPath;
-
-	/**
-	 * The middleware function to execute
-	 */
-	middleware: Endpoint;
-}

@@ -3,7 +3,6 @@ import type { RegistryContext } from '~/pkgs/types';
 import {
 	auditLogRegistry,
 	consentGeoLocationRegistry,
-	consentPurposeJunctionRegistry,
 	consentPurposeRegistry,
 	consentRecordRegistry,
 	consentRegistry,
@@ -21,7 +20,6 @@ export const createRegistry = (ctx: RegistryContext) => {
 		...domainRegistry(ctx),
 		...geoLocationRegistry(ctx),
 		...consentGeoLocationRegistry(ctx),
-		...consentPurposeJunctionRegistry(ctx),
 		...consentPurposeRegistry(ctx),
 		...policyRegistry(ctx),
 		...consentRecordRegistry(ctx),

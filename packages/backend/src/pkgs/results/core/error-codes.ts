@@ -160,11 +160,6 @@ export const ERROR_CATEGORIES = Object.freeze({
 });
 
 /**
- * Type containing all possible error codes from the ERROR_CODES object
- */
-export type ErrorCode = keyof typeof ERROR_CODES;
-
-/**
  * Utility function to create custom error categories
  *
  * @param categories - Record of category names and their string values

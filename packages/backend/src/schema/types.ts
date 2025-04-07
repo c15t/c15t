@@ -10,7 +10,6 @@ import type { Field } from '~/pkgs/data-model';
 import type { AuditLogEntityConfig } from './audit-log/types';
 import type { ConsentGeoLocationEntityConfig } from './consent-geo-location/types';
 import type { ConsentPolicyEntityConfig } from './consent-policy/types';
-import type { ConsentPurposeJunctionEntityConfig } from './consent-purpose-junction/types';
 import type { ConsentPurposeEntityConfig } from './consent-purpose/types';
 import type { ConsentRecordEntityConfig } from './consent-record/types';
 import type { ConsentWithdrawalEntityConfig } from './consent-withdrawal/types';
@@ -111,12 +110,6 @@ export interface TablesConfig {
 	consent?: ConsentEntityConfig;
 
 	/**
-	 * ConsentPurpose junction configuration
-	 * @default entityName: "consentPurposeJunction", entityPrefix: "pjx"
-	 */
-	consentPurposeJunction?: ConsentPurposeJunctionEntityConfig;
-
-	/**
 	 * Consent geo location configuration
 	 * @default entityName: "consentGeoLocation", entityPrefix: "cgl"
 	 */
@@ -146,7 +139,6 @@ export type { ConsentEntityConfig } from './consent/types';
 export type { ConsentGeoLocationEntityConfig } from './consent-geo-location/types';
 export type { ConsentPolicyEntityConfig } from './consent-policy/types';
 export type { ConsentPurposeEntityConfig } from './consent-purpose/types';
-export type { ConsentPurposeJunctionEntityConfig } from './consent-purpose-junction/types';
 export type { ConsentRecordEntityConfig } from './consent-record/types';
 export type { ConsentWithdrawalEntityConfig } from './consent-withdrawal/types';
 export type { DomainEntityConfig } from './domain/types';

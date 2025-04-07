@@ -14,19 +14,10 @@ export type { C15TContext } from './context';
 export type { C15TPlugin, C15TPluginSchema } from './plugins';
 
 // Export consent management specific types
-export type {
-	PluginHookContext,
-	PluginHook,
-	AnalyticsPlugin,
-	GeoPlugin,
-	isAnalyticsPlugin,
-	isGeoPlugin,
-	InferPluginContexts,
-} from './plugins';
+export type { InferPluginContexts } from './plugins';
 
 // Export API specific types
 export type {
 	ApiPath,
 	ApiPathBase,
-	ApiMiddleware,
 } from './api';
