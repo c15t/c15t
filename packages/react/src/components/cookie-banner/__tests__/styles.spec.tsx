@@ -1,8 +1,29 @@
 import { test } from 'vitest';
+import { vi } from 'vitest';
 import { CookieBanner } from '~/components/cookie-banner/cookie-banner';
 import type { ThemeValue } from '~/types/theme';
+import testComponentStyles from '~/utils/test-helpers';
 import type { CookieBannerTheme } from '../theme';
-import testComponentStyles from './utils';
+
+vi.mock('~/hooks/use-consent-manager', () => ({
+	useConsentManager: () => ({
+		showPopup: true,
+		...vi.fn(),
+	}),
+}));
+
+// Mock the useTranslations hook
+vi.mock('~/hooks/use-translations', () => ({
+	useTranslations: () => ({
+		cookieBanner: {
+			title: 'Cookie Settings',
+			description: 'We use cookies to enhance your experience',
+			acceptAll: 'Accept All',
+			rejectAll: 'Reject All',
+			customize: 'Customize',
+		},
+	}),
+}));
 
 type ComponentTestCase = {
 	testId: string;

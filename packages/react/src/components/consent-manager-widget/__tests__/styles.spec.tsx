@@ -1,8 +1,8 @@
 import { test } from 'vitest';
 import { ConsentManagerWidget } from '~/components/consent-manager-widget/consent-manager-widget';
 import type { ThemeValue } from '~/types/theme';
+import testComponentStyles from '~/utils/test-helpers';
 import type { ConsentManagerWidgetTheme } from '../theme';
-import testComponentStyles from './utils';
 
 type ComponentTestCase = {
 	testId: string;
