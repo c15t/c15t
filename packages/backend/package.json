@@ -14,25 +14,15 @@
 			"import": "./dist/schema/index.js",
 			"require": "./dist/schema/index.cjs"
 		},
-		"./integrations": {
-			"types": "./dist/integrations/index.d.ts",
-			"import": "./dist/integrations/index.js",
-			"require": "./dist/integrations/index.cjs"
-		},
 		"./integrations/next": {
 			"types": "./dist/integrations/next.d.ts",
 			"import": "./dist/integrations/next.js",
 			"require": "./dist/integrations/next.cjs"
 		},
-		"./integrations/hono": {
-			"types": "./dist/integrations/hono.d.ts",
-			"import": "./dist/integrations/hono.js",
-			"require": "./dist/integrations/hono.cjs"
-		},
-		"./integrations/express": {
-			"types": "./dist/integrations/express.d.ts",
-			"import": "./dist/integrations/express.js",
-			"require": "./dist/integrations/express.cjs"
+		"./integrations/cloudflare": {
+			"types": "./dist/integrations/cloudflare.d.ts",
+			"import": "./dist/integrations/cloudflare.js",
+			"require": "./dist/integrations/cloudflare.cjs"
 		},
 		"./pkgs/data-model/fields": {
 			"types": "./dist/pkgs/data-model/fields/index.d.ts",
@@ -116,9 +106,7 @@
 		"better-sqlite3": "^11.8.1",
 		"defu": "^6.1.4",
 		"drizzle-orm": "^0.40.0",
-		"express": "^5.1.0",
 		"h3": "^1.15.1",
-		"hono": "^4.7.4",
 		"kysely": "^0.27.6",
 		"mysql2": "^3.13.0",
 		"neverthrow": "^8.2.0",

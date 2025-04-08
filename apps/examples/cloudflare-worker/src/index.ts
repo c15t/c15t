@@ -1,5 +1,5 @@
 import { c15tInstance } from '@c15t/backend';
-import { toCloudflareHandler } from '@c15t/backend/integrations';
+import { toCloudflareHandler } from '@c15t/backend/integrations/cloudflare';
 import { LibsqlDialect } from '@libsql/kysely-libsql';
 
 /**
@@ -18,7 +18,7 @@ const handler = (env: Env) => {
 			authToken: env.TURSO_AUTH_TOKEN,
 		}),
 		basePath: '/',
-		trustedOrigins: ['http://localhost:3000', 'https://example.com'],
+		trustedOrigins: env.TRUSTED_ORIGINS,
 		cors: true,
 		advanced: {
 			cors: {
@@ -41,16 +41,6 @@ const handler = (env: Env) => {
 // Export the fetch handler for Cloudflare Workers
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		// Handle healthcheck requests directly
-		if (new URL(request.url).pathname === '/health') {
-			return new Response(JSON.stringify({ status: 'ok' }), {
-				headers: {
-					'Content-Type': 'application/json',
-				},
-			});
-		}
-
-		// Let c15t handle all other requests
 		return handler(env)(request);
 	},
 };
@@ -59,4 +49,5 @@ export default {
 interface Env {
 	TURSO_DATABASE_URL: string;
 	TURSO_AUTH_TOKEN: string;
+	TRUSTED_ORIGINS: string[];
 }

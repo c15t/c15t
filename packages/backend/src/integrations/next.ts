@@ -3,6 +3,24 @@ import { ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext } from '~/types';
 
 /**
+ * Type definition for a Next.js route handler function
+ */
+type RouteHandler = (request: Request) => Promise<Response>;
+
+/**
+ * Type definition for Next.js route handlers object
+ */
+type NextRouteHandlers = {
+	GET: RouteHandler;
+	POST: RouteHandler;
+	PUT: RouteHandler;
+	DELETE: RouteHandler;
+	OPTIONS: RouteHandler;
+	HEAD: RouteHandler;
+	PATCH: RouteHandler;
+};
+
+/**
  * Convert a c15t handler to a Next.js route handler.
  *
  * This adapter converts between standard Web API and c15t, letting c15t/H3 handle
@@ -12,24 +30,25 @@ import type { C15TContext } from '~/types';
  * ```typescript
  * import { toNextHandler } from '@c15t/backend/integrations';
  * import { c15t } from '@/c15t';
- * 
+ *
  * // app/api/c15t/[...paths]/route.ts
  * export const { GET, POST } = toNextHandler(c15t);
  * ```
- * 
+ *
  * @param instance - The c15t instance to adapt
  * @returns An object with Next.js route handler functions for each method
  */
-export function toNextHandler(instance: C15TInstance) {
+export function toNextHandler(instance: C15TInstance): NextRouteHandlers {
 	// Create the base handler that processes requests
 	const handleRequest = async (request: Request) => {
 		try {
-			const basePath: string = instance.options?.basePath as string || '/api/c15t';
-			
+			const basePath: string =
+				(instance.options?.basePath as string) || '/api/c15t';
+
 			// Extract the path and rewrite for c15t routing
 			const originalUrl = new URL(request.url);
 			let pathWithoutBase = originalUrl.pathname;
-			
+
 			if (pathWithoutBase.startsWith(basePath)) {
 				pathWithoutBase = pathWithoutBase.substring(basePath.length);
 				// Ensure leading slash
@@ -37,11 +56,11 @@ export function toNextHandler(instance: C15TInstance) {
 					pathWithoutBase = `/${pathWithoutBase}`;
 				}
 			}
-			
+
 			// Create rewritten request
 			const rewrittenUrl = new URL(originalUrl.toString());
 			rewrittenUrl.pathname = pathWithoutBase;
-			
+
 			const rewrittenRequest = new Request(rewrittenUrl.toString(), {
 				method: request.method,
 				headers: request.headers,
@@ -49,13 +68,13 @@ export function toNextHandler(instance: C15TInstance) {
 				// Preserve request properties
 				credentials: 'include',
 			});
-			
+
 			// Update baseURL for proper URL generation in responses
 			await updateBaseUrl(request, basePath);
-			
+
 			// Let c15t handle the request
 			const result = await instance.handler(rewrittenRequest);
-			
+
 			// Return the response directly - Next.js supports standard Response objects
 			return await result.match(
 				// Success case - just return the response
@@ -64,7 +83,7 @@ export function toNextHandler(instance: C15TInstance) {
 				(error) => {
 					const status = error.statusCode || 500;
 					const message = error.message || ERROR_CODES.INTERNAL_SERVER_ERROR;
-					
+
 					return new Response(
 						JSON.stringify({
 							error: true,
@@ -110,21 +129,23 @@ export function toNextHandler(instance: C15TInstance) {
 		HEAD: handleRequest,
 		PATCH: handleRequest,
 	};
-	
+
 	async function updateBaseUrl(
-		request: Request, 
+		request: Request,
 		basePath: string
 	): Promise<void> {
-		if (!instance.$context) { return; }
-		
+		if (!instance.$context) {
+			return;
+		}
+
 		try {
 			const contextResult = await instance.$context;
-			
+
 			contextResult.match(
 				(context: C15TContext) => {
 					const url = new URL(request.url);
 					const baseURL = `${url.protocol}//${url.host}${basePath}`;
-					
+
 					if (!context.baseURL || context.baseURL !== baseURL) {
 						context.baseURL = baseURL;
 						if (context.options) {
@@ -141,8 +162,16 @@ export function toNextHandler(instance: C15TInstance) {
 }
 
 /**
+ * Type definition for a simpler Next.js route handlers object
+ */
+type SimpleNextRouteHandlers = {
+	GET: RouteHandler;
+	POST: RouteHandler;
+};
+
+/**
  * Alternative Next.js route handler that works with any handler function.
- * 
+ *
  * This utility function helps create Next.js App Router route handlers
  * from any function that accepts a Request and returns a Response.
  *
@@ -160,7 +189,7 @@ export function toNextHandler(instance: C15TInstance) {
  *   return new Response('Hello World');
  * });
  * ```
- * 
+ *
  * @param auth - Either a function or an object with a handler method
  * @returns An object with GET and POST methods for Next.js App Router
  */
@@ -169,10 +198,10 @@ export function toNextJsHandler(
 		| {
 				handler: (request: Request) => Promise<Response>;
 		  }
-		| ((request: Request) => Promise<Response>),
-) {
+		| ((request: Request) => Promise<Response>)
+): SimpleNextRouteHandlers {
 	const handler = async (request: Request) => {
-		return "handler" in auth ? auth.handler(request) : auth(request);
+		return 'handler' in auth ? auth.handler(request) : auth(request);
 	};
 	return {
 		GET: handler,
