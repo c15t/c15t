@@ -193,13 +193,17 @@ export function toCloudflareHandler(instance: C15TInstance) {
 		origin: string | null,
 		instance: C15TInstance
 	): boolean {
-		if (!origin) { return false; }
+		if (!origin) {
+			return false;
+		}
 
 		// If no trusted origins are defined, none are trusted
 		const { trustedOrigins = [] } = instance.options || {};
 
 		// If wildcard is included, all origins are trusted
-		if (trustedOrigins.includes('*')) { return true; }
+		if (trustedOrigins.includes('*')) {
+			return true;
+		}
 
 		// Check if origin is in trusted list
 		return trustedOrigins.includes(origin);
@@ -212,7 +216,9 @@ export function toCloudflareHandler(instance: C15TInstance) {
 		request: Request,
 		basePath: string
 	): Promise<void> {
-		if (!instance.$context) { return; }
+		if (!instance.$context) {
+			return;
+		}
 
 		try {
 			const contextResult = await instance.$context;

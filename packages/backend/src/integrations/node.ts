@@ -112,7 +112,9 @@ export function toNodeHandler(instance: C15TInstance) {
 		request: Request,
 		basePath: string
 	): Promise<void> {
-		if (!instance.$context) return;
+		if (!instance.$context) {
+			return;
+		}
 
 		try {
 			const contextResult = await instance.$context;

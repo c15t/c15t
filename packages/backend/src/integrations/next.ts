@@ -162,14 +162,6 @@ export function toNextHandler(instance: C15TInstance): NextRouteHandlers {
 }
 
 /**
- * Type definition for a simpler Next.js route handlers object
- */
-type SimpleNextRouteHandlers = {
-	GET: RouteHandler;
-	POST: RouteHandler;
-};
-
-/**
  * Alternative Next.js route handler that works with any handler function.
  *
  * This utility function helps create Next.js App Router route handlers
