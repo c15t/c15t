@@ -231,7 +231,7 @@ export class C15tClient implements ConsentManagerInterface {
 
 		const requestOptions: RequestInit = {
 			method: options?.method || 'GET',
-      mode: 'cors',
+			mode: 'cors',
 			headers: {
 				...this.headers,
 				'X-Request-ID': requestId,
