@@ -6,7 +6,7 @@
 
 import { createStore } from 'zustand/vanilla';
 
-import { ConsentManagerInterface } from './client';
+import { ConsentManagerInterface } from './client/client-factory';
 import {
 	getEffectiveConsents,
 	hasConsentFor,
@@ -16,8 +16,12 @@ import { createTrackingBlocker } from './libs/tracking-blocker';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
 import { initialState } from './store.initial-state';
 import type { PrivacyConsentState } from './store.type';
-import type { ConsentBannerResponse, ConsentState } from './types/compliance';
-import { consentTypes } from './types/gdpr';
+import type {
+	ComplianceSettings,
+	ConsentBannerResponse,
+	ConsentState,
+} from './types/compliance';
+import { AllConsentNames, consentTypes } from './types/gdpr';
 import type { TranslationConfig } from './types/translations';
 
 /** Storage key for persisting consent data in localStorage */
@@ -75,16 +79,36 @@ const getStoredConsent = (): StoredConsent | null => {
  *
  * @remarks
  * These options control the behavior of the store,
- * including tracking blocker configuration and API endpoints.
+ * including initialization, tracking blocker, and persistence.
  *
  * @public
  */
-export interface StoreConfig {
+export interface StoreOptions {
+	/**
+	 * Custom namespace for the store instance.
+	 * @default 'c15tStore'
+	 */
+	namespace?: string;
+
+	/**
+	 * Initial GDPR consent types to activate.
+	 */
+	initialGdprTypes?: AllConsentNames[];
+
+	/**
+	 * Initial compliance settings for different regions.
+	 */
+	initialComplianceSettings?: Record<string, Partial<ComplianceSettings>>;
+
 	/**
 	 * Configuration for the tracking blocker.
 	 */
 	trackingBlockerConfig?: TrackingBlockerConfig;
 }
+
+// For backward compatibility (if needed)
+export interface StoreConfig
+	extends Pick<StoreOptions, 'trackingBlockerConfig'> {}
 
 /**
  * Creates a new consent manager store instance.
@@ -130,9 +154,15 @@ export interface StoreConfig {
  */
 export const createConsentManagerStore = (
 	manager: ConsentManagerInterface,
-	namespace: string | undefined = 'c15tStore',
-	config?: StoreConfig
+	options: StoreOptions = {}
 ) => {
+	const {
+		namespace = 'c15tStore',
+		trackingBlockerConfig,
+		initialGdprTypes,
+		initialComplianceSettings,
+	} = options;
+
 	// Load initial state from localStorage if available
 	const storedConsent = getStoredConsent();
 
@@ -140,7 +170,7 @@ export const createConsentManagerStore = (
 	const trackingBlocker =
 		typeof window !== 'undefined'
 			? createTrackingBlocker(
-					config?.trackingBlockerConfig || {},
+					trackingBlockerConfig || {},
 					storedConsent?.consents || initialState.consents
 				)
 			: null;

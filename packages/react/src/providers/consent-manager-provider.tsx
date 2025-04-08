@@ -4,6 +4,7 @@ import {
 	type ComplianceRegion,
 	type PrivacyConsentState,
 	type StoreConfig,
+	configureConsentManager,
 	createConsentManagerStore,
 	defaultTranslationConfig,
 } from 'c15t';
@@ -28,28 +29,59 @@ import { useColorScheme } from '../hooks/use-color-scheme';
  * @remarks
  * This component initializes and manages the consent management system, including:
  * - Setting up the consent store with initial configuration
- * - Using the provided API client instance
+ * - Creating a consent manager from the provided options
  * - Detecting user's region for compliance
  * - Managing consent state updates
  * - Providing access to consent management throughout the app
+ *
+ * @example
+ * ```tsx
+ * <ConsentManagerProvider
+ *   options={{
+ *     mode: 'offline',
+ *     callbacks: {
+ *       onConsentSet: (response) => console.log('Consent updated')
+ *     }
+ *   }}
+ * >
+ *   {children}
+ * </ConsentManagerProvider>
+ * ```
  *
  * @public
  */
 export function ConsentManagerProvider({
 	children,
-	initialGdprTypes,
-	initialComplianceSettings,
-	namespace = 'c15tStore',
-	noStyle = false,
-	translationConfig,
-	trackingBlockerConfig,
-	manager,
-	theme,
-	disableAnimation = false,
-	scrollLock = false,
-	trapFocus = true,
-	colorScheme = 'system',
+	options,
 }: ConsentManagerProviderProps) {
+	// Extract options with defaults
+	const {
+		// Get store options
+		store = {},
+		// Get translation config
+		translations: translationConfig,
+		// Get React UI options
+		react = {},
+		// The rest are core options
+		...coreOptions
+	} = options;
+
+	const {
+		initialGdprTypes,
+		initialComplianceSettings,
+		namespace = 'c15tStore',
+		trackingBlockerConfig,
+	} = store;
+
+	const {
+		theme,
+		disableAnimation = false,
+		scrollLock = false,
+		trapFocus = true,
+		colorScheme = 'system',
+		noStyle = false,
+	} = react;
+
 	const preparedTranslationConfig = useMemo(() => {
 		const mergedConfig = mergeTranslationConfigs(
 			defaultTranslationConfig,
@@ -63,27 +95,34 @@ export function ConsentManagerProvider({
 		return { ...mergedConfig, defaultLanguage };
 	}, [translationConfig]);
 
+	// Create the consent manager
+	const consentManager = useMemo(() => {
+		if (!options) {
+			throw new Error('ConsentManagerProvider requires options to be provided');
+		}
+		return configureConsentManager(coreOptions);
+	}, [coreOptions]);
+
 	// Create a stable reference to the store with prepared translation config
-	const store = useMemo(() => {
-		// Create the store
-		const storeConfig: StoreConfig = {
-			trackingBlockerConfig,
+	const consentStore = useMemo(() => {
+		// Pass the entire store options object
+		const storeWithTranslations = {
+			...store,
+			// Inject the prepared translation config
+			translationConfig: preparedTranslationConfig,
 		};
 
-		const store = createConsentManagerStore(manager, namespace, storeConfig);
-
-		// Set translation config immediately
-		store.getState().setTranslationConfig(preparedTranslationConfig);
-
-		return store;
-	}, [namespace, preparedTranslationConfig, trackingBlockerConfig, manager]);
+		return createConsentManagerStore(consentManager, storeWithTranslations);
+	}, [store, preparedTranslationConfig, consentManager]);
 
 	// Initialize state with the current state from the consent manager store
-	const [state, setState] = useState<PrivacyConsentState>(store.getState());
+	const [state, setState] = useState<PrivacyConsentState>(
+		consentStore.getState()
+	);
 
 	useEffect(() => {
 		const { setGdprTypes, setComplianceSetting, setDetectedCountry } =
-			store.getState();
+			consentStore.getState();
 
 		// Initialize GDPR types if provided
 		if (initialGdprTypes) {
@@ -107,24 +146,26 @@ export function ConsentManagerProvider({
 		setDetectedCountry(country);
 
 		// Subscribe to state changes
-		const unsubscribe = store.subscribe((newState: PrivacyConsentState) => {
-			setState(newState);
-		});
+		const unsubscribe = consentStore.subscribe(
+			(newState: PrivacyConsentState) => {
+				setState(newState);
+			}
+		);
 
 		// Cleanup subscription on unmount
 		return () => {
 			unsubscribe();
 		};
-	}, [store, initialGdprTypes, initialComplianceSettings]);
+	}, [consentStore, initialGdprTypes, initialComplianceSettings]);
 
 	// Memoize the context value to prevent unnecessary re-renders
 	const contextValue = useMemo(
 		() => ({
 			state,
-			store,
-			manager,
+			store: consentStore,
+			manager: consentManager,
 		}),
-		[state, store, manager]
+		[state, consentStore, consentManager]
 	);
 
 	// Pass theme context values

@@ -1,4 +1,3 @@
-import { configureConsentManager } from 'c15t';
 import type { ReactNode } from 'react';
 import { expect } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -13,9 +12,6 @@ interface ComponentStyles {
 	}[];
 	noStyle?: boolean;
 }
-const consentManager = configureConsentManager({
-	backendURL: '/api/c15t',
-});
 
 async function testComponentStyles({
 	component,
@@ -23,7 +19,14 @@ async function testComponentStyles({
 	noStyle = false,
 }: ComponentStyles) {
 	const { getByTestId } = render(
-		<ConsentManagerProvider manager={consentManager}>
+		<ConsentManagerProvider
+			options={{
+				mode: 'offline',
+				react: {
+					noStyle,
+				},
+			}}
+		>
 			{component}
 		</ConsentManagerProvider>
 	);

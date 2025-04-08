@@ -160,7 +160,7 @@ export * from './types/compliance';
 
 // Export store
 export { createConsentManagerStore } from './store';
-export type { StoreConfig } from './store';
+export type { StoreConfig, StoreOptions } from './store';
 export type { PrivacyConsentState } from './store.type';
 
 // Export tracking blocker

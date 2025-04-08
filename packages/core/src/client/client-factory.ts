@@ -12,6 +12,7 @@ import type {
 	VerifyConsentResponse,
 } from '@c15t/backend';
 
+import { StoreOptions } from '../store';
 import { C15tClient } from './client-c15t';
 import { CustomClient, EndpointHandlers } from './client-custom';
 import {
@@ -38,6 +39,7 @@ export type ConsentManagerOptions = {
 	 * Client callbacks
 	 */
 	callbacks?: ConsentManagerCallbacks;
+	store?: StoreOptions;
 } & (
 	| {
 			/**

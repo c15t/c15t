@@ -15,7 +15,7 @@ import { ConsentStateContext } from '../context/consent-manager-context';
  * - Methods to update consents
  * - Compliance settings and region detection
  * - State persistence and retrieval
- * - The API client (if configured)
+ * - The consent manager (if configured)
  *
  * The hook must be used within a ConsentManagerProvider component.
  *
@@ -40,7 +40,7 @@ export function useConsentManager() {
 	return {
 		...context.state,
 		...storeState,
-		// Include client in returned object if available
+		// Include manager in returned object if available
 		...(context.manager ? { manager: context.manager } : {}),
 	};
 }
