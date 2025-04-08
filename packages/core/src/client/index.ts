@@ -4,10 +4,10 @@
  */
 
 export {
-	createConsentClient,
-	type ConsentClientOptions,
-	type ConsentClientInterface,
-	type ConsentClientCallbacks,
+	configureConsentManager,
+	type ConsentManagerOptions,
+	type ConsentManagerInterface,
+	type ConsentManagerCallbacks,
 	type EndpointHandlers,
 } from './client-factory';
 

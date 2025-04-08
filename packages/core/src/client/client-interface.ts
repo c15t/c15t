@@ -20,7 +20,7 @@ import type { FetchOptions, ResponseContext } from './types';
  * This interface defines the standard methods for interacting with
  * consent management functionality, regardless of implementation.
  */
-export interface ConsentClientInterface {
+export interface ConsentManagerInterface {
 	/**
 	 * Checks if a consent banner should be shown.
 	 *
@@ -81,7 +81,7 @@ export interface ConsentClientInterface {
 /**
  * Base callback configuration for consent clients
  */
-export interface ConsentClientCallbacks {
+export interface ConsentManagerCallbacks {
 	/**
 	 * Called when an API request fails.
 	 * @param response - The full response context with error information

@@ -35,11 +35,11 @@ export function useConsentClient() {
 		);
 	}
 
-	if (context.client === null) {
+	if (context.manager === null) {
 		throw new Error(
 			'No API client available. Make sure to provide clientOptions to ConsentManagerProvider.'
 		);
 	}
 
-	return context.client;
+	return context.manager;
 }

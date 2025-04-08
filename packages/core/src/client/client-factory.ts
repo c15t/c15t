@@ -15,24 +15,29 @@ import type {
 import { C15tClient } from './client-c15t';
 import { CustomClient, EndpointHandlers } from './client-custom';
 import {
-	ConsentClientCallbacks,
-	ConsentClientInterface,
+	ConsentManagerCallbacks,
+	ConsentManagerInterface,
 } from './client-interface';
 import type { FetchOptions, ResponseContext } from './types';
 
 /**
- * Default consent banner API URL
+ * Default API endpoint URL
  */
 const DEFAULT_BACKEND_URL = '/api/c15t';
 
 /**
+ * Default client mode
+ */
+const DEFAULT_CLIENT_MODE = 'c15t';
+
+/**
  * Union type of all possible client options
  */
-export type ConsentClientOptions = {
+export type ConsentManagerOptions = {
 	/**
 	 * Client callbacks
 	 */
-	callbacks?: ConsentClientCallbacks;
+	callbacks?: ConsentManagerCallbacks;
 } & (
 	| {
 			/**
@@ -52,14 +57,14 @@ export type ConsentClientOptions = {
 	  }
 	| {
 			/**
-			 * C15t mode (default)
+			 * C15t mode (default) - requires a backend URL
 			 */
 			mode?: 'c15t';
 
 			/**
 			 * Backend URL for API endpoints
 			 */
-			backendURL?: string | false;
+			backendURL: string;
 
 			/**
 			 * Additional HTTP headers
@@ -71,46 +76,70 @@ export type ConsentClientOptions = {
 			 */
 			customFetch?: typeof fetch;
 	  }
+	| {
+			/**
+			 * Offline mode - disables all API requests
+			 */
+			mode: 'offline';
+
+			/**
+			 * Not used in offline mode
+			 */
+			backendURL?: never;
+
+			/**
+			 * Additional HTTP headers (not used in offline mode)
+			 */
+			headers?: never;
+
+			/**
+			 * Custom fetch implementation (not used in offline mode)
+			 */
+			customFetch?: never;
+	  }
 );
 
 /**
  * Creates a new consent management client.
  *
  * This factory function creates the appropriate client implementation based on
- * the provided options. It supports two main operating modes:
+ * the provided options. It supports three main operating modes:
  *
  * 1. C15t mode - Makes actual HTTP requests to a consent management backend
  * 2. Custom mode - Uses provided handler functions instead of HTTP requests
+ * 3. Offline mode - Disables all API requests and returns empty successful responses
  *
  * @param options - Configuration options for the client
- * @returns A client instance that implements the ConsentClientInterface
+ * @returns A client instance that implements the ConsentManagerInterface
  *
  * @example
- * Basic C15t client with default backend URL:
+ * Basic C15t client with backend URL:
  * ```typescript
- * const client = createConsentClient({});
+ * const client = configureConsentManager({
+ *   backendURL: '/api/c15t'
+ * });
  * ```
  *
  * @example
  * C15t client with custom backend URL:
  * ```typescript
- * const client = createConsentClient({
+ * const client = configureConsentManager({
  *   backendURL: 'https://api.example.com/consent'
  * });
  * ```
  *
  * @example
- * Disabled C15t client (for testing):
+ * Offline client (for testing):
  * ```typescript
- * const client = createConsentClient({
- *   backendURL: false
+ * const client = configureConsentManager({
+ *   mode: 'offline'
  * });
  * ```
  *
  * @example
  * Custom client with handler functions:
  * ```typescript
- * const client = createConsentClient({
+ * const client = configureConsentManager({
  *   mode: 'custom',
  *   endpointHandlers: {
  *     showConsentBanner: async () => ({
@@ -135,33 +164,39 @@ export type ConsentClientOptions = {
  * });
  * ```
  */
-export function createConsentClient(
-	options: ConsentClientOptions
-): ConsentClientInterface {
-	if (options.mode === 'custom') {
-		// Create a custom client with the provided handlers
-		return new CustomClient({
-			endpointHandlers: options.endpointHandlers,
-			callbacks: options.callbacks,
-		});
-	} else {
-		// Create a C15t client with the provided options
-		return new C15tClient({
-			backendURL:
-				options.backendURL === undefined
-					? DEFAULT_BACKEND_URL
-					: options.backendURL,
-			headers: options.headers,
-			customFetch: options.customFetch,
-			callbacks: options.callbacks,
-		});
+export function configureConsentManager(
+	options: ConsentManagerOptions
+): ConsentManagerInterface {
+	// Determine the client mode, with fallback to default
+	const mode = options.mode || DEFAULT_CLIENT_MODE;
+
+	// Create the appropriate client based on the mode
+	switch (mode) {
+		case 'custom':
+			return new CustomClient({
+				endpointHandlers: (options as any).endpointHandlers,
+				callbacks: options.callbacks,
+			});
+		case 'offline':
+			return new C15tClient({
+				backendURL: false,
+				callbacks: options.callbacks,
+			});
+		case 'c15t':
+		default:
+			return new C15tClient({
+				backendURL: (options as any).backendURL || DEFAULT_BACKEND_URL,
+				headers: (options as any).headers,
+				customFetch: (options as any).customFetch,
+				callbacks: options.callbacks,
+			});
 	}
 }
 
 // Re-export core types for convenience
 export type {
-	ConsentClientInterface,
-	ConsentClientCallbacks,
+	ConsentManagerInterface,
+	ConsentManagerCallbacks,
 	EndpointHandlers,
 	ResponseContext,
 	FetchOptions,

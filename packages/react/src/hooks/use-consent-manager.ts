@@ -41,6 +41,6 @@ export function useConsentManager() {
 		...context.state,
 		...storeState,
 		// Include client in returned object if available
-		...(context.client ? { client: context.client } : {}),
+		...(context.manager ? { manager: context.manager } : {}),
 	};
 }

@@ -6,7 +6,7 @@
 
 import { createStore } from 'zustand/vanilla';
 
-import { ConsentClientInterface } from './client';
+import { ConsentManagerInterface } from './client';
 import {
 	getEffectiveConsents,
 	hasConsentFor,
@@ -129,7 +129,7 @@ export interface StoreConfig {
  * @public
  */
 export const createConsentManagerStore = (
-	client: ConsentClientInterface,
+	manager: ConsentManagerInterface,
 	namespace: string | undefined = 'c15tStore',
 	config?: StoreConfig
 ) => {
@@ -146,7 +146,7 @@ export const createConsentManagerStore = (
 			: null;
 
 	// Check for client callbacks to integrate with store callbacks
-	const clientCallbacks = client.getCallbacks();
+	const clientCallbacks = manager.getCallbacks();
 
 	// Merge client callbacks with initial callbacks
 	const mergedCallbacks = clientCallbacks
@@ -297,32 +297,23 @@ export const createConsentManagerStore = (
 				type: type as 'necessary' | 'all' | 'custom',
 			};
 
-			// Check if client is disabled (backendURL is false)
-			const isClientDisabled = client.isDisabled();
-
-			// Skip API call if client is disabled but proceed with local updates
-			let shouldProceed = true;
-			if (!isClientDisabled) {
-				const consent = await client?.setConsent({
-					body: {
-						type: 'cookie_banner',
-						domain: window.location.hostname,
-						preferences: newConsents,
-						metadata: {
-							source: 'consent_widget',
-							acceptanceMethod: type,
-						},
+			// Send consent to API and proceed based on response
+			// The client will handle offline mode internally
+			const consent = await manager.setConsent({
+				body: {
+					type: 'cookie_banner',
+					domain: window.location.hostname,
+					preferences: newConsents,
+					metadata: {
+						source: 'consent_widget',
+						acceptanceMethod: type,
 					},
-				});
+				},
+			});
 
-				shouldProceed = consent.ok;
-				if (!consent.ok && !callbacks.onError) {
-					const error = consent.error?.message || 'Failed to save consents';
-					console.error(error);
-				}
-			}
-
-			if (shouldProceed || isClientDisabled) {
+			// Only proceed if the operation was successful
+			// In offline mode, responses will always be successful
+			if (consent.ok) {
 				localStorage.setItem(
 					STORAGE_KEY,
 					JSON.stringify({
@@ -342,6 +333,9 @@ export const createConsentManagerStore = (
 
 				callbacks.onConsentGiven?.();
 				callbacks.onPreferenceExpressed?.();
+			} else if (!callbacks.onError) {
+				const error = consent.error?.message || 'Failed to save consents';
+				console.error(error);
 			}
 		},
 
@@ -450,22 +444,9 @@ export const createConsentManagerStore = (
 			// Set loading state to true
 			set({ isLoadingConsentInfo: true });
 
-			// Check if client is disabled (backendURL is false)
-			const isClientDisabled = client.isDisabled();
-
-			// If client is disabled, return default behavior without API call
-			if (isClientDisabled) {
-				set({
-					isLoadingConsentInfo: false,
-					// Show popup by default if no consent info exists
-					...(consentInfo === null ? { showPopup: true } : {}),
-				});
-				return undefined;
-			}
-
 			try {
-				// Make the API request with proper error handling
-				const { data, error } = await client.showConsentBanner({
+				// Let the client handle offline mode internally
+				const { data, error } = await manager.showConsentBanner({
 					// Add onError callback specific to this request
 					// This works alongside the high-level client callbacks
 					//@ts-ignore
@@ -479,7 +460,13 @@ export const createConsentManagerStore = (
 				}
 
 				if (!data) {
-					throw new Error('No data returned from consent banner API');
+					// In offline mode, data will be null, so we should show the banner by default
+					set({
+						isLoadingConsentInfo: false,
+						// Only update showPopup if we don't have stored consent
+						...(consentInfo === null ? { showPopup: true } : {}),
+					});
+					return undefined;
 				}
 
 				// Update store with location and jurisdiction information

@@ -12,8 +12,8 @@ import type {
 } from '@c15t/backend';
 
 import {
-	ConsentClientCallbacks,
-	ConsentClientInterface,
+	ConsentManagerCallbacks,
+	ConsentManagerInterface,
 } from './client-interface';
 
 import {
@@ -47,7 +47,7 @@ export interface C15tClientOptions {
 	/**
 	 * Global callbacks for handling API responses.
 	 */
-	callbacks?: ConsentClientCallbacks;
+	callbacks?: ConsentManagerCallbacks;
 }
 
 /**
@@ -87,7 +87,7 @@ function generateUUID(): string {
  * C15t backend implementation of the consent client interface.
  * Makes HTTP requests to the c15t consent management backend.
  */
-export class C15tClient implements ConsentClientInterface {
+export class C15tClient implements ConsentManagerInterface {
 	/**
 	 * Base URL for API requests (without trailing slash)
 	 * @internal
@@ -110,7 +110,7 @@ export class C15tClient implements ConsentClientInterface {
 	 * Callback functions for client events
 	 * @internal
 	 */
-	private callbacks?: ConsentClientCallbacks;
+	private callbacks?: ConsentManagerCallbacks;
 
 	/**
 	 * Creates a new C15t client instance.
@@ -148,7 +148,7 @@ export class C15tClient implements ConsentClientInterface {
 	 *
 	 * @returns The callbacks object or undefined if no callbacks are configured
 	 */
-	getCallbacks(): ConsentClientCallbacks | undefined {
+	getCallbacks(): ConsentManagerCallbacks | undefined {
 		return this.callbacks;
 	}
 
@@ -185,7 +185,28 @@ export class C15tClient implements ConsentClientInterface {
 		// Early return for disabled state
 		if (this.backendURL === false) {
 			const emptyResponse = this.createResponseContext<ResponseType>(true);
-			options?.onSuccess?.(emptyResponse);
+
+			// Call success callback if provided
+			if (options?.onSuccess) {
+				await options.onSuccess(emptyResponse);
+			}
+
+			// Call specific endpoint callbacks if they exist
+			const endpointCallbacks: Record<
+				string,
+				((response: ResponseContext<any>) => void) | undefined
+			> = {
+				[API_ENDPOINTS.SHOW_CONSENT_BANNER]:
+					this.callbacks?.onConsentBannerFetched,
+				[API_ENDPOINTS.SET_CONSENT]: this.callbacks?.onConsentSet,
+				[API_ENDPOINTS.VERIFY_CONSENT]: this.callbacks?.onConsentVerified,
+			};
+
+			const callback = endpointCallbacks[path];
+			if (callback) {
+				callback(emptyResponse);
+			}
+
 			return emptyResponse;
 		}
 
@@ -341,17 +362,13 @@ export class C15tClient implements ConsentClientInterface {
 	async showConsentBanner(
 		options?: FetchOptions<ShowConsentBannerResponse>
 	): Promise<ResponseContext<ShowConsentBannerResponse>> {
-		const response = await this.fetcher<ShowConsentBannerResponse>(
+		return this.fetcher<ShowConsentBannerResponse>(
 			API_ENDPOINTS.SHOW_CONSENT_BANNER,
-			options
+			{
+				method: 'GET',
+				...options,
+			}
 		);
-
-		// Call success callback if response is successful
-		if (response.ok && this.callbacks?.onConsentBannerFetched) {
-			this.callbacks.onConsentBannerFetched(response);
-		}
-
-		return response;
 	}
 
 	/**
@@ -360,20 +377,13 @@ export class C15tClient implements ConsentClientInterface {
 	async setConsent(
 		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 	): Promise<ResponseContext<SetConsentResponse>> {
-		const response = await this.fetcher<
-			SetConsentResponse,
-			SetConsentRequestBody
-		>(API_ENDPOINTS.SET_CONSENT, {
-			method: 'POST',
-			...options,
-		});
-
-		// Call success callback if response is successful
-		if (response.ok && this.callbacks?.onConsentSet) {
-			this.callbacks.onConsentSet(response);
-		}
-
-		return response;
+		return this.fetcher<SetConsentResponse, SetConsentRequestBody>(
+			API_ENDPOINTS.SET_CONSENT,
+			{
+				method: 'POST',
+				...options,
+			}
+		);
 	}
 
 	/**
@@ -382,20 +392,13 @@ export class C15tClient implements ConsentClientInterface {
 	async verifyConsent(
 		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
 	): Promise<ResponseContext<VerifyConsentResponse>> {
-		const response = await this.fetcher<
-			VerifyConsentResponse,
-			VerifyConsentRequestBody
-		>(API_ENDPOINTS.VERIFY_CONSENT, {
-			method: 'POST',
-			...options,
-		});
-
-		// Call success callback if response is successful
-		if (response.ok && this.callbacks?.onConsentVerified) {
-			this.callbacks.onConsentVerified(response);
-		}
-
-		return response;
+		return this.fetcher<VerifyConsentResponse, VerifyConsentRequestBody>(
+			API_ENDPOINTS.VERIFY_CONSENT,
+			{
+				method: 'POST',
+				...options,
+			}
+		);
 	}
 
 	/**

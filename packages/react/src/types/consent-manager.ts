@@ -6,7 +6,7 @@
 import type {
 	AllConsentNames,
 	ComplianceSettings,
-	ConsentClientInterface,
+	ConsentManagerInterface,
 	TrackingBlockerConfig,
 	TranslationConfig,
 } from 'c15t';
@@ -59,7 +59,7 @@ export interface ConsentManagerProviderProps {
 	 * An existing client instance to use.
 	 * This is required for the provider to work properly.
 	 */
-	client: ConsentClientInterface;
+	manager: ConsentManagerInterface;
 
 	/**
 	 * Visual theme to apply.

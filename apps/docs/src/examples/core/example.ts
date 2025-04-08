@@ -174,7 +174,7 @@ export const pages = {
 }`,
 
 	'script.js': `
-import { createConsentManagerStore, createConsentClient } from 'https://cdn.skypack.dev/c15t';
+import { createConsentManagerStore, configureConsentManager } from 'https://cdn.skypack.dev/c15t';
 
 // Configuration for the consent manager
 const config = {
@@ -195,7 +195,7 @@ const config = {
 };
 
 // Create the client and store
-const client = createConsentClient(config.client);
+const client = configureConsentManager(config.client);
 const consentManager = createConsentManagerStore(client, config.store.namespace, {
     trackingBlockerConfig: config.store.trackingBlockerConfig
 });

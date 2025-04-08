@@ -17,9 +17,9 @@ export { useConsentClient } from './hooks/use-consent-client';
 
 // Export client
 export {
-	createConsentClient,
-	type ConsentClientInterface,
-	type ConsentClientOptions,
+	configureConsentManager,
+	type ConsentManagerInterface,
+	type ConsentManagerOptions,
 } from 'c15t';
 
 // Export types

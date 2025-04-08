@@ -12,8 +12,8 @@ import type {
 } from '@c15t/backend';
 
 import {
-	ConsentClientCallbacks,
-	ConsentClientInterface,
+	ConsentManagerCallbacks,
+	ConsentManagerInterface,
 } from './client-interface';
 import { FetchOptions, ResponseContext } from './types';
 
@@ -69,14 +69,14 @@ export interface CustomClientOptions {
 	/**
 	 * Global callbacks for handling responses
 	 */
-	callbacks?: ConsentClientCallbacks;
+	callbacks?: ConsentManagerCallbacks;
 }
 
 /**
  * Custom implementation of the consent client interface.
  * Uses provided handlers instead of making HTTP requests.
  */
-export class CustomClient implements ConsentClientInterface {
+export class CustomClient implements ConsentManagerInterface {
 	/**
 	 * Custom endpoint handlers
 	 * @internal
@@ -87,7 +87,7 @@ export class CustomClient implements ConsentClientInterface {
 	 * Callback functions for client events
 	 * @internal
 	 */
-	private callbacks?: ConsentClientCallbacks;
+	private callbacks?: ConsentManagerCallbacks;
 
 	/**
 	 * Creates a new custom client instance.
@@ -114,7 +114,7 @@ export class CustomClient implements ConsentClientInterface {
 	 *
 	 * @returns The callbacks object or undefined if no callbacks are configured
 	 */
-	getCallbacks(): ConsentClientCallbacks | undefined {
+	getCallbacks(): ConsentManagerCallbacks | undefined {
 		return this.callbacks;
 	}
 
@@ -151,7 +151,7 @@ export class CustomClient implements ConsentClientInterface {
 		handlerKey: string,
 		options?: FetchOptions<ResponseType, BodyType, QueryType>,
 		callbackKey?: keyof Pick<
-			Required<ConsentClientCallbacks>,
+			Required<ConsentManagerCallbacks>,
 			'onConsentBannerFetched' | 'onConsentSet' | 'onConsentVerified'
 		>
 	): Promise<ResponseContext<ResponseType>> {

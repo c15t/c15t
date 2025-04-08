@@ -43,7 +43,7 @@ export function ConsentManagerProvider({
 	noStyle = false,
 	translationConfig,
 	trackingBlockerConfig,
-	client,
+	manager,
 	theme,
 	disableAnimation = false,
 	scrollLock = false,
@@ -70,13 +70,13 @@ export function ConsentManagerProvider({
 			trackingBlockerConfig,
 		};
 
-		const store = createConsentManagerStore(client, namespace, storeConfig);
+		const store = createConsentManagerStore(manager, namespace, storeConfig);
 
 		// Set translation config immediately
 		store.getState().setTranslationConfig(preparedTranslationConfig);
 
 		return store;
-	}, [namespace, preparedTranslationConfig, trackingBlockerConfig, client]);
+	}, [namespace, preparedTranslationConfig, trackingBlockerConfig, manager]);
 
 	// Initialize state with the current state from the consent manager store
 	const [state, setState] = useState<PrivacyConsentState>(store.getState());
@@ -122,9 +122,9 @@ export function ConsentManagerProvider({
 		() => ({
 			state,
 			store,
-			client,
+			manager,
 		}),
-		[state, store, client]
+		[state, store, manager]
 	);
 
 	// Pass theme context values
