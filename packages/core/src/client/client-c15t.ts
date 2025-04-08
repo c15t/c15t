@@ -141,7 +141,7 @@ export class C15tClient implements ConsentManagerInterface {
 	 * @returns Always returns false
 	 */
 	isDisabled(): boolean {
-		return false;
+		return this.backendURL === false;
 	}
 
 	/**
