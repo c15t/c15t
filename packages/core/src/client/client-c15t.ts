@@ -56,9 +56,19 @@ export interface C15tClientOptions {
 }
 
 /**
+ * Regex pattern to match absolute URLs (those with a protocol like http:// or https://)
+ */
+const ABSOLUTE_URL_REGEX = /^(?:[a-z+]+:)?\/\//i;
+
+/**
  * Regex pattern to remove leading slashes
  */
 const LEADING_SLASHES_REGEX = /^\/+/;
+
+/**
+ * Regex pattern to remove trailing slashes
+ */
+const TRAILING_SLASHES_REGEX = /\/+$/;
 
 /**
  * Generates a UUID v4 for request identification
@@ -114,11 +124,9 @@ export class C15tClient implements ConsentManagerInterface {
 	 * @param options - Configuration options for the client
 	 */
 	constructor(options: C15tClientOptions) {
-		let backendUrl = options.backendURL;
-		if (backendUrl.endsWith('/')) {
-			backendUrl = backendUrl.slice(0, -1);
-		}
-		this.backendURL = backendUrl;
+		this.backendURL = options.backendURL.endsWith('/')
+			? options.backendURL.slice(0, -1)
+			: options.backendURL;
 
 		this.headers = {
 			'Content-Type': 'application/json',
@@ -129,6 +137,38 @@ export class C15tClient implements ConsentManagerInterface {
 		this.callbacks = options.callbacks;
 		this.corsMode = options.corsMode || 'cors';
 	}
+
+	/**
+	 * Resolves a URL path against the backend URL, handling both absolute and relative URLs.
+	 *
+	 * @param backendURL - The backend URL (can be absolute or relative)
+	 * @param path - The path to append
+	 * @returns The resolved URL string
+	 */
+	private resolveUrl(backendURL: string, path: string): string {
+		// Case 1: backendURL is already an absolute URL (includes protocol)
+		if (ABSOLUTE_URL_REGEX.test(backendURL)) {
+			const backendURLObj = new URL(backendURL);
+			// Remove trailing slashes from base path and leading slashes from the path to join
+			const basePath = backendURLObj.pathname.replace(
+				TRAILING_SLASHES_REGEX,
+				''
+			);
+			const cleanPath = path.replace(LEADING_SLASHES_REGEX, '');
+			// Combine the paths with a single slash
+			const newPath = `${basePath}/${cleanPath}`;
+			// Set the new path on the URL object
+			backendURLObj.pathname = newPath;
+			return backendURLObj.toString();
+		}
+
+		// Case 2: backendURL is relative (like '/api/c15t')
+		// For relative URLs, we use string concatenation with proper slash handling
+		const cleanBase = backendURL.replace(TRAILING_SLASHES_REGEX, '');
+		const cleanPath = path.replace(LEADING_SLASHES_REGEX, '');
+		return `${cleanBase}/${cleanPath}`;
+	}
+
 
 	/**
 	 * Returns the client's configured callbacks.
@@ -169,10 +209,17 @@ export class C15tClient implements ConsentManagerInterface {
 		path: string,
 		options?: FetchOptions<ResponseType, BodyType, QueryType>
 	): Promise<ResponseContext<ResponseType>> {
-		// Prepare URL and request options
-		const url = new URL(
-			`${this.backendURL}/${path.replace(LEADING_SLASHES_REGEX, '')}`
-		);
+		// Resolve the full URL using the resolveUrl method
+		const resolvedUrl = this.resolveUrl(this.backendURL, path);
+		let url: URL;
+		
+		try {
+			// Create URL object from the resolved URL
+			url = new URL(resolvedUrl);
+		} catch (error) {
+			// If the URL is relative, create it using window.location as base
+			url = new URL(resolvedUrl, window.location.origin);
+		}
 
 		// Add query parameters
 		if (options?.query) {

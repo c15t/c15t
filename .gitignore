@@ -6,6 +6,8 @@ node_modules
 .pnp.js
 
 # Local env files
+.dev.vars
+.*.vars
 .env
 .env.local
 .env.development.local

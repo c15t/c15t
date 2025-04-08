@@ -15,6 +15,11 @@ const externals = [
 	'@aws-sdk/credential-providers',
 	'mongodb-client-encryption',
 
+  // Frameworks
+  'hono',
+  'express',
+  'next',
+
 	// UI frameworks
 	'react',
 	'vue',
@@ -59,6 +64,8 @@ export default defineConfig({
 			'schema/index': ['./src/schema/index.ts'],
 			'integrations/index': ['./src/integrations/index.ts'],
 			'integrations/next': ['./src/integrations/next.ts'],
+			'integrations/hono': ['./src/integrations/hono.ts'],
+			'integrations/express': ['./src/integrations/express.ts'],
 			'pkgs/data-model/fields/index': ['./src/pkgs/data-model/fields/index.ts'],
 			'pkgs/data-model/index': ['./src/pkgs/data-model/index.ts'],
 			'pkgs/data-model/schema/index': ['./src/pkgs/data-model/schema/index.ts'],

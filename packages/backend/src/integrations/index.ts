@@ -3,5 +3,9 @@
  * This module exports integrations with various frameworks and libraries
  */
 
-// Export Next.js integration
-export { toNextJsHandler } from './next';
+// Export framework integrations
+export * from './next';
+export * from './express';
+export * from './hono';
+export * from './node';
+export * from './cloudflare';

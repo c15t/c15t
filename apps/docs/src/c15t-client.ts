@@ -13,6 +13,7 @@ import { env } from './env';
 export const manager: ConsentManagerOptions = {
 	mode: 'c15t',
 	backendURL: env.NEXT_PUBLIC_C15T_URL as string,
+  // backendURL: '/api/c15t-demo',
 	store: {
 		initialGdprTypes: ['necessary', 'marketing'],
 	},

@@ -3,94 +3,68 @@ import { ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext } from '~/types';
 
 /**
- * Convert a c15t handler to a Next.js API route handler.
+ * Convert a c15t handler to a Next.js route handler.
  *
- * This function adapts a c15t instance to work with Next.js App Router API routes,
- * providing GET and POST handler functions. It handles the conversion between
- * c15t's Result types and Next.js Response objects.
+ * This adapter converts between standard Web API and c15t, letting c15t/H3 handle
+ * all the HTTP logic including CORS. It doesn't depend on next/server.
  *
  * @example
  * ```typescript
- * // app/api/c15t/route.ts
- * import { toNextJsHandler } from '@c15t/integrations/next';
- * import { c15t } from '@/lib/c15t';
- *
- * // Pass the entire c15t instance, not just the handler
- * export const { GET, POST } = toNextJsHandler(c15t);
- *
- * // ❌ Don't do this:
- * // export const { GET, POST } = toNextJsHandler(c15t.handler);
+ * import { toNextHandler } from '@c15t/backend/integrations';
+ * import { c15t } from '@/c15t';
+ * 
+ * // app/api/c15t/[...paths]/route.ts
+ * export const { GET, POST } = toNextHandler(c15t);
  * ```
- *
- * @param instance - The complete c15t instance (not just the handler)
- * @returns Next.js API route handler functions for GET and POST
+ * 
+ * @param instance - The c15t instance to adapt
+ * @returns An object with Next.js route handler functions for each method
  */
-export function toNextJsHandler(instance: C15TInstance) {
-	const handler = async (initialRequest: Request) => {
+export function toNextHandler(instance: C15TInstance) {
+	// Create the base handler that processes requests
+	const handleRequest = async (request: Request) => {
 		try {
-			const request = initialRequest;
-
-			// For POST requests, validate JSON body
-			if (request.method === 'POST') {
-				try {
-					const clonedRequest = request.clone();
-					await clonedRequest.json();
-				} catch (error) {
-					return new Response(
-						JSON.stringify({
-							error: true,
-							code: ERROR_CODES.REQUEST_HANDLER_ERROR,
-							message: 'Invalid JSON in request body',
-							details: error instanceof Error ? error.message : 'Unknown error',
-						}),
-						{
-							status: 400,
-							headers: {
-								'Content-Type': 'application/json',
-							},
-						}
-					);
+			const basePath: string = instance.options?.basePath as string || '/api/c15t';
+			
+			// Extract the path and rewrite for c15t routing
+			const originalUrl = new URL(request.url);
+			let pathWithoutBase = originalUrl.pathname;
+			
+			if (pathWithoutBase.startsWith(basePath)) {
+				pathWithoutBase = pathWithoutBase.substring(basePath.length);
+				// Ensure leading slash
+				if (!pathWithoutBase.startsWith('/')) {
+					pathWithoutBase = `/${pathWithoutBase}`;
 				}
 			}
-
-			// Ensure the baseURL is set correctly for the c15t instance
-			if (instance.$context) {
-				const contextPromise = instance.$context;
-				try {
-					const contextResult = await contextPromise;
-
-					// Extract context safely using match pattern
-					contextResult.match(
-						(context: C15TContext) => {
-							// If baseURL is not set, initialize it from the request URL
-							if (!context.baseURL || context.baseURL.trim() === '') {
-								const url = new URL(request.url);
-								const basePath = context.options?.basePath || '/api/c15t';
-								const baseURL = `${url.origin}${basePath}`;
-
-								context.baseURL = baseURL;
-								if (context.options) {
-									context.options.baseURL = baseURL;
-								}
-							}
-						},
-						() => {
-							// Handle context error silently - the handler will deal with it
-						}
-					);
-				} catch {
-					// Handle promise rejection silently - the handler will deal with it
-				}
-			}
-
-			// Handle the request and unwrap the Result
-			const result = await instance.handler(request);
+			
+			// Create rewritten request
+			const rewrittenUrl = new URL(originalUrl.toString());
+			rewrittenUrl.pathname = pathWithoutBase;
+			
+			const rewrittenRequest = new Request(rewrittenUrl.toString(), {
+				method: request.method,
+				headers: request.headers,
+				body: request.body,
+				// Preserve request properties
+				credentials: 'include',
+			});
+			
+			// Update baseURL for proper URL generation in responses
+			await updateBaseUrl(request, basePath);
+			
+			// Let c15t handle the request
+			const result = await instance.handler(rewrittenRequest);
+			
+			// Return the response directly - Next.js supports standard Response objects
 			return await result.match(
+				// Success case - just return the response
 				(response) => response,
+				// Error case - create an error response
 				(error) => {
-					// Convert c15t errors to Response objects
 					const status = error.statusCode || 500;
 					const message = error.message || ERROR_CODES.INTERNAL_SERVER_ERROR;
+					
 					return new Response(
 						JSON.stringify({
 							error: true,
@@ -108,9 +82,7 @@ export function toNextJsHandler(instance: C15TInstance) {
 				}
 			);
 		} catch (error) {
-			// Handle any unexpected errors
-			// biome-ignore lint/suspicious/noConsole: This is a logging error
-			console.error('Unexpected error in c15t handler:', error);
+			// Basic error handling
 			return new Response(
 				JSON.stringify({
 					error: true,
@@ -128,6 +100,80 @@ export function toNextJsHandler(instance: C15TInstance) {
 		}
 	};
 
+	// Return an object with handler functions for each HTTP method
+	return {
+		GET: handleRequest,
+		POST: handleRequest,
+		PUT: handleRequest,
+		DELETE: handleRequest,
+		OPTIONS: handleRequest,
+		HEAD: handleRequest,
+		PATCH: handleRequest,
+	};
+	
+	async function updateBaseUrl(
+		request: Request, 
+		basePath: string
+	): Promise<void> {
+		if (!instance.$context) { return; }
+		
+		try {
+			const contextResult = await instance.$context;
+			
+			contextResult.match(
+				(context: C15TContext) => {
+					const url = new URL(request.url);
+					const baseURL = `${url.protocol}//${url.host}${basePath}`;
+					
+					if (!context.baseURL || context.baseURL !== baseURL) {
+						context.baseURL = baseURL;
+						if (context.options) {
+							context.options.baseURL = baseURL;
+						}
+					}
+				},
+				() => {} // Ignore errors
+			);
+		} catch {
+			// Ignore errors
+		}
+	}
+}
+
+/**
+ * Alternative Next.js route handler that works with any handler function.
+ * 
+ * This utility function helps create Next.js App Router route handlers
+ * from any function that accepts a Request and returns a Response.
+ *
+ * @example
+ * ```typescript
+ * // Using with c15t
+ * import { toNextJsHandler } from '@c15t/backend/integrations';
+ * import { c15t } from '@/c15t';
+ *
+ * // app/api/auth/[...slug]/route.ts
+ * export const { GET, POST } = toNextJsHandler(c15t);
+ *
+ * // Using with a custom handler
+ * export const { GET } = toNextJsHandler((request) => {
+ *   return new Response('Hello World');
+ * });
+ * ```
+ * 
+ * @param auth - Either a function or an object with a handler method
+ * @returns An object with GET and POST methods for Next.js App Router
+ */
+export function toNextJsHandler(
+	auth:
+		| {
+				handler: (request: Request) => Promise<Response>;
+		  }
+		| ((request: Request) => Promise<Response>),
+) {
+	const handler = async (request: Request) => {
+		return "handler" in auth ? auth.handler(request) : auth(request);
+	};
 	return {
 		GET: handler,
 		POST: handler,
