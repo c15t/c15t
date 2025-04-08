@@ -114,11 +114,12 @@ export class c15tClient {
 	 * @throws Will throw an error if the backendURL is invalid or if required options are missing
 	 */
 	constructor(options: c15tClientOptions) {
-		this.backendURL = typeof options.backendURL === 'string' 
-			? (options.backendURL.endsWith('/')
-				? options.backendURL.slice(0, -1)
-				: options.backendURL)
-			: false;
+		this.backendURL =
+			typeof options.backendURL === 'string'
+				? options.backendURL.endsWith('/')
+					? options.backendURL.slice(0, -1)
+					: options.backendURL
+				: false;
 
 		this.headers = {
 			'Content-Type': 'application/json',
@@ -170,7 +171,7 @@ export class c15tClient {
 	 * This internal method handles constructing the request, processing the response,
 	 * and executing any callbacks based on the response status. It provides standardized
 	 * error handling and response formatting.
-	 * 
+	 *
 	 * If backendURL is set to false, no API requests will be sent and a minimal successful
 	 * response will be returned, effectively disabling all API functionality without errors.
 	 *
@@ -542,7 +543,7 @@ export class c15tClient {
  *     customFetchImpl: customFetch
  *   }
  * });
- * 
+ *
  * // Create a client with API requests disabled
  * const offlineClient = createConsentClient({
  *   backendURL: false
@@ -556,7 +557,10 @@ export function createConsentClient(options: c15tClientOptions): c15tClient {
 	// If no backendURL provided, use the default
 	const clientOptions = {
 		...options,
-		backendURL: options.backendURL === undefined ? DEFAULT_BACKEND_URL : options.backendURL,
+		backendURL:
+			options.backendURL === undefined
+				? DEFAULT_BACKEND_URL
+				: options.backendURL,
 	};
 
 	return new c15tClient(clientOptions);
