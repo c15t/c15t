@@ -15,10 +15,10 @@ const externals = [
 	'@aws-sdk/credential-providers',
 	'mongodb-client-encryption',
 
-  // Frameworks
-  'hono',
-  'express',
-  'next',
+	// Frameworks
+	'hono',
+	'express',
+	'next',
 
 	// UI frameworks
 	'react',

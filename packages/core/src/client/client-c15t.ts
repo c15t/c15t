@@ -169,7 +169,6 @@ export class C15tClient implements ConsentManagerInterface {
 		return `${cleanBase}/${cleanPath}`;
 	}
 
-
 	/**
 	 * Returns the client's configured callbacks.
 	 *
@@ -212,7 +211,7 @@ export class C15tClient implements ConsentManagerInterface {
 		// Resolve the full URL using the resolveUrl method
 		const resolvedUrl = this.resolveUrl(this.backendURL, path);
 		let url: URL;
-		
+
 		try {
 			// Create URL object from the resolved URL
 			url = new URL(resolvedUrl);
