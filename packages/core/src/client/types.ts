@@ -1,100 +1,27 @@
 /**
- * Configuration options for initializing a c15t client.
- *
- * This interface defines the required and optional parameters for creating
- * a client that can interact with the c15t consent management API.
- *
- * @example
- * ```typescript
- * // Basic client configuration
- * const options: c15tClientOptions = {
- *   backendURL: 'https://api.example.com/consent',
- * };
- *
- * // Advanced configuration with plugins and custom fetch
- * const advancedOptions: c15tClientOptions = {
- *   backendURL: 'https://api.example.com/consent',
- *   fetchOptions: {
- *     customFetchImpl: nodeFetch // Use node-fetch in Node.js environments
- *   },
- *   plugins: [
- *     analyticsPlugin({ trackConsent: true }),
- *     geoPlugin({ defaultJurisdiction: 'us-ca' })
- *   ]
- * };
- * ```
+ * API endpoint paths
  */
-export interface c15tClientOptions {
+export const API_ENDPOINTS = {
 	/**
-	 * Backend URL for API endpoints. Can be absolute or relative.
-	 * If absolute (starts with http:// or https://), the full URL will be used.
-	 * If relative (starts with /), it will be appended to the origin.
-	 *
-	 * @example 'https://api.example.com/consent' or '/api/c15t'
-	 * @default '/api/c15t'
+	 * Path for the consent banner information endpoint
 	 */
-	backendURL: string | false;
+	SHOW_CONSENT_BANNER: '/show-consent-banner',
 
 	/**
-	 * Default request headers to include with all API requests.
-	 *
-	 * Common headers include API keys, authorization tokens, and content type.
-	 * These headers will be included in every request made by the client.
-	 *
-	 * @example { 'X-API-Key': 'your-api-key', 'Authorization': 'Bearer token' }
+	 * Path for listing consent purposes
 	 */
-	headers?: Record<string, string>;
+	LIST_PURPOSES: '/list-purposes',
 
 	/**
-	 * Additional configuration options for the fetch implementation.
-	 *
-	 * These options control the behavior of the underlying HTTP client.
+	 * Path for setting consent
 	 */
-	fetchOptions?: {
-		/**
-		 * Custom fetch implementation to use instead of the global fetch.
-		 *
-		 * This can be useful for environments without a native fetch,
-		 * or for using a fetch implementation with additional features.
-		 *
-		 * @example
-		 * ```typescript
-		 * import nodeFetch from 'node-fetch';
-		 *
-		 * const options = {
-		 *   fetchOptions: {
-		 *     customFetchImpl: nodeFetch
-		 *   }
-		 * };
-		 * ```
-		 */
-		customFetchImpl?: typeof fetch;
-	};
+	SET_CONSENT: '/consent/set',
 
 	/**
-	 * Client plugins to extend the core client functionality.
-	 *
-	 * Plugins can add additional methods and features to the client,
-	 * such as analytics tracking, geo-location services, etc.
-	 *
-	 * @example
-	 * ```typescript
-	 * const options = {
-	 *   plugins: [
-	 *     analyticsPlugin({
-	 *       trackConsentChanges: true,
-	 *       eventPrefix: 'consent_'
-	 *     }),
-	 *     geoPlugin({
-	 *       defaultJurisdiction: 'us-ca',
-	 *       cacheResults: true
-	 *     })
-	 *   ]
-	 * };
-	 * ```
+	 * Path for verifying consent
 	 */
-	plugins?: c15tClientPlugin[];
-}
+	VERIFY_CONSENT: '/consent/verify',
+} as const;
 
 /**
  * Request configuration options for API requests.
@@ -241,18 +168,22 @@ export interface FetchOptions<
 	 * status code or when an exception occurs during the request.
 	 *
 	 * @param context The response context containing the error details
+	 * @param path The API endpoint path that was requested
 	 *
 	 * @example
 	 * ```typescript
 	 * const options = {
-	 *   onError: ({ error }) => {
-	 *     console.error(`Request failed (${error.status}):`, error.message);
-	 *     showErrorNotification(error.message);
+	 *   onError: (context, path) => {
+	 *     console.error(`Request to ${path} failed (${context.error?.status}):`, context.error?.message);
+	 *     showErrorNotification(context.error?.message || 'Unknown error');
 	 *   }
 	 * };
 	 * ```
 	 */
-	onError?: (context: ResponseContext<ResponseType>) => void | Promise<void>;
+	onError?: (
+		context: ResponseContext<ResponseType>,
+		path: string
+	) => void | Promise<void>;
 
 	/**
 	 * Additional fetch options to include in the request.
@@ -338,6 +269,16 @@ export interface ResponseContext<ResponseType = unknown> {
 		 * Optional error code for more specific error identification
 		 */
 		code?: string;
+
+		/**
+		 * Optional cause of the error
+		 */
+		cause?: unknown;
+
+		/**
+		 * Optional additional details about the error
+		 */
+		details?: Record<string, unknown> | null;
 	} | null;
 
 	/**
@@ -346,107 +287,4 @@ export interface ResponseContext<ResponseType = unknown> {
 	 * True for successful requests (2xx status codes), false otherwise.
 	 */
 	ok: boolean;
-}
-
-/**
- * Client plugin interface for extending the c15t client functionality.
- *
- * Plugins can add additional methods and features to the client,
- * such as analytics tracking, geo-location services, etc.
- *
- * @example
- * ```typescript
- * // Defining a custom plugin
- * const analyticsPlugin = (options = {}): c15tClientPlugin => ({
- *   id: 'analytics',
- *
- *   init: (client) => {
- *     console.log('Analytics plugin initialized');
- *   },
- *
- *   methods: {
- *     trackEvent: async (eventName, properties) => {
- *       // Implementation logic
- *       return { success: true };
- *     },
- *
- *     getAnalyticsConsent: async () => {
- *       // Get analytics-specific consent
- *       return { allowed: true };
- *     }
- *   }
- * });
- *
- * // Using the plugin
- * const client = createConsentClient({
- *   backendURL: 'https://api.example.com',
- *   plugins: [analyticsPlugin({ trackPageviews: true })]
- * });
- *
- * // Now you can use the plugin methods
- * client.trackEvent('button_click', { buttonId: 'submit' });
- * ```
- */
-export interface c15tClientPlugin {
-	/**
-	 * Unique plugin identifier.
-	 *
-	 * This ID should be unique across all plugins to avoid conflicts.
-	 */
-	id: string;
-
-	/**
-	 * Plugin initialization function.
-	 *
-	 * This function is called when the plugin is registered with the client.
-	 * It can be used to set up the plugin and perform any necessary initialization.
-	 *
-	 * @param client The c15t client instance this plugin is being initialized with
-	 */
-	init?: (client: c15tClient) => void;
-
-	/**
-	 * Extensions to client methods.
-	 *
-	 * These methods will be added to the client instance, allowing plugins
-	 * to extend the client's functionality with additional methods.
-	 */
-	methods?: Record<string, (...args: unknown[]) => unknown>;
-
-	/**
-	 * Type inference for the server-side plugin implementation.
-	 *
-	 * This is used for type checking to ensure the client plugin is compatible
-	 * with the server-side plugin implementation.
-	 *
-	 * @internal This property is primarily for TypeScript type checking
-	 */
-	$InferServerPlugin?: Record<string, unknown>;
-}
-
-/**
- * Interface for c15t client instance.
- * This is used for the plugin init type to avoid circular references.
- *
- * @internal This interface is primarily used internally for type definitions
- */
-export interface c15tClient {
-	/**
-	 * Makes a custom API request to any endpoint.
-	 *
-	 * @typeParam ResponseType - The expected response data type
-	 * @param path - The API endpoint path
-	 * @param options - Request configuration options
-	 * @returns Response context containing the requested data if successful
-	 */
-	$fetch<ResponseType>(
-		path: string,
-		options?: FetchOptions<ResponseType>
-	): Promise<ResponseContext<ResponseType>>;
-
-	/**
-	 * Index signature to allow dynamic access to properties.
-	 * This enables plugins to add methods to the client.
-	 */
-	[key: string]: unknown;
 }

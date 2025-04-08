@@ -18,8 +18,8 @@ export { useConsentClient } from './hooks/use-consent-client';
 // Export client
 export {
 	createConsentClient,
-	type c15tClient,
-	type c15tClientOptions,
+	type ConsentClientInterface,
+	type ConsentClientOptions,
 } from 'c15t';
 
 // Export types

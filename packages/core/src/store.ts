@@ -5,7 +5,8 @@
  */
 
 import { createStore } from 'zustand/vanilla';
-import type { c15tClient } from './client';
+
+import { ConsentClientInterface } from './client';
 import {
 	getEffectiveConsents,
 	hasConsentFor,
@@ -128,7 +129,7 @@ export interface StoreConfig {
  * @public
  */
 export const createConsentManagerStore = (
-	client: c15tClient,
+	client: ConsentClientInterface,
 	namespace: string | undefined = 'c15tStore',
 	config?: StoreConfig
 ) => {
@@ -144,8 +145,37 @@ export const createConsentManagerStore = (
 				)
 			: null;
 
+	// Check for client callbacks to integrate with store callbacks
+	const clientCallbacks = client.getCallbacks();
+
+	// Merge client callbacks with initial callbacks
+	const mergedCallbacks = clientCallbacks
+		? {
+				// Map client callbacks to store callbacks format if possible
+				onError: clientCallbacks.onError
+					? (message: string) =>
+							clientCallbacks.onError?.(
+								{
+									data: null,
+									error: {
+										message,
+										status: 0,
+									},
+									ok: false,
+									response: null,
+								},
+								'store'
+							)
+					: undefined,
+				// More mappings can be added here as needed
+				...initialState.callbacks,
+			}
+		: initialState.callbacks;
+
 	const store = createStore<PrivacyConsentState>((set, get) => ({
 		...initialState,
+		// Override the callbacks with merged callbacks
+		callbacks: mergedCallbacks,
 		...(storedConsent
 			? {
 					consents: storedConsent.consents,
@@ -286,9 +316,9 @@ export const createConsentManagerStore = (
 				});
 
 				shouldProceed = consent.ok;
-				if (!consent.ok) {
+				if (!consent.ok && !callbacks.onError) {
 					const error = consent.error?.message || 'Failed to save consents';
-					callbacks.onError?.(error);
+					console.error(error);
 				}
 			}
 
@@ -403,13 +433,15 @@ export const createConsentManagerStore = (
 		fetchConsentBannerInfo: async (): Promise<
 			ConsentBannerResponse | undefined
 		> => {
+			const { callbacks, setDetectedCountry, consentInfo, hasConsented } =
+				get();
 			// Skip if not in browser environment
 			if (typeof window === 'undefined') {
 				return undefined;
 			}
 
 			// Skip if user has already consented
-			if (get().hasConsented()) {
+			if (hasConsented()) {
 				// Make sure loading state is false
 				set({ isLoadingConsentInfo: false });
 				return undefined;
@@ -426,14 +458,19 @@ export const createConsentManagerStore = (
 				set({
 					isLoadingConsentInfo: false,
 					// Show popup by default if no consent info exists
-					...(get().consentInfo === null ? { showPopup: true } : {}),
+					...(consentInfo === null ? { showPopup: true } : {}),
 				});
 				return undefined;
 			}
 
 			try {
-				// Make the API request
-				const { data, error } = await client.showConsentBanner();
+				// Make the API request with proper error handling
+				const { data, error } = await client.showConsentBanner({
+					// Add onError callback specific to this request
+					// This works alongside the high-level client callbacks
+					//@ts-ignore
+					onError: callbacks.onError,
+				});
 
 				if (error) {
 					throw new Error(
@@ -458,19 +495,19 @@ export const createConsentManagerStore = (
 					jurisdictionInfo: data.jurisdiction,
 					isLoadingConsentInfo: false,
 					// Only update showPopup if we don't have stored consent
-					...(get().consentInfo === null
+					...(consentInfo === null
 						? { showPopup: data.showConsentBanner }
 						: {}),
 				});
 
 				// Update detected country if location information is available
 				if (data.location?.countryCode) {
-					get().setDetectedCountry(data.location.countryCode);
+					setDetectedCountry(data.location.countryCode);
 				}
 
 				// Call the onLocationDetected callback if it exists
 				if (data.location?.countryCode && data.location?.regionCode) {
-					get().callbacks.onLocationDetected?.({
+					callbacks.onLocationDetected?.({
 						countryCode: data.location.countryCode,
 						regionCode: data.location.regionCode,
 					});
@@ -490,10 +527,10 @@ export const createConsentManagerStore = (
 					error instanceof Error
 						? error.message
 						: 'Unknown error fetching consent banner information';
-				get().callbacks.onError?.(errorMessage);
+				callbacks.onError?.(errorMessage);
 
 				// If fetch fails, default to showing the banner to be safe
-				if (get().consentInfo === null) {
+				if (consentInfo === null) {
 					set({ showPopup: true });
 				}
 

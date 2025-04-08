@@ -136,15 +136,4 @@ export type {
 	Translations,
 } from './translations';
 
-/**
- * @module
- * Client Types
- *
- * @remarks
- * Exports types for the c15t client and its configuration options:
- */
-export type {
-	c15tClientOptions,
-	FetchOptions,
-	ResponseContext,
-} from './client';
+export * from './compliance';

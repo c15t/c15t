@@ -1,6 +1,7 @@
 'use client';
 
-import { type c15tClientOptions, createConsentClient } from '@c15t/react';
+import { type ConsentClientOptions, createConsentClient } from '@c15t/react';
+
 import { env } from './env';
 
 /**
@@ -10,11 +11,5 @@ import { env } from './env';
  * and exposes hooks and utilities for consent management.
  */
 export const c15tClient = createConsentClient({
-	backendURL: env.NEXT_PUBLIC_C15T_URL as string,
-	// defaultPreferences: {
-	// 	analytics: true,
-	// 	marketing: true,
-	// 	preferences: true,
-	// },
-	// Note: plugins property removed as it's not in the c15tClientConfig type
-} satisfies c15tClientOptions);
+	backendURL: env.NEXT_PUBLIC_C15T_URL,
+} satisfies ConsentClientOptions);

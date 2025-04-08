@@ -5,7 +5,7 @@
  * Provides the context for sharing consent management state across components.
  */
 
-import type { PrivacyConsentState, c15tClient } from 'c15t';
+import type { ConsentClientInterface, PrivacyConsentState } from 'c15t';
 import { createContext } from 'react';
 
 /**
@@ -30,7 +30,7 @@ export interface ConsentStateContextValue {
 	/**
 	 * Optional API client instance
 	 */
-	client: c15tClient | null;
+	client: ConsentClientInterface | null;
 }
 
 /**

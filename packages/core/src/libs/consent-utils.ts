@@ -54,17 +54,3 @@ export function hasConsented(
 ): boolean {
 	return consentInfo !== null;
 }
-
-/**
- * Checks if a specific consent type is enabled.
- *
- * @param consentType - The type of consent to check.
- * @param consents - The current state of user consents.
- * @returns True if the consent type is enabled, false otherwise.
- */
-export function isConsentEnabled(
-	consentType: AllConsentNames,
-	consents: ConsentState
-): boolean {
-	return consents[consentType] || false;
-}
