@@ -12,9 +12,6 @@ export { useConsentManager } from './hooks/use-consent-manager';
 export { useTranslations } from './hooks/use-translations';
 export { useColorScheme } from './hooks/use-color-scheme';
 
-// Export new client hook
-export { useConsentClient } from './hooks/use-consent-client';
-
 // Export client
 export {
 	configureConsentManager,
