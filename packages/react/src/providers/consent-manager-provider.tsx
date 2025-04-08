@@ -63,10 +63,7 @@ export function ConsentManagerProvider({
 		react = {},
 	} = options;
 
-	const {
-		initialGdprTypes,
-		initialComplianceSettings,
-	} = store;
+	const { initialGdprTypes, initialComplianceSettings } = store;
 
 	const {
 		theme,

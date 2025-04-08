@@ -34,14 +34,14 @@
 	"files": {
 		"ignore": ["*.css", "**/dist"]
 	},
-  "linter": {
-    "rules": {
-      "complexity": {
-        "noExcessiveCognitiveComplexity": "off"
-      },
-      "nursery": {
-        "noExportedImports": "off"
-      }
-    }
-  }
+	"linter": {
+		"rules": {
+			"complexity": {
+				"noExcessiveCognitiveComplexity": "off"
+			},
+			"nursery": {
+				"noExportedImports": "off"
+			}
+		}
+	}
 }
