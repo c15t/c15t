@@ -176,7 +176,8 @@ export function configureConsentManager(
 	switch (mode) {
 		case 'custom':
 			return new CustomClient({
-				endpointHandlers: (options as any).endpointHandlers,
+				endpointHandlers: (options as { endpointHandlers: EndpointHandlers })
+					.endpointHandlers,
 				callbacks: options.callbacks,
 			});
 		case 'offline':
@@ -187,9 +188,10 @@ export function configureConsentManager(
 		case 'c15t':
 		default:
 			return new C15tClient({
-				backendURL: (options as any).backendURL || DEFAULT_BACKEND_URL,
-				headers: (options as any).headers,
-				customFetch: (options as any).customFetch,
+				backendURL:
+					(options as { backendURL: string }).backendURL || DEFAULT_BACKEND_URL,
+				headers: (options as { headers: Record<string, string> }).headers,
+				customFetch: (options as { customFetch: typeof fetch }).customFetch,
 				callbacks: options.callbacks,
 			});
 	}
