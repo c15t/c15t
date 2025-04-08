@@ -1,4 +1,4 @@
-export const c15tClientExample = `import { configureConsentManager } from '@c15t/react';
+export const c15tClientExample = `import { type ConsentManagerOptions } from '@c15t/react';
 
 /**
  * C15t Mode - Uses HTTP requests to a backend
@@ -6,10 +6,13 @@ export const c15tClientExample = `import { configureConsentManager } from '@c15t
  * This mode makes actual API requests to the configured endpoint.
  * You must provide a valid backendURL.
  */
-export const standardClient = configureConsentManager({
+export const standardClient: ConsentManagerOptions = {
     // Required backend URL for C15t mode
     backendURL: '/api/c15t'
-});
+    store: {
+        initialGdprTypes: ['necessary', 'marketing'],
+    },
+};
 
 /**
  * Offline Mode - Disables all network requests
@@ -20,8 +23,11 @@ export const standardClient = configureConsentManager({
  * - Callbacks are still triggered with empty successful responses
  * - Perfect for testing, demos, or when backend is unavailable
  */
-export const offlineClient = configureConsentManager({
+export const offlineClient: ConsentManagerOptions = {
     mode: 'offline',
+    store: {
+        initialGdprTypes: ['necessary', 'marketing'],
+    },
     callbacks: {
         // All callbacks still work even though no network requests are made
         onConsentSet: (response) => {
@@ -30,7 +36,7 @@ export const offlineClient = configureConsentManager({
             // Response will be: { data: null, error: null, ok: true, response: null }
         }
     }
-});
+};
 
 /**
  * Custom Mode - Uses your own handler functions
@@ -38,7 +44,7 @@ export const offlineClient = configureConsentManager({
  * This mode lets you provide custom implementations for each endpoint,
  * giving you complete control over the behavior without making real API calls.
  */
-export const customClient = configureConsentManager({
+export const customClient: ConsentManagerOptions = {
     mode: 'custom',
     endpointHandlers: {
         showConsentBanner: async () => ({
@@ -76,5 +82,8 @@ export const customClient = configureConsentManager({
             error: null,
             response: null
         })
-    }
-});`;
+    },
+    store: {
+      initialGdprTypes: ['necessary', 'marketing'],
+    },
+};`;

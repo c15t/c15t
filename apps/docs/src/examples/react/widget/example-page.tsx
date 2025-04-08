@@ -41,15 +41,14 @@ export function CustomWidget() {
 import { ExampleContent } from './example-content';
 import { clearLocalStorage } from './lib/utils';
 import { CustomWidget } from './CustomWidget';
-import { c15tClient } from './c15t';
+import { offlineClient } from './c15t';
 
 export default function App() {
     // Clear localStorage on mount to ensure a clean state
     clearLocalStorage();
     return (
         <ConsentManagerProvider 
-            client={c15tClient}
-            initialGdprTypes={['necessary', 'marketing']}
+            options={offlineClient}
         >
             <CustomWidget />
             <ExampleContent />
