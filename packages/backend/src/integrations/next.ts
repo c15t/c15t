@@ -28,7 +28,7 @@ type NextRouteHandlers = {
  *
  * @example
  * ```typescript
- * import { toNextHandler } from '@c15t/backend/integrations';
+ * import { toNextHandler } from '@c15t/backend/integrations/next';
  * import { c15t } from '@/c15t';
  *
  * // app/api/c15t/[...paths]/route.ts
@@ -170,7 +170,7 @@ export function toNextHandler(instance: C15TInstance): NextRouteHandlers {
  * @example
  * ```typescript
  * // Using with c15t
- * import { toNextJsHandler } from '@c15t/backend/integrations';
+ * import { toNextJsHandler } from '@c15t/backend/integrations/next';
  * import { c15t } from '@/c15t';
  *
  * // app/api/auth/[...slug]/route.ts

@@ -11,7 +11,7 @@ import type { C15TContext } from '~/types';
  * @example
  * ```typescript
  * // Node.js with standard Request/Response objects
- * import { toNodeHandler } from '@c15t/backend/integrations';
+ * import { toNodeHandler } from '@c15t/backend/integrations/node';
  * import { c15t } from './c15t';
  *
  * // Create the request handler

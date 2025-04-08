@@ -1,5 +1,5 @@
 import { c15tInstance } from '@c15t/backend';
-import { toNextHandler } from '@c15t/backend/integrations';
+import { toNextHandler } from '@c15t/backend/integrations/next';
 import { memoryAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/memory-adapter';
 
 export const { GET, POST, OPTIONS } = toNextHandler(
