@@ -284,7 +284,7 @@ export const createConsentManagerStore = (
 						},
 					},
 				});
-				
+
 				shouldProceed = consent.ok;
 				if (!consent.ok) {
 					const error = consent.error?.message || 'Failed to save consents';
@@ -420,13 +420,13 @@ export const createConsentManagerStore = (
 
 			// Check if client is disabled (backendURL is false)
 			const isClientDisabled = client.isDisabled();
-			
+
 			// If client is disabled, return default behavior without API call
 			if (isClientDisabled) {
 				set({
 					isLoadingConsentInfo: false,
 					// Show popup by default if no consent info exists
-					...(get().consentInfo === null ? { showPopup: true } : {})
+					...(get().consentInfo === null ? { showPopup: true } : {}),
 				});
 				return undefined;
 			}
