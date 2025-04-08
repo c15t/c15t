@@ -267,19 +267,32 @@ export const createConsentManagerStore = (
 				type: type as 'necessary' | 'all' | 'custom',
 			};
 
-			const consent = await client?.setConsent({
-				body: {
-					type: 'cookie_banner',
-					domain: window.location.hostname,
-					preferences: newConsents,
-					metadata: {
-						source: 'consent_widget',
-						acceptanceMethod: type,
-					},
-				},
-			});
+			// Check if client is disabled (backendURL is false)
+			const isClientDisabled = client.isDisabled();
 
-			if (consent.ok) {
+			// Skip API call if client is disabled but proceed with local updates
+			let shouldProceed = true;
+			if (!isClientDisabled) {
+				const consent = await client?.setConsent({
+					body: {
+						type: 'cookie_banner',
+						domain: window.location.hostname,
+						preferences: newConsents,
+						metadata: {
+							source: 'consent_widget',
+							acceptanceMethod: type,
+						},
+					},
+				});
+				
+				shouldProceed = consent.ok;
+				if (!consent.ok) {
+					const error = consent.error?.message || 'Failed to save consents';
+					callbacks.onError?.(error);
+				}
+			}
+
+			if (shouldProceed || isClientDisabled) {
 				localStorage.setItem(
 					STORAGE_KEY,
 					JSON.stringify({
@@ -299,9 +312,6 @@ export const createConsentManagerStore = (
 
 				callbacks.onConsentGiven?.();
 				callbacks.onPreferenceExpressed?.();
-			} else {
-				const error = consent.error?.message || 'Failed to save consents';
-				callbacks.onError?.(error);
 			}
 		},
 
@@ -407,6 +417,19 @@ export const createConsentManagerStore = (
 
 			// Set loading state to true
 			set({ isLoadingConsentInfo: true });
+
+			// Check if client is disabled (backendURL is false)
+			const isClientDisabled = client.isDisabled();
+			
+			// If client is disabled, return default behavior without API call
+			if (isClientDisabled) {
+				set({
+					isLoadingConsentInfo: false,
+					// Show popup by default if no consent info exists
+					...(get().consentInfo === null ? { showPopup: true } : {})
+				});
+				return undefined;
+			}
 
 			try {
 				// Make the API request

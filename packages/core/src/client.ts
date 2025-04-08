@@ -130,6 +130,15 @@ export class c15tClient {
 	}
 
 	/**
+	 * Checks if the client is in disabled mode (no API requests will be made).
+	 * 
+	 * @returns True if the client is disabled (backendURL is false), false otherwise
+	 */
+	isDisabled(): boolean {
+		return this.backendURL === false;
+	}
+
+	/**
 	 * Resolves a URL path against the backend URL, handling both absolute and relative URLs.
 	 *
 	 * @param backendURL - The backend URL (can be absolute or relative)
