@@ -11,11 +11,14 @@ import type {
 	VerifyConsentResponse,
 } from '@c15t/backend';
 
-import {
+import type {
 	ConsentManagerCallbacks,
 	ConsentManagerInterface,
 } from './client-interface';
-import { FetchOptions, ResponseContext } from './types';
+import type { FetchOptions, ResponseContext } from './types';
+
+// At the top of client-custom.ts file, with other constants
+const LEADING_SLASHES_REGEX = /^\/+/;
 
 /**
  * Handler function for a specific endpoint
@@ -49,12 +52,6 @@ export interface EndpointHandlers {
 		VerifyConsentResponse,
 		VerifyConsentRequestBody
 	>;
-
-	/**
-	 * Any additional custom endpoints
-	 * @param key - Endpoint name
-	 */
-	[key: string]: EndpointHandler<any, any, any>;
 }
 
 /**
@@ -82,6 +79,15 @@ export class CustomClient implements ConsentManagerInterface {
 	 * @internal
 	 */
 	private endpointHandlers: EndpointHandlers;
+
+	/**
+	 * Dynamic endpoint handlers for custom paths
+	 * @internal
+	 */
+	private dynamicHandlers: Record<
+		string,
+		EndpointHandler<unknown, unknown, unknown>
+	> = {};
 
 	/**
 	 * Callback functions for client events
@@ -148,7 +154,7 @@ export class CustomClient implements ConsentManagerInterface {
 		BodyType = unknown,
 		QueryType = unknown,
 	>(
-		handlerKey: string,
+		handlerKey: keyof EndpointHandlers,
 		options?: FetchOptions<ResponseType, BodyType, QueryType>,
 		callbackKey?: keyof Pick<
 			Required<ConsentManagerCallbacks>,
@@ -164,15 +170,17 @@ export class CustomClient implements ConsentManagerInterface {
 
 		if (!handler) {
 			const errorResponse = this.createErrorResponse<ResponseType>(
-				`No endpoint handler found for '${handlerKey}'`,
+				`No endpoint handler found for '${String(handlerKey)}'`,
 				404,
 				'ENDPOINT_NOT_FOUND'
 			);
 
-			this.callbacks?.onError?.(errorResponse, handlerKey);
+			this.callbacks?.onError?.(errorResponse, String(handlerKey));
 
 			if (options?.throw) {
-				throw new Error(`No endpoint handler found for '${handlerKey}'`);
+				throw new Error(
+					`No endpoint handler found for '${String(handlerKey)}'`
+				);
 			}
 
 			return errorResponse;
@@ -212,7 +220,7 @@ export class CustomClient implements ConsentManagerInterface {
 				error
 			);
 
-			this.callbacks?.onError?.(errorResponse, handlerKey);
+			this.callbacks?.onError?.(errorResponse, String(handlerKey));
 
 			if (options?.throw) {
 				throw error;
@@ -228,7 +236,7 @@ export class CustomClient implements ConsentManagerInterface {
 	async showConsentBanner(
 		options?: FetchOptions<ShowConsentBannerResponse>
 	): Promise<ResponseContext<ShowConsentBannerResponse>> {
-		return this.executeHandler<ShowConsentBannerResponse>(
+		return await this.executeHandler<ShowConsentBannerResponse>(
 			'showConsentBanner',
 			options,
 			'onConsentBannerFetched'
@@ -241,7 +249,7 @@ export class CustomClient implements ConsentManagerInterface {
 	async setConsent(
 		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 	): Promise<ResponseContext<SetConsentResponse>> {
-		return this.executeHandler<SetConsentResponse, SetConsentRequestBody>(
+		return await this.executeHandler<SetConsentResponse, SetConsentRequestBody>(
 			'setConsent',
 			options,
 			'onConsentSet'
@@ -254,11 +262,24 @@ export class CustomClient implements ConsentManagerInterface {
 	async verifyConsent(
 		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
 	): Promise<ResponseContext<VerifyConsentResponse>> {
-		return this.executeHandler<VerifyConsentResponse, VerifyConsentRequestBody>(
-			'verifyConsent',
-			options,
-			'onConsentVerified'
-		);
+		return await this.executeHandler<
+			VerifyConsentResponse,
+			VerifyConsentRequestBody
+		>('verifyConsent', options, 'onConsentVerified');
+	}
+
+	/**
+	 * Registers a dynamic endpoint handler
+	 */
+	registerHandler<ResponseType, BodyType = unknown, QueryType = unknown>(
+		path: string,
+		handler: EndpointHandler<ResponseType, BodyType, QueryType>
+	): void {
+		this.dynamicHandlers[path] = handler as EndpointHandler<
+			unknown,
+			unknown,
+			unknown
+		>;
 	}
 
 	/**
@@ -269,19 +290,43 @@ export class CustomClient implements ConsentManagerInterface {
 		options?: FetchOptions<ResponseType, BodyType, QueryType>
 	): Promise<ResponseContext<ResponseType>> {
 		// Extract endpoint name from path
-		const endpointName = path.replace(/^\/+/, '').split('/')[0];
+		const endpointName = path.replace(LEADING_SLASHES_REGEX, '').split('/')[0];
 
-		// Make sure endpointName is not undefined
-		if (!endpointName) {
-			return this.createErrorResponse<ResponseType>(
-				'Invalid endpoint path',
-				400,
-				'INVALID_ENDPOINT'
-			);
+		// Check for dynamic handlers first
+		if (path in this.dynamicHandlers) {
+			const handler = this.dynamicHandlers[path] as EndpointHandler<
+				ResponseType,
+				BodyType,
+				QueryType
+			>;
+			try {
+				return await handler(options);
+			} catch (error) {
+				const errorResponse = this.createErrorResponse<ResponseType>(
+					error instanceof Error ? error.message : String(error),
+					0,
+					'HANDLER_ERROR',
+					error
+				);
+				this.callbacks?.onError?.(errorResponse, path);
+				return errorResponse;
+			}
 		}
 
-		return this.executeHandler<ResponseType, BodyType, QueryType>(
-			endpointName,
+		// Then check for predefined handlers
+		if (!endpointName || !(endpointName in this.endpointHandlers)) {
+			const errorResponse = this.createErrorResponse<ResponseType>(
+				`No endpoint handler found for '${path}'`,
+				404,
+				'ENDPOINT_NOT_FOUND'
+			);
+			this.callbacks?.onError?.(errorResponse, path);
+			return errorResponse;
+		}
+
+		// Use the predefined handler
+		return await this.executeHandler<ResponseType, BodyType, QueryType>(
+			endpointName as keyof EndpointHandlers,
 			options
 		);
 	}

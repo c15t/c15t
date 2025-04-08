@@ -1,6 +1,6 @@
 'use client';
 
-import { type ConsentManagerOptions } from '@c15t/react';
+import type { ConsentManagerOptions } from '@c15t/react';
 
 import { env } from './env';
 
@@ -11,7 +11,8 @@ import { env } from './env';
  * and exposes hooks and utilities for consent management.
  */
 export const manager: ConsentManagerOptions = {
-	backendURL: env.NEXT_PUBLIC_C15T_URL,
+  mode: 'c15t',
+	backendURL: env.NEXT_PUBLIC_C15T_URL as string,
 	store: {
 		initialGdprTypes: ['necessary', 'marketing'],
 	},

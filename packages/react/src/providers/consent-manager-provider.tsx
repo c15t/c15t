@@ -3,7 +3,6 @@
 import {
 	type ComplianceRegion,
 	type PrivacyConsentState,
-	type StoreConfig,
 	configureConsentManager,
 	createConsentManagerStore,
 	defaultTranslationConfig,
@@ -62,15 +61,11 @@ export function ConsentManagerProvider({
 		translations: translationConfig,
 		// Get React UI options
 		react = {},
-		// The rest are core options
-		...coreOptions
 	} = options;
 
 	const {
 		initialGdprTypes,
 		initialComplianceSettings,
-		namespace = 'c15tStore',
-		trackingBlockerConfig,
 	} = store;
 
 	const {
@@ -100,8 +95,9 @@ export function ConsentManagerProvider({
 		if (!options) {
 			throw new Error('ConsentManagerProvider requires options to be provided');
 		}
-		return configureConsentManager(coreOptions);
-	}, [coreOptions]);
+		const { store, translations, react, ...coreOpts } = options;
+		return configureConsentManager(coreOpts);
+	}, [options]);
 
 	// Create a stable reference to the store with prepared translation config
 	const consentStore = useMemo(() => {

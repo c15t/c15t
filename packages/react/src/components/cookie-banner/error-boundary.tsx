@@ -67,7 +67,7 @@ export class ErrorBoundary extends Component<
 
 	componentDidCatch(error: Error, errorInfo: ErrorInfo) {
 		this.setState({ error, errorInfo });
-		console.error('Uncaught error:', error, errorInfo);
+		// console.error('Uncaught error:', error, errorInfo);
 		// Optionally log error to an external service
 		// logErrorToService(error, errorInfo)
 	}

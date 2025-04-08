@@ -31,17 +31,17 @@
 			"indentWidth": 2
 		}
 	},
+	"linter": {
+		"rules": {
+			"complexity": {
+				"noExcessiveCognitiveComplexity": "off"
+			},
+			"nursery": {
+				"noExportedImports": "off"
+			}
+		}
+	},
 	"files": {
 		"ignore": ["*.css", "**/dist"]
-	},
-  "linter": {
-    "rules": {
-      "complexity": {
-        "noExcessiveCognitiveComplexity": "off"
-      },
-      "nursery": {
-        "noExportedImports": "off"
-      }
-    }
-  }
+	}
 }

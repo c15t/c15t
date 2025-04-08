@@ -6,7 +6,7 @@
 
 import { createStore } from 'zustand/vanilla';
 
-import { ConsentManagerInterface } from './client/client-factory';
+import type { ConsentManagerInterface } from './client/client-factory';
 import {
 	getEffectiveConsents,
 	hasConsentFor,
@@ -21,7 +21,7 @@ import type {
 	ConsentBannerResponse,
 	ConsentState,
 } from './types/compliance';
-import { AllConsentNames, consentTypes } from './types/gdpr';
+import { type AllConsentNames, consentTypes } from './types/gdpr';
 import type { TranslationConfig } from './types/translations';
 
 /** Storage key for persisting consent data in localStorage */
@@ -156,12 +156,7 @@ export const createConsentManagerStore = (
 	manager: ConsentManagerInterface,
 	options: StoreOptions = {}
 ) => {
-	const {
-		namespace = 'c15tStore',
-		trackingBlockerConfig,
-		initialGdprTypes,
-		initialComplianceSettings,
-	} = options;
+	const { namespace = 'c15tStore', trackingBlockerConfig } = options;
 
 	// Load initial state from localStorage if available
 	const storedConsent = getStoredConsent();
@@ -365,6 +360,7 @@ export const createConsentManagerStore = (
 				callbacks.onPreferenceExpressed?.();
 			} else if (!callbacks.onError) {
 				const error = consent.error?.message || 'Failed to save consents';
+				// biome-ignore lint/suspicious/noConsole: <explanation>
 				console.error(error);
 			}
 		},

@@ -75,7 +75,7 @@ export interface ConsentManagerInterface {
 	 *
 	 * @returns The callbacks object or undefined if no callbacks are configured
 	 */
-	getCallbacks(): Record<string, any> | undefined;
+	getCallbacks(): ConsentManagerCallbacks | undefined;
 }
 
 /**
@@ -87,23 +87,27 @@ export interface ConsentManagerCallbacks {
 	 * @param response - The full response context with error information
 	 * @param path - The API endpoint path that was requested
 	 */
-	onError?: (response: ResponseContext<any>, path: string) => void;
+	onError?: (response: ResponseContext<unknown>, path: string) => void;
 
 	/**
 	 * Called after successfully fetching the consent banner information
 	 * @param response The response from the showConsentBanner endpoint
 	 */
-	onConsentBannerFetched?: (response: ResponseContext<any>) => void;
+	onConsentBannerFetched?: (
+		response: ResponseContext<ShowConsentBannerResponse>
+	) => void;
 
 	/**
 	 * Called after successfully setting consent preferences
 	 * @param response The response from the setConsent endpoint
 	 */
-	onConsentSet?: (response: ResponseContext<any>) => void;
+	onConsentSet?: (response: ResponseContext<SetConsentResponse>) => void;
 
 	/**
 	 * Called after successfully verifying consent
 	 * @param response The response from the verifyConsent endpoint
 	 */
-	onConsentVerified?: (response: ResponseContext<any>) => void;
+	onConsentVerified?: (
+		response: ResponseContext<VerifyConsentResponse>
+	) => void;
 }

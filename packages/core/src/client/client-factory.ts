@@ -12,10 +12,10 @@ import type {
 	VerifyConsentResponse,
 } from '@c15t/backend';
 
-import { StoreOptions } from '../store';
+import type { StoreOptions } from '../store';
 import { C15tClient } from './client-c15t';
-import { CustomClient, EndpointHandlers } from './client-custom';
-import {
+import { CustomClient, type EndpointHandlers } from './client-custom';
+import type {
 	ConsentManagerCallbacks,
 	ConsentManagerInterface,
 } from './client-interface';
@@ -174,26 +174,37 @@ export function configureConsentManager(
 
 	// Create the appropriate client based on the mode
 	switch (mode) {
-		case 'custom':
+		case 'custom': {
+			// Use a properly typed cast
+			const customOptions = options as {
+				endpointHandlers: EndpointHandlers;
+				callbacks?: ConsentManagerCallbacks;
+			};
 			return new CustomClient({
-				endpointHandlers: (options as { endpointHandlers: EndpointHandlers })
-					.endpointHandlers,
-				callbacks: options.callbacks,
+				endpointHandlers: customOptions.endpointHandlers,
+				callbacks: customOptions.callbacks,
 			});
+		}
 		case 'offline':
 			return new C15tClient({
 				backendURL: false,
 				callbacks: options.callbacks,
 			});
-		case 'c15t':
-		default:
+		default: {
+			// Use a properly typed cast
+			const c15tOptions = options as {
+				backendURL: string;
+				headers?: Record<string, string>;
+				customFetch?: typeof fetch;
+				callbacks?: ConsentManagerCallbacks;
+			};
 			return new C15tClient({
-				backendURL:
-					(options as { backendURL: string }).backendURL || DEFAULT_BACKEND_URL,
-				headers: (options as { headers: Record<string, string> }).headers,
-				customFetch: (options as { customFetch: typeof fetch }).customFetch,
-				callbacks: options.callbacks,
+				backendURL: c15tOptions.backendURL || DEFAULT_BACKEND_URL,
+				headers: c15tOptions.headers,
+				customFetch: c15tOptions.customFetch,
+				callbacks: c15tOptions.callbacks,
 			});
+		}
 	}
 }
 

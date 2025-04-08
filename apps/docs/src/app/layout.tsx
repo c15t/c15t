@@ -40,7 +40,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 			<body className="flex min-h-screen flex-col">
 				<PostHogProvider>
 					<RootProvider>
-						<ConsentManagerProvider manager={manager}>
+						<ConsentManagerProvider options={manager}>
 							<CookieBanner />
 							<ConsentManagerDialog />
 							{process.env.NODE_ENV === 'development' && <C15TDevTools />}

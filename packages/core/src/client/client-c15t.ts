@@ -11,7 +11,7 @@ import type {
 	VerifyConsentResponse,
 } from '@c15t/backend';
 
-import {
+import type {
 	ConsentManagerCallbacks,
 	ConsentManagerInterface,
 } from './client-interface';
@@ -49,21 +49,6 @@ export interface C15tClientOptions {
 	 */
 	callbacks?: ConsentManagerCallbacks;
 }
-
-/**
- * Default consent banner API URL
- */
-const DEFAULT_BACKEND_URL = '/api/c15t';
-
-/**
- * Regex pattern to detect absolute URLs (with protocol)
- */
-const ABSOLUTE_URL_REGEX = /^https?:\/\//i;
-
-/**
- * Regex pattern to remove trailing slashes
- */
-const TRAILING_SLASHES_REGEX = /\/+$/;
 
 /**
  * Regex pattern to remove leading slashes
@@ -118,12 +103,11 @@ export class C15tClient implements ConsentManagerInterface {
 	 * @param options - Configuration options for the client
 	 */
 	constructor(options: C15tClientOptions) {
-		this.backendURL =
-			typeof options.backendURL === 'string'
-				? options.backendURL.endsWith('/')
-					? options.backendURL.slice(0, -1)
-					: options.backendURL
-				: false;
+		let backendUrl = options.backendURL;
+		if (typeof backendUrl === 'string' && backendUrl.endsWith('/')) {
+			backendUrl = backendUrl.slice(0, -1);
+		}
+		this.backendURL = typeof backendUrl === 'string' ? backendUrl : false;
 
 		this.headers = {
 			'Content-Type': 'application/json',
@@ -192,19 +176,37 @@ export class C15tClient implements ConsentManagerInterface {
 			}
 
 			// Call specific endpoint callbacks if they exist
-			const endpointCallbacks: Record<
-				string,
-				((response: ResponseContext<any>) => void) | undefined
-			> = {
+			const endpointCallbacks: {
 				[API_ENDPOINTS.SHOW_CONSENT_BANNER]:
-					this.callbacks?.onConsentBannerFetched,
-				[API_ENDPOINTS.SET_CONSENT]: this.callbacks?.onConsentSet,
-				[API_ENDPOINTS.VERIFY_CONSENT]: this.callbacks?.onConsentVerified,
+					| ((response: ResponseContext<ShowConsentBannerResponse>) => void)
+					| undefined;
+				[API_ENDPOINTS.SET_CONSENT]:
+					| ((response: ResponseContext<SetConsentResponse>) => void)
+					| undefined;
+				[API_ENDPOINTS.VERIFY_CONSENT]:
+					| ((response: ResponseContext<VerifyConsentResponse>) => void)
+					| undefined;
+			} = {
+				[API_ENDPOINTS.SHOW_CONSENT_BANNER]: this.callbacks
+					?.onConsentBannerFetched as
+					| ((response: ResponseContext<ShowConsentBannerResponse>) => void)
+					| undefined,
+				[API_ENDPOINTS.SET_CONSENT]: this.callbacks?.onConsentSet as
+					| ((response: ResponseContext<SetConsentResponse>) => void)
+					| undefined,
+				[API_ENDPOINTS.VERIFY_CONSENT]: this.callbacks?.onConsentVerified as
+					| ((response: ResponseContext<VerifyConsentResponse>) => void)
+					| undefined,
 			};
 
-			const callback = endpointCallbacks[path];
+			const callback =
+				endpointCallbacks[path as keyof typeof endpointCallbacks];
 			if (callback) {
-				callback(emptyResponse);
+				callback(
+					emptyResponse as ResponseContext<ShowConsentBannerResponse> &
+						ResponseContext<SetConsentResponse> &
+						ResponseContext<VerifyConsentResponse>
+				);
 			}
 
 			return emptyResponse;
@@ -217,11 +219,11 @@ export class C15tClient implements ConsentManagerInterface {
 
 		// Add query parameters
 		if (options?.query) {
-			Object.entries(options.query).forEach(([key, value]) => {
+			for (const [key, value] of Object.entries(options.query)) {
 				if (value !== undefined) {
 					url.searchParams.append(key, String(value));
 				}
-			});
+			}
 		}
 
 		const requestId = generateUUID();
@@ -298,29 +300,32 @@ export class C15tClient implements ConsentManagerInterface {
 
 				options?.onSuccess?.(successResponse);
 				return successResponse;
-			} else {
-				const errorData = data as any;
-				const errorResponse = this.createResponseContext<ResponseType>(
-					false,
-					null,
-					{
-						message: errorData?.message || 'Request failed',
-						status: response.status,
-						code: errorData?.code || 'API_ERROR',
-						details: errorData?.details || null,
-					},
-					response
-				);
-
-				options?.onError?.(errorResponse, path);
-				this.callbacks?.onError?.(errorResponse, path);
-
-				if (options?.throw) {
-					throw new Error(errorResponse.error?.message || 'Request failed');
-				}
-
-				return errorResponse;
 			}
+			const errorData = data as {
+				message: string;
+				code: string;
+				details: Record<string, unknown> | null;
+			};
+			const errorResponse = this.createResponseContext<ResponseType>(
+				false,
+				null,
+				{
+					message: errorData?.message || 'Request failed',
+					status: response.status,
+					code: errorData?.code || 'API_ERROR',
+					details: errorData?.details || null,
+				},
+				response
+			);
+
+			options?.onError?.(errorResponse, path);
+			this.callbacks?.onError?.(errorResponse, path);
+
+			if (options?.throw) {
+				throw new Error(errorResponse.error?.message || 'Request failed');
+			}
+
+			return errorResponse;
 		} catch (fetchError) {
 			// Handle network/request errors
 			if (
@@ -362,7 +367,7 @@ export class C15tClient implements ConsentManagerInterface {
 	async showConsentBanner(
 		options?: FetchOptions<ShowConsentBannerResponse>
 	): Promise<ResponseContext<ShowConsentBannerResponse>> {
-		return this.fetcher<ShowConsentBannerResponse>(
+		return await this.fetcher<ShowConsentBannerResponse>(
 			API_ENDPOINTS.SHOW_CONSENT_BANNER,
 			{
 				method: 'GET',
@@ -377,7 +382,7 @@ export class C15tClient implements ConsentManagerInterface {
 	async setConsent(
 		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 	): Promise<ResponseContext<SetConsentResponse>> {
-		return this.fetcher<SetConsentResponse, SetConsentRequestBody>(
+		return await this.fetcher<SetConsentResponse, SetConsentRequestBody>(
 			API_ENDPOINTS.SET_CONSENT,
 			{
 				method: 'POST',
@@ -392,7 +397,7 @@ export class C15tClient implements ConsentManagerInterface {
 	async verifyConsent(
 		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
 	): Promise<ResponseContext<VerifyConsentResponse>> {
-		return this.fetcher<VerifyConsentResponse, VerifyConsentRequestBody>(
+		return await this.fetcher<VerifyConsentResponse, VerifyConsentRequestBody>(
 			API_ENDPOINTS.VERIFY_CONSENT,
 			{
 				method: 'POST',
@@ -408,6 +413,6 @@ export class C15tClient implements ConsentManagerInterface {
 		path: string,
 		options?: FetchOptions<ResponseType, BodyType, QueryType>
 	): Promise<ResponseContext<ResponseType>> {
-		return this.fetcher<ResponseType, BodyType, QueryType>(path, options);
+		return await this.fetcher<ResponseType, BodyType, QueryType>(path, options);
 	}
 }

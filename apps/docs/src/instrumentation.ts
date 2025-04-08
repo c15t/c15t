@@ -5,6 +5,7 @@ export async function register() {
 		try {
 			await import('../sentry.server.config');
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: its ok to log errors here
 			console.error('Failed to load Sentry server config:', error);
 		}
 	}
@@ -13,6 +14,7 @@ export async function register() {
 		try {
 			await import('../sentry.edge.config');
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: its ok to log errors here
 			console.error('Failed to load Sentry edge config:', error);
 		}
 	}
