@@ -64,6 +64,8 @@ const API_ENDPOINTS = {
  * The client abstracts away the details of making HTTP requests to the c15t API,
  * handling authentication, error handling, and response parsing. It provides
  * a clean, type-safe interface for working with consent data.
+ * If backendURL is set to false, all API methods will return successful empty responses
+ * without making any network requests, effectively disabling the API functionality.
  *
  * @example
  * ```typescript
@@ -89,7 +91,7 @@ export class c15tClient {
 	 *
 	 * @internal
 	 */
-	private backendURL: string;
+	private backendURL: string | false;
 
 	/**
 	 * Default headers to include with all requests
@@ -112,9 +114,11 @@ export class c15tClient {
 	 * @throws Will throw an error if the backendURL is invalid or if required options are missing
 	 */
 	constructor(options: c15tClientOptions) {
-		this.backendURL = options.backendURL.endsWith('/')
-			? options.backendURL.slice(0, -1)
-			: options.backendURL;
+		this.backendURL = typeof options.backendURL === 'string' 
+			? (options.backendURL.endsWith('/')
+				? options.backendURL.slice(0, -1)
+				: options.backendURL)
+			: false;
 
 		this.headers = {
 			'Content-Type': 'application/json',
@@ -131,7 +135,12 @@ export class c15tClient {
 	 * @param path - The path to append
 	 * @returns The resolved URL string
 	 */
-	private resolveUrl(backendURL: string, path: string): string {
+	private resolveUrl(backendURL: string | false, path: string): string | false {
+		// If backendURL is false, return false to indicate no requests should be made
+		if (backendURL === false) {
+			return false;
+		}
+
 		// Case 1: backendURL is already an absolute URL (includes protocol)
 		if (ABSOLUTE_URL_REGEX.test(backendURL)) {
 			const backendURLObj = new URL(backendURL);
@@ -161,6 +170,9 @@ export class c15tClient {
 	 * This internal method handles constructing the request, processing the response,
 	 * and executing any callbacks based on the response status. It provides standardized
 	 * error handling and response formatting.
+	 * 
+	 * If backendURL is set to false, no API requests will be sent and a minimal successful
+	 * response will be returned, effectively disabling all API functionality without errors.
 	 *
 	 * @typeParam ResponseType - The expected type of the response data
 	 * @param path - API endpoint path (will be appended to the backendURL)
@@ -173,6 +185,22 @@ export class c15tClient {
 		path: string,
 		options: FetchOptions<ResponseType, BodyType, QueryType> = {}
 	): Promise<ResponseContext<ResponseType>> {
+		// If backendURL is false, return an empty successful response without making a network request
+		if (this.backendURL === false) {
+			const context: ResponseContext<ResponseType> = {
+				data: null,
+				error: null,
+				ok: true,
+				response: null,
+			};
+
+			if (options.onSuccess) {
+				await options.onSuccess(context);
+			}
+
+			return context;
+		}
+
 		try {
 			// Use the resolveUrl method instead of direct URL construction
 			const urlString = this.resolveUrl(this.backendURL, path);
@@ -180,7 +208,7 @@ export class c15tClient {
 			// Create URL object for search params (this should work even with relative URLs
 			// since we're creating it in the browser context)
 			const url = new URL(
-				urlString,
+				urlString as string,
 				typeof window !== 'undefined'
 					? window.location.href
 					: 'http://localhost'
@@ -317,6 +345,7 @@ export class c15tClient {
 	 *
 	 * This method allows for making requests to custom endpoints not covered
 	 * by the standard methods, such as plugin-specific endpoints.
+	 * If backendURL is set to false, returns a successful empty response without making any requests.
 	 *
 	 * @typeParam ResponseType - The expected type of the response data
 	 * @param path - The API endpoint path
@@ -363,6 +392,7 @@ export class c15tClient {
 	 *
 	 * This method determines whether a consent banner should be displayed
 	 * based on the user's location and applicable privacy regulations.
+	 * If backendURL is set to false, returns a successful empty response without making any requests.
 	 *
 	 * @example
 	 * ```typescript
@@ -399,6 +429,7 @@ export class c15tClient {
 	 *
 	 * This method allows setting different types of consent including cookie preferences,
 	 * privacy policy acceptance, marketing preferences, etc.
+	 * If backendURL is set to false, returns a successful empty response without making any requests.
 	 *
 	 * @example
 	 * ```typescript
@@ -446,6 +477,7 @@ export class c15tClient {
 	 *
 	 * This method checks if the subject has given valid consent for specific purposes
 	 * or policies. It can verify both cookie banner consent and policy-based consent.
+	 * If backendURL is set to false, returns a successful empty response without making any requests.
 	 *
 	 * @example
 	 * ```typescript
@@ -493,6 +525,8 @@ export class c15tClient {
  * This is the recommended way to create a client for interacting with the c15t API.
  * It provides a convenient factory function that instantiates a properly configured
  * client based on the provided options.
+ * If backendURL is set to false, the client will not send any API requests and all methods
+ * will return successful empty responses.
  *
  * @throws Will throw an error if the backendURL is invalid or if required options are missing
  *
@@ -508,6 +542,11 @@ export class c15tClient {
  *     customFetchImpl: customFetch
  *   }
  * });
+ * 
+ * // Create a client with API requests disabled
+ * const offlineClient = createConsentClient({
+ *   backendURL: false
+ * });
  * ```
  *
  * @param options - Configuration options for the client
@@ -517,7 +556,7 @@ export function createConsentClient(options: c15tClientOptions): c15tClient {
 	// If no backendURL provided, use the default
 	const clientOptions = {
 		...options,
-		backendURL: options.backendURL || DEFAULT_BACKEND_URL,
+		backendURL: options.backendURL === undefined ? DEFAULT_BACKEND_URL : options.backendURL,
 	};
 
 	return new c15tClient(clientOptions);

@@ -59,7 +59,7 @@ async function testComponentStyles({
 				// biome-ignore lint/suspicious/noMisplacedAssertion: utility function - will be called inside tests
 				await expect
 					.element(element)
-					.toHaveStyle({ [property as string]: value });
+					.toHaveStyle({ [property as string]: value as string });
 			}
 		}
 	}

@@ -33,7 +33,7 @@ export interface c15tClientOptions {
 	 * @example 'https://api.example.com/consent' or '/api/c15t'
 	 * @default '/api/c15t'
 	 */
-	backendURL: string;
+	backendURL: string | false;
 
 	/**
 	 * Default request headers to include with all API requests.
