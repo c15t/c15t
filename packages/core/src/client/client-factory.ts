@@ -19,6 +19,7 @@ import type {
 	ConsentManagerCallbacks,
 	ConsentManagerInterface,
 } from './client-interface';
+import { OfflineClient } from './client-offline';
 import type { FetchOptions, ResponseContext } from './types';
 
 /**
@@ -186,8 +187,7 @@ export function configureConsentManager(
 			});
 		}
 		case 'offline':
-			return new C15tClient({
-				backendURL: false,
+			return new OfflineClient({
 				callbacks: options.callbacks,
 			});
 		default: {

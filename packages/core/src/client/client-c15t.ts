@@ -28,11 +28,10 @@ import {
 export interface C15tClientOptions {
 	/**
 	 * Backend URL for API endpoints. Can be absolute or relative.
-	 * If set to false, all API requests will be disabled but use the client logic.
 	 *
 	 * @default '/api/c15t'
 	 */
-	backendURL: string | false;
+	backendURL: string;
 
 	/**
 	 * Additional HTTP headers to include in all API requests.
@@ -77,7 +76,7 @@ export class C15tClient implements ConsentManagerInterface {
 	 * Base URL for API requests (without trailing slash)
 	 * @internal
 	 */
-	private backendURL: string | false;
+	private backendURL: string;
 
 	/**
 	 * Default headers to include with all requests
@@ -104,10 +103,10 @@ export class C15tClient implements ConsentManagerInterface {
 	 */
 	constructor(options: C15tClientOptions) {
 		let backendUrl = options.backendURL;
-		if (typeof backendUrl === 'string' && backendUrl.endsWith('/')) {
+		if (backendUrl.endsWith('/')) {
 			backendUrl = backendUrl.slice(0, -1);
 		}
-		this.backendURL = typeof backendUrl === 'string' ? backendUrl : false;
+		this.backendURL = backendUrl;
 
 		this.headers = {
 			'Content-Type': 'application/json',
@@ -120,11 +119,12 @@ export class C15tClient implements ConsentManagerInterface {
 
 	/**
 	 * Checks if the client is in disabled mode.
+	 * C15t client is never disabled.
 	 *
-	 * @returns True if the client is in disabled mode (backendURL is false)
+	 * @returns Always returns false
 	 */
 	isDisabled(): boolean {
-		return this.backendURL === false;
+		return false;
 	}
 
 	/**
@@ -166,52 +166,6 @@ export class C15tClient implements ConsentManagerInterface {
 		path: string,
 		options?: FetchOptions<ResponseType, BodyType, QueryType>
 	): Promise<ResponseContext<ResponseType>> {
-		// Early return for disabled state
-		if (this.backendURL === false) {
-			const emptyResponse = this.createResponseContext<ResponseType>(true);
-
-			// Call success callback if provided
-			if (options?.onSuccess) {
-				await options.onSuccess(emptyResponse);
-			}
-
-			// Call specific endpoint callbacks if they exist
-			const endpointCallbacks: {
-				[API_ENDPOINTS.SHOW_CONSENT_BANNER]:
-					| ((response: ResponseContext<ShowConsentBannerResponse>) => void)
-					| undefined;
-				[API_ENDPOINTS.SET_CONSENT]:
-					| ((response: ResponseContext<SetConsentResponse>) => void)
-					| undefined;
-				[API_ENDPOINTS.VERIFY_CONSENT]:
-					| ((response: ResponseContext<VerifyConsentResponse>) => void)
-					| undefined;
-			} = {
-				[API_ENDPOINTS.SHOW_CONSENT_BANNER]: this.callbacks
-					?.onConsentBannerFetched as
-					| ((response: ResponseContext<ShowConsentBannerResponse>) => void)
-					| undefined,
-				[API_ENDPOINTS.SET_CONSENT]: this.callbacks?.onConsentSet as
-					| ((response: ResponseContext<SetConsentResponse>) => void)
-					| undefined,
-				[API_ENDPOINTS.VERIFY_CONSENT]: this.callbacks?.onConsentVerified as
-					| ((response: ResponseContext<VerifyConsentResponse>) => void)
-					| undefined,
-			};
-
-			const callback =
-				endpointCallbacks[path as keyof typeof endpointCallbacks];
-			if (callback) {
-				callback(
-					emptyResponse as ResponseContext<ShowConsentBannerResponse> &
-						ResponseContext<SetConsentResponse> &
-						ResponseContext<VerifyConsentResponse>
-				);
-			}
-
-			return emptyResponse;
-		}
-
 		// Prepare URL and request options
 		const url = new URL(
 			`${this.backendURL}/${path.replace(LEADING_SLASHES_REGEX, '')}`
@@ -232,11 +186,13 @@ export class C15tClient implements ConsentManagerInterface {
 		const requestOptions: RequestInit = {
 			method: options?.method || 'GET',
 			mode: 'cors',
+			credentials: 'include',
 			headers: {
 				...this.headers,
 				'X-Request-ID': requestId,
 				...options?.headers,
 			},
+			...options?.fetchOptions,
 		};
 
 		if (options?.body && requestOptions.method !== 'GET') {

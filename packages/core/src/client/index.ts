@@ -23,3 +23,9 @@ export {
 	type CustomClientOptions,
 	type EndpointHandler,
 } from './client-custom';
+
+// Export Offline client for testing and development
+export {
+	OfflineClient,
+	type OfflineClientOptions,
+} from './client-offline';
