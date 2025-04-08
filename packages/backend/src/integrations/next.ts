@@ -199,7 +199,7 @@ export function toNextJsHandler(
 				handler: (request: Request) => Promise<Response>;
 		  }
 		| ((request: Request) => Promise<Response>)
-): SimpleNextRouteHandlers {
+) {
 	const handler = async (request: Request) => {
 		return 'handler' in auth ? auth.handler(request) : auth(request);
 	};
