@@ -4,7 +4,6 @@ import type { ThemeValue } from '~/types/theme';
 import type { CookieBannerTheme } from '../theme';
 import testComponentStyles from './utils';
 
-
 type ComponentTestCase = {
 	testId: string;
 	themeKey: string;
