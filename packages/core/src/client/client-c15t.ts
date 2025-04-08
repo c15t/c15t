@@ -47,6 +47,12 @@ export interface C15tClientOptions {
 	 * Global callbacks for handling API responses.
 	 */
 	callbacks?: ConsentManagerCallbacks;
+
+	/**
+	 * CORS mode for fetch requests.
+	 * @default 'cors'
+	 */
+	corsMode?: RequestMode;
 }
 
 /**
@@ -97,6 +103,12 @@ export class C15tClient implements ConsentManagerInterface {
 	private callbacks?: ConsentManagerCallbacks;
 
 	/**
+	 * CORS mode for fetch requests
+	 * @internal
+	 */
+	private corsMode: RequestMode;
+
+	/**
 	 * Creates a new C15t client instance.
 	 *
 	 * @param options - Configuration options for the client
@@ -115,6 +127,7 @@ export class C15tClient implements ConsentManagerInterface {
 
 		this.customFetch = options.customFetch;
 		this.callbacks = options.callbacks;
+		this.corsMode = options.corsMode || 'cors';
 	}
 
 	/**
@@ -185,7 +198,7 @@ export class C15tClient implements ConsentManagerInterface {
 
 		const requestOptions: RequestInit = {
 			method: options?.method || 'GET',
-			mode: 'cors',
+			mode: this.corsMode, // Use configured CORS mode
 			credentials: 'include',
 			headers: {
 				...this.headers,
