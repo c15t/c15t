@@ -55,7 +55,7 @@ export function determineActiveFramework(path: string): string {
 	// and for component paths that should retain the current framework
 	if (
 		path.includes('/general') ||
-		path.includes('/components/react') || 
+		path.includes('/components/react') ||
 		path.includes('/styling') ||
 		path.includes('/hooks')
 	) {
@@ -63,7 +63,10 @@ export function determineActiveFramework(path: string): string {
 		// But this must happen AFTER initial hydration to prevent mismatches
 		// We put this in a try/catch to handle private browsing mode
 		// biome-ignore lint/nursery/useCollapsedIf: <explanation>
-								if (typeof window !== 'undefined' && window.document?.readyState === 'complete') {
+		if (
+			typeof window !== 'undefined' &&
+			window.document?.readyState === 'complete'
+		) {
 			try {
 				const storedFramework = localStorage.getItem(FRAMEWORK_STORAGE_KEY);
 				if (storedFramework && frameworkPaths.includes(storedFramework)) {

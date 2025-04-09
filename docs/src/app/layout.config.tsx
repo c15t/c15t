@@ -1,10 +1,8 @@
-
 import type { BaseLayoutProps } from '~/components/layouts/shared';
 import { C15TLogo } from '~/components/logo';
 
 import { GithubInfo } from 'fumadocs-ui/components/github-info';
-import {
-} from 'lucide-react';
+import {} from 'lucide-react';
 
 /**
  * Defines the navigation structure and menu items for the docs.
@@ -13,7 +11,7 @@ import {
  */
 export const docsOptions: BaseLayoutProps = {
 	nav: {
-		title: <C15TLogo className='h-6 w-auto' />,
+		title: <C15TLogo className="h-6 w-auto" />,
 		transparentMode: 'top',
 	},
 	links: [
@@ -31,7 +29,7 @@ export const docsOptions: BaseLayoutProps = {
  */
 export const homePageOptions: BaseLayoutProps = {
 	nav: {
-		title: <C15TLogo className='h-6 w-auto' />,
+		title: <C15TLogo className="h-6 w-auto" />,
 		transparentMode: 'top',
 	},
 

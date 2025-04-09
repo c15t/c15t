@@ -9,7 +9,7 @@ export function Footer() {
 			<footer className="container relative mx-auto grid grid-cols-2 gap-8 overflow-hidden pt-8 sm:grid-cols-3 sm:pt-12 md:pt-16 lg:gap-16 lg:pt-24 xl:grid-cols-5 xl:pt-32">
 				{/* Logo and Description Column */}
 				<div className="col-span-2 flex flex-col items-center sm:col-span-3 sm:items-start xl:col-span-2">
-					<C15TLogo className='h-10 w-auto' />
+					<C15TLogo className="h-10 w-auto" />
 					<div className="mt-8 font-normal text-sm leading-6 dark:text-white/60">
 						{siteConfig.footer.bottomText}
 					</div>

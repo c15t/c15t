@@ -21,12 +21,12 @@ import {
 	type ReactNode,
 	createContext,
 	createElement,
+	useCallback,
 	useContext,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
-	useCallback,
 } from 'react';
 import { cn } from '../../lib/cn';
 import { isActive } from '../../lib/is-active';
@@ -108,10 +108,10 @@ export function FrameworkProvider({ children }: { children: ReactNode }) {
 	const [activeFramework, setActiveFramework] = useState<
 		'nextjs' | 'react' | 'javascript'
 	>('react');
-	
+
 	// Flag to track if we're hydrated on the client
 	const [isHydrated, setIsHydrated] = useState(false);
-	
+
 	// Set hydrated flag after component mounts (client-side only)
 	useEffect(() => {
 		setIsHydrated(true);
@@ -124,7 +124,7 @@ export function FrameworkProvider({ children }: { children: ReactNode }) {
 	// Only run this effect after first hydration completed
 	useEffect(() => {
 		if (!isHydrated) return;
-		
+
 		// Only update the active framework if we're not on a general page
 		// For general pages, we want to keep the current framework
 		if (!pathname.includes('/general')) {
@@ -520,7 +520,7 @@ export function SidebarFolderContent(props: CollapsibleContentProps) {
 					[ctx]
 				)}
 			>
-				<div className='absolute inset-y-0 start-3 w-px bg-fd-border' />
+				<div className="absolute inset-y-0 start-3 w-px bg-fd-border" />
 				{props.children}
 			</Context.Provider>
 		</CollapsibleContent>
@@ -663,7 +663,10 @@ export function PersistentSidebarPageTree(props: {
 	return (
 		<FrameworkProvider>
 			<PersistentNavProvider>
-				<SidebarContent useCustomNavigation={props.useCustomNavigation !== false} components={props.components} />
+				<SidebarContent
+					useCustomNavigation={props.useCustomNavigation !== false}
+					components={props.components}
+				/>
 			</PersistentNavProvider>
 		</FrameworkProvider>
 	);
@@ -674,18 +677,18 @@ export function PersistentSidebarPageTree(props: {
  */
 function SidebarContent({
 	useCustomNavigation,
-	components
+	components,
 }: {
 	useCustomNavigation: boolean;
 	components?: Partial<SidebarComponents>;
 }) {
 	const [isHydrated, setIsHydrated] = useState(false);
-	
+
 	// Set hydrated flag after component mounts
 	useEffect(() => {
 		setIsHydrated(true);
 	}, []);
-	
+
 	// If not hydrated yet, show a skeleton UI with "React" framework selected
 	if (!isHydrated) {
 		return (
@@ -695,13 +698,13 @@ function SidebarContent({
 			</>
 		);
 	}
-	
+
 	return (
 		<>
 			<FrameworkSelector />
-			<SidebarPageTree 
-				useCustomNavigation={useCustomNavigation} 
-				components={components} 
+			<SidebarPageTree
+				useCustomNavigation={useCustomNavigation}
+				components={components}
 			/>
 		</>
 	);
@@ -742,7 +745,7 @@ export function FrameworkSelector(props: HTMLAttributes<HTMLDivElement>) {
 
 	return (
 		<div {...props} className={cn('mb-3', props.className)}>
-			<div className='pb-1 pl-2 text-fd-muted-foreground text-xs'>
+			<div className="pb-1 pl-2 text-fd-muted-foreground text-xs">
 				Select framework documentation
 			</div>
 			<RootToggle
