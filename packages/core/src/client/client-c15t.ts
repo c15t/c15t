@@ -372,7 +372,8 @@ export class C15tClient implements ConsentManagerInterface {
 				}
 
 				// Handle API errors (non-2xx status codes)
-				const errorData = data as { // Type assertion for error structure
+				const errorData = data as {
+					// Type assertion for error structure
 					message: string;
 					code: string;
 					details: Record<string, unknown> | null;
