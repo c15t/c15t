@@ -3,7 +3,6 @@ import { Hero } from './_components/hero';
 
 import type { Metadata } from 'next/types';
 import { CTA } from './_components/cta';
-import { Examples } from './_components/examples';
 import { Footer } from './_components/footer';
 import { siteConfig } from './config';
 
@@ -18,7 +17,7 @@ export default function HomePage() {
 			<Hero />
 			{/* <ComponentsSection /> */}
 			<FeaturesSection />
-			<Examples />
+			{/* <Examples /> */}
 			<CTA />
 			<Footer />
 		</>

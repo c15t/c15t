@@ -7,6 +7,7 @@ export const ReactIcon = (props: SVGProps<SVGSVGElement>) => (
 		viewBox="0 0 300 300"
 		{...props}
 	>
+		<title>React</title>
 		<g fill="#53C1DE" clipPath="url(#a)">
 			<path d="M176.789 149.759c0-14.344-11.993-25.974-26.789-25.974-14.794 0-26.789 11.63-26.789 25.974 0 14.346 11.995 25.975 26.789 25.975 14.796 0 26.789-11.629 26.789-25.975Z" />
 			<path
@@ -26,11 +27,11 @@ export const ReactIcon = (props: SVGProps<SVGSVGElement>) => (
 export const NextIcon = (props: SVGProps<SVGSVGElement>) => (
 	<svg
 		xmlns="http://www.w3.org/2000/svg"
-		xmlnsXlink="http://www.w3.org/1999/xlink"
 		fill="none"
 		viewBox="0 0 300 300"
 		{...props}
 	>
+		<title>Next.js</title>
 		<defs>
 			<path
 				id="reuse-0"
@@ -50,10 +51,10 @@ export const NextIcon = (props: SVGProps<SVGSVGElement>) => (
 					maskType: 'alpha',
 				}}
 			>
-				<use xlinkHref="#reuse-0" />
+				<use href="#reuse-0" />
 			</mask>
 			<g mask="url(#b)">
-				<use xlinkHref="#reuse-0" />
+				<use href="#reuse-0" />
 				<path
 					fill="url(#c)"
 					d="M249.18 262.533 115.237 90H90v119.95h20.189v-94.311l123.143 159.103c5.556-3.719 10.85-7.8 15.848-12.209Z"
@@ -98,6 +99,7 @@ export const HonoIcon = (props: SVGProps<SVGSVGElement>) => (
 		viewBox="0 0 300 300"
 		{...props}
 	>
+		<title>Hono</title>
 		<g clipPath="url(#a)">
 			<path
 				fill="#E36002"
@@ -119,6 +121,7 @@ export const JSIcon = (props: SVGProps<SVGSVGElement>) => (
 		viewBox="0 0 300 300"
 		{...props}
 	>
+		<title>Javascript</title>
 		<g clipPath="url(#a)">
 			<path
 				fill="#F7DF1C"

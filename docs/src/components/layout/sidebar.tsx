@@ -3,7 +3,7 @@ import type {
 	CollapsibleContentProps,
 	CollapsibleTriggerProps,
 } from '@radix-ui/react-collapsible';
-import { type ScrollAreaProps } from '@radix-ui/react-scroll-area';
+import type { ScrollAreaProps } from '@radix-ui/react-scroll-area';
 import { cva } from 'class-variance-authority';
 import { usePathname } from 'fumadocs-core/framework';
 import Link, { type LinkProps } from 'fumadocs-core/link';
@@ -26,6 +26,7 @@ import {
 	useMemo,
 	useRef,
 	useState,
+	useCallback,
 } from 'react';
 import { cn } from '../../lib/cn';
 import { isActive } from '../../lib/is-active';
@@ -44,6 +45,7 @@ import {
 } from '../ui/collapsible';
 import { ScrollArea, ScrollViewport } from '../ui/scroll-area';
 import { RootToggle } from './root-toggle';
+import { SkeletonFrameworkSelector, SkeletonNavigation } from './skeleton';
 
 // Create a context to track the expanded state of folders across navigation
 const PersistentNavContext = createContext<{
@@ -101,32 +103,54 @@ const FrameworkContext = createContext<{
 // Provider for the framework context
 export function FrameworkProvider({ children }: { children: ReactNode }) {
 	const pathname = usePathname();
+	// Always use 'react' as the initial default on both server and client
+	// This ensures consistent rendering and prevents hydration mismatches
 	const [activeFramework, setActiveFramework] = useState<
 		'nextjs' | 'react' | 'javascript'
-	>(determineActiveFramework(pathname));
+	>('react');
+	
+	// Flag to track if we're hydrated on the client
+	const [isHydrated, setIsHydrated] = useState(false);
+	
+	// Set hydrated flag after component mounts (client-side only)
+	useEffect(() => {
+		setIsHydrated(true);
+		// After hydration, we can safely update the framework based on pathname
+		const framework = determineActiveFramework(pathname);
+		setActiveFramework(framework as 'nextjs' | 'react' | 'javascript');
+	}, [pathname]);
 
 	// Update active framework when pathname changes for non-general pages
+	// Only run this effect after first hydration completed
 	useEffect(() => {
+		if (!isHydrated) return;
+		
 		// Only update the active framework if we're not on a general page
 		// For general pages, we want to keep the current framework
 		if (!pathname.includes('/general')) {
-			setActiveFramework(determineActiveFramework(pathname));
+			const framework = determineActiveFramework(pathname);
+			setActiveFramework(framework as 'nextjs' | 'react' | 'javascript');
 		}
-	}, [pathname]);
+	}, [pathname, isHydrated]);
 
 	// Provide a way to manually change framework and persist the choice
-	const setAndPersistFramework = (
-		framework: 'nextjs' | 'react' | 'javascript'
-	) => {
-		setActiveFramework(framework);
-		if (typeof window !== 'undefined') {
-			localStorage.setItem('activeFramework', framework);
-		}
-	};
+	const setAndPersistFramework = useCallback(
+		(framework: 'nextjs' | 'react' | 'javascript') => {
+			setActiveFramework(framework);
+			if (typeof window !== 'undefined') {
+				try {
+					localStorage.setItem('activeFramework', framework);
+				} catch (e) {
+					// Ignore localStorage errors (private browsing, etc.)
+				}
+			}
+		},
+		[]
+	);
 
 	const value = useMemo(
 		() => ({ activeFramework, setActiveFramework: setAndPersistFramework }),
-		[activeFramework]
+		[activeFramework, setAndPersistFramework]
 	);
 
 	return (
@@ -334,7 +358,7 @@ export function SidebarSeparator(props: HTMLAttributes<HTMLParagraphElement>) {
 		<p
 			{...props}
 			className={cn(
-				'inline-flex items-center gap-2 mb-2 px-2 text-sm font-medium [&_svg]:size-4 [&_svg]:shrink-0',
+				'mb-2 inline-flex items-center gap-2 px-2 font-medium text-sm [&_svg]:size-4 [&_svg]:shrink-0',
 				props.className
 			)}
 			style={{
@@ -496,7 +520,7 @@ export function SidebarFolderContent(props: CollapsibleContentProps) {
 					[ctx]
 				)}
 			>
-				<div className="absolute w-px inset-y-0 bg-fd-border start-3" />
+				<div className='absolute inset-y-0 start-3 w-px bg-fd-border' />
 				{props.children}
 			</Context.Provider>
 		</CollapsibleContent>
@@ -622,11 +646,65 @@ export function SidebarPageTree(props: {
 		}
 
 		return (
-			<Fragment key={root.$id + '-' + activeFramework}>
+			<Fragment key={`${root.$id}-${activeFramework}`}>
 				{renderSidebarList(root.children, 1)}
 			</Fragment>
 		);
 	}, [props.components, root, props.useCustomNavigation, activeFramework]);
+}
+
+/**
+ * Wrapper for SidebarPageTree that provides persistent navigation state and framework context
+ */
+export function PersistentSidebarPageTree(props: {
+	components?: Partial<SidebarComponents>;
+	useCustomNavigation?: boolean;
+}) {
+	return (
+		<FrameworkProvider>
+			<PersistentNavProvider>
+				<SidebarContent useCustomNavigation={props.useCustomNavigation !== false} components={props.components} />
+			</PersistentNavProvider>
+		</FrameworkProvider>
+	);
+}
+
+/**
+ * SidebarContent component that handles hydration and displays skeletal UI when needed
+ */
+function SidebarContent({
+	useCustomNavigation,
+	components
+}: {
+	useCustomNavigation: boolean;
+	components?: Partial<SidebarComponents>;
+}) {
+	const [isHydrated, setIsHydrated] = useState(false);
+	
+	// Set hydrated flag after component mounts
+	useEffect(() => {
+		setIsHydrated(true);
+	}, []);
+	
+	// If not hydrated yet, show a skeleton UI with "React" framework selected
+	if (!isHydrated) {
+		return (
+			<>
+				<SkeletonFrameworkSelector />
+				<SkeletonNavigation />
+			</>
+		);
+	}
+	
+	return (
+		<>
+			<FrameworkSelector />
+			<SidebarPageTree 
+				useCustomNavigation={useCustomNavigation} 
+				components={components} 
+			/>
+		</>
+	);
 }
 
 /**
@@ -664,7 +742,7 @@ export function FrameworkSelector(props: HTMLAttributes<HTMLDivElement>) {
 
 	return (
 		<div {...props} className={cn('mb-3', props.className)}>
-			<div className="text-xs text-fd-muted-foreground pb-1 pl-2">
+			<div className='pb-1 pl-2 text-fd-muted-foreground text-xs'>
 				Select framework documentation
 			</div>
 			<RootToggle
@@ -673,26 +751,6 @@ export function FrameworkSelector(props: HTMLAttributes<HTMLDivElement>) {
 				onOptionClick={handleOptionClick}
 			/>
 		</div>
-	);
-}
-
-/**
- * Wrapper for SidebarPageTree that provides persistent navigation state and framework context
- */
-export function PersistentSidebarPageTree(props: {
-	components?: Partial<SidebarComponents>;
-	useCustomNavigation?: boolean;
-}) {
-	return (
-		<FrameworkProvider>
-			<PersistentNavProvider>
-				<FrameworkSelector />
-				<SidebarPageTree
-					useCustomNavigation={props.useCustomNavigation !== false}
-					components={props.components}
-				/>
-			</PersistentNavProvider>
-		</FrameworkProvider>
 	);
 }
 
@@ -778,7 +836,7 @@ function Border({ level, active }: { level: number; active?: boolean }) {
 	return (
 		<div
 			className={cn(
-				'absolute w-px inset-y-2 z-[2] start-3',
+				'absolute inset-y-2 start-3 z-[2] w-px',
 				active && 'bg-fd-primary'
 			)}
 		/>

@@ -32,17 +32,6 @@ const FRAMEWORK_STORAGE_KEY = 'activeFramework';
  * @returns Framework identifier (e.g., 'nextjs', 'react', 'javascript')
  */
 export function determineActiveFramework(path: string): string {
-	// Special case: If we're in a component path, don't change the framework
-	if (path.includes('/components/react')) {
-		// Keep current framework selection
-		if (typeof window !== 'undefined') {
-			const storedFramework = localStorage.getItem(FRAMEWORK_STORAGE_KEY);
-			if (storedFramework && frameworkPaths.includes(storedFramework)) {
-				return storedFramework;
-			}
-		}
-	}
-
 	// First check if the current path exactly matches a specific framework path
 	for (const frameworkPath of frameworkPaths) {
 		// Check for exact framework match (/docs/react) but not within component paths
@@ -50,23 +39,43 @@ export function determineActiveFramework(path: string): string {
 			new RegExp(`\\/docs\\/${frameworkPath}(?:\\/|$)`)
 		);
 		if (exactPathMatch) {
-			// Found a match - store and return this framework
+			// During client-side rendering, we can store this preference
 			if (typeof window !== 'undefined') {
-				localStorage.setItem(FRAMEWORK_STORAGE_KEY, frameworkPath);
+				try {
+					localStorage.setItem(FRAMEWORK_STORAGE_KEY, frameworkPath);
+				} catch (e) {
+					// Ignore localStorage errors (private browsing, etc.)
+				}
 			}
 			return frameworkPath;
 		}
 	}
 
-	// For shared pages (general, styling, hooks), use the previously stored framework
-	if (typeof window !== 'undefined') {
-		const storedFramework = localStorage.getItem(FRAMEWORK_STORAGE_KEY);
-		if (storedFramework && frameworkPaths.includes(storedFramework)) {
-			return storedFramework;
+	// Special handling for shared pages (/general, /styling, etc.)
+	// and for component paths that should retain the current framework
+	if (
+		path.includes('/general') ||
+		path.includes('/components/react') || 
+		path.includes('/styling') ||
+		path.includes('/hooks')
+	) {
+		// During client-side hydration/rendering, we can check localStorage
+		// But this must happen AFTER initial hydration to prevent mismatches
+		// We put this in a try/catch to handle private browsing mode
+		// biome-ignore lint/nursery/useCollapsedIf: <explanation>
+								if (typeof window !== 'undefined' && window.document?.readyState === 'complete') {
+			try {
+				const storedFramework = localStorage.getItem(FRAMEWORK_STORAGE_KEY);
+				if (storedFramework && frameworkPaths.includes(storedFramework)) {
+					return storedFramework;
+				}
+			} catch (e) {
+				// Ignore localStorage errors
+			}
 		}
 	}
 
-	// Default to first framework if no stored preference
+	// Default to first framework if no stored preference or during SSR
 	return frameworkPaths[0];
 }
 

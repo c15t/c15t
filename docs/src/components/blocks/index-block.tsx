@@ -67,21 +67,21 @@ import { JSIcon, NextIcon, ReactIcon } from '../icons';
 
 const frameworkCards = [
 	{
-		href: '/nextjs/installation',
+		href: 'docs/nextjs',
 		title: 'Next.js',
 		icon: <NextIcon />,
 		description:
 			'Easily add secure, beautiful, and fast Consent Manager to Next.js with C15T.',
 	},
 	{
-		href: '/react/installation',
+		href: 'docs/react',
 		title: 'React',
 		icon: <ReactIcon />,
 		description:
 			'Get started installing and initializing C15T in a new React + Vite app.',
 	},
 	{
-		href: '/javascript/installation',
+		href: 'docs/javascript',
 		title: 'Javascript',
 		icon: <JSIcon />,
 		description:
