@@ -202,6 +202,11 @@ export interface FetchOptions<
 	 * ```
 	 */
 	fetchOptions?: RequestInit;
+
+	/**
+	 * Request-specific retry configuration. Overrides the global `retryConfig` set in `C15tClientOptions`.
+	 */
+	retryConfig?: RetryConfig;
 }
 
 /**
@@ -287,4 +292,18 @@ export interface ResponseContext<ResponseType = unknown> {
 	 * True for successful requests (2xx status codes), false otherwise.
 	 */
 	ok: boolean;
+}
+
+/**
+ * Defines the structure for retry configuration.
+ */
+export interface RetryConfig {
+	/** Maximum number of retry attempts. */
+	maxRetries?: number;
+	/** Initial delay in milliseconds before the first retry. */
+	initialDelayMs?: number;
+	/** Factor by which the delay increases for each subsequent retry (e.g., 2 for exponential). */
+	backoffFactor?: number;
+	/** Array of HTTP status codes that should trigger a retry. */
+	retryableStatusCodes?: number[];
 }

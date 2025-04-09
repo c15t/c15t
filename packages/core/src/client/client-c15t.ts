@@ -20,7 +20,19 @@ import {
 	API_ENDPOINTS,
 	type FetchOptions,
 	type ResponseContext,
+	type RetryConfig,
 } from './types';
+
+/**
+ * Default retry configuration
+ * @internal
+ */
+const DEFAULT_RETRY_CONFIG: Required<RetryConfig> = {
+	maxRetries: 3,
+	initialDelayMs: 100,
+	backoffFactor: 2,
+	retryableStatusCodes: [500, 502, 503, 504], // Default retryable server errors
+};
 
 /**
  * Configuration options for the C15t backend client
@@ -53,6 +65,13 @@ export interface C15tClientOptions {
 	 * @default 'cors'
 	 */
 	corsMode?: RequestMode;
+
+	/**
+	 * Global retry configuration for fetch requests.
+	 * Can be overridden per request in `FetchOptions`.
+	 * @default { maxRetries: 3, initialDelayMs: 100, backoffFactor: 2, retryableStatusCodes: [500, 502, 503, 504] }
+	 */
+	retryConfig?: RetryConfig;
 }
 
 /**
@@ -69,6 +88,15 @@ const LEADING_SLASHES_REGEX = /^\/+/;
  * Regex pattern to remove trailing slashes
  */
 const TRAILING_SLASHES_REGEX = /\/+$/;
+
+/**
+ * Helper function to introduce a delay
+ * @param ms - Delay duration in milliseconds
+ * @returns Promise resolving after the delay
+ * @internal
+ */
+const delay = (ms: number): Promise<void> =>
+	new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Generates a UUID v4 for request identification
@@ -119,6 +147,12 @@ export class C15tClient implements ConsentManagerInterface {
 	private corsMode: RequestMode;
 
 	/**
+	 * Global retry configuration for fetch requests.
+	 * @internal
+	 */
+	private retryConfig: Required<RetryConfig>;
+
+	/**
 	 * Creates a new C15t client instance.
 	 *
 	 * @param options - Configuration options for the client
@@ -136,6 +170,16 @@ export class C15tClient implements ConsentManagerInterface {
 		this.customFetch = options.customFetch;
 		this.callbacks = options.callbacks;
 		this.corsMode = options.corsMode || 'cors';
+
+		// Merge provided retry config with defaults
+		this.retryConfig = {
+			...DEFAULT_RETRY_CONFIG,
+			...(options.retryConfig || {}),
+			// Ensure retryableStatusCodes is an array even if user provides an empty object
+			retryableStatusCodes:
+				options.retryConfig?.retryableStatusCodes ??
+				DEFAULT_RETRY_CONFIG.retryableStatusCodes,
+		};
 	}
 
 	/**
@@ -202,169 +246,240 @@ export class C15tClient implements ConsentManagerInterface {
 	}
 
 	/**
-	 * Makes an HTTP request to the API.
+	 * Makes an HTTP request to the API with retry logic.
 	 */
 	private async fetcher<ResponseType, BodyType = unknown, QueryType = unknown>(
 		path: string,
 		options?: FetchOptions<ResponseType, BodyType, QueryType>
 	): Promise<ResponseContext<ResponseType>> {
-		// Resolve the full URL using the resolveUrl method
-		const resolvedUrl = this.resolveUrl(this.backendURL, path);
-		let url: URL;
-
-		try {
-			// Create URL object from the resolved URL
-			url = new URL(resolvedUrl);
-		} catch (error) {
-			// If the URL is relative, create it using window.location as base
-			url = new URL(resolvedUrl, window.location.origin);
-		}
-
-		// Add query parameters
-		if (options?.query) {
-			for (const [key, value] of Object.entries(options.query)) {
-				if (value !== undefined) {
-					url.searchParams.append(key, String(value));
-				}
-			}
-		}
-
-		const requestId = generateUUID();
-		const fetchImpl = this.customFetch || globalThis.fetch;
-
-		const requestOptions: RequestInit = {
-			method: options?.method || 'GET',
-			mode: this.corsMode, // Use configured CORS mode
-			credentials: 'include',
-			headers: {
-				...this.headers,
-				'X-Request-ID': requestId,
-				...options?.headers,
-			},
-			...options?.fetchOptions,
+		// Determine the final retry configuration (request overrides global)
+		const finalRetryConfig: Required<RetryConfig> = {
+			...this.retryConfig,
+			...(options?.retryConfig || {}),
+			retryableStatusCodes:
+				options?.retryConfig?.retryableStatusCodes ??
+				this.retryConfig.retryableStatusCodes,
 		};
 
-		if (options?.body && requestOptions.method !== 'GET') {
-			requestOptions.body = JSON.stringify(options.body);
-		}
+		const { maxRetries, initialDelayMs, backoffFactor, retryableStatusCodes } =
+			finalRetryConfig;
 
-		try {
-			// Make the request
-			const response = await fetchImpl(url.toString(), requestOptions);
+		let attempts = 0;
+		let currentDelay = initialDelayMs;
 
-			// Parse response
-			let data: unknown = null;
-			let parseError: unknown = null;
+		while (attempts <= maxRetries) {
+			attempts++;
+			const requestId = generateUUID(); // Generate new ID for each attempt
+			const fetchImpl = this.customFetch || globalThis.fetch;
+
+			// Resolve the full URL using the resolveUrl method
+			const resolvedUrl = this.resolveUrl(this.backendURL, path);
+			let url: URL;
 
 			try {
-				const contentType = response.headers.get('content-type');
-				if (
-					contentType?.includes('application/json') &&
-					response.status !== 204 &&
-					response.headers.get('content-length') !== '0'
-				) {
-					data = await response.json();
-				}
-			} catch (err) {
-				parseError = err;
+				// Create URL object from the resolved URL
+				url = new URL(resolvedUrl);
+			} catch {
+				// If the URL is relative, create it using window.location as base
+				url = new URL(resolvedUrl, window.location.origin);
 			}
 
-			// Handle parse errors
-			if (parseError) {
+			// Add query parameters
+			if (options?.query) {
+				for (const [key, value] of Object.entries(options.query)) {
+					if (value !== undefined) {
+						url.searchParams.append(key, String(value));
+					}
+				}
+			}
+
+			const requestOptions: RequestInit = {
+				method: options?.method || 'GET',
+				mode: this.corsMode, // Use configured CORS mode
+				credentials: 'include',
+				headers: {
+					...this.headers,
+					'X-Request-ID': requestId,
+					...options?.headers,
+				},
+				...options?.fetchOptions,
+			};
+
+			if (options?.body && requestOptions.method !== 'GET') {
+				requestOptions.body = JSON.stringify(options.body);
+			}
+
+			try {
+				// Make the request
+				const response = await fetchImpl(url.toString(), requestOptions);
+
+				// Parse response
+				let data: unknown = null;
+				let parseError: unknown = null;
+
+				try {
+					const contentType = response.headers.get('content-type');
+					if (
+						contentType?.includes('application/json') &&
+						response.status !== 204 && // No content
+						response.headers.get('content-length') !== '0' // Explicit zero length
+					) {
+						data = await response.json();
+					} else if (response.status === 204) {
+						// Handle No Content explicitly
+						data = null;
+					}
+				} catch (err) {
+					parseError = err;
+				}
+
+				// Handle parse errors - No retry for parse errors
+				if (parseError) {
+					const errorResponse = this.createResponseContext<ResponseType>(
+						false,
+						null,
+						{
+							message: 'Failed to parse response',
+							status: response.status,
+							code: 'PARSE_ERROR',
+							cause: parseError,
+						},
+						response
+					);
+
+					options?.onError?.(errorResponse, path);
+					this.callbacks?.onError?.(errorResponse, path);
+
+					if (options?.throw) {
+						throw new Error('Failed to parse response');
+					}
+					return errorResponse; // Return immediately, no retry
+				}
+
+				// Determine if the request was successful
+				const isSuccess = response.status >= 200 && response.status < 300;
+
+				if (isSuccess) {
+					const successResponse = this.createResponseContext<ResponseType>(
+						true,
+						data as ResponseType, // Assume data is ResponseType on success
+						null,
+						response
+					);
+
+					options?.onSuccess?.(successResponse);
+					return successResponse; // Return successful response
+				}
+
+				// Handle API errors (non-2xx status codes)
+				const errorData = data as { // Type assertion for error structure
+					message: string;
+					code: string;
+					details: Record<string, unknown> | null;
+				} | null; // Allow data to be null if parsing failed or status was 204
+
 				const errorResponse = this.createResponseContext<ResponseType>(
 					false,
 					null,
 					{
-						message: 'Failed to parse response',
+						message:
+							errorData?.message ||
+							`Request failed with status ${response.status}`,
 						status: response.status,
-						code: 'PARSE_ERROR',
-						cause: parseError,
+						code: errorData?.code || 'API_ERROR',
+						details: errorData?.details || null,
 					},
 					response
 				);
 
-				options?.onError?.(errorResponse, path);
-				this.callbacks?.onError?.(errorResponse, path);
+				// Check if we should retry based on status code
+				const shouldRetry =
+					retryableStatusCodes.includes(response.status) &&
+					attempts <= maxRetries;
 
-				if (options?.throw) {
-					throw new Error('Failed to parse response');
+				if (!shouldRetry) {
+					// Don't retry - call callbacks and potentially throw
+					options?.onError?.(errorResponse, path);
+					this.callbacks?.onError?.(errorResponse, path);
+
+					if (options?.throw) {
+						throw new Error(errorResponse.error?.message || 'Request failed');
+					}
+					return errorResponse; // Return the error response
 				}
 
-				return errorResponse;
+				// Wait before retrying
+				await delay(currentDelay);
+				currentDelay *= backoffFactor; // Exponential backoff
+			} catch (fetchError) {
+				// Handle network/request errors
+				// Don't retry if it was a parse error thrown from above
+				if (
+					fetchError &&
+					(fetchError as Error).message === 'Failed to parse response'
+				) {
+					throw fetchError; // Re-throw parse errors immediately
+				}
+
+				const isNetworkError = !(fetchError instanceof Response); // Crude check, might need refinement
+
+				// Check if we should retry based on network error
+				const shouldRetry = isNetworkError && attempts <= maxRetries;
+
+				if (!shouldRetry) {
+					// Create error context for non-retryable fetch error
+					const errorResponse = this.createResponseContext<ResponseType>(
+						false,
+						null,
+						{
+							message:
+								fetchError instanceof Error
+									? fetchError.message
+									: String(fetchError),
+							status: 0, // Indicate network error or similar
+							code: 'NETWORK_ERROR',
+							cause: fetchError,
+						},
+						null // No response object available
+					);
+
+					options?.onError?.(errorResponse, path);
+					this.callbacks?.onError?.(errorResponse, path);
+
+					if (options?.throw) {
+						throw fetchError; // Re-throw the original fetch error
+					}
+					return errorResponse; // Return the error response
+				}
+
+				// Wait before retrying
+				await delay(currentDelay);
+				currentDelay *= backoffFactor; // Exponential backoff
 			}
+		} // End of while loop
 
-			// Determine if the request was successful
-			const isSuccess = response.status >= 200 && response.status < 300;
+		// If loop finishes (max retries exceeded), return the last error encountered
+		// This part should ideally be unreachable if logic inside loop is correct,
+		// but as a fallback, create a generic max retries error.
+		const maxRetriesErrorResponse = this.createResponseContext<ResponseType>(
+			false,
+			null,
+			{
+				message: `Request failed after ${maxRetries} retries`,
+				status: 0, // Indicate failure after retries
+				code: 'MAX_RETRIES_EXCEEDED',
+			},
+			null
+		);
 
-			if (isSuccess) {
-				const successResponse = this.createResponseContext<ResponseType>(
-					true,
-					data as ResponseType,
-					null,
-					response
-				);
+		options?.onError?.(maxRetriesErrorResponse, path);
+		this.callbacks?.onError?.(maxRetriesErrorResponse, path);
 
-				options?.onSuccess?.(successResponse);
-				return successResponse;
-			}
-			const errorData = data as {
-				message: string;
-				code: string;
-				details: Record<string, unknown> | null;
-			};
-			const errorResponse = this.createResponseContext<ResponseType>(
-				false,
-				null,
-				{
-					message: errorData?.message || 'Request failed',
-					status: response.status,
-					code: errorData?.code || 'API_ERROR',
-					details: errorData?.details || null,
-				},
-				response
-			);
-
-			options?.onError?.(errorResponse, path);
-			this.callbacks?.onError?.(errorResponse, path);
-
-			if (options?.throw) {
-				throw new Error(errorResponse.error?.message || 'Request failed');
-			}
-
-			return errorResponse;
-		} catch (fetchError) {
-			// Handle network/request errors
-			if (
-				!fetchError ||
-				(fetchError as Error).message === 'Failed to parse response'
-			) {
-				throw fetchError;
-			}
-
-			const errorResponse = this.createResponseContext<ResponseType>(
-				false,
-				null,
-				{
-					message:
-						fetchError instanceof Error
-							? fetchError.message
-							: String(fetchError),
-					status: 0,
-					code: 'NETWORK_ERROR',
-					cause: fetchError,
-				},
-				null
-			);
-
-			options?.onError?.(errorResponse, path);
-			this.callbacks?.onError?.(errorResponse, path);
-
-			if (options?.throw) {
-				throw fetchError;
-			}
-
-			return errorResponse;
+		if (options?.throw) {
+			throw new Error(`Request failed after ${maxRetries} retries`);
 		}
+
+		return maxRetriesErrorResponse;
 	}
 
 	/**
