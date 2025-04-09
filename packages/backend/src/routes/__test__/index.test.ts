@@ -13,6 +13,7 @@
 
 // Use vi to mock dependencies
 import { vi } from 'vitest';
+import { version } from '../../../package.json';
 
 // Mock the routes directly first
 vi.mock('../status', () => {
@@ -24,7 +25,7 @@ vi.mock('../status', () => {
 				const adapterType = event.context?.adapter?.id || 'Unavailable';
 				return {
 					status: 'ok',
-					version: '2.0.0',
+					version: version,
 					timestamp: new Date().toISOString(),
 					storage: {
 						type: adapterType,
