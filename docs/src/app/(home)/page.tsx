@@ -1,19 +1,26 @@
-import Link from 'next/link';
+import { FeaturesSection } from './_components/features';
+import { Hero } from './_components/hero';
+
+import type { Metadata } from 'next/types';
+import { CTA } from './_components/cta';
+import { Examples } from './_components/examples';
+import { Footer } from './_components/footer';
+import { siteConfig } from './config';
+
+export const metadata: Metadata = {
+	title: 'React Privacy Components for the Modern Web',
+	description: siteConfig.hero.description,
+};
 
 export default function HomePage() {
 	return (
-		<main className="flex flex-1 flex-col justify-center text-center">
-			<h1 className="mb-4 text-2xl font-bold">Hello World</h1>
-			<p className="text-fd-muted-foreground">
-				You can open{' '}
-				<Link
-					href="/docs"
-					className="text-fd-foreground font-semibold underline"
-				>
-					/docs
-				</Link>{' '}
-				and see the documentation.
-			</p>
-		</main>
+		<>
+			<Hero />
+			{/* <ComponentsSection /> */}
+			<FeaturesSection />
+			<Examples />
+			<CTA />
+			<Footer />
+		</>
 	);
 }

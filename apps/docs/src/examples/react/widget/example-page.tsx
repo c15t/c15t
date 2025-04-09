@@ -2,7 +2,7 @@ import { c15tClientExample } from '~/examples/c15t-client-example';
 
 export const pages = {
 	'c15t.ts': c15tClientExample,
-	'CustomWidget.tsx': `'use client';
+	'custom-widget.tsx': `'use client';
   
 import { useConsentManager } from '@c15t/react';
 import * as ConsentManagerWidget from '@c15t/react/consent-manager-widget';
@@ -40,7 +40,7 @@ export function CustomWidget() {
 	'App.tsx': `import { ConsentManagerProvider, ConsentManagerDialog, CookieBanner } from '@c15t/react';
 import { ExampleContent } from './example-content';
 import { clearLocalStorage } from './lib/utils';
-import { CustomWidget } from './CustomWidget';
+import { CustomWidget } from './custom-widget';
 import { offlineClient } from './c15t';
 
 export default function App() {

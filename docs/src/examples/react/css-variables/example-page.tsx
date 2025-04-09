@@ -5,7 +5,7 @@ export const pages = {
 import { ExampleContent } from './example-content';
 import { clearLocalStorage } from './lib/utils';
 import buttons from './buttons.module.css';
-import { c15tClient } from './c15t';
+import { offlineClient } from './c15t';
 
 export default function App() {
   // Clear localStorage on mount to ensure a clean state
@@ -14,7 +14,7 @@ export default function App() {
     return (
         <ConsentManagerProvider 
             initialGdprTypes={['necessary', 'marketing']}
-            client={c15tClient}
+            options={offlineClient}
         >
           <CookieBanner 							
 				    theme={{

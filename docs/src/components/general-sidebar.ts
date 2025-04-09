@@ -1,5 +1,5 @@
-import { type PageTree } from 'fumadocs-core/server';
-import { type Option } from './layout/root-toggle';
+import type { PageTree } from 'fumadocs-core/server';
+import type { Option } from './layout/root-toggle';
 
 // Framework options for the dropdown selector
 export const frameworkOptions: Option[] = [
@@ -91,18 +91,18 @@ const generalPages: PageTree.Node[] = [
 
 // Next.js specific framework pages
 const nextjsPages: PageTree.Node[] = [
-	{
-		$id: 'nextjs/index',
-		type: 'page',
-		name: 'Getting Started',
-		url: '/docs/nextjs',
-	},
-	{
-		$id: 'nextjs/installation',
-		type: 'page',
-		name: 'Installation',
-		url: '/docs/nextjs/installation',
-	},
+	// {
+	// 	$id: 'nextjs/index',
+	// 	type: 'page',
+	// 	name: 'Getting Started',
+	// 	url: '/docs/nextjs',
+	// },
+	// {
+	// 	$id: 'nextjs/installation',
+	// 	type: 'page',
+	// 	name: 'Installation',
+	// 	url: '/docs/nextjs/installation',
+	// },
 ];
 
 // Next.js specific framework pages
@@ -267,14 +267,14 @@ const backendPages: PageTree.Node[] = [
 ];
 
 // React specific framework pages
-const reactPages: PageTree.Node[] = [
-	{
-		$id: 'react/index',
-		type: 'page',
-		name: 'Overview',
-		url: '/docs/react',
-	},
-];
+// const reactPages: PageTree.Node[] = [
+// 	{
+// 		$id: 'react/index',
+// 		type: 'page',
+// 		name: 'Overview',
+// 		url: '/docs/react',
+// 	},
+// ];
 
 // JavaScript specific framework pages
 const javascriptPages: PageTree.Node[] = [
@@ -284,14 +284,32 @@ const javascriptPages: PageTree.Node[] = [
 		name: 'Overview',
 		url: '/docs/javascript',
 	},
+	{
+		$id: 'javascript/how-it-works',
+		type: 'page',
+		name: 'How it works',
+		url: '/docs/javascript/how-it-works',
+	},
+	{
+		$id: 'javascript/auto-detect',
+		type: 'page',
+		name: 'Auto Detect',
+		url: '/docs/javascript/auto-detect',
+	},
+	{
+		$id: 'javascript/api-reference',
+		type: 'page',
+		name: 'API Reference',
+		url: '/docs/javascript/api-reference',
+	},
 ];
 
 export const reactComponentsNavigation: PageTree.Node[] = [
-	{
-		$id: 'react-components',
-		type: 'separator',
-		name: 'React Components',
-	},
+	// {
+	// 	$id: 'react-components',
+	// 	type: 'separator',
+	// 	name: 'React Components',
+	// },
 	{
 		$id: 'react-components/cookie-banner',
 		type: 'page',
@@ -341,12 +359,12 @@ export const reactNavigation: PageTree.Root = {
 	$id: 'react-root',
 	name: 'React Documentation',
 	children: [
-		{
-			$id: 'react-pages',
-			type: 'separator',
-			name: 'React',
-		},
-		...reactPages,
+		// {
+		// 	$id: 'react-pages',
+		// 	type: 'separator',
+		// 	name: 'React',
+		// },
+		// ...reactPages,
 		...reactComponentsNavigation,
 		...hooksPages,
 		...stylingPages,
@@ -364,7 +382,6 @@ export const javascriptNavigation: PageTree.Root = {
 			name: 'JavaScript',
 		},
 		...javascriptPages,
-		...generalPages,
 	],
 };
 

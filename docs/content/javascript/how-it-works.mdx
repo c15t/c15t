@@ -1,0 +1,81 @@
+---
+title: How It Works
+description: In-depth explanation of the architecture and functionality of the c15t package.
+---
+## Overview
+
+The `c15t` package is a headless library that provides the foundational logic and state management for privacy consent management. It allows developers to build custom user interfaces while leveraging a robust backend for consent tracking and management.
+
+## Architecture
+
+### Headless Design
+
+- **Separation of Concerns**: The library focuses solely on the logic and state management of consents, leaving the UI implementation to developers. This separation allows for greater flexibility and customization.
+- **Composable API**: The API is designed to be composable, enabling developers to integrate it seamlessly into their existing applications.
+
+### State Management
+
+- **Zustand Store**: The core of the library is built on Zustand, a small, fast, and scalable state management solution. This ensures efficient state updates and reactivity.
+- **Centralized State**: All consent-related data is managed in a centralized store, making it easy to access and update consent states across the application.
+
+## Key Concepts
+
+### Consent Management
+
+- **Consent Types**: The library supports various consent types (e.g., analytics, marketing) that can be customized based on application needs.
+- **Dynamic Updates**: Consents can be updated dynamically, allowing for real-time changes based on user interactions or external factors.
+
+### Privacy Compliance
+
+- **GDPR Support**: The library includes built-in support for GDPR compliance, with features to manage consent types and user preferences.
+- **Region-Specific Settings**: Developers can configure compliance settings based on user location, ensuring adherence to regional privacy laws.
+
+## How to Use
+
+### Creating a Consent Store
+
+To start using the library, create a consent manager store:
+
+```typescript
+import { createConsentManagerStore } from 'c15t';
+
+const store = createConsentManagerStore();
+```
+
+### Managing Consents
+
+- **Set Consent**: Update consent for a specific type.
+  ```typescript
+  store.getState().setConsent('analytics', true);
+  ```
+
+- **Save Consents**: Save user preferences.
+  ```typescript
+  store.getState().saveConsents('all');
+  ```
+
+- **Reset Consents**: Reset all consents to default values.
+  ```typescript
+  store.getState().resetConsents();
+  ```
+
+### Integrating with UI
+
+- **Custom UI Components**: Use the store's state and methods to build custom UI components that reflect the current consent states and allow users to update their preferences.
+- **React Hooks**: Leverage React hooks to connect your components to the consent store, ensuring they react to state changes.
+
+## Advanced Features
+
+### Callbacks and Events
+
+- **Event Handling**: The library supports event callbacks for consent actions, allowing developers to execute custom logic when consents are updated.
+- **Custom Callbacks**: Set custom callbacks for specific consent events to handle application-specific logic.
+
+### Privacy Settings
+
+- **Configurable Settings**: Developers can configure privacy settings to control how consents are managed and displayed.
+- **Dynamic Adjustments**: Adjust privacy settings dynamically based on user interactions or external data.
+
+## Conclusion
+
+The `c15t` package provides a powerful and flexible solution for managing privacy consents in modern applications. Its headless architecture and robust state management make it an ideal choice for developers looking to build custom consent interfaces while ensuring compliance with privacy regulations. 

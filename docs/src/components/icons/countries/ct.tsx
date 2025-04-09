@@ -1,0 +1,27 @@
+import type { SVGProps } from 'react';
+
+interface ConnecticutIconProps {
+	title?: string;
+	titleId?: string;
+}
+
+export const ConnecticutIcon = ({
+	title = 'Connecticut',
+	titleId = 'connecticut',
+	...props
+}: SVGProps<SVGSVGElement> & ConnecticutIconProps) => (
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 56 56"
+		aria-labelledby={titleId}
+		{...props}
+	>
+		<title id={titleId}>{title}</title>
+		<path
+			fill="currentColor"
+			fillRule="evenodd"
+			clipRule="evenodd"
+			d="M53.4801 12.3897L50.2999 1.30442L50.1025 0.71225L42.564 2.50444L41.3202 2.76136L40.3332 2.95562L29.4736 5.52797L14.9575 8.95881L13.6572 9.25333L0.961515 11.9385L3.72812 27.3037L4.68688 32.8964L5.78977 39.3633L6.28481 42.2145L5.32605 48.7378L5.13806 48.9227L2.93856 51.1692L6.09682 55.2329L6.18455 54.7974L6.35687 54.4684L13.3721 48.5122L18.4855 44.6459L20.522 44.0944L20.522 44.0506L20.5596 43.897L21.1111 42.8537L21.5779 42.202L25.0244 38.1884L25.2626 38.0912L25.9143 38.8965L27.2991 38.6959L29.8402 37.6275L33.907 36.3962L34.894 36.1581L36.4481 36.2426L42.0283 33.9398L42.3228 33.9961L42.6204 33.9554L44.2152 33.3319L51.8289 29.8039L55.5699 28.7575L54.8054 17.4184L54.3574 15.7234L53.4801 12.3897Z"
+		/>
+	</svg>
+);
