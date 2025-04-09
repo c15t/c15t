@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/backend",
-	"version": "0.0.1-rc.18",
+	"version": "0.0.1-rc.19",
 	"license": "GPL-3.0-only",
 	"type": "module",
 	"exports": {
