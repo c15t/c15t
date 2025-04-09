@@ -4,63 +4,15 @@
  */
 
 import type {
-	AllConsentNames,
-	ComplianceSettings,
-	TrackingBlockerConfig,
+	ConsentManagerOptions as CoreOptions,
 	TranslationConfig,
-	c15tClient,
 } from 'c15t';
 import type { ReactNode } from 'react';
 
 /**
- * Configuration options for the ConsentManagerProvider.
- *
- * @public
+ * React-specific configuration options
  */
-export interface ConsentManagerProviderProps {
-	/**
-	 * React children to render within the provider.
-	 */
-	children: ReactNode;
-
-	/**
-	 * Initial GDPR consent types to activate.
-	 */
-	initialGdprTypes?: AllConsentNames[];
-
-	/**
-	 * Initial compliance settings for different regions.
-	 */
-	initialComplianceSettings?: Record<string, Partial<ComplianceSettings>>;
-
-	/**
-	 * Custom namespace for the store instance.
-	 * @default 'c15tStore'
-	 */
-	namespace?: string;
-
-	/**
-	 * Whether to disable default styles.
-	 * @default false
-	 */
-	noStyle?: boolean;
-
-	/**
-	 * Custom translation configuration.
-	 */
-	translationConfig?: Partial<TranslationConfig>;
-
-	/**
-	 * Configuration for the tracking blocker.
-	 */
-	trackingBlockerConfig?: TrackingBlockerConfig;
-
-	/**
-	 * An existing c15tClient instance to use.
-	 * This is required for the provider to work properly.
-	 */
-	client: c15tClient;
-
+export interface ReactUIOptions {
 	/**
 	 * Visual theme to apply.
 	 */
@@ -89,4 +41,43 @@ export interface ConsentManagerProviderProps {
 	 * @default 'system'
 	 */
 	colorScheme?: 'light' | 'dark' | 'system';
+
+	/**
+	 * Whether to disable default styles.
+	 * @default false
+	 */
+	noStyle?: boolean;
+}
+
+/**
+ * Extended configuration options for the React consent manager
+ */
+export type ConsentManagerOptions = CoreOptions & {
+	/**
+	 * React-specific UI configuration options
+	 */
+	react?: ReactUIOptions;
+
+	/**
+	 * Translation configuration
+	 */
+	translations?: Partial<TranslationConfig>;
+};
+
+/**
+ * Configuration options for the ConsentManagerProvider.
+ *
+ * @public
+ */
+export interface ConsentManagerProviderProps {
+	/**
+	 * React children to render within the provider.
+	 */
+	children: ReactNode;
+
+	/**
+	 * Configuration options for the consent manager.
+	 * This includes core, React, store, and translation settings.
+	 */
+	options: ConsentManagerOptions;
 }

@@ -37,7 +37,9 @@ function deepMerge<T extends Record<string, unknown>>(
 	target: T,
 	source?: Partial<T> | null
 ): T {
-	if (!source) return target;
+	if (!source) {
+		return target;
+	}
 
 	const result = { ...target } as T;
 

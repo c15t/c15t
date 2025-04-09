@@ -5,7 +5,8 @@
  */
 
 import { createStore } from 'zustand/vanilla';
-import type { c15tClient } from './client';
+
+import type { ConsentManagerInterface } from './client/client-factory';
 import {
 	getEffectiveConsents,
 	hasConsentFor,
@@ -15,8 +16,12 @@ import { createTrackingBlocker } from './libs/tracking-blocker';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
 import { initialState } from './store.initial-state';
 import type { PrivacyConsentState } from './store.type';
-import type { ConsentBannerResponse, ConsentState } from './types/compliance';
-import { consentTypes } from './types/gdpr';
+import type {
+	ComplianceSettings,
+	ConsentBannerResponse,
+	ConsentState,
+} from './types/compliance';
+import { type AllConsentNames, consentTypes } from './types/gdpr';
 import type { TranslationConfig } from './types/translations';
 
 /** Storage key for persisting consent data in localStorage */
@@ -74,16 +79,36 @@ const getStoredConsent = (): StoredConsent | null => {
  *
  * @remarks
  * These options control the behavior of the store,
- * including tracking blocker configuration and API endpoints.
+ * including initialization, tracking blocker, and persistence.
  *
  * @public
  */
-export interface StoreConfig {
+export interface StoreOptions {
+	/**
+	 * Custom namespace for the store instance.
+	 * @default 'c15tStore'
+	 */
+	namespace?: string;
+
+	/**
+	 * Initial GDPR consent types to activate.
+	 */
+	initialGdprTypes?: AllConsentNames[];
+
+	/**
+	 * Initial compliance settings for different regions.
+	 */
+	initialComplianceSettings?: Record<string, Partial<ComplianceSettings>>;
+
 	/**
 	 * Configuration for the tracking blocker.
 	 */
 	trackingBlockerConfig?: TrackingBlockerConfig;
 }
+
+// For backward compatibility (if needed)
+export interface StoreConfig
+	extends Pick<StoreOptions, 'trackingBlockerConfig'> {}
 
 /**
  * Creates a new consent manager store instance.
@@ -128,10 +153,11 @@ export interface StoreConfig {
  * @public
  */
 export const createConsentManagerStore = (
-	client: c15tClient,
-	namespace: string | undefined = 'c15tStore',
-	config?: StoreConfig
+	manager: ConsentManagerInterface,
+	options: StoreOptions = {}
 ) => {
+	const { namespace = 'c15tStore', trackingBlockerConfig } = options;
+
 	// Load initial state from localStorage if available
 	const storedConsent = getStoredConsent();
 
@@ -139,13 +165,42 @@ export const createConsentManagerStore = (
 	const trackingBlocker =
 		typeof window !== 'undefined'
 			? createTrackingBlocker(
-					config?.trackingBlockerConfig || {},
+					trackingBlockerConfig || {},
 					storedConsent?.consents || initialState.consents
 				)
 			: null;
 
+	// Check for client callbacks to integrate with store callbacks
+	const clientCallbacks = manager.getCallbacks();
+
+	// Merge client callbacks with initial callbacks
+	const mergedCallbacks = clientCallbacks
+		? {
+				// Map client callbacks to store callbacks format if possible
+				onError: clientCallbacks.onError
+					? (message: string) =>
+							clientCallbacks.onError?.(
+								{
+									data: null,
+									error: {
+										message,
+										status: 0,
+									},
+									ok: false,
+									response: null,
+								},
+								'store'
+							)
+					: undefined,
+				// More mappings can be added here as needed
+				...initialState.callbacks,
+			}
+		: initialState.callbacks;
+
 	const store = createStore<PrivacyConsentState>((set, get) => ({
 		...initialState,
+		// Override the callbacks with merged callbacks
+		callbacks: mergedCallbacks,
 		...(storedConsent
 			? {
 					consents: storedConsent.consents,
@@ -267,7 +322,9 @@ export const createConsentManagerStore = (
 				type: type as 'necessary' | 'all' | 'custom',
 			};
 
-			const consent = await client?.setConsent({
+			// Send consent to API and proceed based on response
+			// The client will handle offline mode internally
+			const consent = await manager.setConsent({
 				body: {
 					type: 'cookie_banner',
 					domain: window.location.hostname,
@@ -279,6 +336,8 @@ export const createConsentManagerStore = (
 				},
 			});
 
+			// Only proceed if the operation was successful
+			// In offline mode, responses will always be successful
 			if (consent.ok) {
 				localStorage.setItem(
 					STORAGE_KEY,
@@ -299,9 +358,10 @@ export const createConsentManagerStore = (
 
 				callbacks.onConsentGiven?.();
 				callbacks.onPreferenceExpressed?.();
-			} else {
+			} else if (!callbacks.onError) {
 				const error = consent.error?.message || 'Failed to save consents';
-				callbacks.onError?.(error);
+				// biome-ignore lint/suspicious/noConsole: <explanation>
+				console.error(error);
 			}
 		},
 
@@ -393,13 +453,15 @@ export const createConsentManagerStore = (
 		fetchConsentBannerInfo: async (): Promise<
 			ConsentBannerResponse | undefined
 		> => {
+			const { callbacks, setDetectedCountry, consentInfo, hasConsented } =
+				get();
 			// Skip if not in browser environment
 			if (typeof window === 'undefined') {
 				return undefined;
 			}
 
 			// Skip if user has already consented
-			if (get().hasConsented()) {
+			if (hasConsented()) {
 				// Make sure loading state is false
 				set({ isLoadingConsentInfo: false });
 				return undefined;
@@ -409,8 +471,13 @@ export const createConsentManagerStore = (
 			set({ isLoadingConsentInfo: true });
 
 			try {
-				// Make the API request
-				const { data, error } = await client.showConsentBanner();
+				// Let the client handle offline mode internally
+				const { data, error } = await manager.showConsentBanner({
+					// Add onError callback specific to this request
+					// This works alongside the high-level client callbacks
+					//@ts-ignore
+					onError: callbacks.onError,
+				});
 
 				if (error) {
 					throw new Error(
@@ -419,7 +486,13 @@ export const createConsentManagerStore = (
 				}
 
 				if (!data) {
-					throw new Error('No data returned from consent banner API');
+					// In offline mode, data will be null, so we should show the banner by default
+					set({
+						isLoadingConsentInfo: false,
+						// Only update showPopup if we don't have stored consent
+						...(consentInfo === null ? { showPopup: true } : {}),
+					});
+					return undefined;
 				}
 
 				// Update store with location and jurisdiction information
@@ -435,19 +508,19 @@ export const createConsentManagerStore = (
 					jurisdictionInfo: data.jurisdiction,
 					isLoadingConsentInfo: false,
 					// Only update showPopup if we don't have stored consent
-					...(get().consentInfo === null
+					...(consentInfo === null
 						? { showPopup: data.showConsentBanner }
 						: {}),
 				});
 
 				// Update detected country if location information is available
 				if (data.location?.countryCode) {
-					get().setDetectedCountry(data.location.countryCode);
+					setDetectedCountry(data.location.countryCode);
 				}
 
 				// Call the onLocationDetected callback if it exists
 				if (data.location?.countryCode && data.location?.regionCode) {
-					get().callbacks.onLocationDetected?.({
+					callbacks.onLocationDetected?.({
 						countryCode: data.location.countryCode,
 						regionCode: data.location.regionCode,
 					});
@@ -467,10 +540,10 @@ export const createConsentManagerStore = (
 					error instanceof Error
 						? error.message
 						: 'Unknown error fetching consent banner information';
-				get().callbacks.onError?.(errorMessage);
+				callbacks.onError?.(errorMessage);
 
 				// If fetch fails, default to showing the banner to be safe
-				if (get().consentInfo === null) {
+				if (consentInfo === null) {
 					set({ showPopup: true });
 				}
 

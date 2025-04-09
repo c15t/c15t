@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/cli",
-	"version": "0.0.1-rc.13",
+	"version": "0.0.1-rc.19",
 	"description": "The CLI for c15t",
 	"exports": "./dist/index.mjs",
 	"main": "./dist/index.mjs",

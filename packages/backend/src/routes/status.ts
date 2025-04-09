@@ -1,4 +1,5 @@
 import { defineRoute } from '~/pkgs/api-router/utils/define-route';
+import { version } from '../../package.json';
 
 /**
  * Response type for the status endpoint
@@ -47,7 +48,7 @@ export const status = defineRoute<StatusResponse>({
 	handler: async (event) => {
 		const response: StatusResponse = {
 			status: 'ok',
-			version: '2.0.0',
+			version: version,
 			timestamp: new Date().toISOString(),
 			storage: {
 				type: event.context.adapter?.id ?? 'Unavailable',

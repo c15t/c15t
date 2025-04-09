@@ -31,9 +31,6 @@
 			"indentWidth": 2
 		}
 	},
-	"files": {
-		"ignore": ["*.css", "**/dist"]
-	},
 	"linter": {
 		"rules": {
 			"complexity": {
@@ -43,5 +40,8 @@
 				"noExportedImports": "off"
 			}
 		}
+	},
+	"files": {
+		"ignore": ["*.css", "**/dist"]
 	}
 }

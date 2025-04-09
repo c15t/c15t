@@ -3,44 +3,33 @@ import { ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext } from '~/types';
 
 /**
- * Type definition for a Next.js route handler function
- */
-type RouteHandler = (request: Request) => Promise<Response>;
-
-/**
- * Type definition for Next.js route handlers object
- */
-type NextRouteHandlers = {
-	GET: RouteHandler;
-	POST: RouteHandler;
-	PUT: RouteHandler;
-	DELETE: RouteHandler;
-	OPTIONS: RouteHandler;
-	HEAD: RouteHandler;
-	PATCH: RouteHandler;
-};
-
-/**
- * Convert a c15t handler to a Next.js route handler.
+ * Convert a c15t handler to a pure Node.js/Cloudflare Worker handler.
  *
- * This adapter converts between standard Web API and c15t, letting c15t/H3 handle
- * all the HTTP logic including CORS. It doesn't depend on next/server.
+ * This adapter converts between Web API Request/Response objects and c15t,
+ * letting c15t/H3 handle all the HTTP logic including CORS.
  *
  * @example
  * ```typescript
- * import { toNextHandler } from '@c15t/backend/integrations/next';
- * import { c15t } from '@/c15t';
+ * // Node.js with standard Request/Response objects
+ * import { toNodeHandler } from '@c15t/backend/integrations/node';
+ * import { c15t } from './c15t';
  *
- * // app/api/c15t/[...paths]/route.ts
- * export const { GET, POST } = toNextHandler(c15t);
+ * // Create the request handler
+ * const handler = toNodeHandler(c15t);
+ *
+ * // Example for Cloudflare Worker
+ * export default {
+ *   async fetch(request, env, ctx) {
+ *     return await handler(request);
+ *   }
+ * };
  * ```
  *
  * @param instance - The c15t instance to adapt
- * @returns An object with Next.js route handler functions for each method
+ * @returns A handler function that takes a Request and returns a Response
  */
-export function toNextHandler(instance: C15TInstance): NextRouteHandlers {
-	// Create the base handler that processes requests
-	const handleRequest = async (request: Request) => {
+export function toNodeHandler(instance: C15TInstance) {
+	return async (request: Request): Promise<Response> => {
 		try {
 			const basePath: string =
 				(instance.options?.basePath as string) || '/api/c15t';
@@ -75,7 +64,7 @@ export function toNextHandler(instance: C15TInstance): NextRouteHandlers {
 			// Let c15t handle the request
 			const result = await instance.handler(rewrittenRequest);
 
-			// Return the response directly - Next.js supports standard Response objects
+			// Convert c15t response to standard Response
 			return await result.match(
 				// Success case - just return the response
 				(response) => response,
@@ -119,17 +108,6 @@ export function toNextHandler(instance: C15TInstance): NextRouteHandlers {
 		}
 	};
 
-	// Return an object with handler functions for each HTTP method
-	return {
-		GET: handleRequest,
-		POST: handleRequest,
-		PUT: handleRequest,
-		DELETE: handleRequest,
-		OPTIONS: handleRequest,
-		HEAD: handleRequest,
-		PATCH: handleRequest,
-	};
-
 	async function updateBaseUrl(
 		request: Request,
 		basePath: string
@@ -159,44 +137,4 @@ export function toNextHandler(instance: C15TInstance): NextRouteHandlers {
 			// Ignore errors
 		}
 	}
-}
-
-/**
- * Alternative Next.js route handler that works with any handler function.
- *
- * This utility function helps create Next.js App Router route handlers
- * from any function that accepts a Request and returns a Response.
- *
- * @example
- * ```typescript
- * // Using with c15t
- * import { toNextJsHandler } from '@c15t/backend/integrations/next';
- * import { c15t } from '@/c15t';
- *
- * // app/api/auth/[...slug]/route.ts
- * export const { GET, POST } = toNextJsHandler(c15t);
- *
- * // Using with a custom handler
- * export const { GET } = toNextJsHandler((request) => {
- *   return new Response('Hello World');
- * });
- * ```
- *
- * @param auth - Either a function or an object with a handler method
- * @returns An object with GET and POST methods for Next.js App Router
- */
-export function toNextJsHandler(
-	auth:
-		| {
-				handler: (request: Request) => Promise<Response>;
-		  }
-		| ((request: Request) => Promise<Response>)
-) {
-	const handler = async (request: Request) => {
-		return 'handler' in auth ? auth.handler(request) : auth(request);
-	};
-	return {
-		GET: handler,
-		POST: handler,
-	};
 }

@@ -38,7 +38,7 @@ export function useFocusTrap(
 			// If no focusable elements, focus the container itself
 			try {
 				containerRef.current.focus();
-			} catch (e) {
+			} catch {
 				// Silently handle focus errors
 			}
 		}

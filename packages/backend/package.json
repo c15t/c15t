@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/backend",
-	"version": "0.0.1-rc.13",
+	"version": "0.0.1-rc.19",
 	"license": "GPL-3.0-only",
 	"type": "module",
 	"exports": {
@@ -14,15 +14,15 @@
 			"import": "./dist/schema/index.js",
 			"require": "./dist/schema/index.cjs"
 		},
-		"./integrations": {
-			"types": "./dist/integrations/index.d.ts",
-			"import": "./dist/integrations/index.js",
-			"require": "./dist/integrations/index.cjs"
-		},
 		"./integrations/next": {
 			"types": "./dist/integrations/next.d.ts",
 			"import": "./dist/integrations/next.js",
 			"require": "./dist/integrations/next.cjs"
+		},
+		"./integrations/cloudflare": {
+			"types": "./dist/integrations/cloudflare.d.ts",
+			"import": "./dist/integrations/cloudflare.js",
+			"require": "./dist/integrations/cloudflare.cjs"
 		},
 		"./pkgs/data-model/fields": {
 			"types": "./dist/pkgs/data-model/fields/index.d.ts",
@@ -119,6 +119,7 @@
 		"@electric-sql/pglite": "^0.2.17",
 		"@libsql/kysely-libsql": "^0.4.1",
 		"@types/better-sqlite3": "^7.6.12",
+		"@types/express": "^5.0.1",
 		"@types/node": "^22.13.10",
 		"@types/pg": "^8.11.11",
 		"@vitest/browser": "^3.0.8",

@@ -8,7 +8,7 @@ import { RootProvider } from 'fumadocs-ui/provider';
 import { Fira_Mono, Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
 
-import { c15tClient } from '~/c15t-client';
+import { manager } from '~/c15t-client';
 import { cn } from '~/lib/cn';
 
 import { PostHogProvider } from './posthog-provider';
@@ -40,7 +40,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 			<body className="flex min-h-screen flex-col">
 				<PostHogProvider>
 					<RootProvider>
-						<ConsentManagerProvider client={c15tClient}>
+						<ConsentManagerProvider options={manager}>
 							<CookieBanner />
 							<ConsentManagerDialog />
 							{process.env.NODE_ENV === 'development' && <C15TDevTools />}

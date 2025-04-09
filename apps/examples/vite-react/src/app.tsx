@@ -6,12 +6,12 @@ import {
 import { useState } from 'react';
 import viteLogo from '/vite.svg';
 import reactLogo from './assets/react.svg';
-import { c15tClient } from './c15t-client';
+import { c15tOptions } from './c15t-client';
 function App() {
 	const [count, setCount] = useState(0);
 
 	return (
-		<ConsentManagerProvider initialGdprTypes={['necessary', 'marketing']} client={c15tClient}>
+		<ConsentManagerProvider options={c15tOptions}>
 			<div>
 				<a href="https://vite.dev" target="_blank" rel="noreferrer">
 					{/* biome-ignore lint/nursery/noImgElement: <explanation> */}
