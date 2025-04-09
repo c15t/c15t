@@ -1,9 +1,9 @@
+import type { EventHandlerRequest, H3Event } from 'h3';
 /**
  * Tests for the status route handler
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import type { EventHandlerRequest, H3Event } from 'h3';
+import { version } from '../../../package.json';
 // Import the mocked status module
 import { status } from '../status';
 
@@ -39,7 +39,7 @@ describe('status', () => {
 
 		expect(result).toEqual({
 			status: 'ok',
-			version: '2.0.0',
+			version: version,
 			timestamp: '2023-01-01T12:00:00.000Z',
 			storage: {
 				type: 'TestAdapter',
@@ -53,7 +53,7 @@ describe('status', () => {
 
 		expect(result).toEqual({
 			status: 'ok',
-			version: '2.0.0',
+			version: version,
 			timestamp: '2023-01-01T12:00:00.000Z',
 			storage: {
 				type: 'Unavailable',
