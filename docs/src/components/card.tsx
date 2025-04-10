@@ -24,10 +24,14 @@ export type CardProps = Omit<HTMLAttributes<HTMLElement>, 'title'> & {
 
 export function Card({ icon, title, description, ...props }: CardProps) {
 	const E = props.href ? Link : 'div';
-
+	const linkProps =
+		props.href && props.external
+			? { target: '_blank', rel: 'noopener noreferrer' }
+			: {};
 	return (
 		<E
 			{...props}
+			{...linkProps}
 			data-card
 			className={cn(
 				'@max-lg:col-span-full block rounded-lg border bg-fd-card p-4 text-fd-card-foreground shadow-md transition-colors',

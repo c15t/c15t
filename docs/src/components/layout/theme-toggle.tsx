@@ -54,19 +54,15 @@ export function ThemeToggle({
 				type="button"
 				{...props}
 			>
-				{full.map(([key, Icon]) => {
-					if (key === 'system') {
-						return null;
-					}
-
-					return (
+				{full
+					.filter(([key]) => key !== 'system')
+					.map(([key, Icon]) => (
 						<Icon
 							key={key}
 							fill="currentColor"
 							className={cn(itemVariants({ active: value === key }))}
 						/>
-					);
-				})}
+					))}
 			</button>
 		);
 	}

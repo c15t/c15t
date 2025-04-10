@@ -232,7 +232,9 @@ function EditOnGitHub({
 	path,
 	...props
 }: EditOnGitHubOptions) {
-	const href = `https://github.com/${owner}/${repo}/blob/${sha}/${path.startsWith('/') ? path.slice(1) : path}`;
+	const effectiveSha = sha ?? 'main';
+	const trimmedPath = path.startsWith('/') ? path.slice(1) : path;
+	const href = `https://github.com/${owner}/${repo}/blob/${effectiveSha}/${trimmedPath}`;
 
 	return (
 		<a

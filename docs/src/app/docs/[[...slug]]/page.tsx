@@ -52,5 +52,15 @@ export async function generateMetadata(props: {
 	return {
 		title: page.data.title,
 		description: page.data.description,
+		openGraph: {
+			title: page.data.title,
+			description: page.data.description,
+			type: 'article',
+		},
+		twitter: {
+			card: 'summary',
+			title: page.data.title,
+			description: page.data.description,
+		},
 	};
 }
