@@ -1,3 +1,4 @@
+import { GithubInfo } from 'fumadocs-ui/components/github-info';
 import type { DocsLayoutProps } from '~/components/layouts/notebook';
 
 import { C15TLogo } from '~/components/logo';
@@ -19,9 +20,9 @@ export const docsOptions: Omit<DocsLayoutProps, 'tree'> = {
 	},
 	links: [
 		{
-			text: 'Documentation',
-			url: '/docs',
-			active: 'nested-url',
+			type: 'custom',
+			secondary: true,
+			children: <GithubInfo owner="c15t" repo="c15t" />,
 		},
 	],
 };
