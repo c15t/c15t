@@ -97,9 +97,9 @@ function Item(props: Option) {
 		<>
 			<>{props.icon}</>
 			<div className="flex-1 text-start">
-				<p className='font-medium text-sm'>{props.title}</p>
+				<p className="font-medium text-sm">{props.title}</p>
 				{props.description ? (
-					<p className='text-fd-muted-foreground text-xs'>
+					<p className="text-fd-muted-foreground text-xs">
 						{props.description}
 					</p>
 				) : null}

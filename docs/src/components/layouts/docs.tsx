@@ -18,9 +18,9 @@ export interface DocsLayoutProps {
 export function DocsLayout({ tree, children }: DocsLayoutProps) {
 	return (
 		<TreeContextProvider tree={tree}>
-			<header className='sticky top-0 z-20 h-14 bg-fd-background'>
-				<nav className='flex size-full flex-row items-center gap-2 px-4'>
-					<Link href="/" className='mr-auto font-medium'>
+			<header className="sticky top-0 z-20 h-14 bg-fd-background">
+				<nav className="flex size-full flex-row items-center gap-2 px-4">
+					<Link href="/" className="mr-auto font-medium">
 						My Docs
 					</Link>
 
@@ -135,7 +135,7 @@ function SidebarItem({
 
 	if (item.type === 'separator') {
 		return (
-			<p className='mt-6 mb-2 text-fd-muted-foreground first:mt-0'>
+			<p className="mt-6 mb-2 text-fd-muted-foreground first:mt-0">
 				{item.icon}
 				{item.name}
 			</p>
@@ -160,7 +160,7 @@ function SidebarItem({
 					{item.name}
 				</p>
 			)}
-			<div className='flex flex-col border-l pl-4'>{children}</div>
+			<div className="flex flex-col border-l pl-4">{children}</div>
 		</div>
 	);
 }

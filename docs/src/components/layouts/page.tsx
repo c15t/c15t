@@ -203,7 +203,7 @@ export function DocsPage({
 				{ enabled: tocEnabled, component: tocReplace },
 				<Toc>
 					{tocOptions.header}
-					<h3 className='inline-flex items-center gap-1.5 text-fd-muted-foreground text-sm'>
+					<h3 className="inline-flex items-center gap-1.5 text-fd-muted-foreground text-sm">
 						<Text className="size-4" />
 						<I18nLabel label="toc" />
 					</h3>
@@ -273,7 +273,9 @@ export const DocsDescription = forwardRef<
 	HTMLAttributes<HTMLParagraphElement>
 >((props, ref) => {
 	// don't render if no description provided
-	if (props.children === undefined) { return null; }
+	if (props.children === undefined) {
+		return null;
+	}
 
 	return (
 		<p

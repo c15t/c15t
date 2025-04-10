@@ -273,7 +273,7 @@ function DocsNavbar({
 								<NavbarLinkItem
 									key={i}
 									item={item}
-									className='text-fd-muted-foreground text-sm transition-colors hover:text-fd-accent-foreground'
+									className="text-fd-muted-foreground text-sm transition-colors hover:text-fd-accent-foreground"
 								/>
 							))}
 					</div>
@@ -323,7 +323,7 @@ function DocsNavbar({
 				</div>
 			</div>
 			{tabs.length > 0 ? (
-				<LayoutTabs className='h-10 border-fd-foreground/10 border-b px-6 max-lg:hidden'>
+				<LayoutTabs className="h-10 border-fd-foreground/10 border-b px-6 max-lg:hidden">
 					{tabs.map((tab) => (
 						<LayoutTab key={tab.url} {...tab} />
 					))}
@@ -369,7 +369,9 @@ function NavbarLinkItem({
 		);
 	}
 
-	if (item.type === 'custom') { return item.children; }
+	if (item.type === 'custom') {
+		return item.children;
+	}
 
 	return (
 		<BaseLinkItem item={item} {...props}>

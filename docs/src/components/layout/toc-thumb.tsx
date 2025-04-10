@@ -18,7 +18,10 @@ function calc(container: HTMLElement, active: string[]): TOCThumb {
 		if (!element) continue;
 
 		const styles = getComputedStyle(element);
-		upper = Math.min(upper, element.offsetTop + Number.parseFloat(styles.paddingTop));
+		upper = Math.min(
+			upper,
+			element.offsetTop + Number.parseFloat(styles.paddingTop)
+		);
 		lower = Math.max(
 			lower,
 			element.offsetTop +
