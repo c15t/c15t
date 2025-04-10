@@ -13,6 +13,7 @@ import { useOnChange } from 'fumadocs-core/utils/use-on-change';
 import { useSidebar } from 'fumadocs-ui/contexts/sidebar';
 import { useTreeContext, useTreePath } from 'fumadocs-ui/contexts/tree';
 import { ChevronDown, ExternalLink } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import {
 	type ButtonHTMLAttributes,
 	type Dispatch,
@@ -249,29 +250,20 @@ export function SidebarSeparator(props: HTMLAttributes<HTMLParagraphElement>) {
 
 export function SidebarItem({
 	icon,
-	frameworkUrl,
 	'data-shared': isSharedPage,
 	...props
 }: LinkProps & {
 	icon?: ReactNode;
 	'data-shared'?: boolean;
-	frameworkUrl?: string;
 }) {
 	const pathname = usePathname();
-
-	// Use frameworkUrl for shared pages if provided
-	let href = props.href;
-	if (isSharedPage && frameworkUrl) {
-		href = frameworkUrl;
-	}
-
-	const active = href !== undefined && isActive(href, pathname, false);
+	const active =
+		props.href !== undefined && isActive(props.href, pathname, false);
 	const { prefetch, level } = useInternalContext();
 
 	return (
 		<Link
 			{...props}
-			href={href}
 			data-active={active}
 			className={cn(itemVariants({ active }), props.className)}
 			prefetch={prefetch}
@@ -445,6 +437,12 @@ export function SidebarPageTree(props: {
 }) {
 	const { root } = useTreeContext();
 	const pathname = usePathname();
+	const searchParams = useSearchParams();
+
+	// Extract framework from query param or pathname
+	const frameworkParam = searchParams?.get('fw');
+	const pathFramework = pathname.split('/')[2] || '';
+	const activeFramework = frameworkParam || pathFramework;
 
 	return useMemo(() => {
 		const { Separator, Item, Folder } = props.components ?? {};
@@ -474,6 +472,15 @@ export function SidebarPageTree(props: {
 				return null;
 			}
 
+			// If we're in a framework context, only show relevant folders
+			if (activeFramework && item.root && typeof item.name === 'string') {
+				const folderName = item.name.toLowerCase();
+				// Hide other framework folders when we're already in a framework context
+				if (folderName !== activeFramework.toLowerCase()) {
+					return null;
+				}
+			}
+
 			const children = renderSidebarList(item.children, level + 1);
 
 			if (Folder) {
@@ -495,10 +502,9 @@ export function SidebarPageTree(props: {
 				return <Item key={item.url} item={item} />;
 			}
 
-			// Check if this is a shared item
+			// Check if this is a shared item (for diagnostic purposes only)
 			const sharedItem = item as SharedPageItem;
 			const isSharedItem = !!sharedItem.sharedPage;
-			const frameworkUrl = sharedItem.frameworkUrl;
 
 			return (
 				<SidebarItem
@@ -507,7 +513,6 @@ export function SidebarPageTree(props: {
 					external={item.external}
 					icon={item.icon}
 					data-shared={isSharedItem}
-					frameworkUrl={frameworkUrl}
 				>
 					{item.name}
 				</SidebarItem>
@@ -536,7 +541,7 @@ export function SidebarPageTree(props: {
 		return (
 			<Fragment key={root.$id}>{renderSidebarList(root.children, 1)}</Fragment>
 		);
-	}, [props.components, root, pathname]);
+	}, [props.components, root, pathname, activeFramework]);
 }
 
 function PageTreeFolder({

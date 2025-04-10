@@ -1,13 +1,14 @@
 'use client';
-import { usePathname } from 'fumadocs-core/framework';
+
 import Link from 'fumadocs-core/link';
 import { SidebarTrigger } from 'fumadocs-core/sidebar';
 import { useNav } from 'fumadocs-ui/contexts/layout';
 import { useSidebar } from 'fumadocs-ui/contexts/sidebar';
 import { Menu, X } from 'lucide-react';
 import type { ButtonHTMLAttributes, HTMLAttributes } from 'react';
+import { useEffect, useState } from 'react';
 import { cn } from '../../lib/cn';
-import { isActive } from '../../lib/is-active';
+import { useFramework } from '../layout/framework-context';
 import type { Option } from '../layout/root-toggle';
 import { buttonVariants } from '../ui/button';
 
@@ -71,18 +72,39 @@ export function LayoutTabs(props: HTMLAttributes<HTMLElement>) {
 	);
 }
 
-function useIsSelected(item: Option) {
-	const pathname = usePathname();
+/**
+ * Hook to check if a tab is selected based on framework context
+ */
+function useIsTabSelected(item: Option) {
+	const { activeFramework } = useFramework();
+	const [isSelected, setIsSelected] = useState(false);
 
-	return item.urls
-		? item.urls.has(pathname.endsWith('/') ? pathname.slice(0, -1) : pathname)
-		: isActive(item.url, pathname, true);
+	useEffect(() => {
+		// Check if this tab matches the active framework
+		if (typeof item.title === 'string' && activeFramework) {
+			setIsSelected(item.title.toLowerCase() === activeFramework.toLowerCase());
+		} else {
+			setIsSelected(false);
+		}
+	}, [item, activeFramework]);
+
+	return isSelected;
 }
 
 export function LayoutTab(props: Option & { forceActive?: boolean }) {
 	const { closeOnRedirect } = useSidebar();
-	const isAutoSelected = useIsSelected(props);
-	const selected = props.forceActive || isAutoSelected;
+	const isSelected = useIsTabSelected(props);
+	const { setActiveFramework } = useFramework();
+	const selected = props.forceActive || isSelected;
+
+	const handleClick = () => {
+		closeOnRedirect.current = false;
+
+		// Update the active framework
+		if (typeof props.title === 'string') {
+			setActiveFramework(props.title.toLowerCase());
+		}
+	};
 
 	return (
 		<Link
@@ -91,9 +113,7 @@ export function LayoutTab(props: Option & { forceActive?: boolean }) {
 				selected && 'border-fd-primary font-medium text-fd-foreground'
 			)}
 			href={props.url}
-			onClick={() => {
-				closeOnRedirect.current = false;
-			}}
+			onClick={handleClick}
 		>
 			{props.title}
 		</Link>
@@ -108,8 +128,16 @@ export function SidebarLayoutTab({
 	item: Option;
 	forceActive?: boolean;
 } & HTMLAttributes<HTMLElement>) {
-	const isAutoSelected = useIsSelected(item);
-	const selected = forceActive || isAutoSelected;
+	const isSelected = useIsTabSelected(item);
+	const { setActiveFramework } = useFramework();
+	const selected = forceActive || isSelected;
+
+	const handleClick = () => {
+		// Update the active framework
+		if (typeof item.title === 'string') {
+			setActiveFramework(item.title.toLowerCase());
+		}
+	};
 
 	return (
 		<Link
@@ -123,6 +151,7 @@ export function SidebarLayoutTab({
 			)}
 			data-active={selected}
 			href={item.url}
+			onClick={handleClick}
 		>
 			{item.icon}
 			{item.title}

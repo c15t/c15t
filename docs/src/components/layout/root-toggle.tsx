@@ -3,11 +3,16 @@ import { usePathname } from 'fumadocs-core/framework';
 import Link from 'fumadocs-core/link';
 import { useSidebar } from 'fumadocs-ui/contexts/sidebar';
 import { ChevronDown } from 'lucide-react';
-import { type HTMLAttributes, type ReactNode, useMemo, useState } from 'react';
+import {
+	type HTMLAttributes,
+	type ReactNode,
+	useEffect,
+	useState,
+} from 'react';
 import { cn } from '../../lib/cn';
-import { isActive } from '../../lib/is-active';
 import { iconMap } from '../icons';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { useFramework } from './framework-context';
 
 export interface Option {
 	/**
@@ -32,6 +37,20 @@ export interface Option {
 	props?: HTMLAttributes<HTMLElement>;
 }
 
+/**
+ * Find the option matching a framework name
+ */
+function findFrameworkOption(
+	options: Option[],
+	framework: string
+): Option | undefined {
+	return options.find(
+		(option) =>
+			typeof option.title === 'string' &&
+			option.title.toLowerCase() === framework.toLowerCase()
+	);
+}
+
 export function RootToggle({
 	options,
 	placeholder,
@@ -45,46 +64,34 @@ export function RootToggle({
 	const [open, setOpen] = useState(false);
 	const { closeOnRedirect } = useSidebar();
 	const pathname = usePathname();
+	const { activeFramework, setActiveFramework } = useFramework();
 
-	const pathSections = pathname.split('/').filter(Boolean);
-	const isRootPath = pathname === '/docs' || pathname === '/docs/';
+	// Find the option matching the active framework
+	const [selectedOption, setSelectedOption] = useState<Option | undefined>(
+		defaultSelected
+	);
 
-	const selected = useMemo(() => {
-		// If defaultSelected is provided and we're on the root path, use it
-		if (defaultSelected && isRootPath) {
-			return defaultSelected;
-		}
-
-		// For framework-specific paths (like /docs/nextjs, /docs/react)
-		// find the tab that matches the current framework
-		const currentFramework = pathSections.length > 1 ? pathSections[1] : '';
-
-		if (currentFramework) {
-			const frameworkTab = options.find((tab) => {
-				if (typeof tab.title === 'string') {
-					return tab.title.toLowerCase() === currentFramework.toLowerCase();
-				}
-				return false;
-			});
-
-			if (frameworkTab) {
-				return frameworkTab;
+	// Update selected option when framework changes
+	useEffect(() => {
+		if (activeFramework) {
+			const option = findFrameworkOption(options, activeFramework);
+			if (option) {
+				setSelectedOption(option);
 			}
 		}
+	}, [activeFramework, options]);
 
-		// Fallback to the URL matching logic
-		return options.findLast((item) =>
-			item.urls
-				? item.urls.has(
-						pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
-					)
-				: isActive(item.url, pathname, true)
-		);
-	}, [options, pathname, defaultSelected, isRootPath, pathSections]);
-
-	const onClick = () => {
+	const handleFrameworkChange = (option: Option) => {
 		closeOnRedirect.current = false;
 		setOpen(false);
+
+		// Set the selected option
+		setSelectedOption(option);
+
+		// Update the active framework in context
+		if (typeof option.title === 'string') {
+			setActiveFramework(option.title.toLowerCase());
+		}
 	};
 
 	// Map framework titles to icon keys
@@ -129,6 +136,18 @@ export function RootToggle({
 		return null;
 	};
 
+	// When linking to a framework from the framework dropdown,
+	// create the proper framework URL
+	const getFrameworkUrl = (item: Option) => {
+		if (pathname === '/docs' || pathname === '/docs/') {
+			// For root page, link to the framework root
+			return `/docs/${item.title?.toString().toLowerCase()}`;
+		}
+
+		// For framework-specific links, use the item's URL
+		return item.url;
+	};
+
 	return (
 		<div className="relative z-20 my-1">
 			<div className="rounded-xl bg-fd-accent/10 px-1 pt-1.5 pb-1">
@@ -146,9 +165,9 @@ export function RootToggle({
 					>
 						<span className="flex items-center gap-2.5">
 							<span className="flex-none" aria-hidden="true">
-								{getIconComponent(selected)}
+								{getIconComponent(selectedOption)}
 							</span>
-							{selected?.title ?? placeholder}
+							{selectedOption?.title ?? placeholder}
 						</span>
 						<ChevronDown className="size-4 flex-none opacity-60" />
 					</PopoverTrigger>
@@ -156,15 +175,13 @@ export function RootToggle({
 						<div className="grid gap-1">
 							{options.map((item) => {
 								if (
-									isRootPath &&
+									(pathname === '/docs' || pathname === '/docs/') &&
 									(!item.title || typeof item.title !== 'string')
 								) {
 									return null;
 								}
 
-								const url = isRootPath
-									? `/docs/${item.title?.toString().toLowerCase()}`
-									: item.url;
+								const url = getFrameworkUrl(item);
 
 								return (
 									<Link
@@ -173,10 +190,10 @@ export function RootToggle({
 										className={cn(
 											'flex flex-row items-center gap-2.5 rounded-md p-2 transition-colors',
 											'hover:bg-fd-accent/10 hover:text-fd-accent-foreground',
-											item === selected &&
+											item === selectedOption &&
 												'bg-fd-accent/10 font-medium text-fd-primary'
 										)}
-										onClick={onClick}
+										onClick={() => handleFrameworkChange(item)}
 									>
 										<span className="flex-none" aria-hidden="true">
 											{getIconComponent(item)}
