@@ -7,10 +7,9 @@ import {
 } from 'fumadocs-ui/contexts/layout';
 import { TreeContextProvider } from 'fumadocs-ui/contexts/tree';
 import { ChevronDown, Languages, SidebarIcon } from 'lucide-react';
-import { Fragment, type HTMLAttributes, useMemo } from 'react';
+import { Fragment, type HTMLAttributes } from 'react';
 import { cn } from '../../lib/cn';
 import { LanguageToggle } from '../layout/language-toggle';
-import { type Option } from '../layout/root-toggle';
 import { LargeSearchToggle, SearchToggle } from '../layout/search-toggle';
 import {
 	CollapsibleSidebar,
@@ -79,7 +78,7 @@ export function DocsLayout({
 					id="nd-docs-layout"
 					{...props.containerProps}
 					className={cn(
-						'flex w-full flex-1 flex-row pe-(--fd-layout-offset) px-4',
+						'flex w-full flex-1 flex-row px-4 pe-(--fd-layout-offset)',
 						variables,
 						props.containerProps?.className
 					)}
@@ -120,7 +119,7 @@ export function DocsLayout({
 												color: 'ghost',
 												size: 'icon-sm',
 											}),
-											'text-fd-muted-foreground mb-auto'
+											'mb-auto text-fd-muted-foreground'
 										)}
 									>
 										<SidebarIcon />
@@ -191,7 +190,7 @@ function DocsNavbar({
 		<Navbar mode={navMode}>
 			<div
 				className={cn(
-					'flex flex-row px-4 h-14',
+					'flex h-14 flex-row px-4',
 					navMode === 'auto' && 'md:px-6'
 				)}
 			>
@@ -208,7 +207,7 @@ function DocsNavbar({
 									color: 'ghost',
 									size: 'icon-sm',
 								}),
-								'text-fd-muted-foreground -ms-1.5 me-2 data-[collapsed=false]:hidden max-md:hidden'
+								'-ms-1.5 me-2 text-fd-muted-foreground data-[collapsed=false]:hidden max-md:hidden'
 							)}
 						>
 							<SidebarIcon />
@@ -228,7 +227,7 @@ function DocsNavbar({
 				<LargeSearchToggle
 					hideIfDisabled
 					className={cn(
-						'w-full my-auto rounded-xl max-md:hidden',
+						'my-auto w-full rounded-xl max-md:hidden',
 						navMode === 'top' ? 'max-w-sm px-2' : 'max-w-[240px]'
 					)}
 				/>
@@ -241,7 +240,7 @@ function DocsNavbar({
 								<NavbarLinkItem
 									key={i}
 									item={item}
-									className="text-sm text-fd-muted-foreground transition-colors hover:text-fd-accent-foreground"
+									className="text-fd-muted-foreground text-sm transition-colors hover:text-fd-accent-foreground"
 								/>
 							))}
 					</div>
@@ -282,7 +281,7 @@ function DocsNavbar({
 									color: 'secondary',
 									size: 'icon-sm',
 								}),
-								'ms-2 text-fd-muted-foreground rounded-full max-md:hidden'
+								'ms-2 rounded-full text-fd-muted-foreground max-md:hidden'
 							)}
 						>
 							<SidebarIcon />
@@ -310,8 +309,9 @@ function NavbarLinkItem({
 				</PopoverTrigger>
 				<PopoverContent className="flex flex-col">
 					{item.items.map((child, i) => {
-						if (child.type === 'custom')
+						if (child.type === 'custom') {
 							return <Fragment key={i}>{child.children}</Fragment>;
+						}
 
 						return (
 							<BaseLinkItem
@@ -329,7 +329,9 @@ function NavbarLinkItem({
 		);
 	}
 
-	if (item.type === 'custom') return item.children;
+	if (item.type === 'custom') {
+		return item.children;
+	}
 
 	return (
 		<BaseLinkItem item={item} {...props}>

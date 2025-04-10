@@ -45,7 +45,9 @@ export function RootToggle({
 	const selected = useMemo(() => {
 		// If an option has active=true, use that
 		const activeOption = options.find((item) => item.active === true);
-		if (activeOption) return activeOption;
+		if (activeOption) {
+			return activeOption;
+		}
 
 		// Fall back to URL-based selection
 		return options.findLast((item) =>
@@ -75,7 +77,7 @@ export function RootToggle({
 				<PopoverTrigger
 					{...props}
 					className={cn(
-						'flex flex-row items-center gap-2.5 rounded-lg ps-2 pe-2 py-1.5 hover:text-fd-accent-foreground bg-fd-card border',
+						'flex flex-row items-center gap-2.5 rounded-lg border bg-fd-card py-1.5 ps-2 pe-2 hover:text-fd-accent-foreground',
 						props.className
 					)}
 				>
@@ -93,7 +95,7 @@ export function RootToggle({
 						className={cn(
 							'flex w-full flex-row items-center gap-2 px-3 py-2',
 							selected === item || item.active
-								? 'bg-fd-primary/10 text-fd-primary font-medium'
+								? 'bg-fd-primary/10 font-medium text-fd-primary'
 								: 'hover:bg-fd-accent/20',
 							item.props?.className
 						)}
@@ -109,11 +111,11 @@ export function RootToggle({
 function Item(props: Option) {
 	return (
 		<>
-			<>{props.icon}</>
+			{props.icon}
 			<div className="flex-1 text-start">
-				<p className="text-sm font-medium">{props.title}</p>
+				<p className="font-medium text-sm">{props.title}</p>
 				{props.description ? (
-					<p className="text-xs text-fd-muted-foreground">
+					<p className="text-fd-muted-foreground text-xs">
 						{props.description}
 					</p>
 				) : null}

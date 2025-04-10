@@ -15,15 +15,20 @@ function calc(container: HTMLElement, active: string[]): TOCThumb {
 
 	for (const item of active) {
 		const element = container.querySelector<HTMLElement>(`a[href="#${item}"]`);
-		if (!element) continue;
+		if (!element) {
+			continue;
+		}
 
 		const styles = getComputedStyle(element);
-		upper = Math.min(upper, element.offsetTop + parseFloat(styles.paddingTop));
+		upper = Math.min(
+			upper,
+			element.offsetTop + Number.parseFloat(styles.paddingTop)
+		);
 		lower = Math.max(
 			lower,
 			element.offsetTop +
 				element.clientHeight -
-				parseFloat(styles.paddingBottom)
+				Number.parseFloat(styles.paddingBottom)
 		);
 	}
 
@@ -45,13 +50,17 @@ export function TocThumb({
 	const thumbRef = useRef<HTMLDivElement>(null);
 
 	const onResize = useEffectEvent(() => {
-		if (!containerRef.current || !thumbRef.current) return;
+		if (!containerRef.current || !thumbRef.current) {
+			return;
+		}
 
 		update(thumbRef.current, calc(containerRef.current, active));
 	});
 
 	useEffect(() => {
-		if (!containerRef.current) return;
+		if (!containerRef.current) {
+			return;
+		}
 		const container = containerRef.current;
 
 		onResize();
@@ -64,10 +73,12 @@ export function TocThumb({
 	}, [containerRef, onResize]);
 
 	useOnChange(active, () => {
-		if (!containerRef.current || !thumbRef.current) return;
+		if (!containerRef.current || !thumbRef.current) {
+			return;
+		}
 
 		update(thumbRef.current, calc(containerRef.current, active));
 	});
 
-	return <div ref={thumbRef} role="none" {...props} />;
+	return <div ref={thumbRef} role="presentation" {...props} />;
 }

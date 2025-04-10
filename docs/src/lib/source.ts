@@ -15,8 +15,11 @@ export const source = loader({
 			return;
 		}
 
-		if (icon in iconMap)
+		if (icon in iconMap) {
 			return createElement(iconMap[icon as keyof typeof iconMap]);
-		if (icon in icons) return createElement(icons[icon as keyof typeof icons]);
+		}
+		if (icon in icons) {
+			return createElement(icons[icon as keyof typeof icons]);
+		}
 	},
 });

@@ -2,7 +2,7 @@
 import { useI18n } from 'fumadocs-ui/contexts/i18n';
 import { useSearchContext } from 'fumadocs-ui/contexts/search';
 import { SearchIcon } from 'lucide-react';
-import { type ButtonHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes } from 'react';
 import { cn } from '../../lib/cn';
 import { type ButtonProps, buttonVariants } from '../ui/button';
 
@@ -16,7 +16,9 @@ export function SearchToggle({
 		hideIfDisabled?: boolean;
 	}) {
 	const { setOpenSearch, enabled } = useSearchContext();
-	if (hideIfDisabled && !enabled) return null;
+	if (hideIfDisabled && !enabled) {
+		return null;
+	}
 
 	return (
 		<button
@@ -47,7 +49,9 @@ export function LargeSearchToggle({
 }) {
 	const { enabled, hotKey, setOpenSearch } = useSearchContext();
 	const { text } = useI18n();
-	if (hideIfDisabled && !enabled) return null;
+	if (hideIfDisabled && !enabled) {
+		return null;
+	}
 
 	return (
 		<button
@@ -55,7 +59,7 @@ export function LargeSearchToggle({
 			data-search-full=""
 			{...props}
 			className={cn(
-				'inline-flex items-center gap-2 rounded-full border bg-fd-secondary/50 p-1.5 text-sm text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground',
+				'inline-flex items-center gap-2 rounded-full border bg-fd-secondary/50 p-1.5 text-fd-muted-foreground text-sm transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground',
 				props.className
 			)}
 			onClick={() => {

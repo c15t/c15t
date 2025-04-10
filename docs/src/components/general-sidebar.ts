@@ -43,7 +43,7 @@ export function determineActiveFramework(path: string): string {
 			if (typeof window !== 'undefined') {
 				try {
 					localStorage.setItem(FRAMEWORK_STORAGE_KEY, frameworkPath);
-				} catch (e) {
+				} catch {
 					// Ignore localStorage errors (private browsing, etc.)
 				}
 			}
@@ -72,7 +72,7 @@ export function determineActiveFramework(path: string): string {
 				if (storedFramework && frameworkPaths.includes(storedFramework)) {
 					return storedFramework;
 				}
-			} catch (e) {
+			} catch {
 				// Ignore localStorage errors
 			}
 		}
@@ -83,23 +83,23 @@ export function determineActiveFramework(path: string): string {
 }
 
 // Shared general pages that will be displayed under all frameworks
-const generalPages: PageTree.Node[] = [
-	{
-		$id: 'general-separator',
-		type: 'separator',
-		name: 'General',
-	},
-	{
-		$id: 'general/hello-world',
-		type: 'page',
-		name: 'Hello World',
-		description: 'Your first document',
-		url: '/docs/general',
-		$ref: {
-			file: 'nextjs/index.mdx',
-		},
-	},
-];
+// const generalPages: PageTree.Node[] = [
+// 	{
+// 		$id: 'general-separator',
+// 		type: 'separator',
+// 		name: 'General',
+// 	},
+// 	{
+// 		$id: 'general/hello-world',
+// 		type: 'page',
+// 		name: 'Hello World',
+// 		description: 'Your first document',
+// 		url: '/docs/general',
+// 		$ref: {
+// 			file: 'nextjs/index.mdx',
+// 		},
+// 	},
+// ];
 
 // Next.js specific framework pages
 const nextjsPages: PageTree.Node[] = [

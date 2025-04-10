@@ -1,15 +1,15 @@
 'use client';
 import * as CollapsiblePrimitive from '@radix-ui/react-collapsible';
 import { forwardRef, useEffect, useState } from 'react';
+import type { ComponentPropsWithoutRef } from 'react';
 import { cn } from '../../lib/cn';
-
 const Collapsible = CollapsiblePrimitive.Root;
 
 const CollapsibleTrigger = CollapsiblePrimitive.CollapsibleTrigger;
 
 const CollapsibleContent = forwardRef<
 	HTMLDivElement,
-	React.ComponentPropsWithoutRef<typeof CollapsiblePrimitive.CollapsibleContent>
+	ComponentPropsWithoutRef<typeof CollapsiblePrimitive.CollapsibleContent>
 >(({ children, ...props }, ref) => {
 	const [mounted, setMounted] = useState(false);
 

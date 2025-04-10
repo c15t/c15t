@@ -85,7 +85,7 @@ export const siteConfig = {
 				title: 'Product',
 				items: [
 					{ text: 'Documentation', url: '/docs' },
-					{ text: 'Components', url: '/docs/framework/react' },
+					{ text: 'Components', url: '/docs/components/react/cookie-banner' },
 				],
 			},
 			{

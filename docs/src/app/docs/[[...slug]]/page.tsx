@@ -2,7 +2,6 @@ import { source } from '~/lib/source';
 
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 import { notFound } from 'next/navigation';
-import { IndexBlock } from '~/components/blocks/index-block';
 import {
 	DocsBody,
 	DocsDescription,
@@ -17,7 +16,9 @@ export default async function Page(props: {
 	const params = await props.params;
 
 	const page = source.getPage(params.slug);
-	if (!page) notFound();
+	if (!page) {
+		notFound();
+	}
 
 	const MDXContent = page.data.body;
 
@@ -38,7 +39,7 @@ export default async function Page(props: {
 }
 
 export async function generateStaticParams() {
-	return source.generateParams();
+	return await source.generateParams();
 }
 
 export async function generateMetadata(props: {
@@ -46,7 +47,9 @@ export async function generateMetadata(props: {
 }) {
 	const params = await props.params;
 	const page = source.getPage(params.slug);
-	if (!page) notFound();
+	if (!page) {
+		notFound();
+	}
 
 	return {
 		title: page.data.title,

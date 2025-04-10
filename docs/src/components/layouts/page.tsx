@@ -1,4 +1,4 @@
-import { type PageTree, type TableOfContents } from 'fumadocs-core/server';
+import type { PageTree, TableOfContents } from 'fumadocs-core/server';
 import type { LoaderConfig, LoaderOutput, Page } from 'fumadocs-core/source';
 import { AnchorProvider, type AnchorProviderProps } from 'fumadocs-core/toc';
 import { I18nLabel } from 'fumadocs-ui/contexts/i18n';
@@ -148,7 +148,7 @@ export function DocsPage({
 				className={cn(props.container?.className)}
 				style={
 					{
-						'--fd-tocnav-height': !tocPopoverEnabled ? '0px' : undefined,
+						'--fd-tocnav-height': tocPopoverEnabled ? undefined : '0px',
 						...props.container?.style,
 					} as object
 				}
@@ -205,7 +205,7 @@ export function DocsPage({
 				{ enabled: tocEnabled, component: tocReplace },
 				<Toc>
 					{tocOptions.header}
-					<h3 className="inline-flex items-center gap-1.5 text-sm text-fd-muted-foreground">
+					<h3 className="inline-flex items-center gap-1.5 text-fd-muted-foreground text-sm">
 						<Text className="size-4" />
 						<I18nLabel label="toc" />
 					</h3>
@@ -275,13 +275,15 @@ export const DocsDescription = forwardRef<
 	HTMLAttributes<HTMLParagraphElement>
 >((props, ref) => {
 	// don't render if no description provided
-	if (props.children === undefined) return null;
+	if (props.children === undefined) {
+		return null;
+	}
 
 	return (
 		<p
 			ref={ref}
 			{...props}
-			className={cn('mb-8 text-lg text-fd-muted-foreground', props.className)}
+			className={cn('mb-8 text-fd-muted-foreground text-lg', props.className)}
 		>
 			{props.children}
 		</p>
@@ -298,7 +300,7 @@ export const DocsTitle = forwardRef<
 		<h1
 			ref={ref}
 			{...props}
-			className={cn('text-3xl font-semibold', props.className)}
+			className={cn('font-semibold text-3xl', props.className)}
 		>
 			{props.children}
 		</h1>

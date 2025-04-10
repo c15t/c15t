@@ -7,6 +7,7 @@
 		"dev": "next dev --turbo",
 		"start": "next start",
 		"postinstall": "fumadocs-mdx",
+		"lint": "pnpm biome lint ./src",
 		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write"
 	},
 	"dependencies": {

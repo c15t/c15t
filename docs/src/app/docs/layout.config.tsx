@@ -1,4 +1,4 @@
-import { DocsLayoutProps } from '~/components/layouts/notebook';
+import type { DocsLayoutProps } from '~/components/layouts/notebook';
 
 import { C15TLogo } from '~/components/logo';
 

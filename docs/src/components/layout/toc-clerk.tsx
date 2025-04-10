@@ -16,11 +16,15 @@ export default function ClerkTOCItems({ items }: { items: TOCItemType[] }) {
 	}>();
 
 	useEffect(() => {
-		if (!containerRef.current) return;
+		if (!containerRef.current) {
+			return;
+		}
 		const container = containerRef.current;
 
 		function onResize(): void {
-			if (container.clientHeight === 0) return;
+			if (container.clientHeight === 0) {
+				return;
+			}
 			let w = 0,
 				h = 0;
 			const d: string[] = [];
@@ -28,15 +32,17 @@ export default function ClerkTOCItems({ items }: { items: TOCItemType[] }) {
 				const element: HTMLElement | null = container.querySelector(
 					`a[href="#${items[i].url.slice(1)}"]`
 				);
-				if (!element) continue;
+				if (!element) {
+					continue;
+				}
 
 				const styles = getComputedStyle(element);
 				const offset = getLineOffset(items[i].depth) + 1,
-					top = element.offsetTop + parseFloat(styles.paddingTop),
+					top = element.offsetTop + Number.parseFloat(styles.paddingTop),
 					bottom =
 						element.offsetTop +
 						element.clientHeight -
-						parseFloat(styles.paddingBottom);
+						Number.parseFloat(styles.paddingBottom);
 
 				w = Math.max(offset, w);
 				h = Math.max(h, bottom);
@@ -61,13 +67,15 @@ export default function ClerkTOCItems({ items }: { items: TOCItemType[] }) {
 		};
 	}, [items]);
 
-	if (items.length === 0) return <TocItemsEmpty />;
+	if (items.length === 0) {
+		return <TocItemsEmpty />;
+	}
 
 	return (
 		<>
 			{svg ? (
 				<div
-					className="absolute start-0 top-0 rtl:-scale-x-100"
+					className="rtl:-scale-x-100 absolute start-0 top-0"
 					style={{
 						width: svg.width,
 						height: svg.height,
@@ -100,8 +108,12 @@ export default function ClerkTOCItems({ items }: { items: TOCItemType[] }) {
 }
 
 function getItemOffset(depth: number): number {
-	if (depth <= 2) return 14;
-	if (depth === 3) return 26;
+	if (depth <= 2) {
+		return 14;
+	}
+	if (depth === 3) {
+		return 26;
+	}
 	return 36;
 }
 
@@ -128,14 +140,15 @@ function TOCItem({
 			style={{
 				paddingInlineStart: getItemOffset(item.depth),
 			}}
-			className="prose relative py-1.5 text-sm text-fd-muted-foreground transition-colors [overflow-wrap:anywhere] first:pt-0 last:pb-0 data-[active=true]:text-fd-primary"
+			className="prose relative py-1.5 text-fd-muted-foreground text-sm transition-colors [overflow-wrap:anywhere] first:pt-0 last:pb-0 data-[active=true]:text-fd-primary"
 		>
 			{offset !== upperOffset ? (
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					viewBox="0 0 16 16"
-					className="absolute -top-1.5 start-0 size-4 rtl:-scale-x-100"
+					className="-top-1.5 rtl:-scale-x-100 absolute start-0 size-4"
 				>
+					<title>Line</title>
 					<line
 						x1={upperOffset}
 						y1="0"

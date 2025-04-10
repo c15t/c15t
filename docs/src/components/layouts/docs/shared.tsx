@@ -47,7 +47,7 @@ export function SidebarLinkItem({
 	item: LinkItemType;
 	className?: string;
 }) {
-	if (item.type === 'menu')
+	if (item.type === 'menu') {
 		return (
 			<SidebarFolder {...props}>
 				{item.url ? (
@@ -68,8 +68,11 @@ export function SidebarLinkItem({
 				</SidebarFolderContent>
 			</SidebarFolder>
 		);
+	}
 
-	if (item.type === 'custom') return <div {...props}>{item.children}</div>;
+	if (item.type === 'custom') {
+		return <div {...props}>{item.children}</div>;
+	}
 
 	return (
 		<SidebarItem
@@ -89,9 +92,11 @@ export function getSidebarTabsFromOptions(
 ) {
 	if (Array.isArray(options)) {
 		return options;
-	} else if (typeof options === 'object') {
+	}
+	if (typeof options === 'object') {
 		return getSidebarTabs(tree, options);
-	} else if (options !== false) {
+	}
+	if (options !== false) {
 		return getSidebarTabs(tree);
 	}
 }

@@ -1,15 +1,17 @@
 'use client';
 import { useI18n } from 'fumadocs-ui/contexts/i18n';
-import { type ButtonHTMLAttributes, type HTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, HTMLAttributes } from 'react';
+import type { ReactElement } from 'react';
 import { cn } from '../../lib/cn';
 import { buttonVariants } from '../ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-
 export type LanguageSelectProps = ButtonHTMLAttributes<HTMLButtonElement>;
 
-export function LanguageToggle(props: LanguageSelectProps): React.ReactElement {
+export function LanguageToggle(props: LanguageSelectProps): ReactElement {
 	const context = useI18n();
-	if (!context.locales) throw new Error('Missing `<I18nProvider />`');
+	if (!context.locales) {
+		throw new Error('Missing `<I18nProvider />`');
+	}
 
 	return (
 		<Popover>
@@ -27,7 +29,7 @@ export function LanguageToggle(props: LanguageSelectProps): React.ReactElement {
 				{props.children}
 			</PopoverTrigger>
 			<PopoverContent className="flex flex-col overflow-hidden p-0">
-				<p className="mb-1 p-2 text-xs font-medium text-fd-muted-foreground">
+				<p className="mb-1 p-2 font-medium text-fd-muted-foreground text-xs">
 					{context.text.chooseLanguage}
 				</p>
 				{context.locales.map((item) => (
@@ -54,7 +56,7 @@ export function LanguageToggle(props: LanguageSelectProps): React.ReactElement {
 
 export function LanguageToggleText(
 	props: HTMLAttributes<HTMLSpanElement>
-): React.ReactElement {
+): ReactElement {
 	const context = useI18n();
 	const text = context.locales?.find(
 		(item) => item.locale === context.locale

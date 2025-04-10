@@ -23,6 +23,12 @@ import {
 } from 'react';
 import { cn } from '../lib/cn';
 import { isActive } from '../lib/is-active';
+import {
+	javascriptNavigation,
+	nextjsNavigation,
+	reactNavigation,
+} from './general-sidebar';
+import { useFramework } from './layout/sidebar';
 import { TocPopover } from './layout/toc';
 
 export function TocPopoverHeader(props: HTMLAttributes<HTMLDivElement>) {
@@ -33,10 +39,13 @@ export function TocPopoverHeader(props: HTMLAttributes<HTMLDivElement>) {
 	const { isTransparent } = useNav();
 
 	const onClick = useEffectEvent((e: Event) => {
-		if (!open) return;
+		if (!open) {
+			return;
+		}
 
-		if (ref.current && !ref.current.contains(e.target as HTMLElement))
+		if (ref.current && !ref.current.contains(e.target as HTMLElement)) {
 			setOpen(false);
+		}
 	});
 
 	useEffect(() => {
@@ -49,7 +58,7 @@ export function TocPopoverHeader(props: HTMLAttributes<HTMLDivElement>) {
 
 	return (
 		<div
-			className={cn('sticky overflow-visible z-10', tocNav, props.className)}
+			className={cn('sticky z-10 overflow-visible', tocNav, props.className)}
 			style={{
 				top: 'calc(var(--fd-banner-height) + var(--fd-nav-height))',
 			}}
@@ -60,7 +69,7 @@ export function TocPopoverHeader(props: HTMLAttributes<HTMLDivElement>) {
 					id="nd-tocnav"
 					{...props}
 					className={cn(
-						'border-b border-fd-foreground/10 backdrop-blur-md transition-colors',
+						'border-fd-foreground/10 border-b backdrop-blur-md transition-colors',
 						(!isTransparent || open) && 'bg-fd-background/80',
 						open && 'shadow-lg',
 						sidebar.open && 'max-md:hidden'
@@ -94,7 +103,7 @@ export function PageArticle(props: HTMLAttributes<HTMLElement>) {
 		<article
 			{...props}
 			className={cn(
-				'flex w-full flex-1 flex-col gap-6 px-4 pt-8 md:px-6 md:pt-12 xl:px-12 xl:mx-auto',
+				'flex w-full flex-1 flex-col gap-6 px-4 pt-8 md:px-6 md:pt-12 xl:mx-auto xl:px-12',
 				article,
 				props.className
 			)}
@@ -114,7 +123,7 @@ export function LastUpdate(props: { date: Date }) {
 	}, [props.date]);
 
 	return (
-		<p className="text-sm text-fd-muted-foreground">
+		<p className="text-fd-muted-foreground text-sm">
 			{text.lastUpdate} {date}
 		</p>
 	);
@@ -134,45 +143,84 @@ export interface FooterProps {
 function scanNavigationList(tree: PageTree.Node[]) {
 	const list: PageTree.Item[] = [];
 
-	tree.forEach((node) => {
+	for (const node of tree) {
 		if (node.type === 'folder') {
 			if (node.index) {
 				list.push(node.index);
 			}
 
 			list.push(...scanNavigationList(node.children));
-			return;
+			continue;
 		}
 
 		if (node.type === 'page' && !node.external) {
 			list.push(node);
 		}
-	});
+	}
 
 	return list;
 }
 
+// Cache for each framework's navigation list
+const frameworkListCache = new Map<string, PageTree.Item[]>();
 const listCache = new WeakMap<PageTree.Root, PageTree.Item[]>();
 
 export function Footer({ items }: FooterProps) {
 	const { root } = useTreeContext();
 	const pathname = usePathname();
+	const { activeFramework } = useFramework();
 
 	const { previous, next } = useMemo(() => {
-		if (items) return items;
+		if (items) {
+			return items;
+		}
 
-		const cached = listCache.get(root);
-		const list = cached ?? scanNavigationList(root.children);
-		listCache.set(root, list);
+		// Get the appropriate navigation tree based on the active framework
+		let frameworkNavigation: PageTree.Root;
+		if (activeFramework === 'react') {
+			frameworkNavigation = reactNavigation;
+		} else if (activeFramework === 'javascript') {
+			frameworkNavigation = javascriptNavigation;
+		} else {
+			frameworkNavigation = nextjsNavigation;
+		}
+
+		// First check if we already have the framework-specific list cached
+		const frameworkCacheKey = `${activeFramework}`;
+		let list = frameworkListCache.get(frameworkCacheKey);
+
+		if (!list) {
+			// If not cached yet, generate the list for this framework's nav tree
+			list = scanNavigationList(frameworkNavigation.children);
+			frameworkListCache.set(frameworkCacheKey, list);
+		}
 
 		const idx = list.findIndex((item) => isActive(item.url, pathname, false));
 
-		if (idx === -1) return {};
+		if (idx === -1) {
+			// Fallback to the global navigation if framework-specific not found
+			const globalList =
+				listCache.get(root) || scanNavigationList(root.children);
+			listCache.set(root, globalList);
+
+			const globalIdx = globalList.findIndex((item) =>
+				isActive(item.url, pathname, false)
+			);
+			if (globalIdx === -1) {
+				return {};
+			}
+
+			return {
+				previous: globalList[globalIdx - 1],
+				next: globalList[globalIdx + 1],
+			};
+		}
+
 		return {
 			previous: list[idx - 1],
 			next: list[idx + 1],
 		};
-	}, [items, pathname, root]);
+	}, [items, pathname, root, activeFramework]);
 
 	return (
 		<div
@@ -195,7 +243,7 @@ function FooterItem({ item, index }: { item: Item; index: 0 | 1 }) {
 		<Link
 			href={item.url}
 			className={cn(
-				'flex flex-col gap-2 rounded-lg border p-4 text-sm transition-colors hover:bg-fd-accent/80 hover:text-fd-accent-foreground @max-lg:col-span-full',
+				'@max-lg:col-span-full flex flex-col gap-2 rounded-lg border p-4 text-sm transition-colors hover:bg-fd-accent/80 hover:text-fd-accent-foreground',
 				index === 1 && 'text-end'
 			)}
 		>
@@ -208,7 +256,7 @@ function FooterItem({ item, index }: { item: Item; index: 0 | 1 }) {
 				<Icon className="-mx-1 size-4 shrink-0 rtl:rotate-180" />
 				<p>{item.name}</p>
 			</div>
-			<p className="text-fd-muted-foreground truncate">
+			<p className="truncate text-fd-muted-foreground">
 				{item.description ?? (index === 0 ? text.previousPage : text.nextPage)}
 			</p>
 		</Link>
@@ -227,14 +275,16 @@ export function Breadcrumb(options: BreadcrumbProps) {
 		});
 	}, [options, path, root]);
 
-	if (items.length === 0) return null;
+	if (items.length === 0) {
+		return null;
+	}
 
 	return (
 		<div className="flex flex-row items-center gap-1.5 text-[15px] text-fd-muted-foreground">
 			{items.map((item, i) => {
 				const className = cn(
 					'truncate',
-					i === items.length - 1 && 'text-fd-primary font-medium'
+					i === items.length - 1 && 'font-medium text-fd-primary'
 				);
 
 				return (

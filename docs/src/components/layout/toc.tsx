@@ -48,7 +48,7 @@ export function Toc(props: HTMLAttributes<HTMLDivElement>) {
 			id="nd-toc"
 			{...props}
 			className={cn(
-				'sticky top-[calc(var(--fd-banner-height)+var(--fd-nav-height))] h-(--fd-toc-height) pb-2 pt-12',
+				'sticky top-[calc(var(--fd-banner-height)+var(--fd-nav-height))] h-(--fd-toc-height) pt-12 pb-2',
 				toc,
 				props.className
 			)}
@@ -71,7 +71,7 @@ export function TocItemsEmpty() {
 	const { text } = useI18n();
 
 	return (
-		<div className="rounded-lg border bg-fd-card p-3 text-xs text-fd-muted-foreground">
+		<div className="rounded-lg border bg-fd-card p-3 text-fd-muted-foreground text-xs">
 			{text.tocNoHeadings}
 		</div>
 	);
@@ -92,7 +92,7 @@ export function TOCScrollArea({
 				<ScrollViewport
 					className={cn(
 						'relative min-h-0 text-sm',
-						isMenu && 'mt-2 mb-4 mx-4 md:mx-6'
+						isMenu && 'mx-4 mt-2 mb-4 md:mx-6'
 					)}
 					ref={viewRef}
 				>
@@ -106,7 +106,9 @@ export function TOCScrollArea({
 export function TOCItems({ items }: { items: TOCItemType[] }) {
 	const containerRef = useRef<HTMLDivElement>(null);
 
-	if (items.length === 0) return <TocItemsEmpty />;
+	if (items.length === 0) {
+		return <TocItemsEmpty />;
+	}
 
 	return (
 		<>
@@ -116,7 +118,7 @@ export function TOCItems({ items }: { items: TOCItemType[] }) {
 			/>
 			<div
 				ref={containerRef}
-				className="flex flex-col border-s border-fd-foreground/10"
+				className="flex flex-col border-fd-foreground/10 border-s"
 			>
 				{items.map((item) => (
 					<TOCItem key={item.url} item={item} />
@@ -131,7 +133,7 @@ function TOCItem({ item }: { item: TOCItemType }) {
 		<Primitive.TOCItem
 			href={item.url}
 			className={cn(
-				'prose py-1.5 text-sm text-fd-muted-foreground transition-colors [overflow-wrap:anywhere] first:pt-0 last:pb-0 data-[active=true]:text-fd-primary',
+				'prose py-1.5 text-fd-muted-foreground text-sm transition-colors [overflow-wrap:anywhere] first:pt-0 last:pb-0 data-[active=true]:text-fd-primary',
 				item.depth <= 2 && 'ps-3',
 				item.depth === 3 && 'ps-6',
 				item.depth >= 4 && 'ps-8'
@@ -189,7 +191,7 @@ export function TocPopoverTrigger({
 		<CollapsibleTrigger
 			{...props}
 			className={cn(
-				'inline-flex items-center text-sm gap-2 text-nowrap px-4 py-2.5 text-start md:px-6 focus-visible:outline-none',
+				'inline-flex items-center gap-2 text-nowrap px-4 py-2.5 text-start text-sm focus-visible:outline-none md:px-6',
 				props.className
 			)}
 		>
@@ -204,7 +206,7 @@ export function TocPopoverTrigger({
 			/>
 			<span
 				className={cn(
-					'truncate text-fd-muted-foreground transition-opacity -ms-1.5',
+					'-ms-1.5 truncate text-fd-muted-foreground transition-opacity',
 					(!current || open) && 'opacity-0'
 				)}
 			>
@@ -218,7 +220,7 @@ export function TocPopoverContent(props: PopoverContentProps) {
 	return (
 		<CollapsibleContent
 			data-toc-popover=""
-			className="flex flex-col max-h-[50vh]"
+			className="flex max-h-[50vh] flex-col"
 			{...props}
 		>
 			{props.children}

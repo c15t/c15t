@@ -5,7 +5,7 @@ import { SidebarTrigger } from 'fumadocs-core/sidebar';
 import { useNav } from 'fumadocs-ui/contexts/layout';
 import { useSidebar } from 'fumadocs-ui/contexts/sidebar';
 import { Menu, X } from 'lucide-react';
-import { type ButtonHTMLAttributes, type HTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, HTMLAttributes } from 'react';
 import { cn } from '../../lib/cn';
 import { isActive } from '../../lib/is-active';
 import type { Option } from '../layout/root-toggle';
@@ -23,7 +23,7 @@ export function Navbar({
 			id="nd-subnav"
 			{...props}
 			className={cn(
-				'mx-4 fixed inset-x-0 top-(--fd-banner-height) z-20 px-(--fd-layout-offset) backdrop-blur-lg transition-colors',
+				'fixed inset-x-0 top-(--fd-banner-height) z-20 mx-4 px-(--fd-layout-offset) backdrop-blur-lg transition-colors',
 				(!isTransparent || open) && 'bg-fd-background/80',
 				mode === 'auto' &&
 					!collapsed &&
@@ -86,8 +86,8 @@ export function LayoutTab(item: Option) {
 	return (
 		<Link
 			className={cn(
-				'inline-flex items-center py-2.5 border-b border-transparent gap-2 text-fd-muted-foreground text-sm text-nowrap',
-				selected && 'text-fd-foreground font-medium border-fd-primary'
+				'inline-flex items-center gap-2 text-nowrap border-transparent border-b py-2.5 text-fd-muted-foreground text-sm',
+				selected && 'border-fd-primary font-medium text-fd-foreground'
 			)}
 			href={item.url}
 			onClick={() => {
@@ -109,9 +109,9 @@ export function SidebarLayoutTab({
 		<Link
 			{...props}
 			className={cn(
-				'flex flex-row items-center px-2 -mx-2 py-1.5 gap-2.5 text-fd-muted-foreground [&_svg]:!size-4.5',
+				'-mx-2 [&_svg]:!size-4.5 flex flex-row items-center gap-2.5 px-2 py-1.5 text-fd-muted-foreground',
 				selected
-					? 'text-fd-primary font-medium'
+					? 'font-medium text-fd-primary'
 					: 'hover:text-fd-accent-foreground',
 				props.className
 			)}

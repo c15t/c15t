@@ -123,7 +123,9 @@ export function FrameworkProvider({ children }: { children: ReactNode }) {
 	// Update active framework when pathname changes for non-general pages
 	// Only run this effect after first hydration completed
 	useEffect(() => {
-		if (!isHydrated) return;
+		if (!isHydrated) {
+			return;
+		}
 
 		// Only update the active framework if we're not on a general page
 		// For general pages, we want to keep the current framework
@@ -606,7 +608,9 @@ export function SidebarPageTree(props: {
 
 			return itemsToRender.map((item, i) => {
 				if (item.type === 'separator') {
-					if (Separator) return <Separator key={i} item={item} />;
+					if (Separator) {
+						return <Separator key={i} item={item} />;
+					}
 					return (
 						<SidebarSeparator key={i} className={cn(i !== 0 && 'mt-8')}>
 							{item.icon}
@@ -618,12 +622,13 @@ export function SidebarPageTree(props: {
 				if (item.type === 'folder') {
 					const children = renderSidebarList(item.children, level + 1);
 
-					if (Folder)
+					if (Folder) {
 						return (
 							<Folder key={i} item={item} level={level}>
 								{children}
 							</Folder>
 						);
+					}
 					return (
 						<PageTreeFolder key={i} item={item}>
 							{children}

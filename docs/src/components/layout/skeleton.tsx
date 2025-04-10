@@ -9,7 +9,7 @@ export function SkeletonFrameworkSelector() {
 			</div>
 			<div className="flex flex-row items-center gap-2.5 rounded-lg border bg-fd-card py-1.5 ps-2 pe-2">
 				<div className="h-6 w-6 animate-pulse rounded-full bg-fd-primary" />
-				<div className="flex-1 text-start"></div>
+				<div className="flex-1 text-start" />
 				<div className="size-4 text-fd-muted-foreground" />
 			</div>
 		</div>
