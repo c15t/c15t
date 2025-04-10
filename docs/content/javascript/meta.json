@@ -1,7 +1,5 @@
 {
 	"title": "JavaScript",
 	"root": true,
-	"pages": [
-		"index.mdx"
-	]
+	"pages": ["index.mdx"]
 }

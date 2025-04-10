@@ -154,7 +154,7 @@ export function Sidebar({
 				removeScrollOn="(width < 768px)" // md
 				{...props}
 				className={cn(
-					'fixed top-[calc(var(--fd-banner-height)+var(--fd-nav-height))] z-20 bg-fd-card text-sm md:sticky md:h-(--fd-sidebar-height)',
+					'fixed top-[calc(var(--fd-banner-height)+var(--fd-nav-height))] z-10 bg-fd-card text-sm md:sticky md:h-(--fd-sidebar-height)',
 					'max-md:inset-x-0 max-md:bottom-0 max-md:bg-fd-background/80 max-md:text-[15px] max-md:backdrop-blur-lg max-md:data-[open=false]:invisible',
 					props.className
 				)}

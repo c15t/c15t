@@ -6,8 +6,7 @@ const withMDX = createMDX({
 	configPath: './source.config.ts',
 });
 
-
-const config:NextConfig = {
+const config: NextConfig = {
 	images: {
 		formats: ['image/avif', 'image/webp'],
 		remotePatterns: [
