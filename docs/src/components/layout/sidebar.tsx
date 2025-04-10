@@ -13,7 +13,6 @@ import { useOnChange } from 'fumadocs-core/utils/use-on-change';
 import { useSidebar } from 'fumadocs-ui/contexts/sidebar';
 import { useTreeContext, useTreePath } from 'fumadocs-ui/contexts/tree';
 import { ChevronDown, ExternalLink } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
 import {
 	type ButtonHTMLAttributes,
 	type Dispatch,
@@ -437,12 +436,10 @@ export function SidebarPageTree(props: {
 }) {
 	const { root } = useTreeContext();
 	const pathname = usePathname();
-	const searchParams = useSearchParams();
-
-	// Extract framework from query param or pathname
-	const frameworkParam = searchParams?.get('fw');
+	
+	// Extract framework from pathname only for initial SSR
 	const pathFramework = pathname.split('/')[2] || '';
-	const activeFramework = frameworkParam || pathFramework;
+	const activeFramework = pathFramework || 'nextjs'; // Default to NextJS if no framework in path
 
 	return useMemo(() => {
 		const { Separator, Item, Folder } = props.components ?? {};

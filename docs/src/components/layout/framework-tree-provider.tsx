@@ -20,7 +20,7 @@ interface FrameworkTreeProviderProps {
  * FrameworkTreeProvider maintains a persistent framework context and filters the tree accordingly
  */
 export function FrameworkTreeProvider(props: FrameworkTreeProviderProps) {
-	const { tree, children, defaultFramework = '' } = props;
+	const { tree, children, defaultFramework = 'nextjs' } = props;
 
 	return (
 		<FrameworkProvider tree={tree} defaultFramework={defaultFramework}>
