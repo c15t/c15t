@@ -16,6 +16,13 @@ const config = {
 			},
 		],
 	},
+  serverExternalPackages: [
+    'ts-morph',
+    'typescript',
+    'oxc-transform',
+    'twoslash',
+    'shiki',
+  ],
 	reactStrictMode: true,
 	async redirects() {
 		return [
