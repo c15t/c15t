@@ -2,5 +2,5 @@
 	"title": "JavaScript",
 	"icon": "js",
 	"root": true,
-	"pages": ["index", "how-it-works", "auto-detect", "api-reference"]
+	"pages": ["index", "how-it-works","client-config-options", "auto-detect", "api-reference"]
 }
