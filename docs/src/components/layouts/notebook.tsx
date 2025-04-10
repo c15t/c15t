@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'fumadocs-core/link';
 import type { PageTree } from 'fumadocs-core/server';
 import {
@@ -5,10 +7,10 @@ import {
 	type PageStyles,
 	StylesProvider,
 } from 'fumadocs-ui/contexts/layout';
-import { TreeContextProvider } from 'fumadocs-ui/contexts/tree';
 import { ChevronDown, Languages, SidebarIcon } from 'lucide-react';
 import { Fragment, type HTMLAttributes, useMemo } from 'react';
 import { cn } from '../../lib/cn';
+import { FrameworkTreeProvider } from '../layout/framework-tree-provider';
 import { LanguageToggle } from '../layout/language-toggle';
 import { type Option, RootToggle } from '../layout/root-toggle';
 import { LargeSearchToggle, SearchToggle } from '../layout/search-toggle';
@@ -39,6 +41,7 @@ import {
 	SidebarLayoutTab,
 } from './notebook-client';
 export { Navbar, NavbarSidebarTrigger } from './notebook-client';
+import { usePathname } from 'next/navigation';
 import { type BaseLayoutProps, getLinks, replaceOrDefault } from './shared';
 
 export interface DocsLayoutProps extends BaseLayoutProps {
@@ -88,10 +91,56 @@ export function DocsLayout({
 }: DocsLayoutProps) {
 	const navMode = nav.mode ?? 'auto';
 	const links = getLinks(props.links ?? [], props.githubUrl);
-	const tabs = useMemo(
-		() => getSidebarTabsFromOptions(tabOptions, props.tree) ?? [],
-		[tabOptions, props.tree]
-	);
+	const pathname = usePathname();
+
+	// Get tabs and ensure they're always displayed, even on root
+	const tabs = useMemo(() => {
+		const allTabs = getSidebarTabsFromOptions(tabOptions, props.tree) ?? [];
+
+		// Only show framework tabs (those with root:true) when we're on a framework route or root
+		if (pathname === '/docs' || pathname === '/docs/') {
+			// On root path, only show framework-specific tabs
+			return allTabs.filter((tab) => {
+				// Find the corresponding folder in the tree
+				const folder = props.tree.children.find(
+					(item) =>
+						item.type === 'folder' &&
+						item.root === true &&
+						typeof item.name === 'string' &&
+						item.name.toLowerCase() === tab.title?.toString().toLowerCase()
+				);
+
+				// Only include tabs that correspond to framework folders (root:true)
+				return !!folder;
+			});
+		}
+
+		return allTabs;
+	}, [tabOptions, props.tree, pathname]);
+
+	// Force show tabs even on root page
+	const shouldShowTabs = tabs.length > 0;
+
+	// Check if we're on the root page (no framework in URL)
+	const isRootPage = !pathname.split('/')[2];
+
+	// Find the NextJS tab to highlight when on root
+	const nextJsTab = useMemo(() => {
+		if (!shouldShowTabs) {
+			return null;
+		}
+
+		return tabs.find((tab) => {
+			// Check if title is a string and matches "NextJS" case-insensitively
+			if (typeof tab.title === 'string') {
+				return tab.title.toLowerCase() === 'nextjs';
+			}
+			return false;
+		});
+	}, [tabs, shouldShowTabs]);
+
+	// This context will be passed to FrameworkTreeProvider
+	const defaultFramework = isRootPage && nextJsTab ? 'nextjs' : '';
 
 	const Aside = sidebarCollapsible ? CollapsibleSidebar : Sidebar;
 
@@ -99,7 +148,10 @@ export function DocsLayout({
 	const pageStyles = createPageStyles();
 
 	return (
-		<TreeContextProvider tree={props.tree}>
+		<FrameworkTreeProvider
+			tree={props.tree}
+			defaultFramework={defaultFramework}
+		>
 			<NavProvider transparentMode={transparentMode}>
 				<main
 					id="nd-docs-layout"
@@ -152,8 +204,14 @@ export function DocsLayout({
 							)}
 							{nav.children}
 							{sidebarBanner}
-							{tabMode === 'sidebar' && tabs.length > 0 ? (
-								<RootToggle options={tabs} className="-mx-2" />
+							{tabMode === 'sidebar' && shouldShowTabs ? (
+								<RootToggle
+									options={tabs}
+									className="-mx-2"
+									defaultSelected={
+										isRootPage && nextJsTab ? nextJsTab : undefined
+									}
+								/>
 							) : null}
 						</SidebarHeader>
 						<SidebarViewport>
@@ -163,6 +221,7 @@ export function DocsLayout({
 										key={tab.url}
 										item={tab}
 										className={cn('lg:hidden', i === tabs.length - 1 && 'mb-4')}
+										forceActive={nextJsTab === tab && isRootPage}
 									/>
 								))}
 							{links.map((item, i) => (
@@ -202,11 +261,16 @@ export function DocsLayout({
 						i18n={i18n}
 						sidebarCollapsible={sidebarCollapsible}
 						tabs={tabMode === 'navbar' ? tabs : []}
+						defaultSelected={
+							isRootPage && nextJsTab && tabMode === 'navbar'
+								? nextJsTab
+								: undefined
+						}
 					/>
 					<StylesProvider {...pageStyles}>{props.children}</StylesProvider>
 				</main>
 			</NavProvider>
-		</TreeContextProvider>
+		</FrameworkTreeProvider>
 	);
 }
 
@@ -217,6 +281,7 @@ function DocsNavbar({
 	nav = {},
 	i18n,
 	tabs,
+	defaultSelected,
 }: {
 	nav: DocsLayoutProps['nav'];
 	sidebarCollapsible: boolean;
@@ -224,8 +289,10 @@ function DocsNavbar({
 	themeSwitch?: DocsLayoutProps['themeSwitch'];
 	links: LinkItemType[];
 	tabs: Option[];
+	defaultSelected?: Option;
 }) {
 	const navMode = nav.mode ?? 'auto';
+	const pathname = usePathname();
 
 	return (
 		<Navbar mode={navMode}>
@@ -333,7 +400,11 @@ function DocsNavbar({
 			{tabs.length > 0 ? (
 				<LayoutTabs className="h-10 border-fd-foreground/10 border-b px-6 max-lg:hidden">
 					{tabs.map((tab) => (
-						<LayoutTab key={tab.url} {...tab} />
+						<LayoutTab
+							key={tab.url}
+							{...tab}
+							forceActive={defaultSelected === tab && pathname === '/docs'}
+						/>
 					))}
 				</LayoutTabs>
 			) : null}

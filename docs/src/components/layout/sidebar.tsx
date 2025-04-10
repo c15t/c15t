@@ -35,6 +35,7 @@ import {
 	CollapsibleTrigger,
 } from '../ui/collapsible';
 import { ScrollArea, ScrollViewport } from '../ui/scroll-area';
+import type { SharedPageItem } from './framework-tree-provider';
 
 export interface SidebarProps extends HTMLAttributes<HTMLElement> {
 	/**
@@ -248,18 +249,29 @@ export function SidebarSeparator(props: HTMLAttributes<HTMLParagraphElement>) {
 
 export function SidebarItem({
 	icon,
+	frameworkUrl,
+	'data-shared': isSharedPage,
 	...props
 }: LinkProps & {
 	icon?: ReactNode;
+	'data-shared'?: boolean;
+	frameworkUrl?: string;
 }) {
 	const pathname = usePathname();
-	const active =
-		props.href !== undefined && isActive(props.href, pathname, false);
+
+	// Use frameworkUrl for shared pages if provided
+	let href = props.href;
+	if (isSharedPage && frameworkUrl) {
+		href = frameworkUrl;
+	}
+
+	const active = href !== undefined && isActive(href, pathname, false);
 	const { prefetch, level } = useInternalContext();
 
 	return (
 		<Link
 			{...props}
+			href={href}
 			data-active={active}
 			className={cn(itemVariants({ active }), props.className)}
 			prefetch={prefetch}
@@ -472,16 +484,24 @@ export function SidebarPageTree(props: {
 			);
 		}
 
-		function renderPageItem(item: PageTree.Item): ReactNode {
+		function renderPageItem(item: PageTree.Item | SharedPageItem): ReactNode {
 			if (Item) {
 				return <Item key={item.url} item={item} />;
 			}
+
+			// Check if this is a shared item
+			const sharedItem = item as SharedPageItem;
+			const isSharedItem = !!sharedItem.sharedPage;
+			const frameworkUrl = sharedItem.frameworkUrl;
+
 			return (
 				<SidebarItem
 					key={item.url}
 					href={item.url}
 					external={item.external}
 					icon={item.icon}
+					data-shared={isSharedItem}
+					frameworkUrl={frameworkUrl}
 				>
 					{item.name}
 				</SidebarItem>

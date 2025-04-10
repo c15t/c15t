@@ -79,9 +79,10 @@ function useIsSelected(item: Option) {
 		: isActive(item.url, pathname, true);
 }
 
-export function LayoutTab(item: Option) {
+export function LayoutTab(props: Option & { forceActive?: boolean }) {
 	const { closeOnRedirect } = useSidebar();
-	const selected = useIsSelected(item);
+	const isAutoSelected = useIsSelected(props);
+	const selected = props.forceActive || isAutoSelected;
 
 	return (
 		<Link
@@ -89,21 +90,26 @@ export function LayoutTab(item: Option) {
 				'inline-flex items-center gap-2 text-nowrap border-transparent border-b py-2.5 text-fd-muted-foreground text-sm',
 				selected && 'border-fd-primary font-medium text-fd-foreground'
 			)}
-			href={item.url}
+			href={props.url}
 			onClick={() => {
 				closeOnRedirect.current = false;
 			}}
 		>
-			{item.title}
+			{props.title}
 		</Link>
 	);
 }
 
 export function SidebarLayoutTab({
 	item,
+	forceActive,
 	...props
-}: { item: Option } & HTMLAttributes<HTMLElement>) {
-	const selected = useIsSelected(item);
+}: {
+	item: Option;
+	forceActive?: boolean;
+} & HTMLAttributes<HTMLElement>) {
+	const isAutoSelected = useIsSelected(item);
+	const selected = forceActive || isAutoSelected;
 
 	return (
 		<Link

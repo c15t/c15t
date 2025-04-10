@@ -29,16 +29,23 @@ export interface Option {
 export function RootToggle({
 	options,
 	placeholder,
+	defaultSelected,
 	...props
 }: {
 	placeholder?: ReactNode;
 	options: Option[];
+	defaultSelected?: Option;
 } & HTMLAttributes<HTMLButtonElement>) {
 	const [open, setOpen] = useState(false);
 	const { closeOnRedirect } = useSidebar();
 	const pathname = usePathname();
 
 	const selected = useMemo(() => {
+		// If defaultSelected is provided and we're on the root path, use it
+		if (defaultSelected && pathname === '/docs') {
+			return defaultSelected;
+		}
+
 		return options.findLast((item) =>
 			item.urls
 				? item.urls.has(
@@ -46,7 +53,7 @@ export function RootToggle({
 					)
 				: isActive(item.url, pathname, true)
 		);
-	}, [options, pathname]);
+	}, [options, pathname, defaultSelected]);
 
 	const onClick = () => {
 		closeOnRedirect.current = false;
