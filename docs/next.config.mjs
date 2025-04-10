@@ -16,21 +16,21 @@ const config = {
 			},
 		],
 	},
-  serverExternalPackages: [
-    'ts-morph',
-    'typescript',
-    'oxc-transform',
-    'twoslash',
-    'shiki',
-  ],
+	serverExternalPackages: [
+		'ts-morph',
+		'typescript',
+		'oxc-transform',
+		'twoslash',
+		'shiki',
+	],
 	reactStrictMode: true,
 	async redirects() {
 		return [
-			{
-				source: '/docs',
-				destination: '/docs/getting-started',
-				permanent: true,
-			},
+			// {
+			// 	source: '/docs',
+			// 	destination: '/docs/getting-started',
+			// 	permanent: true,
+			// },
 			{
 				source: '/discord',
 				destination: 'https://discord.gg/nPJjrw55TZ',

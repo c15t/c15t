@@ -7,7 +7,7 @@ import {
 	ShieldIcon,
 	ZapIcon,
 } from 'lucide-react';
-import { ReactIcon } from '~/components/icons/react';
+import { ReactIcon } from '~/components/icons';
 
 export const siteConfig = {
 	name: 'Consent Management',

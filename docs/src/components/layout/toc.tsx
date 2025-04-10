@@ -71,7 +71,7 @@ export function TocItemsEmpty() {
 	const { text } = useI18n();
 
 	return (
-		<div className="rounded-lg border bg-fd-card p-3 text-fd-muted-foreground text-xs">
+		<div className='rounded-lg border bg-fd-card p-3 text-fd-muted-foreground text-xs'>
 			{text.tocNoHeadings}
 		</div>
 	);
@@ -106,9 +106,7 @@ export function TOCScrollArea({
 export function TOCItems({ items }: { items: TOCItemType[] }) {
 	const containerRef = useRef<HTMLDivElement>(null);
 
-	if (items.length === 0) {
-		return <TocItemsEmpty />;
-	}
+	if (items.length === 0) return <TocItemsEmpty />;
 
 	return (
 		<>
@@ -118,7 +116,7 @@ export function TOCItems({ items }: { items: TOCItemType[] }) {
 			/>
 			<div
 				ref={containerRef}
-				className="flex flex-col border-fd-foreground/10 border-s"
+				className='flex flex-col border-fd-foreground/10 border-s'
 			>
 				{items.map((item) => (
 					<TOCItem key={item.url} item={item} />
@@ -220,7 +218,7 @@ export function TocPopoverContent(props: PopoverContentProps) {
 	return (
 		<CollapsibleContent
 			data-toc-popover=""
-			className="flex max-h-[50vh] flex-col"
+			className='flex max-h-[50vh] flex-col'
 			{...props}
 		>
 			{props.children}

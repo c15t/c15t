@@ -17,7 +17,7 @@ import {
 import type { LinkItemType } from '../links';
 
 export const layoutVariables = {
-	// '--fd-layout-offset': 'max(calc(50vw - var(--fd-layout-width) / 2), 0px)',
+	'--fd-layout-offset': 'max(calc(50vw - var(--fd-layout-width) / 2), 0px)',
 };
 
 export interface SidebarOptions extends SidebarProps {
@@ -47,7 +47,7 @@ export function SidebarLinkItem({
 	item: LinkItemType;
 	className?: string;
 }) {
-	if (item.type === 'menu') {
+	if (item.type === 'menu')
 		return (
 			<SidebarFolder {...props}>
 				{item.url ? (
@@ -68,11 +68,8 @@ export function SidebarLinkItem({
 				</SidebarFolderContent>
 			</SidebarFolder>
 		);
-	}
 
-	if (item.type === 'custom') {
-		return <div {...props}>{item.children}</div>;
-	}
+	if (item.type === 'custom') return <div {...props}>{item.children}</div>;
 
 	return (
 		<SidebarItem
@@ -92,11 +89,9 @@ export function getSidebarTabsFromOptions(
 ) {
 	if (Array.isArray(options)) {
 		return options;
-	}
-	if (typeof options === 'object') {
+	} else if (typeof options === 'object') {
 		return getSidebarTabs(tree, options);
-	}
-	if (options !== false) {
+	} else if (options !== false) {
 		return getSidebarTabs(tree);
 	}
 }

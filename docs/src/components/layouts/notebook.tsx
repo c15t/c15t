@@ -7,17 +7,18 @@ import {
 } from 'fumadocs-ui/contexts/layout';
 import { TreeContextProvider } from 'fumadocs-ui/contexts/tree';
 import { ChevronDown, Languages, SidebarIcon } from 'lucide-react';
-import { Fragment, type HTMLAttributes } from 'react';
+import { Fragment, type HTMLAttributes, useMemo } from 'react';
 import { cn } from '../../lib/cn';
 import { LanguageToggle } from '../layout/language-toggle';
+import { type Option, RootToggle } from '../layout/root-toggle';
 import { LargeSearchToggle, SearchToggle } from '../layout/search-toggle';
 import {
 	CollapsibleSidebar,
-	PersistentSidebarPageTree,
 	Sidebar,
 	SidebarCollapseTrigger,
 	SidebarFooter,
 	SidebarHeader,
+	SidebarPageTree,
 	SidebarViewport,
 } from '../layout/sidebar';
 import { ThemeToggle } from '../layout/theme-toggle';
@@ -26,14 +27,23 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import {
 	SidebarLinkItem,
 	type SidebarOptions,
+	getSidebarTabsFromOptions,
 	layoutVariables,
 } from './docs/shared';
 import { BaseLinkItem, type LinkItemType } from './links';
-import { Navbar, NavbarSidebarTrigger } from './notebook-client';
+import {
+	LayoutTab,
+	LayoutTabs,
+	Navbar,
+	NavbarSidebarTrigger,
+	SidebarLayoutTab,
+} from './notebook-client';
 import { type BaseLayoutProps, getLinks, replaceOrDefault } from './shared';
 
 export interface DocsLayoutProps extends BaseLayoutProps {
 	tree: PageTree.Root;
+	tabMode?: 'sidebar' | 'navbar';
+
 	nav?: BaseLayoutProps['nav'] & {
 		mode?: 'top' | 'auto';
 	};
@@ -44,9 +54,11 @@ export interface DocsLayoutProps extends BaseLayoutProps {
 }
 
 export function DocsLayout({
+	tabMode = 'sidebar',
 	nav: { transparentMode, ...nav } = {},
 	sidebar: {
 		collapsible: sidebarCollapsible = true,
+		tabs: tabOptions,
 		banner: sidebarBanner,
 		footer: sidebarFooter,
 		components: sidebarComponents,
@@ -58,11 +70,18 @@ export function DocsLayout({
 }: DocsLayoutProps) {
 	const navMode = nav.mode ?? 'auto';
 	const links = getLinks(props.links ?? [], props.githubUrl);
+	const tabs = useMemo(
+		() => getSidebarTabsFromOptions(tabOptions, props.tree) ?? [],
+		[tabOptions, props.tree]
+	);
 
 	const Aside = sidebarCollapsible ? CollapsibleSidebar : Sidebar;
 
 	const variables = cn(
-		'[--fd-nav-height:calc(var(--spacing)*14)] [--fd-tocnav-height:36px] md:[--fd-sidebar-width:286px] xl:[--fd-toc-width:286px] xl:[--fd-tocnav-height:0px]'
+		'[--fd-nav-height:calc(var(--spacing)*14)] [--fd-tocnav-height:36px] md:[--fd-sidebar-width:286px] xl:[--fd-toc-width:286px] xl:[--fd-tocnav-height:0px]',
+		tabs.length > 0 &&
+			tabMode === 'navbar' &&
+			'lg:[--fd-nav-height:calc(var(--spacing)*24)]'
 	);
 
 	const pageStyles: PageStyles = {
@@ -78,7 +97,7 @@ export function DocsLayout({
 					id="nd-docs-layout"
 					{...props.containerProps}
 					className={cn(
-						'flex w-full flex-1 flex-row px-4 pe-(--fd-layout-offset)',
+						'flex w-full flex-1 flex-row pe-(--fd-layout-offset)',
 						variables,
 						props.containerProps?.className
 					)}
@@ -87,12 +106,6 @@ export function DocsLayout({
 						...props.containerProps?.style,
 					}}
 				>
-					<DocsNavbar
-						nav={nav}
-						links={links}
-						i18n={i18n}
-						sidebarCollapsible={sidebarCollapsible}
-					/>
 					<Aside
 						{...sidebar}
 						className={cn(
@@ -101,7 +114,10 @@ export function DocsLayout({
 							sidebar.className
 						)}
 						inner={{
-							className: cn(navMode === 'top' ? 'md:pt-2.5' : 'md:pt-3.5'),
+							className: cn(
+								navMode === 'top' ? 'md:pt-2.5' : 'md:pt-3.5',
+								tabMode === 'navbar' && 'md:pt-0'
+							),
 						}}
 					>
 						<SidebarHeader>
@@ -128,8 +144,19 @@ export function DocsLayout({
 							)}
 							{nav.children}
 							{sidebarBanner}
+							{tabMode === 'sidebar' && tabs.length > 0 ? (
+								<RootToggle options={tabs} className="-mx-2" />
+							) : null}
 						</SidebarHeader>
 						<SidebarViewport>
+							{tabMode === 'navbar' &&
+								tabs.map((tab, i) => (
+									<SidebarLayoutTab
+										key={tab.url}
+										item={tab}
+										className={cn('lg:hidden', i === tabs.length - 1 && 'mb-4')}
+									/>
+								))}
 							{links.map((item, i) => (
 								<SidebarLinkItem
 									key={i}
@@ -138,10 +165,7 @@ export function DocsLayout({
 								/>
 							))}
 
-							<PersistentSidebarPageTree
-								components={sidebarComponents}
-								useCustomNavigation={true}
-							/>
+							<SidebarPageTree components={sidebarComponents} />
 						</SidebarViewport>
 						<SidebarFooter
 							className={cn(
@@ -164,6 +188,13 @@ export function DocsLayout({
 							{sidebarFooter}
 						</SidebarFooter>
 					</Aside>
+					<DocsNavbar
+						nav={nav}
+						links={links}
+						i18n={i18n}
+						sidebarCollapsible={sidebarCollapsible}
+						tabs={tabMode == 'navbar' ? tabs : []}
+					/>
 					<StylesProvider {...pageStyles}>{props.children}</StylesProvider>
 				</main>
 			</NavProvider>
@@ -177,12 +208,14 @@ function DocsNavbar({
 	themeSwitch,
 	nav = {},
 	i18n,
+	tabs,
 }: {
 	nav: DocsLayoutProps['nav'];
 	sidebarCollapsible: boolean;
 	i18n: Required<DocsLayoutProps>['i18n'];
 	themeSwitch?: DocsLayoutProps['themeSwitch'];
 	links: LinkItemType[];
+	tabs: Option[];
 }) {
 	const navMode = nav.mode ?? 'auto';
 
@@ -190,7 +223,7 @@ function DocsNavbar({
 		<Navbar mode={navMode}>
 			<div
 				className={cn(
-					'flex h-14 flex-row px-4',
+					'flex h-14 flex-row border-fd-foreground/10 border-b px-4',
 					navMode === 'auto' && 'md:px-6'
 				)}
 			>
@@ -240,7 +273,7 @@ function DocsNavbar({
 								<NavbarLinkItem
 									key={i}
 									item={item}
-									className="text-fd-muted-foreground text-sm transition-colors hover:text-fd-accent-foreground"
+									className='text-fd-muted-foreground text-sm transition-colors hover:text-fd-accent-foreground'
 								/>
 							))}
 					</div>
@@ -289,6 +322,13 @@ function DocsNavbar({
 					) : null}
 				</div>
 			</div>
+			{tabs.length > 0 ? (
+				<LayoutTabs className='h-10 border-fd-foreground/10 border-b px-6 max-lg:hidden'>
+					{tabs.map((tab) => (
+						<LayoutTab key={tab.url} {...tab} />
+					))}
+				</LayoutTabs>
+			) : null}
 		</Navbar>
 	);
 }
@@ -329,9 +369,7 @@ function NavbarLinkItem({
 		);
 	}
 
-	if (item.type === 'custom') {
-		return item.children;
-	}
+	if (item.type === 'custom') { return item.children; }
 
 	return (
 		<BaseLinkItem item={item} {...props}>
