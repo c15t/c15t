@@ -50,7 +50,7 @@ export function FrameworkProvider({
 	const pathname = usePathname();
 
 	// Find a valid framework from the available options
-	const findValidFramework = useMemo(() => {
+	const validFramework = useMemo(() => {
 		// First check all preferred frameworks in order
 		for (const fw of PREFERRED_FRAMEWORKS) {
 			if (isValidFrameworkInTree(fw, tree)) {
@@ -72,9 +72,9 @@ export function FrameworkProvider({
 		return 'nextjs';
 	}, [tree]);
 
-	// Initialize with a valid framework - execute findValidFramework to get its result
+	// Initialize with a valid framework
 	const [activeFramework, setActiveFrameworkState] = useState<string>(
-		defaultFramework || findValidFramework
+		defaultFramework || validFramework
 	);
 
 	// Update framework with persistence
@@ -122,10 +122,10 @@ export function FrameworkProvider({
 			isValidFrameworkInTree(defaultFramework, tree)
 		) {
 			setActiveFramework(defaultFramework);
-		} else if (findValidFramework) {
-			setActiveFramework(findValidFramework);
+		} else {
+			setActiveFramework(validFramework);
 		}
-	}, [pathname, tree, defaultFramework, findValidFramework]);
+	}, [pathname, tree, defaultFramework, validFramework]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	const contextValue = useMemo(
