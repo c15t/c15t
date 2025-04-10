@@ -1,0 +1,169 @@
+---
+title: Next.js Quickstart
+description: Learn how to integrate c15t into your Next.js application with this step-by-step guide. We'll cover installation, configuration, and basic usage.
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+
+<Steps>
+<Step>
+ 
+### Install `@c15t/react` Package
+ 
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+	<Tab value="npm">npm add @c15t/react</Tab>
+	<Tab value="yarn">yarn add @c15t/react</Tab>
+	<Tab value="pnpm">pnpm add @c15t/react</Tab>
+</Tabs>
+ 
+</Step>
+ 
+<Step>
+ 
+### Consent Mangaer Provider
+
+```tsx title="app/layout.tsx"
+import { ConsentManagerProvider, type ConsentManagerOptions } from '@c15t/react';
+
+export default function Layout ({ children }: { children: ReactNode }) => {
+	const options: ConsentManagerOptions = {
+	 	mode: 'c15t', // Optional, defaults to 'c15t'
+		// Backend URL is required for c15t mode
+		backendURL: process.env.NEXT_PUBLIC_CONSENT_INSTANCE,
+		react: {
+			theme: 'light',
+			// ...
+		}
+	}
+
+	return (
+		<ConsentManagerProvider options={options}>
+			{children}
+		</ConsentManagerProvider>
+	);
+};
+```
+
+You can create an instance at [Consent.io](https://consent.io) or self-host your own instance. Otherwise, you can use c15t offline by setting `mode: 'undefined'`. More information on these methods can be found [below](#hosted-c15t-instances). 
+
+
+</Step>
+
+<Step>
+
+### Add Pre-Made components
+
+Using the `@c15t/react` package, you can add pre-made components to your application to get started quickly.
+
+```tsx title="app/layout.tsx"
+import { ConsentManagerProvider, CookieBanner } from '@c15t/react';
+
+export default function Layout ({ children }: { children: ReactNode }) => {
+	// ...
+	return (
+		<ConsentManagerProvider options={options}>
+			<CookieBanner />
+			{children}
+		</ConsentManagerProvider>
+	);
+};
+```
+
+</Step>
+
+</Steps>
+
+--- 
+
+## Hosted c15t Instances
+
+### Creating a Consent.io Instance (Recommended)
+
+Instead of self-hosting your own c15t instance, you can use a [Consent.io](https://consent.io) instance. This is the recommended method as it is the easiest way to get started and requires little maintenance.
+
+<Steps>
+
+<Step>
+Sign up for a [Consent.io](https://consent.io) account.
+</Step>
+
+<Step>
+After signing up, create a new instance, located in the top-right corner.
+
+When creating an instance it is important to list all the trusted origins for your application such as "localhost", "vercel.app", "c15t.com" etc.
+
+</Step>
+
+<Step>
+After the instance is created, you will be given a backendURL, which you can add to your `ConsentManagerOptions`.
+
+
+A backend URL might look like this: `https://<my-instance>.c15t.dev/`.
+</Step>
+
+</Steps>
+
+### Self-Hosting (Next.js)
+
+<Steps>
+
+<Step>
+Install `@c15t/backend` Package
+ 
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+	<Tab value="npm">npm add @c15t/backend</Tab>
+	<Tab value="yarn">yarn add @c15t/backend</Tab>
+	<Tab value="pnpm">pnpm add @c15t/backend</Tab>
+</Tabs>
+</Step>
+
+<Step>
+
+Create Next.js API Handler
+
+```tsx title="app/api/c15t/[...all].ts"
+import { c15tInstance } from '@c15t/backend';
+import { toNextHandler } from '@c15t/backend/integrations/next';
+import { memoryAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/memory-adapter';
+
+export const { GET, POST, OPTIONS } = toNextHandler(
+	c15tInstance({
+		appName: 'Next.js Example App',
+		basePath: '/api/c15t',
+		database: memoryAdapter({}),
+		trustedOrigins: ['http://localhost:3000', 'http://localhost:8787'],
+		cors: true,
+		advanced: {
+			cors: {
+				allowHeaders: ['content-type', 'x-request-id'],
+			},
+			disableCSRFCheck: true,
+		},
+	})
+);
+```
+
+</Step>
+
+<Step>
+After you've created the API handler, you can update your backendURL to be `api/c15t` in the `ConsentManagerOptions`.
+
+```tsx title="app/layout.tsx"
+const options: ConsentManagerOptions = {
+	mode: 'c15t',
+	backendURL: '/api/c15t',
+};
+```
+
+</Step>
+
+</Steps>
+
+### Self-Hosting
+
+c15t can be self-hosted by using the `@c15t/backend` package. This is the most flexible way to use c15t, but it requires more maintenance and is deployable to platforms such as Cloudflare Workers. [Learn More](/backend)
+
+### Offline
+
+If you do not want to use the c15t backend, you can use c15t offline by setting `mode: 'undefined'`. This method is ideal if you have an existing consent management backend. 
