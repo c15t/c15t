@@ -181,7 +181,8 @@ export function TocPopoverTrigger({
 	...props
 }: PopoverTriggerProps & { items: TOCItemType[] }) {
 	const { text } = useI18n();
-	const { open } = use(Context)!;
+	const context = use(Context);
+	const open = context?.open ?? false;
 	const active = Primitive.useActiveAnchor();
 	const current = useMemo(() => {
 		return items.find((item) => active === item.url.slice(1))?.title;

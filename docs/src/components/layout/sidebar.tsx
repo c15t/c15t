@@ -436,53 +436,72 @@ export function SidebarPageTree(props: {
 	return useMemo(() => {
 		const { Separator, Item, Folder } = props.components ?? {};
 
+		function renderSeparatorItem(
+			item: PageTree.Separator,
+			i: number
+		): ReactNode {
+			if (Separator) {
+				return <Separator key={i} item={item} />;
+			}
+			return (
+				<SidebarSeparator key={i} className={cn(i !== 0 && 'mt-8')}>
+					{item.icon}
+					{item.name}
+				</SidebarSeparator>
+			);
+		}
+
+		function renderFolderItem(
+			item: PageTree.Folder,
+			i: number,
+			level: number
+		): ReactNode {
+			const children = renderSidebarList(item.children, level + 1);
+
+			if (Folder) {
+				return (
+					<Folder key={i} item={item} level={level}>
+						{children}
+					</Folder>
+				);
+			}
+			return (
+				<PageTreeFolder key={i} item={item}>
+					{children}
+				</PageTreeFolder>
+			);
+		}
+
+		function renderPageItem(item: PageTree.Item): ReactNode {
+			if (Item) {
+				return <Item key={item.url} item={item} />;
+			}
+			return (
+				<SidebarItem
+					key={item.url}
+					href={item.url}
+					external={item.external}
+					icon={item.icon}
+				>
+					{item.name}
+				</SidebarItem>
+			);
+		}
+
 		function renderSidebarList(
 			items: PageTree.Node[],
 			level: number
 		): ReactNode[] {
 			return items.map((item, i) => {
 				if (item.type === 'separator') {
-					if (Separator) {
-						return <Separator key={i} item={item} />;
-					}
-					return (
-						<SidebarSeparator key={i} className={cn(i !== 0 && 'mt-8')}>
-							{item.icon}
-							{item.name}
-						</SidebarSeparator>
-					);
+					return renderSeparatorItem(item, i);
 				}
 
 				if (item.type === 'folder') {
-					const children = renderSidebarList(item.children, level + 1);
-
-					if (Folder) {
-						return (
-							<Folder key={i} item={item} level={level}>
-								{children}
-							</Folder>
-						);
-					}
-					return (
-						<PageTreeFolder key={i} item={item}>
-							{children}
-						</PageTreeFolder>
-					);
+					return renderFolderItem(item, i, level);
 				}
 
-				if (Item) {
-					return <Item key={item.url} item={item} />;
-				}
-				return (
-					<SidebarItem
-						key={item.url}
-						href={item.url}
-						external={item.external}
-						icon={item.icon}
-					>
-						{item.name}
-					</SidebarItem>
-				);
+				return renderPageItem(item);
 			});
 		}
 

@@ -38,6 +38,7 @@ import {
 	NavbarSidebarTrigger,
 	SidebarLayoutTab,
 } from './notebook-client';
+export { Navbar, NavbarSidebarTrigger } from './notebook-client';
 import { type BaseLayoutProps, getLinks, replaceOrDefault } from './shared';
 
 export interface DocsLayoutProps extends BaseLayoutProps {
@@ -51,6 +52,23 @@ export interface DocsLayoutProps extends BaseLayoutProps {
 	sidebar?: Omit<Partial<SidebarOptions>, 'component' | 'enabled'>;
 
 	containerProps?: HTMLAttributes<HTMLDivElement>;
+}
+
+function createVariablesClassName(tabs: Option[], tabMode: string) {
+	return cn(
+		'[--fd-nav-height:calc(var(--spacing)*14)] [--fd-tocnav-height:36px] md:[--fd-sidebar-width:286px] xl:[--fd-toc-width:286px] xl:[--fd-tocnav-height:0px]',
+		tabs.length > 0 &&
+			tabMode === 'navbar' &&
+			'lg:[--fd-nav-height:calc(var(--spacing)*24)]'
+	);
+}
+
+function createPageStyles(): PageStyles {
+	return {
+		tocNav: cn('xl:hidden'),
+		toc: cn('max-xl:hidden'),
+		page: cn('mt-(--fd-nav-height)'),
+	};
 }
 
 export function DocsLayout({
@@ -77,18 +95,8 @@ export function DocsLayout({
 
 	const Aside = sidebarCollapsible ? CollapsibleSidebar : Sidebar;
 
-	const variables = cn(
-		'[--fd-nav-height:calc(var(--spacing)*14)] [--fd-tocnav-height:36px] md:[--fd-sidebar-width:286px] xl:[--fd-toc-width:286px] xl:[--fd-tocnav-height:0px]',
-		tabs.length > 0 &&
-			tabMode === 'navbar' &&
-			'lg:[--fd-nav-height:calc(var(--spacing)*24)]'
-	);
-
-	const pageStyles: PageStyles = {
-		tocNav: cn('xl:hidden'),
-		toc: cn('max-xl:hidden'),
-		page: cn('mt-(--fd-nav-height)'),
-	};
+	const variables = createVariablesClassName(tabs, tabMode);
+	const pageStyles = createPageStyles();
 
 	return (
 		<TreeContextProvider tree={props.tree}>
@@ -193,7 +201,7 @@ export function DocsLayout({
 						links={links}
 						i18n={i18n}
 						sidebarCollapsible={sidebarCollapsible}
-						tabs={tabMode == 'navbar' ? tabs : []}
+						tabs={tabMode === 'navbar' ? tabs : []}
 					/>
 					<StylesProvider {...pageStyles}>{props.children}</StylesProvider>
 				</main>
@@ -379,5 +387,3 @@ function NavbarLinkItem({
 		</BaseLinkItem>
 	);
 }
-
-export { Navbar, NavbarSidebarTrigger };

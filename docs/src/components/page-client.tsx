@@ -137,20 +137,20 @@ export interface FooterProps {
 function scanNavigationList(tree: PageTree.Node[]) {
 	const list: PageTree.Item[] = [];
 
-	tree.forEach((node) => {
+	for (const node of tree) {
 		if (node.type === 'folder') {
 			if (node.index) {
 				list.push(node.index);
 			}
 
 			list.push(...scanNavigationList(node.children));
-			return;
+			continue;
 		}
 
 		if (node.type === 'page' && !node.external) {
 			list.push(node);
 		}
-	});
+	}
 
 	return list;
 }

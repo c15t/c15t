@@ -138,7 +138,7 @@ function Header({
 							{menuItems.filter(isSecondary).map((item, i) => (
 								<MenuLinkItem key={i} item={item} className="-me-1.5" />
 							))}
-							<div role="separator" className="flex-1" />
+							<div className="flex-1" aria-hidden="true" />
 							{i18n ? (
 								<LanguageToggle>
 									<Languages className="size-5" />

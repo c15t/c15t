@@ -80,5 +80,5 @@ export function TocThumb({
 		update(thumbRef.current, calc(containerRef.current, active));
 	});
 
-	return <div ref={thumbRef} role="none" {...props} />;
+	return <div ref={thumbRef} role="presentation" {...props} />;
 }

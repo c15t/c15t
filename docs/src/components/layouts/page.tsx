@@ -184,7 +184,7 @@ export function DocsPage({
 						<Breadcrumb {...props.breadcrumb} />
 					)}
 					{props.children}
-					<div role="none" className="flex-1" />
+					<div role="presentation" className="flex-1" />
 					<div className="flex flex-row flex-wrap items-center justify-between gap-4 empty:hidden">
 						{props.editOnGithub ? (
 							<EditOnGitHub {...props.editOnGithub} />

@@ -3,6 +3,7 @@ import type { I18nConfig } from 'fumadocs-core/i18n';
 import type { NavProviderProps } from 'fumadocs-ui/contexts/layout';
 import type { ReactNode } from 'react';
 import type { LinkItemType } from './links';
+export type { LinkItemType } from './links';
 
 export interface NavOptions extends NavProviderProps {
 	enabled: boolean;
@@ -59,8 +60,6 @@ export interface BaseLayoutProps {
 
 	children?: ReactNode;
 }
-
-export type { LinkItemType };
 
 /**
  * Get Links Items with shortcuts
