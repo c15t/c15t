@@ -1,6 +1,6 @@
 {
 	"title": "JavaScript",
-  "icon": "js",
+	"icon": "js",
 	"root": true,
 	"pages": ["index", "how-it-works", "auto-detect", "api-refrence"]
 }

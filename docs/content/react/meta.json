@@ -1,7 +1,7 @@
 {
 	"title": "React",
 	"root": true,
-  "icon": "react",
+	"icon": "react",
 	"pages": [
 		"index.mdx",
 		"--- react ---",

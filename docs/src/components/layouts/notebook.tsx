@@ -94,49 +94,52 @@ export function DocsLayout({
 	const pathname = usePathname();
 
 	// Get tabs and ensure they're always displayed, even on root
-	const tabs = useMemo(
-		() => {
-			const allTabs = getSidebarTabsFromOptions(tabOptions, props.tree) ?? [];
-			
-			// Map framework names to iconKeys
-			const enhancedTabs = allTabs.map(tab => {
-				if (typeof tab.title === 'string') {
-					const title = tab.title.toLowerCase();
-					let iconKey;
-					
-					if (title === 'nextjs' || title === 'next.js') iconKey = 'next';
-					else if (title === 'react') iconKey = 'react';
-					else if (title === 'javascript') iconKey = 'js';
-					else if (title === 'hono') iconKey = 'hono';
-					
-					if (iconKey) {
-						return { ...tab, iconKey };
-					}
+	const tabs = useMemo(() => {
+		const allTabs = getSidebarTabsFromOptions(tabOptions, props.tree) ?? [];
+
+		// Map framework names to iconKeys
+		const enhancedTabs = allTabs.map((tab) => {
+			if (typeof tab.title === 'string') {
+				const title = tab.title.toLowerCase();
+				let iconKey: string | undefined;
+
+				if (title === 'nextjs' || title === 'next.js') {
+					iconKey = 'next';
+				} else if (title === 'react') {
+					iconKey = 'react';
+				} else if (title === 'javascript') {
+					iconKey = 'js';
+				} else if (title === 'hono') {
+					iconKey = 'hono';
 				}
-				return tab;
-			});
-			
-			// Only show framework tabs (those with root:true) when we're on a framework route or root
-			if (pathname === '/docs' || pathname === '/docs/') {
-				// On root path, only show framework-specific tabs
-				return enhancedTabs.filter(tab => {
-					// Find the corresponding folder in the tree
-					const folder = props.tree.children.find(
-						item => item.type === 'folder' && 
-						item.root === true && 
-						typeof item.name === 'string' && 
-						item.name.toLowerCase() === tab.title?.toString().toLowerCase()
-					);
-					
-					// Only include tabs that correspond to framework folders (root:true)
-					return !!folder;
-				});
+
+				if (iconKey) {
+					return { ...tab, iconKey };
+				}
 			}
-			
-			return enhancedTabs;
-		},
-		[tabOptions, props.tree, pathname]
-	);
+			return tab;
+		});
+
+		// Only show framework tabs (those with root:true) when we're on a framework route or root
+		if (pathname === '/docs' || pathname === '/docs/') {
+			// On root path, only show framework-specific tabs
+			return enhancedTabs.filter((tab) => {
+				// Find the corresponding folder in the tree
+				const folder = props.tree.children.find(
+					(item) =>
+						item.type === 'folder' &&
+						item.root === true &&
+						typeof item.name === 'string' &&
+						item.name.toLowerCase() === tab.title?.toString().toLowerCase()
+				);
+
+				// Only include tabs that correspond to framework folders (root:true)
+				return !!folder;
+			});
+		}
+
+		return enhancedTabs;
+	}, [tabOptions, props.tree, pathname]);
 
 	// Force show tabs even on root page
 	const shouldShowTabs = tabs.length > 0;

@@ -39,67 +39,68 @@ export function FrameworkTreeProvider({
 	// Use defaultFramework if provided, otherwise extract from pathname
 	const pathFramework = pathname.split('/')[2] || '';
 	const currentFramework = pathFramework || defaultFramework;
-	
+
 	// Process the tree with framework-specific enhancements
 	const enhancedTree = useMemo(() => {
-		if (!currentFramework) return tree;
-		
+		if (!currentFramework) {
+			return tree;
+		}
+
 		// Deep clone the tree to avoid mutation
 		const newTree = JSON.parse(JSON.stringify(tree)) as PageTree.Root;
-		
-		// Find the current framework folder 
+
+		// Find the current framework folder
 		const frameworkFolder = newTree.children.find(
-			item => item.type === 'folder' && 
-			item.root === true && 
-			typeof item.name === 'string' && 
-			item.name.toLowerCase() === currentFramework.toLowerCase()
+			(item) =>
+				item.type === 'folder' &&
+				item.root === true &&
+				typeof item.name === 'string' &&
+				item.name.toLowerCase() === currentFramework.toLowerCase()
 		) as PageTree.Folder | undefined;
-		
+
 		if (!frameworkFolder) {
 			return tree;
 		}
-		
+
 		// Skip the shared component logic for JavaScript framework - it shouldn't show React components
-		const shouldIncludeSharedContent = currentFramework.toLowerCase() !== 'javascript';
-		
+		const shouldIncludeSharedContent =
+			currentFramework.toLowerCase() !== 'javascript';
+
 		// For the root page with default framework, restructure the tree
 		// to make the framework folder items appear at the root level
 		if ((pathname === '/docs' || pathname === '/docs/') && defaultFramework) {
-			
 			// Only keep the selected framework's content and special pages at the root level
 			const rootPage = newTree.children.find(
-				item => item.type === 'page' && item.url === '/docs'
+				(item) => item.type === 'page' && item.url === '/docs'
 			);
-			
+
 			// Only include the root page and the framework folder's content
-			const newChildren = [];
-			
+			const newChildren: PageTree.Node[] = [];
+
 			// Add the root page if it exists
 			if (rootPage) {
 				newChildren.push(rootPage);
 			}
-			
-			// Add the framework folder's content 
+
+			// Add the framework folder's content
 			newChildren.push(...frameworkFolder.children);
-			
+
 			// Replace the tree children with our filtered selection
 			newTree.children = newChildren;
-			
 		} else {
 			// For any specific framework page, we need to ensure that framework's content is shown
 			// This is important when navigating from one framework to another via the toggle
-			
 			// Check if we need to include framework content (for cases when coming from root)
 			// In this case, we don't need to modify the tree structure, as the URL should already
-			// point to the correct framework route, and the default TreeContextProvider behavior 
+			// point to the correct framework route, and the default TreeContextProvider behavior
 			// will handle showing the correct content
 		}
-		
+
 		// Stop here for JavaScript framework - it doesn't need shared components
 		if (!shouldIncludeSharedContent) {
 			return newTree;
 		}
-		
+
 		// Build a map of shared component URLs for quick lookup
 		const sharedComponentUrls = new Set<string>();
 
@@ -128,7 +129,12 @@ export function FrameworkTreeProvider({
 	}, [tree, currentFramework, defaultFramework, pathname]);
 
 	return (
-		<TreeContextProvider tree={enhancedTree} key={`tree-${currentFramework}-${pathname}`}>{children}</TreeContextProvider>
+		<TreeContextProvider
+			tree={enhancedTree}
+			key={`tree-${currentFramework}-${pathname}`}
+		>
+			{children}
+		</TreeContextProvider>
 	);
 }
 
@@ -161,30 +167,32 @@ function ensureSharedPagesIncluded(
 ) {
 	// Check if the framework already has these pages
 	const existingUrls = new Set<string>();
-	
+
 	// Gather existing URLs in the framework
 	for (const item of frameworkFolder.children) {
 		if (item.type === 'page' && item.url) {
 			existingUrls.add(item.url);
 		}
 	}
-	
+
 	// Keep track of sections that need separators
 	const sectionSeparators: Record<SectionName, boolean> = {
-		'React': false,
-		'Hooks': false
+		React: false,
+		Hooks: false,
 	};
-	
+
 	// No need to add anything if the framework already has all shared pages
-	if (Array.from(sharedUrls).every(url => existingUrls.has(url))) {
+	if (Array.from(sharedUrls).every((url) => existingUrls.has(url))) {
 		return;
 	}
-	
+
 	// Determine which shared content to include based on framework
 	const frameworkLowerCase = framework.toLowerCase();
-	const allowReactComponents = frameworkLowerCase === 'react' || frameworkLowerCase === 'nextjs';
-	const allowHooks = frameworkLowerCase === 'react' || frameworkLowerCase === 'nextjs';
-	
+	const allowReactComponents =
+		frameworkLowerCase === 'react' || frameworkLowerCase === 'nextjs';
+	const allowHooks =
+		frameworkLowerCase === 'react' || frameworkLowerCase === 'nextjs';
+
 	// Add missing shared pages
 	// Note: This preserves existing structure if already properly set up
 	for (const url of sharedUrls) {
@@ -200,40 +208,45 @@ function ensureSharedPagesIncluded(
 						break;
 					}
 				}
-				
+
 				// Skip sections that don't belong to this framework
-				if (section === 'React' && !allowReactComponents) continue;
-				if (section === 'Hooks' && !allowHooks) continue;
-				
+				if (section === 'React' && !allowReactComponents) {
+					continue;
+				}
+				if (section === 'Hooks' && !allowHooks) {
+					continue;
+				}
+
 				// Make sure the section separator exists
 				if (section && !sectionSeparators[section]) {
 					// Find or create separator for this section
 					const separatorExists = frameworkFolder.children.some(
-						item => item.type === 'separator' && 
-						typeof item.name === 'string' && 
-						item.name.toLowerCase().includes(section.toLowerCase())
+						(item) =>
+							item.type === 'separator' &&
+							typeof item.name === 'string' &&
+							item.name.toLowerCase().includes(section.toLowerCase())
 					);
-					
+
 					if (!separatorExists) {
 						frameworkFolder.children.push({
 							type: 'separator',
 							name: ` ${section} `,
-							$id: `${frameworkFolder.$id}#${Date.now()}`
+							$id: `${frameworkFolder.$id}#${Date.now()}`,
 						} as PageTree.Separator);
 					}
-					
+
 					sectionSeparators[section] = true;
 				}
-				
+
 				// Add the shared page to the framework
 				const newPage: SharedPageItem = {
 					...originalPage,
 					// Add a custom property to mark this as a shared page
 					sharedPage: true,
 					// Adjust the URL to keep it in the current framework context
-					frameworkUrl: `/docs/${framework}${url.substring('/docs'.length)}`
+					frameworkUrl: `/docs/${framework}${url.substring('/docs'.length)}`,
 				};
-				
+
 				frameworkFolder.children.push(newPage);
 			}
 		}

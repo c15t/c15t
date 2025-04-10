@@ -6,8 +6,8 @@ import { ChevronDown } from 'lucide-react';
 import { type HTMLAttributes, type ReactNode, useMemo, useState } from 'react';
 import { cn } from '../../lib/cn';
 import { isActive } from '../../lib/is-active';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { iconMap } from '../icons';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 export interface Option {
 	/**
@@ -18,7 +18,7 @@ export interface Option {
 	icon?: ReactNode;
 	title: ReactNode;
 	description?: ReactNode;
-	
+
 	/**
 	 * Framework identifier for the icon map
 	 */
@@ -45,9 +45,8 @@ export function RootToggle({
 	const [open, setOpen] = useState(false);
 	const { closeOnRedirect } = useSidebar();
 	const pathname = usePathname();
-	
+
 	const pathSections = pathname.split('/').filter(Boolean);
-	const currentPage = pathSections.length > 1 ? pathSections.slice(1).join('/') : '';
 	const isRootPath = pathname === '/docs' || pathname === '/docs/';
 
 	const selected = useMemo(() => {
@@ -59,20 +58,20 @@ export function RootToggle({
 		// For framework-specific paths (like /docs/nextjs, /docs/react)
 		// find the tab that matches the current framework
 		const currentFramework = pathSections.length > 1 ? pathSections[1] : '';
-		
+
 		if (currentFramework) {
-			const frameworkTab = options.find(tab => {
+			const frameworkTab = options.find((tab) => {
 				if (typeof tab.title === 'string') {
 					return tab.title.toLowerCase() === currentFramework.toLowerCase();
 				}
 				return false;
 			});
-			
+
 			if (frameworkTab) {
 				return frameworkTab;
 			}
 		}
-		
+
 		// Fallback to the URL matching logic
 		return options.findLast((item) =>
 			item.urls
@@ -87,47 +86,61 @@ export function RootToggle({
 		closeOnRedirect.current = false;
 		setOpen(false);
 	};
-	
+
 	// Map framework titles to icon keys
 	const getIconKey = (item: Option): string | undefined => {
-		if (item.iconKey) return item.iconKey;
-		
+		if (item.iconKey) {
+			return item.iconKey;
+		}
+
 		if (typeof item.title === 'string') {
 			const title = item.title.toLowerCase();
-			if (title === 'nextjs' || title === 'next.js') return 'next';
-			if (title === 'react') return 'react';
-			if (title === 'javascript') return 'js';
-			if (title === 'hono') return 'hono';
+			if (title === 'nextjs' || title === 'next.js') {
+				return 'next';
+			}
+			if (title === 'react') {
+				return 'react';
+			}
+			if (title === 'javascript') {
+				return 'js';
+			}
+			if (title === 'hono') {
+				return 'hono';
+			}
 		}
 		return undefined;
 	};
-	
+
 	// Get the icon component for the selected item
 	const getIconComponent = (item: Option | undefined) => {
-		if (!item) return null;
-		if (item.icon) return item.icon;
-		
+		if (!item) {
+			return null;
+		}
+		if (item.icon) {
+			return item.icon;
+		}
+
 		const iconKey = getIconKey(item);
 		if (iconKey && iconKey in iconMap) {
 			const IconComponent = iconMap[iconKey as keyof typeof iconMap];
 			return <IconComponent className="size-6" />;
 		}
-		
+
 		return null;
 	};
 
 	return (
 		<div className="relative z-20 my-1">
-			<div className="rounded-xl bg-fd-accent/10 px-1 pb-1 pt-1.5">
-				<span className="mb-1.5 block px-2 text-xs font-medium">
+			<div className="rounded-xl bg-fd-accent/10 px-1 pt-1.5 pb-1">
+				<span className="mb-1.5 block px-2 font-medium text-xs">
 					Select your framework
 				</span>
 				<Popover open={open} onOpenChange={setOpen}>
 					<PopoverTrigger
 						{...props}
 						className={cn(
-							'flex h-10 w-full items-center justify-between gap-x-2 rounded-lg bg-fd-card py-2 pl-2.5 pr-3',
-							'text-sm font-medium shadow-md outline-none transition-all hover:shadow-lg',
+							'flex h-10 w-full items-center justify-between gap-x-2 rounded-lg bg-fd-card py-2 pr-3 pl-2.5',
+							'font-medium text-sm shadow-md outline-none transition-all hover:shadow-lg',
 							props.className
 						)}
 					>
@@ -139,17 +152,20 @@ export function RootToggle({
 						</span>
 						<ChevronDown className="size-4 flex-none opacity-60" />
 					</PopoverTrigger>
-					<PopoverContent className="w-full p-1 rounded-lg shadow-lg border-0">
+					<PopoverContent className="w-full rounded-lg border-0 p-1 shadow-lg">
 						<div className="grid gap-1">
 							{options.map((item) => {
-								if (isRootPath && (!item.title || typeof item.title !== 'string')) {
+								if (
+									isRootPath &&
+									(!item.title || typeof item.title !== 'string')
+								) {
 									return null;
 								}
-								
+
 								const url = isRootPath
 									? `/docs/${item.title?.toString().toLowerCase()}`
 									: item.url;
-								
+
 								return (
 									<Link
 										key={url}
@@ -174,21 +190,5 @@ export function RootToggle({
 				</Popover>
 			</div>
 		</div>
-	);
-}
-
-function Item(props: Option) {
-	return (
-		<>
-			{props.icon}
-			<div className="flex-1 text-start">
-				<p className="font-medium text-sm">{props.title}</p>
-				{props.description ? (
-					<p className="text-fd-muted-foreground text-xs">
-						{props.description}
-					</p>
-				) : null}
-			</div>
-		</>
 	);
 }
