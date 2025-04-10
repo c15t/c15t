@@ -41,7 +41,9 @@ export function DocsLayout({ tree, children }: DocsLayoutProps) {
 
 function SearchToggle(props: ComponentProps<'button'>) {
 	const { enabled, setOpenSearch } = useSearchContext();
-	if (!enabled) return;
+	if (!enabled) {
+		return;
+	}
 
 	return (
 		<button

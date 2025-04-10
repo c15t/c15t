@@ -15,10 +15,12 @@ import { useTreeContext, useTreePath } from 'fumadocs-ui/contexts/tree';
 import { ChevronDown, ExternalLink } from 'lucide-react';
 import {
 	type ButtonHTMLAttributes,
+	type Dispatch,
 	type FC,
 	Fragment,
 	type HTMLAttributes,
 	type ReactNode,
+	type SetStateAction,
 	createContext,
 	useContext,
 	useMemo,
@@ -73,7 +75,7 @@ const itemVariants = cva(
 const Context = createContext<InternalContext | null>(null);
 const FolderContext = createContext<{
 	open: boolean;
-	setOpen: React.Dispatch<React.SetStateAction<boolean>>;
+	setOpen: Dispatch<SetStateAction<boolean>>;
 } | null>(null);
 
 export function CollapsibleSidebar(props: SidebarProps) {
@@ -95,13 +97,16 @@ export function CollapsibleSidebar(props: SidebarProps) {
 					!collapsed ||
 					e.pointerType === 'touch' ||
 					closeTimeRef.current > Date.now()
-				)
+				) {
 					return;
+				}
 				window.clearTimeout(timerRef.current);
 				setHover(true);
 			}}
 			onPointerLeave={(e) => {
-				if (!collapsed || e.pointerType === 'touch') return;
+				if (!collapsed || e.pointerType === 'touch') {
+					return;
+				}
 				window.clearTimeout(timerRef.current);
 
 				timerRef.current = window.setTimeout(
@@ -154,8 +159,9 @@ export function Sidebar({
 				removeScrollOn="(width < 768px)" // md
 				{...props}
 				className={cn(
-					'fixed top-[calc(var(--fd-banner-height)+var(--fd-nav-height))] z-10 bg-fd-card text-sm md:sticky md:h-(--fd-sidebar-height)',
+					'fixed z-10 bg-fd-card text-sm md:sticky md:h-(--fd-sidebar-height)',
 					'max-md:inset-x-0 max-md:bottom-0 max-md:bg-fd-background/80 max-md:text-[15px] max-md:backdrop-blur-lg max-md:data-[open=false]:invisible',
+					'mt-(--fd-nav-height)',
 					props.className
 				)}
 				style={
@@ -278,7 +284,9 @@ export function SidebarFolder({
 	const [open, setOpen] = useState(defaultOpen);
 
 	useOnChange(defaultOpen, (v) => {
-		if (v) setOpen(v);
+		if (v) {
+			setOpen(v);
+		}
 	});
 
 	return (
@@ -396,13 +404,17 @@ export function SidebarCollapseTrigger(
 function useFolderContext() {
 	const ctx = useContext(FolderContext);
 
-	if (!ctx) throw new Error('Missing sidebar folder');
+	if (!ctx) {
+		throw new Error('Missing sidebar folder');
+	}
 	return ctx;
 }
 
 function useInternalContext(): InternalContext {
 	const ctx = useContext(Context);
-	if (!ctx) throw new Error('<Sidebar /> component required.');
+	if (!ctx) {
+		throw new Error('<Sidebar /> component required.');
+	}
 
 	return ctx;
 }
@@ -430,7 +442,9 @@ export function SidebarPageTree(props: {
 		): ReactNode[] {
 			return items.map((item, i) => {
 				if (item.type === 'separator') {
-					if (Separator) return <Separator key={i} item={item} />;
+					if (Separator) {
+						return <Separator key={i} item={item} />;
+					}
 					return (
 						<SidebarSeparator key={i} className={cn(i !== 0 && 'mt-8')}>
 							{item.icon}
@@ -442,12 +456,13 @@ export function SidebarPageTree(props: {
 				if (item.type === 'folder') {
 					const children = renderSidebarList(item.children, level + 1);
 
-					if (Folder)
+					if (Folder) {
 						return (
 							<Folder key={i} item={item} level={level}>
 								{children}
 							</Folder>
 						);
+					}
 					return (
 						<PageTreeFolder key={i} item={item}>
 							{children}
@@ -455,7 +470,9 @@ export function SidebarPageTree(props: {
 					);
 				}
 
-				if (Item) return <Item key={item.url} item={item} />;
+				if (Item) {
+					return <Item key={item.url} item={item} />;
+				}
 				return (
 					<SidebarItem
 						key={item.url}
@@ -515,7 +532,9 @@ function getOffset(level: number) {
 }
 
 function Border({ level, active }: { level: number; active?: boolean }) {
-	if (level <= 1) return null;
+	if (level <= 1) {
+		return null;
+	}
 
 	return (
 		<div

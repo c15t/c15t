@@ -165,12 +165,15 @@ function NavbarLinkItem({
 	item: LinkItemType;
 	className?: string;
 }) {
-	if (item.type === 'custom') return <div {...props}>{item.children}</div>;
+	if (item.type === 'custom') {
+		return <div {...props}>{item.children}</div>;
+	}
 
 	if (item.type === 'menu') {
 		const children = item.items.map((child, j) => {
-			if (child.type === 'custom')
+			if (child.type === 'custom') {
 				return <Fragment key={j}>{child.children}</Fragment>;
+			}
 
 			const {
 				banner = child.icon ? (

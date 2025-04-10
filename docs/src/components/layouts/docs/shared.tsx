@@ -47,7 +47,7 @@ export function SidebarLinkItem({
 	item: LinkItemType;
 	className?: string;
 }) {
-	if (item.type === 'menu')
+	if (item.type === 'menu') {
 		return (
 			<SidebarFolder {...props}>
 				{item.url ? (
@@ -68,6 +68,7 @@ export function SidebarLinkItem({
 				</SidebarFolderContent>
 			</SidebarFolder>
 		);
+	}
 
 	if (item.type === 'custom') return <div {...props}>{item.children}</div>;
 

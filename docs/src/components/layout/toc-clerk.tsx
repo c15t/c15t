@@ -16,11 +16,15 @@ export default function ClerkTOCItems({ items }: { items: TOCItemType[] }) {
 	}>();
 
 	useEffect(() => {
-		if (!containerRef.current) return;
+		if (!containerRef.current) {
+			return;
+		}
 		const container = containerRef.current;
 
 		function onResize(): void {
-			if (container.clientHeight === 0) return;
+			if (container.clientHeight === 0) {
+				return;
+			}
 			let w = 0,
 				h = 0;
 			const d: string[] = [];
@@ -28,7 +32,9 @@ export default function ClerkTOCItems({ items }: { items: TOCItemType[] }) {
 				const element: HTMLElement | null = container.querySelector(
 					`a[href="#${items[i].url.slice(1)}"]`
 				);
-				if (!element) continue;
+				if (!element) {
+					continue;
+				}
 
 				const styles = getComputedStyle(element);
 				const offset = getLineOffset(items[i].depth) + 1,
@@ -61,7 +67,9 @@ export default function ClerkTOCItems({ items }: { items: TOCItemType[] }) {
 		};
 	}, [items]);
 
-	if (items.length === 0) return <TocItemsEmpty />;
+	if (items.length === 0) {
+		return <TocItemsEmpty />;
+	}
 
 	return (
 		<>
@@ -100,8 +108,12 @@ export default function ClerkTOCItems({ items }: { items: TOCItemType[] }) {
 }
 
 function getItemOffset(depth: number): number {
-	if (depth <= 2) return 14;
-	if (depth === 3) return 26;
+	if (depth <= 2) {
+		return 14;
+	}
+	if (depth === 3) {
+		return 26;
+	}
 	return 36;
 }
 
@@ -136,6 +148,7 @@ function TOCItem({
 					viewBox="0 0 16 16"
 					className="-top-1.5 rtl:-scale-x-100 absolute start-0 size-4"
 				>
+					<title>Line</title>
 					<line
 						x1={upperOffset}
 						y1="0"

@@ -14,7 +14,9 @@ export default async function Page(props: {
 }) {
 	const params = await props.params;
 	const page = source.getPage(params.slug);
-	if (!page) notFound();
+	if (!page) {
+		notFound();
+	}
 
 	const MDXContent = page.data.body;
 
@@ -34,7 +36,7 @@ export default async function Page(props: {
 	);
 }
 
-export async function generateStaticParams() {
+export function generateStaticParams() {
 	return source.generateParams();
 }
 
@@ -43,7 +45,9 @@ export async function generateMetadata(props: {
 }) {
 	const params = await props.params;
 	const page = source.getPage(params.slug);
-	if (!page) notFound();
+	if (!page) {
+		notFound();
+	}
 
 	return {
 		title: page.data.title,

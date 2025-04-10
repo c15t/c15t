@@ -33,10 +33,13 @@ export function TocPopoverHeader(props: HTMLAttributes<HTMLDivElement>) {
 	const { isTransparent } = useNav();
 
 	const onClick = useEffectEvent((e: Event) => {
-		if (!open) return;
+		if (!open) {
+			return;
+		}
 
-		if (ref.current && !ref.current.contains(e.target as HTMLElement))
+		if (ref.current && !ref.current.contains(e.target as HTMLElement)) {
 			setOpen(false);
+		}
 	});
 
 	useEffect(() => {
@@ -159,7 +162,9 @@ export function Footer({ items }: FooterProps) {
 	const pathname = usePathname();
 
 	const { previous, next } = useMemo(() => {
-		if (items) return items;
+		if (items) {
+			return items;
+		}
 
 		const cached = listCache.get(root);
 		const list = cached ?? scanNavigationList(root.children);
@@ -167,7 +172,9 @@ export function Footer({ items }: FooterProps) {
 
 		const idx = list.findIndex((item) => isActive(item.url, pathname, false));
 
-		if (idx === -1) return {};
+		if (idx === -1) {
+			return {};
+		}
 		return {
 			previous: list[idx - 1],
 			next: list[idx + 1],
@@ -227,7 +234,9 @@ export function Breadcrumb(options: BreadcrumbProps) {
 		});
 	}, [options, path, root]);
 
-	if (items.length === 0) return null;
+	if (items.length === 0) {
+		return null;
+	}
 
 	return (
 		<div className="flex flex-row items-center gap-1.5 text-[15px] text-fd-muted-foreground">

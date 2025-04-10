@@ -10,9 +10,9 @@ export default function GlobalError({
 	useEffect(() => {
 		try {
 			Sentry.captureException(error);
-		} catch (sentryError) {
-			console.error('Failed to report error to Sentry:', sentryError);
-			console.error('Original error:', error);
+		} catch {
+			// Error reporting failed silently
+			// We could log to a separate service or handle differently here
 		}
 	}, [error]);
 

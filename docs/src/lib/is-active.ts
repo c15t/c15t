@@ -3,8 +3,18 @@ export function isActive(
 	pathname: string,
 	nested = true
 ): boolean {
-	if (url.endsWith('/')) url = url.slice(0, -1);
-	if (pathname.endsWith('/')) pathname = pathname.slice(0, -1);
+	let urlPath = url;
+	let pathnamePath = pathname;
 
-	return url === pathname || (nested && pathname.startsWith(`${url}/`));
+	if (urlPath.endsWith('/')) {
+		urlPath = urlPath.slice(0, -1);
+	}
+	if (pathnamePath.endsWith('/')) {
+		pathnamePath = pathnamePath.slice(0, -1);
+	}
+
+	return (
+		urlPath === pathnamePath ||
+		(nested && pathnamePath.startsWith(`${urlPath}/`))
+	);
 }

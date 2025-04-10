@@ -106,7 +106,9 @@ export function TOCScrollArea({
 export function TOCItems({ items }: { items: TOCItemType[] }) {
 	const containerRef = useRef<HTMLDivElement>(null);
 
-	if (items.length === 0) return <TocItemsEmpty />;
+	if (items.length === 0) {
+		return <TocItemsEmpty />;
+	}
 
 	return (
 		<>

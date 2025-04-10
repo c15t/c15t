@@ -95,7 +95,7 @@ export function RootToggle({
 function Item(props: Option) {
 	return (
 		<>
-			<>{props.icon}</>
+			{props.icon}
 			<div className="flex-1 text-start">
 				<p className="font-medium text-sm">{props.title}</p>
 				{props.description ? (
