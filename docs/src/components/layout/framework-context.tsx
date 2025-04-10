@@ -28,7 +28,7 @@ interface FrameworkContextType {
 
 // Create context with default values
 const FrameworkContext = createContext<FrameworkContextType>({
-	activeFramework: '',
+	activeFramework: 'nextjs',
 	setActiveFramework: () => undefined,
 	isValidFramework: () => false,
 });
@@ -45,7 +45,7 @@ interface FrameworkProviderProps {
 export function FrameworkProvider({
 	children,
 	tree,
-	defaultFramework = '',
+	defaultFramework = 'nextjs',
 }: FrameworkProviderProps) {
 	const pathname = usePathname();
 
@@ -69,10 +69,10 @@ export function FrameworkProvider({
 			}
 		}
 
-		return '';
+		return 'nextjs';
 	}, [tree]);
 
-	// Initialize with a valid framework
+	// Initialize with a valid framework - execute findValidFramework to get its result
 	const [activeFramework, setActiveFrameworkState] = useState<string>(
 		defaultFramework || findValidFramework
 	);
