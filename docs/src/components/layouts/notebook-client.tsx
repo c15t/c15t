@@ -62,7 +62,7 @@ export function LayoutTabs(props: HTMLAttributes<HTMLElement>) {
 	return (
 		<div
 			{...props}
-      role="tablist"
+			role="tablist"
 			className={cn(
 				'flex flex-row items-end gap-6 overflow-auto',
 				props.className
@@ -113,8 +113,8 @@ export function LayoutTab(props: Option & { forceActive?: boolean }) {
 				'inline-flex items-center gap-2 text-nowrap border-transparent border-b py-2.5 text-fd-muted-foreground text-sm',
 				selected && 'border-fd-primary font-medium text-fd-foreground'
 			)}
-      role="tab"
-      aria-selected={selected}
+			role="tab"
+			aria-selected={selected}
 			href={props.url}
 			onClick={handleClick}
 		>
@@ -133,12 +133,12 @@ export function SidebarLayoutTab({
 } & HTMLAttributes<HTMLElement>) {
 	const isSelected = useIsTabSelected(item);
 	const { setActiveFramework } = useFramework();
-  const { closeOnRedirect } = useSidebar();
+	const { closeOnRedirect } = useSidebar();
 
 	const selected = forceActive || isSelected;
 
 	const handleClick = () => {
-    closeOnRedirect.current = false;
+		closeOnRedirect.current = false;
 		// Update the active framework
 		if (typeof item.title === 'string') {
 			setActiveFramework(item.title.toLowerCase());
