@@ -436,7 +436,7 @@ export function SidebarPageTree(props: {
 }) {
 	const { root } = useTreeContext();
 	const pathname = usePathname();
-	
+
 	// Extract framework from pathname only for initial SSR
 	const pathFramework = pathname.split('/')[2] || '';
 	const activeFramework = pathFramework || 'nextjs'; // Default to NextJS if no framework in path
