@@ -17,6 +17,7 @@ const config = {
 		],
 	},
 	reactStrictMode: true,
+	turbopack: true,
 	async redirects() {
 		return [
 			{
