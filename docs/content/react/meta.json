@@ -3,7 +3,7 @@
 	"root": true,
 	"icon": "react",
 	"pages": [
-		"index.mdx",
+		"index",
 		"--- react ---",
 		"../components/react/cookie-banner",
 		"../components/react/consent-manager-dialog",
