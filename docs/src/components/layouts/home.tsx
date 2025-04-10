@@ -92,7 +92,7 @@ function Header({
 						<NavbarLinkItem key={i} item={item} className="text-sm" />
 					))}
 			</ul>
-			<div className='flex flex-1 flex-row items-center justify-end gap-1.5'>
+			<div className="flex flex-1 flex-row items-center justify-end gap-1.5">
 				{enableSearch ? (
 					<>
 						<SearchToggle className="lg:hidden" hideIfDisabled />
@@ -186,7 +186,7 @@ function NavbarLinkItem({
 					{rest.children ?? (
 						<>
 							{banner}
-							<p className='-mb-1 font-medium text-sm'>{child.text}</p>
+							<p className="-mb-1 font-medium text-sm">{child.text}</p>
 							{child.description ? (
 								<p className="text-[13px] text-fd-muted-foreground">
 									{child.description}

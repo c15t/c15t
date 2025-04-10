@@ -114,7 +114,7 @@ export function LastUpdate(props: { date: Date }) {
 	}, [props.date]);
 
 	return (
-		<p className='text-fd-muted-foreground text-sm'>
+		<p className="text-fd-muted-foreground text-sm">
 			{text.lastUpdate} {date}
 		</p>
 	);
@@ -208,7 +208,7 @@ function FooterItem({ item, index }: { item: Item; index: 0 | 1 }) {
 				<Icon className="-mx-1 size-4 shrink-0 rtl:rotate-180" />
 				<p>{item.name}</p>
 			</div>
-			<p className='truncate text-fd-muted-foreground'>
+			<p className="truncate text-fd-muted-foreground">
 				{item.description ?? (index === 0 ? text.previousPage : text.nextPage)}
 			</p>
 		</Link>

@@ -52,7 +52,7 @@ export function MenuLinkItem({
 
 		return (
 			<div className={cn('mb-4 flex flex-col', props.className)}>
-				<p className='mb-1 text-fd-muted-foreground text-sm'>
+				<p className="mb-1 text-fd-muted-foreground text-sm">
 					{item.url ? (
 						<NavigationMenuLink asChild>
 							<Link href={item.url}>{header}</Link>
