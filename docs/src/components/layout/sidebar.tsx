@@ -23,6 +23,7 @@ import {
 	type SetStateAction,
 	createContext,
 	useContext,
+	useEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -286,11 +287,9 @@ export function SidebarFolder({
 }) {
 	const [open, setOpen] = useState(defaultOpen);
 
-	useOnChange(defaultOpen, (v) => {
-		if (v) {
-			setOpen(v);
-		}
-	});
+	useEffect(() => {
+		setOpen(defaultOpen);
+	}, [defaultOpen]);
 
 	return (
 		<Collapsible open={open} onOpenChange={setOpen} {...props}>
