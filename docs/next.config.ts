@@ -1,12 +1,13 @@
 import { withSentryConfig } from '@sentry/nextjs';
 import { createMDX } from 'fumadocs-mdx/next';
+import type { NextConfig } from 'next';
 
 const withMDX = createMDX({
 	configPath: './source.config.ts',
 });
 
-/** @type {import('next').NextConfig} */
-const config = {
+
+const config:NextConfig = {
 	images: {
 		formats: ['image/avif', 'image/webp'],
 		remotePatterns: [
@@ -26,11 +27,6 @@ const config = {
 	reactStrictMode: true,
 	async redirects() {
 		return [
-			// {
-			// 	source: '/docs',
-			// 	destination: '/docs/getting-started',
-			// 	permanent: true,
-			// },
 			{
 				source: '/discord',
 				destination: 'https://discord.gg/nPJjrw55TZ',

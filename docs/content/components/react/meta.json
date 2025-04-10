@@ -1,6 +1,5 @@
 {
 	"title": "react",
-	"root": true,
 	"pages": [
 		"cookie-banner",
 		"consent-manager-dialog",

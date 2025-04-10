@@ -1,0 +1,21 @@
+{
+	"title": "React",
+	"root": true,
+	"pages": [
+		"index.mdx",
+		"--- react ---",
+		"../components/react/cookie-banner",
+		"../components/react/consent-manager-dialog",
+		"../components/react/consent-manager-widget",
+		"../components/react/dev-tools",
+		"--- hooks --- ",
+		"../hooks/use-consent-manager",
+		"../hooks/use-focus-trap",
+		"--- styles ---",
+		"../styling/index",
+		"../styling/classnames",
+		"../styling/tailwind",
+		"../styling/css-variables",
+		"../styling/inline-styles"
+	]
+}
