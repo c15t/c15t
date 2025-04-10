@@ -1,5 +1,6 @@
 {
 	"title": "JavaScript",
+  "icon": "js",
 	"root": true,
-	"pages": ["index.mdx"]
+	"pages": ["index", "how-it-works", "auto-detect", "api-refrence"]
 }

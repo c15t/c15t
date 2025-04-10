@@ -1,6 +1,7 @@
 {
 	"title": "NextJS",
 	"root": true,
+  "icon": "next",
 	"pages": [
 		"index.mdx",
 		"--- React ---",

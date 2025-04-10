@@ -5,6 +5,7 @@ import { Footer } from '../(home)/_components/footer';
 import { docsOptions } from './layout.config';
 
 export default function Layout({ children }: { children: ReactNode }) {
+	console.log(source.pageTree);
 	return (
 		<>
 			<DocsLayout tree={source.pageTree} {...docsOptions}>

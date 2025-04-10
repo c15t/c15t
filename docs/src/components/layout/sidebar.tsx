@@ -444,6 +444,10 @@ export function SidebarPageTree(props: {
 	components?: Partial<SidebarComponents>;
 }) {
 	const { root } = useTreeContext();
+	const pathname = usePathname();
+	
+	// Get current framework from path, or empty for root
+	const currentFramework = pathname.split('/')[2] || '';
 
 	return useMemo(() => {
 		const { Separator, Item, Folder } = props.components ?? {};
@@ -468,6 +472,13 @@ export function SidebarPageTree(props: {
 			i: number,
 			level: number
 		): ReactNode {
+			// On root path, hide framework folders (they'll be shown in tabs)
+			if (pathname === '/docs' || pathname === '/docs/') {
+				if (item.root) {
+					return null;
+				}
+			}
+			
 			const children = renderSidebarList(item.children, level + 1);
 
 			if (Folder) {
@@ -522,13 +533,13 @@ export function SidebarPageTree(props: {
 				}
 
 				return renderPageItem(item);
-			});
+			}).filter(Boolean); // Filter out null items
 		}
 
 		return (
 			<Fragment key={root.$id}>{renderSidebarList(root.children, 1)}</Fragment>
 		);
-	}, [props.components, root]);
+	}, [props.components, root, pathname]);
 }
 
 function PageTreeFolder({
