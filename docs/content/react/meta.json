@@ -3,7 +3,7 @@
 	"root": true,
 	"icon": "react",
 	"pages": [
-    "client-config-options",
+		"client-config-options",
 		"--- React Components ---",
 		"../components/react/cookie-banner",
 		"../components/react/consent-manager-dialog",
