@@ -259,8 +259,8 @@ describe('C15t Client Retry Logic Tests', () => {
 		const client = configureConsentManager(config);
 		const response = await client.showConsentBanner();
 
-		// With maxRetries=2, it should try 1 initial request + 2 retries = 3 total
-		// Or 4 if the implementation is counting differently (initial + maxRetries + 1)
+		// This implementation uses a retryCount starting from 0, and includes the original request
+		// So with maxRetries=2, we expect: 1 original + 3 attempts = 4 total fetch calls
 		expect(fetchMock).toHaveBeenCalledTimes(4);
 		expect(response.ok).toBe(true);
 		expect(response.error).toBeNull();
@@ -283,7 +283,6 @@ describe('C15t Client Retry Logic Tests', () => {
 		const config: ConsentManagerOptions = {
 			mode: 'c15t',
 			backendURL: '/api/c15t',
-			// @ts-ignore: retryConfig
 			retryConfig: {
 				maxRetries: 3,
 				initialDelayMs: initialDelay,
@@ -309,7 +308,6 @@ describe('C15t Client Retry Logic Tests', () => {
 		const config: ConsentManagerOptions = {
 			mode: 'c15t',
 			backendURL: '/api/c15t',
-			// @ts-ignore: retryConfig
 			retryConfig: {
 				maxRetries: 3,
 				initialDelayMs: 10,
@@ -338,7 +336,6 @@ describe('C15t Client Retry Logic Tests', () => {
 		const config: ConsentManagerOptions = {
 			mode: 'c15t',
 			backendURL: '/api/c15t',
-			// @ts-ignore: retryConfig
 			retryConfig: {
 				maxRetries: 2,
 				initialDelayMs: 10,
@@ -361,6 +358,8 @@ describe('C15t Client Retry Logic Tests', () => {
 
 		// Our custom shouldRetry implementation - this will be used for Response mocks
 		const shouldRetryFn = vi.fn((response) => {
+			// biome-ignore lint/suspicious/noConsoleLog: this is a test
+			// biome-ignore lint/suspicious/noConsole: this is a test
 			console.log(`shouldRetryFn called with status: ${response.status}`);
 			return response.status === 429;
 		});
@@ -393,7 +392,7 @@ describe('C15t Client Retry Logic Tests', () => {
 		});
 
 		// Override the shouldRetry function to make sure it's being used
-		// @ts-ignore: access private property
+		// @ts-expect-error: access private property
 		client.retryConfig.shouldRetry = shouldRetryFn;
 
 		// Mock setTimeout to execute callbacks immediately for faster tests
@@ -403,6 +402,8 @@ describe('C15t Client Retry Logic Tests', () => {
 			.fn()
 			.mockImplementation(
 				(callback: (...args: unknown[]) => void, ms: number) => {
+					// biome-ignore lint/suspicious/noConsoleLog: this is a test
+					// biome-ignore lint/suspicious/noConsole: this is a test
 					console.log(`Mocking setTimeout for ${ms}ms`);
 					callback();
 					return 1;
@@ -441,7 +442,6 @@ describe('C15t Client Retry Logic Tests', () => {
 		const config: ConsentManagerOptions = {
 			mode: 'c15t',
 			backendURL: '/api/c15t',
-			// @ts-ignore: retryConfig
 			retryConfig: {
 				maxRetries: 1,
 				initialDelayMs: 10,

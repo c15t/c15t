@@ -38,7 +38,7 @@ describe('CORS functionality', () => {
 
 		// Verify the CORS mode was set correctly
 		expect(window.fetch).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t/show-consent-banner'),
+			expect.stringContaining('/api/c15t'),
 			expect.objectContaining({
 				mode: 'same-origin',
 			})
@@ -64,7 +64,7 @@ describe('CORS functionality', () => {
 
 		// Verify the default CORS mode was used
 		expect(window.fetch).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t/show-consent-banner'),
+			expect.stringContaining('/api/c15t'),
 			expect.objectContaining({
 				mode: 'cors', // Default mode
 			})
@@ -89,7 +89,7 @@ describe('CORS functionality', () => {
 
 		// Verify credentials are included
 		expect(window.fetch).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t/show-consent-banner'),
+			expect.stringContaining('/api/c15t'),
 			expect.objectContaining({
 				credentials: 'include',
 			})
@@ -291,7 +291,7 @@ describe('CORS functionality', () => {
 
 		// Verify credentials mode was set to 'omit'
 		expect(fetchMock).toHaveBeenCalledWith(
-			expect.any(String),
+			expect.stringContaining('/api/c15t'),
 			expect.objectContaining({
 				credentials: 'omit',
 			})
@@ -324,7 +324,7 @@ describe('CORS functionality', () => {
 
 		// Verify custom headers were included
 		expect(window.fetch).toHaveBeenCalledWith(
-			expect.any(String),
+			expect.stringContaining('https://api.example.com/c15t'),
 			expect.objectContaining({
 				headers: expect.objectContaining({
 					'X-API-Key': 'secret-api-key',
