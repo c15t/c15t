@@ -27,12 +27,11 @@ import {
  * Default retry configuration
  * @internal
  */
-const DEFAULT_RETRY_CONFIG: Required<RetryConfig> = {
-	maxRetries: 3,
+const DEFAULT_RETRY_CONFIG: RetryConfig = {
+	maxRetries: 3, // Setting to 0 will still allow the initial request but no retries
 	initialDelayMs: 100,
 	backoffFactor: 2,
 	retryableStatusCodes: [500, 502, 503, 504], // Default retryable server errors
-	shouldRetry: undefined as unknown as (response: Response) => boolean,
 	retryOnNetworkError: true,
 };
 
@@ -152,7 +151,7 @@ export class C15tClient implements ConsentManagerInterface {
 	 * Global retry configuration for fetch requests.
 	 * @internal
 	 */
-	private retryConfig: Required<RetryConfig>;
+	private retryConfig: RetryConfig;
 
 	/**
 	 * Creates a new C15t client instance.
@@ -175,12 +174,24 @@ export class C15tClient implements ConsentManagerInterface {
 
 		// Merge provided retry config with defaults
 		this.retryConfig = {
-			...DEFAULT_RETRY_CONFIG,
-			...(options.retryConfig || {}),
-			// Ensure retryableStatusCodes is an array even if user provides an empty object
+			maxRetries:
+				options.retryConfig?.maxRetries ?? DEFAULT_RETRY_CONFIG.maxRetries ?? 3,
+			initialDelayMs:
+				options.retryConfig?.initialDelayMs ??
+				DEFAULT_RETRY_CONFIG.initialDelayMs ??
+				100,
+			backoffFactor:
+				options.retryConfig?.backoffFactor ??
+				DEFAULT_RETRY_CONFIG.backoffFactor ??
+				2,
 			retryableStatusCodes:
 				options.retryConfig?.retryableStatusCodes ??
 				DEFAULT_RETRY_CONFIG.retryableStatusCodes,
+			shouldRetry:
+				options.retryConfig?.shouldRetry ?? DEFAULT_RETRY_CONFIG.shouldRetry,
+			retryOnNetworkError:
+				options.retryConfig?.retryOnNetworkError ??
+				DEFAULT_RETRY_CONFIG.retryOnNetworkError,
 		};
 	}
 
@@ -255,12 +266,13 @@ export class C15tClient implements ConsentManagerInterface {
 		options?: FetchOptions<ResponseType, BodyType, QueryType>
 	): Promise<ResponseContext<ResponseType>> {
 		// Determine the final retry configuration (request overrides global)
-		const finalRetryConfig: Required<RetryConfig> = {
+		const finalRetryConfig: RetryConfig = {
 			...this.retryConfig,
 			...(options?.retryConfig || {}),
 			retryableStatusCodes:
 				options?.retryConfig?.retryableStatusCodes ??
-				this.retryConfig.retryableStatusCodes,
+				this.retryConfig.retryableStatusCodes ??
+				DEFAULT_RETRY_CONFIG.retryableStatusCodes,
 		};
 
 		const {
@@ -268,7 +280,6 @@ export class C15tClient implements ConsentManagerInterface {
 			initialDelayMs,
 			backoffFactor,
 			retryableStatusCodes,
-			shouldRetry: customShouldRetry,
 			retryOnNetworkError,
 		} = finalRetryConfig;
 
@@ -278,7 +289,7 @@ export class C15tClient implements ConsentManagerInterface {
 		let lastErrorResponse: ResponseContext<ResponseType> | null = null;
 
 		// Loop for initial request + retries
-		while (attemptsMade <= maxRetries) {
+		while (attemptsMade <= (maxRetries ?? 0)) {
 			const requestId = generateUUID(); // Generate new ID for each attempt
 			const fetchImpl = this.customFetch || globalThis.fetch;
 
@@ -416,19 +427,17 @@ export class C15tClient implements ConsentManagerInterface {
 					} catch (error) {
 						console.error('Error in custom retry strategy:', error);
 						// Fall back to status code check if custom function throws
-						shouldRetryThisRequest = retryableStatusCodes.includes(
-							response.status
-						);
+						shouldRetryThisRequest =
+							retryableStatusCodes?.includes(response.status) ?? false;
 					}
 				} else {
 					// Fall back to retryableStatusCodes if no custom strategy
-					shouldRetryThisRequest = retryableStatusCodes.includes(
-						response.status
-					);
+					shouldRetryThisRequest =
+						retryableStatusCodes?.includes(response.status) ?? false;
 				}
 
 				// Don't retry if we've already made maximum attempts
-				if (!shouldRetryThisRequest || attemptsMade >= maxRetries) {
+				if (!shouldRetryThisRequest || attemptsMade >= (maxRetries ?? 0)) {
 					// Don't retry - call callbacks and potentially throw
 					options?.onError?.(errorResponse, path);
 					this.callbacks?.onError?.(errorResponse, path);
@@ -443,8 +452,8 @@ export class C15tClient implements ConsentManagerInterface {
 				attemptsMade++;
 
 				// Wait before retrying
-				await delay(currentDelay);
-				currentDelay *= backoffFactor; // Exponential backoff
+				await delay(currentDelay ?? 0);
+				currentDelay = (currentDelay ?? 0) * (backoffFactor ?? 2); // Exponential backoff
 			} catch (fetchError) {
 				// Handle network/request errors
 				// Don't retry if it was a parse error thrown from above
@@ -480,7 +489,7 @@ export class C15tClient implements ConsentManagerInterface {
 				const shouldRetryThisRequest = isNetworkError && retryOnNetworkError;
 
 				// Don't retry if we've already made maximum attempts
-				if (!shouldRetryThisRequest || attemptsMade >= maxRetries) {
+				if (!shouldRetryThisRequest || attemptsMade >= (maxRetries ?? 0)) {
 					options?.onError?.(errorResponse, path);
 					this.callbacks?.onError?.(errorResponse, path);
 
@@ -494,8 +503,8 @@ export class C15tClient implements ConsentManagerInterface {
 				attemptsMade++;
 
 				// Wait before retrying
-				await delay(currentDelay);
-				currentDelay *= backoffFactor; // Exponential backoff
+				await delay(currentDelay ?? 0);
+				currentDelay = (currentDelay ?? 0) * (backoffFactor ?? 2); // Exponential backoff
 			}
 		} // End of while loop
 
