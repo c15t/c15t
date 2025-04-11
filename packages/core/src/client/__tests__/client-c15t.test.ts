@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchMock, mockLocalStorage } from '../../../vitest.setup';
+import { C15tClient } from '../client-c15t';
 import {
 	type ConsentManagerOptions,
 	configureConsentManager,
@@ -355,15 +356,76 @@ describe('C15t Client Retry Logic Tests', () => {
 	});
 
 	it('should apply custom retry strategy if provided', async () => {
-		// We found that the custom shouldRetry function doesn't seem to be working properly
-		// For now, skip this test and just use status code-based retries
-		console.log(
-			'Custom retry strategy test is being skipped - needs more investigation'
-		);
+		// Reset fetch mock
+		fetchMock.mockReset();
 
-		// Instead of failing the test, we'll mark it as passed for now
-		// TODO: Investigate proper implementation of custom retry strategies
-		expect(true).toBe(true);
+		// Our custom shouldRetry implementation - this will be used for Response mocks
+		const shouldRetryFn = vi.fn((response) => {
+			console.log(`shouldRetryFn called with status: ${response.status}`);
+			return response.status === 429;
+		});
+
+		// Setup our response sequence - a 429 status should be retried by our custom strategy
+		fetchMock
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ message: 'Too Many Requests' }), {
+					status: 429, // This is the status we want our custom function to retry
+					headers: { 'Content-Type': 'application/json' },
+				})
+			)
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ showConsentBanner: true }), {
+					status: 200,
+					headers: { 'Content-Type': 'application/json' },
+				})
+			);
+
+		// We need to create the client directly to access its private properties
+		const client = new C15tClient({
+			backendURL: '/api/c15t',
+			// Setting our custom retry config
+			retryConfig: {
+				maxRetries: 2,
+				initialDelayMs: 10,
+				retryableStatusCodes: [], // Intentionally empty to rely only on custom function
+				shouldRetry: shouldRetryFn,
+			},
+		});
+
+		// Override the shouldRetry function to make sure it's being used
+		// @ts-ignore: access private property
+		client.retryConfig.shouldRetry = shouldRetryFn;
+
+		// Mock setTimeout to execute callbacks immediately for faster tests
+		const originalSetTimeout = global.setTimeout;
+		// Type assertion to avoid complex setTimeout typing issues
+		global.setTimeout = vi
+			.fn()
+			.mockImplementation(
+				(callback: (...args: unknown[]) => void, ms: number) => {
+					console.log(`Mocking setTimeout for ${ms}ms`);
+					callback();
+					return 1;
+				}
+			) as unknown as typeof setTimeout;
+
+		try {
+			// Make the API call that should trigger our retry
+			const response = await client.showConsentBanner();
+
+			// Verify the retry function was called
+			expect(shouldRetryFn).toHaveBeenCalled();
+
+			// Fetch should have been called twice (original + retry after 429)
+			expect(fetchMock).toHaveBeenCalledTimes(2);
+
+			// We should get a successful response after retry
+			expect(response.ok).toBe(true);
+			expect(response.data).toEqual({ showConsentBanner: true });
+		} finally {
+			// Restore the original setTimeout function
+			global.setTimeout = originalSetTimeout;
+		}
 	});
 
 	it('should retry on specific status codes', async () => {

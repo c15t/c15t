@@ -409,9 +409,17 @@ export class C15tClient implements ConsentManagerInterface {
 				// Check if we should retry based on status code and custom retry strategy
 				let shouldRetryThisRequest = false;
 
-				// Apply custom retry strategy if provided
-				if (typeof customShouldRetry === 'function') {
-					shouldRetryThisRequest = customShouldRetry(response);
+				// Apply custom retry strategy if provided - it takes precedence over retryableStatusCodes
+				if (typeof finalRetryConfig.shouldRetry === 'function') {
+					try {
+						shouldRetryThisRequest = finalRetryConfig.shouldRetry(response);
+					} catch (error) {
+						console.error('Error in custom retry strategy:', error);
+						// Fall back to status code check if custom function throws
+						shouldRetryThisRequest = retryableStatusCodes.includes(
+							response.status
+						);
+					}
 				} else {
 					// Fall back to retryableStatusCodes if no custom strategy
 					shouldRetryThisRequest = retryableStatusCodes.includes(
