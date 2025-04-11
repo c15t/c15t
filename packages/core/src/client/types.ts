@@ -306,4 +306,8 @@ export interface RetryConfig {
 	backoffFactor?: number;
 	/** Array of HTTP status codes that should trigger a retry. */
 	retryableStatusCodes?: number[];
+	/** Custom function to determine if a response should be retried. Takes precedence over retryableStatusCodes. */
+	shouldRetry?: (response: Response) => boolean;
+	/** Whether to retry on network errors (e.g., connection timeouts). */
+	retryOnNetworkError?: boolean;
 }

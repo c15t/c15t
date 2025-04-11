@@ -32,6 +32,8 @@ const DEFAULT_RETRY_CONFIG: Required<RetryConfig> = {
 	initialDelayMs: 100,
 	backoffFactor: 2,
 	retryableStatusCodes: [500, 502, 503, 504], // Default retryable server errors
+	shouldRetry: undefined as unknown as (response: Response) => boolean,
+	retryOnNetworkError: true,
 };
 
 /**
@@ -261,14 +263,22 @@ export class C15tClient implements ConsentManagerInterface {
 				this.retryConfig.retryableStatusCodes,
 		};
 
-		const { maxRetries, initialDelayMs, backoffFactor, retryableStatusCodes } =
-			finalRetryConfig;
+		const {
+			maxRetries,
+			initialDelayMs,
+			backoffFactor,
+			retryableStatusCodes,
+			shouldRetry: customShouldRetry,
+			retryOnNetworkError
+		} = finalRetryConfig;
 
-		let attempts = 0;
+		// Keep track of attempts (0-based)
+		let attemptsMade = 0;
 		let currentDelay = initialDelayMs;
+		let lastErrorResponse: ResponseContext<ResponseType> | null = null;
 
-		while (attempts <= maxRetries) {
-			attempts++;
+		// Loop for initial request + retries
+		while (attemptsMade <= maxRetries) {
 			const requestId = generateUUID(); // Generate new ID for each attempt
 			const fetchImpl = this.customFetch || globalThis.fetch;
 
@@ -393,12 +403,22 @@ export class C15tClient implements ConsentManagerInterface {
 					response
 				);
 
-				// Check if we should retry based on status code
-				const shouldRetry =
-					retryableStatusCodes.includes(response.status) &&
-					attempts <= maxRetries;
+				// Store last error response for return if all retries fail
+				lastErrorResponse = errorResponse;
 
-				if (!shouldRetry) {
+				// Check if we should retry based on status code and custom retry strategy
+				let shouldRetryThisRequest = false;
+				
+				// Apply custom retry strategy if provided
+				if (typeof customShouldRetry === 'function') {
+					shouldRetryThisRequest = customShouldRetry(response);
+				} else {
+					// Fall back to retryableStatusCodes if no custom strategy
+					shouldRetryThisRequest = retryableStatusCodes.includes(response.status);
+				}
+
+				// Don't retry if we've already made maximum attempts
+				if (!shouldRetryThisRequest || attemptsMade >= maxRetries) {
 					// Don't retry - call callbacks and potentially throw
 					options?.onError?.(errorResponse, path);
 					this.callbacks?.onError?.(errorResponse, path);
@@ -409,6 +429,9 @@ export class C15tClient implements ConsentManagerInterface {
 					return errorResponse; // Return the error response
 				}
 
+				// Increment attempt count BEFORE retrying
+				attemptsMade++;
+				
 				// Wait before retrying
 				await delay(currentDelay);
 				currentDelay *= backoffFactor; // Exponential backoff
@@ -422,28 +445,32 @@ export class C15tClient implements ConsentManagerInterface {
 					throw fetchError; // Re-throw parse errors immediately
 				}
 
-				const isNetworkError = !(fetchError instanceof Response); // Crude check, might need refinement
+				const isNetworkError = !(fetchError instanceof Response);
 
-				// Check if we should retry based on network error
-				const shouldRetry = isNetworkError && attempts <= maxRetries;
+				// Create error context for network error
+				const errorResponse = this.createResponseContext<ResponseType>(
+					false,
+					null,
+					{
+						message:
+							fetchError instanceof Error
+								? fetchError.message
+								: String(fetchError),
+						status: 0, // Indicate network error or similar
+						code: 'NETWORK_ERROR',
+						cause: fetchError,
+					},
+					null // No response object available
+				);
+				
+				// Store last error response
+				lastErrorResponse = errorResponse;
 
-				if (!shouldRetry) {
-					// Create error context for non-retryable fetch error
-					const errorResponse = this.createResponseContext<ResponseType>(
-						false,
-						null,
-						{
-							message:
-								fetchError instanceof Error
-									? fetchError.message
-									: String(fetchError),
-							status: 0, // Indicate network error or similar
-							code: 'NETWORK_ERROR',
-							cause: fetchError,
-						},
-						null // No response object available
-					);
+				// Check if we should retry based on network error setting
+				const shouldRetryThisRequest = isNetworkError && retryOnNetworkError;
 
+				// Don't retry if we've already made maximum attempts
+				if (!shouldRetryThisRequest || attemptsMade >= maxRetries) {
 					options?.onError?.(errorResponse, path);
 					this.callbacks?.onError?.(errorResponse, path);
 
@@ -453,25 +480,28 @@ export class C15tClient implements ConsentManagerInterface {
 					return errorResponse; // Return the error response
 				}
 
+				// Increment attempt count BEFORE retrying
+				attemptsMade++;
+				
 				// Wait before retrying
 				await delay(currentDelay);
 				currentDelay *= backoffFactor; // Exponential backoff
 			}
 		} // End of while loop
 
-		// If loop finishes (max retries exceeded), return the last error encountered
-		// This part should ideally be unreachable if logic inside loop is correct,
-		// but as a fallback, create a generic max retries error.
-		const maxRetriesErrorResponse = this.createResponseContext<ResponseType>(
-			false,
-			null,
-			{
-				message: `Request failed after ${maxRetries} retries`,
-				status: 0, // Indicate failure after retries
-				code: 'MAX_RETRIES_EXCEEDED',
-			},
-			null
-		);
+		// This should be unreachable with the above logic
+		// But just in case, return the last error we encountered
+		const maxRetriesErrorResponse = lastErrorResponse || 
+			this.createResponseContext<ResponseType>(
+				false,
+				null,
+				{
+					message: `Request failed after ${maxRetries} retries`,
+					status: 0,
+					code: 'MAX_RETRIES_EXCEEDED',
+				},
+				null
+			);
 
 		options?.onError?.(maxRetriesErrorResponse, path);
 		this.callbacks?.onError?.(maxRetriesErrorResponse, path);
