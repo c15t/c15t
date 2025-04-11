@@ -28,6 +28,10 @@
 	/* Shadows */
 	--switch-shadow-thumb: 0 0 0 1px hsl(0, 0%, 92.16%);
 	--switch-shadow-thumb-dark: 0 0 0 1px hsl(0, 0%, 20%);
+	--switch-focus-ring: hsl(228, 100%, 60%);
+	--switch-focus-ring-dark: hsl(228.07, 69.8%, 48.04%);
+	--switch-focus-shadow: 0 0 0 2px var(--switch-focus-ring);
+	--switch-focus-shadow-dark: 0 0 0 2px var(--switch-focus-ring-dark);
 }
 
 /* Root switch wrapper */
@@ -45,6 +49,7 @@
 	white-space: nowrap;
 	border: 0;
 	background: none;
+	border-radius: 9999px;
 }
 
 /* Switch track */
@@ -116,11 +121,12 @@
 }
 
 .root:focus {
-	outline: 2px solid var(--accordion-focus-ring);
+	outline: none;
 }
+
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
 :global(.c15t-dark) .root:focus {
-	outline: 2px solid var(--accordion-focus-ring-dark);
+	outline: none;
 }
 
 .track-disabled {
@@ -208,4 +214,14 @@
 
 .root[data-state="checked"] .thumb-disabled {
 	transform: translateX(var(--switch-thumb-translate));
+}
+
+.root:focus-visible {
+	outline: none;
+	box-shadow: var(--switch-focus-shadow);
+}
+
+/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+:global(.c15t-dark) .root:focus-visible {
+	box-shadow: var(--switch-focus-shadow-dark);
 }

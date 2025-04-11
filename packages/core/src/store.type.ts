@@ -89,6 +89,9 @@ export interface PrivacyConsentState {
 	/** Translation configuration */
 	translationConfig: TranslationConfig;
 
+	/** Whether the provider is using c15t.dev domain */
+	isConsentDomain: boolean;
+
 	/**
 	 * Updates the translation configuration.
 	 * @param config - The new translation configuration

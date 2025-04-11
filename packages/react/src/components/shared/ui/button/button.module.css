@@ -14,6 +14,10 @@
 	--button-neutral-soft: hsl(0, 0%, 92.16%);
 	--button-neutral-soft-dark: hsl(220, 15%, 30%);
 
+	/* Focus Colors */
+	--button-focus-ring: hsl(227.93, 100%, 63.92%);
+	--button-focus-ring-dark: hsl(228.07, 69.8%, 48.04%);
+
 	/* Theme Colors */
 	--button-text: hsla(0, 0%, 36%, 1);
 	--button-text-dark: hsla(0, 0%, 70%, 1);
@@ -44,8 +48,10 @@
 	--button-shadow-dark: 0px 1px 2px 0px hsla(0, 0%, 50%, 0.06);
 
 	/* Focus Shadows */
-	--button-shadow-primary-focus: 0 0 0 4px hsla(227.93, 100%, 63.92%, 20%);
-	--button-shadow-neutral-focus: 0 0 0 4px hsla(0, 0%, 9.02%, 20%);
+	--button-shadow-primary-focus: 0 0 0 2px var(--button-focus-ring);
+	--button-shadow-neutral-focus: 0 0 0 2px var(--button-focus-ring);
+	--button-shadow-primary-focus-dark: 0 0 0 2px var(--button-focus-ring-dark);
+	--button-shadow-neutral-focus-dark: 0 0 0 2px var(--button-focus-ring-dark);
 
 	/* Primary Shadows */
 	--button-shadow-primary: var(--button-shadow), inset 0 0 0 1px
@@ -80,6 +86,17 @@
 	line-height: var(--button-line-height);
 	color: var(--button-text);
 	font-family: var(--button-font);
+}
+
+/* Focus Styles */
+.button:focus-visible {
+	outline: none;
+	box-shadow: var(--button-shadow-primary-focus);
+}
+
+/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+:global(.c15t-dark) .button:focus-visible {
+	box-shadow: var(--button-shadow-primary-focus-dark);
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
@@ -121,6 +138,10 @@
 .button-primary-filled {
 	background-color: var(--button-primary);
 	color: var(--button-background-color);
+}
+
+.button-primary-filled:focus-visible {
+	box-shadow: var(--button-shadow-primary-focus);
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
@@ -212,6 +233,10 @@
 .button-neutral-filled {
 	background-color: var(--button-neutral);
 	color: var(--button-background-color);
+}
+
+.button-neutral-filled:focus-visible {
+	box-shadow: var(--button-shadow-neutral-focus);
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */

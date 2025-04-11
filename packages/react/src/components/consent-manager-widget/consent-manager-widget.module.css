@@ -54,7 +54,9 @@
 	--widget-accordion-content-color: hsl(0, 0%, 36.08%);
 	--widget-accordion-content-color-dark: hsl(0, 0%, 60%);
 	--widget-accordion-focus-ring: hsl(227.93, 100%, 63.92%);
-	--widget-accordion-focus-ring-dark: hsl(227.93, 100%, 80%);
+	--widget-accordion-focus-ring-dark: hsl(228.07, 69.8%, 48.04%);
+	--widget-accordion-focus-shadow: 0 0 0 2px hsl(227.93, 100%, 63.92%);
+	--widget-accordion-focus-shadow-dark: 0 0 0 2px hsl(228.07, 69.8%, 48.04%);
 }
 
 .widget {
@@ -255,7 +257,13 @@
 	border-radius: var(--widget-accordion-radius);
 	border: 1px solid var(--widget-accordion-border-color);
 	background-color: var(--widget-accordion-background-color);
-	overflow: hidden;
+	position: relative;
+	overflow: visible;
+}
+
+/* Add focus styles to accordionItem when accordionTriggerInner is focused */
+.accordionItem:has(.accordionTriggerInner:focus-visible) {
+	box-shadow: 0 0 0 2px var(--widget-accordion-focus-ring);
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
@@ -296,7 +304,10 @@
 	gap: var(--widget-gap);
 	font-size: var(--widget-title-size);
 	font-weight: var(--widget-title-weight);
+	position: relative;
+	border-radius: var(--widget-accordion-radius);
 }
+
 
 .accordionContent {
 	padding: var(--widget-accordion-padding);

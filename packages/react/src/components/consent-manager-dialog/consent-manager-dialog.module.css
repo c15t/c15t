@@ -95,11 +95,10 @@
 }
 
 .branding {
-	flex: 1;
+  display: flex;
+  margin: auto 0;
 	justify-content: center;
 	align-items: center;
-	display: flex;
-	flex-direction: row;
 	gap: var(--dialog-branding-gap);
 	font-size: var(--dialog-branding-font-size);
 	font-weight: var(--dialog-branding-font-weight);
@@ -114,9 +113,14 @@
 	color: var(--dialog-foreground-color-dark);
 }
 
-.branding svg {
-	width: var(--dialog-branding-icon-width);
+.brandingC15T{
+  width: var(--dialog-branding-icon-width);
 	height: var(--dialog-branding-icon-height);
+}
+
+.brandingConsent{
+  width: var(--dialog-branding-icon-width);
+	height: 1rem;
 }
 
 .headerWrapper {

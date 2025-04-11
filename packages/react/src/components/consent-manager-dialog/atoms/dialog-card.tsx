@@ -10,7 +10,8 @@ import { type ReactNode, type Ref, forwardRef } from 'react';
 
 import { ConsentManagerWidget } from '~/components/consent-manager-widget/consent-manager-widget';
 import { Box, type BoxProps } from '~/components/shared/primitives/box';
-import { ConsentManagementIcon } from '~/components/shared/ui/logo';
+import { C15TIcon, ConsentLogo } from '~/components/shared/ui/logo';
+import { useConsentManager } from '~/hooks';
 import { useTranslations } from '~/hooks/use-translations';
 import type { ClassNameStyle } from '~/types/theme';
 import styles from '../consent-manager-dialog.module.css';
@@ -167,23 +168,49 @@ const DialogContent = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
  * - Includes c15t.com branding by default
  * - Can be customized through theme configuration
  */
-const DialogFooter = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
-	({ ...props }, ref) => {
+const DialogFooter = forwardRef<HTMLDivElement, BoxProps>(
+	({ children, themeKey, ...props }, ref) => {
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
 				className={styles.footer}
-				themeKey="dialog.footer"
+				themeKey={themeKey || 'dialog.footer'}
 				{...props}
 				data-testid="consent-manager-dialog-footer"
 			>
-				<a className={styles.branding} href="https://c15t.com">
-					Secured by <ConsentManagementIcon />
-				</a>
+				{children}
 			</Box>
 		);
 	}
 );
+
+/**
+ * The branding footer with configurable logo
+ */
+export const BrandingFooter = () => {
+	const consentManager = useConsentManager();
+
+	const refParam =
+		typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
+
+	return (
+		<a
+			className={styles.branding}
+			href={
+				consentManager.isConsentDomain
+					? `https://consent.io${refParam}`
+					: `https://c15t.com${refParam}`
+			}
+		>
+			Secured by{' '}
+			{consentManager.isConsentDomain ? (
+				<ConsentLogo className={styles.brandingConsent} />
+			) : (
+				<C15TIcon className={styles.brandingC15T} />
+			)}
+		</a>
+	);
+};
 
 /**
  * A pre-configured privacy settings dialog card.
@@ -191,6 +218,7 @@ const DialogFooter = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
  *
  * @param {Object} props - Component props
  * @param {boolean} [props.noStyle] - When true, removes default styling
+ * @param {boolean} [props.useConsentLogo] - When true, uses the Consent logo instead of C15T logo
  *
  * @example
  * ```tsx
@@ -203,7 +231,12 @@ const DialogFooter = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
  * - Includes consent type management
  * - Built-in accessibility features
  */
-const ConsentCustomizationCard = ({ noStyle }: { noStyle?: boolean }) => {
+const ConsentCustomizationCard = ({
+	noStyle,
+}: {
+	noStyle?: boolean;
+	useConsentLogo?: boolean;
+}) => {
 	const translations = useTranslations();
 
 	return (
@@ -223,7 +256,9 @@ const ConsentCustomizationCard = ({ noStyle }: { noStyle?: boolean }) => {
 					useProvider={false}
 				/>
 			</DialogContent>
-			<DialogFooter />
+			<DialogFooter themeKey="dialog.footer">
+				<BrandingFooter />
+			</DialogFooter>
 		</DialogCard>
 	);
 };

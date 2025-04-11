@@ -1,17 +1,11 @@
 'use client';
 
-/**
- * @packageDocumentation
- * Provides the main widget component for privacy consent management.
- * Implements a compound component pattern for flexible consent interface building.
- */
-
-// import '../ui/components/card.css';
-import { Box } from '../shared/primitives/box';
-
 import { useState } from 'react';
 import { useTranslations } from '~/hooks/use-translations';
-import { ConsentManagementIcon } from '../shared/ui/logo';
+import {
+	BrandingFooter,
+	DialogFooter,
+} from '../consent-manager-dialog/atoms/dialog-card';
 import {
 	ConsentManagerWidgetAccordion,
 	ConsentManagerWidgetAccordionItems,
@@ -75,6 +69,9 @@ export const ConsentManagerWidget = ({
 }: ConsentManagerWidgetProps) => {
 	const [openItems, setOpenItems] = useState<string[]>([]);
 	const { consentManagerWidget } = useTranslations();
+	const refParam =
+		typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
+
 	return (
 		<ConsentManagerWidgetRoot {...props}>
 			<ConsentManagerWidgetAccordion
@@ -99,17 +96,9 @@ export const ConsentManagerWidget = ({
 				</ConsentManagerWidgetSaveButton>
 			</ConsentManagerWidgetFooter>
 			{!hideBrading && (
-				<Box
-					baseClassName="c15t-consent-manager-widget-branding"
-					themeKey="widget.branding"
-				>
-					<a
-						className="c15t-consent-manager-widget-branding-link"
-						href="https://c15t.com"
-					>
-						Secured by <ConsentManagementIcon className="h-4" />
-					</a>
-				</Box>
+				<DialogFooter themeKey="widget.branding">
+					<BrandingFooter />
+				</DialogFooter>
 			)}
 		</ConsentManagerWidgetRoot>
 	);

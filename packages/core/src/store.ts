@@ -158,6 +158,13 @@ export const createConsentManagerStore = (
 ) => {
 	const { namespace = 'c15tStore', trackingBlockerConfig } = options;
 
+	// Check if the provider is using c15t.dev domain this means we are using consent
+	const isConsentDomain = true;
+	// if (manager && 'baseURL' in manager) {
+	// 	const baseURL = manager.baseURL as string;
+	// 	isConsentDomain = Boolean(baseURL?.includes('c15t.dev'));
+	// }
+
 	// Load initial state from localStorage if available
 	const storedConsent = getStoredConsent();
 
@@ -199,6 +206,8 @@ export const createConsentManagerStore = (
 
 	const store = createStore<PrivacyConsentState>((set, get) => ({
 		...initialState,
+		// Set isConsentDomain based on the provider's baseURL
+		isConsentDomain,
 		// Override the callbacks with merged callbacks
 		callbacks: mergedCallbacks,
 		...(storedConsent

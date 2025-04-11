@@ -1,15 +1,15 @@
 import type { SVGProps } from 'react';
 
-interface ConsentManagementIconProps {
+interface C15TIconProps {
 	title?: string;
 	titleId?: string;
 }
 
-export const ConsentManagementIcon = ({
+export const C15TIcon = ({
 	title = 'Consent Management',
 	titleId = 'Consent Management',
 	...props
-}: SVGProps<SVGSVGElement> & ConsentManagementIconProps) => (
+}: SVGProps<SVGSVGElement> & C15TIconProps) => (
 	<svg
 		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 1362 160"

@@ -98,7 +98,7 @@ export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 	const consentManager = useConsentManager();
 	const [isMounted, setIsMounted] = useState(false);
 	const contentRef = useRef<HTMLDivElement>(null);
-	const dialogRef = useRef<HTMLDivElement>(null); // Add this new ref
+	const dialogRef = useRef<HTMLDivElement>(null);
 
 	// Handle client-side mounting
 	useEffect(() => {

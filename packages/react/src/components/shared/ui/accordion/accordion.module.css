@@ -24,7 +24,9 @@
 	--accordion-content-color: hsl(0, 0%, 36.08%);
 	--accordion-content-color-dark: hsl(0, 0%, 60%);
 	--accordion-focus-ring: hsl(227.93, 100%, 63.92%);
-	--accordion-focus-ring-dark: hsl(227.93, 100%, 80%);
+	--accordion-focus-ring-dark: hsl(228.07, 69.8%, 48.04%);
+	--accordion-focus-shadow: 0 0 0 2px var(--accordion-focus-ring);
+	--accordion-focus-shadow-dark: 0 0 0 2px var(--accordion-focus-ring-dark);
 }
 
 .root {
@@ -42,6 +44,7 @@
 	box-shadow: inset 0 0 0 1px var(--accordion-border-color);
 	transition: all var(--accordion-duration) var(--accordion-ease);
 	border-radius: var(--accordion-radius);
+	overflow: visible;
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
@@ -50,15 +53,36 @@
 	box-shadow: inset 0 0 0 1px var(--accordion-border-color-dark);
 }
 
-.item:is(:hover, :focus-within, [data-state="open"]) {
+.item:is(:hover, [data-state="open"]) {
 	background-color: var(--accordion-background-hover);
 	box-shadow: inset 0 0 0 1px transparent;
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.c15t-dark) .item:is(:hover, :focus-within, [data-state="open"]) {
+:global(.c15t-dark) .item:is(:hover, [data-state="open"]) {
 	background-color: var(--accordion-background-hover-dark);
 	box-shadow: inset 0 0 0 1px transparent;
+}
+
+/* Focus styles for item */
+.item:focus-within:not(:has(.triggerInner:focus-visible)) {
+	background-color: var(--accordion-background-hover);
+	box-shadow: inset 0 0 0 1px transparent;
+}
+
+/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+:global(.c15t-dark) .item:focus-within:not(:has(.triggerInner:focus-visible)) {
+	background-color: var(--accordion-background-hover-dark);
+	box-shadow: inset 0 0 0 1px transparent;
+}
+
+.item:has(.triggerInner:focus-visible) {
+	box-shadow: var(--accordion-focus-shadow);
+}
+
+/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+:global(.c15t-dark) .item:has(.triggerInner:focus-visible) {
+	box-shadow: var(--accordion-focus-shadow-dark);
 }
 
 .trigger {
@@ -67,6 +91,7 @@
 	justify-content: space-between;
 	position: relative;
 	width: 100%;
+	overflow: visible;
 }
 
 .triggerInner {
@@ -87,6 +112,9 @@
 	background: none;
 	cursor: pointer;
 	padding-right: 0;
+	border-radius: var(--accordion-radius);
+	position: relative;
+	z-index: 1;
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
@@ -94,15 +122,8 @@
 	color: var(--accordion-text-color-dark);
 }
 
-.trigger:focus-visible {
-	outline: 2px solid var(--accordion-focus-ring);
-	outline-offset: -2px;
-	border-radius: calc(var(--accordion-radius) - 2px);
-}
-
-/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.c15t-dark) .trigger:focus-visible {
-	outline: 2px solid var(--accordion-focus-ring-dark);
+.triggerInner:focus-visible {
+	outline: none;
 }
 
 .icon {

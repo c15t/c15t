@@ -65,6 +65,9 @@ export const initialState: Omit<
 	/** Privacy dialog starts closed */
 	isPrivacyDialogOpen: false,
 
+	/** Default to not using c15t.dev domain */
+	isConsentDomain: false,
+
 	/** Default compliance settings per region */
 	complianceSettings: {
 		/** GDPR: Enabled globally by default */
