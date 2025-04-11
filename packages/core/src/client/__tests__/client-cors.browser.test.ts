@@ -200,14 +200,8 @@ describe('CORS functionality', () => {
 		);
 		vi.mocked(window.fetch).mockRejectedValueOnce(corsError);
 
-		// Mock the error transformation - since the original error message gets lost in the client
-		const onErrorMock = vi.fn().mockImplementation((errorContext) => {
-			// Update the error message to include the original CORS error message
-			if (errorContext.error) {
-				errorContext.error.message =
-					'Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource';
-			}
-		});
+		// Simple error callback to verify it's called
+		const onErrorMock = vi.fn();
 
 		// Make the request
 		const response = await client.showConsentBanner({
@@ -217,8 +211,15 @@ describe('CORS functionality', () => {
 		// Verify error handling for missing CORS headers
 		expect(response.ok).toBe(false);
 		expect(response.error?.code).toBe('NETWORK_ERROR');
-		// Just check the error type instead of message content
 		expect(onErrorMock).toHaveBeenCalled();
+		// Verify first argument contains the expected error code
+		expect(onErrorMock.mock.calls[0][0]).toEqual(
+			expect.objectContaining({
+				error: expect.objectContaining({
+					code: 'NETWORK_ERROR',
+				}),
+			})
+		);
 	});
 
 	it('should handle preflight rejection', async () => {
@@ -232,14 +233,8 @@ describe('CORS functionality', () => {
 		);
 		vi.mocked(window.fetch).mockRejectedValueOnce(corsError);
 
-		// Mock the error transformation - since the original error message gets lost in the client
-		const onErrorMock = vi.fn().mockImplementation((errorContext) => {
-			// Update the error message to include the original CORS error message
-			if (errorContext.error) {
-				errorContext.error.message =
-					'Failed to fetch: OPTIONS preflight response did not succeed';
-			}
-		});
+		// Simple error callback to verify it's called
+		const onErrorMock = vi.fn();
 
 		// Make the request with a custom header to trigger preflight
 		const response = await client.setConsent({
@@ -259,8 +254,15 @@ describe('CORS functionality', () => {
 		// Verify error handling for preflight rejection
 		expect(response.ok).toBe(false);
 		expect(response.error?.code).toBe('NETWORK_ERROR');
-		// Just check the error callback was called instead of message content
 		expect(onErrorMock).toHaveBeenCalled();
+		// Verify first argument contains the expected error code
+		expect(onErrorMock.mock.calls[0][0]).toEqual(
+			expect.objectContaining({
+				error: expect.objectContaining({
+					code: 'NETWORK_ERROR',
+				}),
+			})
+		);
 	});
 
 	// Additional CORS configurations:
@@ -368,12 +370,10 @@ describe('CORS functionality', () => {
 		const originalSetTimeout = global.setTimeout;
 		global.setTimeout = vi
 			.fn()
-			.mockImplementation(
-				(callback: (...args: unknown[]) => void, ms: number) => {
-					callback();
-					return 1;
-				}
-			) as unknown as typeof setTimeout;
+			.mockImplementation((callback: (...args: unknown[]) => void) => {
+				callback();
+				return 1;
+			}) as unknown as typeof setTimeout;
 
 		try {
 			// Make the request
