@@ -18,8 +18,8 @@
 	/* Colors */
 	--dialog-stroke-color: hsl(0, 0%, 92.16%);
 	--dialog-stroke-color-dark: hsl(0, 0%, 20%);
-	--dialog-branding-link-color: #47c2ff;
-	--dialog-branding-link-color-dark: #47c2ff;
+	--dialog-branding-focus-color: hsl(227.93, 100%, 63.92%);
+	--dialog-branding-focus-color-dark: hsl(228.07, 69.8%, 48.04%);
 	--dialog-link-text-color: hsl(0, 0%, 9.02%);
 	--dialog-link-text-color-dark: hsl(0, 0%, 90%);
 	--dialog-border-color: hsl(0, 0%, 92.16%);
@@ -106,6 +106,18 @@
 	letter-spacing: var(--dialog-branding-letter-spacing);
 	color: var(--dialog-foreground-color);
 	text-decoration: none;
+  border-radius: 0.25rem;
+  padding: 0 0.5rem;
+}
+
+.branding:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px var(--dialog-branding-focus-color);
+}
+
+/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+:global(.c15t-dark) .branding:focus-visible {
+	box-shadow: 0 0 0 2px var(--dialog-branding-focus-color-dark);
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
