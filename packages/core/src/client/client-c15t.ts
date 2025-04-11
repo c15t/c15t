@@ -269,7 +269,7 @@ export class C15tClient implements ConsentManagerInterface {
 			backoffFactor,
 			retryableStatusCodes,
 			shouldRetry: customShouldRetry,
-			retryOnNetworkError
+			retryOnNetworkError,
 		} = finalRetryConfig;
 
 		// Keep track of attempts (0-based)
@@ -408,13 +408,15 @@ export class C15tClient implements ConsentManagerInterface {
 
 				// Check if we should retry based on status code and custom retry strategy
 				let shouldRetryThisRequest = false;
-				
+
 				// Apply custom retry strategy if provided
 				if (typeof customShouldRetry === 'function') {
 					shouldRetryThisRequest = customShouldRetry(response);
 				} else {
 					// Fall back to retryableStatusCodes if no custom strategy
-					shouldRetryThisRequest = retryableStatusCodes.includes(response.status);
+					shouldRetryThisRequest = retryableStatusCodes.includes(
+						response.status
+					);
 				}
 
 				// Don't retry if we've already made maximum attempts
@@ -431,7 +433,7 @@ export class C15tClient implements ConsentManagerInterface {
 
 				// Increment attempt count BEFORE retrying
 				attemptsMade++;
-				
+
 				// Wait before retrying
 				await delay(currentDelay);
 				currentDelay *= backoffFactor; // Exponential backoff
@@ -462,7 +464,7 @@ export class C15tClient implements ConsentManagerInterface {
 					},
 					null // No response object available
 				);
-				
+
 				// Store last error response
 				lastErrorResponse = errorResponse;
 
@@ -482,7 +484,7 @@ export class C15tClient implements ConsentManagerInterface {
 
 				// Increment attempt count BEFORE retrying
 				attemptsMade++;
-				
+
 				// Wait before retrying
 				await delay(currentDelay);
 				currentDelay *= backoffFactor; // Exponential backoff
@@ -491,7 +493,8 @@ export class C15tClient implements ConsentManagerInterface {
 
 		// This should be unreachable with the above logic
 		// But just in case, return the last error we encountered
-		const maxRetriesErrorResponse = lastErrorResponse || 
+		const maxRetriesErrorResponse =
+			lastErrorResponse ||
 			this.createResponseContext<ResponseType>(
 				false,
 				null,

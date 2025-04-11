@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fetchMock, mockLocalStorage } from '../../../vitest.setup';
 import { configureConsentManager } from '../client-factory';
 import { OfflineClient } from '../client-offline';
-import { mockLocalStorage, fetchMock } from '../../../vitest.setup';
 
 describe('Offline Client Tests', () => {
 	beforeEach(() => {

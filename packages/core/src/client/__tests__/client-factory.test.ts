@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { configureConsentManager } from '../client-factory';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fetchMock, mockLocalStorage } from '../../../vitest.setup';
 import { C15tClient } from '../client-c15t';
-import { OfflineClient } from '../client-offline';
 import { CustomClient } from '../client-custom';
-import { mockLocalStorage, fetchMock } from '../../../vitest.setup';
+import { configureConsentManager } from '../client-factory';
+import { OfflineClient } from '../client-offline';
 
 describe('Client Factory Tests', () => {
 	beforeEach(() => {

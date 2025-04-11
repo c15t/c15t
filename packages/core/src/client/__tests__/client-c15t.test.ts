@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fetchMock, mockLocalStorage } from '../../../vitest.setup';
 import {
-	configureConsentManager,
 	type ConsentManagerOptions,
+	configureConsentManager,
 } from '../client-factory';
 import { API_ENDPOINTS } from '../types';
-import { mockLocalStorage, fetchMock } from '../../../vitest.setup';
 
 describe('C15t Client Tests', () => {
 	beforeEach(() => {
@@ -359,8 +359,10 @@ describe('C15t Client Retry Logic Tests', () => {
 	it('should apply custom retry strategy if provided', async () => {
 		// We found that the custom shouldRetry function doesn't seem to be working properly
 		// For now, skip this test and just use status code-based retries
-		console.log('Custom retry strategy test is being skipped - needs more investigation');
-		
+		console.log(
+			'Custom retry strategy test is being skipped - needs more investigation'
+		);
+
 		// Instead of failing the test, we'll mark it as passed for now
 		// TODO: Investigate proper implementation of custom retry strategies
 		expect(true).toBe(true);
@@ -369,8 +371,12 @@ describe('C15t Client Retry Logic Tests', () => {
 	it('should retry on specific status codes', async () => {
 		// Mock failed responses
 		fetchMock
-			.mockResolvedValueOnce(new Response(JSON.stringify({ message: 'Error' }), { status: 503 }))
-			.mockResolvedValueOnce(new Response(JSON.stringify({ success: true }), { status: 200 }));
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ message: 'Error' }), { status: 503 })
+			)
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ success: true }), { status: 200 })
+			);
 
 		const config: ConsentManagerOptions = {
 			mode: 'c15t',
@@ -379,10 +385,10 @@ describe('C15t Client Retry Logic Tests', () => {
 			retryConfig: {
 				maxRetries: 1,
 				initialDelayMs: 10,
-				retryableStatusCodes: [503] // 503 specifically included
-			}
+				retryableStatusCodes: [503], // 503 specifically included
+			},
 		};
-		
+
 		const client = configureConsentManager(config);
 		const response = await client.showConsentBanner();
 
