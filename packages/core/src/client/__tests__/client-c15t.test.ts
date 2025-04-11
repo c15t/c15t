@@ -20,7 +20,7 @@ describe('C15t Client Tests', () => {
 				JSON.stringify({
 					showConsentBanner: true,
 					jurisdiction: { code: 'EU', message: 'European Union' },
-					location: { countryCode: 'DE' },
+					location: { countryCode: 'DE', regionCode: null },
 				}),
 				{ status: 200, headers: { 'Content-Type': 'application/json' } }
 			)
@@ -45,7 +45,7 @@ describe('C15t Client Tests', () => {
 		expect(response.data).toEqual({
 			showConsentBanner: true,
 			jurisdiction: { code: 'EU', message: 'European Union' },
-			location: { countryCode: 'DE' },
+			location: { countryCode: 'DE', regionCode: null },
 		});
 	});
 
@@ -152,7 +152,7 @@ describe('C15t Client Tests', () => {
 
 		// Assertions
 		expect(fetchMock).toHaveBeenCalledWith(
-			expect.any(String),
+			expect.stringContaining('/api/c15t/show-consent-banner'),
 			expect.objectContaining({
 				headers: expect.objectContaining({
 					'X-Custom-Header': 'test-value',
@@ -182,7 +182,6 @@ describe('C15t Client Tests', () => {
 		const config: ConsentManagerOptions = {
 			mode: 'c15t',
 			backendURL: '/api/c15t',
-			// @ts-ignore: retryConfig is not part of the ConsentManagerOptions type
 			retryConfig: {
 				maxRetries: 1,
 				initialDelayMs: 10, // Small delay for test
@@ -249,7 +248,6 @@ describe('C15t Client Retry Logic Tests', () => {
 		const config: ConsentManagerOptions = {
 			mode: 'c15t',
 			backendURL: '/api/c15t',
-			// @ts-ignore: retryConfig
 			retryConfig: {
 				maxRetries: 2, // Should only retry twice
 				initialDelayMs: 10,

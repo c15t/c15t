@@ -20,7 +20,7 @@ import type {
 	ConsentManagerInterface,
 } from './client-interface';
 import { OfflineClient } from './client-offline';
-import type { FetchOptions, ResponseContext } from './types';
+import type { FetchOptions, ResponseContext, RetryConfig } from './types';
 
 /**
  * Default API endpoint URL
@@ -78,6 +78,11 @@ export type ConsentManagerOptions = {
 			 * Custom fetch implementation
 			 */
 			customFetch?: typeof fetch;
+
+			/**
+			 * Retry configuration
+			 */
+			retryConfig?: RetryConfig;
 	  }
 	| {
 			/**

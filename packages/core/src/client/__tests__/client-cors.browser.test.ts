@@ -38,7 +38,7 @@ describe('CORS functionality', () => {
 
 		// Verify the CORS mode was set correctly
 		expect(window.fetch).toHaveBeenCalledWith(
-			expect.any(String),
+			expect.stringContaining('/api/c15t/show-consent-banner'),
 			expect.objectContaining({
 				mode: 'same-origin',
 			})
@@ -64,7 +64,7 @@ describe('CORS functionality', () => {
 
 		// Verify the default CORS mode was used
 		expect(window.fetch).toHaveBeenCalledWith(
-			expect.any(String),
+			expect.stringContaining('/api/c15t/show-consent-banner'),
 			expect.objectContaining({
 				mode: 'cors', // Default mode
 			})
@@ -89,7 +89,7 @@ describe('CORS functionality', () => {
 
 		// Verify credentials are included
 		expect(window.fetch).toHaveBeenCalledWith(
-			expect.any(String),
+			expect.stringContaining('/api/c15t/show-consent-banner'),
 			expect.objectContaining({
 				credentials: 'include',
 			})

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { C15tClient } from '../client-c15t';
+import { C15tClient } from '../client-c15t';
 import { CustomClient } from '../client-custom';
 import { configureConsentManager } from '../client-factory';
 import { OfflineClient } from '../client-offline';
@@ -65,26 +65,39 @@ describe('C15t Client Browser Tests', () => {
 	});
 
 	it('should set Content-Type header for POST requests', async () => {
-		// Configure the client
-		const client = configureConsentManager({
-			mode: 'c15t',
-			backendURL: '/api/c15t',
-		}) as C15tClient;
+		// Direct fetch spy
+		const fetchSpy = vi.spyOn(window, 'fetch');
 
-		// Call the API with a POST request
-		await client.setConsent({
-			body: {
-				type: 'cookie_banner',
-				domain: 'example.com',
-				preferences: {
-					analytics: true,
-				},
-			},
+		// Configure client
+		const client = new C15tClient({
+			backendURL: '/api/c15t',
 		});
 
-		// Assertions
+		// Mock successful response
+		fetchSpy.mockResolvedValueOnce(
+			new Response(JSON.stringify({ success: true }), {
+				status: 200,
+				headers: { 'Content-Type': 'application/json' },
+			})
+		);
+
+		// Create test data
+		const consentData = {
+			type: 'cookie_banner' as const,
+			domain: 'example.com',
+			preferences: {
+				analytics: true,
+			},
+		};
+
+		// Call API
+		await client.setConsent({
+			body: consentData,
+		});
+
+		// Verify Content-Type header was set
 		expect(fetchSpy).toHaveBeenCalledWith(
-			expect.any(String),
+			expect.stringContaining('/api/c15t/consent/set'), // Updated to match the correct path
 			expect.objectContaining({
 				method: 'POST',
 				headers: expect.objectContaining({
@@ -122,12 +135,13 @@ describe('C15t Client Browser Tests', () => {
 		});
 
 		// Print debugging info
-		console.log('Response after fetch error:', {
-			ok: response.ok,
-			error: response.error,
-			errorWasCaught,
-		});
+		// Check error handler was called
+		expect(errorWasCaught).toBe(true);
 
+		// Check response properties
+		expect(response.ok).toBe(false);
+		expect(response.error).toBeDefined();
+		expect(response.error?.message).toContain('fetch failed');
 		// In the browser environment, the implementation might not set all
 		// the expected values correctly. For now, we'll just check that
 		// the request was made at all and didn't crash.
@@ -234,7 +248,7 @@ describe('Custom Client Browser Tests', () => {
 			data: {
 				showConsentBanner: true,
 				jurisdiction: { code: 'EU', message: 'European Union' },
-				location: { countryCode: 'DE' },
+				location: { countryCode: 'DE', regionCode: null },
 			},
 			ok: true,
 			error: null,
@@ -287,11 +301,6 @@ describe('Custom Client Browser Tests', () => {
 
 		// Call the API
 		const response = await client.showConsentBanner();
-
-		// Fix the type mismatch by adding the missing regionCode property
-		if (response.data) {
-			response.data.location.regionCode = null;
-		}
 
 		// Assertions
 		expect(handlers.showConsentBanner).toHaveBeenCalledTimes(1);
