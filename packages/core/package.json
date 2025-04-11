@@ -3,9 +3,6 @@
 	"version": "0.0.1-rc.19",
 	"license": "GPL-3.0-only",
 	"type": "module",
-	"main": "dist/index.cjs",
-	"module": "dist/index.js",
-	"types": "dist/index.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -13,6 +10,9 @@
 			"require": "./dist/index.cjs"
 		}
 	},
+	"main": "dist/index.cjs",
+	"module": "dist/index.js",
+	"types": "dist/index.d.ts",
 	"scripts": {
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
@@ -20,12 +20,12 @@
 		"dev": "rslib build --watch",
 		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"lint": "pnpm biome lint ./src",
-		"test": "vitest run",
-		"test:coverage": "vitest run --coverage",
-		"test:watch": "vitest",
+		"test": "npm run test:node && npm run test:browser",
 		"test:browser": "vitest run --config vitest.browser.config.ts",
 		"test:browser:watch": "vitest --config vitest.browser.config.ts",
-		"test:all": "npm run test && npm run test:browser"
+		"test:coverage": "vitest run --coverage",
+		"test:node": "vitest run",
+		"test:node:watch": "vitest"
 	},
 	"browserslist": [">0.2%", "not dead", "not op_mini all"],
 	"dependencies": {
