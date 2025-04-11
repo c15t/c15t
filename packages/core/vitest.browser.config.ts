@@ -2,7 +2,7 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 
-// Configuration for Node.js tests
+// Configuration for browser tests
 export default defineConfig({
 	resolve: {
 		alias: {
@@ -11,10 +11,8 @@ export default defineConfig({
 	},
 	test: {
 		globals: true,
-		environment: 'node',
-		include: ['**/__tests__/**/*.test.ts'],
-		exclude: ['**/__tests__/**/*.browser.test.ts'],
-		setupFiles: ['./vitest.setup.ts'],
-		mockReset: false,
+		environment: 'jsdom',
+		include: ['**/__tests__/**/*.browser.test.ts'],
+		// No setup files for browser tests since they use real browser APIs
 	},
 });

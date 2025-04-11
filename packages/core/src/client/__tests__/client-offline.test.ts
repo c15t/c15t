@@ -1,0 +1,113 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { configureConsentManager } from '../client-factory';
+import { OfflineClient } from '../client-offline';
+import { mockLocalStorage, fetchMock } from '../../../vitest.setup';
+
+describe('Offline Client Tests', () => {
+	beforeEach(() => {
+		vi.resetAllMocks();
+		mockLocalStorage.clear();
+	});
+
+	it('should check localStorage for consent banner visibility', async () => {
+		// Mock localStorage to return null (no stored consent)
+		mockLocalStorage.getItem.mockReturnValueOnce(null);
+
+		// Configure the client
+		const client = configureConsentManager({
+			mode: 'offline',
+		});
+
+		// Call the API
+		const response = await client.showConsentBanner();
+
+		// Assertions
+		expect(mockLocalStorage.getItem).toHaveBeenCalledWith('c15t-consent');
+		expect(fetchMock).not.toHaveBeenCalled();
+		expect(response.ok).toBe(true);
+		expect(response.data?.showConsentBanner).toBe(true);
+	});
+
+	it('should not show banner when consent is stored in localStorage', async () => {
+		// Mock localStorage to return stored consent
+		mockLocalStorage.getItem.mockReturnValueOnce(
+			JSON.stringify({
+				timestamp: new Date().toISOString(),
+				preferences: { analytics: true },
+			})
+		);
+
+		// Configure the client
+		const client = configureConsentManager({
+			mode: 'offline',
+		});
+
+		// Call the API
+		const response = await client.showConsentBanner();
+
+		// Assertions
+		expect(mockLocalStorage.getItem).toHaveBeenCalledWith('c15t-consent');
+		expect(response.data?.showConsentBanner).toBe(false);
+	});
+
+	it('should store consent preferences in localStorage', async () => {
+		// Reset the mock
+		mockLocalStorage.setItem.mockClear();
+
+		const customKey = 'my-custom-consent-key';
+
+		// Create an instance of OfflineClient
+		const client = new OfflineClient({ localStorageKey: customKey });
+
+		// Call setConsent with properly typed data
+		const consentData = {
+			type: 'cookie_banner' as const,
+			domain: 'example.com',
+			preferences: {
+				analytics: true,
+				marketing: false,
+			},
+		};
+
+		await client.setConsent({ body: consentData });
+
+		// Verify localStorage was called with the correct key
+		expect(mockLocalStorage.setItem).toHaveBeenCalledTimes(1);
+		expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+			customKey,
+			expect.stringContaining(JSON.stringify(consentData.preferences))
+		);
+	});
+
+	it('should handle localStorage errors gracefully', async () => {
+		// Mock localStorage to throw an error
+		mockLocalStorage.getItem.mockImplementationOnce(() => {
+			throw new Error('localStorage is not available');
+		});
+
+		// Configure the client
+		const client = configureConsentManager({
+			mode: 'offline',
+		});
+
+		// Call the API - should not throw
+		const response = await client.showConsentBanner();
+
+		// Assertions - should default to showing the banner
+		expect(response.ok).toBe(true);
+		expect(response.data?.showConsentBanner).toBe(true);
+	});
+
+	it('should always verify consent as valid in offline mode', async () => {
+		// Configure the client
+		const client = configureConsentManager({
+			mode: 'offline',
+		});
+
+		// Call verify consent
+		const response = await client.verifyConsent();
+
+		// In offline mode, consent is always considered valid
+		expect(response.ok).toBe(true);
+	});
+});

@@ -38,7 +38,7 @@ function createDefaultConsentState(): ConsentState {
 }
 
 interface TrackingBlocker {
-	updateConsents: (newConsents: ConsentState) => void;
+	updateConsents: (newConsents: Partial<ConsentState>) => void;
 	destroy: () => void;
 }
 
@@ -202,8 +202,8 @@ export function createTrackingBlocker(
 	}
 
 	return {
-		updateConsents: (newConsents: ConsentState) => {
-			consents = newConsents;
+		updateConsents: (newConsents: Partial<ConsentState>) => {
+			consents = { ...consents, ...newConsents };
 		},
 		destroy: () => {
 			restoreOriginalRequests();

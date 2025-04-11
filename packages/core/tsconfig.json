@@ -8,5 +8,13 @@
 		}
 	},
 	"include": ["src"],
-	"exclude": ["node_modules"]
+	"exclude": [
+		"node_modules",
+		"**/__tests__/**",
+		"**/*.test.ts",
+		"**/*.test.tsx",
+		"**/*.spec.ts",
+		"**/*.spec.tsx",
+		"**/*.browser.test.ts"
+	]
 }
