@@ -431,9 +431,7 @@ export class C15tClient implements ConsentManagerInterface {
 							url: url.toString(),
 							method: requestOptions.method || 'GET',
 						});
-					} catch (error) {
-						// biome-ignore lint/suspicious/noConsole: this is a test
-						console.error('Error in custom retry strategy:', error);
+					} catch {
 						// Fall back to status code check if custom function throws
 						shouldRetryThisRequest =
 							retryableStatusCodes?.includes(response.status) ?? false;
