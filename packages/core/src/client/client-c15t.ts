@@ -33,6 +33,7 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
 	backoffFactor: 2,
 	retryableStatusCodes: [500, 502, 503, 504], // Default retryable server errors
 	retryOnNetworkError: true,
+	shouldRetry: undefined,
 };
 
 /**
@@ -289,6 +290,8 @@ export class C15tClient implements ConsentManagerInterface {
 		let lastErrorResponse: ResponseContext<ResponseType> | null = null;
 
 		// Loop for initial request + retries
+		// We're using a 0-based attempt counter, so we'll make a total of maxRetries+1 attempts
+		// (initial request = attempt 0, then retries 1 through maxRetries)
 		while (attemptsMade <= (maxRetries ?? 0)) {
 			const requestId = generateUUID(); // Generate new ID for each attempt
 			const fetchImpl = this.customFetch || globalThis.fetch;
@@ -423,8 +426,13 @@ export class C15tClient implements ConsentManagerInterface {
 				// Apply custom retry strategy if provided - it takes precedence over retryableStatusCodes
 				if (typeof finalRetryConfig.shouldRetry === 'function') {
 					try {
-						shouldRetryThisRequest = finalRetryConfig.shouldRetry(response);
+						shouldRetryThisRequest = finalRetryConfig.shouldRetry(response, {
+							attemptsMade,
+							url: url.toString(),
+							method: requestOptions.method || 'GET',
+						});
 					} catch (error) {
+						// biome-ignore lint/suspicious/noConsole: this is a test
 						console.error('Error in custom retry strategy:', error);
 						// Fall back to status code check if custom function throws
 						shouldRetryThisRequest =
