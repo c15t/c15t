@@ -2,7 +2,7 @@ import { GithubInfo } from 'fumadocs-ui/components/github-info';
 import type { DocsLayoutProps } from '~/components/layouts/notebook';
 
 import { C15TLogo } from '~/components/logo';
-import { version } from '../../../../packages/core/package.json';
+import packageJson from '../../../../packages/core/package.json';
 /**
  * Shared layout configurations
  *
@@ -19,7 +19,7 @@ export const docsOptions: Omit<DocsLayoutProps, 'tree'> = {
 		title: (
 			<>
 				<C15TLogo className="h-6 w-auto" />
-				<span className="font-medium text-sm">{version}</span>
+				<span className="font-medium text-sm">{packageJson.version}</span>
 			</>
 		),
 	},

@@ -2,7 +2,7 @@ import type { BaseLayoutProps } from '~/components/layouts/shared';
 import { C15TLogo } from '~/components/logo';
 
 import { GithubInfo } from 'fumadocs-ui/components/github-info';
-import { version } from '../../../packages/core/package.json';
+import packageJson from '../../../packages/core/package.json';
 
 /**
  * Defines the navigation structure and menu items for the docs.
@@ -14,7 +14,7 @@ export const docsOptions: BaseLayoutProps = {
 		title: (
 			<>
 				<C15TLogo className="h-6 w-auto" />
-				<span className="font-medium text-sm">{version}</span>
+				<span className="font-medium text-sm">{packageJson.version}</span>
 			</>
 		),
 		transparentMode: 'top',
