@@ -1,5 +1,5 @@
 /**
- * C15t backend implementation of the consent client interface.
+ * c15t backend implementation of the consent client interface.
  * This client makes HTTP requests to the c15t consent management backend.
  */
 
@@ -37,7 +37,7 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
 };
 
 /**
- * Configuration options for the C15t backend client
+ * Configuration options for the c15t backend client
  */
 export interface C15tClientOptions {
 	/**
@@ -114,7 +114,7 @@ function generateUUID(): string {
 }
 
 /**
- * C15t backend implementation of the consent client interface.
+ * c15t backend implementation of the consent client interface.
  * Makes HTTP requests to the c15t consent management backend.
  */
 export class C15tClient implements ConsentManagerInterface {
@@ -155,7 +155,7 @@ export class C15tClient implements ConsentManagerInterface {
 	private retryConfig: RetryConfig;
 
 	/**
-	 * Creates a new C15t client instance.
+	 * Creates a new c15t client instance.
 	 *
 	 * @param options - Configuration options for the client
 	 */

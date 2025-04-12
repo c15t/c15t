@@ -1,13 +1,13 @@
 export const c15tClientExample = `import { type ConsentManagerOptions } from '@c15t/react';
 
 /**
- * C15t Mode - Uses HTTP requests to a backend
+ * c15t Mode - Uses HTTP requests to a backend
  * 
  * This mode makes actual API requests to the configured endpoint.
  * You must provide a valid backendURL.
  */
 export const standardClient: ConsentManagerOptions = {
-    // Required backend URL for C15t mode
+    // Required backend URL for c15t mode
     backendURL: '/api/c15t',
     store: {
         initialGdprTypes: ['necessary', 'marketing'],

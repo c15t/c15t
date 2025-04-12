@@ -22,12 +22,6 @@ export function CTA() {
 							Get Started <ArrowRight className="h-4 w-4 sm:h-6 sm:w-6" />
 						</Link>
 					</Button>
-
-					<Button className="flex items-center gap-2" variant={'ghost'} asChild>
-						<Link href="https://cal.com/christopherburns/koroflow">
-							Book A demo
-						</Link>
-					</Button>
 				</div>
 				<BorderIcon className="-top-3 -left-3 absolute h-6 w-6 text-black dark:text-white" />
 				<BorderIcon className="-bottom-3 -left-3 absolute h-6 w-6 text-black dark:text-white" />

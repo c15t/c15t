@@ -29,11 +29,7 @@ export const siteConfig = {
 		title: 'Consent Management Redefined',
 		description:
 			'Leverage native React components for seamless integration and high performance in a robust Consent Management solution that empowers your development team while prioritizing privacy and compliance.',
-		cta: { text: 'Get Started', href: '/docs/framework/react' },
-		demo: {
-			text: 'Book A Demo',
-			href: 'https://cal.com/christopherburns/koroflow',
-		},
+		cta: { text: 'Get Started', href: '/docs/nextjs/quickstart' },
 	},
 	features: [
 		{

@@ -164,6 +164,7 @@ export function Sidebar({
 					'fixed z-10 bg-fd-card text-sm md:sticky md:h-(--fd-sidebar-height)',
 					'max-md:inset-x-0 max-md:bottom-0 max-md:bg-fd-background/80 max-md:text-[15px] max-md:backdrop-blur-lg max-md:data-[open=false]:invisible',
 					'mt-(--fd-nav-height)',
+					'md:sticky md:top-[calc(var(--fd-banner-height)+var(--fd-nav-height))]',
 					props.className
 				)}
 				style={
