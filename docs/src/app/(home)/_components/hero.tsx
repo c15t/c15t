@@ -71,15 +71,6 @@ export function Hero() {
 								{siteConfig.hero.cta.text}
 								<ArrowRight className="h-4 w-4 sm:h-6 sm:w-6" />
 							</Link>
-							<Link
-								href={siteConfig.hero.demo.href}
-								className={cn(
-									buttonVariants({ variant: 'ghost' }),
-									'flex w-full gap-2 rounded-lg sm:w-auto'
-								)}
-							>
-								{siteConfig.hero.demo.text}
-							</Link>
 						</div>
 					</div>
 				</div>

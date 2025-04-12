@@ -3,16 +3,16 @@ import { JSIcon, NextIcon, ReactIcon } from '../icons';
 
 const frameworkCards = [
 	{
-		href: '/docs/nextjs',
+		href: '/docs/nextjs/quickstart',
 		title: 'Next.js',
 		icon: <NextIcon />,
 		description:
 			'Easily add secure, beautiful, and fast Consent Manager to Next.js with C15T.',
 	},
 	{
-		href: '/docs/react',
+		href: '/docs/react/client-config-options',
 		title: 'React',
-		icon: <ReactIcon />,
+		icon: <ReactIcon className="text-[#53C1DE]" />,
 		description:
 			'Get started installing and initializing C15T in a new React + Vite app.',
 	},

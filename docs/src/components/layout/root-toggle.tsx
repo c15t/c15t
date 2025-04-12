@@ -130,7 +130,11 @@ export function RootToggle({
 		const iconKey = getIconKey(item);
 		if (iconKey && iconKey in iconMap) {
 			const IconComponent = iconMap[iconKey as keyof typeof iconMap];
-			return <IconComponent className="size-6" />;
+			return (
+				<IconComponent
+					className={cn(iconKey === 'react' && 'text-[#53C1DE]', 'size-6')}
+				/>
+			);
 		}
 
 		return null;

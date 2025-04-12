@@ -10,7 +10,7 @@ import { OfflineClient } from '../client-offline';
 /**
  * @vitest-environment jsdom
  */
-describe('C15t Client Browser Tests', () => {
+describe('c15t Client Browser Tests', () => {
 	// Spy on fetch instead of mocking it completely
 	const fetchSpy = vi.spyOn(global, 'fetch');
 

@@ -1,11 +1,11 @@
 ---
 title: Client Configuration Options
-description: Learn about the different client modes available in the C15t library and how to configure them for your application.
+description: Learn about the different client modes available in the c15t library and how to configure them for your application.
 ---
 
-The C15t client library provides three operating modes to fit different scenarios:
+The c15t client library provides three operating modes to fit different scenarios:
 
-1. **C15t Mode** - The default mode that connects to a C15t backend
+1. **c15t Mode** - The default mode that connects to a c15t backend
 2. **Offline Mode** - Works without a backend, useful for development or testing
 3. **Custom Mode** - Allows you to implement custom endpoint handlers
 
@@ -33,9 +33,9 @@ function App() {
 }
 ```
 
-## C15t Mode (Default)
+## c15t mode (Default)
 
-C15t mode makes HTTP requests to a real C15t backend. This is the recommended production-ready option when you have a C15t instance available.
+c15t mode makes HTTP requests to a real c15t backend. This is the recommended production-ready option when you have a c15t instance available.
 
 ```tsx
 const options = {
@@ -65,23 +65,15 @@ const options = {
 };
 ```
 
-### C15t Mode Options
-
-| Option | Type | Description |
-|--------|------|-------------|
-| `backendURL` | `string` | **Required**. Backend URL for API endpoints (absolute or relative) |
-| `headers` | `Record<string, string>` | Additional HTTP headers for requests |
-| `customFetch` | `typeof fetch` | Custom fetch implementation (useful for environments without native fetch) |
-| `callbacks` | `ConsentManagerCallbacks` | Global callbacks for handling API responses |
-| `corsMode` | `RequestMode` | CORS mode for fetch requests (default: 'cors') |
-| `retryConfig` | `RetryConfig` | Configuration for automatic retry on failed requests |
+### c15t mode options
+<AutoTypeTable path="node_modules/c15t/src/client/client-factory.ts" name="C15TClientOptions" />
 
 ## Offline Mode
 
 Offline mode completely disables all network requests while simulating successful API responses. This mode is designed for:
 
 1. Production applications with their own existing consent backend
-2. Scenarios where you want to integrate with C15t's UI components but handle data storage/retrieval elsewhere
+2. Scenarios where you want to integrate with c15t's UI components but handle data storage/retrieval elsewhere
 3. Development and testing environments
 
 Unlike Custom mode which lets you implement your own HTTP handling logic, Offline mode eliminates network requests entirely while providing a functional interface.
@@ -107,10 +99,7 @@ The Offline mode saves user consent preferences to localStorage by default, maki
 
 ### Offline Mode Options
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `callbacks` | `ConsentManagerCallbacks` | Global callbacks for handling API responses |
-| `localStorageKey` | `string` | Custom localStorage key to track consent banner visibility (default: 'c15t-consent') |
+<AutoTypeTable path="node_modules/c15t/src/client/client-factory.ts" name="OfflineClientOptions" />
 
 ## Custom Mode
 
@@ -165,15 +154,12 @@ const options = {
 ```
 
 ### Custom Mode Options
+<AutoTypeTable path="node_modules/c15t/src/client/client-factory.ts" name="CustomClientOptions" />
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `endpointHandlers` | `EndpointHandlers` | **Required**. Custom handlers for each consent endpoint |
-| `callbacks` | `ConsentManagerCallbacks` | Global callbacks for handling API responses |
 
 ## When to Use Each Mode
 
-- **C15t Mode**: For production applications with a real C15t backend
+- **c15t Mode**: For production applications with a real c15t backend
 - **Offline Mode**: For production applications with your own backend systems, or when you want to eliminate external service dependencies
 - **Custom Mode**: When you need to integrate with an existing consent system but still want to implement custom HTTP request handling
 
