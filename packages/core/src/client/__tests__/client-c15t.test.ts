@@ -465,7 +465,9 @@ describe('C15t Client Offline Fallback Tests', () => {
 
 	it('should use offline fallback for showConsentBanner on API failure', async () => {
 		// Mock a failed API response
-		fetchMock.mockImplementation(() => Promise.reject(new Error('Network error')));
+		fetchMock.mockImplementation(() =>
+			Promise.reject(new Error('Network error'))
+		);
 
 		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
 		const client = configureConsentManager({
@@ -496,7 +498,9 @@ describe('C15t Client Offline Fallback Tests', () => {
 
 	it('should use offline fallback for setConsent on API failure', async () => {
 		// Mock a failed API response
-		fetchMock.mockImplementation(() => Promise.reject(new Error('Network error')));
+		fetchMock.mockImplementation(() =>
+			Promise.reject(new Error('Network error'))
+		);
 
 		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
 		const client = configureConsentManager({
