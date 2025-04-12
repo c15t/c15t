@@ -565,33 +565,42 @@ export class C15tClient implements ConsentManagerInterface {
 			}
 
 			// If we got here, the request failed but didn't throw - fall back to offline mode
-			console.warn('API request failed, falling back to offline mode for consent banner');
+			console.warn(
+				'API request failed, falling back to offline mode for consent banner'
+			);
 			return this.offlineFallbackForConsentBanner(options);
 		} catch (error) {
 			// If in a test environment or if fallback is disabled, propagate the error
 			if (options?.testing || options?.disableFallback) {
 				// Create an error response to match what would normally happen
-				const errorResponse = this.createResponseContext<ShowConsentBannerResponse>(
-					false,
-					null,
-					{
-						message: error instanceof Error ? error.message : String(error),
-						status: 0,
-						code: 'NETWORK_ERROR',
-						cause: error
-					},
-					null
-				);
-				
+				const errorResponse =
+					this.createResponseContext<ShowConsentBannerResponse>(
+						false,
+						null,
+						{
+							message: error instanceof Error ? error.message : String(error),
+							status: 0,
+							code: 'NETWORK_ERROR',
+							cause: error,
+						},
+						null
+					);
+
 				if (options?.onError) {
-					await options.onError(errorResponse, API_ENDPOINTS.SHOW_CONSENT_BANNER);
+					await options.onError(
+						errorResponse,
+						API_ENDPOINTS.SHOW_CONSENT_BANNER
+					);
 				}
-				
+
 				return errorResponse;
 			}
 
 			// If an error was thrown, also fall back to offline mode
-			console.warn('Error fetching consent banner info, falling back to offline mode:', error);
+			console.warn(
+				'Error fetching consent banner info, falling back to offline mode:',
+				error
+			);
 			return this.offlineFallbackForConsentBanner(options);
 		}
 	}
@@ -615,7 +624,7 @@ export class C15tClient implements ConsentManagerInterface {
 				window.localStorage.setItem('c15t-storage-test-key', 'test');
 				window.localStorage.removeItem('c15t-storage-test-key');
 				hasLocalStorageAccess = true;
-				
+
 				const storedConsent = window.localStorage.getItem(localStorageKey);
 				shouldShow = storedConsent === null;
 			}
@@ -636,9 +645,9 @@ export class C15tClient implements ConsentManagerInterface {
 					code: 'UNKNOWN', // We don't know the jurisdiction in offline mode
 					message: 'Unknown (offline mode)',
 				},
-				location: { 
+				location: {
 					countryCode: 'XX', // Use placeholder values
-					regionCode: null 
+					regionCode: null,
 				},
 			},
 			null,
@@ -662,13 +671,13 @@ export class C15tClient implements ConsentManagerInterface {
 	): Promise<ResponseContext<SetConsentResponse>> {
 		try {
 			// First try the actual API request
-			const response = await this.fetcher<SetConsentResponse, SetConsentRequestBody>(
-				API_ENDPOINTS.SET_CONSENT,
-				{
-					method: 'POST',
-					...options,
-				}
-			);
+			const response = await this.fetcher<
+				SetConsentResponse,
+				SetConsentRequestBody
+			>(API_ENDPOINTS.SET_CONSENT, {
+				method: 'POST',
+				...options,
+			});
 
 			// If the request was successful or if we're in a test environment, return the actual response
 			if (response.ok || options?.testing) {
@@ -676,7 +685,9 @@ export class C15tClient implements ConsentManagerInterface {
 			}
 
 			// If we got here, the request failed but didn't throw - fall back to offline mode
-			console.warn('API request failed, falling back to offline mode for setting consent');
+			console.warn(
+				'API request failed, falling back to offline mode for setting consent'
+			);
 			return this.offlineFallbackForSetConsent(options);
 		} catch (error) {
 			// If in a test environment or if fallback is disabled, propagate the error
@@ -689,20 +700,23 @@ export class C15tClient implements ConsentManagerInterface {
 						message: error instanceof Error ? error.message : String(error),
 						status: 0,
 						code: 'NETWORK_ERROR',
-						cause: error
+						cause: error,
 					},
 					null
 				);
-				
+
 				if (options?.onError) {
 					await options.onError(errorResponse, API_ENDPOINTS.SET_CONSENT);
 				}
-				
+
 				return errorResponse;
 			}
 
 			// If an error was thrown, also fall back to offline mode
-			console.warn('Error setting consent, falling back to offline mode:', error);
+			console.warn(
+				'Error setting consent, falling back to offline mode:',
+				error
+			);
 			return this.offlineFallbackForSetConsent(options);
 		}
 	}
@@ -717,13 +731,13 @@ export class C15tClient implements ConsentManagerInterface {
 	): Promise<ResponseContext<SetConsentResponse>> {
 		const localStorageKey = 'c15t-consent';
 		const pendingSubmissionsKey = 'c15t-pending-consent-submissions';
-		
+
 		try {
 			if (typeof window !== 'undefined' && window.localStorage) {
 				// Test localStorage access with a simple operation
 				window.localStorage.setItem('c15t-storage-test-key', 'test');
 				window.localStorage.removeItem('c15t-storage-test-key');
-				
+
 				// Store the consent preferences locally
 				window.localStorage.setItem(
 					localStorageKey,
@@ -732,13 +746,15 @@ export class C15tClient implements ConsentManagerInterface {
 						preferences: options?.body?.preferences || {},
 					})
 				);
-				
+
 				// Store the submission in the pending queue for retry on next page load
 				if (options?.body) {
 					let pendingSubmissions: SetConsentRequestBody[] = [];
-					
+
 					try {
-						const storedSubmissions = window.localStorage.getItem(pendingSubmissionsKey);
+						const storedSubmissions = window.localStorage.getItem(
+							pendingSubmissionsKey
+						);
 						if (storedSubmissions) {
 							pendingSubmissions = JSON.parse(storedSubmissions);
 						}
@@ -748,32 +764,37 @@ export class C15tClient implements ConsentManagerInterface {
 						console.warn('Error parsing pending submissions:', e);
 						pendingSubmissions = [];
 					}
-					
+
 					// Add this submission to the queue if not already present
 					// We identify duplicates by checking preference values
 					const newSubmission = options.body;
 					const isDuplicate = pendingSubmissions.some(
-						(submission) => 
-							JSON.stringify(submission.preferences) === 
+						(submission) =>
+							JSON.stringify(submission.preferences) ===
 							JSON.stringify(newSubmission.preferences)
 					);
-					
+
 					if (!isDuplicate) {
 						pendingSubmissions.push(newSubmission);
 						window.localStorage.setItem(
-							pendingSubmissionsKey, 
+							pendingSubmissionsKey,
 							JSON.stringify(pendingSubmissions)
 						);
 						// biome-ignore lint/suspicious/noConsole: <explanation>
 						// biome-ignore lint/suspicious/noConsoleLog: <explanation>
-												console.log('Queued consent submission for retry on next page load');
+						console.log(
+							'Queued consent submission for retry on next page load'
+						);
 					}
 				}
 			}
 		} catch (error) {
 			// Ignore localStorage errors but log them
 			// biome-ignore lint/suspicious/noConsole: <explanation>
-			console.warn('Failed to write to localStorage in offline fallback:', error);
+			console.warn(
+				'Failed to write to localStorage in offline fallback:',
+				error
+			);
 		}
 
 		// Create a success response even if we couldn't save to localStorage
@@ -824,33 +845,39 @@ export class C15tClient implements ConsentManagerInterface {
 	 */
 	private checkPendingConsentSubmissions() {
 		const pendingSubmissionsKey = 'c15t-pending-consent-submissions';
-		
+
 		// Don't attempt to access localStorage in SSR context
 		if (typeof window === 'undefined' || !window.localStorage) {
 			return;
 		}
-		
+
 		try {
 			// Test localStorage access first
 			window.localStorage.setItem('c15t-storage-test-key', 'test');
 			window.localStorage.removeItem('c15t-storage-test-key');
-			
-			const pendingSubmissionsStr = window.localStorage.getItem(pendingSubmissionsKey);
+
+			const pendingSubmissionsStr = window.localStorage.getItem(
+				pendingSubmissionsKey
+			);
 			if (!pendingSubmissionsStr) {
 				return; // No pending submissions
 			}
-			
-			const pendingSubmissions: SetConsentRequestBody[] = JSON.parse(pendingSubmissionsStr);
+
+			const pendingSubmissions: SetConsentRequestBody[] = JSON.parse(
+				pendingSubmissionsStr
+			);
 			if (!pendingSubmissions.length) {
 				// Clean up empty array
 				window.localStorage.removeItem(pendingSubmissionsKey);
 				return;
 			}
-			
+
 			// biome-ignore lint/suspicious/noConsole: <explanation>
 			// biome-ignore lint/suspicious/noConsoleLog: <explanation>
-									console.log(`Found ${pendingSubmissions.length} pending consent submission(s) to retry`);
-			
+			console.log(
+				`Found ${pendingSubmissions.length} pending consent submission(s) to retry`
+			);
+
 			// Process submissions asynchronously to avoid blocking page load
 			setTimeout(() => {
 				this.processPendingSubmissions(pendingSubmissions);
@@ -866,35 +893,37 @@ export class C15tClient implements ConsentManagerInterface {
 	 * Process pending consent submissions
 	 * @internal
 	 */
-	private async processPendingSubmissions(submissions: SetConsentRequestBody[]) {
+	private async processPendingSubmissions(
+		submissions: SetConsentRequestBody[]
+	) {
 		const pendingSubmissionsKey = 'c15t-pending-consent-submissions';
 		const maxRetries = 3;
 		const remainingSubmissions = [...submissions];
-		
+
 		for (let i = 0; i < maxRetries && remainingSubmissions.length > 0; i++) {
 			// Try to send each pending submission
 			const successfulSubmissions: number[] = [];
-			
+
 			for (let j = 0; j < remainingSubmissions.length; j++) {
 				const submission = remainingSubmissions[j];
 				try {
 					// biome-ignore lint/suspicious/noConsole: <explanation>
 					// biome-ignore lint/suspicious/noConsoleLog: <explanation>
-										console.log('Retrying consent submission:', submission);
-					
+					console.log('Retrying consent submission:', submission);
+
 					// Use the actual API endpoint, not our offlineFallback
-					const response = await this.fetcher<SetConsentResponse, SetConsentRequestBody>(
-						API_ENDPOINTS.SET_CONSENT,
-						{
-							method: 'POST',
-							body: submission,
-						}
-					);
-					
+					const response = await this.fetcher<
+						SetConsentResponse,
+						SetConsentRequestBody
+					>(API_ENDPOINTS.SET_CONSENT, {
+						method: 'POST',
+						body: submission,
+					});
+
 					if (response.ok) {
 						// biome-ignore lint/suspicious/noConsole: <explanation>
 						// biome-ignore lint/suspicious/noConsoleLog: <explanation>
-												console.log('Successfully resubmitted consent');
+						console.log('Successfully resubmitted consent');
 						successfulSubmissions.push(j);
 					}
 				} catch (error) {
@@ -903,7 +932,7 @@ export class C15tClient implements ConsentManagerInterface {
 					// Continue with the next submission
 				}
 			}
-			
+
 			// Remove successful submissions from the list (in reverse order to not affect indices)
 			for (let k = successfulSubmissions.length - 1; k >= 0; k--) {
 				const index = successfulSubmissions[k];
@@ -911,35 +940,37 @@ export class C15tClient implements ConsentManagerInterface {
 					remainingSubmissions.splice(index, 1);
 				}
 			}
-			
+
 			// If we've processed all submissions, exit the loop
 			if (remainingSubmissions.length === 0) {
 				break;
 			}
-			
+
 			// Wait before retrying again
 			if (i < maxRetries - 1) {
 				await delay(1000 * (i + 1)); // Increasing delay between retries
 			}
 		}
-		
+
 		// Update storage with remaining submissions (if any)
 		try {
 			if (typeof window !== 'undefined' && window.localStorage) {
 				if (remainingSubmissions.length > 0) {
 					window.localStorage.setItem(
-						pendingSubmissionsKey, 
+						pendingSubmissionsKey,
 						JSON.stringify(remainingSubmissions)
 					);
 					// biome-ignore lint/suspicious/noConsole: <explanation>
 					// biome-ignore lint/suspicious/noConsoleLog: <explanation>
-										console.log(`${remainingSubmissions.length} consent submissions still pending for future retry`);
+					console.log(
+						`${remainingSubmissions.length} consent submissions still pending for future retry`
+					);
 				} else {
 					// All submissions processed, clear the storage
 					window.localStorage.removeItem(pendingSubmissionsKey);
 					// biome-ignore lint/suspicious/noConsole: <explanation>
 					// biome-ignore lint/suspicious/noConsoleLog: <explanation>
-										console.log('All pending consent submissions processed successfully');
+					console.log('All pending consent submissions processed successfully');
 				}
 			}
 		} catch (error) {
@@ -948,4 +979,3 @@ export class C15tClient implements ConsentManagerInterface {
 		}
 	}
 }
-

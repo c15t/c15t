@@ -214,7 +214,7 @@ export interface FetchOptions<
 	 * @internal
 	 */
 	testing?: boolean;
-	
+
 	/**
 	 * Disables the offline fallback mechanism for this specific request.
 	 * When set to true, no offline fallback will be attempted if the request fails.

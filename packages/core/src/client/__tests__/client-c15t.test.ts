@@ -473,8 +473,8 @@ describe('C15t Client Offline Fallback Tests', () => {
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 0, // Prevent automatic retries
-				retryOnNetworkError: false
-			}
+				retryOnNetworkError: false,
+			},
 		});
 
 		// Spy on console.warn to verify it's called
@@ -505,8 +505,8 @@ describe('C15t Client Offline Fallback Tests', () => {
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 0, // Prevent automatic retries
-				retryOnNetworkError: false
-			}
+				retryOnNetworkError: false,
+			},
 		});
 
 		// Spy on console.warn to verify it's called
@@ -536,7 +536,7 @@ describe('C15t Client Offline Fallback Tests', () => {
 			expect.anything()
 		);
 		expect(response.ok).toBe(true);
-		
+
 		// Check localStorage for both the consent and pending submissions
 		expect(localStorageSetItemSpy).toHaveBeenCalledWith(
 			'c15t-storage-test-key',
@@ -562,8 +562,8 @@ describe('C15t Client Offline Fallback Tests', () => {
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 0, // Prevent automatic retries
-				retryOnNetworkError: false
-			}
+				retryOnNetworkError: false,
+			},
 		});
 
 		// Create two different consent submissions
@@ -616,7 +616,7 @@ describe('C15t Client Offline Fallback Tests', () => {
 			domain: 'example.com',
 			preferences: { analytics: true },
 		};
-		
+
 		mockLocalStorage.getItem.mockImplementation((key) => {
 			if (key === pendingSubmissionsKey) {
 				return JSON.stringify([cookieBannerConsent]);
@@ -631,7 +631,7 @@ describe('C15t Client Offline Fallback Tests', () => {
 
 		// Spy on the console log
 		const consoleLogSpy = vi.spyOn(console, 'log');
-		
+
 		// Create client to trigger initialization and pending submission processing
 		const client = new C15tClient({
 			backendURL: '/api/c15t',
@@ -650,13 +650,15 @@ describe('C15t Client Offline Fallback Tests', () => {
 				body: JSON.stringify(cookieBannerConsent),
 			})
 		);
-		
+
 		expect(consoleLogSpy).toHaveBeenCalledWith(
 			expect.stringContaining('Successfully resubmitted consent')
 		);
-		
+
 		// Check that localStorage was cleared after successful submission
-		expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(pendingSubmissionsKey);
+		expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
+			pendingSubmissionsKey
+		);
 	});
 
 	it('should handle multiple retries with mixed success/failure', async () => {
@@ -674,9 +676,10 @@ describe('C15t Client Offline Fallback Tests', () => {
 			},
 		];
 
-		// Mock fetch responses directly rather than using fetchMock 
+		// Mock fetch responses directly rather than using fetchMock
 		// to avoid global test interference
-		const mockFetch = vi.fn()
+		const mockFetch = vi
+			.fn()
 			.mockResolvedValueOnce(
 				new Response(JSON.stringify({ success: true }), { status: 200 })
 			)
@@ -688,7 +691,7 @@ describe('C15t Client Offline Fallback Tests', () => {
 			customFetch: mockFetch,
 			retryConfig: {
 				maxRetries: 0, // No retries to keep the test simple
-			}
+			},
 		});
 
 		// Mock setTimeout to execute callbacks immediately for faster tests
