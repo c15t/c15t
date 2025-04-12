@@ -476,6 +476,31 @@ export const createConsentManagerStore = (
 				return undefined;
 			}
 
+			// Check if localStorage is available (to prevent crashes in private browsing)
+			let hasLocalStorageAccess = true;
+			try {
+				if (window.localStorage) {
+					// Test localStorage with simple operation
+					window.localStorage.setItem('c15t-storage-test-key', 'test');
+					window.localStorage.removeItem('c15t-storage-test-key');
+				}
+			} catch (error) {
+				// localStorage not available (likely private browsing)
+				hasLocalStorageAccess = false;
+				// biome-ignore lint/suspicious/noConsole: <explanation>
+				console.warn(
+					'localStorage not available, skipping consent banner:',
+					error
+				);
+
+				// Set loading to false and don't show popup to prevent memory leaks
+				set({
+					isLoadingConsentInfo: false,
+					showPopup: false,
+				});
+				return undefined;
+			}
+
 			// Set loading state to true
 			set({ isLoadingConsentInfo: true });
 
@@ -496,10 +521,13 @@ export const createConsentManagerStore = (
 
 				if (!data) {
 					// In offline mode, data will be null, so we should show the banner by default
+					// but only if we have localStorage access
 					set({
 						isLoadingConsentInfo: false,
-						// Only update showPopup if we don't have stored consent
-						...(consentInfo === null ? { showPopup: true } : {}),
+						// Only update showPopup if we don't have stored consent and have localStorage access
+						...(consentInfo === null && hasLocalStorageAccess
+							? { showPopup: true }
+							: {}),
 					});
 					return undefined;
 				}
@@ -516,9 +544,9 @@ export const createConsentManagerStore = (
 							: { countryCode: '', regionCode: '' },
 					jurisdictionInfo: data.jurisdiction,
 					isLoadingConsentInfo: false,
-					// Only update showPopup if we don't have stored consent
+					// Only update showPopup if we don't have stored consent and have localStorage access
 					...(consentInfo === null
-						? { showPopup: data.showConsentBanner }
+						? { showPopup: data.showConsentBanner && hasLocalStorageAccess }
 						: {}),
 				});
 
@@ -551,10 +579,8 @@ export const createConsentManagerStore = (
 						: 'Unknown error fetching consent banner information';
 				callbacks.onError?.(errorMessage);
 
-				// If fetch fails, default to showing the banner to be safe
-				if (consentInfo === null) {
-					set({ showPopup: true });
-				}
+				// If fetch fails, default to NOT showing the banner to prevent crashes
+				set({ showPopup: false });
 
 				return undefined;
 			}

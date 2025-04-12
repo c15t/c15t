@@ -16,11 +16,7 @@ import type {
 	ConsentManagerInterface,
 } from './client-interface';
 
-import {
-	API_ENDPOINTS,
-	type FetchOptions,
-	type ResponseContext,
-} from './types';
+import type { FetchOptions, ResponseContext } from './types';
 
 /**
  * Configuration options for the Offline client
@@ -90,7 +86,6 @@ export class OfflineClient implements ConsentManagerInterface {
 	 * Handles empty API response with callbacks.
 	 */
 	private async handleOfflineResponse<ResponseType>(
-		path: string,
 		options?: FetchOptions<ResponseType>,
 		callbackKey?: keyof Pick<
 			Required<ConsentManagerCallbacks>,
@@ -127,6 +122,10 @@ export class OfflineClient implements ConsentManagerInterface {
 
 		try {
 			if (typeof window !== 'undefined' && window.localStorage) {
+				// Test localStorage access with a simple operation
+				window.localStorage.setItem('c15t-storage-test-key', 'test');
+				window.localStorage.removeItem('c15t-storage-test-key');
+
 				const storedConsent = window.localStorage.getItem(this.localStorageKey);
 				shouldShow = storedConsent === null;
 			}
@@ -134,7 +133,11 @@ export class OfflineClient implements ConsentManagerInterface {
 			// Ignore localStorage errors (e.g., in environments where it's blocked)
 			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.warn('Failed to access localStorage:', error);
+			// If localStorage is unavailable, default to not showing the banner
+			// to prevent repeated failed attempts causing memory leaks
+			shouldShow = false;
 		}
+
 		const response = this.createResponseContext<ShowConsentBannerResponse>({
 			showConsentBanner: shouldShow,
 			jurisdiction: {
@@ -165,8 +168,13 @@ export class OfflineClient implements ConsentManagerInterface {
 		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 	): Promise<ResponseContext<SetConsentResponse>> {
 		// Save to localStorage to remember that consent was set
+
 		try {
 			if (typeof window !== 'undefined' && window.localStorage) {
+				// Test localStorage access with a simple operation
+				window.localStorage.setItem('c15t-storage-test-key', 'test');
+				window.localStorage.removeItem('c15t-storage-test-key');
+
 				window.localStorage.setItem(
 					this.localStorageKey,
 					JSON.stringify({
@@ -176,12 +184,14 @@ export class OfflineClient implements ConsentManagerInterface {
 				);
 			}
 		} catch (error) {
-			// Ignore localStorage errors
+			// Ignore localStorage errors but log them
+			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.warn('Failed to write to localStorage:', error);
 		}
 
-		return this.handleOfflineResponse<SetConsentResponse>(
-			API_ENDPOINTS.SET_CONSENT,
+		// If we couldn't store consent in localStorage, we should
+		// still return a successful response to prevent UI errors
+		return await this.handleOfflineResponse<SetConsentResponse>(
 			options,
 			'onConsentSet'
 		);
@@ -193,8 +203,7 @@ export class OfflineClient implements ConsentManagerInterface {
 	async verifyConsent(
 		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
 	): Promise<ResponseContext<VerifyConsentResponse>> {
-		return this.handleOfflineResponse<VerifyConsentResponse>(
-			API_ENDPOINTS.VERIFY_CONSENT,
+		return await this.handleOfflineResponse<VerifyConsentResponse>(
 			options,
 			'onConsentVerified'
 		);
@@ -204,9 +213,9 @@ export class OfflineClient implements ConsentManagerInterface {
 	 * Makes a custom API request to any endpoint.
 	 */
 	async $fetch<ResponseType, BodyType = unknown, QueryType = unknown>(
-		path: string,
+		_path: string,
 		options?: FetchOptions<ResponseType, BodyType, QueryType>
 	): Promise<ResponseContext<ResponseType>> {
-		return this.handleOfflineResponse<ResponseType>(path, options);
+		return await this.handleOfflineResponse<ResponseType>(options);
 	}
 }

@@ -254,7 +254,7 @@ describe('Custom Client Browser Tests', () => {
 			error: null,
 			response: null,
 		}),
-		setConsent: async (options) => {
+		setConsent: (options) => {
 			// Add consent data to localStorage to simulate real storage
 			try {
 				const key = 'custom-handler-consent';
