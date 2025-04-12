@@ -691,7 +691,6 @@ describe('C15t Client Offline Fallback Tests', () => {
 			return Promise.reject(new Error('Network error'));
 		});
 
-
 		// Create client with a custom fetch function
 		const client = new C15tClient({
 			backendURL: '/api/c15t',
