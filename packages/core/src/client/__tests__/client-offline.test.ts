@@ -71,9 +71,11 @@ describe('Offline Client Tests', () => {
 
 		await client.setConsent({ body: consentData });
 
-		// Verify localStorage was called with the correct key
-		expect(mockLocalStorage.setItem).toHaveBeenCalledTimes(1);
-		expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+		// With the storage test, we now expect 2 localStorage calls (test + actual storage)
+		expect(mockLocalStorage.setItem).toHaveBeenCalledTimes(2);
+		// The second call should be with our data
+		expect(mockLocalStorage.setItem).toHaveBeenNthCalledWith(
+			2,
 			customKey,
 			expect.stringContaining(JSON.stringify(consentData.preferences))
 		);
@@ -93,9 +95,9 @@ describe('Offline Client Tests', () => {
 		// Call the API - should not throw
 		const response = await client.showConsentBanner();
 
-		// Assertions - should default to showing the banner
+		// Assertions - now we expect NOT to show the banner when localStorage is unavailable
 		expect(response.ok).toBe(true);
-		expect(response.data?.showConsentBanner).toBe(true);
+		expect(response.data?.showConsentBanner).toBe(false);
 	});
 
 	it('should always verify consent as valid in offline mode', async () => {
