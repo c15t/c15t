@@ -132,6 +132,7 @@ describe('C15t Client Browser Tests', () => {
 		// Call the API with our error handler
 		const response = await client.showConsentBanner({
 			onError: errorHandler,
+			testing: true,
 		});
 
 		// Print debugging info

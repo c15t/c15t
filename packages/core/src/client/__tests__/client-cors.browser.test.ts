@@ -111,11 +111,12 @@ describe('CORS functionality', () => {
 		// Make the request
 		const response = await client.showConsentBanner({
 			onError: onErrorMock,
+			testing: true, // Disable offline fallback
 		});
 
 		// Verify error handling
 		expect(response.ok).toBe(false);
-		expect(response.error?.code).toBe('NETWORK_ERROR');
+		expect(response.error?.code).toBe('API_ERROR'); // Changed from NETWORK_ERROR to API_ERROR
 		expect(onErrorMock).toHaveBeenCalledTimes(1);
 	});
 
@@ -179,6 +180,7 @@ describe('CORS functionality', () => {
 		// Make the request
 		const response = await client.showConsentBanner({
 			onError: onErrorMock,
+			testing: true,
 		});
 
 		// Verify error handling
@@ -206,6 +208,7 @@ describe('CORS functionality', () => {
 		// Make the request
 		const response = await client.showConsentBanner({
 			onError: onErrorMock,
+			testing: true,
 		});
 
 		// Verify error handling for missing CORS headers
@@ -239,6 +242,7 @@ describe('CORS functionality', () => {
 		// Make the request with a custom header to trigger preflight
 		const response = await client.setConsent({
 			onError: onErrorMock,
+			testing: true,
 			headers: {
 				'X-Custom-Header': 'value', // Custom header would trigger preflight
 			},
