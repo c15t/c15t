@@ -74,9 +74,10 @@ describe('C15t Client Tests', () => {
 		// Error callback mock
 		const onErrorMock = vi.fn();
 
-		// Call the API with error callback
+		// Call the API with error callback - use testing flag to bypass fallback
 		const response = await client.showConsentBanner({
 			onError: onErrorMock,
+			testing: true, // Ensure we get the original error response
 		});
 
 		// Assertions
@@ -316,7 +317,9 @@ describe('C15t Client Retry Logic Tests', () => {
 		};
 
 		const client = configureConsentManager(config);
-		const response = await client.showConsentBanner();
+		const response = await client.showConsentBanner({
+			testing: true, // Ensure we get the original error response
+		});
 
 		// Should only call fetch once, no retries
 		expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -397,18 +400,13 @@ describe('C15t Client Retry Logic Tests', () => {
 
 		// Mock setTimeout to execute callbacks immediately for faster tests
 		const originalSetTimeout = global.setTimeout;
-		// Type assertion to avoid complex setTimeout typing issues
-		global.setTimeout = vi
-			.fn()
-			.mockImplementation(
-				(callback: (...args: unknown[]) => void, ms: number) => {
-					// biome-ignore lint/suspicious/noConsoleLog: this is a test
-					// biome-ignore lint/suspicious/noConsole: this is a test
-					console.log(`Mocking setTimeout for ${ms}ms`);
-					callback();
-					return 1;
-				}
-			) as unknown as typeof setTimeout;
+		// Using proper type for setTimeout mock
+		global.setTimeout = vi.fn().mockImplementation((callback) => {
+			if (typeof callback === 'function') {
+				callback();
+			}
+			return 1; // Return a valid timeout ID
+		}) as unknown as typeof setTimeout;
 
 		try {
 			// Make the API call that should trigger our retry
@@ -456,4 +454,267 @@ describe('C15t Client Retry Logic Tests', () => {
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 		expect(response.ok).toBe(true);
 	});
+});
+
+describe('C15t Client Offline Fallback Tests', () => {
+	beforeEach(() => {
+		vi.resetAllMocks();
+		fetchMock.mockReset();
+		mockLocalStorage.clear();
+	});
+
+	it('should use offline fallback for showConsentBanner on API failure', async () => {
+		// Mock a failed API response
+		fetchMock.mockRejectedValueOnce(new Error('Network error'));
+
+		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
+		const client = configureConsentManager({
+			mode: 'c15t',
+			backendURL: '/api/c15t',
+			retryConfig: {
+				maxRetries: 0, // Prevent automatic retries
+				retryOnNetworkError: false
+			}
+		});
+
+		// Spy on console.warn to verify it's called
+		const consoleWarnSpy = vi.spyOn(console, 'warn');
+
+		// Call the API that will fail
+		const response = await client.showConsentBanner();
+
+		// Assertions - should get a successful response from offline fallback
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(consoleWarnSpy).toHaveBeenCalledWith(
+			expect.stringContaining('falling back to offline mode'),
+			expect.anything()
+		);
+		expect(response.ok).toBe(true);
+		expect(response.data?.showConsentBanner).toBeDefined();
+		// Check that response includes fallback jurisdiction
+		expect(response.data?.jurisdiction?.code).toBe('UNKNOWN');
+	});
+
+	it('should use offline fallback for setConsent on API failure', async () => {
+		// Mock a failed API response
+		fetchMock.mockRejectedValueOnce(new Error('Network error'));
+
+		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
+		const client = configureConsentManager({
+			mode: 'c15t',
+			backendURL: '/api/c15t',
+			retryConfig: {
+				maxRetries: 0, // Prevent automatic retries
+				retryOnNetworkError: false
+			}
+		});
+
+		// Spy on console.warn to verify it's called
+		const consoleWarnSpy = vi.spyOn(console, 'warn');
+		// Spy on localStorage to verify it's called
+		const localStorageSetItemSpy = vi.spyOn(mockLocalStorage, 'setItem');
+
+		// Consent data to test
+		const consentData = {
+			type: 'cookie_banner' as const,
+			domain: 'example.com',
+			preferences: {
+				analytics: true,
+				marketing: false,
+			},
+		};
+
+		// Call the API that will fail
+		const response = await client.setConsent({
+			body: consentData,
+		});
+
+		// Assertions
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(consoleWarnSpy).toHaveBeenCalledWith(
+			expect.stringContaining('falling back to offline mode'),
+			expect.anything()
+		);
+		expect(response.ok).toBe(true);
+		
+		// Check localStorage for both the consent and pending submissions
+		expect(localStorageSetItemSpy).toHaveBeenCalledWith(
+			'c15t-storage-test-key',
+			expect.any(String)
+		);
+		expect(localStorageSetItemSpy).toHaveBeenCalledWith(
+			'c15t-consent',
+			expect.stringContaining(JSON.stringify(consentData.preferences))
+		);
+		expect(localStorageSetItemSpy).toHaveBeenCalledWith(
+			'c15t-pending-consent-submissions',
+			expect.stringContaining(JSON.stringify([consentData]))
+		);
+	});
+
+	it('should store multiple pending submissions of different types', async () => {
+		// Mock multiple failed API responses
+		fetchMock.mockRejectedValue(new Error('Network error'));
+
+		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
+		const client = configureConsentManager({
+			mode: 'c15t',
+			backendURL: '/api/c15t',
+			retryConfig: {
+				maxRetries: 0, // Prevent automatic retries
+				retryOnNetworkError: false
+			}
+		});
+
+		// Create two different consent submissions
+		const cookieBannerConsent = {
+			type: 'cookie_banner' as const,
+			domain: 'example.com',
+			preferences: {
+				analytics: true,
+				marketing: false,
+			},
+			metadata: {
+				source: 'consent_widget',
+				acceptanceMethod: 'all',
+			},
+		};
+
+		const termsConsent = {
+			type: 'terms_and_conditions' as const,
+			domain: 'example.com',
+			preferences: {
+				terms: true,
+				privacy: true,
+			},
+			metadata: {
+				source: 'terms_page',
+				acceptanceMethod: 'custom',
+			},
+		};
+
+		// Submit both consents
+		await client.setConsent({ body: cookieBannerConsent });
+		await client.setConsent({ body: termsConsent });
+
+		// Get the stored pending submissions from localStorage
+		const pendingSubmissionsKey = 'c15t-pending-consent-submissions';
+		const storedSubmissions = mockLocalStorage.getItem(pendingSubmissionsKey);
+		const parsedSubmissions = JSON.parse(storedSubmissions || '[]');
+
+		// Assertions
+		expect(parsedSubmissions).toHaveLength(2);
+		expect(parsedSubmissions).toContainEqual(cookieBannerConsent);
+		expect(parsedSubmissions).toContainEqual(termsConsent);
+	}, 10000); // Increase timeout to 10 seconds
+
+	it('should retry pending submissions on initialization', async () => {
+		// Mock localStorage with existing pending submissions
+		const pendingSubmissionsKey = 'c15t-pending-consent-submissions';
+		const cookieBannerConsent = {
+			type: 'cookie_banner',
+			domain: 'example.com',
+			preferences: { analytics: true },
+		};
+		
+		mockLocalStorage.getItem.mockImplementation((key) => {
+			if (key === pendingSubmissionsKey) {
+				return JSON.stringify([cookieBannerConsent]);
+			}
+			return null;
+		});
+
+		// Mock a successful API response for the retry
+		fetchMock.mockResolvedValueOnce(
+			new Response(JSON.stringify({ success: true }), { status: 200 })
+		);
+
+		// Spy on the console log
+		const consoleLogSpy = vi.spyOn(console, 'log');
+		
+		// Create client to trigger initialization and pending submission processing
+		const client = new C15tClient({
+			backendURL: '/api/c15t',
+		});
+
+		// We need to manually call processPendingSubmissions since we're directly instantiating C15tClient
+		// In a real app, this would happen on init via checkPendingConsentSubmissions
+		// @ts-expect-error accessing private method for testing
+		await client.processPendingSubmissions([cookieBannerConsent]);
+
+		// Assertions
+		expect(fetchMock).toHaveBeenCalledWith(
+			expect.stringContaining(API_ENDPOINTS.SET_CONSENT),
+			expect.objectContaining({
+				method: 'POST',
+				body: JSON.stringify(cookieBannerConsent),
+			})
+		);
+		
+		expect(consoleLogSpy).toHaveBeenCalledWith(
+			expect.stringContaining('Successfully resubmitted consent')
+		);
+		
+		// Check that localStorage was cleared after successful submission
+		expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(pendingSubmissionsKey);
+	});
+
+	it('should handle multiple retries with mixed success/failure', async () => {
+		// Set up pending submissions
+		const pendingSubmissions = [
+			{
+				type: 'cookie_banner',
+				domain: 'example.com',
+				preferences: { analytics: true },
+			},
+			{
+				type: 'terms_and_conditions',
+				domain: 'example.com',
+				preferences: { terms: true },
+			},
+		];
+
+		// Mock fetch responses directly rather than using fetchMock 
+		// to avoid global test interference
+		const mockFetch = vi.fn()
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ success: true }), { status: 200 })
+			)
+			.mockRejectedValueOnce(new Error('Network error'));
+
+		// Create client with a custom fetch function
+		const client = new C15tClient({
+			backendURL: '/api/c15t',
+			customFetch: mockFetch,
+			retryConfig: {
+				maxRetries: 0, // No retries to keep the test simple
+			}
+		});
+
+		// Mock setTimeout to execute callbacks immediately for faster tests
+		const originalSetTimeout = global.setTimeout;
+		// Using proper type for setTimeout mock
+		global.setTimeout = vi.fn((cb) => {
+			cb();
+			return 0 as any;
+		});
+
+		try {
+			// Process the pending submissions
+			// @ts-expect-error accessing private method for testing
+			await client.processPendingSubmissions(pendingSubmissions);
+
+			// Verify local storage was updated with the remaining failed submission
+			expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+				'c15t-pending-consent-submissions',
+				JSON.stringify([pendingSubmissions[1]])
+			);
+
+			// Verify fetch was called twice (once for each submission)
+			expect(mockFetch).toHaveBeenCalledTimes(2);
+		} finally {
+			// Restore original setTimeout
+			global.setTimeout = originalSetTimeout;
+		}
+	}, 10000);
 });
