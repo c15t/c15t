@@ -104,6 +104,12 @@ export interface StoreOptions {
 	 * Configuration for the tracking blocker.
 	 */
 	trackingBlockerConfig?: TrackingBlockerConfig;
+
+	/**
+	 * Flag indicating if the consent manager is using the c15t.dev domain.
+	 * @default false
+	 */
+	isConsentDomain?: boolean;
 }
 
 // For backward compatibility (if needed)
@@ -156,14 +162,11 @@ export const createConsentManagerStore = (
 	manager: ConsentManagerInterface,
 	options: StoreOptions = {}
 ) => {
-	const { namespace = 'c15tStore', trackingBlockerConfig } = options;
-
-	// Check if the provider is using c15t.dev domain this means we are using consent
-	let isConsentDomain = false;
-	if (manager && 'baseURL' in manager) {
-		const baseURL = manager.baseURL as string;
-		isConsentDomain = Boolean(baseURL?.includes('c15t.dev'));
-	}
+	const {
+		namespace = 'c15tStore',
+		trackingBlockerConfig,
+		isConsentDomain = false,
+	} = options;
 
 	// Load initial state from localStorage if available
 	const storedConsent = getStoredConsent();

@@ -96,6 +96,21 @@ export function ConsentManagerProvider({
 		return configureConsentManager(coreOpts);
 	}, [options]);
 
+	// Determine if using c15t.dev domain at the provider level
+	const isConsentDomain = useMemo(() => {
+		if (typeof window === 'undefined') {
+			return false;
+		}
+
+		// More comprehensive check for c15t domain
+		const isC15tDomain =
+			options.mode === 'c15t' &&
+			(options.backendURL?.includes('c15t.dev') ||
+				window.location.hostname.includes('c15t.dev'));
+
+		return Boolean(isC15tDomain);
+	}, [options]);
+
 	// Create a stable reference to the store with prepared translation config
 	const consentStore = useMemo(() => {
 		// Pass the entire store options object
@@ -103,10 +118,12 @@ export function ConsentManagerProvider({
 			...store,
 			// Inject the prepared translation config
 			translationConfig: preparedTranslationConfig,
+			// Explicitly pass the isConsentDomain flag
+			isConsentDomain,
 		};
 
 		return createConsentManagerStore(consentManager, storeWithTranslations);
-	}, [store, preparedTranslationConfig, consentManager]);
+	}, [store, preparedTranslationConfig, consentManager, isConsentDomain]);
 
 	// Initialize state with the current state from the consent manager store
 	const [state, setState] = useState<PrivacyConsentState>(
