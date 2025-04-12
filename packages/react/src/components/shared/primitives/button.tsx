@@ -2,9 +2,9 @@ import { Slot } from '@radix-ui/react-slot';
 import { forwardRef, useCallback } from 'react';
 import type { VariantProps } from 'tailwind-variants';
 import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
 import type { CSSPropertiesWithVars, CSSVariables } from '~/types/theme';
-import { useStyles } from '~/hooks/use-styles';
 import * as Button from '../ui/button';
 import type { ConsentButtonElement, ConsentButtonProps } from './button.types';
 

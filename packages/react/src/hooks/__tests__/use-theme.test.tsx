@@ -1,8 +1,8 @@
-import { renderHook } from 'vitest-browser-react';
 import { describe, expect, test } from 'vitest';
+import { renderHook } from 'vitest-browser-react';
 import { GlobalThemeContext, LocalThemeContext } from '~/context/theme-context';
-import { useTheme } from '../use-theme';
 import type { ThemeValue } from '~/types/theme';
+import { useTheme } from '../use-theme';
 
 type TestTheme = {
 	noStyle: boolean;

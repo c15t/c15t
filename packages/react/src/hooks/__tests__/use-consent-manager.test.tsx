@@ -1,5 +1,5 @@
-import { renderHook } from 'vitest-browser-react';
 import { describe, expect, test } from 'vitest';
+import { renderHook } from 'vitest-browser-react';
 import { ConsentManagerProvider } from '~/providers/consent-manager-provider';
 import { useConsentManager } from '../use-consent-manager';
 

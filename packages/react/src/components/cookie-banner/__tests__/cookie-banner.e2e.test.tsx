@@ -1,9 +1,9 @@
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { CookieBanner } from '../cookie-banner';
-import { ConsentManagerProvider } from '~/providers/consent-manager-provider';
 import { ConsentManagerDialog } from '~/components/consent-manager-dialog/consent-manager-dialog';
+import { ConsentManagerProvider } from '~/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/types/consent-manager';
+import { CookieBanner } from '../cookie-banner';
 
 // Create a mutable showPopup value we can control
 let mockShowPopup = true;

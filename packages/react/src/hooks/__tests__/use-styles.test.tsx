@@ -1,5 +1,5 @@
-import { renderHook } from 'vitest-browser-react';
 import { describe, expect, test } from 'vitest';
+import { renderHook } from 'vitest-browser-react';
 import { GlobalThemeContext } from '~/context/theme-context';
 import { useStyles } from '../use-styles';
 
@@ -30,7 +30,6 @@ describe('useStyles', () => {
 				),
 			}
 		);
-
 
 		expect(result.current.className).toContain('component-class');
 		expect(result.current.style).toEqual({ backgroundColor: 'red' });

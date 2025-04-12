@@ -8,9 +8,9 @@ import { AnimatePresence, motion } from 'motion/react';
 import type { FC } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
+import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
 import type { ThemeValue } from '~/types/theme';
-import { useStyles } from '~/hooks/use-styles';
 import styles from '../consent-manager-dialog.module.css';
 
 /**
