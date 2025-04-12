@@ -170,7 +170,6 @@ const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
 			<Component
 				ref={forwardedRef}
 				className={root({ class: className })}
-				tabIndex={0}
 				{...rest}
 			>
 				{extendedChildren}
