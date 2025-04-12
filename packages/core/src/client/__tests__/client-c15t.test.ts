@@ -7,7 +7,7 @@ import {
 } from '../client-factory';
 import { API_ENDPOINTS } from '../types';
 
-describe('C15t Client Tests', () => {
+describe('c15t Client Tests', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 		fetchMock.mockReset();
@@ -201,7 +201,7 @@ describe('C15t Client Tests', () => {
 	});
 });
 
-describe('C15t Client Retry Logic Tests', () => {
+describe('c15t Client Retry Logic Tests', () => {
 	// Track time between retries
 	let timestamps: number[] = [];
 	let originalSetTimeout: typeof setTimeout;
