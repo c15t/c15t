@@ -6,10 +6,10 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { type HTMLAttributes, forwardRef } from 'react';
 
-import { useTheme } from '~/hooks/use-theme';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useStyles } from '~/hooks/use-styles';
+import { useTheme } from '~/hooks/use-theme';
 
 import styles from '../cookie-banner.module.css';
 

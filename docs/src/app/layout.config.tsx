@@ -37,7 +37,7 @@ export const homePageOptions: BaseLayoutProps = {
 		title: (
 			<>
 				<C15TLogo className="h-6 w-auto" />
-				<span className="font-medium text-sm">{version}</span>
+				<span className="font-medium text-sm">{packageJson.version}</span>
 			</>
 		),
 		transparentMode: 'top',
