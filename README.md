@@ -100,13 +100,13 @@ pnpm test
 ## 📚 Documentation
 
 - [Getting Started](https://c15t.com/docs)
-- [Core Concepts](https://c15t.com/docs/core)
-- [API Reference](https://c15t.com/docs/core/api-reference)
-- [UI Components](https://c15t.com/docs/framework/react)
+- [Javascript Core](https://c15t.com/docs/javascript)
+- [NextJS Quick Start](https://c15t.com/docs/nextjs/quickstart)
+- [UI Components](https://c15t.com/docs/components/react/cookie-banner)
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](https://c15t.com/docs/getting-started/open-source/contributing).
+We welcome contributions!
 
 - 🐛 [Report bugs](https://github.com/c15t/c15t/issues/new?template=bug_report.yml)
 - ✨ [Request features](https://github.com/c15t/c15t/issues/new?template=feature_request.yml)

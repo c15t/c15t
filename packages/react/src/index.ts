@@ -11,6 +11,7 @@ export { ConsentManagerProvider } from './providers/consent-manager-provider';
 export { useConsentManager } from './hooks/use-consent-manager';
 export { useTranslations } from './hooks/use-translations';
 export { useColorScheme } from './hooks/use-color-scheme';
+export { useFocusTrap } from './hooks/use-focus-trap';
 
 // Export client
 export {

@@ -33,6 +33,87 @@ const DEFAULT_BACKEND_URL = '/api/c15t';
 const DEFAULT_CLIENT_MODE = 'c15t';
 
 /**
+ * Configuration for Custom mode
+ * Allows for complete control over endpoint handling
+ */
+export type CustomClientOptions = {
+	/**
+	 * Operating mode - custom endpoint implementation
+	 */
+	mode: 'custom';
+
+	/**
+	 * Custom handlers for each consent endpoint
+	 * Implement your own logic for each API operation
+	 */
+	endpointHandlers: EndpointHandlers;
+
+	/**
+	 * Global callbacks for request events
+	 */
+	callbacks?: ConsentManagerCallbacks;
+
+	/**
+	 * Store configuration options
+	 */
+	store?: StoreOptions;
+
+	/**
+	 * Backend URL is not used in custom mode
+	 */
+	backendURL?: never;
+};
+
+export type C15TClientOptions = {
+	/**
+	 * c15t mode (default) - requires a backend URL
+	 */
+	mode?: 'c15t';
+
+	/**
+	 * Backend URL for API endpoints
+	 */
+	backendURL: string;
+
+	/**
+	 * Additional HTTP headers
+	 */
+	headers?: Record<string, string>;
+
+	/**
+	 * Custom fetch implementation
+	 */
+	customFetch?: typeof fetch;
+
+	/**
+	 * Retry configuration
+	 */
+	retryConfig?: RetryConfig;
+};
+
+export type OfflineClientOptions = {
+	/**
+	 * Offline mode - disables all API requests
+	 */
+	mode: 'offline';
+
+	/**
+	 * Not used in offline mode
+	 */
+	backendURL?: never;
+
+	/**
+	 * Additional HTTP headers (not used in offline mode)
+	 */
+	headers?: never;
+
+	/**
+	 * Custom fetch implementation (not used in offline mode)
+	 */
+	customFetch?: never;
+};
+
+/**
  * Union type of all possible client options
  */
 export type ConsentManagerOptions = {
@@ -41,71 +122,7 @@ export type ConsentManagerOptions = {
 	 */
 	callbacks?: ConsentManagerCallbacks;
 	store?: StoreOptions;
-} & (
-	| {
-			/**
-			 * Custom mode with endpoint handlers
-			 */
-			mode: 'custom';
-
-			/**
-			 * Custom endpoint handlers
-			 */
-			endpointHandlers: EndpointHandlers;
-
-			/**
-			 * Not used in custom mode
-			 */
-			backendURL?: never;
-	  }
-	| {
-			/**
-			 * C15t mode (default) - requires a backend URL
-			 */
-			mode?: 'c15t';
-
-			/**
-			 * Backend URL for API endpoints
-			 */
-			backendURL: string;
-
-			/**
-			 * Additional HTTP headers
-			 */
-			headers?: Record<string, string>;
-
-			/**
-			 * Custom fetch implementation
-			 */
-			customFetch?: typeof fetch;
-
-			/**
-			 * Retry configuration
-			 */
-			retryConfig?: RetryConfig;
-	  }
-	| {
-			/**
-			 * Offline mode - disables all API requests
-			 */
-			mode: 'offline';
-
-			/**
-			 * Not used in offline mode
-			 */
-			backendURL?: never;
-
-			/**
-			 * Additional HTTP headers (not used in offline mode)
-			 */
-			headers?: never;
-
-			/**
-			 * Custom fetch implementation (not used in offline mode)
-			 */
-			customFetch?: never;
-	  }
-);
+} & (CustomClientOptions | C15TClientOptions | OfflineClientOptions);
 
 /**
  * Creates a new consent management client.
@@ -113,7 +130,7 @@ export type ConsentManagerOptions = {
  * This factory function creates the appropriate client implementation based on
  * the provided options. It supports three main operating modes:
  *
- * 1. C15t mode - Makes actual HTTP requests to a consent management backend
+ * 1. c15t mode - Makes actual HTTP requests to a consent management backend
  * 2. Custom mode - Uses provided handler functions instead of HTTP requests
  * 3. Offline mode - Disables all API requests and returns empty successful responses
  *
@@ -121,7 +138,7 @@ export type ConsentManagerOptions = {
  * @returns A client instance that implements the ConsentManagerInterface
  *
  * @example
- * Basic C15t client with backend URL:
+ * Basic c15t client with backend URL:
  * ```typescript
  * const client = configureConsentManager({
  *   backendURL: '/api/c15t'
@@ -129,7 +146,7 @@ export type ConsentManagerOptions = {
  * ```
  *
  * @example
- * C15t client with custom backend URL:
+ * c15t client with custom backend URL:
  * ```typescript
  * const client = configureConsentManager({
  *   backendURL: 'https://api.example.com/consent'
@@ -182,10 +199,7 @@ export function configureConsentManager(
 	switch (mode) {
 		case 'custom': {
 			// Use a properly typed cast
-			const customOptions = options as {
-				endpointHandlers: EndpointHandlers;
-				callbacks?: ConsentManagerCallbacks;
-			};
+			const customOptions = options as CustomClientOptions;
 			return new CustomClient({
 				endpointHandlers: customOptions.endpointHandlers,
 				callbacks: customOptions.callbacks,

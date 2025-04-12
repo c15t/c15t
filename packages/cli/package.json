@@ -20,16 +20,16 @@
 	},
 	"dependencies": {
 		"@babel/preset-react": "^7.26.3",
-		"@babel/preset-typescript": "^7.26.0",
+		"@babel/preset-typescript": "^7.27.0",
 		"@c15t/backend": "workspace:*",
 		"@mrleebo/prisma-ast": "^0.12.1",
-		"@types/better-sqlite3": "^7.6.12",
+		"@types/better-sqlite3": "^7.6.13",
 		"@types/prompts": "^2.4.9",
-		"better-sqlite3": "^11.8.1",
-		"c12": "^3.0.2",
+		"better-sqlite3": "^11.9.1",
+		"c12": "^3.0.3",
 		"chalk": "^5.4.1",
 		"commander": "^13.1.0",
-		"dotenv": "^16.4.7",
+		"dotenv": "^16.5.0",
 		"fs-extra": "^11.3.0",
 		"prompts": "^2.4.2",
 		"yocto-spinner": "^0.2.1",
@@ -38,7 +38,7 @@
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@types/fs-extra": "^11.0.4",
-		"vitest": "^3.0.8"
+		"vitest": "^3.1.1"
 	},
 	"publishConfig": {
 		"access": "public",

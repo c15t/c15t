@@ -1,11 +1,11 @@
 ---
 title: Client Configuration Options
-description: Learn about the different client modes available in the C15t library and how to configure them for your application.
+description: Learn about the different client modes available in the c15t library and how to configure them for your application.
 ---
 
-The C15t client library provides three operating modes to fit different scenarios:
+The c15t client library provides three operating modes to fit different scenarios:
 
-1. **C15t Mode** - The default mode that connects to a C15t backend
+1. **c15t Mode** - The default mode that connects to a c15t backend
 2. **Offline Mode** - Works without a backend, useful for development or testing
 3. **Custom Mode** - Allows you to implement custom endpoint handlers
 
@@ -33,9 +33,9 @@ function App() {
 }
 ```
 
-## C15t Mode (Default)
+## c15t Mode (Default)
 
-C15t mode makes HTTP requests to a real C15t backend. This is the recommended production-ready option when you have a C15t instance available.
+c15t mode makes HTTP requests to a real c15t backend. This is the recommended production-ready option when you have a c15t instance available.
 
 ```tsx
 const options = {
@@ -65,7 +65,7 @@ const options = {
 };
 ```
 
-### C15t Mode Options
+### c15t Mode Options
 
 | Option | Type | Description |
 |--------|------|-------------|
@@ -81,7 +81,7 @@ const options = {
 Offline mode completely disables all network requests while simulating successful API responses. This mode is designed for:
 
 1. Production applications with their own existing consent backend
-2. Scenarios where you want to integrate with C15t's UI components but handle data storage/retrieval elsewhere
+2. Scenarios where you want to integrate with c15t's UI components but handle data storage/retrieval elsewhere
 3. Development and testing environments
 
 Unlike Custom mode which lets you implement your own HTTP handling logic, Offline mode eliminates network requests entirely while providing a functional interface.
@@ -167,7 +167,7 @@ const client = {
 
 ## When to Use Each Mode
 
-- **C15t Mode**: For production applications with a real C15t backend
+- **c15t Mode**: For production applications with a real c15t backend
 - **Offline Mode**: For development, testing, or when you need to disable consent functionality
 - **Custom Mode**: When you need to integrate with an existing consent system or implement custom behavior
 
