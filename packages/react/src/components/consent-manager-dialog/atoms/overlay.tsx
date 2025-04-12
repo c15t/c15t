@@ -10,7 +10,7 @@ import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useTheme } from '~/hooks/use-theme';
 import type { ThemeValue } from '~/types/theme';
-import { useStyles } from '~/utils/use-styles';
+import { useStyles } from '~/hooks/use-styles';
 import styles from '../consent-manager-dialog.module.css';
 
 /**

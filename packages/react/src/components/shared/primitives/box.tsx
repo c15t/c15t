@@ -4,7 +4,7 @@ import { Slot } from '@radix-ui/react-slot';
 import { type HTMLAttributes, forwardRef } from 'react';
 
 import type { ExtendThemeKeys } from '~/types/theme';
-import { useStyles } from '~/utils/use-styles';
+import { useStyles } from '~/hooks/use-styles';
 
 /**
  * Props for the description text component of the CookieBanner.

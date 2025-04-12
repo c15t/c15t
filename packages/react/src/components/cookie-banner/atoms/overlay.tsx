@@ -9,7 +9,7 @@ import { type HTMLAttributes, forwardRef } from 'react';
 import { useTheme } from '~/hooks';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
-import { useStyles } from '~/utils/use-styles';
+import { useStyles } from '~/hooks/use-styles';
 
 import styles from '../cookie-banner.module.css';
 

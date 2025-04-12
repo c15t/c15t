@@ -17,7 +17,7 @@ import { Overlay } from './overlay';
 import { LocalThemeContext } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import type { CSSPropertiesWithVars } from '~/types/theme';
-import { useStyles } from '~/utils/use-styles';
+import { useStyles } from '~/hooks/use-styles';
 import type { CookieBannerTheme } from '../theme';
 
 import styles from '../cookie-banner.module.css';

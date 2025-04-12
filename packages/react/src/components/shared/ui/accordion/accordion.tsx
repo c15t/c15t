@@ -14,7 +14,7 @@ import { Box } from '~/components/shared/primitives/box';
 import { LucideIcon } from '~/components/shared/ui/icon';
 import { useTheme } from '~/hooks/use-theme';
 import type { AllThemeKeys, ExtendThemeKeys, ThemeValue } from '~/types/theme';
-import { useStyles } from '~/utils/use-styles';
+import { useStyles } from '~/hooks/use-styles';
 import styles from './accordion.module.css';
 
 const ACCORDION_ROOT_NAME = 'AccordionRoot';
