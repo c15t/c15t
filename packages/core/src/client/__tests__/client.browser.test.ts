@@ -132,10 +132,9 @@ describe('C15t Client Browser Tests', () => {
 		// Call the API with our error handler
 		const response = await client.showConsentBanner({
 			onError: errorHandler,
-			testing: true,
+			testing: true, // Disable offline fallback
 		});
 
-		// Print debugging info
 		// Check error handler was called
 		expect(errorWasCaught).toBe(true);
 
@@ -143,9 +142,11 @@ describe('C15t Client Browser Tests', () => {
 		expect(response.ok).toBe(false);
 		expect(response.error).toBeDefined();
 		expect(response.error?.message).toBeTruthy(); // Just check that there is an error message
-		// In the browser environment, the implementation might not set all
-		// the expected values correctly. For now, we'll just check that
-		// the request was made at all and didn't crash.
+
+		// The error code may be either NETWORK_ERROR or API_ERROR depending on environment
+		expect(response.error?.code).toBeDefined();
+
+		// Verify the request was made
 		expect(fetchSpy).toHaveBeenCalled();
 	});
 });
