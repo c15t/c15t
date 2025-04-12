@@ -11,7 +11,7 @@
 		"@libsql/kysely-libsql": "^0.4.1"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20250408.0",
-		"wrangler": "^4.9.0"
+		"@cloudflare/workers-types": "^4.20250410.0",
+		"wrangler": "^4.10.0"
 	}
 }

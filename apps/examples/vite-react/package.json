@@ -13,7 +13,7 @@
 	},
 	"devDependencies": {
 		"@c15t/react": "workspace:*",
-		"@types/react": "^19.1.0",
+		"@types/react": "^19.1.1",
 		"@types/react-dom": "^19.1.2",
 		"@vitejs/plugin-react-swc": "^3.8.1",
 		"typescript": "~5.8.3",
