@@ -47,4 +47,4 @@ jobs:
         run: pnpm turbo run test
         
       - name: Build
-        run: pnpm turbo run build:libs
+        run: pnpm turbo run build --filter=./packages/*",
