@@ -16,14 +16,14 @@
 			"dependsOn": ["^lint"]
 		},
 		"check-types": {
-			"dependsOn": ["^build","^check-types"]
+			"dependsOn": ["^build", "^check-types"]
 		},
 		"dev": {
 			"cache": false,
 			"persistent": true
 		},
 		"test": {
-			"dependsOn": ["transit", "@c15t/vitest-config#build"],
+			"dependsOn": ["^build", "transit", "@c15t/vitest-config#build"],
 			"outputs": ["coverage.json"]
 		},
 		"transit": {
