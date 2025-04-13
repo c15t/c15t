@@ -1,0 +1,53 @@
+name: Report Coverage
+
+on:
+  workflow_run:
+    # Important: Match the name of your testing workflow file (ci.yml -> CI)
+    workflows: ["CI"]
+    types:
+      - completed # Trigger when the CI workflow finishes
+
+jobs:
+  report:
+    name: Generate Coverage Comment
+    runs-on: ubuntu-latest
+    # Only run this job if the triggering workflow run was successful AND was triggered by a pull_request event
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' }}
+
+    # Permissions needed to write comments on PRs
+    permissions:
+      pull-requests: write
+
+    steps:
+      # Checkout is needed to potentially read thresholds from vite config later? Optional otherwise.
+      - name: Checkout code (optional, for context)
+        uses: actions/checkout@v4
+
+      # Download the coverage artifact uploaded by the CI workflow
+      - name: Download Coverage Artifact
+        uses: actions/download-artifact@v4
+        with:
+          # Use the name defined in the upload step of ci.yml
+          name: coverage-data
+          # Specify the run ID of the workflow that triggered this run
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+          # Specify the path to download to (defaults to current dir)
+          # path: coverage # Optional: download into a specific directory
+
+      # Now run the action to generate the comment
+      - name: 📊 Report Coverage Comment on PR # Added emoji
+        uses: davelosert/vitest-coverage-report-action@v2 # Use the action you intend
+        with:
+          # Ensure the path matches where the artifact was downloaded
+          # Default is ./coverage/coverage-summary.json
+          json_summary_path: coverage/coverage-summary.json
+
+          # Optional: Add thresholds for pass/fail status in the comment
+          # thresholds: |
+          #   {
+          #     "lines": 80,
+          #     "functions": 70,
+          #     "branches": 80,
+          #     "statements": 80
+          #   }

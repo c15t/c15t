@@ -7,74 +7,122 @@ on:
     types: [opened, synchronize]
 
 jobs:
-  build:
-    name: Build and Test
-    timeout-minutes: 15
+  lint_and_check:
+    name: 🧹 Lint & Type Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # Needed for checkout
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
-
     steps:
-      - name: Check out code
+      - name: ⬇️ Check out code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2 # Need history to compare against base branch for Turborepo
-            
-      # Setup pnpm and Node.js, caching pnpm store
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+          fetch-depth: 2
 
-      - name: Setup Node.js environment
+      - name: 🅿️ Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22 # Or your preferred Node.js version
+          node-version: 22
           cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      # Cache Playwright browsers
-      - name: Cache Playwright Browsers
+      - name: 👀 Type Check
+        run: pnpm turbo run check-types
+
+      - name: 🧹 Lint
+        run: pnpm turbo run lint
+
+  build:
+    name: 🏗️ Build Packages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # Needed for checkout
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+    steps:
+      - name: ⬇️ Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: 🅿️ Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏗️ Build
+        run: pnpm turbo run build --filter="./packages/*"
+
+  test:
+    name: 🧪 Run Tests & Coverage
+    needs: build # Run only after build succeeds
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # Needed for checkout
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+    steps:
+      - name: ⬇️ Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: 🅿️ Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🎭 Cache Playwright browsers
         id: playwright-cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          # Key based on OS and lockfile hash
           key: playwright-browsers-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-          # Fallback key
           restore-keys: |
             playwright-browsers-${{ runner.os }}-
 
-      # Install Playwright browsers (assuming needed for some tests)
-      - name: Install Playwright browsers
-        # Run install only if cache wasn't restored
+      - name: 🎭 Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install
 
-      - name: Type Check
-        run: pnpm turbo run check-types # Use the correct script name from root package.json
-
-      - name: Lint
-        run: pnpm turbo run lint
-
-      - name: Build
-        run: pnpm turbo run build --filter="./packages/*" # Keep existing filter
-
-      - name: Run Tests (Standard)
+      - name: 🧪 Run Tests (Standard)
         run: pnpm turbo run test --filter='!./apps/examples/*'
-      - name: Run Tests with Coverage
-        # This step generates the coverage data AND the HTML report (due to 'html' reporter in config)
+
+      - name: 📊 Run Tests with Coverage
         run: pnpm test:coverage
 
-      - name: Report Coverage Comment on PR
-        if: github.event_name == 'pull_request'
-        uses: davelosert/vitest-coverage-report-action@v2
-
-      # --- New Step to Upload HTML Report ---
-      - name: Upload Coverage Report Artifact
+      - name: ⬆️ Upload Coverage Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: vitest-coverage-report # Name of the artifact zip file
-          path: coverage/ # Upload the entire coverage directory
-          retention-days: 7 # Optional: Keep artifact for 7 days
+          name: coverage-data
+          path: coverage/
+          retention-days: 7
