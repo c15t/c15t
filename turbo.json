@@ -8,11 +8,12 @@
 			"outputs": [".next/**", "!.next/cache/**", "dist/**"]
 		},
 		"fmt": {
-			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc"],
+			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc", "**/biome.json"],
 			"outputs": []
 		},
 		"lint": {
-			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc"]
+			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc", "**/biome.json"],
+			"dependsOn": ["^lint"]
 		},
 		"check-types": {
 			"dependsOn": ["^check-types"]
@@ -22,18 +23,11 @@
 			"persistent": true
 		},
 		"test": {
-			"dependsOn": ["^build"],
-			"outputs": []
+			"dependsOn": ["transit", "@c15t/vitest-config#build"],
+			"outputs": ["coverage.json"]
 		},
-		"type-check": {
-			"outputs": []
-		},
-		"ci:version": {
-			"outputs": []
-		},
-		"ci:publish": {
-			"dependsOn": ["build"],
-			"outputs": []
+		"transit": {
+			"dependsOn": ["^transit"]
 		}
 	}
 }

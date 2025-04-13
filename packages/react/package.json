@@ -56,9 +56,8 @@
 		"dev": "rslib build --watch",
 		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"lint": "pnpm biome lint ./src",
-		"test": "vitest",
-		"test:coverage": "vitest run --coverage",
-		"test:watch": "vitest run"
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"browserslist": [">0.2%", "not dead", "not op_mini all"],
 	"dependencies": {
@@ -72,7 +71,8 @@
 		"zustand": "^5.0.3"
 	},
 	"devDependencies": {
-		"@c15t/typescript-config": "workspace:*"
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*"
 	},
 	"peerDependencies": {
 		"react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",

@@ -20,12 +20,8 @@
 		"dev": "rslib build --watch",
 		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"lint": "pnpm biome lint ./src",
-		"test": "npm run test:node && npm run test:browser",
-		"test:browser": "vitest --config vitest.browser.config.ts",
-		"test:browser:watch": "vitest run --config vitest.browser.config.ts",
-		"test:coverage": "vitest --coverage",
-		"test:node": "vitest",
-		"test:node:watch": "vitest run"
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"browserslist": [">0.2%", "not dead", "not op_mini all"],
 	"dependencies": {

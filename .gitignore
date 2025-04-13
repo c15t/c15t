@@ -46,3 +46,4 @@ docs/public/r/*
 
 
 *.tsbuildinfo
+coverage.json

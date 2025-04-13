@@ -63,6 +63,21 @@ jobs:
       - name: Build
         run: pnpm turbo run build --filter="./packages/*" # Keep existing filter
 
-      - name: Test
-        # Align with root package.json script filter
+  - name: Run Tests (Standard)
         run: pnpm turbo run test --filter='!./apps/examples/*'
+
+      - name: Run Tests with Coverage
+        # This step generates the coverage data AND the HTML report (due to 'html' reporter in config)
+        run: pnpm test:coverage
+
+      - name: Report Coverage Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: MishaKav/vitest-coverage-report-action@v1.0.0
+
+      # --- New Step to Upload HTML Report ---
+      - name: Upload Coverage Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-coverage-report # Name of the artifact zip file
+          path: coverage/ # Upload the entire coverage directory
+          retention-days: 7 # Optional: Keep artifact for 7 days

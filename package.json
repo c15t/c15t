@@ -18,6 +18,7 @@
 		"lint:fix": "turbo lint -- --write",
 		"release": "pnpm build:libs && changeset publish",
 		"test": "turbo test --filter=!./apps/examples/*",
+		"view-report": "turbo run view-report",
 		"version": "changeset version && pnpm install --lockfile-only"
 	},
 	"devDependencies": {
@@ -32,6 +33,7 @@
 		"@types/react-dom": "^19.1.2",
 		"@vitejs/plugin-react": "^4.3.4",
 		"@vitest/browser": "^3.1.1",
+		"@vitest/coverage-istanbul": "^3.1.1",
 		"changeset-conventional-commits": "^0.2.5",
 		"playwright": "^1.51.1",
 		"turbo": "^2.5.0",
@@ -43,5 +45,8 @@
 	"packageManager": "pnpm@10.8.0",
 	"engines": {
 		"node": ">=22"
+	},
+	"dependencies": {
+		"vite-tsconfig-paths": "^5.1.4"
 	}
 }
