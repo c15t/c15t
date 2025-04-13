@@ -21,10 +21,16 @@
 			"cache": false,
 			"persistent": true
 		},
-		"test": {
-			"dependsOn": ["^build"],
-			"outputs": []
-		},
+    "test": {
+      "dependsOn": ["transit"]
+    },
+    "test:watch": {
+      "cache": false,
+      "persistent": true
+    },
+    "transit": {
+      "dependsOn": ["^transit"]
+    },
 		"type-check": {
 			"outputs": []
 		},
