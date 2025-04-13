@@ -48,6 +48,14 @@ export type {
 
 /**
  * @module
+ * API Endpoints
+ *
+ * @remarks
+ * Exports the API endpoints for the consent management system.
+ */
+export { API_ENDPOINTS } from './client/types';
+/**
+ * @module
  * GDPR Consent Types
  *
  * @remarks

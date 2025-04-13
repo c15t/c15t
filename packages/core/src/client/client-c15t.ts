@@ -32,6 +32,7 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
 	initialDelayMs: 100,
 	backoffFactor: 2,
 	retryableStatusCodes: [500, 502, 503, 504], // Default retryable server errors
+	nonRetryableStatusCodes: [400, 401, 403, 404], // Never retry client errors, especially 404
 	retryOnNetworkError: true,
 	shouldRetry: undefined,
 };
@@ -188,6 +189,9 @@ export class C15tClient implements ConsentManagerInterface {
 			retryableStatusCodes:
 				options.retryConfig?.retryableStatusCodes ??
 				DEFAULT_RETRY_CONFIG.retryableStatusCodes,
+			nonRetryableStatusCodes:
+				options.retryConfig?.nonRetryableStatusCodes ??
+				DEFAULT_RETRY_CONFIG.nonRetryableStatusCodes,
 			shouldRetry:
 				options.retryConfig?.shouldRetry ?? DEFAULT_RETRY_CONFIG.shouldRetry,
 			retryOnNetworkError:
@@ -277,6 +281,10 @@ export class C15tClient implements ConsentManagerInterface {
 				options?.retryConfig?.retryableStatusCodes ??
 				this.retryConfig.retryableStatusCodes ??
 				DEFAULT_RETRY_CONFIG.retryableStatusCodes,
+			nonRetryableStatusCodes:
+				options?.retryConfig?.nonRetryableStatusCodes ??
+				this.retryConfig.nonRetryableStatusCodes ??
+				DEFAULT_RETRY_CONFIG.nonRetryableStatusCodes,
 		};
 
 		const {
@@ -284,6 +292,7 @@ export class C15tClient implements ConsentManagerInterface {
 			initialDelayMs,
 			backoffFactor,
 			retryableStatusCodes,
+			nonRetryableStatusCodes,
 			retryOnNetworkError,
 		} = finalRetryConfig;
 
@@ -426,23 +435,33 @@ export class C15tClient implements ConsentManagerInterface {
 				// Check if we should retry based on status code and custom retry strategy
 				let shouldRetryThisRequest = false;
 
+				// Check first if this is a status code that should never be retried
+				if (nonRetryableStatusCodes?.includes(response.status)) {
+					// biome-ignore lint/suspicious/noConsole: <explanation>
+					console.debug(`Not retrying request to ${path} with status ${response.status} (nonRetryableStatusCodes)`);
+					shouldRetryThisRequest = false;
+				} 
 				// Apply custom retry strategy if provided - it takes precedence over retryableStatusCodes
-				if (typeof finalRetryConfig.shouldRetry === 'function') {
+				else if (typeof finalRetryConfig.shouldRetry === 'function') {
 					try {
 						shouldRetryThisRequest = finalRetryConfig.shouldRetry(response, {
 							attemptsMade,
 							url: url.toString(),
 							method: requestOptions.method || 'GET',
 						});
+						// biome-ignore lint/suspicious/noConsole: <explanation>
+						console.debug(`Custom retry strategy for ${path} with status ${response.status}: ${shouldRetryThisRequest}`);
 					} catch {
 						// Fall back to status code check if custom function throws
 						shouldRetryThisRequest =
 							retryableStatusCodes?.includes(response.status) ?? false;
+						console.debug(`Custom retry strategy failed, falling back to status code check: ${shouldRetryThisRequest}`);
 					}
 				} else {
 					// Fall back to retryableStatusCodes if no custom strategy
 					shouldRetryThisRequest =
 						retryableStatusCodes?.includes(response.status) ?? false;
+					console.debug(`Standard retry check for ${path} with status ${response.status}: ${shouldRetryThisRequest}`);
 				}
 
 				// Don't retry if we've already made maximum attempts

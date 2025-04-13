@@ -319,6 +319,8 @@ export interface RetryConfig {
 	backoffFactor?: number;
 	/** Array of HTTP status codes that should trigger a retry. */
 	retryableStatusCodes?: number[];
+	/** Array of HTTP status codes that should never be retried, overrides retryableStatusCodes. */
+	nonRetryableStatusCodes?: number[];
 	/** Custom function to determine if a response should be retried. Takes precedence over retryableStatusCodes. */
 	shouldRetry?: (
 		response: Response,

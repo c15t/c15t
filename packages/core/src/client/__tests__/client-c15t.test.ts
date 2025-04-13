@@ -454,6 +454,115 @@ describe('c15t Client Retry Logic Tests', () => {
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 		expect(response.ok).toBe(true);
 	});
+
+	it('should not retry on 404 Not Found errors', async () => {
+		// Mock a 404 error response
+		fetchMock.mockResolvedValueOnce(
+			new Response(JSON.stringify({ message: 'Resource not found', code: 'NOT_FOUND' }), { 
+				status: 404,
+				statusText: 'Not Found',
+				headers: { 'Content-Type': 'application/json' }
+			})
+		);
+
+		// Configure client with retry config
+		const config: ConsentManagerOptions = {
+			mode: 'c15t',
+			backendURL: '/api/c15t',
+			// retryConfig: {
+			// 	maxRetries: 3, // Set high enough to potentially retry multiple times
+			// 	initialDelayMs: 10, // Small delay for test
+			// 	retryableStatusCodes: [500, 502, 503, 504], // Default server errors
+			// },
+		};
+
+		// Track if setTimeout was called (which would indicate a retry attempt)
+		const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
+		
+		const client = configureConsentManager(config);
+		
+		// Call the API with testing flag to avoid fallback
+		const response = await client.showConsentBanner({
+			testing: true, // Ensure we get the original error response
+		});
+
+		// Assertions
+		expect(fetchMock).toHaveBeenCalledTimes(1); // Should only be called once
+		expect(setTimeoutSpy).not.toHaveBeenCalled(); // No retry delay should be scheduled
+		expect(response.ok).toBe(false);
+		expect(response.error?.status).toBe(404);
+		expect(response.error?.code).toBe('NOT_FOUND');
+	});
+
+	it('should handle a mix of 404 and retryable errors correctly', async () => {
+		// Mock a 404 response followed by 503 and then success
+		fetchMock
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ message: 'Not Found' }), { 
+					status: 404, 
+					statusText: 'Not Found' 
+				})
+			)
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ message: 'Service Unavailable' }), { 
+					status: 503, 
+					statusText: 'Service Unavailable' 
+				})
+			)
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ showConsentBanner: true }), { 
+					status: 200 
+				})
+			);
+
+		// Configure client with retry config
+		const config: ConsentManagerOptions = {
+			mode: 'c15t',
+			backendURL: '/api/c15t',
+			retryConfig: {
+				maxRetries: 2,
+				initialDelayMs: 10,
+				retryableStatusCodes: [503],
+			},
+		};
+
+		// First call - should return 404 with no retries
+		const client = configureConsentManager(config);
+		const firstResponse = await client.showConsentBanner({
+			testing: true,
+		});
+
+		// Should have only made one request and returned the 404
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(firstResponse.ok).toBe(false);
+		expect(firstResponse.error?.status).toBe(404);
+
+		// Reset mock for next test
+		fetchMock.mockReset();
+		
+		// Set up mocks again for the second test
+		fetchMock
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ message: 'Service Unavailable' }), { 
+					status: 503, 
+					statusText: 'Service Unavailable' 
+				})
+			)
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ showConsentBanner: true }), { 
+					status: 200,
+					headers: { 'Content-Type': 'application/json' }
+				})
+			);
+
+		// Second call - should retry on 503 and eventually succeed
+		const secondResponse = await client.showConsentBanner();
+		
+		// Should have made two requests (original + retry)
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(secondResponse.ok).toBe(true);
+		expect(secondResponse.data).toEqual({ showConsentBanner: true });
+	});
 });
 
 describe('C15t Client Offline Fallback Tests', () => {
