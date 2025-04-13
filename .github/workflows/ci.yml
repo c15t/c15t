@@ -14,36 +14,43 @@ jobs:
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
-    
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out code
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 2
-      
-      - name: Install
-        uses: ./.github/actions/install
-      
-      # Install Playwright browsers
+          fetch-depth: 2 # Need history to compare against base branch for Turborepo
+
+      # Setup pnpm and Node.js, caching pnpm store
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10 # Match version in root package.json
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22 # Or your preferred Node.js version
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # Install Playwright browsers (assuming needed for some tests)
       - name: Install Playwright browsers
         run: pnpm exec playwright install
 
-      # Add Turbo cache
-      - name: Cache Turbo
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
+      # Removed actions/cache step for .turbo - relying on Remote Cache
 
       - name: Type Check
-        run: pnpm turbo run type-check
-        
+        run: pnpm turbo run check-types # Use the correct script name from root package.json
+
       - name: Lint
         run: pnpm turbo run lint
-        
+
       - name: Build
-        run: pnpm turbo run build --filter="./packages/*"
-        
+        run: pnpm turbo run build --filter="./packages/*" # Keep existing filter
+
       - name: Test
-        run: pnpm turbo run test
+        # Align with root package.json script filter
+        run: pnpm turbo run test --filter='!./apps/examples/*'

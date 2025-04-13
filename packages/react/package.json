@@ -56,9 +56,9 @@
 		"dev": "rslib build --watch",
 		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"lint": "pnpm biome lint ./src",
-		"test": "vitest run",
+		"test": "vitest",
 		"test:coverage": "vitest run --coverage",
-		"test:watch": "vitest"
+		"test:watch": "vitest run"
 	},
 	"browserslist": [">0.2%", "not dead", "not op_mini all"],
 	"dependencies": {

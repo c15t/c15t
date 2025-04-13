@@ -12,13 +12,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      # Combine Node.js setup with the install action
-      - name: Install
-        uses: ./.github/actions/install
+
+      # Setup pnpm and Node.js, caching pnpm store
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10 # Update pnpm version
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22 # Or your preferred Node.js version
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
 
       # Cache Biome for faster formatting
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cache/biome
@@ -26,6 +37,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-biome-
 
-      - run: pnpm fmt
+      - name: Format code
+        run: pnpm fmt
 
       - uses: autofix-ci/action@ff86a557419858bb967097bfc916833f5647fa8c
