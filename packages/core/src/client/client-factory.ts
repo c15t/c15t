@@ -4,7 +4,7 @@
  * client instances based on configuration options.
  */
 
-import type {
+export type {
 	SetConsentRequestBody,
 	SetConsentResponse,
 	ShowConsentBannerResponse,
@@ -19,8 +19,13 @@ import type {
 	ConsentManagerCallbacks,
 	ConsentManagerInterface,
 } from './client-interface';
+export type {
+	ConsentManagerCallbacks,
+	ConsentManagerInterface,
+} from './client-interface';
 import { OfflineClient } from './client-offline';
-import type { FetchOptions, ResponseContext, RetryConfig } from './types';
+import type { RetryConfig } from './types';
+export type { FetchOptions, ResponseContext, RetryConfig } from './types';
 
 /**
  * Default API endpoint URL
@@ -52,8 +57,16 @@ function getClientCacheKey(options: ConsentManagerOptions): string {
 		return `custom:${handlerKeys}`;
 	}
 
+	// For c15t clients, include headers in the cache key if present
+	let headersPart = '';
+	if ('headers' in options && options.headers) {
+		// Sort header keys for a stable key
+		const headerKeys = Object.keys(options.headers).sort();
+		headersPart = `:headers:${headerKeys.map((k) => `${k}=${options.headers?.[k]}`).join(',')}`;
+	}
+
 	// For c15t clients, use the backendURL as the key
-	return `c15t:${options.backendURL || ''}`;
+	return `c15t:${options.backendURL || ''}${headersPart}`;
 }
 
 /**
@@ -220,6 +233,26 @@ export function configureConsentManager(
 
 	// Return existing client if found
 	if (clientRegistry.has(cacheKey)) {
+		// If the existing client is a C15tClient and new options include headers,
+		// update the client's headers
+		if (
+			options.mode !== 'offline' &&
+			options.mode !== 'custom' &&
+			'headers' in options &&
+			options.headers
+		) {
+			const existingClient = clientRegistry.get(cacheKey);
+			// Update headers if the client is a C15tClient
+			if (existingClient instanceof C15tClient) {
+				// @ts-expect-error: headers is a private property
+				existingClient.headers = {
+					'Content-Type': 'application/json',
+					...options.headers,
+				};
+				console.log('Updated cached client headers:', options.headers);
+			}
+		}
+
 		const existingClient = clientRegistry.get(cacheKey);
 		if (existingClient) {
 			return new Proxy(existingClient, {
@@ -276,17 +309,3 @@ export function configureConsentManager(
 
 	return client;
 }
-
-// Re-export core types for convenience
-export type {
-	ConsentManagerInterface,
-	ConsentManagerCallbacks,
-	EndpointHandlers,
-	ResponseContext,
-	FetchOptions,
-	ShowConsentBannerResponse,
-	SetConsentResponse,
-	SetConsentRequestBody,
-	VerifyConsentResponse,
-	VerifyConsentRequestBody,
-};

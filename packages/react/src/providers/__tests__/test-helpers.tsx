@@ -103,8 +103,10 @@ export function setupMocks() {
 						getCallbacks: () => options.callbacks,
 						showConsentBanner: async () => handlers.showConsentBanner({}),
 						setConsent: async (data: SetConsentRequestBody) =>
+							//@ts-expect-error
 							handlers.setConsent(data),
 						verifyConsent: async (data: VerifyConsentRequestBody) =>
+							//@ts-expect-error
 							handlers.verifyConsent(data),
 					};
 				}

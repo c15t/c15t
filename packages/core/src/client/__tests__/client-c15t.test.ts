@@ -139,10 +139,10 @@ describe('c15t Client Tests', () => {
 			})
 		);
 
-		// Configure the client with custom headers
+		// Configure the client with custom headers and force a new instance
 		const client = configureConsentManager({
 			mode: 'c15t',
-			backendURL: '/api/c15t',
+			backendURL: 'https://test.example.com/api/c15t',
 			headers: {
 				'X-Custom-Header': 'test-value',
 				Authorization: 'Bearer test-token',
@@ -152,16 +152,20 @@ describe('c15t Client Tests', () => {
 		// Call the API
 		await client.showConsentBanner();
 
-		// Assertions
-		expect(fetchMock).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t/show-consent-banner'),
-			expect.objectContaining({
-				headers: expect.objectContaining({
-					'X-Custom-Header': 'test-value',
-					Authorization: 'Bearer test-token',
-				}),
-			})
-		);
+		// Verify fetch was called
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+
+		// Get the actual call arguments
+		const mockCall = fetchMock.mock.calls[0];
+		const url = mockCall[0];
+		const options = mockCall[1];
+
+		// Check the URL
+		expect(url).toContain('/api/c15t/show-consent-banner');
+
+		// Check that our custom headers were included
+		expect(options.headers['X-Custom-Header']).toBe('test-value');
+		expect(options.headers.Authorization).toBe('Bearer test-token');
 	});
 
 	it('should retry failed requests based on config', async () => {
