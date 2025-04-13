@@ -6,6 +6,7 @@
 		"build:libs": "turbo build --filter=./packages/*",
 		"build:apps": "turbo build --filter=./apps/*",
 		"check-types": "turbo check-types",
+    "changeset": "changeset",
 		"ci:publish": "pnpm changeset tag && pnpm publish -r",
 		"ci:version": "pnpm changeset version",
 		"test": "turbo test --filter=!./apps/examples/*",
@@ -16,7 +17,7 @@
 		"lint": "turbo lint",
 		"lint:fix": "turbo lint -- --write",
 		"knip": "knip",
-		"release": "pnpm build && changeset publish",
+		"release": "pnpm build:libs && changeset publish",
 		"version": "changeset version && pnpm install --lockfile-only"
 	},
 	"devDependencies": {

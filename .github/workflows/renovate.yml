@@ -1,0 +1,27 @@
+# .github/workflows/renovate.yml
+name: Renovate Dependencies
+
+on:
+  # Run on a schedule - matches the schedule in your renovate.json
+  schedule:
+    - cron: '0 5 * * 1' # Runs every Monday at 5 AM UTC
+  # Allow manual triggering from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  renovate:
+    name: Run Renovate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (needed for Renovate action context)
+        uses: actions/checkout@v4
+        # Minimal checkout is fine, Renovate action handles the rest
+
+      - name: Run Renovate Action
+        uses: renovatebot/github-action@v40.2.3 # Use a specific, recent version
+        with:
+          # Using GITHUB_TOKEN is usually sufficient if you installed the Renovate GitHub App
+          # If you need specific permissions or are self-hosting, use a Personal Access Token (PAT)
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # You can uncomment and set a PAT if needed:
+          # token: ${{ secrets.RENOVATE_PAT }}
