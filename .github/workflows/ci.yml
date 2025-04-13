@@ -69,7 +69,7 @@ jobs:
 
       - name: Report Coverage Comment on PR
         if: github.event_name == 'pull_request'
-        uses: MishaKav/vitest-coverage-report-action@v1.0.0
+        uses: davelosert/vitest-coverage-report-action@v2
 
       # --- New Step to Upload HTML Report ---
       - name: Upload Coverage Report Artifact
