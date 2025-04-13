@@ -67,9 +67,8 @@ async function collectCoverageFiles() {
 					.map(replaceDotPatterns)
 					.join(', ')}`
 			);
-      
 		}
-    
+
 		// biome-ignore lint/suspicious/noConsole: this is a script
 		console.info(`Coverage collected into: ${destinationDir}`);
 	} catch (error) {
