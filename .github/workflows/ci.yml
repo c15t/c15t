@@ -44,8 +44,22 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # Cache Playwright browsers
+      - name: Cache Playwright Browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          # Key based on OS and lockfile hash
+          key: playwright-browsers-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          # Fallback key
+          restore-keys: |
+            playwright-browsers-${{ runner.os }}-
+
       # Install Playwright browsers (assuming needed for some tests)
       - name: Install Playwright browsers
+        # Run install only if cache wasn't restored
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install
 
       # Removed actions/cache step for .turbo - relying on Remote Cache
