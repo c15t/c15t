@@ -36,6 +36,10 @@
 	},
 	"linter": {
 		"rules": {
+			"suspicious": {
+				"noConsole": "off",
+				"noConsoleLog": "off"
+			},
 			"complexity": {
 				"noExcessiveCognitiveComplexity": "off"
 			},

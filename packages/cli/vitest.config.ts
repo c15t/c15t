@@ -1,3 +1,1 @@
-import { baseConfig } from '@c15t/vitest-config/base';
-
-export default baseConfig;
+export { default } from '@c15t/vitest-config/base';

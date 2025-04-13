@@ -1,6 +1,6 @@
 'use client';
 
-import { ConsentManagerOptions } from '@c15t/react';
+import type { ConsentManagerOptions } from '@c15t/react';
 
 /**
  * Create configuration options for React components to use

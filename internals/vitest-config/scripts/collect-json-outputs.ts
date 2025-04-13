@@ -19,8 +19,8 @@ async function collectCoverageFiles() {
 		await fs.mkdir(destinationDir, { recursive: true });
 
 		// Arrays to collect all directories and directories with coverage.json
-		const allDirectories = [];
-		const directoriesWithCoverage = [];
+		const allDirectories: string[] = [];
+		const directoriesWithCoverage: string[] = [];
 
 		// Process each pattern
 		for (const pattern of patterns) {
@@ -50,7 +50,7 @@ async function collectCoverageFiles() {
 						);
 
 						await fs.copyFile(coverageFilePath, destinationFile);
-					} catch (err) {
+					} catch {
 						// File doesn't exist in this directory, skip
 					}
 				}
