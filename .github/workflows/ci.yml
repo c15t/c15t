@@ -43,8 +43,8 @@ jobs:
       - name: Lint
         run: pnpm turbo run lint
         
-      - name: Test
-        run: pnpm turbo run test
-        
       - name: Build
         run: pnpm turbo run build --filter="./packages/*"
+        
+      - name: Test
+        run: pnpm turbo run test
