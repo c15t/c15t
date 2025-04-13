@@ -2,6 +2,7 @@
 	"name": "@c15t-examples/cf-worker",
 	"private": true,
 	"scripts": {
+		"check-types": "tsc --noEmit",
 		"deploy": "wrangler deploy --minify",
 		"dev": "wrangler dev",
 		"fmt": "pnpm biome format --write ."

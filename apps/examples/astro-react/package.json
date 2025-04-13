@@ -1,12 +1,13 @@
 {
 	"name": "@c15t-examples/astro-react",
-	"type": "module",
 	"private": true,
+	"type": "module",
 	"scripts": {
-		"dev": "astro dev",
+		"astro": "astro",
 		"build": "astro build",
-		"preview": "astro preview",
-		"astro": "astro"
+		"check-types": "tsc --noEmit",
+		"dev": "astro dev",
+		"preview": "astro preview"
 	},
 	"dependencies": {
 		"@astrojs/react": "^4.2.3",

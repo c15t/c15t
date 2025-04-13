@@ -12,6 +12,7 @@
 	"files": ["dist"],
 	"scripts": {
 		"build": "rslib build",
+		"check-types": "tsc --noEmit",
 		"dev": "rslib dev",
 		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"knip": "knip",
