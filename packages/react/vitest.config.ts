@@ -1,13 +1,12 @@
 import { resolve } from 'node:path';
 import { baseConfig } from '@c15t/vitest-config/base';
-import react from '@vitejs/plugin-react';
-import tsconfigPaths from 'vite-tsconfig-paths';
+import react from '@vitejs/plugin-react';;
 import { defineConfig, mergeConfig } from 'vitest/config';
 
 export default mergeConfig(
 	baseConfig,
 	defineConfig({
-		plugins: [react(), tsconfigPaths()],
+		plugins: [react()],
 		resolve: {
 			alias: {
 				'~': resolve(__dirname, './src'),

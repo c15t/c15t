@@ -46,7 +46,7 @@
 	"engines": {
 		"node": ">=22"
 	},
-	"dependencies": {
-		"vite-tsconfig-paths": "^5.1.4"
+  "resolutions": {
+		"@libsql/kysely-libsql": "^0.4.1"
 	}
 }

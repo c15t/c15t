@@ -61,21 +61,20 @@ async function collectCoverageFiles() {
 		const replaceDotPatterns = (str: string) => str.replace(/\.\.\//g, '');
 
 		if (directoriesWithCoverage.length > 0) {
-			// biome-ignore lint/suspicious/noConsoleLog: this is a script
 			// biome-ignore lint/suspicious/noConsole: this is a script
-			console.log(
+			console.info(
 				`Found coverage.json in: ${directoriesWithCoverage
 					.map(replaceDotPatterns)
 					.join(', ')}`
 			);
+      
 		}
-		// biome-ignore lint/suspicious/noConsoleLog: this is a script
+    
 		// biome-ignore lint/suspicious/noConsole: this is a script
-		console.log(`Coverage collected into: ${destinationDir}`);
+		console.info(`Coverage collected into: ${destinationDir}`);
 	} catch (error) {
-		// biome-ignore lint/suspicious/noConsoleLog: this is a script
 		// biome-ignore lint/suspicious/noConsole: this is a script
-		console.error('Error collecting coverage files:', error);
+		console.info('Error collecting coverage files:', error);
 	}
 }
 

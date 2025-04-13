@@ -35,7 +35,9 @@ describe('Kysely Adapter Tests', () => {
 		// For SQLite we need to disable WAL mode to ensure transactions work correctly in tests
 		const sqliteKy = new Kysely<Database>({
 			dialect: new LibsqlDialect({
-				url: 'file::memory:', // Use file URL for in-memory database
+				url: ':memory:', // Use in-memory database for tests
+				// Important: Configuring SQLite for better reliability in tests
+				tls: false, // Disable TLS for in-memory DB
 			}),
 		});
 

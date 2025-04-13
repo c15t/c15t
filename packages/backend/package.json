@@ -119,7 +119,7 @@
 		"@c15t/vitest-config": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@electric-sql/pglite": "^0.2.17",
-		"@libsql/kysely-libsql": "^0.3.0",
+		"@libsql/kysely-libsql": "^0.4.1",
 		"@types/better-sqlite3": "^7.6.13",
 		"@types/express": "^5.0.1",
 		"@types/node": "^22.14.1",
