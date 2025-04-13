@@ -51,6 +51,19 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      # Sanitize branch name to prevent command injection
+      - name: Sanitize Branch Name
+        run: |
+          # Extract branch name and validate it against a safe pattern
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          # Check if branch name contains only alphanumeric, dash, underscore, and slash characters
+          if [[ ! "$BRANCH_NAME" =~ ^[a-zA-Z0-9_/-]+$ ]]; then
+            echo "Error: Branch name contains invalid characters"
+            exit 1
+          fi
+          # Store sanitized branch name as an environment variable for later steps
+          echo "SAFE_BRANCH_REF=$BRANCH_NAME" >> $GITHUB_ENV
+
       # Add an empty changeset (defaults to patch with generic message)
       - name: Create Changeset File
         run: pnpm changeset add --empty
@@ -63,7 +76,7 @@ jobs:
           # Check if there's anything to commit (in case action reruns)
           if ! git diff --staged --quiet; then
             git commit -m "chore: add changeset for dependency update [skip ci]"
-            git push origin HEAD:${{ github.event.pull_request.head.ref }} # Push back to the head ref of the PR
+            git push origin HEAD:${{ env.SAFE_BRANCH_REF }}
           else
             echo "No changeset file to commit."
           fi
