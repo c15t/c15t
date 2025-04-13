@@ -6,8 +6,6 @@ import { ConsentManagerProvider } from '~/index';
 const mockFetch = vi.fn();
 window.fetch = mockFetch;
 
-
-
 describe('ConsentManagerProvider Basic Request Behavior', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
