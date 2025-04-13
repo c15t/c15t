@@ -95,8 +95,8 @@
 }
 
 .branding {
-  display: flex;
-  margin: auto 0;
+	display: flex;
+	margin: auto 0;
 	justify-content: center;
 	align-items: center;
 	gap: var(--dialog-branding-gap);
@@ -106,8 +106,8 @@
 	letter-spacing: var(--dialog-branding-letter-spacing);
 	color: var(--dialog-foreground-color);
 	text-decoration: none;
-  border-radius: 0.25rem;
-  padding: 0 0.5rem;
+	border-radius: 0.25rem;
+	padding: 0 0.5rem;
 }
 
 .branding:focus-visible {
@@ -125,13 +125,13 @@
 	color: var(--dialog-foreground-color-dark);
 }
 
-.brandingC15T{
-  width: var(--dialog-branding-icon-width);
+.brandingC15T {
+	width: var(--dialog-branding-icon-width);
 	height: var(--dialog-branding-icon-height);
 }
 
-.brandingConsent{
-  width: var(--dialog-branding-icon-width);
+.brandingConsent {
+	width: var(--dialog-branding-icon-width);
 	height: 1rem;
 }
 
@@ -231,7 +231,7 @@
 	justify-content: center;
 	font-size: var(--dialog-footer-font-size);
 	padding-top: var(--dialog-footer-padding-y);
-  padding-bottom: var(--dialog-footer-padding-y);
+	padding-bottom: var(--dialog-footer-padding-y);
 	border-top: var(--dialog-border-width) var(--dialog-border-style)
 		var(--dialog-stroke-color);
 }

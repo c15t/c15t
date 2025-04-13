@@ -1,11 +1,10 @@
 {
-	"$schema": "https://unpkg.com/@changesets/config@3.0.5/schema.json",
-	"changelog": "@changesets/cli/changelog",
+	"$schema": "https://unpkg.com/@changesets/config@latest/schema.json",
+	"changelog": ["@changesets/changelog-github", { "repo": "c15t/c15t" }],
 	"commit": false,
-	"fixed": [["c15t", "@c15t/react", "@c15t/dev-tools"]],
-	"linked": [],
-  "ignore": ["@c15t-examples/*"],
+	"linked": [["c15t", "@c15t/react", "@c15t/dev-tools"]],
 	"access": "public",
 	"baseBranch": "main",
-	"updateInternalDependencies": "patch"
+	"updateInternalDependencies": "patch",
+	"ignore": ["@c15t-examples/*"]
 }

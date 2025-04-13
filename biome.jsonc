@@ -32,14 +32,14 @@
 			"indentWidth": 2
 		}
 	},
-  "linter": {
-    "rules": {
-      "suspicious": {
-        "useAwait": "off"
-      },
-      "complexity": {
-        "noExcessiveCognitiveComplexity": "off"
-      }
-    }
-  }
+	"linter": {
+		"rules": {
+			"suspicious": {
+				"useAwait": "off"
+			},
+			"complexity": {
+				"noExcessiveCognitiveComplexity": "off"
+			}
+		}
+	}
 }

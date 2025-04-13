@@ -308,7 +308,6 @@
 	border-radius: var(--widget-accordion-radius);
 }
 
-
 .accordionContent {
 	padding: var(--widget-accordion-padding);
 	color: var(--widget-accordion-content-color);
@@ -365,4 +364,3 @@
 :global(.c15t-dark) .switch[data-state="checked"] {
 	background-color: var(--widget-accordion-focus-ring-dark);
 }
-

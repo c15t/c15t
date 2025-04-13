@@ -11,11 +11,11 @@
 	"files": ["dist"],
 	"scripts": {
 		"build": "rslib build",
+		"dev": "rslib dev",
 		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"knip": "knip",
 		"lint": "pnpm biome lint ./src",
 		"start": "node ./dist/index.mjs",
-		"knip": "knip",
-		"dev": "rslib dev",
 		"test": "vitest",
 		"test:coverage": "vitest --coverage",
 		"test:watch": "vitest"
