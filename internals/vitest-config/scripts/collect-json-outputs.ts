@@ -1,11 +1,16 @@
-import fs from 'fs/promises';
-import path from 'path';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { glob } from 'glob';
 
 async function collectCoverageFiles() {
 	try {
 		// Define the patterns to search
-		const patterns = ['../../apps/*', '../../packages/*'];
+		// Use paths relative to project root instead of relative to script location
+		const projectRoot = path.resolve(process.cwd(), '../..');
+		const patterns = [
+			path.join(projectRoot, 'apps/*'),
+			path.join(projectRoot, 'packages/*'),
+		];
 
 		// Define the destination directory (you can change this as needed)
 		const destinationDir = path.join(process.cwd(), 'coverage/raw');

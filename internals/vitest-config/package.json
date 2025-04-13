@@ -7,6 +7,8 @@
 	},
 	"scripts": {
 		"build": "tsc",
+		"lint": "pnpm biome lint ./configs ./scripts",
+		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"collect-json-reports": "node dist/scripts/collect-json-outputs.js",
 		"merge-json-reports": "nyc merge coverage/raw coverage/merged/merged-coverage.json",
 		"report": "nyc report -t coverage/merged --report-dir coverage/report --reporter=html --exclude-after-remap false",
