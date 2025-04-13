@@ -36,8 +36,6 @@ describe('Kysely Adapter Tests', () => {
 		const sqliteKy = new Kysely<Database>({
 			dialect: new LibsqlDialect({
 				url: ':memory:', // Use in-memory database for tests
-				// Important: Configuring SQLite for better reliability in tests
-				tls: false, // Disable TLS for in-memory DB
 			}),
 		});
 
