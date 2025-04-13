@@ -16,7 +16,7 @@ jobs:
       pull-requests: write # Needed for reviewdog github-pr-review reporter (optional)
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     steps:
       - name: ⬇️ Check out code
         uses: actions/checkout@v4
@@ -52,7 +52,7 @@ jobs:
       contents: read # Needed for checkout
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     steps:
       - name: ⬇️ Check out code
         uses: actions/checkout@v4
@@ -82,7 +82,7 @@ jobs:
       contents: read # Needed for checkout
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     steps:
       - name: ⬇️ Check out code
         uses: actions/checkout@v4
@@ -124,5 +124,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-data
-          path: coverage/
+          path: internals/vitest-config/coverage/
           retention-days: 7
