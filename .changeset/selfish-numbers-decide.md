@@ -6,9 +6,6 @@
 "docs": patch
 ---
 
-
-# Changes in @selfish-numbers-decide.md
-
 1. Added dependency entries for:
    - "@c15t-examples/astro-react": patch
    - "@c15t-examples/cf-worker": patch
