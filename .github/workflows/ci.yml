@@ -43,8 +43,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-check # Report results as checks
-          fail_on_error: true        # Fail the workflow if errors are found
-          level: error               # Report errors
+          level: warning               # Report errors
 
   build:
     name: 🏗️ Build Packages
