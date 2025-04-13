@@ -38,10 +38,10 @@ jobs:
       # Now run the action to generate the comment
       - name: 📊 Report Coverage Comment on PR # Added emoji
         uses: davelosert/vitest-coverage-report-action@v2 # Use the action you intend
+        if: always() # Run this step even if previous steps fail
         with:
           # Ensure the path matches where the artifact was downloaded
-          # Default is ./coverage/coverage-summary.json
-          json_summary_path: coverage/coverage-summary.json
+          json_summary_path: ./internals/vitest-config/coverage/merged/merged-coverage.json
 
           # Optional: Add thresholds for pass/fail status in the comment
           # thresholds: |
