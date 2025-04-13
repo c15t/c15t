@@ -16,8 +16,6 @@ jobs:
       # Setup pnpm and Node.js, caching pnpm store
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10 # Update pnpm version
 
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
