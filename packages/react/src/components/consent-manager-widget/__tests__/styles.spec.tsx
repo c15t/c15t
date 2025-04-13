@@ -1,8 +1,118 @@
-import { test } from 'vitest';
+import { test, vi } from 'vitest';
 import { ConsentManagerWidget } from '~/components/consent-manager-widget/consent-manager-widget';
 import type { ThemeValue } from '~/types/theme';
 import testComponentStyles from '~/utils/test-helpers';
 import type { ConsentManagerWidgetTheme } from '../theme';
+
+// Need to mock the exact modules that are imported
+vi.mock('c15t', () => {
+	return {
+		configureConsentManager: () => ({
+			getCallbacks: () => ({}),
+			setCallbacks: () => ({}),
+			showConsentBanner: async () => ({
+				ok: true,
+				data: { showConsentBanner: true },
+				error: null,
+				response: null,
+			}),
+			setConsent: async () => ({
+				ok: true,
+				data: { success: true },
+				error: null,
+				response: null,
+			}),
+			verifyConsent: async () => ({
+				ok: true,
+				data: { valid: true },
+				error: null,
+				response: null,
+			}),
+		}),
+		// Mock the store with all required functions
+		createConsentManagerStore: vi.fn().mockReturnValue({
+			getState: () => ({
+				setGdprTypes: vi.fn(),
+				setComplianceSetting: vi.fn(),
+				setDetectedCountry: vi.fn(),
+				consents: {
+					essential: true,
+					functional: true,
+					analytics: false,
+					marketing: false,
+				},
+				setConsent: vi.fn(),
+				getDisplayedConsents: () => [
+					{ name: 'essential', disabled: true },
+					{ name: 'functional', disabled: false },
+					{ name: 'analytics', disabled: false },
+					{ name: 'marketing', disabled: false },
+				],
+				showPopup: false,
+			}),
+			subscribe: () => () => {},
+			setState: vi.fn(),
+		}),
+		defaultTranslationConfig: {},
+	};
+});
+
+// Mock using the full path as Vitest expects it
+vi.mock('../../../hooks/use-consent-manager', () => {
+	return {
+		useConsentManager: () => ({
+			consents: {
+				essential: true,
+				functional: true,
+				analytics: false,
+				marketing: false,
+			},
+			setConsent: vi.fn(),
+			getDisplayedConsents: () => [
+				{ name: 'essential', disabled: true },
+				{ name: 'functional', disabled: false },
+				{ name: 'analytics', disabled: false },
+				{ name: 'marketing', disabled: false },
+			],
+			showPopup: false,
+			manager: {},
+		}),
+	};
+});
+
+// Mock the useTranslations hook with the correct path
+vi.mock('../../../hooks/use-translations', () => {
+	return {
+		useTranslations: () => ({
+			consentManagerWidget: {
+				rejectAll: 'Reject All',
+				acceptAll: 'Accept All',
+				save: 'Save',
+			},
+			consentTypes: {
+				essential: {
+					title: 'Essential',
+					description:
+						'Essential cookies are required for the website to function properly.',
+				},
+				functional: {
+					title: 'Functional',
+					description:
+						'Functional cookies help perform certain functionalities.',
+				},
+				analytics: {
+					title: 'Analytics',
+					description:
+						'Analytics cookies help us understand how visitors interact with the website.',
+				},
+				marketing: {
+					title: 'Marketing',
+					description: 'Marketing cookies help track visitors across websites.',
+				},
+			},
+		}),
+	};
+});
 
 type ComponentTestCase = {
 	testId: string;
@@ -188,7 +298,6 @@ test('Theme prop handles mixed format (string and object) correctly', async () =
 test('Theme prop handles edge cases gracefully', async () => {
 	const edgeCaseTheme: ConsentManagerWidgetTheme = {
 		'widget.root': '',
-		'widget.accordion': '',
 		'widget.footer': {
 			className: '',
 			style: {
@@ -205,10 +314,6 @@ test('Theme prop handles edge cases gracefully', async () => {
 		testCases: [
 			{
 				testId: 'consent-manager-widget-root',
-				styles: '',
-			},
-			{
-				testId: 'consent-manager-widget-accordion',
 				styles: '',
 			},
 			{

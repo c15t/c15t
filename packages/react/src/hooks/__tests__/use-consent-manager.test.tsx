@@ -11,7 +11,7 @@ vi.mock('c15t', async () => {
 		...(originalModule as object),
 		configureConsentManager: () => ({
 			getCallbacks: () => ({}),
-      setCallbacks: () => ({}),
+			setCallbacks: () => ({}),
 			showConsentBanner: async () => ({
 				ok: true,
 				data: { showConsentBanner: true },
