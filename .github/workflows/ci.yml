@@ -118,7 +118,7 @@ jobs:
         run: pnpm turbo run test --filter='!./apps/examples/*'
 
       - name: 📊 Run Tests with Coverage
-        run: pnpm test:coverage
+        run: pnpm view-report
 
       - name: ⬆️ Upload Coverage Artifact
         uses: actions/upload-artifact@v4
