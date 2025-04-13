@@ -458,11 +458,14 @@ describe('c15t Client Retry Logic Tests', () => {
 	it('should not retry on 404 Not Found errors', async () => {
 		// Mock a 404 error response
 		fetchMock.mockResolvedValueOnce(
-			new Response(JSON.stringify({ message: 'Resource not found', code: 'NOT_FOUND' }), { 
-				status: 404,
-				statusText: 'Not Found',
-				headers: { 'Content-Type': 'application/json' }
-			})
+			new Response(
+				JSON.stringify({ message: 'Resource not found', code: 'NOT_FOUND' }),
+				{
+					status: 404,
+					statusText: 'Not Found',
+					headers: { 'Content-Type': 'application/json' },
+				}
+			)
 		);
 
 		// Configure client with retry config
@@ -478,9 +481,9 @@ describe('c15t Client Retry Logic Tests', () => {
 
 		// Track if setTimeout was called (which would indicate a retry attempt)
 		const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
-		
+
 		const client = configureConsentManager(config);
-		
+
 		// Call the API with testing flag to avoid fallback
 		const response = await client.showConsentBanner({
 			testing: true, // Ensure we get the original error response
@@ -498,20 +501,20 @@ describe('c15t Client Retry Logic Tests', () => {
 		// Mock a 404 response followed by 503 and then success
 		fetchMock
 			.mockResolvedValueOnce(
-				new Response(JSON.stringify({ message: 'Not Found' }), { 
-					status: 404, 
-					statusText: 'Not Found' 
+				new Response(JSON.stringify({ message: 'Not Found' }), {
+					status: 404,
+					statusText: 'Not Found',
 				})
 			)
 			.mockResolvedValueOnce(
-				new Response(JSON.stringify({ message: 'Service Unavailable' }), { 
-					status: 503, 
-					statusText: 'Service Unavailable' 
+				new Response(JSON.stringify({ message: 'Service Unavailable' }), {
+					status: 503,
+					statusText: 'Service Unavailable',
 				})
 			)
 			.mockResolvedValueOnce(
-				new Response(JSON.stringify({ showConsentBanner: true }), { 
-					status: 200 
+				new Response(JSON.stringify({ showConsentBanner: true }), {
+					status: 200,
 				})
 			);
 
@@ -539,25 +542,25 @@ describe('c15t Client Retry Logic Tests', () => {
 
 		// Reset mock for next test
 		fetchMock.mockReset();
-		
+
 		// Set up mocks again for the second test
 		fetchMock
 			.mockResolvedValueOnce(
-				new Response(JSON.stringify({ message: 'Service Unavailable' }), { 
-					status: 503, 
-					statusText: 'Service Unavailable' 
+				new Response(JSON.stringify({ message: 'Service Unavailable' }), {
+					status: 503,
+					statusText: 'Service Unavailable',
 				})
 			)
 			.mockResolvedValueOnce(
-				new Response(JSON.stringify({ showConsentBanner: true }), { 
+				new Response(JSON.stringify({ showConsentBanner: true }), {
 					status: 200,
-					headers: { 'Content-Type': 'application/json' }
+					headers: { 'Content-Type': 'application/json' },
 				})
 			);
 
 		// Second call - should retry on 503 and eventually succeed
 		const secondResponse = await client.showConsentBanner();
-		
+
 		// Should have made two requests (original + retry)
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 		expect(secondResponse.ok).toBe(true);

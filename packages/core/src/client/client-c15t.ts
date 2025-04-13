@@ -438,9 +438,11 @@ export class C15tClient implements ConsentManagerInterface {
 				// Check first if this is a status code that should never be retried
 				if (nonRetryableStatusCodes?.includes(response.status)) {
 					// biome-ignore lint/suspicious/noConsole: <explanation>
-					console.debug(`Not retrying request to ${path} with status ${response.status} (nonRetryableStatusCodes)`);
+					console.debug(
+						`Not retrying request to ${path} with status ${response.status} (nonRetryableStatusCodes)`
+					);
 					shouldRetryThisRequest = false;
-				} 
+				}
 				// Apply custom retry strategy if provided - it takes precedence over retryableStatusCodes
 				else if (typeof finalRetryConfig.shouldRetry === 'function') {
 					try {
@@ -450,18 +452,24 @@ export class C15tClient implements ConsentManagerInterface {
 							method: requestOptions.method || 'GET',
 						});
 						// biome-ignore lint/suspicious/noConsole: <explanation>
-						console.debug(`Custom retry strategy for ${path} with status ${response.status}: ${shouldRetryThisRequest}`);
+						console.debug(
+							`Custom retry strategy for ${path} with status ${response.status}: ${shouldRetryThisRequest}`
+						);
 					} catch {
 						// Fall back to status code check if custom function throws
 						shouldRetryThisRequest =
 							retryableStatusCodes?.includes(response.status) ?? false;
-						console.debug(`Custom retry strategy failed, falling back to status code check: ${shouldRetryThisRequest}`);
+						console.debug(
+							`Custom retry strategy failed, falling back to status code check: ${shouldRetryThisRequest}`
+						);
 					}
 				} else {
 					// Fall back to retryableStatusCodes if no custom strategy
 					shouldRetryThisRequest =
 						retryableStatusCodes?.includes(response.status) ?? false;
-					console.debug(`Standard retry check for ${path} with status ${response.status}: ${shouldRetryThisRequest}`);
+					console.debug(
+						`Standard retry check for ${path} with status ${response.status}: ${shouldRetryThisRequest}`
+					);
 				}
 
 				// Don't retry if we've already made maximum attempts
