@@ -95,7 +95,7 @@
 		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"knip": "knip",
 		"lint": "pnpm biome lint ./src",
-		"test": "vitest"
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"@opentelemetry/api": "^1.7.0",

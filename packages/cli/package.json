@@ -16,7 +16,7 @@
 		"start": "node ./dist/index.mjs",
 		"knip": "knip",
 		"dev": "rslib dev",
-		"test": "vitest"
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"@babel/preset-react": "^7.26.3",
