@@ -39,7 +39,7 @@ jobs:
         run: pnpm turbo run check-types
 
       - name: 🧹 Run Biome with Reviewdog
-        uses: reviewdog/action-biome@v1
+        uses: mongolyy/reviewdog-action-biome@bf7dffa9b14e8904941a18a28782b74fc40104f0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-check # Report results as checks
