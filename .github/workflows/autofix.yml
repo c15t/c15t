@@ -16,9 +16,6 @@ jobs:
       # Combine Node.js setup with the install action
       - name: Install
         uses: ./.github/actions/install
-        with:
-          ts: true
-          go: true
 
       # Cache Biome for faster formatting
       - uses: actions/cache@v3

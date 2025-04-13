@@ -7,7 +7,8 @@ runs:
     - name: Setup Node
       uses: actions/setup-node@v4
       with:
-        node-version: lts/*
+          node-version: 20
+          cache: 'pnpm'
 
     - uses: pnpm/action-setup@v4
       with:
