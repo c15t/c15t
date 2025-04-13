@@ -41,6 +41,6 @@ jobs:
         run: pnpm fmt
 
       - name: 🧹 Lint Autofix (if possible)
-        run: turbo lint -- --write
+        run: pnpm turbo lint -- --write
 
       - uses: autofix-ci/action@ff86a557419858bb967097bfc916833f5647fa8c
