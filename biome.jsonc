@@ -41,5 +41,8 @@
 				"noExcessiveCognitiveComplexity": "off"
 			}
 		}
+	},
+  "files": {
+		"ignore": ["**/coverage"]
 	}
 }
