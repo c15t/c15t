@@ -22,7 +22,7 @@
 			"persistent": true
 		},
     "test": {
-      "dependsOn": ["transit"]
+      "dependsOn": ["^build", "transit"]
     },
     "test:watch": {
       "cache": false,
