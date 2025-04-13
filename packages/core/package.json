@@ -30,9 +30,7 @@
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
-		"@vitest/coverage-v8": "3.1.1",
-		"happy-dom": "^17.4.4",
-		"vitest-fetch-mock": "^0.4.5",
+		"@c15t/vitest-config": "workspace:*",
 		"vitest-localstorage-mock": "^0.1.2"
 	},
 	"publishConfig": {
