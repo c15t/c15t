@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read # Needed for checkout
+      checks: write # Needed for reviewdog to post results
+      pull-requests: write # Needed for reviewdog github-pr-review reporter (optional)
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
@@ -36,8 +38,13 @@ jobs:
       - name: 👀 Type Check
         run: pnpm turbo run check-types
 
-      - name: 🧹 Lint
-        run: pnpm turbo run lint
+      - name: 🧹 Run Biome with Reviewdog
+        uses: reviewdog/action-biome@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-check # Report results as checks
+          fail_on_error: true        # Fail the workflow if errors are found
+          level: error               # Report errors
 
   build:
     name: 🏗️ Build Packages
