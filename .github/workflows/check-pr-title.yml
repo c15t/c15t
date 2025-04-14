@@ -32,7 +32,7 @@ jobs:
       - name: ✏️ Post Error Comment
         # Run only if the linting step failed (error_message is not null)
         if: always() && (steps.lint_pr_title.outputs.error_message != null)
-        uses: marocchino/sticky-pull-request-comment@v2.10.1 # Use a specific recent version
+        uses: marocchino/sticky-pull-request-comment@v2
         with:
           # Use a unique header to identify the comment for updates/deletion
           header: pr-title-lint-error
