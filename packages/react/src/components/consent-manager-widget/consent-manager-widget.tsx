@@ -69,8 +69,6 @@ export const ConsentManagerWidget = ({
 }: ConsentManagerWidgetProps) => {
 	const [openItems, setOpenItems] = useState<string[]>([]);
 	const { consentManagerWidget } = useTranslations();
-	const refParam =
-		typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
 
 	return (
 		<ConsentManagerWidgetRoot {...props}>
