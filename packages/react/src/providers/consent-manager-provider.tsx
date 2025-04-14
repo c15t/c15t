@@ -8,7 +8,10 @@ import {
 	defaultTranslationConfig,
 } from 'c15t';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ConsentStateContext } from '../context/consent-manager-context';
+import {
+	ConsentStateContext,
+	type ConsentStateContextValue,
+} from '../context/consent-manager-context';
 import { GlobalThemeContext } from '../context/theme-context';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import type { ConsentManagerProviderProps } from '../types/consent-manager';
@@ -124,9 +127,7 @@ export function ConsentManagerProvider({
 	}, [mode, backendURL, callbacks, store, options]);
 
 	// Create a stable reference to the consent store and always initialize it
-	const storeRef = useRef<ReturnType<typeof createConsentManagerStore>>(
-		null as unknown as ReturnType<typeof createConsentManagerStore>
-	);
+	const storeRef = useRef<ReturnType<typeof createConsentManagerStore>>(null);
 
 	// Store previous core options for comparison
 	const prevBackendURLRef = useRef(backendURL);
@@ -170,12 +171,19 @@ export function ConsentManagerProvider({
 	]);
 
 	// Initialize state with the current state from the consent manager store
-	const [state, setState] = useState<PrivacyConsentState>(
-		consentStore.getState()
-	);
+	const [state, setState] = useState<PrivacyConsentState>(() => {
+		if (!consentStore) {
+			return {} as PrivacyConsentState;
+		}
+		return consentStore.getState();
+	});
 
 	// Initialize the store with settings and set up subscription
 	useEffect(() => {
+		if (!consentStore) {
+			return;
+		}
+
 		const { setGdprTypes, setComplianceSetting, setDetectedCountry } =
 			consentStore.getState();
 
@@ -221,14 +229,18 @@ export function ConsentManagerProvider({
 	useColorScheme(colorScheme);
 
 	// Create consent context value - without theme properties
-	const consentContextValue = useMemo(
-		() => ({
+	const consentContextValue = useMemo<ConsentStateContextValue>(() => {
+		if (!consentStore) {
+			throw new Error(
+				'Consent store must be initialized before creating context value'
+			);
+		}
+		return {
 			state,
 			store: consentStore,
 			manager: consentManager,
-		}),
-		[state, consentStore, consentManager]
-	);
+		};
+	}, [state, consentStore, consentManager]);
 
 	// Render with separate theme context for cleaner separation of concerns
 	return (
