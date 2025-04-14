@@ -4,27 +4,27 @@
  */
 
 export {
-	configureConsentManager,
-	type ConsentManagerOptions,
-	type ConsentManagerInterface,
-	type ConsentManagerCallbacks,
+  configureConsentManager,
+  type ConsentManagerOptions,
+  type ConsentManagerInterface,
+  type ConsentManagerCallbacks,
 } from './client-factory';
 
 // Export HTTP client for advanced usage scenarios
 export {
-	C15tClient,
-	type C15tClientOptions,
+  C15tClient,
+  type C15tClientOptions,
 } from './client-c15t';
 
 // Export Custom client for advanced usage scenarios
 export {
-	CustomClient,
-	type CustomClientOptions,
-	type EndpointHandler,
+  CustomClient,
+  type CustomClientOptions,
+  type EndpointHandler,
 } from './client-custom';
 
 // Export Offline client for testing and development
 export {
-	OfflineClient,
-	type OfflineClientOptions,
+  OfflineClient,
+  type OfflineClientOptions,
 } from './client-offline';

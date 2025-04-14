@@ -38,7 +38,6 @@
 		"playwright": "^1.51.1",
 		"turbo": "^2.5.0",
 		"typescript": "5.8.3",
-		"ultracite": "^4.2.1",
 		"vitest": "^3.1.1",
 		"vitest-browser-react": "^0.1.1"
 	},

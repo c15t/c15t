@@ -13,9 +13,9 @@ import type { ExtendThemeKeys } from '~/types/theme';
  * @public
  */
 export interface BoxProps
-	extends Omit<HTMLAttributes<HTMLDivElement>, 'style'>,
-		ExtendThemeKeys {
-	asChild?: boolean;
+  extends Omit<HTMLAttributes<HTMLDivElement>, 'style'>,
+    ExtendThemeKeys {
+  asChild?: boolean;
 }
 
 /**
@@ -53,20 +53,20 @@ export interface BoxProps
  * @public
  */
 export const Box = forwardRef<HTMLDivElement, BoxProps>(
-	({ asChild, className, style, themeKey, baseClassName, ...props }, ref) => {
-		/**
-		 * Apply styles from the CookieBanner context and merge with local styles.
-		 * Uses the 'description' style key for consistent theming.
-		 */
-		const descriptionStyle = useStyles(themeKey, {
-			baseClassName,
-			className,
-			style,
-		});
+  ({ asChild, className, style, themeKey, baseClassName, ...props }, ref) => {
+    /**
+     * Apply styles from the CookieBanner context and merge with local styles.
+     * Uses the 'description' style key for consistent theming.
+     */
+    const descriptionStyle = useStyles(themeKey, {
+      baseClassName,
+      className,
+      style,
+    });
 
-		const Comp = asChild ? Slot : 'div';
-		return <Comp ref={ref} {...props} {...descriptionStyle} />;
-	}
+    const Comp = asChild ? Slot : 'div';
+    return <Comp ref={ref} {...props} {...descriptionStyle} />;
+  }
 );
 
 Box.displayName = 'Box';

@@ -1,139 +1,135 @@
 {
-	"name": "@c15t/backend",
-	"version": "0.0.1-rc.22",
-	"license": "GPL-3.0-only",
-	"type": "module",
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
-		},
-		"./schema": {
-			"types": "./dist/schema/index.d.ts",
-			"import": "./dist/schema/index.js",
-			"require": "./dist/schema/index.cjs"
-		},
-		"./integrations/next": {
-			"types": "./dist/integrations/next.d.ts",
-			"import": "./dist/integrations/next.js",
-			"require": "./dist/integrations/next.cjs"
-		},
-		"./integrations/cloudflare": {
-			"types": "./dist/integrations/cloudflare.d.ts",
-			"import": "./dist/integrations/cloudflare.js",
-			"require": "./dist/integrations/cloudflare.cjs"
-		},
-		"./pkgs/data-model/fields": {
-			"types": "./dist/pkgs/data-model/fields/index.d.ts",
-			"import": "./dist/pkgs/data-model/fields/index.js",
-			"require": "./dist/pkgs/data-model/fields/index.cjs"
-		},
-		"./pkgs/data-model": {
-			"types": "./dist/pkgs/data-model/index.d.ts",
-			"import": "./dist/pkgs/data-model/index.js",
-			"require": "./dist/pkgs/data-model/index.cjs"
-		},
-		"./pkgs/data-model/schema": {
-			"types": "./dist/pkgs/data-model/schema/index.d.ts",
-			"import": "./dist/pkgs/data-model/schema/index.js",
-			"require": "./dist/pkgs/data-model/schema/index.cjs"
-		},
-		"./pkgs/db-adapters/adapters/drizzle-adapter": {
-			"types": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.d.ts",
-			"import": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.js",
-			"require": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.cjs"
-		},
-		"./pkgs/db-adapters/adapters/kysely-adapter": {
-			"types": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.d.ts",
-			"import": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.js",
-			"require": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.cjs"
-		},
-		"./pkgs/db-adapters/adapters/memory-adapter": {
-			"types": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.d.ts",
-			"import": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.js",
-			"require": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.cjs"
-		},
-		"./pkgs/db-adapters/adapters/prisma-adapter": {
-			"types": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.d.ts",
-			"import": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.js",
-			"require": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.cjs"
-		},
-		"./pkgs/db-adapters": {
-			"types": "./dist/pkgs/db-adapters/index.d.ts",
-			"import": "./dist/pkgs/db-adapters/index.js",
-			"require": "./dist/pkgs/db-adapters/index.cjs"
-		},
-		"./pkgs/results": {
-			"types": "./dist/pkgs/results/index.d.ts",
-			"import": "./dist/pkgs/results/index.js",
-			"require": "./dist/pkgs/results/index.cjs"
-		},
-		"./pkgs/logger": {
-			"types": "./dist/pkgs/logger/index.d.ts",
-			"import": "./dist/pkgs/logger/index.js",
-			"require": "./dist/pkgs/logger/index.cjs"
-		},
-		"./pkgs/migrations": {
-			"types": "./dist/pkgs/migrations/index.d.ts",
-			"import": "./dist/pkgs/migrations/index.js",
-			"require": "./dist/pkgs/migrations/index.cjs"
-		},
-		"./pkgs/types": {
-			"types": "./dist/pkgs/types/index.d.ts",
-			"import": "./dist/pkgs/types/index.js",
-			"require": "./dist/pkgs/types/index.cjs"
-		}
-	},
-	"main": "./dist/index.cjs",
-	"module": "./dist/index.js",
-	"types": "./dist/index.d.ts",
-	"scripts": {
-		"build": "rslib build",
-		"check-types": "tsc --noEmit",
-		"dev": "rslib build --watch",
-		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
-		"knip": "knip",
-		"lint": "pnpm biome lint ./src",
-		"test": "vitest run",
-		"test:watch": "vitest"
-	},
-	"dependencies": {
-		"@opentelemetry/api": "1.8.0",
-		"@opentelemetry/resources": "^1.25.1",
-		"@opentelemetry/sdk-node": "^0.51.1",
-		"@opentelemetry/sdk-trace-base": "^1.25.1",
-		"base-x": "^5.0.1",
-		"better-sqlite3": "^11.9.1",
-		"defu": "^6.1.4",
-		"drizzle-orm": "^0.41.0",
-		"h3": "^1.15.1",
-		"kysely": "^0.27.6",
-		"mysql2": "^3.14.0",
-		"neverthrow": "^8.2.0",
-		"pg": "^8.14.1",
-		"superjson": "^2.2.2",
-		"zod": "^3.24.2"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "1.8.3",
-		"@changesets/cli": "2.28.1",
-		"@c15t/typescript-config": "workspace:*",
-		"@c15t/vitest-config": "workspace:*",
-		"@faker-js/faker": "8.4.1",
-		"@types/better-sqlite3": "^7.6.13",
-		"@types/express": "^5.0.1",
-		"@types/node": "20.14.13",
-		"@types/pg": "8.11.6",
-		"@vitest/browser": "^3.1.1",
+  "name": "@c15t/backend",
+  "version": "0.0.1-rc.22",
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./schema": {
+      "types": "./dist/schema/index.d.ts",
+      "import": "./dist/schema/index.js",
+      "require": "./dist/schema/index.cjs"
+    },
+    "./integrations/next": {
+      "types": "./dist/integrations/next.d.ts",
+      "import": "./dist/integrations/next.js",
+      "require": "./dist/integrations/next.cjs"
+    },
+    "./integrations/cloudflare": {
+      "types": "./dist/integrations/cloudflare.d.ts",
+      "import": "./dist/integrations/cloudflare.js",
+      "require": "./dist/integrations/cloudflare.cjs"
+    },
+    "./pkgs/data-model/fields": {
+      "types": "./dist/pkgs/data-model/fields/index.d.ts",
+      "import": "./dist/pkgs/data-model/fields/index.js",
+      "require": "./dist/pkgs/data-model/fields/index.cjs"
+    },
+    "./pkgs/data-model": {
+      "types": "./dist/pkgs/data-model/index.d.ts",
+      "import": "./dist/pkgs/data-model/index.js",
+      "require": "./dist/pkgs/data-model/index.cjs"
+    },
+    "./pkgs/data-model/schema": {
+      "types": "./dist/pkgs/data-model/schema/index.d.ts",
+      "import": "./dist/pkgs/data-model/schema/index.js",
+      "require": "./dist/pkgs/data-model/schema/index.cjs"
+    },
+    "./pkgs/db-adapters/adapters/drizzle-adapter": {
+      "types": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.d.ts",
+      "import": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.js",
+      "require": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.cjs"
+    },
+    "./pkgs/db-adapters/adapters/kysely-adapter": {
+      "types": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.d.ts",
+      "import": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.js",
+      "require": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.cjs"
+    },
+    "./pkgs/db-adapters/adapters/memory-adapter": {
+      "types": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.d.ts",
+      "import": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.js",
+      "require": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.cjs"
+    },
+    "./pkgs/db-adapters/adapters/prisma-adapter": {
+      "types": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.d.ts",
+      "import": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.js",
+      "require": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.cjs"
+    },
+    "./pkgs/db-adapters": {
+      "types": "./dist/pkgs/db-adapters/index.d.ts",
+      "import": "./dist/pkgs/db-adapters/index.js",
+      "require": "./dist/pkgs/db-adapters/index.cjs"
+    },
+    "./pkgs/results": {
+      "types": "./dist/pkgs/results/index.d.ts",
+      "import": "./dist/pkgs/results/index.js",
+      "require": "./dist/pkgs/results/index.cjs"
+    },
+    "./pkgs/logger": {
+      "types": "./dist/pkgs/logger/index.d.ts",
+      "import": "./dist/pkgs/logger/index.js",
+      "require": "./dist/pkgs/logger/index.cjs"
+    },
+    "./pkgs/migrations": {
+      "types": "./dist/pkgs/migrations/index.d.ts",
+      "import": "./dist/pkgs/migrations/index.js",
+      "require": "./dist/pkgs/migrations/index.cjs"
+    },
+    "./pkgs/types": {
+      "types": "./dist/pkgs/types/index.d.ts",
+      "import": "./dist/pkgs/types/index.js",
+      "require": "./dist/pkgs/types/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "rslib build",
+    "check-types": "tsc --noEmit",
+    "dev": "rslib build --watch",
+    "fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+    "knip": "knip",
+    "lint": "pnpm biome lint ./src",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "1.8.0",
+    "@opentelemetry/resources": "^1.25.1",
+    "@opentelemetry/sdk-node": "^0.51.1",
+    "@opentelemetry/sdk-trace-base": "^1.25.1",
+    "base-x": "^5.0.1",
+    "better-sqlite3": "^11.9.1",
+    "defu": "^6.1.4",
+    "drizzle-orm": "^0.41.0",
+    "h3": "^1.15.1",
+    "kysely": "^0.27.6",
+    "mysql2": "^3.14.0",
+    "neverthrow": "^8.2.0",
+    "pg": "^8.14.1",
+    "superjson": "^2.2.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@c15t/typescript-config": "workspace:*",
+    "@c15t/vitest-config": "workspace:*",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^5.0.1",
+    "@types/node": "20.14.13",
+    "@types/pg": "8.11.6",
     "@libsql/kysely-libsql": "^0.4.1",
-    "@electric-sql/pglite":"0.2.17",
-		"knip": "^5.50.2",
-		"kysely-pglite": "^0.6.1",
-		"typescript": "^5.8.3",
-		"vitest": "^3.1.1"
-	},
-	"publishConfig": {
-		"access": "public"
-	}
+    "@electric-sql/pglite": "0.2.17",
+    "knip": "^5.50.2",
+    "kysely-pglite": "^0.6.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

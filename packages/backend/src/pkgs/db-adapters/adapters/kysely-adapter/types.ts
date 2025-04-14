@@ -26,29 +26,29 @@ import type { AdapterInstance } from '~/pkgs/db-adapters';
  * ```
  */
 export interface Database extends EntityTypeMap {
-	// Add any adapter-specific table types here if needed
-	// These are tables that are created and managed by the adapter itself
-	// rather than being part of the core schema
+  // Add any adapter-specific table types here if needed
+  // These are tables that are created and managed by the adapter itself
+  // rather than being part of the core schema
 
-	/**
-	 * Migration history table used by the adapter to track schema changes
-	 */
-	migrations: {
-		id: string;
-		name: string;
-		applied_at: Date;
-		batch: number;
-	};
+  /**
+   * Migration history table used by the adapter to track schema changes
+   */
+  migrations: {
+    id: string;
+    name: string;
+    applied_at: Date;
+    batch: number;
+  };
 
-	/**
-	 * Temporary tables used during migrations
-	 * These are created and dropped during the migration process
-	 */
-	_migration_temp: {
-		id: string;
-		table_name: string;
-		created_at: Date;
-	};
+  /**
+   * Temporary tables used during migrations
+   * These are created and dropped during the migration process
+   */
+  _migration_temp: {
+    id: string;
+    table_name: string;
+    created_at: Date;
+  };
 }
 
 /**
@@ -164,40 +164,40 @@ export type SQLiteDatabaseConfig = SQLiteDatabase;
  * ```
  */
 export interface DialectConfig {
-	/**
-	 * The Kysely dialect instance to use for database operations
-	 *
-	 * @see {@link https://kysely.dev/docs/dialects | Kysely dialects documentation}
-	 */
-	dialect: Dialect;
+  /**
+   * The Kysely dialect instance to use for database operations
+   *
+   * @see {@link https://kysely.dev/docs/dialects | Kysely dialects documentation}
+   */
+  dialect: Dialect;
 
-	/**
-	 * The type of database being connected to
-	 *
-	 * This is used by the adapter to adjust query behavior for different database engines.
-	 */
-	type: KyselyDatabaseType;
+  /**
+   * The type of database being connected to
+   *
+   * This is used by the adapter to adjust query behavior for different database engines.
+   */
+  type: KyselyDatabaseType;
 
-	/**
-	 * Casing style for table names in the database
-	 *
-	 * This affects how table names are transformed when interacting with the database.
-	 * For example, with 'camel' casing, 'subjectProfile' becomes 'subject_profile' in the database.
-	 * With 'snake' casing, it remains as 'subject_profile'.
-	 *
-	 * @default "camel"
-	 */
-	casing?: 'snake' | 'camel';
+  /**
+   * Casing style for table names in the database
+   *
+   * This affects how table names are transformed when interacting with the database.
+   * For example, with 'camel' casing, 'subjectProfile' becomes 'subject_profile' in the database.
+   * With 'snake' casing, it remains as 'subject_profile'.
+   *
+   * @default "camel"
+   */
+  casing?: 'snake' | 'camel';
 
-	/**
-	 * Whether to apply the casing transformation to column names as well
-	 *
-	 * When true, column names will be transformed according to the casing setting.
-	 * When false, column names will remain in their original case.
-	 *
-	 * @default true
-	 */
-	applyCasingToColumns?: boolean;
+  /**
+   * Whether to apply the casing transformation to column names as well
+   *
+   * When true, column names will be transformed according to the casing setting.
+   * When false, column names will remain in their original case.
+   *
+   * @default true
+   */
+  applyCasingToColumns?: boolean;
 }
 
 /**
@@ -237,41 +237,41 @@ export interface DialectConfig {
  * ```
  */
 export interface KyselyInstanceConfig {
-	/**
-	 * Pre-configured Kysely instance to use for database operations
-	 *
-	 * This should be a fully initialized Kysely instance with the correct
-	 * dialect and configuration for your database.
-	 */
-	db: Kysely<Database>;
+  /**
+   * Pre-configured Kysely instance to use for database operations
+   *
+   * This should be a fully initialized Kysely instance with the correct
+   * dialect and configuration for your database.
+   */
+  db: Kysely<Database>;
 
-	/**
-	 * The type of database the Kysely instance is connected to
-	 *
-	 * This is used to adjust query behavior for different database engines.
-	 */
-	type: KyselyDatabaseType;
+  /**
+   * The type of database the Kysely instance is connected to
+   *
+   * This is used to adjust query behavior for different database engines.
+   */
+  type: KyselyDatabaseType;
 
-	/**
-	 * Casing style for table names in the database
-	 *
-	 * This affects how table names are transformed when interacting with the database.
-	 * For example, with 'camel' casing, 'subjectProfile' becomes 'subject_profile' in the database.
-	 * With 'snake' casing, it remains as 'subject_profile'.
-	 *
-	 * @default "camel"
-	 */
-	casing?: 'snake' | 'camel';
+  /**
+   * Casing style for table names in the database
+   *
+   * This affects how table names are transformed when interacting with the database.
+   * For example, with 'camel' casing, 'subjectProfile' becomes 'subject_profile' in the database.
+   * With 'snake' casing, it remains as 'subject_profile'.
+   *
+   * @default "camel"
+   */
+  casing?: 'snake' | 'camel';
 
-	/**
-	 * Whether to apply the casing transformation to column names as well
-	 *
-	 * When true, column names will be transformed according to the casing setting.
-	 * When false, column names will remain in their original case.
-	 *
-	 * @default true
-	 */
-	applyCasingToColumns?: boolean;
+  /**
+   * Whether to apply the casing transformation to column names as well
+   *
+   * When true, column names will be transformed according to the casing setting.
+   * When false, column names will remain in their original case.
+   *
+   * @default true
+   */
+  applyCasingToColumns?: boolean;
 }
 
 /**
@@ -293,14 +293,14 @@ export interface KyselyInstanceConfig {
  * @see {@link kyselyAdapter} The function that consumes this configuration
  */
 export type DatabaseConfiguration =
-	| PostgresPoolConfig
-	| MysqlPoolConfig
-	| SQLiteDatabaseConfig
-	| Dialect
-	| AdapterInstance
-	| DialectConfig
-	| KyselyInstanceConfig
-	| {
-			provider: string;
-			options: DatabaseConfiguration;
-	  };
+  | PostgresPoolConfig
+  | MysqlPoolConfig
+  | SQLiteDatabaseConfig
+  | Dialect
+  | AdapterInstance
+  | DialectConfig
+  | KyselyInstanceConfig
+  | {
+      provider: string;
+      options: DatabaseConfiguration;
+    };

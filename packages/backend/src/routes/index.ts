@@ -5,8 +5,8 @@ import type { Route } from './types';
 import { verifyConsent } from './verify-consent';
 
 export const routes: Route[] = [
-	status,
-	showConsentBanner,
-	setConsent,
-	verifyConsent,
+  status,
+  showConsentBanner,
+  setConsent,
+  verifyConsent,
 ];

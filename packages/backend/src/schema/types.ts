@@ -20,26 +20,26 @@ import type { SubjectEntityConfig } from './subject/types';
  * Provides common configuration options for database entities
  */
 export interface BaseEntityConfig {
-	/**
-	 * Custom model name for the entity table
-	 */
-	entityName?: string;
+  /**
+   * Custom model name for the entity table
+   */
+  entityName?: string;
 
-	/**
-	 * The ID prefix for the entity table
-	 * Used to generate unique prefixed IDs
-	 */
-	entityPrefix?: string;
+  /**
+   * The ID prefix for the entity table
+   * Used to generate unique prefixed IDs
+   */
+  entityPrefix?: string;
 
-	/**
-	 * Custom field names for the entity table
-	 */
-	fields?: Record<string, string>;
+  /**
+   * Custom field names for the entity table
+   */
+  fields?: Record<string, string>;
 
-	/**
-	 * Additional fields for the entity table
-	 */
-	additionalFields?: Record<string, Field>;
+  /**
+   * Additional fields for the entity table
+   */
+  additionalFields?: Record<string, Field>;
 }
 
 /**
@@ -47,10 +47,10 @@ export interface BaseEntityConfig {
  * Extends base configuration with created/updated timestamp fields
  */
 export interface TimestampedEntityConfig extends BaseEntityConfig {
-	fields?: Record<string, string> & {
-		createdAt?: string;
-		updatedAt?: string;
-	};
+  fields?: Record<string, string> & {
+    createdAt?: string;
+    updatedAt?: string;
+  };
 }
 
 /**
@@ -58,11 +58,11 @@ export interface TimestampedEntityConfig extends BaseEntityConfig {
  * Extends timestamped configuration with isActive field
  */
 export interface ActiveEntityConfig extends TimestampedEntityConfig {
-	fields?: Record<string, string> & {
-		createdAt?: string;
-		updatedAt?: string;
-		isActive?: string;
-	};
+  fields?: Record<string, string> & {
+    createdAt?: string;
+    updatedAt?: string;
+    isActive?: string;
+  };
 }
 
 /**
@@ -70,46 +70,46 @@ export interface ActiveEntityConfig extends TimestampedEntityConfig {
  * Contains all entity table configurations in one unified object
  */
 export interface TablesConfig {
-	/**
-	 * Subject entity configuration
-	 * @default entityName: "subject", entityPrefix: "sub"
-	 */
-	subject?: SubjectEntityConfig;
+  /**
+   * Subject entity configuration
+   * @default entityName: "subject", entityPrefix: "sub"
+   */
+  subject?: SubjectEntityConfig;
 
-	/**
-	 * Domain configuration
-	 * @default entityName: "domain", entityPrefix: "dom"
-	 */
-	domain?: DomainEntityConfig;
+  /**
+   * Domain configuration
+   * @default entityName: "domain", entityPrefix: "dom"
+   */
+  domain?: DomainEntityConfig;
 
-	/**
-	 * ConsentPurpose entity configuration
-	 * @default entityName: "consentPurpose", entityPrefix: "pur"
-	 */
-	consentPurpose?: ConsentPurposeEntityConfig;
+  /**
+   * ConsentPurpose entity configuration
+   * @default entityName: "consentPurpose", entityPrefix: "pur"
+   */
+  consentPurpose?: ConsentPurposeEntityConfig;
 
-	/**
-	 * Consent policy configuration
-	 * @default entityName: "consentPolicy", entityPrefix: "pol"
-	 */
-	consentPolicy?: ConsentPolicyEntityConfig;
+  /**
+   * Consent policy configuration
+   * @default entityName: "consentPolicy", entityPrefix: "pol"
+   */
+  consentPolicy?: ConsentPolicyEntityConfig;
 
-	/**
-	 * Consent configuration
-	 * @default entityName: "consent", entityPrefix: "cns"
-	 */
-	consent?: ConsentEntityConfig;
+  /**
+   * Consent configuration
+   * @default entityName: "consent", entityPrefix: "cns"
+   */
+  consent?: ConsentEntityConfig;
 
-	/**
-	 * Record entity configuration
-	 * @default entityName: "record", entityPrefix: "rec"
-	 */
-	record?: ConsentRecordEntityConfig;
-	/**
-	 * Audit log configuration
-	 * @default entityName: "auditLog", entityPrefix: "log"
-	 */
-	auditLog?: AuditLogEntityConfig;
+  /**
+   * Record entity configuration
+   * @default entityName: "record", entityPrefix: "rec"
+   */
+  record?: ConsentRecordEntityConfig;
+  /**
+   * Audit log configuration
+   * @default entityName: "auditLog", entityPrefix: "log"
+   */
+  auditLog?: AuditLogEntityConfig;
 }
 
 export type { AuditLogEntityConfig } from './audit-log/types';

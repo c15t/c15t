@@ -89,76 +89,76 @@ import type { SDKResult } from '../types';
  * ```
  */
 export const validationPipeline = <TInput, TOutput>(
-	schema: ZodSchema<TInput>,
-	transformer: (data: TInput) => TOutput
+  schema: ZodSchema<TInput>,
+  transformer: (data: TInput) => TOutput
 ): ((data: unknown) => SDKResult<TOutput>) => {
-	return (data: unknown) => {
-		// Preprocess the data to handle stringified values
-		const preprocessData = (value: unknown): unknown => {
-			if (typeof value !== 'object' || value === null) {
-				// Try parsing stringified JSON values
-				if (typeof value === 'string') {
-					try {
-						// Check if it's a stringified array
-						if (value.startsWith('[') && value.endsWith(']')) {
-							return JSON.parse(value);
-						}
-						// Check if it's a stringified boolean
-						if (value.toLowerCase() === 'true') {
-							return true;
-						}
-						if (value.toLowerCase() === 'false') {
-							return false;
-						}
-						// Check if it's a stringified object
-						if (value.startsWith('{') && value.endsWith('}')) {
-							return JSON.parse(value);
-						}
-					} catch {
-						// If parsing fails, return original value
-						return value;
-					}
-				}
-				return value;
-			}
+  return (data: unknown) => {
+    // Preprocess the data to handle stringified values
+    const preprocessData = (value: unknown): unknown => {
+      if (typeof value !== 'object' || value === null) {
+        // Try parsing stringified JSON values
+        if (typeof value === 'string') {
+          try {
+            // Check if it's a stringified array
+            if (value.startsWith('[') && value.endsWith(']')) {
+              return JSON.parse(value);
+            }
+            // Check if it's a stringified boolean
+            if (value.toLowerCase() === 'true') {
+              return true;
+            }
+            if (value.toLowerCase() === 'false') {
+              return false;
+            }
+            // Check if it's a stringified object
+            if (value.startsWith('{') && value.endsWith('}')) {
+              return JSON.parse(value);
+            }
+          } catch {
+            // If parsing fails, return original value
+            return value;
+          }
+        }
+        return value;
+      }
 
-			// Handle arrays
-			if (Array.isArray(value)) {
-				return value.map(preprocessData);
-			}
+      // Handle arrays
+      if (Array.isArray(value)) {
+        return value.map(preprocessData);
+      }
 
-			// Handle objects
-			const processed: Record<string, unknown> = {};
-			for (const [key, val] of Object.entries(value)) {
-				processed[key] = preprocessData(val);
-			}
-			return processed;
-		};
+      // Handle objects
+      const processed: Record<string, unknown> = {};
+      for (const [key, val] of Object.entries(value)) {
+        processed[key] = preprocessData(val);
+      }
+      return processed;
+    };
 
-		const preprocessedData = preprocessData(data);
-		const parseResult = schema.safeParse(preprocessedData);
+    const preprocessedData = preprocessData(data);
+    const parseResult = schema.safeParse(preprocessedData);
 
-		if (!parseResult.success) {
-			return fail<TOutput>('Validation failed', {
-				code: ERROR_CODES.INVALID_REQUEST,
-				status: 400,
-				meta: {
-					validationErrors: parseResult.error.issues,
-				},
-			});
-		}
+    if (!parseResult.success) {
+      return fail<TOutput>('Validation failed', {
+        code: ERROR_CODES.INVALID_REQUEST,
+        status: 400,
+        meta: {
+          validationErrors: parseResult.error.issues,
+        },
+      });
+    }
 
-		try {
-			return ok(transformer(parseResult.data));
-		} catch (error) {
-			return fail<TOutput>('Error transforming data after validation', {
-				code: ERROR_CODES.BAD_REQUEST,
-				status: 400,
-				cause: error instanceof Error ? error : undefined,
-				meta: {
-					inputData: parseResult.data,
-				},
-			});
-		}
-	};
+    try {
+      return ok(transformer(parseResult.data));
+    } catch (error) {
+      return fail<TOutput>('Error transforming data after validation', {
+        code: ERROR_CODES.BAD_REQUEST,
+        status: 400,
+        cause: error instanceof Error ? error : undefined,
+        meta: {
+          inputData: parseResult.data,
+        },
+      });
+    }
+  };
 };

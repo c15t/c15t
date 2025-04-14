@@ -1,23 +1,23 @@
 {
-	"$schema": "https://unpkg.com/knip@latest/schema.json",
-	"entry": ["./src/index.ts"],
-	"ignoreBinaries": ["biome", "rslib", "tsc", "vitest"],
-	"ignore": [
-		"**/*.spec.{js,ts}",
-		"**/*.test.{js,ts}",
-		"rslib.config.ts",
-		"vitest.config.ts"
-	],
-	"ignoreDependencies": [
-		"@c15t/typescript-config",
-		"@c15t/backend",
-		"happy-dom"
-	],
-	"rules": {
-		"exports": "warn",
-		"types": "warn",
-		"dependencies": "error",
-		"files": "warn"
-	},
-	"ignoreExportsUsedInFile": true
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "entry": ["./src/index.ts"],
+  "ignoreBinaries": ["biome", "rslib", "tsc", "vitest"],
+  "ignore": [
+    "**/*.spec.{js,ts}",
+    "**/*.test.{js,ts}",
+    "rslib.config.ts",
+    "vitest.config.ts"
+  ],
+  "ignoreDependencies": [
+    "@c15t/typescript-config",
+    "@c15t/backend",
+    "happy-dom"
+  ],
+  "rules": {
+    "exports": "warn",
+    "types": "warn",
+    "dependencies": "error",
+    "files": "warn"
+  },
+  "ignoreExportsUsedInFile": true
 }

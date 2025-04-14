@@ -2,13 +2,13 @@
 
 import { AnimatePresence, motion } from 'motion/react';
 import {
-	type CSSProperties,
-	type FC,
-	type HTMLAttributes,
-	type ReactNode,
-	forwardRef,
-	useEffect,
-	useState,
+  type CSSProperties,
+  type FC,
+  type HTMLAttributes,
+  type ReactNode,
+  forwardRef,
+  useEffect,
+  useState,
 } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -33,49 +33,49 @@ import styles from '../cookie-banner.module.css';
  * @public
  */
 interface CookieBannerRootProps extends HTMLAttributes<HTMLDivElement> {
-	/**
-	 * @remarks
-	 * React elements to be rendered within the cookie banner.
-	 * Typically includes Content, Title, Description, and Actions components.
-	 */
-	children: ReactNode;
+  /**
+   * @remarks
+   * React elements to be rendered within the cookie banner.
+   * Typically includes Content, Title, Description, and Actions components.
+   */
+  children: ReactNode;
 
-	/**
-	 * @remarks
-	 * When true, removes all default styling from the banner and its children.
-	 * Useful when implementing completely custom styles.
-	 */
-	noStyle?: boolean;
+  /**
+   * @remarks
+   * When true, removes all default styling from the banner and its children.
+   * Useful when implementing completely custom styles.
+   */
+  noStyle?: boolean;
 
-	/**
-	 * @remarks
-	 * Custom styles to be applied to the banner and its child components.
-	 * These styles are made available through the CookieBanner context.
-	 */
-	theme?: Partial<CookieBannerTheme>;
+  /**
+   * @remarks
+   * Custom styles to be applied to the banner and its child components.
+   * These styles are made available through the CookieBanner context.
+   */
+  theme?: Partial<CookieBannerTheme>;
 
-	/**
-	 * @remarks
-	 * When true, disables the entrance/exit animations.
-	 * Useful for environments where animations are not desired.
-	 */
-	disableAnimation?: boolean;
+  /**
+   * @remarks
+   * When true, disables the entrance/exit animations.
+   * Useful for environments where animations are not desired.
+   */
+  disableAnimation?: boolean;
 
-	/**
-	 * @remarks
-	 * When true, the cookie banner will lock the scroll of the page.
-	 * Useful for implementing a cookie banner that locks the scroll of the page.
-	 * @default false
-	 */
-	scrollLock?: boolean;
+  /**
+   * @remarks
+   * When true, the cookie banner will lock the scroll of the page.
+   * Useful for implementing a cookie banner that locks the scroll of the page.
+   * @default false
+   */
+  scrollLock?: boolean;
 
-	/**
-	 * @remarks
-	 * When true, the cookie banner will trap focus.
-	 * Useful for implementing a cookie banner that traps focus.
-	 * @default true
-	 */
-	trapFocus?: boolean;
+  /**
+   * @remarks
+   * When true, the cookie banner will trap focus.
+   * Useful for implementing a cookie banner that traps focus.
+   * @default true
+   */
+  trapFocus?: boolean;
 }
 
 /**
@@ -116,38 +116,38 @@ interface CookieBannerRootProps extends HTMLAttributes<HTMLDivElement> {
  * @public
  */
 const CookieBannerRoot: FC<CookieBannerRootProps> = ({
-	children,
-	className,
-	noStyle,
-	disableAnimation,
-	theme,
-	scrollLock,
-	trapFocus = true,
-	...props
+  children,
+  className,
+  noStyle,
+  disableAnimation,
+  theme,
+  scrollLock,
+  trapFocus = true,
+  ...props
 }) => {
-	/**
-	 * Combine consent manager state with styling configuration
-	 * to create the context value for child components
-	 */
-	const contextValue = {
-		disableAnimation,
-		noStyle,
-		theme,
-		scrollLock,
-		trapFocus,
-	};
+  /**
+   * Combine consent manager state with styling configuration
+   * to create the context value for child components
+   */
+  const contextValue = {
+    disableAnimation,
+    noStyle,
+    theme,
+    scrollLock,
+    trapFocus,
+  };
 
-	return (
-		<LocalThemeContext.Provider value={contextValue}>
-			<CookieBannerRootChildren
-				disableAnimation={disableAnimation}
-				className={className}
-				{...props}
-			>
-				{children}
-			</CookieBannerRootChildren>
-		</LocalThemeContext.Provider>
-	);
+  return (
+    <LocalThemeContext.Provider value={contextValue}>
+      <CookieBannerRootChildren
+        disableAnimation={disableAnimation}
+        className={className}
+        {...props}
+      >
+        {children}
+      </CookieBannerRootChildren>
+    </LocalThemeContext.Provider>
+  );
 };
 
 /**
@@ -156,27 +156,27 @@ const CookieBannerRoot: FC<CookieBannerRootProps> = ({
  * @public
  */
 interface CookieBannerRootChildrenProps extends HTMLAttributes<HTMLDivElement> {
-	/**
-	 * @remarks
-	 * React elements to be rendered within the content section.
-	 * This typically includes the title, description, and action buttons.
-	 */
-	children: ReactNode;
+  /**
+   * @remarks
+   * React elements to be rendered within the content section.
+   * This typically includes the title, description, and action buttons.
+   */
+  children: ReactNode;
 
-	/**
-	 * @remarks
-	 * When true, the component will not apply any styles.
-	 */
-	noStyle?: boolean;
+  /**
+   * @remarks
+   * When true, the component will not apply any styles.
+   */
+  noStyle?: boolean;
 
-	/**
-	 * @remarks
-	 * When true, the component will render its children directly without wrapping them in a DOM element.
-	 * This enables better composition with other components.
-	 */
-	asChild?: boolean;
+  /**
+   * @remarks
+   * When true, the component will render its children directly without wrapping them in a DOM element.
+   * This enables better composition with other components.
+   */
+  asChild?: boolean;
 
-	disableAnimation?: boolean;
+  disableAnimation?: boolean;
 }
 
 /**
@@ -217,89 +217,89 @@ interface CookieBannerRootChildrenProps extends HTMLAttributes<HTMLDivElement> {
  * @public
  */
 const CookieBannerRootChildren = forwardRef<
-	HTMLDivElement,
-	CookieBannerRootChildrenProps
+  HTMLDivElement,
+  CookieBannerRootChildrenProps
 >(
-	(
-		{
-			asChild,
-			children,
-			className,
-			style,
-			className: forwardedClassName,
-			disableAnimation,
-			...props
-		}: CookieBannerRootChildrenProps & {
-			style?: CSSProperties;
-			className?: string;
-		},
-		ref
-	) => {
-		const { showPopup } = useConsentManager();
+  (
+    {
+      asChild,
+      children,
+      className,
+      style,
+      className: forwardedClassName,
+      disableAnimation,
+      ...props
+    }: CookieBannerRootChildrenProps & {
+      style?: CSSProperties;
+      className?: string;
+    },
+    ref
+  ) => {
+    const { showPopup } = useConsentManager();
 
-		/**
-		 * Apply styles from the CookieBanner context and merge with local styles.
-		 * Uses the 'content' style key for consistent theming.
-		 */
-		const contentStyle = useStyles('banner.root', {
-			baseClassName: [styles.root, styles.bottomLeft],
-			style: style as CSSPropertiesWithVars<Record<string, never>>,
-			className: className || forwardedClassName,
-		});
+    /**
+     * Apply styles from the CookieBanner context and merge with local styles.
+     * Uses the 'content' style key for consistent theming.
+     */
+    const contentStyle = useStyles('banner.root', {
+      baseClassName: [styles.root, styles.bottomLeft],
+      style: style as CSSPropertiesWithVars<Record<string, never>>,
+      className: className || forwardedClassName,
+    });
 
-		/**
-		 * Track client-side mounting state to prevent SSR hydration issues
-		 * with the portal rendering
-		 */
-		const [isMounted, setIsMounted] = useState(false);
+    /**
+     * Track client-side mounting state to prevent SSR hydration issues
+     * with the portal rendering
+     */
+    const [isMounted, setIsMounted] = useState(false);
 
-		/**
-		 * Initialize mounting state after initial render
-		 * This ensures we only render the portal on the client side
-		 */
-		useEffect(() => {
-			setIsMounted(true);
-		}, []);
+    /**
+     * Initialize mounting state after initial render
+     * This ensures we only render the portal on the client side
+     */
+    useEffect(() => {
+      setIsMounted(true);
+    }, []);
 
-		// Prevent rendering until client-side mount is complete
-		if (!isMounted) {
-			return null;
-		}
+    // Prevent rendering until client-side mount is complete
+    if (!isMounted) {
+      return null;
+    }
 
-		// Only render when the banner should be shown
-		return showPopup
-			? createPortal(
-					<>
-						<Overlay />
-						{disableAnimation ? (
-							<div
-								ref={ref}
-								{...props}
-								{...contentStyle}
-								data-testid="cookie-banner-root"
-							>
-								{children}
-							</div>
-						) : (
-							<AnimatePresence>
-								<motion.div
-									ref={ref}
-									initial={{ opacity: 0, y: 50 }}
-									animate={{ opacity: 1, y: 0 }}
-									exit={{ opacity: 0, y: 50 }}
-									transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-									{...contentStyle}
-									data-testid="cookie-banner-root"
-								>
-									{children}
-								</motion.div>
-							</AnimatePresence>
-						)}
-					</>,
-					document.body
-				)
-			: null;
-	}
+    // Only render when the banner should be shown
+    return showPopup
+      ? createPortal(
+          <>
+            <Overlay />
+            {disableAnimation ? (
+              <div
+                ref={ref}
+                {...props}
+                {...contentStyle}
+                data-testid="cookie-banner-root"
+              >
+                {children}
+              </div>
+            ) : (
+              <AnimatePresence>
+                <motion.div
+                  ref={ref}
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 50 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  {...contentStyle}
+                  data-testid="cookie-banner-root"
+                >
+                  {children}
+                </motion.div>
+              </AnimatePresence>
+            )}
+          </>,
+          document.body
+        )
+      : null;
+  }
 );
 
 CookieBannerRootChildren.displayName = 'CookieBannerRootChildren';

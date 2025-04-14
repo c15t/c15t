@@ -7,9 +7,9 @@ import type { LoggerOptions } from '../logger';
 import { getSchema } from './get-schema';
 import { matchType } from './type-mapping';
 import type {
-	ColumnsToAdd,
-	TableSchemaDefinition,
-	TableToCreate,
+  ColumnsToAdd,
+  TableSchemaDefinition,
+  TableToCreate,
 } from './types';
 
 /**
@@ -39,33 +39,33 @@ import type {
  * ```
  */
 export function analyzeSchemaChanges(
-	config: C15TOptions,
-	tableMetadata: TableMetadata[],
-	dbType: KyselyDatabaseType
+  config: C15TOptions,
+  tableMetadata: TableMetadata[],
+  dbType: KyselyDatabaseType
 ): { toBeCreated: TableToCreate[]; toBeAdded: ColumnsToAdd[] } {
-	const betterAuthSchema = getSchema(config);
-	const logger = createLogger(config.logger as LoggerOptions);
-	const toBeCreated: TableToCreate[] = [];
-	const toBeAdded: ColumnsToAdd[] = [];
+  const betterAuthSchema = getSchema(config);
+  const logger = createLogger(config.logger as LoggerOptions);
+  const toBeCreated: TableToCreate[] = [];
+  const toBeAdded: ColumnsToAdd[] = [];
 
-	for (const [key, value] of Object.entries(betterAuthSchema)) {
-		const table = tableMetadata.find((t: { name: string }) => t.name === key);
-		if (!table) {
-			handleNewTable(key, value as TableSchemaDefinition, toBeCreated);
-			continue;
-		}
+  for (const [key, value] of Object.entries(betterAuthSchema)) {
+    const table = tableMetadata.find((t: { name: string }) => t.name === key);
+    if (!table) {
+      handleNewTable(key, value as TableSchemaDefinition, toBeCreated);
+      continue;
+    }
 
-		handleExistingTable(
-			key,
-			value as TableSchemaDefinition,
-			table,
-			toBeAdded,
-			dbType,
-			logger
-		);
-	}
+    handleExistingTable(
+      key,
+      value as TableSchemaDefinition,
+      table,
+      toBeAdded,
+      dbType,
+      logger
+    );
+  }
 
-	return { toBeCreated, toBeAdded };
+  return { toBeCreated, toBeAdded };
 }
 
 /**
@@ -87,36 +87,36 @@ export function analyzeSchemaChanges(
  * will be merged with the new fields rather than replacing the entry.
  */
 function handleNewTable(
-	tableName: string,
-	value: TableSchemaDefinition,
-	toBeCreated: TableToCreate[]
+  tableName: string,
+  value: TableSchemaDefinition,
+  toBeCreated: TableToCreate[]
 ): void {
-	const tIndex = toBeCreated.findIndex((t) => t.table === tableName);
-	const tableData = {
-		table: tableName,
-		fields: value.fields,
-		order: value.order || Number.POSITIVE_INFINITY,
-	};
+  const tIndex = toBeCreated.findIndex((t) => t.table === tableName);
+  const tableData = {
+    table: tableName,
+    fields: value.fields,
+    order: value.order || Number.POSITIVE_INFINITY,
+  };
 
-	const insertIndex = toBeCreated.findIndex(
-		(t) => (t.order || Number.POSITIVE_INFINITY) > tableData.order
-	);
+  const insertIndex = toBeCreated.findIndex(
+    (t) => (t.order || Number.POSITIVE_INFINITY) > tableData.order
+  );
 
-	if (insertIndex === -1) {
-		if (tIndex === -1) {
-			toBeCreated.push(tableData);
-		} else {
-			const existingTable = toBeCreated[tIndex];
-			if (existingTable) {
-				existingTable.fields = {
-					...existingTable.fields,
-					...value.fields,
-				};
-			}
-		}
-	} else {
-		toBeCreated.splice(insertIndex, 0, tableData);
-	}
+  if (insertIndex === -1) {
+    if (tIndex === -1) {
+      toBeCreated.push(tableData);
+    } else {
+      const existingTable = toBeCreated[tIndex];
+      if (existingTable) {
+        existingTable.fields = {
+          ...existingTable.fields,
+          ...value.fields,
+        };
+      }
+    }
+  } else {
+    toBeCreated.splice(insertIndex, 0, tableData);
+  }
 }
 
 /**
@@ -155,48 +155,48 @@ function handleNewTable(
  * ```
  */
 function handleExistingTable(
-	tableName: string,
-	value: TableSchemaDefinition,
-	table: TableMetadata,
-	toBeAdded: ColumnsToAdd[],
-	dbType: KyselyDatabaseType,
-	logger: ReturnType<typeof createLogger>
+  tableName: string,
+  value: TableSchemaDefinition,
+  table: TableMetadata,
+  toBeAdded: ColumnsToAdd[],
+  dbType: KyselyDatabaseType,
+  logger: ReturnType<typeof createLogger>
 ): void {
-	// Collection of fields that need to be added to the existing table
-	const toBeAddedFields: Record<string, Field> = {};
+  // Collection of fields that need to be added to the existing table
+  const toBeAddedFields: Record<string, Field> = {};
 
-	// Iterate through each field in the expected schema for this table
-	for (const [fieldName, field] of Object.entries(value.fields)) {
-		// Check if the field exists in the actual database table
-		const column = table.columns.find((c) => c.name === fieldName);
-		const typedField = field as Field;
+  // Iterate through each field in the expected schema for this table
+  for (const [fieldName, field] of Object.entries(value.fields)) {
+    // Check if the field exists in the actual database table
+    const column = table.columns.find((c) => c.name === fieldName);
+    const typedField = field as Field;
 
-		// If the field doesn't exist in the database, mark it to be added
-		if (!column) {
-			toBeAddedFields[fieldName] = typedField;
-			continue; // Skip the rest of this iteration
-		}
+    // If the field doesn't exist in the database, mark it to be added
+    if (!column) {
+      toBeAddedFields[fieldName] = typedField;
+      continue; // Skip the rest of this iteration
+    }
 
-		// Field exists, so check if its type matches the expected type
-		// If types match, no action needed so continue to next field
-		if (matchType(column.dataType, typedField.type, dbType)) {
-			continue;
-		}
+    // Field exists, so check if its type matches the expected type
+    // If types match, no action needed so continue to next field
+    if (matchType(column.dataType, typedField.type, dbType)) {
+      continue;
+    }
 
-		// If we reach here, the field exists but has a different type
-		// We don't alter column types to avoid data loss, just log a warning
-		logger.warn(
-			`Field ${fieldName} in table ${tableName} has a different type in the database. Expected ${typedField.type} but got ${column.dataType}.`
-		);
-	}
+    // If we reach here, the field exists but has a different type
+    // We don't alter column types to avoid data loss, just log a warning
+    logger.warn(
+      `Field ${fieldName} in table ${tableName} has a different type in the database. Expected ${typedField.type} but got ${column.dataType}.`
+    );
+  }
 
-	// After checking all fields, if we found fields that need to be added,
-	// add an entry to the toBeAdded array with all fields for this table
-	if (Object.keys(toBeAddedFields).length > 0) {
-		toBeAdded.push({
-			table: tableName,
-			fields: toBeAddedFields,
-			order: value.order || Number.POSITIVE_INFINITY, // Use specified order or lowest priority
-		});
-	}
+  // After checking all fields, if we found fields that need to be added,
+  // add an entry to the toBeAdded array with all fields for this table
+  if (Object.keys(toBeAddedFields).length > 0) {
+    toBeAdded.push({
+      table: tableName,
+      fields: toBeAddedFields,
+      order: value.order || Number.POSITIVE_INFINITY, // Use specified order or lowest priority
+    });
+  }
 }

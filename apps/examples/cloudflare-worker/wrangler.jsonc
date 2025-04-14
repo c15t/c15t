@@ -3,7 +3,5 @@
   "name": "hono",
   "main": "src/index.ts",
   "compatibility_date": "2025-03-06",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ]
+  "compatibility_flags": ["nodejs_compat"]
 }

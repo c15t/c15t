@@ -36,16 +36,16 @@ import { z } from 'zod';
  * ```
  */
 export const purposeSchema = z.object({
-	id: z.string(),
-	code: z.string(),
-	name: z.string(),
-	description: z.string(),
-	isEssential: z.boolean().default(false),
-	dataCategory: z.string().optional(),
-	legalBasis: z.string().optional(),
-	isActive: z.boolean().default(true),
-	createdAt: z.date().default(() => new Date()),
-	updatedAt: z.date().default(() => new Date()),
+  id: z.string(),
+  code: z.string(),
+  name: z.string(),
+  description: z.string(),
+  isEssential: z.boolean().default(false),
+  dataCategory: z.string().optional(),
+  legalBasis: z.string().optional(),
+  isActive: z.boolean().default(true),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date().default(() => new Date()),
 });
 
 /**

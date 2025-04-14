@@ -19,11 +19,11 @@ import type { VerifyConsentRequestBody as VerifyConsentRequestBodyZod } from './
 // Export response types extracted directly from route definitions
 export type SetConsentResponse = RouteResponseType<typeof setConsent>;
 export type ShowConsentBannerResponse = RouteResponseType<
-	typeof showConsentBanner
+  typeof showConsentBanner
 >;
 export type VerifyConsentResponse = RouteResponseType<typeof verifyConsent>;
 
 export type SetConsentRequestBody = z.infer<typeof SetConsentRequestBodyZod>;
 export type VerifyConsentRequestBody = z.infer<
-	typeof VerifyConsentRequestBodyZod
+  typeof VerifyConsentRequestBodyZod
 >;

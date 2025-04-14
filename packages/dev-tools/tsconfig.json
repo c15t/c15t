@@ -1,12 +1,12 @@
 {
-	"extends": "@c15t/typescript-config/react-library.json",
-	"compilerOptions": {
-		"baseUrl": ".",
-		"lib": ["dom", "dom.iterable", "esnext"],
-		"paths": {
-			"~/*": ["./src/*"]
-		}
-	},
-	"include": ["src"],
-	"exclude": ["node_modules"]
+  "extends": "@c15t/typescript-config/react-library.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "paths": {
+      "~/*": ["./src/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules"]
 }

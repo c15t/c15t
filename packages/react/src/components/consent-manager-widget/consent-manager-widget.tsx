@@ -3,21 +3,21 @@
 import { useState } from 'react';
 import { useTranslations } from '~/hooks/use-translations';
 import {
-	BrandingFooter,
-	DialogFooter,
+  BrandingFooter,
+  DialogFooter,
 } from '../consent-manager-dialog/atoms/dialog-card';
 import {
-	ConsentManagerWidgetAccordion,
-	ConsentManagerWidgetAccordionItems,
+  ConsentManagerWidgetAccordion,
+  ConsentManagerWidgetAccordionItems,
 } from './atoms/accordion';
 import {
-	ConsentManagerWidgetAcceptAllButton,
-	ConsentManagerWidgetRejectButton,
-	ConsentManagerWidgetSaveButton,
+  ConsentManagerWidgetAcceptAllButton,
+  ConsentManagerWidgetRejectButton,
+  ConsentManagerWidgetSaveButton,
 } from './atoms/button';
 import {
-	ConsentManagerWidgetFooter,
-	ConsentManagerWidgetFooterSubGroup,
+  ConsentManagerWidgetFooter,
+  ConsentManagerWidgetFooterSubGroup,
 } from './atoms/footer';
 import { ConsentManagerWidgetRoot } from './atoms/root';
 import type { ConsentManagerWidgetProps } from './types';
@@ -64,40 +64,40 @@ import type { ConsentManagerWidgetProps } from './types';
  * ```
  */
 export const ConsentManagerWidget = ({
-	hideBrading,
-	...props
+  hideBrading,
+  ...props
 }: ConsentManagerWidgetProps) => {
-	const [openItems, setOpenItems] = useState<string[]>([]);
-	const { consentManagerWidget } = useTranslations();
+  const [openItems, setOpenItems] = useState<string[]>([]);
+  const { consentManagerWidget } = useTranslations();
 
-	return (
-		<ConsentManagerWidgetRoot {...props}>
-			<ConsentManagerWidgetAccordion
-				themeKey="widget.accordion"
-				type="multiple"
-				value={openItems}
-				onValueChange={setOpenItems}
-			>
-				<ConsentManagerWidgetAccordionItems />
-			</ConsentManagerWidgetAccordion>
-			<ConsentManagerWidgetFooter>
-				<ConsentManagerWidgetFooterSubGroup themeKey="widget.footer.sub-group">
-					<ConsentManagerWidgetRejectButton themeKey="widget.footer.reject-button">
-						{consentManagerWidget.rejectAll}
-					</ConsentManagerWidgetRejectButton>
-					<ConsentManagerWidgetAcceptAllButton themeKey="widget.footer.accept-button">
-						{consentManagerWidget.acceptAll}
-					</ConsentManagerWidgetAcceptAllButton>
-				</ConsentManagerWidgetFooterSubGroup>
-				<ConsentManagerWidgetSaveButton themeKey="widget.footer.save-button">
-					{consentManagerWidget.save}
-				</ConsentManagerWidgetSaveButton>
-			</ConsentManagerWidgetFooter>
-			{!hideBrading && (
-				<DialogFooter themeKey="widget.branding">
-					<BrandingFooter />
-				</DialogFooter>
-			)}
-		</ConsentManagerWidgetRoot>
-	);
+  return (
+    <ConsentManagerWidgetRoot {...props}>
+      <ConsentManagerWidgetAccordion
+        themeKey="widget.accordion"
+        type="multiple"
+        value={openItems}
+        onValueChange={setOpenItems}
+      >
+        <ConsentManagerWidgetAccordionItems />
+      </ConsentManagerWidgetAccordion>
+      <ConsentManagerWidgetFooter>
+        <ConsentManagerWidgetFooterSubGroup themeKey="widget.footer.sub-group">
+          <ConsentManagerWidgetRejectButton themeKey="widget.footer.reject-button">
+            {consentManagerWidget.rejectAll}
+          </ConsentManagerWidgetRejectButton>
+          <ConsentManagerWidgetAcceptAllButton themeKey="widget.footer.accept-button">
+            {consentManagerWidget.acceptAll}
+          </ConsentManagerWidgetAcceptAllButton>
+        </ConsentManagerWidgetFooterSubGroup>
+        <ConsentManagerWidgetSaveButton themeKey="widget.footer.save-button">
+          {consentManagerWidget.save}
+        </ConsentManagerWidgetSaveButton>
+      </ConsentManagerWidgetFooter>
+      {!hideBrading && (
+        <DialogFooter themeKey="widget.branding">
+          <BrandingFooter />
+        </DialogFooter>
+      )}
+    </ConsentManagerWidgetRoot>
+  );
 };

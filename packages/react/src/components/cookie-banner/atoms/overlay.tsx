@@ -23,17 +23,17 @@ import styles from '../cookie-banner.module.css';
  * @public
  */
 interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
-	/**
-	 * @remarks
-	 * When true, the component will not apply any styles.
-	 */
-	noStyle?: boolean;
-	/**
-	 * @remarks
-	 * When true, the component will render its children directly without wrapping them in a DOM element.
-	 * This enables better composition with other components.
-	 */
-	asChild?: boolean;
+  /**
+   * @remarks
+   * When true, the component will not apply any styles.
+   */
+  noStyle?: boolean;
+  /**
+   * @remarks
+   * When true, the component will render its children directly without wrapping them in a DOM element.
+   * This enables better composition with other components.
+   */
+  asChild?: boolean;
 }
 
 /**
@@ -52,42 +52,42 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
  * @public
  */
 const CookieBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
-	({ className, style, noStyle, asChild, ...props }, ref) => {
-		const { showPopup } = useConsentManager();
-		const {
-			disableAnimation,
-			noStyle: contextNoStyle,
-			scrollLock,
-		} = useTheme();
-		const theme = useStyles('banner.overlay', {
-			baseClassName: !(contextNoStyle || noStyle) && styles.overlay,
-			noStyle,
-		});
+  ({ className, style, noStyle, asChild, ...props }, ref) => {
+    const { showPopup } = useConsentManager();
+    const {
+      disableAnimation,
+      noStyle: contextNoStyle,
+      scrollLock,
+    } = useTheme();
+    const theme = useStyles('banner.overlay', {
+      baseClassName: !(contextNoStyle || noStyle) && styles.overlay,
+      noStyle,
+    });
 
-		useScrollLock(!!(showPopup && scrollLock));
+    useScrollLock(!!(showPopup && scrollLock));
 
-		return showPopup && scrollLock ? (
-			disableAnimation ? (
-				<div
-					ref={ref}
-					{...props}
-					{...theme}
-					data-testid="cookie-banner-overlay"
-				/>
-			) : (
-				<AnimatePresence>
-					<motion.div
-						ref={ref}
-						{...theme}
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						exit={{ opacity: 0 }}
-						data-testid="cookie-banner-overlay"
-					/>
-				</AnimatePresence>
-			)
-		) : null;
-	}
+    return showPopup && scrollLock ? (
+      disableAnimation ? (
+        <div
+          ref={ref}
+          {...props}
+          {...theme}
+          data-testid="cookie-banner-overlay"
+        />
+      ) : (
+        <AnimatePresence>
+          <motion.div
+            ref={ref}
+            {...theme}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            data-testid="cookie-banner-overlay"
+          />
+        </AnimatePresence>
+      )
+    ) : null;
+  }
 );
 
 const Overlay = CookieBannerOverlay;

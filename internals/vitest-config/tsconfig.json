@@ -1,5 +1,5 @@
 {
-	"extends": ["@c15t/typescript-config/base.json"],
-	"include": ["src"],
-	"exclude": ["node_modules", "dist"]
+  "extends": ["@c15t/typescript-config/base.json"],
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }

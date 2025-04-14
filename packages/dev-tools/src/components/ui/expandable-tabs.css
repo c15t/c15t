@@ -1,56 +1,56 @@
 .c15t-devtool-tabs-container {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 0.5rem;
-	border-radius: 1rem;
-	border: 1px solid var(--c15t-dev-tools-border);
-	background-color: var(--c15t-dev-tools-background);
-	padding: 0.25rem;
-	box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 1rem;
+  border: 1px solid var(--c15t-dev-tools-border);
+  background-color: var(--c15t-dev-tools-background);
+  padding: 0.25rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
 .c15t-devtool-tab-separator {
-	margin-left: 0.25rem;
-	margin-right: 0.25rem;
-	height: 24px;
-	width: 1.2px;
-	background-color: var(--border);
+  margin-left: 0.25rem;
+  margin-right: 0.25rem;
+  height: 24px;
+  width: 1.2px;
+  background-color: var(--border);
 }
 
 .c15t-devtool-tab-button {
-	position: relative;
-	display: flex;
-	flex-grow: 1;
-	align-items: center;
-	justify-content: center;
-	border-radius: 0.75rem;
-	padding: 0.5rem 1rem;
-	font-size: 0.875rem;
-	font-weight: 500;
-	transition-property: color, background-color;
-	transition-duration: 300ms;
-	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition-property: color, background-color;
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .c15t-devtool-tab-button:not(.selected) {
-	color: var(--c15t-dev-tools-muted-foreground);
+  color: var(--c15t-dev-tools-muted-foreground);
 }
 
 .c15t-devtool-tab-button:not(.selected):hover {
-	background-color: var(--c15t-dev-tools-muted);
-	color: var(--c15t-dev-tools-foreground);
+  background-color: var(--c15t-dev-tools-muted);
+  color: var(--c15t-dev-tools-foreground);
 }
 
 .c15t-devtool-tab-button.selected {
-	background-color: var(--c15t-dev-tools-muted);
+  background-color: var(--c15t-dev-tools-muted);
 }
 
 .c15t-devtool-tab-button.selected.primary {
-	color: var(--c15t-dev-tools-primary);
+  color: var(--c15t-dev-tools-primary);
 }
 
 .c15t-devtool-tab-title {
-	overflow: hidden;
-	white-space: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
 }

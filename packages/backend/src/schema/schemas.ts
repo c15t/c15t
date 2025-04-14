@@ -1,23 +1,23 @@
 import type { z } from 'zod';
 import {
-	auditLogSchema,
-	consentPolicySchema,
-	consentRecordSchema,
-	consentSchema,
-	domainSchema,
-	purposeSchema,
-	subjectSchema,
+  auditLogSchema,
+  consentPolicySchema,
+  consentRecordSchema,
+  consentSchema,
+  domainSchema,
+  purposeSchema,
+  subjectSchema,
 } from './index';
 
 // Export all schemas
 export const schemas = {
-	auditLog: auditLogSchema,
-	consent: consentSchema,
-	consentPolicy: consentPolicySchema,
-	consentPurpose: purposeSchema,
-	consentRecord: consentRecordSchema,
-	domain: domainSchema,
-	subject: subjectSchema,
+  auditLog: auditLogSchema,
+  consent: consentSchema,
+  consentPolicy: consentPolicySchema,
+  consentPurpose: purposeSchema,
+  consentRecord: consentRecordSchema,
+  domain: domainSchema,
+  subject: subjectSchema,
 } as const;
 
 // Type for all table names

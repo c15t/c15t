@@ -13,8 +13,8 @@
 export { getMigrations } from './get-migration';
 export { createMigrationExecutors } from './migration-execution';
 export {
-	buildTableCreateMigrations,
-	buildColumnAddMigrations,
+  buildTableCreateMigrations,
+  buildColumnAddMigrations,
 } from './migration-builders';
 export { analyzeSchemaChanges } from './schema-comparison';
 export { matchType, getType } from './type-mapping';
@@ -24,8 +24,8 @@ export { getSchema } from './get-schema';
 
 // Types
 export type {
-	MigrationResult,
-	MigrationOperation,
-	ColumnsToAdd,
-	TableToCreate,
+  MigrationResult,
+  MigrationOperation,
+  ColumnsToAdd,
+  TableToCreate,
 } from './types';

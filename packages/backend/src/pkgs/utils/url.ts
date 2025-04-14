@@ -19,21 +19,21 @@ const TRAILING_SLASHES_REGEX = /\/+$/;
  * @internal
  */
 function checkHasPath(url: string): boolean {
-	try {
-		const parsedUrl = new URL(url);
-		return parsedUrl.pathname !== '/';
-	} catch {
-		throw new DoubleTieError(
-			`Invalid base URL: ${url}. Please provide a valid base URL.`,
-			{
-				code: ERROR_CODES.BAD_REQUEST,
-				status: 400,
-				meta: {
-					url,
-				},
-			}
-		);
-	}
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.pathname !== '/';
+  } catch {
+    throw new DoubleTieError(
+      `Invalid base URL: ${url}. Please provide a valid base URL.`,
+      {
+        code: ERROR_CODES.BAD_REQUEST,
+        status: 400,
+        meta: {
+          url,
+        },
+      }
+    );
+  }
 }
 
 /**
@@ -51,12 +51,12 @@ function checkHasPath(url: string): boolean {
  * @internal
  */
 function withPath(url: string, path = '/api/auth') {
-	const hasPath = checkHasPath(url);
-	if (hasPath) {
-		return url;
-	}
-	const pathWithSlash = path.startsWith('/') ? path : `/${path}`;
-	return `${url.replace(TRAILING_SLASHES_REGEX, '')}${pathWithSlash}`;
+  const hasPath = checkHasPath(url);
+  if (hasPath) {
+    return url;
+  }
+  const pathWithSlash = path.startsWith('/') ? path : `/${path}`;
+  return `${url.replace(TRAILING_SLASHES_REGEX, '')}${pathWithSlash}`;
 }
 
 /**
@@ -86,20 +86,20 @@ function withPath(url: string, path = '/api/auth') {
  * ```
  */
 export function getBaseURL(url?: string, path?: string) {
-	if (url) {
-		return withPath(url, path);
-	}
-	const fromEnv =
-		env.C15T_URL ||
-		env.NEXT_PUBLIC_C15T_URL ||
-		env.PUBLIC_C15T_URL ||
-		env.NUXT_PUBLIC_C15T_URL ||
-		env.NUXT_PUBLIC_AUTH_URL ||
-		(env.BASE_URL !== '/' ? env.BASE_URL : undefined);
+  if (url) {
+    return withPath(url, path);
+  }
+  const fromEnv =
+    env.C15T_URL ||
+    env.NEXT_PUBLIC_C15T_URL ||
+    env.PUBLIC_C15T_URL ||
+    env.NUXT_PUBLIC_C15T_URL ||
+    env.NUXT_PUBLIC_AUTH_URL ||
+    (env.BASE_URL !== '/' ? env.BASE_URL : undefined);
 
-	if (fromEnv) {
-		return withPath(fromEnv, path);
-	}
+  if (fromEnv) {
+    return withPath(fromEnv, path);
+  }
 
-	return undefined;
+  return undefined;
 }

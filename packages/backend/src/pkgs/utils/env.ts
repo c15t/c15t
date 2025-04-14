@@ -32,7 +32,7 @@ export const env = typeof process !== 'undefined' ? process.env : {};
  * ```
  */
 export const isProduction =
-	typeof process !== 'undefined' && process.env.NODE_ENV === 'production';
+  typeof process !== 'undefined' && process.env.NODE_ENV === 'production';
 
 /**
  * Converts a string or boolean value to a boolean
@@ -51,7 +51,7 @@ export const isProduction =
  * @internal Used for environment variable parsing
  */
 function toBoolean(val: boolean | string | undefined) {
-	return val ? val !== 'false' : false;
+  return val ? val !== 'false' : false;
 }
 
 /**
@@ -63,7 +63,7 @@ function toBoolean(val: boolean | string | undefined) {
  * @returns The current NODE_ENV value or empty string if not set
  */
 export const nodeENV =
-	(typeof process !== 'undefined' && process.env && process.env.NODE_ENV) || '';
+  (typeof process !== 'undefined' && process.env && process.env.NODE_ENV) || '';
 
 /**
  * Determines if the application is running in test mode

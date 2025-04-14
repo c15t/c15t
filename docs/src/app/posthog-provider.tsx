@@ -6,51 +6,51 @@ import { PostHogProvider as PHProvider, usePostHog } from 'posthog-js/react';
 import { type ReactNode, Suspense, useEffect } from 'react';
 import { env } from '~/env';
 export function PostHogProvider({ children }: { children: ReactNode }) {
-	useEffect(() => {
-		env.NEXT_PUBLIC_POSTHOG_KEY &&
-			posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
-				api_host: '/ingest',
-				ui_host: env.NEXT_PUBLIC_POSTHOG_HOST,
-				capture_pageview: false, // We capture pageviews manually
-				capture_pageleave: true, // Enable pageleave capture
-			});
-	}, []);
+  useEffect(() => {
+    env.NEXT_PUBLIC_POSTHOG_KEY &&
+      posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
+        api_host: '/ingest',
+        ui_host: env.NEXT_PUBLIC_POSTHOG_HOST,
+        capture_pageview: false, // We capture pageviews manually
+        capture_pageleave: true, // Enable pageleave capture
+      });
+  }, []);
 
-	if (!env.NEXT_PUBLIC_POSTHOG_KEY) {
-		return children;
-	}
+  if (!env.NEXT_PUBLIC_POSTHOG_KEY) {
+    return children;
+  }
 
-	return (
-		<PHProvider client={posthog}>
-			<SuspendedPostHogPageView />
-			{children}
-		</PHProvider>
-	);
+  return (
+    <PHProvider client={posthog}>
+      <SuspendedPostHogPageView />
+      {children}
+    </PHProvider>
+  );
 }
 
 function PostHogPageView() {
-	const pathname = usePathname();
-	const searchParams = useSearchParams();
-	const posthog = usePostHog();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const posthog = usePostHog();
 
-	useEffect(() => {
-		if (pathname && posthog) {
-			let url = window.origin + pathname;
-			const search = searchParams.toString();
-			if (search) {
-				url += `?${search}`;
-			}
-			posthog.capture('$pageview', { $current_url: url });
-		}
-	}, [pathname, searchParams, posthog]);
+  useEffect(() => {
+    if (pathname && posthog) {
+      let url = window.origin + pathname;
+      const search = searchParams.toString();
+      if (search) {
+        url += `?${search}`;
+      }
+      posthog.capture('$pageview', { $current_url: url });
+    }
+  }, [pathname, searchParams, posthog]);
 
-	return null;
+  return null;
 }
 
 function SuspendedPostHogPageView() {
-	return (
-		<Suspense fallback={null}>
-			<PostHogPageView />
-		</Suspense>
-	);
+  return (
+    <Suspense fallback={null}>
+      <PostHogPageView />
+    </Suspense>
+  );
 }

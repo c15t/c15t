@@ -16,19 +16,19 @@ export { c15tInstance, type C15TInstance } from './core';
 export * as Types from './pkgs/types';
 
 export type {
-	C15TContext,
-	C15TOptions,
-	C15TPlugin,
-	InferPluginContexts,
-	ApiPathBase,
-	ApiPath,
+  C15TContext,
+  C15TOptions,
+  C15TPlugin,
+  InferPluginContexts,
+  ApiPathBase,
+  ApiPath,
 } from './types';
 
 // Export all the response types to make them available for client applications
 export type {
-	SetConsentResponse,
-	ShowConsentBannerResponse,
-	VerifyConsentResponse,
-	SetConsentRequestBody,
-	VerifyConsentRequestBody,
+  SetConsentResponse,
+  ShowConsentBannerResponse,
+  VerifyConsentResponse,
+  SetConsentRequestBody,
+  VerifyConsentRequestBody,
 } from './response-types';

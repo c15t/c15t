@@ -5,10 +5,10 @@
 @source '../../node_modules/fumadocs-ui/dist/**/*.js';
 
 :root {
-	--color-fd-primary: hsl(172 72.2% 48%);
-	--fd-layout-width: 1400px !important;
+  --color-fd-primary: hsl(172 72.2% 48%);
+  --fd-layout-width: 1400px !important;
 }
 
 :root .dark {
-	--color-fd-primary: hsl(172 70.7% 55.9%);
+  --color-fd-primary: hsl(172 70.7% 55.9%);
 }

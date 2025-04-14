@@ -23,14 +23,14 @@ import { z } from 'zod';
  * ```
  */
 export const domainSchema = z.object({
-	id: z.string(),
-	name: z.string().min(1),
-	description: z.string().optional(),
-	allowedOrigins: z.array(z.string()).optional().default([]),
-	isVerified: z.boolean().default(true),
-	isActive: z.boolean().default(true),
-	createdAt: z.date().default(() => new Date()),
-	updatedAt: z.date().default(() => new Date()),
+  id: z.string(),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  allowedOrigins: z.array(z.string()).optional().default([]),
+  isVerified: z.boolean().default(true),
+  isActive: z.boolean().default(true),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date().default(() => new Date()),
 });
 
 /**

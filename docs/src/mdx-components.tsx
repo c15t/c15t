@@ -8,15 +8,15 @@ import type { MDXComponents } from 'mdx/types';
 const generator = createGenerator();
 
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
-	return {
-		...defaultComponents,
-		Tab,
-		Tabs,
-		Steps,
-		Step,
-		AutoTypeTable: (props) => (
-			<AutoTypeTable {...props} generator={generator} />
-		),
-		...components,
-	};
+  return {
+    ...defaultComponents,
+    Tab,
+    Tabs,
+    Steps,
+    Step,
+    AutoTypeTable: (props) => (
+      <AutoTypeTable {...props} generator={generator} />
+    ),
+    ...components,
+  };
 }

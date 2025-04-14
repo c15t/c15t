@@ -25,40 +25,40 @@ import { memoryAdapter } from './adapters/memory-adapter';
  * ```
  */
 export async function getAdapter(options: C15TOptions) {
-	const logger = createLogger({ appName: 'c15t' });
+  const logger = createLogger({ appName: 'c15t' });
 
-	// If no database is configured, use an in-memory adapter for development
-	if (!options.database) {
-		const tables = getConsentTables(options);
-		const memoryDB = Object.keys(tables).reduce<Record<string, []>>(
-			(acc, key) => {
-				acc[key] = [];
-				return acc;
-			},
-			{}
-		);
+  // If no database is configured, use an in-memory adapter for development
+  if (!options.database) {
+    const tables = getConsentTables(options);
+    const memoryDB = Object.keys(tables).reduce<Record<string, []>>(
+      (acc, key) => {
+        acc[key] = [];
+        return acc;
+      },
+      {}
+    );
 
-		logger.warn(
-			'No database configuration provided. Using memory adapter in development'
-		);
-		return memoryAdapter(memoryDB)(options);
-	}
+    logger.warn(
+      'No database configuration provided. Using memory adapter in development'
+    );
+    return memoryAdapter(memoryDB)(options);
+  }
 
-	// If a custom database function is provided, use it directly
-	if (typeof options.database === 'function') {
-		return options.database(options);
-	}
+  // If a custom database function is provided, use it directly
+  if (typeof options.database === 'function') {
+    return options.database(options);
+  }
 
-	// Otherwise, create a Kysely adapter
-	const { kysely, databaseType } = await createKyselyAdapter(options);
-	if (!kysely) {
-		throw new DoubleTieError('Failed to initialize database adapter', {
-			code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-			status: 500,
-		});
-	}
+  // Otherwise, create a Kysely adapter
+  const { kysely, databaseType } = await createKyselyAdapter(options);
+  if (!kysely) {
+    throw new DoubleTieError('Failed to initialize database adapter', {
+      code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+      status: 500,
+    });
+  }
 
-	return kyselyAdapter(kysely, {
-		type: databaseType || 'sqlite',
-	})(options);
+  return kyselyAdapter(kysely, {
+    type: databaseType || 'sqlite',
+  })(options);
 }

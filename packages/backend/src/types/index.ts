@@ -18,6 +18,6 @@ export type { InferPluginContexts } from './plugins';
 
 // Export API specific types
 export type {
-	ApiPath,
-	ApiPathBase,
+  ApiPath,
+  ApiPathBase,
 } from './api';

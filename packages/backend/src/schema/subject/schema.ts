@@ -22,13 +22,13 @@ import { z } from 'zod';
  * ```
  */
 export const subjectSchema = z.object({
-	id: z.string(),
-	isIdentified: z.boolean().default(false),
-	externalId: z.string().nullable().optional(),
-	identityProvider: z.string().optional(),
-	lastIpAddress: z.string().optional(),
-	createdAt: z.date().default(() => new Date()),
-	updatedAt: z.date().default(() => new Date()),
+  id: z.string(),
+  isIdentified: z.boolean().default(false),
+  externalId: z.string().nullable().optional(),
+  identityProvider: z.string().optional(),
+  lastIpAddress: z.string().optional(),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date().default(() => new Date()),
 });
 
 /**

@@ -1,68 +1,68 @@
 .c15t-devtool-badge {
-	display: inline-flex;
-	align-items: center;
-	border-radius: 9999px;
-	border: 1px solid transparent;
-	padding: 0.125rem 0.625rem;
-	font-weight: 600;
-	font-size: 0.75rem;
-	transition-property: color, background-color;
-	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-	transition-duration: 150ms;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  padding: 0.125rem 0.625rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+  transition-property: color, background-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }
 
 .c15t-devtool-badge:focus {
-	outline: none;
+  outline: none;
 }
 
 .c15t-devtool-badge:focus-visible {
-	outline: none;
+  outline: none;
 }
 
 /* Variants */
 .c15t-devtool-badge-default {
-	border-color: transparent;
-	background-color: var(--c15t-dev-tools-primary);
-	color: var(--c15t-dev-tools-primary-foreground);
+  border-color: transparent;
+  background-color: var(--c15t-dev-tools-primary);
+  color: var(--c15t-dev-tools-primary-foreground);
 }
 
 .c15t-devtool-badge-default:hover {
-	background-color: color-mix(
-		in srgb,
-		var(--c15t-dev-tools-primary) 80%,
-		transparent
-	);
+  background-color: color-mix(
+    in srgb,
+    var(--c15t-dev-tools-primary) 80%,
+    transparent
+  );
 }
 
 .c15t-devtool-badge-secondary {
-	border-color: transparent;
-	background-color: var(--c15t-dev-tools-secondary);
-	color: var(--c15t-dev-tools-secondary-foreground);
+  border-color: transparent;
+  background-color: var(--c15t-dev-tools-secondary);
+  color: var(--c15t-dev-tools-secondary-foreground);
 }
 
 .c15t-devtool-badge-secondary:hover {
-	background-color: color-mix(
-		in srgb,
-		var(--c15t-dev-tools-secondary) 80%,
-		transparent
-	);
+  background-color: color-mix(
+    in srgb,
+    var(--c15t-dev-tools-secondary) 80%,
+    transparent
+  );
 }
 
 .c15t-devtool-badge-destructive {
-	border-color: transparent;
-	background-color: var(--c15t-dev-tools-destructive);
-	color: var(--c15t-dev-tools-destructive-foreground);
+  border-color: transparent;
+  background-color: var(--c15t-dev-tools-destructive);
+  color: var(--c15t-dev-tools-destructive-foreground);
 }
 
 .c15t-devtool-badge-destructive:hover {
-	background-color: color-mix(
-		in srgb,
-		var(--c15t-dev-tools-destructive) 80%,
-		transparent
-	);
+  background-color: color-mix(
+    in srgb,
+    var(--c15t-dev-tools-destructive) 80%,
+    transparent
+  );
 }
 
 .c15t-devtool-badge-outline {
-	border-color: var(--c15t-dev-tools-border);
-	color: var(--c15t-dev-tools-foreground);
+  border-color: var(--c15t-dev-tools-border);
+  color: var(--c15t-dev-tools-foreground);
 }

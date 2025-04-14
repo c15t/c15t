@@ -1,17 +1,17 @@
 {
-	"$schema": "https://json.schemastore.org/tsconfig",
-	"display": "React Library",
-	"extends": "./base.json",
-	"compilerOptions": {
-		"lib": ["ES2020", "DOM"],
-		"module": "esnext",
-		"moduleResolution": "bundler",
-		"target": "ES6",
-		"jsx": "react-jsx",
-		"noEmit": true,
-		"esModuleInterop": true,
-		"resolveJsonModule": true,
-		"isolatedModules": true,
-		"strict": true
-	}
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "React Library",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "lib": ["ES2020", "DOM"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "ES6",
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "strict": true
+  }
 }

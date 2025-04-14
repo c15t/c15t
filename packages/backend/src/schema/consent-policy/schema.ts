@@ -1,13 +1,13 @@
 import { z } from 'zod';
 
 export const PolicyTypeSchema = z.enum([
-	'cookie_banner',
-	'privacy_policy',
-	'dpa',
-	'terms_and_conditions',
-	'marketing_communications',
-	'age_verification',
-	'other',
+  'cookie_banner',
+  'privacy_policy',
+  'dpa',
+  'terms_and_conditions',
+  'marketing_communications',
+  'age_verification',
+  'other',
 ]);
 
 export type PolicyType = z.infer<typeof PolicyTypeSchema>;
@@ -37,17 +37,17 @@ export type PolicyType = z.infer<typeof PolicyTypeSchema>;
  * ```
  */
 export const consentPolicySchema = z.object({
-	id: z.string(),
-	version: z.string(),
-	type: PolicyTypeSchema,
-	name: z.string(),
-	effectiveDate: z.date(),
-	expirationDate: z.date().nullable().optional(),
-	content: z.string(),
-	contentHash: z.string(),
-	isActive: z.boolean().default(true),
-	createdAt: z.date().default(() => new Date()),
-	updatedAt: z.date().default(() => new Date()),
+  id: z.string(),
+  version: z.string(),
+  type: PolicyTypeSchema,
+  name: z.string(),
+  effectiveDate: z.date(),
+  expirationDate: z.date().nullable().optional(),
+  content: z.string(),
+  contentHash: z.string(),
+  isActive: z.boolean().default(true),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date().default(() => new Date()),
 });
 
 /**

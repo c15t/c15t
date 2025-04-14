@@ -31,29 +31,29 @@
 
 // Types
 export type {
-	LogLevel,
-	Logger,
-	LoggerOptions,
-	LogEntry,
-	LoggableError,
+  LogLevel,
+  Logger,
+  LoggerOptions,
+  LogEntry,
+  LoggableError,
 } from './types';
 
 // Log level handling
 export {
-	levels,
-	shouldPublishLog,
+  levels,
+  shouldPublishLog,
 } from './log-levels';
 
 // Logger creation
 export {
-	createLogger,
-	logger,
+  createLogger,
+  logger,
 } from './logger-factory';
 
 // Result-based error logging
 export {
-	logResult,
-	logResultAsync,
-	logResult as logError,
-	logResultAsync as logErrorAsync,
+  logResult,
+  logResultAsync,
+  logResult as logError,
+  logResultAsync as logErrorAsync,
 } from './result-logging';

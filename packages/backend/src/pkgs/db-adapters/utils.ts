@@ -34,18 +34,18 @@ import type { Field, Primitive } from '~/pkgs/data-model';
  * ```
  */
 export function applyDefaultValue(
-	inputValue: Primitive,
-	field: Field,
-	operation: 'create' | 'update'
+  inputValue: Primitive,
+  field: Field,
+  operation: 'create' | 'update'
 ): Primitive {
-	if (operation === 'update') {
-		return inputValue;
-	}
-	if ((inputValue === undefined || inputValue === null) && field.defaultValue) {
-		if (typeof field.defaultValue === 'function') {
-			return field.defaultValue();
-		}
-		return field.defaultValue;
-	}
-	return inputValue;
+  if (operation === 'update') {
+    return inputValue;
+  }
+  if ((inputValue === undefined || inputValue === null) && field.defaultValue) {
+    if (typeof field.defaultValue === 'function') {
+      return field.defaultValue();
+    }
+    return field.defaultValue;
+  }
+  return inputValue;
 }

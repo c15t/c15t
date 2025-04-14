@@ -42,85 +42,85 @@ import { mergeStyles } from '~/utils/merge-styles';
  */
 
 export function useStyles(
-	themeKey: AllThemeKeys,
-	componentStyle?: ThemeValue
+  themeKey: AllThemeKeys,
+  componentStyle?: ThemeValue
 ): ClassNameStyle {
-	const { noStyle: contextNoStyle, theme } = useTheme();
+  const { noStyle: contextNoStyle, theme } = useTheme();
 
-	const mergedNoStyle =
-		typeof componentStyle === 'object' && 'noStyle' in componentStyle
-			? componentStyle.noStyle
-			: contextNoStyle;
+  const mergedNoStyle =
+    typeof componentStyle === 'object' && 'noStyle' in componentStyle
+      ? componentStyle.noStyle
+      : contextNoStyle;
 
-	// Memoize theme styles retrieval
-	const themeStylesObject = useMemo(() => {
-		return themeKey
-			? (theme as Record<AllThemeKeys, ThemeValue>)?.[themeKey]
-			: null;
-	}, [themeKey, theme]);
+  // Memoize theme styles retrieval
+  const themeStylesObject = useMemo(() => {
+    return themeKey
+      ? (theme as Record<AllThemeKeys, ThemeValue>)?.[themeKey]
+      : null;
+  }, [themeKey, theme]);
 
-	// Memoize initial style setup
-	const initialStyle = useMemo(() => {
-		const initial = {
-			className:
-				typeof componentStyle === 'string'
-					? componentStyle
-					: componentStyle?.className,
-			style: undefined,
-		};
+  // Memoize initial style setup
+  const initialStyle = useMemo(() => {
+    const initial = {
+      className:
+        typeof componentStyle === 'string'
+          ? componentStyle
+          : componentStyle?.className,
+      style: undefined,
+    };
 
-		return initial;
-	}, [componentStyle]);
+    return initial;
+  }, [componentStyle]);
 
-	// Memoize merged style with context
-	const mergedWithContext = useMemo(() => {
-		const merged = themeStylesObject
-			? mergeStyles(initialStyle, themeStylesObject)
-			: initialStyle;
+  // Memoize merged style with context
+  const mergedWithContext = useMemo(() => {
+    const merged = themeStylesObject
+      ? mergeStyles(initialStyle, themeStylesObject)
+      : initialStyle;
 
-		return merged;
-	}, [initialStyle, themeStylesObject]);
+    return merged;
+  }, [initialStyle, themeStylesObject]);
 
-	// Memoize final merged style
-	const finalMergedStyle = useMemo(() => {
-		const final = componentStyle
-			? mergeStyles(mergedWithContext, componentStyle)
-			: mergedWithContext;
+  // Memoize final merged style
+  const finalMergedStyle = useMemo(() => {
+    const final = componentStyle
+      ? mergeStyles(mergedWithContext, componentStyle)
+      : mergedWithContext;
 
-		return final;
-	}, [mergedWithContext, componentStyle]);
+    return final;
+  }, [mergedWithContext, componentStyle]);
 
-	// Return the final merged style, ensuring immutability
-	return useMemo(() => {
-		if (mergedNoStyle) {
-			// When noStyle is true, only return theme styles if they exist
-			if (!themeStylesObject) {
-				return {};
-			}
-			const noStyleResult =
-				typeof themeStylesObject === 'string'
-					? { className: themeStylesObject }
-					: {
-							className: themeStylesObject.className,
-							style: themeStylesObject.style,
-						};
-			return noStyleResult;
-		}
+  // Return the final merged style, ensuring immutability
+  return useMemo(() => {
+    if (mergedNoStyle) {
+      // When noStyle is true, only return theme styles if they exist
+      if (!themeStylesObject) {
+        return {};
+      }
+      const noStyleResult =
+        typeof themeStylesObject === 'string'
+          ? { className: themeStylesObject }
+          : {
+              className: themeStylesObject.className,
+              style: themeStylesObject.style,
+            };
+      return noStyleResult;
+    }
 
-		// Ensure className is included and prevent duplication
-		const finalClassName = Array.from(
-			new Set(
-				[
-					typeof componentStyle === 'string'
-						? componentStyle
-						: componentStyle?.className,
-					finalMergedStyle.className,
-				]
-					.filter(Boolean)
-					.flat()
-			)
-		).join(' ');
+    // Ensure className is included and prevent duplication
+    const finalClassName = Array.from(
+      new Set(
+        [
+          typeof componentStyle === 'string'
+            ? componentStyle
+            : componentStyle?.className,
+          finalMergedStyle.className,
+        ]
+          .filter(Boolean)
+          .flat()
+      )
+    ).join(' ');
 
-		return { ...finalMergedStyle, className: finalClassName };
-	}, [finalMergedStyle, mergedNoStyle, themeStylesObject, componentStyle]);
+    return { ...finalMergedStyle, className: finalClassName };
+  }, [finalMergedStyle, mergedNoStyle, themeStylesObject, componentStyle]);
 }

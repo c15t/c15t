@@ -6,14 +6,14 @@
 
 // Export core types
 export type {
-	SchemaDefinition,
-	TableDefinition,
-	EntityTypeMap,
-	EntityField,
-	EntityInput,
-	EntityName,
-	PluginSchema,
-	EntityOutput,
+  SchemaDefinition,
+  TableDefinition,
+  EntityTypeMap,
+  EntityField,
+  EntityInput,
+  EntityName,
+  PluginSchema,
+  EntityOutput,
 } from './types';
 
 // Re-export all the table definitions

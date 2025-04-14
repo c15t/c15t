@@ -24,16 +24,16 @@ import { z } from 'zod';
  * ```
  */
 export const auditLogSchema = z.object({
-	id: z.string(),
-	entityType: z.string(),
-	entityId: z.string(),
-	actionType: z.string(),
-	subjectId: z.string().optional(),
-	ipAddress: z.string().optional(),
-	userAgent: z.string().optional(),
-	changes: z.record(z.unknown()).optional(),
-	metadata: z.record(z.unknown()).optional(),
-	createdAt: z.date().default(() => new Date()),
+  id: z.string(),
+  entityType: z.string(),
+  entityId: z.string(),
+  actionType: z.string(),
+  subjectId: z.string().optional(),
+  ipAddress: z.string().optional(),
+  userAgent: z.string().optional(),
+  changes: z.record(z.unknown()).optional(),
+  metadata: z.record(z.unknown()).optional(),
+  createdAt: z.date().default(() => new Date()),
 });
 
 /**

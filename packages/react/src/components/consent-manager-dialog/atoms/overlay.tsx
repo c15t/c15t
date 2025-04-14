@@ -24,33 +24,33 @@ import styles from '../consent-manager-dialog.module.css';
  * @public
  */
 interface OverlayProps {
-	/**
-	 * Custom styles to override default overlay styling.
-	 *
-	 * @remarks
-	 * - Can be a string class name or an object with className and style properties
-	 * - Styles are merged with theme styles and default styles
-	 * - Useful for customizing overlay appearance while maintaining functionality
-	 */
-	style?: ThemeValue;
+  /**
+   * Custom styles to override default overlay styling.
+   *
+   * @remarks
+   * - Can be a string class name or an object with className and style properties
+   * - Styles are merged with theme styles and default styles
+   * - Useful for customizing overlay appearance while maintaining functionality
+   */
+  style?: ThemeValue;
 
-	/**
-	 * Disables default styling when true.
-	 *
-	 * @remarks
-	 * - When enabled, removes all default styles
-	 * - Useful for implementing completely custom overlay styling
-	 * - Maintains functionality without visual opinions
-	 */
-	noStyle?: boolean;
+  /**
+   * Disables default styling when true.
+   *
+   * @remarks
+   * - When enabled, removes all default styles
+   * - Useful for implementing completely custom overlay styling
+   * - Maintains functionality without visual opinions
+   */
+  noStyle?: boolean;
 
-	/**
-	 * Opens the overlay when true.
-	 *
-	 * @remarks
-	 * - Useful for testing purposes
-	 */
-	open?: boolean;
+  /**
+   * Opens the overlay when true.
+   *
+   * @remarks
+   * - Useful for testing purposes
+   */
+  open?: boolean;
 }
 
 /**
@@ -77,40 +77,40 @@ interface OverlayProps {
  * @public
  */
 const ConsentManagerDialogOverlay: FC<OverlayProps> = ({
-	noStyle,
-	open = false,
+  noStyle,
+  open = false,
 }) => {
-	const { isPrivacyDialogOpen } = useConsentManager();
-	const {
-		disableAnimation,
-		noStyle: isThemeNoStyle,
-		scrollLock = true,
-	} = useTheme();
+  const { isPrivacyDialogOpen } = useConsentManager();
+  const {
+    disableAnimation,
+    noStyle: isThemeNoStyle,
+    scrollLock = true,
+  } = useTheme();
 
-	const theme = useStyles('dialog.overlay', {
-		baseClassName: styles.overlay,
-		noStyle: isThemeNoStyle || noStyle,
-	});
+  const theme = useStyles('dialog.overlay', {
+    baseClassName: styles.overlay,
+    noStyle: isThemeNoStyle || noStyle,
+  });
 
-	const shouldLockScroll = !!(open || isPrivacyDialogOpen) && scrollLock;
+  const shouldLockScroll = !!(open || isPrivacyDialogOpen) && scrollLock;
 
-	useScrollLock(shouldLockScroll);
+  useScrollLock(shouldLockScroll);
 
-	return shouldLockScroll ? (
-		disableAnimation ? (
-			<div {...theme} data-testid="consent-manager-dialog-overlay" />
-		) : (
-			<AnimatePresence>
-				<motion.div
-					{...theme}
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					exit={{ opacity: 0 }}
-					data-testid="consent-manager-dialog-overlay"
-				/>
-			</AnimatePresence>
-		)
-	) : null;
+  return shouldLockScroll ? (
+    disableAnimation ? (
+      <div {...theme} data-testid="consent-manager-dialog-overlay" />
+    ) : (
+      <AnimatePresence>
+        <motion.div
+          {...theme}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          data-testid="consent-manager-dialog-overlay"
+        />
+      </AnimatePresence>
+    )
+  ) : null;
 };
 
 const Overlay = ConsentManagerDialogOverlay;

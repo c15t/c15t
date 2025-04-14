@@ -25,9 +25,9 @@ export type ApiPathBase = `/api/c15t`;
  * ```
  */
 export type ApiPath =
-	| `${ApiPathBase}`
-	| `${ApiPathBase}/consent`
-	| `${ApiPathBase}/consent/:id`
-	| `${ApiPathBase}/jurisdictions`
-	| `${ApiPathBase}/jurisdictions/:code`
-	| `${ApiPathBase}/plugins/:id`;
+  | `${ApiPathBase}`
+  | `${ApiPathBase}/consent`
+  | `${ApiPathBase}/consent/:id`
+  | `${ApiPathBase}/jurisdictions`
+  | `${ApiPathBase}/jurisdictions/:code`
+  | `${ApiPathBase}/plugins/:id`;

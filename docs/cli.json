@@ -1,8 +1,8 @@
 {
-	"aliases": {
-		"cn": "./src/lib/utils.ts",
-		"componentsDir": "./src/components",
-		"uiDir": "./src/components/ui",
-		"libDir": "./src/lib"
-	}
+  "aliases": {
+    "cn": "./src/lib/utils.ts",
+    "componentsDir": "./src/components",
+    "uiDir": "./src/components/ui",
+    "libDir": "./src/lib"
+  }
 }

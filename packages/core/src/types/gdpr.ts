@@ -37,11 +37,11 @@
  * @public
  */
 export type AllConsentNames =
-	| 'experience'
-	| 'functionality'
-	| 'marketing'
-	| 'measurement'
-	| 'necessary';
+  | 'experience'
+  | 'functionality'
+  | 'marketing'
+  | 'measurement'
+  | 'necessary';
 
 /**
  * Defines the configuration structure for each consent type.
@@ -101,23 +101,23 @@ export type AllConsentNames =
  * @public
  */
 export type ConsentType = {
-	/** Whether consent is granted by default */
-	defaultValue: boolean;
+  /** Whether consent is granted by default */
+  defaultValue: boolean;
 
-	/** Subject-friendly description of what this consent enables */
-	description: string;
+  /** Subject-friendly description of what this consent enables */
+  description: string;
 
-	/** Whether users can modify this consent setting */
-	disabled?: boolean;
+  /** Whether users can modify this consent setting */
+  disabled?: boolean;
 
-	/** Whether to show this consent option in the UI */
-	display: boolean;
+  /** Whether to show this consent option in the UI */
+  display: boolean;
 
-	/** GDPR category identifier (1-5) */
-	gdprType: number;
+  /** GDPR category identifier (1-5) */
+  gdprType: number;
 
-	/** The consent category name */
-	name: AllConsentNames;
+  /** The consent category name */
+  name: AllConsentNames;
 };
 
 /**
@@ -173,45 +173,45 @@ export type ConsentType = {
  * @public
  */
 export const consentTypes: ConsentType[] = [
-	{
-		defaultValue: true,
-		description:
-			'These trackers are used for activities that are strictly necessary to operate or deliver the service you requested from us and, therefore, do not require you to consent.',
-		disabled: true,
-		display: true,
-		gdprType: 1,
-		name: 'necessary',
-	},
-	{
-		defaultValue: false,
-		description:
-			'These trackers enable basic interactions and functionalities that allow you to access selected features of our service and facilitate your communication with us.',
-		display: false,
-		gdprType: 2,
-		name: 'functionality',
-	},
-	{
-		defaultValue: false,
-		description:
-			'These trackers help us to measure traffic and analyze your behavior to improve our service.',
-		display: false,
-		gdprType: 4,
-		name: 'measurement',
-	},
-	{
-		defaultValue: false,
-		description:
-			'These trackers help us to improve the quality of your user experience and enable interactions with external content, networks, and platforms.',
-		display: false,
-		gdprType: 3,
-		name: 'experience',
-	},
-	{
-		defaultValue: false,
-		description:
-			'These trackers help us to deliver personalized ads or marketing content to you, and to measure their performance.',
-		display: false,
-		gdprType: 5,
-		name: 'marketing',
-	},
+  {
+    defaultValue: true,
+    description:
+      'These trackers are used for activities that are strictly necessary to operate or deliver the service you requested from us and, therefore, do not require you to consent.',
+    disabled: true,
+    display: true,
+    gdprType: 1,
+    name: 'necessary',
+  },
+  {
+    defaultValue: false,
+    description:
+      'These trackers enable basic interactions and functionalities that allow you to access selected features of our service and facilitate your communication with us.',
+    display: false,
+    gdprType: 2,
+    name: 'functionality',
+  },
+  {
+    defaultValue: false,
+    description:
+      'These trackers help us to measure traffic and analyze your behavior to improve our service.',
+    display: false,
+    gdprType: 4,
+    name: 'measurement',
+  },
+  {
+    defaultValue: false,
+    description:
+      'These trackers help us to improve the quality of your user experience and enable interactions with external content, networks, and platforms.',
+    display: false,
+    gdprType: 3,
+    name: 'experience',
+  },
+  {
+    defaultValue: false,
+    description:
+      'These trackers help us to deliver personalized ads or marketing content to you, and to measure their performance.',
+    display: false,
+    gdprType: 5,
+    name: 'marketing',
+  },
 ];

@@ -1,21 +1,21 @@
 import {
-	type Dialect,
-	Kysely,
-	MssqlDialect,
-	MysqlDialect,
-	type MysqlPool,
-	PostgresDialect,
-	type PostgresPool,
-	type SqliteDatabase,
-	SqliteDialect,
+  type Dialect,
+  Kysely,
+  MssqlDialect,
+  MysqlDialect,
+  type MysqlPool,
+  PostgresDialect,
+  type PostgresPool,
+  type SqliteDatabase,
+  SqliteDialect,
 } from 'kysely';
 import type { C15TOptions } from '~/types';
 import type {
-	Database,
-	DatabaseConfiguration,
-	DialectConfig,
-	KyselyDatabaseType,
-	KyselyInstanceConfig,
+  Database,
+  DatabaseConfiguration,
+  DialectConfig,
+  KyselyDatabaseType,
+  KyselyInstanceConfig,
 } from './types';
 
 /**
@@ -31,40 +31,40 @@ import type {
  * @returns The detected database type or null if unable to determine
  */
 function getDatabaseType(
-	db: DatabaseConfiguration | undefined
+  db: DatabaseConfiguration | undefined
 ): KyselyDatabaseType | null {
-	if (!db) {
-		return null;
-	}
-	if ('dialect' in db) {
-		return getDatabaseType(db.dialect as Dialect);
-	}
-	if (db && typeof db === 'object' && 'createDriver' in db) {
-		if (db instanceof SqliteDialect) {
-			return 'sqlite';
-		}
-		if (db instanceof MysqlDialect) {
-			return 'mysql';
-		}
-		if (db instanceof PostgresDialect) {
-			return 'postgres';
-		}
-		if (db instanceof MssqlDialect) {
-			return 'mssql';
-		}
-	}
-	if (db && typeof db === 'object' && 'aggregate' in db) {
-		return 'sqlite';
-	}
+  if (!db) {
+    return null;
+  }
+  if ('dialect' in db) {
+    return getDatabaseType(db.dialect as Dialect);
+  }
+  if (db && typeof db === 'object' && 'createDriver' in db) {
+    if (db instanceof SqliteDialect) {
+      return 'sqlite';
+    }
+    if (db instanceof MysqlDialect) {
+      return 'mysql';
+    }
+    if (db instanceof PostgresDialect) {
+      return 'postgres';
+    }
+    if (db instanceof MssqlDialect) {
+      return 'mssql';
+    }
+  }
+  if (db && typeof db === 'object' && 'aggregate' in db) {
+    return 'sqlite';
+  }
 
-	if (db && typeof db === 'object' && 'getConnection' in db) {
-		return 'mysql';
-	}
-	if (db && typeof db === 'object' && 'connect' in db) {
-		return 'postgres';
-	}
+  if (db && typeof db === 'object' && 'getConnection' in db) {
+    return 'mysql';
+  }
+  if (db && typeof db === 'object' && 'connect' in db) {
+    return 'postgres';
+  }
 
-	return null;
+  return null;
 }
 
 /**
@@ -132,66 +132,66 @@ function getDatabaseType(
  * @throws {Error} Will throw an error if the database configuration is invalid or if a connection cannot be established
  */
 export const createKyselyAdapter = async (
-	config: C15TOptions
+  config: C15TOptions
 ): Promise<{
-	kysely: Kysely<Database> | null;
-	databaseType: KyselyDatabaseType | null;
+  kysely: Kysely<Database> | null;
+  databaseType: KyselyDatabaseType | null;
 }> => {
-	// Safe type assertion for the database
-	const db = config.database as DatabaseConfiguration;
+  // Safe type assertion for the database
+  const db = config.database as DatabaseConfiguration;
 
-	if (!db) {
-		return {
-			kysely: null,
-			databaseType: null,
-		};
-	}
+  if (!db) {
+    return {
+      kysely: null,
+      databaseType: null,
+    };
+  }
 
-	if (db && typeof db === 'object' && 'db' in db) {
-		const kyselyConfig = db as KyselyInstanceConfig;
-		return {
-			kysely: kyselyConfig.db,
-			databaseType: kyselyConfig.type,
-		};
-	}
+  if (db && typeof db === 'object' && 'db' in db) {
+    const kyselyConfig = db as KyselyInstanceConfig;
+    return {
+      kysely: kyselyConfig.db,
+      databaseType: kyselyConfig.type,
+    };
+  }
 
-	if (db && typeof db === 'object' && 'dialect' in db) {
-		const dialectConfig = db as DialectConfig;
-		return {
-			kysely: new Kysely({ dialect: dialectConfig.dialect }),
-			databaseType: dialectConfig.type,
-		};
-	}
+  if (db && typeof db === 'object' && 'dialect' in db) {
+    const dialectConfig = db as DialectConfig;
+    return {
+      kysely: new Kysely({ dialect: dialectConfig.dialect }),
+      databaseType: dialectConfig.type,
+    };
+  }
 
-	let dialect: Dialect | undefined;
+  let dialect: Dialect | undefined;
 
-	const databaseType = getDatabaseType(db);
+  const databaseType = getDatabaseType(db);
 
-	if (db && typeof db === 'object' && 'createDriver' in db) {
-		// If it has createDriver, assume it's already a proper dialect
-		dialect = db as unknown as Dialect;
-	}
+  if (db && typeof db === 'object' && 'createDriver' in db) {
+    // If it has createDriver, assume it's already a proper dialect
+    dialect = db as unknown as Dialect;
+  }
 
-	if (db && typeof db === 'object' && 'aggregate' in db) {
-		dialect = new SqliteDialect({
-			database: db as unknown as SqliteDatabase,
-		});
-	}
+  if (db && typeof db === 'object' && 'aggregate' in db) {
+    dialect = new SqliteDialect({
+      database: db as unknown as SqliteDatabase,
+    });
+  }
 
-	if (db && typeof db === 'object' && 'getConnection' in db) {
-		dialect = new MysqlDialect({
-			pool: db as unknown as MysqlPool,
-		});
-	}
+  if (db && typeof db === 'object' && 'getConnection' in db) {
+    dialect = new MysqlDialect({
+      pool: db as unknown as MysqlPool,
+    });
+  }
 
-	if (db && typeof db === 'object' && 'connect' in db) {
-		dialect = new PostgresDialect({
-			pool: db as unknown as PostgresPool,
-		});
-	}
+  if (db && typeof db === 'object' && 'connect' in db) {
+    dialect = new PostgresDialect({
+      pool: db as unknown as PostgresPool,
+    });
+  }
 
-	return {
-		kysely: dialect ? new Kysely({ dialect }) : null,
-		databaseType,
-	};
+  return {
+    kysely: dialect ? new Kysely({ dialect }) : null,
+    databaseType,
+  };
 };

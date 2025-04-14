@@ -1,54 +1,54 @@
 .c15t-devtool-error-container {
-	margin-top: 1rem;
-	margin-bottom: 1rem;
-	border-radius: 0.5rem;
-	text-align: center;
-	font-size: 1rem;
-	box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 0.5rem;
+  text-align: center;
+  font-size: 1rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
 .c15t-devtool-error-alert {
-	max-width: 42rem;
-	border-top-left-radius: 0;
-	border-top-right-radius: 0;
+  max-width: 42rem;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 .c15t-devtool-error-icon {
-	height: 1rem;
-	width: 1rem;
+  height: 1rem;
+  width: 1rem;
 }
 
 .c15t-devtool-error-title {
-	font-weight: 600;
-	font-size: 1.125rem;
+  font-weight: 600;
+  font-size: 1.125rem;
 }
 
 .c15t-devtool-error-description {
-	margin-left: -1.75rem;
-	margin-top: 0.5rem;
+  margin-left: -1.75rem;
+  margin-top: 0.5rem;
 }
 
 .c15t-devtool-error-message {
-	margin-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .c15t-devtool-error-list {
-	list-style-type: disc;
-	padding-left: 1.5rem;
-	margin-top: 0.25rem;
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-top: 0.25rem;
 }
 
 .c15t-devtool-error-namespace {
-	margin-top: 0.75rem;
-	font-size: 0.875rem;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
 }
 
 .c15t-devtool-error-code {
-	border-radius: 0.25rem;
-	background-color: color-mix(
-		in srgb,
-		var(--c15t-dev-tools-destructive) 10%,
-		transparent
-	);
-	padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  background-color: color-mix(
+    in srgb,
+    var(--c15t-dev-tools-destructive) 10%,
+    transparent
+  );
+  padding: 0.125rem 0.25rem;
 }

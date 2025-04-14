@@ -1,5 +1,5 @@
 export const pages = {
-	'App.tsx': `import { useState } from 'react';
+  'App.tsx': `import { useState } from 'react';
 import { AccessibleModal } from './AccessibleModal';
 import { setupDarkMode } from './lib/utils';
 import { useEffect } from 'react';
@@ -41,7 +41,7 @@ export default function App() {
         </div>
     );
 }`,
-	'AccessibleModal.tsx': `import { useRef, useEffect } from 'react';
+  'AccessibleModal.tsx': `import { useRef, useEffect } from 'react';
 import { useFocusTrap } from '@c15t/react';
 
 export function AccessibleModal({ isOpen, onClose }) {
@@ -123,7 +123,7 @@ export function AccessibleModal({ isOpen, onClose }) {
   );
 }`,
 
-	'lib/utils.ts': `export function setupDarkMode() {
+  'lib/utils.ts': `export function setupDarkMode() {
   // Check for dark mode preference
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   

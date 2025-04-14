@@ -39,79 +39,79 @@ import type { AuditLog } from './schema';
  * @see {@link AuditLog} For the structure of audit log objects
  */
 export function auditLogRegistry({ adapter, ...ctx }: RegistryContext) {
-	const { createWithHooks } = getWithHooks(adapter, ctx);
+  const { createWithHooks } = getWithHooks(adapter, ctx);
 
-	return {
-		/**
-		 * Creates a new audit log entry in the database.
-		 *
-		 * This method records an action performed on an entity in the system,
-		 * capturing details such as what changed, who made the change, and when it occurred.
-		 * Automatically sets creation timestamp and applies any configured hooks during creation.
-		 *
-		 * @param auditLog - Audit log data to create (without id and timestamp)
-		 * @param auditLog.entityType - The type of entity being audited (e.g., 'consent', 'user')
-		 * @param auditLog.entityId - The unique identifier of the entity being audited
-		 * @param auditLog.actionType - The type of action performed (e.g., 'create', 'update', 'delete')
-		 * @param auditLog.subjectId - Identifier of the user/system that performed the action
-		 * @param auditLog.changes - Object describing the changes made to the entity
-		 * @param context - Optional endpoint context for hooks execution
-		 * @returns Promise resolving to the created audit log entry with all fields populated
-		 * @throws {Error} When the creation operation fails or returns null
-		 * @throws May also throw errors if hooks prevent creation or if database operations fail
-		 *
-		 * @example
-		 * ```ts
-		 * // Record a consent being withdrawn
-		 * const withdrawalLog = await registry.createAuditLog({
-		 *   entityType: 'consent',
-		 *   entityId: 'cns_abc123',
-		 *   actionType: 'update',
-		 *   subjectId: 'user_xyz789',
-		 *   changes: {
-		 *     status: { from: 'active', to: 'withdrawn' },
-		 *     withdrawalReason: { from: null, to: 'Changed mind' }
-		 *   }
-		 * });
-		 *
-		 * // Record a new policy being created
-		 * const policyCreationLog = await registry.createAuditLog({
-		 *   entityType: 'policy',
-		 *   entityId: 'pol_def456',
-		 *   actionType: 'create',
-		 *   subjectId: 'admin_uvw321',
-		 *   changes: null // No previous state for creation
-		 * });
-		 * ```
-		 *
-		 * @see {@link AuditLog} For the complete structure of the audit log object
-		 * @see {@link GenericEndpointContext} For details on the context object
-		 */
-		createAuditLog: async (
-			auditLog: Omit<AuditLog, 'id' | 'createdAt'> & Partial<AuditLog>,
-			context?: GenericEndpointContext
-		) => {
-			const createdLog = await createWithHooks({
-				data: {
-					createdAt: new Date(),
-					...auditLog,
-				},
-				model: 'auditLog',
-				customFn: undefined,
-				context,
-			});
+  return {
+    /**
+     * Creates a new audit log entry in the database.
+     *
+     * This method records an action performed on an entity in the system,
+     * capturing details such as what changed, who made the change, and when it occurred.
+     * Automatically sets creation timestamp and applies any configured hooks during creation.
+     *
+     * @param auditLog - Audit log data to create (without id and timestamp)
+     * @param auditLog.entityType - The type of entity being audited (e.g., 'consent', 'user')
+     * @param auditLog.entityId - The unique identifier of the entity being audited
+     * @param auditLog.actionType - The type of action performed (e.g., 'create', 'update', 'delete')
+     * @param auditLog.subjectId - Identifier of the user/system that performed the action
+     * @param auditLog.changes - Object describing the changes made to the entity
+     * @param context - Optional endpoint context for hooks execution
+     * @returns Promise resolving to the created audit log entry with all fields populated
+     * @throws {Error} When the creation operation fails or returns null
+     * @throws May also throw errors if hooks prevent creation or if database operations fail
+     *
+     * @example
+     * ```ts
+     * // Record a consent being withdrawn
+     * const withdrawalLog = await registry.createAuditLog({
+     *   entityType: 'consent',
+     *   entityId: 'cns_abc123',
+     *   actionType: 'update',
+     *   subjectId: 'user_xyz789',
+     *   changes: {
+     *     status: { from: 'active', to: 'withdrawn' },
+     *     withdrawalReason: { from: null, to: 'Changed mind' }
+     *   }
+     * });
+     *
+     * // Record a new policy being created
+     * const policyCreationLog = await registry.createAuditLog({
+     *   entityType: 'policy',
+     *   entityId: 'pol_def456',
+     *   actionType: 'create',
+     *   subjectId: 'admin_uvw321',
+     *   changes: null // No previous state for creation
+     * });
+     * ```
+     *
+     * @see {@link AuditLog} For the complete structure of the audit log object
+     * @see {@link GenericEndpointContext} For details on the context object
+     */
+    createAuditLog: async (
+      auditLog: Omit<AuditLog, 'id' | 'createdAt'> & Partial<AuditLog>,
+      context?: GenericEndpointContext
+    ) => {
+      const createdLog = await createWithHooks({
+        data: {
+          createdAt: new Date(),
+          ...auditLog,
+        },
+        model: 'auditLog',
+        customFn: undefined,
+        context,
+      });
 
-			if (!createdLog) {
-				throw new DoubleTieError(
-					'Failed to create audit log - operation returned null',
-					{
-						code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-						status: 500,
-					}
-				);
-			}
+      if (!createdLog) {
+        throw new DoubleTieError(
+          'Failed to create audit log - operation returned null',
+          {
+            code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+            status: 500,
+          }
+        );
+      }
 
-			return createdLog as AuditLog;
-		},
-	};
+      return createdLog as AuditLog;
+    },
+  };
 }

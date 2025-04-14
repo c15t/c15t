@@ -1,13 +1,13 @@
 {
-	"name": "@c15t/typescript-config",
-	"version": "0.0.1-beta.1",
-	"private": true,
-	"type": "module",
-	"scripts": {
-		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
-		"lint": "pnpm biome lint ."
-	},
-	"publishConfig": {
-		"access": "public"
-	}
+  "name": "@c15t/typescript-config",
+  "version": "0.0.1-beta.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+    "lint": "pnpm biome lint ."
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

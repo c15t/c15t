@@ -35,15 +35,15 @@
  * ```
  */
 export type {
-	ComplianceRegion,
-	ComplianceSettings,
-	ConsentBannerResponse,
-	ConsentState,
-	HasConsentedProps,
-	JurisdictionInfo,
-	LocationInfo,
-	NamespaceProps,
-	PrivacySettings,
+  ComplianceRegion,
+  ComplianceSettings,
+  ConsentBannerResponse,
+  ConsentState,
+  HasConsentedProps,
+  JurisdictionInfo,
+  LocationInfo,
+  NamespaceProps,
+  PrivacySettings,
 } from './types/compliance';
 
 /**
@@ -80,9 +80,9 @@ export { API_ENDPOINTS } from './client/types';
  * ```
  */
 export {
-	type AllConsentNames,
-	type ConsentType,
-	consentTypes,
+  type AllConsentNames,
+  type ConsentType,
+  consentTypes,
 } from './types/gdpr';
 
 /**
@@ -138,13 +138,13 @@ export type { CallbackFunction, Callbacks } from './types/callbacks';
  * - Consent manager widget translations
  */
 export type {
-	ConsentManagerDialogTranslations,
-	ConsentManagerWidgetTranslations,
-	ConsentTypeTranslations,
-	ConsentTypesTranslations,
-	CookieBannerTranslations,
-	TranslationConfig,
-	Translations,
+  ConsentManagerDialogTranslations,
+  ConsentManagerWidgetTranslations,
+  ConsentTypeTranslations,
+  ConsentTypesTranslations,
+  CookieBannerTranslations,
+  TranslationConfig,
+  Translations,
 } from './types/translations';
 
 /**
@@ -159,8 +159,8 @@ export * from './client';
 
 // Export basic types directly for convenience
 export type {
-	FetchOptions,
-	ResponseContext,
+  FetchOptions,
+  ResponseContext,
 } from './client/types';
 
 // Export compliance types

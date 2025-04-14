@@ -7,8 +7,8 @@ import type { Field } from '~/pkgs/data-model';
  * @property order - Priority order for table creation (lower numbers are created first)
  */
 export interface TableSchemaDefinition {
-	fields: Record<string, Field>;
-	order: number;
+  fields: Record<string, Field>;
+  order: number;
 }
 
 /**

@@ -1,71 +1,71 @@
 .c15t-devtool-wrapper-overlay {
-	/* Base colors */
-	--c15t-dev-tools-background: hsl(0, 0%, 100%);
-	--c15t-dev-tools-foreground: hsl(0, 0%, 9.02%);
+  /* Base colors */
+  --c15t-dev-tools-background: hsl(0, 0%, 100%);
+  --c15t-dev-tools-foreground: hsl(0, 0%, 9.02%);
 
-	/* Primary colors */
-	--c15t-dev-tools-primary: hsl(0, 0%, 9.02%);
-	--c15t-dev-tools-primary-foreground: hsl(0, 0%, 100%);
+  /* Primary colors */
+  --c15t-dev-tools-primary: hsl(0, 0%, 9.02%);
+  --c15t-dev-tools-primary-foreground: hsl(0, 0%, 100%);
 
-	/* Secondary colors */
-	--c15t-dev-tools-secondary: hsl(0, 0%, 96%);
-	--c15t-dev-tools-secondary-foreground: hsl(0, 0%, 9.02%);
+  /* Secondary colors */
+  --c15t-dev-tools-secondary: hsl(0, 0%, 96%);
+  --c15t-dev-tools-secondary-foreground: hsl(0, 0%, 9.02%);
 
-	/* Accent colors */
-	--c15t-dev-tools-accent: hsl(0, 0%, 96%);
-	--c15t-dev-tools-accent-foreground: hsl(0, 0%, 9.02%);
+  /* Accent colors */
+  --c15t-dev-tools-accent: hsl(0, 0%, 96%);
+  --c15t-dev-tools-accent-foreground: hsl(0, 0%, 9.02%);
 
-	/* Muted colors */
-	--c15t-dev-tools-muted: hsl(0, 0%, 96%);
-	--c15t-dev-tools-muted-foreground: hsl(0, 0%, 36.08%);
+  /* Muted colors */
+  --c15t-dev-tools-muted: hsl(0, 0%, 96%);
+  --c15t-dev-tools-muted-foreground: hsl(0, 0%, 36.08%);
 
-	/* Card colors */
-	--c15t-dev-tools-card: hsl(0, 0%, 100%);
-	--c15t-dev-tools-card-foreground: hsl(0, 0%, 9.02%);
+  /* Card colors */
+  --c15t-dev-tools-card: hsl(0, 0%, 100%);
+  --c15t-dev-tools-card-foreground: hsl(0, 0%, 9.02%);
 
-	/* Border colors */
-	--c15t-dev-tools-border: hsl(0, 0%, 92.16%);
-	--c15t-dev-tools-input: hsl(0, 0%, 92.16%);
+  /* Border colors */
+  --c15t-dev-tools-border: hsl(0, 0%, 92.16%);
+  --c15t-dev-tools-input: hsl(0, 0%, 92.16%);
 
-	/* Ring colors */
-	--c15t-dev-tools-ring: hsl(0, 0%, 36.08%);
+  /* Ring colors */
+  --c15t-dev-tools-ring: hsl(0, 0%, 36.08%);
 
-	/* Destructive colors */
-	--c15t-dev-tools-destructive: hsl(0, 84%, 60%);
-	--c15t-dev-tools-destructive-foreground: hsl(0, 0%, 100%);
+  /* Destructive colors */
+  --c15t-dev-tools-destructive: hsl(0, 84%, 60%);
+  --c15t-dev-tools-destructive-foreground: hsl(0, 0%, 100%);
 
-	/* Overlay colors */
-	--c15t-dev-tools-overlay: rgb(0 0 0 / 0.2);
+  /* Overlay colors */
+  --c15t-dev-tools-overlay: rgb(0 0 0 / 0.2);
 }
 
 /* Dark mode overrides */
 
 .dark .c15t-devtool-wrapper-overlay {
-	--c15t-dev-tools-background: hsl(0, 0%, 10%);
-	--c15t-dev-tools-foreground: hsl(0, 0%, 90%);
+  --c15t-dev-tools-background: hsl(0, 0%, 10%);
+  --c15t-dev-tools-foreground: hsl(0, 0%, 90%);
 
-	--c15t-dev-tools-primary: hsl(0, 0%, 90%);
-	--c15t-dev-tools-primary-foreground: hsl(0, 0%, 10%);
+  --c15t-dev-tools-primary: hsl(0, 0%, 90%);
+  --c15t-dev-tools-primary-foreground: hsl(0, 0%, 10%);
 
-	--c15t-dev-tools-secondary: hsl(0, 0%, 20%);
-	--c15t-dev-tools-secondary-foreground: hsl(0, 0%, 90%);
+  --c15t-dev-tools-secondary: hsl(0, 0%, 20%);
+  --c15t-dev-tools-secondary-foreground: hsl(0, 0%, 90%);
 
-	--c15t-dev-tools-accent: hsl(0, 0%, 20%);
-	--c15t-dev-tools-accent-foreground: hsl(0, 0%, 90%);
+  --c15t-dev-tools-accent: hsl(0, 0%, 20%);
+  --c15t-dev-tools-accent-foreground: hsl(0, 0%, 90%);
 
-	--c15t-dev-tools-muted: hsl(0, 0%, 20%);
-	--c15t-dev-tools-muted-foreground: hsl(0, 0%, 60%);
+  --c15t-dev-tools-muted: hsl(0, 0%, 20%);
+  --c15t-dev-tools-muted-foreground: hsl(0, 0%, 60%);
 
-	--c15t-dev-tools-card: hsl(0, 0%, 10%);
-	--c15t-dev-tools-card-foreground: hsl(0, 0%, 90%);
+  --c15t-dev-tools-card: hsl(0, 0%, 10%);
+  --c15t-dev-tools-card-foreground: hsl(0, 0%, 90%);
 
-	--c15t-dev-tools-border: hsl(0, 0%, 20%);
-	--c15t-dev-tools-input: hsl(0, 0%, 20%);
+  --c15t-dev-tools-border: hsl(0, 0%, 20%);
+  --c15t-dev-tools-input: hsl(0, 0%, 20%);
 
-	--c15t-dev-tools-ring: hsl(0, 0%, 60%);
+  --c15t-dev-tools-ring: hsl(0, 0%, 60%);
 
-	--c15t-dev-tools-destructive: hsl(0, 84%, 30%);
-	--c15t-dev-tools-destructive-foreground: hsl(0, 0%, 90%);
+  --c15t-dev-tools-destructive: hsl(0, 84%, 30%);
+  --c15t-dev-tools-destructive-foreground: hsl(0, 0%, 90%);
 
-	--c15t-dev-tools-overlay: rgb(0 0 0 / 0.5);
+  --c15t-dev-tools-overlay: rgb(0 0 0 / 0.5);
 }

@@ -1,18 +1,18 @@
 {
-	"name": "@c15t-examples/cf-worker",
-	"private": true,
-	"scripts": {
-		"check-types": "tsc --noEmit",
-		"deploy": "wrangler deploy --minify",
-		"dev": "wrangler dev",
-		"fmt": "pnpm biome format --write ."
-	},
-	"dependencies": {
-		"@c15t/backend": "workspace:*",
-		"@libsql/kysely-libsql": "^0.4.1"
-	},
-	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20250410.0",
-		"wrangler": "^4.10.0"
-	}
+  "name": "@c15t-examples/cf-worker",
+  "private": true,
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "deploy": "wrangler deploy --minify",
+    "dev": "wrangler dev",
+    "fmt": "pnpm biome format --write ."
+  },
+  "dependencies": {
+    "@c15t/backend": "workspace:*",
+    "@libsql/kysely-libsql": "^0.4.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250410.0",
+    "wrangler": "^4.10.0"
+  }
 }

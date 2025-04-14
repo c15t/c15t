@@ -4,25 +4,25 @@ import react from '@vitejs/plugin-react';
 import { defineConfig, mergeConfig } from 'vitest/config';
 
 export default mergeConfig(
-	baseConfig,
-	defineConfig({
-		plugins: [react()],
-		resolve: {
-			alias: {
-				'~': resolve(__dirname, './src'),
-			},
-		},
-		test: {
-			include: [
-				'src/**/*.test.tsx',
-				'src/**/*.spec.tsx',
-				'src/**/*.e2e.test.tsx',
-			],
-			browser: {
-				enabled: true,
-				provider: 'playwright',
-				instances: [{ browser: 'chromium' }],
-			},
-		},
-	})
+  baseConfig,
+  defineConfig({
+    plugins: [react()],
+    resolve: {
+      alias: {
+        '~': resolve(__dirname, './src'),
+      },
+    },
+    test: {
+      include: [
+        'src/**/*.test.tsx',
+        'src/**/*.spec.tsx',
+        'src/**/*.e2e.test.tsx',
+      ],
+      browser: {
+        enabled: true,
+        provider: 'playwright',
+        instances: [{ browser: 'chromium' }],
+      },
+    },
+  })
 );

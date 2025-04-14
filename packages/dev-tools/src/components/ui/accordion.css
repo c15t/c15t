@@ -1,71 +1,71 @@
 .c15t-devtool-accordion-item {
-	border-bottom: 1px solid var(--c15t-dev-tools-border);
+  border-bottom: 1px solid var(--c15t-dev-tools-border);
 }
 
 .c15t-devtool-accordion-trigger {
-	display: flex;
-	flex: 1;
-	align-items: center;
-	justify-content: space-between;
-	padding: 1rem;
-	font-size: 0.875rem;
-	font-weight: 500;
-	transition-property: all;
-	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-	transition-duration: 200ms;
-	text-align: left;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+  text-align: left;
 }
 
 .c15t-devtool-accordion-chevron {
-	transition: transform 200ms cubic-bezier(0.87, 0, 0.13, 1);
-	flex-shrink: 0;
+  transition: transform 200ms cubic-bezier(0.87, 0, 0.13, 1);
+  flex-shrink: 0;
 }
 
 .c15t-devtool-accordion-trigger:hover {
-	background-color: var(--c15t-dev-tools-accent);
-	color: var(--c15t-dev-tools-accent-foreground);
+  background-color: var(--c15t-dev-tools-accent);
+  color: var(--c15t-dev-tools-accent-foreground);
 }
 
 .c15t-devtool-accordion-trigger[data-state="open"]
-	> .c15t-devtool-accordion-chevron {
-	transform: rotate(180deg);
+  > .c15t-devtool-accordion-chevron {
+  transform: rotate(180deg);
 }
 
 .c15t-devtool-accordion-content {
-	overflow: hidden;
-	font-size: 0.875rem;
-	transition-property: all;
-	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-	transition-duration: 200ms;
+  overflow: hidden;
+  font-size: 0.875rem;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
 }
 
 .c15t-devtool-accordion-content[data-state="open"] {
-	animation: slideDown 300ms cubic-bezier(0.87, 0, 0.13, 1);
+  animation: slideDown 300ms cubic-bezier(0.87, 0, 0.13, 1);
 }
 
 .c15t-devtool-accordion-content[data-state="closed"] {
-	animation: slideUp 300ms cubic-bezier(0.87, 0, 0.13, 1);
+  animation: slideUp 300ms cubic-bezier(0.87, 0, 0.13, 1);
 }
 
 .c15t-devtool-accordion-content-inner {
-	padding: 1rem;
-	padding-top: 0;
+  padding: 1rem;
+  padding-top: 0;
 }
 
 @keyframes slideDown {
-	from {
-		height: 0;
-	}
-	to {
-		height: var(--radix-accordion-content-height);
-	}
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
 }
 
 @keyframes slideUp {
-	from {
-		height: var(--radix-accordion-content-height);
-	}
-	to {
-		height: 0;
-	}
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
 }

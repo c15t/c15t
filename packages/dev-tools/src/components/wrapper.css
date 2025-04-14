@@ -1,89 +1,89 @@
 .c15t-devtool-wrapper-overlay {
-	position: fixed;
-	inset: 0;
-	z-index: 50;
-	display: flex;
-	align-items: flex-end;
-	justify-content: center;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
 }
 
 @media (min-width: 640px) {
-	.c15t-devtool-wrapper-overlay {
-		align-items: center;
-	}
+  .c15t-devtool-wrapper-overlay {
+    align-items: center;
+  }
 }
 
 .c15t-devtool-wrapper-backdrop {
-	position: fixed;
-	inset: 0;
-	background-color: rgb(0 0 0 / 0.2);
-	padding: 1rem;
+  position: fixed;
+  inset: 0;
+  background-color: rgb(0 0 0 / 0.2);
+  padding: 1rem;
 }
 
 .c15t-devtool-wrapper-content {
-	position: fixed;
-	z-index: 51;
-	display: flex;
-	flex-direction: column;
-	width: 400px;
+  position: fixed;
+  z-index: 51;
+  display: flex;
+  flex-direction: column;
+  width: 400px;
 }
 
 .c15t-devtool-wrapper-content.bottom-right {
-	right: 1rem;
-	bottom: 1rem;
+  right: 1rem;
+  bottom: 1rem;
 }
 
 .c15t-devtool-wrapper-content.top-right {
-	top: 1rem;
-	right: 1rem;
+  top: 1rem;
+  right: 1rem;
 }
 
 .c15t-devtool-wrapper-content.bottom-left {
-	bottom: 1rem;
-	left: 1rem;
+  bottom: 1rem;
+  left: 1rem;
 }
 
 .c15t-devtool-wrapper-content.top-left {
-	top: 1rem;
-	left: 1rem;
+  top: 1rem;
+  left: 1rem;
 }
 
 .c15t-devtool-wrapper-button-container {
-	position: fixed;
-	right: 1rem;
-	bottom: 1rem;
-	z-index: 51;
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 51;
 }
 
 .c15t-devtool-wrapper-button {
-	position: relative;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	border-radius: 9999px;
-	border: 1px solid hsl(0, 0%, 60%);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid hsl(0, 0%, 60%);
 }
 
 .dark .c15t-devtool-wrapper-button {
-	border: 1px solid hsl(0, 0%, 36.08%);
+  border: 1px solid hsl(0, 0%, 36.08%);
 }
 
 .c15t-devtool-wrapper-button-icon {
-	height: 1rem;
-	width: 1rem;
+  height: 1rem;
+  width: 1rem;
 }
 
 .c15t-devtool-wrapper-card {
-	width: 100%;
-	height: 100%;
-	border-radius: 0.5rem;
-	border: 1px solid var(--border);
-	background-color: var(--background);
-	box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  width: 100%;
+  height: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background-color: var(--background);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
 .c15t-devtool-wrapper-body {
-	flex: 1;
-	overflow-y: auto;
-	padding: 1rem;
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
 }

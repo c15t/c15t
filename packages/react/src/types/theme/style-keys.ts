@@ -6,17 +6,17 @@ import type { SwitchStylesKeys } from '~/components/shared/ui/switch';
 import type { ThemeValue } from '~/types/theme';
 
 type NestedKeys<T> = {
-	[K in keyof T & (string | number)]: T[K] extends object
-		? `${K & string}` | `${K & string}.${NestedKeys<T[K]>}`
-		: `${K & string}`;
+  [K in keyof T & (string | number)]: T[K] extends object
+    ? `${K & string}` | `${K & string}.${NestedKeys<T[K]>}`
+    : `${K & string}`;
 }[keyof T & (string | number)];
 
 export type AllThemeKeys =
-	// elements
-	| NestedKeys<CookieBannerTheme>
-	| NestedKeys<ConsentManagerWidgetTheme>
-	| NestedKeys<ConsentManagerDialogTheme>
-	// primitives
-	| NestedKeys<AccordionStylesKeys>
-	| NestedKeys<SwitchStylesKeys>
-	| NestedKeys<{ button: ThemeValue }>;
+  // elements
+  | NestedKeys<CookieBannerTheme>
+  | NestedKeys<ConsentManagerWidgetTheme>
+  | NestedKeys<ConsentManagerDialogTheme>
+  // primitives
+  | NestedKeys<AccordionStylesKeys>
+  | NestedKeys<SwitchStylesKeys>
+  | NestedKeys<{ button: ThemeValue }>;

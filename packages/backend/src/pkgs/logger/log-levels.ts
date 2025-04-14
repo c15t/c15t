@@ -28,19 +28,19 @@ export const levels = ['error', 'warn', 'info', 'success', 'debug'] as const;
  * @public
  */
 export function shouldPublishLog(
-	currentLogLevel: LogLevel,
-	logLevel: LogLevel
+  currentLogLevel: LogLevel,
+  logLevel: LogLevel
 ): boolean {
-	// Lower indexes are more severe (error is first)
-	const currentLevelIndex = levels.indexOf(currentLogLevel);
-	const messageLevelIndex = levels.indexOf(logLevel);
+  // Lower indexes are more severe (error is first)
+  const currentLevelIndex = levels.indexOf(currentLogLevel);
+  const messageLevelIndex = levels.indexOf(logLevel);
 
-	// For 'debug' level, only show debug messages
-	if (currentLogLevel === 'debug') {
-		return logLevel === 'debug';
-	}
+  // For 'debug' level, only show debug messages
+  if (currentLogLevel === 'debug') {
+    return logLevel === 'debug';
+  }
 
-	// For other levels, show messages that are at the same level or more severe
-	// Lower index = more important.
-	return messageLevelIndex <= currentLevelIndex;
+  // For other levels, show messages that are at the same level or more severe
+  // Lower index = more important.
+  return messageLevelIndex <= currentLevelIndex;
 }

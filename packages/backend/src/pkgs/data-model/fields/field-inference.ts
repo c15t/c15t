@@ -1,7 +1,7 @@
 import type {
-	InferValueType as BaseInferValueType,
-	Field,
-	FieldType,
+  InferValueType as BaseInferValueType,
+  Field,
+  FieldType,
 } from './field-types';
 
 /**
@@ -28,7 +28,7 @@ import type {
  * explicitly handling each array type.
  */
 export type InferValueType<TFieldType extends FieldType> =
-	BaseInferValueType<TFieldType>;
+  BaseInferValueType<TFieldType>;
 
 /**
  * Infers the output type for a single field.
@@ -58,11 +58,11 @@ export type InferValueType<TFieldType extends FieldType> =
  * the field should not appear in API responses.
  */
 export type InferFieldOutput<TField extends Field> =
-	TField['returned'] extends false
-		? never
-		: TField['required'] extends false
-			? InferValueType<TField['type']> | null | undefined
-			: InferValueType<TField['type']>;
+  TField['returned'] extends false
+    ? never
+    : TField['required'] extends false
+      ? InferValueType<TField['type']> | null | undefined
+      : InferValueType<TField['type']>;
 
 /**
  * Infers the input type for a single field.
@@ -86,8 +86,8 @@ export type InferFieldOutput<TField extends Field> =
  * the field should not be provided in API requests.
  */
 export type InferFieldInput<TField extends Field> =
-	TField['input'] extends false
-		? never
-		: TField['required'] extends true
-			? InferValueType<TField['type']>
-			: InferValueType<TField['type']> | null | undefined;
+  TField['input'] extends false
+    ? never
+    : TField['required'] extends true
+      ? InferValueType<TField['type']>
+      : InferValueType<TField['type']> | null | undefined;

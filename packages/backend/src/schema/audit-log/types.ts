@@ -13,17 +13,17 @@ import type { BaseEntityConfig } from '../types';
  * See the entity creation utilities for implementation details.
  */
 export interface AuditLogEntityConfig extends BaseEntityConfig {
-	fields?: Record<string, string> & {
-		id?: string;
-		timestamp: string;
-		action: string;
-		subjectId?: string;
-		resourceType: string;
-		resourceId?: string;
-		actor?: string;
-		changes?: string;
-		deviceInfo?: string;
-		ipAddress?: string;
-		createdAt?: string;
-	};
+  fields?: Record<string, string> & {
+    id?: string;
+    timestamp: string;
+    action: string;
+    subjectId?: string;
+    resourceType: string;
+    resourceId?: string;
+    actor?: string;
+    changes?: string;
+    deviceInfo?: string;
+    ipAddress?: string;
+    createdAt?: string;
+  };
 }

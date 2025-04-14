@@ -36,40 +36,40 @@ import { createContext } from 'react';
  * @public
  */
 export type ThemeContextValue<Theme = unknown> = {
-	/**
-	 * Theme configuration object for styling components
-	 * @remarks Partial to allow incremental theme overrides
-	 * @default undefined
-	 */
-	theme?: Partial<Theme>;
+  /**
+   * Theme configuration object for styling components
+   * @remarks Partial to allow incremental theme overrides
+   * @default undefined
+   */
+  theme?: Partial<Theme>;
 
-	/**
-	 * Disables all animations when true
-	 * @remarks Useful for reduced motion preferences
-	 * @default false
-	 */
-	disableAnimation?: boolean;
+  /**
+   * Disables all animations when true
+   * @remarks Useful for reduced motion preferences
+   * @default false
+   */
+  disableAnimation?: boolean;
 
-	/**
-	 * Removes default styles when true
-	 * @remarks Enables fully custom styling
-	 * @default false
-	 */
-	noStyle?: boolean;
+  /**
+   * Removes default styles when true
+   * @remarks Enables fully custom styling
+   * @default false
+   */
+  noStyle?: boolean;
 
-	/**
-	 * Locks the scroll when true & hides the overlay when disabled
-	 * @remarks Useful for preventing scroll when a modal is open
-	 * @default false
-	 */
-	scrollLock?: boolean;
+  /**
+   * Locks the scroll when true & hides the overlay when disabled
+   * @remarks Useful for preventing scroll when a modal is open
+   * @default false
+   */
+  scrollLock?: boolean;
 
-	/**
-	 * Traps keyboard focus within a dialog when true
-	 * @remarks Enhances accessibility for modal dialogs
-	 * @default true
-	 */
-	trapFocus?: boolean;
+  /**
+   * Traps keyboard focus within a dialog when true
+   * @remarks Enhances accessibility for modal dialogs
+   * @default true
+   */
+  trapFocus?: boolean;
 };
 
 /**
@@ -90,11 +90,11 @@ export type ThemeContextValue<Theme = unknown> = {
  * @public
  */
 export const GlobalThemeContext = createContext<ThemeContextValue>({
-	theme: undefined,
-	noStyle: false,
-	disableAnimation: false,
-	scrollLock: false,
-	trapFocus: true,
+  theme: undefined,
+  noStyle: false,
+  disableAnimation: false,
+  scrollLock: false,
+  trapFocus: true,
 });
 /**
  * Context for providing theme values to components.
@@ -114,4 +114,4 @@ export const GlobalThemeContext = createContext<ThemeContextValue>({
  * @public
  */
 export const LocalThemeContext =
-	createContext<ThemeContextValue<unknown> | null>(null);
+  createContext<ThemeContextValue<unknown> | null>(null);

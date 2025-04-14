@@ -7,19 +7,19 @@ import { Footer } from './_components/footer';
 import { siteConfig } from './config';
 
 export const metadata: Metadata = {
-	title: 'React Privacy Components for the Modern Web',
-	description: siteConfig.hero.description,
+  title: 'React Privacy Components for the Modern Web',
+  description: siteConfig.hero.description,
 };
 
 export default function HomePage() {
-	return (
-		<>
-			<Hero />
-			{/* <ComponentsSection /> */}
-			<FeaturesSection />
-			{/* <Examples /> */}
-			<CTA />
-			<Footer />
-		</>
-	);
+  return (
+    <>
+      <Hero />
+      {/* <ComponentsSection /> */}
+      <FeaturesSection />
+      {/* <Examples /> */}
+      <CTA />
+      <Footer />
+    </>
+  );
 }

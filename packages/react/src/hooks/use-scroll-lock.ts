@@ -26,29 +26,29 @@ import { useEffect } from 'react';
  * @public
  */
 export function useScrollLock(shouldLock: boolean): void {
-	useEffect(() => {
-		if (shouldLock) {
-			// Store the original overflow and padding to prevent layout shift
-			const originalStyles = {
-				overflow: document.body.style.overflow,
-				paddingRight: document.body.style.paddingRight,
-			};
+  useEffect(() => {
+    if (shouldLock) {
+      // Store the original overflow and padding to prevent layout shift
+      const originalStyles = {
+        overflow: document.body.style.overflow,
+        paddingRight: document.body.style.paddingRight,
+      };
 
-			// Get width of scrollbar to prevent layout shift
-			const scrollbarWidth =
-				window.innerWidth - document.documentElement.clientWidth;
+      // Get width of scrollbar to prevent layout shift
+      const scrollbarWidth =
+        window.innerWidth - document.documentElement.clientWidth;
 
-			// Lock scrolling and add padding to prevent layout shift
-			document.body.style.overflow = 'hidden';
-			if (scrollbarWidth > 0) {
-				document.body.style.paddingRight = `${scrollbarWidth}px`;
-			}
+      // Lock scrolling and add padding to prevent layout shift
+      document.body.style.overflow = 'hidden';
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
 
-			// Cleanup function to restore original styles
-			return () => {
-				document.body.style.overflow = originalStyles.overflow;
-				document.body.style.paddingRight = originalStyles.paddingRight;
-			};
-		}
-	}, [shouldLock]);
+      // Cleanup function to restore original styles
+      return () => {
+        document.body.style.overflow = originalStyles.overflow;
+        document.body.style.paddingRight = originalStyles.paddingRight;
+      };
+    }
+  }, [shouldLock]);
 }

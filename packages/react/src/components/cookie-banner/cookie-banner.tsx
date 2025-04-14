@@ -14,12 +14,12 @@ import type { CookieBannerTheme } from './theme';
 import { ConsentButton } from '~/components/shared/primitives/button';
 import { CookieBannerRoot } from './atoms/root';
 import {
-	CookieBannerCard,
-	CookieBannerDescription,
-	CookieBannerFooter,
-	CookieBannerFooterSubGroup,
-	CookieBannerHeader,
-	CookieBannerTitle,
+  CookieBannerCard,
+  CookieBannerDescription,
+  CookieBannerFooter,
+  CookieBannerFooterSubGroup,
+  CookieBannerHeader,
+  CookieBannerTitle,
 } from './components';
 
 import { useTranslations } from '~/hooks/use-translations';
@@ -34,68 +34,68 @@ import { useTranslations } from '~/hooks/use-translations';
  * @public
  */
 export interface CookieBannerProps {
-	/**
-	 * Custom styles to apply to the banner and its child components
-	 * @remarks Allows for deep customization of the banner's appearance while maintaining accessibility
-	 * @default undefined
-	 */
-	theme?: CookieBannerTheme;
+  /**
+   * Custom styles to apply to the banner and its child components
+   * @remarks Allows for deep customization of the banner's appearance while maintaining accessibility
+   * @default undefined
+   */
+  theme?: CookieBannerTheme;
 
-	/**
-	 * When true, removes all default styling from the component
-	 * @remarks Useful for implementing completely custom designs
-	 * @default false
-	 */
-	noStyle?: boolean;
+  /**
+   * When true, removes all default styling from the component
+   * @remarks Useful for implementing completely custom designs
+   * @default false
+   */
+  noStyle?: boolean;
 
-	/**
-	 * Content to display as the banner's title
-	 * @remarks Supports string or ReactNode for rich content
-	 * @default undefined
-	 */
-	title?: ReactNode;
+  /**
+   * Content to display as the banner's title
+   * @remarks Supports string or ReactNode for rich content
+   * @default undefined
+   */
+  title?: ReactNode;
 
-	/**
-	 * Content to display as the banner's description
-	 * @remarks Supports string or ReactNode for rich content
-	 * @default undefined
-	 */
-	description?: ReactNode;
+  /**
+   * Content to display as the banner's description
+   * @remarks Supports string or ReactNode for rich content
+   * @default undefined
+   */
+  description?: ReactNode;
 
-	/**
-	 * Content to display on the reject button
-	 * @remarks Required by GDPR for explicit consent rejection
-	 * @default undefined
-	 */
-	rejectButtonText?: ReactNode;
+  /**
+   * Content to display on the reject button
+   * @remarks Required by GDPR for explicit consent rejection
+   * @default undefined
+   */
+  rejectButtonText?: ReactNode;
 
-	/**
-	 * Content to display on the customize button
-	 * @remarks Opens detailed consent preferences
-	 * @default undefined
-	 */
-	customizeButtonText?: ReactNode;
+  /**
+   * Content to display on the customize button
+   * @remarks Opens detailed consent preferences
+   * @default undefined
+   */
+  customizeButtonText?: ReactNode;
 
-	/**
-	 * Content to display on the accept button
-	 * @remarks Primary action for accepting cookie preferences
-	 * @default undefined
-	 */
-	acceptButtonText?: ReactNode;
+  /**
+   * Content to display on the accept button
+   * @remarks Primary action for accepting cookie preferences
+   * @default undefined
+   */
+  acceptButtonText?: ReactNode;
 
-	/**
-	 * When true, the cookie banner will lock the scroll of the page
-	 * @remarks Useful for implementing a cookie banner that locks the scroll of the page
-	 * @default false
-	 */
-	scrollLock?: boolean;
+  /**
+   * When true, the cookie banner will lock the scroll of the page
+   * @remarks Useful for implementing a cookie banner that locks the scroll of the page
+   * @default false
+   */
+  scrollLock?: boolean;
 
-	/**
-	 * When true, the cookie banner will trap focus
-	 * @remarks Useful for implementing a cookie banner that traps focus
-	 * @default true
-	 */
-	trapFocus?: true;
+  /**
+   * When true, the cookie banner will trap focus
+   * @remarks Useful for implementing a cookie banner that traps focus
+   * @default true
+   */
+  trapFocus?: true;
 }
 
 /**
@@ -159,68 +159,68 @@ export interface CookieBannerProps {
  * @public
  */
 export const CookieBanner: FC<CookieBannerProps> = ({
-	theme,
-	noStyle,
-	title,
-	description,
-	rejectButtonText,
-	customizeButtonText,
-	acceptButtonText,
-	scrollLock,
-	trapFocus = true,
+  theme,
+  noStyle,
+  title,
+  description,
+  rejectButtonText,
+  customizeButtonText,
+  acceptButtonText,
+  scrollLock,
+  trapFocus = true,
 }) => {
-	const { cookieBanner } = useTranslations();
+  const { cookieBanner } = useTranslations();
 
-	return (
-		<ErrorBoundary
-			fallback={<div>Something went wrong with the Cookie Banner.</div>}
-		>
-			<CookieBannerRoot
-				theme={theme}
-				noStyle={noStyle}
-				scrollLock={scrollLock}
-				trapFocus={trapFocus}
-			>
-				<CookieBannerCard>
-					<CookieBannerHeader>
-						<CookieBannerTitle>{title || cookieBanner.title}</CookieBannerTitle>
-						<CookieBannerDescription>
-							{description || cookieBanner.description}
-						</CookieBannerDescription>
-					</CookieBannerHeader>
-					<CookieBannerFooter>
-						<CookieBannerFooterSubGroup>
-							<ConsentButton
-								action="reject-consent"
-								closeCookieBanner
-								themeKey="banner.footer.reject-button"
-								data-testid="cookie-banner-reject-button"
-							>
-								{rejectButtonText || cookieBanner.rejectAll}
-							</ConsentButton>
-							<ConsentButton
-								action="open-consent-dialog"
-								closeCookieBanner
-								themeKey="banner.footer.customize-button"
-								data-testid="cookie-banner-customize-button"
-							>
-								{customizeButtonText || cookieBanner.customize}
-							</ConsentButton>
-						</CookieBannerFooterSubGroup>
-						<ConsentButton
-							action="accept-consent"
-							variant="primary"
-							closeCookieBanner
-							themeKey="banner.footer.accept-button"
-							data-testid="cookie-banner-accept-button"
-						>
-							{acceptButtonText || cookieBanner.acceptAll}
-						</ConsentButton>
-					</CookieBannerFooter>
-				</CookieBannerCard>
-			</CookieBannerRoot>
-		</ErrorBoundary>
-	);
+  return (
+    <ErrorBoundary
+      fallback={<div>Something went wrong with the Cookie Banner.</div>}
+    >
+      <CookieBannerRoot
+        theme={theme}
+        noStyle={noStyle}
+        scrollLock={scrollLock}
+        trapFocus={trapFocus}
+      >
+        <CookieBannerCard>
+          <CookieBannerHeader>
+            <CookieBannerTitle>{title || cookieBanner.title}</CookieBannerTitle>
+            <CookieBannerDescription>
+              {description || cookieBanner.description}
+            </CookieBannerDescription>
+          </CookieBannerHeader>
+          <CookieBannerFooter>
+            <CookieBannerFooterSubGroup>
+              <ConsentButton
+                action="reject-consent"
+                closeCookieBanner
+                themeKey="banner.footer.reject-button"
+                data-testid="cookie-banner-reject-button"
+              >
+                {rejectButtonText || cookieBanner.rejectAll}
+              </ConsentButton>
+              <ConsentButton
+                action="open-consent-dialog"
+                closeCookieBanner
+                themeKey="banner.footer.customize-button"
+                data-testid="cookie-banner-customize-button"
+              >
+                {customizeButtonText || cookieBanner.customize}
+              </ConsentButton>
+            </CookieBannerFooterSubGroup>
+            <ConsentButton
+              action="accept-consent"
+              variant="primary"
+              closeCookieBanner
+              themeKey="banner.footer.accept-button"
+              data-testid="cookie-banner-accept-button"
+            >
+              {acceptButtonText || cookieBanner.acceptAll}
+            </ConsentButton>
+          </CookieBannerFooter>
+        </CookieBannerCard>
+      </CookieBannerRoot>
+    </ErrorBoundary>
+  );
 };
 
 /**

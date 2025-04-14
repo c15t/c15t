@@ -1,11 +1,11 @@
 {
-	"extends": "@c15t/typescript-config/node.json",
-	"compilerOptions": {
-		"baseUrl": ".",
-		"paths": {
-			"~/*": ["./src/*"]
-		}
-	},
-	"include": ["src"],
-	"exclude": ["node_modules"]
+  "extends": "@c15t/typescript-config/node.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["./src/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules"]
 }

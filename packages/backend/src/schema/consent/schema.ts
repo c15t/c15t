@@ -26,19 +26,19 @@ import { z } from 'zod';
  */
 
 export const consentSchema = z.object({
-	id: z.string(),
-	subjectId: z.string(),
-	domainId: z.string(),
-	purposeIds: z.array(z.string()),
-	metadata: z.record(z.unknown()).nullable().optional(),
-	policyId: z.string().optional(),
-	ipAddress: z.string().nullable().optional(),
-	userAgent: z.string().nullable().optional(),
-	status: z.enum(['active', 'withdrawn', 'expired']).default('active'),
-	withdrawalReason: z.string().nullable().optional(),
-	givenAt: z.date().default(() => new Date()),
-	validUntil: z.date().nullable().optional(),
-	isActive: z.boolean().default(true),
+  id: z.string(),
+  subjectId: z.string(),
+  domainId: z.string(),
+  purposeIds: z.array(z.string()),
+  metadata: z.record(z.unknown()).nullable().optional(),
+  policyId: z.string().optional(),
+  ipAddress: z.string().nullable().optional(),
+  userAgent: z.string().nullable().optional(),
+  status: z.enum(['active', 'withdrawn', 'expired']).default('active'),
+  withdrawalReason: z.string().nullable().optional(),
+  givenAt: z.date().default(() => new Date()),
+  validUntil: z.date().nullable().optional(),
+  isActive: z.boolean().default(true),
 });
 
 /**

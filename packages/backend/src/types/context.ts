@@ -10,7 +10,7 @@ import type { C15TPlugin, InferPluginContexts } from './plugins';
  * @typeParam TPluginContext - Record of plugin-specific context properties
  */
 export type C15TContext<
-	PluginContexts extends Record<string, unknown> = InferPluginContexts<
-		C15TPlugin[]
-	>,
+  PluginContexts extends Record<string, unknown> = InferPluginContexts<
+    C15TPlugin[]
+  >,
 > = DoubleTieContext<PluginContexts>;

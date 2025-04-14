@@ -27,18 +27,18 @@ import type { SchemaDefinition } from './types';
  * ```
  */
 export function getSchema(config: C15TOptions): SchemaDefinition {
-	try {
-		// Retrieve table definitions from the consent module
-		const tables = getConsentTables(config);
+  try {
+    // Retrieve table definitions from the consent module
+    const tables = getConsentTables(config);
 
-		// Process tables into a structured schema
-		return processTablesIntoSchema(tables);
-	} catch (error) {
-		// Log the error or handle it according to your application's needs
-		// biome-ignore lint/suspicious/noConsole: <explanation>
-		console.error('Failed to generate schema:', error);
-		throw new Error(
-			`Schema generation failed: ${error instanceof Error ? error.message : String(error)}`
-		);
-	}
+    // Process tables into a structured schema
+    return processTablesIntoSchema(tables);
+  } catch (error) {
+    // Log the error or handle it according to your application's needs
+    // biome-ignore lint/suspicious/noConsole: <explanation>
+    console.error('Failed to generate schema:', error);
+    throw new Error(
+      `Schema generation failed: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
 }

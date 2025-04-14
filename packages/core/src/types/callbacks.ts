@@ -128,33 +128,33 @@ import type { LocationInfo } from './compliance';
  * @public
  */
 export interface Callbacks {
-	/** Called when the consent management system is fully initialized and ready */
-	onReady?: CallbackFunction;
+  /** Called when the consent management system is fully initialized and ready */
+  onReady?: CallbackFunction;
 
-	/** Called when the consent banner becomes visible to the user */
-	onBannerShown?: CallbackFunction;
+  /** Called when the consent banner becomes visible to the user */
+  onBannerShown?: CallbackFunction;
 
-	/** Called when the consent banner is dismissed or hidden */
-	onBannerClosed?: CallbackFunction;
+  /** Called when the consent banner is dismissed or hidden */
+  onBannerClosed?: CallbackFunction;
 
-	/** Called when the user grants consent for one or more purposes */
-	onConsentGiven?: CallbackFunction;
+  /** Called when the user grants consent for one or more purposes */
+  onConsentGiven?: CallbackFunction;
 
-	/** Called when the user denies consent for one or more purposes */
-	onConsentRejected?: CallbackFunction;
+  /** Called when the user denies consent for one or more purposes */
+  onConsentRejected?: CallbackFunction;
 
-	/** Called when the user makes any change to their consent preferences */
-	onPreferenceExpressed?: CallbackFunction;
+  /** Called when the user makes any change to their consent preferences */
+  onPreferenceExpressed?: CallbackFunction;
 
-	/**
-	 * Called when an error occurs in the consent management system
-	 * @param errorMessage - A description of the error that occurred
-	 */
-	onError?: CallbackFunction<string>;
+  /**
+   * Called when an error occurs in the consent management system
+   * @param errorMessage - A description of the error that occurred
+   */
+  onError?: CallbackFunction<string>;
 
-	/**
-	 * Called when the user's location is detected
-	 * @param location - The detected location information
-	 */
-	onLocationDetected?: CallbackFunction<LocationInfo>;
+  /**
+   * Called when the user's location is detected
+   * @param location - The detected location information
+   */
+  onLocationDetected?: CallbackFunction<LocationInfo>;
 }

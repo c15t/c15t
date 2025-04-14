@@ -1,22 +1,22 @@
 import type {
-	ComponentPropsWithoutRef,
-	ElementType,
-	PropsWithChildren,
+  ComponentPropsWithoutRef,
+  ElementType,
+  PropsWithChildren,
 } from 'react';
 
 type AsProp<T extends ElementType> = {
-	as?: T;
+  as?: T;
 };
 
 type PropsToOmit<T extends ElementType, P> = keyof (AsProp<T> & P);
 
 type PolymorphicComponentProp<
-	T extends ElementType,
-	Props extends Record<string, unknown> = Record<string, unknown>,
+  T extends ElementType,
+  Props extends Record<string, unknown> = Record<string, unknown>,
 > = PropsWithChildren<Props & AsProp<T>> &
-	Omit<ComponentPropsWithoutRef<T>, PropsToOmit<T, Props>>;
+  Omit<ComponentPropsWithoutRef<T>, PropsToOmit<T, Props>>;
 
 export type PolymorphicComponentProps<
-	T extends ElementType,
-	P extends Record<string, unknown> = Record<string, unknown>,
+  T extends ElementType,
+  P extends Record<string, unknown> = Record<string, unknown>,
 > = PolymorphicComponentProp<T, P>;

@@ -8,17 +8,17 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
  * @public
  */
 interface ErrorBoundaryProps {
-	/** @remarks React elements to be rendered within the boundary */
-	children: ReactNode;
+  /** @remarks React elements to be rendered within the boundary */
+  children: ReactNode;
 
-	/**
-	 * UI to display when an error occurs.
-	 *
-	 * @remarks
-	 * Can be either a React node or a function that receives error details and returns a React node.
-	 * When provided as a function, it receives the error object and error info as arguments.
-	 */
-	fallback: ReactNode | ((error: Error, errorInfo: ErrorInfo) => ReactNode);
+  /**
+   * UI to display when an error occurs.
+   *
+   * @remarks
+   * Can be either a React node or a function that receives error details and returns a React node.
+   * When provided as a function, it receives the error object and error info as arguments.
+   */
+  fallback: ReactNode | ((error: Error, errorInfo: ErrorInfo) => ReactNode);
 }
 
 /**
@@ -27,12 +27,12 @@ interface ErrorBoundaryProps {
  * @internal
  */
 interface ErrorBoundaryState {
-	/** @remarks Flag indicating if an error has been caught */
-	hasError: boolean;
-	/** @remarks The caught error object, if any */
-	error: Error | null;
-	/** @remarks Additional details about the error context */
-	errorInfo: ErrorInfo | null;
+  /** @remarks Flag indicating if an error has been caught */
+  hasError: boolean;
+  /** @remarks The caught error object, if any */
+  error: Error | null;
+  /** @remarks Additional details about the error context */
+  errorInfo: ErrorInfo | null;
 }
 
 /**
@@ -53,34 +53,34 @@ interface ErrorBoundaryState {
  * @public
  */
 export class ErrorBoundary extends Component<
-	ErrorBoundaryProps,
-	ErrorBoundaryState
+  ErrorBoundaryProps,
+  ErrorBoundaryState
 > {
-	constructor(props: ErrorBoundaryProps) {
-		super(props);
-		this.state = { hasError: false, error: null, errorInfo: null };
-	}
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
 
-	static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-		return { hasError: true, error, errorInfo: null };
-	}
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error, errorInfo: null };
+  }
 
-	componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-		this.setState({ error, errorInfo });
-		// console.error('Uncaught error:', error, errorInfo);
-		// Optionally log error to an external service
-		// logErrorToService(error, errorInfo)
-	}
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    this.setState({ error, errorInfo });
+    // console.error('Uncaught error:', error, errorInfo);
+    // Optionally log error to an external service
+    // logErrorToService(error, errorInfo)
+  }
 
-	render() {
-		if (this.state.hasError) {
-			if (typeof this.props.fallback === 'function') {
-				// biome-ignore lint/style/noNonNullAssertion: <explanation>
-				return this.props.fallback(this.state.error!, this.state.errorInfo!);
-			}
-			return this.props.fallback;
-		}
+  render() {
+    if (this.state.hasError) {
+      if (typeof this.props.fallback === 'function') {
+        // biome-ignore lint/style/noNonNullAssertion: <explanation>
+        return this.props.fallback(this.state.error!, this.state.errorInfo!);
+      }
+      return this.props.fallback;
+    }
 
-		return this.props.children;
-	}
+    return this.props.children;
+  }
 }
