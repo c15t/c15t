@@ -60,7 +60,7 @@ jobs:
       - name: 🎉 Update/Delete Comment on Success
         # Run only if the linting step passed (error_message is null)
         if: steps.lint_pr_title.outputs.error_message == null
-        uses: marocchino/sticky-pull-request-comment@v2.10.1 # Use a specific recent version
+        uses: marocchino/sticky-pull-request-comment@v2
         with:
           # Use the same header to find and update/delete the previous comment
           header: pr-title-lint-error
