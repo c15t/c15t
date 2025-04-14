@@ -50,7 +50,7 @@ export async function testComponentStyles({
 	);
 
 	// Wait for rendering to complete
-	await new Promise((resolve) => setTimeout(resolve, 500));
+	await new Promise((resolve) => setTimeout(resolve, 50));
 
 	for (const { testId, styles } of testCases) {
 		// Elements can be rendered either directly in the container or in portals (in document.body)
