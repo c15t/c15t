@@ -10,13 +10,6 @@ jobs:
   lint_and_check:
     name: 🧹 Lint & Type Check
     runs-on: ubuntu-latest
-<<<<<<< HEAD
-    # To use Remote Caching, uncomment the next lines and follow the steps below.
-    env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
-    
-=======
     permissions:
       contents: read # Needed for checkout
       checks: write # Needed for reviewdog to post results
@@ -24,7 +17,6 @@ jobs:
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
->>>>>>> main
     steps:
       - name: ⬇️ Check out code
         uses: actions/checkout@v4
