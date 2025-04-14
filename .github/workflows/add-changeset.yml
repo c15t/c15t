@@ -1,0 +1,88 @@
+name: Add Changeset for Dependency Updates
+
+on:
+  pull_request_target: # Use pull_request_target to handle PRs from forks (like Renovate often uses)
+    types: [opened]
+
+permissions:
+  # Need write access to contents to push the changeset file to the PR branch
+  contents: write
+  # Needed to interact with the PR (though not strictly used in this basic version)
+  pull-requests: write
+
+jobs:
+  add-changeset:
+    name: Add Changeset File
+    runs-on: ubuntu-latest
+    # Only run on PRs opened by known dependency bots
+    # Adjust usernames/app IDs if your Renovate setup uses a different identity
+    if: >
+      github.actor == 'renovate[bot]' ||
+      startsWith(github.actor, 'app/renovate') ||
+      github.actor == 'dependabot[bot]'
+    steps:
+      # Checkout the specific PR branch using pull_request_target context
+      - name: Checkout PR Branch
+        uses: actions/checkout@v4
+        with:
+          # ref: ${{ github.event.pull_request.head.ref }} # Incorrect for pull_request_target
+          # repository: ${{ github.event.pull_request.head.repo.full_name }} # Incorrect for pull_request_target
+          # For pull_request_target, checkout the base repo at the PR head SHA
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      # Setup pnpm and Node.js
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      # Install dependencies (changeset cli needs package info)
+      # Use --ignore-scripts for security on pull_request_target if needed
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # Configure git user for the commit
+      - name: Configure Git User
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      # Sanitize branch name to prevent command injection
+      - name: Sanitize Branch Name
+        run: |
+          # Extract branch name and validate it against a safe pattern
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          # Check if branch name contains only alphanumeric, dash, underscore, and slash characters
+          if [[ ! "$BRANCH_NAME" =~ ^[a-zA-Z0-9_/-]+$ ]]; then
+            echo "Error: Branch name contains invalid characters"
+            exit 1
+          fi
+          # Store sanitized branch name as an environment variable for later steps
+          echo "SAFE_BRANCH_REF=$BRANCH_NAME" >> $GITHUB_ENV
+
+      # Add an empty changeset (defaults to patch with generic message)
+      - name: Create Changeset File
+        run: pnpm changeset add --empty
+        # No extra env needed here, git config is set globally for the step
+
+      # Commit and push the changeset file back to the PR branch
+      - name: Commit and Push Changeset
+        run: |
+          git add .changeset/*
+          # Check if there's anything to commit (in case action reruns)
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: add changeset for dependency update [skip ci]"
+            git push origin HEAD:${{ env.SAFE_BRANCH_REF }}
+          else
+            echo "No changeset file to commit."
+          fi
+        env:
+          # Use GITHUB_TOKEN for authentication to push
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # If GITHUB_TOKEN fails due to permissions (e.g., branch protection),
+          # you might need a PAT with write access stored in secrets.
+          # GITHUB_TOKEN: ${{ secrets.CI_PAT }}

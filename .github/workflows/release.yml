@@ -1,0 +1,66 @@
+# .github/workflows/release.yml
+name: Release
+
+on:
+  push:
+    branches:
+      - main # Matches your config.json baseBranch
+
+# Prevent multiple concurrent release workflows
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write # Needed by changesets/action to create releases/tags and commit version bumps
+  pull-requests: write # Needed by changesets/action to create the "Version Packages" PR
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+
+    if: github.repository == 'c15t/c15t'
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          # Fetch entire history is required for changesets to correctly determine version bumps
+          fetch-depth: 0
+          # Optionally persist credentials for commit/push by the action
+          # persist-credentials: false # Uncomment if you have issues with GITHUB_TOKEN permissions
+
+      # Setup pnpm and Node.js using versions consistent with your ci.yml
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile # Use frozen lockfile for reliability in CI
+
+      - name: Create Release Pull Request or Publish to npm
+        id: changesets # Give the step an ID to potentially reference outputs
+        uses: changesets/action@v1
+        with:
+          # The command to run for publishing. It matches your root package.json script.
+          publish: pnpm run release
+          # Optional: If you want the action to commit the version changes
+          # commit: "chore: update versions"
+          # Optional: If you want the action to create tags
+          # version: pnpm run version # Add a 'version' script to package.json if needed for this
+        env:
+          # GITHUB_TOKEN is used by the action to create PRs, releases, comments
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # NPM_TOKEN is used by 'changeset publish' (called via 'pnpm run release')
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # MUST be set in repo secrets
+
+      # Optional: Output the results for debugging or confirmation
+      - name: Print changeset outputs
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          echo "Published: ${{ steps.changesets.outputs.published }}"
+          echo "Published packages: ${{ steps.changesets.outputs.publishedPackages }}"
+          echo "New versions: ${{ steps.changesets.outputs.newVersions }}"

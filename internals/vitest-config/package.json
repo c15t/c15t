@@ -1,0 +1,21 @@
+{
+	"name": "@c15t/vitest-config",
+	"type": "module",
+	"exports": {
+		"./base": "./dist/base-config.js",
+		"./ui": "./dist/ui-config.js"
+	},
+	"scripts": {
+		"build": "rslib build",
+		"check-types": "tsc --noEmit",
+		"lint": "pnpm biome lint ./src",
+		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@vitest/coverage-istanbul": "^3.1.1",
+		"@vitest/ui": "3.1.1",
+		"jsdom": "^26.1.0",
+		"vitest": "^3.1.1"
+	}
+}

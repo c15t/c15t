@@ -20,12 +20,8 @@
 		"dev": "rslib build --watch",
 		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"lint": "pnpm biome lint ./src",
-		"test": "npm run test:node && npm run test:browser",
-		"test:browser": "vitest run --config vitest.browser.config.ts",
-		"test:browser:watch": "vitest --config vitest.browser.config.ts",
-		"test:coverage": "vitest run --coverage",
-		"test:node": "vitest run",
-		"test:node:watch": "vitest"
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"browserslist": [">0.2%", "not dead", "not op_mini all"],
 	"dependencies": {
@@ -34,9 +30,7 @@
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
-		"@vitest/coverage-v8": "3.1.1",
-		"happy-dom": "^17.4.4",
-		"vitest-fetch-mock": "^0.4.5",
+		"@c15t/vitest-config": "workspace:*",
 		"vitest-localstorage-mock": "^0.1.2"
 	},
 	"publishConfig": {

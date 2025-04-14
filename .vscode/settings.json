@@ -21,8 +21,6 @@
 	},
 	"[typescriptreact]": {
 		"editor.defaultFormatter": "biomejs.biome"
-  },
-  "cSpell.words": [
-    "Kysely"
-  ]
+	},
+	"cSpell.words": ["Kysely"]
 }

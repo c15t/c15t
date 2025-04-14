@@ -1,0 +1,69 @@
+# .github/workflows/check-pr-title.yml
+name: "Check PR Title"
+
+on:
+  # Use pull_request_target to handle forks and allow commenting
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - edited
+      - synchronize
+
+# Permissions needed to post comments on the PR
+permissions:
+  pull-requests: write
+
+jobs:
+  validate_pr_title: # Use snake_case for job ID
+    name: ✅ Validate PR Title Convention
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Lint the PR title
+      - name: 🧐 Lint PR Title
+        uses: amannn/action-semantic-pull-request@v5.6.0 # Use a specific recent version
+        id: lint_pr_title
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Default types match Conventional Commits: fix, feat, chore, build, ci, docs, perf, refactor, revert, style, test
+        # You can customize types via 'types' input if needed
+
+      # Step 2: Post error comment if linting failed
+      - name: ✏️ Post Error Comment
+        # Run only if the linting step failed (error_message is not null)
+        if: always() && (steps.lint_pr_title.outputs.error_message != null)
+        uses: marocchino/sticky-pull-request-comment@v2.10.1 # Use a specific recent version
+        with:
+          # Use a unique header to identify the comment for updates/deletion
+          header: pr-title-lint-error
+          # Provide a helpful error message with emojis
+          message: |
+            Hey there! 👋 Thank you for opening this pull request! 🙏
+
+            Looks like the PR title needs a little adjustment to follow our [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/).
+
+            **Quick Examples:**
+            ```
+            fix: correct typo in README
+            feat: add user authentication feature
+            chore(deps): update dependencies
+            ```
+
+            **Error Details:**
+            ```
+            ${{ steps.lint_pr_title.outputs.error_message }}
+            ```
+            
+            No worries, just a quick edit should do the trick! 😊
+
+      # Step 3: Update/Delete comment if linting passed
+      - name: 🎉 Update/Delete Comment on Success
+        # Run only if the linting step passed (error_message is null)
+        if: steps.lint_pr_title.outputs.error_message == null
+        uses: marocchino/sticky-pull-request-comment@v2.10.1 # Use a specific recent version
+        with:
+          # Use the same header to find and update/delete the previous comment
+          header: pr-title-lint-error
+          # Provide a positive confirmation, effectively deleting the error message
+          message: |
+            Perfect PR title! ✨ Thanks for following the naming conventions! 👍

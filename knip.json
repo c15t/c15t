@@ -1,29 +1,29 @@
 {
-  "$schema": "https://unpkg.com/knip@latest/schema.json",
-  "workspaces": {
-    "packages/core": {
-      "$include": "./packages/core/knip.json"
-    },
-    "packages/backend": {
-      "$include": "./packages/backend/knip.json"
-    },
-    "packages/cli": {
-      "$include": "./packages/cli/knip.json"
-    },
-    "packages/*": {
-      "entry": ["src/index.ts"],
-      "project": "**/*.{js,ts,jsx,tsx}",
-      "ignoreDependencies": ["typescript"],
-      "ignore": ["**/*.spec.{js,ts}", "**/*.test.{js,ts}", "**/dist/**"]
-    }
-  },
-  "ignoreWorkspaces": ["apps/*"],
-  "rules": {
-    "exports": "warn",
-    "types": "warn",
-    "dependencies": "error",
-    "files": "warn"
-  },
-  "ignoreExportsUsedInFile": true,
-  "ignoreBinaries": ["turbo", "biome", "rslib"]
-} 
+	"$schema": "https://unpkg.com/knip@latest/schema.json",
+	"workspaces": {
+		"packages/core": {
+			"$include": "./packages/core/knip.json"
+		},
+		"packages/backend": {
+			"$include": "./packages/backend/knip.json"
+		},
+		"packages/cli": {
+			"$include": "./packages/cli/knip.json"
+		},
+		"packages/*": {
+			"entry": ["src/index.ts"],
+			"project": "**/*.{js,ts,jsx,tsx}",
+			"ignoreDependencies": ["typescript"],
+			"ignore": ["**/*.spec.{js,ts}", "**/*.test.{js,ts}", "**/dist/**"]
+		}
+	},
+	"ignoreWorkspaces": ["apps/*"],
+	"rules": {
+		"exports": "warn",
+		"types": "warn",
+		"dependencies": "error",
+		"files": "warn"
+	},
+	"ignoreExportsUsedInFile": true,
+	"ignoreBinaries": ["turbo", "biome", "rslib"]
+}

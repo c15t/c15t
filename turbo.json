@@ -8,38 +8,30 @@
 			"outputs": [".next/**", "!.next/cache/**", "dist/**"]
 		},
 		"fmt": {
-			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc"],
+			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc", "**/biome.json"],
 			"outputs": []
 		},
 		"lint": {
-			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc"]
+			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc", "**/biome.json"],
+			"dependsOn": ["^lint"]
 		},
 		"check-types": {
-			"dependsOn": ["^check-types"]
+			"dependsOn": ["^build", "^check-types"]
 		},
 		"dev": {
 			"cache": false,
 			"persistent": true
 		},
-    "test": {
-      "dependsOn": ["^build", "transit"]
-    },
-    "test:watch": {
-      "cache": false,
-      "persistent": true
-    },
-    "transit": {
-      "dependsOn": ["^transit"]
-    },
-		"type-check": {
-			"outputs": []
+		"test": {
+			"dependsOn": ["^build", "transit", "@c15t/vitest-config#build"],
+			"outputs": [
+				"coverage/coverage-summary.json",
+				"coverage/coverage-final.json",
+				"coverage/html/**"
+			]
 		},
-		"ci:version": {
-			"outputs": []
-		},
-		"ci:publish": {
-			"dependsOn": ["build"],
-			"outputs": []
+		"transit": {
+			"dependsOn": ["^transit"]
 		}
 	}
 }

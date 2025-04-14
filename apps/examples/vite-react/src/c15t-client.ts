@@ -1,6 +1,6 @@
 'use client';
 
-import { ConsentManagerOptions } from "@c15t/react";
+import type { ConsentManagerOptions } from '@c15t/react';
 
 /**
  * Create configuration options for React components to use
@@ -10,7 +10,7 @@ import { ConsentManagerOptions } from "@c15t/react";
  */
 export const c15tOptions: ConsentManagerOptions = {
 	backendURL: 'http://localhost:8787/api/c15t',
-  store: {
-    initialGdprTypes: ['necessary', 'marketing'],
-  }
-}
+	store: {
+		initialGdprTypes: ['necessary', 'marketing'],
+	},
+};

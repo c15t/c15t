@@ -7,44 +7,134 @@ on:
     types: [opened, synchronize]
 
 jobs:
-  build:
-    name: Build and Test
-    timeout-minutes: 15
+  lint_and_check:
+    name: 🧹 Lint & Type Check
     runs-on: ubuntu-latest
+<<<<<<< HEAD
     # To use Remote Caching, uncomment the next lines and follow the steps below.
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     
+=======
+    permissions:
+      contents: read # Needed for checkout
+      checks: write # Needed for reviewdog to post results
+      pull-requests: write # Needed for reviewdog github-pr-review reporter (optional)
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+>>>>>>> main
     steps:
-      - uses: actions/checkout@v4
+      - name: ⬇️ Check out code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
-      
-      - name: Install
-        uses: ./.github/actions/install
-      
-      # Install Playwright browsers
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install
 
-      # Add Turbo cache
-      - name: Cache Turbo
+      - name: 🅿️ Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 👀 Type Check
+        run: pnpm turbo run check-types
+
+      - name: 🧹 Run Biome with Reviewdog
+        uses: mongolyy/reviewdog-action-biome@bf7dffa9b14e8904941a18a28782b74fc40104f0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-check # Report results as checks
+          level: warning               # Report errors
+
+  build:
+    name: 🏗️ Build Packages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # Needed for checkout
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+    steps:
+      - name: ⬇️ Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: 🅿️ Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏗️ Build
+        run: pnpm turbo run build --filter="./packages/*"
+
+  test:
+    name: 🧪 Run Tests & Coverage
+    needs: build # Run only after build succeeds
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # Needed for checkout
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+    steps:
+      - name: ⬇️ Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: 🅿️ Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🎭 Cache Playwright browsers
+        id: playwright-cache
         uses: actions/cache@v4
         with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          path: ~/.cache/ms-playwright
+          key: playwright-browsers-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-turbo-
+            playwright-browsers-${{ runner.os }}-
 
-      - name: Type Check
-        run: pnpm turbo run type-check
-        
-      - name: Lint
-        run: pnpm turbo run lint
-        
-      - name: Build
-        run: pnpm turbo run build --filter="./packages/*"
-        
-      - name: Test
-        run: pnpm turbo run test
+      - name: 🎭 Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install
+
+      - name: 🧪 Run Tests
+        run: pnpm turbo run test --filter='!./apps/examples/*'
+
+      - name: ⬆️ Upload Individual Coverage Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: individual-coverage-data # Artifact containing all raw reports
+          path: |
+            packages/*/coverage/coverage-summary.json
+            packages/*/coverage/coverage-final.json
+            apps/*/coverage/coverage-summary.json
+            apps/*/coverage/coverage-final.json
+            # Add other potential locations if necessary
+          retention-days: 7
+          # Optional: Handle case where no files are found gracefully
+          if-no-files-found: warn # 'warn', 'error', or 'ignore'

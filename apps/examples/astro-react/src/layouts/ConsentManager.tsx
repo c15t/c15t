@@ -2,7 +2,7 @@ import {
 	ConsentManagerDialog,
 	ConsentManagerProvider,
 	CookieBanner,
-  type ConsentManagerOptions,
+	type ConsentManagerOptions,
 } from '@c15t/react';
 import type { ReactNode } from 'react';
 
@@ -14,10 +14,10 @@ import type { ReactNode } from 'react';
  */
 export const c15tOptions: ConsentManagerOptions = {
 	backendURL: 'http://localhost:8787/api/c15t',
-  store: {
-    initialGdprTypes: ['necessary', 'marketing'],
-  }
-}
+	store: {
+		initialGdprTypes: ['necessary', 'marketing'],
+	},
+};
 
 export const ConsentManagerLayout = ({ children }: { children: ReactNode }) => {
 	return (

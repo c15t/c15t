@@ -1,6 +1,24 @@
 packages:
-  - "configs/*"
-  - "packages/**"
-  - "apps/**"
-  - "internals/**"
-  - "docs"
+  - configs/*
+  - packages/**
+  - apps/**
+  - internals/**
+  - docs
+
+ignoredBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - core-js
+  - es5-ext
+  - esbuild
+  - msw
+  - prisma
+  - protobufjs
+  - sharp
+  - workerd
+
+onlyBuiltDependencies:
+  - '@biomejs/biome'
+  - '@sentry/cli'
+  - '@swc/core'
+  - better-sqlite3
