@@ -7,7 +7,7 @@ import {
 	createConsentManagerStore,
 	defaultTranslationConfig,
 } from 'c15t';
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ConsentStateContext } from '../context/consent-manager-context';
 import { GlobalThemeContext } from '../context/theme-context';
 import { useColorScheme } from '../hooks/use-color-scheme';
@@ -91,8 +91,8 @@ export function ConsentManagerProvider({
 
 		return Boolean(
 			(mode === 'c15t' || mode === 'offline') &&
-			(backendURL?.includes('c15t.dev') ||
-				window.location.hostname.includes('c15t.dev'))
+				(backendURL?.includes('c15t.dev') ||
+					window.location.hostname.includes('c15t.dev'))
 		);
 	}, [mode, backendURL]);
 
@@ -124,12 +124,14 @@ export function ConsentManagerProvider({
 	}, [mode, backendURL, callbacks, store, options]);
 
 	// Create a stable reference to the consent store and always initialize it
-	const storeRef = useRef<ReturnType<typeof createConsentManagerStore>>(null as unknown as ReturnType<typeof createConsentManagerStore>);
-	
+	const storeRef = useRef<ReturnType<typeof createConsentManagerStore>>(
+		null as unknown as ReturnType<typeof createConsentManagerStore>
+	);
+
 	// Store previous core options for comparison
 	const prevBackendURLRef = useRef(backendURL);
 	const prevModeRef = useRef(mode);
-	
+
 	// Initialize the store and recreate when critical options change
 	const consentStore = useMemo(() => {
 		const storeWithTranslations = {
@@ -139,23 +141,33 @@ export function ConsentManagerProvider({
 		};
 
 		// Check if critical options that should trigger recreation have changed
-		const shouldRecreateStore = 
+		const shouldRecreateStore =
 			// Use type guard to validate if store exists
-			!storeRef.current || 
+			!storeRef.current ||
 			prevBackendURLRef.current !== backendURL ||
 			prevModeRef.current !== mode;
-		
+
 		// Update refs for next comparison
 		prevBackendURLRef.current = backendURL;
 		prevModeRef.current = mode;
 
 		// Initialize the store on first render or when critical options change
 		if (shouldRecreateStore) {
-			storeRef.current = createConsentManagerStore(consentManager, storeWithTranslations);
+			storeRef.current = createConsentManagerStore(
+				consentManager,
+				storeWithTranslations
+			);
 		}
-		
+
 		return storeRef.current;
-	}, [consentManager, isConsentDomain, preparedTranslationConfig, store, backendURL, mode]);
+	}, [
+		consentManager,
+		isConsentDomain,
+		preparedTranslationConfig,
+		store,
+		backendURL,
+		mode,
+	]);
 
 	// Initialize state with the current state from the consent manager store
 	const [state, setState] = useState<PrivacyConsentState>(
