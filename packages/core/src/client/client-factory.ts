@@ -249,7 +249,6 @@ export function configureConsentManager(
 					'Content-Type': 'application/json',
 					...options.headers,
 				};
-				console.log('Updated cached client headers:', options.headers);
 			}
 		}
 
