@@ -8,7 +8,7 @@
 	"scripts": {
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
-		"lint": "pnpm biome lint ./configs ./scripts",
+		"lint": "pnpm biome lint ./src",
 		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write"
 	},
 	"devDependencies": {
