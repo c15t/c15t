@@ -1,4 +1,4 @@
-import { test } from 'vitest';
+import { test, vi } from 'vitest';
 import { ConsentManagerDialog } from '~/components/consent-manager-dialog/consent-manager-dialog';
 import type { ThemeValue } from '~/types/theme';
 import testComponentStyles from '~/utils/test-helpers';
@@ -47,6 +47,31 @@ const ALL_COMPONENTS: ComponentTestCase[] = [
 		styles: 'custom-dialog-footer',
 	},
 ];
+
+vi.mock('~/hooks/use-consent-manager', () => ({
+	useConsentManager: () => ({
+		isPrivacyDialogOpen: true, // Set relevant state for dialog tests
+		getDisplayedConsents: vi.fn(() => []), // Add missing function
+		saveConsents: vi.fn(),
+		setShowPopup: vi.fn(),
+		setIsPrivacyDialogOpen: vi.fn(),
+	}),
+}));
+
+vi.mock('~/hooks/use-translations', () => ({
+	useTranslations: () => ({
+		consentManagerDialog: {
+			title: 'Dialog Title',
+			description: 'Dialog Description',
+			saveButton: 'Save',
+			rejectAllButton: 'Reject All',
+			acceptAllButton: 'Accept All',
+		},
+		consentManagerWidget: {},
+		cookieBanner: {},
+		general: {},
+	}),
+}));
 
 test('Theme prop applies string classnames to all components', async () => {
 	const test = (

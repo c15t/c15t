@@ -1,8 +1,38 @@
-import { test } from 'vitest';
+import { test, vi } from 'vitest';
 import { ConsentManagerWidget } from '~/components/consent-manager-widget/consent-manager-widget';
 import type { ThemeValue } from '~/types/theme';
 import testComponentStyles from '~/utils/test-helpers';
 import type { ConsentManagerWidgetTheme } from '../theme';
+
+vi.mock('~/hooks/use-consent-manager', () => ({
+	useConsentManager: () => ({
+		getConsentCategory: vi.fn(() => ({ isEnabled: true })), // Mock needed functions
+		updateConsentCategory: vi.fn(),
+		saveConsents: vi.fn(),
+		getDisplayedConsents: vi.fn(() => []), // Add missing function
+		// Add other necessary mock properties/functions if needed
+	}),
+}));
+
+vi.mock('~/hooks/use-translations', () => ({
+	useTranslations: () => ({
+		consentManagerWidget: {
+			// Use the correct key for widget
+			necessaryCookies: 'Necessary',
+			marketingCookies: 'Marketing',
+			analyticsCookies: 'Analytics',
+			preferencesCookies: 'Preferences',
+			unknownIntegration: 'Unknown',
+			alwaysActive: 'Always Active',
+			rejectAllButton: 'Reject All',
+			acceptAllButton: 'Accept All',
+			saveButton: 'Save Settings',
+		},
+		consentManagerDialog: {},
+		cookieBanner: {},
+		general: {},
+	}),
+}));
 
 type ComponentTestCase = {
 	testId: string;
