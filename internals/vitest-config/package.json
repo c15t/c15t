@@ -2,11 +2,12 @@
 	"name": "@c15t/vitest-config",
 	"type": "module",
 	"exports": {
-		"./base": "./dist/configs/base-config.js",
-		"./ui": "./dist/configs/ui-config.js"
+		"./base": "./dist/base-config.js",
+		"./ui": "./dist/ui-config.js"
 	},
 	"scripts": {
-		"build": "tsc",
+		"build": "rslib build",
+		"check-types": "tsc --noEmit",
 		"lint": "pnpm biome lint ./configs ./scripts",
 		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write"
 	},

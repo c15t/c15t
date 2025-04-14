@@ -1,8 +1,5 @@
 {
 	"extends": ["@c15t/typescript-config/base.json"],
-	"compilerOptions": {
-		"outDir": "dist"
-	},
-	"include": ["configs", "scripts"],
+	"include": ["src"],
 	"exclude": ["node_modules", "dist"]
 }
