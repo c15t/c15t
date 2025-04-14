@@ -70,9 +70,7 @@ export function toCloudflareHandler(instance: C15TInstance) {
 				body: ['GET', 'HEAD'].includes(request.method)
 					? undefined
 					: request.body,
-				duplex: ['GET', 'HEAD'].includes(request.method)
-					? undefined
-					: 'half',
+				duplex: ['GET', 'HEAD'].includes(request.method) ? undefined : 'half',
 			});
 
 			// Let c15t handle the request
