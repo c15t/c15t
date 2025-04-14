@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/dev-tools",
-	"version": "0.0.1-rc.23",
+	"version": "0.0.1-rc.24",
 	"license": "GPL-3.0-only",
 	"type": "module",
 	"main": "dist/index.cjs",

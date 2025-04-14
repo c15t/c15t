@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/vitest-config",
-	"version": "0.0.1-rc.23",
+	"version": "0.0.1-rc.24",
 	"type": "module",
 	"exports": {
 		"./base": "./dist/base-config.js",
