@@ -21,7 +21,7 @@ jobs:
     steps:
       # Step 1: Lint the PR title
       - name: 🧐 Lint PR Title
-        uses: amannn/action-semantic-pull-request@v5.6.0 # Use a specific recent version
+        uses: amannn/action-semantic-pull-request@v5
         id: lint_pr_title
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
