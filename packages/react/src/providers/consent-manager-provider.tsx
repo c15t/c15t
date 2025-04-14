@@ -209,47 +209,33 @@ export function ConsentManagerProvider({
 	// Set the color scheme
 	useColorScheme(colorScheme);
 
-	// Memoize the theme context value to prevent unnecessary re-renders
-	const themeContextValue = useMemo(
-		() => ({
+	// Create theme context value
+	const themeContextValue = useMemo(() => {
+		return {
 			theme,
 			noStyle,
 			disableAnimation,
 			scrollLock,
 			trapFocus,
-		}),
-		[theme, noStyle, disableAnimation, scrollLock, trapFocus]
-	);
+		};
+	}, [theme, noStyle, disableAnimation, scrollLock, trapFocus]);
 
-	// Memoize the full context value to prevent unnecessary re-renders
-	const contextValue = useMemo(
+	// Set the color scheme
+	useColorScheme(colorScheme);
+
+	// Create consent context value - without theme properties
+	const consentContextValue = useMemo(
 		() => ({
 			state,
 			store: consentStore,
 			manager: consentManager,
-			theme,
-			disableAnimation,
-			scrollLock,
-			trapFocus,
-			colorScheme,
-			noStyle,
 		}),
-		[
-			state,
-			consentStore,
-			consentManager,
-			theme,
-			disableAnimation,
-			scrollLock,
-			trapFocus,
-			colorScheme,
-			noStyle,
-		]
+		[state, consentStore, consentManager]
 	);
 
-	// Render the context providers with children
+	// Render with separate theme context for cleaner separation of concerns
 	return (
-		<ConsentStateContext.Provider value={contextValue}>
+		<ConsentStateContext.Provider value={consentContextValue}>
 			<GlobalThemeContext.Provider value={themeContextValue}>
 				{children}
 			</GlobalThemeContext.Provider>
