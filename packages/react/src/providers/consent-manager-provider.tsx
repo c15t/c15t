@@ -206,9 +206,6 @@ export function ConsentManagerProvider({
 		return unsubscribe;
 	}, [consentStore, initialGdprTypes, initialComplianceSettings]);
 
-	// Set the color scheme
-	useColorScheme(colorScheme);
-
 	// Create theme context value
 	const themeContextValue = useMemo(() => {
 		return {
