@@ -56,6 +56,7 @@ export function toNodeHandler(instance: C15TInstance) {
 				body: request.body,
 				// Preserve request properties
 				credentials: 'include',
+				duplex: ['GET', 'HEAD'].includes(request.method) ? undefined : 'half',
 			});
 
 			// Update baseURL for proper URL generation in responses
