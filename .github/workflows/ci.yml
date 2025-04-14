@@ -118,11 +118,18 @@ jobs:
         run: pnpm turbo run test --filter='!./apps/examples/*'
 
       - name: 📊 Run Tests with Coverage
-        run: pnpm view-report
+        run: pnpm turbo run test:coverage --filter='!./apps/examples/*'
 
-      - name: ⬆️ Upload Coverage Artifact
+      - name: ⬆️ Upload Individual Coverage Reports
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-data
-          path: internals/vitest-config/coverage/
+          name: individual-coverage-data # Artifact containing all raw reports
+          path: |
+            packages/*/coverage/coverage-summary.json
+            packages/*/coverage/coverage-final.json
+            apps/*/coverage/coverage-summary.json
+            apps/*/coverage/coverage-final.json
+            # Add other potential locations if necessary
           retention-days: 7
+          # Optional: Handle case where no files are found gracefully
+          if-no-files-found: warn # 'warn', 'error', or 'ignore'

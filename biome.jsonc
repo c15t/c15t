@@ -42,7 +42,7 @@
 			}
 		}
 	},
-  "files": {
+	"files": {
 		"ignore": ["**/coverage"]
 	}
 }

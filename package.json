@@ -46,7 +46,7 @@
 	"engines": {
 		"node": ">=22"
 	},
-  "resolutions": {
+	"resolutions": {
 		"@libsql/kysely-libsql": "^0.4.1"
 	}
 }
