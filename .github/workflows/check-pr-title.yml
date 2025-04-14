@@ -1,5 +1,5 @@
 # .github/workflows/check-pr-title.yml
-name: "Check PR Title"
+name: "Check PR"
 
 on:
   # Use pull_request_target to handle forks and allow commenting
@@ -15,8 +15,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  validate_pr_title: # Use snake_case for job ID
-    name: ✅ Validate PR Title Convention
+  validate-pr:
+    name: PR title
     runs-on: ubuntu-latest
     steps:
       # Step 1: Lint the PR title
@@ -38,23 +38,20 @@ jobs:
           header: pr-title-lint-error
           # Provide a helpful error message with emojis
           message: |
-            Hey there! 👋 Thank you for opening this pull request! 🙏
+            Hey there and thank you for opening this pull request! 👋🏼
 
-            Looks like the PR title needs a little adjustment to follow our [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/).
-
-            **Quick Examples:**
+            We require pull request titles to follow the [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/) and it looks like your proposed title needs to be adjusted.
+            Here is an example:
             ```
-            fix: correct typo in README
-            feat: add user authentication feature
-            chore(deps): update dependencies
+            <type>[optional scope]: <description>
+            fix: I fixed something for consent.management
             ```
 
-            **Error Details:**
+            Details:
+
             ```
             ${{ steps.lint_pr_title.outputs.error_message }}
             ```
-            
-            No worries, just a quick edit should do the trick! 😊
 
       # Step 3: Update/Delete comment if linting passed
       - name: 🎉 Update/Delete Comment on Success
@@ -66,4 +63,4 @@ jobs:
           header: pr-title-lint-error
           # Provide a positive confirmation, effectively deleting the error message
           message: |
-            Perfect PR title! ✨ Thanks for following the naming conventions! 👍
+            Thank you for following the naming conventions for pull request titles! 🙏
