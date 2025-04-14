@@ -7,21 +7,21 @@ import type { AllThemeKeys } from './style-keys';
  * @public
  */
 export type CSSPropertiesWithVars<T = Record<string, string | number>> =
-  CSSProperties & Partial<T>;
+	CSSProperties & Partial<T>;
 
 /**
  * Represents a style configuration that can include both inline styles and class names.
  * @public
  */
 export type ClassNameStyle<T = Record<string, string | number>> = {
-  /** @remarks CSS properties to be applied inline to the component */
-  style?: CSSPropertiesWithVars<T>;
-  /** @remarks CSS class names to be applied to the component */
-  className?: string;
-  /** @remarks The type of style to apply to the component */
-  noStyle?: boolean;
-  /** @internal used to pass default class names to the component */
-  baseClassName?: ClassValue;
+	/** @remarks CSS properties to be applied inline to the component */
+	style?: CSSPropertiesWithVars<T>;
+	/** @remarks CSS class names to be applied to the component */
+	className?: string;
+	/** @remarks The type of style to apply to the component */
+	noStyle?: boolean;
+	/** @internal used to pass default class names to the component */
+	baseClassName?: ClassValue;
 };
 
 /**
@@ -29,13 +29,13 @@ export type ClassNameStyle<T = Record<string, string | number>> = {
  * @public
  */
 export type ThemeValue<T = Record<string, string | number>> =
-  | string
-  | ClassNameStyle<T>;
+	| string
+	| ClassNameStyle<T>;
 
 export interface ExtendThemeKeys<T = CSSVariables> extends ClassNameStyle<T> {
-  themeKey: AllThemeKeys;
+	themeKey: AllThemeKeys;
 }
 
 export type CSSVariables = {
-  [key: string]: string | number;
+	[key: string]: string | number;
 };

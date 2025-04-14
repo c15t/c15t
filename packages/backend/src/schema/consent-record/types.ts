@@ -10,12 +10,12 @@ import type { BaseEntityConfig } from '../types';
  * @default entityName: "record", entityPrefix: "rec"
  */
 export interface ConsentRecordEntityConfig extends BaseEntityConfig {
-  fields?: Record<string, string> & {
-    id?: string;
-    subjectId?: string;
-    consentId?: string;
-    actionType?: string;
-    details?: string;
-    createdAt?: string;
-  };
+	fields?: Record<string, string> & {
+		id?: string;
+		subjectId?: string;
+		consentId?: string;
+		actionType?: string;
+		details?: string;
+		createdAt?: string;
+	};
 }

@@ -37,48 +37,48 @@ import { getSubjectTable } from './subject/table';
  * ```
  */
 export const getConsentTables = (options: C15TOptions) => {
-  const pluginSchema = options.plugins?.reduce((acc, plugin) => {
-    const schema = plugin.schema;
-    if (!schema) {
-      return acc;
-    }
-    for (const [key, value] of Object.entries(schema)) {
-      acc[key] = {
-        fields: {
-          ...acc[key]?.fields,
-          ...(value as { fields: Record<string, Field> }).fields,
-        },
-        entityName: key,
-      };
-    }
-    return acc;
-  }, {} as PluginSchema);
+	const pluginSchema = options.plugins?.reduce((acc, plugin) => {
+		const schema = plugin.schema;
+		if (!schema) {
+			return acc;
+		}
+		for (const [key, value] of Object.entries(schema)) {
+			acc[key] = {
+				fields: {
+					...acc[key]?.fields,
+					...(value as { fields: Record<string, Field> }).fields,
+				},
+				entityName: key,
+			};
+		}
+		return acc;
+	}, {} as PluginSchema);
 
-  const {
-    subject,
-    consentPurpose,
-    consentPolicy,
-    domain,
-    geoLocation,
-    consent,
-    consentPurposeJunction,
-    record,
-    consentGeoLocation,
-    consentWithdrawal,
-    auditLog,
-    ...pluginTables
-  } = pluginSchema || {};
+	const {
+		subject,
+		consentPurpose,
+		consentPolicy,
+		domain,
+		geoLocation,
+		consent,
+		consentPurposeJunction,
+		record,
+		consentGeoLocation,
+		consentWithdrawal,
+		auditLog,
+		...pluginTables
+	} = pluginSchema || {};
 
-  return {
-    subject: getSubjectTable(options, subject?.fields),
-    consentPurpose: getPurposeTable(options, consentPurpose?.fields),
-    consentPolicy: getConsentPolicyTable(options, consentPolicy?.fields),
-    domain: getDomainTable(options, domain?.fields),
-    consent: getConsentTable(options, consent?.fields),
-    consentRecord: getConsentRecordTable(options, record?.fields),
-    auditLog: getAuditLogTable(options, auditLog?.fields),
-    ...pluginTables,
-  };
+	return {
+		subject: getSubjectTable(options, subject?.fields),
+		consentPurpose: getPurposeTable(options, consentPurpose?.fields),
+		consentPolicy: getConsentPolicyTable(options, consentPolicy?.fields),
+		domain: getDomainTable(options, domain?.fields),
+		consent: getConsentTable(options, consent?.fields),
+		consentRecord: getConsentRecordTable(options, record?.fields),
+		auditLog: getAuditLogTable(options, auditLog?.fields),
+		...pluginTables,
+	};
 };
 
 /**
@@ -114,7 +114,7 @@ export type C15TDBSchema = ReturnType<typeof getConsentTables>;
  * It also resolves relationships between tables.
  */
 export type EntityOutputFields<TableName extends keyof C15TDBSchema> =
-  InferTableShape<TableName>;
+	InferTableShape<TableName>;
 
 /**
  * Validates output data against table schema using Zod
@@ -152,49 +152,49 @@ export type EntityOutputFields<TableName extends keyof C15TDBSchema> =
  * ```
  */
 export function validateEntityOutput<TableName extends keyof C15TDBSchema>(
-  tableName: TableName,
-  data: Record<string, unknown>,
-  options: C15TOptions
+	tableName: TableName,
+	data: Record<string, unknown>,
+	options: C15TOptions
 ): EntityOutputFields<TableName> {
-  const tables = getConsentTables(options);
-  const table = tables[tableName];
+	const tables = getConsentTables(options);
+	const table = tables[tableName];
 
-  if (!table) {
-    throw new Error(`Table ${tableName} not found`);
-  }
+	if (!table) {
+		throw new Error(`Table ${tableName} not found`);
+	}
 
-  // Pre-process data: Convert date strings to Date objects
-  const processedData = { ...data };
-  for (const [field, def] of Object.entries(table.fields)) {
-    if (def.type === 'date' && typeof processedData[field] === 'string') {
-      processedData[field] = new Date(processedData[field] as string);
-    }
-  }
+	// Pre-process data: Convert date strings to Date objects
+	const processedData = { ...data };
+	for (const [field, def] of Object.entries(table.fields)) {
+		if (def.type === 'date' && typeof processedData[field] === 'string') {
+			processedData[field] = new Date(processedData[field] as string);
+		}
+	}
 
-  // This is useful for debugging validation issues
-  // console.log('[validateEntityOutput] Debug data:', {
-  // 	fields: Object.fromEntries(
-  // 		Object.entries(table.fields).map(([key, field]) => [
-  // 			key,
-  // 			{
-  // 				type: field.type,
-  // 				required: field.required,
-  // 				value: processedData[field.fieldName as keyof typeof processedData],
-  // 			},
-  // 		])
-  // 	),
-  // });
+	// This is useful for debugging validation issues
+	// console.log('[validateEntityOutput] Debug data:', {
+	// 	fields: Object.fromEntries(
+	// 		Object.entries(table.fields).map(([key, field]) => [
+	// 			key,
+	// 			{
+	// 				type: field.type,
+	// 				required: field.required,
+	// 				value: processedData[field.fieldName as keyof typeof processedData],
+	// 			},
+	// 		])
+	// 	),
+	// });
 
-  // Validate and return data using Zod schema
-  try {
-    return table.schema.parse(processedData) as EntityOutputFields<TableName>;
-  } catch (error) {
-    if (error instanceof ZodError) {
-      logger.error(
-        `[validateEntityOutput] Validation failed for table ${String(tableName)}`,
-        { table, issues: error.issues }
-      );
-    }
-    throw error;
-  }
+	// Validate and return data using Zod schema
+	try {
+		return table.schema.parse(processedData) as EntityOutputFields<TableName>;
+	} catch (error) {
+		if (error instanceof ZodError) {
+			logger.error(
+				`[validateEntityOutput] Validation failed for table ${String(tableName)}`,
+				{ table, issues: error.issues }
+			);
+		}
+		throw error;
+	}
 }

@@ -1,39 +1,39 @@
 {
-  "name": "c15t",
-  "version": "0.0.1-rc.22",
-  "license": "GPL-3.0-only",
-  "type": "module",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
-  },
-  "main": "dist/index.cjs",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "rslib build",
-    "check-types": "tsc --noEmit",
-    "check-types:test": "tsc -p tsconfig.test.json",
-    "dev": "rslib build --watch",
-    "fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
-    "lint": "pnpm biome lint ./src",
-    "test": "vitest run",
-    "test:watch": "vitest"
-  },
-  "browserslist": [">0.2%", "not dead", "not op_mini all"],
-  "dependencies": {
-    "@c15t/backend": "workspace:*",
-    "zustand": "^5.0.3"
-  },
-  "devDependencies": {
-    "@c15t/typescript-config": "workspace:*",
-    "@c15t/vitest-config": "workspace:*",
-    "vitest-localstorage-mock": "^0.1.2"
-  },
-  "publishConfig": {
-    "access": "public"
-  }
+	"name": "c15t",
+	"version": "0.0.1-rc.22",
+	"license": "GPL-3.0-only",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"main": "dist/index.cjs",
+	"module": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"scripts": {
+		"build": "rslib build",
+		"check-types": "tsc --noEmit",
+		"check-types:test": "tsc -p tsconfig.test.json",
+		"dev": "rslib build --watch",
+		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"lint": "pnpm biome lint ./src",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"browserslist": [">0.2%", "not dead", "not op_mini all"],
+	"dependencies": {
+		"@c15t/backend": "workspace:*",
+		"zustand": "^5.0.3"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
+		"vitest-localstorage-mock": "^0.1.2"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
 }

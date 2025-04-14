@@ -13,5 +13,5 @@ const currentDatabaseType: DatabaseType = 'unknown';
  * @returns The current database type
  */
 export function getDatabaseType(): DatabaseType {
-  return currentDatabaseType;
+	return currentDatabaseType;
 }

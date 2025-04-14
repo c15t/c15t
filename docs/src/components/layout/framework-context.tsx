@@ -3,12 +3,12 @@
 import { usePathname } from 'fumadocs-core/framework';
 import type { PageTree } from 'fumadocs-core/server';
 import {
-  type ReactNode,
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
+	type ReactNode,
+	createContext,
+	useContext,
+	useEffect,
+	useMemo,
+	useState,
 } from 'react';
 
 // localStorage key for the active framework
@@ -18,159 +18,159 @@ const ACTIVE_FRAMEWORK_KEY = 'active-framework';
 const PREFERRED_FRAMEWORKS = ['nextjs', 'react', 'javascript'];
 
 interface FrameworkContextType {
-  /** Currently active framework */
-  activeFramework: string;
-  /** Set the active framework */
-  setActiveFramework: (framework: string) => void;
-  /** Check if a string is a valid framework */
-  isValidFramework: (framework: string) => boolean;
+	/** Currently active framework */
+	activeFramework: string;
+	/** Set the active framework */
+	setActiveFramework: (framework: string) => void;
+	/** Check if a string is a valid framework */
+	isValidFramework: (framework: string) => boolean;
 }
 
 // Create context with default values
 const FrameworkContext = createContext<FrameworkContextType>({
-  activeFramework: 'nextjs',
-  setActiveFramework: () => undefined,
-  isValidFramework: () => false,
+	activeFramework: 'nextjs',
+	setActiveFramework: () => undefined,
+	isValidFramework: () => false,
 });
 
 interface FrameworkProviderProps {
-  children: ReactNode;
-  tree: PageTree.Root;
-  defaultFramework?: string;
+	children: ReactNode;
+	tree: PageTree.Root;
+	defaultFramework?: string;
 }
 
 /**
  * Provider component for framework selection
  */
 export function FrameworkProvider({
-  children,
-  tree,
-  defaultFramework = 'nextjs',
+	children,
+	tree,
+	defaultFramework = 'nextjs',
 }: FrameworkProviderProps) {
-  const pathname = usePathname();
+	const pathname = usePathname();
 
-  // Find a valid framework from the available options
-  const validFramework = useMemo(() => {
-    // First check all preferred frameworks in order
-    for (const fw of PREFERRED_FRAMEWORKS) {
-      if (isValidFrameworkInTree(fw, tree)) {
-        return fw;
-      }
-    }
+	// Find a valid framework from the available options
+	const validFramework = useMemo(() => {
+		// First check all preferred frameworks in order
+		for (const fw of PREFERRED_FRAMEWORKS) {
+			if (isValidFrameworkInTree(fw, tree)) {
+				return fw;
+			}
+		}
 
-    // Then try any other available framework
-    for (const item of tree.children) {
-      if (
-        item.type === 'folder' &&
-        item.root === true &&
-        typeof item.name === 'string'
-      ) {
-        return item.name.toLowerCase();
-      }
-    }
+		// Then try any other available framework
+		for (const item of tree.children) {
+			if (
+				item.type === 'folder' &&
+				item.root === true &&
+				typeof item.name === 'string'
+			) {
+				return item.name.toLowerCase();
+			}
+		}
 
-    return 'nextjs';
-  }, [tree]);
+		return 'nextjs';
+	}, [tree]);
 
-  // Initialize with a valid framework
-  const [activeFramework, setActiveFrameworkState] = useState<string>(
-    defaultFramework || validFramework
-  );
+	// Initialize with a valid framework
+	const [activeFramework, setActiveFrameworkState] = useState<string>(
+		defaultFramework || validFramework
+	);
 
-  // Update framework with persistence
-  const setActiveFramework = (framework: string) => {
-    if (framework && isValidFrameworkInTree(framework, tree)) {
-      setActiveFrameworkState(framework);
-      try {
-        localStorage.setItem(ACTIVE_FRAMEWORK_KEY, framework);
-      } catch {
-        // Ignore localStorage errors
-      }
-    }
-  };
+	// Update framework with persistence
+	const setActiveFramework = (framework: string) => {
+		if (framework && isValidFrameworkInTree(framework, tree)) {
+			setActiveFrameworkState(framework);
+			try {
+				localStorage.setItem(ACTIVE_FRAMEWORK_KEY, framework);
+			} catch {
+				// Ignore localStorage errors
+			}
+		}
+	};
 
-  // Check if a framework is valid
-  const isValidFramework = (framework: string) => {
-    return isValidFrameworkInTree(framework, tree);
-  };
+	// Check if a framework is valid
+	const isValidFramework = (framework: string) => {
+		return isValidFrameworkInTree(framework, tree);
+	};
 
-  // Initialize framework from URL path or localStorage
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-  useEffect(() => {
-    // Try to get framework from URL path
-    const pathParts = pathname.split('/').filter(Boolean);
-    const pathFramework = pathParts.length > 1 ? pathParts[1] : '';
+	// Initialize framework from URL path or localStorage
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+	useEffect(() => {
+		// Try to get framework from URL path
+		const pathParts = pathname.split('/').filter(Boolean);
+		const pathFramework = pathParts.length > 1 ? pathParts[1] : '';
 
-    // Try getting stored framework preference
-    let storedFramework: string | null = null;
-    try {
-      storedFramework = localStorage.getItem(ACTIVE_FRAMEWORK_KEY);
-    } catch {
-      // Ignore localStorage errors
-    }
+		// Try getting stored framework preference
+		let storedFramework: string | null = null;
+		try {
+			storedFramework = localStorage.getItem(ACTIVE_FRAMEWORK_KEY);
+		} catch {
+			// Ignore localStorage errors
+		}
 
-    // Priority: URL path > localStorage > default > auto-detect
-    if (pathFramework && isValidFrameworkInTree(pathFramework, tree)) {
-      setActiveFramework(pathFramework);
-    } else if (
-      storedFramework &&
-      isValidFrameworkInTree(storedFramework, tree)
-    ) {
-      setActiveFramework(storedFramework);
-    } else if (
-      defaultFramework &&
-      isValidFrameworkInTree(defaultFramework, tree)
-    ) {
-      setActiveFramework(defaultFramework);
-    } else {
-      setActiveFramework(validFramework);
-    }
-  }, [pathname, tree, defaultFramework, validFramework]);
+		// Priority: URL path > localStorage > default > auto-detect
+		if (pathFramework && isValidFrameworkInTree(pathFramework, tree)) {
+			setActiveFramework(pathFramework);
+		} else if (
+			storedFramework &&
+			isValidFrameworkInTree(storedFramework, tree)
+		) {
+			setActiveFramework(storedFramework);
+		} else if (
+			defaultFramework &&
+			isValidFrameworkInTree(defaultFramework, tree)
+		) {
+			setActiveFramework(defaultFramework);
+		} else {
+			setActiveFramework(validFramework);
+		}
+	}, [pathname, tree, defaultFramework, validFramework]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-  const contextValue = useMemo(
-    () => ({
-      activeFramework,
-      setActiveFramework,
-      isValidFramework,
-    }),
-    [activeFramework]
-  );
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+	const contextValue = useMemo(
+		() => ({
+			activeFramework,
+			setActiveFramework,
+			isValidFramework,
+		}),
+		[activeFramework]
+	);
 
-  return (
-    <FrameworkContext.Provider value={contextValue}>
-      {children}
-    </FrameworkContext.Provider>
-  );
+	return (
+		<FrameworkContext.Provider value={contextValue}>
+			{children}
+		</FrameworkContext.Provider>
+	);
 }
 
 /**
  * Hook to access the current framework context
  */
 export function useFramework() {
-  const context = useContext(FrameworkContext);
-  if (!context) {
-    throw new Error('useFramework must be used within a FrameworkProvider');
-  }
-  return context;
+	const context = useContext(FrameworkContext);
+	if (!context) {
+		throw new Error('useFramework must be used within a FrameworkProvider');
+	}
+	return context;
 }
 
 /**
  * Check if a framework is valid by finding its folder in the tree
  */
 function isValidFrameworkInTree(
-  framework: string,
-  tree: PageTree.Root
+	framework: string,
+	tree: PageTree.Root
 ): boolean {
-  if (!framework) {
-    return false;
-  }
+	if (!framework) {
+		return false;
+	}
 
-  return tree.children.some(
-    (item) =>
-      item.type === 'folder' &&
-      item.root === true &&
-      typeof item.name === 'string' &&
-      item.name.toLowerCase() === framework.toLowerCase()
-  );
+	return tree.children.some(
+		(item) =>
+			item.type === 'folder' &&
+			item.root === true &&
+			typeof item.name === 'string' &&
+			item.name.toLowerCase() === framework.toLowerCase()
+	);
 }

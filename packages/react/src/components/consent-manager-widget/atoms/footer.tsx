@@ -11,37 +11,37 @@ import styles from '../consent-manager-widget.module.css';
  * - Maintains consistent layout
  */
 export const ConsentManagerWidgetFooter = forwardRef<
-  HTMLDivElement,
-  Omit<BoxProps, 'themeKey'>
+	HTMLDivElement,
+	Omit<BoxProps, 'themeKey'>
 >(({ children, ...props }, ref) => {
-  return (
-    <Box
-      ref={ref as Ref<HTMLDivElement>}
-      baseClassName={styles.footer}
-      data-testid="consent-manager-widget-footer"
-      {...props}
-      themeKey="widget.footer"
-    >
-      {children}
-    </Box>
-  );
+	return (
+		<Box
+			ref={ref as Ref<HTMLDivElement>}
+			baseClassName={styles.footer}
+			data-testid="consent-manager-widget-footer"
+			{...props}
+			themeKey="widget.footer"
+		>
+			{children}
+		</Box>
+	);
 });
 
 export const ConsentManagerWidgetFooterSubGroup = forwardRef<
-  HTMLDivElement,
-  BoxProps
+	HTMLDivElement,
+	BoxProps
 >(({ children, ...props }, ref) => {
-  return (
-    <Box
-      ref={ref as Ref<HTMLDivElement>}
-      baseClassName={styles.footerGroup}
-      data-testid="consent-manager-widget-footer-sub-group"
-      {...props}
-      themeKey="widget.footer.sub-group"
-    >
-      {children}
-    </Box>
-  );
+	return (
+		<Box
+			ref={ref as Ref<HTMLDivElement>}
+			baseClassName={styles.footerGroup}
+			data-testid="consent-manager-widget-footer-sub-group"
+			{...props}
+			themeKey="widget.footer.sub-group"
+		>
+			{children}
+		</Box>
+	);
 });
 
 const Footer = ConsentManagerWidgetFooter;

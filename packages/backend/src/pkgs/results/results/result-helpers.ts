@@ -3,10 +3,10 @@ import { DoubleTieError } from '../core/error-class';
 import { ERROR_CODES } from '../core/error-codes';
 import { withSpan } from '../core/tracing';
 import type {
-  ErrorMessageType,
-  ErrorTransformer,
-  SDKResult,
-  SDKResultAsync,
+	ErrorMessageType,
+	ErrorTransformer,
+	SDKResult,
+	SDKResultAsync,
 } from '../types';
 
 /**
@@ -55,19 +55,19 @@ export { ok } from 'neverthrow';
  * ```
  */
 export function fail<TValue>(
-  message: string,
-  options: ConstructorParameters<typeof DoubleTieError>[1]
+	message: string,
+	options: ConstructorParameters<typeof DoubleTieError>[1]
 ): SDKResult<TValue> {
-  const error = new DoubleTieError(message, options);
-  withSpan('create_error_result', async (span) => {
-    span.setAttributes({
-      'error.message': message,
-      'error.code': options?.code,
-      'error.status': options?.status,
-      'error.category': options?.category,
-    });
-  });
-  return err(error);
+	const error = new DoubleTieError(message, options);
+	withSpan('create_error_result', async (span) => {
+		span.setAttributes({
+			'error.message': message,
+			'error.code': options?.code,
+			'error.status': options?.status,
+			'error.category': options?.category,
+		});
+	});
+	return err(error);
 }
 
 /**
@@ -105,19 +105,19 @@ export function fail<TValue>(
  * ```
  */
 export function failAsync<TValue>(
-  message: string,
-  options: ConstructorParameters<typeof DoubleTieError>[1]
+	message: string,
+	options: ConstructorParameters<typeof DoubleTieError>[1]
 ): SDKResultAsync<TValue> {
-  const error = new DoubleTieError(message, options);
-  withSpan('create_error_result_async', async (span) => {
-    span.setAttributes({
-      'error.message': message,
-      'error.code': options?.code,
-      'error.status': options?.status,
-      'error.category': options?.category,
-    });
-  });
-  return errAsync(error);
+	const error = new DoubleTieError(message, options);
+	withSpan('create_error_result_async', async (span) => {
+		span.setAttributes({
+			'error.message': message,
+			'error.code': options?.code,
+			'error.status': options?.status,
+			'error.category': options?.category,
+		});
+	});
+	return errAsync(error);
 }
 
 /**
@@ -162,48 +162,48 @@ export function failAsync<TValue>(
  * ```
  */
 export function tryCatch<TValue>(
-  fn: () => TValue,
-  errorCode: ErrorMessageType = ERROR_CODES.UNKNOWN_ERROR,
-  errorMapper?: ErrorTransformer
+	fn: () => TValue,
+	errorCode: ErrorMessageType = ERROR_CODES.UNKNOWN_ERROR,
+	errorMapper?: ErrorTransformer
 ): SDKResult<TValue> {
-  try {
-    const result = fn();
-    withSpan('try_catch', async (span) => {
-      span.setAttributes({
-        'operation.success': true,
-        'result.type': typeof result,
-      });
-    });
-    return ok(result);
-  } catch (error) {
-    withSpan('try_catch', async (span) => {
-      span.setAttributes({
-        'operation.success': false,
-        'error.type':
-          error instanceof Error ? error.constructor.name : 'Unknown',
-        'error.message': error instanceof Error ? error.message : String(error),
-      });
-    });
+	try {
+		const result = fn();
+		withSpan('try_catch', async (span) => {
+			span.setAttributes({
+				'operation.success': true,
+				'result.type': typeof result,
+			});
+		});
+		return ok(result);
+	} catch (error) {
+		withSpan('try_catch', async (span) => {
+			span.setAttributes({
+				'operation.success': false,
+				'error.type':
+					error instanceof Error ? error.constructor.name : 'Unknown',
+				'error.message': error instanceof Error ? error.message : String(error),
+			});
+		});
 
-    if (errorMapper && error instanceof Error) {
-      const mappedError = errorMapper(error);
-      withSpan('try_catch', async (span) => {
-        span.setAttributes({
-          'error.mapped': true,
-          'error.mapped_code': mappedError.code,
-        });
-      });
-      return err(mappedError);
-    }
+		if (errorMapper && error instanceof Error) {
+			const mappedError = errorMapper(error);
+			withSpan('try_catch', async (span) => {
+				span.setAttributes({
+					'error.mapped': true,
+					'error.mapped_code': mappedError.code,
+				});
+			});
+			return err(mappedError);
+		}
 
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return err(
-      new DoubleTieError(errorMessage, {
-        code: errorCode,
-        cause: error instanceof Error ? error : undefined,
-      })
-    );
-  }
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		return err(
+			new DoubleTieError(errorMessage, {
+				code: errorCode,
+				cause: error instanceof Error ? error : undefined,
+			})
+		);
+	}
 }
 
 /**
@@ -255,59 +255,59 @@ export function tryCatch<TValue>(
  * ```
  */
 export function tryCatchAsync<TValue>(
-  fn: () => Promise<TValue>,
-  errorCode: ErrorMessageType = ERROR_CODES.UNKNOWN_ERROR,
-  errorMapper?: ErrorTransformer
+	fn: () => Promise<TValue>,
+	errorCode: ErrorMessageType = ERROR_CODES.UNKNOWN_ERROR,
+	errorMapper?: ErrorTransformer
 ): SDKResultAsync<TValue> {
-  return ResultAsync.fromPromise(
-    (async () => {
-      try {
-        const result = await fn();
-        withSpan('try_catch_async', async (span) => {
-          span.setAttributes({
-            'operation.success': true,
-            'result.type': typeof result,
-          });
-        });
-        return result;
-      } catch (error) {
-        withSpan('try_catch_async', async (span) => {
-          span.setAttributes({
-            'operation.success': false,
-            'error.type':
-              error instanceof Error ? error.constructor.name : 'Unknown',
-            'error.message':
-              error instanceof Error ? error.message : String(error),
-          });
-        });
+	return ResultAsync.fromPromise(
+		(async () => {
+			try {
+				const result = await fn();
+				withSpan('try_catch_async', async (span) => {
+					span.setAttributes({
+						'operation.success': true,
+						'result.type': typeof result,
+					});
+				});
+				return result;
+			} catch (error) {
+				withSpan('try_catch_async', async (span) => {
+					span.setAttributes({
+						'operation.success': false,
+						'error.type':
+							error instanceof Error ? error.constructor.name : 'Unknown',
+						'error.message':
+							error instanceof Error ? error.message : String(error),
+					});
+				});
 
-        if (errorMapper && error instanceof Error) {
-          const mappedError = errorMapper(error);
-          withSpan('try_catch_async', async (span) => {
-            span.setAttributes({
-              'error.mapped': true,
-              'error.mapped_code': mappedError.code,
-            });
-          });
-          throw mappedError;
-        }
+				if (errorMapper && error instanceof Error) {
+					const mappedError = errorMapper(error);
+					withSpan('try_catch_async', async (span) => {
+						span.setAttributes({
+							'error.mapped': true,
+							'error.mapped_code': mappedError.code,
+						});
+					});
+					throw mappedError;
+				}
 
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        throw new DoubleTieError(errorMessage, {
-          code: errorCode,
-          cause: error instanceof Error ? error : undefined,
-        });
-      }
-    })(),
-    (error) =>
-      error instanceof DoubleTieError
-        ? error
-        : new DoubleTieError(String(error), {
-            code: errorCode,
-            cause: error instanceof Error ? error : undefined,
-          })
-  );
+				const errorMessage =
+					error instanceof Error ? error.message : String(error);
+				throw new DoubleTieError(errorMessage, {
+					code: errorCode,
+					cause: error instanceof Error ? error : undefined,
+				});
+			}
+		})(),
+		(error) =>
+			error instanceof DoubleTieError
+				? error
+				: new DoubleTieError(String(error), {
+						code: errorCode,
+						cause: error instanceof Error ? error : undefined,
+					})
+	);
 }
 
 /**
@@ -350,34 +350,34 @@ export function tryCatchAsync<TValue>(
  * ```
  */
 export function promiseToResult<TValue>(
-  promise: Promise<TValue>,
-  errorCode: ErrorMessageType = ERROR_CODES.UNKNOWN_ERROR
+	promise: Promise<TValue>,
+	errorCode: ErrorMessageType = ERROR_CODES.UNKNOWN_ERROR
 ): SDKResultAsync<TValue> {
-  return ResultAsync.fromPromise(promise, (error) => {
-    withSpan('promise_to_result', async (span) => {
-      span.setAttributes({
-        'operation.success': false,
-        'error.type':
-          error instanceof Error ? error.constructor.name : 'Unknown',
-        'error.message': error instanceof Error ? error.message : String(error),
-      });
-    });
+	return ResultAsync.fromPromise(promise, (error) => {
+		withSpan('promise_to_result', async (span) => {
+			span.setAttributes({
+				'operation.success': false,
+				'error.type':
+					error instanceof Error ? error.constructor.name : 'Unknown',
+				'error.message': error instanceof Error ? error.message : String(error),
+			});
+		});
 
-    return new DoubleTieError(
-      error instanceof Error ? error.message : String(error),
-      {
-        code: errorCode,
-        cause: error instanceof Error ? error : undefined,
-        meta: { error },
-      }
-    );
-  }).map((result) => {
-    withSpan('promise_to_result', async (span) => {
-      span.setAttributes({
-        'operation.success': true,
-        'result.type': typeof result,
-      });
-    });
-    return result;
-  });
+		return new DoubleTieError(
+			error instanceof Error ? error.message : String(error),
+			{
+				code: errorCode,
+				cause: error instanceof Error ? error : undefined,
+				meta: { error },
+			}
+		);
+	}).map((result) => {
+		withSpan('promise_to_result', async (span) => {
+			span.setAttributes({
+				'operation.success': true,
+				'result.type': typeof result,
+			});
+		});
+		return result;
+	});
 }

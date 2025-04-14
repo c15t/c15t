@@ -13,119 +13,119 @@ import { getStore } from '../dev-tool';
 type TabSection = 'Consents' | 'Compliance' | 'Scripts' | 'Conditional';
 
 const tabs = [
-  { title: 'Consents' as const, icon: ToggleLeft },
-  { title: 'Compliance' as const, icon: GanttChartSquare },
+	{ title: 'Consents' as const, icon: ToggleLeft },
+	{ title: 'Compliance' as const, icon: GanttChartSquare },
 ] as const;
 
 interface ContentItem {
-  title: string;
-  status: string;
-  details?: string;
+	title: string;
+	status: string;
+	details?: string;
 }
 
 interface RouterProps {
-  onClose: () => void;
+	onClose: () => void;
 }
 
 export function Router({ onClose: _onClose }: RouterProps) {
-  const privacyConsent = getStore() as PrivacyConsentState;
+	const privacyConsent = getStore() as PrivacyConsentState;
 
-  const [activeSection, setActiveSection] = useState<TabSection>('Consents');
+	const [activeSection, setActiveSection] = useState<TabSection>('Consents');
 
-  // Handle tab change locally
-  const handleTabChange = useCallback((index: number | null) => {
-    if (index !== null) {
-      //@ts-expect-error
-      setActiveSection(tabs[index].title);
-    }
-  }, []);
+	// Handle tab change locally
+	const handleTabChange = useCallback((index: number | null) => {
+		if (index !== null) {
+			//@ts-expect-error
+			setActiveSection(tabs[index].title);
+		}
+	}, []);
 
-  // Compute rendering state without conditions
-  const renderingState = [
-    { componentName: 'MarketingContent', consentType: 'marketing' as const },
-    { componentName: 'AnalyticsContent', consentType: 'measurement' as const },
-    {
-      componentName: 'PersonalizationComponent',
-      consentType: 'ad_personalization' as const,
-    },
-  ];
+	// Compute rendering state without conditions
+	const renderingState = [
+		{ componentName: 'MarketingContent', consentType: 'marketing' as const },
+		{ componentName: 'AnalyticsContent', consentType: 'measurement' as const },
+		{
+			componentName: 'PersonalizationComponent',
+			consentType: 'ad_personalization' as const,
+		},
+	];
 
-  // Compute content items based on active section
-  const contentItems: ContentItem[] = (() => {
-    switch (activeSection) {
-      case 'Consents':
-        return Object.entries(privacyConsent.consents).map(([name, value]) => ({
-          title: name,
-          status: value ? 'Enabled' : 'Disabled',
-        }));
-      case 'Compliance':
-        return Object.entries(privacyConsent.complianceSettings).map(
-          ([region, settings]) => ({
-            title: region,
-            status: settings.enabled ? 'Active' : 'Inactive',
-          })
-        );
-      case 'Conditional':
-        return renderingState.map((item) => ({
-          title: item.componentName,
-          status: 'Rendered',
-          details: `Requires: ${item.consentType}`,
-        }));
-      default:
-        return [];
-    }
-  })();
+	// Compute content items based on active section
+	const contentItems: ContentItem[] = (() => {
+		switch (activeSection) {
+			case 'Consents':
+				return Object.entries(privacyConsent.consents).map(([name, value]) => ({
+					title: name,
+					status: value ? 'Enabled' : 'Disabled',
+				}));
+			case 'Compliance':
+				return Object.entries(privacyConsent.complianceSettings).map(
+					([region, settings]) => ({
+						title: region,
+						status: settings.enabled ? 'Active' : 'Inactive',
+					})
+				);
+			case 'Conditional':
+				return renderingState.map((item) => ({
+					title: item.componentName,
+					status: 'Rendered',
+					details: `Requires: ${item.consentType}`,
+				}));
+			default:
+				return [];
+		}
+	})();
 
-  return (
-    <>
-      <div className="border-b p-4">
-        <ExpandableTabs
-          tabs={Array.from(tabs)}
-          activeColor="text-primary"
-          className="border-muted"
-          onChange={handleTabChange}
-        />
-      </div>
-      <ScrollArea className="h-[300px]">
-        <motion.div
-          className="space-y-2 p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          {contentItems.map((item, index) => (
-            <motion.div
-              key={`${activeSection}-${item.title}`}
-              className="flex items-center justify-between rounded-lg border bg-card p-3"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <div className="flex flex-col">
-                <span className="font-medium text-sm">{item.title}</span>
-                {item.details && (
-                  <span className="text-muted-foreground text-xs">
-                    {item.details}
-                  </span>
-                )}
-              </div>
-              <Badge
-                variant={
-                  item.status === 'Enabled' ||
-                  item.status === 'Active' ||
-                  item.status === 'active' ||
-                  item.status === 'Rendered'
-                    ? 'default'
-                    : 'destructive'
-                }
-              >
-                {item.status}
-              </Badge>
-            </motion.div>
-          ))}
-        </motion.div>
-      </ScrollArea>
-      {/* <div className="border-t p-4">
+	return (
+		<>
+			<div className="border-b p-4">
+				<ExpandableTabs
+					tabs={Array.from(tabs)}
+					activeColor="text-primary"
+					className="border-muted"
+					onChange={handleTabChange}
+				/>
+			</div>
+			<ScrollArea className="h-[300px]">
+				<motion.div
+					className="space-y-2 p-4"
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					exit={{ opacity: 0 }}
+				>
+					{contentItems.map((item, index) => (
+						<motion.div
+							key={`${activeSection}-${item.title}`}
+							className="flex items-center justify-between rounded-lg border bg-card p-3"
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ delay: index * 0.05 }}
+						>
+							<div className="flex flex-col">
+								<span className="font-medium text-sm">{item.title}</span>
+								{item.details && (
+									<span className="text-muted-foreground text-xs">
+										{item.details}
+									</span>
+								)}
+							</div>
+							<Badge
+								variant={
+									item.status === 'Enabled' ||
+									item.status === 'Active' ||
+									item.status === 'active' ||
+									item.status === 'Rendered'
+										? 'default'
+										: 'destructive'
+								}
+							>
+								{item.status}
+							</Badge>
+						</motion.div>
+					))}
+				</motion.div>
+			</ScrollArea>
+			{/* <div className="border-t p-4">
 				<div className="flex flex-col gap-2">
 					<Button variant="outline" size="sm" onClick={handleResetConsent}>
 						<RefreshCw className="mr-2 h-4 w-4" />
@@ -141,6 +141,6 @@ export function Router({ onClose: _onClose }: RouterProps) {
 					</Button>
 				</div>
 			</div> */}
-    </>
-  );
+		</>
+	);
 }

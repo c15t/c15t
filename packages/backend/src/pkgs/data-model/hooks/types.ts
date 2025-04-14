@@ -33,9 +33,9 @@ export type HookOperation = 'create' | 'update';
  * ```
  */
 export type HookResult<TData> =
-  | { kind: 'abort' }
-  | { kind: 'transform'; data: TData }
-  | { kind: 'continue' };
+	| { kind: 'abort' }
+	| { kind: 'transform'; data: TData }
+	| { kind: 'continue' };
 
 /**
  * Hook function for a specific entity type, providing before/after hooks
@@ -60,32 +60,32 @@ export type HookResult<TData> =
  * ```
  */
 export interface ModelHook<TEntityName extends EntityName = EntityName> {
-  create?: {
-    before?: (
-      data: EntityTypeMap[TEntityName],
-      context?: GenericEndpointContext
-    ) =>
-      | Promise<HookResult<EntityTypeMap[TEntityName]> | undefined>
-      | HookResult<EntityTypeMap[TEntityName]>
-      | undefined;
-    after?: (
-      data: EntityTypeMap[TEntityName],
-      context?: GenericEndpointContext
-    ) => Promise<void> | void;
-  };
-  update?: {
-    before?: (
-      data: Partial<EntityTypeMap[TEntityName]>,
-      context?: GenericEndpointContext
-    ) =>
-      | Promise<HookResult<Partial<EntityTypeMap[TEntityName]>> | undefined>
-      | HookResult<Partial<EntityTypeMap[TEntityName]>>
-      | undefined;
-    after?: (
-      data: EntityTypeMap[TEntityName],
-      context?: GenericEndpointContext
-    ) => Promise<void> | void;
-  };
+	create?: {
+		before?: (
+			data: EntityTypeMap[TEntityName],
+			context?: GenericEndpointContext
+		) =>
+			| Promise<HookResult<EntityTypeMap[TEntityName]> | undefined>
+			| HookResult<EntityTypeMap[TEntityName]>
+			| undefined;
+		after?: (
+			data: EntityTypeMap[TEntityName],
+			context?: GenericEndpointContext
+		) => Promise<void> | void;
+	};
+	update?: {
+		before?: (
+			data: Partial<EntityTypeMap[TEntityName]>,
+			context?: GenericEndpointContext
+		) =>
+			| Promise<HookResult<Partial<EntityTypeMap[TEntityName]>> | undefined>
+			| HookResult<Partial<EntityTypeMap[TEntityName]>>
+			| undefined;
+		after?: (
+			data: EntityTypeMap[TEntityName],
+			context?: GenericEndpointContext
+		) => Promise<void> | void;
+	};
 }
 
 /**
@@ -95,15 +95,15 @@ export interface ModelHook<TEntityName extends EntityName = EntityName> {
  * This is the primary way to register hooks in the system.
  */
 export type DatabaseHook = {
-  [TEntityName in EntityName]?: ModelHook<TEntityName>;
+	[TEntityName in EntityName]?: ModelHook<TEntityName>;
 };
 
 /**
  * Context object containing application options and registered hooks.
  */
 export interface HookContext {
-  hooks: DatabaseHook[];
-  options: C15TOptions;
+	hooks: DatabaseHook[];
+	options: C15TOptions;
 }
 
 /**
@@ -118,11 +118,11 @@ export interface HookContext {
  * CRUD operations aren't sufficient.
  */
 export interface CustomOperationFunction<
-  TInputData extends Record<string, unknown> = Record<string, unknown>,
-  TOutputData = TInputData,
+	TInputData extends Record<string, unknown> = Record<string, unknown>,
+	TOutputData = TInputData,
 > {
-  fn: (data: TOutputData) => Promise<TOutputData | null> | TOutputData | null;
-  executeMainFn?: boolean;
+	fn: (data: TOutputData) => Promise<TOutputData | null> | TOutputData | null;
+	executeMainFn?: boolean;
 }
 
 /**
@@ -134,12 +134,12 @@ export interface CustomOperationFunction<
  * This is the parameter object for the createWithHooks function.
  */
 export interface CreateWithHooksProps<
-  TData extends Record<string, unknown> = Record<string, unknown>,
+	TData extends Record<string, unknown> = Record<string, unknown>,
 > {
-  data: TData;
-  model: EntityName;
-  customFn?: CustomOperationFunction<TData>;
-  context?: GenericEndpointContext;
+	data: TData;
+	model: EntityName;
+	customFn?: CustomOperationFunction<TData>;
+	context?: GenericEndpointContext;
 }
 
 /**
@@ -153,13 +153,13 @@ export interface CreateWithHooksProps<
  * This is the parameter object for updateWithHooks and updateManyWithHooks functions.
  */
 export interface UpdateWithHooksProps<
-  TInputData extends Record<string, unknown> = Record<string, unknown>,
-  TOutputData = TInputData,
-  TResultData = TOutputData,
+	TInputData extends Record<string, unknown> = Record<string, unknown>,
+	TOutputData = TInputData,
+	TResultData = TOutputData,
 > {
-  data: Partial<TInputData>;
-  where: Where<EntityName>;
-  model: EntityName;
-  customFn?: CustomOperationFunction<Partial<TInputData>, TResultData>;
-  context?: GenericEndpointContext;
+	data: Partial<TInputData>;
+	where: Where<EntityName>;
+	model: EntityName;
+	customFn?: CustomOperationFunction<Partial<TInputData>, TResultData>;
+	context?: GenericEndpointContext;
 }

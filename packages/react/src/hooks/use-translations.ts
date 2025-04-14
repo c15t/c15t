@@ -31,39 +31,39 @@ import { useConsentManager } from './use-consent-manager';
  * @public
  */
 export function useTranslations(): Translations {
-  const { translationConfig } = useConsentManager();
+	const { translationConfig } = useConsentManager();
 
-  return useMemo(() => {
-    const { translations = {}, defaultLanguage = 'en' } = translationConfig;
+	return useMemo(() => {
+		const { translations = {}, defaultLanguage = 'en' } = translationConfig;
 
-    // Return translations for the default language, falling back to English if needed
-    const selectedTranslations = translations[defaultLanguage];
-    if (isTranslations(selectedTranslations)) {
-      return selectedTranslations;
-    }
+		// Return translations for the default language, falling back to English if needed
+		const selectedTranslations = translations[defaultLanguage];
+		if (isTranslations(selectedTranslations)) {
+			return selectedTranslations;
+		}
 
-    const englishTranslations = translations.en;
-    if (isTranslations(englishTranslations)) {
-      return englishTranslations;
-    }
+		const englishTranslations = translations.en;
+		if (isTranslations(englishTranslations)) {
+			return englishTranslations;
+		}
 
-    // We know this is a valid Translations object
-    return defaultTranslationConfig.translations.en as Translations;
-  }, [translationConfig]);
+		// We know this is a valid Translations object
+		return defaultTranslationConfig.translations.en as Translations;
+	}, [translationConfig]);
 }
 
 // Type guard to check if a value is a valid Translations object
 function isTranslations(value: unknown): value is Translations {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
+	if (!value || typeof value !== 'object') {
+		return false;
+	}
 
-  const obj = value as Record<string, unknown>;
-  const hasRequiredKeys =
-    'cookieBanner' in obj &&
-    'consentManagerDialog' in obj &&
-    'consentManagerWidget' in obj &&
-    'consentTypes' in obj;
+	const obj = value as Record<string, unknown>;
+	const hasRequiredKeys =
+		'cookieBanner' in obj &&
+		'consentManagerDialog' in obj &&
+		'consentManagerWidget' in obj &&
+		'consentTypes' in obj;
 
-  return hasRequiredKeys;
+	return hasRequiredKeys;
 }

@@ -12,15 +12,15 @@ process.on('SIGINT', () => process.exit(0));
 process.on('SIGTERM', () => process.exit(0));
 
 async function main() {
-  const program = new Command('c15t');
-  const packageInfo = await getPackageInfo();
-  program
-    .addCommand(migrate)
-    .addCommand(generate)
-    .addCommand(generateSecret)
-    .version(packageInfo.version || '1.1.2')
-    .description('c15t CLI');
-  program.parse();
+	const program = new Command('c15t');
+	const packageInfo = await getPackageInfo();
+	program
+		.addCommand(migrate)
+		.addCommand(generate)
+		.addCommand(generateSecret)
+		.version(packageInfo.version || '1.1.2')
+		.description('c15t CLI');
+	program.parse();
 }
 
 main();

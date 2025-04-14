@@ -1,7 +1,7 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "hono",
-  "main": "src/index.ts",
-  "compatibility_date": "2025-03-06",
-  "compatibility_flags": ["nodejs_compat"]
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "hono",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-03-06",
+	"compatibility_flags": ["nodejs_compat"]
 }

@@ -20,202 +20,202 @@ import { consentSchema } from './schema';
  * ```
  */
 export function getConsentTable(
-  options: C15TOptions,
-  consentFields?: Record<string, Field>
+	options: C15TOptions,
+	consentFields?: Record<string, Field>
 ) {
-  // Get consent config from the tables structure
-  const consentConfig = options.tables?.consent;
-  const subjectConfig = options.tables?.subject;
-  const domainConfig = options.tables?.domain;
-  const policyConfig = options.tables?.consentPolicy;
-  // const purposeConfig = options.tables?.consentPurpose;
+	// Get consent config from the tables structure
+	const consentConfig = options.tables?.consent;
+	const subjectConfig = options.tables?.subject;
+	const domainConfig = options.tables?.domain;
+	const policyConfig = options.tables?.consentPolicy;
+	// const purposeConfig = options.tables?.consentPurpose;
 
-  return {
-    /**
-     * The name of the consent table in the database, configurable through options
-     */
-    entityName: consentConfig?.entityName || 'consent',
+	return {
+		/**
+		 * The name of the consent table in the database, configurable through options
+		 */
+		entityName: consentConfig?.entityName || 'consent',
 
-    /**
-     * The ID prefix for the consent table
-     * Used to generate unique prefixed IDs for consents
-     */
-    entityPrefix: consentConfig?.entityPrefix || 'cns',
+		/**
+		 * The ID prefix for the consent table
+		 * Used to generate unique prefixed IDs for consents
+		 */
+		entityPrefix: consentConfig?.entityPrefix || 'cns',
 
-    /**
-     * The schema for the consent table
-     */
-    schema: consentSchema,
+		/**
+		 * The schema for the consent table
+		 */
+		schema: consentSchema,
 
-    /**
-     * Field definitions for the consent table
-     */
-    fields: {
-      /**
-       * Reference to the subject who gave consent
-       */
-      subjectId: {
-        type: 'string',
-        required: true,
-        fieldName: consentConfig?.fields?.subjectId || 'subjectId',
-        references: {
-          model: subjectConfig?.entityName || 'subject',
-          field: 'id',
-        },
-      },
+		/**
+		 * Field definitions for the consent table
+		 */
+		fields: {
+			/**
+			 * Reference to the subject who gave consent
+			 */
+			subjectId: {
+				type: 'string',
+				required: true,
+				fieldName: consentConfig?.fields?.subjectId || 'subjectId',
+				references: {
+					model: subjectConfig?.entityName || 'subject',
+					field: 'id',
+				},
+			},
 
-      /**
-       * Reference to the domain this consent applies to
-       */
-      domainId: {
-        type: 'string',
-        required: true,
-        fieldName: consentConfig?.fields?.domainId || 'domainId',
-        references: {
-          model: domainConfig?.entityName || 'domain',
-          field: 'id',
-        },
-      },
+			/**
+			 * Reference to the domain this consent applies to
+			 */
+			domainId: {
+				type: 'string',
+				required: true,
+				fieldName: consentConfig?.fields?.domainId || 'domainId',
+				references: {
+					model: domainConfig?.entityName || 'domain',
+					field: 'id',
+				},
+			},
 
-      /**
-       * Array of consentPurpose IDs that this consent applies to
-       * Represents the many-to-many relationship between consent and purposes
-       */
-      purposeIds: {
-        type: 'json',
-        required: false,
-        fieldName: consentConfig?.fields?.purposeIds || 'purposeIds',
-        // TODO: add references to consentPurpose
-        // references: {
-        // 	model: purposeConfig?.entityName || 'consentPurpose',
-        // 	field: 'id',
-        // 	type: 'array', // Indicates this is an array of references
-        // },
-      },
+			/**
+			 * Array of consentPurpose IDs that this consent applies to
+			 * Represents the many-to-many relationship between consent and purposes
+			 */
+			purposeIds: {
+				type: 'json',
+				required: false,
+				fieldName: consentConfig?.fields?.purposeIds || 'purposeIds',
+				// TODO: add references to consentPurpose
+				// references: {
+				// 	model: purposeConfig?.entityName || 'consentPurpose',
+				// 	field: 'id',
+				// 	type: 'array', // Indicates this is an array of references
+				// },
+			},
 
-      /**
-       * Additional metadata about the consent
-       */
-      metadata: {
-        type: 'json',
-        required: false,
-        fieldName: consentConfig?.fields?.metadata || 'metadata',
-      },
+			/**
+			 * Additional metadata about the consent
+			 */
+			metadata: {
+				type: 'json',
+				required: false,
+				fieldName: consentConfig?.fields?.metadata || 'metadata',
+			},
 
-      /**
-       * Reference to the policy version that was accepted
-       */
-      policyId: {
-        type: 'string',
-        required: false,
-        fieldName: consentConfig?.fields?.policyId || 'policyId',
-        references: {
-          model: policyConfig?.entityName || 'consentPolicy',
-          field: 'id',
-        },
-      },
+			/**
+			 * Reference to the policy version that was accepted
+			 */
+			policyId: {
+				type: 'string',
+				required: false,
+				fieldName: consentConfig?.fields?.policyId || 'policyId',
+				references: {
+					model: policyConfig?.entityName || 'consentPolicy',
+					field: 'id',
+				},
+			},
 
-      /**
-       * IP address when consent was given
-       */
-      ipAddress: {
-        type: 'string',
-        required: false,
-        fieldName: consentConfig?.fields?.ipAddress || 'ipAddress',
-      },
+			/**
+			 * IP address when consent was given
+			 */
+			ipAddress: {
+				type: 'string',
+				required: false,
+				fieldName: consentConfig?.fields?.ipAddress || 'ipAddress',
+			},
 
-      /**
-       * Subject agent information when consent was given
-       */
-      userAgent: {
-        type: 'string',
-        required: false,
-        fieldName: consentConfig?.fields?.userAgent || 'userAgent',
-      },
+			/**
+			 * Subject agent information when consent was given
+			 */
+			userAgent: {
+				type: 'string',
+				required: false,
+				fieldName: consentConfig?.fields?.userAgent || 'userAgent',
+			},
 
-      /**
-       * Status of the consent (active, expired, withdrawn)
-       * Default: 'active'
-       */
-      status: {
-        type: 'string',
-        defaultValue: () => 'active',
-        required: true,
-        fieldName: consentConfig?.fields?.status || 'status',
-      },
+			/**
+			 * Status of the consent (active, expired, withdrawn)
+			 * Default: 'active'
+			 */
+			status: {
+				type: 'string',
+				defaultValue: () => 'active',
+				required: true,
+				fieldName: consentConfig?.fields?.status || 'status',
+			},
 
-      /**
-       * Reason for consentWithdrawal, if consent was withdrawn
-       */
-      withdrawalReason: {
-        type: 'string',
-        required: false,
-        fieldName:
-          consentConfig?.fields?.withdrawalReason || 'withdrawalReason',
-      },
+			/**
+			 * Reason for consentWithdrawal, if consent was withdrawn
+			 */
+			withdrawalReason: {
+				type: 'string',
+				required: false,
+				fieldName:
+					consentConfig?.fields?.withdrawalReason || 'withdrawalReason',
+			},
 
-      /**
-       * When the consent was given
-       * Automatically set to current time
-       */
-      givenAt: {
-        type: 'date',
-        defaultValue: () => new Date(),
-        required: true,
-        fieldName: consentConfig?.fields?.givenAt || 'givenAt',
-      },
+			/**
+			 * When the consent was given
+			 * Automatically set to current time
+			 */
+			givenAt: {
+				type: 'date',
+				defaultValue: () => new Date(),
+				required: true,
+				fieldName: consentConfig?.fields?.givenAt || 'givenAt',
+			},
 
-      /**
-       * When the consent expires
-       * Calculated based on givenAt + expiresIn setting
-       */
-      validUntil: {
-        type: 'date',
-        required: false,
-        fieldName: consentConfig?.fields?.validUntil || 'validUntil',
-        transform: {
-          input: (val: Date | undefined, data: Record<string, unknown>) => {
-            if (val) {
-              return val;
-            }
+			/**
+			 * When the consent expires
+			 * Calculated based on givenAt + expiresIn setting
+			 */
+			validUntil: {
+				type: 'date',
+				required: false,
+				fieldName: consentConfig?.fields?.validUntil || 'validUntil',
+				transform: {
+					input: (val: Date | undefined, data: Record<string, unknown>) => {
+						if (val) {
+							return val;
+						}
 
-            const expiresIn = consentConfig?.expiresIn || 31536000; // Default: 1 year
-            const givenAt =
-              data.givenAt instanceof Date ? data.givenAt : new Date();
+						const expiresIn = consentConfig?.expiresIn || 31536000; // Default: 1 year
+						const givenAt =
+							data.givenAt instanceof Date ? data.givenAt : new Date();
 
-            if (expiresIn > 0) {
-              const validUntil = new Date(givenAt);
-              validUntil.setSeconds(validUntil.getSeconds() + expiresIn);
-              return validUntil;
-            }
+						if (expiresIn > 0) {
+							const validUntil = new Date(givenAt);
+							validUntil.setSeconds(validUntil.getSeconds() + expiresIn);
+							return validUntil;
+						}
 
-            return undefined; // No expiration
-          },
-        },
-      },
+						return undefined; // No expiration
+					},
+				},
+			},
 
-      /**
-       * Whether the consent is active
-       * Default: true
-       */
-      isActive: {
-        type: 'boolean',
-        defaultValue: true,
-        required: true,
-        fieldName: consentConfig?.fields?.isActive || 'isActive',
-      },
+			/**
+			 * Whether the consent is active
+			 * Default: true
+			 */
+			isActive: {
+				type: 'boolean',
+				defaultValue: true,
+				required: true,
+				fieldName: consentConfig?.fields?.isActive || 'isActive',
+			},
 
-      // Include additional fields from plugins
-      ...(consentFields || {}),
+			// Include additional fields from plugins
+			...(consentFields || {}),
 
-      // Include additional fields from configuration
-      ...(consentConfig?.additionalFields || {}),
-    },
+			// Include additional fields from configuration
+			...(consentConfig?.additionalFields || {}),
+		},
 
-    /**
-     * Execution order during migrations (lower numbers run first)
-     * Consent table needs to be created after the subject, domain, and policy tables it references
-     */
-    order: 3,
-  };
+		/**
+		 * Execution order during migrations (lower numbers run first)
+		 * Consent table needs to be created after the subject, domain, and policy tables it references
+		 */
+		order: 3,
+	};
 }

@@ -6,20 +6,20 @@ import type { KyselyDatabaseType } from '~/pkgs/db-adapters/adapters/kysely-adap
  * Maps c15t field types to PostgreSQL-specific column types
  */
 const postgresMap = {
-  string: ['character varying', 'text'],
-  number: [
-    'int4',
-    'integer',
-    'bigint',
-    'smallint',
-    'numeric',
-    'real',
-    'double precision',
-  ],
-  boolean: ['bool', 'boolean'],
-  date: ['timestamp', 'date'],
-  json: ['json', 'jsonb'],
-  timezone: ['text', 'character varying'], // Timezone stored as text in PostgreSQL
+	string: ['character varying', 'text'],
+	number: [
+		'int4',
+		'integer',
+		'bigint',
+		'smallint',
+		'numeric',
+		'real',
+		'double precision',
+	],
+	boolean: ['bool', 'boolean'],
+	date: ['timestamp', 'date'],
+	json: ['json', 'jsonb'],
+	timezone: ['text', 'character varying'], // Timezone stored as text in PostgreSQL
 };
 
 /**
@@ -27,20 +27,20 @@ const postgresMap = {
  * Maps c15t field types to MySQL-specific column types
  */
 const mysqlMap = {
-  string: ['varchar(255)', 'varchar(36)', 'text'], // Common MySQL string variants
-  number: [
-    'integer',
-    'int',
-    'bigint',
-    'smallint',
-    'decimal',
-    'float',
-    'double',
-  ],
-  boolean: ['boolean', 'tinyint'],
-  date: ['timestamp', 'datetime', 'date'],
-  json: ['json'],
-  timezone: ['varchar(50)'], // Fixed length for timezone strings
+	string: ['varchar(255)', 'varchar(36)', 'text'], // Common MySQL string variants
+	number: [
+		'integer',
+		'int',
+		'bigint',
+		'smallint',
+		'decimal',
+		'float',
+		'double',
+	],
+	boolean: ['boolean', 'tinyint'],
+	date: ['timestamp', 'datetime', 'date'],
+	json: ['json'],
+	timezone: ['varchar(50)'], // Fixed length for timezone strings
 };
 
 /**
@@ -48,12 +48,12 @@ const mysqlMap = {
  * Maps c15t field types to SQLite-specific column types
  */
 const sqliteMap = {
-  string: ['TEXT'],
-  number: ['INTEGER', 'REAL'],
-  boolean: ['INTEGER', 'BOOLEAN'], // 0 or 1
-  date: ['DATE', 'INTEGER'],
-  json: ['TEXT'], // SQLite doesn't have native JSON, stored as TEXT
-  timezone: ['TEXT'], // Timezone stored as text in SQLite
+	string: ['TEXT'],
+	number: ['INTEGER', 'REAL'],
+	boolean: ['INTEGER', 'BOOLEAN'], // 0 or 1
+	date: ['DATE', 'INTEGER'],
+	json: ['TEXT'], // SQLite doesn't have native JSON, stored as TEXT
+	timezone: ['TEXT'], // Timezone stored as text in SQLite
 };
 /**
  * Type mappings for Microsoft SQL Server
@@ -65,12 +65,12 @@ const sqliteMap = {
  * 'float' to the appropriate MSSQL types.
  */
 const mssqlMap = {
-  string: ['text', 'varchar'],
-  number: ['int', 'bigint', 'smallint', 'decimal', 'float(53)', 'float(24)'],
-  boolean: ['bit', 'smallint'],
-  date: ['datetime', 'date'],
-  json: ['nvarchar(max)'], // MSSQL uses nvarchar for JSON storage
-  timezone: ['varchar', 'text'], // Timezone stored as text in MSSQL
+	string: ['text', 'varchar'],
+	number: ['int', 'bigint', 'smallint', 'decimal', 'float(53)', 'float(24)'],
+	boolean: ['bit', 'smallint'],
+	date: ['datetime', 'date'],
+	json: ['nvarchar(max)'], // MSSQL uses nvarchar for JSON storage
+	timezone: ['varchar', 'text'], // Timezone stored as text in MSSQL
 };
 
 /**
@@ -78,10 +78,10 @@ const mssqlMap = {
  * Provides a unified interface to access type mappings for all supported databases
  */
 const map = {
-  postgres: postgresMap,
-  mysql: mysqlMap,
-  sqlite: sqliteMap,
-  mssql: mssqlMap,
+	postgres: postgresMap,
+	mysql: mysqlMap,
+	sqlite: sqliteMap,
+	mssql: mssqlMap,
 } as const;
 
 /**
@@ -103,13 +103,13 @@ const map = {
  * ```
  */
 export function getMySqlStringType(field: Field): string {
-  if (field.unique) {
-    return 'varchar(255)';
-  }
-  if (field.references) {
-    return 'varchar(36)';
-  }
-  return 'text';
+	if (field.unique) {
+		return 'varchar(255)';
+	}
+	if (field.references) {
+		return 'varchar(36)';
+	}
+	return 'text';
 }
 
 /**
@@ -138,19 +138,19 @@ export function getMySqlStringType(field: Field): string {
  * ```
  */
 export function matchType(
-  columnDataType: string,
-  fieldType: FieldType,
-  dbType: KyselyDatabaseType
+	columnDataType: string,
+	fieldType: FieldType,
+	dbType: KyselyDatabaseType
 ): boolean {
-  if (fieldType === 'string[]' || fieldType === 'number[]') {
-    return columnDataType.toLowerCase().includes('json');
-  }
-  const types = map[dbType];
-  const type = Array.isArray(fieldType)
-    ? types.string.map((t) => t.toLowerCase())
-    : types[fieldType].map((t) => t.toLowerCase());
-  const matches = type.includes(columnDataType.toLowerCase());
-  return matches;
+	if (fieldType === 'string[]' || fieldType === 'number[]') {
+		return columnDataType.toLowerCase().includes('json');
+	}
+	const types = map[dbType];
+	const type = Array.isArray(fieldType)
+		? types.string.map((t) => t.toLowerCase())
+		: types[fieldType].map((t) => t.toLowerCase());
+	const matches = type.includes(columnDataType.toLowerCase());
+	return matches;
 }
 
 /**
@@ -180,65 +180,65 @@ export function matchType(
  * ```
  */
 export function getType(field: Field, dbType: KyselyDatabaseType = 'sqlite') {
-  const type = field.type;
-  const typeMap = {
-    string: {
-      sqlite: 'text',
-      postgres: 'text',
-      mysql: getMySqlStringType(field),
-      mssql: getMySqlStringType(field),
-    },
-    boolean: {
-      sqlite: 'integer',
-      postgres: 'boolean',
-      mysql: 'boolean',
-      mssql: 'smallint',
-    },
-    number: {
-      sqlite: field.bigint ? 'bigint' : 'integer',
-      postgres: field.bigint ? 'bigint' : 'integer',
-      mysql: field.bigint ? 'bigint' : 'integer',
-      mssql: field.bigint ? 'bigint' : 'integer',
-    },
-    date: {
-      sqlite: 'date',
-      postgres: 'timestamp',
-      mysql: 'datetime',
-      mssql: 'datetime',
-    },
-    timezone: {
-      sqlite: 'text',
-      postgres: 'text',
-      mysql: 'varchar(50)',
-      mssql: 'nvarchar(50)',
-    },
-    json: {
-      sqlite: 'text', // SQLite doesn't have native JSON
-      postgres: 'jsonb', // PostgreSQL prefers jsonb for better performance
-      mysql: 'json',
-      mssql: 'nvarchar(max)', // SQL Server stores JSON as nvarchar
-    },
-  } as const;
+	const type = field.type;
+	const typeMap = {
+		string: {
+			sqlite: 'text',
+			postgres: 'text',
+			mysql: getMySqlStringType(field),
+			mssql: getMySqlStringType(field),
+		},
+		boolean: {
+			sqlite: 'integer',
+			postgres: 'boolean',
+			mysql: 'boolean',
+			mssql: 'smallint',
+		},
+		number: {
+			sqlite: field.bigint ? 'bigint' : 'integer',
+			postgres: field.bigint ? 'bigint' : 'integer',
+			mysql: field.bigint ? 'bigint' : 'integer',
+			mssql: field.bigint ? 'bigint' : 'integer',
+		},
+		date: {
+			sqlite: 'date',
+			postgres: 'timestamp',
+			mysql: 'datetime',
+			mssql: 'datetime',
+		},
+		timezone: {
+			sqlite: 'text',
+			postgres: 'text',
+			mysql: 'varchar(50)',
+			mssql: 'nvarchar(50)',
+		},
+		json: {
+			sqlite: 'text', // SQLite doesn't have native JSON
+			postgres: 'jsonb', // PostgreSQL prefers jsonb for better performance
+			mysql: 'json',
+			mssql: 'nvarchar(max)', // SQL Server stores JSON as nvarchar
+		},
+	} as const;
 
-  if (dbType === 'sqlite' && (type === 'string[]' || type === 'number[]')) {
-    return 'text';
-  }
-  if (type === 'string[]' || type === 'number[]') {
-    switch (dbType) {
-      case 'postgres':
-        return 'jsonb';
-      case 'mysql':
-      case 'mssql':
-        return 'json';
-      default:
-        return 'text';
-    }
-  }
+	if (dbType === 'sqlite' && (type === 'string[]' || type === 'number[]')) {
+		return 'text';
+	}
+	if (type === 'string[]' || type === 'number[]') {
+		switch (dbType) {
+			case 'postgres':
+				return 'jsonb';
+			case 'mysql':
+			case 'mssql':
+				return 'json';
+			default:
+				return 'text';
+		}
+	}
 
-  // Handle json type
-  if (type === 'json') {
-    return typeMap.json[dbType];
-  }
+	// Handle json type
+	if (type === 'json') {
+		return typeMap.json[dbType];
+	}
 
-  return typeMap[type][dbType];
+	return typeMap[type][dbType];
 }

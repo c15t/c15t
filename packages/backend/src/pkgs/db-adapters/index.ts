@@ -8,13 +8,13 @@
 
 // Export core types and utilities
 export type {
-  Adapter,
-  KyselyAdapterConfig,
-  AdapterSchemaCreation,
-  AdapterInstance,
-  Where,
-  TableFields,
-  WhereCondition,
+	Adapter,
+	KyselyAdapterConfig,
+	AdapterSchemaCreation,
+	AdapterInstance,
+	Where,
+	TableFields,
+	WhereCondition,
 } from './types';
 export { applyDefaultValue } from './utils';
 

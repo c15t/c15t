@@ -9,8 +9,8 @@
 import type { FC, ReactNode } from 'react';
 import { Box } from '~/components/shared/primitives/box';
 import {
-  LocalThemeContext,
-  type ThemeContextValue,
+	LocalThemeContext,
+	type ThemeContextValue,
 } from '~/context/theme-context';
 import type { ConsentManagerWidgetTheme } from '../theme';
 
@@ -24,30 +24,30 @@ import type { ConsentManagerWidgetTheme } from '../theme';
  * @public
  */
 export interface ConsentManagerWidgetRootProps
-  extends ThemeContextValue<ConsentManagerWidgetTheme> {
-  /**
-   * Child components to be rendered within the consent manager context.
-   *
-   * @remarks
-   * - Should include ConsentManagerWidget.Content and related components
-   * - Receives context and theming from the root provider
-   */
-  children: ReactNode;
+	extends ThemeContextValue<ConsentManagerWidgetTheme> {
+	/**
+	 * Child components to be rendered within the consent manager context.
+	 *
+	 * @remarks
+	 * - Should include ConsentManagerWidget.Content and related components
+	 * - Receives context and theming from the root provider
+	 */
+	children: ReactNode;
 
-  /**
-   * Determines whether to use the context provider.
-   * If false, the component will not wrap children in a context provider.
-   *
-   * @defaultValue true
-   */
-  useProvider?: boolean;
+	/**
+	 * Determines whether to use the context provider.
+	 * If false, the component will not wrap children in a context provider.
+	 *
+	 * @defaultValue true
+	 */
+	useProvider?: boolean;
 
-  /**
-   * @remarks
-   * When true, removes all default styling from the banner and its children.
-   * Useful when implementing completely custom styles.
-   */
-  noStyle?: boolean;
+	/**
+	 * @remarks
+	 * When true, removes all default styling from the banner and its children.
+	 * Useful when implementing completely custom styles.
+	 */
+	noStyle?: boolean;
 }
 
 /**
@@ -89,43 +89,43 @@ export interface ConsentManagerWidgetRootProps
  * @public
  */
 const ConsentManagerWidgetRoot: FC<ConsentManagerWidgetRootProps> = ({
-  children,
-  noStyle = false,
-  disableAnimation = false,
-  theme,
-  useProvider = true,
-  ...props
+	children,
+	noStyle = false,
+	disableAnimation = false,
+	theme,
+	useProvider = true,
+	...props
 }) => {
-  /**
-   * Combine consent manager state with styling configuration
-   * to create the context value for child components
-   */
-  const contextValue = {
-    disableAnimation,
-    noStyle,
-    theme,
-  };
+	/**
+	 * Combine consent manager state with styling configuration
+	 * to create the context value for child components
+	 */
+	const contextValue = {
+		disableAnimation,
+		noStyle,
+		theme,
+	};
 
-  const content = (
-    <Box
-      baseClassName="c15t-consent-manager-widget"
-      data-testid="consent-manager-widget-root"
-      themeKey="widget.root"
-      {...props}
-    >
-      {children}
-    </Box>
-  );
+	const content = (
+		<Box
+			baseClassName="c15t-consent-manager-widget"
+			data-testid="consent-manager-widget-root"
+			themeKey="widget.root"
+			{...props}
+		>
+			{children}
+		</Box>
+	);
 
-  if (useProvider) {
-    return (
-      <LocalThemeContext.Provider value={contextValue}>
-        {content}
-      </LocalThemeContext.Provider>
-    );
-  }
+	if (useProvider) {
+		return (
+			<LocalThemeContext.Provider value={contextValue}>
+				{content}
+			</LocalThemeContext.Provider>
+		);
+	}
 
-  return content;
+	return content;
 };
 
 const Root = ConsentManagerWidgetRoot;

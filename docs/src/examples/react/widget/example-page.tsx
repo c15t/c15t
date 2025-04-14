@@ -1,8 +1,8 @@
 import { c15tClientExample } from '~/examples/c15t-client-example';
 
 export const pages = {
-  'c15t.ts': c15tClientExample,
-  'custom-widget.tsx': `'use client';
+	'c15t.ts': c15tClientExample,
+	'custom-widget.tsx': `'use client';
   
 import { useConsentManager } from '@c15t/react';
 import * as ConsentManagerWidget from '@c15t/react/consent-manager-widget';
@@ -37,7 +37,7 @@ export function CustomWidget() {
     </div>
   );
 }`,
-  'App.tsx': `import { ConsentManagerProvider, ConsentManagerDialog, CookieBanner } from '@c15t/react';
+	'App.tsx': `import { ConsentManagerProvider, ConsentManagerDialog, CookieBanner } from '@c15t/react';
 import { ExampleContent } from './example-content';
 import { clearLocalStorage } from './lib/utils';
 import { CustomWidget } from './custom-widget';
@@ -56,7 +56,7 @@ export default function App() {
         </ConsentManagerProvider>
     );
 }`,
-  'example-content.tsx': `import { useConsentManager } from '@c15t/react';
+	'example-content.tsx': `import { useConsentManager } from '@c15t/react';
 import { useEffect } from 'react';
 import { setupDarkMode } from './lib/utils';
 export function ExampleContent() {

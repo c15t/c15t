@@ -82,14 +82,14 @@ export type ComplianceRegion = 'gdpr' | 'ccpa' | 'lgpd' | 'usStatePrivacy';
  * @public
  */
 export type ComplianceSettings = {
-  /** Whether the compliance framework is active */
-  enabled: boolean;
+	/** Whether the compliance framework is active */
+	enabled: boolean;
 
-  /** Whether to apply compliance rules globally */
-  appliesGlobally: boolean;
+	/** Whether to apply compliance rules globally */
+	appliesGlobally: boolean;
 
-  /** Whether the regulation applies in current context */
-  applies: boolean | undefined;
+	/** Whether the regulation applies in current context */
+	applies: boolean | undefined;
 };
 
 /**
@@ -121,8 +121,8 @@ export type ComplianceSettings = {
  * @public
  */
 export type PrivacySettings = {
-  /** Whether to respect the browser's Do Not Track setting */
-  honorDoNotTrack: boolean;
+	/** Whether to respect the browser's Do Not Track setting */
+	honorDoNotTrack: boolean;
 };
 
 /**
@@ -159,11 +159,11 @@ export type PrivacySettings = {
  * @public
  */
 export type HasConsentedProps = {
-  /** Timestamp when consent was given */
-  time: number;
+	/** Timestamp when consent was given */
+	time: number;
 
-  /** Type of consent granted */
-  type: 'all' | 'custom' | 'necessary';
+	/** Type of consent granted */
+	type: 'all' | 'custom' | 'necessary';
 } | null;
 
 /**
@@ -196,12 +196,12 @@ export type HasConsentedProps = {
  * @public
  */
 export type NamespaceProps = {
-  /**
-   * Global namespace for the consent manager store.
-   *
-   * @defaultValue "c15tStore"
-   */
-  namespace?: string;
+	/**
+	 * Global namespace for the consent manager store.
+	 *
+	 * @defaultValue "c15tStore"
+	 */
+	namespace?: string;
 };
 
 /**
@@ -221,11 +221,11 @@ export type NamespaceProps = {
  * @public
  */
 export type LocationInfo = {
-  /** ISO country code (e.g., 'US', 'GB', 'DE') */
-  countryCode: string | null;
+	/** ISO country code (e.g., 'US', 'GB', 'DE') */
+	countryCode: string | null;
 
-  /** Region or state code within the country (e.g., 'CA', 'ENG') */
-  regionCode: string | null;
+	/** Region or state code within the country (e.g., 'CA', 'ENG') */
+	regionCode: string | null;
 };
 
 /**
@@ -245,11 +245,11 @@ export type LocationInfo = {
  * @public
  */
 export type JurisdictionInfo = {
-  /** Code identifying the applicable regulation (e.g., 'GDPR', 'CCPA') */
-  code: string;
+	/** Code identifying the applicable regulation (e.g., 'GDPR', 'CCPA') */
+	code: string;
 
-  /** Human-readable message explaining the regulation requirement */
-  message: string;
+	/** Human-readable message explaining the regulation requirement */
+	message: string;
 };
 
 /**
@@ -276,12 +276,12 @@ export type JurisdictionInfo = {
  * @public
  */
 export type ConsentBannerResponse = {
-  /** Whether to show the consent banner */
-  showConsentBanner: boolean;
+	/** Whether to show the consent banner */
+	showConsentBanner: boolean;
 
-  /** Information about the applicable jurisdiction */
-  jurisdiction: JurisdictionInfo;
+	/** Information about the applicable jurisdiction */
+	jurisdiction: JurisdictionInfo;
 
-  /** Information about the user's location */
-  location: LocationInfo;
+	/** Information about the user's location */
+	location: LocationInfo;
 };

@@ -21,8 +21,8 @@ import styles from '../consent-manager-dialog.module.css';
  * @public
  */
 type DialogCardProps = {
-  /** The content to be rendered inside the dialog card */
-  children?: ReactNode;
+	/** The content to be rendered inside the dialog card */
+	children?: ReactNode;
 } & ClassNameStyle;
 
 /**
@@ -42,19 +42,19 @@ type DialogCardProps = {
  * ```
  */
 const DialogCard = forwardRef<HTMLDivElement, DialogCardProps>(
-  ({ children, ...props }, ref) => {
-    return (
-      <Box
-        ref={ref as Ref<HTMLDivElement>}
-        className={styles.card}
-        {...props}
-        themeKey="dialog.root"
-        data-testid="consent-manager-dialog-root"
-      >
-        {children}
-      </Box>
-    );
-  }
+	({ children, ...props }, ref) => {
+		return (
+			<Box
+				ref={ref as Ref<HTMLDivElement>}
+				className={styles.card}
+				{...props}
+				themeKey="dialog.root"
+				data-testid="consent-manager-dialog-root"
+			>
+				{children}
+			</Box>
+		);
+	}
 );
 
 /**
@@ -67,19 +67,19 @@ const DialogCard = forwardRef<HTMLDivElement, DialogCardProps>(
  * - Styled according to the theme configuration
  */
 const DialogHeader = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
-  ({ children, ...props }, ref) => {
-    return (
-      <Box
-        ref={ref as Ref<HTMLDivElement>}
-        className={styles.header}
-        {...props}
-        themeKey="dialog.header"
-        data-testid="consent-manager-dialog-header"
-      >
-        {children}
-      </Box>
-    );
-  }
+	({ children, ...props }, ref) => {
+		return (
+			<Box
+				ref={ref as Ref<HTMLDivElement>}
+				className={styles.header}
+				{...props}
+				themeKey="dialog.header"
+				data-testid="consent-manager-dialog-header"
+			>
+				{children}
+			</Box>
+		);
+	}
 );
 
 /**
@@ -92,20 +92,20 @@ const DialogHeader = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
  * - Supports theme customization
  */
 const DialogHeaderTitle = forwardRef<
-  HTMLDivElement,
-  Omit<BoxProps, 'themeKey'>
+	HTMLDivElement,
+	Omit<BoxProps, 'themeKey'>
 >(({ children, ...props }, ref) => {
-  return (
-    <Box
-      ref={ref as Ref<HTMLDivElement>}
-      className={styles.title}
-      themeKey="dialog.title"
-      {...props}
-      data-testid="consent-manager-dialog-title"
-    >
-      {children}
-    </Box>
-  );
+	return (
+		<Box
+			ref={ref as Ref<HTMLDivElement>}
+			className={styles.title}
+			themeKey="dialog.title"
+			{...props}
+			data-testid="consent-manager-dialog-title"
+		>
+			{children}
+		</Box>
+	);
 });
 
 /**
@@ -118,20 +118,20 @@ const DialogHeaderTitle = forwardRef<
  * - Important for explaining privacy choices to users
  */
 const DialogHeaderDescription = forwardRef<
-  HTMLDivElement,
-  Omit<BoxProps, 'themeKey'>
+	HTMLDivElement,
+	Omit<BoxProps, 'themeKey'>
 >(({ children, ...props }, ref) => {
-  return (
-    <Box
-      ref={ref as Ref<HTMLDivElement>}
-      className={styles.description}
-      themeKey="dialog.description"
-      {...props}
-      data-testid="consent-manager-dialog-description"
-    >
-      {children}
-    </Box>
-  );
+	return (
+		<Box
+			ref={ref as Ref<HTMLDivElement>}
+			className={styles.description}
+			themeKey="dialog.description"
+			{...props}
+			data-testid="consent-manager-dialog-description"
+		>
+			{children}
+		</Box>
+	);
 });
 
 /**
@@ -144,19 +144,19 @@ const DialogHeaderDescription = forwardRef<
  * - Handles user interactions with privacy settings
  */
 const DialogContent = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
-  ({ children, ...props }, ref) => {
-    return (
-      <Box
-        ref={ref as Ref<HTMLDivElement>}
-        className={styles.content}
-        themeKey="dialog.content"
-        data-testid="consent-manager-dialog-content"
-        {...props}
-      >
-        {children}
-      </Box>
-    );
-  }
+	({ children, ...props }, ref) => {
+		return (
+			<Box
+				ref={ref as Ref<HTMLDivElement>}
+				className={styles.content}
+				themeKey="dialog.content"
+				data-testid="consent-manager-dialog-content"
+				{...props}
+			>
+				{children}
+			</Box>
+		);
+	}
 );
 
 /**
@@ -169,47 +169,47 @@ const DialogContent = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
  * - Can be customized through theme configuration
  */
 const DialogFooter = forwardRef<HTMLDivElement, BoxProps>(
-  ({ children, themeKey, ...props }, ref) => {
-    return (
-      <Box
-        ref={ref as Ref<HTMLDivElement>}
-        className={styles.footer}
-        themeKey={themeKey || 'dialog.footer'}
-        {...props}
-        data-testid="consent-manager-dialog-footer"
-      >
-        {children}
-      </Box>
-    );
-  }
+	({ children, themeKey, ...props }, ref) => {
+		return (
+			<Box
+				ref={ref as Ref<HTMLDivElement>}
+				className={styles.footer}
+				themeKey={themeKey || 'dialog.footer'}
+				{...props}
+				data-testid="consent-manager-dialog-footer"
+			>
+				{children}
+			</Box>
+		);
+	}
 );
 
 /**
  * The branding footer with configurable logo
  */
 export const BrandingFooter = () => {
-  const consentManager = useConsentManager();
+	const consentManager = useConsentManager();
 
-  const refParam =
-    typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
+	const refParam =
+		typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
 
-  return (
-    <a
-      className={styles.branding}
-      href={
-        consentManager.isConsentDomain
-          ? `https://consent.io${refParam}`
-          : `https://c15t.com${refParam}`
-      }
-    >
-      Secured by{' '}
-      {consentManager.isConsentDomain ? (
-        <ConsentLogo className={styles.brandingConsent} />
-      ) : (
-        <C15TIcon className={styles.brandingC15T} />
-      )}
-    </a>
-  );
+	return (
+		<a
+			className={styles.branding}
+			href={
+				consentManager.isConsentDomain
+					? `https://consent.io${refParam}`
+					: `https://c15t.com${refParam}`
+			}
+		>
+			Secured by{' '}
+			{consentManager.isConsentDomain ? (
+				<ConsentLogo className={styles.brandingConsent} />
+			) : (
+				<C15TIcon className={styles.brandingC15T} />
+			)}
+		</a>
+	);
 };
 
 /**
@@ -232,35 +232,35 @@ export const BrandingFooter = () => {
  * - Built-in accessibility features
  */
 const ConsentCustomizationCard = ({
-  noStyle,
+	noStyle,
 }: {
-  noStyle?: boolean;
-  useConsentLogo?: boolean;
+	noStyle?: boolean;
+	useConsentLogo?: boolean;
 }) => {
-  const translations = useTranslations();
+	const translations = useTranslations();
 
-  return (
-    <DialogCard>
-      <DialogHeader>
-        <DialogHeaderTitle>
-          {translations.consentManagerDialog.title}
-        </DialogHeaderTitle>
-        <DialogHeaderDescription>
-          {translations.consentManagerDialog.description}
-        </DialogHeaderDescription>
-      </DialogHeader>
-      <DialogContent>
-        <ConsentManagerWidget
-          hideBrading
-          noStyle={noStyle}
-          useProvider={false}
-        />
-      </DialogContent>
-      <DialogFooter themeKey="dialog.footer">
-        <BrandingFooter />
-      </DialogFooter>
-    </DialogCard>
-  );
+	return (
+		<DialogCard>
+			<DialogHeader>
+				<DialogHeaderTitle>
+					{translations.consentManagerDialog.title}
+				</DialogHeaderTitle>
+				<DialogHeaderDescription>
+					{translations.consentManagerDialog.description}
+				</DialogHeaderDescription>
+			</DialogHeader>
+			<DialogContent>
+				<ConsentManagerWidget
+					hideBrading
+					noStyle={noStyle}
+					useProvider={false}
+				/>
+			</DialogContent>
+			<DialogFooter themeKey="dialog.footer">
+				<BrandingFooter />
+			</DialogFooter>
+		</DialogCard>
+	);
 };
 
 const Card = DialogCard;
@@ -271,16 +271,16 @@ const Content = DialogContent;
 const Footer = DialogFooter;
 
 export {
-  Card,
-  Header,
-  HeaderTitle,
-  HeaderDescription,
-  Content,
-  Footer,
-  ConsentCustomizationCard,
-  DialogFooter,
-  DialogHeader,
-  DialogHeaderTitle,
-  DialogHeaderDescription,
-  DialogContent,
+	Card,
+	Header,
+	HeaderTitle,
+	HeaderDescription,
+	Content,
+	Footer,
+	ConsentCustomizationCard,
+	DialogFooter,
+	DialogHeader,
+	DialogHeaderTitle,
+	DialogHeaderDescription,
+	DialogContent,
 };

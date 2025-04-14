@@ -7,14 +7,14 @@
  * The system supports both scalar types and array types.
  */
 export type FieldType =
-  | 'string'
-  | 'number'
-  | 'boolean'
-  | 'date'
-  | 'timezone'
-  | 'json'
-  | 'string[]'
-  | 'number[]';
+	| 'string'
+	| 'number'
+	| 'boolean'
+	| 'date'
+	| 'timezone'
+	| 'json'
+	| 'string[]'
+	| 'number[]';
 
 /**
  * Primitive types that can be stored in the database.
@@ -25,12 +25,12 @@ export type Primitive = string | number | boolean | Date | null | undefined;
  * JSON value types that can be stored in JSON fields.
  */
 export type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | JsonValue[]
-  | { [key: string]: JsonValue };
+	| string
+	| number
+	| boolean
+	| null
+	| JsonValue[]
+	| { [key: string]: JsonValue };
 
 /**
  * Configuration options for a database field.
@@ -69,131 +69,131 @@ export type JsonValue =
  * it's transformed, validated, and more.
  */
 export type FieldConfig<TFieldType extends FieldType> = {
-  /**
-   * The data type of the field.
-   * Determines how the field is stored and validated.
-   */
-  type: TFieldType;
+	/**
+	 * The data type of the field.
+	 * Determines how the field is stored and validated.
+	 */
+	type: TFieldType;
 
-  /**
-   * Whether the field is required for record creation.
-   * If true, the field must be provided when creating a record.
-   * @default true
-   */
-  required?: boolean;
+	/**
+	 * Whether the field is required for record creation.
+	 * If true, the field must be provided when creating a record.
+	 * @default true
+	 */
+	required?: boolean;
 
-  /**
-   * Whether the field should be returned in API responses.
-   * If false, the field will be excluded from query results.
-   * @default true
-   */
-  returned?: boolean;
+	/**
+	 * Whether the field should be returned in API responses.
+	 * If false, the field will be excluded from query results.
+	 * @default true
+	 */
+	returned?: boolean;
 
-  /**
-   * Whether the field accepts input from API requests.
-   * If false, the field cannot be set directly by clients.
-   * @default true
-   */
-  input?: boolean;
+	/**
+	 * Whether the field accepts input from API requests.
+	 * If false, the field cannot be set directly by clients.
+	 * @default true
+	 */
+	input?: boolean;
 
-  /**
-   * Default value for the field when not provided in create operations.
-   * Can be a static value or a function that returns a value.
-   */
-  defaultValue?: Primitive | (() => Primitive);
+	/**
+	 * Default value for the field when not provided in create operations.
+	 * Can be a static value or a function that returns a value.
+	 */
+	defaultValue?: Primitive | (() => Primitive);
 
-  /**
-   * Functions to transform the field value during input/output operations.
-   * Can modify values before storage or after retrieval.
-   */
-  transform?: {
-    /**
-     * Transform function for field input.
-     * Applied when data is being saved to the database.
-     */
-    input?: (
-      value: InferValueType<TFieldType>
-    ) => Primitive | Promise<Primitive>;
+	/**
+	 * Functions to transform the field value during input/output operations.
+	 * Can modify values before storage or after retrieval.
+	 */
+	transform?: {
+		/**
+		 * Transform function for field input.
+		 * Applied when data is being saved to the database.
+		 */
+		input?: (
+			value: InferValueType<TFieldType>
+		) => Primitive | Promise<Primitive>;
 
-    /**
-     * Transform function for field output.
-     * Applied when data is being retrieved from the database.
-     */
-    output?: (
-      value: unknown
-    ) => InferValueType<TFieldType> | Promise<InferValueType<TFieldType>>;
-  };
+		/**
+		 * Transform function for field output.
+		 * Applied when data is being retrieved from the database.
+		 */
+		output?: (
+			value: unknown
+		) => InferValueType<TFieldType> | Promise<InferValueType<TFieldType>>;
+	};
 
-  /**
-   * Custom validation function for the field.
-   * Returns null if valid, or an error message if invalid.
-   */
-  validator?: (value: InferValueType<TFieldType>) => string | null;
+	/**
+	 * Custom validation function for the field.
+	 * Returns null if valid, or an error message if invalid.
+	 */
+	validator?: (value: InferValueType<TFieldType>) => string | null;
 
-  /**
-   * Whether the field should be unique across all records.
-   * If true, no two records can have the same value for this field.
-   */
-  unique?: boolean;
+	/**
+	 * Whether the field should be unique across all records.
+	 * If true, no two records can have the same value for this field.
+	 */
+	unique?: boolean;
 
-  /**
-   * Whether the field should be indexed for faster lookups.
-   * If true, an index will be created for this field.
-   */
-  indexed?: boolean;
+	/**
+	 * Whether the field should be indexed for faster lookups.
+	 * If true, an index will be created for this field.
+	 */
+	indexed?: boolean;
 
-  /**
-   * Whether the field should be sortable in queries.
-   * If false, the field cannot be used in ORDER BY clauses.
-   * @default true
-   */
-  sortable?: boolean;
+	/**
+	 * Whether the field should be sortable in queries.
+	 * If false, the field cannot be used in ORDER BY clauses.
+	 * @default true
+	 */
+	sortable?: boolean;
 
-  /**
-   * Custom database field name.
-   * If not provided, the field name will be used as-is.
-   */
-  fieldName?: string;
+	/**
+	 * Custom database field name.
+	 * If not provided, the field name will be used as-is.
+	 */
+	fieldName?: string;
 
-  /**
-   * Whether the field should be stored as a bigint.
-   * Only applicable to number fields.
-   * @default false
-   */
-  bigint?: boolean;
+	/**
+	 * Whether the field should be stored as a bigint.
+	 * Only applicable to number fields.
+	 * @default false
+	 */
+	bigint?: boolean;
 
-  /**
-   * References to other models.
-   */
-  references?: {
-    model: string;
-    entity: string;
-    field: string;
-    onDelete: 'CASCADE' | 'SET NULL' | 'RESTRICT' | 'NO ACTION';
-  };
+	/**
+	 * References to other models.
+	 */
+	references?: {
+		model: string;
+		entity: string;
+		field: string;
+		onDelete: 'CASCADE' | 'SET NULL' | 'RESTRICT' | 'NO ACTION';
+	};
 };
 
 /**
  * Helper type to infer the base JavaScript type from a field type.
  */
 export type InferValueType<TFieldType extends FieldType> =
-  TFieldType extends 'string'
-    ? string
-    : TFieldType extends 'number'
-      ? number
-      : TFieldType extends 'boolean'
-        ? boolean
-        : TFieldType extends 'date'
-          ? Date
-          : TFieldType extends 'timezone'
-            ? string
-            : TFieldType extends 'json'
-              ? JsonValue
-              : TFieldType extends 'string[]'
-                ? string[]
-                : TFieldType extends 'number[]'
-                  ? number[]
-                  : never;
+	TFieldType extends 'string'
+		? string
+		: TFieldType extends 'number'
+			? number
+			: TFieldType extends 'boolean'
+				? boolean
+				: TFieldType extends 'date'
+					? Date
+					: TFieldType extends 'timezone'
+						? string
+						: TFieldType extends 'json'
+							? JsonValue
+							: TFieldType extends 'string[]'
+								? string[]
+								: TFieldType extends 'number[]'
+									? number[]
+									: never;
 
 /**
  * The complete definition of a database field.
@@ -230,4 +230,4 @@ export type InferValueType<TFieldType extends FieldType> =
  * ```
  */
 export type Field<TFieldType extends FieldType = FieldType> =
-  FieldConfig<TFieldType>;
+	FieldConfig<TFieldType>;

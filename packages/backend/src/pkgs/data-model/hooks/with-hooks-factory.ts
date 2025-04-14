@@ -1,9 +1,9 @@
 import type { Adapter } from '~/pkgs/db-adapters';
 import { createWithHooks } from './create-hooks';
 import type {
-  CreateWithHooksProps,
-  HookContext,
-  UpdateWithHooksProps,
+	CreateWithHooksProps,
+	HookContext,
+	UpdateWithHooksProps,
 } from './types';
 import { updateWithHooks } from './update-hooks';
 import { updateManyWithHooks } from './update-many-hooks';
@@ -34,35 +34,35 @@ import { updateManyWithHooks } from './update-many-hooks';
  * ```
  */
 export function getWithHooks(adapter: Adapter, ctx: HookContext) {
-  return {
-    createWithHooks: <
-      TInputData extends Record<string, unknown>,
-      TOutputData extends Record<string, unknown> = TInputData,
-    >({
-      data,
-      model,
-      customFn,
-      context,
-    }: CreateWithHooksProps<TInputData>) =>
-      createWithHooks<TInputData, TOutputData>(adapter, ctx, {
-        data,
-        model,
-        customFn,
-        context,
-      }),
+	return {
+		createWithHooks: <
+			TInputData extends Record<string, unknown>,
+			TOutputData extends Record<string, unknown> = TInputData,
+		>({
+			data,
+			model,
+			customFn,
+			context,
+		}: CreateWithHooksProps<TInputData>) =>
+			createWithHooks<TInputData, TOutputData>(adapter, ctx, {
+				data,
+				model,
+				customFn,
+				context,
+			}),
 
-    updateWithHooks: <
-      TInputData extends Record<string, unknown>,
-      TOutputData extends Record<string, unknown> = TInputData,
-    >(
-      props: UpdateWithHooksProps<TInputData, TOutputData>
-    ) => updateWithHooks<TInputData, TOutputData>(adapter, ctx, props),
+		updateWithHooks: <
+			TInputData extends Record<string, unknown>,
+			TOutputData extends Record<string, unknown> = TInputData,
+		>(
+			props: UpdateWithHooksProps<TInputData, TOutputData>
+		) => updateWithHooks<TInputData, TOutputData>(adapter, ctx, props),
 
-    updateManyWithHooks: <
-      TInputData extends Record<string, unknown>,
-      TOutputData extends Record<string, unknown> = TInputData,
-    >(
-      props: UpdateWithHooksProps<TInputData, TOutputData>
-    ) => updateManyWithHooks<TInputData, TOutputData>(adapter, ctx, props),
-  };
+		updateManyWithHooks: <
+			TInputData extends Record<string, unknown>,
+			TOutputData extends Record<string, unknown> = TInputData,
+		>(
+			props: UpdateWithHooksProps<TInputData, TOutputData>
+		) => updateManyWithHooks<TInputData, TOutputData>(adapter, ctx, props),
+	};
 }

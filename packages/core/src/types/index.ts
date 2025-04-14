@@ -35,15 +35,15 @@
  * ```
  */
 export type {
-  ComplianceRegion,
-  ComplianceSettings,
-  ConsentBannerResponse,
-  ConsentState,
-  HasConsentedProps,
-  JurisdictionInfo,
-  LocationInfo,
-  NamespaceProps,
-  PrivacySettings,
+	ComplianceRegion,
+	ComplianceSettings,
+	ConsentBannerResponse,
+	ConsentState,
+	HasConsentedProps,
+	JurisdictionInfo,
+	LocationInfo,
+	NamespaceProps,
+	PrivacySettings,
 } from './compliance';
 
 /**
@@ -127,13 +127,13 @@ export type { CallbackFunction, Callbacks } from './callbacks';
  */
 
 export type {
-  ConsentManagerDialogTranslations,
-  ConsentManagerWidgetTranslations,
-  ConsentTypeTranslations,
-  ConsentTypesTranslations,
-  CookieBannerTranslations,
-  TranslationConfig,
-  Translations,
+	ConsentManagerDialogTranslations,
+	ConsentManagerWidgetTranslations,
+	ConsentTypeTranslations,
+	ConsentTypesTranslations,
+	CookieBannerTranslations,
+	TranslationConfig,
+	Translations,
 } from './translations';
 
 export * from './compliance';

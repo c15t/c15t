@@ -102,87 +102,87 @@ import type { ErrorMessageType, SDKResultAsync } from '../types';
  * ```
  */
 export const retrievalPipeline = <TRawData, TTransformedData>(
-  fetcher: () => Promise<TRawData>,
-  transformer: (data: TRawData) => TTransformedData,
-  errorCode: ErrorMessageType = ERROR_CODES.NOT_FOUND
+	fetcher: () => Promise<TRawData>,
+	transformer: (data: TRawData) => TTransformedData,
+	errorCode: ErrorMessageType = ERROR_CODES.NOT_FOUND
 ): (() => SDKResultAsync<TTransformedData>) => {
-  return () => {
-    return ResultAsync.fromPromise(
-      fetcher().then((data) => {
-        // Check if data is null or undefined
-        if (data === null || data === undefined) {
-          throw new Error('Resource not found');
-        }
+	return () => {
+		return ResultAsync.fromPromise(
+			fetcher().then((data) => {
+				// Check if data is null or undefined
+				if (data === null || data === undefined) {
+					throw new Error('Resource not found');
+				}
 
-        try {
-          // Transform the data (wrapping in try/catch to handle transformer errors)
-          return transformer(data);
-        } catch (transformerError) {
-          // Explicitly handle transformer errors as BAD_REQUEST
-          throw new DoubleTieError(
-            transformerError instanceof Error
-              ? transformerError.message
-              : 'Error transforming data',
-            {
-              code: ERROR_CODES.BAD_REQUEST,
-              status: 400,
-              cause:
-                transformerError instanceof Error
-                  ? transformerError
-                  : undefined,
-            }
-          );
-        }
-      }),
-      (error) => {
-        // If the error is already a DoubleTieError, return it directly
-        if (error instanceof DoubleTieError) {
-          return error;
-        }
+				try {
+					// Transform the data (wrapping in try/catch to handle transformer errors)
+					return transformer(data);
+				} catch (transformerError) {
+					// Explicitly handle transformer errors as BAD_REQUEST
+					throw new DoubleTieError(
+						transformerError instanceof Error
+							? transformerError.message
+							: 'Error transforming data',
+						{
+							code: ERROR_CODES.BAD_REQUEST,
+							status: 400,
+							cause:
+								transformerError instanceof Error
+									? transformerError
+									: undefined,
+						}
+					);
+				}
+			}),
+			(error) => {
+				// If the error is already a DoubleTieError, return it directly
+				if (error instanceof DoubleTieError) {
+					return error;
+				}
 
-        // Check if this is a custom error code or a standard one
-        const useCustomErrorCode = errorCode !== ERROR_CODES.NOT_FOUND;
+				// Check if this is a custom error code or a standard one
+				const useCustomErrorCode = errorCode !== ERROR_CODES.NOT_FOUND;
 
-        // If a custom error code is provided, always use it
-        if (useCustomErrorCode) {
-          return new DoubleTieError(
-            error instanceof Error
-              ? error.message
-              : 'Failed to retrieve resource',
-            {
-              code: errorCode,
-              status: 400, // Custom codes default to 400
-              cause: error instanceof Error ? error : undefined,
-            }
-          );
-        }
+				// If a custom error code is provided, always use it
+				if (useCustomErrorCode) {
+					return new DoubleTieError(
+						error instanceof Error
+							? error.message
+							: 'Failed to retrieve resource',
+						{
+							code: errorCode,
+							status: 400, // Custom codes default to 400
+							cause: error instanceof Error ? error : undefined,
+						}
+					);
+				}
 
-        // Handle standard error cases
-        const isNotFoundError =
-          error instanceof Error &&
-          error.message.toLowerCase().includes('not found');
+				// Handle standard error cases
+				const isNotFoundError =
+					error instanceof Error &&
+					error.message.toLowerCase().includes('not found');
 
-        // Use specific error code based on error type
-        if (isNotFoundError) {
-          // Not found errors
-          return new DoubleTieError(error.message, {
-            code: ERROR_CODES.NOT_FOUND,
-            status: 404,
-            cause: error,
-          });
-        }
-        // All other errors use BAD_REQUEST
-        return new DoubleTieError(
-          error instanceof Error
-            ? error.message
-            : 'Failed to retrieve resource',
-          {
-            code: ERROR_CODES.BAD_REQUEST,
-            status: 400,
-            cause: error instanceof Error ? error : undefined,
-          }
-        );
-      }
-    );
-  };
+				// Use specific error code based on error type
+				if (isNotFoundError) {
+					// Not found errors
+					return new DoubleTieError(error.message, {
+						code: ERROR_CODES.NOT_FOUND,
+						status: 404,
+						cause: error,
+					});
+				}
+				// All other errors use BAD_REQUEST
+				return new DoubleTieError(
+					error instanceof Error
+						? error.message
+						: 'Failed to retrieve resource',
+					{
+						code: ERROR_CODES.BAD_REQUEST,
+						status: 400,
+						cause: error instanceof Error ? error : undefined,
+					}
+				);
+			}
+		);
+	};
 };

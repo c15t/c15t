@@ -38,40 +38,40 @@ import type { DoubleTieMiddleware } from '~/pkgs/types/options';
  * ```
  */
 export async function runBeforeHooks(
-  context: HookEndpointContext,
-  hooks: {
-    matcher: (context: HookEndpointContext) => boolean;
-    handler: DoubleTieMiddleware;
-  }[]
+	context: HookEndpointContext,
+	hooks: {
+		matcher: (context: HookEndpointContext) => boolean;
+		handler: DoubleTieMiddleware;
+	}[]
 ) {
-  let modifiedContext: {
-    headers?: Headers;
-  } = {};
-  for (const hook of hooks) {
-    if (hook.matcher(context)) {
-      const result = await hook.handler(context, async () => Promise.resolve());
-      if (result && typeof result === 'object') {
-        if ('context' in result && typeof result.context === 'object') {
-          const { headers, ...rest } = result.context as {
-            headers: Headers;
-          };
-          if (headers instanceof Headers) {
-            if (modifiedContext.headers) {
-              headers.forEach((value, key) => {
-                modifiedContext.headers?.set(key, value);
-              });
-            } else {
-              modifiedContext.headers = headers;
-            }
-          }
-          modifiedContext = defu(rest, modifiedContext);
-          continue;
-        }
-        return result;
-      }
-    }
-  }
-  return { context: modifiedContext };
+	let modifiedContext: {
+		headers?: Headers;
+	} = {};
+	for (const hook of hooks) {
+		if (hook.matcher(context)) {
+			const result = await hook.handler(context, async () => Promise.resolve());
+			if (result && typeof result === 'object') {
+				if ('context' in result && typeof result.context === 'object') {
+					const { headers, ...rest } = result.context as {
+						headers: Headers;
+					};
+					if (headers instanceof Headers) {
+						if (modifiedContext.headers) {
+							headers.forEach((value, key) => {
+								modifiedContext.headers?.set(key, value);
+							});
+						} else {
+							modifiedContext.headers = headers;
+						}
+					}
+					modifiedContext = defu(rest, modifiedContext);
+					continue;
+				}
+				return result;
+			}
+		}
+	}
+	return { context: modifiedContext };
 }
 
 /**
@@ -113,39 +113,39 @@ export async function runBeforeHooks(
  * ```
  */
 export async function runAfterHooks(
-  context: HookEndpointContext,
-  hooks: {
-    matcher: (context: HookEndpointContext) => boolean;
-    handler: DoubleTieMiddleware;
-  }[]
+	context: HookEndpointContext,
+	hooks: {
+		matcher: (context: HookEndpointContext) => boolean;
+		handler: DoubleTieMiddleware;
+	}[]
 ) {
-  let headers: Headers | null = null;
-  let response: unknown = null;
-  for (const hook of hooks) {
-    if (hook.matcher(context)) {
-      const result = await hook.handler(context, async () => Promise.resolve());
-      if (
-        result &&
-        typeof result === 'object' &&
-        'response' in result &&
-        result.response !== undefined
-      ) {
-        response = result.response;
-      }
-      if (
-        result &&
-        typeof result === 'object' &&
-        'headers' in result &&
-        result.headers
-      ) {
-        if (!headers) {
-          headers = new Headers();
-        }
-        (result.headers as Headers).forEach((value, key) => {
-          headers?.set(key, value);
-        });
-      }
-    }
-  }
-  return { response, headers };
+	let headers: Headers | null = null;
+	let response: unknown = null;
+	for (const hook of hooks) {
+		if (hook.matcher(context)) {
+			const result = await hook.handler(context, async () => Promise.resolve());
+			if (
+				result &&
+				typeof result === 'object' &&
+				'response' in result &&
+				result.response !== undefined
+			) {
+				response = result.response;
+			}
+			if (
+				result &&
+				typeof result === 'object' &&
+				'headers' in result &&
+				result.headers
+			) {
+				if (!headers) {
+					headers = new Headers();
+				}
+				(result.headers as Headers).forEach((value, key) => {
+					headers?.set(key, value);
+				});
+			}
+		}
+	}
+	return { response, headers };
 }

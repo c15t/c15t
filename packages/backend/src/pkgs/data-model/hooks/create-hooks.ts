@@ -32,57 +32,57 @@ import { processHooks } from './utils';
  * ```
  */
 export async function createWithHooks<
-  TInputData extends Record<string, unknown> = Record<string, unknown>,
-  TOutputData extends Record<string, unknown> = TInputData,
+	TInputData extends Record<string, unknown> = Record<string, unknown>,
+	TOutputData extends Record<string, unknown> = TInputData,
 >(
-  adapter: Adapter,
-  ctx: HookContext,
-  props: CreateWithHooksProps<TInputData>
+	adapter: Adapter,
+	ctx: HookContext,
+	props: CreateWithHooksProps<TInputData>
 ): Promise<TOutputData | null> {
-  const { data, model, customFn, context } = props;
-  const hooks = ctx.hooks || [];
+	const { data, model, customFn, context } = props;
+	const hooks = ctx.hooks || [];
 
-  // Process before hooks
-  const transformedData = await processHooks<EntityName, TInputData>(
-    data,
-    model,
-    'create',
-    'before',
-    hooks,
-    context
-  );
-  if (transformedData === null) {
-    return null;
-  }
+	// Process before hooks
+	const transformedData = await processHooks<EntityName, TInputData>(
+		data,
+		model,
+		'create',
+		'before',
+		hooks,
+		context
+	);
+	if (transformedData === null) {
+		return null;
+	}
 
-  // Execute operation
-  let created: TOutputData | null = null;
+	// Execute operation
+	let created: TOutputData | null = null;
 
-  if (customFn) {
-    created = (await customFn.fn(transformedData)) as TOutputData | null;
-    if (!customFn.executeMainFn && created) {
-      return created;
-    }
-  }
+	if (customFn) {
+		created = (await customFn.fn(transformedData)) as TOutputData | null;
+		if (!customFn.executeMainFn && created) {
+			return created;
+		}
+	}
 
-  if (!created) {
-    created = (await adapter.create({
-      model: model as EntityName,
-      data: transformedData,
-    })) as unknown as TOutputData;
-  }
+	if (!created) {
+		created = (await adapter.create({
+			model: model as EntityName,
+			data: transformedData,
+		})) as unknown as TOutputData;
+	}
 
-  // Process after hooks
-  if (created) {
-    await processHooks<EntityName, TOutputData>(
-      created,
-      model,
-      'create',
-      'after',
-      hooks,
-      context
-    );
-  }
+	// Process after hooks
+	if (created) {
+		await processHooks<EntityName, TOutputData>(
+			created,
+			model,
+			'create',
+			'after',
+			hooks,
+			context
+		);
+	}
 
-  return created;
+	return created;
 }

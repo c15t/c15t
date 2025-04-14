@@ -13,20 +13,20 @@ import type { DoubleTieOptions } from './options';
  * specific to DoubleTie hooks, allowing hooks to access the complete DoubleTie context.
  */
 export type HookEndpointContext = H3Event & {
-  /**
-   * The DoubleTie context with possible hook-specific extensions
-   */
-  context: DoubleTieContext & {
-    /**
-     * Value returned by the endpoint handler, available in 'after' hooks
-     */
-    returned?: unknown;
+	/**
+	 * The DoubleTie context with possible hook-specific extensions
+	 */
+	context: DoubleTieContext & {
+		/**
+		 * Value returned by the endpoint handler, available in 'after' hooks
+		 */
+		returned?: unknown;
 
-    /**
-     * Response headers, available in 'after' hooks
-     */
-    responseHeaders?: Headers;
-  };
+		/**
+		 * Response headers, available in 'after' hooks
+		 */
+		responseHeaders?: Headers;
+	};
 };
 
 /**
@@ -36,10 +36,10 @@ export type HookEndpointContext = H3Event & {
  * access to input-specific context properties.
  */
 export type GenericEndpointContext = H3Event & {
-  /**
-   * The DoubleTie application context
-   */
-  context: DoubleTieContext;
+	/**
+	 * The DoubleTie application context
+	 */
+	context: DoubleTieContext;
 };
 
 /**
@@ -48,15 +48,15 @@ export type GenericEndpointContext = H3Event & {
  * Defines the minimal required properties for a DoubleTie context.
  */
 export interface BaseContext {
-  /**
-   * Configuration options for the DoubleTie system
-   */
-  options: DoubleTieOptions;
+	/**
+	 * Configuration options for the DoubleTie system
+	 */
+	options: DoubleTieOptions;
 
-  /**
-   * Logger instance for recording events and errors
-   */
-  logger: ReturnType<typeof createLogger>;
+	/**
+	 * Logger instance for recording events and errors
+	 */
+	logger: ReturnType<typeof createLogger>;
 }
 
 /**
@@ -66,23 +66,23 @@ export interface BaseContext {
  * for database access and entity management.
  */
 export interface RegistryContext extends BaseContext {
-  /**
-   * Database adapter instance
-   */
-  adapter: Adapter;
+	/**
+	 * Database adapter instance
+	 */
+	adapter: Adapter;
 
-  /**
-   * Database lifecycle hooks
-   */
-  hooks: DatabaseHook[];
+	/**
+	 * Database lifecycle hooks
+	 */
+	hooks: DatabaseHook[];
 
-  /**
-   * Function to generate unique IDs for entities
-   *
-   * @param options - Options for ID generation including entity type and length
-   * @returns A unique ID string
-   */
-  generateId: (options: { model: EntityName; size?: number }) => string;
+	/**
+	 * Function to generate unique IDs for entities
+	 *
+	 * @param options - Options for ID generation including entity type and length
+	 * @returns A unique ID string
+	 */
+	generateId: (options: { model: EntityName; size?: number }) => string;
 }
 
 /**
@@ -92,68 +92,68 @@ export interface RegistryContext extends BaseContext {
  * This forms the foundation for the complete context used throughout the system.
  */
 export interface BaseDoubleTieContext {
-  /**
-   * Application name displayed in application dialogs
-   */
-  appName: string;
+	/**
+	 * Application name displayed in application dialogs
+	 */
+	appName: string;
 
-  /**
-   * Configuration options for the DoubleTie system
-   */
-  options: DoubleTieOptions;
+	/**
+	 * Configuration options for the DoubleTie system
+	 */
+	options: DoubleTieOptions;
 
-  /**
-   * List of origins that are trusted for CORS and CSRF protection
-   */
-  trustedOrigins: string[];
+	/**
+	 * List of origins that are trusted for CORS and CSRF protection
+	 */
+	trustedOrigins: string[];
 
-  /**
-   * Base URL for API requests
-   */
-  baseURL: string;
+	/**
+	 * Base URL for API requests
+	 */
+	baseURL: string;
 
-  /**
-   * Secret key used for signing cookies and tokens
-   */
-  secret: string;
+	/**
+	 * Secret key used for signing cookies and tokens
+	 */
+	secret: string;
 
-  /**
-   * Logger instance for recording events and errors
-   */
-  logger: ReturnType<typeof createLogger>;
+	/**
+	 * Logger instance for recording events and errors
+	 */
+	logger: ReturnType<typeof createLogger>;
 
-  /**
-   * Function to generate unique IDs for entities
-   *
-   * @param options - Options for ID generation including entity type and length
-   * @returns A unique ID string
-   */
-  generateId: (options: { model: EntityName; size?: number }) => string;
+	/**
+	 * Function to generate unique IDs for entities
+	 *
+	 * @param options - Options for ID generation including entity type and length
+	 * @returns A unique ID string
+	 */
+	generateId: (options: { model: EntityName; size?: number }) => string;
 
-  /**
-   * Database adapter instance
-   */
-  adapter: Adapter;
+	/**
+	 * Database adapter instance
+	 */
+	adapter: Adapter;
 
-  /**
-   * Entity registry for database operations
-   */
-  registry: ReturnType<typeof createRegistry>;
+	/**
+	 * Entity registry for database operations
+	 */
+	registry: ReturnType<typeof createRegistry>;
 
-  /**
-   * Database tables for the system
-   */
-  tables: ReturnType<typeof getConsentTables>;
+	/**
+	 * Database tables for the system
+	 */
+	tables: ReturnType<typeof getConsentTables>;
 
-  /**
-   * IP address of the client
-   */
-  ipAddress?: string | null;
+	/**
+	 * IP address of the client
+	 */
+	ipAddress?: string | null;
 
-  /**
-   * User agent of the client
-   */
-  userAgent?: string | null;
+	/**
+	 * User agent of the client
+	 */
+	userAgent?: string | null;
 }
 
 /**
@@ -165,5 +165,5 @@ export interface BaseDoubleTieContext {
  * @typeParam TPluginContext - Record of plugin-specific context properties
  */
 export type DoubleTieContext<
-  TPluginContext extends Record<string, unknown> = Record<string, unknown>,
+	TPluginContext extends Record<string, unknown> = Record<string, unknown>,
 > = BaseDoubleTieContext & TPluginContext;

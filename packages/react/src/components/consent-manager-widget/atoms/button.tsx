@@ -11,61 +11,61 @@ import type { ConsentButtonProps } from '~/components/shared/primitives/button.t
  * - Triggers necessary callbacks
  */
 const ConsentManagerWidgetAcceptAllButton = forwardRef<
-  HTMLButtonElement,
-  ConsentButtonProps
+	HTMLButtonElement,
+	ConsentButtonProps
 >(({ children, ...props }, ref) => {
-  return (
-    <ConsentButton
-      ref={ref as Ref<HTMLButtonElement>}
-      variant="neutral"
-      mode="stroke"
-      size="small"
-      action="accept-consent"
-      {...props}
-      themeKey="widget.footer.accept-button"
-      data-testid="consent-manager-widget-footer-accept-button"
-      closeCookieBanner={true}
-      closeCustomizeDialog={true}
-    >
-      {children}
-    </ConsentButton>
-  );
+	return (
+		<ConsentButton
+			ref={ref as Ref<HTMLButtonElement>}
+			variant="neutral"
+			mode="stroke"
+			size="small"
+			action="accept-consent"
+			{...props}
+			themeKey="widget.footer.accept-button"
+			data-testid="consent-manager-widget-footer-accept-button"
+			closeCookieBanner={true}
+			closeCustomizeDialog={true}
+		>
+			{children}
+		</ConsentButton>
+	);
 });
 
 const ConsentManagerWidgetCustomizeButton = forwardRef<
-  HTMLButtonElement,
-  ConsentButtonProps
+	HTMLButtonElement,
+	ConsentButtonProps
 >(({ children, ...props }, ref) => {
-  return (
-    <ConsentButton
-      ref={ref as Ref<HTMLButtonElement>}
-      action="open-consent-dialog"
-      {...props}
-      themeKey="widget.footer.customize-button"
-      data-testid="consent-manager-widget-footer-customize-button"
-    >
-      {children}
-    </ConsentButton>
-  );
+	return (
+		<ConsentButton
+			ref={ref as Ref<HTMLButtonElement>}
+			action="open-consent-dialog"
+			{...props}
+			themeKey="widget.footer.customize-button"
+			data-testid="consent-manager-widget-footer-customize-button"
+		>
+			{children}
+		</ConsentButton>
+	);
 });
 
 const ConsentManagerWidgetSaveButton = forwardRef<
-  HTMLButtonElement,
-  ConsentButtonProps
+	HTMLButtonElement,
+	ConsentButtonProps
 >(({ children, ...props }, ref) => {
-  return (
-    <ConsentButton
-      ref={ref as Ref<HTMLButtonElement>}
-      action="custom-consent"
-      variant="primary"
-      closeCustomizeDialog
-      {...props}
-      themeKey="widget.footer.save-button"
-      data-testid="consent-manager-widget-footer-save-button"
-    >
-      {children}
-    </ConsentButton>
-  );
+	return (
+		<ConsentButton
+			ref={ref as Ref<HTMLButtonElement>}
+			action="custom-consent"
+			variant="primary"
+			closeCustomizeDialog
+			{...props}
+			themeKey="widget.footer.save-button"
+			data-testid="consent-manager-widget-footer-save-button"
+		>
+			{children}
+		</ConsentButton>
+	);
 });
 
 /**
@@ -77,25 +77,25 @@ const ConsentManagerWidgetSaveButton = forwardRef<
  * - Closes dialog after action
  */
 const ConsentManagerWidgetRejectButton = forwardRef<
-  HTMLButtonElement,
-  ConsentButtonProps
+	HTMLButtonElement,
+	ConsentButtonProps
 >(({ children, ...props }, ref) => {
-  return (
-    <ConsentButton
-      ref={ref as Ref<HTMLButtonElement>}
-      variant="neutral"
-      mode="stroke"
-      size="small"
-      action="reject-consent"
-      {...props}
-      themeKey="widget.footer.reject-button"
-      data-testid="consent-manager-widget-reject-button"
-      closeCookieBanner={true}
-      closeCustomizeDialog={true}
-    >
-      {children}
-    </ConsentButton>
-  );
+	return (
+		<ConsentButton
+			ref={ref as Ref<HTMLButtonElement>}
+			variant="neutral"
+			mode="stroke"
+			size="small"
+			action="reject-consent"
+			{...props}
+			themeKey="widget.footer.reject-button"
+			data-testid="consent-manager-widget-reject-button"
+			closeCookieBanner={true}
+			closeCustomizeDialog={true}
+		>
+			{children}
+		</ConsentButton>
+	);
 });
 
 const AcceptAllButton = ConsentManagerWidgetAcceptAllButton;
@@ -104,12 +104,12 @@ const SaveButton = ConsentManagerWidgetSaveButton;
 const RejectButton = ConsentManagerWidgetRejectButton;
 
 export {
-  AcceptAllButton,
-  CustomizeButton,
-  SaveButton,
-  RejectButton,
-  ConsentManagerWidgetAcceptAllButton,
-  ConsentManagerWidgetCustomizeButton,
-  ConsentManagerWidgetSaveButton,
-  ConsentManagerWidgetRejectButton,
+	AcceptAllButton,
+	CustomizeButton,
+	SaveButton,
+	RejectButton,
+	ConsentManagerWidgetAcceptAllButton,
+	ConsentManagerWidgetCustomizeButton,
+	ConsentManagerWidgetSaveButton,
+	ConsentManagerWidgetRejectButton,
 };

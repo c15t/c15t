@@ -33,59 +33,59 @@ import { processHooks } from './utils';
  * ```
  */
 export async function updateWithHooks<
-  TInputData extends Record<string, unknown> = Record<string, unknown>,
-  TOutputData extends Record<string, unknown> = TInputData,
+	TInputData extends Record<string, unknown> = Record<string, unknown>,
+	TOutputData extends Record<string, unknown> = TInputData,
 >(
-  adapter: Adapter,
-  ctx: HookContext,
-  props: UpdateWithHooksProps<TInputData, TOutputData>
+	adapter: Adapter,
+	ctx: HookContext,
+	props: UpdateWithHooksProps<TInputData, TOutputData>
 ): Promise<TOutputData | null> {
-  const { data, where, model, customFn, context } = props;
-  const hooks = ctx.hooks || [];
+	const { data, where, model, customFn, context } = props;
+	const hooks = ctx.hooks || [];
 
-  // Process before hooks
-  const transformedData = await processHooks<EntityName, Partial<TInputData>>(
-    data,
-    model,
-    'update',
-    'before',
-    hooks,
-    context
-  );
-  if (transformedData === null) {
-    return null;
-  }
+	// Process before hooks
+	const transformedData = await processHooks<EntityName, Partial<TInputData>>(
+		data,
+		model,
+		'update',
+		'before',
+		hooks,
+		context
+	);
+	if (transformedData === null) {
+		return null;
+	}
 
-  // Execute operation
-  let updated: TOutputData | null = null;
-  if (customFn) {
-    // Ensure customFn handles partial updates correctly
-    const result = await customFn.fn(transformedData as TOutputData);
-    updated = result;
-    if (!customFn.executeMainFn && updated) {
-      return updated;
-    }
-  }
+	// Execute operation
+	let updated: TOutputData | null = null;
+	if (customFn) {
+		// Ensure customFn handles partial updates correctly
+		const result = await customFn.fn(transformedData as TOutputData);
+		updated = result;
+		if (!customFn.executeMainFn && updated) {
+			return updated;
+		}
+	}
 
-  if (!updated) {
-    updated = (await adapter.update({
-      model: model as EntityName,
-      update: transformedData,
-      where,
-    })) as TOutputData | null;
-  }
+	if (!updated) {
+		updated = (await adapter.update({
+			model: model as EntityName,
+			update: transformedData,
+			where,
+		})) as TOutputData | null;
+	}
 
-  // Process after hooks
-  if (updated) {
-    await processHooks<EntityName, TOutputData>(
-      updated,
-      model,
-      'update',
-      'after',
-      hooks,
-      context
-    );
-  }
+	// Process after hooks
+	if (updated) {
+		await processHooks<EntityName, TOutputData>(
+			updated,
+			model,
+			'update',
+			'after',
+			hooks,
+			context
+		);
+	}
 
-  return updated;
+	return updated;
 }

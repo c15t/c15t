@@ -52,30 +52,30 @@ export type ErrorMessageType = string;
  * @see DoubleTieErrorOptions for the options used to construct a DoubleTieError
  */
 export interface DoubleTieError
-  extends H3Error<{
-    code: ErrorMessageType;
-    category?: ErrorCategory;
-    meta?: Record<string, unknown>;
-  }> {
-  /**
-   * Error code identifying the error type
-   */
-  readonly code: ErrorMessageType;
+	extends H3Error<{
+		code: ErrorMessageType;
+		category?: ErrorCategory;
+		meta?: Record<string, unknown>;
+	}> {
+	/**
+	 * Error code identifying the error type
+	 */
+	readonly code: ErrorMessageType;
 
-  /**
-   * Category for grouping related errors
-   */
-  readonly category: ErrorCategory;
+	/**
+	 * Category for grouping related errors
+	 */
+	readonly category: ErrorCategory;
 
-  /**
-   * Additional metadata about the error
-   */
-  readonly meta: Record<string, unknown>;
+	/**
+	 * Additional metadata about the error
+	 */
+	readonly meta: Record<string, unknown>;
 
-  /**
-   * Creates a new error instance with additional metadata
-   */
-  withMeta(additionalMeta: Record<string, unknown>): DoubleTieError;
+	/**
+	 * Creates a new error instance with additional metadata
+	 */
+	withMeta(additionalMeta: Record<string, unknown>): DoubleTieError;
 }
 
 /**
@@ -98,35 +98,35 @@ export interface DoubleTieError
  * ```
  */
 export interface DoubleTieErrorOptions {
-  /**
-   * Error code from ERROR_CODES or custom error codes.
-   * Used to uniquely identify the error type.
-   */
-  code: ErrorMessageType;
+	/**
+	 * Error code from ERROR_CODES or custom error codes.
+	 * Used to uniquely identify the error type.
+	 */
+	code: ErrorMessageType;
 
-  /**
-   * HTTP status code if applicable.
-   * Defaults to 500 (Internal Server Error) if not specified.
-   */
-  status?: number;
+	/**
+	 * HTTP status code if applicable.
+	 * Defaults to 500 (Internal Server Error) if not specified.
+	 */
+	status?: number;
 
-  /**
-   * Category to classify the error.
-   * Defaults to 'unexpected' if not specified.
-   */
-  category?: ErrorCategory;
+	/**
+	 * Category to classify the error.
+	 * Defaults to 'unexpected' if not specified.
+	 */
+	category?: ErrorCategory;
 
-  /**
-   * Original error that caused this error.
-   * Useful for wrapping and preserving the original error stack trace.
-   */
-  cause?: Error;
+	/**
+	 * Original error that caused this error.
+	 * Useful for wrapping and preserving the original error stack trace.
+	 */
+	cause?: Error;
 
-  /**
-   * Additional metadata about the error.
-   * Can contain any contextual information that might help debugging.
-   */
-  meta?: Record<string, unknown>;
+	/**
+	 * Additional metadata about the error.
+	 * Can contain any contextual information that might help debugging.
+	 */
+	meta?: Record<string, unknown>;
 }
 
 /**
@@ -212,5 +212,5 @@ export type SDKResultAsync<TValue> = ResultAsync<TValue, DoubleTieError>;
  * ```
  */
 export type ErrorTransformer<TError extends Error = Error> = (
-  error: TError
+	error: TError
 ) => DoubleTieError;

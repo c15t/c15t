@@ -1,85 +1,85 @@
 {
-  "name": "@c15t/react",
-  "version": "0.0.1-rc.22",
-  "license": "GPL-3.0-only",
-  "sideEffects": false,
-  "type": "module",
-  "exports": {
-    "./consent-manager-dialog": {
-      "types": "./dist/components/consent-manager-dialog/index.d.ts",
-      "import": "./dist/components/consent-manager-dialog/index.js",
-      "require": "./dist/components/consent-manager-dialog/index.cjs"
-    },
-    "./consent-manager-widget": {
-      "types": "./dist/components/consent-manager-widget/index.d.ts",
-      "import": "./dist/components/consent-manager-widget/index.js",
-      "require": "./dist/components/consent-manager-widget/index.cjs"
-    },
-    "./cookie-banner": {
-      "types": "./dist/components/cookie-banner/index.d.ts",
-      "import": "./dist/components/cookie-banner/index.js",
-      "require": "./dist/components/cookie-banner/index.cjs"
-    },
-    "./hooks": {
-      "types": "./dist/hooks/index.d.ts",
-      "import": "./dist/hooks/index.js",
-      "require": "./dist/hooks/index.cjs"
-    },
-    "./context": {
-      "types": "./dist/context/index.d.ts",
-      "import": "./dist/context/index.js",
-      "require": "./dist/context/index.cjs"
-    },
-    "./types": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/types/index.js",
-      "require": "./dist/types/index.cjs"
-    },
-    "./utils": {
-      "types": "./dist/utils/index.d.ts",
-      "import": "./dist/utils/index.js",
-      "require": "./dist/utils/index.cjs"
-    },
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
-  },
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "files": ["dist"],
-  "scripts": {
-    "build": "rslib build",
-    "check-types": "tsc --noEmit",
-    "dev": "rslib build --watch",
-    "fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
-    "lint": "pnpm biome lint ./src",
-    "test": "vitest run",
-    "test:watch": "vitest"
-  },
-  "browserslist": [">0.2%", "not dead", "not op_mini all"],
-  "dependencies": {
-    "@radix-ui/react-accordion": "1.2.4",
-    "@radix-ui/react-slot": "1.2.0",
-    "@radix-ui/react-switch": "1.1.4",
-    "c15t": "workspace:*",
-    "clsx": "2.1.1",
-    "motion": "^12.6.5",
-    "tailwind-variants": "^1.0.0",
-    "zustand": "^5.0.3"
-  },
-  "devDependencies": {
-    "@c15t/backend": "workspace:*",
-    "@c15t/typescript-config": "workspace:*",
-    "@c15t/vitest-config": "workspace:*"
-  },
-  "peerDependencies": {
-    "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc",
-    "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc"
-  },
-  "publishConfig": {
-    "access": "public"
-  }
+	"name": "@c15t/react",
+	"version": "0.0.1-rc.22",
+	"license": "GPL-3.0-only",
+	"sideEffects": false,
+	"type": "module",
+	"exports": {
+		"./consent-manager-dialog": {
+			"types": "./dist/components/consent-manager-dialog/index.d.ts",
+			"import": "./dist/components/consent-manager-dialog/index.js",
+			"require": "./dist/components/consent-manager-dialog/index.cjs"
+		},
+		"./consent-manager-widget": {
+			"types": "./dist/components/consent-manager-widget/index.d.ts",
+			"import": "./dist/components/consent-manager-widget/index.js",
+			"require": "./dist/components/consent-manager-widget/index.cjs"
+		},
+		"./cookie-banner": {
+			"types": "./dist/components/cookie-banner/index.d.ts",
+			"import": "./dist/components/cookie-banner/index.js",
+			"require": "./dist/components/cookie-banner/index.cjs"
+		},
+		"./hooks": {
+			"types": "./dist/hooks/index.d.ts",
+			"import": "./dist/hooks/index.js",
+			"require": "./dist/hooks/index.cjs"
+		},
+		"./context": {
+			"types": "./dist/context/index.d.ts",
+			"import": "./dist/context/index.js",
+			"require": "./dist/context/index.cjs"
+		},
+		"./types": {
+			"types": "./dist/types/index.d.ts",
+			"import": "./dist/types/index.js",
+			"require": "./dist/types/index.cjs"
+		},
+		"./utils": {
+			"types": "./dist/utils/index.d.ts",
+			"import": "./dist/utils/index.js",
+			"require": "./dist/utils/index.cjs"
+		},
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": ["dist"],
+	"scripts": {
+		"build": "rslib build",
+		"check-types": "tsc --noEmit",
+		"dev": "rslib build --watch",
+		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"lint": "pnpm biome lint ./src",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"browserslist": [">0.2%", "not dead", "not op_mini all"],
+	"dependencies": {
+		"@radix-ui/react-accordion": "1.2.4",
+		"@radix-ui/react-slot": "1.2.0",
+		"@radix-ui/react-switch": "1.1.4",
+		"c15t": "workspace:*",
+		"clsx": "2.1.1",
+		"motion": "^12.6.5",
+		"tailwind-variants": "^1.0.0",
+		"zustand": "^5.0.3"
+	},
+	"devDependencies": {
+		"@c15t/backend": "workspace:*",
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*"
+	},
+	"peerDependencies": {
+		"react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc",
+		"react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
 }

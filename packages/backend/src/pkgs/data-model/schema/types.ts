@@ -7,51 +7,51 @@ import type { C15TDBSchema } from '~/schema/definition';
  * Defines a field in the context of an entity schema
  */
 export interface EntityField extends Field {
-  /**
-   * Whether the field should be included in the schema
-   */
-  include?: boolean;
+	/**
+	 * Whether the field should be included in the schema
+	 */
+	include?: boolean;
 }
 
 /**
  * Table definition for creating schema definitions
  */
 export interface TableDefinition {
-  /**
-   * Entity name for the table
-   */
-  entityName: string;
+	/**
+	 * Entity name for the table
+	 */
+	entityName: string;
 
-  /**
-   * Entity prefix for ID generation
-   */
-  entityPrefix: string;
+	/**
+	 * Entity prefix for ID generation
+	 */
+	entityPrefix: string;
 
-  /**
-   * Zod schema for the table
-   */
-  // biome-ignore lint/suspicious/noExplicitAny: we might not know the type
-  schema: z.ZodType<any>;
+	/**
+	 * Zod schema for the table
+	 */
+	// biome-ignore lint/suspicious/noExplicitAny: we might not know the type
+	schema: z.ZodType<any>;
 
-  /**
-   * Field definitions for the table
-   */
-  fields: Record<string, Field>;
+	/**
+	 * Field definitions for the table
+	 */
+	fields: Record<string, Field>;
 
-  /**
-   * Execution order during migrations (lower numbers run first)
-   */
-  order: number;
+	/**
+	 * Execution order during migrations (lower numbers run first)
+	 */
+	order: number;
 }
 
 /**
  * Schema definition for a set of tables
  */
 export interface SchemaDefinition {
-  /**
-   * Map of table name to table definition
-   */
-  [tableName: string]: TableDefinition;
+	/**
+	 * Map of table name to table definition
+	 */
+	[tableName: string]: TableDefinition;
 }
 
 /**
@@ -61,11 +61,11 @@ export interface SchemaDefinition {
  * @template TEntityKey - The entity key in the schema
  */
 export type PluginSchema = Record<
-  string,
-  {
-    fields: Record<string, Field>;
-    entityName?: string;
-  }
+	string,
+	{
+		fields: Record<string, Field>;
+		entityName?: string;
+	}
 >;
 
 /**
@@ -75,7 +75,7 @@ export type PluginSchema = Record<
  * @template TKey - Entity key in the database schema
  */
 export type EntityTypeMap = {
-  [TKey in keyof C15TDBSchema]: C15TDBSchema[TKey];
+	[TKey in keyof C15TDBSchema]: C15TDBSchema[TKey];
 };
 
 /**
@@ -91,9 +91,9 @@ export type EntityName = keyof C15TDBSchema;
  * @template TEntity - The entity type being operated on
  */
 export type EntityInput<TEntity extends EntityName> = Partial<
-  EntityTypeMap[TEntity]
+	EntityTypeMap[TEntity]
 > &
-  Record<string, unknown>;
+	Record<string, unknown>;
 
 /**
  * Output type for entity operations returned from the database.
@@ -102,4 +102,4 @@ export type EntityInput<TEntity extends EntityName> = Partial<
  * @template TEntity - The entity type being returned
  */
 export type EntityOutput<TEntity extends EntityName> = EntityTypeMap[TEntity] &
-  Record<string, unknown>;
+	Record<string, unknown>;

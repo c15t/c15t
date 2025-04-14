@@ -8,22 +8,22 @@ import type { AllConsentNames, ConsentState } from '../types';
  * @returns The effective consents after considering Do Not Track.
  */
 export function getEffectiveConsents(
-  consents: ConsentState,
-  honorDoNotTrack: boolean
+	consents: ConsentState,
+	honorDoNotTrack: boolean
 ): ConsentState {
-  if (
-    honorDoNotTrack &&
-    typeof window !== 'undefined' &&
-    window.navigator.doNotTrack === '1'
-  ) {
-    return Object.keys(consents).reduce((acc, key) => {
-      if (key in consents) {
-        acc[key as AllConsentNames] = key === 'necessary';
-      }
-      return acc;
-    }, {} as ConsentState);
-  }
-  return consents;
+	if (
+		honorDoNotTrack &&
+		typeof window !== 'undefined' &&
+		window.navigator.doNotTrack === '1'
+	) {
+		return Object.keys(consents).reduce((acc, key) => {
+			if (key in consents) {
+				acc[key as AllConsentNames] = key === 'necessary';
+			}
+			return acc;
+		}, {} as ConsentState);
+	}
+	return consents;
 }
 
 /**
@@ -35,12 +35,12 @@ export function getEffectiveConsents(
  * @returns True if consent is given, false otherwise.
  */
 export function hasConsentFor(
-  consentType: AllConsentNames,
-  consents: ConsentState,
-  honorDoNotTrack: boolean
+	consentType: AllConsentNames,
+	consents: ConsentState,
+	honorDoNotTrack: boolean
 ): boolean {
-  const effectiveConsents = getEffectiveConsents(consents, honorDoNotTrack);
-  return effectiveConsents[consentType] || false;
+	const effectiveConsents = getEffectiveConsents(consents, honorDoNotTrack);
+	return effectiveConsents[consentType] || false;
 }
 
 /**
@@ -50,7 +50,7 @@ export function hasConsentFor(
  * @returns True if the user has consented, false otherwise.
  */
 export function hasConsented(
-  consentInfo: { time: number; type: 'all' | 'custom' | 'necessary' } | null
+	consentInfo: { time: number; type: 'all' | 'custom' | 'necessary' } | null
 ): boolean {
-  return consentInfo !== null;
+	return consentInfo !== null;
 }

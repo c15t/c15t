@@ -37,20 +37,20 @@ const COOKIE_BANNER_ACCEPT_BUTTON_NAME = 'CookieBannerAcceptButton';
  * ```
  */
 const CookieBannerTitle = forwardRef<
-  HTMLDivElement,
-  Omit<BoxProps, 'themeKey'>
+	HTMLDivElement,
+	Omit<BoxProps, 'themeKey'>
 >(({ children, ...props }, ref) => {
-  return (
-    <Box
-      ref={ref as Ref<HTMLDivElement>}
-      baseClassName={styles.title}
-      data-testid="cookie-banner-title"
-      themeKey="banner.header.title"
-      {...props}
-    >
-      {children}
-    </Box>
-  );
+	return (
+		<Box
+			ref={ref as Ref<HTMLDivElement>}
+			baseClassName={styles.title}
+			data-testid="cookie-banner-title"
+			themeKey="banner.header.title"
+			{...props}
+		>
+			{children}
+		</Box>
+	);
 });
 
 CookieBannerTitle.displayName = COOKIE_BANNER_TITLE_NAME;
@@ -70,20 +70,20 @@ CookieBannerTitle.displayName = COOKIE_BANNER_TITLE_NAME;
  * ```
  */
 const CookieBannerDescription = forwardRef<
-  HTMLDivElement,
-  Omit<BoxProps, 'themeKey'>
+	HTMLDivElement,
+	Omit<BoxProps, 'themeKey'>
 >(({ children, ...props }, ref) => {
-  return (
-    <Box
-      ref={ref as Ref<HTMLDivElement>}
-      baseClassName={styles.description}
-      data-testid="cookie-banner-description"
-      themeKey="banner.header.description"
-      {...props}
-    >
-      {children}
-    </Box>
-  );
+	return (
+		<Box
+			ref={ref as Ref<HTMLDivElement>}
+			baseClassName={styles.description}
+			data-testid="cookie-banner-description"
+			themeKey="banner.header.description"
+			{...props}
+		>
+			{children}
+		</Box>
+	);
 });
 
 CookieBannerDescription.displayName = COOKIE_BANNER_DESCRIPTION_NAME;
@@ -104,20 +104,20 @@ CookieBannerDescription.displayName = COOKIE_BANNER_DESCRIPTION_NAME;
  * ```
  */
 const CookieBannerFooter = forwardRef<
-  HTMLDivElement,
-  Omit<BoxProps, 'themeKey'>
+	HTMLDivElement,
+	Omit<BoxProps, 'themeKey'>
 >(({ children, ...props }, ref) => {
-  return (
-    <Box
-      ref={ref as Ref<HTMLDivElement>}
-      baseClassName={styles.footer}
-      data-testid="cookie-banner-footer"
-      themeKey="banner.footer"
-      {...props}
-    >
-      {children}
-    </Box>
-  );
+	return (
+		<Box
+			ref={ref as Ref<HTMLDivElement>}
+			baseClassName={styles.footer}
+			data-testid="cookie-banner-footer"
+			themeKey="banner.footer"
+			{...props}
+		>
+			{children}
+		</Box>
+	);
 });
 
 CookieBannerFooter.displayName = COOKIE_BANNER_FOOTER_NAME;
@@ -139,30 +139,30 @@ CookieBannerFooter.displayName = COOKIE_BANNER_FOOTER_NAME;
  * ```
  */
 const CookieBannerCard = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
-  ({ children, ...props }, ref) => {
-    const { trapFocus } = useTheme();
-    const localRef = useRef<HTMLDivElement>(null);
-    const cardRef = (ref || localRef) as RefObject<HTMLElement>;
+	({ children, ...props }, ref) => {
+		const { trapFocus } = useTheme();
+		const localRef = useRef<HTMLDivElement>(null);
+		const cardRef = (ref || localRef) as RefObject<HTMLElement>;
 
-    // Call the useFocusTrap hook with the appropriate parameters
-    const shouldTrapFocus = Boolean(trapFocus);
-    useFocusTrap(shouldTrapFocus, cardRef);
+		// Call the useFocusTrap hook with the appropriate parameters
+		const shouldTrapFocus = Boolean(trapFocus);
+		useFocusTrap(shouldTrapFocus, cardRef);
 
-    return (
-      <Box
-        ref={cardRef as Ref<HTMLDivElement>}
-        tabIndex={0}
-        baseClassName={styles.card}
-        data-testid="cookie-banner-card"
-        themeKey="banner.card"
-        aria-modal={shouldTrapFocus ? 'true' : undefined}
-        role={shouldTrapFocus ? 'dialog' : undefined}
-        {...props}
-      >
-        {children}
-      </Box>
-    );
-  }
+		return (
+			<Box
+				ref={cardRef as Ref<HTMLDivElement>}
+				tabIndex={0}
+				baseClassName={styles.card}
+				data-testid="cookie-banner-card"
+				themeKey="banner.card"
+				aria-modal={shouldTrapFocus ? 'true' : undefined}
+				role={shouldTrapFocus ? 'dialog' : undefined}
+				{...props}
+			>
+				{children}
+			</Box>
+		);
+	}
 );
 
 CookieBannerCard.displayName = COOKIE_BANNER_CARD_NAME;
@@ -175,20 +175,20 @@ CookieBannerCard.displayName = COOKIE_BANNER_CARD_NAME;
  * Implements proper spacing and layout for header content.
  */
 const CookieBannerHeader = forwardRef<
-  HTMLDivElement,
-  Omit<BoxProps, 'themeKey'>
+	HTMLDivElement,
+	Omit<BoxProps, 'themeKey'>
 >(({ children, ...props }, ref) => {
-  return (
-    <Box
-      ref={ref as Ref<HTMLDivElement>}
-      baseClassName={styles.header}
-      data-testid="cookie-banner-header"
-      themeKey="banner.header.root"
-      {...props}
-    >
-      {children}
-    </Box>
-  );
+	return (
+		<Box
+			ref={ref as Ref<HTMLDivElement>}
+			baseClassName={styles.header}
+			data-testid="cookie-banner-header"
+			themeKey="banner.header.root"
+			{...props}
+		>
+			{children}
+		</Box>
+	);
 });
 
 CookieBannerHeader.displayName = COOKIE_BANNER_HEADER_NAME;
@@ -201,20 +201,20 @@ CookieBannerHeader.displayName = COOKIE_BANNER_HEADER_NAME;
  * Implements proper spacing and alignment for button groups.
  */
 const CookieBannerFooterSubGroup = forwardRef<
-  HTMLDivElement,
-  Omit<BoxProps, 'themeKey'>
+	HTMLDivElement,
+	Omit<BoxProps, 'themeKey'>
 >(({ children, ...props }, ref) => {
-  return (
-    <Box
-      ref={ref as Ref<HTMLDivElement>}
-      baseClassName={styles.footerSubGroup}
-      data-testid="cookie-banner-footer-sub-group"
-      themeKey="banner.footer.sub-group"
-      {...props}
-    >
-      {children}
-    </Box>
-  );
+	return (
+		<Box
+			ref={ref as Ref<HTMLDivElement>}
+			baseClassName={styles.footerSubGroup}
+			data-testid="cookie-banner-footer-sub-group"
+			themeKey="banner.footer.sub-group"
+			{...props}
+		>
+			{children}
+		</Box>
+	);
 });
 
 CookieBannerFooterSubGroup.displayName = COOKIE_BANNER_FOOTER_SUB_GROUP_NAME;
@@ -234,20 +234,20 @@ CookieBannerFooterSubGroup.displayName = COOKIE_BANNER_FOOTER_SUB_GROUP_NAME;
  * ```
  */
 const CookieBannerRejectButton = forwardRef<
-  HTMLButtonElement,
-  ConsentButtonProps
+	HTMLButtonElement,
+	ConsentButtonProps
 >(({ children, ...props }, ref) => {
-  return (
-    <ConsentButton
-      ref={ref as Ref<HTMLButtonElement>}
-      action="reject-consent"
-      data-testid="cookie-banner-reject-button"
-      closeCookieBanner
-      {...props}
-    >
-      {children}
-    </ConsentButton>
-  );
+	return (
+		<ConsentButton
+			ref={ref as Ref<HTMLButtonElement>}
+			action="reject-consent"
+			data-testid="cookie-banner-reject-button"
+			closeCookieBanner
+			{...props}
+		>
+			{children}
+		</ConsentButton>
+	);
 });
 
 CookieBannerRejectButton.displayName = COOKIE_BANNER_REJECT_BUTTON_NAME;
@@ -260,19 +260,19 @@ CookieBannerRejectButton.displayName = COOKIE_BANNER_REJECT_BUTTON_NAME;
  * Implements proper focus management and keyboard interaction.
  */
 const CookieBannerCustomizeButton = forwardRef<
-  HTMLButtonElement,
-  ConsentButtonProps
+	HTMLButtonElement,
+	ConsentButtonProps
 >(({ children, ...props }, ref) => {
-  return (
-    <ConsentButton
-      ref={ref as Ref<HTMLButtonElement>}
-      action="open-consent-dialog"
-      data-testid="cookie-banner-customize-button"
-      {...props}
-    >
-      {children}
-    </ConsentButton>
-  );
+	return (
+		<ConsentButton
+			ref={ref as Ref<HTMLButtonElement>}
+			action="open-consent-dialog"
+			data-testid="cookie-banner-customize-button"
+			{...props}
+		>
+			{children}
+		</ConsentButton>
+	);
 });
 
 CookieBannerCustomizeButton.displayName = COOKIE_BANNER_CUSTOMIZE_BUTTON_NAME;
@@ -293,23 +293,23 @@ CookieBannerCustomizeButton.displayName = COOKIE_BANNER_CUSTOMIZE_BUTTON_NAME;
  * ```
  */
 const CookieBannerAcceptButton = forwardRef<
-  HTMLButtonElement,
-  ConsentButtonProps
+	HTMLButtonElement,
+	ConsentButtonProps
 >(({ children, ...props }, ref) => {
-  const { noStyle } = useTheme();
-  return (
-    <ConsentButton
-      ref={ref as Ref<HTMLButtonElement>}
-      action="accept-consent"
-      variant="primary"
-      data-testid="cookie-banner-accept-button"
-      closeCookieBanner
-      noStyle={noStyle}
-      {...props}
-    >
-      {children}
-    </ConsentButton>
-  );
+	const { noStyle } = useTheme();
+	return (
+		<ConsentButton
+			ref={ref as Ref<HTMLButtonElement>}
+			action="accept-consent"
+			variant="primary"
+			data-testid="cookie-banner-accept-button"
+			closeCookieBanner
+			noStyle={noStyle}
+			{...props}
+		>
+			{children}
+		</ConsentButton>
+	);
 });
 
 CookieBannerAcceptButton.displayName = COOKIE_BANNER_ACCEPT_BUTTON_NAME;
@@ -325,22 +325,22 @@ const CustomizeButton = CookieBannerCustomizeButton;
 const AcceptButton = CookieBannerAcceptButton;
 
 export {
-  CookieBannerTitle,
-  CookieBannerDescription,
-  CookieBannerFooter,
-  CookieBannerFooterSubGroup,
-  CookieBannerCard,
-  CookieBannerHeader,
-  CookieBannerRejectButton,
-  CookieBannerCustomizeButton,
-  CookieBannerAcceptButton,
-  Title,
-  Description,
-  Footer,
-  FooterSubGroup,
-  Card,
-  Header,
-  RejectButton,
-  CustomizeButton,
-  AcceptButton,
+	CookieBannerTitle,
+	CookieBannerDescription,
+	CookieBannerFooter,
+	CookieBannerFooterSubGroup,
+	CookieBannerCard,
+	CookieBannerHeader,
+	CookieBannerRejectButton,
+	CookieBannerCustomizeButton,
+	CookieBannerAcceptButton,
+	Title,
+	Description,
+	Footer,
+	FooterSubGroup,
+	Card,
+	Header,
+	RejectButton,
+	CustomizeButton,
+	AcceptButton,
 };

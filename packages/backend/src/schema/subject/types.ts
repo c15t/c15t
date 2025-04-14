@@ -10,13 +10,13 @@ import type { TimestampedEntityConfig } from '../types';
  * @default entityName: "subject", entityPrefix: "sub"
  */
 export interface SubjectEntityConfig extends TimestampedEntityConfig {
-  fields?: Record<string, string> & {
-    id?: string;
-    isIdentified?: string;
-    externalId?: string;
-    identityProvider?: string;
-    lastIpAddress?: string;
-    createdAt?: string;
-    updatedAt?: string;
-  };
+	fields?: Record<string, string> & {
+		id?: string;
+		isIdentified?: string;
+		externalId?: string;
+		identityProvider?: string;
+		lastIpAddress?: string;
+		createdAt?: string;
+		updatedAt?: string;
+	};
 }

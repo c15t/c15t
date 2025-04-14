@@ -35,37 +35,37 @@ import type { LoggableError } from './types';
  * @public
  */
 export const logResult = <ValueType, ErrorType extends LoggableError>(
-  result: Result<ValueType, ErrorType>,
-  logger: { error: (message: string, ...args: unknown[]) => void },
-  message = 'Error occurred:'
+	result: Result<ValueType, ErrorType>,
+	logger: { error: (message: string, ...args: unknown[]) => void },
+	message = 'Error occurred:'
 ): Result<ValueType, ErrorType> => {
-  const tracer = getTracer();
-  const span = tracer.startSpan('log_result');
+	const tracer = getTracer();
+	const span = tracer.startSpan('log_result');
 
-  return result.mapErr((error) => {
-    span.setAttributes({
-      'error.message': error.message,
-      'error.code': error.code,
-      'error.status': error.status,
-      'error.category': error.category,
-      'error.has_meta': !!error.meta,
-    });
-    span.setStatus({
-      code: SpanStatusCode.ERROR,
-      message: error.message,
-    });
+	return result.mapErr((error) => {
+		span.setAttributes({
+			'error.message': error.message,
+			'error.code': error.code,
+			'error.status': error.status,
+			'error.category': error.category,
+			'error.has_meta': !!error.meta,
+		});
+		span.setStatus({
+			code: SpanStatusCode.ERROR,
+			message: error.message,
+		});
 
-    logger.error(`${message} ${error.message}`, {
-      code: error.code,
-      status: error.status,
-      meta: error.meta,
-      category: error.category,
-      stack: error.stack,
-    });
+		logger.error(`${message} ${error.message}`, {
+			code: error.code,
+			status: error.status,
+			meta: error.meta,
+			category: error.category,
+			stack: error.stack,
+		});
 
-    span.end();
-    return error;
-  });
+		span.end();
+		return error;
+	});
 };
 
 /**
@@ -100,35 +100,35 @@ export const logResult = <ValueType, ErrorType extends LoggableError>(
  * @public
  */
 export const logResultAsync = <ValueType, ErrorType extends LoggableError>(
-  resultAsync: ResultAsync<ValueType, ErrorType>,
-  logger: { error: (message: string, ...args: unknown[]) => void },
-  message = 'Error occurred:'
+	resultAsync: ResultAsync<ValueType, ErrorType>,
+	logger: { error: (message: string, ...args: unknown[]) => void },
+	message = 'Error occurred:'
 ): ResultAsync<ValueType, ErrorType> => {
-  const tracer = getTracer();
-  const span = tracer.startSpan('log_result_async');
+	const tracer = getTracer();
+	const span = tracer.startSpan('log_result_async');
 
-  return resultAsync.mapErr((error) => {
-    span.setAttributes({
-      'error.message': error.message,
-      'error.code': error.code,
-      'error.status': error.status,
-      'error.category': error.category,
-      'error.has_meta': !!error.meta,
-    });
-    span.setStatus({
-      code: SpanStatusCode.ERROR,
-      message: error.message,
-    });
+	return resultAsync.mapErr((error) => {
+		span.setAttributes({
+			'error.message': error.message,
+			'error.code': error.code,
+			'error.status': error.status,
+			'error.category': error.category,
+			'error.has_meta': !!error.meta,
+		});
+		span.setStatus({
+			code: SpanStatusCode.ERROR,
+			message: error.message,
+		});
 
-    logger.error(`${message} ${error.message}`, {
-      code: error.code,
-      status: error.status,
-      meta: error.meta,
-      category: error.category,
-      stack: error.stack,
-    });
+		logger.error(`${message} ${error.message}`, {
+			code: error.code,
+			status: error.status,
+			meta: error.meta,
+			category: error.category,
+			stack: error.stack,
+		});
 
-    span.end();
-    return error;
-  });
+		span.end();
+		return error;
+	});
 };

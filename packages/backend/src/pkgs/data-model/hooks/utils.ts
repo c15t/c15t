@@ -32,70 +32,70 @@ import type { DatabaseHook, HookOperation, HookPhase } from './types';
  * ```
  */
 export async function processHooks<
-  TEntityName extends EntityName,
-  TEntityData extends Record<string, unknown>,
+	TEntityName extends EntityName,
+	TEntityData extends Record<string, unknown>,
 >(
-  data: TEntityData,
-  model: TEntityName,
-  operation: HookOperation,
-  phase: HookPhase,
-  hooks: DatabaseHook[],
-  context?: GenericEndpointContext
+	data: TEntityData,
+	model: TEntityName,
+	operation: HookOperation,
+	phase: HookPhase,
+	hooks: DatabaseHook[],
+	context?: GenericEndpointContext
 ): Promise<TEntityData | null> {
-  let currentData = { ...data };
+	let currentData = { ...data };
 
-  for (const hookSet of hooks) {
-    // Skip if no hooks for this model
-    const modelHooks = hookSet[model];
-    if (!modelHooks) {
-      continue;
-    }
+	for (const hookSet of hooks) {
+		// Skip if no hooks for this model
+		const modelHooks = hookSet[model];
+		if (!modelHooks) {
+			continue;
+		}
 
-    // Skip if no hooks for this operation
-    const operationHooks = modelHooks[operation];
-    if (!operationHooks) {
-      continue;
-    }
+		// Skip if no hooks for this operation
+		const operationHooks = modelHooks[operation];
+		if (!operationHooks) {
+			continue;
+		}
 
-    // Skip if no hooks for this phase
-    const hookFn = operationHooks[phase];
-    if (!hookFn) {
-      continue;
-    }
+		// Skip if no hooks for this phase
+		const hookFn = operationHooks[phase];
+		if (!hookFn) {
+			continue;
+		}
 
-    if (phase === 'before') {
-      const result = await hookFn(
-        currentData as unknown as EntityTypeMap[TEntityName],
-        context
-      );
+		if (phase === 'before') {
+			const result = await hookFn(
+				currentData as unknown as EntityTypeMap[TEntityName],
+				context
+			);
 
-      if (result && typeof result === 'object' && 'kind' in result) {
-        switch (result.kind) {
-          case 'abort':
-            return null;
-          case 'transform': {
-            const transformData = result.data;
-            currentData = {
-              ...currentData,
-              ...transformData,
-            };
-            break;
-          }
-          default:
-            // Continue with current data
-            break;
-        }
-      }
-    } else {
-      // For 'after' hooks, we use the same type casting approach
-      await hookFn(
-        currentData as unknown as EntityTypeMap[TEntityName],
-        context
-      );
-    }
-  }
+			if (result && typeof result === 'object' && 'kind' in result) {
+				switch (result.kind) {
+					case 'abort':
+						return null;
+					case 'transform': {
+						const transformData = result.data;
+						currentData = {
+							...currentData,
+							...transformData,
+						};
+						break;
+					}
+					default:
+						// Continue with current data
+						break;
+				}
+			}
+		} else {
+			// For 'after' hooks, we use the same type casting approach
+			await hookFn(
+				currentData as unknown as EntityTypeMap[TEntityName],
+				context
+			);
+		}
+	}
 
-  return currentData;
+	return currentData;
 }
 
 /**
@@ -126,26 +126,26 @@ export async function processHooks<
  * ```
  */
 export async function processAfterHooksForMany<
-  TEntityName extends EntityName,
-  TEntityData extends Record<string, unknown>,
+	TEntityName extends EntityName,
+	TEntityData extends Record<string, unknown>,
 >(
-  records: TEntityData[],
-  model: TEntityName,
-  hooks: DatabaseHook[],
-  context?: GenericEndpointContext
+	records: TEntityData[],
+	model: TEntityName,
+	hooks: DatabaseHook[],
+	context?: GenericEndpointContext
 ): Promise<void> {
-  if (!records.length) {
-    return;
-  }
+	if (!records.length) {
+		return;
+	}
 
-  for (const record of records) {
-    await processHooks<TEntityName, TEntityData>(
-      record,
-      model,
-      'update',
-      'after',
-      hooks,
-      context
-    );
-  }
+	for (const record of records) {
+		await processHooks<TEntityName, TEntityData>(
+			record,
+			model,
+			'update',
+			'after',
+			hooks,
+			context
+		);
+	}
 }

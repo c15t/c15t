@@ -4,38 +4,38 @@ import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '~/lib/cn';
 
 export function AuroraText({
-  className,
-  children,
+	className,
+	children,
 }: {
-  className?: string;
-  children: ReactNode;
+	className?: string;
+	children: ReactNode;
 }) {
-  return (
-    <span
-      className={cn(
-        'relative inline-flex overflow-hidden bg-background',
-        className
-      )}
-    >
-      {children}
-      <div className="aurora pointer-events-none absolute inset-0 mix-blend-lighten dark:mix-blend-darken">
-        {[...new Array(5)].map((_, i) => (
-          <div
-            key={i}
-            className="aurora__item absolute h-[60vw] w-[60vw]"
-            style={{
-              backgroundColor: `hsl(var(--color-${i + 1}))`,
-              filter: 'blur(1rem)',
-              animation: `aurora-border 6s ease-in-out infinite, aurora-${
-                i + 1
-              } 12s ease-in-out infinite alternate`,
-              mixBlendMode: 'overlay',
-              ...getInitialPosition(i),
-            }}
-          />
-        ))}
-      </div>
-      <style jsx>{`
+	return (
+		<span
+			className={cn(
+				'relative inline-flex overflow-hidden bg-background',
+				className
+			)}
+		>
+			{children}
+			<div className="aurora pointer-events-none absolute inset-0 mix-blend-lighten dark:mix-blend-darken">
+				{[...new Array(5)].map((_, i) => (
+					<div
+						key={i}
+						className="aurora__item absolute h-[60vw] w-[60vw]"
+						style={{
+							backgroundColor: `hsl(var(--color-${i + 1}))`,
+							filter: 'blur(1rem)',
+							animation: `aurora-border 6s ease-in-out infinite, aurora-${
+								i + 1
+							} 12s ease-in-out infinite alternate`,
+							mixBlendMode: 'overlay',
+							...getInitialPosition(i),
+						}}
+					/>
+				))}
+			</div>
+			<style jsx>{`
         @keyframes aurora-border {
           0%,
           100% {
@@ -112,16 +112,16 @@ export function AuroraText({
           }
         }
       `}</style>
-    </span>
-  );
+		</span>
+	);
 }
 
 function getInitialPosition(index: number): CSSProperties {
-  const positions = [
-    { top: '-50%' },
-    { right: 0, top: 0 },
-    { left: 0, bottom: 0 },
-    { right: 0, bottom: '-50%' },
-  ];
-  return positions[index] || {};
+	const positions = [
+		{ top: '-50%' },
+		{ right: 0, top: 0 },
+		{ left: 0, bottom: 0 },
+		{ right: 0, bottom: '-50%' },
+	];
+	return positions[index] || {};
 }

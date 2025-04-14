@@ -15,14 +15,14 @@ export { useFocusTrap } from './hooks/use-focus-trap';
 
 // Export client
 export {
-  configureConsentManager,
-  type ConsentManagerInterface,
+	configureConsentManager,
+	type ConsentManagerInterface,
 } from 'c15t';
 
 // Export types
 export type {
-  ConsentManagerProviderProps,
-  ConsentManagerOptions,
+	ConsentManagerProviderProps,
+	ConsentManagerOptions,
 } from './types/consent-manager';
 
 // Export utilities

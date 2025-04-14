@@ -2,11 +2,11 @@ import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
 import { init } from './init';
 import { createApiHandler } from './pkgs/api-router';
 import {
-  ERROR_CODES,
-  type SDKResult,
-  type SDKResultAsync,
-  failAsync,
-  okAsync,
+	ERROR_CODES,
+	type SDKResult,
+	type SDKResultAsync,
+	failAsync,
+	okAsync,
 } from './pkgs/results';
 import { routes } from './routes';
 import type { Route } from './routes/types';
@@ -36,56 +36,56 @@ import type { Route } from './routes/types';
  * ```
  */
 export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
-  /**
-   * Processes incoming HTTP requests and routes them to appropriate handlers.
-   *
-   * @param request - The incoming web request
-   * @returns A Promise resolving to a Result containing the HTTP response
-   *
-   * @throws Never - All errors are captured in the Result type
-   *
-   * @example
-   * ```typescript
-   * const result = await instance.handler(request);
-   * result.match(
-   *   response => sendResponse(response),
-   *   error => handleError(error)
-   * );
-   * ```
-   */
-  handler: (request: Request) => Promise<SDKResultAsync<Response>>;
+	/**
+	 * Processes incoming HTTP requests and routes them to appropriate handlers.
+	 *
+	 * @param request - The incoming web request
+	 * @returns A Promise resolving to a Result containing the HTTP response
+	 *
+	 * @throws Never - All errors are captured in the Result type
+	 *
+	 * @example
+	 * ```typescript
+	 * const result = await instance.handler(request);
+	 * result.match(
+	 *   response => sendResponse(response),
+	 *   error => handleError(error)
+	 * );
+	 * ```
+	 */
+	handler: (request: Request) => Promise<SDKResultAsync<Response>>;
 
-  /**
-   * Retrieves available API endpoints and their configurations.
-   *
-   * @returns A Promise resolving to a Result containing the available API endpoints
-   *
-   * @throws Never - All errors are captured in the Result type
-   *
-   * @example
-   * ```typescript
-   * const endpoints = await instance.getApi();
-   * endpoints.map(
-   *   apis => console.log('Available endpoints:', apis),
-   *   error => console.error('Failed to get endpoints:', error)
-   * );
-   * ```
-   */
-  getApi: () => Promise<SDKResultAsync<Route[]>>;
+	/**
+	 * Retrieves available API endpoints and their configurations.
+	 *
+	 * @returns A Promise resolving to a Result containing the available API endpoints
+	 *
+	 * @throws Never - All errors are captured in the Result type
+	 *
+	 * @example
+	 * ```typescript
+	 * const endpoints = await instance.getApi();
+	 * endpoints.map(
+	 *   apis => console.log('Available endpoints:', apis),
+	 *   error => console.error('Failed to get endpoints:', error)
+	 * );
+	 * ```
+	 */
+	getApi: () => Promise<SDKResultAsync<Route[]>>;
 
-  /**
-   * The configuration options used for this instance.
-   */
-  options: C15TOptions<PluginTypes>;
+	/**
+	 * The configuration options used for this instance.
+	 */
+	options: C15TOptions<PluginTypes>;
 
-  /**
-   * Access to the underlying context as a Result type.
-   *
-   * @remarks
-   * The context is wrapped in a Result type to ensure error handling
-   * consistency. Access should be handled using Result pattern methods.
-   */
-  $context: Promise<SDKResult<C15TContext>>;
+	/**
+	 * Access to the underlying context as a Result type.
+	 *
+	 * @remarks
+	 * The context is wrapped in a Result type to ensure error handling
+	 * consistency. Access should be handled using Result pattern methods.
+	 */
+	$context: Promise<SDKResult<C15TContext>>;
 }
 
 /**
@@ -135,103 +135,103 @@ export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
  * ```
  */
 export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
-  options: C15TOptions<PluginTypes>
+	options: C15TOptions<PluginTypes>
 ): C15TInstance<PluginTypes> => {
-  // Initialize context directly without retry
-  const contextPromise = init(options);
-  let webHandler: ((request: Request) => Promise<Response>) | null = null;
+	// Initialize context directly without retry
+	const contextPromise = init(options);
+	let webHandler: ((request: Request) => Promise<Response>) | null = null;
 
-  /**
-   * Creates or returns the cached H3 app handler
-   */
-  const getHandler = async (
-    ctx: C15TContext
-  ): Promise<(request: Request) => Promise<Response>> => {
-    // Initialize the app once and cache it
-    if (!webHandler) {
-      // Use createApiHandler instead of direct H3 app creation
-      // This ensures the registry and other context items are properly passed to event handlers
-      const { handler } = createApiHandler({
-        options: ctx.options,
-        context: {
-          adapter: ctx.adapter,
-          registry: ctx.registry,
-          trustedOrigins: ctx.trustedOrigins,
-          logger: ctx.logger,
-        },
-      });
+	/**
+	 * Creates or returns the cached H3 app handler
+	 */
+	const getHandler = async (
+		ctx: C15TContext
+	): Promise<(request: Request) => Promise<Response>> => {
+		// Initialize the app once and cache it
+		if (!webHandler) {
+			// Use createApiHandler instead of direct H3 app creation
+			// This ensures the registry and other context items are properly passed to event handlers
+			const { handler } = createApiHandler({
+				options: ctx.options,
+				context: {
+					adapter: ctx.adapter,
+					registry: ctx.registry,
+					trustedOrigins: ctx.trustedOrigins,
+					logger: ctx.logger,
+				},
+			});
 
-      // Cache the handler
-      webHandler = handler;
-    }
+			// Cache the handler
+			webHandler = handler;
+		}
 
-    return webHandler;
-  };
+		return webHandler;
+	};
 
-  /**
-   * Handles incoming requests using H3
-   */
-  const handler = async (
-    request: Request
-  ): Promise<SDKResultAsync<Response>> => {
-    try {
-      const contextResult = await contextPromise;
+	/**
+	 * Handles incoming requests using H3
+	 */
+	const handler = async (
+		request: Request
+	): Promise<SDKResultAsync<Response>> => {
+		try {
+			const contextResult = await contextPromise;
 
-      return contextResult.match(
-        // Success case
-        async (ctx) => {
-          try {
-            // Get the web handler which accepts standard Request objects
-            const handler = await getHandler(ctx);
+			return contextResult.match(
+				// Success case
+				async (ctx) => {
+					try {
+						// Get the web handler which accepts standard Request objects
+						const handler = await getHandler(ctx);
 
-            // Simply call the handler with the request
-            const response = await handler(request);
-            return okAsync(response);
-          } catch (error) {
-            return failAsync('Request handling failed', {
-              code: ERROR_CODES.REQUEST_HANDLER_ERROR,
-              cause: error instanceof Error ? error : undefined,
-            });
-          }
-        },
-        // Error case
-        (error) => {
-          // Handle initialization errors without special version handling
-          return failAsync(`Context initialization failed: ${error.message}`, {
-            code: ERROR_CODES.INITIALIZATION_FAILED,
-            cause: error,
-          });
-        }
-      );
-    } catch (error) {
-      return failAsync(
-        `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
-        {
-          code: ERROR_CODES.UNKNOWN_ERROR,
-          cause: error instanceof Error ? error : undefined,
-        }
-      );
-    }
-  };
+						// Simply call the handler with the request
+						const response = await handler(request);
+						return okAsync(response);
+					} catch (error) {
+						return failAsync('Request handling failed', {
+							code: ERROR_CODES.REQUEST_HANDLER_ERROR,
+							cause: error instanceof Error ? error : undefined,
+						});
+					}
+				},
+				// Error case
+				(error) => {
+					// Handle initialization errors without special version handling
+					return failAsync(`Context initialization failed: ${error.message}`, {
+						code: ERROR_CODES.INITIALIZATION_FAILED,
+						cause: error,
+					});
+				}
+			);
+		} catch (error) {
+			return failAsync(
+				`Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
+				{
+					code: ERROR_CODES.UNKNOWN_ERROR,
+					cause: error instanceof Error ? error : undefined,
+				}
+			);
+		}
+	};
 
-  // Return the instance
-  return {
-    handler,
-    getApi: async (): Promise<SDKResultAsync<Route[]>> => {
-      const contextResult = await contextPromise;
+	// Return the instance
+	return {
+		handler,
+		getApi: async (): Promise<SDKResultAsync<Route[]>> => {
+			const contextResult = await contextPromise;
 
-      return contextResult.match(
-        // Success case - just return the routes
-        () => okAsync(routes),
-        // Error case
-        (error) =>
-          failAsync(`API retrieval failed: ${error.message}`, {
-            code: ERROR_CODES.API_RETRIEVAL_ERROR,
-            cause: error,
-          })
-      );
-    },
-    options,
-    $context: contextPromise,
-  };
+			return contextResult.match(
+				// Success case - just return the routes
+				() => okAsync(routes),
+				// Error case
+				(error) =>
+					failAsync(`API retrieval failed: ${error.message}`, {
+						code: ERROR_CODES.API_RETRIEVAL_ERROR,
+						cause: error,
+					})
+			);
+		},
+		options,
+		$context: contextPromise,
+	};
 };

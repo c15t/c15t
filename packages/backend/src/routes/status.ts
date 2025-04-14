@@ -6,13 +6,13 @@ import { version } from '../../package.json';
  * @public
  */
 export interface StatusResponse {
-  status: 'ok' | 'error';
-  version: string;
-  timestamp: string;
-  storage: {
-    type: string;
-    available: boolean;
-  };
+	status: 'ok' | 'error';
+	version: string;
+	timestamp: string;
+	storage: {
+		type: string;
+		available: boolean;
+	};
 }
 
 /**
@@ -43,19 +43,19 @@ export interface StatusResponse {
  * ```
  */
 export const status = defineRoute<StatusResponse>({
-  path: '/status',
-  method: 'get',
-  handler: async (event) => {
-    const response: StatusResponse = {
-      status: 'ok',
-      version: version,
-      timestamp: new Date().toISOString(),
-      storage: {
-        type: event.context.adapter?.id ?? 'Unavailable',
-        available: !!event.context.adapter,
-      },
-    };
+	path: '/status',
+	method: 'get',
+	handler: async (event) => {
+		const response: StatusResponse = {
+			status: 'ok',
+			version: version,
+			timestamp: new Date().toISOString(),
+			storage: {
+				type: event.context.adapter?.id ?? 'Unavailable',
+				available: !!event.context.adapter,
+			},
+		};
 
-    return response;
-  },
+		return response;
+	},
 });

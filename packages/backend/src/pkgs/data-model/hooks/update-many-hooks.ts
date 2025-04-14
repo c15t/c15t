@@ -1,9 +1,9 @@
 import type { EntityName } from '~/pkgs/data-model';
 import type { Adapter } from '~/pkgs/db-adapters';
 import type {
-  CustomOperationFunction,
-  HookContext,
-  UpdateWithHooksProps,
+	CustomOperationFunction,
+	HookContext,
+	UpdateWithHooksProps,
 } from './types';
 import { processAfterHooksForMany, processHooks } from './utils';
 
@@ -22,21 +22,21 @@ import { processAfterHooksForMany, processHooks } from './utils';
  * @returns Object containing the result and whether to continue with standard update
  */
 async function executeCustomFunction<
-  TInputData extends Record<string, unknown>,
-  TOutputData,
+	TInputData extends Record<string, unknown>,
+	TOutputData,
 >(
-  data: TInputData,
-  customFn?: CustomOperationFunction<Partial<TInputData>, TOutputData>
+	data: TInputData,
+	customFn?: CustomOperationFunction<Partial<TInputData>, TOutputData>
 ): Promise<{ result: TOutputData | null; shouldContinue: boolean }> {
-  if (!customFn) {
-    return { result: null, shouldContinue: true };
-  }
-  const result = (await customFn.fn(
-    data as unknown as TOutputData
-  )) as TOutputData | null;
-  const shouldContinue = !result || !!customFn.executeMainFn;
+	if (!customFn) {
+		return { result: null, shouldContinue: true };
+	}
+	const result = (await customFn.fn(
+		data as unknown as TOutputData
+	)) as TOutputData | null;
+	const shouldContinue = !result || !!customFn.executeMainFn;
 
-  return { result, shouldContinue };
+	return { result, shouldContinue };
 }
 
 /**
@@ -51,17 +51,17 @@ async function executeCustomFunction<
  * @returns Normalized array of entity data or null
  */
 function processUpdateManyResult<TEntityData extends Record<string, unknown>>(
-  result: unknown
+	result: unknown
 ): TEntityData[] | null {
-  if (Array.isArray(result)) {
-    return result;
-  }
+	if (Array.isArray(result)) {
+		return result;
+	}
 
-  if (typeof result === 'number' && result > 0) {
-    return []; // Empty array if we just got a count
-  }
+	if (typeof result === 'number' && result > 0) {
+		return []; // Empty array if we just got a count
+	}
 
-  return null;
+	return null;
 }
 
 /**
@@ -116,61 +116,61 @@ function processUpdateManyResult<TEntityData extends Record<string, unknown>>(
  * ```
  */
 export async function updateManyWithHooks<
-  TInputData extends Record<string, unknown> = Record<string, unknown>,
-  TOutputData extends Record<string, unknown> = TInputData,
+	TInputData extends Record<string, unknown> = Record<string, unknown>,
+	TOutputData extends Record<string, unknown> = TInputData,
 >(
-  adapter: Adapter,
-  ctx: HookContext,
-  props: UpdateWithHooksProps<TInputData, TOutputData>
+	adapter: Adapter,
+	ctx: HookContext,
+	props: UpdateWithHooksProps<TInputData, TOutputData>
 ): Promise<TOutputData[] | null> {
-  const { data, where, model, customFn, context } = props;
-  const hooks = ctx.hooks || [];
+	const { data, where, model, customFn, context } = props;
+	const hooks = ctx.hooks || [];
 
-  // Process before hooks
-  const transformedData = await processHooks<EntityName, Partial<TInputData>>(
-    data,
-    model,
-    'update',
-    'before',
-    hooks,
-    context
-  );
-  if (transformedData === null) {
-    return null;
-  }
+	// Process before hooks
+	const transformedData = await processHooks<EntityName, Partial<TInputData>>(
+		data,
+		model,
+		'update',
+		'before',
+		hooks,
+		context
+	);
+	if (transformedData === null) {
+		return null;
+	}
 
-  // Try custom function first
-  const { result: customResult, shouldContinue } = await executeCustomFunction<
-    Partial<TInputData>,
-    TOutputData[]
-    //@ts-expect-error
-  >(transformedData, customFn);
+	// Try custom function first
+	const { result: customResult, shouldContinue } = await executeCustomFunction<
+		Partial<TInputData>,
+		TOutputData[]
+		//@ts-expect-error
+	>(transformedData, customFn);
 
-  if (customResult && !shouldContinue) {
-    return customResult;
-  }
+	if (customResult && !shouldContinue) {
+		return customResult;
+	}
 
-  // Use adapter if needed
-  let updated = customResult;
-  if (!updated) {
-    const adapterResult = await adapter.updateMany({
-      model: model as EntityName,
-      update: transformedData,
-      where,
-    });
+	// Use adapter if needed
+	let updated = customResult;
+	if (!updated) {
+		const adapterResult = await adapter.updateMany({
+			model: model as EntityName,
+			update: transformedData,
+			where,
+		});
 
-    updated = processUpdateManyResult<TOutputData>(adapterResult);
-  }
+		updated = processUpdateManyResult<TOutputData>(adapterResult);
+	}
 
-  // Process after hooks
-  if (updated && updated.length > 0) {
-    await processAfterHooksForMany<EntityName, TOutputData>(
-      updated,
-      model,
-      hooks,
-      context
-    );
-  }
+	// Process after hooks
+	if (updated && updated.length > 0) {
+		await processAfterHooksForMany<EntityName, TOutputData>(
+			updated,
+			model,
+			hooks,
+			context
+		);
+	}
 
-  return updated;
+	return updated;
 }

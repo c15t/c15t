@@ -1,10 +1,10 @@
 import {
-  Children,
-  type ComponentType,
-  type ReactElement,
-  type ReactNode,
-  cloneElement,
-  isValidElement,
+	Children,
+	type ComponentType,
+	type ReactElement,
+	type ReactNode,
+	cloneElement,
+	isValidElement,
 } from 'react';
 
 /**
@@ -19,34 +19,34 @@ import {
  * @returns The cloned node(s) with the additional props applied to the matched components.
  */
 export function recursiveCloneChildren(
-  children: ReactNode,
-  additionalProps: Record<string, unknown>,
-  displayNames: string[],
-  uniqueId: string,
-  asChild?: boolean
+	children: ReactNode,
+	additionalProps: Record<string, unknown>,
+	displayNames: string[],
+	uniqueId: string,
+	asChild?: boolean
 ): ReactNode | ReactNode[] {
-  const mappedChildren = Children.map(children, (child: ReactNode) => {
-    if (!isValidElement(child)) {
-      return child;
-    }
+	const mappedChildren = Children.map(children, (child: ReactNode) => {
+		if (!isValidElement(child)) {
+			return child;
+		}
 
-    const displayName = (child.type as ComponentType)?.displayName || '';
-    const newProps = displayNames.includes(displayName) ? additionalProps : {};
+		const displayName = (child.type as ComponentType)?.displayName || '';
+		const newProps = displayNames.includes(displayName) ? additionalProps : {};
 
-    const childProps = (child as ReactElement<Record<string, unknown>>).props;
+		const childProps = (child as ReactElement<Record<string, unknown>>).props;
 
-    return cloneElement(
-      child,
-      { ...newProps, key: `${uniqueId}-${child.key || displayName}` },
-      recursiveCloneChildren(
-        childProps?.children as ReactNode,
-        additionalProps,
-        displayNames,
-        uniqueId,
-        childProps?.asChild as boolean | undefined
-      )
-    );
-  });
+		return cloneElement(
+			child,
+			{ ...newProps, key: `${uniqueId}-${child.key || displayName}` },
+			recursiveCloneChildren(
+				childProps?.children as ReactNode,
+				additionalProps,
+				displayNames,
+				uniqueId,
+				childProps?.asChild as boolean | undefined
+			)
+		);
+	});
 
-  return asChild ? mappedChildren?.[0] : mappedChildren;
+	return asChild ? mappedChildren?.[0] : mappedChildren;
 }

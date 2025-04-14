@@ -7,45 +7,45 @@
  */
 
 export {
-  ConsentManagerWidgetAccordionTrigger,
-  ConsentManagerWidgetAccordionTriggerInner,
-  ConsentManagerWidgetAccordionContent,
-  ConsentManagerWidgetAccordionArrow,
-  ConsentManagerWidgetAccordion,
-  ConsentManagerWidgetSwitch,
-  ConsentManagerWidgetAccordionItems,
-  ConsentManagerWidgetAccordionItem,
-  AccordionTrigger,
-  AccordionTriggerInner,
-  AccordionContent,
-  AccordionArrow,
-  Accordion,
-  Switch,
-  AccordionItems,
-  AccordionItem,
+	ConsentManagerWidgetAccordionTrigger,
+	ConsentManagerWidgetAccordionTriggerInner,
+	ConsentManagerWidgetAccordionContent,
+	ConsentManagerWidgetAccordionArrow,
+	ConsentManagerWidgetAccordion,
+	ConsentManagerWidgetSwitch,
+	ConsentManagerWidgetAccordionItems,
+	ConsentManagerWidgetAccordionItem,
+	AccordionTrigger,
+	AccordionTriggerInner,
+	AccordionContent,
+	AccordionArrow,
+	Accordion,
+	Switch,
+	AccordionItems,
+	AccordionItem,
 } from './atoms/accordion';
 
 export {
-  Root,
-  ConsentManagerWidgetRoot,
+	Root,
+	ConsentManagerWidgetRoot,
 } from './atoms/root';
 
 export {
-  AcceptAllButton,
-  CustomizeButton,
-  SaveButton,
-  RejectButton,
-  ConsentManagerWidgetAcceptAllButton,
-  ConsentManagerWidgetCustomizeButton,
-  ConsentManagerWidgetSaveButton,
-  ConsentManagerWidgetRejectButton,
+	AcceptAllButton,
+	CustomizeButton,
+	SaveButton,
+	RejectButton,
+	ConsentManagerWidgetAcceptAllButton,
+	ConsentManagerWidgetCustomizeButton,
+	ConsentManagerWidgetSaveButton,
+	ConsentManagerWidgetRejectButton,
 } from './atoms/button';
 
 export {
-  ConsentManagerWidgetFooter,
-  ConsentManagerWidgetFooterSubGroup,
-  Footer,
-  FooterSubGroup,
+	ConsentManagerWidgetFooter,
+	ConsentManagerWidgetFooterSubGroup,
+	Footer,
+	FooterSubGroup,
 } from './atoms/footer';
 
 export type { ConsentManagerWidgetTheme } from './theme';

@@ -23,13 +23,13 @@ import { z } from 'zod';
  * ```
  */
 export const consentRecordSchema = z.object({
-  id: z.string(),
-  subjectId: z.string(),
-  consentId: z.string().optional(),
-  actionType: z.string(),
-  details: z.record(z.unknown()).optional(),
-  createdAt: z.date().default(() => new Date()),
-  updatedAt: z.date().default(() => new Date()),
+	id: z.string(),
+	subjectId: z.string(),
+	consentId: z.string().optional(),
+	actionType: z.string(),
+	details: z.record(z.unknown()).optional(),
+	createdAt: z.date().default(() => new Date()),
+	updatedAt: z.date().default(() => new Date()),
 });
 
 /**

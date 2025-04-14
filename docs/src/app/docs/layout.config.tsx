@@ -11,23 +11,23 @@ import packageJson from '../../../../packages/core/package.json';
  * Docs Layout: app/docs/layout.tsx
  */
 export const docsOptions: Omit<DocsLayoutProps, 'tree'> = {
-  sidebar: {
-    collapsible: false,
-  },
-  nav: {
-    mode: 'top',
-    title: (
-      <>
-        <C15TLogo className="h-6 w-auto" />
-        <span className="font-medium text-sm">{packageJson.version}</span>
-      </>
-    ),
-  },
-  links: [
-    {
-      type: 'custom',
-      secondary: true,
-      children: <GithubInfo owner="c15t" repo="c15t" />,
-    },
-  ],
+	sidebar: {
+		collapsible: false,
+	},
+	nav: {
+		mode: 'top',
+		title: (
+			<>
+				<C15TLogo className="h-6 w-auto" />
+				<span className="font-medium text-sm">{packageJson.version}</span>
+			</>
+		),
+	},
+	links: [
+		{
+			type: 'custom',
+			secondary: true,
+			children: <GithubInfo owner="c15t" repo="c15t" />,
+		},
+	],
 };

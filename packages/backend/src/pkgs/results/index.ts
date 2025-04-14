@@ -73,13 +73,13 @@
 
 // Re-export everything from neverthrow that we use
 export {
-  ok,
-  err,
-  okAsync,
-  errAsync,
-  fromPromise,
-  Result,
-  ResultAsync,
+	ok,
+	err,
+	okAsync,
+	errAsync,
+	fromPromise,
+	Result,
+	ResultAsync,
 } from 'neverthrow';
 
 // Export our error class
@@ -87,12 +87,12 @@ export { DoubleTieError } from './core/error-class';
 
 // Export our types
 export type {
-  DoubleTieErrorOptions,
-  ErrorCategory,
-  ErrorMessageType,
-  ErrorTransformer,
-  SDKResult,
-  SDKResultAsync,
+	DoubleTieErrorOptions,
+	ErrorCategory,
+	ErrorMessageType,
+	ErrorTransformer,
+	SDKResult,
+	SDKResultAsync,
 } from './types';
 
 // Export our error classes, codes, and categories
@@ -100,17 +100,17 @@ export { ERROR_CODES, ERROR_CATEGORIES } from './core/error-codes';
 
 // Export result handling utilities
 export {
-  fail,
-  failAsync,
-  tryCatch,
-  tryCatchAsync,
-  promiseToResult,
+	fail,
+	failAsync,
+	tryCatch,
+	tryCatchAsync,
+	promiseToResult,
 } from './results/result-helpers';
 
 // Export recovery utilities
 export {
-  withFallbackForCodes,
-  withFallbackForCategory,
+	withFallbackForCodes,
+	withFallbackForCategory,
 } from './results/recovery-utils';
 
 // Export pipeline utilities
@@ -119,12 +119,12 @@ export { retrievalPipeline } from './pipeline/retrieval-pipeline';
 
 // Export H3.js integration helpers
 export {
-  createH3ErrorHandler,
-  withH3ErrorHandling,
+	createH3ErrorHandler,
+	withH3ErrorHandling,
 } from './h3-integration';
 
 // Export telemetry options
 export {
-  createTelemetryOptions,
-  type TelemetryConfig,
+	createTelemetryOptions,
+	type TelemetryConfig,
 } from './create-telemetry-options';

@@ -26,21 +26,21 @@ import { ConsentStateContext } from '../context/consent-manager-context';
  * @public
  */
 export function useConsentManager() {
-  const context = useContext(ConsentStateContext);
+	const context = useContext(ConsentStateContext);
 
-  if (context === undefined) {
-    throw new Error(
-      'useConsentManager must be used within a ConsentManagerProvider'
-    );
-  }
+	if (context === undefined) {
+		throw new Error(
+			'useConsentManager must be used within a ConsentManagerProvider'
+		);
+	}
 
-  const storeState = context.store.getState();
+	const storeState = context.store.getState();
 
-  // Combine state from context and methods from store
-  return {
-    ...context.state,
-    ...storeState,
-    // Include manager in returned object if available
-    ...(context.manager ? { manager: context.manager } : {}),
-  };
+	// Combine state from context and methods from store
+	return {
+		...context.state,
+		...storeState,
+		// Include manager in returned object if available
+		...(context.manager ? { manager: context.manager } : {}),
+	};
 }

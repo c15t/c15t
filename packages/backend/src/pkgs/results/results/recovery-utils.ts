@@ -58,37 +58,37 @@ import type { ErrorCategory, ErrorMessageType, SDKResult } from '../types';
  * ```
  */
 export const withFallbackForCodes = <TValue>(
-  result: SDKResult<TValue>,
-  errorCodes: ErrorMessageType[],
-  defaultValue: TValue
+	result: SDKResult<TValue>,
+	errorCodes: ErrorMessageType[],
+	defaultValue: TValue
 ): SDKResult<TValue> => {
-  withSpan('recovery_with_fallback_codes', async (span) => {
-    span.setAttributes({
-      'recovery.type': 'error_codes',
-      'recovery.codes': errorCodes.join(','),
-      'result.is_error': result.isErr(),
-    });
-  });
+	withSpan('recovery_with_fallback_codes', async (span) => {
+		span.setAttributes({
+			'recovery.type': 'error_codes',
+			'recovery.codes': errorCodes.join(','),
+			'result.is_error': result.isErr(),
+		});
+	});
 
-  return result.orElse((error) => {
-    if (error.code && errorCodes.includes(error.code)) {
-      withSpan('recovery_with_fallback_codes', async (span) => {
-        span.setAttributes({
-          'recovery.matched': true,
-          'recovery.error_code': error.code,
-        });
-      });
-      return ok(defaultValue);
-    }
+	return result.orElse((error) => {
+		if (error.code && errorCodes.includes(error.code)) {
+			withSpan('recovery_with_fallback_codes', async (span) => {
+				span.setAttributes({
+					'recovery.matched': true,
+					'recovery.error_code': error.code,
+				});
+			});
+			return ok(defaultValue);
+		}
 
-    withSpan('recovery_with_fallback_codes', async (span) => {
-      span.setAttributes({
-        'recovery.matched': false,
-        'recovery.error_code': error.code,
-      });
-    });
-    return err(error);
-  });
+		withSpan('recovery_with_fallback_codes', async (span) => {
+			span.setAttributes({
+				'recovery.matched': false,
+				'recovery.error_code': error.code,
+			});
+		});
+		return err(error);
+	});
 };
 
 /**
@@ -148,34 +148,34 @@ export const withFallbackForCodes = <TValue>(
  * ```
  */
 export const withFallbackForCategory = <TValue>(
-  result: SDKResult<TValue>,
-  category: ErrorCategory,
-  defaultValue: TValue
+	result: SDKResult<TValue>,
+	category: ErrorCategory,
+	defaultValue: TValue
 ): SDKResult<TValue> => {
-  withSpan('recovery_with_fallback_category', async (span) => {
-    span.setAttributes({
-      'recovery.type': 'error_category',
-      'recovery.category': category,
-      'result.is_error': result.isErr(),
-    });
-  });
+	withSpan('recovery_with_fallback_category', async (span) => {
+		span.setAttributes({
+			'recovery.type': 'error_category',
+			'recovery.category': category,
+			'result.is_error': result.isErr(),
+		});
+	});
 
-  return result.orElse((error) => {
-    if (error.category === category) {
-      withSpan('recovery_with_fallback_category', async (span) => {
-        span.setAttributes({
-          'recovery.matched': true,
-          'recovery.error_category': error.category,
-        });
-      });
-      return ok(defaultValue);
-    }
-    withSpan('recovery_with_fallback_category', async (span) => {
-      span.setAttributes({
-        'recovery.matched': false,
-        'recovery.error_category': error.category,
-      });
-    });
-    return err(error);
-  });
+	return result.orElse((error) => {
+		if (error.category === category) {
+			withSpan('recovery_with_fallback_category', async (span) => {
+				span.setAttributes({
+					'recovery.matched': true,
+					'recovery.error_category': error.category,
+				});
+			});
+			return ok(defaultValue);
+		}
+		withSpan('recovery_with_fallback_category', async (span) => {
+			span.setAttributes({
+				'recovery.matched': false,
+				'recovery.error_category': error.category,
+			});
+		});
+		return err(error);
+	});
 };

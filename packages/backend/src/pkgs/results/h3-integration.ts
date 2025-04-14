@@ -5,9 +5,9 @@ import { ERROR_CODES } from './core/error-codes';
 
 // Extend the H3 context type to include our custom _onError property
 declare module 'h3' {
-  interface H3EventContext {
-    _onError?: (error: unknown) => unknown;
-  }
+	interface H3EventContext {
+		_onError?: (error: unknown) => unknown;
+	}
 }
 
 /**
@@ -32,46 +32,46 @@ declare module 'h3' {
  * ```
  */
 export function createH3ErrorHandler() {
-  return eventHandler((event) => {
-    // Attach our error handler to the event context
-    event.context._onError = (error: unknown) => {
-      event.context.logger.error('Error in H3 error handler', { error });
-      // Handle DoubleTieError instances
-      if (error instanceof DoubleTieError) {
-        event.context.logger.error(
-          'Handling DoubleTieError:',
-          error.statusCode,
-          error.message
-        );
-        // DoubleTieError is already an H3Error, so we can send it directly
-        return sendError(event, error);
-      }
+	return eventHandler((event) => {
+		// Attach our error handler to the event context
+		event.context._onError = (error: unknown) => {
+			event.context.logger.error('Error in H3 error handler', { error });
+			// Handle DoubleTieError instances
+			if (error instanceof DoubleTieError) {
+				event.context.logger.error(
+					'Handling DoubleTieError:',
+					error.statusCode,
+					error.message
+				);
+				// DoubleTieError is already an H3Error, so we can send it directly
+				return sendError(event, error);
+			}
 
-      // For other errors, create a new DoubleTieError
-      event.context.logger.error('Handling generic error', { error });
-      const dtError = new DoubleTieError(
-        error instanceof Error ? error.message : String(error),
-        {
-          code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-          status: 500,
-          cause: error instanceof Error ? error : undefined,
-        }
-      );
+			// For other errors, create a new DoubleTieError
+			event.context.logger.error('Handling generic error', { error });
+			const dtError = new DoubleTieError(
+				error instanceof Error ? error.message : String(error),
+				{
+					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+					status: 500,
+					cause: error instanceof Error ? error : undefined,
+				}
+			);
 
-      return sendError(event, dtError);
-    };
+			return sendError(event, dtError);
+		};
 
-    // We need to call event.node.req.on('error') to handle connection errors
-    event.node.req.on('error', (err) => {
-      event.context.logger.error('Request error event triggered:', { err });
-      if (event.context._onError) {
-        event.context._onError(err);
-      }
-    });
+		// We need to call event.node.req.on('error') to handle connection errors
+		event.node.req.on('error', (err) => {
+			event.context.logger.error('Request error event triggered:', { err });
+			if (event.context._onError) {
+				event.context._onError(err);
+			}
+		});
 
-    // Continue with request processing
-    return;
-  });
+		// Continue with request processing
+		return;
+	});
 }
 
 /**
@@ -97,46 +97,46 @@ export function createH3ErrorHandler() {
  * ```
  */
 export function withH3ErrorHandling(
-  handler: (event: H3Event) => Promise<unknown> | unknown
+	handler: (event: H3Event) => Promise<unknown> | unknown
 ) {
-  return eventHandler(async (event) => {
-    try {
-      return await handler(event);
-    } catch (error) {
-      event.context.logger.error('Error caught in withH3ErrorHandling:', {
-        error,
-      });
+	return eventHandler(async (event) => {
+		try {
+			return await handler(event);
+		} catch (error) {
+			event.context.logger.error('Error caught in withH3ErrorHandling:', {
+				error,
+			});
 
-      // Handle DoubleTieError instances
-      if (error instanceof DoubleTieError) {
-        event.context.logger.error(
-          'Handling DoubleTieError in wrapper:',
-          error.statusCode,
-          error.message
-        );
-        // DoubleTieError is already an H3Error, so we can send it directly
-        return sendError(event, error);
-      }
+			// Handle DoubleTieError instances
+			if (error instanceof DoubleTieError) {
+				event.context.logger.error(
+					'Handling DoubleTieError in wrapper:',
+					error.statusCode,
+					error.message
+				);
+				// DoubleTieError is already an H3Error, so we can send it directly
+				return sendError(event, error);
+			}
 
-      // Use the context error handler if available
-      if (
-        event.context._onError &&
-        typeof event.context._onError === 'function'
-      ) {
-        return event.context._onError(error);
-      }
+			// Use the context error handler if available
+			if (
+				event.context._onError &&
+				typeof event.context._onError === 'function'
+			) {
+				return event.context._onError(error);
+			}
 
-      // Create and send a new DoubleTieError
-      const dtError = new DoubleTieError(
-        error instanceof Error ? error.message : String(error),
-        {
-          code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-          status: 500,
-          cause: error instanceof Error ? error : undefined,
-        }
-      );
+			// Create and send a new DoubleTieError
+			const dtError = new DoubleTieError(
+				error instanceof Error ? error.message : String(error),
+				{
+					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+					status: 500,
+					cause: error instanceof Error ? error : undefined,
+				}
+			);
 
-      return sendError(event, dtError);
-    }
-  });
+			return sendError(event, dtError);
+		}
+	});
 }

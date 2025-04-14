@@ -35,52 +35,52 @@ import type { MigrationResult } from './types';
  * ```
  */
 export async function getMigrations(
-  config: C15TOptions
+	config: C15TOptions
 ): Promise<MigrationResult> {
-  const logger = createLogger(config.logger);
+	const logger = createLogger(config.logger);
 
-  // Initialize database connection
-  let { kysely: db, databaseType: dbType } = await createKyselyAdapter(config);
+	// Initialize database connection
+	let { kysely: db, databaseType: dbType } = await createKyselyAdapter(config);
 
-  // Check if the database type is supported
-  if (!dbType) {
-    logger.warn(
-      'Could not determine database type, defaulting to sqlite. Please provide a type in the database options to avoid this.'
-    );
-    dbType = 'sqlite';
-  }
+	// Check if the database type is supported
+	if (!dbType) {
+		logger.warn(
+			'Could not determine database type, defaulting to sqlite. Please provide a type in the database options to avoid this.'
+		);
+		dbType = 'sqlite';
+	}
 
-  // Check if the database is connected
-  if (!db) {
-    logger.error(
-      "Only kysely adapter is supported for migrations. You can use `generate` command to generate the schema, if you're using a different adapter."
-    );
-    process.exit(1);
-  }
+	// Check if the database is connected
+	if (!db) {
+		logger.error(
+			"Only kysely adapter is supported for migrations. You can use `generate` command to generate the schema, if you're using a different adapter."
+		);
+		process.exit(1);
+	}
 
-  // Get database metadata
-  const tableMetadata = await db.introspection.getTables();
+	// Get database metadata
+	const tableMetadata = await db.introspection.getTables();
 
-  // Analyze schema differences
-  const { toBeCreated, toBeAdded } = analyzeSchemaChanges(
-    config,
-    tableMetadata,
-    dbType
-  );
+	// Analyze schema differences
+	const { toBeCreated, toBeAdded } = analyzeSchemaChanges(
+		config,
+		tableMetadata,
+		dbType
+	);
 
-  // Build migration operations
-  const columnMigrations = buildColumnAddMigrations(db, toBeAdded, dbType);
-  const tableMigrations = buildTableCreateMigrations(db, toBeCreated, dbType);
-  const migrations = [...columnMigrations, ...tableMigrations];
+	// Build migration operations
+	const columnMigrations = buildColumnAddMigrations(db, toBeAdded, dbType);
+	const tableMigrations = buildTableCreateMigrations(db, toBeCreated, dbType);
+	const migrations = [...columnMigrations, ...tableMigrations];
 
-  // Create migration executors
-  const { runMigrations, compileMigrations } =
-    createMigrationExecutors(migrations);
+	// Create migration executors
+	const { runMigrations, compileMigrations } =
+		createMigrationExecutors(migrations);
 
-  return {
-    toBeCreated,
-    toBeAdded,
-    runMigrations,
-    compileMigrations,
-  };
+	return {
+		toBeCreated,
+		toBeAdded,
+		runMigrations,
+		compileMigrations,
+	};
 }
