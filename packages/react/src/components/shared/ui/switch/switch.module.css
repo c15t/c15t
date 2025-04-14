@@ -65,7 +65,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.c15t-dark).track {
+:global(.c15t-dark) .track {
   background-color: var(--switch-background-color-dark);
 }
 
@@ -75,7 +75,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.c15t-dark).track:hover {
+:global(.c15t-dark) .track:hover {
   background-color: var(--switch-background-color-hover-dark);
 }
 
@@ -84,7 +84,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.c15t-dark).track:focus-visible {
+:global(.c15t-dark) .track:focus-visible {
   background-color: var(--switch-background-color-hover-dark);
 }
 
@@ -93,7 +93,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.c15t-dark).track:active {
+:global(.c15t-dark) .track:active {
   background-color: var(--switch-background-color-dark);
 }
 
@@ -102,7 +102,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.c15t-dark).root[data-state="checked"] .track {
+:global(.c15t-dark) .root[data-state="checked"] .track {
   background-color: var(--switch-background-color-checked-dark);
 }
 
@@ -111,7 +111,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.c15t-dark).root[data-state="checked"]:hover .track {
+:global(.c15t-dark) .root[data-state="checked"]:hover .track {
   background-color: var(--switch-background-color-checked-dark);
 }
 
@@ -125,7 +125,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.c15t-dark).root:focus {
+:global(.c15t-dark) .root:focus {
   outline: none;
 }
 
@@ -136,7 +136,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.c15t-dark).track-disabled {
+:global(.c15t-dark) .track-disabled {
   background-color: var(--switch-background-color-disabled-dark);
 }
 
@@ -147,7 +147,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.c15t-dark).root[data-state="checked"] .track-disabled {
+:global(.c15t-dark) .root[data-state="checked"] .track-disabled {
   background-color: var(--switch-background-color-checked-dark);
 }
 
@@ -180,7 +180,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.c15t-dark).thumb::before {
+:global(.c15t-dark) .thumb::before {
   background-color: var(--switch-thumb-background-color-dark);
 }
 
@@ -195,7 +195,7 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.c15t-dark).thumb::after {
+:global(.c15t-dark) .thumb::after {
   box-shadow: var(--switch-shadow-thumb-dark);
 }
 
@@ -222,6 +222,6 @@
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
-:global(.c15t-dark).root:focus-visible {
+:global(.c15t-dark) .root:focus-visible {
   box-shadow: var(--switch-focus-shadow-dark);
 }

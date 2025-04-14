@@ -95,8 +95,8 @@
 			"quoteStyle": "double"
 		},
 		"parser": {
-			"allowWrongLineComments": false,
-			"cssModules": false
+			"allowWrongLineComments": true,
+			"cssModules": true
 		}
 	},
 	"json": {
