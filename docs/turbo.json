@@ -1,0 +1,19 @@
+{
+	"extends": ["//"],
+	"tasks": {
+		"build": {
+			"env": [
+				"NEXT_PUBLIC_POSTHOG_KEY",
+				"NEXT_PUBLIC_POSTHOG_HOST",
+				"NEXT_PUBLIC_C15T_URL",
+				"SENTRY_DSN",
+				"SENTRY_TOKEN"
+			],
+			"inputs": ["$TURBO_DEFAULT$"]
+		},
+		"dev": {
+			"inputs": ["$TURBO_DEFAULT$"]
+		},
+		"test": {}
+	}
+}
