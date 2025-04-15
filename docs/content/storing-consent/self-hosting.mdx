@@ -2,6 +2,7 @@
 title: 'Self-Hosting Guide'
 description: 'Set up and maintain your own c15t instance for full control over your consent management backend'
 ---
+import { RiGlobalLine, RiTimerLine, RiSettings4Line, RiDatabase2Line, RiCodeLine } from '@remixicon/react';
 
 This guide shows you how to set up a self-hosted c15t instance using Next.js API routes, giving you complete control over your consent management system.
 
@@ -159,16 +160,60 @@ For production use, the Memory Adapter is not recommended as data is lost when t
 
 For production use, you should consider using a persistent database. c15t supports several database adapters:
 
-- [Memory Adapter](/docs/backend/adapters/memory) - Simple in-memory storage (development only)
-- [Kysely Adapter](/docs/backend/adapters/kysely) - Type-safe SQL query builder
-- [Prisma Adapter](/docs/backend/adapters/prisma) - Feature-rich ORM with migrations
-- [Drizzle Adapter](/docs/backend/adapters/drizzle) - Lightweight TypeScript ORM
+<div className="mt-6">
+  <CompactCard 
+    href="/docs/backend/adapters/memory" 
+    icon={<RiDatabase2Line size={18} />}
+  >
+    <code>Memory Adapter</code> - Simple in-memory storage (development only)
+  </CompactCard>
+
+  <CompactCard 
+    href="/docs/backend/adapters/kysely" 
+    icon={<RiDatabase2Line size={18} />}
+  >
+    <code>Kysely Adapter</code> - Type-safe SQL query builder
+  </CompactCard>
+
+  <CompactCard 
+    href="/docs/backend/adapters/prisma" 
+    icon={<RiDatabase2Line size={18} />}
+  >
+    <code>Prisma Adapter</code> - Feature-rich ORM with migrations
+  </CompactCard>
+
+  <CompactCard 
+    href="/docs/backend/adapters/drizzle" 
+    icon={<RiDatabase2Line size={18} />}
+  >
+    <code>Drizzle Adapter</code> - Lightweight TypeScript ORM
+  </CompactCard>
+</div>
 
 These adapters can connect to various database backends:
 
-- [PostgreSQL](/docs/backend/databases/postgres)
-- [MySQL/MariaDB](/docs/backend/databases/mysql)
-- [SQLite](/docs/backend/databases/sqlite)
+<div className="mt-6">
+  <CompactCard 
+    href="/docs/backend/databases/postgres" 
+    icon={<RiCodeLine size={18} />}
+  >
+    <code>PostgreSQL</code> - Recommended for production deployments
+  </CompactCard>
+
+  <CompactCard 
+    href="/docs/backend/databases/mysql" 
+    icon={<RiCodeLine size={18} />}
+  >
+    <code>MySQL/MariaDB</code> - Popular open-source database
+  </CompactCard>
+
+  <CompactCard 
+    href="/docs/backend/databases/sqlite" 
+    icon={<RiCodeLine size={18} />}
+  >
+    <code>SQLite</code> - File-based database for simpler deployments
+  </CompactCard>
+</div>
 
 <Callout type="tip">
 **PostgreSQL** is recommended for production deployments due to its robust feature set and reliability.
@@ -179,17 +224,25 @@ See the [Database Adapters documentation](/docs/backend/database-adapters) for c
 
 ## Next Steps
 
-- [Configure Cookie Categories](/docs/configuration) to define what types of cookies your application uses
-- [Customize the UI](/docs/customization) to match your application's design
-- [Integrate with Your Application Logic](/docs/integration) to conditionally load scripts based on consent
-- Explore [advanced security configurations](/docs/backend/core-concepts#security)
+<div className="mt-6">
+  <CompactCard 
+    href="/docs/nextjs/storing-consent/hosted-c15t" 
+    icon={<RiGlobalLine size={18} />}
+  >
+    Use <code>Hosted c15t</code>
+  </CompactCard>
 
-## Next Steps in This Guide
+  <CompactCard 
+    href="/docs/nextjs/storing-consent/offline-mode" 
+    icon={<RiTimerLine size={18} />}
+  >
+    Configure <code>Offline Mode</code>
+  </CompactCard>
 
-Now that you've learned how to self-host a c15t instance, you might want to explore:
-
-1. **Client-side alternatives**: If you don't want to maintain a backend, check out [Offline Mode](/docs/nextjs/storing-consent/offline-mode)
-2. **Custom integration**: For advanced use cases, explore the [Custom Client](/docs/nextjs/storing-consent/custom-client) implementation
-3. **Backend concepts**: Dive deeper into [Core Concepts](/docs/backend/core-concepts) of the c15t backend
-
-➡️ **Next document**: [Offline Mode](/docs/nextjs/storing-consent/offline-mode) 
+  <CompactCard 
+    href="/docs/nextjs/storing-consent/custom-client" 
+    icon={<RiSettings4Line size={18} />}
+  >
+    Create a <code>Custom Client</code>
+  </CompactCard>
+</div> 

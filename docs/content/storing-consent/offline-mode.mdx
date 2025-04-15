@@ -2,6 +2,7 @@
 title: 'Offline Mode'
 description: 'Store consent decisions in the browser with offline mode, perfect for sites without backend requirements'
 ---
+import { RiServerLine, RiGlobalLine, RiSettings4Line } from '@remixicon/react';
 
 The offline mode provides a simple, browser-based approach to storing user consent decisions without requiring a backend server.
 
@@ -249,5 +250,25 @@ For more complex applications or those with stricter compliance requirements, co
 
 ## Next Steps
 
-- [Server-Based Storage](/nextjs/storing-consent/server-based-storage) - Learn about server-side consent storage
-- [Custom Client](/nextjs/storing-consent/custom-client) - Implement your own storage solution 
+<div className="mt-6">
+  <CompactCard 
+    href="/docs/nextjs/storing-consent/self-hosting" 
+    icon={<RiServerLine size={18} />}
+  >
+    Configure <code>Self-Hosting</code>
+  </CompactCard>
+
+  <CompactCard 
+    href="/docs/nextjs/storing-consent/hosted-c15t" 
+    icon={<RiGlobalLine size={18} />}
+  >
+    Use <code>Hosted c15t</code>
+  </CompactCard>
+
+  <CompactCard 
+    href="/docs/nextjs/storing-consent/custom-client" 
+    icon={<RiSettings4Line size={18} />}
+  >
+    Create a <code>Custom Client</code>
+  </CompactCard>
+</div> 

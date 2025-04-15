@@ -2,6 +2,7 @@
 title: 'Hosted Solution'
 description: 'Use consent.io for an easy, managed consent storage solution with minimal setup'
 ---
+import { RiFlashlightLine, RiTimerLine, RiServerLine, RiSettings4Line } from '@remixicon/react';
 
 <Callout type="default">
   <h3>Congratulations, you've chosen the best way to deploy to production!</h3>
@@ -98,11 +99,7 @@ const options = {
 
 <CompactCard 
   href="/docs/nextjs/quickstart" 
-  icon={
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-    </svg>
-  }
+  icon={<RiFlashlightLine size={18} />}
 >
   See the <code>Next.js Quickstart Guide</code> for more frontend integration details
 </CompactCard>
@@ -117,11 +114,7 @@ Self-hosting requires more setup and maintenance effort but gives you complete c
 
 <CompactCard 
   href="/docs/nextjs/storing-consent/self-hosting" 
-  icon={
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
-    </svg>
-  }
+  icon={<RiServerLine size={18} />}
 >
   See the <code>Self-Hosting Guide</code> for detailed setup instructions
 </CompactCard>
@@ -160,6 +153,25 @@ Consider [Offline Mode](/nextjs/storing-consent/offline-mode) for simple applica
 
 ## Next Steps
 
-- [Self-Hosting Guide](/nextjs/storing-consent/self-hosting) - Run your own c15t instance
-- [Offline Mode](/nextjs/storing-consent/offline-mode) - Use browser-based storage without a server
-- [Custom Client](/nextjs/storing-consent/custom-client) - Implement your own storage solution
+<div className="mt-6">
+  <CompactCard 
+    href="/docs/nextjs/storing-consent/offline-mode" 
+    icon={<RiTimerLine size={18} />}
+  >
+    Configure <code>Offline Mode</code>
+  </CompactCard>
+
+  <CompactCard 
+    href="/docs/nextjs/storing-consent/self-hosting" 
+    icon={<RiServerLine size={18} />}
+  >
+    Explore <code>Self-Hosting</code> options
+  </CompactCard>
+
+  <CompactCard 
+    href="/docs/nextjs/storing-consent/custom-client" 
+    icon={<RiSettings4Line size={18} />}
+  >
+    Create a <code>Custom Client</code>
+  </CompactCard>
+</div>

@@ -2,6 +2,7 @@
 title: 'Custom Client'
 description: 'Implement your own consent storage solution with a custom client for ultimate flexibility and control'
 ---
+import { RiServerLine, RiTimerLine, RiGlobalLine } from '@remixicon/react';
 
 The custom client mode gives you complete control over how consent decisions are stored and retrieved, allowing for integration with any storage backend or custom logic.
 
@@ -528,5 +529,25 @@ For simpler use cases, consider [Server-Based Storage](/nextjs/storing-consent/s
 
 ## Next Steps
 
-- [Server-Based Storage](/nextjs/storing-consent/server-based-storage) - Learn about the built-in server storage option
-- [Offline Mode](/nextjs/storing-consent/offline-mode) - Explore browser-based storage 
+<div className="mt-6">
+  <CompactCard 
+    href="/docs/nextjs/storing-consent/server-based-storage" 
+    icon={<RiServerLine size={18} />}
+  >
+    Learn about <code>Server-Based Storage</code>
+  </CompactCard>
+
+  <CompactCard 
+    href="/docs/nextjs/storing-consent/offline-mode" 
+    icon={<RiTimerLine size={18} />}
+  >
+    Explore <code>Offline Mode</code>
+  </CompactCard>
+
+  <CompactCard 
+    href="/docs/nextjs/storing-consent/hosted-c15t" 
+    icon={<RiGlobalLine size={18} />}
+  >
+    Use <code>Hosted c15t</code>
+  </CompactCard>
+</div> 
