@@ -3,11 +3,12 @@
 import type { MermaidConfig } from 'mermaid';
 import { useTheme } from 'next-themes';
 import { useEffect, useId, useRef, useState } from 'react';
+import DOMPurify from 'dompurify';
 
 export function Mermaid({ chart }: { chart: string }) {
 	const id = useId();
 	const [svg, setSvg] = useState('');
-	const containerRef = useRef<HTMLDivElement>(null!);
+	const containerRef = useRef<HTMLDivElement | null>(null);
 	const { resolvedTheme } = useTheme();
 
 	useEffect(() => {
@@ -26,18 +27,20 @@ export function Mermaid({ chart }: { chart: string }) {
 
 			try {
 				mermaid.initialize(mermaidConfig);
-				const { svg } = await mermaid.render(
-					// strip invalid characters for `id` attribute
-					id.replaceAll(':', ''),
-					chart.replaceAll('\\n', '\n'),
-					containerRef.current
-				);
-				setSvg(svg);
+				if (containerRef.current) {
+					const { svg } = await mermaid.render(
+						// strip invalid characters for `id` attribute
+						id.replaceAll(':', ''),
+						chart.replaceAll('\\n', '\n'),
+						containerRef.current
+					);
+					setSvg(svg);
+				}
 			} catch (error) {
 				console.error('Error while rendering mermaid', error);
 			}
 		}
 	}, [chart, id, resolvedTheme]);
 
-	return <div ref={containerRef} dangerouslySetInnerHTML={{ __html: svg }} />;
+	return <div ref={containerRef} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(svg) }} data-testid="mermaid-diagram" />;
 }
