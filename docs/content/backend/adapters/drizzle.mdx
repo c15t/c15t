@@ -1,6 +1,6 @@
 ---
 title: Drizzle Adapter
-description: The Drizzle adapter integrates C15T Backend with Drizzle ORM, a lightweight, type-safe SQL query builder with schema declaration.
+description: The Drizzle adapter integrates c15t Backend with Drizzle ORM, a lightweight, type-safe SQL query builder with schema declaration.
 ---
 ## Installation
 
@@ -31,7 +31,7 @@ export const users = pgTable('users', {
 });
 ```
 
-2. Configure the C15T instance with the Drizzle adapter:
+2. Configure the c15t instance with the Drizzle adapter:
 
 ```typescript
 import { c15tInstance } from '@c15t/backend';
@@ -47,7 +47,7 @@ const pool = new Pool({
 // Initialize Drizzle with the connection
 const db = drizzle(pool);
 
-// Create the C15T instance
+// Create the c15t instance
 const instance = c15tInstance({
   baseURL: 'http://localhost:3000',
   database: drizzleAdapter({

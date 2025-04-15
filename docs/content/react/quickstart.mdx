@@ -1,6 +1,6 @@
 ---
-title: Next.js Quickstart
-description: Learn how to integrate c15t into your Next.js application with this step-by-step guide. We'll cover installation, configuration, and basic usage.
+title: React Quickstart
+description: Learn how to integrate c15t into your React application with this step-by-step guide. We'll cover installation, configuration, and basic usage.
 ---
 <Steps>
 <Step>
@@ -13,9 +13,9 @@ description: Learn how to integrate c15t into your Next.js application with this
  
 <Step>
  
-### Adding it to your Next Application
+### Add to Your React Application
 
-```tsx title="app/layout.tsx"
+```tsx title="src/App.jsx"
 import { 
   ConsentManagerDialog,
   ConsentManagerProvider,
@@ -23,24 +23,28 @@ import {
   type ConsentManagerOptions
 } from '@c15t/react';
 
-export default function Layout ({ children }: { children: ReactNode }) => {
-	const options: ConsentManagerOptions = {
-	  mode: 'c15t', 
-	  backendURL: process.env.NEXT_PUBLIC_C15T_URL,
-	}
+function App() {
+  const options = {
+    mode: 'c15t', 
+    backendURL: process.env.REACT_APP_C15T_URL,
+  };
 
-	return (
+  return (
     <ConsentManagerProvider options={options}>
-      {children}
+      <div className="App">
+        {/* Your application content */}
+      </div>
       <CookieBanner />
       <ConsentManagerDialog />
     </ConsentManagerProvider>
   );
-};
+}
+
+export default App;
 ```
 
 <Callout type="tip">
-You can create an instance at [consent.io](https://consent.io) or self-host your own instance. Otherwise, you can use c15t offline by setting `mode: 'offline'`.
+You can create an instance at [consent.io](https://consent.io) (recommended) or use c15t offline by setting `mode: 'offline'`.
 </Callout>
 </Step>
 </Steps>
@@ -55,7 +59,7 @@ You can create an instance at [consent.io](https://consent.io) or self-host your
 Using consent.io is the recommended method as it is the easiest way to get started and requires little maintenance.
 </Callout>
 
-Instead of self-hosting your own c15t instance, you can use a [consent.io](https://consent.io) instance. This is the recommended method as it is the easiest way to get started and requires little maintenance.
+[consent.io](https://consent.io) provides a fully managed consent management service. This is the recommended method as it is the easiest way to get started and requires little maintenance.
 
 <Steps>
 
@@ -67,7 +71,7 @@ Sign up for a [consent.io](https://consent.io) account.
 After signing up, create a new instance, located in the top-right corner.
 
 <Callout>
-When creating an instance it is important to list all the trusted origins for your application such as "localhost", "vercel.app", "c15t.com" etc.
+When creating an instance it is important to list all the trusted origins for your application such as "localhost", your production domain, etc.
 </Callout>
 
 </Step>
@@ -75,33 +79,28 @@ When creating an instance it is important to list all the trusted origins for yo
 <Step>
 After the instance is created, you will be given a backendURL, which you can add to your `ConsentManagerOptions`.
 
-
 A backend URL might look like this: `https://<my-instance>.c15t.dev/`.
 </Step>
 
 </Steps>
 
-### Alternative Hosting Options
+### Alternative Storage Options
 
 <Callout type="note">
-For more advanced setup options, choose the approach that best suits your infrastructure and requirements.
+For more advanced setup options, choose the approach that best suits your requirements.
 </Callout>
 
 For more advanced setup options, please refer to:
 
-- [Server-Based Consent Storage](/docs/nextjs/server-based-storage) - Standard mode connecting to a c15t backend (detailed configuration)
-- [Self-Hosting with Next.js](/docs/nextjs/self-hosting) - Quickstart guide for setting up c15t in your Next.js API routes
-- [Self-Hosting with Other Frameworks](/docs/backend) - General self-hosting information for various platforms
-- [Offline Mode](/docs/nextjs/offline-mode) - Complete guide to using c15t without a backend
-- [Custom Client](/docs/nextjs/custom-client) - Advanced implementation with custom handlers for full control
+- [Hosted C15t](/docs/nextjs/storing-consent/hosted-c15t) - Complete guide to using consent.io
+- [Offline Mode](/docs/nextjs/storing-consent/offline-mode) - Complete guide to using c15t without a backend
+- [Custom Client](/docs/nextjs/storing-consent/custom-client) - Advanced implementation with custom handlers for full control
 
 ## Decision Guide
 
 <Callout>
 Use this flowchart to determine which c15t configuration is best for your needs.
 </Callout>
-
-Use this flowchart to determine which c15t configuration is best for your needs:
 
 <Mermaid chart={`
 flowchart TD
@@ -113,7 +112,7 @@ flowchart TD
     
     ManagedService{Want a managed\nservice?}
     ManagedService -->|Yes| ConsentIO
-    ManagedService -->|No| SelfHosted
+    ManagedService -->|No| CustomClient
     
     OfflineMode([c15t Offline Mode]):::optionStyle
     OfflineMode -.-> OfflineNote[Client-side only\nStores in localStorage]:::noteStyle
@@ -121,8 +120,8 @@ flowchart TD
     ConsentIO([consent.io]):::recommendStyle
     ConsentIO -.-> ConsentIONote[Fully managed\nSimplest setup]:::noteStyle
     
-    SelfHosted([Self-Hosted Instance]):::optionStyle
-    SelfHosted -.-> SelfHostedNote[Full control\nRequires maintenance]:::noteStyle
+    CustomClient([Custom Client]):::optionStyle
+    CustomClient -.-> CustomNote[Full control\nRequires implementation]:::noteStyle
     
     %% Styling
     classDef recommendStyle fill:#4caf50,stroke:#388e3c,color:white,stroke-width:2px;
@@ -130,7 +129,7 @@ flowchart TD
     classDef noteStyle fill:#424242,stroke:none,color:#aaa,font-size:12px;
 `} />
 
-## Next Steps in This Guide
+## Next Steps
 
 <Callout type="tip">
 Choose your next step based on your specific implementation needs.
@@ -138,36 +137,14 @@ Choose your next step based on your specific implementation needs.
 
 <div className="mt-6">
   <CompactCard 
-    href="/docs/nextjs/client-config-options" 
-    icon={
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-      </svg>
-    }
-  >
-Learn more about <code>Client Configuration Options</code>
-  </CompactCard>
-
-  <CompactCard 
-    href="/docs/nextjs/storing-consent/server-based-storage"
+    href="/docs/nextjs/storing-consent/hosted-c15t" 
     icon={
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
     }
   >
-    Learn more about <code >Server-Based Consent Storage</code>
-  </CompactCard>
-
-  <CompactCard 
-    href="/docs/nextjs/self-hosting"
-    icon={
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
-      </svg>
-    }
-  >
-    Learn more about <code >Self-Hosting with Next.js</code>
+    Learn more about <code>Hosted C15t (consent.io)</code>
   </CompactCard>
 
   <CompactCard 

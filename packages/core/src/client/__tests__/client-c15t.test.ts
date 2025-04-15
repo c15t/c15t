@@ -572,7 +572,7 @@ describe('c15t Client Retry Logic Tests', () => {
 	});
 });
 
-describe('C15t Client Offline Fallback Tests', () => {
+describe('c15t Client Offline Fallback Tests', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 		fetchMock.mockReset();
