@@ -1,6 +1,5 @@
 'use client';
 
-import DOMPurify from 'dompurify';
 import type { MermaidConfig } from 'mermaid';
 import { useTheme } from 'next-themes';
 import { useEffect, useId, useRef, useState } from 'react';
@@ -12,7 +11,7 @@ export function Mermaid({ chart }: { chart: string }) {
 	const { resolvedTheme } = useTheme();
 
 	useEffect(() => {
-		void renderChart();
+		renderChart();
 
 		async function renderChart() {
 			const mermaidConfig: MermaidConfig = {
@@ -42,11 +41,19 @@ export function Mermaid({ chart }: { chart: string }) {
 		}
 	}, [chart, id, resolvedTheme]);
 
-	return (
-		<div
-			ref={containerRef}
-			dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(svg) }}
-			data-testid="mermaid-diagram"
-		/>
-	);
+	// Sanitize SVG content client-side only
+	useEffect(() => {
+		if (svg) {
+			async function sanitizeSvg() {
+				const { default: DOMPurify } = await import('dompurify');
+				const sanitizedSvg = DOMPurify.sanitize(svg);
+				if (containerRef.current) {
+					containerRef.current.innerHTML = sanitizedSvg;
+				}
+			}
+			sanitizeSvg();
+		}
+	}, [svg]);
+
+	return <div ref={containerRef} data-testid="mermaid-diagram" />;
 }

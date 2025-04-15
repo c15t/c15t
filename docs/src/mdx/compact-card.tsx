@@ -29,17 +29,17 @@ export function Card({ icon, title, description, ...props }: CardProps) {
 			{...props}
 			data-card
 			className={cn(
-				'@max-lg:col-span-full block border bg-fd-card p-4 rounded-lg shadow-md text-fd-card-foreground transition-colors',
+				'@max-lg:col-span-full block rounded-lg border bg-fd-card p-4 text-fd-card-foreground shadow-md transition-colors',
 				props.href && 'hover:bg-fd-accent/80',
 				props.className
 			)}
 		>
 			{icon ? (
-				<div className="bg-fd-muted border mb-2 not-prose p-1.5 rounded-md text-fd-muted-foreground w-fit [&_svg]:size-4">
+				<div className="not-prose mb-2 w-fit rounded-md border bg-fd-muted p-1.5 text-fd-muted-foreground [&_svg]:size-4">
 					{icon}
 				</div>
 			) : null}
-			<h3 className="font-medium mb-1 not-prose text-sm">{title}</h3>
+			<h3 className="not-prose mb-1 font-medium text-sm">{title}</h3>
 			{description ? (
 				<p className="!my-0 text-fd-muted-foreground text-sm">{description}</p>
 			) : null}
@@ -82,19 +82,19 @@ export function CompactCard({
 			target={external ? '_blank' : undefined}
 			rel={external ? 'noopener noreferrer' : undefined}
 			className={cn(
-				'not-prose bg-fd-card border border-fd-border flex hover:bg-fd-accent mb-4 no-underline rounded-md text-fd-card-foreground transition-all duration-200 shadow-md group',
+				'not-prose group mb-4 flex rounded-md border border-fd-border bg-fd-card text-fd-card-foreground no-underline shadow-md transition-all duration-200 hover:bg-fd-accent',
 				className
 			)}
 		>
 			{icon && (
-				<div className="flex items-center justify-center py-4 w-14 bg-fd-muted/50 text-fd-muted-foreground group-hover:text-fd-primary border-r border-fd-border transition-colors duration-200">
+				<div className="flex w-14 items-center justify-center border-fd-border border-r bg-fd-muted/50 py-4 text-fd-muted-foreground transition-colors duration-200 group-hover:text-fd-primary">
 					{icon}
 				</div>
 			)}
-			<div className="flex-auto p-4 [&>p]:m-0 group-hover:text-fd-primary [&>p>code]:rounded-md [&>p>code]:p-1 [&>p>code]:bg-fd-primary/10 [&>p>code]:text-fd-primary [&>p>code]:font-mono [&>p>code]:text-xs">
+			<div className="flex-auto p-4 group-hover:text-fd-primary [&>p>code]:rounded-md [&>p>code]:bg-fd-primary/10 [&>p>code]:p-1 [&>p>code]:font-mono [&>p>code]:text-fd-primary [&>p>code]:text-xs [&>p]:m-0">
 				{children}
 			</div>
-			<div className="flex items-center justify-center text-fd-muted-foreground w-14 group-hover:text-fd-primary">
+			<div className="flex w-14 items-center justify-center text-fd-muted-foreground group-hover:text-fd-primary">
 				<svg
 					aria-hidden="true"
 					aria-label="Navigate to page"
