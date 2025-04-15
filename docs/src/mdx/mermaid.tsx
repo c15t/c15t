@@ -41,19 +41,11 @@ export function Mermaid({ chart }: { chart: string }) {
 		}
 	}, [chart, id, resolvedTheme]);
 
-	// Sanitize SVG content client-side only
-	useEffect(() => {
-		if (svg) {
-			async function sanitizeSvg() {
-				const { default: DOMPurify } = await import('dompurify');
-				const sanitizedSvg = DOMPurify.sanitize(svg);
-				if (containerRef.current) {
-					containerRef.current.innerHTML = sanitizedSvg;
-				}
-			}
-			sanitizeSvg();
-		}
-	}, [svg]);
-
-	return <div ref={containerRef} data-testid="mermaid-diagram" />;
+	return (
+		<div
+			ref={containerRef}
+			dangerouslySetInnerHTML={{ __html: svg }}
+			data-testid="mermaid-diagram"
+		/>
+	);
 }
