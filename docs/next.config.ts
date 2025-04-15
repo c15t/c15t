@@ -1,6 +1,7 @@
 import { withSentryConfig } from '@sentry/nextjs';
 import { createMDX } from 'fumadocs-mdx/next';
 import type { NextConfig } from 'next';
+import './src/env';
 
 const withMDX = createMDX({
 	configPath: './source.config.ts',
