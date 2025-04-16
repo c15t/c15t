@@ -267,252 +267,78 @@ export async function getConfig({
 	cwd: string;
 	configPath?: string;
 }) {
-	// Track all found config files for better error reporting
-	const foundPaths: string[] = [];
-	const failedImports: string[] = [];
+	// Store original log functions
+	const originalLoggerError = logger.error;
+	const originalLoggerInfo = logger.info;
 
+	// Temporarily suppress logger during config search
+	logger.error = () => undefined; // No-op
+	logger.info = () => undefined; // No-op
+
+	let result: C15TOptions | null = null;
 	try {
-		let configFile: C15TOptions | null = null;
+		// Determine search paths, prioritizing explicit path if given
+		const searchPaths = configPath ? [path.dirname(configPath)] : [cwd];
+		const rcFile = configPath ? path.basename(configPath) : undefined;
 
-		// If a specific config path is provided, try to load it
-		if (configPath) {
-			const resolvedPath = path.join(cwd, configPath);
+		// Try loading from specified/standard locations
+		const loaded = await loadConfig<config>({
+			cwd: searchPaths[0],
+			name: rcFile,
+			configFile: rcFile ? undefined : configFileNames[0],
+			rcFile: rcFile ? `.${rcFile}` : '.c15trc',
+			jitiOptions: jitiOptions(cwd),
+		});
 
-			try {
-				if (!fs.existsSync(resolvedPath)) {
-					throw new DoubleTieError(
-						`Configuration file not found: ${resolvedPath}\nMake sure the path is correct and the file exists.`,
-						{
-							code: 'CONFIG_FILE_NOT_FOUND',
-							status: 404,
-							category: 'CONFIG_FILE_NOT_FOUND',
-						}
-					);
-				}
+		if (loaded.config) {
+			const extractedOptions = extractOptionsFromConfig(loaded.config);
+			if (validateConfig(extractedOptions)) {
+				result = extractedOptions;
+			}
+		}
 
-				foundPaths.push(resolvedPath);
-
-				const { config } = await loadConfig<config>({
-					configFile: resolvedPath,
-					dotenv: true,
-					jitiOptions: jitiOptions(cwd),
+		// If still not found, try searching monorepo subdirectories
+		if (!result) {
+			const subdirs = findDirectories(cwd, monorepoSubdirs);
+			for (const subdir of subdirs) {
+				const subPath = path.join(cwd, subdir);
+				const loadedSub = await loadConfig<config>({
+					cwd: subPath,
+					configFile: configFileNames[0],
+					jitiOptions: jitiOptions(subPath),
 				});
-
-				configFile = extractOptionsFromConfig(config);
-
-				if (!configFile) {
-					throw new DoubleTieError(
-						// biome-ignore lint/style/useTemplate: keep it split so its easier to read
-						`Found config file at ${resolvedPath} but couldn't extract c15t options.\n` +
-							`Make sure you're exporting c15t with one of these patterns:\n` +
-							'- export const c15t = c15tInstance({...})\n' +
-							'- export const consent = c15tInstance({...})\n' +
-							'- export const c15tInstance = c15tInstance({...})\n' +
-							'- export default c15tInstance({...})',
-						{
-							code: 'CONFIG_FILE_LOAD_ERROR',
-							status: 500,
-							category: 'CONFIG_FILE_LOAD_ERROR',
-						}
-					);
-				}
-			} catch (e) {
-				// Check if file exists but imports failed
-				if (fs.existsSync(resolvedPath)) {
-					failedImports.push(resolvedPath);
-					if (e instanceof DoubleTieError) {
-						throw e; // Rethrow our own errors
+				if (loadedSub.config) {
+					const extractedOptions = extractOptionsFromConfig(loadedSub.config);
+					if (validateConfig(extractedOptions)) {
+						result = extractedOptions;
+						break; // Found it, stop searching
 					}
-					throw new DoubleTieError(
-						// biome-ignore lint/style/useTemplate: keep it split so its easier to read
-						`Config file found at ${resolvedPath} but failed to load.\n` +
-							'This usually happens because of import problems:\n' +
-							'- Check for invalid import paths\n' +
-							'- Ensure all dependencies are installed\n' +
-							'- Verify path aliases in tsconfig.json\n\n' +
-							`Error details: ${e instanceof Error ? e.message : String(e)}`,
-						{
-							code: 'CONFIG_FILE_LOAD_ERROR',
-							status: 500,
-							category: 'CONFIG_FILE_LOAD_ERROR',
-							cause: e instanceof Error ? e : new Error(String(e)),
-						}
-					);
-				}
-				// Re-throw the error for the outer catch block to handle
-				throw e;
-			}
-		}
-
-		// If no config file was found or loaded, search through possible paths
-		if (!configFile) {
-			// Don't log this to the end user, it's an implementation detail
-			// logger.debug('Searching for config in standard locations...');
-
-			// Collect all directories to search in
-			const searchDirs = [''];
-			// Add monorepo subdirectories if they exist
-			searchDirs.push(...findDirectories(cwd, monorepoSubdirs));
-
-			// For each directory, try all possible config paths
-			for (const dir of searchDirs) {
-				for (const possiblePath of possiblePaths) {
-					const configPath = path.join(dir, possiblePath);
-					const fullPath = path.join(cwd, configPath);
-
-					// Skip if file doesn't exist
-					if (!fs.existsSync(fullPath)) {
-						continue;
-					}
-
-					// Don't log every attempt, it's noisy
-					foundPaths.push(fullPath);
-
-					try {
-						const { config } = await loadConfig<config>({
-							configFile: configPath,
-							jitiOptions: jitiOptions(cwd),
-						});
-
-						if (Object.keys(config).length > 0) {
-							configFile = extractOptionsFromConfig(config);
-
-							if (configFile && validateConfig(configFile)) {
-								// Only log when we've successfully found and loaded a config
-								logger.info(`✅ Using c15t config from ${fullPath}`);
-								break; // Success!
-							}
-						}
-					} catch (e) {
-						// Special handling for server-only imports
-						if (
-							typeof e === 'object' &&
-							e &&
-							'message' in e &&
-							typeof e.message === 'string' &&
-							e.message.includes(
-								'This module cannot be imported from a Client Component module'
-							)
-						) {
-							throw new DoubleTieError(
-								// biome-ignore lint/style/useTemplate: keep it split so its easier to read
-								`Found config file at ${fullPath}, but it imports 'server-only'.\n` +
-									`Please temporarily remove the 'server-only' import while using the CLI,\n` +
-									'and you can add it back afterwards.',
-								{
-									code: 'SERVER_ONLY_IMPORT_DETECTED',
-									status: 500,
-									category: 'SERVER_ONLY_IMPORT_DETECTED',
-								}
-							);
-						}
-
-						// Track failed imports but continue searching
-						failedImports.push(fullPath);
-					}
-				}
-
-				if (configFile) {
-					break;
 				}
 			}
 		}
+	} catch (error) {
+		// Restore logger before handling the error
+		logger.error = originalLoggerError;
+		logger.info = originalLoggerInfo;
 
-		// Simplify the error reporting when no config is found
-		if (!configFile) {
-			if (foundPaths.length > 0) {
-				logger.error(
-					`❌ Found ${foundPaths.length} potential config files, but couldn't load any of them:`
-				);
-				// Show the first few found paths (up to 3)
-				for (const filePath of foundPaths.slice(0, 3)) {
-					logger.error(`   - ${filePath}`);
-				}
-				if (foundPaths.length > 3) {
-					logger.error(`   - ...and ${foundPaths.length - 3} more`);
-				}
-				if (failedImports.length > 0) {
-					logger.error('\n❓ Common issues that prevent loading config files:');
-					logger.error('   - Missing dependencies (check your package.json)');
-					logger.error(
-						'   - Import path issues (check your import statements)'
-					);
-					logger.error(
-						'   - Path alias configuration (check your tsconfig.json)'
-					);
-					logger.error(
-						"   - Export format (make sure you're exporting c15t, c15tInstance, consent, or default)"
-					);
-				}
-
-				throw new DoubleTieError('Unable to load any c15t configuration file', {
-					code: 'CONFIG_FILE_LOAD_ERROR',
-					status: 500,
-					category: 'CONFIG_FILE_LOAD_ERROR',
-				});
+		// Log the actual loading error if one occurred
+		originalLoggerError('Error during configuration loading:', error);
+		throw new DoubleTieError(
+			`Failed to load or parse c15t configuration. ${error instanceof Error ? `Reason: ${error.message}` : ''}`,
+			{
+				code: 'CONFIG_LOAD_ERROR',
+				status: 500,
+				category: 'CONFIG_LOAD_ERROR',
+				cause: error instanceof Error ? error : undefined,
 			}
-
-			logger.error(
-				'❌ No c15t configuration files found in standard locations'
-			);
-			logger.info('\n📝 Create a c15t.ts file with your configuration:');
-			logger.info(`
-import { c15tInstance } from '@c15t/backend';
-
-export const c15t = c15tInstance({
-  appName: 'My App',
-  basePath: '/api/c15t',
-  // Add your configuration here
-});
-			`);
-
-			throw new DoubleTieError(
-				'No c15t config file found. Create a c15t.ts file or specify with --config',
-				{
-					code: 'CONFIG_FILE_NOT_FOUND',
-					status: 404,
-					category: 'CONFIG_FILE_NOT_FOUND',
-				}
-			);
-		}
-
-		return configFile;
-	} catch (e) {
-		if (
-			typeof e === 'object' &&
-			e &&
-			'message' in e &&
-			typeof e.message === 'string' &&
-			e.message.includes(
-				'This module cannot be imported from a Client Component module'
-			)
-		) {
-			logger.error(
-				'❌ Server-only import detected in config file\n' +
-					"Please temporarily remove the 'server-only' import while using the CLI,\n" +
-					'and you can add it back afterwards.'
-			);
-			process.exit(1);
-		}
-		if (e instanceof DoubleTieError) {
-			logger.error(`❌ ${(e as DoubleTieError).message}`);
-		} else if (e instanceof Error) {
-			logger.error(`❌ Couldn't read your c15t configuration`);
-			logger.error(`   Error: ${e.message}`);
-		} else {
-			logger.error(`❌ Couldn't read your c15t configuration`);
-			logger.error(`   Error: ${String(e)}`);
-		}
-
-		if (failedImports.length > 0) {
-			logger.info(
-				"\n💡 Tip: If you're having import issues, try running with verbose logging:"
-			);
-			logger.info('   DEBUG=c15t* npx c15t@latest <command>');
-		}
-
-		process.exit(1);
+		);
+	} finally {
+		// Ensure logger is always restored
+		logger.error = originalLoggerError;
+		logger.info = originalLoggerInfo;
 	}
+
+	return result; // Will be undefined if not found
 }
 
 export { possiblePaths };

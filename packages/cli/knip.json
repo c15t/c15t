@@ -1,6 +1,12 @@
 {
 	"$schema": "https://unpkg.com/knip@latest/schema.json",
-	"entry": ["./src/**.ts", "./test/**.test.ts", "rslib.config.ts"],
+	"entry": [
+		"./src/index.ts",
+		"./test/**.test.ts",
+		"vitest.config.ts",
+		"rslib.config.ts",
+		"tsconfig.json"
+	],
 	"project": "**/*.{js,ts,jsx,tsx}",
 	"ignoreBinaries": ["biome", "knip"],
 	"ignore": ["**/*.spec.{js,ts}", "**/*.test.{js,ts}"],
@@ -11,5 +17,5 @@
 		"files": "warn"
 	},
 	"ignoreExportsUsedInFile": true,
-	"ignoreDependencies": ["@c15t/backend"]
+	"ignoreDependencies": ["@c15t/backend", "@c15t/typescript-config", "@c15t/vitest-config"]
 }

@@ -5,12 +5,13 @@ import color from 'picocolors';
 import { generate } from './commands/generate';
 import { migrate } from './commands/migrate';
 import 'dotenv/config';
+import type { C15TOptions } from '@c15t/backend';
+import { displayIntro } from './components/intro'; // Corrected path if needed, assuming it's correc
+import { startOnboarding } from './onboarding';
+import { getConfig } from './utils/get-config';
 // import { generateSecret } from './commands/secret'; // Removed import
 import { getPackageInfo } from './utils/get-package-info';
 
-// handle exit
-// Use clack's cancel mechanism within commands instead
-// process.on('SIGINT', () => process.exit(0));
 // process.on('SIGTERM', () => process.exit(0));
 
 // Function to handle cancellation gracefully
@@ -23,36 +24,53 @@ async function main() {
 	const packageInfo = await getPackageInfo();
 	const version = packageInfo.version || 'unknown';
 
-	// Clear console for a cleaner look (optional)
-	console.clear(); 
+	// Display the intro sequence
+	await displayIntro(version);
 
-	// Fancy intro with border
-	const title = ` c15t CLI ${color.dim(`v${version}`)} `;
-	const docs = ` ${color.dim('Documentation: https://c15t.com/docs')} `;
-	const maxLen = Math.max(title.length - color.dim(`v${version}`).length - 7, docs.length - 7 ); // Adjust length for color codes
-	const borderTop = `┌${'─'.repeat(maxLen + 2)}┐`;
-	const borderBottom = `└${'─'.repeat(maxLen + 2)}┘`;
-	const padding = ' '.repeat(maxLen);
+	// --- Configuration Check ---
+	const cwd = process.cwd(); // Get current working directory
+	let config: C15TOptions | undefined;
+	try {
+		// Attempt to load config silently first
+		const loadedConfig = await getConfig({ cwd });
+		config = loadedConfig ?? undefined;
+	} catch (error) {
+		// Log error only if it prevents proceeding
+		p.log.error('Error trying to load configuration:');
+		if (error instanceof Error) {
+			p.log.message(error.message);
+		} else {
+			p.log.message(String(error));
+		}
+		p.outro(`${color.red('Setup failed.')}`);
+		process.exit(1); // Exit if config loading itself fails
+		return;
+	}
 
-	p.log.message(color.cyan(borderTop));
-	p.log.message(`${color.cyan('│')} ${color.bgCyan(color.black(title))}${' '.repeat(maxLen - (title.length - color.dim(`v${version}`).length - 7) + 1)}${color.cyan('│')}`);
-	p.log.message(`${color.cyan('│')}${(padding)}${color.cyan('│')}`); // Empty line for spacing
-	p.log.message(`${color.cyan('│')} ${docs}${' '.repeat(maxLen - (docs.length - 7) + 1)}${color.cyan('│')}`);
-	p.log.message(color.cyan(borderBottom));
-	p.log.message(''); // Add an extra newline for spacing after the box
+	// --- Onboarding or Command Handling ---
+	if (!config) {
+		// No config found - Trigger onboarding
+		await startOnboarding({ cwd });
+		return; // Exit after onboarding completes
+	}
+	// Config found - proceed to command handling
+	p.log.success('✔ Config file found!'); // Indicate config is loaded
+	p.log.message('');
 
 	// Basic argument parsing
-	const args = process.argv.slice(2); // Remove 'node' and script path
+	const args = process.argv.slice(2);
 	const commandName = args[0];
 	const commandArgs = args.slice(1);
 
 	try {
 		switch (commandName) {
 			case 'migrate':
-				await migrate(commandArgs); // Pass remaining args
+				// Config is already loaded and verified present, pass to command
+				await migrate(commandArgs);
 				break;
 			case 'generate':
-				await generate(commandArgs); // Pass remaining args
+				// Config is already loaded and verified present, pass to command
+				await generate(commandArgs);
 				break;
 			// Removed secret case
 			// case 'secret':
@@ -82,8 +100,16 @@ Run a command directly (e.g., c15t generate) or select one below.`,
 				const selectedCommand = await p.select({
 					message: 'Which command would you like to run?',
 					options: [
-						{ value: 'generate', label: 'generate', hint: 'Generate schema/code' },
-						{ value: 'migrate', label: 'migrate', hint: 'Run database migrations' },
+						{
+							value: 'generate',
+							label: 'generate',
+							hint: 'Generate schema/code',
+						},
+						{
+							value: 'migrate',
+							label: 'migrate',
+							hint: 'Run database migrations',
+						},
 						{ value: 'exit', label: 'exit', hint: 'Close the CLI' }, // Add exit option
 					],
 				});
@@ -100,12 +126,13 @@ Run a command directly (e.g., c15t generate) or select one below.`,
 				}
 				break;
 			}
-			default:
+			default: {
 				p.log.error(`Unknown command: ${color.yellow(commandName)}`);
 				p.log.info(
 					`Run ${color.cyan('c15t --help')} to see available commands.`
 				);
 				process.exit(1);
+			}
 		}
 		// Assuming commands handle their own outro or cancellation
 		// p.outro("Operation completed."); // Commands might exit early or cancel

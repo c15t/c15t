@@ -124,7 +124,6 @@
 		"@types/pg": "8.11.6",
 		"@libsql/kysely-libsql": "^0.4.1",
 		"@electric-sql/pglite": "0.2.17",
-		"knip": "^5.50.2",
 		"kysely-pglite": "^0.6.1",
 		"typescript": "^5.8.3",
 		"vitest": "^3.1.1"

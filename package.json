@@ -18,8 +18,11 @@
 		"lint:fix": "turbo lint -- --write",
 		"release": "pnpm build:libs && changeset publish",
 		"test": "turbo test --filter=!./apps/examples/*",
-		"view-report": "turbo run view-report",
-		"version": "changeset version && pnpm install --lockfile-only"
+		"version": "changeset version && pnpm install --lockfile-only",
+		"view-report": "turbo run view-report"
+	},
+	"resolutions": {
+		"@libsql/kysely-libsql": "^0.4.1"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
@@ -35,6 +38,7 @@
 		"@vitest/browser": "^3.1.1",
 		"@vitest/coverage-istanbul": "^3.1.1",
 		"changeset-conventional-commits": "^0.2.5",
+		"knip": "^5.50.4",
 		"playwright": "^1.51.1",
 		"turbo": "^2.5.0",
 		"typescript": "5.8.3",
@@ -44,8 +48,5 @@
 	"packageManager": "pnpm@10.8.0",
 	"engines": {
 		"node": ">=22"
-	},
-	"resolutions": {
-		"@libsql/kysely-libsql": "^0.4.1"
 	}
 }
