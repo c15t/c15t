@@ -4,8 +4,6 @@ import * as p from '@clack/prompts';
 import color from 'picocolors';
 import type { CliContext } from './context/types';
 
-
-
 // Basic template for the c15t.config.ts file
 function generateConfigFileContent(
 	adapterChoice: string,
@@ -84,9 +82,9 @@ export default instance;
 
 export async function startOnboarding(context: CliContext) {
 	const { logger, cwd } = context;
-	
-	logger.info('Starting onboarding process');
-	
+
+	logger.info('Starting onboarding process...');
+
 	// Clearer welcome for first-time setup
 	p.note(
 		`Welcome to c15t! It looks like you don't have a configuration file yet.
@@ -164,16 +162,16 @@ Let's get you set up with a basic ${color.cyan('c15t.ts')} file.`,
 	}
 
 	const adapterChoice = results.adapter as string;
-	logger.info(`Selected adapter: ${adapterChoice}`);
-	
+	logger.debug(`Selected adapter: ${adapterChoice}`);
+
 	const configContent = generateConfigFileContent(
 		adapterChoice,
 		results.connectionString as string | undefined,
 		results.filePath as string | undefined
 	);
 	const configFilePath = path.join(cwd, 'c15t.ts');
-	
-	logger.debug(`Will create config file at: ${configFilePath}`);
+
+	logger.debug(`Creating config file at: ${configFilePath}`);
 
 	const s = p.spinner();
 	s.start(`Creating ${configFilePath}...`);
@@ -181,20 +179,16 @@ Let's get you set up with a basic ${color.cyan('c15t.ts')} file.`,
 	try {
 		await fs.writeFile(configFilePath, configContent);
 		s.stop(`✅ Configuration file created: ${color.cyan(configFilePath)}`);
-		
-		logger.info('Configuration file created successfully');
-		logger.info('You can now customize this file further');
-		logger.info('Please re-run your previous command (e.g., c15t generate)');
-		
-		logger.success('Onboarding complete!');
+		logger.info('Please re-run your previous command to continue');
+		logger.success('Onboarding complete');
 	} catch (error) {
 		s.stop('Failed to create configuration file.');
 		logger.error('Failed to write configuration file', error);
-		
+
 		if (error instanceof Error) {
 			logger.error(error.message);
 		}
-		
-		logger.failed(`${color.red('Onboarding failed.')}`);
+
+		logger.failed('Onboarding failed');
 	}
 }

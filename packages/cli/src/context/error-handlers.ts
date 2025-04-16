@@ -1,4 +1,3 @@
-
 import color from 'picocolors';
 import type { CliContext } from './types';
 
@@ -17,7 +16,7 @@ export function createErrorHandlers(context: CliContext) {
 		handleError: (error: unknown, message: string): never => {
 			// Log error with full details
 			logger.error(message, error);
-			
+
 			// Show error message (don't need p.log as logger already handles this)
 			if (error instanceof Error) {
 				logger.error(error.message);
@@ -38,7 +37,7 @@ export function createErrorHandlers(context: CliContext) {
 			logger.debug(`Handling cancellation: ${message}`);
 			// Still need p.cancel for visual feedback
 			// p.cancel(message);
-      logger.failed(message);
+			logger.failed(message);
 			process.exit(0);
 		},
 	};

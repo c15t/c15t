@@ -14,7 +14,7 @@ import { startOnboarding } from './onboarding';
 // Import context creator and types
 import { createCliContext } from './context/creator';
 import { globalFlags } from './context/parser'; // Import flags for help menu
-import type { CliCommand, } from './context/types';
+import type { CliCommand } from './context/types';
 
 // Define commands (using types from context)
 const commands: CliCommand[] = [
@@ -34,8 +34,6 @@ const commands: CliCommand[] = [
 	},
 ];
 
-
-
 export async function main() {
 	// --- Context Setup ---
 	const rawArgs = process.argv.slice(2);
@@ -48,7 +46,7 @@ export async function main() {
 	const packageInfo = context.fs.getPackageInfo();
 	const version = packageInfo.version;
 
-  if (flags.version) {
+	if (flags.version) {
 		logger.debug('Version flag detected');
 		logger.message(`c15t CLI version ${version}`);
 		process.exit(0);
@@ -72,26 +70,27 @@ export async function main() {
 	// --- Configuration Check ---
 	logger.debug(`Current working directory: ${cwd}`);
 	logger.debug(`Config path flag: ${flags.config}`);
-	
+
 	let config: C15TOptions | undefined;
 	try {
 		const loadedConfig = await getConfig(context);
 		config = loadedConfig ?? undefined;
 	} catch (loadError) {
-		return error.handleError(loadError, 'An unexpected error occurred during configuration loading');
+		return error.handleError(
+			loadError,
+			'An unexpected error occurred during configuration loading'
+		);
 	}
 
 	// --- Onboarding or Command Handling ---
 	if (!config) {
-		logger.info('No config file found, initiating onboarding.');
+		logger.info('No configuration found, starting onboarding...');
 		await startOnboarding(context);
-		logger.info('Onboarding process completed.');
 		return;
 	}
 
-	logger.info('Config file found and loaded successfully.');
-	logger.debug('Loaded config object:', config);
-	logger.info('✅ Config file found!');
+	logger.info('✅ Configuration loaded successfully');
+	logger.debug('Loaded config:', config);
 
 	// --- Execute Command or Show Interactive Menu ---
 	try {
@@ -99,10 +98,8 @@ export async function main() {
 			const command = commands.find((cmd) => cmd.name === commandName);
 			if (command) {
 				logger.info(`Executing command: ${command.name}`);
-				// Pass the whole context to the command action
 				await command.action(context);
 			} else {
-				logger.warn(`Unknown command provided: ${commandName}`);
 				logger.error(`Unknown command: ${commandName}`);
 				logger.info('Run c15t --help to see available commands.');
 				process.exit(1);
@@ -135,23 +132,19 @@ export async function main() {
 				);
 				if (selectedCommand) {
 					logger.info(`User selected command: ${selectedCommand.name}`);
-					// Pass context to interactively selected command
 					await selectedCommand.action(context);
 				} else {
-					logger.error(
-						`Internal error: Selected command '${selectedCommandName}' not found in command list.`
-					);
 					error.handleError(
-						new Error(`Command '${selectedCommandName}' not found`), 
+						new Error(`Command '${selectedCommandName}' not found`),
 						'An internal error occurred'
 					);
 				}
 			}
 		}
-		logger.info('Command execution finished.');
+		logger.debug('Command execution completed');
 	} catch (executionError) {
 		error.handleError(
-			executionError, 
+			executionError,
 			'An unexpected error occurred during command execution'
 		);
 	}

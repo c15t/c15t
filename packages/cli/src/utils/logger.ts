@@ -23,15 +23,15 @@ const formatArgs = (args: unknown[]): string => {
 
 /**
  * Formats a log message with appropriate styling based on log level
- * 
+ *
  * @param logLevel - The log level to format for
  * @param message - The message to format
  * @param args - Additional arguments to format
  * @returns The formatted message string
  */
 export const formatLogMessage = (
-	logLevel: LogLevel | string, 
-	message: unknown, 
+	logLevel: LogLevel | string,
+	message: unknown,
 	args: unknown[] = []
 ): string => {
 	const messageStr = typeof message === 'string' ? message : String(message);
@@ -67,7 +67,7 @@ export const formatLogMessage = (
 /**
  * Logs a message with the appropriate clack prompt styling
  * Can be used before logger initialization
- * 
+ *
  * @param logLevel - The log level to use
  * @param message - The message to log
  * @param args - Additional arguments to include
@@ -78,7 +78,7 @@ export const logMessage = (
 	...args: unknown[]
 ): void => {
 	const formattedMessage = formatLogMessage(logLevel, message, args);
-	
+
 	switch (logLevel) {
 		case 'error':
 			p.log.error(formattedMessage);

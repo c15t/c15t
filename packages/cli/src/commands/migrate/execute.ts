@@ -15,14 +15,11 @@ export async function executeMigrations(
 	s.start('Running migrations...');
 
 	try {
-		logger.debug('Calling runMigrations function...');
 		await runMigrationsFn();
-		logger.info('Migrations completed successfully.');
 		s.stop('Migrations completed successfully!');
-		logger.success('🚀 Database migrated successfully!');
-		logger.failed('Migration complete.');
+		logger.success('🚀 Database migrated successfully');
 	} catch (error) {
-		s.stop('Migration failed.');
+		logger.error('Migration failed.');
 		context.error.handleError(error, 'Error running migrations');
 	}
 }

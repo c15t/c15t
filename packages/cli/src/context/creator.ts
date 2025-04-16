@@ -7,7 +7,7 @@ import { createConfigManagement } from './config-management';
 import { createErrorHandlers } from './error-handlers';
 import { createFileSystem } from './file-system';
 import { parseCliArgs } from './parser';
-import type { CliCommand, CliContext, } from './types';
+import type { CliCommand, CliContext } from './types';
 import { createUserInteraction } from './user-interaction';
 
 /**
@@ -21,11 +21,11 @@ import { createUserInteraction } from './user-interaction';
 export function createCliContext(
 	rawArgs: string[],
 	cwd: string,
-	commands: CliCommand[],
+	commands: CliCommand[]
 ): CliContext {
 	const { commandName, commandArgs, parsedFlags } = parseCliArgs(
 		rawArgs,
-		commands,
+		commands
 	);
 
 	let desiredLogLevel: LogLevel = 'info';

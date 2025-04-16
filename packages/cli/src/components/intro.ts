@@ -1,4 +1,3 @@
-
 import figlet from 'figlet';
 import color from 'picocolors';
 import type { CliContext } from '~/context/types';
@@ -9,11 +8,14 @@ import type { CliContext } from '~/context/types';
  * @param context - The CLI context
  * @param version - The CLI version string.
  */
-export async function displayIntro(context: CliContext, version: string): Promise<void> {
+export async function displayIntro(
+	context: CliContext,
+	version: string
+): Promise<void> {
 	const { logger } = context;
-	
+
 	logger.info(`${color.bold('Welcome!')} Let's get you set up.`);
-	
+
 	// Spacing between welcome and figlet
 	logger.message('');
 
@@ -50,7 +52,7 @@ export async function displayIntro(context: CliContext, version: string): Promis
 	// Version and Docs using the logger
 	// logger.info(`Using c15t CLI ${color.dim(`v${version}`)}`);
 	// logger.info(`Documentation: ${color.underline('https://c15t.com/docs')}`);
-	
+
 	// Spacing before next step
 	// logger.message('');
 }

@@ -20,38 +20,34 @@ export async function planMigrations(
 	shouldRun: boolean;
 	runMigrationsFn: MigrationResult['runMigrations'] | null;
 }> {
-	const { logger, error } = context;
+	const { logger } = context;
 	logger.info('Planning migrations...');
 	logger.debug('Config:', config);
 	logger.debug(`Skip confirmation: ${skipConfirmation}`);
+
 	const s = p.spinner();
 	s.start('Preparing migration plan...');
 
 	let migrationData: MigrationResult | undefined;
 	try {
-		logger.debug('Calling getMigrations...');
 		migrationData = await getMigrations(config);
-		logger.debug('getMigrations result:', migrationData);
+		logger.debug('Migration data:', migrationData);
 	} catch (err) {
-		logger.error('Error preparing migration plan:', err);
 		s.stop('Migration preparation failed.');
-		logger.error('Failed to prepare migrations');
-		
+
 		if (err instanceof Error) {
 			logger.error(err.message);
 		} else {
 			logger.error(String(err));
 		}
-		
-		logger.failed(`${color.red('Migration failed.')}`);
-		// Indicate failure without providing run function
+
+		logger.failed('Migration planning failed');
 		return { shouldRun: false, runMigrationsFn: null };
 	}
 
 	if (!migrationData) {
-		logger.warn('Could not retrieve migration data after getMigrations call.');
 		s.stop('Could not retrieve migration data.');
-		logger.failed(`${color.red('Migration failed.')}`);
+		logger.failed('Migration planning failed');
 		return { shouldRun: false, runMigrationsFn: null };
 	}
 
@@ -60,15 +56,12 @@ export async function planMigrations(
 	logger.debug('Migrations to be created:', toBeCreated);
 
 	if (!toBeAdded.length && !toBeCreated.length) {
-		logger.info('No migrations needed, database is up to date.');
 		s.stop('No migrations needed.');
-		logger.info('🚀 Database is already up to date.');
-		logger.success('Migration check complete.');
+		logger.info('🚀 Database is up to date');
 		return { shouldRun: false, runMigrationsFn: null };
 	}
 
 	s.stop('Migration plan prepared.');
-	logger.info('Migration plan generated.');
 	logger.info('🔑 The following migrations will be applied:');
 
 	// Display migration details in the log
@@ -76,7 +69,7 @@ export async function planMigrations(
 		const fields = Object.keys(table.fields).join(', ');
 		const tableName = table.table;
 		logger.info(`  + Table ${tableName}: Add fields [${fields}]`);
-		
+
 		// Still display to user for better visibility with colors
 		p.log.message(
 			`  ${color.cyan('+')} Table ${color.yellow(tableName)}: Add fields [${color.green(fields)}]`
@@ -87,20 +80,18 @@ export async function planMigrations(
 
 	let shouldMigrate = skipConfirmation;
 	if (!shouldMigrate) {
-		logger.debug('Requesting user confirmation for migration.');
 		shouldMigrate = await context.confirm(
 			'Apply these migrations to the database?',
 			false
 		);
-		logger.debug(`User confirmation result: ${shouldMigrate}`);
+		logger.debug(`User confirmation: ${shouldMigrate}`);
 	}
 
 	if (!shouldMigrate) {
-		logger.info('Migration cancelled by user.');
-		logger.failed('Migration aborted.');
+		logger.failed('Migration cancelled');
 		return { shouldRun: false, runMigrationsFn: null };
 	}
 
-	logger.info('Proceeding with migration execution.');
+	logger.debug('Proceeding with migration execution');
 	return { shouldRun: true, runMigrationsFn: runMigrations };
 }

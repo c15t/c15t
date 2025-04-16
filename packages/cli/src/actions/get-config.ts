@@ -76,10 +76,7 @@ export async function getConfig(
 			} catch (error) {
 				// Use debug for errors during search in specific dirs
 				// Only show these details if debugging is enabled
-				logger.debug(
-					`Failed to load or validate config from ${dir}:`,
-					error
-				);
+				logger.debug(`Failed to load or validate config from ${dir}:`, error);
 			}
 		}
 
@@ -95,7 +92,7 @@ export async function getConfig(
 	} catch (error) {
 		// Handle broader errors during the config search process (e.g., DoubleTieError)
 		context.logger.error('Error trying to load configuration:');
-		
+
 		return context.error.handleError(error, 'Error loading configuration');
 	}
 }

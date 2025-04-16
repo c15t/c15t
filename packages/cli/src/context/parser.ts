@@ -1,6 +1,6 @@
+import * as p from '@clack/prompts';
 import { formatLogMessage } from '~/utils/logger';
 import type { CliCommand, CliFlag, ParsedArgs } from './types';
-import * as p from '@clack/prompts';
 // Define flags within the parser module
 export const globalFlags: CliFlag[] = [
 	{
@@ -44,7 +44,7 @@ export const globalFlags: CliFlag[] = [
  */
 export function parseCliArgs(
 	rawArgs: string[],
-	commands: CliCommand[],
+	commands: CliCommand[]
 ): ParsedArgs {
 	const parsedFlags: Record<string, string | boolean | undefined> = {};
 	const potentialCommandArgsAndUndefined: (string | undefined)[] = [];
@@ -79,11 +79,12 @@ export function parseCliArgs(
 							parsedFlags[primaryName] = nextArg;
 							i++;
 						} else {
-              p.log.warn(
-                formatLogMessage('warn',
-								`Flag ${arg} expects a value, but none was found or the next item is a flag.`
-							)
-						);
+							p.log.warn(
+								formatLogMessage(
+									'warn',
+									`Flag ${arg} expects a value, but none was found or the next item is a flag.`
+								)
+							);
 						}
 					} else {
 						parsedFlags[primaryName] = true;

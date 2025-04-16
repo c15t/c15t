@@ -1,4 +1,3 @@
-
 import color from 'picocolors';
 import type { CliContext } from '~/context/types';
 import type { SchemaResult } from '../schema';

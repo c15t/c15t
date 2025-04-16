@@ -86,6 +86,6 @@ export async function handleExistingFile(
 		logger.success('Generation complete.');
 	} else {
 		logger.warn('Schema generation skipped for existing file.');
-	logger.failed('Generation cancelled or skipped.');
+		logger.failed('Generation cancelled or skipped.');
 	}
 }

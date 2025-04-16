@@ -13,7 +13,7 @@ function validateAdapterIsKysely(
 	adapter: Adapter | undefined
 ): void {
 	const { logger, error } = context;
-	logger.debug('Validating adapter is Kysely...', adapter);
+	logger.debug('Validating adapter:', adapter);
 
 	if (!adapter || adapter.id !== 'kysely') {
 		let message =
@@ -45,8 +45,8 @@ export async function setupEnvironment(context: CliContext): Promise<{
 	const { logger, flags, cwd, error } = context;
 
 	logger.info('Setting up migration environment...');
-	logger.debug('Context flags:', flags);
-	logger.debug(`Context CWD: ${cwd}`);
+	logger.debug('Flags:', flags);
+	logger.debug(`Working directory: ${cwd}`);
 
 	if (!existsSync(cwd)) {
 		return error.handleError(
@@ -56,7 +56,7 @@ export async function setupEnvironment(context: CliContext): Promise<{
 	}
 
 	const config = await loadConfigAndOnboard(context);
-	logger.info('Config loaded successfully for migration.');
+	logger.debug('Config loaded:', config);
 
 	let adapter: Adapter | undefined;
 	try {
@@ -68,8 +68,7 @@ export async function setupEnvironment(context: CliContext): Promise<{
 	}
 
 	validateAdapterIsKysely(context, adapter);
-	logger.info('Adapter validated successfully (Kysely).');
+	logger.info('✅ Environment setup complete');
 
-	logger.info('Migration environment setup complete.');
 	return { config, adapter: adapter as Adapter };
 }
