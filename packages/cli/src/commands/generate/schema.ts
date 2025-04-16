@@ -3,7 +3,7 @@ import type { Adapter } from '@c15t/backend/pkgs/db-adapters';
 import * as p from '@clack/prompts';
 import color from 'picocolors';
 
-import { getGenerator } from '../../generators';
+import { getGenerator } from './generators';
 
 export type SchemaResult = Awaited<ReturnType<typeof getGenerator>>;
 
