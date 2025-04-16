@@ -1,38 +1,36 @@
 import { existsSync } from 'node:fs';
 import type { C15TOptions, C15TPlugin } from '@c15t/backend';
 import { type Adapter, getAdapter } from '@c15t/backend/pkgs/db-adapters';
-import * as p from '@clack/prompts';
-import color from 'picocolors';
 import { loadConfigAndOnboard } from '~/actions/load-config-and-onboard';
 import type { CliContext } from '~/context/types';
 
 /**
  * Validates that the provided adapter is the Kysely adapter.
- * Exits the process with an error message if validation fails.
+ * Returns normally if valid, otherwise uses error handler to exit.
  */
 function validateAdapterIsKysely(
 	context: CliContext,
 	adapter: Adapter | undefined
 ): void {
-	const { logger } = context;
+	const { logger, error } = context;
 	logger.debug('Validating adapter is Kysely...', adapter);
+
 	if (!adapter || adapter.id !== 'kysely') {
-		logger.error('Adapter validation failed. Adapter is not Kysely.');
+		let message =
+			'Invalid or unsupported database configuration for migrate. Migrate command only works with built-in Kysely adapter.';
+
 		if (adapter?.id === 'prisma') {
-			logger.error(
-				"The migrate command only works with the built-in Kysely adapter. For Prisma, run `npx @c15t/cli generate` to create the schema, then use Prisma's migrate or push to apply it."
-			);
+			message =
+				"The migrate command only works with the built-in Kysely adapter. For Prisma, run `npx @c15t/cli generate` to create the schema, then use Prisma's migrate or push to apply it.";
 		} else if (adapter?.id === 'drizzle') {
-			logger.error(
-				"The migrate command only works with the built-in Kysely adapter. For Drizzle, run `npx @c15t/cli generate` to create the schema, then use Drizzle's migrate or push to apply it."
-			);
-		} else {
-			logger.error(
-				'Invalid or unsupported database configuration for migrate. Migrate command only works with built-in Kysely adapter.'
-			);
+			message =
+				"The migrate command only works with the built-in Kysely adapter. For Drizzle, run `npx @c15t/cli generate` to create the schema, then use Drizzle's migrate or push to apply it.";
 		}
-		p.outro('Migration aborted.');
-		process.exit(1);
+
+		error.handleError(
+			new Error('Adapter validation failed: Not using Kysely'),
+			message
+		);
 	}
 }
 
@@ -44,17 +42,17 @@ export async function setupEnvironment(context: CliContext): Promise<{
 	config: C15TOptions<C15TPlugin[]>;
 	adapter: Adapter;
 }> {
-	const { logger, flags, cwd } = context;
+	const { logger, flags, cwd, error } = context;
 
 	logger.info('Setting up migration environment...');
 	logger.debug('Context flags:', flags);
 	logger.debug(`Context CWD: ${cwd}`);
 
 	if (!existsSync(cwd)) {
-		logger.error(`Directory does not exist: ${cwd}`);
-		p.log.error(`The directory "${cwd}" does not exist.`);
-		p.outro(`${color.red('Migration setup failed.')}`);
-		process.exit(1);
+		return error.handleError(
+			new Error(`The directory "${cwd}" does not exist`),
+			'Migration setup failed'
+		);
 	}
 
 	const config = await loadConfigAndOnboard(context);
@@ -66,15 +64,7 @@ export async function setupEnvironment(context: CliContext): Promise<{
 		adapter = await getAdapter(config);
 		logger.debug('Adapter initialized:', adapter);
 	} catch (e) {
-		logger.error('Failed to initialize database adapter:', e);
-		p.log.error('Failed to initialize database adapter:');
-		if (e instanceof Error) {
-			p.log.message(e.message);
-		} else {
-			p.log.message(String(e));
-		}
-		p.outro(`${color.red('Migration setup failed.')}`);
-		process.exit(1);
+		return error.handleError(e, 'Failed to initialize database adapter');
 	}
 
 	validateAdapterIsKysely(context, adapter);

@@ -12,7 +12,7 @@ export async function handleExistingFile(
 	schema: SchemaResult,
 	filePath: string
 ): Promise<void> {
-	const { logger, flags } = context;
+	const { logger, flags, error } = context;
 
 	logger.warn(`Schema file already exists: ${color.yellow(filePath)}`);
 
@@ -65,29 +65,27 @@ export async function handleExistingFile(
 	}
 
 	if (proceed && action !== 'skip') {
-		try {
-			if (!schema.code) {
-				logger.error('Cannot write empty schema content.');
-				p.log.error('Cannot write empty schema content.');
-				p.outro('Generation failed.');
-				return;
-			}
-			const writeMode = action === 'overwrite' ? 'overwrite' : 'append';
-			logger.info(`Proceeding to ${writeMode} file: ${filePath}`);
-			await performWriteAction(
-				context,
-				filePath,
-				schema.code,
-				`${action === 'overwrite' ? 'Overwriting' : 'Appending to'} ${color.cyan(schema.fileName)}...`,
-				`🚀 Schema was ${action === 'overwrite' ? 'overwritten' : 'appended'} successfully!`
+		if (!schema.code) {
+			return error.handleError(
+				new Error('Empty schema content'),
+				'Cannot write empty schema content'
 			);
-			p.outro('Generation complete.');
-		} catch {
-			logger.debug('performWriteAction caught error (handled internally)');
 		}
+
+		const writeMode = action === 'overwrite' ? 'overwrite' : 'append';
+		logger.info(`Proceeding to ${writeMode} file: ${filePath}`);
+
+		await performWriteAction(
+			context,
+			filePath,
+			schema.code,
+			`${action === 'overwrite' ? 'Overwriting' : 'Appending to'} ${color.cyan(schema.fileName)}...`,
+			`🚀 Schema was ${action === 'overwrite' ? 'overwritten' : 'appended'} successfully!`
+		);
+
+		logger.success('Generation complete.');
 	} else {
 		logger.warn('Schema generation skipped for existing file.');
-		p.log.warning('Action skipped for existing file.');
-		p.outro('Generation cancelled or skipped.');
+	logger.failed('Generation cancelled or skipped.');
 	}
 }

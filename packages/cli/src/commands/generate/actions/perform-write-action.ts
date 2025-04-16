@@ -2,7 +2,6 @@ import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import * as p from '@clack/prompts';
-import color from 'picocolors';
 import type { CliContext } from '~/context/types';
 
 /**
@@ -15,7 +14,7 @@ export async function performWriteAction(
 	actionDescription: string,
 	successMessage: string
 ): Promise<void> {
-	const { logger } = context;
+	const { logger, error } = context;
 	const spinner = p.spinner();
 	spinner.start(actionDescription);
 	logger.info(`Performing write action: ${actionDescription}`);
@@ -30,16 +29,8 @@ export async function performWriteAction(
 		await fs.writeFile(filePath, code);
 		logger.debug(`Successfully wrote file: ${filePath}`);
 		spinner.stop(successMessage);
-	} catch (error) {
-		logger.error('File write operation failed:', error);
+	} catch (writeError) {
 		spinner.stop('File operation failed.');
-		logger.error('Error during file operation:');
-		if (error instanceof Error) {
-			logger.error(error.message);
-		} else {
-			logger.error(String(error));
-		}
-		p.outro(`${color.red('Action failed.')}`);
-		throw error;
+		error.handleError(writeError, 'Error during file operation');
 	}
 }

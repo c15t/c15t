@@ -50,7 +50,7 @@ export interface LoggerOptions {
 	 * @param args - Additional data to include in the log
 	 */
 	log?: (
-		level: Exclude<LogLevel, 'success'>,
+		level: LogLevel,
 		message: string,
 		...args: unknown[]
 	) => void;

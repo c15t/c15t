@@ -1,4 +1,4 @@
-import * as p from '@clack/prompts';
+
 import color from 'picocolors';
 import type { CliContext } from '~/context/types';
 import type { SchemaResult } from '../schema';
@@ -12,7 +12,7 @@ export async function handleNewFile(
 	schema: SchemaResult,
 	filePath: string
 ): Promise<void> {
-	const { logger, flags } = context;
+	const { logger, flags, error } = context;
 	let proceed = flags.y as boolean;
 
 	if (!proceed) {
@@ -24,29 +24,24 @@ export async function handleNewFile(
 	}
 
 	if (proceed) {
-		try {
-			if (!schema.code) {
-				logger.error('Cannot write empty schema content.');
-				p.log.error('Cannot write empty schema content.');
-				p.outro('Generation failed.');
-				return;
-			}
-			logger.info(`Proceeding to write new file: ${filePath}`);
-			await performWriteAction(
-				context,
-				filePath,
-				schema.code,
-				`Writing schema to ${color.cyan(schema.fileName)}...`,
-				'🚀 Schema was generated successfully!'
+		if (!schema.code) {
+			return error.handleError(
+				new Error('Empty schema content'),
+				'Cannot write empty schema content'
 			);
-			p.outro('Generation complete.');
-		} catch {
-			logger.debug('performWriteAction caught error (handled internally)');
-			// Error handled in performWrite
 		}
+
+		logger.info(`Proceeding to write new file: ${filePath}`);
+		await performWriteAction(
+			context,
+			filePath,
+			schema.code,
+			`Writing schema to ${color.cyan(schema.fileName)}...`,
+			'🚀 Schema was generated successfully!'
+		);
+		logger.success('Generation complete.');
 	} else {
-		logger.warn('Schema generation aborted by user confirmation.');
-		p.log.warning('Schema generation aborted by user.');
-		p.outro('Generation cancelled.');
+		logger.warn('Schema generation aborted by user.');
+		logger.failed('Generation cancelled.');
 	}
 }

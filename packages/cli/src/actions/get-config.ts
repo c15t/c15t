@@ -1,9 +1,7 @@
 import path from 'node:path';
 import type { C15TOptions } from '@c15t/backend';
 import { DoubleTieError } from '@c15t/backend/pkgs/results';
-import * as p from '@clack/prompts';
 import { loadConfig } from 'c12';
-import color from 'picocolors';
 
 import type { CliContext } from '../context/types';
 import {
@@ -23,8 +21,8 @@ export async function getConfig(
 ): Promise<C15TOptions | null> {
 	try {
 		let options: C15TOptions | null = null;
-		const cwd = context.cwd;
-		const configPath = context.flags.config as string | undefined;
+		const { cwd, logger, flags } = context;
+		const configPath = flags.config as string | undefined;
 
 		const directoriesToSearch: string[] = [
 			cwd,
@@ -72,13 +70,13 @@ export async function getConfig(
 				}
 
 				options = extractedOptions;
-				context.logger.debug(`Found valid config in ${dir}`);
+				logger.debug(`Found valid config in ${dir}`);
 				// Found valid options, exit the loop
 				//break;
 			} catch (error) {
 				// Use debug for errors during search in specific dirs
 				// Only show these details if debugging is enabled
-				context.logger.debug(
+				logger.debug(
 					`Failed to load or validate config from ${dir}:`,
 					error
 				);
@@ -86,7 +84,7 @@ export async function getConfig(
 		}
 
 		if (!options) {
-			context.logger.info(
+			logger.info(
 				'No configuration file found after searching specified directories.'
 			);
 			return null; // Return null if no config found after searching
@@ -96,13 +94,8 @@ export async function getConfig(
 		return options;
 	} catch (error) {
 		// Handle broader errors during the config search process (e.g., DoubleTieError)
-		p.log.error('Error trying to load configuration:');
-		if (error instanceof Error) {
-			p.log.message(error.message);
-		} else {
-			p.log.message(String(error));
-		}
-		p.outro(`${color.red('Setup failed.')}`);
-		process.exit(1); // Exit if config loading itself fails
+		context.logger.error('Error trying to load configuration:');
+		
+		return context.error.handleError(error, 'Error loading configuration');
 	}
 }

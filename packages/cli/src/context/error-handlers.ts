@@ -1,4 +1,4 @@
-import * as p from '@clack/prompts';
+
 import color from 'picocolors';
 import type { CliContext } from './types';
 
@@ -15,16 +15,18 @@ export function createErrorHandlers(context: CliContext) {
 		 * @param message A message describing the error context
 		 */
 		handleError: (error: unknown, message: string): never => {
+			// Log error with full details
 			logger.error(message, error);
-			p.log.error(message);
-
+			
+			// Show error message (don't need p.log as logger already handles this)
 			if (error instanceof Error) {
-				p.log.message(error.message);
+				logger.error(error.message);
 			} else {
-				p.log.message(String(error));
+				logger.error(String(error));
 			}
 
-			p.outro(`${color.red('Operation failed unexpectedly.')}`);
+			// Use logger.outro for the final goodbye message
+			logger.failed(`${color.red('Operation failed unexpectedly.')}`);
 			process.exit(1);
 		},
 
@@ -34,7 +36,9 @@ export function createErrorHandlers(context: CliContext) {
 		 */
 		handleCancel: (message = 'Operation cancelled.'): never => {
 			logger.debug(`Handling cancellation: ${message}`);
-			p.cancel(message);
+			// Still need p.cancel for visual feedback
+			// p.cancel(message);
+      logger.failed(message);
 			process.exit(0);
 		},
 	};

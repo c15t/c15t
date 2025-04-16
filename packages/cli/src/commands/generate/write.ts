@@ -1,6 +1,5 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import * as p from '@clack/prompts';
 import type { CliContext } from '~/context/types';
 
 import { handleExistingFile } from './actions/handle-existing-file';
@@ -24,8 +23,7 @@ export async function writeSchemaFile(
 
 	if (!schema || !schema.code) {
 		logger.info('Schema is empty or up to date, nothing to write.');
-		p.log.info('Your schema is already up to date.');
-		p.outro('Nothing to generate.');
+		logger.success('Your schema is already up to date. Nothing to generate.');
 		return;
 	}
 

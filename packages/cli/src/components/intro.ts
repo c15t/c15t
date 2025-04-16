@@ -1,18 +1,21 @@
-import * as p from '@clack/prompts';
+
 import figlet from 'figlet';
 import color from 'picocolors';
+import type { CliContext } from '~/context/types';
 
 /**
  * Displays the CLI introduction sequence, including
  * welcome message, figlet art, version, and docs link.
+ * @param context - The CLI context
  * @param version - The CLI version string.
  */
-export async function displayIntro(version: string): Promise<void> {
-	// Welcome Message
-	p.log.message(
-		`${color.bgCyan(color.black(' c15t '))} ${color.bold('Welcome!')} Let's get you set up.`
-	);
-	p.log.message(''); // Spacing
+export async function displayIntro(context: CliContext, version: string): Promise<void> {
+	const { logger } = context;
+	
+	logger.info(`${color.bold('Welcome!')} Let's get you set up.`);
+	
+	// Spacing between welcome and figlet
+	logger.message('');
 
 	// Generate and display Figlet text (async)
 	let figletText = 'c15t'; // Default
@@ -29,6 +32,7 @@ export async function displayIntro(version: string): Promise<void> {
 				},
 				(err, data) => {
 					if (err) {
+						logger.debug('Failed to generate figlet text');
 						resolve('c15t');
 					} else {
 						resolve(data || 'c15t');
@@ -36,17 +40,17 @@ export async function displayIntro(version: string): Promise<void> {
 				}
 			);
 		});
-	} catch {
-		// Ignore errors, figletText already has default
+	} catch (error) {
+		logger.debug('Error generating figlet text', error);
 	}
 
-	p.log.message(color.cyan(figletText));
-	// Removed extra space here for tighter layout
+	// Display the figlet text - this needs to be displayed directly as figlet formatting is important
+	logger.message(color.cyan(figletText));
 
-	// Version and Docs
-	p.log.info(`${color.green('✔')} Using c15t CLI ${color.dim(`v${version}`)}`);
-	p.log.info(
-		`${color.blue('ℹ')} Documentation: ${color.underline('https://c15t.com/docs')}`
-	);
-	p.log.message(''); // Spacing before next step
+	// Version and Docs using the logger
+	// logger.info(`Using c15t CLI ${color.dim(`v${version}`)}`);
+	// logger.info(`Documentation: ${color.underline('https://c15t.com/docs')}`);
+	
+	// Spacing before next step
+	// logger.message('');
 }

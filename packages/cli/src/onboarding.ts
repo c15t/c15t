@@ -2,11 +2,9 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import * as p from '@clack/prompts';
 import color from 'picocolors';
+import type { CliContext } from './context/types';
 
-function handleCancel(message = 'Operation cancelled.') {
-	p.cancel(message);
-	process.exit(0);
-}
+
 
 // Basic template for the c15t.config.ts file
 function generateConfigFileContent(
@@ -84,14 +82,18 @@ export default instance;
 `;
 }
 
-export async function startOnboarding(options: { cwd: string }) {
+export async function startOnboarding(context: CliContext) {
+	const { logger, cwd } = context;
+	
+	logger.info('Starting onboarding process');
+	
 	// Clearer welcome for first-time setup
 	p.note(
 		`Welcome to c15t! It looks like you don't have a configuration file yet.
 Let's get you set up with a basic ${color.cyan('c15t.ts')} file.`,
 		'First time setup'
 	);
-	p.log.message(''); // Spacing
+	p.log.message(''); // Spacing for UI clarity
 
 	const results = await p.group(
 		{
@@ -151,21 +153,27 @@ Let's get you set up with a basic ${color.cyan('c15t.ts')} file.`,
 				}),
 		},
 		{
-			onCancel: () => handleCancel(),
+			onCancel: () => context.error.handleCancel('Configuration cancelled.'),
 		}
 	);
 
 	if (!results.confirm) {
-		handleCancel('Configuration cancelled.');
+		logger.debug('User declined to create config file');
+		context.error.handleCancel('Configuration cancelled.');
 		return;
 	}
 
+	const adapterChoice = results.adapter as string;
+	logger.info(`Selected adapter: ${adapterChoice}`);
+	
 	const configContent = generateConfigFileContent(
-		results.adapter as string,
+		adapterChoice,
 		results.connectionString as string | undefined,
 		results.filePath as string | undefined
 	);
-	const configFilePath = path.join(options.cwd, 'c15t.ts');
+	const configFilePath = path.join(cwd, 'c15t.ts');
+	
+	logger.debug(`Will create config file at: ${configFilePath}`);
 
 	const s = p.spinner();
 	s.start(`Creating ${configFilePath}...`);
@@ -173,19 +181,20 @@ Let's get you set up with a basic ${color.cyan('c15t.ts')} file.`,
 	try {
 		await fs.writeFile(configFilePath, configContent);
 		s.stop(`✅ Configuration file created: ${color.cyan(configFilePath)}`);
-		p.log.info('You can now customize this file further.');
-		p.log.info(
-			`Please re-run your previous command (e.g., ${color.cyan('c15t generate')}).`
-		);
-		p.outro('Onboarding complete!');
+		
+		logger.info('Configuration file created successfully');
+		logger.info('You can now customize this file further');
+		logger.info('Please re-run your previous command (e.g., c15t generate)');
+		
+		logger.success('Onboarding complete!');
 	} catch (error) {
 		s.stop('Failed to create configuration file.');
-		p.log.error('An error occurred while writing the file:');
+		logger.error('Failed to write configuration file', error);
+		
 		if (error instanceof Error) {
-			p.log.message(error.message);
-		} else {
-			p.log.message(String(error));
+			logger.error(error.message);
 		}
-		p.outro(`${color.red('Onboarding failed.')}`);
+		
+		logger.failed(`${color.red('Onboarding failed.')}`);
 	}
 }

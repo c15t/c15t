@@ -1,5 +1,6 @@
 import type { C15TOptions, C15TPlugin } from '@c15t/backend';
 import type { Logger } from '@c15t/backend/pkgs/logger';
+import type { CliExtensions } from '../utils/logger';
 
 // Re-export Logger if needed elsewhere, or keep specific to context
 export type { Logger };
@@ -32,6 +33,13 @@ export interface ParsedArgs {
 	parsedFlags: Record<string, string | boolean | undefined>;
 }
 
+// --- Package Info ---
+export interface PackageInfo {
+	name: string;
+	version: string;
+	[key: string]: unknown;
+}
+
 // --- Error Handling Helpers ---
 export interface ErrorHandlers {
 	handleError: (error: unknown, message: string) => never;
@@ -45,9 +53,14 @@ export interface ConfigManagement {
 	getPathAliases: (configPath?: string) => Record<string, string> | null;
 }
 
+// --- File System Utilities ---
+export interface FileSystemUtils {
+	getPackageInfo: () => PackageInfo;
+}
+
 // --- CLI Context Definition ---
 export interface CliContext {
-	logger: Logger;
+	logger: Logger & CliExtensions;
 	flags: ParsedArgs['parsedFlags'];
 	commandName: string | undefined;
 	commandArgs: string[];
@@ -56,6 +69,7 @@ export interface CliContext {
 	// Shared utilities
 	error: ErrorHandlers;
 	config: ConfigManagement;
+	fs: FileSystemUtils;
 
 	// Utilities for user interaction
 	confirm: (message: string, initialValue: boolean) => Promise<boolean>;

@@ -1,7 +1,6 @@
 import type { C15TOptions, C15TPlugin } from '@c15t/backend';
 import type { Adapter } from '@c15t/backend/pkgs/db-adapters';
 import * as p from '@clack/prompts';
-import color from 'picocolors';
 import type { CliContext } from '~/context/types';
 import { getGenerator } from './generators';
 
@@ -38,13 +37,7 @@ export async function generateSchema(
 	} catch (error) {
 		logger.error('Error during schema generation:', error);
 		s.stop('Schema preparation failed.');
-		p.log.error('Failed to prepare schema:');
-		if (error instanceof Error) {
-			p.log.message(error.message);
-		} else {
-			p.log.message(String(error));
-		}
-		p.outro(`${color.red('Generation failed.')}`);
+		context.error.handleError(error, 'Failed to prepare schema');
 		return null;
 	}
 }
