@@ -1,6 +1,5 @@
 import * as p from '@clack/prompts';
 import color from 'picocolors';
-import { confirmAction } from '~/actions/confirm-action';
 import type { CliContext } from '~/context/types';
 import type { SchemaResult } from '../schema';
 import { performWriteAction } from './perform-write-action';
@@ -18,8 +17,7 @@ export async function handleNewFile(
 
 	if (!proceed) {
 		logger.debug('Requesting confirmation to write new file');
-		proceed = await confirmAction(
-			context,
+		proceed = await context.confirm(
 			`Generate the schema to ${color.cyan(schema.fileName)}?`,
 			true
 		);

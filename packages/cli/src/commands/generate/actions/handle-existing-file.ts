@@ -1,6 +1,5 @@
 import * as p from '@clack/prompts';
 import color from 'picocolors';
-import { confirmAction } from '~/actions/confirm-action';
 import type { CliContext } from '~/context/types';
 import type { SchemaResult } from '../schema';
 import { performWriteAction } from './perform-write-action';
@@ -37,7 +36,7 @@ export async function handleExistingFile(
 			action === 'overwrite'
 				? `Overwrite existing file ${color.cyan(schema.fileName)}?`
 				: `Append to existing file ${color.cyan(schema.fileName)}?`;
-		proceed = await confirmAction(context, confirmMessage, false);
+		proceed = await context.confirm(confirmMessage, false);
 	} else if (!forcedAction) {
 		const selectedAction = await p.select({
 			message: `File ${color.yellow(filePath)} already exists. What would you like to do?`,

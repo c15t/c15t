@@ -3,9 +3,11 @@ import {
 	createCliLogger,
 	validLogLevels,
 } from '../utils/logger';
+import { createConfigManagement } from './config-management';
+import { createErrorHandlers } from './error-handlers';
 import { parseCliArgs } from './parser';
-
 import type { CliCommand, CliContext } from './types';
+import { createUserInteraction } from './user-interaction';
 
 /**
  * Parses arguments, creates the logger, and returns the application context.
@@ -43,14 +45,31 @@ export function createCliContext(
 	}
 
 	const logger = createCliLogger(desiredLogLevel);
-
 	logger.debug(`Logger initialized with level: ${desiredLogLevel}`);
 
-	return {
+	// Create the base context
+	const baseContext: Partial<CliContext> = {
 		logger,
 		flags: parsedFlags,
 		commandName,
 		commandArgs,
 		cwd,
 	};
+
+	// Create a self-referential context object
+	const context = baseContext as CliContext;
+
+	// Add error handlers
+	context.error = createErrorHandlers(context);
+
+	// Add user interaction helpers
+	const userInteraction = createUserInteraction(context);
+	context.confirm = userInteraction.confirm;
+
+	// Add config management
+	context.config = createConfigManagement(context);
+
+	logger.debug('CLI context fully initialized with all utilities');
+
+	return context;
 }

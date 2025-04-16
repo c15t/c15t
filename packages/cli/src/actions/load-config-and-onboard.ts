@@ -1,7 +1,4 @@
 import type { C15TOptions, C15TPlugin } from '@c15t/backend';
-import * as p from '@clack/prompts';
-import color from 'picocolors';
-import { getConfig } from '~/actions/get-config';
 import type { CliContext } from '~/context/types';
 import { startOnboarding } from '../onboarding';
 
@@ -13,24 +10,20 @@ import { startOnboarding } from '../onboarding';
 export async function loadConfigAndOnboard(
 	context: CliContext
 ): Promise<C15TOptions<C15TPlugin[]>> {
-	const { logger, cwd, flags } = context;
-	logger.info('Attempting to load configuration...');
-	logger.debug(`Load options: cwd=${cwd}, configPath=${flags.config}`);
-	let config: C15TOptions<C15TPlugin[]> | undefined;
+	const { logger } = context;
+	logger.info('Checking for existing configuration...');
+
+	let config: C15TOptions<C15TPlugin[]> | null;
 	try {
-		const configResult = await getConfig(context);
-		config = configResult ?? undefined;
-		logger.debug('Config result:', config);
+		// Use context.config.loadConfig() instead of getConfig directly
+		config = await context.config.loadConfig();
 	} catch (error) {
-		logger.error('Failed during getConfig call:', error);
-		p.log.error('Error loading configuration:');
-		if (error instanceof Error) {
-			p.log.message(error.message);
-		} else {
-			p.log.message(String(error));
-		}
-		p.outro(`${color.red('Operation failed: Could not load config.')}`);
-		process.exit(1);
+		// This shouldn't happen since loadConfig handles errors,
+		// but just in case something unexpected occurs
+		return context.error.handleError(
+			error,
+			'Unexpected error during configuration loading'
+		);
 	}
 
 	if (!config) {

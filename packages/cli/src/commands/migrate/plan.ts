@@ -6,7 +6,6 @@ import {
 import * as p from '@clack/prompts';
 import color from 'picocolors';
 
-import { confirmAction } from '~/actions/confirm-action';
 import type { CliContext } from '~/context/types';
 
 /**
@@ -84,13 +83,11 @@ export async function planMigrations(
 	let shouldMigrate = skipConfirmation;
 	if (!shouldMigrate) {
 		logger.debug('Requesting user confirmation for migration.');
-		shouldMigrate = await confirmAction(
-			context,
+		shouldMigrate = await context.confirm(
 			'Apply these migrations to the database?',
 			false
 		);
 		logger.debug(`User confirmation result: ${shouldMigrate}`);
-		// Note: ConfirmAction calls HandleCancel internally if cancelled
 	}
 
 	if (!shouldMigrate) {

@@ -1,5 +1,3 @@
-import * as p from '@clack/prompts';
-import color from 'picocolors';
 import type { CliContext } from '~/context/types';
 import { executeMigrations } from './migrate/execute';
 import { planMigrations } from './migrate/plan';
@@ -33,14 +31,10 @@ export async function migrate(context: CliContext) {
 
 		logger.info('Migrate command finished successfully.');
 	} catch (error) {
-		logger.error('Unexpected error during migrate command:', error);
-		p.log.error('An unexpected error occurred during the migration process:');
-		if (error instanceof Error) {
-			p.log.message(error.message);
-		} else {
-			p.log.message(String(error));
-		}
-		p.outro(`${color.red('Migration process failed unexpectedly.')}`);
-		process.exit(1);
+		// Use the context error handler instead of manual error handling
+		context.error.handleError(
+			error,
+			'An unexpected error occurred during the migration process'
+		);
 	}
 }

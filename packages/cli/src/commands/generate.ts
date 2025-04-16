@@ -1,5 +1,3 @@
-import * as p from '@clack/prompts';
-import color from 'picocolors';
 import type { CliContext } from '~/context/types';
 
 import { generateSchema } from './generate/schema';
@@ -7,7 +5,7 @@ import { setupGenerateEnvironment } from './generate/setup';
 import { writeSchemaFile } from './generate/write';
 
 export async function generate(context: CliContext) {
-	const { logger, cwd } = context;
+	const { logger } = context;
 	logger.info('Starting generate command...');
 	logger.debug('Received context:', context);
 	try {
@@ -24,18 +22,10 @@ export async function generate(context: CliContext) {
 		}
 		// If schemaResult is null, generateSchema already handled logging/outro
 	} catch (error) {
-		// Use logger from context
-		logger.error(
-			'An unexpected error occurred during the generation process:',
-			error
+		// Use the context error handler instead of manual error handling
+		context.error.handleError(
+			error,
+			'An unexpected error occurred during the generation process'
 		);
-		p.log.error('An unexpected error occurred during the generation process:');
-		if (error instanceof Error) {
-			p.log.message(error.message);
-		} else {
-			p.log.message(String(error));
-		}
-		p.outro(`${color.red('Generation process failed unexpectedly.')}`);
-		process.exit(1);
 	}
 }

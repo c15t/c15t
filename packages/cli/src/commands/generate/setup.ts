@@ -3,18 +3,8 @@ import type { C15TOptions, C15TPlugin } from '@c15t/backend';
 import { type Adapter, getAdapter } from '@c15t/backend/pkgs/db-adapters';
 import * as p from '@clack/prompts';
 import color from 'picocolors';
-import { z } from 'zod';
 import { loadConfigAndOnboard } from '~/actions/load-config-and-onboard';
 import type { CliContext } from '~/context/types';
-
-const optionsSchema = z.object({
-	cwd: z.string(),
-	config: z.string().optional(),
-	output: z.string().optional(),
-	y: z.boolean().default(false),
-});
-
-export type GenerateOptions = z.infer<typeof optionsSchema>;
 
 /**
  * Handles config loading, onboarding, and adapter setup using the context.
