@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as prompts from '@clack/prompts'; // To mock interactions
+import { generate } from '../src/commands/generate';
 // Import the functions/modules we want to test or mock
 import { main } from '../src/index';
-import { generate } from '../src/commands/generate';
-import type * as prompts from '@clack/prompts'; // To mock interactions
 
 // Define regex pattern at the top level
 const SECRET_HEX_PATTERN = /C15T_SECRET=[a-f0-9]{64}/i;
@@ -22,7 +22,7 @@ vi.mock('node:fs', () => {
 		}),
 		writeFile: vi.fn().mockResolvedValue(undefined), // Note: original mock used wrireFile
 		// Add other fs functions if needed by tested code, e.g., readdirSync
-		readdirSync: vi.fn().mockReturnValue([]), 
+		readdirSync: vi.fn().mockReturnValue([]),
 		statSync: vi.fn().mockReturnValue({ isDirectory: () => false }), // Mock statSync
 		// IMPORTANT: Vitest might need a default export if the original module has one
 		// default: { ... } // Add if needed, consult fs module structure

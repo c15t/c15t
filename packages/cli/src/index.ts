@@ -2,37 +2,95 @@
 
 import * as p from '@clack/prompts';
 import color from 'picocolors';
-import { generate } from './commands/generate';
-import { migrate } from './commands/migrate';
 import 'dotenv/config';
+
 import type { C15TOptions } from '@c15t/backend';
 import { getConfig } from './actions/get-config';
 import { getPackageInfo } from './actions/get-package-info';
-import { displayIntro } from './components/intro'; // Corrected path if needed, assuming it's correc
+import { showHelpMenu } from './actions/show-help-menu';
+import { generate } from './commands/generate';
+import { migrate } from './commands/migrate';
+import { displayIntro } from './components/intro';
 import { startOnboarding } from './onboarding';
 
-// Function to handle cancellation gracefully
-function handleCancel() {
+// Import context creator and types
+import { createCliContext } from './context/creator';
+import { globalFlags } from './context/parser'; // Import flags for help menu
+import type { CliCommand, CliContext } from './context/types';
+
+// Define commands (using types from context)
+const commands: CliCommand[] = [
+	{
+		name: 'generate',
+		label: 'generate',
+		hint: 'Generate schema/code',
+		description: 'Generate schema/code based on your c15t config.',
+		action: (context) => generate(context), // Action signature needs update
+	},
+	{
+		name: 'migrate',
+		label: 'migrate',
+		hint: 'Run database migrations',
+		description: 'Run database migrations based on your c15t config.',
+		action: (context) => migrate(context), // Action signature needs update
+	},
+];
+
+// Function to handle cancellation gracefully (needs context)
+function handleCancel(context: CliContext) {
+	context.logger.info('Operation cancelled by user.');
 	p.cancel('Operation cancelled.');
-	process.exit(1); // Exit with error code 1 for cancellation
+	process.exit(1);
 }
 
 export async function main() {
-	const packageInfo = await getPackageInfo();
+	// --- Context Setup ---
+	const rawArgs = process.argv.slice(2);
+	const cwd = process.cwd();
+	// Pass commands array to creator, as parser needs it
+	const context = createCliContext(rawArgs, cwd, commands);
+	const { logger, flags, commandName, commandArgs } = context;
+
+	// --- Package Info & Early Exit Check ---
+	// TODO: Update getPackageInfo to accept context if needed
+	const packageInfo = await getPackageInfo(context);
 	const version = packageInfo.version || 'unknown';
 
-	// Display the intro sequence
+	if (flags.version) {
+		logger.debug('DEBUG test');
+		logger.info('Version flag detected. Displaying version and exiting.');
+		p.log.message(`c15t CLI version ${version}`);
+		process.exit(0);
+	}
+
+	if (flags.help) {
+		logger.info('Help flag detected. Displaying help and exiting.');
+		// TODO: Update showHelpMenu to accept context if needed (instead of flags)
+		showHelpMenu(context, version, commands, globalFlags);
+		process.exit(0);
+	}
+
+	// --- Regular Execution Flow ---
+	logger.info('Starting c15t CLI execution...');
+	logger.debug('Raw process arguments:', process.argv);
+	logger.debug('Parsed command name:', commandName);
+	logger.debug('Parsed command args:', commandArgs);
+	logger.debug('Parsed global flags:', flags);
+
+	// TODO: Update displayIntro if context is needed
 	await displayIntro(version);
 
 	// --- Configuration Check ---
-	const cwd = process.cwd(); // Get current working directory
+	const configPath = flags.config as string | undefined;
+	logger.debug(`Current working directory: ${cwd}`);
+	logger.debug(`Config path flag: ${configPath}`);
 	let config: C15TOptions | undefined;
 	try {
-		// getConfig action now handles loading and error reporting/exit
-		const loadedConfig = await getConfig({ cwd });
+		// TODO: Update getConfig to accept context
+		const loadedConfig = await getConfig(context);
 		config = loadedConfig ?? undefined;
 	} catch (error) {
-		// If getConfig throws an unexpected error beyond its internal handling
+		logger.error('Unexpected error during configuration loading:', error);
 		p.log.error('An unexpected error occurred during configuration loading:');
 		if (error instanceof Error) {
 			p.log.message(error.message);
@@ -46,98 +104,83 @@ export async function main() {
 
 	// --- Onboarding or Command Handling ---
 	if (!config) {
-		// No config found - Trigger onboarding
+		logger.info('No config file found, initiating onboarding.');
+		// TODO: Update startOnboarding to accept context
 		await startOnboarding({ cwd });
-		return; // Exit after onboarding completes
+		logger.info('Onboarding process likely exited or completed.');
+		return;
 	}
-	// Config found - proceed to command handling
-	p.log.success('✔ Config file found!'); // Indicate config is loaded
+
+	logger.info('Config file found and loaded successfully.');
+	logger.debug('Loaded config object:', config);
+	p.log.success('✔ Config file found!');
 	p.log.message('');
 
-	// Basic argument parsing
-	const args = process.argv.slice(2);
-	const commandName = args[0];
-	const commandArgs = args.slice(1);
-
-
+	// --- Execute Command or Show Interactive Menu ---
 	try {
-		switch (commandName) {
-			case 'migrate':
-				// Config is already loaded and verified present, pass to command
-				await migrate(commandArgs);
-				break;
-			case 'generate':
-				// Config is already loaded and verified present, pass to command
-				await generate(commandArgs);
-				break;
-			case '-v':
-			case '--version':
-				p.log.message(`c15t CLI version ${version}`);
-				break;
-			case undefined:
-			// If no command, show interactive menu directly
-			case '-h':
-			case '--help': {
-				// Show help text first for -h/--help
-				if (commandName === '-h' || commandName === '--help') {
-					p.note(
-						`Available Commands:
-  migrate   - Run database migrations based on your c15t config.
-  generate  - Generate schema/code based on your c15t config.
-
-Run a command directly (e.g., c15t generate) or select one below.`,
-						'Usage'
-					);
-				}
-
-				// Interactive command selection
-				const selectedCommand = await p.select({
-					message: 'Which command would you like to run?',
-					options: [
-						{
-							value: 'generate',
-							label: 'generate',
-							hint: 'Generate schema/code',
-						},
-						{
-							value: 'migrate',
-							label: 'migrate',
-							hint: 'Run database migrations',
-						},
-						{ value: 'exit', label: 'exit', hint: 'Close the CLI' }, // Add exit option
-					],
-				});
-
-				if (p.isCancel(selectedCommand) || selectedCommand === 'exit') {
-					handleCancel();
-					break;
-				}
-
-				if (selectedCommand === 'generate') {
-					await generate([]); // Run generate with empty args
-				} else if (selectedCommand === 'migrate') {
-					await migrate([]); // Run migrate with empty args
-				}
-				break;
-			}
-			default: {
+		if (commandName) {
+			const command = commands.find((cmd) => cmd.name === commandName);
+			if (command) {
+				logger.info(`Executing command: ${command.name}`);
+				// Pass the whole context to the command action
+				await command.action(context);
+			} else {
+				logger.warn(`Unknown command provided: ${commandName}`);
 				p.log.error(`Unknown command: ${color.yellow(commandName)}`);
 				p.log.info(
 					`Run ${color.cyan('c15t --help')} to see available commands.`
 				);
 				process.exit(1);
 			}
+		} else {
+			logger.debug('No command specified, entering interactive selection.');
+
+			const promptOptions = commands.map((cmd) => ({
+				value: cmd.name,
+				label: cmd.label,
+				hint: cmd.hint,
+			}));
+			promptOptions.push({
+				value: 'exit',
+				label: 'exit',
+				hint: 'Close the CLI',
+			});
+
+			const selectedCommandName = await p.select({
+				message: 'Which command would you like to run?',
+				options: promptOptions,
+			});
+
+			if (p.isCancel(selectedCommandName) || selectedCommandName === 'exit') {
+				logger.debug('Interactive selection cancelled or exit chosen.');
+				handleCancel(context);
+			} else {
+				const selectedCommand = commands.find(
+					(cmd) => cmd.name === selectedCommandName
+				);
+				if (selectedCommand) {
+					logger.info(`User selected command: ${selectedCommand.name}`);
+					// Pass context to interactively selected command
+					await selectedCommand.action(context);
+				} else {
+					logger.error(
+						`Internal error: Selected command '${selectedCommandName}' not found in command list.`
+					);
+					p.log.error('An internal error occurred.');
+					process.exit(1);
+				}
+			}
 		}
-		// Assuming commands handle their own outro or cancellation
-		// p.outro("Operation completed."); // Commands might exit early or cancel
+		logger.info('Command execution finished.');
 	} catch (error) {
-		p.log.error('An unexpected error occurred:');
+		logger.error('Caught unexpected error during command execution:', error);
+		p.log.error('An unexpected error occurred during command execution:');
 		if (error instanceof Error) {
 			p.log.message(error.message);
 		} else {
 			p.log.message(String(error));
 		}
-		p.outro(`${color.red('Operation failed.')}`);
+		p.outro(`${color.red('Operation failed unexpectedly.')}`);
 		process.exit(1);
 	}
 }

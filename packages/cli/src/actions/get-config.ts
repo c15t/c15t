@@ -4,7 +4,8 @@ import { DoubleTieError } from '@c15t/backend/pkgs/results';
 import * as p from '@clack/prompts';
 import { loadConfig } from 'c12';
 import color from 'picocolors';
-import logger from '../utils/logger';
+
+import type { CliContext } from '../context/types';
 import {
 	type LoadedConfig,
 	extractOptionsFromConfig,
@@ -17,15 +18,14 @@ import { jitiOptions } from './get-config/jiti-options';
 /**
  * Get the c15t configuration by searching in standard locations and monorepo subdirectories.
  */
-export async function getConfig({
-	cwd,
-	configPath,
-}: {
-	cwd: string;
-	configPath?: string;
-}) {
+export async function getConfig(
+	context: CliContext
+): Promise<C15TOptions | null> {
 	try {
 		let options: C15TOptions | null = null;
+		const cwd = context.cwd;
+		const configPath = context.flags.config as string | undefined;
+
 		const directoriesToSearch: string[] = [
 			cwd,
 			...findDirectories(cwd, monorepoSubdirs).map((dir) =>
@@ -33,7 +33,7 @@ export async function getConfig({
 			),
 		];
 
-		const customJitiOptions = jitiOptions(cwd);
+		const customJitiOptions = jitiOptions(context, cwd);
 
 		for (const dir of directoriesToSearch) {
 			try {
@@ -72,18 +72,23 @@ export async function getConfig({
 				}
 
 				options = extractedOptions;
-				logger.debug(`Found valid config in ${dir}`);
+				context.logger.debug(`Found valid config in ${dir}`);
 				// Found valid options, exit the loop
 				//break;
 			} catch (error) {
 				// Use debug for errors during search in specific dirs
 				// Only show these details if debugging is enabled
-				logger.debug(`Failed to load or validate config from ${dir}:`, error);
+				context.logger.debug(
+					`Failed to load or validate config from ${dir}:`,
+					error
+				);
 			}
 		}
 
 		if (!options) {
-			logger.info('No configuration file found after searching specified directories.');
+			context.logger.info(
+				'No configuration file found after searching specified directories.'
+			);
 			return null; // Return null if no config found after searching
 		}
 

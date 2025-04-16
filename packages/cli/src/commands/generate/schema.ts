@@ -2,8 +2,7 @@ import type { C15TOptions, C15TPlugin } from '@c15t/backend';
 import type { Adapter } from '@c15t/backend/pkgs/db-adapters';
 import * as p from '@clack/prompts';
 import color from 'picocolors';
-import logger from '~/utils/logger';
-
+import type { CliContext } from '~/context/types';
 import { getGenerator } from './generators';
 
 export type SchemaResult = Awaited<ReturnType<typeof getGenerator>>;
@@ -12,22 +11,25 @@ export type SchemaResult = Awaited<ReturnType<typeof getGenerator>>;
  * Calls the schema generator and handles associated errors.
  */
 export async function generateSchema(
+	context: CliContext,
 	adapter: Adapter,
-	config: C15TOptions<C15TPlugin[]>,
-	outputFile: string | undefined
+	config: C15TOptions<C15TPlugin[]>
 ): Promise<SchemaResult | null> {
+	const { logger, flags } = context;
 	const s = p.spinner();
 	s.start('Preparing schema...');
 	logger.info('Generating schema...');
 	logger.debug('Adapter:', adapter);
 	logger.debug('Config:', config);
-	logger.debug(`Output file hint: ${outputFile}`);
+	logger.debug(
+		`Output file hint (from flags): ${flags.output as string | undefined}`
+	);
 
 	try {
 		logger.debug('Calling getGenerator...');
-		const schema = await getGenerator({
+		const schema = await getGenerator(context, {
 			adapter,
-			file: outputFile,
+			file: flags.output as string | undefined,
 			options: config,
 		});
 		logger.debug('Schema generation result:', schema);
@@ -43,6 +45,6 @@ export async function generateSchema(
 			p.log.message(String(error));
 		}
 		p.outro(`${color.red('Generation failed.')}`);
-		return null; // Indicate failure
+		return null;
 	}
 }

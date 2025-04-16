@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import logger from '~/utils/logger'; // Adjusted path
+import type { CliContext } from '~/context/types';
 import { addSvelteKitEnvModules } from './add-svelte-kit-env-modules'; // Path within the same dir
 
 /**
@@ -18,6 +18,7 @@ function stripJsonComments(jsonString: string): string {
  * Extract path aliases from a TypeScript or JavaScript config file
  */
 function extractAliasesFromConfigFile(
+	context: CliContext,
 	configPath: string,
 	cwd: string
 ): Record<string, string> | null {
@@ -44,7 +45,7 @@ function extractAliasesFromConfigFile(
 		addSvelteKitEnvModules(result);
 		return result;
 	} catch (error) {
-		logger.warn(`Error parsing config file ${configPath}`, error);
+		context.logger.warn(`Error parsing config file ${configPath}`, error);
 		return null;
 	}
 }
@@ -52,7 +53,10 @@ function extractAliasesFromConfigFile(
 /**
  * Extract path aliases from tsconfig.json or jsconfig.json
  */
-export function getPathAliases(cwd: string): Record<string, string> | null {
+export function getPathAliases(
+	context: CliContext,
+	cwd: string
+): Record<string, string> | null {
 	const tsConfigPath = path.join(cwd, 'tsconfig.json');
 	if (!fs.existsSync(tsConfigPath)) {
 		// Also try searching for jsconfig.json
@@ -61,7 +65,7 @@ export function getPathAliases(cwd: string): Record<string, string> | null {
 			return null;
 		}
 		// Use jsconfig.json instead
-		return extractAliasesFromConfigFile(jsConfigPath, cwd);
+		return extractAliasesFromConfigFile(context, jsConfigPath, cwd);
 	}
-	return extractAliasesFromConfigFile(tsConfigPath, cwd);
+	return extractAliasesFromConfigFile(context, tsConfigPath, cwd);
 }

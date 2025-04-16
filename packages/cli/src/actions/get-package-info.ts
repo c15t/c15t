@@ -1,12 +1,13 @@
 import path from 'node:path';
 import fs from 'fs-extra';
-import logger from '../utils/logger';
+import type { CliContext } from '~/context/types';
 
 /**
  * Reads and returns the content of the package.json in the current directory.
  */
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-export function getPackageInfo(): any {
+export function getPackageInfo(context: CliContext): any {
+	const { logger } = context;
 	logger.info('Attempting to read package.json');
 	const packageJsonPath = path.join(process.cwd(), 'package.json');
 	logger.debug(`package.json path: ${packageJsonPath}`);

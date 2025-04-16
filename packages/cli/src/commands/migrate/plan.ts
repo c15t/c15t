@@ -7,19 +7,21 @@ import * as p from '@clack/prompts';
 import color from 'picocolors';
 
 import { confirmAction } from '~/actions/confirm-action';
-import logger from '~/utils/logger';
+import type { CliContext } from '~/context/types';
 
 /**
  * Fetches migrations, displays the plan, and asks for confirmation.
  * Returns whether to proceed and the function to run migrations.
  */
 export async function planMigrations(
+	context: CliContext,
 	config: C15TOptions<C15TPlugin[]>,
 	skipConfirmation: boolean
 ): Promise<{
 	shouldRun: boolean;
 	runMigrationsFn: MigrationResult['runMigrations'] | null;
 }> {
+	const { logger } = context;
 	logger.info('Planning migrations...');
 	logger.debug('Config:', config);
 	logger.debug(`Skip confirmation: ${skipConfirmation}`);
@@ -83,6 +85,7 @@ export async function planMigrations(
 	if (!shouldMigrate) {
 		logger.debug('Requesting user confirmation for migration.');
 		shouldMigrate = await confirmAction(
+			context,
 			'Apply these migrations to the database?',
 			false
 		);
