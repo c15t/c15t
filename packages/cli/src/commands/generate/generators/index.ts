@@ -1,7 +1,7 @@
 import type { C15TOptions } from '@c15t/backend';
 import type { Adapter } from '@c15t/backend/pkgs/db-adapters';
 
-import logger from '../utils/logger';
+import logger from '~/utils/logger';
 import { generateDrizzleSchema } from './drizzle';
 import { generateMigrations } from './kysely';
 import { generatePrismaSchema } from './prisma';

@@ -6,21 +6,18 @@ import { generate } from './commands/generate';
 import { migrate } from './commands/migrate';
 import 'dotenv/config';
 import type { C15TOptions } from '@c15t/backend';
+import { getConfig } from './actions/get-config';
+import { getPackageInfo } from './actions/get-package-info';
 import { displayIntro } from './components/intro'; // Corrected path if needed, assuming it's correc
 import { startOnboarding } from './onboarding';
-import { getConfig } from './utils/get-config';
-// import { generateSecret } from './commands/secret'; // Removed import
-import { getPackageInfo } from './utils/get-package-info';
-
-// process.on('SIGTERM', () => process.exit(0));
 
 // Function to handle cancellation gracefully
 function handleCancel() {
 	p.cancel('Operation cancelled.');
-	process.exit(0);
+	process.exit(1); // Exit with error code 1 for cancellation
 }
 
-async function main() {
+export async function main() {
 	const packageInfo = await getPackageInfo();
 	const version = packageInfo.version || 'unknown';
 
@@ -31,19 +28,19 @@ async function main() {
 	const cwd = process.cwd(); // Get current working directory
 	let config: C15TOptions | undefined;
 	try {
-		// Attempt to load config silently first
+		// getConfig action now handles loading and error reporting/exit
 		const loadedConfig = await getConfig({ cwd });
 		config = loadedConfig ?? undefined;
 	} catch (error) {
-		// Log error only if it prevents proceeding
-		p.log.error('Error trying to load configuration:');
+		// If getConfig throws an unexpected error beyond its internal handling
+		p.log.error('An unexpected error occurred during configuration loading:');
 		if (error instanceof Error) {
 			p.log.message(error.message);
 		} else {
 			p.log.message(String(error));
 		}
 		p.outro(`${color.red('Setup failed.')}`);
-		process.exit(1); // Exit if config loading itself fails
+		process.exit(1);
 		return;
 	}
 
@@ -62,6 +59,7 @@ async function main() {
 	const commandName = args[0];
 	const commandArgs = args.slice(1);
 
+
 	try {
 		switch (commandName) {
 			case 'migrate':
@@ -72,10 +70,6 @@ async function main() {
 				// Config is already loaded and verified present, pass to command
 				await generate(commandArgs);
 				break;
-			// Removed secret case
-			// case 'secret':
-			// 	await generateSecret(commandArgs);
-			// 	break;
 			case '-v':
 			case '--version':
 				p.log.message(`c15t CLI version ${version}`);

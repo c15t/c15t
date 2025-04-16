@@ -1,11 +1,14 @@
 import path from 'node:path';
 import * as p from '@clack/prompts';
 import color from 'picocolors';
+import logger from '~/utils/logger';
 import { generateSchema } from './generate/schema';
 import { setupGenerateEnvironment } from './generate/setup';
 import { writeSchemaFile } from './generate/write';
 
 export async function generate(args: string[]) {
+	logger.info('Starting generate command...');
+	logger.debug('Raw args for generate:', args);
 	try {
 		// 1. Setup environment (args, config, adapter, onboarding)
 		const { options, config, adapter } = await setupGenerateEnvironment(args);

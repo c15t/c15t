@@ -17,5 +17,9 @@
 		"files": "warn"
 	},
 	"ignoreExportsUsedInFile": true,
-	"ignoreDependencies": ["@c15t/backend", "@c15t/typescript-config", "@c15t/vitest-config"]
+	"ignoreDependencies": [
+		"@c15t/backend",
+		"@c15t/typescript-config",
+		"@c15t/vitest-config"
+	]
 }

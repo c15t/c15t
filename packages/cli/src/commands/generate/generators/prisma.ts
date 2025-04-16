@@ -5,7 +5,7 @@ import type { Field } from '@c15t/backend/pkgs/data-model/fields';
 import { getConsentTables } from '@c15t/backend/schema';
 import { produceSchema } from '@mrleebo/prisma-ast';
 
-import { capitalizeFirstLetter } from '../utils/capitalize-first-letter';
+import { capitalizeFirstLetter } from '~/utils/capitalize-first-letter';
 import type { SchemaGenerator } from './types';
 
 interface TableDefinition {

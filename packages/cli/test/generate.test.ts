@@ -7,9 +7,9 @@ import type { PrismaConfig } from '@c15t/backend/pkgs/db-adapters/adapters/prism
 
 import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
-import { generateDrizzleSchema } from '../src/generators/drizzle';
-import { generateMigrations } from '../src/generators/kysely';
-import { generatePrismaSchema } from '../src/generators/prisma';
+import { generateDrizzleSchema } from '../src/commands/generate/generators/drizzle';
+import { generateMigrations } from '../src/commands/generate/generators/kysely';
+import { generatePrismaSchema } from '../src/commands/generate/generators/prisma';
 
 // Set constant timestamp for tests to ensure consistent snapshots
 const TEST_TIMESTAMP = '2023-01-01T00:00:00.000Z';

@@ -2,6 +2,7 @@ import type { C15TOptions, C15TPlugin } from '@c15t/backend';
 import type { Adapter } from '@c15t/backend/pkgs/db-adapters';
 import * as p from '@clack/prompts';
 import color from 'picocolors';
+import logger from '~/utils/logger';
 
 import { getGenerator } from './generators';
 
@@ -17,16 +18,23 @@ export async function generateSchema(
 ): Promise<SchemaResult | null> {
 	const s = p.spinner();
 	s.start('Preparing schema...');
+	logger.info('Generating schema...');
+	logger.debug('Adapter:', adapter);
+	logger.debug('Config:', config);
+	logger.debug(`Output file hint: ${outputFile}`);
 
 	try {
+		logger.debug('Calling getGenerator...');
 		const schema = await getGenerator({
 			adapter,
 			file: outputFile,
 			options: config,
 		});
+		logger.debug('Schema generation result:', schema);
 		s.stop('Schema prepared.');
 		return schema;
 	} catch (error) {
+		logger.error('Error during schema generation:', error);
 		s.stop('Schema preparation failed.');
 		p.log.error('Failed to prepare schema:');
 		if (error instanceof Error) {

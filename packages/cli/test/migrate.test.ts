@@ -2,8 +2,8 @@ import { type C15TPlugin, c15tInstance } from '@c15t/backend';
 
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { migrateAction } from '../src/commands/migrate';
-import * as config from '../src/utils/get-config';
+import { migrate } from '../src/commands/migrate';
+import * as config from '../src/actions/get-config';
 
 describe('migrate base c15t instance', () => {
 	const db = new Database(':memory:');
@@ -20,16 +20,15 @@ describe('migrate base c15t instance', () => {
 		vi.spyOn(config, 'getConfig').mockImplementation(async () => auth.options);
 	});
 
-	afterEach(async () => {
+	afterEach(() => {
 		vi.restoreAllMocks();
 	});
 
 	it('should migrate the database', async () => {
-		await migrateAction({
-			cwd: process.cwd(),
-			config: 'test/c15t.ts',
-			y: true,
-		});
+		await migrate([
+			'--config', 'test/c15t.ts',
+			'-y',
+		]);
 	});
 });
 
@@ -69,11 +68,10 @@ describe('migrate auth instance with plugins', () => {
 	});
 
 	it('should migrate the database and sign-up a subject', async () => {
-		await migrateAction({
-			cwd: process.cwd(),
-			config: 'test/c15t.ts',
-			y: true,
-		});
+		await migrate([
+			'--config', 'test/c15t.ts',
+			'-y',
+		]);
 		const res = db
 			.prepare('INSERT INTO plugin (id, test) VALUES (?, ?)')
 			.run('1', 'test');

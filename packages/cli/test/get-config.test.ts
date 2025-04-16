@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { test } from 'vitest';
-import { getConfig } from '../src/utils/get-config';
+import { getConfig } from '../src/actions/get-config';
 
 interface TmpDirFixture {
 	tmpdir: string;
@@ -425,9 +425,12 @@ describe('getConfig', async () => {
 			if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;`
 		);
 
-		await expect(() =>
+		// Expect getConfig to return null when the alias resolution fails internally
+		// because the error is caught within the loop, and it continues searching.
+		// If no config is found after searching all dirs, it resolves to null.
+		await expect(
 			getConfig({ cwd: tmpDir, configPath: 'server/c15t/c15t.ts' })
-		).rejects.toThrowError();
+		).resolves.toBeNull();
 	});
 
 	it('should resolve js config', async () => {
