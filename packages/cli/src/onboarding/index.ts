@@ -69,6 +69,7 @@ export async function startOnboarding(
 			: TelemetryEventName.ONBOARDING_STARTED,
 		{ isUpdate }
 	);
+	telemetry.flushSync();
 
 	logger.note(
 		isUpdate

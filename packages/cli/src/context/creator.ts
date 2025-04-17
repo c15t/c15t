@@ -81,6 +81,7 @@ export function createCliContext(
 		defaultProperties: {
 			cliVersion: context.fs.getPackageInfo().version,
 		},
+		logger: context.logger,
 	});
 
 	// Set telemetry log level to match CLI log level
