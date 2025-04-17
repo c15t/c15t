@@ -20,6 +20,12 @@ export function generateClientConfigContent(
 ): string {
 	let configContent = '';
 
+	// Validate mode parameter
+	const validModes = ['c15t', 'offline', 'custom'];
+	if (!validModes.includes(mode)) {
+		throw new Error(`Invalid mode: ${mode}. Valid modes are: ${validModes.join(', ')}`);
+	}
+
 	switch (mode) {
 		case 'c15t': {
 			configContent = `// c15t Client Configuration
@@ -129,7 +135,7 @@ export function generateBackendConfigContent(
 			adapterConfig = `kyselyAdapter({
       dialect: new PostgresDialect({
         pool: new Pool({
-          connectionString: "${connectionString || 'postgresql://user:password@host:port/db'}"
+          connectionString: ${connectionString ? `"${connectionString}"` : 'process.env.DATABASE_URL || "postgresql://user:password@host:port/db"'}
         })
       })
     })`;
@@ -156,6 +162,9 @@ export function generateBackendConfigContent(
 
 import { c15tInstance } from '@c15t/backend';
 ${adapterImport}
+
+// WARNING: Database connection strings often contain sensitive credentials.
+// Consider using environment variables instead of hardcoding these values.
 
 // Define your c15t instance
 const instance = c15tInstance({

@@ -38,6 +38,22 @@ export function isClientOptions(obj: unknown): obj is ConsentManagerOptions {
 }
 
 /**
+ * Helper function to safely execute a function and return its result
+ * @param fn - The function to execute
+ * @returns The result of the function or null if execution fails
+ */
+function tryGetFunctionResult(fn: unknown): unknown {
+	if (typeof fn === 'function') {
+		try {
+			return fn();
+		} catch (error) {
+			console.warn('Error executing config function:', error);
+		}
+	}
+	return null;
+}
+
+/**
  * Extract c15t options from a loaded config object.
  * Looks for various common export names for the c15t instance or options.
  */
@@ -70,16 +86,45 @@ export function extractOptionsFromConfig(
 		return config.c15t;
 	}
 
+	// Try executing function exports
+	if (typeof config.c15t === 'function') {
+		const result = tryGetFunctionResult(config.c15t);
+		if (isC15TOptions(result)) {
+			return result as C15TOptions;
+		}
+	}
+
 	if (isC15TOptions(config.default)) {
 		return config.default;
+	}
+
+	if (typeof config.default === 'function') {
+		const result = tryGetFunctionResult(config.default);
+		if (isC15TOptions(result)) {
+			return result as C15TOptions;
+		}
 	}
 
 	if (isC15TOptions(config.c15tInstance)) {
 		return config.c15tInstance;
 	}
 
+	if (typeof config.c15tInstance === 'function') {
+		const result = tryGetFunctionResult(config.c15tInstance);
+		if (isC15TOptions(result)) {
+			return result as C15TOptions;
+		}
+	}
+
 	if (isC15TOptions(config.consent)) {
 		return config.consent;
+	}
+
+	if (typeof config.consent === 'function') {
+		const result = tryGetFunctionResult(config.consent);
+		if (isC15TOptions(result)) {
+			return result as C15TOptions;
+		}
 	}
 
 	// Fallback to checking nested options properties

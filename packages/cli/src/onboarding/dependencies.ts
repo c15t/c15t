@@ -1,10 +1,8 @@
-import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 
 // Define PackageManager type here since the import isn't working
 export type PackageManager = 'npm' | 'yarn' | 'pnpm';
-
-const execAsync = promisify(exec);
 
 /**
  * Installs dependencies using the detected package manager
@@ -20,39 +18,45 @@ export async function addAndInstallDependenciesViaPM(
 	packageManager: PackageManager
 ): Promise<void> {
 	// Map dependencies to the 'pkg@workspace:*' format
-	const depsToAddArg = dependencies
-		.map((dep) => `${dep}@workspace:*`)
-		.join(' ');
+	const depsToAdd = dependencies.map((dep) => `${dep}@workspace:*`);
 
-	if (depsToAddArg.length === 0) {
+	if (depsToAdd.length === 0) {
 		// Nothing to add
 		return;
 	}
 
 	let command = '';
+	let args: string[] = [];
+	
 	switch (packageManager) {
 		case 'npm':
 			// npm install pkg@workspace:* adds to dependencies by default
-			command = `npm install ${depsToAddArg}`;
+			command = 'npm';
+			args = ['install', ...depsToAdd];
 			break;
 		case 'yarn':
 			// yarn add pkg@workspace:* adds to dependencies
-			command = `yarn add ${depsToAddArg}`;
+			command = 'yarn';
+			args = ['add', ...depsToAdd];
 			break;
 		case 'pnpm':
 			// pnpm add pkg@workspace:* adds to dependencies and handles workspace protocol
-			command = `pnpm add ${depsToAddArg}`;
+			command = 'pnpm';
+			args = ['add', ...depsToAdd];
 			break;
+		default:
+			throw new Error(
+				`Unsupported package manager for dependency addition: ${packageManager}`
+			);
 	}
 
-	if (!command) {
-		throw new Error(
-			`Unsupported package manager for dependency addition: ${packageManager}`
-		);
-	}
-
-	// Execute the command
-	await execAsync(command, { cwd: projectRoot });
+	// Execute the command with spawn to prevent shell injection
+	const child = spawn(command, args, { 
+		cwd: projectRoot,
+		stdio: 'inherit' 
+	});
+	
+	await once(child, 'exit');
 }
 
 /**
@@ -67,18 +71,16 @@ export function getManualInstallCommand(
 	dependencies: string[],
 	packageManager: PackageManager
 ): string {
-	const depsToAddArg = dependencies
-		.map((dep) => `${dep}@workspace:*`)
-		.join(' ');
+	const depsToAdd = dependencies.map((dep) => `${dep}@workspace:*`);
 
 	switch (packageManager) {
 		case 'npm':
-			return `npm install ${depsToAddArg}`;
+			return `npm install ${depsToAdd.join(' ')}`;
 		case 'yarn':
-			return `yarn add ${depsToAddArg}`;
+			return `yarn add ${depsToAdd.join(' ')}`;
 		case 'pnpm':
-			return `pnpm add ${depsToAddArg}`;
+			return `pnpm add ${depsToAdd.join(' ')}`;
 		default:
-			return `npm install ${depsToAddArg}`;
+			return `npm install ${depsToAdd.join(' ')}`;
 	}
 }

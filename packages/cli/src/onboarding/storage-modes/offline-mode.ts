@@ -61,14 +61,25 @@ export async function setupOfflineMode(
 	// Write the client config
 	spinner.start('Creating client configuration file...');
 	spinnerActive = true;
-	await fs.writeFile(configPath, clientConfigContent);
-	spinner.stop(
-		formatLogMessage(
-			'info',
-			`Client configuration created: ${color.cyan(path.relative(cwd, configPath))}`
-		)
-	);
-	spinnerActive = false;
+	try {
+		await fs.writeFile(configPath, clientConfigContent);
+		spinner.stop(
+			formatLogMessage(
+				'info',
+				`Client configuration created: ${color.cyan(path.relative(cwd, configPath))}`
+			)
+		);
+	} catch (error) {
+		spinner.stop(
+			formatLogMessage(
+				'error',
+				`Failed to create configuration file: ${error instanceof Error ? error.message : 'Unknown error'}`
+			)
+		);
+		throw error;
+	} finally {
+		spinnerActive = false;
+	}
 
 	return {
 		clientConfigContent,

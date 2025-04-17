@@ -66,19 +66,21 @@ export async function detectFramework(
 export async function detectProjectRoot(cwd: string): Promise<string> {
 	let projectRoot = cwd;
 	try {
-		while (projectRoot !== '/') {
+		let prevDir = '';
+		while (projectRoot !== prevDir) {
 			try {
 				await fs.access(path.join(projectRoot, 'package.json'));
 				break; // Found package.json
 			} catch {
+				prevDir = projectRoot;
 				projectRoot = path.dirname(projectRoot);
 			}
 		}
-		if (projectRoot === '/') {
+		if (projectRoot === prevDir) {
 			throw new Error('Could not find project root (no package.json found)');
 		}
 		return projectRoot;
-	} catch (error) {
+	} catch {
 		// Fallback to current directory if not found
 		return cwd;
 	}
