@@ -22,7 +22,7 @@
 	},
 	"dependencies": {
 		"@tailwindcss/vite": "^4.1.4",
-		"c15t": "^1.0.2",
+		"c15t": "workspace:*",
 		"tailwindcss": "^4.1.3"
 	}
 }
