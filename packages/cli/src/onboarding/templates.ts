@@ -23,7 +23,7 @@ export function generateClientConfigContent(
 	switch (mode) {
 		case 'c15t': {
 			configContent = `// c15t Client Configuration
-import { ConsentManagerOptions } from '@c15t/react';
+import type { ConsentManagerOptions } from '@c15t/react';
 
 export const c15tConfig = {
   // Using hosted c15t (consent.io) or self-hosted instance
@@ -49,7 +49,7 @@ export const c15tConfig = {
 		}
 		case 'offline': {
 			configContent = `// c15t Client Configuration
-import { ConsentManagerOptions } from '@c15t/react';
+import type { ConsentManagerOptions } from '@c15t/react';
 
 export const c15tConfig = {
   // Using offline mode for browser-based storage
@@ -75,7 +75,7 @@ export const c15tConfig = {
 		}
 		case 'custom': {
 			configContent = `// c15t Client Configuration
-import { ConsentManagerOptions } from '@c15t/react';
+import type { ConsentManagerOptions } from '@c15t/react';
 import { createCustomHandlers } from './consent-handlers';
 
 export const c15tConfig = {

@@ -22,7 +22,7 @@ export async function setupGenerateEnvironment(context: CliContext): Promise<{
 	if (!existsSync(cwd)) {
 		telemetry.trackEvent(TelemetryEventName.GENERATE_FAILED, {
 			error: `Directory ${cwd} does not exist`,
-			stage: 'setup'
+			stage: 'setup',
 		});
 		return error.handleError(
 			new Error(`The directory "${cwd}" does not exist`),
@@ -45,8 +45,11 @@ export async function setupGenerateEnvironment(context: CliContext): Promise<{
 			return { config: null, adapter: memAdapter };
 		} catch (adapterError) {
 			telemetry.trackEvent(TelemetryEventName.GENERATE_FAILED, {
-				error: adapterError instanceof Error ? adapterError.message : String(adapterError),
-				stage: 'adapter_initialization'
+				error:
+					adapterError instanceof Error
+						? adapterError.message
+						: String(adapterError),
+				stage: 'adapter_initialization',
 			});
 			return error.handleError(
 				adapterError,
@@ -64,7 +67,7 @@ export async function setupGenerateEnvironment(context: CliContext): Promise<{
 	} catch (e) {
 		telemetry.trackEvent(TelemetryEventName.GENERATE_FAILED, {
 			error: e instanceof Error ? e.message : String(e),
-			stage: 'adapter_initialization_with_config'
+			stage: 'adapter_initialization_with_config',
 		});
 		return error.handleError(e, 'Failed to initialize database adapter');
 	}
@@ -72,7 +75,7 @@ export async function setupGenerateEnvironment(context: CliContext): Promise<{
 	if (!adapter) {
 		telemetry.trackEvent(TelemetryEventName.GENERATE_FAILED, {
 			error: 'Adapter initialization returned undefined',
-			stage: 'adapter_initialization_check'
+			stage: 'adapter_initialization_check',
 		});
 		return error.handleError(
 			new Error('Adapter initialization returned undefined'),

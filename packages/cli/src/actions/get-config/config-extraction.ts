@@ -30,7 +30,11 @@ export function isC15TOptions(obj: unknown): obj is C15TOptions {
 
 // Type guard to check if an object looks like ConsentManagerOptions
 export function isClientOptions(obj: unknown): obj is ConsentManagerOptions {
-	return typeof obj === 'object' && obj !== null && ('mode' in obj || 'backendURL' in obj);
+	return (
+		typeof obj === 'object' &&
+		obj !== null &&
+		('mode' in obj || 'backendURL' in obj)
+	);
 }
 
 /**
@@ -41,23 +45,23 @@ export function extractOptionsFromConfig(
 	config: LoadedConfig
 ): C15TOptions | ConsentManagerOptions | null {
 	// Debug what exports we're getting
-	console.debug('Available exports in config:', Object.keys(config));
-	
+	// console.debug('Available exports in config:', Object.keys(config));
+
 	// First check for client configuration
 	if (config.c15tConfig && isClientOptions(config.c15tConfig)) {
-		console.debug('Found valid c15tConfig export');
+		// console.debug('Found valid c15tConfig export');
 		return config.c15tConfig;
 	}
-	
+
 	// Check alternate client config name
 	if (config.c15tOptions && isClientOptions(config.c15tOptions)) {
-		console.debug('Found valid c15tOptions export');
+		// console.debug('Found valid c15tOptions export');
 		return config.c15tOptions;
 	}
 
 	// Check if the entire module is a valid client config
 	if (isClientOptions(config)) {
-		console.debug('Found valid client config in the module itself');
+		// console.debug('Found valid client config in the module itself');
 		return config as unknown as ConsentManagerOptions;
 	}
 
@@ -65,15 +69,15 @@ export function extractOptionsFromConfig(
 	if (isC15TOptions(config.c15t)) {
 		return config.c15t;
 	}
-	
+
 	if (isC15TOptions(config.default)) {
 		return config.default;
 	}
-	
+
 	if (isC15TOptions(config.c15tInstance)) {
 		return config.c15tInstance;
 	}
-	
+
 	if (isC15TOptions(config.consent)) {
 		return config.consent;
 	}
@@ -123,6 +127,8 @@ export function extractOptionsFromConfig(
 	}
 
 	// If we get here, we couldn't find a valid config
-	console.debug('No valid configuration found in any of the expected locations');
+	console.debug(
+		'No valid configuration found in any of the expected locations'
+	);
 	return null;
 }

@@ -71,7 +71,7 @@ export interface CliContext {
 	error: ErrorHandlers;
 	config: ConfigManagement;
 	fs: FileSystemUtils;
-	
+
 	// Telemetry for tracking CLI command usage
 	telemetry: Telemetry;
 

@@ -137,18 +137,22 @@ export async function main() {
 				logger.warn('Loaded configuration is of an unknown type.');
 			}
 		}
-		
+
 		if (loadedConfig) {
 			telemetry.trackEvent(TelemetryEventName.CONFIG_LOADED, {
-				configType: clientConfig ? 'client' : (backendConfig ? 'backend' : 'unknown'),
-				hasBackend: Boolean(backendConfig)
+				configType: clientConfig
+					? 'client'
+					: backendConfig
+						? 'backend'
+						: 'unknown',
+				hasBackend: Boolean(backendConfig),
 			});
 		}
 	} catch (loadError) {
 		telemetry.trackEvent(TelemetryEventName.CONFIG_ERROR, {
-			error: loadError instanceof Error ? loadError.message : String(loadError)
+			error: loadError instanceof Error ? loadError.message : String(loadError),
 		});
-		
+
 		return error.handleError(
 			loadError,
 			'An unexpected error occurred during configuration loading'
@@ -187,14 +191,14 @@ export async function main() {
 				logger.info(`Executing command: ${command.name}`);
 				telemetry.trackCommand(command.name, commandArgs, flags);
 				await command.action(context);
-				telemetry.trackEvent(TelemetryEventName.COMMAND_SUCCEEDED, { 
+				telemetry.trackEvent(TelemetryEventName.COMMAND_SUCCEEDED, {
 					command: command.name,
-					executionTime: Date.now() - performance.now()
+					executionTime: Date.now() - performance.now(),
 				});
 			} else {
 				logger.error(`Unknown command: ${commandName}`);
-				telemetry.trackEvent(TelemetryEventName.COMMAND_UNKNOWN, { 
-					unknownCommand: commandName 
+				telemetry.trackEvent(TelemetryEventName.COMMAND_UNKNOWN, {
+					unknownCommand: commandName,
 				});
 				logger.info('Run c15t --help to see available commands.');
 				await telemetry.shutdown();
@@ -226,7 +230,7 @@ export async function main() {
 			if (p.isCancel(selectedCommandName) || selectedCommandName === 'exit') {
 				logger.debug('Interactive selection cancelled or exit chosen.');
 				telemetry.trackEvent(TelemetryEventName.INTERACTIVE_MENU_EXITED, {
-					action: p.isCancel(selectedCommandName) ? 'cancelled' : 'exit'
+					action: p.isCancel(selectedCommandName) ? 'cancelled' : 'exit',
 				});
 				context.error.handleCancel('Operation cancelled.');
 			} else {
@@ -237,13 +241,13 @@ export async function main() {
 					logger.debug(`User selected command: ${selectedCommand.name}`);
 					telemetry.trackCommand(selectedCommand.name, [], flags);
 					await selectedCommand.action(context);
-					telemetry.trackEvent(TelemetryEventName.COMMAND_SUCCEEDED, { 
+					telemetry.trackEvent(TelemetryEventName.COMMAND_SUCCEEDED, {
 						command: selectedCommand.name,
-						executionTime: Date.now() - performance.now()
+						executionTime: Date.now() - performance.now(),
 					});
 				} else {
-					telemetry.trackEvent(TelemetryEventName.COMMAND_UNKNOWN, { 
-						unknownCommand: String(selectedCommandName) 
+					telemetry.trackEvent(TelemetryEventName.COMMAND_UNKNOWN, {
+						unknownCommand: String(selectedCommandName),
 					});
 					error.handleError(
 						new Error(`Command '${selectedCommandName}' not found`),
@@ -254,20 +258,23 @@ export async function main() {
 		}
 		logger.debug('Command execution completed');
 		telemetry.trackEvent(TelemetryEventName.CLI_COMPLETED, {
-			success: true
+			success: true,
 		});
 	} catch (executionError) {
 		telemetry.trackEvent(TelemetryEventName.COMMAND_FAILED, {
 			command: commandName,
-			error: executionError instanceof Error ? executionError.message : String(executionError)
+			error:
+				executionError instanceof Error
+					? executionError.message
+					: String(executionError),
 		});
-		
+
 		error.handleError(
 			executionError,
 			'An unexpected error occurred during command execution'
 		);
 	}
-	
+
 	// Ensure telemetry is properly shut down
 	await telemetry.shutdown();
 }

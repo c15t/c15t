@@ -16,7 +16,7 @@ import { setupGenerateEnvironment } from './generate/setup';
 export async function generate(context: CliContext) {
 	const { logger, error, telemetry } = context;
 	logger.debug('Starting generate command...');
-	
+
 	// Track generate command start
 	telemetry.trackEvent(TelemetryEventName.GENERATE_STARTED, {});
 
@@ -35,13 +35,13 @@ export async function generate(context: CliContext) {
 		} else if (isC15TOptions(config)) {
 			currentMode = 'backend'; // Indicate it's a backend config
 		}
-		
+
 		// Track found existing configuration
 		telemetry.trackEvent(TelemetryEventName.CONFIG_LOADED, {
 			type: currentMode,
-			exists: true
+			exists: true,
 		});
-		
+
 		const shouldUpdate = await p.confirm({
 			message: formatLogMessage(
 				'warn',
@@ -53,7 +53,7 @@ export async function generate(context: CliContext) {
 		if (!shouldUpdate) {
 			telemetry.trackEvent(TelemetryEventName.GENERATE_COMPLETED, {
 				success: false,
-				reason: 'user_cancelled'
+				reason: 'user_cancelled',
 			});
 			return error.handleCancel('Operation cancelled.');
 		}
@@ -66,7 +66,7 @@ export async function generate(context: CliContext) {
 			const postUpdateResult = await setupGenerateEnvironment(context);
 			if (!postUpdateResult.config) {
 				telemetry.trackEvent(TelemetryEventName.GENERATE_FAILED, {
-					error: 'Failed to load configuration after update'
+					error: 'Failed to load configuration after update',
 				});
 				return error.handleError(
 					new Error('Failed to load configuration after update.'),
@@ -76,29 +76,29 @@ export async function generate(context: CliContext) {
 			config = postUpdateResult.config;
 			adapter = postUpdateResult.adapter;
 			logger.info('Configuration updated successfully.');
-			
+
 			// Track successful config update
 			telemetry.trackEvent(TelemetryEventName.GENERATE_COMPLETED, {
 				success: true,
-				configUpdated: true
+				configUpdated: true,
 			});
 		} else {
 			logger.debug('Proceeding with existing configuration.');
-			
+
 			// Track completion with existing config
 			telemetry.trackEvent(TelemetryEventName.GENERATE_COMPLETED, {
 				success: true,
-				configUpdated: false
+				configUpdated: false,
 			});
 		}
 	} else {
 		logger.info('No configuration found.');
-		
+
 		// Track missing configuration
 		telemetry.trackEvent(TelemetryEventName.CONFIG_LOADED, {
-			exists: false
+			exists: false,
 		});
-		
+
 		const shouldOnboard = await p.confirm({
 			message: 'No c15t configuration found. Would you like to create one now?',
 			initialValue: true,
@@ -106,7 +106,7 @@ export async function generate(context: CliContext) {
 		if (p.isCancel(shouldOnboard) || !shouldOnboard) {
 			telemetry.trackEvent(TelemetryEventName.GENERATE_COMPLETED, {
 				success: false,
-				reason: 'onboarding_declined'
+				reason: 'onboarding_declined',
 			});
 			return error.handleCancel('Configuration setup cancelled.');
 		}
@@ -119,7 +119,7 @@ export async function generate(context: CliContext) {
 		const postOnboardResult = await setupGenerateEnvironment(context);
 		if (!postOnboardResult.config) {
 			telemetry.trackEvent(TelemetryEventName.GENERATE_FAILED, {
-				error: 'Failed to load configuration even after onboarding'
+				error: 'Failed to load configuration even after onboarding',
 			});
 			return error.handleError(
 				new Error('Failed to load configuration even after onboarding.'),
@@ -129,11 +129,11 @@ export async function generate(context: CliContext) {
 		config = postOnboardResult.config;
 		adapter = postOnboardResult.adapter;
 		logger.info('New configuration loaded successfully.');
-		
+
 		// Track successful creation of new config
 		telemetry.trackEvent(TelemetryEventName.GENERATE_COMPLETED, {
 			success: true,
-			newConfigCreated: true
+			newConfigCreated: true,
 		});
 	}
 }
