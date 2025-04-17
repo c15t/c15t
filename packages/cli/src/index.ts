@@ -91,7 +91,7 @@ export async function main() {
 This data is not personally identifiable and helps us prioritize features.
 To disable telemetry, use the ${color.cyan('--no-telemetry')}
 flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
-			 `${formatLogMessage('info', 'Telemetry Notice')}`
+			`${formatLogMessage('info', 'Telemetry Notice')}`
 		);
 	}
 
