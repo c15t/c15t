@@ -2,9 +2,41 @@
 title: React Quickstart
 description: Learn how to integrate c15t into your React application with this step-by-step guide. We'll cover installation, configuration, and basic usage.
 ---
+
+## CLI Setup (Recommended)
 <Steps>
 <Step>
- 
+### Install CLI
+ ```package-install
+ @c15t/cli
+ ```
+
+</Step>
+
+<Step>
+### Generate Schema + Code
+ ```bash
+ npx @c15t/cli generate
+ ```
+
+</Step>
+
+<Step>
+### Run Database Migrations (Optional)
+
+<Callout type="note">
+This is only required if you are self hosting c15t.
+</Callout>
+
+ ```bash
+ npx @c15t/cli migrate
+ ```
+</Step>
+</Steps>
+
+## Manual Setup
+<Steps>
+<Step>
 ### Install `@c15t/react` Package
  ```package-install
  @c15t/react
