@@ -1,5 +1,11 @@
 # @c15t/cli
 
+## 1.0.2
+
+### Patch Changes
+
+- [`92f94b6`](https://github.com/c15t/c15t/commit/92f94b65b1cab5e39591388e6bf6c1ccfdfd0121) Thanks [@BurnedChris](https://github.com/BurnedChris)! - fix: update telemetry API key for improved tracking
+
 ## 1.0.1
 
 ### Patch Changes
