@@ -29,22 +29,29 @@ c15t (consent management) unifies analytics, consent tracking, and privacy contr
 | `@c15t/react` | Best in class React Components | [![npm](https://img.shields.io/npm/v/@c15t/react?style=flat-square)](https://www.npmjs.com/package/@c15t/react) |
 | `@c15t/dev-tools` | Development and debugging tools | [![npm](https://img.shields.io/npm/v/@c15t/dev-tools?style=flat-square)](https://www.npmjs.com/package/@c15t/dev-tools) |
 
-## ⚡ Quick Start
+## ⚡ Quick Start Via CLI
 
 ```bash
-# Install packages
-npm install @c15t/react
+# Generates the schema + code
+npx @c15t/cli generate 
+pnpm dlx @c15t/cli generate
+bunx --bun @c15t/cli generate
 
-# Optional: Install dev tools
-npm install -D @c15t/dev-tools
+# Database Migrations (If you're self hosting c15t)
+npx @c15t/cli migrate
+pnpm dlx @c15t/cli migrate
+bunx --bun @c15t/cli migrate
 ```
+
+After running the CLI, you can use the following code to get started:
 
 ```tsx
 import { ConsentManagerProvider, CookieBanner, ConsentManagerDialog } from "@c15t/react";
+import { c15tConfig } from "./c15tConfig";
 
 export default function App() {
   return (
-    <ConsentManagerProvider>
+    <ConsentManagerProvider config={c15tConfig}>
       <CookieBanner />
       <ConsentManagerDialog/>
       {/* Your app content */}

@@ -6,6 +6,7 @@ import defaultComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 import { CompactCard } from './mdx/compact-card';
 import { Mermaid } from './mdx/mermaid';
+import { RunCommand } from './mdx/run-command';
 
 const generator = createGenerator();
 
@@ -18,6 +19,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
 		Step,
 		Mermaid,
 		CompactCard,
+		RunCommand,
 		AutoTypeTable: (props) => (
 			<AutoTypeTable {...props} generator={generator} />
 		),
