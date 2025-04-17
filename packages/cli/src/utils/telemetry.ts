@@ -1,8 +1,8 @@
 import crypto from 'node:crypto';
 import os from 'node:os';
+import type { Logger } from '@c15t/backend/pkgs/logger';
 import { PostHog } from 'posthog-node';
 import type { LogLevel } from './logger';
-import type { Logger } from '@c15t/backend/pkgs/logger';
 
 // Environment variable for disabling telemetry
 const TELEMETRY_DISABLED_ENV = 'C15T_TELEMETRY_DISABLED';
@@ -78,7 +78,7 @@ export interface TelemetryOptions {
 	 * Default properties to add to all telemetry events
 	 */
 	defaultProperties?: Record<string, string | number | boolean>;
-	
+
 	/**
 	 * Logger instance to use for logging telemetry events
 	 */
@@ -133,9 +133,9 @@ export class Telemetry {
 
 	/**
 	 * Track a telemetry event synchronously
-	 * 
+	 *
 	 * This method ensures the event is sent before returning
-	 * 
+	 *
 	 * @param eventName - The event name to track
 	 * @param properties - Properties to include with the event
 	 */
@@ -144,7 +144,8 @@ export class Telemetry {
 		properties: Record<string, string | number | boolean | undefined> = {}
 	): void {
 		if (this.disabled || !this.client) {
-			if (this.debug) this.logDebug('Telemetry disabled or client not initialized');
+			if (this.debug)
+				this.logDebug('Telemetry disabled or client not initialized');
 			return;
 		}
 
@@ -173,10 +174,10 @@ export class Telemetry {
 					timestamp: new Date().toISOString(),
 				},
 			});
-			
+
 			// Force a flush and wait a bit to ensure it completes
 			this.client.flush();
-			
+
 			// Log debug info
 			if (this.debug) this.logDebug(`Flushed telemetry event: ${eventName}`);
 		} catch (error) {
@@ -256,10 +257,10 @@ export class Telemetry {
 	 */
 	setLogLevel(level: LogLevel): void {
 		if (this.client && level === 'debug') {
-				this.debug = true;
-				this.client.debug(true);
-				this.logDebug('Telemetry debug mode enabled');
-			}
+			this.debug = true;
+			this.client.debug(true);
+			this.logDebug('Telemetry debug mode enabled');
+		}
 	}
 
 	/**
@@ -300,7 +301,7 @@ export class Telemetry {
 
 	/**
 	 * Set the logger instance to use for logging
-	 * 
+	 *
 	 * @param logger - The logger instance to use
 	 */
 	setLogger(logger: Logger): void {
@@ -309,7 +310,7 @@ export class Telemetry {
 
 	/**
 	 * Log a debug message using the configured logger or console.debug as fallback
-	 * 
+	 *
 	 * @param message - The message to log
 	 * @param args - Additional arguments to log
 	 */
@@ -340,45 +341,59 @@ export class Telemetry {
 
 			// Capture initialization start time for diagnostics
 			const startTime = Date.now();
-			
+
 			try {
 				// More robust configuration
 				const clientConfig = {
 					host: 'https://eu.i.posthog.com',
 					flushInterval: 0, // Send events immediately in CLI context
 					flushAt: 1, // Flush after a single event
-					// PostHog expects project API keys with phc_ prefix 
+					// PostHog expects project API keys with phc_ prefix
 					// Don't set personalApiKey since we're using a project key
 					requestTimeout: 3000, // Short timeout for CLI context
 				};
-				
-				if (this.debug) this.logDebug('Initializing PostHog client with config:', JSON.stringify(clientConfig));
-				
+
+				if (this.debug)
+					this.logDebug(
+						'Initializing PostHog client with config:',
+						JSON.stringify(clientConfig)
+					);
+
 				this.client = new PostHog(this.apiKey, clientConfig);
-				
+
 				const initTime = Date.now() - startTime;
-				if (this.debug) this.logDebug('PostHog client initialized in', initTime, 'ms');
+				if (this.debug)
+					this.logDebug('PostHog client initialized in', initTime, 'ms');
 			} catch (error) {
 				// If PostHog initialization fails, disable telemetry
 				this.disabled = true;
-				
+
 				// More detailed error logging
-				const errorDetails = error instanceof Error 
-					? { message: error.message, name: error.name, stack: error.stack }
-					: { rawError: String(error) };
-					
-				if (this.debug) this.logDebug('Telemetry disabled due to initialization error:', JSON.stringify(errorDetails, null, 2));
-				
+				const errorDetails =
+					error instanceof Error
+						? { message: error.message, name: error.name, stack: error.stack }
+						: { rawError: String(error) };
+
+				if (this.debug)
+					this.logDebug(
+						'Telemetry disabled due to initialization error:',
+						JSON.stringify(errorDetails, null, 2)
+					);
+
 				// Try alternative initialization without options as fallback
 				try {
-					if (this.debug) this.logDebug('Attempting fallback PostHog initialization');
+					if (this.debug)
+						this.logDebug('Attempting fallback PostHog initialization');
 					this.client = new PostHog(this.apiKey);
 					this.disabled = false;
-					if (this.debug) this.logDebug('PostHog client initialized using fallback method');
+					if (this.debug)
+						this.logDebug('PostHog client initialized using fallback method');
 				} catch (fallbackError) {
 					this.logDebug(
 						'Fallback initialization also failed:',
-						fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+						fallbackError instanceof Error
+							? fallbackError.message
+							: String(fallbackError)
 					);
 				}
 			}
@@ -403,19 +418,23 @@ export class Telemetry {
 
 	/**
 	 * Force immediate flushing of any pending telemetry events
-	 * 
+	 *
 	 * This is useful when you need to ensure events are sent before process exit
 	 */
 	flushSync(): void {
 		if (this.disabled || !this.client) {
 			return;
 		}
-		
+
 		try {
 			this.client.flush();
-			if (this.debug) { this.logDebug('Manually flushed telemetry events'); }
+			if (this.debug) {
+				this.logDebug('Manually flushed telemetry events');
+			}
 		} catch (error) {
-			if (this.debug) { this.logDebug(`Error flushing telemetry: ${error}`); }
+			if (this.debug) {
+				this.logDebug(`Error flushing telemetry: ${error}`);
+			}
 		}
 	}
 }
