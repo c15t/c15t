@@ -10,14 +10,14 @@ const frameworkCards = [
 			'Easily add secure, beautiful, and fast Consent Manager to Next.js with C15T.',
 	},
 	{
-		href: '/docs/react/client-config-options',
+		href: '/docs/react/quickstart',
 		title: 'React',
 		icon: <ReactIcon className="text-[#53C1DE]" />,
 		description:
 			'Get started installing and initializing C15T in a new React + Vite app.',
 	},
 	{
-		href: '/docs/javascript',
+		href: '/docs/javascript/quickstart',
 		title: 'Javascript',
 		icon: <JSIcon />,
 		description:
