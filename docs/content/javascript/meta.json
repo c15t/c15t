@@ -3,10 +3,12 @@
 	"icon": "js",
 	"root": true,
 	"pages": [
-		"index",
-		"how-it-works",
-		"client-config-options",
-		"auto-detect",
-		"api-reference"
+		"quickstart",
+		"api-reference",
+		"--- Storing Consent ---",
+		"./storing-consent/overview",
+		"./storing-consent/hosted-c15t",
+		"./storing-consent/offline-mode",
+		"./storing-consent/self-hosting"
 	]
 }
