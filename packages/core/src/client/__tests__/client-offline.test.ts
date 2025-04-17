@@ -54,10 +54,8 @@ describe('Offline Client Tests', () => {
 		// Reset the mock
 		mockLocalStorage.setItem.mockClear();
 
-		const customKey = 'my-custom-consent-key';
-
 		// Create an instance of OfflineClient
-		const client = new OfflineClient({ localStorageKey: customKey });
+		const client = new OfflineClient();
 
 		// Call setConsent with properly typed data
 		const consentData = {
@@ -76,7 +74,6 @@ describe('Offline Client Tests', () => {
 		// The second call should be with our data
 		expect(mockLocalStorage.setItem).toHaveBeenNthCalledWith(
 			2,
-			customKey,
 			expect.stringContaining(JSON.stringify(consentData.preferences))
 		);
 	});

@@ -132,7 +132,6 @@ export async function setupC15tMode(
 	const clientConfigContent = generateClientConfigContent(
 		'c15t',
 		backendURL,
-		undefined,
 		useEnvFile
 	);
 

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { C15tClient } from '../client-c15t';
 import { CustomClient } from '../client-custom';
 import { configureConsentManager } from '../client-factory';
-import { OfflineClient } from '../client-offline';
+import type { OfflineClient } from '../client-offline';
 
 // Note: For Vitest browser mode, we don't need to mock localStorage or fetch
 // as they're available in the browser environment
@@ -215,31 +215,6 @@ describe('Offline Client Browser Tests', () => {
 		// Second call with localStorage data
 		response = await client.showConsentBanner();
 		expect(response.data?.showConsentBanner).toBe(false);
-	});
-
-	it('should use custom localStorage key', async () => {
-		const customKey = 'custom-consent-key';
-
-		// Configure the client with custom key
-		const client = new OfflineClient({
-			localStorageKey: customKey,
-		});
-
-		// Set consent data
-		await client.setConsent({
-			body: {
-				type: 'cookie_banner',
-				domain: 'example.com',
-				preferences: {
-					analytics: true,
-				},
-			},
-		});
-
-		// Verify localStorage has data with custom key
-		expect(localStorage.getItem(customKey)).not.toBeNull();
-		// And default key doesn't have data
-		expect(localStorage.getItem('c15t-consent')).toBeNull();
 	});
 });
 

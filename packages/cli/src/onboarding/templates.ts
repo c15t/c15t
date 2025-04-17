@@ -8,14 +8,12 @@
  *
  * @param mode - The storage mode ('c15t', 'offline', or 'custom')
  * @param backendURL - URL for the c15t backend/API (for 'c15t' mode)
- * @param localStorageKey - Key to use for localStorage (for 'offline' mode)
  * @param useEnvFile - Whether to use environment variable for backendURL
  * @returns The generated configuration file content
  */
 export function generateClientConfigContent(
 	mode: string,
 	backendURL?: string,
-	localStorageKey?: string,
 	useEnvFile?: boolean
 ): string {
 	let configContent = '';
@@ -62,7 +60,6 @@ import type { ConsentManagerOptions } from '@c15t/react';
 export const c15tConfig = {
   // Using offline mode for browser-based storage
   mode: 'offline',
-  localStorageKey: '${localStorageKey || 'c15t-consent'}',
   
   // Optional: Add callback functions for various events
   callbacks: {

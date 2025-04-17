@@ -26,12 +26,6 @@ export interface OfflineClientOptions {
 	 * Global callbacks for handling API responses
 	 */
 	callbacks?: ConsentManagerCallbacks;
-
-	/**
-	 * Custom localStorage key to check for consent banner visibility
-	 * @default 'c15t-consent'
-	 */
-	localStorageKey?: string;
 }
 
 /**
@@ -46,19 +40,12 @@ export class OfflineClient implements ConsentManagerInterface {
 	private callbacks?: ConsentManagerCallbacks;
 
 	/**
-	 * LocalStorage key for consent banner visibility
-	 * @internal
-	 */
-	private localStorageKey: string;
-
-	/**
 	 * Creates a new Offline client instance.
 	 *
 	 * @param options - Configuration options for the client
 	 */
 	constructor(options: OfflineClientOptions = {}) {
 		this.callbacks = options.callbacks;
-		this.localStorageKey = options.localStorageKey || 'c15t-consent';
 	}
 
 	/**
@@ -133,7 +120,7 @@ export class OfflineClient implements ConsentManagerInterface {
 				window.localStorage.setItem('c15t-storage-test-key', 'test');
 				window.localStorage.removeItem('c15t-storage-test-key');
 
-				const storedConsent = window.localStorage.getItem(this.localStorageKey);
+				const storedConsent = window.localStorage.getItem('c15t-consent');
 				shouldShow = storedConsent === null;
 			}
 		} catch (error) {
@@ -183,7 +170,7 @@ export class OfflineClient implements ConsentManagerInterface {
 				window.localStorage.removeItem('c15t-storage-test-key');
 
 				window.localStorage.setItem(
-					this.localStorageKey,
+					'c15t-consent',
 					JSON.stringify({
 						timestamp: new Date().toISOString(),
 						preferences: options?.body?.preferences || {},

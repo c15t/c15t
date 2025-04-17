@@ -650,7 +650,6 @@ export class C15tClient implements ConsentManagerInterface {
 		// Check localStorage to see if the banner has been shown
 		let shouldShow = true;
 		let hasLocalStorageAccess = false;
-		const localStorageKey = 'c15t-consent';
 
 		try {
 			if (typeof window !== 'undefined' && window.localStorage) {
@@ -659,7 +658,7 @@ export class C15tClient implements ConsentManagerInterface {
 				window.localStorage.removeItem('c15t-storage-test-key');
 				hasLocalStorageAccess = true;
 
-				const storedConsent = window.localStorage.getItem(localStorageKey);
+				const storedConsent = window.localStorage.getItem('c15t-consent');
 				shouldShow = storedConsent === null;
 			}
 		} catch (error) {
@@ -763,7 +762,6 @@ export class C15tClient implements ConsentManagerInterface {
 	private async offlineFallbackForSetConsent(
 		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 	): Promise<ResponseContext<SetConsentResponse>> {
-		const localStorageKey = 'c15t-consent';
 		const pendingSubmissionsKey = 'c15t-pending-consent-submissions';
 
 		try {
@@ -774,7 +772,7 @@ export class C15tClient implements ConsentManagerInterface {
 
 				// Store the consent preferences locally
 				window.localStorage.setItem(
-					localStorageKey,
+					'c15t-consent',
 					JSON.stringify({
 						timestamp: new Date().toISOString(),
 						preferences: options?.body?.preferences || {},

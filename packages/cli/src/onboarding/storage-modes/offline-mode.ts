@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import * as p from '@clack/prompts';
+import type * as p from '@clack/prompts';
 import color from 'picocolors';
 import type { CliContext } from '../../context/types';
 import { formatLogMessage } from '../../utils/logger';
@@ -11,7 +11,6 @@ import { generateClientConfigContent } from '../templates';
  */
 export interface OfflineModeResult {
 	clientConfigContent: string;
-	localStorageKey: string;
 }
 
 /**
@@ -32,27 +31,10 @@ export async function setupOfflineMode(
 	const { logger, cwd } = context;
 	let spinnerActive = false;
 
-	// Ask for localStorage key
-	const localStorageKeySelection = await p.text({
-		message: 'Enter a key for localStorage (optional):',
-		placeholder: 'c15t-consent',
-	});
-
-	if (handleCancel?.(localStorageKeySelection)) {
-		throw new Error('Setup cancelled');
-	}
-
-	// Use default value if empty string is provided
-	const localStorageKey =
-		(localStorageKeySelection as string) || 'c15t-consent';
-
-	logger.debug(`Using localStorage key: ${localStorageKey}`);
-
 	// Generate client config
 	const clientConfigContent = generateClientConfigContent(
 		'offline',
 		undefined,
-		localStorageKey,
 		false
 	);
 
@@ -83,6 +65,5 @@ export async function setupOfflineMode(
 
 	return {
 		clientConfigContent,
-		localStorageKey,
 	};
 }

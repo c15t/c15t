@@ -150,7 +150,6 @@ export async function setupSelfHostedMode(
 	const clientConfigContent = generateClientConfigContent(
 		'c15t',
 		'/api/c15t',
-		undefined,
 		false
 	);
 

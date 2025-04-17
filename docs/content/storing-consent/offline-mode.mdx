@@ -35,8 +35,6 @@ import { createClient } from '@c15t/react'
 
 export const c15tClient = createClient({
   mode: 'offline',
-  // Optional: Custom localStorage key
-  localStorageKey: 'my-app-consent'
 })
 ```
 </Step>
@@ -84,10 +82,6 @@ The offline mode accepts the following configuration options:
 ```jsx
 const options = {
   mode: 'offline',
-  
-  // Optional: Custom localStorage key (default: 'c15t-consent')
-  localStorageKey: 'my-app-consent',
-  
   // Optional: Add callback functions for various events
   callbacks: {
     onConsentBannerFetched: (response) => {
@@ -187,7 +181,6 @@ For static sites without backend integration, offline mode provides a simple sol
 ```jsx
 const options = {
   mode: 'offline',
-  localStorageKey: 'my-static-site-consent'
 };
 ```
 
