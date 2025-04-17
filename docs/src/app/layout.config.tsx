@@ -46,7 +46,7 @@ export const homePageOptions: BaseLayoutProps = {
 	links: [
 		{
 			text: 'Getting Started',
-			url: '/docs',
+			url: '/docs/react/quickstart',
 		},
 		// {
 		// 	text: 'Core',

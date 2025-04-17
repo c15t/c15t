@@ -9,10 +9,6 @@
   [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
 </div>
 
-## Documentation
-
-For detailed documentation and examples, visit:
-[https://c15t.com/docs/framework/react/dev-tool](https://c15t.com/docs/teact/dev-tool)
 
 ## Installation
 

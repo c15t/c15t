@@ -18,7 +18,7 @@ export function CTA() {
 						variant={'outline'}
 						asChild
 					>
-						<Link href="/docs/framework/react">
+						<Link href="/docs/react/quickstart">
 							Get Started <ArrowRight className="h-4 w-4 sm:h-6 sm:w-6" />
 						</Link>
 					</Button>
