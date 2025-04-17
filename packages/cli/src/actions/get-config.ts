@@ -5,7 +5,7 @@ import type { ConsentManagerOptions } from '@c15t/react';
 import { loadConfig } from 'c12';
 
 import type { CliContext } from '../context/types';
-import { isC15TOptions, isClientOptions } from './get-config/config-extraction';
+import { extractOptionsFromConfig, isC15TOptions, isClientOptions, type LoadedConfig } from './get-config/config-extraction';
 import {} from './get-config/constants';
 import { jitiOptions } from './get-config/jiti-options';
 
@@ -84,11 +84,17 @@ export async function getConfig(
 					jitiOptions: customJitiOptions,
 				});
 
-				options = result.config as C15TOptions | ConsentManagerOptions | null;
+				logger.debug('Raw config loading result:', result);
+				
+				// Try to extract from result.config which should contain the module's exports
+				if (result.config) {
+					logger.debug('Trying to extract config from result.config');
+					options = extractOptionsFromConfig(result.config as unknown as LoadedConfig);
+				}
 
 				// Validate loaded config
 				if (options) {
-					logger.debug('Raw loaded config:', options);
+					logger.debug('Extracted config:', options);
 
 					if (isC15TOptions(options) || isClientOptions(options)) {
 						logger.debug('Configuration validated successfully.');
@@ -96,15 +102,38 @@ export async function getConfig(
 					}
 
 					logger.debug('Loaded config does not match expected schema');
-					return null;
+				} else {
+					logger.debug('No configuration extracted from loaded file');
 				}
-
-				logger.debug('No configuration loaded from explicit path');
+				
+				// Log the raw loaded config for debugging
+				logger.debug('Raw loaded configuration:', result);
+				
 				// Fall through to broader search if manual load fails
+				return null;
 			} catch (error) {
 				// Log but continue searching, don't rethrow
 				logger.debug('Error loading config from explicit path:', error);
+				
+				// Try to load the module directly as a fallback
+				try {
+					logger.debug(`Trying to require module directly: ${foundConfigPath}`);
+					// Using dynamic import since we're in an ES module context
+					const importedModule = await import(foundConfigPath);
+					logger.debug('Directly imported module:', importedModule);
+					
+					// Check if the module exports match our expected patterns
+					const extracted = extractOptionsFromConfig(importedModule);
+					if (extracted && (isC15TOptions(extracted) || isClientOptions(extracted))) {
+						logger.debug('Found valid config through direct import');
+						return extracted;
+					}
+				} catch (importError) {
+					logger.debug('Error importing module directly:', importError);
+				}
+				
 				// Fall through to broader search if manual load fails
+				return null;
 			}
 		}
 

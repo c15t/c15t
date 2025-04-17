@@ -12,6 +12,7 @@ import {
 } from '../actions/get-config/config-extraction';
 import type { CliContext } from '../context/types';
 import { formatLogMessage } from '../utils/logger';
+import { TelemetryEventName } from '../utils/telemetry';
 
 import {
 	addAndInstallDependenciesViaPM,
@@ -39,11 +40,15 @@ export async function startOnboarding(
 	context: CliContext,
 	existingConfig?: C15TOptions | ConsentManagerOptions | null
 ) {
-	const { logger, cwd } = context;
+	const { logger, cwd, telemetry } = context;
 
 	// Helper function to handle cancellations
 	const handleCancel = (value: unknown): value is symbol => {
 		if (p.isCancel(value)) {
+			telemetry.trackEvent(TelemetryEventName.ONBOARDING_EXITED, {
+				reason: 'user_cancelled',
+				stage: 'setup'
+			});
 			context.error.handleCancel('Configuration cancelled.');
 			return true; // Indicates cancellation occurred
 		}
@@ -55,6 +60,12 @@ export async function startOnboarding(
 		isUpdate
 			? 'Starting configuration update...'
 			: 'Starting onboarding process...'
+	);
+
+	// Track onboarding start
+	telemetry.trackEvent(
+		isUpdate ? TelemetryEventName.CONFIG_UPDATED : TelemetryEventName.ONBOARDING_STARTED, 
+		{ isUpdate }
 	);
 
 	logger.note(
@@ -86,6 +97,13 @@ export async function startOnboarding(
 			logger.debug(`Detected framework: ${framework}`);
 		}
 		logger.debug(`React detected: ${hasReact}`);
+
+		// Track environment detection
+		telemetry.trackEvent(TelemetryEventName.CLI_ENVIRONMENT_DETECTED, {
+			packageManager,
+			framework: framework || 'unknown',
+			hasReact
+		});
 
 		// --- 1. Select Storage Mode ---
 		let initialStorageMode: string | undefined;
@@ -137,6 +155,12 @@ export async function startOnboarding(
 		const storageMode = storageModeSelection as string;
 		logger.debug(`Selected storage mode: ${storageMode}`);
 
+		// Track storage mode selection
+		telemetry.trackEvent(TelemetryEventName.ONBOARDING_STORAGE_MODE_SELECTED, {
+			storageMode,
+			isUpdate
+		});
+
 		// --- Variables for collected data and actions ---
 		let clientConfigContent: string | null = null;
 		let backendConfigContent: string | null = null;
@@ -180,6 +204,12 @@ export async function startOnboarding(
 			);
 
 			clientConfigContent = c15tResult.clientConfigContent;
+			
+			// Track c15t mode details
+			telemetry.trackEvent(TelemetryEventName.ONBOARDING_C15T_MODE_CONFIGURED, {
+				usingEnvFile: c15tResult.usingEnvFile,
+				hasInitialBackendURL: !!initialBackendURL
+			});
 		} else if (storageMode === 'offline') {
 			// Handle offline mode
 			const offlineResult = await setupOfflineMode(
@@ -190,6 +220,9 @@ export async function startOnboarding(
 			);
 
 			clientConfigContent = offlineResult.clientConfigContent;
+			
+			// Track offline mode setup
+			telemetry.trackEvent(TelemetryEventName.ONBOARDING_OFFLINE_MODE_CONFIGURED, {});
 		} else if (storageMode === 'self-hosted') {
 			// Handle self-hosted mode
 			const selfHostedResult = await setupSelfHostedMode(
@@ -202,11 +235,20 @@ export async function startOnboarding(
 			clientConfigContent = selfHostedResult.clientConfigContent;
 			backendConfigContent = selfHostedResult.backendConfigContent;
 			dependenciesToAdd.push(...selfHostedResult.dependencies);
+			
+			// Track self-hosted mode details
+			telemetry.trackEvent(TelemetryEventName.ONBOARDING_SELF_HOSTED_CONFIGURED, {
+				databaseType: selfHostedResult.adapterChoice,
+				dependencies: selfHostedResult.dependencies.join(',')
+			});
 		} else if (storageMode === 'custom') {
 			// Handle custom mode
 			const customResult = await setupCustomMode(context, projectRoot, s);
 
 			clientConfigContent = customResult.clientConfigContent;
+			
+			// Track custom mode setup
+			telemetry.trackEvent(TelemetryEventName.ONBOARDING_CUSTOM_MODE_CONFIGURED, {});
 		}
 
 		// --- 3. Handle Dependencies ---
@@ -223,6 +265,13 @@ export async function startOnboarding(
 
 			if (handleCancel(addDepsSelection)) return;
 			addDeps = addDepsSelection as boolean;
+
+			// Track dependency confirmation
+			telemetry.trackEvent(TelemetryEventName.ONBOARDING_DEPENDENCIES_CHOICE, {
+				confirmed: addDeps,
+				dependencies: dependenciesToAdd.join(','),
+				packageManager
+			});
 
 			if (addDeps) {
 				installDepsConfirmed = true; // Track confirmation
@@ -241,10 +290,25 @@ export async function startOnboarding(
 					);
 					spinnerActive = false;
 					ranInstall = true; // Track success
+					
+					// Track successful installation
+					telemetry.trackEvent(TelemetryEventName.ONBOARDING_DEPENDENCIES_INSTALLED, {
+						success: true,
+						dependencies: dependenciesToAdd.join(','),
+						packageManager
+					});
 				} catch (installError) {
 					s.stop(color.yellow('⚠️ Dependency installation failed.'));
 					spinnerActive = false;
 					logger.error('Installation Error:', installError);
+
+					// Track failed installation
+					telemetry.trackEvent(TelemetryEventName.ONBOARDING_DEPENDENCIES_INSTALLED, {
+						success: false,
+						error: installError instanceof Error ? installError.message : String(installError),
+						dependencies: dependenciesToAdd.join(','),
+						packageManager
+					});
 
 					// Give specific command for manual execution
 					const pmCommand = getManualInstallCommand(
@@ -351,10 +415,18 @@ If you find this useful, we'd really appreciate a GitHub star - it helps others 
 
 		if (p.isCancel(shouldOpenGithub)) {
 			// Handle cancellation consistently with other parts of the onboarding
+			telemetry.trackEvent(TelemetryEventName.ONBOARDING_GITHUB_STAR, {
+				action: 'cancelled'
+			});
 			return context.error.handleCancel(
 				'GitHub star prompt cancelled. Exiting onboarding.'
 			);
 		}
+
+		// Track GitHub star choice
+		telemetry.trackEvent(TelemetryEventName.ONBOARDING_GITHUB_STAR, {
+			action: shouldOpenGithub ? 'opened_browser' : 'declined'
+		});
 
 		if (shouldOpenGithub) {
 			try {
@@ -372,6 +444,13 @@ If you find this useful, we'd really appreciate a GitHub star - it helps others 
 			}
 		}
 
+		// Track onboarding completion
+		telemetry.trackEvent(TelemetryEventName.ONBOARDING_COMPLETED, {
+			success: true,
+			storageMode,
+			installDependencies: ranInstall
+		});
+
 		// Final success message
 		logger.success('🚀 Setup completed successfully!');
 	} catch (error) {
@@ -386,6 +465,12 @@ If you find this useful, we'd really appreciate a GitHub star - it helps others 
 				logger.error(`Error details: ${error.message}`);
 			}
 			logger.failed('Onboarding process could not be completed.');
+			
+			// Track onboarding failure
+			telemetry.trackEvent(TelemetryEventName.ONBOARDING_COMPLETED, {
+				success: false,
+				error: error instanceof Error ? error.message : String(error)
+			});
 		}
 	}
 }

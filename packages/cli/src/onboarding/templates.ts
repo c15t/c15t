@@ -36,7 +36,7 @@ export const c15tConfig = {
       console.log('Consent has been saved');
     }
   }
-};
+} satisfies ConsentManagerOptions;
 
 // Use in your app layout:
 // <ConsentManagerProvider options={c15tConfig}>
@@ -49,7 +49,7 @@ export const c15tConfig = {
 		}
 		case 'offline': {
 			configContent = `// c15t Client Configuration
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerOptions } from '@c15t/react';
 
 export const c15tConfig = {
   // Using offline mode for browser-based storage
@@ -62,7 +62,7 @@ export const c15tConfig = {
       console.log('Consent has been saved locally');
     }
   }
-};
+} satisfies ConsentManagerOptions;
 
 // Use in your app layout:
 // <ConsentManagerProvider options={c15tConfig}>
@@ -75,7 +75,7 @@ export const c15tConfig = {
 		}
 		case 'custom': {
 			configContent = `// c15t Client Configuration
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerOptions } from '@c15t/react';
 import { createCustomHandlers } from './consent-handlers';
 
 export const c15tConfig = {
@@ -89,7 +89,7 @@ export const c15tConfig = {
       console.log('Consent has been saved');
     }
   }
-};
+} satisfies ConsentManagerOptions;
 
 // Use in your app layout:
 // <ConsentManagerProvider options={c15tConfig}>

@@ -33,6 +33,12 @@ export const globalFlags: CliFlag[] = [
 		type: 'boolean',
 		expectsValue: false,
 	},
+	{
+		names: ['--no-telemetry'],
+		description: 'Disable telemetry data collection.',
+		type: 'boolean',
+		expectsValue: false,
+	},
 ];
 
 /**

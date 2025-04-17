@@ -14,6 +14,7 @@ export type LoadedConfig = {
 		| MaybeC15TFunc
 		| { options?: MaybeC15TOptions };
 	c15tConfig?: MaybeClientOptions;
+	c15tOptions?: MaybeClientOptions; // Add additional common export name
 	consent?: MaybeC15TOptions | MaybeC15TFunc | { options?: MaybeC15TOptions };
 	instance?: { options?: MaybeC15TOptions }; // instance less likely to be func/direct options
 	config?: { options?: MaybeC15TOptions };
@@ -29,7 +30,7 @@ export function isC15TOptions(obj: unknown): obj is C15TOptions {
 
 // Type guard to check if an object looks like ConsentManagerOptions
 export function isClientOptions(obj: unknown): obj is ConsentManagerOptions {
-	return typeof obj === 'object' && obj !== null && 'mode' in obj;
+	return typeof obj === 'object' && obj !== null && ('mode' in obj || 'backendURL' in obj);
 }
 
 /**
@@ -39,35 +40,41 @@ export function isClientOptions(obj: unknown): obj is ConsentManagerOptions {
 export function extractOptionsFromConfig(
 	config: LoadedConfig
 ): C15TOptions | ConsentManagerOptions | null {
+	// Debug what exports we're getting
+	console.debug('Available exports in config:', Object.keys(config));
+	
 	// First check for client configuration
 	if (config.c15tConfig && isClientOptions(config.c15tConfig)) {
+		console.debug('Found valid c15tConfig export');
 		return config.c15tConfig;
+	}
+	
+	// Check alternate client config name
+	if (config.c15tOptions && isClientOptions(config.c15tOptions)) {
+		console.debug('Found valid c15tOptions export');
+		return config.c15tOptions;
+	}
+
+	// Check if the entire module is a valid client config
+	if (isClientOptions(config)) {
+		console.debug('Found valid client config in the module itself');
+		return config as unknown as ConsentManagerOptions;
 	}
 
 	// Then check for server configuration
-	if (
-		(isC15TOptions(config.c15t) || typeof config.c15t === 'function') &&
-		isC15TOptions(config.c15t)
-	) {
+	if (isC15TOptions(config.c15t)) {
 		return config.c15t;
 	}
-	if (
-		(isC15TOptions(config.default) || typeof config.default === 'function') &&
-		isC15TOptions(config.default)
-	) {
+	
+	if (isC15TOptions(config.default)) {
 		return config.default;
 	}
-	if (
-		(isC15TOptions(config.c15tInstance) ||
-			typeof config.c15tInstance === 'function') &&
-		isC15TOptions(config.c15tInstance)
-	) {
+	
+	if (isC15TOptions(config.c15tInstance)) {
 		return config.c15tInstance;
 	}
-	if (
-		(isC15TOptions(config.consent) || typeof config.consent === 'function') &&
-		isC15TOptions(config.consent)
-	) {
+	
+	if (isC15TOptions(config.consent)) {
 		return config.consent;
 	}
 
@@ -115,5 +122,7 @@ export function extractOptionsFromConfig(
 		return config.config.options;
 	}
 
+	// If we get here, we couldn't find a valid config
+	console.debug('No valid configuration found in any of the expected locations');
 	return null;
 }

@@ -3,6 +3,7 @@ import {
 	createCliLogger,
 	validLogLevels,
 } from '../utils/logger';
+import { createTelemetry } from '../utils/telemetry';
 import { createConfigManagement } from './config-management';
 import { createErrorHandlers } from './error-handlers';
 import { createFileSystem } from './file-system';
@@ -72,6 +73,24 @@ export function createCliContext(
 
 	// Add file system utilities
 	context.fs = createFileSystem(context);
+	
+	// Add telemetry, respecting the telemetry flag if present
+	const telemetryDisabled = parsedFlags['no-telemetry'] === true;
+	context.telemetry = createTelemetry({ 
+		disabled: telemetryDisabled,
+		defaultProperties: {
+			cliVersion: context.fs.getPackageInfo().version,
+		}
+	});
+	
+	// Set telemetry log level to match CLI log level
+	context.telemetry.setLogLevel(desiredLogLevel);
+	
+	if (telemetryDisabled) {
+		logger.debug('Telemetry is disabled by user preference');
+	} else {
+		logger.debug('Telemetry initialized');
+	}
 
 	logger.debug('CLI context fully initialized with all utilities');
 

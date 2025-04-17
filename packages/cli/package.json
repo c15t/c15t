@@ -36,6 +36,7 @@
 		"open": "^10.1.1",
 		"package-manager-detector": "^1.2.0",
 		"picocolors": "^1.1.1",
+		"posthog-node": "^4.11.7",
 		"zod": "^3.24.2"
 	},
 	"devDependencies": {
