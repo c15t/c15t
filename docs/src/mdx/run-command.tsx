@@ -1,4 +1,4 @@
-import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 export function RunCommand({ command }: { command: string }) {
 	const packageManagers = {
