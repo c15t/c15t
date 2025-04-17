@@ -7,7 +7,7 @@ export function RunCommand({ command }: { command: string }) {
 		yarn: `yarn dlx ${command}`,
 		bun: `bunx --bun ${command}`,
 	} as const;
-}
+
 	return (
 		<Tabs items={Object.keys(packageManagers)}>
 			{Object.entries(packageManagers).map(([name, cmd]) => (
