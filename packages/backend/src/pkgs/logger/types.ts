@@ -49,11 +49,7 @@ export interface LoggerOptions {
 	 * @param message - The message to log
 	 * @param args - Additional data to include in the log
 	 */
-	log?: (
-		level: LogLevel,
-		message: string,
-		...args: unknown[]
-	) => void;
+	log?: (level: LogLevel, message: string, ...args: unknown[]) => void;
 
 	/**
 	 * Custom application name to display in log messages.
