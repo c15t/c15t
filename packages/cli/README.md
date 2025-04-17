@@ -1,6 +1,13 @@
-# c15t CLI
+<div align="center">
+  <img src="https://c15t.com/logo-icon.png" alt="c15t Logo" width="64" height="64" />
+  <h1>@c15t/cli</h1>
+  <p>Transform privacy consent from a compliance checkbox into a fully observable system</p>
 
-The Command Line Interface for managing c15t consent management projects.
+  [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
+  [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
+  [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)]([LICENSE.md](https://github.com/c15t/c15t/blob/main/LICENSE.md))
+  [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
+</div>
 
 ## Installation
 
@@ -88,6 +95,12 @@ You can disable telemetry in any of the following ways:
 
 For more detailed documentation, visit [https://c15t.com](https://c15t.com).
 
-## License
+## 📜 License
 
-MIT
+[GNU General Public License v3.0](https://github.com/c15t/c15t/blob/main/LICENSE.md) - See [LICENSE]([LICENSE.md](https://github.com/c15t/c15t/blob/main/LICENSE.md)) for details.
+
+---
+
+<div align="center">
+  <strong>Built with ❤️ by the <a href="www.consent.io"/>consent.io</a> team</strong>
+</div>

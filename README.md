@@ -5,7 +5,7 @@
 
   [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
   [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
-  [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE.md)
+  [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)]([LICENSE.md](https://github.com/c15t/c15t/blob/main/LICENSE.md))
   [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
 </div>
 
@@ -28,6 +28,8 @@ c15t (consent management) unifies analytics, consent tracking, and privacy contr
 | `c15t` | Core consent and event management | [![npm](https://img.shields.io/npm/v/c15t?style=flat-square)](https://www.npmjs.com/package/c15t) |
 | `@c15t/react` | Best in class React Components | [![npm](https://img.shields.io/npm/v/@c15t/react?style=flat-square)](https://www.npmjs.com/package/@c15t/react) |
 | `@c15t/dev-tools` | Development and debugging tools | [![npm](https://img.shields.io/npm/v/@c15t/dev-tools?style=flat-square)](https://www.npmjs.com/package/@c15t/dev-tools) |
+| `@c15t/cli` | cli interface for managing c15t instance | [![npm](https://img.shields.io/npm/v/@c15t/cli?style=flat-square)](https://www.npmjs.com/package/@c15t/cli) |
+| `@c15t/backend` | Selfhosted Node Instance and Database | [![npm](https://img.shields.io/npm/v/@c15t/backend?style=flat-square)](https://www.npmjs.com/package/@c15t/backend) |
 
 ## ⚡ Quick Start Via CLI
 
@@ -47,7 +49,7 @@ After running the CLI, you can use the following code to get started:
 
 ```tsx
 import { ConsentManagerProvider, CookieBanner, ConsentManagerDialog } from "@c15t/react";
-import { c15tConfig } from "./c15tConfig";
+import { c15tConfig } from "./c15t.client";
 
 export default function App() {
   return (
@@ -71,8 +73,8 @@ export default function App() {
 ## 🏗️ Development
 
 Prerequisites:
-- Node.js >= 18
-- pnpm >= 8
+- Node.js >= 22
+- pnpm >= 9
 
 ```bash
 # Clone repository
@@ -107,9 +109,10 @@ pnpm test
 ## 📚 Documentation
 
 - [Getting Started](https://c15t.com/docs)
-- [Javascript Core](https://c15t.com/docs/javascript)
+- [Javascript](https://c15t.com/docs/javascript/quickstart)
 - [NextJS Quick Start](https://c15t.com/docs/nextjs/quickstart)
-- [UI Components](https://c15t.com/docs/components/react/cookie-banner)
+- [\<CookieBanner />](https://c15t.com/docs/components/react/cookie-banner)
+- [\<ConsentManagerDialog />](https://c15t.com/docs/components/react/consent-manager-dialog)
 
 ## 🤝 Contributing
 
@@ -121,13 +124,12 @@ We welcome contributions!
 - 🧪 [Fix tests](https://github.com/c15t/c15t/issues/new?template=test.yml)
 - ⚡ [Report performance issues](https://github.com/c15t/c15t/issues/new?template=performance.yml)
 
-
 ## 📜 License
 
-[GNU General Public License v3.0](LICENSE.md) - See [LICENSE](LICENSE.md) for details.
+[GNU General Public License v3.0](https://github.com/c15t/c15t/blob/main/LICENSE.md) - See [LICENSE]([LICENSE.md](https://github.com/c15t/c15t/blob/main/LICENSE.md)) for details.
 
 ---
 
 <div align="center">
-  <strong>Built with ❤️ by the consent.io team</strong>
+  <strong>Built with ❤️ by the <a href="www.consent.io"/>consent.io</a> team</strong>
 </div>

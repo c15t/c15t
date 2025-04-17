@@ -5,7 +5,7 @@
 
   [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
   [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
-  [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
+  [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)]([LICENSE.md](https://github.com/c15t/c15t/blob/main/LICENSE.md))
   [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
 </div>
 
@@ -22,26 +22,31 @@ React components for building privacy-first user interfaces.
 ## Documentation
 
 For detailed documentation and examples, visit:
-[https://c15t.com/docs/framework/react](https://c15t.com/docs/framework/react)
+[https://c15t.com/docs/react/quickstart](https://c15t.com/docs/react/quickstart)
 
-## Installation
+## ⚡ Quick Start Via CLI
 
 ```bash
-npm install @c15t/react
-# or
-yarn add @c15t/react
-# or
-pnpm add @c15t/react
+# Generates the schema + code
+npx @c15t/cli generate 
+pnpm dlx @c15t/cli generate
+bunx --bun @c15t/cli generate
+
+# Database Migrations (If you're self hosting c15t)
+npx @c15t/cli migrate
+pnpm dlx @c15t/cli migrate
+bunx --bun @c15t/cli migrate
 ```
 
-## Quick Start
+After running the CLI, you can use the following code to get started:
 
 ```tsx
 import { ConsentManagerProvider, CookieBanner, ConsentManagerDialog } from "@c15t/react";
+import { c15tConfig } from "./c15t.client";
 
 export default function App() {
   return (
-    <ConsentManagerProvider>
+    <ConsentManagerProvider config={c15tConfig}>
       <CookieBanner />
       <ConsentManagerDialog/>
       {/* Your app content */}
@@ -50,6 +55,12 @@ export default function App() {
 }
 ```
 
-## License
+## 📜 License
 
-[GNU General Public License v3.0](https://github.com/c15t/c15t/blob/main/LICENSE)
+[GNU General Public License v3.0](https://github.com/c15t/c15t/blob/main/LICENSE.md) - See [LICENSE]([LICENSE.md](https://github.com/c15t/c15t/blob/main/LICENSE.md)) for details.
+
+---
+
+<div align="center">
+  <strong>Built with ❤️ by the <a href="www.consent.io"/>consent.io</a> team</strong>
+</div>
