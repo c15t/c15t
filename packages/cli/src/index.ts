@@ -84,17 +84,35 @@ export async function main() {
 	const packageInfo = context.fs.getPackageInfo();
 	const version = packageInfo.version;
 
+	// Inform users about telemetry if it's enabled
+	if (!telemetry.isDisabled()) {
+		logger.note(
+			`c15t collects anonymous usage data to help improve the CLI. 
+This data is not personally identifiable and helps us prioritize features.
+To disable telemetry, use the ${color.cyan('--no-telemetry')}
+flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
+			`${formatLogMessage('info', 'Telemetry Notice')}`
+		);
+	}
+
 	// Track CLI invocation (without command yet)
-	telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
-		version,
-		nodeVersion: process.version,
-		platform: process.platform,
-	});
+	try {
+		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
+			version,
+			nodeVersion: process.version,
+			platform: process.platform,
+		});
+		// Explicitly flush to ensure the event is sent immediately
+		telemetry.flushSync();
+	} catch (error) {
+		logger.debug('Failed to track CLI invocation:', error);
+	}
 
 	if (flags.version) {
 		logger.debug('Version flag detected');
 		logger.message(`c15t CLI version ${version}`);
 		telemetry.trackEvent(TelemetryEventName.VERSION_DISPLAYED, { version });
+		telemetry.flushSync();
 		await telemetry.shutdown();
 		process.exit(0);
 	}
@@ -102,6 +120,7 @@ export async function main() {
 	if (flags.help) {
 		logger.debug('Help flag detected. Displaying help and exiting.');
 		telemetry.trackEvent(TelemetryEventName.HELP_DISPLAYED, { version });
+		telemetry.flushSync();
 		showHelpMenu(context, version, commands, globalFlags);
 		await telemetry.shutdown();
 		process.exit(0);
@@ -195,11 +214,13 @@ export async function main() {
 					command: command.name,
 					executionTime: Date.now() - performance.now(),
 				});
+				telemetry.flushSync();
 			} else {
 				logger.error(`Unknown command: ${commandName}`);
 				telemetry.trackEvent(TelemetryEventName.COMMAND_UNKNOWN, {
 					unknownCommand: commandName,
 				});
+				telemetry.flushSync();
 				logger.info('Run c15t --help to see available commands.');
 				await telemetry.shutdown();
 				process.exit(1);
@@ -245,10 +266,12 @@ export async function main() {
 						command: selectedCommand.name,
 						executionTime: Date.now() - performance.now(),
 					});
+					telemetry.flushSync();
 				} else {
 					telemetry.trackEvent(TelemetryEventName.COMMAND_UNKNOWN, {
 						unknownCommand: String(selectedCommandName),
 					});
+					telemetry.flushSync();
 					error.handleError(
 						new Error(`Command '${selectedCommandName}' not found`),
 						'An internal error occurred'
@@ -260,6 +283,7 @@ export async function main() {
 		telemetry.trackEvent(TelemetryEventName.CLI_COMPLETED, {
 			success: true,
 		});
+		telemetry.flushSync();
 	} catch (executionError) {
 		telemetry.trackEvent(TelemetryEventName.COMMAND_FAILED, {
 			command: commandName,
@@ -268,7 +292,7 @@ export async function main() {
 					? executionError.message
 					: String(executionError),
 		});
-
+		telemetry.flushSync();
 		error.handleError(
 			executionError,
 			'An unexpected error occurred during command execution'
