@@ -74,6 +74,7 @@ describe('Offline Client Tests', () => {
 		// The second call should be with our data
 		expect(mockLocalStorage.setItem).toHaveBeenNthCalledWith(
 			2,
+			'c15t-consent',
 			expect.stringContaining(JSON.stringify(consentData.preferences))
 		);
 	});
