@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/dev-tools",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"license": "GPL-3.0-only",
 	"type": "module",
 	"main": "dist/index.cjs",
@@ -13,7 +13,11 @@
 		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"lint": "pnpm biome lint ./src"
 	},
-	"browserslist": [">0.2%", "not dead", "not op_mini all"],
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	],
 	"dependencies": {
 		"@radix-ui/react-accordion": "1.2.4",
 		"@radix-ui/react-scroll-area": "^1.2.4",

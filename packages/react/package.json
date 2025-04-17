@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/react",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"license": "GPL-3.0-only",
 	"sideEffects": false,
 	"type": "module",
@@ -49,7 +49,9 @@
 	"main": "./dist/index.cjs",
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"scripts": {
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
@@ -59,7 +61,11 @@
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},
-	"browserslist": [">0.2%", "not dead", "not op_mini all"],
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	],
 	"dependencies": {
 		"@radix-ui/react-accordion": "1.2.4",
 		"@radix-ui/react-slot": "1.2.0",
