@@ -27,7 +27,7 @@ export async function addAndInstallDependenciesViaPM(
 
 	let command = '';
 	let args: string[] = [];
-	
+
 	switch (packageManager) {
 		case 'npm':
 			// npm install pkg@workspace:* adds to dependencies by default
@@ -51,11 +51,11 @@ export async function addAndInstallDependenciesViaPM(
 	}
 
 	// Execute the command with spawn to prevent shell injection
-	const child = spawn(command, args, { 
+	const child = spawn(command, args, {
 		cwd: projectRoot,
-		stdio: 'inherit' 
+		stdio: 'inherit',
 	});
-	
+
 	await once(child, 'exit');
 }
 
