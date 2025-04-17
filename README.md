@@ -28,7 +28,7 @@ c15t (consent management) unifies analytics, consent tracking, and privacy contr
 | `c15t` | Core consent and event management | [![npm](https://img.shields.io/npm/v/c15t?style=flat-square)](https://www.npmjs.com/package/c15t) |
 | `@c15t/react` | Best in class React Components | [![npm](https://img.shields.io/npm/v/@c15t/react?style=flat-square)](https://www.npmjs.com/package/@c15t/react) |
 | `@c15t/dev-tools` | Development and debugging tools | [![npm](https://img.shields.io/npm/v/@c15t/dev-tools?style=flat-square)](https://www.npmjs.com/package/@c15t/dev-tools) |
-| `@c15t/cli` | cli interface for managing c15t instance | [![npm](https://img.shields.io/npm/v/@c15t/cli?style=flat-square)](https://www.npmjs.com/package/@c15t/cli) |
+| `@c15t/cli` | Command-line interface for managing a c15t instance | [![npm](https://img.shields.io/npm/v/@c15t/cli?style=flat-square)](https://www.npmjs.com/package/@c15t/cli) |
 | `@c15t/backend` | Selfhosted Node Instance and Database | [![npm](https://img.shields.io/npm/v/@c15t/backend?style=flat-square)](https://www.npmjs.com/package/@c15t/backend) |
 
 ## ⚡ Quick Start Via CLI
@@ -110,7 +110,7 @@ pnpm test
 
 - [Getting Started](https://c15t.com/docs)
 - [Javascript](https://c15t.com/docs/javascript/quickstart)
-- [NextJS Quick Start](https://c15t.com/docs/nextjs/quickstart)
+- [Next.js Quick Start](https://c15t.com/docs/nextjs/quickstart)
 - [\<CookieBanner />](https://c15t.com/docs/components/react/cookie-banner)
 - [\<ConsentManagerDialog />](https://c15t.com/docs/components/react/consent-manager-dialog)
 
