@@ -7,7 +7,7 @@ import * as loadConfigModule from '../src/actions/load-config-and-onboard';
 import { migrate } from '../src/commands/migrate';
 
 // Mock Kysely adapter
-const createMockKyselyAdapter = (db: any) => ({
+const createMockKyselyAdapter = (db: ReturnType<typeof Database>) => ({
 	id: 'kysely',
 	type: 'kysely',
 	// Mock just enough to pass the validator
@@ -44,6 +44,9 @@ const createMockContext = () => ({
 	},
 	fs: {
 		getPackageInfo: vi.fn(() => ({ version: '1.0.0' })),
+	},
+	telemetry: {
+		trackEvent: vi.fn(),
 	},
 });
 
