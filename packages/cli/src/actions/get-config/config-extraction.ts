@@ -1,7 +1,9 @@
 import type { C15TOptions } from '@c15t/backend';
+import type { ConsentManagerOptions } from '@c15t/react';
 
 // Define the shape of the config object expected by c12
 type MaybeC15TOptions = Partial<C15TOptions>; // Allow options obj shape
+type MaybeClientOptions = Partial<ConsentManagerOptions>; // Allow client options shape
 type MaybeC15TFunc = (...args: unknown[]) => unknown; // Use unknown for better type safety
 
 export type LoadedConfig = {
@@ -11,6 +13,7 @@ export type LoadedConfig = {
 		| MaybeC15TOptions
 		| MaybeC15TFunc
 		| { options?: MaybeC15TOptions };
+	c15tConfig?: MaybeClientOptions;
 	consent?: MaybeC15TOptions | MaybeC15TFunc | { options?: MaybeC15TOptions };
 	instance?: { options?: MaybeC15TOptions }; // instance less likely to be func/direct options
 	config?: { options?: MaybeC15TOptions };
@@ -20,8 +23,13 @@ export type LoadedConfig = {
 };
 
 // Type guard to check if an object looks like C15TOptions
-function isC15TOptions(obj: unknown): obj is C15TOptions {
+export function isC15TOptions(obj: unknown): obj is C15TOptions {
 	return typeof obj === 'object' && obj !== null && 'appName' in obj;
+}
+
+// Type guard to check if an object looks like ConsentManagerOptions
+export function isClientOptions(obj: unknown): obj is ConsentManagerOptions {
+	return typeof obj === 'object' && obj !== null && 'mode' in obj;
 }
 
 /**
@@ -30,8 +38,13 @@ function isC15TOptions(obj: unknown): obj is C15TOptions {
  */
 export function extractOptionsFromConfig(
 	config: LoadedConfig
-): C15TOptions | null {
-	// Prioritize direct exports of the function or a compatible object
+): C15TOptions | ConsentManagerOptions | null {
+	// First check for client configuration
+	if (config.c15tConfig && isClientOptions(config.c15tConfig)) {
+		return config.c15tConfig;
+	}
+
+	// Then check for server configuration
 	if (
 		(isC15TOptions(config.c15t) || typeof config.c15t === 'function') &&
 		isC15TOptions(config.c15t)

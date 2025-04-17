@@ -2,9 +2,16 @@
 
 import * as p from '@clack/prompts';
 import 'dotenv/config';
+import open from 'open';
+import color from 'picocolors';
 
 import type { C15TOptions } from '@c15t/backend';
+import type { ConsentManagerOptions } from '@c15t/react';
 import { getConfig } from './actions/get-config';
+import {
+	isC15TOptions,
+	isClientOptions,
+} from './actions/get-config/config-extraction';
 import { showHelpMenu } from './actions/show-help-menu';
 import { generate } from './commands/generate';
 import { migrate } from './commands/migrate';
@@ -15,6 +22,7 @@ import { startOnboarding } from './onboarding';
 import { createCliContext } from './context/creator';
 import { globalFlags } from './context/parser'; // Import flags for help menu
 import type { CliCommand } from './context/types';
+import { formatLogMessage } from './utils/logger';
 
 // Define commands (using types from context)
 const commands: CliCommand[] = [
@@ -31,6 +39,35 @@ const commands: CliCommand[] = [
 		hint: 'Run database migrations',
 		description: 'Run database migrations based on your c15t config.',
 		action: (context) => migrate(context),
+	},
+	{
+		name: 'github',
+		label: 'Github',
+		hint: 'Star us on GitHub',
+		description: 'Open our GitHub repository to give us a star.',
+		action: async (context) => {
+			const { logger } = context;
+
+			// Show the same messaging as in onboarding.ts
+			logger.note(
+				`We're building c15t as an ${color.bold('open source')} project to make consent management more accessible.\nIf you find this useful, we'd really appreciate a GitHub star - it helps others discover the project!`,
+				'⭐ Star Us on GitHub'
+			);
+
+			await open('https://github.com/c15t/c15t');
+			logger.success('Thank you for your support!');
+		},
+	},
+	{
+		name: 'docs',
+		label: 'c15t docs',
+		hint: 'Open documentation',
+		description: 'Open the c15t documentation in your browser.',
+		action: async (context) => {
+			const { logger } = context;
+			await open('https://c15t.com/docs?ref=cli');
+			logger.success('Documentation opened in your browser.');
+		},
 	},
 ];
 
@@ -71,10 +108,23 @@ export async function main() {
 	logger.debug(`Current working directory: ${cwd}`);
 	logger.debug(`Config path flag: ${flags.config}`);
 
-	let config: C15TOptions | undefined;
+	let clientConfig: ConsentManagerOptions | undefined;
+	let backendConfig: C15TOptions | undefined;
+
 	try {
+		// Try to load the config (could be client or backend)
 		const loadedConfig = await getConfig(context);
-		config = loadedConfig ?? undefined;
+		if (loadedConfig) {
+			// Use type guard to determine config type
+			if (isClientOptions(loadedConfig)) {
+				clientConfig = loadedConfig;
+			} else if (isC15TOptions(loadedConfig)) {
+				backendConfig = loadedConfig;
+			} else {
+				// Should not happen if validation works, but handle defensively
+				logger.warn('Loaded configuration is of an unknown type.');
+			}
+		}
 	} catch (loadError) {
 		return error.handleError(
 			loadError,
@@ -83,14 +133,26 @@ export async function main() {
 	}
 
 	// --- Onboarding or Command Handling ---
-	if (!config) {
-		logger.info('No configuration found, starting onboarding...');
+	if (!clientConfig) {
 		await startOnboarding(context);
 		return;
 	}
 
-	logger.info('✅ Configuration loaded successfully');
-	logger.debug('Loaded config:', config);
+	// Display configuration status with regular messages for better visibility
+	// Apply brighter color to "consent.io" text
+	const coloredConsentIo = color.cyanBright('consent.io');
+	const backendStatus = backendConfig
+		? 'Backend configuration loaded'
+		: `Using ${coloredConsentIo} for your c15t deployment`;
+
+	logger.info(
+		`Client configuration successfully loaded and validated \n        ${backendStatus}`
+	);
+
+	logger.debug('Client config details:', clientConfig);
+	if (backendConfig) {
+		logger.debug('Backend config details:', backendConfig);
+	}
 
 	// --- Execute Command or Show Interactive Menu ---
 	try {
@@ -119,7 +181,10 @@ export async function main() {
 			});
 
 			const selectedCommandName = await p.select({
-				message: 'Which command would you like to run?',
+				message: formatLogMessage(
+					'info',
+					'Which command would you like to run?'
+				),
 				options: promptOptions,
 			});
 
@@ -131,7 +196,7 @@ export async function main() {
 					(cmd) => cmd.name === selectedCommandName
 				);
 				if (selectedCommand) {
-					logger.info(`User selected command: ${selectedCommand.name}`);
+					logger.debug(`User selected command: ${selectedCommand.name}`);
 					await selectedCommand.action(context);
 				} else {
 					error.handleError(

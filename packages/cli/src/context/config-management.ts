@@ -15,7 +15,7 @@ export function createConfigManagement(context: CliContext) {
 		 * Load configuration, returns null if not found
 		 */
 		loadConfig: async (): Promise<C15TOptions<C15TPlugin[]> | null> => {
-			logger.info('Attempting to load configuration...');
+			logger.debug('Attempting to load configuration...');
 
 			try {
 				const configResult = await getConfig(context);
@@ -23,9 +23,9 @@ export function createConfigManagement(context: CliContext) {
 				logger.debug('Config loading result:', config);
 
 				if (config) {
-					logger.info('Configuration loaded successfully.');
+					logger.debug('Configuration loaded successfully.');
 				} else {
-					logger.info('No configuration found.');
+					logger.debug('No configuration found.');
 				}
 
 				return config;

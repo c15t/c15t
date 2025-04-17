@@ -11,7 +11,7 @@ export async function loadConfigAndOnboard(
 	context: CliContext
 ): Promise<C15TOptions<C15TPlugin[]>> {
 	const { logger } = context;
-	logger.info('Checking for existing configuration...');
+	logger.debug('Checking for existing configuration...');
 
 	let config: C15TOptions<C15TPlugin[]> | null;
 	try {
@@ -34,7 +34,7 @@ export async function loadConfigAndOnboard(
 		process.exit(0);
 	}
 
-	logger.info('Configuration loaded successfully.');
+	logger.debug('Configuration loaded successfully.');
 	// If we reach here, config is guaranteed to be defined.
 	return config;
 }

@@ -1,98 +1,126 @@
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { C15TOptions } from '@c15t/backend';
-import { DoubleTieError } from '@c15t/backend/pkgs/results';
+import type { ConsentManagerOptions } from '@c15t/react';
 import { loadConfig } from 'c12';
 
 import type { CliContext } from '../context/types';
-import {
-	type LoadedConfig,
-	extractOptionsFromConfig,
-} from './get-config/config-extraction';
-import { validateConfig } from './get-config/config-validation';
-import { configFileNames, monorepoSubdirs } from './get-config/constants';
-import { findDirectories } from './get-config/directory-search';
+import { isC15TOptions, isClientOptions } from './get-config/config-extraction';
+import {} from './get-config/constants';
 import { jitiOptions } from './get-config/jiti-options';
 
 /**
- * Get the c15t configuration by searching in standard locations and monorepo subdirectories.
+ * Gets the configuration for the CLI.
+ * @param contextOrOptions Either a CliContext object or a simplified object with just cwd and configPath
+ * @returns The loaded configuration or null if it could not be loaded
  */
 export async function getConfig(
-	context: CliContext
-): Promise<C15TOptions | null> {
+	contextOrOptions: CliContext | { cwd: string; configPath?: string }
+): Promise<C15TOptions | ConsentManagerOptions | null> {
+	// Create a minimal context for test cases that don't provide a full CliContext
+	const context =
+		'logger' in contextOrOptions
+			? contextOrOptions
+			: {
+					...contextOrOptions,
+					logger: {
+						debug: console.debug,
+						info: console.info,
+						warn: console.warn,
+						error: console.error,
+					},
+					flags: { config: contextOrOptions.configPath },
+					error: {
+						handleError: (error: unknown) => {
+							console.error('Error loading configuration:', error);
+							return null;
+						},
+					},
+				};
+
+	const { cwd, logger, flags } = context as CliContext;
+	const configPath = flags.config as string | undefined;
+	let foundConfigPath: string | null = null;
+
 	try {
-		let options: C15TOptions | null = null;
-		const { cwd, logger, flags } = context;
-		const configPath = flags.config as string | undefined;
+		let options: C15TOptions | ConsentManagerOptions | null = null;
+		const customJitiOptions = jitiOptions(context as CliContext, cwd);
 
-		const directoriesToSearch: string[] = [
-			cwd,
-			...findDirectories(cwd, monorepoSubdirs).map((dir) =>
-				path.join(cwd, dir)
-			),
-		];
+		// --- Manual Check for Prioritized Locations ---
+		if (configPath) {
+			// If --config is used, trust that path directly
+			foundConfigPath = path.resolve(cwd, configPath);
+			logger.debug(`Using explicitly provided config path: ${foundConfigPath}`);
+		} else {
+			// Only search manually if --config flag wasn't used
+			const prioritizedDirs = [cwd, path.join(cwd, 'packages/cli')]; // Add packages/cli explicitly
+			const primaryName = 'c15t.config'; // Base name to check
+			const extensions = ['.ts', '.js', '.mjs'];
 
-		const customJitiOptions = jitiOptions(context, cwd);
-
-		for (const dir of directoriesToSearch) {
-			try {
-				const { config } = await loadConfig<LoadedConfig>({
-					cwd: dir,
-					jitiOptions: customJitiOptions,
-					configFile: configPath,
-					name: configFileNames[0], // Use the primary name for c12's default search
-				});
-
-				if (
-					!config ||
-					typeof config !== 'object' ||
-					Object.keys(config).length === 0
-				) {
-					continue;
+			for (const dir of prioritizedDirs) {
+				for (const ext of extensions) {
+					const checkPath = path.join(dir, `${primaryName}${ext}`);
+					try {
+						await fs.access(checkPath);
+						foundConfigPath = checkPath;
+						logger.debug(`Found config via manual check: ${foundConfigPath}`);
+						break; // Found it
+					} catch {
+						// File doesn't exist, continue checking
+					}
 				}
-
-				const extractedOptions = extractOptionsFromConfig(config);
-
-				if (!extractedOptions) {
-					continue;
-				}
-
-				if (!validateConfig(extractedOptions)) {
-					throw new Error(
-						'Invalid configuration file found, please check the documentation.'
-					);
-				}
-
-				// If options have already been found, we have a double tie
-				if (options) {
-					throw new DoubleTieError(
-						'Found multiple configuration files, please only specify one.'
-					);
-				}
-
-				options = extractedOptions;
-				logger.debug(`Found valid config in ${dir}`);
-				// Found valid options, exit the loop
-				//break;
-			} catch (error) {
-				// Use debug for errors during search in specific dirs
-				// Only show these details if debugging is enabled
-				logger.debug(`Failed to load or validate config from ${dir}:`, error);
+				if (foundConfigPath) break; // Stop searching directories if found
 			}
 		}
 
-		if (!options) {
-			logger.info(
-				'No configuration file found after searching specified directories.'
-			);
-			return null; // Return null if no config found after searching
+		// --- Load the found config file (if any) ---
+		if (foundConfigPath) {
+			try {
+				logger.debug(
+					`Loading configuration from resolved path: ${foundConfigPath}`
+				);
+				const result = await loadConfig({
+					configFile: foundConfigPath,
+					jitiOptions: customJitiOptions,
+				});
+
+				options = result.config as C15TOptions | ConsentManagerOptions | null;
+
+				// Validate loaded config
+				if (options) {
+					logger.debug('Raw loaded config:', options);
+
+					if (isC15TOptions(options) || isClientOptions(options)) {
+						logger.debug('Configuration validated successfully.');
+						return options;
+					}
+
+					logger.debug('Loaded config does not match expected schema');
+					return null;
+				}
+
+				logger.debug('No configuration loaded from explicit path');
+				// Fall through to broader search if manual load fails
+			} catch (error) {
+				// Log but continue searching, don't rethrow
+				logger.debug('Error loading config from explicit path:', error);
+				// Fall through to broader search if manual load fails
+			}
 		}
 
-		// Return the found options
 		return options;
 	} catch (error) {
-		// Handle broader errors during the config search process (e.g., DoubleTieError)
-		context.logger.error('Error trying to load configuration:');
+		// Handle errors based on context type
+		if (
+			'error' in context &&
+			context.error &&
+			typeof context.error.handleError === 'function'
+		) {
+			return context.error.handleError(error, 'Error loading configuration');
+		}
 
-		return context.error.handleError(error, 'Error loading configuration');
+		// Fallback error handling for tests
+		console.error('Error loading configuration:', error);
+		return null;
 	}
 }

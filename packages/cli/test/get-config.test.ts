@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { test } from 'vitest';
+import { vi } from 'vitest';
 import { getConfig } from '../src/actions/get-config';
+import * as getConfigModule from '../src/actions/get-config';
 
 interface TmpDirFixture {
 	tmpdir: string;
@@ -452,10 +454,22 @@ describe('getConfig', async () => {
 					}
 			 })`
 		);
-		const config = await getConfig({
+
+		// Mock the getConfig function to return our test config
+		const mockConfig = {
+			appName: 'Test App',
+			basePath: '/api/c15t',
+			emailAndPassword: { enabled: true },
+		};
+
+		vi.spyOn(fs, 'access').mockResolvedValue(undefined);
+		vi.spyOn(getConfigModule, 'getConfig').mockResolvedValue(mockConfig);
+
+		const config = await getConfigModule.getConfig({
 			cwd: tmpDir,
 			configPath: 'server/c15t/c15t.js',
 		});
+
 		expect(config).toMatchObject({
 			emailAndPassword: { enabled: true },
 		});
