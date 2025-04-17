@@ -4,10 +4,10 @@ export function RunCommand({ command }: { command: string }) {
 	const packageManagers = {
 		npm: `npx ${command}`,
 		pnpm: `pnpm dlx ${command}`,
-		yarn: `npx ${command}`,
+		yarn: `yarn dlx ${command}`,
 		bun: `bunx --bun ${command}`,
 	} as const;
-
+}
 	return (
 		<Tabs items={Object.keys(packageManagers)}>
 			{Object.entries(packageManagers).map(([name, cmd]) => (
