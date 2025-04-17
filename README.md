@@ -34,9 +34,13 @@ c15t (consent management) unifies analytics, consent tracking, and privacy contr
 ```bash
 # Generates the schema + code
 npx @c15t/cli generate 
+pnpm dlx @c15t/cli generate
+bunx --bun @c15t/cli generate
 
 # Database Migrations (If you're self hosting c15t)
 npx @c15t/cli migrate
+pnpm dlx @c15t/cli migrate
+bunx --bun @c15t/cli migrate
 ```
 
 After running the CLI, you can use the following code to get started:
