@@ -103,7 +103,6 @@ function getDatabaseType(
  *
  * // Use in c15t configuration
  * const c15t = c15tInstance({
- *   secret: process.env.SECRET_KEY,
  *   database: { db, type: 'postgres' } // Pre-configured Kysely instance
  * });
  * ```
@@ -124,7 +123,6 @@ function getDatabaseType(
  *
  * // Pass the pool directly to c15t
  * const c15t = c15tInstance({
- *   secret: process.env.SECRET_KEY,
  *   database: pool // The adapter will detect it's a Postgres pool
  * });
  * ```

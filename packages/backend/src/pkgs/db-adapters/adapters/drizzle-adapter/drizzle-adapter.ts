@@ -490,8 +490,6 @@ function checkMissingFields(
  *     schema, // Pass your Drizzle schema
  *     usePlural: true
  *   }),
- *   // Other C15T options...
- *   secret: process.env.SECRET
  * });
  *
  * // Use in your application
@@ -517,7 +515,6 @@ function checkMissingFields(
  *   storage: drizzleAdapter(db, {
  *     provider: 'mysql'
  *   }),
- *   secret: process.env.SECRET
  * });
  * ```
  */

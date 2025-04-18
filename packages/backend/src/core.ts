@@ -117,7 +117,6 @@ export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
  * import { c15tInstance } from '@c15t/backend';
  *
  * const manager = c15tInstance({
- *   secret: process.env.SECRET_KEY,
  *   storage: memoryAdapter()
  * });
  * ```
@@ -128,7 +127,6 @@ export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
  * type MyPlugins = [typeof geoPlugin, typeof analyticsPlugin];
  *
  * const c15t = c15tInstance<MyPlugins>({
- *   secret: process.env.SECRET_KEY,
  *   storage: kyselyAdapter(db),
  *   plugins: [geoPlugin(), analyticsPlugin()]
  * });

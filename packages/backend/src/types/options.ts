@@ -24,7 +24,6 @@ import type { TablesConfig } from '~/schema/types';
  * // Basic consent management configuration
  * const options: C15TOptions = {
  *   appName: "My Consent App",
- *   secret: process.env.SECRET_KEY,
  *   baseURL: "https://example.com",
  *   trustedOrigins: ["https://example.com"]
  * };

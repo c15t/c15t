@@ -142,23 +142,6 @@ describe('init', () => {
 		}
 	});
 
-	it('should handle secret from environment', async () => {
-		vi.stubEnv('C15T_SECRET', 'test-secret');
-
-		const result = await init({
-			baseURL: 'http://localhost:3000',
-			database: memoryAdapter({}),
-		});
-
-		expect(result.isOk()).toBe(true);
-		if (result.isOk()) {
-			const ctx = result.value;
-			expect(ctx.secret).toBe('test-secret');
-		}
-
-		vi.unstubAllEnvs();
-	});
-
 	it('should handle multiple plugins in sequence', async () => {
 		const result = await init({
 			baseURL: 'http://localhost:3000',

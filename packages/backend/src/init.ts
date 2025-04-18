@@ -6,7 +6,7 @@ import type { DatabaseHook } from '~/pkgs/data-model';
 import { getAdapter } from '~/pkgs/db-adapters';
 import { createLogger } from '~/pkgs/logger';
 import type { RegistryContext } from '~/pkgs/types';
-import { env, getBaseURL, isProduction } from '~/pkgs/utils';
+import { env, getBaseURL } from '~/pkgs/utils';
 import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
 import { generateId } from './pkgs/data-model/fields/id-generator';
 import type { EntityName } from './pkgs/data-model/schema/types';
@@ -41,12 +41,6 @@ import { getConsentTables } from './schema/definition';
  * This is an internal module typically not used directly by consumers of the c15t library.
  */
 
-/**
- * Default secret used when no secret is provided
- * This should only be used in development environments
- */
-const DEFAULT_SECRET = 'c15t-default-secret-please-change-in-production';
-
 // SDK instance should be at module level for proper lifecycle management
 let telemetrySdk: NodeSDK | undefined;
 
@@ -66,7 +60,6 @@ let telemetrySdk: NodeSDK | undefined;
  * @example
  * ```typescript
  * const contextResult = await init({
- *   secret: process.env.CONSENT_SECRET,
  *   storage: memoryAdapter(),
  *   plugins: [geoPlugin()]
  * });
@@ -187,23 +180,10 @@ export const init = async <P extends C15TPlugin[]>(
 
 		return adapterResult.andThen((adapter) => {
 			const resolvedBaseURL = getBaseURL(baseUrlStr, basePathStr);
-			const secret =
-				(options.secret as string) ||
-				env.C15T_SECRET ||
-				env.CONSENT_SECRET ||
-				DEFAULT_SECRET;
-
-			// Secret warning
-			if (secret === DEFAULT_SECRET && isProduction) {
-				logger.error(
-					'Using default secret in production. Set C15T_SECRET or pass secret in config.'
-				);
-			}
 
 			// Create normalized options directly with h3 patterns but no version field
 			const finalOptions: DoubleTieOptions = {
 				...options,
-				secret,
 				baseURL: resolvedBaseURL ? new URL(resolvedBaseURL).origin : '',
 				basePath: basePathStr || '/api/c15t',
 				plugins: [...(options.plugins || []), ...getInternalPlugins(options)],
@@ -236,7 +216,6 @@ export const init = async <P extends C15TPlugin[]>(
 				options: finalOptions,
 				trustedOrigins: options.trustedOrigins || [],
 				baseURL: resolvedBaseURL || '',
-				secret,
 				logger,
 				generateId: generateIdFunc,
 				adapter,

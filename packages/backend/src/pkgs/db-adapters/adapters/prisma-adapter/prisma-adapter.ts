@@ -319,7 +319,6 @@ const createEntityTransformer = (
  * // Create the c15t instance with Prisma adapter
  * const c15t = c15tInstance({
  *   storage: prismaAdapter(prisma, { provider: 'postgresql' }),
- *   secret: process.env.SECRET_KEY
  * });
  *
  * // Use in your application

@@ -330,7 +330,6 @@ const createEntityTransformer = (options: C15TOptions) => {
  * // Create the c15t instance with memory adapter
  * const c15t = c15tInstance({
  *   storage: memoryAdapter(db),
- *   secret: process.env.SECRET_KEY
  * });
  *
  * // The database will be populated as records are created

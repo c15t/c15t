@@ -632,7 +632,6 @@ const createEntityTransformer = (
  * const c15t = c15tInstance({
  *   storage: kyselyAdapter(db, { type: 'postgres' }),
  *   // Other c15t options...
- *   secret: process.env.SECRET
  * });
  *
  * // Use in your application

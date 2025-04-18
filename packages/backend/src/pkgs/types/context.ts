@@ -113,11 +113,6 @@ export interface BaseDoubleTieContext {
 	baseURL: string;
 
 	/**
-	 * Secret key used for signing cookies and tokens
-	 */
-	secret: string;
-
-	/**
 	 * Logger instance for recording events and errors
 	 */
 	logger: ReturnType<typeof createLogger>;

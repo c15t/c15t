@@ -22,7 +22,6 @@ import type { DoubleTiePlugin } from './plugins';
  * // Basic configuration
  * const options: DoubleTieOptions = {
  *   appName: "My App",
- *   secret: process.env.SECRET_KEY,
  *   baseURL: "https://example.com",
  *   trustedOrigins: ["https://example.com"]
  * };
