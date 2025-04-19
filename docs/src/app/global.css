@@ -12,3 +12,16 @@
 :root .dark {
 	--color-fd-primary: hsl(172 70.7% 55.9%);
 }
+
+.main a:focus, .main a:focus-visible, .main button:focus, .main button:focus-visible {
+  box-shadow: 0 0 0 2px hsl(172 72.2% 48%);
+  border-radius: var(--radius-lg);
+  outline-offset: 0;
+  outline: 0;
+}
+
+.main figure:focus, .main figure:focus-visible {
+  box-shadow: 0 0 0 2px hsl(172 72.2% 48%);
+  outline-offset: 0;
+  outline: 0;
+}
