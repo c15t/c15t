@@ -162,8 +162,8 @@ export function RootToggle({
 					<PopoverTrigger
 						{...props}
 						className={cn(
-							'flex h-10 w-full items-center justify-between gap-x-2 rounded-lg bg-fd-card py-2 pr-3 pl-2.5',
-							'font-medium text-sm shadow-md outline-none transition-all hover:shadow-lg',
+							'flex h-10 w-full items-center justify-between gap-x-2 rounded-lg border bg-fd-secondary/50 py-2 pr-3 pl-2.5 hover:bg-fd-accent',
+							'font-medium text-fd-muted-foreground text-sm shadow-md outline-none transition-all hover:text-fd-accent-foreground',
 							props.className
 						)}
 					>
@@ -175,7 +175,7 @@ export function RootToggle({
 						</span>
 						<ChevronDown className="size-4 flex-none opacity-60" />
 					</PopoverTrigger>
-					<PopoverContent className="w-full rounded-lg border-0 p-1 shadow-lg">
+					<PopoverContent className="w-full rounded-lg border p-1 shadow-lg">
 						<div className="grid gap-1">
 							{options.map((item) => {
 								if (
@@ -192,7 +192,7 @@ export function RootToggle({
 										key={url}
 										href={url}
 										className={cn(
-											'flex flex-row items-center gap-2.5 rounded-md p-2 transition-colors',
+											'flex flex-row items-center gap-2.5 rounded-md p-2 transition-colors focus-visible:outline-0 focus-visible:ring-2 focus-visible:ring-fd-primary',
 											'hover:bg-fd-accent/10 hover:text-fd-accent-foreground',
 											item === selectedOption &&
 												'bg-fd-accent/10 font-medium text-fd-primary'
