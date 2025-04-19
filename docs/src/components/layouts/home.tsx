@@ -79,7 +79,6 @@ export function Header({
 	i18n = false,
 	links,
 	githubUrl,
-	themeSwitch,
 	searchToggle,
 }: HomeLayoutProps) {
 	const finalLinks = useMemo(

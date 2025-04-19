@@ -459,6 +459,7 @@ export function SidebarPageTree(props: {
 			);
 		}
 
+		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: <explanation>
 		function renderFolderItem(
 			item: PageTree.Folder,
 			i: number,

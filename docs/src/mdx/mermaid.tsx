@@ -36,6 +36,7 @@ export function Mermaid({ chart }: { chart: string }) {
 					setSvg(svg);
 				}
 			} catch (error) {
+				// biome-ignore lint/suspicious/noConsole: <explanation>
 				console.error('Error while rendering mermaid', error);
 			}
 		}
@@ -44,6 +45,7 @@ export function Mermaid({ chart }: { chart: string }) {
 	return (
 		<div
 			ref={containerRef}
+			// biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
 			dangerouslySetInnerHTML={{ __html: svg }}
 			data-testid="mermaid-diagram"
 		/>

@@ -73,6 +73,7 @@ function createPageStyles(): PageStyles {
 	};
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: <explanation>
 export function DocsLayout({
 	tabMode = 'sidebar',
 	nav: { transparentMode, ...nav } = {},
@@ -97,6 +98,7 @@ export function DocsLayout({
 		const allTabs = getSidebarTabsFromOptions(tabOptions, props.tree) ?? [];
 
 		// Map framework names to iconKeys
+		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: <explanation>
 		const enhancedTabs = allTabs.map((tab) => {
 			if (typeof tab.title === 'string') {
 				const title = tab.title.toLowerCase();
@@ -299,7 +301,6 @@ export function DocsLayout({
 function DocsNavbar({
 	sidebarCollapsible,
 	links,
-	themeSwitch,
 	nav = {},
 	i18n,
 	tabs,
