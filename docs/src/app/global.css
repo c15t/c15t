@@ -16,16 +16,11 @@
 main a:focus,
 main a:focus-visible,
 main button:focus,
-main button:focus-visible {
-	box-shadow: 0 0 0 2px hsl(172 72.2% 48%);
-	border-radius: var(--radius-lg);
-	outline-offset: 0;
-	outline: 0;
-}
-
+main button:focus-visible,
 main figure:focus,
 main figure:focus-visible {
-	box-shadow: 0 0 0 2px hsl(172 72.2% 48%);
+	box-shadow: 0 0 0 2px var(--color-fd-primary);
+	border-radius: var(--radius-lg);
 	outline-offset: 0;
 	outline: 0;
 }

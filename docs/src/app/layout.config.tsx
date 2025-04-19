@@ -2,30 +2,10 @@ import type { BaseLayoutProps } from '~/components/layouts/shared';
 import { C15TLogo } from '~/components/logo';
 
 import { GithubInfo } from 'fumadocs-ui/components/github-info';
+import { DiscordIcon } from '~/components/icons/discord';
+import { RedditIcon } from '~/components/icons/reddit';
+import { XIcon } from '~/components/icons/x';
 import packageJson from '../../../packages/core/package.json';
-
-/**
- * Defines the navigation structure and menu items for the docs.
- *
- * @see BaseLayoutProps for all available configuration options
- */
-export const docsOptions: BaseLayoutProps = {
-	nav: {
-		title: (
-			<>
-				<C15TLogo className="h-6 w-auto" />
-				<span className="font-medium text-sm">{packageJson.version}</span>
-			</>
-		),
-		transparentMode: 'top',
-	},
-	links: [
-		{
-			type: 'custom',
-			children: <GithubInfo owner="c15t" repo="c15t" />,
-		},
-	],
-};
 
 /**
  * Layout configuration specific to the home page
@@ -122,6 +102,24 @@ export const homePageOptions: BaseLayoutProps = {
 		// 		},
 		// 	],
 		// },
+		{
+			icon: <XIcon />,
+			text: 'X',
+			url: 'https://x.com/consentdotio',
+			type: 'icon',
+		},
+		{
+			icon: <RedditIcon />,
+			text: 'Reddit',
+			url: 'https://www.reddit.com/r/c15t',
+			type: 'icon',
+		},
+		{
+			icon: <DiscordIcon />,
+			text: 'Doscord',
+			url: 'https://c15t.com/discord',
+			type: 'icon',
+		},
 		{
 			type: 'custom',
 			secondary: true,

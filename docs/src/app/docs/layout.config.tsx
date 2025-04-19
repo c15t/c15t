@@ -1,8 +1,12 @@
 import { GithubInfo } from 'fumadocs-ui/components/github-info';
 import type { DocsLayoutProps } from '~/components/layouts/notebook';
 
+import { DiscordIcon } from '~/components/icons/discord';
+import { RedditIcon } from '~/components/icons/reddit';
+import { XIcon } from '~/components/icons/x';
 import { C15TLogo } from '~/components/logo';
 import packageJson from '../../../../packages/core/package.json';
+
 /**
  * Shared layout configurations
  *
@@ -24,6 +28,24 @@ export const docsOptions: Omit<DocsLayoutProps, 'tree'> = {
 		),
 	},
 	links: [
+		{
+			icon: <XIcon />,
+			text: 'X',
+			url: 'https://x.com/consentdotio',
+			type: 'icon',
+		},
+		{
+			icon: <RedditIcon />,
+			text: 'Reddit',
+			url: 'https://www.reddit.com/r/c15t',
+			type: 'icon',
+		},
+		{
+			icon: <DiscordIcon />,
+			text: 'Doscord',
+			url: 'https://c15t.com/discord',
+			type: 'icon',
+		},
 		{
 			type: 'custom',
 			secondary: true,
