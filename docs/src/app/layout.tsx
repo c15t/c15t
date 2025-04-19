@@ -17,8 +17,8 @@ const inter = Inter({
 });
 
 export default function Layout({ children }: { children: ReactNode }) {
-	const bgColor = '#000';
-	const bgColorDark = '#FFF';
+	const bgColor = '#FFFFFF';
+	const bgColorDark = '#000000';
 	const primaryColor = 'hsl(172 72.2% 48%)';
 	const primaryColorHover = 'hsl(172deg 72% 48% / 0.1)';
 	const focusRing = `${primaryColor} !important`;
@@ -34,8 +34,8 @@ export default function Layout({ children }: { children: ReactNode }) {
 							theme={{
 								'banner.root': {
 									style: {
-										'--banner-background-color-dark': bgColorDark,
-										'--banner-footer-background-color-dark': bgColorDark,
+										'--banner-background-color-dark': '#000000',
+										'--banner-footer-background-color-dark': '#000000',
 										'--button-primary-hover-dark': primaryColorHover,
 										'--button-primary-hover': primaryColorHover,
 										'--button-background-color-dark': bgColorDark,
