@@ -18,7 +18,7 @@ const frameworkCards = [
 	},
 	{
 		href: '/docs/javascript/quickstart',
-		title: 'Javascript',
+		title: 'JavaScript',
 		icon: <JSIcon />,
 		description:
 			'The C15T JavaScript SDK gives you access to core functionality for managing consent.',

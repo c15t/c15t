@@ -13,7 +13,7 @@ const NavigationMenuItem = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
 	<Primitive.NavigationMenuItem
 		ref={ref}
-		className={cn('list-none', className)}
+		className={cn('list-none text-fd-muted-foreground', className)}
 		{...props}
 	>
 		{children}

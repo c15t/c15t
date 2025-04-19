@@ -1,4 +1,4 @@
-import { HomeLayout } from 'fumadocs-ui/layouts/home';
+import { HomeLayout } from '~/components/layouts/home';
 import { homePageOptions } from './layout.config';
 import NotFoundClient from './not-found.client';
 export default function NotFound() {

@@ -23,7 +23,6 @@ import {
 	SidebarPageTree,
 	SidebarViewport,
 } from '../layout/sidebar';
-import { ThemeToggle } from '../layout/theme-toggle';
 import { buttonVariants } from '../ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import {
@@ -42,7 +41,7 @@ import {
 } from './notebook-client';
 export { Navbar, NavbarSidebarTrigger } from './notebook-client';
 import { usePathname } from 'next/navigation';
-import { type BaseLayoutProps, getLinks, replaceOrDefault } from './shared';
+import { type BaseLayoutProps, getLinks } from './shared';
 
 export interface DocsLayoutProps extends BaseLayoutProps {
 	tree: PageTree.Root;
@@ -74,6 +73,7 @@ function createPageStyles(): PageStyles {
 	};
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: <explanation>
 export function DocsLayout({
 	tabMode = 'sidebar',
 	nav: { transparentMode, ...nav } = {},
@@ -98,6 +98,7 @@ export function DocsLayout({
 		const allTabs = getSidebarTabsFromOptions(tabOptions, props.tree) ?? [];
 
 		// Map framework names to iconKeys
+		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: <explanation>
 		const enhancedTabs = allTabs.map((tab) => {
 			if (typeof tab.title === 'string') {
 				const title = tab.title.toLowerCase();
@@ -268,13 +269,13 @@ export function DocsLayout({
 									<Languages className="size-5 text-fd-muted-foreground" />
 								</LanguageToggle>
 							) : null}
-							{replaceOrDefault(
+							{/* {replaceOrDefault(
 								themeSwitch,
 								<ThemeToggle
 									className="md:hidden"
 									mode={themeSwitch?.mode ?? 'light-dark-system'}
 								/>
-							)}
+							)} */}
 							{sidebarFooter}
 						</SidebarFooter>
 					</Aside>
@@ -300,7 +301,6 @@ export function DocsLayout({
 function DocsNavbar({
 	sidebarCollapsible,
 	links,
-	themeSwitch,
 	nav = {},
 	i18n,
 	tabs,
@@ -398,13 +398,13 @@ function DocsNavbar({
 							<Languages className="size-4.5 text-fd-muted-foreground" />
 						</LanguageToggle>
 					) : null}
-					{replaceOrDefault(
+					{/* {replaceOrDefault(
 						themeSwitch,
 						<ThemeToggle
 							className="ms-2 max-md:hidden"
 							mode={themeSwitch?.mode ?? 'light-dark-system'}
 						/>
-					)}
+					)} */}
 					{sidebarCollapsible && navMode === 'top' ? (
 						<SidebarCollapseTrigger
 							className={cn(

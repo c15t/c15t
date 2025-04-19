@@ -41,7 +41,9 @@ export type ButtonCSSVariables = {
 	'--button-shadow': string;
 	'--button-shadow-dark': string;
 	'--button-shadow-primary-focus': string;
+	'--button-shadow-primary-focus-dark': string;
 	'--button-shadow-neutral-focus': string;
+	'--button-shadow-neutral-focus-dark': string;
 	'--button-shadow-primary': string;
 	'--button-shadow-primary-dark': string;
 	'--button-shadow-primary-hover': string;
