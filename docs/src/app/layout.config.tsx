@@ -2,6 +2,7 @@ import type { BaseLayoutProps } from '~/components/layouts/shared';
 import { C15TLogo } from '~/components/logo';
 
 import { GithubInfo } from 'fumadocs-ui/components/github-info';
+import { JSIcon, NextIcon, ReactIcon } from '~/components/icons';
 import { DiscordIcon } from '~/components/icons/discord';
 import { RedditIcon } from '~/components/icons/reddit';
 import { XIcon } from '~/components/icons/x';
@@ -25,83 +26,30 @@ export const homePageOptions: BaseLayoutProps = {
 
 	links: [
 		{
-			text: 'Getting Started',
-			url: '/docs/react/quickstart',
+			type: 'menu',
+			text: 'Get Started',
+			url: '/docs/get-started',
+			items: [
+				{
+					icon: <NextIcon />,
+					text: 'Next.js',
+					description: 'Build your privacy consent interface with Next.js',
+					url: '/docs/nextjs/quickstart',
+				},
+				{
+					icon: <ReactIcon className="text-[#61DAFB]" />,
+					text: 'React',
+					description: 'Build your privacy consent interface with React',
+					url: '/docs/react/quickstart',
+				},
+				{
+					icon: <JSIcon />,
+					text: 'Javascript',
+					description: 'Build your privacy consent interface with Javascript',
+					url: '/docs/javascript/quickstart',
+				},
+			],
 		},
-		// {
-		// 	text: 'Core',
-		// 	url: '/docs/core',
-		// },
-		// {
-		// 	type: 'menu',
-		// 	text: 'React',
-		// 	url: '/docs/framework/react',
-		// 	items: [
-		// 		{
-		// 			menu: {
-		// 				banner: (
-		// 					<div className="-mx-3 -mt-3">
-		// 						<Image
-		// 							src={GetStarted}
-		// 							alt="Preview of getting started guide"
-		// 							className="rounded-t-lg object-cover"
-		// 							style={{
-		// 								maskImage:
-		// 									'linear-gradient(to bottom,white 60%,transparent)',
-		// 							}}
-		// 						/>
-		// 					</div>
-		// 				),
-		// 				className: 'md:row-span-2',
-		// 			},
-		// 			icon: <Book />,
-		// 			text: 'Getting Started',
-		// 			description:
-		// 				'Our plug-and-play components handle compliance so you can focus on your product',
-		// 			url: '/docs/framework/react',
-		// 		},
-		// 		{
-		// 			icon: <Cookie />,
-		// 			text: 'Cookie Banner',
-		// 			description:
-		// 				'A customizable cookie consent banner that handles privacy compliance with zero configuration required.',
-		// 			url: '/docs/framework/react/cookie-banner',
-		// 			menu: {
-		// 				className: 'lg:col-start-2',
-		// 			},
-		// 		},
-		// 		{
-		// 			icon: <MessageSquare />,
-		// 			text: 'Consent Dialog',
-		// 			description:
-		// 				'An accessible, animated modal interface that wraps the Consent Manager Widget for a focused privacy customization experience.',
-		// 			url: '/docs/framework/react/consent-manager-dialog',
-		// 			menu: {
-		// 				className: 'lg:col-start-2',
-		// 			},
-		// 		},
-		// 		{
-		// 			icon: <MessageSquareCode />,
-		// 			text: 'Consent Widget',
-		// 			description:
-		// 				'A flexible, composable widget for building custom privacy consent interfaces.',
-		// 			url: '/docs/framework/react/consent-manager-widget',
-		// 			menu: {
-		// 				className: 'lg:col-start-3 lg:row-start-1',
-		// 			},
-		// 		},
-		// 		{
-		// 			icon: <Palette />,
-		// 			text: 'Styling',
-		// 			description:
-		// 				'Learn how to customize the appearance of @c15t/react components through our flexible theming system.',
-		// 			url: '/docs/framework/react/guides/customization',
-		// 			menu: {
-		// 				className: 'lg:col-start-3',
-		// 			},
-		// 		},
-		// 	],
-		// },
 		{
 			icon: <XIcon />,
 			text: 'X',
@@ -116,7 +64,7 @@ export const homePageOptions: BaseLayoutProps = {
 		},
 		{
 			icon: <DiscordIcon />,
-			text: 'Doscord',
+			text: 'Discord',
 			url: 'https://c15t.com/discord',
 			type: 'icon',
 		},

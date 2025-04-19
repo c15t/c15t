@@ -42,7 +42,7 @@ export const docsOptions: Omit<DocsLayoutProps, 'tree'> = {
 		},
 		{
 			icon: <DiscordIcon />,
-			text: 'Doscord',
+			text: 'Discord',
 			url: 'https://c15t.com/discord',
 			type: 'icon',
 		},

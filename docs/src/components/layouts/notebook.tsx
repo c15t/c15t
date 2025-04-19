@@ -23,7 +23,6 @@ import {
 	SidebarPageTree,
 	SidebarViewport,
 } from '../layout/sidebar';
-import { ThemeToggle } from '../layout/theme-toggle';
 import { buttonVariants } from '../ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import {
@@ -42,7 +41,7 @@ import {
 } from './notebook-client';
 export { Navbar, NavbarSidebarTrigger } from './notebook-client';
 import { usePathname } from 'next/navigation';
-import { type BaseLayoutProps, getLinks, replaceOrDefault } from './shared';
+import { type BaseLayoutProps, getLinks } from './shared';
 
 export interface DocsLayoutProps extends BaseLayoutProps {
 	tree: PageTree.Root;
@@ -268,13 +267,13 @@ export function DocsLayout({
 									<Languages className="size-5 text-fd-muted-foreground" />
 								</LanguageToggle>
 							) : null}
-							{replaceOrDefault(
+							{/* {replaceOrDefault(
 								themeSwitch,
 								<ThemeToggle
 									className="md:hidden"
 									mode={themeSwitch?.mode ?? 'light-dark-system'}
 								/>
-							)}
+							)} */}
 							{sidebarFooter}
 						</SidebarFooter>
 					</Aside>
@@ -398,13 +397,13 @@ function DocsNavbar({
 							<Languages className="size-4.5 text-fd-muted-foreground" />
 						</LanguageToggle>
 					) : null}
-					{replaceOrDefault(
+					{/* {replaceOrDefault(
 						themeSwitch,
 						<ThemeToggle
 							className="ms-2 max-md:hidden"
 							mode={themeSwitch?.mode ?? 'light-dark-system'}
 						/>
-					)}
+					)} */}
 					{sidebarCollapsible && navMode === 'top' ? (
 						<SidebarCollapseTrigger
 							className={cn(
