@@ -44,8 +44,8 @@ export const homePageOptions: BaseLayoutProps = {
 				},
 				{
 					icon: <JSIcon />,
-					text: 'Javascript',
-					description: 'Build your privacy consent interface with Javascript',
+					text: 'JavaScript',
+					description: 'Build your privacy consent interface with JavaScript',
 					url: '/docs/javascript/quickstart',
 				},
 			],

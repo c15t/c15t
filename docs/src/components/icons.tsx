@@ -118,7 +118,7 @@ export const JSIcon = (props: SVGProps<SVGSVGElement>) => (
 		viewBox="0 0 300 300"
 		{...props}
 	>
-		<title>Javascript</title>
+		<title>JavaScript</title>
 		<g clipPath="url(#a)">
 			<path
 				fill="#F7DF1C"

@@ -109,7 +109,7 @@ pnpm test
 ## 📚 Documentation
 
 - [Getting Started](https://c15t.com/docs)
-- [Javascript](https://c15t.com/docs/javascript/quickstart)
+- [JavaScript](https://c15t.com/docs/javascript/quickstart)
 - [Next.js Quick Start](https://c15t.com/docs/nextjs/quickstart)
 - [\<CookieBanner />](https://c15t.com/docs/components/react/cookie-banner)
 - [\<ConsentManagerDialog />](https://c15t.com/docs/components/react/consent-manager-dialog)
