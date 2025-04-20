@@ -28,7 +28,7 @@ export const homePageOptions: BaseLayoutProps = {
 		{
 			type: 'menu',
 			text: 'Get Started',
-			url: '/docs/get-started',
+			url: '/docs',
 			items: [
 				{
 					icon: <NextIcon />,
