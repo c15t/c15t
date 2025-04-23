@@ -3,8 +3,7 @@
  * Provides the overlay backdrop component for the CookieBanner.
  */
 
-import { AnimatePresence, motion } from 'motion/react';
-import { type HTMLAttributes, forwardRef } from 'react';
+import { type HTMLAttributes, forwardRef, useEffect, useState } from 'react';
 
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
@@ -59,6 +58,21 @@ const CookieBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 			noStyle: contextNoStyle,
 			scrollLock,
 		} = useTheme();
+
+		const [isVisible, setIsVisible] = useState(false);
+
+		// Handle animation visibility state
+		useEffect(() => {
+			if (showPopup) {
+				setIsVisible(true);
+			} else {
+				const timer = setTimeout(() => {
+					setIsVisible(false);
+				}, 200); // Match CSS animation duration
+				return () => clearTimeout(timer);
+			}
+		}, [showPopup]);
+
 		const theme = useStyles('banner.overlay', {
 			baseClassName: !(contextNoStyle || noStyle) && styles.overlay,
 			noStyle,
@@ -75,16 +89,13 @@ const CookieBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 					data-testid="cookie-banner-overlay"
 				/>
 			) : (
-				<AnimatePresence>
-					<motion.div
-						ref={ref}
-						{...theme}
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						exit={{ opacity: 0 }}
-						data-testid="cookie-banner-overlay"
-					/>
-				</AnimatePresence>
+				<div
+					ref={ref}
+					{...props}
+					{...theme}
+					className={`${theme.className || ''} ${isVisible ? styles.overlayVisible : styles.overlayHidden}`}
+					data-testid="cookie-banner-overlay"
+				/>
 			)
 		) : null;
 	}

@@ -4,8 +4,7 @@
  * Implements accessible modal behavior with animation support.
  */
 
-import { AnimatePresence, motion } from 'motion/react';
-import type { FC } from 'react';
+import { type FC, useEffect, useState } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useStyles } from '~/hooks/use-styles';
@@ -87,6 +86,20 @@ const ConsentManagerDialogOverlay: FC<OverlayProps> = ({
 		scrollLock = true,
 	} = useTheme();
 
+	const [isVisible, setIsVisible] = useState(false);
+
+	// Handle animation visibility state
+	useEffect(() => {
+		if (open || isPrivacyDialogOpen) {
+			setIsVisible(true);
+		} else {
+			const timer = setTimeout(() => {
+				setIsVisible(false);
+			}, 200); // Match CSS animation duration
+			return () => clearTimeout(timer);
+		}
+	}, [open, isPrivacyDialogOpen]);
+
 	const theme = useStyles('dialog.overlay', {
 		baseClassName: styles.overlay,
 		noStyle: isThemeNoStyle || noStyle,
@@ -100,15 +113,11 @@ const ConsentManagerDialogOverlay: FC<OverlayProps> = ({
 		disableAnimation ? (
 			<div {...theme} data-testid="consent-manager-dialog-overlay" />
 		) : (
-			<AnimatePresence>
-				<motion.div
-					{...theme}
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					exit={{ opacity: 0 }}
-					data-testid="consent-manager-dialog-overlay"
-				/>
-			</AnimatePresence>
+			<div
+				{...theme}
+				className={`${theme.className || ''} ${isVisible ? styles.overlayVisible : styles.overlayHidden}`}
+				data-testid="consent-manager-dialog-overlay"
+			/>
 		)
 	) : null;
 };

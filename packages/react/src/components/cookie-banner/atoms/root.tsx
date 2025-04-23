@@ -1,6 +1,5 @@
 'use client';
 
-import { AnimatePresence, motion } from 'motion/react';
 import {
 	type CSSProperties,
 	type FC,
@@ -236,6 +235,19 @@ const CookieBannerRootChildren = forwardRef<
 		ref
 	) => {
 		const { showPopup } = useConsentManager();
+		const [isVisible, setIsVisible] = useState(false);
+
+		// Handle animation visibility state
+		useEffect(() => {
+			if (showPopup) {
+				setIsVisible(true);
+			} else {
+				const timer = setTimeout(() => {
+					setIsVisible(false);
+				}, 200); // Match CSS animation duration
+				return () => clearTimeout(timer);
+			}
+		}, [showPopup]);
 
 		/**
 		 * Apply styles from the CookieBanner context and merge with local styles.
@@ -281,19 +293,15 @@ const CookieBannerRootChildren = forwardRef<
 								{children}
 							</div>
 						) : (
-							<AnimatePresence>
-								<motion.div
-									ref={ref}
-									initial={{ opacity: 0, y: 50 }}
-									animate={{ opacity: 1, y: 0 }}
-									exit={{ opacity: 0, y: 50 }}
-									transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-									{...contentStyle}
-									data-testid="cookie-banner-root"
-								>
-									{children}
-								</motion.div>
-							</AnimatePresence>
+							<div
+								ref={ref}
+								{...props}
+								{...contentStyle}
+								className={`${contentStyle.className || ''} ${isVisible ? styles.bannerVisible : styles.bannerHidden}`}
+								data-testid="cookie-banner-root"
+							>
+								{children}
+							</div>
 						)}
 					</>,
 					document.body

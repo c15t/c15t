@@ -14,6 +14,9 @@
 	--banner-border-radius: 1.25rem;
 	--banner-max-width: 440px;
 
+	/* Animation variables */
+	--banner-animation-duration: 200ms;
+	--banner-animation-timing: ease-out;
 	--banner-entry-animation: enter 150ms ease-out;
 	--banner-exit-animation: exit 150ms ease-out;
 
@@ -48,6 +51,21 @@
 	display: flex;
 	z-index: 999999998;
 	position: fixed;
+}
+
+/* Banner animation classes */
+.bannerVisible {
+	opacity: 1;
+	transform: translateY(0);
+	transition: opacity var(--banner-animation-duration) var(--banner-animation-timing),
+	           transform var(--banner-animation-duration) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bannerHidden {
+	opacity: 0;
+	transform: translateY(50px);
+	transition: opacity var(--banner-animation-duration) var(--banner-animation-timing),
+	           transform var(--banner-animation-duration) var(--banner-animation-timing);
 }
 
 @media (min-width: 640px) {
@@ -251,6 +269,17 @@
 	inset: 0px;
 	background-color: var(--banner-overlay-background-color);
 	z-index: 999999997;
+}
+
+/* Animation classes for overlay */
+.overlayVisible {
+	opacity: 1;
+	transition: opacity var(--banner-animation-duration) var(--banner-animation-timing);
+}
+
+.overlayHidden {
+	opacity: 0;
+	transition: opacity var(--banner-animation-duration) var(--banner-animation-timing);
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */

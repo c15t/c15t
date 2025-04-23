@@ -53,6 +53,10 @@
   --dialog-border-width: 1px;
   --dialog-border-style: solid;
 
+  /* Animation */
+  --dialog-animation-duration: 200ms;
+  --dialog-animation-timing: ease-out;
+
   /* Branding */
   --dialog-branding-gap: 0.5rem;
   --dialog-branding-icon-height: 1.25rem;
@@ -79,6 +83,32 @@
   background-color: transparent;
   width: 100%;
   height: var(--dialog-height);
+}
+
+/* Animation classes for the dialog */
+.dialogVisible {
+  opacity: 1;
+  transition: opacity var(--dialog-animation-duration) var(--dialog-animation-timing);
+}
+
+.dialogHidden {
+  opacity: 0;
+  transition: opacity var(--dialog-animation-duration) var(--dialog-animation-timing);
+}
+
+/* Animation classes for the content */
+.contentVisible {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity var(--dialog-animation-duration) var(--dialog-animation-timing),
+              transform var(--dialog-animation-duration) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.contentHidden {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity var(--dialog-animation-duration) var(--dialog-animation-timing),
+              transform var(--dialog-animation-duration) var(--dialog-animation-timing);
 }
 
 @media (min-width: 640px) {
@@ -164,6 +194,17 @@
   inset: 0px;
   background-color: var(--dialog-overlay-background-color);
   z-index: var(--dialog-overlay-z-index);
+}
+
+/* Overlay animation classes */
+.overlayVisible {
+  opacity: 1;
+  transition: opacity var(--dialog-animation-duration) var(--dialog-animation-timing);
+}
+
+.overlayHidden {
+  opacity: 0;
+  transition: opacity var(--dialog-animation-duration) var(--dialog-animation-timing);
 }
 
 /* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
