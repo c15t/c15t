@@ -1,10 +1,15 @@
 {
 	"name": "@c15t/react",
-	"version": "1.0.5",
+	"version": "1.1.1-canary.3",
 	"license": "GPL-3.0-only",
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
+		"./headless": {
+			"types": "./dist/headless.d.ts",
+			"import": "./dist/headless.js",
+			"require": "./dist/headless.cjs"
+		},
 		"./consent-manager-dialog": {
 			"types": "./dist/components/consent-manager-dialog/index.d.ts",
 			"import": "./dist/components/consent-manager-dialog/index.js",
