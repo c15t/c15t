@@ -49,28 +49,25 @@ export const buttonVariants = ({
 	mode = 'filled',
 	size = 'medium',
 }: ButtonVariantsProps = {}) => {
-	// Build class arrays for root and icon
-	const rootClasses = [styles.button];
+	const rootClasses = [styles.button, styles[`button-${size}`]];
+
+	const compoundMap: Record<
+		`${ButtonVariant}-${ButtonMode}`,
+		keyof typeof styles
+	> = {
+		'primary-filled': 'button-primary-filled',
+		'primary-stroke': 'button-primary-stroke',
+		'primary-lighter': 'button-primary-lighter',
+		'primary-ghost': 'button-primary-ghost',
+		'neutral-filled': 'button-neutral-filled',
+		'neutral-stroke': 'button-neutral-stroke',
+		'neutral-lighter': 'button-neutral-lighter',
+		'neutral-ghost': 'button-neutral-ghost',
+	};
+
+	rootClasses.push(styles[compoundMap[`${variant}-${mode}`]]);
+
 	const iconClasses = [styles['button-icon']];
-
-	// Add size class
-	if (size === 'medium') rootClasses.push(styles['button-medium']);
-	if (size === 'small') rootClasses.push(styles['button-small']);
-	if (size === 'xsmall') rootClasses.push(styles['button-xsmall']);
-	if (size === 'xxsmall') rootClasses.push(styles['button-xxsmall']);
-
-	// Add variant-mode compound classes
-	if (variant === 'primary') {
-		if (mode === 'filled') rootClasses.push(styles['button-primary-filled']);
-		if (mode === 'stroke') rootClasses.push(styles['button-primary-stroke']);
-		if (mode === 'lighter') rootClasses.push(styles['button-primary-lighter']);
-		if (mode === 'ghost') rootClasses.push(styles['button-primary-ghost']);
-	} else if (variant === 'neutral') {
-		if (mode === 'filled') rootClasses.push(styles['button-neutral-filled']);
-		if (mode === 'stroke') rootClasses.push(styles['button-neutral-stroke']);
-		if (mode === 'lighter') rootClasses.push(styles['button-neutral-lighter']);
-		if (mode === 'ghost') rootClasses.push(styles['button-neutral-ghost']);
-	}
 
 	return {
 		root: (options?: { class?: string }) => {
@@ -134,9 +131,15 @@ const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
 
 		// Create shared props object that can be safely passed to recursiveCloneChildren
 		const cloneableProps: RecursiveCloneableProps = {};
-		if (variant) cloneableProps.variant = variant;
-		if (mode) cloneableProps.mode = mode;
-		if (size) cloneableProps.size = size;
+		if (variant) {
+			cloneableProps.variant = variant;
+		}
+		if (mode) {
+			cloneableProps.mode = mode;
+		}
+		if (size) {
+			cloneableProps.size = size;
+		}
 
 		const extendedChildren = recursiveCloneChildren(
 			children as ReactElement[],

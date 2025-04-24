@@ -70,7 +70,7 @@ export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 	const [isMounted, setIsMounted] = useState(false);
 	const [isVisible, setIsVisible] = useState(false);
 	const contentRef = useRef<HTMLDivElement>(null);
-	const dialogRef = useRef<HTMLDivElement>(null);
+	const dialogRef = useRef<HTMLDialogElement>(null);
 
 	// Handle client-side mounting
 	useEffect(() => {
@@ -114,7 +114,7 @@ export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 		<LocalThemeContext.Provider value={contextValue}>
 			{(open || consentManager.isPrivacyDialogOpen) && (
 				<>
-					<Overlay open={open} />
+					<Overlay open={open || consentManager.isPrivacyDialogOpen} />
 					<dialog
 						ref={dialogRef as unknown as RefObject<HTMLDialogElement>}
 						className={`${styles.root} ${disableAnimation ? '' : isVisible ? styles.dialogVisible : styles.dialogHidden}`}
