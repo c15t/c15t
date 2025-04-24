@@ -362,13 +362,19 @@ export const createConsentManagerStore = (
 			trackingBlocker?.updateConsents(newConsents);
 
 			// Store to localStorage immediately for persistence
-			localStorage.setItem(
-				STORAGE_KEY,
-				JSON.stringify({
-					consents: newConsents,
-					consentInfo,
-				})
-			);
+			// Wrap in try/catch to handle potential privacy mode errors
+			try {
+				localStorage.setItem(
+					STORAGE_KEY,
+					JSON.stringify({
+						consents: newConsents,
+						consentInfo,
+					})
+				);
+			} catch (e) {
+				// biome-ignore lint/suspicious/noConsole: safe degradation
+				console.warn('Failed to persist consents to localStorage:', e);
+			}
 
 			// Trigger callbacks right away
 			callbacks.onConsentGiven?.();
