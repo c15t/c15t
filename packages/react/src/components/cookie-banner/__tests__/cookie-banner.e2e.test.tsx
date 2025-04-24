@@ -53,7 +53,7 @@ const defaultOptions: ConsentManagerOptions = {
 	mode: 'offline',
 };
 
-describe('CookieBanner End-to-End Behavior', () => {
+describe('CookieBanner E2E Tests', () => {
 	beforeEach(() => {
 		// Clear localStorage before each test
 		window.localStorage.clear();
@@ -227,7 +227,7 @@ describe('CookieBanner End-to-End Behavior', () => {
 		expect(consent.consents.marketing).toBe(true);
 	});
 
-	test('should allow tabbing through interactive elements', async () => {
+	test('should be keyboard accessible', async () => {
 		render(
 			<ConsentManagerProvider options={defaultOptions}>
 				<CookieBanner />
@@ -257,7 +257,7 @@ describe('CookieBanner End-to-End Behavior', () => {
 		expect(document.activeElement).toBe(acceptButton);
 	});
 
-	test('should apply and remove overlay correctly when scrollLock is enabled', async () => {
+	test('should handle scroll lock properly', async () => {
 		render(
 			<ConsentManagerProvider options={defaultOptions}>
 				<CookieBanner scrollLock />
