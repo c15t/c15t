@@ -1,8 +1,7 @@
 {
-	"mode": "pre",
+	"mode": "exit",
 	"tag": "canary",
 	"initialVersions": {
-		"@c15t-examples/svelte": "0.0.1",
 		"docs": "0.0.1",
 		"@c15t/typescript-config": "0.0.1-beta.1",
 		"@c15t/vitest-config": "1.0.0",
