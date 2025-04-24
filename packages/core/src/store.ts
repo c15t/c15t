@@ -394,10 +394,14 @@ export const createConsentManagerStore = (
 			});
 
 			// Handle error case if the API request fails
-			if (!consent.ok && !callbacks.onError) {
-				const error = consent.error?.message || 'Failed to save consents';
-				// biome-ignore lint/suspicious/noConsole: <explanation>
-				console.error(error);
+			if (!consent.ok) {
+				const errorMsg = consent.error?.message ?? 'Failed to save consents';
+				callbacks.onError?.(errorMsg);
+				// Fallback console only when no handler is provided
+				if (!callbacks.onError) {
+					// biome-ignore lint/suspicious/noConsole: <explanation>
+					console.error(errorMsg);
+				}
 			}
 		},
 
