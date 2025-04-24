@@ -119,10 +119,12 @@ const ConsentManagerDialogOverlay: FC<OverlayProps> = ({
 		!(isThemeNoStyle || noStyle) && !disableAnimation;
 
 	// Use conditional assignment instead of nested ternaries
-	const isVisibleState = isVisible && shouldApplyAnimation;
-	const animationClass = isVisibleState
-		? styles.overlayVisible
-		: styles.overlayHidden;
+	const animationClass = shouldApplyAnimation
+		? // biome-ignore lint/nursery/noNestedTernary: easier to read
+			isVisible
+			? styles.overlayVisible
+			: styles.overlayHidden
+		: undefined;
 
 	// Combine theme className with animation class if needed
 	const finalClassName = clsx(theme.className, animationClass);

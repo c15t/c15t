@@ -87,10 +87,12 @@ const CookieBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 		const shouldApplyAnimation =
 			!(contextNoStyle || noStyle) && !disableAnimation;
 
-		const isVisibleState = isVisible && shouldApplyAnimation;
-		const animationClass = isVisibleState
-			? styles.overlayVisible
-			: styles.overlayHidden;
+		const animationClass = shouldApplyAnimation
+			? // biome-ignore lint/nursery/noNestedTernary: easier to read
+				isVisible
+				? styles.overlayVisible
+				: styles.overlayHidden
+			: undefined;
 
 		// Combine theme className with animation class if needed
 		const finalClassName = clsx(theme.className, animationClass);
