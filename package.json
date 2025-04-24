@@ -18,7 +18,11 @@
 		"lint:fix": "turbo lint -- --write",
 		"release": "pnpm build:libs && changeset publish",
 		"test": "turbo test --filter=!./apps/examples/*",
+		"release:canary": "pnpm build:libs && changeset publish --tag canary",
 		"version": "changeset version && pnpm install --lockfile-only",
+		"version:canary": "changeset version --snapshot canary && pnpm install --lockfile-only",
+		"version:prerelease": "changeset pre enter canary",
+		"version:prerelease:exit": "changeset pre exit",
 		"view-report": "turbo run view-report"
 	},
 	"resolutions": {

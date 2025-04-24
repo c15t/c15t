@@ -1,0 +1,16 @@
+{
+	"mode": "pre",
+	"tag": "canary",
+	"initialVersions": {
+		"@c15t-examples/svelte": "0.0.1",
+		"docs": "0.0.1",
+		"@c15t/typescript-config": "0.0.1-beta.1",
+		"@c15t/vitest-config": "1.0.0",
+		"@c15t/backend": "1.0.5",
+		"@c15t/cli": "1.0.5",
+		"c15t": "1.0.5",
+		"@c15t/dev-tools": "1.0.5",
+		"@c15t/react": "1.0.5"
+	},
+	"changesets": []
+}
