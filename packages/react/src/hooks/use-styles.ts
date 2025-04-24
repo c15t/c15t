@@ -56,71 +56,36 @@ export function useStyles(
 	const themeStylesObject = useMemo(() => {
 		return themeKey
 			? (theme as Record<AllThemeKeys, ThemeValue>)?.[themeKey]
-			: null;
+			: undefined; // Use undefined instead of null for consistency
 	}, [themeKey, theme]);
 
-	// Memoize initial style setup
-	const initialStyle = useMemo(() => {
-		const initial = {
-			className:
-				typeof componentStyle === 'string'
-					? componentStyle
-					: componentStyle?.className,
-			style: undefined,
-		};
+	// Memoize the base merge of theme and component styles
+	// componentStyle takes precedence over themeStylesObject
+	const baseMergedStyle = useMemo(() => {
+		return mergeStyles(themeStylesObject, componentStyle);
+	}, [themeStylesObject, componentStyle]);
 
-		return initial;
-	}, [componentStyle]);
-
-	// Memoize merged style with context
-	const mergedWithContext = useMemo(() => {
-		const merged = themeStylesObject
-			? mergeStyles(initialStyle, themeStylesObject)
-			: initialStyle;
-
-		return merged;
-	}, [initialStyle, themeStylesObject]);
-
-	// Memoize final merged style
-	const finalMergedStyle = useMemo(() => {
-		const final = componentStyle
-			? mergeStyles(mergedWithContext, componentStyle)
-			: mergedWithContext;
-
-		return final;
-	}, [mergedWithContext, componentStyle]);
-
-	// Return the final merged style, ensuring immutability
+	// Return the final style object based on noStyle flag
 	return useMemo(() => {
 		if (mergedNoStyle) {
-			// When noStyle is true, only return theme styles if they exist
+			// When noStyle is true, only return theme styles if they exist and are normalized
 			if (!themeStylesObject) {
-				return {};
+				return {}; // No theme, no style
 			}
-			const noStyleResult =
-				typeof themeStylesObject === 'string'
-					? { className: themeStylesObject }
-					: {
-							className: themeStylesObject.className,
-							style: themeStylesObject.style,
-						};
-			return noStyleResult;
+			// Return only the className and style from the theme object itself
+			return typeof themeStylesObject === 'string'
+				? { className: themeStylesObject }
+				: {
+						className: themeStylesObject.className,
+						style: themeStylesObject.style,
+					};
 		}
 
-		// Ensure className is included and prevent duplication
-		const finalClassName = Array.from(
-			new Set(
-				[
-					typeof componentStyle === 'string'
-						? componentStyle
-						: componentStyle?.className,
-					finalMergedStyle.className,
-				]
-					.filter(Boolean)
-					.flat()
-			)
-		).join(' ');
-
-		return { ...finalMergedStyle, className: finalClassName };
-	}, [finalMergedStyle, mergedNoStyle, themeStylesObject, componentStyle]);
+		// When noStyle is false, return the base merged result
+		// Ensure className is undefined if empty
+		return {
+			style: baseMergedStyle.style,
+			className: baseMergedStyle.className || undefined,
+		};
+	}, [baseMergedStyle, mergedNoStyle, themeStylesObject]); // componentStyle is implicitly included via baseMergedStyle dependency
 }

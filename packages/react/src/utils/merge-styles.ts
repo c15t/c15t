@@ -2,57 +2,59 @@ import type { ClassNameStyle, ThemeValue } from '~/types/theme';
 import { cnExt } from '~/utils/cn';
 
 /**
- * Merges two styles objects, handling theme values and style properties.
+ * Normalizes a ThemeValue into a ClassNameStyle object.
+ * If the input is already a ClassNameStyle object, it's returned as is.
+ * If the input is a string, it's treated as a className.
+ * Undefined or null inputs result in an empty ClassNameStyle object.
  *
- * @param style1 - The first style object to merge
- * @param style2 - The second style object to merge (Takes precedence over style1)
- *
- * @returns The merged styles object
+ * @param value - The ThemeValue to normalize.
+ * @returns A normalized ClassNameStyle object.
+ * @internal
  */
-export function mergeStyles(
-	style1: ThemeValue,
-	style2?: ThemeValue
-): ClassNameStyle {
-	const getThemeValue = (
-		style: ThemeValue | undefined
-	): ThemeValue | undefined => {
-		if (typeof style === 'string' || style === undefined) {
-			return style;
-		}
-		if ('className' in style || 'style' in style || 'noStyle' in style) {
-			return style;
-		}
-		return undefined;
-	};
-
-	const s1 = getThemeValue(Array.isArray(style1) ? style1[0] : style1);
-	const s2 = getThemeValue(style2);
-
-	// If either style has noStyle, return empty styles
-	if (
-		(typeof s1 === 'object' && s1?.noStyle) ||
-		(typeof s2 === 'object' && s2?.noStyle)
-	) {
+function normalizeStyleValue(value: ThemeValue | undefined): ClassNameStyle {
+	if (typeof value === 'string') {
+		return { className: value };
+	}
+	if (typeof value === 'object' && value !== null) {
+		// Return only className and style, ignore other potential props like noStyle
 		return {
-			className: undefined,
-			style: undefined,
+			className: value.className,
+			style: value.style,
 		};
 	}
+	return {};
+}
 
-	const className = cnExt([
-		typeof s1 === 'string' ? s1 : s1?.className,
-		typeof s2 === 'string' ? s2 : s2?.className,
-		typeof s1 === 'object' && s1?.baseClassName,
-		typeof s2 === 'object' && s2?.baseClassName,
-	]);
+/**
+ * Merges two style representations (ThemeValue) into a single ClassNameStyle object.
+ * It combines classNames and deeply merges style objects.
+ * Style properties from style2 take precedence over style1.
+ * The `noStyle` property is ignored by this function; handling `noStyle` is the responsibility of the caller.
+ *
+ * @param style1 - The base style object or className string.
+ * @param style2 - The style object or className string to merge over style1.
+ * @returns The merged ClassNameStyle object containing combined className and style.
+ */
+export function mergeStyles(
+	style1: ThemeValue | undefined,
+	style2: ThemeValue | undefined
+): ClassNameStyle {
+	const s1 = normalizeStyleValue(style1);
+	const s2 = normalizeStyleValue(style2);
 
-	const style = {
-		...(typeof s1 === 'object' && s1?.style),
-		...(typeof s2 === 'object' && s2?.style),
-	};
+	const className = cnExt([s1.className, s2.className]);
+
+	const style =
+		s1.style || s2.style
+			? {
+					...s1.style,
+					...s2.style,
+				}
+			: undefined;
 
 	return {
+		// Ensure className is undefined if empty string, otherwise cnExt result
 		className: className || undefined,
-		style: Object.keys(style).length > 0 ? style : undefined,
+		style: style,
 	};
 }

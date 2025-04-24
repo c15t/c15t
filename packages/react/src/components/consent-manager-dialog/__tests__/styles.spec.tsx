@@ -73,7 +73,7 @@ vi.mock('~/hooks/use-translations', () => ({
 	}),
 }));
 
-test('Theme prop applies string classnames to all components', async () => {
+test('should apply string classNames from theme prop to all dialog elements', async () => {
 	const test = (
 		<ConsentManagerDialog
 			open
@@ -97,7 +97,7 @@ test('Theme prop applies string classnames to all components', async () => {
 	});
 });
 
-test('Theme prop supports object format with className and style for all components', async () => {
+test('should apply className and style objects from theme prop to all dialog elements', async () => {
 	const style = {
 		backgroundColor: '#ffffff',
 		padding: '20px',
@@ -140,7 +140,7 @@ test('Theme prop supports object format with className and style for all compone
 	});
 });
 
-test('No style prop removes default styles but keeps custom classNames', async () => {
+test('should remove default styles but keep custom classNames when top-level noStyle prop is true', async () => {
 	const test = (
 		<ConsentManagerDialog
 			scrollLock
@@ -166,7 +166,27 @@ test('No style prop removes default styles but keeps custom classNames', async (
 	});
 });
 
-test('Theme prop handles mixed format (string and object) correctly', async () => {
+test('should remove default styles but keep custom classNames when theme object provides noStyle: true', async () => {
+	const testCases = ALL_COMPONENTS.reduce(
+		(acc, { themeKey, styles }) => {
+			acc[themeKey] = { className: styles, noStyle: true };
+			return acc;
+		},
+		{} as Record<string, ThemeValue>
+	);
+
+	const test = <ConsentManagerDialog scrollLock open theme={testCases} />;
+
+	await testComponentStyles({
+		component: test,
+		testCases: ALL_COMPONENTS.map(({ testId, styles }) => ({
+			testId,
+			styles: { className: styles },
+		})),
+	});
+});
+
+test('should correctly apply styles when theme prop uses mixed string and object formats', async () => {
 	const mixedTheme: ConsentManagerDialogTheme = {
 		'dialog.root': {
 			className: 'custom-dialog-root',
@@ -201,7 +221,7 @@ test('Theme prop handles mixed format (string and object) correctly', async () =
 	});
 });
 
-test('Theme prop handles edge cases gracefully', async () => {
+test('should handle empty strings and empty style objects in theme prop gracefully', async () => {
 	const edgeCaseTheme: ConsentManagerDialogTheme = {
 		'dialog.root': '',
 		'dialog.overlay': '',
