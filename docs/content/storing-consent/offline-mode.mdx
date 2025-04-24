@@ -42,18 +42,17 @@ export const c15tClient = createClient({
 <Step>
 ### Add the Provider
 
-Wrap your application with the C15tProvider:
+Wrap your application with the ConsentManagerProvider:
 
 ```jsx
-// pages/_app.js
-import { C15tProvider } from '@c15t/react'
+import { ConsentManagerProvider } from '@c15t/react'
 import { c15tClient } from '../lib/c15tClient'
 
 function MyApp({ Component, pageProps }) {
   return (
-    <C15tProvider client={c15tClient}>
+    <ConsentManagerProvider client={c15tClient}>
       <Component {...pageProps} />
-    </C15tProvider>
+    </ConsentManagerProvider>
   )
 }
 
