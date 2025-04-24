@@ -68,43 +68,48 @@ export const ConsentButton = forwardRef<
 						size,
 					}).root(),
 			],
-			style: style as CSSPropertiesWithVars<CSSVariables>,
+			style: {
+				...(style as CSSPropertiesWithVars<CSSVariables>),
+			},
 			className: forwardedClassName,
 			noStyle: contextNoStyle || noStyle,
 		});
 
 		const buttonClick = useCallback(() => {
-			switch (action) {
-				case 'accept-consent': {
-					saveConsents('all');
-					break;
-				}
-				case 'reject-consent': {
-					saveConsents('necessary');
-					break;
-				}
-				case 'custom-consent': {
-					// Save consents first to ensure store is updated
-					saveConsents('custom');
-
-					break;
-				}
-				case 'open-consent-dialog': {
-					setIsPrivacyDialogOpen(true);
-					setShowPopup(false, true);
-					break;
-				}
-				default:
-					break;
-			}
+			// Handle UI first - prioritize closing dialogs
 			if (closeCookieBanner) {
 				setShowPopup(false);
 			}
+
 			if (closeCustomizeDialog) {
 				setIsPrivacyDialogOpen(false);
 			}
+
+			// Open privacy dialog if needed
+			if (action === 'open-consent-dialog') {
+				setIsPrivacyDialogOpen(true);
+				setShowPopup(false, true);
+			}
+
+			// Call the user's onClick handler after UI updates
 			if (forwardedOnClick) {
 				forwardedOnClick();
+			}
+
+			if (action !== 'open-consent-dialog') {
+				switch (action) {
+					case 'accept-consent':
+						saveConsents('all');
+						break;
+					case 'reject-consent':
+						saveConsents('necessary');
+						break;
+					case 'custom-consent':
+						saveConsents('custom');
+						break;
+					default:
+						break;
+				}
 			}
 		}, [
 			closeCookieBanner,

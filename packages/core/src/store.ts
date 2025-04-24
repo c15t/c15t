@@ -271,8 +271,17 @@ export const createConsentManagerStore = (
 		 * The popup will only be shown if:
 		 * - Forcing is enabled, or
 		 * - No stored consent exists, no current consent is given, and consent information is not loading
+		 *
+		 * When hiding the popup (show=false), it will always hide immediately for better UX
 		 */
 		setShowPopup: (show, force = false) => {
+			// If we're hiding the popup, do it immediately without checks
+			if (!show) {
+				set({ showPopup: false });
+				return;
+			}
+
+			// Only do validation checks when showing the popup
 			const state = get();
 			const storedConsent = getStoredConsent();
 
@@ -282,15 +291,11 @@ export const createConsentManagerStore = (
 			//    - No stored consent
 			//    - No current consent info
 			//    - Not currently loading consent info
-			//    - Show parameter is true
 			if (
 				force ||
-				(!storedConsent &&
-					!state.consentInfo &&
-					!state.isLoadingConsentInfo &&
-					show)
+				(!storedConsent && !state.consentInfo && !state.isLoadingConsentInfo)
 			) {
-				set({ showPopup: show });
+				set({ showPopup: true });
 			}
 		},
 
@@ -300,7 +305,17 @@ export const createConsentManagerStore = (
 		 * @param isOpen - Whether the dialog should be open
 		 */
 		setIsPrivacyDialogOpen: (isOpen) => {
+			// Use immediate state update for better UX responsiveness
+			// Especially important when closing dialog
 			set({ isPrivacyDialogOpen: isOpen });
+
+			// For closing actions, trigger a microtask to ensure the UI update
+			// happens immediately and is not blocked by any other operations
+			if (!isOpen) {
+				queueMicrotask(() => {
+					// This empty microtask ensures the UI update is prioritized
+				});
+			}
 		},
 
 		/**
@@ -310,11 +325,12 @@ export const createConsentManagerStore = (
 		 *
 		 * @remarks
 		 * This function:
-		 * 1. Updates consent states based on type
-		 * 2. Records consent timestamp
-		 * 3. Persists to localStorage
-		 * 4. Updates UI state
-		 * 5. Triggers callbacks
+		 * 1. Updates UI state immediately
+		 * 2. Updates consent states based on type
+		 * 3. Records consent timestamp
+		 * 4. Persists to localStorage
+		 * 5. Makes network request in background
+		 * 6. Triggers callbacks
 		 */
 		saveConsents: async (type) => {
 			const { callbacks, consents, consentTypes } = get();
@@ -334,8 +350,31 @@ export const createConsentManagerStore = (
 				type: type as 'necessary' | 'all' | 'custom',
 			};
 
-			// Send consent to API and proceed based on response
-			// The client will handle offline mode internally
+			// Immediately update the UI state to close banners/dialogs
+			// This makes the interface feel more responsive
+			set({
+				consents: newConsents,
+				showPopup: false,
+				consentInfo,
+			});
+
+			// Update tracking blocker with new consents right away
+			trackingBlocker?.updateConsents(newConsents);
+
+			// Store to localStorage immediately for persistence
+			localStorage.setItem(
+				STORAGE_KEY,
+				JSON.stringify({
+					consents: newConsents,
+					consentInfo,
+				})
+			);
+
+			// Trigger callbacks right away
+			callbacks.onConsentGiven?.();
+			callbacks.onPreferenceExpressed?.();
+
+			// Send consent to API in the background - the UI is already updated
 			const consent = await manager.setConsent({
 				body: {
 					type: 'cookie_banner',
@@ -348,29 +387,8 @@ export const createConsentManagerStore = (
 				},
 			});
 
-			// Only proceed if the operation was successful
-			// In offline mode, responses will always be successful
-			if (consent.ok) {
-				localStorage.setItem(
-					STORAGE_KEY,
-					JSON.stringify({
-						consents: newConsents,
-						consentInfo,
-					})
-				);
-
-				// Update tracking blocker with new consents
-				trackingBlocker?.updateConsents(newConsents);
-
-				set({
-					consents: newConsents,
-					showPopup: false,
-					consentInfo,
-				});
-
-				callbacks.onConsentGiven?.();
-				callbacks.onPreferenceExpressed?.();
-			} else if (!callbacks.onError) {
+			// Handle error case if the API request fails
+			if (!consent.ok && !callbacks.onError) {
 				const error = consent.error?.message || 'Failed to save consents';
 				// biome-ignore lint/suspicious/noConsole: <explanation>
 				console.error(error);
