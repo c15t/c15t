@@ -70,7 +70,7 @@ export const ConsentButton = forwardRef<
 			],
 			style: style as CSSPropertiesWithVars<CSSVariables>,
 			className: forwardedClassName,
-			noStyle: noStyle,
+			noStyle: contextNoStyle || noStyle,
 		});
 
 		const buttonClick = useCallback(() => {

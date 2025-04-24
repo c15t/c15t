@@ -98,6 +98,10 @@ type ButtonRootProps = ButtonSharedProps &
 		 * When true, the component will render its children directly without wrapping them in a button element
 		 */
 		asChild?: boolean;
+		/**
+		 * When true, the component will not apply default styling
+		 */
+		noStyle?: boolean;
 	};
 
 /**
@@ -122,12 +126,21 @@ type ButtonRootProps = ButtonSharedProps &
  */
 const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
 	(
-		{ children, variant, mode, size, asChild, className, ...rest },
+		{ children, variant, mode, size, asChild, className, noStyle, ...rest },
 		forwardedRef
 	) => {
 		const uniqueId = useId();
 		const Component = asChild ? Slot : 'button';
-		const { root } = buttonVariants({ variant, mode, size });
+
+		// Only apply button variants if noStyle is false
+		const variantClasses = noStyle
+			? ''
+			: buttonVariants({ variant, mode, size }).root();
+
+		// Always include custom className
+		const finalClassName = [variantClasses, className]
+			.filter(Boolean)
+			.join(' ');
 
 		// Create shared props object that can be safely passed to recursiveCloneChildren
 		const cloneableProps: RecursiveCloneableProps = {
@@ -145,11 +158,7 @@ const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
 		);
 
 		return (
-			<Component
-				ref={forwardedRef}
-				className={root({ class: className })}
-				{...rest}
-			>
+			<Component ref={forwardedRef} className={finalClassName} {...rest}>
 				{extendedChildren}
 			</Component>
 		);
