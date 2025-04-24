@@ -130,16 +130,11 @@ const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
 		const { root } = buttonVariants({ variant, mode, size });
 
 		// Create shared props object that can be safely passed to recursiveCloneChildren
-		const cloneableProps: RecursiveCloneableProps = {};
-		if (variant) {
-			cloneableProps.variant = variant;
-		}
-		if (mode) {
-			cloneableProps.mode = mode;
-		}
-		if (size) {
-			cloneableProps.size = size;
-		}
+		const cloneableProps: RecursiveCloneableProps = {
+			...(variant && { variant }),
+			...(mode && { mode }),
+			...(size && { size }),
+		};
 
 		const extendedChildren = recursiveCloneChildren(
 			children as ReactElement[],

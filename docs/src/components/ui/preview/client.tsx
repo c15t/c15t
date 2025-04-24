@@ -106,13 +106,19 @@ export const PreviewProvider = ({
 	const [isMounted, setIsMounted] = useState(false);
 
 	useEffect(() => {
+		// Skip animation for SSR/initial render if needed
+		if (typeof window !== 'undefined' && options?.initMode === 'immediate') {
+			setIsMounted(true);
+			return;
+		}
+
 		// Use requestAnimationFrame for smoother loading
 		const animationId = requestAnimationFrame(() => {
 			setIsMounted(true);
 		});
 
 		return () => cancelAnimationFrame(animationId);
-	}, []);
+	}, [options?.initMode]);
 
 	if (!isMounted) {
 		return (

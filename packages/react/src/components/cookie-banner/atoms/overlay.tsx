@@ -10,6 +10,7 @@ import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
 
+import clsx from 'clsx';
 import styles from '../cookie-banner.module.css';
 
 /**
@@ -65,38 +66,44 @@ const CookieBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 		useEffect(() => {
 			if (showPopup) {
 				setIsVisible(true);
+			} else if (disableAnimation) {
+				setIsVisible(false);
 			} else {
 				const timer = setTimeout(() => {
 					setIsVisible(false);
 				}, 200); // Match CSS animation duration
 				return () => clearTimeout(timer);
 			}
-		}, [showPopup]);
+		}, [showPopup, disableAnimation]);
 
+		// Determine if styles should be applied
+		const shouldApplyDefaultStyles = !(contextNoStyle || noStyle);
+
+		// Apply theme styles only if noStyle is false
 		const theme = useStyles('banner.overlay', {
-			baseClassName: !(contextNoStyle || noStyle) && styles.overlay,
-			noStyle,
+			className,
+			noStyle: noStyle || contextNoStyle,
 		});
+
+		// Construct final className combining user provided and default styles
+		const finalClassName = clsx(
+			className,
+			shouldApplyDefaultStyles && styles.overlay,
+			shouldApplyDefaultStyles &&
+				!disableAnimation &&
+				(isVisible ? styles.overlayVisible : styles.overlayHidden)
+		);
 
 		useScrollLock(!!(showPopup && scrollLock));
 
 		return showPopup && scrollLock ? (
-			disableAnimation ? (
-				<div
-					ref={ref}
-					{...props}
-					{...theme}
-					data-testid="cookie-banner-overlay"
-				/>
-			) : (
-				<div
-					ref={ref}
-					{...props}
-					{...theme}
-					className={`${theme.className || ''} ${isVisible ? styles.overlayVisible : styles.overlayHidden}`}
-					data-testid="cookie-banner-overlay"
-				/>
-			)
+			<div
+				ref={ref}
+				{...props}
+				style={{ ...theme.style, ...style }}
+				className={finalClassName}
+				data-testid="cookie-banner-overlay"
+			/>
 		) : null;
 	}
 );

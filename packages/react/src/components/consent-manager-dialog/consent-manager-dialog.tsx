@@ -17,6 +17,7 @@ import { ConsentCustomizationCard } from './atoms/dialog-card';
 import { Overlay } from './atoms/overlay';
 import type { ConsentManagerDialogTheme } from './theme';
 
+import clsx from 'clsx';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import styles from './consent-manager-dialog.module.css';
 
@@ -82,13 +83,15 @@ export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 	useEffect(() => {
 		if (open || consentManager.isPrivacyDialogOpen) {
 			setIsVisible(true);
+		} else if (disableAnimation) {
+			setIsVisible(false);
 		} else {
 			const timer = setTimeout(() => {
 				setIsVisible(false);
 			}, 200); // Match CSS animation duration
 			return () => clearTimeout(timer);
 		}
-	}, [open, consentManager.isPrivacyDialogOpen]);
+	}, [open, consentManager.isPrivacyDialogOpen, disableAnimation]);
 
 	// Add the useFocusTrap hook
 	const isRefObject =
@@ -117,13 +120,22 @@ export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 					<Overlay open={open || consentManager.isPrivacyDialogOpen} />
 					<dialog
 						ref={dialogRef as unknown as RefObject<HTMLDialogElement>}
-						className={`${styles.root} ${disableAnimation ? '' : isVisible ? styles.dialogVisible : styles.dialogHidden}`}
+						className={clsx(
+							styles.root,
+							!disableAnimation &&
+								(isVisible ? styles.dialogVisible : styles.dialogHidden)
+						)}
 						aria-labelledby="privacy-settings-title"
 						tabIndex={-1} // Make the dialog focusable as a fallback
 					>
 						<div
 							ref={contentRef}
-							className={`${styles.container} ${disableAnimation ? '' : isVisible ? styles.contentVisible : styles.contentHidden}`}
+							className={clsx(
+								styles.container,
+								!disableAnimation && isVisible
+									? styles.contentVisible
+									: styles.contentHidden
+							)}
 						>
 							<ConsentCustomizationCard noStyle={noStyle} />
 						</div>

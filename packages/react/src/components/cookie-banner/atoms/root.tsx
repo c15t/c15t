@@ -241,13 +241,15 @@ const CookieBannerRootChildren = forwardRef<
 		useEffect(() => {
 			if (showPopup) {
 				setIsVisible(true);
+			} else if (disableAnimation) {
+				setIsVisible(false);
 			} else {
 				const timer = setTimeout(() => {
 					setIsVisible(false);
 				}, 200); // Match CSS animation duration
 				return () => clearTimeout(timer);
 			}
-		}, [showPopup]);
+		}, [showPopup, disableAnimation]);
 
 		/**
 		 * Apply styles from the CookieBanner context and merge with local styles.

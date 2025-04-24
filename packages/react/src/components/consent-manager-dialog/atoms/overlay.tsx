@@ -4,6 +4,7 @@
  * Implements accessible modal behavior with animation support.
  */
 
+import clsx from 'clsx';
 import { type FC, useEffect, useState } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
@@ -77,6 +78,7 @@ interface OverlayProps {
  */
 const ConsentManagerDialogOverlay: FC<OverlayProps> = ({
 	noStyle,
+	style,
 	open = false,
 }) => {
 	const { isPrivacyDialogOpen } = useConsentManager();
@@ -92,33 +94,48 @@ const ConsentManagerDialogOverlay: FC<OverlayProps> = ({
 	useEffect(() => {
 		if (open || isPrivacyDialogOpen) {
 			setIsVisible(true);
+		} else if (disableAnimation) {
+			setIsVisible(false);
 		} else {
 			const timer = setTimeout(() => {
 				setIsVisible(false);
 			}, 200); // Match CSS animation duration
 			return () => clearTimeout(timer);
 		}
-	}, [open, isPrivacyDialogOpen]);
+	}, [open, isPrivacyDialogOpen, disableAnimation]);
 
+	// Determine if styles should be applied
+	const shouldApplyDefaultStyles = !(isThemeNoStyle || noStyle);
+
+	// Apply theme styles only if noStyle is false
 	const theme = useStyles('dialog.overlay', {
-		baseClassName: styles.overlay,
+		className: typeof style === 'string' ? style : style?.className,
 		noStyle: isThemeNoStyle || noStyle,
 	});
+
+	// Construct final className combining theme and default styles
+	const finalClassName = clsx(
+		typeof style === 'string' ? style : style?.className,
+		shouldApplyDefaultStyles && styles.overlay,
+		shouldApplyDefaultStyles &&
+			!disableAnimation &&
+			(isVisible ? styles.overlayVisible : styles.overlayHidden)
+	);
 
 	const shouldLockScroll = !!(open || isPrivacyDialogOpen) && scrollLock;
 
 	useScrollLock(shouldLockScroll);
 
 	return shouldLockScroll ? (
-		disableAnimation ? (
-			<div {...theme} data-testid="consent-manager-dialog-overlay" />
-		) : (
-			<div
-				{...theme}
-				className={`${theme.className || ''} ${isVisible ? styles.overlayVisible : styles.overlayHidden}`}
-				data-testid="consent-manager-dialog-overlay"
-			/>
-		)
+		<div
+			style={
+				typeof style === 'object' && 'style' in style
+					? { ...theme.style, ...style.style }
+					: theme.style
+			}
+			className={finalClassName}
+			data-testid="consent-manager-dialog-overlay"
+		/>
 	) : null;
 };
 
