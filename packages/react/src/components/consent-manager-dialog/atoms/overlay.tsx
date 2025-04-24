@@ -117,11 +117,12 @@ const ConsentManagerDialogOverlay: FC<OverlayProps> = ({
 	// Animations are handled with CSS classes
 	const shouldApplyAnimation =
 		!(isThemeNoStyle || noStyle) && !disableAnimation;
-	const animationClass = shouldApplyAnimation
-		? isVisible
-			? styles.overlayVisible
-			: styles.overlayHidden
-		: undefined;
+
+	// Use conditional assignment instead of nested ternaries
+	const isVisibleState = isVisible && shouldApplyAnimation;
+	const animationClass = isVisibleState
+		? styles.overlayVisible
+		: styles.overlayHidden;
 
 	// Combine theme className with animation class if needed
 	const finalClassName = clsx(theme.className, animationClass);

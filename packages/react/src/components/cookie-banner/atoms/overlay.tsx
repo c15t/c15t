@@ -86,11 +86,11 @@ const CookieBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 		// Animations are handled with CSS classes
 		const shouldApplyAnimation =
 			!(contextNoStyle || noStyle) && !disableAnimation;
-		const animationClass = shouldApplyAnimation
-			? isVisible
-				? styles.overlayVisible
-				: styles.overlayHidden
-			: undefined;
+
+		const isVisibleState = isVisible && shouldApplyAnimation;
+		const animationClass = isVisibleState
+			? styles.overlayVisible
+			: styles.overlayHidden;
 
 		// Combine theme className with animation class if needed
 		const finalClassName = clsx(theme.className, animationClass);
