@@ -69,9 +69,15 @@ const CookieBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 			} else if (disableAnimation) {
 				setIsVisible(false);
 			} else {
+				const animationDurationMs = Number.parseInt(
+					getComputedStyle(document.documentElement).getPropertyValue(
+						'--banner-animation-duration'
+					) || '200',
+					10
+				);
 				const timer = setTimeout(() => {
 					setIsVisible(false);
-				}, 200); // Match CSS animation duration
+				}, animationDurationMs); // Match CSS animation duration
 				return () => clearTimeout(timer);
 			}
 		}, [showPopup, disableAnimation]);
@@ -87,12 +93,12 @@ const CookieBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 		const shouldApplyAnimation =
 			!(contextNoStyle || noStyle) && !disableAnimation;
 
-		const animationClass = shouldApplyAnimation
-			? // biome-ignore lint/nursery/noNestedTernary: easier to read
-				isVisible
-				? styles.overlayVisible
-				: styles.overlayHidden
-			: undefined;
+		let animationClass: string | undefined;
+		if (shouldApplyAnimation) {
+			animationClass = isVisible ? styles.overlayVisible : styles.overlayHidden;
+		} else {
+			animationClass = undefined;
+		}
 
 		// Combine theme className with animation class if needed
 		const finalClassName = clsx(theme.className, animationClass);

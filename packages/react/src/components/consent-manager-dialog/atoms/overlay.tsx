@@ -97,9 +97,15 @@ const ConsentManagerDialogOverlay: FC<OverlayProps> = ({
 		} else if (disableAnimation) {
 			setIsVisible(false);
 		} else {
+			const animationDurationMs = Number.parseInt(
+				getComputedStyle(document.documentElement).getPropertyValue(
+					'--dialog-animation-duration'
+				) || '200',
+				10
+			);
 			const timer = setTimeout(() => {
 				setIsVisible(false);
-			}, 200); // Match CSS animation duration
+			}, animationDurationMs); // Match CSS animation duration
 			return () => clearTimeout(timer);
 		}
 	}, [open, isPrivacyDialogOpen, disableAnimation]);
@@ -119,12 +125,12 @@ const ConsentManagerDialogOverlay: FC<OverlayProps> = ({
 		!(isThemeNoStyle || noStyle) && !disableAnimation;
 
 	// Use conditional assignment instead of nested ternaries
-	const animationClass = shouldApplyAnimation
-		? // biome-ignore lint/nursery/noNestedTernary: easier to read
-			isVisible
-			? styles.overlayVisible
-			: styles.overlayHidden
-		: undefined;
+	let animationClass: string | undefined;
+	if (shouldApplyAnimation) {
+		animationClass = isVisible ? styles.overlayVisible : styles.overlayHidden;
+	} else {
+		animationClass = undefined;
+	}
 
 	// Combine theme className with animation class if needed
 	const finalClassName = clsx(theme.className, animationClass);

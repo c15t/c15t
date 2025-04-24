@@ -86,9 +86,15 @@ export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 		} else if (disableAnimation) {
 			setIsVisible(false);
 		} else {
+			const animationDurationMs = Number.parseInt(
+				getComputedStyle(document.documentElement).getPropertyValue(
+					'--dialog-animation-duration'
+				) || '200',
+				10
+			);
 			const timer = setTimeout(() => {
 				setIsVisible(false);
-			}, 200); // Match CSS animation duration
+			}, animationDurationMs); // Match CSS animation duration
 			return () => clearTimeout(timer);
 		}
 	}, [open, consentManager.isPrivacyDialogOpen, disableAnimation]);
