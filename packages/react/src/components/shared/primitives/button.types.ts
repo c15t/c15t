@@ -1,4 +1,4 @@
-import type { ComponentRef, HTMLAttributes } from 'react';
+import type { ComponentRef, HTMLAttributes, MouseEvent } from 'react';
 import type { ExtendThemeKeys } from '~/types/theme';
 import type { CSSVariables } from '~/types/theme';
 
@@ -27,5 +27,5 @@ export interface ConsentButtonProps
 	 * @remarks
 	 * Allows for custom click handling.
 	 */
-	onClick?: () => void;
+	onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
 }

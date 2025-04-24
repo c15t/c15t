@@ -1,5 +1,5 @@
 import { Slot } from '@radix-ui/react-slot';
-import { forwardRef, useCallback } from 'react';
+import { type MouseEvent, forwardRef, useCallback } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
@@ -75,51 +75,54 @@ export const ConsentButton = forwardRef<
 			noStyle: contextNoStyle || noStyle,
 		});
 
-		const buttonClick = useCallback(() => {
-			// Handle UI first - prioritize closing dialogs
-			if (closeCookieBanner) {
-				setShowPopup(false);
-			}
-
-			if (closeCustomizeDialog) {
-				setIsPrivacyDialogOpen(false);
-			}
-
-			// Open privacy dialog if needed
-			if (action === 'open-consent-dialog') {
-				setIsPrivacyDialogOpen(true);
-				setShowPopup(false, true);
-			}
-
-			// Call the user's onClick handler after UI updates
-			if (forwardedOnClick) {
-				forwardedOnClick();
-			}
-
-			if (action !== 'open-consent-dialog') {
-				switch (action) {
-					case 'accept-consent':
-						saveConsents('all');
-						break;
-					case 'reject-consent':
-						saveConsents('necessary');
-						break;
-					case 'custom-consent':
-						saveConsents('custom');
-						break;
-					default:
-						break;
+		const buttonClick = useCallback(
+			(e: MouseEvent<HTMLButtonElement>) => {
+				// Handle UI first - prioritize closing dialogs
+				if (closeCookieBanner) {
+					setShowPopup(false);
 				}
-			}
-		}, [
-			closeCookieBanner,
-			closeCustomizeDialog,
-			forwardedOnClick,
-			saveConsents,
-			setIsPrivacyDialogOpen,
-			setShowPopup,
-			action,
-		]);
+
+				if (closeCustomizeDialog) {
+					setIsPrivacyDialogOpen(false);
+				}
+
+				// Open privacy dialog if needed
+				if (action === 'open-consent-dialog') {
+					setIsPrivacyDialogOpen(true);
+					setShowPopup(false, true);
+				}
+
+				// Call the user's onClick handler after UI updates
+				if (forwardedOnClick) {
+					forwardedOnClick(e);
+				}
+
+				if (action !== 'open-consent-dialog') {
+					switch (action) {
+						case 'accept-consent':
+							saveConsents('all');
+							break;
+						case 'reject-consent':
+							saveConsents('necessary');
+							break;
+						case 'custom-consent':
+							saveConsents('custom');
+							break;
+						default:
+							break;
+					}
+				}
+			},
+			[
+				closeCookieBanner,
+				closeCustomizeDialog,
+				forwardedOnClick,
+				saveConsents,
+				setIsPrivacyDialogOpen,
+				setShowPopup,
+				action,
+			]
+		);
 
 		const Comp = asChild ? Slot : 'button';
 
