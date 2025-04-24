@@ -26,6 +26,9 @@ export default defineConfig({
 			auto: true,
 			localIdentName: 'c15t-[local]-[hash:base64:5]',
 		},
+		minify: {
+			css: true,
+		},
 	},
 	plugins: [pluginReact()],
 });
