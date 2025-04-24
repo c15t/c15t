@@ -7,7 +7,6 @@ import {
 	forwardRef,
 	useId,
 } from 'react';
-import { type VariantProps, tv } from 'tailwind-variants';
 import type { PolymorphicComponentProps } from '../../libs/polymorphic';
 import { recursiveCloneChildren } from '../../libs/recursive-clone-children';
 import styles from './button.module.css';
@@ -20,102 +19,83 @@ const BUTTON_ROOT_NAME = 'ButtonRoot';
 const BUTTON_ICON_NAME = 'ButtonIcon';
 
 /**
- * Button component variant styles using tailwind-variants
- * @remarks
- * Defines the core styling variants for the Button component including:
- * - Base styles for the button and icon
- * - Variant styles (primary, neutral, error)
- * - Mode styles (filled, stroke, lighter, ghost)
- * - Size variants (medium, small, xsmall, xxsmall)
- *
- * @internal
+ * Button variant types
  */
-export const buttonVariants = tv({
-	slots: {
-		root: [styles.button],
-		icon: [styles['button-icon']],
-	},
-	variants: {
-		variant: {
-			primary: {},
-			neutral: {},
-		},
-		mode: {
-			filled: {},
-			stroke: {},
-			lighter: {},
-			ghost: {},
-		},
-		size: {
-			medium: { root: styles['button-medium'] },
-			small: { root: styles['button-small'] },
-			xsmall: { root: styles['button-xsmall'] },
-			xxsmall: { root: styles['button-xxsmall'] },
-		},
-	},
-	compoundVariants: [
-		// Primary variants
-		{
-			variant: 'primary',
-			mode: 'filled',
-			class: { root: styles['button-primary-filled'] },
-		},
-		{
-			variant: 'primary',
-			mode: 'stroke',
-			class: { root: styles['button-primary-stroke'] },
-		},
-		{
-			variant: 'primary',
-			mode: 'lighter',
-			class: { root: styles['button-primary-lighter'] },
-		},
-		{
-			variant: 'primary',
-			mode: 'ghost',
-			class: { root: styles['button-primary-ghost'] },
-		},
+export type ButtonVariant = 'primary' | 'neutral';
+export type ButtonMode = 'filled' | 'stroke' | 'lighter' | 'ghost';
+export type ButtonSize = 'medium' | 'small' | 'xsmall' | 'xxsmall';
 
-		// Neutral variants
-		{
-			variant: 'neutral',
-			mode: 'filled',
-			class: { root: styles['button-neutral-filled'] },
+/**
+ * Button variants props interface
+ */
+export interface ButtonVariantsProps {
+	variant?: ButtonVariant;
+	mode?: ButtonMode;
+	size?: ButtonSize;
+}
+
+// Define a type that can be used with PolymorphicComponentProps
+export interface ButtonIconProps extends Record<string, unknown> {
+	variant?: ButtonVariant;
+	mode?: ButtonMode;
+	size?: ButtonSize;
+}
+
+/**
+ * Helper function to generate button classes based on variants
+ */
+export const buttonVariants = ({
+	variant = 'primary',
+	mode = 'filled',
+	size = 'medium',
+}: ButtonVariantsProps = {}) => {
+	// Build class arrays for root and icon
+	const rootClasses = [styles.button];
+	const iconClasses = [styles['button-icon']];
+
+	// Add size class
+	if (size === 'medium') rootClasses.push(styles['button-medium']);
+	if (size === 'small') rootClasses.push(styles['button-small']);
+	if (size === 'xsmall') rootClasses.push(styles['button-xsmall']);
+	if (size === 'xxsmall') rootClasses.push(styles['button-xxsmall']);
+
+	// Add variant-mode compound classes
+	if (variant === 'primary') {
+		if (mode === 'filled') rootClasses.push(styles['button-primary-filled']);
+		if (mode === 'stroke') rootClasses.push(styles['button-primary-stroke']);
+		if (mode === 'lighter') rootClasses.push(styles['button-primary-lighter']);
+		if (mode === 'ghost') rootClasses.push(styles['button-primary-ghost']);
+	} else if (variant === 'neutral') {
+		if (mode === 'filled') rootClasses.push(styles['button-neutral-filled']);
+		if (mode === 'stroke') rootClasses.push(styles['button-neutral-stroke']);
+		if (mode === 'lighter') rootClasses.push(styles['button-neutral-lighter']);
+		if (mode === 'ghost') rootClasses.push(styles['button-neutral-ghost']);
+	}
+
+	return {
+		root: (options?: { class?: string }) => {
+			return [...rootClasses, options?.class].filter(Boolean).join(' ');
 		},
-		{
-			variant: 'neutral',
-			mode: 'stroke',
-			class: { root: styles['button-neutral-stroke'] },
+		icon: (options?: { class?: string }) => {
+			return [...iconClasses, options?.class].filter(Boolean).join(' ');
 		},
-		{
-			variant: 'neutral',
-			mode: 'lighter',
-			class: { root: styles['button-neutral-lighter'] },
-		},
-		{
-			variant: 'neutral',
-			mode: 'ghost',
-			class: { root: styles['button-neutral-ghost'] },
-		},
-	],
-	defaultVariants: {
-		variant: 'primary',
-		mode: 'filled',
-		size: 'medium',
-	},
-});
+	};
+};
+
+// Type for props that can be used with recursiveCloneChildren
+export type RecursiveCloneableProps = Record<string, unknown>;
 
 /**
  * Type definitions for button props
  * @internal
  */
-export type ButtonSharedProps = VariantProps<typeof buttonVariants>;
+export type ButtonSharedProps = ButtonVariantsProps;
 
 /**
  * Props interface for the ButtonRoot component
  * @public
  */
-type ButtonRootProps = VariantProps<typeof buttonVariants> &
+type ButtonRootProps = ButtonSharedProps &
 	ButtonHTMLAttributes<HTMLButtonElement> & {
 		/**
 		 * When true, the component will render its children directly without wrapping them in a button element
@@ -152,15 +132,15 @@ const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
 		const Component = asChild ? Slot : 'button';
 		const { root } = buttonVariants({ variant, mode, size });
 
-		const sharedProps: ButtonSharedProps = {
-			variant,
-			mode,
-			size,
-		};
+		// Create shared props object that can be safely passed to recursiveCloneChildren
+		const cloneableProps: RecursiveCloneableProps = {};
+		if (variant) cloneableProps.variant = variant;
+		if (mode) cloneableProps.mode = mode;
+		if (size) cloneableProps.size = size;
 
 		const extendedChildren = recursiveCloneChildren(
 			children as ReactElement[],
-			sharedProps,
+			cloneableProps,
 			[BUTTON_ICON_NAME],
 			uniqueId,
 			asChild
@@ -206,11 +186,20 @@ function ButtonIcon<T extends ElementType>({
 	as,
 	className,
 	...rest
-}: PolymorphicComponentProps<T, ButtonSharedProps>) {
+}: PolymorphicComponentProps<T, ButtonIconProps>) {
 	const Component = as || 'div';
-	const { icon } = buttonVariants({ mode, variant, size });
+	const { icon } = buttonVariants({
+		variant: variant as ButtonVariant | undefined,
+		mode: mode as ButtonMode | undefined,
+		size: size as ButtonSize | undefined,
+	});
 
-	return <Component className={icon({ class: className })} {...rest} />;
+	return (
+		<Component
+			className={icon({ class: className as string | undefined })}
+			{...rest}
+		/>
+	);
 }
 ButtonIcon.displayName = BUTTON_ICON_NAME;
 

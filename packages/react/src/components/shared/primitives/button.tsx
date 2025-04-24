@@ -1,11 +1,11 @@
 import { Slot } from '@radix-ui/react-slot';
 import { forwardRef, useCallback } from 'react';
-import type { VariantProps } from 'tailwind-variants';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
 import type { CSSPropertiesWithVars, CSSVariables } from '~/types/theme';
 import * as Button from '../ui/button';
+import type { ButtonVariantsProps } from '../ui/button/button';
 import type { ConsentButtonElement, ConsentButtonProps } from './button.types';
 
 /**
@@ -26,7 +26,7 @@ import type { ConsentButtonElement, ConsentButtonProps } from './button.types';
 export const ConsentButton = forwardRef<
 	ConsentButtonElement,
 	ConsentButtonProps &
-		VariantProps<typeof Button.buttonVariants> & {
+		ButtonVariantsProps & {
 			action:
 				| 'accept-consent'
 				| 'reject-consent'
