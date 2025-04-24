@@ -76,23 +76,24 @@ const CookieBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 			}
 		}, [showPopup, disableAnimation]);
 
-		// Determine if styles should be applied
-		const shouldApplyDefaultStyles = !(contextNoStyle || noStyle);
-
-		// Apply theme styles only if noStyle is false
+		// Apply theme styles
 		const theme = useStyles('banner.overlay', {
-			className,
-			noStyle: noStyle || contextNoStyle,
+			baseClassName: !(contextNoStyle || noStyle) && styles.overlay,
+			className, // Always pass custom className
+			noStyle: contextNoStyle || noStyle,
 		});
 
-		// Construct final className combining user provided and default styles
-		const finalClassName = clsx(
-			className,
-			shouldApplyDefaultStyles && styles.overlay,
-			shouldApplyDefaultStyles &&
-				!disableAnimation &&
-				(isVisible ? styles.overlayVisible : styles.overlayHidden)
-		);
+		// Animations are handled with CSS classes
+		const shouldApplyAnimation =
+			!(contextNoStyle || noStyle) && !disableAnimation;
+		const animationClass = shouldApplyAnimation
+			? isVisible
+				? styles.overlayVisible
+				: styles.overlayHidden
+			: undefined;
+
+		// Combine theme className with animation class if needed
+		const finalClassName = clsx(theme.className, animationClass);
 
 		useScrollLock(!!(showPopup && scrollLock));
 
@@ -100,8 +101,8 @@ const CookieBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 			<div
 				ref={ref}
 				{...props}
-				style={{ ...theme.style, ...style }}
 				className={finalClassName}
+				style={{ ...theme.style, ...style }}
 				data-testid="cookie-banner-overlay"
 			/>
 		) : null;

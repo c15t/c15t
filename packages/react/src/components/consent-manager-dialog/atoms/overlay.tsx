@@ -104,23 +104,27 @@ const ConsentManagerDialogOverlay: FC<OverlayProps> = ({
 		}
 	}, [open, isPrivacyDialogOpen, disableAnimation]);
 
-	// Determine if styles should be applied
-	const shouldApplyDefaultStyles = !(isThemeNoStyle || noStyle);
+	// Get custom className from style prop
+	const customClassName = typeof style === 'string' ? style : style?.className;
 
-	// Apply theme styles only if noStyle is false
+	// Apply theme styles
 	const theme = useStyles('dialog.overlay', {
-		className: typeof style === 'string' ? style : style?.className,
+		baseClassName: !(isThemeNoStyle || noStyle) && styles.overlay,
+		className: customClassName,
 		noStyle: isThemeNoStyle || noStyle,
 	});
 
-	// Construct final className combining theme and default styles
-	const finalClassName = clsx(
-		typeof style === 'string' ? style : style?.className,
-		shouldApplyDefaultStyles && styles.overlay,
-		shouldApplyDefaultStyles &&
-			!disableAnimation &&
-			(isVisible ? styles.overlayVisible : styles.overlayHidden)
-	);
+	// Animations are handled with CSS classes
+	const shouldApplyAnimation =
+		!(isThemeNoStyle || noStyle) && !disableAnimation;
+	const animationClass = shouldApplyAnimation
+		? isVisible
+			? styles.overlayVisible
+			: styles.overlayHidden
+		: undefined;
+
+	// Combine theme className with animation class if needed
+	const finalClassName = clsx(theme.className, animationClass);
 
 	const shouldLockScroll = !!(open || isPrivacyDialogOpen) && scrollLock;
 
