@@ -205,6 +205,4 @@ describe('Client Callbacks Tests', () => {
 			});
 		});
 	});
-
-
 });

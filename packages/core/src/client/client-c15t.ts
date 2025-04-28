@@ -12,11 +12,11 @@ import type {
 } from '@c15t/backend';
 
 import type {
+	ConsentBannerFetchedCallbackPayload,
 	ConsentManagerCallbacks,
 	ConsentManagerInterface,
 	ConsentSetCallbackPayload,
 	ConsentVerifiedCallbackPayload,
-	ConsentBannerFetchedCallbackPayload,
 } from './client-interface';
 
 import {
