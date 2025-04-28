@@ -1,0 +1,70 @@
+---
+title: "Callbacks"
+description: "Learn how to use callbacks to respond to consent management events in both JavaScript and React applications."
+---
+
+## Overview
+
+Callbacks allow you to execute custom code in response to various consent management events. They provide a way to integrate consent management with your application's logic, analytics, and other features.
+
+## Available Callbacks
+
+The following callbacks are available your the c15t config.
+
+### Callback Reference
+
+- `onError`: Called when an API request fails.
+- `onConsentBannerFetched`: Called after successfully fetching the consent banner information.
+- `onConsentSet`: Called after successfully setting consent preferences.
+- `onConsentVerified`: Called after successfully verifying consent.
+
+### Offline Mode Callbacks
+
+Some callbacks require a call to an endpoint meaning they will not work fully in offline mode.
+
+- `onConsentBannerFetched`: Will always return a simulated response of true, unless consent is in local storage.
+- `onConsentSet`: Stores consent in local storage.
+- `onConsentVerified`: Will always return a simulated response of true, unless consent is in local storage.
+
+
+
+## Usage Examples
+
+```typescript
+import { configureConsentManager, type ConsentManagerOptions } from 'c15t';
+
+const c15tConfig: ConsentManagerOptions = {
+  // ...
+  callbacks: {
+    onConsentSet: ({ data }) => {
+      if (data.preferences.measurement) {
+        // Add your scripts here to enable analytics
+      }
+    }
+  }
+};
+```
+
+## Callback Response Types
+
+Callback responses are always of type `ResponseContext<T>`. 
+
+<AutoTypeTable path="node_modules/c15t/src/client/types.ts" name="ResponseContext" />
+
+### onConsentSet Data
+
+The `onConsentSet` callback receives consent preference details:
+
+<AutoTypeTable path="node_modules/c15t/src/client/client-interface.ts" name="ConsentSetCallbackPayload" />
+
+### onConsentVerified Data
+
+The `onConsentVerified` callback receives verification results:
+
+<AutoTypeTable path="node_modules/c15t/src/client/client-interface.ts" name="ConsentVerifiedCallbackPayload" />
+
+### onConsentBannerFetched Data
+
+The `onConsentBannerFetched` callback receives banner information:
+
+<AutoTypeTable path="node_modules/c15t/src/client/client-interface.ts" name="ConsentBannerFetchedCallbackPayload" />
