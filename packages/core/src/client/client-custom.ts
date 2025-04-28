@@ -204,7 +204,59 @@ export class CustomClient implements ConsentManagerInterface {
 				const callback = this.callbacks[callbackKey] as (
 					response: ResponseContext<ResponseType>
 				) => void;
-				callback(normalizedResponse);
+
+				// Format callback payload based on endpoint type
+				let callbackPayload: ResponseContext<ResponseType>;
+				if (
+					callbackKey === 'onConsentBannerFetched' &&
+					normalizedResponse.data
+				) {
+					const data =
+						normalizedResponse.data as unknown as ShowConsentBannerResponse;
+					callbackPayload = {
+						...normalizedResponse,
+						data: {
+							showConsentBanner: data.showConsentBanner,
+							jurisdiction: data.jurisdiction,
+							location: {
+								countryCode: data.location.countryCode || 'GB',
+								regionCode: data.location.regionCode || null,
+							},
+						},
+					} as ResponseContext<ResponseType>;
+				} else if (callbackKey === 'onConsentSet' && normalizedResponse.data) {
+					callbackPayload = {
+						...normalizedResponse,
+						data: {
+							type:
+								(options?.body as SetConsentRequestBody)?.type ||
+								'cookie_banner',
+							preferences:
+								(options?.body as SetConsentRequestBody)?.preferences || {},
+							domain: (options?.body as SetConsentRequestBody)?.domain,
+						},
+					} as ResponseContext<ResponseType>;
+				} else if (
+					callbackKey === 'onConsentVerified' &&
+					normalizedResponse.data
+				) {
+					callbackPayload = {
+						...normalizedResponse,
+						data: {
+							type:
+								(options?.body as VerifyConsentRequestBody)?.type ||
+								'cookie_banner',
+							preferences:
+								(options?.body as VerifyConsentRequestBody)?.preferences || [],
+							valid: true,
+							domain: (options?.body as VerifyConsentRequestBody)?.domain,
+						},
+					} as ResponseContext<ResponseType>;
+				} else {
+					callbackPayload = normalizedResponse;
+				}
+
+				callback(callbackPayload);
 			}
 
 			return normalizedResponse;
