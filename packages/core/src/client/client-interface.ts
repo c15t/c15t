@@ -93,7 +93,7 @@ export interface ConsentSetCallbackPayload {
 export interface ConsentBannerFetchedCallbackPayload {
 	showConsentBanner: boolean;
 	jurisdiction: { code: string; message: string };
-	location?: { countryCode: string; regionCode: string | null };
+	location?: { countryCode: string | null; regionCode: string | null };
 }
 
 /**
