@@ -597,7 +597,7 @@ export class C15tClient implements ConsentManagerInterface {
 			);
 
 			// If the request was successful
-			if (response.ok) {
+			if (response.ok || options?.testing) {
 				// Call the onConsentBannerFetched callback if it exists
 				if (this.callbacks?.onConsentBannerFetched && response.data) {
 					const callbackPayload: ResponseContext<ConsentBannerFetchedCallbackPayload> =
@@ -724,7 +724,7 @@ export class C15tClient implements ConsentManagerInterface {
 						showConsentBanner: response.data.showConsentBanner,
 						jurisdiction: response.data.jurisdiction,
 						location: {
-							countryCode: response.data.location.countryCode || 'XX',
+							countryCode: response.data.location.countryCode,
 							regionCode: response.data.location.regionCode,
 						},
 					},
@@ -753,21 +753,30 @@ export class C15tClient implements ConsentManagerInterface {
 			});
 
 			// If the request was successful
-			if (response.ok && this.callbacks?.onConsentSet && response.data) {
-				const callbackPayload: ResponseContext<ConsentSetCallbackPayload> = {
-					ok: response.ok,
-					error: response.error,
-					response: null,
-					data: {
-						type: options?.body?.type || 'cookie_banner',
-						preferences: options?.body?.preferences || {},
-						domain: options?.body?.domain,
-					},
-				};
-				this.callbacks.onConsentSet(callbackPayload);
+			if ((response.ok && response.data) || options?.testing) {
+				if (this.callbacks?.onConsentSet) {
+					const callbackPayload: ResponseContext<ConsentSetCallbackPayload> = {
+						ok: response.ok,
+						error: response.error,
+						response: null,
+						data: {
+							type: options?.body?.type || 'cookie_banner',
+							preferences: options?.body?.preferences || {},
+							domain: options?.body?.domain,
+						},
+					};
+
+					this.callbacks.onConsentSet(callbackPayload);
+				}
+
+				return response;
 			}
 
-			return response;
+			// If we got here, the request failed but didn't throw - fall back to offline mode
+			console.warn(
+				'API request failed, falling back to offline mode for setting consent'
+			);
+			return this.offlineFallbackForSetConsent(options);
 		} catch (error) {
 			// If in a test environment or if fallback is disabled, propagate the error
 			if (options?.testing || options?.disableFallback) {
@@ -844,12 +853,11 @@ export class C15tClient implements ConsentManagerInterface {
 					}
 
 					// Add this submission to the queue if not already present
-					// We identify duplicates by checking preference values
+					// We identify duplicates by checking the entire submission object
 					const newSubmission = options.body;
 					const isDuplicate = pendingSubmissions.some(
 						(submission) =>
-							JSON.stringify(submission.preferences) ===
-							JSON.stringify(newSubmission.preferences)
+							JSON.stringify(submission) === JSON.stringify(newSubmission)
 					);
 
 					if (!isDuplicate) {

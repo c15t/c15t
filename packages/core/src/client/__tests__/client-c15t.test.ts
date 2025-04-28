@@ -674,6 +674,10 @@ describe('c15t Client Offline Fallback Tests', () => {
 		// Mock multiple failed API responses
 		fetchMock.mockRejectedValue(new Error('Network error'));
 
+		// Spy on localStorage methods
+		const getItemSpy = vi.spyOn(mockLocalStorage, 'getItem');
+		const setItemSpy = vi.spyOn(mockLocalStorage, 'setItem');
+
 		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
 		const client = configureConsentManager({
 			mode: 'c15t',
@@ -711,20 +715,55 @@ describe('c15t Client Offline Fallback Tests', () => {
 			},
 		};
 
-		// Submit both consents
+		// Submit first consent
 		await client.setConsent({ body: cookieBannerConsent });
+
+		// Verify first submission was stored
+		let storedSubmissions = mockLocalStorage.getItem(
+			'c15t-pending-consent-submissions'
+		);
+		let parsedSubmissions = JSON.parse(storedSubmissions || '[]');
+		expect(parsedSubmissions).toHaveLength(1);
+		expect(parsedSubmissions[0]).toEqual(cookieBannerConsent);
+
+		// Submit second consent
 		await client.setConsent({ body: termsConsent });
 
-		// Get the stored pending submissions from localStorage
-		const pendingSubmissionsKey = 'c15t-pending-consent-submissions';
-		const storedSubmissions = mockLocalStorage.getItem(pendingSubmissionsKey);
-		const parsedSubmissions = JSON.parse(storedSubmissions || '[]');
+		// Get the final stored submissions from localStorage
+		storedSubmissions = mockLocalStorage.getItem(
+			'c15t-pending-consent-submissions'
+		);
+		parsedSubmissions = JSON.parse(storedSubmissions || '[]');
+
+		// Log for debugging
+		console.log('Mock localStorage calls:', {
+			getItem: getItemSpy.mock.calls,
+			setItem: setItemSpy.mock.calls,
+		});
+		console.log('Final stored submissions:', storedSubmissions);
 
 		// Assertions
 		expect(parsedSubmissions).toHaveLength(2);
 		expect(parsedSubmissions).toContainEqual(cookieBannerConsent);
 		expect(parsedSubmissions).toContainEqual(termsConsent);
-	}, 10000); // Increase timeout to 10 seconds
+
+		// Verify localStorage interactions
+		expect(setItemSpy).toHaveBeenCalledWith(
+			'c15t-storage-test-key',
+			expect.any(String)
+		);
+		expect(setItemSpy).toHaveBeenCalledWith('c15t-consent', expect.any(String));
+		expect(setItemSpy).toHaveBeenCalledWith(
+			'c15t-pending-consent-submissions',
+			expect.stringContaining(JSON.stringify([cookieBannerConsent]))
+		);
+		expect(setItemSpy).toHaveBeenCalledWith(
+			'c15t-pending-consent-submissions',
+			expect.stringContaining(
+				JSON.stringify([cookieBannerConsent, termsConsent])
+			)
+		);
+	}, 10000);
 
 	it('should retry pending submissions on initialization', async () => {
 		// Mock localStorage with existing pending submissions
