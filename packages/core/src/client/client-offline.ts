@@ -14,6 +14,8 @@ import type {
 import type {
 	ConsentManagerCallbacks,
 	ConsentManagerInterface,
+	ConsentSetCallbackPayload,
+	ConsentVerifiedCallbackPayload,
 } from './client-interface';
 
 import type { FetchOptions, ResponseContext } from './types';
@@ -84,7 +86,8 @@ export class OfflineClient implements ConsentManagerInterface {
 		callbackKey?: keyof Pick<
 			Required<ConsentManagerCallbacks>,
 			'onConsentBannerFetched' | 'onConsentSet' | 'onConsentVerified'
-		>
+		>,
+		callbackPayload?: object
 	): Promise<ResponseContext<ResponseType>> {
 		const emptyResponse = this.createResponseContext<ResponseType>();
 
@@ -98,7 +101,12 @@ export class OfflineClient implements ConsentManagerInterface {
 			const callback = this.callbacks[callbackKey] as (
 				response: ResponseContext<ResponseType>
 			) => void;
-			callback(emptyResponse);
+			const payload = callbackPayload
+				? this.createResponseContext<ResponseType>(
+						callbackPayload as ResponseType
+					)
+				: emptyResponse;
+			callback(payload);
 		}
 
 		return emptyResponse;
@@ -138,12 +146,21 @@ export class OfflineClient implements ConsentManagerInterface {
 				code: 'EU',
 				message: 'EU',
 			},
-			location: { countryCode: 'US', regionCode: 'CA' },
+			location: { countryCode: 'GB', regionCode: null },
 		});
 
 		// Call specific callback
-		if (this.callbacks?.onConsentBannerFetched) {
-			this.callbacks.onConsentBannerFetched(response);
+		if (this.callbacks?.onConsentBannerFetched && response.data) {
+			const callbackPayload = this.createResponseContext({
+				showConsentBanner: response.data.showConsentBanner,
+				jurisdiction: response.data.jurisdiction,
+				location: {
+					countryCode: response.data.location.countryCode || 'GB',
+					regionCode: response.data.location.regionCode || null,
+				},
+			});
+
+			this.callbacks.onConsentBannerFetched(callbackPayload);
 		}
 
 		// Call success callback if provided
@@ -162,7 +179,6 @@ export class OfflineClient implements ConsentManagerInterface {
 		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 	): Promise<ResponseContext<SetConsentResponse>> {
 		// Save to localStorage to remember that consent was set
-
 		try {
 			if (typeof window !== 'undefined' && window.localStorage) {
 				// Test localStorage access with a simple operation
@@ -185,9 +201,16 @@ export class OfflineClient implements ConsentManagerInterface {
 
 		// If we couldn't store consent in localStorage, we should
 		// still return a successful response to prevent UI errors
+		const setConsentCallbackPayload: ConsentSetCallbackPayload = {
+			type: options?.body?.type || 'cookie_banner',
+			preferences: options?.body?.preferences || {},
+			domain: options?.body?.domain || '',
+		};
+
 		return await this.handleOfflineResponse<SetConsentResponse>(
 			options,
-			'onConsentSet'
+			'onConsentSet',
+			setConsentCallbackPayload
 		);
 	}
 
@@ -197,9 +220,17 @@ export class OfflineClient implements ConsentManagerInterface {
 	async verifyConsent(
 		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
 	): Promise<ResponseContext<VerifyConsentResponse>> {
+		const verifiedCallbackPayload: ConsentVerifiedCallbackPayload = {
+			type: options?.body?.type || 'cookie_banner',
+			preferences: options?.body?.preferences || [],
+			valid: true,
+			domain: options?.body?.domain || '',
+		};
+
 		return await this.handleOfflineResponse<VerifyConsentResponse>(
 			options,
-			'onConsentVerified'
+			'onConsentVerified',
+			verifiedCallbackPayload
 		);
 	}
 

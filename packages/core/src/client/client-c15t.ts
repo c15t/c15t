@@ -12,8 +12,11 @@ import type {
 } from '@c15t/backend';
 
 import type {
+	ConsentBannerFetchedCallbackPayload,
 	ConsentManagerCallbacks,
 	ConsentManagerInterface,
+	ConsentSetCallbackPayload,
+	ConsentVerifiedCallbackPayload,
 } from './client-interface';
 
 import {
@@ -593,8 +596,26 @@ export class C15tClient implements ConsentManagerInterface {
 				}
 			);
 
-			// If the request was successful or if we're in a test environment, return the actual response
+			// If the request was successful
 			if (response.ok || options?.testing) {
+				// Call the onConsentBannerFetched callback if it exists
+				if (this.callbacks?.onConsentBannerFetched && response.data) {
+					const callbackPayload: ResponseContext<ConsentBannerFetchedCallbackPayload> =
+						{
+							ok: response.ok,
+							error: response.error,
+							response: null,
+							data: {
+								showConsentBanner: response.data.showConsentBanner,
+								jurisdiction: response.data.jurisdiction,
+								location: {
+									countryCode: response.data.location.countryCode,
+									regionCode: response.data.location.regionCode,
+								},
+							},
+						};
+					this.callbacks.onConsentBannerFetched(callbackPayload);
+				}
 				return response;
 			}
 
@@ -692,6 +713,25 @@ export class C15tClient implements ConsentManagerInterface {
 			await options.onSuccess(response);
 		}
 
+		// Call the onConsentBannerFetched callback if it exists
+		if (this.callbacks?.onConsentBannerFetched && response.data) {
+			const callbackPayload: ResponseContext<ConsentBannerFetchedCallbackPayload> =
+				{
+					ok: response.ok,
+					error: response.error,
+					response: null,
+					data: {
+						showConsentBanner: response.data.showConsentBanner,
+						jurisdiction: response.data.jurisdiction,
+						location: {
+							countryCode: response.data.location.countryCode,
+							regionCode: response.data.location.regionCode,
+						},
+					},
+				};
+			this.callbacks.onConsentBannerFetched(callbackPayload);
+		}
+
 		return response;
 	}
 
@@ -712,8 +752,23 @@ export class C15tClient implements ConsentManagerInterface {
 				...options,
 			});
 
-			// If the request was successful or if we're in a test environment, return the actual response
-			if (response.ok || options?.testing) {
+			// If the request was successful
+			if ((response.ok && response.data) || options?.testing) {
+				if (this.callbacks?.onConsentSet) {
+					const callbackPayload: ResponseContext<ConsentSetCallbackPayload> = {
+						ok: response.ok,
+						error: response.error,
+						response: null,
+						data: {
+							type: options?.body?.type || 'cookie_banner',
+							preferences: options?.body?.preferences || {},
+							domain: options?.body?.domain,
+						},
+					};
+
+					this.callbacks.onConsentSet(callbackPayload);
+				}
+
 				return response;
 			}
 
@@ -798,12 +853,11 @@ export class C15tClient implements ConsentManagerInterface {
 					}
 
 					// Add this submission to the queue if not already present
-					// We identify duplicates by checking preference values
+					// We identify duplicates by checking the entire submission object
 					const newSubmission = options.body;
 					const isDuplicate = pendingSubmissions.some(
 						(submission) =>
-							JSON.stringify(submission.preferences) ===
-							JSON.stringify(newSubmission.preferences)
+							JSON.stringify(submission) === JSON.stringify(newSubmission)
 					);
 
 					if (!isDuplicate) {
@@ -843,6 +897,19 @@ export class C15tClient implements ConsentManagerInterface {
 			await options.onSuccess(response);
 		}
 
+		// Call the onConsentSet callback if it exists
+		if (this.callbacks?.onConsentSet) {
+			const callbackPayload: ResponseContext<ConsentSetCallbackPayload> = {
+				...response,
+				data: {
+					type: options?.body?.type || 'cookie_banner',
+					preferences: options?.body?.preferences || {},
+					domain: options?.body?.domain,
+				},
+			};
+			this.callbacks.onConsentSet(callbackPayload);
+		}
+
 		return response;
 	}
 
@@ -852,13 +919,31 @@ export class C15tClient implements ConsentManagerInterface {
 	async verifyConsent(
 		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
 	): Promise<ResponseContext<VerifyConsentResponse>> {
-		return await this.fetcher<VerifyConsentResponse, VerifyConsentRequestBody>(
-			API_ENDPOINTS.VERIFY_CONSENT,
-			{
-				method: 'POST',
-				...options,
-			}
-		);
+		const response = await this.fetcher<
+			VerifyConsentResponse,
+			VerifyConsentRequestBody
+		>(API_ENDPOINTS.VERIFY_CONSENT, {
+			method: 'POST',
+			...options,
+		});
+
+		// Call the onConsentVerified callback if it exists and the request was successful
+		if (response.ok && this.callbacks?.onConsentVerified && response.data) {
+			const callbackPayload: ResponseContext<ConsentVerifiedCallbackPayload> = {
+				ok: response.ok,
+				error: response.error,
+				response: null,
+				data: {
+					type: options?.body?.type || 'cookie_banner',
+					preferences: options?.body?.preferences || [],
+					valid: response.data.isValid,
+					domain: options?.body?.domain,
+				},
+			};
+			this.callbacks.onConsentVerified(callbackPayload);
+		}
+
+		return response;
 	}
 
 	/**

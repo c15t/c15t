@@ -79,6 +79,34 @@ export interface ConsentManagerInterface {
 }
 
 /**
+ * Payload for the onConsentSet callback
+ */
+export interface ConsentSetCallbackPayload {
+	type: string;
+	preferences: Record<string, boolean>;
+	domain?: string;
+}
+
+/**
+ * Payload for the onConsentBannerFetched callback
+ */
+export interface ConsentBannerFetchedCallbackPayload {
+	showConsentBanner: boolean;
+	jurisdiction: { code: string; message: string };
+	location?: { countryCode: string | null; regionCode: string | null };
+}
+
+/**
+ * Payload for the onConsentVerified callback
+ */
+export interface ConsentVerifiedCallbackPayload {
+	type: string;
+	domain?: string;
+	preferences: string[];
+	valid: boolean;
+}
+
+/**
  * Base callback configuration for consent clients
  */
 export interface ConsentManagerCallbacks {
@@ -94,20 +122,20 @@ export interface ConsentManagerCallbacks {
 	 * @param response The response from the showConsentBanner endpoint
 	 */
 	onConsentBannerFetched?: (
-		response: ResponseContext<ShowConsentBannerResponse>
+		response: ResponseContext<ConsentBannerFetchedCallbackPayload>
 	) => void;
 
 	/**
 	 * Called after successfully setting consent preferences
 	 * @param response The response from the setConsent endpoint
 	 */
-	onConsentSet?: (response: ResponseContext<SetConsentResponse>) => void;
+	onConsentSet?: (response: ResponseContext<ConsentSetCallbackPayload>) => void;
 
 	/**
 	 * Called after successfully verifying consent
 	 * @param response The response from the verifyConsent endpoint
 	 */
 	onConsentVerified?: (
-		response: ResponseContext<VerifyConsentResponse>
+		response: ResponseContext<ConsentVerifiedCallbackPayload>
 	) => void;
 }

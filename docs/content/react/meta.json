@@ -6,6 +6,7 @@
 		"../introduction",
 		"../ai-tools-integrations",
 		"quickstart",
+		"../callbacks",
 		"--- React Components ---",
 		"../components/react/cookie-banner",
 		"../components/react/consent-manager-dialog",
