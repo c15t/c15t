@@ -1,6 +1,6 @@
 import type { BaseLayoutProps } from '~/components/layouts/shared';
 import { C15TLogo } from '~/components/logo';
-
+import { ThemeToggle } from '~/components/layout/theme-toggle';
 import { GithubInfo } from 'fumadocs-ui/components/github-info';
 import { JSIcon, NextIcon, ReactIcon } from '~/components/icons';
 import { DiscordIcon } from '~/components/icons/discord';
@@ -72,6 +72,11 @@ export const homePageOptions: BaseLayoutProps = {
 			type: 'custom',
 			secondary: true,
 			children: <GithubInfo owner="c15t" repo="c15t" />,
+		},
+		{
+			type: 'custom',
+			secondary: true,
+			children: <ThemeToggle className="ml-2" />,
 		},
 	],
 };
