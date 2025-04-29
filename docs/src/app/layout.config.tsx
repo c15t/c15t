@@ -1,11 +1,11 @@
-import type { BaseLayoutProps } from '~/components/layouts/shared';
-import { C15TLogo } from '~/components/logo';
-import { ThemeToggle } from '~/components/layout/theme-toggle';
 import { GithubInfo } from 'fumadocs-ui/components/github-info';
 import { JSIcon, NextIcon, ReactIcon } from '~/components/icons';
 import { DiscordIcon } from '~/components/icons/discord';
 import { RedditIcon } from '~/components/icons/reddit';
 import { XIcon } from '~/components/icons/x';
+import { ThemeToggle } from '~/components/layout/theme-toggle';
+import type { BaseLayoutProps } from '~/components/layouts/shared';
+import { C15TLogo } from '~/components/logo';
 import packageJson from '../../../packages/core/package.json';
 
 /**

@@ -1,11 +1,11 @@
-import type { DocsLayoutProps } from '~/components/layouts/notebook';
+import { GithubInfo } from 'fumadocs-ui/components/github-info';
 import { DiscordIcon } from '~/components/icons/discord';
 import { RedditIcon } from '~/components/icons/reddit';
 import { XIcon } from '~/components/icons/x';
+import { ThemeToggle } from '~/components/layout/theme-toggle';
+import type { DocsLayoutProps } from '~/components/layouts/notebook';
 import { C15TLogo } from '~/components/logo';
 import packageJson from '../../../../packages/core/package.json';
-import { ThemeToggle } from '~/components/layout/theme-toggle';
-import { GithubInfo } from 'fumadocs-ui/components/github-info';
 
 /**
  * Shared layout configurations
