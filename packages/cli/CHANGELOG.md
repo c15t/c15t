@@ -1,5 +1,12 @@
 # @c15t/cli
 
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [[`e6a6765`](https://github.com/c15t/c15t/commit/e6a6765a9466d18d3b17e2f08151a63a655442a7)]:
+  - @c15t/react@1.1.3
+
 ## 1.0.2
 
 ### Patch Changes

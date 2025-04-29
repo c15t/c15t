@@ -1,5 +1,12 @@
 # @c15t/dev-tools
 
+## 1.1.3
+
+### Patch Changes
+
+- Updated dependencies [[`4d47e21`](https://github.com/c15t/c15t/commit/4d47e2109bfc894f1666b19f4ff40d7398f10c57)]:
+  - c15t@1.1.3
+
 ## 1.0.1
 
 ### Patch Changes

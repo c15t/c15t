@@ -1,5 +1,11 @@
 # c15t
 
+## 1.1.3
+
+### Patch Changes
+
+- [#203](https://github.com/c15t/c15t/pull/203) [`4d47e21`](https://github.com/c15t/c15t/commit/4d47e2109bfc894f1666b19f4ff40d7398f10c57) Thanks [@KayleeWilliams](https://github.com/KayleeWilliams)! - fix(core): callbacks not working on c15t mode
+
 ## 1.0.1
 
 ### Patch Changes
