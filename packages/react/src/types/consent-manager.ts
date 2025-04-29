@@ -8,6 +8,9 @@ import type {
 	TranslationConfig,
 } from 'c15t';
 import type { ReactNode } from 'react';
+import type { CookieBannerTheme } from '~/components/cookie-banner/theme';
+import type { ConsentManagerWidgetTheme } from '~/components/consent-manager-widget/theme';
+import type { ConsentManagerDialogTheme } from '~/components/consent-manager-dialog/theme';
 
 /**
  * React-specific configuration options
@@ -16,8 +19,9 @@ export interface ReactUIOptions {
 	/**
 	 * Visual theme to apply.
 	 */
-	theme?: 'light' | 'dark';
-
+	theme?: CookieBannerTheme &
+		ConsentManagerWidgetTheme &
+		ConsentManagerDialogTheme;
 	/**
 	 * Whether to disable animations.
 	 * @default false
@@ -38,7 +42,8 @@ export interface ReactUIOptions {
 
 	/**
 	 * Color scheme preference.
-	 * @default 'system'
+	 * With this option, you can force the theme to be light, dark or system.
+	 * Otherwise, the theme will be detected if you have '.dark' classname in your document.
 	 */
 	colorScheme?: 'light' | 'dark' | 'system';
 

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-export type ColorScheme = 'light' | 'dark' | 'system';
+export type ColorScheme = 'light' | 'dark' | 'system' | null;
 
 /**
  * Manage color scheme preferences for components
@@ -15,42 +15,61 @@ export type ColorScheme = 'light' | 'dark' | 'system';
  * }
  * ```
  */
-export function useColorScheme(colorScheme: ColorScheme) {
+export function useColorScheme(colorScheme?: ColorScheme) {
 	useEffect(() => {
-		// Function to update the theme based on system preference
-		const updateSystemTheme = () => {
-			const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-			document.documentElement.classList.toggle('c15t-dark', isDark);
+		const systemDarkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+		const defaultDarkQuery =
+			document.documentElement.classList.contains('dark');
+
+		const updateSystemColorScheme = (e: MediaQueryListEvent) => {
+			document.documentElement.classList.toggle('c15t-dark', e.matches);
 		};
 
-		// Handle different color scheme settings
+		const updateDefaultColorScheme = (mutationList: MutationRecord[]) => {
+			for (const mutation of mutationList) {
+				if (
+					mutation.type === 'attributes' &&
+					mutation.attributeName === 'class'
+				) {
+					const darkExists =
+						document.documentElement.classList.contains('dark');
+					document.documentElement.classList.toggle('c15t-dark', darkExists);
+				}
+			}
+		};
+
+		const observer = new MutationObserver(updateDefaultColorScheme);
+
 		switch (colorScheme) {
 			case 'light': {
-				localStorage.setItem('c15tTheme', 'light');
 				document.documentElement.classList.remove('c15t-dark');
 				break;
 			}
 			case 'dark': {
-				localStorage.setItem('c15tTheme', 'dark');
 				document.documentElement.classList.add('c15t-dark');
 				break;
 			}
+			case 'system': {
+				document.documentElement.classList.toggle(
+					'c15t-dark',
+					systemDarkQuery.matches
+				);
+				systemDarkQuery.addEventListener('change', updateSystemColorScheme);
+				break;
+			}
 			default: {
-				localStorage.removeItem('c15tTheme');
-				updateSystemTheme();
+				document.documentElement.classList.toggle(
+					'c15t-dark',
+					defaultDarkQuery
+				);
+				observer.observe(document.documentElement, { attributes: true });
 				break;
 			}
 		}
 
-		// Set up system preference listener for 'system' mode
-		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-		const handleChange = () => {
-			if (colorScheme === 'system') {
-				updateSystemTheme();
-			}
+		return () => {
+			systemDarkQuery.removeEventListener('change', updateSystemColorScheme);
+			observer.disconnect();
 		};
-
-		mediaQuery.addEventListener('change', handleChange);
-		return () => mediaQuery.removeEventListener('change', handleChange);
 	}, [colorScheme]);
 }

@@ -68,7 +68,7 @@ export function ConsentManagerProvider({
 		disableAnimation = false,
 		scrollLock = false,
 		trapFocus = true,
-		colorScheme = 'system',
+		colorScheme,
 		noStyle = false,
 	} = react;
 
@@ -222,8 +222,9 @@ export function ConsentManagerProvider({
 			disableAnimation,
 			scrollLock,
 			trapFocus,
+			colorScheme,
 		};
-	}, [theme, noStyle, disableAnimation, scrollLock, trapFocus]);
+	}, [theme, noStyle, disableAnimation, scrollLock, trapFocus, colorScheme]);
 
 	// Set the color scheme
 	useColorScheme(colorScheme);
