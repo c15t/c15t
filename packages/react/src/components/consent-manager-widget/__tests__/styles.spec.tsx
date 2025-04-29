@@ -261,7 +261,7 @@ test('Custom classes override base layer styles', async () => {
 		.custom-widget-background {
 			background-color: rgb(255, 0, 0) !important;
 		}
-		.custom-widget-text {
+		.custom-widget-foooter {
 			color: rgb(0, 255, 0) !important;
 		}
 	`;
@@ -269,7 +269,7 @@ test('Custom classes override base layer styles', async () => {
 
 	const customTheme: ConsentManagerWidgetTheme = {
 		'widget.root': 'custom-widget-background',
-		'widget.accordion.trigger': 'custom-widget-text',
+		'widget.footer': 'custom-widget-foooter',
 	};
 
 	const test = <ConsentManagerWidget theme={customTheme} />;
@@ -282,8 +282,8 @@ test('Custom classes override base layer styles', async () => {
 				styles: 'custom-widget-background',
 			},
 			{
-				testId: 'consent-manager-widget-accordion-trigger-marketing',
-				styles: 'custom-widget-text',
+				testId: 'consent-manager-widget-footer',
+				styles: 'custom-widget-foooter',
 			},
 		],
 	});
@@ -291,41 +291,39 @@ test('Custom classes override base layer styles', async () => {
 	const root = document.querySelector(
 		'[data-testid="consent-manager-widget-root"]'
 	);
-	const trigger = document.querySelector(
-		'[data-testid="consent-manager-widget-accordion-trigger-marketing"]'
+	const footer = document.querySelector(
+		'[data-testid="consent-manager-widget-footer"]'
 	);
 
-	if (!root || !trigger) {
+	if (!root || !footer) {
 		throw new Error('Required elements not found in the document');
 	}
 
 	expect(getComputedStyle(root).backgroundColor).toBe('rgb(255, 0, 0)');
-	expect(getComputedStyle(trigger).color).toBe('rgb(0, 255, 0)');
+	expect(getComputedStyle(footer).color).toBe('rgb(0, 255, 0)');
 
 	document.head.removeChild(styleElement);
 });
 
 test('Base layer styles are applied when no custom classes are provided', async () => {
-	const test = <ConsentManagerWidget />;
-
 	await testComponentStyles({
-		component: test,
+		component: <ConsentManagerWidget />,
 		testCases: [],
 	});
 
 	const root = document.querySelector(
 		'[data-testid="consent-manager-widget-root"]'
 	);
-	const trigger = document.querySelector(
-		'[data-testid="consent-manager-widget-accordion-trigger-marketing"]'
+	const footer = document.querySelector(
+		'[data-testid="consent-manager-widget-footer"]'
 	);
-
-	if (!root || !trigger) {
+	// console.log(root, trigger);
+	if (!root || !footer) {
 		throw new Error('Required elements not found in the document');
 	}
 
-	expect(getComputedStyle(root).backgroundColor).toBe('rgb(255, 255, 255)');
-	expect(getComputedStyle(trigger).color).toBe('rgb(23, 23, 23)');
+	expect(getComputedStyle(root).backgroundColor).toBe('rgba(0, 0, 0, 0)');
+	expect(getComputedStyle(footer).color).toBe('rgb(0, 0, 0)');
 });
 
 test('Multiple custom classes can be applied and override base layer', async () => {

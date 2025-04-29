@@ -299,18 +299,18 @@ test('Base layer styles are applied when no custom classes are provided', async 
 		testCases: [],
 	});
 
-	const card = document.querySelector(
-		'[data-testid="consent-manager-dialog-card"]'
+	const root = document.querySelector(
+		'[data-testid="consent-manager-dialog-root"]'
 	);
 	const title = document.querySelector(
 		'[data-testid="consent-manager-dialog-title"]'
 	);
 
-	if (!card || !title) {
+	if (!root || !title) {
 		throw new Error('Required elements not found in the document');
 	}
 
-	expect(getComputedStyle(card).backgroundColor).toBe('rgb(255, 255, 255)');
+	expect(getComputedStyle(root).backgroundColor).toBe('rgb(255, 255, 255)');
 	expect(getComputedStyle(title).color).toBe('rgb(23, 23, 23)');
 });
 
