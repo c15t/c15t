@@ -8,9 +8,9 @@ import type {
 	TranslationConfig,
 } from 'c15t';
 import type { ReactNode } from 'react';
-import type { CookieBannerTheme } from '~/components/cookie-banner/theme';
-import type { ConsentManagerWidgetTheme } from '~/components/consent-manager-widget/theme';
 import type { ConsentManagerDialogTheme } from '~/components/consent-manager-dialog/theme';
+import type { ConsentManagerWidgetTheme } from '~/components/consent-manager-widget/theme';
+import type { CookieBannerTheme } from '~/components/cookie-banner/theme';
 
 /**
  * React-specific configuration options

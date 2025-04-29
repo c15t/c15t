@@ -1,4 +1,4 @@
-import { test, expect } from 'vitest';
+import { expect, test } from 'vitest';
 import { vi } from 'vitest';
 import { CookieBanner } from '~/components/cookie-banner/cookie-banner';
 import type { ThemeValue } from '~/types/theme';

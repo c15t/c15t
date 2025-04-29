@@ -1,4 +1,4 @@
-import { test, vi, expect } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { ConsentManagerWidget } from '~/components/consent-manager-widget/consent-manager-widget';
 import type { ThemeValue } from '~/types/theme';
 import testComponentStyles from '~/utils/test-helpers';
