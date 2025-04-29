@@ -65,7 +65,7 @@
 		transition: all var(--switch-duration) var(--switch-ease);
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .track {
 		background-color: var(--switch-background-color-dark);
 	}
@@ -75,7 +75,7 @@
 		background-color: var(--switch-background-color-hover);
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .track:hover {
 		background-color: var(--switch-background-color-hover-dark);
 	}
@@ -84,7 +84,7 @@
 		background-color: var(--switch-background-color-hover);
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .track:focus-visible {
 		background-color: var(--switch-background-color-hover-dark);
 	}
@@ -93,7 +93,7 @@
 		background-color: var(--switch-background-color);
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .track:active {
 		background-color: var(--switch-background-color-dark);
 	}
@@ -102,7 +102,7 @@
 		background-color: var(--switch-background-color-checked);
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .root[data-state="checked"] .track {
 		background-color: var(--switch-background-color-checked-dark);
 	}
@@ -111,7 +111,7 @@
 		background-color: var(--switch-background-color-checked);
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .root[data-state="checked"]:hover .track {
 		background-color: var(--switch-background-color-checked-dark);
 	}
@@ -125,7 +125,7 @@
 		outline: none;
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .root:focus {
 		outline: none;
 	}
@@ -136,7 +136,7 @@
 		box-shadow: inset 0 0 0 1px hsl(0, 0%, 92.16%);
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .track-disabled {
 		background-color: var(--switch-background-color-disabled-dark);
 	}
@@ -147,7 +147,7 @@
 		box-shadow: none;
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .root[data-state="checked"] .track-disabled {
 		background-color: var(--switch-background-color-checked-dark);
 	}
@@ -180,7 +180,7 @@
 			50% 50% / 100% 100% no-repeat;
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .thumb::before {
 		background-color: var(--switch-thumb-background-color-dark);
 	}
@@ -195,7 +195,7 @@
 		box-shadow: var(--switch-shadow-thumb);
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .thumb::after {
 		box-shadow: var(--switch-shadow-thumb-dark);
 	}
@@ -222,7 +222,7 @@
 		box-shadow: var(--switch-focus-shadow);
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .root:focus-visible {
 		box-shadow: var(--switch-focus-shadow-dark);
 	}

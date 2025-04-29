@@ -111,7 +111,7 @@
 		overflow: hidden;
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .card {
 		background-color: var(--banner-background-color-dark);
 		border-color: var(--banner-border-color-dark);
@@ -133,7 +133,7 @@
 		border-color: var(--banner-border-color);
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .card > :not([hidden]) ~ :not([hidden]) {
 		border-color: var(--banner-border-color-dark);
 	}
@@ -194,7 +194,7 @@
 		color: var(--banner-text-color);
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .header {
 		color: var(--banner-text-color-dark);
 	}
@@ -223,7 +223,7 @@
 		background-color: var(--banner-footer-background-color);
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .footer {
 		background-color: var(--banner-footer-background-color-dark);
 	}
@@ -249,7 +249,7 @@
 		color: var(--banner-description-color);
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .description {
 		color: var(--banner-description-color-dark);
 	}
@@ -262,7 +262,7 @@
 		color: var(--banner-title-color);
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .title {
 		color: var(--banner-title-color-dark);
 	}
@@ -287,7 +287,7 @@
 			var(--banner-animation-timing);
 	}
 
-	/* biome-ignore lint/nursery/noUnknownPseudoClass: <explanation> */
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .overlay {
 		background-color: var(--banner-overlay-background-color-dark);
 	}
