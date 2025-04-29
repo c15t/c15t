@@ -23,11 +23,7 @@
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},
-	"browserslist": [
-		">0.2%",
-		"not dead",
-		"not op_mini all"
-	],
+	"browserslist": [">0.2%", "not dead", "not op_mini all"],
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
 		"zustand": "^5.0.3"
