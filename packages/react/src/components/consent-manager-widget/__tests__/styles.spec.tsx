@@ -1,4 +1,4 @@
-import { test, vi } from 'vitest';
+import { test, vi, expect } from 'vitest';
 import { ConsentManagerWidget } from '~/components/consent-manager-widget/consent-manager-widget';
 import type { ThemeValue } from '~/types/theme';
 import testComponentStyles from '~/utils/test-helpers';
@@ -253,4 +253,119 @@ test('Theme prop handles edge cases gracefully', async () => {
 			},
 		],
 	});
+});
+
+test('Custom classes override base layer styles', async () => {
+	const styleElement = document.createElement('style');
+	styleElement.textContent = `
+		.custom-widget-background {
+			background-color: rgb(255, 0, 0) !important;
+		}
+		.custom-widget-text {
+			color: rgb(0, 255, 0) !important;
+		}
+	`;
+	document.head.appendChild(styleElement);
+
+	const customTheme: ConsentManagerWidgetTheme = {
+		'widget.root': 'custom-widget-background',
+		'widget.accordion.trigger': 'custom-widget-text',
+	};
+
+	const test = <ConsentManagerWidget theme={customTheme} />;
+
+	await testComponentStyles({
+		component: test,
+		testCases: [
+			{
+				testId: 'consent-manager-widget-root',
+				styles: 'custom-widget-background',
+			},
+			{
+				testId: 'consent-manager-widget-accordion-trigger-marketing',
+				styles: 'custom-widget-text',
+			},
+		],
+	});
+
+	const root = document.querySelector(
+		'[data-testid="consent-manager-widget-root"]'
+	);
+	const trigger = document.querySelector(
+		'[data-testid="consent-manager-widget-accordion-trigger-marketing"]'
+	);
+
+	if (!root || !trigger) {
+		throw new Error('Required elements not found in the document');
+	}
+
+	expect(getComputedStyle(root).backgroundColor).toBe('rgb(255, 0, 0)');
+	expect(getComputedStyle(trigger).color).toBe('rgb(0, 255, 0)');
+
+	document.head.removeChild(styleElement);
+});
+
+test('Base layer styles are applied when no custom classes are provided', async () => {
+	const test = <ConsentManagerWidget />;
+
+	await testComponentStyles({
+		component: test,
+		testCases: [],
+	});
+
+	const root = document.querySelector(
+		'[data-testid="consent-manager-widget-root"]'
+	);
+	const trigger = document.querySelector(
+		'[data-testid="consent-manager-widget-accordion-trigger-marketing"]'
+	);
+
+	if (!root || !trigger) {
+		throw new Error('Required elements not found in the document');
+	}
+
+	expect(getComputedStyle(root).backgroundColor).toBe('rgb(255, 255, 255)');
+	expect(getComputedStyle(trigger).color).toBe('rgb(23, 23, 23)');
+});
+
+test('Multiple custom classes can be applied and override base layer', async () => {
+	const styleElement = document.createElement('style');
+	styleElement.textContent = `
+		.custom-padding {
+			padding: 32px !important;
+		}
+		.custom-border {
+			border: 2px solid rgb(0, 0, 255) !important;
+		}
+	`;
+	document.head.appendChild(styleElement);
+
+	const customTheme: ConsentManagerWidgetTheme = {
+		'widget.root': 'custom-padding custom-border',
+	};
+
+	const test = <ConsentManagerWidget theme={customTheme} />;
+
+	await testComponentStyles({
+		component: test,
+		testCases: [
+			{
+				testId: 'consent-manager-widget-root',
+				styles: 'custom-padding custom-border',
+			},
+		],
+	});
+
+	const root = document.querySelector(
+		'[data-testid="consent-manager-widget-root"]'
+	);
+
+	if (!root) {
+		throw new Error('Required elements not found in the document');
+	}
+
+	expect(getComputedStyle(root).padding).toBe('32px');
+	expect(getComputedStyle(root).border).toBe('2px solid rgb(0, 0, 255)');
+
+	document.head.removeChild(styleElement);
 });

@@ -1,4 +1,4 @@
-import { test, vi } from 'vitest';
+import { test, vi, expect } from 'vitest';
 import { ConsentManagerDialog } from '~/components/consent-manager-dialog/consent-manager-dialog';
 import type { ThemeValue } from '~/types/theme';
 import testComponentStyles from '~/utils/test-helpers';
@@ -239,4 +239,119 @@ test('Theme prop handles edge cases gracefully', async () => {
 			},
 		],
 	});
+});
+
+test('Custom classes override base layer styles', async () => {
+	const styleElement = document.createElement('style');
+	styleElement.textContent = `
+		.custom-dialog-background {
+			background-color: rgb(255, 0, 0) !important;
+		}
+		.custom-dialog-text {
+			color: rgb(0, 255, 0) !important;
+		}
+	`;
+	document.head.appendChild(styleElement);
+
+	const customTheme: ConsentManagerDialogTheme = {
+		'dialog.root': 'custom-dialog-background',
+		'dialog.title': 'custom-dialog-text',
+	};
+
+	const test = <ConsentManagerDialog theme={customTheme} />;
+
+	await testComponentStyles({
+		component: test,
+		testCases: [
+			{
+				testId: 'consent-manager-dialog-root',
+				styles: 'custom-dialog-background',
+			},
+			{
+				testId: 'consent-manager-dialog-title',
+				styles: 'custom-dialog-text',
+			},
+		],
+	});
+
+	const root = document.querySelector(
+		'[data-testid="consent-manager-dialog-root"]'
+	);
+	const title = document.querySelector(
+		'[data-testid="consent-manager-dialog-title"]'
+	);
+
+	if (!root || !title) {
+		throw new Error('Required elements not found in the document');
+	}
+
+	expect(getComputedStyle(root).backgroundColor).toBe('rgb(255, 0, 0)');
+	expect(getComputedStyle(title).color).toBe('rgb(0, 255, 0)');
+
+	document.head.removeChild(styleElement);
+});
+
+test('Base layer styles are applied when no custom classes are provided', async () => {
+	const test = <ConsentManagerDialog />;
+
+	await testComponentStyles({
+		component: test,
+		testCases: [],
+	});
+
+	const card = document.querySelector(
+		'[data-testid="consent-manager-dialog-card"]'
+	);
+	const title = document.querySelector(
+		'[data-testid="consent-manager-dialog-title"]'
+	);
+
+	if (!card || !title) {
+		throw new Error('Required elements not found in the document');
+	}
+
+	expect(getComputedStyle(card).backgroundColor).toBe('rgb(255, 255, 255)');
+	expect(getComputedStyle(title).color).toBe('rgb(23, 23, 23)');
+});
+
+test('Multiple custom classes can be applied and override base layer', async () => {
+	const styleElement = document.createElement('style');
+	styleElement.textContent = `
+		.custom-padding {
+			padding: 32px !important;
+		}
+		.custom-border {
+			border: 2px solid rgb(0, 0, 255) !important;
+		}
+	`;
+	document.head.appendChild(styleElement);
+
+	const customTheme: ConsentManagerDialogTheme = {
+		'dialog.root': 'custom-padding custom-border',
+	};
+
+	const test = <ConsentManagerDialog theme={customTheme} />;
+
+	await testComponentStyles({
+		component: test,
+		testCases: [
+			{
+				testId: 'consent-manager-dialog-root',
+				styles: 'custom-padding custom-border',
+			},
+		],
+	});
+
+	const root = document.querySelector(
+		'[data-testid="consent-manager-dialog-root"]'
+	);
+
+	if (!root) {
+		throw new Error('Required elements not found in the document');
+	}
+
+	expect(getComputedStyle(root).padding).toBe('32px');
+	expect(getComputedStyle(root).border).toBe('2px solid rgb(0, 0, 255)');
+
+	document.head.removeChild(styleElement);
 });

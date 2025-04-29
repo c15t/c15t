@@ -1,4 +1,4 @@
-import { test } from 'vitest';
+import { test, expect } from 'vitest';
 import { vi } from 'vitest';
 import { CookieBanner } from '~/components/cookie-banner/cookie-banner';
 import type { ThemeValue } from '~/types/theme';
@@ -255,4 +255,109 @@ test('Theme prop handles edge cases gracefully', async () => {
 			},
 		],
 	});
+});
+
+test('Custom classes override base layer styles', async () => {
+	const styleElement = document.createElement('style');
+	styleElement.textContent = `
+		.custom-banner-background {
+			background-color: rgb(255, 0, 0) !important;
+		}
+		.custom-banner-text {
+			color: rgb(0, 255, 0) !important;
+		}
+	`;
+	document.head.appendChild(styleElement);
+
+	const customTheme: CookieBannerTheme = {
+		'banner.card': 'custom-banner-background',
+		'banner.header.title': 'custom-banner-text',
+	};
+
+	const test = <CookieBanner theme={customTheme} />;
+
+	await testComponentStyles({
+		component: test,
+		testCases: [
+			{
+				testId: 'cookie-banner-card',
+				styles: 'custom-banner-background',
+			},
+			{
+				testId: 'cookie-banner-title',
+				styles: 'custom-banner-text',
+			},
+		],
+	});
+
+	const card = document.querySelector('[data-testid="cookie-banner-card"]');
+	const title = document.querySelector('[data-testid="cookie-banner-title"]');
+
+	if (!card || !title) {
+		throw new Error('Required elements not found in the document');
+	}
+
+	expect(getComputedStyle(card).backgroundColor).toBe('rgb(255, 0, 0)');
+	expect(getComputedStyle(title).color).toBe('rgb(0, 255, 0)');
+
+	document.head.removeChild(styleElement);
+});
+
+test('Base layer styles are applied when no custom classes are provided', async () => {
+	const test = <CookieBanner />;
+
+	await testComponentStyles({
+		component: test,
+		testCases: [],
+	});
+
+	const card = document.querySelector('[data-testid="cookie-banner-card"]');
+	const title = document.querySelector('[data-testid="cookie-banner-title"]');
+
+	if (!card || !title) {
+		throw new Error('Required elements not found in the document');
+	}
+
+	expect(getComputedStyle(card).backgroundColor).toBe('rgb(255, 255, 255)');
+	expect(getComputedStyle(title).color).toBe('rgb(23, 23, 23)');
+});
+
+test('Multiple custom classes can be applied and override base layer', async () => {
+	const styleElement = document.createElement('style');
+	styleElement.textContent = `
+		.custom-padding {
+			padding: 32px !important;
+		}
+		.custom-border {
+			border: 2px solid rgb(0, 0, 255) !important;
+		}
+	`;
+	document.head.appendChild(styleElement);
+
+	const customTheme: CookieBannerTheme = {
+		'banner.card': 'custom-padding custom-border',
+	};
+
+	const test = <CookieBanner theme={customTheme} />;
+
+	await testComponentStyles({
+		component: test,
+		testCases: [
+			{
+				testId: 'cookie-banner-card',
+				styles: 'custom-padding custom-border',
+			},
+		],
+	});
+
+	const card = document.querySelector('[data-testid="cookie-banner-card"]');
+
+	if (!card) {
+		throw new Error('Required elements not found in the document');
+	}
+
+	expect(getComputedStyle(card).padding).toBe('32px');
+	expect(getComputedStyle(card).border).toBe('2px solid rgb(0, 0, 255)');
+
+	document.head.removeChild(styleElement);
 });
