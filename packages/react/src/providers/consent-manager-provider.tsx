@@ -6,6 +6,7 @@ import {
 	configureConsentManager,
 	createConsentManagerStore,
 	defaultTranslationConfig,
+	prepareTranslationConfig,
 } from 'c15t';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -15,10 +16,6 @@ import {
 import { GlobalThemeContext } from '../context/theme-context';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import type { ConsentManagerProviderProps } from '../types/consent-manager';
-import {
-	detectBrowserLanguage,
-	mergeTranslationConfigs,
-} from '../utils/translations';
 
 /**
  * Provider component for consent management functionality.
@@ -73,18 +70,10 @@ export function ConsentManagerProvider({
 	} = react;
 
 	// Memoize translation config to prevent recreation
-	const preparedTranslationConfig = useMemo(() => {
-		const mergedConfig = mergeTranslationConfigs(
-			defaultTranslationConfig,
-			translationConfig
-		);
-		const defaultLanguage = detectBrowserLanguage(
-			mergedConfig.translations,
-			mergedConfig.defaultLanguage,
-			mergedConfig.disableAutoLanguageSwitch
-		);
-		return { ...mergedConfig, defaultLanguage };
-	}, [translationConfig]);
+	const preparedTranslationConfig = useMemo(
+		() => prepareTranslationConfig(defaultTranslationConfig, translationConfig),
+		[translationConfig]
+	);
 
 	// Determine if using c15t.dev domain (memoize the calculation)
 	const isConsentDomain = useMemo(() => {

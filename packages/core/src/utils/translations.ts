@@ -1,5 +1,4 @@
-'use client';
-import type { TranslationConfig, Translations } from 'c15t';
+import type { TranslationConfig, Translations } from '../types/translations';
 
 type TranslationSection =
 	| 'cookieBanner'
@@ -53,7 +52,10 @@ export function mergeTranslationConfigs(
 			customConfig.translations
 		)) {
 			if (lang !== 'en' && translations) {
-				const baseTranslations = mergedTranslations.en;
+				// Use existing translations for this language as base if they exist,
+				// otherwise fall back to English
+				const baseTranslations =
+					defaultConfig.translations[lang] || mergedTranslations.en;
 				mergedTranslations[lang] = deepMergeTranslations(
 					baseTranslations as Translations,
 					translations as Partial<Translations>
@@ -61,7 +63,6 @@ export function mergeTranslationConfigs(
 			}
 		}
 	}
-
 	return {
 		...defaultConfig,
 		...customConfig,
@@ -81,31 +82,28 @@ export function detectBrowserLanguage(
 		return defaultLanguage || 'en';
 	}
 
-	// Normalize language codes to lowercase for consistent comparison
-	const availableLanguages = Object.keys(translations).map((lang) =>
-		lang.toLowerCase()
-	);
-
-	const browserLanguages =
-		typeof window !== 'undefined'
-			? navigator?.languages || [navigator?.language || 'en']
-			: ['en'];
-
-	for (const lang of browserLanguages) {
-		// Try exact match first (e.g., 'en-US' if available)
-		const normalizedLang = lang.toLowerCase();
-
-		if (availableLanguages.includes(normalizedLang)) {
-			return normalizedLang;
-		}
-
-		// Try primary language match (e.g., 'en' from 'en-US')
-		const primaryLang = normalizedLang.split('-')[0];
-
-		if (primaryLang && availableLanguages.includes(primaryLang)) {
-			return primaryLang;
-		}
+	if (typeof window === 'undefined') {
+		return defaultLanguage || 'en';
 	}
 
-	return 'en';
+	const browserLang = window.navigator.language?.split('-')[0] || '';
+	return browserLang && browserLang in translations
+		? browserLang
+		: defaultLanguage || 'en';
+}
+
+/**
+ * Prepares the translation configuration by merging defaults and detecting language
+ */
+export function prepareTranslationConfig(
+	defaultConfig: TranslationConfig,
+	customConfig?: Partial<TranslationConfig>
+): TranslationConfig {
+	const mergedConfig = mergeTranslationConfigs(defaultConfig, customConfig);
+	const defaultLanguage = detectBrowserLanguage(
+		mergedConfig.translations,
+		mergedConfig.defaultLanguage,
+		mergedConfig.disableAutoLanguageSwitch
+	);
+	return { ...mergedConfig, defaultLanguage };
 }

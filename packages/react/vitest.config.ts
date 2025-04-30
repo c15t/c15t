@@ -15,7 +15,9 @@ export default mergeConfig(
 		test: {
 			include: [
 				'src/**/*.test.tsx',
+				'src/**/*.test.ts',
 				'src/**/*.spec.tsx',
+				'src/**/*.spec.ts',
 				'src/**/*.e2e.test.tsx',
 			],
 			browser: {
