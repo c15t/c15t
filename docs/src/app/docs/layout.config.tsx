@@ -1,9 +1,9 @@
 import { GithubInfo } from 'fumadocs-ui/components/github-info';
-import type { DocsLayoutProps } from '~/components/layouts/notebook';
-
 import { DiscordIcon } from '~/components/icons/discord';
 import { RedditIcon } from '~/components/icons/reddit';
 import { XIcon } from '~/components/icons/x';
+import { ThemeToggle } from '~/components/layout/theme-toggle';
+import type { DocsLayoutProps } from '~/components/layouts/notebook';
 import { C15TLogo } from '~/components/logo';
 import packageJson from '../../../../packages/core/package.json';
 
@@ -29,6 +29,16 @@ export const docsOptions: Omit<DocsLayoutProps, 'tree'> = {
 	},
 	links: [
 		{
+			type: 'custom',
+			secondary: true,
+			children: <GithubInfo owner="c15t" repo="c15t" />,
+		},
+		{
+			type: 'custom',
+			secondary: true,
+			children: <ThemeToggle className="ml-2" />,
+		},
+		{
 			icon: <XIcon />,
 			text: 'X',
 			url: 'https://x.com/consentdotio',
@@ -45,11 +55,6 @@ export const docsOptions: Omit<DocsLayoutProps, 'tree'> = {
 			text: 'Discord',
 			url: 'https://c15t.com/discord',
 			type: 'icon',
-		},
-		{
-			type: 'custom',
-			secondary: true,
-			children: <GithubInfo owner="c15t" repo="c15t" />,
 		},
 	],
 };

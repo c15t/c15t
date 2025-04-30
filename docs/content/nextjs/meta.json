@@ -23,6 +23,7 @@
 		"../hooks/use-focus-trap",
 		"--- Styling the components ---",
 		"../styling/index",
+		"../styling/color-scheme",
 		"../styling/classnames",
 		"../styling/tailwind",
 		"../styling/css-variables",
