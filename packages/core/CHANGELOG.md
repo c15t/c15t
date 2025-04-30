@@ -1,5 +1,11 @@
 # c15t
 
+## 1.1.4
+
+### Patch Changes
+
+- [#207](https://github.com/c15t/c15t/pull/207) [`2d81c9f`](https://github.com/c15t/c15t/commit/2d81c9fc84ee960e46196dfd460407a925901a82) Thanks [@KayleeWilliams](https://github.com/KayleeWilliams)! - fix(core, react): translations not working
+
 ## 1.1.3
 
 ### Patch Changes
