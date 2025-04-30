@@ -11,6 +11,11 @@ export { useFocusTrap } from './hooks/use-focus-trap';
 export {
 	configureConsentManager,
 	type ConsentManagerInterface,
+	// Translation utilities
+	prepareTranslationConfig,
+	defaultTranslationConfig,
+	mergeTranslationConfigs,
+	detectBrowserLanguage,
 } from 'c15t';
 
 // Export types
@@ -18,6 +23,3 @@ export type {
 	ConsentManagerProviderProps,
 	ConsentManagerOptions,
 } from './types/consent-manager';
-
-// Export utilities
-export * from './utils/translations';
