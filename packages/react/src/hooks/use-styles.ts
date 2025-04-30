@@ -47,10 +47,16 @@ export function useStyles(
 ): ClassNameStyle {
 	const { noStyle: contextNoStyle, theme } = useTheme();
 
+	const themeNoStyle = Boolean(
+		typeof theme?.[themeKey as keyof typeof theme] === 'object'
+			? (theme?.[themeKey as keyof typeof theme] as ClassNameStyle)?.noStyle
+			: false
+	);
+
 	const mergedNoStyle =
 		typeof componentStyle === 'object' && 'noStyle' in componentStyle
 			? componentStyle.noStyle
-			: contextNoStyle;
+			: (themeNoStyle ?? contextNoStyle);
 
 	// Memoize theme styles retrieval
 	const themeStylesObject = useMemo(() => {
@@ -97,6 +103,7 @@ export function useStyles(
 			if (!themeStylesObject) {
 				return {};
 			}
+
 			const noStyleResult =
 				typeof themeStylesObject === 'string'
 					? { className: themeStylesObject }

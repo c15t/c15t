@@ -77,4 +77,37 @@ describe('useStyles', () => {
 		expect(result.current.className).toContain('theme-class');
 		expect(result.current.className).toContain('component-class');
 	});
+
+	test('should remove default styles but keep custom classNames when theme object provides noStyle: true', () => {
+		const mockNoStyleTheme = {
+			theme: {
+				'dialog.root': {
+					className: 'theme-class',
+					style: { color: 'blue' },
+					noStyle: true,
+				},
+			},
+		};
+
+		const componentStyle = {
+			className: 'component-class',
+			style: { backgroundColor: 'red' },
+			noStyle: true,
+		};
+
+		const { result } = renderHook(
+			() => useStyles('dialog.root', componentStyle),
+			{
+				wrapper: ({ children }) => (
+					<GlobalThemeContext.Provider value={mockNoStyleTheme}>
+						{children}
+					</GlobalThemeContext.Provider>
+				),
+			}
+		);
+
+		expect(result.current.className).toContain('theme-class');
+		expect(result.current.className).not.toContain('component-class');
+		expect(result.current.style).toEqual({ color: 'blue' });
+	});
 });
