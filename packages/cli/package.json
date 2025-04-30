@@ -9,9 +9,7 @@
 	"bin": {
 		"cli": "dist/index.mjs"
 	},
-	"files": [
-		"dist"
-	],
+	"files": ["dist"],
 	"scripts": {
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
@@ -50,8 +48,6 @@
 	},
 	"publishConfig": {
 		"access": "public",
-		"executableFiles": [
-			"./dist/index.mjs"
-		]
+		"executableFiles": ["./dist/index.mjs"]
 	}
 }
