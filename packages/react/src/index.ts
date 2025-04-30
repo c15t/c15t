@@ -17,7 +17,6 @@ export { useFocusTrap } from './hooks/use-focus-trap';
 export {
 	configureConsentManager,
 	type ConsentManagerInterface,
-  
 	// Translation utilities
 	prepareTranslationConfig,
 	defaultTranslationConfig,

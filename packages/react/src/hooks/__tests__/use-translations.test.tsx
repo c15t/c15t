@@ -1,8 +1,8 @@
+import type { Translations } from 'c15t';
 import { describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 import { ConsentManagerProvider } from '~/providers/consent-manager-provider';
 import { useTranslations } from '../use-translations';
-import type { Translations } from 'c15t';
 
 describe('useTranslations', () => {
 	test('returns English translations by default', () => {

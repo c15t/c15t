@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TranslationConfig, Translations } from '../types/translations';
 import {
 	deepMergeTranslations,
-	mergeTranslationConfigs,
 	detectBrowserLanguage,
+	mergeTranslationConfigs,
 	prepareTranslationConfig,
 } from './translations';
 
