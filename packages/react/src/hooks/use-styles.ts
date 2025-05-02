@@ -53,10 +53,13 @@ export function useStyles(
 			: false
 	);
 
-	const mergedNoStyle =
-		typeof componentStyle === 'object' && 'noStyle' in componentStyle
+	const mergedNoStyle = Boolean(
+		(typeof componentStyle === 'object' && 'noStyle' in componentStyle
 			? componentStyle.noStyle
-			: (themeNoStyle ?? contextNoStyle);
+			: false) ||
+			themeNoStyle ||
+			contextNoStyle
+	);
 
 	// Memoize theme styles retrieval
 	const themeStylesObject = useMemo(() => {
