@@ -3,9 +3,9 @@ import { vi } from 'vitest';
 import { CookieBanner } from '~/components/cookie-banner/cookie-banner';
 import type { ThemeValue } from '~/types/theme';
 import testComponentStyles from '~/utils/test-helpers';
-import type { CookieBannerTheme } from '../theme';
-import styles from '../cookie-banner.module.css';
 import buttonStyles from '../../shared/ui/button/button.module.css';
+import styles from '../cookie-banner.module.css';
+import type { CookieBannerTheme } from '../theme';
 
 vi.mock('~/hooks/use-consent-manager', () => ({
 	useConsentManager: () => ({

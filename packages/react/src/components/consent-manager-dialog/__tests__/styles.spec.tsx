@@ -2,8 +2,8 @@ import { expect, test, vi } from 'vitest';
 import { ConsentManagerDialog } from '~/components/consent-manager-dialog/consent-manager-dialog';
 import type { ThemeValue } from '~/types/theme';
 import testComponentStyles from '~/utils/test-helpers';
-import type { ConsentManagerDialogTheme } from '../theme';
 import styles from '../consent-manager-dialog.module.css';
+import type { ConsentManagerDialogTheme } from '../theme';
 type ComponentTestCase = {
 	testId: string;
 	themeKey: keyof ConsentManagerDialogTheme;
