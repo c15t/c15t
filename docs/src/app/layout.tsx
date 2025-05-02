@@ -1,15 +1,18 @@
-import './global.css';
 import {
 	ConsentManagerDialog,
 	ConsentManagerProvider,
 	CookieBanner,
 } from '@c15t/react';
-import { c15tConfig } from 'c15t.config';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { RootProvider } from 'fumadocs-ui/provider';
 import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
+
+import { c15tConfig } from 'c15t.config';
 import { PostHogProvider } from './posthog-provider';
 
+import './global.css';
 // Define theme colors as variables for consistency
 
 const inter = Inter({
@@ -86,6 +89,8 @@ export default function Layout({ children }: { children: ReactNode }) {
 						/>
 					</ConsentManagerProvider>
 				</RootProvider>
+				<SpeedInsights />
+				<Analytics />
 			</body>
 		</html>
 	);

@@ -22,6 +22,7 @@
 		"../hooks/use-focus-trap",
 		"--- Styles ---",
 		"../styling/index",
+		"../styling/color-scheme",
 		"../styling/classnames",
 		"../styling/tailwind",
 		"../styling/css-variables",

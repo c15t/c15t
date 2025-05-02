@@ -16,6 +16,7 @@ ignoredBuiltDependencies:
   - protobufjs
   - sharp
   - workerd
+  - lefthook
 
 onlyBuiltDependencies:
   - '@biomejs/biome'

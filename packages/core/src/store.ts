@@ -110,6 +110,11 @@ export interface StoreOptions {
 	 * @default false
 	 */
 	isConsentDomain?: boolean;
+
+	/**
+	 * Translation configuration for the consent manager.
+	 */
+	translationConfig?: TranslationConfig;
 }
 
 // For backward compatibility (if needed)
@@ -166,6 +171,7 @@ export const createConsentManagerStore = (
 		namespace = 'c15tStore',
 		trackingBlockerConfig,
 		isConsentDomain = false,
+		translationConfig,
 	} = options;
 
 	// Load initial state from localStorage if available
@@ -213,6 +219,8 @@ export const createConsentManagerStore = (
 		isConsentDomain,
 		// Override the callbacks with merged callbacks
 		callbacks: mergedCallbacks,
+		// Set initial translation config if provided
+		...(translationConfig && { translationConfig }),
 		...(storedConsent
 			? {
 					consents: storedConsent.consents,

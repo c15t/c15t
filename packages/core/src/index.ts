@@ -177,3 +177,11 @@ export type { TrackingBlockerConfig } from './libs/tracking-blocker';
 
 // Export default translation config
 export { defaultTranslationConfig } from './translations';
+
+// Export translation utilities
+export {
+	deepMergeTranslations,
+	mergeTranslationConfigs,
+	detectBrowserLanguage,
+	prepareTranslationConfig,
+} from './utils/translations';
