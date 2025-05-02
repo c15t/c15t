@@ -175,9 +175,7 @@ test('should remove default styles but keep custom classNames when theme object 
 		{} as Record<string, ThemeValue>
 	);
 
-	const test = (
-		<ConsentManagerDialog scrollLock open theme={testCases} />
-	);
+	const test = <ConsentManagerDialog scrollLock open theme={testCases} />;
 
 	await testComponentStyles({
 		component: test,
