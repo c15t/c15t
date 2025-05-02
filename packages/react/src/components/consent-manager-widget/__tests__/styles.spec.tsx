@@ -3,7 +3,7 @@ import { ConsentManagerWidget } from '~/components/consent-manager-widget/consen
 import type { ThemeValue } from '~/types/theme';
 import testComponentStyles from '~/utils/test-helpers';
 import type { ConsentManagerWidgetTheme } from '../theme';
-
+import styles from '../consent-manager-widget.module.css';
 vi.mock('~/hooks/use-consent-manager', () => ({
 	useConsentManager: () => ({
 		getConsentCategory: vi.fn(() => ({ isEnabled: true })), // Mock needed functions
@@ -386,4 +386,59 @@ test('Multiple custom classes can be applied and override base layer', async () 
 	expect(getComputedStyle(root).border).toBe('2px solid rgb(0, 0, 255)');
 
 	document.head.removeChild(styleElement);
+});
+
+test('All consent manager widget components should have their base classes applied', async () => {
+	const test = <ConsentManagerWidget />;
+
+	const baseClasses = {
+		card: styles.card || '',
+		header: styles.header || '',
+		title: styles.title || '',
+		description: styles.description || '',
+		content: styles.content || '',
+		footer: styles.footer || '',
+		footerGroup: styles.footerGroup || '',
+		accordionItem: styles.accordionItem || '',
+		accordionTrigger: styles.accordionTrigger || '',
+		accordionTriggerInner: styles.accordionTriggerInner || '',
+		accordionContent: styles.accordionContent || '',
+		accordionArrow: styles.accordionArrow || '',
+		switch: styles.switch || '',
+	};
+
+	await testComponentStyles({
+		component: test,
+		testCases: [
+			{
+				testId: 'consent-manager-widget-footer',
+				styles: baseClasses.footer,
+			},
+			{
+				testId: 'consent-manager-widget-footer-sub-group',
+				styles: baseClasses.footerGroup,
+			},
+			{
+				testId: 'consent-manager-widget-accordion-trigger-marketing',
+				styles: baseClasses.accordionTrigger,
+			},
+			{
+				testId: 'consent-manager-widget-accordion-trigger-inner-marketing',
+				styles: baseClasses.accordionTriggerInner,
+			},
+			{
+				testId: 'consent-manager-widget-accordion-content-marketing',
+				styles: baseClasses.accordionContent,
+			},
+			{
+				testId: 'consent-manager-widget-switch-marketing',
+				styles: baseClasses.switch,
+			},
+		],
+	});
+
+	// Also verify that none of the base classes are empty strings
+	for (const [key, value] of Object.entries(baseClasses)) {
+		expect(value, `Base class for ${key} should not be empty`).not.toBe('');
+	}
 });
