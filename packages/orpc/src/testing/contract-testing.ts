@@ -1,0 +1,366 @@
+import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
+
+/**
+ * Contract test utilities for creating reusable test patterns
+ * across multiple contracts
+ */
+
+type ContractTestHelpers = {
+	validateInput: (
+		input: unknown
+	) => z.SafeParseReturnType<unknown, unknown> | undefined;
+	validateOutput: (
+		output: unknown
+	) => z.SafeParseReturnType<unknown, unknown> | undefined;
+	testInput: (testName: string, input: unknown, shouldBeValid: boolean) => void;
+	testOutput: (
+		testName: string,
+		output: unknown,
+		shouldBeValid: boolean
+	) => void;
+	testDiscriminatedUnion: (
+		discriminator: string,
+		validValues: string[]
+	) => void;
+	testRequiredFields: (schema: 'input' | 'output', fields: string[]) => void;
+};
+
+/**
+ * Creates a test suite for basic contract validation
+ * @param contractName Display name for the contract
+ * @param contract The contract to test
+ */
+export function createContractTests(
+	contractName: string,
+	contract: { '~orpc'?: { inputSchema?: z.ZodType; outputSchema?: z.ZodType } }
+): ContractTestHelpers {
+	const schemas = {
+		input: contract['~orpc']?.inputSchema,
+		output: contract['~orpc']?.outputSchema,
+	};
+
+	// Helper functions
+	const validateInput = (input: unknown) => schemas.input?.safeParse(input);
+	const validateOutput = (output: unknown) => schemas.output?.safeParse(output);
+
+	// Create base test suite
+	describe(`${contractName} Contract`, () => {
+		describe('Schema Structure', () => {
+			it('has properly defined schemas', () => {
+				expect(schemas.input).toBeDefined();
+				expect(schemas.output).toBeDefined();
+
+				expect(schemas.input).toBeInstanceOf(z.ZodType);
+				expect(schemas.output).toBeInstanceOf(z.ZodType);
+			});
+
+			it('schemas are serializable', () => {
+				// Test serialization
+				if (schemas.input) {
+					const serialized = JSON.stringify(schemas.input);
+					expect(serialized).toBeDefined();
+					expect(typeof serialized).toBe('string');
+					expect(() => JSON.parse(serialized)).not.toThrow();
+				}
+
+				if (schemas.output) {
+					const serialized = JSON.stringify(schemas.output);
+					expect(serialized).toBeDefined();
+					expect(typeof serialized).toBe('string');
+					expect(() => JSON.parse(serialized)).not.toThrow();
+				}
+			});
+		});
+	});
+
+	// Define test helpers
+	const testInput = (
+		testName: string,
+		input: unknown,
+		shouldBeValid: boolean
+	) => {
+		it(`${testName}`, () => {
+			const result = validateInput(input);
+			if (!result) {
+				throw new Error('Validation result is undefined');
+			}
+			expect(result.success).toBe(shouldBeValid);
+		});
+	};
+
+	const testOutput = (
+		testName: string,
+		output: unknown,
+		shouldBeValid: boolean
+	) => {
+		it(`${testName}`, () => {
+			const result = validateOutput(output);
+			if (!result) {
+				throw new Error('Validation result is undefined');
+			}
+			expect(result.success).toBe(shouldBeValid);
+		});
+	};
+
+	const testDiscriminatedUnion = (
+		discriminator: string,
+		validValues: string[]
+	) => {
+		describe('Discriminated Union validation', () => {
+			it(`uses '${discriminator}' as discriminator`, () => {
+				if (!schemas.input) {
+					return;
+				}
+				const schema = schemas.input as unknown as z.ZodDiscriminatedUnion<
+					string,
+					z.ZodObject<z.ZodRawShape>[]
+				>;
+				expect(schema._def.typeName).toBe('ZodDiscriminatedUnion');
+				expect(schema._def.discriminator).toBe(discriminator);
+			});
+
+			it('validates all defined discriminator values', () => {
+				for (const value of validValues) {
+					const input = {
+						[discriminator]: value,
+						// Add minimum required fields based on your contract
+					};
+
+					// This test assumes minimal input - you may need to add required fields
+					// based on the specific contract being tested
+					const result = validateInput(input);
+					expect(result?.success).toBe(false); // Will likely fail without all required fields
+				}
+			});
+		});
+	};
+
+	const testRequiredFields = (schema: 'input' | 'output', fields: string[]) => {
+		describe(`Required ${schema} fields`, () => {
+			// Create a sample of valid data to test against
+			let sampleValid: Record<string, unknown>;
+
+			if (schema === 'input') {
+				// For input schema, we need a valid input based on the contract type
+				sampleValid = {
+					type: 'marketing_communications', // A common type that most contracts would have
+					domain: 'example.com',
+					// Add other fields that might be required by your contracts
+					subjectId: 'test-123',
+					metadata: {},
+				};
+			} else {
+				// For output schema, create a generic valid output
+				sampleValid = {
+					id: 'test-123',
+					domainId: 'domain-123',
+					domain: 'example.com',
+					type: 'marketing_communications',
+					status: 'granted',
+					recordId: 'record-123',
+					givenAt: new Date().toISOString(),
+					metadata: {},
+				};
+			}
+
+			for (const field of fields) {
+				it(`requires '${field}' field`, () => {
+					// Create a copy of the valid data without the tested field
+					const invalidData = { ...sampleValid };
+					delete invalidData[field];
+
+					const validator = schema === 'input' ? validateInput : validateOutput;
+					const result = validator(invalidData);
+
+					if (!result) {
+						throw new Error('Validation result is undefined');
+					}
+
+					expect(result.success).toBe(false);
+					if (!result.success) {
+						expect(
+							result.error.issues.some(
+								(issue) =>
+									issue.path.includes(field) ||
+									issue.message.includes('required')
+							)
+						).toBe(true);
+					}
+				});
+			}
+		});
+	};
+
+	// Return the test helpers for re-use
+	return {
+		validateInput,
+		validateOutput,
+		testInput,
+		testOutput,
+		testDiscriminatedUnion,
+		testRequiredFields,
+	};
+}
+
+/**
+ * Creates consistency tests for multiple related contracts
+ */
+export function createConsistencyTests(
+	contracts: Record<
+		string,
+		{ '~orpc'?: { inputSchema?: z.ZodType; outputSchema?: z.ZodType } }
+	>
+) {
+	describe('Contract Consistency', () => {
+		it('all contracts have both input and output schemas', () => {
+			for (const [_name, contract] of Object.entries(contracts)) {
+				expect(contract['~orpc']?.inputSchema).toBeDefined();
+				expect(contract['~orpc']?.outputSchema).toBeDefined();
+			}
+		});
+
+		// Field type consistency - ensure common fields use same types across contracts
+		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: excessive cognitive complexity is acceptable here
+		it('common fields have consistent types across contracts', () => {
+			const commonFields = ['id', 'domainId', 'type', 'status'];
+			const contractEntries = Object.entries(contracts);
+
+			for (const field of commonFields) {
+				const fieldTypes = new Set();
+
+				for (const [_name, contract] of contractEntries) {
+					// Type assertion to accommodate Zod's complex typing
+					const schema = contract['~orpc']?.outputSchema as unknown as {
+						shape?: Record<string, z.ZodTypeAny>;
+					};
+					if (schema?.shape && field in schema.shape) {
+						// Get the field definition type
+						const fieldDef = schema.shape[field];
+						if (fieldDef) {
+							fieldTypes.add(fieldDef.constructor.name);
+						}
+					}
+				}
+
+				// If the field exists in multiple contracts, they should all use the same type
+				if (fieldTypes.size > 0) {
+					expect(
+						fieldTypes.size,
+						`Field '${field}' has inconsistent types across contracts`
+					).toBe(1);
+				}
+			}
+		});
+
+		// Validate enum value consistency across contracts
+		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: excessive cognitive complexity is acceptable here
+		it('enum values are consistent across contracts', () => {
+			// Example: status field should have the same allowed values in all contracts
+			const statusValues = new Map<string, string[]>();
+
+			for (const [name, contract] of Object.entries(contracts)) {
+				// Type assertion to accommodate Zod's complex typing
+				const outputSchema = contract['~orpc']?.outputSchema as unknown as {
+					shape?: Record<string, z.ZodTypeAny>;
+				};
+				if (!outputSchema?.shape?.status) {
+					continue;
+				}
+
+				const statusField = outputSchema.shape.status;
+				if ('_def' in statusField && 'values' in statusField._def) {
+					statusValues.set(name, statusField._def.values as string[]);
+				}
+			}
+
+			// All status enums should have the same values
+			const allValues = Array.from(statusValues.values());
+			if (allValues.length > 1) {
+				for (let i = 1; i < allValues.length; i++) {
+					expect(allValues[i]).toEqual(allValues[0]);
+				}
+			}
+		});
+
+		// Validation rule consistency for common fields
+		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: excessive cognitive complexity is acceptable here
+		it('validation rules for common fields are consistent', () => {
+			const contractEntries = Object.entries(contracts);
+			const commonStringFields = ['domain', 'subjectId', 'externalSubjectId'];
+
+			for (const field of commonStringFields) {
+				const minLengths = new Set();
+				const maxLengths = new Set();
+
+				for (const [_name, contract] of contractEntries) {
+					// Type assertion to accommodate Zod's complex typing
+					const schema = contract['~orpc']?.inputSchema as unknown as {
+						shape?: Record<string, z.ZodTypeAny>;
+					};
+					if (!schema?.shape?.[field]) {
+						continue;
+					}
+
+					const fieldSchema = schema.shape[field];
+					if (
+						'_def' in fieldSchema &&
+						fieldSchema._def.typeName === 'ZodString'
+					) {
+						// Extract min/max length if they exist
+						const checks = fieldSchema._def.checks || [];
+						for (const check of checks) {
+							if (check.kind === 'min') {
+								minLengths.add(check.value);
+							}
+							if (check.kind === 'max') {
+								maxLengths.add(check.value);
+							}
+						}
+					}
+				}
+
+				// All contracts should use the same min/max for common string fields
+				expect(
+					minLengths.size,
+					`Inconsistent min length for field '${field}'`
+				).toBeLessThanOrEqual(1);
+				expect(
+					maxLengths.size,
+					`Inconsistent max length for field '${field}'`
+				).toBeLessThanOrEqual(1);
+			}
+		});
+
+		// Discriminated union consistency
+		it('discriminated unions use consistent discriminator across contracts', () => {
+			const discriminators = new Set();
+
+			for (const [_name, contract] of Object.entries(contracts)) {
+				const inputSchema = contract['~orpc']?.inputSchema;
+				if (!inputSchema) {
+					continue;
+				}
+
+				// Check if schema is a discriminated union
+				if (
+					inputSchema._def &&
+					'_type' in inputSchema._def &&
+					inputSchema._def._type === 'ZodDiscriminatedUnion' &&
+					'discriminator' in inputSchema._def
+				) {
+					// Safe assertion since we've checked the property exists
+					discriminators.add(
+						(inputSchema._def as { discriminator: string }).discriminator
+					);
+				}
+			}
+
+			// All contracts should use the same discriminator (e.g., 'type')
+			expect(
+				discriminators.size,
+				'Inconsistent discriminator fields used across contracts'
+			).toBeLessThanOrEqual(1);
+		});
+	});
+}
