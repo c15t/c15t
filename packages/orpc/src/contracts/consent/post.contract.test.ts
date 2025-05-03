@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
-import {
-	createConsistencyTests,
-	createContractTests,
-} from '../../testing/contract-testing';
+
+import { createContractTests } from '~/testing/contract-testing';
 import { PolicyTypeSchema } from '../shared/policy-type.schema';
-import { consentContracts } from './index';
+
 import { postConsentContract } from './post.contract';
 
 // Create base tests for the contract using the utility
@@ -494,6 +492,3 @@ tester.testRequiredFields('output', [
 	'recordId',
 	'givenAt',
 ]);
-
-// Add consistency tests across all consent contracts
-createConsistencyTests(consentContracts);

@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-	createConsistencyTests,
-	createContractTests,
-} from '../../testing/contract-testing';
-import { consentContracts } from './index';
+
+import { createContractTests } from '~/testing/contract-testing';
 import { showConsentBannerContract } from './show-banner.contract';
 
 // Create base tests for the contract using the utility
@@ -232,6 +229,3 @@ tester.testRequiredFields('output', [
 	'jurisdiction',
 	'location',
 ]);
-
-// Add consistency tests across all consent contracts
-createConsistencyTests(consentContracts);

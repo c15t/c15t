@@ -22,7 +22,7 @@ const JurisdictionCodeSchema = z.enum([
 // Output schema matching the ShowConsentBannerResponse interface
 export const showConsentBannerContract = oc
 	// Empty input since this is a GET endpoint using only headers
-	.input(z.object({}))
+	.input(z.object({}).strict())
 	.output(
 		z.object({
 			showConsentBanner: z.boolean(),
