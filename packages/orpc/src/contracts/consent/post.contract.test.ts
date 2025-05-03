@@ -272,7 +272,7 @@ describe('Post Consent Contract Custom Tests', () => {
 				type: 'marketing_communications',
 				status: 'granted',
 				recordId: '789',
-				givenAt: new Date().toISOString(),
+				givenAt: new Date(),
 				metadata: { source: 'web' },
 			} as const;
 
@@ -311,7 +311,7 @@ describe('Post Consent Contract Custom Tests', () => {
 					type: 'marketing_communications',
 					status,
 					recordId: '789',
-					givenAt: new Date().toISOString(),
+					givenAt: new Date(),
 				};
 
 				const result = validateOutput(output);
@@ -330,7 +330,7 @@ describe('Post Consent Contract Custom Tests', () => {
 					type,
 					status: 'granted',
 					recordId: '789',
-					givenAt: new Date().toISOString(),
+					givenAt: new Date(),
 				};
 
 				const result = validateOutput(output);
@@ -339,7 +339,27 @@ describe('Post Consent Contract Custom Tests', () => {
 		});
 
 		describe('givenAt field', () => {
-			it('accepts any string value', () => {
+			it('rejects string values', () => {
+				const invalidOutput = {
+					id: '123',
+					domainId: '456',
+					domain: 'example.com',
+					type: 'marketing_communications',
+					status: 'granted',
+					recordId: '789',
+					givenAt: 'not-a-date', // This should now fail with z.date()
+					metadata: {},
+				} as const;
+
+				const result = validateOutput(invalidOutput);
+				if (!result) {
+					throw new Error('Result is undefined');
+				}
+
+				expect(result.success).toBe(false);
+			});
+
+			it('accepts Date objects', () => {
 				const validOutput = {
 					id: '123',
 					domainId: '456',
@@ -347,16 +367,28 @@ describe('Post Consent Contract Custom Tests', () => {
 					type: 'marketing_communications',
 					status: 'granted',
 					recordId: '789',
-					givenAt: 'not-a-date', // Any string is valid per schema definition
+					givenAt: new Date(),
 					metadata: {},
-				} as const;
+				};
 
 				const result = validateOutput(validOutput);
-				if (!result) {
-					throw new Error('Result is undefined');
-				}
+				expect(result?.success).toBe(true);
+			});
 
-				expect(result.success).toBe(true);
+			it('rejects non-date values', () => {
+				const invalidOutput = {
+					id: '123',
+					domainId: '456',
+					domain: 'example.com',
+					type: 'marketing_communications',
+					status: 'granted',
+					recordId: '789',
+					givenAt: 123, // Number instead of Date
+					metadata: {},
+				};
+
+				const result = validateOutput(invalidOutput);
+				expect(result?.success).toBe(false);
 			});
 
 			it('accepts ISO date strings', () => {
@@ -367,7 +399,7 @@ describe('Post Consent Contract Custom Tests', () => {
 					type: 'marketing_communications',
 					status: 'granted',
 					recordId: '789',
-					givenAt: new Date().toISOString(),
+					givenAt: new Date(),
 					metadata: {},
 				};
 
@@ -410,7 +442,7 @@ describe('Post Consent Contract Custom Tests', () => {
 					type: 'marketing_communications',
 					status: 'granted',
 					recordId: '789',
-					givenAt: new Date().toISOString(),
+					givenAt: new Date(),
 					// No metadata, subjectId or externalSubjectId
 				};
 
@@ -426,7 +458,7 @@ describe('Post Consent Contract Custom Tests', () => {
 					type: 'marketing_communications',
 					status: 'granted',
 					recordId: '789',
-					givenAt: new Date().toISOString(),
+					givenAt: new Date(),
 					subjectId: 'user-123',
 				};
 
@@ -442,7 +474,7 @@ describe('Post Consent Contract Custom Tests', () => {
 					type: 'marketing_communications',
 					status: 'granted',
 					recordId: '789',
-					givenAt: new Date().toISOString(),
+					givenAt: new Date(),
 					externalSubjectId: 'external-user-123',
 				};
 
@@ -458,7 +490,7 @@ describe('Post Consent Contract Custom Tests', () => {
 					type: 'marketing_communications',
 					status: 'granted',
 					recordId: '789',
-					givenAt: new Date().toISOString(),
+					givenAt: new Date(),
 					metadata: {
 						source: 'web',
 						platform: 'mobile',

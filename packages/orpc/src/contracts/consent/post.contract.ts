@@ -49,6 +49,6 @@ export const postConsentContract = oc
 			status: z.string(),
 			recordId: z.string(),
 			metadata: z.record(z.unknown()).optional(),
-			givenAt: z.string(),
+			givenAt: z.date(),
 		})
 	);
