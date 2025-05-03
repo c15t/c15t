@@ -1,12 +1,16 @@
 import { createServer } from 'node:http';
 import { OpenAPIGenerator } from '@orpc/openapi';
 import { OpenAPIHandler } from '@orpc/openapi/node';
-import { CORSPlugin } from '@orpc/server/plugins';
+import { CORSPlugin, ResponseHeadersPlugin } from '@orpc/server/plugins';
 import { ZodSmartCoercionPlugin, ZodToJsonSchemaConverter } from '@orpc/zod';
 import { router } from './router';
 
 const openAPIHandler = new OpenAPIHandler(router, {
-	plugins: [new CORSPlugin(), new ZodSmartCoercionPlugin()],
+	plugins: [
+		new CORSPlugin(),
+		new ZodSmartCoercionPlugin(),
+		new ResponseHeadersPlugin(),
+	],
 });
 
 const openAPIGenerator = new OpenAPIGenerator({

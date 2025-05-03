@@ -10,7 +10,7 @@ export const postConsent = os.consent.post.handler(({ input }) => {
 		type: input.type,
 		status: 'granted',
 		recordId: '123',
-		givenAt: new Date().toISOString(),
+		givenAt: new Date(),
 		metadata: {},
 	};
 });
