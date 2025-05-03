@@ -1,86 +1,99 @@
 import { createServer } from 'node:http';
-import { OpenAPIGenerator } from '@orpc/openapi';
-import { OpenAPIHandler } from '@orpc/openapi/node';
-import { CORSPlugin, ResponseHeadersPlugin } from '@orpc/server/plugins';
-import { ZodSmartCoercionPlugin, ZodToJsonSchemaConverter } from '@orpc/zod';
-import { router } from './router';
+import { c15tInstance } from './core';
 
-const openAPIHandler = new OpenAPIHandler(router, {
-	plugins: [
-		new CORSPlugin(),
-		new ZodSmartCoercionPlugin(),
-		new ResponseHeadersPlugin(),
-	],
+// Create the c15t instance with our configuration
+const instance = c15tInstance({
+	advanced: {
+		cors: {
+			allowedOrigins: ['*'], // Allow all origins for development
+		},
+	},
+	// Add OpenAPI configuration
+	openapi: {
+		enabled: true, // Set to true to enable docs
+		// specPath: '/spec.json',
+		// docsPath: '/docs',
+		// // Only override the title and description
+		// options: {
+		// 	info: {
+		// 		title: 'My Custom API Title', // Override default title
+		// 		description: 'My custom API description' // Override default description
+		// 	}
+		// } as Record<string, unknown>
+	},
+	// Add other options as needed
+	logger: {
+		level: 'info',
+	},
 });
 
-const openAPIGenerator = new OpenAPIGenerator({
-	schemaConverters: [new ZodToJsonSchemaConverter()],
-});
-
+// Create HTTP server
 const server = createServer(async (req, res) => {
-	const { matched } = await openAPIHandler.handle(req, res, {
-		prefix: '/api',
-		context: { headers: req.headers },
+	// Convert Node.js request to Web Request
+	const url = new URL(req.url || '/', `http://${req.headers.host}`);
+	const headers = new Headers();
+
+	// Convert Node.js headers to Headers object
+	for (const [key, value] of Object.entries(req.headers)) {
+		if (value) {
+			headers.set(key, Array.isArray(value) ? value.join(', ') : value);
+		}
+	}
+
+	// Create a Request object compatible with oRPC
+	const request = new Request(url.toString(), {
+		method: req.method || 'GET',
+		headers,
+		// Handle request body for POST/PUT/PATCH requests
+		...(req.method !== 'GET' &&
+			req.method !== 'HEAD' && {
+				body: req,
+			}),
 	});
 
-	if (matched) {
-		return;
+	try {
+		// Use c15tInstance handler to process the request
+		// It will automatically handle OpenAPI spec and docs UI
+		const response = await instance.handler(request);
+
+		// Convert Web API Response to Node.js response
+		res.writeHead(
+			response.status,
+			response.statusText,
+			Object.fromEntries(response.headers.entries())
+		);
+
+		// Handle different response types
+		if (response.body) {
+			const reader = response.body.getReader();
+			const processChunk = async () => {
+				const { done, value } = await reader.read();
+				if (done) {
+					res.end();
+					return;
+				}
+				res.write(value);
+				processChunk();
+			};
+			processChunk();
+		} else {
+			res.end();
+		}
+	} catch (error) {
+		console.error('Error handling request:', error);
+		res.writeHead(500, { 'Content-Type': 'application/json' });
+		res.end(
+			JSON.stringify({
+				error: 'Internal Server Error',
+				message: error instanceof Error ? error.message : String(error),
+			})
+		);
 	}
-
-	if (req.url === '/spec.json') {
-		const spec = await openAPIGenerator.generate(router, {
-			info: {
-				title: 'My Playground',
-				version: '1.0.0',
-			},
-			servers: [{ url: '/api' } /** Should use absolute URLs in production */],
-			security: [{ bearerAuth: [] }],
-			components: {
-				securitySchemes: {
-					bearerAuth: {
-						type: 'http',
-						scheme: 'bearer',
-					},
-				},
-			},
-		});
-
-		res.writeHead(200, { 'Content-Type': 'application/json' });
-		res.end(JSON.stringify(spec));
-		return;
-	}
-
-	const html = `
-    <!doctype html>
-    <html>
-      <head>
-        <title>My Client</title>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" type="image/svg+xml" href="https://orpc.unnoq.com/icon.svg" />
-      </head>
-      <body>
-        <script
-          id="api-reference"
-          data-url="/spec.json"
-          data-configuration="${JSON.stringify({
-						authentication: {
-							preferredSecurityScheme: 'bearerAuth',
-							http: {
-								bearer: { token: 'default-token' },
-							},
-						},
-					}).replaceAll('"', '&quot;')}">
-        </script>
-        <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
-      </body>
-    </html>
-  `;
-
-	res.writeHead(200, { 'Content-Type': 'text/html' });
-	res.end(html);
 });
 
-server.listen(3000, () => {
-	console.log('Playground is available at http://localhost:3000');
+// Start the server
+const PORT = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000;
+server.listen(PORT, () => {
+	console.log(`C15T server is running at http://localhost:${PORT}`);
+	console.log(`API documentation available at http://localhost:${PORT}/docs`);
 });

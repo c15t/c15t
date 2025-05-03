@@ -105,9 +105,11 @@ describe('Show Consent Banner Handler', () => {
 
 				expect(result.showConsentBanner).toBe(true);
 				expect(result.jurisdiction.code).toBe(testCase.code);
-				//@ts-expect-error
+
 				expect(result.jurisdiction.message).toBe(
-					JurisdictionMessages[testCase.code]
+					JurisdictionMessages[
+						testCase.code as keyof typeof JurisdictionMessages
+					]
 				);
 			}
 		});

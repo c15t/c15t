@@ -30,10 +30,20 @@
 		"test:watch": "vitest"
 	},
 	"dependencies": {
+		"@opentelemetry/api": "1.8.0",
+		"@opentelemetry/resources": "^1.25.1",
+		"@opentelemetry/sdk-node": "^0.51.1",
+		"@opentelemetry/sdk-trace-base": "^1.25.1",
 		"@orpc/contract": "^1.1.1",
 		"@orpc/openapi": "^1.1.1",
 		"@orpc/server": "1.1.1",
 		"@orpc/zod": "^1.1.1",
+		"base-x": "^5.0.1",
+		"defu": "^6.1.4",
+		"drizzle-orm": "^0.41.0",
+		"kysely": "^0.27.6",
+		"neverthrow": "^8.2.0",
+		"superjson": "^2.2.2",
 		"zod": "^3.24.2"
 	},
 	"devDependencies": {
