@@ -2,8 +2,8 @@ import { expect, test, vi } from 'vitest';
 import { ConsentManagerDialog } from '~/components/consent-manager-dialog/consent-manager-dialog';
 import type { ThemeValue } from '~/types/theme';
 import testComponentStyles from '~/utils/test-helpers';
+import styles from '../consent-manager-dialog.module.css';
 import type { ConsentManagerDialogTheme } from '../theme';
-
 type ComponentTestCase = {
 	testId: string;
 	themeKey: keyof ConsentManagerDialogTheme;
@@ -374,4 +374,62 @@ test('Multiple custom classes can be applied and override base layer', async () 
 	expect(getComputedStyle(root).border).toBe('2px solid rgb(0, 0, 255)');
 
 	document.head.removeChild(styleElement);
+});
+
+test('All consent manager dialog components should have their base classes applied', async () => {
+	const test = <ConsentManagerDialog open />;
+
+	const baseClasses = {
+		root: styles.root || '',
+		card: styles.card || '',
+		header: styles.header || '',
+		title: styles.title || '',
+		description: styles.description || '',
+		content: styles.content || '',
+		footer: styles.footer || '',
+		overlay: styles.overlay || '',
+	};
+
+	await testComponentStyles({
+		component: test,
+		testCases: [
+			{
+				testId: 'consent-manager-dialog-root',
+				styles: `${styles.card} ${styles.card} ${styles.card}`,
+			},
+			{
+				testId: 'consent-manager-dialog-card',
+				styles: baseClasses.card,
+			},
+			{
+				testId: 'consent-manager-dialog-header',
+				styles: baseClasses.header,
+			},
+			{
+				testId: 'consent-manager-dialog-title',
+				styles: baseClasses.title,
+			},
+			{
+				testId: 'consent-manager-dialog-description',
+				styles: baseClasses.description,
+			},
+			{
+				testId: 'consent-manager-dialog-content',
+				styles: baseClasses.content,
+			},
+			{
+				testId: 'consent-manager-dialog-footer',
+				styles: baseClasses.footer,
+			},
+			{
+				testId: 'consent-manager-dialog-overlay',
+				styles: baseClasses.overlay,
+			},
+		],
+	});
+
+	// Also verify that none of the base classes are empty strings
+	for (const [key, value] of Object.entries(baseClasses)) {
+		expect(value, `Base class for ${key} should not be empty`).not.toBe('');
+	}
 });
