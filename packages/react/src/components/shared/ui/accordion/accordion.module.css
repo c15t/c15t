@@ -1,6 +1,4 @@
-@layer properties, theme, base, c15t, components, utilities;
 
-@layer c15t {
 	:root {
 		/* Layout variables */
 		--accordion-padding: 0.875rem;
@@ -232,4 +230,4 @@
 	:global(.c15t-dark) .contentInner {
 		color: var(--accordion-content-color-dark);
 	}
-}
+

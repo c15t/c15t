@@ -1,7 +1,4 @@
-/* Button Base Variables */
-@layer properties, theme, base, c15t, components, utilities;
 
-@layer c15t {
 	:root {
 		/* Primary Colors */
 		--button-primary: hsl(228, 100%, 60%);
@@ -332,4 +329,4 @@
 		align-items: center;
 		justify-content: center;
 	}
-}
+

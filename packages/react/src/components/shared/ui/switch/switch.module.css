@@ -1,6 +1,4 @@
-@layer properties, theme, base, c15t, components, utilities;
 
-@layer c15t {
 	:root {
 		/* Layout variables */
 		--switch-height: 1.25rem;
@@ -228,4 +226,4 @@
 	:global(.c15t-dark) .root:focus-visible {
 		box-shadow: var(--switch-focus-shadow-dark);
 	}
-}
+

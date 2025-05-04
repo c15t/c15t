@@ -1,6 +1,4 @@
-@layer properties, theme, base, c15t, components, utilities;
 
-@layer c15t {
 	:root {
 		/* Typography */
 		--dialog-font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial,
@@ -290,4 +288,4 @@
 	:global(.c15t-dark) .footer {
 		border-color: var(--dialog-stroke-color-dark);
 	}
-}
+
