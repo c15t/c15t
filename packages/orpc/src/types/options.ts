@@ -53,7 +53,7 @@ export interface C15TOptions<PluginType extends C15TPlugin[] = C15TPlugin[]>
 	secret?: string;
 
 	/**
-	 * Plugins specific to C15T
+	 * Plugins specific to c15t
 	 */
 	plugins?: PluginType;
 

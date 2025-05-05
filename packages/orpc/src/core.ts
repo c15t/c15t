@@ -1,8 +1,9 @@
-import type { Logger } from '@doubletie/logger';
+import { type Logger, createLogger } from '@doubletie/logger';
 import { OpenAPIGenerator } from '@orpc/openapi';
 import { RPCHandler } from '@orpc/server/fetch';
 import { CORSPlugin } from '@orpc/server/plugins';
 import { ZodToJsonSchemaConverter } from '@orpc/zod';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
 import packageJson from '../package.json';
 import { init } from './init';
@@ -272,7 +273,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
     <!doctype html>
     <html>
       <head>
-        <title>${options.appName || 'C15T API'} Documentation</title>
+        <title>${options.appName || 'c15t API'} Documentation</title>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" type="image/svg+xml" href="https://orpc.unnoq.com/icon.svg" />
@@ -280,15 +281,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
       <body>
         <script
           id="api-reference"
-          data-url="${openApiConfig.specPath}"
-          data-configuration="${JSON.stringify({
-						authentication: {
-							preferredSecurityScheme: 'bearerAuth',
-							http: {
-								bearer: { token: 'default-token' },
-							},
-						},
-					}).replaceAll('"', '&quot;')}">
+          data-url="${openApiConfig.specPath}">
         </script>
         <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
       </body>
@@ -358,10 +351,27 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 			return new Response('Not Found', { status: 404 });
 		} catch (error) {
 			// Log the error
-			// biome-ignore lint/suspicious/noConsole: <explanation>
-			console.error('Request handling error:', error);
+			const logger = options.logger ? createLogger(options.logger) : console;
+			logger.error('Request handling error:', error);
 
-			// Return appropriate error response
+			// Handle DoubleTieError and convert to ORPCError response format
+			if (error instanceof DoubleTieError) {
+				return new Response(
+					JSON.stringify({
+						code: error.code,
+						message: error.message,
+						data: error.meta,
+						status: error.statusCode,
+						defined: true,
+					}),
+					{
+						status: error.statusCode,
+						headers: { 'Content-Type': 'application/json' },
+					}
+				);
+			}
+
+			// For other errors, create a generic error response
 			const message = error instanceof Error ? error.message : String(error);
 			const status =
 				error instanceof Error && 'status' in error
@@ -370,7 +380,11 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 
 			return new Response(
 				JSON.stringify({
-					error: message,
+					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+					message,
+					status,
+					defined: true,
+					data: {},
 				}),
 				{
 					status,

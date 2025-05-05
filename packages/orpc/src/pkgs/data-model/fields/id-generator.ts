@@ -1,5 +1,5 @@
 /**
- * Custom ID generation system for C15T entities
+ * Custom ID generation system for c15t entities
  *
  * Provides prefixed, time-ordered, unique identifiers for all system entities.
  * Each entity type has a specific prefix to make IDs self-descriptive about

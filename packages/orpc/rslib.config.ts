@@ -60,8 +60,8 @@ const externals = [
 export default defineConfig({
 	source: {
 		entry: {
-			server: ['./src/server.ts'],
-			router: ['./src/router.ts'],
+			core: ['./src/core.ts'],
+			// router: ['./src/router.ts'],
 		},
 	},
 	lib: [

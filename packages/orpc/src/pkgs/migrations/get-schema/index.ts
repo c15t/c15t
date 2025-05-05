@@ -2,7 +2,7 @@
  * Schema Generation Module
  *
  * This module handles the generation and processing of database schemas
- * based on the C15T configuration. It transforms table definitions into
+ * based on the c15t configuration. It transforms table definitions into
  * a structured schema representation that can be used for database operations.
  *
  * Example usage:

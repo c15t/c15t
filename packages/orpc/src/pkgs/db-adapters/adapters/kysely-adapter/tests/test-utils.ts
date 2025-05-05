@@ -36,7 +36,7 @@ export const expectedTables = [
 ];
 
 /**
- * Helper to create C15T options for a database
+ * Helper to create c15t options for a database
  */
 export function createOptions(dbConfig: DbConfig): C15TOptions {
 	return {

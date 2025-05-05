@@ -59,7 +59,7 @@ describe('DoubleTieError', () => {
 			expect(error.message).toContain('HTTP error 404');
 		});
 
-		it('should extract error details from response data', async () => {
+		it('should extract error details from response data', () => {
 			const responseData = {
 				message: 'Resource not found',
 				code: ERROR_CODES.NOT_FOUND,
@@ -101,7 +101,7 @@ describe('DoubleTieError', () => {
 	});
 
 	describe('toJSON', () => {
-		it('should serialize error to JSON with H3 compatible structure', () => {
+		it('should serialize error to JSON with oRPC compatible structure', () => {
 			const error = new DoubleTieError('Test error', {
 				code: ERROR_CODES.BAD_REQUEST,
 				status: 400,
@@ -111,13 +111,12 @@ describe('DoubleTieError', () => {
 
 			const errorJson = error.toJSON();
 
-			//@ts-expect-error
-			expect(errorJson.statusCode).toBe(400);
+			expect(errorJson.status).toBe(400);
 			expect(errorJson.message).toBe('Test error');
-			//@ts-expect-error
-			expect(errorJson.data?.code).toBe(ERROR_CODES.BAD_REQUEST);
-			expect(errorJson.data?.category).toBe(ERROR_CATEGORIES.VALIDATION);
-			expect(errorJson.data?.meta).toEqual({ field: 'username' });
+			expect(errorJson.code).toBe(ERROR_CODES.BAD_REQUEST);
+			expect(errorJson.data.category).toBe(ERROR_CATEGORIES.VALIDATION);
+			expect(errorJson.data.meta).toEqual({ field: 'username' });
+			expect(errorJson.defined).toBe(true);
 		});
 
 		it('should include validation error message when present', () => {
@@ -130,7 +129,7 @@ describe('DoubleTieError', () => {
 			const errorJson = error.toJSON();
 
 			expect(errorJson.message).toBe('Field X is required');
-			expect(errorJson.data?.originalMessage).toBe('Validation failed');
+			expect(errorJson.data.originalMessage).toBe('Validation failed');
 		});
 	});
 

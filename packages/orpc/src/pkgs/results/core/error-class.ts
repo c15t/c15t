@@ -90,6 +90,9 @@ export class DoubleTieError extends ORPCError<string, Record<string, unknown>> {
 			data: options.meta ?? {},
 		});
 
+		// Set name explicitly
+		this.name = 'DoubleTieError';
+
 		// Initialize additional properties
 		this.category = options.category ?? ERROR_CATEGORIES.UNEXPECTED;
 		this.meta = options.meta ?? {};

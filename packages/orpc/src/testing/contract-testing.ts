@@ -7,7 +7,7 @@ import { z } from 'zod';
  */
 
 type ContractTestHelpers = {
-	validateInput: (
+	validateInput?: (
 		input: unknown
 	) => z.SafeParseReturnType<unknown, unknown> | undefined;
 	validateOutput: (

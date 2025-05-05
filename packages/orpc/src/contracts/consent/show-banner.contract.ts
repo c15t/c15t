@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { JurisdictionInfoSchema } from '../shared/jurisdiction.schema';
 
-export const showConsentBannerContract = oc.input(z.object({}).strict()).output(
+export const showConsentBannerContract = oc.input(z.undefined()).output(
 	z.object({
 		showConsentBanner: z.boolean(),
 		jurisdiction: JurisdictionInfoSchema,

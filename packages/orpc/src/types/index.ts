@@ -1,7 +1,7 @@
 /**
- * C15T Types Package
+ * c15t Types Package
  *
- * This package provides type definitions specific to the C15T consent management system.
+ * This package provides type definitions specific to the c15t consent management system.
  * It extends the base DoubleTie framework types with consent management specific functionality.
  *
  * The types in this folder should be used for consent management specific features, while

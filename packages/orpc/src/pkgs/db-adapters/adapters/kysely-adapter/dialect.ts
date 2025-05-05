@@ -78,7 +78,7 @@ function getDatabaseType(
  * - Raw database connections (SQLite, MySQL, PostgreSQL)
  * - Kysely dialect instances
  *
- * @param config - The C15T configuration options containing database settings
+ * @param config - The c15t configuration options containing database settings
  * @returns An object containing the initialized Kysely instance and database type
  *
  * @example

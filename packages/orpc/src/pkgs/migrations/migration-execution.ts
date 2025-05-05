@@ -1,4 +1,4 @@
-import { createLogger } from '@doubletie/logger';
+import { getLogger } from '~/pkgs/utils/logger';
 import type { MigrationOperation } from './types';
 
 /**
@@ -8,7 +8,7 @@ import type { MigrationOperation } from './types';
  * @returns Object with runMigrations and compileMigrations functions
  */
 export function createMigrationExecutors(migrations: MigrationOperation[]) {
-	const logger = createLogger();
+	const logger = getLogger();
 
 	/**
 	 * Executes all migration operations against the database

@@ -1,5 +1,13 @@
 import { createServer } from 'node:http';
 import { c15tInstance } from './core';
+import { DoubleTieError } from './pkgs/results';
+import { getLogger } from './pkgs/utils/logger';
+
+// Use the centralized logger
+const logger = getLogger({
+	level: 'info',
+	// appName: 'c15t-server'
+});
 
 // Create the c15t instance with our configuration
 const instance = c15tInstance({
@@ -11,17 +19,9 @@ const instance = c15tInstance({
 	// Add OpenAPI configuration
 	openapi: {
 		enabled: true, // Set to true to enable docs
-		// specPath: '/spec.json',
-		// docsPath: '/docs',
-		// // Only override the title and description
-		// options: {
-		// 	info: {
-		// 		title: 'My Custom API Title', // Override default title
-		// 		description: 'My custom API description' // Override default description
-		// 	}
-		// } as Record<string, unknown>
+		// Additional OpenAPI options can be added here
 	},
-	// Add other options as needed
+	// Add logger
 	logger: {
 		level: 'info',
 	},
@@ -65,35 +65,66 @@ const server = createServer(async (req, res) => {
 
 		// Handle different response types
 		if (response.body) {
+			// Stream the response body
 			const reader = response.body.getReader();
 			const processChunk = async () => {
-				const { done, value } = await reader.read();
-				if (done) {
-					res.end();
-					return;
+				try {
+					const { done, value } = await reader.read();
+					if (done) {
+						res.end();
+						return;
+					}
+
+					// Check if response already ended
+					if (!res.writableEnded) {
+						const canContinue = res.write(value);
+						if (canContinue) {
+							processChunk();
+						} else {
+							// If the buffer is full, wait for the drain event
+							res.once('drain', processChunk);
+						}
+					}
+				} catch (err) {
+					logger.error('Error while streaming response:', err);
+					if (!res.writableEnded) {
+						res.end();
+					}
 				}
-				res.write(value);
-				processChunk();
 			};
 			processChunk();
 		} else {
 			res.end();
 		}
 	} catch (error) {
-		console.error('Error handling request:', error);
-		res.writeHead(500, { 'Content-Type': 'application/json' });
-		res.end(
-			JSON.stringify({
-				error: 'Internal Server Error',
-				message: error instanceof Error ? error.message : String(error),
-			})
-		);
+		logger.error('Error handling request:', error);
+
+		// Return a proper error response based on the error type
+		if (error instanceof DoubleTieError) {
+			res.writeHead(error.statusCode, { 'Content-Type': 'application/json' });
+			res.end(
+				JSON.stringify({
+					code: error.code,
+					message: error.message,
+					data: error.meta,
+				})
+			);
+		} else {
+			// Generic error handler
+			res.writeHead(500, { 'Content-Type': 'application/json' });
+			res.end(
+				JSON.stringify({
+					error: 'Internal Server Error',
+					message: error instanceof Error ? error.message : String(error),
+				})
+			);
+		}
 	}
 });
 
 // Start the server
 const PORT = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000;
 server.listen(PORT, () => {
-	console.log(`C15T server is running at http://localhost:${PORT}`);
-	console.log(`API documentation available at http://localhost:${PORT}/docs`);
+	logger.info(`c15t server is running at http://localhost:${PORT}`);
+	logger.info(`API documentation available at http://localhost:${PORT}/docs`);
 });

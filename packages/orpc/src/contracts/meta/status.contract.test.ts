@@ -24,8 +24,8 @@ describe('Status Contract Custom Tests', () => {
 	};
 
 	describe('Schema Structure', () => {
-		it('input schema is an empty object', () => {
-			const result = validateInput({});
+		it('input schema is an undefined', () => {
+			const result = validateInput(undefined);
 			expect(result?.success).toBe(true);
 		});
 

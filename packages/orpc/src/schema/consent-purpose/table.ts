@@ -9,7 +9,7 @@ import { purposeSchema } from './schema';
  * and any additional fields from plugins or configuration. The resulting schema is used
  * for database migrations, schema validation, and query building.
  *
- * @param options - C15T configuration options that may contain consentPurpose table customizations
+ * @param options - c15t configuration options that may contain consentPurpose table customizations
  * @param purposeFields - Additional fields from plugins to include in the consentPurpose table
  * @returns A complete table schema definition with fields, model name, and metadata
  *

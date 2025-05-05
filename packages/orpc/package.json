@@ -5,9 +5,9 @@
 	"type": "module",
 	"exports": {
 		".": {
-			"types": "./dist/server.d.ts",
-			"import": "./dist/server.js",
-			"require": "./dist/server.cjs"
+			"types": "./dist/core.d.ts",
+			"import": "./dist/core.js",
+			"require": "./dist/core.cjs"
 		},
 		"./router": {
 			"types": "./dist/router.d.ts",
@@ -30,7 +30,7 @@
 		"test:watch": "vitest"
 	},
 	"dependencies": {
-		"@doubletie/logger": "1.0.0",
+		"@doubletie/logger": "1.0.4",
 		"@opentelemetry/api": "1.8.0",
 		"@opentelemetry/resources": "^1.25.1",
 		"@opentelemetry/sdk-node": "^0.51.1",

@@ -1,9 +1,9 @@
-import { createLogger } from '@doubletie/logger';
 import type { ColumnDataType, Expression, Kysely } from 'kysely';
 import type {
 	Database,
 	KyselyDatabaseType,
 } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
+import { getLogger } from '~/pkgs/utils/logger';
 import type { C15TOptions } from '~/types';
 import { getType } from './type-mapping';
 import type { ColumnsToAdd, MigrationOperation, TableToCreate } from './types';
@@ -83,7 +83,7 @@ export function buildTableCreateMigrations(
 	toBeCreated: TableToCreate[],
 	dbType: KyselyDatabaseType
 ): MigrationOperation[] {
-	const logger = createLogger();
+	const logger = getLogger();
 	const migrations: MigrationOperation[] = [];
 
 	// Process each table that needs to be created

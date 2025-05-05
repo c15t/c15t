@@ -77,11 +77,5 @@ export function c15tClient(options: C15TClientOptions) {
 	// the same runtime functionality
 	const client = createORPCClient(link);
 
-	return client as unknown as RouterClient<typeof router>;
+	return client as RouterClient<typeof router>;
 }
-
-const c15t = c15tClient({
-	baseUrl: 'http://127.0.0.1:3000',
-});
-
-c15t.consent.showBanner({});
