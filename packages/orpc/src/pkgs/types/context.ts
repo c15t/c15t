@@ -1,6 +1,6 @@
+import type { createLogger } from '@doubletie/logger';
 import type { DatabaseHook, EntityName } from '~/pkgs/data-model';
 import type { Adapter } from '~/pkgs/db-adapters/types';
-import type { createLogger } from '~/pkgs/logger';
 import type { createRegistry } from '~/schema/create-registry';
 import type { getConsentTables } from '~/schema/definition';
 import type { DoubleTieOptions } from './options';

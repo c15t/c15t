@@ -1,4 +1,4 @@
-import { createLogger } from '~/pkgs/logger';
+import { createLogger } from '@doubletie/logger';
 import type { MigrationOperation } from './types';
 
 /**

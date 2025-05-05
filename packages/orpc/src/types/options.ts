@@ -9,7 +9,7 @@ import type { OpenAPIGeneratorOptions } from '@orpc/openapi';
 import type { DoubleTieOptions } from '~/pkgs/types/options';
 import type { C15TPlugin } from './plugins';
 
-import type { LoggerOptions } from '~/pkgs/logger';
+import type { LoggerOptions } from '@doubletie/logger';
 // Import table configuration types from the schema module
 import type { TablesConfig } from '~/schema/types';
 /**

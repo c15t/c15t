@@ -1,10 +1,10 @@
 import type { DatabaseHook } from '~/pkgs/data-model';
 import type { DatabaseConfiguration } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
 
+import type { LoggerOptions } from '@doubletie/logger';
 import type { Tracer } from '@opentelemetry/api';
 // Import table configuration types from the schema module
 import type { TablesConfig } from '~/schema/types';
-import type { LoggerOptions } from '../logger';
 import type { DoubleTiePlugin } from './plugins';
 
 /**

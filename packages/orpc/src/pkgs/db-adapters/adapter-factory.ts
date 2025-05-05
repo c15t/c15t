@@ -1,4 +1,4 @@
-import { createLogger } from '~/pkgs/logger';
+import { createLogger } from '@doubletie/logger';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import { getConsentTables } from '~/schema';
 import type { C15TOptions } from '~/types';

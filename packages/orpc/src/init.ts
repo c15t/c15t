@@ -1,10 +1,10 @@
+import { createLogger } from '@doubletie/logger';
 import { Resource } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-base';
 import { defu } from 'defu';
 import type { DatabaseHook } from '~/pkgs/data-model';
 import { getAdapter } from '~/pkgs/db-adapters';
-import { createLogger } from '~/pkgs/logger';
 import type { RegistryContext } from '~/pkgs/types';
 import { getBaseURL } from '~/pkgs/utils';
 import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';

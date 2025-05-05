@@ -1,3 +1,4 @@
+import type { Logger } from '@doubletie/logger';
 import { OpenAPIGenerator } from '@orpc/openapi';
 import { RPCHandler } from '@orpc/server/fetch';
 import { CORSPlugin } from '@orpc/server/plugins';
@@ -8,7 +9,6 @@ import { init } from './init';
 import { withRequestSpan } from './pkgs/api-router/telemetry';
 import { isOriginTrusted } from './pkgs/api-router/utils/cors';
 import { getIp } from './pkgs/api-router/utils/ip';
-import type { Logger } from './pkgs/logger';
 import { router } from './router';
 /**
  * Type representing an API route
