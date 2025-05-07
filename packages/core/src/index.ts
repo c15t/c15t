@@ -185,3 +185,11 @@ export {
 	detectBrowserLanguage,
 	prepareTranslationConfig,
 } from './utils/translations';
+
+export type {
+	SetConsentRequest,
+	ShowBannerResponse,
+	VerifyConsentRequest,
+	SetConsentResponse,
+	VerifyConsentResponse,
+} from './client/client-interface';

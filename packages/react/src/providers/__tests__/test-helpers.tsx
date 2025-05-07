@@ -1,8 +1,5 @@
 // test-helpers.ts - Common mock setup
-import type {
-	SetConsentRequestBody,
-	VerifyConsentRequestBody,
-} from '@c15t/backend';
+import type { SetConsentRequest, VerifyConsentRequest } from 'c15t';
 import { beforeEach, vi } from 'vitest';
 import { type ConsentManagerOptions, useConsentManager } from '~/index';
 
@@ -102,12 +99,10 @@ export function setupMocks() {
 					return {
 						getCallbacks: () => options.callbacks,
 						showConsentBanner: async () => handlers.showConsentBanner({}),
-						setConsent: async (data: SetConsentRequestBody) =>
-							//@ts-expect-error
-							handlers.setConsent(data),
-						verifyConsent: async (data: VerifyConsentRequestBody) =>
-							//@ts-expect-error
-							handlers.verifyConsent(data),
+						setConsent: async (data: SetConsentRequest) =>
+							handlers.setConsent({ body: data }),
+						verifyConsent: async (data: VerifyConsentRequest) =>
+							handlers.verifyConsent({ body: data }),
 					};
 				}
 
