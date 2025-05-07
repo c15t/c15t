@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import os from 'node:os';
-import type { Logger } from '@c15t/backend/pkgs/logger';
+import type { Logger } from '@doubletie/logger';
 import { PostHog } from 'posthog-node';
 import type { LogLevel } from './logger';
 

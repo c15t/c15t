@@ -62,6 +62,26 @@ export default defineConfig({
 		entry: {
 			core: ['./src/core.ts'],
 			router: ['./src/router.ts'],
+			'schema/index': ['./src/schema/index.ts'],
+			'pkgs/data-model/fields/index': ['./src/pkgs/data-model/fields/index.ts'],
+			'pkgs/data-model/index': ['./src/pkgs/data-model/index.ts'],
+			'pkgs/data-model/schema/index': ['./src/pkgs/data-model/schema/index.ts'],
+			'pkgs/db-adapters/adapters/drizzle-adapter/index': [
+				'./src/pkgs/db-adapters/adapters/drizzle-adapter/index.ts',
+			],
+			'pkgs/db-adapters/adapters/kysely-adapter/index': [
+				'./src/pkgs/db-adapters/adapters/kysely-adapter/index.ts',
+			],
+			'pkgs/db-adapters/adapters/memory-adapter/index': [
+				'./src/pkgs/db-adapters/adapters/memory-adapter/index.ts',
+			],
+			'pkgs/db-adapters/adapters/prisma-adapter/index': [
+				'./src/pkgs/db-adapters/adapters/prisma-adapter/index.ts',
+			],
+			'pkgs/db-adapters/index': ['./src/pkgs/db-adapters/index.ts'],
+			'pkgs/results/index': ['./src/pkgs/results/index.ts'],
+			'pkgs/migrations/index': ['./src/pkgs/migrations/index.ts'],
+			'pkgs/types/index': ['./src/pkgs/types/index.ts'],
 		},
 	},
 	lib: [

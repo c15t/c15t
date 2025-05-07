@@ -448,3 +448,5 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 		getDocsUI,
 	};
 };
+
+export type { C15TPlugin, C15TOptions, C15TContext };

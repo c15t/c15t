@@ -37,6 +37,7 @@ export const showConsentBanner = os.consent.showBanner.handler(
 			normalizeHeader(headers?.get('x-vercel-ip-country-region')) ??
 			normalizeHeader(headers?.get('x-region-code'));
 
+		console.log('countryCode', countryCode);
 		// Determine jurisdiction based on country
 		const { showConsentBanner, jurisdictionCode, message } = checkJurisdiction(
 			countryCode ?? null

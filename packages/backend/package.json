@@ -13,6 +13,66 @@
 			"types": "./dist/router.d.ts",
 			"import": "./dist/router.js",
 			"require": "./dist/router.cjs"
+		},
+		"./schema": {
+			"types": "./dist/schema/index.d.ts",
+			"import": "./dist/schema/index.js",
+			"require": "./dist/schema/index.cjs"
+		},
+		"./pkgs/data-model/fields": {
+			"types": "./dist/pkgs/data-model/fields/index.d.ts",
+			"import": "./dist/pkgs/data-model/fields/index.js",
+			"require": "./dist/pkgs/data-model/fields/index.cjs"
+		},
+		"./pkgs/data-model": {
+			"types": "./dist/pkgs/data-model/index.d.ts",
+			"import": "./dist/pkgs/data-model/index.js",
+			"require": "./dist/pkgs/data-model/index.cjs"
+		},
+		"./pkgs/data-model/schema": {
+			"types": "./dist/pkgs/data-model/schema/index.d.ts",
+			"import": "./dist/pkgs/data-model/schema/index.js",
+			"require": "./dist/pkgs/data-model/schema/index.cjs"
+		},
+		"./pkgs/db-adapters/adapters/drizzle-adapter": {
+			"types": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.d.ts",
+			"import": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.js",
+			"require": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.cjs"
+		},
+		"./pkgs/db-adapters/adapters/kysely-adapter": {
+			"types": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.d.ts",
+			"import": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.js",
+			"require": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.cjs"
+		},
+		"./pkgs/db-adapters/adapters/memory-adapter": {
+			"types": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.d.ts",
+			"import": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.js",
+			"require": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.cjs"
+		},
+		"./pkgs/db-adapters/adapters/prisma-adapter": {
+			"types": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.d.ts",
+			"import": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.js",
+			"require": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.cjs"
+		},
+		"./pkgs/db-adapters": {
+			"types": "./dist/pkgs/db-adapters/index.d.ts",
+			"import": "./dist/pkgs/db-adapters/index.js",
+			"require": "./dist/pkgs/db-adapters/index.cjs"
+		},
+		"./pkgs/results": {
+			"types": "./dist/pkgs/results/index.d.ts",
+			"import": "./dist/pkgs/results/index.js",
+			"require": "./dist/pkgs/results/index.cjs"
+		},
+		"./pkgs/migrations": {
+			"types": "./dist/pkgs/migrations/index.d.ts",
+			"import": "./dist/pkgs/migrations/index.js",
+			"require": "./dist/pkgs/migrations/index.cjs"
+		},
+		"./pkgs/types": {
+			"types": "./dist/pkgs/types/index.d.ts",
+			"import": "./dist/pkgs/types/index.js",
+			"require": "./dist/pkgs/types/index.cjs"
 		}
 	},
 	"main": "./dist/server.cjs",
