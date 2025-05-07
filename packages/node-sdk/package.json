@@ -3,7 +3,7 @@
 	"version": "0.0.1",
 	"private": true,
 	"dependencies": {
-		"@c15t/orpc-router": "workspace:*",
+		"@c15t/backend": "workspace:*",
 		"@orpc/client": "^1.1.1",
 		"@orpc/server": "1.1.1"
 	},

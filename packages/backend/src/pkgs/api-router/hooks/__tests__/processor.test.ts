@@ -41,18 +41,21 @@ describe('Hook Processor Module', () => {
 
 			const hooks: Hook[] = [
 				{
+					//@ts-expect-error
 					matcher: (ctx: HookEndpointContext) => ctx.path === '/test',
 					handler: vi.fn().mockResolvedValue({
 						context: { testKey1: 'value1' },
 					}),
 				},
 				{
+					//@ts-expect-error
 					matcher: (ctx: HookEndpointContext) => ctx.method === 'GET',
 					handler: vi.fn().mockResolvedValue({
 						context: { testKey2: 'value2' },
 					}),
 				},
 				{
+					//@ts-expect-error
 					matcher: (ctx: HookEndpointContext) => ctx.path === '/other',
 					handler: vi.fn().mockResolvedValue({
 						context: { shouldNotInclude: true },
@@ -182,16 +185,19 @@ describe('Hook Processor Module', () => {
 
 			const hooks: Hook[] = [
 				{
+					//@ts-expect-error
 					matcher: (ctx: HookEndpointContext) => ctx.path === '/test',
 					handler: vi.fn().mockResolvedValue({
 						response: modifiedResponse,
 					}),
 				},
 				{
+					//@ts-expect-error
 					matcher: (ctx: HookEndpointContext) => ctx.method === 'GET',
 					handler: vi.fn().mockResolvedValue({}),
 				},
 				{
+					//@ts-expect-error
 					matcher: (ctx: HookEndpointContext) => ctx.path === '/other',
 					handler: vi.fn().mockResolvedValue({
 						response: { shouldNotUse: true },

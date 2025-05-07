@@ -3,7 +3,7 @@
  * This client returns empty successful responses without making any HTTP requests.
  */
 
-import type { router } from '@c15t/orpc-router/router';
+import type { router } from '@c15t/backend/router';
 import type { RouterClient } from '@orpc/server';
 import type {
 	ConsentManagerCallbacks,

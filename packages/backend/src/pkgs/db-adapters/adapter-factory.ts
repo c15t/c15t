@@ -1,5 +1,5 @@
-import { createLogger } from '~/pkgs/logger';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
+import { getLogger } from '~/pkgs/utils/logger';
 import { getConsentTables } from '~/schema';
 import type { C15TOptions } from '~/types';
 import { kyselyAdapter } from './adapters/kysely-adapter';
@@ -7,14 +7,14 @@ import { createKyselyAdapter } from './adapters/kysely-adapter/dialect';
 import { memoryAdapter } from './adapters/memory-adapter';
 
 /**
- * Creates and configures the appropriate database adapter based on C15T options
+ * Creates and configures the appropriate database adapter based on c15t options
  *
  * This function handles several scenarios:
  * 1. No database configuration - creates an in-memory adapter (development only)
  * 2. Custom database function - uses the provided function to create an adapter
  * 3. Standard database config - creates a Kysely adapter with the specified database
  *
- * @param options - The C15T configuration options
+ * @param options - The c15t configuration options
  * @returns A configured database adapter instance
  * @throws {DoubleTieError} If the database adapter initialization fails
  *
@@ -25,7 +25,7 @@ import { memoryAdapter } from './adapters/memory-adapter';
  * ```
  */
 export async function getAdapter(options: C15TOptions) {
-	const logger = createLogger({ appName: 'c15t' });
+	const logger = getLogger({ appName: 'c15t' });
 
 	// If no database is configured, use an in-memory adapter for development
 	if (!options.database) {

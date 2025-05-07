@@ -4,7 +4,7 @@
  * client instances based on configuration options.
  */
 
-import type { router } from '@c15t/orpc-router/router';
+import type { router } from '@c15t/backend/router';
 import type { RouterClient } from '@orpc/server';
 import type { StoreOptions } from '../store';
 import { C15tClient } from './client-c15t';

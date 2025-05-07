@@ -3,7 +3,7 @@
  * This interface defines the methods that any consent client must implement.
  */
 
-import type { router } from '@c15t/orpc-router/router';
+import type { router } from '@c15t/backend/router';
 import type { RouterClient } from '@orpc/server';
 import type { FetchOptions, ResponseContext } from './types';
 

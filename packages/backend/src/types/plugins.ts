@@ -1,4 +1,3 @@
-import type { H3Event } from 'h3';
 import type { Migration } from 'kysely';
 import type { DoubleTieContext, DoubleTieOptions } from '~/pkgs/types';
 import type { Endpoint, EndpointMiddleware } from '~/pkgs/types/endpoints';
@@ -60,12 +59,12 @@ export interface DoubleTiePlugin {
 	/**
 	 * Handler for intercepting and potentially modifying incoming requests
 	 */
-	onRequest?: (event: H3Event, ctx: DoubleTieContext) => Promise<unknown>;
+	onRequest?: (request: Request, ctx: DoubleTieContext) => Promise<unknown>;
 
 	/**
 	 * Handler for intercepting and potentially modifying outgoing responses
 	 */
-	onResponse?: (event: H3Event, ctx: DoubleTieContext) => Promise<unknown>;
+	onResponse?: (response: Response, ctx: DoubleTieContext) => Promise<unknown>;
 
 	/**
 	 * Schema the plugin needs
@@ -138,7 +137,7 @@ export interface C15TPlugin extends Omit<DoubleTiePlugin, 'endpoints'> {
 	/**
 	 * Handler for intercepting and potentially modifying outgoing responses
 	 */
-	onResponse?: (event: H3Event, ctx: C15TContext) => Promise<unknown>;
+	onResponse?: (response: Response, ctx: C15TContext) => Promise<unknown>;
 
 	/**
 	 * Schema the plugin needs for consent data

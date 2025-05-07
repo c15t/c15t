@@ -3,7 +3,7 @@
  * This client makes HTTP requests to the c15t consent management backend.
  */
 
-import type { router } from '@c15t/orpc-router/router';
+import type { router } from '@c15t/backend/router';
 import type {
 	ConsentManagerCallbacks,
 	ConsentManagerInterface,

@@ -1,12 +1,12 @@
-import { H3Error } from 'h3';
+import { ORPCError } from '@orpc/server';
 import type { DoubleTieErrorOptions, ErrorMessageType } from '../types';
 import { ERROR_CATEGORIES, ERROR_CODES } from './error-codes';
 import { withSpan } from './tracing';
 
 /**
- * Custom error class for DoubleTie errors that extends H3Error.
+ * Custom error class for DoubleTie errors that extends ORPCError.
  *
- * This class directly extends H3Error to provide seamless integration with H3.js
+ * This class directly extends ORPCError to provide seamless integration with oRPC
  * while adding application-specific error properties and context.
  *
  * @remarks
@@ -32,18 +32,7 @@ import { withSpan } from './tracing';
  * }
  * ```
  */
-export class DoubleTieError extends H3Error<{
-	code: ErrorMessageType;
-	category?: string;
-	meta?: Record<string, unknown>;
-	originalMessage?: string;
-}> {
-	/**
-	 * Error code as defined in ERROR_CODES or custom error codes.
-	 * Used to uniquely identify the error type.
-	 */
-	readonly code: ErrorMessageType;
-
+export class DoubleTieError extends ORPCError<string, Record<string, unknown>> {
 	/**
 	 * Error category that groups related errors.
 	 * Defaults to 'unexpected' if not specified.
@@ -57,6 +46,11 @@ export class DoubleTieError extends H3Error<{
 	 * Can contain any contextual information that might help debugging.
 	 */
 	readonly meta: Record<string, unknown>;
+
+	/**
+	 * HTTP status code for the error
+	 */
+	readonly statusCode: number;
 
 	/**
 	 * Creates a new DoubleTieError instance.
@@ -89,26 +83,25 @@ export class DoubleTieError extends H3Error<{
 			meta: {},
 		}
 	) {
-		super(message, { cause: options.cause });
+		// Call ORPCError constructor with code and options
+		super(options.code ?? ERROR_CODES.UNKNOWN_ERROR, {
+			message,
+			cause: options.cause,
+			data: options.meta ?? {},
+		});
 
-		// Initialize properties
-		this.name = this.constructor.name;
-		this.code = options.code ?? ERROR_CODES.UNKNOWN_ERROR;
-		this.statusCode = options.status ?? 500;
+		// Set name explicitly
+		this.name = 'DoubleTieError';
+
+		// Initialize additional properties
 		this.category = options.category ?? ERROR_CATEGORIES.UNEXPECTED;
 		this.meta = options.meta ?? {};
-
-		// Set H3Error data property with our structured data
-		this.data = {
-			code: this.code,
-			category: this.category,
-			meta: this.meta,
-		};
+		this.statusCode = options.status ?? 500;
 
 		// Add tracing after initialization
 		withSpan('create_doubletie_error', async (span) => {
 			span.setAttributes({
-				'error.name': this.name,
+				'error.name': this.constructor.name,
 				'error.message': message,
 				'error.code': this.code,
 				'error.status': this.statusCode,
@@ -143,17 +136,10 @@ export class DoubleTieError extends H3Error<{
 	}
 
 	/**
-	 * Convert the error to a JSON-serializable object.
+	 * Convert the error to a JSON-serializable object matching oRPC's error format.
+	 * Override of the parent ORPCError toJSON method.
 	 */
-	toJSON(): Pick<
-		H3Error<{
-			code: string;
-			category?: string;
-			meta?: Record<string, unknown>;
-			originalMessage?: string;
-		}>,
-		'message' | 'data' | 'statusCode' | 'statusMessage'
-	> {
+	toJSON() {
 		// Extract validation error details if present
 		const validationErrorMessage = this.meta?.validationErrors
 			? String(this.meta.validationErrors)
@@ -167,13 +153,15 @@ export class DoubleTieError extends H3Error<{
 					.filter((line) => line && !line.includes('Error: '))
 			: [];
 
-		// Create the result object with proper structure matching H3Error toJSON return type
+		// Create the result object with proper structure matching oRPC error format
 		return {
-			statusCode: this.statusCode,
+			code: this.code,
 			message: validationErrorMessage || this.message,
-			statusMessage: this.statusMessage,
+			// oRPC expects a status field rather than statusCode
+			status: this.statusCode,
+			// Required field in ORPCErrorJSON
+			defined: true,
 			data: {
-				code: this.code,
 				category: this.category,
 				meta: this.meta,
 				...(process.env.NODE_ENV === 'production' ? {} : { stack: stackTrace }),
@@ -268,7 +256,7 @@ export class DoubleTieError extends H3Error<{
 		const ErrorSubclass = class extends DoubleTieError {
 			constructor(message: string, options: DoubleTieErrorOptions) {
 				super(message, options);
-				this.name = name;
+				Object.defineProperty(this, 'name', { value: name });
 			}
 		};
 

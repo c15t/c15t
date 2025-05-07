@@ -3,8 +3,8 @@ import { Kysely } from 'kysely';
 import { KyselyPGlite } from 'kysely-pglite';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 
+import { logger } from '@doubletie/logger';
 import type { Adapter } from '~/pkgs/db-adapters';
-import { logger } from '~/pkgs/logger';
 import { getMigrations } from '~/pkgs/migrations';
 import { type KyselyDatabaseType, kyselyAdapter } from '../index';
 import type { Database } from '../types';

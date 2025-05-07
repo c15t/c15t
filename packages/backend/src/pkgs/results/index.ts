@@ -113,16 +113,6 @@ export {
 	withFallbackForCategory,
 } from './results/recovery-utils';
 
-// Export pipeline utilities
-export { validationPipeline } from './pipeline/validation-pipeline';
-export { retrievalPipeline } from './pipeline/retrieval-pipeline';
-
-// Export H3.js integration helpers
-export {
-	createH3ErrorHandler,
-	withH3ErrorHandling,
-} from './h3-integration';
-
 // Export telemetry options
 export {
 	createTelemetryOptions,

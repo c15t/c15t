@@ -1,5 +1,3 @@
-import type { H3Event } from 'h3';
-
 export interface EndpointOptions {
 	/**
 	 * Whether authentication is required for this endpoint
@@ -12,12 +10,12 @@ export interface EndpointOptions {
 	middleware?: EndpointMiddleware[];
 }
 
-export type EndpointMiddleware = (event: H3Event) => Promise<void>;
+export type EndpointMiddleware = (request: Request) => Promise<void>;
 
-export type EndpointHandler = (event: H3Event) => Promise<unknown>;
+export type EndpointHandler = (request: Request) => Promise<unknown>;
 
 /**
- * Native H3 endpoint interface
+ * Native endpoint interface
  */
 export interface Endpoint {
 	/**

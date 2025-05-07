@@ -1,5 +1,5 @@
 /**
- * The set of field types supported by C15T.
+ * The set of field types supported by c15t.
  * Specifies the data types that can be used for database fields.
  *
  * @remarks

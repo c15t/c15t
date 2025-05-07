@@ -1,4 +1,4 @@
-import type { Logger } from '~/pkgs/logger';
+import type { Logger } from '@doubletie/logger';
 
 /**
  * Regex to strip protocol, trailing slashes, and port numbers from URLs

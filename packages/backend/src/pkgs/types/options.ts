@@ -1,11 +1,10 @@
 import type { DatabaseHook } from '~/pkgs/data-model';
 import type { DatabaseConfiguration } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
 
+import type { LoggerOptions } from '@doubletie/logger';
 import type { Tracer } from '@opentelemetry/api';
-import type { H3Event } from 'h3';
 // Import table configuration types from the schema module
 import type { TablesConfig } from '~/schema/types';
-import type { LoggerOptions } from '../logger';
 import type { DoubleTiePlugin } from './plugins';
 
 /**
@@ -228,6 +227,6 @@ export interface DoubleTieOptions {
  * Middleware function for processing API requests
  */
 export type DoubleTieMiddleware = (
-	event: H3Event,
+	request: Request,
 	next: () => Promise<unknown>
 ) => Promise<unknown>;

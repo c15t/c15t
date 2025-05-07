@@ -1,4 +1,4 @@
-import type { router } from '@c15t/orpc-router/router';
+import type { router } from '@c15t/backend/router';
 import { createORPCClient } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
 import type { RouterClient } from '@orpc/server';
