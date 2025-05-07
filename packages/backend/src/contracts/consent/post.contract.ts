@@ -31,6 +31,7 @@ const otherConsentSchema = baseConsentSchema.extend({
 });
 
 export const postConsentContract = oc
+	.route({ method: 'POST', path: '/consent/set' })
 	.input(
 		z.discriminatedUnion('type', [
 			cookieBannerSchema,

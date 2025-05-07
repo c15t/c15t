@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { JurisdictionInfoSchema } from '../shared/jurisdiction.schema';
 
 export const showConsentBannerContract = oc
-	.route({ method: 'GET' })
+	.route({ method: 'GET', path: '/show-consent-banner' })
 	// .input(z.union([z.undefined(), z.object({}), z.null()]))
 	.output(
 		z.object({

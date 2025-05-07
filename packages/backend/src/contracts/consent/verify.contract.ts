@@ -28,10 +28,13 @@ const consentSchema = z
 	.passthrough(); // Allow additional properties
 
 // Output schema based on VerifyConsentResponse
-export const verifyConsentContract = oc.input(verifyConsentInputSchema).output(
-	z.object({
-		isValid: z.boolean(),
-		reasons: z.array(z.string()).optional(),
-		consent: consentSchema.optional(),
-	})
-);
+export const verifyConsentContract = oc
+	.route({ method: 'POST', path: '/consent/verify' })
+	.input(verifyConsentInputSchema)
+	.output(
+		z.object({
+			isValid: z.boolean(),
+			reasons: z.array(z.string()).optional(),
+			consent: consentSchema.optional(),
+		})
+	);

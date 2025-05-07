@@ -168,14 +168,14 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 		},
 		servers: [{ url: '/' }],
 		security: [{ bearerAuth: [] }],
-		components: {
-			securitySchemes: {
-				bearerAuth: {
-					type: 'http',
-					scheme: 'bearer',
-				},
-			},
-		},
+		// components: {
+		// 	securitySchemes: {
+		// 		bearerAuth: {
+		// 			type: 'http',
+		// 			scheme: 'bearer',
+		// 		},
+		// 	},
+		// },
 	};
 
 	/**
@@ -302,32 +302,137 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 	};
 
 	/**
+	 * Handle OpenAPI spec requests
+	 */
+	const handleOpenApiSpecRequest = async (
+		url: URL
+	): Promise<Response | null> => {
+		if (openApiConfig.enabled && url.pathname === openApiConfig.specPath) {
+			const spec = await getOpenAPISpec();
+			return new Response(JSON.stringify(spec), {
+				status: 200,
+				headers: { 'Content-Type': 'application/json' },
+			});
+		}
+		return null;
+	};
+
+	/**
+	 * Handle API docs UI requests
+	 */
+	const handleDocsUiRequest = (url: URL): Response | null => {
+		if (openApiConfig.enabled && url.pathname === openApiConfig.docsPath) {
+			const html = getDocsUI();
+			return new Response(html, {
+				status: 200,
+				headers: {
+					'Content-Type': 'text/html',
+					'Content-Security-Policy':
+						"default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;",
+				},
+			});
+		}
+		return null;
+	};
+
+	/**
+	 * Create error response for DoubleTieError
+	 */
+	const createDoubleTieErrorResponse = (error: DoubleTieError): Response => {
+		return new Response(
+			JSON.stringify({
+				code: error.code,
+				message: error.message,
+				data: error.meta,
+				status: error.statusCode,
+				defined: true,
+			}),
+			{
+				status: error.statusCode,
+				headers: { 'Content-Type': 'application/json' },
+			}
+		);
+	};
+
+	/**
+	 * Create error response for unknown errors
+	 */
+	const createUnknownErrorResponse = (error: unknown): Response => {
+		const message = error instanceof Error ? error.message : String(error);
+		const status =
+			error instanceof Error && 'status' in error
+				? (error as { status: number }).status
+				: 500;
+
+		return new Response(
+			JSON.stringify({
+				code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+				message,
+				status,
+				defined: true,
+				data: {},
+			}),
+			{
+				status,
+				headers: { 'Content-Type': 'application/json' },
+			}
+		);
+	};
+
+	/**
+	 * Handle API requests via oRPC
+	 */
+	const handleApiRequest = async (
+		request: Request,
+		ctx: C15TContext
+	): Promise<Response> => {
+		// Create context for the handler with c15t specifics
+		const orpcContext: MiddlewareContext = {
+			adapter: ctx.adapter,
+			registry: ctx.registry,
+			logger: ctx.logger,
+			generateId: ctx.generateId,
+			headers: request.headers,
+			userAgent: request.headers.get('user-agent') || undefined,
+		};
+
+		// Apply middleware processing to enrich the context
+		processIp(request, orpcContext);
+		processCors(request, orpcContext);
+		processTelemetry(request, orpcContext);
+
+		// Use oRPC handler to handle the request with our enhanced context
+		const handlerContext = orpcContext as Record<string, unknown>;
+		const { matched, response } = await rpcHandler.handle(request, {
+			prefix: '/',
+			context: handlerContext,
+		});
+
+		// Return the response if handler matched
+		if (matched && response) {
+			return response;
+		}
+
+		// If no handler matched, return 404
+		return new Response('Not Found', { status: 404 });
+	};
+
+	/**
 	 * Handle an incoming request using oRPC
 	 */
 	const handler = async (request: Request): Promise<Response> => {
 		try {
 			const url = new URL(request.url);
 
-			// Handle OpenAPI spec requests if enabled
-			if (openApiConfig.enabled && url.pathname === openApiConfig.specPath) {
-				const spec = await getOpenAPISpec();
-				return new Response(JSON.stringify(spec), {
-					status: 200,
-					headers: { 'Content-Type': 'application/json' },
-				});
+			// Check for OpenAPI spec or docs UI requests
+			const openApiResponse = await handleOpenApiSpecRequest(url);
+			if (openApiResponse) {
+				return openApiResponse;
 			}
 
-			// Handle API documentation UI requests if enabled
-			if (openApiConfig.enabled && url.pathname === openApiConfig.docsPath) {
-				const html = getDocsUI();
-				return new Response(html, {
-					status: 200,
-					headers: {
-						'Content-Type': 'text/html',
-						'Content-Security-Policy':
-							"default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;",
-					},
-				});
+			const docsResponse = handleDocsUiRequest(url);
+			if (docsResponse) {
+				return docsResponse;
 			}
 
 			// Get context, handling Result type properly
@@ -337,77 +442,19 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 			}
 			const ctx = ctxResult.value;
 
-			// Create context for the handler with c15t specifics
-			const orpcContext: MiddlewareContext = {
-				adapter: ctx.adapter,
-				registry: ctx.registry,
-				logger: ctx.logger,
-				generateId: ctx.generateId,
-				headers: request.headers,
-				userAgent: request.headers.get('user-agent') || undefined,
-			};
-
-			// Apply middleware processing to enrich the context
-			processIp(request, orpcContext);
-			processCors(request, orpcContext);
-			processTelemetry(request, orpcContext);
-
-			// Use oRPC handler to handle the request with our enhanced context
-			const handlerContext = orpcContext as Record<string, unknown>;
-			const { matched, response } = await rpcHandler.handle(request, {
-				prefix: '/',
-				context: handlerContext,
-			});
-
-			// Return the response if handler matched
-			if (matched && response) {
-				return response;
-			}
-
-			// If no handler matched, return 404
-			return new Response('Not Found', { status: 404 });
+			// Handle API request
+			return await handleApiRequest(request, ctx);
 		} catch (error) {
 			// Log the error
 			const logger = options.logger ? createLogger(options.logger) : console;
 			logger.error('Request handling error:', error);
 
-			// Handle DoubleTieError and convert to ORPCError response format
+			// Handle different error types
 			if (error instanceof DoubleTieError) {
-				return new Response(
-					JSON.stringify({
-						code: error.code,
-						message: error.message,
-						data: error.meta,
-						status: error.statusCode,
-						defined: true,
-					}),
-					{
-						status: error.statusCode,
-						headers: { 'Content-Type': 'application/json' },
-					}
-				);
+				return createDoubleTieErrorResponse(error);
 			}
 
-			// For other errors, create a generic error response
-			const message = error instanceof Error ? error.message : String(error);
-			const status =
-				error instanceof Error && 'status' in error
-					? (error as { status: number }).status
-					: 500;
-
-			return new Response(
-				JSON.stringify({
-					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-					message,
-					status,
-					defined: true,
-					data: {},
-				}),
-				{
-					status,
-					headers: { 'Content-Type': 'application/json' },
-				}
-			);
+			return createUnknownErrorResponse(error);
 		}
 	};
 
