@@ -45,7 +45,7 @@ describe('c15t Client Browser Tests', () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'c15t',
-			backendURL: '/api/c15t',
+			backendURL: '/rpc',
 		}) as C15tClient;
 
 		// Call the API
@@ -54,7 +54,7 @@ describe('c15t Client Browser Tests', () => {
 		// Assertions
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		expect(fetchSpy).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t/show-consent-banner'),
+			expect.stringContaining('/rpc/show-consent-banner'),
 			expect.any(Object)
 		);
 		expect(response.ok).toBe(true);
@@ -70,7 +70,7 @@ describe('c15t Client Browser Tests', () => {
 
 		// Configure client
 		const client = new C15tClient({
-			backendURL: '/api/c15t',
+			backendURL: '/rpc',
 		});
 
 		// Mock successful response
@@ -97,7 +97,7 @@ describe('c15t Client Browser Tests', () => {
 
 		// Verify Content-Type header was set
 		expect(fetchSpy).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t/consent/set'), // Updated to match the correct path
+			expect.stringContaining('/rpc/consent/set'), // Updated to match the correct path
 			expect.objectContaining({
 				method: 'POST',
 				headers: expect.objectContaining({
@@ -120,7 +120,7 @@ describe('c15t Client Browser Tests', () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'c15t',
-			backendURL: '/api/c15t',
+			backendURL: '/rpc',
 		}) as C15tClient;
 
 		// Create a more direct error handler that we can verify was called

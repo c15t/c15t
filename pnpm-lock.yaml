@@ -505,6 +505,15 @@ importers:
       '@c15t/backend':
         specifier: workspace:*
         version: link:../backend
+      '@c15t/orpc-router':
+        specifier: workspace:*
+        version: link:../orpc
+      '@orpc/client':
+        specifier: ^1.1.1
+        version: 1.1.1
+      '@orpc/server':
+        specifier: 1.1.1
+        version: 1.1.1
       zustand:
         specifier: ^5.0.3
         version: 5.0.3(@types/react@19.1.1)(react@19.1.0)

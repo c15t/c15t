@@ -3,15 +3,27 @@
  * This interface defines the methods that any consent client must implement.
  */
 
-import type {
-	SetConsentRequestBody,
-	SetConsentResponse,
-	ShowConsentBannerResponse,
-	VerifyConsentRequestBody,
-	VerifyConsentResponse,
-} from '@c15t/backend';
-
+import type { router } from '@c15t/orpc-router/router';
+import type { RouterClient } from '@orpc/server';
 import type { FetchOptions, ResponseContext } from './types';
+
+// Extract types from ORPC router
+type ConsentRouter = RouterClient<typeof router>['consent'];
+type ShowBannerResponse = Awaited<ReturnType<ConsentRouter['showBanner']>>;
+type PostResponse = Awaited<ReturnType<ConsentRouter['post']>>;
+type VerifyResponse = Awaited<ReturnType<ConsentRouter['verify']>>;
+
+// Extract parameter types from ORPC router
+type PostParams = Parameters<ConsentRouter['post']>[0];
+type VerifyParams = Parameters<ConsentRouter['verify']>[0];
+
+export type {
+	ShowBannerResponse,
+	PostResponse as SetConsentResponse,
+	VerifyResponse as VerifyConsentResponse,
+	PostParams as SetConsentRequest,
+	VerifyParams as VerifyConsentRequest,
+};
 
 /**
  * Core interface that all consent management clients must implement
@@ -28,8 +40,8 @@ export interface ConsentManagerInterface {
 	 * @returns Response with information about whether to show the consent banner
 	 */
 	showConsentBanner(
-		options?: FetchOptions<ShowConsentBannerResponse>
-	): Promise<ResponseContext<ShowConsentBannerResponse>>;
+		options?: FetchOptions<ShowBannerResponse>
+	): Promise<ResponseContext<ShowBannerResponse>>;
 
 	/**
 	 * Sets consent preferences for a subject.
@@ -38,8 +50,8 @@ export interface ConsentManagerInterface {
 	 * @returns Response confirming consent preferences were set
 	 */
 	setConsent(
-		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
-	): Promise<ResponseContext<SetConsentResponse>>;
+		options?: FetchOptions<PostResponse, PostParams>
+	): Promise<ResponseContext<PostResponse>>;
 
 	/**
 	 * Verifies if valid consent exists.
@@ -48,8 +60,8 @@ export interface ConsentManagerInterface {
 	 * @returns Response with consent verification status
 	 */
 	verifyConsent(
-		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
-	): Promise<ResponseContext<VerifyConsentResponse>>;
+		options?: FetchOptions<VerifyResponse, VerifyParams>
+	): Promise<ResponseContext<VerifyResponse>>;
 
 	/**
 	 * Makes a custom API request to any endpoint.

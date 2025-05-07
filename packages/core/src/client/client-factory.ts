@@ -4,14 +4,8 @@
  * client instances based on configuration options.
  */
 
-export type {
-	SetConsentRequestBody,
-	SetConsentResponse,
-	ShowConsentBannerResponse,
-	VerifyConsentRequestBody,
-	VerifyConsentResponse,
-} from '@c15t/backend';
-
+import type { router } from '@c15t/orpc-router/router';
+import type { RouterClient } from '@orpc/server';
 import type { StoreOptions } from '../store';
 import { C15tClient } from './client-c15t';
 import { CustomClient, type EndpointHandlers } from './client-custom';
@@ -27,10 +21,13 @@ import { OfflineClient } from './client-offline';
 import type { RetryConfig } from './types';
 export type { FetchOptions, ResponseContext, RetryConfig } from './types';
 
+// Extract types from ORPC router
+type ConsentRouter = RouterClient<typeof router>['consent'];
+
 /**
  * Default API endpoint URL
  */
-const DEFAULT_BACKEND_URL = '/api/c15t';
+const DEFAULT_BACKEND_URL = '/rpc';
 
 /**
  * Default client mode
@@ -178,7 +175,7 @@ export type ConsentManagerOptions = {
  * Basic c15t client with backend URL:
  * ```typescript
  * const client = configureConsentManager({
- *   backendURL: '/api/c15t'
+ *   backendURL: '/rpc'
  * });
  * ```
  *

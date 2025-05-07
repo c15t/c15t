@@ -21,7 +21,7 @@ describe('CORS functionality', () => {
 	it('should set the correct CORS mode in fetch options', async () => {
 		// Use a different CORS mode than the default
 		const client = new C15tClient({
-			backendURL: '/api/c15t',
+			backendURL: '/rpc',
 			corsMode: 'same-origin',
 		});
 
@@ -38,7 +38,7 @@ describe('CORS functionality', () => {
 
 		// Verify the CORS mode was set correctly
 		expect(window.fetch).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t'),
+			expect.stringContaining('/rpc'),
 			expect.objectContaining({
 				mode: 'same-origin',
 			})
@@ -48,7 +48,7 @@ describe('CORS functionality', () => {
 	it('should use default CORS mode when not specified', async () => {
 		// Create client without specifying CORS mode
 		const client = new C15tClient({
-			backendURL: '/api/c15t',
+			backendURL: '/rpc',
 		});
 
 		// Mock the response
@@ -64,7 +64,7 @@ describe('CORS functionality', () => {
 
 		// Verify the default CORS mode was used
 		expect(window.fetch).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t'),
+			expect.stringContaining('/rpc'),
 			expect.objectContaining({
 				mode: 'cors', // Default mode
 			})
@@ -73,7 +73,7 @@ describe('CORS functionality', () => {
 
 	it('should include credentials in CORS requests by default', async () => {
 		const client = new C15tClient({
-			backendURL: '/api/c15t',
+			backendURL: '/rpc',
 		});
 
 		// Mock the response
@@ -89,7 +89,7 @@ describe('CORS functionality', () => {
 
 		// Verify credentials are included
 		expect(window.fetch).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t'),
+			expect.stringContaining('/rpc'),
 			expect.objectContaining({
 				credentials: 'include',
 			})
@@ -98,7 +98,7 @@ describe('CORS functionality', () => {
 
 	it('should handle CORS errors correctly', async () => {
 		const client = new C15tClient({
-			backendURL: '/api/c15t',
+			backendURL: '/rpc',
 		});
 
 		// Simulate a CORS error
@@ -285,7 +285,7 @@ describe('CORS functionality', () => {
 
 		// Create a client with custom fetch options that directly pass credentials: 'omit'
 		const client = new C15tClient({
-			backendURL: '/api/c15t',
+			backendURL: '/rpc',
 		});
 
 		// Make the request with request-specific fetch options
@@ -297,7 +297,7 @@ describe('CORS functionality', () => {
 
 		// Verify credentials mode was set to 'omit'
 		expect(fetchMock).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t'),
+			expect.stringContaining('/rpc'),
 			expect.objectContaining({
 				credentials: 'omit',
 			})
