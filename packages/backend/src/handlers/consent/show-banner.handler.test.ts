@@ -1,4 +1,3 @@
-// packages/orpc/src/handlers/consent/show-banner.handler.test.ts
 import { describe, expect, it, vi } from 'vitest';
 import { JurisdictionMessages } from '~/contracts/shared/jurisdiction.schema';
 import { showConsentBanner } from './show-banner.handler';

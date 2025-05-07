@@ -238,7 +238,12 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 	/**
 	 * Generate the OpenAPI specification document
 	 */
-	const getOpenAPISpec = async () => {
+	const getOpenAPISpec = (async (): Promise<Record<string, unknown>> => {
+		// Memoise once per process
+		if (getOpenAPISpec.cached) {
+			return getOpenAPISpec.cached;
+		}
+
 		// Start with our defaults
 		const mergedOptions = { ...defaultOpenApiOptions };
 
@@ -265,10 +270,14 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 
 		// We need to cast to the expected type due to incompatibilities between the types
 		// This is safe as we control the options format and it's compatible with what the generator expects
-		return await openAPIGenerator.generate(
+		const spec = await openAPIGenerator.generate(
 			router,
 			mergedOptions as Record<string, unknown>
 		);
+		getOpenAPISpec.cached = spec;
+		return spec;
+	}) as (() => Promise<Record<string, unknown>>) & {
+		cached?: Record<string, unknown>;
 	};
 
 	/**

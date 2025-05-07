@@ -1,7 +1,15 @@
 // test-helpers.ts - Common mock setup
-import type { SetConsentRequest, VerifyConsentRequest } from 'c15t';
+import type { ContractsInputs, ContractsOutputs } from 'c15t';
+
 import { beforeEach, vi } from 'vitest';
 import { type ConsentManagerOptions, useConsentManager } from '~/index';
+
+export type SetConsentRequestBody = ContractsInputs['consent']['post'];
+export type SetConsentResponse = ContractsOutputs['consent']['post'];
+export type ShowConsentBannerResponse =
+	ContractsOutputs['consent']['showBanner'];
+export type VerifyConsentRequestBody = ContractsInputs['consent']['verify'];
+export type VerifyConsentResponse = ContractsOutputs['consent']['verify'];
 
 export function setupMocks() {
 	// Mock fetch globally
@@ -99,9 +107,9 @@ export function setupMocks() {
 					return {
 						getCallbacks: () => options.callbacks,
 						showConsentBanner: async () => handlers.showConsentBanner({}),
-						setConsent: async (data: SetConsentRequest) =>
+						setConsent: async (data: SetConsentRequestBody) =>
 							handlers.setConsent({ body: data }),
-						verifyConsent: async (data: VerifyConsentRequest) =>
+						verifyConsent: async (data: VerifyConsentRequestBody) =>
 							handlers.verifyConsent({ body: data }),
 					};
 				}

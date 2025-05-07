@@ -1,4 +1,3 @@
-// packages/orpc/src/contracts/consent/show-banner.contract.ts
 import { oc } from '@orpc/contract';
 import { z } from 'zod';
 
