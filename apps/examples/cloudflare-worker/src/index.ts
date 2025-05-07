@@ -8,9 +8,6 @@ import { LibsqlDialect } from '@libsql/kysely-libsql';
  * without any additional framework.
  */
 const handler = (env: Env) => {
-	// Create the Turso client first
-	console.log('Creating Turso client with URL:', env.TURSO_DATABASE_URL);
-
 	// Create the c15t instance with ORPC support
 	const instance = c15tInstance({
 		// Use environment variables for Turso credentials
@@ -67,7 +64,7 @@ const handler = (env: Env) => {
 // Export the fetch handler for Cloudflare Workers
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		return handler(env)(request);
+		return await handler(env)(request);
 	},
 };
 
