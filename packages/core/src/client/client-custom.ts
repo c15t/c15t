@@ -3,21 +3,17 @@
  * This client uses provided handlers instead of making HTTP requests.
  */
 
-import type { router } from '@c15t/backend/router';
-import type { RouterClient } from '@orpc/server';
 import type {
 	ConsentManagerCallbacks,
 	ConsentManagerInterface,
-	SetConsentRequest,
+	SetConsentRequestBody,
 	SetConsentResponse,
-	ShowBannerResponse,
-	VerifyConsentRequest,
+	ShowConsentBannerResponse,
+	VerifyConsentRequestBody,
 	VerifyConsentResponse,
 } from './client-interface';
-import type { FetchOptions, ResponseContext } from './types';
 
-// Extract types from ORPC router
-type ConsentRouter = RouterClient<typeof router>['consent'];
+import type { FetchOptions, ResponseContext } from './types';
 
 // At the top of client-custom.ts file, with other constants
 const LEADING_SLASHES_REGEX = /^\/+/;
@@ -40,17 +36,20 @@ export interface EndpointHandlers {
 	/**
 	 * Handler for the showConsentBanner endpoint
 	 */
-	showConsentBanner: EndpointHandler<ShowBannerResponse>;
+	showConsentBanner: EndpointHandler<ShowConsentBannerResponse>;
 
 	/**
 	 * Handler for the setConsent endpoint
 	 */
-	setConsent: EndpointHandler<SetConsentResponse, SetConsentRequest>;
+	setConsent: EndpointHandler<SetConsentResponse, SetConsentRequestBody>;
 
 	/**
 	 * Handler for the verifyConsent endpoint
 	 */
-	verifyConsent: EndpointHandler<VerifyConsentResponse, VerifyConsentRequest>;
+	verifyConsent: EndpointHandler<
+		VerifyConsentResponse,
+		VerifyConsentRequestBody
+	>;
 }
 
 /**
@@ -210,7 +209,8 @@ export class CustomClient implements ConsentManagerInterface {
 					callbackKey === 'onConsentBannerFetched' &&
 					normalizedResponse.data
 				) {
-					const data = normalizedResponse.data as unknown as ShowBannerResponse;
+					const data =
+						normalizedResponse.data as unknown as ShowConsentBannerResponse;
 					callbackPayload = {
 						...normalizedResponse,
 						data: {
@@ -220,19 +220,20 @@ export class CustomClient implements ConsentManagerInterface {
 								countryCode: data.location.countryCode || 'GB',
 								regionCode: data.location.regionCode || null,
 							},
-						} as ResponseType,
-					};
+						},
+					} as ResponseContext<ResponseType>;
 				} else if (callbackKey === 'onConsentSet' && normalizedResponse.data) {
 					callbackPayload = {
 						...normalizedResponse,
 						data: {
 							type:
-								(options?.body as SetConsentRequest)?.type || 'cookie_banner',
+								(options?.body as SetConsentRequestBody)?.type ||
+								'cookie_banner',
 							preferences:
-								(options?.body as SetConsentRequest)?.preferences || {},
-							domain: (options?.body as SetConsentRequest)?.domain,
-						} as ResponseType,
-					};
+								(options?.body as SetConsentRequestBody)?.preferences || {},
+							domain: (options?.body as SetConsentRequestBody)?.domain,
+						},
+					} as ResponseContext<ResponseType>;
 				} else if (
 					callbackKey === 'onConsentVerified' &&
 					normalizedResponse.data
@@ -241,14 +242,14 @@ export class CustomClient implements ConsentManagerInterface {
 						...normalizedResponse,
 						data: {
 							type:
-								(options?.body as VerifyConsentRequest)?.type ||
+								(options?.body as VerifyConsentRequestBody)?.type ||
 								'cookie_banner',
 							preferences:
-								(options?.body as VerifyConsentRequest)?.preferences || [],
+								(options?.body as VerifyConsentRequestBody)?.preferences || [],
 							valid: true,
-							domain: (options?.body as VerifyConsentRequest)?.domain,
-						} as ResponseType,
-					};
+							domain: (options?.body as VerifyConsentRequestBody)?.domain,
+						},
+					} as ResponseContext<ResponseType>;
 				} else {
 					callbackPayload = normalizedResponse;
 				}
@@ -280,9 +281,9 @@ export class CustomClient implements ConsentManagerInterface {
 	 * Checks if a consent banner should be shown.
 	 */
 	async showConsentBanner(
-		options?: FetchOptions<ShowBannerResponse>
-	): Promise<ResponseContext<ShowBannerResponse>> {
-		return await this.executeHandler<ShowBannerResponse>(
+		options?: FetchOptions<ShowConsentBannerResponse>
+	): Promise<ResponseContext<ShowConsentBannerResponse>> {
+		return await this.executeHandler<ShowConsentBannerResponse>(
 			'showConsentBanner',
 			options,
 			'onConsentBannerFetched'
@@ -293,9 +294,9 @@ export class CustomClient implements ConsentManagerInterface {
 	 * Sets consent preferences for a subject.
 	 */
 	async setConsent(
-		options?: FetchOptions<SetConsentResponse, SetConsentRequest>
+		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 	): Promise<ResponseContext<SetConsentResponse>> {
-		return await this.executeHandler<SetConsentResponse, SetConsentRequest>(
+		return await this.executeHandler<SetConsentResponse, SetConsentRequestBody>(
 			'setConsent',
 			options,
 			'onConsentSet'
@@ -306,11 +307,11 @@ export class CustomClient implements ConsentManagerInterface {
 	 * Verifies if valid consent exists.
 	 */
 	async verifyConsent(
-		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequest>
+		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
 	): Promise<ResponseContext<VerifyConsentResponse>> {
 		return await this.executeHandler<
 			VerifyConsentResponse,
-			VerifyConsentRequest
+			VerifyConsentRequestBody
 		>('verifyConsent', options, 'onConsentVerified');
 	}
 

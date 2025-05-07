@@ -3,23 +3,19 @@
  * This client returns empty successful responses without making any HTTP requests.
  */
 
-import type { router } from '@c15t/backend/router';
-import type { RouterClient } from '@orpc/server';
 import type {
 	ConsentManagerCallbacks,
 	ConsentManagerInterface,
 	ConsentSetCallbackPayload,
 	ConsentVerifiedCallbackPayload,
-	SetConsentRequest,
+	SetConsentRequestBody,
 	SetConsentResponse,
-	ShowBannerResponse,
-	VerifyConsentRequest,
+	ShowConsentBannerResponse,
+	VerifyConsentRequestBody,
 	VerifyConsentResponse,
 } from './client-interface';
-import type { FetchOptions, ResponseContext } from './types';
 
-// Extract types from ORPC router
-type ConsentRouter = RouterClient<typeof router>['consent'];
+import type { FetchOptions, ResponseContext } from './types';
 
 /**
  * Configuration options for the Offline client
@@ -118,8 +114,8 @@ export class OfflineClient implements ConsentManagerInterface {
 	 * In offline mode, will always return true unless localStorage has a value.
 	 */
 	async showConsentBanner(
-		options?: FetchOptions<ShowBannerResponse>
-	): Promise<ResponseContext<ShowBannerResponse>> {
+		options?: FetchOptions<ShowConsentBannerResponse>
+	): Promise<ResponseContext<ShowConsentBannerResponse>> {
 		// Check localStorage to see if the banner has been shown
 		let shouldShow = true;
 
@@ -141,7 +137,7 @@ export class OfflineClient implements ConsentManagerInterface {
 			shouldShow = false;
 		}
 
-		const response = this.createResponseContext<ShowBannerResponse>({
+		const response = this.createResponseContext<ShowConsentBannerResponse>({
 			showConsentBanner: shouldShow,
 			jurisdiction: {
 				code: 'GDPR',
@@ -177,7 +173,7 @@ export class OfflineClient implements ConsentManagerInterface {
 	 * In offline mode, saves to localStorage to track that consent was set.
 	 */
 	async setConsent(
-		options?: FetchOptions<SetConsentResponse, SetConsentRequest>
+		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 	): Promise<ResponseContext<SetConsentResponse>> {
 		// Save to localStorage to remember that consent was set
 		try {
@@ -219,7 +215,7 @@ export class OfflineClient implements ConsentManagerInterface {
 	 * Verifies if valid consent exists.
 	 */
 	async verifyConsent(
-		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequest>
+		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
 	): Promise<ResponseContext<VerifyConsentResponse>> {
 		const verifiedCallbackPayload: ConsentVerifiedCallbackPayload = {
 			type: options?.body?.type || 'cookie_banner',

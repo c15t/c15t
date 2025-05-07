@@ -34,7 +34,7 @@ describe('Client Callbacks Tests', () => {
 
 			const client = configureConsentManager({
 				mode: 'c15t',
-				backendURL: '/rpc',
+				backendURL: '/api/c15t',
 				callbacks,
 			});
 
@@ -66,7 +66,7 @@ describe('Client Callbacks Tests', () => {
 
 			const client = configureConsentManager({
 				mode: 'c15t',
-				backendURL: '/rpc',
+				backendURL: '/api/c15t',
 				callbacks,
 			});
 
@@ -105,7 +105,7 @@ describe('Client Callbacks Tests', () => {
 
 			const client = configureConsentManager({
 				mode: 'c15t',
-				backendURL: '/rpc',
+				backendURL: '/api/c15t',
 				callbacks,
 			});
 

@@ -13,9 +13,9 @@ import { ERROR_CODES } from './core/error-codes';
  * @example
  * ```typescript
  * import { createORPCErrorHandler } from '@doubletie/results';
- * import { RPCHandler } from '@orpc/server';
+ * import { OpenAPIHandler } from '@orpc/server';
  *
- * const handler = new RPCHandler(router);
+ * const handler = new OpenAPIHandler(router);
  *
  * // Register the error handler middleware
  * handler.use(createORPCErrorHandler());

@@ -30,7 +30,7 @@ describe('c15t Client Tests', () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'c15t',
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 		});
 
 		// Call the API
@@ -39,7 +39,7 @@ describe('c15t Client Tests', () => {
 		// Assertions
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 		expect(fetchMock).toHaveBeenCalledWith(
-			expect.stringContaining('/rpc/show-consent-banner'),
+			expect.stringContaining('/api/c15t/show-consent-banner'),
 			expect.any(Object)
 		);
 		expect(response.ok).toBe(true);
@@ -68,7 +68,7 @@ describe('c15t Client Tests', () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'c15t',
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 		});
 
 		// Error callback mock
@@ -99,7 +99,7 @@ describe('c15t Client Tests', () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'c15t',
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 		});
 
 		// Consent preferences to set
@@ -142,7 +142,7 @@ describe('c15t Client Tests', () => {
 		// Configure the client with custom headers and force a new instance
 		const client = configureConsentManager({
 			mode: 'c15t',
-			backendURL: 'https://test.example.com/rpc',
+			backendURL: 'https://test.example.com/api/c15t',
 			headers: {
 				'X-Custom-Header': 'test-value',
 				Authorization: 'Bearer test-token',
@@ -161,7 +161,7 @@ describe('c15t Client Tests', () => {
 		const options = mockCall[1];
 
 		// Check the URL
-		expect(url).toContain('/rpc/show-consent-banner');
+		expect(url).toContain('/api/c15t/show-consent-banner');
 
 		// Check that our custom headers were included
 		expect(options.headers['X-Custom-Header']).toBe('test-value');
@@ -187,7 +187,7 @@ describe('c15t Client Tests', () => {
 		// Configure client with retry config
 		const config: ConsentManagerOptions = {
 			mode: 'c15t',
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 1,
 				initialDelayMs: 10, // Small delay for test
@@ -253,7 +253,7 @@ describe('c15t Client Retry Logic Tests', () => {
 
 		const config: ConsentManagerOptions = {
 			mode: 'c15t',
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 2, // Should only retry twice
 				initialDelayMs: 10,
@@ -287,7 +287,7 @@ describe('c15t Client Retry Logic Tests', () => {
 		const initialDelay = 100;
 		const config: ConsentManagerOptions = {
 			mode: 'c15t',
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 3,
 				initialDelayMs: initialDelay,
@@ -312,7 +312,7 @@ describe('c15t Client Retry Logic Tests', () => {
 
 		const config: ConsentManagerOptions = {
 			mode: 'c15t',
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 3,
 				initialDelayMs: 10,
@@ -342,7 +342,7 @@ describe('c15t Client Retry Logic Tests', () => {
 
 		const config: ConsentManagerOptions = {
 			mode: 'c15t',
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 2,
 				initialDelayMs: 10,
@@ -388,7 +388,7 @@ describe('c15t Client Retry Logic Tests', () => {
 
 		// We need to create the client directly to access its private properties
 		const client = new C15tClient({
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 			// Setting our custom retry config
 			retryConfig: {
 				maxRetries: 2,
@@ -443,7 +443,7 @@ describe('c15t Client Retry Logic Tests', () => {
 
 		const config: ConsentManagerOptions = {
 			mode: 'c15t',
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 1,
 				initialDelayMs: 10,
@@ -475,7 +475,7 @@ describe('c15t Client Retry Logic Tests', () => {
 		// Configure client with retry config
 		const config: ConsentManagerOptions = {
 			mode: 'c15t',
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 			// retryConfig: {
 			// 	maxRetries: 3, // Set high enough to potentially retry multiple times
 			// 	initialDelayMs: 10, // Small delay for test
@@ -525,7 +525,7 @@ describe('c15t Client Retry Logic Tests', () => {
 		// Configure client with retry config
 		const config: ConsentManagerOptions = {
 			mode: 'c15t',
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 2,
 				initialDelayMs: 10,
@@ -588,7 +588,7 @@ describe('c15t Client Offline Fallback Tests', () => {
 		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
 		const client = configureConsentManager({
 			mode: 'c15t',
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 0, // Prevent automatic retries
 				retryOnNetworkError: false,
@@ -621,7 +621,7 @@ describe('c15t Client Offline Fallback Tests', () => {
 		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
 		const client = configureConsentManager({
 			mode: 'c15t',
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 0, // Prevent automatic retries
 				retryOnNetworkError: false,
@@ -681,7 +681,7 @@ describe('c15t Client Offline Fallback Tests', () => {
 		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
 		const client = configureConsentManager({
 			mode: 'c15t',
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 0, // Prevent automatic retries
 				retryOnNetworkError: false,
@@ -791,7 +791,7 @@ describe('c15t Client Offline Fallback Tests', () => {
 
 		// Create client to trigger initialization and pending submission processing
 		const client = new C15tClient({
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 		});
 
 		// We need to manually call processPendingSubmissions since we're directly instantiating C15tClient
@@ -848,7 +848,7 @@ describe('c15t Client Offline Fallback Tests', () => {
 
 		// Create client with a custom fetch function
 		const client = new C15tClient({
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 			customFetch: mockFetch,
 			retryConfig: {
 				maxRetries: 0, // No retries to keep the test simple

@@ -5,17 +5,11 @@ export const API_ENDPOINTS = {
 	/**
 	 * Path for the consent banner information endpoint
 	 */
-	SHOW_CONSENT_BANNER: '/show-consent-banner',
-
-	/**
-	 * Path for listing consent purposes
-	 */
-	LIST_PURPOSES: '/list-purposes',
-
+	SHOW_CONSENT_BANNER: '/consent/showBanner',
 	/**
 	 * Path for setting consent
 	 */
-	SET_CONSENT: '/consent/set',
+	SET_CONSENT: '/consent/post',
 
 	/**
 	 * Path for verifying consent

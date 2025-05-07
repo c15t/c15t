@@ -15,7 +15,7 @@ describe('Client Factory Tests', () => {
 	it('should create C15tClient when mode is c15t', () => {
 		const client = configureConsentManager({
 			mode: 'c15t',
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 		});
 
 		expect(client).toBeInstanceOf(C15tClient);
@@ -46,7 +46,7 @@ describe('Client Factory Tests', () => {
 
 	it('should default to C15tClient when no mode is specified', () => {
 		const client = configureConsentManager({
-			backendURL: '/rpc',
+			backendURL: '/api/c15t',
 		});
 
 		expect(client).toBeInstanceOf(C15tClient);

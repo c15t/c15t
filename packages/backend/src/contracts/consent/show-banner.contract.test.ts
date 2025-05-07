@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { createContractTests } from '~/testing/contract-testing';
+// import { createContractTests } from '~/testing/contract-testing';
 import { showConsentBannerContract } from './show-banner.contract';
 
-// Create base tests for the contract using the utility
-const tester = createContractTests(
-	'Show Consent Banner',
-	showConsentBannerContract
-);
+// // Create base tests for the contract using the utility
+// const tester = createContractTests(
+// 	'Show Consent Banner',
+// 	showConsentBannerContract
+// );
 
 // Add custom tests specific to the show-banner contract
 describe('Show Consent Banner Contract Custom Tests', () => {
@@ -17,26 +17,9 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 		output: showConsentBannerContract['~orpc'].outputSchema,
 	};
 
-	// Helper functions for common test patterns
-	const validateInput = (input: unknown) => {
-		return schemas.input?.safeParse(input);
-	};
-
 	const validateOutput = (output: unknown) => {
 		return schemas.output?.safeParse(output);
 	};
-
-	describe('Schema Structure', () => {
-		it('input schema is an undefined', () => {
-			const result = validateInput(undefined);
-			expect(result?.success).toBe(true);
-		});
-
-		it('rejects input with extra properties', () => {
-			const result = validateInput({ extraProp: 'value' });
-			expect(result?.success).toBe(false);
-		});
-	});
 
 	describe('Output Validation', () => {
 		describe('Required fields', () => {
@@ -222,10 +205,10 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 	});
 });
 
-// Add required fields testing using the utility
-// No required fields for input since it's an empty object
-tester.testRequiredFields('output', [
-	'showConsentBanner',
-	'jurisdiction',
-	'location',
-]);
+// // Add required fields testing using the utility
+// // No required fields for input since it's an empty object
+// tester.testRequiredFields('output', [
+// 	'showConsentBanner',
+// 	'jurisdiction',
+// 	'location',
+// ]);

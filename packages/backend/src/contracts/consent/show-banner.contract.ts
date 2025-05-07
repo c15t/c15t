@@ -4,13 +4,16 @@ import { z } from 'zod';
 
 import { JurisdictionInfoSchema } from '../shared/jurisdiction.schema';
 
-export const showConsentBannerContract = oc.input(z.undefined()).output(
-	z.object({
-		showConsentBanner: z.boolean(),
-		jurisdiction: JurisdictionInfoSchema,
-		location: z.object({
-			countryCode: z.string().nullable(),
-			regionCode: z.string().nullable(),
-		}),
-	})
-);
+export const showConsentBannerContract = oc
+	.route({ method: 'GET' })
+	// .input(z.union([z.undefined(), z.object({}), z.null()]))
+	.output(
+		z.object({
+			showConsentBanner: z.boolean(),
+			jurisdiction: JurisdictionInfoSchema,
+			location: z.object({
+				countryCode: z.string().nullable(),
+				regionCode: z.string().nullable(),
+			}),
+		})
+	);

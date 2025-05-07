@@ -26,7 +26,7 @@ export interface C15TClientOptions {
 
 	/**
 	 * Prefix path for API endpoints
-	 * @default "/rpc"
+	 * @default "/"
 	 */
 	prefix?: string;
 }

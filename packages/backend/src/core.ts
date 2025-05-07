@@ -1,6 +1,6 @@
 import { type Logger, createLogger } from '@doubletie/logger';
 import { OpenAPIGenerator } from '@orpc/openapi';
-import { RPCHandler } from '@orpc/server/fetch';
+import { OpenAPIHandler } from '@orpc/openapi/fetch';
 import { CORSPlugin } from '@orpc/server/plugins';
 import { ZodToJsonSchemaConverter } from '@orpc/zod';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
@@ -142,7 +142,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 		: {};
 
 	// Create the oRPC handler with plugins
-	const rpcHandler = new RPCHandler(router, {
+	const rpcHandler = new OpenAPIHandler(router, {
 		plugins: [new CORSPlugin(corsOptions)],
 	});
 
@@ -166,7 +166,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 			version: packageJson.version,
 			description: 'API for consent management',
 		},
-		servers: [{ url: '/rpc' }],
+		servers: [{ url: '/' }],
 		security: [{ bearerAuth: [] }],
 		components: {
 			securitySchemes: {
@@ -351,7 +351,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 			// Use oRPC handler to handle the request with our enhanced context
 			const handlerContext = orpcContext as Record<string, unknown>;
 			const { matched, response } = await rpcHandler.handle(request, {
-				prefix: '/rpc',
+				prefix: '/',
 				context: handlerContext,
 			});
 
@@ -450,3 +450,4 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 };
 
 export type { C15TPlugin, C15TOptions, C15TContext };
+export type { ContractsInputs, ContractsOutputs } from './contracts';
