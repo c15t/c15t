@@ -293,7 +293,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
       <body>
         <script
           id="api-reference"
-          data-url="${openApiConfig.specPath}">
+          data-url="${encodeURI(openApiConfig.specPath)}}">
         </script>
         <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
       </body>
@@ -470,6 +470,8 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 			PUT: nextHandler,
 			PATCH: nextHandler,
 			DELETE: nextHandler,
+			OPTIONS: nextHandler,
+			HEAD: nextHandler,
 		};
 	};
 

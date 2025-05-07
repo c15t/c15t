@@ -38,7 +38,7 @@ describe('Post Consent Contract Custom Tests', () => {
 		});
 
 		it('supports all defined policy types', () => {
-			const policyTypes = PolicyTypeSchema._def.values;
+			const policyTypes = PolicyTypeSchema.options;
 
 			for (const type of policyTypes) {
 				const input = {
@@ -320,7 +320,7 @@ describe('Post Consent Contract Custom Tests', () => {
 		});
 
 		it('validates output with different policy types', () => {
-			const policyTypes = PolicyTypeSchema._def.values;
+			const policyTypes = PolicyTypeSchema.options;
 
 			for (const type of policyTypes) {
 				const output = {
