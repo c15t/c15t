@@ -1,3 +1,4 @@
+import { ORPCError } from '@orpc/server';
 import { os } from '~/contracts';
 import {
 	type JurisdictionCode,
@@ -15,6 +16,13 @@ export const showConsentBanner = os.consent.showBanner.handler(
 
 		// Extract country and region from request headers
 		const headers = typedContext.headers;
+		if (!headers) {
+			throw new ORPCError('LOCATION_DETECTION_FAILED', {
+				data: {
+					reason: 'No headers found in request context',
+				},
+			});
+		}
 
 		// Add this conversion to ensure headers are always string or null
 		const normalizeHeader = (
@@ -28,20 +36,20 @@ export const showConsentBanner = os.consent.showBanner.handler(
 		};
 
 		const countryCode =
-			normalizeHeader(headers?.get('cf-ipcountry')) ??
-			normalizeHeader(headers?.get('x-vercel-ip-country')) ??
-			normalizeHeader(headers?.get('x-amz-cf-ipcountry')) ??
-			normalizeHeader(headers?.get('x-country-code'));
+			normalizeHeader(headers.get('cf-ipcountry')) ??
+			normalizeHeader(headers.get('x-vercel-ip-country')) ??
+			normalizeHeader(headers.get('x-amz-cf-ipcountry')) ??
+			normalizeHeader(headers.get('x-country-code'));
 
 		const regionCode =
-			normalizeHeader(headers?.get('x-vercel-ip-country-region')) ??
-			normalizeHeader(headers?.get('x-region-code'));
+			normalizeHeader(headers.get('x-vercel-ip-country-region')) ??
+			normalizeHeader(headers.get('x-region-code'));
 
-		console.log('countryCode', countryCode);
+		// If no location headers found, throw error
+
 		// Determine jurisdiction based on country
-		const { showConsentBanner, jurisdictionCode, message } = checkJurisdiction(
-			countryCode ?? null
-		);
+		const { showConsentBanner, jurisdictionCode, message } =
+			checkJurisdiction(countryCode);
 
 		// Return properly structured response
 		return {

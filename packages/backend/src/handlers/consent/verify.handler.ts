@@ -1,6 +1,6 @@
+import { ORPCError } from '@orpc/server';
 import type { z } from 'zod';
 import { os } from '~/contracts';
-import {} from '~/pkgs/results';
 import type { Consent as DBConsent } from '~/schema/consent';
 import type { PolicyTypeSchema } from '~/schema/consent-policy';
 import type { C15TContext } from '~/types';
@@ -102,27 +102,34 @@ export const verifyConsent = os.consent.verify.handler(
 			});
 
 			if (!subject) {
-				return {
-					isValid: false,
-					reasons: ['Subject not found'],
-				};
+				throw new ORPCError('SUBJECT_NOT_FOUND', {
+					data: {
+						subjectId,
+						externalSubjectId,
+					},
+				});
 			}
 
 			// Find domain
 			const domainRecord = await typedContext.registry.findDomain(domain);
 			if (!domainRecord) {
-				return {
-					isValid: false,
-					reasons: ['Domain not found'],
-				};
+				throw new ORPCError('DOMAIN_NOT_FOUND', {
+					data: {
+						domain,
+					},
+				});
 			}
 
 			// Validate preferences for cookie banner
-			if (type === 'cookie_banner' && preferences?.length === 0) {
-				return {
-					isValid: false,
-					reasons: ['Preferences are required'],
-				};
+			if (
+				type === 'cookie_banner' &&
+				(!preferences || preferences.length === 0)
+			) {
+				throw new ORPCError('COOKIE_BANNER_PREFERENCES_REQUIRED', {
+					data: {
+						type: 'cookie_banner',
+					},
+				});
 			}
 
 			// Find purpose IDs if preferences are provided
@@ -138,10 +145,14 @@ export const verifyConsent = os.consent.verify.handler(
 				.map((purpose) => purpose.id);
 
 			if (purposeIds.length !== (preferences?.length ?? 0)) {
-				return {
-					isValid: false,
-					reasons: ['Could not find all purposes'],
-				};
+				throw new ORPCError('PURPOSES_NOT_FOUND', {
+					data: {
+						preferences: preferences ?? [],
+						foundPurposes: rawPurposes
+							.filter((p): p is NonNullable<typeof p> => p !== null)
+							.map((p) => p.code),
+					},
+				});
 			}
 
 			// Check policy consent
@@ -149,10 +160,12 @@ export const verifyConsent = os.consent.verify.handler(
 				const policy =
 					await typedContext.registry.findConsentPolicyById(policyId);
 				if (!policy || policy.type !== type) {
-					return {
-						isValid: false,
-						reasons: ['Policy not found'],
-					};
+					throw new ORPCError('POLICY_NOT_FOUND', {
+						data: {
+							policyId,
+							type,
+						},
+					});
 				}
 
 				return await checkPolicyConsent({
@@ -168,10 +181,12 @@ export const verifyConsent = os.consent.verify.handler(
 			// Check latest policy consent
 			const latestPolicy = await typedContext.registry.findOrCreatePolicy(type);
 			if (!latestPolicy) {
-				return {
-					isValid: false,
-					reasons: ['Failed to find or create latest policy'],
-				};
+				throw new ORPCError('POLICY_NOT_FOUND', {
+					data: {
+						policyId: 'latest',
+						type,
+					},
+				});
 			}
 
 			return await checkPolicyConsent({
@@ -189,7 +204,15 @@ export const verifyConsent = os.consent.verify.handler(
 					error instanceof Error ? error.constructor.name : typeof error,
 			});
 
-			throw error;
+			// Re-throw ORPCError instances
+			if (error instanceof ORPCError) {
+				throw error;
+			}
+
+			// Convert other errors to internal server error
+			throw new ORPCError('INTERNAL_SERVER_ERROR', {
+				message: error instanceof Error ? error.message : String(error),
+			});
 		}
 	}
 );
@@ -252,10 +275,13 @@ async function checkPolicyConsent({
 	});
 
 	if (rawConsents.length === 0) {
-		return {
-			isValid: false,
-			reasons: ['No consent found for the given policy'],
-		};
+		throw new ORPCError('NO_CONSENT_FOUND', {
+			data: {
+				policyId,
+				subjectId,
+				domainId,
+			},
+		});
 	}
 
 	return {

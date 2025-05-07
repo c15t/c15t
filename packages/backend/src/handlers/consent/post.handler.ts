@@ -1,6 +1,6 @@
+import { ORPCError } from '@orpc/server';
 import { os } from '~/contracts';
 import type { Adapter } from '~/pkgs/db-adapters/types';
-import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { Consent } from '~/schema/consent';
 import type { ConsentRecord } from '~/schema/consent-record';
 import type { C15TContext } from '~/types';
@@ -12,7 +12,7 @@ import type { C15TContext } from '~/types';
  * and returns a formatted response. It handles different types of consent (cookie banner,
  * policy-based, and other types) with their specific requirements.
  *
- * @throws {DoubleTieError} When:
+ * @throws {ORPCError} When:
  * - Subject creation fails
  * - Policy is not found or inactive
  * - Database transaction fails
@@ -60,18 +60,25 @@ export const postConsent = os.consent.post.handler(
 			});
 
 			if (!subject) {
-				const errMsg = 'Subject not found or could not be created';
-				logger.error(errMsg, { subjectId, externalSubjectId });
-				throw new DoubleTieError(errMsg, {
-					code: ERROR_CODES.BAD_REQUEST,
-					status: 400,
-					meta: { subjectId, externalSubjectId },
+				throw new ORPCError('SUBJECT_CREATION_FAILED', {
+					data: {
+						subjectId,
+						externalSubjectId,
+					},
 				});
 			}
 
 			logger.debug('Subject found/created', { subjectId: subject.id });
 			const domainRecord =
 				await typedContext.registry.findOrCreateDomain(domain);
+
+			if (!domainRecord) {
+				throw new ORPCError('DOMAIN_CREATION_FAILED', {
+					data: {
+						domain,
+					},
+				});
+			}
 
 			const now = new Date();
 			let policyId: string | undefined;
@@ -84,26 +91,28 @@ export const postConsent = os.consent.post.handler(
 				const policy =
 					await typedContext.registry.findConsentPolicyById(policyId);
 				if (!policy) {
-					throw new DoubleTieError('Policy not found', {
-						code: ERROR_CODES.NOT_FOUND,
-						status: 404,
-						meta: { policyId },
+					throw new ORPCError('POLICY_NOT_FOUND', {
+						data: {
+							policyId,
+							type,
+						},
 					});
 				}
 				if (!policy.isActive) {
-					throw new DoubleTieError('Policy is not active', {
-						code: ERROR_CODES.CONFLICT,
-						status: 409,
-						meta: { policyId },
+					throw new ORPCError('POLICY_INACTIVE', {
+						data: {
+							policyId,
+							type,
+						},
 					});
 				}
 			} else {
 				const policy = await typedContext.registry.findOrCreatePolicy(type);
 				if (!policy) {
-					throw new DoubleTieError('Failed to create or find policy', {
-						code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-						status: 500,
-						meta: { type },
+					throw new ORPCError('POLICY_CREATION_FAILED', {
+						data: {
+							type,
+						},
 					});
 				}
 				policyId = policy.id;
@@ -131,6 +140,13 @@ export const postConsent = os.consent.post.handler(
 										createdAt: now,
 										updatedAt: now,
 									});
+							}
+							if (!existingPurpose) {
+								throw new ORPCError('PURPOSE_CREATION_FAILED', {
+									data: {
+										purposeCode,
+									},
+								});
 							}
 							return existingPurpose.id;
 						})
@@ -194,10 +210,11 @@ export const postConsent = os.consent.post.handler(
 			});
 
 			if (!result || !result.consent || !result.record) {
-				throw new DoubleTieError('Failed to create consent record', {
-					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-					status: 500,
-					meta: { subjectId: subject.id, domain },
+				throw new ORPCError('CONSENT_CREATION_FAILED', {
+					data: {
+						subjectId: subject.id,
+						domain,
+					},
 				});
 			}
 
@@ -222,8 +239,15 @@ export const postConsent = os.consent.post.handler(
 					error instanceof Error ? error.constructor.name : typeof error,
 			});
 
-			// Re-throw to let error middleware handle it
-			throw error;
+			// Re-throw ORPCError instances
+			if (error instanceof ORPCError) {
+				throw error;
+			}
+
+			// Convert other errors to internal server error
+			throw new ORPCError('INTERNAL_SERVER_ERROR', {
+				message: error instanceof Error ? error.message : String(error),
+			});
 		}
 	}
 );

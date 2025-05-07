@@ -16,6 +16,7 @@ describe('Status Contract Custom Tests', () => {
 
 	// Helper functions for common test patterns
 	const validateInput = (input: unknown) => {
+		//@ts-expect-error
 		return schemas.input?.safeParse(input);
 	};
 
