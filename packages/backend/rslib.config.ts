@@ -61,7 +61,7 @@ export default defineConfig({
 	source: {
 		entry: {
 			core: ['./src/core.ts'],
-			// router: ['./src/router.ts'],
+			router: ['./src/router.ts'],
 		},
 	},
 	lib: [

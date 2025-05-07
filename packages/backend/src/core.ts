@@ -95,6 +95,16 @@ export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
 // Define middleware context interface
 interface MiddlewareContext {
 	logger?: Logger;
+	adapter: unknown;
+	registry: unknown;
+	generateId: unknown;
+	ip?: string;
+	origin?: string;
+	trustedOrigin?: boolean;
+	path?: string;
+	method?: string;
+	headers?: Headers;
+	userAgent?: string;
 	[key: string]: unknown;
 }
 
@@ -219,6 +229,8 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 		// Add path and method to context for easier access
 		context.path = path;
 		context.method = method;
+		context.headers = request.headers;
+		context.userAgent = request.headers.get('user-agent') || undefined;
 
 		return context;
 	};
@@ -327,7 +339,8 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 				registry: ctx.registry,
 				logger: ctx.logger,
 				generateId: ctx.generateId,
-				// Add other necessary context properties
+				headers: request.headers,
+				userAgent: request.headers.get('user-agent') || undefined,
 			};
 
 			// Apply middleware processing to enrich the context

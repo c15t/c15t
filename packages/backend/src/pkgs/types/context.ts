@@ -158,6 +158,11 @@ export interface BaseDoubleTieContext {
 	 * User agent of the client
 	 */
 	userAgent?: string | null;
+
+	/**
+	 * Headers of the request
+	 */
+	headers?: Headers;
 }
 
 /**

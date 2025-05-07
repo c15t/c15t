@@ -7,6 +7,7 @@ import { getAdapter } from '~/pkgs/db-adapters';
 import type { RegistryContext } from '~/pkgs/types';
 import { getBaseURL } from '~/pkgs/utils';
 import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
+import { version } from '../package.json';
 import { generateId } from './pkgs/data-model/fields/id-generator';
 import type { EntityName } from './pkgs/data-model/schema/types';
 import {
@@ -114,7 +115,7 @@ export const init = async <P extends C15TPlugin[]>(
 				// Create a telemetry resource with provided values or safe defaults
 				const resource = new Resource({
 					'service.name': String(appName),
-					'service.version': String(process.env.npm_package_version || '1.0.0'),
+					'service.version': String(version || '1.0.0'),
 					...(telemetryOptions?.defaultAttributes || {}),
 				});
 				logger.debug('Initializing telemetry with resource attributes', {

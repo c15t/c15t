@@ -1,9 +1,9 @@
-import type { IncomingHttpHeaders } from 'node:http2';
 import { os } from '~/contracts';
 import {
 	type JurisdictionCode,
 	JurisdictionMessages,
 } from '~/contracts/shared/jurisdiction.schema';
+import type { C15TContext } from '~/types';
 
 /**
  * Handler for the show consent banner endpoint
@@ -11,13 +11,14 @@ import {
  */
 export const showConsentBanner = os.consent.showBanner.handler(
 	({ context }) => {
+		const typedContext = context as C15TContext;
+
 		// Extract country and region from request headers
-		const headers = (context as unknown as { headers: IncomingHttpHeaders })
-			.headers;
+		const headers = typedContext.headers;
 
 		// Add this conversion to ensure headers are always string or null
 		const normalizeHeader = (
-			value: string | string[] | undefined
+			value: string | string[] | null | undefined
 		): string | null => {
 			if (!value) {
 				return null;
@@ -27,14 +28,14 @@ export const showConsentBanner = os.consent.showBanner.handler(
 		};
 
 		const countryCode =
-			normalizeHeader(headers?.['cf-ipcountry']) ??
-			normalizeHeader(headers?.['x-vercel-ip-country']) ??
-			normalizeHeader(headers?.['x-amz-cf-ipcountry']) ??
-			normalizeHeader(headers?.['x-country-code']);
+			normalizeHeader(headers?.get('cf-ipcountry')) ??
+			normalizeHeader(headers?.get('x-vercel-ip-country')) ??
+			normalizeHeader(headers?.get('x-amz-cf-ipcountry')) ??
+			normalizeHeader(headers?.get('x-country-code'));
 
 		const regionCode =
-			normalizeHeader(headers?.['x-vercel-ip-country-region']) ??
-			normalizeHeader(headers?.['x-region-code']);
+			normalizeHeader(headers?.get('x-vercel-ip-country-region')) ??
+			normalizeHeader(headers?.get('x-region-code'));
 
 		// Determine jurisdiction based on country
 		const { showConsentBanner, jurisdictionCode, message } = checkJurisdiction(

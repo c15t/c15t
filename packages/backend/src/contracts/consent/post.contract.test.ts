@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 
+import { PolicyTypeSchema } from '~/schema';
 import { createContractTests } from '~/testing/contract-testing';
-import { PolicyTypeSchema } from '../shared/policy-type.schema';
 
 import { postConsentContract } from './post.contract';
 
