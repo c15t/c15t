@@ -23,7 +23,6 @@ const handler = (env: Env) => {
 		},
 		advanced: {
 			cors: {
-				allowedOrigins: env.TRUSTED_ORIGINS as string[],
 				// Allow x-request-id header that's often used in requests
 				allowHeaders: ['content-type', 'x-request-id'],
 				// Ensure credentials are supported
