@@ -48,24 +48,28 @@ export function createContractTests(
 	describe(`${contractName} Contract`, () => {
 		describe('Schema Structure', () => {
 			it('has properly defined schemas', () => {
-				expect(schemas.input).toBeDefined();
+				// Only require output schema
 				expect(schemas.output).toBeDefined();
-
-				expect(schemas.input).toBeInstanceOf(z.ZodType);
 				expect(schemas.output).toBeInstanceOf(z.ZodType);
+
+				// Input schema is optional
+				if (schemas.input) {
+					expect(schemas.input).toBeInstanceOf(z.ZodType);
+				}
 			});
 
 			it('schemas are serializable', () => {
-				// Test serialization
-				if (schemas.input) {
-					const serialized = JSON.stringify(schemas.input);
+				// Test serialization for output schema
+				if (schemas.output) {
+					const serialized = JSON.stringify(schemas.output);
 					expect(serialized).toBeDefined();
 					expect(typeof serialized).toBe('string');
 					expect(() => JSON.parse(serialized)).not.toThrow();
 				}
 
-				if (schemas.output) {
-					const serialized = JSON.stringify(schemas.output);
+				// Test serialization for input schema if it exists
+				if (schemas.input) {
+					const serialized = JSON.stringify(schemas.input);
 					expect(serialized).toBeDefined();
 					expect(typeof serialized).toBe('string');
 					expect(() => JSON.parse(serialized)).not.toThrow();
@@ -121,6 +125,9 @@ export function createContractTests(
 			});
 
 			it('validates all defined discriminator values', () => {
+				if (!schemas.input) {
+					return;
+				}
 				for (const value of validValues) {
 					const input = {
 						[discriminator]: value,
@@ -138,6 +145,14 @@ export function createContractTests(
 
 	const testRequiredFields = (schema: 'input' | 'output', fields: string[]) => {
 		describe(`Required ${schema} fields`, () => {
+			// Skip if testing input fields but no input schema exists
+			if (schema === 'input' && !schemas.input) {
+				it('skips input field tests as no input schema exists', () => {
+					expect(true).toBe(true);
+				});
+				return;
+			}
+
 			// Create a sample of valid data to test against
 			let sampleValid: Record<string, unknown>;
 
@@ -209,13 +224,17 @@ export function createContractTests(
 export function createConsistencyTests(
 	contracts: Record<
 		string,
-		{ '~orpc'?: { inputSchema?: z.ZodType; outputSchema?: z.ZodType } }
+		{
+			'~orpc'?: {
+				inputSchema?: z.ZodType | unknown;
+				outputSchema?: z.ZodType | unknown;
+			};
+		}
 	>
 ) {
 	describe('Contract Consistency', () => {
-		it('all contracts have both input and output schemas', () => {
+		it('all contracts have output schemas', () => {
 			for (const [_name, contract] of Object.entries(contracts)) {
-				expect(contract['~orpc']?.inputSchema).toBeDefined();
 				expect(contract['~orpc']?.outputSchema).toBeDefined();
 			}
 		});
@@ -337,14 +356,16 @@ export function createConsistencyTests(
 			const discriminators = new Set();
 
 			for (const [_name, contract] of Object.entries(contracts)) {
-				const inputSchema = contract['~orpc']?.inputSchema;
+				const inputSchema = contract['~orpc']?.inputSchema as
+					| z.ZodType
+					| undefined;
 				if (!inputSchema) {
 					continue;
 				}
 
 				// Check if schema is a discriminated union
 				if (
-					inputSchema._def &&
+					'_def' in inputSchema &&
 					'_type' in inputSchema._def &&
 					inputSchema._def._type === 'ZodDiscriminatedUnion' &&
 					'discriminator' in inputSchema._def

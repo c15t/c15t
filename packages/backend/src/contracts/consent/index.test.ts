@@ -1,5 +1,5 @@
-// import { createConsistencyTests } from '~/testing/contract-testing';
-// import { consentContracts } from '.';
+import { createConsistencyTests } from '~/testing/contract-testing';
+import { consentContracts } from '.';
 
 // Add consistency tests
-// createConsistencyTests(consentContracts);
+createConsistencyTests(consentContracts);

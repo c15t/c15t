@@ -322,7 +322,11 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 				const html = getDocsUI();
 				return new Response(html, {
 					status: 200,
-					headers: { 'Content-Type': 'text/html' },
+					headers: {
+						'Content-Type': 'text/html',
+						'Content-Security-Policy':
+							"default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;",
+					},
 				});
 			}
 
