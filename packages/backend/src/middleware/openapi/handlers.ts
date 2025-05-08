@@ -5,6 +5,14 @@ import type { C15TOptions } from '~/types';
 import { createDefaultOpenAPIOptions, createOpenAPIConfig } from './config';
 
 /**
+ * Type for the memoized OpenAPI spec function
+ */
+type MemoizedSpecFunction = {
+	(): Promise<Record<string, unknown>>;
+	cached?: Record<string, unknown>;
+};
+
+/**
  * Generate the OpenAPI specification document
  */
 export const createOpenAPISpec = (options: C15TOptions) => {
@@ -14,7 +22,7 @@ export const createOpenAPISpec = (options: C15TOptions) => {
 	});
 
 	// Memoise once per process
-	const getOpenAPISpec = async (): Promise<Record<string, unknown>> => {
+	const getOpenAPISpec = (async (): Promise<Record<string, unknown>> => {
 		if (getOpenAPISpec.cached) {
 			return getOpenAPISpec.cached;
 		}
@@ -51,11 +59,9 @@ export const createOpenAPISpec = (options: C15TOptions) => {
 		);
 		getOpenAPISpec.cached = spec;
 		return spec;
-	};
+	}) as MemoizedSpecFunction;
 
-	return getOpenAPISpec as (() => Promise<Record<string, unknown>>) & {
-		cached?: Record<string, unknown>;
-	};
+	return getOpenAPISpec;
 };
 
 /**
