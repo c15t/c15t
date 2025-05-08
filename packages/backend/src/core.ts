@@ -116,7 +116,6 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 
 	// Set up OpenAPI configuration
 	const openApiConfig = createOpenAPIConfig(options);
-	const getOpenAPISpec = createOpenAPISpec(options);
 	const getDocsUI = () => createDocsUI(options);
 
 	/**
@@ -166,6 +165,24 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 		url: URL
 	): Promise<Response | null> => {
 		if (openApiConfig.enabled && url.pathname === openApiConfig.specPath) {
+			const ctxResult = await contextPromise;
+			if (!ctxResult.isOk()) {
+				throw ctxResult.error;
+			}
+			const ctx = ctxResult.value;
+			const orpcContext = {
+				adapter: ctx.adapter,
+				registry: ctx.registry,
+				logger: ctx.logger,
+				generateId: ctx.generateId,
+				headers: new Headers(),
+				appName: options.appName || 'c15t',
+				options,
+				trustedOrigins: options.trustedOrigins || [],
+				baseURL: options.baseURL || '/',
+				tables: ctx.tables,
+			};
+			const getOpenAPISpec = createOpenAPISpec(orpcContext, options);
 			const spec = await getOpenAPISpec();
 			return new Response(JSON.stringify(spec), {
 				status: 200,
@@ -373,7 +390,27 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 		...createNextHandlers(),
 
 		// OpenAPI functionality
-		getOpenAPISpec,
+		getOpenAPISpec: async () => {
+			const ctxResult = await contextPromise;
+			if (!ctxResult.isOk()) {
+				throw ctxResult.error;
+			}
+			const ctx = ctxResult.value;
+			const orpcContext = {
+				adapter: ctx.adapter,
+				registry: ctx.registry,
+				logger: ctx.logger,
+				generateId: ctx.generateId,
+				headers: new Headers(),
+				appName: options.appName || 'c15t',
+				options,
+				trustedOrigins: options.trustedOrigins || [],
+				baseURL: options.baseURL || '/',
+				tables: ctx.tables,
+			};
+			const getOpenAPISpec = createOpenAPISpec(orpcContext, options);
+			return getOpenAPISpec();
+		},
 		getDocsUI,
 	};
 };
