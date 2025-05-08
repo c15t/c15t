@@ -67,9 +67,7 @@ export const showConsentBanner = os.consent.showBanner.handler(
  * Determines if a consent banner should be shown based on country code
  * and returns appropriate jurisdiction information
  */
-
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: <explanation>
-function checkJurisdiction(countryCode: string | null) {
+export function checkJurisdiction(countryCode: string | null) {
 	// Country code sets for different jurisdictions
 	const jurisdictions = {
 		EU: new Set([
@@ -117,31 +115,27 @@ function checkJurisdiction(countryCode: string | null) {
 
 	// Check country code against jurisdiction sets
 	if (countryCode) {
-		if (
-			jurisdictions.EU.has(countryCode) ||
-			jurisdictions.EEA.has(countryCode) ||
-			jurisdictions.UK.has(countryCode)
-		) {
-			showConsentBanner = true;
-			jurisdictionCode = 'GDPR';
-		} else if (jurisdictions.CH.has(countryCode)) {
-			showConsentBanner = true;
-			jurisdictionCode = 'CH';
-		} else if (jurisdictions.BR.has(countryCode)) {
-			showConsentBanner = true;
-			jurisdictionCode = 'BR';
-		} else if (jurisdictions.CA.has(countryCode)) {
-			showConsentBanner = true;
-			jurisdictionCode = 'PIPEDA';
-		} else if (jurisdictions.AU.has(countryCode)) {
-			showConsentBanner = true;
-			jurisdictionCode = 'AU';
-		} else if (jurisdictions.JP.has(countryCode)) {
-			showConsentBanner = true;
-			jurisdictionCode = 'APPI';
-		} else if (jurisdictions.KR.has(countryCode)) {
-			showConsentBanner = true;
-			jurisdictionCode = 'PIPA';
+		// Map jurisdiction sets to their respective codes
+		const jurisdictionMap = [
+			{
+				sets: [jurisdictions.EU, jurisdictions.EEA, jurisdictions.UK],
+				code: 'GDPR',
+			},
+			{ sets: [jurisdictions.CH], code: 'CH' },
+			{ sets: [jurisdictions.BR], code: 'BR' },
+			{ sets: [jurisdictions.CA], code: 'PIPEDA' },
+			{ sets: [jurisdictions.AU], code: 'AU' },
+			{ sets: [jurisdictions.JP], code: 'APPI' },
+			{ sets: [jurisdictions.KR], code: 'PIPA' },
+		] as const;
+
+		// Find matching jurisdiction
+		for (const { sets, code } of jurisdictionMap) {
+			if (sets.some((set) => set.has(countryCode))) {
+				showConsentBanner = true;
+				jurisdictionCode = code;
+				break;
+			}
 		}
 	}
 

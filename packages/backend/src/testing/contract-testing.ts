@@ -48,7 +48,9 @@ export function createContractTests(
 	// Helper functions
 	const validateInput = (input: unknown) => {
 		const schema = schemas.input;
-		if (!schema) return undefined;
+		if (!schema) {
+			return undefined;
+		}
 
 		// Handle both Zod and oRPC schemas
 		if ('safeParse' in schema) {
@@ -64,7 +66,9 @@ export function createContractTests(
 
 	const validateOutput = (output: unknown) => {
 		const schema = schemas.output;
-		if (!schema) return undefined;
+		if (!schema) {
+			return undefined;
+		}
 
 		// Handle both Zod and oRPC schemas
 		if ('safeParse' in schema) {
@@ -173,7 +177,15 @@ export function createContractTests(
 					// This test assumes minimal input - you may need to add required fields
 					// based on the specific contract being tested
 					const result = validateInput(input);
-					expect(result?.success).toBe(false); // Will likely fail without all required fields
+					// Specifically assert that it fails due to missing required fields
+					expect(result?.success).toBe(false);
+					if (!result?.success) {
+						expect(
+							result?.error.issues.some(
+								(issue) => issue.code === 'invalid_type'
+							)
+						).toBe(true);
+					}
 				}
 			});
 		});
@@ -286,7 +298,9 @@ export function createConsistencyTests(
 
 				for (const [_name, contract] of contractEntries) {
 					const schema = contract['~orpc']?.outputSchema;
-					if (!schema || !('shape' in schema)) continue;
+					if (!schema || !('shape' in schema)) {
+						continue;
+					}
 
 					const shape = schema.shape as Record<string, z.ZodTypeAny>;
 					if (field in shape) {
@@ -315,10 +329,14 @@ export function createConsistencyTests(
 
 			for (const [name, contract] of Object.entries(contracts)) {
 				const schema = contract['~orpc']?.outputSchema;
-				if (!schema || !('shape' in schema)) continue;
+				if (!schema || !('shape' in schema)) {
+					continue;
+				}
 
 				const shape = schema.shape as Record<string, z.ZodTypeAny>;
-				if (!shape.status) continue;
+				if (!shape.status) {
+					continue;
+				}
 
 				const statusField = shape.status;
 				if ('_def' in statusField && 'values' in statusField._def) {
@@ -347,10 +365,14 @@ export function createConsistencyTests(
 
 				for (const [_name, contract] of contractEntries) {
 					const schema = contract['~orpc']?.inputSchema;
-					if (!schema || !('shape' in schema)) continue;
+					if (!schema || !('shape' in schema)) {
+						continue;
+					}
 
 					const shape = schema.shape as Record<string, z.ZodTypeAny>;
-					if (!shape[field]) continue;
+					if (!shape[field]) {
+						continue;
+					}
 
 					const fieldSchema = shape[field];
 					if (
@@ -388,12 +410,14 @@ export function createConsistencyTests(
 
 			for (const [_name, contract] of Object.entries(contracts)) {
 				const schema = contract['~orpc']?.inputSchema;
-				if (!schema || !('_def' in schema)) continue;
+				if (!schema || !('_def' in schema)) {
+					continue;
+				}
 
 				// Check if schema is a discriminated union
 				if (
-					'_type' in schema._def &&
-					schema._def._type === 'ZodDiscriminatedUnion' &&
+					'typeName' in schema._def &&
+					schema._def.typeName === 'ZodDiscriminatedUnion' &&
 					'discriminator' in schema._def
 				) {
 					// Safe assertion since we've checked the property exists

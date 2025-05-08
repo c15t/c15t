@@ -33,7 +33,6 @@ This endpoint performs the following checks:
 Use this endpoint to implement geo-targeted consent banners and ensure compliance with regional privacy regulations.`,
 		tags: ['cookie-banner'],
 	})
-	// .input(z.union([z.undefined(), z.object({}), z.null()]))
 	.output(
 		z.object({
 			showConsentBanner: z.boolean(),

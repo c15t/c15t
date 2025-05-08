@@ -120,37 +120,57 @@ export const postConsent = os.consent.post.handler(
 
 			// Handle purposes if they exist
 			if (preferences) {
-				purposeIds = await Promise.all(
-					Object.entries(preferences)
-						.filter(([_, isConsented]) => isConsented)
-						.map(async ([purposeCode]) => {
-							let existingPurpose =
-								await typedContext.registry.findConsentPurposeByCode(
-									purposeCode
-								);
-							if (!existingPurpose) {
-								existingPurpose =
-									await typedContext.registry.createConsentPurpose({
-										code: purposeCode,
-										name: purposeCode,
-										description: `Auto-created consentPurpose for ${purposeCode}`,
-										isActive: true,
-										isEssential: false,
-										legalBasis: 'consent',
-										createdAt: now,
-										updatedAt: now,
-									});
-							}
-							if (!existingPurpose) {
-								throw new ORPCError('PURPOSE_CREATION_FAILED', {
-									data: {
-										purposeCode,
-									},
-								});
-							}
-							return existingPurpose.id;
-						})
+				const consentedPurposes = Object.entries(preferences)
+					.filter(([_, isConsented]) => isConsented)
+					.map(([purposeCode]) => purposeCode);
+
+				// Batch fetch all existing purposes
+				const existingPurposes = await Promise.all(
+					consentedPurposes.map((purposeCode) =>
+						typedContext.registry.findConsentPurposeByCode(purposeCode)
+					)
 				);
+
+				// Find which purposes need to be created
+				const purposesToCreate = consentedPurposes.filter(
+					(_purposeCode, index) => !existingPurposes[index]
+				);
+
+				// Batch create missing purposes
+				const createdPurposes = await Promise.all(
+					purposesToCreate.map((purposeCode) =>
+						typedContext.registry.createConsentPurpose({
+							code: purposeCode,
+							name: purposeCode,
+							description: `Auto-created consentPurpose for ${purposeCode}`,
+							isActive: true,
+							isEssential: false,
+							legalBasis: 'consent',
+							createdAt: now,
+							updatedAt: now,
+						})
+					)
+				);
+
+				// Combine existing and newly created purposes
+				purposeIds = [
+					...existingPurposes
+						.filter((p): p is NonNullable<typeof p> => p !== null)
+						.map((p) => p.id),
+					...createdPurposes
+						.filter((p): p is NonNullable<typeof p> => p !== null)
+						.map((p) => p.id),
+				];
+
+				// Verify all purposes were created successfully
+				if (purposeIds.length !== consentedPurposes.length) {
+					throw new ORPCError('PURPOSE_CREATION_FAILED', {
+						data: {
+							purposeCode:
+								purposesToCreate[purposeIds.length - consentedPurposes.length],
+						},
+					});
+				}
 			}
 
 			const result = await typedContext.adapter.transaction({

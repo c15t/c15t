@@ -270,11 +270,25 @@ async function checkPolicyConsent({
 			policyId,
 			purposeIds,
 			success: filteredConsents.length !== 0,
-			consentId: filteredConsents[0]?.id,
+			...(filteredConsents.length > 0
+				? {
+						consentId: filteredConsents[0]?.id,
+					}
+				: {}),
 		},
 	});
 
 	if (rawConsents.length === 0) {
+		throw new ORPCError('NO_CONSENT_FOUND', {
+			data: {
+				policyId,
+				subjectId,
+				domainId,
+			},
+		});
+	}
+
+	if (filteredConsents.length === 0) {
 		throw new ORPCError('NO_CONSENT_FOUND', {
 			data: {
 				policyId,

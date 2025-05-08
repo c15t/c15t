@@ -98,7 +98,7 @@ interface MiddlewareContext {
 	adapter: unknown;
 	registry: unknown;
 	generateId: unknown;
-	ip?: string;
+	ipAddress?: string;
 	origin?: string;
 	trustedOrigin?: boolean;
 	path?: string;

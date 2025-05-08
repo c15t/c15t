@@ -83,8 +83,15 @@ describe('Status Contract Custom Tests', () => {
 							type: 'MemoryAdapter',
 							available: true,
 						},
+						client: {
+							ip: '127.0.0.1',
+							userAgent: 'Mozilla/5.0',
+							region: {
+								countryCode: 'US',
+								regionCode: 'CA',
+							},
+						},
 					};
-
 					const result = validateOutput(output);
 					expect(result?.success).toBe(true);
 				}
@@ -99,8 +106,15 @@ describe('Status Contract Custom Tests', () => {
 						type: 'MemoryAdapter',
 						available: true,
 					},
+					client: {
+						ip: '127.0.0.1',
+						userAgent: 'Mozilla/5.0',
+						region: {
+							countryCode: 'US',
+							regionCode: 'CA',
+						},
+					},
 				};
-
 				// Need to use type assertion to bypass TypeScript
 				const result = validateOutput(output);
 				expect(result?.success).toBe(false);
@@ -117,8 +131,15 @@ describe('Status Contract Custom Tests', () => {
 						type: 'MemoryAdapter',
 						available: true,
 					},
+					client: {
+						ip: '127.0.0.1',
+						userAgent: 'Mozilla/5.0',
+						region: {
+							countryCode: 'US',
+							regionCode: 'CA',
+						},
+					},
 				};
-
 				const result = validateOutput(output);
 				expect(result?.success).toBe(true);
 			});
@@ -150,8 +171,15 @@ describe('Status Contract Custom Tests', () => {
 						type: 'MemoryAdapter',
 						available: true,
 					},
+					client: {
+						ip: '127.0.0.1',
+						userAgent: 'Mozilla/5.0',
+						region: {
+							countryCode: 'US',
+							regionCode: 'CA',
+						},
+					},
 				};
-
 				const result = validateOutput(output);
 				expect(result?.success).toBe(true);
 			});
@@ -164,6 +192,14 @@ describe('Status Contract Custom Tests', () => {
 					storage: {
 						type: 123, // Number instead of string
 						available: true,
+					},
+					client: {
+						ip: '127.0.0.1',
+						userAgent: 'Mozilla/5.0',
+						region: {
+							countryCode: 'US',
+							regionCode: 'CA',
+						},
 					},
 				};
 
@@ -181,8 +217,15 @@ describe('Status Contract Custom Tests', () => {
 						type: 'MemoryAdapter',
 						available: 'yes', // String instead of boolean
 					},
+					client: {
+						ip: '127.0.0.1',
+						userAgent: 'Mozilla/5.0',
+						region: {
+							countryCode: 'US',
+							regionCode: 'CA',
+						},
+					},
 				};
-
 				// Need to use type assertion to bypass TypeScript
 				const result = validateOutput(output);
 				expect(result?.success).toBe(false);

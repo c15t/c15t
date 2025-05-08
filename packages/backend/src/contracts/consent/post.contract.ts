@@ -6,7 +6,12 @@ import { PolicyTypeSchema } from '~/schema';
 const baseConsentSchema = z.object({
 	subjectId: z.string().optional(),
 	externalSubjectId: z.string().optional(),
-	domain: z.string(),
+	domain: z
+		.string()
+		.regex(
+			/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i,
+			'invalid domain'
+		),
 	type: PolicyTypeSchema,
 	metadata: z.record(z.unknown()).optional(),
 });
@@ -70,7 +75,7 @@ Use this endpoint to record user consent and maintain a compliant consent manage
 			message: 'Invalid input parameters',
 			data: z.object({
 				formErrors: z.array(z.string()),
-				fieldErrors: z.record(z.string(), z.array(z.string()).optional()),
+				fieldErrors: z.record(z.string(), z.array(z.string())),
 			}),
 		},
 		// Subject errors
