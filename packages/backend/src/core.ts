@@ -296,16 +296,31 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 
 		// Use oRPC handler to handle the request with our enhanced context
 		const handlerContext = orpcContext as Record<string, unknown>;
+
+		orpcContext.logger.debug?.('Handling prefix', {
+			prefix: (options.basePath as `/${string}`) || '/',
+		});
+
 		const { matched, response } = await rpcHandler.handle(request, {
-			prefix: (options.baseURL as `/${string}`) || '/',
+			prefix: (options.basePath as `/${string}`) || '/',
 			context: handlerContext,
 		});
 
 		// Return the response if handler matched
 		if (matched && response) {
+			orpcContext.logger.debug('Handler matched', {
+				request,
+				matched,
+				response,
+			});
 			return response;
 		}
 
+		orpcContext.logger.debug('No handler matched', {
+			request,
+			matched,
+			response,
+		});
 		// If no handler matched, return 404
 		return new Response('Not Found', { status: 404 });
 	};
@@ -339,6 +354,19 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 				throw ctxResult.error;
 			}
 			const ctx = ctxResult.value;
+
+			// After options/baseURL/basePath is set/used
+			const basePath = options.basePath || options.baseURL || '/';
+			createLogger(options.logger)?.debug?.('[c15t] Using basePath/baseURL', {
+				basePath,
+			});
+
+			// Add this debug log:
+			createLogger(options.logger)?.debug?.('[c15t] Routing request', {
+				method: request.method,
+				url: request.url,
+				prefix: basePath,
+			});
 
 			// Handle API request
 			return await handleApiRequest(request, ctx);
