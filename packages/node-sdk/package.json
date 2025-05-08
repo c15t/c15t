@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/node-sdk",
-	"version": "1.1.0-canary.0",
+	"version": "1.2.0-canary.6",
 	"private": true,
 	"dependencies": {
 		"@c15t/backend": "workspace:*",

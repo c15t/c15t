@@ -111,6 +111,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 
 	// Create the oRPC handler with plugins
 	const rpcHandler = new OpenAPIHandler(router, {
+		//@ts-expect-error
 		plugins: [new CORSPlugin(corsOptions)],
 	});
 

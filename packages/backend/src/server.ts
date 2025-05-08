@@ -11,11 +11,7 @@ const logger = getLogger({
 
 // Create the c15t instance with our configuration
 const instance = c15tInstance({
-	advanced: {
-		cors: {
-			allowedOrigins: ['*'], // Allow all origins for development
-		},
-	},
+	trustedOrigins: ['*'], // Allow all origins for development
 	// Add OpenAPI configuration
 	openapi: {
 		enabled: true, // Set to true to enable docs

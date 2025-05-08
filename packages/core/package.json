@@ -1,6 +1,6 @@
 {
 	"name": "c15t",
-	"version": "1.2.0-canary.5",
+	"version": "1.2.0-canary.6",
 	"license": "GPL-3.0-only",
 	"type": "module",
 	"exports": {

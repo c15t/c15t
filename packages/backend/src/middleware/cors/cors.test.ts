@@ -216,8 +216,10 @@ describe('C15T CORS Configuration', () => {
 			const request = createTestRequest('http://localhost:3002', 'GET');
 			const response = await c15t.handler(request);
 			expect(response.status).toBe(200);
-			expect(response.headers.get('Access-Control-Allow-Origin')).toBe(null);
-			// Other CORS headers may still be present per standard behavior
+			expect(response.headers.get('Vary')).toBe('origin');
+			expect(response.headers.get('Access-Control-Allow-Credentials')).toBe(
+				'true'
+			);
 		});
 	});
 
@@ -291,6 +293,71 @@ describe('C15T CORS Configuration', () => {
 			const request = createTestRequest(unrelatedOrigin);
 			const response = await c15t.handler(request);
 			expect(response.status).toBe(200);
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe(null);
+		});
+	});
+
+	describe('CORS trustedOrigins normalization and matching', () => {
+		const baseUrl = 'https://api.example.com';
+		const testEndpoint = '/show-consent-banner';
+
+		const createTestRequest = (origin?: string, method = 'GET') => {
+			const headers: Record<string, string> = {
+				'content-type': 'application/json',
+			};
+			if (origin) {
+				headers.origin = origin;
+			}
+			return new Request(`${baseUrl}${testEndpoint}`, { method, headers });
+		};
+
+		it('should match http and https with and without www', async () => {
+			const c15t = createTestInstance(['localhost:3002', 'example.com']);
+			// Should match both http and https, with and without www
+			const origins = [
+				'http://localhost:3002',
+				'https://localhost:3002',
+				'http://www.example.com',
+				'https://example.com',
+			];
+			for (const origin of origins) {
+				const request = createTestRequest(origin, 'OPTIONS');
+				const response = await c15t.handler(request);
+				expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
+					origin
+				);
+			}
+		});
+
+		it('should not match unrelated origins', async () => {
+			const c15t = createTestInstance(['localhost:3002']);
+			const request = createTestRequest('http://malicious.com', 'OPTIONS');
+			const response = await c15t.handler(request);
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe(null);
+		});
+
+		it('should match wildcard *', async () => {
+			const c15t = createTestInstance(['*']);
+			const request = createTestRequest('http://any-origin.com', 'OPTIONS');
+			const response = await c15t.handler(request);
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
+				'http://any-origin.com'
+			);
+		});
+
+		it('should match with port', async () => {
+			const c15t = createTestInstance(['localhost:3002']);
+			const request = createTestRequest('http://localhost:3002', 'OPTIONS');
+			const response = await c15t.handler(request);
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
+				'http://localhost:3002'
+			);
+		});
+
+		it('should not match if port is different', async () => {
+			const c15t = createTestInstance(['localhost:3002']);
+			const request = createTestRequest('http://localhost:4000', 'OPTIONS');
+			const response = await c15t.handler(request);
 			expect(response.headers.get('Access-Control-Allow-Origin')).toBe(null);
 		});
 	});
