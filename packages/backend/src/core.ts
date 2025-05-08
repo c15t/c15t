@@ -122,21 +122,37 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 	const corsOptions = options.trustedOrigins
 		? {
 				// When specific origins are configured
-				origin: options.trustedOrigins.includes('*')
-					? '*' // If '*' is in the list, allow all origins
-					: options.trustedOrigins, // Otherwise use the specific list
-				credentials: true, // Allow cookies/auth headers
-				methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-				allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
-				maxAge: 86400,
+				origin: (origin: string) => {
+					// If no origin, return '*' for non-CORS requests
+					if (!origin) {
+						return '*';
+					}
+
+					// If wildcard is allowed, return the actual origin
+					if (options.trustedOrigins?.includes('*')) {
+						return origin;
+					}
+
+					// If origin is in trusted list, return it
+					if (options.trustedOrigins?.includes(origin)) {
+						return origin;
+					}
+
+					// Deny all other origins by returning null
+					return null;
+				},
+				credentials: true,
+				allowHeaders: ['Content-Type', 'Authorization'],
+				maxAge: 600,
+				methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
 			}
 		: {
 				// Default configuration when no origins specified
-				origin: '*', // Allow all origins
-				credentials: false, // Can't use credentials with wildcard origin
-				methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-				allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
-				maxAge: 86400,
+				origin: '*',
+				credentials: false,
+				allowHeaders: ['Content-Type', 'Authorization'],
+				maxAge: 600,
+				methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
 			};
 
 	// Create the oRPC handler with plugins

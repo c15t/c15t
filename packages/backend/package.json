@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/backend",
-	"version": "1.0.5",
+	"version": "1.2.0-canary.3",
 	"license": "GPL-3.0-only",
 	"type": "module",
 	"exports": {
@@ -117,6 +117,7 @@
 		"@types/node": "20.14.13",
 		"@types/pg": "8.11.6",
 		"kysely-pglite": "^0.6.1",
+		"msw": "^2.7.6",
 		"typescript": "^5.8.3",
 		"vitest": "^3.1.1"
 	},

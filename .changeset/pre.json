@@ -1,5 +1,5 @@
 {
-	"mode": "pre",
+	"mode": "exit",
 	"tag": "canary",
 	"initialVersions": {
 		"@c15t-examples/svelte": "0.0.1",
