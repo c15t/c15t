@@ -182,8 +182,6 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 	const processIp = (request: Request, context: MiddlewareContext) => {
 		const ip = getIp(request, options);
 		if (ip) {
-			context.ip = ip;
-			// temporary alias until all handlers use `ip`
 			context.ipAddress = ip;
 		}
 		return context;
