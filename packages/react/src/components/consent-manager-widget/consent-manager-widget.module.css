@@ -1,4 +1,4 @@
-@layer base {
+
 	:root {
 		/* Widget Colors */
 		--widget-background-color: hsl(0, 0%, 100%);
@@ -365,4 +365,3 @@
 	:global(.c15t-dark) .switch[data-state="checked"] {
 		background-color: var(--widget-accordion-focus-ring-dark);
 	}
-}

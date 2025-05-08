@@ -1,5 +1,3 @@
-/* Base cookie banner variables */
-@layer base {
 	:root {
 		isolation: isolate;
 
@@ -290,5 +288,5 @@
 	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 	:global(.c15t-dark) .overlay {
 		background-color: var(--banner-overlay-background-color-dark);
-	}
+	
 }

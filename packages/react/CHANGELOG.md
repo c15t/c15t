@@ -1,5 +1,13 @@
 # @c15t/react
 
+## 1.1.5
+
+### Patch Changes
+
+- [#208](https://github.com/c15t/c15t/pull/208) [`41bfb71`](https://github.com/c15t/c15t/commit/41bfb713c8a08dade25dabb5c4215fd2e3a59f40) Thanks [@KayleeWilliams](https://github.com/KayleeWilliams)! - fix(react): no style component theme not removing default classes
+
+- [#218](https://github.com/c15t/c15t/pull/218) [`1652d02`](https://github.com/c15t/c15t/commit/1652d02deaf003b2c533a44b733150c12561d531) Thanks [@KayleeWilliams](https://github.com/KayleeWilliams)! - fix(react): removed layers to fix collision with Tailwind 3
+
 ## 1.1.4
 
 ### Patch Changes

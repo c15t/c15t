@@ -3,6 +3,8 @@ import { vi } from 'vitest';
 import { CookieBanner } from '~/components/cookie-banner/cookie-banner';
 import type { ThemeValue } from '~/types/theme';
 import testComponentStyles from '~/utils/test-helpers';
+import buttonStyles from '../../shared/ui/button/button.module.css';
+import styles from '../cookie-banner.module.css';
 import type { CookieBannerTheme } from '../theme';
 
 vi.mock('~/hooks/use-consent-manager', () => ({
@@ -380,4 +382,72 @@ test('Multiple custom classes can be applied and override base layer', async () 
 	expect(getComputedStyle(card).border).toBe('2px solid rgb(0, 0, 255)');
 
 	document.head.removeChild(styleElement);
+});
+
+test('All cookie banner components should have their base classes applied', async () => {
+	const test = <CookieBanner />;
+
+	const baseClasses = {
+		root: styles.root || '',
+		card: styles.card || '',
+		header: styles.header || '',
+		title: styles.title || '',
+		description: styles.description || '',
+		footer: styles.footer || '',
+		footerSubGroup: styles.footerSubGroup || '',
+		rejectButton: `${buttonStyles.button} ${buttonStyles['button-small']} ${buttonStyles['button-neutral-stroke']}`,
+		customizeButton: `${buttonStyles.button} ${buttonStyles['button-small']} ${buttonStyles['button-neutral-stroke']}`,
+		acceptButton: `${buttonStyles.button} ${buttonStyles['button-small']} ${buttonStyles['button-primary-stroke']}`,
+	};
+
+	await testComponentStyles({
+		component: test,
+		testCases: [
+			{
+				testId: 'cookie-banner-root',
+				styles: baseClasses.root,
+			},
+			{
+				testId: 'cookie-banner-card',
+				styles: baseClasses.card,
+			},
+			{
+				testId: 'cookie-banner-header',
+				styles: baseClasses.header,
+			},
+			{
+				testId: 'cookie-banner-title',
+				styles: baseClasses.title,
+			},
+			{
+				testId: 'cookie-banner-description',
+				styles: baseClasses.description,
+			},
+			{
+				testId: 'cookie-banner-footer',
+				styles: baseClasses.footer,
+			},
+			{
+				testId: 'cookie-banner-footer-sub-group',
+				styles: baseClasses.footerSubGroup,
+			},
+			{
+				testId: 'cookie-banner-reject-button',
+				styles: baseClasses.rejectButton,
+			},
+			{
+				testId: 'cookie-banner-customize-button',
+				styles: baseClasses.customizeButton,
+			},
+			{
+				testId: 'cookie-banner-accept-button',
+				styles: baseClasses.acceptButton,
+			},
+		],
+	});
+
+	// Also verify that none of the base classes are empty strings
+	for (const [key, value] of Object.entries(baseClasses)) {
+		expect(value, `Base class for ${key} should not be empty`).not.toBe('');
+	}
 });
