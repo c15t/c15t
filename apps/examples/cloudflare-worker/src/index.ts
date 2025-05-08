@@ -16,7 +16,7 @@ const handler = (env: Env) => {
 			authToken: env.TURSO_AUTH_TOKEN,
 		}),
 		basePath: '/',
-		trustedOrigins: ['localhost'],
+		trustedOrigins: env.TRUSTED_ORIGINS as string[],
 		logger: {
 			level: 'debug',
 			appName: 'c15t-cloudflare-example',

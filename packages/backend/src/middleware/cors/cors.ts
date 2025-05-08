@@ -51,8 +51,11 @@ export interface CORSConfig {
  * Default CORS configuration for unrestricted access
  */
 const DEFAULT_CORS_CONFIG: CORSConfig = {
-	origin: async () => '*',
-	credentials: false,
+	origin: async (origin: string) => {
+		// For default config, always return the origin if it exists, or '*' if it doesn't
+		return await Promise.resolve(origin || '*');
+	},
+	credentials: true,
 	allowHeaders: SUPPORTED_HEADERS,
 	maxAge: 600,
 	methods: SUPPORTED_METHODS,
@@ -61,7 +64,7 @@ const DEFAULT_CORS_CONFIG: CORSConfig = {
 /**
  * Creates CORS options configuration for the c15t middleware
  *
- * @param trustedOrigins - Array of allowed origin patterns. Can include wildcards ('*').
+ * @param trustedOrigins - Array of allowed origin patterns or single string. Can include wildcards ('*').
  * If undefined, defaults to allowing all origins without credentials.
  *
  * @returns CORS configuration object with origin validation function and header settings
@@ -73,8 +76,19 @@ const DEFAULT_CORS_CONFIG: CORSConfig = {
  *
  * @throws {TypeError} When URL parsing fails in origin validation
  */
-export function createCORSOptions(trustedOrigins?: string[]): CORSConfig {
+export function createCORSOptions(
+	trustedOrigins?: string[] | string
+): CORSConfig {
+	// If trustedOrigins is undefined or empty, return default config that allows all origins
 	if (!trustedOrigins) {
+		return DEFAULT_CORS_CONFIG;
+	}
+
+	// Convert string to array if needed
+	const origins = Array.isArray(trustedOrigins)
+		? trustedOrigins
+		: [trustedOrigins];
+	if (origins.length === 0) {
 		return DEFAULT_CORS_CONFIG;
 	}
 
@@ -131,9 +145,9 @@ export function createCORSOptions(trustedOrigins?: string[]): CORSConfig {
 		return Array.from(expanded);
 	}
 
-	const expandedTrusted = expandWithWWW(trustedOrigins);
+	const expandedTrusted = expandWithWWW(origins);
 
-	return {
+	const returnConfig = {
 		origin: async (origin: string) => {
 			if (!origin) {
 				return '*';
@@ -161,4 +175,6 @@ export function createCORSOptions(trustedOrigins?: string[]): CORSConfig {
 		maxAge: 600,
 		methods: SUPPORTED_METHODS,
 	};
+
+	return returnConfig;
 }

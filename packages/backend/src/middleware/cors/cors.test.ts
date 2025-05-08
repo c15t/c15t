@@ -90,6 +90,18 @@ describe('C15T CORS Configuration', () => {
 			expect(response.status).toBe(200);
 			expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
 		});
+
+		it('should handle undefined trustedOrigins gracefully', async () => {
+			const c15t = createTestInstance(undefined);
+			const request = createTestRequest('http://localhost:3002');
+
+			const response = await c15t.handler(request);
+			expect(response.status).toBe(200);
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+			expect(response.headers.get('Access-Control-Allow-Credentials')).toBe(
+				null
+			);
+		});
 	});
 
 	describe('Preflight Requests', () => {
@@ -104,6 +116,44 @@ describe('C15T CORS Configuration', () => {
 			);
 			expect(response.headers.get('Access-Control-Allow-Methods')).toContain(
 				'GET'
+			);
+		});
+
+		it('should handle preflight requests with undefined trustedOrigins', async () => {
+			const c15t = createTestInstance(undefined);
+			const request = createTestRequest('http://localhost:3002', 'OPTIONS');
+
+			const response = await c15t.handler(request);
+			expect(response.status).toBe(204);
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+			expect(response.headers.get('Access-Control-Allow-Methods')).toBe(
+				'GET, HEAD, PUT, POST, DELETE, PATCH'
+			);
+			expect(response.headers.get('Access-Control-Allow-Headers')).toBe(
+				'Content-Type, Authorization, x-request-id'
+			);
+			expect(response.headers.get('Access-Control-Max-Age')).toBe('600');
+			expect(response.headers.get('Access-Control-Allow-Credentials')).toBe(
+				null
+			);
+		});
+
+		it('should handle preflight requests without origin header when trustedOrigins is undefined', async () => {
+			const c15t = createTestInstance(undefined);
+			const request = createTestRequest(undefined, 'OPTIONS');
+
+			const response = await c15t.handler(request);
+			expect(response.status).toBe(204);
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+			expect(response.headers.get('Access-Control-Allow-Methods')).toBe(
+				'GET, HEAD, PUT, POST, DELETE, PATCH'
+			);
+			expect(response.headers.get('Access-Control-Allow-Headers')).toBe(
+				'Content-Type, Authorization, x-request-id'
+			);
+			expect(response.headers.get('Access-Control-Max-Age')).toBe('600');
+			expect(response.headers.get('Access-Control-Allow-Credentials')).toBe(
+				null
 			);
 		});
 	});
