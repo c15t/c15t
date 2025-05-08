@@ -47,6 +47,14 @@ describe('Status Contract Custom Tests', () => {
 						type: 'MemoryAdapter',
 						available: true,
 					},
+					client: {
+						ip: '127.0.0.1',
+						userAgent: 'Mozilla/5.0',
+						region: {
+							countryCode: 'US',
+							regionCode: 'CA',
+						},
+					},
 				};
 
 				const result = validateOutput(validOutput);
@@ -56,7 +64,7 @@ describe('Status Contract Custom Tests', () => {
 			it('rejects output without required fields', () => {
 				const invalidOutput = {
 					status: 'ok',
-					// Missing version, timestamp, and storage
+					// Missing version, timestamp, storage, and client
 				};
 
 				const result = validateOutput(invalidOutput);
@@ -176,6 +184,100 @@ describe('Status Contract Custom Tests', () => {
 				};
 
 				// Need to use type assertion to bypass TypeScript
+				const result = validateOutput(output);
+				expect(result?.success).toBe(false);
+			});
+		});
+
+		describe('Client information validation', () => {
+			it('accepts null values for client fields', () => {
+				const output = {
+					status: 'ok',
+					version: '1.0.0',
+					timestamp: new Date(),
+					storage: {
+						type: 'MemoryAdapter',
+						available: true,
+					},
+					client: {
+						ip: null,
+						userAgent: null,
+						region: {
+							countryCode: null,
+							regionCode: null,
+						},
+					},
+				};
+
+				const result = validateOutput(output);
+				expect(result?.success).toBe(true);
+			});
+
+			it('validates client object structure', () => {
+				const output = {
+					status: 'ok',
+					version: '1.0.0',
+					timestamp: new Date(),
+					storage: {
+						type: 'MemoryAdapter',
+						available: true,
+					},
+					client: {
+						ip: '127.0.0.1',
+						userAgent: 'Mozilla/5.0',
+						region: {
+							countryCode: 'US',
+							regionCode: 'CA',
+						},
+					},
+				};
+
+				const result = validateOutput(output);
+				expect(result?.success).toBe(true);
+			});
+
+			it('rejects invalid client IP format', () => {
+				const output = {
+					status: 'ok',
+					version: '1.0.0',
+					timestamp: new Date(),
+					storage: {
+						type: 'MemoryAdapter',
+						available: true,
+					},
+					client: {
+						ip: 123, // Number instead of string
+						userAgent: 'Mozilla/5.0',
+						region: {
+							countryCode: 'US',
+							regionCode: 'CA',
+						},
+					},
+				};
+
+				const result = validateOutput(output);
+				expect(result?.success).toBe(false);
+			});
+
+			it('rejects invalid region structure', () => {
+				const output = {
+					status: 'ok',
+					version: '1.0.0',
+					timestamp: new Date(),
+					storage: {
+						type: 'MemoryAdapter',
+						available: true,
+					},
+					client: {
+						ip: '127.0.0.1',
+						userAgent: 'Mozilla/5.0',
+						region: {
+							countryCode: 123, // Number instead of string
+							regionCode: 'CA',
+						},
+					},
+				};
+
 				const result = validateOutput(output);
 				expect(result?.success).toBe(false);
 			});

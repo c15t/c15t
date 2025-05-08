@@ -11,6 +11,7 @@ This endpoint provides real-time information about:
 - Current API version
 - Server timestamp
 - Storage system status and availability
+- Client information (IP, User Agent, Region)
 
 Use this endpoint for health checks, monitoring, and service status verification.`,
 		tags: ['meta'],
@@ -23,6 +24,14 @@ Use this endpoint for health checks, monitoring, and service status verification
 			storage: z.object({
 				type: z.string(),
 				available: z.boolean(),
+			}),
+			client: z.object({
+				ip: z.string().nullable(),
+				userAgent: z.string().nullable(),
+				region: z.object({
+					countryCode: z.string().nullable(),
+					regionCode: z.string().nullable(),
+				}),
 			}),
 		})
 	);
