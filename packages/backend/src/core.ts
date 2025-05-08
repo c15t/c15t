@@ -183,6 +183,8 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 		const ip = getIp(request, options);
 		if (ip) {
 			context.ip = ip;
+			// temporary alias until all handlers use `ip`
+			context.ipAddress = ip;
 		}
 		return context;
 	};
@@ -300,7 +302,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
       <body>
         <script
           id="api-reference"
-          data-url="${encodeURI(openApiConfig.specPath)}}">
+          data-url="${encodeURI(openApiConfig.specPath)}">
         </script>
         <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
       </body>
