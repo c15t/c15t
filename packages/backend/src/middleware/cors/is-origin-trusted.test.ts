@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isOriginTrusted } from './cors';
+import { isOriginTrusted } from './is-origin-trusted';
 
 /**
  * Test suite for CORS utility functions

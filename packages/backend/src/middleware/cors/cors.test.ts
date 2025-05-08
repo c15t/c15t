@@ -1,7 +1,7 @@
 import {} from 'msw';
 import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { c15tInstance } from '../core';
+import { c15tInstance } from '../../core';
 
 // Create MSW server instance
 const server = setupServer();
@@ -159,6 +159,139 @@ describe('C15T CORS Configuration', () => {
 			expect(response.headers.get('Access-Control-Allow-Methods')).toContain(
 				'GET'
 			);
+		});
+	});
+
+	describe('CORS Header Requirements', () => {
+		it('should include all required CORS headers for preflight requests from trusted origins', async () => {
+			const c15t = createTestInstance(['http://localhost:3002']);
+			const request = createTestRequest('http://localhost:3002', 'OPTIONS');
+			const response = await c15t.handler(request);
+			expect(response.status).toBe(204);
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
+				'http://localhost:3002'
+			);
+			expect(response.headers.get('Access-Control-Allow-Methods')).toContain(
+				'GET'
+			);
+			expect(response.headers.get('Access-Control-Allow-Headers')).toContain(
+				'Content-Type'
+			);
+			expect(response.headers.get('Access-Control-Allow-Headers')).toContain(
+				'Authorization'
+			);
+			expect(response.headers.get('Access-Control-Max-Age')).toBe('600');
+		});
+
+		it('should NOT include CORS headers for preflight requests from untrusted origins', async () => {
+			const c15t = createTestInstance(['http://localhost:3001']);
+			const request = createTestRequest('http://localhost:3002', 'OPTIONS');
+			const response = await c15t.handler(request);
+			expect(response.status).toBe(204);
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe(null);
+			expect(response.headers.get('Access-Control-Allow-Methods')).toBe(
+				'GET, HEAD, PUT, POST, DELETE, PATCH'
+			);
+			expect(response.headers.get('Access-Control-Allow-Headers')).toBe(
+				'Content-Type, Authorization'
+			);
+			expect(response.headers.get('Access-Control-Max-Age')).toBe('600');
+		});
+
+		it('should include all required CORS headers for actual requests from trusted origins', async () => {
+			const c15t = createTestInstance(['http://localhost:3002']);
+			const request = createTestRequest('http://localhost:3002', 'GET');
+			const response = await c15t.handler(request);
+			expect(response.status).toBe(200);
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
+				'http://localhost:3002'
+			);
+			expect(response.headers.get('Access-Control-Allow-Credentials')).toBe(
+				'true'
+			);
+		});
+
+		it('should NOT include Access-Control-Allow-Origin for actual requests from untrusted origins', async () => {
+			const c15t = createTestInstance(['http://localhost:3001']);
+			const request = createTestRequest('http://localhost:3002', 'GET');
+			const response = await c15t.handler(request);
+			expect(response.status).toBe(200);
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe(null);
+			// Other CORS headers may still be present per standard behavior
+		});
+	});
+
+	describe('C15T CORS www/non-www Origin Handling', () => {
+		const baseUrl = 'https://api.example.com';
+		const testEndpoint = '/show-consent-banner';
+		const wwwOrigin = 'http://www.c15t.com';
+		const nonWwwOrigin = 'http://c15t.com';
+
+		const createTestRequest = (origin?: string, method = 'GET') => {
+			const headers: Record<string, string> = {
+				'content-type': 'application/json',
+			};
+			if (origin) {
+				headers.origin = origin;
+			}
+			return new Request(`${baseUrl}${testEndpoint}`, { method, headers });
+		};
+
+		it('should allow www origin if non-www is trusted', async () => {
+			const c15t = c15tInstance({
+				trustedOrigins: [nonWwwOrigin],
+				appName: 'Test App',
+			});
+			const request = createTestRequest(wwwOrigin);
+			const response = await c15t.handler(request);
+			expect(response.status).toBe(200);
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
+				wwwOrigin
+			);
+		});
+
+		it('should allow non-www origin if www is trusted', async () => {
+			const c15t = c15tInstance({
+				trustedOrigins: [wwwOrigin],
+				appName: 'Test App',
+			});
+			const request = createTestRequest(nonWwwOrigin);
+			const response = await c15t.handler(request);
+			expect(response.status).toBe(200);
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
+				nonWwwOrigin
+			);
+		});
+
+		it('should allow both www and non-www origins if both are trusted', async () => {
+			const c15t = c15tInstance({
+				trustedOrigins: [wwwOrigin, nonWwwOrigin],
+				appName: 'Test App',
+			});
+			const requestWww = createTestRequest(wwwOrigin);
+			const requestNonWww = createTestRequest(nonWwwOrigin);
+			const responseWww = await c15t.handler(requestWww);
+			const responseNonWww = await c15t.handler(requestNonWww);
+			expect(responseWww.status).toBe(200);
+			expect(responseWww.headers.get('Access-Control-Allow-Origin')).toBe(
+				wwwOrigin
+			);
+			expect(responseNonWww.status).toBe(200);
+			expect(responseNonWww.headers.get('Access-Control-Allow-Origin')).toBe(
+				nonWwwOrigin
+			);
+		});
+
+		it('should deny unrelated origins', async () => {
+			const c15t = c15tInstance({
+				trustedOrigins: [nonWwwOrigin],
+				appName: 'Test App',
+			});
+			const unrelatedOrigin = 'http://malicious.com';
+			const request = createTestRequest(unrelatedOrigin);
+			const response = await c15t.handler(request);
+			expect(response.status).toBe(200);
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe(null);
 		});
 	});
 });

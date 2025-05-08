@@ -7,10 +7,12 @@ import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
 import packageJson from '../package.json';
 import { init } from './init';
+import { createCORSOptions } from './middleware/cors/cors';
+import { processCors } from './middleware/cors/process-cors';
 import { withRequestSpan } from './pkgs/api-router/telemetry';
-import { isOriginTrusted } from './pkgs/api-router/utils/cors';
 import { getIp } from './pkgs/api-router/utils/ip';
 import { router } from './router';
+
 /**
  * Type representing an API route
  */
@@ -119,41 +121,8 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 	// Initialize context
 	const contextPromise = init(options);
 
-	const corsOptions = options.trustedOrigins
-		? {
-				// When specific origins are configured
-				origin: (origin: string) => {
-					// If no origin, return '*' for non-CORS requests
-					if (!origin) {
-						return '*';
-					}
-
-					// If wildcard is allowed, return the actual origin
-					if (options.trustedOrigins?.includes('*')) {
-						return origin;
-					}
-
-					// If origin is in trusted list, return it
-					if (options.trustedOrigins?.includes(origin)) {
-						return origin;
-					}
-
-					// Deny all other origins by returning null
-					return null;
-				},
-				credentials: true,
-				allowHeaders: ['Content-Type', 'Authorization'],
-				maxAge: 600,
-				methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-			}
-		: {
-				// Default configuration when no origins specified
-				origin: '*',
-				credentials: false,
-				allowHeaders: ['Content-Type', 'Authorization'],
-				maxAge: 600,
-				methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-			};
+	// Replace the inline corsOptions with the imported one
+	const corsOptions = createCORSOptions(options.trustedOrigins);
 
 	// Create the oRPC handler with plugins
 	const rpcHandler = new OpenAPIHandler(router, {
@@ -199,24 +168,6 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 		const ip = getIp(request, options);
 		if (ip) {
 			context.ipAddress = ip;
-		}
-		return context;
-	};
-
-	/**
-	 * Process CORS validation and add it to the context
-	 */
-	const processCors = (request: Request, context: MiddlewareContext) => {
-		const origin = request.headers.get('origin');
-		if (origin && options.trustedOrigins) {
-			const trusted = isOriginTrusted(
-				origin,
-				options.trustedOrigins,
-				context.logger
-			);
-
-			context.origin = origin;
-			context.trustedOrigin = trusted;
 		}
 		return context;
 	};
@@ -435,7 +386,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 
 		// Apply middleware processing to enrich the context
 		processIp(request, orpcContext);
-		processCors(request, orpcContext);
+		processCors(request, orpcContext, options.trustedOrigins);
 		processTelemetry(request, orpcContext);
 
 		// Use oRPC handler to handle the request with our enhanced context
