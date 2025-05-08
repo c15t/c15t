@@ -1,13 +1,15 @@
 import { createLogger } from '@doubletie/logger';
-import { OpenAPIGenerator } from '@orpc/openapi';
 import { OpenAPIHandler } from '@orpc/openapi/fetch';
 import { CORSPlugin } from '@orpc/server/plugins';
-import { ZodToJsonSchemaConverter } from '@orpc/zod';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
-import packageJson from '../package.json';
 import { init } from './init';
 import { createCORSOptions, processCors } from './middleware/cors';
+import {
+	createDocsUI,
+	createOpenAPIConfig,
+	createOpenAPISpec,
+} from './middleware/openapi';
 import { withRequestSpan } from './pkgs/api-router/telemetry';
 import { getIp } from './pkgs/api-router/utils/ip';
 import { router } from './router';
@@ -112,37 +114,10 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 		plugins: [new CORSPlugin(corsOptions)],
 	});
 
-	// Initialize OpenAPI generator with schema converters
-	const openAPIGenerator = new OpenAPIGenerator({
-		schemaConverters: [new ZodToJsonSchemaConverter()],
-	});
-
-	// Set up OpenAPI configuration with defaults
-	const openApiConfig = {
-		enabled: true,
-		specPath: '/spec.json',
-		docsPath: '/docs',
-		...(options.openapi || {}),
-	};
-
-	// Default OpenAPI options
-	const defaultOpenApiOptions = {
-		info: {
-			title: options.appName || 'c15t API',
-			version: packageJson.version,
-			description: 'API for consent management',
-		},
-		servers: [{ url: '/' }],
-		security: [{ bearerAuth: [] }],
-		// components: {
-		// 	securitySchemes: {
-		// 		bearerAuth: {
-		// 			type: 'http',
-		// 			scheme: 'bearer',
-		// 		},
-		// 	},
-		// },
-	};
+	// Set up OpenAPI configuration
+	const openApiConfig = createOpenAPIConfig(options);
+	const getOpenAPISpec = createOpenAPISpec(options);
+	const getDocsUI = () => createDocsUI(options);
 
 	/**
 	 * Process IP tracking and add it to the context
@@ -182,81 +157,6 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 		context.userAgent = request.headers.get('user-agent') || undefined;
 
 		return context;
-	};
-
-	/**
-	 * Generate the OpenAPI specification document
-	 */
-	const getOpenAPISpec = (async (): Promise<Record<string, unknown>> => {
-		// Memoise once per process
-		if (getOpenAPISpec.cached) {
-			return getOpenAPISpec.cached;
-		}
-
-		// Start with our defaults
-		const mergedOptions = { ...defaultOpenApiOptions };
-
-		// If user provided options, merge them with defaults
-		if (openApiConfig.options) {
-			// biome-ignore lint: OpenAPI options are dynamically merged
-			const userOptions = openApiConfig.options as Record<string, any>;
-
-			// Handle nested info object (title, description, version) specially
-			if (userOptions.info) {
-				mergedOptions.info = {
-					...defaultOpenApiOptions.info,
-					...userOptions.info,
-				};
-			}
-
-			// For all other top-level properties, override defaults with user settings
-			for (const [key, value] of Object.entries(userOptions)) {
-				if (key !== 'info') {
-					(mergedOptions as Record<string, unknown>)[key] = value;
-				}
-			}
-		}
-
-		// We need to cast to the expected type due to incompatibilities between the types
-		// This is safe as we control the options format and it's compatible with what the generator expects
-		const spec = await openAPIGenerator.generate(
-			router,
-			mergedOptions as Record<string, unknown>
-		);
-		getOpenAPISpec.cached = spec;
-		return spec;
-	}) as (() => Promise<Record<string, unknown>>) & {
-		cached?: Record<string, unknown>;
-	};
-
-	/**
-	 * Generate the default UI for API documentation
-	 */
-	const getDocsUI = () => {
-		// If a custom template is provided, use it
-		if (openApiConfig.customUiTemplate) {
-			return openApiConfig.customUiTemplate;
-		}
-
-		// Otherwise, return the default Scalar UI
-		return `
-    <!doctype html>
-    <html>
-      <head>
-        <title>${options.appName || 'c15t API'} Documentation</title>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" type="image/svg+xml" href="https://orpc.unnoq.com/icon.svg" />
-      </head>
-      <body>
-        <script
-          id="api-reference"
-          data-url="${encodeURI(openApiConfig.specPath)}">
-        </script>
-        <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
-      </body>
-    </html>
-    `;
 	};
 
 	/**
