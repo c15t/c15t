@@ -9,15 +9,18 @@ import {
 
 describe('deepMergeTranslations', () => {
 	const baseTranslations: Translations = {
+		common: {
+			acceptAll: 'Default Accept All',
+			rejectAll: 'Default Reject All',
+			customize: 'Default Customize',
+			save: 'Default Save',
+		},
 		cookieBanner: {
 			title: 'Base Title',
 			description: 'Base Description',
 		},
 		consentManagerDialog: {
 			title: 'Dialog Title',
-		},
-		consentManagerWidget: {
-			title: 'Widget Title',
 		},
 		consentTypes: {
 			necessary: {
@@ -70,15 +73,18 @@ describe('mergeTranslationConfigs', () => {
 	const defaultConfig: TranslationConfig = {
 		translations: {
 			en: {
+				common: {
+					acceptAll: 'Default Accept All',
+					rejectAll: 'Default Reject All',
+					customize: 'Default Customize',
+					save: 'Default Save',
+				},
 				cookieBanner: {
 					title: 'Default Title',
 					description: 'Default Description',
 				},
 				consentManagerDialog: {
 					title: 'Default Dialog',
-				},
-				consentManagerWidget: {
-					title: 'Default Widget',
 				},
 				consentTypes: {
 					necessary: {
@@ -88,15 +94,18 @@ describe('mergeTranslationConfigs', () => {
 				},
 			},
 			de: {
+				common: {
+					acceptAll: 'German Accept All',
+					rejectAll: 'German Reject All',
+					customize: 'German Customize',
+					save: 'German Save',
+				},
 				cookieBanner: {
 					title: 'German Title',
 					description: 'German Description',
 				},
 				consentManagerDialog: {
 					title: 'German Dialog',
-				},
-				consentManagerWidget: {
-					title: 'German Widget',
 				},
 				consentTypes: {
 					necessary: {

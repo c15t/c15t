@@ -1,33 +1,25 @@
 import type { ConsentType } from './gdpr';
 
-export interface CookieBannerTranslations {
-	title: string;
-	description: string;
+export interface CommonTranslations {
 	acceptAll: string;
 	rejectAll: string;
 	customize: string;
+	save: string;
+}
+
+export interface CookieBannerTranslations {
+	title: string;
+	description: string;
 }
 
 export interface ConsentManagerDialogTranslations {
 	title: string;
 	description: string;
-	save: string;
-	acceptAll: string;
-	rejectAll: string;
-	close: string;
 }
 
 export interface ConsentTypeTranslations {
 	title: string;
 	description: string;
-}
-
-export interface ConsentManagerWidgetTranslations {
-	title: string;
-	description: string;
-	save: string;
-	acceptAll: string;
-	rejectAll: string;
 }
 
 /**
@@ -40,17 +32,17 @@ export type ConsentTypesTranslations = {
 
 // Complete translations interface (used for English/default language)
 export interface CompleteTranslations {
+	common: CommonTranslations;
 	cookieBanner: CookieBannerTranslations;
 	consentManagerDialog: ConsentManagerDialogTranslations;
-	consentManagerWidget: ConsentManagerWidgetTranslations;
 	consentTypes: ConsentTypesTranslations;
 }
 
 // Partial translations interface (used for other languages)
 export interface Translations {
+	common: Partial<CommonTranslations>;
 	cookieBanner: Partial<CookieBannerTranslations>;
 	consentManagerDialog: Partial<ConsentManagerDialogTranslations>;
-	consentManagerWidget: Partial<ConsentManagerWidgetTranslations>;
 	consentTypes: Partial<ConsentTypesTranslations>;
 }
 export interface TranslationConfig {

@@ -169,7 +169,7 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 	scrollLock,
 	trapFocus = true,
 }) => {
-	const { cookieBanner } = useTranslations();
+	const { cookieBanner, common } = useTranslations();
 
 	return (
 		<ErrorBoundary
@@ -196,7 +196,7 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 								themeKey="banner.footer.reject-button"
 								data-testid="cookie-banner-reject-button"
 							>
-								{rejectButtonText || cookieBanner.rejectAll}
+								{rejectButtonText || common.rejectAll}
 							</ConsentButton>
 							<ConsentButton
 								action="open-consent-dialog"
@@ -204,7 +204,7 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 								themeKey="banner.footer.customize-button"
 								data-testid="cookie-banner-customize-button"
 							>
-								{customizeButtonText || cookieBanner.customize}
+								{customizeButtonText || common.customize}
 							</ConsentButton>
 						</CookieBannerFooterSubGroup>
 						<ConsentButton
@@ -214,7 +214,7 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 							themeKey="banner.footer.accept-button"
 							data-testid="cookie-banner-accept-button"
 						>
-							{acceptButtonText || cookieBanner.acceptAll}
+							{acceptButtonText || common.acceptAll}
 						</ConsentButton>
 					</CookieBannerFooter>
 				</CookieBannerCard>

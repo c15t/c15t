@@ -237,23 +237,21 @@ const ConsentCustomizationCard = ({
 	noStyle?: boolean;
 	useConsentLogo?: boolean;
 }) => {
-	const translations = useTranslations();
+	const { consentManagerDialog: translations } = useTranslations();
 
 	return (
 		<DialogCard>
 			<DialogHeader>
-				<DialogHeaderTitle>
-					{translations.consentManagerDialog.title}
-				</DialogHeaderTitle>
+				<DialogHeaderTitle>{translations.title}</DialogHeaderTitle>
 				<DialogHeaderDescription>
-					{translations.consentManagerDialog.description}
+					{translations.description}
 				</DialogHeaderDescription>
 			</DialogHeader>
 			<DialogContent>
 				<ConsentManagerWidget
 					hideBrading
 					noStyle={noStyle}
-					useProvider={false}
+					useProvider={true}
 				/>
 			</DialogContent>
 			<DialogFooter themeKey="dialog.footer">
