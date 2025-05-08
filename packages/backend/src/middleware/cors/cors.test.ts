@@ -193,7 +193,7 @@ describe('C15T CORS Configuration', () => {
 				'GET, HEAD, PUT, POST, DELETE, PATCH'
 			);
 			expect(response.headers.get('Access-Control-Allow-Headers')).toBe(
-				'Content-Type, Authorization'
+				'Content-Type, Authorization, x-request-id'
 			);
 			expect(response.headers.get('Access-Control-Max-Age')).toBe('600');
 		});

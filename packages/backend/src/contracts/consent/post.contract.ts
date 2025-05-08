@@ -6,12 +6,7 @@ import { PolicyTypeSchema } from '~/schema';
 const baseConsentSchema = z.object({
 	subjectId: z.string().optional(),
 	externalSubjectId: z.string().optional(),
-	domain: z
-		.string()
-		.regex(
-			/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i,
-			'invalid domain'
-		),
+	domain: z.string(),
 	type: PolicyTypeSchema,
 	metadata: z.record(z.unknown()).optional(),
 });

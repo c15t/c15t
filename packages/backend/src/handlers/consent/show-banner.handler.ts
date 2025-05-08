@@ -110,7 +110,7 @@ export function checkJurisdiction(countryCode: string | null) {
 	};
 
 	// Default to no jurisdiction
-	let showConsentBanner = false;
+	const showConsentBanner = true;
 	let jurisdictionCode: JurisdictionCode = 'NONE';
 
 	// Check country code against jurisdiction sets
@@ -132,7 +132,6 @@ export function checkJurisdiction(countryCode: string | null) {
 		// Find matching jurisdiction
 		for (const { sets, code } of jurisdictionMap) {
 			if (sets.some((set) => set.has(countryCode))) {
-				showConsentBanner = true;
 				jurisdictionCode = code;
 				break;
 			}

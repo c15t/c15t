@@ -25,7 +25,11 @@ const SUPPORTED_METHODS = [
 /**
  * Supported headers for CORS requests
  */
-const SUPPORTED_HEADERS = ['Content-Type', 'Authorization'] as const;
+const SUPPORTED_HEADERS = [
+	'Content-Type',
+	'Authorization',
+	'x-request-id',
+] as const;
 
 /**
  * CORS configuration options type
