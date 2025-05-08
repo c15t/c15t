@@ -4,12 +4,15 @@ import packageJson from '../../../package.json';
 /**
  * Default OpenAPI configuration
  */
-export const createOpenAPIConfig = (options: C15TOptions) => ({
-	enabled: true,
-	specPath: '/spec.json',
-	docsPath: '/docs',
-	...(options.openapi || {}),
-});
+export const createOpenAPIConfig = (options: C15TOptions) => {
+	const basePath = options.basePath || '';
+	return {
+		enabled: true,
+		specPath: `${basePath}/spec.json`,
+		docsPath: `${basePath}/docs`,
+		...(options.openapi || {}),
+	};
+};
 
 /**
  * Default OpenAPI options

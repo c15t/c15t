@@ -40,3 +40,15 @@ describe('C15T /status endpoint', () => {
 		expect(data).toHaveProperty('status');
 	});
 });
+
+describe('C15T /docs endpoint', () => {
+	it('GET /api/c15t/docs returns 200 and HTML', async () => {
+		const c15t = c15tInstance(mockOptions);
+		const request = createTestRequest('/api/c15t/docs');
+		const response = await c15t.handler(request);
+		expect(response.status).toBe(200);
+		const text = await response.text();
+		expect(text).toContain('<!doctype html>');
+		expect(response.headers.get('content-type')).toContain('text/html');
+	});
+});
