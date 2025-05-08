@@ -32,7 +32,7 @@ const SUPPORTED_HEADERS = ['Content-Type', 'Authorization'] as const;
  */
 export interface CORSConfig {
 	/** Origin validation function */
-	origin: (origin: string) => string | boolean;
+	origin: (origin: string) => Promise<string | null>;
 	/** Whether to allow credentials */
 	credentials: boolean;
 	/** Allowed headers */
@@ -47,7 +47,7 @@ export interface CORSConfig {
  * Default CORS configuration for unrestricted access
  */
 const DEFAULT_CORS_CONFIG: CORSConfig = {
-	origin: () => '*',
+	origin: async () => '*',
 	credentials: false,
 	allowHeaders: SUPPORTED_HEADERS,
 	maxAge: 600,
@@ -130,7 +130,7 @@ export function createCORSOptions(trustedOrigins?: string[]): CORSConfig {
 	const expandedTrusted = expandWithWWW(trustedOrigins);
 
 	return {
-		origin: (origin: string) => {
+		origin: async (origin: string) => {
 			if (!origin) {
 				return '*';
 			}
@@ -150,7 +150,7 @@ export function createCORSOptions(trustedOrigins?: string[]): CORSConfig {
 				}
 				return normalizedTrusted === normalizedOrigin;
 			});
-			return isTrusted ? origin : false;
+			return isTrusted ? origin : null;
 		},
 		credentials: true,
 		allowHeaders: SUPPORTED_HEADERS,
