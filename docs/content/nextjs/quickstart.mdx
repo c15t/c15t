@@ -72,10 +72,12 @@ You can create an instance at [consent.io](https://consent.io) or self-host your
 ### c15t Middleware (Recommended)
 
 ```tsx title="app/middleware.ts"
+import type { NextRequest } from 'next/server'
 import c15tMiddleware from '@c15t/middleware/next';
 
 export default async function middleware(request: NextRequest) {
   await c15tMiddleware(request);
+  return NextResponse.next();
 }
 ```
 

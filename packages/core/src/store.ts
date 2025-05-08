@@ -499,13 +499,12 @@ export const createConsentManagerStore = (
 		 *
 		 * @returns A promise that resolves with the consent banner response when the fetch is complete
 		 */
-		fetchConsentBannerInfo: (): Promise<ConsentBannerResponse | undefined> => {
-			return fetchConsentBannerInfoUtil({
+		fetchConsentBannerInfo: (): Promise<ConsentBannerResponse | undefined> =>
+			fetchConsentBannerInfoUtil({
 				manager,
 				get,
 				set,
-			});
-		},
+			}),
 
 		/**
 		 * Retrieves the list of consent types that should be displayed.

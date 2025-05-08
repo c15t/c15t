@@ -8,23 +8,27 @@ import { showConsentBanner } from '../../shared/show-consent-banner';
  * @param request - The NextRequest object
  */
 export default async function c15tMiddleware(request: NextRequest) {
-	const cookieStore = await cookies();
+	try {
+		const cookieStore = await cookies();
 
-	// Check if the user has consented
-	const consent = cookieStore.get('c15t-consent');
+		// Check if the user has consented
+		const consent = cookieStore.get('c15t-consent');
 
-	// If the user has not consented, show the consent banner
-	if (!consent) {
-		const showBanner = showConsentBanner(request.headers);
+		// If the user has not consented, show the consent banner
+		if (!consent) {
+			const showBanner = showConsentBanner(request.headers);
 
-		// Set a cookie of the location and jurisdiction
-		cookieStore.set(
-			'show-consent-banner',
-			JSON.stringify({
-				showConsentBanner: showBanner.showConsentBanner,
-				location: showBanner.location,
-				jurisdiction: showBanner.jurisdiction,
-			})
-		);
+			// Set a cookie of the location and jurisdiction
+			cookieStore.set(
+				'show-consent-banner',
+				JSON.stringify({
+					showConsentBanner: showBanner.showConsentBanner,
+					location: showBanner.location,
+					jurisdiction: showBanner.jurisdiction,
+				})
+			);
+		}
+	} catch (error) {
+		console.error('c15tMiddleware error:', error);
 	}
 }

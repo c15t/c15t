@@ -90,13 +90,10 @@ function updateStoreWithBannerData(
 	const { consentInfo } = get();
 
 	set({
-		locationInfo:
-			data.location?.countryCode && data.location?.regionCode
-				? {
-						countryCode: data.location.countryCode,
-						regionCode: data.location.regionCode,
-					}
-				: { countryCode: '', regionCode: '' },
+		locationInfo: {
+			countryCode: data.location?.countryCode ?? '',
+			regionCode: data.location?.regionCode ?? '',
+		},
 		jurisdictionInfo: data.jurisdiction,
 		isLoadingConsentInfo: false,
 		...(consentInfo === null

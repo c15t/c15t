@@ -47,36 +47,36 @@ export function checkJurisdiction(countryCode: string | null) {
 
 	const jurisdictionRules = {
 		GDPR: {
-			countries: [
+			countries: new Set([
 				...jurisdictions.EU,
 				...jurisdictions.EEA,
 				...jurisdictions.UK,
-			],
+			]),
 			message: 'GDPR or equivalent regulations require a cookie banner.',
 		},
 		CH: {
-			countries: [...jurisdictions.CH],
+			countries: jurisdictions.CH,
 			message: 'Switzerland requires similar data protection measures.',
 		},
 		BR: {
-			countries: [...jurisdictions.BR],
+			countries: jurisdictions.BR,
 			message: "Brazil's LGPD requires consent for cookies.",
 		},
 		PIPEDA: {
-			countries: [...jurisdictions.CA],
+			countries: jurisdictions.CA,
 			message: 'PIPEDA requires consent for data collection.',
 		},
 		AU: {
-			countries: [...jurisdictions.AU],
+			countries: jurisdictions.AU,
 			message:
 				"Australia's Privacy Act mandates transparency about data collection.",
 		},
 		APPI: {
-			countries: [...jurisdictions.JP],
+			countries: jurisdictions.JP,
 			message: "Japan's APPI requires consent for data collection.",
 		},
 		PIPA: {
-			countries: [...jurisdictions.KR],
+			countries: jurisdictions.KR,
 			message: "South Korea's PIPA requires consent for data collection.",
 		},
 	};
@@ -90,7 +90,7 @@ export function checkJurisdiction(countryCode: string | null) {
 	}
 
 	for (const [code, rule] of Object.entries(jurisdictionRules)) {
-		if (rule.countries.includes(countryCode)) {
+		if (rule.countries.has(countryCode)) {
 			return {
 				showConsentBanner: true,
 				jurisdictionCode: code,

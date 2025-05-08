@@ -20,6 +20,10 @@ export const setCookie = (
 		sameSite?: 'Strict' | 'Lax' | 'None';
 	} = {}
 ) => {
+	if (typeof document === 'undefined') {
+		return;
+	}
+
 	const {
 		days = 365, // Default to 1 year
 		path = '/',
@@ -49,6 +53,10 @@ export const setCookie = (
  * @returns The cookie value or null if not found
  */
 export const getCookie = (name: string): string | null => {
+	if (typeof document === 'undefined') {
+		return null;
+	}
+
 	const value = `; ${document.cookie}`;
 	const parts = value.split(`; ${name}=`);
 
