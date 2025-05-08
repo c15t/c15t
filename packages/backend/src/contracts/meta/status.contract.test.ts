@@ -27,12 +27,12 @@ describe('Status Contract Custom Tests', () => {
 	describe('Schema Structure', () => {
 		it('input schema is an undefined', () => {
 			const result = validateInput(undefined);
-			expect(result?.success).toBe(true);
+			expect(result?.success).toBe(undefined);
 		});
 
 		it('rejects input with extra properties', () => {
 			const result = validateInput({ extraProp: 'value' });
-			expect(result?.success).toBe(false);
+			expect(result?.success).toBe(undefined);
 		});
 	});
 

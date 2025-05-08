@@ -1,4 +1,4 @@
-import { c15tInstance } from '@c15t/backend';
+import { type C15TOptions, c15tInstance } from '@c15t/backend';
 import { LibsqlDialect } from '@libsql/kysely-libsql';
 
 /**
@@ -21,20 +21,11 @@ const handler = (env: Env) => {
 			level: 'debug',
 			appName: 'c15t-cloudflare-example',
 		},
-		advanced: {
-			cors: {
-				// Allow x-request-id header that's often used in requests
-				allowHeaders: ['content-type', 'x-request-id'],
-				// Ensure credentials are supported
-				credentials: true,
-			},
-			disableCSRFCheck: true,
-		},
 		// Add OpenAPI configuration
 		openapi: {
 			enabled: true,
 		},
-	});
+	} satisfies C15TOptions);
 
 	// Return a Cloudflare Worker handler
 	return async (request: Request): Promise<Response> => {

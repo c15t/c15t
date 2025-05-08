@@ -18,7 +18,7 @@ describe('Show Consent Banner Handler', () => {
 	const createMockContext = (headers: Record<string, string>) => {
 		return {
 			context: {
-				headers: headers,
+				headers: new Headers(headers),
 			},
 		};
 	};

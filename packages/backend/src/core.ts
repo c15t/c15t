@@ -108,18 +108,6 @@ interface MiddlewareContext {
 	[key: string]: unknown;
 }
 
-// Define advanced options interface to satisfy linter
-interface AdvancedOptions {
-	cors?: {
-		allowedOrigins?: string[];
-	};
-	ipAddress?: {
-		disableIpTracking?: boolean;
-		ipAddressHeaders?: string[];
-	};
-	[key: string]: unknown;
-}
-
 /**
  * Creates a new c15t consent management instance.
  *
@@ -131,15 +119,25 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 	// Initialize context
 	const contextPromise = init(options);
 
-	// Set up CORS configuration
-	const advanced = options.advanced as AdvancedOptions | undefined;
-	const corsOptions = advanced?.cors?.allowedOrigins
+	const corsOptions = options.trustedOrigins
 		? {
-				origin: advanced.cors.allowedOrigins.includes('*')
-					? '*'
-					: advanced.cors.allowedOrigins,
+				// When specific origins are configured
+				origin: options.trustedOrigins.includes('*')
+					? '*' // If '*' is in the list, allow all origins
+					: options.trustedOrigins, // Otherwise use the specific list
+				credentials: true, // Allow cookies/auth headers
+				methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+				allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+				maxAge: 86400,
 			}
-		: {};
+		: {
+				// Default configuration when no origins specified
+				origin: '*', // Allow all origins
+				credentials: false, // Can't use credentials with wildcard origin
+				methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+				allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+				maxAge: 86400,
+			};
 
 	// Create the oRPC handler with plugins
 	const rpcHandler = new OpenAPIHandler(router, {
@@ -194,10 +192,10 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 	 */
 	const processCors = (request: Request, context: MiddlewareContext) => {
 		const origin = request.headers.get('origin');
-		if (origin && advanced?.cors?.allowedOrigins) {
+		if (origin && options.trustedOrigins) {
 			const trusted = isOriginTrusted(
 				origin,
-				advanced.cors.allowedOrigins,
+				options.trustedOrigins,
 				context.logger
 			);
 

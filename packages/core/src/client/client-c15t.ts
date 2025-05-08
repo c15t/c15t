@@ -339,7 +339,7 @@ export class C15tClient implements ConsentManagerInterface {
 			const requestOptions: RequestInit = {
 				method: options?.method || 'GET',
 				mode: this.corsMode, // Use configured CORS mode
-				// credentials: 'include',
+				credentials: 'include', // Always include credentials by default
 				headers: {
 					...this.headers,
 					'X-Request-ID': requestId,
