@@ -45,50 +45,63 @@ export function checkJurisdiction(countryCode: string | null) {
 		KR: new Set(['KR']),
 	};
 
-	let showConsentBanner = true;
-	let jurisdictionCode = 'UNKNOWN';
-	let message = 'No specific requirements';
+	const jurisdictionRules = {
+		GDPR: {
+			countries: [
+				...jurisdictions.EU,
+				...jurisdictions.EEA,
+				...jurisdictions.UK,
+			],
+			message: 'GDPR or equivalent regulations require a cookie banner.',
+		},
+		CH: {
+			countries: [...jurisdictions.CH],
+			message: 'Switzerland requires similar data protection measures.',
+		},
+		BR: {
+			countries: [...jurisdictions.BR],
+			message: "Brazil's LGPD requires consent for cookies.",
+		},
+		PIPEDA: {
+			countries: [...jurisdictions.CA],
+			message: 'PIPEDA requires consent for data collection.',
+		},
+		AU: {
+			countries: [...jurisdictions.AU],
+			message:
+				"Australia's Privacy Act mandates transparency about data collection.",
+		},
+		APPI: {
+			countries: [...jurisdictions.JP],
+			message: "Japan's APPI requires consent for data collection.",
+		},
+		PIPA: {
+			countries: [...jurisdictions.KR],
+			message: "South Korea's PIPA requires consent for data collection.",
+		},
+	};
 
-	if (countryCode) {
-		if (
-			jurisdictions.EU.has(countryCode) ||
-			jurisdictions.EEA.has(countryCode) ||
-			jurisdictions.UK.has(countryCode)
-		) {
-			showConsentBanner = true;
-			jurisdictionCode = 'GDPR';
-			message = 'GDPR or equivalent regulations require a cookie banner.';
-		} else if (jurisdictions.CH.has(countryCode)) {
-			showConsentBanner = true;
-			jurisdictionCode = 'CH';
-			message = 'Switzerland requires similar data protection measures.';
-		} else if (jurisdictions.BR.has(countryCode)) {
-			showConsentBanner = true;
-			jurisdictionCode = 'BR';
-			message = "Brazil's LGPD requires consent for cookies.";
-		} else if (jurisdictions.CA.has(countryCode)) {
-			showConsentBanner = true;
-			jurisdictionCode = 'PIPEDA';
-			message = 'PIPEDA requires consent for data collection.';
-		} else if (jurisdictions.AU.has(countryCode)) {
-			showConsentBanner = true;
-			jurisdictionCode = 'AU';
-			message =
-				"Australia's Privacy Act mandates transparency about data collection.";
-		} else if (jurisdictions.JP.has(countryCode)) {
-			showConsentBanner = true;
-			jurisdictionCode = 'APPI';
-			message = "Japan's APPI requires consent for data collection.";
-		} else if (jurisdictions.KR.has(countryCode)) {
-			showConsentBanner = true;
-			jurisdictionCode = 'PIPA';
-			message = "South Korea's PIPA requires consent for data collection.";
+	if (!countryCode) {
+		return {
+			showConsentBanner: true,
+			jurisdictionCode: 'UNKNOWN',
+			message: 'No specific requirements',
+		};
+	}
+
+	for (const [code, rule] of Object.entries(jurisdictionRules)) {
+		if (rule.countries.includes(countryCode)) {
+			return {
+				showConsentBanner: true,
+				jurisdictionCode: code,
+				message: rule.message,
+			};
 		}
 	}
 
 	return {
-		showConsentBanner,
-		jurisdictionCode,
-		message,
+		showConsentBanner: false,
+		jurisdictionCode: 'NONE',
+		message: 'No specific requirements',
 	};
 }
