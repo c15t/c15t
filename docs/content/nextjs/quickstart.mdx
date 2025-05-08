@@ -30,9 +30,9 @@ This is only required if you are self hosting c15t.
 <Steps>
 <Step>
  
-### Install `@c15t/react` Package
+### Install `@c15t/react` & `@c15t/middleware` (optional) Packages
  ```package-install
- @c15t/react
+ @c15t/react @c15t/middleware
  ```
 </Step>
  
@@ -49,13 +49,11 @@ import {
 } from '@c15t/react';
 
 export default function Layout ({ children }: { children: ReactNode }) => {
-	const options: ConsentManagerOptions = {
+	return (
+    <ConsentManagerProvider options={{
 	  mode: 'c15t', 
 	  backendURL: process.env.NEXT_PUBLIC_C15T_URL,
-	}
-
-	return (
-    <ConsentManagerProvider options={options}>
+	}}>
       {children}
       <CookieBanner />
       <ConsentManagerDialog />
@@ -67,6 +65,24 @@ export default function Layout ({ children }: { children: ReactNode }) => {
 <Callout type="tip">
 You can create an instance at [consent.io](https://consent.io) or self-host your own instance. Otherwise, you can use c15t offline by setting `mode: 'offline'`.
 </Callout>
+</Step>
+
+<Step>
+ 
+### c15t Middleware (Recommended)
+
+```tsx title="app/middleware.ts"
+import c15tMiddleware from '@c15t/middleware/next';
+
+export default async function middleware(request: NextRequest) {
+  await c15tMiddleware(request);
+}
+```
+
+<Callout type="tip">
+Instead of sending a request to your instance, the middleware will check if the cookie banner should be displayed, improving performance.
+</Callout>
+
 </Step>
 </Steps>
 

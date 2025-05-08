@@ -12,6 +12,7 @@ import {
 	hasConsentFor,
 	hasConsented,
 } from './libs/consent-utils';
+import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
 import { createTrackingBlocker } from './libs/tracking-blocker';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
 import { initialState } from './store.initial-state';
@@ -498,131 +499,12 @@ export const createConsentManagerStore = (
 		 *
 		 * @returns A promise that resolves with the consent banner response when the fetch is complete
 		 */
-		fetchConsentBannerInfo: async (): Promise<
-			ConsentBannerResponse | undefined
-		> => {
-			const { callbacks, setDetectedCountry, consentInfo, hasConsented } =
-				get();
-			// Skip if not in browser environment
-			if (typeof window === 'undefined') {
-				return undefined;
-			}
-
-			// Skip if user has already consented
-			if (hasConsented()) {
-				// Make sure loading state is false
-				set({ isLoadingConsentInfo: false });
-				return undefined;
-			}
-
-			// Check if localStorage is available (to prevent crashes in private browsing)
-			let hasLocalStorageAccess = true;
-			try {
-				if (window.localStorage) {
-					// Test localStorage with simple operation
-					window.localStorage.setItem('c15t-storage-test-key', 'test');
-					window.localStorage.removeItem('c15t-storage-test-key');
-				}
-			} catch (error) {
-				// localStorage not available (likely private browsing)
-				hasLocalStorageAccess = false;
-				// biome-ignore lint/suspicious/noConsole: <explanation>
-				console.warn(
-					'localStorage not available, skipping consent banner:',
-					error
-				);
-
-				// Set loading to false and don't show popup to prevent memory leaks
-				set({
-					isLoadingConsentInfo: false,
-					showPopup: false,
-				});
-				return undefined;
-			}
-
-			// Set loading state to true
-			set({ isLoadingConsentInfo: true });
-
-			try {
-				// Let the client handle offline mode internally
-				const { data, error } = await manager.showConsentBanner({
-					// Add onError callback specific to this request
-					// This works alongside the high-level client callbacks
-					//@ts-ignore
-					onError: callbacks.onError,
-				});
-
-				if (error) {
-					throw new Error(
-						`Failed to fetch consent banner info: ${error.message}`
-					);
-				}
-
-				if (!data) {
-					// In offline mode, data will be null, so we should show the banner by default
-					// but only if we have localStorage access
-					set({
-						isLoadingConsentInfo: false,
-						// Only update showPopup if we don't have stored consent and have localStorage access
-						...(consentInfo === null && hasLocalStorageAccess
-							? { showPopup: true }
-							: {}),
-					});
-					return undefined;
-				}
-
-				// Update store with location and jurisdiction information
-				// and set showPopup based on API response
-				set({
-					locationInfo:
-						data.location?.countryCode && data.location?.regionCode
-							? {
-									countryCode: data.location.countryCode,
-									regionCode: data.location.regionCode,
-								}
-							: { countryCode: '', regionCode: '' },
-					jurisdictionInfo: data.jurisdiction,
-					isLoadingConsentInfo: false,
-					// Only update showPopup if we don't have stored consent and have localStorage access
-					...(consentInfo === null
-						? { showPopup: data.showConsentBanner && hasLocalStorageAccess }
-						: {}),
-				});
-
-				// Update detected country if location information is available
-				if (data.location?.countryCode) {
-					setDetectedCountry(data.location.countryCode);
-				}
-
-				// Call the onLocationDetected callback if it exists
-				if (data.location?.countryCode && data.location?.regionCode) {
-					callbacks.onLocationDetected?.({
-						countryCode: data.location.countryCode,
-						regionCode: data.location.regionCode,
-					});
-				}
-
-				// Type assertion to ensure data matches ConsentBannerResponse type
-				return data as ConsentBannerResponse;
-			} catch (error) {
-				// biome-ignore lint/suspicious/noConsole: <explanation>
-				console.error('Error fetching consent banner information:', error);
-
-				// Set loading state to false on error
-				set({ isLoadingConsentInfo: false });
-
-				// Call the onError callback if it exists
-				const errorMessage =
-					error instanceof Error
-						? error.message
-						: 'Unknown error fetching consent banner information';
-				callbacks.onError?.(errorMessage);
-
-				// If fetch fails, default to NOT showing the banner to prevent crashes
-				set({ showPopup: false });
-
-				return undefined;
-			}
+		fetchConsentBannerInfo: (): Promise<ConsentBannerResponse | undefined> => {
+			return fetchConsentBannerInfoUtil({
+				manager,
+				get,
+				set,
+			});
 		},
 
 		/**

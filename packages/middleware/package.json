@@ -1,0 +1,40 @@
+{
+	"name": "@c15t/middleware",
+	"version": "1.0.0",
+	"license": "GPL-3.0-only",
+	"sideEffects": false,
+	"type": "module",
+	"exports": {
+		"./next": {
+			"types": "./dist/adapters/next/index.d.ts",
+			"import": "./dist/adapters/next/index.js",
+			"require": "./dist/adapters/next/index.cjs"
+		}
+	},
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": ["dist"],
+	"scripts": {
+		"build": "rslib build",
+		"check-types": "tsc --noEmit",
+		"dev": "rslib build --watch",
+		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"lint": "pnpm biome lint ./src",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"browserslist": [">0.2%", "not dead", "not op_mini all"],
+	"peerDependencies": {
+		"react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc",
+		"react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc",
+		"next": "^15.0.0"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}
