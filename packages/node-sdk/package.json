@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/node-sdk",
-	"version": "1.2.0-canary.11",
+	"version": "1.2.0-canary.12",
 	"type": "module",
 	"scripts": {
 		"build": "rslib build",

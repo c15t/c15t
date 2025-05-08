@@ -23,6 +23,6 @@ export const createDefaultOpenAPIOptions = (options: C15TOptions) => ({
 		version: packageJson.version,
 		description: 'API for consent management',
 	},
-	servers: [{ url: '/' }],
+	servers: [{ url: options.basePath || '/' }],
 	security: [{ bearerAuth: [] }],
 });
