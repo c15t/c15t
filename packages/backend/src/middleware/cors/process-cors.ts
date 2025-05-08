@@ -1,24 +1,7 @@
-import type { Logger } from '@doubletie/logger';
+import type { C15TContext } from '~/types/context';
 import { isOriginTrusted } from './is-origin-trusted';
 
 /**
- * Interface representing the middleware context
- */
-interface MiddlewareContext {
-	logger?: Logger;
-	adapter: unknown;
-	registry: unknown;
-	generateId: unknown;
-	ipAddress?: string;
-	origin?: string;
-	trustedOrigin?: boolean;
-	path?: string;
-	method?: string;
-	headers?: Headers;
-	userAgent?: string;
-	[key: string]: unknown;
-}
-
 /**
  * Process CORS validation and add it to the context
  *
@@ -29,9 +12,9 @@ interface MiddlewareContext {
  */
 export const processCors = (
 	request: Request,
-	context: MiddlewareContext,
+	context: C15TContext,
 	trustedOrigins?: string[]
-): MiddlewareContext => {
+): C15TContext => {
 	const origin = request.headers.get('origin');
 	if (origin && trustedOrigins) {
 		const trusted = isOriginTrusted(origin, trustedOrigins, context.logger);

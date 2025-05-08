@@ -1,4 +1,4 @@
-import { type Logger, createLogger } from '@doubletie/logger';
+import { createLogger } from '@doubletie/logger';
 import { OpenAPIGenerator } from '@orpc/openapi';
 import { OpenAPIHandler } from '@orpc/openapi/fetch';
 import { CORSPlugin } from '@orpc/server/plugins';
@@ -7,8 +7,7 @@ import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
 import packageJson from '../package.json';
 import { init } from './init';
-import { createCORSOptions } from './middleware/cors/cors';
-import { processCors } from './middleware/cors/process-cors';
+import { createCORSOptions, processCors } from './middleware/cors';
 import { withRequestSpan } from './pkgs/api-router/telemetry';
 import { getIp } from './pkgs/api-router/utils/ip';
 import { router } from './router';
@@ -94,22 +93,6 @@ export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
 	getDocsUI: () => string;
 }
 
-// Define middleware context interface
-interface MiddlewareContext {
-	logger?: Logger;
-	adapter: unknown;
-	registry: unknown;
-	generateId: unknown;
-	ipAddress?: string;
-	origin?: string;
-	trustedOrigin?: boolean;
-	path?: string;
-	method?: string;
-	headers?: Headers;
-	userAgent?: string;
-	[key: string]: unknown;
-}
-
 /**
  * Creates a new c15t consent management instance.
  *
@@ -164,7 +147,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 	/**
 	 * Process IP tracking and add it to the context
 	 */
-	const processIp = (request: Request, context: MiddlewareContext) => {
+	const processIp = (request: Request, context: C15TContext) => {
 		const ip = getIp(request, options);
 		if (ip) {
 			context.ipAddress = ip;
@@ -175,7 +158,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 	/**
 	 * Add telemetry tracking to the context
 	 */
-	const processTelemetry = (request: Request, context: MiddlewareContext) => {
+	const processTelemetry = (request: Request, context: C15TContext) => {
 		const url = new URL(request.url);
 		const path = url.pathname;
 		const method = request.method;
@@ -375,13 +358,18 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 		ctx: C15TContext
 	): Promise<Response> => {
 		// Create context for the handler with c15t specifics
-		const orpcContext: MiddlewareContext = {
+		const orpcContext = {
 			adapter: ctx.adapter,
 			registry: ctx.registry,
 			logger: ctx.logger,
 			generateId: ctx.generateId,
 			headers: request.headers,
 			userAgent: request.headers.get('user-agent') || undefined,
+			appName: options.appName || 'c15t',
+			options,
+			trustedOrigins: options.trustedOrigins || [],
+			baseURL: options.baseURL || '/',
+			tables: ctx.tables,
 		};
 
 		// Apply middleware processing to enrich the context
