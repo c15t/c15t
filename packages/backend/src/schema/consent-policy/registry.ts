@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto';
-
 import { getWithHooks } from '~/pkgs/data-model';
 import type { Where } from '~/pkgs/db-adapters';
 import type { GenericEndpointContext, RegistryContext } from '~/pkgs/types';
@@ -31,9 +29,14 @@ import type { ConsentPolicy, PolicyType } from './schema';
  *
  * @internal Used by findOrCreatePolicy to initialize placeholder content
  */
-function generatePolicyPlaceholder(name: string, date: Date) {
+async function generatePolicyPlaceholder(name: string, date: Date) {
 	const content = `[PLACEHOLDER] This is an automatically generated version of the ${name} policy.\n\nThis placeholder content should be replaced with actual policy terms before being presented to users.\n\nGenerated on: ${date.toISOString()}`;
-	const contentHash = createHash('sha256').update(content).digest('hex');
+	const encoder = new TextEncoder();
+	const data = encoder.encode(content);
+	const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+	const contentHash = Array.from(new Uint8Array(hashBuffer))
+		.map((b) => b.toString(16).padStart(2, '0'))
+		.join('');
 	return { content, contentHash };
 }
 
@@ -266,7 +269,7 @@ export function policyRegistry({ adapter, ...ctx }: RegistryContext) {
 		 */
 		findOrCreatePolicy: async (type: PolicyType) => {
 			// Use a transaction to prevent race conditions
-			return adapter.transaction({
+			return await adapter.transaction({
 				callback: async (txAdapter) => {
 					const now = new Date();
 					const txRegistry = policyRegistry({
@@ -304,7 +307,7 @@ export function policyRegistry({ adapter, ...ctx }: RegistryContext) {
 
 					// Generate policy content and hash
 					const { content: defaultContent, contentHash } =
-						generatePolicyPlaceholder(type, now);
+						await generatePolicyPlaceholder(type, now);
 
 					return txRegistry.createConsentPolicy({
 						version: '1.0.0',
