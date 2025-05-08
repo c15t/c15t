@@ -218,8 +218,9 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 			method,
 			path,
 			async () => {
-				// This is intentionally empty, we're just creating the span
-				// The actual request processing happens elsewhere
+				// This callback is intentionally empty - we're only creating the span
+				// The span automatically tracks the current execution context and
+				// will be associated with the request processing that follows
 			},
 			options
 		);
@@ -346,10 +347,15 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 	 * Create error response for DoubleTieError
 	 */
 	const createDoubleTieErrorResponse = (error: DoubleTieError): Response => {
+		// Sanitize error message to prevent sensitive information disclosure
+		const sanitizedMessage = error.message.replace(
+			/[^\w\s.,;:!?()[\]{}'"+-]/g,
+			''
+		);
 		return new Response(
 			JSON.stringify({
 				code: error.code,
-				message: error.message,
+				message: sanitizedMessage,
 				data: error.meta,
 				status: error.statusCode,
 				defined: true,
@@ -366,10 +372,18 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 	 */
 	const createUnknownErrorResponse = (error: unknown): Response => {
 		const message = error instanceof Error ? error.message : String(error);
-		const status =
-			error instanceof Error && 'status' in error
-				? (error as { status: number }).status
-				: 500;
+		// More safely determine the status code with proper type checks
+		let status = 500;
+		if (error instanceof Error && 'status' in error) {
+			const statusValue = (error as { status: unknown }).status;
+			if (
+				typeof statusValue === 'number' &&
+				statusValue >= 100 &&
+				statusValue < 600
+			) {
+				status = statusValue;
+			}
+		}
 
 		return new Response(
 			JSON.stringify({
