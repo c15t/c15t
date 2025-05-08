@@ -4,7 +4,12 @@ import { type C15TOptions, c15tInstance } from '../core';
 const mockOptions: C15TOptions = {
 	appName: 'Consent.io Dashboard',
 	basePath: '/api/c15t',
-	trustedOrigins: ['localhost', 'vercel.app', 'consent.io'],
+	trustedOrigins: [
+		'localhost',
+		'vercel.app',
+		'consent.io',
+		'https://test.consent.io',
+	],
 	cors: true,
 	advanced: {
 		cors: {
@@ -38,6 +43,43 @@ describe('C15T /status endpoint', () => {
 		expect(response.status).toBe(200);
 		const data = await response.json();
 		expect(data).toHaveProperty('status');
+	});
+
+	it('responds correctly to requests from allowed origins', async () => {
+		const c15t = c15tInstance(mockOptions);
+		const request = createTestRequest(undefined, undefined, {
+			origin: 'https://test.consent.io',
+		});
+		const response = await c15t.handler(request);
+		expect(response.status).toBe(200);
+		expect(response.headers.get('access-control-allow-origin')).toBe(
+			'https://test.consent.io'
+		);
+	});
+
+	it('rejects requests from disallowed origins', async () => {
+		const c15t = c15tInstance(mockOptions);
+		const request = createTestRequest(undefined, undefined, {
+			origin: 'https://malicious-site.com',
+		});
+		const response = await c15t.handler(request);
+		expect(response.headers.get('access-control-allow-origin')).toBeNull();
+	});
+
+	it('handles preflight requests correctly', async () => {
+		const c15t = c15tInstance(mockOptions);
+		const request = createTestRequest(undefined, 'OPTIONS', {
+			origin: 'https://test.consent.io',
+			'access-control-request-method': 'GET',
+		});
+		const response = await c15t.handler(request);
+		expect(response.status).toBe(204);
+		expect(response.headers.get('access-control-allow-origin')).toBe(
+			'https://test.consent.io'
+		);
+		expect(response.headers.get('access-control-allow-headers')).toContain(
+			'Content-Type, Authorization, x-request-id'
+		);
 	});
 });
 
