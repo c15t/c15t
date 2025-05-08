@@ -103,13 +103,21 @@ export function createCORSOptions(
 	function normalizeOrigin(origin: string): string {
 		try {
 			// Handle bare domains like 'localhost' or 'example.com'
-			if (!origin.includes('://')) {
+			if (
+				!origin.includes('://') &&
+				!origin.includes(':') &&
+				!origin.includes('/')
+			) {
 				return origin.toLowerCase();
 			}
 			// Add protocol if missing
-			const originWithProtocol = origin.startsWith('http')
-				? origin
-				: `http://${origin}`;
+			const originWithProtocol =
+				origin.startsWith('http://') ||
+				origin.startsWith('https://') ||
+				origin.startsWith('ws://') ||
+				origin.startsWith('wss://')
+					? origin
+					: `http://${origin}`;
 			const url = new URL(originWithProtocol);
 			const hostname = url.hostname.replace(WWW_REGEX, '');
 			// Return without protocol to match both http and https
@@ -163,7 +171,11 @@ export function createCORSOptions(
 				if (normalizedTrusted === 'localhost') {
 					return (
 						normalizedOrigin === 'localhost' ||
-						normalizedOrigin.startsWith('localhost:')
+						normalizedOrigin.startsWith('localhost:') ||
+						normalizedOrigin === '127.0.0.1' ||
+						normalizedOrigin.startsWith('127.0.0.1:') ||
+						normalizedOrigin === '[::1]' ||
+						normalizedOrigin.startsWith('[::1]:')
 					);
 				}
 				return normalizedTrusted === normalizedOrigin;

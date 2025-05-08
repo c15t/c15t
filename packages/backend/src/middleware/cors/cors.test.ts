@@ -88,7 +88,9 @@ describe('C15T CORS Configuration', () => {
 
 			const response = await c15t.handler(request);
 			expect(response.status).toBe(200);
-			expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
+				'http://localhost:3002'
+			);
 		});
 
 		it('should handle undefined trustedOrigins gracefully', async () => {
@@ -97,9 +99,11 @@ describe('C15T CORS Configuration', () => {
 
 			const response = await c15t.handler(request);
 			expect(response.status).toBe(200);
-			expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
+				'http://localhost:3002'
+			);
 			expect(response.headers.get('Access-Control-Allow-Credentials')).toBe(
-				null
+				'true'
 			);
 		});
 	});
@@ -125,7 +129,9 @@ describe('C15T CORS Configuration', () => {
 
 			const response = await c15t.handler(request);
 			expect(response.status).toBe(204);
-			expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+			expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
+				'http://localhost:3002'
+			);
 			expect(response.headers.get('Access-Control-Allow-Methods')).toBe(
 				'GET, HEAD, PUT, POST, DELETE, PATCH'
 			);
@@ -134,7 +140,7 @@ describe('C15T CORS Configuration', () => {
 			);
 			expect(response.headers.get('Access-Control-Max-Age')).toBe('600');
 			expect(response.headers.get('Access-Control-Allow-Credentials')).toBe(
-				null
+				'true'
 			);
 		});
 
@@ -153,7 +159,7 @@ describe('C15T CORS Configuration', () => {
 			);
 			expect(response.headers.get('Access-Control-Max-Age')).toBe('600');
 			expect(response.headers.get('Access-Control-Allow-Credentials')).toBe(
-				null
+				'true'
 			);
 		});
 	});

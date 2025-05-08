@@ -19,19 +19,6 @@ import type { Logger } from '@doubletie/logger';
 export const STRIP_REGEX = /^(https?:\/\/)|(wss?:\/\/)|(\/+$)|:\d+/g;
 
 /**
- * Configuration for origin validation
- * @internal
- */
-interface OriginValidationConfig {
-	/** Origin to validate */
-	origin: string;
-	/** Trusted domain patterns */
-	trustedDomains: string[];
-	/** Optional logger */
-	logger?: Logger;
-}
-
-/**
  * Checks if a domain matches a wildcard pattern
  *
  * @param hostname - The hostname to check
