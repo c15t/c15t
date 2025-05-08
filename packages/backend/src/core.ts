@@ -297,7 +297,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 		// Use oRPC handler to handle the request with our enhanced context
 		const handlerContext = orpcContext as Record<string, unknown>;
 		const { matched, response } = await rpcHandler.handle(request, {
-			prefix: '/',
+			prefix: (options.baseURL as `/${string}`) || '/',
 			context: handlerContext,
 		});
 
@@ -316,6 +316,11 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 	const handler = async (request: Request): Promise<Response> => {
 		try {
 			const url = new URL(request.url);
+			// Add this debug log:
+			createLogger(options.logger)?.debug?.('Incoming request', {
+				method: request.method,
+				pathname: url.pathname,
+			});
 
 			// Check for OpenAPI spec or docs UI requests
 			const openApiResponse = await handleOpenApiSpecRequest(url);
