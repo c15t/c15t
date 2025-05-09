@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import type { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
-import c15tMiddleware from '../index';
+import { c15tMiddleware } from '../index';
 
 // Mock next/headers
 vi.mock('next/headers', () => ({

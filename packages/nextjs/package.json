@@ -1,0 +1,52 @@
+{
+	"name": "@c15t/nextjs",
+	"version": "1.2.0-canary.12",
+	"description": "Next.js integration for C15T consent management",
+	"main": "./dist/index.js",
+	"module": "./dist/index.mjs",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		},
+		"./node-sdk": {
+			"types": "./dist/node-sdk.d.ts",
+			"import": "./dist/node-sdk.js",
+			"require": "./dist/node-sdk.cjs"
+		},
+		"./backend": {
+			"types": "./dist/backend.d.ts",
+			"import": "./dist/backend.js",
+			"require": "./dist/backend.cjs"
+		}
+	},
+	"sideEffects": false,
+	"license": "MIT",
+	"scripts": {
+		"build": "rslib build",
+		"check-types": "tsc --noEmit",
+		"dev": "rslib build --watch",
+		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"lint": "pnpm biome lint ./src",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"dependencies": {
+		"@c15t/backend": "workspace:*",
+		"@c15t/middleware": "workspace:*",
+		"@c15t/node-sdk": "workspace:*",
+		"@c15t/react": "workspace:*"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
+		"typescript": "^5.0.0"
+	},
+	"peerDependencies": {
+		"react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc",
+		"react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc",
+		"next": "^15.0.0 || ^14.0.0"
+	}
+}

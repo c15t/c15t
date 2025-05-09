@@ -12,6 +12,7 @@
 		"start": "next start"
 	},
 	"dependencies": {
+		"@c15t/nextjs": "workspace:*",
 		"@c15t/backend": "workspace:*",
 		"@c15t/dev-tools": "workspace:*",
 		"@c15t/react": "workspace:*",

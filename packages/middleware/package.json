@@ -5,10 +5,10 @@
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
-		"./next": {
-			"types": "./dist/adapters/next/index.d.ts",
-			"import": "./dist/adapters/next/index.js",
-			"require": "./dist/adapters/next/index.cjs"
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
 		}
 	},
 	"main": "./dist/index.cjs",
@@ -25,11 +25,6 @@
 		"test:watch": "vitest"
 	},
 	"browserslist": [">0.2%", "not dead", "not op_mini all"],
-	"peerDependencies": {
-		"react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc",
-		"react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc",
-		"next": "^15.0.0"
-	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*"

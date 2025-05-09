@@ -185,6 +185,9 @@ importers:
       '@c15t/middleware':
         specifier: workspace:*
         version: link:../packages/middleware
+      '@c15t/nextjs':
+        specifier: workspace:*
+        version: link:../packages/nextjs
       '@c15t/react':
         specifier: workspace:*
         version: link:../packages/react
@@ -593,9 +596,30 @@ importers:
         version: 8.5.3
 
   packages/middleware:
+    devDependencies:
+      '@c15t/typescript-config':
+        specifier: workspace:*
+        version: link:../../internals/typescript-config
+      '@c15t/vitest-config':
+        specifier: workspace:*
+        version: link:../../internals/vitest-config
+
+  packages/nextjs:
     dependencies:
+      '@c15t/backend':
+        specifier: workspace:*
+        version: link:../backend
+      '@c15t/middleware':
+        specifier: workspace:*
+        version: link:../middleware
+      '@c15t/node-sdk':
+        specifier: workspace:*
+        version: link:../node-sdk
+      '@c15t/react':
+        specifier: workspace:*
+        version: link:../react
       next:
-        specifier: ^15.0.0
+        specifier: ^15.0.0 || ^14.0.0
         version: 15.3.0(@babel/core@7.26.10)(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       react:
         specifier: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
@@ -610,6 +634,9 @@ importers:
       '@c15t/vitest-config':
         specifier: workspace:*
         version: link:../../internals/vitest-config
+      typescript:
+        specifier: ^5.0.0
+        version: 5.8.3
 
   packages/node-sdk:
     dependencies:

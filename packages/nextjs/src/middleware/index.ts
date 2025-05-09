@@ -1,13 +1,13 @@
+import { showConsentBanner } from '@c15t/middleware';
 import { cookies } from 'next/headers';
 import type { NextRequest } from 'next/server';
-import { showConsentBanner } from '../../shared/show-consent-banner';
 
 /**
  * Middleware for Next.js to handle consent banner functionality
  *
  * @param request - The NextRequest object
  */
-export default async function c15tMiddleware(request: NextRequest) {
+export async function c15tMiddleware(request: NextRequest) {
 	try {
 		const cookieStore = await cookies();
 

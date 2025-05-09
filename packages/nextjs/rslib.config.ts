@@ -4,6 +4,8 @@ export default defineConfig({
 	source: {
 		entry: {
 			index: ['./src/index.ts'],
+			'node-sdk': ['./src/node-sdk.ts'],
+			backend: ['./src/backend.ts'],
 		},
 	},
 	lib: [
@@ -12,11 +14,11 @@ export default defineConfig({
 			bundle: true,
 			format: 'esm',
 		},
-		{
-			dts: true,
-			bundle: true,
-			format: 'cjs',
-		},
+		// {
+		// 	dts: true,
+		// 	bundle: true,
+		// 	format: 'cjs',
+		// },
 	],
 	output: {
 		target: 'node',
