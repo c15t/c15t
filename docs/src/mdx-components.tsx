@@ -8,7 +8,9 @@ import { CompactCard } from './mdx/compact-card';
 import { Mermaid } from './mdx/mermaid';
 import { RunCommand } from './mdx/run-command';
 
-const generator = createGenerator();
+const generator = createGenerator({
+	tsconfigPath: './tsconfig.json',
+});
 
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
 	return {
