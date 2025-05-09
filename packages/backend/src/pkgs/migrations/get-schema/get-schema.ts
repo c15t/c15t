@@ -4,13 +4,13 @@ import { processTablesIntoSchema } from './process-tables';
 import type { SchemaDefinition } from './types';
 
 /**
- * Generates a complete database schema from the C15T configuration
+ * Generates a complete database schema from the c15t configuration
  *
  * This function serves as the main entry point for schema generation.
  * It retrieves table definitions from the consent module and processes
  * them into a structured schema representation.
  *
- * @param config - The complete C15T configuration
+ * @param config - The complete c15t configuration
  * @returns A structured schema definition with fields and table properties
  *
  * @example

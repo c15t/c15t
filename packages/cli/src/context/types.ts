@@ -1,10 +1,7 @@
 import type { C15TOptions, C15TPlugin } from '@c15t/backend';
-import type { Logger } from '@c15t/backend/pkgs/logger';
+import type { Logger } from '@doubletie/logger';
 import type { CliExtensions } from '../utils/logger';
 import type { Telemetry } from '../utils/telemetry';
-
-// Re-export Logger if needed elsewhere, or keep specific to context
-export type { Logger };
 
 // --- Command Definition ---
 export interface CliCommand {

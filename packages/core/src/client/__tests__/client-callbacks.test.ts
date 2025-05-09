@@ -146,7 +146,7 @@ describe('Client Callbacks Tests', () => {
 				response: null,
 				data: {
 					showConsentBanner: true,
-					jurisdiction: { code: 'EU', message: 'EU' },
+					jurisdiction: { code: 'GDPR', message: 'EU' },
 					location: { countryCode: 'GB', regionCode: null },
 				},
 			});

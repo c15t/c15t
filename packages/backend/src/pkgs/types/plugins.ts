@@ -1,4 +1,3 @@
-import type { H3Event } from 'h3';
 import type { Migration } from 'kysely';
 import type { Field } from '~/pkgs/data-model';
 import type { DoubleTieContext, HookEndpointContext } from './context';
@@ -75,12 +74,12 @@ export interface DoubleTiePlugin {
 	/**
 	 * Handler for intercepting and potentially modifying incoming requests
 	 */
-	onRequest?: (event: H3Event, ctx: DoubleTieContext) => Promise<unknown>;
+	onRequest?: (request: Request, ctx: DoubleTieContext) => Promise<unknown>;
 
 	/**
 	 * Handler for intercepting and potentially modifying outgoing responses
 	 */
-	onResponse?: (event: H3Event, ctx: DoubleTieContext) => Promise<unknown>;
+	onResponse?: (response: Response, ctx: DoubleTieContext) => Promise<unknown>;
 
 	/**
 	 * Request lifecycle hooks for executing code before or after endpoint handling

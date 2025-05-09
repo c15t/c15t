@@ -1,15 +1,24 @@
+import { type Logger, createLogger } from '@doubletie/logger';
+import { OpenAPIGenerator } from '@orpc/openapi';
+import { OpenAPIHandler } from '@orpc/openapi/fetch';
+import { CORSPlugin } from '@orpc/server/plugins';
+import { ZodToJsonSchemaConverter } from '@orpc/zod';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
+import packageJson from '../package.json';
 import { init } from './init';
-import { createApiHandler } from './pkgs/api-router';
-import {
-	ERROR_CODES,
-	type SDKResult,
-	type SDKResultAsync,
-	failAsync,
-	okAsync,
-} from './pkgs/results';
-import { routes } from './routes';
-import type { Route } from './routes/types';
+import { withRequestSpan } from './pkgs/api-router/telemetry';
+import { isOriginTrusted } from './pkgs/api-router/utils/cors';
+import { getIp } from './pkgs/api-router/utils/ip';
+import { router } from './router';
+/**
+ * Type representing an API route
+ */
+export type Route = {
+	path: string;
+	method: string;
+	description?: string;
+};
 
 /**
  * Interface representing a configured c15t consent management instance.
@@ -21,8 +30,7 @@ import type { Route } from './routes/types';
  * management system. It includes methods for handling requests, accessing API
  * endpoints, and managing the system's configuration.
  *
- * All asynchronous operations return {@link SDKResultAsync} types for
- * consistent error handling across the system.
+ * All asynchronous operations return Promises for consistent error handling.
  *
  * @example
  * ```typescript
@@ -40,38 +48,19 @@ export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
 	 * Processes incoming HTTP requests and routes them to appropriate handlers.
 	 *
 	 * @param request - The incoming web request
-	 * @returns A Promise resolving to a Result containing the HTTP response
-	 *
-	 * @throws Never - All errors are captured in the Result type
+	 * @returns A Promise containing the HTTP response
 	 *
 	 * @example
 	 * ```typescript
-	 * const result = await instance.handler(request);
-	 * result.match(
-	 *   response => sendResponse(response),
-	 *   error => handleError(error)
-	 * );
+	 * try {
+	 *   const response = await instance.handler(request);
+	 *   sendResponse(response);
+	 * } catch (error) {
+	 *   handleError(error);
+	 * }
 	 * ```
 	 */
-	handler: (request: Request) => Promise<SDKResultAsync<Response>>;
-
-	/**
-	 * Retrieves available API endpoints and their configurations.
-	 *
-	 * @returns A Promise resolving to a Result containing the available API endpoints
-	 *
-	 * @throws Never - All errors are captured in the Result type
-	 *
-	 * @example
-	 * ```typescript
-	 * const endpoints = await instance.getApi();
-	 * endpoints.map(
-	 *   apis => console.log('Available endpoints:', apis),
-	 *   error => console.error('Failed to get endpoints:', error)
-	 * );
-	 * ```
-	 */
-	getApi: () => Promise<SDKResultAsync<Route[]>>;
+	handler: (request: Request) => Promise<Response>;
 
 	/**
 	 * The configuration options used for this instance.
@@ -79,157 +68,460 @@ export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
 	options: C15TOptions<PluginTypes>;
 
 	/**
-	 * Access to the underlying context as a Result type.
-	 *
-	 * @remarks
-	 * The context is wrapped in a Result type to ensure error handling
-	 * consistency. Access should be handled using Result pattern methods.
+	 * Access to the underlying context.
 	 */
-	$context: Promise<SDKResult<C15TContext>>;
+	$context: Promise<C15TContext>;
+
+	/**
+	 * Access to the router for direct usage.
+	 */
+	router: typeof router;
+
+	/**
+	 * Generates and returns the OpenAPI specification as a JSON object.
+	 *
+	 * @returns A Promise containing the OpenAPI specification
+	 */
+	getOpenAPISpec: () => Promise<Record<string, unknown>>;
+
+	/**
+	 * Returns an HTML document with the API documentation UI.
+	 *
+	 * @returns An HTML string with the API reference UI
+	 */
+	getDocsUI: () => string;
+}
+
+// Define middleware context interface
+interface MiddlewareContext {
+	logger?: Logger;
+	adapter: unknown;
+	registry: unknown;
+	generateId: unknown;
+	ipAddress?: string;
+	origin?: string;
+	trustedOrigin?: boolean;
+	path?: string;
+	method?: string;
+	headers?: Headers;
+	userAgent?: string;
+	[key: string]: unknown;
 }
 
 /**
  * Creates a new c15t consent management instance.
  *
- * @typeParam PluginTypes - Array of plugin types to be used in this instance
- * @typeParam ConfigOptions - Configuration options extending the base C15TOptions
- *
- * @param options - Configuration options for the consent management system
- * @returns A configured C15TInstance ready for use
- *
- * @remarks
- * This is the main factory function for creating c15t instances. It initializes
- * the consent management system with the provided configuration and sets up all
- * necessary components including:
- *
- * - Database adapters
- * - Plugin system
- * - Request handlers
- * - API endpoints
- * - CORS configuration
- *
- * All async operations use the Result pattern for error handling, ensuring
- * that errors are handled consistently throughout the system.
- *
- * @example
- * Basic initialization:
- * ```typescript
- * import { c15tInstance } from '@c15t/backend';
- *
- * const manager = c15tInstance({
- *   storage: memoryAdapter()
- * });
- * ```
- *
- * @example
- * Advanced initialization with type parameters:
- * ```typescript
- * type MyPlugins = [typeof geoPlugin, typeof analyticsPlugin];
- *
- * const c15t = c15tInstance<MyPlugins>({
- *   storage: kyselyAdapter(db),
- *   plugins: [geoPlugin(), analyticsPlugin()]
- * });
- * ```
+ * This version provides a unified handler that works with oRPC to handle requests.
  */
 export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 	options: C15TOptions<PluginTypes>
-): C15TInstance<PluginTypes> => {
-	// Initialize context directly without retry
+) => {
+	// Initialize context
 	const contextPromise = init(options);
-	let webHandler: ((request: Request) => Promise<Response>) | null = null;
 
-	/**
-	 * Creates or returns the cached H3 app handler
-	 */
-	const getHandler = async (
-		ctx: C15TContext
-	): Promise<(request: Request) => Promise<Response>> => {
-		// Initialize the app once and cache it
-		if (!webHandler) {
-			// Use createApiHandler instead of direct H3 app creation
-			// This ensures the registry and other context items are properly passed to event handlers
-			const { handler } = createApiHandler({
-				options: ctx.options,
-				context: {
-					adapter: ctx.adapter,
-					registry: ctx.registry,
-					trustedOrigins: ctx.trustedOrigins,
-					logger: ctx.logger,
-				},
-			});
+	const corsOptions = options.trustedOrigins
+		? {
+				// When specific origins are configured
+				origin: options.trustedOrigins.includes('*')
+					? '*' // If '*' is in the list, allow all origins
+					: options.trustedOrigins, // Otherwise use the specific list
+				credentials: true, // Allow cookies/auth headers
+				methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+				allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+				maxAge: 86400,
+			}
+		: {
+				// Default configuration when no origins specified
+				origin: '*', // Allow all origins
+				credentials: false, // Can't use credentials with wildcard origin
+				methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+				allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+				maxAge: 86400,
+			};
 
-			// Cache the handler
-			webHandler = handler;
-		}
+	// Create the oRPC handler with plugins
+	const rpcHandler = new OpenAPIHandler(router, {
+		plugins: [new CORSPlugin(corsOptions)],
+	});
 
-		return webHandler;
+	// Initialize OpenAPI generator with schema converters
+	const openAPIGenerator = new OpenAPIGenerator({
+		schemaConverters: [new ZodToJsonSchemaConverter()],
+	});
+
+	// Set up OpenAPI configuration with defaults
+	const openApiConfig = {
+		enabled: true,
+		specPath: '/spec.json',
+		docsPath: '/docs',
+		...(options.openapi || {}),
+	};
+
+	// Default OpenAPI options
+	const defaultOpenApiOptions = {
+		info: {
+			title: options.appName || 'c15t API',
+			version: packageJson.version,
+			description: 'API for consent management',
+		},
+		servers: [{ url: '/' }],
+		security: [{ bearerAuth: [] }],
+		// components: {
+		// 	securitySchemes: {
+		// 		bearerAuth: {
+		// 			type: 'http',
+		// 			scheme: 'bearer',
+		// 		},
+		// 	},
+		// },
 	};
 
 	/**
-	 * Handles incoming requests using H3
+	 * Process IP tracking and add it to the context
 	 */
-	const handler = async (
-		request: Request
-	): Promise<SDKResultAsync<Response>> => {
-		try {
-			const contextResult = await contextPromise;
-
-			return contextResult.match(
-				// Success case
-				async (ctx) => {
-					try {
-						// Get the web handler which accepts standard Request objects
-						const handler = await getHandler(ctx);
-
-						// Simply call the handler with the request
-						const response = await handler(request);
-						return okAsync(response);
-					} catch (error) {
-						return failAsync('Request handling failed', {
-							code: ERROR_CODES.REQUEST_HANDLER_ERROR,
-							cause: error instanceof Error ? error : undefined,
-						});
-					}
-				},
-				// Error case
-				(error) => {
-					// Handle initialization errors without special version handling
-					return failAsync(`Context initialization failed: ${error.message}`, {
-						code: ERROR_CODES.INITIALIZATION_FAILED,
-						cause: error,
-					});
-				}
-			);
-		} catch (error) {
-			return failAsync(
-				`Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
-				{
-					code: ERROR_CODES.UNKNOWN_ERROR,
-					cause: error instanceof Error ? error : undefined,
-				}
-			);
+	const processIp = (request: Request, context: MiddlewareContext) => {
+		const ip = getIp(request, options);
+		if (ip) {
+			context.ipAddress = ip;
 		}
+		return context;
+	};
+
+	/**
+	 * Process CORS validation and add it to the context
+	 */
+	const processCors = (request: Request, context: MiddlewareContext) => {
+		const origin = request.headers.get('origin');
+		if (origin && options.trustedOrigins) {
+			const trusted = isOriginTrusted(
+				origin,
+				options.trustedOrigins,
+				context.logger
+			);
+
+			context.origin = origin;
+			context.trustedOrigin = trusted;
+		}
+		return context;
+	};
+
+	/**
+	 * Add telemetry tracking to the context
+	 */
+	const processTelemetry = (request: Request, context: MiddlewareContext) => {
+		const url = new URL(request.url);
+		const path = url.pathname;
+		const method = request.method;
+
+		// Add a span to the context that can be accessed by handlers
+		withRequestSpan(
+			method,
+			path,
+			async () => {
+				// This callback is intentionally empty - we're only creating the span
+				// The span automatically tracks the current execution context and
+				// will be associated with the request processing that follows
+			},
+			options
+		);
+
+		// Add path and method to context for easier access
+		context.path = path;
+		context.method = method;
+		context.headers = request.headers;
+		context.userAgent = request.headers.get('user-agent') || undefined;
+
+		return context;
+	};
+
+	/**
+	 * Generate the OpenAPI specification document
+	 */
+	const getOpenAPISpec = (async (): Promise<Record<string, unknown>> => {
+		// Memoise once per process
+		if (getOpenAPISpec.cached) {
+			return getOpenAPISpec.cached;
+		}
+
+		// Start with our defaults
+		const mergedOptions = { ...defaultOpenApiOptions };
+
+		// If user provided options, merge them with defaults
+		if (openApiConfig.options) {
+			// biome-ignore lint: OpenAPI options are dynamically merged
+			const userOptions = openApiConfig.options as Record<string, any>;
+
+			// Handle nested info object (title, description, version) specially
+			if (userOptions.info) {
+				mergedOptions.info = {
+					...defaultOpenApiOptions.info,
+					...userOptions.info,
+				};
+			}
+
+			// For all other top-level properties, override defaults with user settings
+			for (const [key, value] of Object.entries(userOptions)) {
+				if (key !== 'info') {
+					(mergedOptions as Record<string, unknown>)[key] = value;
+				}
+			}
+		}
+
+		// We need to cast to the expected type due to incompatibilities between the types
+		// This is safe as we control the options format and it's compatible with what the generator expects
+		const spec = await openAPIGenerator.generate(
+			router,
+			mergedOptions as Record<string, unknown>
+		);
+		getOpenAPISpec.cached = spec;
+		return spec;
+	}) as (() => Promise<Record<string, unknown>>) & {
+		cached?: Record<string, unknown>;
+	};
+
+	/**
+	 * Generate the default UI for API documentation
+	 */
+	const getDocsUI = () => {
+		// If a custom template is provided, use it
+		if (openApiConfig.customUiTemplate) {
+			return openApiConfig.customUiTemplate;
+		}
+
+		// Otherwise, return the default Scalar UI
+		return `
+    <!doctype html>
+    <html>
+      <head>
+        <title>${options.appName || 'c15t API'} Documentation</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" type="image/svg+xml" href="https://orpc.unnoq.com/icon.svg" />
+      </head>
+      <body>
+        <script
+          id="api-reference"
+          data-url="${encodeURI(openApiConfig.specPath)}">
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+      </body>
+    </html>
+    `;
+	};
+
+	/**
+	 * Handle OpenAPI spec requests
+	 */
+	const handleOpenApiSpecRequest = async (
+		url: URL
+	): Promise<Response | null> => {
+		if (openApiConfig.enabled && url.pathname === openApiConfig.specPath) {
+			const spec = await getOpenAPISpec();
+			return new Response(JSON.stringify(spec), {
+				status: 200,
+				headers: { 'Content-Type': 'application/json' },
+			});
+		}
+		return null;
+	};
+
+	/**
+	 * Handle API docs UI requests
+	 */
+	const handleDocsUiRequest = (url: URL): Response | null => {
+		if (openApiConfig.enabled && url.pathname === openApiConfig.docsPath) {
+			const html = getDocsUI();
+			return new Response(html, {
+				status: 200,
+				headers: {
+					'Content-Type': 'text/html',
+					'Content-Security-Policy':
+						"default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;",
+				},
+			});
+		}
+		return null;
+	};
+
+	/**
+	 * Create error response for DoubleTieError
+	 */
+	const createDoubleTieErrorResponse = (error: DoubleTieError): Response => {
+		// Sanitize error message to prevent sensitive information disclosure
+		const sanitizedMessage = error.message.replace(
+			/[^\w\s.,;:!?()[\]{}'"+-]/g,
+			''
+		);
+		return new Response(
+			JSON.stringify({
+				code: error.code,
+				message: sanitizedMessage,
+				data: error.meta,
+				status: error.statusCode,
+				defined: true,
+			}),
+			{
+				status: error.statusCode,
+				headers: { 'Content-Type': 'application/json' },
+			}
+		);
+	};
+
+	/**
+	 * Create error response for unknown errors
+	 */
+	const createUnknownErrorResponse = (error: unknown): Response => {
+		const message = error instanceof Error ? error.message : String(error);
+		// More safely determine the status code with proper type checks
+		let status = 500;
+		if (error instanceof Error && 'status' in error) {
+			const statusValue = (error as { status: unknown }).status;
+			if (
+				typeof statusValue === 'number' &&
+				statusValue >= 100 &&
+				statusValue < 600
+			) {
+				status = statusValue;
+			}
+		}
+
+		return new Response(
+			JSON.stringify({
+				code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+				message,
+				status,
+				defined: true,
+				data: {},
+			}),
+			{
+				status,
+				headers: { 'Content-Type': 'application/json' },
+			}
+		);
+	};
+
+	/**
+	 * Handle API requests via oRPC
+	 */
+	const handleApiRequest = async (
+		request: Request,
+		ctx: C15TContext
+	): Promise<Response> => {
+		// Create context for the handler with c15t specifics
+		const orpcContext: MiddlewareContext = {
+			adapter: ctx.adapter,
+			registry: ctx.registry,
+			logger: ctx.logger,
+			generateId: ctx.generateId,
+			headers: request.headers,
+			userAgent: request.headers.get('user-agent') || undefined,
+		};
+
+		// Apply middleware processing to enrich the context
+		processIp(request, orpcContext);
+		processCors(request, orpcContext);
+		processTelemetry(request, orpcContext);
+
+		// Use oRPC handler to handle the request with our enhanced context
+		const handlerContext = orpcContext as Record<string, unknown>;
+		const { matched, response } = await rpcHandler.handle(request, {
+			prefix: '/',
+			context: handlerContext,
+		});
+
+		// Return the response if handler matched
+		if (matched && response) {
+			return response;
+		}
+
+		// If no handler matched, return 404
+		return new Response('Not Found', { status: 404 });
+	};
+
+	/**
+	 * Handle an incoming request using oRPC
+	 */
+	const handler = async (request: Request): Promise<Response> => {
+		try {
+			const url = new URL(request.url);
+
+			// Check for OpenAPI spec or docs UI requests
+			const openApiResponse = await handleOpenApiSpecRequest(url);
+			if (openApiResponse) {
+				return openApiResponse;
+			}
+
+			const docsResponse = handleDocsUiRequest(url);
+			if (docsResponse) {
+				return docsResponse;
+			}
+
+			// Get context, handling Result type properly
+			const ctxResult = await contextPromise;
+			if (!ctxResult.isOk()) {
+				throw ctxResult.error;
+			}
+			const ctx = ctxResult.value;
+
+			// Handle API request
+			return await handleApiRequest(request, ctx);
+		} catch (error) {
+			// Log the error
+			const logger = options.logger ? createLogger(options.logger) : console;
+			logger.error('Request handling error:', error);
+
+			// Handle different error types
+			if (error instanceof DoubleTieError) {
+				return createDoubleTieErrorResponse(error);
+			}
+
+			return createUnknownErrorResponse(error);
+		}
+	};
+
+	// Create Next.js-compatible route handlers
+	const createNextHandlers = () => {
+		const nextHandler = async (request: Request) => {
+			return await handler(request);
+		};
+
+		return {
+			GET: nextHandler,
+			POST: nextHandler,
+			PUT: nextHandler,
+			PATCH: nextHandler,
+			DELETE: nextHandler,
+			OPTIONS: nextHandler,
+			HEAD: nextHandler,
+		};
 	};
 
 	// Return the instance
 	return {
-		handler,
-		getApi: async (): Promise<SDKResultAsync<Route[]>> => {
-			const contextResult = await contextPromise;
-
-			return contextResult.match(
-				// Success case - just return the routes
-				() => okAsync(routes),
-				// Error case
-				(error) =>
-					failAsync(`API retrieval failed: ${error.message}`, {
-						code: ERROR_CODES.API_RETRIEVAL_ERROR,
-						cause: error,
-					})
-			);
-		},
 		options,
-		$context: contextPromise,
+
+		// Unwrap the Result when exposing the context
+		$context: contextPromise.then((result) => {
+			if (!result.isOk()) {
+				throw result.error;
+			}
+			return result.value;
+		}),
+
+		// Export router for direct access
+		router,
+
+		// Request handler for standard environments
+		handler,
+
+		// Next.js route handlers
+		...createNextHandlers(),
+
+		// OpenAPI functionality
+		getOpenAPISpec,
+		getDocsUI,
 	};
 };
+
+export type { C15TPlugin, C15TOptions, C15TContext };
+export type { ContractsInputs, ContractsOutputs } from './contracts';

@@ -1,3 +1,4 @@
+import type { OpenAPIGeneratorOptions } from '@orpc/openapi';
 /**
  * c15t Consent Management System Configuration Types
  *
@@ -8,7 +9,7 @@
 import type { DoubleTieOptions } from '~/pkgs/types/options';
 import type { C15TPlugin } from './plugins';
 
-import type { LoggerOptions } from '~/pkgs/logger';
+import type { LoggerOptions } from '@doubletie/logger';
 // Import table configuration types from the schema module
 import type { TablesConfig } from '~/schema/types';
 /**
@@ -52,7 +53,7 @@ export interface C15TOptions<PluginType extends C15TPlugin[] = C15TPlugin[]>
 	secret?: string;
 
 	/**
-	 * Plugins specific to C15T
+	 * Plugins specific to c15t
 	 */
 	plugins?: PluginType;
 
@@ -65,4 +66,39 @@ export interface C15TOptions<PluginType extends C15TPlugin[] = C15TPlugin[]>
 	 * Logger configuration
 	 */
 	logger?: LoggerOptions;
+
+	/**
+	 * OpenAPI configuration options
+	 */
+	openapi?: {
+		/**
+		 * Enable/disable OpenAPI spec generation
+		 * @default true
+		 */
+		enabled?: boolean;
+
+		/**
+		 * Path to serve the OpenAPI JSON spec
+		 * @default "/spec.json"
+		 */
+		specPath?: string;
+
+		/**
+		 * Path to serve the API documentation UI
+		 * @default "/docs"
+		 */
+		docsPath?: string;
+
+		/**
+		 * OpenAPI specification options
+		 * These are passed to the OpenAPIGenerator.generate() method
+		 */
+		options?: Partial<OpenAPIGeneratorOptions>;
+
+		/**
+		 * Custom template for rendering the API documentation UI
+		 * If provided, this will be used instead of the default Scalar UI
+		 */
+		customUiTemplate?: string;
+	};
 }

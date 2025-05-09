@@ -4,19 +4,16 @@
  */
 
 import type {
-	SetConsentRequestBody,
-	SetConsentResponse,
-	ShowConsentBannerResponse,
-	VerifyConsentRequestBody,
-	VerifyConsentResponse,
-} from '@c15t/backend';
-
-import type {
 	ConsentBannerFetchedCallbackPayload,
 	ConsentManagerCallbacks,
 	ConsentManagerInterface,
 	ConsentSetCallbackPayload,
 	ConsentVerifiedCallbackPayload,
+	SetConsentRequestBody,
+	SetConsentResponse,
+	ShowConsentBannerResponse,
+	VerifyConsentRequestBody,
+	VerifyConsentResponse,
 } from './client-interface';
 
 import {
@@ -342,7 +339,7 @@ export class C15tClient implements ConsentManagerInterface {
 			const requestOptions: RequestInit = {
 				method: options?.method || 'GET',
 				mode: this.corsMode, // Use configured CORS mode
-				credentials: 'include',
+				credentials: 'include', // Always include credentials by default
 				headers: {
 					...this.headers,
 					'X-Request-ID': requestId,
@@ -696,7 +693,7 @@ export class C15tClient implements ConsentManagerInterface {
 			{
 				showConsentBanner: shouldShow && hasLocalStorageAccess,
 				jurisdiction: {
-					code: 'UNKNOWN', // We don't know the jurisdiction in offline mode
+					code: 'NONE', // We don't know the jurisdiction in offline mode
 					message: 'Unknown (offline mode)',
 				},
 				location: {

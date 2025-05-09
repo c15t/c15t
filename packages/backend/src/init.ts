@@ -4,10 +4,10 @@ import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-base';
 import { defu } from 'defu';
 import type { DatabaseHook } from '~/pkgs/data-model';
 import { getAdapter } from '~/pkgs/db-adapters';
-import { createLogger } from '~/pkgs/logger';
 import type { RegistryContext } from '~/pkgs/types';
-import { env, getBaseURL } from '~/pkgs/utils';
+import { getBaseURL } from '~/pkgs/utils';
 import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
+import { version } from '../package.json';
 import { generateId } from './pkgs/data-model/fields/id-generator';
 import type { EntityName } from './pkgs/data-model/schema/types';
 import {
@@ -22,6 +22,7 @@ import {
 } from './pkgs/results';
 
 import type { DoubleTieOptions } from './pkgs/types/options';
+import { getLogger, initLogger } from './pkgs/utils/logger';
 import { createRegistry } from './schema/create-registry';
 import { getConsentTables } from './schema/definition';
 
@@ -88,7 +89,8 @@ export const init = async <P extends C15TPlugin[]>(
 		const appName = options.appName || 'c15t';
 
 		// Create a single logger instance early in the initialization process
-		const logger = createLogger({
+		// Initialize the global logger for use throughout the application
+		const logger = initLogger({
 			...loggerOptions,
 			appName: String(appName),
 		});
@@ -113,7 +115,7 @@ export const init = async <P extends C15TPlugin[]>(
 				// Create a telemetry resource with provided values or safe defaults
 				const resource = new Resource({
 					'service.name': String(appName),
-					'service.version': String(process.env.npm_package_version || '1.0.0'),
+					'service.version': String(version || '1.0.0'),
 					...(telemetryOptions?.defaultAttributes || {}),
 				});
 				logger.debug('Initializing telemetry with resource attributes', {
@@ -227,7 +229,8 @@ export const init = async <P extends C15TPlugin[]>(
 			return runPluginInit(ctx);
 		});
 	} catch (error) {
-		const errorLogger = createLogger(options.logger);
+		// Use getLogger here since we might be in an error case before logger initialization
+		const errorLogger = getLogger(options.logger);
 		errorLogger.error('Initialization failed', {
 			error: error instanceof Error ? error.message : String(error),
 			stack: error instanceof Error ? error.stack : undefined,

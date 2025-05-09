@@ -1,0 +1,23 @@
+{
+	"name": "@c15t/node-sdk",
+	"version": "0.0.1",
+	"private": true,
+	"dependencies": {
+		"@c15t/backend": "workspace:*",
+		"@orpc/client": "1.2.0",
+		"@orpc/server": "1.2.0"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
+		"@electric-sql/pglite": "0.2.17",
+		"@libsql/kysely-libsql": "^0.4.1",
+		"@types/better-sqlite3": "^7.6.13",
+		"@types/express": "^5.0.1",
+		"@types/node": "20.14.13",
+		"@types/pg": "8.11.6",
+		"kysely-pglite": "^0.6.1",
+		"typescript": "^5.8.3",
+		"vitest": "^3.1.1"
+	}
+}

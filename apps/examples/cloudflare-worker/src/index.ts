@@ -1,17 +1,15 @@
-import { c15tInstance } from '@c15t/backend';
-import { toCloudflareHandler } from '@c15t/backend/integrations/cloudflare';
+import { type C15TOptions, c15tInstance } from '@c15t/backend';
 import { LibsqlDialect } from '@libsql/kysely-libsql';
 
 /**
  * Example Cloudflare Worker for c15t
  *
- * This example shows how to use c15t directly in a Cloudflare Worker
- * without any additional framework. The Cloudflare adapter handles
- * CORS and request/response processing automatically.
+ * This example shows how to use c15t with ORPC router in a Cloudflare Worker
+ * without any additional framework.
  */
 const handler = (env: Env) => {
-	// Create the c15t instance with environment variables
-	const c15t = c15tInstance({
+	// Create the c15t instance with ORPC support
+	const instance = c15tInstance({
 		// Use environment variables for Turso credentials
 		database: new LibsqlDialect({
 			url: env.TURSO_DATABASE_URL,
@@ -19,29 +17,45 @@ const handler = (env: Env) => {
 		}),
 		basePath: '/',
 		trustedOrigins: env.TRUSTED_ORIGINS as string[],
-		cors: true,
-		advanced: {
-			cors: {
-				// Allow x-request-id header that's often used in requests
-				allowHeaders: ['content-type', 'x-request-id'],
-				// Ensure credentials are supported
-				credentials: true,
-			},
-			disableCSRFCheck: true,
-		},
 		logger: {
 			level: 'debug',
 			appName: 'c15t-cloudflare-example',
 		},
-	});
+		// Add OpenAPI configuration
+		openapi: {
+			enabled: true,
+		},
+	} satisfies C15TOptions);
 
-	return toCloudflareHandler(c15t);
+	// Return a Cloudflare Worker handler
+	return async (request: Request): Promise<Response> => {
+		try {
+			// Handle the request with ORPC
+			return await instance.handler(request);
+		} catch (error) {
+			// Log error and return formatted error response
+			// biome-ignore lint/suspicious/noConsole: its okay right now
+			console.error('Error handling request:', error);
+
+			// Return an error response
+			return new Response(
+				JSON.stringify({
+					error: 'Internal Server Error',
+					message: error instanceof Error ? error.message : String(error),
+				}),
+				{
+					status: 500,
+					headers: { 'Content-Type': 'application/json' },
+				}
+			);
+		}
+	};
 };
 
 // Export the fetch handler for Cloudflare Workers
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		return handler(env)(request);
+		return await handler(env)(request);
 	},
 };
 

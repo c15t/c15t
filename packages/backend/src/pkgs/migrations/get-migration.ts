@@ -1,5 +1,5 @@
 import { createKyselyAdapter } from '~/pkgs/db-adapters';
-import { createLogger } from '~/pkgs/logger';
+import { getLogger } from '~/pkgs/utils/logger';
 import type { C15TOptions } from '~/types';
 import { buildColumnAddMigrations } from './migration-builders';
 import { buildTableCreateMigrations } from './migration-builders';
@@ -12,7 +12,7 @@ import type { MigrationResult } from './types';
  * This is the main entry point for the migration system. It orchestrates
  * the entire process from connecting to the database to generating migrations.
  *
- * @param config - C15T configuration containing database connection and schema details
+ * @param config - c15t configuration containing database connection and schema details
  *
  * @returns MigrationResult containing:
  *   - toBeCreated: Tables that need to be created
@@ -37,7 +37,7 @@ import type { MigrationResult } from './types';
 export async function getMigrations(
 	config: C15TOptions
 ): Promise<MigrationResult> {
-	const logger = createLogger(config.logger);
+	const logger = getLogger(config.logger);
 
 	// Initialize database connection
 	let { kysely: db, databaseType: dbType } = await createKyselyAdapter(config);

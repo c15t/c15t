@@ -1,7 +1,6 @@
-import type { H3Event } from 'h3';
+import type { createLogger } from '@doubletie/logger';
 import type { DatabaseHook, EntityName } from '~/pkgs/data-model';
 import type { Adapter } from '~/pkgs/db-adapters/types';
-import type { createLogger } from '~/pkgs/logger';
 import type { createRegistry } from '~/schema/create-registry';
 import type { getConsentTables } from '~/schema/definition';
 import type { DoubleTieOptions } from './options';
@@ -12,7 +11,12 @@ import type { DoubleTieOptions } from './options';
  * This type extends the standard endpoint context with additional properties
  * specific to DoubleTie hooks, allowing hooks to access the complete DoubleTie context.
  */
-export type HookEndpointContext = H3Event & {
+export type HookEndpointContext = {
+	/**
+	 * The request object
+	 */
+	request: Request;
+
 	/**
 	 * The DoubleTie context with possible hook-specific extensions
 	 */
@@ -35,7 +39,12 @@ export type HookEndpointContext = H3Event & {
  * A simplified context type for endpoint handlers that don't need
  * access to input-specific context properties.
  */
-export type GenericEndpointContext = H3Event & {
+export type GenericEndpointContext = {
+	/**
+	 * The request object
+	 */
+	request: Request;
+
 	/**
 	 * The DoubleTie application context
 	 */
@@ -149,6 +158,11 @@ export interface BaseDoubleTieContext {
 	 * User agent of the client
 	 */
 	userAgent?: string | null;
+
+	/**
+	 * Headers of the request
+	 */
+	headers?: Headers;
 }
 
 /**
