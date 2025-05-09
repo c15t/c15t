@@ -1,5 +1,5 @@
 // c15t Client Configuration
-import type { ConsentManagerOptions } from '@c15t/react';
+import type { ConsentManagerOptions } from '@c15t/nextjs';
 
 export const c15tConfig = {
 	// Using hosted c15t (consent.io) or self-hosted instance
