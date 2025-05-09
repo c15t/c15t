@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/backend",
-	"version": "1.2.0-canary.13",
+	"version": "1.0.5",
 	"license": "GPL-3.0-only",
 	"type": "module",
 	"exports": {

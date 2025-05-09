@@ -2,7 +2,16 @@
 	"$schema": "https://unpkg.com/@changesets/config@latest/schema.json",
 	"changelog": ["@changesets/changelog-github", { "repo": "c15t/c15t" }],
 	"commit": false,
-	"linked": [["c15t", "@c15t/react", "@c15t/dev-tools", "@c15t/node-sdk"]],
+	"linked": [
+		[
+			"c15t",
+			"@c15t/react",
+			"@c15t/dev-tools",
+			"@c15t/node-sdk",
+			"@c15t/cli",
+			"@c15t/backend"
+		]
+	],
 	"access": "public",
 	"baseBranch": "main",
 	"updateInternalDependencies": "patch",
