@@ -139,7 +139,7 @@ export type { CallbackFunction, Callbacks } from './types/callbacks';
  */
 export type {
 	ConsentManagerDialogTranslations,
-	ConsentManagerWidgetTranslations,
+	CommonTranslations,
 	ConsentTypeTranslations,
 	ConsentTypesTranslations,
 	CookieBannerTranslations,

@@ -1,3 +1,4 @@
+import { defaultTranslationConfig } from 'c15t';
 import { expect, test, vi } from 'vitest';
 import { ConsentManagerDialog } from '~/components/consent-manager-dialog/consent-manager-dialog';
 import type { ThemeValue } from '~/types/theme';
@@ -59,18 +60,7 @@ vi.mock('~/hooks/use-consent-manager', () => ({
 }));
 
 vi.mock('~/hooks/use-translations', () => ({
-	useTranslations: () => ({
-		consentManagerDialog: {
-			title: 'Dialog Title',
-			description: 'Dialog Description',
-			saveButton: 'Save',
-			rejectAllButton: 'Reject All',
-			acceptAllButton: 'Accept All',
-		},
-		consentManagerWidget: {},
-		cookieBanner: {},
-		general: {},
-	}),
+	useTranslations: () => defaultTranslationConfig.translations.en,
 }));
 
 test('should apply string classNames from theme prop to all dialog elements', async () => {

@@ -128,7 +128,7 @@ export type { CallbackFunction, Callbacks } from './callbacks';
 
 export type {
 	ConsentManagerDialogTranslations,
-	ConsentManagerWidgetTranslations,
+	CommonTranslations,
 	ConsentTypeTranslations,
 	ConsentTypesTranslations,
 	CookieBannerTranslations,

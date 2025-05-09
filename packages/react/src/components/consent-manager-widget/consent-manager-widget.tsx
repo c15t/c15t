@@ -68,7 +68,7 @@ export const ConsentManagerWidget = ({
 	...props
 }: ConsentManagerWidgetProps) => {
 	const [openItems, setOpenItems] = useState<string[]>([]);
-	const { consentManagerWidget } = useTranslations();
+	const { common: translations } = useTranslations();
 
 	return (
 		<ConsentManagerWidgetRoot {...props}>
@@ -83,14 +83,14 @@ export const ConsentManagerWidget = ({
 			<ConsentManagerWidgetFooter>
 				<ConsentManagerWidgetFooterSubGroup themeKey="widget.footer.sub-group">
 					<ConsentManagerWidgetRejectButton themeKey="widget.footer.reject-button">
-						{consentManagerWidget.rejectAll}
+						{translations.rejectAll}
 					</ConsentManagerWidgetRejectButton>
 					<ConsentManagerWidgetAcceptAllButton themeKey="widget.footer.accept-button">
-						{consentManagerWidget.acceptAll}
+						{translations.acceptAll}
 					</ConsentManagerWidgetAcceptAllButton>
 				</ConsentManagerWidgetFooterSubGroup>
 				<ConsentManagerWidgetSaveButton themeKey="widget.footer.save-button">
-					{consentManagerWidget.save}
+					{translations.save}
 				</ConsentManagerWidgetSaveButton>
 			</ConsentManagerWidgetFooter>
 			{!hideBrading && (

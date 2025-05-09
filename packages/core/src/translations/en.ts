@@ -1,29 +1,21 @@
 import type { CompleteTranslations } from '../types/translations';
 
 export const enTranslations: CompleteTranslations = {
+	common: {
+		acceptAll: 'Accept All',
+		rejectAll: 'Reject All',
+		customize: 'Customize',
+		save: 'Save Settings',
+	},
 	cookieBanner: {
 		title: 'We value your privacy',
 		description:
 			'This site uses cookies to improve your browsing experience, analyze site traffic, and show personalized content.',
-		acceptAll: 'Accept All',
-		rejectAll: 'Reject All',
-		customize: 'Customize',
 	},
 	consentManagerDialog: {
 		title: 'Privacy Settings',
 		description:
 			'Customize your privacy settings here. You can choose which types of cookies and tracking technologies you allow.',
-		save: 'Save Settings',
-		acceptAll: 'Accept All',
-		rejectAll: 'Reject All',
-		close: 'Close',
-	},
-	consentManagerWidget: {
-		title: 'Privacy Preferences',
-		description: 'Manage your privacy settings',
-		save: 'Save Settings',
-		acceptAll: 'Accept All',
-		rejectAll: 'Reject All',
 	},
 	consentTypes: {
 		necessary: {

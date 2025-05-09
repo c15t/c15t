@@ -46,7 +46,6 @@ export function useTranslations(): Translations {
 		if (isTranslations(englishTranslations)) {
 			return englishTranslations;
 		}
-
 		// We know this is a valid Translations object
 		return defaultTranslationConfig.translations.en as Translations;
 	}, [translationConfig]);
@@ -62,8 +61,8 @@ function isTranslations(value: unknown): value is Translations {
 	const hasRequiredKeys =
 		'cookieBanner' in obj &&
 		'consentManagerDialog' in obj &&
-		'consentManagerWidget' in obj &&
-		'consentTypes' in obj;
+		'consentTypes' in obj &&
+		'common' in obj;
 
 	return hasRequiredKeys;
 }
