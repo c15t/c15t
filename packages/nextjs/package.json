@@ -23,7 +23,7 @@
 		}
 	},
 	"sideEffects": false,
-	"license": "MIT",
+	"license": "GPL-3.0-only",
 	"scripts": {
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",

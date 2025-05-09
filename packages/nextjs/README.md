@@ -120,10 +120,19 @@ interface C15TNextConfig {
 - `withC15T`: Higher-order function for configuring Next.js
 - `createConsentClient`: Function for creating a consent client instance
 
-## Contributing
 
-Please read our [contributing guide](../../CONTRIBUTING.md) to learn about our development process.
+## Support
+
+- 📚 [Documentation](https://c15t.com/docs)
+- 💬 [Discord Community](https://c15t.com/discord)
+- 🐛 [Issue Tracker](https://github.com/c15t/c15t/issues)
 
 ## License
 
-This package is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details. 
+[GNU General Public License v3.0](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+
+---
+
+<div align="center">
+  <strong>Built with ❤️ by the <a href="https://www.consent.io">consent.io</a> team</strong>
+</div>
