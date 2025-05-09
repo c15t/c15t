@@ -26,9 +26,10 @@ describe('useTranslations', () => {
 			'This site uses cookies to improve your browsing experience, analyze site traffic, and show personalized content.'
 		);
 		expect(result.current.consentManagerDialog.title).toBe('Privacy Settings');
-		expect(result.current.consentManagerWidget.title).toBe(
-			'Privacy Preferences'
-		);
+		expect(result.current.common.acceptAll).toBe('Accept All');
+		expect(result.current.common.rejectAll).toBe('Reject All');
+		expect(result.current.common.customize).toBe('Customize');
+		expect(result.current.common.save).toBe('Save Settings');
 		expect(result.current.consentTypes?.necessary?.title).toBe(
 			'Strictly Necessary'
 		);
@@ -48,15 +49,18 @@ describe('useTranslations', () => {
 							disableAutoLanguageSwitch: true,
 							translations: {
 								de: {
+									common: {
+										acceptAll: 'German Accept All',
+										rejectAll: 'German Reject All',
+										customize: 'German Customize',
+										save: 'German Save',
+									},
 									cookieBanner: {
 										title: 'German Title',
 										description: 'German Description',
 									},
 									consentManagerDialog: {
 										title: 'German Dialog Title',
-									},
-									consentManagerWidget: {
-										title: 'German Widget Title',
 									},
 									consentTypes: {
 										necessary: {
@@ -79,9 +83,10 @@ describe('useTranslations', () => {
 		expect(result.current.consentManagerDialog.title).toBe(
 			'German Dialog Title'
 		);
-		expect(result.current.consentManagerWidget.title).toBe(
-			'German Widget Title'
-		);
+		expect(result.current.common.acceptAll).toBe('German Accept All');
+		expect(result.current.common.rejectAll).toBe('German Reject All');
+		expect(result.current.common.customize).toBe('German Customize');
+		expect(result.current.common.save).toBe('German Save');
 		expect(result.current.consentTypes?.necessary?.title).toBe(
 			'German Necessary'
 		);
@@ -121,9 +126,10 @@ describe('useTranslations', () => {
 
 		// Other translations should fall back to defaults
 		expect(result.current.consentManagerDialog.title).toBe('Privacy Settings');
-		expect(result.current.consentManagerWidget.title).toBe(
-			'Privacy Preferences'
-		);
+		expect(result.current.common.acceptAll).toBe('Accept All');
+		expect(result.current.common.rejectAll).toBe('Reject All');
+		expect(result.current.common.customize).toBe('Customize');
+		expect(result.current.common.save).toBe('Save Settings');
 	});
 
 	test('falls back to English when selected language is not available', () => {
@@ -151,9 +157,10 @@ describe('useTranslations', () => {
 			'This site uses cookies to improve your browsing experience, analyze site traffic, and show personalized content.'
 		);
 		expect(result.current.consentManagerDialog.title).toBe('Privacy Settings');
-		expect(result.current.consentManagerWidget.title).toBe(
-			'Privacy Preferences'
-		);
+		expect(result.current.common.acceptAll).toBe('Accept All');
+		expect(result.current.common.rejectAll).toBe('Reject All');
+		expect(result.current.common.customize).toBe('Customize');
+		expect(result.current.common.save).toBe('Save Settings');
 	});
 
 	test('Custom English instead of English when German is selected', () => {
@@ -170,15 +177,18 @@ describe('useTranslations', () => {
 							disableAutoLanguageSwitch: true,
 							translations: {
 								en: {
+									common: {
+										acceptAll: 'Custom English Accept All',
+										rejectAll: 'Custom English Reject All',
+										customize: 'Custom English Customize',
+										save: 'Custom English Save',
+									},
 									cookieBanner: {
 										title: 'Custom English Title',
 										description: 'Custom English Description',
 									},
 									consentManagerDialog: {
 										title: 'Custom English Dialog Title',
-									},
-									consentManagerWidget: {
-										title: 'Custom English Widget Title',
 									},
 									consentTypes: {
 										necessary: {
@@ -196,15 +206,16 @@ describe('useTranslations', () => {
 			),
 		});
 
+		expect(result.current.common.acceptAll).toBe('Custom English Accept All');
+		expect(result.current.common.rejectAll).toBe('Custom English Reject All');
+		expect(result.current.common.customize).toBe('Custom English Customize');
+		expect(result.current.common.save).toBe('Custom English Save');
 		expect(result.current.cookieBanner.title).toBe('Custom English Title');
 		expect(result.current.cookieBanner.description).toBe(
 			'Custom English Description'
 		);
 		expect(result.current.consentManagerDialog.title).toBe(
 			'Custom English Dialog Title'
-		);
-		expect(result.current.consentManagerWidget.title).toBe(
-			'Custom English Widget Title'
 		);
 		expect(result.current.consentTypes?.necessary?.title).toBe(
 			'Custom English Necessary'

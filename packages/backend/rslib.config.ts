@@ -60,11 +60,10 @@ const externals = [
 export default defineConfig({
 	source: {
 		entry: {
-			index: ['./src/index.ts'],
+			core: ['./src/core.ts'],
+			router: ['./src/router.ts'],
+			contracts: ['./src/contracts/index.ts'],
 			'schema/index': ['./src/schema/index.ts'],
-			'integrations/next': ['./src/integrations/next.ts'],
-			'integrations/node': ['./src/integrations/node.ts'],
-			'integrations/cloudflare': ['./src/integrations/cloudflare.ts'],
 			'pkgs/data-model/fields/index': ['./src/pkgs/data-model/fields/index.ts'],
 			'pkgs/data-model/index': ['./src/pkgs/data-model/index.ts'],
 			'pkgs/data-model/schema/index': ['./src/pkgs/data-model/schema/index.ts'],
@@ -82,7 +81,6 @@ export default defineConfig({
 			],
 			'pkgs/db-adapters/index': ['./src/pkgs/db-adapters/index.ts'],
 			'pkgs/results/index': ['./src/pkgs/results/index.ts'],
-			'pkgs/logger/index': ['./src/pkgs/logger/index.ts'],
 			'pkgs/migrations/index': ['./src/pkgs/migrations/index.ts'],
 			'pkgs/types/index': ['./src/pkgs/types/index.ts'],
 		},

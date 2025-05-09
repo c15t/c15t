@@ -32,15 +32,15 @@ export interface DB {
 }
 
 /**
- * Creates a transformer for converting between C15T data models and Drizzle schema
+ * Creates a transformer for converting between c15t data models and Drizzle schema
  *
  * This function creates an object with utility methods for converting data between
- * the C15T internal representation and the Drizzle ORM schema representation.
+ * the c15t internal representation and the Drizzle ORM schema representation.
  *
  * @internal This function is primarily used internally by the drizzleAdapter
  * @param db - The Drizzle database instance
  * @param config - Configuration options for the Drizzle adapter
- * @param options - C15T options
+ * @param options - c15t options
  * @returns An object containing entity transformation utilities
  * @throws {DoubleTieError} If the schema is not found or if a model or field doesn't exist
  */
@@ -56,7 +56,7 @@ const createEntityTransformer = (
 	 *
 	 * @internal
 	 * @param model - The model name
-	 * @param field - The field name in the C15T model
+	 * @param field - The field name in the c15t model
 	 * @returns The corresponding field name in the database schema
 	 */
 	function getField(model: string, field: string) {
@@ -127,11 +127,11 @@ const createEntityTransformer = (
 	};
 
 	/**
-	 * Converts C15T where clauses to Drizzle ORM conditions
+	 * Converts c15t where clauses to Drizzle ORM conditions
 	 *
 	 * @internal
 	 * @typeParam EntityType - The type of entity being queried
-	 * @param where - Array of where conditions from C15T
+	 * @param where - Array of where conditions from c15t
 	 * @param model - The model name
 	 * @returns Array of Drizzle ORM conditions
 	 * @throws {DoubleTieError} If a field doesn't exist or if the operator value is invalid
@@ -245,7 +245,7 @@ const createEntityTransformer = (
 	return {
 		getSchema,
 		/**
-		 * Transforms input data from C15T format to Drizzle format
+		 * Transforms input data from c15t format to Drizzle format
 		 *
 		 * @internal
 		 * @param data - The data to transform
@@ -285,13 +285,13 @@ const createEntityTransformer = (
 			return transformedData;
 		},
 		/**
-		 * Transforms output data from Drizzle format to C15T format
+		 * Transforms output data from Drizzle format to c15t format
 		 *
 		 * @internal
 		 * @param data - The data to transform
 		 * @param model - The model name
 		 * @param select - Optional array of fields to select
-		 * @returns Transformed data for C15T or null if no data
+		 * @returns Transformed data for c15t or null if no data
 		 */
 		transformOutput(
 			data: Record<string, unknown>,
@@ -462,14 +462,14 @@ function checkMissingFields(
 }
 
 /**
- * Creates a C15T adapter for Drizzle ORM
+ * Creates a c15t adapter for Drizzle ORM
  *
- * This factory function creates an adapter that allows C15T to use Drizzle ORM
+ * This factory function creates an adapter that allows c15t to use Drizzle ORM
  * as its database layer. It supports PostgreSQL, MySQL, and SQLite.
  *
  * @param db - The Drizzle database instance
  * @param config - Configuration options for the Drizzle adapter
- * @returns A C15T adapter factory function
+ * @returns A c15t adapter factory function
  *
  * @example
  * ```typescript
@@ -483,7 +483,7 @@ function checkMissingFields(
  * const connection = postgres('postgresql://user:password@localhost:5432/db');
  * const db = drizzle(connection, { schema });
  *
- * // Create the C15T instance with Drizzle adapter
+ * // Create the c15t instance with Drizzle adapter
  * const c15t = c15tInstance({
  *   storage: drizzleAdapter(db, {
  *     provider: 'pg',

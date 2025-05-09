@@ -14,7 +14,7 @@
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
 		"dev": "rslib build --watch",
-		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"knip": "knip",
 		"lint": "pnpm biome lint ./src",
 		"start": "node ./dist/index.mjs",
@@ -22,6 +22,7 @@
 		"test:watch": "vitest"
 	},
 	"dependencies": {
+		"@doubletie/logger": "1.0.4",
 		"@c15t/backend": "workspace:*",
 		"@c15t/react": "workspace:*",
 		"@clack/prompts": "^0.10.1",

@@ -3,15 +3,15 @@
  * This interface defines the methods that any consent client must implement.
  */
 
-import type {
-	SetConsentRequestBody,
-	SetConsentResponse,
-	ShowConsentBannerResponse,
-	VerifyConsentRequestBody,
-	VerifyConsentResponse,
-} from '@c15t/backend';
-
+import type { ContractsInputs, ContractsOutputs } from '@c15t/backend';
 import type { FetchOptions, ResponseContext } from './types';
+
+export type SetConsentRequestBody = ContractsInputs['consent']['post'];
+export type SetConsentResponse = ContractsOutputs['consent']['post'];
+export type ShowConsentBannerResponse =
+	ContractsOutputs['consent']['showBanner'];
+export type VerifyConsentRequestBody = ContractsInputs['consent']['verify'];
+export type VerifyConsentResponse = ContractsOutputs['consent']['verify'];
 
 /**
  * Core interface that all consent management clients must implement

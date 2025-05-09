@@ -1,3 +1,4 @@
+import { defaultTranslationConfig } from 'c15t';
 import { expect, test, vi } from 'vitest';
 import { ConsentManagerWidget } from '~/components/consent-manager-widget/consent-manager-widget';
 import type { ThemeValue } from '~/types/theme';
@@ -15,23 +16,7 @@ vi.mock('~/hooks/use-consent-manager', () => ({
 }));
 
 vi.mock('~/hooks/use-translations', () => ({
-	useTranslations: () => ({
-		consentManagerWidget: {
-			// Use the correct key for widget
-			necessaryCookies: 'Necessary',
-			marketingCookies: 'Marketing',
-			analyticsCookies: 'Analytics',
-			preferencesCookies: 'Preferences',
-			unknownIntegration: 'Unknown',
-			alwaysActive: 'Always Active',
-			rejectAllButton: 'Reject All',
-			acceptAllButton: 'Accept All',
-			saveButton: 'Save Settings',
-		},
-		consentManagerDialog: {},
-		cookieBanner: {},
-		general: {},
-	}),
+	useTranslations: () => defaultTranslationConfig.translations.en,
 }));
 
 type ComponentTestCase = {

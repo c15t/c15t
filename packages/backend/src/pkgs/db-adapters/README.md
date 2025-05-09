@@ -18,7 +18,7 @@ import type { C15TOptions } from '~/types';
 // Create an empty in-memory database
 const db = {};
 
-// Configure the adapter in your C15T options
+// Configure the adapter in your c15t options
 const options: C15TOptions = {
   // ...other options
   storage: memoryAdapter(db)
@@ -46,7 +46,7 @@ const db = new Kysely({
   dialect: new PostgresDialect({ pool })
 });
 
-// Configure the adapter in your C15T options
+// Configure the adapter in your c15t options
 const options: C15TOptions = {
   // ...other options
   storage: kyselyAdapter(db, { type: 'postgres' })
@@ -61,7 +61,7 @@ The package also provides a utility to automatically select the appropriate adap
 import { getAdapter } from '~/db/utils/adapter-factory';
 import type { C15TOptions } from '~/types';
 
-// Configure C15T with database options
+// Configure c15t with database options
 const options: C15TOptions = {
   // ...other options
   database: {

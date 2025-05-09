@@ -1,6 +1,6 @@
-import { ZodError } from 'node_modules/zod/lib/ZodError';
+import { logger } from '@doubletie/logger';
+import { ZodError } from 'zod';
 import type { Field, PluginSchema } from '~/pkgs/data-model';
-import { logger } from '~/pkgs/logger';
 import type { C15TOptions } from '~/types';
 import { getAuditLogTable } from './audit-log/table';
 import { getConsentPolicyTable } from './consent-policy/table';

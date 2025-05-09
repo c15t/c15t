@@ -5,24 +5,24 @@
 	"type": "module",
 	"exports": {
 		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
+			"types": "./dist/core.d.ts",
+			"import": "./dist/core.js",
+			"require": "./dist/core.cjs"
+		},
+		"./router": {
+			"types": "./dist/router.d.ts",
+			"import": "./dist/router.js",
+			"require": "./dist/router.cjs"
 		},
 		"./schema": {
 			"types": "./dist/schema/index.d.ts",
 			"import": "./dist/schema/index.js",
 			"require": "./dist/schema/index.cjs"
 		},
-		"./integrations/next": {
-			"types": "./dist/integrations/next.d.ts",
-			"import": "./dist/integrations/next.js",
-			"require": "./dist/integrations/next.cjs"
-		},
-		"./integrations/cloudflare": {
-			"types": "./dist/integrations/cloudflare.d.ts",
-			"import": "./dist/integrations/cloudflare.js",
-			"require": "./dist/integrations/cloudflare.cjs"
+		"./contracts": {
+			"types": "./dist/contracts/index.d.ts",
+			"import": "./dist/contracts.js",
+			"require": "./dist/contracts.cjs"
 		},
 		"./pkgs/data-model/fields": {
 			"types": "./dist/pkgs/data-model/fields/index.d.ts",
@@ -69,11 +69,6 @@
 			"import": "./dist/pkgs/results/index.js",
 			"require": "./dist/pkgs/results/index.cjs"
 		},
-		"./pkgs/logger": {
-			"types": "./dist/pkgs/logger/index.d.ts",
-			"import": "./dist/pkgs/logger/index.js",
-			"require": "./dist/pkgs/logger/index.cjs"
-		},
 		"./pkgs/migrations": {
 			"types": "./dist/pkgs/migrations/index.d.ts",
 			"import": "./dist/pkgs/migrations/index.js",
@@ -85,46 +80,49 @@
 			"require": "./dist/pkgs/types/index.cjs"
 		}
 	},
-	"main": "./dist/index.cjs",
-	"module": "./dist/index.js",
-	"types": "./dist/index.d.ts",
+	"main": "./dist/server.cjs",
+	"module": "./dist/server.js",
+	"types": "./dist/server.d.ts",
 	"scripts": {
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
 		"dev": "rslib build --watch",
-		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"knip": "knip",
 		"lint": "pnpm biome lint ./src",
+		"start": "node dist/server.cjs",
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},
 	"dependencies": {
+		"@doubletie/logger": "1.0.4",
 		"@opentelemetry/api": "1.8.0",
 		"@opentelemetry/resources": "^1.25.1",
 		"@opentelemetry/sdk-node": "^0.51.1",
 		"@opentelemetry/sdk-trace-base": "^1.25.1",
+		"@orpc/contract": "1.2.0",
+		"@orpc/openapi": "1.2.0",
+		"@orpc/server": "1.2.0",
+		"@orpc/zod": "1.2.0",
 		"base-x": "^5.0.1",
-		"better-sqlite3": "^11.9.1",
 		"defu": "^6.1.4",
 		"drizzle-orm": "^0.41.0",
-		"h3": "^1.15.1",
 		"kysely": "^0.27.6",
-		"mysql2": "^3.14.0",
 		"neverthrow": "^8.2.0",
-		"pg": "^8.14.1",
 		"superjson": "^2.2.2",
 		"zod": "^3.24.2"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
+		"@electric-sql/pglite": "0.2.17",
+		"@libsql/kysely-libsql": "^0.4.1",
 		"@types/better-sqlite3": "^7.6.13",
 		"@types/express": "^5.0.1",
 		"@types/node": "20.14.13",
 		"@types/pg": "8.11.6",
-		"@libsql/kysely-libsql": "^0.4.1",
-		"@electric-sql/pglite": "0.2.17",
 		"kysely-pglite": "^0.6.1",
+		"msw": "^2.7.6",
 		"typescript": "^5.8.3",
 		"vitest": "^3.1.1"
 	},

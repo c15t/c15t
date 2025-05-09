@@ -609,7 +609,7 @@ describe('c15t Client Offline Fallback Tests', () => {
 		expect(response.ok).toBe(true);
 		expect(response.data?.showConsentBanner).toBeDefined();
 		// Check that response includes fallback jurisdiction
-		expect(response.data?.jurisdiction?.code).toBe('UNKNOWN');
+		expect(response.data?.jurisdiction?.code).toBe('NONE');
 	});
 
 	it('should use offline fallback for setConsent on API failure', async () => {

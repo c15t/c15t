@@ -1,8 +1,8 @@
 import { type Kysely, type Migration, sql } from 'kysely';
 import { beforeEach, expect, test } from 'vitest';
 
+import type { Logger } from '@doubletie/logger';
 import type { Adapter } from '~/pkgs/db-adapters';
-import type { Logger } from '~/pkgs/logger';
 import type { C15TOptions } from '~/types';
 import type { KyselyDatabaseType } from '../index';
 import type { Database } from '../types';
@@ -36,7 +36,7 @@ export const expectedTables = [
 ];
 
 /**
- * Helper to create C15T options for a database
+ * Helper to create c15t options for a database
  */
 export function createOptions(dbConfig: DbConfig): C15TOptions {
 	return {

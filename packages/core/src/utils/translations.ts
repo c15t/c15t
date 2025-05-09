@@ -1,9 +1,9 @@
 import type { TranslationConfig, Translations } from '../types/translations';
 
 type TranslationSection =
+	| 'common'
 	| 'cookieBanner'
 	| 'consentManagerDialog'
-	| 'consentManagerWidget'
 	| 'consentTypes';
 
 /**
@@ -16,7 +16,7 @@ export function deepMergeTranslations(
 	const sections: TranslationSection[] = [
 		'cookieBanner',
 		'consentManagerDialog',
-		'consentManagerWidget',
+		'common',
 		'consentTypes',
 	];
 

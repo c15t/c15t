@@ -3,15 +3,6 @@
  * This module provides the main factory function for creating
  * client instances based on configuration options.
  */
-
-export type {
-	SetConsentRequestBody,
-	SetConsentResponse,
-	ShowConsentBannerResponse,
-	VerifyConsentRequestBody,
-	VerifyConsentResponse,
-} from '@c15t/backend';
-
 import type { StoreOptions } from '../store';
 import { C15tClient } from './client-c15t';
 import { CustomClient, type EndpointHandlers } from './client-custom';

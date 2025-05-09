@@ -4,17 +4,15 @@
  */
 
 import type {
+	ConsentManagerCallbacks,
+	ConsentManagerInterface,
 	SetConsentRequestBody,
 	SetConsentResponse,
 	ShowConsentBannerResponse,
 	VerifyConsentRequestBody,
 	VerifyConsentResponse,
-} from '@c15t/backend';
-
-import type {
-	ConsentManagerCallbacks,
-	ConsentManagerInterface,
 } from './client-interface';
+
 import type { FetchOptions, ResponseContext } from './types';
 
 // At the top of client-custom.ts file, with other constants

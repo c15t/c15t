@@ -4,18 +4,15 @@
  */
 
 import type {
+	ConsentManagerCallbacks,
+	ConsentManagerInterface,
+	ConsentSetCallbackPayload,
+	ConsentVerifiedCallbackPayload,
 	SetConsentRequestBody,
 	SetConsentResponse,
 	ShowConsentBannerResponse,
 	VerifyConsentRequestBody,
 	VerifyConsentResponse,
-} from '@c15t/backend';
-
-import type {
-	ConsentManagerCallbacks,
-	ConsentManagerInterface,
-	ConsentSetCallbackPayload,
-	ConsentVerifiedCallbackPayload,
 } from './client-interface';
 
 import type { FetchOptions, ResponseContext } from './types';
@@ -143,7 +140,7 @@ export class OfflineClient implements ConsentManagerInterface {
 		const response = this.createResponseContext<ShowConsentBannerResponse>({
 			showConsentBanner: shouldShow,
 			jurisdiction: {
-				code: 'EU',
+				code: 'GDPR',
 				message: 'EU',
 			},
 			location: { countryCode: 'GB', regionCode: null },

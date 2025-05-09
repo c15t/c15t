@@ -9,7 +9,7 @@ import { domainSchema } from './schema';
  * and any additional fields from plugins or configuration. The resulting schema is used
  * for database migrations, schema validation, and query building.
  *
- * @param options - C15T configuration options that may contain domain table customizations
+ * @param options - c15t configuration options that may contain domain table customizations
  * @param domainFields - Additional fields from plugins to include in the domain table
  * @returns A complete table schema definition with fields, model name, and metadata
  *

@@ -139,7 +139,7 @@ export type { CallbackFunction, Callbacks } from './types/callbacks';
  */
 export type {
 	ConsentManagerDialogTranslations,
-	ConsentManagerWidgetTranslations,
+	CommonTranslations,
 	ConsentTypeTranslations,
 	ConsentTypesTranslations,
 	CookieBannerTranslations,
@@ -185,3 +185,5 @@ export {
 	detectBrowserLanguage,
 	prepareTranslationConfig,
 } from './utils/translations';
+
+export type { ContractsInputs, ContractsOutputs } from '@c15t/backend';

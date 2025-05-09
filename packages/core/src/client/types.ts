@@ -8,11 +8,6 @@ export const API_ENDPOINTS = {
 	SHOW_CONSENT_BANNER: '/show-consent-banner',
 
 	/**
-	 * Path for listing consent purposes
-	 */
-	LIST_PURPOSES: '/list-purposes',
-
-	/**
 	 * Path for setting consent
 	 */
 	SET_CONSENT: '/consent/set',

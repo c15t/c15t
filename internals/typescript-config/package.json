@@ -4,7 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"lint": "pnpm biome lint ."
 	},
 	"publishConfig": {

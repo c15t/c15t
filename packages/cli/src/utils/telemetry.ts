@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import os from 'node:os';
-import type { Logger } from '@c15t/backend/pkgs/logger';
+import type { Logger } from '@doubletie/logger';
 import { PostHog } from 'posthog-node';
 import type { LogLevel } from './logger';
 
@@ -8,60 +8,63 @@ import type { LogLevel } from './logger';
 const TELEMETRY_DISABLED_ENV = 'C15T_TELEMETRY_DISABLED';
 
 // Event type definitions for better typing and consistency
-export enum TelemetryEventName {
+export const TelemetryEventName = {
 	// CLI Lifecycle events
-	CLI_INVOKED = 'cli.invoked',
-	CLI_COMPLETED = 'cli.completed',
-	CLI_EXITED = 'cli.exited',
-	CLI_ENVIRONMENT_DETECTED = 'cli.environment_detected',
+	CLI_INVOKED: 'cli.invoked',
+	CLI_COMPLETED: 'cli.completed',
+	CLI_EXITED: 'cli.exited',
+	CLI_ENVIRONMENT_DETECTED: 'cli.environment_detected',
 
 	// Command events
-	COMMAND_EXECUTED = 'command.executed',
-	COMMAND_SUCCEEDED = 'command.succeeded',
-	COMMAND_FAILED = 'command.failed',
-	COMMAND_UNKNOWN = 'command.unknown',
+	COMMAND_EXECUTED: 'command.executed',
+	COMMAND_SUCCEEDED: 'command.succeeded',
+	COMMAND_FAILED: 'command.failed',
+	COMMAND_UNKNOWN: 'command.unknown',
 
 	// UI events
-	INTERACTIVE_MENU_OPENED = 'ui.menu.opened',
-	INTERACTIVE_MENU_EXITED = 'ui.menu.exited',
+	INTERACTIVE_MENU_OPENED: 'ui.menu.opened',
+	INTERACTIVE_MENU_EXITED: 'ui.menu.exited',
 
 	// Config events
-	CONFIG_LOADED = 'config.loaded',
-	CONFIG_ERROR = 'config.error',
-	CONFIG_UPDATED = 'config.updated',
+	CONFIG_LOADED: 'config.loaded',
+	CONFIG_ERROR: 'config.error',
+	CONFIG_UPDATED: 'config.updated',
 
 	// Help and version events
-	HELP_DISPLAYED = 'help.displayed',
-	VERSION_DISPLAYED = 'version.displayed',
+	HELP_DISPLAYED: 'help.displayed',
+	VERSION_DISPLAYED: 'version.displayed',
 
 	// Onboarding events
-	ONBOARDING_STARTED = 'onboarding.started',
-	ONBOARDING_COMPLETED = 'onboarding.completed',
-	ONBOARDING_EXITED = 'onboarding.exited',
-	ONBOARDING_STORAGE_MODE_SELECTED = 'onboarding.storage_mode_selected',
-	ONBOARDING_C15T_MODE_CONFIGURED = 'onboarding.c15t_mode_configured',
-	ONBOARDING_OFFLINE_MODE_CONFIGURED = 'onboarding.offline_mode_configured',
-	ONBOARDING_SELF_HOSTED_CONFIGURED = 'onboarding.self_hosted_configured',
-	ONBOARDING_CUSTOM_MODE_CONFIGURED = 'onboarding.custom_mode_configured',
-	ONBOARDING_DEPENDENCIES_CHOICE = 'onboarding.dependencies_choice',
-	ONBOARDING_DEPENDENCIES_INSTALLED = 'onboarding.dependencies_installed',
-	ONBOARDING_GITHUB_STAR = 'onboarding.github_star',
+	ONBOARDING_STARTED: 'onboarding.started',
+	ONBOARDING_COMPLETED: 'onboarding.completed',
+	ONBOARDING_EXITED: 'onboarding.exited',
+	ONBOARDING_STORAGE_MODE_SELECTED: 'onboarding.storage_mode_selected',
+	ONBOARDING_C15T_MODE_CONFIGURED: 'onboarding.c15t_mode_configured',
+	ONBOARDING_OFFLINE_MODE_CONFIGURED: 'onboarding.offline_mode_configured',
+	ONBOARDING_SELF_HOSTED_CONFIGURED: 'onboarding.self_hosted_configured',
+	ONBOARDING_CUSTOM_MODE_CONFIGURED: 'onboarding.custom_mode_configured',
+	ONBOARDING_DEPENDENCIES_CHOICE: 'onboarding.dependencies_choice',
+	ONBOARDING_DEPENDENCIES_INSTALLED: 'onboarding.dependencies_installed',
+	ONBOARDING_GITHUB_STAR: 'onboarding.github_star',
 
 	// Error events
-	ERROR_OCCURRED = 'error.occurred',
+	ERROR_OCCURRED: 'error.occurred',
 
 	// Migration events
-	MIGRATION_STARTED = 'migration.started',
-	MIGRATION_PLANNED = 'migration.planned',
-	MIGRATION_EXECUTED = 'migration.executed',
-	MIGRATION_COMPLETED = 'migration.completed',
-	MIGRATION_FAILED = 'migration.failed',
+	MIGRATION_STARTED: 'migration.started',
+	MIGRATION_PLANNED: 'migration.planned',
+	MIGRATION_EXECUTED: 'migration.executed',
+	MIGRATION_COMPLETED: 'migration.completed',
+	MIGRATION_FAILED: 'migration.failed',
 
 	// Generate events
-	GENERATE_STARTED = 'generate.started',
-	GENERATE_COMPLETED = 'generate.completed',
-	GENERATE_FAILED = 'generate.failed',
-}
+	GENERATE_STARTED: 'generate.started',
+	GENERATE_COMPLETED: 'generate.completed',
+	GENERATE_FAILED: 'generate.failed',
+} as const;
+
+export type TelemetryEventName =
+	(typeof TelemetryEventName)[keyof typeof TelemetryEventName];
 
 export interface TelemetryOptions {
 	/**
@@ -144,8 +147,9 @@ export class Telemetry {
 		properties: Record<string, string | number | boolean | undefined> = {}
 	): void {
 		if (this.disabled || !this.client) {
-			if (this.debug)
+			if (this.debug) {
 				this.logDebug('Telemetry disabled or client not initialized');
+			}
 			return;
 		}
 
@@ -179,9 +183,13 @@ export class Telemetry {
 			this.client.flush();
 
 			// Log debug info
-			if (this.debug) this.logDebug(`Flushed telemetry event: ${eventName}`);
+			if (this.debug) {
+				this.logDebug(`Flushed telemetry event: ${eventName}`);
+			}
 		} catch (error) {
-			if (this.debug) this.logDebug(`Error sending telemetry: ${error}`);
+			if (this.debug) {
+				this.logDebug(`Error sending telemetry: ${error}`);
+			}
 		}
 	}
 
@@ -318,6 +326,7 @@ export class Telemetry {
 		if (this.logger) {
 			this.logger.debug(message, ...args);
 		} else {
+			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.debug(message, ...args);
 		}
 	}
@@ -330,7 +339,9 @@ export class Telemetry {
 	private initClient(customClient?: PostHog): void {
 		if (customClient) {
 			this.client = customClient;
-			if (this.debug) this.logDebug('Using custom PostHog client');
+			if (this.debug) {
+				this.logDebug('Using custom PostHog client');
+			}
 		} else {
 			// Skip telemetry initialization if no API key is provided
 			if (!this.apiKey || this.apiKey.trim() === '') {
@@ -353,17 +364,19 @@ export class Telemetry {
 					requestTimeout: 3000, // Short timeout for CLI context
 				};
 
-				if (this.debug)
+				if (this.debug) {
 					this.logDebug(
 						'Initializing PostHog client with config:',
 						JSON.stringify(clientConfig)
 					);
+				}
 
 				this.client = new PostHog(this.apiKey, clientConfig);
 
 				const initTime = Date.now() - startTime;
-				if (this.debug)
+				if (this.debug) {
 					this.logDebug('PostHog client initialized in', initTime, 'ms');
+				}
 			} catch (error) {
 				// If PostHog initialization fails, disable telemetry
 				this.disabled = true;
@@ -374,20 +387,23 @@ export class Telemetry {
 						? { message: error.message, name: error.name, stack: error.stack }
 						: { rawError: String(error) };
 
-				if (this.debug)
+				if (this.debug) {
 					this.logDebug(
 						'Telemetry disabled due to initialization error:',
 						JSON.stringify(errorDetails, null, 2)
 					);
+				}
 
 				// Try alternative initialization without options as fallback
 				try {
-					if (this.debug)
+					if (this.debug) {
 						this.logDebug('Attempting fallback PostHog initialization');
+					}
 					this.client = new PostHog(this.apiKey);
 					this.disabled = false;
-					if (this.debug)
+					if (this.debug) {
 						this.logDebug('PostHog client initialized using fallback method');
+					}
 				} catch (fallbackError) {
 					this.logDebug(
 						'Fallback initialization also failed:',

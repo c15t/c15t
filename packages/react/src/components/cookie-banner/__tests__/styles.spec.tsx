@@ -1,3 +1,4 @@
+import { defaultTranslationConfig } from 'c15t';
 import { expect, test } from 'vitest';
 import { vi } from 'vitest';
 import { CookieBanner } from '~/components/cookie-banner/cookie-banner';
@@ -14,17 +15,8 @@ vi.mock('~/hooks/use-consent-manager', () => ({
 	}),
 }));
 
-// Mock the useTranslations hook
 vi.mock('~/hooks/use-translations', () => ({
-	useTranslations: () => ({
-		cookieBanner: {
-			title: 'Cookie Settings',
-			description: 'We use cookies to enhance your experience',
-			acceptAll: 'Accept All',
-			rejectAll: 'Reject All',
-			customize: 'Customize',
-		},
-	}),
+	useTranslations: () => defaultTranslationConfig.translations.en,
 }));
 
 type ComponentTestCase = {

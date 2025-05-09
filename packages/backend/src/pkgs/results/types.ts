@@ -1,4 +1,4 @@
-import type { H3Error } from 'h3';
+import type { ORPCError } from '@orpc/server';
 import type { Result, ResultAsync } from 'neverthrow';
 
 /**
@@ -46,17 +46,13 @@ export type ErrorMessageType = string;
  *
  * @remarks
  * This interface defines the public API of the DoubleTieError class.
- * It extends the H3Error class with additional properties and methods
+ * It extends the ORPCError class with additional properties and methods
  * specific to the DoubleTie error handling system.
  *
  * @see DoubleTieErrorOptions for the options used to construct a DoubleTieError
  */
 export interface DoubleTieError
-	extends H3Error<{
-		code: ErrorMessageType;
-		category?: ErrorCategory;
-		meta?: Record<string, unknown>;
-	}> {
+	extends ORPCError<string, Record<string, unknown>> {
 	/**
 	 * Error code identifying the error type
 	 */
@@ -71,6 +67,11 @@ export interface DoubleTieError
 	 * Additional metadata about the error
 	 */
 	readonly meta: Record<string, unknown>;
+
+	/**
+	 * HTTP status code for the error
+	 */
+	readonly statusCode: number;
 
 	/**
 	 * Creates a new error instance with additional metadata
