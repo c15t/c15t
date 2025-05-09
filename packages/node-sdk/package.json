@@ -8,7 +8,9 @@
 		"check-types:test": "tsc -p tsconfig.test.json",
 		"dev": "rslib build --watch",
 		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
-		"lint": "pnpm biome lint ./src"
+		"lint": "pnpm biome lint ./src",
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"exports": {
 		".": {
@@ -20,6 +22,8 @@
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
 		"@orpc/client": "1.2.0",
+		"@orpc/contract": "1.2.0",
+		"@orpc/openapi-client": "^1.2.0",
 		"@orpc/server": "1.2.0"
 	},
 	"devDependencies": {
@@ -32,6 +36,7 @@
 		"@types/node": "20.14.13",
 		"@types/pg": "8.11.6",
 		"kysely-pglite": "^0.6.1",
+		"msw": "^2.7.6",
 		"typescript": "^5.8.3",
 		"vitest": "^3.1.1"
 	}

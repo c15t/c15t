@@ -12,6 +12,8 @@ const config = {
 	meta: metaContracts,
 };
 
+export { config as contracts };
+
 export const os = implement(config);
 
 export type ContractsOutputs = InferContractRouterOutputs<typeof config>;

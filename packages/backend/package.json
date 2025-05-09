@@ -19,6 +19,11 @@
 			"import": "./dist/schema/index.js",
 			"require": "./dist/schema/index.cjs"
 		},
+		"./contracts": {
+			"types": "./dist/contracts/index.d.ts",
+			"import": "./dist/contracts.js",
+			"require": "./dist/contracts.cjs"
+		},
 		"./pkgs/data-model/fields": {
 			"types": "./dist/pkgs/data-model/fields/index.d.ts",
 			"import": "./dist/pkgs/data-model/fields/index.js",

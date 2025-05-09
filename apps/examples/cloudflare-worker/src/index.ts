@@ -15,7 +15,6 @@ const handler = (env: Env) => {
 			url: env.TURSO_DATABASE_URL,
 			authToken: env.TURSO_AUTH_TOKEN,
 		}),
-		basePath: '/',
 		trustedOrigins: env.TRUSTED_ORIGINS as string[],
 		logger: {
 			level: 'debug',

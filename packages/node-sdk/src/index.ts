@@ -1,7 +1,8 @@
-import type { router } from '@c15t/backend/router';
+import { contracts } from '@c15t/backend/contracts';
 import { createORPCClient } from '@orpc/client';
-import { RPCLink } from '@orpc/client/fetch';
-import type { RouterClient } from '@orpc/server';
+import type { ContractRouterClient } from '@orpc/contract';
+import type { JsonifiedClient } from '@orpc/openapi-client';
+import { OpenAPILink } from '@orpc/openapi-client/fetch';
 
 /**
  * Configuration options for the C15T SDK client
@@ -63,8 +64,7 @@ export function c15tClient(options: C15TClientOptions) {
 		baseUrl.pathname = options.prefix;
 	}
 
-	// Create the RPC link with the configured options
-	const link = new RPCLink({
+	const link = new OpenAPILink(contracts, {
 		url: baseUrl.toString(),
 		headers: {
 			...authHeaders,
@@ -75,7 +75,8 @@ export function c15tClient(options: C15TClientOptions) {
 	// Create and return the client with a type assertion
 	// This approach avoids complex type issues while providing
 	// the same runtime functionality
-	const client = createORPCClient(link);
 
-	return client as RouterClient<typeof router>;
+	return createORPCClient(link) as JsonifiedClient<
+		ContractRouterClient<typeof contracts>
+	>;
 }

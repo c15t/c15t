@@ -597,6 +597,12 @@ importers:
       '@orpc/client':
         specifier: 1.2.0
         version: 1.2.0
+      '@orpc/contract':
+        specifier: 1.2.0
+        version: 1.2.0
+      '@orpc/openapi-client':
+        specifier: ^1.2.0
+        version: 1.2.0
       '@orpc/server':
         specifier: 1.2.0
         version: 1.2.0(crossws@0.3.4)(ws@8.18.1)
@@ -628,6 +634,9 @@ importers:
       kysely-pglite:
         specifier: ^0.6.1
         version: 0.6.1(@electric-sql/pglite@0.2.17)(@libsql/kysely-libsql@0.4.1(kysely@0.28.0))(better-sqlite3@11.9.1)(kysely@0.28.0)(mysql2@3.14.0)(pg@8.14.1)
+      msw:
+        specifier: ^2.7.6
+        version: 2.7.6(@types/node@20.14.13)(typescript@5.8.3)
       typescript:
         specifier: ^5.8.3
         version: 5.8.3

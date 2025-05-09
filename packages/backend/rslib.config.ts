@@ -62,6 +62,7 @@ export default defineConfig({
 		entry: {
 			core: ['./src/core.ts'],
 			router: ['./src/router.ts'],
+			contracts: ['./src/contracts/index.ts'],
 			'schema/index': ['./src/schema/index.ts'],
 			'pkgs/data-model/fields/index': ['./src/pkgs/data-model/fields/index.ts'],
 			'pkgs/data-model/index': ['./src/pkgs/data-model/index.ts'],
