@@ -1,8 +1,7 @@
 import { getWithHooks } from '~/pkgs/data-model';
 import type { Where } from '~/pkgs/db-adapters';
-import type { GenericEndpointContext, RegistryContext } from '~/pkgs/types';
-
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
+import type { GenericEndpointContext, RegistryContext } from '~/pkgs/types';
 import { validateEntityOutput } from '../definition';
 import type { ConsentPolicy, PolicyType } from './schema';
 
@@ -31,12 +30,24 @@ import type { ConsentPolicy, PolicyType } from './schema';
  */
 async function generatePolicyPlaceholder(name: string, date: Date) {
 	const content = `[PLACEHOLDER] This is an automatically generated version of the ${name} policy.\n\nThis placeholder content should be replaced with actual policy terms before being presented to users.\n\nGenerated on: ${date.toISOString()}`;
-	const encoder = new TextEncoder();
-	const data = encoder.encode(content);
-	const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-	const contentHash = Array.from(new Uint8Array(hashBuffer))
-		.map((b) => b.toString(16).padStart(2, '0'))
-		.join('');
+
+	let contentHash: string;
+	try {
+		// Use Web Crypto API which is available in both browsers and edge environments
+		const encoder = new TextEncoder();
+		const data = encoder.encode(content);
+		const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+		contentHash = Array.from(new Uint8Array(hashBuffer))
+			.map((b) => b.toString(16).padStart(2, '0'))
+			.join('');
+	} catch (error) {
+		throw new DoubleTieError('Failed to generate policy content hash', {
+			code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+			status: 500,
+			cause: error instanceof Error ? error : new Error(String(error)),
+		});
+	}
+
 	return { content, contentHash };
 }
 
@@ -271,55 +282,67 @@ export function policyRegistry({ adapter, ...ctx }: RegistryContext) {
 			// Use a transaction to prevent race conditions
 			return await adapter.transaction({
 				callback: async (txAdapter) => {
-					const now = new Date();
-					const txRegistry = policyRegistry({
-						adapter: txAdapter,
-						...ctx,
-					});
+					try {
+						const now = new Date();
+						const txRegistry = policyRegistry({
+							adapter: txAdapter,
+							...ctx,
+						});
 
-					// Find latest policy with exact name match directly from database
-					const rawLatestPolicy = await txAdapter.findOne({
-						model: 'consentPolicy',
-						where: [
-							{ field: 'isActive', value: true },
-							{
-								field: 'type',
-								value: type,
+						// Find latest policy with exact name match directly from database
+						const rawLatestPolicy = await txAdapter.findOne({
+							model: 'consentPolicy',
+							where: [
+								{ field: 'isActive', value: true },
+								{
+									field: 'type',
+									value: type,
+								},
+							],
+							sortBy: {
+								field: 'effectiveDate',
+								direction: 'desc',
 							},
-						],
-						sortBy: {
-							field: 'effectiveDate',
-							direction: 'desc',
-						},
-					});
+						});
 
-					const latestPolicy = rawLatestPolicy
-						? validateEntityOutput(
-								'consentPolicy',
-								rawLatestPolicy,
-								ctx.options
-							)
-						: null;
+						const latestPolicy = rawLatestPolicy
+							? validateEntityOutput(
+									'consentPolicy',
+									rawLatestPolicy,
+									ctx.options
+								)
+							: null;
 
-					if (latestPolicy) {
-						return latestPolicy;
+						if (latestPolicy) {
+							return latestPolicy;
+						}
+
+						// Generate policy content and hash
+						const { content: defaultContent, contentHash } =
+							await generatePolicyPlaceholder(type, now);
+
+						return txRegistry.createConsentPolicy({
+							version: '1.0.0',
+							type,
+							name: type,
+							effectiveDate: now,
+							content: defaultContent,
+							contentHash,
+							isActive: true,
+							updatedAt: now,
+							expirationDate: null,
+						});
+					} catch (error) {
+						// Log the error for debugging purposes
+						ctx.logger.error('Error in findOrCreatePolicy transaction:', error);
+
+						// Rethrow as a DoubleTieError with appropriate context
+						throw new DoubleTieError('Failed to find or create policy', {
+							code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+							status: 500,
+							cause: error instanceof Error ? error : new Error(String(error)),
+						});
 					}
-
-					// Generate policy content and hash
-					const { content: defaultContent, contentHash } =
-						await generatePolicyPlaceholder(type, now);
-
-					return txRegistry.createConsentPolicy({
-						version: '1.0.0',
-						type,
-						name: type,
-						effectiveDate: now,
-						content: defaultContent,
-						contentHash,
-						isActive: true,
-						updatedAt: now,
-						expirationDate: null,
-					});
 				},
 			});
 		},
