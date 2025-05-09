@@ -6,7 +6,7 @@
 		"build": "next build",
 		"check-types": "tsc --noEmit",
 		"dev": "next dev --turbopack",
-		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"postinstall": "fumadocs-mdx",
 		"lint": "pnpm biome lint ./src",
 		"start": "next start"
