@@ -6,4 +6,5 @@
  * @packageDocumentation
  * @see {@link @c15t/node-sdk} for the complete Node.js SDK API reference
  */
-export * from '@c15t/node-sdk';
+export { c15tClient } from '@c15t/node-sdk';
+export type { C15TClientOptions } from '@c15t/node-sdk';

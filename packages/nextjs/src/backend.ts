@@ -6,4 +6,5 @@
  * @packageDocumentation
  * @see {@link @c15t/backend} for the complete backend API reference
  */
-export * from '@c15t/backend';
+export type { C15TInstance } from '@c15t/backend';
+export { c15tInstance } from '@c15t/backend';
