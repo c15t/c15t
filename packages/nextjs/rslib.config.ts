@@ -14,11 +14,11 @@ export default defineConfig({
 			bundle: true,
 			format: 'esm',
 		},
-		// {
-		// 	dts: true,
-		// 	bundle: true,
-		// 	format: 'cjs',
-		// },
+		{
+			dts: true,
+			bundle: true,
+			format: 'cjs',
+		},
 	],
 	output: {
 		target: 'node',
