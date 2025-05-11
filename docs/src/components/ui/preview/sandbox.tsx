@@ -126,7 +126,7 @@ export const SandboxProvider = ({
 			{isMounted ? (
 				<SandpackProvider
 					className="!size-full !max-h-none"
-					//@ts-ignore
+					//@ts-expect-error
 					theme={theme === 'light' ? githubLight : githubDark}
 					options={{
 						initMode: isSSR ? 'user-visible' : 'immediate',

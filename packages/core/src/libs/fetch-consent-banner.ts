@@ -138,9 +138,13 @@ export async function fetchConsentBannerInfo(
 		// Let the client handle offline mode internally
 		const { data, error } = await manager.showConsentBanner({
 			// Add onError callback specific to this request
-			// This works alongside the high-level client callbacks
-			//@ts-ignore
-			onError: callbacks.onError,
+			onError: callbacks.onError
+				? (context) => {
+						if (callbacks.onError) {
+							callbacks.onError(context.error?.message || 'Unknown error');
+						}
+					}
+				: undefined,
 		});
 
 		if (error) {
