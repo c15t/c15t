@@ -1,5 +1,15 @@
 # docs
 
+## 1.1.7
+
+### Patch Changes
+
+- Updated dependencies [[`aca32d3`](https://github.com/c15t/c15t/commit/aca32d3f0f76d75ad618a8ba3386ce385ac612e4)]:
+  - @c15t/backend@1.2.1
+  - c15t@1.2.1
+  - @c15t/react@1.2.1
+  - @c15t/dev-tools@1.2.1
+
 ## 1.1.6
 
 ### Patch Changes
