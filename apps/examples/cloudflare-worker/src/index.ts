@@ -15,7 +15,7 @@ const handler = (env: Env) => {
 			url: env.TURSO_DATABASE_URL,
 			authToken: env.TURSO_AUTH_TOKEN,
 		}),
-		trustedOrigins: env.TRUSTED_ORIGINS as string[],
+		trustedOrigins: JSON.parse(env.TRUSTED_ORIGINS ?? '[]'),
 		logger: {
 			level: 'debug',
 			appName: 'c15t-cloudflare-example',
@@ -62,5 +62,5 @@ export default {
 interface Env {
 	TURSO_DATABASE_URL: string;
 	TURSO_AUTH_TOKEN: string;
-	TRUSTED_ORIGINS: string | string[];
+	TRUSTED_ORIGINS: string;
 }
