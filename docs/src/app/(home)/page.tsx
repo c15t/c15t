@@ -6,9 +6,23 @@ import { CTA } from './_components/cta';
 import { Footer } from './_components/footer';
 import { siteConfig } from './config';
 
+const metadataTitle = 'React Privacy Components for the Modern Web';
+const metadataDescription = siteConfig.hero.description;
+
 export const metadata: Metadata = {
-	title: 'React Privacy Components for the Modern Web',
-	description: siteConfig.hero.description,
+	title: metadataTitle,
+	description: metadataDescription,
+	openGraph: {
+		title: metadataTitle,
+		description: metadataDescription,
+		images: '/opengraph-image.png',
+	},
+	twitter: {
+		card: 'summary_large_image',
+		title: metadataTitle,
+		description: metadataDescription,
+		images: '/opengraph-image.png',
+	},
 };
 
 export default function HomePage() {

@@ -56,11 +56,13 @@ export async function generateMetadata(props: {
 			title: page.data.title,
 			description: page.data.description,
 			type: 'article',
+			images: '/opengraph-image.png',
 		},
 		twitter: {
-			card: 'summary',
+			card: 'summary_large_image',
 			title: page.data.title,
 			description: page.data.description,
+			images: '/opengraph-image.png',
 		},
 	};
 }
