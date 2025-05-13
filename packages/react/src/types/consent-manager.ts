@@ -85,4 +85,12 @@ export interface ConsentManagerProviderProps {
 	 * This includes core, React, store, and translation settings.
 	 */
 	options: ConsentManagerOptions;
+
+	/**
+	 * Internal prop for overriding translations.
+	 * When provided, skips the translation preparation step.
+	 *
+	 * @internal
+	 */
+	_translationConfig?: TranslationConfig;
 }

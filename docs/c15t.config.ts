@@ -1,10 +1,10 @@
 // c15t Client Configuration
-import type { ConsentManagerOptions } from '@c15t/react';
+import type { ConsentManagerOptions } from '@c15t/nextjs';
 
 export const c15tConfig = {
 	// Using hosted c15t (consent.io) or self-hosted instance
 	mode: 'c15t',
-	backendURL: process.env.NEXT_PUBLIC_C15T_URL as string,
+	backendURL: 'https://kaylee-111k27-us-east-correct-cors.kaylee.workers.dev/',
 	store: {
 		initialGdprTypes: ['necessary', 'marketing'],
 	},

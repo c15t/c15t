@@ -185,9 +185,9 @@ importers:
       '@c15t/middleware':
         specifier: workspace:*
         version: link:../packages/middleware
-      '@c15t/react':
+      '@c15t/nextjs':
         specifier: workspace:*
-        version: link:../packages/react
+        version: link:../packages/nextjs
       '@codesandbox/sandpack-react':
         specifier: ^2.20.0
         version: 2.20.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -692,6 +692,9 @@ importers:
 
   packages/react:
     dependencies:
+      '@c15t/node-sdk':
+        specifier: workspace:*
+        version: link:../node-sdk
       '@radix-ui/react-accordion':
         specifier: 1.2.4
         version: 1.2.4(@types/react-dom@19.1.2(@types/react@19.1.1))(@types/react@19.1.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)

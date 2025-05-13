@@ -14,7 +14,7 @@
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
 		"@c15t/dev-tools": "workspace:*",
-		"@c15t/react": "workspace:*",
+		"@c15t/nextjs": "workspace:*",
 		"@c15t/middleware": "workspace:*",
 		"@codesandbox/sandpack-react": "^2.20.0",
 		"@radix-ui/react-collapsible": "^1.1.3",
