@@ -17,7 +17,7 @@
 		"lint:fix": "turbo lint -- --write",
 		"lint": "turbo lint",
 		"postinstall": "lefthook install",
-		"release:canary": "pnpm changeset version && pnpm build:libs && changeset publish --tag canary --no-git-tag",
+		"release:canary": "pnpm changeset version && pnpm build:libs && pnpm changeset publish --tag canary --no-git-tag",
 		"release": "pnpm build:libs && changeset publish",
 		"test": "turbo test --filter=!./apps/examples/*",
 		"version:canary": "changeset version --snapshot canary && pnpm install --lockfile-only",

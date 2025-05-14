@@ -33,16 +33,39 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Enter Prerelease Mode
-        run: pnpm changeset pre enter canary
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Create Release Pull Request or Publish
-        id: changesets
-        uses: changesets/action@v1
-        with:
-          publish: pnpm run release:canary
-          commit: "chore: version packages (canary)"
-          title: "chore: version packages (canary)"
+      - name: Create or Update pre.json
+        run: |
+          if [ ! -f .changeset/pre.json ]; then
+            echo '{
+              "mode": "pre",
+              "tag": "canary",
+              "initialVersions": {},
+              "changesets": []
+            }' > .changeset/pre.json
+          fi
+
+      - name: Process Changesets and Publish
+        run: |
+          # Enter prerelease mode
+          echo "Entering prerelease mode..."
+          pnpm changeset pre enter canary
+          
+          # Version packages
+          echo "Versioning packages..."
+          pnpm changeset version
+          
+          # Build libraries
+          echo "Building libraries..."
+          pnpm build:libs
+          
+          # Publish packages
+          echo "Publishing packages..."
+          pnpm changeset publish --tag canary --no-git-tag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
