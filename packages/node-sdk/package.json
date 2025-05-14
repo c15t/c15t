@@ -19,6 +19,10 @@
 			"require": "./dist/index.cjs"
 		}
 	},
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": ["dist"],
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
 		"@orpc/client": "1.2.0",

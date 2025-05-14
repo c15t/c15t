@@ -3,17 +3,20 @@
  * Handles fetching and processing consent banner information.
  */
 
+import type { ContractsOutputs } from '@c15t/backend/contracts';
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { PrivacyConsentState } from '../store.type';
-import type { ConsentBannerResponse } from '../types/compliance';
-import { getCookie } from './cookie-utils';
+import { getCookie, setCookie } from './cookie-utils';
+
+type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
 
 /**
  * Configuration for fetching consent banner information
  */
 interface FetchConsentBannerConfig {
 	manager: ConsentManagerInterface;
+	initialShowConsentBanner?: ContractsOutputs['consent']['showBanner'];
 	get: StoreApi<PrivacyConsentState>['getState'];
 	set: StoreApi<PrivacyConsentState>['setState'];
 }
@@ -28,14 +31,32 @@ function getConsentBannerCookie(
 		return null;
 	}
 
-	const cookie = getCookie('show-consent-banner');
+	const parseCookie = () => {
+		const cookie = getCookie('show-consent-banner');
 
-	if (!cookie) {
-		return null;
-	}
+		if (!cookie) {
+			if (config.initialShowConsentBanner) {
+				setCookie(
+					'show-consent-banner',
+					JSON.stringify(config.initialShowConsentBanner)
+				);
+
+				return config.initialShowConsentBanner;
+			}
+
+			return null;
+		}
+
+		return JSON.parse(cookie) as ConsentBannerResponse;
+	};
 
 	try {
-		const cookieData = JSON.parse(cookie) as ConsentBannerResponse;
+		const cookieData = parseCookie();
+
+		if (!cookieData) {
+			return null;
+		}
+
 		const { get } = config;
 		const { callbacks, setDetectedCountry } = get();
 
