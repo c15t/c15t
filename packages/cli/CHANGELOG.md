@@ -1,5 +1,14 @@
 # @c15t/cli
 
+## 1.2.2-canary-20250514203718
+
+### Patch Changes
+
+- f24f11b: bump package
+- Updated dependencies [f24f11b]
+  - @c15t/backend@1.2.2-canary-20250514203718
+  - @c15t/react@1.2.2-canary-20250514203718
+
 ## 1.2.2-canary-20250514183211
 
 ### Patch Changes
