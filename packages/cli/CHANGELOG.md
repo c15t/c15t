@@ -1,5 +1,13 @@
 # @c15t/cli
 
+## 1.2.2
+
+### Patch Changes
+
+- Updated dependencies [[`ee959e4`](https://github.com/c15t/c15t/commit/ee959e493d5f607126cd9bd181b6d8a864428bca)]:
+  - @c15t/backend@1.2.2
+  - @c15t/react@1.2.2
+
 ## 1.2.1
 
 ### Patch Changes
