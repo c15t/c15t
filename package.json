@@ -16,10 +16,9 @@
 		"postinstall": "lefthook install",
 		"test": "turbo test --filter=!./apps/examples/*",
 		"view-report": "turbo run view-report",
-		"packages:bump": "pnpm dlx bumpp -r --publish-branch main",
-		"packages:bump:canary": "pnpm dlx bumpp -r --preset pre --publish-branch canary",
+		"packages:bump": "pnpm dlx bumpp -r",
 		"packages:publish": "pnpm build:libs && pnpm --filter='./packages/*' publish -r --access=public",
-		"packages:publish:canary": "pnpm build:libs && pnpm --filter='./packages/*' publish -r --access=public --tag canary"
+		"packages:changelog:github": "pnpm dlx changelogithub --draft"
 	},
 	"resolutions": {
 		"@libsql/kysely-libsql": "^0.4.1"
@@ -36,13 +35,14 @@
 		"@vitest/browser": "^3.1.1",
 		"@vitest/coverage-istanbul": "^3.1.1",
 		"bumpp": "^9.3.0",
+		"changelogithub": "^0.13.11",
 		"knip": "^5.50.4",
 		"lefthook": "^1.11.10",
 		"playwright": "^1.51.1",
 		"turbo": "^2.5.0",
 		"typescript": "5.8.3",
-		"vitest-browser-react": "^0.1.1",
-		"vitest": "^3.1.1"
+		"vitest": "^3.1.1",
+		"vitest-browser-react": "^0.1.1"
 	},
 	"packageManager": "pnpm@10.8.0",
 	"engines": {

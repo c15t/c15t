@@ -2,21 +2,49 @@
 name: Release
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Bump version (e.g., 4.0.0, 4.1.0-alpha.1, 5.0.0-beta.2)'
+        required: true
+        type: string
 
 # Prevent multiple concurrent release workflows
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
+      - id: version
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+
+          if [[ $VERSION =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-([a-z]+)\.([1-9][0-9]*))?$ ]]; then
+            if [[ "${BASH_REMATCH[5]}" == "latest" ]]; then
+              echo "INVALID VERSION FORMAT ('latest' is not allowed): $VERSION" >&2
+              exit 1
+            fi
+
+            echo "major=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
+            echo "minor=${BASH_REMATCH[2]}" >> $GITHUB_OUTPUT
+            echo "patch=${BASH_REMATCH[3]}" >> $GITHUB_OUTPUT
+            echo "preid=${BASH_REMATCH[5]}" >> $GITHUB_OUTPUT
+            echo "number=${BASH_REMATCH[6]}" >> $GITHUB_OUTPUT
+          else
+            echo "INVALID VERSION FORMAT: $VERSION" >&2
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
 
@@ -36,7 +64,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Bump Package Versions
-        run: echo "y" | pnpm dlx bumpp -r --yes --no-push --publish-branch main
+        run: pnpm run packages:bump ${{ github.event.inputs.version }} --yes
 
       - name: Setup NPM Authentication
         run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
@@ -44,6 +72,6 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Build and Publish
-        run: pnpm build:libs && pnpm --filter='./packages/*' publish -r --access=public
+        run: pnpm run packages:publish --tag=${{ steps.version.outputs.preid || 'latest' }}
         env:
           NPM_CONFIG_PROVENANCE: true
