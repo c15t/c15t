@@ -35,7 +35,7 @@ jobs:
         run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Bump Package Versions
-        run: pnpm dlx bumpp -r --preid canary.${{ steps.commit.outputs.short_sha }} --preset pre --yes --no-push
+        run: pnpm dlx bumpp -r --preid canary.${{ steps.commit.outputs.short_sha }} --preset pre --yes --no-push --publish-branch canary
 
       - name: Setup NPM Authentication
         run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"

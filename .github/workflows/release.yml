@@ -36,7 +36,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Bump Package Versions
-        run: pnpm run packages:bump --yes --no-push
+        run: pnpm dlx bumpp -r --yes --no-push --publish-branch main
 
       - name: Setup NPM Authentication
         run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
@@ -44,6 +44,6 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Build and Publish
-        run: pnpm run packages:publish
+        run: pnpm build:libs && pnpm --filter='./packages/*' publish -r --access=public
         env:
           NPM_CONFIG_PROVENANCE: true
