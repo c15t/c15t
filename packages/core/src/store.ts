@@ -6,6 +6,7 @@
 
 import { createStore } from 'zustand/vanilla';
 
+import type { TranslationConfig } from '@c15t/translations';
 import type { ConsentManagerInterface } from './client/client-factory';
 import {
 	getEffectiveConsents,
@@ -23,7 +24,8 @@ import type {
 	ConsentState,
 } from './types/compliance';
 import { type AllConsentNames, consentTypes } from './types/gdpr';
-import type { TranslationConfig } from './types/translations';
+
+import type { ContractsOutputs } from '@c15t/backend/contracts';
 
 /** Storage key for persisting consent data in localStorage */
 const STORAGE_KEY = 'privacy-consent-storage';
@@ -116,6 +118,12 @@ export interface StoreOptions {
 	 * Translation configuration for the consent manager.
 	 */
 	translationConfig?: TranslationConfig;
+
+	/**
+	 * Initial showConsentBanner value. This will set a cookie for the consent banner.
+	 * @internal
+	 */
+	_initialShowConsentBanner?: ContractsOutputs['consent']['showBanner'];
 }
 
 // For backward compatibility (if needed)
@@ -502,6 +510,7 @@ export const createConsentManagerStore = (
 		fetchConsentBannerInfo: (): Promise<ConsentBannerResponse | undefined> =>
 			fetchConsentBannerInfoUtil({
 				manager,
+				initialShowConsentBanner: options._initialShowConsentBanner,
 				get,
 				set,
 			}),

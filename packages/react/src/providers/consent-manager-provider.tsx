@@ -69,10 +69,12 @@ export function ConsentManagerProvider({
 		noStyle = false,
 	} = react;
 
-	// Memoize translation config to prevent recreation
+	// Memoize translation config to prevent recreation - skip if store.translationConfig is provided
 	const preparedTranslationConfig = useMemo(
-		() => prepareTranslationConfig(defaultTranslationConfig, translationConfig),
-		[translationConfig]
+		() =>
+			store.translationConfig ||
+			prepareTranslationConfig(defaultTranslationConfig, translationConfig),
+		[store.translationConfig, translationConfig]
 	);
 
 	// Determine if using c15t.dev domain (memoize the calculation)
