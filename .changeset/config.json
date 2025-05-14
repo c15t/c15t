@@ -1,6 +1,6 @@
 {
 	"$schema": "https://unpkg.com/@changesets/config@latest/schema.json",
-	"changelog": false,
+	"changelog": ["@changesets/changelog-github", { "repo": "c15t/c15t" }],
 	"commit": false,
 	"linked": [
 		[
@@ -8,14 +8,14 @@
 			"@c15t/backend",
 			"@c15t/cli",
 			"@c15t/dev-tools",
-			"@c15t/middleware",
 			"@c15t/nextjs",
 			"@c15t/node-sdk",
-			"@c15t/react"
+			"@c15t/react",
+			"@c15t/translations"
 		]
 	],
 	"access": "public",
-	"baseBranch": "canary",
+	"baseBranch": "main",
 	"updateInternalDependencies": "patch",
 	"ignore": ["@c15t-examples/*"],
 	"___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
@@ -23,5 +23,8 @@
 	},
 	"snapshot": {
 		"useCalculatedVersion": true
+	},
+	"___release": {
+		"prereleaseTemplate": "canary-{X}"
 	}
 }
