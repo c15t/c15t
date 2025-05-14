@@ -22,8 +22,8 @@
 		"dev": "rslib build --watch",
 		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"lint": "pnpm biome lint ./src",
-		"test": "vitest run",
-		"test:watch": "vitest"
+		"test": "vitest run --passWithNoTests",
+		"test:watch": "vitest --passWithNoTests"
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
