@@ -182,9 +182,6 @@ importers:
       '@c15t/dev-tools':
         specifier: workspace:*
         version: link:../packages/dev-tools
-      '@c15t/middleware':
-        specifier: workspace:*
-        version: link:../packages/middleware
       '@c15t/nextjs':
         specifier: workspace:*
         version: link:../packages/nextjs
@@ -598,23 +595,11 @@ importers:
         specifier: ^8.5.3
         version: 8.5.3
 
-  packages/middleware:
-    devDependencies:
-      '@c15t/typescript-config':
-        specifier: workspace:*
-        version: link:../../internals/typescript-config
-      '@c15t/vitest-config':
-        specifier: workspace:*
-        version: link:../../internals/vitest-config
-
   packages/nextjs:
     dependencies:
       '@c15t/backend':
         specifier: workspace:*
         version: link:../backend
-      '@c15t/middleware':
-        specifier: workspace:*
-        version: link:../middleware
       '@c15t/node-sdk':
         specifier: workspace:*
         version: link:../node-sdk
@@ -13087,7 +13072,7 @@ snapshots:
       sirv: 3.0.1
       tinyglobby: 0.2.12
       tinyrainbow: 2.0.0
-      vitest: 3.1.1(@types/debug@4.1.12)(@types/node@20.14.13)(@vitest/browser@3.1.1)(@vitest/ui@3.1.1)(happy-dom@17.4.4)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.29.3)(msw@2.7.6(@types/node@20.14.13)(typescript@5.8.3))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.1)
+      vitest: 3.1.1(@types/debug@4.1.12)(@types/node@22.14.1)(@vitest/browser@3.1.1)(@vitest/ui@3.1.1)(happy-dom@17.4.4)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.29.3)(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.1)
 
   '@vitest/utils@3.1.1':
     dependencies:

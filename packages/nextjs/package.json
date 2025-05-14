@@ -28,7 +28,6 @@
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
-		"@c15t/middleware": "workspace:*",
 		"@c15t/node-sdk": "workspace:*",
 		"@c15t/react": "workspace:*"
 	},
