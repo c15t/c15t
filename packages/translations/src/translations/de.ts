@@ -8,40 +8,40 @@ export const deTranslations: CompleteTranslations = {
 		save: 'Einstellungen speichern',
 	},
 	cookieBanner: {
-		title: 'Wir schätzen Ihre Privatsphäre',
+		title: 'Wir respektieren Deine Privatsphäre.',
 		description:
-			'Diese Website verwendet Cookies, um Ihre Surf-Erfahrung zu verbessern, den Seitenverkehr zu analysieren und persönliche Inhalte anzuzeigen.',
+			'Diese Website verwendet Cookies, um Deine Surf-Erfahrung zu verbessern, den Seitenverkehr zu analysieren und persönliche Inhalte anzuzeigen.',
 	},
 	consentManagerDialog: {
-		title: 'Datenschutz-Einstellungen',
+		title: 'Einstellungen',
 		description:
-			'Passen Sie Ihre Datenschutz-Einstellungen hier an. Wählen Sie, welche Arten von Cookies und Tracking-Technologien Sie zulassen.',
+			'Passe Deine Datenschutz-Einstellungen hier an. Wähle aus, welche Arten von Cookies und Tracking-Technologien zugelassen werden.',
 	},
 	consentTypes: {
 		necessary: {
-			title: 'Strictly Necessary',
+			title: 'Unbedingt erforderliche Cookies',
 			description:
-				'Diese Cookies sind essentiell für den ordnungsgemäßen Betrieb der Website und können nicht deaktiviert werden.',
+				'Diese Cookies sind für das reibungslose Funktionieren der Website unerlässlich und können nicht deaktiviert werden.',
 		},
 		functionality: {
-			title: 'Functionality',
+			title: 'Funktionalität',
 			description:
-				'Diese Cookies ermöglichen erweiterte Funktionalität und Personalisierung der Website.',
+				'Diese Cookies ermöglichen erweiterte Funktionalitäten und eine Personalisierung der Website.',
 		},
 		marketing: {
 			title: 'Marketing',
 			description:
-				'Diese Cookies werden verwendet, um relevante Anzeigen zu liefern und deren Effektivität zu verfolgen.',
+				'Diese Cookies werden verwendet, um relevante Werbung anzuzeigen und ihre Wirksamkeit zu messen.',
 		},
 		measurement: {
-			title: 'Analytics',
+			title: 'Analyse',
 			description:
-				'Diese Cookies helfen uns zu verstehen, wie Besucher mit der Website interagieren und ihre Leistung zu verbessern.',
+				'Diese Cookies helfen uns zu verstehen, wie Besucher mit der Website interagieren um die Surf-Erfahrung zu verbessern.',
 		},
 		experience: {
-			title: 'Experience',
+			title: 'Erfahrung',
 			description:
-				'Diese Cookies helfen uns, eine bessere Benutzererfahrung und neue Funktionen zu bieten.',
+				'Diese Cookies helfen uns dabei, ein besseres Nutzerlebnis zu bieten und neue Funktionen zu testen.',
 		},
 	},
 };
