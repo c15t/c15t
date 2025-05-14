@@ -1,5 +1,14 @@
 # c15t
 
+## 1.2.2-canary-20250514183211
+
+### Patch Changes
+
+- f64f000: feat: added @c15t/nextjs, @c15t/translations for better integration, server-side translations & fetching of consent banner
+- Updated dependencies [f64f000]
+  - @c15t/translations@1.2.2-canary-20250514183211
+  - @c15t/backend@1.2.2-canary-20250514183211
+
 ## 1.2.1
 
 ### Patch Changes
