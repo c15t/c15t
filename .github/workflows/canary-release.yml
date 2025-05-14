@@ -40,6 +40,9 @@ jobs:
 
       - name: Version and Publish Snapshot
         run: |
+          # Ensure npm authentication is working
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+          
           # Version packages using snapshot
           echo "Creating snapshot versions..."
           pnpm changeset version --snapshot canary
@@ -47,6 +50,10 @@ jobs:
           # Build libraries
           echo "Building libraries..."
           pnpm build:libs
+          
+          # Create npm organization if needed (first-time only)
+          echo "Checking npm access..."
+          npm whoami
           
           # Publish packages with canary tag
           echo "Publishing packages..."
