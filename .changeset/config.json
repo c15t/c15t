@@ -1,0 +1,27 @@
+{
+	"$schema": "https://unpkg.com/@changesets/config@latest/schema.json",
+	"changelog": false,
+	"commit": false,
+	"linked": [
+		[
+			"c15t",
+			"@c15t/backend",
+			"@c15t/cli",
+			"@c15t/dev-tools",
+			"@c15t/middleware",
+			"@c15t/nextjs",
+			"@c15t/node-sdk",
+			"@c15t/react"
+		]
+	],
+	"access": "public",
+	"baseBranch": "canary",
+	"updateInternalDependencies": "patch",
+	"ignore": ["@c15t-examples/*"],
+	"___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
+		"onlyUpdatePeerDependentsWhenOutOfRange": true
+	},
+	"snapshot": {
+		"useCalculatedVersion": true
+	}
+}

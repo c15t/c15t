@@ -64,7 +64,12 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Bump Package Versions
-        run: pnpm run packages:bump ${{ github.event.inputs.version }} --yes
+        run: echo "y" | pnpm run packages:bump ${{ github.event.inputs.version }} --yes
+
+      - name: Generate GitHub Release
+        run: pnpm run packages:changelog:github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup NPM Authentication
         run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"

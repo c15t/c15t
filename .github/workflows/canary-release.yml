@@ -12,6 +12,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
 
@@ -22,21 +24,29 @@ jobs:
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
 
-      - run: |
+      - name: Configure Git
+        run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - name: Get Short SHA
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
         id: commit
 
-      - run: echo "y" | pnpm run packages:bump 0.0.0-canary.${{ steps.commit.outputs.short_sha }} --yes --no-push --publish-branch canary
+      - name: Bump Package Versions
+        # The echo "y" | is to automatically answer "yes" to the branch check prompt
+        # --publish-branch canary tells bumpp it's ok to run on the canary branch instead of main/master
+        run: echo "y" | pnpm run packages:bump 0.0.0-canary.${{ steps.commit.outputs.short_sha }} --yes --no-push --publish-branch canary
 
-      - run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
+      - name: Setup NPM Authentication
+        run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - run: pnpm run packages:publish --tag=canary
+      - name: Build and Publish
+        run: pnpm run packages:publish --tag=canary
         env:
           NPM_CONFIG_PROVENANCE: true 
