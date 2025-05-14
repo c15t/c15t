@@ -1,6 +1,6 @@
 {
 	"$schema": "https://unpkg.com/@changesets/config@latest/schema.json",
-	"changelog": ["@changesets/changelog-github", { "repo": "c15t/c15t" }],
+	"changelog": false,
 	"commit": false,
 	"linked": [
 		[
@@ -22,9 +22,7 @@
 		"onlyUpdatePeerDependentsWhenOutOfRange": true
 	},
 	"snapshot": {
-		"useCalculatedVersion": true
-	},
-	"___release": {
+		"useCalculatedVersion": true,
 		"prereleaseTemplate": "canary-{X}"
 	}
 }
