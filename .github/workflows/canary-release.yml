@@ -32,13 +32,14 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Create Release Pull Request or Publish
+      - name: Create and publish snapshot release
         id: changesets
         uses: changesets/action@v1
         with:
+          version: pnpm run version:canary
           publish: pnpm run release:canary
-          commit: "chore: version packages (canary)"
-          title: "chore: version packages (canary)"
+          commit: "chore: publish canary snapshot"
+          title: "chore: publish canary snapshot"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }} 
