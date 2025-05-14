@@ -185,6 +185,9 @@ importers:
       '@c15t/nextjs':
         specifier: workspace:*
         version: link:../packages/nextjs
+      '@c15t/react':
+        specifier: workspace:*
+        version: link:../packages/react
       '@codesandbox/sandpack-react':
         specifier: ^2.20.0
         version: 2.20.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
