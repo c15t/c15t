@@ -1,4 +1,9 @@
-import type { ConsentType } from './gdpr';
+export type AllConsentNames =
+	| 'experience'
+	| 'functionality'
+	| 'marketing'
+	| 'measurement'
+	| 'necessary';
 
 export interface CommonTranslations {
 	acceptAll: string;
@@ -27,7 +32,7 @@ export interface ConsentTypeTranslations {
  * Uses the name property from ConsentType to ensure type safety.
  */
 export type ConsentTypesTranslations = {
-	[key in ConsentType['name']]: ConsentTypeTranslations;
+	[key in AllConsentNames]: ConsentTypeTranslations;
 };
 
 // Complete translations interface (used for English/default language)
@@ -45,6 +50,7 @@ export interface Translations {
 	consentManagerDialog: Partial<ConsentManagerDialogTranslations>;
 	consentTypes: Partial<ConsentTypesTranslations>;
 }
+
 export interface TranslationConfig {
 	translations: Record<string, Partial<Translations>>;
 	defaultLanguage?: string;

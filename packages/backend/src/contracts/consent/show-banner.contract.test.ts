@@ -1,3 +1,4 @@
+import { baseTranslations } from '@c15t/translations';
 import { describe, expect, it } from 'vitest';
 
 // import { createContractTests } from '~/testing/contract-testing';
@@ -33,6 +34,10 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 					location: {
 						countryCode: 'DE',
 						regionCode: null,
+					},
+					translations: {
+						translations: baseTranslations.en,
+						language: 'en',
 					},
 				};
 
@@ -75,6 +80,10 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 							countryCode: 'US',
 							regionCode: null,
 						},
+						translations: {
+							translations: baseTranslations.en,
+							language: 'en',
+						},
 					};
 
 					const result = validateOutput(output);
@@ -92,6 +101,10 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 					location: {
 						countryCode: 'US',
 						regionCode: null,
+					},
+					translations: {
+						translations: baseTranslations.en,
+						language: 'en',
 					},
 				};
 
@@ -112,6 +125,10 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 						countryCode: null,
 						regionCode: null,
 					},
+					translations: {
+						translations: baseTranslations.en,
+						language: 'en',
+					},
 				};
 
 				const result = validateOutput(output);
@@ -129,6 +146,10 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 						countryCode: 'DE',
 						regionCode: 'BY',
 					},
+					translations: {
+						translations: baseTranslations.en,
+						language: 'en',
+					},
 				};
 
 				const result = validateOutput(output);
@@ -145,6 +166,10 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 					location: {
 						countryCode: 123, // Invalid type
 						regionCode: null,
+					},
+					translations: {
+						translations: baseTranslations.en,
+						language: 'en',
 					},
 				};
 
@@ -166,6 +191,10 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 						countryCode: 'DE',
 						regionCode: null,
 					},
+					translations: {
+						translations: baseTranslations.en,
+						language: 'en',
+					},
 				};
 
 				const falseOutput = {
@@ -177,6 +206,10 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 					location: {
 						countryCode: 'US',
 						regionCode: null,
+					},
+					translations: {
+						translations: baseTranslations.en,
+						language: 'en',
 					},
 				};
 
@@ -194,6 +227,10 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 					location: {
 						countryCode: 'DE',
 						regionCode: null,
+					},
+					translations: {
+						translations: baseTranslations.en,
+						language: 'en',
 					},
 				};
 

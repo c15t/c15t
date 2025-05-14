@@ -11,7 +11,7 @@
 		"ci:version": "pnpm changeset version",
 		"dev:docs": "turbo dev --filter=./apps/docs/*",
 		"dev:libs": "turbo dev --filter=./packages/*",
-		"dev": "turbo dev --filter=!./apps/examples/*",
+		"dev": "turbo dev --filter=!./apps/examples/* --concurrency 11",
 		"fmt": "turbo fmt",
 		"knip": "knip",
 		"lint:fix": "turbo lint -- --write",

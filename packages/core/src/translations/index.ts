@@ -1,5 +1,5 @@
-import type { TranslationConfig } from '../types/translations';
-import { enTranslations } from './en';
+import type { TranslationConfig } from '@c15t/translations';
+import { enTranslations } from '@c15t/translations';
 
 export const defaultTranslationConfig: TranslationConfig = {
 	translations: {
