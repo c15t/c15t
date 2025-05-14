@@ -16,7 +16,9 @@ type SupportedLanguage = keyof typeof baseTranslations;
 function getPreferredLanguage(
 	acceptLanguage: string | null
 ): SupportedLanguage {
-	if (!acceptLanguage) return 'en';
+	if (!acceptLanguage) {
+		return 'en';
+	}
 
 	// Get the primary language code
 	const primaryLang = acceptLanguage
@@ -24,8 +26,6 @@ function getPreferredLanguage(
 		?.split(';')[0]
 		?.split('-')[0]
 		?.toLowerCase();
-
-	console.log('primaryLang', primaryLang);
 
 	// Check if it's a supported language
 	if (primaryLang && primaryLang in baseTranslations) {
