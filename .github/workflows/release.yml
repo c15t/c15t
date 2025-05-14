@@ -12,6 +12,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 permissions:
   contents: write # Needed by changesets/action to create releases/tags and commit version bumps
   pull-requests: write # Needed by changesets/action to create the "Version Packages" PR
+  id-token: write # Required for NPM provenance
 
 jobs:
   release:
@@ -37,6 +38,7 @@ jobs:
         with:
           node-version: 22
           cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile # Use frozen lockfile for reliability in CI
@@ -56,6 +58,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # NPM_TOKEN is used by 'changeset publish' (called via 'pnpm run release')
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # MUST be set in repo secrets
+          NPM_CONFIG_PROVENANCE: true
 
       # Optional: Output the results for debugging or confirmation
       - name: Print changeset outputs
