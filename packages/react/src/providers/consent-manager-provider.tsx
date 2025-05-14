@@ -69,7 +69,7 @@ export function ConsentManagerProvider({
 		noStyle = false,
 	} = react;
 
-	// Memoize translation config to prevent recreation - skip if _translationConfig is provided
+	// Memoize translation config to prevent recreation - skip if store.translationConfig is provided
 	const preparedTranslationConfig = useMemo(
 		() =>
 			store.translationConfig ||
