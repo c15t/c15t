@@ -1,21 +1,26 @@
-name: Release Canary
+name: Canary Release
 
 on:
   push:
-    branches: [canary]
+    branches:
+      - canary
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  release-canary:
+  release:
+    name: Release Canary
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repo
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -27,26 +32,13 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Get Short SHA
-        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-        id: commit
-
-      - name: Bump Package Versions
-        # The echo "y" | is to automatically answer "yes" to the branch check prompt
-        # --publish-branch canary tells bumpp it's ok to run on the canary branch instead of main/master
-        run: echo "y" | pnpm run packages:bump 0.0.0-canary.${{ steps.commit.outputs.short_sha }} --yes --no-push --publish-branch canary
-
-      - name: Setup NPM Authentication
-        run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
+      - name: Create Release Pull Request or Publish
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          publish: pnpm run release:canary
+          commit: "chore: version packages (canary)"
+          title: "chore: version packages (canary)"
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Build and Publish
-        run: pnpm run packages:publish --tag=canary
-        env:
-          NPM_CONFIG_PROVENANCE: true 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }} 
