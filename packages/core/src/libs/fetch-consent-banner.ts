@@ -149,7 +149,6 @@ export async function fetchConsentBannerInfo(
 	// Try to get data from cookie first
 	const cookieData = getConsentBannerCookie(config);
 	if (cookieData) {
-		console.log('cookieData', cookieData);
 		return cookieData;
 	}
 

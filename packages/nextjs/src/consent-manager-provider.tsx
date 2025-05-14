@@ -60,7 +60,7 @@ export async function ConsentManagerProvider({
 				...options,
 				store: {
 					...options.store,
-					initialShowConsentBanner: showConsentBanner,
+					_initialShowConsentBanner: showConsentBanner,
 				},
 			}}
 			_translationConfig={preparedTranslationConfig}
