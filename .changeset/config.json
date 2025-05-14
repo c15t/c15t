@@ -8,10 +8,10 @@
 			"@c15t/backend",
 			"@c15t/cli",
 			"@c15t/dev-tools",
-			"@c15t/middleware",
 			"@c15t/nextjs",
 			"@c15t/node-sdk",
-			"@c15t/react"
+			"@c15t/react",
+			"@c15t/translations"
 		]
 	],
 	"access": "public",

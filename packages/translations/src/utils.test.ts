@@ -1,11 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { TranslationConfig, Translations } from '../types/translations';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { TranslationConfig, Translations } from './types';
 import {
 	deepMergeTranslations,
 	detectBrowserLanguage,
 	mergeTranslationConfigs,
 	prepareTranslationConfig,
-} from './translations';
+} from './utils';
 
 describe('deepMergeTranslations', () => {
 	const baseTranslations: Translations = {
@@ -43,6 +43,12 @@ describe('deepMergeTranslations', () => {
 		const result = deepMergeTranslations(baseTranslations, override);
 
 		expect(result).toEqual({
+			common: {
+				acceptAll: 'Default Accept All',
+				rejectAll: 'Default Reject All',
+				customize: 'Default Customize',
+				save: 'Default Save',
+			},
 			cookieBanner: {
 				title: 'Custom Title',
 				description: 'Base Description',
@@ -50,9 +56,6 @@ describe('deepMergeTranslations', () => {
 			consentManagerDialog: {
 				title: 'Dialog Title',
 				description: 'Custom Dialog Description',
-			},
-			consentManagerWidget: {
-				title: 'Widget Title',
 			},
 			consentTypes: {
 				necessary: {
@@ -154,7 +157,10 @@ describe('detectBrowserLanguage', () => {
 	};
 
 	beforeEach(() => {
-		vi.stubGlobal('window', { navigator: mockNavigator });
+		Object.defineProperty(window, 'navigator', {
+			value: mockNavigator,
+			configurable: true,
+		});
 	});
 
 	it('should return default language when auto-switch is disabled', () => {
@@ -197,9 +203,18 @@ describe('prepareTranslationConfig', () => {
 		defaultLanguage: 'en',
 	};
 
-	it('should prepare config with detected language', () => {
-		vi.stubGlobal('window', { navigator: { language: 'de-DE' } });
+	const mockNavigator = {
+		language: 'de-DE',
+	};
 
+	beforeEach(() => {
+		Object.defineProperty(window, 'navigator', {
+			value: mockNavigator,
+			configurable: true,
+		});
+	});
+
+	it('should prepare config with detected language', () => {
 		const result = prepareTranslationConfig(defaultConfig);
 		expect(result.defaultLanguage).toBe('de');
 	});

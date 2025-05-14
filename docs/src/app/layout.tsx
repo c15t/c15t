@@ -2,14 +2,13 @@ import {
 	ConsentManagerDialog,
 	ConsentManagerProvider,
 	CookieBanner,
-} from '@c15t/react';
+} from '@c15t/nextjs';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { RootProvider } from 'fumadocs-ui/provider';
 import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
 
-import { c15tConfig } from 'c15t.config';
 import { PostHogProvider } from './posthog-provider';
 
 import './global.css';
@@ -46,7 +45,16 @@ export default function Layout({ children }: { children: ReactNode }) {
 		<html lang="en" className={inter.className} suppressHydrationWarning>
 			<body className="flex min-h-screen flex-col">
 				<RootProvider>
-					<ConsentManagerProvider options={c15tConfig}>
+					<ConsentManagerProvider
+						options={{
+							mode: 'c15t',
+							backendURL:
+								process.env.NEXT_PUBLIC_C15T_URL || 'http://localhost:8787/',
+							store: {
+								initialGdprTypes: ['necessary', 'marketing'],
+							},
+						}}
+					>
 						<PostHogProvider>{children}</PostHogProvider>
 						<CookieBanner
 							theme={{
