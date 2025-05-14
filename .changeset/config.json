@@ -23,6 +23,6 @@
 	},
 	"snapshot": {
 		"useCalculatedVersion": true,
-		"prereleaseTemplate": "canary-{X}"
+		"prereleaseTemplate": "{tag}-{commit}{datetime}"
 	}
 }
