@@ -51,13 +51,9 @@ jobs:
           echo "Building libraries..."
           pnpm build:libs
           
-          # Create npm organization if needed (first-time only)
-          echo "Checking npm access..."
-          npm whoami
-          
           # Publish packages with canary tag
           echo "Publishing packages..."
-          pnpm changeset publish --tag canary --no-git-tag
+          pnpm changeset publish --tag canary --no-git-tag --access public
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
