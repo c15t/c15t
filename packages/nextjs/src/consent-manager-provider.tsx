@@ -8,9 +8,6 @@ import {
 } from '@c15t/react';
 import { headers } from 'next/headers';
 import { cookies } from 'next/headers';
-import { SetCookies } from './cookies';
-
-// Todo: remove cookies??
 
 export async function ConsentManagerProvider({
 	children,
@@ -22,8 +19,7 @@ export async function ConsentManagerProvider({
 	const headersList = await headers();
 
 	const showConsentCookie = cookieStore.get('show-consent-banner');
-	let showConsentBanner: ContractsOutputs['consent']['showBanner'] | null =
-		null;
+	let showConsentBanner: ContractsOutputs['consent']['showBanner'] | undefined;
 
 	if (options.backendURL && !showConsentCookie) {
 		const forwardedHeaders: Record<string, string | null> = {
@@ -57,35 +53,16 @@ export async function ConsentManagerProvider({
 		translationConfig
 	);
 
-	// We need to set the cookies before rendering the consent manager provider
-	// We display in Offline mode as soon as the cookie is not set
-	if (!showConsentCookie) {
-		return (
-			<SetCookies
-				cookies={{
-					'show-consent-banner': JSON.stringify(showConsentBanner),
-				}}
-			>
-				<ClientConsentManagerProvider
-					options={{
-						mode: 'offline',
-						callbacks: options.callbacks,
-						store: options.store,
-						translations: options.translations,
-						react: options.react,
-					}}
-					_translationConfig={preparedTranslationConfig}
-				>
-					{children}
-				</ClientConsentManagerProvider>
-			</SetCookies>
-		);
-	}
-
 	// Pass all necessary data to the client component
 	return (
 		<ClientConsentManagerProvider
-			options={options}
+			options={{
+				...options,
+				store: {
+					...options.store,
+					initialShowConsentBanner: showConsentBanner,
+				},
+			}}
 			_translationConfig={preparedTranslationConfig}
 		>
 			{children}
