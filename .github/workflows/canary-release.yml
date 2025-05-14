@@ -31,7 +31,7 @@ jobs:
       - run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
         id: commit
 
-      - run: pnpm run packages:bump 0.0.0-canary.${{ steps.commit.outputs.short_sha }} --yes --no-push
+      - run: echo "y" | pnpm run packages:bump 0.0.0-canary.${{ steps.commit.outputs.short_sha }} --yes --no-push --publish-branch canary
 
       - run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
         env:
