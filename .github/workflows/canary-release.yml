@@ -1,27 +1,19 @@
-name: Canary Release
+name: Release Canary
 
 on:
   push:
-    branches:
-      - canary
-
-permissions:
-  contents: write
-  pull-requests: write
-  id-token: write # Required for NPM provenance
+    branches: [canary]
 
 jobs:
-  release:
-    name: Release Canary
+  release-canary:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -35,26 +27,22 @@ jobs:
 
       - name: Configure Git
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Version and Publish Snapshot
-        run: |
-          # Ensure npm authentication is working
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-          
-          # Version packages using snapshot
-          echo "Creating snapshot versions..."
-          pnpm changeset version --snapshot canary
-          
-          # Build libraries
-          echo "Building libraries..."
-          pnpm build:libs
-          
-          # Publish packages with canary tag
-          echo "Publishing packages..."
-          pnpm changeset publish --tag canary --no-git-tag --access public
+      - name: Get Short SHA
+        id: commit
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Bump Package Versions
+        run: pnpm dlx bumpp -r --preid canary.${{ steps.commit.outputs.short_sha }} --preset pre --yes --no-push
+
+      - name: Setup NPM Authentication
+        run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Build and Publish
+        run: pnpm build:libs && pnpm --filter='./packages/*' publish -r --access=public --tag canary
+        env:
           NPM_CONFIG_PROVENANCE: true 
