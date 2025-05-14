@@ -36,7 +36,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Bump Package Versions
-        run: pnpm dlx bumpp -r --yes --no-push --publish-branch main
+        run: echo "y" | pnpm dlx bumpp -r --yes --no-push --publish-branch main
 
       - name: Setup NPM Authentication
         run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
