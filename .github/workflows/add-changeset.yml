@@ -1,11 +1,8 @@
 name: Add Changeset for Dependency Updates
 
 on:
-  pull_request_target:
+  pull_request_target: # Use pull_request_target to handle PRs from forks (like Renovate often uses)
     types: [opened]
-    branches:
-      - main
-      - canary
 
 permissions:
   # Need write access to contents to push the changeset file to the PR branch

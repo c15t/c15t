@@ -1,29 +1,7 @@
 import { oc } from '@orpc/contract';
 import { z } from 'zod';
+
 import { JurisdictionInfoSchema } from '../shared/jurisdiction.schema';
-
-const TitleDescriptionSchema = z.object({
-	title: z.string(),
-	description: z.string(),
-});
-
-const TranslationsSchema = z.object({
-	common: z.object({
-		acceptAll: z.string(),
-		rejectAll: z.string(),
-		customize: z.string(),
-		save: z.string(),
-	}),
-	cookieBanner: TitleDescriptionSchema,
-	consentManagerDialog: TitleDescriptionSchema,
-	consentTypes: z.object({
-		experience: TitleDescriptionSchema,
-		functionality: TitleDescriptionSchema,
-		marketing: TitleDescriptionSchema,
-		measurement: TitleDescriptionSchema,
-		necessary: TitleDescriptionSchema,
-	}),
-});
 
 export const showConsentBannerContract = oc
 	.route({
@@ -62,10 +40,6 @@ Use this endpoint to implement geo-targeted consent banners and ensure complianc
 			location: z.object({
 				countryCode: z.string().nullable(),
 				regionCode: z.string().nullable(),
-			}),
-			translations: z.object({
-				language: z.string(),
-				translations: TranslationsSchema,
 			}),
 		})
 	);

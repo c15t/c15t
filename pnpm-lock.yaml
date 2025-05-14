@@ -182,9 +182,9 @@ importers:
       '@c15t/dev-tools':
         specifier: workspace:*
         version: link:../packages/dev-tools
-      '@c15t/nextjs':
+      '@c15t/middleware':
         specifier: workspace:*
-        version: link:../packages/nextjs
+        version: link:../packages/middleware
       '@c15t/react':
         specifier: workspace:*
         version: link:../packages/react
@@ -350,9 +350,6 @@ importers:
 
   packages/backend:
     dependencies:
-      '@c15t/translations':
-        specifier: workspace:*
-        version: link:../translations
       '@doubletie/logger':
         specifier: 1.0.4
         version: 1.0.4(@babel/core@7.26.10)(@opentelemetry/api@1.8.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -514,9 +511,6 @@ importers:
       '@c15t/backend':
         specifier: workspace:*
         version: link:../backend
-      '@c15t/translations':
-        specifier: workspace:*
-        version: link:../translations
       '@orpc/client':
         specifier: 1.2.0
         version: 1.2.0
@@ -598,11 +592,23 @@ importers:
         specifier: ^8.5.3
         version: 8.5.3
 
+  packages/middleware:
+    devDependencies:
+      '@c15t/typescript-config':
+        specifier: workspace:*
+        version: link:../../internals/typescript-config
+      '@c15t/vitest-config':
+        specifier: workspace:*
+        version: link:../../internals/vitest-config
+
   packages/nextjs:
     dependencies:
       '@c15t/backend':
         specifier: workspace:*
         version: link:../backend
+      '@c15t/middleware':
+        specifier: workspace:*
+        version: link:../middleware
       '@c15t/node-sdk':
         specifier: workspace:*
         version: link:../node-sdk
@@ -686,9 +692,6 @@ importers:
 
   packages/react:
     dependencies:
-      '@c15t/node-sdk':
-        specifier: workspace:*
-        version: link:../node-sdk
       '@radix-ui/react-accordion':
         specifier: 1.2.4
         version: 1.2.4(@types/react-dom@19.1.2(@types/react@19.1.1))(@types/react@19.1.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -717,15 +720,6 @@ importers:
       '@c15t/backend':
         specifier: workspace:*
         version: link:../backend
-      '@c15t/typescript-config':
-        specifier: workspace:*
-        version: link:../../internals/typescript-config
-      '@c15t/vitest-config':
-        specifier: workspace:*
-        version: link:../../internals/vitest-config
-
-  packages/translations:
-    devDependencies:
       '@c15t/typescript-config':
         specifier: workspace:*
         version: link:../../internals/typescript-config

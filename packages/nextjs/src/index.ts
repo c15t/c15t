@@ -7,12 +7,10 @@
  * @see {@link @c15t/react} for React components and hooks
  * @see {@link ./middleware} for Next.js middleware integration
  */
-
-export { ConsentManagerProvider } from './consent-manager-provider';
-
 export {
 	CookieBanner,
 	ConsentManagerWidget,
+	ConsentManagerProvider,
 	ConsentManagerDialog,
 	// Export hooks
 	useConsentManager,
@@ -36,3 +34,6 @@ export type {
 	ConsentManagerWidgetProps,
 	CookieBannerProps,
 } from '@c15t/react';
+
+// Export middleware
+export { c15tMiddleware } from './middleware';

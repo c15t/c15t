@@ -145,7 +145,7 @@ export type {
 	CookieBannerTranslations,
 	TranslationConfig,
 	Translations,
-} from '@c15t/translations';
+} from './types/translations';
 
 /**
  * @module
@@ -184,6 +184,6 @@ export {
 	mergeTranslationConfigs,
 	detectBrowserLanguage,
 	prepareTranslationConfig,
-} from '@c15t/translations';
+} from './utils/translations';
 
 export type { ContractsInputs, ContractsOutputs } from '@c15t/backend';

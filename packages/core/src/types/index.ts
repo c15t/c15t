@@ -134,6 +134,6 @@ export type {
 	CookieBannerTranslations,
 	TranslationConfig,
 	Translations,
-} from '@c15t/translations';
+} from './translations';
 
 export * from './compliance';

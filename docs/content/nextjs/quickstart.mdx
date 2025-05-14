@@ -30,9 +30,9 @@ This is only required if you are self hosting c15t.
 <Steps>
 <Step>
  
-### Install `@c15t/nextjs` Package
+### Install `@c15t/react` Package
  ```package-install
- @c15t/nextjs
+ @c15t/react
  ```
 </Step>
  
@@ -45,11 +45,17 @@ import {
   ConsentManagerDialog,
   ConsentManagerProvider,
   CookieBanner,
-} from '@c15t/nextjs';
+  type ConsentManagerOptions
+} from '@c15t/react';
 
 export default function Layout ({ children }: { children: ReactNode }) => {
+	const options: ConsentManagerOptions = {
+	  mode: 'c15t', 
+	  backendURL: process.env.NEXT_PUBLIC_C15T_URL,
+	}
+
 	return (
-    <ConsentManagerProvider options={{ mode: 'c15t', backendURL: process.env.NEXT_PUBLIC_C15T_URL }}>
+    <ConsentManagerProvider options={options}>
       {children}
       <CookieBanner />
       <ConsentManagerDialog />

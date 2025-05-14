@@ -1,34 +1,27 @@
-import { pluginReact } from '@rsbuild/plugin-react';
 import { defineConfig } from '@rslib/core';
 
 export default defineConfig({
 	source: {
 		entry: {
-			index: ['./src/**'],
+			index: ['./src/index.ts'],
+			'node-sdk': ['./src/node-sdk.ts'],
+			backend: ['./src/backend.ts'],
 		},
 	},
 	lib: [
 		{
-			bundle: false,
 			dts: true,
+			bundle: true,
 			format: 'esm',
 		},
 		{
-			bundle: false,
 			dts: true,
+			bundle: true,
 			format: 'cjs',
 		},
 	],
 	output: {
-		target: 'web',
+		target: 'node',
 		cleanDistPath: true,
-		cssModules: {
-			auto: true,
-			localIdentName: 'c15t-[local]-[hash:base64:5]',
-		},
-		minify: {
-			css: true,
-		},
 	},
-	plugins: [pluginReact()],
 });

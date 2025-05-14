@@ -1,4 +1,4 @@
-# @c15t/translations
+# @c15t/middleware
 
 <div align="center">
   <img src="https://c15t.com/logo-icon.png" alt="c15t Logo" width="64" height="64" />
@@ -12,7 +12,34 @@
 
 ## Overview
 
-The `@c15t/translations` package provides translations & translation utilities for the c15t project.
+The `@c15t/middleware` package provides middleware for Next.js to handle consent banner functionality.
+
+## Quick Start
+
+### 1. Install the Package
+
+```bash
+# Using npm
+npm install @c15t/middleware
+
+# Using pnpm
+pnpm add @c15t/middleware
+
+# Using Yarn
+yarn add @c15t/middleware
+```
+
+### 2. Add the Middleware to Your App
+
+```tsx title="app/middleware.ts"
+import { type NextRequest, NextResponse } from 'next/server';
+import c15tMiddleware from '@c15t/middleware/next';
+
+export default async function middleware(request: NextRequest) {
+	await c15tMiddleware(request);
+	return NextResponse.next();
+}
+```
 
 ## Support
 

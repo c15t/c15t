@@ -1,4 +1,3 @@
-import { baseTranslations } from '@c15t/translations';
 import { describe, expect, it, vi } from 'vitest';
 import { JurisdictionMessages } from '~/contracts/shared/jurisdiction.schema';
 import { showConsentBanner } from './show-banner.handler';
@@ -126,47 +125,6 @@ describe('Show Consent Banner Handler', () => {
 		});
 	});
 
-	describe('Translation handling', () => {
-		it('returns default translations when no language is detected', async () => {
-			//@ts-expect-error
-			const result = await showConsentBanner(
-				createMockContext({ 'cf-ipcountry': 'DE' })
-			);
-
-			expect(result.translations).toEqual({
-				translations: baseTranslations.en,
-				language: 'en',
-			});
-		});
-
-		it('returns translations for detected language', async () => {
-			//@ts-expect-error
-			const result = await showConsentBanner(
-				createMockContext({ 'cf-ipcountry': 'DE', 'accept-language': 'de-DE' })
-			);
-
-			expect(result.translations).toEqual({
-				translations: baseTranslations.de,
-				language: 'de',
-			});
-		});
-
-		it('returns default translations when language is not supported', async () => {
-			//@ts-expect-error
-			const result = await showConsentBanner(
-				createMockContext({
-					'cf-ipcountry': 'DE',
-					'accept-language': 'foobar',
-				})
-			);
-
-			expect(result.translations).toEqual({
-				translations: baseTranslations.en,
-				language: 'en',
-			});
-		});
-	});
-
 	describe('Response format', () => {
 		it('returns properly structured response', async () => {
 			//@ts-expect-error
@@ -183,10 +141,6 @@ describe('Show Consent Banner Handler', () => {
 				location: {
 					countryCode: 'DE',
 					regionCode: null,
-				},
-				translations: {
-					translations: baseTranslations.en,
-					language: 'en',
 				},
 			});
 		});
