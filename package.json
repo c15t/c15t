@@ -16,8 +16,10 @@
 		"postinstall": "lefthook install",
 		"test": "turbo test --filter=!./apps/examples/*",
 		"view-report": "turbo run view-report",
-		"packages:bump": "pnpm dlx bumpp -r",
-		"packages:publish": "pnpm build:libs && pnpm --filter='./packages/*' publish -r --access=public"
+		"packages:bump": "pnpm dlx bumpp -r --publish-branch main",
+		"packages:bump:canary": "pnpm dlx bumpp -r --preset pre --publish-branch canary",
+		"packages:publish": "pnpm build:libs && pnpm --filter='./packages/*' publish -r --access=public",
+		"packages:publish:canary": "pnpm build:libs && pnpm --filter='./packages/*' publish -r --access=public --tag canary"
 	},
 	"resolutions": {
 		"@libsql/kysely-libsql": "^0.4.1"
