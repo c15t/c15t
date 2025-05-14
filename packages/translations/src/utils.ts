@@ -1,4 +1,4 @@
-import type { TranslationConfig, Translations } from '../types/translations';
+import type { TranslationConfig, Translations } from '@c15t/translations';
 
 type TranslationSection =
 	| 'common'

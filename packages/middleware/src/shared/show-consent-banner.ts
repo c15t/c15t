@@ -39,6 +39,8 @@ export function showConsentBanner(headers: Headers): ConsentBannerResponse {
 	const regionCode =
 		headers.get('x-vercel-ip-country-region') || headers.get('x-region-code');
 
+	const language = headers.get('accept-language')?.split(',')[0];
+
 	const { showConsentBanner, jurisdictionCode, message } = checkJurisdiction(
 		countryCode ?? null
 	);

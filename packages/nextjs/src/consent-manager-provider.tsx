@@ -21,7 +21,17 @@ export async function ConsentManagerProvider({
 	const showConsentCookie = cookieStore.get('show-consent-banner');
 	let showConsentBanner: ContractsOutputs['consent']['showBanner'] | undefined;
 
-	if (options.backendURL && !showConsentCookie) {
+	// Parse the cookie value if it exists
+	if (showConsentCookie?.value) {
+		try {
+			showConsentBanner = JSON.parse(showConsentCookie.value);
+		} catch (e) {
+			console.error('Failed to parse show-consent-banner cookie:', e);
+		}
+	}
+
+	// Only fetch from backend if no cookie exists and backendURL is provided
+	if (!showConsentBanner && options.backendURL) {
 		const forwardedHeaders: Record<string, string | null> = {
 			'user-agent': headersList.get('user-agent'),
 			'accept-language': headersList.get('accept-language'),
@@ -49,7 +59,16 @@ export async function ConsentManagerProvider({
 
 	// Prepare translation config
 	const preparedTranslationConfig = prepareTranslationConfig(
-		defaultTranslationConfig,
+		showConsentBanner
+			? {
+					translations: {
+						[showConsentBanner.translations.language]:
+							showConsentBanner.translations.translations,
+					},
+					disableAutoLanguageSwitch: true,
+					defaultLanguage: showConsentBanner.translations.language,
+				}
+			: defaultTranslationConfig,
 		translationConfig
 	);
 
@@ -60,10 +79,12 @@ export async function ConsentManagerProvider({
 				...options,
 				store: {
 					...options.store,
-					_initialShowConsentBanner: showConsentBanner,
+					translationConfig: preparedTranslationConfig,
+					_initialShowConsentBanner: showConsentCookie
+						? undefined
+						: showConsentBanner,
 				},
 			}}
-			_translationConfig={preparedTranslationConfig}
 		>
 			{children}
 		</ClientConsentManagerProvider>

@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { TranslationConfig, Translations } from '../types/translations';
+import type { TranslationConfig, Translations } from './types';
 import {
 	deepMergeTranslations,
 	detectBrowserLanguage,
 	mergeTranslationConfigs,
 	prepareTranslationConfig,
-} from './translations';
+} from './utils';
 
 describe('deepMergeTranslations', () => {
 	const baseTranslations: Translations = {

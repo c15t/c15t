@@ -95,6 +95,7 @@
 		"test:watch": "vitest"
 	},
 	"dependencies": {
+		"@c15t/translations": "workspace:*",
 		"@doubletie/logger": "1.0.4",
 		"@opentelemetry/api": "1.8.0",
 		"@opentelemetry/resources": "^1.25.1",

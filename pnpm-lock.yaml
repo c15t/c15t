@@ -350,6 +350,9 @@ importers:
 
   packages/backend:
     dependencies:
+      '@c15t/translations':
+        specifier: workspace:*
+        version: link:../translations
       '@doubletie/logger':
         specifier: 1.0.4
         version: 1.0.4(@babel/core@7.26.10)(@opentelemetry/api@1.8.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -511,6 +514,9 @@ importers:
       '@c15t/backend':
         specifier: workspace:*
         version: link:../backend
+      '@c15t/translations':
+        specifier: workspace:*
+        version: link:../translations
       '@orpc/client':
         specifier: 1.2.0
         version: 1.2.0
@@ -723,6 +729,15 @@ importers:
       '@c15t/backend':
         specifier: workspace:*
         version: link:../backend
+      '@c15t/typescript-config':
+        specifier: workspace:*
+        version: link:../../internals/typescript-config
+      '@c15t/vitest-config':
+        specifier: workspace:*
+        version: link:../../internals/vitest-config
+
+  packages/translations:
+    devDependencies:
       '@c15t/typescript-config':
         specifier: workspace:*
         version: link:../../internals/typescript-config
@@ -13072,7 +13087,7 @@ snapshots:
       sirv: 3.0.1
       tinyglobby: 0.2.12
       tinyrainbow: 2.0.0
-      vitest: 3.1.1(@types/debug@4.1.12)(@types/node@22.14.1)(@vitest/browser@3.1.1)(@vitest/ui@3.1.1)(happy-dom@17.4.4)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.29.3)(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.1)
+      vitest: 3.1.1(@types/debug@4.1.12)(@types/node@20.14.13)(@vitest/browser@3.1.1)(@vitest/ui@3.1.1)(happy-dom@17.4.4)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.29.3)(msw@2.7.6(@types/node@20.14.13)(typescript@5.8.3))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.1)
 
   '@vitest/utils@3.1.1':
     dependencies:

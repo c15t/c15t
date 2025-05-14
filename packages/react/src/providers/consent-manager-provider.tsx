@@ -47,7 +47,6 @@ import type { ConsentManagerProviderProps } from '../types/consent-manager';
 export function ConsentManagerProvider({
 	children,
 	options,
-	_translationConfig,
 }: ConsentManagerProviderProps) {
 	// Extract and memoize stable options
 	const {
@@ -73,9 +72,9 @@ export function ConsentManagerProvider({
 	// Memoize translation config to prevent recreation - skip if _translationConfig is provided
 	const preparedTranslationConfig = useMemo(
 		() =>
-			_translationConfig ||
+			store.translationConfig ||
 			prepareTranslationConfig(defaultTranslationConfig, translationConfig),
-		[_translationConfig, translationConfig]
+		[store.translationConfig, translationConfig]
 	);
 
 	// Determine if using c15t.dev domain (memoize the calculation)

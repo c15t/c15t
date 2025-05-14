@@ -6,6 +6,7 @@
 
 import { createStore } from 'zustand/vanilla';
 
+import type { TranslationConfig } from '@c15t/translations';
 import type { ConsentManagerInterface } from './client/client-factory';
 import {
 	getEffectiveConsents,
@@ -23,7 +24,6 @@ import type {
 	ConsentState,
 } from './types/compliance';
 import { type AllConsentNames, consentTypes } from './types/gdpr';
-import type { TranslationConfig } from './types/translations';
 
 import type { ContractsOutputs } from '@c15t/backend/contracts';
 

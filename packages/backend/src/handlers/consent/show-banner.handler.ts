@@ -1,3 +1,4 @@
+import { baseTranslations } from '@c15t/translations';
 import { ORPCError } from '@orpc/server';
 import { os } from '~/contracts';
 import {
@@ -5,6 +6,34 @@ import {
 	JurisdictionMessages,
 } from '~/contracts/shared/jurisdiction.schema';
 import type { C15TContext } from '~/types';
+
+type SupportedLanguage = keyof typeof baseTranslations;
+
+/**
+ * Extracts the preferred language from Accept-Language header
+ * Falls back to 'en' if no supported language is found
+ */
+function getPreferredLanguage(
+	acceptLanguage: string | null
+): SupportedLanguage {
+	if (!acceptLanguage) return 'en';
+
+	// Get the primary language code
+	const primaryLang = acceptLanguage
+		.split(',')[0]
+		?.split(';')[0]
+		?.split('-')[0]
+		?.toLowerCase();
+
+	console.log('primaryLang', primaryLang);
+
+	// Check if it's a supported language
+	if (primaryLang && primaryLang in baseTranslations) {
+		return primaryLang as SupportedLanguage;
+	}
+
+	return 'en';
+}
 
 /**
  * Handler for the show consent banner endpoint
@@ -45,13 +74,15 @@ export const showConsentBanner = os.consent.showBanner.handler(
 			normalizeHeader(headers.get('x-vercel-ip-country-region')) ??
 			normalizeHeader(headers.get('x-region-code'));
 
-		// If no location headers found, throw error
+		// Get preferred language from Accept-Language header
+		const acceptLanguage = normalizeHeader(headers.get('accept-language'));
+		const preferredLanguage = getPreferredLanguage(acceptLanguage);
 
 		// Determine jurisdiction based on country
 		const { showConsentBanner, jurisdictionCode, message } =
 			checkJurisdiction(countryCode);
 
-		// Return properly structured response
+		// Return properly structured response with translations
 		return {
 			showConsentBanner,
 			jurisdiction: {
@@ -59,6 +90,10 @@ export const showConsentBanner = os.consent.showBanner.handler(
 				message,
 			},
 			location: { countryCode, regionCode },
+			translations: {
+				translations: baseTranslations[preferredLanguage],
+				language: preferredLanguage,
+			},
 		};
 	}
 );
