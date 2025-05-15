@@ -1,5 +1,5 @@
 // c15t Client Configuration
-import { configureConsentManager, type ConsentManagerOptions } from 'c15t';
+import { type ConsentManagerOptions, configureConsentManager } from 'c15t';
 
 export const c15tConfig = {
 	// Using offline mode for browser-based storage
@@ -7,8 +7,8 @@ export const c15tConfig = {
 
 	// Optional: Add callback functions for various events
 	callbacks: {
-		onConsentSet: (response: any) => {
-			console.log('Consent has been saved locally');
+		onConsentSet: (response) => {
+			console.log('Consent has been saved locally', response);
 		},
 	},
 } satisfies ConsentManagerOptions;

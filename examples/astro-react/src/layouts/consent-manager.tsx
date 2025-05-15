@@ -1,8 +1,8 @@
 import {
 	ConsentManagerDialog,
+	type ConsentManagerOptions,
 	ConsentManagerProvider,
 	CookieBanner,
-	type ConsentManagerOptions,
 } from '@c15t/react';
 import type { ReactNode } from 'react';
 

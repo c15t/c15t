@@ -1,8 +1,8 @@
 packages:
   - configs/*
   - packages/**
-  - apps/**
   - internals/**
+  - examples/**
   - docs
 
 ignoredBuiltDependencies:
