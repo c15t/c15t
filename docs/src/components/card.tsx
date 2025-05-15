@@ -1,4 +1,5 @@
 import Link from 'fumadocs-core/link';
+import Image from 'next/image';
 import type { HTMLAttributes, ReactNode } from 'react';
 import { cn } from '../lib/cn';
 
@@ -17,12 +18,13 @@ export type CardProps = Omit<HTMLAttributes<HTMLElement>, 'title'> & {
 	icon?: ReactNode;
 	title: ReactNode;
 	description?: ReactNode;
+	image?: string;
 
 	href?: string;
 	external?: boolean;
 };
 
-export function Card({ icon, title, description, ...props }: CardProps) {
+export function Card({ icon, title, description, image, ...props }: CardProps) {
 	const E = props.href ? Link : 'div';
 	const linkProps =
 		props.href && props.external
@@ -39,6 +41,11 @@ export function Card({ icon, title, description, ...props }: CardProps) {
 				props.className
 			)}
 		>
+			{image ? (
+				<div className="relative mb-2 h-48">
+					<Image src={image} alt={'Card image'} fill />
+				</div>
+			) : null}
 			{icon ? (
 				<div className="not-prose mb-2 w-fit rounded-md border bg-fd-muted p-1.5 text-fd-muted-foreground [&_svg]:size-4">
 					{icon}
