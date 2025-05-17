@@ -194,15 +194,15 @@ async function performOnboarding(
 			isUpdate
 		);
 
-	await displayNextSteps(
+	await displayNextSteps({
 		context,
 		projectRoot,
 		storageMode,
 		installDepsConfirmed,
 		ranInstall,
 		dependenciesToAdd,
-		packageManager
-	);
+		packageManager,
+	});
 	await handleGitHubStar(context);
 
 	telemetry.trackEvent(TelemetryEventName.ONBOARDING_COMPLETED, {
@@ -346,19 +346,28 @@ function getInitialStorageMode(
 	return undefined;
 }
 
-async function displayNextSteps(
-	context: CliContext,
-	projectRoot: string,
-	storageMode: string,
-	installDepsConfirmed: boolean,
-	ranInstall: boolean,
-	dependenciesToAdd: string[],
-	packageManager: PackageManager
-) {
+interface DisplayNextStepsOptions {
+	context: CliContext;
+	projectRoot: string;
+	storageMode: string;
+	installDepsConfirmed: boolean;
+	ranInstall: boolean;
+	dependenciesToAdd: string[];
+	packageManager: PackageManager;
+}
+
+async function displayNextSteps(options: DisplayNextStepsOptions) {
+	const {
+		context,
+		projectRoot,
+		storageMode,
+		installDepsConfirmed,
+		ranInstall,
+		dependenciesToAdd,
+		packageManager,
+	} = options;
 	const { logger, cwd } = context;
 	const { log } = p;
-
-	log.step('Configuration Complete! Next Steps:');
 
 	const configPath = path.join(projectRoot, 'c15t.config.ts');
 	const backendConfigPath = path.join(projectRoot, 'c15t.backend.ts');
@@ -374,25 +383,13 @@ async function displayNextSteps(
 	// biome-ignore lint/style/useDefaultSwitchClause: <explanation>
 	switch (storageMode) {
 		case 'c15t': {
-			let steps =
-				'1. Ensure your consent.io instance is configured (trusted origins etc).\n';
-			try {
-				await fs.access(path.join(projectRoot, '.env.local'));
-				steps += `      2. Verify ${color.cyan('NEXT_PUBLIC_C15T_URL')} in ${color.cyan(path.relative(cwd, path.join(projectRoot, '.env.local')))}.\n`;
-			} catch {
-				steps += `      2. Verify ${color.cyan('backendURL')} in ${color.cyan(relativeConfigPath)}.\n`;
-			}
-			steps += `      3. Import and use configuration in your app: ${importStatement}`;
-			logger.info(steps);
 			break;
 		}
 		case 'offline': {
-			logger.info(
-				`1. Import and use configuration in your app: ${importStatement}`
-			);
 			break;
 		}
 		case 'self-hosted': {
+			log.step('Configuration Complete! Next Steps:');
 			let steps = '';
 			try {
 				await fs.access(backendConfigPath);
@@ -402,12 +399,12 @@ async function displayNextSteps(
 			} catch {
 				steps += '1. Set up your c15t backend instance and API routes.\n';
 			}
-			steps += `      3. Ensure ${color.cyan('backendURL')} in ${color.cyan(relativeConfigPath)} points to your API.\n`;
-			steps += `      4. Import and use client configuration: ${importStatement}`;
+			steps += `3. Ensure ${color.cyan('backendURL')} in ${color.cyan(relativeConfigPath)} points to your API.\n`;
 			logger.info(steps);
 			break;
 		}
 		case 'custom': {
+			log.step('Configuration Complete! Next Steps:');
 			const steps =
 				`1. Implement your custom endpoint handlers (referenced in ${color.cyan(relativeConfigPath)}).\n` +
 				`      2. Import and use configuration in your app: ${importStatement}`;
