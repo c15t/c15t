@@ -102,10 +102,6 @@ async function performOnboarding(
 	const packageManager = await detectPackageManager(projectRoot);
 	const { pkg } = await detectFramework(projectRoot);
 
-	logger.info(`Detected project root: ${projectRoot}`);
-	logger.info(`Detected package manager: ${packageManager}`);
-	logger.info(`Detected framework: ${pkg}`);
-
 	if (!pkg) {
 		throw new Error('Error detecting framework');
 	}
@@ -312,6 +308,7 @@ async function handleDependencyInstallation(
 			dependencies: dependenciesToAdd.join(','),
 			packageManager,
 		});
+
 		return { installDepsConfirmed: true, ranInstall: true };
 	} catch (installError) {
 		s.stop(color.yellow('⚠️ Dependency installation failed.'));
@@ -425,7 +422,7 @@ async function displayNextSteps(
 		logger.info(
 			`  - ${color.yellow('Dependency installation failed.')} Please check errors and install manually.`
 		);
-	} else if (dependenciesToAdd.length > 0) {
+	} else if (!ranInstall && dependenciesToAdd.length > 0) {
 		// User explicitly declined installation step
 		const pmCommand = getManualInstallCommand(
 			dependenciesToAdd,

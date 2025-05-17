@@ -75,19 +75,14 @@ export function getManualInstallCommand(
 	dependencies: string[],
 	packageManager: PackageManager
 ): string {
-	const depsToAdd =
-		packageManager === 'npm'
-			? dependencies
-			: dependencies.map((dep) => `${dep}@workspace:*`);
-
 	switch (packageManager) {
 		case 'npm':
-			return `npm install ${depsToAdd.join(' ')}`;
+			return `npm install ${dependencies.join(' ')}`;
 		case 'yarn':
-			return `yarn add ${depsToAdd.join(' ')}`;
+			return `yarn add ${dependencies.join(' ')}`;
 		case 'pnpm':
-			return `pnpm add ${depsToAdd.join(' ')}`;
+			return `pnpm add ${dependencies.join(' ')}`;
 		default:
-			return `npm install ${depsToAdd.join(' ')}`;
+			return `npm install ${dependencies.join(' ')}`;
 	}
 }
