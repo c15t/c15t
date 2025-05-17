@@ -489,6 +489,9 @@ importers:
       posthog-node:
         specifier: ^4.11.7
         version: 4.11.7
+      ts-morph:
+        specifier: ^25.0.1
+        version: 25.0.1
       zod:
         specifier: ^3.24.2
         version: 3.24.2

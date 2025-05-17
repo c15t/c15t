@@ -4,7 +4,7 @@
  */
 
 import { Project, type SourceFile, SyntaxKind } from 'ts-morph';
-import type { AvailiblePackages } from '../types';
+import type { AvailiblePackages } from '../detection';
 
 const HTML_TAG_REGEX = /<html[^>]*>([\s\S]*)<\/html>/;
 const BODY_TAG_REGEX = /<body[^>]*>([\s\S]*)<\/body>/;

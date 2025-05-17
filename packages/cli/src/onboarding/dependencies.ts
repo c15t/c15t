@@ -25,27 +25,20 @@ export async function addAndInstallDependenciesViaPM(
 	let command = '';
 	let args: string[] = [];
 
-	// For npm, we use regular package names
-	// For yarn and pnpm, we can use workspace protocol
-	const depsToAdd =
-		packageManager === 'npm'
-			? dependencies
-			: dependencies.map((dep) => `${dep}@workspace:*`);
-
 	switch (packageManager) {
 		case 'npm': {
 			command = 'npm';
-			args = ['install', ...depsToAdd];
+			args = ['install', ...dependencies];
 			break;
 		}
 		case 'yarn': {
 			command = 'yarn';
-			args = ['add', ...depsToAdd];
+			args = ['add', ...dependencies];
 			break;
 		}
 		case 'pnpm': {
 			command = 'pnpm';
-			args = ['add', ...depsToAdd];
+			args = ['add', ...dependencies];
 			break;
 		}
 		default:

@@ -42,8 +42,9 @@ export async function setupCustomMode({
 		pkg,
 		spinner,
 	});
+
 	logger.info(
-		`Remember to implement custom endpoint handlers (see ${color.cyan(path.relative(cwd, result.configPath ?? ''))}).`
+		`Remember to implement custom endpoint handlers ${result.configPath ? `(see ${color.cyan(path.relative(cwd, result.configPath))})` : ''}`
 	);
 
 	return {

@@ -1,8 +1,8 @@
 import * as p from '@clack/prompts';
 import open from 'open';
 import type { CliContext } from '../../context/types';
+import type { AvailiblePackages } from '../detection';
 import { generateFiles } from '../generate-files';
-import type { AvailiblePackages } from '../types';
 
 /**
  * Result of c15t mode setup
