@@ -53,6 +53,16 @@ const config: NextConfig = {
 				destination: 'https://eu.i.posthog.com/decide',
 				permanent: false,
 			},
+			{
+				source: '/docs/core/examples/javascript',
+				destination: '/docs/javascript/quickstart',
+				permanent: true,
+			},
+			{
+				source: '/docs/framework/react/examples/tailwind',
+				destination: '/docs/styling/tailwind',
+				permanent: true,
+			},
 		];
 	},
 };
