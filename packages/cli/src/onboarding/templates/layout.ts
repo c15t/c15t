@@ -51,7 +51,7 @@ function generateOptionsText(
 		case 'c15t':
 			return `{
 				mode: 'c15t',
-				backendURL: ${useEnvFile ? 'process.env.NEXT_PUBLIC_C15T_URL' : `'${backendURL || 'https://your-instance.c15t.dev'}'`},
+				backendURL: ${useEnvFile ? 'process.env.NEXT_PUBLIC_C15T_URL!' : `'${backendURL || 'https://your-instance.c15t.dev'}'`},
 			}`;
 		case 'custom':
 			return `{
