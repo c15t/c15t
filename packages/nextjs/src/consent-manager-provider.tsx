@@ -49,12 +49,16 @@ export async function ConsentManagerProvider({
 			Object.entries(forwardedHeaders).filter(([_, value]) => value !== null)
 		) as Record<string, string>;
 
-		const client = c15tClient({
-			baseUrl: options.backendURL ?? ' ',
-			headers: filteredHeaders,
-		});
+		try {
+			const client = c15tClient({
+				baseUrl: options.backendURL ?? ' ',
+				headers: filteredHeaders,
+			});
 
-		showConsentBanner = await client.consent.showBanner();
+			showConsentBanner = await client.consent.showBanner();
+		} catch (e) {
+			console.error('Failed to fetch consent banner:', e);
+		}
 	}
 
 	// Prepare translation config
