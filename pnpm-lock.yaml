@@ -333,9 +333,9 @@ importers:
 
   examples/nextjs:
     dependencies:
-      '@c15t/react':
+      '@c15t/nextjs':
         specifier: workspace:*
-        version: link:../../packages/react
+        version: link:../../packages/nextjs
       next:
         specifier: 15.3.2
         version: 15.3.2(@babel/core@7.26.7)(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
