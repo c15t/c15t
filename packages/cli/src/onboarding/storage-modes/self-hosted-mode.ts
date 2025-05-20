@@ -33,7 +33,6 @@ export async function setupSelfHostedMode(
 	handleCancel?: (value: unknown) => boolean
 ): Promise<SelfHostedModeResult> {
 	const { logger, cwd } = context;
-	let spinnerActive = false;
 	let backendConfigContent: string | null = null;
 
 	// Add backend dependency

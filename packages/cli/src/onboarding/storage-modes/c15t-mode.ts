@@ -1,7 +1,7 @@
 import * as p from '@clack/prompts';
 import open from 'open';
+import type { AvailablePackages } from '~/context/framework-detection';
 import type { CliContext } from '../../context/types';
-import type { AvailiblePackages } from '../detection';
 import { generateFiles } from '../generate-files';
 
 /**
@@ -16,7 +16,7 @@ interface C15TModeOptions {
 	context: CliContext;
 	projectRoot: string;
 	spinner: ReturnType<typeof p.spinner>;
-	packageName: AvailiblePackages;
+	packageName: AvailablePackages;
 	initialBackendURL?: string;
 	handleCancel?: (value: unknown) => boolean;
 }

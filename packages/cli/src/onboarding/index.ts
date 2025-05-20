@@ -7,6 +7,14 @@ import open from 'open';
 import color from 'picocolors';
 
 import { isClientOptions } from '../actions/get-config/config-extraction';
+import {
+	detectFramework,
+	detectProjectRoot,
+} from '../context/framework-detection';
+import {
+	type PackageManagerResult,
+	detectPackageManager,
+} from '../context/package-manager-detection';
 import type { CliContext } from '../context/types';
 import { TelemetryEventName } from '../utils/telemetry';
 
@@ -14,12 +22,6 @@ import {
 	addAndInstallDependenciesViaPM,
 	getManualInstallCommand,
 } from './dependencies';
-import {
-	detectFramework,
-	detectPackageManager,
-	detectProjectRoot,
-} from './detection';
-import type { PackageManager } from './detection';
 import {
 	setupC15tMode,
 	setupCustomMode,
@@ -98,9 +100,9 @@ async function performOnboarding(
 	const { telemetry, logger } = context;
 	const isUpdate = !!existingConfig;
 
-	const projectRoot = await detectProjectRoot(context.cwd);
-	const packageManager = await detectPackageManager(projectRoot);
-	const { pkg } = await detectFramework(projectRoot);
+	const projectRoot = await detectProjectRoot(context.cwd, logger);
+	const packageManager = await detectPackageManager(projectRoot, logger);
+	const { pkg } = await detectFramework(projectRoot, logger);
 
 	if (!pkg) {
 		throw new Error('Error detecting framework');
@@ -266,7 +268,7 @@ async function handleDependencyInstallation(
 	context: CliContext,
 	projectRoot: string,
 	dependenciesToAdd: string[],
-	packageManager: PackageManager,
+	packageManager: PackageManagerResult,
 	handleCancel: (value: unknown) => boolean,
 	isUpdate: boolean
 ) {
@@ -279,7 +281,7 @@ async function handleDependencyInstallation(
 
 	const depsString = dependenciesToAdd.map((d) => color.cyan(d)).join(', ');
 	const addDepsSelection = await p.confirm({
-		message: `${isUpdate ? 'Update' : 'Add'} required dependencies using ${color.cyan(packageManager)}? (${depsString})`,
+		message: `${isUpdate ? 'Update' : 'Add'} required dependencies using ${color.cyan(packageManager.name)}? (${depsString})`,
 		initialValue: true,
 	});
 
@@ -292,13 +294,13 @@ async function handleDependencyInstallation(
 	}
 
 	s.start(
-		`Running ${color.cyan(packageManager)} to add and install dependencies... (this might take a moment)`
+		`Running ${color.cyan(packageManager.name)} to add and install dependencies... (this might take a moment)`
 	);
 	try {
 		await addAndInstallDependenciesViaPM(
 			projectRoot,
 			dependenciesToAdd,
-			packageManager
+			packageManager.name
 		);
 		s.stop(
 			`✅ Dependencies installed: ${dependenciesToAdd.map((d) => color.cyan(d)).join(', ')}`
@@ -306,7 +308,7 @@ async function handleDependencyInstallation(
 		telemetry.trackEvent(TelemetryEventName.ONBOARDING_DEPENDENCIES_INSTALLED, {
 			success: true,
 			dependencies: dependenciesToAdd.join(','),
-			packageManager,
+			packageManager: packageManager.name,
 		});
 
 		return { installDepsConfirmed: true, ranInstall: true };
@@ -320,11 +322,11 @@ async function handleDependencyInstallation(
 					? installError.message
 					: String(installError),
 			dependencies: dependenciesToAdd.join(','),
-			packageManager,
+			packageManager: packageManager.name,
 		});
 		const pmCommand = getManualInstallCommand(
 			dependenciesToAdd,
-			packageManager
+			packageManager.name
 		);
 		logger.info(
 			`Please try running '${pmCommand}' manually in ${color.cyan(path.relative(context.cwd, projectRoot))}.`
@@ -353,7 +355,7 @@ interface DisplayNextStepsOptions {
 	installDepsConfirmed: boolean;
 	ranInstall: boolean;
 	dependenciesToAdd: string[];
-	packageManager: PackageManager;
+	packageManager: PackageManagerResult;
 }
 
 async function displayNextSteps(options: DisplayNextStepsOptions) {
@@ -423,7 +425,7 @@ async function displayNextSteps(options: DisplayNextStepsOptions) {
 		// User explicitly declined installation step
 		const pmCommand = getManualInstallCommand(
 			dependenciesToAdd,
-			packageManager as PackageManager
+			packageManager.name
 		);
 		logger.warn(
 			`  - Run ${color.cyan(pmCommand)} to install required dependencies.`

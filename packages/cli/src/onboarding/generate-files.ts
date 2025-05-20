@@ -2,9 +2,9 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type * as p from '@clack/prompts';
 import color from 'picocolors';
+import type { AvailablePackages } from '~/context/framework-detection';
 import type { CliContext } from '~/context/types';
 import { formatLogMessage } from '~/utils/logger';
-import type { AvailiblePackages } from './detection';
 import { generateClientConfigContent } from './templates/config';
 import {
 	generateEnvExampleContent,
@@ -17,7 +17,7 @@ export interface GenerateFilesOptions {
 	context: CliContext;
 	projectRoot: string;
 	mode: 'c15t' | 'offline' | 'custom';
-	pkg: AvailiblePackages;
+	pkg: AvailablePackages;
 	backendURL?: string;
 	useEnvFile?: boolean;
 	spinner: ReturnType<typeof p.spinner>;
@@ -40,7 +40,7 @@ async function handleReactLayout(options: {
 	mode: 'c15t' | 'offline' | 'custom';
 	backendURL?: string;
 	useEnvFile?: boolean;
-	pkg: AvailiblePackages;
+	pkg: AvailablePackages;
 	spinner: ReturnType<typeof p.spinner>;
 }): Promise<{ layoutUpdated: boolean; layoutPath: string | null }> {
 	const { projectRoot, mode, backendURL, useEnvFile, pkg, spinner } = options;
@@ -89,7 +89,7 @@ async function handleReactLayout(options: {
 async function handleEnvFiles(options: {
 	projectRoot: string;
 	backendURL: string;
-	pkg: AvailiblePackages;
+	pkg: AvailablePackages;
 	spinner: ReturnType<typeof p.spinner>;
 	cwd: string;
 }): Promise<void> {

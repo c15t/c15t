@@ -4,7 +4,7 @@
  */
 
 import { Project, type SourceFile, SyntaxKind } from 'ts-morph';
-import type { AvailiblePackages } from '../detection';
+import type { AvailablePackages } from '~/context/framework-detection';
 
 const HTML_TAG_REGEX = /<html[^>]*>([\s\S]*)<\/html>/;
 const BODY_TAG_REGEX = /<body[^>]*>([\s\S]*)<\/body>/;
@@ -16,7 +16,7 @@ interface UpdateReactLayoutOptions {
 	mode: string;
 	backendURL?: string;
 	useEnvFile?: boolean;
-	pkg: AvailiblePackages;
+	pkg: AvailablePackages;
 }
 
 function findLayoutFile(

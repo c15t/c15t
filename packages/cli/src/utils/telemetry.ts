@@ -2,7 +2,6 @@ import crypto from 'node:crypto';
 import os from 'node:os';
 import type { Logger } from '@doubletie/logger';
 import { PostHog } from 'posthog-node';
-import type { LogLevel } from './logger';
 
 // Environment variable for disabling telemetry
 const TELEMETRY_DISABLED_ENV = 'C15T_TELEMETRY_DISABLED';
@@ -78,6 +77,11 @@ export interface TelemetryOptions {
 	disabled?: boolean;
 
 	/**
+	 * Whether telemetry debugging should be enabled
+	 */
+	debug?: boolean;
+
+	/**
 	 * Default properties to add to all telemetry events
 	 */
 	defaultProperties?: Record<string, string | number | boolean>;
@@ -100,7 +104,7 @@ export class Telemetry {
 	private defaultProperties: Record<string, string | number | boolean>;
 	private distinctId: string;
 	private apiKey = 'phc_ViY5LtTmh4kqoumXZB2olPFoTz4AbbDfrogNgFi1MH3';
-	private debug = false;
+	private debug: boolean;
 	private logger: Logger | undefined;
 
 	/**
@@ -122,6 +126,7 @@ export class Telemetry {
 		this.disabled = options?.disabled ?? envDisabled ?? !hasValidApiKey;
 		this.defaultProperties = options?.defaultProperties ?? {};
 		this.logger = options?.logger;
+		this.debug = options?.debug ?? false;
 
 		// Generate a stable anonymous ID based on machine info
 		// We're not collecting any personal info here
@@ -256,19 +261,6 @@ export class Telemetry {
 			errorName: error.name,
 			stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
 		});
-	}
-
-	/**
-	 * Set log level for telemetry client
-	 *
-	 * @param level - The log level to set
-	 */
-	setLogLevel(level: LogLevel): void {
-		if (this.client && level === 'debug') {
-			this.debug = true;
-			this.client.debug(true);
-			this.logDebug('Telemetry debug mode enabled');
-		}
 	}
 
 	/**

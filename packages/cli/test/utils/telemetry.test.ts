@@ -79,6 +79,23 @@ describe('Telemetry', () => {
 		expect(mockPostHog.capture).not.toHaveBeenCalled();
 	});
 
+	it('should respect debug flag', () => {
+		const debugTelemetry = new Telemetry({
+			debug: true,
+			client: mockPostHog as unknown as PostHog,
+			logger: mockLogger as Logger,
+		});
+		debugTelemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
+			test: true,
+		});
+		expect(mockLogger.debug).toHaveBeenCalledWith(
+			'Sending telemetry event: cli.invoked'
+		);
+		expect(mockLogger.debug).toHaveBeenCalledWith(
+			'Flushed telemetry event: cli.invoked'
+		);
+	});
+
 	it('should track events', () => {
 		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, { test: true });
 		expect(mockPostHog.capture).toHaveBeenCalledWith(
@@ -118,14 +135,6 @@ describe('Telemetry', () => {
 		);
 	});
 
-	it('should enable debug mode when setting log level to debug', () => {
-		telemetry.setLogLevel('debug');
-		expect(mockPostHog.debug).toHaveBeenCalledWith(true);
-		expect(mockLogger.debug).toHaveBeenCalledWith(
-			'Telemetry debug mode enabled'
-		);
-	});
-
 	it('should disable telemetry', () => {
 		telemetry.disable();
 		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED);
@@ -158,15 +167,19 @@ describe('Telemetry', () => {
 			}
 		);
 
-		// Enable debug mode to see error logs
-		telemetry.setLogLevel('debug');
+		// Create telemetry with debug enabled
+		const debugTelemetry = new Telemetry({
+			debug: true,
+			client: mockPostHog as unknown as PostHog,
+			logger: mockLogger as Logger,
+		});
 
 		// This should not throw even though capture fails
 		expect(() =>
-			telemetry.trackEvent(TelemetryEventName.CLI_INVOKED)
+			debugTelemetry.trackEvent(TelemetryEventName.CLI_INVOKED)
 		).not.toThrow();
 
-		// Should log the error - check that AT SOME POINT a debug call contained the error message
+		// Should log the error
 		expect(mockLogger.debug).toHaveBeenCalledWith(
 			'Error sending telemetry: Error: Capture error'
 		);
@@ -205,11 +218,15 @@ describe('Telemetry', () => {
 			success: vi.fn(),
 		} as unknown as Logger;
 
-		telemetry.setLogger(newLogger);
+		const debugTelemetry = new Telemetry({
+			debug: true,
+			client: mockPostHog as unknown as PostHog,
+			logger: newLogger,
+		});
 
-		telemetry.setLogLevel('debug');
+		debugTelemetry.trackEvent(TelemetryEventName.CLI_INVOKED);
 		expect(newLogger.debug).toHaveBeenCalledWith(
-			'Telemetry debug mode enabled'
+			'Sending telemetry event: cli.invoked'
 		);
 	});
 });

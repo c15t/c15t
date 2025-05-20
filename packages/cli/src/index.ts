@@ -77,7 +77,7 @@ export async function main() {
 	const rawArgs = process.argv.slice(2);
 	const cwd = process.cwd();
 	// Pass commands array to creator, as parser needs it
-	const context = createCliContext(rawArgs, cwd, commands);
+	const context = await createCliContext(rawArgs, cwd, commands);
 	const { logger, flags, commandName, commandArgs, error, telemetry } = context;
 
 	// --- Package Info & Early Exit Check ---

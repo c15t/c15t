@@ -2,6 +2,8 @@ import type { C15TOptions, C15TPlugin } from '@c15t/backend';
 import type { Logger } from '@doubletie/logger';
 import type { CliExtensions } from '../utils/logger';
 import type { Telemetry } from '../utils/telemetry';
+import type { FrameworkDetectionResult } from './framework-detection';
+import type { PackageManagerResult } from './package-manager-detection';
 
 // --- Command Definition ---
 export interface CliCommand {
@@ -74,4 +76,7 @@ export interface CliContext {
 
 	// Utilities for user interaction
 	confirm: (message: string, initialValue: boolean) => Promise<boolean>;
+
+	framework: FrameworkDetectionResult;
+	packageManager: PackageManagerResult;
 }
