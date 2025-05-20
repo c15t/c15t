@@ -253,7 +253,10 @@ flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
 				telemetry.trackEvent(TelemetryEventName.INTERACTIVE_MENU_EXITED, {
 					action: p.isCancel(selectedCommandName) ? 'cancelled' : 'exit',
 				});
-				context.error.handleCancel('Operation cancelled.');
+				context.error.handleCancel('Operation cancelled.', {
+					command: 'interactive_menu',
+					stage: 'exit',
+				});
 			} else {
 				const selectedCommand = commands.find(
 					(cmd) => cmd.name === selectedCommandName

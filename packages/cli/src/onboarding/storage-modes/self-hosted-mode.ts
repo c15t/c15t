@@ -32,7 +32,7 @@ export async function setupSelfHostedMode(
 	spinner: ReturnType<typeof p.spinner>,
 	handleCancel?: (value: unknown) => boolean
 ): Promise<SelfHostedModeResult> {
-	const { logger, cwd } = context;
+	const { cwd } = context;
 	let backendConfigContent: string | null = null;
 
 	// Add backend dependency
@@ -45,7 +45,10 @@ export async function setupSelfHostedMode(
 	});
 
 	if (handleCancel?.(setupBackendSelection)) {
-		throw new Error('Setup cancelled');
+		context.error.handleCancel('Setup cancelled.', {
+			command: 'onboarding',
+			stage: 'self_hosted_backend_setup',
+		});
 	}
 
 	const setupBackend = setupBackendSelection as boolean;
@@ -76,7 +79,10 @@ export async function setupSelfHostedMode(
 		});
 
 		if (handleCancel?.(adapterSelection)) {
-			throw new Error('Setup cancelled');
+			context.error.handleCancel('Setup cancelled.', {
+				command: 'onboarding',
+				stage: 'self_hosted_adapter_selection',
+			});
 		}
 
 		adapterChoice = adapterSelection as string;
@@ -92,13 +98,21 @@ export async function setupSelfHostedMode(
 			});
 
 			if (handleCancel?.(connectionStringSelection)) {
-				throw new Error('Setup cancelled');
+				context.error.handleCancel('Setup cancelled.', {
+					command: 'onboarding',
+					stage: 'self_hosted_postgres_setup',
+				});
 			}
 
 			// Validate connection string
 			if (!connectionStringSelection || connectionStringSelection === '') {
-				logger.error('A valid PostgreSQL connection string is required');
-				throw new Error('A valid PostgreSQL connection string is required');
+				context.error.handleCancel(
+					'A valid PostgreSQL connection string is required',
+					{
+						command: 'onboarding',
+						stage: 'self_hosted_postgres_validation',
+					}
+				);
 			}
 
 			connectionString = connectionStringSelection as string;
@@ -110,13 +124,18 @@ export async function setupSelfHostedMode(
 			});
 
 			if (handleCancel?.(dbPathSelection)) {
-				throw new Error('Setup cancelled');
+				context.error.handleCancel('Setup cancelled.', {
+					command: 'onboarding',
+					stage: 'self_hosted_sqlite_setup',
+				});
 			}
 
 			// Validate database path
 			if (!dbPathSelection || dbPathSelection === '') {
-				logger.error('A valid database path is required');
-				throw new Error('A valid database path is required');
+				context.error.handleCancel('A valid database path is required', {
+					command: 'onboarding',
+					stage: 'self_hosted_sqlite_validation',
+				});
 			}
 
 			dbPath = dbPathSelection as string;
@@ -132,7 +151,6 @@ export async function setupSelfHostedMode(
 		const backendConfigPath = path.join(projectRoot, 'c15t.backend.ts');
 
 		spinner.start('Creating backend configuration file...');
-		spinnerActive = true;
 		await fs.writeFile(backendConfigPath, backendConfigContent);
 		spinner.stop(
 			formatLogMessage(
@@ -140,7 +158,6 @@ export async function setupSelfHostedMode(
 				`Backend configuration created: ${color.cyan(path.relative(cwd, backendConfigPath))}`
 			)
 		);
-		spinnerActive = false;
 	}
 
 	// Generate client config (always uses c15t mode with default path)
@@ -153,7 +170,6 @@ export async function setupSelfHostedMode(
 	const configPath = path.join(projectRoot, 'c15t.config.ts');
 
 	spinner.start('Creating client configuration file...');
-	spinnerActive = true;
 	await fs.writeFile(configPath, clientConfigContent);
 	spinner.stop(
 		formatLogMessage(
@@ -161,7 +177,6 @@ export async function setupSelfHostedMode(
 			`Client configuration created: ${color.cyan(path.relative(cwd, configPath))}`
 		)
 	);
-	spinnerActive = false;
 
 	return {
 		clientConfigContent,

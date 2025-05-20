@@ -1,9 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import * as p from '@clack/prompts';
-import type { Logger } from '@doubletie/logger';
 import { detect } from 'package-manager-detector/detect';
-import type { CliExtensions } from '~/utils/logger';
+import type { CliLogger } from '~/utils/logger';
 
 /**
  * Supported package managers
@@ -52,10 +51,8 @@ async function isValidProjectRoot(dir: string): Promise<boolean> {
  */
 async function findMonorepoPackageManager(
 	startDir: string,
-	logger?: Logger & CliExtensions
+	logger?: CliLogger
 ): Promise<PackageManagerResult | null> {
-	const currentDir = startDir;
-	const prevDir = '';
 	logger?.debug(
 		`Checking for monorepo package manager starting from ${startDir}`
 	);
@@ -68,15 +65,17 @@ async function findMonorepoPackageManager(
 		return null;
 	}
 
-	// Only check the current directory and its immediate parent
-	// This prevents going too high up the tree
-	const parentDir = path.dirname(startDir);
-	const dirsToCheck = [startDir, parentDir];
+	// Check current directory and up to 3 parent directories
+	let currentDir = startDir;
+	let depth = 0;
+	const maxDepth = 3;
 
-	for (const dir of dirsToCheck) {
+	while (depth < maxDepth) {
 		try {
-			logger?.debug(`Checking directory ${dir} for package manager files`);
-			const files = await fs.readdir(dir);
+			logger?.debug(
+				`Checking directory ${currentDir} for package manager files`
+			);
+			const files = await fs.readdir(currentDir);
 
 			// Check for monorepo indicators
 			if (files.includes('pnpm-workspace.yaml')) {
@@ -88,7 +87,7 @@ async function findMonorepoPackageManager(
 			}
 			if (files.includes('yarn.lock')) {
 				// For yarn, we need to verify this is a valid project root
-				if (await isValidProjectRoot(dir)) {
+				if (await isValidProjectRoot(currentDir)) {
 					logger?.debug('Found yarn.lock at root level');
 					return {
 						name: 'yarn',
@@ -99,10 +98,33 @@ async function findMonorepoPackageManager(
 					'Found yarn.lock but directory is not a valid project root'
 				);
 			}
+			if (files.includes('package-lock.json')) {
+				// For npm, we need to verify this is a valid project root
+				if (await isValidProjectRoot(currentDir)) {
+					logger?.debug('Found package-lock.json at root level');
+					return {
+						name: 'npm',
+						version: await getPackageManagerVersion('npm'),
+					};
+				}
+				logger?.debug(
+					'Found package-lock.json but directory is not a valid project root'
+				);
+			}
+
+			// Move up one directory
+			const parentDir = path.dirname(currentDir);
+			if (parentDir === currentDir) {
+				// We've reached the root of the filesystem
+				break;
+			}
+			currentDir = parentDir;
+			depth++;
 		} catch (error) {
 			logger?.debug(
-				`Error checking directory ${dir}: ${error instanceof Error ? error.message : String(error)}`
+				`Error checking directory ${currentDir}: ${error instanceof Error ? error.message : String(error)}`
 			);
+			break;
 		}
 	}
 
@@ -137,12 +159,19 @@ async function getPackageManagerVersion(
  */
 export async function detectPackageManager(
 	projectRoot: string,
-	logger?: Logger & CliExtensions
+	logger?: CliLogger
 ): Promise<PackageManagerResult> {
 	try {
 		logger?.debug(`Detecting package manager in ${projectRoot}`);
 
-		// Use package-manager-detector's native functionality
+		// First check for monorepo package manager
+		const monorepoPm = await findMonorepoPackageManager(projectRoot, logger);
+		if (monorepoPm) {
+			logger?.debug(`Detected monorepo package manager: ${monorepoPm.name}`);
+			return monorepoPm;
+		}
+
+		// Use package-manager-detector's native functionality for non-monorepo detection
 		const result = await detect({ cwd: projectRoot });
 		logger?.debug(`Package manager detector result: ${JSON.stringify(result)}`);
 
@@ -181,7 +210,7 @@ export async function detectPackageManager(
 			detectedValueStr = JSON.stringify(result);
 		}
 		logger?.debug(`Unsupported package manager detected: ${detectedValueStr}`);
-		throw new Error(
+		throw logger?.failed(
 			`Could not reliably detect package manager (detected: ${detectedValueStr}).`
 		);
 	} catch (error) {

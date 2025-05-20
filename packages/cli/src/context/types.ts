@@ -1,6 +1,5 @@
 import type { C15TOptions, C15TPlugin } from '@c15t/backend';
-import type { Logger } from '@doubletie/logger';
-import type { CliExtensions } from '../utils/logger';
+import type { CliLogger } from '../utils/logger';
 import type { Telemetry } from '../utils/telemetry';
 import type { FrameworkDetectionResult } from './framework-detection';
 import type { PackageManagerResult } from './package-manager-detection';
@@ -43,7 +42,10 @@ export interface PackageInfo {
 // --- Error Handling Helpers ---
 export interface ErrorHandlers {
 	handleError: (error: unknown, message: string) => never;
-	handleCancel: (message?: string) => never;
+	handleCancel: (
+		message?: string,
+		context?: { command?: string; stage?: string }
+	) => never;
 }
 
 // --- Config Management ---
@@ -60,7 +62,7 @@ export interface FileSystemUtils {
 
 // --- CLI Context Definition ---
 export interface CliContext {
-	logger: Logger & CliExtensions;
+	logger: CliLogger;
 	flags: ParsedArgs['parsedFlags'];
 	commandName: string | undefined;
 	commandArgs: string[];

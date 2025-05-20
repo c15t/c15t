@@ -49,10 +49,13 @@ export async function startOnboarding(
 		if (p.isCancel(value)) {
 			telemetry.trackEvent(TelemetryEventName.ONBOARDING_EXITED, {
 				reason: 'user_cancelled',
+				command: 'onboarding',
 				stage: 'setup',
 			});
-			context.error.handleCancel('Configuration cancelled.');
-			return true;
+			context.error.handleCancel('Configuration cancelled.', {
+				command: 'onboarding',
+				stage: 'setup',
+			});
 		}
 		return false;
 	};
@@ -456,7 +459,11 @@ If you find this useful, we'd really appreciate a GitHub star - it helps others 
 			action: 'cancelled',
 		});
 		return context.error.handleCancel(
-			'GitHub star prompt cancelled. Exiting onboarding.'
+			'GitHub star prompt cancelled. Exiting onboarding.',
+			{
+				command: 'onboarding',
+				stage: 'github_star',
+			}
 		);
 	}
 

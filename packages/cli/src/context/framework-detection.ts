@@ -1,8 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { Logger } from '@doubletie/logger';
 
-import type { CliExtensions } from '~/utils/logger';
+import type { CliLogger } from '~/utils/logger';
 
 /**
  * Supported package managers
@@ -29,7 +28,7 @@ export interface FrameworkDetectionResult {
  */
 export async function detectFramework(
 	projectRoot: string,
-	logger?: Logger & CliExtensions
+	logger?: CliLogger
 ): Promise<FrameworkDetectionResult> {
 	try {
 		logger?.debug(`Detecting framework in ${projectRoot}`);
@@ -100,7 +99,7 @@ export async function detectFramework(
  */
 export async function detectProjectRoot(
 	cwd: string,
-	logger?: Logger & CliExtensions
+	logger?: CliLogger
 ): Promise<string> {
 	let projectRoot = cwd;
 	logger?.debug(`Starting project root detection from: ${cwd}`);

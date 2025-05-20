@@ -55,7 +55,10 @@ export async function generate(context: CliContext) {
 				success: false,
 				reason: 'user_cancelled',
 			});
-			return error.handleCancel('Operation cancelled.');
+			return error.handleCancel('Operation cancelled.', {
+				command: 'generate',
+				stage: 'config_update_prompt',
+			});
 		}
 
 		if (shouldUpdate) {
@@ -108,7 +111,10 @@ export async function generate(context: CliContext) {
 				success: false,
 				reason: 'onboarding_declined',
 			});
-			return error.handleCancel('Configuration setup cancelled.');
+			return error.handleCancel('Configuration setup cancelled.', {
+				command: 'generate',
+				stage: 'onboarding_prompt',
+			});
 		}
 
 		// Run onboarding
