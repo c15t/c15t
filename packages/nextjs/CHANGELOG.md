@@ -1,5 +1,11 @@
 # @c15t/nextjs
 
+## 1.2.2-canary-20250520100232
+
+### Patch Changes
+
+- eeda731: feat(nextjs): added better error handling for provider fetch
+
 ## 1.2.2-canary-20250514203718
 
 ### Patch Changes

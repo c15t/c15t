@@ -1,5 +1,11 @@
 # @c15t/cli
 
+## 1.2.2-canary-20250520100232
+
+### Patch Changes
+
+- 9b5684c: feat(cli): replace config.ts with inline config, @c15t/nextjs & various bug fixes
+
 ## 1.2.2-canary-20250514203718
 
 ### Patch Changes

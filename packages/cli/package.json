@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/cli",
-	"version": "1.2.2-canary-20250514203718",
+	"version": "1.2.2-canary-20250520100232",
 	"description": "The CLI for c15t",
 	"type": "module",
 	"exports": "./dist/index.mjs",
