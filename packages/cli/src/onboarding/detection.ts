@@ -7,12 +7,14 @@ import { detect } from 'package-manager-detector/detect';
  * Supported package managers
  */
 export type PackageManager = 'npm' | 'yarn' | 'pnpm';
+export type AvailiblePackages = '@c15t/nextjs' | '@c15t/react' | 'c15t';
 
 /**
  * Framework detection result
  */
 export interface FrameworkDetectionResult {
 	framework: string | null;
+	pkg: AvailiblePackages | null;
 	hasReact: boolean;
 }
 
@@ -34,10 +36,12 @@ export async function detectFramework(
 		};
 
 		const hasReact = 'react' in deps;
-		let framework = null;
+		let framework: string | null = null;
+		let pkg: AvailiblePackages = hasReact ? '@c15t/react' : 'c15t';
 
 		if ('next' in deps) {
 			framework = 'Next.js';
+			pkg = '@c15t/nextjs';
 		} else if ('@remix-run/react' in deps) {
 			framework = 'Remix';
 		} else if (
@@ -51,9 +55,9 @@ export async function detectFramework(
 			framework = 'React';
 		}
 
-		return { framework, hasReact };
-	} catch (error) {
-		return { framework: null, hasReact: false };
+		return { framework, pkg, hasReact };
+	} catch {
+		return { framework: null, pkg: null, hasReact: false };
 	}
 }
 
@@ -87,7 +91,49 @@ export async function detectProjectRoot(cwd: string): Promise<string> {
 }
 
 /**
- * Detects the package manager used in the project
+ * Helper function to check if any parent directory has monorepo package manager files
+ *
+ * @param startDir - Starting directory to check from
+ * @returns The package manager if found at root level, null otherwise
+ */
+async function findMonorepoPackageManager(
+	startDir: string
+): Promise<PackageManager | null> {
+	let currentDir = startDir;
+	let prevDir = '';
+
+	while (currentDir !== prevDir) {
+		try {
+			const files = await fs.readdir(currentDir);
+
+			// Check for monorepo indicators
+			if (files.includes('pnpm-workspace.yaml')) {
+				return 'pnpm';
+			}
+			if (files.includes('yarn.lock')) {
+				// Check if this is the root level (no parent has yarn.lock)
+				const parentDir = path.dirname(currentDir);
+				try {
+					await fs.access(path.join(parentDir, 'yarn.lock'));
+				} catch {
+					// No yarn.lock in parent - this is root level
+					return 'yarn';
+				}
+			}
+
+			prevDir = currentDir;
+			currentDir = path.dirname(currentDir);
+		} catch {
+			prevDir = currentDir;
+			currentDir = path.dirname(currentDir);
+		}
+	}
+
+	return null;
+}
+
+/**
+ * Detects the package manager used in the project, with special handling for monorepos
  *
  * @param projectRoot - The root directory of the project
  * @returns The detected package manager
@@ -96,6 +142,14 @@ export async function detectPackageManager(
 	projectRoot: string
 ): Promise<PackageManager> {
 	try {
+		// First check if we're in a monorepo by looking for root-level package manager files
+		const monorepoPackageManager =
+			await findMonorepoPackageManager(projectRoot);
+		if (monorepoPackageManager) {
+			return monorepoPackageManager;
+		}
+
+		// If no monorepo indicators found, try package-manager-detector
 		const result = await detect({ cwd: projectRoot });
 
 		let detectedPm: string | null = null;
@@ -124,7 +178,6 @@ export async function detectPackageManager(
 		// If detection failed or returned something unexpected, throw to prompt the user
 		let detectedValueStr = String(result);
 		if (result && typeof result === 'object') {
-			// Provide a slightly more informative string for objects
 			detectedValueStr = JSON.stringify(result);
 		}
 		throw new Error(

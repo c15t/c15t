@@ -17,10 +17,7 @@ export async function addAndInstallDependenciesViaPM(
 	dependencies: string[],
 	packageManager: PackageManager
 ): Promise<void> {
-	// Map dependencies to the 'pkg@workspace:*' format
-	const depsToAdd = dependencies.map((dep) => `${dep}`);
-
-	if (depsToAdd.length === 0) {
+	if (dependencies.length === 0) {
 		// Nothing to add
 		return;
 	}
@@ -29,21 +26,21 @@ export async function addAndInstallDependenciesViaPM(
 	let args: string[] = [];
 
 	switch (packageManager) {
-		case 'npm':
-			// npm install pkg@workspace:* adds to dependencies by default
+		case 'npm': {
 			command = 'npm';
-			args = ['install', ...depsToAdd];
+			args = ['install', ...dependencies];
 			break;
-		case 'yarn':
-			// yarn add pkg@workspace:* adds to dependencies
+		}
+		case 'yarn': {
 			command = 'yarn';
-			args = ['add', ...depsToAdd];
+			args = ['add', ...dependencies];
 			break;
-		case 'pnpm':
-			// pnpm add pkg@workspace:* adds to dependencies and handles workspace protocol
+		}
+		case 'pnpm': {
 			command = 'pnpm';
-			args = ['add', ...depsToAdd];
+			args = ['add', ...dependencies];
 			break;
+		}
 		default:
 			throw new Error(
 				`Unsupported package manager for dependency addition: ${packageManager}`
@@ -71,16 +68,14 @@ export function getManualInstallCommand(
 	dependencies: string[],
 	packageManager: PackageManager
 ): string {
-	const depsToAdd = dependencies.map((dep) => `${dep}`);
-
 	switch (packageManager) {
 		case 'npm':
-			return `npm install ${depsToAdd.join(' ')}`;
+			return `npm install ${dependencies.join(' ')}`;
 		case 'yarn':
-			return `yarn add ${depsToAdd.join(' ')}`;
+			return `yarn add ${dependencies.join(' ')}`;
 		case 'pnpm':
-			return `pnpm add ${depsToAdd.join(' ')}`;
+			return `pnpm add ${dependencies.join(' ')}`;
 		default:
-			return `npm install ${depsToAdd.join(' ')}`;
+			return `npm install ${dependencies.join(' ')}`;
 	}
 }

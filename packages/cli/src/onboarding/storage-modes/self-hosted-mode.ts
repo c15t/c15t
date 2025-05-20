@@ -4,10 +4,8 @@ import * as p from '@clack/prompts';
 import color from 'picocolors';
 import type { CliContext } from '../../context/types';
 import { formatLogMessage } from '../../utils/logger';
-import {
-	generateBackendConfigContent,
-	generateClientConfigContent,
-} from '../templates';
+import { generateBackendConfigContent } from '../templates/backend';
+import { generateClientConfigContent } from '../templates/config';
 
 /**
  * Result of self-hosted mode setup

@@ -22,10 +22,10 @@
 		"test:watch": "vitest"
 	},
 	"dependencies": {
-		"@doubletie/logger": "1.0.4",
 		"@c15t/backend": "workspace:*",
 		"@c15t/react": "workspace:*",
 		"@clack/prompts": "^0.10.1",
+		"@doubletie/logger": "1.0.4",
 		"@mrleebo/prisma-ast": "^0.12.1",
 		"@types/better-sqlite3": "^7.6.13",
 		"better-sqlite3": "^11.9.1",
@@ -38,6 +38,7 @@
 		"package-manager-detector": "^1.2.0",
 		"picocolors": "^1.1.1",
 		"posthog-node": "^4.11.7",
+		"ts-morph": "^25.0.1",
 		"zod": "^3.24.2"
 	},
 	"devDependencies": {

@@ -1,16 +1,22 @@
-import fs from 'node:fs/promises';
 import path from 'node:path';
 import type * as p from '@clack/prompts';
 import color from 'picocolors';
 import type { CliContext } from '../../context/types';
-import { formatLogMessage } from '../../utils/logger';
-import { generateClientConfigContent } from '../templates';
+import type { AvailiblePackages } from '../detection';
+import { generateFiles } from '../generate-files';
 
 /**
  * Result of custom mode setup
  */
 export interface CustomModeResult {
 	clientConfigContent: string;
+}
+
+interface CustomModeOptions {
+	context: CliContext;
+	projectRoot: string;
+	spinner: ReturnType<typeof p.spinner>;
+	pkg: AvailiblePackages;
 }
 
 /**
@@ -21,35 +27,27 @@ export interface CustomModeResult {
  * @param spinner - Spinner for loading indicators
  * @returns Configuration data for the custom mode
  */
-export async function setupCustomMode(
-	context: CliContext,
-	projectRoot: string,
-	spinner: ReturnType<typeof p.spinner>
-): Promise<CustomModeResult> {
+export async function setupCustomMode({
+	context,
+	projectRoot,
+	spinner,
+	pkg,
+}: CustomModeOptions): Promise<CustomModeResult> {
 	const { logger, cwd } = context;
-	let spinnerActive = false;
 
-	// Generate client config
-	const clientConfigContent = generateClientConfigContent('custom');
-	const configPath = path.join(projectRoot, 'c15t.config.ts');
-
-	// Write the client config
-	spinner.start('Creating client configuration file...');
-	spinnerActive = true;
-	await fs.writeFile(configPath, clientConfigContent);
-	spinner.stop(
-		formatLogMessage(
-			'info',
-			`Client configuration created: ${color.cyan(path.relative(cwd, configPath))}`
-		)
-	);
-	spinnerActive = false;
+	const result = await generateFiles({
+		context,
+		projectRoot,
+		mode: 'custom',
+		pkg,
+		spinner,
+	});
 
 	logger.info(
-		`Remember to implement custom endpoint handlers (see ${color.cyan(path.relative(cwd, configPath))}).`
+		`Remember to implement custom endpoint handlers ${result.configPath ? `(see ${color.cyan(path.relative(cwd, result.configPath))})` : ''}`
 	);
 
 	return {
-		clientConfigContent,
+		clientConfigContent: result.configContent ?? '',
 	};
 }
