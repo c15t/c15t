@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/node-sdk",
-	"version": "1.2.1",
+	"version": "1.2.2-canary-20250521133509",
 	"type": "module",
 	"scripts": {
 		"build": "rslib build",
@@ -19,6 +19,10 @@
 			"require": "./dist/index.cjs"
 		}
 	},
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": ["dist"],
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
 		"@orpc/client": "1.2.0",

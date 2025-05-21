@@ -1,5 +1,5 @@
+import type { ContractsOutputs } from '@c15t/backend/contracts';
 import type { AllConsentNames } from './gdpr';
-
 /**
  * @packageDocumentation
  * Provides types and interfaces for managing privacy compliance and consent across different regulatory frameworks.
@@ -275,13 +275,4 @@ export type JurisdictionInfo = {
  *
  * @public
  */
-export type ConsentBannerResponse = {
-	/** Whether to show the consent banner */
-	showConsentBanner: boolean;
-
-	/** Information about the applicable jurisdiction */
-	jurisdiction: JurisdictionInfo;
-
-	/** Information about the user's location */
-	location: LocationInfo;
-};
+export type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];

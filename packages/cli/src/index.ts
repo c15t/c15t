@@ -77,7 +77,7 @@ export async function main() {
 	const rawArgs = process.argv.slice(2);
 	const cwd = process.cwd();
 	// Pass commands array to creator, as parser needs it
-	const context = createCliContext(rawArgs, cwd, commands);
+	const context = await createCliContext(rawArgs, cwd, commands);
 	const { logger, flags, commandName, commandArgs, error, telemetry } = context;
 
 	// --- Package Info & Early Exit Check ---
@@ -253,7 +253,10 @@ flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
 				telemetry.trackEvent(TelemetryEventName.INTERACTIVE_MENU_EXITED, {
 					action: p.isCancel(selectedCommandName) ? 'cancelled' : 'exit',
 				});
-				context.error.handleCancel('Operation cancelled.');
+				context.error.handleCancel('Operation cancelled.', {
+					command: 'interactive_menu',
+					stage: 'exit',
+				});
 			} else {
 				const selectedCommand = commands.find(
 					(cmd) => cmd.name === selectedCommandName

@@ -39,6 +39,13 @@ export const globalFlags: CliFlag[] = [
 		type: 'boolean',
 		expectsValue: false,
 	},
+	{
+		names: ['--telemetry-debug'],
+		description:
+			'Enable debug mode for telemetry (shows detailed telemetry logs).',
+		type: 'boolean',
+		expectsValue: false,
+	},
 ];
 
 /**

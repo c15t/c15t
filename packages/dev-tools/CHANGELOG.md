@@ -1,5 +1,26 @@
 # @c15t/dev-tools
 
+## 1.2.2-canary-20250521133509
+
+### Patch Changes
+
+- c15t@1.2.2-canary-20250521133509
+
+## 1.2.2-canary-20250514203718
+
+### Patch Changes
+
+- f24f11b: bump package
+- Updated dependencies [f24f11b]
+  - c15t@1.2.2-canary-20250514203718
+
+## 1.2.2-canary-20250514183211
+
+### Patch Changes
+
+- Updated dependencies [f64f000]
+  - c15t@1.2.2-canary-20250514183211
+
 ## 1.2.1
 
 ### Patch Changes

@@ -1,11 +1,12 @@
 import color from 'picocolors';
+import { TelemetryEventName } from '../utils/telemetry';
 import type { CliContext } from './types';
 
 /**
  * Creates error handling utilities for the CLI context
  */
 export function createErrorHandlers(context: CliContext) {
-	const { logger } = context;
+	const { logger, telemetry } = context;
 
 	return {
 		/**
@@ -32,11 +33,21 @@ export function createErrorHandlers(context: CliContext) {
 		/**
 		 * Handles user cancellation in a consistent way
 		 * @param message Optional message to display when cancelling
+		 * @param context Optional context about where the cancellation occurred
 		 */
-		handleCancel: (message = 'Operation cancelled.'): never => {
-			logger.debug(`Handling cancellation: ${message}`);
-			// Still need p.cancel for visual feedback
-			// p.cancel(message);
+		handleCancel: (
+			message = 'Operation cancelled.',
+			context?: { command?: string; stage?: string }
+		): never => {
+			logger.debug(`Handling cancellation: ${message}`, context);
+
+			// Track cancellation with context
+			telemetry.trackEvent(TelemetryEventName.ONBOARDING_EXITED, {
+				reason: 'user_cancelled',
+				command: context?.command || 'unknown',
+				stage: context?.stage || 'unknown',
+			});
+
 			logger.failed(message);
 			process.exit(0);
 		},

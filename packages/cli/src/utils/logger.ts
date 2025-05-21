@@ -1,9 +1,11 @@
 import * as p from '@clack/prompts';
 import { type Logger, createLogger } from '@doubletie/logger';
 import color from 'picocolors';
+
 // Define standard log levels
 export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 export const validLogLevels: LogLevel[] = ['error', 'warn', 'info', 'debug'];
+export type CliLogger = Logger & CliExtensions;
 
 // Define CLI-specific extension levels with their method signatures
 export interface CliExtensions {
@@ -101,7 +103,7 @@ export const logMessage = (
 
 // This function creates a logger instance based on the provided level
 // It includes the custom log handler for clack integration.
-export const createCliLogger = (level: LogLevel): Logger & CliExtensions => {
+export const createCliLogger = (level: LogLevel): CliLogger => {
 	// Create the base logger with standard levels
 	const baseLogger = createLogger({
 		level,
@@ -114,7 +116,7 @@ export const createCliLogger = (level: LogLevel): Logger & CliExtensions => {
 	});
 
 	// Extend the logger with CLI-specific methods
-	const extendedLogger = baseLogger as Logger & CliExtensions;
+	const extendedLogger = baseLogger as CliLogger;
 
 	// Add message method (plain text without prefix)
 	extendedLogger.message = (message: string) => {
@@ -141,6 +143,7 @@ export const createCliLogger = (level: LogLevel): Logger & CliExtensions => {
 	// Add failed method (final message)
 	extendedLogger.failed = (message: string, ...args: unknown[]) => {
 		logMessage('failed', message, ...args);
+		process.exit(0);
 	};
 
 	// Add outro method (uses plain message)

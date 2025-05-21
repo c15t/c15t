@@ -1,5 +1,52 @@
 # docs
 
+## 1.1.8-canary-20250521150034
+
+### Patch Changes
+
+- Updated dependencies [8c2a0f4]
+  - @c15t/nextjs@1.2.2-canary-20250521150034
+
+## 1.1.8-canary-20250521133509
+
+### Patch Changes
+
+- Updated dependencies [e4b9778]
+  - @c15t/backend@1.2.2-canary-20250521133509
+  - c15t@1.2.2-canary-20250521133509
+  - @c15t/nextjs@1.2.2-canary-20250521133509
+  - @c15t/react@1.2.2-canary-20250521133509
+  - @c15t/dev-tools@1.2.2-canary-20250521133509
+
+## 1.1.8-canary-20250520100232
+
+### Patch Changes
+
+- Updated dependencies [eeda731]
+  - @c15t/nextjs@1.2.2-canary-20250520100232
+
+## 1.1.8-canary-20250514203718
+
+### Patch Changes
+
+- Updated dependencies [f24f11b]
+  - @c15t/backend@1.2.2-canary-20250514203718
+  - c15t@1.2.2-canary-20250514203718
+  - @c15t/dev-tools@1.2.2-canary-20250514203718
+  - @c15t/nextjs@1.2.2-canary-20250514203718
+  - @c15t/react@1.2.2-canary-20250514203718
+
+## 1.1.8-canary-20250514183211
+
+### Patch Changes
+
+- Updated dependencies [f64f000]
+  - @c15t/backend@1.2.2-canary-20250514183211
+  - @c15t/nextjs@1.2.2-canary-20250514183211
+  - @c15t/react@1.2.2-canary-20250514183211
+  - c15t@1.2.2-canary-20250514183211
+  - @c15t/dev-tools@1.2.2-canary-20250514183211
+
 ## 1.1.7
 
 ### Patch Changes
