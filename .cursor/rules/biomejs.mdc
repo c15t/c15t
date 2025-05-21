@@ -1,0 +1,237 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# BiomeJS Configuration Documentation
+
+This document explains the rules and structure used in your `biome.json` configuration file. It ensures that BiomeJS always generates **syntax-correct**, consistent code across your project by enforcing formatting and linting rules.
+
+---
+
+## 📦 General Formatter Settings
+
+```json
+"formatter": {
+  "enabled": true,
+  "formatWithErrors": true,
+  "indentStyle": "tab",
+  "indentWidth": 2,
+  "lineEnding": "lf",
+  "lineWidth": 80,
+  "attributePosition": "auto"
+}
+```
+
+* **Tabs over spaces**, 2 width per tab.
+* Line endings use Unix style (`lf`).
+* Lines wrap at 80 characters.
+* Auto-handling of HTML-style attribute wrapping.
+
+---
+
+## 📤 Import Organization
+
+```json
+"organizeImports": { "enabled": true }
+```
+
+* Automatically groups and sorts import statements.
+
+---
+
+## ✅ Linter Configuration
+
+```json
+"linter": {
+  "enabled": true,
+  "rules": {
+    "all": true,
+    ...
+  }
+}
+```
+
+### 🔧 Disabled Rules and Why
+
+#### Accessibility (a11y)
+
+* `noAutofocus`: `off` — autofocus is permitted.
+
+#### Complexity
+
+* `useSimplifiedLogicExpression`: `off` — complex conditions are allowed.
+* `functionComplexity`: `error` — enforces maximum cyclomatic complexity in functions. Helps avoid overly complex logic. Use smaller functions or early returns.
+
+#### Correctness
+
+* `noUndeclaredDependencies`: `off`
+* `useImportExtensions`: `off`
+* `noNodejsModules`: `off`
+
+These are turned off to allow flexibility during development and when using bundlers or frameworks that handle extensions and dependencies.
+
+#### Nursery Rules
+
+* `noCommonJs`: `off`
+* `noProcessEnv`: `off`
+* `noSecrets`: `off`
+* `useComponentExportOnlyModules`: `off`
+* `useExplicitType`: `off`
+* `useImportRestrictions`: `off`
+* `useConsistentCurlyBraces`: `off`
+* `noTernary`: `error` — disallows ternary (`condition ? x : y`) expressions to improve readability. Use if/else instead.
+
+#### Enabled Nursery Rule
+
+* `useSortedClasses`: `error`
+
+  * Fixes automatically
+  * Applies to: `className`
+  * Functions: `clsx`, `cva`, `tw`, `twMerge`, `cn`, `twJoin`
+
+#### Performance
+
+* `noBarrelFile`: `off`
+* `noReExportAll`: `off`
+
+#### Style
+
+* `noDefaultExport`: `off` — allows default exports (useful for frameworks like Next.js).
+* `noImplicitBoolean`: `off`
+* `useExplicitLengthCheck`: `off`
+* `noNamespaceImport`: `off`
+* `useSingleVarDeclarator`: `off`
+* `useNamingConvention`: `off`
+
+##### File Naming Convention (Enforced)
+
+```json
+"useFilenamingConvention": {
+  "level": "error",
+  "options": {
+    "requireAscii": true,
+    "filenameCases": ["kebab-case"]
+  }
+}
+```
+
+Only ASCII characters, and filenames must follow `kebab-case`.
+
+#### Suspicious
+
+* `noReactSpecificProps`: `off`
+* `noArrayIndexKey`: `off`
+
+---
+
+## 📜 JavaScript Specific
+
+```json
+"javascript": {
+  "formatter": {
+    "arrowParentheses": "always",
+    "attributePosition": "auto",
+    "bracketSameLine": false,
+    "bracketSpacing": true,
+    "enabled": true,
+    "indentStyle": "tab",
+    "indentWidth": 2,
+    "jsxQuoteStyle": "double",
+    "lineEnding": "lf",
+    "lineWidth": 80,
+    "quoteProperties": "asNeeded",
+    "quoteStyle": "single",
+    "semicolons": "always",
+    "trailingCommas": "es5"
+  }
+}
+```
+
+* JS uses **single quotes**, **double quotes in JSX**.
+* **Always** use semicolons.
+* Trailing commas allowed in objects/arrays when valid in ES5.
+* Arrow functions always include parentheses, even for single-argument ones.
+
+---
+
+## 🎨 CSS Specific
+
+```json
+"css": {
+  "formatter": {
+    "indentStyle": "tab",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 80,
+    "quoteStyle": "double"
+  },
+  "parser": {
+    "allowWrongLineComments": true,
+    "cssModules": true
+  }
+}
+```
+
+* Tab-indented with double quotes.
+* Supports CSS Modules.
+* Allows malformed line comments during parse.
+
+---
+
+## 📝 JSON Specific
+
+```json
+"json": {
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "tab",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 80,
+    "trailingCommas": "none"
+  },
+  "linter": { "enabled": true },
+  "parser": {
+    "allowComments": false,
+    "allowTrailingCommas": false
+  }
+}
+```
+
+* Tab-indented JSON, no trailing commas.
+* Comments and trailing commas in source JSON are disallowed.
+
+---
+
+## 🌳 VCS Integration
+
+```json
+"vcs": {
+  "enabled": true,
+  "clientKind": "git",
+  "useIgnoreFile": true,
+  "defaultBranch": "main"
+}
+```
+
+* Integrates with Git.
+* Respects `.gitignore`.
+* Uses `main` as the default branch.
+
+---
+
+## ✅ Summary
+
+This config:
+
+* Enforces consistent code formatting and import sorting.
+* Applies relaxy default, with some rules enforced strictly.
+* Keeps filenames readable and predictable via `kebab-case`.
+* Works well with frameworks like React and Next.js.
+
+Use this document to understand how BiomeJS is shaping your code — and why.
+
+---
+
+For more information, visit [biomejs.dev](https://biomejs.dev).
