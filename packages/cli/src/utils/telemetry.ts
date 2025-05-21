@@ -129,13 +129,70 @@ export class Telemetry {
 		this.debug = options?.debug ?? false;
 
 		// Generate a stable anonymous ID based on machine info
-		// We're not collecting any personal info here
 		this.distinctId = this.generateAnonymousId();
 
 		if (!this.disabled) {
-			this.initClient(options?.client);
+			try {
+				this.initClient(options?.client);
+			} catch (error) {
+				this.disabled = true;
+				this.logDebug('Telemetry disabled due to initialization error:', error);
+			}
 		} else if (!hasValidApiKey) {
 			this.logDebug('Telemetry disabled: No API key provided');
+		}
+	}
+
+	/**
+	 * Track a telemetry event
+	 *
+	 * @param eventName - The event name to track
+	 * @param properties - Properties to include with the event
+	 */
+	trackEvent(
+		eventName: TelemetryEventName,
+		properties: Record<string, string | number | boolean | undefined> = {}
+	): void {
+		if (this.disabled || !this.client) {
+			if (this.debug) {
+				this.logDebug(
+					`Telemetry event skipped (${eventName}): Telemetry disabled or client not initialized`
+				);
+			}
+			return;
+		}
+
+		try {
+			// Filter out any sensitive data and undefined values from properties
+			const safeProperties: Record<string, string | number | boolean> = {};
+
+			// Copy only non-sensitive properties and filter out undefined values
+			for (const [key, value] of Object.entries(properties)) {
+				if (key !== 'config' && value !== undefined) {
+					safeProperties[key] = value;
+				}
+			}
+
+			if (this.debug) {
+				this.logDebug(`Sending telemetry event: ${eventName}`);
+			}
+
+			this.client.capture({
+				distinctId: this.distinctId,
+				event: eventName,
+				properties: {
+					...this.defaultProperties,
+					...safeProperties,
+					timestamp: new Date().toISOString(),
+				},
+			});
+
+			// Force a flush and wait a bit to ensure it completes
+			this.client.flush();
+		} catch (error) {
+			if (this.debug) {
+				this.logDebug(`Error sending telemetry event ${eventName}:`, error);
+			}
 		}
 	}
 
@@ -196,20 +253,6 @@ export class Telemetry {
 				this.logDebug(`Error sending telemetry: ${error}`);
 			}
 		}
-	}
-
-	/**
-	 * Track a telemetry event
-	 *
-	 * @param eventName - The event name to track
-	 * @param properties - Properties to include with the event
-	 */
-	trackEvent(
-		eventName: TelemetryEventName,
-		properties: Record<string, string | number | boolean | undefined> = {}
-	): void {
-		// Just delegate to the sync version for reliability
-		this.trackEventSync(eventName, properties);
 	}
 
 	/**

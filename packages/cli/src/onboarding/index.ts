@@ -79,11 +79,6 @@ export async function startOnboarding(
 		logger.success('🚀 Setup completed successfully!');
 	} catch (error) {
 		if (!p.isCancel(error)) {
-			logger.error('An unexpected error occurred during onboarding:', error);
-			if (error instanceof Error && error.message) {
-				logger.error(`Error details: ${error.message}`);
-			}
-			logger.failed('Onboarding process could not be completed.');
 			telemetry.trackEvent(TelemetryEventName.ONBOARDING_COMPLETED, {
 				success: false,
 				error: error instanceof Error ? error.message : String(error),

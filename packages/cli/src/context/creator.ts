@@ -84,28 +84,40 @@ export async function createCliContext(
 	// Add telemetry, respecting the telemetry flag if present
 	const telemetryDisabled = parsedFlags['no-telemetry'] === true;
 	const telemetryDebug = parsedFlags['telemetry-debug'] === true;
-	context.telemetry = createTelemetry({
-		disabled: telemetryDisabled,
-		debug: telemetryDebug,
-		defaultProperties: {
-			cliVersion: context.fs.getPackageInfo().version,
-			framework: context.framework.framework ?? 'unknown',
-			frameworkVersion: context.framework.frameworkVersion ?? 'unknown',
-			packageManager: context.packageManager.name,
-			packageManagerVersion: context.packageManager.version ?? 'unknown',
-			hasReact: context.framework.hasReact,
-			reactVersion: context.framework.reactVersion ?? 'unknown',
-			package: context.framework.pkg ?? 'unknown',
-		},
-		logger: context.logger,
-	});
 
-	if (telemetryDisabled) {
-		logger.debug('Telemetry is disabled by user preference');
-	} else if (telemetryDebug) {
-		logger.debug('Telemetry initialized with debug mode enabled');
-	} else {
-		logger.debug('Telemetry initialized');
+	try {
+		context.telemetry = createTelemetry({
+			disabled: telemetryDisabled,
+			debug: telemetryDebug,
+			defaultProperties: {
+				cliVersion: context.fs.getPackageInfo().version,
+				framework: context.framework.framework ?? 'unknown',
+				frameworkVersion: context.framework.frameworkVersion ?? 'unknown',
+				packageManager: context.packageManager.name,
+				packageManagerVersion: context.packageManager.version ?? 'unknown',
+				hasReact: context.framework.hasReact,
+				reactVersion: context.framework.reactVersion ?? 'unknown',
+				package: context.framework.pkg ?? 'unknown',
+			},
+			logger: context.logger,
+		});
+
+		if (telemetryDisabled) {
+			logger.debug('Telemetry is disabled by user preference');
+		} else if (telemetryDebug) {
+			logger.debug('Telemetry initialized with debug mode enabled');
+		} else {
+			logger.debug('Telemetry initialized');
+		}
+	} catch {
+		// If telemetry initialization fails, create a disabled instance
+		logger.warn(
+			'Failed to initialize telemetry, continuing with telemetry disabled'
+		);
+		context.telemetry = createTelemetry({
+			disabled: true,
+			logger: context.logger,
+		});
 	}
 
 	logger.debug('CLI context fully initialized with all utilities');
