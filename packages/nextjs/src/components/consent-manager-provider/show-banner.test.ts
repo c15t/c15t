@@ -153,6 +153,14 @@ describe('showBanner', () => {
 			);
 		}
 	});
+
+	it('should not show banner if country code is not in any jurisdiction', () => {
+		const result = showBanner({
+			'cf-ipcountry': 'US',
+			'accept-language': 'en-US,en;q=0.9',
+		});
+		expect(result.showConsentBanner).toBe(false);
+	});
 });
 
 describe('checkJurisdiction', () => {
