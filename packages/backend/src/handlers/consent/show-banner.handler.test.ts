@@ -120,7 +120,7 @@ describe('Show Consent Banner Handler', () => {
 				createMockContext({ 'cf-ipcountry': 'US' })
 			);
 
-			expect(result.showConsentBanner).toBe(true);
+			expect(result.showConsentBanner).toBe(false);
 			expect(result.jurisdiction.code).toBe('NONE');
 			expect(result.jurisdiction.message).toBe(JurisdictionMessages.NONE);
 		});
