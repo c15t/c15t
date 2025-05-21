@@ -1,4 +1,4 @@
-import type { Logger } from '@c15t/backend/pkgs/logger';
+import type { Logger } from '@doubletie/logger';
 import { PostHog } from 'posthog-node';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -89,10 +89,10 @@ describe('Telemetry', () => {
 			test: true,
 		});
 		expect(mockLogger.debug).toHaveBeenCalledWith(
-			'Sending telemetry event: cli.invoked'
+			'Using custom PostHog client'
 		);
 		expect(mockLogger.debug).toHaveBeenCalledWith(
-			'Flushed telemetry event: cli.invoked'
+			'Sending telemetry event: cli.invoked'
 		);
 	});
 
@@ -181,7 +181,14 @@ describe('Telemetry', () => {
 
 		// Should log the error
 		expect(mockLogger.debug).toHaveBeenCalledWith(
-			'Error sending telemetry: Error: Capture error'
+			'Using custom PostHog client'
+		);
+		expect(mockLogger.debug).toHaveBeenCalledWith(
+			'Sending telemetry event: cli.invoked'
+		);
+		expect(mockLogger.debug).toHaveBeenCalledWith(
+			'Error sending telemetry event cli.invoked:',
+			expect.any(Error)
 		);
 	});
 
