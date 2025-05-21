@@ -1,5 +1,4 @@
-import type { ContractsOutputs } from '@c15t/backend/contracts';
-import { c15tClient } from '@c15t/node-sdk';
+import type { ContractsOutputs } from '@c15t/backend';
 import {
 	ConsentManagerProvider as ClientConsentManagerProvider,
 	type ConsentManagerProviderProps,
@@ -8,6 +7,7 @@ import {
 } from '@c15t/react';
 import { headers } from 'next/headers';
 import { cookies } from 'next/headers';
+import { showBanner } from './show-banner';
 
 export async function ConsentManagerProvider({
 	children,
@@ -50,12 +50,7 @@ export async function ConsentManagerProvider({
 		) as Record<string, string>;
 
 		try {
-			const client = c15tClient({
-				baseUrl: options.backendURL ?? ' ',
-				headers: filteredHeaders,
-			});
-
-			showConsentBanner = await client.consent.showBanner();
+			showConsentBanner = showBanner(filteredHeaders);
 		} catch (e) {
 			console.error('Failed to fetch consent banner:', e);
 		}
