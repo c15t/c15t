@@ -61,6 +61,7 @@ This document explains the rules and structure used in your `biome.json` configu
 #### Complexity
 
 * `useSimplifiedLogicExpression`: `off` — complex conditions are allowed.
+* `functionComplexity`: `error` — enforces maximum cyclomatic complexity in functions. Helps avoid overly complex logic. Use smaller functions or early returns.
 
 #### Correctness
 
@@ -79,6 +80,7 @@ These are turned off to allow flexibility during development and when using bund
 * `useExplicitType`: `off`
 * `useImportRestrictions`: `off`
 * `useConsistentCurlyBraces`: `off`
+* `noTernary`: `error` — disallows ternary (`condition ? x : y`) expressions to improve readability. Use if/else instead.
 
 #### Enabled Nursery Rule
 
@@ -177,7 +179,7 @@ Only ASCII characters, and filenames must follow `kebab-case`.
 
 ---
 
-## 🧾 JSON Specific
+## 📝 JSON Specific
 
 ```json
 "json": {
@@ -224,7 +226,7 @@ Only ASCII characters, and filenames must follow `kebab-case`.
 This config:
 
 * Enforces consistent code formatting and import sorting.
-* Applies relaxed linting by default, with some rules enforced strictly.
+* Applies relaxy default, with some rules enforced strictly.
 * Keeps filenames readable and predictable via `kebab-case`.
 * Works well with frameworks like React and Next.js.
 
