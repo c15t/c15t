@@ -71,12 +71,12 @@ export async function planMigrations(
 		logger.info(`  + Table ${tableName}: Add fields [${fields}]`);
 
 		// Still display to user for better visibility with colors
-		p.log.message(
+		logger.message(
 			`  ${color.cyan('+')} Table ${color.yellow(tableName)}: Add fields [${color.green(fields)}]`
 		);
 	}
 
-	p.log.message(''); // Spacing before confirmation
+	logger.message(''); // Spacing before confirmation
 
 	let shouldMigrate = skipConfirmation;
 	if (!shouldMigrate) {

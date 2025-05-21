@@ -1,6 +1,6 @@
 import type * as p from '@clack/prompts';
+import type { AvailablePackages } from '~/context/framework-detection';
 import type { CliContext } from '../../context/types';
-import type { AvailiblePackages } from '../detection';
 import { generateFiles } from '../generate-files';
 
 /**
@@ -14,7 +14,7 @@ interface OfflineModeOptions {
 	context: CliContext;
 	projectRoot: string;
 	spinner: ReturnType<typeof p.spinner>;
-	pkg: AvailiblePackages;
+	pkg: AvailablePackages;
 }
 
 /**

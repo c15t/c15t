@@ -1,4 +1,4 @@
-import type { AvailiblePackages } from '../detection';
+import type { AvailablePackages } from '~/context/framework-detection';
 
 /**
  * Gets the appropriate environment variable name based on package type
@@ -6,7 +6,7 @@ import type { AvailiblePackages } from '../detection';
  * @param pkg - The package type being used
  * @returns The environment variable name to use
  */
-export function getEnvVarName(pkg: AvailiblePackages): string {
+export function getEnvVarName(pkg: AvailablePackages): string {
 	return pkg === '@c15t/nextjs' ? 'NEXT_PUBLIC_C15T_URL' : 'PUBLIC_C15T_URL';
 }
 
@@ -19,7 +19,7 @@ export function getEnvVarName(pkg: AvailiblePackages): string {
  */
 export function generateEnvFileContent(
 	backendURL: string,
-	pkg: AvailiblePackages
+	pkg: AvailablePackages
 ): string {
 	const envVarName = getEnvVarName(pkg);
 	return `\n${envVarName}=${backendURL}\n`;
@@ -31,7 +31,7 @@ export function generateEnvFileContent(
  * @param pkg - The package type being used
  * @returns The generated example environment file content
  */
-export function generateEnvExampleContent(pkg: AvailiblePackages): string {
+export function generateEnvExampleContent(pkg: AvailablePackages): string {
 	const envVarName = getEnvVarName(pkg);
 	return `\n# c15t Configuration\n${envVarName}=https://your-instance.c15t.dev\n`;
 }

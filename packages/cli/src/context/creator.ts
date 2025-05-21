@@ -7,6 +7,8 @@ import { createTelemetry } from '../utils/telemetry';
 import { createConfigManagement } from './config-management';
 import { createErrorHandlers } from './error-handlers';
 import { createFileSystem } from './file-system';
+import { detectFramework, detectProjectRoot } from './framework-detection';
+import { detectPackageManager } from './package-manager-detection';
 import { parseCliArgs } from './parser';
 import type { CliCommand, CliContext } from './types';
 import { createUserInteraction } from './user-interaction';
@@ -19,11 +21,11 @@ import { createUserInteraction } from './user-interaction';
  * @param commands - The list of available CLI commands.
  * @returns The CLI context object.
  */
-export function createCliContext(
+export async function createCliContext(
 	rawArgs: string[],
 	cwd: string,
 	commands: CliCommand[]
-): CliContext {
+): Promise<CliContext> {
 	const { commandName, commandArgs, parsedFlags } = parseCliArgs(
 		rawArgs,
 		commands
@@ -74,23 +76,48 @@ export function createCliContext(
 	// Add file system utilities
 	context.fs = createFileSystem(context);
 
+	// Detect project root, framework, and package manager
+	const projectRoot = await detectProjectRoot(cwd, logger);
+	context.framework = await detectFramework(projectRoot, logger);
+	context.packageManager = await detectPackageManager(projectRoot, logger);
+
 	// Add telemetry, respecting the telemetry flag if present
 	const telemetryDisabled = parsedFlags['no-telemetry'] === true;
-	context.telemetry = createTelemetry({
-		disabled: telemetryDisabled,
-		defaultProperties: {
-			cliVersion: context.fs.getPackageInfo().version,
-		},
-		logger: context.logger,
-	});
+	const telemetryDebug = parsedFlags['telemetry-debug'] === true;
 
-	// Set telemetry log level to match CLI log level
-	context.telemetry.setLogLevel(desiredLogLevel);
+	try {
+		context.telemetry = createTelemetry({
+			disabled: telemetryDisabled,
+			debug: telemetryDebug,
+			defaultProperties: {
+				cliVersion: context.fs.getPackageInfo().version,
+				framework: context.framework.framework ?? 'unknown',
+				frameworkVersion: context.framework.frameworkVersion ?? 'unknown',
+				packageManager: context.packageManager.name,
+				packageManagerVersion: context.packageManager.version ?? 'unknown',
+				hasReact: context.framework.hasReact,
+				reactVersion: context.framework.reactVersion ?? 'unknown',
+				package: context.framework.pkg ?? 'unknown',
+			},
+			logger: context.logger,
+		});
 
-	if (telemetryDisabled) {
-		logger.debug('Telemetry is disabled by user preference');
-	} else {
-		logger.debug('Telemetry initialized');
+		if (telemetryDisabled) {
+			logger.debug('Telemetry is disabled by user preference');
+		} else if (telemetryDebug) {
+			logger.debug('Telemetry initialized with debug mode enabled');
+		} else {
+			logger.debug('Telemetry initialized');
+		}
+	} catch {
+		// If telemetry initialization fails, create a disabled instance
+		logger.warn(
+			'Failed to initialize telemetry, continuing with telemetry disabled'
+		);
+		context.telemetry = createTelemetry({
+			disabled: true,
+			logger: context.logger,
+		});
 	}
 
 	logger.debug('CLI context fully initialized with all utilities');

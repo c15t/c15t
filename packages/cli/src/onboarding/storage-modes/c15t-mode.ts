@@ -1,14 +1,14 @@
 import * as p from '@clack/prompts';
 import open from 'open';
+import type { AvailablePackages } from '~/context/framework-detection';
 import type { CliContext } from '../../context/types';
-import type { AvailiblePackages } from '../detection';
 import { generateFiles } from '../generate-files';
 
 /**
  * Result of c15t mode setup
  */
 export interface C15TModeResult {
-	backendURL: string;
+	backendURL: string | undefined;
 	usingEnvFile: boolean;
 }
 
@@ -16,7 +16,7 @@ interface C15TModeOptions {
 	context: CliContext;
 	projectRoot: string;
 	spinner: ReturnType<typeof p.spinner>;
-	packageName: AvailiblePackages;
+	packageName: AvailablePackages;
 	initialBackendURL?: string;
 	handleCancel?: (value: unknown) => boolean;
 }
@@ -36,7 +36,10 @@ async function handleAccountCreation(
 	});
 
 	if (handleCancel?.(needsAccount)) {
-		throw new Error('Setup cancelled');
+		context.error.handleCancel('Setup cancelled.', {
+			command: 'onboarding',
+			stage: 'c15t_account_creation',
+		});
 	}
 
 	if (!needsAccount) {
@@ -54,7 +57,10 @@ async function handleAccountCreation(
 	});
 
 	if (handleCancel?.(shouldOpen)) {
-		throw new Error('Setup cancelled');
+		context.error.handleCancel('Setup cancelled.', {
+			command: 'onboarding',
+			stage: 'c15t_browser_open',
+		});
 	}
 
 	if (shouldOpen) {
@@ -66,7 +72,10 @@ async function handleAccountCreation(
 			});
 
 			if (handleCancel?.(enterPressed)) {
-				throw new Error('Setup cancelled');
+				context.error.handleCancel('Setup cancelled.', {
+					command: 'onboarding',
+					stage: 'c15t_url_input',
+				});
 			}
 		} catch {
 			logger.warn(
@@ -80,9 +89,10 @@ async function handleAccountCreation(
  * Collects and validates the backend URL
  */
 async function getBackendURL(
+	context: CliContext,
 	initialBackendURL: string | undefined,
 	handleCancel?: (value: unknown) => boolean
-): Promise<string> {
+): Promise<string | undefined> {
 	const backendURLSelection = await p.text({
 		message: 'Enter your consent.io instance URL:',
 		placeholder: 'https://your-instance.c15t.dev',
@@ -103,11 +113,17 @@ async function getBackendURL(
 	});
 
 	if (handleCancel?.(backendURLSelection)) {
-		throw new Error('Setup cancelled');
+		context.error.handleCancel('Setup cancelled.', {
+			command: 'onboarding',
+			stage: 'c15t_url_validation',
+		});
 	}
 
 	if (!backendURLSelection || backendURLSelection === '') {
-		throw new Error('A valid consent.io URL is required');
+		context.error.handleCancel('A valid consent.io URL is required', {
+			command: 'onboarding',
+			stage: 'c15t_url_validation',
+		});
 	}
 
 	return backendURLSelection as string;
@@ -132,7 +148,11 @@ export async function setupC15tMode({
 	handleCancel,
 }: C15TModeOptions): Promise<C15TModeResult> {
 	await handleAccountCreation(context, handleCancel);
-	const backendURL = await getBackendURL(initialBackendURL, handleCancel);
+	const backendURL = await getBackendURL(
+		context,
+		initialBackendURL,
+		handleCancel
+	);
 
 	const useEnvFileSelection = await p.confirm({
 		message:
@@ -141,7 +161,10 @@ export async function setupC15tMode({
 	});
 
 	if (handleCancel?.(useEnvFileSelection)) {
-		throw new Error('Setup cancelled');
+		context.error.handleCancel('Setup cancelled.', {
+			command: 'onboarding',
+			stage: 'c15t_env_file_setup',
+		});
 	}
 
 	const useEnvFile = useEnvFileSelection as boolean;

@@ -1,25 +1,24 @@
+import type { CliLogger } from '~/utils/logger';
+
 /**
  * Generates client configuration file content based on storage mode
  *
  * @param mode - The storage mode ('c15t', 'offline', or 'custom')
  * @param backendURL - URL for the c15t backend/API (for 'c15t' mode)
  * @param useEnvFile - Whether to use environment variable for backendURL
+ * @param logger - Optional logger instance
  * @returns The generated configuration file content
  */
 export function generateClientConfigContent(
 	mode: string,
 	backendURL?: string,
-	useEnvFile?: boolean
+	useEnvFile?: boolean,
+	logger?: CliLogger
 ): string {
 	let configContent = '';
 
 	// Validate mode parameter
 	const validModes = ['c15t', 'offline', 'custom'];
-	if (!validModes.includes(mode)) {
-		throw new Error(
-			`Invalid mode: ${mode}. Valid modes are: ${validModes.join(', ')}`
-		);
-	}
 
 	switch (mode) {
 		case 'c15t': {
@@ -103,7 +102,7 @@ export const c15tConfig = {
 			break;
 		}
 		default: {
-			throw new Error(
+			logger?.failed(
 				`Invalid mode: ${mode}. Valid modes are: ${validModes.join(', ')}`
 			);
 		}

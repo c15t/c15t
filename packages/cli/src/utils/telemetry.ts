@@ -2,7 +2,6 @@ import crypto from 'node:crypto';
 import os from 'node:os';
 import type { Logger } from '@doubletie/logger';
 import { PostHog } from 'posthog-node';
-import type { LogLevel } from './logger';
 
 // Environment variable for disabling telemetry
 const TELEMETRY_DISABLED_ENV = 'C15T_TELEMETRY_DISABLED';
@@ -78,6 +77,11 @@ export interface TelemetryOptions {
 	disabled?: boolean;
 
 	/**
+	 * Whether telemetry debugging should be enabled
+	 */
+	debug?: boolean;
+
+	/**
 	 * Default properties to add to all telemetry events
 	 */
 	defaultProperties?: Record<string, string | number | boolean>;
@@ -100,7 +104,7 @@ export class Telemetry {
 	private defaultProperties: Record<string, string | number | boolean>;
 	private distinctId: string;
 	private apiKey = 'phc_ViY5LtTmh4kqoumXZB2olPFoTz4AbbDfrogNgFi1MH3';
-	private debug = false;
+	private debug: boolean;
 	private logger: Logger | undefined;
 
 	/**
@@ -122,15 +126,73 @@ export class Telemetry {
 		this.disabled = options?.disabled ?? envDisabled ?? !hasValidApiKey;
 		this.defaultProperties = options?.defaultProperties ?? {};
 		this.logger = options?.logger;
+		this.debug = options?.debug ?? false;
 
 		// Generate a stable anonymous ID based on machine info
-		// We're not collecting any personal info here
 		this.distinctId = this.generateAnonymousId();
 
 		if (!this.disabled) {
-			this.initClient(options?.client);
+			try {
+				this.initClient(options?.client);
+			} catch (error) {
+				this.disabled = true;
+				this.logDebug('Telemetry disabled due to initialization error:', error);
+			}
 		} else if (!hasValidApiKey) {
 			this.logDebug('Telemetry disabled: No API key provided');
+		}
+	}
+
+	/**
+	 * Track a telemetry event
+	 *
+	 * @param eventName - The event name to track
+	 * @param properties - Properties to include with the event
+	 */
+	trackEvent(
+		eventName: TelemetryEventName,
+		properties: Record<string, string | number | boolean | undefined> = {}
+	): void {
+		if (this.disabled || !this.client) {
+			if (this.debug) {
+				this.logDebug(
+					`Telemetry event skipped (${eventName}): Telemetry disabled or client not initialized`
+				);
+			}
+			return;
+		}
+
+		try {
+			// Filter out any sensitive data and undefined values from properties
+			const safeProperties: Record<string, string | number | boolean> = {};
+
+			// Copy only non-sensitive properties and filter out undefined values
+			for (const [key, value] of Object.entries(properties)) {
+				if (key !== 'config' && value !== undefined) {
+					safeProperties[key] = value;
+				}
+			}
+
+			if (this.debug) {
+				this.logDebug(`Sending telemetry event: ${eventName}`);
+			}
+
+			this.client.capture({
+				distinctId: this.distinctId,
+				event: eventName,
+				properties: {
+					...this.defaultProperties,
+					...safeProperties,
+					timestamp: new Date().toISOString(),
+				},
+			});
+
+			// Force a flush and wait a bit to ensure it completes
+			this.client.flush();
+		} catch (error) {
+			if (this.debug) {
+				this.logDebug(`Error sending telemetry event ${eventName}:`, error);
+			}
 		}
 	}
 
@@ -194,20 +256,6 @@ export class Telemetry {
 	}
 
 	/**
-	 * Track a telemetry event
-	 *
-	 * @param eventName - The event name to track
-	 * @param properties - Properties to include with the event
-	 */
-	trackEvent(
-		eventName: TelemetryEventName,
-		properties: Record<string, string | number | boolean | undefined> = {}
-	): void {
-		// Just delegate to the sync version for reliability
-		this.trackEventSync(eventName, properties);
-	}
-
-	/**
 	 * Track a command execution
 	 *
 	 * @param command - The command being executed
@@ -256,19 +304,6 @@ export class Telemetry {
 			errorName: error.name,
 			stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
 		});
-	}
-
-	/**
-	 * Set log level for telemetry client
-	 *
-	 * @param level - The log level to set
-	 */
-	setLogLevel(level: LogLevel): void {
-		if (this.client && level === 'debug') {
-			this.debug = true;
-			this.client.debug(true);
-			this.logDebug('Telemetry debug mode enabled');
-		}
 	}
 
 	/**
