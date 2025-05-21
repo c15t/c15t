@@ -51,7 +51,6 @@ export async function ConsentManagerProvider({
 
 		try {
 			showConsentBanner = showBanner(filteredHeaders);
-			console.log('showConsentBanner', showConsentBanner);
 		} catch (e) {
 			console.error('Failed to fetch consent banner:', e);
 		}
