@@ -1,5 +1,11 @@
 # @c15t/nextjs
 
+## 1.2.2-canary-20250521150034
+
+### Patch Changes
+
+- 8c2a0f4: fix for hiding banner
+
 ## 1.2.2-canary-20250521133509
 
 ### Patch Changes
