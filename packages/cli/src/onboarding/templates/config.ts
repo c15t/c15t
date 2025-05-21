@@ -19,11 +19,6 @@ export function generateClientConfigContent(
 
 	// Validate mode parameter
 	const validModes = ['c15t', 'offline', 'custom'];
-	if (!validModes.includes(mode)) {
-		logger?.failed(
-			`Invalid mode: ${mode}. Valid modes are: ${validModes.join(', ')}`
-		);
-	}
 
 	switch (mode) {
 		case 'c15t': {

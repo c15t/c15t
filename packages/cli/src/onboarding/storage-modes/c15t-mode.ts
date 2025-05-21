@@ -161,7 +161,10 @@ export async function setupC15tMode({
 	});
 
 	if (handleCancel?.(useEnvFileSelection)) {
-		throw new Error('Setup cancelled');
+		context.error.handleCancel('Setup cancelled.', {
+			command: 'onboarding',
+			stage: 'c15t_env_file_setup',
+		});
 	}
 
 	const useEnvFile = useEnvFileSelection as boolean;
@@ -177,7 +180,7 @@ export async function setupC15tMode({
 	});
 
 	return {
-		backendURL: backendURL ?? undefined,
+		backendURL,
 		usingEnvFile: useEnvFile,
 	};
 }
