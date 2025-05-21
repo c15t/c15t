@@ -209,9 +209,11 @@ export async function detectPackageManager(
 		if (result && typeof result === 'object') {
 			detectedValueStr = JSON.stringify(result);
 		}
+		logger?.debug(`Unsupported package manager detected: ${detectedValueStr}`);
 		logger?.failed(
 			`Could not reliably detect package manager (detected: ${detectedValueStr}).`
 		);
+		return { name: 'npm', version: null };
 	} catch (error) {
 		// If detection fails or throws, prompt the user
 		logger?.debug(
