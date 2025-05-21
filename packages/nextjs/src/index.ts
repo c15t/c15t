@@ -8,7 +8,7 @@
  * @see {@link ./middleware} for Next.js middleware integration
  */
 
-export { ConsentManagerProvider } from './consent-manager-provider';
+export { ConsentManagerProvider } from './components/consent-manager-provider';
 
 export {
 	CookieBanner,
