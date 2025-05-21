@@ -1,5 +1,12 @@
 # @c15t/node-sdk
 
+## 1.2.2-canary-20250521133509
+
+### Patch Changes
+
+- Updated dependencies [e4b9778]
+  - @c15t/backend@1.2.2-canary-20250521133509
+
 ## 1.2.2-canary-20250514203718
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @c15t/backend
 
+## 1.2.2-canary-20250521133509
+
+### Patch Changes
+
+- e4b9778: fix(backend): show consent banner returning true in US etc
+
 ## 1.2.2-canary-20250514203718
 
 ### Patch Changes
