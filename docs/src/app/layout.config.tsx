@@ -51,6 +51,11 @@ export const homePageOptions: BaseLayoutProps = {
 			],
 		},
 		{
+			type: 'main',
+			text: 'Examples',
+			url: '/examples',
+		},
+		{
 			icon: <XIcon />,
 			text: 'X',
 			url: 'https://x.com/consentdotio',

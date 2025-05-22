@@ -29,6 +29,11 @@ export const docsOptions: Omit<DocsLayoutProps, 'tree'> = {
 	},
 	links: [
 		{
+			type: 'main',
+			text: 'Examples',
+			url: '/examples',
+		},
+		{
 			type: 'custom',
 			secondary: true,
 			children: <GithubInfo owner="c15t" repo="c15t" />,
