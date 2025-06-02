@@ -1,5 +1,12 @@
 # @c15t/react
 
+## 1.2.2-canary-20250602152741
+
+### Patch Changes
+
+- c15t@1.2.2-canary-20250602152741
+- @c15t/node-sdk@1.2.2-canary-20250602152741
+
 ## 1.2.2-canary-20250521133509
 
 ### Patch Changes
