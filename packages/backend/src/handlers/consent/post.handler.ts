@@ -186,8 +186,8 @@ export const postConsent = os.consent.post.handler(
 							status: 'active',
 							isActive: true,
 							givenAt: now,
-							ipAddress: typedContext.ipAddress || 'unknown',
-							agent: typedContext.userAgent || 'unknown',
+							ipAddress: typedContext.ipAddress || null,
+							userAgent: typedContext.userAgent || null,
 							history: [],
 						},
 					})) as unknown as Consent;
@@ -217,8 +217,8 @@ export const postConsent = os.consent.post.handler(
 								type,
 							},
 							timestamp: now,
-							ipAddress: typedContext.ipAddress || 'unknown',
-							agent: typedContext.userAgent || 'unknown',
+							ipAddress: typedContext.ipAddress || null,
+							userAgent: typedContext.userAgent || null,
 						},
 					});
 
