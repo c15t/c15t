@@ -1,5 +1,11 @@
 # @c15t/backend
 
+## 1.2.2-canary-20250602152741
+
+### Patch Changes
+
+- 131a2ff: fix(backend): user agent not being stored
+
 ## 1.2.2-canary-20250521133509
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @c15t/dev-tools
 
+## 1.2.2-canary-20250602152741
+
+### Patch Changes
+
+- c15t@1.2.2-canary-20250602152741
+
 ## 1.2.2-canary-20250521133509
 
 ### Patch Changes

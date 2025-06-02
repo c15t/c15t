@@ -1,5 +1,12 @@
 # c15t
 
+## 1.2.2-canary-20250602152741
+
+### Patch Changes
+
+- Updated dependencies [131a2ff]
+  - @c15t/backend@1.2.2-canary-20250602152741
+
 ## 1.2.2-canary-20250521133509
 
 ### Patch Changes
