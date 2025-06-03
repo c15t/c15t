@@ -7,7 +7,6 @@ import type { ContractsOutputs } from '@c15t/backend/contracts';
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { PrivacyConsentState } from '../store.type';
-import { getCookie, setCookie } from './cookie-utils';
 
 type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
 
@@ -19,66 +18,6 @@ interface FetchConsentBannerConfig {
 	initialShowConsentBanner?: ContractsOutputs['consent']['showBanner'];
 	get: StoreApi<PrivacyConsentState>['getState'];
 	set: StoreApi<PrivacyConsentState>['setState'];
-}
-
-/**
- * Gets the value of the show-consent-banner cookie and handles all related state updates
- */
-function getConsentBannerCookie(
-	config: FetchConsentBannerConfig
-): ConsentBannerResponse | null {
-	if (typeof document === 'undefined') {
-		return null;
-	}
-
-	const parseCookie = () => {
-		const cookie = getCookie('show-consent-banner');
-
-		if (!cookie) {
-			if (config.initialShowConsentBanner) {
-				setCookie(
-					'show-consent-banner',
-					JSON.stringify(config.initialShowConsentBanner)
-				);
-
-				return config.initialShowConsentBanner;
-			}
-
-			return null;
-		}
-
-		return JSON.parse(cookie) as ConsentBannerResponse;
-	};
-
-	try {
-		const cookieData = parseCookie();
-
-		if (!cookieData) {
-			return null;
-		}
-
-		const { get } = config;
-		const { callbacks, setDetectedCountry } = get();
-
-		// Update store with location and jurisdiction information from cookie
-		updateStoreWithBannerData(cookieData, config, true);
-
-		// Handle location detection callbacks
-		if (cookieData.location?.countryCode) {
-			setDetectedCountry(cookieData.location.countryCode);
-			if (cookieData.location.regionCode) {
-				callbacks.onLocationDetected?.({
-					countryCode: cookieData.location.countryCode,
-					regionCode: cookieData.location.regionCode,
-				});
-			}
-		}
-
-		return cookieData;
-	} catch (error) {
-		console.warn('Failed to parse consent banner cookie:', error);
-		return null;
-	}
 }
 
 /**
@@ -132,7 +71,7 @@ function updateStoreWithBannerData(
 export async function fetchConsentBannerInfo(
 	config: FetchConsentBannerConfig
 ): Promise<ConsentBannerResponse | undefined> {
-	const { get, set, manager } = config;
+	const { get, set, manager, initialShowConsentBanner } = config;
 	const { hasConsented, callbacks, consentInfo } = get();
 
 	if (typeof window === 'undefined' || hasConsented()) {
@@ -147,9 +86,22 @@ export async function fetchConsentBannerInfo(
 	}
 
 	// Try to get data from cookie first
-	const cookieData = getConsentBannerCookie(config);
-	if (cookieData) {
-		return cookieData;
+	if (initialShowConsentBanner) {
+		// Update store with location and jurisdiction information from cookie
+		updateStoreWithBannerData(initialShowConsentBanner, config, true);
+
+		if (initialShowConsentBanner.location?.countryCode) {
+			// Handle location detection callbacks
+			get().setDetectedCountry(initialShowConsentBanner.location.countryCode);
+			if (initialShowConsentBanner.location.regionCode) {
+				callbacks.onLocationDetected?.({
+					countryCode: initialShowConsentBanner.location.countryCode,
+					regionCode: initialShowConsentBanner.location.regionCode,
+				});
+			}
+		}
+
+		return initialShowConsentBanner;
 	}
 
 	// Fall back to API call

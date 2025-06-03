@@ -6,8 +6,33 @@ import {
 	prepareTranslationConfig,
 } from '@c15t/react';
 import { headers } from 'next/headers';
-import { cookies } from 'next/headers';
 import { showBanner } from './show-banner';
+
+const LOCATION_HEADERS = [
+	'cf-ipcountry',
+	'x-vercel-ip-country',
+	'x-amz-cf-ipcountry',
+	'x-country-code',
+	'x-vercel-ip-country-region',
+	'x-region-code',
+	'accept-language',
+	'user-agent',
+] as const;
+
+function extractRelevantHeaders(
+	headersList: Awaited<ReturnType<typeof headers>>
+): Record<string, string> {
+	const relevantHeaders: Record<string, string> = {};
+
+	for (const headerName of LOCATION_HEADERS) {
+		const value = headersList.get(headerName);
+		if (value) {
+			relevantHeaders[headerName] = value;
+		}
+	}
+
+	return relevantHeaders;
+}
 
 export async function ConsentManagerProvider({
 	children,
@@ -15,44 +40,41 @@ export async function ConsentManagerProvider({
 }: ConsentManagerProviderProps) {
 	const { translations: translationConfig } = options;
 
-	const cookieStore = await cookies();
-	const headersList = await headers();
+	// Early return if no backend URL is configured
+	if (!options.backendURL) {
+		const preparedTranslationConfig = prepareTranslationConfig(
+			defaultTranslationConfig,
+			translationConfig
+		);
 
-	const showConsentCookie = cookieStore.get('show-consent-banner');
-	let showConsentBanner: ContractsOutputs['consent']['showBanner'] | undefined;
-
-	// Parse the cookie value if it exists
-	if (showConsentCookie?.value) {
-		try {
-			showConsentBanner = JSON.parse(showConsentCookie.value);
-		} catch (e) {
-			console.error('Failed to parse show-consent-banner cookie:', e);
-		}
+		return (
+			<ClientConsentManagerProvider
+				options={{
+					...options,
+					store: {
+						...options.store,
+						translationConfig: preparedTranslationConfig,
+					},
+				}}
+			>
+				{children}
+			</ClientConsentManagerProvider>
+		);
 	}
 
-	// Only fetch from backend if no cookie exists and backendURL is provided
-	if (!showConsentBanner && options.backendURL) {
-		const forwardedHeaders: Record<string, string | null> = {
-			'user-agent': headersList.get('user-agent'),
-			'accept-language': headersList.get('accept-language'),
-			'cf-ipcountry': headersList.get('cf-ipcountry'),
-			'x-vercel-ip-country': headersList.get('x-vercel-ip-country'),
-			'x-amz-cf-ipcountry': headersList.get('x-amz-cf-ipcountry'),
-			'x-country-code': headersList.get('x-country-code'),
-			'x-vercel-ip-country-region': headersList.get(
-				'x-vercel-ip-country-region'
-			),
-			'x-region-code': headersList.get('x-region-code'),
-		};
+	const headersList = await headers();
+	let showConsentBanner: ContractsOutputs['consent']['showBanner'] | undefined;
 
-		const filteredHeaders = Object.fromEntries(
-			Object.entries(forwardedHeaders).filter(([_, value]) => value !== null)
-		) as Record<string, string>;
+	const relevantHeaders = extractRelevantHeaders(headersList);
 
+	if (Object.keys(relevantHeaders).length > 0) {
 		try {
-			showConsentBanner = showBanner(filteredHeaders);
-		} catch (e) {
-			console.error('Failed to fetch consent banner:', e);
+			showConsentBanner = showBanner(relevantHeaders);
+		} catch (error) {
+			console.error('Failed to process consent banner:', {
+				error: error instanceof Error ? error.message : String(error),
+				headersReceived: Object.keys(relevantHeaders),
+			});
 		}
 	}
 
@@ -79,9 +101,7 @@ export async function ConsentManagerProvider({
 				store: {
 					...options.store,
 					translationConfig: preparedTranslationConfig,
-					_initialShowConsentBanner: showConsentCookie
-						? undefined
-						: showConsentBanner,
+					_initialShowConsentBanner: showConsentBanner,
 				},
 			}}
 		>
