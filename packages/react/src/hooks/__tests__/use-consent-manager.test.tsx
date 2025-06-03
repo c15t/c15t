@@ -1,3 +1,4 @@
+import { defaultTranslationConfig } from 'c15t';
 import { describe, expect, test, vi } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 import { ConsentManagerProvider } from '~/providers/consent-manager-provider';
@@ -14,7 +15,13 @@ vi.mock('c15t', async () => {
 			setCallbacks: () => ({}),
 			showConsentBanner: async () => ({
 				ok: true,
-				data: { showConsentBanner: true },
+				data: {
+					showConsentBanner: true,
+					translations: {
+						language: 'en',
+						translations: defaultTranslationConfig.translations.en,
+					},
+				},
 				error: null,
 				response: null,
 			}),

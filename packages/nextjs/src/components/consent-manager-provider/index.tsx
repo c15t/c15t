@@ -59,22 +59,6 @@ export function ConsentManagerProvider({
 	children,
 	options,
 }: ConsentManagerProviderProps) {
-	// Early return if no backend URL is configured
-	if (!options.backendURL) {
-		return (
-			<ClientConsentManagerProvider
-				options={{
-					...options,
-					store: {
-						...options.store,
-					},
-				}}
-			>
-				{children}
-			</ClientConsentManagerProvider>
-		);
-	}
-
 	const initialDataPromise = getShowConsentBanner();
 
 	return (

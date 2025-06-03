@@ -56,18 +56,22 @@ async function updateStore(
 
 	const { translations, location, jurisdiction, showConsentBanner } = data;
 
-	const translationConfig = prepareTranslationConfig(
-		{
-			translations: {
-				[translations.language]: translations.translations,
+	if (translations) {
+		const translationConfig = prepareTranslationConfig(
+			{
+				translations: {
+					[translations.language]: translations.translations,
+				},
+				disableAutoLanguageSwitch: true,
+				defaultLanguage: translations.language,
 			},
-			disableAutoLanguageSwitch: true,
-			defaultLanguage: translations.language,
-		},
-		initialTranslationConfig
-	);
+			initialTranslationConfig
+		);
+
+		set({ translationConfig });
+	}
+
 	set({
-		translationConfig,
 		locationInfo: {
 			countryCode: location?.countryCode ?? '',
 			regionCode: location?.regionCode ?? '',
@@ -107,7 +111,7 @@ export async function fetchConsentBannerInfo(
 	config: FetchConsentBannerConfig
 ): Promise<ConsentBannerResponse | undefined> {
 	const { get, set, manager, initialData } = config;
-	const { hasConsented, callbacks, consentInfo } = get();
+	const { hasConsented, callbacks } = get();
 
 	if (typeof window === 'undefined' || hasConsented()) {
 		set({ isLoadingConsentInfo: false });
@@ -116,9 +120,11 @@ export async function fetchConsentBannerInfo(
 
 	// Check if localStorage is available
 	const hasLocalStorageAccess = checkLocalStorageAccess(set);
+
 	if (!hasLocalStorageAccess) {
 		return undefined;
 	}
+
 	if (initialData) {
 		set({ isLoadingConsentInfo: true });
 		const showConsentBanner = await initialData;
@@ -145,21 +151,8 @@ export async function fetchConsentBannerInfo(
 				: undefined,
 		});
 
-		if (error) {
-			throw new Error(`Failed to fetch consent banner info: ${error.message}`);
-		}
-
-		if (!data) {
-			// In offline mode, data will be null, so we should show the banner by default
-			// but only if we have localStorage access
-			set({
-				isLoadingConsentInfo: false,
-				// Only update showPopup if we don't have stored consent and have localStorage access
-				...(consentInfo === null && hasLocalStorageAccess
-					? { showPopup: true }
-					: {}),
-			});
-			return undefined;
+		if (error || !data) {
+			throw new Error(`Failed to fetch consent banner info: ${error?.message}`);
 		}
 
 		// Update store with location and jurisdiction information

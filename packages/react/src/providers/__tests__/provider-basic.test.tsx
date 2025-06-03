@@ -1,7 +1,7 @@
+import { defaultTranslationConfig } from 'c15t';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentManagerProvider } from '~/index';
-
 // Mock fetch globally
 const mockFetch = vi.fn();
 window.fetch = mockFetch;
@@ -14,10 +14,19 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		// Mock successful response for all tests
 		mockFetch.mockResolvedValue(
-			new Response(JSON.stringify({ showConsentBanner: true }), {
-				status: 200,
-				headers: { 'Content-Type': 'application/json' },
-			})
+			new Response(
+				JSON.stringify({
+					showConsentBanner: true,
+					translations: {
+						language: 'en',
+						translations: defaultTranslationConfig.translations.en,
+					},
+				}),
+				{
+					status: 200,
+					headers: { 'Content-Type': 'application/json' },
+				}
+			)
 		);
 	});
 

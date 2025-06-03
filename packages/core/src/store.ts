@@ -234,7 +234,7 @@ export const createConsentManagerStore = (
 		// Override the callbacks with merged callbacks
 		callbacks: mergedCallbacks,
 		// Set initial translation config if provided
-		...(translationConfig && { translationConfig }),
+		translationConfig: translationConfig || initialState.translationConfig,
 		...(storedConsent
 			? {
 					consents: storedConsent.consents,
