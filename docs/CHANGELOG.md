@@ -1,5 +1,15 @@
 # docs
 
+## 1.1.8-canary-20250603153501
+
+### Patch Changes
+
+- Updated dependencies [e50e925]
+  - @c15t/nextjs@1.2.2-canary-20250603153501
+  - @c15t/react@1.2.2-canary-20250603153501
+  - c15t@1.2.2-canary-20250603153501
+  - @c15t/dev-tools@1.2.2-canary-20250603153501
+
 ## 1.1.8-canary-20250602152741
 
 ### Patch Changes
