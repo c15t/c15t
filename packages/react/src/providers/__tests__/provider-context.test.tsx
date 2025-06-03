@@ -1,4 +1,4 @@
-import type { ConsentManagerOptions } from 'c15t';
+import { type ConsentManagerOptions, defaultTranslationConfig } from 'c15t';
 // consent-manager-provider.context.test.tsx - Test context values
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -24,7 +24,13 @@ vi.mock('c15t', async () => {
 				getCallbacks: () => options.callbacks || {},
 				showConsentBanner: async () => ({
 					ok: true,
-					data: { showConsentBanner: true },
+					data: {
+						showConsentBanner: true,
+						translations: {
+							language: 'en',
+							translations: defaultTranslationConfig.translations.en,
+						},
+					},
 					error: null,
 					response: null,
 				}),

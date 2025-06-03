@@ -1,8 +1,3 @@
-/**
- * Offline implementation of the consent client interface.
- * This client returns empty successful responses without making any HTTP requests.
- */
-
 import type {
 	ConsentManagerCallbacks,
 	ConsentManagerInterface,
@@ -16,6 +11,8 @@ import type {
 } from './client-interface';
 
 import type { FetchOptions, ResponseContext } from './types';
+
+import { defaultTranslationConfig } from '~/translations';
 
 /**
  * Configuration options for the Offline client
@@ -144,6 +141,13 @@ export class OfflineClient implements ConsentManagerInterface {
 				message: 'EU',
 			},
 			location: { countryCode: 'GB', regionCode: null },
+			translations: {
+				language: defaultTranslationConfig.defaultLanguage,
+				translations:
+					defaultTranslationConfig.translations[
+						defaultTranslationConfig.defaultLanguage ?? 'en'
+					],
+			},
 		});
 
 		// Call specific callback

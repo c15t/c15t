@@ -4,10 +4,13 @@
  */
 
 import type { ContractsOutputs } from '@c15t/backend/contracts';
+import {
+	type TranslationConfig,
+	prepareTranslationConfig,
+} from '@c15t/translations';
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { PrivacyConsentState } from '../store.type';
-import { getCookie, setCookie } from './cookie-utils';
 
 type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
 
@@ -16,69 +19,10 @@ type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
  */
 interface FetchConsentBannerConfig {
 	manager: ConsentManagerInterface;
-	initialShowConsentBanner?: ContractsOutputs['consent']['showBanner'];
+	initialData?: Promise<ContractsOutputs['consent']['showBanner']>;
+	initialTranslationConfig?: Partial<TranslationConfig>;
 	get: StoreApi<PrivacyConsentState>['getState'];
 	set: StoreApi<PrivacyConsentState>['setState'];
-}
-
-/**
- * Gets the value of the show-consent-banner cookie and handles all related state updates
- */
-function getConsentBannerCookie(
-	config: FetchConsentBannerConfig
-): ConsentBannerResponse | null {
-	if (typeof document === 'undefined') {
-		return null;
-	}
-
-	const parseCookie = () => {
-		const cookie = getCookie('show-consent-banner');
-
-		if (!cookie) {
-			if (config.initialShowConsentBanner) {
-				setCookie(
-					'show-consent-banner',
-					JSON.stringify(config.initialShowConsentBanner)
-				);
-
-				return config.initialShowConsentBanner;
-			}
-
-			return null;
-		}
-
-		return JSON.parse(cookie) as ConsentBannerResponse;
-	};
-
-	try {
-		const cookieData = parseCookie();
-
-		if (!cookieData) {
-			return null;
-		}
-
-		const { get } = config;
-		const { callbacks, setDetectedCountry } = get();
-
-		// Update store with location and jurisdiction information from cookie
-		updateStoreWithBannerData(cookieData, config, true);
-
-		// Handle location detection callbacks
-		if (cookieData.location?.countryCode) {
-			setDetectedCountry(cookieData.location.countryCode);
-			if (cookieData.location.regionCode) {
-				callbacks.onLocationDetected?.({
-					countryCode: cookieData.location.countryCode,
-					regionCode: cookieData.location.regionCode,
-				});
-			}
-		}
-
-		return cookieData;
-	} catch (error) {
-		console.warn('Failed to parse consent banner cookie:', error);
-		return null;
-	}
 }
 
 /**
@@ -103,22 +47,56 @@ function checkLocalStorageAccess(
 /**
  * Updates store with consent banner data
  */
-function updateStoreWithBannerData(
+async function updateStore(
 	data: ConsentBannerResponse,
-	{ set, get }: FetchConsentBannerConfig,
+	{ set, get, initialTranslationConfig }: FetchConsentBannerConfig,
 	hasLocalStorageAccess: boolean
-): void {
-	const { consentInfo } = get();
+): Promise<void> {
+	const { consentInfo, setDetectedCountry, callbacks } = get();
+
+	const { translations, location, jurisdiction, showConsentBanner } = data;
+
+	if (translations) {
+		const translationConfig = prepareTranslationConfig(
+			{
+				translations: {
+					[translations.language]: translations.translations,
+				},
+				disableAutoLanguageSwitch: true,
+				defaultLanguage: translations.language,
+			},
+			initialTranslationConfig
+		);
+
+		set({ translationConfig });
+	}
 
 	set({
 		locationInfo: {
-			countryCode: data.location?.countryCode ?? '',
-			regionCode: data.location?.regionCode ?? '',
+			countryCode: location?.countryCode ?? '',
+			regionCode: location?.regionCode ?? '',
 		},
-		jurisdictionInfo: data.jurisdiction,
+		jurisdictionInfo: jurisdiction,
+	});
+
+	// Slight delay to ensure translation config is set before rendering the banner
+	await new Promise((resolve) => setTimeout(resolve, 1));
+
+	if (data.location?.countryCode) {
+		// Handle location detection callbacks
+		setDetectedCountry(data.location.countryCode);
+		if (data.location.regionCode) {
+			callbacks.onLocationDetected?.({
+				countryCode: data.location.countryCode,
+				regionCode: data.location.regionCode,
+			});
+		}
+	}
+
+	set({
 		isLoadingConsentInfo: false,
 		...(consentInfo === null
-			? { showPopup: data.showConsentBanner && hasLocalStorageAccess }
+			? { showPopup: showConsentBanner && hasLocalStorageAccess }
 			: {}),
 	});
 }
@@ -132,8 +110,8 @@ function updateStoreWithBannerData(
 export async function fetchConsentBannerInfo(
 	config: FetchConsentBannerConfig
 ): Promise<ConsentBannerResponse | undefined> {
-	const { get, set, manager } = config;
-	const { hasConsented, callbacks, consentInfo } = get();
+	const { get, set, manager, initialData } = config;
+	const { hasConsented, callbacks } = get();
 
 	if (typeof window === 'undefined' || hasConsented()) {
 		set({ isLoadingConsentInfo: false });
@@ -142,14 +120,19 @@ export async function fetchConsentBannerInfo(
 
 	// Check if localStorage is available
 	const hasLocalStorageAccess = checkLocalStorageAccess(set);
+
 	if (!hasLocalStorageAccess) {
 		return undefined;
 	}
 
-	// Try to get data from cookie first
-	const cookieData = getConsentBannerCookie(config);
-	if (cookieData) {
-		return cookieData;
+	if (initialData) {
+		set({ isLoadingConsentInfo: true });
+		const showConsentBanner = await initialData;
+		set({ isLoadingConsentInfo: false });
+
+		updateStore(showConsentBanner, config, true);
+
+		return showConsentBanner;
 	}
 
 	// Fall back to API call
@@ -168,26 +151,13 @@ export async function fetchConsentBannerInfo(
 				: undefined,
 		});
 
-		if (error) {
-			throw new Error(`Failed to fetch consent banner info: ${error.message}`);
-		}
-
-		if (!data) {
-			// In offline mode, data will be null, so we should show the banner by default
-			// but only if we have localStorage access
-			set({
-				isLoadingConsentInfo: false,
-				// Only update showPopup if we don't have stored consent and have localStorage access
-				...(consentInfo === null && hasLocalStorageAccess
-					? { showPopup: true }
-					: {}),
-			});
-			return undefined;
+		if (error || !data) {
+			throw new Error(`Failed to fetch consent banner info: ${error?.message}`);
 		}
 
 		// Update store with location and jurisdiction information
 		// and set showPopup based on API response
-		updateStoreWithBannerData(data, config, hasLocalStorageAccess);
+		updateStore(data, config, hasLocalStorageAccess);
 
 		// Type assertion to ensure data matches ConsentBannerResponse type
 		return data as ConsentBannerResponse;

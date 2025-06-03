@@ -16,23 +16,92 @@ export const JurisdictionMessages: Record<JurisdictionCode, string> = {
 	NONE: 'No specific requirements',
 } as const;
 
-/**
- * Extracts the preferred language from Accept-Language header
- * Falls back to 'en' if no supported language is found
- */
-function getPreferredLanguage(acceptLanguage: string | null): string {
+const JURISDICTION_MAPPINGS = new Map<string, JurisdictionCode>([
+	// GDPR countries (EU + EEA + UK)
+	...[
+		'AT',
+		'BE',
+		'BG',
+		'HR',
+		'CY',
+		'CZ',
+		'DK',
+		'EE',
+		'FI',
+		'FR',
+		'DE',
+		'GR',
+		'HU',
+		'IE',
+		'IT',
+		'LV',
+		'LT',
+		'LU',
+		'MT',
+		'NL',
+		'PL',
+		'PT',
+		'RO',
+		'SK',
+		'SI',
+		'ES',
+		'SE',
+		'IS',
+		'NO',
+		'LI',
+		'GB',
+	].map((country): [string, JurisdictionCode] => [country, 'GDPR']),
+	// Other jurisdictions
+	['CH', 'CH'],
+	['BR', 'BR'],
+	['CA', 'PIPEDA'],
+	['AU', 'AU'],
+	['JP', 'APPI'],
+	['KR', 'PIPA'],
+] as [string, JurisdictionCode][]);
+
+const COUNTRY_HEADERS = [
+	'cf-ipcountry',
+	'x-vercel-ip-country',
+	'x-amz-cf-ipcountry',
+	'x-country-code',
+] as const;
+
+const REGION_HEADERS = ['x-vercel-ip-country-region', 'x-region-code'] as const;
+
+function extractCountryCode(headers: Record<string, string>): string | null {
+	for (const headerName of COUNTRY_HEADERS) {
+		const value = headers[headerName];
+		if (value) {
+			return value.toUpperCase(); // Normalize to uppercase for consistent lookup
+		}
+	}
+	return null;
+}
+
+function extractRegionCode(headers: Record<string, string>): string | null {
+	for (const headerName of REGION_HEADERS) {
+		const value = headers[headerName];
+		if (value) {
+			return value;
+		}
+	}
+	return null;
+}
+
+function getPreferredLanguage(
+	acceptLanguage: string | null
+): SupportedLanguage {
 	if (!acceptLanguage) {
 		return 'en';
 	}
 
-	// Get the primary language code
 	const primaryLang = acceptLanguage
 		.split(',')[0]
 		?.split(';')[0]
 		?.split('-')[0]
 		?.toLowerCase();
 
-	// Check if it's a supported language
 	if (primaryLang && primaryLang in baseTranslations) {
 		return primaryLang as SupportedLanguage;
 	}
@@ -40,140 +109,60 @@ function getPreferredLanguage(acceptLanguage: string | null): string {
 	return 'en';
 }
 
-/**
- * Handler for the show consent banner endpoint
- * Determines if a user should see a consent banner based on their location
- */
-export const showBanner = (headers: Record<string, string>) => {
-	// Add this conversion to ensure headers are always string or null
-	const normalizeHeader = (
-		value: string | string[] | null | undefined
-	): string | null => {
-		if (!value) {
-			return null;
-		}
+export function checkJurisdiction(countryCode: string | null) {
+	// Early return for no country code (e.g. localhost)
+	if (!countryCode) {
+		return {
+			showConsentBanner: true,
+			jurisdictionCode: 'NONE' as JurisdictionCode,
+			message: JurisdictionMessages.NONE,
+		};
+	}
 
-		return Array.isArray(value) ? (value[0] ?? null) : value;
+	const normalizedCountryCode = countryCode.toUpperCase();
+	const jurisdictionCode = JURISDICTION_MAPPINGS.get(normalizedCountryCode);
+
+	if (jurisdictionCode) {
+		return {
+			showConsentBanner: true,
+			jurisdictionCode,
+			message: JurisdictionMessages[jurisdictionCode],
+		};
+	}
+
+	// Country not in any jurisdiction - don't show banner
+	return {
+		showConsentBanner: false,
+		jurisdictionCode: 'NONE' as JurisdictionCode,
+		message: JurisdictionMessages.NONE,
 	};
+}
 
-	const countryCode =
-		normalizeHeader(headers['cf-ipcountry']) ??
-		normalizeHeader(headers['x-vercel-ip-country']) ??
-		normalizeHeader(headers['x-amz-cf-ipcountry']) ??
-		normalizeHeader(headers['x-country-code']);
+export const showBanner = (
+	headers: Record<string, string>
+): ContractsOutputs['consent']['showBanner'] => {
+	const countryCode = extractCountryCode(headers);
+	const regionCode = extractRegionCode(headers);
 
-	const regionCode =
-		normalizeHeader(headers['x-vercel-ip-country-region']) ??
-		normalizeHeader(headers['x-region-code']);
-
-	// Get preferred language from Accept-Language header
-	const acceptLanguage = normalizeHeader(headers['accept-language']);
+	const acceptLanguage = headers['accept-language'] || null;
 	const preferredLanguage = getPreferredLanguage(acceptLanguage);
 
-	// Determine jurisdiction based on country
 	const { showConsentBanner, jurisdictionCode, message } =
 		checkJurisdiction(countryCode);
 
-	// Return properly structured response with translations
 	return {
 		showConsentBanner,
 		jurisdiction: {
 			code: jurisdictionCode,
 			message,
 		},
-		location: { countryCode, regionCode },
+		location: {
+			countryCode,
+			regionCode,
+		},
 		translations: {
-			translations: baseTranslations[preferredLanguage as SupportedLanguage],
+			translations: baseTranslations[preferredLanguage],
 			language: preferredLanguage,
 		},
 	};
 };
-
-/**
- * Determines if a consent banner should be shown based on country code
- * and returns appropriate jurisdiction information
- */
-export function checkJurisdiction(countryCode: string | null) {
-	// Country code sets for different jurisdictions
-	const jurisdictions = {
-		EU: new Set([
-			'AT',
-			'BE',
-			'BG',
-			'HR',
-			'CY',
-			'CZ',
-			'DK',
-			'EE',
-			'FI',
-			'FR',
-			'DE',
-			'GR',
-			'HU',
-			'IE',
-			'IT',
-			'LV',
-			'LT',
-			'LU',
-			'MT',
-			'NL',
-			'PL',
-			'PT',
-			'RO',
-			'SK',
-			'SI',
-			'ES',
-			'SE',
-		]),
-		EEA: new Set(['IS', 'NO', 'LI']),
-		UK: new Set(['GB']),
-		CH: new Set(['CH']),
-		BR: new Set(['BR']),
-		CA: new Set(['CA']),
-		AU: new Set(['AU']),
-		JP: new Set(['JP']),
-		KR: new Set(['KR']),
-	};
-
-	// Default to no jurisdiction
-	let showConsentBanner = true;
-	let jurisdictionCode: JurisdictionCode = 'NONE';
-
-	// Check country code against jurisdiction sets
-	if (countryCode) {
-		// Default to false as we don't know if it fits any jurisdiction yet
-		showConsentBanner = false;
-
-		// Map jurisdiction sets to their respective codes
-		const jurisdictionMap = [
-			{
-				sets: [jurisdictions.EU, jurisdictions.EEA, jurisdictions.UK],
-				code: 'GDPR',
-			},
-			{ sets: [jurisdictions.CH], code: 'CH' },
-			{ sets: [jurisdictions.BR], code: 'BR' },
-			{ sets: [jurisdictions.CA], code: 'PIPEDA' },
-			{ sets: [jurisdictions.AU], code: 'AU' },
-			{ sets: [jurisdictions.JP], code: 'APPI' },
-			{ sets: [jurisdictions.KR], code: 'PIPA' },
-		] as const;
-
-		// Find matching jurisdiction
-		for (const { sets, code } of jurisdictionMap) {
-			if (sets.some((set) => set.has(countryCode))) {
-				jurisdictionCode = code;
-				showConsentBanner = true;
-				break;
-			}
-		}
-	}
-
-	// Get corresponding message from shared schema
-	const message = JurisdictionMessages[jurisdictionCode];
-
-	return {
-		showConsentBanner,
-		jurisdictionCode,
-		message,
-	};
-}

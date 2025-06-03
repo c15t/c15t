@@ -5,7 +5,7 @@ import { ConsentManagerProvider } from '~/providers/consent-manager-provider';
 import { useTranslations } from '../use-translations';
 
 describe('useTranslations', () => {
-	test('returns English translations by default', () => {
+	test('returns English translations by default', async () => {
 		const { result } = renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
@@ -21,6 +21,8 @@ describe('useTranslations', () => {
 			),
 		});
 
+		await new Promise((resolve) => setTimeout(resolve, 10));
+
 		expect(result.current.cookieBanner.title).toBe('We value your privacy');
 		expect(result.current.cookieBanner.description).toBe(
 			'This site uses cookies to improve your browsing experience, analyze site traffic, and show personalized content.'
@@ -35,7 +37,7 @@ describe('useTranslations', () => {
 		);
 	});
 
-	test('returns German translations instead of English when German is selected', () => {
+	test('returns German translations instead of English when German is selected', async () => {
 		const { result } = renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
@@ -78,6 +80,8 @@ describe('useTranslations', () => {
 			),
 		});
 
+		await new Promise((resolve) => setTimeout(resolve, 10));
+
 		expect(result.current.cookieBanner.title).toBe('German Title');
 		expect(result.current.cookieBanner.description).toBe('German Description');
 		expect(result.current.consentManagerDialog.title).toBe(
@@ -92,7 +96,7 @@ describe('useTranslations', () => {
 		);
 	});
 
-	test('merges custom translations with defaults', () => {
+	test('merges custom translations with defaults', async () => {
 		const customTranslations = {
 			translations: {
 				en: {
@@ -120,6 +124,8 @@ describe('useTranslations', () => {
 			),
 		});
 
+		await new Promise((resolve) => setTimeout(resolve, 10));
+
 		// Custom translations should override defaults
 		expect(result.current.cookieBanner.title).toBe('Custom Cookie Settings');
 		expect(result.current.cookieBanner.description).toBe('Custom Description');
@@ -132,7 +138,7 @@ describe('useTranslations', () => {
 		expect(result.current.common.save).toBe('Save Settings');
 	});
 
-	test('falls back to English when selected language is not available', () => {
+	test('falls back to English when selected language is not available', async () => {
 		const { result } = renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
@@ -151,6 +157,8 @@ describe('useTranslations', () => {
 			),
 		});
 
+		await new Promise((resolve) => setTimeout(resolve, 10));
+
 		// Should fall back to English translations
 		expect(result.current.cookieBanner.title).toBe('We value your privacy');
 		expect(result.current.cookieBanner.description).toBe(
@@ -163,7 +171,7 @@ describe('useTranslations', () => {
 		expect(result.current.common.save).toBe('Save Settings');
 	});
 
-	test('Custom English instead of English when German is selected', () => {
+	test('Custom English instead of English when German is selected', async () => {
 		const { result } = renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
@@ -205,6 +213,8 @@ describe('useTranslations', () => {
 				</ConsentManagerProvider>
 			),
 		});
+
+		await new Promise((resolve) => setTimeout(resolve, 20));
 
 		expect(result.current.common.acceptAll).toBe('Custom English Accept All');
 		expect(result.current.common.rejectAll).toBe('Custom English Reject All');
