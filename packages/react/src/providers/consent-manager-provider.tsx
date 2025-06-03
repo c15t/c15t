@@ -5,8 +5,6 @@ import {
 	type PrivacyConsentState,
 	configureConsentManager,
 	createConsentManagerStore,
-	defaultTranslationConfig,
-	prepareTranslationConfig,
 } from 'c15t';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -54,7 +52,7 @@ export function ConsentManagerProvider({
 		backendURL,
 		callbacks,
 		store = {},
-		translations: translationConfig,
+		translations,
 		react = {},
 	} = options;
 
@@ -68,14 +66,6 @@ export function ConsentManagerProvider({
 		colorScheme,
 		noStyle = false,
 	} = react;
-
-	// Memoize translation config to prevent recreation - skip if store.translationConfig is provided
-	const preparedTranslationConfig = useMemo(
-		() =>
-			store.translationConfig ||
-			prepareTranslationConfig(defaultTranslationConfig, translationConfig),
-		[store.translationConfig, translationConfig]
-	);
 
 	// Determine if using c15t.dev domain (memoize the calculation)
 	const isConsentDomain = useMemo(() => {
@@ -126,12 +116,6 @@ export function ConsentManagerProvider({
 
 	// Initialize the store and recreate when critical options change
 	const consentStore = useMemo(() => {
-		const storeWithTranslations = {
-			...store,
-			translationConfig: preparedTranslationConfig,
-			isConsentDomain,
-		};
-
 		// Check if critical options that should trigger recreation have changed
 		const shouldRecreateStore =
 			// Use type guard to validate if store exists
@@ -145,21 +129,15 @@ export function ConsentManagerProvider({
 
 		// Initialize the store on first render or when critical options change
 		if (shouldRecreateStore) {
-			storeRef.current = createConsentManagerStore(
-				consentManager,
-				storeWithTranslations
-			);
+			storeRef.current = createConsentManagerStore(consentManager, {
+				...store,
+				isConsentDomain,
+				initialTranslationConfig: translations,
+			});
 		}
 
 		return storeRef.current;
-	}, [
-		consentManager,
-		isConsentDomain,
-		preparedTranslationConfig,
-		store,
-		backendURL,
-		mode,
-	]);
+	}, [consentManager, isConsentDomain, translations, store, backendURL, mode]);
 
 	// Initialize state with the current state from the consent manager store
 	const [state, setState] = useState<PrivacyConsentState>(() => {

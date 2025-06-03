@@ -115,6 +115,11 @@ export interface StoreOptions {
 	isConsentDomain?: boolean;
 
 	/**
+	 * Initial Translation Config
+	 */
+	initialTranslationConfig?: Partial<TranslationConfig>;
+
+	/**
 	 * Translation configuration for the consent manager.
 	 */
 	translationConfig?: TranslationConfig;
@@ -123,7 +128,7 @@ export interface StoreOptions {
 	 * Initial showConsentBanner value. This will set a cookie for the consent banner.
 	 * @internal
 	 */
-	_initialShowConsentBanner?: ContractsOutputs['consent']['showBanner'];
+	_initialData?: Promise<ContractsOutputs['consent']['showBanner']>;
 }
 
 // For backward compatibility (if needed)
@@ -510,7 +515,8 @@ export const createConsentManagerStore = (
 		fetchConsentBannerInfo: (): Promise<ConsentBannerResponse | undefined> =>
 			fetchConsentBannerInfoUtil({
 				manager,
-				initialShowConsentBanner: options._initialShowConsentBanner,
+				initialData: options._initialData,
+				initialTranslationConfig: options.initialTranslationConfig,
 				get,
 				set,
 			}),

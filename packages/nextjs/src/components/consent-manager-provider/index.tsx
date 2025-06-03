@@ -2,8 +2,6 @@ import type { ContractsOutputs } from '@c15t/backend';
 import {
 	ConsentManagerProvider as ClientConsentManagerProvider,
 	type ConsentManagerProviderProps,
-	defaultTranslationConfig,
-	prepareTranslationConfig,
 } from '@c15t/react';
 import { headers } from 'next/headers';
 import { showBanner } from './show-banner';
@@ -34,35 +32,11 @@ function extractRelevantHeaders(
 	return relevantHeaders;
 }
 
-export async function ConsentManagerProvider({
-	children,
-	options,
-}: ConsentManagerProviderProps) {
-	const { translations: translationConfig } = options;
-
-	// Early return if no backend URL is configured
-	if (!options.backendURL) {
-		const preparedTranslationConfig = prepareTranslationConfig(
-			defaultTranslationConfig,
-			translationConfig
-		);
-
-		return (
-			<ClientConsentManagerProvider
-				options={{
-					...options,
-					store: {
-						...options.store,
-						translationConfig: preparedTranslationConfig,
-					},
-				}}
-			>
-				{children}
-			</ClientConsentManagerProvider>
-		);
-	}
-
+async function getShowConsentBanner(): Promise<
+	ContractsOutputs['consent']['showBanner']
+> {
 	const headersList = await headers();
+
 	let showConsentBanner: ContractsOutputs['consent']['showBanner'] | undefined;
 
 	const relevantHeaders = extractRelevantHeaders(headersList);
@@ -78,30 +52,38 @@ export async function ConsentManagerProvider({
 		}
 	}
 
-	// Prepare translation config
-	const preparedTranslationConfig = prepareTranslationConfig(
-		showConsentBanner
-			? {
-					translations: {
-						[showConsentBanner.translations.language]:
-							showConsentBanner.translations.translations,
-					},
-					disableAutoLanguageSwitch: true,
-					defaultLanguage: showConsentBanner.translations.language,
-				}
-			: defaultTranslationConfig,
-		translationConfig
-	);
+	return showConsentBanner;
+}
 
-	// Pass all necessary data to the client component
+export function ConsentManagerProvider({
+	children,
+	options,
+}: ConsentManagerProviderProps) {
+	// Early return if no backend URL is configured
+	if (!options.backendURL) {
+		return (
+			<ClientConsentManagerProvider
+				options={{
+					...options,
+					store: {
+						...options.store,
+					},
+				}}
+			>
+				{children}
+			</ClientConsentManagerProvider>
+		);
+	}
+
+	const initialDataPromise = getShowConsentBanner();
+
 	return (
 		<ClientConsentManagerProvider
 			options={{
 				...options,
 				store: {
 					...options.store,
-					translationConfig: preparedTranslationConfig,
-					_initialShowConsentBanner: showConsentBanner,
+					_initialData: initialDataPromise,
 				},
 			}}
 		>
