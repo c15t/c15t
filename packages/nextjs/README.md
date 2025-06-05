@@ -1,6 +1,3 @@
-This package is still a WIP, we will be releasing it soon!
-
----
 
 # @c15t/nextjs
 
@@ -14,85 +11,6 @@ npm install @c15t/nextjs
 yarn add @c15t/nextjs
 # or
 pnpm add @c15t/nextjs
-```
-
-## Quick Start
-
-1. Configure your Next.js app:
-
-```typescript
-// next.config.js
-const { withC15T } = require('@c15t/nextjs');
-
-module.exports = withC15T({
-  baseUrl: 'https://api.example.com',
-  token: 'your-auth-token'
-});
-```
-
-2. Add the provider to your app:
-
-```tsx
-// app/layout.tsx
-import { C15TNextProvider } from '@c15t/nextjs';
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <html>
-      <body>
-        <C15TNextProvider>
-          {children}
-        </C15TNextProvider>
-      </body>
-    </html>
-  );
-}
-```
-
-3. Use the consent components in your pages:
-
-```tsx
-// app/page.tsx
-import { ConsentBanner } from '@c15t/nextjs';
-
-export default function Home() {
-  return (
-    <main>
-      <ConsentBanner />
-      <h1>Welcome to my app</h1>
-    </main>
-  );
-}
-```
-
-## Configuration
-
-The `withC15T` function accepts the following configuration options:
-
-```typescript
-interface C15TNextConfig {
-  // Base URL for the API server
-  baseUrl: string;
-  
-  // Authentication token (if needed)
-  token?: string;
-  
-  // Additional headers to include with each request
-  headers?: Record<string, string>;
-  
-  // Prefix path for API endpoints
-  prefix?: string;
-  
-  // Whether to enable the middleware
-  enableMiddleware?: boolean;
-  
-  // Paths to exclude from middleware processing
-  excludePaths?: string[];
-}
 ```
 
 ## Features
