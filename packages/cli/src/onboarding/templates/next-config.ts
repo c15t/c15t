@@ -1,4 +1,6 @@
 import {
+	type CallExpression,
+	type Expression,
 	type MethodDeclaration,
 	Node,
 	type ObjectLiteralExpression,
@@ -6,14 +8,11 @@ import {
 	type PropertyAssignment,
 	type SourceFile,
 } from 'ts-morph';
-import type { AvailablePackages } from '~/context/framework-detection';
 
 interface UpdateNextConfigOptions {
 	projectRoot: string;
-	mode: string;
 	backendURL?: string;
 	useEnvFile?: boolean;
-	pkg: AvailablePackages;
 }
 
 /**
@@ -38,10 +37,8 @@ interface UpdateNextConfigOptions {
  */
 export async function updateNextConfig({
 	projectRoot,
-	mode,
 	backendURL,
 	useEnvFile,
-	pkg,
 }: UpdateNextConfigOptions): Promise<{
 	updated: boolean;
 	filePath: string | null;
@@ -54,7 +51,7 @@ export async function updateNextConfig({
 	if (!configFile) {
 		// Create a new config file if none exists
 		const newConfigPath = `${projectRoot}/next.config.ts`;
-		const newConfig = createNewNextConfig(mode, backendURL, useEnvFile);
+		const newConfig = createNewNextConfig(backendURL, useEnvFile);
 
 		const newConfigFile = project.createSourceFile(newConfigPath, newConfig);
 		await newConfigFile.save();
@@ -79,7 +76,6 @@ export async function updateNextConfig({
 
 	const updated = await updateExistingConfig(
 		configFile,
-		mode,
 		backendURL,
 		useEnvFile
 	);
@@ -149,17 +145,9 @@ function hasC15tRewriteRule(configFile: SourceFile): boolean {
  * @returns The formatted destination URL and whether it should be treated as a template literal
  */
 function generateRewriteDestination(
-	mode: string,
 	backendURL?: string,
 	useEnvFile?: boolean
 ): { destination: string; isTemplateLiteral: boolean } {
-	if (mode !== 'c15t') {
-		return {
-			destination: 'http://localhost:3001/:path*',
-			isTemplateLiteral: false,
-		};
-	}
-
 	if (useEnvFile) {
 		return {
 			// biome-ignore lint/nursery/noTemplateCurlyInString: This will be transformed into a template literal later
@@ -183,12 +171,10 @@ function generateRewriteDestination(
  * @returns The complete config file content
  */
 function createNewNextConfig(
-	mode: string,
 	backendURL?: string,
 	useEnvFile?: boolean
 ): string {
 	const { destination, isTemplateLiteral } = generateRewriteDestination(
-		mode,
 		backendURL,
 		useEnvFile
 	);
@@ -243,12 +229,10 @@ function createRewriteRule(
 
 function updateExistingConfig(
 	configFile: SourceFile,
-	mode: string,
 	backendURL?: string,
 	useEnvFile?: boolean
 ): boolean {
 	const { destination, isTemplateLiteral } = generateRewriteDestination(
-		mode,
 		backendURL,
 		useEnvFile
 	);
@@ -291,58 +275,83 @@ function updateExistingConfig(
 
 /**
  * Finds the main config object in the file
- * Handles both export default and module.exports patterns
- *
- * @param configFile - The config source file
- * @returns The config object literal if found
  */
 function findConfigObject(configFile: SourceFile) {
-	// Look for export default pattern
+	return (
+		findConfigFromExportDefault(configFile) ||
+		findConfigFromVariableDeclarations(configFile)
+	);
+}
+
+function findConfigFromExportDefault(configFile: SourceFile) {
 	const exportDefault = configFile.getDefaultExportSymbol();
-	if (exportDefault) {
-		const declarations = exportDefault.getDeclarations();
-		for (const declaration of declarations) {
-			if (Node.isExportAssignment(declaration)) {
-				const expression = declaration.getExpression();
-				if (Node.isCallExpression(expression)) {
-					// Handle withSentryConfig(withMDX(config), options) pattern
-					const args = expression.getArguments();
-					if (args.length > 0) {
-						const firstArg = args[0];
-						if (Node.isCallExpression(firstArg)) {
-							const innerArgs = firstArg.getArguments();
-							if (innerArgs.length > 0 && Node.isIdentifier(innerArgs[0])) {
-								// Find the variable declaration for the config
-								const configVar = configFile.getVariableDeclaration(
-									innerArgs[0].getText()
-								);
-								const initializer = configVar?.getInitializer();
-								if (
-									initializer &&
-									Node.isObjectLiteralExpression(initializer)
-								) {
-									return initializer;
-								}
-							}
-						}
-					}
-				} else if (Node.isObjectLiteralExpression(expression)) {
-					return expression;
-				} else if (Node.isIdentifier(expression)) {
-					// Find the variable declaration
-					const configVar = configFile.getVariableDeclaration(
-						expression.getText()
-					);
-					const initializer = configVar?.getInitializer();
-					if (initializer && Node.isObjectLiteralExpression(initializer)) {
-						return initializer;
-					}
-				}
+
+	if (!exportDefault) {
+		return undefined;
+	}
+
+	const declarations = exportDefault.getDeclarations();
+	for (const declaration of declarations) {
+		if (Node.isExportAssignment(declaration)) {
+			const result = findConfigFromExpression(
+				declaration.getExpression(),
+				configFile
+			);
+			if (result) {
+				return result;
 			}
 		}
 	}
+	return undefined;
+}
 
-	// Look for variable declarations with NextConfig type
+function findConfigFromExpression(
+	expression: Expression,
+	configFile: SourceFile
+) {
+	if (Node.isCallExpression(expression)) {
+		return findConfigFromCallExpression(expression, configFile);
+	}
+	if (Node.isObjectLiteralExpression(expression)) {
+		return expression;
+	}
+	if (Node.isIdentifier(expression)) {
+		return findConfigFromIdentifier(expression.getText(), configFile);
+	}
+	return undefined;
+}
+
+function findConfigFromCallExpression(
+	expression: CallExpression,
+	configFile: SourceFile
+) {
+	const args = expression.getArguments();
+	if (args.length === 0) {
+		return undefined;
+	}
+
+	const firstArg = args[0];
+	if (Node.isCallExpression(firstArg)) {
+		const innerArgs = firstArg.getArguments();
+		if (innerArgs.length > 0 && Node.isIdentifier(innerArgs[0])) {
+			return findConfigFromIdentifier(innerArgs[0].getText(), configFile);
+		}
+	}
+	return undefined;
+}
+
+function findConfigFromIdentifier(
+	identifierText: string,
+	configFile: SourceFile
+) {
+	const configVar = configFile.getVariableDeclaration(identifierText);
+	const initializer = configVar?.getInitializer();
+	return initializer && Node.isObjectLiteralExpression(initializer)
+		? initializer
+		: undefined;
+}
+
+function findConfigFromVariableDeclarations(configFile: SourceFile) {
 	const variableDeclarations = configFile.getVariableDeclarations();
 	for (const varDecl of variableDeclarations) {
 		const typeNode = varDecl.getTypeNode();
@@ -353,7 +362,6 @@ function findConfigObject(configFile: SourceFile) {
 			}
 		}
 	}
-
 	return undefined;
 }
 

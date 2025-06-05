@@ -104,25 +104,21 @@ async function handleReactLayout(options: {
  */
 async function handleNextConfig(options: {
 	projectRoot: string;
-	mode: 'c15t' | 'offline' | 'custom';
 	backendURL?: string;
 	useEnvFile?: boolean;
-	pkg: AvailablePackages;
 	spinner: ReturnType<typeof p.spinner>;
 }): Promise<{
 	nextConfigUpdated: boolean;
 	nextConfigPath: string | null;
 	nextConfigCreated: boolean;
 }> {
-	const { projectRoot, mode, backendURL, useEnvFile, pkg, spinner } = options;
+	const { projectRoot, backendURL, useEnvFile, spinner } = options;
 	spinner.start('Updating Next.js config...');
 
 	const configResult = await updateNextConfig({
 		projectRoot,
-		mode,
 		backendURL,
 		useEnvFile,
-		pkg,
 	});
 
 	const spinnerMessage = () => {
@@ -267,10 +263,8 @@ export async function generateFiles({
 	if (pkg === '@c15t/nextjs' && proxyNextjs && mode === 'c15t') {
 		const configResult = await handleNextConfig({
 			projectRoot,
-			mode,
 			backendURL,
 			useEnvFile,
-			pkg,
 			spinner,
 		});
 		result.nextConfigUpdated = configResult.nextConfigUpdated;
