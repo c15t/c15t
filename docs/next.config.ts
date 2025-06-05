@@ -26,6 +26,15 @@ const config: NextConfig = {
 	],
 	reactStrictMode: true,
 	// biome-ignore lint/suspicious/useAwait: <explanation>
+	async rewrites() {
+		return [
+			{
+				source: '/api/c15t/:path*',
+				destination: `${process.env.NEXT_PUBLIC_C15T_URL || 'http://localhost:8787'}/:path*`,
+			},
+		];
+	},
+	// biome-ignore lint/suspicious/useAwait: <explanation>
 	async redirects() {
 		return [
 			{

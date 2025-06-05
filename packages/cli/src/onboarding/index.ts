@@ -136,6 +136,7 @@ async function performOnboarding(
 			telemetry.trackEvent(TelemetryEventName.ONBOARDING_C15T_MODE_CONFIGURED, {
 				usingEnvFile: c15tResult.usingEnvFile,
 				hasInitialBackendURL: !!initialBackendURL,
+				proxyNextjs: c15tResult.proxyNextjs,
 			});
 			break;
 		}

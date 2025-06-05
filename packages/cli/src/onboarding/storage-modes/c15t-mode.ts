@@ -10,6 +10,7 @@ import { generateFiles } from '../generate-files';
 export interface C15TModeResult {
 	backendURL: string | undefined;
 	usingEnvFile: boolean;
+	proxyNextjs?: boolean;
 }
 
 interface C15TModeOptions {
@@ -168,6 +169,28 @@ export async function setupC15tMode({
 	}
 
 	const useEnvFile = useEnvFileSelection as boolean;
+	let proxyNextjs: boolean | undefined;
+
+	if (packageName === '@c15t/nextjs') {
+		context.logger.info(
+			'Learn more about Next.js Rewrites: https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites'
+		);
+
+		const proxyNextjsSelection = await p.confirm({
+			message:
+				'Proxy requests to your instance with Next.js Rewrites? (Recommended)',
+			initialValue: true,
+		});
+
+		if (handleCancel?.(proxyNextjsSelection)) {
+			context.error.handleCancel('Setup cancelled.', {
+				command: 'onboarding',
+				stage: 'c15t_proxy_nextjs_setup',
+			});
+		}
+
+		proxyNextjs = proxyNextjsSelection as boolean;
+	}
 
 	await generateFiles({
 		context,
@@ -177,10 +200,12 @@ export async function setupC15tMode({
 		backendURL,
 		spinner,
 		useEnvFile,
+		proxyNextjs,
 	});
 
 	return {
 		backendURL,
 		usingEnvFile: useEnvFile,
+		proxyNextjs,
 	};
 }
