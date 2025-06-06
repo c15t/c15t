@@ -1,6 +1,6 @@
 {
 	"name": "docs",
-	"version": "1.1.8-canary-20250603153501",
+	"version": "1.1.8-canary-20250606152615",
 	"private": true,
 	"scripts": {
 		"build": "next build",
