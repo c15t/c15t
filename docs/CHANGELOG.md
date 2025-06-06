@@ -1,5 +1,16 @@
 # docs
 
+## 1.1.8
+
+### Patch Changes
+
+- Updated dependencies [85e5e3d]
+  - @c15t/backend@1.3.0
+  - c15t@1.3.0
+  - @c15t/dev-tools@1.3.0
+  - @c15t/nextjs@1.3.0
+  - @c15t/react@1.3.0
+
 ## 1.1.8-canary-20250603153501
 
 ### Patch Changes
