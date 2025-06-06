@@ -17,6 +17,7 @@ interface UpdateReactLayoutOptions {
 	backendURL?: string;
 	useEnvFile?: boolean;
 	pkg: AvailablePackages;
+	proxyNextjs?: boolean;
 }
 
 function findLayoutFile(
@@ -45,14 +46,30 @@ function findLayoutFile(
 function generateOptionsText(
 	mode: string,
 	backendURL?: string,
-	useEnvFile?: boolean
+	useEnvFile?: boolean,
+	proxyNextjs?: boolean
 ): string {
 	switch (mode) {
-		case 'c15t':
+		case 'c15t': {
+			if (proxyNextjs) {
+				return `{
+					mode: 'c15t',
+					backendURL: '/api/c15t',
+				}`;
+			}
+
+			if (useEnvFile) {
+				return `{
+					mode: 'c15t',
+					backendURL: process.env.NEXT_PUBLIC_C15T_URL!,
+				}`;
+			}
+
 			return `{
 				mode: 'c15t',
-				backendURL: ${useEnvFile ? 'process.env.NEXT_PUBLIC_C15T_URL!' : `'${backendURL || 'https://your-instance.c15t.dev'}'`},
+				backendURL: '${backendURL || 'https://your-instance.c15t.dev'}',
 			}`;
+		}
 		case 'custom':
 			return `{
 				mode: 'custom',
@@ -178,6 +195,7 @@ export async function updateReactLayout({
 	pkg,
 	backendURL,
 	useEnvFile,
+	proxyNextjs,
 }: UpdateReactLayoutOptions): Promise<{
 	updated: boolean;
 	filePath: string | null;
@@ -204,7 +222,12 @@ export async function updateReactLayout({
 	}
 
 	updateImports(layoutFile, pkg, mode);
-	const optionsText = generateOptionsText(mode, backendURL, useEnvFile);
+	const optionsText = generateOptionsText(
+		mode,
+		backendURL,
+		useEnvFile,
+		proxyNextjs
+	);
 
 	const returnStatement = layoutFile.getDescendantsOfKind(
 		SyntaxKind.ReturnStatement
