@@ -12,12 +12,14 @@ import {
 	getEnvVarName,
 } from './templates/env';
 import { updateReactLayout } from './templates/layout';
+import { updateNextConfig } from './templates/next-config';
 
 export interface GenerateFilesOptions {
 	context: CliContext;
 	projectRoot: string;
 	mode: 'c15t' | 'offline' | 'custom';
 	pkg: AvailablePackages;
+	proxyNextjs?: boolean;
 	backendURL?: string;
 	useEnvFile?: boolean;
 	spinner: ReturnType<typeof p.spinner>;
@@ -28,6 +30,9 @@ export interface GenerateFilesResult {
 	configPath?: string | null;
 	layoutUpdated: boolean;
 	layoutPath?: string | null;
+	nextConfigUpdated?: boolean;
+	nextConfigPath?: string | null;
+	nextConfigCreated?: boolean;
 }
 
 /**
@@ -41,15 +46,25 @@ async function handleReactLayout(options: {
 	backendURL?: string;
 	useEnvFile?: boolean;
 	pkg: AvailablePackages;
+	proxyNextjs?: boolean;
 	spinner: ReturnType<typeof p.spinner>;
 }): Promise<{ layoutUpdated: boolean; layoutPath: string | null }> {
-	const { projectRoot, mode, backendURL, useEnvFile, pkg, spinner } = options;
+	const {
+		projectRoot,
+		mode,
+		backendURL,
+		useEnvFile,
+		proxyNextjs,
+		pkg,
+		spinner,
+	} = options;
 	spinner.start('Updating layout file...');
 	const layoutResult = await updateReactLayout({
 		projectRoot,
 		mode,
 		backendURL,
 		useEnvFile,
+		proxyNextjs,
 		pkg,
 	});
 
@@ -79,6 +94,66 @@ async function handleReactLayout(options: {
 	return {
 		layoutUpdated: layoutResult.updated,
 		layoutPath: layoutResult.filePath,
+	};
+}
+
+/**
+ * Handles the Next.js config file updates
+ * @param options - Configuration options for Next.js config handling
+ * @returns Object containing config update status and path
+ */
+async function handleNextConfig(options: {
+	projectRoot: string;
+	backendURL?: string;
+	useEnvFile?: boolean;
+	spinner: ReturnType<typeof p.spinner>;
+}): Promise<{
+	nextConfigUpdated: boolean;
+	nextConfigPath: string | null;
+	nextConfigCreated: boolean;
+}> {
+	const { projectRoot, backendURL, useEnvFile, spinner } = options;
+	spinner.start('Updating Next.js config...');
+
+	const configResult = await updateNextConfig({
+		projectRoot,
+		backendURL,
+		useEnvFile,
+	});
+
+	const spinnerMessage = () => {
+		if (configResult.alreadyModified) {
+			return {
+				message:
+					'Next.js config already has c15t rewrite rule. Skipped config update.',
+				type: 'info',
+			};
+		}
+		if (configResult.updated && configResult.created) {
+			return {
+				message: `Next.js config created: ${configResult.filePath}`,
+				type: 'info',
+			};
+		}
+		if (configResult.updated) {
+			return {
+				message: `Next.js config updated: ${configResult.filePath}`,
+				type: 'info',
+			};
+		}
+		return {
+			message: 'Next.js config not updated.',
+			type: 'error',
+		};
+	};
+
+	const { message, type } = spinnerMessage();
+	spinner.stop(formatLogMessage(type, message));
+
+	return {
+		nextConfigUpdated: configResult.updated,
+		nextConfigPath: configResult.filePath,
+		nextConfigCreated: configResult.created,
 	};
 }
 
@@ -164,6 +239,7 @@ export async function generateFiles({
 	backendURL,
 	spinner,
 	useEnvFile,
+	proxyNextjs,
 }: GenerateFilesOptions): Promise<GenerateFilesResult> {
 	const result: GenerateFilesResult = {
 		layoutUpdated: false,
@@ -175,11 +251,25 @@ export async function generateFiles({
 			mode,
 			backendURL,
 			useEnvFile,
+			proxyNextjs,
 			pkg,
 			spinner,
 		});
 		result.layoutUpdated = layoutResult.layoutUpdated;
 		result.layoutPath = layoutResult.layoutPath;
+	}
+
+	// Update Next.js config for c15t Next.js projects only
+	if (pkg === '@c15t/nextjs' && proxyNextjs && mode === 'c15t') {
+		const configResult = await handleNextConfig({
+			projectRoot,
+			backendURL,
+			useEnvFile,
+			spinner,
+		});
+		result.nextConfigUpdated = configResult.nextConfigUpdated;
+		result.nextConfigPath = configResult.nextConfigPath;
+		result.nextConfigCreated = configResult.nextConfigCreated;
 	}
 
 	if (pkg === 'c15t') {

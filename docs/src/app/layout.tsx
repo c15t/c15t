@@ -48,8 +48,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 					<ConsentManagerProvider
 						options={{
 							mode: 'c15t',
-							backendURL:
-								process.env.NEXT_PUBLIC_C15T_URL || 'http://localhost:8787/',
+							backendURL: '/api/c15t',
 							store: {
 								initialGdprTypes: ['necessary', 'marketing'],
 							},
