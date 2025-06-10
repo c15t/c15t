@@ -66,3 +66,6 @@ export async function generateMetadata(props: {
 		},
 	};
 }
+
+export const dynamic = 'force-static';
+export const revalidate = 3600;
