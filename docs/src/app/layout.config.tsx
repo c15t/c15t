@@ -1,4 +1,4 @@
-import { GithubInfo } from 'fumadocs-ui/components/github-info';
+import { GithubIcon } from 'lucide-react';
 import { JSIcon, NextIcon, ReactIcon } from '~/components/icons';
 import { DiscordIcon } from '~/components/icons/discord';
 import { RedditIcon } from '~/components/icons/reddit';
@@ -69,10 +69,16 @@ export const homePageOptions: BaseLayoutProps = {
 			type: 'icon',
 		},
 		{
-			type: 'custom',
-			secondary: true,
-			children: <GithubInfo owner="c15t" repo="c15t" />,
+			icon: <GithubIcon />,
+			text: 'GitHub',
+			url: 'https://github.com/c15t/c15t',
+			type: 'icon',
 		},
+		// {
+		// 	type: 'custom',
+		// 	secondary: true,
+		// 	children: <GithubInfo owner="c15t" repo="c15t" />,
+		// },
 		{
 			type: 'custom',
 			secondary: true,
