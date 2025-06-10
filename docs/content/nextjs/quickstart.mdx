@@ -35,6 +35,33 @@ This is only required if you are self hosting c15t.
  @c15t/nextjs
  ```
 </Step>
+
+<Step>
+ 
+### Next.js Rewrites (Optional)
+
+<Callout type="tip">
+You can use Next.js Rewrites to redirect requests to the c15t backend. This is useful if you want to hide the c15t backend url from your users.
+[Learn more about Next.js Rewrites](https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites).
+</Callout>
+
+```ts title="next.config.ts"
+import type { NextConfig } from 'next';
+
+const config: NextConfig = {
+	async rewrites() {
+		return [
+			{
+				source: '/api/c15t/:path*',
+				destination: `${process.env.NEXT_PUBLIC_C15T_URL}/:path*`,
+			},
+		];
+	},
+};
+
+export default config;
+```
+</Step>
  
 <Step>
  
@@ -60,6 +87,10 @@ export default function Layout ({ children }: { children: ReactNode }) => {
 
 <Callout type="tip">
 You can create an instance at [consent.io](https://consent.io) or self-host your own instance. Otherwise, you can use c15t offline by setting `mode: 'offline'`.
+</Callout>
+
+<Callout type="tip">
+  If you're using Next.js Rewrites, you can use the `backendURL` option to redirect requests to the c15t backend by setting it to `/api/c15t`.
 </Callout>
 </Step>
 </Steps>
