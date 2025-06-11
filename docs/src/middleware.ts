@@ -111,6 +111,8 @@ export function middleware(request: NextRequest): NextResponse {
 	if (path.startsWith('/marketing-static/')) {
 		const rewritePath = path.replace('/marketing-static/', '/');
 		const marketingURL = new URL(rewritePath, MARKETING_SITE_URL);
+		// Preserve original query string (e.g. _next/image params)
+		marketingURL.search = requestUrl.search;
 
 		logRewrite('marketing static', path, marketingURL.toString());
 		return createDebugResponse(marketingURL, path);
