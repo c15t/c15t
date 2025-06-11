@@ -75,7 +75,8 @@ function createDebugResponse(
 			`[Middleware] Failed to create rewrite response for ${originalPath}:`,
 			error
 		);
-		throw new Error(`Rewrite failed for path: ${originalPath}`);
+		// Gracefully fall back to original request
+		return NextResponse.next();
 	}
 }
 
