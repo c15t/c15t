@@ -125,18 +125,21 @@ export async function fetchConsentBannerInfo(
 		return undefined;
 	}
 
-	if (initialData) {
-		set({ isLoadingConsentInfo: true });
-		const showConsentBanner = await initialData;
-		set({ isLoadingConsentInfo: false });
-
-		updateStore(showConsentBanner, config, true);
-
-		return showConsentBanner;
-	}
-
-	// Fall back to API call
 	set({ isLoadingConsentInfo: true });
+
+	if (initialData) {
+		const showConsentBanner = await initialData;
+
+		// Ensures the promsie has the expected data
+		if (showConsentBanner) {
+			set({ isLoadingConsentInfo: false });
+			updateStore(showConsentBanner, config, true);
+
+			return showConsentBanner;
+		}
+
+		// Fall back to API call
+	}
 
 	try {
 		// Let the client handle offline mode internally
