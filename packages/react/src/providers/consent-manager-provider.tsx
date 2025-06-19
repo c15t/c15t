@@ -2,9 +2,9 @@
 
 import {
 	type ComplianceRegion,
-	type PrivacyConsentState,
 	configureConsentManager,
 	createConsentManagerStore,
+	type PrivacyConsentState,
 } from 'c15t';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {

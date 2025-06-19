@@ -6,7 +6,7 @@
  * Built with accessibility and customization in mind, following GDPR, CCPA, and other privacy regulation requirements.
  */
 
-import { type ReactNode, type Ref, forwardRef } from 'react';
+import { forwardRef, type ReactNode, type Ref } from 'react';
 
 import { ConsentManagerWidget } from '~/components/consent-manager-widget/consent-manager-widget';
 import { Box, type BoxProps } from '~/components/shared/primitives/box';

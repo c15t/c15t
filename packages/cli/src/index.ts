@@ -2,11 +2,11 @@
 
 import * as p from '@clack/prompts';
 import 'dotenv/config';
-import open from 'open';
-import color from 'picocolors';
 
 import type { C15TOptions } from '@c15t/backend';
 import type { ConsentManagerOptions } from '@c15t/react';
+import open from 'open';
+import color from 'picocolors';
 import { getConfig } from './actions/get-config';
 import {
 	isC15TOptions,
@@ -16,12 +16,11 @@ import { showHelpMenu } from './actions/show-help-menu';
 import { generate } from './commands/generate';
 import { migrate } from './commands/migrate';
 import { displayIntro } from './components/intro';
-import { startOnboarding } from './onboarding';
-
 // Import context creator and types
 import { createCliContext } from './context/creator';
 import { globalFlags } from './context/parser'; // Import flags for help menu
 import type { CliCommand } from './context/types';
+import { startOnboarding } from './onboarding';
 import { formatLogMessage } from './utils/logger';
 import { TelemetryEventName } from './utils/telemetry';
 

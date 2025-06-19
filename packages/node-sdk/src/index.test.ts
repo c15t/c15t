@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
-import { c15tInstance } from '@c15t/backend';
 import type { C15TOptions } from '@c15t/backend';
+import { c15tInstance } from '@c15t/backend';
 import {
 	afterAll,
 	beforeAll,
@@ -80,8 +80,6 @@ describe('C15T Node SDK', () => {
 				// Send response
 				res.end(responseBody);
 			} catch (error) {
-				// biome-ignore lint/suspicious/noConsoleLog: its a test
-				// biome-ignore lint/suspicious/noConsole: its a test
 				console.error('Server error:', error);
 				res.statusCode = 500;
 				res.setHeader('content-type', 'application/json');
@@ -96,7 +94,6 @@ describe('C15T Node SDK', () => {
 
 		await new Promise<void>((resolve) => {
 			httpServer.listen(PORT, () => {
-				// biome-ignore lint/suspicious/noConsoleLog: its a test
 				// biome-ignore lint/suspicious/noConsole: its a test
 				console.log(`Test server listening on port ${PORT}`);
 				resolve();
@@ -114,7 +111,6 @@ describe('C15T Node SDK', () => {
 		// Clean up server
 		await new Promise<void>((resolve) => {
 			httpServer.close(() => {
-				// biome-ignore lint/suspicious/noConsoleLog: its a test
 				// biome-ignore lint/suspicious/noConsole: its a test
 				console.log('Test server closed');
 				resolve();

@@ -1,3 +1,4 @@
+import { defaultTranslationConfig } from '~/translations';
 import type {
 	ConsentManagerCallbacks,
 	ConsentManagerInterface,
@@ -9,10 +10,7 @@ import type {
 	VerifyConsentRequestBody,
 	VerifyConsentResponse,
 } from './client-interface';
-
 import type { FetchOptions, ResponseContext } from './types';
-
-import { defaultTranslationConfig } from '~/translations';
 
 /**
  * Configuration options for the Offline client

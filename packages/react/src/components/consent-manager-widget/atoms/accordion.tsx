@@ -3,8 +3,8 @@ import type { AllConsentNames, ConsentType } from 'c15t';
 import {
 	type ComponentPropsWithoutRef,
 	type ComponentRef,
-	type Ref,
 	forwardRef,
+	type Ref,
 	useCallback,
 } from 'react';
 import { Box, type BoxProps } from '~/components/shared/primitives/box';

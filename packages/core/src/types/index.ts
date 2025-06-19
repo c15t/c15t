@@ -7,6 +7,45 @@
 
 /**
  * @module
+ * Callback Types
+ *
+ * @remarks
+ * Exports types for consent management callbacks and event handlers:
+ * - Generic callback function type
+ * - Consent-specific callback configurations
+ *
+ * @example
+ * Import and use callback types:
+ * ```typescript
+ * import type {
+ *   CallbackFunction,
+ *   Callbacks
+ * } from 'c15t/types';
+ *
+ * const callbacks: Callbacks = {
+ *   onConsentGiven: () => {
+ *     console.log('Consent granted');
+ *     initializeAnalytics();
+ *   },
+ *   onError: (error) => {
+ *     console.error('Consent error:', error);
+ *   }
+ * };
+ * ```
+ *
+ * @example
+ * Create typed callback functions:
+ * ```typescript
+ * const errorHandler: CallbackFunction<string> =
+ *   (message) => console.error(message);
+ *
+ * const readyHandler: CallbackFunction =
+ *   () => console.log('System ready');
+ * ```
+ */
+export type { CallbackFunction, Callbacks } from './callbacks';
+/**
+ * @module
  * Compliance and Privacy Types
  *
  * @remarks
@@ -45,7 +84,6 @@ export type {
 	NamespaceProps,
 	PrivacySettings,
 } from './compliance';
-
 /**
  * @module
  * GDPR Consent Types
@@ -75,46 +113,6 @@ export { type AllConsentNames, type ConsentType, consentTypes } from './gdpr';
 
 /**
  * @module
- * Callback Types
- *
- * @remarks
- * Exports types for consent management callbacks and event handlers:
- * - Generic callback function type
- * - Consent-specific callback configurations
- *
- * @example
- * Import and use callback types:
- * ```typescript
- * import type {
- *   CallbackFunction,
- *   Callbacks
- * } from 'c15t/types';
- *
- * const callbacks: Callbacks = {
- *   onConsentGiven: () => {
- *     console.log('Consent granted');
- *     initializeAnalytics();
- *   },
- *   onError: (error) => {
- *     console.error('Consent error:', error);
- *   }
- * };
- * ```
- *
- * @example
- * Create typed callback functions:
- * ```typescript
- * const errorHandler: CallbackFunction<string> =
- *   (message) => console.error(message);
- *
- * const readyHandler: CallbackFunction =
- *   () => console.log('System ready');
- * ```
- */
-export type { CallbackFunction, Callbacks } from './callbacks';
-
-/**
- * @module
  * Translation Types
  *
  * @remarks
@@ -127,10 +125,10 @@ export type { CallbackFunction, Callbacks } from './callbacks';
  */
 
 export type {
-	ConsentManagerDialogTranslations,
 	CommonTranslations,
-	ConsentTypeTranslations,
+	ConsentManagerDialogTranslations,
 	ConsentTypesTranslations,
+	ConsentTypeTranslations,
 	CookieBannerTranslations,
 	TranslationConfig,
 	Translations,

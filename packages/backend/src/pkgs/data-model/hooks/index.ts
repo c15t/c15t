@@ -31,9 +31,10 @@
  * });
  * ```
  */
-export type { DatabaseHook } from './types';
+
 export { createWithHooks } from './create-hooks';
+export type { DatabaseHook } from './types';
 export { updateWithHooks } from './update-hooks';
 export { updateManyWithHooks } from './update-many-hooks';
+export { processAfterHooksForMany, processHooks } from './utils';
 export { getWithHooks } from './with-hooks-factory';
-export { processHooks, processAfterHooksForMany } from './utils';

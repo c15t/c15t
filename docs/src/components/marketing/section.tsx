@@ -1,8 +1,7 @@
 'use client';
 
+import { forwardRef, type ReactNode, useRef } from 'react';
 import { cn } from '~/lib/cn';
-
-import { type ReactNode, forwardRef, useRef } from 'react';
 
 interface SectionProps {
 	id?: string;

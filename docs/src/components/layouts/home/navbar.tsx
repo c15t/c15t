@@ -3,7 +3,7 @@ import type {
 	NavigationMenuContentProps,
 	NavigationMenuTriggerProps,
 } from '@radix-ui/react-navigation-menu';
-import { type VariantProps, cva } from 'class-variance-authority';
+import { cva, type VariantProps } from 'class-variance-authority';
 import Link, { type LinkProps } from 'fumadocs-core/link';
 import { useNav } from 'fumadocs-ui/contexts/layout';
 import { type ComponentProps, type HTMLAttributes, useState } from 'react';

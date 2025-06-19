@@ -15,13 +15,13 @@ import { useTreeContext, useTreePath } from 'fumadocs-ui/contexts/tree';
 import { ChevronDown, ExternalLink } from 'lucide-react';
 import {
 	type ButtonHTMLAttributes,
+	createContext,
 	type Dispatch,
 	type FC,
 	Fragment,
 	type HTMLAttributes,
 	type ReactNode,
 	type SetStateAction,
-	createContext,
 	useContext,
 	useEffect,
 	useMemo,

@@ -1,11 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { test } from 'vitest';
-import { vi } from 'vitest';
-import { getConfig } from '../src/actions/get-config';
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import * as getConfigModule from '../src/actions/get-config';
+import { getConfig } from '../src/actions/get-config';
 
 interface TmpDirFixture {
 	tmpdir: string;

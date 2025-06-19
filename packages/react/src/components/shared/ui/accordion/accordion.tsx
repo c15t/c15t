@@ -5,8 +5,8 @@ import {
 	type ComponentPropsWithoutRef,
 	type ComponentRef,
 	type ElementType,
-	type HTMLAttributes,
 	forwardRef,
+	type HTMLAttributes,
 } from 'react';
 
 import type { PolymorphicComponentProps } from '~/components/shared/libs/polymorphic';

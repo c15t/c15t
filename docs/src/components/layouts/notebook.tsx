@@ -26,10 +26,10 @@ import {
 import { buttonVariants } from '../ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import {
-	SidebarLinkItem,
-	type SidebarOptions,
 	getSidebarTabsFromOptions,
 	layoutVariables,
+	SidebarLinkItem,
+	type SidebarOptions,
 } from './docs/shared';
 import { BaseLinkItem, type LinkItemType } from './links';
 import {
@@ -39,7 +39,9 @@ import {
 	NavbarSidebarTrigger,
 	SidebarLayoutTab,
 } from './notebook-client';
+
 export { Navbar, NavbarSidebarTrigger } from './notebook-client';
+
 import { usePathname } from 'next/navigation';
 import { type BaseLayoutProps, getLinks } from './shared';
 

@@ -5,8 +5,8 @@
 
 import type { ContractsOutputs } from '@c15t/backend/contracts';
 import {
-	type TranslationConfig,
 	prepareTranslationConfig,
+	type TranslationConfig,
 } from '@c15t/translations';
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';

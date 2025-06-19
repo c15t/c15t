@@ -1,7 +1,6 @@
+import type { Logger } from '@doubletie/logger';
 import { type Kysely, type Migration, sql } from 'kysely';
 import { beforeEach, expect, test } from 'vitest';
-
-import type { Logger } from '@doubletie/logger';
 import type { Adapter } from '~/pkgs/db-adapters';
 import type { C15TOptions } from '~/types';
 import type { KyselyDatabaseType } from '../index';

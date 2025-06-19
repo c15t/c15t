@@ -3,9 +3,9 @@ import { usePathname } from 'fumadocs-core/framework';
 import Link from 'fumadocs-core/link';
 import {
 	type AnchorHTMLAttributes,
+	forwardRef,
 	type HTMLAttributes,
 	type ReactNode,
-	forwardRef,
 } from 'react';
 import { isActive } from '../../lib/is-active';
 

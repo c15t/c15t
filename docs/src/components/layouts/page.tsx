@@ -4,9 +4,9 @@ import { I18nLabel } from 'fumadocs-ui/contexts/i18n';
 import { Edit, Text } from 'lucide-react';
 import {
 	type AnchorHTMLAttributes,
+	forwardRef,
 	type HTMLAttributes,
 	type ReactNode,
-	forwardRef,
 } from 'react';
 import { cn } from '../../lib/cn';
 import {

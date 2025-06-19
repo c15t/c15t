@@ -7,11 +7,8 @@
  */
 
 import type { FC, ReactNode } from 'react';
-
-import { ErrorBoundary } from './error-boundary';
-import type { CookieBannerTheme } from './theme';
-
 import { ConsentButton } from '~/components/shared/primitives/button';
+import { useTranslations } from '~/hooks/use-translations';
 import { CookieBannerRoot } from './atoms/root';
 import {
 	CookieBannerCard,
@@ -21,8 +18,8 @@ import {
 	CookieBannerHeader,
 	CookieBannerTitle,
 } from './components';
-
-import { useTranslations } from '~/hooks/use-translations';
+import { ErrorBoundary } from './error-boundary';
+import type { CookieBannerTheme } from './theme';
 
 /**
  * Props for configuring and customizing the CookieBanner component.

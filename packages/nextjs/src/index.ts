@@ -8,31 +8,30 @@
  * @see {@link ./middleware} for Next.js middleware integration
  */
 
-export { ConsentManagerProvider } from './components/consent-manager-provider';
-
-export {
-	CookieBanner,
-	ConsentManagerWidget,
-	ConsentManagerDialog,
-	// Export hooks
-	useConsentManager,
-	useTranslations,
-	useColorScheme,
-	useFocusTrap,
-	configureConsentManager,
-	// Translation utilities
-	prepareTranslationConfig,
-	defaultTranslationConfig,
-	mergeTranslationConfigs,
-	detectBrowserLanguage,
-} from '@c15t/react';
-
 // Export types
 export type {
-	ConsentManagerOptions,
-	ConsentManagerProviderProps,
 	ConsentManagerDialogProps,
 	ConsentManagerInterface,
+	ConsentManagerOptions,
+	ConsentManagerProviderProps,
 	ConsentManagerWidgetProps,
 	CookieBannerProps,
 } from '@c15t/react';
+
+export {
+	ConsentManagerDialog,
+	ConsentManagerWidget,
+	CookieBanner,
+	configureConsentManager,
+	defaultTranslationConfig,
+	detectBrowserLanguage,
+	mergeTranslationConfigs,
+	// Translation utilities
+	prepareTranslationConfig,
+	useColorScheme,
+	// Export hooks
+	useConsentManager,
+	useFocusTrap,
+	useTranslations,
+} from '@c15t/react';
+export { ConsentManagerProvider } from './components/consent-manager-provider';

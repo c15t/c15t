@@ -10,12 +10,15 @@ import type {
 	ConsentManagerCallbacks,
 	ConsentManagerInterface,
 } from './client-interface';
+
 export type {
 	ConsentManagerCallbacks,
 	ConsentManagerInterface,
 } from './client-interface';
+
 import { OfflineClient } from './client-offline';
 import type { RetryConfig } from './types';
+
 export type { FetchOptions, ResponseContext, RetryConfig } from './types';
 
 /**
