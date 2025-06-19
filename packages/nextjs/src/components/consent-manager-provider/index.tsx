@@ -50,7 +50,9 @@ async function getC15TInitialData(backendURL: string): InitialData {
 			headers: relevantHeaders,
 		});
 
-		showConsentBanner = await response.json();
+		if (response.ok) {
+			showConsentBanner = await response.json();
+		}
 	}
 
 	return showConsentBanner;
@@ -71,13 +73,6 @@ export function ConsentManagerProvider({
 			initialDataPromise = Promise.resolve(undefined);
 		}
 	}
-
-	const promise = async () => {
-		const initialData = await initialDataPromise;
-		return initialData;
-	};
-
-	promise();
 
 	return (
 		<ClientConsentManagerProvider
