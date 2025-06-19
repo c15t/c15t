@@ -1,5 +1,16 @@
 # docs
 
+## 1.3.1-canary-20250618084038
+
+### Patch Changes
+
+- Updated dependencies [95edb35]
+  - c15t@1.3.1-canary-20250618084038
+  - @c15t/backend@1.3.1-canary-20250618084038
+  - @c15t/nextjs@1.3.1-canary-20250618084038
+  - @c15t/dev-tools@1.3.1-canary-20250618084038
+  - @c15t/react@1.3.1-canary-20250618084038
+
 ## 1.3.0
 
 ### Patch Changes
