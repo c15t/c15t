@@ -4,7 +4,10 @@ import {
 	type ConsentManagerProviderProps,
 } from '@c15t/react';
 import { headers } from 'next/headers';
-import { showBanner } from './show-banner';
+
+type InitialData = Promise<
+	ContractsOutputs['consent']['showBanner'] | undefined
+>;
 
 const LOCATION_HEADERS = [
 	'cf-ipcountry',
@@ -32,24 +35,22 @@ function extractRelevantHeaders(
 	return relevantHeaders;
 }
 
-async function getShowConsentBanner(): Promise<
-	ContractsOutputs['consent']['showBanner']
-> {
+async function getC15TInitialData(backendURL: string): InitialData {
 	const headersList = await headers();
 
-	let showConsentBanner: ContractsOutputs['consent']['showBanner'] | undefined;
+	let showConsentBanner: InitialData = Promise.resolve(undefined);
 
 	const relevantHeaders = extractRelevantHeaders(headersList);
 
+	// We can't fetch from the server if the headers are not present like when dynamic params is set to force-static
+	// https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config#dynamicparams
 	if (Object.keys(relevantHeaders).length > 0) {
-		try {
-			showConsentBanner = showBanner(relevantHeaders);
-		} catch (error) {
-			console.error('Failed to process consent banner:', {
-				error: error instanceof Error ? error.message : String(error),
-				headersReceived: Object.keys(relevantHeaders),
-			});
-		}
+		const response = await fetch(`${backendURL}/show-consent-banner`, {
+			method: 'GET',
+			headers: relevantHeaders,
+		});
+
+		showConsentBanner = await response.json();
 	}
 
 	return showConsentBanner;
@@ -59,7 +60,24 @@ export function ConsentManagerProvider({
 	children,
 	options,
 }: ConsentManagerProviderProps) {
-	const initialDataPromise = getShowConsentBanner();
+	let initialDataPromise: InitialData;
+
+	// Initial data is currently only available in c15t mode
+	switch (options.mode) {
+		case 'c15t':
+			initialDataPromise = getC15TInitialData(options.backendURL);
+			break;
+		default: {
+			initialDataPromise = Promise.resolve(undefined);
+		}
+	}
+
+	const promise = async () => {
+		const initialData = await initialDataPromise;
+		return initialData;
+	};
+
+	promise();
 
 	return (
 		<ClientConsentManagerProvider
