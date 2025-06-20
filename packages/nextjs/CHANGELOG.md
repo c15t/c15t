@@ -1,5 +1,11 @@
 # @c15t/nextjs
 
+## 1.3.1-canary-20250620210941
+
+### Patch Changes
+
+- 5c4cd75: fix(issue-274): include nextjs externals in rslib; fixes #274
+
 ## 1.3.0
 
 ### Minor Changes
