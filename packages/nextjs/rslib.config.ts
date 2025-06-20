@@ -1,12 +1,7 @@
 import { pluginReact } from '@rsbuild/plugin-react';
 import { defineConfig } from '@rslib/core';
 
-const externals = [
-	'next',
-	'next/headers',
-	'react',
-	'react-dom',
-];
+const externals = ['next', 'next/headers', 'react', 'react-dom'];
 
 export default defineConfig({
 	source: {
