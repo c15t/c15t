@@ -1,5 +1,11 @@
 # @c15t/nextjs
 
+## 1.3.1
+
+### Patch Changes
+
+- 86105a1: fix(issue-274): include nextjs externals in rslib; fixes #274
+
 ## 1.3.0
 
 ### Minor Changes
