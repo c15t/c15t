@@ -1,5 +1,14 @@
 # c15t
 
+## 1.3.1-canary-20250618084038
+
+### Patch Changes
+
+- 95edb35: fix(core): fall back to API call if initialData promise is empty
+- Updated dependencies [5da2f28]
+  - @c15t/translations@1.3.1-canary-20250618084038
+  - @c15t/backend@1.3.1-canary-20250618084038
+
 ## 1.3.0
 
 ### Minor Changes

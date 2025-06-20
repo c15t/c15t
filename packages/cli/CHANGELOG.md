@@ -1,5 +1,12 @@
 # @c15t/cli
 
+## 1.3.1-canary-20250618084038
+
+### Patch Changes
+
+- @c15t/backend@1.3.1-canary-20250618084038
+- @c15t/react@1.3.1-canary-20250618084038
+
 ## 1.3.0
 
 ### Minor Changes
