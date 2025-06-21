@@ -8,10 +8,10 @@
 import type { Field } from '~/pkgs/data-model';
 
 import type { AuditLogEntityConfig } from './audit-log/types';
+import type { ConsentEntityConfig } from './consent/types';
 import type { ConsentPolicyEntityConfig } from './consent-policy/types';
 import type { ConsentPurposeEntityConfig } from './consent-purpose/types';
 import type { ConsentRecordEntityConfig } from './consent-record/types';
-import type { ConsentEntityConfig } from './consent/types';
 import type { DomainEntityConfig } from './domain/types';
 import type { SubjectEntityConfig } from './subject/types';
 

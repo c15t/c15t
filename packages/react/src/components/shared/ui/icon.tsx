@@ -1,9 +1,9 @@
 import {
 	type ElementType,
+	forwardRef,
 	type JSX,
 	type Ref,
 	type SVGProps,
-	forwardRef,
 } from 'react';
 
 const Icon = (

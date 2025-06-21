@@ -12,11 +12,11 @@ import type {
 	ConsentBannerResponse,
 	ConsentState,
 	ConsentType,
+	consentTypes,
 	JurisdictionInfo,
 	LocationInfo,
 	PrivacySettings,
 	TranslationConfig,
-	consentTypes,
 } from './types';
 
 /**

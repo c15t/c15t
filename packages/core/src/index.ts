@@ -5,6 +5,105 @@
  * GDPR-compliant consent management.
  */
 
+export type { ContractsInputs, ContractsOutputs } from '@c15t/backend';
+/**
+ * @module
+ * Translation Types
+ *
+ * @remarks
+ * Exports types for translation configuration and translations:
+ * - Translation configuration
+ * - Translation types
+ * - Cookie banner translations
+ * - Consent manager dialog translations
+ * - Consent manager widget translations
+ */
+export type {
+	CommonTranslations,
+	ConsentManagerDialogTranslations,
+	ConsentTypesTranslations,
+	ConsentTypeTranslations,
+	CookieBannerTranslations,
+	TranslationConfig,
+	Translations,
+} from '@c15t/translations';
+// Export translation utilities
+export {
+	deepMergeTranslations,
+	detectBrowserLanguage,
+	mergeTranslationConfigs,
+	prepareTranslationConfig,
+} from '@c15t/translations';
+/**
+ * @module
+ * Client Types
+ *
+ * @remarks
+ * Export client types and implementations
+ */
+// Export new client implementations as primary API
+export * from './client';
+// Export basic types directly for convenience
+export type {
+	FetchOptions,
+	ResponseContext,
+} from './client/types';
+/**
+ * @module
+ * API Endpoints
+ *
+ * @remarks
+ * Exports the API endpoints for the consent management system.
+ */
+export { API_ENDPOINTS } from './client/types';
+export type { TrackingBlockerConfig } from './libs/tracking-blocker';
+// Export tracking blocker
+export { createTrackingBlocker } from './libs/tracking-blocker';
+export type { StoreConfig, StoreOptions } from './store';
+// Export store
+export { createConsentManagerStore } from './store';
+export type { PrivacyConsentState } from './store.type';
+// Export default translation config
+export { defaultTranslationConfig } from './translations';
+/**
+ * @module
+ * Callback Types
+ *
+ * @remarks
+ * Exports types for consent management callbacks and event handlers:
+ * - Generic callback function type
+ * - Consent-specific callback configurations
+ *
+ * @example
+ * Import and use callback types:
+ * ```typescript
+ * import type {
+ *   CallbackFunction,
+ *   Callbacks
+ * } from 'c15t/types';
+ *
+ * const callbacks: Callbacks = {
+ *   onConsentGiven: () => {
+ *     console.log('Consent granted');
+ *     initializeAnalytics();
+ *   },
+ *   onError: (error) => {
+ *     console.error('Consent error:', error);
+ *   }
+ * };
+ * ```
+ *
+ * @example
+ * Create typed callback functions:
+ * ```typescript
+ * const errorHandler: CallbackFunction<string> =
+ *   (message) => console.error(message);
+ *
+ * const readyHandler: CallbackFunction =
+ *   () => console.log('System ready');
+ * ```
+ */
+export type { CallbackFunction, Callbacks } from './types/callbacks';
 /**
  * @module
  * Compliance and Privacy Types
@@ -45,15 +144,8 @@ export type {
 	NamespaceProps,
 	PrivacySettings,
 } from './types/compliance';
-
-/**
- * @module
- * API Endpoints
- *
- * @remarks
- * Exports the API endpoints for the consent management system.
- */
-export { API_ENDPOINTS } from './client/types';
+// Export compliance types
+export * from './types/compliance';
 /**
  * @module
  * GDPR Consent Types
@@ -84,106 +176,3 @@ export {
 	type ConsentType,
 	consentTypes,
 } from './types/gdpr';
-
-/**
- * @module
- * Callback Types
- *
- * @remarks
- * Exports types for consent management callbacks and event handlers:
- * - Generic callback function type
- * - Consent-specific callback configurations
- *
- * @example
- * Import and use callback types:
- * ```typescript
- * import type {
- *   CallbackFunction,
- *   Callbacks
- * } from 'c15t/types';
- *
- * const callbacks: Callbacks = {
- *   onConsentGiven: () => {
- *     console.log('Consent granted');
- *     initializeAnalytics();
- *   },
- *   onError: (error) => {
- *     console.error('Consent error:', error);
- *   }
- * };
- * ```
- *
- * @example
- * Create typed callback functions:
- * ```typescript
- * const errorHandler: CallbackFunction<string> =
- *   (message) => console.error(message);
- *
- * const readyHandler: CallbackFunction =
- *   () => console.log('System ready');
- * ```
- */
-export type { CallbackFunction, Callbacks } from './types/callbacks';
-
-/**
- * @module
- * Translation Types
- *
- * @remarks
- * Exports types for translation configuration and translations:
- * - Translation configuration
- * - Translation types
- * - Cookie banner translations
- * - Consent manager dialog translations
- * - Consent manager widget translations
- */
-export type {
-	ConsentManagerDialogTranslations,
-	CommonTranslations,
-	ConsentTypeTranslations,
-	ConsentTypesTranslations,
-	CookieBannerTranslations,
-	TranslationConfig,
-	Translations,
-} from '@c15t/translations';
-
-/**
- * @module
- * Client Types
- *
- * @remarks
- * Export client types and implementations
- */
-// Export new client implementations as primary API
-export * from './client';
-
-// Export basic types directly for convenience
-export type {
-	FetchOptions,
-	ResponseContext,
-} from './client/types';
-
-// Export compliance types
-export * from './types/compliance';
-
-// Export store
-export { createConsentManagerStore } from './store';
-export type { StoreConfig, StoreOptions } from './store';
-export type { PrivacyConsentState } from './store.type';
-
-// Export tracking blocker
-export { createTrackingBlocker } from './libs/tracking-blocker';
-export type { TrackingBlockerConfig } from './libs/tracking-blocker';
-
-// Export default translation config
-export { defaultTranslationConfig } from './translations';
-
-// Export translation utilities
-export {
-	deepMergeTranslations,
-	mergeTranslationConfigs,
-	detectBrowserLanguage,
-	prepareTranslationConfig,
-} from '@c15t/translations';
-
-export type { ContractsInputs, ContractsOutputs } from '@c15t/backend';

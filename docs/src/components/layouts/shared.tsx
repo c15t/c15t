@@ -2,7 +2,6 @@ import { Slot } from '@radix-ui/react-slot';
 import type { I18nConfig } from 'fumadocs-core/i18n';
 import type { NavProviderProps } from 'fumadocs-ui/contexts/layout';
 import type { ReactNode } from 'react';
-// biome-ignore lint/nursery/noExportedImports: <explanation>
 import type { LinkItemType } from './links';
 
 export interface NavOptions extends NavProviderProps {

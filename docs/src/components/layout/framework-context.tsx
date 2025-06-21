@@ -3,8 +3,8 @@
 import { usePathname } from 'fumadocs-core/framework';
 import type { PageTree } from 'fumadocs-core/server';
 import {
-	type ReactNode,
 	createContext,
+	type ReactNode,
 	useContext,
 	useEffect,
 	useMemo,

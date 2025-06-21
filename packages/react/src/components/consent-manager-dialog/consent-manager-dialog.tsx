@@ -6,6 +6,7 @@
  * Implements an accessible, animated modal interface for consent customization.
  */
 
+import clsx from 'clsx';
 import { type FC, type RefObject, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -13,13 +14,11 @@ import {
 	type ThemeContextValue,
 } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { ConsentCustomizationCard } from './atoms/dialog-card';
 import { Overlay } from './atoms/overlay';
-import type { ConsentManagerDialogTheme } from './theme';
-
-import clsx from 'clsx';
-import { useFocusTrap } from '~/hooks/use-focus-trap';
 import styles from './consent-manager-dialog.module.css';
+import type { ConsentManagerDialogTheme } from './theme';
 
 /**
  * Props for the ConsentManagerDialog component

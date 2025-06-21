@@ -22,17 +22,17 @@ import {
 	type EntityOutput,
 	type EntityTypeMap,
 	type Field,
-	type Primitive,
 	generateId,
+	type Primitive,
 } from '~/pkgs/data-model';
 
 import { getConsentTables } from '~/schema/definition';
 import type { C15TOptions } from '~/types';
 import {
 	type Adapter,
+	applyDefaultValue,
 	type TableFields,
 	type Where,
-	applyDefaultValue,
 } from '../..';
 import type { Database, KyselyDatabaseType } from './types';
 
@@ -176,7 +176,6 @@ const createEntityTransformer = (
 			? (modelFields as Record<string, Field>)[field as string]
 			: undefined;
 		if (!f) {
-			// biome-ignore lint/suspicious/noConsoleLog: no Logger implementation
 			// biome-ignore lint/suspicious/noConsole: no Logger implementation
 			console.log('Field not found', model, field);
 		}

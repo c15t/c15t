@@ -10,9 +10,9 @@ import { usePageStyles } from 'fumadocs-ui/contexts/layout';
 import { ChevronRight, Text } from 'lucide-react';
 import {
 	type ComponentProps,
+	createContext,
 	type HTMLAttributes,
 	type ReactNode,
-	createContext,
 	use,
 	useMemo,
 	useRef,

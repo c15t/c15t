@@ -4,18 +4,19 @@
  * This module provides the main store creation and management functionality.
  */
 
-import { createStore } from 'zustand/vanilla';
+import type { ContractsOutputs } from '@c15t/backend/contracts';
 
 import type { TranslationConfig } from '@c15t/translations';
+import { createStore } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from './client/client-factory';
 import {
 	getEffectiveConsents,
-	hasConsentFor,
 	hasConsented,
+	hasConsentFor,
 } from './libs/consent-utils';
 import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
-import { createTrackingBlocker } from './libs/tracking-blocker';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
+import { createTrackingBlocker } from './libs/tracking-blocker';
 import { initialState } from './store.initial-state';
 import type { PrivacyConsentState } from './store.type';
 import type {
@@ -24,8 +25,6 @@ import type {
 	ConsentState,
 } from './types/compliance';
 import { type AllConsentNames, consentTypes } from './types/gdpr';
-
-import type { ContractsOutputs } from '@c15t/backend/contracts';
 
 /** Storage key for persisting consent data in localStorage */
 const STORAGE_KEY = 'privacy-consent-storage';

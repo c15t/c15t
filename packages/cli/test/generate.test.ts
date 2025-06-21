@@ -2,8 +2,8 @@ import type { C15TOptions } from '@c15t/backend';
 import type { Adapter } from '@c15t/backend/pkgs/db-adapters';
 import { drizzleAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/drizzle-adapter';
 import { kyselyAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/kysely-adapter';
-import { prismaAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/prisma-adapter';
 import type { PrismaConfig } from '@c15t/backend/pkgs/db-adapters/adapters/prisma-adapter';
+import { prismaAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/prisma-adapter';
 
 import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';

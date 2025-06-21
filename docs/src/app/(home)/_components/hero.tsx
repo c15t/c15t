@@ -1,13 +1,12 @@
 'use client';
 
-import { buttonVariants } from '~/components/docs/button';
+import { ArrowRight } from 'lucide-react';
 
 import Link from 'next/link';
 import { useRef } from 'react';
-import { cn } from '~/lib/cn';
-
-import { ArrowRight } from 'lucide-react';
+import { buttonVariants } from '~/components/docs/button';
 import { ConsentManagementIcon } from '~/components/icons/logo';
+import { cn } from '~/lib/cn';
 import { AuroraText } from '../../../components/marketing/aurora-text';
 import { BorderIcon } from '../../../components/marketing/border-icon';
 import { GoogleGeminiEffect } from '../../../components/marketing/gemini';

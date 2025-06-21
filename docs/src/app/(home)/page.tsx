@@ -1,9 +1,8 @@
-import { FeaturesSection } from './_components/features';
-import { Hero } from './_components/hero';
-
 import type { Metadata } from 'next/types';
 import { CTA } from './_components/cta';
+import { FeaturesSection } from './_components/features';
 import { Footer } from './_components/footer';
+import { Hero } from './_components/hero';
 import { siteConfig } from './config';
 
 const metadataTitle = 'React Privacy Components for the Modern Web';

@@ -5,6 +5,7 @@ import type { ThemeValue } from '~/types/theme';
 import testComponentStyles from '~/utils/test-helpers';
 import styles from '../consent-manager-dialog.module.css';
 import type { ConsentManagerDialogTheme } from '../theme';
+
 type ComponentTestCase = {
 	testId: string;
 	themeKey: keyof ConsentManagerDialogTheme;

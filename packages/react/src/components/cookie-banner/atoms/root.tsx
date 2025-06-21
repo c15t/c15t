@@ -3,23 +3,20 @@
 import {
 	type CSSProperties,
 	type FC,
+	forwardRef,
 	type HTMLAttributes,
 	type ReactNode,
-	forwardRef,
 	useEffect,
 	useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-
-import { Overlay } from './overlay';
-
 import { LocalThemeContext } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import type { CSSPropertiesWithVars } from '~/types/theme';
-import type { CookieBannerTheme } from '../theme';
-
 import styles from '../cookie-banner.module.css';
+import type { CookieBannerTheme } from '../theme';
+import { Overlay } from './overlay';
 
 /**
  * Props for the root component of the CookieBanner.

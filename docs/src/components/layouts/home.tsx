@@ -1,7 +1,12 @@
-import { Fragment, type HTMLAttributes, useMemo } from 'react';
+import Link from 'fumadocs-core/link';
 
 import { NavProvider } from 'fumadocs-ui/contexts/layout';
+import { ChevronDown, Languages } from 'lucide-react';
+import { Fragment, type HTMLAttributes, useMemo } from 'react';
 import { cn } from '../../lib/cn';
+import { LanguageToggle, LanguageToggleText } from '../layout/language-toggle';
+import { LargeSearchToggle, SearchToggle } from '../layout/search-toggle';
+import { Menu, MenuContent, MenuLinkItem, MenuTrigger } from './home/menu';
 import {
 	Navbar,
 	NavbarLink,
@@ -12,18 +17,12 @@ import {
 } from './home/navbar';
 import {
 	type BaseLayoutProps,
+	getLinks,
 	type LinkItemType,
 	type NavOptions,
-	getLinks,
 	slot,
 	slots,
 } from './shared';
-
-import Link from 'fumadocs-core/link';
-import { ChevronDown, Languages } from 'lucide-react';
-import { LanguageToggle, LanguageToggleText } from '../layout/language-toggle';
-import { LargeSearchToggle, SearchToggle } from '../layout/search-toggle';
-import { Menu, MenuContent, MenuLinkItem, MenuTrigger } from './home/menu';
 
 export interface HomeLayoutProps extends BaseLayoutProps {
 	nav?: Partial<

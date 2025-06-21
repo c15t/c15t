@@ -1,10 +1,9 @@
 'use client';
 
+import type { PrivacyConsentState } from 'c15t';
 import { GanttChartSquare, ToggleLeft } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useCallback, useState } from 'react';
-
-import type { PrivacyConsentState } from 'c15t';
 import { Badge } from '~/components/ui/badge';
 import { ExpandableTabs } from '../components/ui/expandable-tabs';
 import { ScrollArea } from '../components/ui/scroll-area';

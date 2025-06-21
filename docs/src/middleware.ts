@@ -47,7 +47,6 @@ function logRewrite(
 	originalPath: string,
 	targetUrl: string
 ): void {
-	// biome-ignore lint/suspicious/noConsoleLog: <explanation>
 	// biome-ignore lint/suspicious/noConsole: <explanation>
 	console.log(
 		`[Middleware] ${operationType} rewrite: ${originalPath} → ${targetUrl}`

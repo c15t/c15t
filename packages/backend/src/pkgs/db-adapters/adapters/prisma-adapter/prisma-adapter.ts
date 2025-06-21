@@ -1,9 +1,9 @@
 //@ts-nocheck
-import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
-import type { C15TOptions } from '~/types';
 
 import { type EntityName, generateId } from '~/pkgs/data-model';
+import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
 import { getConsentTables } from '~/schema/definition';
+import type { C15TOptions } from '~/types';
 import type { Adapter, Where } from '../../types';
 import { applyDefaultValue } from '../../utils';
 

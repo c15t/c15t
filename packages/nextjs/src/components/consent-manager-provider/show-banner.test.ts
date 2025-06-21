@@ -1,7 +1,7 @@
 import { baseTranslations } from '@c15t/translations';
 import { describe, expect, it } from 'vitest';
-import { checkJurisdiction, showBanner } from './show-banner';
 import type { SupportedLanguage } from './show-banner';
+import { checkJurisdiction, showBanner } from './show-banner';
 
 describe('showBanner', () => {
 	it('should handle empty headers', () => {

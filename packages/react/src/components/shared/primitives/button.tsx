@@ -1,5 +1,5 @@
 import { Slot } from '@radix-ui/react-slot';
-import { type MouseEvent, forwardRef, useCallback } from 'react';
+import { forwardRef, type MouseEvent, useCallback } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';

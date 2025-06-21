@@ -1,3 +1,4 @@
+import type { LoggerOptions } from '@doubletie/logger';
 import type { OpenAPIGeneratorOptions } from '@orpc/openapi';
 /**
  * c15t Consent Management System Configuration Types
@@ -7,11 +8,9 @@ import type { OpenAPIGeneratorOptions } from '@orpc/openapi';
  * analytics, geo-targeting, plugins, logging, and other advanced features.
  */
 import type { DoubleTieOptions } from '~/pkgs/types/options';
-import type { C15TPlugin } from './plugins';
-
-import type { LoggerOptions } from '@doubletie/logger';
 // Import table configuration types from the schema module
 import type { TablesConfig } from '~/schema/types';
+import type { C15TPlugin } from './plugins';
 /**
  * Main configuration options for the c15t consent management system
  *

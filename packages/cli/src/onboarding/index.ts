@@ -12,8 +12,8 @@ import {
 	detectProjectRoot,
 } from '../context/framework-detection';
 import {
-	type PackageManagerResult,
 	detectPackageManager,
+	type PackageManagerResult,
 } from '../context/package-manager-detection';
 import type { CliContext } from '../context/types';
 import { TelemetryEventName } from '../utils/telemetry';

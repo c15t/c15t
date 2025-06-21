@@ -6,10 +6,10 @@ import { loadConfig } from 'c12';
 
 import type { CliContext } from '../context/types';
 import {
-	type LoadedConfig,
 	extractOptionsFromConfig,
 	isC15TOptions,
 	isClientOptions,
+	type LoadedConfig,
 } from './get-config/config-extraction';
 import {} from './get-config/constants';
 import { jitiOptions } from './get-config/jiti-options';

@@ -1,6 +1,5 @@
+import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
 import { cn } from '~/lib/cn';
-
-import { type HTMLAttributes, type ReactNode, forwardRef } from 'react';
 import { BorderIcon } from './border-icon';
 
 // Types

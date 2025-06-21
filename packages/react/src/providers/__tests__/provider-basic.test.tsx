@@ -2,6 +2,7 @@ import { defaultTranslationConfig } from 'c15t';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentManagerProvider } from '~/index';
+
 // Mock fetch globally
 const mockFetch = vi.fn();
 window.fetch = mockFetch;

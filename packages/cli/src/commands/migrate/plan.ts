@@ -1,7 +1,7 @@
 import type { C15TOptions, C15TPlugin } from '@c15t/backend';
 import {
-	type MigrationResult,
 	getMigrations,
+	type MigrationResult,
 } from '@c15t/backend/pkgs/migrations';
 import * as p from '@clack/prompts';
 import color from 'picocolors';

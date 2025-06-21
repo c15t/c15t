@@ -1,5 +1,11 @@
 'use client';
 
+import type {
+	CodeEditorProps,
+	PreviewProps,
+	SandpackLayoutProps,
+	SandpackProviderProps,
+} from '@codesandbox/sandpack-react';
 import {
 	SandpackCodeEditor,
 	SandpackConsole,
@@ -7,12 +13,6 @@ import {
 	SandpackLayout,
 	SandpackPreview,
 	SandpackProvider,
-} from '@codesandbox/sandpack-react';
-import type {
-	CodeEditorProps,
-	PreviewProps,
-	SandpackLayoutProps,
-	SandpackProviderProps,
 } from '@codesandbox/sandpack-react';
 import type {
 	ButtonHTMLAttributes,
@@ -271,7 +271,6 @@ export const SandboxTabsTrigger = ({
 	const { selectedTab, setSelectedTab } = useSandboxTabsContext();
 
 	return (
-		// biome-ignore lint/nursery/useAriaPropsSupportedByRole: <explanation>
 		<button
 			role="tab"
 			aria-selected={selectedTab === value}

@@ -2,8 +2,8 @@
 import type { NamespaceProps, PrivacyConsentState } from 'c15t';
 
 import {
-	type FC,
 	createContext,
+	type FC,
 	useCallback,
 	useContext,
 	useEffect,
@@ -93,7 +93,6 @@ export const C15TDevTools: FC<ConsentManagerProviderProps> = ({
 				unsubscribe();
 			};
 		}
-		// biome-ignore lint/suspicious/noConsoleLog: needed for dev tools
 		// biome-ignore lint/suspicious/noConsole: needed for dev tools
 		console.log(`${namespace} is not available on the window object.`);
 	}, [namespace]);

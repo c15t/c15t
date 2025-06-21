@@ -864,7 +864,7 @@ export class C15tClient implements ConsentManagerInterface {
 							JSON.stringify(pendingSubmissions)
 						);
 						// biome-ignore lint/suspicious/noConsole: <explanation>
-						// biome-ignore lint/suspicious/noConsoleLog: <explanation>
+
 						console.log(
 							'Queued consent submission for retry on next page load'
 						);
@@ -987,7 +987,7 @@ export class C15tClient implements ConsentManagerInterface {
 			}
 
 			// biome-ignore lint/suspicious/noConsole: <explanation>
-			// biome-ignore lint/suspicious/noConsoleLog: <explanation>
+
 			console.log(
 				`Found ${pendingSubmissions.length} pending consent submission(s) to retry`
 			);
@@ -1022,7 +1022,7 @@ export class C15tClient implements ConsentManagerInterface {
 				const submission = remainingSubmissions[j];
 				try {
 					// biome-ignore lint/suspicious/noConsole: <explanation>
-					// biome-ignore lint/suspicious/noConsoleLog: <explanation>
+
 					console.log('Retrying consent submission:', submission);
 
 					// Use the actual API endpoint, not our offlineFallback
@@ -1036,7 +1036,7 @@ export class C15tClient implements ConsentManagerInterface {
 
 					if (response.ok) {
 						// biome-ignore lint/suspicious/noConsole: <explanation>
-						// biome-ignore lint/suspicious/noConsoleLog: <explanation>
+
 						console.log('Successfully resubmitted consent');
 						successfulSubmissions.push(j);
 					}
@@ -1075,7 +1075,7 @@ export class C15tClient implements ConsentManagerInterface {
 						JSON.stringify(remainingSubmissions)
 					);
 					// biome-ignore lint/suspicious/noConsole: <explanation>
-					// biome-ignore lint/suspicious/noConsoleLog: <explanation>
+
 					console.log(
 						`${remainingSubmissions.length} consent submissions still pending for future retry`
 					);
@@ -1083,7 +1083,6 @@ export class C15tClient implements ConsentManagerInterface {
 					// All submissions processed, clear the storage
 					window.localStorage.removeItem(pendingSubmissionsKey);
 					// biome-ignore lint/suspicious/noConsole: <explanation>
-					// biome-ignore lint/suspicious/noConsoleLog: <explanation>
 					console.log('All pending consent submissions processed successfully');
 				}
 			}

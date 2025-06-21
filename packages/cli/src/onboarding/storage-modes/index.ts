@@ -1,7 +1,7 @@
-export { setupC15tMode, type C15TModeResult } from './c15t-mode';
-export { setupCustomMode, type CustomModeResult } from './custom-mode';
-export { setupOfflineMode, type OfflineModeResult } from './offline-mode';
+export { type C15TModeResult, setupC15tMode } from './c15t-mode';
+export { type CustomModeResult, setupCustomMode } from './custom-mode';
+export { type OfflineModeResult, setupOfflineMode } from './offline-mode';
 export {
-	setupSelfHostedMode,
 	type SelfHostedModeResult,
+	setupSelfHostedMode,
 } from './self-hosted-mode';
