@@ -1,5 +1,12 @@
 # docs
 
+## 1.3.1
+
+### Patch Changes
+
+- Updated dependencies [86105a1]
+  - @c15t/nextjs@1.3.1
+
 ## 1.3.0
 
 ### Patch Changes
