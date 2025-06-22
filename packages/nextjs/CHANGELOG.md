@@ -1,5 +1,12 @@
 # @c15t/nextjs
 
+## 1.3.1-canary-20250622133205
+
+### Patch Changes
+
+- 5c4cd75: fix(issue-274): include nextjs externals in rslib; fixes #274
+- e0b2597: refactor(nextjs): fetch initialData from backend
+
 ## 1.3.1-canary-20250618084038
 
 ### Patch Changes
