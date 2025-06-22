@@ -6,6 +6,7 @@ import { frTranslations } from './fr';
 import { itTranslations } from './it';
 import { nlTranslations } from './nl';
 import { ptTranslations } from './pt';
+import { zhTranslations } from './zh';
 
 const baseTranslations = {
 	en: enTranslations,
@@ -16,6 +17,7 @@ const baseTranslations = {
 	it: itTranslations,
 	nl: nlTranslations,
 	pt: ptTranslations,
+	zh: zhTranslations,
 };
 
 export { baseTranslations };

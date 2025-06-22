@@ -1,5 +1,11 @@
 # @c15t/translations
 
+## 1.3.1-canary-20250618084038
+
+### Patch Changes
+
+- 5da2f28: Added ZH (Simplified Chinese) language support
+
 ## 1.3.0
 
 ### Minor Changes
