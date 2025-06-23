@@ -3,6 +3,7 @@ import {
 	ConsentManagerProvider as ClientConsentManagerProvider,
 	type ConsentManagerProviderProps,
 } from '@c15t/react';
+import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers';
 import { headers } from 'next/headers';
 
 type InitialData = ContractsOutputs['consent']['showBanner'] | undefined;
@@ -69,32 +70,50 @@ function extractRelevantHeaders(
 	return relevantHeaders;
 }
 
-async function getC15TInitialData(backendURL: string): Promise<InitialData> {
-	const headersList = await headers();
-
-	let showConsentBanner: Promise<InitialData> = Promise.resolve(undefined);
-
-	const relevantHeaders = extractRelevantHeaders(headersList);
-	const referer = headersList.get('referer');
-
-	// Validate and normalize the backend URL
-	let normalizedURL: string;
+function normalizeBackendURL(
+	backendURL: string,
+	headersList: ReadonlyHeaders
+): string | null {
 	try {
 		const { normalizedURL: validated, isAbsolute } =
 			validateBackendURL(backendURL);
+
 		if (isAbsolute) {
-			normalizedURL = validated;
-		} else {
-			if (!referer) {
-				throw new Error('Referer header is required for relative URLs');
-			}
-			normalizedURL = `${referer}${validated}`;
+			return validated;
 		}
+
+		const referer = headersList.get('referer');
+		const protocol = headersList.get('x-forwarded-proto') || 'https';
+		const host = headersList.get('x-forwarded-host') || headersList.get('host');
+
+		if (host) {
+			return `${protocol}://${host}${validated}`;
+		}
+
+		if (referer) {
+			return `${referer}${validated}`;
+		}
+
+		if (process.env.NODE_ENV === 'development') {
+			console.warn('Could not determine base URL for relative backend URL');
+		}
+		return null;
 	} catch (error) {
-		// Log error in development, fail silently in production
 		if (process.env.NODE_ENV === 'development') {
 			console.warn('Invalid backend URL:', error);
 		}
+		return null;
+	}
+}
+
+async function getC15TInitialData(backendURL: string): Promise<InitialData> {
+	const headersList = await headers();
+	const relevantHeaders = extractRelevantHeaders(headersList);
+	let showConsentBanner: Promise<InitialData> = Promise.resolve(undefined);
+
+	const normalizedURL = normalizeBackendURL(backendURL, headersList);
+
+	if (!normalizedURL) {
 		return showConsentBanner;
 	}
 
@@ -112,7 +131,6 @@ async function getC15TInitialData(backendURL: string): Promise<InitialData> {
 			}
 		}
 	} catch {
-		// Just fail silently if we can't fetch the initial data
 		return showConsentBanner;
 	}
 
