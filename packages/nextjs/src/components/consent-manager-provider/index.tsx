@@ -5,9 +5,7 @@ import {
 } from '@c15t/react';
 import { headers } from 'next/headers';
 
-type InitialData = Promise<
-	ContractsOutputs['consent']['showBanner'] | undefined
->;
+type InitialData = ContractsOutputs['consent']['showBanner'] | undefined;
 
 const LOCATION_HEADERS = [
 	'cf-ipcountry',
@@ -19,6 +17,42 @@ const LOCATION_HEADERS = [
 	'accept-language',
 	'user-agent',
 ] as const;
+
+const ABSOLUTE_URL_REGEX = /^https?:\/\//;
+
+function validateBackendURL(backendURL: string): {
+	isAbsolute: boolean;
+	normalizedURL: string;
+} {
+	// Check if URL is absolute (starts with protocol)
+	const isAbsolute = ABSOLUTE_URL_REGEX.test(backendURL);
+
+	if (isAbsolute) {
+		try {
+			const url = new URL(backendURL);
+			// Ensure we only allow HTTP/HTTPS protocols for security
+			if (!['http:', 'https:'].includes(url.protocol)) {
+				throw new Error(`Unsupported protocol: ${url.protocol}`);
+			}
+			return {
+				isAbsolute: true,
+				normalizedURL: backendURL,
+			};
+		} catch {
+			throw new Error(`Invalid absolute URL: ${backendURL}`);
+		}
+	} else {
+		// Handle relative URLs - ensure they start with /
+		const normalizedURL = backendURL.startsWith('/')
+			? backendURL
+			: `/${backendURL}`;
+
+		return {
+			isAbsolute: false,
+			normalizedURL,
+		};
+	}
+}
 
 function extractRelevantHeaders(
 	headersList: Awaited<ReturnType<typeof headers>>
@@ -35,24 +69,41 @@ function extractRelevantHeaders(
 	return relevantHeaders;
 }
 
-async function getC15TInitialData(backendURL: string): InitialData {
+async function getC15TInitialData(backendURL: string): Promise<InitialData> {
 	const headersList = await headers();
 
 	let showConsentBanner: InitialData = Promise.resolve(undefined);
 
 	const relevantHeaders = extractRelevantHeaders(headersList);
+	const referer = headersList.get('referer');
+
+	// Validate and normalize the backend URL
+	let normalizedURL: string;
+	try {
+		const { normalizedURL: validated, isAbsolute } =
+			validateBackendURL(backendURL);
+		normalizedURL = isAbsolute ? validated : `${referer}${validated}`;
+	} catch (error) {
+		console.error('Invalid backend URL:', error);
+		return showConsentBanner;
+	}
 
 	// We can't fetch from the server if the headers are not present like when dynamic params is set to force-static
 	// https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config#dynamicparams
-	if (Object.keys(relevantHeaders).length > 0) {
-		const response = await fetch(`${backendURL}/show-consent-banner`, {
-			method: 'GET',
-			headers: relevantHeaders,
-		});
+	try {
+		if (Object.keys(relevantHeaders).length > 0) {
+			const response = await fetch(`${normalizedURL}/show-consent-banner`, {
+				method: 'GET',
+				headers: relevantHeaders,
+			});
 
-		if (response.ok) {
-			showConsentBanner = await response.json();
+			if (response.ok) {
+				showConsentBanner = await response.json();
+			}
 		}
+	} catch {
+		// Just fail silently if we can't fetch the initial data
+		return showConsentBanner;
 	}
 
 	return showConsentBanner;
@@ -62,7 +113,7 @@ export function ConsentManagerProvider({
 	children,
 	options,
 }: ConsentManagerProviderProps) {
-	let initialDataPromise: InitialData;
+	let initialDataPromise: Promise<InitialData>;
 
 	// Initial data is currently only available in c15t mode
 	switch (options.mode) {
