@@ -82,9 +82,19 @@ async function getC15TInitialData(backendURL: string): Promise<InitialData> {
 	try {
 		const { normalizedURL: validated, isAbsolute } =
 			validateBackendURL(backendURL);
-		normalizedURL = isAbsolute ? validated : `${referer}${validated}`;
+		if (isAbsolute) {
+			normalizedURL = validated;
+		} else {
+			if (!referer) {
+				throw new Error('Referer header is required for relative URLs');
+			}
+			normalizedURL = `${referer}${validated}`;
+		}
 	} catch (error) {
-		console.error('Invalid backend URL:', error);
+		// Log error in development, fail silently in production
+		if (process.env.NODE_ENV === 'development') {
+			console.warn('Invalid backend URL:', error);
+		}
 		return showConsentBanner;
 	}
 
