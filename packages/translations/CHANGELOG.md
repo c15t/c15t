@@ -1,5 +1,15 @@
 # @c15t/translations
 
+## 1.3.1
+
+### Patch Changes
+
+- 7fecb81: refactor(nextjs): fetch inital data from backend in c15t mode instead of duplicate logic
+  fix: incorrect link to quickstart
+  fix(issue-274): include nextjs externals in rslib
+  fix(core): fall back to API call if initialData promise is empty
+  chore: add translation for zh
+
 ## 1.3.1-canary-20250618084038
 
 ### Patch Changes
