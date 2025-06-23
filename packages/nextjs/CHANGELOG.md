@@ -1,5 +1,11 @@
 # @c15t/nextjs
 
+## 1.3.2-canary-20250623195533
+
+### Patch Changes
+
+- 039576e: fix(nextjs): relative url error
+
 ## 1.3.1
 
 ### Patch Changes

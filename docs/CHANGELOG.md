@@ -1,5 +1,12 @@
 # docs
 
+## 1.3.2-canary-20250623195533
+
+### Patch Changes
+
+- Updated dependencies [039576e]
+  - @c15t/nextjs@1.3.2-canary-20250623195533
+
 ## 1.3.1
 
 ### Patch Changes
