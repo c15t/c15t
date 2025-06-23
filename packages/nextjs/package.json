@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/nextjs",
-	"version": "1.3.1",
+	"version": "1.3.2-canary-20250623195533",
 	"description": "Next.js integration for C15T consent management",
 	"type": "module",
 	"main": "./dist/index.js",
