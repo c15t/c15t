@@ -72,7 +72,7 @@ function extractRelevantHeaders(
 async function getC15TInitialData(backendURL: string): Promise<InitialData> {
 	const headersList = await headers();
 
-	let showConsentBanner: InitialData = Promise.resolve(undefined);
+	let showConsentBanner: Promise<InitialData> = Promise.resolve(undefined);
 
 	const relevantHeaders = extractRelevantHeaders(headersList);
 	const referer = headersList.get('referer');
