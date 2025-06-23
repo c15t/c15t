@@ -130,6 +130,7 @@ export function ConsentManagerProvider({
 		// Initialize the store on first render or when critical options change
 		if (shouldRecreateStore) {
 			storeRef.current = createConsentManagerStore(consentManager, {
+				googleTagManager: options.googleTagManager,
 				...store,
 				isConsentDomain,
 				initialTranslationConfig: translations,
@@ -137,7 +138,15 @@ export function ConsentManagerProvider({
 		}
 
 		return storeRef.current;
-	}, [consentManager, isConsentDomain, translations, store, backendURL, mode]);
+	}, [
+		consentManager,
+		isConsentDomain,
+		translations,
+		options.googleTagManager,
+		store,
+		backendURL,
+		mode,
+	]);
 
 	// Initialize state with the current state from the consent manager store
 	const [state, setState] = useState<PrivacyConsentState>(() => {

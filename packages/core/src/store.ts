@@ -26,6 +26,7 @@ import type {
 import { type AllConsentNames, consentTypes } from './types/gdpr';
 
 import type { ContractsOutputs } from '@c15t/backend/contracts';
+import { type GTMConfiguration, setupGTM, updateGTMConsent } from './libs/gtm';
 
 /** Storage key for persisting consent data in localStorage */
 const STORAGE_KEY = 'privacy-consent-storage';
@@ -113,6 +114,11 @@ export interface StoreOptions {
 	 * @default false
 	 */
 	isConsentDomain?: boolean;
+
+	/**
+	 * Google Tag Manager configuration.
+	 */
+	googleTagManager?: GTMConfiguration;
 
 	/**
 	 * Initial Translation Config
@@ -278,6 +284,7 @@ export const createConsentManagerStore = (
 
 				// Update tracking blocker with new consents
 				trackingBlocker?.updateConsents(newConsents);
+				updateGTMConsent(newConsents);
 
 				return { consents: newConsents };
 			});
@@ -382,6 +389,7 @@ export const createConsentManagerStore = (
 
 			// Update tracking blocker with new consents right away
 			trackingBlocker?.updateConsents(newConsents);
+			updateGTMConsent(newConsents);
 
 			// Store to localStorage immediately for persistence
 			// Wrap in try/catch to handle potential privacy mode errors
@@ -578,6 +586,13 @@ export const createConsentManagerStore = (
 	if (typeof window !== 'undefined') {
 		// biome-ignore lint/suspicious/noExplicitAny: its okay
 		(window as any)[namespace] = store;
+
+		if (options.googleTagManager) {
+			setupGTM({
+				...options.googleTagManager,
+				consentState: store.getState().consents,
+			});
+		}
 
 		// Auto-fetch consent banner information if no stored consent
 		if (!getStoredConsent()) {

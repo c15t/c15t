@@ -5,6 +5,7 @@
 
 import type {
 	ConsentManagerOptions as CoreOptions,
+	GTMConfiguration,
 	TranslationConfig,
 } from 'c15t';
 import type { ReactNode } from 'react';
@@ -67,6 +68,12 @@ export type ConsentManagerOptions = CoreOptions & {
 	 * Translation configuration
 	 */
 	translations?: Partial<TranslationConfig>;
+
+	/**
+	 * Google Tag Manager configuration.
+	 * Once you set this, the consent manager will automatically setup Google Tag Manager for you.
+	 */
+	googleTagManager?: GTMConfiguration;
 };
 
 /**
