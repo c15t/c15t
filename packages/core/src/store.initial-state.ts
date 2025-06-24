@@ -121,6 +121,9 @@ export const initialState: Omit<
 	/** Use predefined consent types */
 	consentTypes: consentTypes,
 
+	/** Default to not ignoring geo location */
+	ignoreGeoLocation: false,
+
 	// Initialize all methods as no-ops
 	setConsent: () => {
 		/* no-op */
