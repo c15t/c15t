@@ -1,5 +1,15 @@
 # @c15t/nextjs
 
+## 1.3.3
+
+### Patch Changes
+
+- b4d53be: feat(core): added Google Tag Manager support
+  fix(react): allow trapFocus={false} in CookieBanner
+  fix(nextjs): improved url validation
+- Updated dependencies [b4d53be]
+  - @c15t/react@1.3.3
+
 ## 1.3.3-canary-20250624131627
 
 ### Patch Changes
