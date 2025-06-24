@@ -55,6 +55,8 @@ function generateOptionsText(
 				return `{
 					mode: 'c15t',
 					backendURL: '/api/c15t',
+					consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
+					ignoreGeoLocation: true, // Useful for development to always view the banner.
 				}`;
 			}
 
@@ -62,12 +64,16 @@ function generateOptionsText(
 				return `{
 					mode: 'c15t',
 					backendURL: process.env.NEXT_PUBLIC_C15T_URL!,
+					consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
+					ignoreGeoLocation: true, // Useful for development to always view the banner.
 				}`;
 			}
 
 			return `{
 				mode: 'c15t',
 				backendURL: '${backendURL || 'https://your-instance.c15t.dev'}',
+				consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
+        ignoreGeoLocation: true, // Useful for development to always view the banner.
 			}`;
 		}
 		case 'custom':
@@ -78,6 +84,7 @@ function generateOptionsText(
 		default:
 			return `{
 				mode: 'offline',
+				consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
 			}`;
 	}
 }

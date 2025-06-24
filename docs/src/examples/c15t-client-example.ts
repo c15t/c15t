@@ -9,9 +9,7 @@ export const c15tClientExample = `import { type ConsentManagerOptions } from '@c
 export const standardClient: ConsentManagerOptions = {
     // Required backend URL for c15t mode
     backendURL: '/api/c15t',
-    store: {
-        initialGdprTypes: ['necessary', 'marketing'],
-    },
+    consentCategories: ['necessary', 'marketing'],
 };
 
 /**
@@ -25,9 +23,7 @@ export const standardClient: ConsentManagerOptions = {
  */
 export const offlineClient: ConsentManagerOptions = {
     mode: 'offline',
-    store: {
-        initialGdprTypes: ['necessary', 'marketing'],
-    },
+    consentCategories: ['necessary', 'marketing'],
     callbacks: {
         // All callbacks still work even though no network requests are made
         onConsentSet: (response) => {
@@ -83,7 +79,5 @@ export const customClient: ConsentManagerOptions = {
             response: null
         })
     },
-    store: {
-      initialGdprTypes: ['necessary', 'marketing'],
-    },
+    consentCategories: ['necessary', 'marketing'],
 };`;

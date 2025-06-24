@@ -29,6 +29,8 @@ export const c15tConfig = {
   // Using hosted c15t (consent.io) or self-hosted instance
   mode: 'c15t',
   backendURL: ${useEnvFile ? 'process.env.NEXT_PUBLIC_C15T_URL' : `'${backendURL || 'https://your-instance.c15t.dev'}'`},
+  consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
+  ignoreGeoLocation: true, // Useful for development to always view the banner.
   
   // Optional: Add callback functions for various events
   callbacks: {

@@ -52,7 +52,8 @@ async function updateStore(
 	{ set, get, initialTranslationConfig }: FetchConsentBannerConfig,
 	hasLocalStorageAccess: boolean
 ): Promise<void> {
-	const { consentInfo, setDetectedCountry, callbacks } = get();
+	const { consentInfo, setDetectedCountry, callbacks, ignoreGeoLocation } =
+		get();
 
 	const { translations, location, jurisdiction, showConsentBanner } = data;
 
@@ -96,7 +97,10 @@ async function updateStore(
 	set({
 		isLoadingConsentInfo: false,
 		...(consentInfo === null
-			? { showPopup: showConsentBanner && hasLocalStorageAccess }
+			? {
+					showPopup:
+						(showConsentBanner && hasLocalStorageAccess) || ignoreGeoLocation,
+				}
 			: {}),
 	});
 }

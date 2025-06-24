@@ -128,6 +128,12 @@ export interface StoreOptions {
 	unstable_googleTagManager?: GTMConfiguration;
 
 	/**
+	 * Whether to ignore geo location. Will always show the consent banner.
+	 * @default false
+	 */
+	ignoreGeoLocation?: boolean;
+
+	/**
 	 * Initial Translation Config
 	 */
 	initialTranslationConfig?: Partial<TranslationConfig>;
@@ -242,6 +248,7 @@ export const createConsentManagerStore = (
 
 	const store = createStore<PrivacyConsentState>((set, get) => ({
 		...initialState,
+		ignoreGeoLocation: options.ignoreGeoLocation ?? false,
 		config: options.config ?? initialState.config,
 		// Set isConsentDomain based on the provider's baseURL
 		isConsentDomain,

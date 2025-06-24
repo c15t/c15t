@@ -136,6 +136,8 @@ export function ConsentManagerProvider({
 					version: packageJson.version,
 					mode: mode || 'Unknown',
 				},
+				ignoreGeoLocation: options.ignoreGeoLocation,
+				initialGdprTypes: options.consentCategories,
 				...store,
 				isConsentDomain,
 				initialTranslationConfig: translations,
@@ -148,6 +150,8 @@ export function ConsentManagerProvider({
 		isConsentDomain,
 		translations,
 		options.unstable_googleTagManager,
+		options.ignoreGeoLocation,
+		options.consentCategories,
 		store,
 		backendURL,
 		mode,
@@ -171,8 +175,8 @@ export function ConsentManagerProvider({
 			consentStore.getState();
 
 		// Initialize GDPR types if provided
-		if (initialGdprTypes) {
-			setGdprTypes(initialGdprTypes);
+		if (initialGdprTypes || options.consentCategories) {
+			setGdprTypes(initialGdprTypes || options.consentCategories || []);
 		}
 
 		// Initialize compliance settings if provided
@@ -195,7 +199,12 @@ export function ConsentManagerProvider({
 		const unsubscribe = consentStore.subscribe(setState);
 
 		return unsubscribe;
-	}, [consentStore, initialGdprTypes, initialComplianceSettings]);
+	}, [
+		consentStore,
+		initialGdprTypes,
+		initialComplianceSettings,
+		options.consentCategories,
+	]);
 
 	// Create theme context value
 	const themeContextValue = useMemo(() => {

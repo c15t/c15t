@@ -13,7 +13,6 @@ export default function App() {
     return (
         <ConsentManagerProvider 
             options={offlineClient}
-            initialGdprTypes={['necessary', 'marketing']}
         >
             {/* Open the dialog manually */}
             <ConsentManagerDialog open={true} />
