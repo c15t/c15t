@@ -130,7 +130,7 @@ export function ConsentManagerProvider({
 		// Initialize the store on first render or when critical options change
 		if (shouldRecreateStore) {
 			storeRef.current = createConsentManagerStore(consentManager, {
-				googleTagManager: options.googleTagManager,
+				unstable_googleTagManager: options.unstable_googleTagManager,
 				...store,
 				isConsentDomain,
 				initialTranslationConfig: translations,
@@ -142,7 +142,7 @@ export function ConsentManagerProvider({
 		consentManager,
 		isConsentDomain,
 		translations,
-		options.googleTagManager,
+		options.unstable_googleTagManager,
 		store,
 		backendURL,
 		mode,

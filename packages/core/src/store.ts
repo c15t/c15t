@@ -118,7 +118,7 @@ export interface StoreOptions {
 	/**
 	 * Google Tag Manager configuration.
 	 */
-	googleTagManager?: GTMConfiguration;
+	unstable_googleTagManager?: GTMConfiguration;
 
 	/**
 	 * Initial Translation Config
@@ -587,9 +587,9 @@ export const createConsentManagerStore = (
 		// biome-ignore lint/suspicious/noExplicitAny: its okay
 		(window as any)[namespace] = store;
 
-		if (options.googleTagManager) {
+		if (options.unstable_googleTagManager) {
 			setupGTM({
-				...options.googleTagManager,
+				...options.unstable_googleTagManager,
 				consentState: store.getState().consents,
 			});
 		}

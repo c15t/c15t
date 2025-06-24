@@ -1,5 +1,5 @@
 ---
-title: Google Tag Manager Setup (Beta)
+title: Google Tag Manager Setup (Unstable)
 description: Learn how to integrate c15t with Google Tag Manager (GTM).
 ---
 
@@ -28,7 +28,7 @@ After signing into Google Tag Manager, you can create a new container.
 
 After creating your container, you can set up c15t with Google Tag Manager.
 
-All you need to do copy and paste your container ID into the `googleTagManager.id` property.
+All you need to do copy and paste your container ID into the `unstable_googleTagManager.id` property.
 
 This begins with "GTM-". 
 
@@ -37,7 +37,7 @@ This begins with "GTM-".
   options={{
     mode: 'c15t',
     backendURL: 'https://your-instance.c15t.dev',
-    googleTagManager: {
+    unstable_googleTagManager: {
       id: 'GTM-XXXXXXX',
     },
   }}

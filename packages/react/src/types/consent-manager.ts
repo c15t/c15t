@@ -73,7 +73,7 @@ export type ConsentManagerOptions = CoreOptions & {
 	 * Google Tag Manager configuration.
 	 * Once you set this, the consent manager will automatically setup Google Tag Manager for you.
 	 */
-	googleTagManager?: GTMConfiguration;
+	unstable_googleTagManager?: GTMConfiguration;
 };
 
 /**
