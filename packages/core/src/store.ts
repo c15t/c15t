@@ -588,10 +588,15 @@ export const createConsentManagerStore = (
 		(window as any)[namespace] = store;
 
 		if (options.unstable_googleTagManager) {
-			setupGTM({
-				...options.unstable_googleTagManager,
-				consentState: store.getState().consents,
-			});
+			try {
+				setupGTM({
+					...options.unstable_googleTagManager,
+					consentState: store.getState().consents,
+				});
+			} catch (e) {
+				// biome-ignore lint/suspicious/noConsole: <explanation>
+				console.error('Failed to setup Google Tag Manager:', e);
+			}
 		}
 
 		// Auto-fetch consent banner information if no stored consent
