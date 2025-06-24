@@ -8,6 +8,7 @@ export function validateBackendURL(backendURL: string): {
 	const isAbsolute = ABSOLUTE_URL_REGEX.test(backendURL);
 
 	if (isAbsolute) {
+		// Validate that the URL is valid
 		new URL(backendURL);
 
 		return {
@@ -23,7 +24,9 @@ export function validateBackendURL(backendURL: string): {
 		};
 	}
 
-	throw new Error(`Invalid URL: ${backendURL}`);
+	throw new Error(
+		`Invalid URL format: ${backendURL}. URL must be absolute (https://...) or relative starting with (/)`
+	);
 }
 
 export function normalizeBackendURL(
