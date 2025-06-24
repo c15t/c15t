@@ -95,7 +95,7 @@ export interface CookieBannerProps {
 	 * @remarks Useful for implementing a cookie banner that traps focus
 	 * @default true
 	 */
-	trapFocus?: true;
+	trapFocus?: boolean;
 }
 
 /**
