@@ -19,7 +19,7 @@ type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
  */
 interface FetchConsentBannerConfig {
 	manager: ConsentManagerInterface;
-	initialData?: Promise<ContractsOutputs['consent']['showBanner']>;
+	initialData?: Promise<ContractsOutputs['consent']['showBanner'] | undefined>;
 	initialTranslationConfig?: Partial<TranslationConfig>;
 	get: StoreApi<PrivacyConsentState>['getState'];
 	set: StoreApi<PrivacyConsentState>['setState'];

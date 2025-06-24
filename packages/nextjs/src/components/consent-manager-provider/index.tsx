@@ -1,4 +1,4 @@
-import type { ContractsOutputs } from '@c15t/backend';
+import type { ContractsOutputs } from '@c15t/backend/contracts';
 import {
 	ConsentManagerProvider as ClientConsentManagerProvider,
 	type ConsentManagerProviderProps,
@@ -6,7 +6,11 @@ import {
 import type { ReadonlyHeaders } from 'next/dist/server/web/spec-extension/adapters/headers';
 import { headers } from 'next/headers';
 
-type InitialData = ContractsOutputs['consent']['showBanner'] | undefined;
+type InitialDataPromise = NonNullable<
+	ConsentManagerProviderProps['options']['store']
+>['_initialData'];
+
+type ShowConsentBanner = ContractsOutputs['consent']['showBanner'] | undefined;
 
 const LOCATION_HEADERS = [
 	'cf-ipcountry',
@@ -106,10 +110,13 @@ function normalizeBackendURL(
 	}
 }
 
-async function getC15TInitialData(backendURL: string): Promise<InitialData> {
+async function getC15TInitialData(
+	backendURL: string
+): Promise<ShowConsentBanner> {
 	const headersList = await headers();
 	const relevantHeaders = extractRelevantHeaders(headersList);
-	let showConsentBanner: Promise<InitialData> = Promise.resolve(undefined);
+	let showConsentBanner: Promise<ShowConsentBanner> =
+		Promise.resolve(undefined);
 
 	const normalizedURL = normalizeBackendURL(backendURL, headersList);
 
@@ -141,7 +148,7 @@ export function ConsentManagerProvider({
 	children,
 	options,
 }: ConsentManagerProviderProps) {
-	let initialDataPromise: Promise<InitialData>;
+	let initialDataPromise: InitialDataPromise;
 
 	// Initial data is currently only available in c15t mode
 	switch (options.mode) {

@@ -134,7 +134,7 @@ export interface StoreOptions {
 	 * Initial showConsentBanner value. This will set a cookie for the consent banner.
 	 * @internal
 	 */
-	_initialData?: Promise<ContractsOutputs['consent']['showBanner']>;
+	_initialData?: Promise<ContractsOutputs['consent']['showBanner'] | undefined>;
 }
 
 // For backward compatibility (if needed)
