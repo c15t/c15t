@@ -1,5 +1,13 @@
 # @c15t/nextjs
 
+## 1.3.3-canary-20250624131627
+
+### Patch Changes
+
+- 15d7a9b: fix(nextjs): improved url validation
+- Updated dependencies [f13ad52]
+  - @c15t/react@1.3.3-canary-20250624131627
+
 ## 1.3.2
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @c15t/cli
 
+## 1.3.3-canary-20250624131627
+
+### Patch Changes
+
+- Updated dependencies [f13ad52]
+  - @c15t/react@1.3.3-canary-20250624131627
+
 ## 1.3.1
 
 ### Patch Changes

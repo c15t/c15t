@@ -1,5 +1,13 @@
 # @c15t/react
 
+## 1.3.3-canary-20250624131627
+
+### Patch Changes
+
+- f13ad52: fix(react): allow trapFocus={false} in CookieBanner
+- Updated dependencies [63200df]
+  - c15t@1.3.3-canary-20250624131627
+
 ## 1.3.1
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # c15t
 
+## 1.3.3-canary-20250624131627
+
+### Patch Changes
+
+- 63200df: feat(core): added Google Tag Manager support
+
 ## 1.3.1
 
 ### Patch Changes
