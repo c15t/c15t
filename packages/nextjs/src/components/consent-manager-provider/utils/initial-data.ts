@@ -10,19 +10,17 @@ export async function getC15TInitialData(
 ): Promise<ShowConsentBanner> {
 	const headersList = await headers();
 	const relevantHeaders = extractRelevantHeaders(headersList);
-	let showConsentBanner: Promise<ShowConsentBanner> =
-		Promise.resolve(undefined);
 
 	// We can't fetch from the server if the headers are not present like when dynamic params is set to force-static
 	// https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config#dynamicparams
 	if (Object.keys(relevantHeaders).length === 0) {
-		return showConsentBanner;
+		return undefined;
 	}
 
 	const normalizedURL = normalizeBackendURL(backendURL, headersList);
 
 	if (!normalizedURL) {
-		return showConsentBanner;
+		return undefined;
 	}
 
 	try {
@@ -32,11 +30,11 @@ export async function getC15TInitialData(
 		});
 
 		if (response.ok) {
-			showConsentBanner = await response.json();
+			return await response.json();
 		}
 	} catch {
-		return showConsentBanner;
+		// Silently handle any network or parsing errors
 	}
 
-	return showConsentBanner;
+	return undefined;
 }
