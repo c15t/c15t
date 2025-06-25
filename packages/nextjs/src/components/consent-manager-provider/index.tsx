@@ -2,6 +2,7 @@ import {
 	ConsentManagerProvider as ClientConsentManagerProvider,
 	type ConsentManagerProviderProps,
 } from '@c15t/react';
+import { version } from '../../../package.json';
 import { getC15TInitialData } from './utils/initial-data';
 
 type InitialDataPromise = NonNullable<
@@ -30,6 +31,11 @@ export function ConsentManagerProvider({
 				...options,
 				store: {
 					...options.store,
+					config: {
+						pkg: '@c15t/nextjs',
+						version: version,
+						mode: options.mode || 'Unknown',
+					},
 					_initialData: initialDataPromise,
 				},
 			}}

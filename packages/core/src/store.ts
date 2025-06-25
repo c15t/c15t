@@ -94,6 +94,13 @@ export interface StoreOptions {
 	 */
 	namespace?: string;
 
+	/** Information about the consent manager */
+	config?: {
+		pkg: string;
+		version: string;
+		mode: string;
+	};
+
 	/**
 	 * Initial GDPR consent types to activate.
 	 */
@@ -192,6 +199,7 @@ export const createConsentManagerStore = (
 		trackingBlockerConfig,
 		isConsentDomain = false,
 		translationConfig,
+		config,
 	} = options;
 
 	// Load initial state from localStorage if available
@@ -235,6 +243,7 @@ export const createConsentManagerStore = (
 
 	const store = createStore<PrivacyConsentState>((set, get) => ({
 		...initialState,
+		config: options.config ?? initialState.config,
 		// Set isConsentDomain based on the provider's baseURL
 		isConsentDomain,
 		// Override the callbacks with merged callbacks

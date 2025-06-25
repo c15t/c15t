@@ -3,6 +3,7 @@
  * Provides the default initial state configuration for the consent management store.
  */
 
+import { version } from '../package.json';
 import type { PrivacyConsentState } from './store.type';
 import { defaultTranslationConfig } from './translations';
 import { type ConsentState, consentTypes } from './types';
@@ -44,6 +45,12 @@ export const initialState: Omit<
 	PrivacyConsentState,
 	'getEffectiveConsents' | 'hasConsentFor' | 'fetchConsentBannerInfo'
 > = {
+	config: {
+		pkg: 'c15t',
+		version: version,
+		mode: 'Unknown',
+	},
+
 	/** Initial consent states based on default values from consent types */
 	consents: consentTypes.reduce((acc, consent) => {
 		acc[consent.name] = consent.defaultValue;

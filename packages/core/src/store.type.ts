@@ -50,6 +50,12 @@ import type {
  * @public
  */
 export interface PrivacyConsentState {
+	config: {
+		pkg: string;
+		version: string;
+		mode: string;
+	};
+
 	/** Current consent states for all consent types */
 	consents: ConsentState;
 

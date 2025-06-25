@@ -7,6 +7,7 @@ import {
 	createConsentManagerStore,
 } from 'c15t';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { version } from '../../package.json';
 import {
 	ConsentStateContext,
 	type ConsentStateContextValue,
@@ -14,7 +15,6 @@ import {
 import { GlobalThemeContext } from '../context/theme-context';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import type { ConsentManagerProviderProps } from '../types/consent-manager';
-
 /**
  * Provider component for consent management functionality.
  *
@@ -131,6 +131,11 @@ export function ConsentManagerProvider({
 		if (shouldRecreateStore) {
 			storeRef.current = createConsentManagerStore(consentManager, {
 				unstable_googleTagManager: options.unstable_googleTagManager,
+				config: {
+					pkg: '@c15t/react',
+					version: version,
+					mode: mode || 'Unknown',
+				},
 				...store,
 				isConsentDomain,
 				initialTranslationConfig: translations,
