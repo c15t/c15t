@@ -11,10 +11,7 @@ import {
 	detectFramework,
 	detectProjectRoot,
 } from '../context/framework-detection';
-import {
-	type PackageManagerResult,
-	detectPackageManager,
-} from '../context/package-manager-detection';
+import type { PackageManagerResult } from '../context/package-manager-detection';
 import type { CliContext } from '../context/types';
 import { TelemetryEventName } from '../utils/telemetry';
 
@@ -95,11 +92,10 @@ async function performOnboarding(
 	existingConfig: C15TOptions | ConsentManagerOptions | null | undefined,
 	handleCancel: (value: unknown) => value is symbol
 ) {
-	const { telemetry, logger } = context;
+	const { telemetry, logger, packageManager } = context;
 	const isUpdate = !!existingConfig;
 
 	const projectRoot = await detectProjectRoot(context.cwd, logger);
-	const packageManager = await detectPackageManager(projectRoot, logger);
 	const { pkg } = await detectFramework(projectRoot, logger);
 
 	if (!pkg) {
