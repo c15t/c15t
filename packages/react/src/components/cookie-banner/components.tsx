@@ -155,7 +155,7 @@ const CookieBannerCard = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
 				baseClassName={styles.card}
 				data-testid="cookie-banner-card"
 				themeKey="banner.card"
-				aria-label="Cookie Banner"
+				aria-label={props['aria-label'] || 'Cookie Banner'}
 				aria-modal={shouldTrapFocus ? 'true' : undefined}
 				role={shouldTrapFocus ? 'dialog' : undefined}
 				{...props}

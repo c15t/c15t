@@ -181,7 +181,7 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 				scrollLock={scrollLock}
 				trapFocus={trapFocus}
 			>
-				<CookieBannerCard>
+				<CookieBannerCard aria-label={cookieBanner.title}>
 					<CookieBannerHeader>
 						<CookieBannerTitle>{title || cookieBanner.title}</CookieBannerTitle>
 						<CookieBannerDescription>
