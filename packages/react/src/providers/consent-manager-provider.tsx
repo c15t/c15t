@@ -7,7 +7,7 @@ import {
 	createConsentManagerStore,
 } from 'c15t';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { version } from '../../package.json';
+import packageJson from '../../package.json';
 import {
 	ConsentStateContext,
 	type ConsentStateContextValue,
@@ -133,7 +133,7 @@ export function ConsentManagerProvider({
 				unstable_googleTagManager: options.unstable_googleTagManager,
 				config: {
 					pkg: '@c15t/react',
-					version: version,
+					version: packageJson.version,
 					mode: mode || 'Unknown',
 				},
 				...store,

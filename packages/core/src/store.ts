@@ -199,7 +199,6 @@ export const createConsentManagerStore = (
 		trackingBlockerConfig,
 		isConsentDomain = false,
 		translationConfig,
-		config,
 	} = options;
 
 	// Load initial state from localStorage if available
