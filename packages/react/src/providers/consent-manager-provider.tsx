@@ -54,15 +54,20 @@ export function ConsentManagerProvider({
 	const store = direct.store ?? options?.store ?? {};
 	const translations = direct.translations ?? options?.translations;
 	const react = direct.react ?? options?.react ?? {};
+	const unstable_googleTagManager =
+		direct.unstable_googleTagManager ?? options?.unstable_googleTagManager;
 
-	const {
-		endpointHandlers,
-		unstable_googleTagManager,
-		ignoreGeoLocation,
-		consentCategories,
-	} = (
-		mode === 'custom' && options?.mode === 'custom' ? options : direct
-	) as CustomClientOptions & typeof direct;
+	const ignoreGeoLocation =
+		direct.ignoreGeoLocation ?? options?.ignoreGeoLocation;
+
+	const consentCategories =
+		direct.consentCategories ?? options?.consentCategories;
+
+	const endpointHandlers =
+		mode === 'custom'
+			? ((direct as CustomClientOptions).endpointHandlers ??
+				(options as CustomClientOptions).endpointHandlers)
+			: undefined;
 
 	// Destructure once to avoid redundant access
 	const { initialGdprTypes, initialComplianceSettings } = store;
