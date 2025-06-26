@@ -1,5 +1,11 @@
 # @c15t/backend
 
+## 1.4.1
+
+### Patch Changes
+
+- 8afd304: fix(backend): add custom c15t headers to override providers
+
 ## 1.3.1
 
 ### Patch Changes

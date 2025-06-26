@@ -1,5 +1,12 @@
 # @c15t/react
 
+## 1.4.1
+
+### Patch Changes
+
+- c15t@1.4.1
+- @c15t/node-sdk@1.4.1
+
 ## 1.4.0
 
 ### Minor Changes

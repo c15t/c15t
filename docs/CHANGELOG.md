@@ -1,5 +1,17 @@
 # docs
 
+## 1.3.5
+
+### Patch Changes
+
+- Updated dependencies [34d2a46]
+- Updated dependencies [8afd304]
+  - @c15t/nextjs@1.4.1
+  - @c15t/backend@1.4.1
+  - c15t@1.4.1
+  - @c15t/react@1.4.1
+  - @c15t/dev-tools@1.4.1
+
 ## 1.3.4
 
 ### Patch Changes

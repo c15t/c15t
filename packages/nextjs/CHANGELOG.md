@@ -1,5 +1,12 @@
 # @c15t/nextjs
 
+## 1.4.1
+
+### Patch Changes
+
+- 34d2a46: fix(nextjs): add custom c15t headers to initial data fetch
+  - @c15t/react@1.4.1
+
 ## 1.4.0
 
 ### Minor Changes

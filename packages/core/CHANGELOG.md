@@ -1,5 +1,12 @@
 # c15t
 
+## 1.4.1
+
+### Patch Changes
+
+- Updated dependencies [8afd304]
+  - @c15t/backend@1.4.1
+
 ## 1.4.0
 
 ### Minor Changes

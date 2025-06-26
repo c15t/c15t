@@ -1,5 +1,13 @@
 # @c15t/cli
 
+## 1.4.1
+
+### Patch Changes
+
+- Updated dependencies [8afd304]
+  - @c15t/backend@1.4.1
+  - @c15t/react@1.4.1
+
 ## 1.4.0
 
 ### Minor Changes
