@@ -60,7 +60,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		const { rerender } = render(
 			<ConsentManagerProvider
-				mode="offline"
+				mode="offline" // Use offline mode to prevent additional fetches
 				react={{ theme: { 'banner.root': 'light' } }}
 			>
 				<div>Light theme</div>
@@ -92,7 +92,10 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 	it('should make a new request when core options change', async () => {
 		const { rerender } = render(
-			<ConsentManagerProvider mode="c15t" backendURL="/api/c15t-1">
+			<ConsentManagerProvider
+				mode="c15t"
+				backendURL="/api/c15t-1" // Use unique URLs to distinguish calls
+			>
 				<div>First URL</div>
 			</ConsentManagerProvider>
 		);
@@ -110,7 +113,10 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		// Change backendURL
 		rerender(
-			<ConsentManagerProvider mode="c15t" backendURL="/api/c15t-2">
+			<ConsentManagerProvider
+				mode="c15t"
+				backendURL="/api/c15t-2" // Different backend URL
+			>
 				<div>Second URL</div>
 			</ConsentManagerProvider>
 		);
@@ -131,7 +137,9 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		mockFetch.mockClear();
 
 		const { rerender } = render(
-			<ConsentManagerProvider mode="offline">
+			<ConsentManagerProvider
+				mode="offline" // Use offline mode to avoid fetch calls
+			>
 				<div>Counter: 0</div>
 			</ConsentManagerProvider>
 		);
