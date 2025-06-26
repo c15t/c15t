@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/dev-tools",
-	"version": "1.3.4-canary-20250626090931",
+	"version": "1.3.4-canary-20250626095300",
 	"license": "GPL-3.0-only",
 	"type": "module",
 	"main": "dist/index.cjs",
