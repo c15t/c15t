@@ -1,5 +1,13 @@
 # @c15t/dev-tools
 
+## 1.3.4-canary-20250626090931
+
+### Patch Changes
+
+- Updated dependencies [c7b4ad5]
+- Updated dependencies [e30ffaf]
+  - c15t@1.3.4-canary-20250626090931
+
 ## 1.3.3
 
 ### Patch Changes

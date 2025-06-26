@@ -1,5 +1,34 @@
 # @c15t/cli
 
+## 1.3.4-canary-20250626090931
+
+### Patch Changes
+
+- 6eb9a8d: fix(cli): removed env import
+- c7b4ad5: feat(core, react): added ignoreGeoLocation, improved provider props
+- ed5092e: fix(cli): asks for pkg manager twice
+- 37ef4c5: refactor(react): deprecate `options` prop in favor of direct props
+
+  The `options` prop on `ConsentManagerProvider` is now deprecated. Instead of passing configuration as a nested object, spread the configuration properties directly as props:
+
+  ```tsx
+  // Before
+  <ConsentManagerProvider options={{ mode: 'c15t', backendURL: '/api/c15t' }} />
+
+  // After
+  <ConsentManagerProvider mode="c15t" backendURL="/api/c15t" />
+  // or
+  <ConsentManagerProvider {...c15tOptions} />
+  ```
+
+  The old `options` prop is still supported for backward compatibility but will be removed in a future version.
+
+- Updated dependencies [c7b4ad5]
+- Updated dependencies [e30ffaf]
+- Updated dependencies [169de72]
+- Updated dependencies [37ef4c5]
+  - @c15t/react@1.3.4-canary-20250626090931
+
 ## 1.3.3
 
 ### Patch Changes

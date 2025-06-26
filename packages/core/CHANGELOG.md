@@ -1,5 +1,12 @@
 # c15t
 
+## 1.3.4-canary-20250626090931
+
+### Patch Changes
+
+- c7b4ad5: feat(core, react): added ignoreGeoLocation, improved provider props
+- e30ffaf: feat: added 'config' prop to store
+
 ## 1.3.3
 
 ### Patch Changes
