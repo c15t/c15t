@@ -48,7 +48,7 @@ export default function App() {
     clearLocalStorage();
     return (
         <ConsentManagerProvider 
-            options={offlineClient}
+            {...offlineClient}
         >
             <CustomWidget />
             <ExampleContent />

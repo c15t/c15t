@@ -34,12 +34,10 @@ This begins with "GTM-".
 
 ```tsx
 <ConsentManagerProvider
-  options={{
-    mode: 'c15t',
-    backendURL: 'https://your-instance.c15t.dev',
-    unstable_googleTagManager: {
-      id: 'GTM-XXXXXXX',
-    },
+  mode='c15t'
+  backendURL='https://your-instance.c15t.dev'
+  unstable_googleTagManager={{
+    id: 'GTM-XXXXXXX',
   }}
 >
 ```

@@ -41,7 +41,7 @@ export const c15tConfig = {
 } satisfies ConsentManagerOptions;
 
 // Use in your app layout:
-// <ConsentManagerProvider options={c15tConfig}>
+// <ConsentManagerProvider {...c15tConfig}>
 //   {children}
 //   <CookieBanner />
 //   <ConsentManagerDialog />
@@ -66,7 +66,7 @@ export const c15tConfig = {
 } satisfies ConsentManagerOptions;
 
 // Use in your app layout:
-// <ConsentManagerProvider options={c15tConfig}>
+// <ConsentManagerProvider {...c15tConfig}>
 //   {children}
 //   <CookieBanner />
 //   <ConsentManagerDialog />
@@ -93,7 +93,7 @@ export const c15tConfig = {
 } satisfies ConsentManagerOptions;
 
 // Use in your app layout:
-// <ConsentManagerProvider options={c15tConfig}>
+// <ConsentManagerProvider {...c15tConfig}>
 //   {children}
 //   <CookieBanner />
 //   <ConsentManagerDialog />

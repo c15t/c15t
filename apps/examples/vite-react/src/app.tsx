@@ -11,7 +11,7 @@ function App() {
 	const [count, setCount] = useState(0);
 
 	return (
-		<ConsentManagerProvider options={c15tOptions}>
+		<ConsentManagerProvider {...c15tOptions}>
 			<div>
 				<a href="https://vite.dev" target="_blank" rel="noreferrer">
 					{/* biome-ignore lint/nursery/noImgElement: <explanation> */}

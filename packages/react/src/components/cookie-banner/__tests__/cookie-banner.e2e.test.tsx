@@ -65,7 +65,7 @@ describe('CookieBanner E2E Tests', () => {
 
 	test('should show cookie banner on first visit', async () => {
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentManagerProvider {...defaultOptions}>
 				<CookieBanner />
 				<ConsentManagerDialog />
 			</ConsentManagerProvider>
@@ -98,7 +98,7 @@ describe('CookieBanner E2E Tests', () => {
 
 	test('should accept all cookies when clicking Accept All', async () => {
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentManagerProvider {...defaultOptions}>
 				<CookieBanner />
 				<ConsentManagerDialog />
 			</ConsentManagerProvider>
@@ -128,7 +128,7 @@ describe('CookieBanner E2E Tests', () => {
 
 	test('should reject non-essential cookies when clicking Reject All', async () => {
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentManagerProvider {...defaultOptions}>
 				<CookieBanner />
 				<ConsentManagerDialog />
 			</ConsentManagerProvider>
@@ -164,7 +164,7 @@ describe('CookieBanner E2E Tests', () => {
 
 	test('should open consent manager dialog when clicking Customize', async () => {
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentManagerProvider {...defaultOptions}>
 				<CookieBanner />
 				<ConsentManagerDialog />
 			</ConsentManagerProvider>
@@ -229,7 +229,7 @@ describe('CookieBanner E2E Tests', () => {
 
 	test('should be keyboard accessible', async () => {
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentManagerProvider {...defaultOptions}>
 				<CookieBanner />
 				<ConsentManagerDialog />
 			</ConsentManagerProvider>
@@ -259,7 +259,7 @@ describe('CookieBanner E2E Tests', () => {
 
 	test('should handle scroll lock properly', async () => {
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentManagerProvider {...defaultOptions}>
 				<CookieBanner scrollLock />
 				<ConsentManagerDialog />
 			</ConsentManagerProvider>

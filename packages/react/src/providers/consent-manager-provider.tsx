@@ -2,6 +2,7 @@
 
 import {
 	type ComplianceRegion,
+	type CustomClientOptions,
 	type PrivacyConsentState,
 	configureConsentManager,
 	createConsentManagerStore,
@@ -29,12 +30,10 @@ import type { ConsentManagerProviderProps } from '../types/consent-manager';
  * @example
  * ```tsx
  * <ConsentManagerProvider
- *   options={{
- *     mode: 'offline',
- *     callbacks: {
+ *     mode='offline'
+ *     callbacks={{
  *       onConsentSet: (response) => console.log('Consent updated')
- *     }
- *   }}
+ *     }}
  * >
  *   {children}
  * </ConsentManagerProvider>
@@ -42,19 +41,28 @@ import type { ConsentManagerProviderProps } from '../types/consent-manager';
  *
  * @public
  */
+
 export function ConsentManagerProvider({
 	children,
 	options,
+	...direct
 }: ConsentManagerProviderProps) {
-	// Extract and memoize stable options
+	// Support both patterns - direct props take precedence over options
+	const mode = direct.mode ?? options?.mode;
+	const backendURL = direct.backendURL ?? options?.backendURL;
+	const callbacks = direct.callbacks ?? options?.callbacks;
+	const store = direct.store ?? options?.store ?? {};
+	const translations = direct.translations ?? options?.translations;
+	const react = direct.react ?? options?.react ?? {};
+
 	const {
-		mode,
-		backendURL,
-		callbacks,
-		store = {},
-		translations,
-		react = {},
-	} = options;
+		endpointHandlers,
+		unstable_googleTagManager,
+		ignoreGeoLocation,
+		consentCategories,
+	} = (
+		mode === 'custom' && options?.mode === 'custom' ? options : direct
+	) as CustomClientOptions & typeof direct;
 
 	// Destructure once to avoid redundant access
 	const { initialGdprTypes, initialComplianceSettings } = store;
@@ -90,10 +98,10 @@ export function ConsentManagerProvider({
 			});
 		}
 
-		if (mode === 'custom' && 'endpointHandlers' in options) {
+		if (mode === 'custom' && endpointHandlers) {
 			return configureConsentManager({
 				mode: 'custom',
-				endpointHandlers: options.endpointHandlers,
+				endpointHandlers,
 				callbacks,
 				store,
 			});
@@ -105,7 +113,7 @@ export function ConsentManagerProvider({
 			callbacks,
 			store,
 		});
-	}, [mode, backendURL, callbacks, store, options]);
+	}, [mode, backendURL, callbacks, store, endpointHandlers]);
 
 	// Create a stable reference to the consent store and always initialize it
 	const storeRef = useRef<ReturnType<typeof createConsentManagerStore>>(null);
@@ -130,14 +138,14 @@ export function ConsentManagerProvider({
 		// Initialize the store on first render or when critical options change
 		if (shouldRecreateStore) {
 			storeRef.current = createConsentManagerStore(consentManager, {
-				unstable_googleTagManager: options.unstable_googleTagManager,
+				unstable_googleTagManager,
 				config: {
 					pkg: '@c15t/react',
 					version: packageJson.version,
 					mode: mode || 'Unknown',
 				},
-				ignoreGeoLocation: options.ignoreGeoLocation,
-				initialGdprTypes: options.consentCategories,
+				ignoreGeoLocation,
+				initialGdprTypes: consentCategories,
 				...store,
 				isConsentDomain,
 				initialTranslationConfig: translations,
@@ -149,9 +157,9 @@ export function ConsentManagerProvider({
 		consentManager,
 		isConsentDomain,
 		translations,
-		options.unstable_googleTagManager,
-		options.ignoreGeoLocation,
-		options.consentCategories,
+		unstable_googleTagManager,
+		ignoreGeoLocation,
+		consentCategories,
 		store,
 		backendURL,
 		mode,
@@ -175,8 +183,8 @@ export function ConsentManagerProvider({
 			consentStore.getState();
 
 		// Initialize GDPR types if provided
-		if (initialGdprTypes || options.consentCategories) {
-			setGdprTypes(initialGdprTypes || options.consentCategories || []);
+		if (initialGdprTypes || consentCategories) {
+			setGdprTypes(initialGdprTypes || consentCategories || []);
 		}
 
 		// Initialize compliance settings if provided
@@ -203,7 +211,7 @@ export function ConsentManagerProvider({
 		consentStore,
 		initialGdprTypes,
 		initialComplianceSettings,
-		options.consentCategories,
+		consentCategories,
 	]);
 
 	// Create theme context value

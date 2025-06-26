@@ -84,12 +84,7 @@ describe('ConsentManagerProvider Error Handling', () => {
 		};
 
 		const { getByTestId } = render(
-			<ConsentManagerProvider
-				options={{
-					mode: 'c15t',
-					backendURL: '/api/c15t',
-				}}
-			>
+			<ConsentManagerProvider mode="c15t" backendURL="/api/c15t">
 				<ErrorDetectingComponent />
 			</ConsentManagerProvider>
 		);

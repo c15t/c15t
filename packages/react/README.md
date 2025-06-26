@@ -46,7 +46,7 @@ import { c15tConfig } from "./c15t.client";
 
 export default function App() {
   return (
-    <ConsentManagerProvider options={c15tConfig}>
+    <ConsentManagerProvider {...c15tConfig}>
       <CookieBanner />
       <ConsentManagerDialog/>
       {/* Your app content */}

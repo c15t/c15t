@@ -12,7 +12,7 @@ export default function App() {
 
     return (
         <ConsentManagerProvider 
-            options={offlineClient}
+            {...offlineClient}
         >
             {/* Open the dialog manually */}
             <ConsentManagerDialog open={true} />

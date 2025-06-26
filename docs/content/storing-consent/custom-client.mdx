@@ -163,7 +163,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <ConsentManagerProvider options={options}>
+    <ConsentManagerProvider {...options}>
       {children}
       <CookieBanner />
       <ConsentManagerDialog />
