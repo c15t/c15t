@@ -1,5 +1,20 @@
 # @c15t/cli
 
+## 1.4.0-canary-20250626131807
+
+### Minor Changes
+
+- 6eb9a8d: feat(core, react): added ignoreGeoLocation, improved provider props
+  feat(core): added 'config' prop to store for better debugging
+  fix(react): add aria label to cookie banner component
+  fix(cli): removed env import
+  fix(cli): asks for pkg manager twice
+
+### Patch Changes
+
+- Updated dependencies [6eb9a8d]
+  - @c15t/react@1.4.0-canary-20250626131807
+
 ## 1.3.3
 
 ### Patch Changes
