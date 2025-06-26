@@ -1,5 +1,32 @@
 # @c15t/nextjs
 
+## 1.3.4-canary-20250626090931
+
+### Patch Changes
+
+- e30ffaf: feat: added 'config' prop to store
+- 37ef4c5: refactor(react): deprecate `options` prop in favor of direct props
+
+  The `options` prop on `ConsentManagerProvider` is now deprecated. Instead of passing configuration as a nested object, spread the configuration properties directly as props:
+
+  ```tsx
+  // Before
+  <ConsentManagerProvider options={{ mode: 'c15t', backendURL: '/api/c15t' }} />
+
+  // After
+  <ConsentManagerProvider mode="c15t" backendURL="/api/c15t" />
+  // or
+  <ConsentManagerProvider {...c15tOptions} />
+  ```
+
+  The old `options` prop is still supported for backward compatibility but will be removed in a future version.
+
+- Updated dependencies [c7b4ad5]
+- Updated dependencies [e30ffaf]
+- Updated dependencies [169de72]
+- Updated dependencies [37ef4c5]
+  - @c15t/react@1.3.4-canary-20250626090931
+
 ## 1.3.3
 
 ### Patch Changes
