@@ -37,14 +37,7 @@ export async function testComponentStyles({
 }: ComponentStyles) {
 	// Render the component with the ConsentManagerProvider
 	const { container } = render(
-		<ConsentManagerProvider
-			options={{
-				mode: 'offline',
-				react: {
-					noStyle,
-				},
-			}}
-		>
+		<ConsentManagerProvider mode="offline" react={{ noStyle }}>
 			{component}
 		</ConsentManagerProvider>
 	);

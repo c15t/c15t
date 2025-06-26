@@ -6,20 +6,29 @@ import packageJson from '../../../package.json';
 import { getC15TInitialData } from './utils/initial-data';
 
 type InitialDataPromise = NonNullable<
-	ConsentManagerProviderProps['options']['store']
+	ConsentManagerProviderProps['store']
 >['_initialData'];
 
 export function ConsentManagerProvider({
 	children,
-	options,
+	...rest
 }: ConsentManagerProviderProps) {
 	let initialDataPromise: InitialDataPromise;
 
+	const mode = rest.mode ?? rest.options?.mode;
+
+	const backendURL = rest.backendURL ?? rest.options?.backendURL;
+
 	// Initial data is currently only available in c15t mode
-	switch (options.mode) {
-		case 'c15t':
-			initialDataPromise = getC15TInitialData(options.backendURL);
+	switch (mode) {
+		case 'c15t': {
+			if (!backendURL) {
+				throw new Error('backendURL is required in c15t mode');
+			}
+
+			initialDataPromise = getC15TInitialData(backendURL);
 			break;
+		}
 		default: {
 			initialDataPromise = Promise.resolve(undefined);
 		}
@@ -27,17 +36,16 @@ export function ConsentManagerProvider({
 
 	return (
 		<ClientConsentManagerProvider
-			options={{
-				...options,
-				store: {
-					...options.store,
-					config: {
-						pkg: '@c15t/nextjs',
-						version: packageJson.version,
-						mode: options.mode || 'Unknown',
-					},
-					_initialData: initialDataPromise,
+			{...rest}
+			store={{
+				...rest.store,
+				...rest.options?.store,
+				config: {
+					pkg: '@c15t/nextjs',
+					version: packageJson.version,
+					mode: mode ?? 'Unknown',
 				},
+				_initialData: initialDataPromise,
 			}}
 		>
 			{children}

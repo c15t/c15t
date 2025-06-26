@@ -52,40 +52,40 @@ function generateOptionsText(
 	switch (mode) {
 		case 'c15t': {
 			if (proxyNextjs) {
-				return `{
-					mode: 'c15t',
-					backendURL: '/api/c15t',
-					consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
-					ignoreGeoLocation: true, // Useful for development to always view the banner.
-				}`;
+				return `
+					mode='c15t'
+					backendURL='/api/c15t'
+					consentCategories={['necessary', 'marketing']} // Optional: Specify which consent categories to show in the banner. 
+					ignoreGeoLocation={true} // Useful for development to always view the banner.
+				`;
 			}
 
 			if (useEnvFile) {
-				return `{
-					mode: 'c15t',
-					backendURL: process.env.NEXT_PUBLIC_C15T_URL!,
-					consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
-					ignoreGeoLocation: true, // Useful for development to always view the banner.
-				}`;
+				return `
+					mode='c15t'
+					backendURL={process.env.NEXT_PUBLIC_C15T_URL}
+					consentCategories={['necessary', 'marketing']} // Optional: Specify which consent categories to show in the banner. 
+					ignoreGeoLocation={true} // Useful for development to always view the banner.
+				`;
 			}
 
-			return `{
-				mode: 'c15t',
-				backendURL: '${backendURL || 'https://your-instance.c15t.dev'}',
-				consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
-        ignoreGeoLocation: true, // Useful for development to always view the banner.
-			}`;
+			return `
+				mode='c15t'
+				backendURL='${backendURL || 'https://your-instance.c15t.dev'}'
+				consentCategories={['necessary', 'marketing']} // Optional: Specify which consent categories to show in the banner. 
+				ignoreGeoLocation={true} // Useful for development to always view the banner.
+			`;
 		}
 		case 'custom':
-			return `{
-				mode: 'custom',
-				endpointHandlers: createCustomHandlers(),
-			}`;
+			return `
+				mode='custom'
+				endpointHandlers={createCustomHandlers()}
+			`;
 		default:
-			return `{
-				mode: 'offline',
-				consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
-			}`;
+			return `
+				mode='offline'
+				consentCategories={['necessary', 'marketing']} // Optional: Specify which consent categories to show in the banner. 
+			`;
 	}
 }
 
@@ -137,7 +137,7 @@ function wrapJsxContent(originalJsx: string, optionsText: string): string {
 		originalJsx.includes('<body') || originalJsx.includes('</body>');
 
 	const providerWrapper = (content: string) => `
-		<ConsentManagerProvider options={${optionsText}}>
+		<ConsentManagerProvider ${optionsText}>
 			<CookieBanner />
 			<ConsentManagerDialog />
 			${content}

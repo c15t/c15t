@@ -108,11 +108,9 @@ describe('ConsentManagerProvider Context Values', () => {
 
 		const { getByTestId } = render(
 			<ConsentManagerProvider
-				options={{
-					mode: 'offline',
-					react: {
-						theme: { 'banner.root': 'dark' },
-					},
+				mode="offline"
+				react={{
+					theme: { 'banner.root': 'dark' },
 				}}
 			>
 				<ConsumerComponent />
@@ -140,11 +138,9 @@ describe('ConsentManagerProvider Context Values', () => {
 
 		render(
 			<ConsentManagerProvider
-				options={{
-					mode: 'offline',
-					callbacks: {
-						onConsentSet,
-					},
+				mode="offline"
+				callbacks={{
+					onConsentSet,
 				}}
 			>
 				<div>Test</div>

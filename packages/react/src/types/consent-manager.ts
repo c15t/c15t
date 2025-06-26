@@ -95,7 +95,7 @@ export type ConsentManagerOptions = CoreOptions & {
  *
  * @public
  */
-export interface ConsentManagerProviderProps {
+export type ConsentManagerProviderProps = {
 	/**
 	 * React children to render within the provider.
 	 */
@@ -104,6 +104,9 @@ export interface ConsentManagerProviderProps {
 	/**
 	 * Configuration options for the consent manager.
 	 * This includes core, React, store, and translation settings.
+	 * @deprecated You can now spread the options object into the provider props.
 	 */
-	options: ConsentManagerOptions;
-}
+	options?: ConsentManagerOptions;
+} & Omit<ConsentManagerOptions, 'mode'> & {
+		mode?: CoreOptions['mode'];
+	};

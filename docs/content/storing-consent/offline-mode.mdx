@@ -50,7 +50,7 @@ import { c15tClient } from '../lib/c15tClient'
 
 function MyApp({ Component, pageProps }) {
   return (
-    <ConsentManagerProvider options={c15tClient}>
+    <ConsentManagerProvider {...c15tClient}>
       <Component {...pageProps} />
     </ConsentManagerProvider>
   )
@@ -208,7 +208,7 @@ function ConsentProvider({ children }) {
   };
   
   return (
-    <ConsentManagerProvider options={options}>
+    <ConsentManagerProvider {...options}>
       {children}
     </ConsentManagerProvider>
   );

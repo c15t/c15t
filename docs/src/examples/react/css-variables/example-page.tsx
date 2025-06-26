@@ -13,7 +13,7 @@ export default function App() {
 
     return (
         <ConsentManagerProvider 
-            options={offlineClient}
+            {...offlineClient}
         >
           <CookieBanner 							
 				    theme={{

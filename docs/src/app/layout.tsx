@@ -46,12 +46,9 @@ export default function Layout({ children }: { children: ReactNode }) {
 			<body className="flex min-h-screen flex-col">
 				<RootProvider>
 					<ConsentManagerProvider
-						options={{
-							mode: 'c15t',
-							backendURL: '/api/c15t',
-							consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner.
-							ignoreGeoLocation: true, // Useful for development to always view the banner.
-						}}
+						mode="c15t"
+						backendURL="/api/c15t"
+						consentCategories={['necessary', 'marketing']}
 					>
 						<PostHogProvider>{children}</PostHogProvider>
 						<CookieBanner

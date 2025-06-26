@@ -1,8 +1,8 @@
 import {
 	ConsentManagerDialog,
+	type ConsentManagerOptions,
 	ConsentManagerProvider,
 	CookieBanner,
-	type ConsentManagerOptions,
 } from '@c15t/react';
 import type { ReactNode } from 'react';
 
@@ -21,7 +21,7 @@ export const c15tOptions: ConsentManagerOptions = {
 
 export const ConsentManagerLayout = ({ children }: { children: ReactNode }) => {
 	return (
-		<ConsentManagerProvider options={c15tOptions}>
+		<ConsentManagerProvider {...c15tOptions}>
 			{children}
 			<CookieBanner />
 			<ConsentManagerDialog />

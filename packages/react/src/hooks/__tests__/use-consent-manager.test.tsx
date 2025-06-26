@@ -46,11 +46,9 @@ describe('useConsentManager', () => {
 		const { result } = renderHook(() => useConsentManager(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
-					options={{
-						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+					mode="offline"
+					react={{
+						noStyle: false,
 					}}
 				>
 					{children}
@@ -66,11 +64,9 @@ describe('useConsentManager', () => {
 		const { result } = renderHook(() => useConsentManager(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
-					options={{
-						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+					mode="offline"
+					react={{
+						noStyle: false,
 					}}
 				>
 					{children}

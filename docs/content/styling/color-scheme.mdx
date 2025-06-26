@@ -35,11 +35,9 @@ import { ConsentManagerProvider } from '@c15t/react';
 function App({ children }) {
   return (
     <ConsentManagerProvider
-      options={{
-        react: {
-          // Components will only be light mode
-          colorScheme: 'light'
-        }
+      react={{
+        // Components will only be light mode
+        colorScheme: 'light'
       }}
     >
       {children}

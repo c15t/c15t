@@ -9,11 +9,9 @@ describe('useTranslations', () => {
 		const { result } = renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
-					options={{
-						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+					mode="offline"
+					react={{
+						noStyle: false,
 					}}
 				>
 					{children}
@@ -41,34 +39,32 @@ describe('useTranslations', () => {
 		const { result } = renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
-					options={{
-						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+					mode="offline"
+					react={{
+						noStyle: false,
+					}}
+					translations={{
+						defaultLanguage: 'de',
+						disableAutoLanguageSwitch: true,
 						translations: {
-							defaultLanguage: 'de',
-							disableAutoLanguageSwitch: true,
-							translations: {
-								de: {
-									common: {
-										acceptAll: 'German Accept All',
-										rejectAll: 'German Reject All',
-										customize: 'German Customize',
-										save: 'German Save',
-									},
-									cookieBanner: {
-										title: 'German Title',
-										description: 'German Description',
-									},
-									consentManagerDialog: {
-										title: 'German Dialog Title',
-									},
-									consentTypes: {
-										necessary: {
-											title: 'German Necessary',
-											description: 'German Necessary Description',
-										},
+							de: {
+								common: {
+									acceptAll: 'German Accept All',
+									rejectAll: 'German Reject All',
+									customize: 'German Customize',
+									save: 'German Save',
+								},
+								cookieBanner: {
+									title: 'German Title',
+									description: 'German Description',
+								},
+								consentManagerDialog: {
+									title: 'German Dialog Title',
+								},
+								consentTypes: {
+									necessary: {
+										title: 'German Necessary',
+										description: 'German Necessary Description',
 									},
 								},
 							},
@@ -111,13 +107,11 @@ describe('useTranslations', () => {
 		const { result } = renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
-					options={{
-						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
-						translations: customTranslations,
+					mode="offline"
+					react={{
+						noStyle: false,
 					}}
+					translations={customTranslations}
 				>
 					{children}
 				</ConsentManagerProvider>
@@ -142,14 +136,12 @@ describe('useTranslations', () => {
 		const { result } = renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
-					options={{
-						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
-						translations: {
-							defaultLanguage: 'fr', // Language that doesn't exist
-						},
+					mode="offline"
+					react={{
+						noStyle: false,
+					}}
+					translations={{
+						defaultLanguage: 'fr', // Language that doesn't exist
 					}}
 				>
 					{children}
@@ -175,34 +167,32 @@ describe('useTranslations', () => {
 		const { result } = renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
-					options={{
-						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+					mode="offline"
+					react={{
+						noStyle: false,
+					}}
+					translations={{
+						defaultLanguage: 'en',
+						disableAutoLanguageSwitch: true,
 						translations: {
-							defaultLanguage: 'en',
-							disableAutoLanguageSwitch: true,
-							translations: {
-								en: {
-									common: {
-										acceptAll: 'Custom English Accept All',
-										rejectAll: 'Custom English Reject All',
-										customize: 'Custom English Customize',
-										save: 'Custom English Save',
-									},
-									cookieBanner: {
-										title: 'Custom English Title',
-										description: 'Custom English Description',
-									},
-									consentManagerDialog: {
-										title: 'Custom English Dialog Title',
-									},
-									consentTypes: {
-										necessary: {
-											title: 'Custom English Necessary',
-											description: 'Custom English Necessary Description',
-										},
+							en: {
+								common: {
+									acceptAll: 'Custom English Accept All',
+									rejectAll: 'Custom English Reject All',
+									customize: 'Custom English Customize',
+									save: 'Custom English Save',
+								},
+								cookieBanner: {
+									title: 'Custom English Title',
+									description: 'Custom English Description',
+								},
+								consentManagerDialog: {
+									title: 'Custom English Dialog Title',
+								},
+								consentTypes: {
+									necessary: {
+										title: 'Custom English Necessary',
+										description: 'Custom English Necessary Description',
 									},
 								},
 							},
