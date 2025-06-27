@@ -95,8 +95,10 @@ export function ConsentManagerProvider({
 
 		return Boolean(
 			(mode === 'c15t' || mode === 'offline') &&
-				(backendURL?.includes('c15t.i t') ||
-					window.location.hostname.includes('c15t.dev'))
+				(backendURL?.includes('c15t.dev') ||
+					backendURL?.includes('c15t.cloud') ||
+					window.location.hostname.includes('c15t.dev') ||
+					window.location.hostname.includes('c15t.cloud'))
 		);
 	}, [mode, backendURL]);
 
