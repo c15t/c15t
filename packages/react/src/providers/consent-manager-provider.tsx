@@ -26,6 +26,21 @@ const managerCache = new Map<
 	ReturnType<typeof configureConsentManager>
 >();
 
+/**
+ * Clears all cached consent managers and stores.
+ *
+ * @remarks
+ * This utility function is primarily intended for use in tests to ensure
+ * clean state between test cases. The module-level caches persist across
+ * component unmounts/remounts, which can cause test interference.
+ *
+ * @internal
+ */
+export function clearConsentManagerCache(): void {
+	storeCache.clear();
+	managerCache.clear();
+}
+
 // Generate a cache key based on critical configuration options
 function generateCacheKey(
 	mode: string,

@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentManagerDialog } from '~/components/consent-manager-dialog/consent-manager-dialog';
-import { ConsentManagerProvider } from '~/providers/consent-manager-provider';
+import {
+	ConsentManagerProvider,
+	clearConsentManagerCache,
+} from '~/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/types/consent-manager';
 import { CookieBanner } from '../cookie-banner';
 
@@ -61,6 +64,7 @@ describe('CookieBanner E2E Tests', () => {
 		mockShowPopup = true;
 		// Reset all mocks
 		vi.clearAllMocks();
+		clearConsentManagerCache();
 	});
 
 	test('should show cookie banner on first visit', async () => {
