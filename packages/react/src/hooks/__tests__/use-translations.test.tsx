@@ -1,10 +1,18 @@
 import type { Translations } from 'c15t';
-import { describe, expect, test } from 'vitest';
+import { beforeEach, describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
-import { ConsentManagerProvider } from '~/providers/consent-manager-provider';
+import {
+	ConsentManagerProvider,
+	clearConsentManagerCache,
+} from '~/providers/consent-manager-provider';
 import { useTranslations } from '../use-translations';
 
 describe('useTranslations', () => {
+	beforeEach(() => {
+		// Clear consent manager caches to ensure clean state between tests
+		clearConsentManagerCache();
+	});
+
 	test('returns English translations by default', async () => {
 		const { result } = renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
