@@ -3,6 +3,7 @@ import { enTranslations } from './en';
 import { esTranslations } from './es';
 import { fiTranslations } from './fi';
 import { frTranslations } from './fr';
+import { idTranslations } from './id';
 import { itTranslations } from './it';
 import { nlTranslations } from './nl';
 import { ptTranslations } from './pt';
@@ -14,6 +15,7 @@ const baseTranslations = {
 	es: esTranslations,
 	fi: fiTranslations,
 	fr: frTranslations,
+	id: idTranslations,
 	it: itTranslations,
 	nl: nlTranslations,
 	pt: ptTranslations,
