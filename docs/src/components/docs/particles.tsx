@@ -272,7 +272,7 @@ const Particles: FC<ParticlesProps> = ({
 		animationFrameId.current = window.requestAnimationFrame(animate);
 	};
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+	// biome-ignore lint/correctness/useExhaustiveDependencies: this is needed for the animation to work
 	useEffect(() => {
 		const observer = new IntersectionObserver(
 			([entry]) => {

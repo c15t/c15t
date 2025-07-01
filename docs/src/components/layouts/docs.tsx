@@ -7,7 +7,7 @@ import * as SidebarPrimitive from 'fumadocs-core/sidebar';
 import { useSearchContext } from 'fumadocs-ui/contexts/search';
 import { useSidebar } from 'fumadocs-ui/contexts/sidebar';
 import { TreeContextProvider, useTreeContext } from 'fumadocs-ui/contexts/tree';
-import { type ComponentProps, type ReactNode, useMemo } from 'react';
+import { type ComponentProps, type ReactNode, useId, useMemo } from 'react';
 import { cn } from '../../lib/cn';
 
 export interface DocsLayoutProps {
@@ -29,7 +29,7 @@ export function DocsLayout({ tree, children }: DocsLayoutProps) {
 				</nav>
 			</header>
 			<main
-				id="nd-docs-layout"
+				id={useId()}
 				className="flex flex-1 flex-row [--fd-nav-height:56px]"
 			>
 				<Sidebar />

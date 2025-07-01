@@ -97,7 +97,6 @@ describe('ConsentManagerProvider Error Handling', () => {
 		// Verify component renders even with errors
 		await vi.waitFor(() => {
 			const requestState = getByTestId('request-state');
-			// biome-ignore lint/performance/useTopLevelRegex: <explanation>
 			expect(requestState).toHaveTextContent(/Manager (Not )?Ready/);
 		});
 

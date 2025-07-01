@@ -36,7 +36,6 @@ export function Mermaid({ chart }: { chart: string }) {
 					setSvg(svg);
 				}
 			} catch (error) {
-				// biome-ignore lint/suspicious/noConsole: <explanation>
 				console.error('Error while rendering mermaid', error);
 			}
 		}
@@ -45,7 +44,7 @@ export function Mermaid({ chart }: { chart: string }) {
 	return (
 		<div
 			ref={containerRef}
-			// biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
+			// biome-ignore lint/security/noDangerouslySetInnerHtml: this is okay as we are in a client component
 			dangerouslySetInnerHTML={{ __html: svg }}
 			data-testid="mermaid-diagram"
 		/>

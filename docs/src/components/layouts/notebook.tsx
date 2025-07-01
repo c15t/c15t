@@ -26,10 +26,10 @@ import {
 import { buttonVariants } from '../ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import {
-	SidebarLinkItem,
-	type SidebarOptions,
 	getSidebarTabsFromOptions,
 	layoutVariables,
+	SidebarLinkItem,
+	type SidebarOptions,
 } from './docs/shared';
 import { BaseLinkItem, type LinkItemType } from './links';
 import {
@@ -39,7 +39,9 @@ import {
 	NavbarSidebarTrigger,
 	SidebarLayoutTab,
 } from './notebook-client';
+
 export { Navbar, NavbarSidebarTrigger } from './notebook-client';
+
 import { usePathname } from 'next/navigation';
 import { type BaseLayoutProps, getLinks } from './shared';
 
@@ -73,7 +75,6 @@ function createPageStyles(): PageStyles {
 	};
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: <explanation>
 export function DocsLayout({
 	tabMode = 'sidebar',
 	nav: { transparentMode, ...nav } = {},
@@ -98,7 +99,6 @@ export function DocsLayout({
 		const allTabs = getSidebarTabsFromOptions(tabOptions, props.tree) ?? [];
 
 		// Map framework names to iconKeys
-		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: <explanation>
 		const enhancedTabs = allTabs.map((tab) => {
 			if (typeof tab.title === 'string') {
 				const title = tab.title.toLowerCase();
@@ -178,7 +178,7 @@ export function DocsLayout({
 		>
 			<NavProvider transparentMode={transparentMode}>
 				<main
-					id="nd-docs-layout"
+					id={useId()}
 					{...props.containerProps}
 					className={cn(
 						'flex w-full flex-1 flex-row pe-(--fd-layout-offset)',

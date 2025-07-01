@@ -288,7 +288,6 @@ export function createConsistencyTests(
 		});
 
 		// Field type consistency - ensure common fields use same types across contracts
-		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: excessive cognitive complexity is acceptable here
 		it('common fields have consistent types across contracts', () => {
 			const commonFields = ['id', 'domainId', 'type', 'status'];
 			const contractEntries = Object.entries(contracts);
@@ -322,7 +321,6 @@ export function createConsistencyTests(
 		});
 
 		// Validate enum value consistency across contracts
-		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: excessive cognitive complexity is acceptable here
 		it('enum values are consistent across contracts', () => {
 			// Example: status field should have the same allowed values in all contracts
 			const statusValues = new Map<string, string[]>();
@@ -354,7 +352,6 @@ export function createConsistencyTests(
 		});
 
 		// Validation rule consistency for common fields
-		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: excessive cognitive complexity is acceptable here
 		it('validation rules for common fields are consistent', () => {
 			const contractEntries = Object.entries(contracts);
 			const commonStringFields = ['domain', 'subjectId', 'externalSubjectId'];

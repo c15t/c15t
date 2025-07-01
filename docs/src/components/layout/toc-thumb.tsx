@@ -10,8 +10,8 @@ function calc(container: HTMLElement, active: string[]): TOCThumb {
 		return [0, 0];
 	}
 
-	let upper = Number.MAX_VALUE,
-		lower = 0;
+	let upper = Number.MAX_VALUE;
+	let lower = 0;
 
 	for (const item of active) {
 		const element = container.querySelector<HTMLElement>(`a[href="#${item}"]`);

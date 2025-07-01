@@ -17,6 +17,7 @@ import {
 	Fragment,
 	type HTMLAttributes,
 	useEffect,
+	useId,
 	useMemo,
 	useRef,
 	useState,
@@ -60,7 +61,7 @@ export function TocPopoverHeader(props: HTMLAttributes<HTMLDivElement>) {
 			<TocPopover open={open} onOpenChange={setOpen} asChild>
 				<header
 					ref={ref}
-					id="nd-tocnav"
+					id={useId()}
 					{...props}
 					className={cn(
 						'border-fd-foreground/10 border-b backdrop-blur-md transition-colors',
@@ -81,7 +82,7 @@ export function PageBody(props: HTMLAttributes<HTMLDivElement>) {
 
 	return (
 		<div
-			id="nd-page"
+			id={useId()}
 			{...props}
 			className={cn('flex w-full min-w-0 flex-col', page, props.className)}
 		>

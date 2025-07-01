@@ -33,7 +33,6 @@ const handler = (env: Env) => {
 			return await instance.handler(request);
 		} catch (error) {
 			// Log error and return formatted error response
-			// biome-ignore lint/suspicious/noConsole: its okay right now
 			console.error('Error handling request:', error);
 
 			// Return an error response

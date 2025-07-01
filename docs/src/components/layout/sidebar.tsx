@@ -15,13 +15,13 @@ import { useTreeContext, useTreePath } from 'fumadocs-ui/contexts/tree';
 import { ChevronDown, ExternalLink } from 'lucide-react';
 import {
 	type ButtonHTMLAttributes,
+	createContext,
 	type Dispatch,
 	type FC,
 	Fragment,
 	type HTMLAttributes,
 	type ReactNode,
 	type SetStateAction,
-	createContext,
 	useContext,
 	useEffect,
 	useMemo,
@@ -157,7 +157,7 @@ export function Sidebar({
 	return (
 		<Context.Provider value={context}>
 			<Base.SidebarList
-				id="nd-sidebar"
+				id={useId()}
 				removeScrollOn="(width < 768px)" // md
 				{...props}
 				className={cn(
@@ -459,7 +459,6 @@ export function SidebarPageTree(props: {
 			);
 		}
 
-		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: <explanation>
 		function renderFolderItem(
 			item: PageTree.Folder,
 			i: number,

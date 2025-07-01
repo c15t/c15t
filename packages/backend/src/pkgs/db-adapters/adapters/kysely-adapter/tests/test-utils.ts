@@ -1,7 +1,6 @@
+import type { Logger } from '@doubletie/logger';
 import { type Kysely, type Migration, sql } from 'kysely';
 import { beforeEach, expect, test } from 'vitest';
-
-import type { Logger } from '@doubletie/logger';
 import type { Adapter } from '~/pkgs/db-adapters';
 import type { C15TOptions } from '~/types';
 import type { KyselyDatabaseType } from '../index';
@@ -351,16 +350,13 @@ export async function runAdapterTests(opts: {
 				},
 			});
 
-			// biome-ignore lint/suspicious/noMisplacedAssertion: its in a harness test suite
 			expect(res).toBeDefined();
+
 			// @ts-expect-error - id is not a field on the subject model
-			// biome-ignore lint/suspicious/noMisplacedAssertion: its in a harness test suite
 			expect(res.id).toBeDefined();
 			// @ts-expect-error - id is not a field on the subject model
-			// biome-ignore lint/suspicious/noMisplacedAssertion: its in a harness test suite
 			expect(typeof res.id).toBe('string');
 			// @ts-expect-error - id is not a field on the subject model
-			// biome-ignore lint/suspicious/noMisplacedAssertion: its in a harness test suite
 			expect(res.id.length).toBeGreaterThan(0);
 		}
 	);
@@ -397,10 +393,8 @@ export async function runAdapterTests(opts: {
 				],
 			});
 
-			// biome-ignore lint/suspicious/noMisplacedAssertion: its in a harness test suite
 			expect(res).toBeDefined();
 			// @ts-expect-error - id is not a field on the subject model
-			// biome-ignore lint/suspicious/noMisplacedAssertion: its in a harness test suite
 			expect(res.id).toBe(recordId);
 
 			// Test a failed transaction
@@ -437,7 +431,6 @@ export async function runAdapterTests(opts: {
 				],
 			});
 
-			// biome-ignore lint/suspicious/noMisplacedAssertion: its in a harness test suite
 			expect(rollbackRes).toBeNull();
 		}
 	);
