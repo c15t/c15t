@@ -238,26 +238,42 @@ const CookieBannerRootChildren = forwardRef<
 	) => {
 		const { showPopup } = useConsentManager();
 		const [isVisible, setIsVisible] = useState(false);
+		const [hasAnimated, setHasAnimated] = useState(false);
 
 		// Handle animation visibility state
 		useEffect(() => {
 			if (showPopup) {
-				setIsVisible(true);
-			} else if (disableAnimation) {
-				setIsVisible(false);
+				// If showPopup is true but we haven't animated yet, trigger the animation
+				if (hasAnimated) {
+					setIsVisible(true);
+				} else {
+					// Small delay to ensure the component is mounted and ready for animation
+					const animationTimer = setTimeout(() => {
+						setIsVisible(true);
+						setHasAnimated(true);
+					}, 10);
+					return () => clearTimeout(animationTimer);
+				}
 			} else {
-				const animationDurationMs = Number.parseInt(
-					getComputedStyle(document.documentElement).getPropertyValue(
-						'--banner-animation-duration'
-					) || '200',
-					10
-				);
-				const timer = setTimeout(() => {
+				// Reset animation state when hiding so it can animate again next time
+				setHasAnimated(false);
+
+				if (disableAnimation) {
 					setIsVisible(false);
-				}, animationDurationMs); // Match CSS animation duration
-				return () => clearTimeout(timer);
+				} else {
+					const animationDurationMs = Number.parseInt(
+						getComputedStyle(document.documentElement).getPropertyValue(
+							'--banner-animation-duration'
+						) || '200',
+						10
+					);
+					const timer = setTimeout(() => {
+						setIsVisible(false);
+					}, animationDurationMs); // Match CSS animation duration
+					return () => clearTimeout(timer);
+				}
 			}
-		}, [showPopup, disableAnimation]);
+		}, [showPopup, disableAnimation, hasAnimated]);
 
 		// Apply styles from the CookieBanner context and merge with local styles.
 		// Uses the 'content' style key for consistent theming.
