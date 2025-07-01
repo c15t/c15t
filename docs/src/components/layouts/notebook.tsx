@@ -8,7 +8,7 @@ import {
 	StylesProvider,
 } from 'fumadocs-ui/contexts/layout';
 import { ChevronDown, Languages, SidebarIcon } from 'lucide-react';
-import { Fragment, type HTMLAttributes, useMemo } from 'react';
+import { Fragment, type HTMLAttributes, useId, useMemo } from 'react';
 import { cn } from '../../lib/cn';
 import { FrameworkTreeProvider } from '../layout/framework-tree-provider';
 import { LanguageToggle } from '../layout/language-toggle';
