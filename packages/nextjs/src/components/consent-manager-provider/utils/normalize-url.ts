@@ -1,5 +1,15 @@
 const ABSOLUTE_URL_REGEX = /^https?:\/\//;
 
+function trimTrailingSlash(url: string): string {
+	// Don't trim if it's just the root path "/"
+	if (url === '/') {
+		return url;
+	}
+
+	// Remove trailing slash if present
+	return url.endsWith('/') ? url.slice(0, -1) : url;
+}
+
 export function validateBackendURL(backendURL: string): {
 	isAbsolute: boolean;
 	normalizedURL: string;
@@ -13,14 +23,14 @@ export function validateBackendURL(backendURL: string): {
 
 		return {
 			isAbsolute: true,
-			normalizedURL: backendURL,
+			normalizedURL: trimTrailingSlash(backendURL),
 		};
 	}
 
 	if (backendURL.startsWith('/')) {
 		return {
 			isAbsolute: false,
-			normalizedURL: backendURL,
+			normalizedURL: trimTrailingSlash(backendURL),
 		};
 	}
 
@@ -46,12 +56,14 @@ export function normalizeBackendURL(
 		const host = headersList.get('x-forwarded-host') || headersList.get('host');
 
 		if (host) {
-			return `${protocol}://${host}${validated}`;
+			return trimTrailingSlash(`${protocol}://${host}${validated}`);
 		}
 
 		if (referer) {
 			const refererUrl = new URL(referer);
-			return `${refererUrl.protocol}//${refererUrl.host}${validated}`;
+			return trimTrailingSlash(
+				`${refererUrl.protocol}//${refererUrl.host}${validated}`
+			);
 		}
 
 		if (process.env.NODE_ENV === 'development') {
