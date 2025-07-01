@@ -239,6 +239,18 @@ const CookieBannerRootChildren = forwardRef<
 		const { showPopup } = useConsentManager();
 		const [isVisible, setIsVisible] = useState(false);
 		const [hasAnimated, setHasAnimated] = useState(false);
+		const [animationDurationMs, setAnimationDurationMs] = useState(200); // Default fallback for SSR
+
+		// Get animation duration from CSS custom property (client-side only)
+		useEffect(() => {
+			const duration = Number.parseInt(
+				getComputedStyle(document.documentElement).getPropertyValue(
+					'--banner-animation-duration'
+				) || '200',
+				10
+			);
+			setAnimationDurationMs(duration);
+		}, []);
 
 		// Handle animation visibility state
 		useEffect(() => {
@@ -261,19 +273,13 @@ const CookieBannerRootChildren = forwardRef<
 				if (disableAnimation) {
 					setIsVisible(false);
 				} else {
-					const animationDurationMs = Number.parseInt(
-						getComputedStyle(document.documentElement).getPropertyValue(
-							'--banner-animation-duration'
-						) || '200',
-						10
-					);
 					const timer = setTimeout(() => {
 						setIsVisible(false);
 					}, animationDurationMs); // Match CSS animation duration
 					return () => clearTimeout(timer);
 				}
 			}
-		}, [showPopup, disableAnimation, hasAnimated]);
+		}, [showPopup, disableAnimation, hasAnimated, animationDurationMs]);
 
 		// Apply styles from the CookieBanner context and merge with local styles.
 		// Uses the 'content' style key for consistent theming.
