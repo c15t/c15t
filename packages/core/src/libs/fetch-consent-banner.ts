@@ -102,18 +102,6 @@ async function updateStore(
 						(showConsentBanner && hasLocalStorageAccess) || ignoreGeoLocation,
 				}
 			: {}),
-
-		// If the banner is not shown and has no requirement consent to all
-		...(data.jurisdiction.code === 'NONE' &&
-			!data.showConsentBanner && {
-				consents: {
-					necessary: true,
-					functionality: true,
-					experience: true,
-					marketing: true,
-					measurement: true,
-				},
-			}),
 	});
 }
 
