@@ -17,6 +17,9 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			new Response(
 				JSON.stringify({
 					showConsentBanner: true,
+					jurisdiction: {
+						code: 'GDPR',
+					},
 					translations: {
 						language: 'en',
 						translations: defaultTranslationConfig.translations.en,
