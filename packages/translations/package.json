@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/translations",
-	"version": "1.4.2-canary-20250702103734",
+	"version": "1.4.2",
 	"license": "GPL-3.0-only",
 	"sideEffects": false,
 	"type": "module",

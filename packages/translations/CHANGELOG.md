@@ -1,5 +1,11 @@
 # @c15t/translations
 
+## 1.4.2
+
+### Patch Changes
+
+- 53774ce: chore(translations): added Bahasa Indonesia (ID) translation
+
 ## 1.4.2-canary-20250702103734
 
 ### Patch Changes
