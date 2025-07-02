@@ -1,5 +1,15 @@
 # @c15t/nextjs
 
+## 1.4.2-canary-20250702103734
+
+### Patch Changes
+
+- b2c7c0f: fix(nextjs): removed trailing slash from normalizedURL
+- Updated dependencies [797b0f7]
+- Updated dependencies [cd218e7]
+  - @c15t/react@1.4.2-canary-20250702103734
+  - @c15t/translations@1.4.2-canary-20250702103734
+
 ## 1.4.1
 
 ### Patch Changes

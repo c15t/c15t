@@ -1,5 +1,14 @@
 # @c15t/react
 
+## 1.4.2-canary-20250702103734
+
+### Patch Changes
+
+- 797b0f7: fix(react): improved provider rendering to stop request duplication
+- Updated dependencies [eed347c]
+  - c15t@1.4.2-canary-20250702103734
+  - @c15t/node-sdk@1.4.2-canary-20250702103734
+
 ## 1.4.1
 
 ### Patch Changes

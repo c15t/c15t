@@ -1,5 +1,12 @@
 # @c15t/dev-tools
 
+## 1.4.2-canary-20250702103734
+
+### Patch Changes
+
+- Updated dependencies [eed347c]
+  - c15t@1.4.2-canary-20250702103734
+
 ## 1.4.1
 
 ### Patch Changes

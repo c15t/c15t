@@ -1,5 +1,12 @@
 # @c15t/backend
 
+## 1.4.2-canary-20250702103734
+
+### Patch Changes
+
+- Updated dependencies [cd218e7]
+  - @c15t/translations@1.4.2-canary-20250702103734
+
 ## 1.4.1
 
 ### Patch Changes

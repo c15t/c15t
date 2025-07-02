@@ -1,5 +1,14 @@
 # c15t
 
+## 1.4.2-canary-20250702103734
+
+### Patch Changes
+
+- eed347c: fix(core): hasConsentFor should return true when no consent is needed
+- Updated dependencies [cd218e7]
+  - @c15t/translations@1.4.2-canary-20250702103734
+  - @c15t/backend@1.4.2-canary-20250702103734
+
 ## 1.4.1
 
 ### Patch Changes
