@@ -26,6 +26,9 @@ vi.mock('c15t', async () => {
 					ok: true,
 					data: {
 						showConsentBanner: true,
+						jurisdiction: {
+							code: 'GDPR',
+						},
 						translations: {
 							language: 'en',
 							translations: defaultTranslationConfig.translations.en,
