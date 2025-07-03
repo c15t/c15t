@@ -22,17 +22,17 @@ import {
 	type EntityOutput,
 	type EntityTypeMap,
 	type Field,
-	type Primitive,
 	generateId,
+	type Primitive,
 } from '~/pkgs/data-model';
 
 import { getConsentTables } from '~/schema/definition';
 import type { C15TOptions } from '~/types';
 import {
 	type Adapter,
+	applyDefaultValue,
 	type TableFields,
 	type Where,
-	applyDefaultValue,
 } from '../..';
 import type { Database, KyselyDatabaseType } from './types';
 
@@ -176,8 +176,6 @@ const createEntityTransformer = (
 			? (modelFields as Record<string, Field>)[field as string]
 			: undefined;
 		if (!f) {
-			// biome-ignore lint/suspicious/noConsoleLog: no Logger implementation
-			// biome-ignore lint/suspicious/noConsole: no Logger implementation
 			console.log('Field not found', model, field);
 		}
 		return f?.fieldName || (field as string);
@@ -1166,7 +1164,6 @@ export const kyselyAdapter =
 							error.message.toLowerCase().includes('no transaction support'))
 					) {
 						// Log warning about disableTransactions option
-						// biome-ignore lint/suspicious/noConsole: this is a warning
 						console.warn(
 							'Warning: Database transaction failed. If your database does not support transactions, ' +
 								'you can disable this warning by setting opts.advanced.disableTransactions to true.'

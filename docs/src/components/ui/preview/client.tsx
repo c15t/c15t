@@ -55,7 +55,6 @@ export class ErrorBoundary extends Component<
 
 	componentDidCatch(error: Error, errorInfo: ErrorInfo) {
 		// You can log the error to an error reporting service
-		// biome-ignore lint/suspicious/noConsole: debug error
 		console.error('ErrorBoundary caught an error', error, errorInfo);
 	}
 

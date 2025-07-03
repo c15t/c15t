@@ -3,10 +3,10 @@ import { ZodError } from 'zod';
 import type { Field, PluginSchema } from '~/pkgs/data-model';
 import type { C15TOptions } from '~/types';
 import { getAuditLogTable } from './audit-log/table';
+import { getConsentTable } from './consent/table';
 import { getConsentPolicyTable } from './consent-policy/table';
 import { getPurposeTable } from './consent-purpose/table';
 import { getConsentRecordTable } from './consent-record/table';
-import { getConsentTable } from './consent/table';
 import { getDomainTable } from './domain/table';
 import type { InferTableShape } from './schemas';
 import { getSubjectTable } from './subject/table';
@@ -59,12 +59,8 @@ export const getConsentTables = (options: C15TOptions) => {
 		consentPurpose,
 		consentPolicy,
 		domain,
-		geoLocation,
 		consent,
-		consentPurposeJunction,
 		record,
-		consentGeoLocation,
-		consentWithdrawal,
 		auditLog,
 		...pluginTables
 	} = pluginSchema || {};

@@ -361,7 +361,6 @@ export class Telemetry {
 		if (this.logger) {
 			this.logger.debug(message, ...args);
 		} else {
-			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.debug(message, ...args);
 		}
 	}

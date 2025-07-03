@@ -29,7 +29,6 @@ export function processTablesIntoSchema(
 		try {
 			const fields = table.fields;
 			if (typeof fields !== 'object' || fields === null) {
-				// biome-ignore lint/suspicious/noConsole: its okay
 				console.warn(
 					`Invalid fields for table ${key}: Expected object, got ${typeof fields}`
 				);
@@ -37,7 +36,6 @@ export function processTablesIntoSchema(
 			}
 			actualFields = processFields(fields, tables);
 		} catch (error) {
-			// biome-ignore lint/suspicious/noConsole: its okay
 			console.error(`Error processing fields for table ${key}:`, error);
 			continue; // Skip this table if field processing fails
 		}

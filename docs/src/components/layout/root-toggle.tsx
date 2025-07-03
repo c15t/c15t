@@ -95,7 +95,6 @@ export function RootToggle({
 	};
 
 	// Map framework titles to icon keys
-	// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: <explanation>
 	const getIconKey = (item: Option): string | undefined => {
 		if (item.iconKey) {
 			return item.iconKey;

@@ -30,6 +30,7 @@ export const NextIcon = (props: SVGProps<SVGSVGElement>) => (
 	>
 		<title>Next.js</title>
 		<defs>
+			{/** biome-ignore lint/nursery/useUniqueElementIds: this is okay as we are in a server component */}
 			<path
 				id="reuse-0"
 				fill="#000"
@@ -37,6 +38,7 @@ export const NextIcon = (props: SVGProps<SVGSVGElement>) => (
 			/>
 		</defs>
 		<g clipPath="url(#a)">
+			{/** biome-ignore lint/nursery/useUniqueElementIds: this is okay as we are in a server component */}
 			<mask
 				id="b"
 				width={300}
@@ -60,6 +62,7 @@ export const NextIcon = (props: SVGProps<SVGSVGElement>) => (
 			</g>
 		</g>
 		<defs>
+			{/** biome-ignore lint/nursery/useUniqueElementIds: this is okay as we are in a server component */}
 			<linearGradient
 				id="c"
 				x1={181.667}
@@ -71,6 +74,7 @@ export const NextIcon = (props: SVGProps<SVGSVGElement>) => (
 				<stop stopColor="#fff" />
 				<stop offset={1} stopColor="#fff" stopOpacity={0} />
 			</linearGradient>
+			{/** biome-ignore lint/nursery/useUniqueElementIds: this is okay as we are in a server component */}
 			<linearGradient
 				id="d"
 				x1={201.666}
@@ -82,6 +86,7 @@ export const NextIcon = (props: SVGProps<SVGSVGElement>) => (
 				<stop stopColor="#fff" />
 				<stop offset={1} stopColor="#fff" stopOpacity={0} />
 			</linearGradient>
+			{/** biome-ignore lint/nursery/useUniqueElementIds: this is okay as we are in a server component */}
 			<clipPath id="a">
 				<path fill="#fff" d="M0 0h300v300H0z" />
 			</clipPath>
@@ -104,6 +109,7 @@ export const HonoIcon = (props: SVGProps<SVGSVGElement>) => (
 			/>
 		</g>
 		<defs>
+			{/** biome-ignore lint/nursery/useUniqueElementIds: this is okay as we are in a server component */}
 			<clipPath id="a">
 				<path fill="#fff" d="M0 0h300v300H0z" />
 			</clipPath>
@@ -126,6 +132,7 @@ export const JSIcon = (props: SVGProps<SVGSVGElement>) => (
 			/>
 		</g>
 		<defs>
+			{/** biome-ignore lint/nursery/useUniqueElementIds: this is okay as we are in a server component */}
 			<clipPath id="a">
 				<path fill="#fff" d="M0 0h300v300H0z" />
 			</clipPath>

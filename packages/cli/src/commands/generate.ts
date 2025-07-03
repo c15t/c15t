@@ -22,6 +22,7 @@ export async function generate(context: CliContext) {
 
 	// Load config & adapter
 	const setupResult = await setupGenerateEnvironment(context);
+	// biome-ignore lint/correctness/noUnusedVariables: this is okay as we are in a loop
 	let { config, adapter } = setupResult;
 
 	// Config update/onboarding flow

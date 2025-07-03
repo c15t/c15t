@@ -150,7 +150,7 @@ function hasSvelteKit(cwd: string): boolean {
 		};
 
 		return '@sveltejs/kit' in deps;
-	} catch (error) {
+	} catch {
 		return false;
 	}
 }

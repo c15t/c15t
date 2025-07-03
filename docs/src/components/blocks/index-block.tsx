@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { Card, Cards } from '../card';
 import { JSIcon, NextIcon, ReactIcon } from '../icons';
 
@@ -31,7 +32,7 @@ export const IndexBlock = () => {
 			<div className="flex flex-col space-y-10 pt-0">
 				<div className="flex flex-col">
 					<h4
-						id="explore-by-category"
+						id={useId()}
 						className="scroll-m-20 text-muted-foreground text-sm uppercase"
 					>
 						Explore by Framework

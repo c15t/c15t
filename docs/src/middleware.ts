@@ -47,8 +47,6 @@ function logRewrite(
 	originalPath: string,
 	targetUrl: string
 ): void {
-	// biome-ignore lint/suspicious/noConsoleLog: <explanation>
-	// biome-ignore lint/suspicious/noConsole: <explanation>
 	console.log(
 		`[Middleware] ${operationType} rewrite: ${originalPath} → ${targetUrl}`
 	);
@@ -70,7 +68,6 @@ function createDebugResponse(
 	try {
 		return NextResponse.rewrite(targetUrl);
 	} catch (error) {
-		// biome-ignore lint/suspicious/noConsole: <explanation>
 		console.error(
 			`[Middleware] Failed to create rewrite response for ${originalPath}:`,
 			error
@@ -134,7 +131,6 @@ export function middleware(request: NextRequest): NextResponse {
 			return NextResponse.rewrite(rewriteUrl);
 		} catch (error) {
 			// Log the error and continue with the original request
-			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.error('Failed to rewrite homepage URL:', error);
 			return NextResponse.next();
 		}

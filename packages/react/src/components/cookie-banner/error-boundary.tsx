@@ -75,7 +75,7 @@ export class ErrorBoundary extends Component<
 	render() {
 		if (this.state.hasError) {
 			if (typeof this.props.fallback === 'function') {
-				// biome-ignore lint/style/noNonNullAssertion: <explanation>
+				// biome-ignore lint/style/noNonNullAssertion: this is okay as we are in error boundary
 				return this.props.fallback(this.state.error!, this.state.errorInfo!);
 			}
 			return this.props.fallback;

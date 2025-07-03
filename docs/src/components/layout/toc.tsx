@@ -10,10 +10,11 @@ import { usePageStyles } from 'fumadocs-ui/contexts/layout';
 import { ChevronRight, Text } from 'lucide-react';
 import {
 	type ComponentProps,
+	createContext,
 	type HTMLAttributes,
 	type ReactNode,
-	createContext,
 	use,
+	useId,
 	useMemo,
 	useRef,
 } from 'react';
@@ -45,7 +46,7 @@ export function Toc(props: HTMLAttributes<HTMLDivElement>) {
 
 	return (
 		<div
-			id="nd-toc"
+			id={useId()}
 			{...props}
 			className={cn(
 				'sticky top-[calc(var(--fd-banner-height)+var(--fd-nav-height))] h-(--fd-toc-height) pt-12 pb-2',

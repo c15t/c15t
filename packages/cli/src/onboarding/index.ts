@@ -377,7 +377,6 @@ async function displayNextSteps(options: DisplayNextStepsOptions) {
 	);
 
 	// Mode-specific guidance
-	// biome-ignore lint/style/useDefaultSwitchClause: <explanation>
 	switch (storageMode) {
 		case 'c15t': {
 			break;

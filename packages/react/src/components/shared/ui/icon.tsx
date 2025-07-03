@@ -1,9 +1,9 @@
 import {
 	type ElementType,
+	forwardRef,
 	type JSX,
 	type Ref,
 	type SVGProps,
-	forwardRef,
 } from 'react';
 
 const Icon = (
@@ -27,14 +27,16 @@ const Icon = (
 	</svg>
 );
 
-type LucideIconProps = SVGProps<SVGSVGElement> & {
+type LucideIconProps = {
 	title: string;
 	iconPath: JSX.Element;
 };
 
-export const LucideIcon = ({ title, iconPath }: LucideIconProps) => {
-	const IconComponent = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
-		(svgProps, ref) => Icon(svgProps, ref, title, iconPath)
+export const LucideIcon = ({
+	title,
+	iconPath,
+}: LucideIconProps): ElementType => {
+	return forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>((svgProps, ref) =>
+		Icon(svgProps, ref, title, iconPath)
 	);
-	return IconComponent as ElementType;
 };

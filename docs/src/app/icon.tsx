@@ -10,7 +10,7 @@ export const contentType = 'image/png';
 // Image generation
 export default function Icon() {
 	return new ImageResponse(
-		// biome-ignore lint/a11y/noSvgWithoutTitle: <explanation>
+		// biome-ignore lint/a11y/noSvgWithoutTitle: this is okay as we are in a server component
 		<svg
 			width="32"
 			height="32"

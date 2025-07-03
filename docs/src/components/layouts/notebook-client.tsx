@@ -6,7 +6,7 @@ import { useNav } from 'fumadocs-ui/contexts/layout';
 import { useSidebar } from 'fumadocs-ui/contexts/sidebar';
 import { Menu, X } from 'lucide-react';
 import type { ButtonHTMLAttributes, HTMLAttributes } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { cn } from '../../lib/cn';
 import { useFramework } from '../layout/framework-context';
 import type { Option } from '../layout/root-toggle';
@@ -21,7 +21,7 @@ export function Navbar({
 
 	return (
 		<header
-			id="nd-subnav"
+			id={useId()}
 			{...props}
 			className={cn(
 				'fixed inset-x-0 top-(--fd-banner-height) z-20 px-(--fd-layout-offset) backdrop-blur-lg transition-colors',

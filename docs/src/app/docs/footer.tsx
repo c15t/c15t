@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { C15TLogo } from '~/components/logo';
-import { siteConfig } from '../config';
+import { siteConfig } from './config';
 
 export function Footer() {
 	return (

@@ -50,7 +50,7 @@ export const generateDrizzleSchema: SchemaGenerator = async ({
 	let isFirstTable = true;
 
 	for (const table in tables) {
-		if (Object.prototype.hasOwnProperty.call(tables, table)) {
+		if (Object.hasOwn(tables, table)) {
 			// Use the table name as fallback if modelName is undefined
 			const tableDefinition = tables[table];
 			if (!tableDefinition) {
@@ -150,7 +150,7 @@ export const generateDrizzleSchema: SchemaGenerator = async ({
 			// Generate fields with proper indentation
 			const fieldDefinitions = Object.keys(fields)
 				.map((field) => {
-					if (Object.prototype.hasOwnProperty.call(fields, field)) {
+					if (Object.hasOwn(fields, field)) {
 						const attr = fields[field];
 						if (!attr) {
 							return '';

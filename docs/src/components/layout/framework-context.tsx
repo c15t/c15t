@@ -3,8 +3,8 @@
 import { usePathname } from 'fumadocs-core/framework';
 import type { PageTree } from 'fumadocs-core/server';
 import {
-	type ReactNode,
 	createContext,
+	type ReactNode,
 	useContext,
 	useEffect,
 	useMemo,
@@ -95,7 +95,7 @@ export function FrameworkProvider({
 	};
 
 	// Initialize framework from URL path or localStorage
-	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+	// biome-ignore lint/correctness/useExhaustiveDependencies: this is okay as we are in a useEffect
 	useEffect(() => {
 		// Try to get framework from URL path
 		const pathParts = pathname.split('/').filter(Boolean);
@@ -127,7 +127,7 @@ export function FrameworkProvider({
 		}
 	}, [pathname, tree, defaultFramework, validFramework]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+	// biome-ignore lint/correctness/useExhaustiveDependencies: this is needed for the context to work
 	const contextValue = useMemo(
 		() => ({
 			activeFramework,

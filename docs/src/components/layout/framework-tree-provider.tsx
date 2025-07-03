@@ -35,7 +35,10 @@ export function FrameworkTreeProvider(props: FrameworkTreeProviderProps) {
 function FrameworkTreeFilter({
 	tree,
 	children,
-}: { tree: PageTree.Root; children: ReactNode }) {
+}: {
+	tree: PageTree.Root;
+	children: ReactNode;
+}) {
 	const { activeFramework } = useFramework();
 
 	// Process the tree to show only content for the active framework

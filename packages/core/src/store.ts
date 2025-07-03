@@ -4,18 +4,20 @@
  * This module provides the main store creation and management functionality.
  */
 
-import { createStore } from 'zustand/vanilla';
+import type { ContractsOutputs } from '@c15t/backend/contracts';
 
 import type { TranslationConfig } from '@c15t/translations';
+import { createStore } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from './client/client-factory';
 import {
 	getEffectiveConsents,
-	hasConsentFor,
 	hasConsented,
+	hasConsentFor,
 } from './libs/consent-utils';
 import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
-import { createTrackingBlocker } from './libs/tracking-blocker';
+import { type GTMConfiguration, setupGTM, updateGTMConsent } from './libs/gtm';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
+import { createTrackingBlocker } from './libs/tracking-blocker';
 import { initialState } from './store.initial-state';
 import type { PrivacyConsentState } from './store.type';
 import type {
@@ -24,9 +26,6 @@ import type {
 	ConsentState,
 } from './types/compliance';
 import { type AllConsentNames, consentTypes } from './types/gdpr';
-
-import type { ContractsOutputs } from '@c15t/backend/contracts';
-import { type GTMConfiguration, setupGTM, updateGTMConsent } from './libs/gtm';
 
 /** Storage key for persisting consent data in localStorage */
 const STORAGE_KEY = 'privacy-consent-storage';
@@ -72,7 +71,6 @@ const getStoredConsent = (): StoredConsent | null => {
 	try {
 		return JSON.parse(stored);
 	} catch (e) {
-		// biome-ignore lint/suspicious/noConsole: <explanation>
 		console.error('Failed to parse stored consent:', e);
 		return null;
 	}
@@ -417,7 +415,6 @@ export const createConsentManagerStore = (
 					})
 				);
 			} catch (e) {
-				// biome-ignore lint/suspicious/noConsole: safe degradation
 				console.warn('Failed to persist consents to localStorage:', e);
 			}
 
@@ -444,7 +441,6 @@ export const createConsentManagerStore = (
 				callbacks.onError?.(errorMsg);
 				// Fallback console only when no handler is provided
 				if (!callbacks.onError) {
-					// biome-ignore lint/suspicious/noConsole: <explanation>
 					console.error(errorMsg);
 				}
 			}
@@ -609,7 +605,6 @@ export const createConsentManagerStore = (
 					consentState: store.getState().consents,
 				});
 			} catch (e) {
-				// biome-ignore lint/suspicious/noConsole: <explanation>
 				console.error('Failed to setup Google Tag Manager:', e);
 			}
 		}
