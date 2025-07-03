@@ -32,6 +32,14 @@ const config: NextConfig = {
 				source: '/api/c15t/:path*',
 				destination: `${process.env.NEXT_PUBLIC_C15T_URL || 'http://localhost:8787'}/:path*`,
 			},
+			{
+				source: '/marketing-static/:path*',
+				destination: `${process.env.NEXT_PUBLIC_WWW_URL || 'http://localhost:8787'}/:path*`,
+			},
+			{
+				source: '/',
+				destination: `${process.env.NEXT_PUBLIC_WWW_URL || 'http://localhost:8787'}/:path*`,
+			},
 		];
 	},
 	// biome-ignore lint/suspicious/useAwait: <explanation>
