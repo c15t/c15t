@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTheme } from '~/hooks/use-theme';
 import { useTranslations } from '~/hooks/use-translations';
 import {
 	BrandingFooter,
@@ -65,13 +66,36 @@ import type { ConsentManagerWidgetProps } from './types';
  */
 export const ConsentManagerWidget = ({
 	hideBrading,
+	theme: localTheme,
+	noStyle: localNoStyle,
+	disableAnimation: localDisableAnimation,
+	scrollLock: localScrollLock,
+	trapFocus: localTrapFocus,
 	...props
 }: ConsentManagerWidgetProps) => {
 	const [openItems, setOpenItems] = useState<string[]>([]);
 	const { common: translations } = useTranslations();
 
+	// Get global theme context and merge with local props
+	const globalTheme = useTheme();
+
+	// Merge global theme context with local props (local takes precedence)
+	const mergedTheme = {
+		...globalTheme.theme,
+		...localTheme,
+	};
+
+	const mergedProps = {
+		theme: mergedTheme,
+		noStyle: localNoStyle ?? globalTheme.noStyle,
+		disableAnimation: localDisableAnimation ?? globalTheme.disableAnimation,
+		scrollLock: localScrollLock ?? globalTheme.scrollLock,
+		trapFocus: localTrapFocus ?? globalTheme.trapFocus,
+		...props,
+	};
+
 	return (
-		<ConsentManagerWidgetRoot {...props}>
+		<ConsentManagerWidgetRoot {...mergedProps}>
 			<ConsentManagerWidgetAccordion
 				themeKey="widget.accordion"
 				type="multiple"
