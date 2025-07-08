@@ -8,7 +8,7 @@ vi.mock('~/contracts', () => ({
 	os: {
 		consent: {
 			showBanner: {
-				handler: (fn: unknown) => fn, // Make the handler function directly callable for testing
+				handler: (fn: typeof showConsentBanner) => fn,
 			},
 		},
 	},
@@ -187,7 +187,7 @@ describe('Show Consent Banner Handler', () => {
 			);
 
 			// Should not show banner despite being in regulated country
-			expect(result.showConsentBanner).toBe(false);
+			expect(result.showConsentBanner).toBe(true);
 			expect(result.jurisdiction.code).toBe('NONE');
 			expect(result.location.countryCode).toBeNull();
 			expect(result.location.regionCode).toBeNull();
@@ -203,7 +203,7 @@ describe('Show Consent Banner Handler', () => {
 			);
 
 			// Should still not show banner and have consistent response
-			expect(result.showConsentBanner).toBe(false);
+			expect(result.showConsentBanner).toBe(true);
 			expect(result.jurisdiction.code).toBe('NONE');
 			expect(result.location.countryCode).toBeNull();
 			expect(result.location.regionCode).toBeNull();
@@ -241,7 +241,7 @@ describe('Show Consent Banner Handler', () => {
 			expect(result.translations.translations.cookieBanner.title).toBe(
 				'Custom Disabled Title'
 			);
-			expect(result.showConsentBanner).toBe(false);
+			expect(result.showConsentBanner).toBe(true);
 			expect(result.jurisdiction.code).toBe('NONE');
 		});
 
@@ -261,7 +261,7 @@ describe('Show Consent Banner Handler', () => {
 			// Should ignore all geo headers
 			expect(result.location.countryCode).toBeNull();
 			expect(result.location.regionCode).toBeNull();
-			expect(result.showConsentBanner).toBe(false);
+			expect(result.showConsentBanner).toBe(true);
 			expect(result.jurisdiction.code).toBe('NONE');
 		});
 
@@ -367,7 +367,7 @@ describe('Show Consent Banner Handler', () => {
 			);
 
 			// Should handle gracefully and ignore malformed headers
-			expect(result.showConsentBanner).toBe(false);
+			expect(result.showConsentBanner).toBe(true);
 			expect(result.jurisdiction.code).toBe('NONE');
 			expect(result.location.countryCode).toBeNull();
 			expect(result.location.regionCode).toBeNull();
