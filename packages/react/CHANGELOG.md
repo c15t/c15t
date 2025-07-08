@@ -1,5 +1,11 @@
 # @c15t/react
 
+## 1.4.3
+
+### Patch Changes
+
+- c463eda: fix(react): ensure global themes from ConsentManagerProvider reach ConsentManagerDialog
+
 ## 1.4.3-canary-20250708133115
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @c15t/nextjs
 
+## 1.4.3
+
+### Patch Changes
+
+- Updated dependencies [c463eda]
+  - @c15t/react@1.4.3
+
 ## 1.4.3-canary-20250708133115
 
 ### Patch Changes
