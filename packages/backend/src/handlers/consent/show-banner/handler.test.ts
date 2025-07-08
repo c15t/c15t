@@ -186,7 +186,7 @@ describe('Show Consent Banner Handler', () => {
 				)
 			);
 
-			// Should not show banner despite being in regulated country
+			// Should show banner despite being in a regulated country when geo-location is disabled
 			expect(result.showConsentBanner).toBe(true);
 			expect(result.jurisdiction.code).toBe('NONE');
 			expect(result.location.countryCode).toBeNull();
