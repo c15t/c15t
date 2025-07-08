@@ -139,10 +139,32 @@ describe('checkJurisdiction', () => {
 		it('should handle lowercase country codes correctly', () => {
 			const result = checkJurisdiction('de');
 
-			// Should not match because the sets contain uppercase codes
-			expect(result.showConsentBanner).toBe(false);
-			expect(result.jurisdictionCode).toBe('NONE');
-			expect(result.message).toBe(JurisdictionMessages.NONE);
+			// Should now match because we normalize to uppercase
+			expect(result.showConsentBanner).toBe(true);
+			expect(result.jurisdictionCode).toBe('GDPR');
+			expect(result.message).toBe(JurisdictionMessages.GDPR);
+		});
+
+		it('should handle mixed case country codes across different jurisdictions', () => {
+			const testCases = [
+				{ input: 'de', expectedJurisdiction: 'GDPR' },
+				{ input: 'De', expectedJurisdiction: 'GDPR' },
+				{ input: 'DE', expectedJurisdiction: 'GDPR' },
+				{ input: 'ch', expectedJurisdiction: 'CH' },
+				{ input: 'Ch', expectedJurisdiction: 'CH' },
+				{ input: 'CH', expectedJurisdiction: 'CH' },
+				{ input: 'ca', expectedJurisdiction: 'PIPEDA' },
+				{ input: 'Ca', expectedJurisdiction: 'PIPEDA' },
+				{ input: 'CA', expectedJurisdiction: 'PIPEDA' },
+			] as const;
+
+			for (const { input, expectedJurisdiction } of testCases) {
+				const result = checkJurisdiction(input);
+
+				expect(result.showConsentBanner).toBe(true);
+				expect(result.jurisdictionCode).toBe(expectedJurisdiction);
+				expect(result.message).toBe(JurisdictionMessages[expectedJurisdiction]);
+			}
 		});
 
 		it('should handle invalid country codes', () => {

@@ -55,6 +55,9 @@ export function checkJurisdiction(countryCode: string | null) {
 
 	// Check country code against jurisdiction sets
 	if (countryCode) {
+		// Normalize country code to uppercase for case-insensitive comparison
+		const normalizedCountryCode = countryCode.toUpperCase();
+
 		// Default to false as we don't know if it fits any jurisdiction yet
 		showConsentBanner = false;
 
@@ -74,7 +77,7 @@ export function checkJurisdiction(countryCode: string | null) {
 
 		// Find matching jurisdiction
 		for (const { sets, code } of jurisdictionMap) {
-			if (sets.some((set) => set.has(countryCode))) {
+			if (sets.some((set) => set.has(normalizedCountryCode))) {
 				jurisdictionCode = code;
 				showConsentBanner = true;
 				break;
