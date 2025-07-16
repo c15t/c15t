@@ -81,7 +81,7 @@ async function updateStore(
 	});
 
 	// Slight delay to ensure translation config is set before rendering the banner
-	await new Promise((resolve) => setTimeout(resolve, 1));
+	await new Promise((resolve) => setTimeout(resolve, 20));
 
 	if (data.location?.countryCode) {
 		// Handle location detection callbacks
