@@ -1,7 +1,9 @@
 import { createLogger } from '@doubletie/logger';
 import { OpenAPIHandler } from '@orpc/openapi/fetch';
 import { CORSPlugin } from '@orpc/server/plugins';
+import defu from 'defu';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
+import type { DeepPartial } from '~/pkgs/types/helper';
 import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
 import { init } from './init';
 import { createCORSOptions, processCors } from './middleware/cors';
@@ -283,7 +285,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 			headers: request.headers,
 			userAgent: request.headers.get('user-agent') || undefined,
 			appName: options.appName || 'c15t',
-			options,
+			options: ctx.options,
 			trustedOrigins: options.trustedOrigins || [],
 			baseURL: options.baseURL || '/',
 			tables: ctx.tables,
@@ -328,9 +330,13 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 	/**
 	 * Handle an incoming request using oRPC
 	 */
-	const handler = async (request: Request): Promise<Response> => {
+	const handler = async (
+		request: Request,
+		ctxOverride?: DeepPartial<C15TContext>
+	): Promise<Response> => {
 		try {
 			const url = new URL(request.url);
+
 			// Add this debug log:
 			createLogger(options.logger)?.debug?.('Incoming request', {
 				method: request.method,
@@ -353,7 +359,8 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 			if (!ctxResult.isOk()) {
 				throw ctxResult.error;
 			}
-			const ctx = ctxResult.value;
+
+			const ctx = defu(ctxOverride || {}, ctxResult.value) as C15TContext;
 
 			// After options/baseURL/basePath is set/used
 			const basePath = options.basePath || options.baseURL || '/';
