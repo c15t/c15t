@@ -10,16 +10,16 @@ export const itTranslations: CompleteTranslations = {
 	cookieBanner: {
 		title: 'Rispettiamo la tua privacy',
 		description:
-			'Questo sito utilizza cookies per migliorare la tua esperienza di navigazione, analizzare il traffico del sito e mostrare contenuti personalizzati.',
+			'Questo sito utilizza cookies per migliorare la tua esperienza di navigazione, analizzare il traffico e mostrare contenuti personalizzati.',
 	},
 	consentManagerDialog: {
 		title: 'Impostazioni di privacy',
 		description:
-			'Personalizza le tue impostazioni di privacy qui. Puoi scegliere i tipi di cookies e tecnologie di tracciamento che autorizzi.',
+			'Personalizza le tue impostazioni di privacy. Puoi scegliere i tipi di cookies e tecnologie di tracciamento che autorizzi.',
 	},
 	consentTypes: {
 		necessary: {
-			title: 'Strictamente necessario',
+			title: 'Strettamente necessari',
 			description:
 				'Questi cookies sono essenziali per il sito web per funzionare correttamente e non possono essere disabilitati.',
 		},
@@ -31,17 +31,17 @@ export const itTranslations: CompleteTranslations = {
 		marketing: {
 			title: 'Marketing',
 			description:
-				'Questi cookies sono utilizzati per fornire pubblicità pertinenti e tracciare la loro efficacia.',
+				'Questi cookies sono utilizzati per fornire pubblicità pertinenti e misurare la loro efficacia.',
 		},
 		measurement: {
-			title: 'Analytics',
+			title: 'Misurazione',
 			description:
-				'Questi cookies ci aiutano a comprendere come i visitatori interagiscano con il sito web e migliorino le sue prestazioni.',
+				'Questi cookies ci aiutano a comprendere come i visitatori interagiscano con il sito web per migliorarne le sue prestazioni.',
 		},
 		experience: {
-			title: 'Experience',
+			title: 'Esperienza',
 			description:
-				'Questi cookies ci aiutano a fornire una migliore esperienza utente e testare nuove funzionalità.',
+				'Questi cookies ci aiutano a fornire una migliore esperienza utente e per testare nuove funzionalità.',
 		},
 	},
 };
