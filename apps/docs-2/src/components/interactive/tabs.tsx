@@ -1,17 +1,17 @@
 'use client';
 
 import {
-  type ComponentProps,
-  type ComponentPropsWithoutRef,
-  type ComponentRef,
-  type ReactNode,
-  createContext,
-  forwardRef,
-  useContext,
-  useEffect,
-  useId,
-  useMemo,
-  useState,
+	type ComponentProps,
+	type ComponentPropsWithoutRef,
+	type ComponentRef,
+	type ReactNode,
+	createContext,
+	forwardRef,
+	useContext,
+	useEffect,
+	useId,
+	useMemo,
+	useState,
 } from 'react';
 import { cn } from '../../lib/cn';
 import * as Unstyled from '../ui/tabs-unstyled';
@@ -282,4 +282,4 @@ function useCollectionIndex() {
  */
 function escapeValue(valueInput: string): string {
 	return valueInput.toLowerCase().replace(/\s+/g, '-');
-} 
+}

@@ -77,4 +77,4 @@ function TocItem({ item }: { item: TOCItemType }) {
 			{item.title}
 		</a>
 	);
-} 
+}

@@ -1,8 +1,8 @@
 import {
-  DocsBody,
-  DocsDescription,
-  DocsPage,
-  DocsTitle,
+	DocsBody,
+	DocsDescription,
+	DocsPage,
+	DocsTitle,
 } from '@/components/layouts/page-layout';
 import { source } from '@/lib/source';
 import { getMDXComponents } from '@/mdx-components';
@@ -22,10 +22,10 @@ export default async function Page(props: {
 
 	return (
 		<DocsPage toc={page.data.toc} full={page.data.full}>
-      <div>
-			<DocsTitle>{page.data.title}</DocsTitle>
-			<DocsDescription>{page.data.description}</DocsDescription>
-      </div>
+			<div>
+				<DocsTitle>{page.data.title}</DocsTitle>
+				<DocsDescription>{page.data.description}</DocsDescription>
+			</div>
 			<DocsBody>
 				<MDXContent
 					components={getMDXComponents({

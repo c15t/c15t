@@ -147,4 +147,4 @@ export function DocumentPagination({
 			</div>
 		</nav>
 	);
-} 
+}

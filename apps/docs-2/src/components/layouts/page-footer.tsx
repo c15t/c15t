@@ -18,7 +18,7 @@ import { useMemo } from 'react';
 export function PageFooter() {
 	const { root } = useTreeContext();
 	const pathname = usePathname();
-	
+
 	const flatten = useMemo(() => {
 		const result: PageTree.Item[] = [];
 
@@ -99,4 +99,4 @@ export function PageFooter() {
 			</div>
 		</nav>
 	);
-} 
+}

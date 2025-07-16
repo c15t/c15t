@@ -2,14 +2,14 @@
 import { useCopyButton } from 'fumadocs-ui/utils/use-copy-button';
 import { Check, Copy } from 'lucide-react';
 import {
-  type ComponentProps,
-  type HTMLAttributes,
-  type ReactNode,
-  type RefObject,
-  createContext,
-  useContext,
-  useMemo,
-  useRef,
+	type ComponentProps,
+	type HTMLAttributes,
+	type ReactNode,
+	type RefObject,
+	createContext,
+	useContext,
+	useMemo,
+	useRef,
 } from 'react';
 import { cn } from '../lib/cn';
 import { mergeRefs } from '../lib/merge-refs';
