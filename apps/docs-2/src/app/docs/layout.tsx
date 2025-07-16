@@ -1,5 +1,5 @@
 import { baseOptions } from '@/app/layout.config';
-import { DocsLayout } from '@/components/layouts/docs';
+import { DocsLayout } from '@/components/layouts/docs-layout';
 import { source } from '@/lib/source';
 import type { ReactNode } from 'react';
 

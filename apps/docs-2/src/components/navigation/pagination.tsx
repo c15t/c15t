@@ -1,6 +1,5 @@
-'use client';
 import Link from 'next/link';
-import { cn } from '../lib/cn';
+import { cn } from '../../lib/cn';
 
 /**
  * Navigation item for pagination
@@ -148,66 +147,4 @@ export function DocumentPagination({
 			</div>
 		</nav>
 	);
-}
-
-/**
- * Hook to generate pagination data from a flat array of pages
- *
- * @typeParam PageType - The type of page objects in the array
- *
- * @param pages - Array of page objects with href and title properties
- * @param currentHref - The current page's href to find position
- * @returns Object with previous and next page data, or null if not found
- *
- * @throws {Error} When pages array is empty
- * @throws {Error} When currentHref is not found in pages array
- *
- * @example
- * ```tsx
- * const pages = [
- *   { href: '/docs/intro', title: 'Introduction' },
- *   { href: '/docs/setup', title: 'Setup' },
- *   { href: '/docs/usage', title: 'Usage' }
- * ];
- *
- * const pagination = usePagination(pages, '/docs/setup');
- * // Returns: { previous: { href: '/docs/intro', title: 'Introduction' }, next: { href: '/docs/usage', title: 'Usage' } }
- * ```
- */
-function usePagination<
-	PageType extends { href: string; title: string; category?: string },
->(
-	pages: PageType[],
-	currentHref: string
-): { previous?: PaginationItem; next?: PaginationItem } {
-	if (pages.length === 0) {
-		throw new Error('Pages array cannot be empty');
-	}
-
-	const currentIndex = pages.findIndex((page) => page.href === currentHref);
-
-	if (currentIndex === -1) {
-		throw new Error(`Current href "${currentHref}" not found in pages array`);
-	}
-
-	const previous = currentIndex > 0 ? pages[currentIndex - 1] : undefined;
-	const next =
-		currentIndex < pages.length - 1 ? pages[currentIndex + 1] : undefined;
-
-	return {
-		previous: previous
-			? {
-					title: previous.title,
-					href: previous.href,
-					category: previous.category,
-				}
-			: undefined,
-		next: next
-			? {
-					title: next.title,
-					href: next.href,
-					category: next.category,
-				}
-			: undefined,
-	};
-}
+} 

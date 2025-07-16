@@ -1,51 +1,67 @@
 'use client';
 
 import {
-	type ComponentProps,
-	type ComponentPropsWithoutRef,
-	type ComponentRef,
-	type ReactNode,
-	createContext,
-	forwardRef,
-	useContext,
-	useEffect,
-	useId,
-	useMemo,
-	useState,
+  type ComponentProps,
+  type ComponentPropsWithoutRef,
+  type ComponentRef,
+  type ReactNode,
+  createContext,
+  forwardRef,
+  useContext,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
 } from 'react';
-import { cn } from '../lib/cn';
-import * as Unstyled from './tabs.unstyled';
+import { cn } from '../../lib/cn';
+import * as Unstyled from '../ui/tabs-unstyled';
 
 type CollectionKey = string | symbol;
 
+/**
+ * Enhanced tabs component properties
+ *
+ * @interface TabsProps
+ */
 interface TabsProps
 	extends Omit<
 		ComponentProps<typeof Unstyled.Tabs>,
 		'value' | 'onValueChange'
 	> {
 	/**
-	 * Use simple mode instead of advanced usage as documented in https://radix-ui.com/primitives/docs/components/tabs.
+	 * Use simple mode with predefined items instead of advanced composition
+	 *
+	 * @example ['JavaScript', 'TypeScript', 'Python']
 	 */
 	items?: string[];
 
 	/**
-	 * Shortcut for `defaultValue` when `items` is provided.
+	 * Default selected tab index when using items mode
 	 *
 	 * @defaultValue 0
 	 */
 	defaultIndex?: number;
 
 	/**
-	 * Additional label in tabs list when `items` is provided.
+	 * Optional label displayed before tab triggers
 	 */
 	label?: ReactNode;
 }
 
+/**
+ * Tab context for managing collection state
+ */
 const TabsContext = createContext<{
 	items?: string[];
 	collection: CollectionKey[];
 } | null>(null);
 
+/**
+ * Hook to access tab context safely
+ *
+ * @returns The tab context
+ * @throws {Error} When used outside of Tabs component
+ */
 function useTabContext() {
 	const ctx = useContext(TabsContext);
 	if (!ctx) {
@@ -54,6 +70,9 @@ function useTabContext() {
 	return ctx;
 }
 
+/**
+ * Styled tabs list component
+ */
 const TabsList = forwardRef<
 	ComponentRef<typeof Unstyled.TabsList>,
 	ComponentPropsWithoutRef<typeof Unstyled.TabsList>
@@ -66,6 +85,9 @@ const TabsList = forwardRef<
 ));
 TabsList.displayName = 'TabsList';
 
+/**
+ * Styled tabs trigger component
+ */
 const TabsTrigger = forwardRef<
 	ComponentRef<typeof Unstyled.TabsTrigger>,
 	ComponentPropsWithoutRef<typeof Unstyled.TabsTrigger>
@@ -85,6 +107,32 @@ const TabsTrigger = forwardRef<
 ));
 TabsTrigger.displayName = 'TabsTrigger';
 
+/**
+ * Enhanced tabs component with both simple and advanced modes
+ *
+ * Simple mode example:
+ * ```tsx
+ * <Tabs items={['JavaScript', 'TypeScript']} defaultIndex={0}>
+ *   <Tab>JavaScript content</Tab>
+ *   <Tab>TypeScript content</Tab>
+ * </Tabs>
+ * ```
+ *
+ * Advanced mode example:
+ * ```tsx
+ * <Tabs>
+ *   <TabsList>
+ *     <TabsTrigger value="js">JavaScript</TabsTrigger>
+ *     <TabsTrigger value="ts">TypeScript</TabsTrigger>
+ *   </TabsList>
+ *   <TabsContent value="js">JavaScript content</TabsContent>
+ *   <TabsContent value="ts">TypeScript content</TabsContent>
+ * </Tabs>
+ * ```
+ *
+ * @param props - The tabs properties
+ * @returns The tabs JSX element
+ */
 export function Tabs({
 	ref,
 	className,
@@ -134,14 +182,28 @@ export function Tabs({
 	);
 }
 
+/**
+ * Tab content component properties
+ *
+ * @interface TabProps
+ */
 interface TabProps
 	extends Omit<ComponentProps<typeof Unstyled.TabsContent>, 'value'> {
 	/**
-	 * Value of tab, detect from index if unspecified.
+	 * Value of tab, auto-detected from index if unspecified in simple mode
 	 */
 	value?: string;
 }
 
+/**
+ * Tab content component
+ *
+ * Automatically resolves tab value in simple mode based on render order.
+ *
+ * @param props - The tab properties
+ * @returns The tab content JSX element
+ * @throws {Error} When value cannot be resolved
+ */
 export function Tab({ value, ...props }: TabProps) {
 	const { items } = useTabContext();
 	const resolved =
@@ -162,6 +224,9 @@ export function Tab({ value, ...props }: TabProps) {
 	);
 }
 
+/**
+ * Styled tabs content component
+ */
 function TabsContent({
 	value,
 	className,
@@ -183,10 +248,12 @@ function TabsContent({
 }
 
 /**
- * Inspired by Headless UI.
+ * Collection index hook for automatic tab value resolution
  *
- * Return the index of children, this is made possible by registering the order of render from children using React context.
- * This is supposed by work with pre-rendering & pure client-side rendering.
+ * Uses React's render order to determine tab index in simple mode.
+ * Inspired by Headless UI's collection pattern.
+ *
+ * @returns The current tab index
  */
 function useCollectionIndex() {
 	const key = useId();
@@ -208,8 +275,11 @@ function useCollectionIndex() {
 }
 
 /**
- * only escape whitespaces in values in simple mode
+ * Escape whitespaces in tab values for simple mode
+ *
+ * @param valueInput - The raw tab value
+ * @returns The escaped value suitable for use as tab identifier
  */
-function escapeValue(v: string): string {
-	return v.toLowerCase().replace(/\s/, '-');
-}
+function escapeValue(valueInput: string): string {
+	return valueInput.toLowerCase().replace(/\s+/g, '-');
+} 

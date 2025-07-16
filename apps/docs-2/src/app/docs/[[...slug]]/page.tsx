@@ -1,10 +1,9 @@
 import {
-	DocsBody,
-	DocsBreadcrumb,
-	DocsDescription,
-	DocsPage,
-	DocsTitle,
-} from '@/components/layouts/page';
+  DocsBody,
+  DocsDescription,
+  DocsPage,
+  DocsTitle,
+} from '@/components/layouts/page-layout';
 import { source } from '@/lib/source';
 import { getMDXComponents } from '@/mdx-components';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
@@ -23,13 +22,10 @@ export default async function Page(props: {
 
 	return (
 		<DocsPage toc={page.data.toc} full={page.data.full}>
-			<div className=" relative flex h-full flex-col space-y-8 bg-white py-4 lg:mt-14 lg:space-y-32 dark:bg-base-900">
-				<DocsBreadcrumb />
-				<div>
-					<DocsTitle>{page.data.title}</DocsTitle>
-					<DocsDescription>{page.data.description}</DocsDescription>
-				</div>
-			</div>
+      <div>
+			<DocsTitle>{page.data.title}</DocsTitle>
+			<DocsDescription>{page.data.description}</DocsDescription>
+      </div>
 			<DocsBody>
 				<MDXContent
 					components={getMDXComponents({
