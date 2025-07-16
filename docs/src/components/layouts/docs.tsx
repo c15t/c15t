@@ -90,7 +90,7 @@ function Sidebar() {
 		<SidebarPrimitive.SidebarList
 			removeScrollOn="(width < 768px)" // md
 			className={cn(
-				'fixed top-14 z-20 flex shrink-0 flex-col overflow-auto p-4 text-sm md:sticky md:h-[calc(100dvh-56px)] md:w-[300px]',
+				'fixed z-20 mt-14 flex shrink-0 flex-col overflow-auto p-4 text-sm md:sticky md:h-[calc(100dvh-56px)] md:w-[300px]',
 				'max-md:inset-x-0 max-md:bottom-0 max-md:bg-fd-background',
 				!open && 'max-md:invisible'
 			)}

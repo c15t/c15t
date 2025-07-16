@@ -1,3 +1,126 @@
-@import 'tailwindcss';
-@import 'fumadocs-ui/css/neutral.css';
-@import 'fumadocs-ui/css/preset.css';
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/forms";
+@plugin "tailwind-scrollbar-hide";
+@custom-variant dark (&:where(.dark, .dark *));
+@theme {
+	/* Typography */
+	--font-sans: Geist, sans-serif;
+	--font-mono: Geist Mono, monospace;
+	/* Colors */
+	--color-accent-50: oklch(0.977 0.013 236.62);
+	--color-accent-100: oklch(0.951 0.026 236.824);
+	--color-accent-200: oklch(0.901 0.058 230.902);
+	--color-accent-300: oklch(0.828 0.111 230.318);
+	--color-accent-400: oklch(0.746 0.16 232.661);
+	--color-accent-500: oklch(0.685 0.169 237.323);
+	--color-accent-600: oklch(0.588 0.158 241.966);
+	--color-accent-700: oklch(0.5 0.134 242.749);
+	--color-accent-800: oklch(0.443 0.11 240.79);
+	--color-accent-900: oklch(0.391 0.09 240.876);
+	--color-accent-950: oklch(0.293 0.066 243.157);
+	/* base*/
+	--color-base-50: oklch(0.985 0 0);
+	--color-base-100: oklch(0.97 0 0);
+	--color-base-200: oklch(0.922 0 0);
+	--color-base-300: oklch(0.87 0 0);
+	--color-base-400: oklch(0.708 0 0);
+	--color-base-500: oklch(0.556 0 0);
+	--color-base-600: oklch(0.439 0 0);
+	--color-base-700: oklch(0.371 0 0);
+	--color-base-800: oklch(0.269 0 0);
+	--color-base-900: oklch(0.205 0 0);
+	--color-base-950: oklch(0.145 0 0);
+}
+:root {
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* Syntax highlighting with custom color palette */
+.fd-codeblock {
+	/* Light theme - use global colors */
+	--shiki-light: var(--color-base-800);
+	--shiki-dark: var(--color-base-200);
+	--shiki-light-bg: var(--color-base-50);
+	--shiki-dark-bg: var(--color-base-950);
+}
+
+.fd-codeblock code span {
+	color: var(--shiki-light);
+}
+
+.dark .fd-codeblock code span {
+	color: var(--shiki-dark);
+}
+
+.fd-codeblock pre > * {
+	font-size: 13px;
+	display: grid;
+}
+
+.fd-codeblock code .diff.remove {
+	background-color: var(--fd-diff-remove-color);
+	opacity: 0.7;
+}
+
+.fd-codeblock code .diff:before {
+	position: absolute;
+	left: 6px;
+}
+
+.fd-codeblock code .diff.remove:before {
+	content: "-";
+	color: var(--fd-diff-remove-symbol-color);
+}
+
+.fd-codeblock code .diff.add {
+	background-color: var(--fd-diff-add-color);
+}
+
+.fd-codeblock code .diff.add:before {
+	content: "+";
+	color: var(--fd-diff-add-symbol-color);
+}
+
+.fd-codeblock code .diff {
+	margin: 0 -16px;
+	padding: 0 16px;
+	position: relative;
+}
+
+.fd-codeblock .highlighted {
+	background-color: oklab(20.4627% -3.72529e-8 1.49012e-8 / 0.1);
+	margin: 0 -16px;
+	padding: 0 16px;
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+	.fd-codeblock .highlighted {
+		background-color: color-mix(
+			in oklab,
+			var(--color-fd-primary) 10%,
+			transparent
+		);
+	}
+}
+
+.fd-codeblock .highlighted-word {
+	background-color: oklab(20.4627% -3.72529e-8 1.49012e-8 / 0.1);
+	border: 1px solid #17171780;
+	border-radius: 2px;
+	margin: -1px -3px;
+	padding: 1px 2px;
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+	.fd-codeblock .highlighted-word {
+		border: 1px solid
+			color-mix(in oklab, var(--color-fd-primary) 50%, transparent);
+		background-color: color-mix(
+			in oklab,
+			var(--color-fd-primary) 10%,
+			transparent
+		);
+	}
+}

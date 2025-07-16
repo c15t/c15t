@@ -1,3 +1,4 @@
+import { customDarkTheme, customTheme } from '@/mdx-plugins/theme';
 import {
 	defineConfig,
 	defineDocs,
@@ -19,5 +20,12 @@ export const docs = defineDocs({
 export default defineConfig({
 	mdxOptions: {
 		// MDX options
+		rehypeCodeOptions: {
+			langs: ['python', 'javascript', 'typescript'],
+			themes: {
+				light: customTheme,
+				dark: customDarkTheme,
+			},
+		},
 	},
 });

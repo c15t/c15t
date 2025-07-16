@@ -1,5 +1,6 @@
 import {
 	DocsBody,
+	DocsBreadcrumb,
 	DocsDescription,
 	DocsPage,
 	DocsTitle,
@@ -14,14 +15,21 @@ export default async function Page(props: {
 }) {
 	const params = await props.params;
 	const page = source.getPage(params.slug);
-	if (!page) notFound();
+	if (!page) {
+		notFound();
+	}
 
 	const MDXContent = page.data.body;
 
 	return (
 		<DocsPage toc={page.data.toc} full={page.data.full}>
-			<DocsTitle>{page.data.title}</DocsTitle>
-			<DocsDescription>{page.data.description}</DocsDescription>
+			<div className=" relative flex h-full flex-col space-y-8 bg-white py-4 lg:mt-14 lg:space-y-32 dark:bg-base-900">
+				<DocsBreadcrumb />
+				<div>
+					<DocsTitle>{page.data.title}</DocsTitle>
+					<DocsDescription>{page.data.description}</DocsDescription>
+				</div>
+			</div>
 			<DocsBody>
 				<MDXContent
 					components={getMDXComponents({
@@ -43,7 +51,9 @@ export async function generateMetadata(props: {
 }) {
 	const params = await props.params;
 	const page = source.getPage(params.slug);
-	if (!page) notFound();
+	if (!page) {
+		notFound();
+	}
 
 	return {
 		title: page.data.title,

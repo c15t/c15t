@@ -1,0 +1,6 @@
+{
+	"title": "React",
+	"root": true,
+	"icon": "react",
+	"pages": ["./introduction", "./index", "./callbacks"]
+}
