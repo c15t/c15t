@@ -57,6 +57,14 @@ async function updateStore(
 
 	const { translations, location, jurisdiction, showConsentBanner } = data;
 
+	const updatedStore: Partial<PrivacyConsentState> = {
+		locationInfo: {
+			countryCode: location?.countryCode ?? '',
+			regionCode: location?.regionCode ?? '',
+		},
+		jurisdictionInfo: jurisdiction,
+	};
+
 	if (translations) {
 		const translationConfig = prepareTranslationConfig(
 			{
@@ -69,19 +77,26 @@ async function updateStore(
 			initialTranslationConfig
 		);
 
-		set({ translationConfig });
+		updatedStore.translationConfig = translationConfig;
 	}
 
-	set({
-		locationInfo: {
-			countryCode: location?.countryCode ?? '',
-			regionCode: location?.regionCode ?? '',
-		},
-		jurisdictionInfo: jurisdiction,
-	});
+	set(updatedStore);
 
-	// Slight delay to ensure translation config is set before rendering the banner
-	await new Promise((resolve) => setTimeout(resolve, 20));
+	// Wait for translation config to be fully applied before rendering the banner
+	await new Promise((resolve) => {
+		const checkConfig = () => {
+			const currentState = get();
+			if (
+				JSON.stringify(currentState.translationConfig) ===
+				JSON.stringify(updatedStore.translationConfig)
+			) {
+				resolve(null);
+			} else {
+				setTimeout(checkConfig, 1);
+			}
+		};
+		checkConfig();
+	});
 
 	if (data.location?.countryCode) {
 		// Handle location detection callbacks
