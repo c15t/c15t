@@ -1,9 +1,14 @@
+'use client';
+
 import type { TableOfContents } from 'fumadocs-core/server';
 import { AnchorProvider } from 'fumadocs-core/toc';
 import type { HTMLAttributes, ReactNode } from 'react';
+import { useState } from 'react';
 import { cn } from '../../lib/cn';
 import { DocsBreadcrumb } from '../navigation/breadcrumb';
 import { TableOfContents as TOC } from '../navigation/table-of-contents';
+import { DocsMobileHeader } from './docs-mobile-header';
+import { DocsSidebar } from './docs-sidebar';
 import { PageFooter } from './page-footer';
 
 /**
@@ -24,10 +29,12 @@ interface DocsPageProps {
  * Documentation page layout component
  *
  * Provides the main page structure with:
+ * - Mobile header and sidebar integration
  * - Breadcrumb navigation
  * - Two-column layout (content + TOC)
  * - Anchor provider for scroll highlighting
  * - Page footer with navigation
+ * - Mobile menu state management
  *
  * @param props - The page layout properties
  * @returns The page layout JSX element
@@ -44,30 +51,52 @@ interface DocsPageProps {
  * ```
  */
 export function DocsPage({ toc = [], ...props }: DocsPageProps) {
+	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+	const handleMobileMenuToggle = () => {
+		setIsMobileMenuOpen(!isMobileMenuOpen);
+	};
+
+	const handleMobileMenuClose = () => {
+		setIsMobileMenuOpen(false);
+	};
+
 	return (
-		<div className="mx-auto 2xl:max-w-6xl">
-			<article>
-				<AnchorProvider toc={toc}>
-					<div className="flex flex-col lg:flex-row lg:divide-x lg:divide-base-200 dark:divide-base-800">
-						<div className="flex-1">
-							<div className="relative">
-								<div className="relative flex h-full flex-col space-y-16 bg-white p-8 lg:space-y-24 dark:bg-base-900">
-									{props.children}
+		<>
+			{/* Mobile header */}
+			<DocsMobileHeader
+				onMenuToggle={handleMobileMenuToggle}
+				isMenuOpen={isMobileMenuOpen}
+			/>
+
+			{/* Mobile sidebar */}
+			<DocsSidebar isOpen={isMobileMenuOpen} onClose={handleMobileMenuClose} />
+
+			{/* Main content */}
+			<div className="mx-auto 2xl:max-w-6xl">
+				<article>
+					<AnchorProvider toc={toc}>
+						<div className="flex flex-col lg:flex-row lg:divide-x lg:divide-base-200 dark:divide-base-800">
+							<div className="flex-1">
+								<div className="relative">
+									<div className="relative flex h-full flex-col space-y-16 bg-white p-8 lg:space-y-24 dark:bg-base-900">
+										{props.children}
+									</div>
 								</div>
-							</div>
-							<div id="markdown-content">
-								<div className="prose prose-base prose-pre:scrollbar-hide prose-pre:scrollbar-hide prose-pre:relative prose-pre:my-0 max-w-none prose-headings:scroll-mt-24 prose-pre:overflow-y-hidden prose-pre:rounded-xl prose-img:border prose-hr:border-base-300 prose-img:border-base-200 prose-pre:border-none px-8 py-4 prose-blockquote:font-normal prose-headings:font-medium prose-strong:font-medium prose-a:text-accent-500 prose-blockquote:text-base-500 prose-headings:text-base-900 text-base-500 prose-blockquote:tracking-normal prose-pre:outline-base-200 prose-a:duration-200 prose-pre:selection:bg-accent-600/10 prose-pre:selection:text-base-900 hover:prose-a:text-accent-500 dark:prose-blockquote:border-base-500 dark:prose-hr:border-base-700 dark:prose-img:border-base-700 dark:prose-thead:border-base-700 dark:prose-tr:border-base-700 dark:prose-blockquote:text-base-600 dark:prose-code:text-white dark:prose-headings:text-white dark:prose-strong:text-white dark:text-base-400 dark:prose-pre:outline-base-800 dark:prose-pre:selection:text-white">
-									{/* Content will be rendered here */}
+								<div id="markdown-content">
+									<div className="prose prose-base prose-pre:scrollbar-hide prose-pre:scrollbar-hide prose-pre:relative prose-pre:my-0 max-w-none prose-headings:scroll-mt-24 prose-pre:overflow-y-hidden prose-pre:rounded-xl prose-img:border prose-hr:border-base-300 prose-img:border-base-200 prose-pre:border-none px-8 py-4 prose-blockquote:font-normal prose-headings:font-medium prose-strong:font-medium prose-a:text-accent-500 prose-blockquote:text-base-500 prose-headings:text-base-900 text-base-500 prose-blockquote:tracking-normal prose-pre:outline-base-200 prose-a:duration-200 prose-pre:selection:bg-accent-600/10 prose-pre:selection:text-base-900 hover:prose-a:text-accent-500 dark:prose-blockquote:border-base-500 dark:prose-hr:border-base-700 dark:prose-img:border-base-700 dark:prose-thead:border-base-700 dark:prose-tr:border-base-700 dark:prose-blockquote:text-base-600 dark:prose-code:text-white dark:prose-headings:text-white dark:prose-strong:text-white dark:text-base-400 dark:prose-pre:outline-base-800 dark:prose-pre:selection:text-white">
+										{/* Content will be rendered here */}
+									</div>
 								</div>
+								<PageActions />
 							</div>
-							<PageActions />
+							<TOC toc={toc} />
 						</div>
-						<TOC toc={toc} />
-					</div>
-					<PageFooter />
-				</AnchorProvider>
-			</article>
-		</div>
+						<PageFooter />
+					</AnchorProvider>
+				</article>
+			</div>
+		</>
 	);
 }
 

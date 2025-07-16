@@ -6,7 +6,6 @@ import { cn } from '../../lib/cn';
 import type { DocumentPaginationProps } from '../navigation/pagination';
 import { DocumentPagination } from '../navigation/pagination';
 import { DocsDesktopHeader } from './docs-desktop-header';
-import { DocsMobileHeader } from './docs-mobile-header';
 import { DocsSidebar } from './docs-sidebar';
 
 /**
@@ -58,7 +57,7 @@ export function DocsLayout({
 			>
 				{/* Mobile header */}
 				<div className="bg-base-100 dark:bg-base-700">
-					<DocsMobileHeader />
+					{/* <DocsMobileHeader /> */}
 					<div className="flex">
 						{/* Sidebar */}
 						<DocsSidebar />
