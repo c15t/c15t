@@ -2,7 +2,9 @@
 @plugin "@tailwindcss/typography";
 @plugin "@tailwindcss/forms";
 @plugin "tailwind-scrollbar-hide";
+
 @custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
 	/* Typography */
 	--font-sans: Geist, sans-serif;

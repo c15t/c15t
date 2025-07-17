@@ -2,25 +2,26 @@ import { Image as FrameworkImage } from 'fumadocs-core/framework';
 import type { MDXComponents } from 'mdx/types';
 import Link from 'next/link';
 import type {
-	AnchorHTMLAttributes,
-	FC,
-	HTMLAttributes,
-	ImgHTMLAttributes,
-	TableHTMLAttributes,
+  AnchorHTMLAttributes,
+  FC,
+  HTMLAttributes,
+  ImgHTMLAttributes,
+  TableHTMLAttributes,
 } from 'react';
 import { Callout } from './components/callout';
 import { Card, Cards } from './components/card';
 import {
-	CodeBlock,
-	CodeBlockTab,
-	CodeBlockTabs,
-	CodeBlockTabsList,
-	CodeBlockTabsTrigger,
-	Pre,
+  CodeBlock,
+  CodeBlockTab,
+  CodeBlockTabs,
+  CodeBlockTabsList,
+  CodeBlockTabsTrigger,
+  Pre,
 } from './components/codeblock';
 import { Heading } from './components/heading';
 import { Tab, Tabs } from './components/interactive/tabs';
-import { cn } from './lib/cn';
+import { cn } from './lib/utils';
+
 
 function Table(props: TableHTMLAttributes<HTMLTableElement>) {
 	return (

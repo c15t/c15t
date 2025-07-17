@@ -1,7 +1,7 @@
 import Link from 'fumadocs-core/link';
 import type React from 'react';
 import type { HTMLAttributes } from 'react';
-import { cn } from '../lib/cn';
+import { cn } from '../lib/utils';
 
 export function Cards(props: HTMLAttributes<HTMLDivElement>) {
 	return (

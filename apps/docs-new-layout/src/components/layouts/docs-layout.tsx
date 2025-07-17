@@ -2,7 +2,7 @@
 import type { PageTree } from 'fumadocs-core/server';
 import { TreeContextProvider } from 'fumadocs-ui/contexts/tree';
 import type { ReactNode } from 'react';
-import { cn } from '../../lib/cn';
+import { cn } from '../../lib/utils';
 import type { DocumentPaginationProps } from '../navigation/pagination';
 import { DocumentPagination } from '../navigation/pagination';
 import { DocsDesktopHeader } from './docs-desktop-header';
@@ -22,6 +22,8 @@ interface DocsLayoutProps {
 	pagination?: DocumentPaginationProps;
 	/** Additional CSS classes for the container */
 	className?: string;
+	/** Github stars for the repository */
+	githubStars?: number;
 }
 
 /**
@@ -49,6 +51,7 @@ export function DocsLayout({
 	children,
 	pagination,
 	className,
+	githubStars,
 }: DocsLayoutProps) {
 	return (
 		<TreeContextProvider tree={tree}>
@@ -64,7 +67,7 @@ export function DocsLayout({
 						{/* Main content */}
 						<div className="min-w-0 flex-1 bg-white lg:mr-1 lg:border-base-200 lg:border-r lg:pl-72 dark:bg-base-900 dark:lg:border-base-800">
 							{/* Desktop header */}
-							<DocsDesktopHeader />
+							<DocsDesktopHeader githubStars={githubStars} />
 							{/* Content */}
 							<div className="mx-auto 2xl:max-w-6xl">
 								<article>

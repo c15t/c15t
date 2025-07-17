@@ -1,7 +1,7 @@
 import { Box, CircleCheck, CircleX, Info, TriangleAlert } from 'lucide-react';
 import type React from 'react';
 import { type HTMLAttributes, forwardRef } from 'react';
-import { cn } from '../lib/cn';
+import { cn } from '../lib/utils';
 
 type CalloutProps = Omit<
 	HTMLAttributes<HTMLDivElement>,

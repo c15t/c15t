@@ -1,7 +1,7 @@
 'use client';
 import type { TOCItemType } from 'fumadocs-core/server';
 import { useActiveAnchors } from 'fumadocs-core/toc';
-import { cn } from '../../lib/cn';
+import { cn } from '../../lib/utils';
 
 /**
  * Table of contents component properties
