@@ -47,54 +47,17 @@ function checkLocalStorageAccess(
 /**
  * Updates store with consent banner data
  */
-async function updateStore(
+function updateStore(
 	data: ConsentBannerResponse,
 	{ set, get, initialTranslationConfig }: FetchConsentBannerConfig,
 	hasLocalStorageAccess: boolean
-): Promise<void> {
+): void {
 	const { consentInfo, setDetectedCountry, callbacks, ignoreGeoLocation } =
 		get();
 
 	const { translations, location, jurisdiction, showConsentBanner } = data;
 
-	if (translations) {
-		const translationConfig = prepareTranslationConfig(
-			{
-				translations: {
-					[translations.language]: translations.translations,
-				},
-				disableAutoLanguageSwitch: true,
-				defaultLanguage: translations.language,
-			},
-			initialTranslationConfig
-		);
-
-		set({ translationConfig });
-	}
-
-	set({
-		locationInfo: {
-			countryCode: location?.countryCode ?? '',
-			regionCode: location?.regionCode ?? '',
-		},
-		jurisdictionInfo: jurisdiction,
-	});
-
-	// Slight delay to ensure translation config is set before rendering the banner
-	await new Promise((resolve) => setTimeout(resolve, 1));
-
-	if (data.location?.countryCode) {
-		// Handle location detection callbacks
-		setDetectedCountry(data.location.countryCode);
-		if (data.location.regionCode) {
-			callbacks.onLocationDetected?.({
-				countryCode: data.location.countryCode,
-				regionCode: data.location.regionCode,
-			});
-		}
-	}
-
-	set({
+	const updatedStore: Partial<PrivacyConsentState> = {
 		isLoadingConsentInfo: false,
 		...(consentInfo === null
 			? {
@@ -114,7 +77,40 @@ async function updateStore(
 					measurement: true,
 				},
 			}),
-	});
+		locationInfo: {
+			countryCode: location?.countryCode ?? '',
+			regionCode: location?.regionCode ?? '',
+		},
+		jurisdictionInfo: jurisdiction,
+	};
+
+	if (translations) {
+		const translationConfig = prepareTranslationConfig(
+			{
+				translations: {
+					[translations.language]: translations.translations,
+				},
+				disableAutoLanguageSwitch: true,
+				defaultLanguage: translations.language,
+			},
+			initialTranslationConfig
+		);
+
+		updatedStore.translationConfig = translationConfig;
+	}
+
+	if (data.location?.countryCode) {
+		// Handle location detection callbacks
+		setDetectedCountry(data.location.countryCode);
+		if (data.location.regionCode) {
+			callbacks.onLocationDetected?.({
+				countryCode: data.location.countryCode,
+				regionCode: data.location.regionCode,
+			});
+		}
+	}
+
+	set(updatedStore);
 }
 
 /**
