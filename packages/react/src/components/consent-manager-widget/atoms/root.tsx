@@ -94,7 +94,6 @@ const ConsentManagerWidgetRoot: FC<ConsentManagerWidgetRootProps> = ({
 	disableAnimation = false,
 	theme,
 	useProvider = true,
-	...props
 }) => {
 	/**
 	 * Combine consent manager state with styling configuration
@@ -107,11 +106,7 @@ const ConsentManagerWidgetRoot: FC<ConsentManagerWidgetRootProps> = ({
 	};
 
 	const content = (
-		<Box
-			data-testid="consent-manager-widget-root"
-			themeKey="widget.root"
-			{...props}
-		>
+		<Box data-testid="consent-manager-widget-root" themeKey="widget.root">
 			{children}
 		</Box>
 	);
