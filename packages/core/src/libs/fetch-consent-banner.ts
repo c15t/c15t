@@ -47,17 +47,36 @@ function checkLocalStorageAccess(
 /**
  * Updates store with consent banner data
  */
-async function updateStore(
+function updateStore(
 	data: ConsentBannerResponse,
 	{ set, get, initialTranslationConfig }: FetchConsentBannerConfig,
 	hasLocalStorageAccess: boolean
-): Promise<void> {
+): void {
 	const { consentInfo, setDetectedCountry, callbacks, ignoreGeoLocation } =
 		get();
 
 	const { translations, location, jurisdiction, showConsentBanner } = data;
 
 	const updatedStore: Partial<PrivacyConsentState> = {
+		isLoadingConsentInfo: false,
+		...(consentInfo === null
+			? {
+					showPopup:
+						(showConsentBanner && hasLocalStorageAccess) || ignoreGeoLocation,
+				}
+			: {}),
+
+		// If the banner is not shown and has no requirement consent to all
+		...(data.jurisdiction.code === 'NONE' &&
+			!data.showConsentBanner && {
+				consents: {
+					necessary: true,
+					functionality: true,
+					experience: true,
+					marketing: true,
+					measurement: true,
+				},
+			}),
 		locationInfo: {
 			countryCode: location?.countryCode ?? '',
 			regionCode: location?.regionCode ?? '',
@@ -80,24 +99,6 @@ async function updateStore(
 		updatedStore.translationConfig = translationConfig;
 	}
 
-	set(updatedStore);
-
-	// Wait for translation config to be fully applied before rendering the banner
-	await new Promise((resolve) => {
-		const checkConfig = () => {
-			const currentState = get();
-			if (
-				JSON.stringify(currentState.translationConfig) ===
-				JSON.stringify(updatedStore.translationConfig)
-			) {
-				resolve(null);
-			} else {
-				setTimeout(checkConfig, 1);
-			}
-		};
-		checkConfig();
-	});
-
 	if (data.location?.countryCode) {
 		// Handle location detection callbacks
 		setDetectedCountry(data.location.countryCode);
@@ -109,27 +110,7 @@ async function updateStore(
 		}
 	}
 
-	set({
-		isLoadingConsentInfo: false,
-		...(consentInfo === null
-			? {
-					showPopup:
-						(showConsentBanner && hasLocalStorageAccess) || ignoreGeoLocation,
-				}
-			: {}),
-
-		// If the banner is not shown and has no requirement consent to all
-		...(data.jurisdiction.code === 'NONE' &&
-			!data.showConsentBanner && {
-				consents: {
-					necessary: true,
-					functionality: true,
-					experience: true,
-					marketing: true,
-					measurement: true,
-				},
-			}),
-	});
+	set(updatedStore);
 }
 
 /**

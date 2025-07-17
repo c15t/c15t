@@ -6,7 +6,7 @@ import {
 	configureConsentManager,
 	createConsentManagerStore,
 } from 'c15t';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import packageJson from '../../package.json';
 import {
 	ConsentStateContext,
@@ -195,6 +195,15 @@ export function ConsentManagerProvider({
 		translations,
 	]);
 
+	// Store initial configuration values to avoid reinitializing when options change
+	// This ensures the store is only initialized once per instance, preventing
+	// overwrites of user changes if the provider props change during runtime
+	const initialConfigRef = useRef({
+		gdprTypes: initialGdprTypes,
+		complianceSettings: initialComplianceSettings,
+		consentCategories: options.consentCategories,
+	});
+
 	// Initialize state with the current state from the consent manager store
 	const [state, setState] = useState<PrivacyConsentState>(() => {
 		if (!consentStore) {
@@ -204,38 +213,44 @@ export function ConsentManagerProvider({
 		return consentStore.getState();
 	});
 
-	// Initialize the store with settings and set up subscription
+	// Set up subscription immediately and separately from initialization
+	useEffect(() => {
+		if (!consentStore) {
+			return;
+		}
+
+		// Set up subscription FIRST to catch all state changes
+		const unsubscribe = consentStore.subscribe(setState);
+
+		return unsubscribe;
+	}, [consentStore]);
+
+	// Initialize the store with settings separately (only run once per store instance)
 	useEffect(() => {
 		if (!consentStore) {
 			return;
 		}
 
 		const { setGdprTypes, setComplianceSetting } = consentStore.getState();
+		const config = initialConfigRef.current;
 
 		// Initialize GDPR types if provided
-		if (initialGdprTypes || options.consentCategories) {
-			setGdprTypes(initialGdprTypes || options.consentCategories || []);
+		if (config.gdprTypes || config.consentCategories) {
+			setGdprTypes(config.gdprTypes || config.consentCategories || []);
 		}
 
 		// Initialize compliance settings if provided
-		if (initialComplianceSettings) {
+		if (config.complianceSettings) {
 			for (const [region, settings] of Object.entries(
-				initialComplianceSettings
+				config.complianceSettings
 			)) {
 				setComplianceSetting(region as ComplianceRegion, settings);
 			}
 		}
 
-		// Subscribe to state changes only once
-		const unsubscribe = consentStore.subscribe(setState);
-
-		return unsubscribe;
-	}, [
-		consentStore,
-		initialGdprTypes,
-		initialComplianceSettings,
-		options.consentCategories,
-	]);
+		// Ensure local state is in sync after initialization
+		setState(consentStore.getState());
+	}, [consentStore]); // Only depend on consentStore to avoid reinitializing on every option change
 
 	// Create theme context value
 	const themeContextValue = useMemo(() => {

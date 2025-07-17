@@ -34,12 +34,9 @@ export function useConsentManager() {
 		);
 	}
 
-	const storeState = context.store.getState();
-
-	// Combine state from context and methods from store
+	// Return the reactive state from context, not a snapshot from store.getState()
 	return {
 		...context.state,
-		...storeState,
 		// Include manager in returned object if available
 		...(context.manager ? { manager: context.manager } : {}),
 	};
