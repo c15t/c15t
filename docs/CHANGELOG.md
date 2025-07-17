@@ -1,5 +1,18 @@
 # docs
 
+## 1.3.8
+
+### Patch Changes
+
+- Updated dependencies [f6a3e5f]
+- Updated dependencies [e3b9caf]
+- Updated dependencies [c44c22a]
+  - @c15t/react@1.4.4
+  - c15t@1.4.4
+  - @c15t/nextjs@1.4.4
+  - @c15t/dev-tools@1.4.4
+  - next@0.1.1
+
 ## 1.3.7
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @c15t/react
 
+## 1.4.4
+
+### Patch Changes
+
+- f6a3e5f: fix(core, react): translation overrides sometimes not set before banner is shown
+- e3b9caf: fix(react): removed scroll lock from widget
+- c44c22a: fix(react): improve cookie banner buttons on mobile
+- Updated dependencies [f6a3e5f]
+  - c15t@1.4.4
+
 ## 1.4.3
 
 ### Patch Changes

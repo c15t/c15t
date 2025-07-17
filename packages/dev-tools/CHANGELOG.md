@@ -1,5 +1,12 @@
 # @c15t/dev-tools
 
+## 1.4.4
+
+### Patch Changes
+
+- Updated dependencies [f6a3e5f]
+  - c15t@1.4.4
+
 ## 1.4.2
 
 ### Patch Changes

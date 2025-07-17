@@ -1,5 +1,11 @@
 # c15t
 
+## 1.4.4
+
+### Patch Changes
+
+- f6a3e5f: fix(core, react): translation overrides sometimes not set before banner is shown
+
 ## 1.4.2
 
 ### Patch Changes
