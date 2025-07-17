@@ -102,7 +102,7 @@ export function DocsSidebar({ isOpen = false, onClose }: DocsSidebarProps) {
 							</svg>
 						</button>
 					</div>
-					<div className='flex items-center justify-center px-4 '>
+					<div className="flex items-center justify-center px-4 ">
 						<FrameworkDropdown />
 					</div>
 					{/* Navigation */}

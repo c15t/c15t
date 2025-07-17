@@ -33,7 +33,7 @@ export function DocsDesktopHeader({ githubStars }: { githubStars: number }) {
 					</a>
 				</div>
 				<div className="flex flex-col gap-2 md:flex-row md:gap-4">
-        <Link
+					<Link
 						href="https://x.com/consentdotio"
 						className="flex items-center gap-2 text-2xl text-base-500 transition-colors hover:text-base-600 md:text-sm dark:text-base-400 dark:hover:text-base-200"
 					>
@@ -45,7 +45,7 @@ export function DocsDesktopHeader({ githubStars }: { githubStars: number }) {
 							/>
 						</svg>
 					</Link>
-        <Link
+					<Link
 						href="https://c15t.com/discord"
 						className="flex items-center gap-2 text-2xl text-base-500 transition-colors hover:text-base-600 md:text-sm dark:text-base-400 dark:hover:text-base-200"
 					>
@@ -114,7 +114,7 @@ export function ThemeSwitcher() {
 		// Render a consistent placeholder to prevent hydration mismatch
 		return (
 			<div className="grid w-[120px] grid-cols-2 overflow-hidden rounded-none border border-base-300 dark:border-base-700">
-				<div className='flex items-center justify-center bg-white px-2 py-2 text-base-500 transition-colors dark:bg-base-900 dark:text-base-400'>
+				<div className="flex items-center justify-center bg-white px-2 py-2 text-base-500 transition-colors dark:bg-base-900 dark:text-base-400">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
 						width="24"
@@ -140,7 +140,7 @@ export function ThemeSwitcher() {
 					</svg>
 					<span className="sr-only">Light theme</span>
 				</div>
-				<div className='flex items-center justify-center bg-white px-2 py-2 text-base-500 transition-colors dark:bg-base-900 dark:text-base-400'>
+				<div className="flex items-center justify-center bg-white px-2 py-2 text-base-500 transition-colors dark:bg-base-900 dark:text-base-400">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
 						width="24"

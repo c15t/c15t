@@ -1,17 +1,17 @@
 'use client';
 
 import {
-  type ComponentProps,
-  type ComponentPropsWithoutRef,
-  type ComponentRef,
-  type ReactNode,
-  createContext,
-  forwardRef,
-  useContext,
-  useEffect,
-  useId,
-  useMemo,
-  useState,
+	type ComponentProps,
+	type ComponentPropsWithoutRef,
+	type ComponentRef,
+	type ReactNode,
+	createContext,
+	forwardRef,
+	useContext,
+	useEffect,
+	useId,
+	useMemo,
+	useState,
 } from 'react';
 import { cn } from '../../lib/utils';
 import * as Unstyled from '../ui/tabs-unstyled';
