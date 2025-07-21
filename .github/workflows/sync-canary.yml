@@ -27,15 +27,15 @@ jobs:
 
       - name: Create sync branch
         run: |
-          # Create a unique branch for this sync
-          SYNC_BRANCH="sync-main-to-canary-$(date +%Y%m%d-%H%M%S)"
+          # Use a fixed branch name for syncing
+          SYNC_BRANCH="sync-main-to-canary"
           git checkout -b $SYNC_BRANCH
           
           # Ensure we're up to date with main
           git reset --hard origin/main
           
-          # Push the sync branch
-          git push origin $SYNC_BRANCH
+          # Push the sync branch (force update if it exists)
+          git push origin $SYNC_BRANCH --force-with-lease
           
           echo "SYNC_BRANCH=$SYNC_BRANCH" >> $GITHUB_ENV
 
