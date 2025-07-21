@@ -29,9 +29,18 @@ jobs:
         run: |
           # Use a fixed branch name for syncing
           SYNC_BRANCH="sync-main-to-canary"
-          git checkout -b $SYNC_BRANCH
           
-          # Ensure we're up to date with main
+          # Fetch latest remote refs
+          git fetch origin main
+          
+          # Check if sync branch exists locally and switch to it or create it
+          if git show-ref --verify --quiet refs/heads/$SYNC_BRANCH; then
+            git checkout $SYNC_BRANCH
+          else
+            git checkout -b $SYNC_BRANCH
+          fi
+          
+          # Reset branch hard to latest main
           git reset --hard origin/main
           
           # Push the sync branch (force update if it exists)
