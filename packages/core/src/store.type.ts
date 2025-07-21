@@ -54,6 +54,7 @@ export interface PrivacyConsentState {
 		pkg: string;
 		version: string;
 		mode: string;
+		meta?: Record<string, unknown>;
 	};
 
 	/** Current consent states for all consent types */
