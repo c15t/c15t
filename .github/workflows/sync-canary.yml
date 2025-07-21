@@ -1,4 +1,4 @@
-name: Sync Canary with Main
+name: Sync Main to Canary via PR
 
 on:
   push:
@@ -8,10 +8,11 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   sync:
-    name: Sync Canary with Main
+    name: Create PR to sync Main to Canary
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -24,18 +25,61 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Sync Canary with Main
+      - name: Create sync branch
         run: |
-          # Check if canary branch exists
-          if git ls-remote --heads origin canary | grep canary; then
-            # Create or update canary branch
-            git checkout -B canary
-            git pull origin main
-            git push origin canary --force
-          else
-            # Create canary branch if it doesn't exist
-            git checkout -b canary
-            git push origin canary
-          fi
+          # Create a unique branch for this sync
+          SYNC_BRANCH="sync-main-to-canary-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b $SYNC_BRANCH
+          
+          # Ensure we're up to date with main
+          git reset --hard origin/main
+          
+          # Push the sync branch
+          git push origin $SYNC_BRANCH
+          
+          echo "SYNC_BRANCH=$SYNC_BRANCH" >> $GITHUB_ENV
+
+      - name: Create Pull Request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: existingPRs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${process.env.SYNC_BRANCH}`,
+              base: 'canary',
+              state: 'open'
+            });
+
+            if (existingPRs.length === 0) {
+              await github.rest.pulls.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `🔄 Sync main to canary`,
+                head: process.env.SYNC_BRANCH,
+                base: 'canary',
+                body: `
+                ## Sync Main to Canary
+                
+                This PR syncs the latest changes from \`main\` to \`canary\`.
+                
+                ### What's included:
+                - Latest commits from main branch
+                - Automated sync via GitHub Actions
+                
+                ### Review checklist:
+                - [ ] Verify no canary-specific changes are lost
+                - [ ] Check for any conflicts that need manual resolution
+                - [ ] Ensure CI passes on canary after merge
+                
+                _This PR was created automatically by the sync workflow._
+                `,
+                draft: false
+              });
+              
+              console.log('✅ Created sync PR');
+            } else {
+              console.log('ℹ️ Sync PR already exists');
+            }
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
