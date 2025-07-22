@@ -1,5 +1,13 @@
 # @c15t/nextjs
 
+## 1.5.0-canary-20250722155253
+
+### Patch Changes
+
+- Updated dependencies [b83b52e]
+  - @c15t/translations@1.5.0-canary-20250722155253
+  - @c15t/react@1.5.0-canary-20250722155253
+
 ## 1.5.0-canary-20250722151007
 
 ### Patch Changes

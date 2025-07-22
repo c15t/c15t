@@ -1,5 +1,11 @@
 # @c15t/translations
 
+## 1.5.0-canary-20250722155253
+
+### Patch Changes
+
+- b83b52e: chore(translations): improved italian translations
+
 ## 1.4.2
 
 ### Patch Changes

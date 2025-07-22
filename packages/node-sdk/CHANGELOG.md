@@ -1,5 +1,11 @@
 # @c15t/node-sdk
 
+## 1.5.0-canary-20250722155253
+
+### Patch Changes
+
+- @c15t/backend@1.5.0-canary-20250722155253
+
 ## 1.5.0-canary-20250722133547
 
 ### Patch Changes
