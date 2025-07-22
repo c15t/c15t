@@ -769,9 +769,6 @@ importers:
 
   packages/react:
     dependencies:
-      '@c15t/node-sdk':
-        specifier: workspace:*
-        version: link:../node-sdk
       '@radix-ui/react-accordion':
         specifier: 1.2.4
         version: 1.2.4(@types/react-dom@19.1.2(@types/react@19.1.1))(@types/react@19.1.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
