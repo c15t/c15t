@@ -1,6 +1,6 @@
 import { os } from '~/contracts';
 import type { C15TContext } from '~/types';
-import { version } from '../../../package.json';
+import { version } from '../../version';
 
 // Use os.meta.status.handler to connect to the contract
 export const statusHandler = os.meta.status.handler(({ context }) => {

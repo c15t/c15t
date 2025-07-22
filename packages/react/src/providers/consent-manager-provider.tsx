@@ -7,7 +7,6 @@ import {
 	createConsentManagerStore,
 } from 'c15t';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import packageJson from '../../package.json';
 import {
 	ConsentStateContext,
 	type ConsentStateContextValue,
@@ -15,6 +14,7 @@ import {
 import { GlobalThemeContext } from '../context/theme-context';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import type { ConsentManagerProviderProps } from '../types/consent-manager';
+import { version } from '../version';
 
 // Module-level cache to persist stores across component unmounts/remounts
 const storeCache = new Map<
@@ -171,7 +171,7 @@ export function ConsentManagerProvider({
 			unstable_googleTagManager: options.unstable_googleTagManager,
 			config: {
 				pkg: '@c15t/react',
-				version: packageJson.version,
+				version: version,
 				mode: mode || 'Unknown',
 			},
 			ignoreGeoLocation: options.ignoreGeoLocation,
