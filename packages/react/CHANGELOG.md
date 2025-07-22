@@ -1,5 +1,11 @@
 # @c15t/react
 
+## 1.5.0-canary-20250722151007
+
+### Patch Changes
+
+- 5decee3: chore(react): remove un-used dependency
+
 ## 1.5.0-canary-20250722133547
 
 ### Patch Changes
