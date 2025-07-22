@@ -1,5 +1,11 @@
 # @c15t/react
 
+## 1.5.0-canary-20250722155253
+
+### Patch Changes
+
+- c15t@1.5.0-canary-20250722155253
+
 ## 1.5.0-canary-20250722151007
 
 ### Patch Changes
