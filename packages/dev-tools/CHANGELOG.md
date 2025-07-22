@@ -1,5 +1,12 @@
 # @c15t/dev-tools
 
+## 1.5.0-canary-20250722133547
+
+### Patch Changes
+
+- Updated dependencies [35b5fc3]
+  - c15t@1.5.0-canary-20250722133547
+
 ## 1.5.0-canary-20250722085128
 
 ### Patch Changes
