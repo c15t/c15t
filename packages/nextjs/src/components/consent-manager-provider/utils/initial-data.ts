@@ -1,15 +1,15 @@
 import type { ContractsOutputs } from '@c15t/backend/contracts';
-import { headers } from 'next/headers';
 import { extractRelevantHeaders } from './headers';
 import { normalizeBackendURL } from './normalize-url';
 
 type ShowConsentBanner = ContractsOutputs['consent']['showBanner'] | undefined;
 
 export async function getC15TInitialData(
-	backendURL: string
+	backendURL: string,
+	initialHeaders: Headers | Promise<Headers>
 ): Promise<ShowConsentBanner> {
-	const headersList = await headers();
-	const relevantHeaders = extractRelevantHeaders(headersList);
+	const headers = await initialHeaders;
+	const relevantHeaders = extractRelevantHeaders(headers);
 
 	// We can't fetch from the server if the headers are not present like when dynamic params is set to force-static
 	// https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config#dynamicparams
@@ -17,7 +17,7 @@ export async function getC15TInitialData(
 		return undefined;
 	}
 
-	const normalizedURL = normalizeBackendURL(backendURL, headersList);
+	const normalizedURL = normalizeBackendURL(backendURL, headers);
 
 	if (!normalizedURL) {
 		return undefined;

@@ -1,15 +1,22 @@
 /**
  * Templates module for generating configuration files
- * These functions generate template configuration content for different storage modes
+ * This module now serves as a wrapper that routes to the appropriate implementation
+ * based on the detected project structure (App Directory vs Pages Directory)
  */
 
-import { Project, type SourceFile, SyntaxKind } from 'ts-morph';
+import {
+	Project,
+	type ReturnStatement,
+	type SourceFile,
+	SyntaxKind,
+} from 'ts-morph';
 import type { AvailablePackages } from '~/context/framework-detection';
-
-const HTML_TAG_REGEX = /<html[^>]*>([\s\S]*)<\/html>/;
-const BODY_TAG_REGEX = /<body[^>]*>([\s\S]*)<\/body>/;
-const BODY_OPENING_TAG_REGEX = /<body[^>]*>/;
-const HTML_CONTENT_REGEX = /([\s\S]*<\/html>)/;
+import { updateNextLayout } from './next';
+import {
+	generateOptionsText,
+	getBaseImports,
+	getCustomModeImports,
+} from './shared/options';
 
 interface UpdateReactLayoutOptions {
 	projectRoot: string;
@@ -20,90 +27,28 @@ interface UpdateReactLayoutOptions {
 	proxyNextjs?: boolean;
 }
 
-function findLayoutFile(
-	project: Project,
-	projectRoot: string
-): SourceFile | undefined {
-	const layoutPatterns = [
-		'**/app.tsx',
-		'**/App.tsx',
-		'**/app/app.tsx',
-		'**/src/app/app.tsx',
-		'**/layout.tsx',
-		'**/Layout.tsx',
-		'**/app/layout.tsx',
-		'**/src/app/layout.tsx',
-	];
-
-	for (const pattern of layoutPatterns) {
-		const files = project.addSourceFilesAtPaths(`${projectRoot}/${pattern}`);
-		if (files.length > 0) {
-			return files[0];
-		}
-	}
-}
-
-function generateOptionsText(
-	mode: string,
-	backendURL?: string,
-	useEnvFile?: boolean,
-	proxyNextjs?: boolean
-): string {
-	switch (mode) {
-		case 'c15t': {
-			if (proxyNextjs) {
-				return `{
-					mode: 'c15t',
-					backendURL: '/api/c15t',
-					consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
-					ignoreGeoLocation: true, // Useful for development to always view the banner.
-				}`;
-			}
-
-			if (useEnvFile) {
-				return `{
-					mode: 'c15t',
-					backendURL: process.env.NEXT_PUBLIC_C15T_URL!,
-					consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
-					ignoreGeoLocation: true, // Useful for development to always view the banner.
-				}`;
-			}
-
-			return `{
-				mode: 'c15t',
-				backendURL: '${backendURL || 'https://your-instance.c15t.dev'}',
-				consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
-        ignoreGeoLocation: true, // Useful for development to always view the banner.
-			}`;
-		}
-		case 'custom':
-			return `{
-				mode: 'custom',
-				endpointHandlers: createCustomHandlers(),
-			}`;
-		default:
-			return `{
-				mode: 'offline',
-				consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
-			}`;
-	}
-}
-
-function updateImports(
+/**
+ * Updates imports for generic React projects
+ * Adds ConsentManagerProvider and related imports to the layout file
+ *
+ * @param layoutFile - The source file to update
+ * @param packageName - The package name to import from
+ * @param mode - The storage mode being used
+ *
+ * @throws {Error} When imports cannot be added to the file
+ */
+function updateGenericReactImports(
 	layoutFile: SourceFile,
 	packageName: string,
 	mode: string
-) {
-	const requiredImports = [
-		'ConsentManagerProvider',
-		'CookieBanner',
-		'ConsentManagerDialog',
-	];
-	let hasC15tImport = false;
+): void {
+	const requiredImports = ['ConsentManagerProvider', ...getBaseImports()];
+	let hasPackageImport = false;
 
+	// Check existing imports and update if needed
 	for (const importDecl of layoutFile.getImportDeclarations()) {
 		if (importDecl.getModuleSpecifierValue() === packageName) {
-			hasC15tImport = true;
+			hasPackageImport = true;
 			const namedImports = importDecl.getNamedImports().map((i) => i.getName());
 			const missingImports = requiredImports.filter(
 				(imp) => !namedImports.includes(imp)
@@ -115,88 +60,137 @@ function updateImports(
 		}
 	}
 
-	if (!hasC15tImport) {
+	// Add new import if none exists
+	if (!hasPackageImport) {
 		layoutFile.addImportDeclaration({
 			namedImports: requiredImports,
 			moduleSpecifier: packageName,
 		});
 	}
 
+	// Add custom mode imports if needed
 	if (mode === 'custom') {
-		layoutFile.addImportDeclaration({
-			namedImports: ['createCustomHandlers'],
-			moduleSpecifier: './consent-handlers',
-		});
-	}
-}
-
-function wrapJsxContent(originalJsx: string, optionsText: string): string {
-	const hasHtmlTag =
-		originalJsx.includes('<html') || originalJsx.includes('</html>');
-	const hasBodyTag =
-		originalJsx.includes('<body') || originalJsx.includes('</body>');
-
-	const providerWrapper = (content: string) => `
-		<ConsentManagerProvider options={${optionsText}}>
-			<CookieBanner />
-			<ConsentManagerDialog />
-			${content}
-		</ConsentManagerProvider>
-	`;
-
-	if (hasHtmlTag) {
-		const htmlMatch = originalJsx.match(HTML_TAG_REGEX);
-		const htmlContent = htmlMatch?.[1] || '';
-		if (!htmlContent) {
-			return providerWrapper(originalJsx);
+		for (const customImport of getCustomModeImports()) {
+			layoutFile.addImportDeclaration(customImport);
 		}
-
-		const bodyMatch = htmlContent.match(BODY_TAG_REGEX);
-		if (!bodyMatch) {
-			return originalJsx.replace(
-				HTML_CONTENT_REGEX,
-				`<html>${providerWrapper('$1')}</html>`
-			);
-		}
-
-		const bodyContent = bodyMatch[1] || '';
-		const bodyOpeningTag =
-			originalJsx.match(BODY_OPENING_TAG_REGEX)?.[0] || '<body>';
-
-		return originalJsx.replace(
-			BODY_TAG_REGEX,
-			`${bodyOpeningTag}${providerWrapper(bodyContent)}</body>`
-		);
 	}
-
-	if (hasBodyTag) {
-		const bodyMatch = originalJsx.match(BODY_TAG_REGEX);
-		const bodyContent = bodyMatch?.[1] || '';
-		if (!bodyContent) {
-			return providerWrapper(originalJsx);
-		}
-
-		const bodyOpeningTag =
-			originalJsx.match(BODY_OPENING_TAG_REGEX)?.[0] || '<body>';
-		return originalJsx.replace(
-			BODY_TAG_REGEX,
-			`${bodyOpeningTag}${providerWrapper(bodyContent)}</body>`
-		);
-	}
-
-	return providerWrapper(originalJsx);
 }
 
 /**
- * Updates or creates a React layout file with ConsentManagerProvider
+ * Updates JSX content for generic React projects
+ * Wraps the main component's return JSX with ConsentManagerProvider
  *
- * @param projectRoot - The root directory of the project
- * @param mode - The storage mode ('c15t', 'offline', or 'custom')
- * @param backendURL - URL for the c15t backend/API (for 'c15t' mode)
- * @param useEnvFile - Whether to use environment variable for backendURL
- * @returns Information about the update
+ * @param layoutFile - The source file to update
+ * @param mode - The storage mode being used
+ * @param backendURL - Optional backend URL for c15t mode
+ * @param useEnvFile - Whether to use environment variables
+ * @param proxyNextjs - Whether to use Next.js proxy (not applicable for generic React)
+ * @returns True if JSX was successfully updated, false otherwise
+ *
+ * @throws {Error} When JSX cannot be parsed or updated
  */
-export async function updateReactLayout({
+function updateGenericReactJsx(
+	layoutFile: SourceFile,
+	mode: string,
+	backendURL?: string,
+	useEnvFile?: boolean,
+	proxyNextjs?: boolean
+): boolean {
+	// Find the main function component (could be function declaration or arrow function)
+	const functionDeclarations = layoutFile.getFunctions();
+	const variableDeclarations = layoutFile.getVariableDeclarations();
+
+	// Look for return statements in function declarations
+	for (const func of functionDeclarations) {
+		const returnStatement = func.getDescendantsOfKind(
+			SyntaxKind.ReturnStatement
+		)[0];
+		if (returnStatement) {
+			return wrapReturnStatement(
+				returnStatement,
+				mode,
+				backendURL,
+				useEnvFile,
+				proxyNextjs
+			);
+		}
+	}
+
+	// Look for return statements in arrow functions
+	for (const varDecl of variableDeclarations) {
+		const initializer = varDecl.getInitializer();
+		if (initializer) {
+			const returnStatement = initializer.getDescendantsOfKind(
+				SyntaxKind.ReturnStatement
+			)[0];
+			if (returnStatement) {
+				return wrapReturnStatement(
+					returnStatement,
+					mode,
+					backendURL,
+					useEnvFile,
+					proxyNextjs
+				);
+			}
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Wraps a return statement's JSX with ConsentManagerProvider
+ *
+ * @param returnStatement - The return statement to wrap
+ * @param mode - The storage mode being used
+ * @param backendURL - Optional backend URL for c15t mode
+ * @param useEnvFile - Whether to use environment variables
+ * @param proxyNextjs - Whether to use Next.js proxy
+ * @returns True if successfully wrapped, false otherwise
+ */
+function wrapReturnStatement(
+	returnStatement: ReturnStatement,
+	mode: string,
+	backendURL?: string,
+	useEnvFile?: boolean,
+	proxyNextjs?: boolean
+): boolean {
+	const expression = returnStatement.getExpression();
+	if (!expression) {
+		return false;
+	}
+
+	const originalJsx = expression.getText();
+	const optionsText = generateOptionsText(
+		mode,
+		backendURL,
+		useEnvFile,
+		proxyNextjs
+	);
+
+	// Wrap the JSX with ConsentManagerProvider
+	const newJsx = `(
+		<ConsentManagerProvider options={${optionsText}}>
+			<CookieBanner />
+			<ConsentManagerDialog />
+			${originalJsx}
+		</ConsentManagerProvider>
+	)`;
+
+	returnStatement.replaceWithText(`return ${newJsx}`);
+	return true;
+}
+
+/**
+ * Fallback function for non-Next.js React projects
+ * Handles generic React layout updates for projects that don't use Next.js structure
+ *
+ * @param options - Configuration options for updating the layout
+ * @returns Information about the update operation
+ *
+ * @throws {Error} When layout file cannot be parsed or updated
+ */
+async function updateGenericReactLayout({
 	projectRoot,
 	mode,
 	pkg,
@@ -208,11 +202,43 @@ export async function updateReactLayout({
 	filePath: string | null;
 	alreadyModified: boolean;
 }> {
+	// Generic React layout patterns (Vite, CRA, etc.)
+	const layoutPatterns = [
+		'app.tsx',
+		'App.tsx',
+		'app.jsx',
+		'App.jsx',
+		'src/app.tsx',
+		'src/App.tsx',
+		'src/app.jsx',
+		'src/App.jsx',
+		'src/app/app.tsx',
+		'src/app/App.tsx',
+		'src/app/app.jsx',
+		'src/app/App.jsx',
+	];
+
 	const project = new Project();
-	const layoutFile = findLayoutFile(project, projectRoot);
+	let layoutFile: SourceFile | undefined;
+
+	for (const pattern of layoutPatterns) {
+		try {
+			const files = project.addSourceFilesAtPaths(`${projectRoot}/${pattern}`);
+			if (files.length > 0) {
+				layoutFile = files[0];
+				break;
+			}
+		} catch {
+			// File doesn't exist or can't be parsed, try next pattern
+		}
+	}
 
 	if (!layoutFile) {
-		return { updated: false, filePath: null, alreadyModified: false };
+		return {
+			updated: false,
+			filePath: null,
+			alreadyModified: false,
+		};
 	}
 
 	// Check if file already has imports from our package
@@ -220,6 +246,7 @@ export async function updateReactLayout({
 	const hasPackageImport = existingImports.some(
 		(importDecl) => importDecl.getModuleSpecifierValue() === pkg
 	);
+
 	if (hasPackageImport) {
 		return {
 			updated: false,
@@ -228,42 +255,61 @@ export async function updateReactLayout({
 		};
 	}
 
-	updateImports(layoutFile, pkg, mode);
-	const optionsText = generateOptionsText(
-		mode,
-		backendURL,
-		useEnvFile,
-		proxyNextjs
-	);
+	try {
+		// Add required imports
+		updateGenericReactImports(layoutFile, pkg, mode);
 
-	const returnStatement = layoutFile.getDescendantsOfKind(
-		SyntaxKind.ReturnStatement
-	)[0];
-	if (!returnStatement) {
+		// Update the component JSX
+		const updated = updateGenericReactJsx(
+			layoutFile,
+			mode,
+			backendURL,
+			useEnvFile,
+			proxyNextjs
+		);
+
+		if (updated) {
+			await layoutFile.save();
+			return {
+				updated: true,
+				filePath: layoutFile.getFilePath(),
+				alreadyModified: false,
+			};
+		}
+
 		return {
 			updated: false,
 			filePath: layoutFile.getFilePath(),
 			alreadyModified: false,
 		};
+	} catch (error) {
+		throw new Error(
+			`Failed to update generic React layout: ${error instanceof Error ? error.message : String(error)}`
+		);
+	}
+}
+
+export async function updateReactLayout(
+	options: UpdateReactLayoutOptions
+): Promise<{
+	updated: boolean;
+	filePath: string | null;
+	alreadyModified: boolean;
+}> {
+	// Check package type first to determine which implementation to use
+	if (options.pkg === '@c15t/nextjs') {
+		const nextResult = await updateNextLayout(options);
+
+		if (nextResult.structureType) {
+			// Successfully handled by Next.js implementation
+			return {
+				updated: nextResult.updated,
+				filePath: nextResult.filePath,
+				alreadyModified: nextResult.alreadyModified,
+			};
+		}
 	}
 
-	const expression = returnStatement.getExpression();
-	if (!expression) {
-		return {
-			updated: false,
-			filePath: layoutFile.getFilePath(),
-			alreadyModified: false,
-		};
-	}
-
-	const originalJsx = expression.getText();
-	const newJsx = wrapJsxContent(originalJsx, optionsText);
-	returnStatement.replaceWithText(`return ${newJsx}`);
-
-	await layoutFile.save();
-	return {
-		updated: true,
-		filePath: layoutFile.getFilePath(),
-		alreadyModified: false,
-	};
+	// Use generic React implementation for all other cases
+	return updateGenericReactLayout(options);
 }

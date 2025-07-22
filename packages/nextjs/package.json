@@ -8,6 +8,11 @@
 	"types": "./dist/index.d.ts",
 	"files": ["dist"],
 	"exports": {
+		"./pages": {
+			"types": "./dist/pages.d.ts",
+			"import": "./dist/pages.js",
+			"require": "./dist/pages.cjs"
+		},
 		".": {
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js",
