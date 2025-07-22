@@ -1,5 +1,13 @@
 # @c15t/react
 
+## 1.5.0-canary-20250722085128
+
+### Patch Changes
+
+- Updated dependencies [35f052c]
+  - c15t@1.5.0-canary-20250722085128
+  - @c15t/node-sdk@1.5.0-canary-20250722085128
+
 ## 1.4.4
 
 ### Patch Changes

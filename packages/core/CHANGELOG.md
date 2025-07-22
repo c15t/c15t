@@ -1,5 +1,16 @@
 # c15t
 
+## 1.5.0-canary-20250722085128
+
+### Minor Changes
+
+- 35f052c: feat(nextjs): added pages support
+
+### Patch Changes
+
+- Updated dependencies [74e1825]
+  - @c15t/backend@1.5.0-canary-20250722085128
+
 ## 1.4.4
 
 ### Patch Changes
