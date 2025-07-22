@@ -3,10 +3,10 @@
  * Provides the default initial state configuration for the consent management store.
  */
 
-import packageJson from '../package.json';
 import type { PrivacyConsentState } from './store.type';
 import { defaultTranslationConfig } from './translations';
 import { type ConsentState, consentTypes } from './types';
+import { version } from './version';
 
 /**
  * Default initial state for the consent management store.
@@ -47,7 +47,7 @@ export const initialState: Omit<
 > = {
 	config: {
 		pkg: 'c15t',
-		version: packageJson.version,
+		version,
 		mode: 'Unknown',
 	},
 
