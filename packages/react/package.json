@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/react",
-	"version": "1.5.0-canary-20250722133547",
+	"version": "1.5.0-canary-20250722151007",
 	"license": "GPL-3.0-only",
 	"sideEffects": false,
 	"type": "module",
