@@ -1,5 +1,5 @@
 {
-	"name": "next-example",
+	"name": "@c15t-examples/next",
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
