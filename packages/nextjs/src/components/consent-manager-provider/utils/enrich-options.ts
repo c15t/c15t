@@ -1,5 +1,5 @@
 import type { ConsentManagerProviderProps } from '@c15t/react';
-import packageJson from '../../../../package.json';
+import { version } from '../../../version';
 
 type InitialDataPromise = NonNullable<
 	ConsentManagerProviderProps['options']['store']
@@ -20,7 +20,7 @@ export function enrichOptions({
 		...options.store,
 		config: {
 			pkg: '@c15t/nextjs',
-			version: packageJson.version,
+			version,
 			mode: options.mode || 'Unknown',
 			meta: {
 				appDirectory: usingAppDir,

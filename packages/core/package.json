@@ -14,10 +14,11 @@
 	"module": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"scripts": {
-		"build": "rslib build",
+		"prebuild": "genversion --esm --semi src/version.ts",
+		"build": "pnpm prebuild && rslib build",
+		"dev": "pnpm prebuild && rslib build --watch",
 		"check-types": "tsc --noEmit",
 		"check-types:test": "tsc -p tsconfig.test.json",
-		"dev": "rslib build --watch",
 		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"lint": "pnpm biome lint ./src",
 		"test": "vitest run",
@@ -34,7 +35,8 @@
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"vitest-localstorage-mock": "^0.1.2"
+		"vitest-localstorage-mock": "^0.1.2",
+		"genversion": "^3.2.0"
 	},
 	"publishConfig": {
 		"access": "public"
