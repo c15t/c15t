@@ -1,14 +1,155 @@
+'use client';
+
+import { usePathname } from 'next/navigation';
+import { useState } from 'react';
+
+/**
+ * Page actions component properties
+ *
+ * @interface PageActionsProps
+ */
+interface PageActionsProps {
+	/** The markdown URL for the current page (optional, will be derived from pathname if not provided) */
+	markdownUrl?: string;
+	/** The GitHub URL for editing the page (optional, will be derived from pathname if not provided) */
+	githubUrl?: string;
+}
+
 /**
  * Page actions component with feedback and utility buttons
+ *
+ * Provides interactive buttons for:
+ * - Copying page markdown content for LLMs
+ * - Opening ChatGPT with pre-filled prompt
+ * - Opening Claude with pre-filled prompt
+ * - Copying content to T3 Chat
+ * - Editing on GitHub (auto-derives URL from current page path)
+ * - Feedback collection
+ *
+ * @param props - The page actions properties
+ * @returns The page actions JSX element
  */
-export function PageActions() {
+export function PageActions({ markdownUrl, githubUrl }: PageActionsProps = {}) {
+	const pathname = usePathname();
+	const [copyStatus, setCopyStatus] = useState<
+		'idle' | 'copying' | 'copied' | 'error'
+	>('idle');
+	const [t3ChatStatus, setT3ChatStatus] = useState<
+		'idle' | 'copying' | 'copied' | 'error'
+	>('idle');
+
+	// Derive markdown URL from pathname if not provided
+	const finalMarkdownUrl = markdownUrl || `${pathname}.mdx`;
+
+	// Derive GitHub URL from pathname if not provided
+	const finalGithubUrl =
+		githubUrl ||
+		(() => {
+			// Convert pathname to GitHub content path
+			// e.g., /docs/introduction -> docs/content/introduction.mdx
+			const slug =
+				pathname.replace('/docs/', '').replace(/^\/+|\/+$/g, '') || 'index';
+			return `https://github.com/c15t/c15t/blob/main/apps/docs-new-layout/content/docs/${slug}.mdx`;
+		})();
+
+	/**
+	 * Copies the page markdown content to clipboard
+	 */
+	const handleCopyMarkdown = async () => {
+		setCopyStatus('copying');
+		try {
+			const response = await fetch(finalMarkdownUrl);
+			if (!response.ok) {
+				throw new Error(`Failed to fetch: ${response.status}`);
+			}
+			const content = await response.text();
+			await navigator.clipboard.writeText(content);
+			setCopyStatus('copied');
+			setTimeout(() => setCopyStatus('idle'), 2000);
+		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: <explanation>
+			console.error('Failed to copy markdown:', error);
+			setCopyStatus('error');
+			setTimeout(() => setCopyStatus('idle'), 2000);
+		}
+	};
+
+	/**
+	 * Opens ChatGPT with a pre-filled prompt containing the page content
+	 */
+	const handleAskChatGPT = async () => {
+		try {
+			const response = await fetch(finalMarkdownUrl);
+			if (!response.ok) {
+				throw new Error(`Failed to fetch: ${response.status}`);
+			}
+			const content = await response.text();
+			const prompt = `I have a question about this documentation:\n\n${content}\n\nMy question is: `;
+			const encodedPrompt = encodeURIComponent(prompt);
+			window.open(`https://chat.openai.com/?q=${encodedPrompt}`, '_blank');
+		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: <explanation>
+			console.error('Failed to open ChatGPT:', error);
+			// Fallback to opening ChatGPT without content
+			window.open('https://chat.openai.com/', '_blank');
+		}
+	};
+
+	/**
+	 * Opens Claude with a pre-filled prompt containing the page content
+	 */
+	const handleAskClaude = async () => {
+		try {
+			const response = await fetch(finalMarkdownUrl);
+			if (!response.ok) {
+				throw new Error(`Failed to fetch: ${response.status}`);
+			}
+			const content = await response.text();
+			const prompt = `I have a question about this documentation:\n\n${content}\n\nMy question is: `;
+			const encodedPrompt = encodeURIComponent(prompt);
+			window.open(`https://claude.ai/chat?q=${encodedPrompt}`, '_blank');
+		} catch (error) {
+			console.error('Failed to open Claude:', error);
+			// Fallback to opening Claude without content
+			window.open('https://claude.ai/', '_blank');
+		}
+	};
+
+	/**
+	 * Copies content to T3 chat (or opens T3 chat with content)
+	 */
+	const handleCopyToT3Chat = async () => {
+		setT3ChatStatus('copying');
+		try {
+			const response = await fetch(finalMarkdownUrl);
+			if (!response.ok) {
+				throw new Error(`Failed to fetch: ${response.status}`);
+			}
+			const content = await response.text();
+
+			// Copy content to clipboard for T3 chat
+			await navigator.clipboard.writeText(content);
+			setT3ChatStatus('copied');
+			setTimeout(() => setT3ChatStatus('idle'), 2000);
+
+			// Optional: Open T3 chat platform if URL is available
+			// window.open('https://t3-chat-url.com', '_blank');
+		} catch (error) {
+			console.error('Failed to copy to T3 chat:', error);
+			setT3ChatStatus('error');
+			setTimeout(() => setT3ChatStatus('idle'), 2000);
+		}
+	};
+
 	return (
 		<div className="border-base-200 border-t p-8 dark:border-base-800">
 			<div className="gap-2 space-y-4">
 				<button
 					id="copy-markdown"
 					type="button"
-					className="flex w-full items-center gap-2 text-left text-base-900 text-xs hover:text-accent-600 dark:text-white"
+					onClick={handleCopyMarkdown}
+					disabled={copyStatus === 'copying'}
+					className="flex w-full items-center gap-2 text-left text-base-900 text-xs hover:text-accent-600 disabled:opacity-50 dark:text-white"
 				>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
@@ -26,11 +167,15 @@ export function PageActions() {
 						<path d="M7 15v-6l2 2l2 -2v6" />
 						<path d="M14 13l2 2l2 -2m-2 2v-6" />
 					</svg>
-					Copy page Markdown for LLMs
+					{copyStatus === 'copying' && 'Copying...'}
+					{copyStatus === 'copied' && 'Copied!'}
+					{copyStatus === 'error' && 'Copy failed'}
+					{copyStatus === 'idle' && 'Copy page Markdown for LLMs'}
 				</button>
 				<button
 					id="ask-chatgpt"
 					type="button"
+					onClick={handleAskChatGPT}
 					className="flex w-full items-center gap-2 text-left text-base-900 text-xs hover:text-accent-600 dark:text-white"
 				>
 					<svg
@@ -57,6 +202,7 @@ export function PageActions() {
 				<button
 					id="ask-claude"
 					type="button"
+					onClick={handleAskClaude}
 					className="flex w-full items-center gap-2 text-left text-base-900 text-xs hover:text-accent-600 dark:text-white"
 				>
 					<svg
@@ -77,8 +223,38 @@ export function PageActions() {
 					</svg>
 					Ask Claude
 				</button>
+				<button
+					id="copy-to-t3-chat"
+					type="button"
+					onClick={handleCopyToT3Chat}
+					disabled={t3ChatStatus === 'copying'}
+					className="flex w-full items-center gap-2 text-left text-base-900 text-xs hover:text-accent-600 disabled:opacity-50 dark:text-white"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="2"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+						className="icon size-4 text-base-900 dark:text-white"
+						aria-hidden="true"
+					>
+						<path stroke="none" d="M0 0h24v24H0z" fill="none" />
+						<path d="M8 9h8" />
+						<path d="M8 13h6" />
+						<path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-5l-5 3v-3h-2a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12z" />
+					</svg>
+					{t3ChatStatus === 'copying' && 'Copying...'}
+					{t3ChatStatus === 'copied' && 'Copied to T3 Chat!'}
+					{t3ChatStatus === 'error' && 'Copy failed'}
+					{t3ChatStatus === 'idle' && 'Copy to T3 Chat'}
+				</button>
 				<a
-					href="#_"
+					href={finalGithubUrl}
+					target="_blank"
+					rel="noopener noreferrer"
 					className="flex w-full items-center gap-2 text-left text-base-900 text-xs hover:text-accent-600 dark:text-white"
 				>
 					<svg

@@ -61,7 +61,7 @@ export function DocsSidebar({ isOpen = false, onClose }: DocsSidebarProps) {
 			>
 				<div className="flex h-full flex-col border-base-200 border-r bg-white lg:mt-1 lg:ml-1 lg:rounded-tl-xl lg:border dark:border-base-800 dark:bg-base-900">
 					{/* Sidebar header */}
-					<div className="flex h-14 items-center justify-center px-8 pb-4">
+					<div className="flex h-14 items-center justify-center px-8 py-4">
 						<Link
 							href="/"
 							className="flex items-center space-x-2 text-base-900 dark:text-white"

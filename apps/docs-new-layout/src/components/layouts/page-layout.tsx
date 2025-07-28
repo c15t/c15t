@@ -18,6 +18,7 @@ import { PageFooter } from './page-footer';
  * @interface DocsPageProps
  */
 interface DocsPageProps {
+	slug?: string[];
 	/** Table of contents data */
 	toc?: TableOfContents;
 	/** Whether to use full width layout */
@@ -51,7 +52,7 @@ interface DocsPageProps {
  * </DocsPage>
  * ```
  */
-export function DocsPage({ toc = [], ...props }: DocsPageProps) {
+export function DocsPage({ slug, toc = [], ...props }: DocsPageProps) {
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
 	const handleMobileMenuToggle = () => {
@@ -84,7 +85,7 @@ export function DocsPage({ toc = [], ...props }: DocsPageProps) {
 										{props.children}
 									</div>
 								</div>
-								<PageActions />
+								<PageActions slug={slug} />
 							</div>
 							<TOC toc={toc} />
 						</div>

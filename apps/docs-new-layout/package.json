@@ -27,6 +27,9 @@
 		"react-dom": "^19.1.0",
 		"react-medium-image-zoom": "^5.2.14",
 		"react-shiki": "^0.7.1",
+		"remark": "^15.0.1",
+		"remark-gfm": "^4.0.1",
+		"remark-mdx": "^3.1.0",
 		"tailwind-merge": "^3.3.1"
 	},
 	"devDependencies": {
