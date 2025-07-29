@@ -4,7 +4,9 @@
  */
 
 import type {
+	AllConsentNames,
 	ConsentManagerOptions as CoreOptions,
+	GTMConfiguration,
 	TranslationConfig,
 } from 'c15t';
 import type { ReactNode } from 'react';
@@ -67,6 +69,25 @@ export type ConsentManagerOptions = CoreOptions & {
 	 * Translation configuration
 	 */
 	translations?: Partial<TranslationConfig>;
+
+	/**
+	 * Google Tag Manager configuration.
+	 * Once you set this, the consent manager will automatically setup Google Tag Manager for you.
+	 */
+	unstable_googleTagManager?: GTMConfiguration;
+
+	/**
+	 * Whether to ignore geo location. Will always show the consent banner.
+	 * It is recommended to disable this option in production.
+	 * @default false
+	 */
+	ignoreGeoLocation?: boolean;
+
+	/**
+	 * Consent Categories to show in the consent banner.
+	 * @default ['necessary', 'marketing']
+	 */
+	consentCategories?: AllConsentNames[];
 };
 
 /**

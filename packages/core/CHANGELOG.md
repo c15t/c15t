@@ -1,5 +1,101 @@
 # c15t
 
+## 1.5.0-canary-20250722133547
+
+### Patch Changes
+
+- 35b5fc3: fix: removed package.json imports for Next 13 compatibility
+- Updated dependencies [35b5fc3]
+  - @c15t/backend@1.5.0-canary-20250722133547
+
+## 1.5.0-canary-20250722085128
+
+### Minor Changes
+
+- 35f052c: feat(nextjs): added pages support
+
+### Patch Changes
+
+- Updated dependencies [74e1825]
+  - @c15t/backend@1.5.0-canary-20250722085128
+
+## 1.4.4
+
+### Patch Changes
+
+- f6a3e5f: fix(core, react): translation overrides sometimes not set before banner is shown
+
+## 1.4.2
+
+### Patch Changes
+
+- 53774ce: fix(core): hasConsentFor should return true when no consent is needed
+- Updated dependencies [53774ce]
+  - @c15t/translations@1.4.2
+  - @c15t/backend@1.4.2
+
+## 1.4.2-canary-20250702103734
+
+### Patch Changes
+
+- eed347c: fix(core): hasConsentFor should return true when no consent is needed
+- Updated dependencies [cd218e7]
+  - @c15t/translations@1.4.2-canary-20250702103734
+  - @c15t/backend@1.4.2-canary-20250702103734
+
+## 1.4.1
+
+### Patch Changes
+
+- Updated dependencies [8afd304]
+  - @c15t/backend@1.4.1
+
+## 1.4.0
+
+### Minor Changes
+
+- 6eb9a8d: feat(core, react): added ignoreGeoLocation, improved provider props
+  feat(core): added 'config' prop to store for better debugging
+  fix(react): add aria label to cookie banner component
+  fix(cli): removed env import
+  fix(cli): asks for pkg manager twice
+
+## 1.3.3
+
+### Patch Changes
+
+- b4d53be: feat(core): added Google Tag Manager support
+  fix(react): allow trapFocus={false} in CookieBanner
+  fix(nextjs): improved url validation
+
+## 1.3.3-canary-20250624131627
+
+### Patch Changes
+
+- 63200df: feat(core): added Google Tag Manager support
+
+## 1.3.1
+
+### Patch Changes
+
+- 7fecb81: refactor(nextjs): fetch inital data from backend in c15t mode instead of duplicate logic
+  fix: incorrect link to quickstart
+  fix(issue-274): include nextjs externals in rslib
+  fix(core): fall back to API call if initialData promise is empty
+  chore: add translation for zh
+- Updated dependencies [7fecb81]
+  - @c15t/translations@1.3.1
+  - @c15t/backend@1.3.1
+
+## 1.3.1-canary-20250618084038
+
+### Patch Changes
+
+- 95edb35: fix(core): fall back to API call if initialData promise is empty
+- Updated dependencies [5da2f28]
+  - @c15t/translations@1.3.1-canary-20250618084038
+  - @c15t/backend@1.3.1-canary-20250618084038
+
 ## 1.3.0
 
 ### Minor Changes

@@ -3,7 +3,10 @@ import { type ConsentManagerOptions, defaultTranslationConfig } from 'c15t';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { useConsentManager } from '../../hooks/use-consent-manager';
-import { ConsentManagerProvider } from '../consent-manager-provider';
+import {
+	ConsentManagerProvider,
+	clearConsentManagerCache,
+} from '../consent-manager-provider';
 import { setupMocks } from './test-helpers';
 
 // Setup common mocks
@@ -26,6 +29,9 @@ vi.mock('c15t', async () => {
 					ok: true,
 					data: {
 						showConsentBanner: true,
+						jurisdiction: {
+							code: 'GDPR',
+						},
 						translations: {
 							language: 'en',
 							translations: defaultTranslationConfig.translations.en,
@@ -81,6 +87,8 @@ describe('ConsentManagerProvider Context Values', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 		vi.useFakeTimers();
+		// Clear consent manager caches to ensure clean state between tests
+		clearConsentManagerCache();
 	});
 
 	afterEach(() => {

@@ -14,6 +14,41 @@ import {
 import { GlobalThemeContext } from '../context/theme-context';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import type { ConsentManagerProviderProps } from '../types/consent-manager';
+import { version } from '../version';
+
+// Module-level cache to persist stores across component unmounts/remounts
+const storeCache = new Map<
+	string,
+	ReturnType<typeof createConsentManagerStore>
+>();
+const managerCache = new Map<
+	string,
+	ReturnType<typeof configureConsentManager>
+>();
+
+/**
+ * Clears all cached consent managers and stores.
+ *
+ * @remarks
+ * This utility function is primarily intended for use in tests to ensure
+ * clean state between test cases. The module-level caches persist across
+ * component unmounts/remounts, which can cause test interference.
+ *
+ * @internal
+ */
+export function clearConsentManagerCache(): void {
+	storeCache.clear();
+	managerCache.clear();
+}
+
+// Generate a cache key based on critical configuration options
+function generateCacheKey(
+	mode: string,
+	backendURL: string | undefined,
+	endpointHandlers: unknown
+): string {
+	return `${mode}:${backendURL ?? 'default'}:${endpointHandlers ? 'custom' : 'none'}`;
+}
 
 /**
  * Provider component for consent management functionality.
@@ -76,112 +111,146 @@ export function ConsentManagerProvider({
 		return Boolean(
 			(mode === 'c15t' || mode === 'offline') &&
 				(backendURL?.includes('c15t.dev') ||
-					window.location.hostname.includes('c15t.dev'))
+					backendURL?.includes('c15t.cloud') ||
+					window.location.hostname.includes('c15t.dev') ||
+					window.location.hostname.includes('c15t.cloud'))
 		);
 	}, [mode, backendURL]);
 
-	// Memoize the consent manager to prevent recreation
+	// Generate cache key for manager and store persistence
+	const cacheKey = generateCacheKey(
+		mode || 'c15t',
+		backendURL || '/api/c15t',
+		'endpointHandlers' in options ? options.endpointHandlers : undefined
+	);
+
+	// Get or create consent manager with caching
 	const consentManager = useMemo(() => {
+		const cachedManager = managerCache.get(cacheKey);
+
+		if (cachedManager) {
+			return cachedManager;
+		}
+
+		let newManager: ReturnType<typeof configureConsentManager>;
 		if (mode === 'offline') {
-			return configureConsentManager({
+			newManager = configureConsentManager({
 				mode: 'offline',
 				callbacks,
 				store,
 			});
-		}
-
-		if (mode === 'custom' && 'endpointHandlers' in options) {
-			return configureConsentManager({
+		} else if (mode === 'custom' && 'endpointHandlers' in options) {
+			newManager = configureConsentManager({
 				mode: 'custom',
 				endpointHandlers: options.endpointHandlers,
 				callbacks,
 				store,
 			});
-		}
-
-		return configureConsentManager({
-			mode: 'c15t',
-			backendURL: backendURL || '/api/c15t',
-			callbacks,
-			store,
-		});
-	}, [mode, backendURL, callbacks, store, options]);
-
-	// Create a stable reference to the consent store and always initialize it
-	const storeRef = useRef<ReturnType<typeof createConsentManagerStore>>(null);
-
-	// Store previous core options for comparison
-	const prevBackendURLRef = useRef(backendURL);
-	const prevModeRef = useRef(mode);
-
-	// Initialize the store and recreate when critical options change
-	const consentStore = useMemo(() => {
-		// Check if critical options that should trigger recreation have changed
-		const shouldRecreateStore =
-			// Use type guard to validate if store exists
-			!storeRef.current ||
-			prevBackendURLRef.current !== backendURL ||
-			prevModeRef.current !== mode;
-
-		// Update refs for next comparison
-		prevBackendURLRef.current = backendURL;
-		prevModeRef.current = mode;
-
-		// Initialize the store on first render or when critical options change
-		if (shouldRecreateStore) {
-			storeRef.current = createConsentManagerStore(consentManager, {
-				...store,
-				isConsentDomain,
-				initialTranslationConfig: translations,
+		} else {
+			newManager = configureConsentManager({
+				mode: 'c15t',
+				backendURL: backendURL || '/api/c15t',
+				callbacks,
+				store,
 			});
 		}
 
-		return storeRef.current;
-	}, [consentManager, isConsentDomain, translations, store, backendURL, mode]);
+		managerCache.set(cacheKey, newManager);
+		return newManager;
+	}, [cacheKey, mode, backendURL, callbacks, store, options]);
+
+	// Get or create consent store with caching
+	const consentStore = useMemo(() => {
+		const cachedStore = storeCache.get(cacheKey);
+
+		if (cachedStore) {
+			return cachedStore;
+		}
+
+		const newStore = createConsentManagerStore(consentManager, {
+			unstable_googleTagManager: options.unstable_googleTagManager,
+			config: {
+				pkg: '@c15t/react',
+				version: version,
+				mode: mode || 'Unknown',
+			},
+			ignoreGeoLocation: options.ignoreGeoLocation,
+			initialGdprTypes: options.consentCategories,
+			...store,
+			isConsentDomain,
+			initialTranslationConfig: translations,
+		});
+
+		storeCache.set(cacheKey, newStore);
+		return newStore;
+	}, [
+		cacheKey,
+		consentManager,
+		mode,
+		options.unstable_googleTagManager,
+		options.ignoreGeoLocation,
+		options.consentCategories,
+		store,
+		isConsentDomain,
+		translations,
+	]);
+
+	// Store initial configuration values to avoid reinitializing when options change
+	// This ensures the store is only initialized once per instance, preventing
+	// overwrites of user changes if the provider props change during runtime
+	const initialConfigRef = useRef({
+		gdprTypes: initialGdprTypes,
+		complianceSettings: initialComplianceSettings,
+		consentCategories: options.consentCategories,
+	});
 
 	// Initialize state with the current state from the consent manager store
 	const [state, setState] = useState<PrivacyConsentState>(() => {
 		if (!consentStore) {
 			return {} as PrivacyConsentState;
 		}
+
 		return consentStore.getState();
 	});
 
-	// Initialize the store with settings and set up subscription
+	// Set up subscription immediately and separately from initialization
 	useEffect(() => {
 		if (!consentStore) {
 			return;
 		}
 
-		const { setGdprTypes, setComplianceSetting, setDetectedCountry } =
-			consentStore.getState();
+		// Set up subscription FIRST to catch all state changes
+		const unsubscribe = consentStore.subscribe(setState);
+
+		return unsubscribe;
+	}, [consentStore]);
+
+	// Initialize the store with settings separately (only run once per store instance)
+	useEffect(() => {
+		if (!consentStore) {
+			return;
+		}
+
+		const { setGdprTypes, setComplianceSetting } = consentStore.getState();
+		const config = initialConfigRef.current;
 
 		// Initialize GDPR types if provided
-		if (initialGdprTypes) {
-			setGdprTypes(initialGdprTypes);
+		if (config.gdprTypes || config.consentCategories) {
+			setGdprTypes(config.gdprTypes || config.consentCategories || []);
 		}
 
 		// Initialize compliance settings if provided
-		if (initialComplianceSettings) {
+		if (config.complianceSettings) {
 			for (const [region, settings] of Object.entries(
-				initialComplianceSettings
+				config.complianceSettings
 			)) {
 				setComplianceSetting(region as ComplianceRegion, settings);
 			}
 		}
 
-		// Set detected country from meta tag
-		const country =
-			document
-				.querySelector('meta[name="user-country"]')
-				?.getAttribute('content') || 'US';
-		setDetectedCountry(country);
-
-		// Subscribe to state changes only once
-		const unsubscribe = consentStore.subscribe(setState);
-
-		return unsubscribe;
-	}, [consentStore, initialGdprTypes, initialComplianceSettings]);
+		// Ensure local state is in sync after initialization
+		setState(consentStore.getState());
+	}, [consentStore]); // Only depend on consentStore to avoid reinitializing on every option change
 
 	// Create theme context value
 	const themeContextValue = useMemo(() => {
@@ -195,7 +264,6 @@ export function ConsentManagerProvider({
 		};
 	}, [theme, noStyle, disableAnimation, scrollLock, trapFocus, colorScheme]);
 
-	// Set the color scheme
 	useColorScheme(colorScheme);
 
 	// Create consent context value - without theme properties
@@ -212,7 +280,6 @@ export function ConsentManagerProvider({
 		};
 	}, [state, consentStore, consentManager]);
 
-	// Render with separate theme context for cleaner separation of concerns
 	return (
 		<ConsentStateContext.Provider value={consentContextValue}>
 			<GlobalThemeContext.Provider value={themeContextValue}>

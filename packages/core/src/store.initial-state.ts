@@ -6,6 +6,7 @@
 import type { PrivacyConsentState } from './store.type';
 import { defaultTranslationConfig } from './translations';
 import { type ConsentState, consentTypes } from './types';
+import { version } from './version';
 
 /**
  * Default initial state for the consent management store.
@@ -44,6 +45,12 @@ export const initialState: Omit<
 	PrivacyConsentState,
 	'getEffectiveConsents' | 'hasConsentFor' | 'fetchConsentBannerInfo'
 > = {
+	config: {
+		pkg: 'c15t',
+		version,
+		mode: 'Unknown',
+	},
+
 	/** Initial consent states based on default values from consent types */
 	consents: consentTypes.reduce((acc, consent) => {
 		acc[consent.name] = consent.defaultValue;
@@ -113,6 +120,9 @@ export const initialState: Omit<
 
 	/** Use predefined consent types */
 	consentTypes: consentTypes,
+
+	/** Default to not ignoring geo location */
+	ignoreGeoLocation: false,
 
 	// Initialize all methods as no-ops
 	setConsent: () => {

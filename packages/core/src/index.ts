@@ -46,6 +46,8 @@ export type {
 	PrivacySettings,
 } from './types/compliance';
 
+export type { GTMConfiguration } from './libs/gtm';
+
 /**
  * @module
  * API Endpoints

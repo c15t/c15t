@@ -178,14 +178,12 @@ function createNewNextConfig(
 		backendURL,
 		useEnvFile
 	);
-	const envImport = useEnvFile ? "import './src/env';\n\n" : '';
-
 	// Format destination based on whether it's a template literal
 	const destinationValue = isTemplateLiteral
 		? `\`${destination}\``
 		: `'${destination}'`;
 
-	return `${envImport}import type { NextConfig } from 'next';
+	return `import type { NextConfig } from 'next';
 
 const config: NextConfig = {
 	async rewrites() {
@@ -236,11 +234,6 @@ function updateExistingConfig(
 		backendURL,
 		useEnvFile
 	);
-
-	// Add env import if needed and not present
-	if (useEnvFile && !configFile.getFullText().includes("import './src/env'")) {
-		configFile.insertText(0, "import './src/env';\n");
-	}
 
 	// Find the config object
 	const configObject = findConfigObject(configFile);

@@ -1,6 +1,5 @@
 import type { C15TOptions } from '~/types';
-import packageJson from '../../../package.json';
-
+import { version } from '../../version';
 /**
  * Default OpenAPI configuration
  */
@@ -20,7 +19,7 @@ export const createOpenAPIConfig = (options: C15TOptions) => {
 export const createDefaultOpenAPIOptions = (options: C15TOptions) => ({
 	info: {
 		title: options.appName || 'c15t API',
-		version: packageJson.version,
+		version,
 		description: 'API for consent management',
 	},
 	servers: [{ url: options.basePath || '/' }],

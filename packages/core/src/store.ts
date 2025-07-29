@@ -26,6 +26,7 @@ import type {
 import { type AllConsentNames, consentTypes } from './types/gdpr';
 
 import type { ContractsOutputs } from '@c15t/backend/contracts';
+import { type GTMConfiguration, setupGTM, updateGTMConsent } from './libs/gtm';
 
 /** Storage key for persisting consent data in localStorage */
 const STORAGE_KEY = 'privacy-consent-storage';
@@ -93,6 +94,14 @@ export interface StoreOptions {
 	 */
 	namespace?: string;
 
+	/** Information about the consent manager */
+	config?: {
+		pkg: string;
+		version: string;
+		mode: string;
+		meta?: Record<string, unknown>;
+	};
+
 	/**
 	 * Initial GDPR consent types to activate.
 	 */
@@ -115,6 +124,17 @@ export interface StoreOptions {
 	isConsentDomain?: boolean;
 
 	/**
+	 * Google Tag Manager configuration.
+	 */
+	unstable_googleTagManager?: GTMConfiguration;
+
+	/**
+	 * Whether to ignore geo location. Will always show the consent banner.
+	 * @default false
+	 */
+	ignoreGeoLocation?: boolean;
+
+	/**
 	 * Initial Translation Config
 	 */
 	initialTranslationConfig?: Partial<TranslationConfig>;
@@ -128,7 +148,7 @@ export interface StoreOptions {
 	 * Initial showConsentBanner value. This will set a cookie for the consent banner.
 	 * @internal
 	 */
-	_initialData?: Promise<ContractsOutputs['consent']['showBanner']>;
+	_initialData?: Promise<ContractsOutputs['consent']['showBanner'] | undefined>;
 }
 
 // For backward compatibility (if needed)
@@ -229,6 +249,8 @@ export const createConsentManagerStore = (
 
 	const store = createStore<PrivacyConsentState>((set, get) => ({
 		...initialState,
+		ignoreGeoLocation: options.ignoreGeoLocation ?? false,
+		config: options.config ?? initialState.config,
 		// Set isConsentDomain based on the provider's baseURL
 		isConsentDomain,
 		// Override the callbacks with merged callbacks
@@ -278,6 +300,7 @@ export const createConsentManagerStore = (
 
 				// Update tracking blocker with new consents
 				trackingBlocker?.updateConsents(newConsents);
+				updateGTMConsent(newConsents);
 
 				return { consents: newConsents };
 			});
@@ -382,6 +405,7 @@ export const createConsentManagerStore = (
 
 			// Update tracking blocker with new consents right away
 			trackingBlocker?.updateConsents(newConsents);
+			updateGTMConsent(newConsents);
 
 			// Store to localStorage immediately for persistence
 			// Wrap in try/catch to handle potential privacy mode errors
@@ -578,6 +602,18 @@ export const createConsentManagerStore = (
 	if (typeof window !== 'undefined') {
 		// biome-ignore lint/suspicious/noExplicitAny: its okay
 		(window as any)[namespace] = store;
+
+		if (options.unstable_googleTagManager) {
+			try {
+				setupGTM({
+					...options.unstable_googleTagManager,
+					consentState: store.getState().consents,
+				});
+			} catch (e) {
+				// biome-ignore lint/suspicious/noConsole: <explanation>
+				console.error('Failed to setup Google Tag Manager:', e);
+			}
+		}
 
 		// Auto-fetch consent banner information if no stored consent
 		if (!getStoredConsent()) {

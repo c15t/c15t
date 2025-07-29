@@ -13,7 +13,6 @@ export default function App() {
 
     return (
         <ConsentManagerProvider 
-            initialGdprTypes={['necessary', 'marketing']}
             options={offlineClient}
         >
           <CookieBanner 							

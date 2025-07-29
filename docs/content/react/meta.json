@@ -6,6 +6,7 @@
 		"../introduction",
 		"../ai-tools-integrations",
 		"quickstart",
+		"google-tag-manager",
 		"../callbacks",
 		"--- React Components ---",
 		"../components/react/cookie-banner",

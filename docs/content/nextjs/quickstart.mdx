@@ -67,6 +67,8 @@ export default config;
  
 ### Adding it to your Next Application
 
+<Tabs items={['App Directory', 'Pages Directory']}>
+<Tab value="App Directory">
 ```tsx title="app/layout.tsx"
 import { 
   ConsentManagerDialog,
@@ -76,14 +78,62 @@ import {
 
 export default function Layout ({ children }: { children: ReactNode }) => {
 	return (
-    <ConsentManagerProvider options={{ mode: 'c15t', backendURL: process.env.NEXT_PUBLIC_C15T_URL }}>
-      {children}
-      <CookieBanner />
-      <ConsentManagerDialog />
-    </ConsentManagerProvider>
+      <ConsentManagerProvider
+        options={{
+          mode: 'c15t',
+          backendURL: '/api/c15t',
+          consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner.
+          ignoreGeoLocation: true, // Useful for development to always view the banner.
+        }}
+      >
+        <CookieBanner />
+        <ConsentManagerDialog />   
+        {children}
+      </ConsentManagerProvider>
   );
 };
+
 ```
+</Tab>
+<Tab value="Pages Directory">
+```tsx title="pages/_app.tsx"
+import { 
+  ConsentManagerDialog,
+  ConsentManagerProvider,
+  CookieBanner,
+} from '@c15t/nextjs/pages';
+
+export default function App({ Component, pageProps }: AppProps) {
+	return (
+		<ConsentManagerProvider
+			initialData={pageProps.initialC15TData}
+			options={{
+				mode: 'c15t',
+				backendURL: '/api/c15t',
+				consentCategories: ['necessary', 'marketing'],
+				ignoreGeoLocation: true,
+			}}
+		>
+			<CookieBanner />
+			<ConsentManagerDialog />
+			<Component {...pageProps} />
+		</ConsentManagerProvider>
+	);
+}
+```
+
+In every page you want to pre-fetch the data server-side, you can use the `withInitialC15TData` helper. Otherwise, it will be fetched client-side.
+
+```tsx title="pages/index.tsx"
+import { withInitialC15TData } from '@c15t/nextjs';
+
+// This helper accepts a 2nd argument to wrap around your getServerSideProps existing function.
+export const getServerSideProps = withInitialC15TData('/api/c15t');
+
+```
+
+</Tab>
+</Tabs>
 
 <Callout type="tip">
 You can create an instance at [consent.io](https://consent.io) or self-host your own instance. Otherwise, you can use c15t offline by setting `mode: 'offline'`.

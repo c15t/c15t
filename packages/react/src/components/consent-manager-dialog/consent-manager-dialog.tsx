@@ -13,6 +13,7 @@ import {
 	type ThemeContextValue,
 } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useTheme } from '~/hooks/use-theme';
 import { ConsentCustomizationCard } from './atoms/dialog-card';
 import { Overlay } from './atoms/overlay';
 import type { ConsentManagerDialogTheme } from './theme';
@@ -60,14 +61,31 @@ export interface ConsentManagerDialogProps
  * @public
  */
 export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
-	theme,
-	disableAnimation,
-	noStyle,
+	theme: localTheme,
+	disableAnimation: localDisableAnimation,
+	noStyle: localNoStyle,
 	open = false,
-	scrollLock = true,
-	trapFocus = true, // Default to true for accessibility
+	scrollLock: localScrollLock = true,
+	trapFocus: localTrapFocus = true, // Default to true for accessibility
 }) => {
 	const consentManager = useConsentManager();
+
+	// Get global theme context and merge with local props
+	const globalTheme = useTheme();
+
+	// Merge global theme context with local props (local takes precedence)
+	const mergedTheme = {
+		...globalTheme.theme,
+		...localTheme,
+	};
+
+	const theme = mergedTheme;
+	const disableAnimation =
+		localDisableAnimation ?? globalTheme.disableAnimation;
+	const noStyle = localNoStyle ?? globalTheme.noStyle;
+	const scrollLock = localScrollLock ?? globalTheme.scrollLock;
+	const trapFocus = localTrapFocus ?? globalTheme.trapFocus;
+
 	const [isMounted, setIsMounted] = useState(false);
 	const [isVisible, setIsVisible] = useState(false);
 	const contentRef = useRef<HTMLDivElement>(null);

@@ -49,9 +49,8 @@ export default function Layout({ children }: { children: ReactNode }) {
 						options={{
 							mode: 'c15t',
 							backendURL: '/api/c15t',
-							store: {
-								initialGdprTypes: ['necessary', 'marketing'],
-							},
+							consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner.
+							ignoreGeoLocation: true, // Useful for development to always view the banner.
 						}}
 					>
 						<PostHogProvider>{children}</PostHogProvider>

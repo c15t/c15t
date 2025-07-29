@@ -50,6 +50,13 @@ import type {
  * @public
  */
 export interface PrivacyConsentState {
+	config: {
+		pkg: string;
+		version: string;
+		mode: string;
+		meta?: Record<string, unknown>;
+	};
+
 	/** Current consent states for all consent types */
 	consents: ConsentState;
 
@@ -91,6 +98,9 @@ export interface PrivacyConsentState {
 
 	/** Whether the provider is using c15t.dev domain */
 	isConsentDomain: boolean;
+
+	/** Whether to ignore geo location. Will always show the consent banner. */
+	ignoreGeoLocation: boolean;
 
 	/**
 	 * Updates the translation configuration.

@@ -1,5 +1,128 @@
 # @c15t/cli
 
+## 1.5.0-canary-20250722151007
+
+### Patch Changes
+
+- Updated dependencies [5decee3]
+  - @c15t/react@1.5.0-canary-20250722151007
+
+## 1.5.0-canary-20250722133547
+
+### Patch Changes
+
+- Updated dependencies [35b5fc3]
+  - @c15t/backend@1.5.0-canary-20250722133547
+  - @c15t/react@1.5.0-canary-20250722133547
+
+## 1.5.0-canary-20250722085128
+
+### Minor Changes
+
+- 35f052c: feat(nextjs): added pages support
+
+### Patch Changes
+
+- Updated dependencies [74e1825]
+  - @c15t/backend@1.5.0-canary-20250722085128
+  - @c15t/react@1.5.0-canary-20250722085128
+
+## 1.4.4
+
+### Patch Changes
+
+- Updated dependencies [f6a3e5f]
+- Updated dependencies [e3b9caf]
+- Updated dependencies [c44c22a]
+  - @c15t/react@1.4.4
+
+## 1.4.3
+
+### Patch Changes
+
+- Updated dependencies [c463eda]
+  - @c15t/react@1.4.3
+
+## 1.4.3-canary-20250708133115
+
+### Patch Changes
+
+- Updated dependencies [357dcd7]
+  - @c15t/react@1.4.3-canary-20250708133115
+
+## 1.4.2
+
+### Patch Changes
+
+- Updated dependencies [53774ce]
+  - @c15t/react@1.4.2
+  - @c15t/backend@1.4.2
+
+## 1.4.2-canary-20250702103734
+
+### Patch Changes
+
+- Updated dependencies [797b0f7]
+  - @c15t/react@1.4.2-canary-20250702103734
+  - @c15t/backend@1.4.2-canary-20250702103734
+
+## 1.4.1
+
+### Patch Changes
+
+- Updated dependencies [8afd304]
+  - @c15t/backend@1.4.1
+  - @c15t/react@1.4.1
+
+## 1.4.0
+
+### Minor Changes
+
+- 6eb9a8d: feat(core, react): added ignoreGeoLocation, improved provider props
+  feat(core): added 'config' prop to store for better debugging
+  fix(react): add aria label to cookie banner component
+  fix(cli): removed env import
+  fix(cli): asks for pkg manager twice
+
+### Patch Changes
+
+- Updated dependencies [6eb9a8d]
+  - @c15t/react@1.4.0
+
+## 1.3.3
+
+### Patch Changes
+
+- Updated dependencies [b4d53be]
+  - @c15t/react@1.3.3
+
+## 1.3.3-canary-20250624131627
+
+### Patch Changes
+
+- Updated dependencies [f13ad52]
+  - @c15t/react@1.3.3-canary-20250624131627
+
+## 1.3.1
+
+### Patch Changes
+
+- 7fecb81: refactor(nextjs): fetch inital data from backend in c15t mode instead of duplicate logic
+  fix: incorrect link to quickstart
+  fix(issue-274): include nextjs externals in rslib
+  fix(core): fall back to API call if initialData promise is empty
+  chore: add translation for zh
+- Updated dependencies [7fecb81]
+  - @c15t/backend@1.3.1
+  - @c15t/react@1.3.1
+
+## 1.3.1-canary-20250618084038
+
+### Patch Changes
+
+- @c15t/backend@1.3.1-canary-20250618084038
+- @c15t/react@1.3.1-canary-20250618084038
+
 ## 1.3.0
 
 ### Minor Changes

@@ -1,5 +1,86 @@
 # @c15t/dev-tools
 
+## 1.5.0-canary-20250722133547
+
+### Patch Changes
+
+- Updated dependencies [35b5fc3]
+  - c15t@1.5.0-canary-20250722133547
+
+## 1.5.0-canary-20250722085128
+
+### Patch Changes
+
+- Updated dependencies [35f052c]
+  - c15t@1.5.0-canary-20250722085128
+
+## 1.4.4
+
+### Patch Changes
+
+- Updated dependencies [f6a3e5f]
+  - c15t@1.4.4
+
+## 1.4.2
+
+### Patch Changes
+
+- Updated dependencies [53774ce]
+  - c15t@1.4.2
+
+## 1.4.2-canary-20250702103734
+
+### Patch Changes
+
+- Updated dependencies [eed347c]
+  - c15t@1.4.2-canary-20250702103734
+
+## 1.4.1
+
+### Patch Changes
+
+- c15t@1.4.1
+
+## 1.4.0
+
+### Patch Changes
+
+- Updated dependencies [6eb9a8d]
+  - c15t@1.4.0
+
+## 1.3.3
+
+### Patch Changes
+
+- Updated dependencies [b4d53be]
+  - c15t@1.3.3
+
+## 1.3.3-canary-20250624131627
+
+### Patch Changes
+
+- Updated dependencies [63200df]
+  - c15t@1.3.3-canary-20250624131627
+
+## 1.3.1
+
+### Patch Changes
+
+- 7fecb81: refactor(nextjs): fetch inital data from backend in c15t mode instead of duplicate logic
+  fix: incorrect link to quickstart
+  fix(issue-274): include nextjs externals in rslib
+  fix(core): fall back to API call if initialData promise is empty
+  chore: add translation for zh
+- Updated dependencies [7fecb81]
+  - c15t@1.3.1
+
+## 1.3.1-canary-20250618084038
+
+### Patch Changes
+
+- Updated dependencies [95edb35]
+  - c15t@1.3.1-canary-20250618084038
+
 ## 1.3.0
 
 ### Minor Changes

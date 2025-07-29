@@ -19,7 +19,7 @@ type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
  */
 interface FetchConsentBannerConfig {
 	manager: ConsentManagerInterface;
-	initialData?: Promise<ContractsOutputs['consent']['showBanner']>;
+	initialData?: Promise<ContractsOutputs['consent']['showBanner'] | undefined>;
 	initialTranslationConfig?: Partial<TranslationConfig>;
 	get: StoreApi<PrivacyConsentState>['getState'];
 	set: StoreApi<PrivacyConsentState>['setState'];
@@ -47,14 +47,42 @@ function checkLocalStorageAccess(
 /**
  * Updates store with consent banner data
  */
-async function updateStore(
+function updateStore(
 	data: ConsentBannerResponse,
 	{ set, get, initialTranslationConfig }: FetchConsentBannerConfig,
 	hasLocalStorageAccess: boolean
-): Promise<void> {
-	const { consentInfo, setDetectedCountry, callbacks } = get();
+): void {
+	const { consentInfo, setDetectedCountry, callbacks, ignoreGeoLocation } =
+		get();
 
 	const { translations, location, jurisdiction, showConsentBanner } = data;
+
+	const updatedStore: Partial<PrivacyConsentState> = {
+		isLoadingConsentInfo: false,
+		...(consentInfo === null
+			? {
+					showPopup:
+						(showConsentBanner && hasLocalStorageAccess) || ignoreGeoLocation,
+				}
+			: {}),
+
+		// If the banner is not shown and has no requirement consent to all
+		...(data.jurisdiction.code === 'NONE' &&
+			!data.showConsentBanner && {
+				consents: {
+					necessary: true,
+					functionality: true,
+					experience: true,
+					marketing: true,
+					measurement: true,
+				},
+			}),
+		locationInfo: {
+			countryCode: location?.countryCode ?? '',
+			regionCode: location?.regionCode ?? '',
+		},
+		jurisdictionInfo: jurisdiction,
+	};
 
 	if (translations) {
 		const translationConfig = prepareTranslationConfig(
@@ -68,19 +96,8 @@ async function updateStore(
 			initialTranslationConfig
 		);
 
-		set({ translationConfig });
+		updatedStore.translationConfig = translationConfig;
 	}
-
-	set({
-		locationInfo: {
-			countryCode: location?.countryCode ?? '',
-			regionCode: location?.regionCode ?? '',
-		},
-		jurisdictionInfo: jurisdiction,
-	});
-
-	// Slight delay to ensure translation config is set before rendering the banner
-	await new Promise((resolve) => setTimeout(resolve, 1));
 
 	if (data.location?.countryCode) {
 		// Handle location detection callbacks
@@ -93,12 +110,7 @@ async function updateStore(
 		}
 	}
 
-	set({
-		isLoadingConsentInfo: false,
-		...(consentInfo === null
-			? { showPopup: showConsentBanner && hasLocalStorageAccess }
-			: {}),
-	});
+	set(updatedStore);
 }
 
 /**
@@ -125,18 +137,21 @@ export async function fetchConsentBannerInfo(
 		return undefined;
 	}
 
-	if (initialData) {
-		set({ isLoadingConsentInfo: true });
-		const showConsentBanner = await initialData;
-		set({ isLoadingConsentInfo: false });
-
-		updateStore(showConsentBanner, config, true);
-
-		return showConsentBanner;
-	}
-
-	// Fall back to API call
 	set({ isLoadingConsentInfo: true });
+
+	if (initialData) {
+		const showConsentBanner = await initialData;
+
+		// Ensures the promsie has the expected data
+		if (showConsentBanner) {
+			set({ isLoadingConsentInfo: false });
+			updateStore(showConsentBanner, config, true);
+
+			return showConsentBanner;
+		}
+
+		// Fall back to API call
+	}
 
 	try {
 		// Let the client handle offline mode internally

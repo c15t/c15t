@@ -49,7 +49,6 @@ export default function App() {
     return (
         <ConsentManagerProvider 
             options={offlineClient}
-            initialGdprTypes={['necessary', 'marketing']}
         >
             <CustomWidget />
             <ExampleContent />

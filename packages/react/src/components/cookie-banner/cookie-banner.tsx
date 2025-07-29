@@ -22,11 +22,12 @@ import {
 	CookieBannerTitle,
 } from './components';
 
+import { useTheme } from '~/hooks/use-theme';
 import { useTranslations } from '~/hooks/use-translations';
 
 /**
  * Props for configuring and customizing the CookieBanner component.
- *f
+ *
  * @remarks
  * Provides comprehensive customization options for the cookie banner's appearance
  * and behavior while maintaining compliance with privacy regulations.
@@ -95,7 +96,14 @@ export interface CookieBannerProps {
 	 * @remarks Useful for implementing a cookie banner that traps focus
 	 * @default true
 	 */
-	trapFocus?: true;
+	trapFocus?: boolean;
+
+	/**
+	 * When true, disables the entrance/exit animations
+	 * @remarks Useful for environments where animations are not desired
+	 * @default false
+	 */
+	disableAnimation?: boolean;
 }
 
 /**
@@ -159,29 +167,42 @@ export interface CookieBannerProps {
  * @public
  */
 export const CookieBanner: FC<CookieBannerProps> = ({
-	theme,
-	noStyle,
+	theme: localTheme,
+	noStyle: localNoStyle,
+	disableAnimation: localDisableAnimation,
+	scrollLock: localScrollLock,
+	trapFocus: localTrapFocus = true,
 	title,
 	description,
 	rejectButtonText,
 	customizeButtonText,
 	acceptButtonText,
-	scrollLock,
-	trapFocus = true,
 }) => {
 	const { cookieBanner, common } = useTranslations();
+
+	// Get global theme context and merge with local props
+	const globalTheme = useTheme();
+
+	// Merge global theme context with local props (local takes precedence)
+	const mergedTheme = {
+		...globalTheme.theme,
+		...localTheme,
+	};
+
+	const mergedProps = {
+		theme: mergedTheme,
+		noStyle: localNoStyle ?? globalTheme.noStyle,
+		disableAnimation: localDisableAnimation ?? globalTheme.disableAnimation,
+		scrollLock: localScrollLock ?? globalTheme.scrollLock,
+		trapFocus: localTrapFocus ?? globalTheme.trapFocus,
+	};
 
 	return (
 		<ErrorBoundary
 			fallback={<div>Something went wrong with the Cookie Banner.</div>}
 		>
-			<CookieBannerRoot
-				theme={theme}
-				noStyle={noStyle}
-				scrollLock={scrollLock}
-				trapFocus={trapFocus}
-			>
-				<CookieBannerCard>
+			<CookieBannerRoot {...mergedProps}>
+				<CookieBannerCard aria-label={cookieBanner.title}>
 					<CookieBannerHeader>
 						<CookieBannerTitle>{title || cookieBanner.title}</CookieBannerTitle>
 						<CookieBannerDescription>

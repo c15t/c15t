@@ -1,5 +1,56 @@
 # @c15t/backend
 
+## 1.5.0-canary-20250722133547
+
+### Patch Changes
+
+- 35b5fc3: fix: removed package.json imports for Next 13 compatibility
+
+## 1.5.0-canary-20250722085128
+
+### Minor Changes
+
+- 74e1825: feat(backend): added advanced overrides for disabling geo-location & adding custom translations
+
+## 1.4.2
+
+### Patch Changes
+
+- Updated dependencies [53774ce]
+  - @c15t/translations@1.4.2
+
+## 1.4.2-canary-20250702103734
+
+### Patch Changes
+
+- Updated dependencies [cd218e7]
+  - @c15t/translations@1.4.2-canary-20250702103734
+
+## 1.4.1
+
+### Patch Changes
+
+- 8afd304: fix(backend): add custom c15t headers to override providers
+
+## 1.3.1
+
+### Patch Changes
+
+- 7fecb81: refactor(nextjs): fetch inital data from backend in c15t mode instead of duplicate logic
+  fix: incorrect link to quickstart
+  fix(issue-274): include nextjs externals in rslib
+  fix(core): fall back to API call if initialData promise is empty
+  chore: add translation for zh
+- Updated dependencies [7fecb81]
+  - @c15t/translations@1.3.1
+
+## 1.3.1-canary-20250618084038
+
+### Patch Changes
+
+- Updated dependencies [5da2f28]
+  - @c15t/translations@1.3.1-canary-20250618084038
+
 ## 1.3.0
 
 ### Minor Changes
