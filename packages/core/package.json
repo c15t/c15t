@@ -3,6 +3,7 @@
 	"version": "1.5.0-canary-20250722133547",
 	"license": "GPL-3.0-only",
 	"type": "module",
+	"keywords": ["c15t", "consent", "gdpr", "privacy", "tracking", "compliance"],
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
