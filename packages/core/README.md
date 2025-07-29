@@ -3,7 +3,7 @@
   <h1>c15t</h1>
   <p>Transform privacy consent from a compliance checkbox into a fully observable system</p>
 
-  [![GitHub stars](https://img.shields.io/github/stars/consent-management?style=flat-square)](https://github.com/c15t/c15t)
+  [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
   [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
   [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
   [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
