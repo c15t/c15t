@@ -3,6 +3,7 @@
 	"version": "1.4.4",
 	"license": "GPL-3.0-only",
 	"type": "module",
+	"keywords": ["c15t", "consent", "gdpr", "privacy", "tracking", "compliance"],
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
