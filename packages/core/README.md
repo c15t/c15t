@@ -35,9 +35,9 @@ For detailed documentation and examples, visit https://c15t.com/docs/javascript/
 
 ## Features
 
-- 📵 **Offline mode**: With c15t you can choose not to store your users consent choices in a database, just add it to localstorage and it works
-- 🔒 **Secure consent management**: Built to be secure
-- 💾 **Self-hostable**: For developers who prefer to have total control over ttheir software infrastructure
+- 📵 **Offline mode**: With c15t you can use a browser based storage without needing a database
+- 🔒 **Secure consent management**: Store your user preferences in a secure backend
+- 💾 **Self-hostable**: For developers who prefer to have total control over their infrastructure and data
 - 🌐 **Regulation Ready**: Built to meet GDPR, CCPA, and other privacy requirements
 
 ## Support
