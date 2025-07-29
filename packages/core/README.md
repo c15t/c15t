@@ -9,10 +9,6 @@
   [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
 </div>
 
-## Documentation
-
-More documentation coming soon.
-
 ## Installation
 
 ```bash
@@ -22,6 +18,33 @@ yarn add c15t
 # or
 pnpm add c15t
 ```
+
+## Quickstart 
+
+```bash
+# Generates the schema + code
+npx @c15t/cli generate 
+pnpm dlx @c15t/cli generate
+yarn dlx @c15t/cli generate
+bunx --bun @c15t/cli generate
+```
+
+## Documentation
+
+For detailed documentation and examples, visit https://c15t.com/docs/javascript/quickstart.
+
+## Features
+
+- 📵 **Offline mode**: With c15t you can choose not to store your users consent choices in a database, just add it to localstorage and it works
+- 🔒 **Secure consent management**: Built to be secure
+- 💾 **Self-hostable**: For developers who prefer to have total control over ttheir software infrastructure
+- 🌐 **Regulation Ready**: Built to meet GDPR, CCPA, and other privacy requirements
+
+## Support
+
+- 📚 [Documentation](https://c15t.com/docs/javascript)
+- 💬 [Discord Community](https://c15t.com/discord)
+- 🐛 [Issue Tracker](https://github.com/c15t/c15t/issues)
 
 ## License
 
