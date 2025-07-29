@@ -40,6 +40,16 @@ For detailed documentation and examples, visit https://c15t.com/docs/javascript/
 - 💾 **Self-hostable**: For developers who prefer to have total control over their infrastructure and data
 - 🌐 **Regulation Ready**: Built to meet GDPR, CCPA, and other privacy requirements
 
+## Framework Integrations
+
+This is the core JavaScript SDK — framework-agnostic and lightweight by design.
+If you're working with a specific stack, we also provide official packages for:
+
+* **React**: [`@c15t/react`](https://www.npmjs.com/package/@c15t/react)
+* **Next.js**: [`@c15t/nextjs`](https://www.npmjs.com/package/@c15t/nextjs)
+
+These include ready-to-use components and tighter integration with their respective runtimes.
+
 ## Support
 
 - 📚 [Documentation](https://c15t.com/docs/javascript)
