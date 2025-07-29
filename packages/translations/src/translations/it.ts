@@ -19,7 +19,7 @@ export const itTranslations: CompleteTranslations = {
 	},
 	consentTypes: {
 		necessary: {
-			title: 'Strictamente necessario',
+			title: 'Strettamente necessari',
 			description:
 				'Questi cookies sono essenziali per il sito web per funzionare correttamente e non possono essere disabilitati.',
 		},
