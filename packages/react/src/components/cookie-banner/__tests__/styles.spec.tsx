@@ -388,8 +388,8 @@ test('All cookie banner components should have their base classes applied', asyn
 		footer: styles.footer || '',
 		footerSubGroup: styles.footerSubGroup || '',
 		rejectButton: `${buttonStyles.button} ${buttonStyles['button-small']} ${buttonStyles['button-neutral-stroke']}`,
-		customizeButton: `${buttonStyles.button} ${buttonStyles['button-small']} ${buttonStyles['button-neutral-stroke']}`,
-		acceptButton: `${buttonStyles.button} ${buttonStyles['button-small']} ${buttonStyles['button-primary-stroke']}`,
+		acceptButton: `${buttonStyles.button} ${buttonStyles['button-small']} ${buttonStyles['button-neutral-stroke']}`,
+		customizeButton: `${buttonStyles.button} ${buttonStyles['button-small']} ${buttonStyles['button-primary-stroke']}`,
 	};
 
 	await testComponentStyles({
