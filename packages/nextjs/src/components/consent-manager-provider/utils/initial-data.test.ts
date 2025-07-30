@@ -40,6 +40,12 @@ describe('getC15TInitialData', () => {
 		cookie: 'test=123',
 	};
 
+	const mockHeaders = new Headers({
+		'x-forwarded-proto': 'https',
+		'x-forwarded-host': 'example.com',
+		cookie: 'test=123',
+	});
+
 	const mockFetch = vi.fn();
 
 	beforeEach(() => {
@@ -58,14 +64,14 @@ describe('getC15TInitialData', () => {
 	it('should return undefined when normalized URL is not available', async () => {
 		(normalizeBackendURL as Mock).mockReturnValue(null);
 
-		const result = await getC15TInitialData('https://example.com');
+		const result = await getC15TInitialData('https://example.com', mockHeaders);
 		expect(result).toBeUndefined();
 	});
 
 	it('should return undefined when no relevant headers are present', async () => {
 		(extractRelevantHeaders as Mock).mockReturnValue({});
 
-		const result = await getC15TInitialData('https://example.com');
+		const result = await getC15TInitialData('https://example.com', mockHeaders);
 		expect(result).toBeUndefined();
 	});
 
@@ -127,7 +133,7 @@ describe('getC15TInitialData', () => {
 			json: () => Promise.resolve(mockResponse),
 		});
 
-		const result = await getC15TInitialData('https://example.com');
+		const result = await getC15TInitialData('https://example.com', mockHeaders);
 
 		expect(mockFetch).toHaveBeenCalledWith(
 			'https://api.example.com/show-consent-banner',
@@ -142,7 +148,7 @@ describe('getC15TInitialData', () => {
 	it('should handle fetch failure gracefully', async () => {
 		mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-		const result = await getC15TInitialData('https://example.com');
+		const result = await getC15TInitialData('https://example.com', mockHeaders);
 		expect(result).toBeUndefined();
 	});
 
@@ -153,7 +159,7 @@ describe('getC15TInitialData', () => {
 			statusText: 'Internal Server Error',
 		});
 
-		const result = await getC15TInitialData('https://example.com');
+		const result = await getC15TInitialData('https://example.com', mockHeaders);
 		expect(result).toBeUndefined();
 	});
 });

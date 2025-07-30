@@ -17,7 +17,7 @@
 	"access": "public",
 	"baseBranch": "canary",
 	"updateInternalDependencies": "patch",
-	"ignore": ["@c15t-examples/*"],
+	"ignore": ["@c15t-examples/*", "docs"],
 	"___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
 		"onlyUpdatePeerDependentsWhenOutOfRange": true
 	},

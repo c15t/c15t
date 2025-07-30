@@ -2,7 +2,8 @@ import {
 	ConsentManagerProvider as ClientConsentManagerProvider,
 	type ConsentManagerProviderProps,
 } from '@c15t/react';
-import packageJson from '../../../package.json';
+import { headers } from 'next/headers';
+import { enrichOptions } from './utils/enrich-options';
 import { getC15TInitialData } from './utils/initial-data';
 
 type InitialDataPromise = NonNullable<
@@ -15,30 +16,23 @@ export function ConsentManagerProvider({
 }: ConsentManagerProviderProps) {
 	let initialDataPromise: InitialDataPromise;
 
-	// Initial data is currently only available in c15t mode
+	// Initial data is only required for c15t mode
 	switch (options.mode) {
 		case 'c15t':
-			initialDataPromise = getC15TInitialData(options.backendURL);
+			initialDataPromise = getC15TInitialData(options.backendURL, headers());
 			break;
 		default: {
-			initialDataPromise = Promise.resolve(undefined);
+			initialDataPromise = undefined;
 		}
 	}
 
 	return (
 		<ClientConsentManagerProvider
-			options={{
-				...options,
-				store: {
-					...options.store,
-					config: {
-						pkg: '@c15t/nextjs',
-						version: packageJson.version,
-						mode: options.mode || 'Unknown',
-					},
-					_initialData: initialDataPromise,
-				},
-			}}
+			options={enrichOptions({
+				options,
+				initialData: initialDataPromise,
+				usingAppDir: true,
+			})}
 		>
 			{children}
 		</ClientConsentManagerProvider>

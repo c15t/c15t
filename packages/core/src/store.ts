@@ -99,6 +99,7 @@ export interface StoreOptions {
 		pkg: string;
 		version: string;
 		mode: string;
+		meta?: Record<string, unknown>;
 	};
 
 	/**

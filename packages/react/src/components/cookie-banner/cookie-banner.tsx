@@ -220,22 +220,22 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 								{rejectButtonText || common.rejectAll}
 							</ConsentButton>
 							<ConsentButton
-								action="open-consent-dialog"
+								action="accept-consent"
 								closeCookieBanner
-								themeKey="banner.footer.customize-button"
-								data-testid="cookie-banner-customize-button"
+								themeKey="banner.footer.accept-button"
+								data-testid="cookie-banner-accept-button"
 							>
-								{customizeButtonText || common.customize}
+								{acceptButtonText || common.acceptAll}
 							</ConsentButton>
 						</CookieBannerFooterSubGroup>
 						<ConsentButton
-							action="accept-consent"
+							action="open-consent-dialog"
 							variant="primary"
 							closeCookieBanner
-							themeKey="banner.footer.accept-button"
-							data-testid="cookie-banner-accept-button"
+							themeKey="banner.footer.customize-button"
+							data-testid="cookie-banner-customize-button"
 						>
-							{acceptButtonText || common.acceptAll}
+							{customizeButtonText || common.customize}
 						</ConsentButton>
 					</CookieBannerFooter>
 				</CookieBannerCard>

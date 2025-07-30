@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/react",
-	"version": "1.4.4",
+	"version": "1.5.0-canary-20250722151007",
 	"license": "GPL-3.0-only",
 	"sideEffects": false,
 	"type": "module",
@@ -56,9 +56,10 @@
 	"types": "./dist/index.d.ts",
 	"files": ["dist"],
 	"scripts": {
-		"build": "rslib build",
+		"prebuild": "genversion --esm --semi src/version.ts",
+		"build": "pnpm prebuild && rslib build",
+		"dev": "pnpm prebuild && rslib build --watch",
 		"check-types": "tsc --noEmit",
-		"dev": "rslib build --watch",
 		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"lint": "pnpm biome lint ./src",
 		"test": "vitest run",
@@ -70,14 +71,14 @@
 		"@radix-ui/react-slot": "1.2.0",
 		"@radix-ui/react-switch": "1.1.4",
 		"c15t": "workspace:*",
-		"@c15t/node-sdk": "workspace:*",
 		"clsx": "2.1.1",
 		"zustand": "^5.0.3"
 	},
 	"devDependencies": {
 		"@c15t/backend": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
-		"@c15t/vitest-config": "workspace:*"
+		"@c15t/vitest-config": "workspace:*",
+		"genversion": "^3.2.0"
 	},
 	"peerDependencies": {
 		"react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc",

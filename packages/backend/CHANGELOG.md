@@ -1,5 +1,17 @@
 # @c15t/backend
 
+## 1.5.0-canary-20250722133547
+
+### Patch Changes
+
+- 35b5fc3: fix: removed package.json imports for Next 13 compatibility
+
+## 1.5.0-canary-20250722085128
+
+### Minor Changes
+
+- 74e1825: feat(backend): added advanced overrides for disabling geo-location & adding custom translations
+
 ## 1.4.2
 
 ### Patch Changes
