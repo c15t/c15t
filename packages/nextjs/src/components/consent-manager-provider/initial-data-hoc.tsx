@@ -39,7 +39,6 @@ export function withInitialC15TData<
 			// Silently handle consent data fetch errors
 			console.warn('Failed to fetch initial c15t data:', error);
 		}
-
 		// If there's an existing getServerSideProps, call it
 		if (getServerSideProps) {
 			const result = await getServerSideProps(context);
@@ -49,7 +48,7 @@ export function withInitialC15TData<
 					...result,
 					props: {
 						...(await result.props),
-						initialC15TData: initialData,
+						initialC15TData: initialData ?? null,
 					},
 				};
 			}
@@ -60,7 +59,7 @@ export function withInitialC15TData<
 		// Return just the consent data if no existing props
 		return {
 			props: {
-				initialC15TData: initialData,
+				initialC15TData: initialData ?? null,
 			} as Props & WithInitialC15TDataProps,
 		};
 	};
