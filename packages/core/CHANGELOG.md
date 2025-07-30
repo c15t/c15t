@@ -1,5 +1,18 @@
 # c15t
 
+## 1.5.0
+
+### Minor Changes
+
+- 230f749: feat(nextjs): added pages support + nextjs 13 support
+
+### Patch Changes
+
+- Updated dependencies [230f749]
+- Updated dependencies [c1b87dd]
+  - @c15t/backend@1.5.0
+  - @c15t/translations@1.5.0
+
 ## 1.5.0-canary-20250722133547
 
 ### Patch Changes
