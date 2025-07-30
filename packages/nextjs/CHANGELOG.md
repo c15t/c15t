@@ -1,5 +1,30 @@
 # @c15t/nextjs
 
+## 1.5.0-canary-20250722151007
+
+### Patch Changes
+
+- Updated dependencies [5decee3]
+  - @c15t/react@1.5.0-canary-20250722151007
+
+## 1.5.0-canary-20250722133547
+
+### Patch Changes
+
+- 35b5fc3: fix: removed package.json imports for Next 13 compatibility
+- Updated dependencies [35b5fc3]
+  - @c15t/react@1.5.0-canary-20250722133547
+
+## 1.5.0-canary-20250722085128
+
+### Minor Changes
+
+- 35f052c: feat(nextjs): added pages support
+
+### Patch Changes
+
+- @c15t/react@1.5.0-canary-20250722085128
+
 ## 1.4.4
 
 ### Patch Changes
