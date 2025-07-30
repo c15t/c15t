@@ -1,5 +1,16 @@
 # @c15t/backend
 
+## 1.5.0
+
+### Minor Changes
+
+- 230f749: feat(backend): added advanced overrides for disabling geo-location & adding custom translations
+
+### Patch Changes
+
+- Updated dependencies [c1b87dd]
+  - @c15t/translations@1.5.0
+
 ## 1.5.0-canary-20250722133547
 
 ### Patch Changes
