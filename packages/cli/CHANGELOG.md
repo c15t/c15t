@@ -1,5 +1,18 @@
 # @c15t/cli
 
+## 1.5.0-canary-20250730152020
+
+### Minor Changes
+
+- 230f749: feat(nextjs): added pages support + nextjs 13 support
+
+### Patch Changes
+
+- Updated dependencies [bacff72]
+- Updated dependencies [230f749]
+  - @c15t/react@1.5.0-canary-20250730152020
+  - @c15t/backend@1.5.0-canary-20250730152020
+
 ## 1.5.0-canary-20250722151007
 
 ### Patch Changes

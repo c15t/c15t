@@ -1,5 +1,13 @@
 # @c15t/react
 
+## 1.5.0-canary-20250730152020
+
+### Patch Changes
+
+- bacff72: feat(react): improved gdpr compliance by changing button order
+- Updated dependencies [230f749]
+  - c15t@1.5.0-canary-20250730152020
+
 ## 1.5.0-canary-20250722151007
 
 ### Patch Changes
