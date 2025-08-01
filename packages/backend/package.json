@@ -92,8 +92,8 @@
 		"knip": "knip",
 		"lint": "pnpm biome lint ./src",
 		"start": "node dist/server.cjs",
-		"test": "vitest run",
-		"test:watch": "vitest"
+		"test": "pnpm prebuild && vitest run",
+		"test:watch": "pnpm prebuild && vitest"
 	},
 	"dependencies": {
 		"@c15t/translations": "workspace:*",

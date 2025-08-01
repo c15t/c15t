@@ -33,8 +33,8 @@
 		"check-types": "pnpm prebuild && tsc --noEmit",
 		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"lint": "pnpm biome lint ./src",
-		"test": "vitest run --passWithNoTests",
-		"test:watch": "vitest --passWithNoTests"
+		"test": "pnpm prebuild && vitest run --passWithNoTests",
+		"test:watch": "pnpm prebuild && vitest --passWithNoTests"
 	},
 	"dependencies": {
 		"@c15t/react": "workspace:*",
