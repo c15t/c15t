@@ -11,29 +11,4 @@
 export { ConsentManagerProvider } from './components/consent-manager-provider/pages';
 export { withInitialC15TData } from './components/consent-manager-provider/initial-data-hoc';
 
-export {
-	CookieBanner,
-	ConsentManagerWidget,
-	ConsentManagerDialog,
-	// Export hooks
-	useConsentManager,
-	useTranslations,
-	useColorScheme,
-	useFocusTrap,
-	configureConsentManager,
-	// Translation utilities
-	prepareTranslationConfig,
-	defaultTranslationConfig,
-	mergeTranslationConfigs,
-	detectBrowserLanguage,
-} from '@c15t/react';
-
-// Export types
-export type {
-	ConsentManagerOptions,
-	ConsentManagerProviderProps,
-	ConsentManagerDialogProps,
-	ConsentManagerInterface,
-	ConsentManagerWidgetProps,
-	CookieBannerProps,
-} from '@c15t/react';
+export * from './shared';

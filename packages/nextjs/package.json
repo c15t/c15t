@@ -13,6 +13,11 @@
 			"import": "./dist/pages.js",
 			"require": "./dist/pages.cjs"
 		},
+		"./client": {
+			"types": "./dist/client.d.ts",
+			"import": "./dist/client.js",
+			"require": "./dist/client.cjs"
+		},
 		".": {
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js",
@@ -25,10 +30,11 @@
 		"prebuild": "genversion --esm --semi src/version.ts",
 		"build": "pnpm prebuild && rslib build",
 		"dev": "pnpm prebuild && rslib build --watch",
+		"check-types": "pnpm prebuild && tsc --noEmit",
 		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"lint": "pnpm biome lint ./src",
-		"test": "vitest run --passWithNoTests",
-		"test:watch": "vitest --passWithNoTests"
+		"test": "pnpm prebuild && vitest run --passWithNoTests",
+		"test:watch": "pnpm prebuild && vitest --passWithNoTests"
 	},
 	"dependencies": {
 		"@c15t/react": "workspace:*",

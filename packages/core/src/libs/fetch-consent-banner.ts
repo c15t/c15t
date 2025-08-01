@@ -52,7 +52,7 @@ function updateStore(
 	{ set, get, initialTranslationConfig }: FetchConsentBannerConfig,
 	hasLocalStorageAccess: boolean
 ): void {
-	const { consentInfo, setDetectedCountry, callbacks, ignoreGeoLocation } =
+	const { consentInfo, setDetectedCountry, ignoreGeoLocation, callbacks } =
 		get();
 
 	const { translations, location, jurisdiction, showConsentBanner } = data;
@@ -102,15 +102,23 @@ function updateStore(
 	if (data.location?.countryCode) {
 		// Handle location detection callbacks
 		setDetectedCountry(data.location.countryCode);
-		if (data.location.regionCode) {
-			callbacks.onLocationDetected?.({
-				countryCode: data.location.countryCode,
-				regionCode: data.location.regionCode,
-			});
-		}
 	}
 
+	// Store banner fetch data and mark as fetched
+	updatedStore.hasFetchedBanner = true;
+	updatedStore.lastBannerFetchData = data;
+
 	set(updatedStore);
+
+	callbacks?.onBannerFetched?.({
+		showConsentBanner: data.showConsentBanner,
+		jurisdiction: data.jurisdiction,
+		location: data.location,
+		translations: {
+			language: translations.language,
+			translations: translations.translations,
+		},
+	});
 }
 
 /**
@@ -160,7 +168,9 @@ export async function fetchConsentBannerInfo(
 			onError: callbacks.onError
 				? (context) => {
 						if (callbacks.onError) {
-							callbacks.onError(context.error?.message || 'Unknown error');
+							callbacks.onError({
+								error: context.error?.message || 'Unknown error',
+							});
 						}
 					}
 				: undefined,
@@ -188,7 +198,9 @@ export async function fetchConsentBannerInfo(
 			error instanceof Error
 				? error.message
 				: 'Unknown error fetching consent banner information';
-		callbacks.onError?.(errorMessage);
+		callbacks.onError?.({
+			error: errorMessage,
+		});
 
 		// If fetch fails, default to NOT showing the banner to prevent crashes
 		set({ showPopup: false });

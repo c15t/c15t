@@ -27,6 +27,7 @@ import { type AllConsentNames, consentTypes } from './types/gdpr';
 
 import type { ContractsOutputs } from '@c15t/backend/contracts';
 import { type GTMConfiguration, setupGTM, updateGTMConsent } from './libs/gtm';
+import type { Callbacks } from './types/callbacks';
 
 /** Storage key for persisting consent data in localStorage */
 const STORAGE_KEY = 'privacy-consent-storage';
@@ -149,6 +150,11 @@ export interface StoreOptions {
 	 * @internal
 	 */
 	_initialData?: Promise<ContractsOutputs['consent']['showBanner'] | undefined>;
+
+	/**
+	 * Callbacks for the consent manager.
+	 */
+	callbacks?: Callbacks;
 }
 
 // For backward compatibility (if needed)
@@ -220,33 +226,6 @@ export const createConsentManagerStore = (
 				)
 			: null;
 
-	// Check for client callbacks to integrate with store callbacks
-	const clientCallbacks = manager.getCallbacks();
-
-	// Merge client callbacks with initial callbacks
-	const mergedCallbacks = clientCallbacks
-		? {
-				// Map client callbacks to store callbacks format if possible
-				onError: clientCallbacks.onError
-					? (message: string) =>
-							clientCallbacks.onError?.(
-								{
-									data: null,
-									error: {
-										message,
-										status: 0,
-									},
-									ok: false,
-									response: null,
-								},
-								'store'
-							)
-					: undefined,
-				// More mappings can be added here as needed
-				...initialState.callbacks,
-			}
-		: initialState.callbacks;
-
 	const store = createStore<PrivacyConsentState>((set, get) => ({
 		...initialState,
 		ignoreGeoLocation: options.ignoreGeoLocation ?? false,
@@ -254,7 +233,7 @@ export const createConsentManagerStore = (
 		// Set isConsentDomain based on the provider's baseURL
 		isConsentDomain,
 		// Override the callbacks with merged callbacks
-		callbacks: mergedCallbacks,
+		callbacks: options.callbacks ?? initialState.callbacks,
 		// Set initial translation config if provided
 		translationConfig: translationConfig || initialState.translationConfig,
 		...(storedConsent
@@ -422,9 +401,9 @@ export const createConsentManagerStore = (
 				console.warn('Failed to persist consents to localStorage:', e);
 			}
 
-			// Trigger callbacks right away
-			callbacks.onConsentGiven?.();
-			callbacks.onPreferenceExpressed?.();
+			callbacks.onConsentSet?.({
+				preferences: newConsents,
+			});
 
 			// Send consent to API in the background - the UI is already updated
 			const consent = await manager.setConsent({
@@ -442,7 +421,9 @@ export const createConsentManagerStore = (
 			// Handle error case if the API request fails
 			if (!consent.ok) {
 				const errorMsg = consent.error?.message ?? 'Failed to save consents';
-				callbacks.onError?.(errorMsg);
+				callbacks.onError?.({
+					error: errorMsg,
+				});
 				// Fallback console only when no handler is provided
 				if (!callbacks.onError) {
 					// biome-ignore lint/suspicious/noConsole: <explanation>
@@ -511,11 +492,42 @@ export const createConsentManagerStore = (
 		 *
 		 * @param name - The callback event name
 		 * @param callback - The callback function
+		 *
+		 * @remarks
+		 * If setting the onBannerFetched callback and the banner has already been fetched,
+		 * the callback will be immediately called with the stored banner data to prevent
+		 * race conditions in client-side components.
 		 */
-		setCallback: (name, callback) =>
+		setCallback: (name, callback) => {
+			const currentState = get();
+
+			// Update the callback in state
 			set((state) => ({
 				callbacks: { ...state.callbacks, [name]: callback },
-			})),
+			}));
+
+			// Replay missed onBannerFetched callback if banner was already fetched
+			if (
+				name === 'onBannerFetched' &&
+				currentState.hasFetchedBanner &&
+				currentState.lastBannerFetchData &&
+				callback &&
+				typeof callback === 'function'
+			) {
+				const { lastBannerFetchData } = currentState;
+
+				// Type assertion to ensure callback is the correct type
+				(callback as Callbacks['onBannerFetched'])?.({
+					showConsentBanner: lastBannerFetchData.showConsentBanner,
+					jurisdiction: lastBannerFetchData.jurisdiction,
+					location: lastBannerFetchData.location,
+					translations: {
+						language: lastBannerFetchData.translations.language,
+						translations: lastBannerFetchData.translations.translations,
+					},
+				});
+			}
+		},
 
 		/**
 		 * Updates the user's detected country.

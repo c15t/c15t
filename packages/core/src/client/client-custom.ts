@@ -4,7 +4,6 @@
  */
 
 import type {
-	ConsentManagerCallbacks,
 	ConsentManagerInterface,
 	SetConsentRequestBody,
 	SetConsentResponse,
@@ -60,11 +59,6 @@ export interface CustomClientOptions {
 	 * Custom endpoint handlers
 	 */
 	endpointHandlers: EndpointHandlers;
-
-	/**
-	 * Global callbacks for handling responses
-	 */
-	callbacks?: ConsentManagerCallbacks;
 }
 
 /**
@@ -88,35 +82,12 @@ export class CustomClient implements ConsentManagerInterface {
 	> = {};
 
 	/**
-	 * Callback functions for client events
-	 * @internal
-	 */
-	private callbacks?: ConsentManagerCallbacks;
-
-	/**
 	 * Creates a new custom client instance.
 	 *
 	 * @param options - Configuration options for the client
 	 */
 	constructor(options: CustomClientOptions) {
 		this.endpointHandlers = options.endpointHandlers;
-		this.callbacks = options.callbacks;
-	}
-
-	/**
-	 * Returns the client's configured callbacks.
-	 *
-	 * @returns The callbacks object or undefined if no callbacks are configured
-	 */
-	getCallbacks(): ConsentManagerCallbacks | undefined {
-		return this.callbacks;
-	}
-
-	/**
-	 * Sets the client's callback functions.
-	 */
-	setCallbacks(callbacks: ConsentManagerCallbacks): void {
-		this.callbacks = callbacks;
 	}
 
 	/**
@@ -150,11 +121,7 @@ export class CustomClient implements ConsentManagerInterface {
 		QueryType = unknown,
 	>(
 		handlerKey: keyof EndpointHandlers,
-		options?: FetchOptions<ResponseType, BodyType, QueryType>,
-		callbackKey?: keyof Pick<
-			Required<ConsentManagerCallbacks>,
-			'onConsentBannerFetched' | 'onConsentSet' | 'onConsentVerified'
-		>
+		options?: FetchOptions<ResponseType, BodyType, QueryType>
 	): Promise<ResponseContext<ResponseType>> {
 		// Check if handler exists
 		const handler = this.endpointHandlers[handlerKey] as EndpointHandler<
@@ -169,8 +136,6 @@ export class CustomClient implements ConsentManagerInterface {
 				404,
 				'ENDPOINT_NOT_FOUND'
 			);
-
-			this.callbacks?.onError?.(errorResponse, String(handlerKey));
 
 			if (options?.throw) {
 				throw new Error(
@@ -193,70 +158,6 @@ export class CustomClient implements ConsentManagerInterface {
 				response: response.response,
 			};
 
-			// Call success callback if response is successful
-			if (
-				normalizedResponse.ok &&
-				callbackKey &&
-				this.callbacks?.[callbackKey]
-			) {
-				const callback = this.callbacks[callbackKey] as (
-					response: ResponseContext<ResponseType>
-				) => void;
-
-				// Format callback payload based on endpoint type
-				let callbackPayload: ResponseContext<ResponseType>;
-				if (
-					callbackKey === 'onConsentBannerFetched' &&
-					normalizedResponse.data
-				) {
-					const data =
-						normalizedResponse.data as unknown as ShowConsentBannerResponse;
-					callbackPayload = {
-						...normalizedResponse,
-						data: {
-							showConsentBanner: data.showConsentBanner,
-							jurisdiction: data.jurisdiction,
-							location: {
-								countryCode: data.location.countryCode || 'GB',
-								regionCode: data.location.regionCode || null,
-							},
-						},
-					} as ResponseContext<ResponseType>;
-				} else if (callbackKey === 'onConsentSet' && normalizedResponse.data) {
-					callbackPayload = {
-						...normalizedResponse,
-						data: {
-							type:
-								(options?.body as SetConsentRequestBody)?.type ||
-								'cookie_banner',
-							preferences:
-								(options?.body as SetConsentRequestBody)?.preferences || {},
-							domain: (options?.body as SetConsentRequestBody)?.domain,
-						},
-					} as ResponseContext<ResponseType>;
-				} else if (
-					callbackKey === 'onConsentVerified' &&
-					normalizedResponse.data
-				) {
-					callbackPayload = {
-						...normalizedResponse,
-						data: {
-							type:
-								(options?.body as VerifyConsentRequestBody)?.type ||
-								'cookie_banner',
-							preferences:
-								(options?.body as VerifyConsentRequestBody)?.preferences || [],
-							valid: true,
-							domain: (options?.body as VerifyConsentRequestBody)?.domain,
-						},
-					} as ResponseContext<ResponseType>;
-				} else {
-					callbackPayload = normalizedResponse;
-				}
-
-				callback(callbackPayload);
-			}
-
 			return normalizedResponse;
 		} catch (error) {
 			// Handle errors from the handler
@@ -266,8 +167,6 @@ export class CustomClient implements ConsentManagerInterface {
 				'HANDLER_ERROR',
 				error
 			);
-
-			this.callbacks?.onError?.(errorResponse, String(handlerKey));
 
 			if (options?.throw) {
 				throw error;
@@ -285,8 +184,7 @@ export class CustomClient implements ConsentManagerInterface {
 	): Promise<ResponseContext<ShowConsentBannerResponse>> {
 		return await this.executeHandler<ShowConsentBannerResponse>(
 			'showConsentBanner',
-			options,
-			'onConsentBannerFetched'
+			options
 		);
 	}
 
@@ -298,8 +196,7 @@ export class CustomClient implements ConsentManagerInterface {
 	): Promise<ResponseContext<SetConsentResponse>> {
 		return await this.executeHandler<SetConsentResponse, SetConsentRequestBody>(
 			'setConsent',
-			options,
-			'onConsentSet'
+			options
 		);
 	}
 
@@ -312,7 +209,7 @@ export class CustomClient implements ConsentManagerInterface {
 		return await this.executeHandler<
 			VerifyConsentResponse,
 			VerifyConsentRequestBody
-		>('verifyConsent', options, 'onConsentVerified');
+		>('verifyConsent', options);
 	}
 
 	/**
@@ -355,7 +252,6 @@ export class CustomClient implements ConsentManagerInterface {
 					'HANDLER_ERROR',
 					error
 				);
-				this.callbacks?.onError?.(errorResponse, path);
 				return errorResponse;
 			}
 		}
@@ -367,7 +263,6 @@ export class CustomClient implements ConsentManagerInterface {
 				404,
 				'ENDPOINT_NOT_FOUND'
 			);
-			this.callbacks?.onError?.(errorResponse, path);
 			return errorResponse;
 		}
 

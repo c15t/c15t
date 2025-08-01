@@ -7,7 +7,6 @@ export {
 	configureConsentManager,
 	type ConsentManagerOptions,
 	type ConsentManagerInterface,
-	type ConsentManagerCallbacks,
 } from './client-factory';
 
 // Export HTTP client for advanced usage scenarios

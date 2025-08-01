@@ -1,10 +1,6 @@
-import type { ConsentManagerProviderProps } from '@c15t/react';
 import type { GetServerSideProps, GetServerSidePropsContext } from 'next';
+import type { InitialData } from '../../types';
 import { getC15TInitialData } from './utils/initial-data';
-
-type InitialData = Awaited<
-	NonNullable<ConsentManagerProviderProps['options']['store']>['_initialData']
->;
 
 interface WithInitialC15TDataProps {
 	initialC15TData?: InitialData;

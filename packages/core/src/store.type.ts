@@ -5,7 +5,6 @@
 
 import type {
 	AllConsentNames,
-	CallbackFunction,
 	Callbacks,
 	ComplianceRegion,
 	ComplianceSettings,
@@ -68,6 +67,12 @@ export interface PrivacyConsentState {
 
 	/** Whether consent banner information is currently being loaded */
 	isLoadingConsentInfo: boolean;
+
+	/** Whether consent banner information has been successfully fetched */
+	hasFetchedBanner: boolean;
+
+	/** Last consent banner fetch data for callback replay */
+	lastBannerFetchData: ConsentBannerResponse | null;
 
 	/** Active GDPR consent types */
 	gdprTypes: AllConsentNames[];
@@ -173,7 +178,7 @@ export interface PrivacyConsentState {
 	 */
 	setCallback: (
 		name: keyof Callbacks,
-		callback: CallbackFunction | undefined
+		callback: Callbacks[keyof Callbacks] | undefined
 	) => void;
 
 	/**

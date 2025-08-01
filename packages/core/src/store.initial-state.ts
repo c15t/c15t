@@ -66,6 +66,12 @@ export const initialState: Omit<
 	/** Initial loading state for consent banner information */
 	isLoadingConsentInfo: false,
 
+	/** Banner has not been fetched initially */
+	hasFetchedBanner: false,
+
+	/** No last banner fetch data initially */
+	lastBannerFetchData: null,
+
 	/** Default GDPR consent types to include */
 	gdprTypes: ['necessary', 'marketing'],
 

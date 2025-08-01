@@ -15,6 +15,14 @@ export default function App({ Component, pageProps }: AppProps) {
 				backendURL: '/api/c15t',
 				consentCategories: ['necessary', 'marketing'],
 				ignoreGeoLocation: true,
+				callbacks: {
+					onBannerFetched: (response) => {
+						console.log('onBannerFetched', response);
+					},
+					onConsentSet: (response) => {
+						console.log('onConsentSet', response);
+					},
+				},
 			}}
 		>
 			<CookieBanner />
