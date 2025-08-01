@@ -18,11 +18,11 @@ export function ConsentManagerCallbacks({
 			return;
 		}
 
-		for (const [key, value] of Object.entries(callbacks)) {
-			setCallback(
-				key as keyof ConsentManagerProviderProps['options']['callbacks'],
-				value
-			);
+		for (const [key, value] of Object.entries(callbacks) as [
+			keyof typeof callbacks,
+			(typeof callbacks)[keyof typeof callbacks],
+		][]) {
+			setCallback(key, value);
 		}
 	}, [callbacks, setCallback]);
 
