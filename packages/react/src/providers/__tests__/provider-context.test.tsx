@@ -24,7 +24,6 @@ vi.mock('c15t', async () => {
 
 			// Return a ready-to-use mock with showPopup set to true
 			return {
-				getCallbacks: () => options.callbacks || {},
 				showConsentBanner: async () => ({
 					ok: true,
 					data: {

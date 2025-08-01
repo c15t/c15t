@@ -7,7 +7,7 @@
 		"../ai-tools-integrations",
 		"--- JavaScript ---",
 		"quickstart",
-		"../callbacks",
+		"callbacks",
 		"api-reference",
 		"--- Storing Consent ---",
 		"./storing-consent/overview",

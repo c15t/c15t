@@ -13,6 +13,11 @@
 			"import": "./dist/pages.js",
 			"require": "./dist/pages.cjs"
 		},
+		"./client": {
+			"types": "./dist/client.d.ts",
+			"import": "./dist/client.js",
+			"require": "./dist/client.cjs"
+		},
 		".": {
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js",

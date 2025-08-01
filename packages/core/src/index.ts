@@ -87,45 +87,7 @@ export {
 	consentTypes,
 } from './types/gdpr';
 
-/**
- * @module
- * Callback Types
- *
- * @remarks
- * Exports types for consent management callbacks and event handlers:
- * - Generic callback function type
- * - Consent-specific callback configurations
- *
- * @example
- * Import and use callback types:
- * ```typescript
- * import type {
- *   CallbackFunction,
- *   Callbacks
- * } from 'c15t/types';
- *
- * const callbacks: Callbacks = {
- *   onConsentGiven: () => {
- *     console.log('Consent granted');
- *     initializeAnalytics();
- *   },
- *   onError: (error) => {
- *     console.error('Consent error:', error);
- *   }
- * };
- * ```
- *
- * @example
- * Create typed callback functions:
- * ```typescript
- * const errorHandler: CallbackFunction<string> =
- *   (message) => console.error(message);
- *
- * const readyHandler: CallbackFunction =
- *   () => console.log('System ready');
- * ```
- */
-export type { CallbackFunction, Callbacks } from './types/callbacks';
+export type { Callbacks, Callback } from './types/callbacks';
 
 /**
  * @module

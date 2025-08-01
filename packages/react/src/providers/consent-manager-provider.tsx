@@ -82,14 +82,7 @@ export function ConsentManagerProvider({
 	options,
 }: ConsentManagerProviderProps) {
 	// Extract and memoize stable options
-	const {
-		mode,
-		backendURL,
-		callbacks,
-		store = {},
-		translations,
-		react = {},
-	} = options;
+	const { mode, backendURL, store = {}, translations, react = {} } = options;
 
 	// Destructure once to avoid redundant access
 	const { initialGdprTypes, initialComplianceSettings } = store;
@@ -136,28 +129,25 @@ export function ConsentManagerProvider({
 		if (mode === 'offline') {
 			newManager = configureConsentManager({
 				mode: 'offline',
-				callbacks,
 				store,
 			});
 		} else if (mode === 'custom' && 'endpointHandlers' in options) {
 			newManager = configureConsentManager({
 				mode: 'custom',
 				endpointHandlers: options.endpointHandlers,
-				callbacks,
 				store,
 			});
 		} else {
 			newManager = configureConsentManager({
 				mode: 'c15t',
 				backendURL: backendURL || '/api/c15t',
-				callbacks,
 				store,
 			});
 		}
 
 		managerCache.set(cacheKey, newManager);
 		return newManager;
-	}, [cacheKey, mode, backendURL, callbacks, store, options]);
+	}, [cacheKey, mode, backendURL, store, options]);
 
 	// Get or create consent store with caching
 	const consentStore = useMemo(() => {
@@ -176,6 +166,7 @@ export function ConsentManagerProvider({
 			},
 			ignoreGeoLocation: options.ignoreGeoLocation,
 			initialGdprTypes: options.consentCategories,
+			callbacks: options.callbacks,
 			...store,
 			isConsentDomain,
 			initialTranslationConfig: translations,
@@ -187,6 +178,7 @@ export function ConsentManagerProvider({
 		cacheKey,
 		consentManager,
 		mode,
+		options.callbacks,
 		options.unstable_googleTagManager,
 		options.ignoreGeoLocation,
 		options.consentCategories,

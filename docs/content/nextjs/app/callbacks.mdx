@@ -1,0 +1,51 @@
+---
+title: Callbacks
+description: Add c15t callbacks to your Next.js application.
+---
+import { RiFileCopyLine, RiFlashlightLine, RiServerLine, RiWifiOffLine, RiSettings4Line } from '@remixicon/react';
+
+
+## How to add callbacks
+Due to the nature of Next.js App Directory, we have to define callbacks to run in a client component.
+
+```ts title="app/layout.client.tsx"
+'use client';
+
+import { ConsentManagerCallbacks } from '@c15t/nextjs/client';
+
+export function ClientLayout() {
+	return (
+		<ConsentManagerCallbacks
+			callbacks={{
+				onBannerFetched(response) {
+					console.log('Consent banner fetched', response);
+				},
+				onConsentSet(response) {
+					console.log('Consent has been saved locally', response);
+				},
+				onError(response) {
+					console.log('Error', response);
+				},
+			}}
+		/>
+	);
+}
+```
+
+<Callout type="note">
+Ensure you import this component inside the ConsentManagerProvider component in your `app/layout.tsx` file.
+</Callout>
+
+## Available callbacks
+
+### onBannerFetched
+
+This callback is called when the consent banner is fetched, it is not called when the banner is set to `offline` mode.
+
+### onConsentSet
+
+This callback is called when the consent is set.
+
+### onError
+
+This callback is called when an error occurs.

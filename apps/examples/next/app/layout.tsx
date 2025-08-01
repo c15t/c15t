@@ -6,7 +6,7 @@ import {
 	ConsentManagerProvider,
 	CookieBanner,
 } from '@c15t/nextjs';
-
+import { ClientLayout } from './layout.client';
 const geistSans = Geist({
 	variable: '--font-geist-sans',
 	subsets: ['latin'],
@@ -42,6 +42,7 @@ export default function RootLayout({
 				>
 					<CookieBanner />
 					<ConsentManagerDialog />
+					<ClientLayout />
 
 					{children}
 				</ConsentManagerProvider>
