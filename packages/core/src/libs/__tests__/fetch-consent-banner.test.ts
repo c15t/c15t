@@ -1,15 +1,3 @@
-/**
- * @fileoverview Tests for fetch-consent-banner functionality
- *
- * Tests cover all scenarios including:
- * - Successful banner fetching
- * - Error handling and fallbacks
- * - localStorage access validation
- * - Initial data handling
- * - Callback execution
- * - Store state updates
- */
-
 import type { ContractsOutputs } from '@c15t/backend/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ConsentManagerInterface } from '../../client/client-factory';
