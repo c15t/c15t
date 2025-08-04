@@ -7,7 +7,7 @@
 		"../ai-tools-integrations",
 		"quickstart",
 		"google-tag-manager",
-		"../callbacks",
+		"callbacks",
 		"--- React Components ---",
 		"../components/react/cookie-banner",
 		"../components/react/consent-manager-dialog",

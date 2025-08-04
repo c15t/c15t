@@ -8,6 +8,8 @@ import { defaultTranslationConfig } from './translations';
 import { type ConsentState, consentTypes } from './types';
 import { version } from './version';
 
+export const STORAGE_KEY = 'privacy-consent-storage';
+
 /**
  * Default initial state for the consent management store.
  *
@@ -65,6 +67,12 @@ export const initialState: Omit<
 
 	/** Initial loading state for consent banner information */
 	isLoadingConsentInfo: false,
+
+	/** Banner has not been fetched initially */
+	hasFetchedBanner: false,
+
+	/** No last banner fetch data initially */
+	lastBannerFetchData: null,
 
 	/** Default GDPR consent types to include */
 	gdprTypes: ['necessary', 'marketing'],

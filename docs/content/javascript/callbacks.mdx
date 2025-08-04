@@ -1,0 +1,45 @@
+---
+title: Callbacks
+description: Add callbacks to your JavaScript application.
+---
+## Available callbacks
+
+### onBannerFetched
+
+This callback is called when the consent banner is fetched, it is not called when the banner is set to `offline` mode.
+
+<auto-type-table path="../../node_modules/c15t/src/types/callbacks.ts" name="OnBannerFetchedPayload" />
+
+### onConsentSet
+
+This callback is called when the consent is set.
+
+<auto-type-table path="../../node_modules/c15t/src/types/callbacks.ts" name="OnConsentSetPayload" />
+
+### onError
+
+This callback is called when an error occurs.
+
+<auto-type-table path="../../node_modules/c15t/src/types/callbacks.ts" name="OnErrorPayload" />
+
+## Implementing Callbacks
+```tsx title="index.ts"
+import { 
+ConsentManagerOptions,
+} from 'c15t';
+
+const c15tConfig = {
+	mode: 'offline',
+	callbacks: {
+		onConsentSet(response) {
+			console.log('Consent has been saved', response);
+		},
+		onBannerFetched(response) {
+			console.log('Consent banner fetched', response);
+		},
+		onError(response) {
+			console.log('Error', response);
+		},
+	},
+} satisfies ConsentManagerOptions;
+```

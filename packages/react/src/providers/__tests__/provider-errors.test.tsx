@@ -29,7 +29,6 @@ vi.mock('c15t', async () => {
 
 			// Return a mock client that shows an error occurred but still works
 			return {
-				getCallbacks: () => options.callbacks || {},
 				showConsentBanner: async () => ({
 					ok: false,
 					data: null,

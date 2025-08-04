@@ -3,7 +3,7 @@ import { JSIcon, NextIcon, ReactIcon } from '../icons';
 
 const frameworkCards = [
 	{
-		href: '/docs/nextjs/quickstart',
+		href: '/docs/nextjs/app/quickstart',
 		title: 'Next.js',
 		icon: <NextIcon />,
 		description:

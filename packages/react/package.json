@@ -59,11 +59,11 @@
 		"prebuild": "genversion --esm --semi src/version.ts",
 		"build": "pnpm prebuild && rslib build",
 		"dev": "pnpm prebuild && rslib build --watch",
-		"check-types": "tsc --noEmit",
+		"check-types": "pnpm prebuild && tsc --noEmit",
 		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
 		"lint": "pnpm biome lint ./src",
-		"test": "vitest run",
-		"test:watch": "vitest"
+		"test": "pnpm prebuild && vitest run",
+		"test:watch": "pnpm prebuild && vitest"
 	},
 	"browserslist": [">0.2%", "not dead", "not op_mini all"],
 	"dependencies": {

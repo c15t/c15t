@@ -16,7 +16,7 @@ import {
 import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
 import { createTrackingBlocker } from './libs/tracking-blocker';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
-import { initialState } from './store.initial-state';
+import { STORAGE_KEY, initialState } from './store.initial-state';
 import type { PrivacyConsentState } from './store.type';
 import type {
 	ComplianceSettings,
@@ -27,10 +27,8 @@ import { type AllConsentNames, consentTypes } from './types/gdpr';
 
 import type { ContractsOutputs } from '@c15t/backend/contracts';
 import { type GTMConfiguration, setupGTM, updateGTMConsent } from './libs/gtm';
-
-/** Storage key for persisting consent data in localStorage */
-const STORAGE_KEY = 'privacy-consent-storage';
-
+import { saveConsents } from './libs/save-consents';
+import type { Callbacks } from './types/callbacks';
 /**
  * Structure of consent data stored in localStorage.
  *
@@ -149,6 +147,11 @@ export interface StoreOptions {
 	 * @internal
 	 */
 	_initialData?: Promise<ContractsOutputs['consent']['showBanner'] | undefined>;
+
+	/**
+	 * Callbacks for the consent manager.
+	 */
+	callbacks?: Callbacks;
 }
 
 // For backward compatibility (if needed)
@@ -220,33 +223,6 @@ export const createConsentManagerStore = (
 				)
 			: null;
 
-	// Check for client callbacks to integrate with store callbacks
-	const clientCallbacks = manager.getCallbacks();
-
-	// Merge client callbacks with initial callbacks
-	const mergedCallbacks = clientCallbacks
-		? {
-				// Map client callbacks to store callbacks format if possible
-				onError: clientCallbacks.onError
-					? (message: string) =>
-							clientCallbacks.onError?.(
-								{
-									data: null,
-									error: {
-										message,
-										status: 0,
-									},
-									ok: false,
-									response: null,
-								},
-								'store'
-							)
-					: undefined,
-				// More mappings can be added here as needed
-				...initialState.callbacks,
-			}
-		: initialState.callbacks;
-
 	const store = createStore<PrivacyConsentState>((set, get) => ({
 		...initialState,
 		ignoreGeoLocation: options.ignoreGeoLocation ?? false,
@@ -254,7 +230,7 @@ export const createConsentManagerStore = (
 		// Set isConsentDomain based on the provider's baseURL
 		isConsentDomain,
 		// Override the callbacks with merged callbacks
-		callbacks: mergedCallbacks,
+		callbacks: options.callbacks ?? initialState.callbacks,
 		// Set initial translation config if provided
 		translationConfig: translationConfig || initialState.translationConfig,
 		...(storedConsent
@@ -377,79 +353,14 @@ export const createConsentManagerStore = (
 		 * 5. Makes network request in background
 		 * 6. Triggers callbacks
 		 */
-		saveConsents: async (type) => {
-			const { callbacks, consents, consentTypes } = get();
-			const newConsents = { ...consents };
-			if (type === 'all') {
-				for (const consent of consentTypes) {
-					newConsents[consent.name] = true;
-				}
-			} else if (type === 'necessary') {
-				for (const consent of consentTypes) {
-					newConsents[consent.name] = consent.name === 'necessary';
-				}
-			}
-
-			const consentInfo = {
-				time: Date.now(),
-				type: type as 'necessary' | 'all' | 'custom',
-			};
-
-			// Immediately update the UI state to close banners/dialogs
-			// This makes the interface feel more responsive
-			set({
-				consents: newConsents,
-				showPopup: false,
-				consentInfo,
-			});
-
-			// Update tracking blocker with new consents right away
-			trackingBlocker?.updateConsents(newConsents);
-			updateGTMConsent(newConsents);
-
-			// Store to localStorage immediately for persistence
-			// Wrap in try/catch to handle potential privacy mode errors
-			try {
-				localStorage.setItem(
-					STORAGE_KEY,
-					JSON.stringify({
-						consents: newConsents,
-						consentInfo,
-					})
-				);
-			} catch (e) {
-				// biome-ignore lint/suspicious/noConsole: safe degradation
-				console.warn('Failed to persist consents to localStorage:', e);
-			}
-
-			// Trigger callbacks right away
-			callbacks.onConsentGiven?.();
-			callbacks.onPreferenceExpressed?.();
-
-			// Send consent to API in the background - the UI is already updated
-			const consent = await manager.setConsent({
-				body: {
-					type: 'cookie_banner',
-					domain: window.location.hostname,
-					preferences: newConsents,
-					metadata: {
-						source: 'consent_widget',
-						acceptanceMethod: type,
-					},
-				},
-			});
-
-			// Handle error case if the API request fails
-			if (!consent.ok) {
-				const errorMsg = consent.error?.message ?? 'Failed to save consents';
-				callbacks.onError?.(errorMsg);
-				// Fallback console only when no handler is provided
-				if (!callbacks.onError) {
-					// biome-ignore lint/suspicious/noConsole: <explanation>
-					console.error(errorMsg);
-				}
-			}
-		},
+		saveConsents: async (type) =>
+			await saveConsents({
+				manager,
+				type,
+				get,
+				set,
+				trackingBlocker,
+			}),
 
 		/**
 		 * Resets all consent preferences to their default values.
@@ -511,11 +422,42 @@ export const createConsentManagerStore = (
 		 *
 		 * @param name - The callback event name
 		 * @param callback - The callback function
+		 *
+		 * @remarks
+		 * If setting the onBannerFetched callback and the banner has already been fetched,
+		 * the callback will be immediately called with the stored banner data to prevent
+		 * race conditions in client-side components.
 		 */
-		setCallback: (name, callback) =>
+		setCallback: (name, callback) => {
+			const currentState = get();
+
+			// Update the callback in state
 			set((state) => ({
 				callbacks: { ...state.callbacks, [name]: callback },
-			})),
+			}));
+
+			// Replay missed onBannerFetched callback if banner was already fetched
+			if (
+				name === 'onBannerFetched' &&
+				currentState.hasFetchedBanner &&
+				currentState.lastBannerFetchData &&
+				callback &&
+				typeof callback === 'function'
+			) {
+				const { lastBannerFetchData } = currentState;
+
+				// Type assertion to ensure callback is the correct type
+				(callback as Callbacks['onBannerFetched'])?.({
+					showConsentBanner: lastBannerFetchData.showConsentBanner,
+					jurisdiction: lastBannerFetchData.jurisdiction,
+					location: lastBannerFetchData.location,
+					translations: {
+						language: lastBannerFetchData.translations.language,
+						translations: lastBannerFetchData.translations.translations,
+					},
+				});
+			}
+		},
 
 		/**
 		 * Updates the user's detected country.

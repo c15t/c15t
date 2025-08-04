@@ -32,7 +32,7 @@ export const homePageOptions: BaseLayoutProps = {
 					icon: <NextIcon />,
 					text: 'Next.js',
 					description: 'Build your privacy consent interface with Next.js',
-					url: '/docs/nextjs/quickstart',
+					url: '/docs/nextjs/app/quickstart',
 				},
 				{
 					icon: <ReactIcon className="text-[#61DAFB]" />,

@@ -1,0 +1,67 @@
+---
+title: Callbacks
+description: Add callbacks to your React application.
+---
+
+## Available callbacks
+
+### onBannerFetched
+
+This callback is called when the consent banner is fetched, it is not called when the banner is set to `offline` mode.
+
+<auto-type-table path="../../node_modules/c15t/src/types/callbacks.ts" name="OnBannerFetchedPayload" />
+
+### onConsentSet
+
+This callback is called when the consent is set.
+
+<auto-type-table path="../../node_modules/c15t/src/types/callbacks.ts" name="OnConsentSetPayload" />
+
+### onError
+
+This callback is called when an error occurs.
+
+<auto-type-table path="../../node_modules/c15t/src/types/callbacks.ts" name="OnErrorPayload" />
+
+
+## Implementing Callbacks
+```tsx title="src/App.jsx"
+import { 
+  ConsentManagerDialog,
+  ConsentManagerProvider,
+  CookieBanner,
+  type ConsentManagerOptions
+} from '@c15t/react';
+
+function App() {
+  const options = {
+    mode: 'c15t', 
+    backendURL: process.env.REACT_APP_C15T_URL,
+    consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
+    ignoreGeoLocation: true, // Useful for development to always view the banner.
+    callbacks: {
+      onBannerFetched(response) {
+        console.log('Consent banner fetched', response);
+      },
+      onConsentSet(response) {
+        console.log('Consent has been saved', response);
+      },
+      onError(response) {
+        console.log('Error', response);
+      },
+    },
+  };
+
+  return (
+    <ConsentManagerProvider options={options}>
+      <div className="App">
+        {/* Your application content */}
+      </div>
+      <CookieBanner />
+      <ConsentManagerDialog />
+    </ConsentManagerProvider>
+  );
+}
+
+export default App;
+```
