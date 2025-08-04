@@ -6,11 +6,11 @@ import type { PrivacyConsentState } from '../../store.type';
 import { saveConsents } from '../save-consents';
 
 // Mock the GTM and tracking blocker modules
-vi.mock('../libs/gtm', () => ({
+vi.mock('../gtm', () => ({
 	updateGTMConsent: vi.fn(),
 }));
 
-vi.mock('../libs/tracking-blocker', () => ({
+vi.mock('../tracking-blocker', () => ({
 	createTrackingBlocker: vi.fn(() => ({
 		updateConsents: vi.fn(),
 	})),
