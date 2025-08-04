@@ -16,7 +16,7 @@ import {
 import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
 import { createTrackingBlocker } from './libs/tracking-blocker';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
-import { initialState } from './store.initial-state';
+import { STORAGE_KEY, initialState } from './store.initial-state';
 import type { PrivacyConsentState } from './store.type';
 import type {
 	ComplianceSettings,
@@ -27,11 +27,8 @@ import { type AllConsentNames, consentTypes } from './types/gdpr';
 
 import type { ContractsOutputs } from '@c15t/backend/contracts';
 import { type GTMConfiguration, setupGTM, updateGTMConsent } from './libs/gtm';
+import { saveConsents } from './libs/save-consents';
 import type { Callbacks } from './types/callbacks';
-
-/** Storage key for persisting consent data in localStorage */
-const STORAGE_KEY = 'privacy-consent-storage';
-
 /**
  * Structure of consent data stored in localStorage.
  *
@@ -356,81 +353,14 @@ export const createConsentManagerStore = (
 		 * 5. Makes network request in background
 		 * 6. Triggers callbacks
 		 */
-		saveConsents: async (type) => {
-			const { callbacks, consents, consentTypes } = get();
-			const newConsents = { ...consents };
-			if (type === 'all') {
-				for (const consent of consentTypes) {
-					newConsents[consent.name] = true;
-				}
-			} else if (type === 'necessary') {
-				for (const consent of consentTypes) {
-					newConsents[consent.name] = consent.name === 'necessary';
-				}
-			}
-
-			const consentInfo = {
-				time: Date.now(),
-				type: type as 'necessary' | 'all' | 'custom',
-			};
-
-			// Immediately update the UI state to close banners/dialogs
-			// This makes the interface feel more responsive
-			set({
-				consents: newConsents,
-				showPopup: false,
-				consentInfo,
-			});
-
-			// Update tracking blocker with new consents right away
-			trackingBlocker?.updateConsents(newConsents);
-			updateGTMConsent(newConsents);
-
-			// Store to localStorage immediately for persistence
-			// Wrap in try/catch to handle potential privacy mode errors
-			try {
-				localStorage.setItem(
-					STORAGE_KEY,
-					JSON.stringify({
-						consents: newConsents,
-						consentInfo,
-					})
-				);
-			} catch (e) {
-				// biome-ignore lint/suspicious/noConsole: safe degradation
-				console.warn('Failed to persist consents to localStorage:', e);
-			}
-
-			callbacks.onConsentSet?.({
-				preferences: newConsents,
-			});
-
-			// Send consent to API in the background - the UI is already updated
-			const consent = await manager.setConsent({
-				body: {
-					type: 'cookie_banner',
-					domain: window.location.hostname,
-					preferences: newConsents,
-					metadata: {
-						source: 'consent_widget',
-						acceptanceMethod: type,
-					},
-				},
-			});
-
-			// Handle error case if the API request fails
-			if (!consent.ok) {
-				const errorMsg = consent.error?.message ?? 'Failed to save consents';
-				callbacks.onError?.({
-					error: errorMsg,
-				});
-				// Fallback console only when no handler is provided
-				if (!callbacks.onError) {
-					// biome-ignore lint/suspicious/noConsole: <explanation>
-					console.error(errorMsg);
-				}
-			}
-		},
+		saveConsents: async (type) =>
+			await saveConsents({
+				manager,
+				type,
+				get,
+				set,
+				trackingBlocker,
+			}),
 
 		/**
 		 * Resets all consent preferences to their default values.
