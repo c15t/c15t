@@ -22,7 +22,6 @@
  * import type {
  *   ComplianceRegion,
  *   ComplianceSettings,
- *   PrivacySettings
  * } from 'c15t/types';
  *
  * const euSettings: ComplianceSettings = {
@@ -43,7 +42,6 @@ export type {
 	JurisdictionInfo,
 	LocationInfo,
 	NamespaceProps,
-	PrivacySettings,
 } from './compliance';
 
 /**
