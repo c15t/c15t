@@ -1,0 +1,42 @@
+---
+title: has()
+description: The has() method is used to check if the user has consented to a specific consent type by returning a boolean value. It can perform simple checks or more complex checks with AND, OR and NOT.
+---
+
+## Usage
+
+```tsx
+// Simple consent checks
+const hasAnalytics = has('measurement');
+const hasMarketing = has('marketing');
+
+// Complex logic
+const hasAnalyticsAndMarketing = has({
+  and: ['measurement', 'marketing'],
+});
+
+const hasEitherAnalyticsOrMarketing = has({
+  or: ['measurement', 'marketing'],
+});
+
+const doesNotHaveMarketing = has({ not: 'marketing' });
+
+// Complex nested conditions
+const complexCondition = has({
+  and: [
+    'necessary',
+    { or: ['measurement', 'marketing'] },
+    { not: 'functionality' },
+  ],
+});
+```
+
+### Types
+
+```ts
+type HasCondition<CategoryType> =
+	| CategoryType // e.g., "measurement"
+	| { and: HasCondition<CategoryType> | HasCondition<CategoryType>[] } // e.g., { and: ["measurement", "marketing"] }
+	| { or: HasCondition<CategoryType> | HasCondition<CategoryType>[] } // e.g., { or: ["measurement", "marketing"] }
+	| { not: HasCondition<CategoryType> }; // e.g., { not: "measurement" }, { not: { and: ["measurement", "marketing"] } }
+```

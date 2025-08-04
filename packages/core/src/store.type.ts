@@ -3,6 +3,7 @@
  * Defines the core types and interfaces for the consent management store.
  */
 
+import type { HasCondition } from './libs/has';
 import type {
 	AllConsentNames,
 	Callbacks,
@@ -13,7 +14,6 @@ import type {
 	ConsentType,
 	JurisdictionInfo,
 	LocationInfo,
-	PrivacySettings,
 	TranslationConfig,
 	consentTypes,
 } from './types';
@@ -94,9 +94,6 @@ export interface PrivacyConsentState {
 
 	/** Applicable jurisdiction information */
 	jurisdictionInfo: JurisdictionInfo | null;
-
-	/** Privacy-related settings */
-	privacySettings: PrivacySettings;
 
 	/** Translation configuration */
 	translationConfig: TranslationConfig;
@@ -205,12 +202,11 @@ export interface PrivacyConsentState {
 	/** Checks if the user has provided any form of consent */
 	hasConsented: () => boolean;
 
-	/** Gets the effective consent states after applying privacy settings */
-	getEffectiveConsents: () => ConsentState;
-
 	/**
-	 * Checks if consent has been given for a specific type.
-	 * @param consentType - The consent type to check
+	 * Evaluates whether current consent state satisfies the given condition.
+	 * @param condition - The consent condition to evaluate
 	 */
-	hasConsentFor: (consentType: AllConsentNames) => boolean;
+	has: <CategoryType extends AllConsentNames>(
+		condition: HasCondition<CategoryType>
+	) => boolean;
 }

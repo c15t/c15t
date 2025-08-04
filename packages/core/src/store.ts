@@ -8,11 +8,7 @@ import { createStore } from 'zustand/vanilla';
 
 import type { TranslationConfig } from '@c15t/translations';
 import type { ConsentManagerInterface } from './client/client-factory';
-import {
-	getEffectiveConsents,
-	hasConsentFor,
-	hasConsented,
-} from './libs/consent-utils';
+import { hasConsented } from './libs/consent-utils';
 import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
 import { createTrackingBlocker } from './libs/tracking-blocker';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
@@ -27,6 +23,7 @@ import { type AllConsentNames, consentTypes } from './types/gdpr';
 
 import type { ContractsOutputs } from '@c15t/backend/contracts';
 import { type GTMConfiguration, setupGTM, updateGTMConsent } from './libs/gtm';
+import { type HasCondition, has } from './libs/has';
 import { saveConsents } from './libs/save-consents';
 import type { Callbacks } from './types/callbacks';
 /**
@@ -508,28 +505,52 @@ export const createConsentManagerStore = (
 		},
 
 		/**
-		 * Gets the effective consent states after applying privacy settings.
+		 * Evaluates whether current consent state satisfies the given condition.
 		 *
-		 * @returns The effective consent states considering Do Not Track
-		 */
-		getEffectiveConsents: () => {
-			const { consents, privacySettings } = get();
-			return getEffectiveConsents(consents, privacySettings.honorDoNotTrack);
-		},
-
-		/**
-		 * Checks if consent has been given for a specific type.
+		 * @param condition - The consent condition to evaluate
+		 * @returns True if the consent condition is satisfied, false otherwise
 		 *
-		 * @param consentType - The consent type to check
-		 * @returns True if consent is granted for the specified type
+		 * @remarks
+		 * This method provides a powerful way to check complex consent requirements
+		 * using the current consent state from the store.
+		 *
+		 * **Simple Usage:**
+		 * - Check single consent: `store.has("measurement")`
+		 *
+		 * **Complex Conditions:**
+		 * - AND logic: `store.has({ and: ["measurement", "marketing"] })`
+		 * - OR logic: `store.has({ or: ["measurement", "marketing"] })`
+		 * - NOT logic: `store.has({ not: "measurement" })`
+		 * - Nested logic: `store.has({ and: ["necessary", { or: ["measurement", "marketing"] }] })`
+		 *
+		 * @example
+		 * ```typescript
+		 * // Simple checks
+		 * const hasAnalytics = store.has("measurement");
+		 * const hasMarketing = store.has("marketing");
+		 *
+		 * // Complex logic
+		 * const hasAnalyticsAndMarketing = store.has({ and: ["measurement", "marketing"] });
+		 * const hasEitherAnalyticsOrMarketing = store.has({ or: ["measurement", "marketing"] });
+		 * const doesNotHaveMarketing = store.has({ not: "marketing" });
+		 *
+		 * // Complex nested conditions
+		 * const complexCondition = store.has({
+		 *   and: [
+		 *     "necessary",
+		 *     { or: ["measurement", "marketing"] },
+		 *     { not: "functionality" }
+		 *   ]
+		 * });
+		 * ```
+		 *
+		 * @see {@link has} for the underlying consent checking function
 		 */
-		hasConsentFor: (consentType) => {
-			const { consents, privacySettings } = get();
-			return hasConsentFor(
-				consentType,
-				consents,
-				privacySettings.honorDoNotTrack
-			);
+		has: <CategoryType extends AllConsentNames>(
+			condition: HasCondition<CategoryType>
+		) => {
+			const { consents } = get();
+			return has(condition, consents);
 		},
 
 		/**

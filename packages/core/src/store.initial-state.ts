@@ -35,9 +35,6 @@ export const STORAGE_KEY = 'privacy-consent-storage';
  * // Extend initial state
  * const customState = {
  *   ...initialState,
- *   privacySettings: {
- *     honorDoNotTrack: false
- *   }
  * };
  * ```
  *
@@ -45,7 +42,7 @@ export const STORAGE_KEY = 'privacy-consent-storage';
  */
 export const initialState: Omit<
 	PrivacyConsentState,
-	'getEffectiveConsents' | 'hasConsentFor' | 'fetchConsentBannerInfo'
+	'has' | 'fetchConsentBannerInfo'
 > = {
 	config: {
 		pkg: 'c15t',
@@ -113,12 +110,6 @@ export const initialState: Omit<
 
 	/** No jurisdiction information initially */
 	jurisdictionInfo: null,
-
-	/** Default privacy settings */
-	privacySettings: {
-		/** Respect Do Not Track by default */
-		honorDoNotTrack: true,
-	},
 
 	/** Default translation configuration */
 	translationConfig: defaultTranslationConfig,
