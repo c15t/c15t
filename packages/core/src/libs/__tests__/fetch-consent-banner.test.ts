@@ -55,9 +55,6 @@ const createMockStoreState = (
 	detectedCountry: null,
 	locationInfo: null,
 	jurisdictionInfo: null,
-	privacySettings: {
-		honorDoNotTrack: false,
-	},
 	translationConfig: {
 		translations: {},
 		defaultLanguage: 'en',

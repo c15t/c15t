@@ -95,6 +95,8 @@ export type ComplianceSettings = {
 /**
  * Subject privacy preference configuration.
  *
+ * @deprecated This type is deprecated and will be removed in a future version.
+ *
  * @remarks
  * Contains settings that affect how user privacy preferences are handled:
  * - `honorDoNotTrack`: Respects the browser's DNT (Do Not Track) setting

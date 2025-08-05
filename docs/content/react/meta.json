@@ -8,6 +8,8 @@
 		"quickstart",
 		"google-tag-manager",
 		"callbacks",
+		"--- SDK Reference ---",
+		"./methods/has",
 		"--- React Components ---",
 		"../components/react/cookie-banner",
 		"../components/react/consent-manager-dialog",

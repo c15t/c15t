@@ -9,6 +9,8 @@
 		"quickstart",
 		"callbacks",
 		"api-reference",
+		"--- SDK Reference ---",
+		"./methods/has",
 		"--- Storing Consent ---",
 		"./storing-consent/overview",
 		"./storing-consent/hosted-c15t",
