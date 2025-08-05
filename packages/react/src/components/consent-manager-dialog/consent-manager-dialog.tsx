@@ -38,28 +38,6 @@ export interface ConsentManagerDialogProps
 	open?: boolean;
 }
 
-/**
- * A modal dialog component for detailed privacy consent management.
- *
- * @remarks
- * Key features:
- * - Provides an accessible modal interface for consent customization
- * - Implements smooth enter/exit animations
- * - Manages proper focus handling
- * - Supports theme customization
- * - Handles client-side portal rendering
- *
- * @example
- * ```tsx
- * <ConsentManagerDialog
- *   theme={customTheme}
- *   disableAnimation={false}
- *   noStyle={false}
- * />
- * ```
- *
- * @public
- */
 export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 	theme: localTheme,
 	disableAnimation: localDisableAnimation,
