@@ -25,22 +25,6 @@ type DialogCardProps = {
 	children?: ReactNode;
 } & ClassNameStyle;
 
-/**
- * The root component for creating a privacy consent dialog card.
- * Provides the main container and styling for the consent interface.
- *
- * @example
- * ```tsx
- * <DialogCard>
- *   <DialogHeader>
- *     <DialogHeaderTitle>Privacy Settings</DialogHeaderTitle>
- *   </DialogHeader>
- *   <DialogContent>
- *     <ConsentManagerWidget />
- *   </DialogContent>
- * </DialogCard>
- * ```
- */
 const DialogCard = forwardRef<HTMLDivElement, DialogCardProps>(
 	({ children, ...props }, ref) => {
 		return (

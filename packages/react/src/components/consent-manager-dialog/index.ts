@@ -24,7 +24,8 @@ import {
 	HeaderDescription,
 	HeaderTitle,
 } from './atoms/dialog-card';
-import { ConsentManagerDialogOverlay, Overlay } from './atoms/overlay';
+import { Overlay } from './atoms/overlay';
+import { Root } from './atoms/root';
 import {
 	ConsentManagerDialog as ConsentManagerDialogComponent,
 	type ConsentManagerDialogProps,
@@ -55,7 +56,7 @@ interface ConsentManagerDialogCompoundComponent
 	DialogHeaderDescription: typeof DialogHeaderDescription;
 	DialogContent: typeof DialogContent;
 	Overlay: typeof Overlay;
-	Root: typeof ConsentManagerDialogOverlay; // Alias for backward compatibility
+	Root: typeof Root;
 }
 
 /**
@@ -107,7 +108,7 @@ const ConsentManagerDialog = Object.assign(ConsentManagerDialogComponent, {
 	DialogHeaderDescription,
 	DialogContent,
 	Overlay,
-	Root: ConsentManagerDialogOverlay, // Alias for backward compatibility
+	Root: Root,
 }) as ConsentManagerDialogCompoundComponent;
 
 // Export the main component as both default and named export
@@ -131,5 +132,6 @@ export {
 } from './atoms/dialog-card';
 
 export { Overlay, ConsentManagerDialogOverlay } from './atoms/overlay';
+export { Root, ConsentManagerDialogRoot } from './atoms/root';
 
 export type { ConsentManagerDialogTheme } from './theme';
