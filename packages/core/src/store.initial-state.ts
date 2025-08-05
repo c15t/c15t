@@ -42,7 +42,7 @@ export const STORAGE_KEY = 'privacy-consent-storage';
  */
 export const initialState: Omit<
 	PrivacyConsentState,
-	'has' | 'fetchConsentBannerInfo'
+	'has' | 'fetchConsentBannerInfo' | 'getEffectiveConsents' | 'hasConsentFor'
 > = {
 	config: {
 		pkg: 'c15t',
@@ -122,6 +122,12 @@ export const initialState: Omit<
 
 	/** Default to not ignoring geo location */
 	ignoreGeoLocation: false,
+
+	/** Default privacy settings */
+	privacySettings: {
+		/** Respect Do Not Track by default */
+		honorDoNotTrack: true,
+	},
 
 	// Initialize all methods as no-ops
 	setConsent: () => {
