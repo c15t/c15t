@@ -8,7 +8,11 @@ import { createStore } from 'zustand/vanilla';
 
 import type { TranslationConfig } from '@c15t/translations';
 import type { ConsentManagerInterface } from './client/client-factory';
-import { hasConsented } from './libs/consent-utils';
+import {
+	getEffectiveConsents,
+	hasConsentFor,
+	hasConsented,
+} from './libs/consent-utils';
 import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
 import { createTrackingBlocker } from './libs/tracking-blocker';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
@@ -502,6 +506,31 @@ export const createConsentManagerStore = (
 		hasConsented: () => {
 			const { consentInfo } = get();
 			return hasConsented(consentInfo);
+		},
+
+		/**
+		 * Gets the effective consent states after applying privacy settings.
+		 * @deprecated will be removed in a future version
+		 * @returns The effective consent states considering Do Not Track
+		 */
+		getEffectiveConsents: () => {
+			const { consents, privacySettings } = get();
+			return getEffectiveConsents(consents, privacySettings.honorDoNotTrack);
+		},
+
+		/**
+		 * Checks if consent has been given for a specific type.
+		 * @deprecated will be removed in a future version
+		 * @param consentType - The consent type to check
+		 * @returns True if consent is granted for the specified type
+		 */
+		hasConsentFor: (consentType) => {
+			const { consents, privacySettings } = get();
+			return hasConsentFor(
+				consentType,
+				consents,
+				privacySettings.honorDoNotTrack
+			);
 		},
 
 		/**

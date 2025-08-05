@@ -42,6 +42,7 @@ export type {
 	JurisdictionInfo,
 	LocationInfo,
 	NamespaceProps,
+	PrivacySettings,
 } from './compliance';
 
 /**

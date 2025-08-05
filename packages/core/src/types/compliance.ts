@@ -93,6 +93,41 @@ export type ComplianceSettings = {
 };
 
 /**
+ * Subject privacy preference configuration.
+ *
+ * @deprecated This type is deprecated and will be removed in a future version.
+ *
+ * @remarks
+ * Contains settings that affect how user privacy preferences are handled:
+ * - `honorDoNotTrack`: Respects the browser's DNT (Do Not Track) setting
+ *
+ * When `honorDoNotTrack` is true and the user has enabled DNT in their browser:
+ * - All non-essential tracking will be disabled
+ * - Only necessary cookies will be allowed
+ * - Analytics and marketing features will be disabled
+ *
+ * @example
+ * ```typescript
+ * const privacySettings: PrivacySettings = {
+ *   honorDoNotTrack: true // Respect browser's DNT setting
+ * };
+ *
+ * function shouldTrack(): boolean {
+ *   return !(
+ *     privacySettings.honorDoNotTrack &&
+ *     navigator.doNotTrack === "1"
+ *   );
+ * }
+ * ```
+ *
+ * @public
+ */
+export type PrivacySettings = {
+	/** Whether to respect the browser's Do Not Track setting */
+	honorDoNotTrack: boolean;
+};
+
+/**
  * Records information about a user's consent decision.
  *
  * @remarks
