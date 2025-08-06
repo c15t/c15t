@@ -5,7 +5,7 @@ export const pages = {
 	'custom-widget.tsx': `'use client';
   
 import { useConsentManager } from '@c15t/react';
-import * as ConsentManagerWidget from '@c15t/react/consent-manager-widget';
+import { ConsentManagerWidget } from '@c15t/react';
 export function CustomWidget() {
   const { hasConsented } = useConsentManager();
   
