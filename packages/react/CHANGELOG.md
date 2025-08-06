@@ -1,5 +1,20 @@
 # @c15t/react
 
+## 1.5.0-canary-20250806080844
+
+### Minor Changes
+
+- 72c6f7e: feat: improved callbacks, added support for Next.js App Directory Callbacks
+
+### Patch Changes
+
+- bacff72: feat(react): improved gdpr compliance by changing button order
+- e5c5699: fix(react): improved compound components exports & fixed dialog compound component
+- Updated dependencies [72c6f7e]
+- Updated dependencies [230f749]
+- Updated dependencies [5fe6861]
+  - c15t@1.5.0-canary-20250806080844
+
 ## 1.5.0-canary-20250722151007
 
 ### Patch Changes

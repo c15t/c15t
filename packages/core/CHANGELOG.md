@@ -1,5 +1,20 @@
 # c15t
 
+## 1.5.0-canary-20250806080844
+
+### Minor Changes
+
+- 72c6f7e: feat: improved callbacks, added support for Next.js App Directory Callbacks
+- 230f749: feat(nextjs): added pages support + nextjs 13 support
+- 5fe6861: feat(core): added has() method, removed hasConsentFor() & getEffectiveConsents()
+
+### Patch Changes
+
+- Updated dependencies [230f749]
+- Updated dependencies [c1b87dd]
+  - @c15t/backend@1.5.0-canary-20250806080844
+  - @c15t/translations@1.5.0-canary-20250806080844
+
 ## 1.5.0-canary-20250722133547
 
 ### Patch Changes
