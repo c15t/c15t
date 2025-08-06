@@ -3,6 +3,7 @@
  * This client makes HTTP requests to the c15t consent management backend.
  */
 
+import { enTranslations } from '@c15t/translations';
 import type {
 	ConsentManagerInterface,
 	SetConsentRequestBody,
@@ -643,9 +644,10 @@ export class C15tClient implements ConsentManagerInterface {
 					message: 'Unknown (offline mode)',
 				},
 				location: {
-					countryCode: 'XX', // Use placeholder values
+					countryCode: null,
 					regionCode: null,
 				},
+				translations: enTranslations,
 			},
 			null,
 			null
