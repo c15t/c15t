@@ -1,5 +1,5 @@
 // c15t Client Configuration
-import { configureConsentManager, type ConsentManagerOptions } from 'c15t';
+import { type ConsentManagerOptions, configureConsentManager } from 'c15t';
 
 export const c15tConfig = {
 	// Using offline mode for browser-based storage
