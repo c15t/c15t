@@ -60,12 +60,12 @@ const externals = [
 export default defineConfig({
 	source: {
 		entry: {
-			core: ['./src/core.ts'],
-			router: ['./src/router.ts'],
-			contracts: ['./src/contracts/index.ts'],
-			'schema/index': ['./src/schema/index.ts'],
-			'pkgs/db-adapters/index': ['./src/pkgs/db-adapters/index.ts'],
-			'pkgs/results/index': ['./src/pkgs/results/index.ts'],
+			'v2/core': ['./src/v2/core.ts'],
+			'v2/router': ['./src/v2/router.ts'],
+			'v2/contracts': ['./src/v2/contracts/index.ts'],
+			'v2/schema': ['./src/v2/schema/index.ts'],
+			'v2/pkgs/db-adapters': ['./src/v2/pkgs/db-adapters/index.ts'],
+			'v2/pkgs/results': ['./src/v2/pkgs/results/index.ts'],
 		},
 	},
 	lib: [

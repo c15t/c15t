@@ -4,35 +4,35 @@
 	"license": "GPL-3.0-only",
 	"type": "module",
 	"exports": {
-		".": {
-			"types": "./dist/core.d.ts",
-			"import": "./dist/core.js",
-			"require": "./dist/core.cjs"
+		"./v2": {
+			"types": "./dist/v2/core.d.ts",
+			"import": "./dist/v2/core.js",
+			"require": "./dist/v2/core.cjs"
 		},
-		"./router": {
-			"types": "./dist/router.d.ts",
-			"import": "./dist/router.js",
-			"require": "./dist/router.cjs"
+		"./v2/router": {
+			"types": "./dist/v2/router.d.ts",
+			"import": "./dist/v2/router.js",
+			"require": "./dist/v2/router.cjs"
 		},
-		"./schema": {
-			"types": "./dist/schema/index.d.ts",
-			"import": "./dist/schema/index.js",
-			"require": "./dist/schema/index.cjs"
+		"./v2/schema": {
+			"types": "./dist/v2/schema/index.d.ts",
+			"import": "./dist/v2/schema/index.js",
+			"require": "./dist/v2/schema/index.cjs"
 		},
-		"./contracts": {
-			"types": "./dist/contracts/index.d.ts",
-			"import": "./dist/contracts.js",
-			"require": "./dist/contracts.cjs"
+		"./v2/contracts": {
+			"types": "./dist/v2/contracts/index.d.ts",
+			"import": "./dist/v2/contracts/index.js",
+			"require": "./dist/v2/contracts/index.cjs"
 		},
-		"./pkgs/db-adapters": {
-			"types": "./dist/pkgs/db-adapters/index.d.ts",
-			"import": "./dist/pkgs/db-adapters/index.js",
-			"require": "./dist/pkgs/db-adapters/index.cjs"
+		"./v2/pkgs/db-adapters": {
+			"types": "./dist/v2/pkgs/db-adapters/index.d.ts",
+			"import": "./dist/v2/pkgs/db-adapters/index.js",
+			"require": "./dist/v2/pkgs/db-adapters/index.cjs"
 		},
-		"./pkgs/results": {
-			"types": "./dist/pkgs/results/index.d.ts",
-			"import": "./dist/pkgs/results/index.js",
-			"require": "./dist/pkgs/results/index.cjs"
+		"./v2/pkgs/results": {
+			"types": "./dist/v2/pkgs/results/index.d.ts",
+			"import": "./dist/v2/pkgs/results/index.js",
+			"require": "./dist/v2/pkgs/results/index.cjs"
 		}
 	},
 	"main": "./dist/server.cjs",

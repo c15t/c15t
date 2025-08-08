@@ -1,5 +1,5 @@
-import { c15tInstance } from '@c15t/backend';
-import { kyselyAdapter } from '@c15t/backend/pkgs/db-adapters';
+import { c15tInstance } from '@c15t/backend/v2';
+import { kyselyAdapter } from '@c15t/backend/v2/pkgs/db-adapters';
 import { LibsqlDialect } from '@libsql/kysely-libsql';
 import { Kysely } from 'kysely';
 
