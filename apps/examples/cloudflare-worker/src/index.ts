@@ -1,5 +1,7 @@
-import { type C15TOptions, c15tInstance } from '@c15t/backend';
+import { c15tInstance } from '@c15t/backend';
+import { kyselyAdapter } from '@c15t/backend/pkgs/db-adapters';
 import { LibsqlDialect } from '@libsql/kysely-libsql';
+import { Kysely } from 'kysely';
 
 /**
  * Example Cloudflare Worker for c15t
@@ -10,21 +12,22 @@ import { LibsqlDialect } from '@libsql/kysely-libsql';
 const handler = (env: Env) => {
 	// Create the c15t instance with ORPC support
 	const instance = c15tInstance({
-		// Use environment variables for Turso credentials
-		database: new LibsqlDialect({
-			url: env.TURSO_DATABASE_URL,
-			authToken: env.TURSO_AUTH_TOKEN,
+		database: kyselyAdapter({
+			db: new Kysely({
+				dialect: new LibsqlDialect({
+					url: env.TURSO_DATABASE_URL,
+					authToken: env.TURSO_AUTH_TOKEN,
+				}),
+			}),
+			provider: 'sqlite',
 		}),
 		trustedOrigins: JSON.parse(env.TRUSTED_ORIGINS ?? '[]'),
 		logger: {
 			level: 'debug',
 			appName: 'c15t-cloudflare-example',
 		},
-		// Add OpenAPI configuration
-		openapi: {
-			enabled: true,
-		},
-	} satisfies C15TOptions);
+		baseURL: '/',
+	});
 
 	// Return a Cloudflare Worker handler
 	return async (request: Request): Promise<Response> => {

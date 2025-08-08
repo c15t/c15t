@@ -1,8 +1,6 @@
 import { ORPCError } from '@orpc/server';
 import { os } from '~/contracts';
-import type { Adapter } from '~/pkgs/db-adapters/types';
-import type { Consent } from '~/schema/consent';
-import type { ConsentRecord } from '~/schema/consent-record';
+import { generateUniqueId } from '~/registry/utils';
 import type { C15TContext } from '~/types';
 
 /**
@@ -32,9 +30,10 @@ import type { C15TContext } from '~/types';
 export const postConsent = os.consent.post.handler(
 	async ({ input, context }) => {
 		const typedContext = context as C15TContext;
-
 		const logger = typedContext.logger;
 		logger.info('Handling post-consent request');
+
+		const { db, registry } = typedContext;
 
 		const {
 			type,
@@ -53,10 +52,10 @@ export const postConsent = os.consent.post.handler(
 		});
 
 		try {
-			const subject = await typedContext.registry.findOrCreateSubject({
+			const subject = await registry.findOrCreateSubject({
 				subjectId,
 				externalSubjectId,
-				ipAddress: typedContext.ipAddress || 'unknown',
+				ipAddress: typedContext.ipAddress,
 			});
 
 			if (!subject) {
@@ -82,7 +81,7 @@ export const postConsent = os.consent.post.handler(
 
 			const now = new Date();
 			let policyId: string | undefined;
-			let purposeIds: string[] = [];
+			const purposeIds: string[] = [];
 
 			if ('policyId' in input && input.policyId) {
 				policyId = input.policyId;
@@ -125,108 +124,51 @@ export const postConsent = os.consent.post.handler(
 					.map(([purposeCode]) => purposeCode);
 
 				// Batch fetch all existing purposes
-				const existingPurposes = await Promise.all(
+				await Promise.all(
 					consentedPurposes.map((purposeCode) =>
-						typedContext.registry.findConsentPurposeByCode(purposeCode)
+						typedContext.registry.findOrCreateConsentPurposeByCode(purposeCode)
 					)
 				);
-
-				// Find which purposes need to be created
-				const purposesToCreate = consentedPurposes.filter(
-					(_purposeCode, index) => !existingPurposes[index]
-				);
-
-				// Batch create missing purposes
-				const createdPurposes = await Promise.all(
-					purposesToCreate.map((purposeCode) =>
-						typedContext.registry.createConsentPurpose({
-							code: purposeCode,
-							name: purposeCode,
-							description: `Auto-created consentPurpose for ${purposeCode}`,
-							isActive: true,
-							isEssential: false,
-							legalBasis: 'consent',
-							createdAt: now,
-							updatedAt: now,
-						})
-					)
-				);
-
-				// Combine existing and newly created purposes
-				purposeIds = [
-					...existingPurposes
-						.filter((p): p is NonNullable<typeof p> => p !== null)
-						.map((p) => p.id),
-					...createdPurposes
-						.filter((p): p is NonNullable<typeof p> => p !== null)
-						.map((p) => p.id),
-				];
-
-				// Verify all purposes were created successfully
-				if (purposeIds.length !== consentedPurposes.length) {
-					throw new ORPCError('PURPOSE_CREATION_FAILED', {
-						data: {
-							purposeCode:
-								purposesToCreate[purposeIds.length - consentedPurposes.length],
-						},
-					});
-				}
 			}
 
-			const result = await typedContext.adapter.transaction({
-				callback: async (tx: Adapter) => {
-					// Create consent record
-					const consentRecord = (await tx.create({
-						model: 'consent',
-						data: {
-							subjectId: subject.id,
-							domainId: domainRecord.id,
-							policyId,
-							purposeIds,
-							status: 'active',
-							isActive: true,
-							givenAt: now,
-							ipAddress: typedContext.ipAddress || null,
-							userAgent: typedContext.userAgent || null,
-							history: [],
-						},
-					})) as unknown as Consent;
+			const result = await db.transaction(async (tx) => {
+				const consentRecord = await tx.create('consent', {
+					id: await generateUniqueId(db, 'consent'),
+					subjectId: subject.id,
+					domainId: domainRecord.id,
+					policyId,
+					purposeIds,
+					status: 'active',
+					isActive: true,
+				});
 
-					// Create record entry
-					const record = (await tx.create({
-						model: 'consentRecord',
-						data: {
-							subjectId: subject.id,
-							consentId: consentRecord.id,
-							actionType: 'consent_given',
-							details: metadata,
-							createdAt: now,
-						},
-					})) as unknown as ConsentRecord;
+				const record = await tx.create('consentRecord', {
+					id: await generateUniqueId(db, 'consentRecord'),
+					subjectId: subject.id,
+					consentId: consentRecord.id,
+					actionType: 'consent_given',
+					details: metadata,
+				});
 
-					// Create audit log entry
-					await tx.create({
-						model: 'auditLog',
-						data: {
-							subjectId: subject.id,
-							entityType: 'consent',
-							entityId: consentRecord.id,
-							actionType: 'consent_given',
-							details: {
-								consentId: consentRecord.id,
-								type,
-							},
-							timestamp: now,
-							ipAddress: typedContext.ipAddress || null,
-							userAgent: typedContext.userAgent || null,
-						},
-					});
+				await tx.create('auditLog', {
+					id: await generateUniqueId(db, 'auditLog'),
+					subjectId: subject.id,
+					entityType: 'consent',
+					entityId: consentRecord.id,
+					actionType: 'consent_given',
+					metadata: {
+						consentId: consentRecord.id,
+						type,
+					},
+					ipAddress: typedContext.ipAddress || null,
+					userAgent: typedContext.userAgent || null,
+					eventTimezone: 'UTC',
+				});
 
-					return {
-						consent: consentRecord,
-						record,
-					};
-				},
+				return {
+					consent: consentRecord,
+					record,
+				};
 			});
 
 			if (!result || !result.consent || !result.record) {

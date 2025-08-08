@@ -114,7 +114,4 @@ export {
 } from './results/recovery-utils';
 
 // Export telemetry options
-export {
-	createTelemetryOptions,
-	type TelemetryConfig,
-} from './create-telemetry-options';
+export { createTelemetryOptions } from './create-telemetry-options';

@@ -1,23 +1,107 @@
-/**
- * c15t Types Package
- *
- * This package provides type definitions specific to the c15t consent management system.
- * It extends the base DoubleTie framework types with consent management specific functionality.
- *
- * The types in this folder should be used for consent management specific features, while
- * more generic SDK functionality should remain in the DoubleTie base types.
- */
+import type { Translations } from '@c15t/translations';
+import type { createLogger } from '@doubletie/logger';
+import type { LoggerOptions } from '@doubletie/logger';
+import type { Tracer } from '@opentelemetry/api';
+import type { OpenAPIGeneratorOptions } from '@orpc/openapi';
+import type { FumaDB, InferFumaDB } from 'fumadb';
+import type { createRegistry } from '../registry';
+import type { DB } from '../schema';
 
-// Re-export extended types that override doubletie base types
-export type { C15TOptions } from './options';
-export type { C15TContext } from './context';
-export type { C15TPlugin } from './plugins';
+export * from './api';
+interface BaseOptions {
+	appName?: string;
+	baseURL: string;
+	basePath?: string;
+	trustedOrigins: string[];
+	advanced?: {
+		/**
+		 * Disable geo location - Banner will allways be shown
+		 *
+		 * @default false
+		 */
+		disableGeoLocation?: boolean;
+		/**
+		 * Override base translations
+		 *
+		 * @example
+		 * ```ts
+		 * {
+		 *   en: enTranslations,
+		 *   de: deTranslations,
+		 * }
+		 * ```
+		 */
+		customTranslations?: Record<string, Partial<Translations>>;
+		openapi?: {
+			/**
+			 * Enable/disable OpenAPI spec generation
+			 * @default true
+			 */
+			enabled?: boolean;
 
-// Export consent management specific types
-export type { InferPluginContexts } from './plugins';
+			/**
+			 * Path to serve the OpenAPI JSON spec
+			 * @default "/spec.json"
+			 */
+			specPath?: string;
 
-// Export API specific types
-export type {
-	ApiPath,
-	ApiPathBase,
-} from './api';
+			/**
+			 * Path to serve the API documentation UI
+			 * @default "/docs"
+			 */
+			docsPath?: string;
+
+			/**
+			 * OpenAPI specification options
+			 * These are passed to the OpenAPIGenerator.generate() method
+			 */
+			options?: Partial<OpenAPIGeneratorOptions>;
+
+			/**
+			 * Custom template for rendering the API documentation UI
+			 * If provided, this will be used instead of the default Scalar UI
+			 */
+			customUiTemplate?: string;
+		};
+		telemetry?: {
+			disabled?: boolean;
+			tracer?: Tracer;
+			defaultAttributes?: Record<string, string | number | boolean>;
+		};
+		ipAddress?: {
+			disableIpTracking?: boolean;
+			// Override default ip address headers
+			ipAddressHeaders?: string[];
+		};
+	};
+}
+
+type FumaDBSchema = InferFumaDB<typeof DB>['schemas'];
+export interface C15TOptions extends BaseOptions {
+	/**
+	 * The database adapter to use.
+	 */
+	database: FumaDB<FumaDBSchema>['adapter'];
+	/**
+	 * Add prefix to table names.
+	 * If true, uses 'c15t' as prefix.
+	 */
+	prefix?: true | string;
+	logger?: LoggerOptions;
+}
+
+export interface C15TContext extends BaseOptions {
+	appName: string;
+	logger: ReturnType<typeof createLogger>;
+	registry: ReturnType<typeof createRegistry>;
+	db: ReturnType<InferFumaDB<typeof DB>['orm']>;
+
+	// Resolved from request
+	ipAddress?: string;
+	userAgent?: string;
+	origin?: string;
+	trustedOrigin?: boolean;
+	path?: string;
+	method?: string;
+	headers?: Headers;
+}

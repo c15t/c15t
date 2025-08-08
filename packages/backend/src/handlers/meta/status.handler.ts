@@ -31,10 +31,6 @@ export const statusHandler = os.meta.status.handler(({ context }) => {
 		status: 'ok' as const,
 		version,
 		timestamp: new Date(),
-		storage: {
-			type: typedContext.adapter?.id ?? 'MemoryAdapter',
-			available: !!typedContext.adapter,
-		},
 		client: {
 			ip: typedContext.ipAddress ?? null,
 			userAgent: typedContext.userAgent ?? null,

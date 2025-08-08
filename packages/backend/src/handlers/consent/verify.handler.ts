@@ -1,9 +1,8 @@
 import { ORPCError } from '@orpc/server';
 import type { z } from 'zod';
 import { os } from '~/contracts';
-import type { Consent as DBConsent } from '~/schema/consent';
-import type { PolicyTypeSchema } from '~/schema/consent-policy';
 import type { C15TContext } from '~/types';
+import type { PolicyTypeSchema } from '../../schema';
 
 /**
  * Type representing a consent record with required fields
@@ -94,11 +93,22 @@ export const verifyConsent = os.consent.verify.handler(
 		});
 
 		try {
+			// Find domain
+			const domainRecord = await typedContext.registry.findDomainByName(domain);
+
+			if (!domainRecord) {
+				throw new ORPCError('DOMAIN_NOT_FOUND', {
+					data: {
+						domain,
+					},
+				});
+			}
+
 			// Find subject
 			const subject = await typedContext.registry.findOrCreateSubject({
 				subjectId,
 				externalSubjectId,
-				ipAddress: typedContext.ipAddress || 'unknown',
+				ipAddress: 'unknown', // TODO: get ip address from request
 			});
 
 			if (!subject) {
@@ -110,21 +120,11 @@ export const verifyConsent = os.consent.verify.handler(
 				});
 			}
 
-			// Find domain
-			const domainRecord = await typedContext.registry.findDomain(domain);
-			if (!domainRecord) {
-				throw new ORPCError('DOMAIN_NOT_FOUND', {
-					data: {
-						domain,
-					},
-				});
-			}
-
-			// Validate preferences for cookie banner
 			if (
 				type === 'cookie_banner' &&
 				(!preferences || preferences.length === 0)
 			) {
+				// Validate preferences for cookie banner
 				throw new ORPCError('COOKIE_BANNER_PREFERENCES_REQUIRED', {
 					data: {
 						type: 'cookie_banner',
@@ -134,10 +134,11 @@ export const verifyConsent = os.consent.verify.handler(
 
 			// Find purpose IDs if preferences are provided
 			const purposePromises = preferences?.map((purpose: string) =>
-				typedContext.registry.findConsentPurposeByCode(purpose)
+				typedContext.registry.findOrCreateConsentPurposeByCode(purpose)
 			);
 
 			const rawPurposes = await Promise.all(purposePromises ?? []);
+
 			const purposeIds = rawPurposes
 				.filter(
 					(purpose): purpose is NonNullable<typeof purpose> => purpose !== null
@@ -155,8 +156,8 @@ export const verifyConsent = os.consent.verify.handler(
 				});
 			}
 
-			// Check policy consent
 			if (policyId) {
+				// Check policy consent
 				const policy =
 					await typedContext.registry.findConsentPolicyById(policyId);
 				if (!policy || policy.type !== type) {
@@ -233,21 +234,17 @@ async function checkPolicyConsent({
 	type,
 	context,
 }: PolicyConsentCheckParams): Promise<VerifyConsentOutput> {
-	const { registry, adapter } = context;
+	const { registry, db } = context;
 
-	// Find all consents for the policy
-	const rawConsents = (await adapter.findMany({
-		model: 'consent',
-		where: [
-			{ field: 'subjectId', value: subjectId },
-			{ field: 'policyId', value: policyId },
-			{ field: 'domainId', value: domainId },
-		],
-		sortBy: {
-			field: 'givenAt',
-			direction: 'desc',
-		},
-	})) as unknown as DBConsent[];
+	const rawConsents = await db.findMany('consent', {
+		where: (b) =>
+			b.and(
+				b('subjectId', '=', subjectId),
+				b('policyId', '=', policyId),
+				b('domainId', '=', domainId)
+			),
+		orderBy: ['givenAt', 'desc'],
+	});
 
 	// Filter consents by purpose IDs if provided
 	const filteredConsents = rawConsents.filter((consent) => {
@@ -259,7 +256,6 @@ async function checkPolicyConsent({
 		);
 	});
 
-	// Create audit log
 	await registry.createAuditLog({
 		subjectId,
 		entityType: 'consent_policy',
@@ -276,30 +272,17 @@ async function checkPolicyConsent({
 					}
 				: {}),
 		},
+		eventTimezone: 'UTC',
 	});
 
-	if (rawConsents.length === 0) {
-		throw new ORPCError('NO_CONSENT_FOUND', {
-			data: {
-				policyId,
-				subjectId,
-				domainId,
-			},
-		});
-	}
-
-	if (filteredConsents.length === 0) {
-		throw new ORPCError('NO_CONSENT_FOUND', {
-			data: {
-				policyId,
-				subjectId,
-				domainId,
-			},
-		});
+	if (rawConsents.length === 0 || filteredConsents.length === 0) {
+		return {
+			isValid: false,
+		};
 	}
 
 	return {
 		isValid: true,
-		consent: filteredConsents[0],
+		consent: filteredConsents[0] as Consent,
 	};
 }

@@ -69,10 +69,10 @@ export const createOpenAPISpec = (
 		}
 
 		const defaultOptions = createDefaultOpenAPIOptions(options);
-		const mergedOptions = options.openapi?.options
+		const mergedOptions = options.advanced?.openapi?.options
 			? mergeOpenAPIOptions(
 					defaultOptions,
-					options.openapi.options as Record<string, unknown>
+					options.advanced.openapi.options as Record<string, unknown>
 				)
 			: defaultOptions;
 

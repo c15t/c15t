@@ -1,25 +1,7 @@
-import type { Tracer } from '@opentelemetry/api';
-import type { DoubleTieOptions } from '../types';
+import type { C15TOptions } from '~/types';
+import { version } from '~/version';
 
-/**
- * Configuration options for the telemetry system
- */
-export interface TelemetryConfig {
-	/**
-	 * Custom OpenTelemetry tracer to use instead of the default
-	 */
-	tracer?: Tracer;
-
-	/**
-	 * Whether telemetry should be disabled
-	 */
-	disabled?: boolean;
-
-	/**
-	 * Default attributes to add to all telemetry spans
-	 */
-	defaultAttributes?: Record<string, string | number | boolean>;
-}
+type TelemetryConfig = NonNullable<C15TOptions['advanced']>['telemetry'];
 
 /**
  * Creates telemetry configuration from provided options
@@ -34,27 +16,18 @@ export interface TelemetryConfig {
 export function createTelemetryOptions(
 	appName = 'c15t',
 	telemetryConfig?: TelemetryConfig
-): DoubleTieOptions['telemetry'] {
-	// Ensure we have a valid semver for OpenTelemetry (which requires valid SemVer)
-	const serviceVersion = process.env.npm_package_version || '1.0.0'; // Use 1.0.0 as fallback instead of 'unknown'
-
-	// Create the base configuration
-	const config: DoubleTieOptions['telemetry'] = {
-		// User can explicitly disable telemetry if needed
+): TelemetryConfig {
+	const config: TelemetryConfig = {
 		disabled: telemetryConfig?.disabled ?? false,
-
-		// Use provided tracer if available
 		tracer: telemetryConfig?.tracer,
 
-		// Merge default attributes with user-provided ones
 		defaultAttributes: {
-			// Start with user-provided attributes
 			...(telemetryConfig?.defaultAttributes || {}),
 
 			// Always ensure these core attributes are set
 			// (will override user values if they exist)
 			'service.name': String(appName),
-			'service.version': serviceVersion,
+			'service.version': version,
 		},
 	};
 

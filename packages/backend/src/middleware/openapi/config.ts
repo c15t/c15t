@@ -9,7 +9,7 @@ export const createOpenAPIConfig = (options: C15TOptions) => {
 		enabled: true,
 		specPath: `${basePath}/spec.json`,
 		docsPath: `${basePath}/docs`,
-		...(options.openapi || {}),
+		...(options.advanced?.openapi || {}),
 	};
 };
 

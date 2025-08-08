@@ -1,3 +1,4 @@
+import type { FumaDBAdapter } from 'fumadb/adapters/';
 import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { c15tInstance } from '../../core';
@@ -11,7 +12,8 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe('C15T CORS Configuration', () => {
-	const baseUrl = 'https://api.example.com';
+	const baseUrl = 'https://example.com';
+	const database = {} as FumaDBAdapter;
 	const testEndpoint = '/show-consent-banner';
 
 	// Helper function to create a test request
@@ -31,7 +33,9 @@ describe('C15T CORS Configuration', () => {
 	// Helper function to create a test instance
 	const createTestInstance = (trustedOrigins?: string[]) => {
 		return c15tInstance({
-			trustedOrigins,
+			baseURL: '/',
+			database,
+			trustedOrigins: trustedOrigins || [],
 			appName: 'Test App',
 		});
 	};
@@ -296,6 +300,8 @@ describe('C15T CORS Configuration', () => {
 
 		it('should allow www origin if non-www is trusted', async () => {
 			const c15t = c15tInstance({
+				database,
+				baseURL: '/',
 				trustedOrigins: [nonWwwOrigin],
 				appName: 'Test App',
 			});
@@ -309,6 +315,8 @@ describe('C15T CORS Configuration', () => {
 
 		it('should allow non-www origin if www is trusted', async () => {
 			const c15t = c15tInstance({
+				database,
+				baseURL: '/',
 				trustedOrigins: [wwwOrigin],
 				appName: 'Test App',
 			});
@@ -322,6 +330,8 @@ describe('C15T CORS Configuration', () => {
 
 		it('should allow both www and non-www origins if both are trusted', async () => {
 			const c15t = c15tInstance({
+				database,
+				baseURL: '/',
 				trustedOrigins: [wwwOrigin, nonWwwOrigin],
 				appName: 'Test App',
 			});
@@ -341,6 +351,8 @@ describe('C15T CORS Configuration', () => {
 
 		it('should deny unrelated origins', async () => {
 			const c15t = c15tInstance({
+				database,
+				baseURL: '/',
 				trustedOrigins: [nonWwwOrigin],
 				appName: 'Test App',
 			});

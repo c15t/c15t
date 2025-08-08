@@ -43,10 +43,6 @@ describe('Status Contract Custom Tests', () => {
 					status: 'ok',
 					version: '1.0.0',
 					timestamp: new Date(),
-					storage: {
-						type: 'MemoryAdapter',
-						available: true,
-					},
 					client: {
 						ip: '127.0.0.1',
 						userAgent: 'Mozilla/5.0',
@@ -64,7 +60,7 @@ describe('Status Contract Custom Tests', () => {
 			it('rejects output without required fields', () => {
 				const invalidOutput = {
 					status: 'ok',
-					// Missing version, timestamp, storage, and client
+					// Missing version, timestamp, and client
 				};
 
 				const result = validateOutput(invalidOutput);
@@ -79,10 +75,6 @@ describe('Status Contract Custom Tests', () => {
 						status: statusValue,
 						version: '1.0.0',
 						timestamp: new Date(),
-						storage: {
-							type: 'MemoryAdapter',
-							available: true,
-						},
 						client: {
 							ip: '127.0.0.1',
 							userAgent: 'Mozilla/5.0',
@@ -102,10 +94,6 @@ describe('Status Contract Custom Tests', () => {
 					status: 'unknown', // Invalid status
 					version: '1.0.0',
 					timestamp: new Date(),
-					storage: {
-						type: 'MemoryAdapter',
-						available: true,
-					},
 					client: {
 						ip: '127.0.0.1',
 						userAgent: 'Mozilla/5.0',
@@ -127,10 +115,6 @@ describe('Status Contract Custom Tests', () => {
 					status: 'ok',
 					version: '1.0.0',
 					timestamp: new Date(),
-					storage: {
-						type: 'MemoryAdapter',
-						available: true,
-					},
 					client: {
 						ip: '127.0.0.1',
 						userAgent: 'Mozilla/5.0',
@@ -149,83 +133,8 @@ describe('Status Contract Custom Tests', () => {
 					status: 'ok',
 					version: '1.0.0',
 					timestamp: new Date().toISOString(), // String instead of Date
-					storage: {
-						type: 'MemoryAdapter',
-						available: true,
-					},
 				};
 
-				// Need to use type assertion to bypass TypeScript
-				const result = validateOutput(output);
-				expect(result?.success).toBe(false);
-			});
-		});
-
-		describe('Storage object validation', () => {
-			it('validates storage object structure', () => {
-				const output = {
-					status: 'ok',
-					version: '1.0.0',
-					timestamp: new Date(),
-					storage: {
-						type: 'MemoryAdapter',
-						available: true,
-					},
-					client: {
-						ip: '127.0.0.1',
-						userAgent: 'Mozilla/5.0',
-						region: {
-							countryCode: 'US',
-							regionCode: 'CA',
-						},
-					},
-				};
-				const result = validateOutput(output);
-				expect(result?.success).toBe(true);
-			});
-
-			it('rejects invalid storage type', () => {
-				const output = {
-					status: 'ok',
-					version: '1.0.0',
-					timestamp: new Date(),
-					storage: {
-						type: 123, // Number instead of string
-						available: true,
-					},
-					client: {
-						ip: '127.0.0.1',
-						userAgent: 'Mozilla/5.0',
-						region: {
-							countryCode: 'US',
-							regionCode: 'CA',
-						},
-					},
-				};
-
-				// Need to use type assertion to bypass TypeScript
-				const result = validateOutput(output);
-				expect(result?.success).toBe(false);
-			});
-
-			it('rejects invalid available flag', () => {
-				const output = {
-					status: 'ok',
-					version: '1.0.0',
-					timestamp: new Date(),
-					storage: {
-						type: 'MemoryAdapter',
-						available: 'yes', // String instead of boolean
-					},
-					client: {
-						ip: '127.0.0.1',
-						userAgent: 'Mozilla/5.0',
-						region: {
-							countryCode: 'US',
-							regionCode: 'CA',
-						},
-					},
-				};
 				// Need to use type assertion to bypass TypeScript
 				const result = validateOutput(output);
 				expect(result?.success).toBe(false);
@@ -238,10 +147,6 @@ describe('Status Contract Custom Tests', () => {
 					status: 'ok',
 					version: '1.0.0',
 					timestamp: new Date(),
-					storage: {
-						type: 'MemoryAdapter',
-						available: true,
-					},
 					client: {
 						ip: null,
 						userAgent: null,
@@ -261,10 +166,6 @@ describe('Status Contract Custom Tests', () => {
 					status: 'ok',
 					version: '1.0.0',
 					timestamp: new Date(),
-					storage: {
-						type: 'MemoryAdapter',
-						available: true,
-					},
 					client: {
 						ip: '127.0.0.1',
 						userAgent: 'Mozilla/5.0',
@@ -284,10 +185,6 @@ describe('Status Contract Custom Tests', () => {
 					status: 'ok',
 					version: '1.0.0',
 					timestamp: new Date(),
-					storage: {
-						type: 'MemoryAdapter',
-						available: true,
-					},
 					client: {
 						ip: 123, // Number instead of string
 						userAgent: 'Mozilla/5.0',
@@ -307,10 +204,6 @@ describe('Status Contract Custom Tests', () => {
 					status: 'ok',
 					version: '1.0.0',
 					timestamp: new Date(),
-					storage: {
-						type: 'MemoryAdapter',
-						available: true,
-					},
 					client: {
 						ip: '127.0.0.1',
 						userAgent: 'Mozilla/5.0',
@@ -330,9 +223,4 @@ describe('Status Contract Custom Tests', () => {
 
 // Add required fields testing using the utility
 // No required fields for input since it's an empty object
-tester.testRequiredFields('output', [
-	'status',
-	'version',
-	'timestamp',
-	'storage',
-]);
+tester.testRequiredFields('output', ['status', 'version', 'timestamp']);

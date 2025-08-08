@@ -83,8 +83,9 @@ function buildResponse({
 export const showConsentBanner = os.consent.showBanner.handler(
 	({ context }) => {
 		const typedContext = context as C15TContext;
-		const { customTranslations, disableGeoLocation } =
-			typedContext.options.advanced ?? {};
+
+		const customTranslations = typedContext?.advanced?.customTranslations;
+		const disableGeoLocation = typedContext?.advanced?.disableGeoLocation;
 
 		const { countryCode, regionCode, acceptLanguage } = getHeaders(
 			typedContext.headers
