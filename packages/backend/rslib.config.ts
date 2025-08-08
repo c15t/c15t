@@ -1,20 +1,6 @@
 import { defineConfig } from '@rslib/core';
 
 const externals = [
-	// Database packages
-	'prisma',
-	'@prisma/client',
-	'better-sqlite3',
-	'mongodb',
-	'drizzle-orm',
-	'bson',
-	'mongodb-connection-string-url',
-	'@mongodb-js/saslprep',
-	'kerberos',
-	'@mongodb-js/zstd',
-	'@aws-sdk/credential-providers',
-	'mongodb-client-encryption',
-
 	// Frameworks
 	'hono',
 	'express',

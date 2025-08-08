@@ -1,21 +1,23 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import * as p from '@clack/prompts';
-import color from 'picocolors';
+import type { AvailablePackages } from '~/context/framework-detection';
 import type { CliContext } from '../../context/types';
-import { formatLogMessage } from '../../utils/logger';
-import { generateBackendConfigContent } from '../templates/backend';
-import { generateClientConfigContent } from '../templates/config';
+import { generateFiles } from '../generate-files';
+export interface SelfHostModeResult {
+	backendURL: string | undefined;
+	usingEnvFile: boolean;
+	proxyNextjs?: boolean;
+}
+
+interface SelfHostModeOptions {
+	context: CliContext;
+	projectRoot: string;
+	spinner: ReturnType<typeof p.spinner>;
+	packageName: AvailablePackages;
+	initialBackendURL?: string;
+	handleCancel?: (value: unknown) => boolean;
+}
 
 /**
- * Result of self-hosted mode setup
- */
-export interface SelfHostedModeResult {
-	clientConfigContent: string;
-	backendConfigContent: string | null;
-	dependencies: string[];
-	adapterChoice: string;
-}
 
 /**
  * Handles the setup process for self-hosted mode
@@ -26,162 +28,76 @@ export interface SelfHostedModeResult {
  * @param handleCancel - Function to handle prompt cancellations
  * @returns Configuration data for the self-hosted mode
  */
-export async function setupSelfHostedMode(
-	context: CliContext,
-	projectRoot: string,
-	spinner: ReturnType<typeof p.spinner>,
-	handleCancel?: (value: unknown) => boolean
-): Promise<SelfHostedModeResult> {
-	const { cwd } = context;
-	let backendConfigContent: string | null = null;
+export async function setupSelfHostedMode({
+	context,
+	projectRoot,
+	spinner,
+	packageName,
+	handleCancel,
+}: SelfHostModeOptions): Promise<SelfHostModeResult> {
+	const backendURL = await p.text({
+		message: 'Enter the backend URL:',
+		initialValue: 'http://localhost:3000',
+	});
 
-	// Add backend dependency
-	const dependencies = ['@c15t/backend'];
+	if (handleCancel?.(backendURL)) {
+		context.error.handleCancel('Setup cancelled.', {
+			command: 'onboarding',
+			stage: 'self_hosted_backend_url_setup',
+		});
+	}
 
-	// Ask if user wants to set up backend configuration
-	const setupBackendSelection = await p.confirm({
-		message: 'Set up the backend configuration now?',
+	const useEnvFileSelection = await p.confirm({
+		message:
+			'Store the backendURL in a .env file? (Recommended, URL is public)',
 		initialValue: true,
 	});
 
-	if (handleCancel?.(setupBackendSelection)) {
+	if (handleCancel?.(useEnvFileSelection)) {
 		context.error.handleCancel('Setup cancelled.', {
 			command: 'onboarding',
-			stage: 'self_hosted_backend_setup',
+			stage: 'self_hosted_env_file_setup',
 		});
 	}
 
-	const setupBackend = setupBackendSelection as boolean;
-	let adapterChoice = 'memory';
+	const useEnvFile = useEnvFileSelection as boolean;
+	let proxyNextjs: boolean | undefined;
 
-	if (setupBackend) {
-		// Choose database adapter
-		const adapterSelection = await p.select<string | symbol>({
-			message: 'Choose a database adapter:',
-			initialValue: 'kysely-sqlite',
-			options: [
-				{
-					value: 'kysely-sqlite',
-					label: 'Kysely (SQLite)',
-					hint: 'Simple setups/local dev',
-				},
-				{
-					value: 'kysely-postgres',
-					label: 'Kysely (PostgreSQL)',
-					hint: 'Production',
-				},
-				{
-					value: 'memory',
-					label: 'Memory',
-					hint: 'Testing/development only',
-				},
-			],
+	if (packageName === '@c15t/nextjs') {
+		context.logger.info(
+			'Learn more about Next.js Rewrites: https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites'
+		);
+
+		const proxyNextjsSelection = await p.confirm({
+			message:
+				'Proxy requests to your instance with Next.js Rewrites? (Recommended)',
+			initialValue: true,
 		});
 
-		if (handleCancel?.(adapterSelection)) {
+		if (handleCancel?.(proxyNextjsSelection)) {
 			context.error.handleCancel('Setup cancelled.', {
 				command: 'onboarding',
-				stage: 'self_hosted_adapter_selection',
+				stage: 'self_hosted_proxy_nextjs_setup',
 			});
 		}
 
-		adapterChoice = adapterSelection as string;
-
-		let connectionString: string | undefined;
-		let dbPath: string | undefined;
-
-		// Get connection details based on adapter
-		if (adapterChoice === 'kysely-postgres') {
-			const connectionStringSelection = await p.text({
-				message: 'Enter PostgreSQL connection string:',
-				placeholder: 'postgresql://user:pass@host:port/db',
-			});
-
-			if (handleCancel?.(connectionStringSelection)) {
-				context.error.handleCancel('Setup cancelled.', {
-					command: 'onboarding',
-					stage: 'self_hosted_postgres_setup',
-				});
-			}
-
-			// Validate connection string
-			if (!connectionStringSelection || connectionStringSelection === '') {
-				context.error.handleCancel(
-					'A valid PostgreSQL connection string is required',
-					{
-						command: 'onboarding',
-						stage: 'self_hosted_postgres_validation',
-					}
-				);
-			}
-
-			connectionString = connectionStringSelection as string;
-		} else if (adapterChoice === 'kysely-sqlite') {
-			const dbPathSelection = await p.text({
-				message: 'Enter path for SQLite database file:',
-				placeholder: './db.sqlite',
-				initialValue: './db.sqlite',
-			});
-
-			if (handleCancel?.(dbPathSelection)) {
-				context.error.handleCancel('Setup cancelled.', {
-					command: 'onboarding',
-					stage: 'self_hosted_sqlite_setup',
-				});
-			}
-
-			// Validate database path
-			if (!dbPathSelection || dbPathSelection === '') {
-				context.error.handleCancel('A valid database path is required', {
-					command: 'onboarding',
-					stage: 'self_hosted_sqlite_validation',
-				});
-			}
-
-			dbPath = dbPathSelection as string;
-		}
-
-		// Generate and write backend config
-		backendConfigContent = generateBackendConfigContent(
-			adapterChoice,
-			connectionString,
-			dbPath
-		);
-
-		const backendConfigPath = path.join(projectRoot, 'c15t.backend.ts');
-
-		spinner.start('Creating backend configuration file...');
-		await fs.writeFile(backendConfigPath, backendConfigContent);
-		spinner.stop(
-			formatLogMessage(
-				'info',
-				`Backend configuration created: ${color.cyan(path.relative(cwd, backendConfigPath))}`
-			)
-		);
+		proxyNextjs = proxyNextjsSelection as boolean;
 	}
 
-	// Generate client config (always uses c15t mode with default path)
-	const clientConfigContent = generateClientConfigContent(
-		'c15t',
-		'/api/c15t',
-		false
-	);
-
-	const configPath = path.join(projectRoot, 'c15t.config.ts');
-
-	spinner.start('Creating client configuration file...');
-	await fs.writeFile(configPath, clientConfigContent);
-	spinner.stop(
-		formatLogMessage(
-			'info',
-			`Client configuration created: ${color.cyan(path.relative(cwd, configPath))}`
-		)
-	);
+	await generateFiles({
+		context,
+		projectRoot,
+		mode: 'c15t',
+		pkg: packageName,
+		backendURL: backendURL as string,
+		spinner,
+		useEnvFile,
+		proxyNextjs,
+	});
 
 	return {
-		clientConfigContent,
-		backendConfigContent,
-		dependencies,
-		adapterChoice,
+		backendURL: backendURL as string,
+		usingEnvFile: useEnvFile,
+		proxyNextjs,
 	};
 }
