@@ -9,7 +9,9 @@
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
-		"@libsql/kysely-libsql": "^0.4.1"
+		"@libsql/kysely-libsql": "^0.4.1",
+		"kysely": "^0.28.4",
+		"kysely-libsql": "^0.7.1"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^4.20250507.0",
