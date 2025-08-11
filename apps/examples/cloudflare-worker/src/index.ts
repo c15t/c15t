@@ -12,7 +12,7 @@ import { Kysely } from 'kysely';
 const handler = (env: Env) => {
 	// Create the c15t instance with ORPC support
 	const instance = c15tInstance({
-		database: kyselyAdapter({
+		adapter: kyselyAdapter({
 			db: new Kysely({
 				dialect: new LibsqlDialect({
 					url: env.TURSO_DATABASE_URL,

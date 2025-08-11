@@ -9,6 +9,13 @@ import type { DB } from '../schema';
 
 export * from './api';
 
+export interface DatabaseOptions {
+	/**
+	 * The database adapter to use.
+	 */
+	adapter: FumaDB<FumaDBSchema>['adapter'];
+}
+
 interface BaseOptions {
 	appName?: string;
 	baseURL: string;
@@ -78,11 +85,7 @@ interface BaseOptions {
 }
 
 type FumaDBSchema = InferFumaDB<typeof DB>['schemas'];
-export interface C15TOptions extends BaseOptions {
-	/**
-	 * The database adapter to use.
-	 */
-	database: FumaDB<FumaDBSchema>['adapter'];
+export interface C15TOptions extends BaseOptions, DatabaseOptions {
 	logger?: LoggerOptions;
 }
 

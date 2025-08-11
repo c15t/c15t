@@ -1,7 +1,7 @@
 import * as p from '@clack/prompts';
 import open from 'open';
 import type { AvailablePackages } from '~/context/framework-detection';
-import type { CliContext } from '../../context/types';
+import type { CliContext } from '../../../../context/types';
 import { generateFiles } from '../generate-files';
 
 /**

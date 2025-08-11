@@ -6,14 +6,13 @@ import * as p from '@clack/prompts';
 import open from 'open';
 import color from 'picocolors';
 
-import { isClientOptions } from '../actions/get-config/config-extraction';
 import {
 	detectFramework,
 	detectProjectRoot,
-} from '../context/framework-detection';
-import type { PackageManagerResult } from '../context/package-manager-detection';
-import type { CliContext } from '../context/types';
-import { TelemetryEventName } from '../utils/telemetry';
+} from '../../../context/framework-detection';
+import type { PackageManagerResult } from '../../../context/package-manager-detection';
+import type { CliContext } from '../../../context/types';
+import { TelemetryEventName } from '../../../utils/telemetry';
 
 import {
 	addAndInstallDependenciesViaPM,
@@ -102,11 +101,7 @@ async function performOnboarding(
 		throw new Error('Error detecting framework');
 	}
 
-	const storageMode = await handleStorageModeSelection(
-		context,
-		handleCancel,
-		existingConfig
-	);
+	const storageMode = await handleStorageModeSelection(context, handleCancel);
 
 	if (!storageMode) {
 		return;
@@ -117,21 +112,15 @@ async function performOnboarding(
 	// Handle storage mode setup
 	switch (storageMode) {
 		case 'c15t': {
-			const initialBackendURL =
-				isUpdate && existingConfig && isClientOptions(existingConfig)
-					? existingConfig.backendURL
-					: undefined;
 			const c15tResult = await setupC15tMode({
 				context,
 				projectRoot,
 				spinner: p.spinner(),
 				packageName: pkg,
-				initialBackendURL,
 				handleCancel,
 			});
 			telemetry.trackEvent(TelemetryEventName.ONBOARDING_C15T_MODE_CONFIGURED, {
 				usingEnvFile: c15tResult.usingEnvFile,
-				hasInitialBackendURL: !!initialBackendURL,
 				proxyNextjs: c15tResult.proxyNextjs,
 			});
 			break;
@@ -150,19 +139,18 @@ async function performOnboarding(
 			break;
 		}
 		case 'self-hosted': {
-			const selfHostedResult = await setupSelfHostedMode(
+			const selfHostedResult = await setupSelfHostedMode({
 				context,
 				projectRoot,
-				p.spinner(),
-				handleCancel
-			);
-			dependenciesToAdd.push(...selfHostedResult.dependencies);
+				spinner: p.spinner(),
+				packageName: pkg,
+				handleCancel,
+			});
+
+			// TODO: add adapter choice + telemtary
 			telemetry.trackEvent(
 				TelemetryEventName.ONBOARDING_SELF_HOSTED_CONFIGURED,
-				{
-					databaseType: selfHostedResult.adapterChoice,
-					dependencies: selfHostedResult.dependencies.join(','),
-				}
+				{}
 			);
 			break;
 		}
@@ -211,17 +199,13 @@ async function performOnboarding(
 
 async function handleStorageModeSelection(
 	context: CliContext,
-	handleCancel: (value: unknown) => boolean,
-	existingConfig?: C15TOptions | ConsentManagerOptions | null
+	handleCancel: (value: unknown) => boolean
 ) {
 	const { telemetry } = context;
-	const initialStorageMode = getInitialStorageMode(existingConfig);
 
 	const storageModeSelection = await p.select<string | symbol | undefined>({
-		message: existingConfig
-			? `Select storage mode (current: ${initialStorageMode || 'unknown'}):`
-			: 'How would you like to store consent decisions?',
-		initialValue: initialStorageMode || 'c15t',
+		message: 'How would you like to store consent decisions?',
+		initialValue: 'c15t',
 		options: [
 			{
 				value: 'c15t',
@@ -253,7 +237,6 @@ async function handleStorageModeSelection(
 	const storageMode = storageModeSelection as string;
 	telemetry.trackEvent(TelemetryEventName.ONBOARDING_STORAGE_MODE_SELECTED, {
 		storageMode,
-		isUpdate: !!existingConfig,
 	});
 
 	return storageMode;
@@ -328,19 +311,6 @@ async function handleDependencyInstallation(
 		);
 		return { installDepsConfirmed: true, ranInstall: false };
 	}
-}
-
-function getInitialStorageMode(
-	config?: C15TOptions | ConsentManagerOptions | null
-): string | undefined {
-	if (!config) {
-		return undefined;
-	}
-
-	if ('mode' in config) {
-		return isClientOptions(config) ? config.mode : 'c15t';
-	}
-	return undefined;
 }
 
 interface DisplayNextStepsOptions {

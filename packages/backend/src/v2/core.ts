@@ -375,3 +375,4 @@ export const c15tInstance = (options: C15TOptions) => {
 
 export type { ContractsInputs, ContractsOutputs } from '~/v2/contracts';
 export type { C15TContext, C15TOptions } from './types';
+export { defineConfig } from './define-config';
