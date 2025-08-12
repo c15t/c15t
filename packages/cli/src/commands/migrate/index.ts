@@ -1,4 +1,7 @@
+import { migrator } from '@c15t/backend/v2/pkgs/migrator';
 import { ensureBackendConfig } from '~/commands/migrate/ensure-backend-config';
+import { handleMigrationResult } from '~/commands/migrate/migrator-result';
+import { handleORMResult } from '~/commands/migrate/orm-result';
 import { readConfigAndGetDb } from '~/commands/migrate/read-config';
 import type { CliContext } from '~/context/types';
 
@@ -14,18 +17,15 @@ export async function migrate(context: CliContext) {
 		return;
 	}
 
-	// Load config and get db client from default export
-	const _db = await readConfigAndGetDb(context, configPath);
+	const { db, adapter } = await readConfigAndGetDb(context, configPath);
 
-	logger.info('Loaded backend config and obtained database client.');
-	// logger.debug(_db);
-	logger.info(await _db.createMigrator().getVersion());
-	// logger.info(JSON.stringify(_db.generateSchema('latest'), null, 2));
-	// logger.info(await _db.version());
+	logger.info('Loaded c15t-backend.config.ts');
 
-	// TODO: implement actual migration runner using packages/backend/src/v2/pkgs/migrator
-	// Example placeholder usage:
-	// const migrator = db.createMigrator();
-	// await migrator.migrateToLatest();
-	logger.info('Migration TBD.');
+	const result = await migrator({ db, adapter, schema: 'latest' });
+
+	if ('path' in result) {
+		await handleORMResult(context, result);
+	} else {
+		await handleMigrationResult(context, result);
+	}
 }

@@ -6,38 +6,39 @@
 	"exports": {
 		"./v2": {
 			"types": "./dist/v2/core.d.ts",
-			"import": "./dist/v2/core.js",
-			"require": "./dist/v2/core.cjs"
+			"import": "./dist/v2/core.js"
 		},
 		"./v2/define-config": {
 			"types": "./dist/v2/define-config.d.ts",
-			"import": "./dist/v2/define-config.js",
-			"require": "./dist/v2/define-config.cjs"
+			"import": "./dist/v2/define-config.js"
 		},
 		"./v2/router": {
 			"types": "./dist/v2/router.d.ts",
-			"import": "./dist/v2/router.js",
-			"require": "./dist/v2/router.cjs"
+			"import": "./dist/v2/router.js"
 		},
 		"./v2/schema": {
 			"types": "./dist/v2/schema/index.d.ts",
-			"import": "./dist/v2/schema/index.js",
-			"require": "./dist/v2/schema/index.cjs"
+			"import": "./dist/v2/schema/index.js"
 		},
 		"./v2/contracts": {
 			"types": "./dist/v2/contracts/index.d.ts",
-			"import": "./dist/v2/contracts/index.js",
-			"require": "./dist/v2/contracts/index.cjs"
+			"import": "./dist/v2/contracts/index.js"
 		},
 		"./v2/pkgs/db-adapters": {
 			"types": "./dist/v2/pkgs/db-adapters/index.d.ts",
-			"import": "./dist/v2/pkgs/db-adapters/index.js",
-			"require": "./dist/v2/pkgs/db-adapters/index.cjs"
+			"import": "./dist/v2/pkgs/db-adapters/index.js"
+		},
+		"./v2/pkgs/migrator": {
+			"types": "./dist/v2/pkgs/migrator/index.d.ts",
+			"import": "./dist/v2/pkgs/migrator/index.js"
 		},
 		"./v2/pkgs/results": {
 			"types": "./dist/v2/pkgs/results/index.d.ts",
-			"import": "./dist/v2/pkgs/results/index.js",
-			"require": "./dist/v2/pkgs/results/index.cjs"
+			"import": "./dist/v2/pkgs/results/index.js"
+		},
+		"./v2/types": {
+			"types": "./dist/v2/types/index.d.ts",
+			"import": "./dist/v2/types/index.js"
 		},
 		".": {
 			"types": "./dist/core.d.ts",

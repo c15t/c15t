@@ -15,8 +15,7 @@ const handler = (env: Env) => {
 		adapter: kyselyAdapter({
 			db: new Kysely({
 				dialect: new LibsqlDialect({
-					url: env.TURSO_DATABASE_URL,
-					authToken: env.TURSO_AUTH_TOKEN,
+					url: 'http://127.0.0.1:8080',
 				}),
 			}),
 			provider: 'sqlite',

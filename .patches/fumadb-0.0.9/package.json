@@ -1,0 +1,99 @@
+{
+	"name": "fumadb",
+	"description": "A library for interacting with different databases for your package.",
+	"version": "0.0.9",
+	"repository": "github:fuma-nama/fumadb",
+	"author": "Fuma Nama",
+	"license": "MIT",
+	"type": "module",
+	"files": ["dist"],
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		"./adapters/*": {
+			"import": "./dist/adapters/*/index.js",
+			"types": "./dist/adapters/*/index.d.ts"
+		},
+		"./adapters": {
+			"import": "./dist/adapters/index.js",
+			"types": "./dist/adapters/index.d.ts"
+		},
+		"./schema": {
+			"import": "./dist/schema/index.js",
+			"types": "./dist/schema/index.d.ts"
+		},
+		"./cli": {
+			"import": "./dist/cli/index.js",
+			"types": "./dist/cli/index.d.ts"
+		},
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"devDependencies": {
+		"@convex-dev/aggregate": "^0.1.21",
+		"@libsql/client": "^0.15.10",
+		"@prisma/client": "6.12.0",
+		"@types/node": "24.0.15",
+		"@types/pg": "^8.15.4",
+		"@types/semver": "^7.7.0",
+		"better-sqlite3": "^12.2.0",
+		"convex": "^1.25.4",
+		"drizzle-kit": "^0.31.4",
+		"drizzle-orm": "^0.44.3",
+		"mongodb": "^6.17.0",
+		"mysql2": "^3.14.2",
+		"pg": "^8.16.3",
+		"prisma": "^6.12.0",
+		"tarn": "^3.0.2",
+		"tedious": "^18.6.1",
+		"tinyexec": "^1.0.1",
+		"tsup": "^8.5.0",
+		"typeorm": "^0.3.25",
+		"typescript": "5.8.3",
+		"@repo/typescript-config": "0.0.0"
+	},
+	"peerDependencies": {
+		"convex": "^1.25.0",
+		"drizzle-orm": "^0.44.0",
+		"mongodb": "6.x.x",
+		"prisma": "6.x.x",
+		"typeorm": "0.x.x"
+	},
+	"peerDependenciesMeta": {
+		"convex": {
+			"optional": true
+		},
+		"drizzle-orm": {
+			"optional": true
+		},
+		"mongodb": {
+			"optional": true
+		},
+		"prisma": {
+			"optional": true
+		},
+		"typeorm": {
+			"optional": true
+		}
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"dependencies": {
+		"@clack/prompts": "^0.11.0",
+		"@paralleldrive/cuid2": "^2.2.2",
+		"commander": "^14.0.0",
+		"kysely": "^0.28.3",
+		"kysely-typeorm": "^0.3.0",
+		"semver": "^7.7.2",
+		"zod": "^4.0.5"
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit",
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"test:cli": "pnpx tsx ./test/cli.ts"
+	}
+}
