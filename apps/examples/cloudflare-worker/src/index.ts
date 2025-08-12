@@ -1,7 +1,7 @@
 import { c15tInstance } from '@c15t/backend/v2';
+import { kyselyAdapter } from '@c15t/backend/v2/db/adapters';
 import { LibsqlDialect } from '@libsql/kysely-libsql';
 import { Kysely } from 'kysely';
-import { kyselyAdapter } from '../../../../packages/backend/dist/v2/db-adapters';
 
 /**
  * Example Cloudflare Worker for c15t
