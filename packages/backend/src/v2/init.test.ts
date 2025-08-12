@@ -45,13 +45,13 @@ async function setup(params: SetupParams = {}) {
 		error: vi.fn(),
 	};
 	const initLoggerMock = vi.fn().mockReturnValue(loggerInstance);
-	vi.doMock('./pkgs/utils/logger', () => ({
+	vi.doMock('./utils/logger', () => ({
 		initLogger: initLoggerMock,
 	}));
 
 	// Registry stub
 	const createRegistryMock = vi.fn().mockReturnValue({});
-	vi.doMock('./registry', () => ({
+	vi.doMock('./db/registry', () => ({
 		createRegistry: createRegistryMock,
 	}));
 
@@ -59,7 +59,7 @@ async function setup(params: SetupParams = {}) {
 	const clientMock = vi.fn((adapter: unknown) => ({
 		orm: vi.fn().mockResolvedValue({ adapter }),
 	}));
-	vi.doMock('./schema', () => ({
+	vi.doMock('./db/schema', () => ({
 		DB: {
 			client: clientMock,
 		},
