@@ -42,6 +42,14 @@ export async function migrator(
 ): Promise<MigrationResult | ORMResult> {
 	const { db } = options;
 
+	let version: VersionTag | 'legacy';
+	try {
+		version = await db.version();
+	} catch {
+		// If FumaDB isn't initalized yet, we're in legacy mode
+		version = 'legacy';
+	}
+
 	switch (options.adapter) {
 		case 'kysely':
 		case 'mongo': {
@@ -49,9 +57,13 @@ export async function migrator(
 
 			switch (options.schema) {
 				case 'latest':
-					return await migratorInstance.migrateToLatest();
+					return await migratorInstance.migrateToLatest({
+						mode: version === 'legacy' ? 'from-database' : 'from-schema',
+					});
 				default:
-					return await migratorInstance.migrateTo(options.schema);
+					return await migratorInstance.migrateTo(options.schema, {
+						mode: version === 'legacy' ? 'from-database' : 'from-schema',
+					});
 			}
 		}
 

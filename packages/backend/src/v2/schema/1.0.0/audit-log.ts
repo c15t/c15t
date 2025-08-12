@@ -2,17 +2,17 @@ import { column, idColumn, table } from 'fumadb/schema';
 import { z } from 'zod';
 
 export const auditLogTable = table('auditLog', {
-	id: idColumn('id', 'varchar(255)', { default: 'auto' }),
+	id: idColumn('id', 'varchar(255)').defaultTo$('auto'),
 	entityType: column('entityType', 'string'),
 	entityId: column('entityId', 'string'),
 	actionType: column('actionType', 'string'),
-	subjectId: column('subjectId', 'string', { nullable: true }),
-	ipAddress: column('ipAddress', 'string', { nullable: true }),
-	userAgent: column('userAgent', 'string', { nullable: true }),
-	changes: column('changes', 'json', { nullable: true }),
-	metadata: column('metadata', 'json', { nullable: true }),
-	createdAt: column('createdAt', 'timestamp', { default: 'now' }),
-	eventTimezone: column('eventTimezone', 'string'),
+	subjectId: column('subjectId', 'string').nullable(),
+	ipAddress: column('ipAddress', 'string').nullable(),
+	userAgent: column('userAgent', 'string').nullable(),
+	changes: column('changes', 'json').nullable(),
+	metadata: column('metadata', 'json').nullable(),
+	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
+	eventTimezone: column('eventTimezone', 'string').defaultTo$(() => 'UTC'),
 });
 
 export const auditLogSchema = z.object({

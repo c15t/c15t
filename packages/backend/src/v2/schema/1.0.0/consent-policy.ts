@@ -2,16 +2,16 @@ import { column, idColumn, table } from 'fumadb/schema';
 import { z } from 'zod';
 
 export const consentPolicyTable = table('consentPolicy', {
-	id: idColumn('id', 'varchar(255)', { default: 'auto' }),
+	id: idColumn('id', 'varchar(255)').defaultTo$('auto'),
 	version: column('version', 'string'),
 	type: column('type', 'string'),
 	name: column('name', 'string'),
 	effectiveDate: column('effectiveDate', 'timestamp'),
-	expirationDate: column('expirationDate', 'timestamp', { nullable: true }),
+	expirationDate: column('expirationDate', 'timestamp').nullable(),
 	content: column('content', 'string'),
 	contentHash: column('contentHash', 'string'),
-	isActive: column('isActive', 'bool'),
-	createdAt: column('createdAt', 'timestamp', { default: 'now' }),
+	isActive: column('isActive', 'bool').defaultTo$(() => true),
+	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
 });
 
 export const PolicyTypeSchema = z.enum([

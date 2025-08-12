@@ -2,19 +2,19 @@ import { column, idColumn, table } from 'fumadb/schema';
 import { z } from 'zod';
 
 export const consentTable = table('consent', {
-	id: idColumn('id', 'varchar(255)', { default: 'auto' }),
+	id: idColumn('id', 'varchar(255)').defaultTo$('auto'),
 	subjectId: column('subjectId', 'string'),
 	domainId: column('domainId', 'string'),
-	policyId: column('policyId', 'string', { nullable: true }),
+	policyId: column('policyId', 'string').nullable(),
 	purposeIds: column('purposeIds', 'json'),
-	metadata: column('metadata', 'json', { nullable: true }),
-	ipAddress: column('ipAddress', 'string', { nullable: true }),
-	userAgent: column('userAgent', 'string', { nullable: true }),
-	status: column('status', 'string'),
-	withdrawalReason: column('withdrawalReason', 'string', { nullable: true }),
-	givenAt: column('givenAt', 'timestamp', { default: 'now' }),
-	validUntil: column('validUntil', 'timestamp', { nullable: true }),
-	isActive: column('isActive', 'bool'),
+	metadata: column('metadata', 'json').nullable(),
+	ipAddress: column('ipAddress', 'string').nullable(),
+	userAgent: column('userAgent', 'string').nullable(),
+	status: column('status', 'string').defaultTo$(() => 'active'),
+	withdrawalReason: column('withdrawalReason', 'string').nullable(),
+	givenAt: column('givenAt', 'timestamp').defaultTo$('now'),
+	validUntil: column('validUntil', 'timestamp').nullable(),
+	isActive: column('isActive', 'bool').defaultTo$(() => true),
 });
 
 export const consentStatusSchema = z.enum(['active', 'withdrawn', 'expired']);

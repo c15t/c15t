@@ -2,12 +2,12 @@ import { column, idColumn, table } from 'fumadb/schema';
 import { z } from 'zod';
 
 export const consentRecordTable = table('consentRecord', {
-	id: idColumn('id', 'varchar(255)', { default: 'auto' }),
+	id: idColumn('id', 'varchar(255)').defaultTo$('auto'),
 	subjectId: column('subjectId', 'string'),
-	consentId: column('consentId', 'string', { nullable: true }),
+	consentId: column('consentId', 'string').nullable(),
 	actionType: column('actionType', 'string'),
-	details: column('details', 'json', { nullable: true }),
-	createdAt: column('createdAt', 'timestamp', { default: 'now' }),
+	details: column('details', 'json').nullable(),
+	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
 });
 
 export const consentRecordSchema = z.object({

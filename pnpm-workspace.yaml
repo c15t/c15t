@@ -25,4 +25,4 @@ onlyBuiltDependencies:
   - better-sqlite3
 
 patchedDependencies:
-  fumadb@0.0.9: patches/fumadb@0.0.9.patch
+  fumadb@0.1.0: patches/fumadb@0.1.0.patch

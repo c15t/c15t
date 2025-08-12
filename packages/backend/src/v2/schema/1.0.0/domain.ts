@@ -2,14 +2,14 @@ import { column, idColumn, table } from 'fumadb/schema';
 import { z } from 'zod';
 
 export const domainTable = table('domain', {
-	id: idColumn('id', 'varchar(255)', { default: 'auto' }),
-	name: column('name', 'string', { unique: true }),
-	description: column('description', 'string', { nullable: true }),
-	allowedOrigins: column('allowedOrigins', 'json', { nullable: true }),
-	isVerified: column('isVerified', 'bool'),
-	isActive: column('isActive', 'bool'),
-	createdAt: column('createdAt', 'timestamp', { default: 'now' }),
-	updatedAt: column('updatedAt', 'timestamp', { default: 'now' }),
+	id: idColumn('id', 'varchar(255)').defaultTo$('auto'),
+	name: column('name', 'string').unique(),
+	description: column('description', 'string').nullable(),
+	allowedOrigins: column('allowedOrigins', 'json').nullable(),
+	isVerified: column('isVerified', 'bool').defaultTo$(() => true),
+	isActive: column('isActive', 'bool').defaultTo$(() => true),
+	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
+	updatedAt: column('updatedAt', 'timestamp').defaultTo$('now'),
 });
 
 export const domainSchema = z.object({

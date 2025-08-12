@@ -2,13 +2,13 @@ import { column, idColumn, table } from 'fumadb/schema';
 import { z } from 'zod';
 
 export const subjectTable = table('subject', {
-	id: idColumn('id', 'varchar(255)', { default: 'auto' }),
-	isIdentified: column('isIdentified', 'bool'),
-	externalId: column('externalId', 'string', { nullable: true }),
-	identityProvider: column('identityProvider', 'string', { nullable: true }),
-	lastIpAddress: column('lastIpAddress', 'string', { nullable: true }),
-	createdAt: column('createdAt', 'timestamp', { default: 'now' }),
-	updatedAt: column('updatedAt', 'timestamp', { default: 'now' }),
+	id: idColumn('id', 'varchar(255)').defaultTo$('auto'),
+	isIdentified: column('isIdentified', 'bool').defaultTo$(() => false),
+	externalId: column('externalId', 'string').nullable(),
+	identityProvider: column('identityProvider', 'string').nullable(),
+	lastIpAddress: column('lastIpAddress', 'string').nullable(),
+	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
+	updatedAt: column('updatedAt', 'timestamp').defaultTo$('now'),
 });
 
 export const subjectSchema = z.object({
