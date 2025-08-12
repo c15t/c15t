@@ -9,7 +9,7 @@ vi.mock('c12', () => ({
 	})),
 }));
 
-vi.mock('@c15t/backend/v2/schema', async (importOriginal) => {
+vi.mock('@c15t/backend/v2/db/schema', async (importOriginal) => {
 	const actual = await (importOriginal() as Promise<Record<string, unknown>>);
 	return {
 		...actual,
@@ -19,8 +19,8 @@ vi.mock('@c15t/backend/v2/schema', async (importOriginal) => {
 	};
 });
 
+import { DB } from '@c15t/backend/v2/db/schema';
 import { loadConfig } from 'c12';
-import { DB } from '../../../../backend/dist/v2/db/schema';
 import { readConfigAndGetDb } from './read-config';
 
 const BACKEND_NOT_FOUND_RE = /Backend config not found/;

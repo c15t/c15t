@@ -1,8 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import type { ORMResult } from '@c15t/backend/v2/db/migrator';
 import type { CliContext } from '~/context/types';
 import { TelemetryEventName } from '~/utils/telemetry';
-import type { ORMResult } from '../../../../backend/dist/v2/db/migrator';
 
 export async function handleORMResult(context: CliContext, result: ORMResult) {
 	const { logger, telemetry, cwd } = context;

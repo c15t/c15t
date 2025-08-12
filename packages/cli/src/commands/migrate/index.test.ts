@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@c15t/backend/v2/pkgs/migrator', () => ({
+vi.mock('@c15t/backend/v2/db/migrator', () => ({
 	migrator: vi.fn(async () => ({ execute: vi.fn(), getSQL: vi.fn() })),
 }));
 vi.mock('./ensure-backend-config', () => ({
