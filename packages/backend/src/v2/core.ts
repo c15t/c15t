@@ -11,9 +11,9 @@ import {
 	createOpenAPISpec,
 } from '~/v2/middleware/openapi';
 import { getIpAddress } from '~/v2/middleware/process-ip';
-import type { DeepPartial } from '~/v2/pkgs/types/helper';
 // import { withRequestSpan } from './pkgs/api-router/telemetry';
 import { router } from '~/v2/router';
+import type { DeepPartial } from '~/v2/types';
 import type { C15TContext, C15TOptions } from '~/v2/types';
 import { init } from './init';
 
@@ -122,7 +122,7 @@ export const c15tInstance = (options: C15TOptions) => {
 		// 	},
 		// 	options
 		// );
-		// TODO READD REQUEST SPAN
+		// TODO: READD REQUEST SPAN
 
 		// Add path and method to context for easier access
 		context.path = path;

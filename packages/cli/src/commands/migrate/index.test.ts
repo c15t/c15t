@@ -16,7 +16,7 @@ vi.mock('./orm-result', () => ({
 	handleORMResult: vi.fn(async (..._args: unknown[]) => undefined),
 }));
 
-import { migrator } from '@c15t/backend/v2/pkgs/migrator';
+import { migrator } from '../../../../backend/dist/v2/db/migrator';
 import { ensureBackendConfig } from './ensure-backend-config';
 import { migrate } from './index';
 import { handleMigrationResult } from './migrator-result';

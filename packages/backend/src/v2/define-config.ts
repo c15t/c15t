@@ -1,4 +1,4 @@
-import type { Adapter } from './pkgs/db-adapters';
+import type { Adapter } from './db/adapters';
 import type { DatabaseOptions } from './types';
 export interface DatabaseConfig extends DatabaseOptions {
 	/**

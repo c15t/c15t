@@ -4,8 +4,8 @@ import type { LoggerOptions } from '@doubletie/logger';
 import type { Tracer } from '@opentelemetry/api';
 import type { OpenAPIGeneratorOptions } from '@orpc/openapi';
 import type { FumaDB, InferFumaDB } from 'fumadb';
-import type { createRegistry } from '../registry';
-import type { DB } from '../schema';
+import type { createRegistry } from '../db/registry';
+import type { DB } from '../db/schema';
 
 export * from './api';
 
@@ -104,3 +104,9 @@ export interface C15TContext extends BaseOptions {
 	method?: string;
 	headers?: Headers;
 }
+
+export type DeepPartial<T> = T extends (...args: unknown[]) => unknown
+	? T
+	: T extends object
+		? { [K in keyof T]?: DeepPartial<T[K]> }
+		: T;

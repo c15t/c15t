@@ -1,9 +1,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { DatabaseConfig } from '@c15t/backend/v2/define-config';
-import { DB } from '@c15t/backend/v2/schema';
 import { loadConfig } from 'c12';
 import type { CliContext } from '~/context/types';
+import { DB } from '../../../../backend/dist/v2/db/schema';
 
 export async function readConfigAndGetDb(
 	context: CliContext,

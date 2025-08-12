@@ -1,6 +1,6 @@
 import type { InferFumaDB } from 'fumadb';
-import type { Adapter } from '~/v2/pkgs/db-adapters';
-import type { DB } from '~/v2/schema';
+import type { Adapter } from '~/v2/db/adapters';
+import type { DB } from '~/v2/db/schema';
 
 type DatabaseInstance = InferFumaDB<typeof DB>;
 type MigratorInstance = ReturnType<DatabaseInstance['createMigrator']>;

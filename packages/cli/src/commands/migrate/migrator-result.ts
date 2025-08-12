@@ -1,7 +1,7 @@
-import type { MigrationResult } from '@c15t/backend/v2/pkgs/migrator';
 import * as p from '@clack/prompts';
 import type { CliContext } from '~/context/types';
 import { TelemetryEventName } from '~/utils/telemetry';
+import type { MigrationResult } from '../../../../backend/dist/v2/db/migrator';
 
 export async function handleMigrationResult(
 	context: CliContext,

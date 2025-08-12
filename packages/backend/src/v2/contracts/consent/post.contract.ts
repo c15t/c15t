@@ -1,7 +1,7 @@
 import { oc } from '@orpc/contract';
 import { z } from 'zod';
 
-import { PolicyTypeSchema } from '~/v2/schema';
+import { PolicyTypeSchema } from '~/v2/db/schema';
 
 const baseConsentSchema = z.object({
 	subjectId: z.string().optional(),

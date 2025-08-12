@@ -1,6 +1,6 @@
 import baseX from 'base-x';
 import type { InferFumaDB } from 'fumadb';
-import type { DB } from '~/v2/schema';
+import type { DB } from '~/v2/db/schema';
 
 type Tables = InferFumaDB<typeof DB>['schemas'][-1]['tables'];
 
@@ -45,8 +45,11 @@ function generateId(model: keyof typeof prefixes): string {
 	return `${prefix}_${b58.encode(buf)}`;
 }
 
+/**
+ * Recursively generate a unique id for a given model until it's unique
+ */
 export async function generateUniqueId(
-	db: InferFumaDB<typeof DB>['abstract'],
+	db: ReturnType<InferFumaDB<typeof DB>['orm']>,
 	model: keyof Tables
 ): Promise<string> {
 	const id = generateId(model);

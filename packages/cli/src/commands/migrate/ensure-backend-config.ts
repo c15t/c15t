@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type * as adapters from '@c15t/backend/v2/pkgs/db-adapters';
+import type * as adapters from '@c15t/backend/v2/db/adapters';
 import * as p from '@clack/prompts';
 import type { CliContext } from '~/context/types';
 

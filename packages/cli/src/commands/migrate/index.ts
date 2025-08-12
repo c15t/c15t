@@ -1,9 +1,9 @@
-import { migrator } from '@c15t/backend/v2/pkgs/migrator';
 import { ensureBackendConfig } from '~/commands/migrate/ensure-backend-config';
 import { handleMigrationResult } from '~/commands/migrate/migrator-result';
 import { handleORMResult } from '~/commands/migrate/orm-result';
 import { readConfigAndGetDb } from '~/commands/migrate/read-config';
 import type { CliContext } from '~/context/types';
+import { migrator } from '../../../../backend/dist/v2/db/migrator';
 
 export async function migrate(context: CliContext) {
 	const { logger } = context;

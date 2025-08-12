@@ -1,4 +1,4 @@
-import { createConsistencyTests } from '~/v2/testing/contract-testing';
+import { createConsistencyTests } from '~/v2/contracts/test.utils';
 import { metaContracts } from './index';
 
 // Add consistency tests across all meta contracts

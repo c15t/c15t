@@ -1,6 +1,6 @@
 import { ORPCError } from '@orpc/server';
 import { os } from '~/v2/contracts';
-import { generateUniqueId } from '~/v2/registry/utils';
+import { generateUniqueId } from '~/v2/db/registry/utils';
 import type { C15TContext } from '~/v2/types';
 
 /**

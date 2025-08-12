@@ -1,5 +1,5 @@
 import { defineConfig } from '@c15t/backend/v2';
-import { kyselyAdapter } from '@c15t/backend/v2/pkgs/db-adapters';
+import { kyselyAdapter } from '@c15t/backend/v2/db/adapters';
 // import { drizzle } from 'drizzle-orm/node-postgres';
 import { Kysely, PostgresDialect } from 'kysely';
 import { Pool } from 'pg';

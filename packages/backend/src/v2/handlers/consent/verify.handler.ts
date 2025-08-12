@@ -1,7 +1,7 @@
 import { ORPCError } from '@orpc/server';
 import type { z } from 'zod';
 import { os } from '~/v2/contracts';
-import type { PolicyTypeSchema } from '~/v2/schema';
+import type { PolicyTypeSchema } from '~/v2/db/schema';
 import type { C15TContext } from '~/v2/types';
 
 /**

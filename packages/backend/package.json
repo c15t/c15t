@@ -16,21 +16,21 @@
 			"types": "./dist/v2/router.d.ts",
 			"import": "./dist/v2/router.js"
 		},
-		"./v2/schema": {
-			"types": "./dist/v2/schema/index.d.ts",
-			"import": "./dist/v2/schema/index.js"
-		},
 		"./v2/contracts": {
 			"types": "./dist/v2/contracts/index.d.ts",
 			"import": "./dist/v2/contracts/index.js"
 		},
-		"./v2/pkgs/db-adapters": {
-			"types": "./dist/v2/pkgs/db-adapters/index.d.ts",
-			"import": "./dist/v2/pkgs/db-adapters/index.js"
+		"./v2/db/schema": {
+			"types": "./dist/v2/db/schema/index.d.ts",
+			"import": "./dist/v2/db/schema/index.js"
 		},
-		"./v2/pkgs/migrator": {
-			"types": "./dist/v2/pkgs/migrator/index.d.ts",
-			"import": "./dist/v2/pkgs/migrator/index.js"
+		"./v2/db/adapters": {
+			"types": "./dist/v2/db/adapters/index.d.ts",
+			"import": "./dist/v2/db/adapters/index.js"
+		},
+		"./v2/db/migrator": {
+			"types": "./dist/v2/db/migrator/index.d.ts",
+			"import": "./dist/v2/db/migrator/index.js"
 		},
 		"./v2/types": {
 			"types": "./dist/v2/types/index.d.ts",

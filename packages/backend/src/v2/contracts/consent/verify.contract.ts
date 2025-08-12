@@ -1,6 +1,6 @@
 import { oc } from '@orpc/contract';
 import { z } from 'zod';
-import { PolicyTypeSchema } from '~/v2/schema';
+import { PolicyTypeSchema } from '~/v2/db/schema';
 
 /**
  * Contract for the verify consent endpoint
