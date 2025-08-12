@@ -9,6 +9,11 @@
 			"import": "./dist/v2/core.js",
 			"require": "./dist/v2/core.cjs"
 		},
+		"./v2/define-config": {
+			"types": "./dist/v2/define-config.d.ts",
+			"import": "./dist/v2/define-config.js",
+			"require": "./dist/v2/define-config.cjs"
+		},
 		"./v2/router": {
 			"types": "./dist/v2/router.d.ts",
 			"import": "./dist/v2/router.js",

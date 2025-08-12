@@ -52,6 +52,7 @@ export default defineConfig({
 			'v2/schema': ['./src/v2/schema/index.ts'],
 			'v2/pkgs/db-adapters': ['./src/v2/pkgs/db-adapters/index.ts'],
 			'v2/pkgs/results': ['./src/v2/pkgs/results/index.ts'],
+			'v2/define-config': ['./src/v2/define-config.ts'],
 			core: ['./src/core.ts'],
 			router: ['./src/router.ts'],
 			contracts: ['./src/contracts/index.ts'],

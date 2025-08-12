@@ -1,21 +1,49 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { defineConfig } from '@c15t/backend/v2';
-import { createJiti } from 'jiti';
+import type {
+	AdapterConfiguration,
+	AdapterName,
+} from '@c15t/backend/v2/define-config';
+import {
+	drizzleAdapter,
+	kyselyAdapter,
+	mongoAdapter,
+	prismaAdapter,
+	typeormAdapter,
+} from '@c15t/backend/v2/pkgs/db-adapters';
+import { DB } from '@c15t/backend/v2/schema';
+import { loadConfig } from 'c12';
 import type { CliContext } from '~/context/types';
 
-type BackendConfigReturn = ReturnType<typeof defineConfig>;
-type DatabaseClient = BackendConfigReturn['client'];
+function getAdapter(
+	adapter: AdapterName,
+	options: AdapterConfiguration<AdapterName>['options']
+) {
+	switch (adapter) {
+		case 'kysely':
+			return kyselyAdapter(options);
+		case 'drizzle':
+			return drizzleAdapter(options);
+		case 'prisma':
+			return prismaAdapter(options);
+		case 'typeorm':
+			return typeormAdapter(options);
+		case 'mongo':
+			return mongoAdapter(options);
+		default:
+			throw new Error(`Unsupported adapter: ${adapter}`);
+	}
+}
 
 export async function readConfigAndGetDb(
 	context: CliContext,
 	absoluteConfigPath: string
-) {
-	// ): Promise<DatabaseClient> {
+): Promise<ReturnType<typeof DB.client>> {
 	const { logger } = context;
-	const resolvedPath = path.resolve(absoluteConfigPath);
 
-	logger.debug(`Reading backend config from: ${resolvedPath}`);
+	logger.info(`Loading backend config from ${absoluteConfigPath}`);
+
+	const resolvedPath = path.resolve(absoluteConfigPath);
 
 	try {
 		await fs.access(resolvedPath);
@@ -24,35 +52,31 @@ export async function readConfigAndGetDb(
 	}
 
 	try {
-		const jiti = createJiti(import.meta.url, {
-			interopDefault: true,
-			jsx: true,
-			debug: true,
-			moduleCache: false,
-			transformModules: ['@c15t/backend', '@c15t/backend/v2'],
-		});
-
-		logger.debug('Jiti Created');
-
-		const exported = await jiti.import(absoluteConfigPath, {
-			default: true,
+		const { config } = await loadConfig<AdapterConfiguration<AdapterName>>({
+			configFile: absoluteConfigPath,
+			jitiOptions: {
+				extensions: [
+					'.ts',
+					'.tsx',
+					'.js',
+					'.jsx',
+					'.mjs',
+					'.cjs',
+					'.mts',
+					'.cts',
+					'.cjs',
+				],
+			},
 		});
 
 		logger.debug('Imported Config');
 
-		// if (!exported || typeof exported !== 'object') {
-		// 	throw new Error('Invalid backend config export');
-		// }
+		logger.debug('Building Adapter', config.adapter);
+		const adapter = getAdapter(config.adapter, config.options);
 
-		// const client = (exported as { client?: DatabaseClient }).client;
-		// if (!client) {
-		// 	throw new Error(
-		// 		'Invalid backend config: expected default export to be the result of defineConfig({...}) with a client property.'
-		// 	);
-		// }
+		const client = DB.client(adapter);
 
-		// logger.debug('Backend config loaded and client created.');
-		// return client;
+		return client;
 	} catch (error) {
 		logger.error('Failed to load backend config', error);
 		if (error instanceof Error) {

@@ -101,19 +101,34 @@ importers:
       '@c15t/backend':
         specifier: workspace:*
         version: link:../../../packages/backend
+      '@c15t/cli':
+        specifier: workspace:*
+        version: link:../../../packages/cli
       '@libsql/kysely-libsql':
         specifier: ^0.4.1
         version: 0.4.1(kysely@0.28.4)
+      drizzle-orm:
+        specifier: ^0.41.0
+        version: 0.41.0(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.3)(@opentelemetry/api@1.9.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@11.9.1)(kysely@0.28.4)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3))
       kysely:
         specifier: ^0.28.4
         version: 0.28.4
       kysely-libsql:
         specifier: ^0.7.1
         version: 0.7.1(kysely@0.28.4)
+      mysql2:
+        specifier: ^3.14.3
+        version: 3.14.3
+      pg:
+        specifier: ^8.16.3
+        version: 8.16.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250507.0
         version: 4.20250507.0
+      '@types/pg':
+        specifier: 8.11.6
+        version: 8.11.6
       wrangler:
         specifier: ^4.14.3
         version: 4.14.3(@cloudflare/workers-types@4.20250507.0)
@@ -468,10 +483,10 @@ importers:
         version: 6.1.4
       drizzle-orm:
         specifier: ^0.41.0
-        version: 0.41.0(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.3)(@opentelemetry/api@1.8.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.0)(pg@8.14.1)(prisma@6.6.0(typescript@5.8.3))
+        version: 0.41.0(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.3)(@opentelemetry/api@1.8.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3))
       fumadb:
         specifier: ^0.0.9
-        version: 0.0.9(drizzle-orm@0.41.0(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.3)(@opentelemetry/api@1.8.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.0)(pg@8.14.1)(prisma@6.6.0(typescript@5.8.3)))(prisma@6.6.0(typescript@5.8.3))(typeorm@0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.0)(pg@8.14.1)(reflect-metadata@0.2.2))
+        version: 0.0.9(drizzle-orm@0.41.0(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.3)(@opentelemetry/api@1.8.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3)))(prisma@6.6.0(typescript@5.8.3))(typeorm@0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2))
       kysely:
         specifier: ^0.27.6
         version: 0.27.6
@@ -514,7 +529,7 @@ importers:
         version: 3.2.0
       kysely-pglite:
         specifier: ^0.6.1
-        version: 0.6.1(@electric-sql/pglite@0.2.17)(@libsql/kysely-libsql@0.4.1(kysely@0.27.6))(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.0)(pg@8.14.1)
+        version: 0.6.1(@electric-sql/pglite@0.2.17)(@libsql/kysely-libsql@0.4.1(kysely@0.27.6))(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)
       msw:
         specifier: ^2.7.6
         version: 2.7.6(@types/node@20.14.13)(typescript@5.8.3)
@@ -768,7 +783,7 @@ importers:
         version: 8.11.6
       kysely-pglite:
         specifier: ^0.6.1
-        version: 0.6.1(@electric-sql/pglite@0.2.17)(@libsql/kysely-libsql@0.4.1(kysely@0.28.4))(better-sqlite3@11.9.1)(kysely@0.28.4)(mysql2@3.14.0)(pg@8.14.1)
+        version: 0.6.1(@electric-sql/pglite@0.2.17)(@libsql/kysely-libsql@0.4.1(kysely@0.28.4))(better-sqlite3@11.9.1)(kysely@0.28.4)(mysql2@3.14.3)(pg@8.16.3)
       msw:
         specifier: ^2.7.6
         version: 2.7.6(@types/node@20.14.13)(typescript@5.8.3)
@@ -6875,10 +6890,12 @@ packages:
 
   libsql@0.3.19:
     resolution: {integrity: sha512-Aj5cQ5uk/6fHdmeW0TiXK42FqUlwx7ytmMLPSaUQPin5HKKKuUPD62MAbN4OEweGBBI7q1BekoEN4gPUEL6MZA==}
+    cpu: [x64, arm64, wasm32]
     os: [darwin, linux, win32]
 
   libsql@0.5.5:
     resolution: {integrity: sha512-TEFJ1X6lP0yDZIUYznlvQnzdajQ7TEPAAw1C9AvFiDp4OSBiH//yj3VHbYQSFkeHtFvL+6O4waOWQM1LA5Qggw==}
+    cpu: [x64, arm64, wasm32]
     os: [darwin, linux, win32]
 
   lightningcss-darwin-arm64@1.29.2:
@@ -7432,8 +7449,8 @@ packages:
     resolution: {integrity: sha512-+MrqnJRtxdF+xngFfUUkIMQrUUL0KsxbADUkn23Z/4ibGg192Q+z+CQyiYwvWTsYjJygmMR8+w3ZDa98Zh6ESg==}
     engines: {node: '>=12.0.0'}
 
-  mysql2@3.14.0:
-    resolution: {integrity: sha512-8eMhmG6gt/hRkU1G+8KlGOdQi2w+CgtNoD1ksXZq9gQfkfDsX4LHaBwTe1SY0Imx//t2iZA03DFnyYKPinxSRw==}
+  mysql2@3.14.3:
+    resolution: {integrity: sha512-fD6MLV8XJ1KiNFIF0bS7Msl8eZyhlTDCDl75ajU5SJtpdx9ZPEACulJcqJWr1Y8OYyxsFc4j3+nflpmhxCU5aQ==}
     engines: {node: '>= 8.0'}
 
   named-placeholders@1.1.3:
@@ -7762,11 +7779,11 @@ packages:
   perfect-debounce@1.0.0:
     resolution: {integrity: sha512-xCy9V055GLEqoFaHoC1SoLIaLmWctgCUaBaWxDZ7/Zx4CTyX7cJQLJOok/orfjZAh9kEYpjJa4d0KcJmCbctZA==}
 
-  pg-cloudflare@1.1.1:
-    resolution: {integrity: sha512-xWPagP/4B6BgFO+EKz3JONXv3YDgvkbVrGw2mTo3D6tVDQRh1e7cqVGvyR3BE+eQgAvx1XhW/iEASj4/jCWl3Q==}
+  pg-cloudflare@1.2.7:
+    resolution: {integrity: sha512-YgCtzMH0ptvZJslLM1ffsY4EuGaU0cx4XSdXLRFae8bPP4dS5xL1tNB3k2o/N64cHJpwU7dxKli/nZ2lUa5fLg==}
 
-  pg-connection-string@2.7.0:
-    resolution: {integrity: sha512-PI2W9mv53rXJQEOb8xNR8lH7Hr+EKa6oJa38zsK0S/ky2er16ios1wLKhZyxzD7jUReiWokc9WK5nxSnC7W1TA==}
+  pg-connection-string@2.9.1:
+    resolution: {integrity: sha512-nkc6NpDcvPVpZXxrreI/FOtX3XemeLl8E0qFr6F2Lrm/I8WOnaWNhIPK2Z7OHpw7gh5XJThi6j6ppgNoaT1w4w==}
 
   pg-int8@1.0.1:
     resolution: {integrity: sha512-WCtabS6t3c8SkpDBUlb1kjOs7l66xsGdKpIPZsg4wR+B3+u9UAum2odSsF9tnvxg80h4ZxLWMy4pRjOsFIqQpw==}
@@ -7776,13 +7793,13 @@ packages:
     resolution: {integrity: sha512-BM/Thnrw5jm2kKLE5uJkXqqExRUY/toLHda65XgFTBTFYZyopbKjBe29Ii3RbkvlsMoFwD+tHeGaCjjv0gHlyw==}
     engines: {node: '>=4'}
 
-  pg-pool@3.8.0:
-    resolution: {integrity: sha512-VBw3jiVm6ZOdLBTIcXLNdSotb6Iy3uOCwDGFAksZCXmi10nyRvnP2v3jl4d+IsLYRyXf6o9hIm/ZtUzlByNUdw==}
+  pg-pool@3.10.1:
+    resolution: {integrity: sha512-Tu8jMlcX+9d8+QVzKIvM/uJtp07PKr82IUOYEphaWcoBhIYkoHpLXN3qO59nAI11ripznDsEzEv8nUxBVWajGg==}
     peerDependencies:
       pg: '>=8.0'
 
-  pg-protocol@1.8.0:
-    resolution: {integrity: sha512-jvuYlEkL03NRvOoyoRktBK7+qU5kOvlAwvmrH8sr3wbLrOdVWsRxQfz8mMy9sZFsqJ1hEWNfdWKI4SAmoL+j7g==}
+  pg-protocol@1.10.3:
+    resolution: {integrity: sha512-6DIBgBQaTKDJyxnXaLiLR8wBpQQcGWuAESkRBX/t6OwA8YsqP+iVSiond2EDy6Y/dsGk8rh/jtax3js5NeV7JQ==}
 
   pg-types@2.2.0:
     resolution: {integrity: sha512-qTAAlrEsl8s4OiEQY69wDvcMIdQN6wdz5ojQiOy6YRMuynxenON0O5oCpJI6lshc6scgAY8qvJ2On/p+CXY0GA==}
@@ -7792,9 +7809,9 @@ packages:
     resolution: {integrity: sha512-cRL3JpS3lKMGsKaWndugWQoLOCoP+Cic8oseVcbr0qhPzYD5DWXK+RZ9LY9wxRf7RQia4SCwQlXk0q6FCPrVng==}
     engines: {node: '>=10'}
 
-  pg@8.14.1:
-    resolution: {integrity: sha512-0TdbqfjwIun9Fm/r89oB7RFQ0bLgduAhiIqIXOsyKoiC/L54DbuAAzIEN/9Op0f1Po9X7iCPXGoa/Ah+2aI8Xw==}
-    engines: {node: '>= 8.0.0'}
+  pg@8.16.3:
+    resolution: {integrity: sha512-enxc1h0jA/aq5oSDMvqyW3q89ra6XIIDZgCX9vkMrnz5DFTw/Ny3Li2lFQ+pt3L6MCgm/5o2o8HW9hiJji+xvw==}
+    engines: {node: '>= 16.0.0'}
     peerDependencies:
       pg-native: '>=3.0.1'
     peerDependenciesMeta:
@@ -13526,13 +13543,13 @@ snapshots:
   '@types/pg@8.11.6':
     dependencies:
       '@types/node': 20.14.13
-      pg-protocol: 1.8.0
+      pg-protocol: 1.10.3
       pg-types: 4.0.2
 
   '@types/pg@8.6.1':
     dependencies:
       '@types/node': 20.14.13
-      pg-protocol: 1.8.0
+      pg-protocol: 1.10.3
       pg-types: 2.2.0
 
   '@types/qs@6.9.18': {}
@@ -13721,7 +13738,7 @@ snapshots:
       sirv: 3.0.1
       tinyglobby: 0.2.12
       tinyrainbow: 2.0.0
-      vitest: 3.1.1(@types/debug@4.1.12)(@types/node@20.14.13)(@vitest/browser@3.1.1)(@vitest/ui@3.1.1)(happy-dom@17.4.4)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.29.3)(msw@2.7.6(@types/node@20.14.13)(typescript@5.8.3))(sass@1.89.2)(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.1)
+      vitest: 3.1.1(@types/debug@4.1.12)(@types/node@22.14.1)(@vitest/browser@3.1.1)(@vitest/ui@3.1.1)(happy-dom@17.4.4)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.29.3)(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(sass@1.89.2)(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.1)
 
   '@vitest/utils@3.1.1':
     dependencies:
@@ -14015,8 +14032,7 @@ snapshots:
     dependencies:
       possible-typed-array-names: 1.1.0
 
-  aws-ssl-profiles@1.1.2:
-    optional: true
+  aws-ssl-profiles@1.1.2: {}
 
   axios@1.8.4:
     dependencies:
@@ -14666,8 +14682,7 @@ snapshots:
 
   delayed-stream@1.0.0: {}
 
-  denque@2.1.0:
-    optional: true
+  denque@2.1.0: {}
 
   dequal@2.0.3: {}
 
@@ -14720,7 +14735,7 @@ snapshots:
 
   dotenv@8.6.0: {}
 
-  drizzle-orm@0.41.0(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.3)(@opentelemetry/api@1.8.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.0)(pg@8.14.1)(prisma@6.6.0(typescript@5.8.3)):
+  drizzle-orm@0.41.0(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.3)(@opentelemetry/api@1.8.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3)):
     optionalDependencies:
       '@cloudflare/workers-types': 4.20250507.0
       '@electric-sql/pglite': 0.2.17
@@ -14731,8 +14746,23 @@ snapshots:
       '@types/pg': 8.11.6
       better-sqlite3: 11.9.1
       kysely: 0.27.6
-      mysql2: 3.14.0
-      pg: 8.14.1
+      mysql2: 3.14.3
+      pg: 8.16.3
+      prisma: 6.6.0(typescript@5.8.3)
+
+  drizzle-orm@0.41.0(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.3)(@opentelemetry/api@1.9.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@11.9.1)(kysely@0.28.4)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3)):
+    optionalDependencies:
+      '@cloudflare/workers-types': 4.20250507.0
+      '@electric-sql/pglite': 0.2.17
+      '@libsql/client': 0.15.3
+      '@opentelemetry/api': 1.9.0
+      '@prisma/client': 6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3)
+      '@types/better-sqlite3': 7.6.13
+      '@types/pg': 8.11.6
+      better-sqlite3: 11.9.1
+      kysely: 0.28.4
+      mysql2: 3.14.3
+      pg: 8.16.3
       prisma: 6.6.0(typescript@5.8.3)
 
   dset@3.1.4: {}
@@ -15141,19 +15171,19 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  fumadb@0.0.9(drizzle-orm@0.41.0(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.3)(@opentelemetry/api@1.8.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.0)(pg@8.14.1)(prisma@6.6.0(typescript@5.8.3)))(prisma@6.6.0(typescript@5.8.3))(typeorm@0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.0)(pg@8.14.1)(reflect-metadata@0.2.2)):
+  fumadb@0.0.9(drizzle-orm@0.41.0(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.3)(@opentelemetry/api@1.8.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3)))(prisma@6.6.0(typescript@5.8.3))(typeorm@0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2)):
     dependencies:
       '@clack/prompts': 0.11.0
       '@paralleldrive/cuid2': 2.2.2
       commander: 14.0.0
       kysely: 0.28.4
-      kysely-typeorm: 0.3.0(kysely@0.28.4)(typeorm@0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.0)(pg@8.14.1)(reflect-metadata@0.2.2))
+      kysely-typeorm: 0.3.0(kysely@0.28.4)(typeorm@0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2))
       semver: 7.7.2
       zod: 4.0.15
     optionalDependencies:
-      drizzle-orm: 0.41.0(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.3)(@opentelemetry/api@1.8.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.0)(pg@8.14.1)(prisma@6.6.0(typescript@5.8.3))
+      drizzle-orm: 0.41.0(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.3)(@opentelemetry/api@1.8.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3))
       prisma: 6.6.0(typescript@5.8.3)
-      typeorm: 0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.0)(pg@8.14.1)(reflect-metadata@0.2.2)
+      typeorm: 0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2)
 
   fumadocs-core@15.2.6(@types/react@19.1.1)(next@15.3.0(@babel/core@7.26.10)(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(sass@1.89.2))(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
@@ -15259,7 +15289,6 @@ snapshots:
   generate-function@2.3.1:
     dependencies:
       is-property: 1.0.2
-    optional: true
 
   gensync@1.0.0-beta.2: {}
 
@@ -15737,8 +15766,7 @@ snapshots:
 
   is-potential-custom-element-name@1.0.1: {}
 
-  is-property@1.0.2:
-    optional: true
+  is-property@1.0.2: {}
 
   is-reference@1.2.1:
     dependencies:
@@ -15961,7 +15989,7 @@ snapshots:
 
   kolorist@1.8.0: {}
 
-  kysely-codegen@0.15.0(@libsql/kysely-libsql@0.4.1(kysely@0.27.6))(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.0)(pg@8.14.1):
+  kysely-codegen@0.15.0(@libsql/kysely-libsql@0.4.1(kysely@0.27.6))(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3):
     dependencies:
       chalk: 4.1.2
       dotenv: 16.5.0
@@ -15973,10 +16001,10 @@ snapshots:
     optionalDependencies:
       '@libsql/kysely-libsql': 0.4.1(kysely@0.27.6)
       better-sqlite3: 11.9.1
-      mysql2: 3.14.0
-      pg: 8.14.1
+      mysql2: 3.14.3
+      pg: 8.16.3
 
-  kysely-codegen@0.15.0(@libsql/kysely-libsql@0.4.1(kysely@0.28.4))(better-sqlite3@11.9.1)(kysely@0.28.4)(mysql2@3.14.0)(pg@8.14.1):
+  kysely-codegen@0.15.0(@libsql/kysely-libsql@0.4.1(kysely@0.28.4))(better-sqlite3@11.9.1)(kysely@0.28.4)(mysql2@3.14.3)(pg@8.16.3):
     dependencies:
       chalk: 4.1.2
       dotenv: 16.5.0
@@ -15988,8 +16016,8 @@ snapshots:
     optionalDependencies:
       '@libsql/kysely-libsql': 0.4.1(kysely@0.28.4)
       better-sqlite3: 11.9.1
-      mysql2: 3.14.0
-      pg: 8.14.1
+      mysql2: 3.14.3
+      pg: 8.16.3
 
   kysely-libsql@0.7.1(kysely@0.28.4):
     dependencies:
@@ -15999,7 +16027,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  kysely-pglite@0.6.1(@electric-sql/pglite@0.2.17)(@libsql/kysely-libsql@0.4.1(kysely@0.27.6))(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.0)(pg@8.14.1):
+  kysely-pglite@0.6.1(@electric-sql/pglite@0.2.17)(@libsql/kysely-libsql@0.4.1(kysely@0.27.6))(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3):
     dependencies:
       '@electric-sql/pglite': 0.2.17
       '@oclif/core': 4.2.10
@@ -16011,7 +16039,7 @@ snapshots:
       globby: 14.1.0
       jiti: 2.0.0-beta.3
       kysely: 0.27.6
-      kysely-codegen: 0.15.0(@libsql/kysely-libsql@0.4.1(kysely@0.27.6))(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.0)(pg@8.14.1)
+      kysely-codegen: 0.15.0(@libsql/kysely-libsql@0.4.1(kysely@0.27.6))(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)
       radash: 12.1.0
     transitivePeerDependencies:
       - '@libsql/kysely-libsql'
@@ -16023,7 +16051,7 @@ snapshots:
       - tarn
       - tedious
 
-  kysely-pglite@0.6.1(@electric-sql/pglite@0.2.17)(@libsql/kysely-libsql@0.4.1(kysely@0.28.4))(better-sqlite3@11.9.1)(kysely@0.28.4)(mysql2@3.14.0)(pg@8.14.1):
+  kysely-pglite@0.6.1(@electric-sql/pglite@0.2.17)(@libsql/kysely-libsql@0.4.1(kysely@0.28.4))(better-sqlite3@11.9.1)(kysely@0.28.4)(mysql2@3.14.3)(pg@8.16.3):
     dependencies:
       '@electric-sql/pglite': 0.2.17
       '@oclif/core': 4.2.10
@@ -16035,7 +16063,7 @@ snapshots:
       globby: 14.1.0
       jiti: 2.0.0-beta.3
       kysely: 0.28.4
-      kysely-codegen: 0.15.0(@libsql/kysely-libsql@0.4.1(kysely@0.28.4))(better-sqlite3@11.9.1)(kysely@0.28.4)(mysql2@3.14.0)(pg@8.14.1)
+      kysely-codegen: 0.15.0(@libsql/kysely-libsql@0.4.1(kysely@0.28.4))(better-sqlite3@11.9.1)(kysely@0.28.4)(mysql2@3.14.3)(pg@8.16.3)
       radash: 12.1.0
     transitivePeerDependencies:
       - '@libsql/kysely-libsql'
@@ -16047,10 +16075,10 @@ snapshots:
       - tarn
       - tedious
 
-  kysely-typeorm@0.3.0(kysely@0.28.4)(typeorm@0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.0)(pg@8.14.1)(reflect-metadata@0.2.2)):
+  kysely-typeorm@0.3.0(kysely@0.28.4)(typeorm@0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2)):
     dependencies:
       kysely: 0.28.4
-      typeorm: 0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.0)(pg@8.14.1)(reflect-metadata@0.2.2)
+      typeorm: 0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2)
 
   kysely@0.27.6: {}
 
@@ -16308,11 +16336,9 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
-  lru-cache@7.18.3:
-    optional: true
+  lru-cache@7.18.3: {}
 
-  lru.min@1.1.2:
-    optional: true
+  lru.min@1.1.2: {}
 
   lucide-react@0.487.0(react@19.1.0):
     dependencies:
@@ -16952,7 +16978,7 @@ snapshots:
 
   mylas@2.1.13: {}
 
-  mysql2@3.14.0:
+  mysql2@3.14.3:
     dependencies:
       aws-ssl-profiles: 1.1.2
       denque: 2.1.0
@@ -16963,12 +16989,10 @@ snapshots:
       named-placeholders: 1.1.3
       seq-queue: 0.0.5
       sqlstring: 2.3.3
-    optional: true
 
   named-placeholders@1.1.3:
     dependencies:
       lru-cache: 7.18.3
-    optional: true
 
   nanoid@3.3.11: {}
 
@@ -17306,22 +17330,20 @@ snapshots:
 
   perfect-debounce@1.0.0: {}
 
-  pg-cloudflare@1.1.1:
+  pg-cloudflare@1.2.7:
     optional: true
 
-  pg-connection-string@2.7.0:
-    optional: true
+  pg-connection-string@2.9.1: {}
 
   pg-int8@1.0.1: {}
 
   pg-numeric@1.0.2: {}
 
-  pg-pool@3.8.0(pg@8.14.1):
+  pg-pool@3.10.1(pg@8.16.3):
     dependencies:
-      pg: 8.14.1
-    optional: true
+      pg: 8.16.3
 
-  pg-protocol@1.8.0: {}
+  pg-protocol@1.10.3: {}
 
   pg-types@2.2.0:
     dependencies:
@@ -17341,21 +17363,19 @@ snapshots:
       postgres-interval: 3.0.0
       postgres-range: 1.1.4
 
-  pg@8.14.1:
+  pg@8.16.3:
     dependencies:
-      pg-connection-string: 2.7.0
-      pg-pool: 3.8.0(pg@8.14.1)
-      pg-protocol: 1.8.0
+      pg-connection-string: 2.9.1
+      pg-pool: 3.10.1(pg@8.16.3)
+      pg-protocol: 1.10.3
       pg-types: 2.2.0
       pgpass: 1.0.5
     optionalDependencies:
-      pg-cloudflare: 1.1.1
-    optional: true
+      pg-cloudflare: 1.2.7
 
   pgpass@1.0.5:
     dependencies:
       split2: 4.2.0
-    optional: true
 
   picocolors@1.1.1: {}
 
@@ -17987,8 +18007,7 @@ snapshots:
 
   semver@7.7.2: {}
 
-  seq-queue@0.0.5:
-    optional: true
+  seq-queue@0.0.5: {}
 
   serialize-javascript@6.0.2:
     dependencies:
@@ -18179,15 +18198,13 @@ snapshots:
       cross-spawn: 7.0.6
       signal-exit: 4.1.0
 
-  split2@4.2.0:
-    optional: true
+  split2@4.2.0: {}
 
   sprintf-js@1.0.3: {}
 
   sql-highlight@6.1.0: {}
 
-  sqlstring@2.3.3:
-    optional: true
+  sqlstring@2.3.3: {}
 
   stackback@0.0.2: {}
 
@@ -18525,7 +18542,7 @@ snapshots:
       es-errors: 1.3.0
       is-typed-array: 1.1.15
 
-  typeorm@0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.0)(pg@8.14.1)(reflect-metadata@0.2.2):
+  typeorm@0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2):
     dependencies:
       '@sqltools/formatter': 1.2.5
       ansis: 3.17.0
@@ -18544,8 +18561,8 @@ snapshots:
       yargs: 17.7.2
     optionalDependencies:
       better-sqlite3: 11.9.1
-      mysql2: 3.14.0
-      pg: 8.14.1
+      mysql2: 3.14.3
+      pg: 8.16.3
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color

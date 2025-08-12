@@ -15,11 +15,11 @@ export async function migrate(context: CliContext) {
 	}
 
 	// Load config and get db client from default export
-	logger.info(`Loading backend config from ${configPath}`);
 	const _db = await readConfigAndGetDb(context, configPath);
+
 	logger.info('Loaded backend config and obtained database client.');
 	// logger.debug(_db);
-	// logger.info(await _db.createMigrator().getVersion());
+	logger.info(await _db.createMigrator().getVersion());
 	// logger.info(JSON.stringify(_db.generateSchema('latest'), null, 2));
 	// logger.info(await _db.version());
 
