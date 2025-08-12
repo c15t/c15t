@@ -52,7 +52,6 @@ export default defineConfig({
 			'v2/schema/index': ['./src/v2/schema/index.ts'],
 			'v2/pkgs/db-adapters/index': ['./src/v2/pkgs/db-adapters/index.ts'],
 			'v2/pkgs/migrator/index': ['./src/v2/pkgs/migrator/index.ts'],
-			'v2/pkgs/results/index': ['./src/v2/pkgs/results/index.ts'],
 			'v2/define-config': ['./src/v2/define-config.ts'],
 			'v2/types/index': ['./src/v2/types/index.ts'],
 			core: ['./src/core.ts'],

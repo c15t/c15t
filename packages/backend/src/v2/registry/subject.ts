@@ -1,4 +1,4 @@
-import { DoubleTieError, ERROR_CODES } from '~/v2/pkgs/results';
+import { ORPCError } from '@orpc/server';
 import type { Registry } from './types';
 import { generateUniqueId } from './utils/generate-id';
 
@@ -29,17 +29,15 @@ export function subjectRegistry({ db, ctx: { logger } }: Registry) {
 						providedExternalId: externalSubjectId,
 					});
 
-					throw new DoubleTieError(
-						'The specified subject could not be found. Please verify the subject identifiers and try again.',
-						{
-							code: ERROR_CODES.NOT_FOUND,
-							status: 404,
-							meta: {
-								providedSubjectId: subjectId,
-								providedExternalId: externalSubjectId,
-							},
-						}
-					);
+					throw new ORPCError('SUBJECT_NOT_FOUND', {
+						message:
+							'The specified subject could not be found. Please verify the subject identifiers and try again.',
+						status: 404,
+						data: {
+							providedSubjectId: subjectId,
+							providedExternalId: externalSubjectId,
+						},
+					});
 				}
 
 				return subject;
@@ -52,9 +50,10 @@ export function subjectRegistry({ db, ctx: { logger } }: Registry) {
 				});
 
 				if (!subject) {
-					throw new DoubleTieError('Subject not found by subjectId', {
-						code: ERROR_CODES.NOT_FOUND,
+					throw new ORPCError('SUBJECT_NOT_FOUND', {
+						message: 'Subject not found by subjectId',
 						status: 404,
+						data: { subjectId },
 					});
 				}
 

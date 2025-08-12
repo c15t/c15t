@@ -1,5 +1,5 @@
+import { ORPCError } from '@orpc/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DoubleTieError, ERROR_CODES } from '../pkgs/results';
 import type { ConsentPolicy, PolicyType } from '../schema';
 import { policyRegistry } from './consent-policy';
 import type { Registry } from './types';
@@ -492,7 +492,7 @@ describe('policyRegistry', () => {
 		});
 
 		describe('error handling', () => {
-			it('should throw DoubleTieError when crypto.subtle.digest fails', async () => {
+			it('should throw ORPCError when crypto.subtle.digest fails', async () => {
 				const cryptoError = new Error('Crypto operation failed');
 				mockCryptoSubtle.digest.mockRejectedValue(cryptoError);
 
@@ -508,13 +508,13 @@ describe('policyRegistry', () => {
 
 				const promise = registry.findOrCreatePolicy('privacy_policy');
 
-				await expect(promise).rejects.toBeInstanceOf(DoubleTieError);
+				await expect(promise).rejects.toBeInstanceOf(ORPCError);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
 						message: 'Failed to generate policy content hash',
-						code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+						code: 'POLICY_CREATION_FAILED',
 						status: 500,
-						cause: cryptoError,
+						data: { name: 'privacy_policy' },
 					})
 				);
 
@@ -537,18 +537,24 @@ describe('policyRegistry', () => {
 
 				const promise = registry.findOrCreatePolicy('privacy_policy');
 
-				await expect(promise).rejects.toBeInstanceOf(DoubleTieError);
+				await expect(promise).rejects.toBeInstanceOf(ORPCError);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
 						message: 'Failed to generate policy content hash',
-						code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+						code: 'POLICY_CREATION_FAILED',
 						status: 500,
-						cause: expect.any(Error),
+						data: { name: 'privacy_policy' },
 					})
 				);
 
 				const error = await promise.catch((e) => e);
-				expect(error.cause.message).toBe('String error message');
+				expect(error).toEqual(
+					expect.objectContaining({
+						code: 'POLICY_CREATION_FAILED',
+						status: 500,
+						data: { name: 'privacy_policy' },
+					})
+				);
 			});
 
 			it('should propagate database findFirst errors', async () => {

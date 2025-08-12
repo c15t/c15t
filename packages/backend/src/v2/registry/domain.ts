@@ -1,4 +1,4 @@
-import { DoubleTieError, ERROR_CODES } from '~/v2/pkgs/results';
+import { ORPCError } from '@orpc/server';
 import type { Registry } from './types';
 
 export function domainRegistry({ db, ctx: { logger } }: Registry) {
@@ -34,9 +34,10 @@ export function domainRegistry({ db, ctx: { logger } }: Registry) {
 			});
 
 			if (!domain) {
-				throw new DoubleTieError('Failed to create domain', {
-					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+				throw new ORPCError('DOMAIN_CREATION_FAILED', {
+					message: 'Failed to create domain',
 					status: 503,
+					data: { name },
 				});
 			}
 

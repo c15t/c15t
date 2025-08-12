@@ -1,4 +1,4 @@
-import { DoubleTieError, ERROR_CODES } from '~/v2/pkgs/results';
+import { ORPCError } from '@orpc/server';
 import type { AuditLog } from '../schema';
 import type { Registry } from './types';
 import { generateUniqueId } from './utils/generate-id';
@@ -31,13 +31,10 @@ export function auditLogRegistry({
 					auditLog,
 				});
 
-				throw new DoubleTieError(
-					'Failed to create audit log - operation returned null',
-					{
-						code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-						status: 500,
-					}
-				);
+				throw new ORPCError('INTERNAL_SERVER_ERROR', {
+					message: 'Failed to create audit log',
+					status: 500,
+				});
 			}
 
 			return createdLog;

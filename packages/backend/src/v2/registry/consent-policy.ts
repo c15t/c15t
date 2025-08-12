@@ -1,4 +1,4 @@
-import { DoubleTieError, ERROR_CODES } from '~/v2/pkgs/results';
+import { ORPCError } from '@orpc/server';
 import type { PolicyType } from '../schema';
 import type { Registry } from './types';
 
@@ -15,11 +15,11 @@ export function policyRegistry({ db, ctx: { logger } }: Registry) {
 			contentHash = Array.from(new Uint8Array(hashBuffer))
 				.map((b) => b.toString(16).padStart(2, '0'))
 				.join('');
-		} catch (error) {
-			throw new DoubleTieError('Failed to generate policy content hash', {
-				code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+		} catch {
+			throw new ORPCError('POLICY_CREATION_FAILED', {
+				message: 'Failed to generate policy content hash',
 				status: 500,
-				cause: error instanceof Error ? error : new Error(String(error)),
+				data: { name },
 			});
 		}
 

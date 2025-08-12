@@ -3,10 +3,10 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-base';
 import type { C15TContext, C15TOptions } from '~/v2/types';
 import { version as packageVersion } from '../version';
-import { createTelemetryOptions } from './pkgs/results';
 import { initLogger } from './pkgs/utils/logger';
 import { createRegistry } from './registry';
 import { DB } from './schema';
+import { createTelemetryOptions } from './utils/create-telemetry-options';
 
 // SDK instance should be at module level for proper lifecycle management
 let telemetrySdk: NodeSDK | undefined;

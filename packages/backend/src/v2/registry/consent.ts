@@ -1,4 +1,4 @@
-import { DoubleTieError, ERROR_CODES } from '~/v2/pkgs/results';
+import { ORPCError } from '@orpc/server';
 import type { Consent } from '../schema';
 import type { Registry } from './types';
 import { generateUniqueId } from './utils/generate-id';
@@ -23,13 +23,14 @@ export function consentRegistry({ db, ctx: { logger } }: Registry) {
 			});
 
 			if (!createdConsent) {
-				throw new DoubleTieError(
-					'Failed to create consent - operation returned null',
-					{
-						code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-						status: 500,
-					}
-				);
+				throw new ORPCError('CONSENT_CREATION_FAILED', {
+					message: 'Failed to create consent - operation returned null',
+					status: 500,
+					data: {
+						subjectId: consent.subjectId,
+						domainId: consent.domainId,
+					},
+				});
 			}
 
 			return createdConsent;

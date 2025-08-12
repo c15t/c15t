@@ -1,4 +1,4 @@
-import { DoubleTieError, ERROR_CODES } from '~/v2/pkgs/results';
+import { ORPCError } from '@orpc/server';
 import { env } from './env';
 
 /**
@@ -14,7 +14,7 @@ const TRAILING_SLASHES_REGEX = /\/+$/;
  * @param url - The URL to check for path components
  * @returns Boolean indicating whether the URL has a non-root path
  *
- * @throws {DoubleTieError} When the provided URL is invalid
+ * @throws {ORPCError} When the provided URL is invalid
  *
  * @internal
  */
@@ -23,16 +23,11 @@ function checkHasPath(url: string): boolean {
 		const parsedUrl = new URL(url);
 		return parsedUrl.pathname !== '/';
 	} catch {
-		throw new DoubleTieError(
-			`Invalid base URL: ${url}. Please provide a valid base URL.`,
-			{
-				code: ERROR_CODES.BAD_REQUEST,
-				status: 400,
-				meta: {
-					url,
-				},
-			}
-		);
+		throw new ORPCError('INPUT_VALIDATION_FAILED', {
+			message: `Invalid base URL: ${url}. Please provide a valid base URL.`,
+			status: 400,
+			data: { url },
+		});
 	}
 }
 
@@ -46,7 +41,7 @@ function checkHasPath(url: string): boolean {
  * @param path - The path to append if needed (defaults to '/api/auth')
  * @returns The URL with the path component
  *
- * @throws {DoubleTieError} When the provided URL is invalid
+ * @throws {ORPCError} When the provided URL is invalid
  *
  * @internal
  */
@@ -71,7 +66,7 @@ function withPath(url: string, path = '/api/auth') {
  * @param path - Optional path to append to the URL if it doesn't have one
  * @returns The determined base URL or undefined if unable to determine
  *
- * @throws {DoubleTieError} When the provided URL is invalid
+ * @throws {ORPCError} When the provided URL is invalid
  *
  * @example
  * ```ts

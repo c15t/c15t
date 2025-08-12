@@ -1,5 +1,5 @@
+import { ORPCError } from '@orpc/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DoubleTieError, ERROR_CODES } from '../pkgs/results';
 import type { Consent } from '../schema';
 import { consentRegistry } from './consent';
 import type { Registry } from './types';
@@ -511,7 +511,7 @@ describe('consentRegistry', () => {
 		});
 
 		describe('error handling', () => {
-			it('should throw DoubleTieError when consent creation fails', async () => {
+			it('should throw ORPCError when consent creation fails', async () => {
 				const consentInput = createConsentInput();
 
 				const db = {
@@ -525,12 +525,13 @@ describe('consentRegistry', () => {
 
 				const promise = registry.createConsent(consentInput);
 
-				await expect(promise).rejects.toBeInstanceOf(DoubleTieError);
+				await expect(promise).rejects.toBeInstanceOf(ORPCError);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
 						message: 'Failed to create consent - operation returned null',
-						code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+						code: 'CONSENT_CREATION_FAILED',
 						status: 500,
+						data: { subjectId: 'sub_test_456', domainId: 'dom_test_789' },
 					})
 				);
 
@@ -553,7 +554,7 @@ describe('consentRegistry', () => {
 				});
 			});
 
-			it('should throw DoubleTieError when consent creation returns undefined', async () => {
+			it('should throw ORPCError when consent creation returns undefined', async () => {
 				const consentInput = createConsentInput();
 
 				const db = {
@@ -567,12 +568,13 @@ describe('consentRegistry', () => {
 
 				const promise = registry.createConsent(consentInput);
 
-				await expect(promise).rejects.toBeInstanceOf(DoubleTieError);
+				await expect(promise).rejects.toBeInstanceOf(ORPCError);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
 						message: 'Failed to create consent - operation returned null',
-						code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+						code: 'CONSENT_CREATION_FAILED',
 						status: 500,
+						data: { subjectId: 'sub_test_456', domainId: 'dom_test_789' },
 					})
 				);
 			});

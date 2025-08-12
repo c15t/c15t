@@ -32,10 +32,6 @@
 			"types": "./dist/v2/pkgs/migrator/index.d.ts",
 			"import": "./dist/v2/pkgs/migrator/index.js"
 		},
-		"./v2/pkgs/results": {
-			"types": "./dist/v2/pkgs/results/index.d.ts",
-			"import": "./dist/v2/pkgs/results/index.js"
-		},
 		"./v2/types": {
 			"types": "./dist/v2/types/index.d.ts",
 			"import": "./dist/v2/types/index.js"

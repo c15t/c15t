@@ -1,5 +1,5 @@
+import { ORPCError } from '@orpc/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DoubleTieError, ERROR_CODES } from '../pkgs/results';
 import type { AuditLog } from '../schema';
 import { auditLogRegistry } from './audit-log';
 import type { Registry } from './types';
@@ -57,7 +57,7 @@ describe('auditLogRegistry', () => {
 			vi.useRealTimers();
 		});
 
-		it('should throw DoubleTieError when creation fails', async () => {
+		it('should throw ORPCError when creation fails', async () => {
 			const db = {
 				create: vi.fn().mockResolvedValue(null),
 			};
@@ -65,11 +65,11 @@ describe('auditLogRegistry', () => {
 			const registry = auditLogRegistry({ db } as unknown as Registry);
 
 			const promise = registry.createAuditLog(baseInput);
-			await expect(promise).rejects.toBeInstanceOf(DoubleTieError);
+			await expect(promise).rejects.toBeInstanceOf(ORPCError);
 			await expect(promise).rejects.toEqual(
 				expect.objectContaining({
-					code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-					statusCode: 500,
+					code: 'INTERNAL_SERVER_ERROR',
+					status: 500,
 				})
 			);
 		});

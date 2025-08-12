@@ -1,5 +1,6 @@
 import { createLogger } from '@doubletie/logger';
 import { OpenAPIHandler } from '@orpc/openapi/fetch';
+import { ORPCError } from '@orpc/server';
 import { CORSPlugin } from '@orpc/server/plugins';
 import defu from 'defu';
 import { createCORSOptions } from '~/v2/middleware/cors';
@@ -10,7 +11,6 @@ import {
 	createOpenAPISpec,
 } from '~/v2/middleware/openapi';
 import { getIpAddress } from '~/v2/middleware/process-ip';
-import { DoubleTieError, ERROR_CODES } from '~/v2/pkgs/results';
 import type { DeepPartial } from '~/v2/pkgs/types/helper';
 // import { withRequestSpan } from './pkgs/api-router/telemetry';
 import { router } from '~/v2/router';
@@ -170,24 +170,26 @@ export const c15tInstance = (options: C15TOptions) => {
 	};
 
 	/**
-	 * Create error response for DoubleTieError
+	 * Create error response for ORPCError
 	 */
-	const createDoubleTieErrorResponse = (error: DoubleTieError): Response => {
-		// Sanitize error message to prevent sensitive information disclosure
+	const createORPCErrorResponse = (
+		error: ORPCError<string, unknown>
+	): Response => {
 		const sanitizedMessage = error.message.replace(
 			/[^\w\s.,;:!?()[\]{}'"+-]/g,
 			''
 		);
+
 		return new Response(
 			JSON.stringify({
 				code: error.code,
 				message: sanitizedMessage,
-				data: error.meta,
-				status: error.statusCode,
+				data: error.data ?? {},
+				status: error.status,
 				defined: true,
 			}),
 			{
-				status: error.statusCode,
+				status: error.status,
 				headers: { 'Content-Type': 'application/json' },
 			}
 		);
@@ -213,7 +215,7 @@ export const c15tInstance = (options: C15TOptions) => {
 
 		return new Response(
 			JSON.stringify({
-				code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+				code: 'INTERNAL_SERVER_ERROR',
 				message,
 				status,
 				defined: true,
@@ -322,8 +324,8 @@ export const c15tInstance = (options: C15TOptions) => {
 			logger.error('Request handling error:', error);
 
 			// Handle different error types
-			if (error instanceof DoubleTieError) {
-				return createDoubleTieErrorResponse(error);
+			if (error instanceof ORPCError) {
+				return createORPCErrorResponse(error);
 			}
 
 			return createUnknownErrorResponse(error);

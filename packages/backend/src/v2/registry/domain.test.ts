@@ -1,5 +1,5 @@
+import { ORPCError } from '@orpc/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DoubleTieError, ERROR_CODES } from '../pkgs/results';
 import type { Domain } from '../schema';
 import { domainRegistry } from './domain';
 import type { Registry } from './types';
@@ -242,7 +242,7 @@ describe('domainRegistry', () => {
 		});
 
 		describe('error handling', () => {
-			it('should throw DoubleTieError when domain creation fails', async () => {
+			it('should throw ORPCError when domain creation fails', async () => {
 				const db = {
 					findFirst: vi.fn().mockResolvedValue(null),
 					create: vi.fn().mockResolvedValue(null),
@@ -255,12 +255,12 @@ describe('domainRegistry', () => {
 
 				const promise = registry.findOrCreateDomain('failed.com');
 
-				await expect(promise).rejects.toBeInstanceOf(DoubleTieError);
+				await expect(promise).rejects.toBeInstanceOf(ORPCError);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
 						message: 'Failed to create domain',
-						code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-						statusCode: 503,
+						code: 'DOMAIN_CREATION_FAILED',
+						status: 503,
 					})
 				);
 
@@ -281,7 +281,7 @@ describe('domainRegistry', () => {
 				});
 			});
 
-			it('should throw DoubleTieError when domain creation returns undefined', async () => {
+			it('should throw ORPCError when domain creation returns undefined', async () => {
 				const db = {
 					findFirst: vi.fn().mockResolvedValue(null),
 					create: vi.fn().mockResolvedValue(undefined),
@@ -294,12 +294,12 @@ describe('domainRegistry', () => {
 
 				const promise = registry.findOrCreateDomain('undefined.com');
 
-				await expect(promise).rejects.toBeInstanceOf(DoubleTieError);
+				await expect(promise).rejects.toBeInstanceOf(ORPCError);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
 						message: 'Failed to create domain',
-						code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-						statusCode: 503,
+						code: 'DOMAIN_CREATION_FAILED',
+						status: 503,
 					})
 				);
 			});

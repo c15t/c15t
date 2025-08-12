@@ -1,5 +1,5 @@
+import { ORPCError } from '@orpc/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DoubleTieError, ERROR_CODES } from '../pkgs/results';
 import type { ConsentPurpose } from '../schema';
 import { consentPurposeRegistry } from './consent-purpose';
 import type { Registry } from './types';
@@ -246,7 +246,7 @@ describe('consentPurposeRegistry', () => {
 		});
 
 		describe('error handling', () => {
-			it('should throw DoubleTieError when consent purpose creation fails', async () => {
+			it('should throw ORPCError when consent purpose creation fails', async () => {
 				const db = {
 					findFirst: vi.fn().mockResolvedValue(null),
 					create: vi.fn().mockResolvedValue(null),
@@ -260,13 +260,13 @@ describe('consentPurposeRegistry', () => {
 				const promise =
 					registry.findOrCreateConsentPurposeByCode('failed-code');
 
-				await expect(promise).rejects.toBeInstanceOf(DoubleTieError);
+				await expect(promise).rejects.toBeInstanceOf(ORPCError);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
-						message:
-							'Failed to create consent purpose - operation returned null',
-						code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+						message: 'Failed to create consent purpose',
+						code: 'PURPOSE_CREATION_FAILED',
 						status: 500,
+						data: { purposeCode: 'failed-code' },
 					})
 				);
 
@@ -292,7 +292,7 @@ describe('consentPurposeRegistry', () => {
 				);
 			});
 
-			it('should throw DoubleTieError when consent purpose creation returns undefined', async () => {
+			it('should throw ORPCError when consent purpose creation returns undefined', async () => {
 				const db = {
 					findFirst: vi.fn().mockResolvedValue(null),
 					create: vi.fn().mockResolvedValue(undefined),
@@ -306,13 +306,13 @@ describe('consentPurposeRegistry', () => {
 				const promise =
 					registry.findOrCreateConsentPurposeByCode('undefined-code');
 
-				await expect(promise).rejects.toBeInstanceOf(DoubleTieError);
+				await expect(promise).rejects.toBeInstanceOf(ORPCError);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
-						message:
-							'Failed to create consent purpose - operation returned null',
-						code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+						message: 'Failed to create consent purpose',
+						code: 'PURPOSE_CREATION_FAILED',
 						status: 500,
+						data: { purposeCode: 'undefined-code' },
 					})
 				);
 			});

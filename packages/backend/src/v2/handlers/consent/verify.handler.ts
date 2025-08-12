@@ -52,7 +52,7 @@ interface PolicyConsentCheckParams {
  * This handler checks if a subject has given valid consent for a specific policy
  * and domain, optionally verifying specific purpose preferences.
  *
- * @throws {DoubleTieError} When:
+ * @throws {ORPCError} When:
  * - Subject creation fails
  * - Domain is not found
  * - Policy is not found or invalid
@@ -224,7 +224,7 @@ export const verifyConsent = os.consent.verify.handler(
  * @param params - Parameters for checking policy consent
  * @returns Verification result with consent details if valid
  *
- * @throws {DoubleTieError} When database operations fail
+ * @throws {ORPCError} When database operations fail
  */
 async function checkPolicyConsent({
 	policyId,

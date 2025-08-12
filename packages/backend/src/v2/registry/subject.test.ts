@@ -1,5 +1,5 @@
+import { ORPCError } from '@orpc/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DoubleTieError, ERROR_CODES } from '../pkgs/results';
 import type { Subject } from '../schema';
 import { subjectRegistry } from './subject';
 import type { Registry } from './types';
@@ -63,7 +63,7 @@ describe('subjectRegistry', () => {
 				expect(result).toEqual(mockSubject);
 			});
 
-			it('should throw DoubleTieError when both IDs are provided but no matching subject exists', async () => {
+			it('should throw ORPCError when both IDs are provided but no matching subject exists', async () => {
 				const db = {
 					findFirst: vi.fn().mockResolvedValue(null),
 				};
@@ -78,12 +78,12 @@ describe('subjectRegistry', () => {
 					externalSubjectId: 'ext_nonexistent',
 				});
 
-				await expect(promise).rejects.toBeInstanceOf(DoubleTieError);
+				await expect(promise).rejects.toBeInstanceOf(ORPCError);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
-						code: ERROR_CODES.NOT_FOUND,
-						statusCode: 404,
-						meta: {
+						code: 'SUBJECT_NOT_FOUND',
+						status: 404,
+						data: {
 							providedSubjectId: 'sub_nonexistent',
 							providedExternalId: 'ext_nonexistent',
 						},
@@ -123,7 +123,7 @@ describe('subjectRegistry', () => {
 				expect(result).toEqual(mockSubject);
 			});
 
-			it('should throw DoubleTieError when subject not found by subjectId', async () => {
+			it('should throw ORPCError when subject not found by subjectId', async () => {
 				const db = {
 					findFirst: vi.fn().mockResolvedValue(null),
 				};
@@ -137,11 +137,12 @@ describe('subjectRegistry', () => {
 					subjectId: 'sub_nonexistent',
 				});
 
-				await expect(promise).rejects.toBeInstanceOf(DoubleTieError);
+				await expect(promise).rejects.toBeInstanceOf(ORPCError);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
-						code: ERROR_CODES.NOT_FOUND,
-						statusCode: 404,
+						code: 'SUBJECT_NOT_FOUND',
+						status: 404,
+						data: { subjectId: 'sub_nonexistent' },
 					})
 				);
 			});
