@@ -9,10 +9,18 @@
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
-		"@libsql/kysely-libsql": "^0.4.1"
+		"@c15t/cli": "workspace:*",
+		"@libsql/kysely-libsql": "^0.4.1",
+		"@libsql/client": "^0.8.1",
+		"drizzle-orm": "^0.41.0",
+		"kysely": "^0.28.4",
+		"kysely-libsql": "^0.7.1",
+		"mysql2": "^3.14.3",
+		"pg": "^8.16.3"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^4.20250507.0",
+		"@types/pg": "8.11.6",
 		"wrangler": "^4.14.3"
 	}
 }
