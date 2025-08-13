@@ -1,19 +1,29 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type * as adapters from '@c15t/backend/v2/db/adapters';
+import type { drizzleAdapter } from '@c15t/backend/v2/db/adapters/drizzle';
+import type { kyselyAdapter } from '@c15t/backend/v2/db/adapters/kysely';
+import type { mongoAdapter } from '@c15t/backend/v2/db/adapters/mongo';
+import type { prismaAdapter } from '@c15t/backend/v2/db/adapters/prisma';
+import type { typeormAdapter } from '@c15t/backend/v2/db/adapters/typeorm';
 import * as p from '@clack/prompts';
 import type { CliContext } from '~/context/types';
 
-type AdapterKey = keyof typeof adapters;
+type AdapterKey =
+	| 'kyselyAdapter'
+	| 'drizzleAdapter'
+	| 'prismaAdapter'
+	| 'typeormAdapter'
+	| 'mongoAdapter';
 
-type KysleyProviders = Parameters<typeof adapters.kyselyAdapter>[0]['provider'];
-type DrizzleProviders = Parameters<
-	typeof adapters.drizzleAdapter
->[0]['provider'];
-type PrismaProviders = Parameters<typeof adapters.prismaAdapter>[0]['provider'];
-type TypeormProviders = Parameters<
-	typeof adapters.typeormAdapter
->[0]['provider'];
+type KysleyProviders = Parameters<typeof kyselyAdapter>[0]['provider'];
+type DrizzleProviders = Parameters<typeof drizzleAdapter>[0]['provider'];
+type PrismaProviders = Parameters<typeof prismaAdapter>[0]['provider'];
+type TypeormProviders = Parameters<typeof typeormAdapter>[0]['provider'];
+type MongoProviders = Parameters<typeof mongoAdapter>[0] extends {
+	provider: infer P;
+}
+	? P
+	: 'mongodb';
 
 const ADAPTER_LABELS: Record<AdapterKey, string> = {
 	kyselyAdapter: 'kysely',
@@ -78,7 +88,7 @@ type ProviderFor<Adapter extends AdapterKey> = Adapter extends 'kyselyAdapter'
 			: Adapter extends 'typeormAdapter'
 				? TypeormProviders
 				: Adapter extends 'mongoAdapter'
-					? 'mongodb'
+					? MongoProviders
 					: never;
 
 class Cancelled extends Error {
@@ -261,7 +271,9 @@ function buildFileContent(
 	dbConfig: string,
 	connection: ConnectionInput
 ): string {
-	const importAdapter = `import { ${adapter} } from '@c15t/backend/v2/db/adapters';`;
+	const adapterPath =
+		adapter === 'mongoAdapter' ? 'mongo' : adapter.replace('Adapter', '');
+	const importAdapter = `import { ${adapter} } from '@c15t/backend/v2/db/adapters/${adapterPath}';`;
 	let extras = { imports: '', prelude: '' };
 	if (adapter === 'kyselyAdapter') {
 		if (provider === 'sqlite') {
