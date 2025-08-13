@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
 		return [
 			{
 				source: '/api/c15t/:path*',
-				destination: 'http://localhost:8787/:path*',
+				destination: 'https://consent-io-europe-c15t-examples.c15t.dev/:path*',
 			},
 		];
 	},

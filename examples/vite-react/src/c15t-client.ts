@@ -9,7 +9,7 @@ import type { ConsentManagerOptions } from '@c15t/react';
  * and exposes hooks and utilities for consent management.
  */
 export const c15tOptions: ConsentManagerOptions = {
-	backendURL: 'http://localhost:8787/api/c15t',
+	backendURL: 'https://consent-io-europe-c15t-examples.c15t.dev/api/c15t',
 	store: {
 		initialGdprTypes: ['necessary', 'marketing'],
 	},
