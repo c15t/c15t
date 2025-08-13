@@ -75,7 +75,7 @@ const Banner = () => {
 </Tab>
 <Tab value="expanded">
 ```tsx
-import * as CookieBanner from "@c15t/react/cookie-banner";
+import { CookieBanner } from "@c15t/react";
 
 const Banner = () => {
 	return (
@@ -167,7 +167,7 @@ const CSSModuleCookieBanner = () => {
 You can integrate your own component library using the `asChild` prop:
 
 ```tsx
-import * as CookieBanner from "@c15t/react/cookie-banner";
+import { CookieBanner } from "@c15t/react";
 import { Button } from "./your-components";
 
 const CustomAcceptButton = () => {

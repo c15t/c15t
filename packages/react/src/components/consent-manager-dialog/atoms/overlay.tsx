@@ -5,7 +5,7 @@
  */
 
 import clsx from 'clsx';
-import { type FC, useEffect, useState } from 'react';
+import { type FC, type PropsWithChildren, useEffect, useState } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useStyles } from '~/hooks/use-styles';
@@ -23,7 +23,17 @@ import styles from '../consent-manager-dialog.module.css';
  *
  * @public
  */
-interface OverlayProps {
+
+/**
+ * Props for the Overlay component.
+ *
+ * @remarks
+ * Extends {@link PropsWithChildren} so that the overlay can optionally wrap
+ * its compound components (e.g. `ConsentManagerDialog.Card`). This resolves
+ * TypeScript errors when consumers nest elements inside
+ * `<ConsentManagerDialog.Root>`.
+ */
+export type OverlayProps = PropsWithChildren<{
 	/**
 	 * Custom styles to override default overlay styling.
 	 *
@@ -43,44 +53,9 @@ interface OverlayProps {
 	 * - Maintains functionality without visual opinions
 	 */
 	noStyle?: boolean;
+}>;
 
-	/**
-	 * Opens the overlay when true.
-	 *
-	 * @remarks
-	 * - Useful for testing purposes
-	 */
-	open?: boolean;
-}
-
-/**
- * Overlay component that provides a backdrop for the consent management interface.
- *
- * @remarks
- * Key features:
- * - Renders a semi-transparent backdrop
- * - Implements fade in/out animations (when enabled)
- * - Manages proper z-indexing for modal behavior
- * - Supports theme-based styling
- * - Automatically handles visibility based on dialog state
- *
- * @example
- * ```tsx
- * <ConsentManager>
- *   <Overlay />
- *   <DialogCard>
- *     // Dialog content
- *   </DialogCard>
- * </ConsentManager>
- * ```
- *
- * @public
- */
-const ConsentManagerDialogOverlay: FC<OverlayProps> = ({
-	noStyle,
-	style,
-	open = false,
-}) => {
+const ConsentManagerDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 	const { isPrivacyDialogOpen } = useConsentManager();
 	const {
 		disableAnimation,
@@ -92,7 +67,7 @@ const ConsentManagerDialogOverlay: FC<OverlayProps> = ({
 
 	// Handle animation visibility state
 	useEffect(() => {
-		if (open || isPrivacyDialogOpen) {
+		if (isPrivacyDialogOpen) {
 			setIsVisible(true);
 		} else if (disableAnimation) {
 			setIsVisible(false);
@@ -108,7 +83,7 @@ const ConsentManagerDialogOverlay: FC<OverlayProps> = ({
 			}, animationDurationMs); // Match CSS animation duration
 			return () => clearTimeout(timer);
 		}
-	}, [open, isPrivacyDialogOpen, disableAnimation]);
+	}, [isPrivacyDialogOpen, disableAnimation]);
 
 	// Get custom className from style prop
 	const customClassName = typeof style === 'string' ? style : style?.className;

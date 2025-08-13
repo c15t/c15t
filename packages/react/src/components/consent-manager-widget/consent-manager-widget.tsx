@@ -23,47 +23,6 @@ import {
 import { ConsentManagerWidgetRoot } from './atoms/root';
 import type { ConsentManagerWidgetProps } from './types';
 
-/**
- * The main consent management widget component.
- * Provides a pre-configured interface for managing privacy consents.
- *
- * @remarks
- * Key features:
- * - Implements compound component pattern for flexible composition
- * - Manages consent state and user interactions
- * - Provides accessible controls for consent management
- * - Supports comprehensive theming
- * - Handles accordion state management
- *
- * @example
- * Basic usage:
- * ```tsx
- * <ConsentManagerWidget>
- *   <ConsentManagerWidget.AccordionItems />
- *   <ConsentManagerWidget.Footer>
- *     <ConsentManagerWidget.RejectButton>
- *       Deny
- *     </ConsentManagerWidget.RejectButton>
- *     <ConsentManagerWidget.AcceptAllButton>
- *       Accept All
- *     </ConsentManagerWidget.AcceptAllButton>
- *   </ConsentManagerWidget.Footer>
- * </ConsentManagerWidget>
- * ```
- *
- * @example
- * With custom styling:
- * ```tsx
- * <ConsentManagerWidget
- *   theme={{
- *     root: "custom-root-class",
- *     accordion: "custom-accordion-class",
- *     footer: "custom-footer-class"
- *   }}
- *   hideBrading={true}
- * />
- * ```
- */
 export const ConsentManagerWidget = ({
 	hideBrading,
 	theme: localTheme,

@@ -8,6 +8,11 @@
 	"types": "./dist/index.d.ts",
 	"files": ["dist"],
 	"exports": {
+		"./headless": {
+			"types": "./dist/components/react/headless.d.ts",
+			"import": "./dist/components/react/headless.js",
+			"require": "./dist/components/react/headless.cjs"
+		},
 		"./pages": {
 			"types": "./dist/pages.d.ts",
 			"import": "./dist/pages.js",
