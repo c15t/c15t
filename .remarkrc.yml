@@ -1,0 +1,11 @@
+settings:
+  bullet: "-"
+plugins:
+  # Handle frontmatter in MDX files
+  - remark-frontmatter
+  # Support for MDX syntax
+  - remark-mdx
+  # Check that markdown is consistent.
+  - remark-preset-lint-consistent
+  # Few recommended rules.
+  - remark-preset-lint-recommended

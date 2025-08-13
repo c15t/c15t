@@ -1,0 +1,153 @@
+---
+title: 'Overview'
+description: 'Compare different approaches to storing consent decisions in your application'
+---
+
+c15t provides multiple approaches for storing consent decisions in your application. Each approach has different tradeoffs in terms of:
+
+- Server requirements
+- Data persistence
+- Implementation complexity
+- User experience
+
+## Available Storage Options
+
+| Storage Option | Description | Best For |
+|--------------|-------------|----------|
+| **Hosted c15t** | Using consent.io managed service | Production apps with minimal backend maintenance |
+| **Self-Hosting** | Running your own c15t backend | Organizations requiring complete data control |
+| **Offline Mode** | Browser-based storage with no server | Simple implementations or dev environments |
+
+<Callout type="tip">
+  For most applications, we recommend starting with Hosted c15t (consent.io) for the simplest setup with the most features.
+</Callout>
+
+## Choosing the Right Approach
+
+### Hosted c15t (Recommended)
+
+[consent.io](https://consent.io) provides a fully managed consent management backend with:
+
+- Zero backend maintenance
+- Built-in scaling and automatic updates
+- Geographic jurisdiction detection
+- Analytics dashboard
+
+<CompactCard 
+  href="/docs/javascript/storing-consent/hosted-c15t" 
+  icon={
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+    </svg>
+  }
+>
+  Learn more about <code>Hosted c15t</code>
+</CompactCard>
+
+### Self-Hosting
+
+Run your own c15t instance to maintain complete control over your data and infrastructure:
+
+- Full control over data storage and security
+- Integration with your existing database systems
+- Customizable configuration
+- No external service dependencies
+
+<CompactCard 
+  href="/docs/javascript/storing-consent/self-hosting" 
+  icon={
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
+    </svg>
+  }
+>
+  Learn more about <code>Self-Hosting</code>
+</CompactCard>
+
+### Offline Mode
+
+Store consent decisions entirely in the browser without any server:
+
+- Zero backend requirements
+- Simplest implementation
+- Works offline and in statically-hosted sites
+- Perfect for development or simple use cases
+
+## Decision Guide
+
+<Callout>
+Use this decision tree to determine which storage option best fits your needs.
+</Callout>
+
+1. **Do you need consent data to persist across devices?**
+   - No → Consider **Offline Mode**
+   - Yes → Continue to question 2
+
+2. **Do you need complete control over your consent data?**
+   - No → Use **Hosted c15t** (consent.io)
+   - Yes → Continue to question 3
+
+3. **Do you have an existing consent management system?**
+   - No → Use **Self-Hosting**
+   - Yes → Consider **Custom Client**
+
+## Creating a Client
+
+The main factory function `configureConsentManager` creates the appropriate client implementation based on the provided options:
+
+```tsx
+import { configureConsentManager, type ConsentManagerOptions } from 'c15t';
+
+export const c15tConfig = {
+	mode: 'c15t',
+	backendURL: 'https://your-instance.c15t.dev',
+} satisfies ConsentManagerOptions;
+
+const consentManager = configureConsentManager(c15tConfig);
+```
+
+## Global Callback Events
+
+All client modes support the following callback events:
+
+```tsx
+const callbacks = {
+  // Called when any request fails
+  onError: (response, path) => {
+    console.error(`Request to ${path} failed:`, response.error);
+  },
+  
+  // Called after successfully fetching consent banner information
+  onConsentBannerFetched: (response) => {
+    console.log('Banner info fetched:', response.data);
+  },
+  
+  // Called after successfully setting consent preferences
+  onConsentSet: (response) => {
+    console.log('Consent set successfully:', response.data);
+  },
+  
+  // Called after successfully verifying consent
+  onConsentVerified: (response) => {
+    console.log('Consent verified:', response.data);
+  }
+};
+```
+
+## When to Use Each Mode
+
+<Callout>
+  Choosing the right mode depends on your specific requirements and constraints.
+</Callout>
+
+- **c15t Mode**: For production applications with a real c15t backend
+- **Offline Mode**: For production applications with your own backend systems, or when you want to eliminate external service dependencies
+- **Custom Mode**: When you need to integrate with an existing consent system but still want to implement custom HTTP request handling
+
+## What's Next
+
+Choose the storage approach that best fits your needs:
+
+- [Hosted c15t](/docs/javascript/storing-consent/hosted-c15t) - Use consent.io for a managed solution
+- [Self-Hosting](/docs/javascript/storing-consent/self-hosting) - Run your own c15t instance
+- [Offline Mode](/docs/javascript/storing-consent/offline-mode) - Store consent in the browser

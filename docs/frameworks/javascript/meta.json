@@ -1,0 +1,15 @@
+{
+	"title": "JavaScript",
+	"icon": "js",
+	"root": true,
+	"pages": [
+		"quickstart",
+		"../callbacks",
+		"api-reference",
+		"--- Storing Consent ---",
+		"./storing-consent/overview",
+		"./storing-consent/hosted-c15t",
+		"./storing-consent/offline-mode",
+		"./storing-consent/self-hosting"
+	]
+}

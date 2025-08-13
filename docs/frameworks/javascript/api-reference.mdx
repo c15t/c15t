@@ -1,0 +1,59 @@
+---
+title: API Reference
+description: Comprehensive guide to using the c15t package for managing privacy consents.
+lastModified: 2025-06-23
+---
+
+# Core Package API Reference
+
+The core package (`c15t`) provides the fundamental functionality for managing privacy consents in your application. This reference documents the main types, interfaces, and functions available in the package.
+
+## Store API
+
+The core package implements a robust state management system for handling privacy consents. The store provides methods for:
+
+- Managing consent states
+- Persisting consent data
+- Validating consent configurations
+
+For detailed implementation examples, refer to the [Getting Started](/docs/javascript/quickstart) guide.
+
+## Privacy Consent State
+
+The `PrivacyConsentState` type represents the current state of privacy consents in your application. It contains information about user preferences, consent categories, and their respective settings.
+
+<auto-type-table path="../../node_modules/c15t/src/index.ts" name="PrivacyConsentState" />
+
+## Consent Types
+
+The `ConsentType` type defines the structure of individual consent categories and their properties.
+
+<auto-type-table path="../../node_modules/c15t/src/index.ts" name="ConsentType" />
+
+ ## Translation Configuration
+
+The `defaultTranslationConfig` provides the default translation settings for the consent management interface.
+
+<auto-type-table path="../../node_modules/c15t/src/index.ts" name="TranslationConfig" /> 
+
+## Tracking Blocker Configuration
+
+The `TrackingBlockerConfig` type defines the configuration options for the tracking blocker functionality.
+
+<auto-type-table path="../../node_modules/c15t/src/index.ts" name="TrackingBlockerConfig" />
+
+## Additional Types
+
+### Consent State
+<auto-type-table path="../../node_modules/c15t/src/index.ts" name="ConsentState" />
+
+### Compliance Settings
+<auto-type-table path="../../node_modules/c15t/src/index.ts" name="ComplianceSettings" />
+
+### Privacy Settings
+<auto-type-table path="../../node_modules/c15t/src/index.ts" name="PrivacySettings" />
+
+### Translation Types
+<auto-type-table path="../../node_modules/c15t/src/index.ts" name="TranslationConfig" />
+<auto-type-table path="../../node_modules/c15t/src/index.ts" name="Translations" />
+

@@ -1,0 +1,158 @@
+---
+title: Kysely Adapter
+description: The Kysely adapter provides type-safe SQL query building with support for multiple databases including PostgreSQL, MySQL, and SQLite.
+lastModified: 2025-04-10
+deprecated: true
+---
+## Installation
+
+First, install the Kysely package and the appropriate database driver:
+
+```bash
+# For PostgreSQL
+npm install kysely pg @types/pg
+# For MySQL
+npm install kysely mysql2 @types/mysql2
+# For SQLite
+npm install kysely better-sqlite3 @types/better-sqlite3
+```
+
+## Configuration
+
+Configure the Kysely adapter with your database connection:
+
+```typescript
+import { c15tInstance } from '@c15t/backend';
+import { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
+
+// PostgreSQL configuration
+const instance = c15tInstance({
+  baseURL: 'http://localhost:3000',
+  database: kyselyAdapter({
+    dialect: 'postgres',
+    connection: {
+      host: 'localhost',
+      port: 5432,
+      database: 'c15t',
+      user: 'postgres',
+      password: 'password',
+    },
+    // Optional: Enable query logging
+    debug: process.env.NODE_ENV !== 'production',
+    // Optional: Connection pooling settings
+    pool: {
+      min: 2,
+      max: 10
+    }
+  }),
+});
+```
+
+### MySQL Configuration
+
+```typescript
+const instance = c15tInstance({
+  database: kyselyAdapter({
+    dialect: 'mysql',
+    connection: {
+      host: 'localhost',
+      port: 3306,
+      database: 'c15t',
+      user: 'root',
+      password: 'password',
+    }
+  }),
+});
+```
+
+### SQLite Configuration
+
+```typescript
+const instance = c15tInstance({
+  database: kyselyAdapter({
+    dialect: 'sqlite',
+    connection: {
+      filename: ':memory:' // or path to file like './database.db'
+    }
+  }),
+});
+```
+
+## Usage Examples
+
+### Basic CRUD Operations
+
+```typescript
+// Create a new record
+const user = await instance.database.create('users', {
+  name: 'John Doe',
+  email: 'john@example.com'
+});
+
+// Find records with complex conditions
+const users = await instance.database.find('users', {
+  where: { 
+    email: { $like: '%@example.com' },
+    createdAt: { $gt: new Date('2023-01-01') }
+  },
+  orderBy: { createdAt: 'desc' },
+  limit: 10
+});
+
+// Update records
+const updatedUser = await instance.database.update(
+  'users',
+  { where: { id: user.id } },
+  { name: 'John Smith' }
+);
+
+// Delete records
+await instance.database.delete('users', { where: { id: user.id } });
+```
+
+### Transactions
+
+```typescript
+await instance.database.transaction(async (trx) => {
+  // All operations inside this function use the same transaction
+  const user = await trx.create('users', { name: 'Alice' });
+  await trx.create('profiles', { userId: user.id });
+  
+  // Transaction automatically commits unless an error is thrown
+  // If an error is thrown, the transaction is rolled back
+});
+```
+
+## Schema Management
+
+```typescript
+import { sql } from 'kysely';
+
+// Create tables programmatically
+await instance.database.raw(sql`
+  CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  )
+`);
+```
+
+## Best Practices
+
+- **Use prepared statements** - Kysely automatically uses prepared statements to prevent SQL injection
+- **Configure connection pooling** - Set appropriate pool sizes based on your application needs
+- **Implement retry logic** - Add retries for transient database errors
+- **Monitor query performance** - Use the debug option to log slow queries during development
+
+## Limitations
+
+- Schema must be created separately or with raw SQL
+- Complex joins require custom SQL or advanced Kysely usage
+
+## Related Resources
+
+- [Kysely Documentation](https://github.com/koskimas/kysely)
+- [Database Adapter Interface](/backend/database-adapters)
+- [Core Concepts](/backend/core-concepts)

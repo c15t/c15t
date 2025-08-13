@@ -1,0 +1,261 @@
+---
+title: 'Self-Hosting Guide'
+description: 'Set up and maintain your own c15t instance for full control over your consent management backend'
+---
+
+import { RiGlobalLine, RiTimerLine, RiSettings4Line, RiDatabase2Line, RiCodeLine } from '@remixicon/react';
+
+This guide shows you how to set up a self-hosted c15t instance, giving you complete control over your consent management system.
+
+<Callout type="info">
+Looking for an easier way? [consent.io](https://consent.io) offers a fully managed c15t backend with minimal setup. See the [hosted c15t](/docs/storing-consent/hosted-c15t) page for details.
+</Callout>
+
+
+<Steps>
+
+<Step>
+### Install `@c15t/backend` Package
+ 
+```package-install
+@c15t/backend
+```
+</Step>
+
+<Step>
+### Create a c15t instance
+
+<Callout type="tip">
+Separating your configuration from the API route handler makes it easier to manage and update your c15t instance.
+</Callout>
+
+First, create a separate file for your c15t instance configuration:
+
+<Tabs items={['Memory', 'Kysely', 'Prisma', 'Drizzle']}>
+<Tab value="Memory">
+```tsx title="c15t.ts"
+import { c15tInstance } from '@c15t/backend';
+import { memoryAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/memory-adapter';
+
+export const instance = c15tInstance({
+	appName: 'Example App',
+	basePath: '/api/c15t',
+	database: memoryAdapter({}),
+	trustedOrigins: ['http://localhost:3000', 'http://localhost:8787'],
+});
+```
+This example uses the Memory Adapter for simple in-memory storage that's perfect for development and testing. Data is stored in RAM and doesn't persist when the server restarts.
+</Tab>
+
+<Tab value="Kysely">
+```tsx title="c15t.ts"
+import { c15tInstance } from '@c15t/backend';
+import { kyselyAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/kysely-adapter';
+import { PostgresDialect } from 'kysely';
+import pg from 'pg';
+
+export const instance = c15tInstance({
+	appName: 'Example App',
+	basePath: '/api/c15t',
+	database: kyselyAdapter({
+		dialect: new PostgresDialect({
+			pool: new pg.Pool({
+				host: process.env.DB_HOST || 'localhost',
+				port: parseInt(process.env.DB_PORT || '5432'),
+				database: process.env.DB_NAME || 'c15t',
+				user: process.env.DB_USER || 'postgres',
+				password: process.env.DB_PASSWORD || '',
+			}),
+		}),
+	}),
+	trustedOrigins: ['http://localhost:3000', 'http://localhost:8787'],
+});
+```
+
+This configuration uses the Kysely adapter with PostgreSQL. The Kysely adapter provides a type-safe SQL query builder that works with PostgreSQL, MySQL, and SQLite, offering excellent performance with minimal overhead.
+</Tab>
+
+<Tab value="Prisma">
+```tsx title="c15t.ts"
+import { c15tInstance } from '@c15t/backend';
+import { prismaAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/prisma-adapter';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+export const instance = c15tInstance({
+	appName: 'Example App',
+	basePath: '/api/c15t',
+	database: prismaAdapter({
+		client: prisma,
+	}),
+	trustedOrigins: ['http://localhost:3000', 'http://localhost:8787'],
+});
+```
+
+This setup integrates Prisma ORM to provide a feature-rich database interface with automatic migrations, relationship handling, and excellent TypeScript integration.
+</Tab>
+
+<Tab value="Drizzle">
+```tsx title="c15t.ts"
+import { c15tInstance } from '@c15t/backend';
+import { drizzleAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/drizzle-adapter';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+
+const client = postgres(`postgres://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASSWORD || ''}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '5432'}/${process.env.DB_NAME || 'c15t'}`);
+const db = drizzle(client);
+
+export const instance = c15tInstance({
+	appName: 'Example App',
+	basePath: '/api/c15t',
+	database: drizzleAdapter({
+		client: db,
+	}),
+	trustedOrigins: ['http://localhost:3000', 'http://localhost:8787'],
+});
+```
+
+This example uses the lightweight Drizzle ORM that focuses on performance and type safety with minimal abstractions. It's ideal for projects that need direct SQL access with TypeScript support.
+</Tab>
+</Tabs>
+
+Then, create a catch-all API route that imports and uses this instance:
+
+```tsx title="app/api/c15t/[...all]/route.ts"
+import { toNextHandler } from '@c15t/backend/integrations/next';
+import { instance } from '../c15t';
+
+export const { GET, POST, OPTIONS } = toNextHandler(instance);
+```
+
+<Tabs items={['Next.js', 'Cloudflare']}>
+<Tab value="Next.js">
+```tsx title="app/api/c15t/[...all]/route.ts"
+import { toNextHandler } from '@c15t/backend/integrations/next';
+import { instance } from '../c15t';
+
+export const { GET, POST, OPTIONS } = toNextHandler(instance);
+```
+</Tab>
+<Tab value="Cloudflare">
+```tsx title="src/index.ts"
+import { toCloudflareHandler } from '@c15t/backend/integrations/cloudflare';
+import { instance } from './c15t';
+
+const handler = toCloudflareHandler(instance);
+
+export default {
+	async fetch(request: Request, env: Env): Promise<Response> {
+		return handler(env)(request);
+	},
+};
+```
+</Tab>
+</Tabs>
+
+This approach separates your instance configuration from the route handler, making it easier for CLI tools and migration utilities to locate and work with your c15t instance.
+</Step>
+
+<Step>
+### Configure Your App to Use the API Route
+
+Update your ConsentManagerOptions to point to your new API route:
+
+```tsx title="app/layout.tsx"
+const options: ConsentManagerOptions = {
+	mode: 'c15t',
+	backendURL: 'http://localhost:8787', // Allows partial paths e.g. /api/c15t
+};
+```
+</Step>
+
+</Steps>
+
+## Database Options
+
+<Callout type="warning">
+For production use, the Memory Adapter is not recommended as data is lost when the server restarts.
+</Callout>
+
+For production use, you should consider using a persistent database. c15t supports several database adapters:
+
+<div className="mt-6">
+  <CompactCard 
+    href="/docs/backend/adapters/memory" 
+    icon={<RiDatabase2Line size={18} />}
+  >
+    <code>Memory Adapter</code> - Simple in-memory storage (development only)
+  </CompactCard>
+
+  <CompactCard 
+    href="/docs/backend/adapters/kysely" 
+    icon={<RiDatabase2Line size={18} />}
+  >
+    <code>Kysely Adapter</code> - Type-safe SQL query builder
+  </CompactCard>
+
+  <CompactCard 
+    href="/docs/backend/adapters/prisma" 
+    icon={<RiDatabase2Line size={18} />}
+  >
+    <code>Prisma Adapter</code> - Feature-rich ORM with migrations
+  </CompactCard>
+
+  <CompactCard 
+    href="/docs/backend/adapters/drizzle" 
+    icon={<RiDatabase2Line size={18} />}
+  >
+    <code>Drizzle Adapter</code> - Lightweight TypeScript ORM
+  </CompactCard>
+</div>
+
+These adapters can connect to various database backends:
+
+<div className="mt-6">
+  <CompactCard 
+    href="/docs/backend/databases/postgres" 
+    icon={<RiCodeLine size={18} />}
+  >
+    <code>PostgreSQL</code> - Recommended for production deployments
+  </CompactCard>
+
+  <CompactCard 
+    href="/docs/backend/databases/mysql" 
+    icon={<RiCodeLine size={18} />}
+  >
+    <code>MySQL/MariaDB</code> - Popular open-source database
+  </CompactCard>
+
+  <CompactCard 
+    href="/docs/backend/databases/sqlite" 
+    icon={<RiCodeLine size={18} />}
+  >
+    <code>SQLite</code> - File-based database for simpler deployments
+  </CompactCard>
+</div>
+
+<Callout type="tip">
+**PostgreSQL** is recommended for production deployments due to its robust feature set and reliability.
+</Callout>
+
+See the [Database Adapters documentation](/docs/backend/database-adapters) for complete implementation details.
+
+
+## Next Steps
+
+<div className="mt-6">
+  <CompactCard 
+    href="/docs/javascript/storing-consent/hosted-c15t" 
+    icon={<RiGlobalLine size={18} />}
+  >
+    Use <code>Hosted c15t</code>
+  </CompactCard>
+
+  <CompactCard 
+    href="/docs/javascript/storing-consent/offline-mode" 
+    icon={<RiTimerLine size={18} />}
+  >
+    Configure <code>Offline Mode</code>
+  </CompactCard>
+</div> 

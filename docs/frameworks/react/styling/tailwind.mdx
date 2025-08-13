@@ -1,0 +1,168 @@
+---
+title: Styling with Tailwind CSS
+description: Learn how to use Tailwind CSS utility classes with @c15t/react components for rapid and consistent styling.
+lastModified: 2025-04-10
+availableIn:
+  - framework: 'next'
+    url: '/docs/frameworks/next/styling/tailwind'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/styling/tailwind'
+    title: 'React'
+---
+
+import TailwindCookieBannerExample from '~/examples/react/tailwind/index';
+
+Tailwind CSS is perfectly suited for styling @c15t/react components. Our theming system allows you to apply Tailwind's utility classes directly to components, providing a powerful and efficient styling workflow.
+
+## Basic Usage
+
+You can apply Tailwind utility classes directly to component theme keys:
+
+```tsx
+<CookieBanner 
+  theme={{
+    'banner.root': 'bg-white p-4 rounded-lg shadow-lg',
+    'banner.header.title': 'text-xl font-bold text-gray-900',
+    'banner.header.description': 'text-sm text-gray-600 mt-2',
+    'banner.footer': 'mt-4 flex justify-end gap-2'
+  }}
+/>
+```
+
+This approach allows you to:
+- Style components without writing custom CSS
+- Maintain a consistent design system
+- Make quick adjustments with immediate visual feedback
+
+## Example
+
+Here's a live example of Tailwind CSS styling:
+
+<TailwindCookieBannerExample />
+
+## Responsive Design
+
+Tailwind's responsive utilities work seamlessly with our theming system:
+
+```tsx
+<CookieBanner 
+  theme={{
+    'banner.root': 'p-4 md:p-6 lg:p-8 w-full md:w-auto',
+    'banner.header.title': 'text-lg md:text-xl lg:text-2xl',
+    'banner.header.description': 'text-sm md:text-base',
+    'banner.footer': 'flex flex-col md:flex-row gap-2'
+  }}
+/>
+```
+
+## Dark Mode
+
+If you've configured Tailwind's dark mode, you can use dark variants:
+
+```tsx
+<CookieBanner 
+  theme={{
+    'banner.root': 'bg-white dark:bg-gray-900 p-4 rounded-lg shadow-lg',
+    'banner.header.title': 'text-gray-900 dark:text-white font-bold',
+    'banner.header.description': 'text-gray-600 dark:text-gray-300 mt-2'
+  }}
+/>
+```
+
+## Creating Reusable Themes
+
+You can define reusable Tailwind-based themes for consistent styling:
+
+```tsx
+const bannerTheme = {
+  'banner.root': 'bg-white p-4 rounded-lg shadow-lg',
+  'banner.header.title': 'text-xl font-bold text-gray-900',
+  'banner.header.description': 'text-sm text-gray-600 mt-2',
+  'banner.footer': 'mt-4 flex justify-end gap-2',
+  'banner.footer.accept-button': 'btn btn-primary',
+  'banner.footer.reject-button': 'btn btn-secondary'
+};
+
+<CookieBanner theme={bannerTheme} />
+```
+
+## Combining with Custom CSS
+
+You can combine Tailwind utilities with custom CSS when needed:
+
+```tsx
+<CookieBanner 
+  theme={{
+    'banner.root': {
+      className: 'bg-white p-4 rounded-lg shadow-lg',
+      style: {
+        borderColor: dynamicBorderColor
+      }
+    }
+  }}
+/>
+```
+
+## Common UI Patterns with Tailwind
+
+### Creating a Modern Card-Like Component
+
+```tsx
+<CookieBanner 
+  theme={{
+    'banner.root': 'bg-white rounded-xl shadow-lg p-6 max-w-lg mx-auto',
+    'banner.header.title': 'text-xl font-semibold text-gray-900',
+    'banner.header.description': 'text-gray-500 mt-2',
+    'banner.footer': 'mt-6 flex justify-end space-x-4'
+  }}
+/>
+```
+
+### Creating a Minimalist Style
+
+```tsx
+<CookieBanner 
+  theme={{
+    'banner.root': 'border border-gray-200 p-4',
+    'banner.header.title': 'text-gray-900 font-medium',
+    'banner.header.description': 'text-gray-500 text-sm',
+    'banner.footer': 'mt-4 flex justify-end gap-2'
+  }}
+/>
+```
+
+### Creating a Colorful, Bold Style
+
+```tsx
+<CookieBanner 
+  theme={{
+    'banner.root': 'bg-indigo-600 text-white p-6 rounded-lg shadow-lg',
+    'banner.header.title': 'text-2xl font-bold',
+    'banner.header.description': 'text-indigo-100 mt-2',
+    'banner.footer': 'mt-6 flex justify-end gap-4'
+  }}
+/>
+```
+
+## Best Practices with Tailwind
+
+1. **Keep It Consistent**
+   - Create a design system with consistent spacing, colors, and typography
+   - Use Tailwind's configuration to define your design tokens
+
+2. **Responsive Design**
+   - Start with mobile styling, then add responsive modifiers
+   - Test your components at different viewport sizes
+
+3. **Reuse Patterns**
+   - Extract common utility combinations into reusable themes
+   - Consider using Tailwind's `@apply` in CSS for frequently used patterns
+
+4. **Accessibility**
+   - Ensure sufficient color contrast (use Tailwind's accessibility tools)
+   - Don't rely solely on color to convey information
+
+5. **Performance**
+   - Use Tailwind's JIT mode to keep CSS bundle size small
+   - Be mindful of utility combination complexity

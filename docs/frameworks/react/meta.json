@@ -1,0 +1,30 @@
+{
+	"title": "React",
+	"root": true,
+	"icon": "react",
+	"pages": [
+		"quickstart",
+		"google-tag-manager",
+		"./callbacks",
+		"--- React Components ---",
+		"./components/cookie-banner",
+		"./components/consent-manager-dialog",
+		"./components/consent-manager-widget",
+		"./components/dev-tools",
+		"--- Storing Consent ---",
+		"./storing-consent/overview",
+		"./storing-consent/hosted-c15t",
+		"./storing-consent/offline-mode",
+		"./storing-consent/custom-client",
+		"--- Hooks ---",
+		"./hooks/use-consent-manager",
+		"./hooks/use-focus-trap",
+		"--- Styles ---",
+		"./styling/index",
+		"./styling/color-scheme",
+		"./styling/classnames",
+		"./styling/tailwind",
+		"./styling/css-variables",
+		"./styling/inline-styles"
+	]
+}
