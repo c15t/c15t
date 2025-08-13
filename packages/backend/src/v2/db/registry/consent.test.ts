@@ -97,6 +97,7 @@ describe('consentRegistry', () => {
 				userAgent:
 					'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
 				status: 'active',
+				givenAt: new Date('2024-01-01T00:00:00.000Z'),
 				isActive: true,
 			});
 
@@ -146,6 +147,7 @@ describe('consentRegistry', () => {
 				ipAddress: undefined,
 				userAgent: undefined,
 				status: 'active',
+				givenAt: new Date('2024-01-01T00:00:00.000Z'),
 				isActive: true,
 			});
 
@@ -181,6 +183,7 @@ describe('consentRegistry', () => {
 					userAgent:
 						'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
 					status,
+					givenAt: new Date('2024-01-01T00:00:00.000Z'),
 					isActive: true,
 				});
 
@@ -472,6 +475,7 @@ describe('consentRegistry', () => {
 				userAgent:
 					'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
 				status: 'withdrawn',
+				givenAt: new Date('2024-01-01T00:00:00.000Z'),
 				isActive: false,
 			});
 
@@ -546,6 +550,7 @@ describe('consentRegistry', () => {
 					userAgent:
 						'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
 					status: 'active',
+					givenAt: new Date('2024-01-01T00:00:00.000Z'),
 					isActive: true,
 				});
 
@@ -651,6 +656,7 @@ describe('consentRegistry', () => {
 					ipAddress: expect.any(String),
 					userAgent: expect.any(String),
 					status: expect.any(String),
+					givenAt: expect.any(Date),
 					isActive: expect.any(Boolean),
 				});
 			});
@@ -658,6 +664,7 @@ describe('consentRegistry', () => {
 			it('should preserve all input data in database call', async () => {
 				const consentInput = createConsentInput({
 					subjectId: 'sub_specific_test',
+					givenAt: new Date(),
 					domainId: 'dom_specific_test',
 					policyId: 'pol_specific_test',
 					purposeIds: ['pur_test1', 'pur_test2'],
@@ -691,6 +698,7 @@ describe('consentRegistry', () => {
 					ipAddress: '10.0.0.1',
 					userAgent: 'Custom Test Agent',
 					status: 'withdrawn',
+					givenAt: expect.any(Date),
 					isActive: false,
 				});
 			});
