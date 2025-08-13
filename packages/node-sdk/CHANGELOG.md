@@ -1,5 +1,22 @@
 # @c15t/node-sdk
 
+## 1.5.0-canary-20250813173036
+
+### Patch Changes
+
+- Updated dependencies [94781a6]
+  - @c15t/backend@1.5.0-canary-20250813173036
+
+## 1.5.0-canary-20250813161712
+
+### Patch Changes
+
+- e6270d5: chore: updated various dependencies
+- Updated dependencies [e6270d5]
+- Updated dependencies [230f749]
+- Updated dependencies [6ca7bca]
+  - @c15t/backend@1.5.0-canary-20250813161712
+
 ## 1.5.0-canary-20250722133547
 
 ### Patch Changes

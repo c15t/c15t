@@ -1,5 +1,23 @@
 # @c15t/dev-tools
 
+## 1.5.0-canary-20250813173036
+
+### Patch Changes
+
+- c15t@1.5.0-canary-20250813173036
+
+## 1.5.0-canary-20250813161712
+
+### Patch Changes
+
+- e6270d5: chore: updated various dependencies
+- Updated dependencies [72c6f7e]
+- Updated dependencies [230f749]
+- Updated dependencies [e6270d5]
+- Updated dependencies [5fe6861]
+- Updated dependencies [0d31f89]
+  - c15t@1.5.0-canary-20250813161712
+
 ## 1.5.0-canary-20250722133547
 
 ### Patch Changes

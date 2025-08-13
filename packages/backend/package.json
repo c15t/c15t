@@ -1,9 +1,61 @@
 {
 	"name": "@c15t/backend",
-	"version": "1.5.0-canary-20250722133547",
+	"version": "1.5.0-canary-20250813173036",
 	"license": "GPL-3.0-only",
 	"type": "module",
 	"exports": {
+		"./v2": {
+			"types": "./dist/v2/core.d.ts",
+			"import": "./dist/v2/core.js"
+		},
+		"./v2/define-config": {
+			"types": "./dist/v2/define-config.d.ts",
+			"import": "./dist/v2/define-config.js"
+		},
+		"./v2/router": {
+			"types": "./dist/v2/router.d.ts",
+			"import": "./dist/v2/router.js"
+		},
+		"./v2/contracts": {
+			"types": "./dist/v2/contracts/index.d.ts",
+			"import": "./dist/v2/contracts/index.js"
+		},
+		"./v2/db/schema": {
+			"types": "./dist/v2/db/schema/index.d.ts",
+			"import": "./dist/v2/db/schema/index.js"
+		},
+		"./v2/db/adapters": {
+			"types": "./dist/v2/db/adapters/index.d.ts",
+			"import": "./dist/v2/db/adapters/index.js"
+		},
+		"./v2/db/adapters/kysely": {
+			"types": "./dist/v2/db/adapters/kysely.d.ts",
+			"import": "./dist/v2/db/adapters/kysely.js"
+		},
+		"./v2/db/adapters/drizzle": {
+			"types": "./dist/v2/db/adapters/drizzle.d.ts",
+			"import": "./dist/v2/db/adapters/drizzle.js"
+		},
+		"./v2/db/adapters/prisma": {
+			"types": "./dist/v2/db/adapters/prisma.d.ts",
+			"import": "./dist/v2/db/adapters/prisma.js"
+		},
+		"./v2/db/adapters/typeorm": {
+			"types": "./dist/v2/db/adapters/typeorm.d.ts",
+			"import": "./dist/v2/db/adapters/typeorm.js"
+		},
+		"./v2/db/adapters/mongo": {
+			"types": "./dist/v2/db/adapters/mongo.d.ts",
+			"import": "./dist/v2/db/adapters/mongo.js"
+		},
+		"./v2/db/migrator": {
+			"types": "./dist/v2/db/migrator/index.d.ts",
+			"import": "./dist/v2/db/migrator/index.js"
+		},
+		"./v2/types": {
+			"types": "./dist/v2/types/index.d.ts",
+			"import": "./dist/v2/types/index.js"
+		},
 		".": {
 			"types": "./dist/core.d.ts",
 			"import": "./dist/core.js",
@@ -109,6 +161,7 @@
 		"base-x": "^5.0.1",
 		"defu": "^6.1.4",
 		"drizzle-orm": "^0.41.0",
+		"fumadb": "^0.1.0",
 		"kysely": "^0.27.6",
 		"neverthrow": "^8.2.0",
 		"superjson": "^2.2.2",

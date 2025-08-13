@@ -1,5 +1,25 @@
 # @c15t/backend
 
+## 1.5.0-canary-20250813173036
+
+### Patch Changes
+
+- 94781a6: fix: split adapter imports
+
+## 1.5.0-canary-20250813161712
+
+### Minor Changes
+
+- 230f749: feat(backend): added advanced overrides for disabling geo-location & adding custom translations
+- 6ca7bca: feat: improved self-hostability
+
+### Patch Changes
+
+- e6270d5: chore: updated various dependencies
+- Updated dependencies [e6270d5]
+- Updated dependencies [c1b87dd]
+  - @c15t/translations@1.5.0-canary-20250813161712
+
 ## 1.5.0-canary-20250722133547
 
 ### Patch Changes
