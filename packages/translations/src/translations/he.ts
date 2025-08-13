@@ -10,7 +10,7 @@ export const enTranslations: CompleteTranslations = {
 	cookieBanner: {
 		title: 'פרטיותך חשובה לנו',
 		description:
-			'אתר זה משתמש בעוגיות (קוקיז) בכדי לשפר את חוויית השימוש, לנתח את תעבורת האתר ולהציג תוכן מותאם אישית.',
+			'אתר זה משתמש בעוגיות (קוקיז) בכדי לשפר את חוויית השימוש, לנטר את תעבורת האתר ולהציג תוכן מותאם אישית.',
 	},
 	consentManagerDialog: {
 		title: 'הגדרות פרטיות',
@@ -34,7 +34,7 @@ export const enTranslations: CompleteTranslations = {
 				'עוגיות אלו משמשות להתאמת פרסומות ומעקב אחר יעילותן.',
 		},
 		measurement: {
-			title: 'ניטור',
+			title: 'ניתוח',
 			description:
 				'עוגיות אלו מסייעות להבין איך משתמשים באתר ולשפר את ביצועיו.',
 		},
