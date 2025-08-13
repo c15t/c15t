@@ -15,8 +15,8 @@ export const domainTable = table('domain', {
 export const domainSchema = z.object({
 	id: z.string(),
 	name: z.string(),
-	description: z.string().nullable().optional(),
-	allowedOrigins: z.array(z.string()).nullable().optional(),
+	description: z.string().nullish(),
+	allowedOrigins: z.array(z.string()).nullish(),
 	isVerified: z.boolean().default(true),
 	isActive: z.boolean().default(true),
 	createdAt: z.date().default(() => new Date()),

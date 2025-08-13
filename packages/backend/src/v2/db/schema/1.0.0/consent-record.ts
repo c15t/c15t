@@ -13,9 +13,9 @@ export const consentRecordTable = table('consentRecord', {
 export const consentRecordSchema = z.object({
 	id: z.string(),
 	subjectId: z.string(),
-	consentId: z.string().optional(),
+	consentId: z.string().nullish(),
 	actionType: z.string(),
-	details: z.record(z.unknown()).optional(),
+	details: z.record(z.unknown()).nullish(),
 	createdAt: z.date().default(() => new Date()),
 });
 

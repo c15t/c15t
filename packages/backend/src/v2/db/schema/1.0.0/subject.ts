@@ -14,8 +14,8 @@ export const subjectTable = table('subject', {
 export const subjectSchema = z.object({
 	id: z.string(),
 	isIdentified: z.boolean().default(false),
-	externalId: z.string().nullable().optional(),
-	identityProvider: z.string().optional(),
+	externalId: z.string().nullish(),
+	identityProvider: z.string().nullish(),
 	lastIpAddress: z.string().optional(),
 	createdAt: z.date().default(() => new Date()),
 	updatedAt: z.date().default(() => new Date()),

@@ -19,6 +19,7 @@ export function consentRegistry({ db, ctx: { logger } }: Registry) {
 				ipAddress: consent.ipAddress,
 				userAgent: consent.userAgent,
 				status: consent.status,
+				givenAt: consent.givenAt,
 				isActive: consent.isActive,
 			});
 

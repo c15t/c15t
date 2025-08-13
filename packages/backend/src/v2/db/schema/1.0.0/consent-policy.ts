@@ -30,7 +30,7 @@ export const consentPolicySchema = z.object({
 	type: PolicyTypeSchema,
 	name: z.string(),
 	effectiveDate: z.date(),
-	expirationDate: z.date().nullable().optional(),
+	expirationDate: z.date().nullish(),
 	content: z.string(),
 	contentHash: z.string(),
 	isActive: z.boolean().default(true),
