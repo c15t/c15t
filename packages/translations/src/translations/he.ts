@@ -1,6 +1,6 @@
-import type { CompleteTranslations } from '../types'
+import type { CompleteTranslations } from '../types';
 
-export const enTranslations: CompleteTranslations = {
+export const heTranslations: CompleteTranslations = {
 	common: {
 		acceptAll: 'אפשר הכל',
 		rejectAll: 'דחה הכל',
@@ -20,18 +20,15 @@ export const enTranslations: CompleteTranslations = {
 	consentTypes: {
 		necessary: {
 			title: 'הכרחיות',
-			description:
-				'עוגיות אלו דרושות לפעולת האתר ולא ניתן להשבית אותן.',
+			description: 'עוגיות אלו דרושות לפעולת האתר ולא ניתן להשבית אותן.',
 		},
 		functionality: {
 			title: 'פונקציונליות',
-			description:
-				'עוגיות אלו מאפשרות פונקציונליות משופרת והתאמה אישית.',
+			description: 'עוגיות אלו מאפשרות פונקציונליות משופרת והתאמה אישית.',
 		},
 		marketing: {
 			title: 'שיווק',
-			description:
-				'עוגיות אלו משמשות להתאמת פרסומות ומעקב אחר יעילותן.',
+			description: 'עוגיות אלו משמשות להתאמת פרסומות ומעקב אחר יעילותן.',
 		},
 		measurement: {
 			title: 'ניתוח',
