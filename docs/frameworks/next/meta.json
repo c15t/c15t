@@ -1,0 +1,31 @@
+{
+	"title": "Next",
+	"root": true,
+	"icon": "next",
+	"pages": [
+		"quickstart",
+		"google-tag-manager",
+		"callbacks",
+		"--- React Components ---",
+		"components/cookie-banner",
+		"components/consent-manager-dialog",
+		"components/consent-manager-widget",
+		"components/dev-tools",
+		"--- Storing Consent ---",
+		"storing-consent/overview",
+		"storing-consent/hosted-c15t",
+		"storing-consent/self-hosting",
+		"storing-consent/offline-mode",
+		"storing-consent/custom-client",
+		"--- Hooks ---",
+		"hooks/use-consent-manager",
+		"hooks/use-focus-trap",
+		"--- Styling the components ---",
+		"styling/index",
+		"styling/color-scheme",
+		"styling/classnames",
+		"styling/tailwind",
+		"styling/css-variables",
+		"styling/inline-styles"
+	]
+}
