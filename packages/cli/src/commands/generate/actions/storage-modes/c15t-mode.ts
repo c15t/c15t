@@ -3,6 +3,7 @@ import open from 'open';
 import type { AvailablePackages } from '~/context/framework-detection';
 import type { CliContext } from '../../../../context/types';
 import { generateFiles } from '../generate-files';
+import { getSharedFrontendOptions } from './utils/shared-frontend';
 
 /**
  * Result of c15t mode setup
@@ -155,42 +156,12 @@ export async function setupC15tMode({
 		handleCancel
 	);
 
-	const useEnvFileSelection = await p.confirm({
-		message:
-			'Store the backendURL in a .env file? (Recommended, URL is public)',
-		initialValue: true,
+	const { useEnvFile, proxyNextjs } = await getSharedFrontendOptions({
+		backendURL: backendURL as string,
+		packageName,
+		context,
+		handleCancel,
 	});
-
-	if (handleCancel?.(useEnvFileSelection)) {
-		context.error.handleCancel('Setup cancelled.', {
-			command: 'onboarding',
-			stage: 'c15t_env_file_setup',
-		});
-	}
-
-	const useEnvFile = useEnvFileSelection as boolean;
-	let proxyNextjs: boolean | undefined;
-
-	if (packageName === '@c15t/nextjs') {
-		context.logger.info(
-			'Learn more about Next.js Rewrites: https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites'
-		);
-
-		const proxyNextjsSelection = await p.confirm({
-			message:
-				'Proxy requests to your instance with Next.js Rewrites? (Recommended)',
-			initialValue: true,
-		});
-
-		if (handleCancel?.(proxyNextjsSelection)) {
-			context.error.handleCancel('Setup cancelled.', {
-				command: 'onboarding',
-				stage: 'c15t_proxy_nextjs_setup',
-			});
-		}
-
-		proxyNextjs = proxyNextjsSelection as boolean;
-	}
 
 	await generateFiles({
 		context,
@@ -205,7 +176,7 @@ export async function setupC15tMode({
 
 	return {
 		backendURL,
-		usingEnvFile: useEnvFile,
+		usingEnvFile: useEnvFile ?? false,
 		proxyNextjs,
 	};
 }

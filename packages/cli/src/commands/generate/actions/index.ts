@@ -147,6 +147,10 @@ async function performOnboarding(
 				handleCancel,
 			});
 
+			if (selfHostedResult.createBackendConfig) {
+				dependenciesToAdd.push('@c15t/backend');
+			}
+
 			// TODO: add adapter choice + telemtary
 			telemetry.trackEvent(
 				TelemetryEventName.ONBOARDING_SELF_HOSTED_CONFIGURED,
