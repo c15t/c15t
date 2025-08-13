@@ -9,6 +9,7 @@
 		"lint": "next lint"
 	},
 	"dependencies": {
+		"@c15t/backend": "workspace:*",
 		"@c15t/nextjs": "workspace:*",
 		"next": "15.4.1",
 		"react": "19.1.0",

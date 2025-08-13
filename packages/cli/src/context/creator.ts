@@ -4,7 +4,6 @@ import {
 	validLogLevels,
 } from '../utils/logger';
 import { createTelemetry } from '../utils/telemetry';
-import { createConfigManagement } from './config-management';
 import { createErrorHandlers } from './error-handlers';
 import { createFileSystem } from './file-system';
 import { detectFramework, detectProjectRoot } from './framework-detection';
@@ -31,7 +30,7 @@ export async function createCliContext(
 		commands
 	);
 
-	let desiredLogLevel: LogLevel = 'info';
+	let desiredLogLevel: LogLevel = 'debug';
 	const levelArg = parsedFlags.logger;
 
 	if (typeof levelArg === 'string') {
@@ -69,9 +68,6 @@ export async function createCliContext(
 	// Add user interaction helpers
 	const userInteraction = createUserInteraction(context);
 	context.confirm = userInteraction.confirm;
-
-	// Add config management
-	context.config = createConfigManagement(context);
 
 	// Add file system utilities
 	context.fs = createFileSystem(context);

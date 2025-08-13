@@ -1,20 +1,6 @@
 import { defineConfig } from '@rslib/core';
 
 const externals = [
-	// Database packages
-	'prisma',
-	'@prisma/client',
-	'better-sqlite3',
-	'mongodb',
-	'drizzle-orm',
-	'bson',
-	'mongodb-connection-string-url',
-	'@mongodb-js/saslprep',
-	'kerberos',
-	'@mongodb-js/zstd',
-	'@aws-sdk/credential-providers',
-	'mongodb-client-encryption',
-
 	// Frameworks
 	'hono',
 	'express',
@@ -60,6 +46,14 @@ const externals = [
 export default defineConfig({
 	source: {
 		entry: {
+			'v2/core': ['./src/v2/core.ts'],
+			'v2/router': ['./src/v2/router.ts'],
+			'v2/contracts/index': ['./src/v2/contracts/index.ts'],
+			'v2/db/schema/index': ['./src/v2/db/schema/index.ts'],
+			'v2/db/adapters/index': ['./src/v2/db/adapters/index.ts'],
+			'v2/db/migrator/index': ['./src/v2/db/migrator/index.ts'],
+			'v2/define-config': ['./src/v2/define-config.ts'],
+			'v2/types/index': ['./src/v2/types/index.ts'],
 			core: ['./src/core.ts'],
 			router: ['./src/router.ts'],
 			contracts: ['./src/contracts/index.ts'],
