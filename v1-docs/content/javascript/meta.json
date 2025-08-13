@@ -1,0 +1,22 @@
+{
+	"title": "JavaScript",
+	"icon": "js",
+	"root": true,
+	"pages": [
+		"../introduction",
+		"../ai-tools-integrations",
+		"--- JavaScript ---",
+		"quickstart",
+		"../callbacks",
+		"api-reference",
+		"--- Storing Consent ---",
+		"./storing-consent/overview",
+		"./storing-consent/hosted-c15t",
+		"./storing-consent/offline-mode",
+		"./storing-consent/self-hosting",
+		"--- Contributing ---",
+		"../oss/contributing",
+		"../oss/license",
+		"../oss/why-open-source"
+	]
+}

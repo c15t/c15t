@@ -1,0 +1,93 @@
+---
+title: useFocusTrap
+description: The useFocusTrap hook provides accessibility-focused keyboard navigation management, keeping focus trapped within modal components for better user experience.
+---
+import UseFocusTrapExample from '~/examples/react/use-focus-trap';
+
+The `useFocusTrap` hook creates an accessible experience by preventing keyboard focus from leaving a specific container element (like a dialog or modal) until it's dismissed. This is essential for users navigating with keyboards or screen readers.
+
+## Usage
+
+This example shows how to implement focus trapping in a simple modal component:
+
+<UseFocusTrapExample/>
+
+## Parameters
+
+The hook accepts two parameters:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| shouldTrap | boolean | Controls whether focus should be trapped within the container |
+| containerRef | RefObject\<HTMLElement\> \| null | Reference to the DOM element that should contain the focus |
+
+## Returns
+
+This hook doesn't return any values. It works by managing the focus behavior of the DOM through side effects.
+
+## How It Works
+
+When activated, the `useFocusTrap` hook:
+
+1. Stores the element that was focused before trapping began
+2. Finds all focusable elements within the container
+3. Sets initial focus to the first focusable element (or the container itself)
+4. Captures Tab and Shift+Tab keystrokes to cycle focus within the container
+5. Restores focus to the original element when the component unmounts or `shouldTrap` becomes false
+
+## Notes
+
+- Hook must be called with a valid element reference that contains focusable elements
+- Adding `tabIndex={0}` to the container ensures it can receive focus if no focusable children exist
+- Always include proper ARIA attributes (`role="dialog"` and `aria-modal="true"`) for screen reader accessibility
+- The hook automatically restores focus to the previously focused element when the component unmounts
+- Set `shouldTrap` to false when you want to disable focus trapping temporarily
+
+## Accessibility Compliance
+
+Using this hook helps your application comply with these WCAG 2.1 requirements:
+
+- [2.1.2: No Keyboard Trap](https://www.w3.org/WAI/WCAG21/Understanding/no-keyboard-trap.html) - While this criterion warns against trapping keyboard focus, modal dialogs are an exception when implemented properly
+- [2.4.3: Focus Order](https://www.w3.org/WAI/WCAG21/Understanding/focus-order.html) - Ensures focus moves in a meaningful sequence
+
+## Usage with c15t Components
+
+Many c15t components like `CookieBannerCard` and `ConsentManagerDialog` use this hook internally, so you don't need to implement it yourself when using these components. The `trapFocus` prop can be used to control this behavior:
+
+```tsx
+// The dialog will automatically trap focus when open
+<ConsentManagerDialog trapFocus={true} />
+
+// Focus trapping can be disabled if needed
+<CookieBannerCard trapFocus={false}>
+  {/* Content */}
+</CookieBannerCard>
+```
+
+## Implementation Example
+
+Here's how focus trapping is implemented in the `CookieBannerCard` component:
+
+```tsx
+const CookieBannerCard = forwardRef(({ children, ...props }, ref) => {
+  const { trapFocus } = useTheme();
+  const localRef = useRef(null);
+  const cardRef = (ref || localRef);
+  
+  // Convert to boolean and enable focus trapping
+  const shouldTrapFocus = Boolean(trapFocus);
+  useFocusTrap(shouldTrapFocus, cardRef);
+  
+  return (
+    <Box
+      ref={ref}
+      tabIndex={0}
+      aria-modal={shouldTrapFocus ? 'true' : undefined}
+      role={shouldTrapFocus ? 'dialog' : undefined}
+      {...props}
+    >
+      {children}
+    </Box>
+  );
+});
+``` 

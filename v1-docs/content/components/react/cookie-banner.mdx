@@ -1,0 +1,297 @@
+---
+title: Cookie Banner
+description: A customizable cookie consent banner that handles privacy compliance with zero configuration required.
+---
+import CookieBannerExample from '~/examples/react/cookie-banner';
+import { LayersIcon, ToggleRightIcon } from 'lucide-react';
+
+The Cookie Banner component provides an elegant way to obtain and manage cookie consent from your users. It handles all the complexity of privacy regulations while providing a smooth user experience that integrates naturally with your application.
+
+<CookieBannerExample/>
+
+## Understanding Cookie Consent
+
+Before diving into implementation, let's understand what makes a cookie banner effective. A good cookie banner needs to:
+
+- Inform users about data collection clearly and concisely
+- Obtain explicit consent before setting non-essential cookies
+- Provide easy ways to accept, reject, or customize preferences
+- Remember user choices across sessions
+- Meet legal requirements across different jurisdictions
+
+Our Cookie Banner component handles all of these requirements automatically, while remaining fully customizable to match your application's design.
+
+## Quick Start
+
+Let's add a basic cookie banner to your application. First, install the package: 
+```package-install
+@c15t/react
+```
+
+Then add the banner to your root component:
+
+```tsx
+import {
+	ConsentManagerProvider,
+	CookieBanner,
+} from "@c15t/react";
+
+function App() {
+  return (
+    <ConsentManagerProvider>
+      <YourApp />
+      <CookieBanner />
+    </ConsentManagerProvider>
+  );
+}
+```
+
+That's it! The banner will automatically:
+
+- Appear on first visit
+- Remember user choices
+- Handle consent management
+- Stay compliant with privacy laws
+
+## Component Architecture
+
+The Cookie Banner uses a compound component pattern, giving you complete control over its structure when needed. Think of it like building blocks – you can use the pre-assembled version, or arrange the pieces yourself for custom layouts.
+
+<Tabs groupId="Version" items={["Recommended", "Expanded"]}>
+  <Tab value="Recommended">
+  ```tsx 
+import { CookieBanner } from "@c15t/react";
+
+const Banner = () => {
+	return (
+		<CookieBanner
+			title="We value your privacy"
+			description="We use cookies to enhance your experience"
+		/>
+	);
+};
+
+````
+</Tab>
+<Tab value="expanded">
+```tsx
+import * as CookieBanner from "@c15t/react/cookie-banner";
+
+const Banner = () => {
+	return (
+		<CookieBanner.Root>
+			<CookieBanner.Card>
+				<CookieBanner.Header>
+					<CookieBanner.Title>Custom Title</CookieBanner.Title>
+					<CookieBanner.Description>Your detailed description here</CookieBanner.Description>
+				</CookieBanner.Header>
+				<CookieBanner.Footer>
+					<CookieBanner.FooterSubGroup>
+						<CookieBanner.RejectButton>Decline All</CookieBanner.RejectButton>
+						<CookieBanner.CustomizeButton>Preferences</CookieBanner.CustomizeButton>
+					</CookieBanner.FooterSubGroup>
+					<CookieBanner.AcceptButton>Accept All</CookieBanner.AcceptButton>
+				</CookieBanner.Footer>
+			</CookieBanner.Card>
+		</CookieBanner.Root>
+	);
+};
+````
+
+  </Tab>
+</Tabs>
+
+## Customization
+
+The Cookie Banner is designed to adapt to your application's visual style. Here are the main ways to customize its appearance:
+
+### Using Themes
+
+Here are the available theme variables:
+
+<auto-type-table path="../../../node_modules/@c15t/react/src/components/cookie-banner/theme.ts" name="CookieBannerTheme" />
+
+The theme prop provides a straightforward way to customize the banner's appearance:
+
+```tsx
+import { CookieBanner } from "@c15t/react";
+
+const CustomCookieBanner = () => {
+  return (
+    <CookieBanner
+      theme={{
+        "banner.root": "",
+        "banner.title": "",
+        "banner.description": "",
+        "banner.footer": "",
+        "banner.root": "",
+        "banner.card": "",
+        "banner.header.root": "",
+        "banner.header.title": "",
+        "banner.header.description": "",
+        "banner.footer": "",
+        "banner.footer.sub-group": "",
+        "banner.overlay": "",
+        "banner.footer.reject-button": "",
+        "banner.footer.customize-button": "",
+        "banner.footer.accept-button": "",
+      }}
+    />
+  );
+};
+```
+
+### Using CSS Modules
+
+For more traditional styling approaches, you can use CSS modules:
+
+```tsx
+import { CookieBanner } from "@c15t/react";
+import styles from "./cookie-banner.module.css";
+
+const CSSModuleCookieBanner = () => {
+  return (
+    <CookieBanner
+      theme={{
+        "banner.root": styles.banner,
+        "banner.title": styles.title,
+        "banner.description": styles.description,
+      }}
+    />
+  );
+};
+```
+
+### Using Existing Components
+
+You can integrate your own component library using the `asChild` prop:
+
+```tsx
+import * as CookieBanner from "@c15t/react/cookie-banner";
+import { Button } from "./your-components";
+
+const CustomAcceptButton = () => {
+  return (
+    <CookieBanner.AcceptButton asChild>
+      <Button variant="primary">Accept All Cookies</Button>
+    </CookieBanner.AcceptButton>
+  );
+};
+```
+
+## Scroll Locking
+
+The Cookie Banner supports scroll locking, a technique that prevents users from interacting with your website until they've made a cookie consent choice.
+
+```tsx
+<CookieBanner 
+  lockScroll={true}
+/>
+```
+
+When enabled, scroll locking:
+- Prevents page scrolling and interaction
+- Displays a background overlay
+- Ensures users must make a privacy choice before accessing content
+
+For best results, use scroll locking together with [focus trapping](#focus-trapping) to ensure complete keyboard accessibility.
+
+<Callout>
+  For detailed implementation guides, best practices, and compliance considerations, see our [Scroll Locking Guide](/docs/framework/react/guides/scroll-locking).
+</Callout>
+
+## Accessibility
+
+The Cookie Banner is built with accessibility in mind:
+
+- Proper ARIA roles and labels (role="dialog", aria-modal="true")
+- Keyboard navigation and interaction support
+- Focus management and trapping
+- Screen reader announcements
+- Semantic HTML structure
+
+These features work automatically, ensuring all users can interact with your privacy controls effectively.
+
+### Focus Trapping
+
+The Cookie Banner implements focus trapping when it's displayed, which is an essential accessibility feature that prevents keyboard focus from moving outside the banner. This behavior:
+
+- **Ensures users complete the consent flow** before interacting with other page elements
+- **Prevents accidental interaction** with content that shouldn't be accessible yet
+- **Helps compliance** with accessibility guidelines like WCAG 2.4.3 (Focus Order)
+
+#### Implementation Details
+
+Focus trapping in the Cookie Banner works through the `CookieBannerCard` component, which:
+
+1. Uses the [`useFocusTrap`](/docs/framework/react/hooks/use-focus-trap) hook internally
+2. Automatically sets `tabIndex={0}` on the container
+3. Applies proper ARIA attributes (`role="dialog"` and `aria-modal="true"`)
+4. Remembers the previously focused element and restores it when closed
+5. Cycles focus between interactive elements when Tab is pressed
+
+You can control focus trapping with the `trapFocus` prop:
+
+```tsx
+// Default behavior (recommended)
+<CookieBanner trapFocus={true} />
+
+// Disable focus trapping (use with caution)
+<CookieBanner trapFocus={false} />
+```
+
+<Callout>
+  Focus trapping is enabled by default and recommended for accessibility compliance. For more details on implementation and best practices, see our [useFocusTrap hook documentation](/docs/hooks/use-focus-trap).
+</Callout>
+
+## Best Practices
+
+Follow these guidelines for optimal implementation:
+
+1. Place the banner at the root level of your application
+2. Keep the title and description clear and concise
+3. Use the pre-assembled version unless you need custom layouts
+4. Test the banner across different screen sizes
+5. Ensure your theme maintains sufficient contrast ratios
+6. Consider [scroll locking](#scroll-locking) for strict compliance scenarios
+7. Test with keyboard navigation to ensure accessibility
+
+## Common Pitfalls
+
+## API Reference
+
+### CookieBanner
+
+The main component accepts these props:
+
+<auto-type-table path="../../../node_modules/@c15t/react/src/components/cookie-banner/cookie-banner.tsx" name="CookieBannerProps" />
+
+### Compound Components
+
+Each compound component is designed for specific functionality:
+| Component | Description |
+| --- | --- |
+| `CookieBanner.Root` | The container component |
+| `CookieBanner.Card` | Wrapper for banner content |
+| `CookieBanner.Header` | Groups title and description |
+| `CookieBanner.Footer` | Contains action buttons |
+| `CookieBanner.AcceptButton` | Accepts all cookies |
+| `CookieBanner.RejectButton` | Rejects optional cookies |
+| `CookieBanner.CustomizeButton` | Opens preference dialog |
+
+
+## Related Components
+<Cards>
+  <Card 
+   icon={<LayersIcon />}
+    title="Consent Manager Dialog"
+    description="A detailed privacy preferences interface that lets users fine-tune their choices. Built with accessibility and usability in mind."
+    href="/docs/components/react/consent-manager-dialog"
+  />
+  <Card 
+    icon={<ToggleRightIcon />}
+    title="Consent Manager Widget"
+    description="The engine that powers granular consent management. Easily embed detailed privacy controls anywhere in your app."
+    href="/docs/components/react/consent-manager-widget"
+  />
+</Cards>
