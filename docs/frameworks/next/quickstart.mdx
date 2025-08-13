@@ -20,7 +20,7 @@ import { RiFileCopyLine, RiFlashlightLine, RiServerLine, RiWifiOffLine, RiSettin
 <Step>
 ### Generate Schema + Code
 
-<RunCommand command="@c15t/cli generate" />
+<PackageCommandTabs command="@c15t/cli generate" />
 
 </Step>
 
@@ -31,7 +31,7 @@ import { RiFileCopyLine, RiFlashlightLine, RiServerLine, RiWifiOffLine, RiSettin
 This is only required if you are self hosting c15t.
 </Callout>
 
-<RunCommand command="@c15t/cli migrate" />
+<PackageCommandTabs command="@c15t/cli migrate" />
 
 </Step>
 </Steps>
@@ -41,9 +41,7 @@ This is only required if you are self hosting c15t.
 <Step>
  
 ### Install `@c15t/nextjs` Package
- ```package-install
- @c15t/nextjs
- ```
+  <PackageCommandTabs command="@c15t/nextjs" />
 </Step>
 
 <Step>
