@@ -12,6 +12,10 @@ describe('policyRegistry', () => {
 		warn: vi.fn(),
 	};
 
+	vi.mock('./utils/generate-id', () => ({
+		generateUniqueId: vi.fn().mockResolvedValue('pol_test'),
+	}));
+
 	/**
 	 * Creates a mock consent policy object with the specified overrides
 	 *
@@ -21,7 +25,7 @@ describe('policyRegistry', () => {
 	const createMockConsentPolicy = (
 		overrides: Partial<ConsentPolicy> = {}
 	): ConsentPolicy => ({
-		id: 'pol_test_123',
+		id: 'pol_test',
 		version: '1.0.0',
 		type: 'privacy_policy',
 		name: 'privacy_policy',
@@ -266,6 +270,7 @@ describe('policyRegistry', () => {
 				vi.setSystemTime(fakeDate);
 
 				const newMockPolicy = createMockConsentPolicy({
+					id: 'pol_test',
 					type: 'dpa',
 					name: 'dpa',
 					effectiveDate: fakeDate,
@@ -292,6 +297,7 @@ describe('policyRegistry', () => {
 				});
 
 				expect(db.create).toHaveBeenCalledWith('consentPolicy', {
+					id: 'pol_test',
 					version: '1.0.0',
 					type: 'dpa',
 					name: 'dpa',
@@ -343,6 +349,7 @@ describe('policyRegistry', () => {
 					const result = await registry.findOrCreatePolicy(policyType);
 
 					expect(db.create).toHaveBeenCalledWith('consentPolicy', {
+						id: 'pol_test',
 						version: '1.0.0',
 						type: policyType,
 						name: policyType,

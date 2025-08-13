@@ -12,6 +12,10 @@ describe('domainRegistry', () => {
 		warn: vi.fn(),
 	};
 
+	vi.mock('./utils/generate-id', () => ({
+		generateUniqueId: vi.fn().mockResolvedValue('dom_test'),
+	}));
+
 	/**
 	 * Creates a mock domain object with the specified overrides
 	 *
@@ -19,7 +23,7 @@ describe('domainRegistry', () => {
 	 * @returns A complete Domain object for testing
 	 */
 	const createMockDomain = (overrides: Partial<Domain> = {}): Domain => ({
-		id: 'dom_test_123',
+		id: 'dom_test',
 		name: 'example.com',
 		description: 'Auto-created domain for example.com',
 		allowedOrigins: [],
@@ -160,6 +164,7 @@ describe('domainRegistry', () => {
 				});
 
 				expect(db.create).toHaveBeenCalledWith('domain', {
+					id: 'dom_test',
 					name: 'new.com',
 					description: 'Auto-created domain for new.com',
 					isActive: true,
@@ -191,6 +196,7 @@ describe('domainRegistry', () => {
 				await registry.findOrCreateDomain('test.org');
 
 				expect(db.create).toHaveBeenCalledWith('domain', {
+					id: 'dom_test',
 					name: 'test.org',
 					description: 'Auto-created domain for test.org',
 					isActive: true,
@@ -227,6 +233,7 @@ describe('domainRegistry', () => {
 					const result = await registry.findOrCreateDomain(domainName);
 
 					expect(db.create).toHaveBeenCalledWith('domain', {
+						id: 'dom_test',
 						name: domainName,
 						description: `Auto-created domain for ${domainName}`,
 						isActive: true,
@@ -269,6 +276,7 @@ describe('domainRegistry', () => {
 				});
 
 				expect(db.create).toHaveBeenCalledWith('domain', {
+					id: 'dom_test',
 					name: 'failed.com',
 					description: 'Auto-created domain for failed.com',
 					isActive: true,
@@ -441,6 +449,7 @@ describe('domainRegistry', () => {
 			const result = await registry.findOrCreateDomain(upperCaseDomain);
 
 			expect(db.create).toHaveBeenCalledWith('domain', {
+				id: 'dom_test',
 				name: upperCaseDomain,
 				description: `Auto-created domain for ${upperCaseDomain}`,
 				isActive: true,
