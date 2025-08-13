@@ -11,6 +11,7 @@
 		"@c15t/backend": "workspace:*",
 		"@c15t/cli": "workspace:*",
 		"@libsql/kysely-libsql": "^0.4.1",
+		"@libsql/client": "^0.8.1",
 		"drizzle-orm": "^0.41.0",
 		"kysely": "^0.28.4",
 		"kysely-libsql": "^0.7.1",

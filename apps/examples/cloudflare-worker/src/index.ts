@@ -10,9 +10,9 @@ import { Kysely } from 'kysely';
  * without any additional framework.
  */
 const handler = (env: Env) => {
-	// Create the c15t instance with ORPC support
 	const instance = c15tInstance({
 		adapter: kyselyAdapter({
+			// @ts-expect-error - Kysely+LibsqlDialect is not typed correctly
 			db: new Kysely({
 				dialect: new LibsqlDialect({
 					url: 'http://127.0.0.1:8080',
@@ -25,7 +25,6 @@ const handler = (env: Env) => {
 			level: 'debug',
 			appName: 'c15t-cloudflare-example',
 		},
-		baseURL: '/',
 	});
 
 	// Return a Cloudflare Worker handler
