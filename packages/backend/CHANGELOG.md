@@ -1,5 +1,11 @@
 # @c15t/backend
 
+## 1.5.0-canary-20250813173036
+
+### Patch Changes
+
+- 94781a6: fix: split adapter imports
+
 ## 1.5.0-canary-20250813161712
 
 ### Minor Changes

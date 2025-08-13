@@ -1,5 +1,5 @@
 import { defineConfig } from '@c15t/backend/v2';
-import { kyselyAdapter } from '@c15t/backend/v2/db/adapters';
+import { kyselyAdapter } from '@c15t/backend/v2/db/adapters/kysely';
 import { LibsqlDialect } from '@libsql/kysely-libsql';
 import { Kysely } from 'kysely';
 

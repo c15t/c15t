@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/backend",
-	"version": "1.5.0-canary-20250813161712",
+	"version": "1.5.0-canary-20250813173036",
 	"license": "GPL-3.0-only",
 	"type": "module",
 	"exports": {
@@ -27,6 +27,26 @@
 		"./v2/db/adapters": {
 			"types": "./dist/v2/db/adapters/index.d.ts",
 			"import": "./dist/v2/db/adapters/index.js"
+		},
+		"./v2/db/adapters/kysely": {
+			"types": "./dist/v2/db/adapters/kysely.d.ts",
+			"import": "./dist/v2/db/adapters/kysely.js"
+		},
+		"./v2/db/adapters/drizzle": {
+			"types": "./dist/v2/db/adapters/drizzle.d.ts",
+			"import": "./dist/v2/db/adapters/drizzle.js"
+		},
+		"./v2/db/adapters/prisma": {
+			"types": "./dist/v2/db/adapters/prisma.d.ts",
+			"import": "./dist/v2/db/adapters/prisma.js"
+		},
+		"./v2/db/adapters/typeorm": {
+			"types": "./dist/v2/db/adapters/typeorm.d.ts",
+			"import": "./dist/v2/db/adapters/typeorm.js"
+		},
+		"./v2/db/adapters/mongo": {
+			"types": "./dist/v2/db/adapters/mongo.d.ts",
+			"import": "./dist/v2/db/adapters/mongo.js"
 		},
 		"./v2/db/migrator": {
 			"types": "./dist/v2/db/migrator/index.d.ts",

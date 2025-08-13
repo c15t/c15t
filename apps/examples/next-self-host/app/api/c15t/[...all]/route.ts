@@ -1,5 +1,5 @@
 import { c15tInstance } from '@c15t/backend/v2';
-import { kyselyAdapter } from '@c15t/backend/v2/db/adapters';
+import { kyselyAdapter } from '@c15t/backend/v2/db/adapters/kysely';
 import { Kysely, PostgresDialect } from 'kysely';
 import type { NextRequest } from 'next/server';
 import { Pool } from 'pg';
