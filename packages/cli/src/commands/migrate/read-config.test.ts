@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('c12', () => ({
 	loadConfig: vi.fn(async () => ({
-		config: { type: 'kysely', adapter: { id: 'k', type: 'kysely' } },
+		config: { adapter: { id: 'k', type: 'kysely' } },
 	})),
 }));
 
@@ -55,15 +55,14 @@ describe('readConfigAndGetDb', () => {
 		).rejects.toThrow(BACKEND_NOT_FOUND_RE);
 	});
 
-	it('loads config and returns db and adapter', async () => {
+	it('loads config and returns db', async () => {
 		const context = {
 			logger: { info: vi.fn(), debug: vi.fn(), error: vi.fn() },
 		} as unknown as Parameters<typeof readConfigAndGetDb>[0];
-		const { db, adapter } = await readConfigAndGetDb(context, configPath);
+		const { db } = await readConfigAndGetDb(context, configPath);
 		expect(loadConfig).toHaveBeenCalled();
 		expect(DB.client).toHaveBeenCalled();
 		expect(db).toEqual({ __db: true });
-		expect(adapter).toBe('kysely');
 	});
 
 	it('rethrows non-Error as wrapped Error', async () => {

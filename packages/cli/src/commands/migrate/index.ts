@@ -17,11 +17,11 @@ export async function migrate(context: CliContext) {
 		return;
 	}
 
-	const { db, adapter } = await readConfigAndGetDb(context, configPath);
+	const { db } = await readConfigAndGetDb(context, configPath);
 
 	logger.info('Loaded c15t-backend.config.ts');
 
-	const result = await migrator({ db, adapter, schema: 'latest' });
+	const result = await migrator({ db, schema: 'latest' });
 
 	if ('path' in result) {
 		await handleORMResult(context, result);

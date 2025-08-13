@@ -1,12 +1,5 @@
-import type { Adapter } from './db/adapters';
 import type { DatabaseOptions } from './types';
-export interface DatabaseConfig extends DatabaseOptions {
-	/**
-	 * The type of database adapter you're using.
-	 *
-	 * @example 'kysleyAdapter'
-	 */
-	type: Adapter;
-}
+
+export interface DatabaseConfig extends DatabaseOptions {}
 
 export const defineConfig = (config: DatabaseConfig) => config;

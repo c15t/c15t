@@ -10,7 +10,6 @@ export async function readConfigAndGetDb(
 	absoluteConfigPath: string
 ): Promise<{
 	db: ReturnType<typeof DB.client>;
-	adapter: DatabaseConfig['type'];
 }> {
 	const { logger } = context;
 
@@ -46,7 +45,6 @@ export async function readConfigAndGetDb(
 
 		return {
 			db: DB.client(config.adapter),
-			adapter: config.type,
 		};
 	} catch (error) {
 		logger.error('Failed to load backend config', error);

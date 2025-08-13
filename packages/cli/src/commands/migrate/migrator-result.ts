@@ -14,7 +14,7 @@ export async function handleMigrationResult(
 
 	const viewSQL = await p.confirm({
 		message: 'View SQL for this migration?',
-		initialValue: false,
+		initialValue: true,
 	});
 
 	if (p.isCancel(viewSQL)) {

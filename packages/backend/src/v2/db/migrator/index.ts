@@ -1,5 +1,4 @@
 import type { InferFumaDB } from 'fumadb';
-import type { Adapter } from '~/v2/db/adapters';
 import type { DB } from '~/v2/db/schema';
 
 type DatabaseInstance = InferFumaDB<typeof DB>;
@@ -24,7 +23,6 @@ export type ORMResult = {
 
 interface BaseOptions {
 	db: DatabaseInstance;
-	adapter: Adapter;
 	schema: VersionTag | 'latest';
 }
 
@@ -50,35 +48,33 @@ export async function migrator(
 		version = 'legacy';
 	}
 
-	switch (options.adapter) {
-		case 'kysely':
-		case 'mongo': {
-			const migratorInstance = db.createMigrator();
+	const migratorInstance = db.adapter?.createMigrationEngine
+		? db.createMigrator()
+		: undefined;
 
-			switch (options.schema) {
-				case 'latest':
-					return await migratorInstance.migrateToLatest({
-						mode: version === 'legacy' ? 'from-database' : 'from-schema',
-					});
-				default:
-					return await migratorInstance.migrateTo(options.schema, {
-						mode: version === 'legacy' ? 'from-database' : 'from-schema',
-					});
-			}
-		}
+	const schema = db.adapter?.generateSchema
+		? db.generateSchema(options.schema)
+		: undefined;
 
-		case 'drizzle':
-		case 'prisma':
-		case 'typeorm': {
-			const schema = db.generateSchema(options.schema);
-			return {
-				code: schema.code,
-				path: schema.path,
-			};
-		}
-
-		default: {
-			throw new Error('Unsupported adapter');
+	if (migratorInstance) {
+		switch (options.schema) {
+			case 'latest':
+				return await migratorInstance.migrateToLatest({
+					mode: version === 'legacy' ? 'from-database' : 'from-schema',
+				});
+			default:
+				return await migratorInstance.migrateTo(options.schema, {
+					mode: version === 'legacy' ? 'from-database' : 'from-schema',
+				});
 		}
 	}
+
+	if (schema) {
+		return {
+			code: schema.code,
+			path: schema.path,
+		};
+	}
+
+	throw new Error('Adapter does not support migrations or schema generation');
 }
