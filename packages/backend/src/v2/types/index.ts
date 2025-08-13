@@ -18,7 +18,6 @@ export interface DatabaseOptions {
 
 interface BaseOptions {
 	appName?: string;
-	baseURL: string;
 	basePath?: string;
 	trustedOrigins: string[];
 	advanced?: {

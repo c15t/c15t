@@ -68,7 +68,6 @@ async function setup(params: SetupParams = {}) {
 	const { init } = await import('./init');
 
 	const options: Record<string, unknown> = {
-		baseURL: 'http://example.com',
 		trustedOrigins: [],
 		advanced: {
 			telemetry: telemetryDisabled ? { disabled: true } : {},

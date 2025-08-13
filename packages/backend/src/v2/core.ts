@@ -303,9 +303,9 @@ export const c15tInstance = (options: C15TOptions) => {
 
 			const ctx = defu(ctxOverride || {}, context) as C15TContext;
 
-			// After options/baseURL/basePath is set/used
-			const basePath = options.basePath || options.baseURL || '/';
-			createLogger(options.logger)?.debug?.('[c15t] Using basePath/baseURL', {
+			// After options is used
+			const basePath = options.basePath;
+			createLogger(options.logger)?.debug?.('[c15t] Using basePath', {
 				basePath,
 			});
 
