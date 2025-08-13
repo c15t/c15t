@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * @packageDocumentation
  * Provides a reusable hook for managing document scroll locking.
