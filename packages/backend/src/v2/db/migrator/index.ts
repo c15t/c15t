@@ -72,11 +72,6 @@ export async function migrator(
 		case 'typeorm': {
 			const schema = db.generateSchema(options.schema);
 			return {
-				// TODO: Fix FumaDB export (cuid not exported)
-				// code: schema.code.replace(
-				// 	'fumadb/cuid',
-				// 	'@c15t/backend/v2/pkgs/db-utils/cuid'
-				// ),
 				code: schema.code,
 				path: schema.path,
 			};

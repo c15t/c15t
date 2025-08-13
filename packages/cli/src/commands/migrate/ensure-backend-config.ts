@@ -261,7 +261,7 @@ function buildFileContent(
 	dbConfig: string,
 	connection: ConnectionInput
 ): string {
-	const importAdapter = `import { ${adapter} } from '@c15t/backend/v2/pkgs/db-adapters';`;
+	const importAdapter = `import { ${adapter} } from '@c15t/backend/v2/db/adapters';`;
 	let extras = { imports: '', prelude: '' };
 	if (adapter === 'kyselyAdapter') {
 		if (provider === 'sqlite') {
