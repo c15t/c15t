@@ -1,5 +1,12 @@
 # c15t
 
+## 1.5.0-canary-20250813173036
+
+### Patch Changes
+
+- Updated dependencies [94781a6]
+  - @c15t/backend@1.5.0-canary-20250813173036
+
 ## 1.5.0-canary-20250813161712
 
 ### Minor Changes
