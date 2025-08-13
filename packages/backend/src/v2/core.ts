@@ -11,11 +11,11 @@ import {
 	createOpenAPISpec,
 } from '~/v2/middleware/openapi';
 import { getIpAddress } from '~/v2/middleware/process-ip';
-// import { withRequestSpan } from './pkgs/api-router/telemetry';
 import { router } from '~/v2/router';
 import type { DeepPartial } from '~/v2/types';
 import type { C15TContext, C15TOptions } from '~/v2/types';
 import { init } from './init';
+import { withRequestSpan } from './utils/create-telemetry-options';
 
 /**
  * Type representing an API route
@@ -112,17 +112,16 @@ export const c15tInstance = (options: C15TOptions) => {
 		const method = request.method;
 
 		// // Add a span to the context that can be accessed by handlers
-		// withRequestSpan(
-		// 	method,
-		// 	path,
-		// 	async () => {
-		// 		// This callback is intentionally empty - we're only creating the span
-		// 		// The span automatically tracks the current execution context and
-		// 		// will be associated with the request processing that follows
-		// 	},
-		// 	options
-		// );
-		// TODO: READD REQUEST SPAN
+		withRequestSpan(
+			method,
+			path,
+			async () => {
+				// This callback is intentionally empty - we're only creating the span
+				// The span automatically tracks the current execution context and
+				// will be associated with the request processing that follows
+			},
+			options
+		);
 
 		// Add path and method to context for easier access
 		context.path = path;

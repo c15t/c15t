@@ -108,7 +108,7 @@ export const verifyConsent = os.consent.verify.handler(
 			const subject = await typedContext.registry.findOrCreateSubject({
 				subjectId,
 				externalSubjectId,
-				ipAddress: 'unknown', // TODO: get ip address from request
+				ipAddress: typedContext.ipAddress ?? 'unknown',
 			});
 
 			if (!subject) {
