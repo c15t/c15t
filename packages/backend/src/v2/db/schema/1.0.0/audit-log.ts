@@ -2,7 +2,7 @@ import { column, idColumn, table } from 'fumadb/schema';
 import { z } from 'zod';
 
 export const auditLogTable = table('auditLog', {
-	id: idColumn('id', 'varchar(255)').defaultTo$('auto'),
+	id: idColumn('id', 'varchar(255)'),
 	entityType: column('entityType', 'string'),
 	entityId: column('entityId', 'string'),
 	actionType: column('actionType', 'string'),

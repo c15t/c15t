@@ -2,7 +2,7 @@ import { column, idColumn, table } from 'fumadb/schema';
 import { z } from 'zod';
 
 export const domainTable = table('domain', {
-	id: idColumn('id', 'varchar(255)').defaultTo$('auto'),
+	id: idColumn('id', 'varchar(255)'),
 	name: column('name', 'string').unique(),
 	description: column('description', 'string').nullable(),
 	allowedOrigins: column('allowedOrigins', 'json').nullable(),

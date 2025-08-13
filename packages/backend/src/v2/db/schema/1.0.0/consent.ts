@@ -2,7 +2,7 @@ import { column, idColumn, table } from 'fumadb/schema';
 import { z } from 'zod';
 
 export const consentTable = table('consent', {
-	id: idColumn('id', 'varchar(255)').defaultTo$('auto'),
+	id: idColumn('id', 'varchar(255)'),
 	subjectId: column('subjectId', 'string'),
 	domainId: column('domainId', 'string'),
 	policyId: column('policyId', 'string').nullable(),

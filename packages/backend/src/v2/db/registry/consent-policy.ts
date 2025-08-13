@@ -1,6 +1,7 @@
 import { ORPCError } from '@orpc/server';
 import type { PolicyType } from '../schema';
 import type { Registry } from './types';
+import { generateUniqueId } from './utils/generate-id';
 
 export function policyRegistry({ db, ctx: { logger } }: Registry) {
 	async function generatePolicyPlaceholder(name: string, date: Date) {
@@ -55,6 +56,7 @@ export function policyRegistry({ db, ctx: { logger } }: Registry) {
 			);
 
 			const policy = await db.create('consentPolicy', {
+				id: await generateUniqueId(db, 'consentPolicy'),
 				version: '1.0.0',
 				type,
 				name: type,

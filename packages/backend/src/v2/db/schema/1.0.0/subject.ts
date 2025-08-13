@@ -2,7 +2,7 @@ import { column, idColumn, table } from 'fumadb/schema';
 import { z } from 'zod';
 
 export const subjectTable = table('subject', {
-	id: idColumn('id', 'varchar(255)').defaultTo$('auto'),
+	id: idColumn('id', 'varchar(255)'),
 	isIdentified: column('isIdentified', 'bool').defaultTo$(() => false),
 	externalId: column('externalId', 'string').nullable(),
 	identityProvider: column('identityProvider', 'string').nullable(),
