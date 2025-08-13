@@ -46,10 +46,15 @@
 		"knip": "^5.50.4",
 		"lefthook": "^1.11.10",
 		"playwright": "^1.51.1",
+		"remark-cli": "^12.0.1",
+		"remark-frontmatter": "^5.0.0",
+		"remark-mdx": "^3.1.0",
+		"remark-preset-lint-consistent": "^6.0.1",
+		"remark-preset-lint-recommended": "^7.0.1",
 		"turbo": "^2.5.0",
 		"typescript": "5.8.3",
-		"vitest-browser-react": "^0.1.1",
-		"vitest": "^3.1.1"
+		"vitest": "^3.1.1",
+		"vitest-browser-react": "^0.1.1"
 	},
 	"packageManager": "pnpm@10.8.0",
 	"engines": {

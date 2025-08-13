@@ -1,7 +1,33 @@
 ---
 title: Welcome to c15t Docs
 description: Find all the guides and resources you need to build your application
+lastModified: 2025-04-15
+full: true
 ---
-import { IndexBlock } from "~/components/blocks/index-block";
 
-<IndexBlock/>
+## Get Started
+
+<CursorCardContainer className="my-10 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-2 @container not-prose grid gap-4">
+  <CursorCard>
+    <Link href="/docs/frameworks/javascript/quickstart" className="block h-full">
+      <CursorCardIcon>
+        <JavascriptIcon />
+      </CursorCardIcon>
+      <CursorCardTitle>Quickstarts & Tutorials</CursorCardTitle>
+      <CursorCardDescription>Explore our end-to-end tutorials and getting started guides for different application stacks using c15t.</CursorCardDescription>
+    </Link>
+  </CursorCard>
+  
+  <CursorCard>
+    <Link href="/docs/frameworks/next/components/consent-manager-dialog" className="block h-full">
+      <CursorCardIcon>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9.75 7 12 4.75 14.25 7 12 9.25 9.75 7ZM14.75 12 17 9.75 19.25 12 17 14.25 14.75 12ZM9.75 17 12 14.75 14.25 17 12 19.25 9.75 17ZM4.75 12 7 9.75 9.25 12 7 14.25 4.75 12Z"/></svg>
+      </CursorCardIcon>
+      <CursorCardTitle>UI Components</CursorCardTitle>
+      <CursorCardDescription>c15t's prebuilt UI components give you a beautiful, fully-functional consent management experience in minutes.</CursorCardDescription>
+    </Link>
+  </CursorCard>
+</CursorCardContainer>
+
+## Explore by frontend framework
+<include>./frameworks/index.mdx</include>
