@@ -39,11 +39,11 @@ jobs:
         with:
           version: '10.8.0'
 
-      - name: Install The Docs
+      - name: Setup Documentation Template
         run: |
+          # Create .env for development mode, then let Vercel handle the build
+          echo "CONSENT_GIT_TOKEN=${{ secrets.CONSENT_GIT_TOKEN }}" > .env
           pnpm dlx tsx scripts/setup-docs.ts
-        env:
-          CONSENT_GIT_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
