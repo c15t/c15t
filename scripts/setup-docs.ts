@@ -17,8 +17,9 @@ const error = console.error;
  *
  * **Production Mode (--vercel flag):**
  * - Uses environment CONSENT_GIT_TOKEN
- * - Installs workspace dependencies
- * - Skips building; Vercel will run `vercel build` during deployment
+ * - Skips all pnpm installs (Vercel handles installs)
+ * - Skips content processing (handled in template/build)
+ * - Skips building; Vercel will run the build during deployment
  *
  * **Branch Selection (--branch flag):**
  * - Defaults to 'main' branch
@@ -650,10 +651,8 @@ function installDocsAppDependencies(
  * 1. **Authentication**: Validate environment token
  * 2. **Template Acquisition**: Clone latest documentation template from specified branch
  * 3. **Workspace Integration**: Sync template to .docs and create content symlinks
- * 4. **Workspace Dependencies**: Install main workspace packages
- * 5. **App Dependencies**: Install .docs dependencies
- * 6. **Content Processing**: Run fumadocs-mdx to process linked MDX content
- * 7. **Build handled by Vercel**: The workflow runs `vercel build` in .docs
+ * 4. Skips installations and content processing (handled by Vercel build)
+ * 5. **Build handled by Vercel**
  *
  * @param fetchOptions - Parsed command line options determining build mode and branch
  *
@@ -702,16 +701,16 @@ function main(fetchOptions: FetchOptions): void {
 
 		// Phase 4: Configure dependency environments
 		if (fetchOptions.isProduction) {
-			// Production: Install workspace dependencies first
-			installWorkspaceDependencies(fetchOptions.mode, fetchOptions.branch);
+			// In Vercel/production mode, skip all installs and content processing.
+			// Vercel handles dependency installation and the template/build handles content.
+			log('🛑 --vercel detected: skipping installs and content processing.');
+		} else {
+			// Development: Install dependencies and process content locally
+			installDocsAppDependencies(fetchOptions.mode, fetchOptions.branch);
+			processMDXContent(fetchOptions.mode, fetchOptions.branch);
 		}
-		// Both modes: Install .docs dependencies
-		installDocsAppDependencies(fetchOptions.mode, fetchOptions.branch);
 
-		// Phase 4.5: Process MDX content after dependencies are installed
-		processMDXContent(fetchOptions.mode, fetchOptions.branch);
-
-		// Phase 5: Skip building here; Vercel will run `vercel build` in .docs
+		// Phase 5: Skip building here; Vercel will run the build
 		if (fetchOptions.isProduction) {
 			log('🛑 Skipping local build in production mode; Vercel will build.');
 		}
