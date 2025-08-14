@@ -1,8 +1,30 @@
 import fs from 'node:fs';
-import https from 'node:https';
 import path from 'node:path';
 
 type DeployTarget = 'production' | 'staging';
+
+type VercelDeploymentFile = {
+	file: string;
+	data: string;
+	encoding: 'base64';
+};
+
+interface VercelDeploymentMeta {
+	githubCommitRef: string;
+	githubCommitSha: string;
+	githubRepo: string;
+	githubOrg: string;
+	source: string;
+}
+
+interface VercelDeploymentRequestBody {
+	name: string;
+	project: string;
+	target: DeployTarget;
+	files: VercelDeploymentFile[];
+	meta: VercelDeploymentMeta;
+	projectSettings: { framework: string };
+}
 
 function parseArgs(argv: string[]) {
 	const args: Record<string, string | boolean> = {};
@@ -120,14 +142,20 @@ function walkFiles(cwd: string): string[] {
 let dotenvLoaded = false;
 function parseEnvFile(filePath: string): Record<string, string> {
 	const out: Record<string, string> = {};
-	if (!fs.existsSync(filePath)) return out;
+	if (!fs.existsSync(filePath)) {
+		return out;
+	}
 	const content = fs.readFileSync(filePath, 'utf8');
 	for (const rawLine of content.split(/\r?\n/)) {
 		const line = rawLine.trim();
-		if (!line || line.startsWith('#')) continue;
+		if (!line || line.startsWith('#')) {
+			continue;
+		}
 		const cleaned = line.startsWith('export ') ? line.slice(7) : line;
 		const eq = cleaned.indexOf('=');
-		if (eq === -1) continue;
+		if (eq === -1) {
+			continue;
+		}
 		const key = cleaned.slice(0, eq).trim();
 		let value = cleaned.slice(eq + 1).trim();
 		if (
@@ -186,118 +214,107 @@ async function createDeployment() {
 		};
 	});
 
-	const body = JSON.stringify({
-		name: 'c15t',
-		project,
-		target,
-		files,
-		meta: {
+	// Prefer Vercel SDK if available; fall back to HTTP API otherwise
+	let deploymentId: string | undefined;
+	let deploymentUrl: string | undefined;
+
+	try {
+		// Dynamically import to avoid requiring installation in CI if not present
+		const sdkModule: unknown = await import('@vercel/sdk');
+		const VercelCtor = (
+			sdkModule as { Vercel: new (opts: { bearerToken: string }) => unknown }
+		).Vercel;
+		const vercel = new VercelCtor({ bearerToken: token }) as {
+			deployments: {
+				createDeployment: (args: {
+					teamId: string;
+					requestBody: VercelDeploymentRequestBody;
+				}) => Promise<{ id?: string; url?: string; status?: string }>;
+				getDeployment: (args: {
+					idOrUrl: string;
+					withGitRepoInfo: string;
+				}) => Promise<{ url?: string }>;
+			};
+			aliases: {
+				assignAlias: (args: {
+					id: string;
+					requestBody: { alias: string; redirect: null };
+				}) => Promise<unknown>;
+			};
+		};
+
+		console.log({
 			githubCommitRef: branch,
 			githubCommitSha: sha,
 			githubRepo: repo.split('/')[1] || '',
 			githubOrg: owner || '',
 			source: 'script',
-		},
-		projectSettings: {
-			framework: 'nextjs',
-		},
-	});
+		});
 
-	const requestPath = `/v13/deployments?teamId=${encodeURIComponent(teamId)}`;
-
-	const resText: string = await new Promise((resolve, reject) => {
-		const req = https.request(
-			{
-				hostname: 'api.vercel.com',
-				path: requestPath,
-				method: 'POST',
-				headers: {
-					Authorization: `Bearer ${token}`,
-					'Content-Type': 'application/json',
-					'Content-Length': Buffer.byteLength(body),
+		const createResponse = await vercel.deployments.createDeployment({
+			teamId,
+			requestBody: {
+				name: 'c15t',
+				project,
+				target,
+				files,
+				meta: {
+					githubCommitRef: branch,
+					githubCommitSha: sha,
+					githubRepo: repo.split('/')[1] || '',
+					githubOrg: owner || '',
+					source: 'script',
 				},
+				projectSettings: { framework: 'nextjs' },
 			},
-			(res) => {
-				const chunks: Buffer[] = [];
-				res.on('data', (d) => chunks.push(d));
-				res.on('end', () => {
-					const txt = Buffer.concat(chunks).toString('utf8');
-					if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-						return resolve(txt);
-					}
-					return reject(
-						new Error(`Vercel API error: ${res.statusCode}\n${txt}`)
-					);
-				});
-			}
-		);
-		req.on('error', (err) => reject(err));
-		req.write(body);
-		req.end();
-	});
+		});
 
-	const json = JSON.parse(resText) as { url?: string; id?: string };
-	let url = json.url ? `https://${json.url}` : '';
-	if (!url) {
+		deploymentId = (createResponse as { id?: string }).id;
+		deploymentUrl = (createResponse as { url?: string }).url;
+
+		if (!deploymentUrl && deploymentId) {
+			const details = await vercel.deployments.getDeployment({
+				idOrUrl: deploymentId,
+				withGitRepoInfo: 'true',
+			});
+			deploymentUrl = details?.url;
+		}
+
+		if (branch === 'canary' && deploymentId) {
+			try {
+				await vercel.aliases.assignAlias({
+					id: deploymentId,
+					requestBody: { alias: 'canary.c15t.com', redirect: null },
+				});
+				deploymentUrl = 'canary.c15t.com';
+				console.log('Assigned alias canary.c15t.com to deployment.');
+			} catch (err) {
+				console.warn(
+					'Warning: could not assign canary alias. Using deployment URL instead.',
+					err instanceof Error ? err.message : err
+				);
+			}
+		}
+	} catch {
+		throw new Error(
+			"@vercel/sdk is required to deploy. Install it before running this script (e.g., 'pnpm -C .docs add -D @vercel/sdk --no-save')."
+		);
+	}
+
+	let finalUrl = '';
+	if (deploymentUrl?.startsWith('http')) {
+		finalUrl = deploymentUrl;
+	} else if (deploymentUrl) {
+		finalUrl = `https://${deploymentUrl}`;
+	}
+	if (!finalUrl) {
 		throw new Error('Vercel did not return a deployment URL.');
 	}
 
-	// If deploying from the canary branch, assign the canary domain alias
-	if (branch === 'canary' && json.id) {
-		try {
-			await new Promise<void>((resolve, reject) => {
-				const aliasBody = JSON.stringify({ alias: 'canary.c15t.com' });
-				const req = https.request(
-					{
-						hostname: 'api.vercel.com',
-						path: `/v2/deployments/${encodeURIComponent(json.id as string)}/aliases?teamId=${encodeURIComponent(teamId)}`,
-						method: 'POST',
-						headers: {
-							Authorization: `Bearer ${token}`,
-							'Content-Type': 'application/json',
-							'Content-Length': Buffer.byteLength(aliasBody),
-						},
-					},
-					(res) => {
-						const chunks: Buffer[] = [];
-						res.on('data', (d) => chunks.push(d));
-						res.on('end', () => {
-							const txt = Buffer.concat(chunks).toString('utf8');
-							if (
-								res.statusCode &&
-								res.statusCode >= 200 &&
-								res.statusCode < 300
-							) {
-								resolve();
-								return;
-							}
-							reject(
-								new Error(
-									`Failed to alias canary domain: ${res.statusCode}\n${txt}`
-								)
-							);
-						});
-					}
-				);
-				req.on('error', (err) => reject(err));
-				req.write(aliasBody);
-				req.end();
-			});
-			url = 'https://canary.c15t.com';
-			console.log('Assigned alias canary.c15t.com to deployment.');
-		} catch (err) {
-			console.warn(
-				'Warning: could not assign canary alias. Using deployment URL instead.',
-				err instanceof Error ? err.message : err
-			);
-		}
-	}
-
-	// Write to GitHub Actions output if available
 	if (process.env.GITHUB_OUTPUT) {
-		fs.appendFileSync(process.env.GITHUB_OUTPUT, `url=${url}\n`);
+		fs.appendFileSync(process.env.GITHUB_OUTPUT, `url=${finalUrl}\n`);
 	}
-	console.log(`Created Vercel deployment: ${url}`);
+	console.log(`Created Vercel deployment: ${finalUrl}`);
 }
 
 createDeployment().catch((err) => {
