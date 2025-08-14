@@ -43,7 +43,7 @@ jobs:
         run: |
           pnpm dlx tsx scripts/setup-docs.ts --vercel
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CONSENT_GIT_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest

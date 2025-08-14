@@ -35,7 +35,7 @@ The documentation system uses a private Next.js template that contains licensed 
 1. **Create your environment file** in the project root:
 
    ```bash
-   echo "GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxx" > .env
+   echo "CONSENT_GIT_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxx" > .env
    ```
 
 2. **Fetch and setup the documentation**:
@@ -113,7 +113,7 @@ pnpm setup:docs -- --branch=canary
 pnpm setup:docs -- --branch=develop
 
 # Production build with specific branch
-GITHUB_TOKEN=xxx tsx scripts/setup-docs.ts --vercel --branch=canary
+CONSENT_GIT_TOKEN=xxx tsx scripts/setup-docs.ts --vercel --branch=canary
 ```
 
 **Note**: The double dash (`--`) is required when passing flags through pnpm scripts.
@@ -142,7 +142,7 @@ Create a `.env` file in your project root:
 
 ```bash
 # .env file
-GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxx
+CONSENT_GIT_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxx
 ```
 
 **Important**: Never commit this file. It's already in `.gitignore`.
@@ -151,7 +151,7 @@ GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxx
 
 1. Go to your Vercel project dashboard
 2. Navigate to Settings → Environment Variables
-3. Add `GITHUB_TOKEN` with your token value
+3. Add `CONSENT_GIT_TOKEN` with your token value
 4. Save and redeploy
 
 ## File Structure
@@ -210,7 +210,7 @@ The template includes pre-built components for documentation. You can:
 **Token Authentication Failed**
 
 ```bash
-❌ GITHUB_TOKEN missing. Cannot fetch consentdotio/c15t-docs
+❌ CONSENT_GIT_TOKEN missing. Cannot fetch consentdotio/c15t-docs
 ```
 
 **Solutions:**

@@ -16,7 +16,7 @@ const error = console.error;
  * - Skips workspace dependencies and production build
  *
  * **Production Mode (--vercel flag):**
- * - Uses environment GITHUB_TOKEN
+ * - Uses environment CONSENT_GIT_TOKEN
  * - Installs workspace dependencies
  * - Builds production artifacts for deployment
  *
@@ -33,12 +33,12 @@ const error = console.error;
  * @see {@link https://vercel.com/docs/deployments/build-step | Vercel Build Step Documentation}
  * @see {@link https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens | GitHub Token Management}
  *
- * @requires GITHUB_TOKEN environment variable (production) or .env file (development)
+ * @requires CONSENT_GIT_TOKEN environment variable (production) or .env file (development)
  * @requires pnpm package manager for dependency management
  * @requires git for repository cloning operations
  * @requires rsync for efficient file synchronization
  *
- * @throws {ProcessExitError} When GITHUB_TOKEN is missing or invalid
+ * @throws {ProcessExitError} When CONSENT_GIT_TOKEN is missing or invalid
  * @throws {FetchScriptError} When any fetch step fails
  *
  * @example
@@ -53,7 +53,7 @@ const error = console.error;
  *
  * # Production build for Vercel
  * tsx scripts/setup-docs.ts --vercel
- * GITHUB_TOKEN=xxx tsx scripts/setup-docs.ts --vercel --branch=canary
+ * CONSENT_GIT_TOKEN=xxx tsx scripts/setup-docs.ts --vercel --branch=canary
  * ```
  */
 
@@ -243,30 +243,34 @@ function validateGitHubToken(
 		// Development mode: Load from .env file
 		try {
 			process.loadEnvFile();
-			token = process.env.GITHUB_TOKEN;
+			token = process.env.CONSENT_GIT_TOKEN;
 		} catch {
 			error(
 				'❌ Failed to load .env file. Ensure .env file exists in project root.'
 			);
-			error('💡 Create .env file with: GITHUB_TOKEN=your_token_here');
+			error('💡 Create .env file with: CONSENT_GIT_TOKEN=your_token_here');
 			error('🔗 Generate token at: https://github.com/settings/tokens');
 			exit(1);
 		}
 	} else {
 		// Production mode: Use environment variable directly
-		token = process.env.GITHUB_TOKEN;
+		token = process.env.CONSENT_GIT_TOKEN;
 	}
 
 	if (!token || token.trim() === '') {
 		if (buildMode === 'production') {
-			error('❌ GITHUB_TOKEN missing. Skipping private template fetch.');
+			error('❌ CONSENT_GIT_TOKEN missing. Skipping private template fetch.');
 			error('ℹ️  This is expected when outsiders clone the repo.');
 			error(
-				'💡 For authorized deployments, ensure GITHUB_TOKEN is set in environment.'
+				'💡 For authorized deployments, ensure CONSENT_GIT_TOKEN is set in environment.'
 			);
 		} else {
-			error('❌ GITHUB_TOKEN missing. Cannot fetch consentdotio/c15t-docs');
-			error('💡 Add GITHUB_TOKEN to your .env file for development access');
+			error(
+				'❌ CONSENT_GIT_TOKEN missing. Cannot fetch consentdotio/c15t-docs'
+			);
+			error(
+				'💡 Add CONSENT_GIT_TOKEN to your .env file for development access'
+			);
 		}
 		error(
 			'🔗 See: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens'
