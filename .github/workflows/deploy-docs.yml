@@ -53,16 +53,11 @@ jobs:
           cd .docs
           vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Build project artifacts
-        run: |
-          cd .docs
-          vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Deploy project artifacts to Vercel
+      - name: Deploy to Vercel
         id: deploy
         run: |
           cd .docs
-          echo "url=$(vercel deploy ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --prebuilt --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
+          echo "url=$(vercel deploy ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
 
       - name: Comment PR with preview URL
         if: github.event_name == 'pull_request'
