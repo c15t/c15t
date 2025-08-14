@@ -295,10 +295,9 @@ async function createDeployment() {
 				);
 			}
 		}
-	} catch {
-		throw new Error(
-			"@vercel/sdk is required to deploy. Install it before running this script (e.g., 'pnpm -C .docs add -D @vercel/sdk --no-save')."
-		);
+	} catch (err) {
+		console.error(err instanceof Error ? err.message : err, err);
+		process.exit(1);
 	}
 
 	let finalUrl = '';
