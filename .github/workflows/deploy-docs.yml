@@ -149,7 +149,7 @@ jobs:
           const body = JSON.stringify({
             name: 'c15t',
             project,
-            target: isProd ? 'production' : 'preview',
+             target: isProd ? 'production' : 'staging',
             files,
             meta: {
               githubCommitRef: branch,
