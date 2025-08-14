@@ -13,7 +13,7 @@
 		"dev:libs": "turbo dev --filter=./packages/*",
 		"dev": "turbo dev --filter=!./examples/*",
 		"fmt": "turbo fmt",
-		"fmt:docs": "pnpm remark ./docs --ext mdx --output",
+		"fmt:docs": "pnpm remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
 		"knip": "knip",
 		"lint:fix": "turbo lint -- --write",
 		"lint": "turbo lint",

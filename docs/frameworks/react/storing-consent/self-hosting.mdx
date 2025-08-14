@@ -45,7 +45,7 @@ This guide shows you how to set up a self-hosted c15t instance using Next.js API
 
     <Tabs items={['Memory', 'Kysely', 'Prisma', 'Drizzle']}>
       <Tab value="Memory">
-        ```tsx title="c15t.ts"
+        ```tsx title="app/api/c15t/c15t.ts"s"
         import { c15tInstance } from '@c15t/backend';
         import { memoryAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/memory-adapter';
 
@@ -61,7 +61,7 @@ This guide shows you how to set up a self-hosted c15t instance using Next.js API
       </Tab>
 
       <Tab value="Kysely">
-        ```tsx title="c15t.ts"
+        ```tsx title="app/api/c15t/c15t.ts""
         import { c15tInstance } from '@c15t/backend';
         import { kyselyAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/kysely-adapter';
         import { PostgresDialect } from 'kysely';
@@ -89,7 +89,7 @@ This guide shows you how to set up a self-hosted c15t instance using Next.js API
       </Tab>
 
       <Tab value="Prisma">
-        ```tsx title="c15t.ts"
+        ```tsx title="app/api/c15t/c15t.ts""
         import { c15tInstance } from '@c15t/backend';
         import { prismaAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/prisma-adapter';
         import { PrismaClient } from '@prisma/client';
@@ -110,7 +110,7 @@ This guide shows you how to set up a self-hosted c15t instance using Next.js API
       </Tab>
 
       <Tab value="Drizzle">
-        ```tsx title="c15t.ts"
+        ```tsx title="app/api/c15t/c15t.ts""
         import { c15tInstance } from '@c15t/backend';
         import { drizzleAdapter } from '@c15t/backend/pkgs/db-adapters/adapters/drizzle-adapter';
         import { drizzle } from 'drizzle-orm/postgres-js';

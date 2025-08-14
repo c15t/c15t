@@ -47,7 +47,7 @@ availableIn:
   <Step>
     ### Add to Your React Application
 
-    ```tsx title="src/App.jsx"
+    ```tsx title="src/App.tsx"
     import { 
       ConsentManagerDialog,
       ConsentManagerProvider,
@@ -56,7 +56,7 @@ availableIn:
     } from '@c15t/react';
 
     function App() {
-      const options = {
+      const options: ConsentManagerOptions = {  
         mode: 'c15t', 
         backendURL: process.env.REACT_APP_C15T_URL,
         consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 

@@ -25,7 +25,7 @@ availableIn:
     ### Run Database Migrations (Optional)
 
     <Callout type="note">
-      This is only required if you are self hosting c15t.
+      This is only required if you are self-hosting c15t.
     </Callout>
 
     <PackageCommandTabs command="@c15t/cli migrate" />
@@ -44,16 +44,31 @@ availableIn:
   <Step>
     ### Add to Your JavaScript Application
 
-    ```tsx
-    import { configureConsentManager, type ConsentManagerOptions } from 'c15t';
+    <Tabs items={['TypeScript', 'JavaScript']}>
+      <Tab value="TypeScript">
+        ```tsx
+        import { configureConsentManager, type ConsentManagerOptions } from 'c15t';
 
-    export const c15tConfig = {
-    	mode: 'offline',
-    } satisfies ConsentManagerOptions;
+        export const c15tConfig = {
+        	mode: 'offline',
+        } satisfies ConsentManagerOptions;
 
-    export const consentManager = configureConsentManager(c15tConfig);
+        export const consentManager = configureConsentManager(c15tConfig);
+        ```
+      </Tab>
+      <Tab value="JavaScript">
+        ```js
+        import { configureConsentManager } from 'c15t';
 
-    ```
+        /** @type {import('c15t').ConsentManagerOptions} */
+        export const c15tConfig = {
+        	mode: 'offline',
+        };
+
+        export const consentManager = configureConsentManager(c15tConfig);
+        ```
+      </Tab>
+    </Tabs>
 
     The consent manager is now ready to use. For example:
 
@@ -96,7 +111,7 @@ availableIn:
   <Step>
     After signing up, create a new instance, located in the top-right corner.
 
-    <Callout>
+    <Callout type="info">
       When creating an instance it is important to list all the trusted origins for your application such as "localhost", your production domain, etc.
     </Callout>
   </Step>
