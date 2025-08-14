@@ -41,7 +41,7 @@ jobs:
 
       - name: Install The Docs
         run: |
-          pnpm dlx tsx scripts/setup-docs.ts --vercel
+          pnpm dlx tsx scripts/setup-docs.ts
         env:
           CONSENT_GIT_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
 
