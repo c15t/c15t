@@ -71,7 +71,7 @@ jobs:
         with:
           github-token: ${{ secrets.CONSENT_GIT_TOKEN }}
           script: |
-            const owner = 'c15t';
+            const owner = context.repo.owner;
             const repo = context.repo.repo;
             let prNumber = context.issue?.number || '';
             if (!prNumber) {
@@ -96,7 +96,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
         with:
-          owner: consentdotio
           header: c15t-docs-preview
           number: ${{ steps.find_pr.outputs.pr_number }}
           message: |
