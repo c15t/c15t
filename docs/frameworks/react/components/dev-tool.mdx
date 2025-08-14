@@ -29,10 +29,7 @@ Think of it like having a privacy-focused browser dev tools panel - but specific
 
 First, install the development tools package:
 
-{/* ```package-install
-@c15t/dev-tools
-``` */}
-
+<PackageCommandTabs command="@c15t/dev-tools" />
 
 Then add the development tools to your application:
 
@@ -51,15 +48,13 @@ function App() {
 
 The dev tools will automatically appear in your application during development. They're designed to be unobtrusive while still providing quick access to important information.
 
-
 ## API Reference
 
 ### PrivacyDevTools
 
 The main development tools component accepts these props:
 
-<auto-type-table path="../../../node_modules/@c15t/dev-tools/src/dev-tool.tsx" name="ConsentManagerProviderProps" />
-
+<AutoTypeTable path="./packages/dev-tools/src/dev-tool.tsx" name="ConsentManagerProviderProps" />
 
 ## Development Best Practices
 
@@ -94,7 +89,6 @@ When using the development tools, keep in mind:
 - Always remove dev tools before deploying to production
 - Be cautious when logging consent state
 - Consider privacy implications when sharing debug information
-
 
 ## Troubleshooting Common Issues
 

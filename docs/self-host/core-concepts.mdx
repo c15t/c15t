@@ -3,6 +3,7 @@ title: Core Concepts
 description: Detailed explanation of the fundamental concepts and architecture of the c15t Backend package, including instance management, context system, and request handling.
 lastModified: 2025-04-15
 deprecated: true
+deprecatedReason: "@c15t/backend v1 did not deliver the flexibility we wanted and fell short of our standards. It is now deprecated as we work on a full rewrite, with v2 entering canary soon. This does not affect Consent.io deployments, which remain stable."
 ---
 
 This document covers the fundamental concepts and architecture of the c15t Backend package.
@@ -171,7 +172,6 @@ For API endpoint details, see [API Endpoints](./backend/endpoints).
    ```typescript
    const response = await instance.postProcess(result);
    ```
-
 
 ## Response Processing
 
@@ -439,4 +439,3 @@ const batchRequests = async (requests: Request[]) => {
   );
 };
 ```
-

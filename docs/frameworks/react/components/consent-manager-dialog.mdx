@@ -11,16 +11,16 @@ availableIn:
     title: 'React'
 ---
 
-import { LayersIcon, CookieIcon, ToggleRightIcon } from 'lucide-react';
-import DialogExample from '~/examples/react/dialog';
+import {CookieIcon, ToggleRightIcon} from 'lucide-react';
 
 The Consent Manager Dialog provides a clean, focused way for users to customize their privacy preferences. Think of it as a spotlight that dims the rest of your application while users make important privacy decisions. When users click "Customize" on your cookie banner, this dialog smoothly appears with detailed privacy controls.
 
-<DialogExample  />
+{/* <DialogExample  /> */}
 
 ## How It Works
 
 The dialog acts as a wrapper around the Consent Manager Widget, adding several key features:
+
 1. A smooth fade-in animation that draws attention to privacy settings
 2. An overlay that dims the rest of the application
 3. Proper focus management for accessibility
@@ -33,9 +33,7 @@ Let's explore how to implement this in your application.
 
 First, install the package if you haven't already:
 
-{/* ```package-install
-@c15t/react
-``` */}
+{/* <PackageCommandTabs command="@c15t/react" mode="install" /> */}
 
 Then add the dialog to your application:
 
@@ -56,6 +54,7 @@ function App() {
 ```
 
 The dialog will automatically:
+
 - Mount itself correctly in the DOM
 - Handle animations smoothly
 - Manage focus when opened
@@ -64,6 +63,7 @@ The dialog will automatically:
 ## Understanding Animations
 
 The dialog uses thoughtful animations to create a polished user experience. When opened, it:
+
 1. Fades in an overlay to dim the background
 2. Scales and fades in the dialog content
 3. Smoothly reverses these animations when closing
@@ -152,7 +152,9 @@ function PrivacyCenter() {
 The dialog implements several accessibility best practices:
 
 ### Focus Management
+
 When the dialog opens, it:
+
 1. Traps focus within the dialog
 2. Sets initial focus on the first interactive element
 3. Remembers and restores the previous focus position when closed
@@ -189,13 +191,17 @@ You can control focus trapping with the `trapFocus` prop:
 </Callout>
 
 ### Keyboard Navigation
+
 Users can:
+
 - Close the dialog with the Escape key
 - Navigate controls with Tab
 - Interact with all elements using only the keyboard
 
 ### Screen Readers
+
 The dialog announces itself appropriately with:
+
 - Proper ARIA roles and attributes
 - Clear labeling of controls
 - Status updates when opened/closed
@@ -205,6 +211,7 @@ The dialog announces itself appropriately with:
 ### Portal Rendering
 
 The dialog uses React's createPortal to render outside your main application hierarchy. This ensures:
+
 - No CSS specificity conflicts
 - Proper stacking context
 - Clean DOM structure
@@ -251,16 +258,7 @@ To prevent hydration issues, the dialog only renders on the client side. This is
 ## Related Components
 
 <Cards>
-  <Card 
-    icon={<CookieIcon />}
-    title="Cookie Banner"
-    description="The friendly first-touch privacy notice that greets users. Customizable, accessible, and designed to get out of the way."
-    href="/docs/components/react/cookie-banner"
-  />
-  <Card 
-    icon={<ToggleRightIcon />}
-    title="Consent Manager Widget"
-    description="The engine that powers granular consent management. Easily embed detailed privacy controls anywhere in your app."
-    href="/docs/components/react/consent-manager-widget"
-  />
+  <Card icon={<CookieIcon />} title="Cookie Banner" description="The friendly first-touch privacy notice that greets users. Customizable, accessible, and designed to get out of the way." href="/docs/components/react/cookie-banner" />
+
+  <Card icon={<ToggleRightIcon />} title="Consent Manager Widget" description="The engine that powers granular consent management. Easily embed detailed privacy controls anywhere in your app." href="/docs/components/react/consent-manager-widget" />
 </Cards>

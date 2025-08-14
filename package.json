@@ -1,6 +1,7 @@
 {
 	"name": "c15t",
 	"private": true,
+	"type": "module",
 	"scripts": {
 		"build:apps": "turbo build --filter=./apps/*",
 		"build:libs": "turbo build --filter=./packages/*",
@@ -10,9 +11,12 @@
 		"ci:publish": "pnpm changeset tag && pnpm publish -r",
 		"ci:version": "pnpm changeset version",
 		"dev:docs": "turbo dev --filter=./docs/*",
+		"dev:docs-app": "pnpm --prefix .docs dev",
 		"dev:libs": "turbo dev --filter=./packages/*",
 		"dev": "turbo dev --filter=!./examples/*",
+		"setup:docs": "tsx scripts/setup-docs.ts",
 		"fmt": "turbo fmt",
+		"fmt:docs": "pnpm remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
 		"knip": "knip",
 		"lint:fix": "turbo lint -- --write",
 		"lint": "turbo lint",
@@ -24,6 +28,7 @@
 		"version:prerelease:exit": "changeset pre exit",
 		"version:prerelease": "changeset pre enter canary",
 		"version": "changeset version && pnpm install --lockfile-only",
+		"vercel-build": "tsx scripts/setup-docs.ts --vercel",
 		"view-report": "turbo run view-report"
 	},
 	"resolutions": {
@@ -51,6 +56,7 @@
 		"remark-mdx": "^3.1.0",
 		"remark-preset-lint-consistent": "^6.0.1",
 		"remark-preset-lint-recommended": "^7.0.1",
+		"tsx": "^4.19.2",
 		"turbo": "^2.5.0",
 		"typescript": "5.8.3",
 		"vitest": "^3.1.1",

@@ -11,68 +11,66 @@ availableIn:
     title: 'React'
 ---
 
-## Overview
+## Available callbacks
 
-Callbacks allow you to execute custom code in response to various consent management events. They provide a way to integrate consent management with your application's logic, analytics, and other features.
+### onBannerFetched
 
-## Available Callbacks
-
-The following callbacks are available your the c15t config.
-
-### Callback Reference
-
-- `onError`: Called when an API request fails.
-- `onConsentBannerFetched`: Called after successfully fetching the consent banner information.
-- `onConsentSet`: Called after successfully setting consent preferences.
-- `onConsentVerified`: Called after successfully verifying consent.
-
-### Offline Mode Callbacks
-
-Some callbacks require a call to an endpoint meaning they will not work fully in offline mode.
-
-- `onConsentBannerFetched`: Will always return a simulated response of true, unless consent is in local storage.
-- `onConsentSet`: Stores consent in local storage.
-- `onConsentVerified`: Will always return a simulated response of true, unless consent is in local storage.
+This callback fires when the consent banner is fetched. It is not invoked in `offline` mode.
 
 
+<AutoTypeTable path="./packages/core/src/types/callbacks.ts" name="OnBannerFetchedPayload" />
 
-## Usage Examples
+### onConsentSet
 
-```typescript
-import { configureConsentManager, type ConsentManagerOptions } from 'c15t';
+This callback is called when the consent is set.
 
-const c15tConfig: ConsentManagerOptions = {
-  // ...
-  callbacks: {
-    onConsentSet: ({ data }) => {
-      if (data.preferences.measurement) {
-        // Add your scripts here to enable analytics
-      }
-    }
-  }
-};
+<AutoTypeTable path="./packages/core/src/types/callbacks.ts" name="OnConsentSetPayload" />
+
+### onError
+
+This callback is called when an error occurs.
+
+<AutoTypeTable path="./packages/core/src/types/callbacks.ts" name="OnErrorPayload" />
+
+
+## Implementing Callbacks
+```tsx title="src/App.tsx"
+import { 
+  ConsentManagerDialog,
+  ConsentManagerProvider,
+  CookieBanner,
+  type ConsentManagerOptions
+} from '@c15t/react';
+
+function App() {
+  const options: ConsentManagerOptions = {
+    mode: 'c15t', 
+    backendURL: process.env.REACT_APP_C15T_URL,
+    consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
+    ignoreGeoLocation: true, // Useful for development to always view the banner.
+    callbacks: {
+      onBannerFetched(response) {
+        console.log('Consent banner fetched', response);
+      },
+      onConsentSet(response) {
+        console.log('Consent has been saved', response);
+      },
+      onError(response) {
+        console.log('Error', response);
+      },
+    },
+  };
+
+  return (
+    <ConsentManagerProvider options={options}>
+      <div className="App">
+        {/* Your application content */}
+      </div>
+      <CookieBanner />
+      <ConsentManagerDialog />
+    </ConsentManagerProvider>
+  );
+}
+
+export default App;
 ```
-
-## Callback Response Types
-
-Callback responses are always of type `ResponseContext<T>`. 
-
-<auto-type-table path="../node_modules/c15t/src/client/types.ts" name="ResponseContext" />
-
-### onConsentSet Data
-
-The `onConsentSet` callback receives consent preference details:
-
-<auto-type-table path="../node_modules/c15t/src/client/client-interface.ts" name="ConsentSetCallbackPayload" />
-
-### onConsentVerified Data
-
-The `onConsentVerified` callback receives verification results:
-
-<auto-type-table path="../node_modules/c15t/src/client/client-interface.ts" name="ConsentVerifiedCallbackPayload" />
-
-### onConsentBannerFetched Data
-
-The `onConsentBannerFetched` callback receives banner information:
-
-<auto-type-table path="../node_modules/c15t/src/client/client-interface.ts" name="ConsentBannerFetchedCallbackPayload" />

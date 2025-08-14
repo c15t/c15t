@@ -11,4 +11,54 @@ availableIn:
     title: 'React'
 ---
 
-<include>../react/callbacks.mdx</include>
+## Available callbacks
+
+### onBannerFetched
+
+This callback is called when the consent banner is fetched, it is not called when the banner is set to `offline` mode.
+
+<AutoTypeTable path="./packages/core/src/types/callbacks.ts" name="OnBannerFetchedPayload" />
+
+### onConsentSet
+
+This callback is called when the consent is set.
+
+<AutoTypeTable path="./packages/core/src/types/callbacks.ts" name="OnConsentSetPayload" />
+
+### onError
+
+This callback is called when an error occurs.
+
+<AutoTypeTable path="./packages/core/src/types/callbacks.ts" name="OnErrorPayload" />
+
+
+## Implementing Callbacks
+Due to the nature of Next.js App Directory, we have to define callbacks to run in a client component.
+
+```ts title="app/layout.client.tsx"
+'use client';
+
+import { ConsentManagerCallbacks } from '@c15t/nextjs/client';
+
+export function ClientLayout() {
+	return (
+		<ConsentManagerCallbacks
+			callbacks={{
+				onBannerFetched(response) {
+					console.log('Consent banner fetched', response);
+				},
+				onConsentSet(response) {
+					console.log('Consent has been saved locally', response);
+				},
+				onError(response) {
+					console.log('Error', response);
+				},
+			}}
+		/>
+	);
+}
+```
+
+<Callout type="note">
+Ensure you import this component inside the ConsentManagerProvider component in your `app/layout.tsx` file.
+</Callout>

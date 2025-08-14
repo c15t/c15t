@@ -3,8 +3,8 @@ title: Getting Started
 description: Quick start guide for setting up and using the c15t Backend package, including installation, basic configuration, and common issues.
 lastModified: 2025-04-15
 deprecated: true
+deprecatedReason: "@c15t/backend v1 did not deliver the flexibility we wanted and fell short of our standards. It is now deprecated as we work on a full rewrite, with v2 entering canary soon. This does not affect Consent.io deployments, which remain stable."
 ---
-
 
 Welcome to c15t Backend! This guide will help you get started with the consent management system.
 
@@ -12,9 +12,7 @@ Welcome to c15t Backend! This guide will help you get started with the consent m
 
 Install the package using your preferred package manager:
 
-```package-install
-@c15t/backend
-```
+<PackageCommandTabs command="@c15t/backend" mode="install" />
 
 ## Basic Usage
 
@@ -44,7 +42,6 @@ const instance = c15tInstance({
   context: {},
 });
 ```
-
 
 ### With Plugins
 
@@ -118,6 +115,7 @@ Learn more about request handling in [Core Concepts](./backend/core-concepts#req
 ### Database Connection Issues
 
 If you're having trouble connecting to the database:
+
 1. Check your connection string
 2. Verify database credentials
 3. Ensure the database is running
@@ -126,6 +124,7 @@ If you're having trouble connecting to the database:
 ### Authentication Problems
 
 For authentication issues:
+
 1. Verify your JWT secret
 2. Check token expiration
 3. Review [Authentication](./backend/authentication#error-handling) documentation
@@ -133,7 +132,7 @@ For authentication issues:
 ### Plugin Loading
 
 If plugins aren't loading:
+
 1. Check plugin dependencies
 2. Verify plugin order
 3. Review [Plugin System](./backend/plugins#common-issues) documentation
-
