@@ -15,7 +15,22 @@ import { CookieIcon, LayersIcon, ToggleRightIcon } from 'lucide-react';
 
 The Cookie Banner component provides an elegant way to obtain and manage cookie consent from your users. It handles all the complexity of privacy regulations while providing a smooth user experience that integrates naturally with your application.
 
-{/* <CookieBannerExample/> */}
+<ResponsivePreview
+  src="/examples/cookie-banner"
+  code={`
+  <ConsentManagerProvider
+  		options={{
+  			mode: 'offline',
+  			consentCategories: ['necessary', 'marketing'],
+  			store: { namespace: 'cookie-banner-basic' },
+  		}}
+  	>
+  		<CookieBanner />
+  		<ConsentManagerDialog />
+  	</ConsentManagerProvider>
+`}
+  expectedHeight={300}
+/>
 
 ## Understanding Cookie Consent
 
