@@ -33,6 +33,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: '.docs/pnpm-lock.yaml'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -41,36 +43,153 @@ jobs:
 
       - name: Setup Documentation Template
         run: |
-          # Production mode: sets up template, installs deps, processes content (build handled by Vercel)
           pnpm dlx tsx scripts/setup-docs.ts --vercel
         env:
           CONSENT_GIT_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
 
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+      # Optional cache (kept as-is; doesn't affect API deploy)
+      - name: Cache Next.js build artifacts (.docs/.next/cache)
+        uses: actions/cache@v4
+        with:
+          path: .docs/.next/cache
+          key: next-cache-${{ runner.os }}-${{ github.ref_name }}-${{ hashFiles('.docs/pnpm-lock.yaml') }}
+          restore-keys: |
+            next-cache-${{ runner.os }}-${{ github.ref_name }}-
+            next-cache-${{ runner.os }}-
 
-      - name: Pull Vercel environment information
-        run: |
-          cd .docs
-          vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Deploy pre-built output to Vercel
+      - name: Create Vercel Deployment via API
         id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}
         run: |
+          set -euo pipefail
           cd .docs
-          # Build with Vercel and deploy prebuilt output (.vercel/output)
-          vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} \
-            --token=${{ secrets.VERCEL_TOKEN }} \
-            -m githubCommitSha=${{ github.sha }} \
-            -m githubCommitRef=${{ github.ref_name }} \
-            -m githubRepo=${{ github.repository }} \
-            -m githubOrg=${{ github.repository_owner }}
-          echo "url=$(vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} \
-            --token=${{ secrets.VERCEL_TOKEN }} \
-            -m githubCommitSha=${{ github.sha }} \
-            -m githubCommitRef=${{ github.ref_name }} \
-            -m githubRepo=${{ github.repository }} \
-            -m githubOrg=${{ github.repository_owner }})" >> $GITHUB_OUTPUT
+
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const https = require('https');
+
+          const token = process.env.VERCEL_TOKEN;
+          const project = process.env.VERCEL_PROJECT_ID;
+          const repo = process.env.GITHUB_REPOSITORY || '';
+          const owner = process.env.GITHUB_REPOSITORY_OWNER || '';
+          const refEnv = process.env.GITHUB_REF || '';
+          const headRef = process.env.GITHUB_HEAD_REF || '';
+          const sha = process.env.GITHUB_SHA || '';
+
+          const parseBranch = () => {
+            if (headRef) return headRef;
+            if (refEnv.startsWith('refs/heads/')) return refEnv.replace('refs/heads/', '');
+            if (refEnv.startsWith('refs/tags/')) return refEnv.replace('refs/tags/', '');
+            return 'unknown';
+          };
+          const branch = parseBranch();
+          const isProd = refEnv === 'refs/heads/main';
+
+          const ignoreDirs = new Set(['node_modules', '.git', '.next', '.vercel', 'out', 'dist', 'build', '.cache', '.turbo']);
+          const ignoreFiles = new Set(['pnpm-lock.yaml', 'yarn.lock', 'package-lock.json']); // Vercel detects package manager via lockfile; keep exactly one if present
+
+          const has = (p) => fs.existsSync(p);
+          // Only keep one lockfile if present, prefer pnpm > yarn > npm
+          const lockPreference = ['pnpm-lock.yaml', 'yarn.lock', 'package-lock.json'].find((f) => has(path.join(process.cwd(), f)));
+          const effectiveIgnoreFiles = new Set([...ignoreFiles].filter((f) => f !== lockPreference));
+
+          const walk = (dir) => {
+            const entries = fs.readdirSync(dir, { withFileTypes: true });
+            const out = [];
+            for (const e of entries) {
+              if (e.name.startsWith('.git')) continue;
+              const full = path.join(dir, e.name);
+              const rel = path.relative(process.cwd(), full);
+              if (e.isDirectory()) {
+                if (ignoreDirs.has(e.name)) continue;
+                out.push(...walk(full));
+              } else if (e.isFile()) {
+                if (effectiveIgnoreFiles.has(e.name)) continue;
+                out.push(rel);
+              }
+            }
+            return out;
+          };
+
+          const filesList = walk(process.cwd());
+          // Ensure we always include package.json and the chosen lockfile
+          ['package.json', lockPreference].forEach((f) => {
+            if (f && !filesList.includes(f) && fs.existsSync(f)) filesList.push(f);
+          });
+
+          const files = filesList.map((file) => {
+            const data = fs.readFileSync(file);
+            return {
+              file: file.replace(/\\/g, '/'),
+              data: data.toString('base64'),
+              encoding: 'base64',
+            };
+          });
+
+          const body = JSON.stringify({
+            name: 'c15t-docs',
+            project,
+            target: isProd ? 'production' : 'preview',
+            files,
+            meta: {
+              githubCommitRef: branch,
+              githubCommitSha: sha,
+              githubRepo: repo.split('/')[1] || '',
+              githubOrg: owner || '',
+              source: 'github-actions',
+            },
+            projectSettings: {
+              framework: 'nextjs'
+            }
+          });
+
+          const req = https.request(
+            {
+              hostname: 'api.vercel.com',
+              path: '/v13/deployments',
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(body),
+              },
+            },
+            (res) => {
+              let chunks = [];
+              res.on('data', (d) => chunks.push(d));
+              res.on('end', () => {
+                const txt = Buffer.concat(chunks).toString('utf8');
+                if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+                  const json = JSON.parse(txt);
+                  const url = json.url || '';
+                  fs.appendFileSync(process.env.GITHUB_OUTPUT, `url=https://${url}\n`);
+                  console.log(`Created Vercel deployment: https://${url}`);
+                } else {
+                  console.error('Vercel API error:', res.statusCode, txt);
+                  process.exit(1);
+                }
+              });
+            }
+          );
+
+          req.on('error', (err) => {
+            console.error('HTTPS error:', err);
+            process.exit(1);
+          });
+          req.write(body);
+          req.end();
+          NODE
 
       - name: Comment PR with preview URL
         if: github.event_name == 'pull_request'
