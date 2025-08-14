@@ -4,11 +4,10 @@ name: Deploy Documentation to Vercel
 on:
   # 📌 Trigger on pushes that modify docs or this workflow
   push:
+    # Only run on pushes to main/canary (avoid double-runs on feature branches)
     branches:
-      - '**'
-    paths:
-      - 'docs/**'
-      - '.github/workflows/deploy-docs.yml'
+      - 'main'
+      - 'canary'
   # 📌 Trigger on PRs that modify docs (build previews for reviews)
   pull_request:
     branches:
