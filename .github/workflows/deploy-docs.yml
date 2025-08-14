@@ -76,7 +76,7 @@ jobs:
         with:
           github-token: ${{ secrets.CONSENT_GIT_TOKEN }}
           script: |
-            const owner = 'consentdotio';
+            const owner = 'c15t';
             const repo = context.repo.repo;
             let prNumber = context.issue?.number || '';
             if (!prNumber) {
@@ -98,6 +98,8 @@ jobs:
       - name: Comment PR with preview URL
         if: ${{ steps.find_pr.outputs.pr_number != '' }}
         uses: marocchino/sticky-pull-request-comment@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
         with:
           header: c15t-docs-preview
           number: ${{ steps.find_pr.outputs.pr_number }}
