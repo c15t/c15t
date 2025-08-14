@@ -41,9 +41,12 @@ jobs:
 
       - name: Setup Documentation Template
         run: |
-          # Create .env for development mode, then let Vercel handle the build
-          echo "CONSENT_GIT_TOKEN=${{ secrets.CONSENT_GIT_TOKEN }}" > .env
-          pnpm dlx tsx scripts/setup-docs.ts
+          # Extract branch name and sync with docs template
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          echo "Syncing documentation template with branch: $BRANCH_NAME"
+          pnpm dlx tsx scripts/setup-docs.ts --vercel --branch=$BRANCH_NAME
+        env:
+          CONSENT_GIT_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
@@ -53,11 +56,17 @@ jobs:
           cd .docs
           vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Deploy to Vercel
+      - name: Build documentation site
+        run: |
+          cd .docs
+          # Already built by setup-docs.ts --vercel, but verify build artifacts exist
+          ls -la .next/
+
+      - name: Deploy pre-built to Vercel
         id: deploy
         run: |
           cd .docs
-          echo "url=$(vercel deploy ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
+          echo "url=$(vercel deploy ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --prebuilt --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
 
       - name: Comment PR with preview URL
         if: github.event_name == 'pull_request'
