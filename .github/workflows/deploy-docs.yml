@@ -1,0 +1,86 @@
+name: Deploy Documentation to Vercel
+
+on:
+  push:
+    branches: [main, rewire-content-to-new-docs]
+    paths:
+      - 'docs/**'
+      - 'packages/*/src/**'
+      - 'packages/*/package.json'
+      - '.docs/**'
+      - '.github/workflows/deploy-docs.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'packages/*/src/**' 
+      - 'packages/*/package.json'
+      - '.docs/**'
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.8.0'
+
+      - name: Install dependencies
+        run: |
+          # Install main workspace dependencies
+          pnpm install --frozen-lockfile
+          
+          # Install .docs dependencies
+          cd .docs
+          pnpm install --frozen-lockfile
+
+      - name: Copy content and build docs
+        run: |
+          cd .docs
+          pnpm copy-content
+          pnpm build
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel environment information
+        run: |
+          cd .docs
+          vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build project artifacts
+        run: |
+          cd .docs
+          vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy project artifacts to Vercel
+        id: deploy
+        run: |
+          cd .docs
+          echo "url=$(vercel deploy ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --prebuilt --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
+
+      - name: Comment PR with preview URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `📖 **Documentation Preview**\n\n🔗 Preview URL: ${{ steps.deploy.outputs.url }}\n\n*Updated with commit ${{ github.sha }}*`
+            })
