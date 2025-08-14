@@ -19,15 +19,15 @@ The Cookie Banner component provides an elegant way to obtain and manage cookie 
   src="/examples/cookie-banner"
   code={`
 <ConsentManagerProvider
-  	options={{
-  		mode: 'offline',
-  		consentCategories: ['necessary', 'marketing'],
-  		store: { namespace: 'cookie-banner-basic' },
-  	}}
-  >
-  	<CookieBanner />
-  	<ConsentManagerDialog />
-  </ConsentManagerProvider>
+	options={{
+		mode: 'offline',
+		consentCategories: ['necessary', 'marketing'],
+		store: { namespace: 'cookie-banner-basic' },
+	}}
+>
+	<CookieBanner />
+	<ConsentManagerDialog />
+</ConsentManagerProvider>
 `}
   expectedHeight={300}
 />
