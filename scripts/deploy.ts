@@ -236,10 +236,61 @@ async function createDeployment() {
 		req.end();
 	});
 
-	const json = JSON.parse(resText) as { url?: string };
-	const url = json.url ? `https://${json.url}` : '';
+	const json = JSON.parse(resText) as { url?: string; id?: string };
+	let url = json.url ? `https://${json.url}` : '';
 	if (!url) {
 		throw new Error('Vercel did not return a deployment URL.');
+	}
+
+	// If deploying from the canary branch, assign the canary domain alias
+	if (branch === 'canary' && json.id) {
+		try {
+			await new Promise<void>((resolve, reject) => {
+				const aliasBody = JSON.stringify({ alias: 'canary.c15t.com' });
+				const req = https.request(
+					{
+						hostname: 'api.vercel.com',
+						path: `/v2/deployments/${encodeURIComponent(json.id as string)}/aliases?teamId=${encodeURIComponent(teamId)}`,
+						method: 'POST',
+						headers: {
+							Authorization: `Bearer ${token}`,
+							'Content-Type': 'application/json',
+							'Content-Length': Buffer.byteLength(aliasBody),
+						},
+					},
+					(res) => {
+						const chunks: Buffer[] = [];
+						res.on('data', (d) => chunks.push(d));
+						res.on('end', () => {
+							const txt = Buffer.concat(chunks).toString('utf8');
+							if (
+								res.statusCode &&
+								res.statusCode >= 200 &&
+								res.statusCode < 300
+							) {
+								resolve();
+								return;
+							}
+							reject(
+								new Error(
+									`Failed to alias canary domain: ${res.statusCode}\n${txt}`
+								)
+							);
+						});
+					}
+				);
+				req.on('error', (err) => reject(err));
+				req.write(aliasBody);
+				req.end();
+			});
+			url = 'https://canary.c15t.com';
+			console.log('Assigned alias canary.c15t.com to deployment.');
+		} catch (err) {
+			console.warn(
+				'Warning: could not assign canary alias. Using deployment URL instead.',
+				err instanceof Error ? err.message : err
+			);
+		}
 	}
 
 	// Write to GitHub Actions output if available
