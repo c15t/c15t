@@ -41,14 +41,10 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: '10.8.0'
-
       - name: Setup Documentation Template
+        if: github.event_name != 'pull_request'
         run: |
-          pnpm dlx tsx scripts/setup-docs.ts --vercel
+          npx -y tsx scripts/setup-docs.ts --vercel
         env:
           CONSENT_GIT_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
 
@@ -68,7 +64,7 @@ jobs:
         run: |
           set -euo pipefail
           cd .docs
-          pnpm dlx tsx ../scripts/deploy.ts
+          npx -y tsx ../scripts/deploy.ts
 
       - name: Find PR for this branch
         id: find_pr
@@ -101,6 +97,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
         with:
+          owner: consentdotio
           header: c15t-docs-preview
           number: ${{ steps.find_pr.outputs.pr_number }}
           message: |
