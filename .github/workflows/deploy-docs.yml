@@ -16,7 +16,8 @@ on:
       - 'docs/**'
   # ⏰ Periodic check for upstream template changes (consentdotio/c15t-docs)
   schedule:
-    - cron: '0 */6 * * *'
+    # Run once daily at 00:15 UTC to avoid excessive runs
+    - cron: '15 0 * * *'
 
 permissions:
   contents: read
