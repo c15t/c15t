@@ -42,7 +42,6 @@ jobs:
           node-version: '22'
 
       - name: Setup Documentation Template
-        if: github.event_name != 'pull_request'
         run: |
           npx -y tsx scripts/setup-docs.ts --vercel
         env:
