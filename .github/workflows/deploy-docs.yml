@@ -45,41 +45,7 @@ jobs:
         env:
           CONSENT_GIT_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
 
-      # Optional cache (kept as-is; doesn't affect API deploy)
-      - name: Cache Next.js build artifacts (.docs/.next/cache)
-        uses: actions/cache@v4
-        with:
-          path: .docs/.next/cache
-          key: next-cache-${{ runner.os }}-${{ github.ref_name }}-${{ hashFiles('.docs/pnpm-lock.yaml') }}
-          restore-keys: |
-            next-cache-${{ runner.os }}-${{ github.ref_name }}-
-            next-cache-${{ runner.os }}-
-
-      - name: Install Vercel CLI (for local build only)
-        run: npm install --global vercel@latest
-
-      - name: Write Vercel project link for .docs
-        env:
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-        run: |
-          mkdir -p .docs/.vercel
-          cat > .docs/.vercel/project.json <<EOF
-          {
-            "projectId": "${VERCEL_PROJECT_ID}",
-            "orgId": "${VERCEL_ORG_ID}"
-          }
-          EOF
-
-      - name: Pull Vercel environment information
-        run: |
-          cd .docs
-          vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Build with Vercel (produces .vercel/output)
-        run: |
-          cd .docs
-          vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --yes --token=${{ secrets.VERCEL_TOKEN }}
+      # Let Vercel build remotely; no local Vercel CLI or prebuild
 
       - name: Create Vercel Deployment via API
         id: deploy
