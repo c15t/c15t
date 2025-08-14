@@ -58,8 +58,9 @@ jobs:
         id: deploy
         run: |
           cd .docs
-          # Deploy the .next output directory directly (Next.js build output)
-          echo "url=$(vercel .next ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
+          # Build with Vercel and deploy prebuilt output (.vercel/output)
+          vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+          echo "url=$(vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
 
       - name: Comment PR with preview URL
         if: github.event_name == 'pull_request'
