@@ -41,6 +41,7 @@ jobs:
 
       - name: Setup Documentation Template
         run: |
+          # Production mode: sets up template, installs deps, processes content, and builds
           pnpm dlx tsx scripts/setup-docs.ts --vercel
         env:
           CONSENT_GIT_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
@@ -53,11 +54,12 @@ jobs:
           cd .docs
           vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Deploy to Vercel
+      - name: Deploy pre-built output to Vercel
         id: deploy
         run: |
           cd .docs
-          echo "url=$(vercel deploy ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
+          # Deploy the .next output directory directly (Next.js build output)
+          echo "url=$(vercel .next ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
 
       - name: Comment PR with preview URL
         if: github.event_name == 'pull_request'
