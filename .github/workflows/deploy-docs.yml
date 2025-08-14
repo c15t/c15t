@@ -39,16 +39,9 @@ jobs:
         with:
           version: '10.8.0'
 
-      - name: Install .docs dependencies
+      - name: Install The Docs
         run: |
-          cd .docs
-          pnpm install --frozen-lockfile
-
-      - name: Copy content and build docs
-        run: |
-          cd .docs
-          pnpm copy-content
-          pnpm build
+          pnpm dlx tsx scripts/setup-docs.ts
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
