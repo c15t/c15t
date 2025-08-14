@@ -10,6 +10,11 @@ on:
       - 'packages/*/package.json'
       - '.docs/**'
       - '.github/workflows/deploy-docs.yml'
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
   pull_request:
     branches:
       - '**'
@@ -66,13 +71,12 @@ jobs:
           pnpm dlx tsx ../scripts/deploy.ts
 
       - name: Comment PR with preview URL
-        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const issue_number = context.issue.number;
+            let issue_number = context.issue?.number;
             const marker = '<!-- c15t-docs-preview -->';
             const previewUrl = `${{ steps.deploy.outputs.url }}`;
             if (!previewUrl) {
@@ -80,6 +84,24 @@ jobs:
               return;
             }
             const body = `${marker}\n📖 **Documentation Preview**\n\n🔗 Preview URL: ${previewUrl}\n\n*Updated with commit ${{ github.sha }}*`;
+
+            // If not running on a PR event, find an open PR for this branch
+            if (!issue_number) {
+              const ref = context.ref || '';
+              const branch = ref.startsWith('refs/heads/') ? ref.replace('refs/heads/', '') : ref;
+              const { data: prs } = await github.rest.pulls.list({
+                owner,
+                repo,
+                state: 'open',
+                head: `${owner}:${branch}`,
+                per_page: 1,
+              });
+              if (!prs.length) {
+                console.log(`No open PR found for branch ${branch}; skipping comment.`);
+                return;
+              }
+              issue_number = prs[0].number;
+            }
 
             const comments = await github.paginate(github.rest.issues.listComments, {
               owner,
