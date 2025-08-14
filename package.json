@@ -44,7 +44,6 @@
 		"@types/node": "22.14.1",
 		"@types/react": "^19.1.1",
 		"@types/react-dom": "^19.1.2",
-		"@vercel/sdk": "^1.10.4",
 		"@vitejs/plugin-react": "^4.3.4",
 		"@vitest/browser": "^3.1.1",
 		"@vitest/coverage-istanbul": "^3.1.1",
