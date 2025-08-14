@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * Smart build detection for C15t documentation
+ * Vercel-optimized build detection for C15t documentation
+ *
+ * Uses Vercel environment variables when available, falls back to git
  *
  * Exits with:
  * - 0: Skip build (no relevant changes)
@@ -10,81 +12,120 @@
 
 import { execSync } from 'node:child_process';
 
-const DOCS_RELATED_PATTERNS = [
-	'docs/**',
-	'packages/*/src/**',
-	'packages/*/package.json',
-	'packages/*/CHANGELOG.md',
+// Files/patterns that should trigger documentation builds
+const DOCS_TRIGGERS = [
+	'docs/',
+	'packages/',
 	'scripts/setup-docs.ts',
 	'vercel.json',
 	'package.json',
-	'.docs/**',
 ];
 
-const IGNORED_PATTERNS = [
-	'examples/**',
-	'*.md',
-	'*.test.ts',
-	'*.test.js',
-	'test/**',
-	'__tests__/**',
+// Files/patterns that should NOT trigger builds
+const IGNORE_PATTERNS = [
+	'examples/',
+	'README.md',
+	'.md',
+	'.test.ts',
+	'.test.js',
+	'test/',
+	'__tests__/',
 ];
 
-function checkForChanges() {
+function shouldBuild() {
+	console.log('🔍 Vercel build detection for C15t docs...');
+
 	try {
-		console.log('🔍 Analyzing changes for documentation build...');
+		let changedFiles = [];
 
-		// Get list of changed files
-		const changedFiles = execSync('git diff HEAD^ HEAD --name-only', {
-			encoding: 'utf8',
-		})
-			.trim()
-			.split('\n')
-			.filter(Boolean);
+		// Method 1: Use Vercel environment variables (most reliable)
+		if (
+			process.env.VERCEL_GIT_PREVIOUS_SHA &&
+			process.env.VERCEL_GIT_COMMIT_SHA
+		) {
+			console.log('📡 Using Vercel environment variables for diff');
+			const prevSha = process.env.VERCEL_GIT_PREVIOUS_SHA;
+			const currentSha = process.env.VERCEL_GIT_COMMIT_SHA;
 
-		console.log(`📝 Found ${changedFiles.length} changed files`);
+			const diffOutput = execSync(
+				`git diff --name-only ${prevSha} ${currentSha}`,
+				{
+					encoding: 'utf8',
+				}
+			).trim();
+
+			changedFiles = diffOutput ? diffOutput.split('\n') : [];
+		}
+		// Method 2: Fallback to recent commits
+		else {
+			console.log('🔄 Fallback: analyzing recent commits');
+
+			try {
+				const diffOutput = execSync('git diff --name-only HEAD~1 HEAD', {
+					encoding: 'utf8',
+				}).trim();
+				changedFiles = diffOutput ? diffOutput.split('\n') : [];
+			} catch {
+				// If single commit diff fails, check recent changes
+				console.log('⚠️  Single commit diff failed, checking recent changes');
+				const diffOutput = execSync('git log --name-only --pretty=format: -5', {
+					encoding: 'utf8',
+				}).trim();
+				changedFiles = diffOutput ? diffOutput.split('\n').filter(Boolean) : [];
+			}
+		}
+
+		console.log(`📝 Analyzing ${changedFiles.length} changed files...`);
 
 		if (changedFiles.length === 0) {
-			console.log('❌ No changes detected. Skipping build.');
-			process.exit(0);
+			console.log('❌ No changes detected. Proceeding with build to be safe.');
+			return true; // Build when uncertain
 		}
 
-		// Check if any changes are docs-related
-		const relevantChanges = changedFiles.filter((file) => {
-			// Skip ignored patterns
-			if (
-				IGNORED_PATTERNS.some((pattern) =>
-					file.includes(pattern.replace('**', ''))
-				)
-			) {
-				return false;
+		// Check each file
+		for (const file of changedFiles) {
+			if (!file.trim()) continue;
+
+			console.log(`   📄 Checking: ${file}`);
+
+			// Skip ignored files
+			const isIgnored = IGNORE_PATTERNS.some((pattern) => {
+				if (pattern.endsWith('/')) {
+					return file.startsWith(pattern);
+				}
+				return file.includes(pattern);
+			});
+
+			if (isIgnored) {
+				console.log(`   🚫 Ignored: ${file}`);
+				continue;
 			}
 
-			// Check if file matches docs-related patterns
-			return DOCS_RELATED_PATTERNS.some((pattern) => {
-				const regex = new RegExp(
-					pattern.replace('**', '.*').replace('*', '[^/]*')
-				);
-				return regex.test(file);
+			// Check if file should trigger build
+			const shouldTrigger = DOCS_TRIGGERS.some((pattern) => {
+				if (pattern.endsWith('/')) {
+					return file.startsWith(pattern);
+				}
+				return file.includes(pattern) || file === pattern;
 			});
-		});
 
-		if (relevantChanges.length > 0) {
-			console.log('✅ Documentation-related changes detected:');
-			relevantChanges.forEach((file) => console.log(`   - ${file}`));
-			console.log('🚀 Proceeding with build...');
-			process.exit(1);
-		} else {
-			console.log('❌ No documentation-related changes. Skipping build.');
-			console.log('Changed files were:');
-			changedFiles.forEach((file) => console.log(`   - ${file}`));
-			process.exit(0);
+			if (shouldTrigger) {
+				console.log(`   ✅ Build trigger found: ${file}`);
+				console.log('🚀 Proceeding with build...');
+				return true;
+			}
 		}
+
+		console.log('❌ No documentation-related changes found.');
+		console.log('🏃‍♂️ Skipping build...');
+		return false;
 	} catch (error) {
-		console.error('⚠️  Error checking changes:', error.message);
-		console.log('🚀 Proceeding with build due to error...');
-		process.exit(1);
+		console.error('⚠️  Error during analysis:', error.message);
+		console.log('🚀 Proceeding with build due to error (safe fallback)...');
+		return true; // Build when there's an error
 	}
 }
 
-checkForChanges();
+// Run the check and exit with appropriate code
+const build = shouldBuild();
+process.exit(build ? 1 : 0);
