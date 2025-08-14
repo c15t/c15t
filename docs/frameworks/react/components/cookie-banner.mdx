@@ -1,33 +1,17 @@
----
-title: Cookie Banner
-description: A customizable cookie consent banner that handles privacy compliance with zero configuration required.
-lastModified: 2025-05-12
-availableIn:
-  - framework: 'next'
-    url: '/docs/frameworks/next/components/cookie-banner'
-    title: 'Next.js'
-  - framework: 'react'
-    url: '/docs/frameworks/react/components/cookie-banner'
-    title: 'React'
----
-
-import { CookieIcon, LayersIcon, ToggleRightIcon } from 'lucide-react';
-
 The Cookie Banner component provides an elegant way to obtain and manage cookie consent from your users. It handles all the complexity of privacy regulations while providing a smooth user experience that integrates naturally with your application.
 
 <ResponsivePreview
   src="/examples/cookie-banner"
-  code={`
-  <ConsentManagerProvider
-  		options={{
-  			mode: 'offline',
-  			consentCategories: ['necessary', 'marketing'],
-  			store: { namespace: 'cookie-banner-basic' },
-  		}}
-  	>
-  		<CookieBanner />
-  		<ConsentManagerDialog />
-  	</ConsentManagerProvider>
+  code={`<ConsentManagerProvider
+		options={{
+			mode: 'c15t',
+      backendURL: 'https://c15t.dev/your-instance',
+			consentCategories: ['necessary', 'marketing'],
+		}}
+	>
+		<CookieBanner />
+		<ConsentManagerDialog />
+	</ConsentManagerProvider>
 `}
   expectedHeight={300}
 />

@@ -42,7 +42,21 @@ This approach allows you to:
 
 Here's a live example of CSS variables in action:
 
-{/* <CSSVariablesCookieBannerExample /> */}
+<ResponsivePreview
+  src="/examples/css-variables"
+  code={`<ConsentManagerProvider
+		options={{
+			mode: 'c15t',
+      backendURL: 'https://c15t.dev/your-instance',
+			consentCategories: ['necessary', 'marketing'],
+		}}
+	>
+		<CookieBanner />
+		<ConsentManagerDialog />
+	</ConsentManagerProvider>
+`}
+  expectedHeight={300}
+/>
 
 ## Available CSS Variables
 
