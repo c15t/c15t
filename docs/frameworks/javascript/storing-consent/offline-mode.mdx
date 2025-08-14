@@ -45,21 +45,6 @@ The offline mode provides a simple, browser-based approach to storing user conse
 
     export const c15tConfig = {
       mode: 'offline',
-      // Optional: Add callback functions for various events
-      callbacks: {
-        onConsentSet: (response) => {
-          console.log('Consent has been saved locally');
-        },
-        onConsentBannerFetched: (response) => {
-          console.log('Banner state retrieved:', response.data);
-        },
-        onConsentVerified: (response) => {
-          console.log('Consent verification complete');
-        },
-        onError: (error, endpoint) => {
-          console.error(`Error in ${endpoint}:`, error);
-        }
-      }
     } satisfies ConsentManagerOptions;
 
     export const consentManager = configureConsentManager(c15tConfig);
@@ -110,21 +95,6 @@ The offline mode accepts the following configuration options:
 ```ts
 const options = {
   mode: 'offline',
-  // Optional: Add callback functions for various events
-  callbacks: {
-    onConsentBannerFetched: (response) => {
-      console.log('Banner state retrieved:', response.data);
-    },
-    onConsentSet: (response) => {
-      console.log('Consent preferences saved');
-    },
-    onConsentVerified: (response) => {
-      console.log('Consent verification complete');
-    },
-    onError: (error, endpoint) => {
-      console.error(`Error in ${endpoint}:`, error);
-    }
-  }
 };
 ```
 

@@ -49,13 +49,6 @@ availableIn:
 
     export const c15tConfig = {
     	mode: 'offline',
-
-    	// Optional: Add callback functions for various events
-    	callbacks: {
-    		onConsentSet: (response: any) => {
-    			console.log('Consent has been saved locally');
-    		},
-    	},
     } satisfies ConsentManagerOptions;
 
     export const consentManager = configureConsentManager(c15tConfig);
