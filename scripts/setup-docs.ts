@@ -18,7 +18,7 @@ const error = console.error;
  * **Production Mode (--vercel flag):**
  * - Uses environment CONSENT_GIT_TOKEN
  * - Installs workspace dependencies
- * - Builds production artifacts for deployment
+ * - Skips building; Vercel will run `vercel build` during deployment
  *
  * **Branch Selection (--branch flag):**
  * - Defaults to 'main' branch
@@ -630,14 +630,7 @@ function installDocsAppDependencies(
  * @see {@link https://nextjs.org/docs/app/building-your-application/deploying | Next.js Deployment Documentation}
  * @see {@link https://vercel.com/docs/deployments/build-step | Vercel Build Process}
  */
-function buildDocsApplication(buildMode: BuildMode, branch: GitBranch): void {
-	executeCommand(
-		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm build`,
-		'Building docs application for production',
-		buildMode,
-		branch
-	);
-}
+// Note: Build step removed; Vercel will execute `vercel build` during CI.
 
 /**
  * Orchestrates the complete fetch pipeline execution
@@ -660,7 +653,7 @@ function buildDocsApplication(buildMode: BuildMode, branch: GitBranch): void {
  * 4. **Workspace Dependencies**: Install main workspace packages
  * 5. **App Dependencies**: Install .docs dependencies
  * 6. **Content Processing**: Run fumadocs-mdx to process linked MDX content
- * 7. **Production Build**: Generate optimized deployment artifacts
+ * 7. **Build handled by Vercel**: The workflow runs `vercel build` in .docs
  *
  * @param fetchOptions - Parsed command line options determining build mode and branch
  *
@@ -718,9 +711,9 @@ function main(fetchOptions: FetchOptions): void {
 		// Phase 4.5: Process MDX content after dependencies are installed
 		processMDXContent(fetchOptions.mode, fetchOptions.branch);
 
-		// Phase 5: Generate production build (production mode only)
+		// Phase 5: Skip building here; Vercel will run `vercel build` in .docs
 		if (fetchOptions.isProduction) {
-			buildDocsApplication(fetchOptions.mode, fetchOptions.branch);
+			log('🛑 Skipping local build in production mode; Vercel will build.');
 		}
 
 		// Success messaging based on mode
@@ -728,7 +721,7 @@ function main(fetchOptions: FetchOptions): void {
 		log(`📋 Branch: ${fetchOptions.branch}`);
 
 		if (fetchOptions.isProduction) {
-			log('📦 Documentation site is ready for deployment.');
+			log('📦 Documentation site prepared; Vercel will perform the build.');
 		} else {
 			log('📂 Ready for local development!');
 			log('🚀 Run "cd .docs && pnpm dev" to start the development server');
