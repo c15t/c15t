@@ -176,6 +176,18 @@ async function createDeployment() {
 	const branch = getBranch(process.env);
 	const target = determineTarget(process.env, args);
 
+	// Optional Git metadata propagated from the CI environment
+	const commitMessage = process.env.GITHUB_COMMIT_MESSAGE || '';
+	const commitAuthorName = process.env.GITHUB_COMMIT_AUTHOR_NAME || '';
+	const commitAuthorLogin =
+		process.env.GITHUB_COMMIT_AUTHOR_LOGIN || process.env.GITHUB_ACTOR || '';
+	const commitAuthorEmail = process.env.GITHUB_COMMIT_AUTHOR_EMAIL || '';
+	const prNumber = process.env.GITHUB_PR_NUMBER || '';
+	const prHeadRef =
+		process.env.GITHUB_PR_HEAD_REF || process.env.GITHUB_HEAD_REF || '';
+	const prBaseRef =
+		process.env.GITHUB_PR_BASE_REF || process.env.GITHUB_BASE_REF || '';
+
 	const filesList = walkFiles(cwd);
 	const files = filesList.map((file) => {
 		const data = fs.readFileSync(path.join(cwd, file));
@@ -196,7 +208,14 @@ async function createDeployment() {
 			githubCommitSha: sha,
 			githubRepo: repo.split('/')[1] || '',
 			githubOrg: owner || '',
-			source: 'script',
+			githubCommitMessage: commitMessage,
+			githubCommitAuthorName: commitAuthorName,
+			githubCommitAuthorLogin: commitAuthorLogin,
+			githubCommitAuthorEmail: commitAuthorEmail,
+			githubPrId: prNumber,
+			githubPrHeadRef: prHeadRef,
+			githubPrBaseRef: prBaseRef,
+			source: 'github',
 		},
 		projectSettings: {
 			framework: 'nextjs',

@@ -133,6 +133,17 @@ jobs:
         env:
           CONSENT_GIT_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
 
+      # 🧾 Collect Git metadata for deployment meta
+      - name: 🧾 Collect Git metadata
+        run: |
+          echo "GITHUB_COMMIT_MESSAGE<<EOF" >> "$GITHUB_ENV"
+          git log -1 --pretty=%B >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
+          echo "GITHUB_COMMIT_AUTHOR_NAME=$(git log -1 --pretty=%an)" >> "$GITHUB_ENV"
+          echo "GITHUB_COMMIT_AUTHOR_EMAIL=$(git log -1 --pretty=%ae)" >> "$GITHUB_ENV"
+          echo "GITHUB_COMMIT_AUTHOR_LOGIN=${{ github.actor }}" >> "$GITHUB_ENV"
+          echo "GITHUB_PR_NUMBER=${{ github.event.pull_request.number || '' }}" >> "$GITHUB_ENV"
+
       # ▲ Create Vercel deployment via our script (build + deploy)
       - name: ▲ Create Vercel Deployment via API
         id: deploy
@@ -147,6 +158,11 @@ jobs:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_HEAD_REF: ${{ github.head_ref }}
           GITHUB_BASE_REF: ${{ github.base_ref }}
+          GITHUB_COMMIT_MESSAGE: ${{ env.GITHUB_COMMIT_MESSAGE }}
+          GITHUB_COMMIT_AUTHOR_NAME: ${{ env.GITHUB_COMMIT_AUTHOR_NAME }}
+          GITHUB_COMMIT_AUTHOR_EMAIL: ${{ env.GITHUB_COMMIT_AUTHOR_EMAIL }}
+          GITHUB_COMMIT_AUTHOR_LOGIN: ${{ env.GITHUB_COMMIT_AUTHOR_LOGIN }}
+          GITHUB_PR_NUMBER: ${{ env.GITHUB_PR_NUMBER }}
         run: |
           set -euo pipefail
           cd .docs
