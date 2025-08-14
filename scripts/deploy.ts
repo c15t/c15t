@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { getBranch } from './getBranch';
 
 type DeployTarget = 'production' | 'staging';
 
@@ -41,23 +42,17 @@ function parseArgs(argv: string[]) {
 	return args;
 }
 
-function getBranch(env: NodeJS.ProcessEnv): string {
-	const refEnv = env.GITHUB_REF || '';
-	const headRef = env.GITHUB_HEAD_REF || '';
-	if (headRef) return headRef;
-	if (refEnv.startsWith('refs/heads/'))
-		return refEnv.replace('refs/heads/', '');
-	if (refEnv.startsWith('refs/tags/')) return refEnv.replace('refs/tags/', '');
-	return 'unknown';
-}
-
 function determineTarget(
 	env: NodeJS.ProcessEnv,
 	args: Record<string, string | boolean>
 ): DeployTarget {
 	const refEnv = env.GITHUB_REF || '';
-	if (args.target === 'production' || args.prod === true) return 'production';
-	if (args.target === 'staging') return 'staging';
+	if (args.target === 'production' || args.prod === true) {
+		return 'production';
+	}
+	if (args.target === 'staging') {
+		return 'staging';
+	}
 	return refEnv === 'refs/heads/main' ? 'production' : 'staging';
 }
 
@@ -74,7 +69,9 @@ function fileShouldBeIgnored(
 	chosenLockfile: string | undefined,
 	ignoreFiles: Set<string>
 ): boolean {
-	if (chosenLockfile && fileName === chosenLockfile) return false;
+	if (chosenLockfile && fileName === chosenLockfile) {
+		return false;
+	}
 	return ignoreFiles.has(fileName);
 }
 
@@ -106,15 +103,20 @@ function walkFiles(cwd: string): string[] {
 		const entries = fs.readdirSync(dir, { withFileTypes: true });
 		const out: string[] = [];
 		for (const entry of entries) {
-			if (entry.name.startsWith('.git')) continue;
+			if (entry.name.startsWith('.git')) {
+				continue;
+			}
 			const fullPath = path.join(dir, entry.name);
 			const relativePath = path.relative(cwd, fullPath);
 			if (entry.isDirectory()) {
-				if (ignoreDirs.has(entry.name)) continue;
+				if (ignoreDirs.has(entry.name)) {
+					continue;
+				}
 				out.push(...walk(fullPath));
 			} else if (entry.isFile()) {
-				if (fileShouldBeIgnored(entry.name, chosenLockfile, ignoreFiles))
+				if (fileShouldBeIgnored(entry.name, chosenLockfile, ignoreFiles)) {
 					continue;
+				}
 				out.push(relativePath);
 			}
 		}
@@ -170,7 +172,9 @@ function parseEnvFile(filePath: string): Record<string, string> {
 }
 
 function loadDotenvOnce(cwd: string): void {
-	if (dotenvLoaded) return;
+	if (dotenvLoaded) {
+		return;
+	}
 	const envPath = path.join(cwd, '.env');
 	const envLocalPath = path.join(cwd, '.env.local');
 	const base = parseEnvFile(envPath);
@@ -185,7 +189,9 @@ function loadDotenvOnce(cwd: string): void {
 }
 
 function loadEnvVarFromDotenv(varName: string): string | undefined {
-	if (process.env[varName]) return process.env[varName];
+	if (process.env[varName]) {
+		return process.env[varName];
+	}
 	loadDotenvOnce(process.cwd());
 	return process.env[varName];
 }
