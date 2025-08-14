@@ -31,6 +31,9 @@ env:
 
 jobs:
   deploy:
+    concurrency:
+      group: docs-${{ github.ref }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

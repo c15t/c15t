@@ -59,8 +59,11 @@ const error = console.error;
  */
 
 import { execSync } from 'node:child_process';
-import { existsSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { exit } from 'node:process';
+import { fileURLToPath } from 'node:url';
 
 /**
  * Type definitions for unified fetch process
@@ -155,7 +158,7 @@ class FetchScriptError extends Error {
  * Immutable configuration constants for the fetch process
  */
 const FETCH_CONFIG: FetchConfiguration = {
-	TEMP_DOCS_DIR: '/tmp/new-docs',
+	TEMP_DOCS_DIR: join(tmpdir(), 'c15t-docs'),
 	DOCS_APP_DIR: '.docs',
 	DOCS_REPO_URL: 'https://github.com/consentdotio/c15t-docs.git',
 	DEFAULT_BRANCH: 'main',
@@ -203,7 +206,12 @@ function parseFetchOptions(): FetchOptions {
 
 	return {
 		isProduction,
-		mode: isProduction ? 'production' : 'development',
+		mode: (() => {
+			if (isProduction) {
+				return 'production';
+			}
+			return 'development';
+		})(),
 		branch: branch || FETCH_CONFIG.DEFAULT_BRANCH,
 	};
 }
@@ -246,12 +254,12 @@ function validateGitHubToken(
 			process.loadEnvFile();
 			token = process.env.CONSENT_GIT_TOKEN;
 		} catch {
-			error(
-				'❌ Failed to load .env file. Ensure .env file exists in project root.'
+			throw new FetchScriptError(
+				'Failed to load .env file. Ensure .env exists with CONSENT_GIT_TOKEN',
+				'token_validation',
+				buildMode,
+				branch
 			);
-			error('💡 Create .env file with: CONSENT_GIT_TOKEN=your_token_here');
-			error('🔗 Generate token at: https://github.com/settings/tokens');
-			exit(1);
 		}
 	} else {
 		// Production mode: Use environment variable directly
@@ -259,24 +267,13 @@ function validateGitHubToken(
 	}
 
 	if (!token || token.trim() === '') {
-		if (buildMode === 'production') {
-			error('❌ CONSENT_GIT_TOKEN missing. Skipping private template fetch.');
-			error('ℹ️  This is expected when outsiders clone the repo.');
-			error(
-				'💡 For authorized deployments, ensure CONSENT_GIT_TOKEN is set in environment.'
-			);
-		} else {
-			error(
-				'❌ CONSENT_GIT_TOKEN missing. Cannot fetch consentdotio/c15t-docs'
-			);
-			error(
-				'💡 Add CONSENT_GIT_TOKEN to your .env file for development access'
-			);
-		}
-		error(
-			'🔗 See: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens'
-		);
-		exit(1);
+		const advisory =
+			'https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens';
+		const msg =
+			buildMode === 'production'
+				? `CONSENT_GIT_TOKEN missing. Set it in the environment. ${advisory}`
+				: `CONSENT_GIT_TOKEN missing. Add it to your .env file. ${advisory}`;
+		throw new FetchScriptError(msg, 'token_validation', buildMode, branch);
 	}
 
 	log(
@@ -362,24 +359,34 @@ function executeCommand(
 	command: ShellCommand,
 	description: OperationDescription,
 	buildMode: BuildMode,
-	branch: GitBranch
+	branch: GitBranch,
+	options?: { redact?: string[]; silent?: boolean }
 ): void {
+	const toRedact = options?.redact ?? [];
+	const sanitized = toRedact.reduce(
+		(cmd, secret) => (secret ? cmd.split(secret).join('***') : cmd),
+		command
+	);
 	log(`🔄 ${description}...`);
-	log(`   Running: ${command}`);
+	if (!options?.silent) {
+		log(`   Running: ${sanitized}`);
+	}
 
 	try {
 		execSync(command, { stdio: 'inherit' });
 		log(`✅ ${description} completed successfully`);
 	} catch {
 		error(`❌ Failed during: ${description}`);
-		error(`   Command: ${command}`);
+		if (!options?.silent) {
+			error(`   Command: ${sanitized}`);
+		}
 
 		throw new FetchScriptError(
 			`Command execution failed: ${description}`,
 			'command_execution',
 			buildMode,
 			branch,
-			command
+			sanitized
 		);
 	}
 }
@@ -421,7 +428,10 @@ function cloneDocumentationRepository(
 	buildMode: BuildMode,
 	branch: GitBranch
 ): void {
-	const authenticatedRepositoryUrl = `https://${authenticationToken}@github.com/consentdotio/c15t-docs.git`;
+	const repoUrl = 'https://github.com/consentdotio/c15t-docs.git';
+	const basicAuth = Buffer.from(
+		`x-access-token:${authenticationToken}`
+	).toString('base64');
 
 	// Clean up any existing temporary directory from failed previous runs
 	cleanupDirectory(
@@ -432,10 +442,11 @@ function cloneDocumentationRepository(
 	);
 
 	executeCommand(
-		`git clone --depth=1 --branch=${branch} "${authenticatedRepositoryUrl}" ${FETCH_CONFIG.TEMP_DOCS_DIR}`,
+		`git -c http.extraheader="Authorization: Basic ${basicAuth}" clone --depth=1 --branch=${branch} "${repoUrl}" ${FETCH_CONFIG.TEMP_DOCS_DIR}`,
 		`Fetching private Next.js documentation template (${branch} branch)`,
 		buildMode,
-		branch
+		branch,
+		{ redact: [authenticationToken, basicAuth] }
 	);
 
 	// Note: For reproducible builds across environments, consider pinning to specific commit:
@@ -490,11 +501,26 @@ function installDocumentationTemplate(
 	);
 
 	executeCommand(
-		`rsync -a --delete ${FETCH_CONFIG.TEMP_DOCS_DIR}/ ${FETCH_CONFIG.DOCS_APP_DIR}`,
+		'true',
 		'Installing documentation template into workspace',
 		buildMode,
-		branch
+		branch,
+		{ silent: true }
 	);
+	try {
+		log('Installing documentation template into workspace...');
+		cpSync(FETCH_CONFIG.TEMP_DOCS_DIR, FETCH_CONFIG.DOCS_APP_DIR, {
+			recursive: true,
+		});
+		log('✅ Installation completed successfully');
+	} catch {
+		throw new FetchScriptError(
+			`Failed to copy template from ${FETCH_CONFIG.TEMP_DOCS_DIR} to ${FETCH_CONFIG.DOCS_APP_DIR}`,
+			'install_template',
+			buildMode,
+			branch
+		);
+	}
 }
 
 /**
@@ -638,10 +664,15 @@ function installDocsAppDependencies(
  * @see {@link https://vercel.com/docs/deployments/build-step | Vercel Build Step Documentation}
  */
 function main(fetchOptions: FetchOptions): void {
-	const modeEmoji = fetchOptions.isProduction ? '🚀' : '⚡';
-	const modeText = fetchOptions.isProduction
-		? 'production build'
-		: 'development setup';
+	let modeEmoji: string;
+	let modeText: string;
+	if (fetchOptions.isProduction) {
+		modeEmoji = '🚀';
+		modeText = 'production build';
+	} else {
+		modeEmoji = '⚡';
+		modeText = 'development setup';
+	}
 
 	log(
 		`${modeEmoji} Starting ${modeText} for documentation site (${fetchOptions.branch} branch)...\n`
@@ -707,7 +738,10 @@ function main(fetchOptions: FetchOptions): void {
 }
 
 // Execute the main function if this script is run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (
+	process.argv[1] &&
+	fileURLToPath(import.meta.url) === resolve(process.argv[1])
+) {
 	const fetchOptions = parseFetchOptions();
 	main(fetchOptions);
 }
