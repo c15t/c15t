@@ -6,18 +6,12 @@ on:
       - '**'
     paths:
       - 'docs/**'
-      - 'packages/*/src/**'
-      - 'packages/*/package.json'
-      - '.docs/**'
       - '.github/workflows/deploy-docs.yml'
   pull_request:
     branches:
       - '**'
     paths:
       - 'docs/**'
-      - 'packages/*/src/**' 
-      - 'packages/*/package.json'
-      - '.docs/**'
 
 permissions:
   contents: read
@@ -30,7 +24,31 @@ env:
   VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
 jobs:
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      docs: ${{ steps.filter.outputs.docs }}
+      packages: ${{ steps.filter.outputs.packages }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Paths filter
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            docs:
+              - 'docs/**'
+            packages:
+              - 'packages/*/src/**'
+              - 'packages/*/package.json'
+
   deploy:
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
     concurrency:
       group: docs-${{ github.ref }}
       cancel-in-progress: true
