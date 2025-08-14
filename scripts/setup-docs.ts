@@ -696,20 +696,8 @@ function main(fetchOptions: FetchOptions): void {
 		installDocumentationTemplate(fetchOptions.mode, fetchOptions.branch);
 
 		// Phase 4: Configure dependency environments
-		if (fetchOptions.isProduction) {
-			// In Vercel/production mode, skip all installs and content processing.
-			// Vercel handles dependency installation and the template/build handles content.
-			log('🛑 --vercel detected: skipping installs.');
-			processMDXContent(fetchOptions.mode, fetchOptions.branch);
-		} else {
-			// Development: Install dependencies and process content locally
-			installDocsAppDependencies(fetchOptions.mode, fetchOptions.branch);
-		}
-
-		// Phase 5: Skip building here; Vercel will run the build
-		if (fetchOptions.isProduction) {
-			log('🛑 Skipping local build in production mode; Vercel will build.');
-		}
+		installDocsAppDependencies(fetchOptions.mode, fetchOptions.branch);
+		processMDXContent(fetchOptions.mode, fetchOptions.branch);
 
 		// Success messaging based on mode
 		log(`\n🎉 ${modeText} completed successfully!`);
