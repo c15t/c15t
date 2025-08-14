@@ -537,41 +537,6 @@ function processMDXContent(buildMode: BuildMode, branch: GitBranch): void {
 }
 
 /**
- * Installs main workspace dependencies (production mode only)
- *
- * This function installs the primary workspace dependencies using pnpm with
- * strict lockfile enforcement. This step is only executed in production mode
- * as development workflows typically don't require the full workspace setup.
- *
- * @param buildMode - Current build mode for error context
- * @param branch - Current branch for error context
- *
- * @throws {FetchScriptError} When pnpm installation fails
- * @throws {FetchScriptError} When lockfile is missing or corrupted
- * @throws {FetchScriptError} When dependency conflicts prevent installation
- *
- * @example
- * ```typescript
- * // Only in production mode
- * installWorkspaceDependencies('production', 'main');
- * // Main workspace packages now available in node_modules
- * ```
- *
- * @see {@link https://pnpm.io/cli/install | PNPM Install Documentation}
- */
-function installWorkspaceDependencies(
-	buildMode: BuildMode,
-	branch: GitBranch
-): void {
-	executeCommand(
-		'pnpm install --frozen-lockfile',
-		'Installing workspace dependencies (excluding .docs)',
-		buildMode,
-		branch
-	);
-}
-
-/**
  * Installs documentation application dependencies in complete isolation
  *
  * This function establishes the .docs dependency environment in complete
