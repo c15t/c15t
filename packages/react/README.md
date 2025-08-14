@@ -22,7 +22,7 @@ React components for building privacy-first user interfaces.
 ## Documentation
 
 For detailed documentation and examples, visit:
-[https://c15t.com/docs/react/quickstart](https://c15t.com/docs/react/quickstart)
+[https://c15t.com/docs/frameworks/react/quickstart](https://c15t.com/docs/frameworks/react/quickstart)
 
 ## ⚡ Quick Start Via CLI
 
