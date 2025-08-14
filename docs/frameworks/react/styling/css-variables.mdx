@@ -50,8 +50,8 @@ export default function CssVariablesPage() {
 	const bgColorDark = '#000000';
 	const primaryColor = 'hsl(172 72.2% 48%)';
 	const primaryColorHover = 'hsl(172 72% 48% / 0.1)';
-	const focusRing = `${primaryColor} !important`;
-	const focusShadow = `0 0 0 2px ${primaryColor}`;
+	const focusRing = primaryColor + ' !important';
+	const focusShadow = '0 0 0 2px ' + primaryColor;
 
 	const baseTheme = {
 		style: {
@@ -59,10 +59,10 @@ export default function CssVariablesPage() {
 			'--button-focus-ring': primaryColor,
 			'--button-primary-dark': primaryColor,
 			'--button-primary': primaryColor,
-			'--button-shadow-primary-dark': `var(--button-shadow-dark), inset 0 0 0 1px ${primaryColor}`,
+			'--button-shadow-primary-dark': 'var(--button-shadow-dark), inset 0 0 0 1px ' + primaryColor,
 			'--button-shadow-primary-focus-dark': focusShadow,
 			'--button-shadow-primary-focus': focusShadow,
-			'--button-shadow-primary': `var(--button-shadow), inset 0 0 0 1px ${primaryColor}`,
+			'--button-shadow-primary': 'var(--button-shadow), inset 0 0 0 1px ' + primaryColor,
 			'--button-primary-hover-dark': primaryColorHover,
 			'--button-primary-hover': primaryColorHover,
 		},
@@ -99,8 +99,8 @@ export default function CssVariablesPage() {
 							'--accordion-focus-shadow': focusShadow,
 							'--dialog-background-color-dark': bgColorDark,
 							'--dialog-background-color': bgColor,
-							'--dialog-branding-focus-color-dark': `var(--button-shadow), inset 0 0 0 1px ${primaryColor}`,
-							'--dialog-branding-focus-color': `var(--button-shadow), inset 0 0 0 1px ${primaryColor}`,
+							'--dialog-branding-focus-color-dark': 'var(--button-shadow), inset 0 0 0 1px ' + primaryColor,
+							'--dialog-branding-focus-color': 'var(--button-shadow), inset 0 0 0 1px ' + primaryColor,
 							'--dialog-footer-background-color-dark': bgColorDark,
 							'--switch-background-color-checked-dark': primaryColor,
 							'--switch-background-color-checked': primaryColor,
@@ -116,8 +116,7 @@ export default function CssVariablesPage() {
 			/>
 		</ConsentManagerProvider>
 	);
-}
-`}
+}`}
   expectedHeight={300}
 />
 
