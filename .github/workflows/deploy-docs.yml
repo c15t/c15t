@@ -78,12 +78,13 @@ jobs:
           const https = require('https');
 
           const token = process.env.VERCEL_TOKEN;
-          const project = process.env.VERCEL_PROJECT_ID;
+          let project = process.env.VERCEL_PROJECT_ID;
           const repo = process.env.GITHUB_REPOSITORY || '';
           const owner = process.env.GITHUB_REPOSITORY_OWNER || '';
           const refEnv = process.env.GITHUB_REF || '';
           const headRef = process.env.GITHUB_HEAD_REF || '';
           const sha = process.env.GITHUB_SHA || '';
+          let teamId = process.env.VERCEL_ORG_ID || '';
 
           const parseBranch = () => {
             if (headRef) return headRef;
@@ -93,6 +94,16 @@ jobs:
           };
           const branch = parseBranch();
           const isProd = refEnv === 'refs/heads/main';
+
+          // Enforce env-provided configuration only (no fallback to .vercel/project.json)
+          if (!teamId) {
+            console.error('Missing VERCEL_ORG_ID in env.');
+            process.exit(1);
+          }
+          if (!project) {
+            console.error('Missing VERCEL_PROJECT_ID in env.');
+            process.exit(1);
+          }
 
           const ignoreDirs = new Set(['node_modules', '.git', '.next', '.vercel', 'out', 'dist', 'build', '.cache', '.turbo']);
           const ignoreFiles = new Set(['pnpm-lock.yaml', 'yarn.lock', 'package-lock.json']); // Vercel detects package manager via lockfile; keep exactly one if present
@@ -136,7 +147,7 @@ jobs:
           });
 
           const body = JSON.stringify({
-            name: 'c15t-docs',
+            name: 'c15t',
             project,
             target: isProd ? 'production' : 'preview',
             files,
@@ -155,7 +166,7 @@ jobs:
           const req = https.request(
             {
               hostname: 'api.vercel.com',
-              path: '/v13/deployments',
+              path: `/v13/deployments${teamId ? `?teamId=${encodeURIComponent(teamId)}` : ''}`,
               method: 'POST',
               headers: {
                 Authorization: `Bearer ${token}`,
