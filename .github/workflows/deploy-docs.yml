@@ -2,7 +2,8 @@ name: Deploy Documentation to Vercel
 
 on:
   push:
-    branches: [main, rewire-content-to-new-docs]
+    branches:
+      - '**'
     paths:
       - 'docs/**'
       - 'packages/*/src/**'
@@ -10,7 +11,8 @@ on:
       - '.docs/**'
       - '.github/workflows/deploy-docs.yml'
   pull_request:
-    branches: [main]
+    branches:
+      - '**'
     paths:
       - 'docs/**'
       - 'packages/*/src/**' 
@@ -61,143 +63,43 @@ jobs:
         run: |
           set -euo pipefail
           cd .docs
-
-          node - <<'NODE'
-          const fs = require('fs');
-          const path = require('path');
-          const https = require('https');
-
-          const token = process.env.VERCEL_TOKEN;
-          let project = process.env.VERCEL_PROJECT_ID;
-          const repo = process.env.GITHUB_REPOSITORY || '';
-          const owner = process.env.GITHUB_REPOSITORY_OWNER || '';
-          const refEnv = process.env.GITHUB_REF || '';
-          const headRef = process.env.GITHUB_HEAD_REF || '';
-          const sha = process.env.GITHUB_SHA || '';
-          let teamId = process.env.VERCEL_ORG_ID || '';
-
-          const parseBranch = () => {
-            if (headRef) return headRef;
-            if (refEnv.startsWith('refs/heads/')) return refEnv.replace('refs/heads/', '');
-            if (refEnv.startsWith('refs/tags/')) return refEnv.replace('refs/tags/', '');
-            return 'unknown';
-          };
-          const branch = parseBranch();
-          const isProd = refEnv === 'refs/heads/main';
-
-          // Enforce env-provided configuration only (no fallback to .vercel/project.json)
-          if (!teamId) {
-            console.error('Missing VERCEL_ORG_ID in env.');
-            process.exit(1);
-          }
-          if (!project) {
-            console.error('Missing VERCEL_PROJECT_ID in env.');
-            process.exit(1);
-          }
-
-          // Upload source files so Vercel builds remotely
-          const ignoreDirs = new Set(['node_modules', '.git', '.next', '.vercel', 'out', 'dist', 'build', '.cache', '.turbo']);
-          const ignoreFiles = new Set(['pnpm-lock.yaml', 'yarn.lock', 'package-lock.json']);
-
-          const has = (p) => fs.existsSync(p);
-          const lockPreference = ['pnpm-lock.yaml', 'yarn.lock', 'package-lock.json'].find((f) => has(path.join(process.cwd(), f)));
-          const effectiveIgnoreFiles = new Set([...ignoreFiles].filter((f) => f !== lockPreference));
-
-          const walk = (dir) => {
-            const entries = fs.readdirSync(dir, { withFileTypes: true });
-            const out = [];
-            for (const e of entries) {
-              if (e.name.startsWith('.git')) continue;
-              const full = path.join(dir, e.name);
-              const rel = path.relative(process.cwd(), full);
-              if (e.isDirectory()) {
-                if (ignoreDirs.has(e.name)) continue;
-                out.push(...walk(full));
-              } else if (e.isFile()) {
-                if (effectiveIgnoreFiles.has(e.name)) continue;
-                out.push(rel);
-              }
-            }
-            return out;
-          };
-
-          const filesList = walk(process.cwd());
-          // Ensure we always include package.json and the chosen lockfile
-          ['package.json', lockPreference].forEach((f) => {
-            if (f && !filesList.includes(f) && fs.existsSync(f)) filesList.push(f);
-          });
-
-          const files = filesList.map((file) => {
-            const data = fs.readFileSync(file);
-            return {
-              file: file.replace(/\\/g, '/'),
-              data: data.toString('base64'),
-              encoding: 'base64',
-            };
-          });
-
-          const body = JSON.stringify({
-            name: 'c15t-docs',
-            project,
-            target: isProd ? 'production' : 'staging',
-            files,
-            meta: {
-              githubCommitRef: branch,
-              githubCommitSha: sha,
-              githubRepo: repo.split('/')[1] || '',
-              githubOrg: owner || '',
-              source: 'github-actions',
-            },
-            projectSettings: {
-              framework: 'nextjs'
-            }
-          });
-
-          const req = https.request(
-            {
-              hostname: 'api.vercel.com',
-              path: `/v13/deployments${teamId ? `?teamId=${encodeURIComponent(teamId)}` : ''}`,
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(body),
-              },
-            },
-            (res) => {
-              let chunks = [];
-              res.on('data', (d) => chunks.push(d));
-              res.on('end', () => {
-                const txt = Buffer.concat(chunks).toString('utf8');
-                if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-                  const json = JSON.parse(txt);
-                  const url = json.url || '';
-                  fs.appendFileSync(process.env.GITHUB_OUTPUT, `url=https://${url}\n`);
-                  console.log(`Created Vercel deployment: https://${url}`);
-                } else {
-                  console.error('Vercel API error:', res.statusCode, txt);
-                  process.exit(1);
-                }
-              });
-            }
-          );
-
-          req.on('error', (err) => {
-            console.error('HTTPS error:', err);
-            process.exit(1);
-          });
-          req.write(body);
-          req.end();
-          NODE
+          pnpm dlx tsx ../scripts/deploy.ts
 
       - name: Comment PR with preview URL
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `📖 **Documentation Preview**\n\n🔗 Preview URL: ${{ steps.deploy.outputs.url }}\n\n*Updated with commit ${{ github.sha }}*`
-            })
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number;
+            const marker = '<!-- c15t-docs-preview -->';
+            const previewUrl = `${{ steps.deploy.outputs.url }}`;
+            if (!previewUrl) {
+              core.setFailed('No preview URL found in deploy step output.');
+              return;
+            }
+            const body = `${marker}\n📖 **Documentation Preview**\n\n🔗 Preview URL: ${previewUrl}\n\n*Updated with commit ${{ github.sha }}*`;
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+            const existing = comments.find(c => typeof c.body === 'string' && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+            }
