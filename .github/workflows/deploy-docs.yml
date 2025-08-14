@@ -12,8 +12,6 @@ on:
   pull_request:
     branches:
       - '**'
-    paths:
-      - 'docs/**'
   # ⏰ Periodic check for upstream template changes (consentdotio/c15t-docs)
   schedule:
     # Run once daily at 00:15 UTC to avoid excessive runs
@@ -209,5 +207,25 @@ jobs:
             🔗 Live URL: ${{ steps.deploy.outputs.url }}
 
             🧪 This sticky comment auto-updates on every push.
+            📦 Source: branch `${{ github.ref_name }}` @ `${{ github.sha }}`
+            🧭 Trigger: `${{ github.event_name }}`
+
+  notify-skip:
+    needs: changes
+    # Run on PRs where deploy would not run
+    if: github.event_name == 'pull_request' && !((github.base_ref == 'main' || github.base_ref == 'canary') || needs.changes.outputs.docs == 'true' || needs.changes.outputs.template_changed == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - name: 💬 Comment PR with skipped notice
+        uses: marocchino/sticky-pull-request-comment@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
+        with:
+          header: c15t-docs-preview
+          number: ${{ github.event.pull_request.number }}
+          message: |
+            🟡 Documentation deploy skipped.
+
+            Reason: No docs changes and upstream template unchanged, and base branch is `${{ github.base_ref }}` (not `main` or `canary`).
             📦 Source: branch `${{ github.ref_name }}` @ `${{ github.sha }}`
             🧭 Trigger: `${{ github.event_name }}`
