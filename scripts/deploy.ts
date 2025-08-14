@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { getBranch } from './getBranch';
+import { getBranch } from './get-branch';
 
 type DeployTarget = 'production' | 'staging';
 
