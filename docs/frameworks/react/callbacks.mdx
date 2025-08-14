@@ -34,8 +34,6 @@ Some callbacks require a call to an endpoint meaning they will not work fully in
 - `onConsentSet`: Stores consent in local storage.
 - `onConsentVerified`: Will always return a simulated response of true, unless consent is in local storage.
 
-
-
 ## Usage Examples
 
 ```typescript
@@ -55,7 +53,7 @@ const c15tConfig: ConsentManagerOptions = {
 
 ## Callback Response Types
 
-Callback responses are always of type `ResponseContext<T>`. 
+Callback responses are always of type `ResponseContext<T>`.
 
 <AutoTypeTable path="./packages/core/src/client/types.ts" name="ResponseContext" />
 

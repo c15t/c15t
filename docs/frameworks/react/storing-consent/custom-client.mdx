@@ -26,168 +26,168 @@ The custom client mode gives you complete control over how consent decisions are
 - **Advanced use cases** - Support for complex scenarios like multi-tenant applications
 
 <Callout type="warning">
-The custom client mode is the most flexible but also the most complex implementation option. Only use it if you need complete control over consent handling.
+  The custom client mode is the most flexible but also the most complex implementation option. Only use it if you need complete control over consent handling.
 </Callout>
 
 ## Implementation
 
 <Steps>
-<Step>
-### Install the Package
+  <Step>
+    ### Install the Package
 
-<PackageCommandTabs command="@c15t/react" mode="install" />
-</Step>
+    <PackageCommandTabs command="@c15t/react" mode="install" />
+  </Step>
 
-<Step>
-### Create Custom Endpoint Handlers
+  <Step>
+    ### Create Custom Endpoint Handlers
 
-<Callout type="note">
-You must implement all three core handlers: `showConsentBanner`, `setConsent`, and `verifyConsent`.
-</Callout>
+    <Callout type="note">
+      You must implement all three core handlers: `showConsentBanner`, `setConsent`, and `verifyConsent`.
+    </Callout>
 
-First, create handlers for the required endpoints:
+    First, create handlers for the required endpoints:
 
-```tsx title="lib/consent-handlers.ts"
-import type {
-  SetConsentRequestBody,
-  SetConsentResponse,
-  ShowConsentBannerResponse,
-  VerifyConsentRequestBody,
-  VerifyConsentResponse,
-} from '@c15t/backend';
-import type { EndpointHandlers } from '@c15t/react';
+    ```tsx title="lib/consent-handlers.ts"
+    import type {
+      SetConsentRequestBody,
+      SetConsentResponse,
+      ShowConsentBannerResponse,
+      VerifyConsentRequestBody,
+      VerifyConsentResponse,
+    } from '@c15t/backend';
+    import type { EndpointHandlers } from '@c15t/react';
 
-// Custom storage implementation (could be localStorage, IndexedDB, etc.)
-const consentStorage = {
-  getItem: (key: string) => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem(key);
-  },
-  setItem: (key: string, value: string) => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(key, value);
-  }
-};
+    // Custom storage implementation (could be localStorage, IndexedDB, etc.)
+    const consentStorage = {
+      getItem: (key: string) => {
+        if (typeof window === 'undefined') return null;
+        return localStorage.getItem(key);
+      },
+      setItem: (key: string, value: string) => {
+        if (typeof window === 'undefined') return;
+        localStorage.setItem(key, value);
+      }
+    };
 
-export const createCustomHandlers = (): EndpointHandlers => {
-  return {
-    // Handler for checking if banner should be shown
-    showConsentBanner: async () => {
-      const hasConsent = Boolean(consentStorage.getItem('custom-consent'));
-      
+    export const createCustomHandlers = (): EndpointHandlers => {
       return {
-        data: {
-          showConsentBanner: !hasConsent,
-          jurisdiction: { code: 'EU', message: 'European Union' },
-          location: { countryCode: 'DE', regionCode: null }
+        // Handler for checking if banner should be shown
+        showConsentBanner: async () => {
+          const hasConsent = Boolean(consentStorage.getItem('custom-consent'));
+          
+          return {
+            data: {
+              showConsentBanner: !hasConsent,
+              jurisdiction: { code: 'EU', message: 'European Union' },
+              location: { countryCode: 'DE', regionCode: null }
+            },
+            error: null,
+            ok: true,
+            response: null
+          };
         },
-        error: null,
-        ok: true,
-        response: null
+        
+        // Handler for saving consent preferences
+        setConsent: async (options) => {
+          const body = options?.body as SetConsentRequestBody;
+          
+          // Store the consent preferences
+          consentStorage.setItem(
+            'custom-consent',
+            JSON.stringify({
+              timestamp: new Date().toISOString(),
+              preferences: body?.preferences || {},
+            })
+          );
+          
+          return {
+            data: { success: true },
+            error: null,
+            ok: true,
+            response: null
+          };
+        },
+        
+        // Handler for verifying consent
+        verifyConsent: async (options) => {
+          const body = options?.body as VerifyConsentRequestBody;
+          const storedConsent = consentStorage.getItem('custom-consent');
+          
+          // Parse stored consent or create default response
+          let response: VerifyConsentResponse = {
+            valid: false,
+            requiredConsent: body?.requiredConsent || [],
+            missingConsent: body?.requiredConsent || []
+          };
+          
+          if (storedConsent) {
+            const parsedConsent = JSON.parse(storedConsent);
+            const preferences = parsedConsent.preferences || {};
+            
+            // Check if all required consent items are present and accepted
+            const missingConsent = (body?.requiredConsent || []).filter(
+              item => !preferences[item] || preferences[item] !== true
+            );
+            
+            response = {
+              valid: missingConsent.length === 0,
+              requiredConsent: body?.requiredConsent || [],
+              missingConsent
+            };
+          }
+          
+          return {
+            data: response,
+            error: null,
+            ok: true,
+            response: null
+          };
+        }
       };
-    },
-    
-    // Handler for saving consent preferences
-    setConsent: async (options) => {
-      const body = options?.body as SetConsentRequestBody;
-      
-      // Store the consent preferences
-      consentStorage.setItem(
-        'custom-consent',
-        JSON.stringify({
-          timestamp: new Date().toISOString(),
-          preferences: body?.preferences || {},
-        })
+    };
+    ```
+  </Step>
+
+  <Step>
+    ### Configure the Provider with Custom Client
+
+    ```tsx title="app/layout.tsx"
+    import { 
+      ConsentManagerDialog,
+      ConsentManagerProvider,
+      CookieBanner,
+      type ConsentManagerOptions
+    } from '@c15t/react';
+    import { createCustomHandlers } from '../lib/consent-handlers';
+
+    export default function Layout({ children }: { children: React.ReactNode }) {
+      const options: ConsentManagerOptions = {
+        mode: 'custom',
+        endpointHandlers: createCustomHandlers(),
+        // Optional event callbacks
+        callbacks: {
+          onConsentSet: (response) => {
+            console.log('Consent has been saved');
+          }
+        }
+      };
+
+      return (
+        <ConsentManagerProvider options={options}>
+          {children}
+          <CookieBanner />
+          <ConsentManagerDialog />
+        </ConsentManagerProvider>
       );
-      
-      return {
-        data: { success: true },
-        error: null,
-        ok: true,
-        response: null
-      };
-    },
-    
-    // Handler for verifying consent
-    verifyConsent: async (options) => {
-      const body = options?.body as VerifyConsentRequestBody;
-      const storedConsent = consentStorage.getItem('custom-consent');
-      
-      // Parse stored consent or create default response
-      let response: VerifyConsentResponse = {
-        valid: false,
-        requiredConsent: body?.requiredConsent || [],
-        missingConsent: body?.requiredConsent || []
-      };
-      
-      if (storedConsent) {
-        const parsedConsent = JSON.parse(storedConsent);
-        const preferences = parsedConsent.preferences || {};
-        
-        // Check if all required consent items are present and accepted
-        const missingConsent = (body?.requiredConsent || []).filter(
-          item => !preferences[item] || preferences[item] !== true
-        );
-        
-        response = {
-          valid: missingConsent.length === 0,
-          requiredConsent: body?.requiredConsent || [],
-          missingConsent
-        };
-      }
-      
-      return {
-        data: response,
-        error: null,
-        ok: true,
-        response: null
-      };
     }
-  };
-};
-```
-</Step>
-
-<Step>
-### Configure the Provider with Custom Client
-
-```tsx title="app/layout.tsx"
-import { 
-  ConsentManagerDialog,
-  ConsentManagerProvider,
-  CookieBanner,
-  type ConsentManagerOptions
-} from '@c15t/react';
-import { createCustomHandlers } from '../lib/consent-handlers';
-
-export default function Layout({ children }: { children: React.ReactNode }) {
-  const options: ConsentManagerOptions = {
-    mode: 'custom',
-    endpointHandlers: createCustomHandlers(),
-    // Optional event callbacks
-    callbacks: {
-      onConsentSet: (response) => {
-        console.log('Consent has been saved');
-      }
-    }
-  };
-
-  return (
-    <ConsentManagerProvider options={options}>
-      {children}
-      <CookieBanner />
-      <ConsentManagerDialog />
-    </ConsentManagerProvider>
-  );
-}
-```
-</Step>
+    ```
+  </Step>
 </Steps>
 
 ## Custom Handler Interface
 
 <Callout type="tip">
-Each handler must return a Promise that resolves to a `ResponseContext` object with the appropriate data structure.
+  Each handler must return a Promise that resolves to a `ResponseContext` object with the appropriate data structure.
 </Callout>
 
 Each handler function must implement the `EndpointHandler` interface, which returns a Promise resolving to a `ResponseContext` object:
@@ -279,7 +279,7 @@ interface VerifyConsentResponse {
 ### Dynamic Handlers
 
 <Callout>
-Dynamic handlers allow you to extend the client's functionality beyond the core consent operations.
+  Dynamic handlers allow you to extend the client's functionality beyond the core consent operations.
 </Callout>
 
 You can register additional custom endpoint handlers for specialized functionality:
@@ -312,7 +312,7 @@ function MyComponent() {
 ### Error Handling
 
 <Callout type="important">
-Proper error handling is essential for custom clients to ensure your application behaves predictably.
+  Proper error handling is essential for custom clients to ensure your application behaves predictably.
 </Callout>
 
 Custom handlers should handle errors and return appropriate response contexts:
@@ -371,7 +371,7 @@ const createThirdPartyHandlers = (): EndpointHandlers => {
 ### Integration with Existing Systems
 
 <Callout type="note">
-If your organization already has a consent management system, custom handlers provide a bridge between it and c15t's UI components.
+  If your organization already has a consent management system, custom handlers provide a bridge between it and c15t's UI components.
 </Callout>
 
 ```tsx
@@ -432,7 +432,7 @@ const createABTestHandlers = (): EndpointHandlers => {
 ### Hybrid Storage Approach
 
 <Callout type="tip">
-A hybrid approach can give you the best of both worlds: local storage for reliability and remote storage for analytics.
+  A hybrid approach can give you the best of both worlds: local storage for reliability and remote storage for analytics.
 </Callout>
 
 ```tsx
@@ -540,17 +540,11 @@ For simpler use cases, consider [Hosted Solution](/docs/storing-consent/hosted-c
 ## Next Steps
 
 <div className="mt-6">
-  <CompactCard 
-    href="/docs/storing-consent/offline-mode" 
-    icon={<RiTimerLine size={18} />}
-  >
+  <CompactCard href="/docs/storing-consent/offline-mode" icon={<RiTimerLine size={18} />}>
     Explore <code>Offline Mode</code>
   </CompactCard>
 
-  <CompactCard 
-    href="/docs/storing-consent/hosted-c15t" 
-    icon={<RiGlobalLine size={18} />}
-  >
+  <CompactCard href="/docs/storing-consent/hosted-c15t" icon={<RiGlobalLine size={18} />}>
     Use <code>Hosted c15t</code>
   </CompactCard>
-</div> 
+</div>

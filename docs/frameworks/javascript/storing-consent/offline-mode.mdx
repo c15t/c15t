@@ -13,6 +13,7 @@ availableIn:
     url: '/docs/frameworks/next/storing-consent/offline-mode'
     title: 'Next.js'
 ---
+
 import { RiServerLine, RiGlobalLine, RiSettings4Line } from '@remixicon/react';
 
 The offline mode provides a simple, browser-based approach to storing user consent decisions without requiring a backend server.
@@ -27,71 +28,72 @@ The offline mode provides a simple, browser-based approach to storing user conse
 ## Implementation
 
 <Steps>
-<Step>
-### Install the Package
- <PackageCommandTabs command="c15t" />
-</Step>
+  <Step>
+    ### Install the Package
 
-<Step>
-### Configure the Client (Svelte/JavaScript)
+    <PackageCommandTabs command="c15t" />
+  </Step>
 
-Set up the c15t client with offline mode in your Svelte or JavaScript project:
+  <Step>
+    ### Configure the Client (Svelte/JavaScript)
 
-```ts
-// src/lib/c15t.client.ts
-import { configureConsentManager, type ConsentManagerOptions } from 'c15t';
+    Set up the c15t client with offline mode in your Svelte or JavaScript project:
 
-export const c15tConfig = {
-  mode: 'offline',
-  // Optional: Add callback functions for various events
-  callbacks: {
-    onConsentSet: (response) => {
-      console.log('Consent has been saved locally');
-    },
-    onConsentBannerFetched: (response) => {
-      console.log('Banner state retrieved:', response.data);
-    },
-    onConsentVerified: (response) => {
-      console.log('Consent verification complete');
-    },
-    onError: (error, endpoint) => {
-      console.error(`Error in ${endpoint}:`, error);
-    }
-  }
-} satisfies ConsentManagerOptions;
+    ```ts
+    // src/lib/c15t.client.ts
+    import { configureConsentManager, type ConsentManagerOptions } from 'c15t';
 
-export const consentManager = configureConsentManager(c15tConfig);
-```
-</Step>
+    export const c15tConfig = {
+      mode: 'offline',
+      // Optional: Add callback functions for various events
+      callbacks: {
+        onConsentSet: (response) => {
+          console.log('Consent has been saved locally');
+        },
+        onConsentBannerFetched: (response) => {
+          console.log('Banner state retrieved:', response.data);
+        },
+        onConsentVerified: (response) => {
+          console.log('Consent verification complete');
+        },
+        onError: (error, endpoint) => {
+          console.error(`Error in ${endpoint}:`, error);
+        }
+      }
+    } satisfies ConsentManagerOptions;
 
-<Step>
-### Use the Consent Manager in Your App
+    export const consentManager = configureConsentManager(c15tConfig);
+    ```
+  </Step>
 
-You can now use the `consentManager` instance in your Svelte components or JavaScript code:
+  <Step>
+    ### Use the Consent Manager in Your App
 
-```ts
-<script lang="ts">
-  import { consentManager } from '../lib/c15t.client';
+    You can now use the `consentManager` instance in your Svelte components or JavaScript code:
 
-  // Example: Show the consent banner if needed
-  let showBanner = false;
+    ```ts
+    <script lang="ts">
+      import { consentManager } from '../lib/c15t.client';
 
-  consentManager.showConsentBanner().then((result) => {
-    showBanner = result;
-  });
-</script>
+      // Example: Show the consent banner if needed
+      let showBanner = false;
 
-{#if showBanner}
-  <ConsentBanner />
-{/if}
-```
-</Step>
+      consentManager.showConsentBanner().then((result) => {
+        showBanner = result;
+      });
+    </script>
+
+    {#if showBanner}
+      <ConsentBanner />
+    {/if}
+    ```
+  </Step>
 </Steps>
 
 ## How It Works
 
 <Callout type="note">
-Offline mode provides the same API interface as the standard client but operates completely client-side.
+  Offline mode provides the same API interface as the standard client but operates completely client-side.
 </Callout>
 
 The offline mode implements the same interface as the standard client, but with the following differences:
@@ -173,7 +175,7 @@ export const consentManager = configureConsentManager({
 ## Browser Compatibility
 
 <Callout type="warning">
-Some browser environments like private browsing modes may have localStorage restrictions.
+  Some browser environments like private browsing modes may have localStorage restrictions.
 </Callout>
 
 The offline mode relies on localStorage, which is supported in all modern browsers. However, it includes fallbacks for environments where localStorage might be unavailable or restricted:
@@ -204,7 +206,7 @@ const options = {
 ### Static Sites
 
 <Callout type="tip">
-Offline mode is an excellent choice for static sites deployed on platforms like Vercel, Netlify, or GitHub Pages.
+  Offline mode is an excellent choice for static sites deployed on platforms like Vercel, Netlify, or GitHub Pages.
 </Callout>
 
 For static sites without backend integration, offline mode provides a simple solution:
@@ -245,7 +247,7 @@ export const consentManager = configureConsentManager(options);
 ## Limitations
 
 <Callout type="important">
-Understand these limitations when deciding if offline mode is right for your application.
+  Understand these limitations when deciding if offline mode is right for your application.
 </Callout>
 
 While offline mode provides a functional consent management solution, it has some limitations:
@@ -270,17 +272,11 @@ For more complex applications or those with stricter compliance requirements, co
 ## Next Steps
 
 <div className="mt-6">
-  <CompactCard 
-    href="/docs/javascript/storing-consent/self-hosting" 
-    icon={<RiServerLine size={18} />}
-  >
+  <CompactCard href="/docs/javascript/storing-consent/self-hosting" icon={<RiServerLine size={18} />}>
     Configure <code>Self-Hosting</code>
   </CompactCard>
 
-  <CompactCard 
-    href="/docs/javascript/storing-consent/hosted-c15t" 
-    icon={<RiGlobalLine size={18} />}
-  >
+  <CompactCard href="/docs/javascript/storing-consent/hosted-c15t" icon={<RiGlobalLine size={18} />}>
     Use <code>Hosted c15t</code>
   </CompactCard>
-</div> 
+</div>

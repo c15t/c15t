@@ -22,6 +22,7 @@ The Consent Manager Widget serves as the core interface for detailed privacy con
 Think of the Consent Manager Widget as a highly customizable form that gives users control over their privacy choices. It organizes different types of data collection and processing into collapsible sections, making it easy for users to understand and manage their consent preferences.
 
 For example, a typical widget might include sections for:
+
 - Essential cookies that keep your site running
 - Analytics that help improve user experience
 - Marketing features that enable personalized content
@@ -64,6 +65,7 @@ The Consent Manager Widget uses a compound component pattern, which means it's b
 Let's break down the main building blocks:
 
 ### Root Component
+
 The `ConsentManagerWidget` serves as the container and context provider for all other components:
 
 ```tsx
@@ -73,6 +75,7 @@ The `ConsentManagerWidget` serves as the container and context provider for all 
 ```
 
 ### Accordion Interface
+
 The accordion interface organizes privacy preferences into expandable sections:
 
 ```tsx
@@ -84,6 +87,7 @@ The accordion interface organizes privacy preferences into expandable sections:
 ```
 
 ### Custom Accordion Items
+
 You can create custom sections for specific types of consent:
 
 ```tsx
@@ -102,6 +106,7 @@ You can create custom sections for specific types of consent:
 ```
 
 ### Action Buttons
+
 The widget includes several pre-built buttons for common actions:
 
 ```tsx
@@ -125,6 +130,7 @@ The widget includes several pre-built buttons for common actions:
 The widget supports several ways to customize its appearance and behavior:
 
 ### Theme Customization
+
 Apply custom styles using the theme prop:
 
 ```tsx
@@ -155,6 +161,7 @@ Apply custom styles using the theme prop:
 ```
 
 ### Custom Layouts
+
 Create completely custom layouts while maintaining functionality:
 
 ```tsx
@@ -170,6 +177,7 @@ Create completely custom layouts while maintaining functionality:
 ```
 
 ### Branding
+
 Control the visibility of c15t.com branding:
 
 ```tsx
@@ -254,17 +262,9 @@ function PrivacyCenter() {
 5. Ensure all interactive elements are keyboard accessible
 
 ## Related Components
+
 <Cards>
-  <Card 
-    icon={<CookieIcon />}
-    title="Cookie Banner"
-    description="The friendly first-touch privacy notice that greets users. Customizable, accessible, and designed to get out of the way."
-    href="/docs/components/react/cookie-banner"
-  />
-  <Card 
-   icon={<LayersIcon />}
-    title="Consent Manager Dialog"
-    description="A detailed privacy preferences interface that lets users fine-tune their choices. Built with accessibility and usability in mind."
-    href="/docs/components/react/consent-manager-dialog"
-  />
+  <Card icon={<CookieIcon />} title="Cookie Banner" description="The friendly first-touch privacy notice that greets users. Customizable, accessible, and designed to get out of the way." href="/docs/components/react/cookie-banner" />
+
+  <Card icon={<LayersIcon />} title="Consent Manager Dialog" description="A detailed privacy preferences interface that lets users fine-tune their choices. Built with accessibility and usability in mind." href="/docs/components/react/consent-manager-dialog" />
 </Cards>

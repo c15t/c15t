@@ -10,6 +10,7 @@ availableIn:
     url: '/docs/frameworks/react/components/cookie-banner'
     title: 'React'
 ---
+
 import { CookieIcon, LayersIcon, ToggleRightIcon } from 'lucide-react';
 
 The Cookie Banner component provides an elegant way to obtain and manage cookie consent from your users. It handles all the complexity of privacy regulations while providing a smooth user experience that integrates naturally with your application.
@@ -30,7 +31,8 @@ Our Cookie Banner component handles all of these requirements automatically, whi
 
 ## Quick Start
 
-Let's add a basic cookie banner to your application. First, install the package: 
+Let's add a basic cookie banner to your application. First, install the package:
+
 <PackageCommandTabs command="@c15t/react" mode="install" />
 
 Then add the banner to your root component:
@@ -64,45 +66,45 @@ The Cookie Banner uses a compound component pattern, giving you complete control
 
 <Tabs groupId="Version" items={["Recommended", "Expanded"]}>
   <Tab value="Recommended">
-  ```tsx 
-import { CookieBanner } from "@c15t/react";
+    ```tsx
+    import { CookieBanner } from "@c15t/react";
 
-const Banner = () => {
-	return (
-		<CookieBanner
-			title="We value your privacy"
-			description="We use cookies to enhance your experience"
-		/>
-	);
-};
+    const Banner = () => {
+      return (
+      	<CookieBanner
+      		title="We value your privacy"
+      		description="We use cookies to enhance your experience"
+      	/>
+      );
+    };
 
-````
-</Tab>
-<Tab value="expanded">
-```tsx
-import * as CookieBanner from "@c15t/react/cookie-banner";
+    ```
+  </Tab>
 
-const Banner = () => {
-	return (
-		<CookieBanner.Root>
-			<CookieBanner.Card>
-				<CookieBanner.Header>
-					<CookieBanner.Title>Custom Title</CookieBanner.Title>
-					<CookieBanner.Description>Your detailed description here</CookieBanner.Description>
-				</CookieBanner.Header>
-				<CookieBanner.Footer>
-					<CookieBanner.FooterSubGroup>
-						<CookieBanner.RejectButton>Decline All</CookieBanner.RejectButton>
-						<CookieBanner.CustomizeButton>Preferences</CookieBanner.CustomizeButton>
-					</CookieBanner.FooterSubGroup>
-					<CookieBanner.AcceptButton>Accept All</CookieBanner.AcceptButton>
-				</CookieBanner.Footer>
-			</CookieBanner.Card>
-		</CookieBanner.Root>
-	);
-};
-````
+  <Tab value="expanded">
+    ```tsx
+    import * as CookieBanner from "@c15t/react/cookie-banner";
 
+    const Banner = () => {
+    	return (
+    		<CookieBanner.Root>
+    			<CookieBanner.Card>
+    				<CookieBanner.Header>
+    					<CookieBanner.Title>Custom Title</CookieBanner.Title>
+    					<CookieBanner.Description>Your detailed description here</CookieBanner.Description>
+    				</CookieBanner.Header>
+    				<CookieBanner.Footer>
+    					<CookieBanner.FooterSubGroup>
+    						<CookieBanner.RejectButton>Decline All</CookieBanner.RejectButton>
+    						<CookieBanner.CustomizeButton>Preferences</CookieBanner.CustomizeButton>
+    					</CookieBanner.FooterSubGroup>
+    					<CookieBanner.AcceptButton>Accept All</CookieBanner.AcceptButton>
+    				</CookieBanner.Footer>
+    			</CookieBanner.Card>
+    		</CookieBanner.Root>
+    	);
+    };
+    ```
   </Tab>
 </Tabs>
 
@@ -195,6 +197,7 @@ The Cookie Banner supports scroll locking, a technique that prevents users from 
 ```
 
 When enabled, scroll locking:
+
 - Prevents page scrolling and interaction
 - Displays a background overlay
 - Ensures users must make a privacy choice before accessing content
@@ -284,19 +287,10 @@ Each compound component is designed for specific functionality:
 | `CookieBanner.RejectButton` | Rejects optional cookies |
 | `CookieBanner.CustomizeButton` | Opens preference dialog |
 
-
 ## Related Components
+
 <Cards>
-  <Card 
-   icon={<LayersIcon />}
-    title="Consent Manager Dialog"
-    description="A detailed privacy preferences interface that lets users fine-tune their choices. Built with accessibility and usability in mind."
-    href="/docs/components/react/consent-manager-dialog"
-  />
-  <Card 
-    icon={<ToggleRightIcon />}
-    title="Consent Manager Widget"
-    description="The engine that powers granular consent management. Easily embed detailed privacy controls anywhere in your app."
-    href="/docs/components/react/consent-manager-widget"
-  />
+  <Card icon={<LayersIcon />} title="Consent Manager Dialog" description="A detailed privacy preferences interface that lets users fine-tune their choices. Built with accessibility and usability in mind." href="/docs/components/react/consent-manager-dialog" />
+
+  <Card icon={<ToggleRightIcon />} title="Consent Manager Widget" description="The engine that powers granular consent management. Easily embed detailed privacy controls anywhere in your app." href="/docs/components/react/consent-manager-widget" />
 </Cards>

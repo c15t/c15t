@@ -28,53 +28,53 @@ The offline mode provides a simple, browser-based approach to storing user conse
 ## Implementation
 
 <Steps>
-<Step>
-### Install the Package
+  <Step>
+    ### Install the Package
 
-<PackageCommandTabs command="@c15t/react" mode="install" />
-</Step>
+    <PackageCommandTabs command="@c15t/react" mode="install" />
+  </Step>
 
-<Step>
-### Configure the Client
+  <Step>
+    ### Configure the Client
 
-Set up the c15t client with offline mode:
+    Set up the c15t client with offline mode:
 
-```jsx
-// lib/c15tClient.js
-import { createClient } from '@c15t/react'
+    ```jsx
+    // lib/c15tClient.js
+    import { createClient } from '@c15t/react'
 
-export const c15tClient = createClient({
-  mode: 'offline',
-})
-```
-</Step>
+    export const c15tClient = createClient({
+      mode: 'offline',
+    })
+    ```
+  </Step>
 
-<Step>
-### Add the Provider
+  <Step>
+    ### Add the Provider
 
-Wrap your application with the ConsentManagerProvider:
+    Wrap your application with the ConsentManagerProvider:
 
-```jsx
-import { ConsentManagerProvider } from '@c15t/react'
-import { c15tClient } from '../lib/c15tClient'
+    ```jsx
+    import { ConsentManagerProvider } from '@c15t/react'
+    import { c15tClient } from '../lib/c15tClient'
 
-function MyApp({ Component, pageProps }) {
-  return (
-    <ConsentManagerProvider options={c15tClient}>
-      <Component {...pageProps} />
-    </ConsentManagerProvider>
-  )
-}
+    function MyApp({ Component, pageProps }) {
+      return (
+        <ConsentManagerProvider options={c15tClient}>
+          <Component {...pageProps} />
+        </ConsentManagerProvider>
+      )
+    }
 
-export default MyApp
-```
-</Step>
+    export default MyApp
+    ```
+  </Step>
 </Steps>
 
 ## How It Works
 
 <Callout type="note">
-Offline mode provides the same API interface as the standard client but operates completely client-side.
+  Offline mode provides the same API interface as the standard client but operates completely client-side.
 </Callout>
 
 The offline mode implements the same interface as the standard client, but with the following differences:
@@ -150,7 +150,7 @@ export const c15tClient = createClient({
 ## Browser Compatibility
 
 <Callout type="warning">
-Some browser environments like private browsing modes may have localStorage restrictions.
+  Some browser environments like private browsing modes may have localStorage restrictions.
 </Callout>
 
 The offline mode relies on localStorage, which is supported in all modern browsers. However, it includes fallbacks for environments where localStorage might be unavailable or restricted:
@@ -182,7 +182,7 @@ const options = {
 ### Static Sites
 
 <Callout type="tip">
-Offline mode is an excellent choice for static sites deployed on platforms like Vercel, Netlify, or GitHub Pages.
+  Offline mode is an excellent choice for static sites deployed on platforms like Vercel, Netlify, or GitHub Pages.
 </Callout>
 
 For static sites without backend integration, offline mode provides a simple solution:
@@ -228,7 +228,7 @@ function ConsentProvider({ children }) {
 ## Limitations
 
 <Callout type="important">
-Understand these limitations when deciding if offline mode is right for your application.
+  Understand these limitations when deciding if offline mode is right for your application.
 </Callout>
 
 While offline mode provides a functional consent management solution, it has some limitations:
@@ -253,24 +253,15 @@ For more complex applications or those with stricter compliance requirements, co
 ## Next Steps
 
 <div className="mt-6">
-  <CompactCard 
-    href="/docs/storing-consent/self-hosting" 
-    icon={<RiServerLine size={18} />}
-  >
+  <CompactCard href="/docs/storing-consent/self-hosting" icon={<RiServerLine size={18} />}>
     Configure <code>Self-Hosting</code>
   </CompactCard>
 
-  <CompactCard 
-    href="/docs/storing-consent/hosted-c15t" 
-    icon={<RiGlobalLine size={18} />}
-  >
+  <CompactCard href="/docs/storing-consent/hosted-c15t" icon={<RiGlobalLine size={18} />}>
     Use <code>Hosted c15t</code>
   </CompactCard>
 
-  <CompactCard 
-    href="/docs/storing-consent/custom-client" 
-    icon={<RiSettings4Line size={18} />}
-  >
+  <CompactCard href="/docs/storing-consent/custom-client" icon={<RiSettings4Line size={18} />}>
     Create a <code>Custom Client</code>
   </CompactCard>
-</div> 
+</div>

@@ -5,11 +5,13 @@ lastModified: 2025-04-15
 deprecated: true
 deprecatedReason: "@c15t/backend v1 did not deliver the flexibility we wanted and fell short of our standards. It is now deprecated as we work on a full rewrite, with v2 entering canary soon. This does not affect Consent.io deployments, which remain stable"
 ---
+
 The c15t Backend plugin system provides a powerful way to extend and customize the functionality of your consent management system. This guide covers everything you need to know about plugins, from basic usage to advanced features.
 
 ## Overview
 
 Plugins are modular components that can:
+
 - Extend the context with additional data
 - Modify requests and responses
 - Add new routes and endpoints
@@ -19,6 +21,7 @@ Plugins are modular components that can:
 ## Plugin Types
 
 ### Core Plugins
+
 Core plugins are essential system components that provide fundamental functionality:
 
 ```typescript
@@ -38,6 +41,7 @@ const corePlugin: C15TPlugin = {
 ```
 
 ### Feature Plugins
+
 Feature plugins add specific functionality to your system:
 
 ```typescript
@@ -60,6 +64,7 @@ const featurePlugin: C15TPlugin = {
 ```
 
 ### Middleware Plugins
+
 Middleware plugins process requests and responses:
 
 ```typescript
@@ -81,6 +86,7 @@ const middlewarePlugin: C15TPlugin = {
 ## Plugin Lifecycle
 
 ### Initialization
+
 Plugins are initialized when the c15t instance is created:
 
 ```typescript
@@ -96,6 +102,7 @@ const instance = c15tInstance({
 ```
 
 ### Request Lifecycle
+
 Plugins can hook into various stages of request processing:
 
 ```typescript
@@ -280,6 +287,7 @@ const dependentPlugin: C15TPlugin = {
 ## Testing Plugins
 
 ### Unit Testing
+
 ```typescript
 describe('Custom Plugin', () => {
   it('should extend context', async () => {
@@ -302,6 +310,7 @@ describe('Custom Plugin', () => {
 ```
 
 ### Integration Testing
+
 ```typescript
 describe('Plugin Integration', () => {
   it('should work with other plugins', async () => {

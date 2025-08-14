@@ -5,6 +5,7 @@ lastModified: 2025-04-15
 deprecated: true
 deprecatedReason: "@c15t/backend v1 did not deliver the flexibility we wanted and fell short of our standards. It is now deprecated as we work on a full rewrite, with v2 entering canary soon. This does not affect Consent.io deployments, which remain stable"
 ---
+
 The c15t Backend package provides a flexible database adapter system that allows you to use different database backends while maintaining a consistent interface.
 
 ## Overview
@@ -36,6 +37,7 @@ const instance = c15tInstance({
 ```
 
 #### Features
+
 - In-memory storage
 - No persistence
 - Fast for development
@@ -64,12 +66,14 @@ const instance = c15tInstance({
 ```
 
 #### Supported Databases
+
 - PostgreSQL
 - MySQL
 - SQLite
 - Microsoft SQL Server
 
 #### Features
+
 - Type-safe queries
 - Query building
 - Transaction support
@@ -92,6 +96,7 @@ const instance = c15tInstance({
 ```
 
 #### Features
+
 - Prisma ORM integration
 - Type safety
 - Schema management
@@ -119,6 +124,7 @@ const instance = c15tInstance({
 ```
 
 #### Features
+
 - Drizzle ORM integration
 - Type safety
 - Schema management
@@ -329,4 +335,4 @@ await adapter.runMigrations(migrations);
 3. **Error Tracking**
    - Log database errors
    - Track failed queries
-   - Monitor connection issues 
+   - Monitor connection issues

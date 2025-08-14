@@ -19,7 +19,7 @@ The hook accepts two parameters:
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | shouldTrap | boolean | Controls whether focus should be trapped within the container |
-| containerRef | RefObject\<HTMLElement\> \| null | Reference to the DOM element that should contain the focus |
+| containerRef | RefObject\<HTMLElement> | null | Reference to the DOM element that should contain the focus |
 
 ## Returns
 
@@ -90,4 +90,4 @@ const CookieBannerCard = forwardRef(({ children, ...props }, ref) => {
     </Box>
   );
 });
-``` 
+```
