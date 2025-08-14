@@ -41,7 +41,7 @@ jobs:
 
       - name: Setup Documentation Template
         run: |
-          # Production mode: sets up template, installs deps, processes content, and builds
+          # Production mode: sets up template, installs deps, processes content (build handled by Vercel)
           pnpm dlx tsx scripts/setup-docs.ts --vercel
         env:
           CONSENT_GIT_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
@@ -59,8 +59,18 @@ jobs:
         run: |
           cd .docs
           # Build with Vercel and deploy prebuilt output (.vercel/output)
-          vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
-          echo "url=$(vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
+          vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            -m githubCommitSha=${{ github.sha }} \
+            -m githubCommitRef=${{ github.ref_name }} \
+            -m githubRepo=${{ github.repository }} \
+            -m githubOrg=${{ github.repository_owner }}
+          echo "url=$(vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            -m githubCommitSha=${{ github.sha }} \
+            -m githubCommitRef=${{ github.ref_name }} \
+            -m githubRepo=${{ github.repository }} \
+            -m githubOrg=${{ github.repository_owner }})" >> $GITHUB_OUTPUT
 
       - name: Comment PR with preview URL
         if: github.event_name == 'pull_request'
