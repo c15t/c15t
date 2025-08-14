@@ -44,6 +44,9 @@ yarn-error.log*
 
 docs/public/r/*
 
+# Private docs template
+.docs
+
 
 *.tsbuildinfo
 coverage.json

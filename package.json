@@ -1,6 +1,7 @@
 {
 	"name": "c15t",
 	"private": true,
+	"type": "module",
 	"scripts": {
 		"build:apps": "turbo build --filter=./apps/*",
 		"build:libs": "turbo build --filter=./packages/*",
@@ -10,8 +11,10 @@
 		"ci:publish": "pnpm changeset tag && pnpm publish -r",
 		"ci:version": "pnpm changeset version",
 		"dev:docs": "turbo dev --filter=./docs/*",
+		"dev:docs-app": "pnpm --prefix .docs dev",
 		"dev:libs": "turbo dev --filter=./packages/*",
 		"dev": "turbo dev --filter=!./examples/*",
+		"setup:docs": "tsx scripts/setup-docs.ts",
 		"fmt": "turbo fmt",
 		"fmt:docs": "pnpm remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
 		"knip": "knip",
@@ -25,6 +28,7 @@
 		"version:prerelease:exit": "changeset pre exit",
 		"version:prerelease": "changeset pre enter canary",
 		"version": "changeset version && pnpm install --lockfile-only",
+		"vercel-build": "tsx scripts/setup-docs.ts --vercel",
 		"view-report": "turbo run view-report"
 	},
 	"resolutions": {
@@ -44,6 +48,7 @@
 		"@vitest/browser": "^3.1.1",
 		"@vitest/coverage-istanbul": "^3.1.1",
 		"changeset-conventional-commits": "^0.2.5",
+		"tsx": "^4.19.2",
 		"knip": "^5.50.4",
 		"lefthook": "^1.11.10",
 		"playwright": "^1.51.1",

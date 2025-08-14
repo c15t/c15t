@@ -4,6 +4,7 @@ packages:
   - examples/**
   - internals/**
   - docs
+  - "!.docs" # exclude the fetched template from the workspace
 
 ignoredBuiltDependencies:
   - '@prisma/client'
