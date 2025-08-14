@@ -45,8 +45,6 @@ jobs:
         env:
           CONSENT_GIT_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
 
-      # Let Vercel build remotely; no local Vercel CLI or prebuild
-
       - name: Create Vercel Deployment via API
         id: deploy
         env:
@@ -97,43 +95,51 @@ jobs:
             process.exit(1);
           }
 
-          const outputRoot = path.join(process.cwd(), '.vercel', 'output');
-          if (!fs.existsSync(outputRoot)) {
-            console.error('Expected prebuilt output at .vercel/output. Did you run `vercel build`?');
-            process.exit(1);
-          }
+          // Upload source files so Vercel builds remotely
+          const ignoreDirs = new Set(['node_modules', '.git', '.next', '.vercel', 'out', 'dist', 'build', '.cache', '.turbo']);
+          const ignoreFiles = new Set(['pnpm-lock.yaml', 'yarn.lock', 'package-lock.json']);
+
+          const has = (p) => fs.existsSync(p);
+          const lockPreference = ['pnpm-lock.yaml', 'yarn.lock', 'package-lock.json'].find((f) => has(path.join(process.cwd(), f)));
+          const effectiveIgnoreFiles = new Set([...ignoreFiles].filter((f) => f !== lockPreference));
 
           const walk = (dir) => {
             const entries = fs.readdirSync(dir, { withFileTypes: true });
             const out = [];
             for (const e of entries) {
+              if (e.name.startsWith('.git')) continue;
               const full = path.join(dir, e.name);
-              const rel = path.relative(outputRoot, full);
+              const rel = path.relative(process.cwd(), full);
               if (e.isDirectory()) {
+                if (ignoreDirs.has(e.name)) continue;
                 out.push(...walk(full));
               } else if (e.isFile()) {
+                if (effectiveIgnoreFiles.has(e.name)) continue;
                 out.push(rel);
               }
             }
             return out;
           };
 
-          const filesList = walk(outputRoot);
+          const filesList = walk(process.cwd());
+          // Ensure we always include package.json and the chosen lockfile
+          ['package.json', lockPreference].forEach((f) => {
+            if (f && !filesList.includes(f) && fs.existsSync(f)) filesList.push(f);
+          });
 
-          const files = filesList.map((rel) => {
-            const full = path.join(outputRoot, rel);
-            const data = fs.readFileSync(full);
+          const files = filesList.map((file) => {
+            const data = fs.readFileSync(file);
             return {
-              file: rel.replace(/\\/g, '/'),
+              file: file.replace(/\\/g, '/'),
               data: data.toString('base64'),
               encoding: 'base64',
             };
           });
 
           const body = JSON.stringify({
-            name: 'c15t',
+            name: 'c15t-docs',
             project,
-             target: isProd ? 'production' : 'staging',
+            target: isProd ? 'production' : 'staging',
             files,
             meta: {
               githubCommitRef: branch,
