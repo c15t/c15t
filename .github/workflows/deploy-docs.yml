@@ -39,12 +39,8 @@ jobs:
         with:
           version: '10.8.0'
 
-      - name: Install dependencies
+      - name: Install .docs dependencies
         run: |
-          # Install main workspace dependencies
-          pnpm install --frozen-lockfile
-          
-          # Install .docs dependencies
           cd .docs
           pnpm install --frozen-lockfile
 
