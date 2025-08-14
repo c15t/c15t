@@ -3,14 +3,14 @@ The Cookie Banner component provides an elegant way to obtain and manage cookie 
 <ResponsivePreview
   src="/examples/cookie-banner"
   code={`<ConsentManagerProvider
-	options={{
-		mode: 'c15t',
-  backendURL: 'https://c15t.dev/your-instance',
-		consentCategories: ['necessary', 'marketing'],
-	}}
+  options={{
+  	mode: 'c15t',
+backendURL: 'https://c15t.dev/your-instance',
+  	consentCategories: ['necessary', 'marketing'],
+  }}
 >
-	<CookieBanner />
-	<ConsentManagerDialog />
+  <CookieBanner />
+  <ConsentManagerDialog />
 </ConsentManagerProvider>
 `}
   expectedHeight={300}
