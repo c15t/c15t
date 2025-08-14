@@ -41,10 +41,7 @@ jobs:
 
       - name: Setup Documentation Template
         run: |
-          # Extract branch name and sync with docs template
-          BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          echo "Syncing documentation template with branch: $BRANCH_NAME"
-          pnpm dlx tsx scripts/setup-docs.ts --vercel --branch=$BRANCH_NAME
+          pnpm dlx tsx scripts/setup-docs.ts --vercel
         env:
           CONSENT_GIT_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
 
