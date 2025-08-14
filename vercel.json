@@ -1,0 +1,16 @@
+{
+	"$schema": "https://openapi.vercel.sh/vercel.json",
+	"buildCommand": "tsx scripts/setup-docs.ts --vercel",
+	"outputDirectory": ".docs/.next",
+	"installCommand": "pnpm install --frozen-lockfile",
+	"framework": null,
+	"ignoreCommand": "exit 0",
+	"functions": {
+		"app/**/*.{js,ts,tsx}": {
+			"runtime": "nodejs22.x"
+		}
+	},
+	"env": {
+		"NEXT_TELEMETRY_DISABLED": "1"
+	}
+}
