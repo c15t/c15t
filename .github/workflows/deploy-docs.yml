@@ -120,6 +120,13 @@ jobs:
         with:
           node-version: '22'
 
+      # 📦 Setup pnpm (used by docs template/scripts)
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
       # 📚 Fetch private docs template and prepare .docs for build
       - name: 📚 Setup Documentation Template
         run: |

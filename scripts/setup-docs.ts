@@ -549,8 +549,14 @@ function installDocumentationTemplate(
  */
 function processMDXContent(buildMode: BuildMode, branch: GitBranch): void {
 	executeCommand(
-		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && npx tsx ./scripts/copy-content.ts`,
+		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm copy-content`,
 		'Copying MDX content with copy-content',
+		buildMode,
+		branch
+	);
+	executeCommand(
+		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm fumadocs-mdx`,
+		'Processing MDX content with fumadocs-mdx',
 		buildMode,
 		branch
 	);
@@ -689,17 +695,9 @@ function main(fetchOptions: FetchOptions): void {
 		// Phase 3: Integrate template into workspace
 		installDocumentationTemplate(fetchOptions.mode, fetchOptions.branch);
 
-		// Phase 4: Configure dependency environments
-		if (fetchOptions.isProduction) {
-			// In Vercel/production mode, skip all installs and content processing.
-			// Vercel handles dependency installation and the template/build handles content.
-			log('🛑 --vercel detected: skipping installs');
-			processMDXContent(fetchOptions.mode, fetchOptions.branch);
-		} else {
-			// Development: Install dependencies and process content locally
-			installDocsAppDependencies(fetchOptions.mode, fetchOptions.branch);
-			processMDXContent(fetchOptions.mode, fetchOptions.branch);
-		}
+		// Development: Install dependencies and process content locally
+		installDocsAppDependencies(fetchOptions.mode, fetchOptions.branch);
+		processMDXContent(fetchOptions.mode, fetchOptions.branch);
 
 		// Phase 5: Skip building here; Vercel will run the build
 		if (fetchOptions.isProduction) {
