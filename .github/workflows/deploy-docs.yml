@@ -55,6 +55,32 @@ jobs:
             next-cache-${{ runner.os }}-${{ github.ref_name }}-
             next-cache-${{ runner.os }}-
 
+      - name: Install Vercel CLI (for local build only)
+        run: npm install --global vercel@latest
+
+      - name: Write Vercel project link for .docs
+        env:
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: |
+          mkdir -p .docs/.vercel
+          cat > .docs/.vercel/project.json <<EOF
+          {
+            "projectId": "${VERCEL_PROJECT_ID}",
+            "orgId": "${VERCEL_ORG_ID}"
+          }
+          EOF
+
+      - name: Pull Vercel environment information
+        run: |
+          cd .docs
+          vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build with Vercel (produces .vercel/output)
+        run: |
+          cd .docs
+          vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --yes --token=${{ secrets.VERCEL_TOKEN }}
+
       - name: Create Vercel Deployment via API
         id: deploy
         env:
@@ -105,42 +131,34 @@ jobs:
             process.exit(1);
           }
 
-          const ignoreDirs = new Set(['node_modules', '.git', '.next', '.vercel', 'out', 'dist', 'build', '.cache', '.turbo']);
-          const ignoreFiles = new Set(['pnpm-lock.yaml', 'yarn.lock', 'package-lock.json']); // Vercel detects package manager via lockfile; keep exactly one if present
-
-          const has = (p) => fs.existsSync(p);
-          // Only keep one lockfile if present, prefer pnpm > yarn > npm
-          const lockPreference = ['pnpm-lock.yaml', 'yarn.lock', 'package-lock.json'].find((f) => has(path.join(process.cwd(), f)));
-          const effectiveIgnoreFiles = new Set([...ignoreFiles].filter((f) => f !== lockPreference));
+          const outputRoot = path.join(process.cwd(), '.vercel', 'output');
+          if (!fs.existsSync(outputRoot)) {
+            console.error('Expected prebuilt output at .vercel/output. Did you run `vercel build`?');
+            process.exit(1);
+          }
 
           const walk = (dir) => {
             const entries = fs.readdirSync(dir, { withFileTypes: true });
             const out = [];
             for (const e of entries) {
-              if (e.name.startsWith('.git')) continue;
               const full = path.join(dir, e.name);
-              const rel = path.relative(process.cwd(), full);
+              const rel = path.relative(outputRoot, full);
               if (e.isDirectory()) {
-                if (ignoreDirs.has(e.name)) continue;
                 out.push(...walk(full));
               } else if (e.isFile()) {
-                if (effectiveIgnoreFiles.has(e.name)) continue;
                 out.push(rel);
               }
             }
             return out;
           };
 
-          const filesList = walk(process.cwd());
-          // Ensure we always include package.json and the chosen lockfile
-          ['package.json', lockPreference].forEach((f) => {
-            if (f && !filesList.includes(f) && fs.existsSync(f)) filesList.push(f);
-          });
+          const filesList = walk(outputRoot);
 
-          const files = filesList.map((file) => {
-            const data = fs.readFileSync(file);
+          const files = filesList.map((rel) => {
+            const full = path.join(outputRoot, rel);
+            const data = fs.readFileSync(full);
             return {
-              file: file.replace(/\\/g, '/'),
+              file: rel.replace(/\\/g, '/'),
               data: data.toString('base64'),
               encoding: 'base64',
             };
