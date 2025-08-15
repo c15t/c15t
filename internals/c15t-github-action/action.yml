@@ -124,6 +124,10 @@ inputs:
     description: "When true, also create/update a commit comment on push events."
     default: "true"
     required: true
+  debug_mode:
+    description: "Enable verbose debug logging from the action"
+    default: "false"
+    required: false
   ignore_empty:
     description: "Indicates whether to ignore missing or empty messages"
     default: "false"
@@ -200,6 +204,7 @@ runs:
         INPUT_VERCEL_ARGS: ${{ inputs.vercel_args }}
         INPUT_VERCEL_SCOPE: ${{ inputs.vercel_scope }}
         INPUT_COMMENT_ON_PUSH: ${{ inputs.comment_on_push }}
+        INPUT_DEBUG_MODE: ${{ inputs.debug_mode }}
         INPUT_IGNORE_EMPTY: ${{ inputs.ignore_empty }}
         INPUT_SKIP_UNCHANGED: ${{ inputs.skip_unchanged }}
         INPUT_AUTHOR_LOGIN: ${{ inputs.author_login }}
