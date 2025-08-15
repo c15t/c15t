@@ -85,14 +85,14 @@ export async function detectRelevantChanges(
 
 // Lightweight minimatch impl for ** and * patterns (subset sufficient for our globs)
 function escapeRegex(s: string): string {
-	return s.replace(/[.+^${}()|\\]/g, '\\$&');
+	return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 function globToRegex(glob: string): RegExp {
 	const escaped = escapeRegex(glob)
 		.replace(/\\\*\\\*/g, '.*')
 		.replace(/\\\*/g, '[^/]*');
 	const re = `^${escaped}$`;
-	return new RegExp(re);
+	return new RegExp(re, 'u');
 }
 function minimatch(path: string, glob: string): boolean {
 	try {

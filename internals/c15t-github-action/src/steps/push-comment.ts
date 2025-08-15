@@ -18,12 +18,13 @@ import { renderCommentMarkdown } from './render-comment';
  *   false when a PR run was detected or posting failed.
  * @see renderCommentMarkdown
  */
+
 export async function maybeCommentOnPush(
 	octokit: ReturnType<typeof github.getOctokit>,
-	effectiveBody: string,
+	effectiveBody?: string,
 	deploymentUrl?: string
 ): Promise<boolean> {
-	if (!Number.isNaN(pullRequestNumber) && pullRequestNumber >= 1) {
+	if (typeof pullRequestNumber === 'number' && pullRequestNumber >= 1) {
 		return false;
 	}
 	if (!commentOnPush) {

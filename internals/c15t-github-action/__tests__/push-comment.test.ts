@@ -1,6 +1,6 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // note: inputs module is mocked per-test with vi.doMock + dynamic import
 
@@ -27,6 +27,10 @@ describe('maybeCommentOnPush', () => {
 			headers: {} as Record<string, string>,
 			data: { id: 1 } as unknown,
 		} as Awaited<ReturnType<typeof octokit.rest.repos.createCommitComment>>);
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
 	});
 
 	it('skips when running on a PR (pullRequestNumber is set)', async () => {

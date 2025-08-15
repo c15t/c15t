@@ -2,7 +2,7 @@
 	"name": "@c15t/github-action",
 	"version": "0.1.0",
 	"private": true,
-	"description": "Create or update a sticky comment on pull requests (C15T fork).",
+	"description": "C15T Docs Preview: setup, change detection, Vercel deploy, GitHub deployments/status, and sticky PR comments with GitHub App auth.",
 	"author": "c15t",
 	"license": "MIT",
 	"main": "dist/index.js",

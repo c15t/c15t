@@ -9,12 +9,11 @@
  */
 import * as core from '@actions/core';
 import type { GitHub } from '@actions/github/lib/utils';
-import type {
-	IssueComment,
-	ReportedContentClassifiers,
-	Repository,
-	User,
-} from '@octokit/graphql-schema';
+import type { IssueComment, Repository, User } from '@octokit/graphql-schema';
+
+// Precompiled regexes
+const RE_BOT_SUFFIX = /\[bot\]$/i;
+const RE_DETAILS_OPEN = /(<details.*?)\s*\bopen\b(.*>)/g;
 
 type CreateCommentResponse = Awaited<
 	ReturnType<InstanceType<typeof GitHub>['rest']['issues']['createComment']>
@@ -80,7 +79,7 @@ export async function findPreviousComment(
 		const viewer = data.viewer as User;
 		const repository = data.repository as Repository;
 		const normalizeLogin = (login: string | null | undefined): string =>
-			(login ?? '').replace('[bot]', '').trim().toLowerCase();
+			(login ?? '').replace(RE_BOT_SUFFIX, '').trim().toLowerCase();
 		const expectedLogin = normalizeLogin(authorLogin ?? viewer.login);
 		const target = repository.pullRequest?.comments?.nodes?.find(
 			(node: IssueComment | null | undefined) =>
@@ -108,9 +107,10 @@ export async function updateComment(
 	if (!body && !previousBody) {
 		return core.warning('Comment body cannot be blank');
 	}
-	const rawPreviousBody: string = previousBody
-		? bodyWithoutHeader(previousBody, header)
-		: '';
+	let rawPreviousBody = '';
+	if (previousBody) {
+		rawPreviousBody = bodyWithoutHeader(previousBody, header);
+	}
 	await octokit.graphql(
 		`
     mutation($input: UpdateIssueCommentInput!) {
@@ -140,12 +140,14 @@ export async function createComment(
 		core.warning('Comment body cannot be blank');
 		return;
 	}
-	const rawPreviousBody = previousBody
-		? bodyWithoutHeader(previousBody, header)
-		: '';
-	const composed = previousBody
-		? bodyWithHeader(`${rawPreviousBody}\n${body}`, header)
-		: bodyWithHeader(body, header);
+	let rawPreviousBody = '';
+	if (previousBody) {
+		rawPreviousBody = bodyWithoutHeader(previousBody, header);
+	}
+	let composed = bodyWithHeader(body, header);
+	if (previousBody) {
+		composed = bodyWithHeader(`${rawPreviousBody}\n${body}`, header);
+	}
 	return await octokit.rest.issues.createComment({
 		...repo,
 		issue_number,
@@ -165,19 +167,6 @@ export async function deleteComment(
 	);
 }
 
-export async function minimizeComment(
-	octokit: InstanceType<typeof GitHub>,
-	subjectId: string,
-	classifier: ReportedContentClassifiers
-): Promise<void> {
-	await octokit.graphql(
-		`
-    mutation($input: MinimizeCommentInput!) { minimizeComment(input: $input) { clientMutationId } }
-    `,
-		{ input: { subjectId, classifier } }
-	);
-}
-
 export function getBodyOf(
 	previous: { body?: string },
 	append: boolean,
@@ -189,7 +178,7 @@ export function getBodyOf(
 	if (!hideDetails || !previous.body) {
 		return previous.body;
 	}
-	return previous.body.replace(/(<details.*?)\s*\bopen\b(.*>)/g, '$1$2');
+	return previous.body.replace(RE_DETAILS_OPEN, '$1$2');
 }
 
 export function commentsEqual(

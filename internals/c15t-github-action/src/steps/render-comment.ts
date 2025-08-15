@@ -6,7 +6,17 @@ import {
 } from './ascii-art';
 import { FIRST_TIME_CONTRIBUTOR_ASCII } from './first-commit';
 
-function pickWeightedAscii(choices: WeightedAsciiArt[], seed?: string): string {
+type RenderCommentOptions = {
+	debug?: boolean;
+	seed?: string;
+	firstContribution?: boolean;
+	status?: string;
+};
+
+function pickWeightedAscii(
+	choices: readonly WeightedAsciiArt[],
+	seed?: string
+): string {
 	let total = 0;
 	for (const c of choices) {
 		const w = Math.max(0, c.weight);
@@ -47,14 +57,41 @@ function pickWeightedAscii(choices: WeightedAsciiArt[], seed?: string): string {
 	return '';
 }
 
+/**
+ * Renders the Markdown body for the sticky docs deployment comment.
+ *
+ * Includes optional first-time contributor content, a docs preview table with
+ * status and an updated timestamp, and a footer attribution.
+ *
+ * @param url - The preview URL to link in the Docs Preview table.
+ * @param options - Rendering options (debug, seed, firstContribution, status).
+ * @returns The rendered Markdown string.
+ * @internal
+ * @example
+ * const md = renderCommentMarkdown('https://vercel.app/preview', {
+ *   status: 'Ready',
+ *   firstContribution: false,
+ * });
+ */
+/**
+ * Render a deterministic, branded Markdown block for docs-preview comments.
+ *
+ * The output is wrapped with auto-generated markers using `header`:
+ * `<!-- c15t:{header}:START --> ... <!-- c15t:{header}:END -->`
+ *
+ * - When `firstContribution` is true, a special ASCII art banner is shown.
+ * - When `debug` is true, renders all available ASCII variants.
+ * - `seed` ensures deterministic ASCII selection for the same input.
+ *
+ * @param url - The preview URL to include in the comment.
+ * @param options - Rendering options.
+ * @returns The complete Markdown string with start/end markers.
+ * @example
+ * renderCommentMarkdown('https://example.vercel.app', { seed: 'abc123' });
+ */
 export function renderCommentMarkdown(
 	url: string,
-	options?: {
-		debug?: boolean;
-		seed?: string;
-		firstContribution?: boolean;
-		status?: string;
-	}
+	options?: RenderCommentOptions
 ): string {
 	const updated = new Date().toUTCString();
 	let status = 'Ready';
@@ -76,7 +113,7 @@ export function renderCommentMarkdown(
 		'<br/>',
 		'> 🎉 **Your first c15t commit!**',
 		'> ',
-		'> This is your first contribution to c15t, and I just wanted to say thank you. You’re helping us build the best developer-first consent infrastructure. Here’s to many more commits ahead! 🚀 ',
+		"> This is your first contribution to c15t, and I just wanted to say thank you. You're helping us build the best developer-first consent infrastructure. Here's to many more commits ahead! 🚀 ",
 		'> ',
 		'> Christopher, Author of c15t, [@burnedchris](https://x.com/burnedchris)',
 		'',
@@ -117,7 +154,8 @@ export function renderCommentMarkdown(
 		lines.push('');
 		lines.push('---');
 		lines.push(
-			'Baked with 💙 by [Consent](https://consent.io), powered by our completely necessary but very fun deployment comment system.'
+			'Baked with 💙 by [Consent](https://consent.io), powered by our ' +
+				'completely necessary but very fun deployment comment system.'
 		);
 		return lines.join('\n');
 	};
@@ -132,7 +170,7 @@ export function renderCommentMarkdown(
 		seed = options.seed;
 	}
 	const inner = messageTemplate({
-		art: pickWeightedAscii(Array.from(ASCII_SET), seed),
+		art: pickWeightedAscii(ASCII_SET, seed),
 		url,
 		updated,
 		firstContribution: options?.firstContribution,

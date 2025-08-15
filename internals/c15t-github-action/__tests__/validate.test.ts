@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-vi.mock('../src/config/inputs', () => ({}));
+// No mocks necessary; validateOptions is a no-op
 
 import { validateOptions } from '../src/steps/validate';
 

@@ -15,6 +15,7 @@ const mockConfig = {
 	ignoreEmpty: false,
 	skipUnchanged: false,
 	getBody: vi.fn().mockResolvedValue(''),
+	authorLogin: 'consentdotio',
 };
 
 vi.mock('../src/config', () => {
@@ -53,7 +54,7 @@ beforeEach(() => {
 	mockConfig.ignoreEmpty = false;
 	mockConfig.skipUnchanged = false;
 	// author login default
-	(mockConfig as any).authorLogin = 'consentdotio';
+	mockConfig.authorLogin = 'consentdotio';
 	mockConfig.getBody.mockResolvedValue('');
 });
 

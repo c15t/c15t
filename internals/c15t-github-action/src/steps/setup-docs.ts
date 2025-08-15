@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 
-export function isForkPullRequest(): boolean {
+function isForkPullRequest(): boolean {
 	const pr = (
 		github.context?.payload as unknown as {
 			pull_request?: { head?: { repo?: { full_name?: string } } };

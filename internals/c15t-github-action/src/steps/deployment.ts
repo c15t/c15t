@@ -213,11 +213,15 @@ export async function performVercelDeployment(
 	}
 
 	const branch = resolveBranch();
-	const targetHint =
-		(vercelTarget as DeployTarget) ||
-		(branch === 'main'
-			? ('production' as DeployTarget)
-			: ('staging' as DeployTarget));
+	let targetHint: DeployTarget | undefined =
+		(vercelTarget as DeployTarget) || undefined;
+	if (!targetHint) {
+		if (branch === 'main') {
+			targetHint = 'production' as DeployTarget;
+		} else {
+			targetHint = 'staging' as DeployTarget;
+		}
+	}
 	const environmentName = computeEnvironmentName(targetHint, branch);
 	const deploymentId = await createGithubDeployment(
 		octokit,

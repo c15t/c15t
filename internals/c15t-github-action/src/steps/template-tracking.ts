@@ -38,7 +38,6 @@ export async function fetchLatestTemplateSha(
 	}
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this is a complex workflow
 export async function readLastTemplateShaFromDeployments(
 	octokit: ReturnType<typeof github.getOctokit>,
 	environment: string
@@ -47,7 +46,7 @@ export async function readLastTemplateShaFromDeployments(
 		const { data } = await octokit.rest.repos.listDeployments({
 			...github.context.repo,
 			environment,
-			per_page: 10,
+			per_page: 30,
 		});
 		for (const d of data) {
 			const statuses = await octokit.rest.repos.listDeploymentStatuses({
@@ -56,21 +55,9 @@ export async function readLastTemplateShaFromDeployments(
 				per_page: 1,
 			});
 			if (statuses.data[0]?.state === 'success') {
-				let sha: string | undefined;
 				const payload: unknown = (d as unknown as { payload?: unknown })
 					.payload;
-				if (typeof payload === 'string') {
-					try {
-						const parsed = JSON.parse(payload) as { template_sha?: string };
-						sha = parsed.template_sha;
-					} catch (e) {
-						core.warning(
-							`Could not parse payload: ${e instanceof Error ? e.message : String(e)}`
-						);
-					}
-				} else if (payload && typeof payload === 'object') {
-					sha = (payload as { template_sha?: string }).template_sha;
-				}
+				const sha = extractTemplateShaFromPayload(payload);
 				if (sha) {
 					return sha;
 				}
@@ -83,32 +70,20 @@ export async function readLastTemplateShaFromDeployments(
 	}
 }
 
-export async function attachTemplateShaToDeployment(
-	octokit: ReturnType<typeof github.getOctokit>,
-	deploymentId: number,
-	templateSha?: string
-): Promise<void> {
-	if (!templateSha) {
-		return;
+function extractTemplateShaFromPayload(payload: unknown): string | undefined {
+	if (typeof payload === 'string') {
+		try {
+			const parsed = JSON.parse(payload) as { template_sha?: string };
+			return parsed.template_sha;
+		} catch (e) {
+			core.warning(
+				`Could not parse payload: ${e instanceof Error ? e.message : String(e)}`
+			);
+			return undefined;
+		}
 	}
-	try {
-		await octokit.request(
-			'POST /repos/{owner}/{repo}/deployments/{deployment_id}/statuses',
-			{
-				...github.context.repo,
-				deployment_id: deploymentId,
-				state: 'success',
-				description: `Preview ready (template: ${templateSha.substring(0, 7)})`,
-				mediaType: { previews: ['flash', 'ant-man'] },
-				environment_url: undefined,
-			}
-		);
-		core.debug(
-			`Attached template SHA ${templateSha} to deployment ${deploymentId}`
-		);
-	} catch (e) {
-		core.debug(
-			`attachTemplateShaToDeployment: ${e instanceof Error ? e.message : String(e)}`
-		);
+	if (payload && typeof payload === 'object') {
+		return (payload as { template_sha?: string }).template_sha;
 	}
+	return undefined;
 }

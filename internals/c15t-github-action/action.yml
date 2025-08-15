@@ -120,9 +120,6 @@ inputs:
   vercel_scope:
     description: "Vercel scope/team slug. If provided, overrides org/team id for API calls."
     required: false
-  vercel_version:
-    description: "Vercel CLI version (ignored in REST mode; reserved for potential CLI fallback)."
-    required: false
   comment_on_push:
     description: "When true, also create/update a commit comment on push events."
     default: "true"
@@ -174,7 +171,7 @@ runs:
         INPUT_DOCS_TEMPLATE_REPO: ${{ inputs.docs_template_repo }}
         INPUT_DOCS_TEMPLATE_REF: ${{ inputs.docs_template_ref }}
         INPUT_ONLY_IF_CHANGED: ${{ inputs.only_if_changed }}
-        INPUT_CHANGE_GLOBS: ${{ join(inputs.change_globs, '\n') }}
+        INPUT_CHANGE_GLOBS: ${{ inputs.change_globs }}
         INPUT_CHECK_TEMPLATE_CHANGES: ${{ inputs.check_template_changes }}
         INPUT_TEMPLATE_REPO: ${{ inputs.template_repo }}
         INPUT_TEMPLATE_REF: ${{ inputs.template_ref }}
@@ -190,7 +187,7 @@ runs:
         INPUT_HIDE_DETAILS: ${{ inputs.hide_details }}
         INPUT_HIDE: ${{ inputs.hide }}
         INPUT_MESSAGE: ${{ inputs.message }}
-        INPUT_PATH: ${{ join(inputs.path, '\n') }}
+        INPUT_PATH: ${{ inputs.path }}
         INPUT_VERCEL_TOKEN: ${{ inputs.vercel_token }}
         INPUT_VERCEL_PROJECT_ID: ${{ inputs.vercel_project_id }}
         INPUT_VERCEL_ORG_ID: ${{ inputs.vercel_org_id }}
@@ -199,7 +196,7 @@ runs:
         INPUT_TARGET: ${{ inputs.target }}
         INPUT_CANARY_ALIAS: ${{ inputs.canary_alias }}
         INPUT_ASSIGN_ALIAS_ON_BRANCH: ${{ inputs.assign_alias_on_branch }}
-        INPUT_ALIAS_DOMAINS: ${{ join(inputs.alias_domains, '\n') }}
+        INPUT_ALIAS_DOMAINS: ${{ inputs.alias_domains }}
         INPUT_VERCEL_ARGS: ${{ inputs.vercel_args }}
         INPUT_VERCEL_SCOPE: ${{ inputs.vercel_scope }}
         INPUT_COMMENT_ON_PUSH: ${{ inputs.comment_on_push }}

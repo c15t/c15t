@@ -1,6 +1,7 @@
 /**
  * Special ASCII art used to celebrate first-time contributors.
- * Wrapped in a fenced code block to preserve spacing in GitHub markdown.
+ * Intended to be rendered inside a fenced code block to preserve spacing
+ * in GitHub markdown.
  */
 export const FIRST_TIME_CONTRIBUTOR_ASCII = [
 	'⠀_______________',

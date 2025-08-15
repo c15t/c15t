@@ -18,9 +18,7 @@ import {
 	updateComment,
 } from '../github/pr-comment';
 
-function ensureFirstTimerBanner(body: string): string {
-	return body;
-}
+// removed no-op ensureFirstTimerBanner
 
 function requireEffectiveBodyOrThrow(effectiveBody: string): void {
 	if (!effectiveBody) {
@@ -33,7 +31,8 @@ function requireEffectiveBodyOrThrow(effectiveBody: string): void {
 async function createInitialCommentWhenMissing(
 	octokit: ReturnType<typeof github.getOctokit>,
 	previous: unknown,
-	effectiveBody: string
+	effectiveBody: string,
+	prNumber: number
 ): Promise<boolean> {
 	if (previous) {
 		return false;
@@ -41,8 +40,8 @@ async function createInitialCommentWhenMissing(
 	const created = await createComment(
 		octokit,
 		repo,
-		pullRequestNumber,
-		ensureFirstTimerBanner(effectiveBody),
+		prNumber,
+		effectiveBody,
 		header
 	);
 	core.setOutput('created_comment_id', created?.data.id);
@@ -65,14 +64,13 @@ async function updateExistingComment(
 	effectiveBody: string,
 	previousBody: string | undefined
 ): Promise<void> {
-	await updateComment(
-		octokit,
-		previousId,
-		ensureFirstTimerBanner(effectiveBody),
-		header,
-		previousBody
-	);
+	await updateComment(octokit, previousId, effectiveBody, header, previousBody);
 }
+
+const AUTO_COMMENT_START =
+	'<!-- This is an auto-generated comment: c15t docs preview -->';
+const AUTO_COMMENT_END =
+	'<!-- end of auto-generated comment: c15t docs preview -->';
 
 export async function ensureComment(
 	octokit: ReturnType<typeof github.getOctokit>,
@@ -85,15 +83,25 @@ export async function ensureComment(
 	}
 	requireEffectiveBodyOrThrow(effectiveBody);
 
+	const prNumber =
+		typeof pullRequestNumber === 'number' ? pullRequestNumber : 0;
+
 	const previous = await findPreviousComment(
 		octokit,
 		repo,
-		pullRequestNumber,
+		prNumber,
 		header,
 		authorLogin || undefined
 	);
 	core.setOutput('previous_comment_id', previous?.id);
-	if (await createInitialCommentWhenMissing(octokit, previous, effectiveBody)) {
+	if (
+		await createInitialCommentWhenMissing(
+			octokit,
+			previous,
+			effectiveBody,
+			prNumber
+		)
+	) {
 		return;
 	}
 	if (handleSkipUnchanged(effectiveBody, previous?.body || '')) {
@@ -109,11 +117,9 @@ export async function ensureComment(
 			: hideDetails;
 
 	// Migration: if previous body doesn't have the new auto-generated block, replace instead of append
-	const startAuto =
-		'<!-- This is an auto-generated comment: c15t docs preview -->';
-	const endAuto = '<!-- end of auto-generated comment: c15t docs preview -->';
 	const previousHasAutoBlock = Boolean(
-		previous?.body?.includes(startAuto) && previous?.body?.includes(endAuto)
+		previous?.body?.includes(AUTO_COMMENT_START) &&
+			previous?.body?.includes(AUTO_COMMENT_END)
 	);
 	if (shouldAppend && !previousHasAutoBlock) {
 		shouldAppend = false;

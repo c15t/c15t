@@ -16,9 +16,10 @@ import { create } from '@actions/glob';
  *
  * Resolved from the GitHub context or the optional `number` input.
  */
+const inputNumber = core.getInput('number', { required: false });
 export const pullRequestNumber =
-	context?.payload?.pull_request?.number ||
-	+core.getInput('number', { required: false });
+	context?.payload?.pull_request?.number ??
+	(inputNumber ? Number(inputNumber) : undefined);
 
 /** True when the PR author appears to be a first-time contributor. */
 export const isFirstTimeContributor = (() => {
@@ -44,8 +45,6 @@ export const hideDetails = core.getBooleanInput('hide_details', {
 export const skipUnchanged = core.getBooleanInput('skip_unchanged', {
 	required: true,
 });
-/** Minimize the existing comment instead of updating it. */
-export const hideOldComment = core.getBooleanInput('hide', { required: true });
 /** GitHub token used to authenticate API requests. */
 export const githubToken = core.getInput('GITHUB_TOKEN', { required: true });
 /** When true, do nothing if the resolved body is empty. */
@@ -74,7 +73,10 @@ export const vercelWorkingDirectory =
 export const vercelFramework =
 	core.getInput('framework', { required: false }) || 'nextjs';
 /** Explicit target override: production|staging. */
-export const vercelTarget = core.getInput('target', { required: false });
+export const vercelTarget = core.getInput('target', { required: false }) as
+	| 'production'
+	| 'staging'
+	| '';
 /** Optional alias to assign on matching branch. */
 export const canaryAlias = core.getInput('canary_alias', { required: false });
 /** Branch name which triggers alias assignment. */
@@ -119,10 +121,6 @@ export const checkTemplateChanges = core.getBooleanInput(
 	{ required: false }
 );
 export const templateRepo = core.getInput('template_repo', { required: false });
-export const templateRef = core.getInput('template_ref', { required: false });
-export const postSkipComment = core.getBooleanInput('post_skip_comment', {
-	required: false,
-});
 export const skipMessage = core.getInput('skip_message', { required: false });
 export const deployOnPushBranches = core.getInput('deploy_on_push_branches', {
 	required: false,

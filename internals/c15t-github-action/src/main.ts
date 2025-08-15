@@ -1,15 +1,14 @@
 /**
  * @packageDocumentation
- * Entry point for the c15t GitHub Action that manages a sticky
- * pull request comment. The action can create, update, minimize,
- * delete, or recreate a PR comment, and optionally append to the
- * existing content while preserving a sentinel header.
+ * Entry point for the c15t GitHub Action that manages the docs-preview
+ * lifecycle: orchestrates a Vercel deploy (or gated skip), renders the
+ * preview body, and ensures a sticky PR comment with append semantics.
  *
- * The behavior is configured via inputs read in `config.ts` and the
- * actual comment operations are implemented in `comment.ts`
+ * The behavior is configured via inputs read in `config/inputs` and the
+ * PR comment operations are implemented in `steps/comments`.
  *
- * @see `./config.ts`
- * @see `./comment.ts`
+ * @see `./config/inputs`
+ * @see `./steps/comments`
  */
 import * as core from '@actions/core';
 import * as github from '@actions/github';
@@ -21,7 +20,6 @@ import {
 	githubAppPrivateKey,
 	githubToken,
 	isFirstTimeContributor,
-	postSkipComment,
 	pullRequestNumber,
 	skipMessage,
 } from './config/inputs';
@@ -71,7 +69,6 @@ function computeEffectiveBody(
  * await (async () => { await run(); })();
  */
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this is a complex workflow
 async function run(): Promise<undefined> {
 	try {
 		core.info(
@@ -131,7 +128,7 @@ async function run(): Promise<undefined> {
 				);
 				const body = skipMessage || rendered;
 				// Post as PR sticky comment when running in a PR; otherwise, if enabled, post a commit comment on push
-				if (!Number.isNaN(pullRequestNumber) && pullRequestNumber >= 1) {
+				if (typeof pullRequestNumber === 'number' && pullRequestNumber >= 1) {
 					core.info('[c15t] posting sticky PR skip comment');
 					await ensureComment(octokit, body, { appendOverride: false });
 				} else if (commentOnPush) {

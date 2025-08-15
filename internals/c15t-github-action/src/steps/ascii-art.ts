@@ -15,6 +15,15 @@ export interface WeightedAsciiArt {
 	weight: number;
 }
 
+/**
+ * Catalog of weighted ASCII art used in docs preview comments.
+ *
+ * - Each entry is immutable and satisfies `WeightedAsciiArt`.
+ * - Selection is weighted by `weight` (non-negative integers recommended).
+ * - The array is readonly; consumers must not mutate it.
+ *
+ * @see WeightedAsciiArt
+ */
 export const ASCII_SET = [
 	{
 		art: [
@@ -155,5 +164,13 @@ export const ASCII_SET = [
  * @internal
  */
 type _AsciiSet = readonly Readonly<WeightedAsciiArt>[];
-export const BRAILLE_SPACE = '⠀'; // U+2800, used to make spacing robust in GH markdown
+/**
+ * U+2800 (Braille Pattern Blank). GitHub Markdown collapses ASCII spaces in
+ * some contexts; this character keeps visual alignment stable.
+ */
+export const BRAILLE_SPACE = '⠀';
+/**
+ * Left indentation applied to each ASCII-art line to improve readability and
+ * avoid overflowing the quote/code block boundary.
+ */
 export const LEFT_PAD = '   ';

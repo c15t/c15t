@@ -5,10 +5,12 @@ description: How our composite GitHub Action deploys the docs preview to Vercel 
 
 Our repository includes a composite GitHub Action that:
 
-- Deploys the documentation site to Vercel (staging or production based on branch/inputs)
+- Deploys the documentation site to Vercel (staging or production based on
+  branch and inputs)
 - Posts or updates a sticky PR comment with a preview link
 - Optionally posts a commit comment on push events
-- Skips unnecessary deployments based on file changes or template changes, and comments why
+- Skips unnecessary deployments based on file changes or template changes, and
+  explains why when it skips
 
 ## Where it lives
 
@@ -19,15 +21,15 @@ Our repository includes a composite GitHub Action that:
 
 The workflow `.github/workflows/deploy-docs.yml` triggers on:
 
-- push to `main` and `canary`
-- pull_request to any branch
-- a nightly schedule (checks for upstream template changes)
+- push on `main` and `canary`
+- pull_request on any branch
+- a nightly schedule (to check for upstream template changes)
 
 ## Inputs (selected)
 
 - `GITHUB_TOKEN`: token used by the action (required)
 - `setup_docs`: fetches the private docs template into `.docs` (default: true)
-- `only_if_changed`: deploy only when relevant files changed (default: false)
+- `only_if_changed`: deploy only when relevant files have changed (default: false)
 - `change_globs`: newline-separated globs of files that trigger deploy
 - `check_template_changes`: also deploy when the upstream template changed
 - `vercel_token`, `vercel_project_id`, `vercel_org_id`: credentials for Vercel
@@ -36,6 +38,12 @@ The workflow `.github/workflows/deploy-docs.yml` triggers on:
 - `alias_domains`: newline-separated alias domains to assign (supports `{{PR_NUMBER}}`, `{{BRANCH}}`)
 - `comment_on_push`: also post a commit comment on push events (default: false)
 - `skip_unchanged`: don't update sticky comment if body unchanged (default: false)
+- `post_skip_comment`: when a deployment is skipped, post a skip comment on the
+  PR (or a commit comment on push with `comment_on_push: true`)
+- `skip_message`: optional override body for the skip comment
+- `post_skip_comment`: when a deployment is skipped, post a skip comment on the
+  PR (or a commit comment on push with `comment_on_push: true`)
+- `skip_message`: optional override body for the skip comment
 
 ## Preview comment content
 
@@ -51,7 +59,9 @@ When a deployment is skipped, we still post a comment indicating "Skipped" and s
 
 - If `only_if_changed` is enabled, the action looks at changed paths and skips when none match `change_globs`.
 - If `check_template_changes` is enabled, the action compares the latest upstream template commit against the last recorded deployment and may skip when they match.
-- On skip, if `post_skip_comment` is true, the action posts a sticky comment (on PR) or commit comment (on push with `comment_on_push: true`).
+- On skip, if `post_skip_comment` is `true`, the action posts a sticky comment
+  (on PR) or a commit comment (on push with `comment_on_push: true`). You can
+  override the body with `skip_message`.
 
 ## Local development
 

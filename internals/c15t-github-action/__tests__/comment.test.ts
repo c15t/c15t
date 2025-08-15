@@ -19,6 +19,9 @@ const repo = {
 	owner: 'c15t',
 	repo: 'c15t',
 };
+beforeEach(() => {
+	vi.clearAllMocks();
+});
 it('findPreviousComment', async () => {
 	const authenticatedBotUser = { login: 'github-actions[bot]' };
 	const authenticatedUser = { login: 'github-actions' };

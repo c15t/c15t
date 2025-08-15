@@ -35,7 +35,7 @@ describe('renderCommentMarkdown', () => {
 		const out = renderCommentMarkdown(url, { debug: true });
 		// Expect multiple fenced blocks
 		const fences = out.split('```').length - 1;
-		expect(fences).toBeGreaterThanOrEqual(2);
+		expect(fences).toBeGreaterThanOrEqual(4);
 	});
 
 	it('renders status field in preview table', () => {

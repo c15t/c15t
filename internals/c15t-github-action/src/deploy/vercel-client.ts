@@ -367,6 +367,7 @@ export async function deployToVercel(
 
 	if (process.env.GITHUB_OUTPUT) {
 		appendFileSync(process.env.GITHUB_OUTPUT, `url=${url}\n`);
+		appendFileSync(process.env.GITHUB_OUTPUT, `deployment_url=${url}\n`);
 	}
 	return { url, id: json.id };
 }
