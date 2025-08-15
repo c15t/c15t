@@ -24,7 +24,10 @@ export async function maybeCommentOnPush(
 			commit_sha: github.context.sha,
 			body:
 				effectiveBody ||
-				buildDefaultPreviewComment(deploymentUrl, { debug: true }),
+				buildDefaultPreviewComment(deploymentUrl, {
+					debug: true,
+					seed: github.context.sha,
+				}),
 		});
 	} catch (e) {
 		core.warning(
