@@ -47,15 +47,10 @@ export function renderCommentMarkdown(
 		seed?: string;
 		firstContribution?: boolean;
 		status?: string;
-		header?: string;
 	}
 ): string {
 	const updated = new Date().toUTCString();
 	const status = options?.status || 'Ready';
-	const headerKey =
-		(options?.header || 'c15t-docs-preview').trim() || 'c15t-docs-preview';
-	const startAuto = `<!-- c15t:${headerKey}:START -->`;
-	const endAuto = `<!-- c15t:${headerKey}:END -->`;
 
 	const formatArt = (ascii: string) => {
 		const asciiWithBrailleSpaces = ascii.replace(/ /g, BRAILLE_SPACE);
@@ -119,5 +114,5 @@ export function renderCommentMarkdown(
 		updated,
 		firstContribution: options?.firstContribution,
 	});
-	return [startAuto, inner, endAuto].join('\n');
+	return inner;
 }
