@@ -92,12 +92,14 @@ export function renderCommentMarkdown(
 			formatArt(firstContribution ? FIRST_TIME_CONTRIBUTOR_ASCII : art),
 			'```',
 			'',
-			firstContribution && firstTimeContributorMessage.join('\n'),
-			url && updated && previewMessage.join('\n'),
+			...(firstContribution ? [firstTimeContributorMessage.join('\n')] : []),
+			...(url && updated ? [previewMessage.join('\n')] : []),
 			'',
 			'---',
-			'Baked with 💙 by [Consent](https://consent.io), powered by our completely unnecessary but very fun deployment comment system.',
-		].join('\n');
+			'Baked with 💙 by [Consent](https://consent.io), powered by our completely necessary but very fun deployment comment system.',
+		]
+			.filter(Boolean)
+			.join('\n');
 
 	if (options?.debug) {
 		return ASCII_SET.map((a) =>
