@@ -166,5 +166,50 @@ outputs:
   deployment_url:
     description: "Vercel deployment URL, when deployment inputs are provided"
 runs:
-  using: "node20"
-  main: "dist/index.js"
+  using: "composite"
+  steps:
+    - name: Run c15t action (tsx)
+      shell: bash
+      run: npx -y tsx src/main.ts
+      env:
+        INPUT_SETUP_DOCS: ${{ inputs.setup_docs }}
+        INPUT_CONSENT_GIT_TOKEN: ${{ inputs.consent_git_token }}
+        INPUT_DOCS_TEMPLATE_REPO: ${{ inputs.docs_template_repo }}
+        INPUT_DOCS_TEMPLATE_REF: ${{ inputs.docs_template_ref }}
+        INPUT_ONLY_IF_CHANGED: ${{ inputs.only_if_changed }}
+        INPUT_CHANGE_GLOBS: ${{ inputs.change_globs }}
+        INPUT_CHECK_TEMPLATE_CHANGES: ${{ inputs.check_template_changes }}
+        INPUT_TEMPLATE_REPO: ${{ inputs.template_repo }}
+        INPUT_TEMPLATE_REF: ${{ inputs.template_ref }}
+        INPUT_POST_SKIP_COMMENT: ${{ inputs.post_skip_comment }}
+        INPUT_SKIP_MESSAGE: ${{ inputs.skip_message }}
+        INPUT_DEPLOY_ON_PUSH_BRANCHES: ${{ inputs.deploy_on_push_branches }}
+        INPUT_DEPLOY_ON_PR_BASE_BRANCHES: ${{ inputs.deploy_on_pr_base_branches }}
+        INPUT_GITHUB_APP_ID: ${{ inputs.github_app_id }}
+        INPUT_GITHUB_APP_PRIVATE_KEY: ${{ inputs.github_app_private_key }}
+        INPUT_GITHUB_APP_INSTALLATION_ID: ${{ inputs.github_app_installation_id }}
+        INPUT_HEADER: ${{ inputs.header }}
+        INPUT_APPEND: ${{ inputs.append }}
+        INPUT_HIDE_DETAILS: ${{ inputs.hide_details }}
+        INPUT_MESSAGE: ${{ inputs.message }}
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_VERCEL_TOKEN: ${{ inputs.vercel_token }}
+        INPUT_VERCEL_PROJECT_ID: ${{ inputs.vercel_project_id }}
+        INPUT_VERCEL_ORG_ID: ${{ inputs.vercel_org_id }}
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working_directory }}
+        INPUT_FRAMEWORK: ${{ inputs.framework }}
+        INPUT_TARGET: ${{ inputs.target }}
+        INPUT_CANARY_ALIAS: ${{ inputs.canary_alias }}
+        INPUT_ASSIGN_ALIAS_ON_BRANCH: ${{ inputs.assign_alias_on_branch }}
+        INPUT_ALIAS_DOMAINS: ${{ inputs.alias_domains }}
+        INPUT_VERCEL_ARGS: ${{ inputs.vercel_args }}
+        INPUT_VERCEL_SCOPE: ${{ inputs.vercel_scope }}
+        INPUT_COMMENT_ON_PUSH: ${{ inputs.comment_on_push }}
+        INPUT_IGNORE_EMPTY: ${{ inputs.ignore_empty }}
+        INPUT_SKIP_UNCHANGED: ${{ inputs.skip_unchanged }}
+        INPUT_AUTHOR_LOGIN: ${{ inputs.author_login }}
+        INPUT_FOLLOW_SYMBOLIC_LINKS: ${{ inputs.follow_symbolic_links }}
+        INPUT_NUMBER: ${{ inputs.number }}
+        INPUT_OWNER: ${{ inputs.owner }}
+        INPUT_REPO: ${{ inputs.repo }}
+        INPUT_GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
