@@ -14,6 +14,7 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { getBody, githubToken } from './config/inputs';
+import { isFirstTimeContributor } from './config/inputs';
 import { ensureComment } from './steps/comments';
 import { performVercelDeployment } from './steps/deployment';
 import { maybeCommentOnPush } from './steps/push-comment';
@@ -24,10 +25,14 @@ function computeEffectiveBody(
 	deploymentUrl: string | undefined,
 	body: string
 ): string {
+	let base = body;
 	if (deploymentUrl && !body) {
-		return buildDefaultPreviewComment(deploymentUrl, { debug: true });
+		base = buildDefaultPreviewComment(deploymentUrl, {
+			debug: true,
+			firstContribution: isFirstTimeContributor,
+		});
 	}
-	return body;
+	return base;
 }
 
 /**

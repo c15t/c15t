@@ -4,6 +4,7 @@ import {
 	LEFT_PAD,
 	type WeightedAsciiArt,
 } from './ascii-art';
+import { FIRST_TIME_CONTRIBUTOR_ASCII } from './first-commit';
 
 function pickWeightedAscii(choices: WeightedAsciiArt[], seed?: string): string {
 	let total = 0;
@@ -41,7 +42,11 @@ function pickWeightedAscii(choices: WeightedAsciiArt[], seed?: string): string {
 
 export function buildDefaultPreviewComment(
 	url: string,
-	options?: { debug?: boolean; seed?: string }
+	options?: {
+		debug?: boolean;
+		seed?: string;
+		firstContribution?: boolean;
+	}
 ): string {
 	const updated = new Date().toUTCString();
 
@@ -59,15 +64,23 @@ export function buildDefaultPreviewComment(
 		art,
 		url,
 		updated,
+		firstContribution,
 	}: {
 		art: string;
 		url?: string;
 		updated?: string;
+		firstContribution?: boolean;
 	}) =>
 		[
 			'```',
-			formatArt(art),
+			formatArt(firstContribution ? FIRST_TIME_CONTRIBUTOR_ASCII : art),
 			'```',
+			firstContribution && '> 🎉 **Your first c15t commit!**',
+			firstContribution &&
+				'> This is your first contribution to c15t, and I just wanted to say thank you. You’re helping us get closer to building the best developer-first consent infrastructure. Here’s to many more commits ahead! 🚀 ',
+			firstContribution && '>',
+			firstContribution &&
+				'> Christopher, [@burnedchris](https://x.com/burnedchris)',
 			url && updated && '| Preview | Status | Updated (UTC) |',
 			url && updated && '| - | - | - |',
 			url && updated && `| [Open Preview](${url}) | Ready | ${updated} |`,
@@ -81,8 +94,11 @@ export function buildDefaultPreviewComment(
 		).join('\n\n');
 	}
 	return messageTemplate({
-		art: pickWeightedAscii(ASCII_SET, options?.seed ?? url),
+		art: options?.asciiOverride
+			? options.asciiOverride
+			: pickWeightedAscii(ASCII_SET, options?.seed ?? url),
 		url,
 		updated,
+		firstContribution: options?.firstContribution,
 	});
 }

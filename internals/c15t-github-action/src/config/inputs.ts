@@ -20,6 +20,12 @@ export const pullRequestNumber =
 	context?.payload?.pull_request?.number ||
 	+core.getInput('number', { required: false });
 
+/** True when the PR author appears to be a first-time contributor. */
+export const isFirstTimeContributor = (() => {
+	const assoc = context?.payload?.pull_request?.author_association || '';
+	return assoc === 'FIRST_TIMER' || assoc === 'FIRST_TIME_CONTRIBUTOR';
+})();
+
 /**
  * Repository descriptor where the action will run.
  */

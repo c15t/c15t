@@ -27,6 +27,10 @@ import {
 	updateComment,
 } from '../github/pr-comment';
 
+function ensureFirstTimerBanner(body: string): string {
+	return body;
+}
+
 export function requireEffectiveBodyOrThrow(effectiveBody: string): void {
 	if (!hideOldComment && !effectiveBody) {
 		throw new Error(
@@ -62,7 +66,7 @@ export async function createInitialCommentWhenMissing(
 		octokit,
 		repo,
 		pullRequestNumber,
-		effectiveBody || '',
+		effectiveBody ? ensureFirstTimerBanner(effectiveBody) : '',
 		header
 	);
 	core.setOutput('created_comment_id', created?.data.id);
@@ -108,7 +112,7 @@ export async function handleRecreate(
 		octokit,
 		repo,
 		pullRequestNumber,
-		effectiveBody || '',
+		effectiveBody ? ensureFirstTimerBanner(effectiveBody) : '',
 		header,
 		previousBody
 	);
@@ -129,7 +133,7 @@ export async function handleHideAndRecreate(
 		octokit,
 		repo,
 		pullRequestNumber,
-		effectiveBody || '',
+		effectiveBody ? ensureFirstTimerBanner(effectiveBody) : '',
 		header
 	);
 	core.setOutput('created_comment_id', created?.data.id);
@@ -145,7 +149,7 @@ export async function updateExistingComment(
 	await updateComment(
 		octokit,
 		previousId,
-		effectiveBody || '',
+		effectiveBody ? ensureFirstTimerBanner(effectiveBody) : '',
 		header,
 		previousBody
 	);
