@@ -39,7 +39,17 @@ jobs:
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          run_install: true
+          version: 9
+          run_install: false
+
+      - name: ♻️ Setup pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: 📥 Install workspace deps
+        run: pnpm install --frozen-lockfile
 
       - name: ▲ C15T Docs Preview (Deploy + PR Comment)
         id: c15t

@@ -170,14 +170,15 @@ runs:
   steps:
     - name: Run c15t action (tsx)
       shell: bash
-      run: npx -y tsx src/main.ts
+      working-directory: ${{ github.action_path }}
+      run: pnpm -w exec tsx "$GITHUB_ACTION_PATH/src/main.ts"
       env:
         INPUT_SETUP_DOCS: ${{ inputs.setup_docs }}
         INPUT_CONSENT_GIT_TOKEN: ${{ inputs.consent_git_token }}
         INPUT_DOCS_TEMPLATE_REPO: ${{ inputs.docs_template_repo }}
         INPUT_DOCS_TEMPLATE_REF: ${{ inputs.docs_template_ref }}
         INPUT_ONLY_IF_CHANGED: ${{ inputs.only_if_changed }}
-        INPUT_CHANGE_GLOBS: ${{ inputs.change_globs }}
+        INPUT_CHANGE_GLOBS: ${{ join(inputs.change_globs, '\n') }}
         INPUT_CHECK_TEMPLATE_CHANGES: ${{ inputs.check_template_changes }}
         INPUT_TEMPLATE_REPO: ${{ inputs.template_repo }}
         INPUT_TEMPLATE_REF: ${{ inputs.template_ref }}
@@ -192,7 +193,7 @@ runs:
         INPUT_APPEND: ${{ inputs.append }}
         INPUT_HIDE_DETAILS: ${{ inputs.hide_details }}
         INPUT_MESSAGE: ${{ inputs.message }}
-        INPUT_PATH: ${{ inputs.path }}
+        INPUT_PATH: ${{ join(inputs.path, '\n') }}
         INPUT_VERCEL_TOKEN: ${{ inputs.vercel_token }}
         INPUT_VERCEL_PROJECT_ID: ${{ inputs.vercel_project_id }}
         INPUT_VERCEL_ORG_ID: ${{ inputs.vercel_org_id }}
@@ -201,7 +202,7 @@ runs:
         INPUT_TARGET: ${{ inputs.target }}
         INPUT_CANARY_ALIAS: ${{ inputs.canary_alias }}
         INPUT_ASSIGN_ALIAS_ON_BRANCH: ${{ inputs.assign_alias_on_branch }}
-        INPUT_ALIAS_DOMAINS: ${{ inputs.alias_domains }}
+        INPUT_ALIAS_DOMAINS: ${{ join(inputs.alias_domains, '\n') }}
         INPUT_VERCEL_ARGS: ${{ inputs.vercel_args }}
         INPUT_VERCEL_SCOPE: ${{ inputs.vercel_scope }}
         INPUT_COMMENT_ON_PUSH: ${{ inputs.comment_on_push }}

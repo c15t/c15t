@@ -26,10 +26,10 @@ export function setupDocsWithScript(consentGitToken?: string): void {
 		...process.env,
 		CONSENT_GIT_TOKEN: consentGitToken || process.env.CONSENT_GIT_TOKEN || '',
 	};
-	core.info('Running docs setup script via npx tsx scripts/setup-docs.ts');
+	core.info('Running docs setup script via pnpm tsx scripts/setup-docs.ts');
 	const result = spawnSync(
-		'npx',
-		['-y', 'tsx', 'scripts/setup-docs.ts', '--vercel'],
+		'pnpm',
+		['tsx', 'scripts/setup-docs.ts', '--vercel'],
 		{ stdio: 'inherit', env }
 	);
 	if (result.error) {
