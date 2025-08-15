@@ -120,13 +120,19 @@ jobs:
           app-id: ${{ secrets.CONSENT_APP_ID }}
           private-key: ${{ secrets.CONSENT_APP_PRIVATE_KEY }}
 
+      # 📦 Setup pnpm (used by docs template/scripts)
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
       # 📚 Fetch private docs template and prepare .docs for build
       - name: 📚 Setup Documentation Template
         run: |
           npx -y tsx scripts/setup-docs.ts --vercel
         env:
           CONSENT_GIT_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
-          
+
       # ▲ Internal action: deploy to Vercel (bundled) and post sticky PR comment
       - name: ▲ Deploy docs to Vercel and comment PR
         id: vercel
