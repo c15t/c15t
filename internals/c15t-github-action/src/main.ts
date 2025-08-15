@@ -25,7 +25,7 @@ function computeEffectiveBody(
 	body: string
 ): string {
 	if (deploymentUrl && !body) {
-		return buildDefaultPreviewComment(deploymentUrl);
+		return buildDefaultPreviewComment(deploymentUrl, { debug: true });
 	}
 	return body;
 }
