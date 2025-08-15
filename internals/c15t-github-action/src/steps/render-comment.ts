@@ -40,7 +40,7 @@ function pickWeightedAscii(choices: WeightedAsciiArt[], seed?: string): string {
 	return choices.at(-1)?.art || '';
 }
 
-export function buildDefaultPreviewComment(
+export function renderCommentMarkdown(
 	url: string,
 	options?: {
 		debug?: boolean;
@@ -94,9 +94,7 @@ export function buildDefaultPreviewComment(
 		).join('\n\n');
 	}
 	return messageTemplate({
-		art: options?.asciiOverride
-			? options.asciiOverride
-			: pickWeightedAscii(ASCII_SET, options?.seed ?? url),
+		art: pickWeightedAscii(ASCII_SET, options?.seed ?? url),
 		url,
 		updated,
 		firstContribution: options?.firstContribution,

@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { commentOnPush, pullRequestNumber } from '../config/inputs';
-import { buildDefaultPreviewComment } from './ui';
+import { renderCommentMarkdown } from './render-comment';
 
 /**
  * Optionally posts a commit comment with a docs preview link on push events.
@@ -16,7 +16,7 @@ import { buildDefaultPreviewComment } from './ui';
  * @param deploymentUrl - Public deployment URL; required to post a comment.
  * @returns True when posting succeeded or the step was intentionally skipped;
  *   false when a PR run was detected or posting failed.
- * @see buildDefaultPreviewComment
+ * @see renderCommentMarkdown
  */
 export async function maybeCommentOnPush(
 	octokit: ReturnType<typeof github.getOctokit>,
@@ -40,7 +40,7 @@ export async function maybeCommentOnPush(
 			commit_sha: github.context.sha,
 			body:
 				effectiveBody ||
-				buildDefaultPreviewComment(deploymentUrl, {
+				renderCommentMarkdown(deploymentUrl, {
 					debug: true,
 					seed: github.context.sha,
 				}),

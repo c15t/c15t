@@ -14,11 +14,10 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { getBody, githubToken } from './config/inputs';
-import { isFirstTimeContributor } from './config/inputs';
 import { ensureComment } from './steps/comments';
 import { performVercelDeployment } from './steps/deployment';
 import { maybeCommentOnPush } from './steps/push-comment';
-import { buildDefaultPreviewComment } from './steps/ui';
+import { renderCommentMarkdown } from './steps/render-comment';
 import { validateOptions } from './steps/validate';
 
 function computeEffectiveBody(
@@ -27,9 +26,10 @@ function computeEffectiveBody(
 ): string {
 	let base = body;
 	if (deploymentUrl && !body) {
-		base = buildDefaultPreviewComment(deploymentUrl, {
-			debug: true,
-			firstContribution: isFirstTimeContributor,
+		base = renderCommentMarkdown(deploymentUrl, {
+			// debug: true,
+			// firstContribution: isFirstTimeContributor,
+			firstContribution: true,
 		});
 	}
 	return base;
