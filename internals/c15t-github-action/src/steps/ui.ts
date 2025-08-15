@@ -6,14 +6,14 @@ interface WeightedAsciiArt {
 const ASCII_SET: WeightedAsciiArt[] = [
 	{
 		art: [
-			'       _____                    _____',
-			"   ---'   __\\______      ______/__   `---",
-			'             ______)    (______',
-			'             __)            (__',
-			'            __)              (__',
-			'   ---.______)                 (______.---',
+			'     _____                    _____',
+			" ---'   __\\______      ______/__   `---",
+			'           ______)    (______',
+			'           __)            (__',
+			'          __)              (__',
+			' ---.______)                 (______.---',
 			'',
-			'         Your docs preview is ready',
+			'       Your docs preview is ready',
 		].join('\n'),
 		weight: 1,
 	},
@@ -30,6 +30,26 @@ const ASCII_SET: WeightedAsciiArt[] = [
 			'⠀⠙⢿⣷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣾⣿⠃⠀',
 			'⠀⠀⠈⠻⣿⣷⣤⣀⣀⣀⡀⣀⣠⣴⣿⣿⠟⠁⠀⠀',
 			'⠀⠀⠀⠀⠈⠙⠻⠿⠿⢿⣿⣿⠿⠟⠉⠀⠀⠀⠀⠀',
+		].join('\n'),
+		weight: 10,
+	},
+	{
+		art: [
+			'          900    1000',
+			'     800              1100',
+			'',
+			'   700                      1200',
+			'',
+			' 600                          1300',
+			'               O',
+			'500              \\           1400',
+			'                 \\',
+			' 400               \\        1500',
+			'             vibes  \\',
+			'    300              \\   1600',
+			'',
+			'we cant keep up with these vibes',
+			'      your docs are ready',
 		].join('\n'),
 		weight: 10,
 	},
@@ -56,9 +76,14 @@ function pickWeightedAscii(choices: WeightedAsciiArt[]): string {
 	return choices.at(-1)?.art || '';
 }
 
-export function buildDefaultPreviewComment(url: string): string {
+export function buildDefaultPreviewComment(
+	url: string,
+	options?: { debug?: boolean }
+): string {
 	const updated = new Date().toUTCString();
-	const ascii = pickWeightedAscii(ASCII_SET);
+	const ascii = options?.debug
+		? ASCII_SET.map((a) => a.art).join('\n\n')
+		: pickWeightedAscii(ASCII_SET);
 	const lines: string[] = [];
 	lines.push('```');
 	lines.push(ascii);
@@ -66,5 +91,7 @@ export function buildDefaultPreviewComment(url: string): string {
 	lines.push('| Preview | Status | Updated (UTC) |');
 	lines.push('| - | - | - |');
 	lines.push(`| [Open Preview](${url}) | Ready | ${updated} |`);
-	return lines.join('\n');
+	const pad = '   ';
+	const padded = lines.map((l) => `${pad}${l}`);
+	return padded.join('\n');
 }

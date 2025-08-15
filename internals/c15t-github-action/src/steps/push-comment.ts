@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { commentOnPush, pullRequestNumber } from '../config/inputs';
-import { buildDefaultPreviewComment } from './ui';
+import { buildDefaultPreviewComment } from '../steps/ui';
 
 export async function maybeCommentOnPush(
 	octokit: ReturnType<typeof github.getOctokit>,
@@ -22,7 +22,9 @@ export async function maybeCommentOnPush(
 		await octokit.rest.repos.createCommitComment({
 			...github.context.repo,
 			commit_sha: github.context.sha,
-			body: effectiveBody || buildDefaultPreviewComment(deploymentUrl),
+			body:
+				effectiveBody ||
+				buildDefaultPreviewComment(deploymentUrl, { debug: true }),
 		});
 	} catch (e) {
 		core.warning(
