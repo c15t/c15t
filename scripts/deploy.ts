@@ -293,7 +293,8 @@ async function createDeployment() {
 	const commitAuthorName = process.env.GITHUB_COMMIT_AUTHOR_NAME || '';
 	const commitAuthorLogin =
 		process.env.GITHUB_COMMIT_AUTHOR_LOGIN || process.env.GITHUB_ACTOR || '';
-	const commitAuthorEmail = process.env.GITHUB_COMMIT_AUTHOR_EMAIL || '';
+	// Email is intentionally omitted from metadata to avoid PII leakage
+	const commitAuthorEmail = '';
 	const prNumber = process.env.GITHUB_PR_NUMBER || '';
 	const prHeadRef =
 		process.env.GITHUB_PR_HEAD_REF || process.env.GITHUB_HEAD_REF || '';
@@ -323,8 +324,8 @@ async function createDeployment() {
 			githubCommitMessage: commitMessage,
 			githubCommitAuthorName: commitAuthorName,
 			githubCommitAuthorLogin: commitAuthorLogin,
-			githubCommitAuthorEmail: commitAuthorEmail,
-			githubPrId: prNumber,
+			// githubCommitAuthorEmail intentionally omitted
+			githubPrNumber: prNumber,
 			githubPrHeadRef: prHeadRef,
 			githubPrBaseRef: prBaseRef,
 			source: 'github',

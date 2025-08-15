@@ -140,7 +140,6 @@ jobs:
           git log -1 --pretty=%B >> "$GITHUB_ENV"
           echo "EOF" >> "$GITHUB_ENV"
           echo "GITHUB_COMMIT_AUTHOR_NAME=$(git log -1 --pretty=%an)" >> "$GITHUB_ENV"
-          echo "GITHUB_COMMIT_AUTHOR_EMAIL=$(git log -1 --pretty=%ae)" >> "$GITHUB_ENV"
           echo "GITHUB_COMMIT_AUTHOR_LOGIN=${{ github.actor }}" >> "$GITHUB_ENV"
           echo "GITHUB_PR_NUMBER=${{ github.event.pull_request.number || '' }}" >> "$GITHUB_ENV"
 

@@ -2,6 +2,11 @@ import { appendFileSync, existsSync, readFileSync, readdirSync } from 'node:fs';
 import https from 'node:https';
 import path from 'node:path';
 
+// Precompiled regex for performance
+const TOKEN_SPLIT_RE = /'([^']*)'|"([^"]*)"|[^\s]+/gm;
+const BRANCH_TPL_RE = /\{\{\s*BRANCH\s*\}\}/g;
+const PR_TPL_RE = /\{\{\s*PR_NUMBER\s*\}\}/g;
+
 /**
  * @internal
  * Deploy to Vercel v13 API with optional alias assignment via v2 API.
@@ -140,7 +145,7 @@ function slugify(input: string): string {
 function parseMetaArgs(raw: string | undefined): Record<string, string> {
 	if (!raw) return {};
 	const meta: Record<string, string> = {};
-	const tokens = raw.match(/'([^']*)'|"([^"]*)"|[^\s]+/gm) ?? [];
+	const tokens = raw.match(TOKEN_SPLIT_RE) ?? [];
 	for (let i = 0; i < tokens.length; i++) {
 		const token = tokens[i];
 		if (token === '-m' || token === '--meta') {
@@ -164,8 +169,9 @@ function templateAliasDomains(domains: string[] | undefined): string[] {
 	const ref = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF || '';
 	const branch = slugify(ref.replace('refs/heads/', ''));
 	return domains
-		.map((d) => d.replace(/\{\{\s*BRANCH\s*\}\}/g, branch))
-		.map((d) => (isPr ? d.replace(/\{\{\s*PR_NUMBER\s*\}\}/g, prNumber) : d));
+		.map((d) => d.replace(BRANCH_TPL_RE, branch))
+		.map((d) => (isPr ? d.replace(PR_TPL_RE, prNumber) : d))
+		.filter((d) => !d.includes('{{'));
 }
 
 /**
@@ -191,7 +197,8 @@ export async function deployToVercel(
 	const commitAuthorName = process.env.GITHUB_COMMIT_AUTHOR_NAME || '';
 	const commitAuthorLogin =
 		process.env.GITHUB_COMMIT_AUTHOR_LOGIN || process.env.GITHUB_ACTOR || '';
-	const commitAuthorEmail = process.env.GITHUB_COMMIT_AUTHOR_EMAIL || '';
+	// Email is intentionally omitted from metadata to avoid PII leakage
+	const commitAuthorEmail = '';
 	const prNumber = process.env.GITHUB_PR_NUMBER || '';
 	const prHeadRef =
 		process.env.GITHUB_PR_HEAD_REF || process.env.GITHUB_HEAD_REF || '';
@@ -222,8 +229,8 @@ export async function deployToVercel(
 			githubCommitMessage: commitMessage,
 			githubCommitAuthorName: commitAuthorName,
 			githubCommitAuthorLogin: commitAuthorLogin,
-			githubCommitAuthorEmail: commitAuthorEmail,
-			githubPrId: prNumber,
+			// githubCommitAuthorEmail intentionally omitted
+			githubPrNumber: prNumber,
 			githubPrHeadRef: prHeadRef,
 			githubPrBaseRef: prBaseRef,
 			source: 'github',
