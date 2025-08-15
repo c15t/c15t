@@ -139,8 +139,8 @@ export function renderCommentMarkdown(
 		lines.push('');
 		lines.push('---');
 		lines.push(
-			'Baked with 💙 by [Consent](https://consent.io), powered by our ' +
-				'completely necessary but very fun deployment comment system.'
+			'Baked with 💙 by Consent, powered by COOKIE (Consent Oversees Our Key ' +
+				'Integration Events — because every CI needs a snack).'
 		);
 		return lines.join('\n');
 	};
