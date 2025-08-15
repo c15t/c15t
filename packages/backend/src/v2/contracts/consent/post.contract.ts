@@ -8,26 +8,26 @@ const baseConsentSchema = z.object({
 	externalSubjectId: z.string().optional(),
 	domain: z.string(),
 	type: PolicyTypeSchema,
-	metadata: z.record(z.unknown()).optional(),
+	metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 // Cookie banner needs preferences
 const cookieBannerSchema = baseConsentSchema.extend({
 	type: z.literal('cookie_banner'),
-	preferences: z.record(z.boolean()),
+	preferences: z.record(z.string(), z.boolean()),
 });
 
 // Policy based consent just needs the policy ID
 const policyBasedSchema = baseConsentSchema.extend({
 	type: z.enum(['privacy_policy', 'dpa', 'terms_and_conditions']),
 	policyId: z.string().optional(),
-	preferences: z.record(z.boolean()).optional(),
+	preferences: z.record(z.string(), z.boolean()).optional(),
 });
 
 // Other consent types just need the base fields
 const otherConsentSchema = baseConsentSchema.extend({
 	type: z.enum(['marketing_communications', 'age_verification', 'other']),
-	preferences: z.record(z.boolean()).optional(),
+	preferences: z.record(z.string(), z.boolean()).optional(),
 });
 
 export const postConsentContract = oc
@@ -67,69 +67,69 @@ Use this endpoint to record user consent and maintain a compliant consent manage
 		// Input validation errors
 		INPUT_VALIDATION_FAILED: {
 			status: 422,
-			message: 'Invalid input parameters',
 			data: z.object({
 				formErrors: z.array(z.string()),
 				fieldErrors: z.record(z.string(), z.array(z.string())),
 			}),
+			error: 'Invalid input parameters',
 		},
 		// Subject errors
 		SUBJECT_CREATION_FAILED: {
 			status: 400,
-			message: 'Failed to create or find subject',
 			data: z.object({
 				subjectId: z.string().optional(),
 				externalSubjectId: z.string().optional(),
 			}),
+			error: 'Failed to create or find subject',
 		},
 		// Domain errors
 		DOMAIN_CREATION_FAILED: {
 			status: 500,
-			message: 'Failed to create or find domain',
 			data: z.object({
 				domain: z.string(),
 			}),
+			error: 'Failed to create or find domain',
 		},
 		// Policy errors
 		POLICY_NOT_FOUND: {
 			status: 404,
-			message: 'Policy not found',
 			data: z.object({
 				policyId: z.string(),
 				type: z.string(),
 			}),
+			error: 'Policy not found',
 		},
 		POLICY_INACTIVE: {
 			status: 409,
-			message: 'Policy is not active',
 			data: z.object({
 				policyId: z.string(),
 				type: z.string(),
 			}),
+			error: 'Policy is not active',
 		},
 		POLICY_CREATION_FAILED: {
 			status: 500,
-			message: 'Failed to create or find policy',
 			data: z.object({
 				type: z.string(),
 			}),
+			error: 'Failed to create or find policy',
 		},
 		// Purpose errors
 		PURPOSE_CREATION_FAILED: {
 			status: 500,
-			message: 'Failed to create consent purpose',
 			data: z.object({
 				purposeCode: z.string(),
 			}),
+			error: 'Failed to create consent purpose',
 		},
 		// Transaction errors
 		CONSENT_CREATION_FAILED: {
 			status: 500,
-			message: 'Failed to create consent record',
 			data: z.object({
 				subjectId: z.string(),
 				domain: z.string(),
 			}),
+			error: 'Failed to create consent record',
 		},
 	})
 	.input(
@@ -149,7 +149,7 @@ Use this endpoint to record user consent and maintain a compliant consent manage
 			type: PolicyTypeSchema,
 			status: z.string(),
 			recordId: z.string(),
-			metadata: z.record(z.unknown()).optional(),
+			metadata: z.record(z.string(), z.unknown()).optional(),
 			givenAt: z.date(),
 		})
 	);

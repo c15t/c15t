@@ -45,9 +45,9 @@ export const consentPolicySchema = z.object({
 	expirationDate: z.date().nullable().optional(),
 	content: z.string(),
 	contentHash: z.string(),
-	isActive: z.boolean().default(true),
-	createdAt: z.date().default(() => new Date()),
-	updatedAt: z.date().default(() => new Date()),
+	isActive: z.boolean().prefault(true),
+	createdAt: z.date().prefault(() => new Date()),
+	updatedAt: z.date().prefault(() => new Date()),
 });
 
 /**

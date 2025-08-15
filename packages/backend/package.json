@@ -154,10 +154,11 @@
 		"@opentelemetry/resources": "^1.25.1",
 		"@opentelemetry/sdk-node": "^0.51.1",
 		"@opentelemetry/sdk-trace-base": "^1.25.1",
-		"@orpc/contract": "1.2.0",
-		"@orpc/openapi": "1.2.0",
-		"@orpc/server": "1.2.0",
-		"@orpc/zod": "1.2.0",
+		"@orpc/contract": "1.8.1",
+		"@orpc/openapi": "1.8.1",
+		"@orpc/otel": "^1.8.1",
+		"@orpc/server": "1.8.1",
+		"@orpc/zod": "1.8.1",
 		"base-x": "^5.0.1",
 		"defu": "^6.1.4",
 		"drizzle-orm": "^0.41.0",
@@ -165,7 +166,7 @@
 		"kysely": "^0.27.6",
 		"neverthrow": "^8.2.0",
 		"superjson": "^2.2.2",
-		"zod": "^3.24.2"
+		"zod": "^4.0.17"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

@@ -25,10 +25,10 @@
 	"files": ["dist"],
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
-		"@orpc/client": "1.2.0",
-		"@orpc/contract": "1.2.0",
-		"@orpc/openapi-client": "^1.2.0",
-		"@orpc/server": "1.2.0"
+		"@orpc/client": "1.8.1",
+		"@orpc/contract": "1.8.1",
+		"@orpc/openapi-client": "^1.8.1",
+		"@orpc/server": "1.8.1"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

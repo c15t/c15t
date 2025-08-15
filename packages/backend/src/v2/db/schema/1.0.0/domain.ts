@@ -17,10 +17,10 @@ export const domainSchema = z.object({
 	name: z.string(),
 	description: z.string().nullish(),
 	allowedOrigins: z.array(z.string()).nullish(),
-	isVerified: z.boolean().default(true),
-	isActive: z.boolean().default(true),
-	createdAt: z.date().default(() => new Date()),
-	updatedAt: z.date().default(() => new Date()),
+	isVerified: z.boolean().prefault(true),
+	isActive: z.boolean().prefault(true),
+	createdAt: z.date().prefault(() => new Date()),
+	updatedAt: z.date().prefault(() => new Date()),
 });
 
 export type Domain = z.infer<typeof domainSchema>;

@@ -13,12 +13,12 @@ export const subjectTable = table('subject', {
 
 export const subjectSchema = z.object({
 	id: z.string(),
-	isIdentified: z.boolean().default(false),
+	isIdentified: z.boolean().prefault(false),
 	externalId: z.string().nullish(),
 	identityProvider: z.string().nullish(),
 	lastIpAddress: z.string().optional(),
-	createdAt: z.date().default(() => new Date()),
-	updatedAt: z.date().default(() => new Date()),
+	createdAt: z.date().prefault(() => new Date()),
+	updatedAt: z.date().prefault(() => new Date()),
 });
 
 export type Subject = z.infer<typeof subjectSchema>;

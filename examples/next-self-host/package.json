@@ -13,6 +13,8 @@
 		"@c15t/nextjs": "workspace:*",
 		"kysely": "^0.28.4",
 		"next": "15.4.1",
+		"@libsql/kysely-libsql": "^0.4.1",
+		"@libsql/client": "^0.8.1",
 		"react": "19.1.0",
 		"react-dom": "19.1.0"
 	},
