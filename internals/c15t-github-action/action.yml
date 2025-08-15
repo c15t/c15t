@@ -82,6 +82,10 @@ inputs:
     description: "hide summary tags in the previously created comment. Only `true` is allowed. Just skip this item when you don't need it."
     default: "false"
     required: false
+  hide:
+    description: "Minimize the existing comment instead of updating it"
+    default: "false"
+    required: false
   message:
     description: "comment message"
     required: false
@@ -192,6 +196,7 @@ runs:
         INPUT_HEADER: ${{ inputs.header }}
         INPUT_APPEND: ${{ inputs.append }}
         INPUT_HIDE_DETAILS: ${{ inputs.hide_details }}
+        INPUT_HIDE: ${{ inputs.hide }}
         INPUT_MESSAGE: ${{ inputs.message }}
         INPUT_PATH: ${{ join(inputs.path, '\n') }}
         INPUT_VERCEL_TOKEN: ${{ inputs.vercel_token }}
