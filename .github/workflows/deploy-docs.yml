@@ -35,6 +35,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: 🔧 Build c15t docs-preview action
+        working-directory: internals/c15t-github-action
+        run: |
+          cd internals/c15t-github-action
+          pnpm install
+
       - name: ▲ C15T Docs Preview (Deploy + PR Comment)
         id: c15t
         uses: ./internals/c15t-github-action
