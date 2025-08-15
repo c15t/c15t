@@ -149,22 +149,22 @@ jobs:
         id: vercel
         uses: ./internals/c15t-github-action
         with:
-         GITHUB_TOKEN: ${{ steps.app_token.outputs.token }}
-        header: c15t-docs-preview
-        append: "true"
-        hide_details: "true"
-        skip_unchanged: "true"
-        vercel_token: ${{ secrets.VERCEL_TOKEN }}
-        vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
-        vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
-        working_directory: .docs
-        framework: nextjs
-        target: staging
-        assign_alias_on_branch: canary
-        alias_domains: |
-          canary.c15t.com
-          preview-${{ github.ref_name }}.c15t.dev
-          pr-${{ github.event.pull_request.number }}.c15t.dev
+          GITHUB_TOKEN: ${{ steps.app_token.outputs.token }}
+          header: c15t-docs-preview
+          append: "true"
+          hide_details: "true"
+          skip_unchanged: "true"
+          vercel_token: ${{ secrets.VERCEL_TOKEN }}
+          vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
+          working_directory: .docs
+          framework: nextjs
+          target: staging
+          assign_alias_on_branch: canary
+          alias_domains: |
+            canary.c15t.com
+            preview-${{ github.ref_name }}.c15t.dev
+            pr-${{ github.event.pull_request.number }}.c15t.dev
 
   notify-skip:
     needs: changes
