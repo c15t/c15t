@@ -6,7 +6,7 @@ import {
 } from './ascii-art';
 import { FIRST_TIME_CONTRIBUTOR_ASCII } from './first-commit';
 
-type RenderCommentOptions = {
+export type RenderCommentOptions = {
 	debug?: boolean;
 	seed?: string;
 	firstContribution?: boolean;
@@ -58,26 +58,7 @@ function pickWeightedAscii(
 }
 
 /**
- * Renders the Markdown body for the sticky docs deployment comment.
- *
- * Includes optional first-time contributor content, a docs preview table with
- * status and an updated timestamp, and a footer attribution.
- *
- * @param url - The preview URL to link in the Docs Preview table.
- * @param options - Rendering options (debug, seed, firstContribution, status).
- * @returns The rendered Markdown string.
- * @internal
- * @example
- * const md = renderCommentMarkdown('https://vercel.app/preview', {
- *   status: 'Ready',
- *   firstContribution: false,
- * });
- */
-/**
  * Render a deterministic, branded Markdown block for docs-preview comments.
- *
- * The output is wrapped with auto-generated markers using `header`:
- * `<!-- c15t:{header}:START --> ... <!-- c15t:{header}:END -->`
  *
  * - When `firstContribution` is true, a special ASCII art banner is shown.
  * - When `debug` is true, renders all available ASCII variants.
@@ -85,7 +66,8 @@ function pickWeightedAscii(
  *
  * @param url - The preview URL to include in the comment.
  * @param options - Rendering options.
- * @returns The complete Markdown string with start/end markers.
+ * @returns The complete Markdown string.
+ * @internal
  * @example
  * renderCommentMarkdown('https://example.vercel.app', { seed: 'abc123' });
  */
@@ -113,7 +95,9 @@ export function renderCommentMarkdown(
 		'<br/>',
 		'> 🎉 **Your first c15t commit!**',
 		'> ',
-		"> This is your first contribution to c15t, and I just wanted to say thank you. You're helping us build the best developer-first consent infrastructure. Here's to many more commits ahead! 🚀 ",
+		'> This is your first contribution to c15t, and I just wanted to say ' +
+			'thank you. You’re helping us build the best developer-first consent ' +
+			'infrastructure. Here’s to many more commits ahead! 🚀 ',
 		'> ',
 		'> Christopher, Author of c15t, [@burnedchris](https://x.com/burnedchris)',
 		'',
@@ -125,6 +109,7 @@ export function renderCommentMarkdown(
 		'| - | - | - |',
 		`| [Open Preview](${url}) | ${status} | ${updated} |`,
 	];
+
 	const messageTemplate = ({
 		art,
 		url,
@@ -165,12 +150,9 @@ export function renderCommentMarkdown(
 			messageTemplate({ art: a.art, url, updated })
 		).join('\n\n');
 	}
-	let seed = url;
-	if (options?.seed) {
-		seed = options.seed;
-	}
+
 	const inner = messageTemplate({
-		art: pickWeightedAscii(ASCII_SET, seed),
+		art: pickWeightedAscii(ASCII_SET, options?.seed ?? url),
 		url,
 		updated,
 		firstContribution: options?.firstContribution,

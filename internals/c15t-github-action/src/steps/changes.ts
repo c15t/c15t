@@ -88,6 +88,13 @@ function escapeRegex(s: string): string {
 	return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 function globToRegex(glob: string): RegExp {
+	// Validate glob length and complexity to prevent ReDoS
+	if (glob.length > 1000) {
+		throw new Error('Glob pattern too long');
+	}
+	if ((glob.match(/\*/g) || []).length > 20) {
+		throw new Error('Too many wildcards in glob pattern');
+	}
 	const escaped = escapeRegex(glob)
 		.replace(/\\\*\\\*/g, '.*')
 		.replace(/\\\*/g, '[^/]*');
