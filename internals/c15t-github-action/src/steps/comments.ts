@@ -76,7 +76,8 @@ async function updateExistingComment(
 
 export async function ensureComment(
 	octokit: ReturnType<typeof github.getOctokit>,
-	effectiveBody: string
+	effectiveBody: string,
+	options?: { appendOverride?: boolean; hideDetailsOverride?: boolean }
 ): Promise<void> {
 	if (!effectiveBody && ignoreEmpty) {
 		core.info('no body given: skip step by ignoreEmpty');
@@ -98,10 +99,29 @@ export async function ensureComment(
 	if (handleSkipUnchanged(effectiveBody, previous?.body || '')) {
 		return;
 	}
+	let shouldAppend =
+		typeof options?.appendOverride === 'boolean'
+			? options.appendOverride
+			: append;
+	const shouldHideDetails =
+		typeof options?.hideDetailsOverride === 'boolean'
+			? options.hideDetailsOverride
+			: hideDetails;
+
+	// Migration: if previous body doesn't have the new auto-generated block, replace instead of append
+	const startAuto =
+		'<!-- This is an auto-generated comment: c15t docs preview -->';
+	const endAuto = '<!-- end of auto-generated comment: c15t docs preview -->';
+	const previousHasAutoBlock = Boolean(
+		previous?.body?.includes(startAuto) && previous?.body?.includes(endAuto)
+	);
+	if (shouldAppend && !previousHasAutoBlock) {
+		shouldAppend = false;
+	}
 	const previousBody = getBodyOf(
 		{ body: previous?.body || '' },
-		append,
-		hideDetails
+		shouldAppend,
+		shouldHideDetails
 	);
 	if (!previous?.id) {
 		return;

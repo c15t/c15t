@@ -14,16 +14,16 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import {
-	commentOnPush,
-	getBody,
-	githubAppId,
-	githubAppInstallationId,
-	githubAppPrivateKey,
-	githubToken,
-	isFirstTimeContributor,
-	postSkipComment,
-	pullRequestNumber,
-	skipMessage,
+  commentOnPush,
+  getBody,
+  githubAppId,
+  githubAppInstallationId,
+  githubAppPrivateKey,
+  githubToken,
+  isFirstTimeContributor,
+  postSkipComment,
+  pullRequestNumber,
+  skipMessage,
 } from './config/inputs';
 import { ensureComment } from './steps/comments';
 import { performVercelDeployment } from './steps/deployment';
@@ -131,7 +131,7 @@ async function run(): Promise<undefined> {
 				// Post as PR sticky comment when running in a PR; otherwise, if enabled, post a commit comment on push
 				if (!Number.isNaN(pullRequestNumber) && pullRequestNumber >= 1) {
 					core.info('[c15t] posting sticky PR skip comment');
-					await ensureComment(octokit, body);
+					await ensureComment(octokit, body, { appendOverride: false });
 				} else if (commentOnPush) {
 					core.info('[c15t] posting commit skip comment on push');
 					try {
@@ -164,7 +164,7 @@ async function run(): Promise<undefined> {
 		}
 		core.info('[c15t] validating options');
 		validateOptions();
-		await ensureComment(octokit, effectiveBody);
+		await ensureComment(octokit, effectiveBody, { appendOverride: true });
 		core.info('[c15t] ensured PR sticky comment with deployment link');
 	} catch (error) {
 		if (error instanceof Error) {
