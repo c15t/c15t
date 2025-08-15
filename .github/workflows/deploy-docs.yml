@@ -171,7 +171,7 @@ jobs:
         id: find_pr
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.CONSENT_AUTHOR_TOKEN }}
+          github-token: ${{ secrets.CONSENT_GIT_TOKEN }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -195,11 +195,11 @@ jobs:
       # 💬 Leave (or update) a sticky comment on the PR with the preview link
       - name: 💬 Comment PR with preview URL
         if: ${{ steps.find_pr.outputs.pr_number != '' }}
-        uses: ./internals/c15t-github-action
+        uses: marocchino/sticky-pull-request-comment@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
         with:
-          GITHUB_TOKEN: ${{ secrets.C15T_GIT_TOKEN }}
-          author_login: c15t
-          header: "[c15t]"
+          header: c15t-docs-preview
           number: ${{ steps.find_pr.outputs.pr_number }}
           message: |
             🚀 Your documentation preview is ready!
@@ -217,11 +217,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 💬 Comment PR with skipped notice
-        uses: ./internals/c15t-github-action
+        uses: marocchino/sticky-pull-request-comment@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
         with:
-          GITHUB_TOKEN: ${{ secrets.C15T_GIT_TOKEN }}
-          author_login: c15t
-          header: "[c15t]"
+          header: c15t-docs-preview
           number: ${{ github.event.pull_request.number }}
           message: |
             🟡 Documentation deploy skipped.
