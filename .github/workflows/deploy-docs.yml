@@ -1,5 +1,5 @@
-# 🚀 Deploy Documentation to Vercel
-name: Deploy Documentation to Vercel
+# 🚀 c15t deployment workflow
+name: Deploy docs
 
 on:
   # 📌 Trigger on pushes that modify docs or this workflow
@@ -41,8 +41,7 @@ jobs:
           run_install: false
 
       - name: 🔧 Build c15t docs-preview action
-        working-directory: internals/c15t-github-action
-        run: |
+        run:
           cd internals/c15t-github-action
           pnpm install
 
