@@ -6,7 +6,7 @@
  * existing content while preserving a sentinel header.
  *
  * The behavior is configured via inputs read in `config.ts` and the
- * actual comment operations are implemented in `comment.ts`.
+ * actual comment operations are implemented in `comment.ts`
  *
  * @see `./config.ts`
  * @see `./comment.ts`
