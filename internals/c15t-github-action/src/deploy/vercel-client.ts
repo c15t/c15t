@@ -6,6 +6,12 @@ import path from 'node:path';
 const TOKEN_SPLIT_RE = /'([^']*)'|"([^"]*)"|[^\s]+/gm;
 const BRANCH_TPL_RE = /\{\{\s*BRANCH\s*\}\}/g;
 const PR_TPL_RE = /\{\{\s*PR_NUMBER\s*\}\}/g;
+// Hoisted slugify regexes for performance
+const RE_UNDERSCORE_OR_SPACE = /[_\s]+/g;
+const RE_NON_WORD_EXCEPT_DASH = /[^\w-]+/g;
+const RE_MULTI_DASH = /--+/g;
+const RE_LEADING_DASH = /^-+/;
+const RE_TRAILING_DASH = /-+$/;
 
 /**
  * @internal
@@ -50,10 +56,15 @@ export interface VercelDeployResult {
 function getBranch(env: NodeJS.ProcessEnv): string {
 	const refEnv = env.GITHUB_REF || '';
 	const headRef = env.GITHUB_HEAD_REF || '';
-	if (headRef) return headRef;
-	if (refEnv.startsWith('refs/heads/'))
+	if (headRef) {
+		return headRef;
+	}
+	if (refEnv.startsWith('refs/heads/')) {
 		return refEnv.replace('refs/heads/', '');
-	if (refEnv.startsWith('refs/tags/')) return refEnv.replace('refs/tags/', '');
+	}
+	if (refEnv.startsWith('refs/tags/')) {
+		return refEnv.replace('refs/tags/', '');
+	}
 	return 'unknown';
 }
 
@@ -67,7 +78,9 @@ function fileShouldBeIgnored(
 	chosenLockfile: string | undefined,
 	ignoreFiles: Set<string>
 ): boolean {
-	if (chosenLockfile && fileName === chosenLockfile) return false;
+	if (chosenLockfile && fileName === chosenLockfile) {
+		return false;
+	}
 	return ignoreFiles.has(fileName);
 }
 
@@ -94,15 +107,20 @@ function walkFiles(cwd: string): string[] {
 		const entries = readdirSync(dir, { withFileTypes: true });
 		const out: string[] = [];
 		for (const entry of entries) {
-			if (entry.name.startsWith('.git')) continue;
+			if (entry.name.startsWith('.git')) {
+				continue;
+			}
 			const fullPath = path.join(dir, entry.name);
 			const relativePath = path.relative(cwd, fullPath);
 			if (entry.isDirectory()) {
-				if (ignoreDirs.has(entry.name)) continue;
+				if (ignoreDirs.has(entry.name)) {
+					continue;
+				}
 				out.push(...walk(fullPath));
 			} else if (entry.isFile()) {
-				if (fileShouldBeIgnored(entry.name, chosenLockfile, ignoreFiles))
+				if (fileShouldBeIgnored(entry.name, chosenLockfile, ignoreFiles)) {
 					continue;
+				}
 				out.push(relativePath);
 			}
 		}
@@ -135,15 +153,17 @@ function slugify(input: string): string {
 		.toString()
 		.trim()
 		.toLowerCase()
-		.replace(/[_\s]+/g, '-')
-		.replace(/[^\w-]+/g, '')
-		.replace(/--+/g, '-')
-		.replace(/^-+/, '')
-		.replace(/-+$/, '');
+		.replace(RE_UNDERSCORE_OR_SPACE, '-')
+		.replace(RE_NON_WORD_EXCEPT_DASH, '')
+		.replace(RE_MULTI_DASH, '-')
+		.replace(RE_LEADING_DASH, '')
+		.replace(RE_TRAILING_DASH, '');
 }
 
 function parseMetaArgs(raw: string | undefined): Record<string, string> {
-	if (!raw) return {};
+	if (!raw) {
+		return {};
+	}
 	const meta: Record<string, string> = {};
 	const tokens = raw.match(TOKEN_SPLIT_RE) ?? [];
 	for (let i = 0; i < tokens.length; i++) {
@@ -163,7 +183,9 @@ function parseMetaArgs(raw: string | undefined): Record<string, string> {
 }
 
 function templateAliasDomains(domains: string[] | undefined): string[] {
-	if (!domains || domains.length === 0) return [];
+	if (!domains || domains.length === 0) {
+		return [];
+	}
 	const prNumber = process.env.GITHUB_PR_NUMBER || '';
 	const isPr = Boolean(prNumber);
 	const ref = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF || '';
@@ -198,7 +220,6 @@ export async function deployToVercel(
 	const commitAuthorLogin =
 		process.env.GITHUB_COMMIT_AUTHOR_LOGIN || process.env.GITHUB_ACTOR || '';
 	// Email is intentionally omitted from metadata to avoid PII leakage
-	const commitAuthorEmail = '';
 	const prNumber = process.env.GITHUB_PR_NUMBER || '';
 	const prHeadRef =
 		process.env.GITHUB_PR_HEAD_REF || process.env.GITHUB_HEAD_REF || '';

@@ -113,9 +113,8 @@ export async function findPreviousComment(
       `,
 			{ ...repo, after, number }
 		);
-		// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+
 		const viewer = data.viewer as User;
-		// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
 		const repository = data.repository as Repository;
 		const normalizeLogin = (login: string | null | undefined): string =>
 			(login ?? '').replace('[bot]', '').trim().toLowerCase();
