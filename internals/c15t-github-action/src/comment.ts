@@ -131,7 +131,7 @@ export async function findPreviousComment(
 		if (target) {
 			return target;
 		}
-		after = repository.pullRequest?.comments?.pageInfo?.endCursor;
+		after = repository.pullRequest?.comments?.pageInfo?.endCursor ?? null;
 		hasNextPage =
 			repository.pullRequest?.comments?.pageInfo?.hasNextPage ?? false;
 	}
