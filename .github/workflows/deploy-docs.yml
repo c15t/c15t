@@ -39,13 +39,7 @@ jobs:
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          run_install: false
-
-      - name: 🔧 Build c15t docs-preview action
-        working-directory: internals/c15t-github-action
-        run: |
-          pnpm install
-          pnpm ncc build src/main.ts -o dist -m
+          run_install: true
 
       - name: ▲ C15T Docs Preview (Deploy + PR Comment)
         id: c15t
