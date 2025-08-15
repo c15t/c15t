@@ -41,9 +41,10 @@ jobs:
           run_install: false
 
       - name: 🔧 Build c15t docs-preview action
-        run:
-          cd internals/c15t-github-action
+        working-directory: internals/c15t-github-action
+        run: |
           pnpm install
+          pnpm build
 
       - name: ▲ C15T Docs Preview (Deploy + PR Comment)
         id: c15t
