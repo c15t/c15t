@@ -46,9 +46,11 @@ export function renderCommentMarkdown(
 		debug?: boolean;
 		seed?: string;
 		firstContribution?: boolean;
+		status?: string;
 	}
 ): string {
 	const updated = new Date().toUTCString();
+	const status = options?.status || 'Ready';
 
 	const formatArt = (ascii: string) => {
 		const asciiWithBrailleSpaces = ascii.replace(/ /g, BRAILLE_SPACE);
@@ -74,7 +76,7 @@ export function renderCommentMarkdown(
 		'### Docs Preview',
 		'| Preview | Status | Updated (UTC) |',
 		'| - | - | - |',
-		`| [Open Preview](${url}) | Ready | ${updated} |`,
+		`| [Open Preview](${url}) | ${status} | ${updated} |`,
 	];
 	const messageTemplate = ({
 		art,

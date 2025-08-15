@@ -14,6 +14,7 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import {
+	commentOnPush,
 	getBody,
 	githubAppId,
 	githubAppInstallationId,
@@ -21,6 +22,7 @@ import {
 	githubToken,
 	isFirstTimeContributor,
 	postSkipComment,
+	pullRequestNumber,
 	skipMessage,
 } from './config/inputs';
 import { ensureComment } from './steps/comments';
@@ -81,10 +83,54 @@ async function run(): Promise<undefined> {
 		if (!deploymentUrl) {
 			// Deployment was skipped by policy/gating. Optionally post a sticky skip comment.
 			if (postSkipComment) {
-				const body =
-					skipMessage ||
-					'🟡 Documentation deploy skipped.\n\nReason: Policy or gating rules determined no deploy was needed.';
-				await ensureComment(octokit, body);
+				// Try to find the most recent successful deployment URL from repo deployments
+				let lastUrl = '';
+				try {
+					const { data } = await octokit.rest.repos.listDeployments({
+						...github.context.repo,
+						per_page: 10,
+					});
+					for (const d of data) {
+						const statuses = await octokit.rest.repos.listDeploymentStatuses({
+							...github.context.repo,
+							deployment_id: d.id,
+							per_page: 1,
+						});
+						const envUrl = statuses.data[0]?.environment_url || '';
+						if (statuses.data[0]?.state === 'success' && envUrl) {
+							lastUrl = envUrl;
+							break;
+						}
+					}
+				} catch {
+					// ignore lookup errors
+				}
+				const rendered = renderCommentMarkdown(
+					lastUrl || 'https://vercel.com',
+					{
+						firstContribution: isFirstTimeContributor,
+						status: 'Skipped',
+					}
+				);
+				const body = skipMessage || rendered;
+				// Post as PR sticky comment when running in a PR; otherwise, if enabled, post a commit comment on push
+				if (!Number.isNaN(pullRequestNumber) && pullRequestNumber >= 1) {
+					await ensureComment(octokit, body);
+				} else if (commentOnPush) {
+					try {
+						await octokit.rest.repos.createCommitComment({
+							...github.context.repo,
+							commit_sha: github.context.sha,
+							body,
+						});
+					} catch (e) {
+						core.warning(
+							`Could not post commit skip comment: ${
+								e instanceof Error ? e.message : String(e)
+							}`
+						);
+					}
+				}
 			}
 			return;
 		}
