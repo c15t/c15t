@@ -139,16 +139,30 @@ export function buildDefaultPreviewComment(
 	const ascii = options?.debug
 		? ASCII_SET.map((a) => a.art).join('\n\n')
 		: pickWeightedAscii(ASCII_SET, options?.seed ?? url);
-	const lines: string[] = [];
-	lines.push('```');
-	lines.push(ascii);
-	lines.push('```');
-	lines.push('| Preview | Status | Updated (UTC) |');
-	lines.push('| - | - | - |');
-	lines.push(`| [Open Preview](${url}) | Ready | ${updated} |`);
-	const pad = '   ';
-	const padded = lines.map((l) => `${pad}${l}`);
 	const braille = '⠀';
-	const replaced = padded.map((l) => l.replace(/ /g, braille));
-	return replaced.join('\n');
+	const asciiWithBrailleSpaces = ascii.replace(/ /g, braille);
+	const pad = '   ';
+	const asciiPadded = asciiWithBrailleSpaces
+		.split('\n')
+		.map((l) => `${pad}${l}`)
+		.join('\n');
+
+	if (options?.debug) {
+		return [
+			'```',
+			ASCII_SET.map((a) => a.art).join('\n\n'),
+			'```',
+			'| Preview | Status | Updated (UTC) |',
+			'| - | - | - |',
+			`| [Open Preview](${url}) | Ready | ${updated} |`,
+		].join('\n');
+	}
+	return [
+		'```',
+		asciiPadded,
+		'```',
+		'| Preview | Status | Updated (UTC) |',
+		'| - | - | - |',
+		`| [Open Preview](${url}) | Ready | ${updated} |`,
+	].join('\n');
 }
