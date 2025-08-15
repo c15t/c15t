@@ -1,8 +1,23 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { commentOnPush, pullRequestNumber } from '../config/inputs';
-import { buildDefaultPreviewComment } from '../steps/ui';
+import { buildDefaultPreviewComment } from './ui';
 
+/**
+ * Optionally posts a commit comment with a docs preview link on push events.
+ *
+ * Skips when the run is associated with a pull request or when disabled via
+ * inputs. Returns a boolean indicating whether the step completed without
+ * error (including intentional skips).
+ *
+ * @param octokit - Preconfigured Octokit instance.
+ * @param effectiveBody - Comment body to post; falls back to a generated
+ *   preview comment when absent.
+ * @param deploymentUrl - Public deployment URL; required to post a comment.
+ * @returns True when posting succeeded or the step was intentionally skipped;
+ *   false when a PR run was detected or posting failed.
+ * @see buildDefaultPreviewComment
+ */
 export async function maybeCommentOnPush(
 	octokit: ReturnType<typeof github.getOctokit>,
 	effectiveBody: string,
@@ -12,10 +27,11 @@ export async function maybeCommentOnPush(
 		return false;
 	}
 	if (!commentOnPush) {
-		core.info('no pull request number: deploy done, commenting skipped');
+		core.info('comment_on_push=false: skipping commit comment on push');
 		return true;
 	}
 	if (!deploymentUrl) {
+		core.info('no deployment URL provided; skipping commit comment');
 		return true;
 	}
 	try {
@@ -31,8 +47,11 @@ export async function maybeCommentOnPush(
 		});
 	} catch (e) {
 		core.warning(
-			`Could not post commit comment: ${e instanceof Error ? e.message : String(e)}`
+			`Could not post commit comment: ${
+				e instanceof Error ? e.message : String(e)
+			}`
 		);
+		return false;
 	}
 	return true;
 }

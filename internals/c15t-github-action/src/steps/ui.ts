@@ -6,35 +6,34 @@ interface WeightedAsciiArt {
 const ASCII_SET: WeightedAsciiArt[] = [
 	{
 		art: [
-			'⠀⠀⠀⠀⠀_____⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀_____',
-			"⠀---'⠀⠀⠀__\\______⠀⠀⠀⠀⠀⠀______/__⠀⠀⠀`---",
-			'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀______)⠀⠀⠀⠀(______',
-			'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀__)⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀(__',
-			'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀__)⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀(__',
-			'⠀---.______)⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀(______.---',
+			'⠀⠀⠀⠀⠀⠀_____⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀_____',
+			"⠀⠀---'⠀⠀⠀__\\______⠀⠀⠀⠀⠀⠀______/__⠀⠀⠀`---",
+			'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀______)⠀⠀⠀⠀(______',
+			'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀__)⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀(__',
+			'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀__)⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀(__',
+			'⠀⠀---.______)⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀(______.---',
 			'',
-			'⠀⠀⠀⠀⠀⠀⠀Your⠀docs⠀preview⠀is⠀ready',
+			'All⠀signs⠀point⠀to…⠀your⠀docs⠀update⠀is⠀ready',
 		].join('\n'),
 		weight: 1,
 	},
 	{
 		art: [
-			'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-			'⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣴⣶⣿⣿⡿⠿⠷⣶⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀',
-			'⠀⠀⠀⠀⠀⠀⢀⣴⣾⣿⣿⣿⣿⣿⣿⣇⠀⠀⢸⣿⣿⣿⣦⡀⠀⠀⠀⠀⠀⠀',
-			'⠀⠀⠀⠀⢀⣴⣿⡿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣦⡀⠀⠀⠀⠀',
-			'⠀⠀⠀⢠⣿⡟⠁⠀⠀⢹⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⡀⠀⠀⠀',
-			'⠀⠀⢠⣿⣿⣿⣦⣄⣠⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⢿⣿⣿⣿⣷⠀⠀⠀',
-			'⠀⠀⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡏⠀⠀⢹⣿⣿⣿⡇⠀⠀',
-			'⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣶⣶⣿⣿⣿⣿⣿⠀⠀',
-			'⠀⠀⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠀⠀',
-			'⠀⠀⠈⢿⣿⣿⣿⣿⠟⠻⣿⣿⠋⠀⠉⣿⣿⣿⣿⣿⣿⣿⣿⡏⠀⢙⣿⠃⠀⠀',
-			'⠀⠀⠀⠈⢿⣿⣿⠁⠀⠀⠘⣿⣆⠀⢀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠏⠀⠀⠀',
-			'⠀⠀⠀⠀⠀⠙⢿⣦⣤⣤⣶⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀',
-			'⠀⠀⠀⠀⠀⠀⠀⠙⠿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠉⢹⣿⣿⡿⠟⠁⠀⠀⠀⠀⠀',
-			'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠿⠿⣿⣿⣿⣷⡤⠾⠛⠉⠀⠀⠀⠀⠀⠀⠀⠀',
-			'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-			'your⠀docs⠀are⠀ready',
+			'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
+			'⠀⠀⠀⠀⠀⠀⠀⢀⣠⣴⣶⣿⣿⡿⠿⠷⣶⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀',
+			'⠀⠀⠀⠀⢀⣴⣾⣿⣿⣿⣿⣿⣿⣇⠀⠀⢸⣿⣿⣿⣦⡀⠀⠀⠀⠀⠀⠀',
+			'⠀⠀⢀⣴⣿⡿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣦⡀⠀⠀⠀⠀',
+			'⠀⢠⣿⡟⠁⠀⠀⢹⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⡀⠀⠀⠀',
+			'⢠⣿⣿⣿⣦⣄⣠⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⢿⣿⣿⣿⣷⠀⠀⠀',
+			'⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡏⠀⠀⢹⣿⣿⣿⡇⠀⠀One⠀warm⠀cookie⠀of',
+			'⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣶⣶⣿⣿⣿⣿⣿⠀⠀documentation,⠀fresh⠀from',
+			'⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠀⠀the⠀oven,⠀enjoy.',
+			'⠈⢿⣿⣿⣿⣿⠟⠻⣿⣿⠋⠀⠉⣿⣿⣿⣿⣿⣿⣿⣿⡏⠀⢙⣿⠃⠀⠀',
+			'⠀⠈⢿⣿⣿⠁⠀⠀⠘⣿⣆⠀⢀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠏⠀⠀⠀',
+			'⠀⠀⠀⠙⢿⣦⣤⣤⣶⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀',
+			'⠀⠀⠀⠀⠀⠙⠿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠉⢹⣿⣿⡿⠟⠁⠀⠀⠀⠀⠀',
+			'⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠿⠿⣿⣿⣿⣷⡤⠾⠛⠉⠀⠀⠀⠀⠀⠀⠀⠀',
+			'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
 		].join('\n'),
 		weight: 1,
 	},
@@ -54,7 +53,6 @@ const ASCII_SET: WeightedAsciiArt[] = [
 			'⠀⠀⠀⠀300⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\\⠀⠀⠀1600',
 			'',
 			'we⠀cant⠀keep⠀up⠀with⠀these⠀vibes',
-			'⠀⠀⠀⠀⠀⠀your⠀docs⠀are⠀ready',
 		].join('\n'),
 		weight: 1,
 	},
@@ -92,7 +90,21 @@ const ASCII_SET: WeightedAsciiArt[] = [
 			'⠀⠀//⠀⠀)⠀(..----~~~~._\\⠀|⠀/_.~~~~----.....__\\\\',
 			'⠀===================\\\\|//====================',
 			'',
-			'turn⠀the⠀page:⠀your⠀docs⠀are⠀a⠀real⠀page‑turner',
+			'I⠀just⠀read⠀your⠀latest⠀docs⠀update,⠀you’re⠀a⠀real⠀page⠀turner.',
+		].join('\n'),
+		weight: 1,
+	},
+	{
+		art: [
+			'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀/⠀\\',
+			'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀/⠀_⠀\\',
+			"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀|.o⠀'.|",
+			"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀|'._.'|",
+			'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀|⠀⠀⠀⠀⠀|',
+			"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀,'|⠀⠀|⠀⠀|`.",
+			'⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀/⠀⠀|⠀⠀|⠀⠀|⠀⠀\\',
+			"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀|,-'--|--'-.|",
+			'I just launched your docs update into orbit.',
 		].join('\n'),
 		weight: 1,
 	},
@@ -136,21 +148,21 @@ export function buildDefaultPreviewComment(
 	options?: { debug?: boolean; seed?: string }
 ): string {
 	const updated = new Date().toUTCString();
-	const ascii = options?.debug
-		? ASCII_SET.map((a) => a.art).join('\n\n')
-		: pickWeightedAscii(ASCII_SET, options?.seed ?? url);
-	const braille = '⠀';
-	const asciiWithBrailleSpaces = ascii.replace(/ /g, braille);
-	const pad = '   ';
-	const asciiPadded = asciiWithBrailleSpaces
-		.split('\n')
-		.map((l) => `${pad}${l}`)
-		.join('\n');
+
+	const formatArt = (ascii: string) => {
+		const braille = '⠀';
+		const asciiWithBrailleSpaces = ascii.replace(/ /g, braille);
+		const pad = '   ';
+		return asciiWithBrailleSpaces
+			.split('\n')
+			.map((l) => `${pad}${l}`)
+			.join('\n');
+	};
 
 	if (options?.debug) {
 		return [
 			'```',
-			ASCII_SET.map((a) => a.art).join('\n\n'),
+			ASCII_SET.map((a) => formatArt(a.art)).join('\n\n'),
 			'```',
 			'| Preview | Status | Updated (UTC) |',
 			'| - | - | - |',
@@ -159,7 +171,7 @@ export function buildDefaultPreviewComment(
 	}
 	return [
 		'```',
-		asciiPadded,
+		formatArt(pickWeightedAscii(ASCII_SET, options?.seed ?? url)),
 		'```',
 		'| Preview | Status | Updated (UTC) |',
 		'| - | - | - |',
