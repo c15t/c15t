@@ -1,5 +1,12 @@
 import * as core from '@actions/core';
 
+/**
+ * Rich, actionable error descriptor used to communicate failures with guidance.
+ *
+ * @remarks
+ * Produced by mapping raw provider errors to user-friendly diagnostics with
+ * concrete next steps.
+ */
 export type ActionableError = {
 	type:
 		| 'deployment'
@@ -14,7 +21,11 @@ export type ActionableError = {
 	retryable: boolean;
 };
 
+/**
+ * Helpers to translate provider-specific errors into actionable guidance.
+ */
 export const ErrorHandler = {
+	/** Map Vercel-related errors to an actionable form. */
 	handleVercel(error: unknown): ActionableError {
 		const message = error instanceof Error ? error.message : String(error);
 		if (message.toLowerCase().includes('project not found')) {
@@ -67,6 +78,7 @@ export const ErrorHandler = {
 			retryable: true,
 		};
 	},
+	/** Map GitHub API failures to actionable guidance. */
 	handleGitHub(error: unknown): ActionableError {
 		const any = error as { status?: number; message?: string };
 		const message =
@@ -107,6 +119,7 @@ export const ErrorHandler = {
 	},
 };
 
+/** Retry configuration for `executeWithRetry`. */
 export type RetryOptions = {
 	maxRetries?: number;
 	backoffBaseMs?: number; // base multiplier for exponential backoff
@@ -114,11 +127,22 @@ export type RetryOptions = {
 	sleep?: (ms: number) => Promise<void>;
 };
 
-export async function executeWithRetry<T>(
-	operation: () => Promise<T>,
+/**
+ * Execute an async operation with exponential backoff and actionable error
+ * reporting.
+ *
+ * @typeParam ResultType - Operation resolution type
+ * @param operation - Function that performs the async work
+ * @param mapError - Maps raw errors to `ActionableError`
+ * @param options - Retry configuration or a number representing max retries
+ * @returns The resolved operation result
+ * @throws Error When the final attempt fails. Non-retryable errors abort ASAP.
+ */
+export async function executeWithRetry<ResultType>(
+	operation: () => Promise<ResultType>,
 	mapError: (error: unknown) => ActionableError,
 	options: number | RetryOptions = 3
-): Promise<T> {
+): Promise<ResultType> {
 	const opts: RetryOptions =
 		typeof options === 'number' ? { maxRetries: options } : options || {};
 	const maxRetries = opts.maxRetries ?? 3;

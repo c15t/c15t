@@ -30,10 +30,8 @@ import { performVercelDeployment } from './steps/deployment';
 import { getAuthToken } from './steps/github-app-auth';
 import { maybeCommentOnPush } from './steps/push-comment';
 import { renderCommentMarkdown } from './steps/render-comment';
-import { validateOptions } from './steps/validate';
 import { ErrorHandler, executeWithRetry } from './utils/errors';
 import { createLogger } from './utils/logger';
-
 
 function computeEffectiveBody(
 	deploymentUrl: string | undefined,
