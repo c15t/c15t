@@ -41,7 +41,6 @@ export async function maybeCommentOnPush(
 			body:
 				effectiveBody ||
 				renderCommentMarkdown(deploymentUrl, {
-					debug: true,
 					seed: github.context.sha,
 				}),
 		});

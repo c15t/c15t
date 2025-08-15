@@ -13,7 +13,7 @@
  */
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import { getBody, githubToken } from './config/inputs';
+import { getBody, githubToken, isFirstTimeContributor } from './config/inputs';
 import { ensureComment } from './steps/comments';
 import { performVercelDeployment } from './steps/deployment';
 import { maybeCommentOnPush } from './steps/push-comment';
@@ -27,9 +27,7 @@ function computeEffectiveBody(
 	let base = body;
 	if (deploymentUrl && !body) {
 		base = renderCommentMarkdown(deploymentUrl, {
-			// debug: true,
-			// firstContribution: isFirstTimeContributor,
-			firstContribution: true,
+			firstContribution: isFirstTimeContributor,
 		});
 	}
 	return base;

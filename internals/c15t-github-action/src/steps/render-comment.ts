@@ -60,6 +60,22 @@ export function renderCommentMarkdown(
 			.join('\n');
 	};
 
+	const firstTimeContributorMessage = [
+		'<br/>',
+		'> 🎉 **Your first c15t commit!**',
+		'> ',
+		'> This is your first contribution to c15t, and I just wanted to say thank you. You’re helping us build the best developer-first consent infrastructure. Here’s to many more commits ahead! 🚀 ',
+		'> ',
+		'> Christopher, Author of c15t, [@burnedchris](https://x.com/burnedchris)',
+		'',
+	];
+
+	const previewMessage = [
+		'### Docs Preview',
+		'| Preview | Status | Updated (UTC) |',
+		'| - | - | - |',
+		`| [Open Preview](${url}) | Ready | ${updated} |`,
+	];
 	const messageTemplate = ({
 		art,
 		url,
@@ -75,16 +91,11 @@ export function renderCommentMarkdown(
 			'```',
 			formatArt(firstContribution ? FIRST_TIME_CONTRIBUTOR_ASCII : art),
 			'```',
-			firstContribution && '> 🎉 **Your first c15t commit!**',
-			firstContribution &&
-				'> This is your first contribution to c15t, and I just wanted to say thank you. You’re helping us get closer to building the best developer-first consent infrastructure. Here’s to many more commits ahead! 🚀 ',
-			firstContribution && '>',
-			firstContribution &&
-				'> Christopher, [@burnedchris](https://x.com/burnedchris)',
-			url && updated && '| Preview | Status | Updated (UTC) |',
-			url && updated && '| - | - | - |',
-			url && updated && `| [Open Preview](${url}) | Ready | ${updated} |`,
-			'```',
+			'',
+			firstContribution && firstTimeContributorMessage.join('\n'),
+			url && updated && previewMessage.join('\n'),
+			'',
+			'---',
 			'Baked with 💙 by [Consent](https://consent.io), powered by our completely unnecessary but very fun deployment comment system.',
 		].join('\n');
 
