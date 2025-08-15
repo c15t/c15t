@@ -55,22 +55,34 @@ export function buildDefaultPreviewComment(
 			.join('\n');
 	};
 
-	if (options?.debug) {
-		return [
+	const messageTemplate = ({
+		art,
+		url,
+		updated,
+	}: {
+		art: string;
+		url?: string;
+		updated?: string;
+	}) =>
+		[
 			'```',
-			ASCII_SET.map((a) => formatArt(a.art)).join('\n\n'),
+			formatArt(art),
 			'```',
-			'| Preview | Status | Updated (UTC) |',
-			'| - | - | - |',
-			`| [Open Preview](${url}) | Ready | ${updated} |`,
+			url && updated && '| Preview | Status | Updated (UTC) |',
+			url && updated && '| - | - | - |',
+			url && updated && `| [Open Preview](${url}) | Ready | ${updated} |`,
+			'```',
+			'Baked with 💙 by [Consent](https://consent.io), powered by our completely unnecessary but very fun deployment comment system.',
 		].join('\n');
+
+	if (options?.debug) {
+		return ASCII_SET.map((a) =>
+			messageTemplate({ art: a.art, url, updated })
+		).join('\n\n');
 	}
-	return [
-		'```',
-		formatArt(pickWeightedAscii(ASCII_SET, options?.seed ?? url)),
-		'```',
-		'| Preview | Status | Updated (UTC) |',
-		'| - | - | - |',
-		`| [Open Preview](${url}) | Ready | ${updated} |`,
-	].join('\n');
+	return messageTemplate({
+		art: pickWeightedAscii(ASCII_SET, options?.seed ?? url),
+		url,
+		updated,
+	});
 }
