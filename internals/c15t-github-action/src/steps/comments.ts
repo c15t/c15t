@@ -31,7 +31,7 @@ function ensureFirstTimerBanner(body: string): string {
 	return body;
 }
 
-export function requireEffectiveBodyOrThrow(effectiveBody: string): void {
+function requireEffectiveBodyOrThrow(effectiveBody: string): void {
 	if (!hideOldComment && !effectiveBody) {
 		throw new Error(
 			'Either message/path input is required or Vercel inputs must be set'
@@ -39,7 +39,7 @@ export function requireEffectiveBodyOrThrow(effectiveBody: string): void {
 	}
 }
 
-export async function handleDeleteOldComment(
+async function handleDeleteOldComment(
 	octokit: ReturnType<typeof github.getOctokit>,
 	previous: { id: string } | undefined
 ): Promise<boolean> {
@@ -50,11 +50,11 @@ export async function handleDeleteOldComment(
 	return true;
 }
 
-export function handleOnlyUpdateWhenNoPrevious(previous: unknown): boolean {
+function handleOnlyUpdateWhenNoPrevious(previous: unknown): boolean {
 	return !previous && onlyUpdateComment;
 }
 
-export async function createInitialCommentWhenMissing(
+async function createInitialCommentWhenMissing(
 	octokit: ReturnType<typeof github.getOctokit>,
 	previous: unknown,
 	effectiveBody: string
@@ -73,11 +73,7 @@ export async function createInitialCommentWhenMissing(
 	return true;
 }
 
-export function handleOnlyCreateWhenExisting(): boolean {
-	return Boolean(onlyCreateComment);
-}
-
-export async function handleHideOld(
+async function handleHideOld(
 	octokit: ReturnType<typeof github.getOctokit>,
 	previous: { id: string } | undefined
 ): Promise<boolean> {
@@ -88,7 +84,7 @@ export async function handleHideOld(
 	return true;
 }
 
-export function handleSkipUnchanged(
+function handleSkipUnchanged(
 	effectiveBody: string,
 	previousBodyRaw: string | undefined
 ): boolean {
@@ -98,7 +94,7 @@ export function handleSkipUnchanged(
 	);
 }
 
-export async function handleRecreate(
+async function handleRecreate(
 	octokit: ReturnType<typeof github.getOctokit>,
 	previous: { id: string } | undefined,
 	effectiveBody: string,
@@ -120,7 +116,7 @@ export async function handleRecreate(
 	return true;
 }
 
-export async function handleHideAndRecreate(
+async function handleHideAndRecreate(
 	octokit: ReturnType<typeof github.getOctokit>,
 	previous: { id: string } | undefined,
 	effectiveBody: string
@@ -140,7 +136,7 @@ export async function handleHideAndRecreate(
 	return true;
 }
 
-export async function updateExistingComment(
+async function updateExistingComment(
 	octokit: ReturnType<typeof github.getOctokit>,
 	previousId: string,
 	effectiveBody: string,

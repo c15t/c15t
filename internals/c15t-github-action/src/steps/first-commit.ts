@@ -20,16 +20,3 @@ export const FIRST_TIME_CONTRIBUTOR_ASCII = [
 	"⠀⠀`.⠀⠀*⠀*⠀*⠀⠀.'",
 	"⠀⠀⠀⠀`-.....-'",
 ].join('\n');
-
-export const FIRST_TIME_CONTRIBUTOR_MARKER_START =
-	'<!-- c15t-first-time-contributor -->';
-export const FIRST_TIME_CONTRIBUTOR_MARKER_END =
-	'<!-- /c15t-first-time-contributor -->';
-
-export function buildFirstTimeContributorBlock(): string {
-	return [
-		FIRST_TIME_CONTRIBUTOR_MARKER_START,
-		FIRST_TIME_CONTRIBUTOR_ASCII,
-		FIRST_TIME_CONTRIBUTOR_MARKER_END,
-	].join('\n');
-}

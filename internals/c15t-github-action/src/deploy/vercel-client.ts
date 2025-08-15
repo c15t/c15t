@@ -21,7 +21,7 @@ const RE_TRAILING_DASH = /-+$/;
 
 export type DeployTarget = 'production' | 'staging';
 
-export interface VercelDeployOptions {
+interface VercelDeployOptions {
 	token: string;
 	projectId: string;
 	orgId: string;
@@ -44,7 +44,7 @@ export interface VercelDeployOptions {
 	vercelScope?: string;
 }
 
-export interface VercelDeployResult {
+interface VercelDeployResult {
 	url: string;
 	id?: string;
 }

@@ -111,10 +111,7 @@ export const aliasDomains = core
 export const vercelArgs = core.getInput('vercel_args', { required: false });
 /** Vercel scope/team slug override. */
 export const vercelScope = core.getInput('vercel_scope', { required: false });
-/** Reserved CLI version input (for compatibility). */
-export const vercelVersion = core.getInput('vercel_version', {
-	required: false,
-});
+
 /** Also comment on push (commit) events. */
 export const commentOnPush = core.getBooleanInput('comment_on_push', {
 	required: false,

@@ -154,6 +154,6 @@ export const ASCII_SET = [
  *
  * @internal
  */
-export type _AsciiSet = readonly Readonly<WeightedAsciiArt>[];
+type _AsciiSet = readonly Readonly<WeightedAsciiArt>[];
 export const BRAILLE_SPACE = '⠀'; // U+2800, used to make spacing robust in GH markdown
 export const LEFT_PAD = '   ';

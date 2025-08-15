@@ -1,6 +1,7 @@
 import {
 	deleteOldComment,
 	hideAndRecreate,
+	hideOldComment,
 	onlyCreateComment,
 	onlyUpdateComment,
 	recreate,
@@ -13,7 +14,7 @@ export function validateOptions(): void {
 	if (onlyCreateComment && onlyUpdateComment) {
 		throw new Error('only_create and only_update cannot be both set to true');
 	}
-	if (hideAndRecreate && hideAndRecreate) {
+	if (hideOldComment && hideAndRecreate) {
 		throw new Error('hide and hide_and_recreate cannot be both set to true');
 	}
 }

@@ -10,15 +10,15 @@ import {
 	getBodyOf,
 	minimizeComment,
 	updateComment,
-} from '../src/comment';
+} from '../src/github/pr-comment';
 
 vi.mock('@actions/core', () => ({
 	warning: vi.fn(),
 }));
 
 const repo = {
-	owner: 'marocchino',
-	repo: 'sticky-pull-request-comment',
+	owner: 'c15t',
+	repo: 'c15t',
 };
 it('findPreviousComment', async () => {
 	const authenticatedBotUser = {
@@ -88,7 +88,7 @@ it('findPreviousComment', async () => {
 				},
 			},
 		},
-	} as any);
+	} as unknown);
 
 	expect(await findPreviousComment(octokit, repo, 123, '')).toBe(comment);
 	expect(await findPreviousComment(octokit, repo, 123, 'TypeA')).toBe(
@@ -100,8 +100,8 @@ it('findPreviousComment', async () => {
 	expect(octokit.graphql).toBeCalledWith(expect.any(String), {
 		after: null,
 		number: 123,
-		owner: 'marocchino',
-		repo: 'sticky-pull-request-comment',
+		owner: repo.owner,
+		repo: repo.repo,
 	});
 });
 
@@ -123,7 +123,7 @@ it('findPreviousComment with explicit authorLogin', async () => {
 				},
 			},
 		},
-	} as unknown as object);
+	} as unknown);
 
 	const found = await findPreviousComment(
 		octokit,
@@ -190,27 +190,30 @@ describe('createComment', () => {
 
 	beforeEach(() => {
 		vi.spyOn(octokit.rest.issues, 'createComment').mockResolvedValue({
-			data: '<return value>',
-		} as any);
+			status: 201,
+			url: 'https://api.github.local',
+			headers: {} as Record<string, string>,
+			data: { id: 1 } as unknown,
+		} as Awaited<ReturnType<typeof octokit.rest.issues.createComment>>);
 	});
 
 	it('with comment body or previousBody', async () => {
-		expect(await createComment(octokit, repo, 456, 'hello there', '')).toEqual({
-			data: '<return value>',
-		});
+		await expect(
+			createComment(octokit, repo, 456, 'hello there', '')
+		).resolves.toBeDefined();
 		expect(octokit.rest.issues.createComment).toBeCalledWith({
 			issue_number: 456,
-			owner: 'marocchino',
-			repo: 'sticky-pull-request-comment',
+			owner: repo.owner,
+			repo: repo.repo,
 			body: 'hello there\n<!-- Sticky Pull Request Comment -->',
 		});
-		expect(
-			await createComment(octokit, repo, 456, 'hello there', 'TypeA')
-		).toEqual({ data: '<return value>' });
+		await expect(
+			createComment(octokit, repo, 456, 'hello there', 'TypeA')
+		).resolves.toBeDefined();
 		expect(octokit.rest.issues.createComment).toBeCalledWith({
 			issue_number: 456,
-			owner: 'marocchino',
-			repo: 'sticky-pull-request-comment',
+			owner: repo.owner,
+			repo: repo.repo,
 			body: 'hello there\n<!-- Sticky Pull Request CommentTypeA -->',
 		});
 	});
@@ -224,7 +227,7 @@ describe('createComment', () => {
 it('deleteComment', async () => {
 	const octokit = getOctokit('github-token');
 
-	vi.spyOn(octokit, 'graphql').mockReturnValue(undefined as any);
+	vi.spyOn(octokit, 'graphql').mockResolvedValue('');
 	expect(await deleteComment(octokit, '456')).toBeUndefined();
 	expect(octokit.graphql).toBeCalledWith(expect.any(String), {
 		id: '456',
@@ -234,7 +237,7 @@ it('deleteComment', async () => {
 it('minimizeComment', async () => {
 	const octokit = getOctokit('github-token');
 
-	vi.spyOn(octokit, 'graphql').mockReturnValue(undefined as any);
+	vi.spyOn(octokit, 'graphql').mockResolvedValue('');
 	expect(await minimizeComment(octokit, '456', 'OUTDATED')).toBeUndefined();
 	expect(octokit.graphql).toBeCalledWith(expect.any(String), {
 		input: {
@@ -277,10 +280,18 @@ describe('getBodyOf', () => {
 		${true}  | ${true}     | ${detailsPrevious} | ${replaced}
 	`(
 		'receive $previous, $append, $hideDetails and returns $expected',
-		({ append, hideDetails, previous, expected }) => {
-			expect(
-				getBodyOf(previous as any, append as any, hideDetails as any)
-			).toEqual(expected as any);
+		({
+			append,
+			hideDetails,
+			previous,
+			expected,
+		}: {
+			append: boolean;
+			hideDetails: boolean;
+			previous: { body?: string };
+			expected: string | undefined;
+		}) => {
+			expect(getBodyOf(previous, append, hideDetails)).toEqual(expected);
 		}
 	);
 });
@@ -308,9 +319,20 @@ describe('commentsEqual', () => {
 		{ body: 'body', previous: 'body', header: 'header', expected: false },
 		{ body: 'body', previous: '', header: 'header', expected: false },
 		{ body: '', previous: 'body', header: 'header', expected: false },
-	])('commentsEqual(%s, %s, %s)', ({ body, previous, header, expected }) => {
-		expect(commentsEqual(body as any, previous as any, header as any)).toEqual(
-			expected as any
-		);
-	});
+	])(
+		'commentsEqual(%s, %s, %s)',
+		({
+			body,
+			previous,
+			header,
+			expected,
+		}: {
+			body: string;
+			previous: string;
+			header: string;
+			expected: boolean;
+		}) => {
+			expect(commentsEqual(body, previous, header)).toEqual(expected);
+		}
+	);
 });

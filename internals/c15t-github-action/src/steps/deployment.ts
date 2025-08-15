@@ -15,7 +15,7 @@ import {
 } from '../config/inputs';
 import { type DeployTarget, deployToVercel } from '../deploy/vercel-client';
 
-export async function createGithubDeployment(
+async function createGithubDeployment(
 	octokit: ReturnType<typeof github.getOctokit>,
 	environmentName: string
 ): Promise<number | undefined> {
@@ -41,10 +41,10 @@ export async function createGithubDeployment(
 	}
 }
 
-export async function setGithubDeploymentStatus(
+async function setGithubDeploymentStatus(
 	octokit: ReturnType<typeof github.getOctokit>,
 	deploymentId: number,
-	state: 'in_progress' | 'success',
+	state: 'in_progress' | 'success' | 'failure',
 	description: string,
 	environmentUrl?: string
 ): Promise<void> {
