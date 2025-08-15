@@ -70,12 +70,16 @@ jobs:
           vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
 
-          target: staging
+          target: production
           assign_alias_on_branch: canary
           alias_domains: |
             canary.c15t.com
             preview-${{ github.ref_name }}.c15t.dev
             pr-${{ github.event.pull_request.number }}.c15t.dev
+          
+          # Branch deployment policies
+          deploy_on_push_branches: "main,canary"
+          deploy_on_pr_base_branches: "main,canary"
 
           # Orchestration & gating
           consent_git_token: ${{ secrets.CONSENT_GIT_TOKEN }}
