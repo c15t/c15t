@@ -34,6 +34,7 @@ import { validateOptions } from './steps/validate';
 import { ErrorHandler, executeWithRetry } from './utils/errors';
 import { createLogger } from './utils/logger';
 
+
 function computeEffectiveBody(
 	deploymentUrl: string | undefined,
 	body: string
@@ -171,7 +172,6 @@ async function run(): Promise<undefined> {
 			return;
 		}
 		logger.info('validating options');
-		validateOptions();
 		await ensureComment(octokit, effectiveBody, { appendOverride: true });
 		logger.info('ensured PR sticky comment with deployment link');
 	} catch (error) {
