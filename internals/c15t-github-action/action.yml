@@ -57,6 +57,33 @@ inputs:
   path:
     description: "glob path to file(s) containing comment message"
     required: false
+  # Vercel deployment inputs (optional). When provided, the action will deploy before commenting.
+  vercel_token:
+    description: "Vercel API token"
+    required: false
+  vercel_project_id:
+    description: "Vercel Project ID"
+    required: false
+  vercel_org_id:
+    description: "Vercel Org (Team) ID"
+    required: false
+  working_directory:
+    description: "Directory to deploy (docs working directory)"
+    required: false
+    default: ".docs"
+  framework:
+    description: "Framework for Vercel project settings"
+    required: false
+    default: "nextjs"
+  target:
+    description: "Deployment target: production|staging"
+    required: false
+  canary_alias:
+    description: "Alias to assign when deploying from a configured branch"
+    required: false
+  assign_alias_on_branch:
+    description: "Branch name on which to assign the alias (empty to disable)"
+    required: false
   ignore_empty:
     description: "Indicates whether to ignore missing or empty messages"
     default: "false"
@@ -89,6 +116,8 @@ outputs:
     description: "ID of previous comment, if found"
   created_comment_id:
     description: "ID of newly created comment, if any"
+  deployment_url:
+    description: "Vercel deployment URL, when deployment inputs are provided"
 runs:
   using: "node20"
   main: "dist/index.js"

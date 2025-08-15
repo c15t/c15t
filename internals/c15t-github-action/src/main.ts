@@ -23,8 +23,10 @@ import {
 	updateComment,
 } from './comment';
 import {
+	aliasOnBranch,
 	append,
 	authorLogin,
+	canaryAlias,
 	deleteOldComment,
 	getBody,
 	githubToken,
@@ -40,7 +42,14 @@ import {
 	recreate,
 	repo,
 	skipUnchanged,
+	vercelFramework,
+	vercelOrgId,
+	vercelProjectId,
+	vercelTarget,
+	vercelToken,
+	vercelWorkingDirectory,
 } from './config';
+import { type DeployTarget, deployToVercel } from './deploy';
 
 /**
  * Runs the action's main workflow.
@@ -68,21 +77,46 @@ import {
  * await (async () => { await run(); })();
  */
 async function run(): Promise<undefined> {
-	if (Number.isNaN(pullRequestNumber) || pullRequestNumber < 1) {
-		core.info('no pull request numbers given: skip step');
-		return;
-	}
-
 	try {
+		// Perform deployment first if configured; commenting may be skipped later
+		// If Vercel inputs are provided, perform deployment first
+		let deploymentUrl: string | undefined;
+		if (vercelToken && vercelProjectId && vercelOrgId) {
+			const result = await deployToVercel({
+				token: vercelToken,
+				projectId: vercelProjectId,
+				orgId: vercelOrgId,
+				workingDirectory: vercelWorkingDirectory,
+				framework: vercelFramework,
+				target: (vercelTarget as DeployTarget) || undefined,
+				aliasDomain: canaryAlias || undefined,
+				aliasBranch: aliasOnBranch || undefined,
+			});
+			deploymentUrl = result.url;
+			core.setOutput('deployment_url', deploymentUrl);
+		}
+
 		const body = await getBody();
+		const effectiveBody =
+			deploymentUrl && !body
+				? `🚀 Your documentation preview is ready!\n\n🔗 Live URL: ${deploymentUrl}`
+				: body;
+
+		// If this run is not associated with a PR, skip commenting but treat as success
+		if (Number.isNaN(pullRequestNumber) || pullRequestNumber < 1) {
+			core.info('no pull request number: deploy done, commenting skipped');
+			return;
+		}
 
 		if (!body && ignoreEmpty) {
 			core.info('no body given: skip step by ignoreEmpty');
 			return;
 		}
 
-		if (!deleteOldComment && !hideOldComment && !body) {
-			throw new Error('Either message or path input is required');
+		if (!deleteOldComment && !hideOldComment && !effectiveBody) {
+			throw new Error(
+				'Either message/path input is required or Vercel inputs must be set'
+			);
 		}
 
 		if (deleteOldComment && recreate) {
@@ -123,7 +157,9 @@ async function run(): Promise<undefined> {
 				octokit,
 				repo,
 				pullRequestNumber,
-				body,
+				deploymentUrl && !body
+					? `🚀 Your documentation preview is ready!\n\n🔗 Live URL: ${deploymentUrl}`
+					: body,
 				header
 			);
 			core.setOutput('created_comment_id', created?.data.id);
@@ -141,7 +177,10 @@ async function run(): Promise<undefined> {
 			return;
 		}
 
-		if (skipUnchanged && commentsEqual(body, previous.body || '', header)) {
+		if (
+			skipUnchanged &&
+			commentsEqual(effectiveBody || '', previous.body || '', header)
+		) {
 			// don't recreate or update if the message is unchanged
 			return;
 		}
@@ -157,7 +196,7 @@ async function run(): Promise<undefined> {
 				octokit,
 				repo,
 				pullRequestNumber,
-				body,
+				effectiveBody || '',
 				header,
 				previousBody
 			);
@@ -171,14 +210,20 @@ async function run(): Promise<undefined> {
 				octokit,
 				repo,
 				pullRequestNumber,
-				body,
+				effectiveBody || '',
 				header
 			);
 			core.setOutput('created_comment_id', created?.data.id);
 			return;
 		}
 
-		await updateComment(octokit, previous.id, body, header, previousBody);
+		await updateComment(
+			octokit,
+			previous.id,
+			effectiveBody || '',
+			header,
+			previousBody
+		);
 	} catch (error) {
 		if (error instanceof Error) {
 			core.setFailed(error.message);

@@ -74,6 +74,29 @@ export const ignoreEmpty = core.getBooleanInput('ignore_empty', {
 export const authorLogin =
 	core.getInput('author_login', { required: false }) || 'c15t';
 
+/** Vercel token to authenticate API requests. */
+export const vercelToken = core.getInput('vercel_token', { required: false });
+/** Vercel project ID. */
+export const vercelProjectId = core.getInput('vercel_project_id', {
+	required: false,
+});
+/** Vercel org/team ID. */
+export const vercelOrgId = core.getInput('vercel_org_id', { required: false });
+/** Directory to deploy (relative to repo root). */
+export const vercelWorkingDirectory =
+	core.getInput('working_directory', { required: false }) || '.docs';
+/** Vercel framework name. */
+export const vercelFramework =
+	core.getInput('framework', { required: false }) || 'nextjs';
+/** Explicit target override: production|staging. */
+export const vercelTarget = core.getInput('target', { required: false });
+/** Optional alias to assign on matching branch. */
+export const canaryAlias = core.getInput('canary_alias', { required: false });
+/** Branch name which triggers alias assignment. */
+export const aliasOnBranch = core.getInput('assign_alias_on_branch', {
+	required: false,
+});
+
 /**
  * Builds the repository descriptor from action inputs and context.
  *
