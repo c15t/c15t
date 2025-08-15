@@ -151,7 +151,7 @@ jobs:
       - name: 🔧 Build internal GitHub Action
         working-directory: internals/c15t-github-action
         run: |
-          pnpm install -g ncc
+          pnpm install
           pnpm ncc build src/main.ts -o dist -m
 
       - name: ▲ Deploy docs to Vercel and comment PR
