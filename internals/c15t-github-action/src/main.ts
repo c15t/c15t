@@ -64,17 +64,15 @@ function buildDefaultPreviewComment(url: string, projectLabel: string): string {
 		'                __)            (__            ',
 		'               __)              (__           ',
 		'      ---.______)                 (______.---  ',
+		'',
+		'            Your docs preview is ready         ',
+		'',
 	].join('\n');
 
 	return [
 		'```',
 		ascii,
 		'```',
-		'',
-		'<div align="center">',
-		'  <strong>🚀 Your preview is ready</strong>',
-		'</div>',
-		'',
 		'| Project | Preview | Status | Updated (UTC) |',
 		'| - | - | - | - |',
 		`| ${projectLabel} | [Open Preview](${url}) | Ready | ${updated} |`,
