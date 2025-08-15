@@ -117,6 +117,8 @@ jobs:
       - name: 🔐 Generate GitHub App token
         id: app_token
         uses: actions/create-github-app-token@v1
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository  
+        continue-on-error: true  
         with:
           app-id: ${{ secrets.CONSENT_APP_ID }}
           private-key: ${{ secrets.CONSENT_APP_PRIVATE_KEY }}
@@ -148,7 +150,7 @@ jobs:
       - name: 🔧 Build internal GitHub Action
         working-directory: internals/c15t-github-action
         run: |
-          pnpm build
+          pnpm dlx ncc build src/main.ts -o dist -m
 
       - name: ▲ Deploy docs to Vercel and comment PR
         id: vercel
