@@ -41,11 +41,19 @@ jobs:
             }
             core.setOutput('pr_number', prNumber);
 
+      - name: Generate GitHub App token
+        id: app_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.CONSENT_APP_ID }}
+          private-key: ${{ secrets.CONSENT_APP_PRIVATE_KEY }}
+
       - name: Post sticky test comment
         if: ${{ steps.find_pr.outputs.pr_number != '' }}
         uses: ./internals/c15t-github-action
         with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app_token.outputs.token }}
+          author_login: consent-io
           header: "[test]"
           number: ${{ steps.find_pr.outputs.pr_number }}
           append: "true"
