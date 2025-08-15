@@ -97,6 +97,23 @@ export const aliasOnBranch = core.getInput('assign_alias_on_branch', {
 	required: false,
 });
 
+/** Newline-separated alias domains to assign (supports templating). */
+export const aliasDomains = core
+	.getMultilineInput('alias_domains', { required: false })
+	.filter(Boolean);
+/** Pass-through vercel args (currently supports -m/--meta pairs). */
+export const vercelArgs = core.getInput('vercel_args', { required: false });
+/** Vercel scope/team slug override. */
+export const vercelScope = core.getInput('vercel_scope', { required: false });
+/** Reserved CLI version input (for compatibility). */
+export const vercelVersion = core.getInput('vercel_version', {
+	required: false,
+});
+/** Also comment on push (commit) events. */
+export const commentOnPush = core.getBooleanInput('comment_on_push', {
+	required: false,
+});
+
 /**
  * Builds the repository descriptor from action inputs and context.
  *

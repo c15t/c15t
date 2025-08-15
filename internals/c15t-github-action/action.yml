@@ -84,6 +84,22 @@ inputs:
   assign_alias_on_branch:
     description: "Branch name on which to assign the alias (empty to disable)"
     required: false
+  alias_domains:
+    description: "Newline-separated list of alias domains. Supports {{PR_NUMBER}} and {{BRANCH}} templating."
+    required: false
+  vercel_args:
+    description: "Optional vercel CLI-like args. Currently supports -m/--meta key=value pairs to add to meta."
+    required: false
+  vercel_scope:
+    description: "Vercel scope/team slug. If provided, overrides org/team id for API calls."
+    required: false
+  vercel_version:
+    description: "Vercel CLI version (ignored in REST mode; reserved for potential CLI fallback)."
+    required: false
+  comment_on_push:
+    description: "When true, also create/update a commit comment on push events."
+    default: "false"
+    required: false
   ignore_empty:
     description: "Indicates whether to ignore missing or empty messages"
     default: "false"

@@ -23,10 +23,12 @@ import {
 	updateComment,
 } from './comment';
 import {
+	aliasDomains,
 	aliasOnBranch,
 	append,
 	authorLogin,
 	canaryAlias,
+	commentOnPush,
 	deleteOldComment,
 	getBody,
 	githubToken,
@@ -42,9 +44,11 @@ import {
 	recreate,
 	repo,
 	skipUnchanged,
+	vercelArgs,
 	vercelFramework,
 	vercelOrgId,
 	vercelProjectId,
+	vercelScope,
 	vercelTarget,
 	vercelToken,
 	vercelWorkingDirectory,
@@ -78,10 +82,54 @@ import { type DeployTarget, deployToVercel } from './deploy';
  */
 async function run(): Promise<undefined> {
 	try {
+		const octokit = github.getOctokit(githubToken);
 		// Perform deployment first if configured; commenting may be skipped later
 		// If Vercel inputs are provided, perform deployment first
 		let deploymentUrl: string | undefined;
+		let environmentName: string | undefined;
+		let deploymentId: number | undefined;
+		const ref = github.context.ref || '';
+		const headRef =
+			(github.context as unknown as { head_ref?: string }).head_ref || '';
+		const branch =
+			headRef ||
+			(ref.startsWith('refs/heads/') ? ref.replace('refs/heads/', '') : ref);
 		if (vercelToken && vercelProjectId && vercelOrgId) {
+			// Create GitHub Deployment (best-effort)
+			const targetHint =
+				(vercelTarget as DeployTarget) ||
+				(branch === 'main'
+					? ('production' as DeployTarget)
+					: ('staging' as DeployTarget));
+			environmentName =
+				targetHint === 'production' ? 'production' : `preview/${branch}`;
+			try {
+				const ghDeployment = await octokit.rest.repos.createDeployment({
+					...github.context.repo,
+					ref: github.context.sha,
+					required_contexts: [],
+					environment: environmentName,
+					transient_environment: environmentName !== 'production',
+					production_environment: environmentName === 'production',
+					auto_merge: false,
+					auto_inactive: false,
+					description: 'Vercel deployment',
+				});
+				deploymentId = (ghDeployment as unknown as { data?: { id?: number } })
+					.data?.id;
+				if (typeof deploymentId === 'number') {
+					await octokit.rest.repos.createDeploymentStatus({
+						...github.context.repo,
+						deployment_id: deploymentId,
+						state: 'in_progress',
+						description: 'Starting Vercel deploy',
+					});
+				}
+			} catch (e) {
+				core.warning(
+					`Could not create GitHub Deployment: ${e instanceof Error ? e.message : String(e)}`
+				);
+			}
 			const result = await deployToVercel({
 				token: vercelToken,
 				projectId: vercelProjectId,
@@ -91,9 +139,28 @@ async function run(): Promise<undefined> {
 				target: (vercelTarget as DeployTarget) || undefined,
 				aliasDomain: canaryAlias || undefined,
 				aliasBranch: aliasOnBranch || undefined,
+				aliasDomains,
+				vercelArgs,
+				vercelScope,
 			});
 			deploymentUrl = result.url;
 			core.setOutput('deployment_url', deploymentUrl);
+			// Mark success
+			if (typeof deploymentId === 'number') {
+				try {
+					await octokit.rest.repos.createDeploymentStatus({
+						...github.context.repo,
+						deployment_id: deploymentId,
+						state: 'success',
+						description: `Preview ready${environmentName ? `: ${environmentName}` : ''}`,
+						environment_url: deploymentUrl,
+					});
+				} catch (e) {
+					core.warning(
+						`Could not set deployment success: ${e instanceof Error ? e.message : String(e)}`
+					);
+				}
+			}
 		}
 
 		const body = await getBody();
@@ -102,9 +169,26 @@ async function run(): Promise<undefined> {
 				? `🚀 Your documentation preview is ready!\n\n🔗 Live URL: ${deploymentUrl}`
 				: body;
 
-		// If this run is not associated with a PR, skip commenting but treat as success
+		// If not a PR, optionally comment on push (commit) events; otherwise skip
 		if (Number.isNaN(pullRequestNumber) || pullRequestNumber < 1) {
-			core.info('no pull request number: deploy done, commenting skipped');
+			if (!commentOnPush) {
+				core.info('no pull request number: deploy done, commenting skipped');
+				return;
+			}
+			// Commit comment path
+			if (deploymentUrl) {
+				try {
+					await octokit.rest.repos.createCommitComment({
+						...github.context.repo,
+						commit_sha: github.context.sha,
+						body: effectiveBody || `🚀 Preview ready\n\n🔗 ${deploymentUrl}`,
+					});
+				} catch (e) {
+					core.warning(
+						`Could not post commit comment: ${e instanceof Error ? e.message : String(e)}`
+					);
+				}
+			}
 			return;
 		}
 
@@ -131,7 +215,6 @@ async function run(): Promise<undefined> {
 			throw new Error('hide and hide_and_recreate cannot be both set to true');
 		}
 
-		const octokit = github.getOctokit(githubToken);
 		const previous = await findPreviousComment(
 			octokit,
 			repo,

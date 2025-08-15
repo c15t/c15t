@@ -25,6 +25,12 @@ export interface VercelDeployOptions {
 	aliasDomain?: string;
 	/** Branch name that must match to assign the alias (e.g. canary). */
 	aliasBranch?: string;
+	/** Multiple alias domains (templating supported, e.g. {{PR_NUMBER}}, {{BRANCH}}). */
+	aliasDomains?: string[];
+	/** Raw vercel-like args string to parse for -m/--meta key=value pairs. */
+	vercelArgs?: string;
+	/** Optional Vercel scope/team slug to include in metadata. */
+	vercelScope?: string;
 }
 
 export interface VercelDeployResult {
@@ -119,6 +125,49 @@ function resolveTarget(env: NodeJS.ProcessEnv): DeployTarget {
 	return env.GITHUB_REF === 'refs/heads/main' ? 'production' : 'staging';
 }
 
+function slugify(input: string): string {
+	return input
+		.toString()
+		.trim()
+		.toLowerCase()
+		.replace(/[_\s]+/g, '-')
+		.replace(/[^\w-]+/g, '')
+		.replace(/--+/g, '-')
+		.replace(/^-+/, '')
+		.replace(/-+$/, '');
+}
+
+function parseMetaArgs(raw: string | undefined): Record<string, string> {
+	if (!raw) return {};
+	const meta: Record<string, string> = {};
+	const tokens = raw.match(/'([^']*)'|"([^"]*)"|[^\s]+/gm) ?? [];
+	for (let i = 0; i < tokens.length; i++) {
+		const token = tokens[i];
+		if (token === '-m' || token === '--meta') {
+			const kv = tokens[i + 1] ?? '';
+			i++;
+			const eq = kv.indexOf('=');
+			if (eq > 0) {
+				const k = kv.slice(0, eq);
+				const v = kv.slice(eq + 1).replace(/^"|"$/g, '');
+				meta[k] = v;
+			}
+		}
+	}
+	return meta;
+}
+
+function templateAliasDomains(domains: string[] | undefined): string[] {
+	if (!domains || domains.length === 0) return [];
+	const prNumber = process.env.GITHUB_PR_NUMBER || '';
+	const isPr = Boolean(prNumber);
+	const ref = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF || '';
+	const branch = slugify(ref.replace('refs/heads/', ''));
+	return domains
+		.map((d) => d.replace(/\{\{\s*BRANCH\s*\}\}/g, branch))
+		.map((d) => (isPr ? d.replace(/\{\{\s*PR_NUMBER\s*\}\}/g, prNumber) : d));
+}
+
 /**
  * Deploys the directory at `workingDirectory` to Vercel using the v13 API.
  * Optionally assigns an alias domain if `aliasDomain` and `aliasBranch` match.
@@ -159,6 +208,7 @@ export async function deployToVercel(
 		};
 	});
 
+	const additionalMeta = parseMetaArgs(options.vercelArgs);
 	const body = JSON.stringify({
 		name: 'c15t',
 		project: options.projectId,
@@ -177,6 +227,8 @@ export async function deployToVercel(
 			githubPrHeadRef: prHeadRef,
 			githubPrBaseRef: prBaseRef,
 			source: 'github',
+			...(options.vercelScope ? { githubScope: options.vercelScope } : {}),
+			...additionalMeta,
 		},
 		projectSettings: {
 			framework: options.framework || 'nextjs',
@@ -222,55 +274,64 @@ export async function deployToVercel(
 		throw new Error('Vercel did not return a deployment URL.');
 	}
 
-	// Assign alias if configured and branch matches
+	// Assign alias if configured and branch matches. Support multiple domains with templating.
+	const allAliases = [
+		...(options.aliasDomain ? [options.aliasDomain] : []),
+		...templateAliasDomains(options.aliasDomains),
+	];
 	if (
-		options.aliasDomain &&
+		allAliases.length &&
 		options.aliasBranch &&
 		getBranch(process.env) === options.aliasBranch &&
 		json.id
 	) {
-		try {
-			await new Promise<void>((resolve, reject) => {
-				const aliasBody = JSON.stringify({ alias: options.aliasDomain });
-				const req = https.request(
-					{
-						hostname: 'api.vercel.com',
-						path: `/v2/deployments/${encodeURIComponent(json.id as string)}/aliases?teamId=${encodeURIComponent(options.orgId)}`,
-						method: 'POST',
-						headers: {
-							Authorization: `Bearer ${options.token}`,
-							'Content-Type': 'application/json',
-							'Content-Length': Buffer.byteLength(aliasBody),
+		for (const domain of allAliases) {
+			try {
+				await new Promise<void>((resolve, reject) => {
+					const aliasBody = JSON.stringify({ alias: domain });
+					const req = https.request(
+						{
+							hostname: 'api.vercel.com',
+							path: `/v2/deployments/${encodeURIComponent(json.id as string)}/aliases?teamId=${encodeURIComponent(options.orgId)}`,
+							method: 'POST',
+							headers: {
+								Authorization: `Bearer ${options.token}`,
+								'Content-Type': 'application/json',
+								'Content-Length': Buffer.byteLength(aliasBody),
+							},
 						},
-					},
-					(res) => {
-						const chunks: Buffer[] = [];
-						res.on('data', (d) => chunks.push(d));
-						res.on('end', () => {
-							const txt = Buffer.concat(chunks).toString('utf8');
-							if (
-								res.statusCode &&
-								res.statusCode >= 200 &&
-								res.statusCode < 300
-							) {
-								resolve();
-								return;
-							}
-							reject(
-								new Error(
-									`Failed to alias domain ${options.aliasDomain}: ${res.statusCode}\n${txt}`
-								)
-							);
-						});
-					}
-				);
-				req.on('error', (err) => reject(err));
-				req.write(aliasBody);
-				req.end();
-			});
-			url = `https://${options.aliasDomain}`;
-		} catch {
-			// Swallow alias errors and keep the original URL
+						(res) => {
+							const chunks: Buffer[] = [];
+							res.on('data', (d) => chunks.push(d));
+							res.on('end', () => {
+								const txt = Buffer.concat(chunks).toString('utf8');
+								if (
+									res.statusCode &&
+									res.statusCode >= 200 &&
+									res.statusCode < 300
+								) {
+									resolve();
+									return;
+								}
+								reject(
+									new Error(
+										`Failed to alias domain ${domain}: ${res.statusCode}\n${txt}`
+									)
+								);
+							});
+						}
+					);
+					req.on('error', (err) => reject(err));
+					req.write(aliasBody);
+					req.end();
+				});
+				// Prefer the first alias as the canonical url
+				if (domain?.includes('.')) {
+					url = `https://${domain}`;
+				}
+			} catch {
+				// ignore alias errors and continue
+			}
 		}
 	}
 
