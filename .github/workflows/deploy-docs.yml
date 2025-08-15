@@ -131,6 +131,7 @@ jobs:
 
       # 📚 Fetch private docs template and prepare .docs for build
       - name: 📚 Setup Documentation Template
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         run: |
           npx -y tsx scripts/setup-docs.ts --vercel
         env:
@@ -150,13 +151,13 @@ jobs:
       - name: 🔧 Build internal GitHub Action
         working-directory: internals/c15t-github-action
         run: |
-          pnpm dlx ncc build src/main.ts -o dist -m
+          npx ncc build src/main.ts -o dist -m
 
       - name: ▲ Deploy docs to Vercel and comment PR
         id: vercel
         uses: ./internals/c15t-github-action
         with:
-          GITHUB_TOKEN: ${{ steps.app_token.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.app_token.outputs.token || github.token }}
           header: c15t-docs-preview
           append: "true"
           hide_details: "true"

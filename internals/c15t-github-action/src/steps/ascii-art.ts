@@ -1,3 +1,15 @@
+/**
+ * Weighted ASCII-art entry used by the PR comment UI.
+ *
+ * The `art` string is a fully composed block (lines joined by `\n`).
+ * `weight` controls selection probability when sampling from the set.
+ * Use small positive integers (>= 1); a default of `1` is typical.
+ *
+ * @see ASCII_SET
+ * @example
+ * // Access the first entry and print its art
+ * console.log(ASCII_SET[0].art);
+ */
 export interface WeightedAsciiArt {
 	art: string;
 	weight: number;
@@ -132,10 +144,16 @@ export const ASCII_SET = [
 		].join('\n'),
 		weight: 1,
 	},
-];
+] as const satisfies _AsciiSet;
 
-// Keep the array immutable and validated against the expected shape
-// (avoids accidental runtime mutations)
+/**
+ * Readonly view of the ASCII-art catalog entries.
+ *
+ * Used to validate the shape of `ASCII_SET` and to keep its elements
+ * readonly at the type level.
+ *
+ * @internal
+ */
 export type _AsciiSet = readonly Readonly<WeightedAsciiArt>[];
 export const BRAILLE_SPACE = '⠀'; // U+2800, used to make spacing robust in GH markdown
 export const LEFT_PAD = '   ';
