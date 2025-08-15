@@ -24,14 +24,14 @@ const ASCII_SET: WeightedAsciiArt[] = [
 			'⠀⢠⣿⡿⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⢿⣷⣄⠀',
 			'⢀⣿⡿⠁⠀⠀⢰⣿⣿⠄⠀⠀⠀⠀⠀⠀⠈⢻⣿⡀',
 			'⣾⣿⠃⠀⠀⠀⠀⠙⠉⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⡇  your docs are ready',
-			'⢿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠀⠀⠀⠀⣿⣿  ps. here’s a cookie too',
+			'⢿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠀⠀⠀⠀⣿⣿  We also baked a cookie for you',
 			'⢺⣿⡆⠀⠀⢀⣠⡀⠀⠀⠀⠀⣾⣿⡇⠀⠀⢠⣿⡟',
 			'⠘⣿⣧⠀⠀⢸⣿⡟⠀⠀⠀⠀⠈⠉⠀⠀⢀⣾⡿⠁',
 			'⠀⠙⢿⣷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣾⣿⠃⠀',
 			'⠀⠀⠈⠻⣿⣷⣤⣀⣀⣀⡀⣀⣠⣴⣿⣿⠟⠁⠀⠀',
 			'⠀⠀⠀⠀⠈⠙⠻⠿⠿⢿⣿⣿⠿⠟⠉⠀⠀⠀⠀⠀',
 		].join('\n'),
-		weight: 10,
+		weight: 1,
 	},
 	{
 		art: [
@@ -51,11 +51,27 @@ const ASCII_SET: WeightedAsciiArt[] = [
 			'we cant keep up with these vibes',
 			'      your docs are ready',
 		].join('\n'),
-		weight: 10,
+		weight: 1,
+	},
+	{
+		art: [
+			'        |',
+			'       / \\',
+			'      / _ \\',
+			"     |.o '.|",
+			"     |'._.'|",
+			'     |     |',
+			"   ,'|  |  |`.",
+			'  /  |  |  |  \\',
+			"  |,-'--|--'-.|",
+			'',
+			'  your docs are ready for lift-off 🚀',
+		].join('\n'),
+		weight: 1,
 	},
 ];
 
-function pickWeightedAscii(choices: WeightedAsciiArt[]): string {
+function pickWeightedAscii(choices: WeightedAsciiArt[], seed?: string): string {
 	let total = 0;
 	for (const c of choices) {
 		const w = c.weight > 0 ? c.weight : 0;
@@ -64,7 +80,19 @@ function pickWeightedAscii(choices: WeightedAsciiArt[]): string {
 	if (total <= 0) {
 		return choices[0]?.art || '';
 	}
-	const r = Math.random() * total;
+	// Deterministic fallback when a seed is provided (FNV-1a style hash)
+	let r: number;
+	if (seed) {
+		let h = 2166136261 >>> 0;
+		for (let i = 0; i < seed.length; i++) {
+			h ^= seed.charCodeAt(i);
+			// h *= 16777619 (using shifts to avoid bigint)
+			h = (h + (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24)) >>> 0;
+		}
+		r = (h % total) as number;
+	} else {
+		r = Math.random() * total;
+	}
 	let acc = 0;
 	for (const c of choices) {
 		const w = c.weight > 0 ? c.weight : 0;
@@ -78,12 +106,12 @@ function pickWeightedAscii(choices: WeightedAsciiArt[]): string {
 
 export function buildDefaultPreviewComment(
 	url: string,
-	options?: { debug?: boolean }
+	options?: { debug?: boolean; seed?: string }
 ): string {
 	const updated = new Date().toUTCString();
 	const ascii = options?.debug
 		? ASCII_SET.map((a) => a.art).join('\n\n')
-		: pickWeightedAscii(ASCII_SET);
+		: pickWeightedAscii(ASCII_SET, options?.seed ?? url);
 	const lines: string[] = [];
 	lines.push('```');
 	lines.push(ascii);
