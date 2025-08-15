@@ -1,0 +1,95 @@
+name: "C15T Sticky Pull Request Comment"
+description: "Create or update a sticky comment on pull requests (C15T fork)."
+author: "c15t"
+github-token:
+  action-input:
+    input: GITHUB_TOKEN
+    is-default: true
+
+  permissions:
+    pull-requests: write
+    pull-requests-reason: to create or update PR comment
+
+inputs:
+  header:
+    description: "Header to determine if the comment is to be updated, not shown on screen. It can be used when you want to add multiple comments independently at the same time."
+    default: ""
+    required: false
+  append:
+    description: "Indicate if new comment messages should be appended to previous comment message. Only `true` is allowed. Just skip this item when you don't need it."
+    default: "false"
+    required: false
+  recreate:
+    description: "Indicate if previous comment should be removed before creating a new comment. Only `true` is allowed. Just skip this item when you don't need it."
+    default: "false"
+    required: false
+  delete:
+    description: "delete the previously created comment. Only `true` is allowed. Just skip this item when you don't need it."
+    default: "false"
+    required: false
+  only_create:
+    description: "only create a new comment if there is no existing one, otherwise do nothing. Only `true` is allowed. Just skip this item when you don't need it. This options has higher priority than hide_and_recreate, hide."
+    default: "false"
+    required: false
+  only_update:
+    description: "only update a exist comment if there is existing one, otherwise do nothing. Only `true` is allowed. Just skip this item when you don't need it."
+    default: "false"
+    required: false
+  hide_details:
+    description: "hide summary tags in the previously created comment. Only `true` is allowed. Just skip this item when you don't need it."
+    default: "false"
+    required: false
+  hide:
+    description: "hide previously created comment. Only `true` is allowed. Just skip this item when you don't need it."
+    default: "false"
+    required: false
+  hide_and_recreate:
+    description: "Indicate if previous comment should be hide before creating a new comment. Only `true` is allowed. Just skip this item when you don't need it."
+    default: "false"
+    required: false
+  hide_classify:
+    description: "The reasons a piece of content can be reported or minimized. SPAM, ABUSE, OFF_TOPIC, OUTDATED, DUPLICATE, RESOLVED."
+    default: "OUTDATED"
+    required: false
+  message:
+    description: "comment message"
+    required: false
+  path:
+    description: "glob path to file(s) containing comment message"
+    required: false
+  ignore_empty:
+    description: "Indicates whether to ignore missing or empty messages"
+    default: "false"
+    required: false
+  skip_unchanged:
+    description: "only update or recreate if message is different from previous. Only `true` is allowed. Just skip this item when you don't need it."
+    default: "false"
+    required: false
+  author_login:
+    description: "Explicit GitHub login to match when locating the existing sticky comment (e.g. consentdotio). If omitted, the authenticated actor is used."
+    required: false
+  follow_symbolic_links:
+    description: "Indicates whether to follow symbolic links for path"
+    default: "false"
+    required: false
+  number:
+    description: "pull request number for push event"
+    required: false
+  owner:
+    description: "Another repo owner, If not set, the current repo owner is used by default. Note that when you trying changing a repo, be aware that GITHUB_TOKEN should also have permission for that repository."
+    required: false
+  repo:
+    description: "Another repo name limited use on github enterprise. If not set, the current repo is used by default. Note that When you trying changing a repo, be aware that GITHUB_TOKEN should also use that repo's."
+    required: false
+  GITHUB_TOKEN:
+    description: "The GitHub access token (e.g. secrets.GITHUB_TOKEN) used to create or update the comment. This defaults to ${{ github.token }}."
+    default: "${{ github.token }}"
+    required: false
+outputs:
+  previous_comment_id:
+    description: "ID of previous comment, if found"
+  created_comment_id:
+    description: "ID of newly created comment, if any"
+runs:
+  using: "node20"
+  main: "dist/index.js"

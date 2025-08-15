@@ -1,0 +1,189 @@
+/**
+ * @packageDocumentation
+ * Entry point for the c15t GitHub Action that manages a sticky
+ * pull request comment. The action can create, update, minimize,
+ * delete, or recreate a PR comment, and optionally append to the
+ * existing content while preserving a sentinel header.
+ *
+ * The behavior is configured via inputs read in `config.ts` and the
+ * actual comment operations are implemented in `comment.ts`.
+ *
+ * @see `./config.ts`
+ * @see `./comment.ts`
+ */
+import * as core from '@actions/core';
+import * as github from '@actions/github';
+import {
+	commentsEqual,
+	createComment,
+	deleteComment,
+	findPreviousComment,
+	getBodyOf,
+	minimizeComment,
+	updateComment,
+} from './comment';
+import {
+	append,
+	authorLogin,
+	deleteOldComment,
+	getBody,
+	githubToken,
+	header,
+	hideAndRecreate,
+	hideClassify,
+	hideDetails,
+	hideOldComment,
+	ignoreEmpty,
+	onlyCreateComment,
+	onlyUpdateComment,
+	pullRequestNumber,
+	recreate,
+	repo,
+	skipUnchanged,
+} from './config';
+
+/**
+ * Runs the action's main workflow.
+ *
+ * The workflow is:
+ * - Validate configuration (mutually exclusive options and required inputs).
+ * - Resolve the comment body from message or files.
+ * - Find an existing sticky comment on the PR (if any).
+ * - Perform the requested operation (create/update/minimize/delete/recreate).
+ *
+ * It sets the following outputs when applicable:
+ * - `previous_comment_id`: ID of the found previous comment (if any)
+ * - `created_comment_id`: ID of a newly created comment (when created)
+ *
+ * @returns A promise that resolves with `undefined` when the workflow
+ * finishes. The function uses `@actions/core` to signal failures.
+ *
+ * @throws {Error} When invalid combinations of options are provided,
+ * such as `delete` with `recreate`, `only_create` with `only_update`,
+ * or `hide` with `hide_and_recreate`.
+ *
+ * @example
+ * // Typical execution is handled by the GitHub Actions runtime. For
+ * // local reasoning/testing, just call run():
+ * await (async () => { await run(); })();
+ */
+async function run(): Promise<undefined> {
+	if (Number.isNaN(pullRequestNumber) || pullRequestNumber < 1) {
+		core.info('no pull request numbers given: skip step');
+		return;
+	}
+
+	try {
+		const body = await getBody();
+
+		if (!body && ignoreEmpty) {
+			core.info('no body given: skip step by ignoreEmpty');
+			return;
+		}
+
+		if (!deleteOldComment && !hideOldComment && !body) {
+			throw new Error('Either message or path input is required');
+		}
+
+		if (deleteOldComment && recreate) {
+			throw new Error('delete and recreate cannot be both set to true');
+		}
+
+		if (onlyCreateComment && onlyUpdateComment) {
+			throw new Error('only_create and only_update cannot be both set to true');
+		}
+
+		if (hideOldComment && hideAndRecreate) {
+			throw new Error('hide and hide_and_recreate cannot be both set to true');
+		}
+
+		const octokit = github.getOctokit(githubToken);
+		const previous = await findPreviousComment(
+			octokit,
+			repo,
+			pullRequestNumber,
+			header,
+			authorLogin || undefined
+		);
+
+		core.setOutput('previous_comment_id', previous?.id);
+
+		if (deleteOldComment) {
+			if (previous) {
+				await deleteComment(octokit, previous.id);
+			}
+			return;
+		}
+
+		if (!previous) {
+			if (onlyUpdateComment) {
+				return;
+			}
+			const created = await createComment(
+				octokit,
+				repo,
+				pullRequestNumber,
+				body,
+				header
+			);
+			core.setOutput('created_comment_id', created?.data.id);
+			return;
+		}
+
+		if (onlyCreateComment) {
+			// don't comment anything, user specified only_create and there is an
+			// existing comment, so this is probably a placeholder / introduction one.
+			return;
+		}
+
+		if (hideOldComment) {
+			await minimizeComment(octokit, previous.id, hideClassify);
+			return;
+		}
+
+		if (skipUnchanged && commentsEqual(body, previous.body || '', header)) {
+			// don't recreate or update if the message is unchanged
+			return;
+		}
+
+		const previousBody = getBodyOf(
+			{ body: previous.body || '' },
+			append,
+			hideDetails
+		);
+		if (recreate) {
+			await deleteComment(octokit, previous.id);
+			const created = await createComment(
+				octokit,
+				repo,
+				pullRequestNumber,
+				body,
+				header,
+				previousBody
+			);
+			core.setOutput('created_comment_id', created?.data.id);
+			return;
+		}
+
+		if (hideAndRecreate) {
+			await minimizeComment(octokit, previous.id, hideClassify);
+			const created = await createComment(
+				octokit,
+				repo,
+				pullRequestNumber,
+				body,
+				header
+			);
+			core.setOutput('created_comment_id', created?.data.id);
+			return;
+		}
+
+		await updateComment(octokit, previous.id, body, header, previousBody);
+	} catch (error) {
+		if (error instanceof Error) {
+			core.setFailed(error.message);
+		}
+	}
+}
+
+run();

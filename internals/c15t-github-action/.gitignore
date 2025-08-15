@@ -1,0 +1,6 @@
+# Ensure the built action bundle is committed
+!dist/
+!dist/index.js
+!dist/**
+
+
