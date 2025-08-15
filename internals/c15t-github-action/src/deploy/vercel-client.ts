@@ -313,6 +313,7 @@ export async function deployToVercel(
 		getBranch(process.env) === options.aliasBranch &&
 		json.id
 	) {
+		let canonicalSet = false;
 		for (const domain of allAliases) {
 			try {
 				await new Promise<void>((resolve, reject) => {
@@ -353,9 +354,10 @@ export async function deployToVercel(
 					req.write(aliasBody);
 					req.end();
 				});
-				// Prefer the first alias as the canonical url
-				if (domain?.includes('.')) {
+				// Prefer the first alias as the canonical URL
+				if (!canonicalSet && domain?.includes('.')) {
 					url = `https://${domain}`;
+					canonicalSet = true;
 				}
 			} catch {
 				// ignore alias errors and continue

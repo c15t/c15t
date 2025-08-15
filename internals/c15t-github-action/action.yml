@@ -1,14 +1,6 @@
 name: "C15T Docs Preview (Deploy + PR Comment)"
-description: "Deploy docs to Vercel and comment PR"
+description: "Deploy docs to Vercel and comment PR. Requires 'pull-requests: write' permission to create or update PR comments."
 author: "c15t"
-github-token:
-  action-input:
-    input: GITHUB_TOKEN
-    is-default: true
-
-  permissions:
-    pull-requests: write
-    pull-requests-reason: to create or update PR comment
 
 inputs:
   # --- Orchestration & gating (to enable minimal workflows) ---

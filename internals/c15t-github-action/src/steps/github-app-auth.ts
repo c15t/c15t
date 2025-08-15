@@ -18,7 +18,15 @@ export async function getAuthToken(
 		});
 		let installationId: number | undefined;
 		if (installationIdInput) {
-			installationId = Number(installationIdInput);
+			const parsed = Number(installationIdInput);
+			if (Number.isInteger(parsed) && parsed > 0) {
+				installationId = parsed;
+			} else {
+				core.info(
+					'Invalid github_app_installation_id provided; falling back to default token'
+				);
+				return defaultToken;
+			}
 		} else {
 			const appOctokit = github.getOctokit(
 				(await appAuth({ type: 'app' })).token
@@ -30,7 +38,7 @@ export async function getAuthToken(
 			});
 			installationId = data.id;
 		}
-		if (typeof installationId !== 'number') {
+		if (!Number.isInteger(installationId) || (installationId as number) <= 0) {
 			core.info(
 				'Could not resolve GitHub App installation for this repo; falling back to default token'
 			);
@@ -38,7 +46,7 @@ export async function getAuthToken(
 		}
 		const installationAuth = await appAuth({
 			type: 'installation',
-			installationId,
+			installationId: installationId as number,
 		});
 		return installationAuth.token;
 	} catch (e) {

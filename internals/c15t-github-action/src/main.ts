@@ -70,6 +70,8 @@ function computeEffectiveBody(
  * // local reasoning/testing, just call run():
  * await (async () => { await run(); })();
  */
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this is a complex workflow
 async function run(): Promise<undefined> {
 	try {
 		core.info(
@@ -81,11 +83,11 @@ async function run(): Promise<undefined> {
 			githubAppPrivateKey,
 			githubAppInstallationId
 		);
-		core.info(
-			`[c15t] auth=${
-				githubAppId && githubAppPrivateKey ? 'github-app' : 'default-token'
-			}`
-		);
+		let authKind = 'default-token';
+		if (githubAppId && githubAppPrivateKey) {
+			authKind = 'github-app';
+		}
+		core.info(`[c15t] auth=${authKind}`);
 		const octokit = github.getOctokit(token);
 		core.info('[c15t] orchestrating deploy');
 		const deploymentUrl = await performVercelDeployment(octokit);

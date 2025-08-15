@@ -69,7 +69,7 @@ jobs:
           vercel_token: ${{ secrets.VERCEL_TOKEN }}
           vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
-          
+
           target: staging
           assign_alias_on_branch: canary
           alias_domains: |

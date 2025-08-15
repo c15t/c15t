@@ -236,30 +236,44 @@ export async function performVercelDeployment(
 	// Ensure Git metadata envs if not already present
 	await ensureGitMetaEnv(octokit);
 
-	const result = await deployToVercel({
-		token: vercelToken,
-		projectId: vercelProjectId,
-		orgId: vercelOrgId,
-		workingDirectory: vercelWorkingDirectory,
-		framework: vercelFramework,
-		target: (vercelTarget as DeployTarget) || undefined,
-		aliasDomain: canaryAlias || undefined,
-		aliasBranch: aliasOnBranch || undefined,
-		aliasDomains,
-		vercelArgs,
-		vercelScope,
-	});
-
-	const url = result.url;
-	core.setOutput('deployment_url', url);
-	if (typeof deploymentId === 'number') {
-		await setGithubDeploymentStatus(
-			octokit,
-			deploymentId,
-			'success',
-			`Preview ready${environmentName ? `: ${environmentName}` : ''}`,
-			url
+	try {
+		const result = await deployToVercel({
+			token: vercelToken,
+			projectId: vercelProjectId,
+			orgId: vercelOrgId,
+			workingDirectory: vercelWorkingDirectory,
+			framework: vercelFramework,
+			target: (vercelTarget as DeployTarget) || undefined,
+			aliasDomain: canaryAlias || undefined,
+			aliasBranch: aliasOnBranch || undefined,
+			aliasDomains,
+			vercelArgs,
+			vercelScope,
+		});
+		const url = result.url;
+		core.setOutput('deployment_url', url);
+		if (typeof deploymentId === 'number') {
+			await setGithubDeploymentStatus(
+				octokit,
+				deploymentId,
+				'success',
+				`Preview ready${environmentName ? `: ${environmentName}` : ''}`,
+				url
+			);
+		}
+		return url;
+	} catch (e) {
+		core.setFailed(
+			`vercel deployment failed: ${e instanceof Error ? e.message : String(e)}`
 		);
+		if (typeof deploymentId === 'number') {
+			await setGithubDeploymentStatus(
+				octokit,
+				deploymentId,
+				'failure',
+				'Vercel deployment failed'
+			);
+		}
+		return undefined;
 	}
-	return url;
 }

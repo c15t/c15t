@@ -197,10 +197,61 @@ describe('createComment', () => {
 			body: '<!-- c15t:TypeA:START -->\nhello there\n<!-- c15t:TypeA:END -->',
 		});
 	});
+	it('with previousBody unwraps and re-wraps content', async () => {
+		await expect(
+			createComment(octokit, repo, 456, 'hello', 'TypeA', 'prev')
+		).resolves.toBeDefined();
+		expect(octokit.rest.issues.createComment).toBeCalledWith({
+			issue_number: 456,
+			owner: repo.owner,
+			repo: repo.repo,
+			body: '<!-- c15t:TypeA:START -->\n\nhello\n<!-- c15t:TypeA:END -->',
+		});
+	});
+	it('with previousBody containing headers unwraps inner content', async () => {
+		const previousBodyWithHeaders =
+			'<!-- c15t:TypeA:START -->\nprevious content\n<!-- c15t:TypeA:END -->';
+		await expect(
+			createComment(
+				octokit,
+				repo,
+				456,
+				'new content',
+				'TypeA',
+				previousBodyWithHeaders
+			)
+		).resolves.toBeDefined();
+		expect(octokit.rest.issues.createComment).toBeCalledWith({
+			issue_number: 456,
+			owner: repo.owner,
+			repo: repo.repo,
+			body: '<!-- c15t:TypeA:START -->\nprevious content\nnew content\n<!-- c15t:TypeA:END -->',
+		});
+	});
 	it('without comment body and previousBody', async () => {
 		expect(await createComment(octokit, repo, 456, '', '')).toBeUndefined();
 		expect(octokit.rest.issues.createComment).not.toBeCalled();
 		expect(core.warning).toBeCalledWith('Comment body cannot be blank');
+	});
+	it('handles previousBody with malformed headers gracefully', async () => {
+		const malformedPreviousBody =
+			'<!-- c15t:TypeA:START -->\npartial content without end';
+		await expect(
+			createComment(
+				octokit,
+				repo,
+				456,
+				'new content',
+				'TypeA',
+				malformedPreviousBody
+			)
+		).resolves.toBeDefined();
+		expect(octokit.rest.issues.createComment).toBeCalledWith({
+			issue_number: 456,
+			owner: repo.owner,
+			repo: repo.repo,
+			body: '<!-- c15t:TypeA:START -->\n\nnew content\n<!-- c15t:TypeA:END -->',
+		});
 	});
 });
 

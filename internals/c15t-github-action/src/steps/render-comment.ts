@@ -13,7 +13,10 @@ function pickWeightedAscii(choices: WeightedAsciiArt[], seed?: string): string {
 		total += w;
 	}
 	if (total <= 0) {
-		return choices[0]?.art || '';
+		if (choices[0]?.art) {
+			return choices[0].art;
+		}
+		return '';
 	}
 	// Deterministic fallback when a seed is provided (FNV-1a style hash)
 	let r: number;
@@ -37,7 +40,11 @@ function pickWeightedAscii(choices: WeightedAsciiArt[], seed?: string): string {
 			return c.art;
 		}
 	}
-	return choices.at(-1)?.art || '';
+	const lastChoice = choices.at(-1);
+	if (lastChoice?.art) {
+		return lastChoice.art;
+	}
+	return '';
 }
 
 export function renderCommentMarkdown(
@@ -50,7 +57,10 @@ export function renderCommentMarkdown(
 	}
 ): string {
 	const updated = new Date().toUTCString();
-	const status = options?.status || 'Ready';
+	let status = 'Ready';
+	if (options?.status) {
+		status = options.status;
+	}
 
 	const formatArt = (ascii: string) => {
 		const asciiWithBrailleSpaces = ascii.replace(/ /g, BRAILLE_SPACE);
@@ -88,28 +98,41 @@ export function renderCommentMarkdown(
 		url?: string;
 		updated?: string;
 		firstContribution?: boolean;
-	}) =>
-		[
-			'```',
-			formatArt(firstContribution ? FIRST_TIME_CONTRIBUTOR_ASCII : art),
-			'```',
-			'',
-			...(firstContribution ? [firstTimeContributorMessage.join('\n')] : []),
-			...(url && updated ? [previewMessage.join('\n')] : []),
-			'',
-			'---',
-			'Baked with 💙 by [Consent](https://consent.io), powered by our completely necessary but very fun deployment comment system.',
-		]
-			.filter(Boolean)
-			.join('\n');
+	}) => {
+		const lines: string[] = [];
+		lines.push('```');
+		let artBlock = art;
+		if (firstContribution) {
+			artBlock = FIRST_TIME_CONTRIBUTOR_ASCII;
+		}
+		lines.push(formatArt(artBlock));
+		lines.push('```');
+		lines.push('');
+		if (firstContribution) {
+			lines.push(firstTimeContributorMessage.join('\n'));
+		}
+		if (url && updated) {
+			lines.push(previewMessage.join('\n'));
+		}
+		lines.push('');
+		lines.push('---');
+		lines.push(
+			'Baked with 💙 by [Consent](https://consent.io), powered by our completely necessary but very fun deployment comment system.'
+		);
+		return lines.join('\n');
+	};
 
 	if (options?.debug) {
 		return ASCII_SET.map((a) =>
 			messageTemplate({ art: a.art, url, updated })
 		).join('\n\n');
 	}
+	let seed = url;
+	if (options?.seed) {
+		seed = options.seed;
+	}
 	const inner = messageTemplate({
-		art: pickWeightedAscii(Array.from(ASCII_SET), options?.seed ?? url),
+		art: pickWeightedAscii(Array.from(ASCII_SET), seed),
 		url,
 		updated,
 		firstContribution: options?.firstContribution,

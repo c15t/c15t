@@ -8,7 +8,17 @@ export async function fetchLatestTemplateSha(
 	authToken?: string
 ): Promise<string | undefined> {
 	try {
+		if (!repo.includes('/')) {
+			throw new Error(
+				`Invalid repo format: "${repo}". Expected "owner/name" format.`
+			);
+		}
 		const [owner, name] = repo.split('/');
+		if (!owner || !name) {
+			throw new Error(
+				`Invalid repo format: "${repo}". Both owner and name are required.`
+			);
+		}
 		let client: ReturnType<typeof github.getOctokit> = octokit;
 		if (authToken) {
 			client = github.getOctokit(authToken);
@@ -28,6 +38,7 @@ export async function fetchLatestTemplateSha(
 	}
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this is a complex workflow
 export async function readLastTemplateShaFromDeployments(
 	octokit: ReturnType<typeof github.getOctokit>,
 	environment: string
@@ -87,12 +98,14 @@ export async function attachTemplateShaToDeployment(
 				...github.context.repo,
 				deployment_id: deploymentId,
 				state: 'success',
-				description: 'Preview ready',
+				description: `Preview ready (template: ${templateSha.substring(0, 7)})`,
 				mediaType: { previews: ['flash', 'ant-man'] },
 				environment_url: undefined,
 			}
 		);
-		// NOTE: GitHub API does not support updating payload; we record via status note above.
+		core.debug(
+			`Attached template SHA ${templateSha} to deployment ${deploymentId}`
+		);
 	} catch (e) {
 		core.debug(
 			`attachTemplateShaToDeployment: ${e instanceof Error ? e.message : String(e)}`

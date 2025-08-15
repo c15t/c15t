@@ -79,6 +79,7 @@ afterEach(() => {
 	delete process.env['INPUT_IGNORE_EMPTY'];
 	delete process.env['INPUT_SKIP_UNCHANGED'];
 	delete process.env['INPUT_FOLLOW_SYMBOLIC_LINKS'];
+	delete process.env['INPUT_AUTHOR_LOGIN'];
 });
 
 test('repo', async () => {

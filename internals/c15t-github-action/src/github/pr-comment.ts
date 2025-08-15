@@ -88,7 +88,9 @@ export async function findPreviousComment(
 				!node?.isMinimized &&
 				Boolean(node?.body?.includes(start))
 		);
-		if (target) return target;
+		if (target) {
+			return target;
+		}
 		after = repository.pullRequest?.comments?.pageInfo?.endCursor ?? null;
 		hasNextPage =
 			repository.pullRequest?.comments?.pageInfo?.hasNextPage ?? false;
@@ -138,12 +140,16 @@ export async function createComment(
 		core.warning('Comment body cannot be blank');
 		return;
 	}
+	const rawPreviousBody = previousBody
+		? bodyWithoutHeader(previousBody, header)
+		: '';
+	const composed = previousBody
+		? bodyWithHeader(`${rawPreviousBody}\n${body}`, header)
+		: bodyWithHeader(body, header);
 	return await octokit.rest.issues.createComment({
 		...repo,
 		issue_number,
-		body: previousBody
-			? `${previousBody}\n${body}`
-			: bodyWithHeader(body, header),
+		body: composed,
 	});
 }
 
@@ -177,8 +183,12 @@ export function getBodyOf(
 	append: boolean,
 	hideDetails: boolean
 ): string | undefined {
-	if (!append) return undefined;
-	if (!hideDetails || !previous.body) return previous.body;
+	if (!append) {
+		return undefined;
+	}
+	if (!hideDetails || !previous.body) {
+		return previous.body;
+	}
 	return previous.body.replace(/(<details.*?)\s*\bopen\b(.*>)/g, '$1$2');
 }
 
@@ -192,7 +202,9 @@ export function commentsEqual(
 	const normalize = (s: string): string => {
 		const i = s.indexOf(start);
 		const j = s.indexOf(end);
-		if (i !== -1 && j !== -1) return s.substring(i + start.length, j).trim();
+		if (i !== -1 && j !== -1) {
+			return s.substring(i + start.length, j).trim();
+		}
 		return s;
 	};
 	return normalize(body) === normalize(previous || '');

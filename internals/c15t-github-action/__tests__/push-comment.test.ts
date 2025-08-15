@@ -2,18 +2,15 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../src/config/inputs', () => ({
-	commentOnPush: true,
-	pullRequestNumber: Number.NaN,
-}));
-
-import { maybeCommentOnPush } from '../src/steps/push-comment';
+// note: inputs module is mocked per-test with vi.doMock + dynamic import
 
 vi.mock('@actions/core', () => ({
 	info: vi.fn(),
 	warning: vi.fn(),
 	getBooleanInput: (name: string) => {
-		if (name === 'comment_on_push') return true;
+		if (name === 'comment_on_push') {
+			return true;
+		}
 		return false;
 	},
 	getInput: () => '',
@@ -33,23 +30,34 @@ describe('maybeCommentOnPush', () => {
 	});
 
 	it('skips when running on a PR (pullRequestNumber is set)', async () => {
-		// Simulate direct call; we assert it returns a boolean
+		vi.resetModules();
+		vi.doMock('../src/config/inputs', () => ({
+			commentOnPush: true,
+			pullRequestNumber: 123,
+		}));
+		const { maybeCommentOnPush } = await import('../src/steps/push-comment');
 		const result = await maybeCommentOnPush(
 			octokit as unknown as ReturnType<typeof github.getOctokit>,
 			'body',
 			'url'
 		);
-		// In our action, pullRequestNumber is determined from inputs; in tests, default NaN.
-		// We assert that with a valid URL and comment_on_push default (false), we at least return boolean.
-		expect(typeof result).toBe('boolean');
+		expect(result).toBe(false);
+		expect(octokit.rest.repos.createCommitComment).not.toHaveBeenCalled();
 	});
 
 	it('returns true if no deployment url', async () => {
+		vi.resetModules();
+		vi.doMock('../src/config/inputs', () => ({
+			commentOnPush: true,
+			pullRequestNumber: Number.NaN,
+		}));
+		const { maybeCommentOnPush } = await import('../src/steps/push-comment');
 		const ok = await maybeCommentOnPush(
 			octokit as unknown as ReturnType<typeof github.getOctokit>,
 			'body'
 		);
 		expect(ok).toBe(true);
 		expect(core.info).toBeCalled();
+		expect(octokit.rest.repos.createCommitComment).not.toHaveBeenCalled();
 	});
 });

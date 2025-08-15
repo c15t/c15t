@@ -48,16 +48,26 @@ export async function detectRelevantChanges(
 			if (!number) {
 				return true; // be safe: deploy
 			}
-			const { data: files } = await octokit.rest.pulls.listFiles({
-				...ctx.repo,
-				pull_number: number,
-				per_page: 300,
-			});
+			const files = await octokit.paginate(
+				octokit.rest.pulls.listFiles,
+				{
+					...ctx.repo,
+					pull_number: number,
+					per_page: 100,
+				},
+				// flatten items
+				(res) => res.data
+			);
 			const paths = files.map((f) => f.filename);
 			return paths.some((p) => globs.some((g) => minimatch(p, g)));
 		}
 		// push event: compare last commit range when possible
-		const base = `${ctx.sha}~1`;
+		const payload = ctx.payload as unknown as { before?: string };
+		const beforeSha = payload?.before;
+		const base =
+			beforeSha && beforeSha !== '0000000000000000000000000000000000000000'
+				? beforeSha
+				: `${ctx.sha}~1`;
 		const head = ctx.sha;
 		const res = await octokit.rest.repos.compareCommitsWithBasehead({
 			...ctx.repo,

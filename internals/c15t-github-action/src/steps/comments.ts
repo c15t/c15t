@@ -42,7 +42,7 @@ async function createInitialCommentWhenMissing(
 		octokit,
 		repo,
 		pullRequestNumber,
-		effectiveBody ? ensureFirstTimerBanner(effectiveBody) : '',
+		ensureFirstTimerBanner(effectiveBody),
 		header
 	);
 	core.setOutput('created_comment_id', created?.data.id);
@@ -68,7 +68,7 @@ async function updateExistingComment(
 	await updateComment(
 		octokit,
 		previousId,
-		effectiveBody ? ensureFirstTimerBanner(effectiveBody) : '',
+		ensureFirstTimerBanner(effectiveBody),
 		header,
 		previousBody
 	);
