@@ -1,8 +1,8 @@
 import {
-  ASCII_SET,
-  BRAILLE_SPACE,
-  LEFT_PAD,
-  type WeightedAsciiArt,
+	ASCII_SET,
+	BRAILLE_SPACE,
+	LEFT_PAD,
+	type WeightedAsciiArt,
 } from './ascii-art';
 import { FIRST_TIME_CONTRIBUTOR_ASCII } from './first-commit';
 
@@ -52,7 +52,8 @@ export function renderCommentMarkdown(
 ): string {
 	const updated = new Date().toUTCString();
 	const status = options?.status || 'Ready';
-	const headerKey = (options?.header || 'c15t-docs-preview').trim() || 'c15t-docs-preview';
+	const headerKey =
+		(options?.header || 'c15t-docs-preview').trim() || 'c15t-docs-preview';
 	const startAuto = `<!-- c15t:${headerKey}:START -->`;
 	const endAuto = `<!-- c15t:${headerKey}:END -->`;
 

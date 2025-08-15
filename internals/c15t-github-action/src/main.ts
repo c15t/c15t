@@ -14,16 +14,16 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import {
-  commentOnPush,
-  getBody,
-  githubAppId,
-  githubAppInstallationId,
-  githubAppPrivateKey,
-  githubToken,
-  isFirstTimeContributor,
-  postSkipComment,
-  pullRequestNumber,
-  skipMessage,
+	commentOnPush,
+	getBody,
+	githubAppId,
+	githubAppInstallationId,
+	githubAppPrivateKey,
+	githubToken,
+	isFirstTimeContributor,
+	postSkipComment,
+	pullRequestNumber,
+	skipMessage,
 } from './config/inputs';
 import { ensureComment } from './steps/comments';
 import { performVercelDeployment } from './steps/deployment';

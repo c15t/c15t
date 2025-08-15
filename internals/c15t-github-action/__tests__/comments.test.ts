@@ -26,7 +26,7 @@ vi.mock('../src/config/inputs', async () => {
 		onlyUpdateComment: false,
 		recreate: false,
 		skipUnchanged: false,
-		pullRequestNumber: Number.NaN,
+		pullRequestNumber: 123,
 		authorLogin: 'c15t',
 	};
 });
@@ -42,13 +42,11 @@ describe('comments.ensureComment', () => {
 	const octokit = getOctokit('token');
 
 	beforeEach(() => {
-		vi.spyOn(octokit, 'graphql').mockResolvedValue('');
-		// findPreviousComment is used inside ensureComment via module import
+		vi.resetModules();
 	});
 
 	it('does nothing when body empty and ignoreEmpty true', async () => {
 		process.env.GITHUB_REPOSITORY = 'owner/repo';
-		// Re-mock module with ignoreEmpty = true
 		vi.doMock('../src/config/inputs', async () => ({
 			...(await vi.importActual('../src/config/inputs')),
 			ignoreEmpty: true,
@@ -63,21 +61,20 @@ describe('comments.ensureComment', () => {
 
 	it('replaces inner block on skip (no append)', async () => {
 		process.env.GITHUB_REPOSITORY = 'owner/repo';
-		// Previous sticky comment body with our auto-generated block
 		const previousBody = [
-			'<!-- This is an auto-generated comment: c15t docs preview -->',
+			'<!-- c15t:c15t-docs-preview:START -->',
 			'old-content',
-			'<!-- end of auto-generated comment: c15t docs preview -->',
-			'\n<!-- Sticky Pull Request Commentc15t-docs-preview -->',
+			'<!-- c15t:c15t-docs-preview:END -->',
 		].join('\n');
 		vi.doMock('../src/github/pr-comment', async () => {
-			const actual = await vi.importActual('../src/github/pr-comment');
 			return {
-				...actual,
 				findPreviousComment: vi
 					.fn()
 					.mockResolvedValue({ id: 'id1', body: previousBody }),
+				getBodyOf: (p: { body?: string }, append: boolean) =>
+					append ? p.body : undefined,
 				updateComment: vi.fn().mockResolvedValue(undefined),
+				createComment: vi.fn().mockResolvedValue(undefined),
 			};
 		});
 		({ ensureComment } = await import('../src/steps/comments'));

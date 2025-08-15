@@ -10,19 +10,15 @@
 import * as core from '@actions/core';
 import type { GitHub } from '@actions/github/lib/utils';
 import type {
-  IssueComment,
-  ReportedContentClassifiers,
-  Repository,
-  User,
+	IssueComment,
+	ReportedContentClassifiers,
+	Repository,
+	User,
 } from '@octokit/graphql-schema';
 
 type CreateCommentResponse = Awaited<
 	ReturnType<InstanceType<typeof GitHub>['rest']['issues']['createComment']>
 >;
-
-function legacyHeaderComment(header: string): string {
-	return `<!-- Sticky Pull Request Comment${header} -->`;
-}
 
 function autoStart(header: string): string {
 	const key = (header || 'c15t-docs-preview').trim() || 'c15t-docs-preview';
@@ -44,30 +40,21 @@ function bodyWithoutHeader(body: string, header: string): string {
 	const i = body.indexOf(start);
 	const j = body.indexOf(end);
 	if (i !== -1 && j !== -1) {
-		return body.substring(i, j + end.length);
+		// Return inner content only, markers excluded
+		return body.substring(i + start.length, j).trim();
 	}
-	// Fallback for legacy sticky comments
-	return body.replace(`\n${legacyHeaderComment(header)}`, '');
+	return '';
 }
 
 export async function findPreviousComment(
 	octokit: InstanceType<typeof GitHub>,
-	repo: {
-		owner: string;
-		repo: string;
-	},
+	repo: { owner: string; repo: string },
 	number: number,
 	header: string,
-	/**
-	 * Optional explicit author login to match against when locating the
-	 * previous sticky comment. When omitted, the authenticated viewer's login
-	 * is used. The comparison normalizes GitHub bot suffixes like "[bot]".
-	 */
 	authorLogin?: string
 ): Promise<IssueComment | undefined> {
 	let after: string | null = null;
 	let hasNextPage = true;
-	const legacy = legacyHeaderComment(header);
 	const start = autoStart(header);
 	while (hasNextPage) {
 		const data = await octokit.graphql<{
@@ -80,12 +67,7 @@ export async function findPreviousComment(
         repository(name: $repo owner: $owner) {
           pullRequest(number: $number) {
             comments(first: 100 after: $after) {
-              nodes {
-                id
-                author { login }
-                isMinimized
-                body
-              }
+              nodes { id author { login } isMinimized body }
               pageInfo { endCursor hasNextPage }
             }
           }
@@ -99,18 +81,14 @@ export async function findPreviousComment(
 		const repository = data.repository as Repository;
 		const normalizeLogin = (login: string | null | undefined): string =>
 			(login ?? '').replace('[bot]', '').trim().toLowerCase();
-
 		const expectedLogin = normalizeLogin(authorLogin ?? viewer.login);
-
 		const target = repository.pullRequest?.comments?.nodes?.find(
 			(node: IssueComment | null | undefined) =>
 				normalizeLogin(node?.author?.login) === expectedLogin &&
 				!node?.isMinimized &&
-				(Boolean(node?.body?.includes(start)) || Boolean(node?.body?.includes(legacy)))
+				Boolean(node?.body?.includes(start))
 		);
-		if (target) {
-			return target;
-		}
+		if (target) return target;
 		after = repository.pullRequest?.comments?.pageInfo?.endCursor ?? null;
 		hasNextPage =
 			repository.pullRequest?.comments?.pageInfo?.hasNextPage ?? false;
@@ -128,17 +106,13 @@ export async function updateComment(
 	if (!body && !previousBody) {
 		return core.warning('Comment body cannot be blank');
 	}
-
 	const rawPreviousBody: string = previousBody
 		? bodyWithoutHeader(previousBody, header)
 		: '';
-
 	await octokit.graphql(
 		`
     mutation($input: UpdateIssueCommentInput!) {
-      updateIssueComment(input: $input) {
-        issueComment { id body }
-      }
+      updateIssueComment(input: $input) { issueComment { id body } }
     }
     `,
 		{
@@ -167,7 +141,9 @@ export async function createComment(
 	return await octokit.rest.issues.createComment({
 		...repo,
 		issue_number,
-		body: previousBody ? `${previousBody}\n${body}` : bodyWithHeader(body, header),
+		body: previousBody
+			? `${previousBody}\n${body}`
+			: bodyWithHeader(body, header),
 	});
 }
 
@@ -201,14 +177,8 @@ export function getBodyOf(
 	append: boolean,
 	hideDetails: boolean
 ): string | undefined {
-	if (!append) {
-		return undefined;
-	}
-
-	if (!hideDetails || !previous.body) {
-		return previous.body;
-	}
-
+	if (!append) return undefined;
+	if (!hideDetails || !previous.body) return previous.body;
 	return previous.body.replace(/(<details.*?)\s*\bopen\b(.*>)/g, '$1$2');
 }
 
@@ -222,8 +192,8 @@ export function commentsEqual(
 	const normalize = (s: string): string => {
 		const i = s.indexOf(start);
 		const j = s.indexOf(end);
-		if (i !== -1 && j !== -1) return s.substring(i, j + end.length);
-		return [start, s, end].join('\n');
+		if (i !== -1 && j !== -1) return s.substring(i + start.length, j).trim();
+		return s;
 	};
 	return normalize(body) === normalize(previous || '');
 }

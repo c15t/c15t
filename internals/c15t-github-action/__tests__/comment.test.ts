@@ -8,7 +8,6 @@ import {
 	deleteComment,
 	findPreviousComment,
 	getBodyOf,
-	minimizeComment,
 	updateComment,
 } from '../src/github/pr-comment';
 
@@ -21,51 +20,40 @@ const repo = {
 	repo: 'c15t',
 };
 it('findPreviousComment', async () => {
-	const authenticatedBotUser = {
-		login: 'github-actions[bot]',
-	};
-	const authenticatedUser = {
-		login: 'github-actions',
-	};
-	const otherUser = {
-		login: 'some-user',
-	};
+	const authenticatedBotUser = { login: 'github-actions[bot]' };
+	const authenticatedUser = { login: 'github-actions' };
+	const otherUser = { login: 'some-user' };
 	const comment = {
 		id: '1',
 		author: authenticatedUser,
 		isMinimized: false,
-		body: 'previous message\n<!-- Sticky Pull Request Comment -->',
+		body: '<!-- c15t:c15t-docs-preview:START -->previous message<!-- c15t:c15t-docs-preview:END -->',
 	};
 	const commentWithCustomHeader = {
 		id: '2',
 		author: authenticatedUser,
 		isMinimized: false,
-		body: 'previous message\n<!-- Sticky Pull Request CommentTypeA -->',
+		body: '<!-- c15t:TypeA:START -->previous message<!-- c15t:TypeA:END -->',
 	};
 	const headerFirstComment = {
 		id: '3',
 		author: authenticatedUser,
 		isMinimized: false,
-		body: '<!-- Sticky Pull Request CommentLegacyComment -->\nheader first message',
+		body: '<!-- c15t:LegacyComment:START -->header first message<!-- c15t:LegacyComment:END -->',
 	};
 	const otherUserComment = {
 		id: '4',
 		author: otherUser,
 		isMinimized: false,
-		body: 'Fake previous message\n<!-- Sticky Pull Request Comment -->',
+		body: 'Fake previous message',
 	};
 	const otherComments = [
-		{
-			id: '5',
-			author: otherUser,
-			isMinimized: false,
-			body: 'lgtm',
-		},
+		{ id: '5', author: otherUser, isMinimized: false, body: 'lgtm' },
 		{
 			id: '6',
 			author: authenticatedUser,
 			isMinimized: false,
-			body: 'previous message\n<!-- Sticky Pull Request CommentTypeB -->',
+			body: '<!-- c15t:TypeB:START -->previous message<!-- c15t:TypeB:END -->',
 		},
 	];
 	const octokit = getOctokit('github-token');
@@ -81,10 +69,7 @@ it('findPreviousComment', async () => {
 						headerFirstComment,
 						...otherComments,
 					],
-					pageInfo: {
-						hasNextPage: false,
-						endCursor: '6',
-					},
+					pageInfo: { hasNextPage: false, endCursor: '6' },
 				},
 			},
 		},
@@ -111,7 +96,7 @@ it('findPreviousComment with explicit authorLogin', async () => {
 		id: '7',
 		author: { login: 'consentdotio' },
 		isMinimized: false,
-		body: 'previous message\n<!-- Sticky Pull Request Comment -->',
+		body: '<!-- c15t:c15t-docs-preview:START -->previous message<!-- c15t:c15t-docs-preview:END -->',
 	};
 	vi.spyOn(octokit, 'graphql').mockResolvedValue({
 		viewer: { login: 'github-actions[bot]' },
@@ -137,11 +122,9 @@ it('findPreviousComment with explicit authorLogin', async () => {
 
 describe('updateComment', () => {
 	const octokit = getOctokit('github-token');
-
 	beforeEach(() => {
 		vi.spyOn(octokit, 'graphql').mockResolvedValue('');
 	});
-
 	it('with comment body', async () => {
 		expect(
 			await updateComment(octokit, '456', 'hello there', '')
@@ -149,7 +132,7 @@ describe('updateComment', () => {
 		expect(octokit.graphql).toBeCalledWith(expect.any(String), {
 			input: {
 				id: '456',
-				body: 'hello there\n<!-- Sticky Pull Request Comment -->',
+				body: '<!-- c15t:c15t-docs-preview:START -->\nhello there\n<!-- c15t:c15t-docs-preview:END -->',
 			},
 		});
 		expect(
@@ -158,7 +141,7 @@ describe('updateComment', () => {
 		expect(octokit.graphql).toBeCalledWith(expect.any(String), {
 			input: {
 				id: '456',
-				body: 'hello there\n<!-- Sticky Pull Request CommentTypeA -->',
+				body: '<!-- c15t:TypeA:START -->\nhello there\n<!-- c15t:TypeA:END -->',
 			},
 		});
 		expect(
@@ -167,17 +150,16 @@ describe('updateComment', () => {
 				'456',
 				'hello there',
 				'TypeA',
-				'hello there\n<!-- Sticky Pull Request CommentTypeA -->'
+				'<!-- c15t:TypeA:START -->\nhello there\n<!-- c15t:TypeA:END -->'
 			)
 		).toBeUndefined();
 		expect(octokit.graphql).toBeCalledWith(expect.any(String), {
 			input: {
 				id: '456',
-				body: 'hello there\nhello there\n<!-- Sticky Pull Request CommentTypeA -->',
+				body: '<!-- c15t:TypeA:START -->\nhello there\nhello there\n<!-- c15t:TypeA:END -->',
 			},
 		});
 	});
-
 	it('without comment body and previous body', async () => {
 		expect(await updateComment(octokit, '456', '', '')).toBeUndefined();
 		expect(octokit.graphql).not.toBeCalled();
@@ -187,7 +169,6 @@ describe('updateComment', () => {
 
 describe('createComment', () => {
 	const octokit = getOctokit('github-token');
-
 	beforeEach(() => {
 		vi.spyOn(octokit.rest.issues, 'createComment').mockResolvedValue({
 			status: 201,
@@ -196,7 +177,6 @@ describe('createComment', () => {
 			data: { id: 1 } as unknown,
 		} as Awaited<ReturnType<typeof octokit.rest.issues.createComment>>);
 	});
-
 	it('with comment body or previousBody', async () => {
 		await expect(
 			createComment(octokit, repo, 456, 'hello there', '')
@@ -205,7 +185,7 @@ describe('createComment', () => {
 			issue_number: 456,
 			owner: repo.owner,
 			repo: repo.repo,
-			body: 'hello there\n<!-- Sticky Pull Request Comment -->',
+			body: '<!-- c15t:c15t-docs-preview:START -->\nhello there\n<!-- c15t:c15t-docs-preview:END -->',
 		});
 		await expect(
 			createComment(octokit, repo, 456, 'hello there', 'TypeA')
@@ -214,7 +194,7 @@ describe('createComment', () => {
 			issue_number: 456,
 			owner: repo.owner,
 			repo: repo.repo,
-			body: 'hello there\n<!-- Sticky Pull Request CommentTypeA -->',
+			body: '<!-- c15t:TypeA:START -->\nhello there\n<!-- c15t:TypeA:END -->',
 		});
 	});
 	it('without comment body and previousBody', async () => {
@@ -226,31 +206,15 @@ describe('createComment', () => {
 
 it('deleteComment', async () => {
 	const octokit = getOctokit('github-token');
-
 	vi.spyOn(octokit, 'graphql').mockResolvedValue('');
 	expect(await deleteComment(octokit, '456')).toBeUndefined();
-	expect(octokit.graphql).toBeCalledWith(expect.any(String), {
-		id: '456',
-	});
-});
-
-it('minimizeComment', async () => {
-	const octokit = getOctokit('github-token');
-
-	vi.spyOn(octokit, 'graphql').mockResolvedValue('');
-	expect(await minimizeComment(octokit, '456', 'OUTDATED')).toBeUndefined();
-	expect(octokit.graphql).toBeCalledWith(expect.any(String), {
-		input: {
-			subjectId: '456',
-			classifier: 'OUTDATED',
-		},
-	});
+	expect(octokit.graphql).toBeCalledWith(expect.any(String), { id: '456' });
 });
 
 describe('getBodyOf', () => {
 	const nullPrevious = {};
 	const simplePrevious = {
-		body: 'hello there\n<!-- Sticky Pull Request CommentTypeA -->',
+		body: '<!-- c15t:TypeA:START -->\nhello there\n<!-- c15t:TypeA:END -->',
 	};
 	const detailsPrevious = {
 		body: `
@@ -259,7 +223,8 @@ describe('getBodyOf', () => {
 
     content
     </details>
-    <!-- Sticky Pull Request CommentTypeA -->
+    <!-- c15t:TypeA:START -->
+    <!-- c15t:TypeA:END -->
   `,
 	};
 	const replaced = `
@@ -268,7 +233,8 @@ describe('getBodyOf', () => {
 
     content
     </details>
-    <!-- Sticky Pull Request CommentTypeA -->
+    <!-- c15t:TypeA:START -->
+    <!-- c15t:TypeA:END -->
   `;
 	it.each`
 		append   | hideDetails | previous           | expected
@@ -300,23 +266,24 @@ describe('commentsEqual', () => {
 	it.each([
 		{
 			body: 'body',
-			previous: 'body\n<!-- Sticky Pull Request Commentheader -->',
+			previous: '<!-- c15t:header:START -->\nbody\n<!-- c15t:header:END -->',
 			header: 'header',
 			expected: true,
 		},
 		{
 			body: 'body',
-			previous: 'body\n<!-- Sticky Pull Request Comment -->',
+			previous:
+				'<!-- c15t:c15t-docs-preview:START -->\nbody\n<!-- c15t:c15t-docs-preview:END -->',
 			header: '',
 			expected: true,
 		},
 		{
 			body: 'body',
-			previous: 'body\n<!-- Sticky Pull Request Commenta different header -->',
+			previous: '<!-- c15t:header2:START -->\nbody\n<!-- c15t:header2:END -->',
 			header: 'header',
 			expected: false,
 		},
-		{ body: 'body', previous: 'body', header: 'header', expected: false },
+		{ body: 'body', previous: 'body', header: 'header', expected: true },
 		{ body: 'body', previous: '', header: 'header', expected: false },
 		{ body: '', previous: 'body', header: 'header', expected: false },
 	])(
