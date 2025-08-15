@@ -35,7 +35,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      # 📦 Setup pnpm (used by docs template/scripts)
       - name: 📦 Setup pnpm
+        working-directory: internals/c15t-github-action
         uses: pnpm/action-setup@v4
         with:
           run_install: false
