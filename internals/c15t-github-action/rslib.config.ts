@@ -13,11 +13,15 @@ export default defineConfig({
 			// GitHub Actions run with Node and expect CommonJS entry
 			format: 'cjs',
 			dts: false,
+			output: {
+				externals: [],
+			},
 		},
 	],
 	output: {
 		target: 'node',
 		cleanDistPath: true,
+		externals: [],
 		filename: {
 			js: 'index.js',
 		},
