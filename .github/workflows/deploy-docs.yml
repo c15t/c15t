@@ -145,6 +145,11 @@ jobs:
           echo "GITHUB_PR_NUMBER=${{ github.event.pull_request.number || '' }}" >> "$GITHUB_ENV"
 
       # ▲ Internal action: deploy to Vercel (bundled) and post sticky PR comment
+      - name: 🔧 Build internal GitHub Action
+        working-directory: internals/c15t-github-action
+        run: |
+          pnpm build
+
       - name: ▲ Deploy docs to Vercel and comment PR
         id: vercel
         uses: ./internals/c15t-github-action
