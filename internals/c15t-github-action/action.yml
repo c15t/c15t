@@ -133,8 +133,8 @@ inputs:
     required: false
   comment_on_push:
     description: "When true, also create/update a commit comment on push events."
-    default: "false"
-    required: false
+    default: "true"
+    required: true
   ignore_empty:
     description: "Indicates whether to ignore missing or empty messages"
     default: "false"
