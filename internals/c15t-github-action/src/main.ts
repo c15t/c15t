@@ -271,9 +271,7 @@ async function run(): Promise<undefined> {
 				octokit,
 				repo,
 				pullRequestNumber,
-				deploymentUrl && !body
-					? `🚀 Your documentation preview is ready!\n\n🔗 Live URL: ${deploymentUrl}`
-					: body,
+				effectiveBody || '',
 				header
 			);
 			core.setOutput('created_comment_id', created?.data.id);
