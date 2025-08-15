@@ -1,0 +1,81 @@
+---
+title: Docs Preview GitHub Action
+description: How our composite GitHub Action deploys the docs preview to Vercel and posts a sticky PR comment.
+---
+
+Our repository includes a composite GitHub Action that:
+
+- Deploys the documentation site to Vercel (staging or production based on branch/inputs)
+- Posts or updates a sticky PR comment with a preview link
+- Optionally posts a commit comment on push events
+- Skips unnecessary deployments based on file changes or template changes, and comments why
+
+## Where it lives
+
+- Action entry: `internals/c15t-github-action/action.yml` (composite)
+- Runtime code: `internals/c15t-github-action/src/main.ts` and `src/steps/*`
+
+## When it runs
+
+The workflow `.github/workflows/deploy-docs.yml` triggers on:
+
+- push to `main` and `canary`
+- pull_request to any branch
+- a nightly schedule (checks for upstream template changes)
+
+## Inputs (selected)
+
+- `GITHUB_TOKEN`: token used by the action (required)
+- `setup_docs`: fetches the private docs template into `.docs` (default: true)
+- `only_if_changed`: deploy only when relevant files changed (default: false)
+- `change_globs`: newline-separated globs of files that trigger deploy
+- `check_template_changes`: also deploy when the upstream template changed
+- `vercel_token`, `vercel_project_id`, `vercel_org_id`: credentials for Vercel
+- `target`: `production` or `staging`
+- `assign_alias_on_branch`: branch name to assign the alias on (e.g. `canary`)
+- `alias_domains`: newline-separated alias domains to assign (supports `{{PR_NUMBER}}`, `{{BRANCH}}`)
+- `comment_on_push`: also post a commit comment on push events (default: false)
+- `skip_unchanged`: don't update sticky comment if body unchanged (default: false)
+
+## Preview comment content
+
+We render a consistent, branded Markdown comment using `render-comment.ts`:
+
+- ASCII art header (with special first-contribution banner on your first PR)
+- A preview table with status and timestamp
+- Footer with attribution
+
+When a deployment is skipped, we still post a comment indicating "Skipped" and show the last successful Vercel URL when available.
+
+## How skipping works
+
+- If `only_if_changed` is enabled, the action looks at changed paths and skips when none match `change_globs`.
+- If `check_template_changes` is enabled, the action compares the latest upstream template commit against the last recorded deployment and may skip when they match.
+- On skip, if `post_skip_comment` is true, the action posts a sticky comment (on PR) or commit comment (on push with `comment_on_push: true`).
+
+## Local development
+
+The action is executed using `tsx` directly (composite action), so no bundling step is required locally or in CI.
+
+```yaml
+runs:
+  using: composite
+  steps:
+    - name: Run c15t action (tsx)
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: pnpm -w exec tsx "$GITHUB_ACTION_PATH/src/main.ts"
+```
+
+## Troubleshooting
+
+- No comment on push: set `comment_on_push: "true"` in workflow inputs.
+- No deploy on PR: ensure your changes match `change_globs` or disable `only_if_changed`.
+- Node engine warning during docs setup: the `.docs` template may require a newer Node for dev tooling, but CI uses its own Node for the action. This warning can be ignored if the install continues.
+
+## Related files
+
+- `internals/c15t-github-action/src/steps/deployment.ts`
+- `internals/c15t-github-action/src/steps/render-comment.ts`
+- `internals/c15t-github-action/src/steps/comments.ts`
+- `internals/c15t-github-action/src/steps/push-comment.ts`
