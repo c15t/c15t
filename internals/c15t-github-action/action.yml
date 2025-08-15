@@ -82,9 +82,8 @@ inputs:
     description: "Another repo name limited use on github enterprise. If not set, the current repo is used by default. Note that When you trying changing a repo, be aware that GITHUB_TOKEN should also use that repo's."
     required: false
   GITHUB_TOKEN:
-    description: "The GitHub access token (e.g. secrets.GITHUB_TOKEN) used to create or update the comment. This defaults to ${{ github.token }}."
-    default: "${{ github.token }}"
-    required: false
+    description: "The GitHub access token used to create or update the comment (e.g. secrets.GITHUB_TOKEN or a PAT)."
+    required: true
 outputs:
   previous_comment_id:
     description: "ID of previous comment, if found"
