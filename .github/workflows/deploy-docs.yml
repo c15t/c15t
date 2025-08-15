@@ -1,5 +1,5 @@
-# 🚀 Deploy Documentation to Vercel
-name: Deploy Documentation to Vercel
+# 🚀 c15t deployment workflow
+name: Deploy docs
 
 on:
   # 📌 Trigger on pushes that modify docs or this workflow
@@ -12,8 +12,6 @@ on:
   pull_request:
     branches:
       - '**'
-    paths:
-      - 'docs/**'
   # ⏰ Periodic check for upstream template changes (consentdotio/c15t-docs)
   schedule:
     # Run once daily at 00:15 UTC to avoid excessive runs
@@ -23,102 +21,19 @@ permissions:
   contents: read
   issues: write
   pull-requests: write
-
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  deployments: write
 
 jobs:
-  changes:
-    # 🧪 Detect whether docs changed locally or template changed upstream
-    name: Detect changed paths
-    runs-on: ubuntu-latest
-    outputs:
-      docs: ${{ steps.filter.outputs.docs }}
-      packages: ${{ steps.filter.outputs.packages }}
-      template_changed: ${{ steps.template_diff.outputs.changed }}
-    steps:
-      # 📥 Fetch complete git history for accurate path and cache checks
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      # 🧭 Determine if files in docs/ changed in this ref
-      - name: 🧭 Paths filter
-        id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            docs:
-              - 'docs/**'
-            packages:
-              - 'packages/*/src/**'
-              - 'packages/*/package.json'
-
-      # 🛰️ Get latest commit SHA from upstream template repo (main)
-      - name: 🛰️ Get latest template commit SHA
-        id: template_sha
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.CONSENT_GIT_TOKEN }}
-          script: |
-            const { data: commits } = await github.rest.repos.listCommits({
-              owner: 'consentdotio',
-              repo: 'c15t-docs',
-              sha: 'main',
-              per_page: 1,
-            });
-            const latest = commits[0]?.sha || '';
-            core.setOutput('latest', latest);
-
-      # 💾 Check if we have already deployed this upstream template SHA (per branch)
-      - name: 💾 Restore last deployed template SHA
-        id: restore_cache
-        uses: actions/cache/restore@v4
-        with:
-          path: .template-cache
-          key: template-sha-${{ github.ref_name }}-${{ steps.template_sha.outputs.latest }}
-          restore-keys: |
-            template-sha-${{ github.ref_name }}-
-
-      # 🔁 If cache hit, upstream template is unchanged; otherwise it changed
-      - name: 🔍 Determine if template changed
-        id: template_diff
-        run: |
-          if [ "${{ steps.restore_cache.outputs.cache-hit }}" = 'true' ]; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      # 📝 Save the new upstream template SHA so future runs can skip redundant deploys
-      - name: 📝 Save new template SHA cache
-        if: steps.template_diff.outputs.changed == 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: .template-cache
-          key: template-sha-${{ github.ref_name }}-${{ steps.template_sha.outputs.latest }}
-
   deploy:
-    needs: changes
-    # 🧠 Always deploy for main/canary pushes and PRs targeting main/canary.
-    # Otherwise deploy only when docs changed or the upstream template changed.
-    if: (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'canary')) || (github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'canary')) || needs.changes.outputs.docs == 'true' || needs.changes.outputs.template_changed == 'true'
     concurrency:
       group: docs-${{ github.ref }}
       cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
-      # 📥 Checkout repo for deployment build
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
-
-      # 🧰 Setup Node.js runtime
-      - name: 🧰 Setup Node.js
-        uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          fetch-depth: 0
 
       # 📦 Setup pnpm (used by docs template/scripts)
       - name: 📦 Setup pnpm
@@ -126,72 +41,51 @@ jobs:
         with:
           run_install: false
 
-      # 📚 Fetch private docs template and prepare .docs for build
-      - name: 📚 Setup Documentation Template
-        run: |
-          npx -y tsx scripts/setup-docs.ts --vercel
-        env:
-          CONSENT_GIT_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
-
-      # ▲ Create Vercel deployment via our script (build + deploy)
-      - name: ▲ Create Vercel Deployment via API
-        id: deploy
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          GITHUB_REF: ${{ github.ref }}
-          GITHUB_SHA: ${{ github.sha }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-          GITHUB_HEAD_REF: ${{ github.head_ref }}
-          GITHUB_BASE_REF: ${{ github.base_ref }}
-        run: |
-          set -euo pipefail
-          cd .docs
-          npx -y tsx ../scripts/deploy.ts
-
-      # 🔎 Attempt to locate an open PR for this branch to annotate
-      - name: 🔎 Find PR for this branch
-        id: find_pr
-        uses: actions/github-script@v7
+      - name: ♻️ Setup pnpm cache
+        uses: actions/setup-node@v4
         with:
-          github-token: ${{ secrets.CONSENT_GIT_TOKEN }}
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            let prNumber = context.issue?.number || '';
-            if (!prNumber) {
-              const ref = context.ref || '';
-              const branch = ref.startsWith('refs/heads/') ? ref.replace('refs/heads/', '') : ref;
-              const { data: prs } = await github.rest.pulls.list({
-                owner,
-                repo,
-                state: 'open',
-                head: `${owner}:${branch}`,
-                per_page: 1,
-              });
-              if (prs.length) {
-                prNumber = String(prs[0].number);
-              }
-            }
-            core.setOutput('pr_number', prNumber);
+          node-version: 20
+          cache: 'pnpm'
 
-      # 💬 Leave (or update) a sticky comment on the PR with the preview link
-      - name: 💬 Comment PR with preview URL
-        if: ${{ steps.find_pr.outputs.pr_number != '' }}
-        uses: marocchino/sticky-pull-request-comment@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
+      - name: 📥 Install workspace deps
+        run: pnpm install --frozen-lockfile
+
+      - name: ▲ C15T Docs Preview (Deploy + PR Comment)
+        id: c15t
+        uses: ./internals/c15t-github-action
         with:
+          # Auth
+          GITHUB_TOKEN: ${{ github.token }}
+          github_app_id: ${{ secrets.CONSENT_APP_ID }}
+          github_app_private_key: ${{ secrets.CONSENT_APP_PRIVATE_KEY }}
+          github_app_installation_id: 81013186
+
+          # Comment behavior
           header: c15t-docs-preview
-          number: ${{ steps.find_pr.outputs.pr_number }}
-          message: |
-            🚀 Your documentation preview is ready!
+          append: "true"
+          hide_details: "true"
 
-            🔗 Live URL: ${{ steps.deploy.outputs.url }}
+          # Vercel
+          vercel_token: ${{ secrets.VERCEL_TOKEN }}
+          vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
 
-            🧪 This sticky comment auto-updates on every push.
-            📦 Source: branch `${{ github.ref_name }}` @ `${{ github.sha }}`
-            🧭 Trigger: `${{ github.event_name }}`
+          target: production
+          assign_alias_on_branch: canary
+          alias_domains: |
+            canary.c15t.com
+            preview-${{ github.ref_name }}.c15t.dev
+            pr-${{ github.event.pull_request.number }}.c15t.dev
+          
+          # Branch deployment policies
+          deploy_on_push_branches: "main,canary"
+          deploy_on_pr_base_branches: "main,canary"
+
+          # Orchestration & gating
+          consent_git_token: ${{ secrets.CONSENT_GIT_TOKEN }}
+          only_if_changed: "true"
+          change_globs: |
+            docs/**
+            packages/*/src/**
+            packages/*/package.json
+          check_template_changes: "true"
