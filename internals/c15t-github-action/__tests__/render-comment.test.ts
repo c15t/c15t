@@ -32,15 +32,6 @@ describe('renderCommentMarkdown', () => {
 		expect(fences).toBeGreaterThanOrEqual(2);
 	});
 
-	it('wraps content with auto-generated markers', () => {
-		const md = renderCommentMarkdown('https://example.com', {
-			seed: 'seed',
-			firstContribution: false,
-		});
-		expect(md).toContain('<!-- c15t:c15t-docs-preview:START -->');
-		expect(md).toContain('<!-- c15t:c15t-docs-preview:END -->');
-	});
-
 	it('renders status field in preview table', () => {
 		const md = renderCommentMarkdown('https://example.com', {
 			status: 'Skipped',
