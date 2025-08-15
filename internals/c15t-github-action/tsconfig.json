@@ -8,7 +8,8 @@
 		"skipLibCheck": true,
 		"resolveJsonModule": true,
 		"types": ["node"],
-		"noEmit": true
+		"noEmit": true,
+		"lib": ["es2022"]
 	},
 	"include": ["src"],
 	"exclude": ["dist", "node_modules", "**/__tests__/**"]
