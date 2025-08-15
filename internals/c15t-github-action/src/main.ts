@@ -14,6 +14,7 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import {
 	commentOnPush,
+	debugMode,
 	getBody,
 	githubAppId,
 	githubAppInstallationId,
@@ -29,6 +30,8 @@ import { performVercelDeployment } from './steps/deployment';
 import { getAuthToken } from './steps/github-app-auth';
 import { maybeCommentOnPush } from './steps/push-comment';
 import { renderCommentMarkdown } from './steps/render-comment';
+import { ErrorHandler, executeWithRetry } from './utils/errors';
+import { createLogger } from './utils/logger';
 
 function computeEffectiveBody(
 	deploymentUrl: string | undefined,
@@ -71,9 +74,12 @@ function computeEffectiveBody(
 
 async function run(): Promise<undefined> {
 	try {
-		core.info(
-			`[c15t] start event=${github.context.eventName} ref=${github.context.ref} sha=${github.context.sha}`
-		);
+		const logger = createLogger(Boolean(debugMode));
+		logger.info('start', {
+			event: github.context.eventName,
+			ref: github.context.ref,
+			sha: github.context.sha,
+		});
 		const token = await getAuthToken(
 			githubToken,
 			githubAppId,
@@ -84,12 +90,16 @@ async function run(): Promise<undefined> {
 		if (githubAppId && githubAppPrivateKey) {
 			authKind = 'github-app';
 		}
-		core.info(`[c15t] auth=${authKind}`);
+		logger.info('auth', { kind: authKind });
 		const octokit = github.getOctokit(token);
-		core.info('[c15t] orchestrating deploy');
-		const deploymentUrl = await performVercelDeployment(octokit);
+		logger.info('orchestrating deploy');
+		const deploymentUrl = await executeWithRetry(
+			() => performVercelDeployment(octokit),
+			ErrorHandler.handleVercel,
+			3
+		);
 		if (deploymentUrl) {
-			core.info(`[c15t] deployment url=${deploymentUrl}`);
+			logger.info('deployment ready', { url: deploymentUrl });
 		}
 		if (!deploymentUrl) {
 			// Deployment was skipped by policy/gating. Optionally post a sticky skip comment.
@@ -116,9 +126,7 @@ async function run(): Promise<undefined> {
 				} catch {
 					// ignore lookup errors
 				}
-				core.info(
-					`[c15t] deployment skipped; last successful url=${lastUrl || 'n/a'}`
-				);
+				logger.info('deployment skipped', { lastUrl: lastUrl || 'n/a' });
 				const rendered = renderCommentMarkdown(
 					lastUrl || 'https://vercel.com',
 					{
@@ -129,10 +137,10 @@ async function run(): Promise<undefined> {
 				const body = skipMessage || rendered;
 				// Post as PR sticky comment when running in a PR; otherwise, if enabled, post a commit comment on push
 				if (typeof pullRequestNumber === 'number' && pullRequestNumber >= 1) {
-					core.info('[c15t] posting sticky PR skip comment');
+					logger.info('posting sticky PR skip comment');
 					await ensureComment(octokit, body, { appendOverride: false });
 				} else if (commentOnPush) {
-					core.info('[c15t] posting commit skip comment on push');
+					logger.info('posting commit skip comment on push');
 					try {
 						await octokit.rest.repos.createCommitComment({
 							...github.context.repo,
@@ -158,12 +166,12 @@ async function run(): Promise<undefined> {
 			deploymentUrl
 		);
 		if (handled) {
-			core.info('[c15t] handled push commit comment; exiting');
+			logger.info('handled push commit comment; exiting');
 			return;
 		}
-		core.info('[c15t] validating options');
+		logger.info('validating options');
 		await ensureComment(octokit, effectiveBody, { appendOverride: true });
-		core.info('[c15t] ensured PR sticky comment with deployment link');
+		logger.info('ensured PR sticky comment with deployment link');
 	} catch (error) {
 		if (error instanceof Error) {
 			core.setFailed(error.message);
