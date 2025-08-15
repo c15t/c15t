@@ -133,6 +133,17 @@ jobs:
         env:
           CONSENT_GIT_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
 
+      # 🧾 Collect Git metadata for deployment meta (required by Vercel API)
+      - name: 🧾 Collect Git metadata
+        run: |
+          echo "GITHUB_COMMIT_MESSAGE<<EOF" >> "$GITHUB_ENV"
+          git log -1 --pretty=%B >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
+          echo "GITHUB_COMMIT_AUTHOR_NAME=$(git log -1 --pretty=%an)" >> "$GITHUB_ENV"
+          echo "GITHUB_COMMIT_AUTHOR_EMAIL=$(git log -1 --pretty=%ae)" >> "$GITHUB_ENV"
+          echo "GITHUB_COMMIT_AUTHOR_LOGIN=${{ github.actor }}" >> "$GITHUB_ENV"
+          echo "GITHUB_PR_NUMBER=${{ github.event.pull_request.number || '' }}" >> "$GITHUB_ENV"
+
       # ▲ Internal action: deploy to Vercel (bundled) and post sticky PR comment
       - name: ▲ Deploy docs to Vercel and comment PR
         id: vercel
