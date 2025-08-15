@@ -72,9 +72,9 @@ function buildDefaultPreviewComment(url: string, projectLabel: string): string {
 		'```',
 		ascii,
 		'```',
-		'| Project | Preview | Status | Updated (UTC) |',
-		'| - | - | - | - |',
-		`| ${projectLabel} | [Open Preview](${url}) | Ready | ${updated} |`,
+		'| Preview | Status | Updated (UTC) |',
+		'| - | - | - |',
+		`| [Open Preview](${url}) | Ready | ${updated} |`,
 	].join('\n');
 }
 
