@@ -41,11 +41,21 @@ jobs:
             }
             core.setOutput('pr_number', prNumber);
 
+      - name: Get authenticated user
+        id: get_user
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: me } = await github.rest.users.getAuthenticated();
+            core.info(`Comment will be authored by: ${me.login}`)
+
       - name: Post sticky test comment
         if: ${{ steps.find_pr.outputs.pr_number != '' }}
         uses: ./internals/c15t-github-action
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          author_login: ${{ steps.get_user.outputs.login }}
           header: "[test]"
           number: ${{ steps.find_pr.outputs.pr_number }}
           append: "true"
@@ -55,4 +65,3 @@ jobs:
             run_id: ${{ github.run_id }}
             sha: ${{ github.sha }}
             actor: ${{ github.actor }}
-
