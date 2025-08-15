@@ -44,7 +44,7 @@ jobs:
         working-directory: internals/c15t-github-action
         run: |
           pnpm install
-          pnpm build
+          pnpm ncc build src/main.ts -o dist -m
 
       - name: ▲ C15T Docs Preview (Deploy + PR Comment)
         id: c15t
