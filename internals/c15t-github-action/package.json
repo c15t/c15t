@@ -1,0 +1,29 @@
+{
+	"name": "@c15t/github-action",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Create or update a sticky comment on pull requests (C15T fork).",
+	"author": "c15t",
+	"license": "MIT",
+	"main": "dist/index.js",
+	"engines": {
+		"node": ">=18"
+	},
+	"scripts": {
+		"build": "ncc build src/main.ts -o dist -m",
+		"check-types": "tsc --noEmit",
+		"test": "vitest run",
+		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"lint": "pnpm biome lint ./src"
+	},
+	"dependencies": {
+		"@actions/core": "^1.11.1",
+		"@actions/github": "^6.0.1",
+		"@actions/glob": "^0.5.0",
+		"@octokit/graphql-schema": "^15.26.0",
+		"@octokit/auth-app": "^6.1.2"
+	},
+	"devDependencies": {
+		"@vercel/ncc": "^0.38.3"
+	}
+}
