@@ -10,7 +10,7 @@
 		"node": ">=18"
 	},
 	"scripts": {
-		"build": "rslib build",
+		"build": "ncc build src/main.ts -o dist -m",
 		"check-types": "tsc --noEmit",
 		"test": "vitest",
 		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
