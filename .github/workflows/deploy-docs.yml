@@ -196,9 +196,8 @@ jobs:
       - name: 💬 Comment PR with preview URL
         if: ${{ steps.find_pr.outputs.pr_number != '' }}
         uses: ./internals/c15t-github-action
-        env:
-          GITHUB_TOKEN: ${{ secrets.CONSENT_AUTHOR_TOKEN }}
         with:
+          GITHUB_TOKEN: ${{ secrets.CONSENT_AUTHOR_TOKEN }}
           author_login: consentdotio
           header: "[c15t]"
           number: ${{ steps.find_pr.outputs.pr_number }}
@@ -219,9 +218,8 @@ jobs:
     steps:
       - name: 💬 Comment PR with skipped notice
         uses: ./internals/c15t-github-action
-        env:
-          GITHUB_TOKEN: ${{ secrets.CONSENT_AUTHOR_TOKEN }}
         with:
+          GITHUB_TOKEN: ${{ secrets.CONSENT_AUTHOR_TOKEN }}
           author_login: consentdotio
           header: "[c15t]"
           number: ${{ github.event.pull_request.number }}
