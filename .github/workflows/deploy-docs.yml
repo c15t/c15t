@@ -44,12 +44,12 @@ jobs:
       - name: 🔧 Build c15t docs-preview action
         working-directory: internals/c15t-github-action
         run: |
-          pnpm install
+          pnpm install --frozen-lockfile --ignore-workspace
           pnpm ncc build src/main.ts -o dist -m
 
       - name: ▲ C15T Docs Preview (Deploy + PR Comment)
         id: c15t
-        uses: ./internals/c15t-github-action/dist/index.js
+        uses: ./internals/c15t-github-action
         with:
           # Auth
           GITHUB_TOKEN: ${{ github.token }}
