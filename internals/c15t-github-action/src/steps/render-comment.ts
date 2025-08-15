@@ -94,7 +94,7 @@ export function renderCommentMarkdown(
 		).join('\n\n');
 	}
 	return messageTemplate({
-		art: pickWeightedAscii(ASCII_SET, options?.seed ?? url),
+		art: pickWeightedAscii(Array.from(ASCII_SET), options?.seed ?? url),
 		url,
 		updated,
 		firstContribution: options?.firstContribution,
