@@ -72,7 +72,7 @@ export const ignoreEmpty = core.getBooleanInput('ignore_empty', {
  * "consentdotio" to ensure we always match that user's comments.
  */
 export const authorLogin =
-	core.getInput('author_login', { required: false }) || 'consentdotio';
+	core.getInput('author_login', { required: false }) || 'c15t';
 
 /**
  * Builds the repository descriptor from action inputs and context.
