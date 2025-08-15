@@ -64,7 +64,6 @@ jobs:
           header: c15t-docs-preview
           append: "true"
           hide_details: "true"
-          skip_unchanged: "true"
 
           # Vercel
           vercel_token: ${{ secrets.VERCEL_TOKEN }}
