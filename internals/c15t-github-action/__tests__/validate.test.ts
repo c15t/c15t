@@ -1,17 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../src/config/inputs', () => ({
-	deleteOldComment: true,
-	recreate: true,
-	onlyCreateComment: false,
-	onlyUpdateComment: true,
-	hideAndRecreate: true,
-}));
+vi.mock('../src/config/inputs', () => ({}));
 
 import { validateOptions } from '../src/steps/validate';
 
 describe('validateOptions', () => {
-	it('throws for invalid combinations', () => {
-		expect(() => validateOptions()).toThrowError();
+	it('does not throw (no-op after simplification)', () => {
+		expect(() => validateOptions()).not.toThrowError();
 	});
 });
