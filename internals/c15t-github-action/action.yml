@@ -1,5 +1,5 @@
-name: "C15T Sticky Pull Request Comment"
-description: "Create or update a sticky comment on pull requests (C15T fork)."
+name: "C15T Docs Preview (Deploy + PR Comment)"
+description: "Deploy docs to Vercel and comment PR"
 author: "c15t"
 github-token:
   action-input:
@@ -11,6 +11,65 @@ github-token:
     pull-requests-reason: to create or update PR comment
 
 inputs:
+  # --- Orchestration & gating (to enable minimal workflows) ---
+  setup_docs:
+    description: "Fetch and prepare docs template into working_directory (.docs)"
+    default: "true"
+    required: false
+  consent_git_token:
+    description: "Token to access private docs template repository"
+    required: false
+  docs_template_repo:
+    description: "Owner/repo of docs template to fetch"
+    default: "consentdotio/c15t-docs"
+    required: false
+  docs_template_ref:
+    description: "Branch or ref of docs template"
+    default: "main"
+    required: false
+  only_if_changed:
+    description: "Skip deploy when no relevant files changed"
+    default: "false"
+    required: false
+  change_globs:
+    description: "Newline-separated globs to detect relevant changes"
+    required: false
+  check_template_changes:
+    description: "Also deploy when upstream template changed since last deploy"
+    default: "false"
+    required: false
+  template_repo:
+    description: "Owner/repo to check for template changes (defaults to docs_template_repo)"
+    required: false
+  template_ref:
+    description: "Branch/ref to check for template changes (defaults to docs_template_ref)"
+    required: false
+  post_skip_comment:
+    description: "Post a sticky comment explaining why deploy was skipped"
+    default: "true"
+    required: false
+  skip_message:
+    description: "Custom message body when deployment is skipped"
+    required: false
+  deploy_on_push_branches:
+    description: "Comma-separated list of branches to deploy on push"
+    default: "main,canary"
+    required: false
+  deploy_on_pr_base_branches:
+    description: "Comma-separated list of PR base branches to deploy previews"
+    default: "main,canary"
+    required: false
+
+  # --- Optional GitHub App authentication (in-action) ---
+  github_app_id:
+    description: "GitHub App ID (if set, action will mint an installation token)"
+    required: false
+  github_app_private_key:
+    description: "GitHub App private key (PEM). Use GitHub Actions secrets."
+    required: false
+  github_app_installation_id:
+    description: "Installation ID. If omitted, the action will discover installation for this repo."
+    required: false
   header:
     description: "Header to determine if the comment is to be updated, not shown on screen. It can be used when you want to add multiple comments independently at the same time."
     default: ""
@@ -19,37 +78,9 @@ inputs:
     description: "Indicate if new comment messages should be appended to previous comment message. Only `true` is allowed. Just skip this item when you don't need it."
     default: "false"
     required: false
-  recreate:
-    description: "Indicate if previous comment should be removed before creating a new comment. Only `true` is allowed. Just skip this item when you don't need it."
-    default: "false"
-    required: false
-  delete:
-    description: "delete the previously created comment. Only `true` is allowed. Just skip this item when you don't need it."
-    default: "false"
-    required: false
-  only_create:
-    description: "only create a new comment if there is no existing one, otherwise do nothing. Only `true` is allowed. Just skip this item when you don't need it. This options has higher priority than hide_and_recreate, hide."
-    default: "false"
-    required: false
-  only_update:
-    description: "only update a exist comment if there is existing one, otherwise do nothing. Only `true` is allowed. Just skip this item when you don't need it."
-    default: "false"
-    required: false
   hide_details:
     description: "hide summary tags in the previously created comment. Only `true` is allowed. Just skip this item when you don't need it."
     default: "false"
-    required: false
-  hide:
-    description: "hide previously created comment. Only `true` is allowed. Just skip this item when you don't need it."
-    default: "false"
-    required: false
-  hide_and_recreate:
-    description: "Indicate if previous comment should be hide before creating a new comment. Only `true` is allowed. Just skip this item when you don't need it."
-    default: "false"
-    required: false
-  hide_classify:
-    description: "The reasons a piece of content can be reported or minimized. SPAM, ABUSE, OFF_TOPIC, OUTDATED, DUPLICATE, RESOLVED."
-    default: "OUTDATED"
     required: false
   message:
     description: "comment message"

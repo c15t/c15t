@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import * as core from '@actions/core';
 import { context } from '@actions/github';
 import { create } from '@actions/glob';
-import type { ReportedContentClassifiers } from '@octokit/graphql-schema';
+// import type { ReportedContentClassifiers } from '@octokit/graphql-schema';
 
 /**
  * Pull request number to operate on.
@@ -39,27 +39,7 @@ export const hideDetails = core.getBooleanInput('hide_details', {
 	required: true,
 });
 /** Whether to delete the previous sticky comment before posting. */
-export const recreate = core.getBooleanInput('recreate', { required: true });
-/** Whether to minimize and then recreate a new sticky comment. */
-export const hideAndRecreate = core.getBooleanInput('hide_and_recreate', {
-	required: true,
-});
-/** Classifier used when minimizing the previous comment. */
-export const hideClassify = core.getInput('hide_classify', {
-	required: true,
-}) as ReportedContentClassifiers;
-/** Whether to delete the old sticky comment without creating a new one. */
-export const deleteOldComment = core.getBooleanInput('delete', {
-	required: true,
-});
-/** Only create a comment when none exists. */
-export const onlyCreateComment = core.getBooleanInput('only_create', {
-	required: true,
-});
-/** Only update an existing comment, do nothing if none exists. */
-export const onlyUpdateComment = core.getBooleanInput('only_update', {
-	required: true,
-});
+// pruned: recreate/hide/hide_and_recreate/delete/only_* flows for internal use
 /** Skip updating when the computed body is unchanged. */
 export const skipUnchanged = core.getBooleanInput('skip_unchanged', {
 	required: true,
@@ -77,8 +57,7 @@ export const ignoreEmpty = core.getBooleanInput('ignore_empty', {
  * Defaults to the authenticated actor. Set to a fixed value like
  * "consentdotio" to ensure we always match that user's comments.
  */
-export const authorLogin =
-	core.getInput('author_login', { required: false }) || 'c15t';
+export const authorLogin = core.getInput('author_login', { required: false });
 
 /** Vercel token to authenticate API requests. */
 export const vercelToken = core.getInput('vercel_token', { required: false });
@@ -116,6 +95,52 @@ export const vercelScope = core.getInput('vercel_scope', { required: false });
 export const commentOnPush = core.getBooleanInput('comment_on_push', {
 	required: false,
 });
+
+// --- Orchestration & gating (for minimal workflows)
+export const setupDocs = core.getBooleanInput('setup_docs', {
+	required: false,
+});
+export const consentGitToken = core.getInput('consent_git_token', {
+	required: false,
+});
+export const docsTemplateRepo =
+	core.getInput('docs_template_repo', { required: false }) ||
+	'consentdotio/c15t-docs';
+export const docsTemplateRef =
+	core.getInput('docs_template_ref', { required: false }) || 'main';
+export const onlyIfChanged = core.getBooleanInput('only_if_changed', {
+	required: false,
+});
+export const changeGlobs = core
+	.getMultilineInput('change_globs', { required: false })
+	.filter(Boolean);
+export const checkTemplateChanges = core.getBooleanInput(
+	'check_template_changes',
+	{ required: false }
+);
+export const templateRepo = core.getInput('template_repo', { required: false });
+export const templateRef = core.getInput('template_ref', { required: false });
+export const postSkipComment = core.getBooleanInput('post_skip_comment', {
+	required: false,
+});
+export const skipMessage = core.getInput('skip_message', { required: false });
+export const deployOnPushBranches = core.getInput('deploy_on_push_branches', {
+	required: false,
+});
+export const deployOnPrBaseBranches = core.getInput(
+	'deploy_on_pr_base_branches',
+	{ required: false }
+);
+
+// --- GitHub App authentication (optional)
+export const githubAppId = core.getInput('github_app_id', { required: false });
+export const githubAppPrivateKey = core.getInput('github_app_private_key', {
+	required: false,
+});
+export const githubAppInstallationId = core.getInput(
+	'github_app_installation_id',
+	{ required: false }
+);
 
 /**
  * Builds the repository descriptor from action inputs and context.

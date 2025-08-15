@@ -13,9 +13,19 @@
  */
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import { getBody, githubToken, isFirstTimeContributor } from './config/inputs';
+import {
+	getBody,
+	githubAppId,
+	githubAppInstallationId,
+	githubAppPrivateKey,
+	githubToken,
+	isFirstTimeContributor,
+	postSkipComment,
+	skipMessage,
+} from './config/inputs';
 import { ensureComment } from './steps/comments';
 import { performVercelDeployment } from './steps/deployment';
+import { getAuthToken } from './steps/github-app-auth';
 import { maybeCommentOnPush } from './steps/push-comment';
 import { renderCommentMarkdown } from './steps/render-comment';
 import { validateOptions } from './steps/validate';
@@ -60,8 +70,24 @@ function computeEffectiveBody(
  */
 async function run(): Promise<undefined> {
 	try {
-		const octokit = github.getOctokit(githubToken);
+		const token = await getAuthToken(
+			githubToken,
+			githubAppId,
+			githubAppPrivateKey,
+			githubAppInstallationId
+		);
+		const octokit = github.getOctokit(token);
 		const deploymentUrl = await performVercelDeployment(octokit);
+		if (!deploymentUrl) {
+			// Deployment was skipped by policy/gating. Optionally post a sticky skip comment.
+			if (postSkipComment) {
+				const body =
+					skipMessage ||
+					'🟡 Documentation deploy skipped.\n\nReason: Policy or gating rules determined no deploy was needed.';
+				await ensureComment(octokit, body);
+			}
+			return;
+		}
 		const body = await getBody();
 		const effectiveBody = computeEffectiveBody(deploymentUrl, body);
 		const handled = await maybeCommentOnPush(
