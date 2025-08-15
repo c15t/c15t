@@ -34,7 +34,6 @@ import { validateOptions } from './steps/validate';
 import { ErrorHandler, executeWithRetry } from './utils/errors';
 import { createLogger } from './utils/logger';
 
-
 function computeEffectiveBody(
 	deploymentUrl: string | undefined,
 	body: string
