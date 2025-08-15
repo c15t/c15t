@@ -55,6 +55,32 @@ import {
 } from './config';
 import { type DeployTarget, deployToVercel } from './deploy';
 
+function buildDefaultPreviewComment(url: string, projectLabel: string): string {
+	const updated = new Date().toUTCString();
+	const ascii = [
+		'          _____                    _____      ',
+		"      ---'   __\\______      ______/__   `---  ",
+		'                ______)    (______               ',
+		'                __)            (__            ',
+		'               __)              (__           ',
+		'      ---.______)                 (______.---  ',
+	].join('\n');
+
+	return [
+		'```',
+		ascii,
+		'```',
+		'',
+		'<div align="center">',
+		'  <strong>🚀 Your preview is ready</strong>',
+		'</div>',
+		'',
+		'| Project | Preview | Status | Updated (UTC) |',
+		'| - | - | - | - |',
+		`| ${projectLabel} | [Open Preview](${url}) | Ready | ${updated} |`,
+	].join('\n');
+}
+
 /**
  * Runs the action's main workflow.
  *
@@ -166,7 +192,7 @@ async function run(): Promise<undefined> {
 		const body = await getBody();
 		const effectiveBody =
 			deploymentUrl && !body
-				? `🚀 Your documentation preview is ready!\n\n🔗 Live URL: ${deploymentUrl}`
+				? buildDefaultPreviewComment(deploymentUrl, vercelProjectId || 'docs')
 				: body;
 
 		// If not a PR, optionally comment on push (commit) events; otherwise skip
@@ -181,7 +207,12 @@ async function run(): Promise<undefined> {
 					await octokit.rest.repos.createCommitComment({
 						...github.context.repo,
 						commit_sha: github.context.sha,
-						body: effectiveBody || `🚀 Preview ready\n\n🔗 ${deploymentUrl}`,
+						body:
+							effectiveBody ||
+							buildDefaultPreviewComment(
+								deploymentUrl,
+								vercelProjectId || 'docs'
+							),
 					});
 				} catch (e) {
 					core.warning(
