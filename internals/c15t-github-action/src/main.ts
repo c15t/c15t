@@ -58,15 +58,14 @@ import { type DeployTarget, deployToVercel } from './deploy';
 function buildDefaultPreviewComment(url: string, projectLabel: string): string {
 	const updated = new Date().toUTCString();
 	const ascii = [
-		'          _____                    _____      ',
-		"      ---'   __\\______      ______/__   `---  ",
-		'                ______)    (______               ',
-		'                __)            (__            ',
-		'               __)              (__           ',
-		'      ---.______)                 (______.---  ',
+		'          _____                    _____',
+		"      ---'   __\\______      ______/__   `---",
+		'                ______)    (______',
+		'                __)            (__',
+		'               __)              (__',
+		'      ---.______)                 (______.---',
 		'',
-		'            Your docs preview is ready         ',
-		'',
+		'            Your docs preview is ready',
 	].join('\n');
 
 	return [
