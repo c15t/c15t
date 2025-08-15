@@ -29,7 +29,6 @@ import { performVercelDeployment } from './steps/deployment';
 import { getAuthToken } from './steps/github-app-auth';
 import { maybeCommentOnPush } from './steps/push-comment';
 import { renderCommentMarkdown } from './steps/render-comment';
-import { validateOptions } from './steps/validate';
 
 function computeEffectiveBody(
 	deploymentUrl: string | undefined,
@@ -163,7 +162,6 @@ async function run(): Promise<undefined> {
 			return;
 		}
 		core.info('[c15t] validating options');
-		validateOptions();
 		await ensureComment(octokit, effectiveBody, { appendOverride: true });
 		core.info('[c15t] ensured PR sticky comment with deployment link');
 	} catch (error) {

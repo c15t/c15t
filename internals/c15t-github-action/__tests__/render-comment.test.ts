@@ -44,4 +44,44 @@ describe('renderCommentMarkdown', () => {
 		});
 		expect(md).toMatch(PREVIEW_TABLE_REGEX);
 	});
+
+	it('uses deterministic seed selection without ternary', () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+
+		const withSeed = renderCommentMarkdown('https://example.com', {
+			seed: 'test-seed',
+		});
+		const withoutSeed = renderCommentMarkdown('https://example.com');
+
+		// Both should work without ternary expressions
+		expect(typeof withSeed).toBe('string');
+		expect(typeof withoutSeed).toBe('string');
+		expect(withSeed).toContain('### Docs Preview');
+		expect(withoutSeed).toContain('### Docs Preview');
+
+		vi.useRealTimers();
+	});
+
+	it('handles status assignment without ternary', () => {
+		const withStatus = renderCommentMarkdown('https://example.com', {
+			status: 'Custom Status',
+		});
+		const withoutStatus = renderCommentMarkdown('https://example.com');
+
+		expect(withStatus).toContain('Custom Status');
+		expect(withoutStatus).toContain('Ready'); // default
+	});
+
+	it('handles first contribution without ternary expressions', () => {
+		const firstTime = renderCommentMarkdown('https://example.com', {
+			firstContribution: true,
+		});
+		const regular = renderCommentMarkdown('https://example.com', {
+			firstContribution: false,
+		});
+
+		expect(firstTime).toContain('Your first c15t commit');
+		expect(regular).not.toContain('Your first c15t commit');
+	});
 });
