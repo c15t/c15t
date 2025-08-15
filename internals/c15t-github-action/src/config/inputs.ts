@@ -121,6 +121,9 @@ export const checkTemplateChanges = core.getBooleanInput(
 	{ required: false }
 );
 export const templateRepo = core.getInput('template_repo', { required: false });
+export const postSkipComment = core.getBooleanInput('post_skip_comment', {
+	required: false,
+});
 export const skipMessage = core.getInput('skip_message', { required: false });
 export const deployOnPushBranches = core.getInput('deploy_on_push_branches', {
 	required: false,

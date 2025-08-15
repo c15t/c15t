@@ -20,6 +20,7 @@ import {
 	githubAppPrivateKey,
 	githubToken,
 	isFirstTimeContributor,
+	postSkipComment,
 	pullRequestNumber,
 	skipMessage,
 } from './config/inputs';
