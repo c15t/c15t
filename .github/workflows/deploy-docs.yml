@@ -50,7 +50,7 @@ jobs:
 
       - name: ▲ C15T Docs Preview (Deploy + PR Comment)
         id: c15t
-        uses: ./internals/c15t-github-action
+        uses: ./internals/c15t-github-action/dist/index.js
         with:
           # Auth
           GITHUB_TOKEN: ${{ github.token }}
