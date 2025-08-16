@@ -156,7 +156,7 @@ export function renderCommentMarkdown(
 		lines.push('</details>');
 		lines.push('');
 		lines.push('<details>');
-		lines.push('<summary>🪧 Status, Documentation and Community</summary>');
+		lines.push('<summary>🪧 Documentation and Community</summary>');
 		lines.push('');
 		lines.push(
 			'- Visit our [Documentation](https://c15t.com/docs) for detailed information on how to use c15t.'
@@ -172,7 +172,7 @@ export function renderCommentMarkdown(
 		lines.push('');
 		lines.push('---');
 		lines.push(
-			'Baked with 💙 by [Consent](https://consent.io?ref=c15t-github-comment), powered by COOKIE'
+			'***Baked with 💙 by [Consent](https://consent.io?ref=c15t-github-comment), powered by COOKIE***'
 		);
 		lines.push('(Consent Oversees Our Key Integration Events)');
 		lines.push('because every CI needs a snack.');

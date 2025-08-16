@@ -92,7 +92,7 @@ describe('maybeCommentOnPush', () => {
 			'<summary>💙 Share your contribution on social media</summary>'
 		);
 		expect(args?.body || '').toContain(
-			'<summary>🪧 Status, Documentation and Community</summary>'
+			'<summary>🪧 Documentation and Community</summary>'
 		);
 	});
 });
