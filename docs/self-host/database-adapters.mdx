@@ -118,8 +118,13 @@ const pool = new Pool({
 const db = drizzle(pool);
 
 const instance = c15tInstance({
-  baseURL: 'http://localhost:3000',
-  database: drizzleAdapter({ client: db }),
+	baseURL: 'http://localhost:3000',
+	database: drizzleAdapter(
+		db as unknown as { [p: string]: unknown },
+		{
+			provider: 'pg',
+		},
+	),
 });
 ```
 
