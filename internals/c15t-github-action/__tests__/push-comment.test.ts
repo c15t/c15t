@@ -88,6 +88,9 @@ describe('maybeCommentOnPush', () => {
 		);
 		expect(bodySpy).toHaveBeenCalled();
 		const args = bodySpy.mock.calls[0]?.[0] as { body?: string };
+		expect(
+			(args?.body || '').match(/<details>/g)?.length || 0
+		).toBeGreaterThanOrEqual(2);
 		expect(args?.body || '').toContain(
 			'<summary>💙 Share your contribution on social media</summary>'
 		);

@@ -140,17 +140,26 @@ export function renderCommentMarkdown(
 		lines.push('<details>');
 		lines.push('<summary>💙 Share your contribution on social media</summary>');
 		lines.push('');
+		const shareBase =
+			'I just contributed to c15t.com, the fastest open-source cookie ' +
+			'banner on the web. Fully developer-first, beating every major CMP ' +
+			'in benchmarks and free for everyone to use or self-host. Check it ' +
+			'out: github.com/c15t/c15t';
+		const shareTextEncoded = encodeURIComponent(
+			url ? `${shareBase} ${url}` : shareBase
+		);
+		const shareUrlParam = encodeURIComponent(url ?? 'https://c15t.com');
 		lines.push(
-			'- [X](https://twitter.com/intent/tweet?text=I%20just%20contributed%20to%20c15t.com%2C%20the%20fastest%20open-source%20cookie%20banner%20on%20the%20web.%20Fully%20developer-first%2C%20beating%20every%20major%20CMP%20in%20benchmarks%20and%20free%20for%20everyone%20to%20use%20or%20self-host.%20github.com/c15t/c15t)'
+			`- [X](https://twitter.com/intent/tweet?text=${shareTextEncoded})`
 		);
 		lines.push(
-			'- [Mastodon](https://mastodon.social/share?text=I%20just%20contributed%20to%20%40c15tcom%2C%20the%20fastest%20open-source%20cookie%20banner%20on%20the%20web.%20Fully%20developer-first%2C%20beating%20every%20major%20CMP%20in%20benchmarks%20and%20free%20for%20everyone%20to%20use%20or%20self-host.%20Check%20it%20out%3A%20https%3A%2F%2Fc15t.com%20https%3A%2F%2Fgithub.com%2Fc15t%2Fc15t%20Follow%20us%20on%20X%3A%20https%3A%2F%2Ftwitter.com%2Fconsentdotio)'
+			`- [Mastodon](https://mastodon.social/share?text=${shareTextEncoded})`
 		);
 		lines.push(
-			'- [Reddit](https://www.reddit.com/submit?title=Fastest%20open-source%20cookie%20banner%20-%20c15t&text=I%20just%20contributed%20to%20c15t%2C%20the%20fastest%20open-source%20cookie%20banner%20on%20the%20web.%20Fully%20developer-first%2C%20beating%20every%20major%20CMP%20in%20benchmarks%20and%20free%20for%20everyone%20to%20use%20or%20self-host.%20Check%20it%20out%3A%20https%3A//c15t.com%20https%3A//github.com/c15t/c15t%20Follow%20us%20on%20X%3A%20https%3A//twitter.com/consentdotio)'
+			`- [Reddit](https://www.reddit.com/submit?title=Fastest%20open-source%20cookie%20banner%20-%20c15t&text=${shareTextEncoded})`
 		);
 		lines.push(
-			'- [LinkedIn](https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fc15t.com&mini=true&title=Fastest%20open%20source%20cookie%20banner%20-%20c15t&summary=I%20just%20contributed%20to%20c15t%20%28https%3A%2F%2Fgithub.com%2Fc15t%2Fc15t%29%2C%20the%20fastest%20open-source%20cookie%20banner%20on%20the%20web.%20Fully%20developer-first%2C%20beating%20every%20major%20CMP%20in%20benchmarks%20and%20free%20for%20everyone%20to%20use%20or%20self-host.%20Follow%20us%20on%20X%3A%20https%3A%2F%2Ftwitter.com%2Fconsentdotio)'
+			`- [LinkedIn](https://www.linkedin.com/sharing/share-offsite/?url=${shareUrlParam}&mini=true&title=Fastest%20open%20source%20cookie%20banner%20-%20c15t&summary=${shareTextEncoded})`
 		);
 		lines.push('');
 		lines.push('</details>');
@@ -162,7 +171,7 @@ export function renderCommentMarkdown(
 			'- Visit our [Documentation](https://c15t.com/docs) for detailed information on how to use c15t.'
 		);
 		lines.push(
-			'- Join our [Discord Community](http://c15t.com/discord) to get help, request features, and share feedback.'
+			'- Join our [Discord Community](https://c15t.com/discord) to get help, request features, and share feedback.'
 		);
 		lines.push(
 			'- Follow us on [X](https://twitter.com/consentdotio) for updates and announcements.'
