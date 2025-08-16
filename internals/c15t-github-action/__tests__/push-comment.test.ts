@@ -64,4 +64,38 @@ describe('maybeCommentOnPush', () => {
 		expect(core.info).toBeCalled();
 		expect(octokit.rest.repos.createCommitComment).not.toHaveBeenCalled();
 	});
+
+	it('includes share/tips sections in auto-rendered body on push', async () => {
+		vi.resetModules();
+		vi.doMock('../src/config/inputs', () => ({
+			commentOnPush: true,
+			pullRequestNumber: Number.NaN,
+		}));
+		const { maybeCommentOnPush } = await import('../src/steps/push-comment');
+		// Capture body passed to commit comment
+		const bodySpy = vi
+			.spyOn(octokit.rest.repos, 'createCommitComment')
+			.mockResolvedValue({
+				status: 201,
+				url: 'https://api.github.local',
+				headers: {} as Record<string, string>,
+				data: { id: 2 } as unknown,
+			} as Awaited<ReturnType<typeof octokit.rest.repos.createCommitComment>>);
+		await maybeCommentOnPush(
+			octokit as unknown as ReturnType<typeof github.getOctokit>,
+			undefined,
+			'https://preview.example.com'
+		);
+		expect(bodySpy).toHaveBeenCalled();
+		const args = bodySpy.mock.calls[0]?.[0] as { body?: string };
+		expect(
+			(args?.body || '').match(/<details>/g)?.length || 0
+		).toBeGreaterThanOrEqual(2);
+		expect(args?.body || '').toContain(
+			'<summary>💙 Share your contribution on social media</summary>'
+		);
+		expect(args?.body || '').toContain(
+			'<summary>🪧 Documentation and Community</summary>'
+		);
+	});
 });

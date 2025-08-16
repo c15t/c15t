@@ -23,6 +23,7 @@ import {
 	vercelWorkingDirectory,
 } from '../config/inputs';
 import { type DeployTarget, deployToVercel } from '../deploy/vercel-client';
+import { ErrorHandler, executeWithRetry } from '../utils/errors';
 import { detectRelevantChanges, shouldDeployByPolicy } from './changes';
 import { setupDocsWithScript } from './setup-docs';
 import {
@@ -241,19 +242,24 @@ export async function performVercelDeployment(
 	await ensureGitMetaEnv(octokit);
 
 	try {
-		const result = await deployToVercel({
-			token: vercelToken,
-			projectId: vercelProjectId,
-			orgId: vercelOrgId,
-			workingDirectory: vercelWorkingDirectory,
-			framework: vercelFramework,
-			target: (vercelTarget as DeployTarget) || undefined,
-			aliasDomain: canaryAlias || undefined,
-			aliasBranch: aliasOnBranch || undefined,
-			aliasDomains,
-			vercelArgs,
-			vercelScope,
-		});
+		const result = await executeWithRetry(
+			() =>
+				deployToVercel({
+					token: vercelToken,
+					projectId: vercelProjectId,
+					orgId: vercelOrgId,
+					workingDirectory: vercelWorkingDirectory,
+					framework: vercelFramework,
+					target: (vercelTarget as DeployTarget) || undefined,
+					aliasDomain: canaryAlias || undefined,
+					aliasBranch: aliasOnBranch || undefined,
+					aliasDomains,
+					vercelArgs,
+					vercelScope,
+				}),
+			ErrorHandler.handleVercel,
+			3
+		);
 		const url = result.url;
 		core.setOutput('deployment_url', url);
 		if (typeof deploymentId === 'number') {

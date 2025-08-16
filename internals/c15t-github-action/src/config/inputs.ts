@@ -98,6 +98,11 @@ export const commentOnPush = core.getBooleanInput('comment_on_push', {
 	required: false,
 });
 
+/** Enable verbose debug logging */
+export const debugMode = core.getBooleanInput('debug_mode', {
+	required: false,
+});
+
 // --- Orchestration & gating (for minimal workflows)
 export const setupDocs = core.getBooleanInput('setup_docs', {
 	required: false,
