@@ -136,16 +136,9 @@ export function renderCommentMarkdown(
 		if (url && updated) {
 			lines.push(previewMessage.join('\n'));
 		}
-		lines.push('');
-		lines.push('---');
-		lines.push(
-			'Baked with 💙 by Consent, powered by COOKIE (Consent Oversees Our Key ' +
-				'Integration Events — because every CI needs a snack).'
-		);
-		lines.push('');
 		// Share section (inspired by CodeRabbit share block)
 		lines.push('<details>');
-		lines.push('<summary>Share your contribution on social media</summary>');
+		lines.push('<summary>💙 Share your contribution on social media</summary>');
 		lines.push('');
 		lines.push(
 			'- [X](https://twitter.com/intent/tweet?text=I%20just%20contributed%20to%20%40c15tcom%2C%20the%20fastest%20open-source%20cookie%20banner%20on%20the%20web.%20Fully%20developer-first%2C%20beating%20every%20major%20CMP%20in%20benchmarks%20and%20free%20for%20everyone%20to%20use%20or%20self-host.%20Check%20it%20out%3A&url=https%3A//c15t.com%20https%3A//github.com/c15t/c15t)'
@@ -176,6 +169,12 @@ export function renderCommentMarkdown(
 		);
 		lines.push('');
 		lines.push('</details>');
+		lines.push('');
+		lines.push('---');
+		lines.push('Baked with 💙 by Consent, powered by COOKIE');
+		lines.push('(Consent Oversees Our Key Integration Events)');
+		lines.push('because every CI needs a snack.');
+		lines.push('');
 		return lines.join('\n');
 	};
 

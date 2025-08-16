@@ -88,7 +88,11 @@ describe('maybeCommentOnPush', () => {
 		);
 		expect(bodySpy).toHaveBeenCalled();
 		const args = bodySpy.mock.calls[0]?.[0] as { body?: string };
-		expect(args?.body || '').toContain('<summary>❤️ Share</summary>');
-		expect(args?.body || '').toContain('<summary>🪧 Tips</summary>');
+		expect(args?.body || '').toContain(
+			'<summary>💙 Share your contribution on social media</summary>'
+		);
+		expect(args?.body || '').toContain(
+			'<summary>🪧 Status, Documentation and Community</summary>'
+		);
 	});
 });
