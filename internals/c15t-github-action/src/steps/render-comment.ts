@@ -141,16 +141,16 @@ export function renderCommentMarkdown(
 		lines.push('<summary>💙 Share your contribution on social media</summary>');
 		lines.push('');
 		lines.push(
-			'- [X](https://twitter.com/intent/tweet?text=I%20just%20contributed%20to%20%40c15tcom%2C%20the%20fastest%20open-source%20cookie%20banner%20on%20the%20web.%20Fully%20developer-first%2C%20beating%20every%20major%20CMP%20in%20benchmarks%20and%20free%20for%20everyone%20to%20use%20or%20self-host.%20Check%20it%20out%3A&url=https%3A//c15t.com%20https%3A//github.com/c15t/c15t)'
+			'- [X](https://twitter.com/intent/tweet?text=I%20just%20contributed%20to%20c15t.com%2C%20the%20fastest%20open-source%20cookie%20banner%20on%20the%20web.%20Fully%20developer-first%2C%20beating%20every%20major%20CMP%20in%20benchmarks%20and%20free%20for%20everyone%20to%20use%20or%20self-host.%20github.com/c15t/c15t)'
 		);
 		lines.push(
-			'- [Mastodon](https://mastodon.social/share?text=I%20just%20contributed%20to%20%40c15tcom%2C%20the%20fastest%20open-source%20cookie%20banner%20on%20the%20web.%20Fully%20developer-first%2C%20beating%20every%20major%20CMP%20in%20benchmarks%20and%20free%20for%20everyone%20to%20use%20or%20self-host.%20Check%20it%20out%3A%20https%3A%2F%2Fc15t.com%20https%3A%2F%2Fgithub.com%2Fc15t%2Fc15t)'
+			'- [Mastodon](https://mastodon.social/share?text=I%20just%20contributed%20to%20%40c15tcom%2C%20the%20fastest%20open-source%20cookie%20banner%20on%20the%20web.%20Fully%20developer-first%2C%20beating%20every%20major%20CMP%20in%20benchmarks%20and%20free%20for%20everyone%20to%20use%20or%20self-host.%20Check%20it%20out%3A%20https%3A%2F%2Fc15t.com%20https%3A%2F%2Fgithub.com%2Fc15t%2Fc15t%20Follow%20us%20on%20X%3A%20https%3A%2F%2Ftwitter.com%2Fconsentdotio)'
 		);
 		lines.push(
-			'- [Reddit](https://www.reddit.com/submit?title=Fastest%20open-source%20cookie%20banner%20-%20c15t&text=I%20just%20contributed%20to%20c15t%2C%20the%20fastest%20open-source%20cookie%20banner%20on%20the%20web.%20Fully%20developer-first%2C%20beating%20every%20major%20CMP%20in%20benchmarks%20and%20free%20for%20everyone%20to%20use%20or%20self-host.%20Check%20it%20out%3A%20https%3A//c15t.com%20https%3A//github.com/c15t/c15t)'
+			'- [Reddit](https://www.reddit.com/submit?title=Fastest%20open-source%20cookie%20banner%20-%20c15t&text=I%20just%20contributed%20to%20c15t%2C%20the%20fastest%20open-source%20cookie%20banner%20on%20the%20web.%20Fully%20developer-first%2C%20beating%20every%20major%20CMP%20in%20benchmarks%20and%20free%20for%20everyone%20to%20use%20or%20self-host.%20Check%20it%20out%3A%20https%3A//c15t.com%20https%3A//github.com/c15t/c15t%20Follow%20us%20on%20X%3A%20https%3A//twitter.com/consentdotio)'
 		);
 		lines.push(
-			'- [LinkedIn](https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fc15t.com&mini=true&title=Fastest%20open%20source%20cookie%20banner%20-%20c15t&summary=I%20just%20contributed%20to%20c15t%20%28https%3A%2F%2Fgithub.com%2Fc15t%2Fc15t%29%2C%20the%20fastest%20open-source%20cookie%20banner%20on%20the%20web.%20Fully%20developer-first%2C%20beating%20every%20major%20CMP%20in%20benchmarks%20and%20free%20for%20everyone%20to%20use%20or%20self-host.)'
+			'- [LinkedIn](https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fc15t.com&mini=true&title=Fastest%20open%20source%20cookie%20banner%20-%20c15t&summary=I%20just%20contributed%20to%20c15t%20%28https%3A%2F%2Fgithub.com%2Fc15t%2Fc15t%29%2C%20the%20fastest%20open-source%20cookie%20banner%20on%20the%20web.%20Fully%20developer-first%2C%20beating%20every%20major%20CMP%20in%20benchmarks%20and%20free%20for%20everyone%20to%20use%20or%20self-host.%20Follow%20us%20on%20X%3A%20https%3A%2F%2Ftwitter.com%2Fconsentdotio)'
 		);
 		lines.push('');
 		lines.push('</details>');
@@ -171,7 +171,9 @@ export function renderCommentMarkdown(
 		lines.push('</details>');
 		lines.push('');
 		lines.push('---');
-		lines.push('Baked with 💙 by Consent, powered by COOKIE');
+		lines.push(
+			'Baked with 💙 by [Consent](https://consent.io?ref=c15t-github-comment), powered by COOKIE'
+		);
 		lines.push('(Consent Oversees Our Key Integration Events)');
 		lines.push('because every CI needs a snack.');
 		lines.push('');
