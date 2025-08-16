@@ -131,19 +131,17 @@ This guide shows you how to set up a self-hosted c15t instance, giving you compl
     Then, create a catch-all API route that imports and uses this instance:
 
     ```tsx title="app/api/c15t/[...all]/route.ts"
-    import { toNextHandler } from '@c15t/backend/integrations/next';
     import { instance } from '../c15t';
 
-    export const { GET, POST, OPTIONS } = toNextHandler(instance);
+    export const { GET, POST, OPTIONS } = instance;
     ```
 
     <Tabs items={['Next.js', 'Cloudflare']}>
       <Tab value="Next.js">
         ```tsx title="app/api/c15t/[...all]/route.ts"
-        import { toNextHandler } from '@c15t/backend/integrations/next';
         import { instance } from '../c15t';
 
-        export const { GET, POST, OPTIONS } = toNextHandler(instance);
+        export const { GET, POST, OPTIONS } = instance;
         ```
       </Tab>
 

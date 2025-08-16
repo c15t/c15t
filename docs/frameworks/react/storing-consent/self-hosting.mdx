@@ -136,10 +136,9 @@ This guide shows you how to set up a self-hosted c15t instance using Next.js API
     Then, create a catch-all API route that imports and uses this instance:
 
     ```tsx title="app/api/c15t/[...all]/route.ts"
-    import { toNextHandler } from '@c15t/backend/integrations/next';
     import { instance } from '../c15t';
 
-    export const { GET, POST, OPTIONS } = toNextHandler(instance);
+    export const { GET, POST, OPTIONS } = instance;
     ```
 
     This approach separates your instance configuration from the route handler, making it easier for CLI tools and migration utilities to locate and work with your c15t instance.
