@@ -136,12 +136,56 @@ export function renderCommentMarkdown(
 		if (url && updated) {
 			lines.push(previewMessage.join('\n'));
 		}
+		// Share section (inspired by CodeRabbit share block)
+		lines.push('<details>');
+		lines.push('<summary>💙 Share your contribution on social media</summary>');
+		lines.push('');
+		const shareBase =
+			'I just contributed to c15t.com, the fastest open-source cookie ' +
+			'banner on the web. Fully developer-first, beating every major CMP ' +
+			'in benchmarks and free for everyone to use or self-host. Check it ' +
+			'out: github.com/c15t/c15t';
+		const shareTextEncoded = encodeURIComponent(
+			url ? `${shareBase} ${url}` : shareBase
+		);
+		const shareUrlParam = encodeURIComponent(url ?? 'https://c15t.com');
+		lines.push(
+			`- [X](https://twitter.com/intent/tweet?text=${shareTextEncoded})`
+		);
+		lines.push(
+			`- [Mastodon](https://mastodon.social/share?text=${shareTextEncoded})`
+		);
+		lines.push(
+			`- [Reddit](https://www.reddit.com/submit?title=Fastest%20open-source%20cookie%20banner%20-%20c15t&text=${shareTextEncoded})`
+		);
+		lines.push(
+			`- [LinkedIn](https://www.linkedin.com/sharing/share-offsite/?url=${shareUrlParam}&mini=true&title=Fastest%20open%20source%20cookie%20banner%20-%20c15t&summary=${shareTextEncoded})`
+		);
+		lines.push('');
+		lines.push('</details>');
+		lines.push('');
+		lines.push('<details>');
+		lines.push('<summary>🪧 Documentation and Community</summary>');
+		lines.push('');
+		lines.push(
+			'- Visit our [Documentation](https://c15t.com/docs) for detailed information on how to use c15t.'
+		);
+		lines.push(
+			'- Join our [Discord Community](https://c15t.com/discord) to get help, request features, and share feedback.'
+		);
+		lines.push(
+			'- Follow us on [X](https://twitter.com/consentdotio) for updates and announcements.'
+		);
+		lines.push('');
+		lines.push('</details>');
 		lines.push('');
 		lines.push('---');
 		lines.push(
-			'Baked with 💙 by Consent, powered by COOKIE (Consent Oversees Our Key ' +
-				'Integration Events — because every CI needs a snack).'
+			'***Baked with 💙 by [Consent](https://consent.io?ref=c15t-github-comment), powered by COOKIE***'
 		);
+		lines.push('(Consent Oversees Our Key Integration Events)');
+		lines.push('because every CI needs a snack.');
+		lines.push('');
 		return lines.join('\n');
 	};
 
