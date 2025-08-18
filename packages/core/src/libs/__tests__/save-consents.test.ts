@@ -845,6 +845,103 @@ describe('saveConsents', () => {
 		});
 	});
 
+	describe('scheduling/yield behavior', () => {
+		it('defers tracking/GTM updates and onConsentSet to the next task', async () => {
+			vi.useFakeTimers();
+			try {
+				const onConsentSet = vi.fn();
+				// Override get() to inject our spy for this test
+				mockGet = vi.fn().mockReturnValue({
+					callbacks: {
+						onConsentSet,
+						onError: vi.fn(),
+					},
+					consents: {
+						necessary: true,
+						functionality: false,
+						measurement: false,
+						experience: false,
+						marketing: false,
+					},
+					consentTypes: [
+						{
+							name: 'necessary',
+							defaultValue: true,
+							description: 'Necessary',
+							disabled: true,
+							display: true,
+							gdprType: 1,
+						},
+						{
+							name: 'functionality',
+							defaultValue: false,
+							description: 'Functionality',
+							disabled: false,
+							display: true,
+							gdprType: 2,
+						},
+						{
+							name: 'measurement',
+							defaultValue: false,
+							description: 'Measurement',
+							disabled: false,
+							display: true,
+							gdprType: 4,
+						},
+						{
+							name: 'experience',
+							defaultValue: false,
+							description: 'Experience',
+							disabled: false,
+							display: true,
+							gdprType: 3,
+						},
+						{
+							name: 'marketing',
+							defaultValue: false,
+							description: 'Marketing',
+							disabled: false,
+							display: true,
+							gdprType: 5,
+						},
+					],
+				});
+
+				const { updateGTMConsent } = await import('../gtm');
+
+				const promise = saveConsents({
+					manager: mockManager,
+					type: 'all',
+					get: mockGet,
+					set: mockSet,
+					trackingBlocker: mockTrackingBlocker,
+				});
+
+				// Immediately after calling, UI update should have occurred
+				expect(mockSet).toHaveBeenCalled();
+				// But side-effects should be deferred
+				expect(mockTrackingBlocker?.updateConsents).not.toHaveBeenCalled();
+				expect(updateGTMConsent).not.toHaveBeenCalled();
+				expect(onConsentSet).not.toHaveBeenCalled();
+
+				// Run all timers to flush the yielded setTimeout(0)
+				await vi.runAllTimersAsync();
+				// Also flush pending microtasks queued by awaited Promises
+				await Promise.resolve();
+
+				// Now side-effects and callbacks should have executed
+				expect(mockTrackingBlocker?.updateConsents).toHaveBeenCalled();
+				expect(updateGTMConsent).toHaveBeenCalled();
+				expect(onConsentSet).toHaveBeenCalled();
+
+				// Allow the async function to complete
+				await promise;
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+	});
+
 	describe('edge cases', () => {
 		it('should handle empty consent types array', async () => {
 			mockGet = vi.fn().mockReturnValue({
