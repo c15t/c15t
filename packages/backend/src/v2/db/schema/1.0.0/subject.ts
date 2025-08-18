@@ -7,6 +7,7 @@ export const subjectTable = table('subject', {
 	externalId: column('externalId', 'string').nullable(),
 	identityProvider: column('identityProvider', 'string').nullable(),
 	lastIpAddress: column('lastIpAddress', 'string').nullable(),
+	subjectTimezone: column('subjectTimezone', 'string').nullable(),
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
 	updatedAt: column('updatedAt', 'timestamp').defaultTo$('now'),
 });
@@ -17,6 +18,7 @@ export const subjectSchema = z.object({
 	externalId: z.string().nullish(),
 	identityProvider: z.string().nullish(),
 	lastIpAddress: z.string().optional(),
+	subjectTimezone: z.string().nullish(),
 	createdAt: z.date().default(() => new Date()),
 	updatedAt: z.date().default(() => new Date()),
 });
