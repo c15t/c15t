@@ -12,7 +12,6 @@
 		"./components/consent-manager-widget",
 		"./components/dev-tools",
 		"--- Storing Consent ---",
-		"./storing-consent/overview",
 		"./storing-consent/hosted-c15t",
 		"./storing-consent/offline-mode",
 		"./storing-consent/custom-client",

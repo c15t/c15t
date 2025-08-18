@@ -1,20 +1,20 @@
 ---
-title: 'Offline Mode'
-description: 'Store consent decisions in the browser with offline mode, perfect for sites without backend requirements'
+title: "Offline Mode"
+description: "Store consent decisions in the browser with offline mode, perfect for sites without backend requirements"
 lastModified: 2025-06-11
 availableIn:
-  - framework: 'next'
-    url: '/docs/frameworks/next/storing-consent/offline-mode'
-    title: 'Next.js'
-  - framework: 'react'
-    url: '/docs/frameworks/react/storing-consent/offline-mode'
-    title: 'React'
-  - framework: 'javascript'
-    url: '/docs/frameworks/javascript/storing-consent/offline-mode'
-    title: 'JavaScript'
+  - framework: "next"
+    url: "/docs/frameworks/next/storing-consent/offline-mode"
+    title: "Next.js"
+  - framework: "react"
+    url: "/docs/frameworks/react/storing-consent/offline-mode"
+    title: "React"
+  - framework: "javascript"
+    url: "/docs/frameworks/javascript/storing-consent/offline-mode"
+    title: "JavaScript"
 ---
 
-import { RiServerLine, RiGlobalLine, RiSettings4Line } from '@remixicon/react';
+import { RiServerLine, RiGlobalLine, RiSettings4Line } from "@remixicon/react";
 
 The offline mode provides a simple, browser-based approach to storing user consent decisions without requiring a backend server.
 
@@ -32,21 +32,7 @@ The offline mode provides a simple, browser-based approach to storing user conse
     ### Install the Package
 
     <PackageCommandTabs command="@c15t/react" mode="install" />
-  </Step>
 
-  <Step>
-    ### Configure the Client
-
-    Set up the c15t client with offline mode:
-
-    ```jsx
-    // lib/c15tClient.js
-    import { createClient } from '@c15t/react'
-
-    export const c15tClient = createClient({
-      mode: 'offline',
-    })
-    ```
   </Step>
 
   <Step>
@@ -56,11 +42,15 @@ The offline mode provides a simple, browser-based approach to storing user conse
 
     ```jsx
     import { ConsentManagerProvider } from '@c15t/react'
-    import { c15tClient } from '../lib/c15tClient'
 
     function MyApp({ Component, pageProps }) {
       return (
-        <ConsentManagerProvider options={c15tClient}>
+        <ConsentManagerProvider
+          options={{
+            mode: 'offline',
+            consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner.
+          }}
+        >
           <Component {...pageProps} />
         </ConsentManagerProvider>
       )
@@ -68,13 +58,15 @@ The offline mode provides a simple, browser-based approach to storing user conse
 
     export default MyApp
     ```
+
   </Step>
 </Steps>
 
 ## How It Works
 
 <Callout type="note">
-  Offline mode provides the same API interface as the standard client but operates completely client-side.
+  Offline mode provides the same API interface as the standard client but
+  operates completely client-side.
 </Callout>
 
 The offline mode implements the same interface as the standard client, but with the following differences:
@@ -90,17 +82,17 @@ The offline mode accepts the following configuration options:
 
 ```jsx
 const options = {
-  mode: 'offline',
+  mode: "offline",
   // Optional: Add callback functions for various events
   callbacks: {
     onConsentBannerFetched: (response) => {
-      console.log('Banner state retrieved:', response.data);
+      console.log("Banner state retrieved:", response.data);
     },
     onConsentSet: (response) => {
-      console.log('Consent preferences saved');
+      console.log("Consent preferences saved");
     },
     onConsentVerified: (response) => {
-      console.log('Consent verification complete');
+      console.log("Consent verification complete");
     },
     onError: (error, endpoint) => {
       console.error(`Error in ${endpoint}:`, error);
@@ -120,9 +112,9 @@ By default, c15t uses the browser's localStorage to persist consent decisions:
 ```jsx
 // Default implementation
 export const c15tClient = createClient({
-  mode: 'offline',
-  storage: 'localStorage' // This is the default, so can be omitted
-})
+  mode: "offline",
+  storage: "localStorage" // This is the default, so can be omitted
+});
 ```
 
 ### SessionStorage
@@ -131,9 +123,9 @@ For session-based consent that's cleared when the browser is closed:
 
 ```jsx
 export const c15tClient = createClient({
-  mode: 'offline',
-  storage: 'sessionStorage'
-})
+  mode: "offline",
+  storage: "sessionStorage"
+});
 ```
 
 ### Memory Only
@@ -142,15 +134,16 @@ For applications where persistence isn't needed:
 
 ```jsx
 export const c15tClient = createClient({
-  mode: 'offline',
-  storage: 'memory'
-})
+  mode: "offline",
+  storage: "memory"
+});
 ```
 
 ## Browser Compatibility
 
 <Callout type="warning">
-  Some browser environments like private browsing modes may have localStorage restrictions.
+  Some browser environments like private browsing modes may have localStorage
+  restrictions.
 </Callout>
 
 The offline mode relies on localStorage, which is supported in all modern browsers. However, it includes fallbacks for environments where localStorage might be unavailable or restricted:
@@ -170,26 +163,26 @@ Offline mode is perfect for development and testing environments where you don't
 ```jsx
 // Development configuration
 const options = {
-  mode: process.env.NODE_ENV === 'development' 
-    ? 'offline' 
-    : 'c15t',
-  backendURL: process.env.NODE_ENV === 'production'
-    ? process.env.NEXT_PUBLIC_C15T_URL
-    : undefined
+  mode: process.env.NODE_ENV === "development" ? "offline" : "c15t",
+  backendURL:
+    process.env.NODE_ENV === "production"
+      ? process.env.NEXT_PUBLIC_C15T_URL
+      : undefined
 };
 ```
 
 ### Static Sites
 
 <Callout type="tip">
-  Offline mode is an excellent choice for static sites deployed on platforms like Vercel, Netlify, or GitHub Pages.
+  Offline mode is an excellent choice for static sites deployed on platforms
+  like Vercel, Netlify, or GitHub Pages.
 </Callout>
 
 For static sites without backend integration, offline mode provides a simple solution:
 
 ```jsx
 const options = {
-  mode: 'offline',
+  mode: "offline"
 };
 ```
 
@@ -198,25 +191,24 @@ const options = {
 You can use offline mode as a fallback when the backend is unavailable:
 
 ```jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 function ConsentProvider({ children }) {
-  const [mode, setMode] = useState('c15t');
-  
+  const [mode, setMode] = useState("c15t");
+
   useEffect(() => {
     // Check if backend is available
-    fetch('/api/c15t/status')
-      .catch(() => {
-        console.warn('c15t backend unavailable, switching to offline mode');
-        setMode('offline');
-      });
+    fetch("/api/c15t/status").catch(() => {
+      console.warn("c15t backend unavailable, switching to offline mode");
+      setMode("offline");
+    });
   }, []);
-  
+
   const options = {
     mode,
-    backendURL: mode === 'c15t' ? '/api/c15t' : undefined
+    backendURL: mode === "c15t" ? "/api/c15t" : undefined
   };
-  
+
   return (
     <ConsentManagerProvider options={options}>
       {children}
@@ -228,7 +220,8 @@ function ConsentProvider({ children }) {
 ## Limitations
 
 <Callout type="important">
-  Understand these limitations when deciding if offline mode is right for your application.
+  Understand these limitations when deciding if offline mode is right for your
+  application.
 </Callout>
 
 While offline mode provides a functional consent management solution, it has some limitations:
@@ -257,9 +250,14 @@ For more complex applications or those with stricter compliance requirements, co
     Configure <code>Self-Hosting</code>
   </CompactCard>
 
-  <CompactCard href="/docs/storing-consent/hosted-c15t" icon={<RiGlobalLine size={18} />}>
-    Use <code>Hosted c15t</code>
-  </CompactCard>
+{" "}
+
+<CompactCard
+  href="/docs/storing-consent/hosted-c15t"
+  icon={<RiGlobalLine size={18} />}
+>
+  Use <code>Hosted c15t</code>
+</CompactCard>
 
   <CompactCard href="/docs/storing-consent/custom-client" icon={<RiSettings4Line size={18} />}>
     Create a <code>Custom Client</code>

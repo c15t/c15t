@@ -4,17 +4,13 @@
 	"icon": "server",
 	"pages": [
 		"index",
-		"core-concepts",
-		"database-adapters",
-		"plugins",
-		"--- Databases ---",
-		"databases/postgres",
-		"databases/mysql",
-		"databases/sqlite",
-		"--- Database Adapters ---",
-		"adapters/memory",
-		"adapters/kysely",
-		"adapters/prisma",
-		"adapters/drizzle"
+		"supported-databases",
+		"options",
+		"--- Examples ---",
+		"examples/nextjs",
+		"examples/cloudflare",
+		"--- ---",
+		"migrate-from-v1",
+		"v1/index"
 	]
 }

@@ -1,21 +1,20 @@
 import { c15tInstance } from '@c15t/backend/v2';
 import { kyselyAdapter } from '@c15t/backend/v2/db/adapters/kysely';
-import { Kysely, PostgresDialect } from 'kysely';
+// import { Pool } from 'pg';
+import { LibsqlDialect } from '@libsql/kysely-libsql';
+import { Kysely } from 'kysely';
 import type { NextRequest } from 'next/server';
-import { Pool } from 'pg';
 
 const handler = c15tInstance({
 	appName: 'c15t-self-host',
 	basePath: '/api/c15t',
 	adapter: kyselyAdapter({
 		db: new Kysely({
-			dialect: new PostgresDialect({
-				pool: new Pool({
-					connectionString: 'postgresql://postgres@localhost:5432/new-db',
-				}),
+			dialect: new LibsqlDialect({
+				url: 'http://127.0.0.1:8080',
 			}),
 		}),
-		provider: 'postgresql',
+		provider: 'sqlite',
 	}),
 
 	trustedOrigins: ['localhost', 'vercel.app'],
@@ -26,7 +25,7 @@ const handler = c15tInstance({
 		},
 	},
 	logger: {
-		level: 'error',
+		level: 'debug',
 	},
 });
 
