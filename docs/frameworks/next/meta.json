@@ -5,6 +5,7 @@
 	"pages": [
 		"quickstart",
 		"google-tag-manager",
+		"internationalization",
 		"callbacks",
 		"--- React Components ---",
 		"components/cookie-banner",
