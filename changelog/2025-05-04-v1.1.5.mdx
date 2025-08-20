@@ -1,0 +1,119 @@
+---
+title: "v1.1.5 — Tailwind CSS v3 Compatibility & Style Fixes"
+version: 1.1.5
+date: 2025-05-04
+description: "Patch release fixing critical Tailwind CSS v3 compatibility issues by removing CSS layers and improving noStyle theme handling. Ensures proper style application and prevents conflicts with modern Tailwind configurations."
+tags:
+  - release
+  - stable
+  - tailwind-compatibility
+  - styling
+  - theme-fixes
+canary: false
+type: release
+breaking: false
+packages:
+  - "@c15t/react@1.1.5"
+---
+
+## Patch Changes
+
+This release addresses **critical Tailwind CSS v3 compatibility issues** and improves theme handling for components with custom styling requirements.
+
+## 🐛 Bug Fixes
+
+### Tailwind CSS v3 Compatibility
+- **[#218](https://github.com/c15t/c15t/issues/218)** [1652d02](https://github.com/c15t/c15t/commit/1652d02) – fix(react): removed layers to fix collision with Tailwind 3. Thanks [@KayleeWilliams](https://github.com/KayleeWilliams)!
+- **[#208](https://github.com/c15t/c15t/issues/208)** [41bfb71](https://github.com/c15t/c15t/commit/41bfb71) – fix(react): no style component theme not removing default classes. Thanks [@KayleeWilliams](https://github.com/KayleeWilliams)!
+
+### Key Fixes
+- **Removed CSS layering wrappers** that caused conflicts with Tailwind CSS v3
+- **Fixed noStyle theme handling** to properly exclude default component styles when `noStyle` flag is set
+- Ensured theme-level `classNames` and `styles` are still applied even with `noStyle: true`
+
+## 🔧 Technical Details
+
+### CSS Layer Removal
+- Removed `@layer` wrappers from multiple components to prevent Tailwind CSS v3 collisions
+- This change maintains functionality while ensuring compatibility with modern Tailwind configurations
+
+### Enhanced noStyle Theme Support
+- Added proper checks for `noStyle` flag in component themes
+- When `noStyle` is enabled, only theme-level styling is applied
+- Default component styles are correctly excluded
+
+## ⚠️ Breaking Changes
+
+### Custom Class Priority
+With the removal of CSS layers, you may need to add `!important` to custom classes for proper specificity:
+
+```css
+/* Before */
+.my-custom-banner {
+  border: 1px solid red;
+}
+
+/* After - if styles don't apply */
+.my-custom-banner {
+  border: 1px solid red !important;
+}
+```
+
+Or use Tailwind's important prefix:
+```jsx
+// Before
+<div className="border-red-500">
+
+// After - if needed
+<div className="!border-red-500">
+```
+
+## 🎯 Use Cases
+
+### NoStyle Theme Implementation
+```jsx
+// Theme with noStyle flag
+const customTheme = {
+  noStyle: true,
+  classNames: "my-custom-styles",
+  styles: { backgroundColor: "blue" }
+};
+
+// Only theme-level styles applied, no default component styles
+<CookieBanner theme={customTheme} />
+```
+
+### Tailwind CSS v3 Compatibility
+```jsx
+// Now works seamlessly with Tailwind CSS v3
+import { CookieBanner } from '@c15t/react';
+
+// No more layer conflicts
+<CookieBanner className="border-2 border-blue-500 rounded-lg" />
+```
+
+## 🧪 Testing
+
+### Test Coverage
+- ✅ Added comprehensive test cases for `noStyle` flag behavior
+- ✅ Verified CSS layer removal doesn't break existing functionality
+- ✅ Enhanced test descriptions for clarity
+- ✅ Added coverage for mixed theme formats (strings and objects)
+
+### Validation Scenarios
+- **Theme with noStyle**: Ensures only theme-level styles are applied
+- **Tailwind CSS v3**: Confirms no layer conflicts in modern Tailwind setups
+- **Mixed theme formats**: Validates both string and object theme configurations
+
+## ✨ What's Changed
+
+Published via commit [0d421be](https://github.com/c15t/c15t/commit/0d421be) by [@github-actions](https://github.com/github-actions)
+
+- fix(react): removed layers to fix collision with Tailwind 3 by [@KayleeWilliams](https://github.com/KayleeWilliams) in [#218](https://github.com/c15t/c15t/pull/218)
+- fix(react): no style component theme not removing default classes by [@KayleeWilliams](https://github.com/KayleeWilliams) in [#208](https://github.com/c15t/c15t/pull/208)
+
+**Full Changelog**: [@c15t/react@1.1.4...@c15t/react@1.1.5](https://github.com/c15t/c15t/compare/@c15t/react@1.1.4...@c15t/react@1.1.5)
+
+This release ensures **seamless Tailwind CSS v3 compatibility** while providing more robust theme customization options through improved `noStyle` handling.
+
+<ContributorBlock usernames={["KayleeWilliams", "github-actions"]} title="Thank you to our contributors" />

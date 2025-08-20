@@ -1,0 +1,116 @@
+---
+title: "v1.1.3 — Enhanced Theming & Callback Improvements"
+version: 1.1.3
+date: 2025-04-29
+description: "Major release introducing comprehensive theming support with dark/light/system detection, improved consent callbacks with structured data, and enhanced color scheme integration. Includes breaking changes for theme system and callback data structure."
+tags:
+  - release
+  - stable
+  - theming
+  - callbacks
+  - color-scheme
+canary: false
+type: release
+breaking: true
+packages:
+  - "c15t@1.1.3"
+  - "@c15t/react@1.1.3"
+  - "@c15t/dev-tools@1.1.3"
+  - "@c15t/cli@1.0.6"
+---
+
+## Minor Changes
+
+This release introduces **enhanced theme flexibility** and significantly **improved consent callbacks** with structured data responses.
+
+## ✨ New Features
+
+### Comprehensive Theming Support
+
+- `useColorScheme` now detects themes via the `.dark` class on `document.documentElement`
+- Optional `colorScheme` parameter improves integration with existing theme systems
+- Full test suite added to validate dark/light/system theme switching
+- Theme system now uses `@layer base` for better CSS encapsulation
+
+### Improved Consent Callbacks
+
+- Callbacks now return structured and useful consent data
+- Works consistently across offline, c15t, and backend-connected modes
+- Callback responses now reflect user-selected preferences more clearly
+
+## 🐛 Bug Fixes
+
+- **[#203](https://github.com/c15t/c15t/issues/203)** [4d47e21](https://github.com/c15t/c15t/commit/4d47e2109bfc894f1666b19f4ff40d7398f10c57) – fix(core): callbacks not working in c15t mode. Thanks [@KayleeWilliams](https://github.com/KayleeWilliams)!
+- Fixed callbacks not firing in alternate modes (e.g., c15t)
+- `useColorScheme` now correctly responds to:
+  - System preference changes
+  - Document class changes (via MutationObserver)
+- Improved error handling for environments missing `matchMedia`
+- Removed unnecessary localStorage dependency for theme persistence
+
+## 🏗️ Refactors
+
+- Theme-related CSS is now consistently structured using `@layer base`
+- Refined internal theme types to allow better extension/customization
+- Simplified theme config to support nested object structure for banners and widgets
+
+## 📚 Documentation
+
+- Fixed broken example in offline mode – [#187](https://github.com/c15t/c15t/issues/187)
+- Updated configuration types to document new theme and colorScheme options
+- Added detailed callback payload examples and behavior notes across client modes
+- Enhanced API references and docs for:
+  - `onSetConsent` and other lifecycle callbacks
+  - Banner fetch event handler
+
+## 🧪 Tests
+
+### Color Scheme Tests:
+- System preference override
+- Explicit theme override
+- Document class detection
+
+### Callback Tests:
+- Triggering across client modes
+- Payload accuracy and structure
+
+## 💥 Breaking Changes
+
+- Removed localStorage theme fallback — rely on system preference or class
+- Misconfigured theme props in c15t config may need to be adjusted
+- Some fields (e.g., `id`) removed from callback data objects — now accessible via the response object
+
+## 🔄 Migration Guide
+
+### Theme System Changes
+localStorage theme fallback has been removed:
+```js
+// Before: Manual localStorage theme management
+localStorage.setItem('theme', 'dark');
+
+// After: Use system preference or class-based detection
+document.documentElement.classList.add('dark');
+```
+
+### Callback Data Structure
+Some fields have been moved in callback responses:
+```js
+// Before
+onSetConsent(({ id, consents }) => {
+  // id was directly available
+});
+
+// After
+onSetConsent(({ consents, response }) => {
+  // id is now in response object
+  const id = response.id;
+});
+```
+
+## 📦 Version Packages
+
+Published via [#205](https://github.com/c15t/c15t/pull/205) by @github-actions
+
+This release significantly enhances the **theming capabilities** and **callback reliability** of c15t, providing a more robust foundation for custom UI implementations and better integration with existing design systems.
+
+<ContributorBlock usernames={["KayleeWilliams", "github-actions"]} title="Thank you to our contributors" />

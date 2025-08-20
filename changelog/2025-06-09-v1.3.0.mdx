@@ -1,0 +1,136 @@
+---
+title: "v1.3.0 — Translations Package, SSR Consent, CLI Telemetry, and Next.js Restructure"
+version: 1.3.0
+date: 2025-06-09
+description: "Minor release introducing the new @c15t/translations package with 8 languages, server-side consent initialization, CLI telemetry and onboarding upgrades, and a Next.js package restructuring that removes middleware exports. Includes backend translation support, improved schemas, and infrastructure/tooling updates."
+tags:
+  - release
+  - stable
+  - translations
+  - i18n
+  - nextjs
+  - cli
+  - backend
+canary: false
+type: release
+breaking: true
+packages:
+  - "@c15t/translations@1.3.0"
+  - "@c15t/react@1.3.0"
+  - "@c15t/nextjs@1.3.0"
+  - "c15t@1.3.0"
+  - "@c15t/cli@1.3.0"
+  - "@c15t/backend@1.3.0"
+---
+
+## Minor Changes
+
+This release represents a major step forward in internationalization support, developer experience, and architectural refinements across the entire c15t ecosystem.
+
+## 🌍 New Translations Package
+
+- NEW: Added `@c15t/translations` with comprehensive i18n support
+- 8 languages: English, German, Spanish, Finnish, French, Italian, Dutch, Portuguese
+- Covers consent banners, dialogs, and common phrases
+- Replaces former middleware-centric translation handling
+
+## 🔧 CLI Enhancements
+
+- NEW: Telemetry system with framework and package manager detection
+- NEW: Enhanced onboarding flow with better framework detection (React, Next.js, etc.)
+- NEW: Automatic package manager detection (pnpm, yarn, npm)
+- NEW: `--telemetry-debug` flag for debugging telemetry
+- Improved error handling and setup UX
+- Better file generation across storage modes and configurations
+
+## 🎯 Backend Updates
+
+- NEW: Server-side translation support in consent banner handling
+- Accept-Language header parsing for language detection
+- Consent banner contracts updated with translation schemas
+- Enhanced jurisdiction checking with better defaults
+- User-Agent and IP address handling now default to `null` instead of "unknown"
+
+## ⚛️ React Package Changes
+
+- Integrated translation support throughout components
+- `ConsentManagerProvider` now supports initial translation configuration
+- Removed dependency on middleware package
+- Store enhanced with translation capabilities
+
+## 🔄 Next.js Package Restructuring
+
+- BREAKING: Removed middleware exports and functionality
+- NEW: `ConsentManagerProvider` for server-side rendering
+- NEW: Server-side consent banner detection with jurisdiction mapping
+- Support for extracting consent-relevant headers
+- Updated to work with the new translations system
+
+## 🏗️ Core Package Updates
+
+- Integrated translation configuration system
+- Offline client includes default translations
+- Consent banner fetching enhanced with translation support
+- Improved store management with initial data handling
+
+## 🔄 Infrastructure & Tooling
+
+- NEW: GitHub Actions workflow for canary releases
+- NEW: Branch synchronization workflow (main → canary)
+- Updated BiomeJS configuration with comprehensive lint rules
+- Enhanced build configurations across packages
+
+## 📦 Package Management
+
+- Updated dependencies and added peer dependencies where appropriate
+- Improved module exports and build configs
+- Enhanced TypeScript configs for better type safety
+
+## 📋 Detailed Change Breakdown
+
+### New Features
+- Multi-language consent banners (de, es, fi, fr, it, nl, pt)
+- SSR consent initialization for Next.js
+- CLI telemetry and onboarding upgrades; `--telemetry-debug` flag
+
+### Improvements
+- Consent banner responses include translation structures and jurisdiction info
+- Translations utilities and types centralized in `@c15t/translations`
+- Unified onboarding file generation for client config and env files
+- Enhanced telemetry with async tracking and debug logging
+
+### Bug Fixes
+- Fixed consent banner logic for US jurisdiction and fallback scenarios
+- Improved CLI telemetry and onboarding error handling
+
+### Refactor
+- Removed legacy middleware exports and Node SDK re-exports from Next.js/middleware packages
+- Consolidated jurisdiction and consent banner logic into Next.js provider modules
+- Async CLI context creation with richer environment metadata and logging
+- Storage modes refactored to delegate file generation and unify cancellation handling
+
+### Tests
+- Extensive coverage for banner display, jurisdiction detection, language parsing, translation selection
+- Removed deprecated tests for deleted middleware/jurisdiction modules
+
+### Chores
+- Version bumps, dependency updates, and new canary workflows
+- Metadata/build config updates for consistency and tooling
+
+## 💥 Breaking Changes
+
+- `@c15t/nextjs`: Removed middleware exports and functionality in favor of server-side provider-based initialization
+
+## ✨ What's Changed
+
+- refactor(api): switch to oRPC and unified contract routing by [@BurnedChris](https://github.com/BurnedChris) in [#213](https://github.com/c15t/c15t/pull/213)
+- feat(sdk): introduce Node.js client with OpenAPI support by [@BurnedChris](https://github.com/BurnedChris) in [#214](https://github.com/c15t/c15t/pull/214)
+- fix(styles): remove Tailwind layer to avoid collision by [@KayleeWilliams](https://github.com/KayleeWilliams) in [#217](https://github.com/c15t/c15t/pull/217)
+- refactor(translations): consolidate into common + remove widget keys by [@KayleeWilliams](https://github.com/KayleeWilliams) in [#219](https://github.com/c15t/c15t/pull/219)
+- Version Packages by [@github-actions](https://github.com/github-actions) in [#249](https://github.com/c15t/c15t/pull/249)
+
+Published via commit [3eadfd5](https://github.com/c15t/c15t/commit/3eadfd5) by [@github-actions](https://github.com/github-actions)
+
+**Full Changelog**: [c15t@1.2.1...c15t@1.3.0](https://github.com/c15t/c15t/compare/c15t@1.2.1...c15t@1.3.0)
+
+<ContributorBlock usernames={["BurnedChris", "KayleeWilliams", "github-actions"]} title="Translations & DX team" />
