@@ -4,8 +4,9 @@
 	"root": true,
 	"pages": [
 		"quickstart",
-		"callbacks",
 		"internationalization",
+		"callbacks",
+		"google-tag-manager",
 		"api-reference",
 		"--- Storing Consent ---",
 		"./storing-consent/overview",
