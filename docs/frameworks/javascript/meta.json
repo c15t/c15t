@@ -5,6 +5,7 @@
 	"pages": [
 		"quickstart",
 		"callbacks",
+		"internationalization",
 		"api-reference",
 		"--- Storing Consent ---",
 		"./storing-consent/overview",

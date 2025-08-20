@@ -5,7 +5,8 @@
 	"pages": [
 		"quickstart",
 		"google-tag-manager",
-		"./callbacks",
+		"internationalization",
+		"callbacks",
 		"--- React Components ---",
 		"./components/cookie-banner",
 		"./components/consent-manager-dialog",
