@@ -4,9 +4,9 @@
 	"icon": "next",
 	"pages": [
 		"quickstart",
-		"google-tag-manager",
 		"internationalization",
 		"callbacks",
+		"google-tag-manager",
 		"--- React Components ---",
 		"components/cookie-banner",
 		"components/consent-manager-dialog",
