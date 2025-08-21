@@ -3,4 +3,4 @@
 "c15t": patch
 ---
 
-refactor(core): depricate duplicate & unused methods from the store
+refactor(core): deprecate duplicate & unused methods from the store
