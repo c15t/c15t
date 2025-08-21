@@ -7,7 +7,7 @@
 		"check-types": "tsc --noEmit",
 		"check-types:test": "tsc -p tsconfig.test.json",
 		"dev": "rslib build --watch",
-		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "pnpm biome lint ./src",
 		"test": "vitest run",
 		"test:watch": "vitest"
@@ -22,13 +22,15 @@
 	"main": "./dist/index.cjs",
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
-		"@orpc/client": "1.2.0",
-		"@orpc/contract": "1.2.0",
-		"@orpc/openapi-client": "^1.2.0",
-		"@orpc/server": "1.2.0"
+		"@orpc/client": "1.8.1",
+		"@orpc/contract": "1.8.1",
+		"@orpc/openapi-client": "^1.8.1",
+		"@orpc/server": "1.8.1"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

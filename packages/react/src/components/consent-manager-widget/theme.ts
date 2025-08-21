@@ -1,7 +1,7 @@
 import type { ThemeValue } from '~/types/theme';
 import type {
-	AccordionCSSVariables,
 	AccordionContentCSSVariables,
+	AccordionCSSVariables,
 	AccordionIconCSSVariables,
 	AccordionItemCSSVariables,
 	AccordionTriggerCSSVariables,

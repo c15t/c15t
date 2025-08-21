@@ -34,6 +34,13 @@ const createMockStoreState = (
 		marketing: false,
 		measurement: false,
 	},
+	selectedConsents: {
+		necessary: false,
+		functionality: false,
+		experience: false,
+		marketing: false,
+		measurement: false,
+	},
 	consentInfo: null,
 	showPopup: false,
 	isLoadingConsentInfo: false,
@@ -62,6 +69,7 @@ const createMockStoreState = (
 	},
 	isConsentDomain: false,
 	ignoreGeoLocation: false,
+	privacySettings: { honorDoNotTrack: false },
 	setTranslationConfig: vi.fn(),
 	includeNonDisplayedConsents: false,
 	consentTypes: [],
@@ -81,6 +89,8 @@ const createMockStoreState = (
 	hasConsented: vi.fn(),
 	getEffectiveConsents: vi.fn(),
 	hasConsentFor: vi.fn(),
+	setSelectedConsent: vi.fn(),
+	has: vi.fn(),
 	...overrides,
 });
 
@@ -250,7 +260,7 @@ describe('fetchConsentBannerInfo', () => {
 			});
 
 			expect(result).toEqual(mockResponse);
-			expect(mockSet).toHaveBeenCalledWith({ isLoadingConsentInfo: false });
+			// No longer directly setting isLoadingConsentInfo: false since it's handled in updateStore
 			expect(mockManager.showConsentBanner).not.toHaveBeenCalled();
 		});
 
@@ -389,6 +399,8 @@ describe('fetchConsentBannerInfo', () => {
 					locationInfo: {
 						countryCode: 'DE',
 						regionCode: 'BE',
+						jurisdiction: mockResponse.jurisdiction?.code ?? null,
+						jurisdictionMessage: mockResponse.jurisdiction?.message ?? null,
 					},
 					jurisdictionInfo: mockResponse.jurisdiction,
 					translationConfig: expect.any(Object),
@@ -413,6 +425,7 @@ describe('fetchConsentBannerInfo', () => {
 				set: mockSet,
 			});
 
+			// Verify that set was called with consents set to true when jurisdiction.code is 'NONE'
 			expect(mockSet).toHaveBeenCalledWith(
 				expect.objectContaining({
 					consents: {
@@ -589,12 +602,12 @@ describe('fetchConsentBannerInfo', () => {
 		});
 
 		it('should not set translation config when translations are missing', async () => {
-			const mockResponse = createMockConsentBannerResponse({
-				translations: undefined,
-			});
+			// Create a response without translations field
+			const { translations, ...mockResponseWithoutTranslations } =
+				createMockConsentBannerResponse();
 
 			mockManager.showConsentBanner = vi.fn().mockResolvedValue({
-				data: mockResponse,
+				data: mockResponseWithoutTranslations,
 				error: null,
 			});
 

@@ -8,7 +8,7 @@
  * @see {@link ./middleware} for Next.js middleware integration
  */
 
-export { ConsentManagerProvider } from './components/consent-manager-provider/pages';
 export { withInitialC15TData } from './components/consent-manager-provider/initial-data-hoc';
+export { ConsentManagerProvider } from './components/consent-manager-provider/pages';
 
 export * from './shared';

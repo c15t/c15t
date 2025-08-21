@@ -27,9 +27,9 @@ export const consentRecordSchema = z.object({
 	subjectId: z.string(),
 	consentId: z.string().optional(),
 	actionType: z.string(),
-	details: z.record(z.unknown()).optional(),
-	createdAt: z.date().default(() => new Date()),
-	updatedAt: z.date().default(() => new Date()),
+	details: z.record(z.string(), z.unknown()).optional(),
+	createdAt: z.date().prefault(() => new Date()),
+	updatedAt: z.date().prefault(() => new Date()),
 });
 
 /**

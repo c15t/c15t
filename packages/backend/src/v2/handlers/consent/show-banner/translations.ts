@@ -1,8 +1,8 @@
 import {
-	type CompleteTranslations,
-	type Translations,
 	baseTranslations,
+	type CompleteTranslations,
 	deepMergeTranslations,
+	type Translations,
 } from '@c15t/translations';
 
 type SupportedBaseLanguage = keyof typeof baseTranslations;

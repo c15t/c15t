@@ -10,10 +10,9 @@
  */
 
 import type { FC } from 'react';
+import type { ThemeContextValue } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useTheme } from '~/hooks/use-theme';
-
-import type { ThemeContextValue } from '~/context/theme-context';
 import { ConsentCustomizationCard } from './atoms/dialog-card';
 import { Root as ConsentManagerDialogRoot } from './atoms/root';
 import type { ConsentManagerDialogTheme } from './theme';

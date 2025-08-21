@@ -20,8 +20,10 @@ export async function saveConsents({
 	set,
 	trackingBlocker,
 }: SaveConsentsProps) {
-	const { callbacks, consents, consentTypes } = get();
-	const newConsents = { ...consents };
+	const { callbacks, selectedConsents, consents, consentTypes } = get();
+
+	const newConsents = selectedConsents ?? consents ?? {};
+
 	if (type === 'all') {
 		for (const consent of consentTypes) {
 			newConsents[consent.name] = true;
@@ -41,16 +43,18 @@ export async function saveConsents({
 	// This makes the interface feel more responsive
 	set({
 		consents: newConsents,
+		selectedConsents: newConsents,
 		showPopup: false,
 		consentInfo,
 	});
 
-	// Update tracking blocker with new consents right away
+	// Yield to the next task so the UI can paint before running heavier work
+	await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+	// Run after yielding to avoid blocking the click INP
 	trackingBlocker?.updateConsents(newConsents);
 	updateGTMConsent(newConsents);
 
-	// Store to localStorage immediately for persistence
-	// Wrap in try/catch to handle potential privacy mode errors
 	try {
 		localStorage.setItem(
 			STORAGE_KEY,
@@ -60,7 +64,6 @@ export async function saveConsents({
 			})
 		);
 	} catch (e) {
-		// biome-ignore lint/suspicious/noConsole: safe degradation
 		console.warn('Failed to persist consents to localStorage:', e);
 	}
 
@@ -89,7 +92,6 @@ export async function saveConsents({
 		});
 		// Fallback console only when no handler is provided
 		if (!callbacks.onError) {
-			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.error(errorMsg);
 		}
 	}

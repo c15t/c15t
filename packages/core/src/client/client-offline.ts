@@ -1,3 +1,4 @@
+import { defaultTranslationConfig } from '~/translations';
 import type {
 	ConsentManagerInterface,
 	SetConsentRequestBody,
@@ -6,10 +7,7 @@ import type {
 	VerifyConsentRequestBody,
 	VerifyConsentResponse,
 } from './client-interface';
-
 import type { FetchOptions, ResponseContext } from './types';
-
-import { defaultTranslationConfig } from '~/translations';
 
 /**
  * Configuration options for the Offline client.
@@ -72,7 +70,6 @@ export class OfflineClient implements ConsentManagerInterface {
 			}
 		} catch (error) {
 			// Ignore localStorage errors (e.g., in environments where it's blocked)
-			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.warn('Failed to access localStorage:', error);
 			// If localStorage is unavailable, default to not showing the banner
 			// to prevent repeated failed attempts causing memory leaks
@@ -127,7 +124,6 @@ export class OfflineClient implements ConsentManagerInterface {
 			}
 		} catch (error) {
 			// Ignore localStorage errors but log them
-			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.warn('Failed to write to localStorage:', error);
 		}
 

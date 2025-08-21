@@ -1,6 +1,6 @@
 import {
-	type LogLevel,
 	createCliLogger,
+	type LogLevel,
 	validLogLevels,
 } from '../utils/logger';
 import { createTelemetry } from '../utils/telemetry';

@@ -5,6 +5,7 @@
  * GDPR-compliant consent management.
  */
 
+export type { Callback, Callbacks } from './callbacks';
 /**
  * @module
  * Compliance and Privacy Types
@@ -44,7 +45,6 @@ export type {
 	NamespaceProps,
 	PrivacySettings,
 } from './compliance';
-
 /**
  * @module
  * GDPR Consent Types
@@ -72,8 +72,6 @@ export type {
  */
 export { type AllConsentNames, type ConsentType, consentTypes } from './gdpr';
 
-export type { Callback, Callbacks } from './callbacks';
-
 /**
  * @module
  * Translation Types
@@ -88,10 +86,10 @@ export type { Callback, Callbacks } from './callbacks';
  */
 
 export type {
-	ConsentManagerDialogTranslations,
 	CommonTranslations,
-	ConsentTypeTranslations,
+	ConsentManagerDialogTranslations,
 	ConsentTypesTranslations,
+	ConsentTypeTranslations,
 	CookieBannerTranslations,
 	TranslationConfig,
 	Translations,

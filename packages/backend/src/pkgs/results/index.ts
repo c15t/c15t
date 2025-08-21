@@ -73,18 +73,37 @@
 
 // Re-export everything from neverthrow that we use
 export {
-	ok,
 	err,
-	okAsync,
 	errAsync,
 	fromPromise,
+	ok,
+	okAsync,
 	Result,
 	ResultAsync,
 } from 'neverthrow';
 
 // Export our error class
 export { DoubleTieError } from './core/error-class';
-
+// Export our error classes, codes, and categories
+export { ERROR_CATEGORIES, ERROR_CODES } from './core/error-codes';
+// Export telemetry options
+export {
+	createTelemetryOptions,
+	type TelemetryConfig,
+} from './create-telemetry-options';
+// Export recovery utilities
+export {
+	withFallbackForCategory,
+	withFallbackForCodes,
+} from './results/recovery-utils';
+// Export result handling utilities
+export {
+	fail,
+	failAsync,
+	promiseToResult,
+	tryCatch,
+	tryCatchAsync,
+} from './results/result-helpers';
 // Export our types
 export type {
 	DoubleTieErrorOptions,
@@ -94,27 +113,3 @@ export type {
 	SDKResult,
 	SDKResultAsync,
 } from './types';
-
-// Export our error classes, codes, and categories
-export { ERROR_CODES, ERROR_CATEGORIES } from './core/error-codes';
-
-// Export result handling utilities
-export {
-	fail,
-	failAsync,
-	tryCatch,
-	tryCatchAsync,
-	promiseToResult,
-} from './results/result-helpers';
-
-// Export recovery utilities
-export {
-	withFallbackForCodes,
-	withFallbackForCategory,
-} from './results/recovery-utils';
-
-// Export telemetry options
-export {
-	createTelemetryOptions,
-	type TelemetryConfig,
-} from './create-telemetry-options';

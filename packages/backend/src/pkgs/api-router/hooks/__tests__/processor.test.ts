@@ -1,4 +1,4 @@
-import { type Mock, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, type Mock, test, vi } from 'vitest';
 import type { HookEndpointContext } from '~/pkgs/types';
 import { runAfterHooks, runBeforeHooks } from '../processor';
 

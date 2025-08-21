@@ -22,9 +22,9 @@ export const consentPurposeSchema = z.object({
 	isEssential: z.boolean(),
 	dataCategory: z.string().nullish(),
 	legalBasis: z.string().nullish(),
-	isActive: z.boolean().default(true),
-	createdAt: z.date().default(() => new Date()),
-	updatedAt: z.date().default(() => new Date()),
+	isActive: z.boolean().prefault(true),
+	createdAt: z.date().prefault(() => new Date()),
+	updatedAt: z.date().prefault(() => new Date()),
 });
 
 export type ConsentPurpose = z.infer<typeof consentPurposeSchema>;

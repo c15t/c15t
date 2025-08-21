@@ -1,5 +1,5 @@
 {
-	"$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.2.0/schema.json",
 	"formatter": {
 		"enabled": true,
 		"formatWithErrors": true,
@@ -9,16 +9,16 @@
 		"lineWidth": 80,
 		"attributePosition": "auto"
 	},
-	"organizeImports": { "enabled": true },
+	"assist": { "actions": { "source": { "organizeImports": "on" } } },
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"all": true,
 			"a11y": {
 				"noAutofocus": "off"
 			},
 			"complexity": {
-				"useSimplifiedLogicExpression": "off"
+				"useSimplifiedLogicExpression": "off",
+				"noExcessiveCognitiveComplexity": "off"
 			},
 			"correctness": {
 				"noUndeclaredDependencies": "off",
@@ -26,14 +26,8 @@
 				"noNodejsModules": "off"
 			},
 			"nursery": {
-				"all": true,
-				"noCommonJs": "off",
-				"noProcessEnv": "off",
 				"noSecrets": "off",
-				"useComponentExportOnlyModules": "off",
 				"useExplicitType": "off",
-				"useImportRestrictions": "off",
-				"useConsistentCurlyBraces": "off",
 				"useSortedClasses": {
 					"fix": "safe",
 					"level": "error",
@@ -51,7 +45,6 @@
 				"noDefaultExport": "off",
 				"noImplicitBoolean": "off",
 				"useExplicitLengthCheck": "off",
-				"noNamespaceImport": "off",
 				"useFilenamingConvention": {
 					"level": "error",
 					"options": {
@@ -60,7 +53,21 @@
 					}
 				},
 				"useSingleVarDeclarator": "off",
-				"useNamingConvention": "off"
+				"useNamingConvention": "off",
+				"noParameterAssign": "error",
+				"useAsConstAssertion": "error",
+				"useDefaultParameterLast": "error",
+				"useEnumInitializers": "error",
+				"useSelfClosingElements": "error",
+				"noUnusedTemplateLiteral": "error",
+				"useNumberNamespace": "error",
+				"noInferrableTypes": "error",
+				"noUselessElse": "error",
+				"noCommonJs": "off",
+				"noProcessEnv": "off",
+				"useComponentExportOnlyModules": "off",
+				"useConsistentCurlyBraces": "off",
+				"noNestedTernary": "off"
 			},
 			"suspicious": {
 				"noReactSpecificProps": "off",
