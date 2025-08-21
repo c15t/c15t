@@ -9,7 +9,14 @@ export function ClientLayout() {
 					console.log('Consent banner fetched', response);
 				},
 				onConsentSet(response) {
-					console.log('Consent has been saved locally', response);
+					console.log('onConsentSet', response);
+
+					// This simulates a heavy operation that could block the click INP
+					const start = performance.now();
+					const end = start + 500;
+					// biome-ignore lint/suspicious/noEmptyBlockStatements: <explanation>
+					while (performance.now() < end) {}
+					console.log('heavy onConsentSet callback finished');
 				},
 				onError(response) {
 					console.log('Error', response);

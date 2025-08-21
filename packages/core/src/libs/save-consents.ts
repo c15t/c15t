@@ -21,6 +21,7 @@ export async function saveConsents({
 	trackingBlocker,
 }: SaveConsentsProps) {
 	const { callbacks, selectedConsents, consents, consentTypes } = get();
+
 	const newConsents = selectedConsents ?? consents ?? {};
 
 	if (type === 'all') {
@@ -47,12 +48,13 @@ export async function saveConsents({
 		consentInfo,
 	});
 
-	// Update tracking blocker with new consents right away
+	// Yield to the next task so the UI can paint before running heavier work
+	await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+	// Run after yielding to avoid blocking the click INP
 	trackingBlocker?.updateConsents(newConsents);
 	updateGTMConsent(newConsents);
 
-	// Store to localStorage immediately for persistence
-	// Wrap in try/catch to handle potential privacy mode errors
 	try {
 		localStorage.setItem(
 			STORAGE_KEY,
