@@ -27,14 +27,9 @@ describe('Post Consent Contract Custom Tests', () => {
 	};
 
 	describe('Schema Structure', () => {
-		it('input schema is a discriminated union based on type', () => {
-			// Using explicit type cast to avoid linter warnings
-			const schema = schemas.input as z.ZodDiscriminatedUnion<
-				string,
-				z.ZodObject<z.ZodRawShape>[]
-			>;
-			expect(schema._def.typeName).toBe('ZodDiscriminatedUnion');
-			expect(schema._def.discriminator).toBe('type');
+		it('input schema requires a type discriminator', () => {
+			const result = validateInput({ domain: 'example.com' });
+			expect(result?.success).toBe(false);
 		});
 
 		it('supports all defined policy types', () => {

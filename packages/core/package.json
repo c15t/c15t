@@ -29,8 +29,8 @@
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
 		"@c15t/translations": "workspace:*",
-		"@orpc/client": "1.2.0",
-		"@orpc/server": "1.2.0",
+		"@orpc/client": "1.8.1",
+		"@orpc/server": "1.8.1",
 		"zustand": "^5.0.3"
 	},
 	"devDependencies": {
