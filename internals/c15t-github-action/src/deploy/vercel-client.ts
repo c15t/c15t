@@ -225,6 +225,7 @@ export async function deployToVercel(
 		process.env.GITHUB_PR_HEAD_REF || process.env.GITHUB_HEAD_REF || '';
 	const prBaseRef =
 		process.env.GITHUB_PR_BASE_REF || process.env.GITHUB_BASE_REF || '';
+	const includePrMeta = prNumber.trim().length > 0;
 
 	const filesList = walkFiles(cwd);
 	const files = filesList.map((file) => {
@@ -251,11 +252,15 @@ export async function deployToVercel(
 			githubCommitAuthorName: commitAuthorName,
 			githubCommitAuthorLogin: commitAuthorLogin,
 			// githubCommitAuthorEmail intentionally omitted
-			githubPrNumber: prNumber,
-			githubPrHeadRef: prHeadRef,
-			githubPrBaseRef: prBaseRef,
 			source: 'github',
 			...(options.vercelScope ? { githubScope: options.vercelScope } : {}),
+			...(includePrMeta
+				? {
+						githubPrNumber: prNumber,
+						...(prHeadRef ? { githubPrHeadRef: prHeadRef } : {}),
+						...(prBaseRef ? { githubPrBaseRef: prBaseRef } : {}),
+					}
+				: {}),
 			...additionalMeta,
 		},
 		projectSettings: {

@@ -1,0 +1,54 @@
+---
+title: "v1.4.2 — Indonesian Translations, Provider Render Fixes, URL Normalization"
+version: 1.4.2
+date: 2025-06-26
+description: "Patch release adding Bahasa Indonesia translations, improving provider rendering to prevent duplicate requests, normalizing URLs to remove trailing slashes, correcting consent logic, and refining banner animations. Includes dependency updates, caching improvements, and expanded tests."
+tags:
+  - release
+  - stable
+  - translations
+  - nextjs
+  - react
+  - core
+canary: false
+type: release
+breaking: false
+authors: burnedchris
+packages:
+  - "@c15t/translations@1.4.2"
+  - "@c15t/nextjs@1.4.2"
+  - "@c15t/react@1.4.2"
+  - "c15t@1.4.2"
+---
+
+## New Features
+
+- Added Bahasa Indonesia (ID) translations for consent and privacy-related UI.
+
+## Bug Fixes
+
+- Improved provider rendering to prevent duplicate requests.
+- Fixed URL normalization to consistently remove trailing slashes.
+- Corrected consent logic to grant consent when none is required.
+- Enhanced cookie banner animation timing for smoother transitions.
+
+## Chores
+
+- Updated multiple dependencies to latest canary versions.
+- Improved internal caching for consent managers and stores.
+- Added utility to clear consent manager cache for testing.
+
+## 🧪 Tests
+
+- Expanded coverage for URL normalization and consent manager behavior.
+- Ensured test isolation by clearing caches before each test.
+
+## ✨ What's Changed
+
+- See related PRs: [#311](https://github.com/c15t/c15t/pull/311), [#312](https://github.com/c15t/c15t/pull/312), [#309](https://github.com/c15t/c15t/pull/309)
+
+**Full Changelog**: [c15t@1.4.1...c15t@1.4.2](https://github.com/c15t/c15t/compare/c15t@1.4.1...c15t@1.4.2)
+
+<ContributorBlock usernames={["BurnedChris", "KayleeWilliams"]} title="Thank you to our contributors" />
+
+

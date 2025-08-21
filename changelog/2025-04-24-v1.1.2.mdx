@@ -1,0 +1,119 @@
+---
+title: "v1.1.2 — Optimistic UI & Bundle Optimization"
+version: 1.1.2
+date: 2025-04-24
+description: "Performance-focused release introducing optimistic UI updates for instant user feedback, massive 58.9% bundle size reduction, and a new headless package for custom implementations with improved event handling."
+tags:
+  - release
+  - stable
+  - optimistic-ui
+  - bundle-optimization
+  - headless
+  - performance
+canary: false
+type: release
+breaking: false
+authors: burnedchris
+packages:
+  - "@c15t/react@1.1.2"
+  - "c15t@1.0.5"
+---
+
+## Major Changes
+
+This release introduces **optimistic UI updates** and achieves **massive bundle size reduction** while adding a new **headless package** for maximum flexibility.
+
+## 🔧 Fixes & Improvements
+
+### @c15t/react@1.1.2
+
+#### Improved UX responsiveness for banner and dialog interactions:
+- UI now updates immediately on user interaction (e.g., closing modals, accepting/rejecting consent), with consent saved in the background
+- This ensures a smoother experience, especially on slower connections or when network requests are delayed
+
+#### Improved event handling for ConsentButton:
+- Rewritten logic to separate UI updates from consent persistence
+- Custom onClick handlers now receive the full MouseEvent, enabling better control and integration
+
+#### Cleaner store logic:
+- Refactored setShowPopup and saveConsents methods to better separate UI vs network logic
+- More consistent behavior around locale changes and popup visibility
+
+### c15t@1.0.5
+
+#### ⚙️ Under the Hood:
+- Improved consent flow by decoupling UI updates from async network calls — UI now responds instantly, with API sync happening in the background
+- Fixed an edge case where popup visibility or dialog state could behave inconsistently due to dependency timing
+- Minor cleanup and better error handling in consent persistence logic
+
+## 🚀 Performance Revolution
+
+### Bundle Size Optimization
+- **MASSIVE**: Reduced package size from **84.2 kB → 34.6 kB** (gzip) — a **58.9% reduction**
+- Removed framer-motion dependency for lighter bundle
+- Replaced Tailwind variants with native transitions and utility classes
+- **Zero compromise** on UX while achieving faster load times
+
+## 🧠 New Headless Package
+
+### @c15t/react/headless
+- **NEW**: Introduced `@c15t/react/headless` for teams who need full UI control
+- **Ultra-lightweight**: Only **12.5 kB (gzip)** footprint
+- Perfect for custom implementations and design systems
+- Complete access to consent logic without built-in UI components
+
+## ✨ What's Changed
+
+- feat: Optimistic UI updates by [@BurnedChris](https://github.com/BurnedChris) in [#184](https://github.com/c15t/c15t/pull/184)
+
+**Full Changelog**: [1.1.1...1.1.2](https://github.com/c15t/c15t/compare/1.1.1...1.1.2)
+
+## 📋 Implementation Details
+
+### Optimistic Consent Flow
+```js
+// Optimistic consent flow
+const handleConsent = async (choice) => {
+  // 1. Update UI immediately (optimistic)
+  updateUIState(choice);
+  
+  // 2. Save to backend (background)
+  try {
+    await saveConsent(choice);
+  } catch (error) {
+    // 3. Revert UI if needed
+    revertUIState();
+  }
+};
+```
+
+### Enhanced Event Handling
+```jsx
+<ConsentButton 
+  onClick={(event: MouseEvent) => {
+    // Full access to mouse event
+    // Custom logic before/after consent handling
+    handleCustomAnalytics(event);
+  }}
+>
+  Accept Cookies
+</ConsentButton>
+```
+
+## 🧪 Testing
+
+### Test Plan
+✅ **Scenario 1**: Clicking the "Accept All" button on cookie banner
+- Expected: Banner immediately disappears, consent is saved in the background
+
+✅ **Scenario 2**: Testing on slow networks
+- Using Chrome DevTools to simulate slow 3G connection
+- Expected: UI updates immediately regardless of network speed
+
+### Edge Cases
+- Error handling: If the network request fails, the UI is already updated, and errors are logged
+- Performance: Significant improvement in perceived performance on all device types
+
+This release makes c15t **leaner, faster, and more flexible than ever** while maintaining full backward compatibility and enhancing the user experience through optimistic UI updates.
+
+<ContributorBlock usernames={["BurnedChris"]} title="Thank you to our contributors" />

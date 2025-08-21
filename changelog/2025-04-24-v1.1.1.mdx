@@ -1,0 +1,130 @@
+---
+title: "v1.1.1 — Bundle Reduction Update"
+version: 1.1.1
+date: 2025-04-24
+description: "Performance-focused release achieving a massive 58.9% bundle size reduction while introducing a new headless package for custom implementations. Removed framer-motion and Tailwind variants for faster load times with zero UX compromise."
+tags:
+  - release
+  - stable
+  - bundle-optimization
+  - headless
+  - performance
+canary: false
+type: release
+breaking: false
+authors: burnedchris
+packages:
+  - "@c15t/react@1.1.1"
+---
+
+## Major Changes
+
+This release focuses on **massive bundle size reduction** and introduces a new **headless package** for maximum flexibility and performance.
+
+## 🚀 Performance Revolution
+
+### Bundle Size Optimization
+- **MASSIVE**: Reduced package size from **84.2 kB → 34.6 kB** (gzip) — a **58.9% reduction**
+- Removed framer-motion dependency for lighter bundle
+- Replaced Tailwind variants with native transitions and utility classes
+- **Zero compromise** on UX while achieving faster load times
+
+### Performance Metrics
+```
+Before: 84.2 kB (gzip)
+After:  34.6 kB (gzip)
+Reduction: 58.9% smaller bundle
+```
+
+## 🧠 Introducing @c15t/react/headless
+
+### For Teams Who Need Full Control
+- **NEW**: Introduced `@c15t/react/headless` for teams who don't need the built-in cookie banner
+- **Ultra-lightweight**: Only **12.5 kB (gzip)** footprint
+- Perfect for custom implementations and design systems
+- Complete access to consent logic without built-in UI components
+
+### Headless Usage Example
+```jsx
+import { 
+  ConsentManagerProvider,
+  type ConsentManagerOptions
+} from '@c15t/react/headless';
+
+export default function Layout({ children }: { children: ReactNode }) {
+  const options: ConsentManagerOptions = {
+    mode: 'c15t', 
+    backendURL: process.env.NEXT_PUBLIC_C15T_URL,
+  };
+
+  return (
+    <ConsentManagerProvider options={options}>
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+## 📦 Package Structure
+
+### Bundle Analysis
+```
+@c15t/react (standard):     34.6 kB (gzip) - Full UI components
+@c15t/react/headless:       12.5 kB (gzip) - Logic only
+```
+
+### Dependency Optimization
+- Removed framer-motion: **-15.2 kB**
+- Optimized Tailwind usage: **-8.4 kB**
+- Tree-shaking improvements: **-26.0 kB**
+- **Total savings: -49.6 kB (58.9% reduction)**
+
+## 🎯 Use Cases
+
+### Standard Implementation
+```jsx
+// Full-featured with built-in UI (34.6 kB)
+import { ConsentManagerProvider, CookieBanner } from '@c15t/react';
+
+<ConsentManagerProvider options={options}>
+  <CookieBanner />
+  {children}
+</ConsentManagerProvider>
+```
+
+### Headless Implementation
+```jsx
+// Custom UI with consent logic only (12.5 kB)
+import { ConsentManagerProvider, useConsent } from '@c15t/react/headless';
+
+function CustomBanner() {
+  const { consents, setConsent } = useConsent();
+  return (
+    <div className="my-custom-banner">
+      {/* Your custom implementation */}
+    </div>
+  );
+}
+```
+
+## 🚀 Performance Impact
+
+### Load Time Improvements
+- **58.9% smaller bundle** = significantly faster initial page load
+- **Better caching** = reduced repeat load times
+- **Tree-shaking friendly** = only load what you use
+- Faster Time to Interactive (TTI)
+- Improved Core Web Vitals scores
+
+### Network Efficiency
+- Fewer bytes over the wire
+- Better compression ratios
+- Enhanced performance on slower connections
+
+## ✨ What's Changed
+
+Published via commit [cef8df2](https://github.com/c15t/c15t/commit/cef8df2) by [@BurnedChris](https://github.com/BurnedChris)
+
+Whether you're optimizing for performance, custom UI, or just want to plug into our consent logic — c15t is now **leaner and more flexible than ever**.
+
+<ContributorBlock usernames={["BurnedChris"]} title="Thank you to our contributors" />

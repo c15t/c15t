@@ -1,0 +1,82 @@
+---
+title: "v1.3.3 — GTM Support, CookieBanner Focus Toggle, Next.js URL Validation"
+version: 1.3.3
+date: 2025-06-24
+description: "Patch release adding Google Tag Manager support in core, allowing trapFocus={false} in CookieBanner, improving URL validation in Next.js, and updating React dependency."
+tags:
+  - release
+  - stable
+  - core
+  - react
+  - nextjs
+canary: false
+type: release
+breaking: false
+authors:
+  - burnedchris
+  - kayleewilliams
+packages:
+  - "@c15t/nextjs@1.3.3"
+  - "@c15t/react@1.3.3"
+---
+
+## Patch Changes
+
+- b4d53be: feat(core): added Google Tag Manager support
+- fix(react): allow `trapFocus={false}` in `CookieBanner`
+- fix(nextjs): improved URL validation
+
+## Updated Dependencies
+
+- Updated dependencies [b4d53be]
+  - `@c15t/react@1.3.3`
+
+## Usage Notes
+
+- Google Tag Manager (GTM) support is opt-in. Ensure your configuration provides the correct container ID and that GTM events are only dispatched after consent is given.
+- Experimental: GTM integration is currently experimental and not recommended for production. See the Next.js guide: [Google Tag Manager](https://c15t.com/docs/frameworks/next/google-tag-manager).
+- You can now disable focus trapping in the cookie banner when embedding in modals or constrained layouts:
+
+```tsx
+<CookieBanner trapFocus={false} />
+```
+
+- Next.js URL validation is stricter. Use a valid URL for any configuration values (e.g., backend URL). Environment variables should contain absolute URLs (https preferred) or valid relative paths depending on your deployment.
+
+```ts
+export const c15tConfig = {
+  backendURL: process.env.NEXT_PUBLIC_C15T_URL,
+};
+```
+
+## Technical Details
+
+- Core adds GTM integration hooks that respect consent categories before dispatching events.
+- React `CookieBanner` now supports `trapFocus={false}` without side effects on keyboard navigation outside the banner.
+- Next.js performs additional checks to prevent malformed URLs from being used at runtime.
+
+## Migration
+
+- No breaking changes.
+- If your app relied on loosely formatted URLs, update them to valid absolute/relative URLs to pass the new validation.
+
+## 🧪 Tests
+
+- Added assertions around GTM gating based on consent state.
+- Verified focus behavior with `trapFocus={false}` to maintain accessibility expectations.
+- Expanded URL validation scenarios for Next.js configuration inputs.
+
+## ✨ What's Changed
+
+- feat(core): add Google Tag Manager support by [@BurnedChris](https://github.com/BurnedChris) in [#283](https://github.com/c15t/c15t/pull/283)
+- fix(react): allow `trapFocus={false}` in `CookieBanner` by [@KayleeWilliams](https://github.com/KayleeWilliams) in [#291](https://github.com/c15t/c15t/pull/291)
+- fix(nextjs): improved URL validation by [@BurnedChris](https://github.com/BurnedChris) in [#284](https://github.com/c15t/c15t/pull/284)
+- Version Packages by [@github-actions](https://github.com/github-actions) in [#293](https://github.com/c15t/c15t/pull/293)
+
+Published via commit [b4d53be](https://github.com/c15t/c15t/commit/b4d53be) by [@github-actions](https://github.com/github-actions)
+
+**Full Changelog**: [c15t@1.3.2...c15t@1.3.3](https://github.com/c15t/c15t/compare/c15t@1.3.2...c15t@1.3.3)
+
+<ContributorBlock usernames={["BurnedChris", "KayleeWilliams"]} title="Thank you to our contributors" />
+
+

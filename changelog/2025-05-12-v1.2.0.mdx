@@ -1,0 +1,221 @@
+---
+title: "v1.2.0 — Backend Architecture Overhaul & Translation System Refactor"
+version: 1.2.0
+date: 2025-05-12
+description: "Major release introducing a complete backend refactor to oRPC client/server architecture with OpenAPI support, CORS middleware, and streamlined translation system with common strings consolidation. Includes breaking changes for translation structure."
+tags:
+  - release
+  - stable
+  - backend-refactor
+  - orpc
+  - translations
+  - openapi
+  - cors
+canary: false
+type: release
+breaking: true
+authors:
+  - burnedchris
+  - kayleewilliams
+packages:
+  - "c15t@1.2.0"
+  - "@c15t/react@1.2.0"
+  - "@c15t/backend@1.2.0"
+  - "@c15t/node-sdk@1.2.0"
+  - "@c15t/cli@1.2.0"
+  - "@c15t/dev-tools@1.2.0"
+---
+
+## Minor Changes
+
+This release represents a **major architectural shift** with a complete backend refactor to oRPC and significant improvements to the translation system.
+
+## 🏗️ Backend Architecture Overhaul
+
+### Complete oRPC Migration
+- **[#224](https://github.com/c15t/c15t/issues/224)** [838a9b5](https://github.com/c15t/c15t/commit/838a9b5) – Refactored backend to be a new orpc client / server. Thanks [@BurnedChris](https://github.com/BurnedChris)!
+- Migrated from traditional REST API to **oRPC (Open RPC)** architecture
+- Improved type safety and contract-driven development
+- Enhanced client-server communication with better error handling
+
+### OpenAPI Integration
+- **Comprehensive OpenAPI middleware** for automatic API specification generation
+- **Swagger UI integration** for interactive API documentation  
+- **Contract-based client creation** in Node SDK
+- Configurable documentation UI through environment variables
+
+### Enhanced CORS Support
+- **Flexible CORS middleware** with advanced origin validation
+- **Wildcard pattern support** for dynamic origin matching
+- **Enhanced security handling** with proper configuration options
+- Optimized validation for minimal performance impact
+
+## 🌐 Translation System Refactor
+
+### Consolidated Common Translations
+- **[#222](https://github.com/c15t/c15t/issues/222)** [b1de2ba](https://github.com/c15t/c15t/commit/b1de2ba) – fix(core, react): added "common" translations, removed widget translations. Thanks [@KayleeWilliams](https://github.com/KayleeWilliams)!
+- **NEW**: Introduced shared `common` translations section
+- Consolidated frequently used strings like "Accept All", "Reject All", "Customize", "Save"
+- **Removed widget translations** (no longer used)
+- Simplified translation management across components
+
+### Translation Structure Changes
+```js
+// Before: Duplicated across components
+{
+  cookieBanner: {
+    acceptAll: "Accept All",
+    rejectAll: "Reject All",
+    // ... other strings
+  },
+  dialog: {
+    acceptAll: "Accept All", // Duplicated
+    rejectAll: "Reject All", // Duplicated
+    // ... other strings
+  }
+}
+
+// After: Centralized common strings
+{
+  common: {
+    acceptAll: "Accept All",
+    rejectAll: "Reject All",
+    customize: "Customize",
+    save: "Save"
+  },
+  cookieBanner: {
+    // Only banner-specific strings
+  },
+  dialog: {
+    // Only dialog-specific strings
+  }
+}
+```
+
+## 🐛 Bug Fixes
+
+### Consent Banner Logic
+- **Fixed consent banner display logic** to ensure consistent behavior
+- Banner now displays for **all countries**, including non-regulated jurisdictions
+- Improved user experience with standardized banner behavior
+
+### Enhanced Error Handling
+- Standardized error handling across all new features
+- Improved logging throughout the codebase
+- Enhanced telemetry utilities with better error reporting
+
+## 🚀 New Features
+
+### API Documentation
+- **Automatic OpenAPI specification generation**
+- **Interactive Swagger UI** for API exploration
+- **Contract-driven development** workflow
+- Enhanced developer experience for API integration
+
+### Advanced CORS Configuration
+```js
+// Enhanced CORS with wildcard support
+const corsConfig = {
+  origins: ['*.example.com', 'https://app.mysite.com'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE']
+};
+```
+
+### Improved Node SDK
+- **Contract-based client creation** using OpenAPI specifications
+- Additional utility scripts for development
+- Enhanced integration capabilities
+
+## 💥 Breaking Changes
+
+### Translation Structure Migration Required
+The translation system has been restructured to use common strings:
+
+```js
+// Migration Required
+// OLD: Widget translations (removed)
+{
+  widget: {
+    acceptAll: "Accept All"
+  }
+}
+
+// NEW: Common translations
+{
+  common: {
+    acceptAll: "Accept All",
+    rejectAll: "Reject All",
+    customize: "Customize",
+    save: "Save"
+  }
+}
+```
+
+### Migration Steps
+1. **Remove widget translations** from your c15t configuration
+2. **Move common strings** from cookie banner & dialog to the new `common` section
+3. **Update custom translations** to use the new structure
+
+### Backend API Changes
+- **oRPC architecture** may require client integration updates
+- **Enhanced CORS validation** might affect cross-origin requests
+- **OpenAPI contract** provides better type safety but may require adaptation
+
+## 🧪 Testing & Validation
+
+### CORS Middleware Tests
+```js
+// Wildcard pattern validation
+const result = isOriginTrusted('https://sub.example.com', ['*.example.com']);
+expect(result).toBe(true);
+```
+
+### Consent Banner Tests
+```js
+// Banner display for non-regulated countries
+const result = checkJurisdiction('US');
+expect(result.showConsentBanner).toBe(true);
+```
+
+### Translation Tests
+- ✅ Comprehensive tests for new common translation structure
+- ✅ Validation of translation consolidation logic
+- ✅ Coverage for shared translation functionality
+
+## 📦 Package Updates
+
+### Core Packages
+- **c15t@1.2.0**: Backend refactor + translation improvements
+- **@c15t/react@1.2.0**: Translation structure updates
+- **@c15t/backend@1.2.0**: Complete oRPC architecture
+
+### Supporting Packages  
+- **@c15t/node-sdk@1.2.0**: OpenAPI contract integration
+- **@c15t/cli@1.2.0**: Backend architecture support
+- **@c15t/dev-tools@1.2.0**: Updated dependencies
+
+## 🔧 Technical Improvements
+
+### Performance Optimizations
+- **Optimized CORS validation** for minimal performance impact
+- **Streamlined domain validation** in consent schema
+- **Enhanced telemetry** with better logging efficiency
+
+### Code Organization
+- **Centralized CORS and OpenAPI logic** into dedicated middleware
+- **Modularized architecture** for better maintainability
+- **Improved error handling** patterns throughout codebase
+
+## ✨ What's Changed
+
+Published via commit [54b03d4](https://github.com/c15t/c15t/commit/54b03d4) by [@github-actions](https://github.com/github-actions)
+
+- feat(api): add c15t instance API route with OpenAPI support by [@BurnedChris](https://github.com/BurnedChris) in [#224](https://github.com/c15t/c15t/pull/224)
+- fix(core, react): added "common" translations, removed widget translations by [@KayleeWilliams](https://github.com/KayleeWilliams) in [#222](https://github.com/c15t/c15t/pull/222)
+
+**Full Changelog**: [c15t@1.1.5...c15t@1.2.0](https://github.com/c15t/c15t/compare/c15t@1.1.5...c15t@1.2.0)
+
+This release establishes a **modern, scalable foundation** for c15t with improved developer experience, better performance, and streamlined translation management.
+
+<ContributorBlock usernames={["BurnedChris", "KayleeWilliams"]} title="Thank you to our contributors" />

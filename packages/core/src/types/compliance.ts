@@ -228,6 +228,14 @@ export type LocationInfo = {
 
 	/** Region or state code within the country (e.g., 'CA', 'ENG') */
 	regionCode: string | null;
+
+	/** Jurisdiction code (e.g. 'GDPR') */
+	jurisdiction:
+		| ContractsOutputs['consent']['showBanner']['jurisdiction']['code']
+		| null;
+
+	/** Jurisdiction message (e.g. 'GDPR or equivalent regulations require a cookie banner.') */
+	jurisdictionMessage: string | null;
 };
 
 /**

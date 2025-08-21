@@ -42,7 +42,11 @@ export const STORAGE_KEY = 'privacy-consent-storage';
  */
 export const initialState: Omit<
 	PrivacyConsentState,
-	'has' | 'fetchConsentBannerInfo' | 'getEffectiveConsents' | 'hasConsentFor'
+	| 'has'
+	| 'fetchConsentBannerInfo'
+	| 'getEffectiveConsents'
+	| 'hasConsentFor'
+	| 'setSelectedConsent'
 > = {
 	config: {
 		pkg: 'c15t',
@@ -52,6 +56,11 @@ export const initialState: Omit<
 
 	/** Initial consent states based on default values from consent types */
 	consents: consentTypes.reduce((acc, consent) => {
+		acc[consent.name] = consent.defaultValue;
+		return acc;
+	}, {} as ConsentState),
+
+	selectedConsents: consentTypes.reduce((acc, consent) => {
 		acc[consent.name] = consent.defaultValue;
 		return acc;
 	}, {} as ConsentState),
