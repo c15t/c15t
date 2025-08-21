@@ -140,7 +140,7 @@
 		"build": "pnpm prebuild && rslib build",
 		"dev": "pnpm prebuild && rslib build --watch",
 		"check-types": "pnpm prebuild && tsc --noEmit",
-		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --write",
 		"knip": "knip",
 		"lint": "pnpm biome lint ./src",
 		"start": "node dist/server.cjs",

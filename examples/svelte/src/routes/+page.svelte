@@ -1,6 +1,6 @@
 <script>
-import { consentManager } from '$lib/c15t.client';
 import { onMount } from 'svelte';
+import { consentManager } from '$lib/c15t.client';
 
 const showCookieBanner = true;
 

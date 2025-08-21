@@ -1,11 +1,11 @@
 import type { ContractsOutputs } from '@c15t/backend/contracts';
 import {
-	type Mock,
 	afterEach,
 	beforeEach,
 	describe,
 	expect,
 	it,
+	type Mock,
 	vi,
 } from 'vitest';
 import { extractRelevantHeaders } from './headers';

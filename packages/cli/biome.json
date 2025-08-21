@@ -1,6 +1,6 @@
 {
-	"$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
-	"extends": ["../../biome.jsonc"],
+	"$schema": "https://biomejs.dev/schemas/2.2.0/schema.json",
+	"extends": "//",
 	"linter": {
 		"rules": {
 			"complexity": {

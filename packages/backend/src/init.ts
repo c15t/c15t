@@ -11,14 +11,14 @@ import { version } from '../package.json';
 import { generateId } from './pkgs/data-model/fields/id-generator';
 import type { EntityName } from './pkgs/data-model/schema/types';
 import {
-	ERROR_CODES,
-	type SDKResult,
-	type TelemetryConfig,
 	createTelemetryOptions,
+	ERROR_CODES,
 	fail,
 	failAsync,
 	ok,
 	promiseToResult,
+	type SDKResult,
+	type TelemetryConfig,
 } from './pkgs/results';
 
 import type { DoubleTieOptions } from './pkgs/types/options';
@@ -196,7 +196,10 @@ export const init = async <P extends C15TPlugin[]>(
 			const generateIdFunc = ({
 				model,
 				size = 16,
-			}: { model: EntityName; size?: number }) => {
+			}: {
+				model: EntityName;
+				size?: number;
+			}) => {
 				return (
 					finalOptions?.advanced?.generateId?.({ model, size }) ||
 					generateId(getConsentTables(finalOptions)[model].entityPrefix)

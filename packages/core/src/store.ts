@@ -4,20 +4,25 @@
  * This module provides the main store creation and management functionality.
  */
 
-import { createStore } from 'zustand/vanilla';
+import type { ContractsOutputs } from '@c15t/backend/contracts';
 
 import type { TranslationConfig } from '@c15t/translations';
+import { createStore } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from './client/client-factory';
 import {
 	getEffectiveConsents,
-	hasConsentFor,
 	hasConsented,
+	hasConsentFor,
 } from './libs/consent-utils';
 import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
-import { createTrackingBlocker } from './libs/tracking-blocker';
+import { type GTMConfiguration, setupGTM } from './libs/gtm';
+import { type HasCondition, has } from './libs/has';
+import { saveConsents } from './libs/save-consents';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
-import { STORAGE_KEY, initialState } from './store.initial-state';
+import { createTrackingBlocker } from './libs/tracking-blocker';
+import { initialState, STORAGE_KEY } from './store.initial-state';
 import type { PrivacyConsentState } from './store.type';
+import type { Callbacks } from './types/callbacks';
 import type {
 	ComplianceSettings,
 	ConsentBannerResponse,
@@ -25,11 +30,6 @@ import type {
 } from './types/compliance';
 import { type AllConsentNames, consentTypes } from './types/gdpr';
 
-import type { ContractsOutputs } from '@c15t/backend/contracts';
-import { type GTMConfiguration, setupGTM } from './libs/gtm';
-import { type HasCondition, has } from './libs/has';
-import { saveConsents } from './libs/save-consents';
-import type { Callbacks } from './types/callbacks';
 /**
  * Structure of consent data stored in localStorage.
  *
@@ -71,7 +71,6 @@ const getStoredConsent = (): StoredConsent | null => {
 	try {
 		return JSON.parse(stored);
 	} catch (e) {
-		// biome-ignore lint/suspicious/noConsole: <explanation>
 		console.error('Failed to parse stored consent:', e);
 		return null;
 	}
@@ -595,7 +594,6 @@ export const createConsentManagerStore = (
 					consentState: store.getState().consents,
 				});
 			} catch (e) {
-				// biome-ignore lint/suspicious/noConsole: <explanation>
 				console.error('Failed to setup Google Tag Manager:', e);
 			}
 		}

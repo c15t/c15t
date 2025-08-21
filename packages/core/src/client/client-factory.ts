@@ -9,6 +9,7 @@ import { CustomClient, type EndpointHandlers } from './client-custom';
 import type { ConsentManagerInterface } from './client-interface';
 import { OfflineClient } from './client-offline';
 import type { RetryConfig } from './types';
+
 export type { ConsentManagerInterface } from './client-interface';
 export type { FetchOptions, ResponseContext, RetryConfig } from './types';
 

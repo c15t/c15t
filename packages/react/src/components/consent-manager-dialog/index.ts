@@ -118,20 +118,20 @@ export { ConsentManagerDialog };
 // Export individual components for backward compatibility
 export {
 	Card,
-	Header,
-	HeaderTitle,
-	HeaderDescription,
-	Content,
-	Footer,
 	ConsentCustomizationCard,
+	Content,
+	DialogContent,
 	DialogFooter,
 	DialogHeader,
-	DialogHeaderTitle,
 	DialogHeaderDescription,
-	DialogContent,
+	DialogHeaderTitle,
+	Footer,
+	Header,
+	HeaderDescription,
+	HeaderTitle,
 } from './atoms/dialog-card';
 
-export { Overlay, ConsentManagerDialogOverlay } from './atoms/overlay';
-export { Root, ConsentManagerDialogRoot } from './atoms/root';
+export { ConsentManagerDialogOverlay, Overlay } from './atoms/overlay';
+export { ConsentManagerDialogRoot, Root } from './atoms/root';
 
 export type { ConsentManagerDialogTheme } from './theme';

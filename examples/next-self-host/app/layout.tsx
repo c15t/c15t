@@ -7,6 +7,7 @@ import {
 	CookieBanner,
 } from '@c15t/nextjs';
 import { ClientLayout } from './layout.client';
+
 const geistSans = Geist({
 	variable: '--font-geist-sans',
 	subsets: ['latin'],

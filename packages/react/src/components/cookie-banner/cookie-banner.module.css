@@ -2,7 +2,8 @@
 	isolation: isolate;
 
 	/* css reset */
-	font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+	font-family:
+		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
 		"Apple Color Emoji", "Segoe UI Emoji";
 	line-height: 1.15;
 	-webkit-text-size-adjust: 100%;
@@ -56,17 +57,17 @@
 .bannerVisible {
 	opacity: 1;
 	transform: translateY(0);
-	transition: opacity var(--banner-animation-duration)
-		var(--banner-animation-timing), transform var(--banner-animation-duration)
-		cubic-bezier(0.34, 1.56, 0.64, 1);
+	transition:
+		opacity var(--banner-animation-duration) var(--banner-animation-timing),
+		transform var(--banner-animation-duration) cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .bannerHidden {
 	opacity: 0;
 	transform: translateY(50px);
-	transition: opacity var(--banner-animation-duration)
-		var(--banner-animation-timing), transform var(--banner-animation-duration)
-		var(--banner-animation-timing);
+	transition:
+		opacity var(--banner-animation-duration) var(--banner-animation-timing),
+		transform var(--banner-animation-duration) var(--banner-animation-timing);
 }
 
 @media (min-width: 640px) {

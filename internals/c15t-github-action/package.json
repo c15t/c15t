@@ -13,7 +13,7 @@
 		"build": "ncc build src/main.ts -o dist -m",
 		"check-types": "tsc --noEmit",
 		"test": "vitest run",
-		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "pnpm biome lint ./src"
 	},
 	"dependencies": {

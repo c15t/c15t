@@ -1,5 +1,5 @@
-import { type VariantProps, cva } from 'class-variance-authority';
-import { type HTMLAttributes, forwardRef } from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { forwardRef, type HTMLAttributes } from 'react';
 import './alert.css';
 
 const alertVariants = cva('c15t-devtool-alert', {

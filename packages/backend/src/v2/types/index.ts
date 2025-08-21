@@ -1,6 +1,5 @@
 import type { Translations } from '@c15t/translations';
-import type { createLogger } from '@doubletie/logger';
-import type { LoggerOptions } from '@doubletie/logger';
+import type { createLogger, LoggerOptions } from '@doubletie/logger';
 import type { Tracer } from '@opentelemetry/api';
 import type { OpenAPIGeneratorOptions } from '@orpc/openapi';
 import type { FumaDB, InferFumaDB } from 'fumadb';

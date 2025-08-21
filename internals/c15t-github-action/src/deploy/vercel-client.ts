@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, readFileSync, readdirSync } from 'node:fs';
+import { appendFileSync, existsSync, readdirSync, readFileSync } from 'node:fs';
 import https from 'node:https';
 import path from 'node:path';
 

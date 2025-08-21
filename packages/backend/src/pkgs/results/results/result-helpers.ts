@@ -1,4 +1,4 @@
-import { ResultAsync, err, errAsync, ok } from 'neverthrow';
+import { err, errAsync, ok, ResultAsync } from 'neverthrow';
 import { DoubleTieError } from '../core/error-class';
 import { ERROR_CODES } from '../core/error-codes';
 import { withSpan } from '../core/tracing';
