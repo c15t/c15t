@@ -1,0 +1,46 @@
+---
+title: has()
+description: Checks if the user has given consent for a specific purpose.
+lastModified: 2025-08-20
+new: true
+availableIn:
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/store/has'
+    title: 'JavaScript'
+  - framework: 'next'
+    url: '/docs/frameworks/next/hooks/use-consent-manager/has'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/hooks/use-consent-manager/has'
+    title: 'React'
+---
+
+The `has()` method returns a `boolean` value and checks if the user has given consent for a specific purpose. It allows for simple & complex checks. This can be used to conditionally render content based on the user's consent, for example.
+
+```tsx 
+// Simple check
+const hasAnalytics = has('measurement');
+const hasMarketing = has('marketing');
+
+// Complex check
+const hasAnalyticsAndMarketing = has({
+  and: ['measurement', 'marketing'],
+})
+
+const hasEitherAnalyticsOrMarketing = has({
+  or: ['measurement', 'marketing'],
+})
+
+const doesNotHaveMarketing = has({
+  not: 'marketing',
+})
+
+// Nested checks
+const condition = has({
+  and: [
+    'necessary',
+    { or: ['measurement', 'marketing'] },
+    { not: 'advertising' },
+  ]
+})
+```

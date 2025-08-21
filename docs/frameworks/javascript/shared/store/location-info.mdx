@@ -1,0 +1,35 @@
+---
+title: locationInfo
+description: Stores the user's location information.
+lastModified: 2025-08-20
+availableIn:
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/store/location-info'
+    title: 'JavaScript'
+  - framework: 'next'
+    url: '/docs/frameworks/next/hooks/use-consent-manager/location-info'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/hooks/use-consent-manager/location-info'
+    title: 'React'
+---
+
+The `locationInfo` property stores the user's location information. Used for determining the jurisdiction of the user, like if they should see a EU GDPR banner or not.
+
+This property is updated when the consent banner is fetched, and defaults to null when the location cannot be determined, such as in offline mode.
+The location information can be updated via the `setLocationInfo()` method.
+
+## Usage
+
+```tsx
+setLocationInfo({
+  countryCode: 'US',
+  regionCode: 'CA',
+});
+
+console.log(locationInfo);
+```
+
+## Returns
+
+<AutoTypeTable path="./packages/core/src/index.ts" name="LocationInfo" />
