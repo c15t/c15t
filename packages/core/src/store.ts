@@ -344,14 +344,13 @@ export const createConsentManagerStore = (
 					return state;
 				}
 
+				// Other selected consents have not been saved/agreed to only the current one.
 				const newConsents = { ...state.consents, [name]: value };
 
 				return { selectedConsents: newConsents };
 			});
 
-			const state = get();
-
-			state.saveConsents('custom');
+			get().saveConsents('custom');
 		},
 
 		/**
