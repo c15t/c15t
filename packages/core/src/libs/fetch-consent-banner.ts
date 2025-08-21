@@ -78,8 +78,10 @@ function updateStore(
 				},
 			}),
 		locationInfo: {
-			countryCode: location?.countryCode ?? '',
-			regionCode: location?.regionCode ?? '',
+			countryCode: location?.countryCode ?? null,
+			regionCode: location?.regionCode ?? null,
+			jurisdiction: jurisdiction?.code ?? null,
+			jurisdictionMessage: jurisdiction?.message ?? null,
 		},
 		jurisdictionInfo: jurisdiction,
 	};
