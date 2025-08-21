@@ -17,11 +17,11 @@
 				"noAutofocus": "off"
 			},
 			"complexity": {
-				"useSimplifiedLogicExpression": "off"
+				"useSimplifiedLogicExpression": "off",
+				"noExcessiveCognitiveComplexity": "off"
 			},
 			"correctness": {
 				"noUndeclaredDependencies": "off",
-				"noPrivateImports": "off",
 				"useImportExtensions": "off",
 				"noNodejsModules": "off"
 			},
@@ -39,8 +39,7 @@
 			},
 			"performance": {
 				"noBarrelFile": "off",
-				"noReExportAll": "off",
-				"noNamespaceImport": "off"
+				"noReExportAll": "off"
 			},
 			"style": {
 				"noDefaultExport": "off",
@@ -55,10 +54,20 @@
 				},
 				"useSingleVarDeclarator": "off",
 				"useNamingConvention": "off",
+				"noParameterAssign": "error",
+				"useAsConstAssertion": "error",
+				"useDefaultParameterLast": "error",
+				"useEnumInitializers": "error",
+				"useSelfClosingElements": "error",
+				"noUnusedTemplateLiteral": "error",
+				"useNumberNamespace": "error",
+				"noInferrableTypes": "error",
+				"noUselessElse": "error",
 				"noCommonJs": "off",
 				"noProcessEnv": "off",
 				"useComponentExportOnlyModules": "off",
-				"useConsistentCurlyBraces": "off"
+				"useConsistentCurlyBraces": "off",
+				"noNestedTernary": "off"
 			},
 			"suspicious": {
 				"noReactSpecificProps": "off",
