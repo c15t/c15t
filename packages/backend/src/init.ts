@@ -1,4 +1,4 @@
-import { Resource } from '@opentelemetry/resources';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-base';
 import { defu } from 'defu';
@@ -113,7 +113,7 @@ export const init = async <P extends C15TPlugin[]>(
 				telemetryInitialized = false;
 			} else {
 				// Create a telemetry resource with provided values or safe defaults
-				const resource = new Resource({
+				const resource = resourceFromAttributes({
 					'service.name': String(appName),
 					'service.version': String(version || '1.0.0'),
 					...(telemetryOptions?.defaultAttributes || {}),
