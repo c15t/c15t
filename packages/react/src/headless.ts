@@ -1,25 +1,24 @@
 // Export components
-export { ConsentManagerProvider } from './providers/consent-manager-provider';
-
-// Export hooks
-export { useConsentManager } from './hooks/use-consent-manager';
-export { useTranslations } from './hooks/use-translations';
-export { useColorScheme } from './hooks/use-color-scheme';
-export { useFocusTrap } from './hooks/use-focus-trap';
 
 // Export client
 export {
-	configureConsentManager,
 	type ConsentManagerInterface,
+	configureConsentManager,
+	defaultTranslationConfig,
+	detectBrowserLanguage,
+	mergeTranslationConfigs,
 	// Translation utilities
 	prepareTranslationConfig,
-	defaultTranslationConfig,
-	mergeTranslationConfigs,
-	detectBrowserLanguage,
 } from 'c15t';
+export { useColorScheme } from './hooks/use-color-scheme';
+// Export hooks
+export { useConsentManager } from './hooks/use-consent-manager';
+export { useFocusTrap } from './hooks/use-focus-trap';
+export { useTranslations } from './hooks/use-translations';
+export { ConsentManagerProvider } from './providers/consent-manager-provider';
 
 // Export types
 export type {
-	ConsentManagerProviderProps,
 	ConsentManagerOptions,
+	ConsentManagerProviderProps,
 } from './types/consent-manager';

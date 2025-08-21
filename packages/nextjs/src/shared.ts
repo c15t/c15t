@@ -1,27 +1,26 @@
 // Shared Exports between all directories
 
-export {
-	CookieBanner,
-	ConsentManagerWidget,
-	ConsentManagerDialog,
-	// Export hooks
-	useConsentManager,
-	useTranslations,
-	useColorScheme,
-	useFocusTrap,
-	configureConsentManager,
-	// Translation utilities
-	prepareTranslationConfig,
-	defaultTranslationConfig,
-	mergeTranslationConfigs,
-	detectBrowserLanguage,
-} from '@c15t/react';
-
 // Export types
 export type {
-	ConsentManagerOptions,
 	ConsentManagerDialogProps,
 	ConsentManagerInterface,
+	ConsentManagerOptions,
 	ConsentManagerWidgetProps,
 	CookieBannerProps,
+} from '@c15t/react';
+export {
+	ConsentManagerDialog,
+	ConsentManagerWidget,
+	CookieBanner,
+	configureConsentManager,
+	defaultTranslationConfig,
+	detectBrowserLanguage,
+	mergeTranslationConfigs,
+	// Translation utilities
+	prepareTranslationConfig,
+	useColorScheme,
+	// Export hooks
+	useConsentManager,
+	useFocusTrap,
+	useTranslations,
 } from '@c15t/react';

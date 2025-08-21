@@ -1,7 +1,6 @@
 import type { Schema as ORPCSchema } from '@orpc/contract';
 import { describe, expect, it } from 'vitest';
-import type { z } from 'zod';
-import type { ZodIssue } from 'zod';
+import type { ZodIssue, z } from 'zod';
 
 /**
  * Contract test utilities for creating reusable test patterns

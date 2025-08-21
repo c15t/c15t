@@ -5,8 +5,8 @@
 
 import type { ContractsOutputs } from '@c15t/backend/contracts';
 import {
-	type TranslationConfig,
 	prepareTranslationConfig,
+	type TranslationConfig,
 } from '@c15t/translations';
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
@@ -188,7 +188,6 @@ export async function fetchConsentBannerInfo(
 		// Type assertion to ensure data matches ConsentBannerResponse type
 		return data as ConsentBannerResponse;
 	} catch (error) {
-		// biome-ignore lint/suspicious/noConsole: <explanation>
 		console.error('Error fetching consent banner information:', error);
 
 		// Set loading state to false on error

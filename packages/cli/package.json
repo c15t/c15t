@@ -9,12 +9,14 @@
 	"bin": {
 		"cli": "dist/index.mjs"
 	},
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"scripts": {
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
 		"dev": "rslib build --watch",
-		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --write",
 		"knip": "knip",
 		"lint": "pnpm biome lint ./src",
 		"start": "node ./dist/index.mjs",
@@ -50,6 +52,8 @@
 	},
 	"publishConfig": {
 		"access": "public",
-		"executableFiles": ["./dist/index.mjs"]
+		"executableFiles": [
+			"./dist/index.mjs"
+		]
 	}
 }

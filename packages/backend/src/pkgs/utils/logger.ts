@@ -1,6 +1,6 @@
 import {
-	type LoggerOptions,
 	createLogger as createDTLogger,
+	type LoggerOptions,
 } from '@doubletie/logger';
 
 let globalLogger: ReturnType<typeof createDTLogger>;

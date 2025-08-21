@@ -64,7 +64,6 @@ export async function saveConsents({
 			})
 		);
 	} catch (e) {
-		// biome-ignore lint/suspicious/noConsole: safe degradation
 		console.warn('Failed to persist consents to localStorage:', e);
 	}
 
@@ -93,7 +92,6 @@ export async function saveConsents({
 		});
 		// Fallback console only when no handler is provided
 		if (!callbacks.onError) {
-			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.error(errorMsg);
 		}
 	}

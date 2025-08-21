@@ -12,8 +12,7 @@ import {
 } from '~/v2/middleware/openapi';
 import { getIpAddress } from '~/v2/middleware/process-ip';
 import { router } from '~/v2/router';
-import type { DeepPartial } from '~/v2/types';
-import type { C15TContext, C15TOptions } from '~/v2/types';
+import type { C15TContext, C15TOptions, DeepPartial } from '~/v2/types';
 import { init } from './init';
 import { withRequestSpan } from './utils/create-telemetry-options';
 
@@ -375,5 +374,5 @@ export const c15tInstance = (options: C15TOptions) => {
 };
 
 export type { ContractsInputs, ContractsOutputs } from '~/v2/contracts';
-export type { C15TContext, C15TOptions } from './types';
 export { defineConfig } from './define-config';
+export type { C15TContext, C15TOptions } from './types';

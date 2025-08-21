@@ -6,7 +6,10 @@ import { generateUniqueId } from './utils/generate-id';
 export function auditLogRegistry({
 	db,
 	ctx,
-}: { db: Registry['db']; ctx?: Partial<Registry['ctx']> }) {
+}: {
+	db: Registry['db'];
+	ctx?: Partial<Registry['ctx']>;
+}) {
 	const logger: Registry['ctx']['logger'] =
 		(ctx?.logger as Registry['ctx']['logger']) ??
 		({

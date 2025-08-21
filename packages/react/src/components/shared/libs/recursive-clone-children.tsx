@@ -1,10 +1,10 @@
 import {
 	Children,
 	type ComponentType,
-	type ReactElement,
-	type ReactNode,
 	cloneElement,
 	isValidElement,
+	type ReactElement,
+	type ReactNode,
 } from 'react';
 
 /**

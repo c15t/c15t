@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-	ERROR_CATEGORIES,
-	ERROR_CODES,
 	createErrorCategories,
 	createErrorCodes,
+	ERROR_CATEGORIES,
+	ERROR_CODES,
 } from '../core/error-codes';
 
 describe('error-codes', () => {
