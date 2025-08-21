@@ -145,6 +145,13 @@ describe('saveConsents', () => {
 					experience: true,
 					marketing: true,
 				},
+				selectedConsents: {
+					necessary: true,
+					functionality: true,
+					measurement: true,
+					experience: true,
+					marketing: true,
+				},
 				showPopup: false,
 				consentInfo: expect.objectContaining({
 					type: 'all',
@@ -162,20 +169,22 @@ describe('saveConsents', () => {
 				trackingBlocker: mockTrackingBlocker,
 			});
 
-			expect(mockSet).toHaveBeenCalledWith({
-				consents: {
-					necessary: true,
-					functionality: false,
-					measurement: false,
-					experience: false,
-					marketing: false,
-				},
-				showPopup: false,
-				consentInfo: expect.objectContaining({
-					type: 'necessary',
-					time: expect.any(Number),
-				}),
-			});
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					consents: {
+						necessary: true,
+						functionality: false,
+						measurement: false,
+						experience: false,
+						marketing: false,
+					},
+					showPopup: false,
+					consentInfo: expect.objectContaining({
+						type: 'necessary',
+						time: expect.any(Number),
+					}),
+				})
+			);
 		});
 
 		it('should preserve existing consents when type is "custom"', async () => {
@@ -193,6 +202,7 @@ describe('saveConsents', () => {
 					onError: vi.fn(),
 				},
 				consents: customConsents,
+				selectedConsents: customConsents,
 				consentTypes: [
 					{
 						name: 'necessary',
@@ -247,6 +257,7 @@ describe('saveConsents', () => {
 
 			expect(mockSet).toHaveBeenCalledWith({
 				consents: customConsents,
+				selectedConsents: customConsents,
 				showPopup: false,
 				consentInfo: expect.objectContaining({
 					type: 'custom',
@@ -329,20 +340,22 @@ describe('saveConsents', () => {
 				trackingBlocker: null,
 			});
 
-			expect(mockSet).toHaveBeenCalledWith({
-				consents: {
-					necessary: true,
-					functionality: true,
-					measurement: true,
-					experience: true,
-					marketing: true,
-				},
-				showPopup: false,
-				consentInfo: expect.objectContaining({
-					type: 'all',
-					time: expect.any(Number),
-				}),
-			});
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					consents: {
+						necessary: true,
+						functionality: true,
+						measurement: true,
+						experience: true,
+						marketing: true,
+					},
+					showPopup: false,
+					consentInfo: expect.objectContaining({
+						type: 'all',
+						time: expect.any(Number),
+					}),
+				})
+			);
 			expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
 				STORAGE_KEY,
 				expect.any(String)
@@ -359,6 +372,13 @@ describe('saveConsents', () => {
 					onError: vi.fn(),
 				},
 				consents: {
+					necessary: true,
+					functionality: false,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+				selectedConsents: {
 					necessary: true,
 					functionality: false,
 					measurement: false,
@@ -435,6 +455,13 @@ describe('saveConsents', () => {
 					onError: vi.fn(),
 				},
 				consents: {
+					necessary: true,
+					functionality: false,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+				selectedConsents: {
 					necessary: true,
 					functionality: false,
 					measurement: false,
@@ -556,6 +583,13 @@ describe('saveConsents', () => {
 					experience: false,
 					marketing: false,
 				},
+				selectedConsents: {
+					necessary: true,
+					functionality: false,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
 				consentTypes: [
 					{
 						name: 'necessary',
@@ -635,6 +669,13 @@ describe('saveConsents', () => {
 					experience: false,
 					marketing: false,
 				},
+				selectedConsents: {
+					necessary: true,
+					functionality: false,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
 				consentTypes: [
 					{
 						name: 'necessary',
@@ -706,6 +747,13 @@ describe('saveConsents', () => {
 					onError: mockOnError,
 				},
 				consents: {
+					necessary: true,
+					functionality: false,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+				selectedConsents: {
 					necessary: true,
 					functionality: false,
 					measurement: false,
@@ -816,14 +864,16 @@ describe('saveConsents', () => {
 				trackingBlocker: mockTrackingBlocker,
 			});
 
-			expect(mockSet).toHaveBeenCalledWith({
-				consents: {},
-				showPopup: false,
-				consentInfo: expect.objectContaining({
-					type: 'all',
-					time: expect.any(Number),
-				}),
-			});
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					consents: {},
+					showPopup: false,
+					consentInfo: expect.objectContaining({
+						type: 'all',
+						time: expect.any(Number),
+					}),
+				})
+			);
 		});
 
 		it('should handle partial consent types', async () => {
@@ -833,6 +883,10 @@ describe('saveConsents', () => {
 					onError: vi.fn(),
 				},
 				consents: {
+					necessary: true,
+					functionality: false,
+				},
+				selectedConsents: {
 					necessary: true,
 					functionality: false,
 				},
@@ -864,17 +918,19 @@ describe('saveConsents', () => {
 				trackingBlocker: mockTrackingBlocker,
 			});
 
-			expect(mockSet).toHaveBeenCalledWith({
-				consents: {
-					necessary: true,
-					functionality: true,
-				},
-				showPopup: false,
-				consentInfo: expect.objectContaining({
-					type: 'all',
-					time: expect.any(Number),
-				}),
-			});
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					consents: {
+						necessary: true,
+						functionality: true,
+					},
+					showPopup: false,
+					consentInfo: expect.objectContaining({
+						type: 'all',
+						time: expect.any(Number),
+					}),
+				})
+			);
 		});
 	});
 });

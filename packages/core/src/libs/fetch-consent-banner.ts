@@ -52,10 +52,10 @@ function updateStore(
 	{ set, get, initialTranslationConfig }: FetchConsentBannerConfig,
 	hasLocalStorageAccess: boolean
 ): void {
-	const { consentInfo, setDetectedCountry, ignoreGeoLocation, callbacks } =
+	const { consentInfo, ignoreGeoLocation, callbacks, setDetectedCountry } =
 		get();
 
-	const { translations, location, jurisdiction, showConsentBanner } = data;
+	const { translations, location, showConsentBanner } = data;
 
 	const updatedStore: Partial<PrivacyConsentState> = {
 		isLoadingConsentInfo: false,
@@ -67,7 +67,7 @@ function updateStore(
 			: {}),
 
 		// If the banner is not shown and has no requirement consent to all
-		...(data.jurisdiction.code === 'NONE' &&
+		...(data.jurisdiction?.code === 'NONE' &&
 			!data.showConsentBanner && {
 				consents: {
 					necessary: true,
@@ -80,13 +80,13 @@ function updateStore(
 		locationInfo: {
 			countryCode: location?.countryCode ?? null,
 			regionCode: location?.regionCode ?? null,
-			jurisdiction: jurisdiction?.code ?? null,
-			jurisdictionMessage: jurisdiction?.message ?? null,
+			jurisdiction: data.jurisdiction?.code ?? null,
+			jurisdictionMessage: data.jurisdiction?.message ?? null,
 		},
-		jurisdictionInfo: jurisdiction,
+		jurisdictionInfo: data.jurisdiction,
 	};
 
-	if (translations) {
+	if (translations?.language && translations?.translations) {
 		const translationConfig = prepareTranslationConfig(
 			{
 				translations: {
@@ -154,7 +154,6 @@ export async function fetchConsentBannerInfo(
 
 		// Ensures the promsie has the expected data
 		if (showConsentBanner) {
-			set({ isLoadingConsentInfo: false });
 			updateStore(showConsentBanner, config, true);
 
 			return showConsentBanner;

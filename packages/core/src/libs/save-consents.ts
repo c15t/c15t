@@ -20,8 +20,9 @@ export async function saveConsents({
 	set,
 	trackingBlocker,
 }: SaveConsentsProps) {
-	const { callbacks, consents, consentTypes } = get();
-	const newConsents = { ...consents };
+	const { callbacks, selectedConsents, consentTypes } = get();
+	const newConsents = { ...selectedConsents };
+
 	if (type === 'all') {
 		for (const consent of consentTypes) {
 			newConsents[consent.name] = true;
@@ -41,6 +42,7 @@ export async function saveConsents({
 	// This makes the interface feel more responsive
 	set({
 		consents: newConsents,
+		selectedConsents: newConsents,
 		showPopup: false,
 		consentInfo,
 	});

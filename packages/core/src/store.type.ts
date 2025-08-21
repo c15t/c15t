@@ -60,6 +60,9 @@ export interface PrivacyConsentState {
 	/** Current consent states for all consent types */
 	consents: ConsentState;
 
+	/** Selected consents (Not Saved) - use saveConsents to save */
+	selectedConsents: ConsentState;
+
 	/** Information about when and how consent was given */
 	consentInfo: { time: number; type: 'all' | 'custom' | 'necessary' } | null;
 
@@ -105,12 +108,28 @@ export interface PrivacyConsentState {
 	/** Available consent type configurations */
 	consentTypes: ConsentType[];
 
+	/*
+	 * Updates the selected consent state for a specific consent type.
+	 * @param name - The consent type to update
+	 * @param value - The new consent value
+	 */
+	setSelectedConsent: (name: AllConsentNames, value: boolean) => void;
+
 	/**
-	 * Updates the consent state for a specific consent type.
+	 * Saves the user's consent preferences.
+	 * @param type - The type of consent being saved
+	 */
+	saveConsents: (type: 'all' | 'custom' | 'necessary') => void;
+
+	/**
+	 * Updates the consent state for a specific consent type & automatically save the consent.
 	 * @param name - The consent type to update
 	 * @param value - The new consent value
 	 */
 	setConsent: (name: AllConsentNames, value: boolean) => void;
+
+	/** Resets all consent preferences to their default values */
+	resetConsents: () => void;
 
 	/**
 	 * Controls the visibility of the consent popup.
@@ -128,15 +147,6 @@ export interface PrivacyConsentState {
 	 * @param isOpen - Whether the dialog should be open
 	 */
 	setIsPrivacyDialogOpen: (isOpen: boolean) => void;
-
-	/**
-	 * Saves the user's consent preferences.
-	 * @param type - The type of consent being saved
-	 */
-	saveConsents: (type: 'all' | 'custom' | 'necessary') => void;
-
-	/** Resets all consent preferences to their default values */
-	resetConsents: () => void;
 
 	/**
 	 * Updates the active GDPR consent types.
