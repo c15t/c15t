@@ -7,15 +7,14 @@
 		"internationalization",
 		"callbacks",
 		"google-tag-manager",
+		"--- Storing Consent ---",
+		"./storing-consent/overview",
+		"./storing-consent/hosted",
+		"./storing-consent/offline",
 		"--- Store ---",
 		"./store/overview",
 		"./store/checking-consent",
 		"./store/location-info",
-		"./store/setting-consent",
-		"--- Storing Consent ---",
-		"./storing-consent/overview",
-		"./storing-consent/hosted-c15t",
-		"./storing-consent/offline-mode",
-		"./storing-consent/self-hosting"
+		"./store/setting-consent"
 	]
 }
