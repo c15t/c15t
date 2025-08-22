@@ -1,0 +1,42 @@
+---
+title: Setting consent
+description: There are various methods to managing a user's consent.
+lastModified: 2025-08-20
+availableIn:
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/store/setting-consents'
+    title: 'JavaScript'
+  - framework: 'next'
+    url: '/docs/frameworks/next/hooks/use-consent-manager/setting-consents'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/hooks/use-consent-manager/setting-consents'
+    title: 'React'
+---
+
+### setSelectedConsent()
+
+This method sets a user's consent choice but doesn't save it. 
+
+```tsx
+setSelectedConsent('marketing', true) 
+```
+
+### saveConsents()
+
+This method should be called after the user saves there consent preferences, e.g. an accept all button or dialog save.
+This function handles logic such as calling backend and the `onConsentSet` callback.
+
+```tsx
+saveConsents('all') // User has accepted to all
+saveConsents('custom') // Uses the consents set by setSelectedConsent()
+saveConsents('necessary') // User rejects all 
+```
+
+### setConsent()
+
+Useful for buttons like "Enable Marketing Consent", this will save the user's new consent by calling `saveConsents()`.
+
+```tsx
+setSelectedConsent('marketing', true) 
+```
