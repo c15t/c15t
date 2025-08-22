@@ -1,7 +1,7 @@
 ---
 title: Styling with CSS Classes
-description: Learn how to customize @c15t/react components using CSS class names and class-based styling.
-lastModified: 2025-04-10
+description: Learn how to customize components using CSS class names and class-based styling.
+lastModified: 2025-08-22
 availableIn:
   - framework: 'next'
     url: '/docs/frameworks/next/styling/classnames'
@@ -11,9 +11,9 @@ availableIn:
     title: 'React'
 ---
 
-CSS classes provide a powerful and flexible way to style @c15t/react components. This approach works well with any CSS methodology, including custom CSS, utility classes, or CSS modules.
+c15t supports multiple syntax approaches to styling components, a simple class based approach, or an object syntax allowing you to combine class names with inline styles.
 
-## Basic Class-Based Styling
+## Class-Based Styling
 
 The simplest way to style a component is by providing class names directly to theme keys:
 
@@ -28,32 +28,13 @@ The simplest way to style a component is by providing class names directly to th
 />
 ```
 
-This approach allows you to:
-
-- Use your own custom CSS classes
-- Apply multiple classes to the same element
-- Create reusable styling patterns
-
-## Object Syntax for Classes
+## Object Syntax
 
 You can also use the object syntax with the `className` property:
 
 ```tsx
-<CookieBanner 
-  theme={{
-    'banner.root': {
-      className: 'my-banner-container'
-    },
-    'banner.header.title': {
-      className: 'banner-title'
-    }
-  }}
-/>
-```
+import styles from './Banner.module.css';
 
-This syntax is especially useful when you need to combine class names with inline styles:
-
-```tsx
 <CookieBanner 
   theme={{
     'banner.root': {
@@ -61,95 +42,20 @@ This syntax is especially useful when you need to combine class names with inlin
       style: {
         borderColor: dynamicBorderColor
       }
-    }
+    },
+    'banner.header.title': styles.title // CSS Modules work too!
   }}
 />
 ```
 
-## Combining Class Names
+## Tailwind CSS
 
-You can provide multiple class names as a space-separated string:
+c15t supports Tailwind CSS classes, however there may be some cases where you need to add the `!important` flag to override the default styles.
 
 ```tsx
 <CookieBanner 
   theme={{
-    'banner.root': 'container mx-auto p-4 rounded-lg'
+    'banner.card': '!bg-red-500'
   }}
 />
 ```
-
-## Using CSS Modules
-
-CSS Modules work perfectly with our theming system:
-
-```tsx
-import styles from './Banner.module.css';
-
-<CookieBanner 
-  theme={{
-    'banner.root': styles.container,
-    'banner.header.title': styles.title,
-    'banner.header.description': styles.description
-  }}
-/>
-```
-
-## Dynamic Class Names
-
-You can use conditional logic to apply classes dynamically:
-
-```tsx
-<CookieBanner 
-  theme={{
-    'banner.root': `
-      container 
-      ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}
-    `,
-    'banner.footer': `
-      mt-4 
-      ${isCompact ? 'flex-col gap-2' : 'flex-row gap-4'}
-    `
-  }}
-/>
-```
-
-## Creating Reusable Themes with Class Names
-
-You can create reusable themes by defining class name configurations:
-
-```tsx
-const lightTheme = {
-  'banner.root': 'bg-white text-gray-900 shadow-lg',
-  'banner.header.title': 'text-xl font-bold',
-  'banner.header.description': 'text-gray-600 mt-2',
-  'banner.footer': 'mt-4 flex justify-end gap-2'
-};
-
-const darkTheme = {
-  'banner.root': 'bg-gray-900 text-white shadow-lg border border-gray-800',
-  'banner.header.title': 'text-xl font-bold text-white',
-  'banner.header.description': 'text-gray-300 mt-2',
-  'banner.footer': 'mt-4 flex justify-end gap-2'
-};
-
-// Use the appropriate theme
-<CookieBanner theme={isDarkMode ? darkTheme : lightTheme} />
-```
-
-## Best Practices for Class-Based Styling
-
-1. **Consistent Naming Conventions**
-   - Use a consistent naming methodology (BEM, SMACSS, etc.)
-   - Keep class names descriptive and purpose-driven
-
-2. **Avoid Collisions**
-   - Use namespacing or CSS Modules to prevent class name collisions
-   - Consider component-specific prefixes for custom classes
-
-3. **Separation of Concerns**
-   - Use classes for styling and not for functionality
-   - Keep component structure and styling separate
-
-4. **Performance**
-   - Minimize the number of classes applied to an element
-   - Use CSS custom properties for values that change frequently

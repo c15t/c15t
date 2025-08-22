@@ -1,7 +1,7 @@
 ---
 title: Color Scheme (Light/Dark Mode)
-description: Learn how to manage light, dark, and system color schemes in your application using c15t's color scheme utilities.
-lastModified: 2025-04-30
+description: Manage your components light, dark, and system color schemes.
+lastModified: 2025-08-22
 availableIn:
   - framework: 'next'
     url: '/docs/frameworks/next/styling/color-scheme'
@@ -13,76 +13,29 @@ availableIn:
 
 ## Overview
 
-@c15t/react provides built-in support for managing color schemes for your components, allowing you to implement light mode, dark mode, or system-based preferences with minimal configuration.
+c15t provides built-in support for managing color schemes for your components, allowing you to implement light mode, dark mode, or system-based preferences with minimal configuration.
+By default, c15t detects your theme by if you have a `.dark` class on the root element.
 
 ## Usage
 
-You can control the color scheme through two main approaches:
-
-1. Setting the `colorScheme` prop in `ConsentManagerOptions`
-2. Using the `useColorScheme` hook directly
-
-### Available Options
-
-The color scheme can be set to one of the following values:
-
-- `'light'`: Forces light mode
-- `'dark'`: Forces dark mode
-- `'system'`: Automatically matches the system preference
-- `null`: Falls back to default behavior (respects `.dark` class on root element)
-
-By default, if this prop is not set, it will default to `null`.
-
-### Provider Configuration
-
-You can also configure the color scheme through the `ConsentManagerProvider`:
-
 ```tsx
-import { ConsentManagerProvider } from '@c15t/react';
-
-function App({ children }) {
-  return (
-    <ConsentManagerProvider
-      options={{
-        react: {
-          // Components will only be light mode
-          colorScheme: 'light'
-        }
-      }}
-    >
-      {children}
-    </ConsentManagerProvider>
-  );
-}
-```
-
-### Using the Hook
-
-The `useColorScheme` hook provides a simple way to manage color scheme preferences:
-
-```tsx
-import { useColorScheme } from '@c15t/react';
-
-function App() {
-  useColorScheme('system'); // Options: 'light' | 'dark' | 'system' | null
-  return <div>Your content</div>;
-}
+<ConsentManagerProvider
+  options={{
+    // ... rest of your config
+    react: {
+      colorScheme: 'light',
+    },
+  }}
+>
+  <CookieBanner />
+  <ConsentManagerDialog />
+</ConsentManagerProvider>
 ```
 
 ## CSS Classes
 
-The color scheme system manages two CSS classes:
+The color scheme is decided based on two classes:
 
-- `.dark`: The default class for dark mode detection
-- `.c15t-dark`: An internal class used by c15t components
+- `.dark` - By default, c15t checks for this class on the root element to determine the color scheme if none is provided.
+- `.c15t-dark` - This class is automatically added/removed based on the color scheme.
 
-When using the system color scheme:
-
-- The `.c15t-dark` class is automatically added/removed based on system preferences
-- Components will respond to changes in system color scheme preferences
-- The change is immediate and doesn't require a page reload
-
-## Related
-
-- [Theming](/styling/theming) - Learn about c15t's theming system
-- [CSS Variables](/styling/css-variables) - Understanding CSS variable usage
