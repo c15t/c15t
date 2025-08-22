@@ -1,7 +1,7 @@
 ---
 title: General Styling
-description: Learn the core concepts of the @c15t/react theming system and how it enables flexible component styling.
-lastModified: 2025-04-10
+description: Learn the core concepts of the c15t theming system and how it enables flexible component styling.
+lastModified: 2025-08-22
 availableIn:
   - framework: 'next'
     url: '/docs/frameworks/next/styling'
@@ -69,8 +69,6 @@ widget.root
 For consistent styling across your application, you can use the `ThemeProvider` component to apply a global theme:
 
 ```tsx
-import { ThemeProvider } from '@c15t/react'
-
 const globalTheme = {
   'banner.root': 'bg-white rounded-lg shadow-lg',
   'dialog.root': 'bg-white rounded-lg shadow-xl',
@@ -109,8 +107,6 @@ Components can still define their own themes, which will merge with and override
 Our theming system includes TypeScript support to help prevent errors:
 
 ```tsx
-import type { CookieBannerTheme } from '@c15t/react'
-
 // TypeScript will catch invalid theme keys
 const theme: CookieBannerTheme = {
   'banner.root': 'bg-white p-4 rounded-lg shadow-lg',
@@ -125,25 +121,3 @@ Sometimes you might want to start from scratch. Use the `noStyle` prop to remove
 ```tsx
 <CookieBanner noStyle theme={yourCustomTheme} />
 ```
-
-## Best Practices
-
-1. **Maintain Accessibility**
-   - Ensure sufficient color contrast
-   - Keep interactive elements visually distinct
-   - Test your styles with screen readers
-
-2. **Consider Responsive Design**
-   - Start with mobile-first styles
-   - Use flexible units (rem, em) over fixed pixels
-   - Test across different screen sizes
-
-3. **Performance**
-   - Group related styles together
-   - Avoid unnecessary style overrides
-   - Use CSS classes over inline styles when possible
-
-4. **Maintainability**
-   - Keep theme configurations organized
-   - Document custom styles
-   - Use consistent naming conventions
