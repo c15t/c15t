@@ -16,50 +16,51 @@ availableIn:
 
 ## CLI Setup (Recommended)
 
-You can get started with the `@c15t/cli` which will generate the code for you! 
+You can get started with the `@c15t/cli` which will generate the code for you!
 
 <PackageCommandTabs command="@c15t/cli generate" />
 
 ## Manual Setup
+
 <Steps>
-<Step>
-### Install `@c15t/react` Package
-<PackageCommandTabs command="@c15t/react" />
-</Step>
+  <Step>
+    ### Install `@c15t/react` Package
 
-<Step>
-### Add to Your Application
+    <PackageCommandTabs command="@c15t/react" />
+  </Step>
 
-```tsx title="src/App.tsx"
-import { 
-  ConsentManagerDialog,
-  ConsentManagerProvider,
-  CookieBanner,
-} from '@c15t/react';
+  <Step>
+    ### Add to Your Application
 
-function App() {
-  return (
-    <ConsentManagerProvider options={{  
-      mode: 'c15t', 
-      backendURL: process.env.REACT_APP_C15T_URL,
-      consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
-      ignoreGeoLocation: true, // Useful for development to always view the banner.
-    }}>
-      <div className="App">
-        {/* Your application content */}
-      </div>
-      <CookieBanner />
-      <ConsentManagerDialog />
-    </ConsentManagerProvider>
-  );
-}
+    ```tsx title="src/App.tsx"
+    import { 
+      ConsentManagerDialog,
+      ConsentManagerProvider,
+      CookieBanner,
+    } from '@c15t/react';
 
-export default App;
-```
-</Step>
+    function App() {
+      return (
+        <ConsentManagerProvider options={{  
+          mode: 'c15t', 
+          backendURL: process.env.REACT_APP_C15T_URL,
+          consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
+          ignoreGeoLocation: true, // Useful for development to always view the banner.
+        }}>
+          <div className="App">
+            {/* Your application content */}
+          </div>
+          <CookieBanner />
+          <ConsentManagerDialog />
+        </ConsentManagerProvider>
+      );
+    }
+
+    export default App;
+    ```
+  </Step>
 </Steps>
 
 ## Storing Consent
 
 We recommend using the [hosted solution](/docs/frameworks/react/storing-consent/hosted) with [consent.io](https://consent.io) to store your consent.
-
