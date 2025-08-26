@@ -18,19 +18,20 @@ The Cookie Banner component provides an elegant way to obtain and manage consent
 <ResponsivePreview
   src="/examples/cookie-banner"
   code={`<ConsentManagerProvider
-  options={{
-    mode: 'c15t',
-    backendURL: 'https://c15t.dev/your-instance',
-    consentCategories: ['necessary', 'marketing'],
-  }}>
-  <CookieBanner />
-  <ConsentManagerDialog />
+options={{
+  mode: 'c15t',
+  backendURL: 'https://c15t.dev/your-instance',
+  consentCategories: ['necessary', 'marketing'],
+}}>
+<CookieBanner />
+<ConsentManagerDialog />
 </ConsentManagerProvider>
 `}
   expectedHeight={300}
 />
 
 ## Usage
+
 The Cookie Banner uses a compound component pattern, giving you complete control over its structure when needed. Think of it like building blocks – you can use the pre-assembled version, or arrange the pieces yourself for custom layouts.
 
 <Tabs groupId="Version" items={["Recommended", "Expanded"]}>
@@ -158,6 +159,7 @@ The Cookie Banner implements focus trapping when it's displayed, which is an ess
 ## Best Practices
 
 Follow these guidelines for optimal implementation:
+
 1. Place the banner at the root level of your application
 2. Keep the title and description clear and concise
 3. Use the pre-assembled version unless you need custom layouts
@@ -165,7 +167,6 @@ Follow these guidelines for optimal implementation:
 5. Ensure your theme maintains sufficient contrast ratios
 6. Consider [scroll locking](#scroll-locking) for strict compliance scenarios
 7. Test with keyboard navigation to ensure accessibility
-
 
 ## API Reference
 
