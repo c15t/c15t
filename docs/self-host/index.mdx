@@ -10,11 +10,13 @@ canary: true
 <Steps>
   <Step>
     ### Generate Schema + Code
+
     <PackageCommandTabs command="@c15t/cli generate" />
   </Step>
 
   <Step>
     ### Run Database Migrations
+
     <PackageCommandTabs command="@c15t/cli migrate" />
   </Step>
 </Steps>
@@ -24,14 +26,15 @@ canary: true
 <Steps>
   <Step>
     ### Install `@c15t/backend` Package
+
     <PackageCommandTabs command="@c15t/backend" />
   </Step>
 
-{" "}
-<Step>
-  ### Run Migrations
-  <PackageCommandTabs command="@c15t/cli migrate" />
-</Step>
+  <Step>
+    ### Run Migrations
+
+    <PackageCommandTabs command="@c15t/cli migrate" />
+  </Step>
 
   <Step>
     ### Create a c15t instance
@@ -62,6 +65,5 @@ canary: true
 
     const handleRequest = async (request: NextRequest) => handler.handler(request);
     ```
-
   </Step>
 </Steps>
