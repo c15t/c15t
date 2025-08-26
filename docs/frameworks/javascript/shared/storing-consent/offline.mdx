@@ -14,30 +14,22 @@ availableIn:
     title: 'JavaScript'
 ---
 
-<section id="overview">
-  import { RiServerLine, RiGlobalLine, RiSettings4Line } from '@remixicon/react';
+## Key Characteristics
 
-  The offline mode provides a simple, browser-based approach to storing user consent decisions without requiring a backend server.
+- **No backend required** - Everything is stored locally in the browser
+- **Simplified setup** - Get started quickly with minimal configuration
+- **Independence** - Works without external services or APIs
+- **Fast implementation** - Ideal for prototyping and simpler sites
 
-  ## Key Characteristics
+## How It Works
 
-  - **No backend required** - Everything is stored locally in the browser
-  - **Simplified setup** - Get started quickly with minimal configuration
-  - **Independence** - Works without external services or APIs
-  - **Fast implementation** - Ideal for prototyping and simpler sites
-</section>
+<Callout type="note">
+  Offline mode provides the same API interface as the standard client but operates completely client-side.
+</Callout>
 
-<section id="how-it-works">
-  ## How It Works
+The offline mode implements the same interface as the standard client, but with the following differences:
 
-  <Callout type="note">
-    Offline mode provides the same API interface as the standard client but operates completely client-side.
-  </Callout>
-
-  The offline mode implements the same interface as the standard client, but with the following differences:
-
-  1. **Storage**: All consent preferences are stored in the browser's localStorage using the configured key
-  2. **Network**: No network requests are made, all operations happen locally
-  3. **Consent Banner**: The banner visibility is determined by checking if a value exists in localStorage
-  4. **Consent Verification**: Always returns a successful response
-</section>
+1. **Storage**: All consent preferences are stored in the browser's localStorage using the configured key
+2. **Network**: No network requests are made, all operations happen locally
+3. **Consent Banner**: The banner visibility is determined by checking if a value exists in localStorage
+4. **Consent Verification**: Always returns a successful response
