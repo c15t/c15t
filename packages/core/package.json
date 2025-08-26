@@ -3,7 +3,14 @@
 	"version": "1.5.0-canary-20250813173036",
 	"license": "GPL-3.0-only",
 	"type": "module",
-	"keywords": ["c15t", "consent", "gdpr", "privacy", "tracking", "compliance"],
+	"keywords": [
+		"c15t",
+		"consent",
+		"gdpr",
+		"privacy",
+		"tracking",
+		"compliance"
+	],
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -20,17 +27,21 @@
 		"dev": "pnpm prebuild && rslib build --watch",
 		"check-types": "pnpm prebuild && tsc --noEmit",
 		"check-types:test": "tsc -p tsconfig.test.json",
-		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "pnpm biome lint ./src",
 		"test": "pnpm prebuild && vitest run",
 		"test:watch": "pnpm prebuild && vitest"
 	},
-	"browserslist": [">0.2%", "not dead", "not op_mini all"],
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	],
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
 		"@c15t/translations": "workspace:*",
-		"@orpc/client": "1.2.0",
-		"@orpc/server": "1.2.0",
+		"@orpc/client": "1.8.1",
+		"@orpc/server": "1.8.1",
 		"zustand": "^5.0.3"
 	},
 	"devDependencies": {

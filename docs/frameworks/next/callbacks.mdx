@@ -1,7 +1,7 @@
 ---
 title: "Callbacks"
-description: "Learn how to use callbacks to respond to consent management events in both JavaScript and React applications."
-lastModified: 2025-05-12
+description: "Learn how to use callbacks to respond to c15t events in your Next.js application."
+lastModified: 2025-08-20
 availableIn:
   - framework: 'next'
     url: '/docs/frameworks/next/callbacks'
@@ -11,54 +11,68 @@ availableIn:
     title: 'React'
 ---
 
-## Available callbacks
-
-### onBannerFetched
-
-This callback is called when the consent banner is fetched, it is not called when the banner is set to `offline` mode.
-
-<AutoTypeTable path="./packages/core/src/types/callbacks.ts" name="OnBannerFetchedPayload" />
-
-### onConsentSet
-
-This callback is called when the consent is set.
-
-<AutoTypeTable path="./packages/core/src/types/callbacks.ts" name="OnConsentSetPayload" />
-
-### onError
-
-This callback is called when an error occurs.
-
-<AutoTypeTable path="./packages/core/src/types/callbacks.ts" name="OnErrorPayload" />
-
-
 ## Implementing Callbacks
-Due to the nature of Next.js App Directory, we have to define callbacks to run in a client component.
 
-```ts title="app/layout.client.tsx"
-'use client';
+<Tabs items={['App Directory', 'Pages Directory']}>
+  <Tab value="App Directory">
+    Due to the nature of Next.js App Directory, we have to define callbacks to run in a client component.
 
-import { ConsentManagerCallbacks } from '@c15t/nextjs/client';
+    ```ts title="app/layout.client.tsx"
+    'use client';
 
-export function ClientLayout() {
-	return (
-		<ConsentManagerCallbacks
-			callbacks={{
-				onBannerFetched(response) {
-					console.log('Consent banner fetched', response);
-				},
-				onConsentSet(response) {
-					console.log('Consent has been saved locally', response);
-				},
-				onError(response) {
-					console.log('Error', response);
-				},
-			}}
-		/>
-	);
-}
-```
+    import { ConsentManagerCallbacks } from '@c15t/nextjs/client';
 
-<Callout type="note">
-Ensure you import this component inside the ConsentManagerProvider component in your `app/layout.tsx` file.
-</Callout>
+    export function ClientLayout() {
+    	return (
+    		<ConsentManagerCallbacks
+    			callbacks={{
+    				onBannerFetched(response) {
+    					console.log('Consent banner fetched', response);
+    				},
+    				onConsentSet(response) {
+    					console.log('Consent has been saved locally', response);
+    				},
+    				onError(response) {
+    					console.log('Error', response);
+    				},
+    			}}
+    		/>
+    	);
+    }
+    ```
+
+    <Callout type="note">
+      Ensure you import this component inside the ConsentManagerProvider component in your `app/layout.tsx` file.
+    </Callout>
+  </Tab>
+
+  <Tab value="Pages Directory">
+    ```ts title="layout.tsx"
+    import { ConsentManagerProvider } from '@c15t/nextjs/pages';
+
+    export function RootLayout({ children }: { children: React.ReactNode }) {
+    	return (
+    		<ConsentManagerProvider options={{
+          callbacks: {
+    				onBannerFetched(response) {
+    					console.log('Consent banner fetched', response);
+    				},
+    				onConsentSet(response) {
+    					console.log('Consent has been saved', response);
+    				},
+    				onError(response) {
+    					console.log('Error', response);
+    				},
+    			}
+        }}>
+    			{children}
+    		</ConsentManagerProvider>
+    	);
+    }
+
+
+    ```
+  </Tab>
+</Tabs>
+
+<include>../javascript/shared/available-callbacks.mdx</include>

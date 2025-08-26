@@ -7,18 +7,20 @@ export const subjectTable = table('subject', {
 	externalId: column('externalId', 'string').nullable(),
 	identityProvider: column('identityProvider', 'string').nullable(),
 	lastIpAddress: column('lastIpAddress', 'string').nullable(),
+	subjectTimezone: column('subjectTimezone', 'string').nullable(),
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
 	updatedAt: column('updatedAt', 'timestamp').defaultTo$('now'),
 });
 
 export const subjectSchema = z.object({
 	id: z.string(),
-	isIdentified: z.boolean().default(false),
+	isIdentified: z.boolean().prefault(false),
 	externalId: z.string().nullish(),
 	identityProvider: z.string().nullish(),
 	lastIpAddress: z.string().optional(),
-	createdAt: z.date().default(() => new Date()),
-	updatedAt: z.date().default(() => new Date()),
+	subjectTimezone: z.string().nullish(),
+	createdAt: z.date().prefault(() => new Date()),
+	updatedAt: z.date().prefault(() => new Date()),
 });
 
 export type Subject = z.infer<typeof subjectSchema>;

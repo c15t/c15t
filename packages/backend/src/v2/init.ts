@@ -1,4 +1,4 @@
-import { Resource } from '@opentelemetry/resources';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-base';
 import type { C15TContext, C15TOptions } from '~/v2/types';
@@ -37,7 +37,7 @@ const initializeTelemetry = (
 
 	try {
 		// Create a telemetry resource with provided values or safe defaults
-		const resource = new Resource({
+		const resource = resourceFromAttributes({
 			'service.name': appName,
 			'service.version': packageVersion,
 			...(telemetryOptions?.defaultAttributes || {}),

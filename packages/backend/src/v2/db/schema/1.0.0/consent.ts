@@ -24,15 +24,15 @@ export const consentSchema = z.object({
 	subjectId: z.string(),
 	domainId: z.string(),
 	purposeIds: z.array(z.string()),
-	metadata: z.record(z.unknown()).nullish(),
+	metadata: z.record(z.string(), z.unknown()).nullish(),
 	policyId: z.string().optional(),
 	ipAddress: z.string().nullish(),
 	userAgent: z.string().nullish(),
-	status: consentStatusSchema.default('active'),
+	status: consentStatusSchema.prefault('active'),
 	withdrawalReason: z.string().nullish(),
-	givenAt: z.date().default(() => new Date()),
+	givenAt: z.date().prefault(() => new Date()),
 	validUntil: z.date().nullish(),
-	isActive: z.boolean().default(true),
+	isActive: z.boolean().prefault(true),
 });
 
 export type Consent = z.infer<typeof consentSchema>;

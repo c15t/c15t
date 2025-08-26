@@ -78,7 +78,6 @@ These are turned off to allow flexibility during development and when using bund
 * `noSecrets`: `off`
 * `useComponentExportOnlyModules`: `off`
 * `useExplicitType`: `off`
-* `useImportRestrictions`: `off`
 * `useConsistentCurlyBraces`: `off`
 * `noTernary`: `error` — disallows ternary (`condition ? x : y`) expressions to improve readability. Use if/else instead.
 

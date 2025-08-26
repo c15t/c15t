@@ -1,0 +1,35 @@
+---
+title: Overview
+description: The store is a global state that can be used to access the consent manager's state.
+lastModified: 2025-08-20
+availableIn:
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/store/overview'
+    title: 'JavaScript'
+  - framework: 'next'
+    url: '/docs/frameworks/next/hooks/use-consent-manager/overview'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/hooks/use-consent-manager/overview'
+    title: 'React'
+---
+
+<section id="overview">
+  The store is a global state that can be used to access the consent manager's state, it includes information about the user's consent preferences, the location of the user, and the consent banner's state including methods to update them & more.
+</section>
+
+## Usage
+
+```tsx
+import { createConsentManagerStore } from 'c15t';
+
+const store = createConsentManagerStore(consentManager);
+
+const hasFunctionality = store.getState().has('functionality');
+```
+
+<section id="returns">
+  ## Returns
+
+  <AutoTypeTable path="./packages/core/src/index.ts" name="PrivacyConsentState" />
+</section>

@@ -7,5 +7,5 @@
  * - Documentation UI
  */
 
-export { createOpenAPIConfig, createDefaultOpenAPIOptions } from './config';
-export { createOpenAPISpec, createDocsUI } from './handlers';
+export { createDefaultOpenAPIOptions, createOpenAPIConfig } from './config';
+export { createDocsUI, createOpenAPISpec } from './handlers';

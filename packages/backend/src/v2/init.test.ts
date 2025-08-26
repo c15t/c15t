@@ -1,6 +1,45 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { C15TOptions } from './types';
 
+// Mock OpenTelemetry modules before any imports
+vi.mock('@opentelemetry/sdk-node', () => ({
+	NodeSDK: vi.fn().mockImplementation(() => ({
+		start: vi.fn(),
+	})),
+}));
+
+vi.mock('@opentelemetry/resources', () => ({
+	resourceFromAttributes: vi.fn().mockImplementation((attributes) => ({
+		attributes,
+	})),
+}));
+
+vi.mock('@opentelemetry/sdk-trace-base', () => ({
+	ConsoleSpanExporter: vi.fn().mockImplementation(() => ({})),
+}));
+
+// Mock local modules
+vi.mock('./utils/logger', () => ({
+	initLogger: vi.fn().mockReturnValue({
+		debug: vi.fn(),
+		info: vi.fn(),
+		warn: vi.fn(),
+		error: vi.fn(),
+	}),
+}));
+
+vi.mock('./db/registry', () => ({
+	createRegistry: vi.fn().mockReturnValue({}),
+}));
+
+vi.mock('./db/schema', () => ({
+	DB: {
+		client: vi.fn().mockImplementation((adapter) => ({
+			orm: vi.fn().mockResolvedValue({ adapter }),
+		})),
+	},
+}));
+
 afterEach(() => {
 	vi.clearAllMocks();
 });
@@ -16,53 +55,15 @@ async function setup(params: SetupParams = {}) {
 	// Reset the module cache to ensure a fresh instance for every test run
 	vi.resetModules();
 
-	// OpenTelemetry stubs
+	// Get the mocked modules
+	const { NodeSDK } = await import('@opentelemetry/sdk-node');
+	const { DB } = await import('./db/schema');
+
+	// Get the start mock from the NodeSDK instance
 	const startMock = vi.fn();
-	vi.doMock('@opentelemetry/sdk-node', () => ({
-		NodeSDK: vi.fn().mockImplementation(() => ({
-			start: startMock,
-		})),
-	}));
-
-	vi.doMock('@opentelemetry/resources', () => ({
-		Resource: class {
-			readonly attributes: Record<string, unknown>;
-			constructor(attributes: Record<string, unknown>) {
-				this.attributes = attributes;
-			}
-		},
-	}));
-
-	vi.doMock('@opentelemetry/sdk-trace-base', () => ({
-		ConsoleSpanExporter: class {},
-	}));
-
-	// Logger stub
-	const loggerInstance = {
-		debug: vi.fn(),
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-	};
-	const initLoggerMock = vi.fn().mockReturnValue(loggerInstance);
-	vi.doMock('./utils/logger', () => ({
-		initLogger: initLoggerMock,
-	}));
-
-	// Registry stub
-	const createRegistryMock = vi.fn().mockReturnValue({});
-	vi.doMock('./db/registry', () => ({
-		createRegistry: createRegistryMock,
-	}));
-
-	// Database stub
-	const clientMock = vi.fn((adapter: unknown) => ({
-		orm: vi.fn().mockResolvedValue({ adapter }),
-	}));
-	vi.doMock('./db/schema', () => ({
-		DB: {
-			client: clientMock,
-		},
+	const nodeSDKMock = NodeSDK as any;
+	nodeSDKMock.mockImplementation(() => ({
+		start: startMock,
 	}));
 
 	const { init } = await import('./init');
@@ -84,7 +85,7 @@ async function setup(params: SetupParams = {}) {
 	return {
 		context,
 		startMock,
-		clientMock,
+		clientMock: DB.client,
 	};
 }
 

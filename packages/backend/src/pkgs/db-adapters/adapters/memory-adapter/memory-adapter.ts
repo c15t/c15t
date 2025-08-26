@@ -4,8 +4,8 @@ import {
 	type EntityOutput,
 	type EntityTypeMap,
 	type Field,
-	type Primitive,
 	generateId,
+	type Primitive,
 } from '~/pkgs/data-model';
 import { getConsentTables } from '~/schema';
 import type { C15TOptions } from '~/types';

@@ -15,8 +15,8 @@ export const consentRecordSchema = z.object({
 	subjectId: z.string(),
 	consentId: z.string().nullish(),
 	actionType: z.string(),
-	details: z.record(z.unknown()).nullish(),
-	createdAt: z.date().default(() => new Date()),
+	details: z.record(z.string(), z.unknown()).nullish(),
+	createdAt: z.date().prefault(() => new Date()),
 });
 
 export type ConsentRecord = z.infer<typeof consentRecordSchema>;

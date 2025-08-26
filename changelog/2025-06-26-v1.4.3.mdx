@@ -1,0 +1,54 @@
+---
+title: "v1.4.3 — Theme Inheritance Fixes for Provider-Scoped Themes"
+version: 1.4.3
+date: 2025-06-26
+description: "Patch release ensuring provider-level themes set in ConsentManagerProvider are correctly inherited by CookieBanner, ConsentManagerDialog, and ConsentManagerWidget for consistent styling."
+tags:
+  - release
+  - stable
+  - react
+  - styling
+  - theming
+canary: false
+type: release
+breaking: false
+authors: burnedchris
+packages:
+  - "@c15t/react@1.4.3"
+---
+
+## Patch Changes
+
+- fix(react): ensure provider `theme` is applied to `ConsentManagerWidget` and `ConsentManagerDialog` ([357dcd7](https://github.com/c15t/c15t/commit/357dcd7648ff3adb4799b06fe788de06a529f1c8))
+- fix(react): ensure `CookieBanner` correctly inherits provider `theme` and global `classNames`/`styles` ([c463eda](https://github.com/c15t/c15t/commit/c463eda67126d7aefa483ea46ffdd7aa24462559))
+
+## Usage Notes
+
+- No changes required for apps already passing a `theme` to `ConsentManagerProvider` — components now consistently inherit the provider theme.
+
+```tsx
+<ConsentManagerProvider
+  options={{
+    mode: 'c15t',
+    backendURL: process.env.NEXT_PUBLIC_C15T_URL,
+    theme: {
+      classNames: 'rounded-lg shadow-md',
+      styles: { '--c15t-accent': '#4f46e5' },
+    },
+  }}
+>
+  <CookieBanner />
+  <ConsentManagerDialog />
+  <ConsentManagerWidget />
+</ConsentManagerProvider>
+```
+
+## ✨ What's Changed
+
+- Theme inheritance fixes in React components: [357dcd7](https://github.com/c15t/c15t/commit/357dcd7648ff3adb4799b06fe788de06a529f1c8), [c463eda](https://github.com/c15t/c15t/commit/c463eda67126d7aefa483ea46ffdd7aa24462559)
+
+**Full Changelog**: [c15t@1.4.2...c15t@1.4.3](https://github.com/c15t/c15t/compare/c15t@1.4.2...c15t@1.4.3)
+
+<ContributorBlock usernames={["BurnedChris", "KayleeWilliams"]} title="Thank you to our contributors" />
+
+

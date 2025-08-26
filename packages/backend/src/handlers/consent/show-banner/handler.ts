@@ -1,5 +1,4 @@
 import type { Translations } from '@c15t/translations';
-import { ORPCError } from '@orpc/server';
 import { os } from '~/contracts';
 import {
 	type JurisdictionCode,
@@ -11,11 +10,11 @@ import { getTranslations } from './translations';
 
 function getHeaders(headers: Headers | undefined) {
 	if (!headers) {
-		throw new ORPCError('LOCATION_DETECTION_FAILED', {
-			data: {
-				reason: 'No headers found in request context',
-			},
-		});
+		return {
+			countryCode: null,
+			regionCode: null,
+			acceptLanguage: null,
+		};
 	}
 
 	// Add this conversion to ensure headers are always string or null

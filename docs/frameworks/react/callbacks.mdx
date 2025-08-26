@@ -1,7 +1,7 @@
 ---
 title: "Callbacks"
-description: "Learn how to use callbacks to respond to consent management events in both JavaScript and React applications."
-lastModified: 2025-05-12
+description: "Learn how to use callbacks to respond to c15t events in your React application."
+lastModified: 2025-08-20
 availableIn:
   - framework: 'next'
     url: '/docs/frameworks/next/callbacks'
@@ -11,29 +11,8 @@ availableIn:
     title: 'React'
 ---
 
-## Available callbacks
-
-### onBannerFetched
-
-This callback fires when the consent banner is fetched. It is not invoked in `offline` mode.
-
-
-<AutoTypeTable path="./packages/core/src/types/callbacks.ts" name="OnBannerFetchedPayload" />
-
-### onConsentSet
-
-This callback is called when the consent is set.
-
-<AutoTypeTable path="./packages/core/src/types/callbacks.ts" name="OnConsentSetPayload" />
-
-### onError
-
-This callback is called when an error occurs.
-
-<AutoTypeTable path="./packages/core/src/types/callbacks.ts" name="OnErrorPayload" />
-
-
 ## Implementing Callbacks
+
 ```tsx title="src/App.tsx"
 import { 
   ConsentManagerDialog,
@@ -42,7 +21,7 @@ import {
   type ConsentManagerOptions
 } from '@c15t/react';
 
-function App() {
+export default function App() {
   const options: ConsentManagerOptions = {
     mode: 'c15t', 
     backendURL: process.env.REACT_APP_C15T_URL,
@@ -71,6 +50,6 @@ function App() {
     </ConsentManagerProvider>
   );
 }
-
-export default App;
 ```
+
+<include>../javascript/shared/available-callbacks.mdx</include>

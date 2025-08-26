@@ -412,7 +412,6 @@ export class C15tClient implements ConsentManagerInterface {
 
 				// Check first if this is a status code that should never be retried
 				if (nonRetryableStatusCodes?.includes(response.status)) {
-					// biome-ignore lint/suspicious/noConsole: <explanation>
 					console.debug(
 						`Not retrying request to ${path} with status ${response.status} (nonRetryableStatusCodes)`
 					);
@@ -426,7 +425,6 @@ export class C15tClient implements ConsentManagerInterface {
 							url: url.toString(),
 							method: requestOptions.method || 'GET',
 						});
-						// biome-ignore lint/suspicious/noConsole: <explanation>
 						console.debug(
 							`Custom retry strategy for ${path} with status ${response.status}: ${shouldRetryThisRequest}`
 						);
@@ -628,7 +626,6 @@ export class C15tClient implements ConsentManagerInterface {
 			}
 		} catch (error) {
 			// Ignore localStorage errors (e.g., in environments where it's blocked)
-			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.warn('Failed to access localStorage in offline fallback:', error);
 			// Default to not showing if localStorage isn't available to prevent memory leaks
 			shouldShow = false;
@@ -758,7 +755,6 @@ export class C15tClient implements ConsentManagerInterface {
 						}
 					} catch (e) {
 						// If there's an error parsing existing submissions, start fresh
-						// biome-ignore lint/suspicious/noConsole: <explanation>
 						console.warn('Error parsing pending submissions:', e);
 						pendingSubmissions = [];
 					}
@@ -777,8 +773,7 @@ export class C15tClient implements ConsentManagerInterface {
 							pendingSubmissionsKey,
 							JSON.stringify(pendingSubmissions)
 						);
-						// biome-ignore lint/suspicious/noConsole: <explanation>
-						// biome-ignore lint/suspicious/noConsoleLog: <explanation>
+
 						console.log(
 							'Queued consent submission for retry on next page load'
 						);
@@ -787,7 +782,6 @@ export class C15tClient implements ConsentManagerInterface {
 			}
 		} catch (error) {
 			// Ignore localStorage errors but log them
-			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.warn(
 				'Failed to write to localStorage in offline fallback:',
 				error
@@ -871,8 +865,6 @@ export class C15tClient implements ConsentManagerInterface {
 				return;
 			}
 
-			// biome-ignore lint/suspicious/noConsole: <explanation>
-			// biome-ignore lint/suspicious/noConsoleLog: <explanation>
 			console.log(
 				`Found ${pendingSubmissions.length} pending consent submission(s) to retry`
 			);
@@ -883,7 +875,6 @@ export class C15tClient implements ConsentManagerInterface {
 			}, 2000); // Delay to ensure page is loaded and network is likely available
 		} catch (error) {
 			// Ignore localStorage errors but log them
-			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.warn('Failed to check for pending consent submissions:', error);
 		}
 	}
@@ -906,8 +897,6 @@ export class C15tClient implements ConsentManagerInterface {
 			for (let j = 0; j < remainingSubmissions.length; j++) {
 				const submission = remainingSubmissions[j];
 				try {
-					// biome-ignore lint/suspicious/noConsole: <explanation>
-					// biome-ignore lint/suspicious/noConsoleLog: <explanation>
 					console.log('Retrying consent submission:', submission);
 
 					// Use the actual API endpoint, not our offlineFallback
@@ -920,13 +909,10 @@ export class C15tClient implements ConsentManagerInterface {
 					});
 
 					if (response.ok) {
-						// biome-ignore lint/suspicious/noConsole: <explanation>
-						// biome-ignore lint/suspicious/noConsoleLog: <explanation>
 						console.log('Successfully resubmitted consent');
 						successfulSubmissions.push(j);
 					}
 				} catch (error) {
-					// biome-ignore lint/suspicious/noConsole: <explanation>
 					console.warn('Failed to resend consent submission:', error);
 					// Continue with the next submission
 				}
@@ -959,21 +945,16 @@ export class C15tClient implements ConsentManagerInterface {
 						pendingSubmissionsKey,
 						JSON.stringify(remainingSubmissions)
 					);
-					// biome-ignore lint/suspicious/noConsole: <explanation>
-					// biome-ignore lint/suspicious/noConsoleLog: <explanation>
 					console.log(
 						`${remainingSubmissions.length} consent submissions still pending for future retry`
 					);
 				} else {
 					// All submissions processed, clear the storage
 					window.localStorage.removeItem(pendingSubmissionsKey);
-					// biome-ignore lint/suspicious/noConsole: <explanation>
-					// biome-ignore lint/suspicious/noConsoleLog: <explanation>
 					console.log('All pending consent submissions processed successfully');
 				}
 			}
 		} catch (error) {
-			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.warn('Error updating pending submissions storage:', error);
 		}
 	}

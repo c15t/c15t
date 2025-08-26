@@ -7,9 +7,7 @@
 
 // Re-export field-related exports
 export * from './fields';
-
-// Re-export schema-related exports
-export * from './schema';
-
 // Re-export hook-related exports
 export * from './hooks';
+// Re-export schema-related exports
+export * from './schema';

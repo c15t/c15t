@@ -12,11 +12,11 @@ import type {
 	ConsentBannerResponse,
 	ConsentState,
 	ConsentType,
+	consentTypes,
 	JurisdictionInfo,
 	LocationInfo,
 	PrivacySettings,
 	TranslationConfig,
-	consentTypes,
 } from './types';
 
 /**
@@ -60,6 +60,9 @@ export interface PrivacyConsentState {
 	/** Current consent states for all consent types */
 	consents: ConsentState;
 
+	/** Selected consents (Not Saved) - use saveConsents to save */
+	selectedConsents: ConsentState;
+
 	/** Information about when and how consent was given */
 	consentInfo: { time: number; type: 'all' | 'custom' | 'necessary' } | null;
 
@@ -81,29 +84,14 @@ export interface PrivacyConsentState {
 	/** Whether the privacy dialog is currently open */
 	isPrivacyDialogOpen: boolean;
 
-	/** Region-specific compliance settings */
-	complianceSettings: Record<ComplianceRegion, ComplianceSettings>;
-
 	/** Event callbacks for consent actions */
 	callbacks: Callbacks;
-
-	/** Subject's detected country code */
-	detectedCountry: string | null;
 
 	/** Subject's location information */
 	locationInfo: LocationInfo | null;
 
-	/** Applicable jurisdiction information */
-	jurisdictionInfo: JurisdictionInfo | null;
-
-	/** Privacy Related Settings @deprecated will be removed in a future version */
-	privacySettings: PrivacySettings;
-
 	/** Translation configuration */
 	translationConfig: TranslationConfig;
-
-	/** Whether the provider is using c15t.dev domain */
-	isConsentDomain: boolean;
 
 	/** Whether to ignore geo location. Will always show the consent banner. */
 	ignoreGeoLocation: boolean;
@@ -120,12 +108,28 @@ export interface PrivacyConsentState {
 	/** Available consent type configurations */
 	consentTypes: ConsentType[];
 
+	/*
+	 * Updates the selected consent state for a specific consent type.
+	 * @param name - The consent type to update
+	 * @param value - The new consent value
+	 */
+	setSelectedConsent: (name: AllConsentNames, value: boolean) => void;
+
 	/**
-	 * Updates the consent state for a specific consent type.
+	 * Saves the user's consent preferences.
+	 * @param type - The type of consent being saved
+	 */
+	saveConsents: (type: 'all' | 'custom' | 'necessary') => void;
+
+	/**
+	 * Updates the consent state for a specific consent type & automatically save the consent.
 	 * @param name - The consent type to update
 	 * @param value - The new consent value
 	 */
 	setConsent: (name: AllConsentNames, value: boolean) => void;
+
+	/** Resets all consent preferences to their default values */
+	resetConsents: () => void;
 
 	/**
 	 * Controls the visibility of the consent popup.
@@ -145,32 +149,10 @@ export interface PrivacyConsentState {
 	setIsPrivacyDialogOpen: (isOpen: boolean) => void;
 
 	/**
-	 * Saves the user's consent preferences.
-	 * @param type - The type of consent being saved
-	 */
-	saveConsents: (type: 'all' | 'custom' | 'necessary') => void;
-
-	/** Resets all consent preferences to their default values */
-	resetConsents: () => void;
-
-	/**
 	 * Updates the active GDPR consent types.
 	 * @param types - Array of consent types to activate
 	 */
 	setGdprTypes: (types: AllConsentNames[]) => void;
-
-	/**
-	 * Updates compliance settings for a specific region.
-	 * @param region - The region to update
-	 * @param settings - New compliance settings
-	 */
-	setComplianceSetting: (
-		region: ComplianceRegion,
-		settings: Partial<ComplianceSettings>
-	) => void;
-
-	/** Resets compliance settings to their default values */
-	resetComplianceSettings: () => void;
 
 	/**
 	 * Sets a callback for a specific consent event.
@@ -181,12 +163,6 @@ export interface PrivacyConsentState {
 		name: keyof Callbacks,
 		callback: Callbacks[keyof Callbacks] | undefined
 	) => void;
-
-	/**
-	 * Updates the user's detected country.
-	 * @param country - The country code
-	 */
-	setDetectedCountry: (country: string) => void;
 
 	/**
 	 * Updates the user's location information.
@@ -206,9 +182,6 @@ export interface PrivacyConsentState {
 	/** Checks if the user has provided any form of consent */
 	hasConsented: () => boolean;
 
-	/** Gets the effective consent states after applying privacy settings @deprecated will be removed in a future version */
-	getEffectiveConsents: () => ConsentState;
-
 	/**
 	 * Checks if consent has been given for a specific type.
 	 * @param consentType - The consent type to check
@@ -223,4 +196,47 @@ export interface PrivacyConsentState {
 	has: <CategoryType extends AllConsentNames>(
 		condition: HasCondition<CategoryType>
 	) => boolean;
+
+	/**
+	 * Deprecated variables and methods thatwill be removed in a future version
+	 */
+
+	/** Whether the provider is using c15t.dev domain  @deprecated will be removed in a future version */
+	isConsentDomain: boolean;
+
+	/** Subject's detected country code @deprecated will be removed in a future version - use locationInfo instead */
+	detectedCountry: string | null;
+
+	/** Privacy Related Settings @deprecated will be removed in a future version */
+	privacySettings: PrivacySettings;
+
+	/** Region-specific compliance settings @deprecated will be removed in a future version due to unused functionality */
+	complianceSettings: Record<ComplianceRegion, ComplianceSettings>;
+
+	/** Applicable jurisdiction information @deprecated will be removed in a future version use locationInfo instead */
+	jurisdictionInfo: JurisdictionInfo | null;
+
+	/** Gets the effective consent states after applying privacy settings @deprecated will be removed in a future version */
+	getEffectiveConsents: () => ConsentState;
+
+	/**
+	 * Updates the user's detected country.
+	 * @param country - The country code
+	 * @deprecated will be removed in a future version - use setLocationInfo instead
+	 */
+	setDetectedCountry: (country: string) => void;
+
+	/** Resets compliance settings to their default values @deprecated will be removed in a future version due to unused functionality */
+	resetComplianceSettings: () => void;
+
+	/**
+	 * Updates compliance settings for a specific region.
+	 * @param region - The region to update
+	 * @param settings - New compliance settings
+	 * @deprecated will be removed in a future version due to unused functionality
+	 */
+	setComplianceSetting: (
+		region: ComplianceRegion,
+		settings: Partial<ComplianceSettings>
+	) => void;
 }

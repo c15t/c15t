@@ -11,8 +11,6 @@ import clsx from 'clsx';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { CSSPropertiesWithVars } from '~/types/theme';
-
 import {
 	LocalThemeContext,
 	type ThemeContextValue,
@@ -22,11 +20,10 @@ import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
-
+import type { CSSPropertiesWithVars } from '~/types/theme';
+import styles from '../consent-manager-dialog.module.css';
 import type { ConsentManagerDialogTheme } from '../theme';
 import { Overlay } from './overlay';
-
-import styles from '../consent-manager-dialog.module.css';
 
 /**
  * Props for the root component of the ConsentManagerDialog.

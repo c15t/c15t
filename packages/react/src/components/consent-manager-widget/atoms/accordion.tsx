@@ -3,8 +3,8 @@ import type { AllConsentNames, ConsentType } from 'c15t';
 import {
 	type ComponentPropsWithoutRef,
 	type ComponentRef,
-	type Ref,
 	forwardRef,
+	type Ref,
 	useCallback,
 } from 'react';
 import { Box, type BoxProps } from '~/components/shared/primitives/box';
@@ -62,12 +62,13 @@ const ConsentManagerWidgetSwitch = RadixSwitch.Root;
  * ```
  */
 const ConsentManagerWidgetAccordionItems = () => {
-	const { consents, setConsent, getDisplayedConsents } = useConsentManager();
+	const { selectedConsents, setSelectedConsent, getDisplayedConsents } =
+		useConsentManager();
 	const handleConsentChange = useCallback(
 		(name: AllConsentNames, checked: boolean) => {
-			setConsent(name, checked);
+			setSelectedConsent(name, checked);
 		},
-		[setConsent]
+		[setSelectedConsent]
 	);
 
 	function formatConsentName(name: AllConsentNames) {
@@ -101,7 +102,7 @@ const ConsentManagerWidgetAccordionItems = () => {
 				</ConsentManagerWidgetAccordionTriggerInner>
 
 				<ConsentManagerWidgetSwitch
-					checked={consents[consent.name]}
+					checked={selectedConsents[consent.name]}
 					onClick={(e) => e.stopPropagation()}
 					onKeyUp={(e) => e.stopPropagation()}
 					onKeyDown={(e) => e.stopPropagation()}

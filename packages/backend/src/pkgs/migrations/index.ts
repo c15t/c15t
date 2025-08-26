@@ -11,21 +11,20 @@
 
 // Core migration functionality
 export { getMigrations } from './get-migration';
-export { createMigrationExecutors } from './migration-execution';
-export {
-	buildTableCreateMigrations,
-	buildColumnAddMigrations,
-} from './migration-builders';
-export { analyzeSchemaChanges } from './schema-comparison';
-export { matchType, getType } from './type-mapping';
-
 // Schema generation utilities
 export { getSchema } from './get-schema';
+export {
+	buildColumnAddMigrations,
+	buildTableCreateMigrations,
+} from './migration-builders';
+export { createMigrationExecutors } from './migration-execution';
+export { analyzeSchemaChanges } from './schema-comparison';
+export { getType, matchType } from './type-mapping';
 
 // Types
 export type {
-	MigrationResult,
-	MigrationOperation,
 	ColumnsToAdd,
+	MigrationOperation,
+	MigrationResult,
 	TableToCreate,
 } from './types';

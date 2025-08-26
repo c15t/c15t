@@ -6,7 +6,9 @@
 	"main": "./dist/index.js",
 	"module": "./dist/index.mjs",
 	"types": "./dist/index.d.ts",
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"exports": {
 		"./headless": {
 			"types": "./dist/components/react/headless.d.ts",
@@ -36,7 +38,7 @@
 		"build": "pnpm prebuild && rslib build",
 		"dev": "pnpm prebuild && rslib build --watch",
 		"check-types": "pnpm prebuild && tsc --noEmit",
-		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "pnpm biome lint ./src",
 		"test": "pnpm prebuild && vitest run --passWithNoTests",
 		"test:watch": "pnpm prebuild && vitest --passWithNoTests"

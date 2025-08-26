@@ -7,6 +7,7 @@ import {
 	CookieBanner,
 } from '@c15t/nextjs';
 import { ClientLayout } from './layout.client';
+
 const geistSans = Geist({
 	variable: '--font-geist-sans',
 	subsets: ['latin'],
@@ -38,6 +39,20 @@ export default function RootLayout({
 						backendURL: '/api/c15t',
 						consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner.
 						ignoreGeoLocation: true, // Useful for development to always view the banner.
+						translations: {
+							defaultLanguage: 'en',
+							translations: {
+								en: {
+									common: {
+										acceptAll: 'Accept all',
+									},
+									cookieBanner: {
+										title: 'Cookie Banner',
+										description: 'This is a cookie banner',
+									},
+								},
+							},
+						},
 					}}
 				>
 					<CookieBanner />

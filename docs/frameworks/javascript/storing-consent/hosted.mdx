@@ -1,0 +1,34 @@
+---
+title: 'Hosted'
+description: 'Use consent.io for an easy, managed consent storage solution with minimal setup'
+lastModified: 2025-08-22
+availableIn:
+  - framework: 'next'
+    url: '/docs/frameworks/next/storing-consent/hosted'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/storing-consent/hosted'
+    title: 'React'
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/storing-consent/hosted'
+    title: 'JavaScript'
+---
+
+<include>../shared/storing-consent/hosted.mdx#overview</include>
+
+## Implementation
+
+```tsx
+import { configureConsentManager, type ConsentManagerOptions } from 'c15t';
+
+export const c15tConfig: ConsentManagerOptions = {
+  mode: 'c15t',
+  backendURL: process.env.C15T_URL,
+  consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
+  ignoreGeoLocation: true, // Useful for development to always view the banner.
+};
+
+const c15t = configureConsentManager(c15tConfig);
+```
+
+<include>../shared/storing-consent/hosted.mdx#using-consent-io</include>
