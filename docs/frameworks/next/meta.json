@@ -3,7 +3,8 @@
 	"root": true,
 	"icon": "next",
 	"pages": [
-		"quickstart",
+		"quickstart/app",
+		"quickstart/pages",
 		"internationalization",
 		"callbacks",
 		"google-tag-manager",

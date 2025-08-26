@@ -38,7 +38,7 @@ import {
  *
  * @public
  */
-interface CookieBannerCompoundComponent extends FC<CookieBannerProps> {
+export interface CookieBannerCompoundComponent extends FC<CookieBannerProps> {
 	Root: typeof Root;
 	Card: typeof Card;
 	Header: typeof Header;

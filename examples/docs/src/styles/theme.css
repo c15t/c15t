@@ -1,0 +1,396 @@
+/* CSS Custom Properties for Theme System */
+
+/* Light Theme (Default) */
+:root {
+	/* Color Palette */
+	--color-primary: #007acc;
+	--color-primary-hover: #005a9e;
+	--color-secondary: #6c757d;
+	--color-accent: #28a745;
+
+	/* RGB versions for transparency */
+	--color-bg-primary-rgb: 255, 255, 255;
+	--color-border-primary-rgb: 222, 226, 230;
+
+	/* Background Colors */
+	--color-bg-primary: #ffffff;
+	--color-bg-secondary: #f8f9fa;
+	--color-bg-tertiary: #e9ecef;
+	--color-bg-elevated: #ffffff;
+
+	/* Text Colors */
+	--color-text-primary: #212529;
+	--color-text-secondary: #6c757d;
+	--color-text-muted: #868e96;
+	--color-text-inverse: #ffffff;
+
+	/* Border Colors */
+	--color-border-primary: #dee2e6;
+	--color-border-secondary: #e9ecef;
+	--color-border-focus: #007acc;
+
+	/* Shadow Colors */
+	--color-shadow: rgba(0, 0, 0, 0.1);
+	--color-shadow-elevated: rgba(0, 0, 0, 0.15);
+
+	/* Code Colors */
+	--color-code-bg: #f8f9fa;
+	--color-code-text: #e83e8c;
+	--color-code-border: #e9ecef;
+
+	/* Link Colors */
+	--color-link: #007acc;
+	--color-link-hover: #005a9e;
+	--color-link-visited: #6f42c1;
+
+	/* Status Colors */
+	--color-success: #28a745;
+	--color-warning: #ffc107;
+	--color-error: #dc3545;
+	--color-info: #17a2b8;
+}
+
+/* Dark Theme */
+:root[class~="dark"] {
+	/* Color Palette */
+	--color-primary: #4dabf7;
+	--color-primary-hover: #74c0fc;
+	--color-secondary: #adb5bd;
+	--color-accent: #51cf66;
+
+	/* RGB versions for transparency */
+	--color-bg-primary-rgb: 26, 26, 26;
+	--color-border-primary-rgb: 73, 80, 87;
+
+	/* Background Colors */
+	--color-bg-primary: #1a1a1a;
+	--color-bg-secondary: #2d2d2d;
+	--color-bg-tertiary: #404040;
+	--color-bg-elevated: #2d2d2d;
+
+	/* Text Colors */
+	--color-text-primary: #e9ecef;
+	--color-text-secondary: #adb5bd;
+	--color-text-muted: #868e96;
+	--color-text-inverse: #1a1a1a;
+
+	/* Border Colors */
+	--color-border-primary: #495057;
+	--color-border-secondary: #404040;
+	--color-border-focus: #4dabf7;
+
+	/* Shadow Colors */
+	--color-shadow: rgba(0, 0, 0, 0.3);
+	--color-shadow-elevated: rgba(0, 0, 0, 0.4);
+
+	/* Code Colors */
+	--color-code-bg: #2d2d2d;
+	--color-code-text: #f8f9fa;
+	--color-code-border: #495057;
+
+	/* Link Colors */
+	--color-link: #4dabf7;
+	--color-link-hover: #74c0fc;
+	--color-link-visited: #b197fc;
+
+	/* Status Colors */
+	--color-success: #51cf66;
+	--color-warning: #ffd43b;
+	--color-error: #ff6b6b;
+	--color-info: #66d9e8;
+}
+
+/* Theme Transition */
+* {
+	transition:
+		background-color 0.2s ease,
+		color 0.2s ease,
+		border-color 0.2s ease;
+}
+
+/* Theme Toggle Component Styles */
+.theme-toggle {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem;
+	border-radius: 0.375rem;
+	background-color: var(--color-bg-secondary);
+	border: 1px solid var(--color-border-primary);
+	position: relative;
+	z-index: 2147483647;
+}
+
+.theme-toggle__label {
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: var(--color-text-secondary);
+}
+
+.theme-toggle__select {
+	padding: 0.25rem 0.5rem;
+	border: 1px solid var(--color-border-primary);
+	border-radius: 0.25rem;
+	background-color: var(--color-bg-primary);
+	color: var(--color-text-primary);
+	font-size: 0.875rem;
+	cursor: pointer;
+}
+
+.theme-toggle__select:focus {
+	outline: none;
+	border-color: var(--color-border-focus);
+	box-shadow: 0 0 0 2px rgba(77, 171, 247, 0.2);
+}
+
+.theme-toggle__button {
+	padding: 0.25rem 0.5rem;
+	border: 1px solid var(--color-border-primary);
+	border-radius: 0.25rem;
+	background-color: var(--color-bg-primary);
+	color: var(--color-text-primary);
+	cursor: pointer;
+	font-size: 1rem;
+	transition: all 0.2s ease;
+}
+
+.theme-toggle__button:hover {
+	background-color: var(--color-bg-secondary);
+	border-color: var(--color-border-focus);
+}
+
+.theme-toggle__button:focus {
+	outline: none;
+	border-color: var(--color-border-focus);
+	box-shadow: 0 0 0 2px rgba(77, 171, 247, 0.2);
+}
+
+/* Compact Theme Toggle */
+.theme-toggle-compact {
+	padding: 0.5rem;
+	border: 1px solid var(--color-border-primary);
+	border-radius: 0.375rem;
+	background-color: var(--color-bg-primary);
+	color: var(--color-text-primary);
+	cursor: pointer;
+	font-size: 1.25rem;
+	transition: all 0.2s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 2.5rem;
+	min-height: 2.5rem;
+	position: relative;
+	z-index: 2147483647;
+}
+
+.theme-toggle-compact:hover {
+	background-color: var(--color-bg-secondary);
+	border-color: var(--color-border-focus);
+	transform: scale(1.05);
+}
+
+.theme-toggle-compact:focus {
+	outline: none;
+	border-color: var(--color-border-focus);
+	box-shadow: 0 0 0 2px rgba(77, 171, 247, 0.2);
+}
+
+/* Header Component Styles */
+.app-header {
+	background-color: var(--color-bg-elevated);
+	border-bottom: 1px solid var(--color-border-primary);
+	padding: 1rem 0;
+	box-shadow: 0 2px 4px var(--color-shadow);
+	position: relative;
+	z-index: 2147483646;
+}
+
+.app-header__content {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 0 1rem;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.app-header__title {
+	margin: 0;
+	font-size: 1.5rem;
+	font-weight: 600;
+	color: var(--color-text-primary);
+}
+
+.app-header__nav {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+/* Main Content Area */
+.app-main {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 2rem 1rem;
+	min-height: 100vh;
+}
+
+/* Theme Demo Page Styles */
+.theme-demo {
+	max-width: 800px;
+	margin: 0 auto;
+}
+
+.theme-demo__section {
+	margin-bottom: 3rem;
+	padding: 2rem;
+	background-color: var(--color-bg-elevated);
+	border: 1px solid var(--color-border-primary);
+	border-radius: 0.5rem;
+	box-shadow: 0 2px 4px var(--color-shadow);
+}
+
+.theme-demo__section h2 {
+	margin-top: 0;
+	color: var(--color-text-primary);
+	border-bottom: 2px solid var(--color-primary);
+	padding-bottom: 0.5rem;
+}
+
+.theme-demo__section h3 {
+	color: var(--color-text-primary);
+	margin-top: 0;
+}
+
+.theme-demo__info {
+	background-color: var(--color-bg-secondary);
+	padding: 1rem;
+	border-radius: 0.375rem;
+	margin: 1rem 0;
+	border-left: 4px solid var(--color-primary);
+}
+
+.theme-demo__controls {
+	background-color: var(--color-bg-secondary);
+	padding: 1.5rem;
+	border-radius: 0.375rem;
+	border: 1px solid var(--color-border-primary);
+}
+
+/* Color Palette */
+.color-palette {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 1rem;
+	margin-top: 1rem;
+}
+
+.color-swatch {
+	padding: 1rem;
+	border-radius: 0.375rem;
+	color: var(--color-text-inverse);
+	text-align: center;
+	font-weight: 600;
+	border: 1px solid var(--color-border-primary);
+}
+
+.color-primary {
+	background-color: var(--color-primary);
+}
+
+.color-secondary {
+	background-color: var(--color-secondary);
+}
+
+.color-accent {
+	background-color: var(--color-accent);
+}
+
+.color-success {
+	background-color: var(--color-success);
+}
+
+.color-warning {
+	background-color: var(--color-warning);
+	color: var(--color-text-primary);
+}
+
+.color-error {
+	background-color: var(--color-error);
+}
+
+/* Content Examples */
+blockquote {
+	margin: 1rem 0;
+	padding: 1rem;
+	background-color: var(--color-bg-secondary);
+	border-left: 4px solid var(--color-primary);
+	border-radius: 0.25rem;
+	font-style: italic;
+	color: var(--color-text-secondary);
+}
+
+code {
+	background-color: var(--color-code-bg);
+	color: var(--color-code-text);
+	padding: 0.125rem 0.25rem;
+	border-radius: 0.25rem;
+	font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+	font-size: 0.875em;
+	border: 1px solid var(--color-code-border);
+}
+
+pre {
+	background-color: var(--color-code-bg);
+	padding: 1rem;
+	border-radius: 0.375rem;
+	overflow-x: auto;
+	border: 1px solid var(--color-code-border);
+}
+
+pre code {
+	background: none;
+	border: none;
+	padding: 0;
+	color: var(--color-code-text);
+}
+
+/* Ensure theme toggles are always on top of everything */
+.theme-toggle,
+.theme-toggle-compact {
+	/* Use the maximum possible z-index value */
+	z-index: 2147483647 !important;
+	/* Ensure it's positioned in the right stacking context */
+	position: relative !important;
+	/* Force it to be above all other elements */
+	transform: translateZ(0);
+}
+
+/* Additional rule to handle cases where parent elements create stacking contexts */
+.app-header .theme-toggle-compact {
+	z-index: 2147483647 !important;
+	position: relative !important;
+}
+
+/* Floating Theme Toggle */
+.floating-theme-toggle {
+	position: fixed;
+	top: 1rem;
+	right: 1rem;
+	z-index: 2147483647;
+	/* Ensure it's above everything */
+	transform: translateZ(0);
+}
+
+.floating-theme-toggle .theme-toggle-compact {
+	/* Remove the relative positioning from the compact toggle */
+	position: static;
+	/* Add a subtle shadow for better visibility */
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	/* Add a subtle background blur effect */
+	backdrop-filter: blur(8px);
+	/* Ensure the background is semi-transparent */
+	background-color: rgba(var(--color-bg-primary-rgb, 255, 255, 255), 0.9);
+	border: 1px solid rgba(var(--color-border-primary-rgb, 222, 226, 230), 0.8);
+}
