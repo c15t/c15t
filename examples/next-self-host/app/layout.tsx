@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import { ConsentManagerDialog, ConsentManagerProvider } from '@c15t/nextjs';
+import {
+	ConsentManagerDialog,
+	ConsentManagerProvider,
+	CookieBanner,
+} from '@c15t/nextjs';
 import { ClientLayout } from './layout.client';
 
 const geistSans = Geist({
@@ -37,7 +41,7 @@ export default function RootLayout({
 						ignoreGeoLocation: true, // Useful for development to always view the banner.
 					}}
 				>
-					{/* <CookieBanner /> */}
+					<CookieBanner />
 					<ConsentManagerDialog />
 					<ClientLayout />
 
