@@ -41,7 +41,7 @@ import {
  *
  * @public
  */
-interface ConsentManagerDialogCompoundComponent
+export interface ConsentManagerDialogCompoundComponent
 	extends FC<ConsentManagerDialogProps> {
 	Card: typeof Card;
 	Header: typeof Header;
