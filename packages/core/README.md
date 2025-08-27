@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://c15t.com/logo-icon.png" alt="c15t Logo" width="64" height="64" />
+  <img src="https://c15t.com/logo.png" alt="c15t Logo" width="64" height="64" />
   <h1>c15t</h1>
   <p>Transform privacy consent from a compliance checkbox into a fully observable system</p>
 
@@ -9,53 +9,38 @@
   [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
 </div>
 
-## Installation
+The JavaScript core for c15t. Can be used to integrate c15t into any JavaScript project.
 
-```bash
-npm install c15t
-# or
-yarn add c15t
-# or
-pnpm add c15t
-```
+- For React projects, check out [@c15t/react](https://github.com/c15t/c15t/tree/main/packages/react). 
+- For Next.js projects, check out [@c15t/nextjs](https://github.com/c15t/c15t/tree/main/packages/nextjs).
 
-## Quickstart 
+## Getting Started
 
-```bash
-# Generates the schema + code
-npx @c15t/cli generate 
-pnpm dlx @c15t/cli generate
-yarn dlx @c15t/cli generate
-bunx --bun @c15t/cli generate
-```
-
-## Documentation
-
-For detailed documentation and examples, visit https://c15t.com/docs/javascript/quickstart.
+View our [javascript quickstart guide](https://c15t.com/docs/javascript/quickstart) for more information.
 
 ## Features
 
-- 📵 **Offline mode**: With c15t you can use a browser based storage without needing a database
-- 🔒 **Secure consent management**: Store your user preferences in a secure backend
-- 💾 **Self-hostable**: For developers who prefer to have total control over their infrastructure and data
-- 🌐 **Regulation Ready**: Built to meet GDPR, CCPA, and other privacy requirements
+- 🎯 **Privacy-First Components**: Pre-built UI components for consent management
+- 🎨 **Highly Customizable**: Flexible theming and styling system
+- ♿ **Accessible**: WCAG compliant with full keyboard navigation
+- 🔧 **Composable**: Uses compound component pattern for maximum flexibility
+- 📱 **Responsive**: Responsive design
+- ⚡ **SSR**: Server-side rendering support allowing for fast page loads
+- 🌐 **Geo-Location**: Only load components that are relevant to the user's location
 
-## Framework Integrations
-
-This is the core JavaScript SDK — framework-agnostic and lightweight by design.
-If you're working with a specific stack, we also provide official packages for:
-
-* **React**: [`@c15t/react`](https://www.npmjs.com/package/@c15t/react)
-* **Next.js**: [`@c15t/nextjs`](https://www.npmjs.com/package/@c15t/nextjs)
-
-These include ready-to-use components and tighter integration with their respective runtimes.
 
 ## Support
 
-- 📚 [Documentation](https://c15t.com/docs/javascript)
+- 📚 [Documentation](https://c15t.com/)
 - 💬 [Discord Community](https://c15t.com/discord)
 - 🐛 [Issue Tracker](https://github.com/c15t/c15t/issues)
 
 ## License
 
-[GNU General Public License v3.0](https://github.com/c15t/c15t/blob/main/LICENSE)
+[GNU General Public License v3.0](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+
+---
+
+<div align="center">
+  <strong>Built with ❤️ by the <a href="https://www.consent.io">consent.io</a> team</strong>
+</div>

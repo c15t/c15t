@@ -1,51 +1,34 @@
+<div align="center">
+  <img src="https://c15t.com/logo.png" alt="c15t Logo" width="64" height="64" />
+  <h1>@c15t/nextjs</h1>
+  <p>Transform privacy consent from a compliance checkbox into a fully observable system</p>
 
-# @c15t/nextjs
+  [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
+  [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
+  [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
+  [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
+</div>
 
-Next.js integration for C15T consent management. This package combines `@c15t/node-sdk`, `@c15t/react`, and `@c15t/middleware` into a single, easy-to-use package for Next.js applications.
+This package enhances the `@c15t/react` components allowing for server-side rendering with support for both app and pages directory.
 
-## Installation
+## Getting Started
 
-```bash
-npm install @c15t/nextjs
-# or
-yarn add @c15t/nextjs
-# or
-pnpm add @c15t/nextjs
-```
+View our [next.js quickstart guide](https://c15t.com/docs/next/quickstart) for more information.
 
 ## Features
 
-- 🔄 Automatic middleware integration
-- 🎯 Type-safe API client
-- 🎨 Pre-built React components
-- 🔒 Secure consent management
-- 📱 Responsive design
-- 🌐 Server-side rendering support
-
-## API Reference
-
-### Components
-
-- `C15TNextProvider`: Provider component for the consent management system
-- `ConsentBanner`: Pre-built consent banner component
-- `ConsentManager`: Component for managing consent preferences
-- `ConsentButton`: Button component for triggering consent dialogs
-
-### Hooks
-
-- `useConsent`: Hook for accessing consent state and methods
-- `useConsentPreferences`: Hook for managing consent preferences
-- `useConsentBanner`: Hook for controlling the consent banner
-
-### Utilities
-
-- `withC15T`: Higher-order function for configuring Next.js
-- `createConsentClient`: Function for creating a consent client instance
+- 🎯 **Privacy-First Components**: Pre-built UI components for consent management
+- 🎨 **Highly Customizable**: Flexible theming and styling system
+- ♿ **Accessible**: WCAG compliant with full keyboard navigation
+- 🔧 **Composable**: Uses compound component pattern for maximum flexibility
+- 📱 **Responsive**: Responsive design
+- ⚡ **SSR**: Server-side rendering support allowing for fast page loads
+- 🌐 **Geo-Location**: Only load components that are relevant to the user's location
 
 
 ## Support
 
-- 📚 [Documentation](https://c15t.com/docs)
+- 📚 [Documentation](https://c15t.com/)
 - 💬 [Discord Community](https://c15t.com/discord)
 - 🐛 [Issue Tracker](https://github.com/c15t/c15t/issues)
 
