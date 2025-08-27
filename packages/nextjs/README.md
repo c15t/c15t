@@ -11,11 +11,11 @@
   [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
 </div>
 
-This package enhances the `@c15t/react` components allowing for server-side rendering with support for both app and pages directory.
+This package expands the [@c15t/react](https://github.com/c15t/c15t/tree/main/packages/react) components allowing for server-side rendering with support for both app and pages directory.
 
 ## Getting Started
 
-View our [next.js quickstart guide](https://c15t.com/docs/next/quickstart) for more information.
+View our [Next.js quickstart guide](https://c15t.com/docs/next/quickstart) for more information.
 
 ## Features
 
