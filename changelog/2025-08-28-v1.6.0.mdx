@@ -1,0 +1,97 @@
+---
+title: "v1.6.0 - Better Callbacks, backend/v2, improved checking consent and more!"
+version: 1.6.0
+date: 2025-08-28
+description: "Minor release adding a v2 of the backend, improving the self-hostable experience, improved checking consent and more!"
+tags:
+  - release
+  - stable
+  - nextjs
+  - react
+  - backend
+canary: false
+type: release
+breaking: false
+authors: KayleeWilliams
+packages:
+  - "@c15t/backend@1.6.0"
+  - "@c15t/nextjs@1.6.0"
+  - "@c15t/react@1.6.0"
+  - "@c15t/core@1.6.0"
+  - "@c15t/translations@1.6.0"
+---
+
+## ✨ New Features
+
+### Better Callbacks
+
+We've overhauled the callback system to make it more easy to use and removed a lot of unused callbacks. 
+
+The current callbacks are:
+
+- `onBannerFetched`
+- `onConsentSet`
+- `onError`
+
+The performance of the callbacks has also been [improved](https://github.com/c15t/c15t/issues/369), resulting in improved INP scores when using callbacks or GTM.
+
+### backend/v2
+
+The old backend wasn't to our standards and was difficult to implement due to poor documentation. 
+On top of addressing the documentation issues, we've migrated from our own database adapters to [FumaDB](https://github.com/fuma-nama/fumadb).
+This enables support for more databases & ORMs like TypeORM, MicrosoftSQL Server & MongoDB & more coming soon.
+
+If you have an existing backend v1 implementation, we have a [migration guide](/docs/self-host/migrate-from-v1) to help you.
+
+We plan to remove support for the old backend in the next major release.
+
+### Improved checking consent
+
+We've added a new method `has()` to the API for checking consent, this is available across all frameworks and allows for simple and complex consent checks. 
+
+```ts
+// Simple check
+const hasAnalytics = has('measurement');
+const hasMarketing = has('marketing');
+
+// Complex check
+const hasAnalyticsAndMarketing = has({
+  and: ['measurement', 'marketing'],
+})
+
+const hasEitherAnalyticsOrMarketing = has({
+  or: ['measurement', 'marketing'],
+})
+```
+
+You can read more about the `has()` method in the [API documentation](/docs/frameworks/javascript/store/checking-consent).
+
+This change has lead us to depricate `hasConsentFor()` and `getEffectiveConsents()`, these will be removed in the next major release.
+
+## Bug Fixes & Improvements
+
+### @c15t/react
+
+- Fixed a bug where the dialog overlay was not showing by default.
+- Improved the export of compound components, now you can import them directly from the `@c15t/react` package.
+
+### @c15t/core
+
+- Depricated various unused methods and properties to clean up the API.
+- Improved fallback for when the showConsentBanner API request fails.
+
+### @c15t/translations
+
+- Added Hebrew translations.
+
+## Dependency Updates
+
+### @c15t/backend
+
+- Updated to Zod 4
+- Updated ORPC to 1.8
+- Updated Open Telemetry to latest versions.
+
+<ContributorBlock usernames={["BurnedChris", "KayleeWilliams", "guy-borderless"]} title="Thank you to our contributors" />
+
+
