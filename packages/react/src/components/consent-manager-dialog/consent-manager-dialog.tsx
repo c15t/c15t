@@ -37,7 +37,7 @@ export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 	theme: localTheme,
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
-	scrollLock: localScrollLock,
+	scrollLock: localScrollLock = true,
 	trapFocus: localTrapFocus = true,
 }) => {
 	// Global default settings from provider
