@@ -28,6 +28,7 @@
 		"./hooks/use-consent-manager/location-info",
 		"./hooks/use-consent-manager/setting-consent",
 		"--- Hooks ---",
+		"hooks/use-translations",
 		"hooks/use-focus-trap"
 	]
 }
