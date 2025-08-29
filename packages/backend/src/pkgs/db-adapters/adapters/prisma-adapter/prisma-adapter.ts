@@ -324,6 +324,9 @@ const createEntityTransformer = (
  * // Use in your application
  * export default c15tInstance.handler;
  * ```
+ *
+ * @deprecated Will be removed in the next major version. Update to `@c15t/backend/v2`, view migration guide for more details.
+ * @see https://c15t.com/docs/self-host/migrate-from-v1
  */
 export const prismaAdapter =
 	(prisma: PrismaClient, config: PrismaConfig) => (options: C15TOptions) => {
