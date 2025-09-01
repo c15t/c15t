@@ -74,7 +74,7 @@
 	padding: var(--dialog-card-padding-mobile);
 	border: 0;
 	background: none;
-	position: fixed;
+position: fixed;
 	inset: 0px;
 	z-index: var(--dialog-z-index);
 	display: flex;
@@ -84,6 +84,10 @@
 	background-color: transparent;
 	width: 100%;
 	height: var(--dialog-height);
+}
+
+[dir="rtl"] .root {
+	direction: rtl;
 }
 
 /* Animation classes for the dialog */
@@ -150,12 +154,10 @@
 	box-shadow: 0 0 0 2px var(--dialog-branding-focus-color);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .branding:focus-visible {
 	box-shadow: 0 0 0 2px var(--dialog-branding-focus-color-dark);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .branding {
 	color: var(--dialog-foreground-color-dark);
 }
@@ -188,7 +190,6 @@
 	border-top: solid 1px var(--dialog-stroke-color);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .footer {
 	border-color: var(--dialog-stroke-color-dark);
 }
@@ -214,7 +215,6 @@
 		var(--dialog-animation-timing);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .overlay {
 	background-color: var(--dialog-overlay-background-color-dark);
 	color: var(--dialog-link-text-color-dark);
@@ -230,7 +230,6 @@
 	overflow: hidden;
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .card {
 	background-color: var(--dialog-background-color-dark);
 	color: var(--dialog-foreground-color-dark);
@@ -262,7 +261,6 @@
 	line-height: var(--dialog-description-line-height);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .description {
 	color: var(--dialog-muted-color-dark);
 }
@@ -284,7 +282,6 @@
 		var(--dialog-stroke-color);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .footer {
 	border-color: var(--dialog-stroke-color-dark);
 }

@@ -13,6 +13,7 @@ import { createPortal } from 'react-dom';
 import { LocalThemeContext } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
+import { useTextDirection } from '~/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/types/theme';
 import styles from '../cookie-banner.module.css';
 import type { CookieBannerTheme } from '../theme';
@@ -233,7 +234,8 @@ const CookieBannerRootChildren = forwardRef<
 		},
 		ref
 	) => {
-		const { showPopup } = useConsentManager();
+		const { showPopup, translationConfig } = useConsentManager();
+		const textDirection = useTextDirection(translationConfig.defaultLanguage);
 		const [isVisible, setIsVisible] = useState(false);
 		const [hasAnimated, setHasAnimated] = useState(false);
 		const [animationDurationMs, setAnimationDurationMs] = useState(200); // Default fallback for SSR
@@ -281,7 +283,10 @@ const CookieBannerRootChildren = forwardRef<
 		// Apply styles from the CookieBanner context and merge with local styles.
 		// Uses the 'content' style key for consistent theming.
 		const contentStyle = useStyles('banner.root', {
-			baseClassName: [styles.root, styles.bottomLeft],
+			baseClassName: [
+				styles.root,
+				textDirection === 'ltr' ? styles.bottomLeft : styles.bottomRight,
+			],
 			style: style as CSSPropertiesWithVars<Record<string, never>>,
 			className: className || forwardedClassName,
 			noStyle,
@@ -318,6 +323,7 @@ const CookieBannerRootChildren = forwardRef<
 							{...contentStyle}
 							className={finalClassName}
 							data-testid="cookie-banner-root"
+							dir={textDirection}
 						>
 							{children}
 						</div>
