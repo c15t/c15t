@@ -74,7 +74,7 @@
 	padding: var(--dialog-card-padding-mobile);
 	border: 0;
 	background: none;
-position: fixed;
+	position: fixed;
 	inset: 0px;
 	z-index: var(--dialog-z-index);
 	display: flex;
@@ -86,7 +86,7 @@ position: fixed;
 	height: var(--dialog-height);
 }
 
-[dir="rtl"] .root {
+.root[dir="rtl"] {
 	direction: rtl;
 }
 

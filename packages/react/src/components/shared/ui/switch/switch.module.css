@@ -193,7 +193,7 @@
 	transform: translateX(var(--switch-thumb-translate));
 }
 
-[dir="rtl"] .root[data-state="checked"] .thumb {
+.root[dir="rtl"][data-state="checked"] .thumb {
 	transform: translateX(calc(-1 * var(--switch-thumb-translate)));
 }
 
