@@ -10,12 +10,19 @@ import type { CookieBannerTheme } from '../theme';
 vi.mock('~/hooks/use-consent-manager', () => ({
 	useConsentManager: () => ({
 		showPopup: true,
+		translationConfig: {
+			defaultLanguage: 'en',
+		},
 		...vi.fn(),
 	}),
 }));
 
 vi.mock('~/hooks/use-translations', () => ({
 	useTranslations: () => defaultTranslationConfig.translations.en,
+}));
+
+vi.mock('~/hooks/use-text-direction', () => ({
+	useTextDirection: vi.fn().mockReturnValue('ltr'),
 }));
 
 type ComponentTestCase = {
@@ -440,5 +447,47 @@ test('All cookie banner components should have their base classes applied', asyn
 	// Also verify that none of the base classes are empty strings
 	for (const [key, value] of Object.entries(baseClasses)) {
 		expect(value, `Base class for ${key} should not be empty`).not.toBe('');
+	}
+});
+
+test('should apply correct styles when text direction is RTL', async () => {
+	// Get the mock function from the imported module
+	const textDirectionModule = await import('~/hooks/use-text-direction');
+	const useTextDirection = vi.mocked(textDirectionModule.useTextDirection);
+
+	// Store original implementation and set new one
+	const originalMockImplementation = useTextDirection.getMockImplementation();
+	useTextDirection.mockReturnValue('rtl');
+
+	// Render the component with RTL direction
+	const test = (
+		<CookieBanner
+			scrollLock
+			theme={{
+				'banner.root': 'custom-root',
+				'banner.footer.accept-button': 'custom-accept-button',
+			}}
+		/>
+	);
+
+	await testComponentStyles({
+		component: test,
+		testCases: [
+			{
+				testId: 'cookie-banner-root',
+				styles: 'custom-root',
+			},
+			{
+				testId: 'cookie-banner-accept-button',
+				styles: 'custom-accept-button',
+			},
+		],
+	});
+
+	// Restore the original mock implementation
+	if (originalMockImplementation) {
+		useTextDirection.mockImplementation(originalMockImplementation);
+	} else {
+		useTextDirection.mockReturnValue('ltr');
 	}
 });

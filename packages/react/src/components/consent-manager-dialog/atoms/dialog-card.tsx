@@ -179,6 +179,7 @@ export const BrandingFooter = () => {
 
 	return (
 		<a
+			dir="ltr"
 			className={styles.branding}
 			href={
 				consentManager.isConsentDomain

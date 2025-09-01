@@ -12,6 +12,8 @@ import {
 	LocalThemeContext,
 	type ThemeContextValue,
 } from '~/context/theme-context';
+import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useTextDirection } from '~/hooks/use-text-direction';
 import type { ConsentManagerWidgetTheme } from '../theme';
 
 /**
@@ -95,6 +97,8 @@ const ConsentManagerWidgetRoot: FC<ConsentManagerWidgetRootProps> = ({
 	theme,
 	useProvider = true,
 }) => {
+	const { translationConfig } = useConsentManager();
+	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 	/**
 	 * Combine consent manager state with styling configuration
 	 * to create the context value for child components
@@ -106,7 +110,11 @@ const ConsentManagerWidgetRoot: FC<ConsentManagerWidgetRootProps> = ({
 	};
 
 	const content = (
-		<Box data-testid="consent-manager-widget-root" themeKey="widget.root">
+		<Box
+			data-testid="consent-manager-widget-root"
+			themeKey="widget.root"
+			dir={textDirection}
+		>
 			{children}
 		</Box>
 	);

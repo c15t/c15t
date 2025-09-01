@@ -15,6 +15,7 @@ import {
 	LocalThemeContext,
 	type ThemeContextValue,
 } from '~/context/theme-context';
+import { useTextDirection } from '~/hooks';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
@@ -116,7 +117,8 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 	const trapFocus = localTrapFocus ?? globalTheme.trapFocus ?? true;
 
 	// Consent manager state
-	const { isPrivacyDialogOpen } = useConsentManager();
+	const { isPrivacyDialogOpen, translationConfig } = useConsentManager();
+	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
 	// Final open state (controlled or managed by consent manager)
 	const isOpen = openProp ?? isPrivacyDialogOpen;
@@ -197,6 +199,7 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 						className={themedStyle.className}
 						aria-labelledby="privacy-settings-title"
 						tabIndex={-1}
+						dir={textDirection}
 					>
 						<div
 							ref={contentRef}

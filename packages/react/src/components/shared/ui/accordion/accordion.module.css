@@ -47,7 +47,6 @@
 	overflow: visible;
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .item {
 	background-color: var(--accordion-background-color-dark);
 	box-shadow: inset 0 0 0 1px var(--accordion-border-color-dark);
@@ -58,7 +57,6 @@
 	box-shadow: inset 0 0 0 1px transparent;
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .item:is(:hover, [data-state="open"]) {
 	background-color: var(--accordion-background-hover-dark);
 	box-shadow: inset 0 0 0 1px transparent;
@@ -70,7 +68,6 @@
 	box-shadow: inset 0 0 0 1px transparent;
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .item:focus-within:not(:has(.triggerInner:focus-visible)) {
 	background-color: var(--accordion-background-hover-dark);
 	box-shadow: inset 0 0 0 1px transparent;
@@ -80,7 +77,6 @@
 	box-shadow: var(--accordion-focus-shadow);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .item:has(.triggerInner:focus-visible) {
 	box-shadow: var(--accordion-focus-shadow-dark);
 }
@@ -111,13 +107,11 @@
 	border: 0;
 	background: none;
 	cursor: pointer;
-	padding-right: 0;
 	border-radius: var(--accordion-radius);
 	position: relative;
 	z-index: 1;
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .triggerInner {
 	color: var(--accordion-text-color-dark);
 }
@@ -133,7 +127,6 @@
 	flex-shrink: 0;
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .icon {
 	color: var(--accordion-icon-color-dark);
 }
@@ -150,7 +143,6 @@
 	color: var(--accordion-arrow-color);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .arrowOpen {
 	color: var(--accordion-arrow-color-dark);
 }
@@ -159,7 +151,6 @@
 	color: var(--accordion-icon-color);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .item:hover .arrowOpen {
 	color: var(--accordion-icon-color-dark);
 }
@@ -169,7 +160,6 @@
 	display: none;
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .arrowClose {
 	color: var(--accordion-icon-color-dark);
 }
@@ -224,7 +214,6 @@
 	color: var(--accordion-content-color);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .contentInner {
 	color: var(--accordion-content-color-dark);
 }
