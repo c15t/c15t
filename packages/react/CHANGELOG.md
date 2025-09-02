@@ -1,5 +1,21 @@
 # @c15t/react
 
+## 1.5.0-canary-20250902132553
+
+### Minor Changes
+
+- 2a1c37d: feat: added ability to control branding shown via the backend
+
+### Patch Changes
+
+- 7f53e6a: fix(react): dialog overlay not showing by default
+- 409c5b9: feat(react): added RTL support
+- cb6c6a3: refactor(core): deprecate duplicate & unused methods from the store
+- Updated dependencies [2a1c37d]
+- Updated dependencies [6d95a62]
+- Updated dependencies [cb6c6a3]
+  - c15t@1.5.0-canary-20250902132553
+
 ## 1.5.0-canary-20250813173036
 
 ### Patch Changes

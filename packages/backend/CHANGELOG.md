@@ -1,5 +1,11 @@
 # @c15t/backend
 
+## 1.5.0-canary-20250902132553
+
+### Minor Changes
+
+- 2a1c37d: feat: added ability to control branding shown via the backend
+
 ## 1.5.0-canary-20250813173036
 
 ### Patch Changes

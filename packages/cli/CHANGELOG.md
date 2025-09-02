@@ -1,5 +1,16 @@
 # @c15t/cli
 
+## 1.5.0-canary-20250902132553
+
+### Patch Changes
+
+- Updated dependencies [7f53e6a]
+- Updated dependencies [409c5b9]
+- Updated dependencies [2a1c37d]
+- Updated dependencies [cb6c6a3]
+  - @c15t/react@1.5.0-canary-20250902132553
+  - @c15t/backend@1.5.0-canary-20250902132553
+
 ## 1.5.0-canary-20250813173036
 
 ### Patch Changes
