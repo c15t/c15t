@@ -1,5 +1,18 @@
 # c15t
 
+## 1.5.0-canary-20250902132553
+
+### Minor Changes
+
+- 2a1c37d: feat: added ability to control branding shown via the backend
+
+### Patch Changes
+
+- 6d95a62: feat(core): yield before running set-consent callbacks
+- cb6c6a3: refactor(core): deprecate duplicate & unused methods from the store
+- Updated dependencies [2a1c37d]
+  - @c15t/backend@1.5.0-canary-20250902132553
+
 ## 1.5.0-canary-20250813173036
 
 ### Patch Changes
