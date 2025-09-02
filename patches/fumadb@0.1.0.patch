@@ -1,5 +1,5 @@
 diff --git a/dist/index.js b/dist/index.js
-index 32f90026660ae588d2b1afb69210a267e4ea52fa..4dd44f64cf9e35ccac86a73a6e16c9843977fdf3 100644
+index 32f90026660ae588d2b1afb69210a267e4ea52fa..0c0cc933e788b0c9c5b32b35dc183a5c5f24feae 100644
 --- a/dist/index.js
 +++ b/dist/index.js
 @@ -3,7 +3,7 @@ import {
@@ -7,7 +7,16 @@ index 32f90026660ae588d2b1afb69210a267e4ea52fa..4dd44f64cf9e35ccac86a73a6e16c984
  
  // src/index.ts
 -import semverCompare from "semver/functions/compare";
-+import semverCompare from "semver/functions/compare.js";
++import semver from "semver";
  
  // src/shared/providers.ts
  var sqlProviders = [
+@@ -19,7 +19,7 @@ var providers = [...sqlProviders, ...noSqlProviders];
+ // src/index.ts
+ function fumadb(config) {
+   const schemas = config.schemas.sort(
+-    (a, b) => semverCompare(a.version, b.version)
++    (a, b) => semver.compare(a.version, b.version)
+   );
+   return {
+     names: createNameVariantsBuilder(config.namespace, schemas, (schemas2) => {
