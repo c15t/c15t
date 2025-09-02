@@ -78,6 +78,7 @@ describe('getC15TInitialData', () => {
 	it('should successfully fetch and return consent banner data', async () => {
 		const mockResponse: ShowConsentBanner = {
 			showConsentBanner: true,
+			branding: 'c15t',
 			jurisdiction: {
 				message: 'Please accept cookies',
 				code: 'GDPR',
