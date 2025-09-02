@@ -6,6 +6,7 @@ import type { DatabaseConfiguration } from '~/pkgs/db-adapters/adapters/kysely-a
 
 // Import table configuration types from the schema module
 import type { TablesConfig } from '~/schema/types';
+import type { Branding } from '~/types';
 import type { DoubleTiePlugin } from './plugins';
 
 /**
@@ -105,6 +106,13 @@ export interface DoubleTieOptions {
 		 * Override the default translations with your own
 		 */
 		customTranslations?: Record<string, Partial<Translations>>;
+
+		/**
+		 * Select which branding to show in the consent banner.
+		 * Use "none" to hide branding.
+		 * @default "c15t"
+		 */
+		branding?: Branding;
 
 		/**
 		 * Ip address configuration

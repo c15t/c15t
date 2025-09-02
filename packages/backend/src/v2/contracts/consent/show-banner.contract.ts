@@ -1,5 +1,6 @@
 import { oc } from '@orpc/contract';
 import { z } from 'zod';
+import { branding } from '~/v2/types';
 import { JurisdictionInfoSchema } from '../shared/jurisdiction.schema';
 
 const TitleDescriptionSchema = z.object({
@@ -67,5 +68,6 @@ Use this endpoint to implement geo-targeted consent banners and ensure complianc
 				language: z.string(),
 				translations: TranslationsSchema,
 			}),
+			branding: z.enum(branding),
 		})
 	);

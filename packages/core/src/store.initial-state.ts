@@ -68,6 +68,9 @@ export const initialState: Omit<
 	/** No consent information stored initially */
 	consentInfo: null,
 
+	/** Show c15t branding by default */
+	branding: 'c15t',
+
 	/** Show consent popup by default */
 	showPopup: true,
 

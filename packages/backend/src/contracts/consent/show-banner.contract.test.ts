@@ -39,6 +39,7 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 						translations: baseTranslations.en,
 						language: 'en',
 					},
+					branding: 'c15t',
 				};
 
 				const result = validateOutput(validOutput);
@@ -84,6 +85,7 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 							translations: baseTranslations.en,
 							language: 'en',
 						},
+						branding: 'c15t',
 					};
 
 					const result = validateOutput(output);
@@ -106,6 +108,7 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 						translations: baseTranslations.en,
 						language: 'en',
 					},
+					branding: 'c15t',
 				};
 
 				const result = validateOutput(output);
@@ -129,6 +132,7 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 						translations: baseTranslations.en,
 						language: 'en',
 					},
+					branding: 'c15t',
 				};
 
 				const result = validateOutput(output);
@@ -150,6 +154,7 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 						translations: baseTranslations.en,
 						language: 'en',
 					},
+					branding: 'c15t',
 				};
 
 				const result = validateOutput(output);
@@ -171,6 +176,7 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 						translations: baseTranslations.en,
 						language: 'en',
 					},
+					branding: 'c15t',
 				};
 
 				// Need to use type assertion to bypass TypeScript
@@ -195,6 +201,7 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 						translations: baseTranslations.en,
 						language: 'en',
 					},
+					branding: 'c15t',
 				};
 
 				const falseOutput = {
@@ -211,6 +218,7 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 						translations: baseTranslations.en,
 						language: 'en',
 					},
+					branding: 'c15t',
 				};
 
 				expect(validateOutput(trueOutput)?.success).toBe(true);
@@ -232,6 +240,7 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 						translations: baseTranslations.en,
 						language: 'en',
 					},
+					branding: 'c15t',
 				};
 
 				// Need to use type assertion to bypass TypeScript

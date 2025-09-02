@@ -27,6 +27,7 @@ const createMockStoreState = (
 	overrides: Partial<PrivacyConsentState> = {}
 ): PrivacyConsentState => ({
 	config: { pkg: 'test', version: '1.0.0', mode: 'test' },
+	branding: 'c15t',
 	consents: {
 		necessary: false,
 		functionality: false,
@@ -101,6 +102,7 @@ const createMockConsentBannerResponse = (
 	overrides: Partial<ConsentBannerResponse> = {}
 ): ConsentBannerResponse => ({
 	showConsentBanner: true,
+	branding: 'c15t',
 	jurisdiction: {
 		code: 'GDPR',
 		message: 'EU General Data Protection Regulation',

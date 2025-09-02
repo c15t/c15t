@@ -59,6 +59,7 @@ function updateStore(
 
 	const updatedStore: Partial<PrivacyConsentState> = {
 		isLoadingConsentInfo: false,
+		branding: data.branding ?? 'c15t',
 		...(consentInfo === null
 			? {
 					showPopup:
