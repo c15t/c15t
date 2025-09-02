@@ -27,6 +27,7 @@ const createMockStoreState = (
 	overrides: Partial<PrivacyConsentState> = {}
 ): PrivacyConsentState => ({
 	config: { pkg: 'test', version: '1.0.0', mode: 'test' },
+	showC15TBranding: true,
 	consents: {
 		necessary: false,
 		functionality: false,

@@ -18,3 +18,6 @@ export type { C15TContext } from './context';
 export type { C15TOptions } from './options';
 // Export consent management specific types
 export type { C15TPlugin, InferPluginContexts } from './plugins';
+
+export const branding = ['c15t', 'consent', 'none'] as const;
+export type Branding = (typeof branding)[number];

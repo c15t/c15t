@@ -3,6 +3,7 @@
  * Defines the core types and interfaces for the consent management store.
  */
 
+import type { ContractsOutputs } from '@c15t/backend/contracts';
 import type { HasCondition } from './libs/has';
 import type {
 	AllConsentNames,
@@ -56,6 +57,9 @@ export interface PrivacyConsentState {
 		mode: string;
 		meta?: Record<string, unknown>;
 	};
+
+	/** Whether to show the branding */
+	branding: ContractsOutputs['consent']['showBanner']['branding'];
 
 	/** Current consent states for all consent types */
 	consents: ConsentState;

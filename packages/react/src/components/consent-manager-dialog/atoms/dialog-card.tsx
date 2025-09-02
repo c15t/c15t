@@ -172,7 +172,11 @@ const DialogFooter = forwardRef<HTMLDivElement, BoxProps>(
  * The branding footer with configurable logo
  */
 export const BrandingFooter = () => {
-	const consentManager = useConsentManager();
+	const { branding } = useConsentManager();
+
+	if (branding === 'none') {
+		return null;
+	}
 
 	const refParam =
 		typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
@@ -182,13 +186,13 @@ export const BrandingFooter = () => {
 			dir="ltr"
 			className={styles.branding}
 			href={
-				consentManager.isConsentDomain
+				branding === 'consent'
 					? `https://consent.io${refParam}`
 					: `https://c15t.com${refParam}`
 			}
 		>
 			Secured by{' '}
-			{consentManager.isConsentDomain ? (
+			{branding === 'consent' ? (
 				<ConsentLogo className={styles.brandingConsent} />
 			) : (
 				<C15TIcon className={styles.brandingC15T} />
@@ -216,12 +220,7 @@ export const BrandingFooter = () => {
  * - Includes consent type management
  * - Built-in accessibility features
  */
-const ConsentCustomizationCard = ({
-	noStyle,
-}: {
-	noStyle?: boolean;
-	useConsentLogo?: boolean;
-}) => {
+const ConsentCustomizationCard = ({ noStyle }: { noStyle?: boolean }) => {
 	const { consentManagerDialog: translations } = useTranslations();
 
 	return (

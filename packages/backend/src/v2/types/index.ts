@@ -8,6 +8,9 @@ import type { DB } from '../db/schema';
 
 export * from './api';
 
+export const branding = ['c15t', 'consent', 'none'] as const;
+export type Branding = (typeof branding)[number];
+
 export interface DatabaseOptions {
 	/**
 	 * The database adapter to use.
@@ -38,6 +41,13 @@ interface BaseOptions {
 		 * ```
 		 */
 		customTranslations?: Record<string, Partial<Translations>>;
+
+		/**
+		 * Control whether the branding is shown in the consent banner
+		 * @default false
+		 */
+		branding?: Branding;
+
 		openapi?: {
 			/**
 			 * Enable/disable OpenAPI spec generation

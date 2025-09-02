@@ -282,6 +282,12 @@
 		var(--dialog-stroke-color);
 }
 
+/* Hide footer when it has no children */
+.footer:empty {
+	display: none;
+	border-top: none;
+}
+
 :global(.c15t-dark) .footer {
 	border-color: var(--dialog-stroke-color-dark);
 }

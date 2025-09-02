@@ -82,6 +82,7 @@ export class OfflineClient implements ConsentManagerInterface {
 				code: 'GDPR',
 				message: 'EU',
 			},
+			branding: 'c15t',
 			location: { countryCode: 'GB', regionCode: null },
 			translations: {
 				language: defaultTranslationConfig.defaultLanguage,
