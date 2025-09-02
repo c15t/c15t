@@ -108,8 +108,9 @@ export interface DoubleTieOptions {
 		customTranslations?: Record<string, Partial<Translations>>;
 
 		/**
-		 * Control whether the branding is shown in the consent banner
-		 * @default false
+		 * Select which branding to show in the consent banner.
+		 * Use "none" to hide branding.
+		 * @default "c15t"
 		 */
 		branding?: Branding;
 
