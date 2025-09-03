@@ -10,6 +10,7 @@ availableIn:
     url: '/docs/frameworks/react/components/consent-manager-widget'
     title: 'React'
 ---
+
 The Consent Manager Widget allows for detailed privacy consent management in your application. While the Cookie Banner handles initial consent, this widget enables users to fine-tune their privacy preferences through an intuitive accordion interface.
 
 If you just want a dialog, consider using the [Consent Manager Dialog](/docs/frameworks/react/components/consent-manager-dialog) instead (which handles the ovverlay logic for you).
@@ -53,31 +54,31 @@ If you just want a dialog, consider using the [Consent Manager Dialog](/docs/fra
 
     const CustomWidget = () => {
     	return (
-				<div className="w-1/2 rounded-lg bg-white px-5 pt-8">
-					<ConsentManagerWidget.Root>
-						<ConsentManagerWidget.Accordion
-							themeKey="widget.accordion"
-							type="multiple"
-							value={openItems}
-							onValueChange={setOpenItems}
-						>
-							<ConsentManagerWidget.AccordionItems />
-						</ConsentManagerWidget.Accordion>
-						<ConsentManagerWidget.Footer>
-							<ConsentManagerWidget.FooterSubGroup themeKey="widget.footer.sub-group">
-								<ConsentManagerWidget.RejectButton themeKey="widget.footer.reject-button">
-									Reject All Text
-								</ConsentManagerWidget.RejectButton>
-								<ConsentManagerWidget.AcceptAllButton themeKey="widget.footer.accept-button">
-									Accept All
-								</ConsentManagerWidget.AcceptAllButton>
-							</ConsentManagerWidget.FooterSubGroup>
-							<ConsentManagerWidget.SaveButton themeKey="widget.footer.save-button">
-								Save
-							</ConsentManagerWidget.SaveButton>
-						</ConsentManagerWidget.Footer>
-					</ConsentManagerWidget.Root>
-				</div>
+    			<div className="w-1/2 rounded-lg bg-white px-5 pt-8">
+    				<ConsentManagerWidget.Root>
+    					<ConsentManagerWidget.Accordion
+    						themeKey="widget.accordion"
+    						type="multiple"
+    						value={openItems}
+    						onValueChange={setOpenItems}
+    					>
+    						<ConsentManagerWidget.AccordionItems />
+    					</ConsentManagerWidget.Accordion>
+    					<ConsentManagerWidget.Footer>
+    						<ConsentManagerWidget.FooterSubGroup themeKey="widget.footer.sub-group">
+    							<ConsentManagerWidget.RejectButton themeKey="widget.footer.reject-button">
+    								Reject All Text
+    							</ConsentManagerWidget.RejectButton>
+    							<ConsentManagerWidget.AcceptAllButton themeKey="widget.footer.accept-button">
+    								Accept All
+    							</ConsentManagerWidget.AcceptAllButton>
+    						</ConsentManagerWidget.FooterSubGroup>
+    						<ConsentManagerWidget.SaveButton themeKey="widget.footer.save-button">
+    							Save
+    						</ConsentManagerWidget.SaveButton>
+    					</ConsentManagerWidget.Footer>
+    				</ConsentManagerWidget.Root>
+    			</div>
     	);
     };
 
