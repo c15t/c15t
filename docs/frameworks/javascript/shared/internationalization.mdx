@@ -2,7 +2,7 @@
 title: Internationalization (i18n)
 description: Learn how to add translations to your Consent Manager
 ---
-
+<section id="overview">
 ## Overview
 
 c15t supports internationalization (i18n) through the `translations` property in the `ConsentManagerOptions` object and has support for both server-side and client-side rendering.
@@ -13,6 +13,9 @@ c15t supports internationalization (i18n) through the `translations` property in
 
 c15t supports partial translations, letting you supply only the changed keys without passing the whole translations object. When a requested language isn't available, the system falls back to the configured default/base language. Client-side translations take precedence over server-side translations, so client values override server values.
 
+</section>
+
+<section id="types">
 ## Types
 
 ### TranslationConfig
@@ -39,4 +42,5 @@ c15t supports partial translations, letting you supply only the changed keys wit
   ### ConsentTypeTranslations
 
   <AutoTypeTable path="./packages/translations/src/types.ts" name="ConsentTypeTranslations" />
+</section>
 </section>
