@@ -14,7 +14,6 @@ canary: true
 import { c15tInstance } from "@c15t/backend/v2";
 import { kyselyAdapter } from "@c15t/backend/v2/db/adapters/kysely";
 import { Kysely, PostgresDialect } from "kysely";
-import type { NextRequest } from "next/server";
 import { Pool } from "pg";
 
 const handler = (env: Env) => {
@@ -25,7 +24,7 @@ const handler = (env: Env) => {
       db: new Kysely({
         dialect: new PostgresDialect({
           pool: new Pool({
-            connectionString: ""
+            connectionString: env.DATABASE_URL
           })
         })
       }),

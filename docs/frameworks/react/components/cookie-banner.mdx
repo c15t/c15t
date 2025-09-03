@@ -18,7 +18,7 @@ The Cookie Banner component provides an elegant way to obtain and manage consent
   code={`<ConsentManagerProvider
 options={{
 mode: 'c15t',
-backendURL: 'https://c15t.dev/your-instance',
+backendURL: 'https://your-instance.c15t.dev',
 consentCategories: ['necessary', 'marketing'],
 }}>
 <CookieBanner />
@@ -41,7 +41,7 @@ The Cookie Banner uses a compound component pattern, giving you complete control
       return (
         <ConsentManagerProvider options={{
           mode: 'c15t',
-          backendURL: 'https://your-instance.c15t.dev/',
+          backendURL: 'https://your-instance.c15t.dev',
           consentCategories: ['necessary', 'marketing'],
         }}>
           <CookieBanner /> 
@@ -89,7 +89,7 @@ The Cookie Banner uses a compound component pattern, giving you complete control
       return (
         <ConsentManagerProvider options={{
           mode: 'c15t',
-          backendURL: 'https://your-instance.c15t.dev/',
+          backendURL: 'https://your-instance.c15t.dev',
           consentCategories: ['necessary', 'marketing'],
         }}>
           <CustomCookieBanner /> 

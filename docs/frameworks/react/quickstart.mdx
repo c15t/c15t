@@ -43,7 +43,7 @@ You can get started with the `@c15t/cli` which will generate the code for you!
       return (
         <ConsentManagerProvider options={{  
           mode: 'c15t', 
-          backendURL: process.env.REACT_APP_C15T_URL,
+          backendURL: "https://your-instance.c15t.dev",
           consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
           ignoreGeoLocation: true, // Useful for development to always view the banner.
         }}>

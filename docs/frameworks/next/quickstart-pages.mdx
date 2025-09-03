@@ -64,8 +64,9 @@ You can get started with the `@c15t/cli` which will generate the code for you!
       ConsentManagerProvider,
       CookieBanner,
     } from '@c15t/nextjs/pages';
+    import type { AppProps } from 'next/app';
 
-    export default function App({ Component, pageProps }: AppProps) {
+export default function App({ Component, pageProps }: AppProps) {
       return (
         <ConsentManagerProvider
           initialData={pageProps.initialC15TData}
@@ -87,7 +88,7 @@ You can get started with the `@c15t/cli` which will generate the code for you!
     In every page you want to pre-fetch the data server-side, you can use the `withInitialC15TData` helper. Otherwise, it will be fetched client-side.
 
     ```tsx title="pages/index.tsx"
-    import { withInitialC15TData } from '@c15t/nextjs';
+    import { withInitialC15TData } from '@c15t/nextjs/pages';
 
     // This helper accepts a 2nd argument to wrap around your getServerSideProps existing function.
     export const getServerSideProps = withInitialC15TData('/api/c15t');

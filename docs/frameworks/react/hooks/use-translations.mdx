@@ -16,9 +16,13 @@ The `useTranslations` hook provides access to the consent manager's translations
 ## Usage
 
 ```tsx
-const translations = useTranslations();
-
-const translations = translations.cookieBanner.title;
+function MyComponent() {
+  const translations = useTranslations();
+  
+  const title = translations.cookieBanner.title;
+  // Use the translations in your component
+  return <h1>{title}</h1>;
+}
 ```
 
 ## Returns

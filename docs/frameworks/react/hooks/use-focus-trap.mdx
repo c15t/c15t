@@ -9,24 +9,27 @@ The `useFocusTrap` hook creates an accessible experience by preventing keyboard 
 ## Usage
 
 ```tsx
-const CustomCard = () => {
+import { useRef } from 'react';
+import { useFocusTrap } from '@c15t/react';
+
+const CustomCard = ({ children, ref, ...props }) => {
   const localRef = useRef(null);
-  const cardRef = (ref || localRef);
+  const cardRef = ref || localRef;
   
   useFocusTrap(true, cardRef);
   
   return (
-    <Box
-      ref={ref}
+    <div
+      ref={cardRef}
       tabIndex={0}
       aria-modal={true}
       role="dialog"
       {...props}
     >
       {children}
-    </Box>
+    </div>
   );
-});
+};
 ```
 
 ## How It Works

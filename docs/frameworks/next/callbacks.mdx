@@ -32,8 +32,8 @@ availableIn:
     				onConsentSet(response) {
     					console.log('Consent has been saved locally', response);
     				},
-    				onError(response) {
-    					console.log('Error', response);
+    				onError(error) {
+    					console.log('Error', error);
     				},
     			}}
     		/>
@@ -44,32 +44,49 @@ availableIn:
     <Callout type="note">
       Ensure you import this component inside the ConsentManagerProvider component in your `app/layout.tsx` file.
     </Callout>
+    
+    ```ts title="app/layout.tsx"
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { ClientLayout } from './layout.client';
+    import type { ReactNode } from 'react';
+    
+    export default function Layout({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider options={{
+          // your options here
+        }}>
+          <ClientLayout />
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
   </Tab>
 
   <Tab value="Pages Directory">
-    ```ts title="layout.tsx"
-    import { ConsentManagerProvider } from '@c15t/nextjs/pages';
+    ```ts title="pages/_app.tsx"
+import { ConsentManagerProvider } from '@c15t/nextjs/pages';
+import type { AppProps } from 'next/app';
 
-    export function RootLayout({ children }: { children: React.ReactNode }) {
-    	return (
-    		<ConsentManagerProvider options={{
-          callbacks: {
-    				onBannerFetched(response) {
-    					console.log('Consent banner fetched', response);
-    				},
-    				onConsentSet(response) {
-    					console.log('Consent has been saved', response);
-    				},
-    				onError(response) {
-    					console.log('Error', response);
-    				},
-    			}
-        }}>
-    			{children}
-    		</ConsentManagerProvider>
-    	);
-    }
-
+export default function App({ Component, pageProps }: AppProps) {
+  return (
+    <ConsentManagerProvider options={{
+      callbacks: {
+        onBannerFetched(response) {
+          console.log('Consent banner fetched', response);
+        },
+        onConsentSet(response) {
+          console.log('Consent has been saved', response);
+        },
+        onError(error) {
+          console.log('Error', error);
+        },
+      }
+    }}>
+      <Component {...pageProps} />
+    </ConsentManagerProvider>
+  );
+}
 
     ```
   </Tab>

@@ -24,7 +24,7 @@ const handler = c15tInstance({
     db: new Kysely({
       dialect: new PostgresDialect({
         pool: new Pool({
-          connectionString: ""
+          connectionString: process.env.DATABASE_URL
         })
       })
     }),

@@ -29,7 +29,7 @@ function App() {
   return (
     <ConsentManagerProvider options={{  
       mode: 'c15t', 
-      backendURL: process.env.C15T_URL,
+      backendURL: "https://your-instance.c15t.dev",
       consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
       ignoreGeoLocation: true, // Useful for development to always view the banner.
     }}>

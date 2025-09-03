@@ -14,10 +14,10 @@ availableIn:
     title: 'React'
 ---
 
-The `locationInfo` property stores the user's location information, such as there jurisdiction, like if they should see a EU GDPR banner or not.
+The `locationInfo` property stores the user's location (for example, to determine whether to show an EU GDPR banner).
 
 This property is updated when the consent banner is fetched, and defaults to null when the location cannot be determined, such as in offline mode.
-The location information can be updated via the `setLocationInfo()` method.
+The location information can be updated via the `setLocationInfo()` method, which accepts a LocationInfo object or null.
 
 ## Usage
 

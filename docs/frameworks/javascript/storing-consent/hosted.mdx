@@ -23,7 +23,7 @@ import { configureConsentManager, type ConsentManagerOptions } from 'c15t';
 
 export const c15tConfig: ConsentManagerOptions = {
   mode: 'c15t',
-  backendURL: process.env.C15T_URL,
+  backendURL: "https://your-instance.c15t.dev",
   consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
   ignoreGeoLocation: true, // Useful for development to always view the banner.
 };

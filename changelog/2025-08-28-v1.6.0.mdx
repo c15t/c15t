@@ -33,13 +33,13 @@ The current callbacks are:
 - `onConsentSet`
 - `onError`
 
-The performance of the callbacks has also been [improved](https://github.com/c15t/c15t/issues/369), resulting in improved INP scores when using callbacks or GTM.
+The performance of the callbacks has also been improved (see issue [#369](https://github.com/c15t/c15t/issues/369)), resulting in improved INP scores when using callbacks or GTM.
 
 ### backend/v2
 
 The old backend wasn't to our standards and was difficult to implement due to poor documentation. 
 On top of addressing the documentation issues, we've migrated from our own database adapters to [FumaDB](https://github.com/fuma-nama/fumadb).
-This enables support for more databases & ORMs like TypeORM, MicrosoftSQL Server & MongoDB & more coming soon.
+This enables support for more databases & ORMs like TypeORM, Microsoft SQL Server, MongoDB, and more coming soon.
 
 If you have an existing backend v1 implementation, we have a [migration guide](/docs/self-host/migrate-from-v1) to help you.
 
@@ -66,11 +66,11 @@ const hasEitherAnalyticsOrMarketing = has({
 
 You can read more about the `has()` method in the [API documentation](/docs/frameworks/javascript/store/checking-consent).
 
-This change has lead us to depricate `hasConsentFor()` and `getEffectiveConsents()`, these will be removed in the next major release.
+This change has led us to deprecate `hasConsentFor()` and `getEffectiveConsents()`, these will be removed in the next major release.
 
 ### RTL support
 
-c15t now supports RTL languages on it's prebuilt components allowing you to use the components in any language.
+c15t now supports RTL languages on its prebuilt components allowing you to use the components in any language.
 
 ## Bug Fixes & Improvements
 
@@ -81,7 +81,7 @@ c15t now supports RTL languages on it's prebuilt components allowing you to use 
 
 ### @c15t/core
 
-- Depricated various unused methods and properties to clean up the API.
+- Deprecated various unused methods and properties to clean up the API.
 - Improved fallback for when the showConsentBanner API request fails.
 
 ### @c15t/translations
@@ -92,9 +92,9 @@ c15t now supports RTL languages on it's prebuilt components allowing you to use 
 
 ### @c15t/backend
 
-- Updated to Zod 4
-- Updated ORPC to 1.8
-- Updated Open Telemetry to latest versions.
+- Updated to Zod 4.
+- Updated ORPC to 1.8.
+- Updated OpenTelemetry to latest versions.
 
 <ContributorBlock usernames={["BurnedChris", "KayleeWilliams", "guy-borderless"]} title="Thank you to our contributors" />
 
