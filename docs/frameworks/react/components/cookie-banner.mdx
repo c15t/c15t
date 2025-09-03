@@ -14,16 +14,21 @@ availableIn:
 The Cookie Banner component provides an elegant way to obtain and manage consent from your users. It handles all the complexity of privacy regulations while providing a smooth user experience that integrates naturally with your application.
 
 <ResponsivePreview
-  src="/examples/cookie-banner"
-  code={`<ConsentManagerProvider
-options={{
-mode: 'c15t',
-backendURL: 'https://your-instance.c15t.dev',
-consentCategories: ['necessary', 'marketing'],
-}}>
-<CookieBanner />
-<ConsentManagerDialog />
-</ConsentManagerProvider>
+  src="https://c15t-examples.vercel.app/react/simple-cookie-banner"
+  code={`
+  export function SimpleCookieBanner({ children }: { children?: ReactNode }) {
+	return (
+		<ConsentManagerProvider
+			options={{
+				mode: 'offline',
+				consentCategories: ['experience', 'marketing', 'functionality', 'necessary'],
+			}}
+		>
+			<CookieBanner />
+			{children}
+		</ConsentManagerProvider>
+	);
+}
 `}
   expectedHeight={300}
 />
