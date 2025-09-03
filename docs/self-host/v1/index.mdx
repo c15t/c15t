@@ -28,7 +28,7 @@ const instance = c15tInstance({
 });
 ```
 
-For more details on instance configuration, see [Core Concepts](./backend/core-concepts#instance-management).
+For more details on instance configuration, see [Core Concepts](./v1/core-concepts#instance-management).
 
 ## Configuration
 
@@ -86,7 +86,7 @@ const instance = c15tInstance({
 });
 ```
 
-For more database options and configuration, see [Database Adapters](./backend/database-adapters).
+For more database options and configuration, see [Database Adapters](./v1/database-adapters).
 
 ## Handling Requests
 
@@ -98,14 +98,14 @@ const request = new Request("http://localhost:3000/api/c15t/status", {
 const response = await instance.handler(request);
 ```
 
-Learn more about request handling in [Core Concepts](./backend/core-concepts#request-handling).
+Learn more about request handling in [Core Concepts](./core-concepts#request-handling).
 
 ## Next Steps
 
-1. Learn about [Core Concepts](./backend/core-concepts) to understand the system architecture
-2. Explore [Database Adapters](./backend/database-adapters) for different storage options
-3. Check out the [Plugin System](./backend/plugins) for extensibility
-4. Review [API Endpoints](./backend/endpoints) for available functionality
+1. Learn about [Core Concepts](./v1/core-concepts) to understand the system architecture
+2. Explore [Database Adapters](./v1/database-adapters) for different storage options
+3. Check out the [Plugin System](./v1/plugins) for extensibility
+4. Review the request handling examples above for available functionality
 
 ## Common Issues
 
@@ -116,7 +116,7 @@ If you're having trouble connecting to the database:
 1. Check your connection string
 2. Verify database credentials
 3. Ensure the database is running
-4. Review [Database Adapters](./backend/database-adapters#error-handling) for more details
+4. Review [Database Adapters](./v1/database-adapters#error-handling) for more details
 
 ### Authentication Problems
 
@@ -124,7 +124,7 @@ For authentication issues:
 
 1. Verify your JWT secret
 2. Check token expiration
-3. Review [Authentication](./backend/authentication#error-handling) documentation
+3. Review plugin configuration in the [Plugin System](./plugins) documentation
 
 ### Plugin Loading
 
@@ -132,4 +132,4 @@ If plugins aren't loading:
 
 1. Check plugin dependencies
 2. Verify plugin order
-3. Review [Plugin System](./backend/plugins#common-issues) documentation
+3. Review [Plugin System](./v1/plugins#common-issues) documentation

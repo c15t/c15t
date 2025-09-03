@@ -1,16 +1,3 @@
 {
-	"title": "Backend & Self-Hosting",
-	"root": true,
-	"icon": "server",
-	"pages": [
-		"index",
-		"supported-databases",
-		"options",
-		"--- Examples ---",
-		"examples/nextjs",
-		"examples/cloudflare",
-		"--- ---",
-		"migrate-from-v1",
-		"v1/index"
-	]
+	"pages": ["v1", "v2"]
 }

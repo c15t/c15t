@@ -1,6 +1,6 @@
 {
-	"title": "Backend & Self-Hosting v1",
-	"root": false,
+	"title": "V1 - Self-Hosting c15t",
+	"root": true,
 	"icon": "server",
 	"pages": [
 		"index",

@@ -26,7 +26,7 @@ const instance = c15tInstance({
 });
 ```
 
-For a quick start guide, see [Getting Started](./backend#basic-usage).
+For a quick start guide, see [Getting Started](./index#basic-usage).
 
 ### Instance Configuration
 
@@ -60,7 +60,7 @@ interface C15TOptions {
 }
 ```
 
-Learn more about database adapters in [Database Adapters](./backend/database-adapters).
+Learn more about database adapters in [Database Adapters](./database-adapters).
 
 ## Context System
 
@@ -112,7 +112,7 @@ const contextPlugin: C15TPlugin = {
 };
 ```
 
-Learn more about plugins in [Plugin System](./backend/plugins#context-extensions).
+Learn more about plugins in [Plugin System](./plugins#context-extensions).
 
 ## Request Handling
 
@@ -144,7 +144,7 @@ Learn more about plugins in [Plugin System](./backend/plugins#context-extensions
    }
    ```
 
-For API endpoint details, see [API Endpoints](./backend/endpoints).
+For API endpoint details, see the instance handler documentation above.
 
 ### Request Lifecycle
 
@@ -197,7 +197,7 @@ interface C15TResponse<T = unknown> {
 }
 ```
 
-For API response formats, see [API Endpoints](./backend/endpoints#response-formats).
+For API response formats, see the request handling examples above.
 
 ### Response Formatting
 
@@ -250,7 +250,7 @@ class DatabaseError extends DoubleTieError {
 }
 ```
 
-For error handling in plugins, see [Plugin System](./backend/plugins#error-handling).
+For error handling in plugins, see [Plugin System](./plugins#error-handling).
 
 ### Error Handling
 
@@ -300,7 +300,7 @@ try {
    };
    ```
 
-Learn more about middleware in [Plugin System](./backend/plugins#middleware-plugins).
+Learn more about middleware in [Plugin System](./plugins#middleware-plugins).
 
 ### Middleware Chain
 
@@ -415,7 +415,7 @@ const getCachedData = async (key: string) => {
 };
 ```
 
-For database performance, see [Database Adapters](./backend/database-adapters#performance-considerations).
+For database performance, see [Database Adapters](./database-adapters#performance-considerations).
 
 ### Connection Pooling
 
