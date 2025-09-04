@@ -1,0 +1,291 @@
+
+	:root {
+		/* Typography */
+		--dialog-font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial,
+			sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+		--dialog-line-height: 1.15;
+		--dialog-title-font-size: .875rem;
+		--dialog-title-font-weight: 600;
+		--dialog-title-letter-spacing: -0.025em;
+		--dialog-description-font-size: 1rem;
+		--dialog-description-font-weight: 400;
+		--dialog-description-line-height: 1.15;
+		--dialog-footer-font-size: 14px;
+		--dialog-branding-font-size: 1rem;
+		--dialog-branding-font-weight: 500;
+		--dialog-branding-line-height: 1.5;
+		--dialog-branding-letter-spacing: -0.01em;
+
+		/* Colors */
+		--dialog-stroke-color: hsl(0, 0%, 92.16%);
+		--dialog-stroke-color-dark: hsl(0, 0%, 20%);
+		--dialog-branding-focus-color: hsl(227.93, 100%, 63.92%);
+		--dialog-branding-focus-color-dark: hsl(228.07, 69.8%, 48.04%);
+		--dialog-link-text-color: hsl(0, 0%, 9.02%);
+		--dialog-link-text-color-dark: hsl(0, 0%, 90%);
+		--dialog-border-color: hsl(0, 0%, 92.16%);
+		--dialog-border-color-dark: hsl(0, 0%, 20%);
+		--dialog-background-color: white;
+		--dialog-background-color-dark: hsl(0, 0%, 10%);
+		--dialog-foreground-color: hsl(0, 0%, 9.02%);
+		--dialog-foreground-color-dark: hsl(0, 0%, 90%);
+		--dialog-muted-color: hsl(0, 0%, 45.1%);
+		--dialog-muted-color-dark: hsl(0, 0%, 63.9%);
+		--dialog-overlay-background-color: rgb(0 0 0 / 0.5);
+		--dialog-overlay-background-color-dark: rgb(0 0 0 / 0.5);
+
+		/* Spacing */
+		--dialog-card-padding: 1.5rem;
+		--dialog-card-padding-mobile: 1rem;
+		--dialog-card-gap: 0.375rem;
+		--dialog-header-gap: 0.375rem;
+		--dialog-content-gap: 1rem;
+		--dialog-footer-padding-y: 1rem;
+
+		/* Layout */
+		--dialog-card-radius: 1.25rem;
+		--dialog-max-width: 28rem;
+		--dialog-height: 80%;
+		--dialog-z-index: 999999999;
+		--dialog-overlay-z-index: 999999998;
+
+		/* Effects */
+		--dialog-card-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+		--dialog-border-width: 1px;
+		--dialog-border-style: solid;
+
+		/* Animation */
+		--dialog-animation-duration: 200ms;
+		--dialog-animation-timing: ease-out;
+
+		/* Branding */
+		--dialog-branding-gap: 0.5rem;
+		--dialog-branding-icon-height: 1.25rem;
+		--dialog-branding-icon-width: auto;
+	}
+
+	.root {
+		isolation: isolate;
+		font-family: var(--dialog-font-family);
+		line-height: var(--dialog-line-height);
+		-webkit-text-size-adjust: 100%;
+		tab-size: 4;
+		margin: 0;
+		padding: var(--dialog-card-padding-mobile);
+		border: 0;
+		background: none;
+		position: fixed;
+		inset: 0px;
+		z-index: var(--dialog-z-index);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		border-radius: var(--dialog-card-radius);
+		background-color: transparent;
+		width: 100%;
+		height: var(--dialog-height);
+	}
+
+	/* Animation classes for the dialog */
+	.dialogVisible {
+		opacity: 1;
+		transition: opacity var(--dialog-animation-duration)
+			var(--dialog-animation-timing);
+	}
+
+	.dialogHidden {
+		opacity: 0;
+		transition: opacity var(--dialog-animation-duration)
+			var(--dialog-animation-timing);
+	}
+
+	/* Animation classes for the content */
+	.contentVisible {
+		opacity: 1;
+		transform: scale(1);
+		transition: opacity var(--dialog-animation-duration)
+			var(--dialog-animation-timing), transform var(--dialog-animation-duration)
+			cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+
+	.contentHidden {
+		opacity: 0;
+		transform: scale(0.95);
+		transition: opacity var(--dialog-animation-duration)
+			var(--dialog-animation-timing), transform var(--dialog-animation-duration)
+			var(--dialog-animation-timing);
+	}
+
+	@media (min-width: 640px) {
+		.root {
+			padding: var(--dialog-card-padding);
+			width: auto;
+		}
+	}
+
+	.container {
+		width: 100%;
+		max-width: var(--dialog-max-width);
+		margin: auto;
+	}
+
+	.branding {
+		display: flex;
+		margin: auto 0;
+		justify-content: center;
+		align-items: center;
+		gap: var(--dialog-branding-gap);
+		font-size: var(--dialog-branding-font-size);
+		font-weight: var(--dialog-branding-font-weight);
+		line-height: var(--dialog-branding-line-height);
+		letter-spacing: var(--dialog-branding-letter-spacing);
+		color: var(--dialog-foreground-color);
+		text-decoration: none;
+		border-radius: 0.25rem;
+		padding: 0 0.5rem;
+	}
+
+	.branding:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--dialog-branding-focus-color);
+	}
+
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+	:global(.c15t-dark) .branding:focus-visible {
+		box-shadow: 0 0 0 2px var(--dialog-branding-focus-color-dark);
+	}
+
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+	:global(.c15t-dark) .branding {
+		color: var(--dialog-foreground-color-dark);
+	}
+
+	.brandingC15T {
+		width: var(--dialog-branding-icon-width);
+		height: var(--dialog-branding-icon-height);
+	}
+
+	.brandingConsent {
+		width: var(--dialog-branding-icon-width);
+		height: 1rem;
+	}
+
+	.headerWrapper {
+		position: relative;
+	}
+
+	.closeButton {
+		position: absolute;
+		right: 22px;
+		top: 22px;
+	}
+
+	.footer {
+		justify-content: center;
+		font-size: 14px;
+		padding-top: 1rem;
+		padding-bottom: 1rem;
+		border-top: solid 1px var(--dialog-stroke-color);
+	}
+
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+	:global(.c15t-dark) .footer {
+		border-color: var(--dialog-stroke-color-dark);
+	}
+
+	.overlay {
+		color: var(--dialog-link-text-color);
+		position: fixed;
+		inset: 0px;
+		background-color: var(--dialog-overlay-background-color);
+		z-index: var(--dialog-overlay-z-index);
+	}
+
+	/* Overlay animation classes */
+	.overlayVisible {
+		opacity: 1;
+		transition: opacity var(--dialog-animation-duration)
+			var(--dialog-animation-timing);
+	}
+
+	.overlayHidden {
+		opacity: 0;
+		transition: opacity var(--dialog-animation-duration)
+			var(--dialog-animation-timing);
+	}
+
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+	:global(.c15t-dark) .overlay {
+		background-color: var(--dialog-overlay-background-color-dark);
+		color: var(--dialog-link-text-color-dark);
+	}
+
+	.card {
+		border-radius: var(--dialog-card-radius);
+		border: var(--dialog-border-width) var(--dialog-border-style)
+			var(--dialog-border-color);
+		background-color: var(--dialog-background-color);
+		color: var(--dialog-foreground-color);
+		box-shadow: var(--dialog-card-shadow);
+		overflow: hidden;
+	}
+
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+	:global(.c15t-dark) .card {
+		background-color: var(--dialog-background-color-dark);
+		color: var(--dialog-foreground-color-dark);
+		border-color: var(--dialog-border-color-dark);
+	}
+
+	.header {
+		display: flex;
+		flex-direction: column;
+		padding: var(--dialog-card-padding);
+		gap: var(--dialog-header-gap);
+	}
+
+	.header > * + * {
+		margin-top: var(--dialog-card-gap);
+	}
+
+	.title {
+		font-weight: var(--dialog-title-font-weight);
+		font-size: var(--dialog-title-font-size);
+		line-height: 1;
+		letter-spacing: var(--dialog-title-letter-spacing);
+	}
+
+	.description {
+		color: var(--dialog-muted-color);
+		font-size: var(--dialog-description-font-size);
+		font-weight: var(--dialog-description-font-weight);
+		line-height: var(--dialog-description-line-height);
+	}
+
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+	:global(.c15t-dark) .description {
+		color: var(--dialog-muted-color-dark);
+	}
+
+	.content {
+		padding: var(--dialog-card-padding);
+		padding-top: 0;
+		gap: var(--dialog-content-gap);
+	}
+
+	.footer {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: var(--dialog-footer-font-size);
+		padding-top: var(--dialog-footer-padding-y);
+		padding-bottom: var(--dialog-footer-padding-y);
+		border-top: var(--dialog-border-width) var(--dialog-border-style)
+			var(--dialog-stroke-color);
+	}
+
+	/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+	:global(.c15t-dark) .footer {
+		border-color: var(--dialog-stroke-color-dark);
+	}
+

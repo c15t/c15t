@@ -1,0 +1,20 @@
+{
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"preact": "^10.26.9",
+		"preact-iso": "^2.10.0",
+		"preact-render-to-string": "^6.6.1"
+	},
+	"devDependencies": {
+		"@c15t/preact": "workspace:*",
+		"@preact/preset-vite": "^2.10.2",
+		"typescript": "^5.9.2",
+		"vite": "^7.1.4"
+	}
+}
