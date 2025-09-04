@@ -10,6 +10,7 @@
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
+		"@c15t/cli": "workspace:*",
 		"@c15t/nextjs": "workspace:*",
 		"kysely": "^0.28.4",
 		"next": "15.4.1",

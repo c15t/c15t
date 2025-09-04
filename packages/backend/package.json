@@ -162,7 +162,7 @@
 		"base-x": "^5.0.1",
 		"defu": "^6.1.4",
 		"drizzle-orm": "^0.41.0",
-		"fumadb": "^0.1.0",
+		"fumadb": "^0.1.1",
 		"kysely": "^0.27.6",
 		"neverthrow": "^8.2.0",
 		"superjson": "^2.2.2",
