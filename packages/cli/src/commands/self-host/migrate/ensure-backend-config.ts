@@ -405,19 +405,50 @@ async function promptConnection<A extends AdapterKey>(
 
 export async function ensureBackendConfig(
 	context: CliContext
-): Promise<string | null> {
+): Promise<{ path: string; dependencies: string[] }> {
 	const { cwd, logger } = context;
 	const targetPath = path.join(cwd, 'c15t-backend.config.ts');
 
 	if (await pathExists(targetPath)) {
 		logger.debug(`Backend config already exists at ${targetPath}`);
-		return targetPath;
+		return { path: targetPath, dependencies: [] };
 	}
 
 	try {
 		const adapter = await promptSelectAdapter();
 		const provider = await promptSelectProvider(adapter);
 		const connection = await promptConnection(adapter, provider);
+
+		// Determine dependencies based on adapter and provider
+		const dependencies: string[] = [];
+
+		if (adapter === 'kyselyAdapter') {
+			dependencies.push('kysely');
+			if (provider === 'postgresql' || provider === 'cockroachdb') {
+				dependencies.push('pg');
+			} else if (provider === 'mysql') {
+				dependencies.push('mysql2');
+			} else if (provider === 'mssql') {
+				dependencies.push('mssql');
+			} else if (provider === 'sqlite') {
+				dependencies.push('better-sqlite3');
+			}
+		} else if (adapter === 'drizzleAdapter') {
+			dependencies.push('drizzle-orm');
+			if (provider === 'postgresql') {
+				dependencies.push('pg', 'drizzle-orm/node-postgres');
+			} else if (provider === 'mysql') {
+				dependencies.push('mysql2', 'drizzle-orm/mysql2');
+			} else if (provider === 'sqlite') {
+				dependencies.push('better-sqlite3', 'drizzle-orm/better-sqlite3');
+			}
+		} else if (adapter === 'prismaAdapter') {
+			dependencies.push('@prisma/client');
+		} else if (adapter === 'typeormAdapter') {
+			dependencies.push('typeorm');
+		} else if (adapter === 'mongoAdapter') {
+			dependencies.push('mongodb');
+		}
 
 		const dbConfig = buildDatabaseConfig(adapter, provider, connection);
 		const fileContent = buildFileContent(
@@ -437,7 +468,7 @@ export async function ensureBackendConfig(
 			);
 		}
 
-		return targetPath;
+		return { path: targetPath, dependencies };
 	} catch (err) {
 		if (err instanceof Cancelled) {
 			return context.error.handleCancel('Operation cancelled.', {

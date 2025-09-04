@@ -79,6 +79,7 @@ export interface CliContext {
 	// Utilities for user interaction
 	confirm: (message: string, initialValue: boolean) => Promise<boolean>;
 
+	projectRoot: string;
 	framework: FrameworkDetectionResult;
 	packageManager: PackageManagerResult;
 }

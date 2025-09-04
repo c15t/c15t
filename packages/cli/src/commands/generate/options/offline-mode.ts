@@ -1,20 +1,19 @@
 import type * as p from '@clack/prompts';
-import type { AvailablePackages } from '~/context/framework-detection';
-import type { CliContext } from '../../../../context/types';
-import { generateFiles } from '../generate-files';
+import type { CliContext } from '../../../context/types';
+import type { BaseOptions, BaseResult } from './types';
+import { installDependencies } from './utils/dependencies';
+import { generateFiles } from './utils/generate-files';
 
 /**
  * Result of offline mode setup
  */
-export interface OfflineModeResult {
+export interface OfflineModeResult extends BaseResult {
 	clientConfigContent: string;
 }
 
-interface OfflineModeOptions {
+interface OfflineModeOptions extends BaseOptions {
 	context: CliContext;
-	projectRoot: string;
 	spinner: ReturnType<typeof p.spinner>;
-	pkg: AvailablePackages;
 }
 
 /**
@@ -28,19 +27,22 @@ interface OfflineModeOptions {
  */
 export async function setupOfflineMode({
 	context,
-	projectRoot,
 	spinner,
-	pkg,
 }: OfflineModeOptions): Promise<OfflineModeResult> {
 	const result = await generateFiles({
 		context,
-		projectRoot,
 		mode: 'offline',
-		pkg,
 		spinner,
+	});
+
+	const { ranInstall, installDepsConfirmed } = await installDependencies({
+		context,
+		dependenciesToAdd: [context.framework.pkg],
 	});
 
 	return {
 		clientConfigContent: result.configContent ?? '',
+		installDepsConfirmed,
+		ranInstall,
 	};
 }

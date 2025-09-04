@@ -5,24 +5,22 @@ import color from 'picocolors';
 import type { AvailablePackages } from '~/context/framework-detection';
 import type { CliContext } from '~/context/types';
 import { formatLogMessage } from '~/utils/logger';
-import { generateClientConfigContent } from './templates/config';
+import { generateClientConfigContent } from '../../templates/config';
 import {
 	generateEnvExampleContent,
 	generateEnvFileContent,
 	getEnvVarName,
-} from './templates/env';
-import { updateReactLayout } from './templates/layout';
-import { updateNextConfig } from './templates/next-config';
+} from '../../templates/env';
+import { updateReactLayout } from '../../templates/layout';
+import { updateNextConfig } from '../../templates/next-config';
+import type { BaseOptions } from '../types';
 
-export interface GenerateFilesOptions {
+export interface GenerateFilesOptions extends BaseOptions {
 	context: CliContext;
-	projectRoot: string;
 	mode: 'c15t' | 'offline' | 'custom';
-	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
 	backendURL?: string;
 	useEnvFile?: boolean;
-	spinner: ReturnType<typeof p.spinner>;
 }
 
 export interface GenerateFilesResult {
@@ -233,17 +231,20 @@ async function handleEnvFiles(options: {
  */
 export async function generateFiles({
 	context,
-	projectRoot,
 	mode,
-	pkg,
-	backendURL,
 	spinner,
 	useEnvFile,
 	proxyNextjs,
+	backendURL,
 }: GenerateFilesOptions): Promise<GenerateFilesResult> {
 	const result: GenerateFilesResult = {
 		layoutUpdated: false,
 	};
+
+	const {
+		projectRoot,
+		framework: { pkg },
+	} = context;
 
 	if (pkg === '@c15t/nextjs' || pkg === '@c15t/react') {
 		const layoutResult = await handleReactLayout({

@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { TelemetryEventName } from '../../utils/telemetry';
+import { TelemetryEventName } from '../../../utils/telemetry';
 import { handleORMResult } from './orm-result';
 
 function createTmpDir(prefix: string) {

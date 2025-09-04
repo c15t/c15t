@@ -1,26 +1,23 @@
 import * as p from '@clack/prompts';
 import open from 'open';
-import type { AvailablePackages } from '~/context/framework-detection';
-import type { CliContext } from '../../../../context/types';
-import { generateFiles } from '../generate-files';
+import type { CliContext } from '../../../context/types';
+import type { BaseOptions, BaseResult } from './types';
+import { installDependencies } from './utils/dependencies';
+import { generateFiles } from './utils/generate-files';
 import { getSharedFrontendOptions } from './utils/shared-frontend';
 
 /**
  * Result of c15t mode setup
  */
-export interface C15TModeResult {
+export interface C15TModeResult extends BaseResult {
 	backendURL: string | undefined;
 	usingEnvFile: boolean;
 	proxyNextjs?: boolean;
 }
 
-interface C15TModeOptions {
+interface C15TModeOptions extends BaseOptions {
 	context: CliContext;
-	projectRoot: string;
-	spinner: ReturnType<typeof p.spinner>;
-	packageName: AvailablePackages;
 	initialBackendURL?: string;
-	handleCancel?: (value: unknown) => boolean;
 }
 
 /**
@@ -143,13 +140,12 @@ async function getBackendURL(
  */
 export async function setupC15tMode({
 	context,
-	projectRoot,
 	spinner,
-	packageName,
 	initialBackendURL,
 	handleCancel,
 }: C15TModeOptions): Promise<C15TModeResult> {
 	await handleAccountCreation(context, handleCancel);
+
 	const backendURL = await getBackendURL(
 		context,
 		initialBackendURL,
@@ -158,25 +154,30 @@ export async function setupC15tMode({
 
 	const { useEnvFile, proxyNextjs } = await getSharedFrontendOptions({
 		backendURL: backendURL as string,
-		packageName,
 		context,
 		handleCancel,
 	});
 
 	await generateFiles({
 		context,
-		projectRoot,
 		mode: 'c15t',
-		pkg: packageName,
 		backendURL,
 		spinner,
 		useEnvFile,
 		proxyNextjs,
 	});
 
+	const { ranInstall, installDepsConfirmed } = await installDependencies({
+		context,
+		dependenciesToAdd: [context.framework.pkg],
+		handleCancel,
+	});
+
 	return {
 		backendURL,
 		usingEnvFile: useEnvFile ?? false,
 		proxyNextjs,
+		installDepsConfirmed,
+		ranInstall,
 	};
 }

@@ -6,7 +6,7 @@ import open from 'open';
 import color from 'picocolors';
 import { showHelpMenu } from './actions/show-help-menu';
 import { generate } from './commands/generate';
-import { migrate } from './commands/migrate';
+import { selfHost } from './commands/self-host';
 import { displayIntro } from './components/intro';
 
 // Import context creator and types
@@ -20,17 +20,17 @@ import { TelemetryEventName } from './utils/telemetry';
 const commands: CliCommand[] = [
 	{
 		name: 'generate',
-		label: 'generate',
-		hint: 'Generate schema/code',
-		description: 'Generate schema/code based on your c15t config.',
+		label: 'Generate (Recommended)',
+		hint: 'Add c15t to your project',
+		description: 'Setup your c15t project',
 		action: (context) => generate(context),
 	},
 	{
-		name: 'migrate',
-		label: 'migrate',
-		hint: 'Run database migrations',
-		description: 'Run database migrations based on your c15t config.',
-		action: (context) => migrate(context),
+		name: 'self-host',
+		label: 'Self Host',
+		hint: 'Host c15t backend on your own infra',
+		description: 'Commands for self-hosting c15t (generate, migrate).',
+		action: (context) => selfHost(context),
 	},
 	{
 		name: 'github',
