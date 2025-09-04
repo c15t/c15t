@@ -1,0 +1,466 @@
+/**
+ * Consent Manager Dialog Component Styles
+ * 
+ * @fileoverview Modal dialog styling for detailed privacy consent management
+ * @description Provides accessible, animated modal interface for GDPR/CCPA consent customization
+ * 
+ * @version 1.5.0
+ * @author C15T Team
+ * 
+ * @example
+ * Basic CSS import:
+ * ```css
+ * @import '@c15t/styles/components/consent-manager-dialog.css';
+ * ```
+ * 
+ * @example
+ * Custom theming:
+ * ```css
+ * :root {
+ *   --dialog-background-color: #ffffff;
+ *   --dialog-max-width: 32rem;
+ * }
+ * ```
+ * 
+ * @accessibility
+ * - Implements ARIA modal patterns
+ * - Maintains focus trap functionality
+ * - Provides keyboard navigation support
+ */
+
+ :root {
+	/* Typography Configuration */
+	/** @description System font stack for cross-platform consistency */
+	--dialog-font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial,
+		sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+	/** @description Base line height for readability */
+	--dialog-line-height: 1.15;
+	/** @description Title font size for hierarchy */
+	--dialog-title-font-size: .875rem;
+	/** @description Title font weight for emphasis */
+	--dialog-title-font-weight: 600;
+	/** @description Title letter spacing for readability */
+	--dialog-title-letter-spacing: -0.025em;
+	/** @description Description font size for body text */
+	--dialog-description-font-size: 1rem;
+	/** @description Description font weight for body text */
+	--dialog-description-font-weight: 400;
+	/** @description Description line height for readability */
+	--dialog-description-line-height: 1.15;
+	/** @description Footer font size for actions */
+	--dialog-footer-font-size: 14px;
+	/** @description Branding font size for attribution */
+	--dialog-branding-font-size: 1rem;
+	/** @description Branding font weight for emphasis */
+	--dialog-branding-font-weight: 500;
+	/** @description Branding line height for spacing */
+	--dialog-branding-line-height: 1.5;
+	/** @description Branding letter spacing for readability */
+	--dialog-branding-letter-spacing: -0.01em;
+
+	/* Color System */
+	/** @description Light theme stroke color */
+	--dialog-stroke-color: hsl(0, 0%, 92.16%);
+	/** @description Dark theme stroke color */
+	--dialog-stroke-color-dark: hsl(0, 0%, 20%);
+	/** @description Light theme focus indicator */
+	--dialog-branding-focus-color: hsl(227.93, 100%, 63.92%);
+	/** @description Dark theme focus indicator */
+	--dialog-branding-focus-color-dark: hsl(228.07, 69.8%, 48.04%);
+	/** @description Light theme link text */
+	--dialog-link-text-color: hsl(0, 0%, 9.02%);
+	/** @description Dark theme link text */
+	--dialog-link-text-color-dark: hsl(0, 0%, 90%);
+	/** @description Light theme border color */
+	--dialog-border-color: hsl(0, 0%, 92.16%);
+	/** @description Dark theme border color */
+	--dialog-border-color-dark: hsl(0, 0%, 20%);
+	/** @description Light theme background */
+	--dialog-background-color: white;
+	/** @description Dark theme background */
+	--dialog-background-color-dark: hsl(0, 0%, 10%);
+	/** @description Light theme foreground text */
+	--dialog-foreground-color: hsl(0, 0%, 9.02%);
+	/** @description Dark theme foreground text */
+	--dialog-foreground-color-dark: hsl(0, 0%, 90%);
+	/** @description Light theme muted text */
+	--dialog-muted-color: hsl(0, 0%, 45.1%);
+	/** @description Dark theme muted text */
+	--dialog-muted-color-dark: hsl(0, 0%, 63.9%);
+	/** @description Light theme overlay background */
+	--dialog-overlay-background-color: rgb(0 0 0 / 0.5);
+	/** @description Dark theme overlay background */
+	--dialog-overlay-background-color-dark: rgb(0 0 0 / 0.5);
+
+	/* Spacing System */
+	/** @description Card padding for desktop */
+	--dialog-card-padding: 1.5rem;
+	/** @description Card padding for mobile */
+	--dialog-card-padding-mobile: 1rem;
+	/** @description Gap between card elements */
+	--dialog-card-gap: 0.375rem;
+	/** @description Gap between header elements */
+	--dialog-header-gap: 0.375rem;
+	/** @description Gap between content elements */
+	--dialog-content-gap: 1rem;
+	/** @description Vertical padding for footer */
+	--dialog-footer-padding-y: 1rem;
+
+	/* Layout Configuration */
+	/** @description Border radius for dialog cards */
+	--dialog-card-radius: 1.25rem;
+	/** @description Maximum width constraint */
+	--dialog-max-width: 28rem;
+	/** @description Height constraint as percentage */
+	--dialog-height: 80%;
+	/** @description Dialog z-index for stacking */
+	--dialog-z-index: 999999999;
+	/** @description Overlay z-index for stacking */
+	--dialog-overlay-z-index: 999999998;
+
+	/* Visual Effects */
+	/** @description Card shadow for elevation */
+	--dialog-card-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+	/** @description Border width for consistency */
+	--dialog-border-width: 1px;
+	/** @description Border style for consistency */
+	--dialog-border-style: solid;
+
+	/* Animation Configuration */
+	/** @description Animation duration for transitions */
+	--dialog-animation-duration: 200ms;
+	/** @description Animation timing function */
+	--dialog-animation-timing: ease-out;
+
+	/* Branding Configuration */
+	/** @description Gap between branding elements */
+	--dialog-branding-gap: 0.5rem;
+	/** @description Branding icon height */
+	--dialog-branding-icon-height: 1.25rem;
+	/** @description Branding icon width (auto for aspect ratio) */
+	--dialog-branding-icon-width: auto;
+}
+
+/**
+ * Dialog Root Container
+ * 
+ * @description Primary modal container with proper isolation and positioning
+ * @accessibility Implements modal dialog pattern with proper ARIA attributes
+ * @performance Uses CSS isolation for rendering optimization
+ */
+.c15t-root {
+	isolation: isolate;
+	font-family: var(--dialog-font-family);
+	line-height: var(--dialog-line-height);
+	-webkit-text-size-adjust: 100%;
+	tab-size: 4;
+	margin: 0;
+	padding: var(--dialog-card-padding-mobile);
+	border: 0;
+	background: none;
+	position: fixed;
+	inset: 0px;
+	z-index: var(--dialog-z-index);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	border-radius: var(--dialog-card-radius);
+	background-color: transparent;
+	width: 100%;
+	height: var(--dialog-height);
+}
+
+/**
+ * Dialog Animation States
+ * 
+ * @description Controls smooth entrance and exit animations for the dialog
+ * @performance Uses opacity transitions for better performance
+ */
+.c15t-dialogVisible {
+	opacity: 1;
+	transition: opacity var(--dialog-animation-duration)
+		var(--dialog-animation-timing);
+}
+
+.c15t-dialogHidden {
+	opacity: 0;
+	transition: opacity var(--dialog-animation-duration)
+		var(--dialog-animation-timing);
+}
+
+/**
+ * Content Animation States
+ * 
+ * @description Controls content-specific animations with scale effects
+ * @performance Uses transform and opacity for hardware acceleration
+ */
+.c15t-contentVisible {
+	opacity: 1;
+	transform: scale(1);
+	transition: opacity var(--dialog-animation-duration)
+		var(--dialog-animation-timing), transform var(--dialog-animation-duration)
+		cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.c15t-contentHidden {
+	opacity: 0;
+	transform: scale(0.95);
+	transition: opacity var(--dialog-animation-duration)
+		var(--dialog-animation-timing), transform var(--dialog-animation-duration)
+		var(--dialog-animation-timing);
+}
+
+/**
+ * Responsive Design - Desktop Optimization
+ * 
+ * @description Adjusts layout for larger screens
+ * @breakpoint 640px minimum width for tablet/desktop
+ */
+@media (min-width: 640px) {
+	.c15t-root {
+		padding: var(--dialog-card-padding);
+		width: auto;
+	}
+}
+
+/**
+ * Dialog Container
+ * 
+ * @description Content wrapper with width constraints
+ * @layout Centered container with maximum width
+ */
+.c15t-container {
+	width: 100%;
+	max-width: var(--dialog-max-width);
+	margin: auto;
+}
+
+/**
+ * Branding Section
+ * 
+ * @description Attribution and branding display
+ * @accessibility Proper focus indicators for branding links
+ */
+.c15t-branding {
+	display: flex;
+	margin: auto 0;
+	justify-content: center;
+	align-items: center;
+	gap: var(--dialog-branding-gap);
+	font-size: var(--dialog-branding-font-size);
+	font-weight: var(--dialog-branding-font-weight);
+	line-height: var(--dialog-branding-line-height);
+	letter-spacing: var(--dialog-branding-letter-spacing);
+	color: var(--dialog-foreground-color);
+	text-decoration: none;
+	border-radius: 0.25rem;
+	padding: 0 0.5rem;
+}
+
+/**
+ * Branding Focus States
+ * 
+ * @description Accessible focus indicators for branding elements
+ * @accessibility Meets WCAG focus indicator requirements
+ */
+.c15t-branding:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px var(--dialog-branding-focus-color);
+}
+
+:global(.c15t-dark) .branding:focus-visible {
+	box-shadow: 0 0 0 2px var(--dialog-branding-focus-color-dark);
+}
+
+:global(.c15t-dark) .branding {
+	color: var(--dialog-foreground-color-dark);
+}
+
+/**
+ * Branding Icon Sizing
+ * 
+ * @description Consistent sizing for branding icons
+ * @design Maintains aspect ratios for different brand assets
+ */
+.c15t-brandingC15T {
+	width: var(--dialog-branding-icon-width);
+	height: var(--dialog-branding-icon-height);
+}
+
+.c15t-brandingConsent {
+	width: var(--dialog-branding-icon-width);
+	height: 1rem;
+}
+
+/**
+ * Header Layout
+ * 
+ * @description Wrapper for header positioning
+ * @layout Relative positioning for absolute child elements
+ */
+.c15t-headerWrapper {
+	position: relative;
+}
+
+/**
+ * Close Button Positioning
+ * 
+ * @description Absolute positioning for close button
+ * @accessibility Maintains accessible hit target size
+ */
+.c15t-closeButton {
+	position: absolute;
+	right: 22px;
+	top: 22px;
+}
+
+/**
+ * Dialog Footer
+ * 
+ * @description Action area with proper spacing and theming
+ * @layout Centered content with border separator
+ */
+.c15t-footer {
+	justify-content: center;
+	font-size: 14px;
+	padding-top: 1rem;
+	padding-bottom: 1rem;
+	border-top: solid 1px var(--dialog-stroke-color);
+}
+
+:global(.c15t-dark) .c15t-footer {
+	border-color: var(--dialog-stroke-color-dark);
+}
+
+/**
+ * Modal Overlay
+ * 
+ * @description Background overlay for modal behavior
+ * @accessibility Prevents interaction with underlying content
+ */
+.c15t-overlay {
+	color: var(--dialog-link-text-color);
+	position: fixed;
+	inset: 0px;
+	background-color: var(--dialog-overlay-background-color);
+	z-index: var(--dialog-overlay-z-index);
+}
+
+/**
+ * Overlay Animation States
+ * 
+ * @description Smooth fade transitions for overlay background
+ * @performance GPU-accelerated opacity transitions
+ */
+.c15t-overlayVisible {
+	opacity: 1;
+	transition: opacity var(--dialog-animation-duration)
+		var(--dialog-animation-timing);
+}
+
+.c15t-overlayHidden {
+	opacity: 0;
+	transition: opacity var(--dialog-animation-duration)
+		var(--dialog-animation-timing);
+}
+
+:global(.c15t-dark) .overlay {
+	background-color: var(--dialog-overlay-background-color-dark);
+	color: var(--dialog-link-text-color-dark);
+}
+
+/**
+ * Dialog Card
+ * 
+ * @description Main content container with theming support
+ * @accessibility Maintains proper contrast and readability
+ */
+.c15t-card {
+	border-radius: var(--dialog-card-radius);
+	border: var(--dialog-border-width) var(--dialog-border-style)
+		var(--dialog-border-color);
+	background-color: var(--dialog-background-color);
+	color: var(--dialog-foreground-color);
+	box-shadow: var(--dialog-card-shadow);
+	overflow: hidden;
+}
+
+:global(.c15t-dark) .c15t-card {
+	background-color: var(--dialog-background-color-dark);
+	color: var(--dialog-foreground-color-dark);
+	border-color: var(--dialog-border-color-dark);
+}
+
+/**
+ * Dialog Header
+ * 
+ * @description Header section with title and description
+ * @layout Flexible column layout with consistent spacing
+ */
+.c15t-header {
+	display: flex;
+	flex-direction: column;
+	padding: var(--dialog-card-padding);
+	gap: var(--dialog-header-gap);
+}
+
+.c15t-header > * + * {
+	margin-top: var(--dialog-card-gap);
+}
+
+/**
+ * Typography Elements
+ * 
+ * @description Consistent text styling across dialog
+ * @accessibility Maintains proper heading hierarchy
+ */
+.c15t-title {
+	font-weight: var(--dialog-title-font-weight);
+	font-size: var(--dialog-title-font-size);
+	line-height: 1;
+	letter-spacing: var(--dialog-title-letter-spacing);
+}
+
+.c15t-description {
+	color: var(--dialog-muted-color);
+	font-size: var(--dialog-description-font-size);
+	font-weight: var(--dialog-description-font-weight);
+	line-height: var(--dialog-description-line-height);
+}
+
+:global(.c15t-dark) .c15t-description {
+	color: var(--dialog-muted-color-dark);
+}
+
+/**
+ * Dialog Content Area
+ * 
+ * @description Scrollable content area with proper spacing
+ * @layout Maintains consistent padding and gaps
+ */
+.c15t-content {
+	padding: var(--dialog-card-padding);
+	padding-top: 0;
+	gap: var(--dialog-content-gap);
+}
+
+/**
+ * Footer Section
+ * 
+ * @description Action area with proper theming and spacing
+ * @layout Centered alignment with consistent borders
+ */
+.c15t-footer {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: var(--dialog-footer-font-size);
+	padding-top: var(--dialog-footer-padding-y);
+	padding-bottom: var(--dialog-footer-padding-y);
+	border-top: var(--dialog-border-width) var(--dialog-border-style)
+		var(--dialog-stroke-color);
+}
+
+:global(.c15t-dark) .c15t-footer {
+	border-color: var(--dialog-stroke-color-dark);
+}

@@ -1,0 +1,80 @@
+{
+	"name": "@c15t/preact",
+	"version": "1.0.0",
+	"license": "GPL-3.0-only",
+	"sideEffects": false,
+	"type": "module",
+	"exports": {
+		"./headless": {
+			"types": "./dist/headless.d.ts",
+			"import": "./dist/headless.js",
+			"require": "./dist/headless.cjs"
+		},
+		"./consent-manager-dialog": {
+			"types": "./dist/components/consent-manager-dialog/index.d.ts",
+			"import": "./dist/components/consent-manager-dialog/index.js",
+			"require": "./dist/components/consent-manager-dialog/index.cjs"
+		},
+		"./consent-manager-widget": {
+			"types": "./dist/components/consent-manager-widget/index.d.ts",
+			"import": "./dist/components/consent-manager-widget/index.js",
+			"require": "./dist/components/consent-manager-widget/index.cjs"
+		},
+		"./cookie-banner": {
+			"types": "./dist/components/cookie-banner/index.d.ts",
+			"import": "./dist/components/cookie-banner/index.js",
+			"require": "./dist/components/cookie-banner/index.cjs"
+		},
+		"./hooks": {
+			"types": "./dist/hooks/index.d.ts",
+			"import": "./dist/hooks/index.js",
+			"require": "./dist/hooks/index.cjs"
+		},
+		"./index": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": ["dist"],
+	"scripts": {
+		"prebuild": "genversion --esm --semi src/version.ts",
+		"build": "pnpm prebuild && rslib build",
+		"dev": "pnpm prebuild && rslib build --watch",
+		"check-types": "tsc --noEmit",
+		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"lint": "pnpm biome lint ./src",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"browserslist": [">0.2%", "not dead", "not op_mini all"],
+	"dependencies": {
+		"@preact/signals": "^2.3.1",
+		"@radix-ui/react-accordion": "1.2.4",
+		"@radix-ui/react-slot": "1.2.0",
+		"@radix-ui/react-switch": "1.1.4",
+		"c15t": "workspace:*",
+		"clsx": "2.1.1",
+		"zustand": "^5.0.3"
+	},
+	"devDependencies": {
+		"@c15t/backend": "workspace:*",
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
+		"@preact/preset-vite": "^2.7.0",
+		"@rsbuild/plugin-preact": "^1.5.2",
+		"@testing-library/jest-dom": "^6.8.0",
+		"@testing-library/preact": "^3.2.4",
+		"genversion": "^3.2.0",
+		"vitest-browser-preact": "^0.1.2"
+	},
+	"peerDependencies": {
+		"preact": "^10.5.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

@@ -1,0 +1,432 @@
+/**
+ * Cookie Banner Component Styles
+ * 
+ * @fileoverview Comprehensive styling for cookie consent banner components
+ * @description Provides responsive, accessible styling for GDPR/CCPA compliant cookie banners
+ * 
+ * @version 1.5.0
+ * @author C15T Team
+ * 
+ * @example
+ * Basic usage in CSS modules:
+ * ```css
+ * @import '@c15t/styles/components/cookie-banner.css';
+ * ```
+ * 
+ * @example
+ * Usage with theme variables:
+ * ```css
+ * .custom-banner {
+ *   --banner-background-color: #f0f0f0;
+ *   --banner-border-radius: 12px;
+ * }
+ * ```
+ */
+
+ :root {
+	isolation: isolate;
+
+	/* CSS Reset and Base Styles */
+	font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+		"Apple Color Emoji", "Segoe UI Emoji";
+	line-height: 1.15;
+	-webkit-text-size-adjust: 100%;
+	tab-size: 4;
+
+	/* Layout Variables */
+	/** @description Small border radius for subtle rounding */
+	--banner-border-radius-sm: 0.3125rem;
+	/** @description Standard border radius for banner cards */
+	--banner-border-radius: 1.25rem;
+	/** @description Maximum width constraint for banner content */
+	--banner-max-width: 440px;
+
+	/* Animation Variables */
+	/** @description Duration for all banner transitions */
+	--banner-animation-duration: 200ms;
+	/** @description Timing function for smooth animations */
+	--banner-animation-timing: ease-out;
+	/** @description Entry animation configuration */
+	--banner-entry-animation: enter 150ms ease-out;
+	/** @description Exit animation configuration */
+	--banner-exit-animation: exit 150ms ease-out;
+
+	/* Border Configuration */
+	/** @description Standard border width for consistency */
+	--banner-border-width: 1px;
+
+	/* Shadow Effects */
+	/** @description Light theme shadow for elevation */
+	--banner-shadow: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
+	/** @description Dark theme shadow for elevation */
+	--banner-shadow-dark: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
+
+	/* Light Theme Color Palette */
+	/** @description Primary background color for light theme */
+	--banner-background-color: hsla(0 0% 100% / 1);
+	/** @description Dark theme primary background */
+	--banner-background-color-dark: hsla(0 0% 9.02% / 1);
+	/** @description Footer background in light theme */
+	--banner-footer-background-color: hsla(0 0% 96.86% / 1);
+	/** @description Footer background in dark theme */
+	--banner-footer-background-color-dark: hsla(0 0% 10.98% / 1);
+	/** @description Primary text color for light theme */
+	--banner-text-color: hsla(0 0% 9.02% / 1);
+	/** @description Primary text color for dark theme */
+	--banner-text-color-dark: hsla(0 0% 90% / 1);
+	/** @description Border color for light theme */
+	--banner-border-color: hsla(0 0% 92.16% / 1);
+	/** @description Border color for dark theme */
+	--banner-border-color-dark: hsla(0 0% 20% / 1);
+	/** @description Title text color for light theme */
+	--banner-title-color: hsla(0 0% 9.02% / 1);
+	/** @description Title text color for dark theme */
+	--banner-title-color-dark: hsla(0 0% 90% / 1);
+	/** @description Description text color for light theme */
+	--banner-description-color: hsla(0 0% 36.08% / 1);
+	/** @description Description text color for dark theme */
+	--banner-description-color-dark: hsla(0 0% 60% / 1);
+	/** @description Overlay background for modals */
+	--banner-overlay-background-color: hsla(0 0% 0% / 0.5);
+	/** @description Dark theme overlay background */
+	--banner-overlay-background-color-dark: hsla(0 0% 0% / 0.5);
+}
+
+/**
+ * Banner Root Container
+ * 
+ * @description Primary container for cookie banner positioning and layout
+ * @accessibility Maintains proper z-index stacking for screen readers
+ */
+.c15t-root {
+	padding: 1rem;
+	flex-direction: column;
+	width: 100%;
+	display: flex;
+	z-index: 999999998;
+	position: fixed;
+}
+
+/**
+ * Banner Visibility Animation States
+ * 
+ * @description Controls smooth entrance and exit animations
+ * @performance Uses transform instead of position changes for better performance
+ */
+.c15t-bannerVisible {
+	opacity: 1;
+	transform: translateY(0);
+	transition: opacity var(--banner-animation-duration)
+		var(--banner-animation-timing), transform var(--banner-animation-duration)
+		cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.c15t-bannerHidden {
+	opacity: 0;
+	transform: translateY(50px);
+	transition: opacity var(--banner-animation-duration)
+		var(--banner-animation-timing), transform var(--banner-animation-duration)
+		var(--banner-animation-timing);
+}
+
+/**
+ * Responsive Design Breakpoints
+ * 
+ * @description Adjusts layout for different screen sizes
+ * @breakpoint 640px - Tablet and desktop optimizations
+ */
+@media (min-width: 640px) {
+	.c15t-root {
+		padding: 1.5rem;
+		width: auto;
+	}
+}
+
+/**
+ * Position Variants
+ * 
+ * @description Fixed positioning options for banner placement
+ * @accessibility Ensures consistent positioning across viewport changes
+ */
+.c15t-bottomLeft {
+	left: 0px;
+	bottom: 0px;
+}
+
+.c15t-bottomRight {
+	right: 0px;
+	bottom: 0px;
+}
+
+.c15t-topLeft {
+	left: 0px;
+	top: 0px;
+}
+
+.c15t-topRight {
+	right: 0px;
+	top: 0px;
+}
+
+/**
+ * Banner Card Styles
+ * 
+ * @description Main visual container with theming support
+ * @accessibility Maintains sufficient contrast ratios
+ */
+.c15t-card {
+	position: relative;
+	width: 100%;
+	max-width: var(--banner-max-width);
+	border-radius: var(--banner-border-radius);
+	border-width: var(--banner-border-width);
+	border-color: var(--banner-border-color);
+	background-color: var(--banner-background-color);
+	box-shadow: var(--banner-shadow);
+	overflow: hidden;
+}
+
+/**
+ * Dark Theme Overrides
+ * 
+ * @description Automatic color adjustments for dark mode
+ * @scope Global dark mode class targeting
+ */
+:global(.c15t-dark) .c15t-card {
+	background-color: var(--banner-background-color-dark);
+	border-color: var(--banner-border-color-dark);
+	box-shadow: var(--banner-shadow-dark);
+}
+
+/**
+ * Animation State Handling
+ * 
+ * @description Controls animation states through data attributes
+ * @performance Uses CSS animations for optimal performance
+ */
+.c15t-card[data-state="open"] {
+	animation: var(--banner-entry-animation);
+}
+
+.c15t-card[data-state="closed"] {
+	animation: var(--banner-exit-animation);
+}
+
+/**
+ * Section Dividers
+ * 
+ * @description Adds consistent borders between banner sections
+ * @design Maintains visual hierarchy
+ */
+.c15t-card > :not([hidden]) ~ :not([hidden]) {
+	border-top-width: var(--banner-border-width);
+	border-color: var(--banner-border-color);
+}
+
+:global(.c15t-dark) .c15t-card > :not([hidden]) ~ :not([hidden]) {
+	border-color: var(--banner-border-color-dark);
+}
+
+/**
+ * Focus Management
+ * 
+ * @description Accessible focus indicators
+ * @accessibility Ensures keyboard navigation compliance
+ */
+.c15t-card:focus {
+	outline: none;
+	outline-offset: 2px;
+}
+
+/**
+ * CSS Animation Keyframes
+ * 
+ * @description Smooth scale-based animations
+ * @performance Hardware-accelerated transforms
+ */
+@keyframes enter {
+	from {
+		opacity: 0;
+		transform: scale(0.95);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+@keyframes exit {
+	from {
+		opacity: 1;
+		transform: scale(1);
+	}
+	to {
+		opacity: 0;
+		transform: scale(0.95);
+	}
+}
+
+/**
+ * Button Layout Classes
+ * 
+ * @description Responsive button sizing
+ * @responsive Full width on mobile, auto on desktop
+ */
+.c15t-rejectButton,
+.c15t-acceptButton,
+.c15t-customizeButton {
+	width: 100%;
+}
+
+@media (min-width: 640px) {
+	.c15t-rejectButton,
+	.c15t-acceptButton,
+	.c15t-customizeButton {
+		width: auto;
+	}
+}
+
+/**
+ * Header Section
+ * 
+ * @description Content area for title and description
+ * @layout Flexible column layout with responsive padding
+ */
+.c15t-header {
+	display: flex;
+	flex-direction: column;
+	padding: 1rem;
+	color: var(--banner-text-color);
+}
+
+:global(.c15t-dark) .c15t-header {
+	color: var(--banner-text-color-dark);
+}
+
+@media (min-width: 640px) {
+	.c15t-header {
+		padding: 1.5rem;
+	}
+}
+
+/**
+ * Header Element Spacing
+ * 
+ * @description Consistent vertical rhythm between header elements
+ * @design Maintains readability and visual hierarchy
+ */
+.c15t-header > :not([hidden]) ~ :not([hidden]) {
+	--banner-space-y-reverse: 0;
+	margin-top: calc(0.5rem * calc(1 - var(--banner-space-y-reverse)));
+	margin-bottom: calc(0.5rem * var(--banner-space-y-reverse));
+}
+
+/**
+ * Footer Section
+ * 
+ * @description Action area with button groups
+ * @layout Responsive flex layout
+ */
+.c15t-footer {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	justify-content: space-between;
+	padding-left: 1.25rem;
+	padding-right: 1.25rem;
+	padding-top: 1rem;
+	padding-bottom: 1rem;
+	background-color: var(--banner-footer-background-color);
+}
+
+:global(.c15t-dark) .c15t-footer {
+	background-color: var(--banner-footer-background-color-dark);
+}
+
+@media (min-width: 640px) {
+	.c15t-footer {
+		flex-direction: row;
+	}
+}
+
+/**
+ * Footer Button Groups
+ * 
+ * @description Organizes related action buttons
+ * @accessibility Maintains logical tab order
+ */
+.c15t-footerSubGroup {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.c15t-footerSubGroup button {
+	flex-grow: 1;
+}
+
+/**
+ * Typography Classes
+ * 
+ * @description Consistent text styling across components
+ * @accessibility Maintains WCAG contrast requirements
+ */
+.c15t-description {
+	font-size: 0.875rem;
+	line-height: 1.25rem;
+	letter-spacing: -0.006em;
+	font-weight: 400;
+	color: var(--banner-description-color);
+}
+
+:global(.c15t-dark) .c15t-description {
+	color: var(--banner-description-color-dark);
+}
+
+.c15t-title {
+	font-size: 1rem;
+	line-height: 1.5rem;
+	letter-spacing: -0.011em;
+	font-weight: 500;
+	color: var(--banner-title-color);
+}
+
+:global(.c15t-dark) .c15t-title {
+	color: var(--banner-title-color-dark);
+}
+
+/**
+ * Modal Overlay
+ * 
+ * @description Background overlay for modal presentations
+ * @accessibility Prevents interaction with background content
+ */
+.c15t-overlay {
+	position: fixed;
+	inset: 0px;
+	background-color: var(--banner-overlay-background-color);
+	z-index: 999999997;
+}
+
+/**
+ * Overlay Animation States
+ * 
+ * @description Smooth fade transitions for overlay
+ * @performance GPU-accelerated opacity transitions
+ */
+.c15t-overlayVisible {
+	opacity: 1;
+	transition: opacity var(--banner-animation-duration)
+		var(--banner-animation-timing);
+}
+
+.c15t-overlayHidden {
+	opacity: 0;
+	transition: opacity var(--banner-animation-duration)
+		var(--banner-animation-timing);
+}
+
+:global(.c15t-dark) .c15t-overlay {
+	background-color: var(--banner-overlay-background-color-dark);
+}
