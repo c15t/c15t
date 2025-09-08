@@ -1,6 +1,13 @@
 {
 	"name": "c15t",
 	"private": true,
+	"description": "Developer-first Consent Management Platform",
+	"homepage": "https://c15t.com",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git"
+	},
+	"license": "GPL-3.0-only",
 	"type": "module",
 	"scripts": {
 		"build": "turbo build --filter=!./examples/*",

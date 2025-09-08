@@ -51,7 +51,7 @@ pnpm add @c15t/node-sdk
 - Join our [Discord community](https://c15t.com/discord)
 - Open an issue on our [GitHub repository](https://github.com/c15t/c15t/issues)
 - Visit [consent.io](https://consent.io) and use the chat widget
-- Contact our support team via email [mailto:support@consent.io](mailto:support@consent.io)
+- Contact our support team via email [support@consent.io](mailto:support@consent.io)
 
 ## Contributing
 
