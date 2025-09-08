@@ -7,11 +7,6 @@ settings:
 overrides:
   '@libsql/kysely-libsql': ^0.4.1
 
-patchedDependencies:
-  fumadb@0.1.0:
-    hash: 9a65c6bfb0590938b24b12e9e5b4b9646b43d78845afefb12c71566f1af3b5bb
-    path: patches/fumadb@0.1.0.patch
-
 importers:
 
   .:
@@ -238,6 +233,9 @@ importers:
       '@c15t/backend':
         specifier: workspace:*
         version: link:../../packages/backend
+      '@c15t/cli':
+        specifier: workspace:*
+        version: link:../../packages/cli
       '@c15t/nextjs':
         specifier: workspace:*
         version: link:../../packages/nextjs
@@ -437,8 +435,8 @@ importers:
         specifier: ^0.41.0
         version: 0.41.0(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.3)(@opentelemetry/api@1.9.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3))
       fumadb:
-        specifier: ^0.1.0
-        version: 0.1.0(patch_hash=9a65c6bfb0590938b24b12e9e5b4b9646b43d78845afefb12c71566f1af3b5bb)(drizzle-orm@0.41.0(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.3)(@opentelemetry/api@1.9.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3)))(prisma@6.6.0(typescript@5.8.3))(typeorm@0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2))
+        specifier: ^0.1.1
+        version: 0.1.1(drizzle-orm@0.41.0(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.3)(@opentelemetry/api@1.9.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3)))(prisma@6.6.0(typescript@5.8.3))(typeorm@0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2))
       kysely:
         specifier: ^0.27.6
         version: 0.27.6
@@ -4738,8 +4736,8 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  fumadb@0.1.0:
-    resolution: {integrity: sha512-gUllCD+4nCXOU5Tc0D37mzwIxnuZTjMkVNmXSFWafsixZ5i11wEOzGuKjJSwfun3G46GkUxIpvOV8ev+R4jckA==}
+  fumadb@0.1.1:
+    resolution: {integrity: sha512-p2+qTHEP+8J+hyCmDXQIib1eXNvr3pIIqRcbKkbYEgN/upBOPr6/kfgYCLipdXie73ryYWubom+kWgL010zwkQ==}
     peerDependencies:
       convex: ^1.25.0
       drizzle-orm: ^0.44.0
@@ -12197,7 +12195,7 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  fumadb@0.1.0(patch_hash=9a65c6bfb0590938b24b12e9e5b4b9646b43d78845afefb12c71566f1af3b5bb)(drizzle-orm@0.41.0(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.3)(@opentelemetry/api@1.9.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3)))(prisma@6.6.0(typescript@5.8.3))(typeorm@0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2)):
+  fumadb@0.1.1(drizzle-orm@0.41.0(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.3)(@opentelemetry/api@1.9.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@11.9.1)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3)))(prisma@6.6.0(typescript@5.8.3))(typeorm@0.3.25(better-sqlite3@11.9.1)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2)):
     dependencies:
       '@clack/prompts': 0.11.0
       '@paralleldrive/cuid2': 2.2.2

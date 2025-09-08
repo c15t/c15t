@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/backend",
-	"version": "1.5.0-canary-20250902132553",
+	"version": "1.5.0-canary-20250904090836",
 	"license": "GPL-3.0-only",
 	"type": "module",
 	"exports": {
@@ -162,7 +162,7 @@
 		"base-x": "^5.0.1",
 		"defu": "^6.1.4",
 		"drizzle-orm": "^0.41.0",
-		"fumadb": "^0.1.0",
+		"fumadb": "^0.1.1",
 		"kysely": "^0.27.6",
 		"neverthrow": "^8.2.0",
 		"superjson": "^2.2.2",

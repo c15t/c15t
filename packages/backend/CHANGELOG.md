@@ -1,5 +1,11 @@
 # @c15t/backend
 
+## 1.5.0-canary-20250904090836
+
+### Patch Changes
+
+- d4f95c2: chore(backend): update fumadb
+
 ## 1.5.0-canary-20250902132553
 
 ### Minor Changes
