@@ -19,6 +19,5 @@
 		"Configure the client with your API base URL",
 		"Interact with the c15t API using type-safe methods"
 	],
-	"npmLink": "https://www.npmjs.com/package/@c15t/node-sdk",
 	"showCLIGeneration": false
 }

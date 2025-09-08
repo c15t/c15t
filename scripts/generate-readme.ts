@@ -66,11 +66,9 @@ interface PackageReadmeConfig {
 	support?: string[];
 	contributing?: string[];
 	security?: string;
-	npmLink?: string; // package name or full url
 	docsLink?: string;
 	quickStartLink?: string;
 	showCLIGeneration?: boolean;
-	npmName?: string; // optional safe package name for npm badge
 	customSections?: Record<string, string>;
 }
 
@@ -135,14 +133,12 @@ const baseReadmeTemplate = (rawConfig: PackageReadmeConfig) => {
 		: DEFAULT_SECURITY_SECTION;
 
 	// npm badge name: ensure scoped packages are encoded
-	const npmBadgeName = encodeNpmName(config.npmName || config.packageName);
-	const npmPackageLink = config.npmLink?.startsWith('http')
-		? config.npmLink
-		: `https://www.npmjs.com/package/${config.npmLink || npmBadgeName}`;
+	const npmBadgeName = encodeNpmName(config.packageName);
+	const npmPackageLink = `https://www.npmjs.com/package/${config.packageName}`;
 
 	// Build sections
 	const bannerBlock = `<p align="center">
-  <a href="https://c15t.com?utm_source=github&utm_medium=c15t_${config.packageName}" target="_blank" rel="noopener noreferrer">
+  <a href="https://c15t.com?utm_source=github&utm_medium=repopage_${npmBadgeName}" target="_blank" rel="noopener noreferrer">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg">
       <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner">
@@ -317,10 +313,27 @@ async function generateReadmes() {
 				packageName,
 				'readme.json'
 			);
+			const packageJsonPath = path.join(
+				packagesDir,
+				packageName,
+				'package.json'
+			);
+
 			const raw = await fs.readFile(readmeConfigPath, 'utf8');
 			const readmeConfig = JSON.parse(raw) as PackageReadmeConfig;
 
-			readmeConfig.packageName = packageName;
+			// Read package.json to supplement missing details
+			const packageJson = JSON.parse(
+				await fs.readFile(packageJsonPath, 'utf8')
+			);
+
+			// Set package name
+			readmeConfig.packageName = packageJson.name || packageName;
+
+			// Set description from package.json if not in readme.json
+			if (!readmeConfig.description) {
+				readmeConfig.description = packageJson.description || '';
+			}
 
 			const content = baseReadmeTemplate(readmeConfig);
 			const readmePath = path.join(packagesDir, packageName, 'README.md');

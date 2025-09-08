@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://c15t.com?utm_source=github&utm_medium=c15t_cli" target="_blank" rel="noopener noreferrer">
+  <a href="https://c15t.com?utm_source=github&utm_medium=repopage_%40c15t%2Fcli" target="_blank" rel="noopener noreferrer">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg">
       <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner">
@@ -13,7 +13,7 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
 [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
-[![npm version](https://img.shields.io/npm/v/cli?style=flat-square)](https://www.npmjs.com/package/@c15t/cli)
+[![npm version](https://img.shields.io/npm/v/%40c15t%2Fcli?style=flat-square)](https://www.npmjs.com/package/@c15t/cli)
 [![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
 [![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)

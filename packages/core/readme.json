@@ -1,6 +1,5 @@
 {
 	"title": "c15t: Developer-First Consent Management Platform",
-	"description": "A lightweight, framework-agnostic JavaScript library for managing user consent with minimal setup and rich customization.",
 	"features": [
 		"Developer-First Design: Easy integration with minimal configuration",
 		"Framework Agnostic: Works across JavaScript frameworks",
@@ -19,7 +18,7 @@
 		"",
 		"```bash\npnpm add @c15t/core\n```",
 		"",
-		"To manually install, run the following the guide on our [docs - manual setup](https://c15t.com/docs/frameworks/javascript/quickstart#manual-setup)."
+		"To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/javascript/quickstart#manual-setup)."
 	],
 	"usage": [
 		"Import the c15t core library",
@@ -29,7 +28,6 @@
 		"For full implementation details, see the [JavaScript quickstart docs](https://c15t.com/docs/frameworks/javascript/quickstart)",
 		"```typescript\n// Example usage\nimport { ConsentManager } from '@c15t/core'\n\nconst consentManager = new ConsentManager({\n  // Your configuration\n})\n```"
 	],
-	"npmLink": "https://www.npmjs.com/package/@c15t/core",
 	"docsLink": "https://c15t.com/docs/frameworks/javascript/quickstart",
 	"quickStartLink": "https://c15t.com/docs/frameworks/javascript/quickstart",
 	"githubLink": "https://github.com/c15t/c15t",

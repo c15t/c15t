@@ -25,7 +25,6 @@
 		"Expect potential breaking changes",
 		"Feedback and contributions welcome!"
 	],
-	"npmLink": "https://www.npmjs.com/package/@c15t/dev-tools",
 	"docsLink": "https://c15t.com/docs/dev-tools/overview",
 	"quickStartLink": "https://c15t.com/docs/dev-tools/quickstart",
 	"showCLIGeneration": false

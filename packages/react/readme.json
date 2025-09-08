@@ -21,7 +21,7 @@
 		"",
 		"```bash\npnpm add @c15t/react\n```",
 		"",
-		"To manually install, run the following the guide on our [docs - manual setup](https://c15t.com/docs/frameworks/react/quickstart#manual-setup)."
+		"To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/react/quickstart#manual-setup)."
 	],
 	"usage": [
 		"Import `ConsentManagerProvider` in your app's root component",
@@ -31,7 +31,6 @@
 
 		"```tsx\n// App.tsx\nimport { ConsentManagerProvider, CookieBanner } from '@c15t/react'\n\nfunction App() {\n  return (\n    <ConsentManagerProvider>\n      <YourApp />\n      <CookieBanner />\n    </ConsentManagerProvider>\n  )\n}\n```"
 	],
-	"npmLink": "https://www.npmjs.com/package/@c15t/react",
 	"docsLink": "https://c15t.com/docs/frameworks/react/quickstart",
 	"quickStartLink": "https://c15t.com/docs/frameworks/react/quickstart",
 	"showCLIGeneration": true

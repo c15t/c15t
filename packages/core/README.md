@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://c15t.com?utm_source=github&utm_medium=c15t_core" target="_blank" rel="noopener noreferrer">
+  <a href="https://c15t.com?utm_source=github&utm_medium=repopage_c15t" target="_blank" rel="noopener noreferrer">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg">
       <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner">
@@ -13,12 +13,12 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
 [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
-[![npm version](https://img.shields.io/npm/v/c15t?style=flat-square)](https://www.npmjs.com/package/@c15t/core)
+[![npm version](https://img.shields.io/npm/v/c15t?style=flat-square)](https://www.npmjs.com/package/c15t)
 [![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
 [![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
 
-A lightweight, framework-agnostic JavaScript library for managing user consent with minimal setup and rich customization.
+Developer-first CMP for JavaScript: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization
 
 ## Key Features
 
@@ -61,7 +61,7 @@ The CLI will:
 pnpm add @c15t/core
 ```
 
-To manually install, run the following the guide on our [docs - manual setup](https://c15t.com/docs/frameworks/javascript/quickstart#manual-setup).
+To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/javascript/quickstart#manual-setup).
 
 ## Usage
 
