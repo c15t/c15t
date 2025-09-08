@@ -1,8 +1,8 @@
 <p align="center">
   <a href="https://c15t.com?utm_source=github&utm_medium=repopage_%40c15t%2Fnextjs" target="_blank" rel="noopener noreferrer">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg">
-      <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner">
+      <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
+      <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
     </picture>
   </a>
   <br />
@@ -130,4 +130,4 @@ Our preference is that you make use of GitHub's private vulnerability reporting 
 
 ---
 
-**Built with ❤️ by the [consent.io](https://www.consent.io) team**
+**Built with ❤️ by the [consent.io](https://www.consent.io?utm_source=github&utm_medium=repopage_%40c15t%2Fnextjs) team**

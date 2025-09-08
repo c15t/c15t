@@ -122,15 +122,15 @@ const baseReadmeTemplate = (rawConfig: PackageReadmeConfig) => {
 	const config: PackageReadmeConfig = { ...rawConfig };
 
 	// Defaults
-	config.support = config.support?.length
-		? config.support
-		: DEFAULT_SUPPORT_SECTIONS;
-	config.contributing = config.contributing?.length
-		? config.contributing
-		: DEFAULT_CONTRIBUTING_SECTIONS;
-	config.security = isNonEmpty(config.security)
-		? config.security
-		: DEFAULT_SECURITY_SECTION;
+	if (!config.support || config.support.length === 0) {
+		config.support = DEFAULT_SUPPORT_SECTIONS;
+	}
+	if (!config.contributing || config.contributing.length === 0) {
+		config.contributing = DEFAULT_CONTRIBUTING_SECTIONS;
+	}
+	if (!isNonEmpty(config.security)) {
+		config.security = DEFAULT_SECURITY_SECTION;
+	}
 
 	// npm badge name: ensure scoped packages are encoded
 	const npmBadgeName = encodeNpmName(config.packageName);
@@ -140,8 +140,8 @@ const baseReadmeTemplate = (rawConfig: PackageReadmeConfig) => {
 	const bannerBlock = `<p align="center">
   <a href="https://c15t.com?utm_source=github&utm_medium=repopage_${npmBadgeName}" target="_blank" rel="noopener noreferrer">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg">
-      <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner">
+      <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
+      <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
     </picture>
   </a>
   <br />
@@ -157,19 +157,21 @@ const baseReadmeTemplate = (rawConfig: PackageReadmeConfig) => {
 [![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
 [![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)`;
 
-	const featuresBlock = config.features?.length
-		? `## Key Features
+	let featuresBlock = '';
+	if (config.features && config.features.length > 0) {
+		featuresBlock = `## Key Features
 
-${config.features.map((f) => `- ${f}`).join('\n')}`
-		: '';
+${config.features.map((f) => `- ${f}`).join('\n')}`;
+	}
 
 	const prerequisitesBlock = addSection(
 		'## Prerequisites',
 		config.prerequisites
 	);
 
-	const quickStartBlock = config.showCLIGeneration
-		? `## Quick Start
+	let quickStartBlock = '';
+	if (config.showCLIGeneration) {
+		quickStartBlock = `## Quick Start
 
 Easiest setup with @c15t/cli:
 
@@ -187,8 +189,8 @@ The CLI will:
 - Configure your c15t instance
 - Set up environment variables
 - Add consent management components to your app
-`
-		: '';
+`;
+	}
 
 	const manualInstallationBlock = config.manualInstallation?.length
 		? `## Manual Installation
@@ -202,55 +204,68 @@ ${config.manualInstallation.map((step) => `${step}`).join('\n')}`
 ${config.installation.map((step) => `${step}`).join('\n')}`
 		: '';
 
-	const usageBlock = config.usage?.length
-		? `## Usage
+	let usageBlock = '';
+	if (config.usage && config.usage.length > 0) {
+		usageBlock = `## Usage
 
-${renderNumberedWithCodeBlocks(config.usage)}`
-		: '';
+${renderNumberedWithCodeBlocks(config.usage)}`;
+	}
 
-	const commandsBlock = config.commands?.length
-		? `## Available Commands
+	let commandsBlock = '';
+	if (config.commands && config.commands.length > 0) {
+		commandsBlock = `## Available Commands
 
-${config.commands.map((cmd) => `- \`${cmd.name}\`: ${cmd.description}`).join('\n')}`
-		: '';
+${config.commands.map((cmd) => `- \`${cmd.name}\`: ${cmd.description}`).join('\n')}`;
+	}
 
-	const globalFlagsBlock = config.globalFlags?.length
-		? `## Global Flags
+	let globalFlagsBlock = '';
+	if (config.globalFlags && config.globalFlags.length > 0) {
+		globalFlagsBlock = `## Global Flags
 
-${config.globalFlags.map((flag) => `- \`${flag.flag}\`: ${flag.description}`).join('\n')}`
-		: '';
+${config.globalFlags.map((flag) => `- \`${flag.flag}\`: ${flag.description}`).join('\n')}`;
+	}
 
-	const telemetryBlock = config.telemetry
-		? `## Telemetry
+	let telemetryBlock = '';
+	if (config.telemetry) {
+		let detailsSection = '';
+		if (config.telemetry.details && config.telemetry.details.length > 0) {
+			detailsSection = config.telemetry.details
+				.map((detail) => `- ${detail}`)
+				.join('\n');
+		}
+
+		let disableMethodsSection = '';
+		if (
+			config.telemetry.disableMethods &&
+			config.telemetry.disableMethods.length > 0
+		) {
+			disableMethodsSection = `Disable telemetry by:
+
+${config.telemetry.disableMethods.map((method) => `- ${method}`).join('\n')}`;
+		}
+
+		telemetryBlock = `## Telemetry
 
 ${config.telemetry.description}
 
-${
-	config.telemetry.details?.length
-		? config.telemetry.details.map((detail) => `- ${detail}`).join('\n')
-		: ''
-}
+${detailsSection}
 
-${
-	config.telemetry.disableMethods?.length
-		? `Disable telemetry by:
+${disableMethodsSection}`;
+	}
 
-${config.telemetry.disableMethods.map((method) => `- ${method}`).join('\n')}`
-		: ''
-}`
-		: '';
+	let docsBlock = '';
+	if (config.docsLink) {
+		docsBlock = `## Documentation
 
-	const docsBlock = config.docsLink
-		? `## Documentation
+For further information, guides, and examples visit the [reference documentation](${config.docsLink}).`;
+	}
 
-For further information, guides, and examples visit the [reference documentation](${config.docsLink}).`
-		: '';
-
-	const customSectionsBlock = config.customSections
-		? Object.entries(config.customSections)
-				.map(([heading, content]) => `## ${heading}\n\n${content}`)
-				.join('\n')
-		: '';
+	let customSectionsBlock = '';
+	if (config.customSections) {
+		customSectionsBlock = Object.entries(config.customSections)
+			.map(([heading, content]) => `## ${heading}\n\n${content}`)
+			.join('\n');
+	}
 
 	const supportBlock = addSection('## Support', config.support);
 	const contributingBlock = addSection('## Contributing', config.contributing);
@@ -261,7 +276,7 @@ For further information, guides, and examples visit the [reference documentation
 
 ---
 
-**Built with ❤️ by the [consent.io](https://www.consent.io) team**`;
+**Built with ❤️ by the [consent.io](https://www.consent.io?utm_source=github&utm_medium=repopage_${npmBadgeName}) team**`;
 
 	const readmeContent = [
 		bannerBlock,

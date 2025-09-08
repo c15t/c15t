@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://c15t.com?utm_source=github&utm_medium=repopage" target="_blank" rel="noopener noreferrer">
+  <a href="https://c15t.com?utm_source=github&utm_medium=repo_homepage" target="_blank" rel="noopener noreferrer">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
       <img src="docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
@@ -76,6 +76,7 @@ Our preference is that you make use of GitHub's private vulnerability reporting 
 
 [GNU General Public License v3.0](https://github.com/c15t/c15t/blob/main/LICENSE.md)
 
+
 ---
 
-**Built with ❤️ by the [consent.io](https://www.consent.io) team**
+**Built with ❤️ by the [consent.io](https://www.consent.io?utm_source=github&utm_medium=repo_homepage) team**

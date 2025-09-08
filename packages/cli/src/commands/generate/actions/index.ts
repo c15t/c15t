@@ -223,7 +223,7 @@ async function handleStorageModeSelection(
 			},
 			{
 				value: 'self-hosted',
-				label: 'Self-Hosted',
+				label: 'Self-hosted',
 				hint: 'Run your own c15t backend',
 			},
 			{
