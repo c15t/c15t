@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { type C15TOptions, c15tInstance } from '../core';
 
 const mockOptions: C15TOptions = {
-	appName: 'Consent.io Dashboard',
+	appName: 'consent.io Dashboard',
 	basePath: '/api/c15t',
 	trustedOrigins: [
 		'localhost',

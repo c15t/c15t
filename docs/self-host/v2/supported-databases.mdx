@@ -1,0 +1,35 @@
+---
+title: Supported Databases
+description: List of supported databases for self-hosting c15t with the @c15t/backend package.
+lastModified: 2025-08-16
+canary: true
+---
+
+The c15t uses FumaDB to integrate with a variety of databases.
+
+## Supported ORMs
+
+- Drizzle ORM (full support, query mode required)
+- Prisma ORM (full support)
+- TypeORM (via Kysely, no MongoDB support)
+
+## Supported Databases
+
+- MongoDB (full support)
+- MySQL (full support, via Kysely)
+- PostgreSQL (full support, via Kysely)
+- SQLite (full support, via Kysely)
+- Microsoft SQL Server (full support, via Kysely)
+- Cockroach DB (full support, via Kysely)
+
+For an up to date list of supported databases, see the [FumaDB documentation](https://fumadb.vercel.app/docs/supported).
+
+## Available Adapters
+
+```tsx
+import { drizzleAdapter } from "@c15t/backend/v2/db/adapters/drizzle";
+import { kyselyAdapter } from "@c15t/backend/v2/db/adapters/kysely";
+import { prismaAdapter } from "@c15t/backend/v2/db/adapters/prisma";
+import { mongoAdapter } from "@c15t/backend/v2/db/adapters/mongo";
+import { typeormAdapter } from "@c15t/backend/v2/db/adapters/typeorm";
+```

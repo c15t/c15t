@@ -1,0 +1,77 @@
+name: Code of Conduct Violation Report
+description: Report a violation of our community Code of Conduct
+title: "Code of Conduct Violation: [Brief Description]"
+labels:
+  - conduct-violation
+  - confidential
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🛡️ Code of Conduct Violation Report
+
+        Thank you for reporting a potential Code of Conduct violation. We take these reports seriously and will handle them with the utmost confidentiality and care.
+
+        **Important**: This form is for reporting serious misconduct that violates our [Code of Conduct](https://c15t.com/docs/oss/code-of-conduct).
+
+  - type: dropdown
+    id: violation-type
+    attributes:
+      label: Type of Violation
+      description: Select the type of behavior that was inappropriate
+      options:
+        - Harassment
+        - Discriminatory Language
+        - Trolling or Insulting Comments
+        - Inappropriate Content
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: incident-description
+    attributes:
+      label: Detailed Description
+      description: Please provide a clear, detailed account of the incident
+      placeholder: |
+        - What happened?
+        - When did it happen?
+        - Where did it occur (e.g., GitHub discussion, Discord, etc.)?
+        - Who was involved?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any additional information that might help us understand the situation
+      placeholder: |
+        - Links to specific comments or interactions
+        - Screenshots (if appropriate and consensual)
+        - Any previous interactions that provide context
+    validations:
+      required: false
+
+  - type: dropdown
+    id: reporter-comfort
+    attributes:
+      label: Reporting Preference
+      description: How would you like us to handle this report?
+      options:
+        - I'm comfortable being contacted for more information
+        - I prefer to remain anonymous
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## 🤝 Our Commitment
+
+        We are committed to:
+        - Reviewing your report promptly
+        - Maintaining strict confidentiality
+        - Taking appropriate action to ensure community safety
+
+        **Note**: All reports will be reviewed by our Conduct Committee with the utmost discretion and professionalism.

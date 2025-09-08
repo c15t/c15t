@@ -1,20 +1,3 @@
 {
-	"title": "Backend & Self-Hosting",
-	"root": true,
-	"icon": "server",
-	"pages": [
-		"index",
-		"core-concepts",
-		"database-adapters",
-		"plugins",
-		"--- Databases ---",
-		"databases/postgres",
-		"databases/mysql",
-		"databases/sqlite",
-		"--- Database Adapters ---",
-		"adapters/memory",
-		"adapters/kysely",
-		"adapters/prisma",
-		"adapters/drizzle"
-	]
+	"pages": ["v1", "v2"]
 }

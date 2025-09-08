@@ -1,0 +1,249 @@
+---
+title: PostgreSQL Adapter
+description: The PostgreSQL adapter provides integration with PostgreSQL, a powerful, open-source relational database system known for reliability, feature robustness, and performance.
+lastModified: 2025-04-10  
+deprecated: true
+deprecatedReason: "@c15t/backend v1 did not deliver the flexibility we wanted and fell short of our standards. It is now deprecated as we work on a full rewrite, with v2 entering canary soon. This does not affect consent.io deployments, which remain stable."
+---
+
+## Installation
+
+Install the PostgreSQL adapter and its dependencies:
+
+<PackageCommandTabs command="@c15t/backend pg @types/pg" mode="install" />
+
+## Configuration
+
+Configure the PostgreSQL adapter with your connection details:
+
+```typescript
+import { c15tInstance } from '@c15t/backend';
+import { postgresAdapter } from '@c15t/backend/db/adapters/postgres';
+
+const instance = c15tInstance({
+  baseURL: 'http://localhost:3000',
+  database: postgresAdapter({
+    // Connection string approach
+    connectionString: 'postgresql://username:password@localhost:5432/c15t',
+    
+    // Or detailed configuration
+    connection: {
+      host: 'localhost',
+      port: 5432,
+      database: 'c15t',
+      user: 'postgres',
+      password: 'password',
+      ssl: false, // Set to true for SSL connections
+    },
+    
+    // Connection pool configuration
+    pool: {
+      min: 2,
+      max: 10,
+      idleTimeoutMillis: 30000
+    },
+    
+    // Query logging (for development)
+    debug: process.env.NODE_ENV !== 'production',
+    
+    // Schema to use (default: public)
+    schema: 'public',
+  }),
+});
+```
+
+## Schema Management
+
+Initialize your database schema:
+
+```typescript
+const createSchema = async (db) => {
+  await db.raw(`
+    CREATE TABLE IF NOT EXISTS users (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    
+    CREATE TABLE IF NOT EXISTS consents (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      purpose TEXT NOT NULL,
+      granted BOOLEAN NOT NULL,
+      timestamp TIMESTAMPTZ DEFAULT NOW(),
+      metadata JSONB
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_consents_user_id ON consents(user_id);
+    CREATE INDEX IF NOT EXISTS idx_consents_purpose ON consents(purpose);
+  `);
+};
+
+// Use in initialization
+const instance = c15tInstance({
+  database: postgresAdapter({
+    connectionString: 'postgresql://username:password@localhost:5432/c15t',
+    onInit: createSchema,
+  }),
+});
+```
+
+## Usage Examples
+
+### Basic CRUD Operations
+
+```typescript
+// Create a new record
+const user = await instance.database.create('users', {
+  name: 'John Doe',
+  email: 'john@example.com'
+  // id and created_at will be auto-generated
+});
+
+// Find records with powerful filtering
+const users = await instance.database.find('users', {
+  where: { email: { $like: '%@example.com' } },
+  orderBy: { created_at: 'desc' },
+  limit: 10,
+  offset: 20
+});
+
+// Update a record
+const updatedUser = await instance.database.update(
+  'users',
+  { where: { id: user.id } },
+  { name: 'John Smith' }
+);
+
+// Delete a record
+await instance.database.delete('users', { where: { id: user.id } });
+```
+
+### Transactions
+
+```typescript
+await instance.database.transaction(async (trx) => {
+  // All operations in this function use the same transaction
+  const user = await trx.create('users', {
+    name: 'Alice Johnson',
+    email: 'alice@example.com'
+  });
+  
+  await trx.create('consents', {
+    user_id: user.id,
+    purpose: 'marketing',
+    granted: true,
+    metadata: { source: 'website', campaign: 'summer2023' }
+  });
+  
+  // Transaction automatically commits unless an error is thrown
+});
+```
+
+### Advanced Queries
+
+```typescript
+// JSON filtering (PostgreSQL specific)
+const users = await instance.database.find('consents', {
+  where: {
+    'metadata->source': 'website',
+    'metadata->campaign': 'summer2023'
+  }
+});
+
+// Raw SQL for complex queries
+const stats = await instance.database.raw(`
+  SELECT 
+    purpose, 
+    COUNT(*) as total_count,
+    SUM(CASE WHEN granted THEN 1 ELSE 0 END) as granted_count
+  FROM consents
+  GROUP BY purpose
+  ORDER BY total_count DESC
+`);
+```
+
+### Using PostgreSQL-Specific Features
+
+```typescript
+// JSONB operations
+await instance.database.update(
+  'consents',
+  { where: { id: 'some-uuid' } },
+  {
+    metadata: {
+      $query: 'jsonb_set(metadata, \'{preferences}\', $1)',
+      $params: ['{"email":true,"sms":false}']
+    }
+  }
+);
+
+// Full-text search
+const searchResults = await instance.database.find('users', {
+  where: {
+    $raw: 'to_tsvector(name || \' \' || email) @@ to_tsquery($1)',
+    $params: ['john & email']
+  }
+});
+```
+
+## Performance Optimization
+
+```typescript
+// Create optimized indexes
+await instance.database.raw(`
+  -- B-tree index for exact lookups
+  CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+  
+  -- GIN index for JSONB
+  CREATE INDEX IF NOT EXISTS idx_consents_metadata ON consents USING GIN (metadata);
+  
+  -- Partial index for active users
+  CREATE INDEX IF NOT EXISTS idx_active_users ON users(created_at) 
+  WHERE created_at > NOW() - INTERVAL '30 days';
+`);
+```
+
+## Best Practices
+
+- **Use connection pooling** for efficient resource management
+- **Implement database indexes** for frequently queried columns
+- **Use transactions** for operations that must succeed or fail together
+- **Consider using prepared statements** for repetitive queries (handled automatically)
+- **Leverage PostgreSQL-specific features** like JSON/JSONB, array types, and full-text search
+- **Regularly VACUUM and ANALYZE** your database for performance maintenance
+- **Set appropriate statement timeouts** to prevent long-running queries
+
+## Monitoring and Management
+
+```typescript
+// Check database health
+const health = await instance.database.raw(`
+  SELECT 
+    current_database() AS database,
+    current_setting('server_version') AS version,
+    pg_size_pretty(pg_database_size(current_database())) AS size
+`);
+
+// Monitoring query performance
+const slowQueries = await instance.database.raw(`
+  SELECT query, calls, total_time, mean_time
+  FROM pg_stat_statements
+  ORDER BY total_time DESC
+  LIMIT 10
+`);
+```
+
+## Limitations
+
+- Requires a running PostgreSQL server
+- More complex setup compared to SQLite
+- Connection management adds complexity
+
+## Related Resources
+
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [node-postgres Documentation](https://node-postgres.com/)
+- [Database Adapter Interface](../database-adapters)
+- [Core Concepts](../core-concepts)

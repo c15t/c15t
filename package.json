@@ -1,34 +1,43 @@
 {
 	"name": "c15t",
 	"private": true,
+	"description": "Developer-first Consent Management Platform",
+	"homepage": "https://c15t.com",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git"
+	},
+	"license": "GPL-3.0-only",
 	"type": "module",
 	"scripts": {
+		"build": "turbo build --filter=!./examples/*",
 		"build:apps": "turbo build --filter=./apps/*",
 		"build:libs": "turbo build --filter=./packages/*",
-		"build": "turbo build --filter=!./examples/*",
 		"changeset": "changeset",
 		"check-types": "turbo check-types",
 		"ci:publish": "pnpm changeset tag && pnpm publish -r",
 		"ci:version": "pnpm changeset version",
+		"dev": "turbo dev --filter=!./examples/*",
 		"dev:docs": "turbo dev --filter=./docs/*",
 		"dev:docs-app": "pnpm --prefix .docs dev",
 		"dev:libs": "turbo dev --filter=./packages/*",
-		"dev": "turbo dev --filter=!./examples/*",
-		"setup:docs": "tsx scripts/setup-docs.ts",
 		"fmt": "turbo fmt",
 		"fmt:docs": "pnpm remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
-		"knip": "knip",
-		"lint:fix": "turbo lint -- --write",
-		"lint": "turbo lint",
+		"generate:readmes": "tsx scripts/generate-readme.ts",
 		"postinstall": "lefthook install",
-		"release:canary": "pnpm build:libs && changeset publish --tag canary",
+		"knip": "knip",
+		"lint": "turbo lint",
+		"lint:docs": "pnpm remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
+		"lint:fix": "turbo lint -- --write",
 		"release": "pnpm build:libs && changeset publish",
+		"release:canary": "pnpm build:libs && changeset publish --tag canary",
+		"setup:docs": "tsx scripts/setup-docs.ts",
 		"test": "turbo test --filter=!./examples/*",
-		"version:canary": "changeset version --snapshot canary && pnpm install --lockfile-only",
-		"version:prerelease:exit": "changeset pre exit",
-		"version:prerelease": "changeset pre enter canary",
-		"version": "changeset version && pnpm install --lockfile-only",
 		"vercel-build": "tsx scripts/setup-docs.ts --vercel",
+		"version": "changeset version && pnpm install --lockfile-only",
+		"version:canary": "changeset version --snapshot canary && pnpm install --lockfile-only",
+		"version:prerelease": "changeset pre enter canary",
+		"version:prerelease:exit": "changeset pre exit",
 		"view-report": "turbo run view-report"
 	},
 	"resolutions": {
@@ -64,6 +73,6 @@
 	},
 	"packageManager": "pnpm@10.8.0",
 	"engines": {
-		"node": ">=22"
+		"node": ">=18.17.0"
 	}
 }

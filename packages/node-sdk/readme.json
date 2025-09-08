@@ -1,0 +1,23 @@
+{
+	"title": "@c15t/node-sdk: Type-Safe Node.js API Client",
+	"description": "A fully typed, flexible Node.js SDK for seamless interaction with the c15t consent management platform API.",
+	"features": [
+		"Type-safe API client with full TypeScript support",
+		"Flexible client configuration with authentication and custom headers",
+		"Supports dynamic base URL and API prefix configuration",
+		"Built on top of @orpc/client for robust API interactions",
+		"Easy integration with Node.js applications",
+		"Comprehensive error handling and URL validation"
+	],
+	"prerequisites": [
+		"Node.js 18.17.0 or later",
+		"A Hosted [c15t instance](https://consent.io) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)"
+	],
+	"manualInstallation": ["", "```bash\npnpm add @c15t/node-sdk\n```"],
+	"usage": [
+		"Import the c15tClient function from the SDK",
+		"Configure the client with your API base URL",
+		"Interact with the c15t API using type-safe methods"
+	],
+	"showCLIGeneration": false
+}

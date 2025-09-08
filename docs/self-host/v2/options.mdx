@@ -1,0 +1,48 @@
+---
+title: Options Reference
+description: Reference for all options available for the c15t instance.
+lastModified: 2025-08-16
+canary: true
+---
+
+### appName
+
+Defaults to `c15t`, is used in the logger and in the OpenAPI spec.
+
+### basePath
+
+The path to the c15t API, defaults to `/`. If you're self-hosting c15t with Next.js, you should set this to `/api/c15t`.
+
+### adapter (required)
+
+This is the database adapter to use for the c15t instance. Learn more about the available adapters in the [supported databases](/docs/self-host/supported-databases) page.
+
+### trustedOrigins
+
+This is the list of origins that are trusted for CORS and CSRF protection.
+
+## Advanced Options
+
+### disableGeoLocation
+
+This will disable geo-location detection and the banner will always be shown.
+
+### customTranslations
+
+This allows you to override the default @c15t/translations with your own. Server side translations can help reduce the bundle size of your banner.
+
+### ipAddress
+
+This allows you to override the default ip address headers.
+
+### openapi
+
+Configure the OpenAPI spec generation.
+
+### telemetry
+
+Configure telemetry for the c15t instance.
+
+## Type Definitions
+
+<AutoTypeTable path="./packages/backend/src/v2/core.ts" name="C15TOptions" />

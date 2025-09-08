@@ -30,15 +30,10 @@ import {
 } from './cookie-banner';
 
 /**
- * Type definition for the CookieBanner component with compound components attached.
- *
- * @remarks
  * This interface extends the base CookieBanner component with additional sub-components
  * that can be used to compose the banner's structure.
- *
- * @public
  */
-interface CookieBannerCompoundComponent extends FC<CookieBannerProps> {
+export interface CookieBannerCompoundComponent extends FC<CookieBannerProps> {
 	Root: typeof Root;
 	Card: typeof Card;
 	Header: typeof Header;
@@ -50,9 +45,6 @@ interface CookieBannerCompoundComponent extends FC<CookieBannerProps> {
 	CustomizeButton: typeof CustomizeButton;
 	AcceptButton: typeof AcceptButton;
 	Overlay: typeof Overlay;
-	// Aliases for backward compatibility
-	Content: typeof Card;
-	Actions: typeof FooterSubGroup;
 }
 /**
  * A customizable cookie consent banner component.

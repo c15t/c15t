@@ -11,141 +11,128 @@ availableIn:
     title: 'React'
 ---
 
-import {CookieIcon, ToggleRightIcon} from 'lucide-react';
+The Consent Manager Dialog provides a clean, focused way for users to customize their privacy preferences. This dialog is required by various privacy regulations like GDPR.
 
-The Consent Manager Dialog provides a clean, focused way for users to customize their privacy preferences. Think of it as a spotlight that dims the rest of your application while users make important privacy decisions. When users click "Customize" on your cookie banner, this dialog smoothly appears with detailed privacy controls.
 
-{/* <DialogExample  /> */}
-
-## How It Works
-
-The dialog acts as a wrapper around the Consent Manager Widget, adding several key features:
-
-1. A smooth fade-in animation that draws attention to privacy settings
-2. An overlay that dims the rest of the application
-3. Proper focus management for accessibility
-4. Automatic portal rendering to avoid layout issues
-5. Smart handling of mounting and unmounting
-
-Let's explore how to implement this in your application.
-
-## Quick Start
-
-First, install the package if you haven't already:
-
-{/* <PackageCommandTabs command="@c15t/react" mode="install" /> */}
-
-Then add the dialog to your application:
-
-```tsx
-import {
-	ConsentManagerDialog,
-	ConsentManagerProvider,
-} from "@c15t/react";
-
-function App() {
-  return (
-    <ConsentManagerProvider>
-      <YourApp />
-      <ConsentManagerDialog />
-    </ConsentManagerProvider>
-  )
+<ResponsivePreview
+  src="https://c15t-examples.vercel.app/react/simple-consent-dialog"
+  code={`
+  export function SimpleConsentDialog({ children }: { children?: ReactNode }) {
+	return (
+		<ConsentManagerProvider
+			options={{
+				mode: 'offline',
+				consentCategories: ['experience', 'marketing', 'functionality', 'necessary'],
+			}}
+		>
+			<ConsentManagerDialog />
+			<ConsentManagerDialogButton />
+			{children}
+		</ConsentManagerProvider>
+	);
 }
-```
 
-The dialog will automatically:
+function ConsentManagerDialogButton() {
+	const { setIsPrivacyDialogOpen, isPrivacyDialogOpen } = useConsentManager();
 
-- Mount itself correctly in the DOM
-- Handle animations smoothly
-- Manage focus when opened
-- Maintain accessibility standards
+	useEffect(() => {
+		setIsPrivacyDialogOpen(true);
+	}, [setIsPrivacyDialogOpen]);
 
-## Understanding Animations
+	if (isPrivacyDialogOpen) {
+		return null;
+	}
 
-The dialog uses thoughtful animations to create a polished user experience. When opened, it:
-
-1. Fades in an overlay to dim the background
-2. Scales and fades in the dialog content
-3. Smoothly reverses these animations when closing
-
-You can control this behavior with the `disableAnimation` prop:
-
-```tsx
-// Disable animations if needed
-<ConsentManagerDialog disableAnimation />
-```
-
-## Customizing Appearance
-
-The dialog supports two main approaches to styling:
-
-### Using Themes
-
-Apply custom styles through the theme prop:
-
-```tsx
-<ConsentManagerDialog
-  theme={{
-    "widget.root": "",
-	  "widget.branding": "",
-	  "widget.footer": "",
-	  "widget.footer.sub-group": "",
-		"widget.footer.reject-button": "",
-		"widget.footer.accept-button": "",
-		"widget.footer.customize-button": "",
-		"widget.footer.save-button": "",
-		"widget.accordion": "",
-		"widget.accordion.trigger": "",
-		"widget.accordion.trigger-inner": "",
-		"widget.accordion.item": "",
-		"widget.accordion.icon": "",
-		"widget.accordion.arrow.open": "",
-		"widget.accordion.arrow.close": "",
-		"widget.accordion.content": "",
-		"widget.accordion.content-inner": "",
-		"widget.switch": "",
-		"widget.switch.track": "",
-		"widget.switch.thumb": "",
-		"widget.dialog": "",
-		"widget.dialog.root": "",
-		"widget.dialog.header": "",
-		"widget.dialog.title": "",
-		"widget.dialog.description": "",
-		"widget.dialog.content": "",
-		"widget.dialog.footer": "",
-		"widget.overlay": "",
-  }}
+	return (
+		<button type="button" onClick={() => setIsPrivacyDialogOpen(!isPrivacyDialogOpen)}>
+			Open Consent Dialog
+		</button>
+	);
+}
+`}
+  expectedHeight={600}
 />
-```
 
-### Removing Default Styles
 
-For complete styling control, disable the default styles:
 
-```tsx
-<ConsentManagerDialog noStyle />
-```
+## Usage
 
-This gives you a blank canvas to build upon while maintaining the dialog's functionality.
+<Tabs groupId="Version" items={["Recommended", "Expanded"]}>
+  <Tab value="Recommended">
+    ```tsx
+    import { ConsentManagerProvider, CookieBanner, ConsentManagerDialog } from "@c15t/react";
 
-## Integration Examples
+    export default function App() {
+      return (
+        <ConsentManagerProvider options={{
+          mode: 'c15t',
+          backendURL: 'https://your-instance.c15t.dev',
+          consentCategories: ['necessary', 'marketing'],
+        }}>
+          <CookieBanner /> 
+          <ConsentManagerDialog />
+        </ConsentManagerProvider>
+      );
+    };
 
-### With Custom Trigger Button
+    ```
+  </Tab>
 
-```tsx
-function PrivacyCenter() {
-  const consentManager = useConsentManager()
-  
-  return (
-    <button
-      onClick={() => consentManager.setIsPrivacyDialogOpen(true)}
-      className="privacy-button"
-    >
-      Privacy Settings
-    </button>
-  )
-}
-```
+  <Tab value="expanded">
+    ```tsx
+    import { ConsentManagerProvider, CookieBanner, ConsentManagerWidget } from "@c15t/react";
+
+    const CustomDialog = () => {
+    	return (
+        <ConsentManagerDialog.Root>
+          <ConsentManagerDialog.Card>
+            <ConsentManagerDialog.Header>
+              <ConsentManagerDialog.HeaderTitle>
+                Custom Title
+              </ConsentManagerDialog.HeaderTitle>
+              <ConsentManagerDialog.HeaderDescription>
+                Custom Description
+              </ConsentManagerDialog.HeaderDescription>
+            </ConsentManagerDialog.Header>
+            <ConsentManagerDialog.Content>
+              <ConsentManagerWidget />
+            </ConsentManagerDialog.Content>
+            <ConsentManagerDialog.Footer themeKey="dialog.footer">
+              Custom Footer
+            </ConsentManagerDialog.Footer>
+          </ConsentManagerDialog.Card>
+        </ConsentManagerDialog.Root>
+    	);
+    };
+
+
+    export default function App() {
+      return (
+        <ConsentManagerProvider options={{
+          mode: 'c15t',
+          backendURL: 'https://your-instance.c15t.dev',
+          consentCategories: ['necessary', 'marketing'],
+        }}>
+          <CookieBanner />
+          <CustomDialog /> 
+        </ConsentManagerProvider>
+      );
+    };
+    ```
+  </Tab>
+</Tabs>
+
+## Styling
+
+The Consent Manager Dialog is designed to adapt to your application's visual style. Learn more about our [styling system](/docs/react/styling/overview).
+
+### Theme Variables
+
+These keys are available on the theme object to customize your dialog.
+
+The dialog also contains the `ConsentManagerWidget` component so the theme keys are available to customize the widget.
+
+<AutoTypeTable path="./packages/react/src/components/consent-manager-dialog/theme.ts" name="ConsentManagerDialogTheme" />
 
 ## Accessibility Features
 
@@ -206,59 +193,14 @@ The dialog announces itself appropriately with:
 - Clear labeling of controls
 - Status updates when opened/closed
 
-## Technical Details
-
-### Portal Rendering
-
-The dialog uses React's createPortal to render outside your main application hierarchy. This ensures:
-
-- No CSS specificity conflicts
-- Proper stacking context
-- Clean DOM structure
-
-### Client-side Only
-
-To prevent hydration issues, the dialog only renders on the client side. This is handled automatically through the `isMounted` state.
-
 ## API Reference
 
-### Props
+### ConsentManagerDialog
 
-| Prop | Type | Description | Default |
-|------|------|-------------|---------|
-| theme | ConsentManagerWidgetTheme | Theme configuration | {} |
-| disableAnimation | boolean | Turns off animations | false |
-| noStyle | boolean | Removes default styles | false |
+The main component accepts these props:
 
-### Theme Properties
+<AutoTypeTable path="./packages/react/src/components/consent-manager-dialog/consent-manager-dialog.tsx" name="ConsentManagerDialogProps" />
 
-| Property | Purpose | Example Value |
-|----------|---------|---------------|
-| dialog | Main dialog container | "fixed inset-0" |
-| overlay | Background overlay | "bg-black/50" |
-| content | Dialog content wrapper | "bg-white p-4" |
+### Compound Components
 
-## Best Practices
-
-1. **Performance**
-   - Only import the dialog where needed
-   - Consider lazy loading if not immediately required
-   - Use the disableAnimation prop on lower-end devices
-
-2. **User Experience**
-   - Keep the dialog focused on privacy settings
-   - Provide clear save/cancel actions
-   - Maintain consistent styling with your application
-
-3. **Accessibility**
-   - Test with keyboard navigation
-   - Verify screen reader announcements
-   - Ensure sufficient color contrast
-
-## Related Components
-
-<Cards>
-  <Card icon={<CookieIcon />} title="Cookie Banner" description="The friendly first-touch privacy notice that greets users. Customizable, accessible, and designed to get out of the way." href="/docs/components/react/cookie-banner" />
-
-  <Card icon={<ToggleRightIcon />} title="Consent Manager Widget" description="The engine that powers granular consent management. Easily embed detailed privacy controls anywhere in your app." href="/docs/components/react/consent-manager-widget" />
-</Cards>
+<AutoTypeTable path="./packages/react/src/components/consent-manager-dialog/index.ts" name="ConsentManagerDialogCompoundComponent" />

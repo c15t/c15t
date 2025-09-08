@@ -1,0 +1,51 @@
+---
+title: "Internationalization (i18n)"
+description: "Learn how to add translations to your Consent Manager."
+lastModified: 2025-08-20
+availableIn:
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/internationalization'
+    title: 'JavaScript'
+  - framework: 'next'
+    url: '/docs/frameworks/next/internationalization'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/internationalization'
+    title: 'React'
+---
+
+<import>../javascript/shared/internationalization.mdx#overview</import>
+
+## Implementation
+
+Pass the `translations` object in your `ConsentManagerProvider` options to configure the translations for your application.
+
+```tsx title="app/layout.tsx"
+import { ConsentManagerProvider } from '@c15t/react';
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+	return (
+		<ConsentManagerProvider options={{
+        // ... rest of your config
+  translations: {
+    defaultLanguage: 'en',
+        translations: {
+    en: {
+      common: {
+        acceptAll: 'Accept all',
+      },
+      cookieBanner: {
+        title: 'Cookie Banner',
+        description: 'This is a cookie banner',
+            },
+      },
+    },
+  },
+    }}>
+			{children}
+		</ConsentManagerProvider>
+	);
+}
+```
+
+<import>../javascript/shared/internationalization.mdx#types</import>
