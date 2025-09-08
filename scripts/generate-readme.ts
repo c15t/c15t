@@ -1,6 +1,6 @@
 // scripts/generate-readmes.ts
 
-import fssync from 'node:fs';
+import * as fssync from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
