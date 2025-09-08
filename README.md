@@ -1,8 +1,9 @@
-<div align="center">
-  <img src="https://c15t.com/logo-icon.png" alt="c15t Logo" width="64" height="64" />
-  <h1>c15t</h1>
-  <p>Transform privacy consent from a compliance checkbox into a fully observable system</p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/c15t-banner-readme-dark.svg">
+  <img src="docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner">
+</picture>
 
+<div align="center">
   [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
   [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
   [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)]([LICENSE.md](https://github.com/c15t/c15t/blob/main/LICENSE.md))
