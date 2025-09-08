@@ -1,94 +1,50 @@
 <p align="center">
-  <a href="https://c15t.com?utm_source=github&utm_medium=repopage_%40c15t%2Freact" target="_blank" rel="noopener noreferrer">
+  <a href="https://c15t.com?utm_source=github&utm_medium=repopage_%40c15t%2Fnode-sdk" target="_blank" rel="noopener noreferrer">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
       <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
     </picture>
   </a>
   <br />
-  <h1 align="center">@c15t/react: React Consent Components</h1>
+  <h1 align="center">@c15t/node-sdk: Type-Safe Node.js API Client</h1>
 </p>
 
 [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
 [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
-[![npm version](https://img.shields.io/npm/v/%40c15t%2Freact?style=flat-square)](https://www.npmjs.com/package/@c15t/react)
+[![npm version](https://img.shields.io/npm/v/%40c15t%2Fnode-sdk?style=flat-square)](https://www.npmjs.com/package/@c15t/node-sdk)
 [![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
 [![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
 
-Developer-first CMP for React: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization
+A fully typed, flexible Node.js SDK for seamless interaction with the c15t consent management platform API.
 
 ## Key Features
 
-- Works with React 19, 18, 17, and 16.8
-- Full 'use client' support for React Server Components
-- Headless and fully customizable UI components
-- Automatic GDPR, CCPA, and LGPD compliance
-- Minimal configuration with TypeScript-first design
-- Comprehensive Consent Management Platform (CMP)
-- Flexible Cookie Banner and Consent Dialog components
-- Built-in internationalization support
-- Seamless consent storage and tracking
+- Type-safe API client with full TypeScript support
+- Flexible client configuration with authentication and custom headers
+- Supports dynamic base URL and API prefix configuration
+- Built on top of @orpc/client for robust API interactions
+- Easy integration with Node.js applications
+- Comprehensive error handling and URL validation
 
 ## Prerequisites
 
-- React 16.8 or later
 - Node.js 18.17.0 or later
-- A hosted [c15t instance](https://consent.io) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)
-
-## Quick Start
-
-Easiest setup with @c15t/cli:
-
-```bash
-# Generate schema and code
-pnpm dlx @c15t/cli generate
-# Alternatives:
-# npx @c15t/cli generate
-# bunx --bun @c15t/cli generate
-```
-
-The CLI will:
-
-- Install necessary packages
-- Configure your c15t instance
-- Set up environment variables
-- Add consent management components to your app
+- A Hosted [c15t instance](https://consent.io) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)
 
 ## Manual Installation
 
 ```bash
-pnpm add @c15t/react
+pnpm add @c15t/node-sdk
 ```
-
-To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/react/quickstart#manual-setup).
 
 ## Usage
 
-1. Import `ConsentManagerProvider` in your app's root component
-2. Add `CookieBanner` and `ConsentManagerDialog` components
-3. Customise styling and behaviour to fit your app
-4. For full implementation details, see the [React quickstart docs](https://c15t.com/docs/frameworks/react/quickstart)
-
-```tsx
-// App.tsx
-import { ConsentManagerProvider, CookieBanner } from '@c15t/react'
-
-function App() {
-  return (
-    <ConsentManagerProvider>
-      <YourApp />
-      <CookieBanner />
-    </ConsentManagerProvider>
-  )
-}
-```
-
-## Documentation
-
-For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/frameworks/react/quickstart).
+1. Import the c15tClient function from the SDK
+2. Configure the client with your API base URL
+3. Interact with the c15t API using type-safe methods
 
 ## Support
 
@@ -126,4 +82,4 @@ Our preference is that you make use of GitHub's private vulnerability reporting 
 
 ---
 
-**Built with ❤️ by the [consent.io](https://www.consent.io?utm_source=github&utm_medium=repopage_%40c15t%2Freact) team**
+**Built with ❤️ by the [consent.io](https://www.consent.io?utm_source=github&utm_medium=repopage_%40c15t%2Fnode-sdk) team**
