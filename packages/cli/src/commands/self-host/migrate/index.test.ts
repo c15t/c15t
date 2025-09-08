@@ -4,7 +4,10 @@ vi.mock('@c15t/backend/v2/db/migrator', () => ({
 	migrator: vi.fn(async () => ({ execute: vi.fn(), getSQL: vi.fn() })),
 }));
 vi.mock('./ensure-backend-config', () => ({
-	ensureBackendConfig: vi.fn(async () => '/abs/c15t-backend.config.ts'),
+	ensureBackendConfig: vi.fn(async () => ({
+		path: '/abs/c15t-backend.config.ts',
+		dependencies: [],
+	})),
 }));
 vi.mock('./read-config', () => ({
 	readConfigAndGetDb: vi.fn(async () => ({ db: {}, adapter: 'kysely' })),

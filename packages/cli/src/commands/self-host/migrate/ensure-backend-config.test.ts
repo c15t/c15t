@@ -112,11 +112,7 @@ describe('ensureBackendConfig generation', () => {
 		// Check return value
 		expect(result).not.toBeNull();
 		expect(result?.path).toBe(path.join(cwd, 'c15t-backend.config.ts'));
-		expect(result?.dependencies).toEqual([
-			'drizzle-orm',
-			'better-sqlite3',
-			'drizzle-orm/better-sqlite3',
-		]);
+		expect(result?.dependencies).toEqual(['drizzle-orm', 'better-sqlite3']);
 	});
 
 	it('generates Prisma (MongoDB) config with prisma prelude', async () => {

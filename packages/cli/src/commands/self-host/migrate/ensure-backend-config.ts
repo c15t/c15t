@@ -405,7 +405,7 @@ async function promptConnection<A extends AdapterKey>(
 
 export async function ensureBackendConfig(
 	context: CliContext
-): Promise<{ path: string; dependencies: string[] }> {
+): Promise<{ path: string; dependencies: string[] } | null> {
 	const { cwd, logger } = context;
 	const targetPath = path.join(cwd, 'c15t-backend.config.ts');
 
@@ -436,11 +436,11 @@ export async function ensureBackendConfig(
 		} else if (adapter === 'drizzleAdapter') {
 			dependencies.push('drizzle-orm');
 			if (provider === 'postgresql') {
-				dependencies.push('pg', 'drizzle-orm/node-postgres');
+				dependencies.push('pg');
 			} else if (provider === 'mysql') {
-				dependencies.push('mysql2', 'drizzle-orm/mysql2');
+				dependencies.push('mysql2');
 			} else if (provider === 'sqlite') {
-				dependencies.push('better-sqlite3', 'drizzle-orm/better-sqlite3');
+				dependencies.push('better-sqlite3');
 			}
 		} else if (adapter === 'prismaAdapter') {
 			dependencies.push('@prisma/client');

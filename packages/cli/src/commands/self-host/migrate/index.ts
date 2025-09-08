@@ -11,12 +11,14 @@ export async function migrate(context: CliContext) {
 	logger.info('Starting migration process...');
 
 	// Ensure backend config exists (create if missing)
-	const { path, dependencies } = await ensureBackendConfig(context);
+	const configResult = await ensureBackendConfig(context);
 
-	if (!path) {
+	if (!configResult || !configResult.path) {
 		logger.error('No backend config found.');
 		return;
 	}
+
+	const { path, dependencies } = configResult;
 
 	if (dependencies.length > 0) {
 		await installDependencies({
