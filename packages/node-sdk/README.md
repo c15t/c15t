@@ -1,57 +1,50 @@
 <p align="center">
-  <a href="https://c15t.com?utm_source=github&utm_medium=c15t_dev-tools" target="_blank" rel="noopener noreferrer">
+  <a href="https://c15t.com?utm_source=github&utm_medium=c15t_node-sdk" target="_blank" rel="noopener noreferrer">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg">
       <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner">
     </picture>
   </a>
   <br />
-  <h1 align="center">@c15t/dev-tools: Developer Tooling (Work in Progress)</h1>
+  <h1 align="center">@c15t/node-sdk: Type-Safe Node.js API Client</h1>
 </p>
 
 [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
 [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
-[![npm version](https://img.shields.io/npm/v/https%3A%2F%2Fwww.npmjs.com%2Fpackage%2F%40c15t%2Fdev-tools?style=flat-square)](https://www.npmjs.com/package/@c15t/dev-tools)
+[![npm version](https://img.shields.io/npm/v/https%3A%2F%2Fwww.npmjs.com%2Fpackage%2F%40c15t%2Fnode-sdk?style=flat-square)](https://www.npmjs.com/package/@c15t/node-sdk)
 [![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
 [![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
 
-A collection of developer tools and utilities for the c15t ecosystem, currently under active development.
+A fully typed, flexible Node.js SDK for seamless interaction with the c15t consent management platform API.
 
 ## Key Features
 
-- 🚧 Experimental developer utilities
-- React component library with utility tools
-- Radix UI and Tailwind CSS integration
-- State management and UI component helpers
-- Ongoing development and refinement
+- Type-safe API client with full TypeScript support
+- Flexible client configuration with authentication and custom headers
+- Supports dynamic base URL and API prefix configuration
+- Built on top of @orpc/client for robust API interactions
+- Easy integration with Node.js applications
+- Comprehensive error handling and URL validation
 
 ## Prerequisites
 
 - Node.js 18.17.0 or later
-- React 16.8.0 or later
-- Familiarity with experimental tooling
+- A Hosted [c15t instance](https://consent.io) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)
 
 ## Manual Installation
 
 ```bash
-pnpm add @c15t/dev-tools
+pnpm add @c15t/node-sdk
 ```
-
-⚠️ **Note:** This package is experimental and may undergo significant changes.
 
 ## Usage
 
-1. 🚧 Explore the dev tools with caution
-2. Import and use components carefully
-3. Expect potential breaking changes
-4. Feedback and contributions welcome!
-
-## Documentation
-
-For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/dev-tools/overview).
+1. Import the c15tClient function from the SDK
+2. Configure the client with your API base URL
+3. Interact with the c15t API using type-safe methods
 
 ## Support
 

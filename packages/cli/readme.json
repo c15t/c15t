@@ -1,0 +1,71 @@
+{
+	"title": "@c15t/cli: c15t's CLI",
+	"description": "CLI for rapid c15t setup. Scaffold React and Next.js cookie banners and a preferences centre, generate types and config, and run migration tooling for self-hosted deployments.",
+	"features": [
+		"Configuration Generation: Automatically generate schema and code for consent management",
+		"Database Migrations: Simplified database schema updates",
+		"Multi-Framework Support: Works seamlessly across different web frameworks",
+		"Interactive CLI: User-friendly command-line interface with guided workflows",
+		"GitHub Integration: Easy way to star and support the project",
+		"Documentation Access: Quick access to project documentation"
+	],
+	"prerequisites": [
+		"Node.js 18.17.0 or later",
+		"npm, pnpm, or yarn package manager"
+	],
+	"usage": [
+		"Run `@c15t/cli generate` to create initial configuration",
+		"Customize consent settings in generated files",
+		"Integrate with your web application",
+		"Use `@c15t/cli migrate` for database schema updates"
+	],
+	"commands": [
+		{
+			"name": "generate",
+			"description": "Generate schema/code based on your c15t config"
+		},
+		{
+			"name": "migrate",
+			"description": "Run database migrations based on your c15t config"
+		},
+		{
+			"name": "github",
+			"description": "Open the project's GitHub repository to star the project"
+		},
+		{
+			"name": "docs",
+			"description": "Open the c15t documentation in your browser"
+		}
+	],
+	"globalFlags": [
+		{
+			"flag": "--help",
+			"description": "Display help menu"
+		},
+		{
+			"flag": "--version",
+			"description": "Show CLI version"
+		},
+		{
+			"flag": "--no-telemetry",
+			"description": "Disable anonymous usage data collection"
+		}
+	],
+	"telemetry": {
+		"description": "Anonymous usage data collection to help improve the CLI",
+		"details": [
+			"Not personally identifiable",
+			"Used to prioritize features and improvements",
+			"Completely optional"
+		],
+		"disableMethods": [
+			"Use the `--no-telemetry` flag",
+			"Set `C15T_TELEMETRY_DISABLED=1` in your environment"
+		]
+	},
+	"npmLink": "@c15t/cli",
+	"docsLink": "https://c15t.com/docs/cli/overview",
+	"quickStartLink": "https://c15t.com/docs/cli/quickstart",
+	"githubLink": "https://github.com/c15t/c15t",
+	"showCLIGeneration": true
+}

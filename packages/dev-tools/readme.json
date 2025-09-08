@@ -1,0 +1,32 @@
+{
+	"title": "@c15t/dev-tools: Developer Tooling (Work in Progress)",
+	"description": "A collection of developer tools and utilities for the c15t ecosystem, currently under active development.",
+	"features": [
+		"🚧 Experimental developer utilities",
+		"React component library with utility tools",
+		"Radix UI and Tailwind CSS integration",
+		"State management and UI component helpers",
+		"Ongoing development and refinement"
+	],
+	"prerequisites": [
+		"Node.js 18.17.0 or later",
+		"React 16.8.0 or later",
+		"Familiarity with experimental tooling"
+	],
+	"manualInstallation": [
+		"",
+		"```bash\npnpm add @c15t/dev-tools\n```",
+		"",
+		"⚠️ **Note:** This package is experimental and may undergo significant changes."
+	],
+	"usage": [
+		"🚧 Explore the dev tools with caution",
+		"Import and use components carefully",
+		"Expect potential breaking changes",
+		"Feedback and contributions welcome!"
+	],
+	"npmLink": "https://www.npmjs.com/package/@c15t/dev-tools",
+	"docsLink": "https://c15t.com/docs/dev-tools/overview",
+	"quickStartLink": "https://c15t.com/docs/dev-tools/quickstart",
+	"showCLIGeneration": false
+}

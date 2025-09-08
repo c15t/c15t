@@ -1,0 +1,31 @@
+{
+	"title": "@c15t/backend: Consent Management Backend",
+	"description": "Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preferences centre. Webhooks, audit logs, storage adapters. Self host or use consent.io",
+	"features": [
+		"Consent Management: Track and manage user consent preferences",
+		"Geo-Location: Identify user's location to show relevant consent preferences",
+		"Server-Side Translation: Reduce banner bundle size by translating consent preferences on the server",
+		"Audit Logging: Comprehensive logging of all consent-related actions",
+		"Domain Management: Handle multiple domains and subdomains",
+		"Policy Management: Version and manage consent policies"
+	],
+	"prerequisites": [
+		"Node.js 18.17.0 or later",
+		"npm, pnpm, or yarn package manager"
+	],
+	"installation": [
+		"Install the backend package using your preferred package manager",
+		"Configure your database adapter (supports Drizzle, Kysely, Prisma, TypeORM, and Mongo)"
+	],
+	"usage": [
+		"Import the backend package in your project",
+		"Configure your database connection",
+		"Use the provided router and schema for consent management",
+		"Implement consent tracking and management in your application"
+	],
+	"npmLink": "@c15t/backend",
+	"docsLink": "https://c15t.com/docs/self-host/v2",
+	"quickStartLink": "https://c15t.com/docs/self-host/v2",
+	"githubLink": "https://github.com/c15t/c15t",
+	"showCLIGeneration": false
+}

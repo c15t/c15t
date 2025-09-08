@@ -1,0 +1,37 @@
+{
+	"title": "@c15t/nextjs: Next.js Integration",
+	"description": "Developer-first CMP for React: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization",
+	"features": [
+		"Works with Next.js 15, 14, and 13",
+		"Full 'use client' support for React Server Components",
+		"Server-side rendering support for both app and pages routers",
+		"Automatic GDPR, CCPA, and LGPD compliance",
+		"Minimal configuration with TypeScript-first design",
+		"Headless, customisable UI components (Cookie Banner, Consent Dialog, etc.)",
+		"Built-in internationalisation support",
+		"Seamless consent storage and tracking"
+	],
+	"prerequisites": [
+		"Next.js 13.5.4 or later",
+		"React 18 or later",
+		"Node.js 18.17.0 or later",
+		"A hosted [c15t instance](https://consent.io) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)"
+	],
+	"manualInstallation": [
+		"",
+		"```bash\npnpm add @c15t/nextjs\n```",
+		"",
+		"To manually install, run the following the guide on our [docs - manual setup](https://c15t.com/docs/frameworks/nextjs/quickstart#manual-setup)."
+	],
+	"usage": [
+		"Import `ConsentManagerProvider` in your app's root layout",
+		"Add `CookieBanner` and `ConsentManagerDialog` components",
+		"Customise styling and behaviour to fit your app",
+		"For full implementation details, see the [Next.js quickstart docs](https://c15t.com/docs/frameworks/next/quickstart)",
+		"```tsx\n// app/layout.tsx\nimport { ConsentManagerProvider, CookieBanner } from '@c15t/nextjs'\n\nexport default function RootLayout({ children }) {\n  return (\n    <html lang=\"en\">\n      <body>\n        <ConsentManagerProvider>\n          {children}\n          <CookieBanner />\n        </ConsentManagerProvider>\n      </body>\n    </html>\n  )\n}\n```"
+	],
+	"npmLink": "https://www.npmjs.com/package/@c15t/nextjs",
+	"docsLink": "https://c15t.com/docs/frameworks/next/quickstart",
+	"quickStartLink": "https://c15t.com/docs/frameworks/next/quickstart",
+	"showCLIGeneration": true
+}
