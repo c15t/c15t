@@ -151,7 +151,7 @@ export const postConsent = os.consent.post.handler(
 					subjectId: subject.id,
 					domainId: domainRecord.id,
 					policyId,
-					purposeIds,
+					purposeIds: { json: purposeIds },
 					status: 'active',
 					isActive: true,
 					ipAddress: typedContext.ipAddress || null,
