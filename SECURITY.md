@@ -87,5 +87,5 @@ By reporting a vulnerability, you agree to:
 
 ---
 
-**Last Updated**: 2024-07-01
+**Last Updated**: 2025-09-08
 **Version**: 1.0.0
