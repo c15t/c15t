@@ -1,0 +1,69 @@
+---
+title: Getting Started
+description: Quick start guide for self hosting c15t with the @c15t/backend package.
+lastModified: 2025-08-16
+canary: true
+---
+
+## CLI Setup
+
+<Steps>
+  <Step>
+    ### Generate Schema + Code
+
+    <PackageCommandTabs command="@c15t/cli generate" />
+  </Step>
+
+  <Step>
+    ### Run Database Migrations
+
+    <PackageCommandTabs command="@c15t/cli migrate" />
+  </Step>
+</Steps>
+
+## Manual Setup
+
+<Steps>
+  <Step>
+    ### Install `@c15t/backend` Package
+
+    <PackageCommandTabs command="@c15t/backend" />
+  </Step>
+
+  <Step>
+    ### Run Migrations
+
+    <PackageCommandTabs command="@c15t/cli migrate" />
+  </Step>
+
+  <Step>
+    ### Create a c15t instance
+
+    ```tsx title="c15t.ts"
+    import { c15tInstance } from '@c15t/backend/v2';
+    import { kyselyAdapter } from '@c15t/backend/v2/db/adapters/kysely';
+    import { Kysely } from 'kysely';
+
+    const handler = c15tInstance({
+      appName: 'example-app',
+      basePath: '/',
+      adapter: kyselyAdapter({
+        db: new Kysely({ }),
+        provider: 'postgresql',
+      }),
+      trustedOrigins: ['localhost', 'vercel.app'],
+      advanced: {
+        disableGeoLocation: true,
+        openapi: {
+          enabled: true,
+        },
+      },
+      logger: {
+        level: 'debug',
+      },
+    });
+
+    const handleRequest = async (request: NextRequest) => handler.handler(request);
+    ```
+  </Step>
+</Steps>

@@ -1,0 +1,29 @@
+---
+title: Overview
+description: The useConsentManager hook is a React hook that provides access to the consent manager's state.
+lastModified: 2025-08-20
+availableIn:
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/store/overview'
+    title: 'JavaScript'
+  - framework: 'next'
+    url: '/docs/frameworks/next/hooks/use-consent-manager/overview'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/hooks/use-consent-manager/overview'
+    title: 'React'
+---
+
+<import>../../../javascript/shared/store/overview.mdx#overview</import>
+
+## Usage
+
+```tsx
+import { useConsentManager } from '@c15t/react';
+
+const { has } = useConsentManager();
+
+const hasFunctionality = has('functionality');
+```
+
+<import>../../../javascript/shared/store/overview.mdx#returns</import>

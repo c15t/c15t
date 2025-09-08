@@ -1,270 +1,127 @@
 ---
 title: Consent Manager Widget
-description: A flexible, composable widget for building custom privacy consent interfaces. The widget provides granular control over privacy preferences while handling all the compliance requirements for you.
-lastModified: 2025-04-17
+description: A flexible, composable widget for building custom privacy consent interfaces. The widget provides granular control over privacy preferences.
+lastModified: 2025-08-27
 availableIn:
   - framework: 'next'
-    url: '/docs/frameworks/next/components/consent-manager-dialog'
+    url: '/docs/frameworks/next/components/consent-manager-widget'
     title: 'Next.js'
   - framework: 'react'
     url: '/docs/frameworks/react/components/consent-manager-widget'
     title: 'React'
 ---
 
-import { CookieIcon, LayersIcon } from 'lucide-react';
+The Consent Manager Widget allows for detailed privacy consent management in your application. While the Cookie Banner handles initial consent, this widget enables users to fine-tune their privacy preferences through an intuitive accordion interface.
 
-The Consent Manager Widget serves as the core interface for detailed privacy consent management in your application. While the Cookie Banner handles initial consent, this widget enables users to fine-tune their privacy preferences through an intuitive accordion interface.
+If you just want a dialog, consider using the [Consent Manager Dialog](/docs/frameworks/react/components/consent-manager-dialog) instead (which handles the overlay logic for you).
 
-{/* <WidgetExample /> */}
+## Usage
 
-## Understanding the Widget
+<Tabs groupId="Version" items={["Recommended", "Expanded"]}>
+  <Tab value="Recommended">
+    ```tsx
+    import { ConsentManagerProvider,  ConsentManagerWidget } from "@c15t/react";
+    import { useState } from 'react';
 
-Think of the Consent Manager Widget as a highly customizable form that gives users control over their privacy choices. It organizes different types of data collection and processing into collapsible sections, making it easy for users to understand and manage their consent preferences.
+    export default function App() {
+      const [isWidgetOpen, setIsWidgetOpen] = useState(false);
 
-For example, a typical widget might include sections for:
+      return (
+        <ConsentManagerProvider options={{
+          mode: 'c15t',
+          backendURL: 'https://your-instance.c15t.dev/',
+          consentCategories: ['necessary', 'marketing'],
+        }}>
+          <button type="button" onClick={() => setIsWidgetOpen(!isWidgetOpen)}>
+            {isWidgetOpen ? 'Close' : 'Open'}
+          </button>
 
-- Essential cookies that keep your site running
-- Analytics that help improve user experience
-- Marketing features that enable personalized content
-- Third-party integrations that enhance functionality
+          {isWidgetOpen && (
+            <div className="w-1/2 rounded-lg bg-white px-5 pt-8">
+              <ConsentManagerWidget />
+            </div>
+          )}
+        </ConsentManagerProvider>
+      );
+    };
 
-The widget automatically handles the complex task of tracking and storing these preferences while maintaining compliance with privacy regulations.
+    ```
+  </Tab>
 
-## Quick Start
+  <Tab value="expanded">
+    ```tsx
+    import { ConsentManagerProvider, ConsentManagerWidget } from "@c15t/react";
 
-First, install the package:
+    const CustomWidget = () => {
+    	return (
+    			<div className="w-1/2 rounded-lg bg-white px-5 pt-8">
+    				<ConsentManagerWidget.Root>
+    					<ConsentManagerWidget.Accordion
+    						themeKey="widget.accordion"
+    						type="multiple"
+    						value={openItems}
+    						onValueChange={setOpenItems}
+    					>
+    						<ConsentManagerWidget.AccordionItems />
+    					</ConsentManagerWidget.Accordion>
+    					<ConsentManagerWidget.Footer>
+    						<ConsentManagerWidget.FooterSubGroup themeKey="widget.footer.sub-group">
+    							<ConsentManagerWidget.RejectButton themeKey="widget.footer.reject-button">
+    								Reject All Text
+    							</ConsentManagerWidget.RejectButton>
+    							<ConsentManagerWidget.AcceptAllButton themeKey="widget.footer.accept-button">
+    								Accept All
+    							</ConsentManagerWidget.AcceptAllButton>
+    						</ConsentManagerWidget.FooterSubGroup>
+    						<ConsentManagerWidget.SaveButton themeKey="widget.footer.save-button">
+    							Save
+    						</ConsentManagerWidget.SaveButton>
+    					</ConsentManagerWidget.Footer>
+    				</ConsentManagerWidget.Root>
+    			</div>
+    	);
+    };
 
-{/* <PackageCommandTabs command="@c15t/react" mode="install" /> */}
 
-Then add the widget to your application:
+    export default function App() {
+      return (
+        <ConsentManagerProvider options={{
+          mode: 'c15t',
+          backendURL: 'https://your-instance.c15t.dev/',
+          consentCategories: ['necessary', 'marketing'],
+        }}>
+          <button type="button" onClick={() => setIsWidgetOpen(!isWidgetOpen)}>
+            {isWidgetOpen ? 'Close' : 'Open'}
+          </button>
 
-```tsx
-import * as ConsentManagerWidget from '@c15t/react/consent-manager-widget'
+          {isWidgetOpen && (
+            <div className="w-1/2 rounded-lg bg-white px-5 pt-8">
+              <CustomWidget />
+            </div>
+          )}
+        </ConsentManagerProvider>
+      );
+    };
+    ```
+  </Tab>
+</Tabs>
 
-function PrivacyPreferences() {
-  return (
-    <ConsentManagerWidget>
-      <ConsentManagerWidget.AccordionItems />
-      <ConsentManagerWidget.Footer>
-        <ConsentManagerWidget.RejectButton>
-          Reject All
-        </ConsentManagerWidget.RejectButton>
-        <ConsentManagerWidget.AcceptAllButton>
-          Accept All
-        </ConsentManagerWidget.AcceptAllButton>
-      </ConsentManagerWidget.Footer>
-    </ConsentManagerWidget>
-  )
-}
-```
+## Styling
 
-## Component Architecture
+The Consent Manager Widget is designed to adapt to your application's visual style. Learn more about our [styling system](/docs/react/styling/overview).
 
-The Consent Manager Widget uses a compound component pattern, which means it's built from smaller, specialized components that work together. This approach gives you complete control over the widget's structure and appearance.
+### Theme Variables
 
-Let's break down the main building blocks:
+These keys are available on the theme object to customize your banner.
 
-### Root Component
-
-The `ConsentManagerWidget` serves as the container and context provider for all other components:
-
-```tsx
-<ConsentManagerWidget theme={yourTheme}>
-  {/* Child components go here */}
-</ConsentManagerWidget>
-```
-
-### Accordion Interface
-
-The accordion interface organizes privacy preferences into expandable sections:
-
-```tsx
-<ConsentManagerWidget>
-  <ConsentManagerWidget.Accordion>
-    <ConsentManagerWidget.AccordionItems />
-  </ConsentManagerWidget.Accordion>
-</ConsentManagerWidget>
-```
-
-### Custom Accordion Items
-
-You can create custom sections for specific types of consent:
-
-```tsx
-<ConsentManagerWidget.Accordion>
-  <ConsentManagerWidget.AccordionItem value="analytics">
-    <ConsentManagerWidget.AccordionTrigger>
-      Analytics Cookies
-      <ConsentManagerWidget.AccordionArrow />
-    </ConsentManagerWidget.AccordionTrigger>
-    <ConsentManagerWidget.AccordionContent>
-      <ConsentManagerWidget.Switch name="analytics" />
-      We use analytics cookies to understand how you use our website.
-    </ConsentManagerWidget.AccordionContent>
-  </ConsentManagerWidget.AccordionItem>
-</ConsentManagerWidget.Accordion>
-```
-
-### Action Buttons
-
-The widget includes several pre-built buttons for common actions:
-
-```tsx
-<ConsentManagerWidget.Footer>
-  <ConsentManagerWidget.FooterSubGroup>
-    <ConsentManagerWidget.RejectButton>
-      Reject All
-    </ConsentManagerWidget.RejectButton>
-    <ConsentManagerWidget.AcceptAllButton>
-      Accept All
-    </ConsentManagerWidget.AcceptAllButton>
-  </ConsentManagerWidget.FooterSubGroup>
-  <ConsentManagerWidget.SaveButton>
-    Save Preferences
-  </ConsentManagerWidget.SaveButton>
-</ConsentManagerWidget.Footer>
-```
-
-## Customization
-
-The widget supports several ways to customize its appearance and behavior:
-
-### Theme Customization
-
-Apply custom styles using the theme prop:
-
-```tsx
-<ConsentManagerWidget
-  theme={{
-    "widget.root": "",
-	  "widget.branding": "",
-	  "widget.footer": "",
-	  "widget.footer.sub-group": "",
-		"widget.footer.reject-button": "",
-		"widget.footer.accept-button": "",
-		"widget.footer.customize-button": "",
-		"widget.footer.save-button": "",
-		"widget.accordion": "",
-		"widget.accordion.trigger": "",
-    "widget.accordion.trigger-inner": "",
-		"widget.accordion.item": "",
-		"widget.accordion.icon": "",
-		"widget.accordion.arrow.open": "",
-		"widget.accordion.arrow.close": "",
-		"widget.accordion.content": "",
-		"widget.accordion.content-inner": "",
-		"widget.switch": "",
-		"widget.switch.track": "",
-		"widget.switch.thumb": "",
-  }}
-/>
-```
-
-### Custom Layouts
-
-Create completely custom layouts while maintaining functionality:
-
-```tsx
-<ConsentManagerWidget>
-  <YourCustomHeader />
-  <ConsentManagerWidget.AccordionItems />
-  <YourCustomFooter>
-    <ConsentManagerWidget.SaveButton asChild>
-      <YourButton variant="primary" />
-    </ConsentManagerWidget.SaveButton>
-  </YourCustomFooter>
-</ConsentManagerWidget>
-```
-
-### Branding
-
-Control the visibility of c15t.com branding:
-
-```tsx
-<ConsentManagerWidget hideBranding={true} />
-```
-
-## Accessibility
-
-The Consent Manager Widget is built with accessibility in mind:
-
-- Proper ARIA attributes for accordion sections
-- Keyboard navigation support
-- Focus management within the widget
-- Screen reader announcements for state changes
-- High contrast support for all interactive elements
-
-All these accessibility features work automatically, ensuring all users can effectively manage their privacy preferences.
+<AutoTypeTable path="./packages/react/src/components/consent-manager-widget/theme.ts" name="ConsentManagerWidgetTheme" />
 
 ## API Reference
 
-### Main Component Props
+The main component accepts these props:
 
-| Prop | Type | Description | Default |
-|------|------|-------------|---------|
-| theme | ConsentManagerWidgetTheme | Theme configuration object | {} |
-| hideBranding | boolean | Controls c15t.com branding visibility | false |
+<AutoTypeTable path="./packages/react/src/components/consent-manager-widget/types.ts" name="ConsentManagerWidgetProps" />
 
-### Available Sub-components
+### Compound Components
 
-Each sub-component inherits theme support and provides specific functionality:
-
-| Component | Purpose | Key Props |
-|-----------|---------|-----------|
-| Accordion | Container for consent options | type, value, onValueChange |
-| AccordionItems | Pre-built consent sections | - |
-| Switch | Toggle for individual consents | name, value, onChange |
-| Footer | Action button container | className, children |
-| SaveButton | Saves current preferences | onClick, disabled |
-
-## Integration Examples
-
-### With Custom Components
-
-```tsx
-import { Button } from 'your-ui-library'
-
-function CustomConsentManager() {
-  return (
-    <ConsentManagerWidget>
-      <YourHeader>Privacy Preferences</YourHeader>
-      <ConsentManagerWidget.AccordionItems />
-      <ConsentManagerWidget.Footer>
-        <ConsentManagerWidget.SaveButton asChild>
-          <Button>Update Preferences</Button>
-        </ConsentManagerWidget.SaveButton>
-      </ConsentManagerWidget.Footer>
-    </ConsentManagerWidget>
-  )
-}
-```
-
-### With Consent Manager Dialog
-
-```tsx
-import { ConsentManagerDialog } from '@c15t/react/consent-manager'
-
-function PrivacyCenter() {
-  return (
-    <ConsentManagerDialog>
-      <ConsentManagerWidget theme={dialogTheme} />
-    </ConsentManagerDialog>
-  )
-}
-```
-
-## Best Practices
-
-1. Place the widget in a dedicated privacy preferences page or dialog
-2. Use clear, concise labels for consent options
-3. Maintain consistent styling with your application
-4. Test the widget across different screen sizes
-5. Ensure all interactive elements are keyboard accessible
-
-## Related Components
-
-<Cards>
-  <Card icon={<CookieIcon />} title="Cookie Banner" description="The friendly first-touch privacy notice that greets users. Customizable, accessible, and designed to get out of the way." href="/docs/components/react/cookie-banner" />
-
-  <Card icon={<LayersIcon />} title="Consent Manager Dialog" description="A detailed privacy preferences interface that lets users fine-tune their choices. Built with accessibility and usability in mind." href="/docs/components/react/consent-manager-dialog" />
-</Cards>
+<AutoTypeTable path="./packages/react/src/components/consent-manager-widget/index.ts" name="ConsentManagerWidgetCompoundComponent" />

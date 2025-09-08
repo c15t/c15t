@@ -1,7 +1,7 @@
 ---
 title: Styling with CSS Variables
-description: Learn how to use CSS custom properties (CSS variables) to create flexible and dynamic themes for @c15t/react components.
-lastModified: 2025-04-10
+description: Learn how to use CSS variables to create flexible and dynamic themes for c15t components.
+lastModified: 2025-08-22
 availableIn:
   - framework: 'next'
     url: '/docs/frameworks/next/styling/css-variables'
@@ -11,256 +11,32 @@ availableIn:
     title: 'React'
 ---
 
-CSS Variables (also known as CSS Custom Properties) provide a powerful way to create dynamic, maintainable themes for @c15t/react components. This approach is particularly useful for dark mode, theming, and responsive design.
+CSS Variables are our recommended way to style your components. They provide a powerful way to create dynamic, maintainable themes for components. This approach is particularly useful for dark mode, theming, and responsive design.
 
 ## Basic Usage
 
-Each @c15t/react component has a set of predefined CSS variables that you can override:
+Each component has a set of predefined CSS variables that you can override:
 
 ```tsx
-<CookieBanner 
+<CookieBanner
   theme={{
-    'banner.root': {
+    'banner.card': {
       style: {
-        '--banner-background-color': 'white',
-        '--banner-text-color': '#333',
-        '--banner-border-radius': '0.5rem',
-        '--banner-box-shadow': '0 4px 6px rgba(0, 0, 0, 0.1)'
-      }
-    }
-  }}
-/>
-```
-
-This approach allows you to:
-
-- Apply consistent theming across components
-- Create dynamic themes that respond to user preferences
-- Implement dark mode with minimal code duplication
-
-## Example
-
-Here's a live example of CSS variables in action:
-
-<ResponsivePreview
-  src="/examples/css-variables"
-  code={`
-export default function CssVariablesPage() {
-	const bgColor = '#FFFFFF';
-	const bgColorDark = '#000000';
-	const primaryColor = 'hsl(172 72.2% 48%)';
-	const primaryColorHover = 'hsl(172 72% 48% / 0.1)';
-	const focusRing = primaryColor + ' !important';
-	const focusShadow = '0 0 0 2px ' + primaryColor;
-
-	const baseTheme = {
-		style: {
-			'--button-focus-ring-dark': primaryColor,
-			'--button-focus-ring': primaryColor,
-			'--button-primary-dark': primaryColor,
-			'--button-primary': primaryColor,
-			'--button-shadow-primary-dark': 'var(--button-shadow-dark), inset 0 0 0 1px ' + primaryColor,
-			'--button-shadow-primary-focus-dark': focusShadow,
-			'--button-shadow-primary-focus': focusShadow,
-			'--button-shadow-primary': 'var(--button-shadow), inset 0 0 0 1px ' + primaryColor,
-			'--button-primary-hover-dark': primaryColorHover,
-			'--button-primary-hover': primaryColorHover,
-		},
-	};
-
-	return (
-		<ConsentManagerProvider
-			options={{
-				mode: 'c15t',
-				backendURL: 'https://c15t.dev/your-instance',
-			}}
-		>
-			<CookieBanner
-				theme={{
-					'banner.root': {
-						style: {
-							...baseTheme.style,
-							'--banner-background-color-dark': bgColorDark,
-							'--banner-background-color': bgColor,
-							'--banner-footer-background-color-dark': '#000000',
-							'--banner-footer-background-color': bgColor,
-						},
-					},
-				}}
-			/>
-			<ConsentManagerDialog
-				theme={{
-					'dialog.root': {
-						style: {
-							...baseTheme.style,
-							'--accordion-focus-ring-dark': focusRing,
-							'--accordion-focus-ring': focusRing,
-							'--accordion-focus-shadow-dark': focusShadow,
-							'--accordion-focus-shadow': focusShadow,
-							'--dialog-background-color-dark': bgColorDark,
-							'--dialog-background-color': bgColor,
-							'--dialog-branding-focus-color-dark': 'var(--button-shadow), inset 0 0 0 1px ' + primaryColor,
-							'--dialog-branding-focus-color': 'var(--button-shadow), inset 0 0 0 1px ' + primaryColor,
-							'--dialog-footer-background-color-dark': bgColorDark,
-							'--switch-background-color-checked-dark': primaryColor,
-							'--switch-background-color-checked': primaryColor,
-							'--switch-background-color-unchecked-dark': bgColorDark,
-							'--switch-background-color-unchecked': bgColor,
-							'--switch-focus-shadow-dark': focusShadow,
-							'--switch-focus-shadow': focusShadow,
-							'--widget-accordion-background-color-dark': bgColorDark,
-							'--widget-accordion-background-color': bgColor,
-						},
-					},
-				}}
-			/>
-		</ConsentManagerProvider>
-	);
-}`}
-  expectedHeight={300}
-/>
-
-## Available CSS Variables
-
-Each component in @c15t/react has its own set of CSS variables. Common patterns include:
-
-- `--{component}-background-color`: Background color of the component
-- `--{component}-text-color`: Text color of the component
-- `--{component}-border-radius`: Border radius of the component
-- `--{component}-border-color`: Border color of the component
-- `--{component}-padding`: Padding of the component
-
-Check each component's reference documentation for a complete list of available CSS variables.
-
-## Implementing Dark Mode
-
-CSS Variables are particularly effective for implementing dark mode:
-
-```tsx
-<CookieBanner 
-  theme={{
-    'banner.root': {
-      style: {
-        '--banner-background-color': isDarkMode ? '#1f2937' : 'white',
-        '--banner-text-color': isDarkMode ? 'white' : '#333',
-        '--banner-border-color': isDarkMode ? '#374151' : '#e5e7eb',
-        '--banner-button-background': isDarkMode ? '#4b5563' : '#f3f4f6'
-      }
-    }
-  }}
-/>
-```
-
-## Nested CSS Variables
-
-You can target nested elements with their specific CSS variables:
-
-```tsx
-<CookieBanner 
-  theme={{
-    'banner.root': {
-      style: {
-        '--banner-background-color': 'white',
-        '--banner-border-radius': '0.5rem'
-      }
+        '--banner-background-color': 'red',
+        '--banner-border-radius': '0px',
+      },
     },
-    'banner.header.title': {
-      style: {
-        '--banner-title-font-size': '1.25rem',
-        '--banner-title-font-weight': '600'
-      }
-    },
-    'banner.footer.accept-button': {
-      style: {
-        '--banner-button-background': 'blue',
-        '--banner-button-text-color': 'white'
-      }
-    }
   }}
 />
 ```
 
-## Responsive Design with CSS Variables
+## All CSS Variables
 
-CSS Variables work well with media queries for responsive design:
-
-```tsx
-<CookieBanner 
-  theme={{
-    'banner.root': {
-      style: {
-        '--banner-padding': '1rem',
-        '--banner-font-size': '0.875rem',
-        '@media (min-width: 768px)': {
-          '--banner-padding': '1.5rem',
-          '--banner-font-size': '1rem'
-        },
-        '@media (min-width: 1024px)': {
-          '--banner-padding': '2rem',
-          '--banner-font-size': '1.125rem'
-        }
-      }
-    }
-  }}
-/>
-```
-
-## Creating a Theme System with CSS Variables
-
-You can create a comprehensive theme system using CSS variables:
-
-```tsx
-// Theme variables for light and dark modes
-const themes = {
-  light: {
-    '--color-background': 'white',
-    '--color-text': '#333',
-    '--color-primary': '#3b82f6',
-    '--color-secondary': '#6b7280',
-    '--color-border': '#e5e7eb',
-    '--shadow-sm': '0 1px 2px rgba(0, 0, 0, 0.05)',
-    '--shadow-md': '0 4px 6px rgba(0, 0, 0, 0.1)'
-  },
-  dark: {
-    '--color-background': '#1f2937',
-    '--color-text': 'white',
-    '--color-primary': '#60a5fa',
-    '--color-secondary': '#9ca3af',
-    '--color-border': '#374151',
-    '--shadow-sm': '0 1px 2px rgba(0, 0, 0, 0.3)',
-    '--shadow-md': '0 4px 6px rgba(0, 0, 0, 0.4)'
-  }
-};
-
-// Apply the current theme to components
-<CookieBanner 
-  theme={{
-    'banner.root': {
-      style: {
-        '--banner-background-color': 'var(--color-background)',
-        '--banner-text-color': 'var(--color-text)',
-        '--banner-border-color': 'var(--color-border)',
-        '--banner-box-shadow': 'var(--shadow-md)'
-      }
-    }
-  }}
-/>
-```
-
-## Best Practices for CSS Variables
-
-1. **Naming Convention**
-   - Use a consistent naming pattern: `--component-property-state`
-   - Use kebab-case for variable names
-
-2. **Fallback Values**
-   - Always provide fallback values for critical styling
-   - Use the `var()` function's second parameter for fallbacks
-
-3. **Scoping**
-   - Scope variables appropriately to avoid leakage
-   - Consider organizing variables by component or feature
-
-4. **Performance**
-   - Minimize the number of CSS variable changes during runtime
-   - Batch variable updates when possible
+| Component | CSS Variables |
+|-----------|---------------|
+| Cookie Banner | [Open in GitHub](https://github.com/c15t/c15t/blob/main/packages/react/src/components/cookie-banner/theme.ts) |
+| Consent Manager Dialog | [Open in GitHub](https://github.com/c15t/c15t/blob/main/packages/react/src/components/consent-manager-dialog/theme.ts) |
+| Consent Manager Widget | [Open in GitHub](https://github.com/c15t/c15t/blob/main/packages/react/src/components/consent-manager-widget/theme.ts) |
+| Button | [Open in GitHub](https://github.com/c15t/c15t/blob/main/packages/react/src/components/shared/ui/button/button.types.ts) |
+| Accordion | [Open in GitHub](https://github.com/c15t/c15t/blob/main/packages/react/src/components/shared/ui/accordion/accordion.types.ts) |
+| Switch | [Open in GitHub](https://github.com/c15t/c15t/blob/main/packages/react/src/components/shared/ui/switch/switch.types.ts) |

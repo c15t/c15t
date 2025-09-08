@@ -4,11 +4,11 @@ description: Learn how to set up the unified documentation build system for loca
 ---
 
 <Callout type="warn">
-**For Core Maintainers Only**
+  **For Core Maintainers Only**
 
-This guide is for core maintainers and team members who have access to the private documentation template. External contributors won't be able to follow these steps since they require access to `consentdotio/c15t-docs` (a private repository).
+  This guide is for core maintainers and team members who have access to the private documentation template. External contributors won't be able to follow these steps since they require access to `consentdotio/c15t-docs` (a private repository).
 
-**External contributors**: You can still contribute to documentation by editing the MDX files in the `docs/` directory and submitting pull requests. The live documentation site will be automatically updated when your changes are merged.
+  **External contributors**: You can still contribute to documentation by editing the MDX files in the `docs/` directory and submitting pull requests. The live documentation site will be automatically updated when your changes are merged.
 </Callout>
 
 This guide will walk you through setting up the documentation system for local development and explain how production deployment works.
@@ -18,6 +18,7 @@ This guide will walk you through setting up the documentation system for local d
 The documentation system uses a private Next.js template that contains licensed components. To maintain compliance while keeping the main project open source, we fetch this template during build time rather than committing it to the repository.
 
 **Key components:**
+
 - **Private template**: `consentdotio/c15t-docs` (private repository)
 - **Local folder**: `.docs` (excluded from workspace and git)
 - **Unified script**: `scripts/setup-docs.ts` with mode and branch support
@@ -66,6 +67,7 @@ When you run `pnpm setup:docs`, the script operates in development mode:
 - **Build**: Skips production build step
 
 **Complete workflow:**
+
 1. Validates token from `.env` file
 2. Cleans existing directories
 3. Clones private template repository
@@ -82,6 +84,7 @@ Production builds use the `--vercel` flag and additional steps:
 - **Build**: Generates static assets for deployment
 
 **Complete workflow:**
+
 1. Validates token from environment
 2. Cleans existing directories
 3. Clones private template repository
@@ -97,7 +100,7 @@ The fetch script supports different branches of the documentation template:
 ### Available Branches
 
 - **`main`** (default) - Stable release branch
-- **`canary`** - Latest features and updates  
+- **`canary`** - Latest features and updates
 - **`develop`** - Development branch (if available)
 
 ### Using Different Branches
@@ -214,6 +217,7 @@ The template includes pre-built components for documentation. You can:
 ```
 
 **Solutions:**
+
 - Verify `.env` file exists in project root
 - Check token has read access to private repository
 - Ensure token hasn't expired
@@ -225,6 +229,7 @@ Error: Cannot find module 'next'
 ```
 
 **Solutions:**
+
 - Run `pnpm setup:docs` first to install dependencies
 - Ensure you're in the `.docs` directory when running `pnpm dev`
 - Check that the fetch process completed successfully
@@ -236,6 +241,7 @@ Error: Cannot find module 'next'
 ```
 
 **Solutions:**
+
 - Check network connectivity
 - Verify private repository exists and is accessible
 - Review command output for specific error details
@@ -323,7 +329,7 @@ The production build includes:
 Once you have the documentation running locally:
 
 - **Explore the template structure** in `.docs/src/`
-- **Review existing documentation** to understand the content structure  
+- **Review existing documentation** to understand the content structure
 - **Test responsive design** across different screen sizes
 - **Familiarize yourself** with the MDX components available
 - **Check the build process** by running a local production build

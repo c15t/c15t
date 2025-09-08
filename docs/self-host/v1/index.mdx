@@ -1,0 +1,135 @@
+---
+title: Getting Started (v1)
+description: Quick start guide for setting up and using the c15t Backend package, including installation, basic configuration, and common issues.
+lastModified: 2025-04-15
+deprecated: true
+deprecatedReason: "@c15t/backend v1 did not deliver the flexibility we wanted and fell short of our standards. It is now deprecated as we work on a full rewrite, with v2 entering canary soon. This does not affect Consent.io deployments, which remain stable."
+---
+
+Welcome to c15t Backend! This guide will help you get started with the consent management system.
+
+## Installation
+
+Install the package using your preferred package manager:
+
+<PackageCommandTabs command="@c15t/backend" mode="install" />
+
+## Basic Usage
+
+Create an instance of c15t:
+
+```typescript
+import { c15tInstance } from "@c15t/backend";
+import { memoryAdapter } from "@c15t/backend/db/adapters/memory";
+
+const instance = c15tInstance({
+  baseURL: "http://localhost:3000",
+  database: memoryAdapter({})
+});
+```
+
+For more details on instance configuration, see [Core Concepts](./v1/core-concepts#instance-management).
+
+## Configuration
+
+### Basic Options
+
+```typescript
+const instance = c15tInstance({
+  baseURL: "http://localhost:3000",
+  database: memoryAdapter({}),
+  plugins: [],
+  context: {}
+});
+```
+
+### With Plugins
+
+```typescript
+const instance = c15tInstance({
+  baseURL: "http://localhost:3000",
+  database: memoryAdapter({}),
+  plugins: [authPlugin, loggingPlugin]
+});
+```
+
+Learn more about plugins in the [Plugin System](./plugins) documentation.
+
+## Database Setup
+
+### Memory Adapter (Development)
+
+```typescript
+import { memoryAdapter } from "@c15t/backend/db/adapters/memory";
+
+const instance = c15tInstance({
+  database: memoryAdapter({})
+});
+```
+
+### Kysely Adapter (Production)
+
+```typescript
+import { kyselyAdapter } from "@c15t/backend/db/adapters/kysely";
+
+const instance = c15tInstance({
+  database: kyselyAdapter({
+    dialect: "postgres",
+    connection: {
+      host: "localhost",
+      port: 5432,
+      database: "c15t",
+      user: "postgres",
+      password: "password"
+    }
+  })
+});
+```
+
+For more database options and configuration, see [Database Adapters](./v1/database-adapters).
+
+## Handling Requests
+
+```typescript
+const request = new Request("http://localhost:3000/api/c15t/status", {
+  method: "GET"
+});
+
+const response = await instance.handler(request);
+```
+
+Learn more about request handling in [Core Concepts](./core-concepts#request-handling).
+
+## Next Steps
+
+1. Learn about [Core Concepts](./v1/core-concepts) to understand the system architecture
+2. Explore [Database Adapters](./v1/database-adapters) for different storage options
+3. Check out the [Plugin System](./v1/plugins) for extensibility
+4. Review the request handling examples above for available functionality
+
+## Common Issues
+
+### Database Connection Issues
+
+If you're having trouble connecting to the database:
+
+1. Check your connection string
+2. Verify database credentials
+3. Ensure the database is running
+4. Review [Database Adapters](./v1/database-adapters#error-handling) for more details
+
+### Authentication Problems
+
+For authentication issues:
+
+1. Verify your JWT secret
+2. Check token expiration
+3. Review plugin configuration in the [Plugin System](./plugins) documentation
+
+### Plugin Loading
+
+If plugins aren't loading:
+
+1. Check plugin dependencies
+2. Verify plugin order
+3. Review [Plugin System](./v1/plugins#common-issues) documentation

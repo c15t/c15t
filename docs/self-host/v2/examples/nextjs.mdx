@@ -1,0 +1,53 @@
+---
+title: Next.js App Directory
+description: Example of self hosting c15t and Next.js app directory.
+lastModified: 2025-08-16
+canary: true
+---
+
+<Callout type="info">
+  To view the full example, see the [Next.js example
+  repository](https://github.com/c15t/c15t/tree/canary/examples/next-self-host).
+</Callout>
+
+```tsx title="app/api/c15t/[...all]/route.ts"
+import { c15tInstance } from "@c15t/backend/v2";
+import { kyselyAdapter } from "@c15t/backend/v2/db/adapters/kysely";
+import { Kysely, PostgresDialect } from "kysely";
+import type { NextRequest } from "next/server";
+import { Pool } from "pg";
+
+const handler = c15tInstance({
+  appName: "c15t-self-host",
+  basePath: "/api/c15t",
+  adapter: kyselyAdapter({
+    db: new Kysely({
+      dialect: new PostgresDialect({
+        pool: new Pool({
+          connectionString: process.env.DATABASE_URL
+        })
+      })
+    }),
+    provider: "postgresql"
+  }),
+
+  trustedOrigins: ["localhost", "vercel.app"],
+  advanced: {
+    disableGeoLocation: true,
+    openapi: {
+      enabled: true
+    }
+  },
+  logger: {
+    level: "error"
+  }
+});
+
+const handleRequest = async (request: NextRequest) => handler.handler(request);
+
+export {
+  handleRequest as GET,
+  handleRequest as POST,
+  handleRequest as OPTIONS
+};
+```

@@ -1,0 +1,16 @@
+{
+	"title": "V2 - Self-Hosting c15t",
+	"root": true,
+	"icon": "server",
+	"pages": [
+		"index",
+		"supported-databases",
+		"options",
+		"--- Examples ---",
+		"examples/nextjs",
+		"examples/cloudflare",
+		"--- ---",
+		"migrate-from-v1",
+		"v1/index"
+	]
+}

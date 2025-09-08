@@ -47,6 +47,9 @@ export type Route = {
  * // Handle an incoming request
  * const response = await instance.handler(request);
  * ```
+ *
+ * @deprecated Will be removed in the next major version. Update to `@c15t/backend/v2`, view migration guide for more details.
+ * @see https://c15t.com/docs/self-host/migrate-from-v1
  */
 export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
 	/**
@@ -101,6 +104,9 @@ export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
  * Creates a new c15t consent management instance.
  *
  * This version provides a unified handler that works with oRPC to handle requests.
+ *
+ * @deprecated Will be removed in the next major version. Update to `@c15t/backend/v2`, view migration guide for more details.
+ * @see https://c15t.com/docs/self-host/migrate-from-v1
  */
 export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 	options: C15TOptions<PluginTypes>
