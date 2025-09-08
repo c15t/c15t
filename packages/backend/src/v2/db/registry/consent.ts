@@ -3,14 +3,16 @@ import type { Consent } from '../schema';
 import type { Registry } from './types';
 import { generateUniqueId } from './utils/generate-id';
 
-export function consentRegistry({ db, ctx: { logger } }: Registry) {
+export function consentRegistry({ db, ctx }: Registry) {
+	const { logger } = ctx;
+
 	return {
 		createConsent: async (
 			consent: Omit<Consent, 'id' | 'createdAt'> & Partial<Consent>
 		) => {
 			logger.debug('Creating consent', { consent });
 			const createdConsent = await db.create('consent', {
-				id: await generateUniqueId(db, 'consent'),
+				id: await generateUniqueId(db, 'consent', ctx),
 				subjectId: consent.subjectId,
 				domainId: consent.domainId,
 				policyId: consent.policyId,

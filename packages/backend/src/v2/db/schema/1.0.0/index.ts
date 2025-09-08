@@ -20,10 +20,9 @@ export const v1 = schema({
 	},
 	relations: {
 		subject: ({ many }) => ({
-			auditLog: many('auditLog'),
-
 			consents: many('consent'),
 			consentRecords: many('consentRecord'),
+			auditLogs: many('auditLog'),
 		}),
 		domain: ({ many }) => ({
 			consents: many('consent'),
@@ -31,11 +30,12 @@ export const v1 = schema({
 		consentPolicy: ({ many }) => ({
 			consents: many('consent'),
 		}),
+		consentPurpose: () => ({}),
 		consent: ({ one, many }) => ({
 			subject: one('subject', ['subjectId', 'id']).foreignKey(),
 			domain: one('domain', ['domainId', 'id']).foreignKey(),
 			policy: one('consentPolicy', ['policyId', 'id']).foreignKey(),
-			records: many('consentRecord'),
+			consentRecords: many('consentRecord'),
 		}),
 		consentRecord: ({ one }) => ({
 			subject: one('subject', ['subjectId', 'id']).foreignKey(),

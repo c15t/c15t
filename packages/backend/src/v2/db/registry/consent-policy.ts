@@ -3,7 +3,8 @@ import type { PolicyType } from '../schema';
 import type { Registry } from './types';
 import { generateUniqueId } from './utils/generate-id';
 
-export function policyRegistry({ db, ctx: { logger } }: Registry) {
+export function policyRegistry({ db, ctx }: Registry) {
+	const { logger } = ctx;
 	async function generatePolicyPlaceholder(name: string, date: Date) {
 		const content = `[PLACEHOLDER] This is an automatically generated version of the ${name} policy.\n\nThis placeholder content should be replaced with actual policy terms before being presented to users.\n\nGenerated on: ${date.toISOString()}`;
 
@@ -56,7 +57,7 @@ export function policyRegistry({ db, ctx: { logger } }: Registry) {
 			);
 
 			const policy = await db.create('consentPolicy', {
-				id: await generateUniqueId(db, 'consentPolicy'),
+				id: await generateUniqueId(db, 'consentPolicy', ctx),
 				version: '1.0.0',
 				type,
 				name: type,
