@@ -31,16 +31,13 @@ import { ConsentManagerWidget as ConsentManagerWidgetComponent } from './consent
 import type { ConsentManagerWidgetProps } from './types';
 
 /**
- * Type definition for the ConsentManagerWidget component with compound components attached.
- *
- * @remarks
  * This interface extends the base ConsentManagerWidget component with additional sub-components
  * that can be used to compose the widget's structure. Each component is designed to be
  * fully accessible and customizable while maintaining compliance with privacy regulations.
  *
  * @public
  */
-interface ConsentManagerWidgetCompoundComponent
+export interface ConsentManagerWidgetCompoundComponent
 	extends FC<ConsentManagerWidgetProps> {
 	// Accordion components
 	AccordionTrigger: typeof AccordionTrigger;

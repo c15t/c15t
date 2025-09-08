@@ -1,0 +1,288 @@
+---
+title: Drizzle Adapter
+description: The Drizzle adapter integrates c15t Backend with Drizzle ORM, a lightweight, type-safe SQL query builder with schema declaration.
+lastModified: 2025-04-15
+deprecated: true
+deprecatedReason: "@c15t/backend v1 did not deliver the flexibility we wanted and fell short of our standards. It is now deprecated as we work on a full rewrite, with v2 entering canary soon. This does not affect Consent.io deployments, which remain stable."
+---
+
+## Installation
+
+Install Drizzle ORM and the appropriate database driver:
+
+```bash
+# For PostgreSQL
+npm install drizzle-orm pg @types/pg
+# For MySQL
+npm install drizzle-orm mysql2 @types/mysql2
+# For SQLite
+npm install drizzle-orm better-sqlite3 @types/better-sqlite3
+```
+
+## Configuration
+
+1. Define your schema using Drizzle's schema builder:
+
+```typescript
+// schema.ts
+import { pgTable, uuid, text, timestamp, json, boolean } from 'drizzle-orm/pg-core';
+
+export const subject = pgTable("subject", {
+	id: text("id").primaryKey(),
+	isIdentified: boolean("is_identified").notNull(),
+	externalId: text("external_id"),
+	identityProvider: text("identity_provider"),
+	lastIpAddress: text("last_ip_address"),
+	createdAt: timestamp("created_at").notNull(),
+	updatedAt: timestamp("updated_at").notNull(),
+	subjectTimezone: text("subject_timezone"),
+});
+
+export const consentPurpose = pgTable("consent_purpose", {
+	id: text("id").primaryKey(),
+	code: text("code").notNull(),
+	name: text("name").notNull(),
+	description: text("description").notNull(),
+	isEssential: boolean("is_essential").notNull(),
+	dataCategory: text("data_category"),
+	legalBasis: text("legal_basis"),
+	isActive: boolean("is_active").notNull(),
+	createdAt: timestamp("created_at").notNull(),
+	updatedAt: timestamp("updated_at").notNull(),
+});
+
+export const consentPolicy = pgTable("consent_policy", {
+	id: text("id").primaryKey(),
+	version: text("version").notNull(),
+	type: text("type").notNull(),
+	name: text("name").notNull(),
+	effectiveDate: timestamp("effective_date").notNull(),
+	expirationDate: timestamp("expiration_date"),
+	content: text("content").notNull(),
+	contentHash: text("content_hash").notNull(),
+	isActive: boolean("is_active").notNull(),
+	createdAt: timestamp("created_at").notNull(),
+});
+
+export const domain = pgTable("domain", {
+	id: text("id").primaryKey(),
+	name: text("name").notNull().unique(),
+	description: text("description"),
+	allowedOrigins: json("allowed_origins"),
+	isVerified: boolean("is_verified").notNull(),
+	isActive: boolean("is_active").notNull(),
+	createdAt: timestamp("created_at").notNull(),
+	updatedAt: timestamp("updated_at"),
+});
+
+export const consent = pgTable("consent", {
+	id: text("id").primaryKey(),
+	subjectId: text("subject_id")
+		.notNull()
+		.references(() => subject.id, { onDelete: "cascade" }),
+	domainId: text("domain_id")
+		.notNull()
+		.references(() => domain.id, { onDelete: "cascade" }),
+	purposeIds: json("purpose_ids"),
+	metadata: json("metadata"),
+	policyId: text("policy_id").references(() => consentPolicy.id, {
+		onDelete: "cascade",
+	}),
+	ipAddress: text("ip_address"),
+	userAgent: text("user_agent"),
+	status: text("status").notNull(),
+	withdrawalReason: text("withdrawal_reason"),
+	givenAt: timestamp("given_at").notNull(),
+	validUntil: timestamp("valid_until"),
+	isActive: boolean("is_active").notNull(),
+});
+
+export const consentRecord = pgTable("consent_record", {
+	id: text("id").primaryKey(),
+	subjectId: text("subject_id")
+		.notNull()
+		.references(() => subject.id, { onDelete: "cascade" }),
+	consentId: text("consent_id").references(() => consent.id, {
+		onDelete: "cascade",
+	}),
+	actionType: text("action_type").notNull(),
+	details: json("details"),
+	createdAt: timestamp("created_at").notNull(),
+});
+
+export const auditLog = pgTable("audit_log", {
+	id: text("id").primaryKey(),
+	entityType: text("entity_type").notNull(),
+	entityId: text("entity_id").notNull(),
+	actionType: text("action_type").notNull(),
+	subjectId: text("subject_id").references(() => subject.id, {
+		onDelete: "cascade",
+	}),
+	ipAddress: text("ip_address"),
+	userAgent: text("user_agent"),
+	changes: json("changes"),
+	metadata: json("metadata"),
+	createdAt: timestamp("created_at").notNull(),
+	eventTimezone: text("event_timezone").notNull(),
+});
+```
+
+2. Configure the c15t instance with the Drizzle adapter:
+
+```typescript
+import { c15tInstance } from '@c15t/backend';
+import { drizzleAdapter } from '@c15t/backend/db/adapters/drizzle';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import * as tables from "@/schema";
+
+// Create a PostgreSQL connection
+const pool = new Pool({
+	connectionString: process.env.DATABASE_URL,
+});
+
+// Initialize Drizzle with the connection
+const db = drizzle(pool);
+
+// Create the c15t instance
+const instance = c15tInstance({
+	baseURL: 'http://localhost:3000',
+	database: drizzleAdapter(
+		db as unknown as { [p: string]: unknown },
+		{
+			provider: 'pg',
+			schema: {
+				...tables,
+			},
+		},
+	),
+});
+```
+
+### MySQL Configuration
+
+```typescript
+import { drizzle } from 'drizzle-orm/mysql2';
+import mysql from 'mysql2/promise';
+
+const connection = await mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: 'password',
+  database: 'c15t'
+});
+
+const db = drizzle(connection);
+
+const instance = c15tInstance({
+  database: drizzleAdapter({ client: db }),
+});
+```
+
+### SQLite Configuration
+
+```typescript
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import Database from 'better-sqlite3';
+
+const sqlite = new Database('database.db');
+const db = drizzle(sqlite);
+
+const instance = c15tInstance({
+  database: drizzleAdapter({ client: db }),
+});
+```
+
+## Usage Examples
+
+### Basic CRUD Operations
+
+```typescript
+// Create a new record
+const user = await instance.database.create('users', {
+  name: 'John Doe',
+  email: 'john@example.com'
+});
+
+// Find records
+const users = await instance.database.find('users', {
+  where: { email: 'john@example.com' },
+  orderBy: { createdAt: 'desc' },
+  limit: 10
+});
+
+// Update a record
+const updatedUser = await instance.database.update(
+  'users',
+  { where: { id: user.id } },
+  { name: 'John Smith' }
+);
+
+// Delete a record
+await instance.database.delete('users', { where: { id: user.id } });
+```
+
+### Transactions
+
+```typescript
+await instance.database.transaction(async (trx) => {
+  const user = await trx.create('users', {
+    name: 'Alice',
+    email: 'alice@example.com'
+  });
+  
+  await trx.create('profiles', {
+    userId: user.id,
+    bio: 'Software engineer'
+  });
+});
+```
+
+### Migrations
+
+Use Drizzle Kit for schema migrations:
+
+```bash
+npm install -D drizzle-kit
+
+# Generate a migration
+npx drizzle-kit generate:pg
+
+# Apply migrations
+npx drizzle-kit push:pg
+```
+
+## Type Safety
+
+The Drizzle adapter provides excellent type safety:
+
+```typescript
+import { users } from './schema';
+import { InferModel } from 'drizzle-orm';
+
+// Infer types from your schema
+type User = InferModel<typeof users>;
+
+// Type-safe operations
+const users = await instance.database.find<User>('users', {
+  where: { email: 'john@example.com' }
+});
+```
+
+## Best Practices
+
+- **Define schema using Drizzle's builders** - Leverage type safety and schema validation
+- **Use prepared statements** - Drizzle uses prepared statements for all queries
+- **Implement connection pooling** - Configure appropriate pool sizes for production
+- **Use migrations for schema changes** - Manage schema changes with Drizzle Kit
+
+## Limitations
+
+- Some complex queries may require direct Drizzle client usage
+- Table names must match schema definitions
+
+## Related Resources
+
+- [Drizzle ORM Documentation](https://orm.drizzle.team/docs/overview)
+- [Database Adapter Interface](../database-adapters)
+- [Core Concepts](../core-concepts)

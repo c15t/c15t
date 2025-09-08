@@ -1,7 +1,7 @@
 ---
 title: 'Overview'
 description: 'Compare different approaches to storing consent decisions in your application'
-lastModified: 2025-04-15
+lastModified: 2025-08-22
 availableIn:
   - framework: 'next'
     url: '/docs/frameworks/next/storing-consent/overview'
@@ -14,194 +14,42 @@ availableIn:
     title: 'JavaScript'
 ---
 
-c15t provides multiple approaches for storing consent decisions in your application. Each approach has different tradeoffs in terms of:
-
-- Server requirements
-- Data persistence
-- Implementation complexity
-- User experience
-
 ## Available Storage Options
 
-| Storage Option | Description | Best For |
-|--------------|-------------|----------|
-| **Hosted c15t** | Using consent.io managed service | Production apps with minimal backend maintenance |
-| **Self-Hosting** | Running your own c15t backend | Organizations requiring complete data control |
-| **Offline Mode** | Browser-based storage with no server | Simple implementations or dev environments |
-| **Custom Client** | Fully customized storage implementation | Complex integrations with existing systems |
+| Storage Option | Description | Best For | Guide |
+|--------------|-------------|----------|----------|
+| **Hosted** | Using consent.io managed service or self-hosting | Production apps with minimal backend maintenance or Organizations requiring complete data control | [Guide](/docs/frameworks/react/storing-consent/hosted) |
+| **Offline** | Browser-based storage with no server | Simple implementations or dev environments | [Guide](/docs/frameworks/react/storing-consent/offline) |
+| **Custom** | Fully customized storage implementation | Complex integrations with existing systems | TBD |
 
 <Callout type="tip">
-  For most applications, we recommend starting with Hosted c15t (consent.io) for the simplest setup with the most features.
+  For most applications, we recommend starting with Hosted (consent.io) for the simplest setup with the most features.
 </Callout>
 
 ## Choosing the Right Approach
 
-### Hosted c15t (Recommended)
+Use this flowchart to determine which c15t configuration is best for your needs:
 
-[consent.io](https://consent.io) provides a fully managed consent management backend with:
+<Mermaid
+  chart={`
+flowchart TD
+Start([Start here]) --> StoreConsent
 
-- Zero backend maintenance
-- Built-in scaling and automatic updates
-- Geographic jurisdiction detection
-- Analytics dashboard
+StoreConsent{Need to store\nconsent choices?}
+StoreConsent -->|Yes| ManagedService
+StoreConsent -->|No| OfflineMode
 
-<CompactCard
-  href="/docs/storing-consent/hosted-c15t"
-  icon={
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-</svg>
-}
->
-  Learn more about <code>Hosted c15t</code>
-</CompactCard>
+ManagedService{Want a managed\nservice?}
+ManagedService -->|Yes| ConsentIO
+ManagedService -->|No| SelfHosted
 
-### Self-Hosting
+OfflineMode([c15t Offline Mode]):::optionStyle
+OfflineMode -.-> OfflineNote[Client-side only\nStores in localStorage]:::noteStyle
 
-Run your own c15t instance to maintain complete control over your data and infrastructure:
+ConsentIO([consent.io]):::recommendStyle
+ConsentIO -.-> ConsentIONote[Fully managed\nSimplest setup]:::noteStyle
 
-- Full control over data storage and security
-- Integration with your existing database systems
-- Customizable configuration
-- No external service dependencies
-
-<CompactCard
-  href="/docs/storing-consent/self-hosting"
-  icon={
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
-</svg>
-}
->
-  Learn more about <code>Self-Hosting</code>
-</CompactCard>
-
-### Offline Mode
-
-Store consent decisions entirely in the browser without any server:
-
-- Zero backend requirements
-- Simplest implementation
-- Works offline and in statically-hosted sites
-- Perfect for development or simple use cases
-
-<CompactCard
-  href="/docs/storing-consent/offline-mode"
-  icon={
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L10 10" />
-</svg>
-}
->
-  Learn more about <code>Offline Mode</code>
-</CompactCard>
-
-### Custom Client
-
-Implement your own storage logic for complete control:
-
-- Integration with existing consent management systems
-- Fully customized storage mechanism
-- Advanced caching and batching capabilities
-- Complex multi-tenant scenarios
-
-<CompactCard
-  href="/docs/storing-consent/custom-client"
-  icon={
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-</svg>
-}
->
-  Learn more about <code>Custom Client</code>
-</CompactCard>
-
-## Decision Guide
-
-<Callout>
-  Use this decision tree to determine which storage option best fits your needs.
-</Callout>
-
-1. **Do you need consent data to persist across devices?**
-   - No → Consider **Offline Mode**
-   - Yes → Continue to question 2
-
-2. **Do you need complete control over your consent data?**
-   - No → Use **Hosted c15t** (consent.io)
-   - Yes → Continue to question 3
-
-3. **Do you have an existing consent management system?**
-   - No → Use **Self-Hosting**
-   - Yes → Consider **Custom Client**
-
-## Creating a Client
-
-The main factory function `configureConsentManager` creates the appropriate client implementation based on the provided options:
-
-```tsx
-import { ConsentManagerProvider, configureConsentManager } from '@c15t/react';
-
-// Create a client instance
-const options = {
-  mode: 'c15t', // 'c15t', 'offline', or 'custom'
-  backendURL: '/api/c15t',
-  // Other options based on the mode...
-};
-
-// Use in a React component
-function App() {
-  return (
-    <ConsentManagerProvider options={options}>
-      {/* Your app content */}
-    </ConsentManagerProvider>
-  );
-}
-```
-
-## Global Callback Events
-
-All client modes support the following callback events:
-
-```tsx
-const callbacks = {
-  // Called when any request fails
-  onError: (response, path) => {
-    console.error(`Request to ${path} failed:`, response.error);
-  },
-  
-  // Called after successfully fetching consent banner information
-  onConsentBannerFetched: (response) => {
-    console.log('Banner info fetched:', response.data);
-  },
-  
-  // Called after successfully setting consent preferences
-  onConsentSet: (response) => {
-    console.log('Consent set successfully:', response.data);
-  },
-  
-  // Called after successfully verifying consent
-  onConsentVerified: (response) => {
-    console.log('Consent verified:', response.data);
-  }
-};
-```
-
-## When to Use Each Mode
-
-<Callout>
-  Choosing the right mode depends on your specific requirements and constraints.
-</Callout>
-
-- **c15t Mode**: For production applications with a real c15t backend
-- **Offline Mode**: For production applications with your own backend systems, or when you want to eliminate external service dependencies
-- **Custom Mode**: When you need to integrate with an existing consent system but still want to implement custom HTTP request handling
-
-## What's Next
-
-Choose the storage approach that best fits your needs:
-
-- [Hosted c15t](/docs/storing-consent/hosted-c15t) - Use consent.io for a managed solution
-- [Self-Hosting](/docs/storing-consent/self-hosting) - Run your own c15t instance
-- [Offline Mode](/docs/storing-consent/offline-mode) - Store consent in the browser
-- [Custom Client](/docs/storing-consent/custom-client) - Implement your own storage logic
+SelfHosted([Self-Hosted Instance]):::optionStyle
+SelfHosted -.-> SelfHostedNote[Full control\nRequires maintenance]:::noteStyle
+`}
+/>

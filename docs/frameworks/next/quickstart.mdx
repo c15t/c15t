@@ -1,8 +1,7 @@
 ---
-title: Next.js Quickstart
-description: Learn how to integrate c15t into your Next.js application with this step-by-step guide. We'll cover installation, configuration, and basic usage.
-lastModified: 2025-06-25
-tocStyle: steps
+title: Quickstart
+description: Integrate c15t into your Next.js application with this step-by-step guide. We'll cover installation, configuration, and basic usage.
+lastModified: 2025-08-26
 availableIn:
   - framework: 'javascript'
     url: '/docs/frameworks/javascript/quickstart'
@@ -10,29 +9,16 @@ availableIn:
   - framework: 'react'
     url: '/docs/frameworks/react/quickstart'
     title: 'React'
+  - framework: 'next'
+    url: '/docs/frameworks/next/quickstart'
+    title: 'Next.js'
 ---
-
-import { RiFileCopyLine, RiFlashlightLine, RiServerLine, RiWifiOffLine, RiSettings4Line } from '@remixicon/react';
 
 ## CLI Setup (Recommended)
 
-<Steps>
-  <Step>
-    ### Generate Schema + Code
+You can get started with the `@c15t/cli` which will generate the code for you!
 
-    <PackageCommandTabs command="@c15t/cli generate" />
-  </Step>
-
-  <Step>
-    ### Run Database Migrations (Optional)
-
-    <Callout type="note">
-      This is only required if you are self hosting c15t.
-    </Callout>
-
-    <PackageCommandTabs command="@c15t/cli migrate" />
-  </Step>
-</Steps>
+<PackageCommandTabs command="@c15t/cli generate" />
 
 ## Manual Setup
 
@@ -72,77 +58,33 @@ import { RiFileCopyLine, RiFlashlightLine, RiServerLine, RiWifiOffLine, RiSettin
   <Step>
     ### Adding it to your Next Application
 
-    <Tabs items={['App Directory', 'Pages Directory']}>
-      <Tab value="App Directory">
-        ```tsx title="app/layout.tsx"
-        import { 
-          ConsentManagerDialog,
-          ConsentManagerProvider,
-          CookieBanner,
-        } from '@c15t/nextjs';
+    ```tsx title="app/layout.tsx"
+    'use client';
+    
+    import { 
+      ConsentManagerDialog,
+      ConsentManagerProvider,
+      CookieBanner,
+    } from '@c15t/nextjs';
+    import type { ReactNode } from 'react';
 
-        export default function Layout ({ children }: { children: ReactNode }) => {
-        	return (
-              <ConsentManagerProvider
-                options={{
-                  mode: 'c15t',
-                  backendURL: '/api/c15t',
-                  consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner.
-                  ignoreGeoLocation: true, // Useful for development to always view the banner.
-                }}
-              >
-                <CookieBanner />
-                <ConsentManagerDialog />   
-                {children}
-              </ConsentManagerProvider>
-          );
-        };
-
-        ```
-      </Tab>
-
-      <Tab value="Pages Directory">
-        ```tsx title="pages/_app.tsx"
-        import { 
-          ConsentManagerDialog,
-          ConsentManagerProvider,
-          CookieBanner,
-        } from '@c15t/nextjs/pages';
-
-        export default function App({ Component, pageProps }: AppProps) {
-        	return (
-        		<ConsentManagerProvider
-        			initialData={pageProps.initialC15TData}
-        			options={{
-        				mode: 'c15t',
-        				backendURL: '/api/c15t',
-        				consentCategories: ['necessary', 'marketing'],
-        				ignoreGeoLocation: true,
-        			}}
-        		>
-        			<CookieBanner />
-        			<ConsentManagerDialog />
-        			<Component {...pageProps} />
-        		</ConsentManagerProvider>
-        	);
-        }
-        ```
-
-        In every page you want to pre-fetch the data server-side, you can use the `withInitialC15TData` helper. Otherwise, it will be fetched client-side.
-
-        ```tsx title="pages/index.tsx"
-        import { withInitialC15TData } from '@c15t/nextjs';
-
-        // This helper accepts a 2nd argument to wrap around your getServerSideProps existing function.
-        export const getServerSideProps = withInitialC15TData('/api/c15t');
-
-        ```
-      </Tab>
-    </Tabs>
-
-    <Callout type="tip">
-      You can create an instance at [consent.io](https://consent.io) or self-host your own instance. Otherwise, you can use c15t offline by setting `mode: 'offline'`.
-    </Callout>
+    export default function Layout({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'c15t',
+            backendURL: '/api/c15t',
+            consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner.
+            ignoreGeoLocation: true, // Useful for development to always view the banner.
+          }}
+        >
+          <CookieBanner />
+          <ConsentManagerDialog />   
+          {children}
+        </ConsentManagerProvider>
+      );
+    };
+    ```
 
     <Callout type="tip">
       If you're using Next.js Rewrites, you can use the `backendURL` option to redirect requests to the c15t backend by setting it to `/api/c15t`.
@@ -152,106 +94,6 @@ import { RiFileCopyLine, RiFlashlightLine, RiServerLine, RiWifiOffLine, RiSettin
 
 ***
 
-## Hosting Options
+## Storing Consent
 
-### Creating a consent.io Instance (Recommended)
-
-<Callout type="info">
-  Using consent.io is the recommended method as it is the easiest way to get started and requires little maintenance.
-</Callout>
-
-Instead of self-hosting your own c15t instance, you can use a [consent.io](https://consent.io) instance. This is the recommended method as it is the easiest way to get started and requires little maintenance.
-
-<Steps>
-  <Step>
-    Sign up for a [consent.io](https://consent.io) account.
-  </Step>
-
-  <Step>
-    After signing up, create a new instance, located in the top-right corner.
-
-    <Callout>
-      When creating an instance it is important to list all the trusted origins for your application such as "localhost", "vercel.app", "c15t.com" etc.
-    </Callout>
-  </Step>
-
-  <Step>
-    After the instance is created, you will be given a backendURL, which you can add to your `ConsentManagerOptions`.
-
-    A backend URL might look like this: `https://<my-instance>.c15t.dev/`.
-  </Step>
-</Steps>
-
-### Alternative Hosting Options
-
-<Callout type="note">
-  For more advanced setup options, choose the approach that best suits your infrastructure and requirements.
-</Callout>
-
-For more advanced setup options, please refer to:
-
-- [Overview](/docs/storing-consent/overview) - Compare different approaches to storing consent decisions in your application
-- [Hosted c15t](/docs/storing-consent/hosted-c15t) - Complete guide to using consent.io
-- [Self-Hosting](/docs/storing-consent/self-hosting) - Run your own c15t instance
-- [Offline Mode](/docs/storing-consent/offline-mode) - Complete guide to using c15t without a backend
-- [Custom Client](/docs/storing-consent/custom-client) - Advanced implementation with custom handlers for full control
-
-## Decision Guide
-
-<Callout>
-  Use this flowchart to determine which c15t configuration is best for your needs.
-</Callout>
-
-Use this flowchart to determine which c15t configuration is best for your needs:
-
-<Mermaid
-  chart={`
-flowchart TD
-Start([Start here]) --> StoreConsent
-
-StoreConsent{Need to store\nconsent choices?}
-StoreConsent -->|Yes| ManagedService
-StoreConsent -->|No| OfflineMode
-
-ManagedService{Want a managed\nservice?}
-ManagedService -->|Yes| ConsentIO
-ManagedService -->|No| SelfHosted
-
-OfflineMode([c15t Offline Mode]):::optionStyle
-OfflineMode -.-> OfflineNote[Client-side only\nStores in localStorage]:::noteStyle
-
-ConsentIO([consent.io]):::recommendStyle
-ConsentIO -.-> ConsentIONote[Fully managed\nSimplest setup]:::noteStyle
-
-SelfHosted([Self-Hosted Instance]):::optionStyle
-SelfHosted -.-> SelfHostedNote[Full control\nRequires maintenance]:::noteStyle
-`}
-/>
-
-## Next Steps in This Guide
-
-<Callout type="tip">
-  Choose your next step based on your specific implementation needs.
-</Callout>
-
-<div className="mt-6">
-  <CompactCard href="/docs/storing-consent/overview" icon={<RiFileCopyLine size={16} />}>
-    Learn more about <code>Client Configuration Options</code>
-  </CompactCard>
-
-  <CompactCard href="/docs/storing-consent/hosted-c15t" icon={<RiFlashlightLine size={16} />}>
-    Learn more about <code>Hosted c15t</code>
-  </CompactCard>
-
-  <CompactCard href="/docs/storing-consent/self-hosting" icon={<RiServerLine size={16} />}>
-    Learn more about <code>Self-Hosting</code>
-  </CompactCard>
-
-  <CompactCard href="/docs/storing-consent/offline-mode" icon={<RiWifiOffLine size={16} />}>
-    Learn more about <code>Offline Mode</code>
-  </CompactCard>
-
-  <CompactCard href="/docs/storing-consent/custom-client" icon={<RiSettings4Line size={16} />}>
-    Learn more about <code>Custom Client</code>
-  </CompactCard>
-</div>
+We recommend using the [hosted solution](/docs/frameworks/next/storing-consent/hosted) with [consent.io](https://consent.io) to store your consent.
