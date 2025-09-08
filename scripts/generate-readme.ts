@@ -70,6 +70,7 @@ interface PackageReadmeConfig {
 	docsLink?: string;
 	quickStartLink?: string;
 	showCLIGeneration?: boolean;
+	npmName?: string; // optional safe package name for npm badge
 	customSections?: Record<string, string>;
 }
 
@@ -134,13 +135,10 @@ const baseReadmeTemplate = (rawConfig: PackageReadmeConfig) => {
 		: DEFAULT_SECURITY_SECTION;
 
 	// npm badge name: ensure scoped packages are encoded
-	const npmBadgeName =
-		config.packageName === 'core'
-			? 'c15t'
-			: encodeNpmName(config.npmLink || config.packageName);
+	const npmBadgeName = encodeNpmName(config.npmName || config.packageName);
 	const npmPackageLink = config.npmLink?.startsWith('http')
 		? config.npmLink
-		: `https://www.npmjs.com/package/${npmBadgeName}`;
+		: `https://www.npmjs.com/package/${config.npmLink || npmBadgeName}`;
 
 	// Build sections
 	const bannerBlock = `<p align="center">
