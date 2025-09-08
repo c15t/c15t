@@ -3,6 +3,8 @@
   <img src="docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner">
 </picture>
 
+&nbsp;
+
 [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
 [![Licence](https://img.shields.io/badge/licence-GPL--3.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
