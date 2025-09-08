@@ -305,6 +305,12 @@ For further information, guides, and examples visit the [reference documentation
 	return `${readmeContent.trim()}\n`;
 };
 
+/**
+ * Generates README files for all packages with readme.json configurations
+ * @throws {Error} If packages directory doesn't exist
+ * @throws {SyntaxError} If readme.json or package.json contains invalid JSON
+ * @throws {Error} If file write operations fail
+ */
 async function generateReadmes() {
 	const packagesDir = path.resolve(__dirname, '../packages');
 
