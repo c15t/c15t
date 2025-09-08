@@ -76,7 +76,7 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
 // app/layout.tsx
 import { ConsentManagerProvider, CookieBanner } from '@c15t/nextjs'
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>

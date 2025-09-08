@@ -1,7 +1,7 @@
 name: Code of Conduct Violation Report
 description: Report a violation of our community Code of Conduct
 title: "Code of Conduct Violation: [Brief Description]"
-labels: 
+labels:
   - conduct-violation
   - confidential
 body:

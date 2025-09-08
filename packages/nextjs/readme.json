@@ -28,7 +28,7 @@
 		"Add `CookieBanner` and `ConsentManagerDialog` components",
 		"Customise styling and behaviour to fit your app",
 		"For full implementation details, see the [Next.js quickstart docs](https://c15t.com/docs/frameworks/next/quickstart)",
-		"```tsx\n// app/layout.tsx\nimport { ConsentManagerProvider, CookieBanner } from '@c15t/nextjs'\n\nexport default function RootLayout({ children }) {\n  return (\n    <html lang=\"en\">\n      <body>\n        <ConsentManagerProvider>\n          {children}\n          <CookieBanner />\n        </ConsentManagerProvider>\n      </body>\n    </html>\n  )\n}\n```"
+		"```tsx\n// app/layout.tsx\nimport { ConsentManagerProvider, CookieBanner } from '@c15t/nextjs'\n\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <html lang=\"en\">\n      <body>\n        <ConsentManagerProvider>\n          {children}\n          <CookieBanner />\n        </ConsentManagerProvider>\n      </body>\n    </html>\n  )\n}\n```"
 	],
 	"docsLink": "https://c15t.com/docs/frameworks/next/quickstart",
 	"quickStartLink": "https://c15t.com/docs/frameworks/next/quickstart",
