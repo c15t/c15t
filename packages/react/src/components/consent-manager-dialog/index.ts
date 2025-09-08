@@ -32,16 +32,12 @@ import {
 } from './consent-manager-dialog';
 
 /**
- * Type definition for the ConsentManagerDialog component with compound components attached.
- *
- * @remarks
  * This interface extends the base ConsentManagerDialog component with additional sub-components
  * that can be used to compose the dialog's structure. Each component is designed to be
  * fully accessible and customizable while maintaining compliance with privacy regulations.
  *
- * @public
  */
-interface ConsentManagerDialogCompoundComponent
+export interface ConsentManagerDialogCompoundComponent
 	extends FC<ConsentManagerDialogProps> {
 	Card: typeof Card;
 	Header: typeof Header;

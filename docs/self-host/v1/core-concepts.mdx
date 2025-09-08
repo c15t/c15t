@@ -1,0 +1,441 @@
+---
+title: Core Concepts
+description: Detailed explanation of the fundamental concepts and architecture of the c15t Backend package, including instance management, context system, and request handling.
+lastModified: 2025-04-15
+deprecated: true
+deprecatedReason: "@c15t/backend v1 did not deliver the flexibility we wanted and fell short of our standards. It is now deprecated as we work on a full rewrite, with v2 entering canary soon. This does not affect Consent.io deployments, which remain stable."
+---
+
+This document covers the fundamental concepts and architecture of the c15t Backend package.
+
+## Instance Management
+
+### Creating an Instance
+
+The c15t instance is the core of the system, managing all components and their interactions:
+
+```typescript
+import { c15tInstance } from '@c15t/backend';
+import { memoryAdapter } from '@c15t/backend/db/adapters/memory';
+
+const instance = c15tInstance({
+  baseURL: 'http://localhost:3000',
+  database: memoryAdapter({}),
+  plugins: [],
+  context: {},
+});
+```
+
+For a quick start guide, see [Getting Started](./index#basic-usage).
+
+### Instance Configuration
+
+The instance configuration includes:
+
+```typescript
+interface C15TOptions {
+  // Base URL for the API
+  baseURL: string;
+  
+  // Database adapter
+  database: DatabaseAdapter;
+  
+  // Optional base path for API routes
+  basePath?: string;
+  
+  // Trusted origins for CORS
+  trustedOrigins?: string[] | ((request: Request) => string[]);
+  
+  // Plugin configurations
+  plugins?: C15TPlugin[];
+  
+  // Additional context data
+  context?: Record<string, unknown>;
+  
+  // Authentication configuration
+  auth?: AuthConfig;
+  
+  // Rate limiting configuration
+  rateLimit?: RateLimitConfig;
+}
+```
+
+Learn more about database adapters in [Database Adapters](./database-adapters).
+
+## Context System
+
+### Context Structure
+
+The context is a shared state that persists throughout the request lifecycle:
+
+```typescript
+interface C15TContext {
+  // Request-specific data
+  request: Request;
+  response?: Response;
+  
+  // Database access
+  database: DatabaseAdapter;
+  
+  // Authentication data
+  auth?: {
+    userId: string;
+    roles: string[];
+    metadata?: Record<string, unknown>;
+  };
+  
+  // Plugin data
+  plugins: Record<string, PluginData>;
+  
+  // Custom context data
+  [key: string]: unknown;
+}
+```
+
+### Context Extensions
+
+Plugins can extend the context with additional data:
+
+```typescript
+const contextPlugin: C15TPlugin = {
+  id: 'context-plugin',
+  name: 'Context Plugin',
+  type: 'core',
+  init: () => ({
+    context: {
+      customData: {
+        timestamp: Date.now(),
+        requestId: generateId(),
+      },
+    },
+  }),
+};
+```
+
+Learn more about plugins in [Plugin System](./plugins#context-extensions).
+
+## Request Handling
+
+### Request Flow
+
+1. **Request Reception**
+   ```typescript
+   const request = new Request('http://localhost:3000/api/c15t/status', {
+     method: 'GET',
+     headers: {
+       'Accept': 'application/json',
+       'Origin': 'http://localhost:3000',
+     },
+   });
+   ```
+
+2. **Request Processing**
+   ```typescript
+   const response = await instance.handler(request);
+   ```
+
+3. **Response Generation**
+   ```typescript
+   if (response.isOk()) {
+     const data = await response.value.json();
+     console.log(data);
+   } else {
+     console.error(response.error);
+   }
+   ```
+
+For API endpoint details, see the instance handler documentation above.
+
+### Request Lifecycle
+
+1. **Pre-processing**
+   ```typescript
+   const preProcessed = await instance.preProcess(request);
+   ```
+
+2. **Authentication**
+   ```typescript
+   const authenticated = await instance.authenticate(preProcessed);
+   ```
+
+3. **Authorization**
+   ```typescript
+   const authorized = await instance.authorize(authenticated);
+   ```
+
+4. **Handler Execution**
+   ```typescript
+   const result = await instance.executeHandler(authorized);
+   ```
+
+5. **Post-processing**
+   ```typescript
+   const response = await instance.postProcess(result);
+   ```
+
+## Response Processing
+
+### Response Types
+
+```typescript
+interface C15TResponse<T = unknown> {
+  // Response data
+  data?: T;
+  
+  // Response metadata
+  metadata?: {
+    timestamp: string;
+    requestId: string;
+    processingTime: number;
+  };
+  
+  // Response status
+  status: number;
+  
+  // Response headers
+  headers: Headers;
+}
+```
+
+For API response formats, see the request handling examples above.
+
+### Response Formatting
+
+```typescript
+const formatResponse = (data: unknown): C15TResponse => ({
+  data,
+  metadata: {
+    timestamp: new Date().toISOString(),
+    requestId: generateId(),
+    processingTime: Date.now() - startTime,
+  },
+  status: 200,
+  headers: new Headers({
+    'Content-Type': 'application/json',
+  }),
+});
+```
+
+## Error Handling
+
+### Error Types
+
+```typescript
+// Authentication errors
+class AuthenticationError extends DoubleTieError {
+  constructor(message: string) {
+    super(message, 401);
+  }
+}
+
+// Authorization errors
+class AuthorizationError extends DoubleTieError {
+  constructor(message: string) {
+    super(message, 403);
+  }
+}
+
+// Validation errors
+class ValidationError extends DoubleTieError {
+  constructor(message: string, details?: Record<string, unknown>) {
+    super(message, 400, details);
+  }
+}
+
+// Database errors
+class DatabaseError extends DoubleTieError {
+  constructor(message: string) {
+    super(message, 500);
+  }
+}
+```
+
+For error handling in plugins, see [Plugin System](./plugins#error-handling).
+
+### Error Handling
+
+```typescript
+try {
+  const response = await instance.handler(request);
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    // Handle authentication errors
+  } else if (error instanceof AuthorizationError) {
+    // Handle authorization errors
+  } else if (error instanceof ValidationError) {
+    // Handle validation errors
+  } else if (error instanceof DatabaseError) {
+    // Handle database errors
+  } else {
+    // Handle unexpected errors
+  }
+}
+```
+
+## Middleware System
+
+### Middleware Types
+
+1. **Request Middleware**
+   ```typescript
+   const requestMiddleware = async (request: Request, ctx: C15TContext) => {
+     // Modify request
+     return { request };
+   };
+   ```
+
+2. **Response Middleware**
+   ```typescript
+   const responseMiddleware = async (response: Response, ctx: C15TContext) => {
+     // Modify response
+     return { response };
+   };
+   ```
+
+3. **Error Middleware**
+   ```typescript
+   const errorMiddleware = async (error: Error, ctx: C15TContext) => {
+     // Handle error
+     return { error };
+   };
+   ```
+
+Learn more about middleware in [Plugin System](./plugins#middleware-plugins).
+
+### Middleware Chain
+
+```typescript
+const middlewareChain = [
+  requestMiddleware,
+  authMiddleware,
+  validationMiddleware,
+  responseMiddleware,
+];
+
+const result = await middlewareChain.reduce(
+  async (acc, middleware) => middleware(acc, ctx),
+  request
+);
+```
+
+## Event System
+
+### Event Types
+
+```typescript
+interface C15TEvent {
+  type: string;
+  data: unknown;
+  timestamp: string;
+  metadata?: Record<string, unknown>;
+}
+```
+
+### Event Handling
+
+```typescript
+const eventHandler = async (event: C15TEvent) => {
+  switch (event.type) {
+    case 'request.received':
+      // Handle request received
+      break;
+    case 'response.sent':
+      // Handle response sent
+      break;
+    case 'error.occurred':
+      // Handle error occurred
+      break;
+  }
+};
+```
+
+### Event Emission
+
+```typescript
+const emitEvent = async (type: string, data: unknown) => {
+  const event: C15TEvent = {
+    type,
+    data,
+    timestamp: new Date().toISOString(),
+  };
+  await eventHandler(event);
+};
+```
+
+## Testing
+
+### Test Utilities
+
+```typescript
+import { createTestInstance, createTestRequest } from '@c15t/backend/testing';
+
+describe('Core Functionality', () => {
+  it('should handle requests', async () => {
+    const instance = createTestInstance();
+    const request = createTestRequest({
+      url: 'http://localhost:3000/api/c15t/status',
+      method: 'GET',
+    });
+    
+    const response = await instance.handler(request);
+    expect(response.status).toBe(200);
+  });
+});
+```
+
+### Mock Context
+
+```typescript
+import { createMockContext } from '@c15t/backend/testing';
+
+const ctx = createMockContext({
+  database: mockDatabase,
+  auth: {
+    userId: 'test-user',
+    roles: ['admin'],
+  },
+});
+```
+
+## Performance Optimization
+
+### Caching
+
+```typescript
+const cache = new Map<string, unknown>();
+
+const getCachedData = async (key: string) => {
+  if (cache.has(key)) {
+    return cache.get(key);
+  }
+  
+  const data = await fetchData();
+  cache.set(key, data);
+  return data;
+};
+```
+
+For database performance, see [Database Adapters](./database-adapters#performance-considerations).
+
+### Connection Pooling
+
+```typescript
+const pool = new Pool({
+  max: 20,
+  idleTimeoutMillis: 30000,
+});
+
+const getConnection = async () => {
+  return await pool.connect();
+};
+```
+
+### Request Batching
+
+```typescript
+const batchRequests = async (requests: Request[]) => {
+  return await Promise.all(
+    requests.map(request => instance.handler(request))
+  );
+};
+```

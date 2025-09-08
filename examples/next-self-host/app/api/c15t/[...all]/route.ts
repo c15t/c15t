@@ -24,7 +24,7 @@ const handler = c15tInstance({
 		},
 	},
 	logger: {
-		level: 'error',
+		level: 'debug',
 	},
 });
 

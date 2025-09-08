@@ -20,6 +20,7 @@
 		"knip": "knip",
 		"lint:fix": "turbo lint -- --write",
 		"lint": "turbo lint",
+		"lint:docs": "pnpm remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
 		"postinstall": "lefthook install",
 		"release:canary": "pnpm build:libs && changeset publish --tag canary",
 		"release": "pnpm build:libs && changeset publish",

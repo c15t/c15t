@@ -1,0 +1,44 @@
+---
+title: 'Offline'
+description: 'Store consent decisions in the browser with offline mode, perfect for sites without backend requirements'
+lastModified: 2025-08-22
+availableIn:
+  - framework: 'next'
+    url: '/docs/frameworks/next/storing-consent/offline'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/storing-consent/offline'
+    title: 'React'
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/storing-consent/offline'
+    title: 'JavaScript'
+---
+
+<import>../../javascript/shared/storing-consent/offline.mdx#overview</import>
+
+## Implementation
+
+```tsx title="app/layout.tsx"
+import { 
+  ConsentManagerDialog,
+  ConsentManagerProvider,
+  CookieBanner,
+} from '@c15t/nextjs';
+
+export default function Layout ({ children }: { children: ReactNode }) => {
+  return (
+      <ConsentManagerProvider
+        options={{
+          mode: 'offline',
+          consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner.
+        }}
+      >
+        <CookieBanner />
+        <ConsentManagerDialog />   
+        {children}
+      </ConsentManagerProvider>
+  );
+};
+```
+
+<import>../../javascript/shared/storing-consent/offline.mdx#how-it-works</import>

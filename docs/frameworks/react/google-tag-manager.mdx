@@ -1,9 +1,12 @@
 ---
 title: Google Tag Manager
 description: Learn how to integrate c15t with Google Tag Manager (GTM).
-lastModified: 2025-06-24
+lastModified: 2025-08-20
 experimental: true
 availableIn:
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/google-tag-manager'
+    title: 'JavaScript'
   - framework: 'next'
     url: '/docs/frameworks/next/google-tag-manager'
     title: 'Next.js'
@@ -11,6 +14,10 @@ availableIn:
     url: '/docs/frameworks/react/google-tag-manager'
     title: 'React'
 ---
+
+c15t supports Google Tag Manager (GTM) out of the box. It will automatically inject the GTM script into your page and update the consent state in GTM. This feature is currently marked as experimental as we want feedback from users.
+
+## Implementation
 
 <Steps>
   <Step>
@@ -26,7 +33,7 @@ availableIn:
     1. In Tag Manager, click Admin > Container Settings.
     2. Under Additional Settings, select "Enable consent overview".
 
-    ![Enable consent overview](./assets/container-settings.png)
+    ![Enable consent overview](../javascript/shared/google-tag-manager/container-settings.png)
   </Step>
 
   <Step>

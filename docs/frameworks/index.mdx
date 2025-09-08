@@ -5,37 +5,10 @@ lastModified: 2025-08-07
 full: true
 ---
 
-<CursorCardContainer className="my-10 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 @container not-prose grid gap-4">
-  <CursorCard>
-    <Link href="/docs/frameworks/next/quickstart" className="block h-full">
-      <CursorCardIcon>
-        <NextIcon />
-      </CursorCardIcon>
+<Cards className="my-10 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 @container not-prose grid gap-4">
+  <Card variant="interactive" title="Next.js" description="Easily add secure, beautiful, and fast consent management to Next.js with c15t." icon={<Icon name="next" />} href="/docs/frameworks/next/quickstart" />
 
-      <CursorCardTitle>Next.js</CursorCardTitle>
-      <CursorCardDescription>Easily add secure, beautiful, and fast consent management to Next.js with c15t.</CursorCardDescription>
-    </Link>
-  </CursorCard>
+  <Card variant="interactive" title="React" description="Get started installing and initializing c15t in a new React + Vite app." icon={<Icon name="react" />} href="/docs/frameworks/react/quickstart" />
 
-  <CursorCard>
-    <Link href="/docs/frameworks/react/quickstart" className="block h-full">
-      <CursorCardIcon>
-        <ReactIcon />
-      </CursorCardIcon>
-
-      <CursorCardTitle>React</CursorCardTitle>
-      <CursorCardDescription>Get started installing and initializing c15t in a new React + Vite app.</CursorCardDescription>
-    </Link>
-  </CursorCard>
-
-  <CursorCard>
-    <Link href="/docs/frameworks/javascript/quickstart" className="block h-full">
-      <CursorCardIcon>
-        <JavascriptIcon />
-      </CursorCardIcon>
-
-      <CursorCardTitle>JavaScript</CursorCardTitle>
-      <CursorCardDescription>The c15t JavaScript SDK gives you access to prebuilt components and helpers to make consent management easier.</CursorCardDescription>
-    </Link>
-  </CursorCard>
-</CursorCardContainer>
+  <Card variant="interactive" title="JavaScript" description="The c15t JavaScript SDK gives you access to prebuilt components and helpers to make consent management easier." icon={<Icon name="javascript" />} href="/docs/frameworks/javascript/quickstart" />
+</Cards>
