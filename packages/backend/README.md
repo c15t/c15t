@@ -1,39 +1,84 @@
-<div align="center">
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M32.0255 0.0450657C37.6311 0.0450657 42.1754 4.59956 42.1754 10.2178C42.1753 15.836 37.6311 20.3903 32.0255 20.3903C30.2776 20.3903 28.633 19.9475 27.197 19.1675L19.2057 27.1768C19.5384 27.7916 19.8064 28.4395 20.0056 29.1098H44.0459C45.2936 24.9078 49.1777 21.8436 53.7756 21.8436C59.3812 21.8436 63.9254 26.3981 63.9254 32.0163C63.9254 37.6345 59.3811 42.189 53.7756 42.189C49.1777 42.189 45.2938 39.1248 44.046 34.9228H20.0054C19.7434 35.8044 19.3626 36.6461 18.8738 37.4247L26.6293 45.1976C28.1924 44.2123 30.0425 43.6422 32.0255 43.6422C37.6311 43.6422 42.1754 48.1968 42.1754 53.815C42.1754 59.4332 37.6311 63.9875 32.0255 63.9875C26.4199 63.9875 21.8756 59.4332 21.8756 53.815C21.8756 52.3023 22.2051 50.8668 22.796 49.5765L14.5047 41.2665C13.2173 41.8586 11.7852 42.189 10.2759 42.189C4.67041 42.189 0.12612 37.6345 0.125977 32.0163C0.125977 26.3981 4.67041 21.8436 10.276 21.8436C12.0238 21.8436 13.6686 22.2864 15.1046 23.0664L23.0957 15.0573C22.3175 13.6181 21.8756 11.9696 21.8756 10.2178C21.8756 4.59956 26.4199 0.0450657 32.0255 0.0450657ZM32.0255 49.4552C29.6231 49.4552 27.6755 51.4072 27.6755 53.815C27.6755 56.2227 29.6231 58.1746 32.0255 58.1746C34.428 58.1746 36.3755 56.2227 36.3755 53.815C36.3755 51.4072 34.428 49.4552 32.0255 49.4552ZM10.276 27.6565C7.87356 27.6565 5.92587 29.6085 5.92587 32.0163C5.92587 34.4241 7.87356 36.3761 10.276 36.3761C12.6783 36.3761 14.6259 34.4241 14.6259 32.0163C14.6259 29.6086 12.6783 27.6565 10.276 27.6565ZM53.7756 27.6565C51.3751 27.6565 49.4285 29.6054 49.4255 32.0107L49.4256 32.0163L49.4255 32.0218C49.4285 34.4272 51.3751 36.3761 53.7756 36.3761C56.1779 36.3761 58.1255 34.4241 58.1255 32.0163C58.1255 29.6086 56.1779 27.6565 53.7756 27.6565ZM32.0255 5.85785C29.6231 5.85785 27.6755 7.80992 27.6755 10.2178C27.6755 12.6256 29.6232 14.5774 32.0255 14.5774C34.428 14.5774 36.3754 12.6255 36.3755 10.2178C36.3755 7.80992 34.428 5.85799 32.0255 5.85785Z" fill="currentColor"/>
-</svg>
+<p align="center">
+  <a href="https://c15t.com?utm_source=github&utm_medium=repopage_%40c15t%2Fbackend" target="_blank" rel="noopener noreferrer">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
+      <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
+    </picture>
+  </a>
+  <br />
+  <h1 align="center">@c15t/backend: Consent Management Backend</h1>
+</p>
 
-  <h1>@c15t/nextjs</h1>
-  <p>Transform privacy consent from a compliance checkbox into a fully observable system</p>
+[![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
+[![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+[![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
+[![npm version](https://img.shields.io/npm/v/%40c15t%2Fbackend?style=flat-square)](https://www.npmjs.com/package/@c15t/backend)
+[![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
+[![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
+[![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
 
-  [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-  [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
-  [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
-  [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
-</div>
+Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preferences centre. Webhooks, audit logs, storage adapters. Self host or use consent.io
 
-The backend for c15t. You can self-host this backend to store & manage users consent preferences. 
+## Key Features
 
-We recommend using [consent.io](https://consent.io) instead of self hosting so the infrastructure is managed for you.
+- Consent Management: Track and manage user consent preferences
+- Geo-Location: Identify user's location to show relevant consent preferences
+- Server-Side Translation: Reduce banner bundle size by translating consent preferences on the server
+- Audit Logging: Comprehensive logging of all consent-related actions
+- Domain Management: Handle multiple domains and subdomains
+- Policy Management: Version and manage consent policies
 
-## Getting Started
+## Prerequisites
 
-View our [self-hosting guide](https://c15t.com/docs/self-host) for more information.
+- Node.js 18.17.0 or later
+- npm, pnpm, or yarn package manager
 
-## Features
+## Installation
 
-- 📝 **Consent Management**: Track and manage user consent preferences
-- 🌐 **Geo-Location**: Identify user's location to show relevant consent preferences, e.g. cookie banner only in EU.
-- ⚡ **Server-Side Translation**: Reduce the bundle size of your banner by translating consent preferences on the server.
-- 🔍 **Audit Logging**: Comprehensive logging of all consent-related actions
-- 🔄 **Domain Management**: Handle multiple domains and subdomains
-- 📝 **Policy Management**: Version and manage consent policies
+Install the backend package using your preferred package manager
+Configure your database adapter (supports Drizzle, Kysely, Prisma, TypeORM, and Mongo)
+
+## Usage
+
+1. Import the backend package in your project
+2. Configure your database connection
+3. Use the provided router and schema for consent management
+4. Implement consent tracking and management in your application
+
+## Documentation
+
+For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/self-host/v2).
 
 ## Support
 
-- 📚 [Documentation](https://c15t.com/)
-- 💬 [Discord Community](https://c15t.com/discord)
-- 🐛 [Issue Tracker](https://github.com/c15t/c15t/issues)
+- Join our [Discord community](https://c15t.com/discord)
+- Open an issue on our [GitHub repository](https://github.com/c15t/c15t/issues)
+- Visit [consent.io](https://consent.io) and use the chat widget
+- Contact our support team via email [support@consent.io](mailto:support@consent.io)
+
+## Contributing
+
+- We're open to all community contributions!
+- Read our [Contribution Guidelines](https://c15t.com/docs/oss/contributing)
+- Review our [Code of Conduct](https://c15t.com/docs/oss/code-of-conduct)
+- Fork the repository
+- Create a new branch for your feature
+- Submit a pull request
+- **All contributions, big or small, are welcome and appreciated!**
+
+## Security
+
+If you believe you have found a security vulnerability in c15t, we encourage you to **_responsibly disclose this and NOT open a public issue_**. We will investigate all legitimate reports.
+
+Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our Open Source Software. To do this, please visit [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security) and click the "Report a vulnerability" button.
+
+### Security Policy
+
+- Please do not share security vulnerabilities in public forums, issues, or pull requests
+- Provide detailed information about the potential vulnerability
+- Allow reasonable time for us to address the issue before any public disclosure
+- We are committed to addressing security concerns promptly and transparently
 
 ## License
 
@@ -41,6 +86,4 @@ View our [self-hosting guide](https://c15t.com/docs/self-host) for more informat
 
 ---
 
-<div align="center">
-  <strong>Built with ❤️ by the <a href="https://www.consent.io">consent.io</a> team</strong>
-</div>
+**Built with ❤️ by the [consent.io](https://www.consent.io?utm_source=github&utm_medium=repopage_%40c15t%2Fbackend) team**
