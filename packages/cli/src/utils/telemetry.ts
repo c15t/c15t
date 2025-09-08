@@ -60,6 +60,11 @@ export const TelemetryEventName = {
 	GENERATE_STARTED: 'generate.started',
 	GENERATE_COMPLETED: 'generate.completed',
 	GENERATE_FAILED: 'generate.failed',
+
+	// Self-host events
+	SELF_HOST_STARTED: 'self-host.started',
+	SELF_HOST_COMPLETED: 'self-host.completed',
+	SELF_HOST_FAILED: 'self-host.failed',
 } as const;
 
 export type TelemetryEventName =

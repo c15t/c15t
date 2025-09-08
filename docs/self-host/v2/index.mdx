@@ -1,23 +1,17 @@
 ---
 title: Getting Started
 description: Quick start guide for self-hosting c15t with the @c15t/backend package.
-lastModified: 2025-08-16
+lastModified: 2025-09-08
 canary: true
 ---
 
-## CLI Setup
+## DB Setup + Migrations
 
 <Steps>
   <Step>
-    ### Generate Schema + Code
+    ### Run the Self Host CLI
 
-    <PackageCommandTabs command="@c15t/cli generate" />
-  </Step>
-
-  <Step>
-    ### Run Database Migrations
-
-    <PackageCommandTabs command="@c15t/cli migrate" />
+    <PackageCommandTabs command="@c15t/cli" />
   </Step>
 </Steps>
 
@@ -28,12 +22,6 @@ canary: true
     ### Install `@c15t/backend` Package
 
     <PackageCommandTabs command="@c15t/backend" />
-  </Step>
-
-  <Step>
-    ### Run Migrations
-
-    <PackageCommandTabs command="@c15t/cli migrate" />
   </Step>
 
   <Step>

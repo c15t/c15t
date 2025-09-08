@@ -73,9 +73,12 @@ export async function createCliContext(
 	context.fs = createFileSystem(context);
 
 	// Detect project root, framework, and package manager
-	const projectRoot = await detectProjectRoot(cwd, logger);
-	context.framework = await detectFramework(projectRoot, logger);
-	context.packageManager = await detectPackageManager(projectRoot, logger);
+	context.projectRoot = await detectProjectRoot(cwd, logger);
+	context.framework = await detectFramework(context.projectRoot, logger);
+	context.packageManager = await detectPackageManager(
+		context.projectRoot,
+		logger
+	);
 
 	// Add telemetry, respecting the telemetry flag if present
 	const telemetryDisabled = parsedFlags['no-telemetry'] === true;

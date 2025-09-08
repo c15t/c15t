@@ -1,10 +1,8 @@
 import * as p from '@clack/prompts';
-import type { AvailablePackages } from '~/context/framework-detection';
 import type { CliContext } from '~/context/types';
 
 interface SharedFrontendOptions {
 	backendURL: string | undefined;
-	packageName: AvailablePackages;
 	context: CliContext;
 	handleCancel?: (value: unknown) => boolean;
 }
@@ -16,7 +14,6 @@ interface SharedFrontendResult {
 
 export async function getSharedFrontendOptions({
 	backendURL,
-	packageName,
 	context,
 	handleCancel,
 }: SharedFrontendOptions): Promise<SharedFrontendResult> {
@@ -45,7 +42,7 @@ export async function getSharedFrontendOptions({
 
 	useEnvFile = useEnvFileSelection as boolean;
 
-	if (packageName === '@c15t/nextjs') {
+	if (context.framework.pkg === '@c15t/nextjs') {
 		context.logger.info(
 			'Learn more about Next.js Rewrites: https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites'
 		);

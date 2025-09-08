@@ -8,7 +8,7 @@ vi.mock('@clack/prompts', () => {
 });
 
 import * as prompts from '@clack/prompts';
-import { TelemetryEventName } from '../../utils/telemetry';
+import { TelemetryEventName } from '../../../utils/telemetry';
 import { handleMigrationResult } from './migrator-result';
 
 function createMockContext() {
