@@ -269,6 +269,8 @@ async function displayNextSteps(options: DisplayNextStepsOptions) {
 			break;
 		}
 		case 'self-hosted': {
+			log.step('Setup your backend with the c15t docs:');
+			logger.info('https://c15t.com/docs/self-host/v2');
 			break;
 		}
 		case 'custom': {

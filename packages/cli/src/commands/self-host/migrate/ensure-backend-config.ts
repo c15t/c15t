@@ -122,7 +122,7 @@ const CONFIG_BUILDERS: {
 	},
 };
 
-async function pathExists(filePath: string): Promise<boolean> {
+export async function pathExists(filePath: string): Promise<boolean> {
 	try {
 		await fs.access(filePath);
 		return true;

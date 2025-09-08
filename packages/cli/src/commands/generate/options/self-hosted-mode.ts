@@ -1,7 +1,11 @@
+import path from 'node:path';
 import * as p from '@clack/prompts';
 import type { CliContext } from '../../../context/types';
 import { migrate } from '../../self-host/migrate';
-import { ensureBackendConfig } from '../../self-host/migrate/ensure-backend-config';
+import {
+	ensureBackendConfig,
+	pathExists,
+} from '../../self-host/migrate/ensure-backend-config';
 import type { BaseOptions, BaseResult } from './types';
 import { installDependencies } from './utils/dependencies';
 import { generateFiles } from './utils/generate-files';
@@ -27,23 +31,15 @@ export async function setupSelfHostedMode({
 	handleCancel,
 }: SelfHostModeOptions): Promise<SelfHostModeResult> {
 	const dependenciesToAdd: string[] = [context.framework.pkg, '@c15t/backend'];
+	const targetPath = path.join(context.cwd, 'c15t-backend.config.ts');
+	let createBackendConfig = false;
 
-	const createBackendConfig = await p.confirm({
-		message: 'Would you like to create a backend config file?',
-		initialValue: true,
-	});
-
-	if (handleCancel?.(createBackendConfig)) {
-		context.error.handleCancel('Setup cancelled.', {
-			command: 'onboarding',
-			stage: 'self_hosted_backend_config_setup',
-		});
-	}
-
-	if (createBackendConfig) {
-		const config = await ensureBackendConfig(context);
-
-		dependenciesToAdd.push(...(config?.dependencies ?? []));
+	if (!(await pathExists(targetPath))) {
+		if (createBackendConfig) {
+			const config = await ensureBackendConfig(context);
+			createBackendConfig = true;
+			dependenciesToAdd.push(...(config?.dependencies ?? []));
+		}
 	}
 
 	const backendURL = await p.text({
