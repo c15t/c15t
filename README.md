@@ -1,13 +1,13 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/c15t-banner-readme-dark.svg">
-  <img src="docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
+  <img src="docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
 </picture>
 
 &nbsp;
 
 [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
-[![Licence](https://img.shields.io/badge/licence-GPL--3.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+[![License](https://img.shields.io/badge/licence-GPL--3.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
 [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
 [![npm version](https://img.shields.io/npm/v/c15t?style=flat-square)](https://www.npmjs.com/package/c15t)
 [![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
