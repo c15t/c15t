@@ -24,7 +24,7 @@ export function auditLogRegistry({
 			logger.debug('Creating audit log', { auditLog });
 
 			const createdLog = await db.create('auditLog', {
-				id: await generateUniqueId(db, 'auditLog'),
+				id: await generateUniqueId(db, 'auditLog', ctx),
 				createdAt: new Date(),
 				...auditLog,
 			});

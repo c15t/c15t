@@ -2,7 +2,8 @@ import { ORPCError } from '@orpc/server';
 import type { Registry } from './types';
 import { generateUniqueId } from './utils/generate-id';
 
-export function subjectRegistry({ db, ctx: { logger } }: Registry) {
+export function subjectRegistry({ db, ctx }: Registry) {
+	const { logger } = ctx;
 	return {
 		findOrCreateSubject: async ({
 			subjectId,
@@ -66,7 +67,7 @@ export function subjectRegistry({ db, ctx: { logger } }: Registry) {
 				await db.upsert('subject', {
 					where: (b) => b('externalId', '=', externalSubjectId),
 					create: {
-						id: await generateUniqueId(db, 'subject'),
+						id: await generateUniqueId(db, 'subject', ctx),
 						externalId: externalSubjectId,
 						identityProvider: 'anonymous',
 						lastIpAddress: ipAddress,
@@ -85,12 +86,14 @@ export function subjectRegistry({ db, ctx: { logger } }: Registry) {
 			// If unknown, create an anonymous subject
 			logger?.debug('Creating new anonymous subject');
 			const subject = await db.create('subject', {
-				id: await generateUniqueId(db, 'subject'),
+				id: await generateUniqueId(db, 'subject', ctx),
 				externalId: null,
 				identityProvider: 'anonymous',
 				lastIpAddress: ipAddress,
 				isIdentified: false,
 			});
+
+			logger.debug('Created new anonymous subject', { subject });
 
 			return subject;
 		},

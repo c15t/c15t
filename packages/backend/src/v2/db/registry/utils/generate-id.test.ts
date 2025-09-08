@@ -154,4 +154,64 @@ describe('generateUniqueId', () => {
 		expect(id2).toMatch(SUBJECT_ID_PATTERN);
 		expect(id3).toMatch(SUBJECT_ID_PATTERN);
 	});
+
+	it('should throw an error when max retries is exceeded', async () => {
+		const mockExistingRecord = { id: 'mock_existing' };
+		const mockLogger = {
+			error: vi.fn(),
+			debug: vi.fn(),
+			info: vi.fn(),
+			success: vi.fn(),
+			warn: vi.fn(),
+		};
+		const mockCtx = { logger: mockLogger };
+
+		const mockDb = {
+			findFirst: vi.fn().mockResolvedValue(mockExistingRecord), // Always return a collision
+		} as unknown as MockDB;
+
+		// Use a small maxRetries value for faster test execution
+		await expect(
+			generateUniqueId(mockDb, 'subject', mockCtx, { maxRetries: 3 })
+		).rejects.toThrow(
+			'Failed to generate unique ID for subject after 3 attempts'
+		);
+
+		// Should have attempted exactly maxRetries times
+		expect(mockDb.findFirst).toHaveBeenCalledTimes(3);
+		expect(mockLogger.error).toHaveBeenCalledWith(
+			'ID generation failed',
+			expect.objectContaining({ model: 'subject', maxRetries: 3 })
+		);
+	});
+
+	it('should respect custom retry options', async () => {
+		const mockExistingRecord = { id: 'mock_existing' };
+		const mockDb = {
+			findFirst: vi
+				.fn()
+				.mockResolvedValueOnce(mockExistingRecord) // First call returns existing record
+				.mockResolvedValueOnce(null), // Second call returns null (unique)
+		} as unknown as MockDB;
+
+		// Mock the setTimeout function directly
+		const originalSetTimeout = global.setTimeout;
+		global.setTimeout = vi.fn((callback) => {
+			// Execute callback immediately
+			callback();
+			return 1; // Return a timeout ID
+		}) as any;
+
+		try {
+			const result = await generateUniqueId(mockDb, 'subject', undefined, {
+				baseDelay: 100,
+			});
+
+			expect(mockDb.findFirst).toHaveBeenCalledTimes(2);
+			expect(result).toMatch(SUBJECT_ID_PATTERN);
+		} finally {
+			// Restore original setTimeout
+			global.setTimeout = originalSetTimeout;
+		}
+	});
 });

@@ -2,7 +2,9 @@ import { ORPCError } from '@orpc/server';
 import type { Registry } from './types';
 import { generateUniqueId } from './utils/generate-id';
 
-export function domainRegistry({ db, ctx: { logger } }: Registry) {
+export function domainRegistry({ db, ctx }: Registry) {
+	const { logger } = ctx;
+
 	const findDomainByName = async (name: string) => {
 		const domain = await db.findFirst('domain', {
 			where: (b) => b('name', '=', name),
@@ -27,7 +29,7 @@ export function domainRegistry({ db, ctx: { logger } }: Registry) {
 
 			logger.debug('Creating new domain', { name });
 			const domain = await db.create('domain', {
-				id: await generateUniqueId(db, 'domain'),
+				id: await generateUniqueId(db, 'domain', ctx),
 				name,
 				description: `Auto-created domain for ${name}`,
 				isActive: true,
