@@ -24,7 +24,6 @@ vi.mock('c15t', async () => {
 
 			// Return a ready-to-use mock with showPopup set to true
 			return {
-				getCallbacks: () => options.callbacks || {},
 				showConsentBanner: async () => ({
 					ok: true,
 					data: {
@@ -141,43 +140,5 @@ describe('ConsentManagerProvider Context Values', () => {
 			},
 			{ timeout: 3000 }
 		);
-	});
-
-	it('should execute callbacks when provided', async () => {
-		const onConsentSet = vi.fn();
-
-		render(
-			<ConsentManagerProvider
-				options={{
-					mode: 'offline',
-					callbacks: {
-						onConsentSet,
-					},
-				}}
-			>
-				<div>Test</div>
-			</ConsentManagerProvider>
-		);
-
-		// Advance timers to allow all async operations to complete
-		await vi.runAllTimersAsync();
-
-		// Verify the mock was called, with some wait time for async operations
-		await vi.waitFor(
-			() => {
-				expect(mockConfigureConsentManager).toHaveBeenCalled();
-			},
-			{ timeout: 3000 }
-		);
-
-		// Verify the callback was properly passed
-		const mockCall = mockConfigureConsentManager.mock.calls[0];
-		expect(mockCall).toBeDefined();
-
-		if (mockCall) {
-			const options = mockCall[0];
-			expect(options).toHaveProperty('callbacks');
-			expect(options.callbacks).toHaveProperty('onConsentSet', onConsentSet);
-		}
 	});
 });

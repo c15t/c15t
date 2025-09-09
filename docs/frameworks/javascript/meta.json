@@ -1,0 +1,20 @@
+{
+	"title": "JavaScript",
+	"icon": "js",
+	"root": true,
+	"pages": [
+		"quickstart",
+		"internationalization",
+		"callbacks",
+		"google-tag-manager",
+		"--- Storing Consent ---",
+		"./storing-consent/overview",
+		"./storing-consent/hosted",
+		"./storing-consent/offline",
+		"--- Store ---",
+		"./store/overview",
+		"./store/checking-consent",
+		"./store/location-info",
+		"./store/setting-consent"
+	]
+}

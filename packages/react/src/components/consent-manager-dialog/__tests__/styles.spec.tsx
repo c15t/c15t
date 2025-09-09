@@ -5,6 +5,7 @@ import type { ThemeValue } from '~/types/theme';
 import testComponentStyles from '~/utils/test-helpers';
 import styles from '../consent-manager-dialog.module.css';
 import type { ConsentManagerDialogTheme } from '../theme';
+
 type ComponentTestCase = {
 	testId: string;
 	themeKey: keyof ConsentManagerDialogTheme;
@@ -50,17 +51,22 @@ const ALL_COMPONENTS: ComponentTestCase[] = [
 ];
 
 vi.mock('~/hooks/use-consent-manager', () => ({
-	useConsentManager: () => ({
+	useConsentManager: vi.fn().mockReturnValue({
 		isPrivacyDialogOpen: true, // Set relevant state for dialog tests
-		getDisplayedConsents: vi.fn(() => []), // Add missing function
+		getDisplayedConsents: vi.fn().mockReturnValue([]), // Add missing function
 		saveConsents: vi.fn(),
 		setShowPopup: vi.fn(),
 		setIsPrivacyDialogOpen: vi.fn(),
+		translationConfig: {
+			defaultLanguage: 'en',
+		},
 	}),
 }));
 
 vi.mock('~/hooks/use-translations', () => ({
-	useTranslations: () => defaultTranslationConfig.translations.en,
+	useTranslations: vi
+		.fn()
+		.mockReturnValue(defaultTranslationConfig.translations.en),
 }));
 
 test('should apply string classNames from theme prop to all dialog elements', async () => {

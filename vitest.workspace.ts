@@ -5,5 +5,5 @@ export default defineWorkspace([
 	'./packages/backend/vitest.config.ts',
 	'./packages/core/vitest.config.ts',
 	'./packages/cli/vitest.config.ts',
-	'./apps/examples/vite-react/vite.config.ts',
+	'./examples/vite-react/vite.config.ts',
 ]);

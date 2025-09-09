@@ -8,6 +8,8 @@ import { defaultTranslationConfig } from './translations';
 import { type ConsentState, consentTypes } from './types';
 import { version } from './version';
 
+export const STORAGE_KEY = 'privacy-consent-storage';
+
 /**
  * Default initial state for the consent management store.
  *
@@ -33,9 +35,6 @@ import { version } from './version';
  * // Extend initial state
  * const customState = {
  *   ...initialState,
- *   privacySettings: {
- *     honorDoNotTrack: false
- *   }
  * };
  * ```
  *
@@ -43,7 +42,11 @@ import { version } from './version';
  */
 export const initialState: Omit<
 	PrivacyConsentState,
-	'getEffectiveConsents' | 'hasConsentFor' | 'fetchConsentBannerInfo'
+	| 'has'
+	| 'fetchConsentBannerInfo'
+	| 'getEffectiveConsents'
+	| 'hasConsentFor'
+	| 'setSelectedConsent'
 > = {
 	config: {
 		pkg: 'c15t',
@@ -57,14 +60,28 @@ export const initialState: Omit<
 		return acc;
 	}, {} as ConsentState),
 
+	selectedConsents: consentTypes.reduce((acc, consent) => {
+		acc[consent.name] = consent.defaultValue;
+		return acc;
+	}, {} as ConsentState),
+
 	/** No consent information stored initially */
 	consentInfo: null,
+
+	/** Show c15t branding by default */
+	branding: 'c15t',
 
 	/** Show consent popup by default */
 	showPopup: true,
 
 	/** Initial loading state for consent banner information */
 	isLoadingConsentInfo: false,
+
+	/** Banner has not been fetched initially */
+	hasFetchedBanner: false,
+
+	/** No last banner fetch data initially */
+	lastBannerFetchData: null,
 
 	/** Default GDPR consent types to include */
 	gdprTypes: ['necessary', 'marketing'],
@@ -106,12 +123,6 @@ export const initialState: Omit<
 	/** No jurisdiction information initially */
 	jurisdictionInfo: null,
 
-	/** Default privacy settings */
-	privacySettings: {
-		/** Respect Do Not Track by default */
-		honorDoNotTrack: true,
-	},
-
 	/** Default translation configuration */
 	translationConfig: defaultTranslationConfig,
 
@@ -123,6 +134,12 @@ export const initialState: Omit<
 
 	/** Default to not ignoring geo location */
 	ignoreGeoLocation: false,
+
+	/** Default privacy settings */
+	privacySettings: {
+		/** Respect Do Not Track by default */
+		honorDoNotTrack: true,
+	},
 
 	// Initialize all methods as no-ops
 	setConsent: () => {

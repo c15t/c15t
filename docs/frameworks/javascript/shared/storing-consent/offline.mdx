@@ -1,0 +1,37 @@
+---
+title: 'Offline'
+description: 'Store consent decisions in the browser with offline mode, perfect for sites without backend requirements'
+lastModified: 2025-08-22
+availableIn:
+  - framework: 'next'
+    url: '/docs/frameworks/next/storing-consent/offline'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/storing-consent/offline'
+    title: 'React'
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/storing-consent/offline'
+    title: 'JavaScript'
+---
+
+The offline mode provides a simple, browser-based approach to storing user consent decisions without requiring a backend server.
+
+## Key Characteristics
+
+- **No backend required** - Everything is stored locally in the browser
+- **Simplified setup** - Get started quickly with minimal configuration
+- **Independence** - Works without external services or APIs
+- **Fast implementation** - Ideal for prototyping and simpler sites
+
+## How It Works
+
+<Callout type="note">
+  Offline mode provides the same API interface as the standard client but operates completely client-side.
+</Callout>
+
+The offline mode implements the same interface as the standard client, but with the following differences:
+
+1. **Storage**: All consent preferences are stored in the browser's localStorage using the configured key
+2. **Network**: No network requests are made, all operations happen locally
+3. **Consent Banner**: The banner visibility is determined by checking if a value exists in localStorage
+4. **Consent Verification**: Always returns a successful response

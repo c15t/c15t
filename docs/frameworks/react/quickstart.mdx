@@ -1,0 +1,66 @@
+---
+title: React Quickstart
+description: Learn how to integrate c15t into your React application with this step-by-step guide. We'll cover installation, configuration, and basic usage.
+lastModified: 2025-08-22
+availableIn:
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/quickstart'
+    title: 'JavaScript'
+  - framework: 'react'
+    url: '/docs/frameworks/react/quickstart'
+    title: 'React'
+  - framework: 'next'
+    url: '/docs/frameworks/next/quickstart'
+    title: 'Next.js'
+---
+
+## CLI Setup (Recommended)
+
+You can get started with the `@c15t/cli` which will generate the code for you!
+
+<PackageCommandTabs command="@c15t/cli generate" />
+
+## Manual Setup
+
+<Steps>
+  <Step>
+    ### Install `@c15t/react` Package
+
+    <PackageCommandTabs command="@c15t/react" />
+  </Step>
+
+  <Step>
+    ### Add to Your Application
+
+    ```tsx title="src/App.tsx"
+    import { 
+      ConsentManagerDialog,
+      ConsentManagerProvider,
+      CookieBanner,
+    } from '@c15t/react';
+
+    function App() {
+      return (
+        <ConsentManagerProvider options={{  
+          mode: 'c15t', 
+          backendURL: "https://your-instance.c15t.dev",
+          consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
+          ignoreGeoLocation: true, // Useful for development to always view the banner.
+        }}>
+          <div className="App">
+            {/* Your application content */}
+          </div>
+          <CookieBanner />
+          <ConsentManagerDialog />
+        </ConsentManagerProvider>
+      );
+    }
+
+    export default App;
+    ```
+  </Step>
+</Steps>
+
+## Storing Consent
+
+We recommend using the [hosted solution](/docs/frameworks/react/storing-consent/hosted) with [consent.io](https://consent.io) to store your consent.

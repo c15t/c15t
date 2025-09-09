@@ -5,6 +5,7 @@
 
 import type {
 	AllConsentNames,
+	Callbacks,
 	ConsentManagerOptions as CoreOptions,
 	GTMConfiguration,
 	TranslationConfig,
@@ -88,6 +89,11 @@ export type ConsentManagerOptions = CoreOptions & {
 	 * @default ['necessary', 'marketing']
 	 */
 	consentCategories?: AllConsentNames[];
+
+	/**
+	 * Callbacks for the consent manager.
+	 */
+	callbacks?: Callbacks;
 };
 
 /**

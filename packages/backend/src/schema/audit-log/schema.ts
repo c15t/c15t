@@ -31,9 +31,9 @@ export const auditLogSchema = z.object({
 	subjectId: z.string().optional(),
 	ipAddress: z.string().optional(),
 	userAgent: z.string().optional(),
-	changes: z.record(z.unknown()).optional(),
-	metadata: z.record(z.unknown()).optional(),
-	createdAt: z.date().default(() => new Date()),
+	changes: z.record(z.string(), z.unknown()).optional(),
+	metadata: z.record(z.string(), z.unknown()).optional(),
+	createdAt: z.date().prefault(() => new Date()),
 });
 
 /**

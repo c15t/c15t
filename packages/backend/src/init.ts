@@ -1,4 +1,4 @@
-import { Resource } from '@opentelemetry/resources';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-base';
 import { defu } from 'defu';
@@ -11,14 +11,14 @@ import { version } from '../package.json';
 import { generateId } from './pkgs/data-model/fields/id-generator';
 import type { EntityName } from './pkgs/data-model/schema/types';
 import {
-	ERROR_CODES,
-	type SDKResult,
-	type TelemetryConfig,
 	createTelemetryOptions,
+	ERROR_CODES,
 	fail,
 	failAsync,
 	ok,
 	promiseToResult,
+	type SDKResult,
+	type TelemetryConfig,
 } from './pkgs/results';
 
 import type { DoubleTieOptions } from './pkgs/types/options';
@@ -113,7 +113,7 @@ export const init = async <P extends C15TPlugin[]>(
 				telemetryInitialized = false;
 			} else {
 				// Create a telemetry resource with provided values or safe defaults
-				const resource = new Resource({
+				const resource = resourceFromAttributes({
 					'service.name': String(appName),
 					'service.version': String(version || '1.0.0'),
 					...(telemetryOptions?.defaultAttributes || {}),
@@ -196,7 +196,10 @@ export const init = async <P extends C15TPlugin[]>(
 			const generateIdFunc = ({
 				model,
 				size = 16,
-			}: { model: EntityName; size?: number }) => {
+			}: {
+				model: EntityName;
+				size?: number;
+			}) => {
 				return (
 					finalOptions?.advanced?.generateId?.({ model, size }) ||
 					generateId(getConsentTables(finalOptions)[model].entityPrefix)

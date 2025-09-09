@@ -1,0 +1,61 @@
+---
+title: Styling with CSS Classes
+description: Learn how to customize components using CSS class names and class-based styling.
+lastModified: 2025-08-22
+availableIn:
+  - framework: 'next'
+    url: '/docs/frameworks/next/styling/classnames'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/styling/classnames'
+    title: 'React'
+---
+
+c15t supports multiple syntax approaches to styling components, a simple class based approach, or an object syntax allowing you to combine class names with inline styles.
+
+## Class-Based Styling
+
+The simplest way to style a component is by providing class names directly to theme keys:
+
+```tsx
+<CookieBanner 
+  theme={{
+    'banner.root': 'my-banner-container',
+    'banner.header.title': 'banner-title',
+    'banner.header.description': 'banner-description',
+    'banner.footer': 'banner-footer'
+  }}
+/>
+```
+
+## Object Syntax
+
+You can also use the object syntax with the `className` property:
+
+```tsx
+import styles from './Banner.module.css';
+
+<CookieBanner 
+  theme={{
+    'banner.root': {
+      className: 'my-banner-container',
+      style: {
+        borderColor: dynamicBorderColor
+      }
+    },
+    'banner.header.title': styles.title // CSS Modules work too!
+  }}
+/>
+```
+
+## Tailwind CSS
+
+c15t supports Tailwind CSS classes, however there may be some cases where you need to add the `!important` flag to override the default styles.
+
+```tsx
+<CookieBanner 
+  theme={{
+    'banner.card': '!bg-red-500'
+  }}
+/>
+```

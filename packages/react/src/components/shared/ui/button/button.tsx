@@ -3,8 +3,8 @@ import { Slot } from '@radix-ui/react-slot';
 import {
 	type ButtonHTMLAttributes,
 	type ElementType,
-	type ReactElement,
 	forwardRef,
+	type ReactElement,
 	useId,
 } from 'react';
 import type { PolymorphicComponentProps } from '../../libs/polymorphic';

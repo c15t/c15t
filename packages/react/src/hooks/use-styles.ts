@@ -8,8 +8,7 @@
 
 import { useMemo } from 'react';
 import { useTheme } from '~/hooks/use-theme';
-import type { AllThemeKeys } from '~/types/theme';
-import type { ClassNameStyle, ThemeValue } from '~/types/theme';
+import type { AllThemeKeys, ClassNameStyle, ThemeValue } from '~/types/theme';
 import { mergeStyles } from '~/utils/merge-styles';
 
 /**

@@ -5,8 +5,8 @@
 
 import type { ContractsOutputs } from '@c15t/backend/contracts';
 import {
-	type TranslationConfig,
 	prepareTranslationConfig,
+	type TranslationConfig,
 } from '@c15t/translations';
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
@@ -52,13 +52,14 @@ function updateStore(
 	{ set, get, initialTranslationConfig }: FetchConsentBannerConfig,
 	hasLocalStorageAccess: boolean
 ): void {
-	const { consentInfo, setDetectedCountry, callbacks, ignoreGeoLocation } =
+	const { consentInfo, ignoreGeoLocation, callbacks, setDetectedCountry } =
 		get();
 
-	const { translations, location, jurisdiction, showConsentBanner } = data;
+	const { translations, location, showConsentBanner } = data;
 
 	const updatedStore: Partial<PrivacyConsentState> = {
 		isLoadingConsentInfo: false,
+		branding: data.branding ?? 'c15t',
 		...(consentInfo === null
 			? {
 					showPopup:
@@ -67,7 +68,7 @@ function updateStore(
 			: {}),
 
 		// If the banner is not shown and has no requirement consent to all
-		...(data.jurisdiction.code === 'NONE' &&
+		...(data.jurisdiction?.code === 'NONE' &&
 			!data.showConsentBanner && {
 				consents: {
 					necessary: true,
@@ -78,13 +79,15 @@ function updateStore(
 				},
 			}),
 		locationInfo: {
-			countryCode: location?.countryCode ?? '',
-			regionCode: location?.regionCode ?? '',
+			countryCode: location?.countryCode ?? null,
+			regionCode: location?.regionCode ?? null,
+			jurisdiction: data.jurisdiction?.code ?? null,
+			jurisdictionMessage: data.jurisdiction?.message ?? null,
 		},
-		jurisdictionInfo: jurisdiction,
+		jurisdictionInfo: data.jurisdiction,
 	};
 
-	if (translations) {
+	if (translations?.language && translations?.translations) {
 		const translationConfig = prepareTranslationConfig(
 			{
 				translations: {
@@ -102,15 +105,23 @@ function updateStore(
 	if (data.location?.countryCode) {
 		// Handle location detection callbacks
 		setDetectedCountry(data.location.countryCode);
-		if (data.location.regionCode) {
-			callbacks.onLocationDetected?.({
-				countryCode: data.location.countryCode,
-				regionCode: data.location.regionCode,
-			});
-		}
 	}
 
+	// Store banner fetch data and mark as fetched
+	updatedStore.hasFetchedBanner = true;
+	updatedStore.lastBannerFetchData = data;
+
 	set(updatedStore);
+
+	callbacks?.onBannerFetched?.({
+		showConsentBanner: data.showConsentBanner,
+		jurisdiction: data.jurisdiction,
+		location: data.location,
+		translations: {
+			language: translations.language,
+			translations: translations.translations,
+		},
+	});
 }
 
 /**
@@ -144,7 +155,6 @@ export async function fetchConsentBannerInfo(
 
 		// Ensures the promsie has the expected data
 		if (showConsentBanner) {
-			set({ isLoadingConsentInfo: false });
 			updateStore(showConsentBanner, config, true);
 
 			return showConsentBanner;
@@ -160,7 +170,9 @@ export async function fetchConsentBannerInfo(
 			onError: callbacks.onError
 				? (context) => {
 						if (callbacks.onError) {
-							callbacks.onError(context.error?.message || 'Unknown error');
+							callbacks.onError({
+								error: context.error?.message || 'Unknown error',
+							});
 						}
 					}
 				: undefined,
@@ -177,7 +189,6 @@ export async function fetchConsentBannerInfo(
 		// Type assertion to ensure data matches ConsentBannerResponse type
 		return data as ConsentBannerResponse;
 	} catch (error) {
-		// biome-ignore lint/suspicious/noConsole: <explanation>
 		console.error('Error fetching consent banner information:', error);
 
 		// Set loading state to false on error
@@ -188,7 +199,9 @@ export async function fetchConsentBannerInfo(
 			error instanceof Error
 				? error.message
 				: 'Unknown error fetching consent banner information';
-		callbacks.onError?.(errorMessage);
+		callbacks.onError?.({
+			error: errorMessage,
+		});
 
 		// If fetch fails, default to NOT showing the banner to prevent crashes
 		set({ showPopup: false });

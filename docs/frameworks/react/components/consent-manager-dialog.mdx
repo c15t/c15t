@@ -1,0 +1,203 @@
+---
+title: Consent Manager Dialog
+description: An accessible, animated modal interface that wraps the Consent Manager Widget for a focused privacy customization experience.
+lastModified: 2025-04-17
+availableIn:
+  - framework: 'next'
+    url: '/docs/frameworks/next/components/consent-manager-dialog'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/components/consent-manager-dialog'
+    title: 'React'
+---
+
+The Consent Manager Dialog provides a clean, focused way for users to customize their privacy preferences. This dialog is required by various privacy regulations like GDPR.
+
+<ResponsivePreview
+  src="https://c15t-examples.vercel.app/react/simple-consent-dialog"
+  code={`
+export function SimpleConsentDialog({ children }: { children?: ReactNode }) {
+return (
+<ConsentManagerProvider
+options={{
+  mode: 'offline',
+  consentCategories: ['experience', 'marketing', 'functionality', 'necessary'],
+}}
+>
+<ConsentManagerDialog />
+<ConsentManagerDialogButton />
+{children}
+</ConsentManagerProvider>
+);
+}
+
+function ConsentManagerDialogButton() {
+const { setIsPrivacyDialogOpen, isPrivacyDialogOpen } = useConsentManager();
+
+useEffect(() => {
+setIsPrivacyDialogOpen(true);
+}, [setIsPrivacyDialogOpen]);
+
+if (isPrivacyDialogOpen) {
+return null;
+}
+
+return (
+<button type="button" onClick={() => setIsPrivacyDialogOpen(!isPrivacyDialogOpen)}>
+Open Consent Dialog
+</button>
+);
+}
+`}
+  expectedHeight={600}
+/>
+
+## Usage
+
+<Tabs groupId="Version" items={["Recommended", "Expanded"]}>
+  <Tab value="Recommended">
+    ```tsx
+    import { ConsentManagerProvider, CookieBanner, ConsentManagerDialog } from "@c15t/react";
+
+    export default function App() {
+      return (
+        <ConsentManagerProvider options={{
+          mode: 'c15t',
+          backendURL: 'https://your-instance.c15t.dev',
+          consentCategories: ['necessary', 'marketing'],
+        }}>
+          <CookieBanner /> 
+          <ConsentManagerDialog />
+        </ConsentManagerProvider>
+      );
+    };
+
+    ```
+  </Tab>
+
+  <Tab value="expanded">
+    ```tsx
+    import { ConsentManagerProvider, CookieBanner, ConsentManagerWidget } from "@c15t/react";
+
+    const CustomDialog = () => {
+    	return (
+        <ConsentManagerDialog.Root>
+          <ConsentManagerDialog.Card>
+            <ConsentManagerDialog.Header>
+              <ConsentManagerDialog.HeaderTitle>
+                Custom Title
+              </ConsentManagerDialog.HeaderTitle>
+              <ConsentManagerDialog.HeaderDescription>
+                Custom Description
+              </ConsentManagerDialog.HeaderDescription>
+            </ConsentManagerDialog.Header>
+            <ConsentManagerDialog.Content>
+              <ConsentManagerWidget />
+            </ConsentManagerDialog.Content>
+            <ConsentManagerDialog.Footer themeKey="dialog.footer">
+              Custom Footer
+            </ConsentManagerDialog.Footer>
+          </ConsentManagerDialog.Card>
+        </ConsentManagerDialog.Root>
+    	);
+    };
+
+
+    export default function App() {
+      return (
+        <ConsentManagerProvider options={{
+          mode: 'c15t',
+          backendURL: 'https://your-instance.c15t.dev',
+          consentCategories: ['necessary', 'marketing'],
+        }}>
+          <CookieBanner />
+          <CustomDialog /> 
+        </ConsentManagerProvider>
+      );
+    };
+    ```
+  </Tab>
+</Tabs>
+
+## Styling
+
+The Consent Manager Dialog is designed to adapt to your application's visual style. Learn more about our [styling system](/docs/react/styling/overview).
+
+### Theme Variables
+
+These keys are available on the theme object to customize your dialog.
+
+The dialog also contains the `ConsentManagerWidget` component so the theme keys are available to customize the widget.
+
+<AutoTypeTable path="./packages/react/src/components/consent-manager-dialog/theme.ts" name="ConsentManagerDialogTheme" />
+
+## Accessibility Features
+
+The dialog implements several accessibility best practices:
+
+### Focus Management
+
+When the dialog opens, it:
+
+1. Traps focus within the dialog
+2. Sets initial focus on the first interactive element
+3. Remembers and restores the previous focus position when closed
+
+### Focus Trapping
+
+The dialog implements focus trapping to ensure keyboard navigation remains within the dialog while it's open. This is crucial for:
+
+- **Keyboard users**: Prevents users from accidentally interacting with content hidden behind the modal
+- **Screen reader users**: Maintains proper context and prevents confusion
+- **WCAG compliance**: Supports 2.4.3 Focus Order and provides proper modal functionality
+
+#### How Focus Trapping Works
+
+The `ConsentManagerDialog` uses the `useFocusTrap` hook internally to:
+
+1. Capture the element that had focus before the dialog opened
+2. Set initial focus to the first interactive element inside the dialog
+3. Keep focus cycling within the dialog when users press Tab or Shift+Tab
+4. Restore focus to the original element when the dialog closes
+
+You can control focus trapping with the `trapFocus` prop:
+
+```tsx
+// Default behavior (recommended for accessibility)
+<ConsentManagerDialog trapFocus={true} />
+
+// Disable focus trapping (not recommended)
+<ConsentManagerDialog trapFocus={false} />
+```
+
+<Callout type="info">
+  Focus trapping is enabled by default and is recommended for WCAG compliance. Only disable it if you have a specific reason and are implementing alternative accessibility measures.
+</Callout>
+
+### Keyboard Navigation
+
+Users can:
+
+- Close the dialog with the Escape key
+- Navigate controls with Tab
+- Interact with all elements using only the keyboard
+
+### Screen Readers
+
+The dialog announces itself appropriately with:
+
+- Proper ARIA roles and attributes
+- Clear labeling of controls
+- Status updates when opened/closed
+
+## API Reference
+
+### ConsentManagerDialog
+
+The main component accepts these props:
+
+<AutoTypeTable path="./packages/react/src/components/consent-manager-dialog/consent-manager-dialog.tsx" name="ConsentManagerDialogProps" />
+
+### Compound Components
+
+<AutoTypeTable path="./packages/react/src/components/consent-manager-dialog/index.ts" name="ConsentManagerDialogCompoundComponent" />

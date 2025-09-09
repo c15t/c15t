@@ -30,15 +30,15 @@ export const consentSchema = z.object({
 	subjectId: z.string(),
 	domainId: z.string(),
 	purposeIds: z.array(z.string()),
-	metadata: z.record(z.unknown()).nullable().optional(),
+	metadata: z.record(z.string(), z.unknown()).nullable().optional(),
 	policyId: z.string().optional(),
 	ipAddress: z.string().nullable().optional(),
 	userAgent: z.string().nullable().optional(),
-	status: z.enum(['active', 'withdrawn', 'expired']).default('active'),
+	status: z.enum(['active', 'withdrawn', 'expired']).prefault('active'),
 	withdrawalReason: z.string().nullable().optional(),
-	givenAt: z.date().default(() => new Date()),
+	givenAt: z.date().prefault(() => new Date()),
 	validUntil: z.date().nullable().optional(),
-	isActive: z.boolean().default(true),
+	isActive: z.boolean().prefault(true),
 });
 
 /**

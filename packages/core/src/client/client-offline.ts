@@ -1,65 +1,26 @@
+import { defaultTranslationConfig } from '~/translations';
 import type {
-	ConsentManagerCallbacks,
 	ConsentManagerInterface,
-	ConsentSetCallbackPayload,
-	ConsentVerifiedCallbackPayload,
 	SetConsentRequestBody,
 	SetConsentResponse,
 	ShowConsentBannerResponse,
 	VerifyConsentRequestBody,
 	VerifyConsentResponse,
 } from './client-interface';
-
 import type { FetchOptions, ResponseContext } from './types';
 
-import { defaultTranslationConfig } from '~/translations';
-
 /**
- * Configuration options for the Offline client
+ * Configuration options for the Offline client.
+ *
+ * Currently, there are no configurable options.
  */
-export interface OfflineClientOptions {
-	/**
-	 * Global callbacks for handling API responses
-	 */
-	callbacks?: ConsentManagerCallbacks;
-}
+export type OfflineClientOptions = Record<string, never>;
 
 /**
  * Offline implementation of the consent client interface.
  * Returns empty successful responses without making any HTTP requests.
  */
 export class OfflineClient implements ConsentManagerInterface {
-	/**
-	 * Callback functions for client events
-	 * @internal
-	 */
-	private callbacks?: ConsentManagerCallbacks;
-
-	/**
-	 * Creates a new Offline client instance.
-	 *
-	 * @param options - Configuration options for the client
-	 */
-	constructor(options: OfflineClientOptions = {}) {
-		this.callbacks = options.callbacks;
-	}
-
-	/**
-	 * Returns the client's configured callbacks.
-	 *
-	 * @returns The callbacks object or undefined if no callbacks are configured
-	 */
-	getCallbacks(): ConsentManagerCallbacks | undefined {
-		return this.callbacks;
-	}
-
-	/**
-	 * Sets the client's callback functions.
-	 */
-	setCallbacks(callbacks: ConsentManagerCallbacks): void {
-		this.callbacks = callbacks;
-	}
-
 	/**
 	 * Creates a response context object for success cases.
 	 */
@@ -76,31 +37,13 @@ export class OfflineClient implements ConsentManagerInterface {
 	 * Handles empty API response with callbacks.
 	 */
 	private async handleOfflineResponse<ResponseType>(
-		options?: FetchOptions<ResponseType>,
-		callbackKey?: keyof Pick<
-			Required<ConsentManagerCallbacks>,
-			'onConsentBannerFetched' | 'onConsentSet' | 'onConsentVerified'
-		>,
-		callbackPayload?: object
+		options?: FetchOptions<ResponseType>
 	): Promise<ResponseContext<ResponseType>> {
 		const emptyResponse = this.createResponseContext<ResponseType>();
 
 		// Call success callback if provided
 		if (options?.onSuccess) {
 			await options.onSuccess(emptyResponse);
-		}
-
-		// Call specific endpoint callbacks if they exist
-		if (callbackKey && this.callbacks?.[callbackKey]) {
-			const callback = this.callbacks[callbackKey] as (
-				response: ResponseContext<ResponseType>
-			) => void;
-			const payload = callbackPayload
-				? this.createResponseContext<ResponseType>(
-						callbackPayload as ResponseType
-					)
-				: emptyResponse;
-			callback(payload);
 		}
 
 		return emptyResponse;
@@ -127,7 +70,6 @@ export class OfflineClient implements ConsentManagerInterface {
 			}
 		} catch (error) {
 			// Ignore localStorage errors (e.g., in environments where it's blocked)
-			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.warn('Failed to access localStorage:', error);
 			// If localStorage is unavailable, default to not showing the banner
 			// to prevent repeated failed attempts causing memory leaks
@@ -140,6 +82,7 @@ export class OfflineClient implements ConsentManagerInterface {
 				code: 'GDPR',
 				message: 'EU',
 			},
+			branding: 'c15t',
 			location: { countryCode: 'GB', regionCode: null },
 			translations: {
 				language: defaultTranslationConfig.defaultLanguage,
@@ -149,20 +92,6 @@ export class OfflineClient implements ConsentManagerInterface {
 					],
 			},
 		});
-
-		// Call specific callback
-		if (this.callbacks?.onConsentBannerFetched && response.data) {
-			const callbackPayload = this.createResponseContext({
-				showConsentBanner: response.data.showConsentBanner,
-				jurisdiction: response.data.jurisdiction,
-				location: {
-					countryCode: response.data.location.countryCode || 'GB',
-					regionCode: response.data.location.regionCode || null,
-				},
-			});
-
-			this.callbacks.onConsentBannerFetched(callbackPayload);
-		}
 
 		// Call success callback if provided
 		if (options?.onSuccess) {
@@ -196,23 +125,10 @@ export class OfflineClient implements ConsentManagerInterface {
 			}
 		} catch (error) {
 			// Ignore localStorage errors but log them
-			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.warn('Failed to write to localStorage:', error);
 		}
 
-		// If we couldn't store consent in localStorage, we should
-		// still return a successful response to prevent UI errors
-		const setConsentCallbackPayload: ConsentSetCallbackPayload = {
-			type: options?.body?.type || 'cookie_banner',
-			preferences: options?.body?.preferences || {},
-			domain: options?.body?.domain || '',
-		};
-
-		return await this.handleOfflineResponse<SetConsentResponse>(
-			options,
-			'onConsentSet',
-			setConsentCallbackPayload
-		);
+		return await this.handleOfflineResponse<SetConsentResponse>(options);
 	}
 
 	/**
@@ -221,18 +137,7 @@ export class OfflineClient implements ConsentManagerInterface {
 	async verifyConsent(
 		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
 	): Promise<ResponseContext<VerifyConsentResponse>> {
-		const verifiedCallbackPayload: ConsentVerifiedCallbackPayload = {
-			type: options?.body?.type || 'cookie_banner',
-			preferences: options?.body?.preferences || [],
-			valid: true,
-			domain: options?.body?.domain || '',
-		};
-
-		return await this.handleOfflineResponse<VerifyConsentResponse>(
-			options,
-			'onConsentVerified',
-			verifiedCallbackPayload
-		);
+		return await this.handleOfflineResponse<VerifyConsentResponse>(options);
 	}
 
 	/**

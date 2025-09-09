@@ -1,0 +1,115 @@
+---
+title: "v1.6.0 – New Docs, Rebuilt Self-Hosting Backend, Better Callbacks, and More"
+version: "1.6.0"
+date: 2025-09-09
+description: "Minor release with a rebuilt self-hosting backend, a brand new docs site, improved consent checking, and callback improvements."
+tags:
+  - release
+  - stable
+  - nextjs
+  - react
+  - backend
+canary: false
+type: release
+breaking: false
+draft: false
+authors: [BurnedChris, KayleeWilliams]
+packages:
+  - "@c15t/backend@1.6.0"
+  - "@c15t/cli@1.6.0"
+  - "@c15t/nextjs@1.6.0"
+  - "@c15t/react@1.6.0"
+  - "@c15t/translations@1.6.0"
+  - "c15t@1.6.0"
+---
+
+## ✨ New Features
+
+### Better Docs, Better Consent
+
+You did not consent to bad docs. Over the last six months we have been moving incredibly fast, and it felt like the right moment to invest in making sure our documentation lives up to the same standard.
+
+The new site comes with improved navigation, better search, and comprehensive guides for every package and framework. We have also surfaced a lot of hidden features and design details that were easy to miss before.
+
+### Rebuilt Self-Hosting Backend
+
+The old backend was showing its age and could be difficult to implement. We have rebuilt the self-hosting backend from the ground up and moved from our own database adapters to [FumaDB](https://github.com/fuma-nama/fumadb).
+
+This unlocks support for more databases and ORMs such as TypeORM, Microsoft SQL Server, and MongoDB, with more coming soon.
+
+If you have an existing backend v1 implementation, check out the [migration guide](/docs/self-host/v2/migrate-from-v1).
+
+⚠️ **Heads-up:** support for the old backend will be removed in the next major release.
+
+### Improved Consent Checking
+
+We’ve added a new `has()` method to the API for checking consent. It is available across all frameworks and supports both simple and complex checks.
+
+```ts
+// Simple check
+const hasAnalytics = has('measurement');
+const hasMarketing = has('marketing');
+
+// Complex check
+const hasAnalyticsAndMarketing = has({
+  and: ['measurement', 'marketing'],
+});
+
+const hasEitherAnalyticsOrMarketing = has({
+  or: ['measurement', 'marketing'],
+});
+```
+
+See the [API documentation](/docs/frameworks/javascript/store/checking-consent) for full details.
+
+**Deprecated:** `hasConsentFor()` and `getEffectiveConsents()`. These will be removed in the next major release.
+
+### Better Callbacks
+
+We’ve overhauled the callback system to make it simpler and faster, while removing unused callbacks.
+
+Current callbacks are:
+
+* `onBannerFetched`
+* `onConsentSet`
+* `onError`
+
+Performance has also been improved (see issue [#369](https://github.com/c15t/c15t/issues/369)), resulting in better INP scores when using callbacks or GTM.
+
+### RTL Support
+
+c15t now supports RTL languages in its prebuilt components, so you can use them in any language.
+
+### README Updates
+
+All package README files have been refreshed with:
+
+* Improved formatting and structure
+* Clearer examples and usage instructions
+* More comprehensive installation guides
+
+## 🐛 Bug Fixes & Improvements
+
+### **@c15t/react**
+
+* Fixed a bug where the dialog overlay was not showing by default.
+* Improved the export of compound components, which can now be imported directly from the package.
+
+### **@c15t/core**
+
+* Deprecated unused methods and properties to simplify the API.
+* Improved fallback handling when the `showConsentBanner` API request fails.
+
+### **@c15t/translations**
+
+* Added Hebrew translations.
+
+## 📦 Dependency Updates
+
+### **@c15t/backend**
+
+* Updated to Zod 4
+* Updated ORPC to 1.8
+* Updated OpenTelemetry to latest
+
+<ContributorBlock usernames={["BurnedChris", "KayleeWilliams", "guy-borderless"]} title="Thank you to our contributors" />

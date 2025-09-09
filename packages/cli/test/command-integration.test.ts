@@ -101,7 +101,6 @@ describe('Command Integration', () => {
 	// 			expect(migrate).toHaveBeenCalledTimes(1);
 	// 			expect(migrate).toHaveBeenCalledWith(args);
 	// 		} catch (error) {
-	// 			// biome-ignore lint/suspicious/noConsole: its okay as its a test
 	// 			console.error('Test failed with error:', error);
 	// 			throw error;
 	// 		}

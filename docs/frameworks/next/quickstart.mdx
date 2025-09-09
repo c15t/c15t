@@ -1,0 +1,97 @@
+---
+title: Quickstart
+description: Integrate c15t into your Next.js application with this step-by-step guide. We'll cover installation, configuration, and basic usage.
+lastModified: 2025-08-26
+availableIn:
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/quickstart'
+    title: 'JavaScript'
+  - framework: 'react'
+    url: '/docs/frameworks/react/quickstart'
+    title: 'React'
+  - framework: 'next'
+    url: '/docs/frameworks/next/quickstart'
+    title: 'Next.js'
+---
+
+## CLI Setup (Recommended)
+
+You can get started with the `@c15t/cli` which will generate the code for you!
+
+<PackageCommandTabs command="@c15t/cli generate" />
+
+## Manual Setup
+
+<Steps>
+  <Step>
+    ### Install `@c15t/nextjs` Package
+
+    <PackageCommandTabs command="@c15t/nextjs" />
+  </Step>
+
+  <Step>
+    ### Next.js Rewrites (Optional)
+
+    <Callout type="tip">
+      You can use Next.js Rewrites to redirect requests to the c15t backend. This is useful if you want to hide the c15t backend url from your users.
+      [Learn more about Next.js Rewrites](https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites).
+    </Callout>
+
+    ```ts title="next.config.ts"
+    import type { NextConfig } from 'next';
+
+    const config: NextConfig = {
+    	async rewrites() {
+    		return [
+    			{
+    				source: '/api/c15t/:path*',
+    				destination: `${process.env.NEXT_PUBLIC_C15T_URL}/:path*`,
+    			},
+    		];
+    	},
+    };
+
+    export default config;
+    ```
+  </Step>
+
+  <Step>
+    ### Adding it to your Next Application
+
+    ```tsx title="app/layout.tsx"
+    import { 
+      ConsentManagerDialog,
+      ConsentManagerProvider,
+      CookieBanner,
+    } from '@c15t/nextjs';
+    import type { ReactNode } from 'react';
+
+    export default function Layout({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'c15t',
+            backendURL: '/api/c15t',
+            consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner.
+            ignoreGeoLocation: true, // Useful for development to always view the banner.
+          }}
+        >
+          <CookieBanner />
+          <ConsentManagerDialog />   
+          {children}
+        </ConsentManagerProvider>
+      );
+    };
+    ```
+
+    <Callout type="tip">
+      If you're using Next.js Rewrites, you can use the `backendURL` option to redirect requests to the c15t backend by setting it to `/api/c15t`.
+    </Callout>
+  </Step>
+</Steps>
+
+***
+
+## Storing Consent
+
+We recommend using the [hosted solution](/docs/frameworks/next/storing-consent/hosted) with [consent.io](https://consent.io) to store your consent.

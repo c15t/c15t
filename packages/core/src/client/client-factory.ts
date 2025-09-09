@@ -6,16 +6,11 @@
 import type { StoreOptions } from '../store';
 import { C15tClient } from './client-c15t';
 import { CustomClient, type EndpointHandlers } from './client-custom';
-import type {
-	ConsentManagerCallbacks,
-	ConsentManagerInterface,
-} from './client-interface';
-export type {
-	ConsentManagerCallbacks,
-	ConsentManagerInterface,
-} from './client-interface';
+import type { ConsentManagerInterface } from './client-interface';
 import { OfflineClient } from './client-offline';
 import type { RetryConfig } from './types';
+
+export type { ConsentManagerInterface } from './client-interface';
 export type { FetchOptions, ResponseContext, RetryConfig } from './types';
 
 /**
@@ -75,11 +70,6 @@ export type CustomClientOptions = {
 	 * Implement your own logic for each API operation
 	 */
 	endpointHandlers: EndpointHandlers;
-
-	/**
-	 * Global callbacks for request events
-	 */
-	callbacks?: ConsentManagerCallbacks;
 
 	/**
 	 * Store configuration options
@@ -145,10 +135,6 @@ export type OfflineClientOptions = {
  * Union type of all possible client options
  */
 export type ConsentManagerOptions = {
-	/**
-	 * Client callbacks
-	 */
-	callbacks?: ConsentManagerCallbacks;
 	store?: StoreOptions;
 } & (CustomClientOptions | C15TClientOptions | OfflineClientOptions);
 
@@ -247,9 +233,6 @@ export function configureConsentManager(
 		if (existingClient) {
 			return new Proxy(existingClient, {
 				get(target, prop) {
-					if (prop === 'getCallbacks') {
-						return () => options.callbacks;
-					}
 					return target[prop as keyof ConsentManagerInterface];
 				},
 			});
@@ -266,28 +249,23 @@ export function configureConsentManager(
 			const customOptions = options as CustomClientOptions;
 			client = new CustomClient({
 				endpointHandlers: customOptions.endpointHandlers,
-				callbacks: customOptions.callbacks,
 			});
 			break;
 		}
 		case 'offline':
-			client = new OfflineClient({
-				callbacks: options.callbacks,
-			});
+			client = new OfflineClient();
 			break;
 		default: {
 			const c15tOptions = options as {
 				backendURL: string;
 				headers?: Record<string, string>;
 				customFetch?: typeof fetch;
-				callbacks?: ConsentManagerCallbacks;
 				retryConfig?: RetryConfig;
 			};
 			client = new C15tClient({
 				backendURL: c15tOptions.backendURL || DEFAULT_BACKEND_URL,
 				headers: c15tOptions.headers,
 				customFetch: c15tOptions.customFetch,
-				callbacks: c15tOptions.callbacks,
 				retryConfig: c15tOptions.retryConfig,
 			});
 			break;

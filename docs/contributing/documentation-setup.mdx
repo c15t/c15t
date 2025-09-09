@@ -1,0 +1,337 @@
+---
+title: Documentation System Setup
+description: Learn how to set up the unified documentation build system for local development and understand the production deployment process.
+---
+
+<Callout type="warn">
+  **For Core Maintainers Only**
+
+  This guide is for core maintainers and team members who have access to the private documentation template. External contributors won't be able to follow these steps since they require access to `consentdotio/c15t-docs` (a private repository).
+
+  **External contributors**: You can still contribute to documentation by editing the MDX files in the `docs/` directory and submitting pull requests. The live documentation site will be automatically updated when your changes are merged.
+</Callout>
+
+This guide will walk you through setting up the documentation system for local development and explain how production deployment works.
+
+## Overview
+
+The documentation system uses a private Next.js template that contains licensed components. To maintain compliance while keeping the main project open source, we fetch this template during build time rather than committing it to the repository.
+
+**Key components:**
+
+- **Private template**: `consentdotio/c15t-docs` (private repository)
+- **Local folder**: `.docs` (excluded from workspace and git)
+- **Unified script**: `scripts/setup-docs.ts` with mode and branch support
+
+## Quick Setup
+
+### Prerequisites
+
+- Node.js v18 or higher
+- pnpm package manager
+- GitHub personal access token with read access to private repositories
+
+### Development Installation
+
+1. **Create your environment file** in the project root:
+
+   ```bash
+   echo "CONSENT_GIT_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxx" > .env
+   ```
+
+2. **Fetch and setup the documentation**:
+
+   ```bash
+   pnpm setup:docs
+   ```
+
+3. **Start the development server**:
+
+   ```bash
+   cd .docs && pnpm dev
+   ```
+
+4. **Open your browser** to [http://localhost:3000](http://localhost:3000)
+
+That's it! The documentation site should now be running locally.
+
+## Understanding the Build Modes
+
+### Development Mode (Default)
+
+When you run `pnpm setup:docs`, the script operates in development mode:
+
+- **Token source**: Loads from your `.env` file
+- **Dependencies**: Installs only .docs dependencies
+- **Output**: Ready for immediate `pnpm dev` usage
+- **Build**: Skips production build step
+
+**Complete workflow:**
+
+1. Validates token from `.env` file
+2. Cleans existing directories
+3. Clones private template repository
+4. Syncs template to workspace
+5. Installs .docs dependencies in isolation
+
+### Production Mode (Vercel)
+
+Production builds use the `--vercel` flag and additional steps:
+
+- **Token source**: Uses environment variables (Vercel secrets)
+- **Dependencies**: Installs workspace + .docs dependencies
+- **Output**: Optimized production build
+- **Build**: Generates static assets for deployment
+
+**Complete workflow:**
+
+1. Validates token from environment
+2. Cleans existing directories
+3. Clones private template repository
+4. Syncs template to workspace
+5. Installs workspace dependencies
+6. Installs .docs dependencies
+7. Builds production application
+
+## Branch Selection
+
+The fetch script supports different branches of the documentation template:
+
+### Available Branches
+
+- **`main`** (default) - Stable release branch
+- **`canary`** - Latest features and updates
+- **`develop`** - Development branch (if available)
+
+### Using Different Branches
+
+```bash
+# Use default main branch
+pnpm setup:docs
+
+# Fetch from canary branch for latest features
+pnpm setup:docs -- --branch=canary
+
+# Fetch from development branch
+pnpm setup:docs -- --branch=develop
+
+# Production build with specific branch
+CONSENT_GIT_TOKEN=xxx tsx scripts/setup-docs.ts --vercel --branch=canary
+```
+
+**Note**: The double dash (`--`) is required when passing flags through pnpm scripts.
+
+## Available Commands
+
+| Command | Mode | Description |
+|---------|------|-------------|
+| `pnpm setup:docs` | Development | Fetch template and prepare for development (main branch) |
+| `pnpm setup:docs -- --branch=canary` | Development | Fetch from canary branch for testing |
+| `pnpm vercel-build` | Production | Full production build for deployment |
+
+## Authentication Setup
+
+### Getting a GitHub Token
+
+1. Go to [GitHub Settings > Personal Access Tokens](https://github.com/settings/tokens)
+2. Click "Generate new token" → "Generate new token (classic)"
+3. Set an expiration date
+4. Select scopes: `repo` (full repository access)
+5. Generate and copy the token
+
+### Local Development Setup
+
+Create a `.env` file in your project root:
+
+```bash
+# .env file
+CONSENT_GIT_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxx
+```
+
+**Important**: Never commit this file. It's already in `.gitignore`.
+
+### Production Setup (Vercel)
+
+1. Go to your Vercel project dashboard
+2. Navigate to Settings → Environment Variables
+3. Add `CONSENT_GIT_TOKEN` with your token value
+4. Save and redeploy
+
+## File Structure
+
+After running the setup, you'll see these generated files:
+
+```text
+scripts/
+├── setup-docs.ts           # Unified documentation fetcher
+└── README.md               # Technical documentation
+
+Generated during build:
+├── .docs/               # Next.js documentation app (gitignored)
+│   ├── package.json        # App dependencies
+│   ├── next.config.ts      # Next.js configuration
+│   └── src/                # Application source code
+└── /tmp/new-docs/          # Temporary clone location
+```
+
+## Development Workflow
+
+### Starting Fresh
+
+```bash
+# Remove any existing setup
+rm -rf .docs
+
+# Fetch and setup everything
+pnpm setup:docs
+
+# Start development
+cd .docs && pnpm dev
+```
+
+### Making Changes
+
+The documentation content lives in the private template repository. For content changes:
+
+1. Make changes in the private `consentdotio/c15t-docs` repository
+2. Re-fetch the template: `pnpm setup:docs`
+3. Restart your dev server: `cd .docs && pnpm dev`
+
+### Working with Components
+
+The template includes pre-built components for documentation. You can:
+
+- Edit existing pages in `.docs/src/`
+- Add new MDX content
+- Customize styling and layout
+- Test changes locally before deployment
+
+## Troubleshooting
+
+### Common Issues
+
+**Token Authentication Failed**
+
+```bash
+❌ CONSENT_GIT_TOKEN missing. Cannot fetch consentdotio/c15t-docs
+```
+
+**Solutions:**
+
+- Verify `.env` file exists in project root
+- Check token has read access to private repository
+- Ensure token hasn't expired
+
+**Development Server Won't Start**
+
+```bash
+Error: Cannot find module 'next'
+```
+
+**Solutions:**
+
+- Run `pnpm setup:docs` first to install dependencies
+- Ensure you're in the `.docs` directory when running `pnpm dev`
+- Check that the fetch process completed successfully
+
+**Build Failures**
+
+```bash
+💥 development setup failed: Command execution failed
+```
+
+**Solutions:**
+
+- Check network connectivity
+- Verify private repository exists and is accessible
+- Review command output for specific error details
+
+### Debug Mode
+
+The script automatically shows detailed progress:
+
+```bash
+🔄 Installing .docs dependencies in isolation...
+   Running: pnpm --prefix .docs install --ignore-workspace --frozen-lockfile
+✅ Installing .docs dependencies in isolation completed successfully
+```
+
+### Clean Reset
+
+If you encounter persistent issues:
+
+```bash
+# Remove all generated files
+rm -rf .docs
+rm -rf /tmp/new-docs
+
+# Clear any cached data
+pnpm store prune
+
+# Start fresh
+pnpm setup:docs
+```
+
+## Security Considerations
+
+### Why This Approach?
+
+- **License Compliance**: Private components stay private
+- **Open Source Friendly**: Main codebase remains fully open
+- **Secure Access**: Only authorized users can build documentation
+- **Vercel Compatible**: Works seamlessly with deployment platform
+
+### Access Control
+
+- **Public forks**: Cannot build documentation (no token access)
+- **Contributors**: Need to be granted repository access
+- **Vercel deployments**: Use environment secrets for authentication
+
+### Best Practices
+
+- **Never commit** the `.env` file or any private content
+- **Rotate tokens** regularly for security
+- **Use minimal permissions** (read-only access to private repository)
+- **Monitor access logs** in GitHub for unauthorized attempts
+
+## Production Deployment
+
+### Vercel Configuration
+
+When deploying to Vercel, the system automatically:
+
+1. **Detects production mode** via the `--vercel` flag
+2. **Uses environment tokens** instead of `.env` file
+3. **Installs full workspace** dependencies for build context
+4. **Generates optimized build** for fast loading
+5. **Serves static assets** via Vercel's edge network
+
+### Build Optimization
+
+The production build includes:
+
+- **Static page generation** for fast loading
+- **JavaScript optimization** and code splitting
+- **Asset optimization** for images, CSS, and fonts
+- **SEO metadata** generation
+
+### Deployment Workflow
+
+1. **Push changes** to your main repository
+2. **Vercel detects** the push and starts build
+3. **Script runs** `tsx scripts/setup-docs.ts --vercel`
+4. **Template fetched** using environment token
+5. **Dependencies installed** and app built
+6. **Static assets** deployed to edge network
+
+## Next Steps
+
+Once you have the documentation running locally:
+
+- **Explore the template structure** in `.docs/src/`
+- **Review existing documentation** to understand the content structure
+- **Test responsive design** across different screen sizes
+- **Familiarize yourself** with the MDX components available
+- **Check the build process** by running a local production build
+
+For questions about the documentation system, check the [technical README](../../scripts/README.md) or reach out to the maintainers.

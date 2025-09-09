@@ -1,6 +1,13 @@
 {
 	"name": "@c15t/translations",
-	"version": "1.5.0",
+	"version": "1.5.0-canary-20250813161712",
+	"description": "Translation utils for c15t, providing type-safe internationalization support.",
+	"homepage": "https://c15t.com/docs/frameworks/react/hooks/use-translations",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/translations"
+	},
 	"license": "GPL-3.0-only",
 	"sideEffects": false,
 	"type": "module",
@@ -19,17 +26,23 @@
 	"main": "./dist/index.cjs",
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"scripts": {
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
 		"dev": "rslib build --watch",
-		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "pnpm biome lint ./src",
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},
-	"browserslist": [">0.2%", "not dead", "not op_mini all"],
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	],
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*"

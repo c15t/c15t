@@ -6,24 +6,23 @@
  * allowing for easy switching between different database backends.
  */
 
-// Export core types and utilities
-export type {
-	Adapter,
-	KyselyAdapterConfig,
-	AdapterSchemaCreation,
-	AdapterInstance,
-	Where,
-	TableFields,
-	WhereCondition,
-} from './types';
-export { applyDefaultValue } from './utils';
+// Export the adapter factory
+export { getAdapter } from './adapter-factory';
+export { drizzleAdapter } from './adapters/drizzle-adapter';
 
 // Export all adapters and related utilities
 export { kyselyAdapter } from './adapters/kysely-adapter';
-export { prismaAdapter } from './adapters/prisma-adapter';
-export { memoryAdapter } from './adapters/memory-adapter';
-export { drizzleAdapter } from './adapters/drizzle-adapter';
 export { createKyselyAdapter } from './adapters/kysely-adapter/dialect';
-
-// Export the adapter factory
-export { getAdapter } from './adapter-factory';
+export { memoryAdapter } from './adapters/memory-adapter';
+export { prismaAdapter } from './adapters/prisma-adapter';
+// Export core types and utilities
+export type {
+	Adapter,
+	AdapterInstance,
+	AdapterSchemaCreation,
+	KyselyAdapterConfig,
+	TableFields,
+	Where,
+	WhereCondition,
+} from './types';
+export { applyDefaultValue } from './utils';

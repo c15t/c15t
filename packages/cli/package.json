@@ -1,7 +1,14 @@
 {
 	"name": "@c15t/cli",
 	"version": "1.5.0",
-	"description": "The CLI for c15t",
+	"description": "CLI for rapid c15t setup. Scaffold React and Next.js cookie banners and a preferences centre, generate types and config, and run migration tooling for self-hosted deployments.",
+	"homepage": "https://c15t.com",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/cli"
+	},
+	"license": "GPL-3.0-only",
 	"type": "module",
 	"exports": "./dist/index.mjs",
 	"main": "./dist/index.mjs",
@@ -9,12 +16,14 @@
 	"bin": {
 		"cli": "dist/index.mjs"
 	},
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"scripts": {
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
 		"dev": "rslib build --watch",
-		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --write",
 		"knip": "knip",
 		"lint": "pnpm biome lint ./src",
 		"start": "node ./dist/index.mjs",
@@ -50,6 +59,8 @@
 	},
 	"publishConfig": {
 		"access": "public",
-		"executableFiles": ["./dist/index.mjs"]
+		"executableFiles": [
+			"./dist/index.mjs"
+		]
 	}
 }

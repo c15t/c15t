@@ -2,9 +2,9 @@ import type { Logger } from '@doubletie/logger';
 import { PostHog } from 'posthog-node';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+	createTelemetry,
 	Telemetry,
 	TelemetryEventName,
-	createTelemetry,
 } from '../../src/utils/telemetry';
 
 // Define a type for our mocked PostHog instance

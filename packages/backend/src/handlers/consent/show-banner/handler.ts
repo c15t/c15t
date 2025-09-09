@@ -1,21 +1,20 @@
 import type { Translations } from '@c15t/translations';
-import { ORPCError } from '@orpc/server';
 import { os } from '~/contracts';
 import {
 	type JurisdictionCode,
 	JurisdictionMessages,
 } from '~/contracts/shared/jurisdiction.schema';
-import type { C15TContext } from '~/types';
+import type { Branding, C15TContext } from '~/types';
 import { checkJurisdiction } from './geo';
 import { getTranslations } from './translations';
 
 function getHeaders(headers: Headers | undefined) {
 	if (!headers) {
-		throw new ORPCError('LOCATION_DETECTION_FAILED', {
-			data: {
-				reason: 'No headers found in request context',
-			},
-		});
+		return {
+			countryCode: null,
+			regionCode: null,
+			acceptLanguage: null,
+		};
 	}
 
 	// Add this conversion to ensure headers are always string or null
@@ -57,6 +56,7 @@ function buildResponse({
 	location,
 	acceptLanguage,
 	customTranslations,
+	branding = 'c15t',
 }: {
 	shouldShowBanner: boolean;
 
@@ -67,12 +67,14 @@ function buildResponse({
 	location: { countryCode: string | null; regionCode: string | null };
 	acceptLanguage: string | null;
 	customTranslations: Record<string, Partial<Translations>> | undefined;
+	branding?: Branding;
 }) {
 	return {
 		showConsentBanner: shouldShowBanner,
 		jurisdiction,
 		location,
 		translations: getTranslations(acceptLanguage, customTranslations),
+		branding,
 	};
 }
 
@@ -83,9 +85,8 @@ function buildResponse({
 export const showConsentBanner = os.consent.showBanner.handler(
 	({ context }) => {
 		const typedContext = context as C15TContext;
-		const { customTranslations, disableGeoLocation } =
+		const { customTranslations, disableGeoLocation, branding } =
 			typedContext.options.advanced ?? {};
-
 		const { countryCode, regionCode, acceptLanguage } = getHeaders(
 			typedContext.headers
 		);
@@ -100,6 +101,7 @@ export const showConsentBanner = os.consent.showBanner.handler(
 				location: { countryCode: null, regionCode: null },
 				acceptLanguage,
 				customTranslations,
+				branding,
 			});
 		}
 
@@ -115,6 +117,7 @@ export const showConsentBanner = os.consent.showBanner.handler(
 			location: { countryCode, regionCode },
 			acceptLanguage,
 			customTranslations,
+			branding,
 		});
 	}
 );

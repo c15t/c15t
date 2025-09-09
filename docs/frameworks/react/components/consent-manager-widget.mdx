@@ -1,0 +1,127 @@
+---
+title: Consent Manager Widget
+description: A flexible, composable widget for building custom privacy consent interfaces. The widget provides granular control over privacy preferences.
+lastModified: 2025-08-27
+availableIn:
+  - framework: 'next'
+    url: '/docs/frameworks/next/components/consent-manager-widget'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/components/consent-manager-widget'
+    title: 'React'
+---
+
+The Consent Manager Widget allows for detailed privacy consent management in your application. While the Cookie Banner handles initial consent, this widget enables users to fine-tune their privacy preferences through an intuitive accordion interface.
+
+If you just want a dialog, consider using the [Consent Manager Dialog](/docs/frameworks/react/components/consent-manager-dialog) instead (which handles the overlay logic for you).
+
+## Usage
+
+<Tabs groupId="Version" items={["Recommended", "Expanded"]}>
+  <Tab value="Recommended">
+    ```tsx
+    import { ConsentManagerProvider,  ConsentManagerWidget } from "@c15t/react";
+    import { useState } from 'react';
+
+    export default function App() {
+      const [isWidgetOpen, setIsWidgetOpen] = useState(false);
+
+      return (
+        <ConsentManagerProvider options={{
+          mode: 'c15t',
+          backendURL: 'https://your-instance.c15t.dev/',
+          consentCategories: ['necessary', 'marketing'],
+        }}>
+          <button type="button" onClick={() => setIsWidgetOpen(!isWidgetOpen)}>
+            {isWidgetOpen ? 'Close' : 'Open'}
+          </button>
+
+          {isWidgetOpen && (
+            <div className="w-1/2 rounded-lg bg-white px-5 pt-8">
+              <ConsentManagerWidget />
+            </div>
+          )}
+        </ConsentManagerProvider>
+      );
+    };
+
+    ```
+  </Tab>
+
+  <Tab value="expanded">
+    ```tsx
+    import { ConsentManagerProvider, ConsentManagerWidget } from "@c15t/react";
+
+    const CustomWidget = () => {
+    	return (
+    			<div className="w-1/2 rounded-lg bg-white px-5 pt-8">
+    				<ConsentManagerWidget.Root>
+    					<ConsentManagerWidget.Accordion
+    						themeKey="widget.accordion"
+    						type="multiple"
+    						value={openItems}
+    						onValueChange={setOpenItems}
+    					>
+    						<ConsentManagerWidget.AccordionItems />
+    					</ConsentManagerWidget.Accordion>
+    					<ConsentManagerWidget.Footer>
+    						<ConsentManagerWidget.FooterSubGroup themeKey="widget.footer.sub-group">
+    							<ConsentManagerWidget.RejectButton themeKey="widget.footer.reject-button">
+    								Reject All Text
+    							</ConsentManagerWidget.RejectButton>
+    							<ConsentManagerWidget.AcceptAllButton themeKey="widget.footer.accept-button">
+    								Accept All
+    							</ConsentManagerWidget.AcceptAllButton>
+    						</ConsentManagerWidget.FooterSubGroup>
+    						<ConsentManagerWidget.SaveButton themeKey="widget.footer.save-button">
+    							Save
+    						</ConsentManagerWidget.SaveButton>
+    					</ConsentManagerWidget.Footer>
+    				</ConsentManagerWidget.Root>
+    			</div>
+    	);
+    };
+
+
+    export default function App() {
+      return (
+        <ConsentManagerProvider options={{
+          mode: 'c15t',
+          backendURL: 'https://your-instance.c15t.dev/',
+          consentCategories: ['necessary', 'marketing'],
+        }}>
+          <button type="button" onClick={() => setIsWidgetOpen(!isWidgetOpen)}>
+            {isWidgetOpen ? 'Close' : 'Open'}
+          </button>
+
+          {isWidgetOpen && (
+            <div className="w-1/2 rounded-lg bg-white px-5 pt-8">
+              <CustomWidget />
+            </div>
+          )}
+        </ConsentManagerProvider>
+      );
+    };
+    ```
+  </Tab>
+</Tabs>
+
+## Styling
+
+The Consent Manager Widget is designed to adapt to your application's visual style. Learn more about our [styling system](/docs/react/styling/overview).
+
+### Theme Variables
+
+These keys are available on the theme object to customize your banner.
+
+<AutoTypeTable path="./packages/react/src/components/consent-manager-widget/theme.ts" name="ConsentManagerWidgetTheme" />
+
+## API Reference
+
+The main component accepts these props:
+
+<AutoTypeTable path="./packages/react/src/components/consent-manager-widget/types.ts" name="ConsentManagerWidgetProps" />
+
+### Compound Components
+
+<AutoTypeTable path="./packages/react/src/components/consent-manager-widget/index.ts" name="ConsentManagerWidgetCompoundComponent" />

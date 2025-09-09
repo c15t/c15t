@@ -95,6 +95,8 @@ export type ComplianceSettings = {
 /**
  * Subject privacy preference configuration.
  *
+ * @deprecated This type is deprecated and will be removed in a future version.
+ *
  * @remarks
  * Contains settings that affect how user privacy preferences are handled:
  * - `honorDoNotTrack`: Respects the browser's DNT (Do Not Track) setting
@@ -226,6 +228,14 @@ export type LocationInfo = {
 
 	/** Region or state code within the country (e.g., 'CA', 'ENG') */
 	regionCode: string | null;
+
+	/** Jurisdiction code (e.g. 'GDPR') */
+	jurisdiction:
+		| ContractsOutputs['consent']['showBanner']['jurisdiction']['code']
+		| null;
+
+	/** Jurisdiction message (e.g. 'GDPR or equivalent regulations require a cookie banner.') */
+	jurisdictionMessage: string | null;
 };
 
 /**

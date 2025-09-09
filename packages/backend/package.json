@@ -1,9 +1,98 @@
 {
 	"name": "@c15t/backend",
 	"version": "1.5.0",
+	"description": "Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preferences centre. Webhooks, audit logs, storage adapters. Self host or use consent.io",
+	"keywords": [
+		"consent",
+		"privacy",
+		"gdpr",
+		"ccpa",
+		"lgpd",
+		"backend",
+		"self-host",
+		"consent-management",
+		"user-privacy",
+		"compliance",
+		"data-protection",
+		"cookie-banner",
+		"consent-management-platform",
+		"cmp",
+		"consent-banner"
+	],
+	"homepage": "https://c15t.com/docs/self-host/v2",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/backend"
+	},
 	"license": "GPL-3.0-only",
 	"type": "module",
 	"exports": {
+		"./v2": {
+			"types": "./dist/v2/core.d.ts",
+			"import": "./dist/v2/core.js",
+			"require": "./dist/v2/core.cjs"
+		},
+		"./v2/define-config": {
+			"types": "./dist/v2/define-config.d.ts",
+			"import": "./dist/v2/define-config.js",
+			"require": "./dist/v2/define-config.cjs"
+		},
+		"./v2/router": {
+			"types": "./dist/v2/router.d.ts",
+			"import": "./dist/v2/router.js",
+			"require": "./dist/v2/router.cjs"
+		},
+		"./v2/contracts": {
+			"types": "./dist/v2/contracts/index.d.ts",
+			"import": "./dist/v2/contracts/index.js",
+			"require": "./dist/v2/contracts/index.cjs"
+		},
+		"./v2/db/schema": {
+			"types": "./dist/v2/db/schema/index.d.ts",
+			"import": "./dist/v2/db/schema/index.js",
+			"require": "./dist/v2/db/schema/index.cjs"
+		},
+		"./v2/db/adapters": {
+			"types": "./dist/v2/db/adapters/index.d.ts",
+			"import": "./dist/v2/db/adapters/index.js",
+			"require": "./dist/v2/db/adapters/index.cjs"
+		},
+		"./v2/db/adapters/kysely": {
+			"types": "./dist/v2/db/adapters/kysely.d.ts",
+			"import": "./dist/v2/db/adapters/kysely.js",
+			"require": "./dist/v2/db/adapters/kysely.cjs"
+		},
+		"./v2/db/adapters/drizzle": {
+			"types": "./dist/v2/db/adapters/drizzle.d.ts",
+			"import": "./dist/v2/db/adapters/drizzle.js",
+			"require": "./dist/v2/db/adapters/drizzle.cjs"
+		},
+		"./v2/db/adapters/prisma": {
+			"types": "./dist/v2/db/adapters/prisma.d.ts",
+			"import": "./dist/v2/db/adapters/prisma.js",
+			"require": "./dist/v2/db/adapters/prisma.cjs"
+		},
+		"./v2/db/adapters/typeorm": {
+			"types": "./dist/v2/db/adapters/typeorm.d.ts",
+			"import": "./dist/v2/db/adapters/typeorm.js",
+			"require": "./dist/v2/db/adapters/typeorm.cjs"
+		},
+		"./v2/db/adapters/mongo": {
+			"types": "./dist/v2/db/adapters/mongo.d.ts",
+			"import": "./dist/v2/db/adapters/mongo.js",
+			"require": "./dist/v2/db/adapters/mongo.cjs"
+		},
+		"./v2/db/migrator": {
+			"types": "./dist/v2/db/migrator/index.d.ts",
+			"import": "./dist/v2/db/migrator/index.js",
+			"require": "./dist/v2/db/migrator/index.cjs"
+		},
+		"./v2/types": {
+			"types": "./dist/v2/types/index.d.ts",
+			"import": "./dist/v2/types/index.js",
+			"require": "./dist/v2/types/index.cjs"
+		},
 		".": {
 			"types": "./dist/core.d.ts",
 			"import": "./dist/core.js",
@@ -86,33 +175,35 @@
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
 		"build": "pnpm prebuild && rslib build",
+		"check-types": "pnpm prebuild && tsc --noEmit",
 		"dev": "pnpm prebuild && rslib build --watch",
-		"check-types": "tsc --noEmit",
-		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
+		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --write",
 		"knip": "knip",
 		"lint": "pnpm biome lint ./src",
 		"start": "node dist/server.cjs",
-		"test": "vitest run",
-		"test:watch": "vitest"
+		"test": "pnpm prebuild && vitest run",
+		"test:watch": "pnpm prebuild && vitest"
 	},
 	"dependencies": {
 		"@c15t/translations": "workspace:*",
 		"@doubletie/logger": "1.0.4",
-		"@opentelemetry/api": "1.8.0",
-		"@opentelemetry/resources": "^1.25.1",
-		"@opentelemetry/sdk-node": "^0.51.1",
-		"@opentelemetry/sdk-trace-base": "^1.25.1",
-		"@orpc/contract": "1.2.0",
-		"@orpc/openapi": "1.2.0",
-		"@orpc/server": "1.2.0",
-		"@orpc/zod": "1.2.0",
+		"@opentelemetry/api": "1.9.0",
+		"@opentelemetry/resources": "^2.0.1",
+		"@opentelemetry/sdk-node": "^0.203.0",
+		"@opentelemetry/sdk-trace-base": "^2.0.1",
+		"@orpc/contract": "1.8.1",
+		"@orpc/openapi": "1.8.1",
+		"@orpc/otel": "^1.8.1",
+		"@orpc/server": "1.8.1",
+		"@orpc/zod": "1.8.1",
 		"base-x": "^5.0.1",
 		"defu": "^6.1.4",
 		"drizzle-orm": "^0.41.0",
+		"fumadb": "^0.1.1",
 		"kysely": "^0.27.6",
 		"neverthrow": "^8.2.0",
 		"superjson": "^2.2.2",
-		"zod": "^3.24.2"
+		"zod": "^4.0.17"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

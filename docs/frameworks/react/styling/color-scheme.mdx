@@ -1,0 +1,40 @@
+---
+title: Color Scheme (Light/Dark Mode)
+description: Manage your components light, dark, and system color schemes.
+lastModified: 2025-08-22
+availableIn:
+  - framework: 'next'
+    url: '/docs/frameworks/next/styling/color-scheme'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/styling/color-scheme'
+    title: 'React'
+---
+
+## Overview
+
+c15t provides built-in support for managing color schemes for your components, allowing you to implement light mode, dark mode, or system-based preferences with minimal configuration.
+By default, c15t detects your theme by checking if you have a `.dark` class on the root element.
+
+## Usage
+
+```tsx
+<ConsentManagerProvider
+  options={{
+    // ... rest of your config
+    react: {
+      colorScheme: 'light',
+    },
+  }}
+>
+  <CookieBanner />
+  <ConsentManagerDialog />
+</ConsentManagerProvider>
+```
+
+## CSS Classes
+
+The color scheme is decided based on two classes:
+
+- `.dark` - By default, c15t checks for this class on the root element to determine the color scheme if none is provided.
+- `.c15t-dark` - This class is automatically added/removed based on the color scheme.

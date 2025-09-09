@@ -1,0 +1,55 @@
+---
+title: 'Overview'
+description: 'Compare different approaches to storing consent decisions in your application'
+lastModified: 2025-08-22
+availableIn:
+  - framework: 'next'
+    url: '/docs/frameworks/next/storing-consent/overview'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/storing-consent/overview'
+    title: 'React'
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/storing-consent/overview'
+    title: 'JavaScript'
+---
+
+## Available Storage Options
+
+| Storage Option | Description | Best For | Guide |
+|--------------|-------------|----------|----------|
+| **Hosted** | Using consent.io managed service or self-hosting | Production apps with minimal backend maintenance or Organizations requiring complete data control | [Guide](/docs/frameworks/react/storing-consent/hosted) |
+| **Offline** | Browser-based storage with no server | Simple implementations or dev environments | [Guide](/docs/frameworks/react/storing-consent/offline) |
+| **Custom** | Fully customized storage implementation | Complex integrations with existing systems | TBD |
+
+<Callout type="tip">
+  For most applications, we recommend starting with Hosted (consent.io) for the simplest setup with the most features.
+</Callout>
+
+## Choosing the Right Approach
+
+Use this flowchart to determine which c15t configuration is best for your needs:
+
+<Mermaid
+  chart={`
+flowchart TD
+Start([Start here]) --> StoreConsent
+
+StoreConsent{Need to store\nconsent choices?}
+StoreConsent -->|Yes| ManagedService
+StoreConsent -->|No| OfflineMode
+
+ManagedService{Want a managed\nservice?}
+ManagedService -->|Yes| ConsentIO
+ManagedService -->|No| SelfHosted
+
+OfflineMode([c15t Offline Mode]):::optionStyle
+OfflineMode -.-> OfflineNote[Client-side only\nStores in localStorage]:::noteStyle
+
+ConsentIO([consent.io]):::recommendStyle
+ConsentIO -.-> ConsentIONote[Fully managed\nSimplest setup]:::noteStyle
+
+SelfHosted([Self-hosted Instance]):::optionStyle
+SelfHosted -.-> SelfHostedNote[Full control\nRequires maintenance]:::noteStyle
+`}
+/>

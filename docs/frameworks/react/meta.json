@@ -1,0 +1,33 @@
+{
+	"title": "React",
+	"root": true,
+	"icon": "react",
+	"pages": [
+		"quickstart",
+		"internationalization",
+		"callbacks",
+		"google-tag-manager",
+		"--- Storing Consent ---",
+		"storing-consent/overview",
+		"storing-consent/hosted",
+		"storing-consent/offline",
+		"--- React Components ---",
+		"components/cookie-banner",
+		"components/consent-manager-dialog",
+		"components/consent-manager-widget",
+		"components/dev-tools",
+		"--- Styling the components ---",
+		"styling/overview",
+		"styling/color-scheme",
+		"styling/css-variables",
+		"styling/classnames",
+		"--- useConsentManager ---",
+		"./hooks/use-consent-manager/overview",
+		"./hooks/use-consent-manager/checking-consent",
+		"./hooks/use-consent-manager/location-info",
+		"./hooks/use-consent-manager/setting-consent",
+		"--- Hooks ---",
+		"hooks/use-translations",
+		"hooks/use-focus-trap"
+	]
+}

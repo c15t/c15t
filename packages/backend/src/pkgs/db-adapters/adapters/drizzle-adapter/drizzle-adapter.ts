@@ -1,7 +1,6 @@
 //@ts-nocheck
 
 import {
-	type SQL,
 	and,
 	asc,
 	count,
@@ -10,6 +9,7 @@ import {
 	inArray,
 	like,
 	or,
+	type SQL,
 } from 'drizzle-orm';
 import { type EntityName, generateId } from '~/pkgs/data-model';
 import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
@@ -517,6 +517,9 @@ function checkMissingFields(
  *   }),
  * });
  * ```
+ *
+ * @deprecated Will be removed in the next major version. Update to `@c15t/backend/v2`, view migration guide for more details.
+ * @see https://c15t.com/docs/self-host/migrate-from-v1
  */
 export const drizzleAdapter =
 	(db: DB, config: DrizzleAdapterConfig) => (options: C15TOptions) => {

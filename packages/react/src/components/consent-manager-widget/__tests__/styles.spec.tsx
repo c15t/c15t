@@ -5,18 +5,23 @@ import type { ThemeValue } from '~/types/theme';
 import testComponentStyles from '~/utils/test-helpers';
 import styles from '../consent-manager-widget.module.css';
 import type { ConsentManagerWidgetTheme } from '../theme';
+
 vi.mock('~/hooks/use-consent-manager', () => ({
-	useConsentManager: () => ({
-		getConsentCategory: vi.fn(() => ({ isEnabled: true })), // Mock needed functions
+	useConsentManager: vi.fn().mockReturnValue({
+		getConsentCategory: vi.fn().mockReturnValue({ isEnabled: true }), // Mock needed functions
 		updateConsentCategory: vi.fn(),
 		saveConsents: vi.fn(),
-		getDisplayedConsents: vi.fn(() => []), // Add missing function
-		// Add other necessary mock properties/functions if needed
+		getDisplayedConsents: vi.fn().mockReturnValue([]), // Add missing function
+		translationConfig: {
+			defaultLanguage: 'en',
+		},
 	}),
 }));
 
 vi.mock('~/hooks/use-translations', () => ({
-	useTranslations: () => defaultTranslationConfig.translations.en,
+	useTranslations: vi
+		.fn()
+		.mockReturnValue(defaultTranslationConfig.translations.en),
 }));
 
 type ComponentTestCase = {

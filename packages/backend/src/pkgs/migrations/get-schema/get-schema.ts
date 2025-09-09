@@ -35,7 +35,6 @@ export function getSchema(config: C15TOptions): SchemaDefinition {
 		return processTablesIntoSchema(tables);
 	} catch (error) {
 		// Log the error or handle it according to your application's needs
-		// biome-ignore lint/suspicious/noConsole: <explanation>
 		console.error('Failed to generate schema:', error);
 		throw new Error(
 			`Schema generation failed: ${error instanceof Error ? error.message : String(error)}`

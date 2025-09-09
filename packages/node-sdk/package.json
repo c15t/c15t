@@ -1,17 +1,32 @@
 {
 	"name": "@c15t/node-sdk",
 	"version": "1.5.0",
-	"type": "module",
-	"scripts": {
-		"build": "rslib build",
-		"check-types": "tsc --noEmit",
-		"check-types:test": "tsc -p tsconfig.test.json",
-		"dev": "rslib build --watch",
-		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --organize-imports-enabled=true --write",
-		"lint": "pnpm biome lint ./src",
-		"test": "vitest run",
-		"test:watch": "vitest"
+	"description": "Official Node.js SDK for c15t. Connects to the Consent Engine to read and write consent records and preferences. TypeScript-first, simple APIs, built-in auth and retries.",
+	"keywords": [
+		"react",
+		"consent",
+		"privacy",
+		"gdpr",
+		"ccpa",
+		"lgpd",
+		"headless",
+		"typescript",
+		"cookie-banner",
+		"consent-management-platform",
+		"cmp",
+		"consent-banner",
+		"user-consent",
+		"privacy-compliance",
+		"web-privacy"
+	],
+	"homepage": "https://c15t.com",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/node-sdk"
 	},
+	"license": "GPL-3.0-only",
+	"type": "module",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -22,13 +37,25 @@
 	"main": "./dist/index.cjs",
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "rslib build",
+		"check-types": "tsc --noEmit",
+		"check-types:test": "tsc -p tsconfig.test.json",
+		"dev": "rslib build --watch",
+		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --write",
+		"lint": "pnpm biome lint ./src",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
-		"@orpc/client": "1.2.0",
-		"@orpc/contract": "1.2.0",
-		"@orpc/openapi-client": "^1.2.0",
-		"@orpc/server": "1.2.0"
+		"@orpc/client": "1.8.1",
+		"@orpc/contract": "1.8.1",
+		"@orpc/openapi-client": "^1.8.1",
+		"@orpc/server": "1.8.1"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

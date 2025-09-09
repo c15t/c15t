@@ -1,9 +1,6 @@
 import type { ConsentManagerProviderProps } from '@c15t/react';
+import type { InitialDataPromise } from '../../../types';
 import { version } from '../../../version';
-
-type InitialDataPromise = NonNullable<
-	ConsentManagerProviderProps['options']['store']
->['_initialData'];
 
 interface EnrichOptionsProps {
 	initialData?: InitialDataPromise;
@@ -36,11 +33,11 @@ export function enrichOptions({
 				...baseStoreConfig,
 				_initialData: initialData,
 			},
-		};
+		} as ConsentManagerProviderProps['options'];
 	}
 
 	return {
 		...options,
 		store: baseStoreConfig,
-	};
+	} as ConsentManagerProviderProps['options'];
 }
