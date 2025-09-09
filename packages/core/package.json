@@ -1,6 +1,6 @@
 {
 	"name": "c15t",
-	"version": "1.5.1-canary-20250909182627",
+	"version": "1.6.0-canary-20250909182938",
 	"description": "Developer-first CMP for JavaScript: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization",
 	"keywords": [
 		"nextjs",
