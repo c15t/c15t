@@ -351,7 +351,7 @@ export function createConsistencyTests(
 						continue;
 					}
 
-					const fieldSchema = shape[field];
+					const _fieldSchema = shape[field];
 					// Skip introspecting Zod internals in v4; cannot reliably extract checks
 				}
 
