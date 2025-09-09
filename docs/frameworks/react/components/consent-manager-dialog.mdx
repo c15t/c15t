@@ -18,16 +18,16 @@ The Consent Manager Dialog provides a clean, focused way for users to customize 
   code={`
 export function SimpleConsentDialog({ children }: { children?: ReactNode }) {
 return (
-  <ConsentManagerProvider
-  	options={{
-  		mode: 'offline',
-  		consentCategories: ['experience', 'marketing', 'functionality', 'necessary'],
-  	}}
-  >
-  	<ConsentManagerDialog />
-  	<ConsentManagerDialogButton />
-  	{children}
-  </ConsentManagerProvider>
+<ConsentManagerProvider
+	options={{
+		mode: 'offline',
+		consentCategories: ['experience', 'marketing', 'functionality', 'necessary'],
+	}}
+>
+	<ConsentManagerDialog />
+	<ConsentManagerDialogButton />
+	{children}
+</ConsentManagerProvider>
 );
 }
 
@@ -35,17 +35,17 @@ function ConsentManagerDialogButton() {
 const { setIsPrivacyDialogOpen, isPrivacyDialogOpen } = useConsentManager();
 
 useEffect(() => {
-  setIsPrivacyDialogOpen(true);
+setIsPrivacyDialogOpen(true);
 }, [setIsPrivacyDialogOpen]);
 
 if (isPrivacyDialogOpen) {
-  return null;
+return null;
 }
 
 return (
-  <button type="button" onClick={() => setIsPrivacyDialogOpen(!isPrivacyDialogOpen)}>
-  	Open Consent Dialog
-  </button>
+<button type="button" onClick={() => setIsPrivacyDialogOpen(!isPrivacyDialogOpen)}>
+	Open Consent Dialog
+</button>
 );
 }
 `}

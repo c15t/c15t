@@ -18,15 +18,15 @@ The Cookie Banner component provides an elegant way to obtain and manage consent
   code={`
 export function SimpleCookieBanner({ children }: { children?: ReactNode }) {
 return (
-  <ConsentManagerProvider
-  	options={{
-  		mode: 'offline',
-  		consentCategories: ['experience', 'marketing', 'functionality', 'necessary'],
-  	}}
-  >
-  	<CookieBanner />
-  	{children}
-  </ConsentManagerProvider>
+<ConsentManagerProvider
+	options={{
+		mode: 'offline',
+		consentCategories: ['experience', 'marketing', 'functionality', 'necessary'],
+	}}
+>
+	<CookieBanner />
+	{children}
+</ConsentManagerProvider>
 );
 }
 `}
