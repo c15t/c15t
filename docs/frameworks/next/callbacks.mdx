@@ -44,12 +44,12 @@ availableIn:
     <Callout type="note">
       Ensure you import this component inside the ConsentManagerProvider component in your `app/layout.tsx` file.
     </Callout>
-    
+
     ```ts title="app/layout.tsx"
     import { ConsentManagerProvider } from '@c15t/nextjs';
     import { ClientLayout } from './layout.client';
     import type { ReactNode } from 'react';
-    
+
     export default function Layout({ children }: { children: ReactNode }) {
       return (
         <ConsentManagerProvider options={{
@@ -65,11 +65,11 @@ availableIn:
 
   <Tab value="Pages Directory">
     ```ts title="pages/_app.tsx"
-import { ConsentManagerProvider } from '@c15t/nextjs/pages';
-import type { AppProps } from 'next/app';
+    import { ConsentManagerProvider } from '@c15t/nextjs/pages';
+    import type { AppProps } from 'next/app';
 
-export default function App({ Component, pageProps }: AppProps) {
-  return (
+    export default function App({ Component, pageProps }: AppProps) {
+    return (
     <ConsentManagerProvider options={{
       callbacks: {
         onBannerFetched(response) {
@@ -85,8 +85,8 @@ export default function App({ Component, pageProps }: AppProps) {
     }}>
       <Component {...pageProps} />
     </ConsentManagerProvider>
-  );
-}
+    );
+    }
 
     ```
   </Tab>

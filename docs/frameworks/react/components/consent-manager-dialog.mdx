@@ -13,47 +13,44 @@ availableIn:
 
 The Consent Manager Dialog provides a clean, focused way for users to customize their privacy preferences. This dialog is required by various privacy regulations like GDPR.
 
-
 <ResponsivePreview
   src="https://c15t-examples.vercel.app/react/simple-consent-dialog"
   code={`
-  export function SimpleConsentDialog({ children }: { children?: ReactNode }) {
-	return (
-		<ConsentManagerProvider
-			options={{
-				mode: 'offline',
-				consentCategories: ['experience', 'marketing', 'functionality', 'necessary'],
-			}}
-		>
-			<ConsentManagerDialog />
-			<ConsentManagerDialogButton />
-			{children}
-		</ConsentManagerProvider>
-	);
+export function SimpleConsentDialog({ children }: { children?: ReactNode }) {
+return (
+  <ConsentManagerProvider
+  	options={{
+  		mode: 'offline',
+  		consentCategories: ['experience', 'marketing', 'functionality', 'necessary'],
+  	}}
+  >
+  	<ConsentManagerDialog />
+  	<ConsentManagerDialogButton />
+  	{children}
+  </ConsentManagerProvider>
+);
 }
 
 function ConsentManagerDialogButton() {
-	const { setIsPrivacyDialogOpen, isPrivacyDialogOpen } = useConsentManager();
+const { setIsPrivacyDialogOpen, isPrivacyDialogOpen } = useConsentManager();
 
-	useEffect(() => {
-		setIsPrivacyDialogOpen(true);
-	}, [setIsPrivacyDialogOpen]);
+useEffect(() => {
+  setIsPrivacyDialogOpen(true);
+}, [setIsPrivacyDialogOpen]);
 
-	if (isPrivacyDialogOpen) {
-		return null;
-	}
+if (isPrivacyDialogOpen) {
+  return null;
+}
 
-	return (
-		<button type="button" onClick={() => setIsPrivacyDialogOpen(!isPrivacyDialogOpen)}>
-			Open Consent Dialog
-		</button>
-	);
+return (
+  <button type="button" onClick={() => setIsPrivacyDialogOpen(!isPrivacyDialogOpen)}>
+  	Open Consent Dialog
+  </button>
+);
 }
 `}
   expectedHeight={600}
 />
-
-
 
 ## Usage
 
