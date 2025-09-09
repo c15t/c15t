@@ -28,6 +28,11 @@
 	"license": "GPL-3.0-only",
 	"type": "module",
 	"exports": {
+		"./version": {
+			"types": "./dist/version.d.ts",
+			"import": "./dist/version.js",
+			"require": "./dist/version.cjs"
+		},
 		"./v2": {
 			"types": "./dist/v2/core.d.ts",
 			"import": "./dist/v2/core.js",

@@ -1,5 +1,6 @@
 import { c15tInstance } from '@c15t/backend/v2';
 import { kyselyAdapter } from '@c15t/backend/v2/db/adapters/kysely';
+import { version } from '@c15t/backend/version';
 import { LibsqlDialect } from '@libsql/kysely-libsql';
 import { Kysely } from 'kysely';
 import type { NextRequest } from 'next/server';
