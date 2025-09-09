@@ -19,14 +19,14 @@ The Consent Manager Dialog provides a clean, focused way for users to customize 
 export function SimpleConsentDialog({ children }: { children?: ReactNode }) {
 return (
 <ConsentManagerProvider
-	options={{
-		mode: 'offline',
-		consentCategories: ['experience', 'marketing', 'functionality', 'necessary'],
-	}}
+  options={{
+  	mode: 'offline',
+  	consentCategories: ['experience', 'marketing', 'functionality', 'necessary'],
+  }}
 >
-	<ConsentManagerDialog />
-	<ConsentManagerDialogButton />
-	{children}
+  <ConsentManagerDialog />
+  <ConsentManagerDialogButton />
+  {children}
 </ConsentManagerProvider>
 );
 }
@@ -44,7 +44,7 @@ return null;
 
 return (
 <button type="button" onClick={() => setIsPrivacyDialogOpen(!isPrivacyDialogOpen)}>
-	Open Consent Dialog
+  Open Consent Dialog
 </button>
 );
 }
