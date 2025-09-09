@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/backend",
-	"version": "1.5.0",
+	"version": "1.5.1-canary-20250909182627",
 	"description": "Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preferences centre. Webhooks, audit logs, storage adapters. Self host or use consent.io",
 	"keywords": [
 		"consent",
