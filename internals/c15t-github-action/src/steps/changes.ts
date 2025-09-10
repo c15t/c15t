@@ -1,7 +1,10 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 
-function parseCsv(input: string | undefined, fallback: string[]): string[] {
+export function parseCsv(
+	input: string | undefined,
+	fallback: string[]
+): string[] {
 	if (!input) {
 		return fallback;
 	}
