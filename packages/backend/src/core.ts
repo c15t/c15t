@@ -463,3 +463,4 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 
 export type { C15TPlugin, C15TOptions, C15TContext };
 export type { ContractsInputs, ContractsOutputs } from './contracts';
+export { version } from './version';
