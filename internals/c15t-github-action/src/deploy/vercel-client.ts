@@ -53,7 +53,7 @@ interface VercelDeployResult {
  * Determine the current branch from GitHub env vars.
  * @param env - Environment variables
  */
-function getBranch(env: NodeJS.ProcessEnv): string {
+export function getBranch(env: NodeJS.ProcessEnv): string {
 	const refEnv = env.GITHUB_REF || '';
 	const headRef = env.GITHUB_HEAD_REF || '';
 	if (headRef) {
@@ -144,8 +144,11 @@ function walkFiles(cwd: string): string[] {
 	return filesList;
 }
 
-function resolveTarget(env: NodeJS.ProcessEnv): DeployTarget {
-	return env.GITHUB_REF === 'refs/heads/main' ? 'production' : 'staging';
+export function resolveTarget(env: NodeJS.ProcessEnv): DeployTarget {
+	if (env.GITHUB_REF === 'refs/heads/main') {
+		return 'production';
+	}
+	return 'staging';
 }
 
 function slugify(input: string): string {
@@ -209,7 +212,12 @@ export async function deployToVercel(
 ): Promise<VercelDeployResult> {
 	const cwd = path.resolve(options.workingDirectory || '.');
 	const branch = getBranch(process.env);
-	const target = options.target ?? resolveTarget(process.env);
+	let target: DeployTarget;
+	if (typeof options.target === 'string' && options.target.trim() !== '') {
+		target = options.target;
+	} else {
+		target = resolveTarget(process.env);
+	}
 
 	const repo = process.env.GITHUB_REPOSITORY || '';
 	const owner = process.env.GITHUB_REPOSITORY_OWNER || '';

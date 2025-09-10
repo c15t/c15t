@@ -4,14 +4,14 @@ import {
 	aliasDomains,
 	aliasOnBranch,
 	canaryAlias,
-	// changeGlobs,
-	// checkTemplateChanges,
+	changeGlobs,
+	checkTemplateChanges,
 	consentGitToken,
-	// deployOnPrBaseBranches,
-	// deployOnPushBranches,
+	deployOnPrBaseBranches,
+	deployOnPushBranches,
 	docsTemplateRef,
 	docsTemplateRepo,
-	// onlyIfChanged,
+	onlyIfChanged,
 	setupDocs,
 	vercelArgs,
 	vercelFramework,
@@ -24,9 +24,12 @@ import {
 } from '../config/inputs';
 import { type DeployTarget, deployToVercel } from '../deploy/vercel-client';
 import { ErrorHandler, executeWithRetry } from '../utils/errors';
-// import { detectRelevantChanges, shouldDeployByPolicy } from './changes';
+import { detectRelevantChanges, shouldDeployByPolicy } from './changes';
 import { setupDocsWithScript } from './setup-docs';
-import { fetchLatestTemplateSha } from './template-tracking';
+import {
+	fetchLatestTemplateSha,
+	readLastTemplateShaFromDeployments,
+} from './template-tracking';
 
 async function createGithubDeployment(
 	octokit: ReturnType<typeof github.getOctokit>,
@@ -167,52 +170,32 @@ export async function performVercelDeployment(
 	}
 
 	// Policy: only deploy on allowed branches/PR bases
-	// const allowedByPolicy = shouldDeployByPolicy(
-	// 	deployOnPushBranches,
-	// 	deployOnPrBaseBranches
-	// );
-	// if (!allowedByPolicy) {
-	// 	core.info('Policy prevents deploy on this ref; skipping deployment');
-	// 	return undefined;
-	// }
-
-	// // Change detection gating
-	// if (onlyIfChanged) {
-	// 	const globs = changeGlobs.length
-	// 		? changeGlobs
-	// 		: ['docs/**', 'packages/*/src/**', 'packages/*/package.json'];
-	// 	const relevant = await detectRelevantChanges(octokit, globs);
-	// 	if (!relevant && !checkTemplateChanges) {
-	// 		core.info('No relevant file changes detected; skipping deployment');
-	// 		return undefined;
-	// 	}
-	// }
-
-	// // Template change tracking (best effort)
-	// let latestTemplateSha: string | undefined;
-	// if (checkTemplateChanges) {
-	const tplRepo = docsTemplateRepo || 'consentdotio/c15t-docs';
-	const tplRef = docsTemplateRef || 'main';
-	const latestTemplateSha = await fetchLatestTemplateSha(
-		octokit,
-		tplRepo,
-		tplRef,
-		consentGitToken || process.env.CONSENT_GIT_TOKEN
+	const allowedByPolicy = shouldDeployByPolicy(
+		deployOnPushBranches,
+		deployOnPrBaseBranches
 	);
-	// 	const envName = computeEnvironmentName(
-	// 		(vercelTarget as DeployTarget) || undefined,
-	// 		resolveBranch()
-	// 	);
-	// 	const previous = await readLastTemplateShaFromDeployments(octokit, envName);
-	// 	if (latestTemplateSha && previous && latestTemplateSha === previous) {
-	// 		core.info('Template unchanged; skipping deployment');
-	// 		return undefined;
-	// 	}
-	// }
+	if (!allowedByPolicy) {
+		core.info('Policy prevents deploy on this ref; skipping deployment');
+		return undefined;
+	}
+
+	// Change detection gating
+	if (onlyIfChanged) {
+		const globs = changeGlobs.length
+			? changeGlobs
+			: ['docs/**', 'packages/*/src/**', 'packages/*/package.json'];
+		const relevant = await detectRelevantChanges(octokit, globs);
+		if (!relevant && !checkTemplateChanges) {
+			core.info('No relevant file changes detected; skipping deployment');
+			return undefined;
+		}
+	}
 
 	const branch = resolveBranch();
 	let targetHint: DeployTarget | undefined =
-		(vercelTarget as DeployTarget) || undefined;
+		vercelTarget && vercelTarget.trim() !== ''
+			? (vercelTarget as DeployTarget)
+			: undefined;
 	if (!targetHint) {
 		if (branch === 'main') {
 			targetHint = 'production' as DeployTarget;
@@ -220,6 +203,26 @@ export async function performVercelDeployment(
 			targetHint = 'staging' as DeployTarget;
 		}
 	}
+
+	// Template change tracking (best effort)
+	let latestTemplateSha: string | undefined;
+	if (checkTemplateChanges) {
+		const tplRepo = docsTemplateRepo || 'consentdotio/c15t-docs';
+		const tplRef = docsTemplateRef || 'main';
+		latestTemplateSha = await fetchLatestTemplateSha(
+			octokit,
+			tplRepo,
+			tplRef,
+			consentGitToken || process.env.CONSENT_GIT_TOKEN
+		);
+		const envName = computeEnvironmentName(targetHint, branch);
+		const previous = await readLastTemplateShaFromDeployments(octokit, envName);
+		if (latestTemplateSha && previous && latestTemplateSha === previous) {
+			core.info('Template unchanged; skipping deployment');
+			return undefined;
+		}
+	}
+
 	const environmentName = computeEnvironmentName(targetHint, branch);
 	const deploymentId = await createGithubDeployment(
 		octokit,
@@ -247,7 +250,7 @@ export async function performVercelDeployment(
 					orgId: vercelOrgId,
 					workingDirectory: vercelWorkingDirectory,
 					framework: vercelFramework,
-					target: (vercelTarget as DeployTarget) || undefined,
+					target: targetHint,
 					aliasDomain: canaryAlias || undefined,
 					aliasBranch: aliasOnBranch || undefined,
 					aliasDomains,
