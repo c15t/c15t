@@ -9,8 +9,6 @@ import {
 	consentGitToken,
 	deployOnPrBaseBranches,
 	deployOnPushBranches,
-	docsTemplateRef,
-	docsTemplateRepo,
 	onlyIfChanged,
 	setupDocs,
 	vercelArgs,
@@ -26,10 +24,6 @@ import { type DeployTarget, deployToVercel } from '../deploy/vercel-client';
 import { ErrorHandler, executeWithRetry } from '../utils/errors';
 import { detectRelevantChanges, shouldDeployByPolicy } from './changes';
 import { setupDocsWithScript } from './setup-docs';
-import {
-	fetchLatestTemplateSha,
-	readLastTemplateShaFromDeployments,
-} from './template-tracking';
 
 async function createGithubDeployment(
 	octokit: ReturnType<typeof github.getOctokit>,
@@ -204,24 +198,24 @@ export async function performVercelDeployment(
 		}
 	}
 
-	// Template change tracking (best effort)
+	// Template change tracking (best effort) - DISABLED
 	let latestTemplateSha: string | undefined;
-	if (checkTemplateChanges) {
-		const tplRepo = docsTemplateRepo || 'consentdotio/c15t-docs';
-		const tplRef = docsTemplateRef || 'main';
-		latestTemplateSha = await fetchLatestTemplateSha(
-			octokit,
-			tplRepo,
-			tplRef,
-			consentGitToken || process.env.CONSENT_GIT_TOKEN
-		);
-		const envName = computeEnvironmentName(targetHint, branch);
-		const previous = await readLastTemplateShaFromDeployments(octokit, envName);
-		if (latestTemplateSha && previous && latestTemplateSha === previous) {
-			core.info('Template unchanged; skipping deployment');
-			return undefined;
-		}
-	}
+	// if (checkTemplateChanges) {
+	// 	const tplRepo = docsTemplateRepo || 'consentdotio/c15t-docs';
+	// 	const tplRef = docsTemplateRef || 'main';
+	// 	latestTemplateSha = await fetchLatestTemplateSha(
+	// 		octokit,
+	// 		tplRepo,
+	// 		tplRef,
+	// 		consentGitToken || process.env.CONSENT_GIT_TOKEN
+	// 	);
+	// 	const envName = computeEnvironmentName(targetHint, branch);
+	// 	const previous = await readLastTemplateShaFromDeployments(octokit, envName);
+	// 	if (latestTemplateSha && previous && latestTemplateSha === previous) {
+	// 		core.info('Template unchanged; skipping deployment');
+	// 		return undefined;
+	// 	}
+	// }
 
 	const environmentName = computeEnvironmentName(targetHint, branch);
 	const deploymentId = await createGithubDeployment(
