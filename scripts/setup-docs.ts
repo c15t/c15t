@@ -242,55 +242,20 @@ function parseFetchOptions(): FetchOptions {
  * @see {@link https://nodejs.org/api/process.html#processloadenvfilepath | Node.js loadEnvFile Documentation}
  * @see {@link https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens | GitHub Personal Access Tokens}
  */
-async function validateGitHubToken(
+function validateGitHubToken(
 	buildMode: BuildMode,
 	branch: GitBranch
-): Promise<GitHubToken> {
+): GitHubToken {
 	let token: string | undefined;
 
 	if (buildMode === 'development') {
 		// Development mode: Load from .env file
 		try {
-			// Prefer process.loadEnvFile() if present (Node >=20.x), with safe typing
-			const maybeLoadEnvFile = (
-				process as unknown as { loadEnvFile?: () => void }
-			).loadEnvFile;
-			if (typeof maybeLoadEnvFile === 'function') {
-				maybeLoadEnvFile();
-			} else {
-				// Fallback for older Node.js versions - try to load .env manually
-				const fs = await import('node:fs');
-				const path = await import('node:path');
-				const envPath = path.join(process.cwd(), '.env');
-				if (fs.existsSync(envPath)) {
-					const envContent = fs.readFileSync(envPath, 'utf-8');
-					const envVars = envContent
-						.split('\n')
-						.map((line) => line.replace(/\r$/, ''))
-						.filter((line) => {
-							const t = line.trim();
-							return t !== '' && !t.startsWith('#');
-						});
-					for (const envVar of envVars) {
-						const [rawKey, ...valueParts] = envVar.split('=');
-						if (rawKey && valueParts.length > 0) {
-							const key = rawKey.trim().replace(/^export\s+/, '');
-							let value = valueParts.join('=').trim();
-							if (
-								(value.startsWith('"') && value.endsWith('"')) ||
-								(value.startsWith("'") && value.endsWith("'"))
-							) {
-								value = value.slice(1, -1);
-							}
-							process.env[key] = value;
-						}
-					}
-				}
-			}
+			process.loadEnvFile();
 			token = process.env.CONSENT_GIT_TOKEN;
-		} catch (error) {
+		} catch {
 			throw new FetchScriptError(
-				`Failed to load .env file: ${error instanceof Error ? error.message : String(error)}. Ensure .env exists with CONSENT_GIT_TOKEN`,
+				'Failed to load .env file. Ensure .env exists with CONSENT_GIT_TOKEN',
 				'token_validation',
 				buildMode,
 				branch
@@ -698,7 +663,7 @@ function installDocsAppDependencies(
  *
  * @see {@link https://vercel.com/docs/deployments/build-step | Vercel Build Step Documentation}
  */
-async function main(fetchOptions: FetchOptions): Promise<void> {
+function main(fetchOptions: FetchOptions): void {
 	let modeEmoji: string;
 	let modeText: string;
 	if (fetchOptions.isProduction) {
@@ -715,7 +680,7 @@ async function main(fetchOptions: FetchOptions): Promise<void> {
 
 	try {
 		// Phase 1: Validate authentication credentials
-		const githubAuthenticationToken = await validateGitHubToken(
+		const githubAuthenticationToken = validateGitHubToken(
 			fetchOptions.mode,
 			fetchOptions.branch
 		);
@@ -730,7 +695,7 @@ async function main(fetchOptions: FetchOptions): Promise<void> {
 		// Phase 3: Integrate template into workspace
 		installDocumentationTemplate(fetchOptions.mode, fetchOptions.branch);
 
-		// Phase 4: Install dependencies and process content locally
+		// Development: Install dependencies and process content locally
 		installDocsAppDependencies(fetchOptions.mode, fetchOptions.branch);
 		processMDXContent(fetchOptions.mode, fetchOptions.branch);
 
@@ -771,8 +736,5 @@ if (
 	fileURLToPath(import.meta.url) === resolve(process.argv[1])
 ) {
 	const fetchOptions = parseFetchOptions();
-	main(fetchOptions).catch((error) => {
-		console.error('Script failed:', error);
-		process.exit(1);
-	});
+	main(fetchOptions);
 }
