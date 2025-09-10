@@ -242,20 +242,45 @@ function parseFetchOptions(): FetchOptions {
  * @see {@link https://nodejs.org/api/process.html#processloadenvfilepath | Node.js loadEnvFile Documentation}
  * @see {@link https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens | GitHub Personal Access Tokens}
  */
-function validateGitHubToken(
+async function validateGitHubToken(
 	buildMode: BuildMode,
 	branch: GitBranch
-): GitHubToken {
+): Promise<GitHubToken> {
 	let token: string | undefined;
 
 	if (buildMode === 'development') {
 		// Development mode: Load from .env file
 		try {
-			process.loadEnvFile();
+			// Use dotenv if available, otherwise try process.loadEnvFile() for newer Node.js
+			if (typeof process.loadEnvFile === 'function') {
+				process.loadEnvFile();
+			} else {
+				// Fallback for older Node.js versions - try to load .env manually
+				const fs = await import('node:fs');
+				const path = await import('node:path');
+				const envPath = path.join(process.cwd(), '.env');
+				if (fs.existsSync(envPath)) {
+					const envContent = fs.readFileSync(envPath, 'utf-8');
+					const envVars = envContent
+						.split('\n')
+						.filter((line) => line.trim() && !line.startsWith('#'));
+					for (const envVar of envVars) {
+						const [key, ...valueParts] = envVar.split('=');
+						if (key && valueParts.length > 0) {
+							const value = valueParts.join('=').trim();
+							if (value.startsWith('"') && value.endsWith('"')) {
+								process.env[key.trim()] = value.slice(1, -1);
+							} else {
+								process.env[key.trim()] = value;
+							}
+						}
+					}
+				}
+			}
 			token = process.env.CONSENT_GIT_TOKEN;
-		} catch {
+		} catch (error) {
 			throw new FetchScriptError(
-				'Failed to load .env file. Ensure .env exists with CONSENT_GIT_TOKEN',
+				`Failed to load .env file: ${error instanceof Error ? error.message : String(error)}. Ensure .env exists with CONSENT_GIT_TOKEN`,
 				'token_validation',
 				buildMode,
 				branch
@@ -663,7 +688,7 @@ function installDocsAppDependencies(
  *
  * @see {@link https://vercel.com/docs/deployments/build-step | Vercel Build Step Documentation}
  */
-function main(fetchOptions: FetchOptions): void {
+async function main(fetchOptions: FetchOptions): Promise<void> {
 	let modeEmoji: string;
 	let modeText: string;
 	if (fetchOptions.isProduction) {
@@ -680,7 +705,7 @@ function main(fetchOptions: FetchOptions): void {
 
 	try {
 		// Phase 1: Validate authentication credentials
-		const githubAuthenticationToken = validateGitHubToken(
+		const githubAuthenticationToken = await validateGitHubToken(
 			fetchOptions.mode,
 			fetchOptions.branch
 		);
@@ -696,8 +721,11 @@ function main(fetchOptions: FetchOptions): void {
 		installDocumentationTemplate(fetchOptions.mode, fetchOptions.branch);
 
 		// Development: Install dependencies and process content locally
-		installDocsAppDependencies(fetchOptions.mode, fetchOptions.branch);
-		processMDXContent(fetchOptions.mode, fetchOptions.branch);
+		// Production: Skip these steps as Vercel handles them during build
+		if (!fetchOptions.isProduction) {
+			installDocsAppDependencies(fetchOptions.mode, fetchOptions.branch);
+			processMDXContent(fetchOptions.mode, fetchOptions.branch);
+		}
 
 		// Phase 5: Skip building here; Vercel will run the build
 		if (fetchOptions.isProduction) {
@@ -736,5 +764,8 @@ if (
 	fileURLToPath(import.meta.url) === resolve(process.argv[1])
 ) {
 	const fetchOptions = parseFetchOptions();
-	main(fetchOptions);
+	main(fetchOptions).catch((error) => {
+		console.error('Script failed:', error);
+		process.exit(1);
+	});
 }
