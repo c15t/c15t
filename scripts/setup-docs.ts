@@ -251,9 +251,12 @@ async function validateGitHubToken(
 	if (buildMode === 'development') {
 		// Development mode: Load from .env file
 		try {
-			// Use dotenv if available, otherwise try process.loadEnvFile() for newer Node.js
-			if (typeof process.loadEnvFile === 'function') {
-				process.loadEnvFile();
+			// Prefer process.loadEnvFile() if present (Node >=20.x), with safe typing
+			const maybeLoadEnvFile = (
+				process as unknown as { loadEnvFile?: () => void }
+			).loadEnvFile;
+			if (typeof maybeLoadEnvFile === 'function') {
+				maybeLoadEnvFile();
 			} else {
 				// Fallback for older Node.js versions - try to load .env manually
 				const fs = await import('node:fs');
@@ -263,16 +266,23 @@ async function validateGitHubToken(
 					const envContent = fs.readFileSync(envPath, 'utf-8');
 					const envVars = envContent
 						.split('\n')
-						.filter((line) => line.trim() && !line.startsWith('#'));
+						.map((line) => line.replace(/\r$/, ''))
+						.filter((line) => {
+							const t = line.trim();
+							return t !== '' && !t.startsWith('#');
+						});
 					for (const envVar of envVars) {
-						const [key, ...valueParts] = envVar.split('=');
-						if (key && valueParts.length > 0) {
-							const value = valueParts.join('=').trim();
-							if (value.startsWith('"') && value.endsWith('"')) {
-								process.env[key.trim()] = value.slice(1, -1);
-							} else {
-								process.env[key.trim()] = value;
+						const [rawKey, ...valueParts] = envVar.split('=');
+						if (rawKey && valueParts.length > 0) {
+							const key = rawKey.trim().replace(/^export\s+/, '');
+							let value = valueParts.join('=').trim();
+							if (
+								(value.startsWith('"') && value.endsWith('"')) ||
+								(value.startsWith("'") && value.endsWith("'"))
+							) {
+								value = value.slice(1, -1);
 							}
+							process.env[key] = value;
 						}
 					}
 				}

@@ -150,13 +150,9 @@ describe('vercel-client target resolution', () => {
 			vi.doMock('node:fs', () => mockFs);
 			vi.doMock('node:path', () => mockPath);
 
-			const { deployToVercel } = await import('../src/deploy/vercel-client');
+			// no direct import needed here
 
-			// Mock the request response
-			const mockResponse = {
-				statusCode: 200,
-				on: vi.fn(),
-			};
+			// (network layer mocked via request stub)
 			const mockReq = {
 				write: vi.fn(),
 				end: vi.fn(),
@@ -192,7 +188,7 @@ describe('vercel-client target resolution', () => {
 			expect(resolveTarget(env)).toBe('staging');
 
 			// Test that empty string handling works
-			const target = '' && ''.trim() !== '' ? '' : resolveTarget(env);
+			const target = resolveTarget(env);
 			expect(target).toBe('staging');
 		});
 
@@ -209,7 +205,7 @@ describe('vercel-client target resolution', () => {
 			expect(resolveTarget(env)).toBe('staging');
 
 			// Test that undefined handling works
-			const target = undefined ?? resolveTarget(env);
+			const target = resolveTarget(env);
 			expect(target).toBe('staging');
 		});
 	});

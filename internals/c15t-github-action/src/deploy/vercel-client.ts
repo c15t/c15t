@@ -145,7 +145,10 @@ function walkFiles(cwd: string): string[] {
 }
 
 export function resolveTarget(env: NodeJS.ProcessEnv): DeployTarget {
-	return env.GITHUB_REF === 'refs/heads/main' ? 'production' : 'staging';
+	if (env.GITHUB_REF === 'refs/heads/main') {
+		return 'production';
+	}
+	return 'staging';
 }
 
 function slugify(input: string): string {
@@ -209,10 +212,12 @@ export async function deployToVercel(
 ): Promise<VercelDeployResult> {
 	const cwd = path.resolve(options.workingDirectory || '.');
 	const branch = getBranch(process.env);
-	const target =
-		options.target && options.target.trim() !== ''
-			? options.target
-			: resolveTarget(process.env);
+	let target: DeployTarget;
+	if (typeof options.target === 'string' && options.target.trim() !== '') {
+		target = options.target;
+	} else {
+		target = resolveTarget(process.env);
+	}
 
 	const repo = process.env.GITHUB_REPOSITORY || '';
 	const owner = process.env.GITHUB_REPOSITORY_OWNER || '';

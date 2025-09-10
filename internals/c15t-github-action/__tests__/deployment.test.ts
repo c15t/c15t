@@ -75,12 +75,9 @@ describe('deployment helpers', () => {
 			ctx.head_ref = '';
 			vi.resetModules();
 
-			// Mock the inputs to simulate no target provided
-			const { performVercelDeployment } = await import(
-				'../src/steps/deployment'
-			);
+			// No explicit target provided in inputs
 
-			// Since performVercelDeployment requires Vercel tokens, we'll test the logic indirectly
+			// Test the target resolution logic indirectly through branch resolution
 			// by testing the branch resolution and target hint calculation
 			const { resolveBranch } = await import('../src/steps/deployment');
 			expect(resolveBranch()).toBe('main');
