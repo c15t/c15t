@@ -720,12 +720,9 @@ async function main(fetchOptions: FetchOptions): Promise<void> {
 		// Phase 3: Integrate template into workspace
 		installDocumentationTemplate(fetchOptions.mode, fetchOptions.branch);
 
-		// Development: Install dependencies and process content locally
-		// Production: Skip these steps as Vercel handles them during build
-		if (!fetchOptions.isProduction) {
-			installDocsAppDependencies(fetchOptions.mode, fetchOptions.branch);
-			processMDXContent(fetchOptions.mode, fetchOptions.branch);
-		}
+		// Phase 4: Install dependencies and process content locally
+		installDocsAppDependencies(fetchOptions.mode, fetchOptions.branch);
+		processMDXContent(fetchOptions.mode, fetchOptions.branch);
 
 		// Phase 5: Skip building here; Vercel will run the build
 		if (fetchOptions.isProduction) {
