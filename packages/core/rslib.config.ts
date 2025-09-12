@@ -5,6 +5,9 @@ export default defineConfig({
 	source: {
 		entry: {
 			index: ['./src/index.ts'],
+			'/scripts/google-tag-manager': ['./src/scripts/google-tag-manager.ts'],
+			'/scripts/posthog': ['./src/scripts/posthog.ts'],
+			'/scripts/meta-pixel': ['./src/scripts/meta-pixel.ts'],
 		},
 		exclude: [
 			'**/__tests__/**',

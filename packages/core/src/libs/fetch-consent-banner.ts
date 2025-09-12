@@ -11,6 +11,7 @@ import {
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { PrivacyConsentState } from '../store.type';
+import { updateScripts } from './script-loader/core';
 
 type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
 
@@ -122,6 +123,11 @@ function updateStore(
 			translations: translations.translations,
 		},
 	});
+
+	// Update scripts based on current consent state
+	const state = get();
+	// Provide default values for scripts and scriptIdMap in case they don't exist
+	updateScripts(state.scripts || [], state.consents, state.scriptIdMap || {});
 }
 
 /**
@@ -151,16 +157,19 @@ export async function fetchConsentBannerInfo(
 	set({ isLoadingConsentInfo: true });
 
 	if (initialData) {
-		const showConsentBanner = await initialData;
+		try {
+			const showConsentBanner = await initialData;
 
-		// Ensures the promsie has the expected data
-		if (showConsentBanner) {
-			updateStore(showConsentBanner, config, true);
-
-			return showConsentBanner;
+			// Ensures the promise has the expected data
+			if (showConsentBanner) {
+				updateStore(showConsentBanner, config, true);
+				return showConsentBanner;
+			}
+			// Fall back to API call if no data
+		} catch (error) {
+			// Propagate the error from the initial data promise
+			throw error;
 		}
-
-		// Fall back to API call
 	}
 
 	try {

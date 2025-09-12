@@ -30,6 +30,11 @@
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
+		"./scripts/*": {
+			"types": "./dist/scripts/*.d.ts",
+			"import": "./dist/scripts/*.js",
+			"require": "./dist/scripts/*.cjs"
+		},
 		"./headless": {
 			"types": "./dist/components/react/headless.d.ts",
 			"import": "./dist/components/react/headless.js",
