@@ -25,9 +25,6 @@ export function ConsentManagerClient({
 				metaPixel({
 					pixelId: '123456789012345',
 					script: {
-						onLoad: () => {
-							console.log('meta-pixel loaded');
-						},
 						onDelete: () => {
 							console.log('meta-pixel deleted');
 						},
@@ -35,11 +32,11 @@ export function ConsentManagerClient({
 				}),
 
 				// Provider components
-				{
-					category: 'necessary',
-					type: 'standalone',
-					component: () => <div className="bg-green-500">Necessary</div>,
-				},
+				// {
+				// 	category: 'necessary',
+				// 	type: 'standalone',
+				// 	component: () => <div className="bg-green-500">Necessary</div>,
+				// },
 				// {
 				// 	category: 'marketing',
 				// 	type: 'standalone', // Does not wrap around children
