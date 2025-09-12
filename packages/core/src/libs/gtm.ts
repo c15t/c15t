@@ -13,6 +13,9 @@ interface GTMConsentConfiguration {
 	security_storage: 'granted' | 'denied';
 }
 
+/**
+ * @deprecated use the new script loader instead
+ */
 interface Options {
 	/**
 	 * Your Google Tag Manager container ID. Begins with 'GTM-'.
@@ -79,6 +82,7 @@ const CONSENT_STATE_TO_GTM_MAPPING: Record<
  * @returns GTM-compatible consent configuration
  *
  * @see {@link CONSENT_STATE_TO_GTM_MAPPING} for the mapping logic
+ * @deprecated use the new script loader instead
  */
 export function mapConsentStateToGTM(
 	consentState: ConsentState
@@ -106,6 +110,7 @@ export function mapConsentStateToGTM(
  * @throws {Error} When GTM container ID is empty or invalid
  *
  * @internal This function should be called before loading the GTM script
+ * @deprecated use the new script loader instead
  */
 export function initializeGTMDataLayer(gtm: Options) {
 	const gtmConsent = gtm.consentState
@@ -143,6 +148,7 @@ export function initializeGTMDataLayer(gtm: Options) {
  * @throws {Error} When script injection fails
  *
  * @see {@link initializeGTMDataLayer} - Should be called before this function
+ * @deprecated use the new script loader instead
  */
 export function createGTMScript(gtm: Options) {
 	const gtmScript = document.createElement('script');
@@ -190,6 +196,7 @@ export function setupGTM(gtm: Options): void {
  * Updates the Google Tag Manager consent configuration
  *
  * @param consentState - The consent state to update
+ * @deprecated use the new script loader instead
  */
 export function updateGTMConsent(consentState: ConsentState): void {
 	if (!window.gtag) {

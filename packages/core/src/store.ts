@@ -124,6 +124,7 @@ export interface StoreOptions {
 
 	/**
 	 * Google Tag Manager configuration.
+	 * @deprecated use script loader instead
 	 */
 	unstable_googleTagManager?: GTMConfiguration;
 
