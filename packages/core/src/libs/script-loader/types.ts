@@ -69,6 +69,12 @@ export interface Script {
 	 */
 	callbackOnly?: boolean;
 
+	/**
+	 * Whether the script should persist after consent is revoked.
+	 * @default false
+	 */
+	persistAfterConsentRevoked?: boolean;
+
 	/** Priority hint for browser resource loading */
 	fetchPriority?: 'high' | 'low' | 'auto';
 

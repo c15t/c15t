@@ -102,9 +102,6 @@ export function loadScripts(
 			return;
 		}
 
-		// Create script element for standard scripts
-		const scriptElement = document.createElement('script');
-
 		// Determine if we should use an anonymized ID
 		const shouldAnonymize = script.anonymizeId !== false; // Default to true if not specified
 
@@ -114,6 +111,33 @@ export function loadScripts(
 			shouldAnonymize,
 			scriptIdMap
 		);
+
+		// Check if script element already exists in DOM (only for persistAfterConsentRevoked scripts)
+		if (script.persistAfterConsentRevoked === true) {
+			const existingElement = document.getElementById(
+				elementId
+			) as HTMLScriptElement;
+			if (existingElement) {
+				// Script element already exists in DOM, just track it and execute callbacks
+				const callbackInfo: ScriptCallbackInfo = {
+					id: script.id,
+					elementId,
+					consents,
+					element: existingElement,
+				};
+
+				// Execute onConsentChange callback if provided
+				script.onConsentChange?.(callbackInfo);
+
+				// Track the script as loaded
+				loadedScripts.set(script.id, existingElement);
+				loadedScriptIds.push(script.id);
+				return;
+			}
+		}
+
+		// Create script element for standard scripts
+		const scriptElement = document.createElement('script');
 
 		// Set the element ID
 		scriptElement.id = elementId;
@@ -280,11 +304,18 @@ export function unloadScripts(
 					script.onDelete(callbackInfo);
 				}
 
-				// Remove from DOM
-				scriptElement.remove();
-				// Remove from tracking
-				loadedScripts.delete(script.id);
-				unloadedScriptIds.push(script.id);
+				// Only remove from DOM if persistAfterConsentRevoked is not true
+				if (!script.persistAfterConsentRevoked) {
+					scriptElement.remove();
+					// Remove from tracking
+					loadedScripts.delete(script.id);
+					unloadedScriptIds.push(script.id);
+				}
+				// If persistAfterConsentRevoked is true, keep the script in DOM but still track as unloaded
+				else {
+					loadedScripts.delete(script.id);
+					unloadedScriptIds.push(script.id);
+				}
 			}
 		}
 	});
@@ -386,8 +417,12 @@ export function clearAllScripts(
 		}
 
 		// Only remove from DOM if it's an actual DOM element (not a callback-only script)
+		// and if persistAfterConsentRevoked is not true
 		if (scriptElement !== null) {
-			scriptElement.remove();
+			const script = scripts?.find((s) => s.id === id);
+			if (!script?.persistAfterConsentRevoked) {
+				scriptElement.remove();
+			}
 		}
 
 		unloadedScriptIds.push(id);
@@ -459,7 +494,11 @@ export function reloadScript(
 				script.onDelete(callbackInfo);
 			}
 
-			scriptElement.remove();
+			// Only remove from DOM if persistAfterConsentRevoked is not true
+			if (!script.persistAfterConsentRevoked) {
+				scriptElement.remove();
+			}
+
 			loadedScripts.delete(scriptId);
 		}
 	}

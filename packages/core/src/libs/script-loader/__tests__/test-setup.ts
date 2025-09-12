@@ -2,6 +2,14 @@ import { afterEach, beforeEach, vi } from 'vitest';
 import type { ConsentState } from '../../../types/compliance';
 import { clearAllScripts } from '../core';
 
+// Mock document.head for testing
+export const mockHead = {
+	appendChild: vi.fn(),
+};
+
+// Registry to track created elements for proper getElementById mocking
+const createdElements: Map<string, HTMLElement> = new Map();
+
 // Mock script element for testing
 export const mockScriptElement = {
 	id: '',
@@ -14,11 +22,6 @@ export const mockScriptElement = {
 	addEventListener: vi.fn(),
 	setAttribute: vi.fn(),
 	remove: vi.fn(),
-};
-
-// Mock document.head for testing
-export const mockHead = {
-	appendChild: vi.fn(),
 };
 
 // Sample consent state for testing
@@ -35,7 +38,23 @@ export const sampleConsents: ConsentState = {
  */
 export function setupDomMocks() {
 	// Mock document.createElement
-	vi.spyOn(document, 'createElement').mockImplementation(() => {
+	vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+		if (tagName === 'script') {
+			const element = { ...mockScriptElement } as unknown as HTMLScriptElement;
+			// Override the id property to track elements
+			let elementId = '';
+			Object.defineProperty(element, 'id', {
+				set: function (value: string) {
+					elementId = value;
+					if (value) {
+						createdElements.set(value, this as HTMLElement);
+					}
+				},
+				get: () => elementId,
+				configurable: true,
+			});
+			return element;
+		}
 		return { ...mockScriptElement } as unknown as HTMLScriptElement;
 	});
 
@@ -44,11 +63,8 @@ export function setupDomMocks() {
 		(document as any).getElementById = vi
 			.fn()
 			.mockImplementation((id: string) => {
-				// Return a mock element that matches the expected structure
-				return {
-					...mockScriptElement,
-					id,
-				} as unknown as HTMLElement;
+				// Return the actual element from our registry, or null if not found
+				return createdElements.get(id) || null;
 			});
 	}
 
@@ -60,6 +76,13 @@ export function setupDomMocks() {
 
 	// Clear any scripts that might have been loaded in previous tests
 	vi.spyOn(global, 'Map').mockImplementation(() => new Map());
+
+	// Mock Math.random for consistent anonymized IDs
+	mockRandomForTesting();
+
+	// Clear the createdElements registry for each test
+	// This ensures tests don't interfere with each other
+	createdElements.clear();
 
 	// Reset mocks
 	vi.clearAllMocks();

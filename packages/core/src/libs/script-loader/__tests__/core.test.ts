@@ -927,4 +927,717 @@ fbq('track', 'PageView');
 			// Note: mockHead.appendChild call count may vary due to test isolation issues
 		});
 	});
+
+	describe('persistAfterConsentRevoked', () => {
+		it('should keep script in DOM when persistAfterConsentRevoked is true during unloadScripts', () => {
+			const onDelete = vi.fn();
+			const persistentScript: Script = {
+				id: 'persistent-script',
+				src: 'https://example.com/persistent.js',
+				category: 'marketing',
+				persistAfterConsentRevoked: true,
+				onDelete,
+			};
+
+			const scriptIdMap: Record<string, string> = {};
+
+			// Load the script with marketing consent
+			const consentsWithMarketing: ConsentState = {
+				necessary: true,
+				marketing: true,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			loadScripts([persistentScript], consentsWithMarketing, scriptIdMap);
+
+			// Verify script is loaded
+			expect(isScriptLoaded('persistent-script')).toBe(true);
+
+			// Create a mock script element to track removal
+			const mockScriptElement = document.createElement('script');
+			mockScriptElement.id = 'persistent-script';
+			document.head.appendChild(mockScriptElement);
+
+			// Mock the remove method to track if it's called
+			const removeSpy = vi.spyOn(mockScriptElement, 'remove');
+
+			// Revoke marketing consent
+			const consentsWithoutMarketing: ConsentState = {
+				necessary: true,
+				marketing: false,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			// Unload scripts
+			const unloadedIds = unloadScripts(
+				[persistentScript],
+				consentsWithoutMarketing,
+				scriptIdMap
+			);
+
+			// Script should be marked as unloaded
+			expect(unloadedIds).toContain('persistent-script');
+			expect(isScriptLoaded('persistent-script')).toBe(false);
+
+			// onDelete callback should have been called
+			expect(onDelete).toHaveBeenCalledTimes(1);
+			expect(onDelete).toHaveBeenCalledWith(
+				expect.objectContaining({
+					id: 'persistent-script',
+					elementId: expect.any(String),
+					consents: consentsWithoutMarketing,
+					element: expect.any(Object),
+				})
+			);
+
+			// Script element should NOT have been removed from DOM
+			expect(removeSpy).not.toHaveBeenCalled();
+		});
+
+		it('should remove script from DOM when persistAfterConsentRevoked is false during unloadScripts', () => {
+			const onDelete = vi.fn();
+			const nonPersistentScript: Script = {
+				id: 'non-persistent-script',
+				src: 'https://example.com/non-persistent.js',
+				category: 'marketing',
+				persistAfterConsentRevoked: false,
+				onDelete,
+			};
+
+			const scriptIdMap: Record<string, string> = {};
+
+			// Load the script with marketing consent
+			const consentsWithMarketing: ConsentState = {
+				necessary: true,
+				marketing: true,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			loadScripts([nonPersistentScript], consentsWithMarketing, scriptIdMap);
+
+			// Verify script is loaded
+			expect(isScriptLoaded('non-persistent-script')).toBe(true);
+
+			// Get the created script element from the mock
+			const mockCreateElement = document.createElement as unknown as {
+				mock: { results: Array<{ value: HTMLScriptElement }> };
+			};
+			const scriptElement =
+				mockCreateElement.mock.results[
+					mockCreateElement.mock.results.length - 1
+				]?.value;
+			expect(scriptElement).toBeTruthy();
+
+			// Mock the remove method to track if it's called
+			const removeSpy = vi.spyOn(scriptElement, 'remove');
+
+			// Revoke marketing consent
+			const consentsWithoutMarketing: ConsentState = {
+				necessary: true,
+				marketing: false,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			// Unload scripts
+			const unloadedIds = unloadScripts(
+				[nonPersistentScript],
+				consentsWithoutMarketing,
+				scriptIdMap
+			);
+
+			// Script should be marked as unloaded
+			expect(unloadedIds).toContain('non-persistent-script');
+			expect(isScriptLoaded('non-persistent-script')).toBe(false);
+
+			// onDelete callback should have been called
+			expect(onDelete).toHaveBeenCalledTimes(1);
+
+			// Script element SHOULD have been removed from DOM
+			expect(removeSpy).toHaveBeenCalledTimes(1);
+		});
+
+		it('should keep script in DOM when persistAfterConsentRevoked is true during clearAllScripts', () => {
+			const onDelete = vi.fn();
+			const persistentScript: Script = {
+				id: 'persistent-clear-script',
+				src: 'https://example.com/persistent-clear.js',
+				category: 'marketing',
+				persistAfterConsentRevoked: true,
+				onDelete,
+			};
+
+			const scriptIdMap: Record<string, string> = {};
+
+			// Load the script
+			const consentsWithMarketing: ConsentState = {
+				necessary: true,
+				marketing: true,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			loadScripts([persistentScript], consentsWithMarketing, scriptIdMap);
+
+			// Verify script is loaded
+			expect(isScriptLoaded('persistent-clear-script')).toBe(true);
+
+			// Create a mock script element to track removal
+			const mockScriptElement = document.createElement('script');
+			mockScriptElement.id = 'persistent-clear-script';
+			document.head.appendChild(mockScriptElement);
+
+			// Mock the remove method to track if it's called
+			const removeSpy = vi.spyOn(mockScriptElement, 'remove');
+
+			// Clear all scripts
+			const unloadedIds = clearAllScripts(
+				[persistentScript],
+				consentsWithMarketing,
+				scriptIdMap
+			);
+
+			// Script should be marked as unloaded
+			expect(unloadedIds).toContain('persistent-clear-script');
+			expect(isScriptLoaded('persistent-clear-script')).toBe(false);
+
+			// onDelete callback should have been called
+			expect(onDelete).toHaveBeenCalledTimes(1);
+
+			// Script element should NOT have been removed from DOM
+			expect(removeSpy).not.toHaveBeenCalled();
+		});
+
+		it('should remove script from DOM when persistAfterConsentRevoked is false during clearAllScripts', () => {
+			const onDelete = vi.fn();
+			const nonPersistentScript: Script = {
+				id: 'non-persistent-clear-script',
+				src: 'https://example.com/non-persistent-clear.js',
+				category: 'marketing',
+				persistAfterConsentRevoked: false,
+				onDelete,
+			};
+
+			const scriptIdMap: Record<string, string> = {};
+
+			// Load the script
+			const consentsWithMarketing: ConsentState = {
+				necessary: true,
+				marketing: true,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			loadScripts([nonPersistentScript], consentsWithMarketing, scriptIdMap);
+
+			// Verify script is loaded
+			expect(isScriptLoaded('non-persistent-clear-script')).toBe(true);
+
+			// Get the created script element from the mock
+			const mockCreateElement = document.createElement as unknown as {
+				mock: { results: Array<{ value: HTMLScriptElement }> };
+			};
+			const scriptElement =
+				mockCreateElement.mock.results[
+					mockCreateElement.mock.results.length - 1
+				]?.value;
+			expect(scriptElement).toBeTruthy();
+
+			// Mock the remove method to track if it's called
+			const removeSpy = vi.spyOn(scriptElement, 'remove');
+
+			// Clear all scripts
+			const unloadedIds = clearAllScripts(
+				[nonPersistentScript],
+				consentsWithMarketing,
+				scriptIdMap
+			);
+
+			// Script should be marked as unloaded
+			expect(unloadedIds).toContain('non-persistent-clear-script');
+			expect(isScriptLoaded('non-persistent-clear-script')).toBe(false);
+
+			// onDelete callback should have been called
+			expect(onDelete).toHaveBeenCalledTimes(1);
+
+			// Script element SHOULD have been removed from DOM
+			expect(removeSpy).toHaveBeenCalledTimes(1);
+		});
+
+		it('should keep script in DOM when persistAfterConsentRevoked is true during reloadScript', () => {
+			const onDelete = vi.fn();
+			const onBeforeLoad = vi.fn();
+			const persistentScript: Script = {
+				id: 'persistent-reload-script',
+				src: 'https://example.com/persistent-reload.js',
+				category: 'marketing',
+				persistAfterConsentRevoked: true,
+				onDelete,
+				onBeforeLoad,
+			};
+
+			const scriptIdMap: Record<string, string> = {};
+
+			// Load the script
+			const consentsWithMarketing: ConsentState = {
+				necessary: true,
+				marketing: true,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			loadScripts([persistentScript], consentsWithMarketing, scriptIdMap);
+
+			// Verify script is loaded
+			expect(isScriptLoaded('persistent-reload-script')).toBe(true);
+
+			// Create a mock script element to track removal
+			const mockScriptElement = document.createElement('script');
+			mockScriptElement.id = 'persistent-reload-script';
+			document.head.appendChild(mockScriptElement);
+
+			// Mock the remove method to track if it's called
+			const removeSpy = vi.spyOn(mockScriptElement, 'remove');
+
+			// Reload the script
+			const result = reloadScript(
+				'persistent-reload-script',
+				[persistentScript],
+				consentsWithMarketing,
+				scriptIdMap
+			);
+
+			// Should return true for successful reload
+			expect(result).toBe(true);
+
+			// onDelete callback should have been called
+			expect(onDelete).toHaveBeenCalledTimes(1);
+
+			// Script element should NOT have been removed from DOM
+			expect(removeSpy).not.toHaveBeenCalled();
+		});
+
+		it('should remove script from DOM when persistAfterConsentRevoked is false during reloadScript', () => {
+			const onDelete = vi.fn();
+			const onBeforeLoad = vi.fn();
+			const nonPersistentScript: Script = {
+				id: 'non-persistent-reload-script',
+				src: 'https://example.com/non-persistent-reload.js',
+				category: 'marketing',
+				persistAfterConsentRevoked: false,
+				onDelete,
+				onBeforeLoad,
+			};
+
+			const scriptIdMap: Record<string, string> = {};
+
+			// Load the script
+			const consentsWithMarketing: ConsentState = {
+				necessary: true,
+				marketing: true,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			loadScripts([nonPersistentScript], consentsWithMarketing, scriptIdMap);
+
+			// Verify script is loaded
+			expect(isScriptLoaded('non-persistent-reload-script')).toBe(true);
+
+			// Get the created script element from the mock
+			const mockCreateElement = document.createElement as unknown as {
+				mock: { results: Array<{ value: HTMLScriptElement }> };
+			};
+			const scriptElement =
+				mockCreateElement.mock.results[
+					mockCreateElement.mock.results.length - 1
+				]?.value;
+			expect(scriptElement).toBeTruthy();
+
+			// Mock the remove method to track if it's called
+			const removeSpy = vi.spyOn(scriptElement, 'remove');
+
+			// Reload the script
+			const result = reloadScript(
+				'non-persistent-reload-script',
+				[nonPersistentScript],
+				consentsWithMarketing,
+				scriptIdMap
+			);
+
+			// Should return true for successful reload
+			expect(result).toBe(true);
+
+			// onDelete callback should have been called
+			expect(onDelete).toHaveBeenCalledTimes(1);
+
+			// Script element SHOULD have been removed from DOM
+			expect(removeSpy).toHaveBeenCalledTimes(1);
+		});
+
+		it('should handle persistAfterConsentRevoked for callback-only scripts', () => {
+			const onDelete = vi.fn();
+			const persistentCallbackScript: Script = {
+				id: 'persistent-callback-script',
+				category: 'marketing',
+				callbackOnly: true,
+				persistAfterConsentRevoked: true,
+				onDelete,
+			};
+
+			const scriptIdMap: Record<string, string> = {};
+
+			// Load the script
+			const consentsWithMarketing: ConsentState = {
+				necessary: true,
+				marketing: true,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			loadScripts(
+				[persistentCallbackScript],
+				consentsWithMarketing,
+				scriptIdMap
+			);
+
+			// Verify script is loaded
+			expect(isScriptLoaded('persistent-callback-script')).toBe(true);
+
+			// Revoke marketing consent
+			const consentsWithoutMarketing: ConsentState = {
+				necessary: true,
+				marketing: false,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			// Unload scripts
+			const unloadedIds = unloadScripts(
+				[persistentCallbackScript],
+				consentsWithoutMarketing,
+				scriptIdMap
+			);
+
+			// Script should be marked as unloaded
+			expect(unloadedIds).toContain('persistent-callback-script');
+			expect(isScriptLoaded('persistent-callback-script')).toBe(false);
+
+			// onDelete callback should have been called
+			expect(onDelete).toHaveBeenCalledTimes(1);
+			expect(onDelete).toHaveBeenCalledWith(
+				expect.objectContaining({
+					id: 'persistent-callback-script',
+					elementId: expect.any(String),
+					consents: consentsWithoutMarketing,
+					// No element property for callback-only scripts
+				})
+			);
+
+			// For callback-only scripts, persistAfterConsentRevoked doesn't affect DOM removal
+			// since there's no DOM element to remove
+		});
+
+		it('should default to false when persistAfterConsentRevoked is undefined', () => {
+			const onDelete = vi.fn();
+			const defaultScript: Script = {
+				id: 'default-script',
+				src: 'https://example.com/default.js',
+				category: 'marketing',
+				// persistAfterConsentRevoked is undefined, should default to false
+				onDelete,
+			};
+
+			const scriptIdMap: Record<string, string> = {};
+
+			// Load the script
+			const consentsWithMarketing: ConsentState = {
+				necessary: true,
+				marketing: true,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			loadScripts([defaultScript], consentsWithMarketing, scriptIdMap);
+
+			// Verify script is loaded
+			expect(isScriptLoaded('default-script')).toBe(true);
+
+			// Get the created script element from the mock
+			const mockCreateElement = document.createElement as unknown as {
+				mock: { results: Array<{ value: HTMLScriptElement }> };
+			};
+			const scriptElement =
+				mockCreateElement.mock.results[
+					mockCreateElement.mock.results.length - 1
+				]?.value;
+			expect(scriptElement).toBeTruthy();
+
+			// Mock the remove method to track if it's called
+			const removeSpy = vi.spyOn(scriptElement, 'remove');
+
+			// Revoke marketing consent
+			const consentsWithoutMarketing: ConsentState = {
+				necessary: true,
+				marketing: false,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			// Unload scripts
+			const unloadedIds = unloadScripts(
+				[defaultScript],
+				consentsWithoutMarketing,
+				scriptIdMap
+			);
+
+			// Script should be marked as unloaded
+			expect(unloadedIds).toContain('default-script');
+			expect(isScriptLoaded('default-script')).toBe(false);
+
+			// onDelete callback should have been called
+			expect(onDelete).toHaveBeenCalledTimes(1);
+
+			// Script element SHOULD have been removed from DOM (default behavior)
+			expect(removeSpy).toHaveBeenCalledTimes(1);
+		});
+
+		it('should not create duplicate script elements when persistAfterConsentRevoked is true', () => {
+			const onConsentChange = vi.fn();
+			const persistentScript: Script = {
+				id: 'duplicate-test-script',
+				src: 'https://example.com/duplicate-test.js',
+				category: 'marketing',
+				persistAfterConsentRevoked: true,
+				onConsentChange,
+			};
+
+			const scriptIdMap: Record<string, string> = {};
+
+			// Load the script with marketing consent
+			const consentsWithMarketing: ConsentState = {
+				necessary: true,
+				marketing: true,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			// First load
+			loadScripts([persistentScript], consentsWithMarketing, scriptIdMap);
+			expect(isScriptLoaded('duplicate-test-script')).toBe(true);
+
+			// Get the created script element
+			const mockCreateElement = document.createElement as unknown as {
+				mock: { results: Array<{ value: HTMLScriptElement }> };
+			};
+			const firstScriptElement =
+				mockCreateElement.mock.results[
+					mockCreateElement.mock.results.length - 1
+				]?.value;
+			expect(firstScriptElement).toBeTruthy();
+
+			// Revoke marketing consent
+			const consentsWithoutMarketing: ConsentState = {
+				necessary: true,
+				marketing: false,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			// Unload scripts (script stays in DOM due to persistAfterConsentRevoked: true)
+			unloadScripts([persistentScript], consentsWithoutMarketing, scriptIdMap);
+			expect(isScriptLoaded('duplicate-test-script')).toBe(false);
+
+			// Grant marketing consent again
+			loadScripts([persistentScript], consentsWithMarketing, scriptIdMap);
+			expect(isScriptLoaded('duplicate-test-script')).toBe(true);
+
+			// Should not have created a new script element
+			// The mock results should still have the same number of elements
+			const totalElementsCreated = mockCreateElement.mock.results.length;
+
+			// Clear the mock to track new calls
+			vi.clearAllMocks();
+
+			// Try to load again
+			loadScripts([persistentScript], consentsWithMarketing, scriptIdMap);
+
+			// Should not have called createElement again
+			expect(document.createElement).not.toHaveBeenCalled();
+
+			// onConsentChange should have been called
+			expect(onConsentChange).toHaveBeenCalledTimes(1);
+		});
+
+		it('should reuse existing DOM element when script is reloaded with persistAfterConsentRevoked', () => {
+			const onConsentChange = vi.fn();
+			const persistentScript: Script = {
+				id: 'reload-test-script',
+				src: 'https://example.com/reload-test.js',
+				category: 'marketing',
+				persistAfterConsentRevoked: true,
+				onConsentChange,
+			};
+
+			const scriptIdMap: Record<string, string> = {};
+
+			// Load the script
+			const consentsWithMarketing: ConsentState = {
+				necessary: true,
+				marketing: true,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			loadScripts([persistentScript], consentsWithMarketing, scriptIdMap);
+			expect(isScriptLoaded('reload-test-script')).toBe(true);
+
+			// Get the created script element
+			const mockCreateElement = document.createElement as unknown as {
+				mock: { results: Array<{ value: HTMLScriptElement }> };
+			};
+			const originalScriptElement =
+				mockCreateElement.mock.results[
+					mockCreateElement.mock.results.length - 1
+				]?.value;
+			expect(originalScriptElement).toBeTruthy();
+
+			// Reload the script
+			const result = reloadScript(
+				'reload-test-script',
+				[persistentScript],
+				consentsWithMarketing,
+				scriptIdMap
+			);
+			expect(result).toBe(true);
+			expect(isScriptLoaded('reload-test-script')).toBe(true);
+
+			// Clear the mock to track new calls
+			vi.clearAllMocks();
+
+			// Try to load again after reload
+			loadScripts([persistentScript], consentsWithMarketing, scriptIdMap);
+
+			// Should not have called createElement again (reused existing element)
+			expect(document.createElement).not.toHaveBeenCalled();
+
+			// onConsentChange should have been called
+			expect(onConsentChange).toHaveBeenCalledTimes(1);
+		});
+
+		it('should handle existing DOM elements with different anonymized IDs', () => {
+			const persistentScript: Script = {
+				id: 'anonymized-test-script',
+				src: 'https://example.com/anonymized-test.js',
+				category: 'marketing',
+				persistAfterConsentRevoked: true,
+				anonymizeId: true,
+			};
+
+			const scriptIdMap: Record<string, string> = {};
+
+			// Load the script
+			const consentsWithMarketing: ConsentState = {
+				necessary: true,
+				marketing: true,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			loadScripts([persistentScript], consentsWithMarketing, scriptIdMap);
+			expect(isScriptLoaded('anonymized-test-script')).toBe(true);
+
+			// Get the anonymized ID
+			const anonymizedId = scriptIdMap['anonymized-test-script'];
+			expect(anonymizedId).toBeTruthy();
+
+			// Revoke consent
+			const consentsWithoutMarketing: ConsentState = {
+				necessary: true,
+				marketing: false,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			unloadScripts([persistentScript], consentsWithoutMarketing, scriptIdMap);
+			expect(isScriptLoaded('anonymized-test-script')).toBe(false);
+
+			// Grant consent again - this should reuse the existing element
+			// Since the element persists in DOM, it should be found and reused
+			loadScripts([persistentScript], consentsWithMarketing, scriptIdMap);
+			expect(isScriptLoaded('anonymized-test-script')).toBe(true);
+
+			// The anonymized ID should be the same as before
+			expect(scriptIdMap['anonymized-test-script']).toBe(anonymizedId);
+		});
+
+		it('should still create new elements for scripts without persistAfterConsentRevoked', () => {
+			const nonPersistentScript: Script = {
+				id: 'non-persistent-duplicate-test',
+				src: 'https://example.com/non-persistent-duplicate.js',
+				category: 'marketing',
+				persistAfterConsentRevoked: false,
+			};
+
+			const scriptIdMap: Record<string, string> = {};
+
+			// Load the script
+			const consentsWithMarketing: ConsentState = {
+				necessary: true,
+				marketing: true,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			loadScripts([nonPersistentScript], consentsWithMarketing, scriptIdMap);
+			expect(isScriptLoaded('non-persistent-duplicate-test')).toBe(true);
+
+			// Revoke consent
+			const consentsWithoutMarketing: ConsentState = {
+				necessary: true,
+				marketing: false,
+				measurement: false,
+				functionality: false,
+				experience: false,
+			};
+
+			unloadScripts(
+				[nonPersistentScript],
+				consentsWithoutMarketing,
+				scriptIdMap
+			);
+			expect(isScriptLoaded('non-persistent-duplicate-test')).toBe(false);
+
+			// Clear the mock to track new calls
+			vi.clearAllMocks();
+
+			// Grant consent again
+			loadScripts([nonPersistentScript], consentsWithMarketing, scriptIdMap);
+			expect(isScriptLoaded('non-persistent-duplicate-test')).toBe(true);
+
+			// Should have called createElement again (normal behavior)
+			expect(document.createElement).toHaveBeenCalledWith('script');
+		});
+	});
 });

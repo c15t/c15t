@@ -59,5 +59,11 @@ s.parentNode.insertBefore(t,s)}(window, document,'script',
 fbq('init', '${pixelId}');
 fbq('track', 'PageView');
 		`.trim(),
+		// This is a persistent script because it has an API to manage the consent state
+		persistAfterConsentRevoked: true,
+		// This will run before the script is deleted
+		onDelete: () => {
+			window.fbq('consent', 'revoke');
+		},
 	};
 }
