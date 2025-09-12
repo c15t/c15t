@@ -18,6 +18,7 @@ import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fet
 import { type GTMConfiguration, setupGTM } from './libs/gtm';
 import { type HasCondition, has } from './libs/has';
 import { saveConsents } from './libs/save-consents';
+import { createScriptManager, type Script } from './libs/script-loader';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
 import { createTrackingBlocker } from './libs/tracking-blocker';
 import { initialState, STORAGE_KEY } from './store.initial-state';
@@ -152,6 +153,11 @@ export interface StoreOptions {
 	 * Callbacks for the consent manager.
 	 */
 	callbacks?: Callbacks;
+
+	/**
+	 * Scripts to load.
+	 */
+	scripts?: Script[];
 }
 
 // For backward compatibility (if needed)
@@ -231,6 +237,8 @@ export const createConsentManagerStore = (
 		isConsentDomain,
 		// Override the callbacks with merged callbacks
 		callbacks: options.callbacks ?? initialState.callbacks,
+		// Set initial scripts if provided
+		scripts: options.scripts ?? initialState.scripts,
 		// Set initial translation config if provided
 		translationConfig: translationConfig || initialState.translationConfig,
 		...(storedConsent
@@ -581,7 +589,17 @@ export const createConsentManagerStore = (
 		setTranslationConfig: (config: TranslationConfig) => {
 			set({ translationConfig: config });
 		},
+
+		// Script management functions
+		...createScriptManager(get, set),
 	}));
+
+	// Update scripts based on current consent state
+	const state = store.getState();
+	if (state.scripts && state.scripts.length > 0) {
+		const { updateScripts } = require('./libs/script-loader/core');
+		updateScripts(state.scripts || [], state.consents, state.scriptIdMap || {});
+	}
 
 	if (typeof window !== 'undefined') {
 		// biome-ignore lint/suspicious/noExplicitAny: its okay

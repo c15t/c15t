@@ -57,6 +57,18 @@ export type {
  */
 export { API_ENDPOINTS } from './client/types';
 export type { GTMConfiguration } from './libs/gtm';
+
+export type { HasCondition } from './libs/has';
+
+// Export script loader
+export {
+	getLoadedScriptIds,
+	isScriptLoaded,
+	loadScripts,
+	type Script,
+	unloadScripts,
+	updateScripts,
+} from './libs/script-loader';
 export type { TrackingBlockerConfig } from './libs/tracking-blocker';
 // Export tracking blocker
 export { createTrackingBlocker } from './libs/tracking-blocker';

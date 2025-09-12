@@ -64,6 +64,7 @@ describe('saveConsents', () => {
 				onConsentSet: vi.fn(),
 				onError: vi.fn(),
 			},
+			updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 			consents: {
 				necessary: true,
 				functionality: false,

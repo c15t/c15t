@@ -13,8 +13,8 @@ export default mergeConfig(
 		test: {
 			environment: 'node',
 			include: [
-				'**/__tests__/**/*.test.ts',
-				'**/__tests__/**/*.browser.test.ts',
+				'**/__tests__/**/**.test.ts',
+				'**/__tests__/**/**.browser.test.ts',
 			],
 			setupFiles: ['./vitest.setup.ts'],
 			mockReset: true,

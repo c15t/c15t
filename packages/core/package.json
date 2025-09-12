@@ -33,6 +33,11 @@
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
+		},
+		"./scripts/*": {
+			"types": "./dist/scripts/*.d.ts",
+			"import": "./dist/scripts/*.js",
+			"require": "./dist/scripts/*.cjs"
 		}
 	},
 	"main": "dist/index.cjs",
@@ -66,6 +71,9 @@
 		"@c15t/vitest-config": "workspace:*",
 		"genversion": "^3.2.0",
 		"vitest-localstorage-mock": "^0.1.2"
+	},
+	"peerDependencies": {
+		"posthog-js": "^1.264.0"
 	},
 	"publishConfig": {
 		"access": "public"

@@ -12,6 +12,7 @@
 		"@c15t/backend": "workspace:*",
 		"@c15t/nextjs": "workspace:*",
 		"next": "15.4.1",
+		"posthog-js": "^1.264.2",
 		"react": "19.1.0",
 		"react-dom": "19.1.0"
 	},

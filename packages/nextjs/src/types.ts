@@ -36,7 +36,10 @@ export type AppDirectoryConsentManagerProviderProps = Omit<
 	 * Configuration options for the consent manager without callback functions.
 	 * This ensures NextJS compatibility by removing potentially problematic callbacks.
 	 */
-	options: Omit<ReactConsentManagerProviderProps['options'], 'callbacks'>;
+	options: Omit<
+		ReactConsentManagerProviderProps['options'],
+		'callbacks' | 'scripts'
+	>;
 };
 
 export type InitialDataPromise = NonNullable<

@@ -47,6 +47,12 @@ export const initialState: Omit<
 	| 'getEffectiveConsents'
 	| 'hasConsentFor'
 	| 'setSelectedConsent'
+	| 'updateScripts'
+	| 'isScriptLoaded'
+	| 'getLoadedScriptIds'
+	| 'addScript'
+	| 'addScripts'
+	| 'removeScript'
 > = {
 	config: {
 		pkg: 'c15t',
@@ -180,4 +186,13 @@ export const initialState: Omit<
 	setTranslationConfig: () => {
 		/* no-op */
 	},
+
+	/** Initial empty scripts array */
+	scripts: [],
+
+	/** Initial empty loadedScripts record */
+	loadedScripts: {},
+
+	/** Initial empty scriptIdMap record */
+	scriptIdMap: {},
 };
