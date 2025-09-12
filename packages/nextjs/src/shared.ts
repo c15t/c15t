@@ -15,6 +15,7 @@ export {
 	configureConsentManager,
 	defaultTranslationConfig,
 	detectBrowserLanguage,
+	Frame,
 	mergeTranslationConfigs,
 	// Translation utilities
 	prepareTranslationConfig,
