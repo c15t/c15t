@@ -19,12 +19,13 @@ export default function Home() {
 	}, []);
 
 	return (
-		<div className="min-h-screen grid grid-cols-7 items-center justify-center gap-8 pt-16">
-			<main className="col-start-2 col-end-5 flex flex-col items-center gap-8 sm:items-start">
+		<div className="min-h-screen grid grid-cols-1 mx-4 md:mx-0 mt-2 md:mt-16 md:grid-cols-7 gap-8">
+			<main className="md:col-start-2 md:col-end-5 flex flex-col gap-8 ">
 				{!mounted ? null : theme === 'light' ? (
 					<Image
 						src="/c15t-banner-light.svg"
 						alt="c15t banner"
+						className="w-full"
 						width={568}
 						height={120}
 						priority
@@ -33,6 +34,7 @@ export default function Home() {
 					<Image
 						src="/c15t-banner-dark.svg"
 						alt="c15t banner"
+						className="w-full"
 						width={568}
 						height={120}
 						priority
@@ -55,7 +57,7 @@ export default function Home() {
 						Open Consent Dialog
 					</button>
 				</div>
-				<Frame category="marketing" className="h-[300px] w-[500px]">
+				<Frame category="marketing" className="aspect-video w-full">
 					<iframe
 						title="Cool Duck Video"
 						src="https://www.youtube.com/embed/mQJ6q1ZCzsg"
@@ -66,7 +68,7 @@ export default function Home() {
 			</main>
 
 			{mounted && (
-				<aside className="col-span-2 justify-start items-start flex-flex-col h-full w-full ">
+				<aside className="md:col-span-2 justify-start items-start flex-flex-col h-full w-full overflow-hidden ">
 					<div className="border border-[#ebebeb] dark:border-[#333333] rounded-[1.25rem] p-4">
 						<h2 className="text-base font-medium">Current Consent: </h2>
 						<pre>
@@ -91,7 +93,7 @@ export default function Home() {
 				</aside>
 			)}
 
-			<footer className="col-span-7 flex flex-wrap items-center justify-center gap-[24px]">
+			<footer className="md:col-span-7 flex flex-wrap items-center justify-center gap-[24px]">
 				<a
 					className="flex items-center gap-2 hover:underline hover:underline-offset-4"
 					href="https://c15t.com/docs/frameworks/next/quickstart"

@@ -9,11 +9,11 @@ import {
 	useState,
 } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useTranslations } from '~/hooks/use-translations';
 import { Box } from '../shared/primitives/box';
 import { ConsentButton } from '../shared/primitives/button';
 import styles from './frame.module.css';
 import type { FrameTheme } from './theme';
-
 export interface FrameProps extends ComponentPropsWithRef<'div'> {
 	/**
 	 * The content to be rendered if consent is given.
@@ -84,6 +84,13 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 FrameComponent.displayName = 'Frame';
 
 const DefaultFallback = ({ category }: { category: AllConsentNames }) => {
+	const { frame } = useTranslations();
+
+	const { title, actionButton } = frame;
+
+	const translatedTitle = title?.replace('{category}', category);
+	const translatedActionButton = actionButton?.replace('{category}', category);
+
 	return (
 		<Box baseClassName={styles.fallback} themeKey="frame.fallback.root">
 			<Box
@@ -94,14 +101,8 @@ const DefaultFallback = ({ category }: { category: AllConsentNames }) => {
 					baseClassName={styles.fallbackTitle}
 					themeKey="frame.fallback.title"
 				>
-					Accept {category} consent to view this content
+					{translatedTitle}
 				</Box>
-				{/* <Box
-					baseClassName={styles.fallbackDescription}
-					themeKey="frame.fallback.description"
-				>
-					Accept {category} consent to view this content
-				</Box> */}
 			</Box>
 			<ConsentButton
 				action="set-consent"
@@ -109,7 +110,7 @@ const DefaultFallback = ({ category }: { category: AllConsentNames }) => {
 				variant="primary"
 				category={category}
 			>
-				Enable {category} consent
+				{translatedActionButton}
 			</ConsentButton>
 		</Box>
 	);

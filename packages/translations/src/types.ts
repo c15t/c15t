@@ -27,6 +27,17 @@ export interface ConsentTypeTranslations {
 	description: string;
 }
 
+export interface FrameTranslations {
+	/**
+	 * You can use the {category} placeholder to dynamically insert the consent category name.
+	 */
+	title: string;
+	/**
+	 * You can use the {category} placeholder to dynamically insert the consent category name.
+	 */
+	actionButton: string;
+}
+
 /**
  * Maps consent type names to their respective translations.
  * Uses the name property from ConsentType to ensure type safety.
@@ -41,6 +52,7 @@ export interface CompleteTranslations {
 	cookieBanner: CookieBannerTranslations;
 	consentManagerDialog: ConsentManagerDialogTranslations;
 	consentTypes: ConsentTypesTranslations;
+	frame: FrameTranslations;
 }
 
 // Partial translations interface (used for other languages)
@@ -49,6 +61,7 @@ export interface Translations {
 	cookieBanner: Partial<CookieBannerTranslations>;
 	consentManagerDialog: Partial<ConsentManagerDialogTranslations>;
 	consentTypes: Partial<ConsentTypesTranslations>;
+	frame: Partial<FrameTranslations>;
 }
 
 export interface TranslationConfig {

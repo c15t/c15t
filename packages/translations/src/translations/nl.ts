@@ -44,4 +44,8 @@ export const nlTranslations: CompleteTranslations = {
 				'Deze cookies helpen ons om een betere gebruikerservaring te bieden en nieuwe functies te testen',
 		},
 	},
+	frame: {
+		title: 'Accepteer {category} om deze inhoud te bekijken',
+		actionButton: 'Schakel {category} toestemming in',
+	},
 };
