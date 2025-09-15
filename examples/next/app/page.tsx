@@ -18,10 +18,12 @@ export default function Home() {
 		setMounted(true);
 	}, []);
 
+	if (!mounted) return null;
+
 	return (
 		<div className="min-h-screen grid grid-cols-1 mx-4 md:mx-0 mt-2 md:mt-16 md:grid-cols-7 gap-8">
 			<main className="md:col-start-2 md:col-end-5 flex flex-col gap-4">
-				{!mounted ? null : theme === 'light' ? (
+				{theme === 'light' ? (
 					<Image
 						src="/c15t-banner-light.svg"
 						alt="c15t banner"
