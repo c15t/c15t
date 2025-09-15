@@ -24,6 +24,10 @@ const TranslationsSchema = z.object({
 		measurement: TitleDescriptionSchema,
 		necessary: TitleDescriptionSchema,
 	}),
+	frame: z.object({
+		title: z.string(),
+		actionButton: z.string(),
+	}),
 });
 
 export const showConsentBannerContract = oc
