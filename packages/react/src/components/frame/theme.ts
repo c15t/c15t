@@ -20,18 +20,25 @@ export type FrameTheme = Partial<{
 
 /** Fallback component CSS variables */
 type FallbackCSSVariables = {
+	/** Border properties */
 	'--frame-fallback-border-radius': string;
 	'--frame-fallback-border-width': string;
 	'--frame-fallback-border-color': string;
 	'--frame-fallback-border-color-dark': string;
+
+	/** Background and text colors */
 	'--frame-fallback-background-color': string;
 	'--frame-fallback-background-color-dark': string;
 	'--frame-fallback-text-color': string;
 	'--frame-fallback-text-color-dark': string;
+
+	/** Title and description colors */
 	'--frame-fallback-title-color': string;
 	'--frame-fallback-title-color-dark': string;
 	'--frame-fallback-description-color': string;
 	'--frame-fallback-description-color-dark': string;
+
+	/** Shadow effects */
 	'--frame-fallback-shadow': string;
 	'--frame-fallback-shadow-dark': string;
 };

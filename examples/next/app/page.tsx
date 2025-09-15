@@ -2,56 +2,58 @@
 
 import { Frame, useConsentManager } from '@c15t/nextjs';
 import Image from 'next/image';
+import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
+
+const BUTTON_STYLE =
+	'border border-[#ebebeb] dark:border-[#333333] rounded-md px-4 py-2 hover:border-none hover:bg-[#ebebeb]/10 dark:hover:bg-[#333333]/90';
 
 export default function Home() {
-	const { setIsPrivacyDialogOpen } = useConsentManager();
+	const [mounted, setMounted] = useState(false);
+	const { theme } = useTheme();
+	const { setShowPopup, setIsPrivacyDialogOpen, consents, locationInfo } =
+		useConsentManager();
+
+	useEffect(() => {
+		setMounted(true);
+	}, []);
+
 	return (
-		<div className="grid min-h-screen grid-rows-[20px_1fr_20px] items-center justify-items-center gap-16 p-8 pb-20 font-sans sm:p-20">
-			<main className="row-start-2 flex flex-col items-center gap-[32px] sm:items-start">
-				<Image
-					className="dark:invert"
-					src="/next.svg"
-					alt="Next.js logo"
-					width={180}
-					height={38}
-					priority
-				/>
-				<ol className="list-inside list-decimal text-center font-mono text-sm/6 sm:text-left">
-					<li className="mb-2 tracking-[-.01em]">
-						Get started by editing{' '}
-						<code className="rounded bg-black/[.05] px-1 py-0.5 font-mono font-semibold dark:bg-white/[.06]">
-							app/page.tsx
-						</code>
-						.
-					</li>
-					<li className="tracking-[-.01em]">
-						Save and see your changes instantly.
-					</li>
-				</ol>
+		<div className="min-h-screen grid grid-cols-7 items-center justify-center gap-8 pt-16">
+			<main className="col-start-2 col-end-5 flex flex-col items-center gap-8 sm:items-start">
+				{!mounted ? null : theme === 'light' ? (
+					<Image
+						src="/c15t-banner-light.svg"
+						alt="c15t banner"
+						width={568}
+						height={120}
+						priority
+					/>
+				) : (
+					<Image
+						src="/c15t-banner-dark.svg"
+						alt="c15t banner"
+						width={568}
+						height={120}
+						priority
+					/>
+				)}
 
 				<div className="flex flex-col items-center gap-4 sm:flex-row">
 					<button
 						type="button"
-						className="flex h-10 items-center justify-center gap-2 rounded-full border border-transparent border-solid bg-foreground px-4 font-medium text-background text-sm transition-colors hover:bg-[#383838] sm:h-12 sm:w-auto sm:px-5 sm:text-base dark:hover:bg-[#ccc]"
+						className={BUTTON_STYLE}
+						onClick={() => setShowPopup(true, true)}
+					>
+						Open Cookie Banner
+					</button>
+					<button
+						type="button"
+						className={BUTTON_STYLE}
 						onClick={() => setIsPrivacyDialogOpen(true)}
 					>
-						<Image
-							className="dark:invert"
-							src="/vercel.svg"
-							alt="Vercel logomark"
-							width={20}
-							height={20}
-						/>
 						Open Consent Dialog
 					</button>
-					<a
-						className="flex h-10 w-full items-center justify-center rounded-full border border-black/[.08] border-solid px-4 font-medium text-sm transition-colors hover:border-transparent hover:bg-[#f2f2f2] sm:h-12 sm:w-auto sm:px-5 sm:text-base md:w-[158px] dark:border-white/[.145] dark:hover:bg-[#1a1a1a]"
-						href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-						target="_blank"
-						rel="noopener noreferrer"
-					>
-						Read our docs
-					</a>
 				</div>
 				<Frame category="marketing" className="h-[300px] w-[500px]">
 					<iframe
@@ -62,10 +64,37 @@ export default function Home() {
 					/>
 				</Frame>
 			</main>
-			<footer className="row-start-3 flex flex-wrap items-center justify-center gap-[24px]">
+
+			{mounted && (
+				<aside className="col-span-2 justify-start items-start flex-flex-col h-full w-full ">
+					<div className="border border-[#ebebeb] dark:border-[#333333] rounded-[1.25rem] p-4">
+						<h2 className="text-base font-medium">Current Consent: </h2>
+						<pre>
+							{JSON.stringify(consents, null, 2)
+								.split('\n')
+								.map((line, i) => (
+									<div
+										key={i}
+										style={{
+											color: line.includes('true')
+												? '#22c55e'
+												: line.includes('false')
+													? '#ef4444'
+													: 'inherit',
+										}}
+									>
+										{line}
+									</div>
+								))}
+						</pre>
+					</div>
+				</aside>
+			)}
+
+			<footer className="col-span-7 flex flex-wrap items-center justify-center gap-[24px]">
 				<a
 					className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-					href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+					href="https://c15t.com/docs/frameworks/next/quickstart"
 					target="_blank"
 					rel="noopener noreferrer"
 				>
@@ -76,11 +105,11 @@ export default function Home() {
 						width={16}
 						height={16}
 					/>
-					Learn
+					Docs
 				</a>
 				<a
 					className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-					href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+					href="https://github.com/c15t/c15t/tree/main/examples"
 					target="_blank"
 					rel="noopener noreferrer"
 				>
@@ -95,7 +124,7 @@ export default function Home() {
 				</a>
 				<a
 					className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-					href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+					href="https://consent.io"
 					target="_blank"
 					rel="noopener noreferrer"
 				>
@@ -106,7 +135,7 @@ export default function Home() {
 						width={16}
 						height={16}
 					/>
-					Go to nextjs.org →
+					Hosted c15t →
 				</a>
 			</footer>
 		</div>

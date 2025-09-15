@@ -1,6 +1,6 @@
 'use client';
 
-import type { AllConsentNames, HasCondition } from 'c15t';
+import type { AllConsentNames } from 'c15t';
 import {
 	type ComponentPropsWithRef,
 	forwardRef,
@@ -24,7 +24,7 @@ export interface FrameProps extends ComponentPropsWithRef<'div'> {
 	/**
 	 * The consent category required to render the children.
 	 */
-	category: HasCondition<AllConsentNames>;
+	category: AllConsentNames;
 
 	/**
 	 * A custom fallback component to display when consent is not met.
@@ -70,7 +70,7 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 				return children;
 			}
 
-			return fallback || <DefaultFallback />;
+			return fallback || <DefaultFallback category={category} />;
 		};
 
 		return (
@@ -83,7 +83,7 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 
 FrameComponent.displayName = 'Frame';
 
-const DefaultFallback = () => {
+const DefaultFallback = ({ category }: { category: AllConsentNames }) => {
 	return (
 		<Box baseClassName={styles.fallback} themeKey="frame.fallback.root">
 			<Box
@@ -94,21 +94,22 @@ const DefaultFallback = () => {
 					baseClassName={styles.fallbackTitle}
 					themeKey="frame.fallback.title"
 				>
-					Content requires consent
+					Accept {category} consent to view this content
 				</Box>
-				<Box
+				{/* <Box
 					baseClassName={styles.fallbackDescription}
 					themeKey="frame.fallback.description"
 				>
-					This content is blocked until you provide consent.
-				</Box>
+					Accept {category} consent to view this content
+				</Box> */}
 			</Box>
 			<ConsentButton
-				action="open-consent-dialog"
+				action="set-consent"
 				themeKey="frame.fallback.button"
 				variant="primary"
+				category={category}
 			>
-				Manage Consent
+				Enable {category} consent
 			</ConsentButton>
 		</Box>
 	);

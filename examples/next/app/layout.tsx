@@ -1,12 +1,9 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import {
-	ConsentManagerDialog,
-	ConsentManagerProvider,
-	CookieBanner,
-} from '@c15t/nextjs';
-import { ClientLayout } from './layout.client';
+import { ThemeProvider } from 'next-themes';
+import { ConsentManager } from './ConsentManager';
+import { ThemeSwitcher } from './ThemeSwitcher';
 
 const geistSans = Geist({
 	variable: '--font-geist-sans',
@@ -29,24 +26,14 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en">
-			<body
-				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-			>
-				<ConsentManagerProvider
-					options={{
-						mode: 'c15t',
-						backendURL: '/api/c15t',
-						consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner.
-						ignoreGeoLocation: true, // Useful for development to always view the banner.
-					}}
-				>
-					<CookieBanner />
-					<ConsentManagerDialog />
-					<ClientLayout />
-
-					{children}
-				</ConsentManagerProvider>
+		<html lang="en" suppressHydrationWarning>
+			<body className={`${geistSans.variable} ${geistMono.variable}`}>
+				<ConsentManager>
+					<ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+						<ThemeSwitcher />
+						{children}
+					</ThemeProvider>
+				</ConsentManager>
 			</body>
 		</html>
 	);
