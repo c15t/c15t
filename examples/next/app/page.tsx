@@ -6,7 +6,7 @@ import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
 const BUTTON_STYLE =
-	'border border-[#ebebeb] dark:border-[#333333] rounded-md px-4 py-2 hover:border-none hover:bg-[#ebebeb]/10 dark:hover:bg-[#333333]/90';
+	'border border-neutral rounded-md px-4 py-2 hover:border-none hover:bg-neutral/10';
 
 export default function Home() {
 	const [mounted, setMounted] = useState(false);
@@ -20,7 +20,7 @@ export default function Home() {
 
 	return (
 		<div className="min-h-screen grid grid-cols-1 mx-4 md:mx-0 mt-2 md:mt-16 md:grid-cols-7 gap-8">
-			<main className="md:col-start-2 md:col-end-5 flex flex-col gap-8 ">
+			<main className="md:col-start-2 md:col-end-5 flex flex-col gap-4">
 				{!mounted ? null : theme === 'light' ? (
 					<Image
 						src="/c15t-banner-light.svg"
@@ -69,9 +69,9 @@ export default function Home() {
 
 			{mounted && (
 				<aside className="md:col-span-2 justify-start items-start flex-flex-col h-full w-full overflow-hidden ">
-					<div className="border border-[#ebebeb] dark:border-[#333333] rounded-[1.25rem] p-4">
+					<div className="border border-neutral rounded-[1.25rem] p-4 space-y-2">
 						<h2 className="text-base font-medium">Current Consent: </h2>
-						<pre>
+						<pre className="text-sm font-light">
 							{JSON.stringify(consents, null, 2)
 								.split('\n')
 								.map((line, i) => (
