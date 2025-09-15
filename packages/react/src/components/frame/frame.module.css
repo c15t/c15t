@@ -1,5 +1,5 @@
 :root {
-  isolation: isolate;
+	isolation: isolate;
 
 	/* css reset */
 	font-family:
@@ -26,7 +26,7 @@
 	--frame-fallback-description-color-dark: hsla(0 0% 60% / 1);
 
 	/* Shadow */
-	--frame-fallback-shadow: 0 16px 32  px -12px rgba(14, 18, 27, 0.1);
+	--frame-fallback-shadow: 0 16px 32 px -12px rgba(14, 18, 27, 0.1);
 	--frame-fallback-shadow-dark: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
 }
 
@@ -39,15 +39,14 @@
 	width: 100%;
 	padding: 1rem;
 	text-align: center;
-  border-radius: var(--frame-fallback-border-radius);
+	border-radius: var(--frame-fallback-border-radius);
 	border-width: var(--frame-fallback-border-width);
 	border-color: var(--frame-fallback-border-color);
 	background-color: var(--frame-fallback-background-color);
-  opacity: 1;
-  transform: scale(1);
-  pointer-events: auto;
+	opacity: 1;
+	transform: scale(1);
+	pointer-events: auto;
 }
-
 
 :global(.c15t-dark) .fallback {
 	background-color: var(--frame-fallback-background-color-dark);
@@ -58,7 +57,6 @@
 .fallbackContent {
 	margin-bottom: 1rem;
 }
-
 
 .title {
 	font-size: 1rem;
@@ -76,4 +74,3 @@
 	font-size: 1rem;
 	color: var(--frame-fallback-description-color);
 }
-
