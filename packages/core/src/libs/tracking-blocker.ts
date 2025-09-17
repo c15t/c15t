@@ -39,6 +39,10 @@ function createDefaultConsentState(): ConsentState {
 }
 
 interface TrackingBlocker {
+	/**
+	 * Updates the consents
+	 * @deprecated This method is deprecated and will be removed in the next major version. Use the new script loader instead.
+	 */
 	updateConsents: (newConsents: Partial<ConsentState>) => void;
 	destroy: () => void;
 }

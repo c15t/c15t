@@ -157,15 +157,12 @@ export function createScriptManager(
 		 * @returns Object containing arrays of loaded and unloaded script IDs
 		 */
 		updateScripts: () => {
-			const state = getState();
-			const result = updateScripts(
-				state.scripts,
-				state.consents,
-				state.scriptIdMap
-			);
+			const { scripts, consents, scriptIdMap, loadedScripts } = getState();
+
+			const result = updateScripts(scripts, consents, scriptIdMap);
 
 			// Update loadedScripts state
-			const newLoadedScripts = { ...state.loadedScripts };
+			const newLoadedScripts = { ...loadedScripts };
 
 			// Mark loaded scripts
 			result.loaded.forEach((id: string) => {

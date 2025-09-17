@@ -11,7 +11,6 @@ import {
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { PrivacyConsentState } from '../store.type';
-import { updateScripts } from './script-loader/core';
 
 type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
 
@@ -53,8 +52,13 @@ function updateStore(
 	{ set, get, initialTranslationConfig }: FetchConsentBannerConfig,
 	hasLocalStorageAccess: boolean
 ): void {
-	const { consentInfo, ignoreGeoLocation, callbacks, setDetectedCountry } =
-		get();
+	const {
+		consentInfo,
+		ignoreGeoLocation,
+		callbacks,
+		setDetectedCountry,
+		updateScripts,
+	} = get();
 
 	const { translations, location, showConsentBanner } = data;
 
@@ -125,9 +129,7 @@ function updateStore(
 	});
 
 	// Update scripts based on current consent state
-	const state = get();
-	// Provide default values for scripts and scriptIdMap in case they don't exist
-	updateScripts(state.scripts || [], state.consents, state.scriptIdMap || {});
+	updateScripts();
 }
 
 /**
