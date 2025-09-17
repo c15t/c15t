@@ -14,6 +14,7 @@ availableIn:
     title: 'JavaScript'
 ---
 
+<section id="overview">
 The offline mode provides a simple, browser-based approach to storing user consent decisions without requiring a backend server.
 
 ## Key Characteristics
@@ -22,7 +23,9 @@ The offline mode provides a simple, browser-based approach to storing user conse
 - **Simplified setup** - Get started quickly with minimal configuration
 - **Independence** - Works without external services or APIs
 - **Fast implementation** - Ideal for prototyping and simpler sites
+</section> 
 
+<section id="how-it-works">
 ## How It Works
 
 <Callout type="note">
@@ -35,3 +38,4 @@ The offline mode implements the same interface as the standard client, but with 
 2. **Network**: No network requests are made, all operations happen locally
 3. **Consent Banner**: The banner visibility is determined by checking if a value exists in localStorage
 4. **Consent Verification**: Always returns a successful response
+</section>
