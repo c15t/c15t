@@ -7,7 +7,6 @@
 import clsx from 'clsx';
 import { type FC, type PropsWithChildren, useEffect, useState } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
-import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
 import type { ThemeValue } from '~/types/theme';
@@ -110,11 +109,7 @@ const ConsentManagerDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 	// Combine theme className with animation class if needed
 	const finalClassName = clsx(theme.className, animationClass);
 
-	const shouldLockScroll = !!(open || isPrivacyDialogOpen) && scrollLock;
-
-	useScrollLock(shouldLockScroll);
-
-	return shouldLockScroll ? (
+	return (
 		<div
 			style={
 				typeof style === 'object' && 'style' in style
@@ -124,7 +119,7 @@ const ConsentManagerDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 			className={finalClassName}
 			data-testid="consent-manager-dialog-overlay"
 		/>
-	) : null;
+	);
 };
 
 const Overlay = ConsentManagerDialogOverlay;
