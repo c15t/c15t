@@ -235,7 +235,8 @@ export const createConsentManagerStore = (
 		...initialState,
 		ignoreGeoLocation: options.ignoreGeoLocation ?? false,
 		config: options.config ?? initialState.config,
-		iframeBlockerConfig: options.iframeBlockerConfig,
+		iframeBlockerConfig:
+			options.iframeBlockerConfig ?? initialState.iframeBlockerConfig,
 		// Set isConsentDomain based on the provider's baseURL
 		isConsentDomain,
 		// Override the callbacks with merged callbacks

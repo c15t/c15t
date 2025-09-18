@@ -60,8 +60,10 @@ export interface Translations {
 	common: Partial<CommonTranslations>;
 	cookieBanner: Partial<CookieBannerTranslations>;
 	consentManagerDialog: Partial<ConsentManagerDialogTranslations>;
-	consentTypes: Partial<ConsentTypesTranslations>;
-	frame: Partial<FrameTranslations>;
+	consentTypes: {
+		[key in AllConsentNames]?: Partial<ConsentTypeTranslations>;
+	};
+	frame?: Partial<FrameTranslations>;
 }
 
 export interface TranslationConfig {

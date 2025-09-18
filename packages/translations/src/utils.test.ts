@@ -28,6 +28,10 @@ describe('deepMergeTranslations', () => {
 				description: 'These cookies are required',
 			},
 		},
+		frame: {
+			title: 'Frame Title',
+			actionButton: 'Frame Button',
+		},
 	};
 
 	it('should merge translations with override taking priority', () => {

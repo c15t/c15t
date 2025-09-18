@@ -47,6 +47,9 @@ export const initialState: Omit<
 	| 'getEffectiveConsents'
 	| 'hasConsentFor'
 	| 'setSelectedConsent'
+	| 'initializeIframeBlocker'
+	| 'updateIframeConsents'
+	| 'destroyIframeBlocker'
 > = {
 	config: {
 		pkg: 'c15t',
@@ -131,6 +134,11 @@ export const initialState: Omit<
 
 	/** Use predefined consent types */
 	consentTypes: consentTypes,
+
+	/** Default iframe blocker configuration */
+	iframeBlockerConfig: {
+		disableAutomaticBlocking: false,
+	},
 
 	/** Default to not ignoring geo location */
 	ignoreGeoLocation: false,

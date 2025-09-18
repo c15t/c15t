@@ -5,6 +5,7 @@
 
 import type { ContractsOutputs } from '@c15t/backend/contracts';
 import type { HasCondition } from './libs/has';
+import type { IframeBlockerConfig } from './libs/iframe-blocker';
 import type {
 	AllConsentNames,
 	Callbacks,
@@ -113,7 +114,7 @@ export interface PrivacyConsentState {
 	consentTypes: ConsentType[];
 
 	/** Configuration for the iframe blocker */
-	iframeBlockerConfig: import('./libs/iframe-blocker').IframeBlockerConfig;
+	iframeBlockerConfig: IframeBlockerConfig;
 
 	/*
 	 * Updates the selected consent state for a specific consent type.

@@ -25,7 +25,6 @@ export async function saveConsents({
 		selectedConsents,
 		consents,
 		consentTypes,
-		updateScripts,
 		updateIframeConsents,
 	} = get();
 
