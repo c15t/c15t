@@ -70,7 +70,6 @@ jobs:
           vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
 
-          target: production
           assign_alias_on_branch: canary
           alias_domains: |
             canary.c15t.com
