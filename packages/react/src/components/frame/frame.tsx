@@ -52,7 +52,7 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 		{ children, category, placeholder, noStyle, className, theme, ...props },
 		ref
 	) => {
-		const { has } = useConsentManager();
+		const { has, hasFetchedBanner } = useConsentManager();
 		const [isMounted, setIsMounted] = useState(false);
 
 		const hasConsent = has(category);
@@ -62,7 +62,8 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 		}, []);
 
 		const renderContent = () => {
-			if (!isMounted) {
+			// We should wait for the banner to be fetched to avoid language flash
+			if (!isMounted && hasFetchedBanner) {
 				return placeholder || null;
 			}
 
