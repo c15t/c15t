@@ -21,8 +21,8 @@ export default function Home() {
 	if (!mounted) return null;
 
 	return (
-		<div className="min-h-screen grid grid-cols-1 mx-4 md:mx-0 mt-2 md:mt-16 md:grid-cols-7 gap-8">
-			<main className="md:col-start-2 md:col-end-5 flex flex-col gap-4">
+		<div className="mx-4 mt-2 grid min-h-screen grid-cols-1 gap-8 md:mx-0 md:mt-16 md:grid-cols-7">
+			<main className="flex flex-col gap-4 md:col-start-2 md:col-end-5">
 				{theme === 'light' ? (
 					<Image
 						src="/c15t-banner-light.svg"
@@ -70,10 +70,10 @@ export default function Home() {
 			</main>
 
 			{mounted && (
-				<aside className="md:col-span-2 justify-start items-start flex-flex-col h-full w-full overflow-hidden ">
-					<div className="border border-neutral rounded-[1.25rem] p-4 space-y-2">
-						<h2 className="text-base font-medium">Current Consent: </h2>
-						<pre className="text-sm font-light">
+				<aside className="h-full w-full flex-flex-col items-start justify-start overflow-hidden md:col-span-2">
+					<div className="space-y-2 rounded-[1.25rem] border border-neutral p-4">
+						<h2 className="font-medium text-base">Current Consent: </h2>
+						<pre className="font-light text-sm">
 							{JSON.stringify(consents, null, 2)
 								.split('\n')
 								.map((line, i) => (
@@ -95,7 +95,7 @@ export default function Home() {
 				</aside>
 			)}
 
-			<footer className="md:col-span-7 flex flex-wrap items-center justify-center gap-[24px]">
+			<footer className="flex flex-wrap items-center justify-center gap-[24px] md:col-span-7">
 				<a
 					className="flex items-center gap-2 hover:underline hover:underline-offset-4"
 					href="https://c15t.com/docs/frameworks/next/quickstart"

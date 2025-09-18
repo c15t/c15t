@@ -84,12 +84,16 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 FrameComponent.displayName = 'Frame';
 
 const DefaultFallback = ({ category }: { category: AllConsentNames }) => {
-	const { frame } = useTranslations();
+	const { frame, consentTypes } = useTranslations();
 
-	const { title, actionButton } = frame;
-
-	const translatedTitle = title?.replace('{category}', category);
-	const translatedActionButton = actionButton?.replace('{category}', category);
+	const translatedTitle = frame?.title?.replace(
+		'{category}',
+		consentTypes[category]?.title ?? category
+	);
+	const translatedActionButton = frame?.actionButton?.replace(
+		'{category}',
+		category
+	);
 
 	return (
 		<Box baseClassName={styles.fallback} themeKey="frame.fallback.root">

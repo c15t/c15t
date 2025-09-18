@@ -8,7 +8,11 @@ const TitleDescriptionSchema = z.object({
 	description: z.string(),
 });
 
-const TranslationsSchema = z.object({
+/**
+ * Complete translations schema for newer backend versions
+ * All fields are required for full functionality
+ */
+const CompleteTranslationsSchema = z.object({
 	common: z.object({
 		acceptAll: z.string(),
 		rejectAll: z.string(),
@@ -29,6 +33,47 @@ const TranslationsSchema = z.object({
 		actionButton: z.string(),
 	}),
 });
+
+/**
+ * Partial translations schema for backward compatibility with older backend versions
+ * Allows missing fields to gracefully degrade functionality
+ */
+const PartialTranslationsSchema = z.object({
+	common: z
+		.object({
+			acceptAll: z.string().optional(),
+			rejectAll: z.string().optional(),
+			customize: z.string().optional(),
+			save: z.string().optional(),
+		})
+		.partial(),
+	cookieBanner: TitleDescriptionSchema.partial(),
+	consentManagerDialog: TitleDescriptionSchema.partial(),
+	consentTypes: z
+		.object({
+			experience: TitleDescriptionSchema.partial(),
+			functionality: TitleDescriptionSchema.partial(),
+			marketing: TitleDescriptionSchema.partial(),
+			measurement: TitleDescriptionSchema.partial(),
+			necessary: TitleDescriptionSchema.partial(),
+		})
+		.partial(),
+	frame: z
+		.object({
+			title: z.string().optional(),
+			actionButton: z.string().optional(),
+		})
+		.partial(),
+});
+
+/**
+ * Union schema that accepts both complete and partial translations
+ * Provides backward compatibility while maintaining type safety
+ */
+const TranslationsSchema = z.union([
+	CompleteTranslationsSchema,
+	PartialTranslationsSchema,
+]);
 
 export const showConsentBannerContract = oc
 	.route({
