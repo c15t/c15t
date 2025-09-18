@@ -11,4 +11,22 @@ availableIn:
     title: 'React'
 ---
 
-<import>../../react/hooks/use-translations.mdx</import>
+The `useTranslations` hook provides access to the consent manager's translations found in the store and updates when the translations change.
+
+## Usage
+
+```tsx
+function MyComponent() {
+  const translations = useTranslations();
+  
+  const title = translations.cookieBanner.title;
+  // Use the translations in your component
+  return <h1>{title}</h1>;
+}
+```
+
+## Returns
+
+The `useTranslations` hook returns the translations object.
+
+<import>../../javascript/shared/translation-types.mdx</import>
