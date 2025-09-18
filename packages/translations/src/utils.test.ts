@@ -67,6 +67,10 @@ describe('deepMergeTranslations', () => {
 					description: 'These cookies are required',
 				},
 			},
+			frame: {
+				title: 'Frame Title',
+				actionButton: 'Frame Button',
+			},
 		});
 	});
 
@@ -146,12 +150,29 @@ describe('mergeTranslationConfigs', () => {
 		expect(enTranslations?.cookieBanner?.description).toBe(
 			'Default Description'
 		);
-		expect(deTranslations).toEqual(defaultConfig.translations.de);
+		// German translations should now be complete with English fallbacks
+		expect(deTranslations?.consentManagerDialog?.description).toBe(
+			'Customize your privacy settings here. You can choose which types of cookies and tracking technologies you allow.'
+		);
+		expect(deTranslations?.consentTypes?.experience?.title).toBe('Experience');
+		expect(deTranslations?.frame?.title).toBe(
+			'Accept {category} consent to view this content.'
+		);
 	});
 
 	it('should handle undefined custom config', () => {
 		const result = mergeTranslationConfigs(defaultConfig);
-		expect(result).toEqual(defaultConfig);
+		// Should return complete translations with English fallbacks
+		expect(result.defaultLanguage).toBe(defaultConfig.defaultLanguage);
+		expect(result.translations.en?.consentManagerDialog?.description).toBe(
+			'Customize your privacy settings here. You can choose which types of cookies and tracking technologies you allow.'
+		);
+		expect(result.translations.de?.consentTypes?.experience?.title).toBe(
+			'Experience'
+		);
+		expect(result.translations.de?.frame?.title).toBe(
+			'Accept {category} consent to view this content.'
+		);
 	});
 });
 
