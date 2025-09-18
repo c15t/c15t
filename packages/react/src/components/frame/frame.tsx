@@ -27,10 +27,10 @@ export interface FrameProps extends ComponentPropsWithRef<'div'> {
 	category: AllConsentNames;
 
 	/**
-	 * A custom fallback component to display when consent is not met.
-	 * If not provided, a default fallback will be displayed.
+	 * A custom placeholder component to display when consent is not met.
+	 * If not provided, a default placeholder will be displayed.
 	 */
-	fallback?: ReactNode;
+	placeholder?: ReactNode;
 
 	/**
 	 * When true, removes all default styling from the component
@@ -49,7 +49,7 @@ export interface FrameProps extends ComponentPropsWithRef<'div'> {
 
 const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 	(
-		{ children, category, fallback, noStyle, className, theme, ...props },
+		{ children, category, placeholder, noStyle, className, theme, ...props },
 		ref
 	) => {
 		const { has } = useConsentManager();
@@ -63,14 +63,14 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 
 		const renderContent = () => {
 			if (!isMounted) {
-				return fallback || null;
+				return placeholder || null;
 			}
 
 			if (hasConsent) {
 				return children;
 			}
 
-			return fallback || <DefaultFallback category={category} />;
+			return placeholder || <DefaultPlaceholder category={category} />;
 		};
 
 		return (
@@ -83,7 +83,7 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 
 FrameComponent.displayName = 'Frame';
 
-const DefaultFallback = ({ category }: { category: AllConsentNames }) => {
+const DefaultPlaceholder = ({ category }: { category: AllConsentNames }) => {
 	const { frame, consentTypes } = useTranslations();
 
 	const translatedTitle = frame?.title?.replace(
@@ -96,21 +96,21 @@ const DefaultFallback = ({ category }: { category: AllConsentNames }) => {
 	);
 
 	return (
-		<Box baseClassName={styles.fallback} themeKey="frame.fallback.root">
+		<Box baseClassName={styles.placeholder} themeKey="frame.placeholder.root">
 			<Box
-				baseClassName={styles.fallbackContent}
-				themeKey="frame.fallback.content"
+				baseClassName={styles.placeholderContent}
+				themeKey="frame.placeholder.content"
 			>
 				<Box
-					baseClassName={styles.fallbackTitle}
-					themeKey="frame.fallback.title"
+					baseClassName={styles.placeholderTitle}
+					themeKey="frame.placeholder.title"
 				>
 					{translatedTitle}
 				</Box>
 			</Box>
 			<ConsentButton
 				action="set-consent"
-				themeKey="frame.fallback.button"
+				themeKey="frame.placeholder.button"
 				variant="primary"
 				category={category}
 			>

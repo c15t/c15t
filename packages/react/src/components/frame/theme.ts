@@ -6,39 +6,39 @@ import type { ThemeValue } from '../../types/theme';
  * @public
  */
 export type FrameTheme = Partial<{
-	/** @remarks Styles for the fallback root container element */
-	'frame.fallback.root': ThemeValue<FallbackCSSVariables>;
-	/** @remarks Styles for the fallback content wrapper */
-	'frame.fallback.content': ThemeValue;
-	/** @remarks Styles for the fallback title */
-	'frame.fallback.title': ThemeValue;
-	/** @remarks Styles for the fallback description text */
-	'frame.fallback.description': ThemeValue;
-	/** @remarks Styles for the fallback button element */
-	'frame.fallback.button': ThemeValue<ButtonCSSVariables>;
+	/** @remarks Styles for the placeholder root container element */
+	'frame.placeholder.root': ThemeValue<PlaceholderCSSVariables>;
+	/** @remarks Styles for the placeholder content wrapper */
+	'frame.placeholder.content': ThemeValue;
+	/** @remarks Styles for the placeholder title */
+	'frame.placeholder.title': ThemeValue;
+	/** @remarks Styles for the placeholder description text */
+	'frame.placeholder.description': ThemeValue;
+	/** @remarks Styles for the placeholder button element */
+	'frame.placeholder.button': ThemeValue<ButtonCSSVariables>;
 }>;
 
-/** Fallback component CSS variables */
-type FallbackCSSVariables = {
+/** Placeholder component CSS variables */
+type PlaceholderCSSVariables = {
 	/** Border properties */
-	'--frame-fallback-border-radius': string;
-	'--frame-fallback-border-width': string;
-	'--frame-fallback-border-color': string;
-	'--frame-fallback-border-color-dark': string;
+	'--frame-placeholder-border-radius': string;
+	'--frame-placeholder-border-width': string;
+	'--frame-placeholder-border-color': string;
+	'--frame-placeholder-border-color-dark': string;
 
 	/** Background and text colors */
-	'--frame-fallback-background-color': string;
-	'--frame-fallback-background-color-dark': string;
-	'--frame-fallback-text-color': string;
-	'--frame-fallback-text-color-dark': string;
+	'--frame-placeholder-background-color': string;
+	'--frame-placeholder-background-color-dark': string;
+	'--frame-placeholder-text-color': string;
+	'--frame-placeholder-text-color-dark': string;
 
 	/** Title and description colors */
-	'--frame-fallback-title-color': string;
-	'--frame-fallback-title-color-dark': string;
-	'--frame-fallback-description-color': string;
-	'--frame-fallback-description-color-dark': string;
+	'--frame-placeholder-title-color': string;
+	'--frame-placeholder-title-color-dark': string;
+	'--frame-placeholder-description-color': string;
+	'--frame-placeholder-description-color-dark': string;
 
 	/** Shadow effects */
-	'--frame-fallback-shadow': string;
-	'--frame-fallback-shadow-dark': string;
+	'--frame-placeholder-shadow': string;
+	'--frame-placeholder-shadow-dark': string;
 };

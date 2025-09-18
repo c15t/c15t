@@ -70,7 +70,7 @@ export default function Home() {
 			</main>
 
 			{mounted && (
-				<aside className="h-full w-full flex-flex-col items-start justify-start overflow-hidden md:col-span-2">
+				<aside className="flex w-full flex-col gap-4 md:col-span-2">
 					<div className="space-y-2 rounded-[1.25rem] border border-neutral p-4">
 						<h2 className="font-medium text-base">Current Consent: </h2>
 						<pre className="font-light text-sm">
@@ -92,56 +92,78 @@ export default function Home() {
 								))}
 						</pre>
 					</div>
+
+					<div className="space-y-2 rounded-[1.25rem] border border-neutral p-4">
+						<h2 className="font-medium text-base">Location Info: </h2>
+						<pre className="text-wrap font-light text-sm">
+							{JSON.stringify(locationInfo, null, 2)
+								.split('\n')
+								.map((line, i) => (
+									<div
+										key={i}
+										style={{
+											color: line.includes('true')
+												? '#22c55e'
+												: line.includes('false')
+													? '#ef4444'
+													: 'inherit',
+										}}
+									>
+										{line}
+									</div>
+								))}
+						</pre>
+					</div>
+
+					<footer className="flex flex-wrap items-center justify-center gap-[24px]">
+						<a
+							className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+							href="https://c15t.com/docs/frameworks/next/quickstart"
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							<Image
+								aria-hidden
+								src="/file.svg"
+								alt="File icon"
+								width={16}
+								height={16}
+							/>
+							Docs
+						</a>
+						<a
+							className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+							href="https://github.com/c15t/c15t/tree/main/examples"
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							<Image
+								aria-hidden
+								src="/window.svg"
+								alt="Window icon"
+								width={16}
+								height={16}
+							/>
+							Examples
+						</a>
+						<a
+							className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+							href="https://consent.io"
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							<Image
+								aria-hidden
+								src="/globe.svg"
+								alt="Globe icon"
+								width={16}
+								height={16}
+							/>
+							Hosted c15t →
+						</a>
+					</footer>
 				</aside>
 			)}
-
-			<footer className="flex flex-wrap items-center justify-center gap-[24px] md:col-span-7">
-				<a
-					className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-					href="https://c15t.com/docs/frameworks/next/quickstart"
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					<Image
-						aria-hidden
-						src="/file.svg"
-						alt="File icon"
-						width={16}
-						height={16}
-					/>
-					Docs
-				</a>
-				<a
-					className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-					href="https://github.com/c15t/c15t/tree/main/examples"
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					<Image
-						aria-hidden
-						src="/window.svg"
-						alt="Window icon"
-						width={16}
-						height={16}
-					/>
-					Examples
-				</a>
-				<a
-					className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-					href="https://consent.io"
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					<Image
-						aria-hidden
-						src="/globe.svg"
-						alt="Globe icon"
-						width={16}
-						height={16}
-					/>
-					Hosted c15t →
-				</a>
-			</footer>
 		</div>
 	);
 }
