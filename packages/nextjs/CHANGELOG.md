@@ -1,5 +1,12 @@
 # @c15t/nextjs
 
+## 1.6.1
+
+### Patch Changes
+
+- Updated dependencies [6257a20]
+  - @c15t/react@1.6.1
+
 ## 1.6.0
 
 ### Minor Changes
