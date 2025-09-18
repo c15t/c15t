@@ -1,5 +1,11 @@
 # @c15t/react
 
+## 1.6.1
+
+### Patch Changes
+
+- 6257a20: fix(react): dialog scroll lock persisting after closure
+
 ## 1.6.0
 
 ### Minor Changes
