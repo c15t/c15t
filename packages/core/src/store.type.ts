@@ -112,6 +112,9 @@ export interface PrivacyConsentState {
 	/** Available consent type configurations */
 	consentTypes: ConsentType[];
 
+	/** Configuration for the iframe blocker */
+	iframeBlockerConfig: import('./libs/iframe-blocker').IframeBlockerConfig;
+
 	/*
 	 * Updates the selected consent state for a specific consent type.
 	 * @param name - The consent type to update
@@ -243,4 +246,13 @@ export interface PrivacyConsentState {
 		region: ComplianceRegion,
 		settings: Partial<ComplianceSettings>
 	) => void;
+
+	/** Initializes the iframe blocker instance. */
+	initializeIframeBlocker: () => void;
+
+	/** Updates consents for the iframe blocker. */
+	updateIframeConsents: () => void;
+
+	/** Destroys the iframe blocker instance. */
+	destroyIframeBlocker: () => void;
 }

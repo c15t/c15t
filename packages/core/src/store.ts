@@ -17,6 +17,8 @@ import {
 import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
 import { type GTMConfiguration, setupGTM } from './libs/gtm';
 import { type HasCondition, has } from './libs/has';
+import { IframeBlockerConfig } from './libs/iframe-blocker';
+import { createIframeManager } from './libs/iframe-blocker/store';
 import { saveConsents } from './libs/save-consents';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
 import { createTrackingBlocker } from './libs/tracking-blocker';
@@ -114,6 +116,12 @@ export interface StoreOptions {
 	 * Configuration for the tracking blocker.
 	 */
 	trackingBlockerConfig?: TrackingBlockerConfig;
+
+	/**
+	 * Configuration for the iframe blocker.
+	 * Controls how iframes are blocked based on consent settings.
+	 */
+	iframeBlockerConfig?: IframeBlockerConfig;
 
 	/**
 	 * Flag indicating if the consent manager is using the c15t.dev domain.
@@ -227,6 +235,7 @@ export const createConsentManagerStore = (
 		...initialState,
 		ignoreGeoLocation: options.ignoreGeoLocation ?? false,
 		config: options.config ?? initialState.config,
+		iframeBlockerConfig: options.iframeBlockerConfig,
 		// Set isConsentDomain based on the provider's baseURL
 		isConsentDomain,
 		// Override the callbacks with merged callbacks
@@ -581,7 +590,12 @@ export const createConsentManagerStore = (
 		setTranslationConfig: (config: TranslationConfig) => {
 			set({ translationConfig: config });
 		},
+
+		...createIframeManager(get, set),
 	}));
+
+	// Initialize the iframe blocker after the store is created
+	store.getState().initializeIframeBlocker();
 
 	if (typeof window !== 'undefined') {
 		// biome-ignore lint/suspicious/noExplicitAny: its okay
