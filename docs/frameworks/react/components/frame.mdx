@@ -54,19 +54,19 @@ The frame component provides a pre-built placeholder, however, this can be modif
     export default function App() {
       return (
        	<Frame
-					category="marketing"
+    				category="marketing"
           style={{ width: '500px', height: '500px' }}
-					placeholder={
-						<CustomFrame />
-					}
-				>
-					<iframe
-						title="Cool Duck Video"
-						src="https://www.youtube.com/embed/mQJ6q1ZCzsg"
-						width="100%"
-						height="100%"
-					/>
-				</Frame>
+    				placeholder={
+    					<CustomFrame />
+    				}
+    			>
+    				<iframe
+    					title="Cool Duck Video"
+    					src="https://www.youtube.com/embed/mQJ6q1ZCzsg"
+    					width="100%"
+    					height="100%"
+    				/>
+    			</Frame>
       );
     };
     ```
