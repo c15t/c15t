@@ -9,6 +9,8 @@
 	-webkit-text-size-adjust: 100%;
 	tab-size: 4;
 
+	--frame-placeholder-gap: 1rem;
+
 	/* Border */
 	--frame-placeholder-border-radius: 1.25rem;
 	--frame-placeholder-border-width: 1px;
@@ -22,8 +24,6 @@
 	--frame-placeholder-text-color-dark: hsla(0 0% 90% / 1);
 	--frame-placeholder-title-color: hsla(0 0% 9.02% / 1);
 	--frame-placeholder-title-color-dark: hsla(0 0% 90% / 1);
-	--frame-placeholder-description-color: hsla(0 0% 36.08% / 1);
-	--frame-placeholder-description-color-dark: hsla(0 0% 60% / 1);
 
 	/* Shadow */
 	--frame-placeholder-shadow: 0 16px 32 px -12px rgba(14, 18, 27, 0.1);
@@ -46,16 +46,13 @@
 	opacity: 1;
 	transform: scale(1);
 	pointer-events: auto;
+	gap: var(--frame-placeholder-gap);
 }
 
 :global(.c15t-dark) .placeholder {
 	background-color: var(--frame-placeholder-background-color-dark);
 	border-color: var(--frame-placeholder-border-color-dark);
 	box-shadow: var(--frame-placeholder-shadow-dark);
-}
-
-.placeholderContent {
-	margin-bottom: 1rem;
 }
 
 .title {
@@ -68,9 +65,4 @@
 
 :global(.c15t-dark) .title {
 	color: var(--frame-placeholder-title-color-dark);
-}
-
-.placeholderDescription {
-	font-size: 1rem;
-	color: var(--frame-placeholder-description-color);
 }
