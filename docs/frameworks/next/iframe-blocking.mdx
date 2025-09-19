@@ -1,24 +1,25 @@
 ---
-title: "Iframe Blocking"
+title: "iframe blocking"
 description: "Learn how to block iframes based on consent."
 lastModified: 2025-09-19
+canary: true
 availableIn:
   - framework: 'javascript'
-    url: '/docs/frameworks/javascript/iframes'
+    url: '/docs/frameworks/javascript/iframe-blocking'
     title: 'JavaScript'
   - framework: 'react'
-    url: '/docs/frameworks/react/internationalization'
+    url: '/docs/frameworks/react/iframe-blocking'
     title: 'React'
   - framework: 'next'
-    url: '/docs/frameworks/react/internationalization'
-    title: 'React'
+    url: '/docs/frameworks/next/iframe-blocking'
+    title: 'Next.js'
 ---
 
-<import>../shared/iframe-blocking.mdx#overview</import>
+<import>../javascript/shared/iframe-blocking.mdx#overview</import>
 
-c15t provides two ways to block iframes:
-- Headless: This is a headless implementation that does not render any DOM elements. It only manages the src/data-src attributes of existing iframe elements.
-- Frame Component (React only): This is a React component that conditionally renders content and provides a pre-built/customizable placeholder. [Learn more about the Frame component](/docs/frameworks/next/components/frame)
+<import>../react/iframe-blocking.mdx#react-overview</import>
 
-<import>../shared/iframe-blocking.mdx#headless-usage</import>
+<import>../react/iframe-blocking.mdx#frame</import>
+
+<import>../javascript/shared/iframe-blocking.mdx#headless-usage</import>
 

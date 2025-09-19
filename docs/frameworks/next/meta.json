@@ -17,6 +17,7 @@
 		"components/cookie-banner",
 		"components/consent-manager-dialog",
 		"components/consent-manager-widget",
+		"components/frame",
 		"components/dev-tools",
 		"--- Styling the components ---",
 		"styling/overview",
