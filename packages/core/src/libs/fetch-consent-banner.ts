@@ -52,8 +52,13 @@ function updateStore(
 	{ set, get, initialTranslationConfig }: FetchConsentBannerConfig,
 	hasLocalStorageAccess: boolean
 ): void {
-	const { consentInfo, ignoreGeoLocation, callbacks, setDetectedCountry } =
-		get();
+	const {
+		consentInfo,
+		ignoreGeoLocation,
+		callbacks,
+		setDetectedCountry,
+		updateScripts,
+	} = get();
 
 	const { translations, location, showConsentBanner } = data;
 
@@ -122,6 +127,9 @@ function updateStore(
 			translations: translations.translations,
 		},
 	});
+
+	// Update scripts based on current consent state
+	updateScripts();
 }
 
 /**
@@ -151,16 +159,19 @@ export async function fetchConsentBannerInfo(
 	set({ isLoadingConsentInfo: true });
 
 	if (initialData) {
-		const showConsentBanner = await initialData;
+		try {
+			const showConsentBanner = await initialData;
 
-		// Ensures the promsie has the expected data
-		if (showConsentBanner) {
-			updateStore(showConsentBanner, config, true);
-
-			return showConsentBanner;
+			// Ensures the promise has the expected data
+			if (showConsentBanner) {
+				updateStore(showConsentBanner, config, true);
+				return showConsentBanner;
+			}
+			// Fall back to API call if no data
+		} catch (error) {
+			// Propagate the error from the initial data promise
+			throw error;
 		}
-
-		// Fall back to API call
 	}
 
 	try {

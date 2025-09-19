@@ -74,6 +74,15 @@ const createMockStoreState = (
 	setTranslationConfig: vi.fn(),
 	includeNonDisplayedConsents: false,
 	consentTypes: [],
+	scripts: [],
+	loadedScripts: {},
+	scriptIdMap: {},
+	addScript: vi.fn(),
+	addScripts: vi.fn(),
+	removeScript: vi.fn(),
+	updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+	isScriptLoaded: vi.fn(),
+	getLoadedScriptIds: vi.fn().mockReturnValue([]),
 	setConsent: vi.fn(),
 	setShowPopup: vi.fn(),
 	setIsPrivacyDialogOpen: vi.fn(),
@@ -286,17 +295,35 @@ describe('fetchConsentBannerInfo', () => {
 			expect(mockManager.showConsentBanner).toHaveBeenCalled();
 		});
 
-		it('should throw when initial data promise rejects', async () => {
+		it('should handle rejected initial data promise', async () => {
+			// Mock console.error to prevent test output noise
+			const originalConsoleError = console.error;
+			console.error = vi.fn();
+
+			// Create a rejected promise
 			const initialData = Promise.reject(new Error('Initial data failed'));
 
-			await expect(
-				fetchConsentBannerInfo({
+			// Handle the unhandled rejection in the test to avoid test warnings
+			initialData.catch(() => {});
+
+			try {
+				// The function should throw when initialData rejects
+				await fetchConsentBannerInfo({
 					manager: mockManager,
 					get: mockGet,
 					set: mockSet,
 					initialData,
-				})
-			).rejects.toThrow('Initial data failed');
+				});
+
+				// If we reach here, the test should fail
+				expect(true).toBe(false); // This should not be reached
+			} catch (error) {
+				// Verify we got the expected error
+				expect(error.message).toContain('Initial data failed');
+			} finally {
+				// Restore console.error
+				console.error = originalConsoleError;
+			}
 		});
 	});
 

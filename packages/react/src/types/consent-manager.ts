@@ -8,12 +8,14 @@ import type {
 	Callbacks,
 	ConsentManagerOptions as CoreOptions,
 	GTMConfiguration,
+	TrackingBlockerConfig,
 	TranslationConfig,
 } from 'c15t';
 import type { ReactNode } from 'react';
 import type { ConsentManagerDialogTheme } from '~/components/consent-manager-dialog/theme';
 import type { ConsentManagerWidgetTheme } from '~/components/consent-manager-widget/theme';
 import type { CookieBannerTheme } from '~/components/cookie-banner/theme';
+import type { ReactScript } from '~/components/script-loader/script-loader';
 
 /**
  * React-specific configuration options
@@ -94,6 +96,17 @@ export type ConsentManagerOptions = CoreOptions & {
 	 * Callbacks for the consent manager.
 	 */
 	callbacks?: Callbacks;
+
+	/**
+	 * Scripts to load.
+	 */
+	scripts?: ReactScript[];
+
+	/**
+	 * Tracking blocker configuration.
+	 * @deprecated This is deprecated and will be removed in the next major version. Use the new [ScriptLoader](https://c15t.com/docs/react/script-loader) instead.
+	 */
+	trackingBlockerConfig?: TrackingBlockerConfig;
 };
 
 /**
