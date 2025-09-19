@@ -44,4 +44,8 @@ export const idTranslations: CompleteTranslations = {
 				'Cookie ini membantu kami memberikan pengalaman pengguna yang lebih baik dan menguji fitur baru.',
 		},
 	},
+	frame: {
+		title: 'Setujui {category} untuk melihat konten ini.',
+		actionButton: 'Aktifkan persetujuan {category}',
+	},
 };

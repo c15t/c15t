@@ -57,6 +57,15 @@ export type {
  */
 export { API_ENDPOINTS } from './client/types';
 export type { GTMConfiguration } from './libs/gtm';
+
+export type { HasCondition } from './libs/has';
+
+export {
+	createIframeBlocker,
+	type IframeBlocker,
+	type IframeBlockerConfig,
+} from './libs/iframe-blocker';
+
 export type { TrackingBlockerConfig } from './libs/tracking-blocker';
 // Export tracking blocker
 export { createTrackingBlocker } from './libs/tracking-blocker';

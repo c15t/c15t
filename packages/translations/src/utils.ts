@@ -1,10 +1,12 @@
+import { enTranslations } from './translations/en';
 import type { TranslationConfig, Translations } from './types';
 
 type TranslationSection =
 	| 'common'
 	| 'cookieBanner'
 	| 'consentManagerDialog'
-	| 'consentTypes';
+	| 'consentTypes'
+	| 'frame';
 
 /**
  * Deep merges translation objects
@@ -18,6 +20,7 @@ export function deepMergeTranslations(
 		'consentManagerDialog',
 		'common',
 		'consentTypes',
+		'frame',
 	];
 
 	return sections.reduce((result, section) => {
@@ -36,37 +39,36 @@ export function mergeTranslationConfigs(
 	defaultConfig: TranslationConfig,
 	customConfig?: Partial<TranslationConfig>
 ): TranslationConfig {
-	const mergedTranslations = { ...defaultConfig.translations };
+	const translations: Record<string, Partial<Translations>> = {
+		en: JSON.parse(JSON.stringify(enTranslations)),
+	};
 
-	if (customConfig?.translations) {
-		// Merge English translations first
-		if (customConfig.translations.en) {
-			mergedTranslations.en = deepMergeTranslations(
-				defaultConfig.translations.en as Translations,
-				customConfig.translations.en as Partial<Translations>
+	const allTranslationSets = [
+		defaultConfig.translations,
+		customConfig?.translations,
+	];
+
+	for (const translationSet of allTranslationSets) {
+		if (!translationSet) {
+			continue;
+		}
+
+		for (const [lang, trans] of Object.entries(translationSet)) {
+			if (!trans) {
+				continue;
+			}
+			const base = translations[lang] || translations.en;
+			translations[lang] = deepMergeTranslations(
+				base as Translations,
+				trans as Partial<Translations>
 			);
 		}
-
-		// Merge other languages
-		for (const [lang, translations] of Object.entries(
-			customConfig.translations
-		)) {
-			if (lang !== 'en' && translations) {
-				// Use existing translations for this language as base if they exist,
-				// otherwise fall back to English
-				const baseTranslations =
-					defaultConfig.translations[lang] || mergedTranslations.en;
-				mergedTranslations[lang] = deepMergeTranslations(
-					baseTranslations as Translations,
-					translations as Partial<Translations>
-				);
-			}
-		}
 	}
+
 	return {
 		...defaultConfig,
 		...customConfig,
-		translations: mergedTranslations as Record<string, Translations>,
+		translations: translations as Record<string, Translations>,
 	};
 }
 

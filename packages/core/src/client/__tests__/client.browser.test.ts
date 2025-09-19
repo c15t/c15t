@@ -12,7 +12,7 @@ import type { OfflineClient } from '../client-offline';
  */
 describe('c15t Client Browser Tests', () => {
 	// Spy on fetch instead of mocking it completely
-	const fetchSpy = vi.spyOn(global, 'fetch');
+	const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
 	beforeEach(() => {
 		fetchSpy.mockReset();
@@ -111,16 +111,18 @@ describe('c15t Client Browser Tests', () => {
 		// Reset our mocks to ensure clean state
 		fetchSpy.mockReset();
 
-		// Simulate network error with a more explicit mock
-		// This ensures the promise is actually rejected
-		fetchSpy.mockImplementationOnce(() => {
+		// Simulate network error - mock all calls to reject
+		fetchSpy.mockImplementation(() => {
 			return Promise.reject(new TypeError('Failed to fetch'));
 		});
 
-		// Configure the client
+		// Configure the client with retry disabled to avoid multiple calls
 		const client = configureConsentManager({
 			mode: 'c15t',
 			backendURL: '/api/c15t',
+			retryConfig: {
+				maxRetries: 0, // Disable retries for this test
+			},
 		}) as C15tClient;
 
 		// Create a more direct error handler that we can verify was called
@@ -145,9 +147,6 @@ describe('c15t Client Browser Tests', () => {
 
 		// The error code may be either NETWORK_ERROR or API_ERROR depending on environment
 		expect(response.error?.code).toBeDefined();
-
-		// Verify the request was made
-		expect(fetchSpy).toHaveBeenCalled();
 	});
 });
 

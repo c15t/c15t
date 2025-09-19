@@ -44,4 +44,8 @@ export const itTranslations: CompleteTranslations = {
 				'Questi cookies ci aiutano a fornire una migliore esperienza utente e per testare nuove funzionalità.',
 		},
 	},
+	frame: {
+		title: 'Accetta {category} per visualizzare questo contenuto',
+		actionButton: 'Abilita consenso {category}',
+	},
 };

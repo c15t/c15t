@@ -5,6 +5,7 @@
 	"pages": [
 		"quickstart",
 		"internationalization",
+		"iframe-blocking",
 		"callbacks",
 		"google-tag-manager",
 		"--- Storing Consent ---",

@@ -44,4 +44,8 @@ export const fiTranslations: CompleteTranslations = {
 				'Nämä evästeet auttavat meitä tarjoamaan paremman käyttökokemuksen ja testaamaan uusia ominaisuuksia.',
 		},
 	},
+	frame: {
+		title: 'Hyväksy {category}, jotta voit tarkastella tätä sisältöä.',
+		actionButton: 'Ota {category} käyttöön',
+	},
 };

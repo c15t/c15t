@@ -39,4 +39,8 @@ export const zhTranslations: CompleteTranslations = {
 			description: '这些cookies帮助我们提供更好的用户体验并测试新功能。',
 		},
 	},
+	frame: {
+		title: '接受 {category} 以查看此内容。',
+		actionButton: '启用 {category} 同意',
+	},
 };

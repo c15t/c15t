@@ -1,4 +1,5 @@
 import { Slot } from '@radix-ui/react-slot';
+import type { AllConsentNames } from 'c15t';
 import { forwardRef, type MouseEvent, useCallback } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
@@ -31,7 +32,9 @@ export const ConsentButton = forwardRef<
 				| 'accept-consent'
 				| 'reject-consent'
 				| 'custom-consent'
-				| 'open-consent-dialog';
+				| 'open-consent-dialog'
+				| 'set-consent';
+			category?: AllConsentNames;
 			closeCustomizeDialog?: boolean;
 			closeCookieBanner?: boolean;
 		}
@@ -51,11 +54,12 @@ export const ConsentButton = forwardRef<
 			onClick: forwardedOnClick,
 			closeCookieBanner = false,
 			closeCustomizeDialog = false,
+			category,
 			...props
 		},
 		ref
 	) => {
-		const { saveConsents, setShowPopup, setIsPrivacyDialogOpen } =
+		const { saveConsents, setShowPopup, setIsPrivacyDialogOpen, setConsent } =
 			useConsentManager();
 		const { noStyle: contextNoStyle } = useTheme();
 
@@ -74,6 +78,11 @@ export const ConsentButton = forwardRef<
 			className: forwardedClassName,
 			noStyle: contextNoStyle || noStyle,
 		});
+
+		// Need to know what category to set
+		if (!category && action === 'set-consent') {
+			throw new Error('Category is required for set-consent action');
+		}
 
 		const buttonClick = useCallback(
 			(e: MouseEvent<HTMLButtonElement>) => {
@@ -107,6 +116,13 @@ export const ConsentButton = forwardRef<
 							break;
 						case 'custom-consent':
 							saveConsents('custom');
+							break;
+						case 'set-consent':
+							if (!category) {
+								throw new Error('Category is required for set-consent action');
+							}
+
+							setConsent(category, true);
 							break;
 						default:
 							break;

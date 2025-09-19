@@ -41,4 +41,8 @@ export const heTranslations: CompleteTranslations = {
 				'עוגיות אלו מאפשרות חוויית משתמש טובה יותר ובדיקת פונקציונליות חדשה באתר.',
 		},
 	},
+	frame: {
+		title: 'קבל {category} כדי להציג תוכן זה.',
+		actionButton: 'הפעל {category} רשות',
+	},
 };

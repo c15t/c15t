@@ -8,13 +8,16 @@ export type {
 	ConsentManagerWidgetProps,
 	CookieBannerProps,
 } from '@c15t/react';
+
 export {
 	ConsentManagerDialog,
+	ConsentManagerProvider as ClientConsentManagerProvider,
 	ConsentManagerWidget,
 	CookieBanner,
 	configureConsentManager,
 	defaultTranslationConfig,
 	detectBrowserLanguage,
+	Frame,
 	mergeTranslationConfigs,
 	// Translation utilities
 	prepareTranslationConfig,

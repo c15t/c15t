@@ -31,6 +31,8 @@ import {
 	type ConsentManagerDialogProps,
 } from './consent-manager-dialog';
 
+export type { ConsentManagerDialogProps };
+
 /**
  * This interface extends the base ConsentManagerDialog component with additional sub-components
  * that can be used to compose the dialog's structure. Each component is designed to be

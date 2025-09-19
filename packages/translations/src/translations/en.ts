@@ -44,4 +44,8 @@ export const enTranslations: CompleteTranslations = {
 				'These cookies help us provide a better user experience and test new features.',
 		},
 	},
+	frame: {
+		title: 'Accept {category} consent to view this content.',
+		actionButton: 'Enable {category} consent',
+	},
 };

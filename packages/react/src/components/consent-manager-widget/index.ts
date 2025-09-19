@@ -30,6 +30,8 @@ import { Root } from './atoms/root';
 import { ConsentManagerWidget as ConsentManagerWidgetComponent } from './consent-manager-widget';
 import type { ConsentManagerWidgetProps } from './types';
 
+export type { ConsentManagerWidgetProps };
+
 /**
  * This interface extends the base ConsentManagerWidget component with additional sub-components
  * that can be used to compose the widget's structure. Each component is designed to be

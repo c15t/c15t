@@ -20,7 +20,13 @@ export async function saveConsents({
 	set,
 	trackingBlocker,
 }: SaveConsentsProps) {
-	const { callbacks, selectedConsents, consents, consentTypes } = get();
+	const {
+		callbacks,
+		selectedConsents,
+		consents,
+		consentTypes,
+		updateIframeConsents,
+	} = get();
 
 	const newConsents = selectedConsents ?? consents ?? {};
 
@@ -53,6 +59,7 @@ export async function saveConsents({
 
 	// Run after yielding to avoid blocking the click INP
 	trackingBlocker?.updateConsents(newConsents);
+	updateIframeConsents();
 	updateGTMConsent(newConsents);
 
 	try {
