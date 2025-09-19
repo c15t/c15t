@@ -1,0 +1,22 @@
+---
+title: "Headless"
+description: "Reduce bundle size and improve performance by using the headless package."
+lastModified: 2025-09-19
+availableIn:
+  - framework: 'next'
+    url: '/docs/frameworks/next/headless'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/headless'
+    title: 'React'
+---
+
+If you are using your own custom components for c15t, you can use the headless package to reduce bundle size and improve performance. This package still exports all the same hooks and functions as the standard package, but without the UI components.
+
+```ts
+import { ConsentManagerProvider } from '@c15t/react/headless';
+```
+
+
+
+
