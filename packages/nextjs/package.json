@@ -31,9 +31,14 @@
 	"type": "module",
 	"exports": {
 		"./headless": {
-			"types": "./dist/components/react/headless.d.ts",
-			"import": "./dist/components/react/headless.js",
-			"require": "./dist/components/react/headless.cjs"
+			"types": "./dist/headless.d.ts",
+			"import": "./dist/headless.js",
+			"require": "./dist/headless.cjs"
+		},
+		"./pages/headless": {
+			"types": "./dist/headless.pages.d.ts",
+			"import": "./dist/headless.pages.js",
+			"require": "./dist/headless.pages.cjs"
 		},
 		"./pages": {
 			"types": "./dist/pages.d.ts",
