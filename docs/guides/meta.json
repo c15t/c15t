@@ -1,0 +1,5 @@
+{
+	"title": "Guides",
+	"icon": "guide",
+	"pages": ["index", "google-tag-manager"]
+}
