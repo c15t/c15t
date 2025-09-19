@@ -12,6 +12,7 @@ By default, GTM is loaded when the 'necessary' category is given consent, as it 
 Allowing c15t to manage GTM prevents any issues with GTM scripts being loaded without consent.
 
 ## Implementation
+
 <Steps>
   <Step>
     ### Creating a Tag Manager Container
@@ -28,7 +29,6 @@ Allowing c15t to manage GTM prevents any issues with GTM scripts being loaded wi
 
     ![Enable consent overview](https://qawfa2yzgrix7k7v.public.blob.vercel-storage.com/google-tag-manager/container-settings.png)
   </Step>
-
 
   <Step>
     ### Custom Update Trigger
@@ -57,82 +57,85 @@ Allowing c15t to manage GTM prevents any issues with GTM scripts being loaded wi
 
     <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
       <Tab value="JavaScript">
-      ```ts
-      import { googleTagManager } from 'c15t/scripts/google-tag-manager';
+        ```ts
+        import { googleTagManager } from 'c15t/scripts/google-tag-manager';
 
-      configureConsentManager({
-        // ... 
-        scripts: [
-          googleTagManager({
-            id: 'GTM-XXXXXXX',
-          }),
-        ],
-      });
-      ```
-      </Tab>
-      <Tab value="React">
-      ```tsx
-      import { googleTagManager } from '@c15t/react/scripts/google-tag-manager';
-      import { ConsentManagerProvider } from '@c15t/react';
-
-      export function App() { 
-        <ConsentManagerProvider
-          options={{
-            scripts: [
-              googleTagManager({
-                id: 'GTM-XXXXXXX',
-              }),
-            ]),
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      }
-    >
-      ```
-      </Tab>
-      <Tab value="Next.js + App Router">
-      ```tsx
-      'use client';
-      import { googleTagManager } from '@c15t/nextjs/scripts/google-tag-manager';
-      import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
-
-      export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
-        <ClientSideOptionsProvider
-          scripts={[
-            scripts: [
-              googleTagManager({
-                id: 'GTM-XXXXXXX',
+        configureConsentManager({
+          // ... 
+          scripts: [
+            googleTagManager({
+              id: 'GTM-XXXXXXX',
             }),
-            ],
-          ]}
-        >
-          {children}
-        </ClientSideOptionsProvider>
-      }
-      ```
+          ],
+        });
+        ```
       </Tab>
-      <Tab value="Next.js + Pages Router">
-      ```tsx
-      import { googleTagManager } from '@c15t/nextjs/scripts/google-tag-manager';
-      import { ConsentManagerProvider } from '@c15t/nextjs';
 
-      export function App() { 
-        <ConsentManagerProvider
-          options={{
-            // ... other options
-            scripts: [
-              googleTagManager({
-                id: 'GTM-XXXXXXX',
-              }),
-            ]),
-          }}
+      <Tab value="React">
+        ```tsx
+        import { googleTagManager } from '@c15t/react/scripts/google-tag-manager';
+        import { ConsentManagerProvider } from '@c15t/react';
+
+        export function App() { 
+          <ConsentManagerProvider
+            options={{
+              scripts: [
+                googleTagManager({
+                  id: 'GTM-XXXXXXX',
+                }),
+              ]),
+            }}
+          >
+            {children}
+          </ConsentManagerProvider>
+        }
         >
-          {children}
-        </ConsentManagerProvider>
-      }
-    >
-      ```
+        ```
+      </Tab>
+
+      <Tab value="Next.js + App Router">
+        ```tsx
+        'use client';
+        import { googleTagManager } from '@c15t/nextjs/scripts/google-tag-manager';
+        import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
+
+        export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
+          <ClientSideOptionsProvider
+            scripts={[
+              scripts: [
+                googleTagManager({
+                  id: 'GTM-XXXXXXX',
+              }),
+              ],
+            ]}
+          >
+            {children}
+          </ClientSideOptionsProvider>
+        }
+        ```
+      </Tab>
+
+      <Tab value="Next.js + Pages Router">
+        ```tsx
+        import { googleTagManager } from '@c15t/nextjs/scripts/google-tag-manager';
+        import { ConsentManagerProvider } from '@c15t/nextjs';
+
+        export function App() { 
+          <ConsentManagerProvider
+            options={{
+              // ... other options
+              scripts: [
+                googleTagManager({
+                  id: 'GTM-XXXXXXX',
+                }),
+              ]),
+            }}
+          >
+            {children}
+          </ConsentManagerProvider>
+        }
+        >
+        ```
       </Tab>
     </Tabs>
   </Step>

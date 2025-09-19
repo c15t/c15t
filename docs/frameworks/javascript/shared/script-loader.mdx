@@ -17,15 +17,17 @@ availableIn:
 
 <section id="overview">
   ## Overview
+
   c15t provides the ability to load and unload scripts based on consent. This is useful for loading scripts that are not necessary for the user's consent, such as analytics scripts.
 
   One common flaw of CMP's is they'll maintain a list of scripts that are blocked & then unblocked based on consent. This is a problem because it's not always accurate and can lead to missed scripts.
-  
+
   Our approach gives you, the developer, full control over the scripts that are loaded and unloaded, as no one knows your site better than you do.
 </section>
 
 <section id="prebuilt-scripts">
   ## Prebuilt Scripts
+
   A lot of scripts you may need to implement may be common, such as Google Tag Manager (GTM), PostHog, Meta Pixel, etc. To save you time, we have provided a set of prebuilt scripts for you to use.
 </section>
 
@@ -35,15 +37,12 @@ availableIn:
   | Script | Guide |
   | --- | --- |
   | Google Tag Manager | [Guide](/docs/guides/google-tag-manager) |
-  | Meta Pixel | [Guide](/docs/guides/meta-pixel) |  
+  | Meta Pixel | [Guide](/docs/guides/meta-pixel) |\
   |PostHog (Sync-Only) | [Guide](/docs/guides/posthog) |
 </section>
-
 
 <section id="script-type">
   ### Script
 
   <AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
 </section>
-
-
