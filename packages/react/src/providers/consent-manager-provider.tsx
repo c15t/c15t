@@ -7,7 +7,6 @@ import {
 	type PrivacyConsentState,
 } from 'c15t';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScriptLoader } from '../components/script-loader/script-loader';
 import {
 	ConsentStateContext,
 	type ConsentStateContextValue,
@@ -169,6 +168,7 @@ export function ConsentManagerProvider({
 			initialGdprTypes: options.consentCategories,
 			callbacks: options.callbacks,
 			trackingBlockerConfig: options.trackingBlockerConfig,
+			scripts: options.scripts,
 			...store,
 			isConsentDomain,
 			initialTranslationConfig: translations,
@@ -185,6 +185,7 @@ export function ConsentManagerProvider({
 		options.ignoreGeoLocation,
 		options.consentCategories,
 		options.trackingBlockerConfig,
+		options.scripts,
 		store,
 		isConsentDomain,
 		translations,
@@ -278,7 +279,7 @@ export function ConsentManagerProvider({
 	return (
 		<ConsentStateContext.Provider value={consentContextValue}>
 			<GlobalThemeContext.Provider value={themeContextValue}>
-				<ScriptLoader scripts={options.scripts}>{children}</ScriptLoader>
+				{children}
 			</GlobalThemeContext.Provider>
 		</ConsentStateContext.Provider>
 	);

@@ -61,12 +61,19 @@ fbq('track', 'PageView');
 		`.trim(),
 		// This is a persistent script because it has an API to manage the consent state
 		persistAfterConsentRevoked: true,
+		onLoad: (payload) => {
+			window.fbq('consent', 'grant');
+
+			if (script?.onLoad) {
+				script.onLoad(payload);
+			}
+		},
 		// This will run before the script is deleted
-		onDelete: (info) => {
+		onDelete: (payload) => {
 			window.fbq('consent', 'revoke');
 
 			if (script?.onDelete) {
-				script.onDelete(info);
+				script.onDelete(payload);
 			}
 		},
 	};

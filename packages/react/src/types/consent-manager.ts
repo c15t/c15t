@@ -8,6 +8,7 @@ import type {
 	Callbacks,
 	ConsentManagerOptions as CoreOptions,
 	GTMConfiguration,
+	Script,
 	TrackingBlockerConfig,
 	TranslationConfig,
 } from 'c15t';
@@ -15,7 +16,6 @@ import type { ReactNode } from 'react';
 import type { ConsentManagerDialogTheme } from '~/components/consent-manager-dialog/theme';
 import type { ConsentManagerWidgetTheme } from '~/components/consent-manager-widget/theme';
 import type { CookieBannerTheme } from '~/components/cookie-banner/theme';
-import type { ReactScript } from '~/components/script-loader/script-loader';
 
 /**
  * React-specific configuration options
@@ -100,7 +100,7 @@ export type ConsentManagerOptions = CoreOptions & {
 	/**
 	 * Scripts to load.
 	 */
-	scripts?: ReactScript[];
+	scripts?: Script[];
 
 	/**
 	 * Tracking blocker configuration.

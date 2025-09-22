@@ -2,7 +2,6 @@
 
 import {
 	type ConsentManagerProviderProps,
-	ScriptLoader,
 	useConsentManager,
 } from '@c15t/react';
 import { useEffect } from 'react';
@@ -21,10 +20,10 @@ export function ClientSideOptionsProvider({
 	scripts,
 }: {
 	children: React.ReactNode;
-	callbacks: ConsentManagerProviderProps['options']['callbacks'];
+	callbacks?: ConsentManagerProviderProps['options']['callbacks'];
 	scripts?: ConsentManagerProviderProps['options']['scripts'];
 }) {
-	const { setCallback } = useConsentManager();
+	const { setCallback, addScripts } = useConsentManager();
 
 	useEffect(() => {
 		if (!callbacks) {
@@ -39,5 +38,13 @@ export function ClientSideOptionsProvider({
 		}
 	}, [callbacks, setCallback]);
 
-	return <ScriptLoader scripts={scripts}>{children}</ScriptLoader>;
+	useEffect(() => {
+		if (!scripts) {
+			return;
+		}
+
+		addScripts(scripts);
+	}, [scripts, addScripts]);
+
+	return { children };
 }
