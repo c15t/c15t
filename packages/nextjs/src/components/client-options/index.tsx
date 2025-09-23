@@ -23,7 +23,7 @@ export function ClientSideOptionsProvider({
 	callbacks?: ConsentManagerProviderProps['options']['callbacks'];
 	scripts?: ConsentManagerProviderProps['options']['scripts'];
 }) {
-	const { setCallback, addScripts } = useConsentManager();
+	const { setCallback, setScripts } = useConsentManager();
 
 	useEffect(() => {
 		if (!callbacks) {
@@ -43,8 +43,8 @@ export function ClientSideOptionsProvider({
 			return;
 		}
 
-		addScripts(scripts);
-	}, [scripts, addScripts]);
+		setScripts(scripts);
+	}, [scripts, setScripts]);
 
-	return { children };
+	return children;
 }

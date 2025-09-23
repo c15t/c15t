@@ -8,6 +8,7 @@ export default defineConfig({
 			'/scripts/google-tag-manager': ['./src/scripts/google-tag-manager.ts'],
 			'/scripts/posthog': ['./src/scripts/posthog.ts'],
 			'/scripts/meta-pixel': ['./src/scripts/meta-pixel.ts'],
+			'/scripts/tiktok-pixel': ['./src/scripts/tiktok-pixel.ts'],
 		},
 		exclude: [
 			'**/__tests__/**',

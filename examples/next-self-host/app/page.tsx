@@ -1,6 +1,11 @@
+'use client';
+
+import { useConsentManager } from '@c15t/nextjs';
 import Image from 'next/image';
 
 export default function Home() {
+	const { setIsPrivacyDialogOpen } = useConsentManager();
+
 	return (
 		<div className="grid min-h-screen grid-rows-[20px_1fr_20px] items-center justify-items-center gap-16 p-8 pb-20 font-sans sm:p-20">
 			<main className="row-start-2 flex flex-col items-center gap-[32px] sm:items-start">
@@ -26,11 +31,10 @@ export default function Home() {
 				</ol>
 
 				<div className="flex flex-col items-center gap-4 sm:flex-row">
-					<a
+					<button
+						type="button"
+						onClick={() => setIsPrivacyDialogOpen(true)}
 						className="flex h-10 items-center justify-center gap-2 rounded-full border border-transparent border-solid bg-foreground px-4 font-medium text-background text-sm transition-colors hover:bg-[#383838] sm:h-12 sm:w-auto sm:px-5 sm:text-base dark:hover:bg-[#ccc]"
-						href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-						target="_blank"
-						rel="noopener noreferrer"
 					>
 						<Image
 							className="dark:invert"
@@ -39,16 +43,16 @@ export default function Home() {
 							width={20}
 							height={20}
 						/>
-						Deploy now
-					</a>
-					<a
+						Open Consent Dialog
+					</button>
+					<button
 						className="flex h-10 w-full items-center justify-center rounded-full border border-black/[.08] border-solid px-4 font-medium text-sm transition-colors hover:border-transparent hover:bg-[#f2f2f2] sm:h-12 sm:w-auto sm:px-5 sm:text-base md:w-[158px] dark:border-white/[.145] dark:hover:bg-[#1a1a1a]"
-						href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-						target="_blank"
-						rel="noopener noreferrer"
+						type="button"
+						// onClick={() => setIsPrivacyDialogOpen(true)}
+						// rel="noopener noreferrer"
 					>
 						Read our docs
-					</a>
+					</button>
 				</div>
 			</main>
 			<footer className="row-start-3 flex flex-wrap items-center justify-center gap-[24px]">

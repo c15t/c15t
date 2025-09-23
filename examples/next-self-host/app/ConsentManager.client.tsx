@@ -32,7 +32,7 @@ export function ConsentManagerClient({
 				}),
 				posthogConsent(),
 				metaPixel({
-					pixelId: '1767125683972825',
+					pixelId: '123456789012345',
 					script: {
 						onLoad: () => {
 							console.log('meta-pixel loaded :D');

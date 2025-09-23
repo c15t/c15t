@@ -595,13 +595,6 @@ export const createConsentManagerStore = (
 		...createScriptManager(get, set),
 	}));
 
-	// Update scripts based on current consent state
-	const state = store.getState();
-	if (state.scripts && state.scripts.length > 0) {
-		const { updateScripts } = require('./libs/script-loader/core');
-		updateScripts(state.scripts || [], state.consents, state.scriptIdMap || {});
-	}
-
 	if (typeof window !== 'undefined') {
 		// biome-ignore lint/suspicious/noExplicitAny: its okay
 		(window as any)[namespace] = store;
@@ -617,12 +610,7 @@ export const createConsentManagerStore = (
 			}
 		}
 
-		// Auto-fetch consent banner information if no stored consent
-		if (!getStoredConsent()) {
-			// Immediately invoke the fetch and wait for it to complete
-			// This ensures we have location data before deciding to show the banner
-			store.getState().fetchConsentBannerInfo();
-		}
+		store.getState().fetchConsentBannerInfo();
 	}
 
 	return store;

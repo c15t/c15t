@@ -20,33 +20,43 @@ export function createScriptManager(
 	getState: () => PrivacyConsentState,
 	setState: (partial: Partial<PrivacyConsentState>) => void
 ) {
+	const updateScriptsFn = () => {
+		const { scripts, consents, scriptIdMap, loadedScripts } = getState();
+
+		const result = updateScripts(scripts, consents, scriptIdMap);
+
+		// Update loadedScripts state
+		const newLoadedScripts = { ...loadedScripts };
+
+		// Mark loaded scripts
+		result.loaded.forEach((id: string) => {
+			newLoadedScripts[id] = true;
+		});
+
+		// Mark unloaded scripts
+		result.unloaded.forEach((id: string) => {
+			newLoadedScripts[id] = false;
+		});
+
+		setState({ loadedScripts: newLoadedScripts });
+		return result;
+	};
+
 	return {
 		/**
-		 * Adds a script configuration to the store.
-		 *
-		 * @param script - The script configuration to add
+		 * Updates scripts based on current consent state.
+		 * Loads scripts that have consent and aren't loaded yet.
+		 * Unloads scripts that no longer have consent.
+		 * @returns Object containing arrays of loaded and unloaded script IDs
 		 */
-		addScript: (script: Script) => {
-			const state = getState();
-			const newScriptIdMap = { ...state.scriptIdMap };
-
-			// Generate a random ID for the script if anonymization is enabled
-			if (script.anonymizeId !== false) {
-				newScriptIdMap[script.id] = generateRandomScriptId();
-			}
-
-			setState({
-				scripts: [...state.scripts, script],
-				scriptIdMap: newScriptIdMap,
-			});
-		},
+		updateScripts: () => updateScriptsFn(),
 
 		/**
 		 * Adds multiple script configurations to the store.
 		 *
 		 * @param scripts - Array of script configurations to add
 		 */
-		addScripts: (scripts: Script[]) => {
+		setScripts: (scripts: Script[]) => {
 			const state = getState();
 			const newScriptIdMap = { ...state.scriptIdMap };
 
@@ -61,6 +71,8 @@ export function createScriptManager(
 				scripts: [...state.scripts, ...scripts],
 				scriptIdMap: newScriptIdMap,
 			});
+
+			updateScriptsFn();
 		},
 
 		/**
@@ -148,34 +160,6 @@ export function createScriptManager(
 		 */
 		getLoadedScriptIds: () => {
 			return getLoadedScriptIds();
-		},
-
-		/**
-		 * Updates scripts based on current consent state.
-		 * Loads scripts that have consent and aren't loaded yet.
-		 * Unloads scripts that no longer have consent.
-		 * @returns Object containing arrays of loaded and unloaded script IDs
-		 */
-		updateScripts: () => {
-			const { scripts, consents, scriptIdMap, loadedScripts } = getState();
-
-			const result = updateScripts(scripts, consents, scriptIdMap);
-
-			// Update loadedScripts state
-			const newLoadedScripts = { ...loadedScripts };
-
-			// Mark loaded scripts
-			result.loaded.forEach((id: string) => {
-				newLoadedScripts[id] = true;
-			});
-
-			// Mark unloaded scripts
-			result.unloaded.forEach((id: string) => {
-				newLoadedScripts[id] = false;
-			});
-
-			setState({ loadedScripts: newLoadedScripts });
-			return result;
 		},
 	};
 }

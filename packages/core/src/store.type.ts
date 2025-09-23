@@ -259,16 +259,10 @@ export interface PrivacyConsentState {
 	scriptIdMap: Record<string, string>;
 
 	/**
-	 * Adds a script configuration to the store.
-	 * @param script - The script configuration to add
-	 */
-	addScript: (script: Script) => void;
-
-	/**
-	 * Adds multiple script configurations to the store.
+	 * Sets multiple script configurations to the store.
 	 * @param scripts - Array of script configurations to add
 	 */
-	addScripts: (scripts: Script[]) => void;
+	setScripts: (scripts: Script[]) => void;
 
 	/**
 	 * Removes a script configuration from the store.

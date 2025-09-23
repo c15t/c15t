@@ -52,13 +52,8 @@ function updateStore(
 	{ set, get, initialTranslationConfig }: FetchConsentBannerConfig,
 	hasLocalStorageAccess: boolean
 ): void {
-	const {
-		consentInfo,
-		ignoreGeoLocation,
-		callbacks,
-		setDetectedCountry,
-		updateScripts,
-	} = get();
+	const { consentInfo, ignoreGeoLocation, callbacks, setDetectedCountry } =
+		get();
 
 	const { translations, location, showConsentBanner } = data;
 
@@ -129,7 +124,7 @@ function updateStore(
 	});
 
 	// Update scripts based on current consent state
-	updateScripts();
+	get().updateScripts();
 }
 
 /**
@@ -142,10 +137,9 @@ export async function fetchConsentBannerInfo(
 	config: FetchConsentBannerConfig
 ): Promise<ConsentBannerResponse | undefined> {
 	const { get, set, manager, initialData } = config;
-	const { hasConsented, callbacks } = get();
+	const { callbacks } = get();
 
-	if (typeof window === 'undefined' || hasConsented()) {
-		set({ isLoadingConsentInfo: false });
+	if (typeof window === 'undefined') {
 		return undefined;
 	}
 
