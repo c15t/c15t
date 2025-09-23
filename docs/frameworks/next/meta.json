@@ -6,6 +6,7 @@
 		"quickstart",
 		"quickstart-pages",
 		"internationalization",
+		"script-loader",
 		"callbacks",
 		"google-tag-manager",
 		"--- Storing Consent ---",

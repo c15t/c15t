@@ -18,6 +18,7 @@ import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fet
 import { type GTMConfiguration, setupGTM } from './libs/gtm';
 import { type HasCondition, has } from './libs/has';
 import { saveConsents } from './libs/save-consents';
+import { createScriptManager, type Script } from './libs/script-loader';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
 import { createTrackingBlocker } from './libs/tracking-blocker';
 import { initialState, STORAGE_KEY } from './store.initial-state';
@@ -123,6 +124,7 @@ export interface StoreOptions {
 
 	/**
 	 * Google Tag Manager configuration.
+	 * @deprecated use script loader instead
 	 */
 	unstable_googleTagManager?: GTMConfiguration;
 
@@ -152,6 +154,11 @@ export interface StoreOptions {
 	 * Callbacks for the consent manager.
 	 */
 	callbacks?: Callbacks;
+
+	/**
+	 * Scripts to load.
+	 */
+	scripts?: Script[];
 }
 
 // For backward compatibility (if needed)
@@ -231,6 +238,8 @@ export const createConsentManagerStore = (
 		isConsentDomain,
 		// Override the callbacks with merged callbacks
 		callbacks: options.callbacks ?? initialState.callbacks,
+		// Set initial scripts if provided
+		scripts: options.scripts ?? initialState.scripts,
 		// Set initial translation config if provided
 		translationConfig: translationConfig || initialState.translationConfig,
 		...(storedConsent
@@ -581,6 +590,9 @@ export const createConsentManagerStore = (
 		setTranslationConfig: (config: TranslationConfig) => {
 			set({ translationConfig: config });
 		},
+
+		// Script management functions
+		...createScriptManager(get, set),
 	}));
 
 	if (typeof window !== 'undefined') {
@@ -598,12 +610,7 @@ export const createConsentManagerStore = (
 			}
 		}
 
-		// Auto-fetch consent banner information if no stored consent
-		if (!getStoredConsent()) {
-			// Immediately invoke the fetch and wait for it to complete
-			// This ensures we have location data before deciding to show the banner
-			store.getState().fetchConsentBannerInfo();
-		}
+		store.getState().fetchConsentBannerInfo();
 	}
 
 	return store;
