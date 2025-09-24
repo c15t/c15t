@@ -314,12 +314,12 @@ If you find this useful, we'd really appreciate a GitHub star - it helps others 
 	);
 
 	// Add GitHub star request
-	const shouldOpenGithub = await p.confirm({
+	const shouldOpenGitHub = await p.confirm({
 		message: 'Would you like to star c15t on GitHub now?',
 		initialValue: true,
 	});
 
-	if (p.isCancel(shouldOpenGithub)) {
+	if (p.isCancel(shouldOpenGitHub)) {
 		telemetry.trackEvent(TelemetryEventName.ONBOARDING_GITHUB_STAR, {
 			action: 'cancelled',
 		});
@@ -333,10 +333,10 @@ If you find this useful, we'd really appreciate a GitHub star - it helps others 
 	}
 
 	telemetry.trackEvent(TelemetryEventName.ONBOARDING_GITHUB_STAR, {
-		action: shouldOpenGithub ? 'opened_browser' : 'declined',
+		action: shouldOpenGitHub ? 'opened_browser' : 'declined',
 	});
 
-	if (shouldOpenGithub) {
+	if (shouldOpenGitHub) {
 		try {
 			p.note(
 				'Your support helps us continue improving c15t.\nThank you for being part of our community!',

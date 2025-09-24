@@ -34,7 +34,7 @@ const commands: CliCommand[] = [
 	},
 	{
 		name: 'github',
-		label: 'Github',
+		label: 'GitHub',
 		hint: 'Star us on GitHub',
 		description: 'Open our GitHub repository to give us a star.',
 		action: async (context) => {
