@@ -9,6 +9,7 @@ export default defineConfig({
 			'/scripts/posthog': ['./src/scripts/posthog.ts'],
 			'/scripts/meta-pixel': ['./src/scripts/meta-pixel.ts'],
 			'/scripts/tiktok-pixel': ['./src/scripts/tiktok-pixel.ts'],
+			'/scripts/linkedin-insights': ['./src/scripts/linkedin-insights.ts'],
 		},
 		exclude: [
 			'**/__tests__/**',

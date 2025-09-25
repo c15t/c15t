@@ -53,6 +53,7 @@ export const initialState: Omit<
 	| 'addScript'
 	| 'addScripts'
 	| 'removeScript'
+	| 'setScripts'
 > = {
 	config: {
 		pkg: 'c15t',

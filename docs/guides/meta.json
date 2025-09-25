@@ -1,5 +1,15 @@
 {
 	"title": "Guides",
 	"icon": "guide",
-	"pages": ["index", "google-tag-manager"]
+	"root": true,
+	"pages": [
+		"index",
+		"google-tag-manager",
+		"--- Measurement ---",
+		"posthog-sync",
+		"--- Marketing ---",
+		"meta-pixel",
+		"tiktok-pixel",
+		"linkedin-insights"
+	]
 }

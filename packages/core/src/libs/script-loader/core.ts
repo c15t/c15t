@@ -129,6 +129,9 @@ export function loadScripts(
 				// Execute onConsentChange callback if provided
 				script.onConsentChange?.(callbackInfo);
 
+				// Execute onLoad callback if provided
+				script.onLoad?.(callbackInfo);
+
 				// Track the script as loaded
 				loadedScripts.set(script.id, existingElement);
 				loadedScriptIds.push(script.id);

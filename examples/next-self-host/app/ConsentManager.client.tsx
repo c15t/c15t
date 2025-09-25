@@ -2,6 +2,7 @@
 
 import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 import { googleTagManager } from '@c15t/nextjs/scripts/google-tag-manager';
+import { linkedinInsights } from '@c15t/nextjs/scripts/linkedin-insights';
 import { metaPixel } from '@c15t/nextjs/scripts/meta-pixel';
 import { posthogConsent } from '@c15t/nextjs/scripts/posthog';
 import { tiktokPixel } from '@c15t/nextjs/scripts/tiktok-pixel';
@@ -42,7 +43,17 @@ export function ConsentManagerClient({
 						},
 					},
 				}),
-
+				linkedinInsights({
+					id: '7984082',
+					script: {
+						onLoad: () => {
+							console.log('linkedin-insights loaded!');
+						},
+						onDelete: () => {
+							console.log('linkedin-insights deleted');
+						},
+					},
+				}),
 				// Provider components
 				// {
 				// 	category: 'necessary',
