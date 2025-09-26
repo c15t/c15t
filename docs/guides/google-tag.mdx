@@ -1,12 +1,14 @@
 ---
-title: Meta Pixel (Facebook Pixel)
-description: Learn how to use Meta Pixel with c15t.
+title: Google Tag (gtag.js)
+description: Learn how to use Google Tag (gtag.js) with c15t.
 lastModified: 2025-09-24
 canary: true
 ---
 
-Meta Pixel (Facebook Pixel) is a popular tracking pixel for marketing purposes. By default c15t will load the script based on `marketing` consent.
-This script will also persist after consent is revoked. This is because the script has built-in functionality to opt into and out of tracking based on consent, which allows us to not need to load the script again when consent is revoked.
+Google Tag (gtag.js) is used to send data to various Google products like Analytics, Ads & Floodlight.
+Based on the product you are using you should set the category to `marketing` (Ads & Floodlight) or `measurement` (Analytics).
+
+c15t will automatically sync the consent state so you don't need to do anything extra.
 
 ## Implementation
 
@@ -17,13 +19,14 @@ This script will also persist after consent is revoked. This is because the scri
     <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
       <Tab value="JavaScript">
         ```ts
-        import { metaPixel } from 'c15t/scripts/meta-pixel';
+        import { gtag } from 'c15t/scripts/google-tag';
 
         configureConsentManager({
           // ... 
           scripts: [
-            metaPixel({
-              pixelId: '123456789012345',
+            gtag({
+              id: '123456789012345',
+              category: 'marketing',
             }),
           ],
         });
@@ -32,15 +35,15 @@ This script will also persist after consent is revoked. This is because the scri
 
       <Tab value="React">
         ```tsx
-        import { metaPixel } from '@c15t/react/scripts/meta-pixel';
+        import { gtag } from '@c15t/react/scripts/google-tag';
         import { ConsentManagerProvider } from '@c15t/react';
 
         export function App() { 
           <ConsentManagerProvider
             options={{
               scripts: [
-                metaPixel({
-                  pixelId: '123456789012345',
+                gtag({
+                  id: '123456789012345',
                 }),
               ]),
             }}
@@ -55,15 +58,15 @@ This script will also persist after consent is revoked. This is because the scri
       <Tab value="Next.js + App Router">
         ```tsx
         'use client';
-        import { metaPixel } from '@c15t/nextjs/scripts/meta-pixel';
+        import { gtag } from '@c15t/nextjs/scripts/google-tag';
         import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
           <ClientSideOptionsProvider
             scripts={[
               scripts: [
-                metaPixel({
-                  pixelId: '123456789012345',
+                gtag({
+                  id: '123456789012345',
                 }),
               }),
               ],
@@ -77,7 +80,7 @@ This script will also persist after consent is revoked. This is because the scri
 
       <Tab value="Next.js + Pages Router">
         ```tsx
-        import { metaPixel } from '@c15t/nextjs/scripts/meta-pixel';
+        import { gtag } from '@c15t/nextjs/scripts/google-tag';
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
         export function App() { 
@@ -85,8 +88,8 @@ This script will also persist after consent is revoked. This is because the scri
             options={{
               // ... other options
               scripts: [
-                metaPixel({
-                  pixelId: '123456789012345',
+                gtag({
+                  id: '123456789012345',
                 }),
               ]),
             }}
@@ -102,9 +105,9 @@ This script will also persist after consent is revoked. This is because the scri
 
 ## Types
 
-### MetaPixelOptions
-
-<AutoTypeTable path="./packages/core/src/scripts/meta-pixel.ts" name="MetaPixelOptions" />
+### GtagOptions
+  
+<AutoTypeTable path="./packages/core/src/scripts/google-tag.ts" name="GtagOptions" />
 
 ### Script
 

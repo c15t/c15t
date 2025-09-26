@@ -1,6 +1,6 @@
 import type { Script } from '../libs/script-loader/index';
 
-// Extended Window interface to include Meta Pixel-specific properties
+// Extended Window interface to include linkedin insights specific properties
 declare global {
 	interface Window {
 		lintrk: ((...args: unknown[]) => void) & { q?: unknown[][] };
@@ -9,7 +9,6 @@ declare global {
 		ORIBILI?: {
 			_DEBUG?: {
 				disableScript?: () => void;
-				enableScript?: () => void;
 			};
 		};
 	}
@@ -27,16 +26,14 @@ export interface LinkedInInsightsOptions {
 	 *
 	 * Default values:
 	 * - `id`: 'linkedin-insights'
+	 * - `src`: `https://snap.licdn.com/li.lms-analytics/insight.min.js`
 	 * - `category`: 'marketing'
 	 */
 	script?: Partial<Script>;
 }
 
 /**
- * Creates a LinkedIn Insights script with inline JavaScript code.
- *
- * This script uses textContent to inject the LinkedIn Insights tracking code directly
- * into the page, which is the recommended approach for LinkedIn Insights implementation.
+ * LinkedIn Insights Script
  *
  * @param options - The options for the LinkedIn Insights script
  * @returns The LinkedIn Insights script configuration
@@ -66,22 +63,9 @@ window.lintrk.q=[]}
 var s = document.getElementsByTagName("script")[0];
 var b = document.createElement("script");
 b.type = "text/javascript";b.async = true;
-b.src = "https://snap.licdn.com/li.lms-analytics/insight.min.js";
+b.src = "${script?.src ?? 'https://snap.licdn.com/li.lms-analytics/insight.min.js'}";
 s.parentNode.insertBefore(b, s);})(window.lintrk);
 		`.trim(),
-		// This is a persistent script because it has an API to manage the consent state
-		// persistAfterConsentRevoked: true,
-		// onConsentChange: ({ consents, ...rest }) => {
-		// 	if (has(category, consents)) {
-		// 		window.fbq('consent', 'grant');
-		// 	} else {
-		// 		window.fbq('consent', 'revoke');
-		// 	}
-
-		// 	if (script?.onConsentChange) {
-		// 		script.onConsentChange({ consents, ...rest });
-		// 	}
-		// },
 		onBeforeLoad({ elementId, ...rest }) {
 			const setupScript = document.createElement('script');
 
@@ -103,19 +87,6 @@ s.parentNode.insertBefore(b, s);})(window.lintrk);
 				script.onBeforeLoad({ elementId, ...rest });
 			}
 		},
-		onLoad(rest) {
-			// Load if disabled
-			if (
-				window.ORIBILI &&
-				typeof window.ORIBILI._DEBUG?.enableScript === 'function'
-			) {
-				window.ORIBILI._DEBUG.enableScript();
-			}
-
-			if (script?.onLoad) {
-				script.onLoad(rest);
-			}
-		},
 		onDelete({ elementId, ...rest }) {
 			// Try to call the script's own disable function
 			if (
@@ -123,25 +94,6 @@ s.parentNode.insertBefore(b, s);})(window.lintrk);
 				typeof window.ORIBILI._DEBUG?.disableScript === 'function'
 			) {
 				window.ORIBILI._DEBUG.disableScript();
-			}
-
-			const setupScript = document.getElementById(
-				`${elementId}-init`
-			) as HTMLScriptElement;
-
-			const linkedinScript = Array.from(
-				document.getElementsByTagName('script')
-			).find(
-				(s) =>
-					s.src === 'https://snap.licdn.com/li.lms-analytics/insight.min.js'
-			);
-
-			if (setupScript) {
-				setupScript.remove();
-			}
-
-			if (linkedinScript) {
-				linkedinScript.remove();
 			}
 
 			if (script?.onDelete) {

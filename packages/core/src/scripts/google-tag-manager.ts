@@ -21,7 +21,7 @@ interface GTMConsentConfiguration {
 }
 
 // Default GTM consent configuration that denies all tracking
-const DEFAULT_GTM_CONSENT_CONFIG: GTMConsentConfiguration = {
+export const DEFAULT_GTM_CONSENT_CONFIG: GTMConsentConfiguration = {
 	functionality_storage: 'denied',
 	security_storage: 'denied',
 	analytics_storage: 'denied',

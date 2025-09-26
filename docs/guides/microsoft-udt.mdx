@@ -1,12 +1,13 @@
 ---
-title: Meta Pixel (Facebook Pixel)
-description: Learn how to use Meta Pixel with c15t.
+title: Microsoft UET 
+description: Learn how to use Microsoft UET with c15t.
 lastModified: 2025-09-24
 canary: true
 ---
 
-Meta Pixel (Facebook Pixel) is a popular tracking pixel for marketing purposes. By default c15t will load the script based on `marketing` consent.
-This script will also persist after consent is revoked. This is because the script has built-in functionality to opt into and out of tracking based on consent, which allows us to not need to load the script again when consent is revoked.
+Microsoft UET is a popular tracking pixel for marketing purposes. By default c15t will load the script based on `marketing` consent.
+This tag also can come with Microsoft Clarity (if enabled), we recommend loading this seperately as due to not collecting any cookies or PII data, it does not require consent to run.
+
 
 ## Implementation
 
@@ -17,13 +18,13 @@ This script will also persist after consent is revoked. This is because the scri
     <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
       <Tab value="JavaScript">
         ```ts
-        import { metaPixel } from 'c15t/scripts/meta-pixel';
+        import { microsoftUet } from 'c15t/scripts/microsoft-uet';
 
         configureConsentManager({
           // ... 
           scripts: [
-            metaPixel({
-              pixelId: '123456789012345',
+            microsoftUet({
+              id: '123456789012345',
             }),
           ],
         });
@@ -32,15 +33,15 @@ This script will also persist after consent is revoked. This is because the scri
 
       <Tab value="React">
         ```tsx
-        import { metaPixel } from '@c15t/react/scripts/meta-pixel';
+        import { microsoftUet } from '@c15t/react/scripts/microsoft-uet';
         import { ConsentManagerProvider } from '@c15t/react';
 
         export function App() { 
           <ConsentManagerProvider
             options={{
               scripts: [
-                metaPixel({
-                  pixelId: '123456789012345',
+                microsoftUet({
+                  id: '123456789012345',
                 }),
               ]),
             }}
@@ -55,15 +56,15 @@ This script will also persist after consent is revoked. This is because the scri
       <Tab value="Next.js + App Router">
         ```tsx
         'use client';
-        import { metaPixel } from '@c15t/nextjs/scripts/meta-pixel';
+        import { microsoftUet } from '@c15t/nextjs/scripts/microsoft-uet';
         import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
           <ClientSideOptionsProvider
             scripts={[
               scripts: [
-                metaPixel({
-                  pixelId: '123456789012345',
+                microsoftUet({
+                  id: '123456789012345',
                 }),
               }),
               ],
@@ -77,7 +78,7 @@ This script will also persist after consent is revoked. This is because the scri
 
       <Tab value="Next.js + Pages Router">
         ```tsx
-        import { metaPixel } from '@c15t/nextjs/scripts/meta-pixel';
+        import { microsoftUet } from '@c15t/nextjs/scripts/microsoft-uet';
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
         export function App() { 
@@ -85,8 +86,8 @@ This script will also persist after consent is revoked. This is because the scri
             options={{
               // ... other options
               scripts: [
-                metaPixel({
-                  pixelId: '123456789012345',
+                microsoftUet({
+                  id: '123456789012345',
                 }),
               ]),
             }}
@@ -102,9 +103,9 @@ This script will also persist after consent is revoked. This is because the scri
 
 ## Types
 
-### MetaPixelOptions
-
-<AutoTypeTable path="./packages/core/src/scripts/meta-pixel.ts" name="MetaPixelOptions" />
+### MicrosoftUetOptions
+  
+<AutoTypeTable path="./packages/core/src/scripts/microsoft-uet.ts" name="MicrosoftUetOptions" />
 
 ### Script
 

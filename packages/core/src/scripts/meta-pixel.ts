@@ -1,6 +1,6 @@
 import type { Script } from '../libs/script-loader/index';
 
-// Extended Window interface to include Meta Pixel-specific properties
+// Extended Window interface to include meta pixel specific properties
 declare global {
 	interface Window {
 		fbq: (...args: unknown[]) => void;
@@ -20,6 +20,7 @@ export interface MetaPixelOptions {
 	 *
 	 * Default values:
 	 * - `id`: 'meta-pixel'
+	 * - `src`: `https://connect.facebook.net/en_US/fbevents.js`
 	 * - `category`: 'marketing'
 	 */
 	script?: Partial<Script>;
@@ -55,7 +56,7 @@ if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
 n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
+'${script?.src ?? 'https://connect.facebook.net/en_US/fbevents.js'}');
 fbq('init', '${pixelId}');
 fbq('track', 'PageView');
 		`.trim(),

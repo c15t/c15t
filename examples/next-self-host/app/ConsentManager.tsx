@@ -13,6 +13,11 @@ export function ConsentManager({ children }: { children: React.ReactNode }) {
 				backendURL: '/api/c15t',
 				consentCategories: ['necessary', 'marketing'],
 				ignoreGeoLocation: true,
+				store: {
+					trackingBlockerConfig: {
+						disableAutomaticBlocking: true,
+					},
+				},
 			}}
 		>
 			<CookieBanner />

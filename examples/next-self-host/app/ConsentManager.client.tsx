@@ -1,11 +1,13 @@
 'use client';
 
 import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
-import { googleTagManager } from '@c15t/nextjs/scripts/google-tag-manager';
+import { gtag } from '@c15t/nextjs/scripts/google-tag';
 import { linkedinInsights } from '@c15t/nextjs/scripts/linkedin-insights';
 import { metaPixel } from '@c15t/nextjs/scripts/meta-pixel';
+import { microsoftUet } from '@c15t/nextjs/scripts/microsoft-uet';
 import { posthogConsent } from '@c15t/nextjs/scripts/posthog';
 import { tiktokPixel } from '@c15t/nextjs/scripts/tiktok-pixel';
+import { xPixel } from '@c15t/nextjs/scripts/x-pixel';
 
 export function ConsentManagerClient({
 	children,
@@ -15,14 +17,48 @@ export function ConsentManagerClient({
 	return (
 		<ClientSideOptionsProvider
 			scripts={[
-				googleTagManager({
-					id: 'GTM-WL5L8NW7',
+				xPixel({
+					pixelId: 'qjlz8',
 					script: {
 						onLoad: () => {
-							console.log('google-tag-manager loaded :D');
+							console.log('x-pixel loaded :D');
+						},
+						onDelete: () => {
+							console.log('x-pixel deleted');
 						},
 					},
 				}),
+				gtag({
+					id: 'G-TDR6LYF10M',
+					category: 'measurement',
+					script: {
+						onLoad: () => {
+							console.log('google-tag loaded :D');
+						},
+						onDelete: () => {
+							console.log('google-tag deleted');
+						},
+					},
+				}),
+				microsoftUet({
+					id: '187214157',
+					script: {
+						onLoad: () => {
+							console.log('microsoft-uet loaded :D');
+						},
+						onDelete: () => {
+							console.log('microsoft-uet deleted');
+						},
+					},
+				}),
+				// googleTagManager({
+				// 	id: 'GTM-WL5L8NW7',
+				// 	script: {
+				// 		onLoad: () => {
+				// 			console.log('google-tag-manager loaded :D');
+				// 		},
+				// 	},
+				// }),
 				tiktokPixel({
 					pixelId: 'D38M8QJC77U6IE15NK80',
 					script: {
@@ -54,53 +90,6 @@ export function ConsentManagerClient({
 						},
 					},
 				}),
-				// Provider components
-				// {
-				// 	category: 'necessary',
-				// 	type: 'standalone',
-				// 	component: () => <div className="bg-green-500">Necessary</div>,
-				// },
-				// {
-				// 	category: 'marketing',
-				// 	type: 'standalone', // Does not wrap around children
-				// 	component: () => {
-				// 		return <div className="bg-red-500 p-4">Marketing</div>;
-				// 	},
-				// },
-				// {
-				// 	category: 'marketing',
-				// 	persistAfterConsentRevoked: true, // Always rendered
-				// 	type: 'standalone', // Does not wrap around children
-				// 	component: (hasConsent: boolean) => {
-				// 		return (
-				// 			<div className="bg-teal-500 p-4">
-				// 				{hasConsent
-				// 					? 'Persisted Marketing'
-				// 					: 'Persisted Marketing (no consent)'}
-				// 			</div>
-				// 		);
-				// 	},
-				// },
-				// {
-				// 	category: 'marketing',
-				// 	type: 'provider',
-				// 	persistAfterConsentRevoked: false,
-				// 	component: (hasConsent: boolean) => {
-				// 		return (
-				// 			<div className="m-4 flex flex-col gap-2 bg-pink-500">
-				// 				<div>
-				// 					{hasConsent
-				// 						? 'Persisted Marketing (provider)'
-				// 						: 'Persisted Marketing (provider) (no consent)'}
-				// 				</div>
-				// 				{/* This will visibly wrap around the children */}
-				// 				<div className="border-4 border-pink-300 border-dashed p-4">
-				// 					{/* Children will be inserted here */}
-				// 				</div>
-				// 			</div>
-				// 		);
-				// 	},
-				// },
 			]}
 			callbacks={{
 				onBannerFetched(response) {
