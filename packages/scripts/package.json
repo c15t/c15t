@@ -27,7 +27,7 @@
 		"dev": "rslib build --watch",
 		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "pnpm biome lint ./src",
-		"test": "vitest run",
+		"test": "vitest run --passWithNoTests",
 		"test:watch": "vitest"
 	},
 	"browserslist": [
@@ -36,8 +36,9 @@
 		"not op_mini all"
 	],
 	"devDependencies": {
+		"c15t": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
-		"c15t": "workspace:*"
+		"@c15t/vitest-config": "workspace:*"
 	},
 	"peerDependencies": {
 		"posthog-js": "^1.264.0"
