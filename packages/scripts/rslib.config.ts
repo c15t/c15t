@@ -19,7 +19,7 @@ export default defineConfig({
 		},
 	],
 	output: {
-		target: 'node',
+		target: 'web',
 		cleanDistPath: true,
 	},
 });
