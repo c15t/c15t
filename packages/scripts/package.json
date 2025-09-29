@@ -2,7 +2,7 @@
 	"name": "@c15t/scripts",
 	"version": "1.6.0",
 	"description": "Pre-built scripts of popular tools for c15t's script loader.",
-	"homepage": "https://c15t.com/docs/frameworks/react/hooks/use-translations",
+	"homepage": "https://c15t.com/docs/frameworks/javascript/script-loader",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
@@ -36,7 +36,8 @@
 		"not op_mini all"
 	],
 	"devDependencies": {
-		"c15t": "workspace:*"
+		"c15t": "workspace:*",
+		"@c15t/typescript-config": "workspace:*"
 	},
 	"peerDependencies": {
 		"posthog-js": "^1.264.0"

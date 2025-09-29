@@ -1,5 +1,5 @@
 {
-	"extends": "@c15t/typescript-config/react-library.json",
+	"extends": "@c15t/typescript-config/base.json",
 	"compilerOptions": {
 		"moduleResolution": "bundler",
 		"baseUrl": ".",
