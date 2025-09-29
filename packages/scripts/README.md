@@ -22,14 +22,14 @@ Prebuilt scripts for c15t's script loader, for popular tools you may need to imp
 
 ## Scripts
 
-- [Google Tag Manager](https://c15t.com/docs/guides/google-tag-manager)
-- [Google Tag](https://c15t.com/docs/guides/google-tag)
-- [PostHog (Sync-Only)](https://c15t.com/docs/guides/posthog-sync)
-- [Meta Pixel](https://c15t.com/docs/guides/meta-pixel)
-- [TikTok Pixel](https://c15t.com/docs/guides/tiktok-pixel)
-- [LinkedIn Insights](https://c15t.com/docs/guides/linkedin-insights)
-- [Microsoft UET](https://c15t.com/docs/guides/microsoft-udt)
-- [X Pixel](https://c15t.com/docs/guides/x-pixel)
+- [Google Tag Manager](https://c15t.com/docs/integrations/google-tag-manager)
+- [Google Tag](https://c15t.com/docs/integrations/google-tag)
+- [PostHog (Sync-Only)](https://c15t.com/docs/integrations/posthog-sync)
+- [Meta Pixel](https://c15t.com/docs/integrations/meta-pixel)
+- [TikTok Pixel](https://c15t.com/docs/integrations/tiktok-pixel)
+- [LinkedIn Insights](https://c15t.com/docs/integrations/linkedin-insights)
+- [Microsoft UET](https://c15t.com/docs/integrations/microsoft-udt)
+- [X Pixel](https://c15t.com/docs/integrations/x-pixel)
 
 ## Support
 
