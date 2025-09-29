@@ -35,11 +35,11 @@
 		"not dead",
 		"not op_mini all"
 	],
-	"peerDependencies": {
-		"posthog-js": "^1.264.0"
-	},
 	"devDependencies": {
 		"c15t": "workspace:*"
+	},
+	"peerDependencies": {
+		"posthog-js": "^1.264.0"
 	},
 	"publishConfig": {
 		"access": "public"
