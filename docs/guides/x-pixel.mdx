@@ -16,7 +16,8 @@ X Pixel is a popular tracking pixel for marketing purposes. By default c15t will
     <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
       <Tab value="JavaScript">
         ```ts
-        import { xPixel } from 'c15t/scripts/x-pixel';
+        import { configureConsentManager } from 'c15t';
+        import { xPixel } from '@c15t/scripts/x-pixel';
 
         configureConsentManager({
           // ... 
@@ -31,7 +32,7 @@ X Pixel is a popular tracking pixel for marketing purposes. By default c15t will
 
       <Tab value="React">
         ```tsx
-        import { xPixel } from '@c15t/react/scripts/x-pixel';
+        import { xPixel } from '@c15t/scripts';
         import { ConsentManagerProvider } from '@c15t/react';
 
         export function App() { 
@@ -54,7 +55,7 @@ X Pixel is a popular tracking pixel for marketing purposes. By default c15t will
       <Tab value="Next.js + App Router">
         ```tsx
         'use client';
-        import { xPixel } from '@c15t/nextjs/scripts/x-pixel';
+        import { xPixel } from '@c15t/scripts';
         import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
@@ -76,7 +77,7 @@ X Pixel is a popular tracking pixel for marketing purposes. By default c15t will
 
       <Tab value="Next.js + Pages Router">
         ```tsx
-        import { xPixel } from '@c15t/nextjs/scripts/x-pixel';
+        import { xPixel } from '@c15t/scripts';
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
         export function App() { 
@@ -84,7 +85,7 @@ X Pixel is a popular tracking pixel for marketing purposes. By default c15t will
             options={{
               // ... other options
               scripts: [
-                linkedinInsights({
+                xPixel({
                   id: '123456789012345',
                 }),
               ]),
@@ -103,46 +104,17 @@ X Pixel is a popular tracking pixel for marketing purposes. By default c15t will
 
 You can use the `xPixelEvent` function to track events. This is a wrapper around the `twq` function that the X Pixel script uses.
 
-<Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
-  <Tab value="JavaScript">
-    ```ts
-    import { xPixelEvent } from 'c15t/scripts/x-pixel';
+```ts
+import { xPixelEvent } from '@c15t/scripts/x-pixel';
 
-    xPixelEvent('tw-xxxx-xxxx', { value: 10.00, currency: 'USD' });
-    ```
-  </Tab>
-
-  <Tab value="React">
-    ```tsx
-    import { xPixelEvent } from '@c15t/react/scripts/x-pixel';
-    
-    xPixelEvent('tw-xxxx-xxxx', { value: 10.00, currency: 'USD' });
-    ```
-  </Tab>
-
-  <Tab value="Next.js + App Router">
-    ```tsx
-    'use client';
-    import { xPixelEvent } from '@c15t/nextjs/scripts/x-pixel';
-  
-    xPixelEvent('tw-xxxx-xxxx', { value: 10.00, currency: 'USD' });
-    ```
-  </Tab>
-
-  <Tab value="Next.js + Pages Router">
-    ```tsx
-    import { xPixelEvent } from '@c15t/nextjs/scripts/x-pixel';
-
-    xPixelEvent('tw-xxxx-xxxx', { value: 10.00, currency: 'USD' });
-    ```
-  </Tab>
-</Tabs>
+xPixelEvent('tw-xxxx-xxxx', { value: 10.00, currency: 'USD' });
+```
 
 ## Types
 
 ### XPixelOptions
   
-<AutoTypeTable path="./packages/core/src/scripts/linkedin-insights.ts" name="LinkedInInsightsOptions" />
+<AutoTypeTable path="./packages/scripts/src/linkedin-insights.ts" name="LinkedInInsightsOptions" />
 
 ### Script
 

@@ -1,0 +1,13 @@
+{
+	"title": "@c15t/translations: Consent Management i18n",
+	"description": "Translation utils for c15t, providing type-safe internationalization support.",
+	"features": [
+		"Type-safe translation interfaces for consent management",
+		"Modular translation imports (e.g., English translations)",
+		"Supports partial and complete translation configurations",
+		"Defines translation types for cookie banners, consent dialogs, and consent types",
+		"Flexible language configuration with optional auto-language switching"
+	],
+	"docsLink": "https://c15t.com/docs/frameworks/react/hooks/use-translations",
+	"showCLIGeneration": false
+}

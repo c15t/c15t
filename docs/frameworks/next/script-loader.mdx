@@ -27,7 +27,7 @@ availableIn:
     'use client';
 
     import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
-    import { googleTagManager } from '@c15t/nextjs/scripts/google-tag-manager';
+    import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 
     export function ClientProvider() {
     	return (
@@ -72,7 +72,7 @@ availableIn:
   <Tab value="Pages Directory">
     ```ts title="pages/_app.tsx"
     import { ConsentManagerProvider } from '@c15t/nextjs/pages';
-    import { googleTagManager } from '@c15t/nextjs/scripts/google-tag-manager';
+    import { googleTagManager } from '@c15t/scripts/google-tag-manager';
     import type { AppProps } from 'next/app';
 
     export default function App({ Component, pageProps }: AppProps) {

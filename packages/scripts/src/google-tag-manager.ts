@@ -1,5 +1,4 @@
-import type { Script } from '../libs/script-loader/index';
-import type { AllConsentNames, ConsentState } from '../types';
+import type { AllConsentNames, ConsentState, Script } from 'c15t';
 
 // Extended Window interface to include GTM-specific properties
 declare global {

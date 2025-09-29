@@ -4,7 +4,9 @@
 	"root": true,
 	"pages": [
 		"index",
+		"--- Google ---",
 		"google-tag-manager",
+		"google-tag",
 		"--- Measurement ---",
 		"posthog-sync",
 		"--- Marketing ---",

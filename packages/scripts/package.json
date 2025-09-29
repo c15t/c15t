@@ -1,0 +1,47 @@
+{
+	"name": "@c15t/scripts",
+	"version": "1.6.0",
+	"description": "Pre-built scripts of popular tools for c15t's script loader.",
+	"homepage": "https://c15t.com/docs/frameworks/react/hooks/use-translations",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/scripts"
+	},
+	"license": "GPL-3.0-only",
+	"sideEffects": false,
+	"type": "module",
+	"exports": {
+		"./*": {
+			"types": "./dist/*.d.ts",
+			"import": "./dist/*.js",
+			"require": "./dist/*.cjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "rslib build",
+		"check-types": "tsc --noEmit",
+		"dev": "rslib build --watch",
+		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --write",
+		"lint": "pnpm biome lint ./src",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	],
+	"peerDependencies": {
+		"posthog-js": "^1.264.0"
+	},
+	"devDependencies": {
+		"c15t": "workspace:*"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

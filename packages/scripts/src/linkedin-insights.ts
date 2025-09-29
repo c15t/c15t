@@ -1,4 +1,4 @@
-import type { Script } from '../libs/script-loader/index';
+import type { Script } from 'c15t';
 
 // Extended Window interface to include linkedin insights specific properties
 declare global {

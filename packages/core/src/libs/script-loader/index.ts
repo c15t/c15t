@@ -4,11 +4,6 @@
  * @packageDocumentation
  */
 
-export { googleTagManager } from '../../scripts/google-tag-manager';
-// Re-export script utilities
-export { metaPixel } from '../../scripts/meta-pixel';
-export { posthogConsent } from '../../scripts/posthog';
-// Re-export core functionality
 export {
 	clearAllScripts,
 	getLoadedScriptIds,

@@ -1,13 +1,13 @@
 'use client';
 
 import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
-import { gtag } from '@c15t/nextjs/scripts/google-tag';
-import { linkedinInsights } from '@c15t/nextjs/scripts/linkedin-insights';
-import { metaPixel } from '@c15t/nextjs/scripts/meta-pixel';
-import { microsoftUet } from '@c15t/nextjs/scripts/microsoft-uet';
-import { posthogConsent } from '@c15t/nextjs/scripts/posthog';
-import { tiktokPixel } from '@c15t/nextjs/scripts/tiktok-pixel';
-import { xPixel } from '@c15t/nextjs/scripts/x-pixel';
+import { gtag } from '@c15t/scripts/google-tag';
+import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
+import { metaPixel } from '@c15t/scripts/meta-pixel';
+import { microsoftUet } from '@c15t/scripts/microsoft-uet';
+// import { posthogConsent } from '@c15t/scripts/posthog';
+import { tiktokPixel } from '@c15t/scripts/tiktok-pixel';
+import { xPixel } from '@c15t/scripts/x-pixel';
 
 export function ConsentManagerClient({
 	children,
@@ -67,7 +67,7 @@ export function ConsentManagerClient({
 						},
 					},
 				}),
-				posthogConsent(),
+				// posthogConsent(),
 				metaPixel({
 					pixelId: '123456789012345',
 					script: {

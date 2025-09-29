@@ -9,6 +9,7 @@
 		"lint": "next lint"
 	},
 	"dependencies": {
+		"@c15t/scripts": "workspace:*",
 		"@c15t/backend": "workspace:*",
 		"@c15t/cli": "workspace:*",
 		"@c15t/nextjs": "workspace:*",

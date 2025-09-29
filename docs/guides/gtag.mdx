@@ -1,30 +1,31 @@
 ---
-title: Microsoft UET 
-description: Learn how to use Microsoft UET with c15t.
-lastModified: 2025-09-24
+title: Google Tag (gtag.js)
+description: Learn how to integrate c15t with Google Tag (gtag.js).
+lastModified: 2025-09-29
 canary: true
 ---
 
-Microsoft UET is a popular tracking pixel for marketing purposes. By default c15t will load the script based on `marketing` consent.
-This tag also can come with Microsoft Clarity (if enabled), we recommend loading this seperately as due to not collecting any cookies or PII data, it does not require consent to run.
+c15t supports Google Tag (gtag.js) and Consent Mode v2. The pre-built c15t script will automatically inject the gtag script into your page and update the consent state in gtag to match the consent state in c15t.
 
+Allowing c15t to manage gtag prevents any issues with gtag scripts being loaded without the correct consent.
 
 ## Implementation
 
 <Steps>
   <Step>
-    ### Adding the script to c15t
+    ### Setting up c15t with Google Tag
 
     <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
       <Tab value="JavaScript">
         ```ts
-        import { microsoftUet } from 'c15t/scripts/microsoft-uet';
+        import { configureConsentManager } from 'c15t';
+        import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 
         configureConsentManager({
           // ... 
           scripts: [
-            microsoftUet({
-              id: '123456789012345',
+            googleTagManager({
+              id: 'GTM-XXXXXXX',
             }),
           ],
         });
@@ -33,15 +34,15 @@ This tag also can come with Microsoft Clarity (if enabled), we recommend loading
 
       <Tab value="React">
         ```tsx
-        import { microsoftUet } from '@c15t/react/scripts/microsoft-uet';
+        import { googleTagManager } from '@c15t/scripts';
         import { ConsentManagerProvider } from '@c15t/react';
 
         export function App() { 
           <ConsentManagerProvider
             options={{
               scripts: [
-                microsoftUet({
-                  id: '123456789012345',
+                googleTagManager({
+                  id: 'GTM-XXXXXXX',
                 }),
               ]),
             }}
@@ -56,16 +57,15 @@ This tag also can come with Microsoft Clarity (if enabled), we recommend loading
       <Tab value="Next.js + App Router">
         ```tsx
         'use client';
-        import { microsoftUet } from '@c15t/nextjs/scripts/microsoft-uet';
+        import { googleTagManager } from '@c15t/scripts';
         import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
           <ClientSideOptionsProvider
             scripts={[
               scripts: [
-                microsoftUet({
-                  id: '123456789012345',
-                }),
+                googleTagManager({
+                  id: 'GTM-XXXXXXX',
               }),
               ],
             ]}
@@ -78,7 +78,7 @@ This tag also can come with Microsoft Clarity (if enabled), we recommend loading
 
       <Tab value="Next.js + Pages Router">
         ```tsx
-        import { microsoftUet } from '@c15t/nextjs/scripts/microsoft-uet';
+        import { googleTagManager } from '@c15t/scripts';
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
         export function App() { 
@@ -86,8 +86,8 @@ This tag also can come with Microsoft Clarity (if enabled), we recommend loading
             options={{
               // ... other options
               scripts: [
-                microsoftUet({
-                  id: '123456789012345',
+                googleTagManager({
+                  id: 'GTM-XXXXXXX',
                 }),
               ]),
             }}
@@ -95,6 +95,7 @@ This tag also can come with Microsoft Clarity (if enabled), we recommend loading
             {children}
           </ConsentManagerProvider>
         }
+        >
         ```
       </Tab>
     </Tabs>
@@ -103,9 +104,9 @@ This tag also can come with Microsoft Clarity (if enabled), we recommend loading
 
 ## Types
 
-### MicrosoftUetOptions
-  
-<AutoTypeTable path="./packages/core/src/scripts/microsoft-uet.ts" name="MicrosoftUetOptions" />
+### GoogleTagManagerOptions
+
+<AutoTypeTable path="./packages/scripts/src/google-tag-manager.ts" name="GoogleTagManagerOptions" />
 
 ### Script
 

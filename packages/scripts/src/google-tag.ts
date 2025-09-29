@@ -1,5 +1,5 @@
-import type { AllConsentNames } from '..';
-import type { Script } from '../libs/script-loader/index';
+import type { AllConsentNames, Script } from 'c15t';
+
 import {
 	DEFAULT_GTM_CONSENT_CONFIG,
 	mapConsentStateToGTM,

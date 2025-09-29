@@ -17,7 +17,8 @@ This script will also persist after consent is revoked. This is because the scri
     <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
       <Tab value="JavaScript">
         ```ts
-        import { tiktokPixel } from 'c15t/scripts/tiktok-pixel';
+        import { configureConsentManager } from 'c15t';
+        import { tiktokPixel } from '@c15t/scripts/tiktok-pixel';
 
         configureConsentManager({
           // ... 
@@ -32,7 +33,7 @@ This script will also persist after consent is revoked. This is because the scri
 
       <Tab value="React">
         ```tsx
-        import { tiktokPixel } from '@c15t/react/scripts/tiktok-pixel';
+        import { tiktokPixel } from '@c15t/scripts';
         import { ConsentManagerProvider } from '@c15t/react';
 
         export function App() { 
@@ -55,7 +56,7 @@ This script will also persist after consent is revoked. This is because the scri
       <Tab value="Next.js + App Router">
         ```tsx
         'use client';
-        import { tiktokPixel } from '@c15t/nextjs/scripts/tiktok-pixel';
+        import { tiktokPixel } from '@c15t/scripts';
         import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
@@ -77,7 +78,7 @@ This script will also persist after consent is revoked. This is because the scri
 
       <Tab value="Next.js + Pages Router">
         ```tsx
-        import { tiktokPixel } from '@c15t/nextjs/scripts/tiktok-pixel';
+        import { tiktokPixel } from '@c15t/scripts';
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
         export function App() { 
@@ -104,7 +105,7 @@ This script will also persist after consent is revoked. This is because the scri
 
 ### TikTokPixelOptions
 
-<AutoTypeTable path="./packages/core/src/scripts/tiktok-pixel.ts" name="TikTokPixelOptions" />
+<AutoTypeTable path="./packages/scripts/src/tiktok-pixel.ts" name="TikTokPixelOptions" />
 
 ### Script
 

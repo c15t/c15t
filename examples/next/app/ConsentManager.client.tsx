@@ -1,10 +1,10 @@
 'use client';
 
 import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
-import { googleTagManager } from '@c15t/nextjs/scripts/google-tag-manager';
-import { metaPixel } from '@c15t/nextjs/scripts/meta-pixel';
-import { posthogConsent } from '@c15t/nextjs/scripts/posthog';
-import { tiktokPixel } from '@c15t/nextjs/scripts/tiktok-pixel';
+import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+import { metaPixel } from '@c15t/scripts/meta-pixel';
+import { posthogConsent } from '@c15t/scripts/posthog';
+import { tiktokPixel } from '@c15t/scripts/tiktok-pixel';
 
 export function ConsentManagerClient({
 	children,

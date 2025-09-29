@@ -58,7 +58,8 @@ Allowing c15t to manage GTM prevents any issues with GTM scripts being loaded wi
     <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
       <Tab value="JavaScript">
         ```ts
-        import { googleTagManager } from 'c15t/scripts/google-tag-manager';
+        import { configureConsentManager } from 'c15t';
+        import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 
         configureConsentManager({
           // ... 
@@ -73,7 +74,7 @@ Allowing c15t to manage GTM prevents any issues with GTM scripts being loaded wi
 
       <Tab value="React">
         ```tsx
-        import { googleTagManager } from '@c15t/react/scripts/google-tag-manager';
+        import { googleTagManager } from '@c15t/scripts';
         import { ConsentManagerProvider } from '@c15t/react';
 
         export function App() { 
@@ -96,7 +97,7 @@ Allowing c15t to manage GTM prevents any issues with GTM scripts being loaded wi
       <Tab value="Next.js + App Router">
         ```tsx
         'use client';
-        import { googleTagManager } from '@c15t/nextjs/scripts/google-tag-manager';
+        import { googleTagManager } from '@c15t/scripts';
         import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
@@ -117,7 +118,7 @@ Allowing c15t to manage GTM prevents any issues with GTM scripts being loaded wi
 
       <Tab value="Next.js + Pages Router">
         ```tsx
-        import { googleTagManager } from '@c15t/nextjs/scripts/google-tag-manager';
+        import { googleTagManager } from '@c15t/scripts';
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
         export function App() { 
@@ -145,7 +146,7 @@ Allowing c15t to manage GTM prevents any issues with GTM scripts being loaded wi
 
 ### GoogleTagManagerOptions
 
-<AutoTypeTable path="./packages/core/src/scripts/google-tag-manager.ts" name="GoogleTagManagerOptions" />
+<AutoTypeTable path="./packages/scripts/src/google-tag-manager.ts" name="GoogleTagManagerOptions" />
 
 ### Script
 

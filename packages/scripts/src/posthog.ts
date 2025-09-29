@@ -1,5 +1,5 @@
+import type { Script } from 'c15t';
 import posthog from 'posthog-js';
-import type { Script } from '../libs/script-loader/index';
 
 export interface PosthogConsentOptions {
 	/**
