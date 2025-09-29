@@ -36,8 +36,8 @@
 		"not op_mini all"
 	],
 	"devDependencies": {
-		"c15t": "workspace:*",
-		"@c15t/typescript-config": "workspace:*"
+		"@c15t/typescript-config": "workspace:*",
+		"c15t": "workspace:*"
 	},
 	"peerDependencies": {
 		"posthog-js": "^1.264.0"
