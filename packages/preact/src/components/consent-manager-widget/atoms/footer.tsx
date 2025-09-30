@@ -1,7 +1,7 @@
+import styles from '@c15t/styles/components/consent-manager-widget.css';
 import type { Ref } from 'preact';
 import { forwardRef } from 'preact/compat';
 import { Box, type BoxProps } from '../../shared/primitives/box';
-import styles from '../consent-manager-widget.module.css';
 
 /**
  * Footer component for consent management actions.

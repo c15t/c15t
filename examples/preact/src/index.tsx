@@ -1,5 +1,5 @@
-import { ConsentManagerBanner, CookieBanner } from '@c15t/preact/index';
-import { hydrate } from 'preact-iso';
+import { ConsentManagerDialog, ConsentManagerProvider, CookieBanner } from '@c15t/preact';
+import { render } from 'preact';
 import preactLogo from './assets/preact.svg';
 import './style.css';
 
@@ -20,7 +20,7 @@ function Resource(props: ResourceProps) {
 
 export function App() {
 	return (
-		<ConsentManagerBanner
+		<ConsentManagerProvider
 			options={{
 				mode: 'offline',
 				ui: { noStyle: false },
@@ -59,16 +59,11 @@ export function App() {
 				</section>
 
 				{/* Cookie Banner - will appear automatically for first-time visitors */}
-				<CookieBanner
-					title="🍪 Cookie Notice"
-					description="We use cookies to enhance your browsing experience and analyze our traffic. By continuing to use our site, you agree to our cookie policy."
-					acceptButtonText="Accept All"
-					rejectButtonText="Reject All"
-					customizeButtonText="Customize"
-				/>
 			</div>
-		</ConsentManagerBanner>
+      <CookieBanner />
+      <ConsentManagerDialog />
+		</ConsentManagerProvider>
 	);
 }
 
-hydrate(<App />, document.getElementById('app'));
+render(<App />, document.getElementById('app')!);

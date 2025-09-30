@@ -1,5 +1,5 @@
 import type { JSX } from 'preact';
-import { useLayoutEffect } from 'preact/compat';
+import { useLayoutEffect } from 'preact/hooks';
 import { act as preactAct } from 'preact/test-utils';
 import { type ComponentRenderOptions, render } from 'vitest-browser-preact';
 

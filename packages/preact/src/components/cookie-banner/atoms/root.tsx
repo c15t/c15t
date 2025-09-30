@@ -5,20 +5,16 @@
  * Provides the overlay backdrop component for the CookieBanner root and its portalised content.
  */
 
+import styles from '@c15t/styles/components/cookie-banner.module.css';
 import type { ComponentChildren, JSX } from 'preact';
-import { useEffect, useState } from 'preact/compat';
-import { forwardRef } from 'preact/compat';
-import { createPortal } from 'preact/compat';
-
-import { Overlay } from './overlay';
-
+import { createPortal, forwardRef } from 'preact/compat';
+import { useEffect, useState } from 'preact/hooks';
 import { LocalThemeContext } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import type { CSSPropertiesWithVars } from '~/types/theme';
 import type { CookieBannerTheme } from '../theme';
-
-import styles from '../cookie-banner.module.css';
+import { Overlay } from './overlay';
 
 /**
  * Props for the root component of the CookieBanner.

@@ -4,26 +4,17 @@ import { defineConfig } from '@rslib/core';
 export default defineConfig({
 	source: {
 		entry: {
-			headless: ['./src/headless.ts'],
-			'consent-manager-dialog': [
-				'./src/components/consent-manager-dialog/index.ts',
-			],
-			'consent-manager-widget': [
-				'./src/components/consent-manager-widget/index.ts',
-			],
-			'cookie-banner': ['./src/components/cookie-banner/index.tsx'],
-			hooks: ['./src/hooks/index.ts'],
-			index: ['./src/index.ts'],
+			index: ['./src/**'],
 		},
 	},
 	lib: [
 		{
-			bundle: true,
+			bundle: false,
 			dts: true,
 			format: 'esm',
 		},
 		{
-			bundle: true,
+			bundle: false,
 			dts: true,
 			format: 'cjs',
 		},
@@ -38,8 +29,7 @@ export default defineConfig({
 		},
 		injectStyles: true,
 		minify: {
-			js: false,
-			css: false,
+			css: true,
 		},
 	},
 	plugins: [pluginPreact()],

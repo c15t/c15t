@@ -1,4 +1,5 @@
-import { type RefObject, useEffect, useRef } from 'preact/compat';
+import type { RefObject } from 'preact';
+import { useEffect, useRef } from 'preact/hooks';
 
 /**
  * Hook that manages focus trapping within a container.

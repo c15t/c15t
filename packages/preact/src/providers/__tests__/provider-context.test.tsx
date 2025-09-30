@@ -1,7 +1,7 @@
 import { defaultTranslationConfig } from 'c15t';
 // consent-manager-provider.context.test.tsx - Test context values
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render } from 'vitest-browser-react';
+import { render } from 'vitest-browser-preact';
 import { useConsentManager } from '../../hooks/use-consent-manager';
 import type { ConsentManagerOptions } from '../../types/consent-manager';
 import {
@@ -116,7 +116,6 @@ describe('ConsentManagerProvider Context Values', () => {
 		};
 
 		const { getByTestId } = render(
-			//@ts-expect-error - TODO: fix this
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
@@ -147,7 +146,6 @@ describe('ConsentManagerProvider Context Values', () => {
 		const onConsentSet = vi.fn();
 
 		render(
-			//@ts-expect-error - TODO: fix this
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
