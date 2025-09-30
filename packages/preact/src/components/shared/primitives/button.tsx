@@ -1,6 +1,6 @@
 import type { JSX } from 'preact';
-import { useCallback } from 'preact/compat';
 import { forwardRef } from 'preact/compat';
+import { useCallback } from 'preact/hooks';
 
 import { Slot } from '~/components/shared/primitives/slot';
 import { useConsentManager } from '~/hooks/use-consent-manager';

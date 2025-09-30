@@ -3,7 +3,7 @@
  * Hook for accessing and managing consent state.
  */
 
-import { useContext } from 'preact/compat';
+import { useContext } from 'preact/hooks';
 import { ConsentStateContext } from '../context/consent-manager-context';
 
 /**

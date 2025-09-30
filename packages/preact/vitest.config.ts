@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
+import { baseConfig } from '@c15t/vitest-config/base';
 import preact from '@preact/preset-vite';
 import { defineConfig, mergeConfig } from 'vitest/config';
-import { baseConfig } from '../../internals/vitest-config/src/base-config';
 
 export default mergeConfig(
 	baseConfig,
@@ -11,6 +11,9 @@ export default mergeConfig(
 			alias: {
 				'~': resolve(__dirname, './src'),
 			},
+		},
+		optimizeDeps: {
+			include: ['preact/hooks'],
 		},
 		test: {
 			include: [

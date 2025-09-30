@@ -1,20 +1,22 @@
 {
 	"compilerOptions": {
-		"target": "ES2020",
+		"target": "ES2022",
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
 		"module": "ESNext",
 		"moduleResolution": "bundler",
+		"moduleDetection": "force",
 		"noEmit": true,
 		"allowJs": true,
 		"checkJs": true,
-
-		/* Preact Config */
 		"jsx": "react-jsx",
 		"jsxImportSource": "preact",
 		"skipLibCheck": true,
-		"paths": {
-			"react": ["./node_modules/preact/compat/"],
-			"react-dom": ["./node_modules/preact/compat/"]
-		}
+		"strict": true,
+		"strictNullChecks": true,
+		"noUncheckedIndexedAccess": true,
+		"esModuleInterop": true,
+		"resolveJsonModule": true,
+		"isolatedModules": true
 	},
 	"include": ["node_modules/vite/client.d.ts", "**/*"]
 }

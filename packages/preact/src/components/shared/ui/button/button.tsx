@@ -1,16 +1,15 @@
-import { Slot } from '../../primitives/slot';
-
+import styles from '@c15t/styles/components/button.module.css';
 import {
-	type ButtonHTMLAttributes,
-	type ElementType,
-	type JSX,
-	type ReactElement,
-	forwardRef,
-	useId,
+  type ButtonHTMLAttributes,
+  type ElementType,
+  forwardRef,
+  type JSX,
+  type ReactElement,
 } from 'preact/compat';
+import { useId } from 'preact/hooks';
 import type { PolymorphicComponentProps } from '../../libs/polymorphic';
 import { recursiveCloneChildren } from '../../libs/recursive-clone-children';
-import styles from './button.module.css';
+import { Slot } from '../../primitives/slot';
 
 /**
  * Constants for component display names

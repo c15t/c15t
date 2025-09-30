@@ -1,8 +1,10 @@
 import { defaultTranslationConfig } from 'c15t';
 import type { ComponentChildren } from 'preact';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render } from 'vitest-browser-react';
+import { render } from 'vitest-browser-preact';
 import type { ConsentManagerOptions } from '~/types/consent-manager';
+import { ConsentManagerProvider } from '../consent-manager-provider';
+
 // Mock fetch globally
 const mockFetch = vi.fn();
 window.fetch = mockFetch;
@@ -42,7 +44,6 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 	it('should only make one initial request for consent banner status', async () => {
 		render(
-			//@ts-expect-error - TODO: fix this
 			<ConsentManagerProviderWithOptions
 				options={{
 					mode: 'c15t',
@@ -69,7 +70,6 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		mockFetch.mockClear();
 
 		const { rerender } = render(
-			//@ts-expect-error - TODO: fix this
 			<ConsentManagerProviderWithOptions
 				options={{
 					mode: 'offline', // Use offline mode to prevent additional fetches
@@ -88,7 +88,6 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		// Change theme prop
 		rerender(
-			//@ts-expect-error - TODO: fix this
 			<ConsentManagerProviderWithOptions
 				options={{
 					mode: 'offline',
@@ -108,7 +107,6 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 	it('should make a new request when core options change', async () => {
 		const { rerender } = render(
-			//@ts-expect-error - TODO: fix this
 			<ConsentManagerProviderWithOptions
 				options={{
 					mode: 'c15t',
@@ -132,7 +130,6 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		// Change backendURL
 		rerender(
-			//@ts-expect-error - TODO: fix this
 			<ConsentManagerProviderWithOptions
 				options={{
 					mode: 'c15t',
@@ -159,7 +156,6 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		mockFetch.mockClear();
 
 		const { rerender } = render(
-			//@ts-expect-error - TODO: fix this
 			<ConsentManagerProviderWithOptions
 				options={{
 					mode: 'offline', // Use offline mode to avoid fetch calls
@@ -178,7 +174,6 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		// Simulate rapid re-renders
 		for (let i = 1; i <= 5; i++) {
 			rerender(
-				//@ts-expect-error - TODO: fix this
 				<ConsentManagerProviderWithOptions
 					options={{
 						mode: 'offline',
@@ -206,7 +201,5 @@ const ConsentManagerProviderWithOptions = ({
 	options,
 	children,
 }: ConsentManagerProviderWithOptionsProps) => (
-	<ConsentManagerProviderWithOptions options={options}>
-		{children}
-	</ConsentManagerProviderWithOptions>
+	<ConsentManagerProvider options={options}>{children}</ConsentManagerProvider>
 );

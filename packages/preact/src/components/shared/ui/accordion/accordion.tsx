@@ -1,15 +1,14 @@
 'use client';
 
+import styles from '@c15t/styles/components/accordion.module.css';
 import type { JSX } from 'preact';
-import { useId, useState } from 'preact/compat';
 import { forwardRef } from 'preact/compat';
-
+import { useId, useState } from 'preact/hooks';
 import { Box } from '~/components/shared/primitives/box';
 import { LucideIcon } from '~/components/shared/ui/icon';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
 import type { AllThemeKeys, ExtendThemeKeys, ThemeValue } from '~/types/theme';
-import styles from './accordion.module.css';
 
 export type AccordionStylesKeys = {
 	'accordion.root'?: ThemeValue;

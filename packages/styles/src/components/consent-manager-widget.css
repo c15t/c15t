@@ -30,152 +30,85 @@
  * - Focus management for accordion interactions
  * - High contrast mode support
  */
-
  :root {
-	/* Widget Color System */
-	/** @description Light theme background color */
+	/* Widget Colors */
 	--widget-background-color: hsl(0, 0%, 100%);
-	/** @description Dark theme background color */
 	--widget-background-color-dark: hsl(0, 0%, 10%);
-	/** @description Light theme border color */
 	--widget-border-color: hsl(0, 0%, 92.16%);
-	/** @description Dark theme border color */
 	--widget-border-color-dark: hsl(0, 0%, 20%);
-	/** @description Light theme primary text */
 	--widget-text-color: hsl(0, 0%, 9.02%);
-	/** @description Dark theme primary text */
 	--widget-text-color-dark: hsl(0, 0%, 90%);
-	/** @description Light theme muted text */
 	--widget-text-muted-color: hsl(0, 0%, 36.08%);
-	/** @description Dark theme muted text */
 	--widget-text-muted-color-dark: hsl(0, 0%, 60%);
-	/** @description Light theme footer background */
 	--widget-footer-background-color: transparent;
-	/** @description Dark theme footer background */
 	--widget-footer-background-color-dark: transparent;
-	/** @description Light theme link text */
 	--widget-link-text-color: hsl(0, 0%, 9.02%);
-	/** @description Dark theme link text */
 	--widget-link-text-color-dark: hsl(0, 0%, 90%);
-	/** @description Branding link accent color */
 	--widget-branding-link-color: #47c2ff;
 
-	/* Widget Layout System */
-	/** @description Widget padding for content */
+	/* Widget Layout */
 	--widget-padding: 0;
-	/** @description Widget border radius */
 	--widget-radius: 0;
-	/** @description Gap between widget elements */
 	--widget-gap: 0.375rem;
-	/** @description Widget border width */
 	--widget-border-width: 0;
-	/** @description Maximum width constraint */
 	--widget-max-width: 32rem;
-	/** @description Widget z-index for stacking */
 	--widget-z-index: 50;
-	/** @description Footer padding configuration */
 	--widget-footer-padding: 1.5rem 0 0 0;
 
-	/* Typography Configuration */
-	/** @description Title font size for hierarchy */
+	/* Typography */
 	--widget-title-size: 0.875rem;
-	/** @description Title line height for spacing */
 	--widget-title-line-height: 1.25;
-	/** @description Title letter spacing for readability */
 	--widget-title-tracking: -0.006em;
-	/** @description Title font weight for emphasis */
 	--widget-title-weight: 600;
 
-	/* Animation System */
-	/** @description Entry animation configuration */
+	/* Animation */
 	--widget-entry-animation: enter 150ms ease-out;
-	/** @description Exit animation configuration */
 	--widget-exit-animation: exit 150ms ease-out;
 
-	/* Accordion Component Variables */
-	/** @description Accordion content padding */
+	/* Accordion */
 	--widget-accordion-padding: 0.875rem;
-	/** @description Accordion border radius */
 	--widget-accordion-radius: 0.625rem;
-	/** @description Accordion animation duration */
 	--widget-accordion-duration: 200ms;
-	/** @description Accordion animation easing */
 	--widget-accordion-ease: cubic-bezier(0.4, 0, 0.2, 1);
-	/** @description Accordion icon size */
 	--widget-accordion-icon-size: 1.25rem;
-	/** @description Light theme accordion background */
 	--widget-accordion-background-color: hsl(0, 0%, 100%);
-	/** @description Dark theme accordion background */
 	--widget-accordion-background-color-dark: hsl(0, 0%, 9.02%);
-	/** @description Light theme accordion hover background */
 	--widget-accordion-background-hover: hsl(0, 0%, 96.86%);
-	/** @description Dark theme accordion hover background */
 	--widget-accordion-background-hover-dark: hsl(0, 0%, 10.98%);
-	/** @description Light theme accordion border */
 	--widget-accordion-border-color: hsl(0, 0%, 92.16%);
-	/** @description Dark theme accordion border */
 	--widget-accordion-border-color-dark: hsl(0, 0%, 20%);
-	/** @description Light theme accordion text */
 	--widget-accordion-text-color: hsl(0, 0%, 9.02%);
-	/** @description Dark theme accordion text */
 	--widget-accordion-text-color-dark: hsl(0, 0%, 90%);
-	/** @description Light theme accordion icon color */
 	--widget-accordion-icon-color: hsl(0, 0%, 36.08%);
-	/** @description Dark theme accordion icon color */
 	--widget-accordion-icon-color-dark: hsl(0, 0%, 60%);
-	/** @description Light theme accordion arrow color */
 	--widget-accordion-arrow-color: hsl(0, 0%, 63.92%);
-	/** @description Dark theme accordion arrow color */
 	--widget-accordion-arrow-color-dark: hsl(0, 0%, 80%);
-	/** @description Light theme accordion content text */
 	--widget-accordion-content-color: hsl(0, 0%, 36.08%);
-	/** @description Dark theme accordion content text */
 	--widget-accordion-content-color-dark: hsl(0, 0%, 60%);
-	/** @description Light theme focus ring color */
 	--widget-accordion-focus-ring: hsl(227.93, 100%, 63.92%);
-	/** @description Dark theme focus ring color */
 	--widget-accordion-focus-ring-dark: hsl(228.07, 69.8%, 48.04%);
-	/** @description Light theme focus shadow */
 	--widget-accordion-focus-shadow: 0 0 0 2px hsl(227.93, 100%, 63.92%);
-	/** @description Dark theme focus shadow */
 	--widget-accordion-focus-shadow-dark: 0 0 0 2px hsl(228.07, 69.8%, 48.04%);
 }
 
-/**
- * Widget Root Container
- * 
- * @description Primary widget container with theme isolation
- * @accessibility Maintains proper stacking context and font inheritance
- * @performance CSS isolation for rendering optimization
- */
-.c15t-widget {
+.widget {
 	isolation: isolate;
-	font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+	font-family:
+		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
 		"Apple Color Emoji", "Segoe UI Emoji";
 	line-height: 1.15;
 	-webkit-text-size-adjust: 100%;
 	tab-size: 4;
 }
 
-/**
- * Widget Element Spacing
- * 
- * @description Consistent vertical rhythm between widget elements
- * @design Maintains visual hierarchy and readability
- */
-.c15t-widget > :not([hidden]) ~ :not([hidden]) {
+.widget > :not([hidden]) ~ :not([hidden]) {
 	--space-y-reverse: 0;
 	margin-top: calc(1.5rem * calc(1 - var(--space-y-reverse)));
 	margin-bottom: calc(1.5rem * var(--space-y-reverse));
 }
 
-/**
- * Widget Card Container
- * 
- * @description Main content container with theming support
- * @accessibility Maintains sufficient contrast ratios
- */
-.c15t-card {
+/* Card styles */
+.card {
 	position: relative;
 	width: 100%;
 	max-width: var(--widget-max-width);
@@ -184,45 +117,29 @@
 	background-color: var(--widget-background-color);
 }
 
-:global(.c15t-dark) .c15t-card {
+/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+:global(.c15t-dark) .card {
 	background-color: var(--widget-background-color-dark);
 	border-color: var(--widget-border-color-dark);
 }
 
-/**
- * Animation State Management
- * 
- * @description Controls widget animation states through data attributes
- * @performance CSS-driven animations for optimal performance
- */
-.c15t-card[data-state="open"] {
+/* Animation states */
+.card[data-state="open"] {
 	animation: var(--widget-entry-animation);
 }
 
-.c15t-card[data-state="closed"] {
+.card[data-state="closed"] {
 	animation: var(--widget-exit-animation);
 }
 
-/**
- * Widget Header Section
- * 
- * @description Header area with title and controls
- * @layout Flexible column layout with consistent spacing
- */
-.c15t-header {
+.header {
 	display: flex;
 	flex-direction: column;
 	gap: var(--widget-gap);
 	padding: var(--widget-padding);
 }
 
-/**
- * Widget Typography
- * 
- * @description Consistent text styling across widget components
- * @accessibility Maintains proper heading hierarchy and contrast
- */
-.c15t-title {
+.title {
 	font-size: var(--widget-title-size);
 	line-height: var(--widget-title-line-height);
 	letter-spacing: var(--widget-title-tracking);
@@ -230,36 +147,26 @@
 	color: var(--widget-text-color);
 }
 
-:global(.c15t-dark) .c15t-title {
+/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+:global(.c15t-dark) .title {
 	color: var(--widget-text-color-dark);
 }
 
-.c15t-description {
+.description {
 	color: var(--widget-text-muted-color);
 }
 
-:global(.c15t-dark) .c15t-description {
+/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+:global(.c15t-dark) .description {
 	color: var(--widget-text-muted-color-dark);
 }
 
-/**
- * Widget Content Area
- * 
- * @description Main content area with proper padding
- * @layout Maintains consistent spacing with header and footer
- */
-.c15t-content {
+.content {
 	padding: 0 var(--widget-padding);
 	padding-bottom: var(--widget-padding);
 }
 
-/**
- * Widget Footer Section
- * 
- * @description Action area with responsive layout
- * @responsive Switches between column and row layout based on screen size
- */
-.c15t-footer {
+.footer {
 	display: flex;
 	justify-content: space-between;
 	gap: 1rem;
@@ -267,35 +174,24 @@
 	background-color: var(--widget-footer-background-color);
 }
 
-:global(.c15t-dark) .c15t-footer {
+/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+:global(.c15t-dark) .footer {
 	background-color: var(--widget-footer-background-color-dark);
 }
 
-/**
- * Responsive Footer Layout
- * 
- * @description Responsive design for different screen sizes
- * @breakpoint 640px - switches between mobile and desktop layouts
- */
 @media (max-width: 640px) {
-	.c15t-footer {
+	.footer {
 		flex-direction: column;
 	}
 }
 
 @media (min-width: 640px) {
-	.c15t-footer {
+	.footer {
 		flex-direction: row;
 	}
 }
 
-/**
- * Footer Button Groups
- * 
- * @description Organizes related action buttons
- * @responsive Full width buttons on mobile
- */
-.c15t-footerGroup {
+.footerGroup {
 	display: flex;
 	flex-direction: row;
 	justify-content: space-between;
@@ -303,21 +199,15 @@
 }
 
 @media (max-width: 640px) {
-	.c15t-footerGroup {
+	.footerGroup {
 		width: 100%;
 	}
-	.c15t-footerGroup button {
+	.footerGroup button {
 		width: 100%;
 	}
 }
 
-/**
- * Widget Branding Section
- * 
- * @description Attribution and branding display
- * @accessibility Proper focus states for branding links
- */
-.c15t-branding {
+.branding {
 	display: flex;
 	justify-content: center;
 	width: 100%;
@@ -325,11 +215,12 @@
 	padding-top: 1rem;
 }
 
-:global(.c15t-dark) .c15t-branding {
+/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+:global(.c15t-dark) .branding {
 	border-color: var(--widget-border-color-dark);
 }
 
-.c15t-brandingLink {
+.brandingLink {
 	color: var(--widget-link-text-color);
 	text-decoration: none;
 	text-align: center;
@@ -341,20 +232,16 @@
 	justify-content: center;
 }
 
-:global(.c15t-dark) .c15t-brandingLink {
+/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+:global(.c15t-dark) .brandingLink {
 	color: var(--widget-link-text-color-dark);
 }
 
-.c15t-brandingLink svg {
+.brandingLink svg {
 	height: 1.2rem;
 }
 
-/**
- * Animation Keyframes
- * 
- * @description Smooth scale-based animations for widget states
- * @performance Hardware-accelerated transforms
- */
+/* Animation keyframes */
 @keyframes enter {
 	from {
 		opacity: 0;
@@ -377,39 +264,29 @@
 	}
 }
 
-/**
- * Position Variants
- * 
- * @description Predefined positioning options for widget placement
- * @usage Apply these classes for different screen corners
- */
-.c15t-bottomLeft {
+/* Position variants */
+.bottomLeft {
 	left: 0px;
 	bottom: 0px;
 }
 
-.c15t-bottomRight {
+.bottomRight {
 	right: 0px;
 	bottom: 0px;
 }
 
-.c15t-topLeft {
+.topLeft {
 	left: 0px;
 	top: 0px;
 }
 
-.c15t-topRight {
+.topRight {
 	right: 0px;
 	top: 0px;
 }
 
-/**
- * Accordion Component Styles
- * 
- * @description Expandable content sections with smooth animations
- * @accessibility Proper focus management and keyboard navigation
- */
-.c15t-accordionItem {
+/* Accordion styles */
+.accordionItem {
 	border-radius: var(--widget-accordion-radius);
 	border: 1px solid var(--widget-accordion-border-color);
 	background-color: var(--widget-accordion-background-color);
@@ -417,58 +294,44 @@
 	overflow: visible;
 }
 
-/**
- * Accordion Focus Management
- * 
- * @description Advanced focus styling using CSS :has() selector
- * @accessibility Ensures keyboard navigation visibility
- * @modern Uses modern CSS selectors for enhanced user experience
- */
-.c15t-accordionItem:has(.c15t-accordionTriggerInner:focus-visible) {
+/* Add focus styles to accordionItem when accordionTriggerInner is focused */
+.accordionItem:has(.accordionTriggerInner:focus-visible) {
 	box-shadow: 0 0 0 2px var(--widget-accordion-focus-ring);
 }
 
-:global(.c15t-dark) .c15t-accordionItem {
+/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+:global(.c15t-dark) .accordionItem {
 	border-color: var(--widget-accordion-border-color-dark);
 	background-color: var(--widget-accordion-background-color-dark);
 }
 
-/**
- * Accordion Trigger Styles
- * 
- * @description Interactive trigger for accordion sections
- * @accessibility Proper hover and focus states
- */
-.c15t-accordionTrigger {
+.accordionTrigger {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	width: 100%;
+	/* padding: var(--widget-accordion-padding); */
 	color: var(--widget-accordion-text-color);
 	background-color: transparent;
 	transition: background-color var(--widget-accordion-duration)
 		var(--widget-accordion-ease);
 }
 
-.c15t-accordionTrigger:hover {
+.accordionTrigger:hover {
 	background-color: var(--widget-accordion-background-hover);
 }
 
-:global(.c15t-dark) .c15t-accordionTrigger {
+/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+:global(.c15t-dark) .accordionTrigger {
 	color: var(--widget-accordion-text-color-dark);
 }
 
-:global(.c15t-dark) .c15t-accordionTrigger:hover {
+/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+:global(.c15t-dark) .accordionTrigger:hover {
 	background-color: var(--widget-accordion-background-hover-dark);
 }
 
-/**
- * Accordion Trigger Inner Container
- * 
- * @description Inner trigger content with proper spacing and styling
- * @accessibility Focus management and visual hierarchy
- */
-.c15t-accordionTriggerInner {
+.accordionTriggerInner {
 	display: flex;
 	align-items: center;
 	gap: var(--widget-gap);
@@ -478,30 +341,19 @@
 	border-radius: var(--widget-accordion-radius);
 }
 
-/**
- * Accordion Content Area
- * 
- * @description Expandable content section
- * @typography Optimized for readability
- */
-.c15t-accordionContent {
+.accordionContent {
 	padding: var(--widget-accordion-padding);
 	color: var(--widget-accordion-content-color);
 	font-size: 0.875rem;
 	line-height: 1.5;
 }
 
-:global(.c15t-dark) .c15t-accordionContent {
+/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+:global(.c15t-dark) .accordionContent {
 	color: var(--widget-accordion-content-color-dark);
 }
 
-/**
- * Accordion Arrow Indicator
- * 
- * @description Animated arrow for expand/collapse state
- * @animation Smooth rotation on state change
- */
-.c15t-accordionArrow {
+.accordionArrow {
 	color: var(--widget-accordion-arrow-color);
 	width: var(--widget-accordion-icon-size);
 	height: var(--widget-accordion-icon-size);
@@ -509,21 +361,17 @@
 		var(--widget-accordion-ease);
 }
 
-:global(.c15t-dark) .c15t-accordionArrow {
+/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+:global(.c15t-dark) .accordionArrow {
 	color: var(--widget-accordion-arrow-color-dark);
 }
 
-.c15t-accordionItem[data-state="open"] .accordionArrow {
+.accordionItem[data-state="open"] .accordionArrow {
 	transform: rotate(180deg);
 }
 
-/**
- * Switch Component Styles
- * 
- * @description Toggle switch for binary preferences
- * @accessibility Keyboard and mouse interaction support
- */
-.c15t-switch {
+/* Switch styles */
+.switch {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -536,20 +384,16 @@
 		var(--widget-accordion-ease);
 }
 
-:global(.c15t-dark) .c15t-switch {
+/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+:global(.c15t-dark) .switch {
 	background-color: var(--widget-accordion-background-hover-dark);
 }
 
-/**
- * Switch Active State
- * 
- * @description Styling for enabled switch state
- * @visual Distinct color for active/checked state
- */
-.c15t-switch[data-state="checked"] {
+.switch[data-state="checked"] {
 	background-color: var(--widget-accordion-focus-ring);
 }
 
-:global(.c15t-dark) .sc15t-witch[data-state="checked"] {
+/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
+:global(.c15t-dark) .switch[data-state="checked"] {
 	background-color: var(--widget-accordion-focus-ring-dark);
 }

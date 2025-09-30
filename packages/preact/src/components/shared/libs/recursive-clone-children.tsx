@@ -1,9 +1,9 @@
 import type { ComponentChildren, VNode } from 'preact';
 import {
-	Children,
-	type ComponentType,
-	cloneElement,
-	isValidElement,
+    Children,
+    type ComponentType,
+    cloneElement,
+    isValidElement,
 } from 'preact/compat';
 
 type VNodeLike = {

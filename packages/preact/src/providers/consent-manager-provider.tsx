@@ -6,7 +6,7 @@ import {
   createConsentManagerStore,
   type PrivacyConsentState,
 } from 'c15t';
-import { useEffect, useMemo, useRef, useState } from 'preact/compat';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import {
   ConsentStateContext,
   type ConsentStateContextValue,
@@ -63,7 +63,6 @@ export function ConsentManagerProvider({
 	const {
 		mode,
 		backendURL,
-		callbacks,
 		store = {},
 		translations,
 		ui = {},

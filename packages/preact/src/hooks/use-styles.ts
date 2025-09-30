@@ -6,7 +6,7 @@
  * Implements a flexible styling system that merges theme and component-level styles.
  */
 
-import { useMemo } from 'preact/compat';
+import { useMemo } from 'preact/hooks';
 import { useTheme } from '~/hooks/use-theme';
 import type { AllThemeKeys } from '~/types/theme';
 import type { ClassNameStyle, ThemeValue } from '~/types/theme';

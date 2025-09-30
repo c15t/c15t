@@ -897,6 +897,9 @@ importers:
 
   packages/preact:
     dependencies:
+      '@c15t/styles':
+        specifier: workspace:*
+        version: link:../styles
       '@preact/signals':
         specifier: ^2.3.1
         version: 2.3.1(preact@10.26.5)

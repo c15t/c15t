@@ -1,9 +1,9 @@
 import {
-	type ElementType,
-	type JSX,
-	type Ref,
-	type SVGProps,
-	forwardRef,
+    type ElementType,
+    forwardRef,
+    type JSX,
+    type Ref,
+    type SVGProps,
 } from 'preact/compat';
 
 const Icon = (

@@ -1,7 +1,7 @@
 import type {
-	ComponentPropsWithoutRef,
-	ElementType,
-	PropsWithChildren,
+    ComponentPropsWithoutRef,
+    ElementType,
+    PropsWithChildren,
 } from 'preact/compat';
 
 type AsProp<T extends ElementType> = {

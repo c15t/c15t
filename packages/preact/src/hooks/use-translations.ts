@@ -2,7 +2,7 @@
 
 import type { Translations } from 'c15t';
 import { defaultTranslationConfig } from 'c15t';
-import { useMemo } from 'preact/compat';
+import { useMemo } from 'preact/hooks';
 import { useConsentManager } from './use-consent-manager';
 
 /**

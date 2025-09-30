@@ -3,7 +3,7 @@
  * Provides a reusable hook for managing document scroll locking.
  */
 
-import { useEffect, useLayoutEffect } from 'preact/compat';
+import { useEffect, useLayoutEffect } from 'preact/hooks';
 
 // Use layout effect on the client, effect on the server
 const useIsomorphicLayoutEffect =

@@ -1,13 +1,13 @@
 import type { Signal } from '@preact/signals';
+import type { JSX } from 'preact';
 // ~/components/shared/primitives/slot.tsx
 import {
-	type ComponentChildren,
-	type VNode,
-	cloneElement,
-	toChildArray,
+    type ComponentChildren,
+    cloneElement,
+    toChildArray,
+    type VNode,
 } from 'preact';
-import type { JSX } from 'preact';
-import { type Ref, forwardRef } from 'preact/compat';
+import { forwardRef, type Ref } from 'preact/compat';
 
 type Signalish<T> = T | Signal<T>;
 type WithRef<E extends HTMLElement> = JSX.HTMLAttributes<E> & { ref?: Ref<E> };

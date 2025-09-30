@@ -1,6 +1,6 @@
 import type { JSX } from 'preact';
 import { expect } from 'vitest';
-import { render } from 'vitest-browser-react';
+import { render } from 'vitest-browser-preact';
 import { ConsentManagerProvider } from '~/providers/consent-manager-provider';
 
 interface ComponentStyles {
@@ -31,7 +31,6 @@ export async function renderComponentStyles({
 }: ComponentStyles): Promise<TestResult[]> {
 	// Render the component with the ConsentManagerProvider
 	const { container } = render(
-		//@ts-expect-error - TODO: fix this
 		<ConsentManagerProvider
 			options={{
 				mode: 'offline',
@@ -129,9 +128,8 @@ export async function testComponentStyles({
 			assertElementStyles(
 				element,
 				testCase.styles,
-				//@ts-expect-error - TODO: fix this
-				testCase.noStyle ?? noStyle,
-				testId
+				testId,
+				testCase.noStyle ?? noStyle
 			);
 		}
 	}

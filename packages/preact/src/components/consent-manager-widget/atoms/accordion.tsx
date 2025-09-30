@@ -1,15 +1,13 @@
+import styles from '@c15t/styles/components/consent-manager-widget.css';
 import type { AllConsentNames, ConsentType } from 'c15t';
-
 import type { ComponentProps, Ref } from 'preact';
-import { useCallback } from 'preact/compat';
 import { forwardRef } from 'preact/compat';
-
+import { useCallback } from 'preact/hooks';
 import { Box, type BoxProps } from '~/components/shared/primitives/box';
 import * as RadixAccordion from '~/components/shared/ui/accordion';
 import * as RadixSwitch from '~/components/shared/ui/switch';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useTranslations } from '~/hooks/use-translations';
-import styles from '../consent-manager-widget.module.css';
 
 /**
  * Accordion Trigger Component
