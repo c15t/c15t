@@ -6,7 +6,7 @@
  * Built with accessibility and customization in mind, following GDPR, CCPA, and other privacy regulation requirements.
  */
 
-import { type ReactNode, type Ref, forwardRef } from 'react';
+import { forwardRef, type ReactNode, type Ref } from 'react';
 
 import { ConsentManagerWidget } from '~/components/consent-manager-widget/consent-manager-widget';
 import { Box, type BoxProps } from '~/components/shared/primitives/box';
@@ -25,22 +25,6 @@ type DialogCardProps = {
 	children?: ReactNode;
 } & ClassNameStyle;
 
-/**
- * The root component for creating a privacy consent dialog card.
- * Provides the main container and styling for the consent interface.
- *
- * @example
- * ```tsx
- * <DialogCard>
- *   <DialogHeader>
- *     <DialogHeaderTitle>Privacy Settings</DialogHeaderTitle>
- *   </DialogHeader>
- *   <DialogContent>
- *     <ConsentManagerWidget />
- *   </DialogContent>
- * </DialogCard>
- * ```
- */
 const DialogCard = forwardRef<HTMLDivElement, DialogCardProps>(
 	({ children, ...props }, ref) => {
 		return (
@@ -188,22 +172,27 @@ const DialogFooter = forwardRef<HTMLDivElement, BoxProps>(
  * The branding footer with configurable logo
  */
 export const BrandingFooter = () => {
-	const consentManager = useConsentManager();
+	const { branding } = useConsentManager();
+
+	if (branding === 'none') {
+		return null;
+	}
 
 	const refParam =
 		typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
 
 	return (
 		<a
+			dir="ltr"
 			className={styles.branding}
 			href={
-				consentManager.isConsentDomain
+				branding === 'consent'
 					? `https://consent.io${refParam}`
 					: `https://c15t.com${refParam}`
 			}
 		>
 			Secured by{' '}
-			{consentManager.isConsentDomain ? (
+			{branding === 'consent' ? (
 				<ConsentLogo className={styles.brandingConsent} />
 			) : (
 				<C15TIcon className={styles.brandingC15T} />
@@ -231,12 +220,7 @@ export const BrandingFooter = () => {
  * - Includes consent type management
  * - Built-in accessibility features
  */
-const ConsentCustomizationCard = ({
-	noStyle,
-}: {
-	noStyle?: boolean;
-	useConsentLogo?: boolean;
-}) => {
+const ConsentCustomizationCard = ({ noStyle }: { noStyle?: boolean }) => {
 	const { consentManagerDialog: translations } = useTranslations();
 
 	return (

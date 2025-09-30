@@ -40,12 +40,12 @@ export const purposeSchema = z.object({
 	code: z.string(),
 	name: z.string(),
 	description: z.string(),
-	isEssential: z.boolean().default(false),
+	isEssential: z.boolean().prefault(false),
 	dataCategory: z.string().nullish(),
 	legalBasis: z.string().nullish(),
-	isActive: z.boolean().default(true),
-	createdAt: z.date().default(() => new Date()),
-	updatedAt: z.date().default(() => new Date()),
+	isActive: z.boolean().prefault(true),
+	createdAt: z.date().prefault(() => new Date()),
+	updatedAt: z.date().prefault(() => new Date()),
 });
 
 /**

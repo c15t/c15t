@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect } from 'react';
 
 export type ColorScheme = 'light' | 'dark' | 'system' | null;

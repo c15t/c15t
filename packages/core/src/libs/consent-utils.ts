@@ -6,6 +6,9 @@ import type { AllConsentNames, ConsentState } from '../types';
  * @param consents - The current state of user consents.
  * @param honorDoNotTrack - Whether to respect the user's Do Not Track setting.
  * @returns The effective consents after considering Do Not Track.
+ *
+ * @deprecated This function is deprecated and will be removed in a future version.
+ * Use the has() method instead.
  */
 export function getEffectiveConsents(
 	consents: ConsentState,
@@ -33,6 +36,9 @@ export function getEffectiveConsents(
  * @param consents - The current state of user consents.
  * @param honorDoNotTrack - Whether to respect the user's Do Not Track setting.
  * @returns True if consent is given, false otherwise.
+ *
+ * @deprecated This function is deprecated and will be removed in a future version.
+ * Use the has() method instead.
  */
 export function hasConsentFor(
 	consentType: AllConsentNames,

@@ -1,11 +1,11 @@
 import type { ContractsOutputs } from '@c15t/backend/contracts';
 import {
-	type Mock,
 	afterEach,
 	beforeEach,
 	describe,
 	expect,
 	it,
+	type Mock,
 	vi,
 } from 'vitest';
 import { extractRelevantHeaders } from './headers';
@@ -78,6 +78,7 @@ describe('getC15TInitialData', () => {
 	it('should successfully fetch and return consent banner data', async () => {
 		const mockResponse: ShowConsentBanner = {
 			showConsentBanner: true,
+			branding: 'c15t',
 			jurisdiction: {
 				message: 'Please accept cookies',
 				code: 'GDPR',

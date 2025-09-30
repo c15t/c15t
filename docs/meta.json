@@ -1,0 +1,17 @@
+{
+	"pages": [
+		"frameworks",
+		"sdks",
+		"self-host",
+		"index",
+		"introduction",
+		"ai-tools-integrations",
+		"--- OSS ---",
+		"./oss/contributing",
+		"./oss/license",
+		"./oss/why-open-source",
+		"--- Legal ---",
+		"./legals/cookie-policy",
+		"./legals/privacy-policy"
+	]
+}

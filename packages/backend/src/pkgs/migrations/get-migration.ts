@@ -1,8 +1,10 @@
 import { createKyselyAdapter } from '~/pkgs/db-adapters';
 import { getLogger } from '~/pkgs/utils/logger';
 import type { C15TOptions } from '~/types';
-import { buildColumnAddMigrations } from './migration-builders';
-import { buildTableCreateMigrations } from './migration-builders';
+import {
+	buildColumnAddMigrations,
+	buildTableCreateMigrations,
+} from './migration-builders';
 import { createMigrationExecutors } from './migration-execution';
 import { analyzeSchemaChanges } from './schema-comparison';
 import type { MigrationResult } from './types';

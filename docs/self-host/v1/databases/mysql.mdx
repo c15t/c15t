@@ -1,0 +1,264 @@
+---
+title: MySQL Adapter
+description: The MySQL adapter provides integration with MySQL and MariaDB, widely-used relational database systems known for reliability, performance, and broad compatibility.
+lastModified: 2025-04-10
+deprecated: true
+deprecatedReason: "@c15t/backend v1 did not deliver the flexibility we wanted and fell short of our standards. It is now deprecated as we work on a full rewrite, with v2 entering canary soon. This does not affect consent.io deployments, which remain stable."
+---
+
+## Installation
+
+Install the MySQL adapter and its dependencies:
+
+<PackageCommandTabs command="@c15t/backend mysql2 @types/mysql2" mode="install" />
+
+## Configuration
+
+Configure the MySQL adapter with your connection details:
+
+```typescript
+import { c15tInstance } from '@c15t/backend';
+import { mysqlAdapter } from '@c15t/backend/db/adapters/mysql';
+
+const instance = c15tInstance({
+  baseURL: 'http://localhost:3000',
+  database: mysqlAdapter({
+    // Connection string approach
+    connectionString: 'mysql://username:password@localhost:3306/c15t',
+    
+    // Or detailed configuration
+    connection: {
+      host: 'localhost',
+      port: 3306,
+      database: 'c15t',
+      user: 'root',
+      password: 'password',
+      ssl: false, // Set to true for SSL connections
+      charset: 'utf8mb4', // Full Unicode support
+    },
+    
+    // Connection pool configuration
+    pool: {
+      min: 2,
+      max: 10,
+      idleTimeoutMillis: 30000
+    },
+    
+    // Query logging (for development)
+    debug: process.env.NODE_ENV !== 'production',
+    
+    // Use MySQL 8+ features (default: true)
+    useModernFeatures: true,
+  }),
+});
+```
+
+## Schema Management
+
+Initialize your database schema:
+
+```typescript
+const createSchema = async (db) => {
+  await db.raw(`
+    CREATE TABLE IF NOT EXISTS users (
+      id CHAR(36) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    
+    CREATE TABLE IF NOT EXISTS consents (
+      id CHAR(36) PRIMARY KEY,
+      user_id CHAR(36) NOT NULL,
+      purpose VARCHAR(255) NOT NULL,
+      granted BOOLEAN NOT NULL,
+      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      metadata JSON,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    
+    CREATE INDEX idx_consents_user_id ON consents(user_id);
+    CREATE INDEX idx_consents_purpose ON consents(purpose);
+  `);
+};
+
+// Use in initialization
+const instance = c15tInstance({
+  database: mysqlAdapter({
+    connection: {
+      host: 'localhost',
+      port: 3306,
+      database: 'c15t',
+      user: 'root',
+      password: 'password',
+    },
+    onInit: createSchema,
+  }),
+});
+```
+
+## Usage Examples
+
+### Basic CRUD Operations
+
+```typescript
+// Create a new record
+const user = await instance.database.create('users', {
+  id: crypto.randomUUID(),
+  name: 'John Doe',
+  email: 'john@example.com'
+});
+
+// Find records
+const users = await instance.database.find('users', {
+  where: { email: { $like: '%@example.com' } },
+  orderBy: { created_at: 'desc' },
+  limit: 10,
+  offset: 20
+});
+
+// Update a record
+const updatedUser = await instance.database.update(
+  'users',
+  { where: { id: user.id } },
+  { name: 'John Smith' }
+);
+
+// Delete a record
+await instance.database.delete('users', { where: { id: user.id } });
+```
+
+### Transactions
+
+```typescript
+await instance.database.transaction(async (trx) => {
+  // All operations in this function use the same transaction
+  const user = await trx.create('users', {
+    id: crypto.randomUUID(),
+    name: 'Alice Johnson',
+    email: 'alice@example.com'
+  });
+  
+  await trx.create('consents', {
+    id: crypto.randomUUID(),
+    user_id: user.id,
+    purpose: 'marketing',
+    granted: true,
+    metadata: JSON.stringify({ source: 'website', campaign: 'summer2023' })
+  });
+  
+  // Transaction automatically commits unless an error is thrown
+});
+```
+
+### Advanced Queries
+
+```typescript
+// JSON filtering (MySQL 8+)
+const users = await instance.database.find('consents', {
+  where: {
+    $raw: "JSON_EXTRACT(metadata, '$.source') = ?",
+    $params: ['website']
+  }
+});
+
+// Raw SQL for complex queries
+const stats = await instance.database.raw(`
+  SELECT 
+    purpose, 
+    COUNT(*) as total_count,
+    SUM(IF(granted, 1, 0)) as granted_count
+  FROM consents
+  GROUP BY purpose
+  ORDER BY total_count DESC
+`);
+```
+
+### Using MySQL-Specific Features
+
+```typescript
+// JSON operations (MySQL 8+)
+await instance.database.update(
+  'consents',
+  { where: { id: 'some-uuid' } },
+  {
+    metadata: {
+      $raw: "JSON_SET(metadata, '$.preferences', ?)",
+      $params: [JSON.stringify({ email: true, sms: false })]
+    }
+  }
+);
+
+// Full-text search (requires FULLTEXT index)
+const searchResults = await instance.database.find('users', {
+  where: {
+    $raw: "MATCH(name, email) AGAINST(? IN BOOLEAN MODE)",
+    $params: ['john email']
+  }
+});
+```
+
+## Performance Optimization
+
+```typescript
+// Create optimized indexes
+await instance.database.raw(`
+  -- Standard index for lookups
+  CREATE INDEX idx_users_email ON users(email);
+  
+  -- Fulltext index for search
+  CREATE FULLTEXT INDEX idx_users_fulltext ON users(name, email);
+`);
+
+// Set server variables
+await instance.database.raw(`
+  SET GLOBAL innodb_buffer_pool_size = 1073741824; -- 1GB
+  SET GLOBAL max_connections = 200;
+`);
+```
+
+## Best Practices
+
+- **Use InnoDB tables** for transactions and foreign key support
+- **Set appropriate character sets** (utf8mb4 recommended for full Unicode support)
+- **Configure connection pooling** for efficient resource management
+- **Create proper indexes** on frequently queried columns
+- **Use prepared statements** to prevent SQL injection (handled automatically)
+- **Consider table partitioning** for very large tables
+- **Regularly optimize tables** for performance maintenance
+
+## Monitoring and Management
+
+```typescript
+// Check database health
+const health = await instance.database.raw(`
+  SELECT 
+    DATABASE() AS database,
+    VERSION() AS version,
+    @@character_set_database AS charset,
+    @@collation_database AS collation
+`);
+
+// Monitoring query performance
+const slowQueries = await instance.database.raw(`
+  SELECT query, count_star, sum_timer_wait
+  FROM performance_schema.events_statements_summary_by_digest
+  ORDER BY sum_timer_wait DESC
+  LIMIT 10
+`);
+```
+
+## Limitations
+
+- JSON support is less powerful than PostgreSQL (especially in MySQL 5.7)
+- Requires a running MySQL/MariaDB server
+- Default isolation level may differ from other databases
+- Some ALTER TABLE operations require table rebuilds
+
+## Related Resources
+
+- [MySQL Documentation](https://dev.mysql.com/doc/)
+- [MariaDB Documentation](https://mariadb.com/kb/en/documentation/)
+- [mysql2 GitHub Repository](https://github.com/sidorares/node-mysql2)
+- [Database Adapter Interface](../database-adapters)
+- [Core Concepts](../core-concepts)

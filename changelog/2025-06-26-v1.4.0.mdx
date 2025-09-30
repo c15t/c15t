@@ -1,0 +1,81 @@
+---
+title: "v1.4.0 — Ignore Geo, Provider DX, Store Config, A11y, CLI Fixes"
+version: 1.4.0
+date: 2025-06-26
+description: "Minor release improving developer experience with ignoreGeoLocation and consentCategories, adding a debug-friendly store config prop, enhancing accessibility, and fixing CLI onboarding issues."
+tags:
+  - release
+  - stable
+  - cli
+  - react
+  - core
+  - dx
+canary: false
+type: release
+breaking: false
+authors:
+  - burnedchris
+  - kayleewilliams
+packages:
+  - "@c15t/cli@1.4.0"
+  - "@c15t/react@1.4.0"
+---
+
+## Minor Changes
+
+- feat(core, react): added `ignoreGeoLocation` to provider and store to allow showing the cookie banner during development regardless of geo. Also improved provider props with a new `consentCategories` option (DX-friendly alias for `store.initialGDPRTypes`). ([c7b4ad5](https://github.com/c15t/c15t/commit/c7b4ad5be23baba27c8f97af8c5aec85527986a3))
+- feat(core): added `config` prop on the store for better debugging and inspection. ([6eb9a8d](https://github.com/c15t/c15t/commit/6eb9a8d044ecb3cc74fa8e70f60bb9dfac6318bb))
+
+## Patch Changes
+
+- fix(react): add `aria-label` to the cookie banner component to improve accessibility. ([ed5092e](https://github.com/c15t/c15t/commit/ed5092edbc65d1762a1ada37bf50ab61dc8d6046))
+- fix(cli): remove unnecessary env import during onboarding for Next.js config generation. ([6eb9a8d](https://github.com/c15t/c15t/commit/6eb9a8d044ecb3cc74fa8e70f60bb9dfac6318bb))
+- fix(cli): resolved duplicate package manager prompt during setup. ([37ef4c5](https://github.com/c15t/c15t/commit/37ef4c53c511eb74e3faa4de68ad7876158fa807))
+- chore(core/react): small cleanup and provider/store prop alignment. ([e30ffaf](https://github.com/c15t/c15t/commit/e30ffafe872eefe883384d07e1da07ae81660e23))
+- chore: additional housekeeping and consistency updates. ([169de72](https://github.com/c15t/c15t/commit/169de720fcd745e5759685f694dbb9a373dbcc96))
+
+## Updated Dependencies
+
+- Updated dependencies [6eb9a8d]
+  - `@c15t/react@1.4.0`
+
+## Usage Notes
+
+- To force the cookie banner to appear during local development outside of regulated regions, enable `ignoreGeoLocation`.
+- Prefer `consentCategories` over `store.initialGDPRTypes` for a clearer provider-level configuration.
+
+```tsx
+<ConsentManagerProvider
+  options={{
+    mode: 'c15t',
+    backendURL: process.env.NEXT_PUBLIC_C15T_URL,
+    ignoreGeoLocation: true,
+    consentCategories: ['necessary', 'analytics', 'marketing'],
+  }}
+/>
+```
+
+- Use the store `config` prop to inspect or log runtime settings for debugging.
+
+```ts
+createConsentManagerStore({
+  config: { verbose: true },
+});
+```
+
+## ✨ What's Changed
+
+- feat(core, react): added ignoreGeoLocation / provider props improvements — [c7b4ad5](https://github.com/c15t/c15t/commit/c7b4ad5be23baba27c8f97af8c5aec85527986a3)
+- fix(cli): remove env import — [6eb9a8d](https://github.com/c15t/c15t/commit/6eb9a8d044ecb3cc74fa8e70f60bb9dfac6318bb)
+- fix(react): add aria label to cookie banner — [ed5092e](https://github.com/c15t/c15t/commit/ed5092edbc65d1762a1ada37bf50ab61dc8d6046)
+- fix(cli): asks for pkg manager twice — [37ef4c5](https://github.com/c15t/c15t/commit/37ef4c53c511eb74e3faa4de68ad7876158fa807)
+- chore(core/react): provider/store cleanup — [e30ffaf](https://github.com/c15t/c15t/commit/e30ffafe872eefe883384d07e1da07ae81660e23)
+- misc: housekeeping — [169de72](https://github.com/c15t/c15t/commit/169de720fcd745e5759685f694dbb9a373dbcc96)
+
+Published via commit [e0026b4](https://github.com/c15t/c15t/commit/e0026b4) by [@github-actions](https://github.com/github-actions)
+
+**Full Changelog**: [c15t@1.3.3...c15t@1.4.0](https://github.com/c15t/c15t/compare/c15t@1.3.3...c15t@1.4.0)
+
+<ContributorBlock usernames={["BurnedChris", "KayleeWilliams"]} />
+
+

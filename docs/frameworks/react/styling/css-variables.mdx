@@ -1,0 +1,42 @@
+---
+title: Styling with CSS Variables
+description: Learn how to use CSS variables to create flexible and dynamic themes for c15t components.
+lastModified: 2025-08-22
+availableIn:
+  - framework: 'next'
+    url: '/docs/frameworks/next/styling/css-variables'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/styling/css-variables'
+    title: 'React'
+---
+
+CSS Variables are our recommended way to style your components. They provide a powerful way to create dynamic, maintainable themes for components. This approach is particularly useful for dark mode, theming, and responsive design.
+
+## Basic Usage
+
+Each component has a set of predefined CSS variables that you can override:
+
+```tsx
+<CookieBanner
+  theme={{
+    'banner.card': {
+      style: {
+        '--banner-background-color': 'red',
+        '--banner-border-radius': '0px',
+      },
+    },
+  }}
+/>
+```
+
+## All CSS Variables
+
+| Component | CSS Variables |
+|-----------|---------------|
+| Cookie Banner | [Open in GitHub](https://github.com/c15t/c15t/blob/main/packages/react/src/components/cookie-banner/theme.ts) |
+| Consent Manager Dialog | [Open in GitHub](https://github.com/c15t/c15t/blob/main/packages/react/src/components/consent-manager-dialog/theme.ts) |
+| Consent Manager Widget | [Open in GitHub](https://github.com/c15t/c15t/blob/main/packages/react/src/components/consent-manager-widget/theme.ts) |
+| Button | [Open in GitHub](https://github.com/c15t/c15t/blob/main/packages/react/src/components/shared/ui/button/button.types.ts) |
+| Accordion | [Open in GitHub](https://github.com/c15t/c15t/blob/main/packages/react/src/components/shared/ui/accordion/accordion.types.ts) |
+| Switch | [Open in GitHub](https://github.com/c15t/c15t/blob/main/packages/react/src/components/shared/ui/switch/switch.types.ts) |

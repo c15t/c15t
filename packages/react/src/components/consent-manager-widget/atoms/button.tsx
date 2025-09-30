@@ -1,4 +1,4 @@
-import { type Ref, forwardRef } from 'react';
+import { forwardRef, type Ref } from 'react';
 import { ConsentButton } from '~/components/shared/primitives/button';
 import type { ConsentButtonProps } from '~/components/shared/primitives/button.types';
 

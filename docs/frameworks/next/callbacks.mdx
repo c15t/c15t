@@ -1,0 +1,95 @@
+---
+title: "Callbacks"
+description: "Learn how to use callbacks to respond to c15t events in your Next.js application."
+lastModified: 2025-08-20
+availableIn:
+  - framework: 'next'
+    url: '/docs/frameworks/next/callbacks'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/callbacks'
+    title: 'React'
+---
+
+## Implementing Callbacks
+
+<Tabs items={['App Directory', 'Pages Directory']}>
+  <Tab value="App Directory">
+    Due to the nature of Next.js App Directory, we have to define callbacks to run in a client component.
+
+    ```ts title="app/layout.client.tsx"
+    'use client';
+
+    import { ConsentManagerCallbacks } from '@c15t/nextjs/client';
+
+    export function ClientLayout() {
+    	return (
+    		<ConsentManagerCallbacks
+    			callbacks={{
+    				onBannerFetched(response) {
+    					console.log('Consent banner fetched', response);
+    				},
+    				onConsentSet(response) {
+    					console.log('Consent has been saved locally', response);
+    				},
+    				onError(error) {
+    					console.log('Error', error);
+    				},
+    			}}
+    		/>
+    	);
+    }
+    ```
+
+    <Callout type="note">
+      Ensure you import this component inside the ConsentManagerProvider component in your `app/layout.tsx` file.
+    </Callout>
+
+    ```ts title="app/layout.tsx"
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { ClientLayout } from './layout.client';
+    import type { ReactNode } from 'react';
+
+    export default function Layout({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider options={{
+          // your options here
+        }}>
+          <ClientLayout />
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Pages Directory">
+    ```ts title="pages/_app.tsx"
+    import { ConsentManagerProvider } from '@c15t/nextjs/pages';
+    import type { AppProps } from 'next/app';
+
+    export default function App({ Component, pageProps }: AppProps) {
+    return (
+    <ConsentManagerProvider options={{
+      callbacks: {
+        onBannerFetched(response) {
+          console.log('Consent banner fetched', response);
+        },
+        onConsentSet(response) {
+          console.log('Consent has been saved', response);
+        },
+        onError(error) {
+          console.log('Error', error);
+        },
+      }
+    }}>
+      <Component {...pageProps} />
+    </ConsentManagerProvider>
+    );
+    }
+
+    ```
+  </Tab>
+</Tabs>
+
+<import>../javascript/shared/available-callbacks.mdx</import>

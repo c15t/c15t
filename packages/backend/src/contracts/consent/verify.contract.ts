@@ -8,24 +8,20 @@ import { PolicyTypeSchema } from '~/schema';
  */
 
 // Input schema based on VerifyConsentRequestBody
-const verifyConsentInputSchema = z
-	.object({
-		subjectId: z.string().optional(),
-		externalSubjectId: z.string().optional(),
-		domain: z.string(),
-		type: PolicyTypeSchema,
-		policyId: z.string().optional(),
-		preferences: z.array(z.string()).optional(),
-	})
-	.strict();
+const verifyConsentInputSchema = z.strictObject({
+	subjectId: z.string().optional(),
+	externalSubjectId: z.string().optional(),
+	domain: z.string(),
+	type: PolicyTypeSchema,
+	policyId: z.string().optional(),
+	preferences: z.array(z.string()).optional(),
+});
 
 // Minimal consent schema based on the response interface
-const consentSchema = z
-	.object({
-		id: z.string(),
-		purposeIds: z.array(z.string()),
-	})
-	.passthrough(); // Allow additional properties
+const consentSchema = z.looseObject({
+	id: z.string(),
+	purposeIds: z.array(z.string()),
+}); // Allow additional properties
 
 // Output schema based on VerifyConsentResponse
 export const verifyConsentContract = oc
@@ -56,64 +52,64 @@ Use this endpoint to ensure compliance with privacy regulations and to verify us
 		// Input validation errors
 		INPUT_VALIDATION_FAILED: {
 			status: 422,
-			message: 'Invalid input parameters',
 			data: z.object({
 				formErrors: z.array(z.string()),
 				fieldErrors: z.record(z.string(), z.array(z.string()).optional()),
 			}),
+			error: 'Invalid input parameters',
 		},
 		// Subject errors
 		SUBJECT_NOT_FOUND: {
 			status: 404,
-			message: 'Subject not found',
 			data: z.object({
 				subjectId: z.string().optional(),
 				externalSubjectId: z.string().optional(),
 			}),
+			error: 'Subject not found',
 		},
 		// Domain errors
 		DOMAIN_NOT_FOUND: {
 			status: 404,
-			message: 'Domain not found',
 			data: z.object({
 				domain: z.string(),
 			}),
+			error: 'Domain not found',
 		},
 		// Policy errors
 		POLICY_NOT_FOUND: {
 			status: 404,
-			message: 'Policy not found or invalid',
 			data: z.object({
 				policyId: z.string(),
 				type: z.string(),
 			}),
+			error: 'Policy not found or invalid',
 		},
 		// Purpose errors
 		PURPOSES_NOT_FOUND: {
 			status: 404,
-			message: 'Could not find all specified purposes',
 			data: z.object({
 				preferences: z.array(z.string()),
 				foundPurposes: z.array(z.string()),
 			}),
+			error: 'Could not find all specified purposes',
 		},
 		// Cookie banner specific errors
 		COOKIE_BANNER_PREFERENCES_REQUIRED: {
 			status: 400,
-			message: 'Preferences are required for cookie banner consent',
 			data: z.object({
 				type: z.literal('cookie_banner'),
 			}),
+			error: 'Preferences are required for cookie banner consent',
 		},
 		// Consent errors
 		NO_CONSENT_FOUND: {
 			status: 404,
-			message: 'No consent found for the given policy',
 			data: z.object({
 				policyId: z.string(),
 				subjectId: z.string(),
 				domainId: z.string(),
 			}),
+			error: 'No consent found for the given policy',
 		},
 	})
 	.input(verifyConsentInputSchema)

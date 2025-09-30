@@ -4,8 +4,8 @@ import {
 	type EntityOutput,
 	type EntityTypeMap,
 	type Field,
-	type Primitive,
 	generateId,
+	type Primitive,
 } from '~/pkgs/data-model';
 import { getConsentTables } from '~/schema';
 import type { C15TOptions } from '~/types';
@@ -336,6 +336,9 @@ const createEntityTransformer = (options: C15TOptions) => {
  * // You can also inspect the database during development
  * console.log(db);
  * ```
+ *
+ * @deprecated Will be removed in the next major version. Update to `@c15t/backend/v2`, view migration guide for more details.
+ * @see https://c15t.com/docs/self-host/migrate-from-v1
  */
 export const memoryAdapter =
 	(db: MemoryDB) =>

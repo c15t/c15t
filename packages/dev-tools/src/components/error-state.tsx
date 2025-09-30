@@ -3,11 +3,7 @@ import { motion } from 'motion/react';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import './error-state.css';
 
-export function ErrorState({
-	namespace,
-}: {
-	namespace: string;
-}) {
+export function ErrorState({ namespace }: { namespace: string }) {
 	return (
 		<motion.div
 			className="c15t-devtool-error-container"

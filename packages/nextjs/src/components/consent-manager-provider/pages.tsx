@@ -2,11 +2,8 @@ import {
 	ConsentManagerProvider as ClientConsentManagerProvider,
 	type ConsentManagerProviderProps,
 } from '@c15t/react';
+import type { InitialDataPromise } from '../../types';
 import { enrichOptions } from './utils/enrich-options';
-
-type InitialDataPromise = NonNullable<
-	ConsentManagerProviderProps['options']['store']
->['_initialData'];
 
 /**
  * Base props for the consent manager provider

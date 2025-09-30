@@ -1,15 +1,14 @@
+import { logger } from '@doubletie/logger';
 import { LibsqlDialect } from '@libsql/kysely-libsql';
 import { Kysely, sql } from 'kysely';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-
-import { logger } from '@doubletie/logger';
 import type { Adapter } from '~/pkgs/db-adapters';
 import { getMigrations } from '~/pkgs/migrations';
 import { type KyselyDatabaseType, kyselyAdapter } from '../index';
 import type { Database } from '../types';
 import {
-	type DbConfig,
 	createOptions,
+	type DbConfig,
 	expectedTables,
 	runAdapterTests,
 	verifyRequiredTables,

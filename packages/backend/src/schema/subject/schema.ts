@@ -23,12 +23,12 @@ import { z } from 'zod';
  */
 export const subjectSchema = z.object({
 	id: z.string(),
-	isIdentified: z.boolean().default(false),
+	isIdentified: z.boolean().prefault(false),
 	externalId: z.string().nullable().optional(),
 	identityProvider: z.string().optional(),
 	lastIpAddress: z.string().optional(),
-	createdAt: z.date().default(() => new Date()),
-	updatedAt: z.date().default(() => new Date()),
+	createdAt: z.date().prefault(() => new Date()),
+	updatedAt: z.date().prefault(() => new Date()),
 });
 
 /**

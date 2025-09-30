@@ -3,6 +3,7 @@ import { enTranslations } from './en';
 import { esTranslations } from './es';
 import { fiTranslations } from './fi';
 import { frTranslations } from './fr';
+import { heTranslations } from './he';
 import { idTranslations } from './id';
 import { itTranslations } from './it';
 import { nlTranslations } from './nl';
@@ -20,6 +21,7 @@ const baseTranslations = {
 	nl: nlTranslations,
 	pt: ptTranslations,
 	zh: zhTranslations,
+	he: heTranslations,
 };
 
 export { baseTranslations };

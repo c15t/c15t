@@ -62,20 +62,6 @@ export interface ConsentManagerInterface {
 		path: string,
 		options?: FetchOptions<ResponseType, BodyType, QueryType>
 	): Promise<ResponseContext<ResponseType>>;
-
-	/**
-	 * Returns the client's configured callbacks.
-	 *
-	 * @returns The callbacks object or undefined if no callbacks are configured
-	 */
-	getCallbacks(): ConsentManagerCallbacks | undefined;
-
-	/**
-	 * Sets the client's configured callbacks.
-	 *
-	 * @param callbacks - The new callbacks object
-	 */
-	setCallbacks(callbacks: ConsentManagerCallbacks): void;
 }
 
 /**
@@ -104,38 +90,4 @@ export interface ConsentVerifiedCallbackPayload {
 	domain?: string;
 	preferences: string[];
 	valid: boolean;
-}
-
-/**
- * Base callback configuration for consent clients
- */
-export interface ConsentManagerCallbacks {
-	/**
-	 * Called when an API request fails.
-	 * @param response - The full response context with error information
-	 * @param path - The API endpoint path that was requested
-	 */
-	onError?: (response: ResponseContext<unknown>, path: string) => void;
-
-	/**
-	 * Called after successfully fetching the consent banner information
-	 * @param response The response from the showConsentBanner endpoint
-	 */
-	onConsentBannerFetched?: (
-		response: ResponseContext<ConsentBannerFetchedCallbackPayload>
-	) => void;
-
-	/**
-	 * Called after successfully setting consent preferences
-	 * @param response The response from the setConsent endpoint
-	 */
-	onConsentSet?: (response: ResponseContext<ConsentSetCallbackPayload>) => void;
-
-	/**
-	 * Called after successfully verifying consent
-	 * @param response The response from the verifyConsent endpoint
-	 */
-	onConsentVerified?: (
-		response: ResponseContext<ConsentVerifiedCallbackPayload>
-	) => void;
 }

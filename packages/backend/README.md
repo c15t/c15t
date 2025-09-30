@@ -1,167 +1,89 @@
-<div align="center">
-  <img src="https://c15t.com/logo-icon.png" alt="c15t Logo" width="64" height="64" />
-  <h1>@c15t/backend</h1>
-  <p>Transform privacy consent from a compliance checkbox into a fully observable system</p>
+<p align="center">
+  <a href="https://c15t.com?utm_source=github&utm_medium=repopage_%40c15t%2Fbackend" target="_blank" rel="noopener noreferrer">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
+      <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
+    </picture>
+  </a>
+  <br />
+  <h1 align="center">@c15t/backend: Consent Management Backend</h1>
+</p>
 
-  [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-  [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
-  [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)]([LICENSE.md](https://github.com/c15t/c15t/blob/main/LICENSE.md))
-  [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
-</div>
+[![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
+[![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+[![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
+[![npm version](https://img.shields.io/npm/v/%40c15t%2Fbackend?style=flat-square)](https://www.npmjs.com/package/@c15t/backend)
+[![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
+[![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
+[![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
 
+Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preferences centre. Webhooks, audit logs, storage adapters. Self host or use consent.io
 
-A robust consent management system backend that provides flexible database adapters, comprehensive audit logging, and a powerful plugin system.
+## Key Features
 
-## Features
+- Consent Management: Track and manage user consent preferences
+- Geo-Location: Identify user's location to show relevant consent preferences
+- Server-Side Translation: Reduce banner bundle size by translating consent preferences on the server
+- Audit Logging: Comprehensive logging of all consent-related actions
+- Domain Management: Handle multiple domains and subdomains
+- Policy Management: Version and manage consent policies
 
-### Database Adapters
-- **Memory Adapter**: In-memory storage for development and testing
-- **Kysely Adapter**: Type-safe SQL query builder with support for multiple databases
-- **Prisma Adapter**: Integration with Prisma ORM
-- **Drizzle Adapter**: Integration with Drizzle ORM
+## Prerequisites
 
-### Core Functionality
-- **Consent Management**: Track and manage user consent preferences
-- **Audit Logging**: Comprehensive logging of all consent-related actions
-- **Domain Management**: Handle multiple domains and subdomains
-- **Policy Management**: Version and manage consent policies
+- Node.js 18.17.0 or later
+- npm, pnpm, or yarn package manager
 
-## Getting Started
+## Installation
 
-### Installation
+Install the backend package using your preferred package manager
+Configure your database adapter (supports Drizzle, Kysely, Prisma, TypeORM, and Mongo)
 
-```bash
-npm install @c15t/backend
-```
+## Usage
 
-### Basic Usage
+1. Import the backend package in your project
+2. Configure your database connection
+3. Use the provided router and schema for consent management
+4. Implement consent tracking and management in your application
 
-```typescript
-import { c15tInstance } from '@c15t/backend';
-import { memoryAdapter } from '@c15t/backend/db/adapters/memory';
+## Documentation
 
-const instance = c15tInstance({
-  baseURL: 'http://localhost:3000',
-  database: memoryAdapter({}),
-});
+For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/self-host/v2).
 
-// Handle requests
-const response = await instance.handler(request);
-```
+## Support
 
-### Database Configuration
+- Join our [Discord community](https://c15t.com/discord)
+- Open an issue on our [GitHub repository](https://github.com/c15t/c15t/issues)
+- Visit [consent.io](https://consent.io) and use the chat widget
+- Contact our support team via email [support@consent.io](mailto:support@consent.io)
 
-```typescript
-// Using Kysely adapter
-import { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
+## Contributing
 
-const instance = c15tInstance({
-  baseURL: 'http://localhost:3000',
-  database: kyselyAdapter({
-    dialect: 'postgres',
-    connection: {
-      host: 'localhost',
-      port: 5432,
-      database: 'c15t',
-      user: 'postgres',
-      password: 'password',
-    },
-  }),
-});
-```
+- We're open to all community contributions!
+- Read our [Contribution Guidelines](https://c15t.com/docs/oss/contributing)
+- Review our [Code of Conduct](https://c15t.com/docs/oss/code-of-conduct)
+- Fork the repository
+- Create a new branch for your feature
+- Submit a pull request
+- **All contributions, big or small, are welcome and appreciated!**
 
-### Plugin System
+## Security
 
-```typescript
-const customPlugin = {
-  id: 'custom-plugin',
-  name: 'Custom Plugin',
-  type: 'test',
-  init: () => ({
-    context: {
-      customField: 'value',
-    },
-  }),
-  onRequest: async (request, ctx) => {
-    // Modify request
-    return { request: modifiedRequest };
-  },
-  onResponse: async (response, ctx) => {
-    // Modify response
-    return { response: modifiedResponse };
-  },
-};
+If you believe you have found a security vulnerability in c15t, we encourage you to **_responsibly disclose this and NOT open a public issue_**. We will investigate all legitimate reports.
 
-const instance = c15tInstance({
-  baseURL: 'http://localhost:3000',
-  database: memoryAdapter({}),
-  plugins: [customPlugin],
-});
-```
+Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our Open Source Software. To do this, please visit [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security) and click the "Report a vulnerability" button.
 
-## API Documentation
+### Security Policy
 
-### Core Instance
+- Please do not share security vulnerabilities in public forums, issues, or pull requests
+- Provide detailed information about the potential vulnerability
+- Allow reasonable time for us to address the issue before any public disclosure
+- We are committed to addressing security concerns promptly and transparently
 
-```typescript
-interface C15TInstance {
-  options: C15TOptions;
-  $context: Promise<Result<C15TContext, C15TError>>;
-  handler: (request: Request) => Promise<Result<Response, C15TError>>;
-  getApi: () => Promise<Result<Record<string, unknown>, C15TError>>;
-}
-```
+## License
 
-### Database Adapters
-
-Each adapter provides a consistent interface for database operations:
-
-```typescript
-interface DatabaseAdapter {
-  create: <T extends Record<string, unknown>>(table: string, data: T) => Promise<T>;
-  find: <T extends Record<string, unknown>>(table: string, query: Query) => Promise<T[]>;
-  update: <T extends Record<string, unknown>>(table: string, query: Query, data: Partial<T>) => Promise<T>;
-  delete: (table: string, query: Query) => Promise<void>;
-}
-```
-
-### Plugin System
-
-Plugins can extend the system's functionality:
-
-```typescript
-interface C15TPlugin {
-  id: string;
-  name: string;
-  type: string;
-  init?: () => Promise<{ context: Record<string, unknown> }>;
-  onRequest?: (request: Request, ctx: C15TContext) => Promise<{ request: Request } | { response: Response } | undefined>;
-  onResponse?: (response: Response, ctx: C15TContext) => Promise<{ response: Response } | undefined>;
-}
-```
-
-## Error Handling
-
-The system uses a Result type for error handling:
-
-```typescript
-type Result<T, E> = { isOk: true; value: T } | { isOk: false; error: E };
-```
-
-## Security Features
-
-- Origin validation for CORS
-- Request validation
-- Audit logging
-- Secure ID generation
-- Input sanitization
-
-## 📜 License
-
-[GNU General Public License v3.0](https://github.com/c15t/c15t/blob/main/LICENSE.md) - See [LICENSE]([LICENSE.md](https://github.com/c15t/c15t/blob/main/LICENSE.md)) for details.
+[GNU General Public License v3.0](https://github.com/c15t/c15t/blob/main/LICENSE.md)
 
 ---
 
-<div align="center">
-  <strong>Built with ❤️ by the <a href="www.consent.io"/>consent.io</a> team</strong>
-</div>
+**Built with ❤️ by the [consent.io](https://www.consent.io?utm_source=github&utm_medium=repopage_%40c15t%2Fbackend) team**

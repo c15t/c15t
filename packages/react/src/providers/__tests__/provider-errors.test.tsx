@@ -29,7 +29,6 @@ vi.mock('c15t', async () => {
 
 			// Return a mock client that shows an error occurred but still works
 			return {
-				getCallbacks: () => options.callbacks || {},
 				showConsentBanner: async () => ({
 					ok: false,
 					data: null,
@@ -97,7 +96,6 @@ describe('ConsentManagerProvider Error Handling', () => {
 		// Verify component renders even with errors
 		await vi.waitFor(() => {
 			const requestState = getByTestId('request-state');
-			// biome-ignore lint/performance/useTopLevelRegex: <explanation>
 			expect(requestState).toHaveTextContent(/Manager (Not )?Ready/);
 		});
 

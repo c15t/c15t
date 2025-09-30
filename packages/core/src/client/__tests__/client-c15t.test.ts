@@ -365,8 +365,6 @@ describe('c15t Client Retry Logic Tests', () => {
 
 		// Our custom shouldRetry implementation - this will be used for Response mocks
 		const shouldRetryFn = vi.fn((response) => {
-			// biome-ignore lint/suspicious/noConsoleLog: this is a test
-			// biome-ignore lint/suspicious/noConsole: this is a test
 			console.log(`shouldRetryFn called with status: ${response.status}`);
 			return response.status === 429;
 		});

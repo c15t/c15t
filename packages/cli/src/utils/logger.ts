@@ -1,5 +1,5 @@
 import * as p from '@clack/prompts';
-import { type Logger, createLogger } from '@doubletie/logger';
+import { createLogger, type Logger } from '@doubletie/logger';
 import color from 'picocolors';
 
 // Define standard log levels

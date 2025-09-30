@@ -7,12 +7,12 @@
  */
 
 export type {
-	HookEndpointContext,
-	GenericEndpointContext,
 	BaseContext,
-	RegistryContext,
 	BaseDoubleTieContext,
+	DoubleTieContext,
+	GenericEndpointContext,
+	HookEndpointContext,
+	RegistryContext,
 } from './context';
 export type { DoubleTieOptions } from './options';
-export type { DoubleTieContext } from './context';
 export type { PluginHookContext } from './plugins';

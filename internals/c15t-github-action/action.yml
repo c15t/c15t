@@ -1,0 +1,215 @@
+name: "C15T Docs Preview (Deploy + PR Comment)"
+description: "Deploy docs to Vercel and comment PR. Requires 'pull-requests: write' permission to create or update PR comments."
+author: "c15t"
+
+inputs:
+  # --- Orchestration & gating (to enable minimal workflows) ---
+  setup_docs:
+    description: "Fetch and prepare docs template into working_directory (.docs)"
+    default: "true"
+    required: false
+  consent_git_token:
+    description: "Token to access private docs template repository"
+    required: false
+  docs_template_repo:
+    description: "Owner/repo of docs template to fetch"
+    default: "consentdotio/c15t-docs"
+    required: false
+  docs_template_ref:
+    description: "Branch or ref of docs template"
+    default: "main"
+    required: false
+  only_if_changed:
+    description: "Skip deploy when no relevant files changed"
+    default: "false"
+    required: false
+  change_globs:
+    description: "Newline-separated globs to detect relevant changes"
+    required: false
+  check_template_changes:
+    description: "Also deploy when upstream template changed since last deploy"
+    default: "false"
+    required: false
+  template_repo:
+    description: "Owner/repo to check for template changes (defaults to docs_template_repo)"
+    required: false
+  template_ref:
+    description: "Branch/ref to check for template changes (defaults to docs_template_ref)"
+    required: false
+  post_skip_comment:
+    description: "Post a sticky comment explaining why deploy was skipped"
+    default: "true"
+    required: false
+  skip_message:
+    description: "Custom message body when deployment is skipped"
+    required: false
+  deploy_on_push_branches:
+    description: "Comma-separated list of branches to deploy on push"
+    default: "main,canary"
+    required: false
+  deploy_on_pr_base_branches:
+    description: "Comma-separated list of PR base branches to deploy previews"
+    default: "main,canary"
+    required: false
+
+  # --- Optional GitHub App authentication (in-action) ---
+  github_app_id:
+    description: "GitHub App ID (if set, action will mint an installation token)"
+    required: false
+  github_app_private_key:
+    description: "GitHub App private key (PEM). Use GitHub Actions secrets."
+    required: false
+  github_app_installation_id:
+    description: "Installation ID. If omitted, the action will discover installation for this repo."
+    required: false
+  header:
+    description: "Header to determine if the comment is to be updated, not shown on screen. It can be used when you want to add multiple comments independently at the same time."
+    default: ""
+    required: false
+  append:
+    description: "Indicate if new comment messages should be appended to previous comment message. Only `true` is allowed. Just skip this item when you don't need it."
+    default: "false"
+    required: false
+  hide_details:
+    description: "hide summary tags in the previously created comment. Only `true` is allowed. Just skip this item when you don't need it."
+    default: "false"
+    required: false
+  hide:
+    description: "Minimize the existing comment instead of updating it"
+    default: "false"
+    required: false
+  message:
+    description: "comment message"
+    required: false
+  path:
+    description: "glob path to file(s) containing comment message"
+    required: false
+  # Vercel deployment inputs (optional). When provided, the action will deploy before commenting.
+  vercel_token:
+    description: "Vercel API token"
+    required: false
+  vercel_project_id:
+    description: "Vercel Project ID"
+    required: false
+  vercel_org_id:
+    description: "Vercel Org (Team) ID"
+    required: false
+  working_directory:
+    description: "Directory to deploy (docs working directory)"
+    required: false
+    default: ".docs"
+  framework:
+    description: "Framework for Vercel project settings"
+    required: false
+    default: "nextjs"
+  target:
+    description: "Deployment target: production|staging"
+    required: false
+  canary_alias:
+    description: "Alias to assign when deploying from a configured branch"
+    required: false
+  assign_alias_on_branch:
+    description: "Branch name on which to assign the alias (empty to disable)"
+    required: false
+  alias_domains:
+    description: "Newline-separated list of alias domains. Supports {{PR_NUMBER}} and {{BRANCH}} templating."
+    required: false
+  vercel_args:
+    description: "Optional vercel CLI-like args. Currently supports -m/--meta key=value pairs to add to meta."
+    required: false
+  vercel_scope:
+    description: "Vercel scope/team slug. If provided, overrides org/team id for API calls."
+    required: false
+  comment_on_push:
+    description: "When true, also create/update a commit comment on push events."
+    default: "true"
+    required: true
+  debug_mode:
+    description: "Enable verbose debug logging from the action"
+    default: "false"
+    required: false
+  ignore_empty:
+    description: "Indicates whether to ignore missing or empty messages"
+    default: "false"
+    required: false
+  skip_unchanged:
+    description: "only update or recreate if message is different from previous. Only `true` is allowed. Just skip this item when you don't need it."
+    default: "false"
+    required: false
+  author_login:
+    description: "Explicit GitHub login to match when locating the existing sticky comment (e.g. consentdotio). If omitted, the authenticated actor is used."
+    required: false
+  follow_symbolic_links:
+    description: "Indicates whether to follow symbolic links for path"
+    default: "false"
+    required: false
+  number:
+    description: "pull request number for push event"
+    required: false
+  owner:
+    description: "Another repo owner, If not set, the current repo owner is used by default. Note that when you trying changing a repo, be aware that GITHUB_TOKEN should also have permission for that repository."
+    required: false
+  repo:
+    description: "Another repo name limited use on github enterprise. If not set, the current repo is used by default. Note that When you trying changing a repo, be aware that GITHUB_TOKEN should also use that repo's."
+    required: false
+  GITHUB_TOKEN:
+    description: "The GitHub access token used to create or update the comment (e.g. secrets.GITHUB_TOKEN or a PAT)."
+    required: true
+outputs:
+  previous_comment_id:
+    description: "ID of previous comment, if found"
+  created_comment_id:
+    description: "ID of newly created comment, if any"
+  deployment_url:
+    description: "Vercel deployment URL, when deployment inputs are provided"
+runs:
+  using: "composite"
+  steps:
+    - name: Run c15t action (tsx)
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: pnpm -w exec tsx "$GITHUB_ACTION_PATH/src/main.ts"
+      env:
+        INPUT_SETUP_DOCS: ${{ inputs.setup_docs }}
+        INPUT_CONSENT_GIT_TOKEN: ${{ inputs.consent_git_token }}
+        INPUT_DOCS_TEMPLATE_REPO: ${{ inputs.docs_template_repo }}
+        INPUT_DOCS_TEMPLATE_REF: ${{ inputs.docs_template_ref }}
+        INPUT_ONLY_IF_CHANGED: ${{ inputs.only_if_changed }}
+        INPUT_CHANGE_GLOBS: ${{ inputs.change_globs }}
+        INPUT_CHECK_TEMPLATE_CHANGES: ${{ inputs.check_template_changes }}
+        INPUT_TEMPLATE_REPO: ${{ inputs.template_repo }}
+        INPUT_TEMPLATE_REF: ${{ inputs.template_ref }}
+        INPUT_POST_SKIP_COMMENT: ${{ inputs.post_skip_comment }}
+        INPUT_SKIP_MESSAGE: ${{ inputs.skip_message }}
+        INPUT_DEPLOY_ON_PUSH_BRANCHES: ${{ inputs.deploy_on_push_branches }}
+        INPUT_DEPLOY_ON_PR_BASE_BRANCHES: ${{ inputs.deploy_on_pr_base_branches }}
+        INPUT_GITHUB_APP_ID: ${{ inputs.github_app_id }}
+        INPUT_GITHUB_APP_PRIVATE_KEY: ${{ inputs.github_app_private_key }}
+        INPUT_GITHUB_APP_INSTALLATION_ID: ${{ inputs.github_app_installation_id }}
+        INPUT_HEADER: ${{ inputs.header }}
+        INPUT_APPEND: ${{ inputs.append }}
+        INPUT_HIDE_DETAILS: ${{ inputs.hide_details }}
+        INPUT_HIDE: ${{ inputs.hide }}
+        INPUT_MESSAGE: ${{ inputs.message }}
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_VERCEL_TOKEN: ${{ inputs.vercel_token }}
+        INPUT_VERCEL_PROJECT_ID: ${{ inputs.vercel_project_id }}
+        INPUT_VERCEL_ORG_ID: ${{ inputs.vercel_org_id }}
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working_directory }}
+        INPUT_FRAMEWORK: ${{ inputs.framework }}
+        INPUT_TARGET: ${{ inputs.target }}
+        INPUT_CANARY_ALIAS: ${{ inputs.canary_alias }}
+        INPUT_ASSIGN_ALIAS_ON_BRANCH: ${{ inputs.assign_alias_on_branch }}
+        INPUT_ALIAS_DOMAINS: ${{ inputs.alias_domains }}
+        INPUT_VERCEL_ARGS: ${{ inputs.vercel_args }}
+        INPUT_VERCEL_SCOPE: ${{ inputs.vercel_scope }}
+        INPUT_COMMENT_ON_PUSH: ${{ inputs.comment_on_push }}
+        INPUT_DEBUG_MODE: ${{ inputs.debug_mode }}
+        INPUT_IGNORE_EMPTY: ${{ inputs.ignore_empty }}
+        INPUT_SKIP_UNCHANGED: ${{ inputs.skip_unchanged }}
+        INPUT_AUTHOR_LOGIN: ${{ inputs.author_login }}
+        INPUT_FOLLOW_SYMBOLIC_LINKS: ${{ inputs.follow_symbolic_links }}
+        INPUT_NUMBER: ${{ inputs.number }}
+        INPUT_OWNER: ${{ inputs.owner }}
+        INPUT_REPO: ${{ inputs.repo }}
+        INPUT_GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}

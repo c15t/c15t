@@ -4,32 +4,31 @@
  * This module provides the main store creation and management functionality.
  */
 
-import { createStore } from 'zustand/vanilla';
+import type { ContractsOutputs } from '@c15t/backend/contracts';
 
 import type { TranslationConfig } from '@c15t/translations';
+import { createStore } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from './client/client-factory';
 import {
 	getEffectiveConsents,
-	hasConsentFor,
 	hasConsented,
+	hasConsentFor,
 } from './libs/consent-utils';
 import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
-import { createTrackingBlocker } from './libs/tracking-blocker';
+import { type GTMConfiguration, setupGTM } from './libs/gtm';
+import { type HasCondition, has } from './libs/has';
+import { saveConsents } from './libs/save-consents';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
-import { initialState } from './store.initial-state';
+import { createTrackingBlocker } from './libs/tracking-blocker';
+import { initialState, STORAGE_KEY } from './store.initial-state';
 import type { PrivacyConsentState } from './store.type';
+import type { Callbacks } from './types/callbacks';
 import type {
 	ComplianceSettings,
 	ConsentBannerResponse,
 	ConsentState,
 } from './types/compliance';
 import { type AllConsentNames, consentTypes } from './types/gdpr';
-
-import type { ContractsOutputs } from '@c15t/backend/contracts';
-import { type GTMConfiguration, setupGTM, updateGTMConsent } from './libs/gtm';
-
-/** Storage key for persisting consent data in localStorage */
-const STORAGE_KEY = 'privacy-consent-storage';
 
 /**
  * Structure of consent data stored in localStorage.
@@ -72,7 +71,6 @@ const getStoredConsent = (): StoredConsent | null => {
 	try {
 		return JSON.parse(stored);
 	} catch (e) {
-		// biome-ignore lint/suspicious/noConsole: <explanation>
 		console.error('Failed to parse stored consent:', e);
 		return null;
 	}
@@ -149,6 +147,11 @@ export interface StoreOptions {
 	 * @internal
 	 */
 	_initialData?: Promise<ContractsOutputs['consent']['showBanner'] | undefined>;
+
+	/**
+	 * Callbacks for the consent manager.
+	 */
+	callbacks?: Callbacks;
 }
 
 // For backward compatibility (if needed)
@@ -220,33 +223,6 @@ export const createConsentManagerStore = (
 				)
 			: null;
 
-	// Check for client callbacks to integrate with store callbacks
-	const clientCallbacks = manager.getCallbacks();
-
-	// Merge client callbacks with initial callbacks
-	const mergedCallbacks = clientCallbacks
-		? {
-				// Map client callbacks to store callbacks format if possible
-				onError: clientCallbacks.onError
-					? (message: string) =>
-							clientCallbacks.onError?.(
-								{
-									data: null,
-									error: {
-										message,
-										status: 0,
-									},
-									ok: false,
-									response: null,
-								},
-								'store'
-							)
-					: undefined,
-				// More mappings can be added here as needed
-				...initialState.callbacks,
-			}
-		: initialState.callbacks;
-
 	const store = createStore<PrivacyConsentState>((set, get) => ({
 		...initialState,
 		ignoreGeoLocation: options.ignoreGeoLocation ?? false,
@@ -254,12 +230,13 @@ export const createConsentManagerStore = (
 		// Set isConsentDomain based on the provider's baseURL
 		isConsentDomain,
 		// Override the callbacks with merged callbacks
-		callbacks: mergedCallbacks,
+		callbacks: options.callbacks ?? initialState.callbacks,
 		// Set initial translation config if provided
 		translationConfig: translationConfig || initialState.translationConfig,
 		...(storedConsent
 			? {
 					consents: storedConsent.consents,
+					selectedConsents: storedConsent.consents,
 					consentInfo: storedConsent.consentInfo as {
 						time: number;
 						type: 'necessary' | 'all' | 'custom';
@@ -272,39 +249,6 @@ export const createConsentManagerStore = (
 					showPopup: false,
 					isLoadingConsentInfo: true, // Start in loading state
 				}),
-
-		/**
-		 * Updates the consent state for a specific consent type and persists the change.
-		 *
-		 * @param name - The consent type to update
-		 * @param value - The new consent value
-		 *
-		 * @remarks
-		 * This function:
-		 * 1. Updates the consent state
-		 * 2. Persists changes to localStorage
-		 * 3. Triggers consent mode update
-		 */
-		setConsent: (name, value) => {
-			set((state) => {
-				const consentType = state.consentTypes.find(
-					(type) => type.name === name
-				);
-
-				// Don't allow changes to disabled consent types
-				if (consentType?.disabled) {
-					return state;
-				}
-
-				const newConsents = { ...state.consents, [name]: value };
-
-				// Update tracking blocker with new consents
-				trackingBlocker?.updateConsents(newConsents);
-				updateGTMConsent(newConsents);
-
-				return { consents: newConsents };
-			});
-		},
 
 		/**
 		 * Controls the visibility of the consent popup.
@@ -363,92 +307,49 @@ export const createConsentManagerStore = (
 			}
 		},
 
-		/**
-		 * Saves user consent preferences and triggers related callbacks.
-		 *
-		 * @param type - The type of consent being saved
-		 *
-		 * @remarks
-		 * This function:
-		 * 1. Updates UI state immediately
-		 * 2. Updates consent states based on type
-		 * 3. Records consent timestamp
-		 * 4. Persists to localStorage
-		 * 5. Makes network request in background
-		 * 6. Triggers callbacks
-		 */
-		saveConsents: async (type) => {
-			const { callbacks, consents, consentTypes } = get();
-			const newConsents = { ...consents };
-			if (type === 'all') {
-				for (const consent of consentTypes) {
-					newConsents[consent.name] = true;
-				}
-			} else if (type === 'necessary') {
-				for (const consent of consentTypes) {
-					newConsents[consent.name] = consent.name === 'necessary';
-				}
-			}
-
-			const consentInfo = {
-				time: Date.now(),
-				type: type as 'necessary' | 'all' | 'custom',
-			};
-
-			// Immediately update the UI state to close banners/dialogs
-			// This makes the interface feel more responsive
-			set({
-				consents: newConsents,
-				showPopup: false,
-				consentInfo,
-			});
-
-			// Update tracking blocker with new consents right away
-			trackingBlocker?.updateConsents(newConsents);
-			updateGTMConsent(newConsents);
-
-			// Store to localStorage immediately for persistence
-			// Wrap in try/catch to handle potential privacy mode errors
-			try {
-				localStorage.setItem(
-					STORAGE_KEY,
-					JSON.stringify({
-						consents: newConsents,
-						consentInfo,
-					})
+		setSelectedConsent: (name, value) => {
+			set((state) => {
+				const consentType = state.consentTypes.find(
+					(type) => type.name === name
 				);
-			} catch (e) {
-				// biome-ignore lint/suspicious/noConsole: safe degradation
-				console.warn('Failed to persist consents to localStorage:', e);
-			}
 
-			// Trigger callbacks right away
-			callbacks.onConsentGiven?.();
-			callbacks.onPreferenceExpressed?.();
+				if (consentType?.disabled) {
+					return state;
+				}
 
-			// Send consent to API in the background - the UI is already updated
-			const consent = await manager.setConsent({
-				body: {
-					type: 'cookie_banner',
-					domain: window.location.hostname,
-					preferences: newConsents,
-					metadata: {
-						source: 'consent_widget',
-						acceptanceMethod: type,
-					},
-				},
+				return {
+					selectedConsents: { ...state.selectedConsents, [name]: value },
+				};
+			});
+		},
+
+		saveConsents: async (type) =>
+			await saveConsents({
+				manager,
+				type,
+				get,
+				set,
+				trackingBlocker,
+			}),
+
+		setConsent: (name, value) => {
+			set((state) => {
+				const consentType = state.consentTypes.find(
+					(type) => type.name === name
+				);
+
+				// Don't allow changes to disabled consent types
+				if (consentType?.disabled) {
+					return state;
+				}
+
+				// Other selected consents have not been saved/agreed to only the current one.
+				const newConsents = { ...state.consents, [name]: value };
+
+				return { selectedConsents: newConsents };
 			});
 
-			// Handle error case if the API request fails
-			if (!consent.ok) {
-				const errorMsg = consent.error?.message ?? 'Failed to save consents';
-				callbacks.onError?.(errorMsg);
-				// Fallback console only when no handler is provided
-				if (!callbacks.onError) {
-					// biome-ignore lint/suspicious/noConsole: <explanation>
-					console.error(errorMsg);
-				}
-			}
+			get().saveConsents('custom');
 		},
 
 		/**
@@ -462,11 +363,14 @@ export const createConsentManagerStore = (
 		 */
 		resetConsents: () => {
 			set(() => {
+				const consents = consentTypes.reduce((acc, consent) => {
+					acc[consent.name] = consent.defaultValue;
+					return acc;
+				}, {} as ConsentState);
+
 				const resetState = {
-					consents: consentTypes.reduce((acc, consent) => {
-						acc[consent.name] = consent.defaultValue;
-						return acc;
-					}, {} as ConsentState),
+					consents,
+					selectedConsents: consents,
 					consentInfo: null,
 				};
 				localStorage.removeItem(STORAGE_KEY);
@@ -511,11 +415,42 @@ export const createConsentManagerStore = (
 		 *
 		 * @param name - The callback event name
 		 * @param callback - The callback function
+		 *
+		 * @remarks
+		 * If setting the onBannerFetched callback and the banner has already been fetched,
+		 * the callback will be immediately called with the stored banner data to prevent
+		 * race conditions in client-side components.
 		 */
-		setCallback: (name, callback) =>
+		setCallback: (name, callback) => {
+			const currentState = get();
+
+			// Update the callback in state
 			set((state) => ({
 				callbacks: { ...state.callbacks, [name]: callback },
-			})),
+			}));
+
+			// Replay missed onBannerFetched callback if banner was already fetched
+			if (
+				name === 'onBannerFetched' &&
+				currentState.hasFetchedBanner &&
+				currentState.lastBannerFetchData &&
+				callback &&
+				typeof callback === 'function'
+			) {
+				const { lastBannerFetchData } = currentState;
+
+				// Type assertion to ensure callback is the correct type
+				(callback as Callbacks['onBannerFetched'])?.({
+					showConsentBanner: lastBannerFetchData.showConsentBanner,
+					jurisdiction: lastBannerFetchData.jurisdiction,
+					location: lastBannerFetchData.location,
+					translations: {
+						language: lastBannerFetchData.translations.language,
+						translations: lastBannerFetchData.translations.translations,
+					},
+				});
+			}
+		},
 
 		/**
 		 * Updates the user's detected country.
@@ -567,7 +502,7 @@ export const createConsentManagerStore = (
 
 		/**
 		 * Gets the effective consent states after applying privacy settings.
-		 *
+		 * @deprecated will be removed in a future version
 		 * @returns The effective consent states considering Do Not Track
 		 */
 		getEffectiveConsents: () => {
@@ -577,7 +512,7 @@ export const createConsentManagerStore = (
 
 		/**
 		 * Checks if consent has been given for a specific type.
-		 *
+		 * @deprecated will be removed in a future version
 		 * @param consentType - The consent type to check
 		 * @returns True if consent is granted for the specified type
 		 */
@@ -588,6 +523,55 @@ export const createConsentManagerStore = (
 				consents,
 				privacySettings.honorDoNotTrack
 			);
+		},
+
+		/**
+		 * Evaluates whether current consent state satisfies the given condition.
+		 *
+		 * @param condition - The consent condition to evaluate
+		 * @returns True if the consent condition is satisfied, false otherwise
+		 *
+		 * @remarks
+		 * This method provides a powerful way to check complex consent requirements
+		 * using the current consent state from the store.
+		 *
+		 * **Simple Usage:**
+		 * - Check single consent: `store.has("measurement")`
+		 *
+		 * **Complex Conditions:**
+		 * - AND logic: `store.has({ and: ["measurement", "marketing"] })`
+		 * - OR logic: `store.has({ or: ["measurement", "marketing"] })`
+		 * - NOT logic: `store.has({ not: "measurement" })`
+		 * - Nested logic: `store.has({ and: ["necessary", { or: ["measurement", "marketing"] }] })`
+		 *
+		 * @example
+		 * ```typescript
+		 * // Simple checks
+		 * const hasAnalytics = store.has("measurement");
+		 * const hasMarketing = store.has("marketing");
+		 *
+		 * // Complex logic
+		 * const hasAnalyticsAndMarketing = store.has({ and: ["measurement", "marketing"] });
+		 * const hasEitherAnalyticsOrMarketing = store.has({ or: ["measurement", "marketing"] });
+		 * const doesNotHaveMarketing = store.has({ not: "marketing" });
+		 *
+		 * // Complex nested conditions
+		 * const complexCondition = store.has({
+		 *   and: [
+		 *     "necessary",
+		 *     { or: ["measurement", "marketing"] },
+		 *     { not: "functionality" }
+		 *   ]
+		 * });
+		 * ```
+		 *
+		 * @see {@link has} for the underlying consent checking function
+		 */
+		has: <CategoryType extends AllConsentNames>(
+			condition: HasCondition<CategoryType>
+		) => {
+			const { consents } = get();
+			return has(condition, consents);
 		},
 
 		/**
@@ -610,7 +594,6 @@ export const createConsentManagerStore = (
 					consentState: store.getState().consents,
 				});
 			} catch (e) {
-				// biome-ignore lint/suspicious/noConsole: <explanation>
 				console.error('Failed to setup Google Tag Manager:', e);
 			}
 		}

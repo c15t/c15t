@@ -39,7 +39,7 @@ jobs:
         run: pnpm turbo run check-types
 
       - name: 🧹 Run Biome with Reviewdog
-        uses: mongolyy/reviewdog-action-biome@bf7dffa9b14e8904941a18a28782b74fc40104f0
+        uses: mongolyy/reviewdog-action-biome@v2.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-check # Report results as checks
@@ -115,7 +115,7 @@ jobs:
         run: pnpm exec playwright install
 
       - name: 🧪 Run Tests
-        run: pnpm turbo run test --filter='!./apps/examples/*'
+        run: pnpm turbo run test --filter='!./examples/*'
 
       - name: ⬆️ Upload Individual Coverage Reports
         uses: actions/upload-artifact@v4

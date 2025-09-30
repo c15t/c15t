@@ -1,0 +1,55 @@
+---
+title: "Callbacks"
+description: "Learn how to use callbacks to respond to c15t events in your React application."
+lastModified: 2025-08-20
+availableIn:
+  - framework: 'next'
+    url: '/docs/frameworks/next/callbacks'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/callbacks'
+    title: 'React'
+---
+
+## Implementing Callbacks
+
+```tsx title="src/App.tsx"
+import { 
+  ConsentManagerDialog,
+  ConsentManagerProvider,
+  CookieBanner,
+  type ConsentManagerOptions
+} from '@c15t/react';
+
+export default function App() {
+  const options: ConsentManagerOptions = {
+    mode: 'c15t', 
+    backendURL: process.env.REACT_APP_C15T_URL,
+    consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
+    ignoreGeoLocation: true, // Useful for development to always view the banner.
+    callbacks: {
+      onBannerFetched(response) {
+        console.log('Consent banner fetched', response);
+      },
+      onConsentSet(response) {
+        console.log('Consent has been saved', response);
+      },
+      onError(response) {
+        console.log('Error', response);
+      },
+    },
+  };
+
+  return (
+    <ConsentManagerProvider options={options}>
+      <div className="App">
+        {/* Your application content */}
+      </div>
+      <CookieBanner />
+      <ConsentManagerDialog />
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import>../javascript/shared/available-callbacks.mdx</import>

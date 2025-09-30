@@ -14,7 +14,7 @@ export type AvailablePackages = '@c15t/nextjs' | '@c15t/react' | 'c15t';
 export interface FrameworkDetectionResult {
 	framework: string | null;
 	frameworkVersion: string | null;
-	pkg: AvailablePackages | null;
+	pkg: AvailablePackages;
 	hasReact: boolean;
 	reactVersion: string | null;
 }
@@ -83,7 +83,7 @@ export async function detectFramework(
 		return {
 			framework: null,
 			frameworkVersion: null,
-			pkg: null,
+			pkg: 'c15t',
 			hasReact: false,
 			reactVersion: null,
 		};

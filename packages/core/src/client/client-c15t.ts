@@ -3,12 +3,9 @@
  * This client makes HTTP requests to the c15t consent management backend.
  */
 
+import { enTranslations } from '@c15t/translations';
 import type {
-	ConsentBannerFetchedCallbackPayload,
-	ConsentManagerCallbacks,
 	ConsentManagerInterface,
-	ConsentSetCallbackPayload,
-	ConsentVerifiedCallbackPayload,
 	SetConsentRequestBody,
 	SetConsentResponse,
 	ShowConsentBannerResponse,
@@ -57,11 +54,6 @@ export interface C15tClientOptions {
 	 * A custom fetch implementation to use instead of the global fetch.
 	 */
 	customFetch?: typeof fetch;
-
-	/**
-	 * Global callbacks for handling API responses.
-	 */
-	callbacks?: ConsentManagerCallbacks;
 
 	/**
 	 * CORS mode for fetch requests.
@@ -138,12 +130,6 @@ export class C15tClient implements ConsentManagerInterface {
 	private customFetch?: typeof fetch;
 
 	/**
-	 * Callback functions for client events
-	 * @internal
-	 */
-	private callbacks?: ConsentManagerCallbacks;
-
-	/**
 	 * CORS mode for fetch requests
 	 * @internal
 	 */
@@ -171,7 +157,6 @@ export class C15tClient implements ConsentManagerInterface {
 		};
 
 		this.customFetch = options.customFetch;
-		this.callbacks = options.callbacks;
 		this.corsMode = options.corsMode || 'cors';
 
 		// Merge provided retry config with defaults
@@ -232,22 +217,6 @@ export class C15tClient implements ConsentManagerInterface {
 		const cleanBase = backendURL.replace(TRAILING_SLASHES_REGEX, '');
 		const cleanPath = path.replace(LEADING_SLASHES_REGEX, '');
 		return `${cleanBase}/${cleanPath}`;
-	}
-
-	/**
-	 * Returns the client's configured callbacks.
-	 *
-	 * @returns The callbacks object or undefined if no callbacks are configured
-	 */
-	getCallbacks(): ConsentManagerCallbacks | undefined {
-		return this.callbacks;
-	}
-
-	/**
-	 * Sets the client's callback functions.
-	 */
-	setCallbacks(callbacks: ConsentManagerCallbacks): void {
-		this.callbacks = callbacks;
 	}
 
 	/**
@@ -391,7 +360,6 @@ export class C15tClient implements ConsentManagerInterface {
 					);
 
 					options?.onError?.(errorResponse, path);
-					this.callbacks?.onError?.(errorResponse, path);
 
 					if (options?.throw) {
 						throw new Error('Failed to parse response');
@@ -444,7 +412,6 @@ export class C15tClient implements ConsentManagerInterface {
 
 				// Check first if this is a status code that should never be retried
 				if (nonRetryableStatusCodes?.includes(response.status)) {
-					// biome-ignore lint/suspicious/noConsole: <explanation>
 					console.debug(
 						`Not retrying request to ${path} with status ${response.status} (nonRetryableStatusCodes)`
 					);
@@ -458,7 +425,6 @@ export class C15tClient implements ConsentManagerInterface {
 							url: url.toString(),
 							method: requestOptions.method || 'GET',
 						});
-						// biome-ignore lint/suspicious/noConsole: <explanation>
 						console.debug(
 							`Custom retry strategy for ${path} with status ${response.status}: ${shouldRetryThisRequest}`
 						);
@@ -483,7 +449,6 @@ export class C15tClient implements ConsentManagerInterface {
 				if (!shouldRetryThisRequest || attemptsMade >= (maxRetries ?? 0)) {
 					// Don't retry - call callbacks and potentially throw
 					options?.onError?.(errorResponse, path);
-					this.callbacks?.onError?.(errorResponse, path);
 
 					if (options?.throw) {
 						throw new Error(errorResponse.error?.message || 'Request failed');
@@ -534,7 +499,6 @@ export class C15tClient implements ConsentManagerInterface {
 				// Don't retry if we've already made maximum attempts
 				if (!shouldRetryThisRequest || attemptsMade >= (maxRetries ?? 0)) {
 					options?.onError?.(errorResponse, path);
-					this.callbacks?.onError?.(errorResponse, path);
 
 					if (options?.throw) {
 						throw fetchError; // Re-throw the original fetch error
@@ -567,7 +531,6 @@ export class C15tClient implements ConsentManagerInterface {
 			);
 
 		options?.onError?.(maxRetriesErrorResponse, path);
-		this.callbacks?.onError?.(maxRetriesErrorResponse, path);
 
 		if (options?.throw) {
 			throw new Error(`Request failed after ${maxRetries} retries`);
@@ -595,24 +558,6 @@ export class C15tClient implements ConsentManagerInterface {
 
 			// If the request was successful
 			if (response.ok || options?.testing) {
-				// Call the onConsentBannerFetched callback if it exists
-				if (this.callbacks?.onConsentBannerFetched && response.data) {
-					const callbackPayload: ResponseContext<ConsentBannerFetchedCallbackPayload> =
-						{
-							ok: response.ok,
-							error: response.error,
-							response: null,
-							data: {
-								showConsentBanner: response.data.showConsentBanner,
-								jurisdiction: response.data.jurisdiction,
-								location: {
-									countryCode: response.data.location.countryCode,
-									regionCode: response.data.location.regionCode,
-								},
-							},
-						};
-					this.callbacks.onConsentBannerFetched(callbackPayload);
-				}
 				return response;
 			}
 
@@ -681,7 +626,6 @@ export class C15tClient implements ConsentManagerInterface {
 			}
 		} catch (error) {
 			// Ignore localStorage errors (e.g., in environments where it's blocked)
-			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.warn('Failed to access localStorage in offline fallback:', error);
 			// Default to not showing if localStorage isn't available to prevent memory leaks
 			shouldShow = false;
@@ -697,9 +641,10 @@ export class C15tClient implements ConsentManagerInterface {
 					message: 'Unknown (offline mode)',
 				},
 				location: {
-					countryCode: 'XX', // Use placeholder values
+					countryCode: null,
 					regionCode: null,
 				},
+				translations: enTranslations,
 			},
 			null,
 			null
@@ -708,25 +653,6 @@ export class C15tClient implements ConsentManagerInterface {
 		// Call success callback if provided
 		if (options?.onSuccess) {
 			await options.onSuccess(response);
-		}
-
-		// Call the onConsentBannerFetched callback if it exists
-		if (this.callbacks?.onConsentBannerFetched && response.data) {
-			const callbackPayload: ResponseContext<ConsentBannerFetchedCallbackPayload> =
-				{
-					ok: response.ok,
-					error: response.error,
-					response: null,
-					data: {
-						showConsentBanner: response.data.showConsentBanner,
-						jurisdiction: response.data.jurisdiction,
-						location: {
-							countryCode: response.data.location.countryCode,
-							regionCode: response.data.location.regionCode,
-						},
-					},
-				};
-			this.callbacks.onConsentBannerFetched(callbackPayload);
 		}
 
 		return response;
@@ -751,21 +677,6 @@ export class C15tClient implements ConsentManagerInterface {
 
 			// If the request was successful
 			if ((response.ok && response.data) || options?.testing) {
-				if (this.callbacks?.onConsentSet) {
-					const callbackPayload: ResponseContext<ConsentSetCallbackPayload> = {
-						ok: response.ok,
-						error: response.error,
-						response: null,
-						data: {
-							type: options?.body?.type || 'cookie_banner',
-							preferences: options?.body?.preferences || {},
-							domain: options?.body?.domain,
-						},
-					};
-
-					this.callbacks.onConsentSet(callbackPayload);
-				}
-
 				return response;
 			}
 
@@ -844,7 +755,6 @@ export class C15tClient implements ConsentManagerInterface {
 						}
 					} catch (e) {
 						// If there's an error parsing existing submissions, start fresh
-						// biome-ignore lint/suspicious/noConsole: <explanation>
 						console.warn('Error parsing pending submissions:', e);
 						pendingSubmissions = [];
 					}
@@ -863,8 +773,7 @@ export class C15tClient implements ConsentManagerInterface {
 							pendingSubmissionsKey,
 							JSON.stringify(pendingSubmissions)
 						);
-						// biome-ignore lint/suspicious/noConsole: <explanation>
-						// biome-ignore lint/suspicious/noConsoleLog: <explanation>
+
 						console.log(
 							'Queued consent submission for retry on next page load'
 						);
@@ -873,7 +782,6 @@ export class C15tClient implements ConsentManagerInterface {
 			}
 		} catch (error) {
 			// Ignore localStorage errors but log them
-			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.warn(
 				'Failed to write to localStorage in offline fallback:',
 				error
@@ -894,19 +802,6 @@ export class C15tClient implements ConsentManagerInterface {
 			await options.onSuccess(response);
 		}
 
-		// Call the onConsentSet callback if it exists
-		if (this.callbacks?.onConsentSet) {
-			const callbackPayload: ResponseContext<ConsentSetCallbackPayload> = {
-				...response,
-				data: {
-					type: options?.body?.type || 'cookie_banner',
-					preferences: options?.body?.preferences || {},
-					domain: options?.body?.domain,
-				},
-			};
-			this.callbacks.onConsentSet(callbackPayload);
-		}
-
 		return response;
 	}
 
@@ -923,22 +818,6 @@ export class C15tClient implements ConsentManagerInterface {
 			method: 'POST',
 			...options,
 		});
-
-		// Call the onConsentVerified callback if it exists and the request was successful
-		if (response.ok && this.callbacks?.onConsentVerified && response.data) {
-			const callbackPayload: ResponseContext<ConsentVerifiedCallbackPayload> = {
-				ok: response.ok,
-				error: response.error,
-				response: null,
-				data: {
-					type: options?.body?.type || 'cookie_banner',
-					preferences: options?.body?.preferences || [],
-					valid: response.data.isValid,
-					domain: options?.body?.domain,
-				},
-			};
-			this.callbacks.onConsentVerified(callbackPayload);
-		}
 
 		return response;
 	}
@@ -986,8 +865,6 @@ export class C15tClient implements ConsentManagerInterface {
 				return;
 			}
 
-			// biome-ignore lint/suspicious/noConsole: <explanation>
-			// biome-ignore lint/suspicious/noConsoleLog: <explanation>
 			console.log(
 				`Found ${pendingSubmissions.length} pending consent submission(s) to retry`
 			);
@@ -998,7 +875,6 @@ export class C15tClient implements ConsentManagerInterface {
 			}, 2000); // Delay to ensure page is loaded and network is likely available
 		} catch (error) {
 			// Ignore localStorage errors but log them
-			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.warn('Failed to check for pending consent submissions:', error);
 		}
 	}
@@ -1021,8 +897,6 @@ export class C15tClient implements ConsentManagerInterface {
 			for (let j = 0; j < remainingSubmissions.length; j++) {
 				const submission = remainingSubmissions[j];
 				try {
-					// biome-ignore lint/suspicious/noConsole: <explanation>
-					// biome-ignore lint/suspicious/noConsoleLog: <explanation>
 					console.log('Retrying consent submission:', submission);
 
 					// Use the actual API endpoint, not our offlineFallback
@@ -1035,13 +909,10 @@ export class C15tClient implements ConsentManagerInterface {
 					});
 
 					if (response.ok) {
-						// biome-ignore lint/suspicious/noConsole: <explanation>
-						// biome-ignore lint/suspicious/noConsoleLog: <explanation>
 						console.log('Successfully resubmitted consent');
 						successfulSubmissions.push(j);
 					}
 				} catch (error) {
-					// biome-ignore lint/suspicious/noConsole: <explanation>
 					console.warn('Failed to resend consent submission:', error);
 					// Continue with the next submission
 				}
@@ -1074,21 +945,16 @@ export class C15tClient implements ConsentManagerInterface {
 						pendingSubmissionsKey,
 						JSON.stringify(remainingSubmissions)
 					);
-					// biome-ignore lint/suspicious/noConsole: <explanation>
-					// biome-ignore lint/suspicious/noConsoleLog: <explanation>
 					console.log(
 						`${remainingSubmissions.length} consent submissions still pending for future retry`
 					);
 				} else {
 					// All submissions processed, clear the storage
 					window.localStorage.removeItem(pendingSubmissionsKey);
-					// biome-ignore lint/suspicious/noConsole: <explanation>
-					// biome-ignore lint/suspicious/noConsoleLog: <explanation>
 					console.log('All pending consent submissions processed successfully');
 				}
 			}
 		} catch (error) {
-			// biome-ignore lint/suspicious/noConsole: <explanation>
 			console.warn('Error updating pending submissions storage:', error);
 		}
 	}

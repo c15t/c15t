@@ -1,0 +1,219 @@
+---
+title: SQLite Adapter
+description: The SQLite adapter provides a lightweight, file-based database solution perfect for small to medium applications, local development, and embedded systems.
+lastModified: 2025-04-10
+deprecated: true
+deprecatedReason: "@c15t/backend v1 did not deliver the flexibility we wanted and fell short of our standards. It is now deprecated as we work on a full rewrite, with v2 entering canary soon. This does not affect consent.io deployments, which remain stable."
+---
+
+## Installation
+
+Install the SQLite adapter and its dependencies:
+
+<PackageCommandTabs command="@c15t/backend better-sqlite3 @types/better-sqlite3" mode="install" />
+
+## Configuration
+
+Configure the SQLite adapter with your database file path:
+
+```typescript
+import { c15tInstance } from '@c15t/backend';
+import { sqliteAdapter } from '@c15t/backend/db/adapters/sqlite';
+
+const instance = c15tInstance({
+  baseURL: 'http://localhost:3000',
+  database: sqliteAdapter({
+    // File path for the SQLite database (use :memory: for in-memory database)
+    filename: './data/c15t.db',
+    
+    // Optional: Enable WAL mode for better concurrency (default: true)
+    useWAL: true,
+    
+    // Optional: Set journal mode (default: 'wal')
+    journalMode: 'wal', // 'delete', 'truncate', 'persist', 'memory', 'wal', 'off'
+    
+    // Optional: Enable foreign keys (default: true)
+    foreignKeys: true,
+    
+    // Optional: Set busy timeout in milliseconds (default: 5000)
+    busyTimeout: 5000,
+    
+    // Optional: Initialize schema if not exists
+    initSchema: true,
+  }),
+});
+```
+
+### In-Memory Database
+
+For testing or development, you can use an in-memory database:
+
+```typescript
+const instance = c15tInstance({
+  database: sqliteAdapter({
+    filename: ':memory:',
+  }),
+});
+```
+
+## Schema Management
+
+Initialize your database schema:
+
+```typescript
+const createSchema = async (db) => {
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      created_at INTEGER DEFAULT (unixepoch())
+    );
+    
+    CREATE TABLE IF NOT EXISTS consents (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      purpose TEXT NOT NULL,
+      granted BOOLEAN NOT NULL,
+      timestamp INTEGER DEFAULT (unixepoch()),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_consents_user_id ON consents(user_id);
+  `);
+};
+
+// Use in initialization
+const instance = c15tInstance({
+  database: sqliteAdapter({
+    filename: './data/c15t.db',
+    onInit: createSchema,
+  }),
+});
+```
+
+## Usage Examples
+
+### Basic CRUD Operations
+
+```typescript
+// Create a new record
+const user = await instance.database.create('users', {
+  id: crypto.randomUUID(),
+  name: 'John Doe',
+  email: 'john@example.com'
+});
+
+// Find records
+const users = await instance.database.find('users', {
+  where: { email: 'john@example.com' },
+  orderBy: { created_at: 'desc' },
+  limit: 10
+});
+
+// Update a record
+const updatedUser = await instance.database.update(
+  'users',
+  { where: { id: user.id } },
+  { name: 'John Smith' }
+);
+
+// Delete a record
+await instance.database.delete('users', { where: { id: user.id } });
+```
+
+### Transactions
+
+```typescript
+await instance.database.transaction(async (trx) => {
+  // All operations inside use the same transaction
+  const user = await trx.create('users', {
+    id: crypto.randomUUID(),
+    name: 'Alice Johnson',
+    email: 'alice@example.com'
+  });
+  
+  await trx.create('consents', {
+    id: crypto.randomUUID(),
+    user_id: user.id,
+    purpose: 'marketing',
+    granted: true
+  });
+  
+  // Transaction automatically commits unless an error is thrown
+});
+```
+
+### Advanced Queries
+
+```typescript
+// Complex where conditions
+const users = await instance.database.find('users', {
+  where: {
+    $or: [
+      { name: { $like: '%John%' } },
+      { email: { $like: '%@example.com' } }
+    ],
+    created_at: { $gt: Date.now() - 86400000 } // Last 24 hours
+  }
+});
+
+// Raw queries for specific needs
+const stats = await instance.database.raw(`
+  SELECT purpose, COUNT(*) as count
+  FROM consents
+  WHERE granted = true
+  GROUP BY purpose
+  ORDER BY count DESC
+`);
+```
+
+## Performance Optimization
+
+```typescript
+// Enable pragmas for better performance
+await instance.database.raw(`
+  PRAGMA synchronous = NORMAL;
+  PRAGMA cache_size = -64000; -- 64MB
+  PRAGMA temp_store = MEMORY;
+  PRAGMA mmap_size = 268435456; -- 256MB
+`);
+```
+
+## Backup and Maintenance
+
+```typescript
+// Backup database
+await instance.database.raw(`
+  VACUUM INTO '/backup/c15t-backup.db';
+`);
+
+// Optimize database
+await instance.database.raw(`
+  PRAGMA optimize;
+  VACUUM;
+`);
+```
+
+## Best Practices
+
+- **Use WAL mode** for better concurrency and performance
+- **Create proper indexes** on columns frequently used in WHERE clauses
+- **Use transactions** for operations that must be atomic
+- **Implement regular backups** using VACUUM INTO
+- **Set busy timeout** to handle concurrent access conflicts
+- **Use prepared statements** to prevent SQL injection (handled automatically by the adapter)
+
+## Limitations
+
+- Limited concurrency compared to client-server databases
+- No built-in user management or access control
+- Maximum database size limited to 281 TB (though practical limits are much lower)
+- Limited support for ALTER TABLE operations
+
+## Related Resources
+
+- [SQLite Documentation](https://www.sqlite.org/docs.html)
+- [Better-SQLite3 Documentation](https://github.com/WiseLibs/better-sqlite3)
+- [Database Adapter Interface](../database-adapters)
+- [Core Concepts](../core-concepts)

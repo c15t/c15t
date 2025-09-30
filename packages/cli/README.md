@@ -1,106 +1,129 @@
-<div align="center">
-  <img src="https://c15t.com/logo-icon.png" alt="c15t Logo" width="64" height="64" />
-  <h1>@c15t/cli</h1>
-  <p>Transform privacy consent from a compliance checkbox into a fully observable system</p>
+<p align="center">
+  <a href="https://c15t.com?utm_source=github&utm_medium=repopage_%40c15t%2Fcli" target="_blank" rel="noopener noreferrer">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
+      <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
+    </picture>
+  </a>
+  <br />
+  <h1 align="center">@c15t/cli: c15t's CLI</h1>
+</p>
 
-  [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-  [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
-  [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)]([LICENSE.md](https://github.com/c15t/c15t/blob/main/LICENSE.md))
-  [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
-</div>
+[![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
+[![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+[![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
+[![npm version](https://img.shields.io/npm/v/%40c15t%2Fcli?style=flat-square)](https://www.npmjs.com/package/@c15t/cli)
+[![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
+[![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
+[![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
 
-## Installation
+CLI for rapid c15t setup. Scaffold React and Next.js cookie banners and a preferences centre, generate types and config, and run migration tooling for self-hosted deployments.
+
+## Key Features
+
+- Configuration Generation: Automatically generate schema and code for consent management
+- Database Migrations: Simplified database schema updates
+- Multi-Framework Support: Works seamlessly across different web frameworks
+- Interactive CLI: User-friendly command-line interface with guided workflows
+- GitHub Integration: Easy way to star and support the project
+- Documentation Access: Quick access to project documentation
+
+## Prerequisites
+
+- Node.js 18.17.0 or later
+- npm, pnpm, or yarn package manager
+
+## Quick Start
+
+Easiest setup with @c15t/cli:
 
 ```bash
-npm install @c15t/cli
+# Generate schema and code
+pnpm dlx @c15t/cli generate
+# Alternatives:
+# npx @c15t/cli generate
+# bunx --bun @c15t/cli generate
 ```
 
-Or using yarn:
+The CLI will:
 
-```bash
-yarn add @c15t/cli
-```
+- Install necessary packages
+- Configure your c15t instance
+- Set up environment variables
+- Add consent management components to your app
 
 ## Usage
 
-The CLI can be invoked directly if installed globally:
+1. Run `@c15t/cli generate` to create initial configuration
+2. Customize consent settings in generated files
+3. Integrate with your web application
+4. Use `@c15t/cli migrate` for database schema updates
 
-```bash
-c15t [command] [options]
-```
+## Available Commands
 
-Or with npx:
+- `generate`: Generate schema/code based on your c15t config
+- `migrate`: Run database migrations based on your c15t config
+- `github`: Open the project's GitHub repository to star the project
+- `docs`: Open the c15t documentation in your browser
 
-```bash
-npx @c15t/cli [command] [options]
-```
+## Global Flags
 
-## Commands
-
-- `generate` - Generate schema/code based on your c15t config
-- `migrate` - Run database migrations based on your c15t config
-- `github` - Open the c15t GitHub repository
-- `docs` - Open the c15t documentation in your browser
-
-## Options
-
-- `--help, -h` - Show the help menu
-- `--version, -v` - Show the CLI version
-- `--logger` - Set log level (fatal, error, warn, info, debug)
-- `--config` - Specify path to configuration file
-- `-y` - Skip confirmation prompts (use with caution)
-- `--no-telemetry` - Disable telemetry data collection
+- `--help`: Display help menu
+- `--version`: Show CLI version
+- `--no-telemetry`: Disable anonymous usage data collection
 
 ## Telemetry
 
-The c15t CLI collects anonymous telemetry data to help us understand how the CLI is being used and improve the tool. This data is completely anonymous and does not contain any personal information.
+Anonymous usage data collection to help improve the CLI
 
-### What we collect
+- Not personally identifiable
+- Used to prioritize features and improvements
+- Completely optional
 
-We collect structured events with descriptive names following a `category.action` pattern such as:
+Disable telemetry by:
 
-- **CLI lifecycle events**: `cli.invoked`, `cli.completed`, `cli.exited`
-- **Command events**: `command.executed`, `command.succeeded`, `command.failed`, `command.unknown`
-- **UI events**: `ui.menu.opened`, `ui.menu.exited`
-- **Configuration events**: `config.loaded`, `config.error`
-- **Help and version events**: `help.displayed`, `version.displayed`
-- **Onboarding events**: `onboarding.started`, `onboarding.completed`
-- **Error events**: `error.occurred`
-
-Each event includes relevant contextual information, but never includes sensitive data such as:
-- Personal information
-- Configuration file contents
-- File paths
-- Project-specific data
-
-### Disabling Telemetry
-
-You can disable telemetry in any of the following ways:
-
-1. Use the `--no-telemetry` flag when running a command:
-   ```bash
-   c15t generate --no-telemetry
-   ```
-
-2. Set the environment variable `C15T_TELEMETRY_DISABLED`:
-   ```bash
-   # In your shell
-   export C15T_TELEMETRY_DISABLED=1
-   
-   # Or for a single command
-   C15T_TELEMETRY_DISABLED=1 c15t generate
-   ```
+- Use the `--no-telemetry` flag
+- Set `C15T_TELEMETRY_DISABLED=1` in your environment
 
 ## Documentation
 
-For more detailed documentation, visit [https://c15t.com](https://c15t.com).
+For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/cli/overview).
 
-## 📜 License
+## Support
 
-[GNU General Public License v3.0](https://github.com/c15t/c15t/blob/main/LICENSE.md) - See [LICENSE]([LICENSE.md](https://github.com/c15t/c15t/blob/main/LICENSE.md)) for details.
+- Join our [Discord community](https://c15t.com/discord)
+- Open an issue on our [GitHub repository](https://github.com/c15t/c15t/issues)
+- Visit [consent.io](https://consent.io) and use the chat widget
+- Contact our support team via email [support@consent.io](mailto:support@consent.io)
+
+## Contributing
+
+- We're open to all community contributions!
+- Read our [Contribution Guidelines](https://c15t.com/docs/oss/contributing)
+- Review our [Code of Conduct](https://c15t.com/docs/oss/code-of-conduct)
+- Fork the repository
+- Create a new branch for your feature
+- Submit a pull request
+- **All contributions, big or small, are welcome and appreciated!**
+
+## Security
+
+If you believe you have found a security vulnerability in c15t, we encourage you to **_responsibly disclose this and NOT open a public issue_**. We will investigate all legitimate reports.
+
+Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our Open Source Software. To do this, please visit [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security) and click the "Report a vulnerability" button.
+
+### Security Policy
+
+- Please do not share security vulnerabilities in public forums, issues, or pull requests
+- Provide detailed information about the potential vulnerability
+- Allow reasonable time for us to address the issue before any public disclosure
+- We are committed to addressing security concerns promptly and transparently
+
+## License
+
+[GNU General Public License v3.0](https://github.com/c15t/c15t/blob/main/LICENSE.md)
 
 ---
 
-<div align="center">
-  <strong>Built with ❤️ by the <a href="www.consent.io"/>consent.io</a> team</strong>
-</div>
+**Built with ❤️ by the [consent.io](https://www.consent.io?utm_source=github&utm_medium=repopage_%40c15t%2Fcli) team**

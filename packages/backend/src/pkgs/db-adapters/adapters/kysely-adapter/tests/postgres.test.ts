@@ -1,16 +1,15 @@
+import { logger } from '@doubletie/logger';
 import { PGlite } from '@electric-sql/pglite';
 import { Kysely } from 'kysely';
 import { KyselyPGlite } from 'kysely-pglite';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-
-import { logger } from '@doubletie/logger';
 import type { Adapter } from '~/pkgs/db-adapters';
 import { getMigrations } from '~/pkgs/migrations';
 import { type KyselyDatabaseType, kyselyAdapter } from '../index';
 import type { Database } from '../types';
 import {
-	type DbConfig,
 	createOptions,
+	type DbConfig,
 	expectedTables,
 	runAdapterTests,
 	verifyRequiredTables,
@@ -31,7 +30,6 @@ describe('Kysely Adapter Tests', () => {
 		}
 
 		// Verify that all adapters are instances of the same class
-		// biome-ignore lint/suspicious/noMisplacedAssertion: its in a harness test suite
 		expect(
 			adapters.every((a) => a.constructor === adapters[0]?.constructor)
 		).toBe(true);

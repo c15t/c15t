@@ -42,13 +42,25 @@
  * Each table definition includes field specifications, relationships, and metadata.
  */
 export * from './audit-log';
+export * from './consent';
 export * from './consent-policy';
 export * from './consent-purpose';
 export * from './consent-record';
-export * from './consent';
+// Schema Utility Exports
+/**
+ * Schema utilities for working with the complete database schema
+ *
+ * These exports provide functions for retrieving the complete schema and
+ * working with table definitions at a higher level.
+ *
+ * @see {@link getConsentTables} - Main function to get the complete schema
+ * @see {@link C15TDBSchema} - Type representing the complete database schema
+ */
+export { type C15TDBSchema, getConsentTables } from './definition';
 export * from './domain';
+// Schemas export
+export * from './schemas';
 export * from './subject';
-
 // Schema Type Exports
 /**
  * Type definitions for database schema configuration
@@ -60,18 +72,3 @@ export * from './subject';
  * @see {@link TablesConfig} - Configuration for all database tables
  */
 export * from './types';
-
-// Schema Utility Exports
-/**
- * Schema utilities for working with the complete database schema
- *
- * These exports provide functions for retrieving the complete schema and
- * working with table definitions at a higher level.
- *
- * @see {@link getConsentTables} - Main function to get the complete schema
- * @see {@link C15TDBSchema} - Type representing the complete database schema
- */
-export { getConsentTables, type C15TDBSchema } from './definition';
-
-// Schemas export
-export * from './schemas';

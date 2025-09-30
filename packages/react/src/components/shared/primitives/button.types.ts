@@ -1,6 +1,5 @@
 import type { ComponentRef, HTMLAttributes, MouseEvent } from 'react';
-import type { ExtendThemeKeys } from '~/types/theme';
-import type { CSSVariables } from '~/types/theme';
+import type { CSSVariables, ExtendThemeKeys } from '~/types/theme';
 
 export type ConsentButtonElement = ComponentRef<'button'>;
 

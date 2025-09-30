@@ -1,4 +1,4 @@
-import { type Ref, forwardRef } from 'react';
+import { forwardRef, type Ref } from 'react';
 import { Box, type BoxProps } from '../../shared/primitives/box';
 import styles from '../consent-manager-widget.module.css';
 

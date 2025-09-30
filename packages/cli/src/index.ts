@@ -4,19 +4,10 @@ import * as p from '@clack/prompts';
 import 'dotenv/config';
 import open from 'open';
 import color from 'picocolors';
-
-import type { C15TOptions } from '@c15t/backend';
-import type { ConsentManagerOptions } from '@c15t/react';
-import { getConfig } from './actions/get-config';
-import {
-	isC15TOptions,
-	isClientOptions,
-} from './actions/get-config/config-extraction';
 import { showHelpMenu } from './actions/show-help-menu';
 import { generate } from './commands/generate';
-import { migrate } from './commands/migrate';
+import { selfHost } from './commands/self-host';
 import { displayIntro } from './components/intro';
-import { startOnboarding } from './onboarding';
 
 // Import context creator and types
 import { createCliContext } from './context/creator';
@@ -29,17 +20,17 @@ import { TelemetryEventName } from './utils/telemetry';
 const commands: CliCommand[] = [
 	{
 		name: 'generate',
-		label: 'generate',
-		hint: 'Generate schema/code',
-		description: 'Generate schema/code based on your c15t config.',
+		label: 'Generate (Recommended)',
+		hint: 'Add c15t to your project',
+		description: 'Setup your c15t project',
 		action: (context) => generate(context),
 	},
 	{
-		name: 'migrate',
-		label: 'migrate',
-		hint: 'Run database migrations',
-		description: 'Run database migrations based on your c15t config.',
-		action: (context) => migrate(context),
+		name: 'self-host',
+		label: 'Self Host',
+		hint: 'Host c15t backend on your own infra',
+		description: 'Commands for self-hosting c15t (generate, migrate).',
+		action: (context) => selfHost(context),
 	},
 	{
 		name: 'github',
@@ -138,69 +129,6 @@ flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
 	// --- Configuration Check ---
 	logger.debug(`Current working directory: ${cwd}`);
 	logger.debug(`Config path flag: ${flags.config}`);
-
-	let clientConfig: ConsentManagerOptions | undefined;
-	let backendConfig: C15TOptions | undefined;
-
-	try {
-		// Try to load the config (could be client or backend)
-		const loadedConfig = await getConfig(context);
-		if (loadedConfig) {
-			// Use type guard to determine config type
-			if (isClientOptions(loadedConfig)) {
-				clientConfig = loadedConfig;
-			} else if (isC15TOptions(loadedConfig)) {
-				backendConfig = loadedConfig;
-			} else {
-				// Should not happen if validation works, but handle defensively
-				logger.warn('Loaded configuration is of an unknown type.');
-			}
-		}
-
-		if (loadedConfig) {
-			telemetry.trackEvent(TelemetryEventName.CONFIG_LOADED, {
-				configType: clientConfig
-					? 'client'
-					: backendConfig
-						? 'backend'
-						: 'unknown',
-				hasBackend: Boolean(backendConfig),
-			});
-		}
-	} catch (loadError) {
-		telemetry.trackEvent(TelemetryEventName.CONFIG_ERROR, {
-			error: loadError instanceof Error ? loadError.message : String(loadError),
-		});
-
-		return error.handleError(
-			loadError,
-			'An unexpected error occurred during configuration loading'
-		);
-	}
-
-	// --- Onboarding or Command Handling ---
-	if (!clientConfig) {
-		telemetry.trackEvent(TelemetryEventName.ONBOARDING_STARTED, {});
-		await startOnboarding(context);
-		await telemetry.shutdown();
-		return;
-	}
-
-	// Display configuration status with regular messages for better visibility
-	// Apply brighter color to "consent.io" text
-	const coloredConsentIo = color.cyanBright('consent.io');
-	const backendStatus = backendConfig
-		? 'Backend configuration loaded'
-		: `Using ${coloredConsentIo} for your c15t deployment`;
-
-	logger.info(
-		`Client configuration successfully loaded and validated \n        ${backendStatus}`
-	);
-
-	logger.debug('Client config details:', clientConfig);
-	if (backendConfig) {
-		logger.debug('Backend config details:', backendConfig);
-	}
 
 	// --- Execute Command or Show Interactive Menu ---
 	try {

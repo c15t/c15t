@@ -25,7 +25,7 @@ import { ERROR_CODES } from './core/error-codes';
  */
 export function createORPCErrorHandler() {
 	return (
-		request: Request,
+		_request: Request,
 		context: { logger?: { error: (message: string, data?: object) => void } }
 	) => {
 		// Add error handler to context

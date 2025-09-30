@@ -7,11 +7,9 @@
  */
 
 import type { FC, ReactNode } from 'react';
-
-import { ErrorBoundary } from './error-boundary';
-import type { CookieBannerTheme } from './theme';
-
 import { ConsentButton } from '~/components/shared/primitives/button';
+import { useTheme } from '~/hooks/use-theme';
+import { useTranslations } from '~/hooks/use-translations';
 import { CookieBannerRoot } from './atoms/root';
 import {
 	CookieBannerCard,
@@ -21,9 +19,8 @@ import {
 	CookieBannerHeader,
 	CookieBannerTitle,
 } from './components';
-
-import { useTheme } from '~/hooks/use-theme';
-import { useTranslations } from '~/hooks/use-translations';
+import { ErrorBoundary } from './error-boundary';
+import type { CookieBannerTheme } from './theme';
 
 /**
  * Props for configuring and customizing the CookieBanner component.
@@ -106,66 +103,6 @@ export interface CookieBannerProps {
 	disableAnimation?: boolean;
 }
 
-/**
- * A customizable cookie consent banner component.
- *
- * @remarks
- * This component serves as the main entry point for rendering a cookie consent banner.
- * It provides a structured layout with customizable title, description, and action buttons
- * for accepting, rejecting, or customizing cookie preferences.
- *
- * Key features:
- * - Fully accessible by default
- * - GDPR and CCPA compliant
- * - Customizable appearance
- * - Responsive design
- * - Error boundary protection
- * - Compound component pattern support
- *
- * @example
- * Simple usage with default settings:
- * ```tsx
- * <CookieBanner />
- * ```
- *
- * @example
- * Customized usage with all props:
- * ```tsx
- * <CookieBanner
- *   theme={{
- *     root: "bg-white p-4",
- *     title: "text-xl font-bold",
- *     description: "text-gray-600",
- *     actions: "mt-4 flex gap-2"
- *   }}
- *   title="Cookie Settings"
- *   description="We use cookies to enhance your browsing experience"
- *   rejectButtonText="Decline"
- *   customizeButtonText="Preferences"
- *   acceptButtonText="Allow All"
- * />
- * ```
- *
- * @example
- * Using compound components for custom layout:
- * ```tsx
- * <CookieBanner.Root>
- *   <CookieBanner.Content>
- *     <CookieBanner.Title>Cookie Settings</CookieBanner.Title>
- *     <CookieBanner.Description>
- *       Choose your cookie preferences
- *     </CookieBanner.Description>
- *     <CookieBanner.Actions>
- *       <CookieBanner.RejectButton>Decline</CookieBanner.RejectButton>
- *       <CookieBanner.CustomizeButton>Customize</CookieBanner.CustomizeButton>
- *       <CookieBanner.AcceptButton>Accept</CookieBanner.AcceptButton>
- *     </CookieBanner.Actions>
- *   </CookieBanner.Content>
- * </CookieBanner.Root>
- * ```
- *
- * @public
- */
 export const CookieBanner: FC<CookieBannerProps> = ({
 	theme: localTheme,
 	noStyle: localNoStyle,

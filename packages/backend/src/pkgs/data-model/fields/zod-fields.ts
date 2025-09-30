@@ -5,34 +5,22 @@ import type { Field, FieldType } from './field-types';
  * Base Zod schema for field configuration options
  */
 const fieldConfigSchema = z.object({
-	required: z.boolean().default(true),
-	returned: z.boolean().default(true),
-	input: z.boolean().default(true),
-	defaultValue: z.union([z.any(), z.function().returns(z.any())]).optional(),
+	required: z.boolean().prefault(true),
+	returned: z.boolean().prefault(true),
+	input: z.boolean().prefault(true),
+	defaultValue: z.any().optional(),
 	transform: z
 		.object({
-			input: z
-				.function()
-				.args(z.any())
-				.returns(z.union([z.any(), z.promise(z.any())]))
-				.optional(),
-			output: z
-				.function()
-				.args(z.any())
-				.returns(z.union([z.any(), z.promise(z.any())]))
-				.optional(),
+			input: z.any().optional(),
+			output: z.any().optional(),
 		})
 		.optional(),
-	validator: z
-		.function()
-		.args(z.any())
-		.returns(z.union([z.string(), z.null()]))
-		.optional(),
+	validator: z.any().optional(),
 	unique: z.boolean().optional(),
 	indexed: z.boolean().optional(),
-	sortable: z.boolean().default(true),
+	sortable: z.boolean().prefault(true),
 	fieldName: z.string().optional(),
-	bigint: z.boolean().default(false),
+	bigint: z.boolean().prefault(false),
 });
 
 /**
@@ -68,8 +56,8 @@ export const dateFieldSchema = fieldConfigSchema.extend({
 	type: z.literal('date'),
 	minDate: z.date().optional(),
 	maxDate: z.date().optional(),
-	dateOnly: z.boolean().default(false),
-	format: z.record(z.unknown()).optional(),
+	dateOnly: z.boolean().prefault(false),
+	format: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
@@ -77,9 +65,9 @@ export const dateFieldSchema = fieldConfigSchema.extend({
  */
 export const timezoneFieldSchema = fieldConfigSchema.extend({
 	type: z.literal('timezone'),
-	validateTimezone: z.boolean().default(true),
+	validateTimezone: z.boolean().prefault(true),
 	suggestedValues: z.array(z.string()).optional(),
-	restrictToSuggestedValues: z.boolean().default(false),
+	restrictToSuggestedValues: z.boolean().prefault(false),
 });
 
 /**
@@ -87,7 +75,7 @@ export const timezoneFieldSchema = fieldConfigSchema.extend({
  */
 export const jsonFieldSchema = fieldConfigSchema.extend({
 	type: z.literal('json'),
-	validateJson: z.boolean().default(true),
+	validateJson: z.boolean().prefault(true),
 });
 
 /**
