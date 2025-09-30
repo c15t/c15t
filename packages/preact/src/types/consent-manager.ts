@@ -4,10 +4,11 @@
  */
 
 import type {
-	AllConsentNames,
-	ConsentManagerOptions as CoreOptions,
-	GTMConfiguration,
-	TranslationConfig,
+  AllConsentNames,
+  Callbacks,
+  ConsentManagerOptions as CoreOptions,
+  GTMConfiguration,
+  TranslationConfig,
 } from 'c15t';
 import type { ComponentChildren } from 'preact';
 import type { ConsentManagerDialogTheme } from '~/components/consent-manager-dialog/theme';
@@ -72,6 +73,11 @@ export type ConsentManagerOptions = CoreOptions & {
 	 * @default ['necessary', 'marketing']
 	 */
 	consentCategories?: AllConsentNames[];
+
+	/**
+	 * Callbacks for the consent manager.
+	 */
+	callbacks?: Callbacks;
 };
 
 /**
