@@ -10,7 +10,6 @@
 		"moduleResolution": "bundler",
 		"allowSyntheticDefaultImports": true,
 		"esModuleInterop": true,
-    "plugins": [{ "name": "typescript-plugin-css-modules" }]
 	},
 	"include": ["src/**/*"],
 	"exclude": ["node_modules", "dist", "**/*.test.*", "**/*.spec.*"]

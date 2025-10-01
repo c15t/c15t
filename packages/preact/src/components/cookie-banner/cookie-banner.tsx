@@ -4,7 +4,7 @@
  * Implements an accessible, customizable banner following GDPR and CCPA requirements.
  */
 
-import styles from '@c15t/styles/components/cookie-banner.css';
+import styles from '@c15t/styles/cookie-banner';
 import type { ComponentChildren, FunctionComponent, JSX } from 'preact';
 import { createPortal, forwardRef, type Ref } from 'preact/compat';
 import { useEffect, useState } from 'preact/hooks';

@@ -1,7 +1,7 @@
 /**
  * @packageDocumentation
  * Type definitions for the C15T styles system
- * 
+ *
  * @description Provides comprehensive type safety for styling operations across components
  * @version 1.5.0
  * @author C15T Team
@@ -9,10 +9,10 @@
 
 /**
  * Represents a CSS class name value
- * 
+ *
  * @description Union type supporting string class names, arrays of class names, or undefined
  * @template ClassNameType - The type of class name values
- * 
+ *
  * @example
  * ```typescript
  * const className: ClassNameValue = 'btn btn-primary';
@@ -24,11 +24,11 @@ export type ClassNameValue = string | string[] | undefined;
 
 /**
  * CSS custom properties (CSS variables) with type-safe values
- * 
+ *
  * @description Record type for CSS custom properties with strongly typed values
  * @template PropertyName - The CSS custom property name (must start with --)
  * @template PropertyValue - The value type for the custom property
- * 
+ *
  * @example
  * ```typescript
  * const customProps: CSSCustomProperties = {
@@ -42,10 +42,10 @@ export type CSSCustomProperties = Record<`--${string}`, string | number>;
 
 /**
  * Standard CSS properties extended with CSS custom properties
- * 
+ *
  * @description Extends React's CSSProperties to include CSS custom properties
  * @template CustomProperties - Additional custom properties specific to component
- * 
+ *
  * @example
  * ```typescript
  * const styles: CSSPropertiesWithVars = {
@@ -56,15 +56,15 @@ export type CSSCustomProperties = Record<`--${string}`, string | number>;
  * ```
  */
 export type CSSPropertiesWithVars<
-	CustomProperties extends Record<string, unknown> = Record<string, never>
+	CustomProperties extends Record<string, unknown> = Record<string, never>,
 > = React.CSSProperties & CSSCustomProperties & CustomProperties;
 
 /**
  * Theme configuration for component styling
- * 
+ *
  * @description Defines the structure for component theme configurations
  * @template ThemeKeys - Union of valid theme keys for the component
- * 
+ *
  * @example
  * ```typescript
  * interface BannerTheme extends ComponentTheme<'root' | 'title' | 'description'> {
@@ -74,7 +74,7 @@ export type CSSPropertiesWithVars<
  * }
  * ```
  */
-export interface ComponentTheme<ThemeKeys extends string = string> {
+export interface ComponentTheme {
 	/** @description Disables all styling when true */
 	noStyle?: boolean;
 	/** @description Theme key-value pairs for component parts */
@@ -83,21 +83,21 @@ export interface ComponentTheme<ThemeKeys extends string = string> {
 
 /**
  * Unified style value type supporting multiple input formats
- * 
+ *
  * @description Flexible type that accommodates string class names, style objects, or arrays
  * @template StyleObjectType - Type for style object properties
- * 
+ *
  * @example
  * ```typescript
  * // String class name
  * const style1: ComponentStyleValue = 'btn btn-primary';
- * 
+ *
  * // Style object
  * const style2: ComponentStyleValue = {
  *   className: 'btn',
  *   style: { backgroundColor: 'blue' }
  * };
- * 
+ *
  * // Array of styles
  * const style3: ComponentStyleValue = [
  *   'btn',
@@ -106,7 +106,7 @@ export interface ComponentTheme<ThemeKeys extends string = string> {
  * ```
  */
 export type ComponentStyleValue<
-	StyleObjectType extends Record<string, unknown> = Record<string, never>
+	StyleObjectType extends Record<string, unknown> = Record<string, never>,
 > =
 	| string
 	| ComponentStyleObject<StyleObjectType>
@@ -115,10 +115,10 @@ export type ComponentStyleValue<
 
 /**
  * Style object with class name and inline styles
- * 
+ *
  * @description Object representation of component styling with optional properties
  * @template StyleProperties - Additional style properties specific to component
- * 
+ *
  * @example
  * ```typescript
  * const styleObj: ComponentStyleObject = {
@@ -132,7 +132,7 @@ export type ComponentStyleValue<
  * ```
  */
 export interface ComponentStyleObject<
-	StyleProperties extends Record<string, unknown> = Record<string, never>
+	StyleProperties extends Record<string, unknown> = Record<string, never>,
 > {
 	/** @description CSS class name(s) to apply */
 	className?: ClassNameValue;
@@ -146,22 +146,26 @@ export interface ComponentStyleObject<
 
 /**
  * Position variants for floating components
- * 
+ *
  * @description Predefined position options for banners, widgets, and dialogs
- * 
+ *
  * @example
  * ```typescript
  * const bannerPosition: ComponentPosition = 'bottom-right';
  * const widgetPosition: ComponentPosition = 'top-left';
  * ```
  */
-export type ComponentPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+export type ComponentPosition =
+	| 'top-left'
+	| 'top-right'
+	| 'bottom-left'
+	| 'bottom-right';
 
 /**
  * Color scheme options for theming
- * 
+ *
  * @description Theme mode selection with automatic system preference detection
- * 
+ *
  * @example
  * ```typescript
  * const userScheme: ColorScheme = 'dark';
@@ -172,9 +176,9 @@ export type ColorScheme = 'light' | 'dark' | 'auto';
 
 /**
  * Animation configuration options
- * 
+ *
  * @description Controls animation behavior across components
- * 
+ *
  * @example
  * ```typescript
  * const animConfig: AnimationConfig = {
@@ -195,9 +199,9 @@ export interface AnimationConfig {
 
 /**
  * Responsive breakpoint configuration
- * 
+ *
  * @description Defines breakpoint values for responsive design
- * 
+ *
  * @example
  * ```typescript
  * const breakpoints: ResponsiveBreakpoints = {
@@ -218,10 +222,10 @@ export interface ResponsiveBreakpoints {
 
 /**
  * Theme context value for component trees
- * 
+ *
  * @description Provides theme configuration throughout component hierarchy
  * @template ThemeType - Specific theme configuration type
- * 
+ *
  * @example
  * ```typescript
  * const themeContext: ThemeContextValue<BannerTheme> = {
@@ -232,7 +236,9 @@ export interface ResponsiveBreakpoints {
  * };
  * ```
  */
-export interface ThemeContextValue<ThemeType extends ComponentTheme = ComponentTheme> {
+export interface ThemeContextValue<
+	ThemeType extends ComponentTheme = ComponentTheme,
+> {
 	/** @description Theme configuration object */
 	theme?: ThemeType;
 	/** @description Color scheme preference */
@@ -253,10 +259,10 @@ export interface ThemeContextValue<ThemeType extends ComponentTheme = ComponentT
 
 /**
  * CSS module class name mapping
- * 
+ *
  * @description Type-safe representation of CSS module exports
  * @template ClassNames - Union of available class names
- * 
+ *
  * @example
  * ```typescript
  * const styles: CSSModuleClasses<'root' | 'title' | 'description'> = {
@@ -266,13 +272,16 @@ export interface ThemeContextValue<ThemeType extends ComponentTheme = ComponentT
  * };
  * ```
  */
-export type CSSModuleClasses<ClassNames extends string = string> = Record<ClassNames, string>;
+export type CSSModuleClasses<ClassNames extends string = string> = Record<
+	ClassNames,
+	string
+>;
 
 /**
  * Style merging operation result
- * 
+ *
  * @description Result type for style merging operations with metadata
- * 
+ *
  * @example
  * ```typescript
  * const mergeResult: StyleMergeResult = {
@@ -296,10 +305,10 @@ export interface StyleMergeResult {
 
 /**
  * Component variant configuration
- * 
+ *
  * @description Defines visual variants for components
  * @template VariantName - Name identifier for the variant
- * 
+ *
  * @example
  * ```typescript
  * const primaryVariant: ComponentVariant<'primary'> = {
@@ -323,11 +332,11 @@ export interface ComponentVariant<VariantName extends string = string> {
 
 /**
  * Error types that can occur during style operations
- * 
+ *
  * @description Categorizes different types of styling errors
- * 
+ *
  * @throws {StyleError} When style operations fail
- * 
+ *
  * @example
  * ```typescript
  * try {
@@ -339,18 +348,18 @@ export interface ComponentVariant<VariantName extends string = string> {
  * }
  * ```
  */
-export type StyleErrorType = 
+export type StyleErrorType =
 	| 'INVALID_CLASS_NAME'
-	| 'INVALID_STYLE_OBJECT' 
+	| 'INVALID_STYLE_OBJECT'
 	| 'MERGE_CONFLICT'
 	| 'THEME_NOT_FOUND'
 	| 'CIRCULAR_REFERENCE';
 
 /**
  * Custom error class for style-related operations
- * 
+ *
  * @description Provides detailed error information for styling failures
- * 
+ *
  * @example
  * ```typescript
  * throw new StyleError(
@@ -363,11 +372,11 @@ export type StyleErrorType =
 export class StyleError extends Error {
 	/**
 	 * Creates a new StyleError instance
-	 * 
+	 *
 	 * @param type - The category of style error
 	 * @param message - Human-readable error description
 	 * @param context - Additional context about the error
-	 * 
+	 *
 	 * @throws {StyleError} Always throws the created error instance
 	 */
 	constructor(
@@ -379,3 +388,6 @@ export class StyleError extends Error {
 		this.name = 'StyleError';
 	}
 }
+
+export type { AllThemeKeys } from './style-keys';
+export type { ClassNameStyle, CSSVariables, ThemeValue } from './style-types';

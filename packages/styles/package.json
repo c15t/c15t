@@ -2,55 +2,6 @@
 	"name": "@c15t/styles",
 	"version": "1.5.0",
 	"description": "Shared CSS styles and utilities for C15T consent management components",
-	"type": "module",
-	"main": "./dist/index.js",
-	"module": "./dist/index.js",
-	"types": "./dist/index.d.ts",
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js"
-		},
-		"./css": {
-			"import": "./dist/css/index.css"
-		},
-		"./components/*": {
-			"import": "./dist/components/*"
-		},
-		"./themes/*": {
-			"import": "./dist/themes/*"
-		}
-	},
-	"files": [
-		"dist",
-		"README.md",
-		"CHANGELOG.md"
-	],
-	"scripts": {
-		"build": "pnpm prebuild && rslib build && pnpm postbuild",
-		"prebuild": "genversion --esm --semi src/version.ts",
-		"postbuild": "mkdir -p dist/components && cp -r src/components/*.css dist/components/",
-		"dev": "rslib build --watch",
-		"clean": "rm -rf dist",
-		"lint": "pnpm biome lint ./src",
-		"lint:fix": "pnpm biome lint --write ./src",
-		"format": "pnpm biome format --write ./src",
-		"typecheck": "tsc --noEmit"
-	},
-	"browserslist": [">0.2%", "not dead", "not op_mini all"],
-	"dependencies": {
-		"clsx": "2.1.1"
-	},
-	"devDependencies": {
-		"@c15t/typescript-config": "workspace:*",
-		"@rslib/core": "^0.12.4",
-		"@types/react": "^18.0.0",
-		"genversion": "^3.2.0",
-		"typescript": "^5.6.2"
-	},
-	"publishConfig": {
-		"access": "public"
-	},
 	"keywords": [
 		"css",
 		"styles",
@@ -63,8 +14,95 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/yourusername/c15t.git",
+		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/styles"
 	},
-	"license": "MIT"
+	"license": "GPL-3.0-only",
+	"sideEffects": [
+		"**/*.css"
+	],
+	"type": "module",
+	"exports": {
+		"./types": {
+			"types": "./dist/types/index.d.ts",
+			"import": "./dist/types/index.js"
+		},
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./cookie-banner": {
+			"types": "./dist/components/cookie-banner/css-module.d.ts",
+			"import": "./dist/components/cookie-banner/css-module.js"
+		},
+		"./consent-manager-dialog": {
+			"types": "./dist/components/consent-manager-dialog/css-module.d.ts",
+			"import": "./dist/components/consent-manager-dialog/css-module.js"
+		},
+    "./consent-manager-dialog/keys": {
+			"types": "./dist/components/consent-manager-dialog/keys.d.ts",
+			"import": "./dist/components/consent-manager-dialog/keys.js"
+		},
+		"./consent-manager-widget": {
+			"types": "./dist/components/consent-manager-widget/css-module.d.ts",
+			"import": "./dist/components/consent-manager-widget/css-module.js"
+		},
+		"./switch": {
+			"types": "./dist/components/switch/css-module.d.ts",
+			"import": "./dist/components/switch/css-module.js"
+		},
+		"./button": {
+			"types": "./dist/components/button/css-module.d.ts",
+			"import": "./dist/components/button/css-module.js"
+		},
+		"./button/css-vars": {
+			"types": "./dist/components/button/css-vars.d.ts",
+			"import": "./dist/components/button/css-vars.js"
+		},
+		"./button/variant": {
+			"types": "./dist/components/button/variant.d.ts",
+			"import": "./dist/components/button/variant.js"
+		},
+		"./accordion": {
+			"types": "./dist/components/accordion/css-module.d.ts",
+			"import": "./dist/components/accordion/css-module.js"
+		}
+	},
+	"main": "./dist/index.js",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist",
+		"README.md",
+		"CHANGELOG.md"
+	],
+	"scripts": {
+		"build": "pnpm genversion --esm --semi src/version.ts && rslib build",
+		"clean": "rm -rf dist",
+		"dev": "rslib build --watch",
+		"format": "pnpm biome format --write ./src",
+		"lint": "pnpm biome lint ./src",
+		"lint:fix": "pnpm biome lint --write ./src",
+		"typecheck": "tsc --noEmit"
+	},
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	],
+	"dependencies": {
+		"clsx": "2.1.1"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@microsoft/api-extractor": "^7.52.15",
+		"@rsbuild/plugin-typed-css-modules": "^1.1.1",
+		"@rslib/core": "^0.12.4",
+		"genversion": "^3.2.0",
+		"typed-css-modules": "^0.9.1",
+		"typescript": "^5.6.2"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
 }

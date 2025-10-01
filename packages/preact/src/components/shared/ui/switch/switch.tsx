@@ -1,12 +1,12 @@
 'use client';
 
-import styles from '@c15t/styles/components/switch.module.css';
 import type { JSX } from 'preact';
 import { forwardRef } from 'preact/compat';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { Box } from '~/components/shared/primitives/box';
 import { useStyles } from '~/hooks/use-styles';
 import type { ExtendThemeKeys, ThemeValue } from '~/types/theme';
+import styles from './switch.module.css';
 
 export type SwitchStylesKeys = {
 	'switch.root': ThemeValue;

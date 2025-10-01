@@ -1,13 +1,13 @@
-import buttonStyles from '@c15t/styles/components/button.module.css';
-import styles from '@c15t/styles/components/cookie-banner.css';
 import { defaultTranslationConfig } from 'c15t';
 import { expect, test, vi } from 'vitest';
 import { CookieBanner } from '~/components/cookie-banner/cookie-banner';
 import type { ThemeValue } from '~/types/theme';
 import {
-  assertElementStyles,
-  renderComponentStyles,
+    assertElementStyles,
+    renderComponentStyles,
 } from '~/utils/test-helpers';
+import buttonStyles from '../../shared/ui/button/button.module.css';
+import styles from '../cookie-banner.module.css';
 import type { CookieBannerTheme } from '../theme';
 
 vi.mock('~/hooks/use-consent-manager', async (importOriginal) => {
