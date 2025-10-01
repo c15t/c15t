@@ -1,4 +1,5 @@
-import styles from '@c15t/styles/components/consent-manager-widget.css';
+import styles from '@c15t/styles/consent-manager-widget';
+import switchStyles from '@c15t/styles/switch';
 import type { AllConsentNames, ConsentType } from 'c15t';
 import type { ComponentProps, Ref } from 'preact';
 import { forwardRef } from 'preact/compat';
@@ -101,7 +102,7 @@ const ConsentManagerWidgetAccordionItems = () => {
 						root: { themeKey: 'widget.switch', baseClassName: styles.switch },
 						thumb: {
 							themeKey: 'widget.switch.thumb',
-							baseClassName: styles.switchThumb,
+							baseClassName: switchStyles.switchThumb,
 						},
 						track: { themeKey: 'widget.switch.track' },
 					}}

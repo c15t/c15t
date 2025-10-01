@@ -1,6 +1,6 @@
 'use client';
 
-import styles from '@c15t/styles/components/cookie-banner.css';
+import styles from '@c15t/styles/cookie-banner';
 import type { Ref, RefObject } from 'preact';
 import { forwardRef } from 'preact/compat';
 import { useRef } from 'preact/hooks';

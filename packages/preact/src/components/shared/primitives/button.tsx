@@ -1,14 +1,15 @@
+import {
+  type ButtonVariantsProps,
+  buttonVariants,
+} from '@c15t/styles/button/variant';
 import type { JSX } from 'preact';
 import { forwardRef } from 'preact/compat';
 import { useCallback } from 'preact/hooks';
-
 import { Slot } from '~/components/shared/primitives/slot';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
 import type { CSSPropertiesWithVars, CSSVariables } from '~/types/theme';
-import * as Button from '../ui/button';
-import type { ButtonVariantsProps } from '../ui/button/button';
 import type { ConsentButtonElement, ConsentButtonProps } from './button.types';
 
 /**
@@ -55,7 +56,7 @@ export const ConsentButton = forwardRef<
 	const buttonStyle = useStyles(themeKey ?? 'button', {
 		baseClassName: [
 			!(contextNoStyle || noStyle) &&
-				Button.buttonVariants({
+				buttonVariants({
 					variant,
 					mode,
 					size,

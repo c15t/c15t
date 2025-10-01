@@ -3,6 +3,7 @@
  * Build configuration for @c15t/styles package
  */
 
+import { pluginTypedCSSModules } from '@rsbuild/plugin-typed-css-modules';
 import { defineConfig } from '@rslib/core';
 
 export default defineConfig({
@@ -10,7 +11,9 @@ export default defineConfig({
 		// ESM build only
 		{
 			format: 'esm',
+      bundle: false,
 			output: {
+				cleanDistPath: true,
 				distPath: {
 					root: './dist',
 				},
@@ -22,10 +25,14 @@ export default defineConfig({
 	],
 	source: {
 		entry: {
-			index: './src/index.ts',
+			index: './src/**'
 		},
 	},
 	output: {
 		target: 'web',
+    cssModules: {
+      auto: false,
+    }
 	},
+	plugins: [pluginTypedCSSModules()],
 });

@@ -1,4 +1,5 @@
-import type { ButtonCSSVariables } from '../../components/shared/ui/button';
+
+import type { ButtonCSSVariables } from '@c15t/styles/button/css-vars';
 import type { ThemeValue } from '../../types/theme';
 
 /**

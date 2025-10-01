@@ -4,7 +4,7 @@
  * Implements accessible modal behaviour with animation support.
  */
 
-import styles from '@c15t/styles/components/consent-manager-dialog.css';
+import styles from '@c15t/styles/consent-manager-dialog';
 import clsx from 'clsx';
 import type { FunctionComponent } from 'preact';
 import { useEffect, useState } from 'preact/hooks';

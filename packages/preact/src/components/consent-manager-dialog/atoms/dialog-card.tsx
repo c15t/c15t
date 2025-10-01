@@ -6,7 +6,8 @@
  * Built with accessibility and customization in mind, following GDPR, CCPA, and other privacy regulation requirements.
  */
 
-import styles from '@c15t/styles/components/consent-manager-dialog.css';
+import styles from '@c15t/styles/consent-manager-dialog';
+import type { ClassNameStyle } from '@c15t/styles/types';
 import type { JSX } from 'preact';
 import { forwardRef, type Ref } from 'preact/compat';
 import { ConsentManagerWidget } from '~/components/consent-manager-widget/consent-manager-widget';
@@ -14,7 +15,7 @@ import { Box, type BoxProps } from '~/components/shared/primitives/box';
 import { C15TIcon, ConsentLogo } from '~/components/shared/ui/logo';
 import { useConsentManager } from '~/hooks';
 import { useTranslations } from '~/hooks/use-translations';
-import type { ClassNameStyle } from '~/types/theme';
+
 
 /**
  * Props for the DialogCard and related components

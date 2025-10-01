@@ -1,0 +1,62 @@
+/* Accordion Component Styles */
+
+.root {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.item {
+	border: 1px solid hsl(var(--border));
+	border-radius: 0.5rem;
+	overflow: hidden;
+}
+
+.triggerInner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	padding: 1rem;
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	transition: background-color 0.2s ease;
+}
+
+.triggerInner:hover {
+	background-color: hsl(var(--muted) / 0.5);
+}
+
+.triggerInner:focus-visible {
+	outline: 2px solid hsl(var(--ring));
+	outline-offset: 2px;
+}
+
+.icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1rem;
+	height: 1rem;
+	color: hsl(var(--muted-foreground));
+	transition: transform 0.2s ease;
+}
+
+.arrowOpen {
+	transform: rotate(180deg);
+}
+
+.arrowClose {
+	transform: rotate(0deg);
+}
+
+.content {
+	overflow: hidden;
+	transition: height 0.2s ease;
+}
+
+.contentInner {
+	padding: 0 1rem 1rem;
+	color: hsl(var(--muted-foreground));
+}
