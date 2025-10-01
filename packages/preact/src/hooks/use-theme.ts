@@ -1,5 +1,3 @@
-'use client';
-
 import { useContext } from 'preact/hooks';
 import { GlobalThemeContext, LocalThemeContext } from '~/context/theme-context';
 

@@ -1,8 +1,9 @@
+import type { ThemeValue } from '@c15t/styles/types';
 import { describe, expect, test } from 'vitest';
 import { GlobalThemeContext, LocalThemeContext } from '~/context/theme-context';
 import { renderHook } from '~/tests/render-hook';
-import type { ThemeValue } from '~/types/theme';
 import { useTheme } from '../use-theme';
+
 /** Minimal renderHook for Preact */
 
 type TestTheme = {

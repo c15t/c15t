@@ -31,41 +31,21 @@
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js"
 		},
-		"./cookie-banner": {
-			"types": "./dist/components/cookie-banner/css-module.d.ts",
-			"import": "./dist/components/cookie-banner/css-module.js"
+    "./primitives/*": {
+			"types": "./dist/primitives/*/index.d.ts",
+			"import": "./dist/primitives/*/index.js"
 		},
-		"./consent-manager-dialog": {
-			"types": "./dist/components/consent-manager-dialog/css-module.d.ts",
-			"import": "./dist/components/consent-manager-dialog/css-module.js"
+    "./primitives/*/css": {
+			"types": "./dist/primitives/*/css-module.d.ts",
+			"import": "./dist/primitives/*/css-module.js"
 		},
-    "./consent-manager-dialog/keys": {
-			"types": "./dist/components/consent-manager-dialog/keys.d.ts",
-			"import": "./dist/components/consent-manager-dialog/keys.js"
+		"./components/*": {
+			"types": "./dist/components/*/index.d.ts",
+			"import": "./dist/components/*/index.js"
 		},
-		"./consent-manager-widget": {
-			"types": "./dist/components/consent-manager-widget/css-module.d.ts",
-			"import": "./dist/components/consent-manager-widget/css-module.js"
-		},
-		"./switch": {
-			"types": "./dist/components/switch/css-module.d.ts",
-			"import": "./dist/components/switch/css-module.js"
-		},
-		"./button": {
-			"types": "./dist/components/button/css-module.d.ts",
-			"import": "./dist/components/button/css-module.js"
-		},
-		"./button/css-vars": {
-			"types": "./dist/components/button/css-vars.d.ts",
-			"import": "./dist/components/button/css-vars.js"
-		},
-		"./button/variant": {
-			"types": "./dist/components/button/variant.d.ts",
-			"import": "./dist/components/button/variant.js"
-		},
-		"./accordion": {
-			"types": "./dist/components/accordion/css-module.d.ts",
-			"import": "./dist/components/accordion/css-module.js"
+    "./components/*/css": {
+			"types": "./dist/components/*/css-module.d.ts",
+			"import": "./dist/components/*/css-module.js"
 		}
 	},
 	"main": "./dist/index.js",

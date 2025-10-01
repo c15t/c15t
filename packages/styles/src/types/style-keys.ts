@@ -1,10 +1,10 @@
-import type { AccordionStylesKeys } from "../components/accordion/keys";
-import type { ConsentManagerDialogTheme } from "../components/consent-manager-dialog/keys";
-import type { ConsentManagerWidgetTheme } from "../components/consent-manager-widget/keys";
-import type { CookieBannerTheme } from "../components/cookie-banner/keys";
+import type { ConsentManagerDialogTheme } from '../components/consent-manager-dialog/keys';
+import type { ConsentManagerWidgetTheme } from '../components/consent-manager-widget/keys';
+import type { CookieBannerTheme } from '../components/cookie-banner/keys';
+import type { AccordionStylesKeys } from '../primitives/accordion/keys';
 
-import type { SwitchStylesKeys } from "../components/switch/keys";
-import type { ThemeValue } from "./style-types";
+import type { SwitchStylesKeys } from '../primitives/switch/keys';
+import type { ThemeValue } from './style-types';
 
 type NestedKeys<T> = {
 	[K in keyof T & (string | number)]: T[K] extends object

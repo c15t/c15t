@@ -1,4 +1,3 @@
-'use client';
 
 import { Component, type ComponentChildren, type JSX } from 'preact';
 

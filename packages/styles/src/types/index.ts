@@ -390,4 +390,9 @@ export class StyleError extends Error {
 }
 
 export type { AllThemeKeys } from './style-keys';
-export type { ClassNameStyle, CSSVariables, ThemeValue } from './style-types';
+export type {
+	ClassNameStyle,
+	CSSVariables,
+	ExtendThemeKeys,
+	ThemeValue,
+} from './style-types';

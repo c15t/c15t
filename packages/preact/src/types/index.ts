@@ -1,8 +1,5 @@
 // Export type definitions
 export type {
-	ConsentManagerProviderProps,
 	ConsentManagerOptions,
+	ConsentManagerProviderProps,
 } from './consent-manager';
-
-// Re-export theme types
-export * from './theme';

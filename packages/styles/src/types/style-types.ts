@@ -1,4 +1,5 @@
 import type { ClassValue } from 'clsx';
+import type { AllThemeKeys } from './style-keys';
 
 /**
  * Represents CSS properties with optional CSS variables
@@ -30,9 +31,9 @@ export type ThemeValue<T = Record<string, string | number>> =
 	| string
 	| ClassNameStyle<T>;
 
-// export interface ExtendThemeKeys<T = CSSVariables> extends ClassNameStyle<T> {
-// 	themeKey: AllThemeKeys;
-// }
+export interface ExtendThemeKeys<T = CSSVariables> extends ClassNameStyle<T> {
+	themeKey: AllThemeKeys;
+}
 
 export type CSSVariables = {
 	[key: string]: string | number;

@@ -1,13 +1,11 @@
-'use client';
-
 /**
  * @packageDocumentation
  * Provides the dialog component for detailed privacy consent management.
  * Implements an accessible, animated modal interface for consent customisation.
  */
 
-import styles from '@c15t/styles/consent-manager-dialog';
-import type { ConsentManagerDialogTheme } from '@c15t/styles/consent-manager-dialog/keys';
+import type { ConsentManagerDialogTheme } from '@c15t/styles/components/consent-manager-dialog';
+import styles from '@c15t/styles/components/consent-manager-dialog/css';
 import clsx from 'clsx';
 
 import type { FunctionComponent, RefObject } from 'preact';

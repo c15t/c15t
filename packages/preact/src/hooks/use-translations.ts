@@ -1,5 +1,3 @@
-'use client';
-
 import type { Translations } from 'c15t';
 import { defaultTranslationConfig } from 'c15t';
 import { useMemo } from 'preact/hooks';

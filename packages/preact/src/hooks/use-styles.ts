@@ -1,4 +1,8 @@
-'use client';
+import type {
+  AllThemeKeys,
+  ClassNameStyle,
+  ThemeValue,
+} from '@c15t/styles/types';
 
 /**
  * @packageDocumentation
@@ -6,11 +10,9 @@
  * Implements a flexible styling system that merges theme and component-level styles.
  */
 
+import { mergeStyles } from '@c15t/styles';
 import { useMemo } from 'preact/hooks';
 import { useTheme } from '~/hooks/use-theme';
-import type { AllThemeKeys } from '~/types/theme';
-import type { ClassNameStyle, ThemeValue } from '~/types/theme';
-import { mergeStyles } from '~/utils/merge-styles';
 
 /**
  * Hook for retrieving and merging styles from theme context and component props.

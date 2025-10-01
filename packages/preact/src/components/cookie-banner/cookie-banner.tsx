@@ -4,14 +4,15 @@
  * Implements an accessible, customizable banner following GDPR and CCPA requirements.
  */
 
-import styles from '@c15t/styles/cookie-banner';
+import type { CookieBannerTheme } from '@c15t/styles/components/cookie-banner';
+import styles from '@c15t/styles/components/cookie-banner/css';
+import type { CSSPropertiesWithVars } from '@c15t/styles/types';
 import type { ComponentChildren, FunctionComponent, JSX } from 'preact';
 import { createPortal, forwardRef, type Ref } from 'preact/compat';
 import { useEffect, useState } from 'preact/hooks';
 import { LocalThemeContext } from '../../context/theme-context';
 import { useConsentManager } from '../../hooks/use-consent-manager';
 import { useStyles } from '../../hooks/use-styles';
-import type { CSSPropertiesWithVars } from '../../types/theme';
 import { Overlay } from './atoms/overlay';
 // Import the sub-components that the CookieBanner uses
 import {
@@ -25,7 +26,6 @@ import {
   CookieBannerRejectButton,
   CookieBannerTitle,
 } from './components';
-import type { CookieBannerTheme } from './theme';
 
 /**
  * Props for configuring and customizing the CookieBanner component.

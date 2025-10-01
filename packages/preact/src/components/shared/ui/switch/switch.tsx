@@ -1,18 +1,11 @@
-'use client';
 
+import styles from '@c15t/styles/primitives/switch/css';
+import type { ExtendThemeKeys } from '@c15t/styles/types';
 import type { JSX } from 'preact';
 import { forwardRef } from 'preact/compat';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { Box } from '~/components/shared/primitives/box';
 import { useStyles } from '~/hooks/use-styles';
-import type { ExtendThemeKeys, ThemeValue } from '~/types/theme';
-import styles from './switch.module.css';
-
-export type SwitchStylesKeys = {
-	'switch.root': ThemeValue;
-	'switch.thumb': ThemeValue;
-	'switch.track': ThemeValue;
-};
 
 export interface SwitchProps
 	extends Omit<JSX.HTMLAttributes<HTMLButtonElement>, 'onChange'> {
@@ -136,7 +129,10 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
 			>
 				<Box
 					themeKey={theme?.track.themeKey ?? 'switch.track'}
-					baseClassName={[styles.track, disabled && styles['track-disabled']]}
+					baseClassName={[
+						styles.track,
+						disabled && styles['track-disabled'],
+					]}
 					style={theme?.track.style}
 				>
 					{/* The thumb can be positioned via CSS using [data-state] */}

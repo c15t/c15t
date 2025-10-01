@@ -1,20 +1,17 @@
-'use client';
 
 export {
 	Card,
-	Header,
-	HeaderTitle,
-	HeaderDescription,
-	Content,
-	Footer,
 	ConsentCustomizationCard,
+	Content,
+	DialogContent,
 	DialogFooter,
 	DialogHeader,
-	DialogHeaderTitle,
 	DialogHeaderDescription,
-	DialogContent,
+	DialogHeaderTitle,
+	Footer,
+	Header,
+	HeaderDescription,
+	HeaderTitle,
 } from './atoms/dialog-card';
 
-export { Overlay, ConsentManagerDialogOverlay } from './atoms/overlay';
-
-export type { ConsentManagerDialogTheme } from './theme';
+export { ConsentManagerDialogOverlay, Overlay } from './atoms/overlay';

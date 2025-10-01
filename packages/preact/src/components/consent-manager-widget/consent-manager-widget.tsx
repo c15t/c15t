@@ -1,24 +1,23 @@
-'use client';
 
 import { useState } from 'preact/hooks';
 import { useTheme } from '~/hooks/use-theme';
 import { useTranslations } from '~/hooks/use-translations';
 import {
-    BrandingFooter,
-    DialogFooter,
+  BrandingFooter,
+  DialogFooter,
 } from '../consent-manager-dialog/atoms/dialog-card';
 import {
-    ConsentManagerWidgetAccordion,
-    ConsentManagerWidgetAccordionItems,
+  ConsentManagerWidgetAccordion,
+  ConsentManagerWidgetAccordionItems,
 } from './atoms/accordion';
 import {
-    ConsentManagerWidgetAcceptAllButton,
-    ConsentManagerWidgetRejectButton,
-    ConsentManagerWidgetSaveButton,
+  ConsentManagerWidgetAcceptAllButton,
+  ConsentManagerWidgetRejectButton,
+  ConsentManagerWidgetSaveButton,
 } from './atoms/button';
 import {
-    ConsentManagerWidgetFooter,
-    ConsentManagerWidgetFooterSubGroup,
+  ConsentManagerWidgetFooter,
+  ConsentManagerWidgetFooterSubGroup,
 } from './atoms/footer';
 import { ConsentManagerWidgetRoot } from './atoms/root';
 import type { ConsentManagerWidgetProps } from './types';

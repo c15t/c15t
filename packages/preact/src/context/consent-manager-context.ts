@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * @packageDocumentation
  * Provides the context for sharing consent management state across components.

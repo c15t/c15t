@@ -1,5 +1,5 @@
+import type { ButtonCSSVariables } from '../../primitives/button/css-vars';
 import type { ThemeValue } from '../../types/style-types';
-import type { ButtonCSSVariables } from '../button/css-vars';
 import type {
   CardCSSVariables,
   DescriptionCSSVariables,

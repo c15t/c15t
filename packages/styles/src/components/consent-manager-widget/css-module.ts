@@ -1,28 +1,28 @@
 // Import the CSS file
-import './consent-manager-widget.module.css';
+import styles from './consent-manager-widget.module.css';
 
 // CSS Module exports for consent-manager-widget
 export const consentManagerWidgetStyles = {
-	widget: 'widget',
-	card: 'card',
-	header: 'header',
-	title: 'title',
-	description: 'description',
-	content: 'content',
-	footer: 'footer',
-	footerGroup: 'footerGroup',
-	branding: 'branding',
-	brandingLink: 'brandingLink',
-	bottomLeft: 'bottomLeft',
-	bottomRight: 'bottomRight',
-	topLeft: 'topLeft',
-	topRight: 'topRight',
-	accordionItem: 'accordionItem',
-	accordionTrigger: 'accordionTrigger',
-	accordionTriggerInner: 'accordionTriggerInner',
-	accordionContent: 'accordionContent',
-	accordionArrow: 'accordionArrow',
-	switch: 'switch',
+	widget: styles.widget,
+	card: styles.card,
+	header: styles.header,
+	title: styles.title,
+	description: styles.description,
+	content: styles.content,
+	footer: styles.footer,
+	footerGroup: styles.footerGroup,
+	branding: styles.branding,
+	brandingLink: styles.brandingLink,
+	bottomLeft: styles.bottomLeft,
+	bottomRight: styles.bottomRight,
+	topLeft: styles.topLeft,
+	topRight: styles.topRight,
+	accordionItem: styles.accordionItem,
+	accordionTrigger: styles.accordionTrigger,
+	accordionTriggerInner: styles.accordionTriggerInner,
+	accordionContent: styles.accordionContent,
+	accordionArrow: styles.accordionArrow,
+	switch: styles.switch,
 };
 
 export default consentManagerWidgetStyles;
