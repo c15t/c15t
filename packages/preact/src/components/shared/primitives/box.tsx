@@ -1,8 +1,7 @@
-'use client';
+import type { ExtendThemeKeys } from '@c15t/styles/types';
 import type { JSX } from 'preact';
 import { forwardRef } from 'preact/compat';
 import { useStyles } from '~/hooks/use-styles';
-import type { ExtendThemeKeys } from '~/types/theme';
 import { Slot } from './slot';
 
 /**

@@ -1,18 +1,15 @@
-'use client';
-
 /**
  * @packageDocumentation
  * Provides the root component for the consent management interface.
  * Implements context provider pattern with theme support and state management.
  */
-
+import type { ConsentManagerWidgetTheme } from '@c15t/styles/components/consent-manager-widget';
 import type { ComponentChildren, FunctionComponent } from 'preact';
 import { Box } from '~/components/shared/primitives/box';
 import {
-	LocalThemeContext,
-	type ThemeContextValue,
+  LocalThemeContext,
+  type ThemeContextValue,
 } from '~/context/theme-context';
-import type { ConsentManagerWidgetTheme } from '../theme';
 
 /**
  * Props for the ConsentManagerWidgetRoot component.

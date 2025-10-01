@@ -5,7 +5,7 @@ import {
   type ButtonVariant,
   type ButtonVariantsProps,
   buttonVariants,
-} from '@c15t/styles/button/variant';
+} from '@c15t/styles/primitives/button';
 import {
   type ButtonHTMLAttributes,
   type ElementType,

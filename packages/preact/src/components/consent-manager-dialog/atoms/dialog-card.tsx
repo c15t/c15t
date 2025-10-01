@@ -1,4 +1,3 @@
-'use client';
 
 /**
  * @packageDocumentation
@@ -6,7 +5,7 @@
  * Built with accessibility and customization in mind, following GDPR, CCPA, and other privacy regulation requirements.
  */
 
-import styles from '@c15t/styles/consent-manager-dialog';
+import styles from '@c15t/styles/components/consent-manager-dialog/css';
 import type { ClassNameStyle } from '@c15t/styles/types';
 import type { JSX } from 'preact';
 import { forwardRef, type Ref } from 'preact/compat';

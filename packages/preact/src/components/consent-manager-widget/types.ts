@@ -1,6 +1,7 @@
+import type { ConsentManagerWidgetTheme } from '@c15t/styles/components/consent-manager-widget';
 import type { ComponentChildren } from 'preact';
 import type { ThemeContextValue } from '~/context/theme-context';
-import type { ConsentManagerWidgetTheme } from './theme';
+
 
 export interface ConsentManagerWidgetRootProps
 	extends ThemeContextValue<ConsentManagerWidgetTheme> {

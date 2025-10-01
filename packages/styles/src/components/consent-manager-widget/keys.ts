@@ -1,16 +1,16 @@
-import type { ThemeValue } from '../../types/style-types';
 import type {
   AccordionContentCSSVariables,
   AccordionCSSVariables,
   AccordionIconCSSVariables,
   AccordionItemCSSVariables,
   AccordionTriggerCSSVariables,
-} from '../accordion/css-vars';
+} from '../../primitives/accordion/css-vars';
 import type {
   SwitchCSSVariables,
   SwitchThumbCSSVariables,
   SwitchTrackCSSVariables,
-} from '../switch/css-vars';
+} from '../../primitives/switch/css-vars';
+import type { ThemeValue } from '../../types/style-types';
 
 /**
  * Configuration object for styling different parts of the ConsentManagerWidget component.

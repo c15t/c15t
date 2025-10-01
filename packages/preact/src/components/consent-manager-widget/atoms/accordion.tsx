@@ -1,5 +1,4 @@
-import styles from '@c15t/styles/consent-manager-widget';
-import switchStyles from '@c15t/styles/switch';
+import styles from '@c15t/styles/components/consent-manager-widget/css';
 import type { AllConsentNames, ConsentType } from 'c15t';
 import type { ComponentProps, Ref } from 'preact';
 import { forwardRef } from 'preact/compat';
@@ -9,6 +8,7 @@ import * as RadixAccordion from '~/components/shared/ui/accordion';
 import * as RadixSwitch from '~/components/shared/ui/switch';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useTranslations } from '~/hooks/use-translations';
+import switchStyles from '@c15t/styles/primitives/switch/css';
 
 /**
  * Accordion Trigger Component
@@ -102,7 +102,7 @@ const ConsentManagerWidgetAccordionItems = () => {
 						root: { themeKey: 'widget.switch', baseClassName: styles.switch },
 						thumb: {
 							themeKey: 'widget.switch.thumb',
-							baseClassName: switchStyles.switchThumb,
+							baseClassName: switchStyles.thumb,
 						},
 						track: { themeKey: 'widget.switch.track' },
 					}}

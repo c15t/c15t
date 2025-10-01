@@ -1,5 +1,6 @@
+import type { CSSVariables, ExtendThemeKeys } from '@c15t/styles/types';
 import type { JSX } from 'preact';
-import type { CSSVariables, ExtendThemeKeys } from '~/types/theme';
+
 
 export type ConsentButtonElement = HTMLButtonElement;
 

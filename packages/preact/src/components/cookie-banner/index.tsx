@@ -1,23 +1,23 @@
 import { CookieBannerOverlay, Overlay } from './atoms/overlay';
 import {
-	AcceptButton,
-	Card,
-	CookieBannerAcceptButton,
-	CookieBannerCard,
-	CookieBannerCustomizeButton,
-	CookieBannerDescription,
-	CookieBannerFooter,
-	CookieBannerFooterSubGroup,
-	CookieBannerHeader,
-	CookieBannerRejectButton,
-	CookieBannerTitle,
-	CustomizeButton,
-	Description,
-	Footer,
-	FooterSubGroup,
-	Header,
-	RejectButton,
-	Title,
+  AcceptButton,
+  Card,
+  CookieBannerAcceptButton,
+  CookieBannerCard,
+  CookieBannerCustomizeButton,
+  CookieBannerDescription,
+  CookieBannerFooter,
+  CookieBannerFooterSubGroup,
+  CookieBannerHeader,
+  CookieBannerRejectButton,
+  CookieBannerTitle,
+  CustomizeButton,
+  Description,
+  Footer,
+  FooterSubGroup,
+  Header,
+  RejectButton,
+  Title,
 } from './components';
 import { CookieBanner, CookieBannerRoot, Root } from './cookie-banner';
 
@@ -93,4 +93,4 @@ export {
 	Root,
 	Title,
 };
-export type { CookieBannerTheme } from './theme';
+

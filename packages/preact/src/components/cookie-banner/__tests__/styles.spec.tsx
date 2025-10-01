@@ -1,14 +1,14 @@
+import type { CookieBannerTheme } from '@c15t/styles/components/cookie-banner';
+import styles from '@c15t/styles/components/cookie-banner/css';
+import buttonStyles from '@c15t/styles/primitives/button/css';
+import type { ThemeValue } from '@c15t/styles/types';
 import { defaultTranslationConfig } from 'c15t';
 import { expect, test, vi } from 'vitest';
 import { CookieBanner } from '~/components/cookie-banner/cookie-banner';
-import type { ThemeValue } from '~/types/theme';
 import {
-    assertElementStyles,
-    renderComponentStyles,
+  assertElementStyles,
+  renderComponentStyles,
 } from '~/utils/test-helpers';
-import buttonStyles from '../../shared/ui/button/button.module.css';
-import styles from '../cookie-banner.module.css';
-import type { CookieBannerTheme } from '../theme';
 
 vi.mock('~/hooks/use-consent-manager', async (importOriginal) => {
 	const realModule =
@@ -294,6 +294,7 @@ test('should handle empty strings and empty style objects in theme prop graceful
 		'banner.footer': {
 			className: '',
 			style: {
+        //@ts-expect-error - margin is not a valid property in FooterCSSVariables
 				margin: '0',
 				padding: '0',
 			},

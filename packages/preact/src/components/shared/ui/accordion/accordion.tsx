@@ -1,5 +1,6 @@
-'use client';
 
+import styles from '@c15t/styles/primitives/accordion/css';
+import type { AllThemeKeys, ExtendThemeKeys } from '@c15t/styles/types';
 import type { JSX } from 'preact';
 import { forwardRef } from 'preact/compat';
 import { useId, useState } from 'preact/hooks';
@@ -7,19 +8,6 @@ import { Box } from '~/components/shared/primitives/box';
 import { LucideIcon } from '~/components/shared/ui/icon';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
-import type { AllThemeKeys, ExtendThemeKeys, ThemeValue } from '~/types/theme';
-import styles from './accordion.module.css';
-
-export type AccordionStylesKeys = {
-	'accordion.root'?: ThemeValue;
-	'accordion.item': ThemeValue;
-	'accordion.trigger': ThemeValue;
-	'accordion.icon': ThemeValue;
-	'accordion.arrow.open': ThemeValue;
-	'accordion.arrow.close': ThemeValue;
-	'accordion.content': ThemeValue;
-	'accordion.content-inner': ThemeValue;
-};
 
 type AccordionRootProps = {
 	/** single (radio) or multiple (checkbox-like) */
