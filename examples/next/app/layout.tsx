@@ -2,9 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import {
-	ConsentManagerDialog,
-	ConsentManagerProvider,
-	CookieBanner,
+  ConsentManagerProvider,
 } from '@c15t/nextjs';
 import { ClientLayout } from './layout.client';
 
@@ -35,14 +33,14 @@ export default function RootLayout({
 			>
 				<ConsentManagerProvider
 					options={{
-						mode: 'c15t',
-						backendURL: '/api/c15t',
-						consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner.
-						ignoreGeoLocation: true, // Useful for development to always view the banner.
+            mode: 'offline',
+            // ui: { noStyle: false },
+						// consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner.
+						// ignoreGeoLocation: true, // Useful for development to always view the banner.
 					}}
 				>
-					<CookieBanner />
-					<ConsentManagerDialog />
+					{/* <CookieBanner /> */}
+					{/* <ConsentManagerDialog /> */}
 					<ClientLayout />
 
 					{children}

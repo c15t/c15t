@@ -31,11 +31,11 @@
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js"
 		},
-    "./primitives/*": {
+		"./primitives/*": {
 			"types": "./dist/primitives/*/index.d.ts",
 			"import": "./dist/primitives/*/index.js"
 		},
-    "./primitives/*/css": {
+		"./primitives/*/css": {
 			"types": "./dist/primitives/*/css-module.d.ts",
 			"import": "./dist/primitives/*/css-module.js"
 		},
@@ -43,7 +43,7 @@
 			"types": "./dist/components/*/index.d.ts",
 			"import": "./dist/components/*/index.js"
 		},
-    "./components/*/css": {
+		"./components/*/css": {
 			"types": "./dist/components/*/css-module.d.ts",
 			"import": "./dist/components/*/css-module.js"
 		}

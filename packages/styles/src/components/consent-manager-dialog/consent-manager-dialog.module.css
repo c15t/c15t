@@ -1,33 +1,4 @@
-/**
- * Consent Manager Dialog Component Styles
- * 
- * @fileoverview Modal dialog styling for detailed privacy consent management
- * @description Provides accessible, animated modal interface for GDPR/CCPA consent customization
- * 
- * @version 1.5.0
- * @author C15T Team
- * 
- * @example
- * Basic CSS import:
- * ```css
- * @import '@c15t/styles/components/consent-manager-dialog.css';
- * ```
- * 
- * @example
- * Custom theming:
- * ```css
- * :root {
- *   --dialog-background-color: #ffffff;
- *   --dialog-max-width: 32rem;
- * }
- * ```
- * 
- * @accessibility
- * - Implements ARIA modal patterns
- * - Maintains focus trap functionality
- * - Provides keyboard navigation support
- */
- :root {
+:root {
 	/* Typography */
 	--dialog-font-family:
 		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,

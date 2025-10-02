@@ -1,9 +1,9 @@
+import styles from '@c15t/styles/components/consent-manager-dialog/css';
 import { defaultTranslationConfig } from 'c15t';
 import { expect, test, vi } from 'vitest';
 import { ConsentManagerDialog } from '~/components/consent-manager-dialog/consent-manager-dialog';
 import type { ThemeValue } from '~/types/theme';
 import testComponentStyles from '~/utils/test-helpers';
-import styles from '../consent-manager-dialog.module.css';
 import type { ConsentManagerDialogTheme } from '../theme';
 
 type ComponentTestCase = {

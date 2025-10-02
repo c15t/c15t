@@ -1,15 +1,14 @@
+import styles from '@c15t/styles/primitives/button/css';
 import { Slot } from '@radix-ui/react-slot';
-
 import {
-	type ButtonHTMLAttributes,
-	type ElementType,
-	forwardRef,
-	type ReactElement,
-	useId,
+  type ButtonHTMLAttributes,
+  type ElementType,
+  forwardRef,
+  type ReactElement,
+  useId,
 } from 'react';
 import type { PolymorphicComponentProps } from '../../libs/polymorphic';
 import { recursiveCloneChildren } from '../../libs/recursive-clone-children';
-import styles from './button.module.css';
 
 /**
  * Constants for component display names

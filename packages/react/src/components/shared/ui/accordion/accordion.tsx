@@ -1,21 +1,20 @@
 'use client';
 
+import styles from '@c15t/styles/primitives/accordion/css';
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import {
-	type ComponentPropsWithoutRef,
-	type ComponentRef,
-	type ElementType,
-	forwardRef,
-	type HTMLAttributes,
+  type ComponentPropsWithoutRef,
+  type ComponentRef,
+  type ElementType,
+  forwardRef,
+  type HTMLAttributes,
 } from 'react';
-
 import type { PolymorphicComponentProps } from '~/components/shared/libs/polymorphic';
 import { Box } from '~/components/shared/primitives/box';
 import { LucideIcon } from '~/components/shared/ui/icon';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
 import type { AllThemeKeys, ExtendThemeKeys, ThemeValue } from '~/types/theme';
-import styles from './accordion.module.css';
 
 const ACCORDION_ROOT_NAME = 'AccordionRoot';
 const ACCORDION_ITEM_NAME = 'AccordionItem';

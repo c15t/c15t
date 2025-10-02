@@ -1,13 +1,14 @@
 'use client';
 
+import styles from '@c15t/styles/components/cookie-banner/css';
 import {
-	type CSSProperties,
-	type FC,
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
-	useEffect,
-	useState,
+  type CSSProperties,
+  type FC,
+  forwardRef,
+  type HTMLAttributes,
+  type ReactNode,
+  useEffect,
+  useState,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { LocalThemeContext } from '~/context/theme-context';
@@ -15,7 +16,6 @@ import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/types/theme';
-import styles from '../cookie-banner.module.css';
 import type { CookieBannerTheme } from '../theme';
 import { Overlay } from './overlay';
 
