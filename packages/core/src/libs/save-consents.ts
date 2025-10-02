@@ -23,8 +23,13 @@ export async function saveConsents({
 	set,
 	trackingBlocker,
 }: SaveConsentsProps) {
-	const { callbacks, selectedConsents, consents, consentTypes, updateScripts } =
-		get();
+	const {
+		callbacks,
+		selectedConsents,
+		consents,
+		consentTypes,
+		updateScripts = () => {},
+	} = get();
 
 	const newConsents = selectedConsents ?? consents ?? {};
 

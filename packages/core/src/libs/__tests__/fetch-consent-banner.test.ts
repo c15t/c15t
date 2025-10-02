@@ -291,27 +291,18 @@ describe('fetchConsentBannerInfo', () => {
 			// Create a rejected promise
 			const initialData = Promise.reject(new Error('Initial data failed'));
 
-			// Handle the unhandled rejection in the test to avoid test warnings
-			initialData.catch(() => {});
-
-			try {
-				// The function should throw when initialData rejects
-				await fetchConsentBannerInfo({
+			// Use vitest's async matcher
+			await expect(
+				fetchConsentBannerInfo({
 					manager: mockManager,
 					get: mockGet,
 					set: mockSet,
 					initialData,
-				});
+				})
+			).rejects.toThrow('Initial data failed');
 
-				// If we reach here, the test should fail
-				expect(true).toBe(false); // This should not be reached
-			} catch (error) {
-				// Verify we got the expected error
-				expect(error.message).toContain('Initial data failed');
-			} finally {
-				// Restore console.error
-				console.error = originalConsoleError;
-			}
+			// Restore console.error
+			console.error = originalConsoleError;
 		});
 	});
 

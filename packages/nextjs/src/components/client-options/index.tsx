@@ -8,7 +8,8 @@ import { useEffect } from 'react';
 
 /**
  * This component is used to provide options to the consent manager on the client side.
- * It is used to avoid issues with server-side rendering in Next.js App Directory.
+ * This is seperate from the ConsentManagerProvider component because options like callbacks and scripts can't be seralized.
+ * If you want a fully client-side solution, you can use the <ConsentManagerProvider /> component from @c15t/nextjs/client.
  *
  * @param children - The children to render.
  * @param callbacks - The callbacks to set.
@@ -30,11 +31,8 @@ export function ClientSideOptionsProvider({
 			return;
 		}
 
-		for (const [key, value] of Object.entries(callbacks) as [
-			keyof typeof callbacks,
-			(typeof callbacks)[keyof typeof callbacks],
-		][]) {
-			setCallback(key, value);
+		for (const [key, value] of Object.entries(callbacks)) {
+			setCallback(key as keyof typeof callbacks, value);
 		}
 	}, [callbacks, setCallback]);
 

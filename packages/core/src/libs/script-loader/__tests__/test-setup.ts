@@ -10,19 +10,21 @@ export const mockHead = {
 // Registry to track created elements for proper getElementById mocking
 const createdElements: Map<string, HTMLElement> = new Map();
 
-// Mock script element for testing
-export const mockScriptElement = {
-	id: '',
-	src: '',
-	textContent: '',
-	fetchPriority: undefined as 'high' | 'low' | 'auto' | undefined,
-	async: false,
-	defer: false,
-	nonce: '',
-	addEventListener: vi.fn(),
-	setAttribute: vi.fn(),
-	remove: vi.fn(),
-};
+// Factory function to create mock script elements for testing
+export function createMockScriptElement() {
+	return {
+		id: '',
+		src: '',
+		textContent: '',
+		fetchPriority: undefined as 'high' | 'low' | 'auto' | undefined,
+		async: false,
+		defer: false,
+		nonce: '',
+		addEventListener: vi.fn(),
+		setAttribute: vi.fn(),
+		remove: vi.fn(),
+	};
+}
 
 // Sample consent state for testing
 export const sampleConsents: ConsentState = {
@@ -37,10 +39,15 @@ export const sampleConsents: ConsentState = {
  * Sets up mocks for DOM manipulation in tests
  */
 export function setupDomMocks() {
+	// Save original createElement before mocking
+	const originalCreateElement = document.createElement;
+
 	// Mock document.createElement
 	vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
 		if (tagName === 'script') {
-			const element = { ...mockScriptElement } as unknown as HTMLScriptElement;
+			const element = {
+				...createMockScriptElement(),
+			} as unknown as HTMLScriptElement;
 			// Override the id property to track elements
 			let elementId = '';
 			Object.defineProperty(element, 'id', {
@@ -55,7 +62,7 @@ export function setupDomMocks() {
 			});
 			return element;
 		}
-		return { ...mockScriptElement } as unknown as HTMLScriptElement;
+		return originalCreateElement.call(document, tagName);
 	});
 
 	// Mock document.getElementById by adding it to the document object
@@ -75,7 +82,7 @@ export function setupDomMocks() {
 	});
 
 	// Clear any scripts that might have been loaded in previous tests
-	vi.spyOn(global, 'Map').mockImplementation(() => new Map());
+	clearAllScripts();
 
 	// Mock Math.random for consistent anonymized IDs
 	mockRandomForTesting();
@@ -94,6 +101,7 @@ export function setupDomMocks() {
 export function teardownDomMocks() {
 	vi.restoreAllMocks();
 	clearAllScripts();
+	createdElements.clear();
 }
 
 /**
@@ -115,11 +123,6 @@ export function setupTestHooks() {
  * Mocks the Math.random function to return predictable values for testing
  */
 export function mockRandomForTesting() {
-	// Create a copy of the original Math object properties we need
-	const mathCopy = {
-		random: () => 0.5, // This will make generateRandomScriptId return a consistent value
-	};
-
-	// Mock only the random function without spreading the entire Math object
-	vi.spyOn(Math, 'random').mockImplementation(mathCopy.random);
+	// Mock only the random function to return a consistent value
+	vi.spyOn(Math, 'random').mockImplementation(() => 0.5);
 }

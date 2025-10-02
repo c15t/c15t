@@ -40,19 +40,20 @@ c15t will automatically sync the consent state so you don't need to do anything 
         import { ConsentManagerProvider } from '@c15t/react';
 
         export function App() { 
-          <ConsentManagerProvider
-            options={{
-              scripts: [
-                gtag({
-                  id: '123456789012345',
-                }),
-              ]),
-            }}
-          >
-            {children}
-          </ConsentManagerProvider>
+          return (
+            <ConsentManagerProvider
+              options={{
+                scripts: [
+                  gtag({
+                    id: '123456789012345',
+                  }),
+                ],
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
         }
-        >
         ```
       </Tab>
 
@@ -63,18 +64,17 @@ c15t will automatically sync the consent state so you don't need to do anything 
         import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
-          <ClientSideOptionsProvider
-            scripts={[
-              scripts: [
+          return (
+            <ClientSideOptionsProvider
+              scripts={[
                 gtag({
                   id: '123456789012345',
                 }),
-              }),
-              ],
-            ]}
-          >
-            {children}
-          </ClientSideOptionsProvider>
+              ]}
+            >
+              {children}
+            </ClientSideOptionsProvider>
+          );
         }
         ```
       </Tab>
@@ -85,19 +85,21 @@ c15t will automatically sync the consent state so you don't need to do anything 
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
         export function App() { 
-          <ConsentManagerProvider
-            options={{
-              // ... other options
-              scripts: [
-        			    gtag({
-                  id: 'G-XXXXXXX',
-                  category: 'measurement',
-                }),
-              ]),
-            }}
-          >
-            {children}
-          </ConsentManagerProvider>
+          return (
+            <ConsentManagerProvider
+              options={{
+                // ... other options
+                scripts: [
+                  gtag({
+                    id: 'G-XXXXXXX',
+                    category: 'measurement',
+                  }),
+                ],
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
         }
         ```
       </Tab>

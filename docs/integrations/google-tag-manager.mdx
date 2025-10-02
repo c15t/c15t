@@ -78,19 +78,20 @@ Allowing c15t to manage GTM prevents any issues with GTM scripts being loaded wi
         import { ConsentManagerProvider } from '@c15t/react';
 
         export function App() { 
-          <ConsentManagerProvider
-            options={{
-              scripts: [
-                googleTagManager({
-                  id: 'GTM-XXXXXXX',
-                }),
-              ]),
-            }}
-          >
-            {children}
-          </ConsentManagerProvider>
+          return (
+            <ConsentManagerProvider
+              options={{
+                scripts: [
+                  googleTagManager({
+                    id: 'GTM-XXXXXXX',
+                  }),
+                ],
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
         }
-        >
         ```
       </Tab>
 
@@ -101,17 +102,17 @@ Allowing c15t to manage GTM prevents any issues with GTM scripts being loaded wi
         import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
-          <ClientSideOptionsProvider
-            scripts={[
-              scripts: [
+          return (
+            <ClientSideOptionsProvider
+              scripts={[
                 googleTagManager({
                   id: 'GTM-XXXXXXX',
-              }),
-              ],
-            ]}
-          >
-            {children}
-          </ClientSideOptionsProvider>
+                }),
+              ]}
+            >
+              {children}
+            </ClientSideOptionsProvider>
+          );
         }
         ```
       </Tab>
@@ -122,20 +123,21 @@ Allowing c15t to manage GTM prevents any issues with GTM scripts being loaded wi
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
         export function App() { 
-          <ConsentManagerProvider
-            options={{
-              // ... other options
-              scripts: [
-                googleTagManager({
-                  id: 'GTM-XXXXXXX',
-                }),
-              ]),
-            }}
-          >
-            {children}
-          </ConsentManagerProvider>
+          return (
+            <ConsentManagerProvider
+              options={{
+                // ... other options
+                scripts: [
+                  googleTagManager({
+                    id: 'GTM-XXXXXXX',
+                  }),
+                ],
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
         }
-        >
         ```
       </Tab>
     </Tabs>

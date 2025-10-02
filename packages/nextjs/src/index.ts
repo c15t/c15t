@@ -7,7 +7,5 @@
  * @see {@link @c15t/react} for React components and hooks
  * @see {@link ./middleware} for Next.js middleware integration
  */
-
-export { ConsentManagerProvider as ClientConsentManagerProvider } from '@c15t/react';
 export { ConsentManagerProvider } from './components/consent-manager-provider';
 export * from './shared';

@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
 
-// Extended Window interface to include TikTok Pixel-specific properties
+// Extended Window interface to include X Pixel-specific properties
 declare global {
 	interface Window {
 		twq?: (event: string, ...args: unknown[]) => void;
@@ -43,7 +43,7 @@ export interface XPixelOptions {
  */
 export function xPixel({ pixelId, script }: XPixelOptions): Script {
 	return {
-		id: script?.id ?? 'tiktok-pixel',
+		id: script?.id ?? 'x-pixel',
 		category: script?.category ?? 'marketing',
 		textContent: `
 !function(e,t,n,s,u,a){e.twq||(s=e.twq=function(){s.exe?s.exe.apply(s,arguments):s.queue.push(arguments);

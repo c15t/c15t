@@ -37,19 +37,20 @@ This script will also persist after consent is revoked. This is because the scri
         import { ConsentManagerProvider } from '@c15t/react';
 
         export function App() { 
-          <ConsentManagerProvider
-            options={{
-              scripts: [
-                tiktokPixel({
-                  pixelId: '123456789012345',
-                }),
-              ]),
-            }}
-          >
-            {children}
-          </ConsentManagerProvider>
+          return (
+            <ConsentManagerProvider
+              options={{
+                scripts: [
+                  tiktokPixel({
+                    pixelId: '123456789012345',
+                  }),
+                ],
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
         }
-        >
         ```
       </Tab>
 
@@ -60,18 +61,17 @@ This script will also persist after consent is revoked. This is because the scri
         import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
-          <ClientSideOptionsProvider
-            scripts={[
-              scripts: [
+          return (
+            <ClientSideOptionsProvider
+              scripts={[
                 tiktokPixel({
                   pixelId: '123456789012345',
                 }),
-              }),
-              ],
-            ]}
-          >
-            {children}
-          </ClientSideOptionsProvider>
+              ]}
+            >
+              {children}
+            </ClientSideOptionsProvider>
+          );
         }
         ```
       </Tab>
@@ -82,18 +82,20 @@ This script will also persist after consent is revoked. This is because the scri
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
         export function App() { 
-          <ConsentManagerProvider
-            options={{
-              // ... other options
-              scripts: [
-                tiktokPixel({
-                  pixelId: '123456789012345',
-                }),
-              ]),
-            }}
-          >
-            {children}
-          </ConsentManagerProvider>
+          return (
+            <ConsentManagerProvider
+              options={{
+                // ... other options
+                scripts: [
+                  tiktokPixel({
+                    pixelId: '123456789012345',
+                  }),
+                ],
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
         }
         ```
       </Tab>

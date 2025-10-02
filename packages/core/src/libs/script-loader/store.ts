@@ -6,7 +6,12 @@ import {
 	updateScripts,
 } from './core';
 import type { Script } from './types';
-import { generateRandomScriptId, loadedScripts } from './utils';
+import {
+	deleteLoadedScript,
+	generateRandomScriptId,
+	getLoadedScript,
+	hasLoadedScript,
+} from './utils';
 
 /**
  * Creates script management functions for the consent manager store.
@@ -21,12 +26,12 @@ export function createScriptManager(
 	setState: (partial: Partial<PrivacyConsentState>) => void
 ) {
 	const updateScriptsFn = () => {
-		const { scripts, consents, scriptIdMap, loadedScripts } = getState();
+		const { scripts, consents, scriptIdMap } = getState();
 
 		const result = updateScripts(scripts, consents, scriptIdMap);
 
 		// Update loadedScripts state
-		const newLoadedScripts = { ...loadedScripts };
+		const newLoadedScripts = { ...getState().loadedScripts };
 
 		// Mark loaded scripts
 		result.loaded.forEach((id: string) => {
@@ -87,8 +92,8 @@ export function createScriptManager(
 			const script = state.scripts.find((s) => s.id === scriptId);
 
 			// If the script is loaded, unload it first
-			if (loadedScripts.has(scriptId)) {
-				const scriptElement = loadedScripts.get(scriptId);
+			if (hasLoadedScript(scriptId)) {
+				const scriptElement = getLoadedScript(scriptId);
 				if (scriptElement) {
 					// Get the element ID (either anonymized or prefixed)
 					const elementId =
@@ -108,7 +113,7 @@ export function createScriptManager(
 					}
 
 					scriptElement.remove();
-					loadedScripts.delete(scriptId);
+					deleteLoadedScript(scriptId);
 				}
 			}
 

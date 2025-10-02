@@ -3,8 +3,17 @@ import type { Script } from 'c15t';
 // Extended Window interface to include meta pixel specific properties
 declare global {
 	interface Window {
-		fbq: (...args: unknown[]) => void;
-		_fbq: (...args: unknown[]) => void;
+		fbq: {
+			(command: 'init', pixelId: string): void;
+			(
+				command: 'track',
+				eventName: string,
+				params?: Record<string, unknown>
+			): void;
+			(command: 'consent', action: 'grant' | 'revoke'): void;
+			(...args: unknown[]): void;
+		};
+		_fbq: Window['fbq'];
 	}
 }
 

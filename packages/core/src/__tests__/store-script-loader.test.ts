@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Script } from '../libs/script-loader';
 import { updateScripts } from '../libs/script-loader/core';
-import { loadedScripts } from '../libs/script-loader/utils';
+import { clearLoadedScripts } from '../libs/script-loader/utils';
 import { createConsentManagerStore } from '../store';
 import type { ConsentState } from '../types/compliance';
 
@@ -82,7 +82,7 @@ describe('Store Script Loader Integration', () => {
 		// Clear any scripts that might have been loaded in previous tests
 		// Note: We don't mock Map here as it breaks the loadedScripts Map
 		// Clear the loadedScripts Map
-		loadedScripts.clear();
+		clearLoadedScripts();
 
 		// Clear localStorage
 		localStorage.clear();

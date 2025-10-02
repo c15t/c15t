@@ -7,7 +7,7 @@ export interface PosthogConsentOptions {
 	 *
 	 * Default values:
 	 * - `id`: 'posthog-consent'
-	 * - `category`: 'measurement
+	 * - `category`: 'measurement'
 	 */
 	script?: Pick<Partial<Script>, 'id' | 'category'>;
 }
@@ -27,12 +27,22 @@ export function posthogConsent(options: PosthogConsentOptions = {}): Script {
 		category: script?.category ?? 'measurement',
 		callbackOnly: true, // No need to add a script tag, just run callbacks
 		onBeforeLoad: () => {
-			console.log('posthog opt in capturing');
-			posthog.opt_in_capturing();
+			if (typeof posthog?.opt_in_capturing === 'function') {
+				try {
+					posthog.opt_in_capturing();
+				} catch (error) {
+					console.error('PostHog opt_in_capturing failed:', error);
+				}
+			}
 		},
 		onDelete: () => {
-			console.log('posthog opt out capturing');
-			posthog.opt_out_capturing();
+			if (typeof posthog?.opt_out_capturing === 'function') {
+				try {
+					posthog.opt_out_capturing();
+				} catch (error) {
+					console.error('PostHog opt_out_capturing failed:', error);
+				}
+			}
 		},
 	};
 }

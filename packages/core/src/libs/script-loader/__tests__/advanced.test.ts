@@ -202,7 +202,7 @@ describe('Script Loader Advanced Features', () => {
 			expect(Object.keys(scriptIdMap).length).toBe(2);
 		});
 
-		it('should handle missing consent values', () => {
+		it('should only load scripts with granted consent', () => {
 			// Create a complete consent state to avoid errors
 			const consents: ConsentState = {
 				necessary: true,

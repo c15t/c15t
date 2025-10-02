@@ -53,17 +53,18 @@ By default c15t will load the script based on `measurement` consent. This script
         import { ConsentManagerProvider } from '@c15t/react';
 
         export function App() { 
-          <ConsentManagerProvider
-            options={{
-              scripts: [
-                posthogConsent(),
-              ]),
-            }}
-          >
-            {children}
-          </ConsentManagerProvider>
+          return (
+            <ConsentManagerProvider
+              options={{
+                scripts: [
+                  posthogConsent(),
+                ],
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
         }
-        >
         ```
       </Tab>
 
@@ -74,15 +75,15 @@ By default c15t will load the script based on `measurement` consent. This script
         import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
-          <ClientSideOptionsProvider
-            scripts={[
-              scripts: [
+          return (
+            <ClientSideOptionsProvider
+              scripts={[
                 posthogConsent(),
-              ],
-            ]}
-          >
-            {children}
-          </ClientSideOptionsProvider>
+              ]}
+            >
+              {children}
+            </ClientSideOptionsProvider>
+          );
         }
         ```
       </Tab>
@@ -98,7 +99,7 @@ By default c15t will load the script based on `measurement` consent. This script
               // ... other options
               scripts: [
                 posthogConsent(),
-              ]),
+              ],
             }}
           >
             {children}

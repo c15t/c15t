@@ -1,7 +1,15 @@
 import type { ConsentState } from '../../types/compliance';
 import { has } from '../has';
 import type { Script, ScriptCallbackInfo, ScriptUpdateResult } from './types';
-import { getScriptElementId, loadedScripts } from './utils';
+import {
+	clearLoadedScripts,
+	deleteLoadedScript,
+	getLoadedScript,
+	getLoadedScriptsSnapshot,
+	getScriptElementId,
+	hasLoadedScript,
+	setLoadedScript,
+} from './utils';
 
 /**
  * Loads scripts based on user consent settings.
@@ -42,7 +50,7 @@ export function loadScripts(
 		}
 
 		// Skip if script is already loaded
-		if (loadedScripts.has(script.id)) {
+		if (hasLoadedScript(script.id)) {
 			script.onConsentChange?.({
 				id: script.id,
 				elementId: getScriptElementId(
@@ -97,7 +105,7 @@ export function loadScripts(
 			}
 
 			// Track the script as loaded, but with null instead of a DOM element
-			loadedScripts.set(script.id, null);
+			setLoadedScript(script.id, null);
 			loadedScriptIds.push(script.id);
 			return;
 		}
@@ -133,7 +141,7 @@ export function loadScripts(
 				script.onLoad?.(callbackInfo);
 
 				// Track the script as loaded
-				loadedScripts.set(script.id, existingElement);
+				setLoadedScript(script.id, existingElement);
 				loadedScriptIds.push(script.id);
 				return;
 			}
@@ -229,7 +237,7 @@ export function loadScripts(
 
 		// Add to document and track
 		document.head.appendChild(scriptElement);
-		loadedScripts.set(script.id, scriptElement);
+		setLoadedScript(script.id, scriptElement);
 		loadedScriptIds.push(script.id);
 	});
 
@@ -263,13 +271,13 @@ export function unloadScripts(
 
 	scripts.forEach((script) => {
 		// Skip if script is not loaded
-		if (!loadedScripts.has(script.id)) {
+		if (!hasLoadedScript(script.id)) {
 			return;
 		}
 
 		// Check if script no longer has consent
 		if (!has(script.category, consents)) {
-			const scriptElement = loadedScripts.get(script.id);
+			const scriptElement = getLoadedScript(script.id);
 
 			// Get the element ID (either anonymized or prefixed)
 			const elementId = scriptIdMap[script.id] || `c15t-script-${script.id}`;
@@ -289,7 +297,7 @@ export function unloadScripts(
 				}
 
 				// Remove from tracking
-				loadedScripts.delete(script.id);
+				deleteLoadedScript(script.id);
 				unloadedScriptIds.push(script.id);
 			}
 			// Handle standard scripts with DOM elements
@@ -311,12 +319,12 @@ export function unloadScripts(
 				if (!script.persistAfterConsentRevoked) {
 					scriptElement.remove();
 					// Remove from tracking
-					loadedScripts.delete(script.id);
+					deleteLoadedScript(script.id);
 					unloadedScriptIds.push(script.id);
 				}
 				// If persistAfterConsentRevoked is true, keep the script in DOM but still track as unloaded
 				else {
-					loadedScripts.delete(script.id);
+					deleteLoadedScript(script.id);
 					unloadedScriptIds.push(script.id);
 				}
 			}
@@ -363,7 +371,7 @@ export function updateScripts(
  * @public
  */
 export function isScriptLoaded(scriptId: string): boolean {
-	return loadedScripts.has(scriptId);
+	return hasLoadedScript(scriptId);
 }
 
 /**
@@ -374,7 +382,7 @@ export function isScriptLoaded(scriptId: string): boolean {
  * @public
  */
 export function getLoadedScriptIds(): string[] {
-	return Array.from(loadedScripts.keys());
+	return Array.from(getLoadedScriptsSnapshot().keys());
 }
 
 /**
@@ -399,7 +407,7 @@ export function clearAllScripts(
 ): string[] {
 	const unloadedScriptIds: string[] = [];
 
-	loadedScripts.forEach((scriptElement, id) => {
+	getLoadedScriptsSnapshot().forEach((scriptElement, id) => {
 		// Execute onDelete callback if provided and if we have the script config
 		if (scripts && consents) {
 			const script = scripts.find((s) => s.id === id);
@@ -431,7 +439,7 @@ export function clearAllScripts(
 		unloadedScriptIds.push(id);
 	});
 
-	loadedScripts.clear();
+	clearLoadedScripts();
 	return unloadedScriptIds;
 }
 
@@ -460,8 +468,8 @@ export function reloadScript(
 	}
 
 	// Remove the script if it's loaded
-	if (loadedScripts.has(scriptId)) {
-		const scriptElement = loadedScripts.get(scriptId);
+	if (hasLoadedScript(scriptId)) {
+		const scriptElement = getLoadedScript(scriptId);
 
 		// Get the element ID (either anonymized or prefixed)
 		const elementId = scriptIdMap[scriptId] || `c15t-script-${scriptId}`;
@@ -480,7 +488,7 @@ export function reloadScript(
 				script.onDelete(callbackInfo);
 			}
 
-			loadedScripts.delete(scriptId);
+			deleteLoadedScript(scriptId);
 		}
 		// Handle standard scripts with DOM elements
 		else if (scriptElement) {
@@ -502,7 +510,7 @@ export function reloadScript(
 				scriptElement.remove();
 			}
 
-			loadedScripts.delete(scriptId);
+			deleteLoadedScript(scriptId);
 		}
 	}
 

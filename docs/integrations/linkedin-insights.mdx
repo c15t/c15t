@@ -42,13 +42,12 @@ LinkedIn Insights is a popular tracking pixel for marketing purposes. By default
                 linkedinInsights({
                   id: '123456789012345',
                 }),
-              ]),
+              ],
             }}
           >
             {children}
           </ConsentManagerProvider>
         }
-        >
         ```
       </Tab>
 
@@ -59,18 +58,17 @@ LinkedIn Insights is a popular tracking pixel for marketing purposes. By default
         import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
-          <ClientSideOptionsProvider
-            scripts={[
-              scripts: [
+          return (
+            <ClientSideOptionsProvider
+              scripts={[
                 linkedinInsights({
                   id: '123456789012345',
                 }),
-              }),
-              ],
-            ]}
-          >
-            {children}
-          </ClientSideOptionsProvider>
+              ]}
+            >
+              {children}
+            </ClientSideOptionsProvider>
+          );
         }
         ```
       </Tab>
@@ -88,7 +86,7 @@ LinkedIn Insights is a popular tracking pixel for marketing purposes. By default
                 linkedinInsights({
                   id: '123456789012345',
                 }),
-              ]),
+              ],
             }}
           >
             {children}

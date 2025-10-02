@@ -28,7 +28,7 @@ Prebuilt scripts for c15t's script loader, for popular tools you may need to imp
 - [Meta Pixel](https://c15t.com/docs/integrations/meta-pixel)
 - [TikTok Pixel](https://c15t.com/docs/integrations/tiktok-pixel)
 - [LinkedIn Insights](https://c15t.com/docs/integrations/linkedin-insights)
-- [Microsoft UET](https://c15t.com/docs/integrations/microsoft-udt)
+- [Microsoft UET](https://c15t.com/docs/integrations/microsoft-uet)
 - [X Pixel](https://c15t.com/docs/integrations/x-pixel)
 
 ## Support

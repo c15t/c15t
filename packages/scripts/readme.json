@@ -1,13 +1,12 @@
 {
-	"title": "@c15t/translations: Consent Management i18n",
-	"description": "Translation utils for c15t, providing type-safe internationalization support.",
+	"title": "@c15t/scripts: Prebuilt Consent Scripts",
+	"description": "Prebuilt script integrations for c15t, providing ready-to-use consent-aware analytics and marketing scripts.",
 	"features": [
-		"Type-safe translation interfaces for consent management",
-		"Modular translation imports (e.g., English translations)",
-		"Supports partial and complete translation configurations",
-		"Defines translation types for cookie banners, consent dialogs, and consent types",
-		"Flexible language configuration with optional auto-language switching"
+		"Prebuilt script snippets for popular analytics and marketing tools",
+		"Easy integration with c15t's script loader",
+		"Configuration options for each supported vendor",
+		"Supported vendors include Google Tag Manager, Meta Pixel, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, and X Pixel"
 	],
-	"docsLink": "https://c15t.com/docs/frameworks/react/hooks/use-translations",
+	"docsLink": "https://c15t.com/docs/integrations",
 	"showCLIGeneration": false
 }

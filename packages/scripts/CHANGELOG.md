@@ -1,4 +1,4 @@
-# @c15t/translations
+# @c15t/scripts
 
 ## 1.6.0
 

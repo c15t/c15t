@@ -66,27 +66,30 @@ export function microsoftUet({ id, script }: MicrosoftUetOptions): Script {
     (window,document,"script","${script?.src ?? '//bat.bing.com/bat.js'}","uetq");
 		`.trim(),
 		onLoad: (rest) => {
-			const defaultConsentScript = document.createElement('script');
-
-			defaultConsentScript.id = `${rest.elementId}-default`;
-			defaultConsentScript.textContent = `
-				window.uetq = window.uetq || [];
-				window.uetq.push('consent', 'default', {
-					ad_storage: 'granted',
-				});
-			`;
-
 			if (!document.head) {
 				throw new Error('Document head is not available for script injection');
 			}
 
-			if (document.getElementById(`${rest.elementId}-default`)) {
-				window.uetq = window.uetq || [];
+			const existingElement = document.getElementById(
+				`${rest.elementId}-default`
+			);
 
+			if (existingElement) {
+				// Element already exists, just update consent
+				window.uetq = window.uetq || [];
 				window.uetq.push('consent', 'update', {
 					ad_storage: 'granted',
 				});
 			} else {
+				// Create and append the consent script
+				const defaultConsentScript = document.createElement('script');
+				defaultConsentScript.id = `${rest.elementId}-default`;
+				defaultConsentScript.textContent = `
+					window.uetq = window.uetq || [];
+					window.uetq.push('consent', 'default', {
+						ad_storage: 'granted',
+					});
+				`;
 				document.head.appendChild(defaultConsentScript);
 			}
 

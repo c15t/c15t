@@ -25,7 +25,7 @@ export function ConsentManager({ children }: { children: React.ReactNode }) {
 			{/* 
       The provider is SSR, In Next.js App Directory we need a seperate client compoonent.
       This is because options like callbacks and scripts need to be client-side only as they can't be seralized.
-      For a fully client-side solution, you can use the <ClientConsentManagerProvider /> component.
+      For a fully client-side solution, you can use the <ConsentManagerProvider /> component from @c15t/nextjs/client.
       */}
 			<ConsentManagerClient>{children}</ConsentManagerClient>
 		</ConsentManagerProvider>
