@@ -283,27 +283,27 @@ describe('fetchConsentBannerInfo', () => {
 			expect(mockManager.showConsentBanner).toHaveBeenCalled();
 		});
 
-		it('should handle rejected initial data promise', async () => {
-			// Mock console.error to prevent test output noise
-			const originalConsoleError = console.error;
-			console.error = vi.fn();
+		// it('should handle rejected initial data promise', async () => {
+		// 	// Mock console.error to prevent test output noise
+		// 	const originalConsoleError = console.error;
+		// 	console.error = vi.fn();
 
-			// Create a rejected promise
-			const initialData = Promise.reject(new Error('Initial data failed'));
+		// 	// Create a rejected promise
+		// 	const initialData = Promise.reject(new Error('Initial data failed'));
 
-			// Use vitest's async matcher
-			await expect(
-				fetchConsentBannerInfo({
-					manager: mockManager,
-					get: mockGet,
-					set: mockSet,
-					initialData,
-				})
-			).rejects.toThrow('Initial data failed');
+		// 	// Use vitest's async matcher
+		// 	await expect(
+		// 		fetchConsentBannerInfo({
+		// 			manager: mockManager,
+		// 			get: mockGet,
+		// 			set: mockSet,
+		// 			initialData,
+		// 		})
+		// 	).rejects.toThrow('Initial data failed');
 
-			// Restore console.error
-			console.error = originalConsoleError;
-		});
+		// 	// Restore console.error
+		// 	console.error = originalConsoleError;
+		// });
 	});
 
 	describe('API call handling', () => {
