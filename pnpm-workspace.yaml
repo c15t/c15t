@@ -1,10 +1,7 @@
 packages:
   - configs/*
   - packages/**
-  - examples/**
   - internals/**
-  - docs
-  - '!.docs'
 
 ignoredBuiltDependencies:
   - '@prisma/client'
