@@ -4,6 +4,7 @@
  * Implements accessible, customizable components following GDPR requirements.
  */
 
+import styles from '@c15t/styles/components/cookie-banner/css';
 import { forwardRef, type Ref, type RefObject, useRef } from 'react';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useTheme } from '~/hooks/use-theme';
@@ -12,8 +13,6 @@ import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
 import type { LegalLinksProps } from '../shared/primitives/legal-links';
 import { InlineLegalLinks } from '../shared/primitives/legal-links';
-import styles from './cookie-banner.module.css';
-
 const COOKIE_BANNER_TITLE_NAME = 'CookieBannerTitle';
 const COOKIE_BANNER_DESCRIPTION_NAME = 'CookieBannerDescription';
 const COOKIE_BANNER_FOOTER_NAME = 'CookieBannerFooter';

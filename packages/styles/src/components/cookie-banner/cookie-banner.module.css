@@ -1,28 +1,4 @@
-/**
- * Cookie Banner Component Styles
- * 
- * @fileoverview Comprehensive styling for cookie consent banner components
- * @description Provides responsive, accessible styling for GDPR/CCPA compliant cookie banners
- * 
- * @version 1.5.0
- * @author C15T Team
- * 
- * @example
- * Basic usage in CSS modules:
- * ```css
- * @import '@c15t/styles/components/cookie-banner.css';
- * ```
- * 
- * @example
- * Usage with theme variables:
- * ```css
- * .custom-banner {
- *   --banner-background-color: #f0f0f0;
- *   --banner-border-radius: 12px;
- * }
- * ```
- */
- :root {
+:root {
 	isolation: isolate;
 
 	/* css reset */
