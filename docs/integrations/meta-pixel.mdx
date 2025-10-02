@@ -102,6 +102,18 @@ This script will also persist after consent is revoked. This is because the scri
   </Step>
 </Steps>
 
+## metaPixelEvent
+
+You can use the `metaPixelEvent` function to track events. This is a wrapper around the `fbq` function that the Meta Pixel script uses.
+
+To learn more about Meta Pixel's standard events, see the [Meta Pixel documentation](https://developers.facebook.com/docs/meta-pixel/reference).
+
+```ts
+import { metaPixelEvent } from '@c15t/scripts/meta-pixel';
+
+metaPixelEvent('Purchase', { value: 10.0, currency: 'USD' });
+```
+
 ## Types
 
 ### MetaPixelOptions
@@ -111,3 +123,7 @@ This script will also persist after consent is revoked. This is because the scri
 ### Script
 
 <AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+
+### StandardEventParams
+
+<AutoTypeTable path="./packages/scripts/src/meta-pixel.ts" name="StandardEventParams" />
