@@ -23,7 +23,7 @@ export function resetIframeBlocker() {
  */
 export function createIframeManager(
 	get: () => PrivacyConsentState,
-	set: (partial: Partial<PrivacyConsentState>) => void
+	_set: (partial: Partial<PrivacyConsentState>) => void
 ) {
 	return {
 		initializeIframeBlocker: () => {

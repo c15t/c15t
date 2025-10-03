@@ -5,13 +5,13 @@ import type { FrameTheme } from './theme';
 
 export interface FrameProps extends ComponentPropsWithRef<'div'> {
 	/**
-	 * The content to be rendered if consent is given.
-	 * Typically an iframe or a component that requires consent.
+	 * Content rendered when consent is granted. Children are not mounted until
+	 * consent is given, preventing unnecessary network requests.
 	 */
 	children: ReactNode;
 
 	/**
-	 * The consent category required to render the children.
+	 * Consent category required to render children.
 	 */
 	category: AllConsentNames;
 
@@ -23,15 +23,16 @@ export interface FrameProps extends ComponentPropsWithRef<'div'> {
 
 	/**
 	 * When true, removes all default styling from the component
-	 * @remarks Useful for implementing completely custom designs
 	 * @default false
 	 */
 	noStyle?: boolean;
 
 	/**
-	 * Custom styles to apply to the banner and its child components
-	 * @remarks Allows for deep customization of the banner's appearance while maintaining accessibility
+	 * Custom theme to override default styles while maintaining structure and
+	 * accessibility. Merges with defaults. Ignored when `noStyle={true}`.
+	 *
 	 * @default undefined
+	 * @see {@link FrameTheme}
 	 */
 	theme?: FrameTheme;
 }
