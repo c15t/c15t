@@ -11,11 +11,13 @@ export type {
 
 export {
 	ConsentManagerDialog,
+	ConsentManagerProvider as ClientConsentManagerProvider,
 	ConsentManagerWidget,
 	CookieBanner,
 	configureConsentManager,
 	defaultTranslationConfig,
 	detectBrowserLanguage,
+	Frame,
 	mergeTranslationConfigs,
 	// Translation utilities
 	prepareTranslationConfig,

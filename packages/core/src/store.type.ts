@@ -5,6 +5,7 @@
 
 import type { ContractsOutputs } from '@c15t/backend/contracts';
 import type { HasCondition } from './libs/has';
+import type { IframeBlockerConfig } from './libs/iframe-blocker';
 import type { Script } from './libs/script-loader';
 import type {
 	AllConsentNames,
@@ -112,6 +113,9 @@ export interface PrivacyConsentState {
 
 	/** Available consent type configurations */
 	consentTypes: ConsentType[];
+
+	/** Configuration for the iframe blocker */
+	iframeBlockerConfig: IframeBlockerConfig;
 
 	/*
 	 * Updates the selected consent state for a specific consent type.
@@ -290,4 +294,13 @@ export interface PrivacyConsentState {
 	 * @returns Array of loaded script IDs
 	 */
 	getLoadedScriptIds: () => string[];
+
+	/** Initializes the iframe blocker instance. */
+	initializeIframeBlocker: () => void;
+
+	/** Updates consents for the iframe blocker. */
+	updateIframeConsents: () => void;
+
+	/** Destroys the iframe blocker instance. */
+	destroyIframeBlocker: () => void;
 }

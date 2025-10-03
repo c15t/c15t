@@ -38,7 +38,11 @@
 	--button-font-weight: 500;
 	--button-font-size: 0.875rem;
 	--button-line-height: 1.25rem;
-	--button-transition: all 150ms ease-in-out;
+	--button-transition: opacity 150ms ease-in-out, transform 150ms ease-in-out;
+	--button-hover-transition-color: background-color 150ms ease-in-out;
+	--button-hover-transition-full:
+		background-color 150ms ease-in-out, box-shadow 150ms ease-in-out, color
+		150ms ease-in-out;
 	--button-cursor: pointer;
 
 	/* Shadows */
@@ -93,12 +97,10 @@
 	box-shadow: var(--button-shadow-primary-focus);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button:focus-visible {
 	box-shadow: var(--button-shadow-primary-focus-dark);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button {
 	color: var(--button-text-dark);
 }
@@ -143,7 +145,6 @@
 	box-shadow: var(--button-shadow-primary-focus);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-primary-filled {
 	background-color: var(--button-primary-dark);
 	color: var(--button-background-color-dark);
@@ -151,11 +152,12 @@
 
 .button-primary-filled:hover:not(:disabled) {
 	background-color: var(--button-primary-hover);
+	transition: var(--button-hover-transition-color);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-primary-filled:hover:not(:disabled) {
 	background-color: var(--button-primary-hover-dark);
+	transition: var(--button-hover-transition-color);
 }
 
 .button-primary-stroke {
@@ -164,7 +166,6 @@
 	box-shadow: var(--button-shadow-primary);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-primary-stroke {
 	background-color: var(--button-background-color-dark);
 	color: var(--button-primary-dark);
@@ -174,12 +175,13 @@
 .button-primary-stroke:hover:not(:disabled) {
 	background-color: var(--button-primary-hover);
 	box-shadow: var(--button-shadow-primary-hover);
+	transition: var(--button-hover-transition-full);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-primary-stroke:hover:not(:disabled) {
 	background-color: var(--button-primary-hover-dark);
 	box-shadow: var(--button-shadow-primary-hover-dark);
+	transition: var(--button-hover-transition-full);
 }
 
 .button-primary-lighter {
@@ -187,7 +189,6 @@
 	color: var(--button-primary);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-primary-lighter {
 	background-color: color-mix(
 		in srgb,
@@ -199,33 +200,34 @@
 
 .button-primary-lighter:hover:not(:disabled) {
 	background-color: color-mix(in srgb, var(--button-primary) 20%, transparent);
+	transition: var(--button-hover-transition-color);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-primary-lighter:hover:not(:disabled) {
 	background-color: color-mix(
 		in srgb,
 		var(--button-primary-dark) 20%,
 		transparent
 	);
+	transition: var(--button-hover-transition-color);
 }
 
 .button-primary-ghost {
 	color: var(--button-primary);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-primary-ghost {
 	color: var(--button-primary-dark);
 }
 
 .button-primary-ghost:hover:not(:disabled) {
 	background-color: var(--button-hover-overlay);
+	transition: var(--button-hover-transition-color);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-primary-ghost:hover:not(:disabled) {
 	background-color: var(--button-hover-overlay-dark);
+	transition: var(--button-hover-transition-color);
 }
 
 /* Neutral Button Variants */
@@ -238,7 +240,6 @@
 	box-shadow: var(--button-shadow-neutral-focus);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-neutral-filled {
 	background-color: var(--button-neutral-dark);
 	color: var(--button-background-color-dark);
@@ -246,11 +247,12 @@
 
 .button-neutral-filled:hover:not(:disabled) {
 	background-color: var(--button-neutral-hover);
+	transition: var(--button-hover-transition-color);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-neutral-filled:hover:not(:disabled) {
 	background-color: var(--button-neutral-hover-dark);
+	transition: var(--button-hover-transition-color);
 }
 
 .button-neutral-stroke {
@@ -258,7 +260,6 @@
 	box-shadow: var(--button-shadow-neutral);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-neutral-stroke {
 	background-color: var(--button-background-color-dark);
 	box-shadow: var(--button-shadow-neutral-dark);
@@ -268,12 +269,13 @@
 	background-color: transparent;
 	box-shadow: var(--button-shadow-neutral-hover);
 	color: var(--button-text-hover);
+	transition: var(--button-hover-transition-full);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-neutral-stroke:hover:not(:disabled) {
 	box-shadow: var(--button-shadow-neutral-hover-dark);
 	color: var(--button-text-hover-dark);
+	transition: var(--button-hover-transition-full);
 }
 
 .button-neutral-lighter {
@@ -281,7 +283,6 @@
 	color: var(--button-neutral);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-neutral-lighter {
 	background-color: color-mix(
 		in srgb,
@@ -293,33 +294,34 @@
 
 .button-neutral-lighter:hover:not(:disabled) {
 	background-color: color-mix(in srgb, var(--button-neutral) 20%, transparent);
+	transition: var(--button-hover-transition-color);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-neutral-lighter:hover:not(:disabled) {
 	background-color: color-mix(
 		in srgb,
 		var(--button-neutral-dark) 20%,
 		transparent
 	);
+	transition: var(--button-hover-transition-color);
 }
 
 .button-neutral-ghost {
 	color: var(--button-neutral);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-neutral-ghost {
 	color: var(--button-neutral-dark);
 }
 
 .button-neutral-ghost:hover:not(:disabled) {
 	background-color: var(--button-hover-overlay);
+	transition: var(--button-hover-transition-color);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-neutral-ghost:hover:not(:disabled) {
 	background-color: var(--button-hover-overlay-dark);
+	transition: var(--button-hover-transition-color);
 }
 
 /* Icon Styles */

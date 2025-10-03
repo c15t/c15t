@@ -215,3 +215,29 @@ export const consentTypes: ConsentType[] = [
 		name: 'marketing',
 	},
 ];
+
+/**
+ * Runtime array of all valid consent names.
+ *
+ * @remarks
+ * This array is automatically derived from {@link consentTypes} to ensure
+ * runtime validation stays in sync with the {@link AllConsentNames} type definition.
+ * Use this for validation logic where you need to check if a string is a valid consent name.
+ *
+ * @example
+ * ```typescript
+ * function validateConsentName(name: string): AllConsentNames {
+ *   if (!allConsentNames.includes(name as AllConsentNames)) {
+ *     throw new Error(`Invalid consent name: ${name}`);
+ *   }
+ *   return name as AllConsentNames;
+ * }
+ * ```
+ *
+ * @see {@link AllConsentNames} for the type definition
+ * @see {@link consentTypes} for the full consent configurations
+ * @public
+ */
+export const allConsentNames = consentTypes.map(
+	(consent) => consent.name
+) as AllConsentNames[];

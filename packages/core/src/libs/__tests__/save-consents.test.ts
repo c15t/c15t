@@ -65,6 +65,7 @@ describe('saveConsents', () => {
 				onError: vi.fn(),
 			},
 			updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+			updateIframeConsents: vi.fn(),
 			consents: {
 				necessary: true,
 				functionality: false,
@@ -203,6 +204,7 @@ describe('saveConsents', () => {
 					onError: vi.fn(),
 				},
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
 				consents: customConsents,
 				selectedConsents: customConsents,
 				consentTypes: [
@@ -374,6 +376,7 @@ describe('saveConsents', () => {
 					onError: vi.fn(),
 				},
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,
@@ -458,6 +461,7 @@ describe('saveConsents', () => {
 					onError: vi.fn(),
 				},
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,
@@ -581,6 +585,7 @@ describe('saveConsents', () => {
 					onError: mockOnError,
 				},
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,
@@ -668,6 +673,7 @@ describe('saveConsents', () => {
 					onError: undefined,
 				},
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,
@@ -753,6 +759,7 @@ describe('saveConsents', () => {
 					onError: mockOnError,
 				},
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,
@@ -864,6 +871,7 @@ describe('saveConsents', () => {
 						onError: vi.fn(),
 					},
 					updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+					updateIframeConsents: vi.fn(),
 					consents: {
 						necessary: true,
 						functionality: false,
@@ -958,6 +966,7 @@ describe('saveConsents', () => {
 					onError: vi.fn(),
 				},
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
 				consents: {},
 				consentTypes: [],
 			});
@@ -989,6 +998,7 @@ describe('saveConsents', () => {
 					onError: vi.fn(),
 				},
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,

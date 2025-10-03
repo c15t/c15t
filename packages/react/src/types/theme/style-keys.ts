@@ -1,8 +1,10 @@
 import type { ConsentManagerDialogTheme } from '~/components/consent-manager-dialog/theme';
 import type { ConsentManagerWidgetTheme } from '~/components/consent-manager-widget/theme';
 import type { CookieBannerTheme } from '~/components/cookie-banner/theme';
+import type { FrameTheme } from '~/components/frame/theme';
 import type { AccordionStylesKeys } from '~/components/shared/ui/accordion';
 import type { SwitchStylesKeys } from '~/components/shared/ui/switch';
+
 import type { ThemeValue } from '~/types/theme';
 
 type NestedKeys<T> = {
@@ -16,6 +18,7 @@ export type AllThemeKeys =
 	| NestedKeys<CookieBannerTheme>
 	| NestedKeys<ConsentManagerWidgetTheme>
 	| NestedKeys<ConsentManagerDialogTheme>
+	| NestedKeys<FrameTheme>
 	// primitives
 	| NestedKeys<AccordionStylesKeys>
 	| NestedKeys<SwitchStylesKeys>

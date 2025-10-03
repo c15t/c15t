@@ -59,7 +59,11 @@ export { API_ENDPOINTS } from './client/types';
 export type { GTMConfiguration } from './libs/gtm';
 
 export type { HasCondition } from './libs/has';
-
+export {
+	createIframeBlocker,
+	type IframeBlocker,
+	type IframeBlockerConfig,
+} from './libs/iframe-blocker';
 // Export script loader
 export {
 	getLoadedScriptIds,
@@ -69,6 +73,7 @@ export {
 	unloadScripts,
 	updateScripts,
 } from './libs/script-loader';
+
 export type { TrackingBlockerConfig } from './libs/tracking-blocker';
 // Export tracking blocker
 export { createTrackingBlocker } from './libs/tracking-blocker';
@@ -146,6 +151,7 @@ export * from './types/compliance';
  */
 export {
 	type AllConsentNames,
+	allConsentNames,
 	type ConsentType,
 	consentTypes,
 } from './types/gdpr';
