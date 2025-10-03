@@ -30,13 +30,17 @@ export async function saveConsents({
 		consentTypes,
 		updateScripts,
 		updateIframeConsents,
+		gdprTypes,
 	} = get();
 
 	const newConsents = selectedConsents ?? consents ?? {};
 
 	if (type === 'all') {
 		for (const consent of consentTypes) {
-			newConsents[consent.name] = true;
+			// Only include consents that are configured in gdprTypes
+			if (gdprTypes.includes(consent.name)) {
+				newConsents[consent.name] = true;
+			}
 		}
 	} else if (type === 'necessary') {
 		for (const consent of consentTypes) {

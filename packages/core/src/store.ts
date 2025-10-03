@@ -16,7 +16,11 @@ import {
 } from './libs/consent-utils';
 import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
 import { type GTMConfiguration, setupGTM } from './libs/gtm';
-import { type HasCondition, has } from './libs/has';
+import {
+	extractConsentNamesFromCondition,
+	type HasCondition,
+	has,
+} from './libs/has';
 import type { IframeBlockerConfig } from './libs/iframe-blocker';
 import { createIframeManager } from './libs/iframe-blocker/store';
 import { saveConsents } from './libs/save-consents';
@@ -240,6 +244,7 @@ export const createConsentManagerStore = (
 
 	const store = createStore<PrivacyConsentState>((set, get) => ({
 		...initialState,
+		gdprTypes: options.initialGdprTypes ?? initialState.gdprTypes,
 		ignoreGeoLocation: options.ignoreGeoLocation ?? false,
 		config: options.config ?? initialState.config,
 		iframeBlockerConfig:
@@ -606,6 +611,17 @@ export const createConsentManagerStore = (
 
 	// Initialize the iframe blocker after the store is created
 	store.getState().initializeIframeBlocker();
+
+	// Add script categories to gdprTypes
+	if (options.scripts && options.scripts.length > 0) {
+		const state = store.getState();
+		const newCategories = options.scripts.flatMap((script) =>
+			extractConsentNamesFromCondition(script.category)
+		);
+
+		const allCategories = [...new Set([...state.gdprTypes, ...newCategories])];
+		store.setState({ gdprTypes: allCategories });
+	}
 
 	if (typeof window !== 'undefined') {
 		// biome-ignore lint/suspicious/noExplicitAny: its okay
