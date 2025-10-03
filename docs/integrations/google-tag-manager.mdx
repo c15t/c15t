@@ -74,10 +74,10 @@ Allowing c15t to manage GTM prevents any issues with GTM scripts being loaded wi
 
       <Tab value="React">
         ```tsx
-        import { googleTagManager } from '@c15t/scripts';
+        import { googleTagManager } from '@c15t/scripts/google-tag-manager';
         import { ConsentManagerProvider } from '@c15t/react';
 
-        export function App() { 
+        export function App({ children }: { children: React.ReactNode }) { 
           return (
             <ConsentManagerProvider
               options={{
@@ -98,7 +98,7 @@ Allowing c15t to manage GTM prevents any issues with GTM scripts being loaded wi
       <Tab value="Next.js + App Router">
         ```tsx
         'use client';
-        import { googleTagManager } from '@c15t/scripts';
+        import { googleTagManager } from '@c15t/scripts/google-tag-manager';
         import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
@@ -119,7 +119,7 @@ Allowing c15t to manage GTM prevents any issues with GTM scripts being loaded wi
 
       <Tab value="Next.js + Pages Router">
         ```tsx
-        import { googleTagManager } from '@c15t/scripts';
+        import { googleTagManager } from '@c15t/scripts/google-tag-manager';
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
         export function App() { 

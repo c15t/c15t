@@ -26,7 +26,7 @@ c15t will automatically sync the consent state so you don't need to do anything 
           // ... 
           scripts: [
             gtag({
-              id: '123456789012345',
+              id: 'G-XXXXXXXXXX',
               category: 'marketing',
             }),
           ],
@@ -36,16 +36,16 @@ c15t will automatically sync the consent state so you don't need to do anything 
 
       <Tab value="React">
         ```tsx
-        import { gtag } from '@c15t/scripts';
+        import { gtag } from '@c15t/scripts/google-tag';
         import { ConsentManagerProvider } from '@c15t/react';
 
-        export function App() { 
+        export function App({ children }: { children: React.ReactNode }) { 
           return (
             <ConsentManagerProvider
               options={{
                 scripts: [
                   gtag({
-                    id: '123456789012345',
+                    id: 'G-XXXXXXXXXX',
                   }),
                 ],
               }}
@@ -60,7 +60,7 @@ c15t will automatically sync the consent state so you don't need to do anything 
       <Tab value="Next.js + App Router">
         ```tsx
         'use client';
-        import { gtag } from '@c15t/scripts';
+        import { gtag } from '@c15t/scripts/google-tag';
         import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
@@ -68,7 +68,7 @@ c15t will automatically sync the consent state so you don't need to do anything 
             <ClientSideOptionsProvider
               scripts={[
                 gtag({
-                  id: '123456789012345',
+                  id: 'G-XXXXXXXXXX',
                 }),
               ]}
             >
@@ -81,7 +81,7 @@ c15t will automatically sync the consent state so you don't need to do anything 
 
       <Tab value="Next.js + Pages Router">
         ```tsx
-        import { gtag } from '@c15t/scripts';
+        import { gtag } from '@c15t/scripts/google-tag';
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
         export function App() { 
@@ -91,7 +91,7 @@ c15t will automatically sync the consent state so you don't need to do anything 
                 // ... other options
                 scripts: [
                   gtag({
-                    id: 'G-XXXXXXX',
+                    id: 'G-XXXXXXXXXX',
                     category: 'measurement',
                   }),
                 ],

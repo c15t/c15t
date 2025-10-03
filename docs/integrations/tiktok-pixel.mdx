@@ -33,10 +33,10 @@ This script will also persist after consent is revoked. This is because the scri
 
       <Tab value="React">
         ```tsx
-        import { tiktokPixel } from '@c15t/scripts';
+        import { tiktokPixel } from '@c15t/scripts/tiktok-pixel';
         import { ConsentManagerProvider } from '@c15t/react';
 
-        export function App() { 
+        export function App({ children }: { children: React.ReactNode }) { 
           return (
             <ConsentManagerProvider
               options={{
@@ -57,7 +57,7 @@ This script will also persist after consent is revoked. This is because the scri
       <Tab value="Next.js + App Router">
         ```tsx
         'use client';
-        import { tiktokPixel } from '@c15t/scripts';
+        import { tiktokPixel } from '@c15t/scripts/tiktok-pixel';
         import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
@@ -78,10 +78,10 @@ This script will also persist after consent is revoked. This is because the scri
 
       <Tab value="Next.js + Pages Router">
         ```tsx
-        import { tiktokPixel } from '@c15t/scripts';
+        import { tiktokPixel } from '@c15t/scripts/tiktok-pixel';
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
-        export function App() { 
+        export function App({ children }: { children: React.ReactNode }) { 
           return (
             <ConsentManagerProvider
               options={{

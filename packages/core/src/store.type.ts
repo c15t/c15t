@@ -252,7 +252,7 @@ export interface PrivacyConsentState {
 	/** Array of script configurations to manage */
 	scripts: Script[];
 
-	/** Map of currently loaded script IDs to their DOM elements */
+	/** Map of currently loaded script IDs to a boolean loaded-state */
 	loadedScripts: Record<string, boolean>;
 
 	/** Map of anonymized script IDs to their original IDs */

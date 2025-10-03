@@ -109,15 +109,15 @@ export interface XPixelOptions {
 }
 
 /**
- * Creates a Tiktok Pixel script.
+ * Creates an X Pixel script.
  * This script is persistent after consent is revoked because it has built-in functionality to opt into and out of tracking based on consent, which allows us to not need to load the script again when consent is revoked.
  *
- * @param options - The options for the TikTok Pixel script
- * @returns The TikTok Pixel script configuration
+ * @param options - The options for the X Pixel script
+ * @returns The X Pixel script configuration
  *
  * @example
  * ```ts
- * const tiktokPixelScript = tiktokPixel({
+ * const xPixelScript = xPixel({
  *   pixelId: '123456789012345',
  * });
  * ```

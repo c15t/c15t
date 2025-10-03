@@ -32,10 +32,10 @@ LinkedIn Insights is a popular tracking pixel for marketing purposes. By default
 
       <Tab value="React">
         ```tsx
-        import { linkedinInsights } from '@c15t/scripts';
+        import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
         import { ConsentManagerProvider } from '@c15t/react';
 
-        export function App() { 
+        export function App({ children }: { children: React.ReactNode }) { 
           <ConsentManagerProvider
             options={{
               scripts: [
@@ -54,7 +54,7 @@ LinkedIn Insights is a popular tracking pixel for marketing purposes. By default
       <Tab value="Next.js + App Router">
         ```tsx
         'use client';
-        import { linkedinInsights } from '@c15t/scripts';
+        import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
         import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
@@ -75,10 +75,10 @@ LinkedIn Insights is a popular tracking pixel for marketing purposes. By default
 
       <Tab value="Next.js + Pages Router">
         ```tsx
-        import { linkedinInsights } from '@c15t/scripts';
+        import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
-        export function App() { 
+        export function App({ children }: { children: React.ReactNode }) { 
           <ConsentManagerProvider
             options={{
               // ... other options

@@ -55,9 +55,11 @@ export function gtag({ id, script, category }: GtagOptions): Script {
 		async: script?.async ?? true,
 		persistAfterConsentRevoked: true,
 		onBeforeLoad: ({ consents, elementId, ...rest }) => {
-			const gtmConsent = consents
-				? mapConsentStateToGTM(consents)
-				: DEFAULT_GTM_CONSENT_CONFIG;
+			let gtmConsent = DEFAULT_GTM_CONSENT_CONFIG;
+
+			if (consents) {
+				gtmConsent = mapConsentStateToGTM(consents);
+			}
 
 			const setupScript = document.createElement('script');
 

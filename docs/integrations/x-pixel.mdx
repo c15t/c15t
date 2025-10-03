@@ -32,10 +32,10 @@ X Pixel is a popular tracking pixel for marketing purposes. By default c15t will
 
       <Tab value="React">
         ```tsx
-        import { xPixel } from '@c15t/scripts';
+        import { xPixel } from '@c15t/scripts/x-pixel';
         import { ConsentManagerProvider } from '@c15t/react';
 
-        export function App() { 
+        export function App({ children }: { children: React.ReactNode }) { 
           return (
             <ConsentManagerProvider
               options={{
@@ -56,7 +56,7 @@ X Pixel is a popular tracking pixel for marketing purposes. By default c15t will
       <Tab value="Next.js + App Router">
         ```tsx
         'use client';
-        import { xPixel } from '@c15t/scripts';
+        import { xPixel } from '@c15t/scripts/x-pixel';
         import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
@@ -77,10 +77,10 @@ X Pixel is a popular tracking pixel for marketing purposes. By default c15t will
 
       <Tab value="Next.js + Pages Router">
         ```tsx
-        import { xPixel } from '@c15t/scripts';
+        import { xPixel } from '@c15t/scripts/x-pixel';
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
-        export function App() { 
+        export function App({ children }: { children: React.ReactNode }) { 
           return (
             <ConsentManagerProvider
               options={{
