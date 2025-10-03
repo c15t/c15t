@@ -77,7 +77,32 @@ describe('Store Script Loader Integration', () => {
 		Object.defineProperty(document, 'head', {
 			value: mockHead,
 			writable: true,
+			configurable: true,
 		});
+
+		// Mock document.querySelectorAll for iframe blocker
+		Object.defineProperty(document, 'querySelectorAll', {
+			value: vi.fn().mockReturnValue([]),
+			writable: true,
+			configurable: true,
+		});
+
+		// Mock document.body for mutation observer
+		Object.defineProperty(document, 'body', {
+			value: {
+				appendChild: vi.fn(),
+				removeChild: vi.fn(),
+			},
+			writable: true,
+			configurable: true,
+		});
+
+		// Mock MutationObserver
+		global.MutationObserver = vi.fn().mockImplementation(() => ({
+			observe: vi.fn(),
+			disconnect: vi.fn(),
+			takeRecords: vi.fn(),
+		}));
 
 		// Clear any scripts that might have been loaded in previous tests
 		// Note: We don't mock Map here as it breaks the loadedScripts Map
