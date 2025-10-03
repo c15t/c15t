@@ -22,8 +22,8 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 		}, []);
 
 		const renderContent = () => {
-			// We should wait for the banner to be fetched to avoid language flash
-			if (!isMounted || !hasFetchedBanner) {
+			// Avoids a flash of the placeholder
+			if (!isMounted && hasFetchedBanner) {
 				return placeholder || null;
 			}
 
