@@ -11,12 +11,19 @@ import type { OfflineClient } from '../client-offline';
  * @vitest-environment jsdom
  */
 describe('c15t Client Browser Tests', () => {
-	// Spy on fetch instead of mocking it completely
-	const fetchSpy = vi.spyOn(globalThis, 'fetch');
+	// Mock fetch globally to ensure all fetch calls are intercepted
+	let fetchSpy: ReturnType<typeof vi.fn>;
 
 	beforeEach(() => {
-		fetchSpy.mockReset();
+		// Create a fresh fetch mock for each test
+		fetchSpy = vi.fn();
+		vi.stubGlobal('fetch', fetchSpy);
+
 		localStorage.clear();
+
+		// Clear client registry to ensure fresh clients
+		// @ts-expect-error: accessing private registry for testing
+		configureConsentManager.clientRegistry?.clear();
 
 		// Default mock for fetch
 		fetchSpy.mockResolvedValue(
@@ -108,10 +115,8 @@ describe('c15t Client Browser Tests', () => {
 	});
 
 	it('should handle network errors in browser', async () => {
-		// Reset our mocks to ensure clean state
+		// Reset the default mock and set up network error
 		fetchSpy.mockReset();
-
-		// Simulate network error - mock all calls to reject
 		fetchSpy.mockImplementation(() => {
 			return Promise.reject(new TypeError('Failed to fetch'));
 		});

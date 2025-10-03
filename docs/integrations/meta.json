@@ -1,0 +1,19 @@
+{
+	"title": "Guides",
+	"icon": "guide",
+	"root": true,
+	"pages": [
+		"index",
+		"--- Google ---",
+		"google-tag-manager",
+		"google-tag",
+		"--- Measurement ---",
+		"posthog-sync",
+		"--- Marketing ---",
+		"meta-pixel",
+		"tiktok-pixel",
+		"linkedin-insights",
+		"microsoft-uet",
+		"x-pixel"
+	]
+}

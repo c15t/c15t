@@ -10,6 +10,9 @@ interface SaveConsentsProps {
 	type: 'necessary' | 'all' | 'custom';
 	get: StoreApi<PrivacyConsentState>['getState'];
 	set: StoreApi<PrivacyConsentState>['setState'];
+	/**
+	 * @deprecated This method is deprecated and will be removed in the next major version. Use the new script loader instead.
+	 */
 	trackingBlocker: ReturnType<typeof createTrackingBlocker> | null;
 }
 
@@ -25,6 +28,7 @@ export async function saveConsents({
 		selectedConsents,
 		consents,
 		consentTypes,
+		updateScripts,
 		updateIframeConsents,
 	} = get();
 
@@ -61,6 +65,7 @@ export async function saveConsents({
 	trackingBlocker?.updateConsents(newConsents);
 	updateIframeConsents();
 	updateGTMConsent(newConsents);
+	updateScripts();
 
 	try {
 		localStorage.setItem(

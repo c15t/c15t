@@ -27,7 +27,6 @@ export { useConsentManager } from './hooks/use-consent-manager';
 export { useFocusTrap } from './hooks/use-focus-trap';
 export { useTranslations } from './hooks/use-translations';
 export { ConsentManagerProvider } from './providers/consent-manager-provider';
-
 // Export types
 export type {
 	ConsentManagerOptions,

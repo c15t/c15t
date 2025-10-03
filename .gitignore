@@ -51,4 +51,7 @@ docs/public/r/*
 *.tsbuildinfo
 coverage.json
 
+
+examples/*
+_examples/*
 version.ts

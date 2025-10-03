@@ -1,0 +1,131 @@
+---
+title: X Pixel (Twitter Pixel)
+description: Learn how to use X Pixel (Twitter Pixel) with c15t.
+lastModified: 2025-09-24
+canary: true
+---
+
+X Pixel is a popular tracking pixel for marketing purposes. By default c15t will load the script based on `marketing` consent.
+
+## Implementation
+
+<Steps>
+  <Step>
+    ### Adding the script to c15t
+
+    <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
+      <Tab value="JavaScript">
+        ```ts
+        import { configureConsentManager } from 'c15t';
+        import { xPixel } from '@c15t/scripts/x-pixel';
+
+        configureConsentManager({
+          // ... 
+          scripts: [
+            xPixel({
+              id: '123456789012345',
+            }),
+          ],
+        });
+        ```
+      </Tab>
+
+      <Tab value="React">
+        ```tsx
+        import { xPixel } from '@c15t/scripts/x-pixel';
+        import { ConsentManagerProvider } from '@c15t/react';
+
+        export function App({ children }: { children: React.ReactNode }) { 
+          return (
+            <ConsentManagerProvider
+              options={{
+                scripts: [
+                  xPixel({
+                    id: '123456789012345',
+                  }),
+                ],
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
+        }
+        ```
+      </Tab>
+
+      <Tab value="Next.js + App Router">
+        ```tsx
+        'use client';
+        import { xPixel } from '@c15t/scripts/x-pixel';
+        import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
+
+        export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
+          return (
+            <ClientSideOptionsProvider
+              scripts={[
+                xPixel({
+                  id: '123456789012345',
+                }),
+              ]}
+            >
+              {children}
+            </ClientSideOptionsProvider>
+          );
+        }
+        ```
+      </Tab>
+
+      <Tab value="Next.js + Pages Router">
+        ```tsx
+        import { xPixel } from '@c15t/scripts/x-pixel';
+        import { ConsentManagerProvider } from '@c15t/nextjs';
+
+        export function App({ children }: { children: React.ReactNode }) { 
+          return (
+            <ConsentManagerProvider
+              options={{
+                // ... other options
+                scripts: [
+                  xPixel({
+                    id: '123456789012345',
+                  }),
+                ],
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
+        }
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+</Steps>
+
+## xPixelEvent
+
+You can use the `xPixelEvent` function to track events. This is a wrapper around the `twq` function that the X Pixel script uses.
+
+```ts
+import { xPixelEvent } from '@c15t/scripts/x-pixel';
+
+xPixelEvent('tw-xxxx-xxxx', { value: 10.00, currency: 'USD' });
+```
+
+## Types
+
+### XPixelOptions
+
+<AutoTypeTable path="./packages/scripts/src/x-pixel.ts" name="XPixelOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+
+### XPixelEvent
+
+<AutoTypeTable path="./packages/scripts/src/x-pixel.ts" name="XPixelEvent" />
+
+### XPixelContent
+
+<AutoTypeTable path="./packages/scripts/src/x-pixel.ts" name="XPixelContent" />
