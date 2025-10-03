@@ -14,6 +14,7 @@
  */
 
 import type { AllConsentNames, ConsentState } from '../../types';
+import { allConsentNames } from '../../types/gdpr';
 import { has } from '../has';
 import type { IframeBlocker, IframeBlockerConfig } from './types';
 
@@ -49,17 +50,9 @@ function determineRequiredConsent(
 	}
 
 	// Validate that it's a valid consent name
-	const validConsents: AllConsentNames[] = [
-		'necessary',
-		'functionality',
-		'experience',
-		'marketing',
-		'measurement',
-	];
-
-	if (!validConsents.includes(categoryAttr as AllConsentNames)) {
+	if (!allConsentNames.includes(categoryAttr as AllConsentNames)) {
 		throw new Error(
-			`Invalid category attribute "${categoryAttr}" on iframe. Must be one of: ${validConsents.join(', ')}`
+			`Invalid category attribute "${categoryAttr}" on iframe. Must be one of: ${allConsentNames.join(', ')}`
 		);
 	}
 
@@ -155,7 +148,7 @@ export function createIframeBlocker(
 						const element = node as Element;
 
 						// Check if the added node is an iframe
-						if (element.tagName === 'IFRAME') {
+						if (element.tagName && element.tagName.toUpperCase() === 'IFRAME') {
 							processIframeElement(element as HTMLIFrameElement, consents);
 						}
 

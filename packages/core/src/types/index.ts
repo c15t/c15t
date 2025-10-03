@@ -70,7 +70,12 @@ export type {
  * }
  * ```
  */
-export { type AllConsentNames, type ConsentType, consentTypes } from './gdpr';
+export {
+	type AllConsentNames,
+	allConsentNames,
+	type ConsentType,
+	consentTypes,
+} from './gdpr';
 
 /**
  * @module

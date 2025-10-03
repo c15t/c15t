@@ -151,6 +151,7 @@ export * from './types/compliance';
  */
 export {
 	type AllConsentNames,
+	allConsentNames,
 	type ConsentType,
 	consentTypes,
 } from './types/gdpr';

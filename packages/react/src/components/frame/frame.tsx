@@ -23,7 +23,7 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 
 		const renderContent = () => {
 			// We should wait for the banner to be fetched to avoid language flash
-			if (!isMounted && hasFetchedBanner) {
+			if (!isMounted || !hasFetchedBanner) {
 				return placeholder || null;
 			}
 
@@ -49,7 +49,7 @@ const DefaultPlaceholder = ({ category }: { category: AllConsentNames }) => {
 
 	const translatedTitle = frame?.title?.replace(
 		'{category}',
-		consentTypes[category]?.title ?? category
+		consentTypes?.[category]?.title ?? category
 	);
 	const translatedActionButton = frame?.actionButton?.replace(
 		'{category}',
@@ -57,27 +57,6 @@ const DefaultPlaceholder = ({ category }: { category: AllConsentNames }) => {
 	);
 
 	return (
-		// <Box baseClassName={styles.placeholder} themeKey="frame.placeholder.root">
-		// 	<Box
-		// 		baseClassName={styles.placeholderContent}
-		// 		themeKey="frame.placeholder.content"
-		// 	>
-		// 		<Box
-		// 			baseClassName={styles.placeholderTitle}
-		// 			themeKey="frame.placeholder.title"
-		// 		>
-		// 			{translatedTitle}
-		// 		</Box>
-		// 	</Box>
-		// 	<ConsentButton
-		// 		action="set-consent"
-		// 		themeKey="frame.placeholder.button"
-		// 		variant="primary"
-		// 		category={category}
-		// 	>
-		// 		{translatedActionButton}
-		// 	</ConsentButton>
-		// </Box>
 		<FrameRoot>
 			<FrameTitle>{translatedTitle}</FrameTitle>
 			<FrameButton category={category}>{translatedActionButton}</FrameButton>
