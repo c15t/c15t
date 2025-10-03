@@ -1,0 +1,155 @@
+---
+title: Google Tag Manager
+description: Learn how to integrate c15t with Google Tag Manager (GTM).
+lastModified: 2025-09-19
+canary: true
+---
+
+c15t supports Google Tag Manager (GTM) and Consent Mode v2. The pre-built c15t script will automatically inject the GTM script into your page and update the consent state in GTM to match the consent state in c15t.
+
+By default, GTM is loaded when the 'necessary' category is given consent, as it controls the loading of other scripts.
+
+Allowing c15t to manage GTM prevents any issues with GTM scripts being loaded without consent.
+
+## Implementation
+
+<Steps>
+  <Step>
+    ### Creating a Tag Manager Container
+
+    <Callout type="note">
+      This step is optional if you already have a Tag Manager container. Ensure your container has consent overview enabled.
+    </Callout>
+
+    After signing into Google Tag Manager, you can create a new container.
+    [Continue to Google Tag Manager](https://tagmanager.google.com/)
+
+    1. In Tag Manager, click Admin > Container Settings.
+    2. Under Additional Settings, select "Enable consent overview".
+
+    ![Enable consent overview](https://qawfa2yzgrix7k7v.public.blob.vercel-storage.com/google-tag-manager/container-settings.png)
+  </Step>
+
+  <Step>
+    ### Custom Update Trigger
+
+    We now need to create a custom trigger in GTM to trigger the update event, this is the trigger that is fired when the consent state is updated, e.g. user gives consent to a specific purpose.
+
+    In GTM, you can create a new trigger by clicking on the "Triggers" tab and then clicking on "New".
+
+    For the event name, you can use the default "consent-update", this is customizable later so you can change it if you want.
+
+    ![Create trigger](https://qawfa2yzgrix7k7v.public.blob.vercel-storage.com/google-tag-manager/custom-event.png)
+  </Step>
+
+  <Step>
+    ### Adding / Updating tags
+
+    Now for your existing tags, you can add the "consent-update" trigger to the tag, this will fire the update event when the consent state is updated & it has the appropriate consent state.
+
+    ![Update tags](https://qawfa2yzgrix7k7v.public.blob.vercel-storage.com/google-tag-manager/update-tags.png)
+  </Step>
+
+  <Step>
+    ### Setting up c15t with Google Tag Manager
+
+    After creating your container, you can set up c15t with Google Tag Manager. All you need to do is copy and paste your container ID & begins with "GTM-".
+
+    <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
+      <Tab value="JavaScript">
+        ```ts
+        import { configureConsentManager } from 'c15t';
+        import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+
+        configureConsentManager({
+          // ... 
+          scripts: [
+            googleTagManager({
+              id: 'GTM-XXXXXXX',
+            }),
+          ],
+        });
+        ```
+      </Tab>
+
+      <Tab value="React">
+        ```tsx
+        import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+        import { ConsentManagerProvider } from '@c15t/react';
+
+        export function App({ children }: { children: React.ReactNode }) { 
+          return (
+            <ConsentManagerProvider
+              options={{
+                scripts: [
+                  googleTagManager({
+                    id: 'GTM-XXXXXXX',
+                  }),
+                ],
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
+        }
+        ```
+      </Tab>
+
+      <Tab value="Next.js + App Router">
+        ```tsx
+        'use client';
+        import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+        import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
+
+        export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
+          return (
+            <ClientSideOptionsProvider
+              scripts={[
+                googleTagManager({
+                  id: 'GTM-XXXXXXX',
+                }),
+              ]}
+            >
+              {children}
+            </ClientSideOptionsProvider>
+          );
+        }
+        ```
+      </Tab>
+
+      <Tab value="Next.js + Pages Router">
+        ```tsx
+        import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+        import { ConsentManagerProvider } from '@c15t/nextjs';
+
+        export function App() { 
+          return (
+            <ConsentManagerProvider
+              options={{
+                // ... other options
+                scripts: [
+                  googleTagManager({
+                    id: 'GTM-XXXXXXX',
+                  }),
+                ],
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
+        }
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+</Steps>
+
+## Types
+
+### GoogleTagManagerOptions
+
+<AutoTypeTable path="./packages/scripts/src/google-tag-manager.ts" name="GoogleTagManagerOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

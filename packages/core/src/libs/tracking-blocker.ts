@@ -12,6 +12,7 @@ import DEFAULT_DOMAIN_CONSENT_MAP from './tracking-domains';
 
 /**
  * Configuration options for the tracking blocker
+ * @deprecated This is deprecated and will be removed in the next major version. Use the new [ScriptLoader](https://c15t.com/docs/react/script-loader) instead.
  */
 export interface TrackingBlockerConfig {
 	/** Whether to disable automatic blocking (defaults to false) */
@@ -38,6 +39,10 @@ function createDefaultConsentState(): ConsentState {
 }
 
 interface TrackingBlocker {
+	/**
+	 * Updates the consents
+	 * @deprecated This method is deprecated and will be removed in the next major version. Use [ScriptLoader](https://c15t.com/docs/react/script-loader) instead.
+	 */
 	updateConsents: (newConsents: Partial<ConsentState>) => void;
 	destroy: () => void;
 }
@@ -54,6 +59,7 @@ const PORT_NUMBER_REGEX = /:\d+$/;
 
 /**
  * Creates a tracking blocker instance that handles blocking of tracking scripts and network requests
+ * @deprecated This function is deprecated and will be removed in the next major version. Use [ScriptLoader](https://c15t.com/docs/react/script-loader) instead.
  */
 export function createTrackingBlocker(
 	config: TrackingBlockerConfig = {},

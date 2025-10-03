@@ -122,6 +122,9 @@ function updateStore(
 			translations: translations.translations,
 		},
 	});
+
+	// Update scripts based on current consent state
+	get().updateScripts();
 }
 
 /**
@@ -134,10 +137,9 @@ export async function fetchConsentBannerInfo(
 	config: FetchConsentBannerConfig
 ): Promise<ConsentBannerResponse | undefined> {
 	const { get, set, manager, initialData } = config;
-	const { hasConsented, callbacks } = get();
+	const { callbacks } = get();
 
-	if (typeof window === 'undefined' || hasConsented()) {
-		set({ isLoadingConsentInfo: false });
+	if (typeof window === 'undefined') {
 		return undefined;
 	}
 
@@ -151,16 +153,19 @@ export async function fetchConsentBannerInfo(
 	set({ isLoadingConsentInfo: true });
 
 	if (initialData) {
-		const showConsentBanner = await initialData;
+		try {
+			const showConsentBanner = await initialData;
 
-		// Ensures the promsie has the expected data
-		if (showConsentBanner) {
-			updateStore(showConsentBanner, config, true);
-
-			return showConsentBanner;
+			// Ensures the promise has the expected data
+			if (showConsentBanner) {
+				updateStore(showConsentBanner, config, true);
+				return showConsentBanner;
+			}
+			// Fall back to API call if no data
+		} catch (error) {
+			// Propagate the error from the initial data promise
+			throw error;
 		}
-
-		// Fall back to API call
 	}
 
 	try {
