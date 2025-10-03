@@ -23,13 +23,13 @@ availableIn:
   <Tab value="App Directory">
     Due to the nature of Next.js App Directory, we have to define callbacks to run in a client component.
 
-    ```ts title="app/layout.client.tsx"
+    ```ts title="app/consent-manager.client.tsx"
     'use client';
 
     import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
     import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 
-    export function ClientProvider() {
+    export function ConsentManagerClient() {
     	return (
     		<ClientSideOptionsProvider
     			scripts={[
@@ -48,15 +48,15 @@ availableIn:
     ```
 
     <Callout type="note">
-      Ensure you import this component inside the ConsentManagerProvider component in your `app/layout.tsx` file.
+      Ensure you import this component in your `app/layout.tsx` file.
     </Callout>
 
-    ```ts title="app/layout.tsx"
+    ```ts title="app/consent-manager.tsx"
     import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { ClientProvider } from './layout.client';
+    import { ConsentManagerClient } from './consent-manager.client';
     import type { ReactNode } from 'react';
 
-    export default function Layout({ children }: { children: ReactNode }) {
+    export default function ConsentManager({ children }: { children: ReactNode }) {
       return (
         <ConsentManagerProvider options={{
           // your options here
