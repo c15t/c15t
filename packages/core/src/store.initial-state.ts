@@ -47,6 +47,16 @@ export const initialState: Omit<
 	| 'getEffectiveConsents'
 	| 'hasConsentFor'
 	| 'setSelectedConsent'
+	| 'updateScripts'
+	| 'isScriptLoaded'
+	| 'getLoadedScriptIds'
+	| 'addScript'
+	| 'addScripts'
+	| 'removeScript'
+	| 'setScripts'
+	| 'initializeIframeBlocker'
+	| 'updateIframeConsents'
+	| 'destroyIframeBlocker'
 > = {
 	config: {
 		pkg: 'c15t',
@@ -132,6 +142,11 @@ export const initialState: Omit<
 	/** Use predefined consent types */
 	consentTypes: consentTypes,
 
+	/** Default iframe blocker configuration */
+	iframeBlockerConfig: {
+		disableAutomaticBlocking: false,
+	},
+
 	/** Default to not ignoring geo location */
 	ignoreGeoLocation: false,
 
@@ -180,4 +195,13 @@ export const initialState: Omit<
 	setTranslationConfig: () => {
 		/* no-op */
 	},
+
+	/** Initial empty scripts array */
+	scripts: [],
+
+	/** Initial empty loadedScripts record */
+	loadedScripts: {},
+
+	/** Initial empty scriptIdMap record */
+	scriptIdMap: {},
 };

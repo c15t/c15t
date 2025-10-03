@@ -25,7 +25,7 @@ import { ErrorHandler, executeWithRetry } from '../utils/errors';
 import { detectRelevantChanges, shouldDeployByPolicy } from './changes';
 import { setupDocsWithScript } from './setup-docs';
 
-async function createGithubDeployment(
+async function createGitHubDeployment(
 	octokit: ReturnType<typeof github.getOctokit>,
 	environmentName: string,
 	payload?: Record<string, unknown>
@@ -53,7 +53,7 @@ async function createGithubDeployment(
 	}
 }
 
-async function setGithubDeploymentStatus(
+async function setGitHubDeploymentStatus(
 	octokit: ReturnType<typeof github.getOctokit>,
 	deploymentId: number,
 	state: 'in_progress' | 'success' | 'failure',
@@ -218,13 +218,13 @@ export async function performVercelDeployment(
 	// }
 
 	const environmentName = computeEnvironmentName(targetHint, branch);
-	const deploymentId = await createGithubDeployment(
+	const deploymentId = await createGitHubDeployment(
 		octokit,
 		environmentName,
 		latestTemplateSha ? { template_sha: latestTemplateSha } : undefined
 	);
 	if (typeof deploymentId === 'number') {
-		await setGithubDeploymentStatus(
+		await setGitHubDeploymentStatus(
 			octokit,
 			deploymentId,
 			'in_progress',
@@ -257,7 +257,7 @@ export async function performVercelDeployment(
 		const url = result.url;
 		core.setOutput('deployment_url', url);
 		if (typeof deploymentId === 'number') {
-			await setGithubDeploymentStatus(
+			await setGitHubDeploymentStatus(
 				octokit,
 				deploymentId,
 				'success',
@@ -271,7 +271,7 @@ export async function performVercelDeployment(
 			`vercel deployment failed: ${e instanceof Error ? e.message : String(e)}`
 		);
 		if (typeof deploymentId === 'number') {
-			await setGithubDeploymentStatus(
+			await setGitHubDeploymentStatus(
 				octokit,
 				deploymentId,
 				'failure',

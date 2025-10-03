@@ -115,7 +115,7 @@ jobs:
         run: pnpm exec playwright install
 
       - name: 🧪 Run Tests
-        run: pnpm turbo run test --filter='!./examples/*'
+        run: pnpm turbo run test
 
       - name: ⬆️ Upload Individual Coverage Reports
         uses: actions/upload-artifact@v4
