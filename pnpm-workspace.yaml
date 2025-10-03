@@ -2,7 +2,6 @@ packages:
   - configs/*
   - packages/**
   - internals/**
-  - examples/** # Used for local development & testing
 
 ignoredBuiltDependencies:
   - '@prisma/client'

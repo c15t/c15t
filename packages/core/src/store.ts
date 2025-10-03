@@ -17,7 +17,7 @@ import {
 import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
 import { type GTMConfiguration, setupGTM } from './libs/gtm';
 import { type HasCondition, has } from './libs/has';
-import { IframeBlockerConfig } from './libs/iframe-blocker';
+import type { IframeBlockerConfig } from './libs/iframe-blocker';
 import { createIframeManager } from './libs/iframe-blocker/store';
 import { saveConsents } from './libs/save-consents';
 import { createScriptManager, type Script } from './libs/script-loader';
@@ -132,7 +132,7 @@ export interface StoreOptions {
 
 	/**
 	 * Google Tag Manager configuration.
-	 * @deprecated use script loader instead
+	 * @deprecated use {@link https://c15t.com/docs/integrations/google-tag-manager} instead
 	 */
 	unstable_googleTagManager?: GTMConfiguration;
 
