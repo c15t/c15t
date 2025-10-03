@@ -32,6 +32,8 @@
 		"./hooks/use-consent-manager/setting-consent",
 		"--- Hooks ---",
 		"hooks/use-translations",
-		"hooks/use-focus-trap"
+		"hooks/use-focus-trap",
+		"--- ---",
+		"headless"
 	]
 }
