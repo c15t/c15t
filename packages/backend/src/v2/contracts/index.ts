@@ -4,10 +4,12 @@ import type {
 } from '@orpc/contract';
 import { implement } from '@orpc/server';
 
+import { analyticsContracts } from './analytics';
 import { consentContracts } from './consent';
 import { metaContracts } from './meta';
 
 const config = {
+	analytics: analyticsContracts,
 	consent: consentContracts,
 	meta: metaContracts,
 };

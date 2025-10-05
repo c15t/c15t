@@ -1,0 +1,14 @@
+{
+	"extends": "@c15t/typescript-config/react-library.json",
+	"compilerOptions": {
+		"lib": ["dom", "ES2015"],
+		"types": ["node", "vitest/globals"],
+		"isolatedModules": true,
+		"declaration": true,
+		"declarationMap": true,
+		"outDir": "./dist",
+		"sourceMap": true
+	},
+	"include": ["."],
+	"exclude": ["dist", "build", "node_modules"]
+}

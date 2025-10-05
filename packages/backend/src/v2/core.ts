@@ -376,4 +376,11 @@ export const c15tInstance = (options: C15TOptions) => {
 export type { ContractsInputs, ContractsOutputs } from '~/v2/contracts';
 export { version } from '../version';
 export { defineConfig } from './define-config';
-export type { C15TContext, C15TOptions } from './types';
+export { registerDestination } from './plugins/destination-registry';
+export type {
+	AnalyticsConsent,
+	AnalyticsDestination,
+	AnalyticsEvent,
+	C15TContext,
+	C15TOptions,
+} from './types';

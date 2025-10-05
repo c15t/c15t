@@ -5,7 +5,22 @@
  * Provides the context for sharing consent management state across components.
  */
 
-import type { ConsentManagerInterface, PrivacyConsentState } from 'c15t';
+import type {
+	AliasAction,
+	AnalyticsState,
+	CommonAction,
+	CommonProperties,
+	ConsentManagerInterface,
+	GroupAction,
+	GroupTraits,
+	IdentifyAction,
+	PageAction,
+	PageEventProperties,
+	PrivacyConsentState,
+	TrackAction,
+	TrackEventProperties,
+	UserTraits,
+} from 'c15t';
 import { createContext } from 'react';
 
 /**
@@ -31,6 +46,35 @@ export interface ConsentStateContextValue {
 	 * Optional API client instance
 	 */
 	manager: ConsentManagerInterface | null;
+
+	/**
+	 * Analytics functionality integrated into the consent manager
+	 */
+	analytics: {
+		/** Current analytics state from the store */
+		state: AnalyticsState;
+		/** Whether analytics is loaded */
+		isLoaded: boolean;
+		/** Analytics methods from the store with strict typing */
+		track: <T extends TrackEventProperties = TrackEventProperties>(
+			action: TrackAction<T>
+		) => Promise<void>;
+		page: <T extends PageEventProperties = PageEventProperties>(
+			action: PageAction<T>
+		) => Promise<void>;
+		identify: <T extends UserTraits = UserTraits>(
+			action: IdentifyAction<T>
+		) => Promise<void>;
+		group: <T extends GroupTraits = GroupTraits>(
+			action: GroupAction<T>
+		) => Promise<void>;
+		alias: (action: AliasAction) => Promise<void>;
+		common: <T extends CommonProperties = CommonProperties>(
+			action: CommonAction<T>
+		) => void;
+		resetAnalytics: () => void;
+		flushAnalytics: () => Promise<void>;
+	};
 }
 
 /**

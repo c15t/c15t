@@ -141,17 +141,18 @@ export const verifyConsent = os.consent.verify.handler(
 
 			const purposeIds = rawPurposes
 				.filter(
-					(purpose): purpose is NonNullable<typeof purpose> => purpose !== null
+					(purpose: any): purpose is NonNullable<typeof purpose> =>
+						purpose !== null
 				)
-				.map((purpose) => purpose.id);
+				.map((purpose: any) => purpose.id);
 
 			if (purposeIds.length !== (preferences?.length ?? 0)) {
 				throw new ORPCError('PURPOSES_NOT_FOUND', {
 					data: {
 						preferences: preferences ?? [],
 						foundPurposes: rawPurposes
-							.filter((p): p is NonNullable<typeof p> => p !== null)
-							.map((p) => p.code),
+							.filter((p: any): p is NonNullable<typeof p> => p !== null)
+							.map((p: any) => p.code),
 					},
 				});
 			}
@@ -237,7 +238,7 @@ async function checkPolicyConsent({
 	const { registry, db } = context;
 
 	const rawConsents = await db.findMany('consent', {
-		where: (b) =>
+		where: (b: any) =>
 			b.and(
 				b('subjectId', '=', subjectId),
 				b('policyId', '=', policyId),
@@ -247,7 +248,7 @@ async function checkPolicyConsent({
 	});
 
 	// Filter consents by purpose IDs if provided
-	const filteredConsents = rawConsents.filter((consent) => {
+	const filteredConsents = rawConsents.filter((consent: any) => {
 		if (!purposeIds) {
 			return true;
 		}

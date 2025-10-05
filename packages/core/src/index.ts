@@ -36,6 +36,37 @@ export {
 } from '@c15t/translations';
 /**
  * @module
+ * Analytics Engine
+ *
+ * @remarks
+ * Exports the analytics engine integrated with consent management:
+ * - Analytics functionality built into the main store
+ * - Consent-gated event tracking
+ * - Event queuing and batching
+ * - Offline support
+ *
+ * @example
+ * Import analytics functionality:
+ * ```typescript
+ * import { createConsentManagerStore } from 'c15t';
+ *
+ * const store = createConsentManagerStore(manager, {
+ *   analytics: {
+ *     uploadUrl: '/api/analytics',
+ *     debug: true
+ *   }
+ * });
+ *
+ * // Track events through the store
+ * await store.getState().track({
+ *   name: 'button_clicked',
+ *   properties: { button: 'cta' }
+ * });
+ * ```
+ */
+export * from './analytics';
+/**
+ * @module
  * Client Types
  *
  * @remarks

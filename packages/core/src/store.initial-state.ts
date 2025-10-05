@@ -3,6 +3,7 @@
  * Provides the default initial state configuration for the consent management store.
  */
 
+import { initializeAnalyticsState } from './analytics/utils';
 import type { PrivacyConsentState } from './store.type';
 import { defaultTranslationConfig } from './translations';
 import { type ConsentState, consentTypes } from './types';
@@ -57,6 +58,14 @@ export const initialState: Omit<
 	| 'initializeIframeBlocker'
 	| 'updateIframeConsents'
 	| 'destroyIframeBlocker'
+	| 'track'
+	| 'page'
+	| 'identify'
+	| 'group'
+	| 'alias'
+	| 'common'
+	| 'resetAnalytics'
+	| 'flushAnalytics'
 > = {
 	config: {
 		pkg: 'c15t',
@@ -149,6 +158,9 @@ export const initialState: Omit<
 
 	/** Default to not ignoring geo location */
 	ignoreGeoLocation: false,
+
+	/** Initialize analytics state */
+	analytics: initializeAnalyticsState(),
 
 	/** Default privacy settings */
 	privacySettings: {

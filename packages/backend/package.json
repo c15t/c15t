@@ -196,6 +196,7 @@
 		"@orpc/otel": "^1.8.1",
 		"@orpc/server": "1.8.1",
 		"@orpc/zod": "1.8.1",
+		"@standard-schema/spec": "^1.0.0",
 		"base-x": "^5.0.1",
 		"defu": "^6.1.4",
 		"drizzle-orm": "^0.41.0",
@@ -204,6 +205,14 @@
 		"neverthrow": "^8.2.0",
 		"superjson": "^2.2.2",
 		"zod": "^4.0.17"
+	},
+	"peerDependencies": {
+		"@c15t/destinations": "workspace:*"
+	},
+	"peerDependenciesMeta": {
+		"@c15t/destinations": {
+			"optional": true
+		}
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

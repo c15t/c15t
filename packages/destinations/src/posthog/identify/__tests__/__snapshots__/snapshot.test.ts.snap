@@ -1,0 +1,27 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Testing snapshot for PostHog's identify destination action: > all fields 1`] = `
+{
+  "api_key": "WtIHxY7n#$Y(e",
+  "distinct_id": "WtIHxY7n#$Y(e",
+  "event": "$identify",
+  "headers": {},
+  "properties": {
+    "$set": {
+      "testType": "WtIHxY7n#$Y(e",
+    },
+  },
+  "timestamp": "2021-02-01T00:00:00.000Z",
+}
+`;
+
+exports[`Testing snapshot for PostHog's identify destination action: > required fields 1`] = `
+{
+  "api_key": "WtIHxY7n#$Y(e",
+  "distinct_id": "WtIHxY7n#$Y(e",
+  "event": "$identify",
+  "headers": {},
+  "properties": {},
+  "timestamp": "2021-02-01T00:00:00.000Z",
+}
+`;

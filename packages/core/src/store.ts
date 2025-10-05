@@ -8,6 +8,13 @@ import type { ContractsOutputs } from '@c15t/backend/contracts';
 
 import type { TranslationConfig } from '@c15t/translations';
 import { createStore } from 'zustand/vanilla';
+import { EventQueue } from './analytics/queue';
+import { DEFAULT_ANALYTICS_CONFIG } from './analytics/types';
+import {
+	createAnalyticsMethods,
+	initializeAnalyticsState,
+	updateAnalyticsConsentFromGdpr,
+} from './analytics/utils';
 import type { ConsentManagerInterface } from './client/client-factory';
 import {
 	getEffectiveConsents,
@@ -167,6 +174,24 @@ export interface StoreOptions {
 	 * Scripts to load.
 	 */
 	scripts?: Script[];
+
+	/**
+	 * Analytics configuration.
+	 */
+	analytics?: {
+		/** Upload endpoint URL */
+		uploadUrl?: string;
+		/** Debug mode */
+		debug?: boolean;
+		/** Event debounce interval in milliseconds */
+		debounceInterval?: number;
+		/** Whether to enable offline queuing */
+		offlineQueue?: boolean;
+		/** Whether to enable retry logic */
+		retryEnabled?: boolean;
+		/** Maximum retry attempts */
+		maxRetries?: number;
+	};
 }
 
 // For backward compatibility (if needed)
@@ -224,6 +249,7 @@ export const createConsentManagerStore = (
 		trackingBlockerConfig,
 		isConsentDomain = false,
 		translationConfig,
+		analytics: analyticsConfig = {},
 	} = options;
 
 	// Load initial state from localStorage if available
@@ -238,8 +264,40 @@ export const createConsentManagerStore = (
 				)
 			: null;
 
+	// Initialize analytics
+	const analyticsState = initializeAnalyticsState();
+	const analyticsConfigWithDefaults = {
+		...DEFAULT_ANALYTICS_CONFIG,
+		...analyticsConfig,
+	};
+
+	// Create default uploader
+	const uploader = {
+		send: async (request: import('./analytics/types').UploadRequest) => {
+			const response = await fetch(analyticsConfigWithDefaults.uploadUrl, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(request),
+			});
+
+			if (!response.ok) {
+				throw new Error(
+					`Upload failed: ${response.status} ${response.statusText}`
+				);
+			}
+		},
+	};
+
+	const eventQueue = new EventQueue(uploader, {
+		debounceInterval: analyticsConfigWithDefaults.debounceInterval,
+		enableOfflineQueue: analyticsConfigWithDefaults.offlineQueue,
+	});
+
 	const store = createStore<PrivacyConsentState>((set, get) => ({
 		...initialState,
+		analytics: analyticsState,
 		ignoreGeoLocation: options.ignoreGeoLocation ?? false,
 		config: options.config ?? initialState.config,
 		iframeBlockerConfig:
@@ -365,7 +423,13 @@ export const createConsentManagerStore = (
 				// Other selected consents have not been saved/agreed to only the current one.
 				const newConsents = { ...state.consents, [name]: value };
 
-				return { selectedConsents: newConsents };
+				// Update analytics consent when GDPR consent changes
+				const analyticsConsent = updateAnalyticsConsentFromGdpr(newConsents);
+
+				return {
+					selectedConsents: newConsents,
+					analytics: { ...state.analytics, consent: analyticsConsent },
+				};
 			});
 
 			get().saveConsents('custom');
@@ -602,6 +666,18 @@ export const createConsentManagerStore = (
 		},
 		...createScriptManager(get, set),
 		...createIframeManager(get, set),
+
+		// Analytics methods
+		...createAnalyticsMethods(
+			analyticsState,
+			(updates) => {
+				set((state) => ({
+					analytics: { ...state.analytics, ...updates },
+				}));
+			},
+			eventQueue,
+			analyticsConfigWithDefaults
+		),
 	}));
 
 	// Initialize the iframe blocker after the store is created

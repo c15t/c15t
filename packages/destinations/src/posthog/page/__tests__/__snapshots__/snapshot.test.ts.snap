@@ -1,0 +1,60 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Testing snapshot for PostHog's page destination action: > all fields 1`] = `
+{
+  "api_key": "5B(%pAE!!G",
+  "distinct_id": "5B(%pAE!!G",
+  "event": "$pageview",
+  "headers": {},
+  "properties": {
+    "$browser": "5B(%pAE!!G",
+    "$browser_language": "5B(%pAE!!G",
+    "$browser_version": -31403816423260.16,
+    "$current_url": "5B(%pAE!!G",
+    "$device_type": "5B(%pAE!!G",
+    "$host": "5B(%pAE!!G",
+    "$insert_id": "5B(%pAE!!G",
+    "$ip": "5B(%pAE!!G",
+    "$lib": "5B(%pAE!!G",
+    "$lib_version": "5B(%pAE!!G",
+    "$os": "5B(%pAE!!G",
+    "$os_version": "5B(%pAE!!G",
+    "$pathname": "5B(%pAE!!G",
+    "$raw_user_agent": "5B(%pAE!!G",
+    "$referrer": "5B(%pAE!!G",
+    "$referring_domain": "5B(%pAE!!G",
+    "$screen_dpr": -31403816423260.16,
+    "$screen_height": -31403816423260.16,
+    "$screen_width": -31403816423260.16,
+    "$session_id": "5B(%pAE!!G",
+    "$time": -31403816423260.16,
+    "$viewport_height": -31403816423260.16,
+    "$viewport_width": -31403816423260.16,
+    "$window_id": "5B(%pAE!!G",
+    "title": "5B(%pAE!!G",
+    "utm_campaign": "5B(%pAE!!G",
+    "utm_content": "5B(%pAE!!G",
+    "utm_medium": "5B(%pAE!!G",
+    "utm_source": "5B(%pAE!!G",
+    "utm_term": "5B(%pAE!!G",
+  },
+  "timestamp": "2021-02-01T00:00:00.000Z",
+}
+`;
+
+exports[`Testing snapshot for PostHog's page destination action: > required fields 1`] = `
+{
+  "api_key": "5B(%pAE!!G",
+  "distinct_id": "5B(%pAE!!G",
+  "event": "$pageview",
+  "headers": {},
+  "properties": {
+    "$insert_id": "5B(%pAE!!G",
+    "$screen_width": -31403816423260.16,
+    "$session_id": "5B(%pAE!!G",
+    "$viewport_width": -31403816423260.16,
+    "$window_id": "5B(%pAE!!G",
+  },
+  "timestamp": "2021-02-01T00:00:00.000Z",
+}
+`;

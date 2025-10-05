@@ -5,6 +5,7 @@ import type { C15TContext, C15TOptions } from '~/v2/types';
 import { version as packageVersion } from '../version';
 import { createRegistry } from './db/registry';
 import { DB } from './db/schema';
+import { DestinationManager } from './handlers/analytics/destination-manager';
 import { createTelemetryOptions } from './utils/create-telemetry-options';
 import { initLogger } from './utils/logger';
 
@@ -109,6 +110,21 @@ export const init = (options: C15TOptions): C15TContext => {
 
 	const orm = client.orm('1.0.0');
 
+	// Initialize destination manager if analytics destinations are configured
+	let destinationManager: DestinationManager | undefined;
+	if (options.analytics?.destinations) {
+		// Pass custom registry if provided, otherwise use dynamic loading
+		const registry = options.analytics.customRegistry;
+		destinationManager = new DestinationManager(registry);
+
+		// Load destinations asynchronously - they'll be available when needed
+		destinationManager
+			.loadDestinations(options.analytics.destinations)
+			.catch((error) => {
+				logger.error('Failed to load analytics destinations:', error);
+			});
+	}
+
 	const context: C15TContext = {
 		...options,
 		appName,
@@ -120,6 +136,7 @@ export const init = (options: C15TOptions): C15TContext => {
 				logger,
 			},
 		}),
+		destinationManager,
 	};
 
 	return context;

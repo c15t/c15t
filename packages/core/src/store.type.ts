@@ -4,6 +4,15 @@
  */
 
 import type { ContractsOutputs } from '@c15t/backend/contracts';
+import type {
+	AliasAction,
+	AnalyticsState,
+	CommonAction,
+	GroupAction,
+	IdentifyAction,
+	PageAction,
+	TrackAction,
+} from './analytics/types';
 import type { HasCondition } from './libs/has';
 import type { IframeBlockerConfig } from './libs/iframe-blocker';
 import type { Script } from './libs/script-loader';
@@ -116,6 +125,8 @@ export interface PrivacyConsentState {
 
 	/** Configuration for the iframe blocker */
 	iframeBlockerConfig: IframeBlockerConfig;
+	/** Analytics state and functionality */
+	analytics: AnalyticsState;
 
 	/*
 	 * Updates the selected consent state for a specific consent type.
@@ -205,6 +216,56 @@ export interface PrivacyConsentState {
 	has: <CategoryType extends AllConsentNames>(
 		condition: HasCondition<CategoryType>
 	) => boolean;
+
+	/**
+	 * Analytics methods for event tracking
+	 */
+
+	/**
+	 * Track a custom event.
+	 * @param action - Track action with name and properties
+	 */
+	track: (action: TrackAction) => Promise<void>;
+
+	/**
+	 * Track a page view.
+	 * @param action - Page action with name and properties
+	 */
+	page: (action: PageAction) => Promise<void>;
+
+	/**
+	 * Identify a user.
+	 * @param action - Identify action with user ID and traits
+	 */
+	identify: (action: IdentifyAction) => Promise<void>;
+
+	/**
+	 * Track a group.
+	 * @param action - Group action with group ID and traits
+	 */
+	group: (action: GroupAction) => Promise<void>;
+
+	/**
+	 * Alias a user ID.
+	 * @param action - Alias action with from and to user IDs
+	 */
+	alias: (action: AliasAction) => Promise<void>;
+
+	/**
+	 * Set common properties for all events.
+	 * @param action - Common action with properties
+	 */
+	common: (action: CommonAction) => void;
+
+	/**
+	 * Reset analytics data.
+	 */
+	resetAnalytics: () => void;
+
+	/**
+	 * Flush all queued analytics events.
+	 */
+	flushAnalytics: () => Promise<void>;
 
 	/**
 	 * Deprecated variables and methods thatwill be removed in a future version

@@ -1,11 +1,13 @@
 import type { Translations } from '@c15t/translations';
 import type { createLogger, LoggerOptions } from '@doubletie/logger';
 import type { Tracer } from '@opentelemetry/api';
-import type { OpenAPIGeneratorOptions } from '@orpc/openapi';
 import type { FumaDB, InferFumaDB } from 'fumadb';
 import type { createRegistry } from '../db/registry';
 import type { DB } from '../db/schema';
+import type { AnalyticsConfig } from '../handlers/analytics/core-types';
+import type { DestinationManager } from '../handlers/analytics/destination-manager';
 
+export * from './analytics';
 export * from './api';
 
 export const branding = ['c15t', 'consent', 'none'] as const;
@@ -72,7 +74,7 @@ interface BaseOptions {
 			 * OpenAPI specification options
 			 * These are passed to the OpenAPIGenerator.generate() method
 			 */
-			options?: Partial<OpenAPIGeneratorOptions>;
+			options?: Record<string, unknown>;
 
 			/**
 			 * Custom template for rendering the API documentation UI
@@ -94,8 +96,10 @@ interface BaseOptions {
 }
 
 type FumaDBSchema = InferFumaDB<typeof DB>['schemas'];
+
 export interface C15TOptions extends BaseOptions, DatabaseOptions {
 	logger?: LoggerOptions;
+	analytics?: AnalyticsConfig;
 }
 
 export interface C15TContext extends BaseOptions {
@@ -103,6 +107,7 @@ export interface C15TContext extends BaseOptions {
 	logger: ReturnType<typeof createLogger>;
 	registry: ReturnType<typeof createRegistry>;
 	db: ReturnType<InferFumaDB<typeof DB>['orm']>;
+	destinationManager?: DestinationManager;
 
 	// Resolved from request
 	ipAddress?: string;

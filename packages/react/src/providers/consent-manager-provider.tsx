@@ -269,10 +269,25 @@ export function ConsentManagerProvider({
 				'Consent store must be initialized before creating context value'
 			);
 		}
+
+		const analyticsState = state.analytics;
+
 		return {
 			state,
 			store: consentStore,
 			manager: consentManager,
+			analytics: {
+				state: analyticsState,
+				isLoaded: analyticsState.loaded,
+				track: consentStore.getState().track,
+				page: consentStore.getState().page,
+				identify: consentStore.getState().identify,
+				group: consentStore.getState().group,
+				alias: consentStore.getState().alias,
+				common: consentStore.getState().common,
+				resetAnalytics: consentStore.getState().resetAnalytics,
+				flushAnalytics: consentStore.getState().flushAnalytics,
+			},
 		};
 	}, [state, consentStore, consentManager]);
 

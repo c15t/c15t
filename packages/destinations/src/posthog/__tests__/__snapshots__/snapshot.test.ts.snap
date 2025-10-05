@@ -1,0 +1,186 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Testing snapshot for posthog destination: > group action - all fields 1`] = `
+{
+  "api_key": "nJ29t#",
+  "distinct_id": "nJ29t#",
+  "event": "$groupidentify",
+  "headers": {},
+  "properties": {
+    "$group_key": "nJ29t#",
+    "$group_set": {
+      "date_joined": "2021-02-01T00:00:00.000Z",
+      "name": "nJ29t#",
+      "testType": "nJ29t#",
+    },
+    "$group_type": "organization",
+    "testType": "nJ29t#",
+  },
+  "timestamp": Any<String>,
+}
+`;
+
+exports[`Testing snapshot for posthog destination: > group action - required fields 1`] = `
+{
+  "api_key": "nJ29t#",
+  "distinct_id": "nJ29t#",
+  "event": "$groupidentify",
+  "headers": {},
+  "properties": {
+    "$group_key": "nJ29t#",
+    "$group_set": {
+      "date_joined": "2021-02-01T00:00:00.000Z",
+      "name": "nJ29t#",
+    },
+    "$group_type": "organization",
+  },
+  "timestamp": Any<String>,
+}
+`;
+
+exports[`Testing snapshot for posthog destination: > identify action - all fields 1`] = `
+{
+  "api_key": "!jScCo^zqCWl8wN",
+  "distinct_id": "!jScCo^zqCWl8wN",
+  "event": "$identify",
+  "headers": {},
+  "properties": {
+    "$set": {
+      "testType": "!jScCo^zqCWl8wN",
+    },
+  },
+  "timestamp": Any<String>,
+}
+`;
+
+exports[`Testing snapshot for posthog destination: > identify action - required fields 1`] = `
+{
+  "api_key": "!jScCo^zqCWl8wN",
+  "distinct_id": "!jScCo^zqCWl8wN",
+  "event": "$identify",
+  "headers": {},
+  "properties": {},
+  "timestamp": Any<String>,
+}
+`;
+
+exports[`Testing snapshot for posthog destination: > page action - all fields 1`] = `
+{
+  "api_key": "$]bA$h4w!R%Q]!1O",
+  "distinct_id": "$]bA$h4w!R%Q]!1O",
+  "event": "$pageview",
+  "headers": {},
+  "properties": {
+    "$browser": "$]bA$h4w!R%Q]!1O",
+    "$browser_language": "$]bA$h4w!R%Q]!1O",
+    "$browser_version": 39298047640862.72,
+    "$current_url": "$]bA$h4w!R%Q]!1O",
+    "$device_type": "$]bA$h4w!R%Q]!1O",
+    "$host": "$]bA$h4w!R%Q]!1O",
+    "$insert_id": "$]bA$h4w!R%Q]!1O",
+    "$ip": "$]bA$h4w!R%Q]!1O",
+    "$lib": "$]bA$h4w!R%Q]!1O",
+    "$lib_version": "$]bA$h4w!R%Q]!1O",
+    "$os": "$]bA$h4w!R%Q]!1O",
+    "$os_version": "$]bA$h4w!R%Q]!1O",
+    "$pathname": "$]bA$h4w!R%Q]!1O",
+    "$raw_user_agent": "$]bA$h4w!R%Q]!1O",
+    "$referrer": "$]bA$h4w!R%Q]!1O",
+    "$referring_domain": "$]bA$h4w!R%Q]!1O",
+    "$screen_dpr": 39298047640862.72,
+    "$screen_height": 39298047640862.72,
+    "$screen_width": 39298047640862.72,
+    "$session_id": "$]bA$h4w!R%Q]!1O",
+    "$time": 39298047640862.72,
+    "$viewport_height": 39298047640862.72,
+    "$viewport_width": 39298047640862.72,
+    "$window_id": "$]bA$h4w!R%Q]!1O",
+    "title": "$]bA$h4w!R%Q]!1O",
+    "utm_campaign": "$]bA$h4w!R%Q]!1O",
+    "utm_content": "$]bA$h4w!R%Q]!1O",
+    "utm_medium": "$]bA$h4w!R%Q]!1O",
+    "utm_source": "$]bA$h4w!R%Q]!1O",
+    "utm_term": "$]bA$h4w!R%Q]!1O",
+  },
+  "timestamp": Any<String>,
+}
+`;
+
+exports[`Testing snapshot for posthog destination: > page action - required fields 1`] = `
+{
+  "api_key": "$]bA$h4w!R%Q]!1O",
+  "distinct_id": "$]bA$h4w!R%Q]!1O",
+  "event": "$pageview",
+  "headers": {},
+  "properties": {
+    "$insert_id": "$]bA$h4w!R%Q]!1O",
+    "$screen_width": 39298047640862.72,
+    "$session_id": "$]bA$h4w!R%Q]!1O",
+    "$viewport_width": 39298047640862.72,
+    "$window_id": "$]bA$h4w!R%Q]!1O",
+  },
+  "timestamp": Any<String>,
+}
+`;
+
+exports[`Testing snapshot for posthog destination: > track action - all fields 1`] = `
+{
+  "api_key": "hQwZ!",
+  "distinct_id": "hQwZ!",
+  "event": "hQwZ!",
+  "headers": {},
+  "properties": {
+    "$browser": "hQwZ!",
+    "$browser_language": "hQwZ!",
+    "$browser_version": -86879145568501.77,
+    "$current_url": "hQwZ!",
+    "$device_type": "hQwZ!",
+    "$host": "hQwZ!",
+    "$insert_id": "hQwZ!",
+    "$ip": "hQwZ!",
+    "$lib": "hQwZ!",
+    "$lib_version": "hQwZ!",
+    "$os": "hQwZ!",
+    "$os_version": "hQwZ!",
+    "$pathname": "hQwZ!",
+    "$raw_user_agent": "hQwZ!",
+    "$referrer": "hQwZ!",
+    "$referring_domain": "hQwZ!",
+    "$screen_dpr": -86879145568501.77,
+    "$screen_height": -86879145568501.77,
+    "$screen_width": -86879145568501.77,
+    "$session_id": "hQwZ!",
+    "$time": -86879145568501.77,
+    "$viewport_height": -86879145568501.77,
+    "$viewport_width": -86879145568501.77,
+    "$window_id": "hQwZ!",
+    "distinct_id": "hQwZ!",
+    "testType": "hQwZ!",
+    "title": "hQwZ!",
+    "utm_campaign": "hQwZ!",
+    "utm_content": "hQwZ!",
+    "utm_medium": "hQwZ!",
+    "utm_source": "hQwZ!",
+    "utm_term": "hQwZ!",
+  },
+  "timestamp": Any<String>,
+}
+`;
+
+exports[`Testing snapshot for posthog destination: > track action - required fields 1`] = `
+{
+  "api_key": "hQwZ!",
+  "distinct_id": "hQwZ!",
+  "event": "hQwZ!",
+  "headers": {},
+  "properties": {
+    "$insert_id": "hQwZ!",
+    "$screen_width": -86879145568501.77,
+    "$session_id": "hQwZ!",
+    "$viewport_width": -86879145568501.77,
+    "$window_id": "hQwZ!",
+    "distinct_id": "hQwZ!",
+  },
+  "timestamp": Any<String>,
+}
+`;

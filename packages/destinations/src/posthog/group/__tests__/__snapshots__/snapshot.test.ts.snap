@@ -1,0 +1,39 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Testing snapshot for PostHog's group destination action: > all fields 1`] = `
+{
+  "api_key": "t877lR)7)T",
+  "distinct_id": "t877lR)7)T",
+  "event": "$groupidentify",
+  "headers": {},
+  "properties": {
+    "$group_key": "t877lR)7)T",
+    "$group_set": {
+      "date_joined": "2021-02-01T00:00:00.000Z",
+      "name": "t877lR)7)T",
+      "testType": "t877lR)7)T",
+    },
+    "$group_type": "organization",
+    "testType": "t877lR)7)T",
+  },
+  "timestamp": "2021-02-01T00:00:00.000Z",
+}
+`;
+
+exports[`Testing snapshot for PostHog's group destination action: > required fields 1`] = `
+{
+  "api_key": "t877lR)7)T",
+  "distinct_id": "t877lR)7)T",
+  "event": "$groupidentify",
+  "headers": {},
+  "properties": {
+    "$group_key": "t877lR)7)T",
+    "$group_set": {
+      "date_joined": "2021-02-01T00:00:00.000Z",
+      "name": "t877lR)7)T",
+    },
+    "$group_type": "organization",
+  },
+  "timestamp": "2021-02-01T00:00:00.000Z",
+}
+`;

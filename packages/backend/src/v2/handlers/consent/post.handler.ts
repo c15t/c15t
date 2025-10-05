@@ -131,14 +131,14 @@ export const postConsent = os.consent.post.handler(
 					)
 				);
 
-				const purposes = purposesRaw.map((purpose) => purpose?.id);
+				const purposes = purposesRaw.map((purpose: any) => purpose?.id);
 
 				logger.debug('Purposes: ', { purposes });
 
 				purposeIds = purposes;
 			}
 
-			const result = await db.transaction(async (tx) => {
+			const result = await db.transaction(async (tx: any) => {
 				logger.debug('Creating consent record', {
 					subjectId: subject.id,
 					domainId: domainRecord.id,
