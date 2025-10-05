@@ -6,7 +6,7 @@
 import { ORPCError } from '@orpc/server';
 import { os } from '../../contracts';
 import type { C15TContext } from '../../types';
-import type { AnalyticsConsent, AnalyticsEvent } from './types';
+import type { AnalyticsConsent, AnalyticsEvent, EventContext } from './types';
 import { EVENT_PURPOSE_MAP } from './types';
 
 /**
@@ -76,7 +76,12 @@ export const processAnalyticsEvents = os.analytics.process.handler(
 			}
 
 			// Process events through destination manager
-			await destinationManager.processEvents(eventsWithConsent, input.consent);
+			const context: EventContext = {
+				sessionId: input.events[0]?.sessionId || 'unknown',
+				sessionStart: new Date(),
+				consent: input.consent,
+			};
+			await destinationManager.processEvents(eventsWithConsent, context);
 
 			// Return success response
 			return {

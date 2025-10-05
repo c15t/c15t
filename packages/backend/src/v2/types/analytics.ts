@@ -12,7 +12,6 @@ import type {
 // Re-export analytics types from the v2 handlers
 export type {
 	AnalyticsConsent,
-	AnalyticsDestination,
 	AnalyticsEvent,
 	DestinationConfig,
 } from '../handlers/analytics/types';

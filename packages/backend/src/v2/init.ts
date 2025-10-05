@@ -115,7 +115,7 @@ export const init = (options: C15TOptions): C15TContext => {
 	if (options.analytics?.destinations) {
 		// Pass custom registry if provided, otherwise use dynamic loading
 		const registry = options.analytics.customRegistry;
-		destinationManager = new DestinationManager(registry);
+		destinationManager = new DestinationManager(logger, registry);
 
 		// Load destinations asynchronously - they'll be available when needed
 		destinationManager

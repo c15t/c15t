@@ -379,7 +379,6 @@ export { defineConfig } from './define-config';
 export { registerDestination } from './plugins/destination-registry';
 export type {
 	AnalyticsConsent,
-	AnalyticsDestination,
 	AnalyticsEvent,
 	C15TContext,
 	C15TOptions,

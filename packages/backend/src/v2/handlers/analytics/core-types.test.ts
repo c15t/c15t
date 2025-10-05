@@ -2,6 +2,7 @@
  * @fileoverview Unit tests for core analytics types.
  */
 
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 import { describe, expect, it } from 'vitest';
 import type {
 	AliasEvent,
@@ -488,14 +489,17 @@ describe('DestinationPlugin Interface', () => {
 	it('should define required properties', () => {
 		// This test verifies the interface structure exists
 		// Actual implementation would be in destination packages
-		interface TestPlugin extends DestinationPlugin {
+		interface TestPlugin extends DestinationPlugin<Record<string, unknown>> {
 			readonly type: 'test';
 			readonly version: '1.0.0';
 			readonly name: 'Test Plugin';
 			readonly description: 'A test plugin';
 			readonly category: 'analytics';
 			readonly gdprCompliant: true;
-			readonly settingsSchema: unknown; // Would be StandardSchemaV1
+			readonly settingsSchema: StandardSchemaV1<
+				Record<string, unknown>,
+				Record<string, unknown>
+			>;
 			readonly requiredConsent: readonly ConsentPurpose[];
 		}
 

@@ -40,11 +40,6 @@ const server = createServer(async (req, res) => {
 	const request = new Request(url.toString(), {
 		method: req.method || 'GET',
 		headers,
-		// Handle request body for POST/PUT/PATCH requests
-		...(req.method !== 'GET' &&
-			req.method !== 'HEAD' && {
-				body: req,
-			}),
 	});
 
 	try {
@@ -53,11 +48,12 @@ const server = createServer(async (req, res) => {
 		const response = await instance.handler(request);
 
 		// Convert Web API Response to Node.js response
-		res.writeHead(
-			response.status,
-			response.statusText,
-			Object.fromEntries(response.headers.entries())
-		);
+		const responseHeaders: Record<string, string | string[]> = {};
+		response.headers.forEach((value, key) => {
+			responseHeaders[key] = value;
+		});
+
+		res.writeHead(response.status, response.statusText, responseHeaders);
 
 		// Handle different response types
 		if (response.body) {
