@@ -62,6 +62,12 @@ describe('GoogleAnalyticsDestination', () => {
 			const invalidSettings = {
 				measurementId: '',
 				apiSecret: '',
+				enableServerSide: true,
+				enableClientSide: true,
+				enableEnhancedMeasurement: true,
+				anonymizeIp: false,
+				cookieFlags: 'SameSite=None;Secure',
+				debugMode: false,
 			};
 
 			const result = GoogleAnalyticsSettingsSchema.safeParse(invalidSettings);
@@ -89,6 +95,12 @@ describe('GoogleAnalyticsDestination', () => {
 			const settings = {
 				measurementId: 'G-XXXXXXXXXX',
 				apiSecret: 'test-secret',
+				enableServerSide: true,
+				enableClientSide: true,
+				enableEnhancedMeasurement: true,
+				anonymizeIp: false,
+				cookieFlags: 'SameSite=None;Secure',
+				debugMode: false,
 			};
 
 			await destination.initialize(settings);
@@ -108,6 +120,12 @@ describe('GoogleAnalyticsDestination', () => {
 			const invalidSettings = {
 				measurementId: '',
 				apiSecret: '',
+				enableServerSide: true,
+				enableClientSide: true,
+				enableEnhancedMeasurement: true,
+				anonymizeIp: false,
+				cookieFlags: 'SameSite=None;Secure',
+				debugMode: false,
 			};
 
 			await expect(destination.initialize(invalidSettings)).rejects.toThrow();
@@ -119,6 +137,12 @@ describe('GoogleAnalyticsDestination', () => {
 			const settings = {
 				measurementId: 'G-XXXXXXXXXX',
 				apiSecret: 'test-secret',
+				enableServerSide: true,
+				enableClientSide: true,
+				enableEnhancedMeasurement: true,
+				anonymizeIp: false,
+				cookieFlags: 'SameSite=None;Secure',
+				debugMode: false,
 			};
 
 			await destination.initialize(settings);
@@ -135,6 +159,12 @@ describe('GoogleAnalyticsDestination', () => {
 			const settings = {
 				measurementId: 'G-XXXXXXXXXX',
 				apiSecret: 'test-secret',
+				enableServerSide: true,
+				enableClientSide: true,
+				enableEnhancedMeasurement: true,
+				anonymizeIp: false,
+				cookieFlags: 'SameSite=None;Secure',
+				debugMode: false,
 			};
 
 			await destination.initialize(settings);
@@ -164,6 +194,7 @@ describe('GoogleAnalyticsDestination', () => {
 			sessionId: 'session-123',
 			userAgent: 'test-agent',
 			ip: '127.0.0.1',
+			sessionStart: new Date(),
 			consent: {
 				necessary: true,
 				measurement: true,
@@ -180,6 +211,12 @@ describe('GoogleAnalyticsDestination', () => {
 			const settings = {
 				measurementId: 'G-XXXXXXXXXX',
 				apiSecret: 'test-secret',
+				enableServerSide: true,
+				enableClientSide: true,
+				enableEnhancedMeasurement: true,
+				anonymizeIp: false,
+				cookieFlags: 'SameSite=None;Secure',
+				debugMode: false,
 			};
 			await destination.initialize(settings);
 		});
@@ -235,6 +272,11 @@ describe('GoogleAnalyticsDestination', () => {
 				measurementId: 'G-XXXXXXXXXX',
 				apiSecret: 'test-secret',
 				enableServerSide: false,
+				enableClientSide: true,
+				enableEnhancedMeasurement: true,
+				anonymizeIp: false,
+				cookieFlags: 'SameSite=None;Secure',
+				debugMode: false,
 			};
 			await destination.initialize(settings);
 
@@ -276,6 +318,7 @@ describe('GoogleAnalyticsDestination', () => {
 
 		it('should track page events', async () => {
 			const pageEvent: PageEvent = {
+				type: 'page',
 				name: 'Home Page',
 				properties: { url: 'https://example.com' },
 				timestamp: new Date().toISOString(),
@@ -292,6 +335,7 @@ describe('GoogleAnalyticsDestination', () => {
 
 		it('should track identify events', async () => {
 			const identifyEvent: IdentifyEvent = {
+				type: 'identify',
 				userId: 'user-123',
 				traits: { email: 'test@example.com' },
 				timestamp: new Date().toISOString(),
@@ -320,7 +364,12 @@ describe('GoogleAnalyticsDestination', () => {
 			const settings = {
 				measurementId: 'G-XXXXXXXXXX',
 				apiSecret: 'test-secret',
+				enableServerSide: true,
 				enableClientSide: true,
+				enableEnhancedMeasurement: true,
+				anonymizeIp: true,
+				cookieFlags: 'SameSite=None;Secure',
+				debugMode: false,
 			};
 
 			const scripts = destination.generateScript(settings, mockConsent);
@@ -351,7 +400,12 @@ describe('GoogleAnalyticsDestination', () => {
 			const settings = {
 				measurementId: 'G-XXXXXXXXXX',
 				apiSecret: 'test-secret',
+				enableServerSide: true,
 				enableClientSide: true,
+				enableEnhancedMeasurement: true,
+				anonymizeIp: true,
+				cookieFlags: 'SameSite=None;Secure',
+				debugMode: false,
 			};
 
 			const scripts = destination.generateScript(
@@ -366,7 +420,12 @@ describe('GoogleAnalyticsDestination', () => {
 			const settings = {
 				measurementId: 'G-XXXXXXXXXX',
 				apiSecret: 'test-secret',
+				enableServerSide: true,
 				enableClientSide: false,
+				enableEnhancedMeasurement: true,
+				anonymizeIp: true,
+				cookieFlags: 'SameSite=None;Secure',
+				debugMode: false,
 			};
 
 			const scripts = destination.generateScript(settings, mockConsent);
@@ -378,7 +437,11 @@ describe('GoogleAnalyticsDestination', () => {
 			const settings = {
 				measurementId: 'G-XXXXXXXXXX',
 				apiSecret: 'test-secret',
+				enableServerSide: true,
 				enableClientSide: true,
+				enableEnhancedMeasurement: true,
+				anonymizeIp: true,
+				cookieFlags: 'SameSite=None;Secure',
 				debugMode: true,
 			};
 
@@ -391,7 +454,12 @@ describe('GoogleAnalyticsDestination', () => {
 			const settings = {
 				measurementId: 'G-XXXXXXXXXX',
 				apiSecret: 'test-secret',
+				enableServerSide: true,
 				enableClientSide: true,
+				enableEnhancedMeasurement: true,
+				anonymizeIp: true,
+				cookieFlags: 'SameSite=None;Secure',
+				debugMode: false,
 				customParameters: { test: 'value' },
 			};
 
@@ -413,6 +481,12 @@ describe('GoogleAnalyticsDestination', () => {
 			const validSettings = {
 				measurementId: 'G-XXXXXXXXXX',
 				apiSecret: 'test-secret',
+				enableServerSide: true,
+				enableClientSide: true,
+				enableEnhancedMeasurement: true,
+				anonymizeIp: true,
+				cookieFlags: 'SameSite=None;Secure',
+				debugMode: false,
 			};
 
 			const result = await destination.validateScriptSettings(validSettings);
@@ -423,6 +497,12 @@ describe('GoogleAnalyticsDestination', () => {
 			const invalidSettings = {
 				measurementId: '',
 				apiSecret: '',
+				enableServerSide: true,
+				enableClientSide: true,
+				enableEnhancedMeasurement: true,
+				anonymizeIp: false,
+				cookieFlags: 'SameSite=None;Secure',
+				debugMode: false,
 			};
 
 			const result = await destination.validateScriptSettings(invalidSettings);
@@ -452,6 +532,12 @@ describe('GoogleAnalyticsDestination', () => {
 			const settings = {
 				measurementId: 'G-XXXXXXXXXX',
 				apiSecret: 'test-secret',
+				enableServerSide: true,
+				enableClientSide: true,
+				enableEnhancedMeasurement: true,
+				anonymizeIp: false,
+				cookieFlags: 'SameSite=None;Secure',
+				debugMode: false,
 			};
 
 			await destination.initialize(settings);
@@ -486,6 +572,12 @@ describe('GoogleAnalyticsDestination', () => {
 			const settings = {
 				measurementId: 'G-XXXXXXXXXX',
 				apiSecret: 'test-secret',
+				enableServerSide: true,
+				enableClientSide: true,
+				enableEnhancedMeasurement: true,
+				anonymizeIp: false,
+				cookieFlags: 'SameSite=None;Secure',
+				debugMode: false,
 			};
 			await destination.initialize(settings);
 		});
@@ -506,7 +598,8 @@ describe('GoogleAnalyticsDestination', () => {
 
 			for (const { input, expected } of events) {
 				const trackEvent: TrackEvent = {
-					event: input,
+					type: 'track',
+					name: input,
 					properties: {},
 					timestamp: new Date().toISOString(),
 				};
@@ -520,7 +613,7 @@ describe('GoogleAnalyticsDestination', () => {
 				// Verify the request body contains the mapped event name
 				expect(mockFetch).toHaveBeenCalled();
 				const callArgs = mockFetch.mock.calls[mockFetch.mock.calls.length - 1];
-				const requestBody = JSON.parse(callArgs[1]?.body as string);
+				const requestBody = JSON.parse(callArgs?.[1]?.body as string);
 				expect(requestBody.events[0].name).toBe(expected);
 			}
 		});
@@ -548,7 +641,7 @@ describe('GoogleAnalyticsDestination', () => {
 			await destination.track(trackEvent, mockContext);
 
 			const callArgs = mockFetch.mock.calls[mockFetch.mock.calls.length - 1];
-			const requestBody = JSON.parse(callArgs[1]?.body as string);
+			const requestBody = JSON.parse(callArgs?.[1]?.body as string);
 			const params = requestBody.events[0].params;
 
 			expect(params.item_id).toBe('prod-123');

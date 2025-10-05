@@ -10,8 +10,8 @@
 
 // Re-export DestinationConfig type for proper typing
 export type { DestinationConfig } from '@c15t/backend/v2/types';
-export type { ConsoleSettings } from './console';
-export { ConsoleDestination, createConsoleDestination } from './console';
+export type { ConsoleSettings } from './console-log';
+export { ConsoleDestination, createConsoleDestination } from './console-log';
 export type { GoogleAnalyticsSettings } from './google-analytics';
 export { GoogleAnalyticsDestination } from './google-analytics';
 export type { MetaPixelSettings } from './meta-pixel';

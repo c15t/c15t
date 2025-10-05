@@ -77,7 +77,7 @@ export type ConsoleSettings = z.infer<typeof ConsoleSettingsSchema>;
  */
 export class ConsoleDestination implements DestinationPlugin<ConsoleSettings> {
 	/** @internal */
-	readonly type = 'console';
+	readonly type = 'console-log';
 
 	/** @internal */
 	readonly name = 'Console';
@@ -415,18 +415,18 @@ export class ConsoleDestination implements DestinationPlugin<ConsoleSettings> {
 }
 
 /**
- * Factory function to create a console destination configuration
+ * Factory function to create a console destination plugin instance
  *
  * @param settings - Optional configuration settings for the console destination
- * @returns Destination configuration object ready for use with c15t analytics
+ * @returns Promise resolving to a configured ConsoleDestination plugin instance
  *
  * @example
  * ```typescript
  * // Create with default settings
- * const config = createConsoleDestination();
+ * const destination = await createConsoleDestination();
  *
  * // Create with custom settings
- * const config = createConsoleDestination({
+ * const destination = await createConsoleDestination({
  *   logLevel: 'debug',
  *   includeContext: true,
  *   includeTimestamp: false,
@@ -436,18 +436,24 @@ export class ConsoleDestination implements DestinationPlugin<ConsoleSettings> {
  *
  * @see {@link ConsoleSettings} for available configuration options
  */
-export function createConsoleDestination(
+export async function createConsoleDestination(
 	settings: ConsoleSettings = {
 		logLevel: 'info',
 		includeContext: true,
 		includeTimestamp: true,
 		includeEventId: true,
 	}
-) {
-	return {
-		type: 'console',
-		enabled: true,
-		settings,
-		requiredConsent: ['necessary'] as const,
-	};
+): Promise<ConsoleDestination> {
+	// Create a mock logger for the console destination
+	// In a real implementation, this would be injected
+	const mockLogger = {
+		debug: console.debug.bind(console),
+		info: console.info.bind(console),
+		warn: console.warn.bind(console),
+		error: console.error.bind(console),
+	} as Logger;
+
+	const destination = new ConsoleDestination(mockLogger);
+	await destination.initialize(settings);
+	return destination;
 }

@@ -57,6 +57,9 @@ describe('MetaPixelDestination', () => {
 			const invalidSettings = {
 				pixelId: '',
 				accessToken: '',
+				apiVersion: 'v18.0',
+				enableServerSide: true,
+				enableClientSide: true,
 			};
 
 			const result = MetaPixelSettingsSchema.safeParse(invalidSettings);
@@ -67,6 +70,9 @@ describe('MetaPixelDestination', () => {
 			const minimalSettings = {
 				pixelId: '123456789',
 				accessToken: 'test-token',
+				apiVersion: 'v18.0',
+				enableServerSide: true,
+				enableClientSide: true,
 			};
 
 			const result = MetaPixelSettingsSchema.parse(minimalSettings);
@@ -81,6 +87,9 @@ describe('MetaPixelDestination', () => {
 			const settings = {
 				pixelId: '123456789',
 				accessToken: 'test-token',
+				apiVersion: 'v18.0',
+				enableServerSide: true,
+				enableClientSide: true,
 			};
 
 			await destination.initialize(settings);
@@ -99,6 +108,9 @@ describe('MetaPixelDestination', () => {
 			const invalidSettings = {
 				pixelId: '',
 				accessToken: '',
+				apiVersion: 'v18.0',
+				enableServerSide: true,
+				enableClientSide: true,
 			};
 
 			await expect(destination.initialize(invalidSettings)).rejects.toThrow();
@@ -110,6 +122,9 @@ describe('MetaPixelDestination', () => {
 			const settings = {
 				pixelId: '123456789',
 				accessToken: 'test-token',
+				apiVersion: 'v18.0',
+				enableServerSide: true,
+				enableClientSide: true,
 			};
 
 			await destination.initialize(settings);
@@ -127,6 +142,9 @@ describe('MetaPixelDestination', () => {
 			const settings = {
 				pixelId: '123456789',
 				accessToken: 'test-token',
+				apiVersion: 'v18.0',
+				enableServerSide: true,
+				enableClientSide: true,
 			};
 
 			await destination.initialize(settings);
@@ -156,6 +174,7 @@ describe('MetaPixelDestination', () => {
 			sessionId: 'session-123',
 			userAgent: 'test-agent',
 			ip: '127.0.0.1',
+			sessionStart: new Date(),
 			consent: {
 				necessary: true,
 				measurement: true,
@@ -172,15 +191,19 @@ describe('MetaPixelDestination', () => {
 			const settings = {
 				pixelId: '123456789',
 				accessToken: 'test-token',
+				apiVersion: 'v18.0',
+				enableServerSide: true,
+				enableClientSide: true,
 			};
 			await destination.initialize(settings);
 		});
 
 		it('should track events when server-side enabled and marketing consent given', async () => {
 			const trackEvent: TrackEvent = {
-				event: 'Product Viewed',
+				type: 'track',
+				name: 'Product Viewed',
 				properties: { product_id: 'prod-123', value: 29.99 },
-				timestamp: new Date(),
+				timestamp: new Date().toISOString(),
 			};
 
 			mockFetch.mockResolvedValueOnce({
@@ -212,9 +235,10 @@ describe('MetaPixelDestination', () => {
 			};
 
 			const trackEvent: TrackEvent = {
-				event: 'Product Viewed',
+				type: 'track',
+				name: 'Product Viewed',
 				properties: { product_id: 'prod-123' },
-				timestamp: new Date(),
+				timestamp: new Date().toISOString(),
 			};
 
 			await destination.track(trackEvent, contextWithoutMarketing);
@@ -226,14 +250,17 @@ describe('MetaPixelDestination', () => {
 			const settings = {
 				pixelId: '123456789',
 				accessToken: 'test-token',
+				apiVersion: 'v18.0',
 				enableServerSide: false,
+				enableClientSide: true,
 			};
 			await destination.initialize(settings);
 
 			const trackEvent: TrackEvent = {
-				event: 'Product Viewed',
+				type: 'track',
+				name: 'Product Viewed',
 				properties: { product_id: 'prod-123' },
-				timestamp: new Date(),
+				timestamp: new Date().toISOString(),
 			};
 
 			await destination.track(trackEvent, mockContext);
@@ -243,9 +270,10 @@ describe('MetaPixelDestination', () => {
 
 		it('should handle API errors gracefully', async () => {
 			const trackEvent: TrackEvent = {
-				event: 'Product Viewed',
+				type: 'track',
+				name: 'Product Viewed',
 				properties: { product_id: 'prod-123' },
-				timestamp: new Date(),
+				timestamp: new Date().toISOString(),
 			};
 
 			mockFetch.mockResolvedValueOnce({
@@ -266,6 +294,7 @@ describe('MetaPixelDestination', () => {
 
 		it('should track page events', async () => {
 			const pageEvent: PageEvent = {
+				type: 'page',
 				name: 'Home Page',
 				properties: { url: 'https://example.com' },
 				timestamp: new Date().toISOString(),
@@ -283,9 +312,10 @@ describe('MetaPixelDestination', () => {
 
 		it('should handle identify events', async () => {
 			const identifyEvent: IdentifyEvent = {
+				type: 'identify',
 				userId: 'user-123',
 				traits: { email: 'test@example.com' },
-				timestamp: new Date(),
+				timestamp: new Date().toISOString(),
 			};
 
 			await destination.identify(identifyEvent, mockContext);
@@ -312,6 +342,8 @@ describe('MetaPixelDestination', () => {
 			const settings = {
 				pixelId: '123456789',
 				accessToken: 'test-token',
+				apiVersion: 'v18.0',
+				enableServerSide: true,
 				enableClientSide: true,
 			};
 
@@ -333,6 +365,8 @@ describe('MetaPixelDestination', () => {
 			const settings = {
 				pixelId: '123456789',
 				accessToken: 'test-token',
+				apiVersion: 'v18.0',
+				enableServerSide: true,
 				enableClientSide: true,
 			};
 
@@ -348,6 +382,8 @@ describe('MetaPixelDestination', () => {
 			const settings = {
 				pixelId: '123456789',
 				accessToken: 'test-token',
+				apiVersion: 'v18.0',
+				enableServerSide: true,
 				enableClientSide: false,
 			};
 
@@ -360,6 +396,8 @@ describe('MetaPixelDestination', () => {
 			const settings = {
 				pixelId: '123456789',
 				accessToken: 'test-token',
+				apiVersion: 'v18.0',
+				enableServerSide: true,
 				enableClientSide: true,
 				testEventCode: 'TEST123',
 			};
@@ -382,6 +420,9 @@ describe('MetaPixelDestination', () => {
 			const validSettings = {
 				pixelId: '123456789',
 				accessToken: 'test-token',
+				apiVersion: 'v18.0',
+				enableServerSide: true,
+				enableClientSide: true,
 			};
 
 			const result = await destination.validateScriptSettings(validSettings);
@@ -392,6 +433,9 @@ describe('MetaPixelDestination', () => {
 			const invalidSettings = {
 				pixelId: '',
 				accessToken: '',
+				apiVersion: 'v18.0',
+				enableServerSide: true,
+				enableClientSide: true,
 			};
 
 			const result = await destination.validateScriptSettings(invalidSettings);
@@ -421,6 +465,9 @@ describe('MetaPixelDestination', () => {
 			const settings = {
 				pixelId: '123456789',
 				accessToken: 'test-token',
+				apiVersion: 'v18.0',
+				enableServerSide: true,
+				enableClientSide: true,
 			};
 
 			await destination.initialize(settings);
@@ -455,6 +502,9 @@ describe('MetaPixelDestination', () => {
 			const settings = {
 				pixelId: '123456789',
 				accessToken: 'test-token',
+				apiVersion: 'v18.0',
+				enableServerSide: true,
+				enableClientSide: true,
 			};
 			await destination.initialize(settings);
 		});
@@ -487,7 +537,7 @@ describe('MetaPixelDestination', () => {
 
 				// Verify the request body contains the mapped event name
 				const callArgs = mockFetch.mock.calls[mockFetch.mock.calls.length - 1];
-				const requestBody = JSON.parse(callArgs[1]?.body as string);
+				const requestBody = JSON.parse(callArgs?.[1]?.body as string);
 				expect(requestBody.data[0].event_name).toBe(expected);
 			}
 		});

@@ -41,8 +41,8 @@ export type PostHogSettings = z.infer<typeof PostHogSettingsSchema>;
 export class PostHogDestination
 	implements UniversalDestinationPlugin<PostHogSettings>
 {
-	readonly type = 'post-hog';
-	readonly name = 'PostHog';
+	readonly type = 'posthog';
+	readonly name = 'posthog';
 	readonly description = 'PostHog product analytics destination';
 	readonly category = 'analytics' as const;
 	readonly version = '1.0.0';
@@ -395,13 +395,21 @@ export class PostHogDestination
 }
 
 /**
- * Factory function to create PostHog destination configuration
+ * Factory function to create PostHog destination plugin instance
  */
-export function createPostHogDestination(settings: PostHogSettings) {
-	return {
-		type: 'post-hog',
-		enabled: true,
-		settings,
-		requiredConsent: ['measurement'] as const,
-	};
+export async function createPostHogDestination(
+	settings: PostHogSettings
+): Promise<PostHogDestination> {
+	// Create a mock logger for the PostHog destination
+	// In a real implementation, this would be injected
+	const mockLogger = {
+		debug: console.debug.bind(console),
+		info: console.info.bind(console),
+		warn: console.warn.bind(console),
+		error: console.error.bind(console),
+	} as Logger;
+
+	const destination = new PostHogDestination(mockLogger);
+	await destination.initialize(settings);
+	return destination;
 }

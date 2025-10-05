@@ -6,7 +6,7 @@ import destination from '../index';
 import { generateTestData } from '../testData';
 
 const testDestination = createTestIntegration(destination);
-const destinationSlug = 'post-hog';
+const destinationSlug = 'posthog';
 
 describe(`Testing snapshot for ${destinationSlug} destination:`, () => {
 	for (const actionSlug in destination.actions) {

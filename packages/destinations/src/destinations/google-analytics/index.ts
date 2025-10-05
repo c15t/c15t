@@ -38,7 +38,7 @@ export const GoogleAnalyticsSettingsSchema = z.object({
 	enableEnhancedMeasurement: z.boolean().default(true),
 	anonymizeIp: z.boolean().default(true),
 	cookieFlags: z.string().default('SameSite=None;Secure'),
-	customParameters: z.record(z.string()).optional(),
+	customParameters: z.record(z.string(), z.unknown()).optional(),
 	debugMode: z.boolean().default(false),
 });
 
@@ -288,7 +288,7 @@ export class GoogleAnalyticsDestination
 
 		return [
 			{
-				type: 'external',
+				type: 'script',
 				src: 'https://www.googletagmanager.com/gtag/js',
 				async: true,
 				requiredConsent: ['measurement'],
@@ -450,9 +450,10 @@ export class GoogleAnalyticsDestination
 					params: {
 						page_title: event.name,
 						page_location: event.properties.url || '',
-						page_path: event.properties.url
-							? new URL(event.properties.url).pathname
-							: '',
+						page_path:
+							event.properties.url && typeof event.properties.url === 'string'
+								? new URL(event.properties.url).pathname
+								: '',
 						...this.settings?.customParameters,
 						timestamp_micros: new Date(event.timestamp).getTime() * 1000,
 					},

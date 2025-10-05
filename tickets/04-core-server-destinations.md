@@ -39,7 +39,7 @@ The PostHog destination will be used by customers for real analytics, while Cons
 - [ ] Integration tests with real APIs
 
 ## 📁 Files to Update
-- `packages/backend/src/v2/handlers/analytics/destinations/` (add new destinations)
+- `packages/destinations/` (add new destinations)
 
 ## 🔧 Implementation Details
 

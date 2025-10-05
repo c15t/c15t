@@ -69,12 +69,33 @@ function discoverDestinationFactories(
 ): Record<string, DestinationFactory> {
 	const factories: Record<string, DestinationFactory> = {};
 
+	console.log(
+		'[DestinationLoader] Module keys:',
+		Object.keys(destinationsModule)
+	);
+	console.log(
+		'[DestinationLoader] Registry:',
+		destinationsModule.destinationRegistry
+	);
+
 	// First, try to use the registry if available
 	if (destinationsModule.destinationRegistry) {
 		Object.entries(destinationsModule.destinationRegistry).forEach(
 			([type, factory]) => {
+				console.log(
+					`[DestinationLoader] Checking registry entry: ${type}`,
+					typeof factory,
+					factory.name
+				);
 				if (isValidDestinationFactory(factory)) {
 					factories[type] = factory;
+					console.log(
+						`[DestinationLoader] Added factory from registry: ${type}`
+					);
+				} else {
+					console.log(
+						`[DestinationLoader] Invalid factory in registry: ${type}`
+					);
 				}
 			}
 		);
@@ -83,13 +104,24 @@ function discoverDestinationFactories(
 	// Then, discover individual factory functions
 	Object.entries(destinationsModule).forEach(([key, value]) => {
 		if (key.startsWith('create') && key.endsWith('Destination')) {
+			console.log(
+				`[DestinationLoader] Checking individual export: ${key}`,
+				typeof value,
+				typeof value === 'function' ? value.name : 'N/A'
+			);
 			if (isValidDestinationFactory(value)) {
 				const destinationType = extractDestinationType(key);
 				factories[destinationType] = value;
+				console.log(
+					`[DestinationLoader] Added factory from export: ${destinationType}`
+				);
+			} else {
+				console.log(`[DestinationLoader] Invalid factory export: ${key}`);
 			}
 		}
 	});
 
+	console.log('[DestinationLoader] Final factories:', Object.keys(factories));
 	return factories;
 }
 

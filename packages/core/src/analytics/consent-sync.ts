@@ -186,7 +186,8 @@ export class ConsentSyncImpl implements ConsentSync {
 			maxHistoryEntries: 100,
 			syncTimeout: 5000,
 			enableChangeTracking: true,
-			customConflictResolver: undefined,
+			customConflictResolver: (conflict: ConsentConflict) =>
+				conflict.localConsent,
 			...options,
 		};
 

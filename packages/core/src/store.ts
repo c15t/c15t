@@ -295,6 +295,15 @@ export const createConsentManagerStore = (
 		enableOfflineQueue: analyticsConfigWithDefaults.offlineQueue,
 	});
 
+	// Initialize event queue with current consent state
+	const initialAnalyticsConsent = storedConsent
+		? updateAnalyticsConsentFromGdpr(storedConsent.consents)
+		: analyticsState.consent;
+
+	eventQueue.updateConsent(initialAnalyticsConsent).catch((error) => {
+		console.error('Failed to initialize queue consent:', error);
+	});
+
 	const store = createStore<PrivacyConsentState>((set, get) => ({
 		...initialState,
 		analytics: analyticsState,
@@ -407,6 +416,7 @@ export const createConsentManagerStore = (
 				get,
 				set,
 				trackingBlocker,
+				eventQueue,
 			}),
 
 		setConsent: (name, value) => {
@@ -425,6 +435,11 @@ export const createConsentManagerStore = (
 
 				// Update analytics consent when GDPR consent changes
 				const analyticsConsent = updateAnalyticsConsentFromGdpr(newConsents);
+
+				// Update the event queue's consent
+				eventQueue.updateConsent(analyticsConsent).catch((error) => {
+					console.error('Failed to update queue consent:', error);
+				});
 
 				return {
 					selectedConsents: newConsents,

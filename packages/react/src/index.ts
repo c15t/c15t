@@ -22,7 +22,7 @@ export { CookieBanner } from './components/cookie-banner';
 export type { CookieBannerProps } from './components/cookie-banner/cookie-banner';
 export { Frame, type FrameProps } from './components/frame';
 export { ScriptLoadingStatus } from './components/script-loading-status';
-export type { AnalyticsContextValue } from './hooks/use-analytics';
+export type { UseAnalyticsReturn } from './hooks/use-analytics';
 // Export analytics hooks
 export {
 	useAlias,

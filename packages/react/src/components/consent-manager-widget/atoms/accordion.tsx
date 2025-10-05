@@ -24,7 +24,7 @@ import styles from '../consent-manager-widget.module.css';
  */
 const ConsentManagerWidgetAccordionTrigger = forwardRef<
 	HTMLDivElement,
-	BoxProps
+	BoxProps & { children?: React.ReactNode }
 >(({ children, themeKey, ...props }, ref) => {
 	return (
 		<Box
@@ -38,7 +38,18 @@ const ConsentManagerWidgetAccordionTrigger = forwardRef<
 	);
 });
 
-const ConsentManagerWidgetAccordionTriggerInner = RadixAccordion.Trigger;
+const ConsentManagerWidgetAccordionTriggerInner = forwardRef<
+	ComponentRef<typeof RadixAccordion.Trigger>,
+	ComponentPropsWithoutRef<typeof RadixAccordion.Trigger> & {
+		children?: React.ReactNode;
+	}
+>(({ children, ...props }, ref) => {
+	return (
+		<RadixAccordion.Trigger ref={ref} {...props}>
+			{children}
+		</RadixAccordion.Trigger>
+	);
+});
 const ConsentManagerWidgetAccordionContent = RadixAccordion.Content;
 const ConsentManagerWidgetAccordionArrow = RadixAccordion.Arrow;
 const ConsentManagerWidgetAccordion = RadixAccordion.Root;
@@ -103,10 +114,10 @@ const ConsentManagerWidgetAccordionItems = () => {
 
 				<ConsentManagerWidgetSwitch
 					checked={selectedConsents[consent.name]}
-					onClick={(e) => e.stopPropagation()}
-					onKeyUp={(e) => e.stopPropagation()}
-					onKeyDown={(e) => e.stopPropagation()}
-					onCheckedChange={(checked) =>
+					onClick={(e: React.MouseEvent) => e.stopPropagation()}
+					onKeyUp={(e: React.KeyboardEvent) => e.stopPropagation()}
+					onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
+					onCheckedChange={(checked: boolean) =>
 						handleConsentChange(consent.name, checked)
 					}
 					disabled={consent.disabled}
@@ -142,13 +153,15 @@ const ConsentManagerWidgetAccordionItems = () => {
 const ConsentManagerWidgetAccordionItem = forwardRef<
 	ComponentRef<typeof RadixAccordion.Item>,
 	ComponentPropsWithoutRef<typeof RadixAccordion.Item>
->(({ className, ...rest }, forwardedRef) => {
+>(({ className, children, ...rest }, forwardedRef) => {
 	return (
 		<RadixAccordion.Item
 			ref={forwardedRef}
 			className={styles.accordionItem}
 			{...rest}
-		/>
+		>
+			{children}
+		</RadixAccordion.Item>
 	);
 });
 

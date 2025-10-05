@@ -1,5 +1,6 @@
 import type { StoreApi } from 'zustand';
 import type { PrivacyConsentState } from '~/store.type';
+import { updateAnalyticsConsentFromGdpr } from '../analytics/utils';
 import type { ConsentManagerInterface } from '../client/client-interface';
 import { STORAGE_KEY } from '../store.initial-state';
 import { updateGTMConsent } from './gtm';
@@ -14,6 +15,11 @@ interface SaveConsentsProps {
 	 * @deprecated This method is deprecated and will be removed in the next major version. Use the new script loader instead.
 	 */
 	trackingBlocker: ReturnType<typeof createTrackingBlocker> | null;
+	eventQueue?: {
+		updateConsent: (
+			consent: import('../analytics/types').AnalyticsConsent
+		) => Promise<void>;
+	};
 }
 
 export async function saveConsents({
@@ -22,6 +28,7 @@ export async function saveConsents({
 	get,
 	set,
 	trackingBlocker,
+	eventQueue,
 }: SaveConsentsProps) {
 	const {
 		callbacks,
@@ -66,6 +73,14 @@ export async function saveConsents({
 	updateIframeConsents();
 	updateGTMConsent(newConsents);
 	updateScripts();
+
+	// Update event queue consent
+	if (eventQueue) {
+		const analyticsConsent = updateAnalyticsConsentFromGdpr(newConsents);
+		eventQueue.updateConsent(analyticsConsent).catch((error) => {
+			console.error('Failed to update queue consent:', error);
+		});
+	}
 
 	try {
 		localStorage.setItem(

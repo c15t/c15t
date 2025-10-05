@@ -254,7 +254,7 @@ export class ScriptManagerImpl implements ScriptManager {
 		cacheHitRate: 0,
 	};
 
-	private options: Required<ScriptManagerOptions>;
+	private options: ScriptManagerOptions;
 	private loadTimes: number[] = [];
 
 	constructor(options: ScriptManagerOptions = {}) {
@@ -519,7 +519,7 @@ export class ScriptManagerImpl implements ScriptManager {
 				reject(
 					new ScriptLoadingError('Script load timeout', scriptId, 'external')
 				);
-			}, this.options.loadingTimeout);
+			}, this.options.loadingTimeout || 30000);
 		});
 	}
 

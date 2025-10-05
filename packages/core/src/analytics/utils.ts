@@ -198,18 +198,21 @@ export function createAnalyticsMethods(
 				action.options
 			);
 
-			if (canSendAnalyticsEvent(event)) {
-				eventQueue.add(event);
-				logDebug('Event tracked', {
-					name: action.name,
-					properties: action.properties,
-				});
-			} else {
-				logDebug('Event blocked by consent', {
-					name: action.name,
-					purpose: 'measurement',
-				});
-			}
+			// Always queue the event - let the queue handle consent filtering
+			const context = {
+				sessionId: analyticsState.sessionId,
+				userId: analyticsState.userId,
+				userAgent: getUserAgent() || 'unknown',
+				ip: undefined,
+				referrer: getCurrentUrl(),
+				custom: {},
+			};
+
+			await eventQueue.queueEvent(event, context);
+			logDebug('Event queued', {
+				name: action.name,
+				properties: action.properties,
+			});
 		},
 
 		async page(action: PageAction): Promise<void> {
@@ -221,18 +224,21 @@ export function createAnalyticsMethods(
 				action.options
 			);
 
-			if (canSendAnalyticsEvent(event)) {
-				eventQueue.add(event);
-				logDebug('Page tracked', {
-					name: action.name,
-					properties: action.properties,
-				});
-			} else {
-				logDebug('Page event blocked by consent', {
-					name: action.name,
-					purpose: 'measurement',
-				});
-			}
+			// Always queue the event - let the queue handle consent filtering
+			const context = {
+				sessionId: analyticsState.sessionId,
+				userId: analyticsState.userId,
+				userAgent: getUserAgent() || 'unknown',
+				ip: undefined,
+				referrer: getCurrentUrl(),
+				custom: {},
+			};
+
+			await eventQueue.queueEvent(event, context);
+			logDebug('Page event queued', {
+				name: action.name,
+				properties: action.properties,
+			});
 		},
 
 		async identify(action: IdentifyAction): Promise<void> {
@@ -254,18 +260,21 @@ export function createAnalyticsMethods(
 				});
 			}
 
-			if (canSendAnalyticsEvent(event)) {
-				eventQueue.add(event);
-				logDebug('User identified', {
-					userId: action.userId,
-					traits: action.traits,
-				});
-			} else {
-				logDebug('Identify event blocked by consent', {
-					userId: action.userId,
-					purpose: 'measurement',
-				});
-			}
+			// Always queue the event - let the queue handle consent filtering
+			const context = {
+				sessionId: analyticsState.sessionId,
+				userId: analyticsState.userId,
+				userAgent: getUserAgent() || 'unknown',
+				ip: undefined,
+				referrer: getCurrentUrl(),
+				custom: {},
+			};
+
+			await eventQueue.queueEvent(event, context);
+			logDebug('Identify event queued', {
+				userId: action.userId,
+				traits: action.traits,
+			});
 		},
 
 		async group(action: GroupAction): Promise<void> {
@@ -285,18 +294,21 @@ export function createAnalyticsMethods(
 				});
 			}
 
-			if (canSendAnalyticsEvent(event)) {
-				eventQueue.add(event);
-				logDebug('Group tracked', {
-					groupId: action.groupId,
-					traits: action.traits,
-				});
-			} else {
-				logDebug('Group event blocked by consent', {
-					groupId: action.groupId,
-					purpose: 'measurement',
-				});
-			}
+			// Always queue the event - let the queue handle consent filtering
+			const context = {
+				sessionId: analyticsState.sessionId,
+				userId: analyticsState.userId,
+				userAgent: getUserAgent() || 'unknown',
+				ip: undefined,
+				referrer: getCurrentUrl(),
+				custom: {},
+			};
+
+			await eventQueue.queueEvent(event, context);
+			logDebug('Group event queued', {
+				groupId: action.groupId,
+				traits: action.traits,
+			});
 		},
 
 		async alias(action: AliasAction): Promise<void> {
@@ -311,16 +323,18 @@ export function createAnalyticsMethods(
 			// Update state with new user ID
 			updateAnalyticsState({ userId: action.to });
 
-			if (canSendAnalyticsEvent(event)) {
-				eventQueue.add(event);
-				logDebug('User aliased', { from: action.from, to: action.to });
-			} else {
-				logDebug('Alias event blocked by consent', {
-					from: action.from,
-					to: action.to,
-					purpose: 'measurement',
-				});
-			}
+			// Always queue the event - let the queue handle consent filtering
+			const context = {
+				sessionId: analyticsState.sessionId,
+				userId: analyticsState.userId,
+				userAgent: getUserAgent() || 'unknown',
+				ip: undefined,
+				referrer: getCurrentUrl(),
+				custom: {},
+			};
+
+			await eventQueue.queueEvent(event, context);
+			logDebug('Alias event queued', { from: action.from, to: action.to });
 		},
 
 		common(action: CommonAction): void {
@@ -346,6 +360,14 @@ export function createAnalyticsMethods(
 
 		async flushAnalytics(): Promise<void> {
 			await eventQueue.flush();
+		},
+
+		async updateQueueConsent(consent: AnalyticsConsent): Promise<void> {
+			await eventQueue.updateConsent(consent);
+		},
+
+		getQueueStats() {
+			return eventQueue.getQueueStats();
 		},
 	};
 }

@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Testing snapshot for post-hog destination: > group action - all fields 1`] = `
+exports[`Testing snapshot for posthog destination: > group action - all fields 1`] = `
 {
   "api_key": "QSTQtQ6Mt@8SUf$o#",
   "distinct_id": "QSTQtQ6Mt@8SUf$o#",
@@ -20,7 +20,7 @@ exports[`Testing snapshot for post-hog destination: > group action - all fields 
 }
 `;
 
-exports[`Testing snapshot for post-hog destination: > group action - required fields 1`] = `
+exports[`Testing snapshot for posthog destination: > group action - required fields 1`] = `
 {
   "api_key": "QSTQtQ6Mt@8SUf$o#",
   "distinct_id": "QSTQtQ6Mt@8SUf$o#",
@@ -38,7 +38,7 @@ exports[`Testing snapshot for post-hog destination: > group action - required fi
 }
 `;
 
-exports[`Testing snapshot for post-hog destination: > identify action - all fields 1`] = `
+exports[`Testing snapshot for posthog destination: > identify action - all fields 1`] = `
 {
   "api_key": "9hF@#E!78x",
   "distinct_id": "9hF@#E!78x",
@@ -53,7 +53,7 @@ exports[`Testing snapshot for post-hog destination: > identify action - all fiel
 }
 `;
 
-exports[`Testing snapshot for post-hog destination: > identify action - required fields 1`] = `
+exports[`Testing snapshot for posthog destination: > identify action - required fields 1`] = `
 {
   "api_key": "9hF@#E!78x",
   "distinct_id": "9hF@#E!78x",
@@ -64,7 +64,7 @@ exports[`Testing snapshot for post-hog destination: > identify action - required
 }
 `;
 
-exports[`Testing snapshot for post-hog destination: > page action - all fields 1`] = `
+exports[`Testing snapshot for posthog destination: > page action - all fields 1`] = `
 {
   "api_key": "Oi]BbduLdb",
   "distinct_id": "Oi]BbduLdb",
@@ -106,7 +106,7 @@ exports[`Testing snapshot for post-hog destination: > page action - all fields 1
 }
 `;
 
-exports[`Testing snapshot for post-hog destination: > page action - required fields 1`] = `
+exports[`Testing snapshot for posthog destination: > page action - required fields 1`] = `
 {
   "api_key": "Oi]BbduLdb",
   "distinct_id": "Oi]BbduLdb",
@@ -123,7 +123,7 @@ exports[`Testing snapshot for post-hog destination: > page action - required fie
 }
 `;
 
-exports[`Testing snapshot for post-hog destination: > track action - all fields 1`] = `
+exports[`Testing snapshot for posthog destination: > track action - all fields 1`] = `
 {
   "api_key": "C!vVr6$",
   "distinct_id": "C!vVr6$",
@@ -167,7 +167,7 @@ exports[`Testing snapshot for post-hog destination: > track action - all fields 
 }
 `;
 
-exports[`Testing snapshot for post-hog destination: > track action - required fields 1`] = `
+exports[`Testing snapshot for posthog destination: > track action - required fields 1`] = `
 {
   "api_key": "C!vVr6$",
   "distinct_id": "C!vVr6$",
