@@ -6,7 +6,7 @@
 	"module": "./dist/index.js",
 	"types": "./dist/src/index.d.ts",
 	"scripts": {
-		"build": "tsx scripts/build.ts",
+		"build": "rslib build",
 		"generate-types": "tsx scripts/generate-types.ts",
 		"dev": "rslib build --watch",
 		"test": "vitest run"

@@ -34,7 +34,7 @@ export type PostHogSettings = z.infer<typeof PostHogSettingsSchema>;
  * Supports all event types with proper GDPR consent filtering.
  */
 export class PostHogDestination implements DestinationPlugin<PostHogSettings> {
-	readonly type = 'posthog';
+	readonly type = 'post-hog';
 	readonly name = 'PostHog';
 	readonly description = 'PostHog product analytics destination';
 	readonly category = 'analytics' as const;
@@ -325,7 +325,7 @@ export class PostHogDestination implements DestinationPlugin<PostHogSettings> {
  */
 export function createPostHogDestination(settings: PostHogSettings) {
 	return {
-		type: 'posthog',
+		type: 'post-hog',
 		enabled: true,
 		settings,
 		requiredConsent: ['measurement'] as const,

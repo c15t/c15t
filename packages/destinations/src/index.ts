@@ -46,13 +46,16 @@ export type {
 
 export type {
 	ConsoleSettings,
+	DestinationConfig,
 	PostHogSettings,
 } from './destinations';
-// Export our new destinations
+// Export destination classes and factory functions
+// Export destination registry for automatic loading
 export {
 	ConsoleDestination,
 	createConsoleDestination,
 	createPostHogDestination,
+	destinationRegistry,
 	PostHogClient,
 	PostHogDestination,
 } from './destinations';

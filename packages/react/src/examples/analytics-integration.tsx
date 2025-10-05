@@ -98,7 +98,7 @@ function App() {
 				],
 				store: {
 					analytics: {
-						uploadUrl: '/api/analytics',
+						uploadUrl: 'http://localhost:8787/analytics/process',
 						debug: true,
 						debounceInterval: 300,
 						offlineQueue: true,

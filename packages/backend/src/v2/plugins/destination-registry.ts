@@ -51,12 +51,12 @@ class DestinationPluginRegistry {
 	}
 
 	/**
-	 * Get all registered plugins as a Map.
+	 * Get all registered plugins as a plain object.
 	 *
-	 * @returns Copy of the plugins map for safe iteration
+	 * @returns Object with destination types as keys and factories as values
 	 */
-	getPlugins(): Map<string, DestinationFactory> {
-		return new Map(this.plugins);
+	getPlugins(): Record<string, DestinationFactory> {
+		return Object.fromEntries(this.plugins);
 	}
 
 	/**

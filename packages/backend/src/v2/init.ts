@@ -6,6 +6,8 @@ import { version as packageVersion } from '../version';
 import { createRegistry } from './db/registry';
 import { DB } from './db/schema';
 import { DestinationManager } from './handlers/analytics/destination-manager';
+import { EventProcessor } from './handlers/analytics/event-processor';
+import { processAnalyticsEvents } from './handlers/analytics/process.handler';
 import { createTelemetryOptions } from './utils/create-telemetry-options';
 import { initLogger } from './utils/logger';
 
@@ -141,3 +143,191 @@ export const init = (options: C15TOptions): C15TContext => {
 
 	return context;
 };
+
+// ============================================================================
+// c15tInstance Factory Function
+// ============================================================================
+
+/**
+ * Custom error types for initialization
+ */
+export class C15TInitializationError extends Error {
+	constructor(
+		message: string,
+		public component?: string
+	) {
+		super(message);
+		this.name = 'C15TInitializationError';
+	}
+}
+
+export class ConfigurationError extends C15TInitializationError {
+	constructor(
+		message: string,
+		public field?: string
+	) {
+		super(message, 'configuration');
+		this.name = 'ConfigurationError';
+	}
+}
+
+/**
+ * Enhanced context returned by c15tInstance factory
+ */
+export interface C15TInstanceContext extends C15TContext {
+	// Core analytics components
+	eventProcessor: EventProcessor;
+
+	// HTTP handlers
+	handlers: {
+		processEvents: typeof processAnalyticsEvents;
+	};
+
+	// Utilities
+	utils: {
+		getDestinationStatus: (type: string) => any;
+		testDestination: (type: string) => Promise<boolean>;
+		getLoadedDestinations: () => any[];
+	};
+}
+
+/**
+ * Options validation function
+ */
+function validateAnalyticsOptions(options: C15TOptions): void {
+	if (!options.analytics) {
+		return;
+	}
+
+	const { destinations = [] } = options.analytics;
+
+	// Validate destinations
+	for (const dest of destinations) {
+		if (!dest.type) {
+			throw new ConfigurationError('Destination type is required');
+		}
+		if (!dest.settings) {
+			throw new ConfigurationError('Destination settings are required');
+		}
+	}
+}
+
+/**
+ * Error handling for initialization failures
+ */
+function handleInitializationError(error: Error, component: string): never {
+	if (error instanceof ConfigurationError) {
+		throw error;
+	}
+
+	throw new C15TInitializationError(
+		`Failed to initialize ${component}: ${error.message}`,
+		component
+	);
+}
+
+/**
+ * Main factory function for creating analytics instances
+ *
+ * This is the primary entry point that developers use to initialize the analytics system.
+ * It integrates all core components (EventProcessor, DestinationManager, etc.) and
+ * returns a context object with handlers and utilities.
+ *
+ * @param options - Configuration options for the analytics instance
+ * @returns Promise resolving to the analytics context
+ *
+ * @throws {ConfigurationError} When configuration is invalid
+ * @throws {C15TInitializationError} When component initialization fails
+ *
+ * @example
+ * ```typescript
+ * // Basic usage
+ * const instance = await c15tInstance({
+ *   analytics: {
+ *     destinations: [
+ *       { type: 'posthog', enabled: true, settings: { apiKey: 'phc_xxx' } },
+ *       { type: 'console', enabled: true, settings: { logLevel: 'debug' } },
+ *     ],
+ *   },
+ * });
+ *
+ * // Using the handlers
+ * app.post('/analytics/process', instance.handlers.processEvents);
+ *
+ * // Using utilities
+ * const status = instance.utils.getDestinationStatus('posthog');
+ * const isConnected = await instance.utils.testDestination('posthog');
+ * ```
+ */
+export async function c15tInstance(
+	options: C15TOptions
+): Promise<C15TInstanceContext> {
+	const appName = options.appName || 'c15t';
+	const logger = initLogger({
+		...options.logger,
+		appName: String(appName),
+	});
+
+	try {
+		logger.info('Initializing c15t analytics instance', {
+			appName,
+			hasAnalytics: !!options.analytics,
+			destinationCount: options.analytics?.destinations?.length || 0,
+		});
+
+		// Validate options
+		validateAnalyticsOptions(options);
+
+		// Initialize core components
+		const eventProcessor = new EventProcessor(logger);
+		const destinationManager = new DestinationManager(
+			logger,
+			options.analytics?.customRegistry
+		);
+
+		// Load destinations if analytics is configured
+		if (options.analytics?.destinations) {
+			const destinations = options.analytics.destinations;
+
+			if (destinations.length > 0) {
+				logger.info('Loading destinations', { count: destinations.length });
+				await destinationManager.loadDestinations(destinations);
+			}
+		}
+
+		// Create base context using existing init function
+		const baseContext = init(options);
+
+		// Create enhanced context
+		const context: C15TInstanceContext = {
+			...baseContext,
+			eventProcessor,
+			handlers: {
+				processEvents: processAnalyticsEvents,
+			},
+			utils: {
+				getDestinationStatus: (type: string) =>
+					destinationManager.getDestinationStatus(type),
+				testDestination: (type: string) =>
+					destinationManager.testDestination(type),
+				getLoadedDestinations: () => destinationManager.getLoadedDestinations(),
+			},
+		};
+
+		logger.info('c15t analytics instance initialized successfully', {
+			loadedDestinations: context.utils.getLoadedDestinations().length,
+		});
+
+		return context;
+	} catch (error) {
+		logger.error('Failed to initialize c15t analytics instance', {
+			error: error instanceof Error ? error.message : String(error),
+			stack: error instanceof Error ? error.stack : undefined,
+		});
+
+		handleInitializationError(
+			error instanceof Error ? error : new Error(String(error)),
+			'analytics-instance'
+		);
+	}
+}
