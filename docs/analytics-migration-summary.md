@@ -70,7 +70,7 @@ const instance = c15tInstance({
 
 ```
 ┌──────────────────────────────────────────────┐
-│  Frontend (@c15t/core)                       │
+│  Frontend (c15t)                       │
 │  - Event Detective (already migrated)        │
 │  - Consent management                        │
 │  - Cookie banner integration                 │

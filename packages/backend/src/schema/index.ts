@@ -21,7 +21,7 @@
  *   getConsentTables,
  *   parseInputData,
  *   type C15TDBSchema
- * } from '@c15t/core/db/schema';
+ * } from '@c15t/backend/v2/db/schema';
  *
  * // Get the complete schema
  * const tables = getConsentTables(options);

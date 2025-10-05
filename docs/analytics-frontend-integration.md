@@ -587,7 +587,7 @@ export default function RootLayout({ children }) {
 ```javascript
 // app.js
 
-import { createConsentManager } from '@c15t/core';
+import { createConsentManager } from 'c15t';
 
 const manager = createConsentManager({
 	backendUrl: 'https://api.example.com/c15t',

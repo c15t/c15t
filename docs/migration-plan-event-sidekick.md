@@ -1323,7 +1323,7 @@ Risk: Minimal (can re-enable OneTrust instantly)
 /**
  * Frontend: Consent persisted in cookies/localStorage
  */
-import { getConsent, setConsent } from '@c15t/core/analytics';
+import { getConsent, setConsent } from 'c15t/analytics';
 
 // Get current consent
 const currentConsent = getConsent();

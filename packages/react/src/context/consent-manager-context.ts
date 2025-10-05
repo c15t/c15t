@@ -7,9 +7,11 @@
 
 import type {
 	AliasAction,
+	AnalyticsConsent,
 	AnalyticsState,
 	CommonAction,
 	CommonProperties,
+	ConsentChangeEvent,
 	ConsentManagerInterface,
 	GroupAction,
 	GroupTraits,
@@ -74,6 +76,47 @@ export interface ConsentStateContextValue {
 		) => void;
 		resetAnalytics: () => void;
 		flushAnalytics: () => Promise<void>;
+	};
+
+	/**
+	 * Script management functionality (optional)
+	 */
+	scriptManager?: {
+		scripts: Map<string, any>;
+		loading: boolean;
+		error?: string;
+		stats: any;
+		loadScripts: (scripts: any[]) => Promise<any[]>;
+		unloadScriptsByConsent: (consent: AnalyticsConsent) => void;
+		reloadScripts: (scripts: any[]) => Promise<any[]>;
+		clearAllScripts: () => void;
+		clearCache: () => void;
+		retryFailedScripts: () => Promise<any[]>;
+		preloadScripts: (scripts: any[]) => Promise<void>;
+		getScriptStatus: (scriptId: string) => any;
+		isScriptLoaded: (scriptId: string) => boolean;
+		getScriptsByConsent: (consent: AnalyticsConsent) => any[];
+	};
+
+	/**
+	 * Consent synchronization functionality (optional)
+	 */
+	consentSync?: {
+		consent: AnalyticsConsent;
+		loading: boolean;
+		error?: string;
+		lastUpdated: number;
+		source: string;
+		tabId: string;
+		stats: any;
+		updateConsent: (
+			consent: AnalyticsConsent,
+			source?: string,
+			reason?: string
+		) => Promise<void>;
+		resetConsent: () => Promise<void>;
+		getChangeHistory: () => ConsentChangeEvent[];
+		getConsentStats: () => any;
 	};
 }
 

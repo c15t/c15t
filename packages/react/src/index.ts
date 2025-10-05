@@ -21,6 +21,7 @@ export {
 export { CookieBanner } from './components/cookie-banner';
 export type { CookieBannerProps } from './components/cookie-banner/cookie-banner';
 export { Frame, type FrameProps } from './components/frame';
+export { ScriptLoadingStatus } from './components/script-loading-status';
 export type { AnalyticsContextValue } from './hooks/use-analytics';
 // Export analytics hooks
 export {
@@ -36,10 +37,13 @@ export {
 	useReset,
 	useTrack,
 } from './hooks/use-analytics';
+export { useAnalyticsScripts } from './hooks/use-analytics-scripts';
 export { useColorScheme } from './hooks/use-color-scheme';
 // Export hooks
 export { useConsentManager } from './hooks/use-consent-manager';
 export { useFocusTrap } from './hooks/use-focus-trap';
+// Export new hooks
+export { useConsentSync, useScriptManager } from './hooks/use-script-manager';
 export { useTranslations } from './hooks/use-translations';
 /**
  * @module

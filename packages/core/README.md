@@ -58,7 +58,7 @@ The CLI will:
 ## Manual Installation
 
 ```bash
-pnpm add @c15t/core
+pnpm add c15t
 ```
 
 To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/javascript/quickstart#manual-setup).
@@ -73,7 +73,7 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
 
 ```typescript
 // Example usage
-import { ConsentManager } from '@c15t/core'
+import { ConsentManager } from 'c15t'
 
 const consentManager = new ConsentManager({
   // Your configuration

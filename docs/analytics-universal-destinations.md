@@ -32,7 +32,7 @@ export interface UniversalDestinationPlugin<TSettings = Record<string, unknown>>
 	 * 
 	 * @param settings - Validated destination settings
 	 * @param consent - Current consent state
-	 * @returns Script configuration for @c15t/core script loader
+	 * @returns Script configuration for c15t script loader
 	 */
 	generateScript?(
 		settings: TSettings,
@@ -47,7 +47,7 @@ export interface UniversalDestinationPlugin<TSettings = Record<string, unknown>>
 }
 
 /**
- * Script configuration from @c15t/core
+ * Script configuration from c15t
  */
 export interface Script {
 	id: string;
@@ -72,7 +72,7 @@ export interface Script {
 // packages/backend/src/v2/handlers/analytics/destination-plugin.ts
 
 import type { StandardSchemaV1 } from '@standard-schema/spec';
-import type { Script } from '@c15t/core';
+import type { Script } from 'c15t';
 
 export interface UniversalDestinationPlugin<TSettings = Record<string, unknown>>
 	extends DestinationPlugin<TSettings> {
@@ -196,7 +196,7 @@ class MetaPixelDestination implements UniversalDestinationPlugin<MetaPixelSettin
 	
 	/**
 	 * Client-side: Generate Meta Pixel script
-	 * This is loaded in the browser via @c15t/core script loader
+	 * This is loaded in the browser via c15t script loader
 	 */
 	generateScript(
 		settings: MetaPixelSettings,
@@ -936,7 +936,7 @@ const scripts = await instance.getClientScripts(consent);  // Generated automati
    - Add to: `packages/backend/src/v2/handlers/analytics/destination-plugin.ts`
 
 2. **Add `Script` type definitions**
-   - Import from `@c15t/core` or duplicate
+   - Import from `c15t` or duplicate
    - Add to: `packages/backend/src/v2/types/script.ts`
 
 3. **Add scripts endpoint**
@@ -1088,7 +1088,7 @@ export function AnalyticsScripts() {
 | `@c15t/backend` | Add `UniversalDestinationPlugin`, scripts endpoint | 🆕 New |
 | `@c15t/destinations` | Implement `generateScript()` for relevant destinations | 🔄 Update |
 | `@c15t/scripts` | Mark as deprecated, point to destinations | ⚠️ Deprecate |
-| `@c15t/core` | Add `fetchAnalyticsScripts()` utility | 🆕 New |
+| `c15t` | Add `fetchAnalyticsScripts()` utility | 🆕 New |
 | `@c15t/react` | Add `useAnalyticsScripts()` hook | 🆕 New |
 
 ### Benefits

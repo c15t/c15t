@@ -5,10 +5,13 @@
 
 import type {
 	AllConsentNames,
+	AnalyticsConsent,
 	Callbacks,
+	ConsentChangeEvent,
 	ConsentManagerOptions as CoreOptions,
 	GTMConfiguration,
 	Script,
+	ScriptManagerOptions,
 	TrackingBlockerConfig,
 	TranslationConfig,
 } from 'c15t';
@@ -107,6 +110,33 @@ export type ConsentManagerOptions = CoreOptions & {
 	 * @deprecated This is deprecated and will be removed in the next major version. Use the new [ScriptLoader](https://c15t.com/docs/react/script-loader) instead.
 	 */
 	trackingBlockerConfig?: TrackingBlockerConfig;
+
+	/**
+	 * Enable script management for analytics destinations.
+	 * @default true
+	 */
+	enableScriptManagement?: boolean;
+
+	/**
+	 * Enable consent synchronization across browser tabs.
+	 * @default true
+	 */
+	enableConsentSync?: boolean;
+
+	/**
+	 * Script manager configuration options.
+	 */
+	scriptManagerOptions?: ScriptManagerOptions;
+
+	/**
+	 * Callback for consent changes.
+	 */
+	onConsentChange?: (change: ConsentChangeEvent) => void;
+
+	/**
+	 * Initial consent state.
+	 */
+	initialConsent?: AnalyticsConsent;
 };
 
 /**

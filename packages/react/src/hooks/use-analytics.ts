@@ -1,115 +1,327 @@
 /**
- * @packageDocumentation
- * React hooks for analytics functionality.
- * Provides convenient hooks for tracking events and managing analytics state.
+ * @fileoverview Analytics hook that integrates with the existing consent manager.
+ * Provides analytics functionality with script management and consent synchronization.
  */
 
-import type {
-	AliasAction,
-	AnalyticsState,
-	CommonAction,
-	CommonProperties,
-	GroupAction,
-	GroupTraits,
-	IdentifyAction,
-	PageAction,
-	PageEventProperties,
-	TrackAction,
-	TrackEventProperties,
-	UserTraits,
-} from 'c15t';
+import type { AnalyticsConsent, Script } from 'c15t';
 import { useCallback, useContext } from 'react';
 import { ConsentStateContext } from '../context/consent-manager-context';
 
 /**
- * Analytics context value interface.
- *
- * @remarks
- * This interface defines the structure of analytics functionality
- * that is now integrated into the consent manager.
+ * Options for useAnalytics hook
  */
-export interface AnalyticsContextValue {
-	/** Current analytics state from the store */
-	analytics: AnalyticsState;
-	/** Whether analytics is loaded */
-	isLoaded: boolean;
-	/** Analytics methods from the store with strict typing */
-	track: <T extends TrackEventProperties = TrackEventProperties>(
-		action: TrackAction<T>
-	) => Promise<void>;
-	page: <T extends PageEventProperties = PageEventProperties>(
-		action: PageAction<T>
-	) => Promise<void>;
-	identify: <T extends UserTraits = UserTraits>(
-		action: IdentifyAction<T>
-	) => Promise<void>;
-	group: <T extends GroupTraits = GroupTraits>(
-		action: GroupAction<T>
-	) => Promise<void>;
-	alias: (action: AliasAction) => Promise<void>;
-	common: <T extends CommonProperties = CommonProperties>(
-		action: CommonAction<T>
-	) => void;
-	resetAnalytics: () => void;
-	flushAnalytics: () => Promise<void>;
+export interface UseAnalyticsOptions {
+	/** Enable script management */
+	enableScriptManagement?: boolean;
+	/** Enable consent synchronization */
+	enableConsentSync?: boolean;
+	/** Callback for script load */
+	onScriptLoad?: (script: any) => void;
+	/** Callback for script error */
+	onScriptError?: (error: Error) => void;
 }
 
 /**
- * Hook to access analytics functionality.
- *
- * @remarks
- * This hook provides access to the analytics functionality integrated
- * into the consent manager store. Analytics is now part of the consent manager,
- * so no separate provider is needed.
- *
- * @returns Analytics context value
- * @throws {Error} When used outside of ConsentManagerProvider
- *
- * @example
- * ```tsx
- * function MyComponent() {
- *   const { track, analytics, isLoaded } = useAnalytics();
- *
- *   const handleClick = async () => {
- *     if (isLoaded) {
- *       await track({
- *         name: 'button_clicked',
- *         properties: { button: 'cta' }
- *       });
- *     }
- *   };
- *
- *   return <button onClick={handleClick}>Click me</button>;
- * }
- * ```
- *
- * @public
+ * Return type for useAnalytics hook
  */
-export function useAnalytics(): AnalyticsContextValue {
-	const context = useContext(ConsentStateContext);
+export interface UseAnalyticsReturn {
+	/** Current consent state */
+	consent: AnalyticsConsent;
+	/** Loaded scripts map */
+	scripts: Map<string, any>;
+	/** Loading state */
+	loading: boolean;
+	/** Error state */
+	error?: string;
+	/** Statistics */
+	stats: any;
+	/** Track event */
+	track: (event: string, properties?: any) => Promise<void>;
+	/** Page event */
+	page: (name: string, properties?: any) => Promise<void>;
+	/** Identify user */
+	identify: (userId: string, traits?: any) => Promise<void>;
+	/** Group user */
+	group: (groupId: string, traits?: any) => Promise<void>;
+	/** Alias user */
+	alias: (userId: string, previousId?: string) => Promise<void>;
+	/** Update consent */
+	updateConsent: (
+		consent: AnalyticsConsent,
+		source?: string,
+		reason?: string
+	) => Promise<void>;
+	/** Load scripts */
+	loadScripts: (scripts: Script[]) => Promise<any[]>;
+	/** Unload scripts by consent */
+	unloadScriptsByConsent: (consent: AnalyticsConsent) => void;
+	/** Reload scripts */
+	reloadScripts: (scripts: Script[]) => Promise<any[]>;
+	/** Clear all scripts */
+	clearAllScripts: () => void;
+	/** Clear cache */
+	clearCache: () => void;
+	/** Retry failed scripts */
+	retryFailedScripts: () => Promise<any[]>;
+	/** Preload scripts */
+	preloadScripts: (scripts: Script[]) => Promise<void>;
+	/** Get script status */
+	getScriptStatus: (scriptId: string) => any;
+	/** Check if script is loaded */
+	isScriptLoaded: (scriptId: string) => boolean;
+	/** Get scripts by consent */
+	getScriptsByConsent: (consent: AnalyticsConsent) => Script[];
+}
 
+/**
+ * Hook for analytics functionality with script management and consent synchronization
+ */
+export function useAnalytics(
+	options: UseAnalyticsOptions = {}
+): UseAnalyticsReturn {
+	const { onScriptLoad, onScriptError } = options;
+
+	const context = useContext(ConsentStateContext);
 	if (!context) {
 		throw new Error(
 			'useAnalytics must be used within a ConsentManagerProvider'
 		);
 	}
 
+	const { analytics, scriptManager, consentSync } = context;
+
+	// Get consent from consent sync or fallback to analytics state
+	const consent: AnalyticsConsent = consentSync?.consent || {
+		necessary: true,
+		measurement: false,
+		marketing: false,
+		functionality: false,
+		experience: false,
+	};
+
+	// Track event
+	const track = useCallback(
+		async (event: string, properties?: any) => {
+			try {
+				await analytics.track({
+					name: event,
+					properties: properties || {},
+				});
+			} catch (error) {
+				console.error('Failed to track event', error);
+			}
+		},
+		[analytics]
+	);
+
+	// Page event
+	const page = useCallback(
+		async (name: string, properties?: any) => {
+			try {
+				await analytics.page({
+					name,
+					properties: properties || {},
+				});
+			} catch (error) {
+				console.error('Failed to track page', error);
+			}
+		},
+		[analytics]
+	);
+
+	// Identify user
+	const identify = useCallback(
+		async (userId: string, traits?: any) => {
+			try {
+				await analytics.identify({
+					userId,
+					traits: traits || {},
+				});
+			} catch (error) {
+				console.error('Failed to identify user', error);
+			}
+		},
+		[analytics]
+	);
+
+	// Group user
+	const group = useCallback(
+		async (groupId: string, traits?: any) => {
+			try {
+				await analytics.group({
+					groupId,
+					traits: traits || {},
+				});
+			} catch (error) {
+				console.error('Failed to group user', error);
+			}
+		},
+		[analytics]
+	);
+
+	// Alias user
+	const alias = useCallback(
+		async (userId: string, previousId?: string) => {
+			try {
+				await analytics.alias({
+					previousId,
+				});
+			} catch (error) {
+				console.error('Failed to alias user', error);
+			}
+		},
+		[analytics]
+	);
+
+	// Update consent
+	const updateConsent = useCallback(
+		async (
+			newConsent: AnalyticsConsent,
+			source = 'user-action',
+			reason?: string
+		) => {
+			if (consentSync) {
+				try {
+					await consentSync.updateConsent(newConsent, source, reason);
+				} catch (error) {
+					console.error('Failed to update consent', error);
+				}
+			}
+		},
+		[consentSync]
+	);
+
+	// Script management functions (with fallbacks if script manager not available)
+	const loadScripts = useCallback(
+		async (scripts: Script[]) => {
+			if (scriptManager) {
+				try {
+					const loadedScripts = await scriptManager.loadScripts(scripts);
+					for (const script of loadedScripts) {
+						onScriptLoad?.(script);
+					}
+					return loadedScripts;
+				} catch (error) {
+					onScriptError?.(
+						error instanceof Error ? error : new Error(String(error))
+					);
+					throw error;
+				}
+			}
+			return [];
+		},
+		[scriptManager, onScriptLoad, onScriptError]
+	);
+
+	const unloadScriptsByConsent = useCallback(
+		(consentToCheck: AnalyticsConsent) => {
+			scriptManager?.unloadScriptsByConsent(consentToCheck);
+		},
+		[scriptManager]
+	);
+
+	const reloadScripts = useCallback(
+		async (scripts: Script[]) => {
+			if (scriptManager) {
+				try {
+					return await scriptManager.reloadScripts(scripts);
+				} catch (error) {
+					onScriptError?.(
+						error instanceof Error ? error : new Error(String(error))
+					);
+					throw error;
+				}
+			}
+			return [];
+		},
+		[scriptManager, onScriptError]
+	);
+
+	const clearAllScripts = useCallback(() => {
+		scriptManager?.clearAllScripts();
+	}, [scriptManager]);
+
+	const clearCache = useCallback(() => {
+		scriptManager?.clearCache();
+	}, [scriptManager]);
+
+	const retryFailedScripts = useCallback(async () => {
+		if (scriptManager) {
+			try {
+				return await scriptManager.retryFailedScripts();
+			} catch (error) {
+				onScriptError?.(
+					error instanceof Error ? error : new Error(String(error))
+				);
+				throw error;
+			}
+		}
+		return [];
+	}, [scriptManager, onScriptError]);
+
+	const preloadScripts = useCallback(
+		async (scripts: Script[]) => {
+			if (scriptManager) {
+				try {
+					await scriptManager.preloadScripts(scripts);
+				} catch (error) {
+					onScriptError?.(
+						error instanceof Error ? error : new Error(String(error))
+					);
+				}
+			}
+		},
+		[scriptManager, onScriptError]
+	);
+
+	const getScriptStatus = useCallback(
+		(scriptId: string) => {
+			return scriptManager?.getScriptStatus(scriptId) || null;
+		},
+		[scriptManager]
+	);
+
+	const isScriptLoaded = useCallback(
+		(scriptId: string) => {
+			return scriptManager?.isScriptLoaded(scriptId) || false;
+		},
+		[scriptManager]
+	);
+
+	const getScriptsByConsent = useCallback(
+		(consentToCheck: AnalyticsConsent) => {
+			return scriptManager?.getScriptsByConsent(consentToCheck) || [];
+		},
+		[scriptManager]
+	);
+
 	return {
-		analytics: context.analytics.state,
-		isLoaded: context.analytics.isLoaded,
-		track: context.analytics.track,
-		page: context.analytics.page,
-		identify: context.analytics.identify,
-		group: context.analytics.group,
-		alias: context.analytics.alias,
-		common: context.analytics.common,
-		resetAnalytics: context.analytics.resetAnalytics,
-		flushAnalytics: context.analytics.flushAnalytics,
+		consent,
+		scripts: scriptManager?.scripts || new Map(),
+		loading: scriptManager?.loading || false,
+		error: scriptManager?.error,
+		stats: scriptManager?.stats || {},
+		track,
+		page,
+		identify,
+		group,
+		alias,
+		updateConsent,
+		loadScripts,
+		unloadScriptsByConsent,
+		reloadScripts,
+		clearAllScripts,
+		clearCache,
+		retryFailedScripts,
+		preloadScripts,
+		getScriptStatus,
+		isScriptLoaded,
+		getScriptsByConsent,
 	};
 }
 
 /**
- * Hook for tracking custom events.
+ * Hook for tracking events.
  *
  * @returns Function to track events
  *
@@ -121,7 +333,7 @@ export function useAnalytics(): AnalyticsContextValue {
  *   const handleClick = () => {
  *     track({
  *       name: 'button_clicked',
- *       properties: { button: 'cta', page: '/home' }
+ *       properties: { button: 'cta' }
  *     });
  *   };
  *
@@ -130,17 +342,15 @@ export function useAnalytics(): AnalyticsContextValue {
  * ```
  */
 export function useTrack() {
-	const { track, isLoaded } = useAnalytics();
+	const { track, loading } = useAnalytics();
 
 	return useCallback(
-		async <T extends TrackEventProperties = TrackEventProperties>(
-			action: TrackAction<T>
-		) => {
-			if (isLoaded) {
-				await track(action);
+		async (event: string, properties?: any) => {
+			if (!loading) {
+				await track(event, properties);
 			}
 		},
-		[track, isLoaded]
+		[track, loading]
 	);
 }
 
@@ -155,10 +365,7 @@ export function useTrack() {
  *   const page = usePage();
  *
  *   useEffect(() => {
- *     page({
- *       name: 'Homepage',
- *       properties: { section: 'hero' }
- *     });
+ *     page('Homepage', { section: 'hero' });
  *   }, [page]);
  *
  *   return <div>Homepage content</div>;
@@ -166,17 +373,15 @@ export function useTrack() {
  * ```
  */
 export function usePage() {
-	const { page, isLoaded } = useAnalytics();
+	const { page, loading } = useAnalytics();
 
 	return useCallback(
-		async <T extends PageEventProperties = PageEventProperties>(
-			action: PageAction<T>
-		) => {
-			if (isLoaded) {
-				await page(action);
+		async (name: string, properties?: any) => {
+			if (!loading) {
+				await page(name, properties);
 			}
 		},
-		[page, isLoaded]
+		[page, loading]
 	);
 }
 
@@ -191,9 +396,9 @@ export function usePage() {
  *   const identify = useIdentify();
  *
  *   const handleLogin = (user) => {
- *     identify({
- *       userId: user.id,
- *       traits: { email: user.email, plan: user.plan }
+ *     identify(user.id, {
+ *       email: user.email,
+ *       name: user.name
  *     });
  *   };
  *
@@ -202,224 +407,161 @@ export function usePage() {
  * ```
  */
 export function useIdentify() {
-	const { identify, isLoaded } = useAnalytics();
+	const { identify, loading } = useAnalytics();
 
 	return useCallback(
-		async <T extends UserTraits = UserTraits>(action: IdentifyAction<T>) => {
-			if (isLoaded) {
-				await identify(action);
+		async (userId: string, traits?: any) => {
+			if (!loading) {
+				await identify(userId, traits);
 			}
 		},
-		[identify, isLoaded]
+		[identify, loading]
 	);
 }
 
 /**
- * Hook for tracking groups.
+ * Hook for grouping users.
  *
- * @returns Function to track groups
+ * @returns Function to group users
  *
  * @example
  * ```tsx
- * function CompanySettings() {
+ * function OrganizationPage() {
  *   const group = useGroup();
  *
- *   const handleCompanyUpdate = (company) => {
- *     group({
- *       groupId: company.id,
- *       traits: { name: company.name, plan: company.plan }
+ *   const handleJoinOrg = (orgId) => {
+ *     group(orgId, {
+ *       name: 'Acme Corp',
+ *       plan: 'enterprise'
  *     });
  *   };
  *
- *   return <form onSubmit={handleCompanyUpdate}>...</form>;
+ *   return <button onClick={handleJoinOrg}>Join Organization</button>;
  * }
  * ```
  */
 export function useGroup() {
-	const { group, isLoaded } = useAnalytics();
+	const { group, loading } = useAnalytics();
 
 	return useCallback(
-		async <T extends GroupTraits = GroupTraits>(action: GroupAction<T>) => {
-			if (isLoaded) {
-				await group(action);
+		async (groupId: string, traits?: any) => {
+			if (!loading) {
+				await group(groupId, traits);
 			}
 		},
-		[group, isLoaded]
+		[group, loading]
 	);
 }
 
 /**
- * Hook for aliasing user IDs.
+ * Hook for aliasing users.
  *
- * @returns Function to alias user IDs
+ * @returns Function to alias users
  *
  * @example
  * ```tsx
- * function UserRegistration() {
+ * function UserMerge() {
  *   const alias = useAlias();
  *
- *   const handleRegistration = (user) => {
- *     alias({
- *       to: user.id,
- *       from: user.tempId
- *     });
+ *   const handleMerge = (newId, oldId) => {
+ *     alias(newId, oldId);
  *   };
  *
- *   return <form onSubmit={handleRegistration}>...</form>;
+ *   return <button onClick={() => handleMerge('new123', 'old456')}>Merge Users</button>;
  * }
  * ```
  */
 export function useAlias() {
-	const { alias, isLoaded } = useAnalytics();
+	const { alias, loading } = useAnalytics();
 
 	return useCallback(
-		async (action: AliasAction) => {
-			if (isLoaded) {
-				await alias(action);
+		async (userId: string, previousId?: string) => {
+			if (!loading) {
+				await alias(userId, previousId);
 			}
 		},
-		[alias, isLoaded]
+		[alias, loading]
 	);
 }
 
 /**
- * Hook for setting common properties.
+ * Hook for common analytics operations.
  *
- * @returns Function to set common properties
- *
- * @example
- * ```tsx
- * function App() {
- *   const common = useCommon();
- *
- *   useEffect(() => {
- *     common({
- *       properties: {
- *         app_version: '1.0.0',
- *         environment: 'production'
- *       }
- *     });
- *   }, [common]);
- *
- *   return <div>App content</div>;
- * }
- * ```
- */
-export function useCommon() {
-	const { common } = useAnalytics();
-
-	return useCallback(
-		<T extends CommonProperties = CommonProperties>(
-			action: CommonAction<T>
-		) => {
-			common(action);
-		},
-		[common]
-	);
-}
-
-/**
- * Hook for resetting analytics data.
- *
- * @returns Function to reset analytics
+ * @returns Object with common analytics functions
  *
  * @example
  * ```tsx
- * function LogoutButton() {
- *   const reset = useReset();
- *
- *   const handleLogout = () => {
- *     reset();
- *     // Perform logout logic
- *   };
- *
- *   return <button onClick={handleLogout}>Logout</button>;
- * }
- * ```
- */
-export function useReset() {
-	const { resetAnalytics } = useAnalytics();
-
-	return useCallback(() => {
-		resetAnalytics();
-	}, [resetAnalytics]);
-}
-
-/**
- * Hook for flushing analytics events.
- *
- * @returns Function to flush events
- *
- * @example
- * ```tsx
- * function BeforeUnload() {
- *   const flush = useFlush();
- *
- *   useEffect(() => {
- *     const handleBeforeUnload = () => {
- *       flush();
- *     };
- *
- *     window.addEventListener('beforeunload', handleBeforeUnload);
- *     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
- *   }, [flush]);
- *
- *   return null;
- * }
- * ```
- */
-export function useFlush() {
-	const { flushAnalytics } = useAnalytics();
-
-	return useCallback(async () => {
-		await flushAnalytics();
-	}, [flushAnalytics]);
-}
-
-/**
- * Hook for accessing analytics state.
- *
- * @returns Current analytics state
- *
- * @example
- * ```tsx
- * function AnalyticsDebug() {
- *   const state = useAnalyticsState();
+ * function AnalyticsPanel() {
+ *   const { reset, flush } = useCommon();
  *
  *   return (
  *     <div>
- *       <p>Loaded: {state.loaded ? 'Yes' : 'No'}</p>
- *       <p>User ID: {state.userId || 'Anonymous'}</p>
- *       <p>Consent: {JSON.stringify(state.consent)}</p>
+ *       <button onClick={reset}>Reset Analytics</button>
+ *       <button onClick={flush}>Flush Events</button>
  *     </div>
  *   );
  * }
  * ```
  */
+export function useCommon() {
+	const analytics = useAnalytics();
+
+	return {
+		reset: analytics.clearAllScripts,
+		flush: analytics.clearCache,
+	};
+}
+
+/**
+ * Hook for resetting analytics.
+ *
+ * @returns Function to reset analytics
+ */
+export function useReset() {
+	const { clearAllScripts } = useAnalytics();
+
+	return useCallback(() => {
+		clearAllScripts();
+	}, [clearAllScripts]);
+}
+
+/**
+ * Hook for flushing analytics events.
+ *
+ * @returns Function to flush analytics events
+ */
+export function useFlush() {
+	const { clearCache } = useAnalytics();
+
+	return useCallback(() => {
+		clearCache();
+	}, [clearCache]);
+}
+
+/**
+ * Hook for getting analytics state.
+ *
+ * @returns Current analytics state
+ */
 export function useAnalyticsState() {
-	const { analytics } = useAnalytics();
-	return analytics;
+	const { consent, scripts, loading, error, stats } = useAnalytics();
+
+	return {
+		consent,
+		scripts,
+		loading,
+		error,
+		stats,
+	};
 }
 
 /**
  * Hook for checking if analytics is loaded.
  *
  * @returns Whether analytics is loaded
- *
- * @example
- * ```tsx
- * function ConditionalTracking() {
- *   const isLoaded = useIsAnalyticsLoaded();
- *
- *   if (!isLoaded) {
- *     return <div>Loading analytics...</div>;
- *   }
- *
- *   return <div>Analytics ready!</div>;
- * }
- * ```
  */
 export function useIsAnalyticsLoaded() {
-	const { isLoaded } = useAnalytics();
-	return isLoaded;
+	const { loading } = useAnalytics();
+
+	return !loading;
 }

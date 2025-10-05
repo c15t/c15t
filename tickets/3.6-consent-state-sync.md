@@ -48,7 +48,7 @@ The synchronization system must:
 
 ### Consent State Manager Implementation
 ```typescript
-import { AnalyticsConsent } from '@c15t/core';
+import { AnalyticsConsent } from 'c15t';
 import { EventEmitter } from 'events';
 
 export interface ConsentChangeEvent {
@@ -489,7 +489,7 @@ export class ConsentStateManager extends EventEmitter {
 ### Consent Sync Hook Implementation
 ```typescript
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { AnalyticsConsent } from '@c15t/core';
+import { AnalyticsConsent } from 'c15t';
 import { ConsentStateManager, ConsentChangeEvent } from '../utils/consent-state-manager';
 
 export interface UseConsentSyncOptions {

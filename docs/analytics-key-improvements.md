@@ -402,7 +402,7 @@ async function processEvents(
 #### Frontend Integration
 
 ```typescript
-import { analytics } from '@c15t/core';
+import { analytics } from 'c15t';
 
 // User interacts with cookie banner
 function onCookieBannerAccept(choices: {

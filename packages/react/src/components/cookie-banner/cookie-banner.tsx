@@ -6,8 +6,10 @@
  * Implements an accessible, customizable banner following GDPR and CCPA requirements.
  */
 
+import type { AnalyticsConsent } from 'c15t';
 import type { FC, ReactNode } from 'react';
 import { ConsentButton } from '~/components/shared/primitives/button';
+import { useAnalytics } from '~/hooks/use-analytics';
 import { useTheme } from '~/hooks/use-theme';
 import { useTranslations } from '~/hooks/use-translations';
 import { CookieBannerRoot } from './atoms/root';
@@ -101,6 +103,33 @@ export interface CookieBannerProps {
 	 * @default false
 	 */
 	disableAnimation?: boolean;
+
+	/**
+	 * Enable script management for analytics destinations
+	 * @default true
+	 */
+	enableScriptManagement?: boolean;
+
+	/**
+	 * Enable consent synchronization across browser tabs
+	 * @default true
+	 */
+	enableConsentSync?: boolean;
+
+	/**
+	 * Callback when user accepts all consent
+	 */
+	onAccept?: (consent: AnalyticsConsent) => void;
+
+	/**
+	 * Callback when user rejects all consent
+	 */
+	onReject?: (consent: AnalyticsConsent) => void;
+
+	/**
+	 * Callback when user customizes consent
+	 */
+	onCustomize?: (consent: AnalyticsConsent) => void;
 }
 
 export const CookieBanner: FC<CookieBannerProps> = ({
@@ -114,8 +143,17 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 	rejectButtonText,
 	customizeButtonText,
 	acceptButtonText,
+	enableScriptManagement = true,
+	enableConsentSync = true,
+	onAccept,
+	onReject,
+	onCustomize,
 }) => {
 	const { cookieBanner, common } = useTranslations();
+	const analytics = useAnalytics({
+		enableScriptManagement,
+		enableConsentSync,
+	});
 
 	// Get global theme context and merge with local props
 	const globalTheme = useTheme();
@@ -124,6 +162,37 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 	const mergedTheme = {
 		...globalTheme.theme,
 		...localTheme,
+	};
+
+	// Handle consent changes
+	const handleAcceptAll = async () => {
+		const allConsent: AnalyticsConsent = {
+			necessary: true,
+			measurement: true,
+			marketing: true,
+			functionality: true,
+			experience: true,
+		};
+		await analytics.updateConsent(allConsent, 'banner-accept-all');
+		onAccept?.(allConsent);
+	};
+
+	const handleRejectAll = async () => {
+		const minimalConsent: AnalyticsConsent = {
+			necessary: true,
+			measurement: false,
+			marketing: false,
+			functionality: false,
+			experience: false,
+		};
+		await analytics.updateConsent(minimalConsent, 'banner-reject-all');
+		onReject?.(minimalConsent);
+	};
+
+	const handleCustomize = async () => {
+		// This would typically open a customization dialog
+		// For now, we'll just call the callback with current consent
+		onCustomize?.(analytics.consent);
 	};
 
 	const mergedProps = {
@@ -153,6 +222,7 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 								closeCookieBanner
 								themeKey="banner.footer.reject-button"
 								data-testid="cookie-banner-reject-button"
+								onClick={handleRejectAll}
 							>
 								{rejectButtonText || common.rejectAll}
 							</ConsentButton>
@@ -161,6 +231,7 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 								closeCookieBanner
 								themeKey="banner.footer.accept-button"
 								data-testid="cookie-banner-accept-button"
+								onClick={handleAcceptAll}
 							>
 								{acceptButtonText || common.acceptAll}
 							</ConsentButton>
@@ -171,6 +242,7 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 							closeCookieBanner
 							themeKey="banner.footer.customize-button"
 							data-testid="cookie-banner-customize-button"
+							onClick={handleCustomize}
 						>
 							{customizeButtonText || common.customize}
 						</ConsentButton>

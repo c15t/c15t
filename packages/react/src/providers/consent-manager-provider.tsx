@@ -13,6 +13,7 @@ import {
 } from '../context/consent-manager-context';
 import { GlobalThemeContext } from '../context/theme-context';
 import { useColorScheme } from '../hooks/use-color-scheme';
+import { useConsentSync, useScriptManager } from '../hooks/use-script-manager';
 import type { ConsentManagerProviderProps } from '../types/consent-manager';
 import { version } from '../version';
 
@@ -82,7 +83,18 @@ export function ConsentManagerProvider({
 	options,
 }: ConsentManagerProviderProps) {
 	// Extract and memoize stable options
-	const { mode, backendURL, store = {}, translations, react = {} } = options;
+	const {
+		mode,
+		backendURL,
+		store = {},
+		translations,
+		react = {},
+		enableScriptManagement = true,
+		enableConsentSync = true,
+		scriptManagerOptions = {},
+		onConsentChange,
+		initialConsent,
+	} = options;
 
 	// Destructure once to avoid redundant access
 	const { initialGdprTypes, initialComplianceSettings } = store;
@@ -94,6 +106,19 @@ export function ConsentManagerProvider({
 		colorScheme,
 		noStyle = false,
 	} = react;
+
+	// Use consent sync hook if enabled
+	const consentSync = useConsentSync({
+		initialConsent,
+		enableCrossTabSync: enableConsentSync,
+		onConsentChange,
+	});
+
+	// Use script manager hook if enabled
+	const scriptManager = useScriptManager({
+		enableCrossTabSync: enableConsentSync,
+		...scriptManagerOptions,
+	});
 
 	// Determine if using c15t.dev domain (memoize the calculation)
 	const isConsentDomain = useMemo(() => {
@@ -288,6 +313,9 @@ export function ConsentManagerProvider({
 				resetAnalytics: consentStore.getState().resetAnalytics,
 				flushAnalytics: consentStore.getState().flushAnalytics,
 			},
+			// Add script management and consent sync
+			scriptManager: enableScriptManagement ? scriptManager : undefined,
+			consentSync: enableConsentSync ? consentSync : undefined,
 		};
 	}, [state, consentStore, consentManager]);
 

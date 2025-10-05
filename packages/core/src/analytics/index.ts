@@ -32,6 +32,15 @@ export {
 	isConsentRequired,
 	isDoNotTrackEnabled,
 } from './consent';
+export type {
+	ConsentChangeEvent,
+	ConsentConflict,
+	ConsentSync,
+	ConsentSyncOptions,
+	ConsentSyncStats,
+} from './consent-sync';
+// Export consent synchronization
+export { createConsentSync } from './consent-sync';
 export {
 	getBrowserLanguage,
 	getCurrentPath,
@@ -44,6 +53,24 @@ export {
 	isServer,
 } from './globals';
 export { EventQueue } from './queue';
+export type {
+	LoadedScript,
+	Script,
+	ScriptManager,
+	ScriptManagerOptions,
+	ScriptManagerStats,
+	ScriptPriority,
+	ScriptStrategy,
+	ScriptType,
+	UniversalScript,
+} from './script-manager';
+
+// Export script management
+export {
+	createScriptManager,
+	ScriptFetchError,
+	ScriptLoadingError,
+} from './script-manager';
 export type {
 	AliasAction,
 	AnalyticsConfig,
