@@ -524,8 +524,8 @@ describe('UniversalDestinationPlugin', () => {
 		expect(destination.type).toBe('minimal');
 		expect(destination.generateScript()).toBeNull();
 		// Optional methods should be undefined
-		expect(destination.getScriptDependencies).toBeUndefined();
-		expect(destination.validateScriptSettings).toBeUndefined();
+		expect('getScriptDependencies' in destination).toBe(false);
+		expect('validateScriptSettings' in destination).toBe(false);
 	});
 });
 
