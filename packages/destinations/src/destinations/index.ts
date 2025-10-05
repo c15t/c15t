@@ -1,15 +1,21 @@
 /**
  * Core server destinations for c15t analytics
  *
- * This module provides the first concrete implementations of the DestinationPlugin interface:
+ * This module provides concrete implementations of the DestinationPlugin interface:
  * - PostHog: Production-ready analytics destination for product analytics
  * - Console: Development/debugging destination for local testing
+ * - Meta Pixel: Universal destination for Facebook/Meta advertising tracking
+ * - Google Analytics: Universal destination for GA4 web analytics
  */
 
 // Re-export DestinationConfig type for proper typing
 export type { DestinationConfig } from '@c15t/backend/v2/types';
 export type { ConsoleSettings } from './console';
 export { ConsoleDestination, createConsoleDestination } from './console';
+export type { GoogleAnalyticsSettings } from './google-analytics';
+export { GoogleAnalyticsDestination } from './google-analytics';
+export type { MetaPixelSettings } from './meta-pixel';
+export { MetaPixelDestination } from './meta-pixel';
 export type { PostHogSettings } from './posthog';
 export { createPostHogDestination, PostHogDestination } from './posthog';
 

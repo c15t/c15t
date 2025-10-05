@@ -8,11 +8,18 @@
  *
  * - **PostHog**: Production-ready analytics destination for product analytics
  * - **Console**: Development/debugging destination for local testing
+ * - **Meta Pixel**: Universal destination for Facebook/Meta advertising tracking
+ * - **Google Analytics**: Universal destination for GA4 web analytics
  *
  * ## Usage
  *
  * ```typescript
- * import { PostHogDestination, ConsoleDestination } from '@c15t/destinations';
+ * import {
+ *   PostHogDestination,
+ *   ConsoleDestination,
+ *   MetaPixelDestination,
+ *   GoogleAnalyticsDestination
+ * } from '@c15t/destinations';
  *
  * // Create PostHog destination
  * const posthog = new PostHogDestination(logger);
@@ -26,6 +33,20 @@
  * await console.initialize({
  *   logLevel: 'debug',
  *   includeContext: true,
+ * });
+ *
+ * // Create Meta Pixel destination
+ * const metaPixel = new MetaPixelDestination(logger);
+ * await metaPixel.initialize({
+ *   pixelId: '123456789',
+ *   accessToken: 'your-access-token',
+ * });
+ *
+ * // Create Google Analytics destination
+ * const ga = new GoogleAnalyticsDestination(logger);
+ * await ga.initialize({
+ *   measurementId: 'G-XXXXXXXXXX',
+ *   apiSecret: 'your-api-secret',
  * });
  * ```
  */
@@ -47,6 +68,8 @@ export type {
 export type {
 	ConsoleSettings,
 	DestinationConfig,
+	GoogleAnalyticsSettings,
+	MetaPixelSettings,
 	PostHogSettings,
 } from './destinations';
 // Export destination classes and factory functions
@@ -56,6 +79,8 @@ export {
 	createConsoleDestination,
 	createPostHogDestination,
 	destinationRegistry,
+	GoogleAnalyticsDestination,
+	MetaPixelDestination,
 	PostHogClient,
 	PostHogDestination,
 } from './destinations';

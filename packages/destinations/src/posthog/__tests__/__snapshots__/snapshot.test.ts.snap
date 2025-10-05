@@ -1,5 +1,190 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`Testing snapshot for post-hog destination: > group action - all fields 1`] = `
+{
+  "api_key": "QSTQtQ6Mt@8SUf$o#",
+  "distinct_id": "QSTQtQ6Mt@8SUf$o#",
+  "event": "$groupidentify",
+  "headers": {},
+  "properties": {
+    "$group_key": "QSTQtQ6Mt@8SUf$o#",
+    "$group_set": {
+      "date_joined": "2021-02-01T00:00:00.000Z",
+      "name": "QSTQtQ6Mt@8SUf$o#",
+      "testType": "QSTQtQ6Mt@8SUf$o#",
+    },
+    "$group_type": "organization",
+    "testType": "QSTQtQ6Mt@8SUf$o#",
+  },
+  "timestamp": Any<String>,
+}
+`;
+
+exports[`Testing snapshot for post-hog destination: > group action - required fields 1`] = `
+{
+  "api_key": "QSTQtQ6Mt@8SUf$o#",
+  "distinct_id": "QSTQtQ6Mt@8SUf$o#",
+  "event": "$groupidentify",
+  "headers": {},
+  "properties": {
+    "$group_key": "QSTQtQ6Mt@8SUf$o#",
+    "$group_set": {
+      "date_joined": "2021-02-01T00:00:00.000Z",
+      "name": "QSTQtQ6Mt@8SUf$o#",
+    },
+    "$group_type": "organization",
+  },
+  "timestamp": Any<String>,
+}
+`;
+
+exports[`Testing snapshot for post-hog destination: > identify action - all fields 1`] = `
+{
+  "api_key": "9hF@#E!78x",
+  "distinct_id": "9hF@#E!78x",
+  "event": "$identify",
+  "headers": {},
+  "properties": {
+    "$set": {
+      "testType": "9hF@#E!78x",
+    },
+  },
+  "timestamp": Any<String>,
+}
+`;
+
+exports[`Testing snapshot for post-hog destination: > identify action - required fields 1`] = `
+{
+  "api_key": "9hF@#E!78x",
+  "distinct_id": "9hF@#E!78x",
+  "event": "$identify",
+  "headers": {},
+  "properties": {},
+  "timestamp": Any<String>,
+}
+`;
+
+exports[`Testing snapshot for post-hog destination: > page action - all fields 1`] = `
+{
+  "api_key": "Oi]BbduLdb",
+  "distinct_id": "Oi]BbduLdb",
+  "event": "$pageview",
+  "headers": {},
+  "properties": {
+    "$browser": "Oi]BbduLdb",
+    "$browser_language": "Oi]BbduLdb",
+    "$browser_version": -28773549007175.68,
+    "$current_url": "Oi]BbduLdb",
+    "$device_type": "Oi]BbduLdb",
+    "$host": "Oi]BbduLdb",
+    "$insert_id": "Oi]BbduLdb",
+    "$ip": "Oi]BbduLdb",
+    "$lib": "Oi]BbduLdb",
+    "$lib_version": "Oi]BbduLdb",
+    "$os": "Oi]BbduLdb",
+    "$os_version": "Oi]BbduLdb",
+    "$pathname": "Oi]BbduLdb",
+    "$raw_user_agent": "Oi]BbduLdb",
+    "$referrer": "Oi]BbduLdb",
+    "$referring_domain": "Oi]BbduLdb",
+    "$screen_dpr": -28773549007175.68,
+    "$screen_height": -28773549007175.68,
+    "$screen_width": -28773549007175.68,
+    "$session_id": "Oi]BbduLdb",
+    "$time": -28773549007175.68,
+    "$viewport_height": -28773549007175.68,
+    "$viewport_width": -28773549007175.68,
+    "$window_id": "Oi]BbduLdb",
+    "title": "Oi]BbduLdb",
+    "utm_campaign": "Oi]BbduLdb",
+    "utm_content": "Oi]BbduLdb",
+    "utm_medium": "Oi]BbduLdb",
+    "utm_source": "Oi]BbduLdb",
+    "utm_term": "Oi]BbduLdb",
+  },
+  "timestamp": Any<String>,
+}
+`;
+
+exports[`Testing snapshot for post-hog destination: > page action - required fields 1`] = `
+{
+  "api_key": "Oi]BbduLdb",
+  "distinct_id": "Oi]BbduLdb",
+  "event": "$pageview",
+  "headers": {},
+  "properties": {
+    "$insert_id": "Oi]BbduLdb",
+    "$screen_width": -28773549007175.68,
+    "$session_id": "Oi]BbduLdb",
+    "$viewport_width": -28773549007175.68,
+    "$window_id": "Oi]BbduLdb",
+  },
+  "timestamp": Any<String>,
+}
+`;
+
+exports[`Testing snapshot for post-hog destination: > track action - all fields 1`] = `
+{
+  "api_key": "C!vVr6$",
+  "distinct_id": "C!vVr6$",
+  "event": "C!vVr6$",
+  "headers": {},
+  "properties": {
+    "$browser": "C!vVr6$",
+    "$browser_language": "C!vVr6$",
+    "$browser_version": -62390888940175.36,
+    "$current_url": "C!vVr6$",
+    "$device_type": "C!vVr6$",
+    "$host": "C!vVr6$",
+    "$insert_id": "C!vVr6$",
+    "$ip": "C!vVr6$",
+    "$lib": "C!vVr6$",
+    "$lib_version": "C!vVr6$",
+    "$os": "C!vVr6$",
+    "$os_version": "C!vVr6$",
+    "$pathname": "C!vVr6$",
+    "$raw_user_agent": "C!vVr6$",
+    "$referrer": "C!vVr6$",
+    "$referring_domain": "C!vVr6$",
+    "$screen_dpr": -62390888940175.36,
+    "$screen_height": -62390888940175.36,
+    "$screen_width": -62390888940175.36,
+    "$session_id": "C!vVr6$",
+    "$time": -62390888940175.36,
+    "$viewport_height": -62390888940175.36,
+    "$viewport_width": -62390888940175.36,
+    "$window_id": "C!vVr6$",
+    "distinct_id": "C!vVr6$",
+    "testType": "C!vVr6$",
+    "title": "C!vVr6$",
+    "utm_campaign": "C!vVr6$",
+    "utm_content": "C!vVr6$",
+    "utm_medium": "C!vVr6$",
+    "utm_source": "C!vVr6$",
+    "utm_term": "C!vVr6$",
+  },
+  "timestamp": Any<String>,
+}
+`;
+
+exports[`Testing snapshot for post-hog destination: > track action - required fields 1`] = `
+{
+  "api_key": "C!vVr6$",
+  "distinct_id": "C!vVr6$",
+  "event": "C!vVr6$",
+  "headers": {},
+  "properties": {
+    "$insert_id": "C!vVr6$",
+    "$screen_width": -62390888940175.36,
+    "$session_id": "C!vVr6$",
+    "$viewport_width": -62390888940175.36,
+    "$window_id": "C!vVr6$",
+    "distinct_id": "C!vVr6$",
+  },
+  "timestamp": Any<String>,
+}
+`;
+
 exports[`Testing snapshot for posthog destination: > group action - all fields 1`] = `
 {
   "api_key": "nJ29t#",
