@@ -71,5 +71,8 @@
 	"packageManager": "pnpm@10.8.0",
 	"engines": {
 		"node": ">=18.17.0"
+	},
+	"dependencies": {
+		"@standard-schema/spec": "^1.0.0"
 	}
 }

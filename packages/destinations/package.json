@@ -8,7 +8,8 @@
 	"scripts": {
 		"build": "tsx scripts/build.ts",
 		"generate-types": "tsx scripts/generate-types.ts",
-		"dev": "rslib build --watch"
+		"dev": "rslib build --watch",
+		"test": "vitest run"
 	},
 	"exports": {
 		".": {
@@ -21,6 +22,8 @@
 		}
 	},
 	"dependencies": {
+		"@c15t/backend": "workspace:*",
+		"@doubletie/logger": "1.0.4",
 		"@c15t/typescript-config": "workspace:*",
 		"@segment/actions-core": "3.113.0",
 		"@standard-schema/spec": "^1.0.0",
