@@ -139,6 +139,57 @@ const AnalyticsResponseSchema = z.object({
 });
 
 /**
+ * Script interface schema for client-side scripts
+ */
+const ScriptSchema = z.object({
+	type: z.enum(['script', 'inline']),
+	src: z.string().optional(),
+	content: z.string().optional(),
+	async: z.boolean().optional(),
+	defer: z.boolean().optional(),
+	attributes: z.record(z.string(), z.string()).optional(),
+	strategy: z.enum(['eager', 'lazy', 'consent-based']).optional(),
+	requiredConsent: z
+		.array(
+			z.enum([
+				'necessary',
+				'measurement',
+				'marketing',
+				'functionality',
+				'experience',
+			])
+		)
+		.optional(),
+	priority: z.enum(['high', 'normal', 'low']).optional(),
+	loadOnce: z.boolean().optional(),
+});
+
+/**
+ * Scripts request query schema
+ */
+const ScriptsRequestQuerySchema = z.object({
+	consent: z.string().min(1, 'Consent is required'),
+	organizationId: z.string().optional(),
+	environment: z.string().optional(),
+});
+
+/**
+ * Scripts response schema
+ */
+const ScriptsResponseSchema = z.object({
+	scripts: z.array(ScriptSchema),
+	metadata: z.object({
+		generatedAt: z.string(),
+		consent: ConsentSchema,
+		destinationCount: z.number(),
+		cache: z.object({
+			etag: z.string(),
+			maxAge: z.number(),
+		}),
+	}),
+});
+
+/**
  * Analytics contracts definition.
  */
 export const analyticsContracts = {
@@ -221,5 +272,47 @@ export const analyticsContracts = {
 		.meta({
 			description: 'Analytics service health check',
 			tags: ['analytics', 'health'],
+		}),
+
+	/**
+	 * Generate client-side scripts based on consent.
+	 *
+	 * @description
+	 * Generates dynamic client-side scripts from universal destinations
+	 * based on user consent preferences, ensuring GDPR compliance.
+	 *
+	 * @param query - Query parameters containing consent and context
+	 * @returns Generated scripts with metadata and caching information
+	 *
+	 * @throws {ValidationError} When query parameters are invalid
+	 * @throws {ConsentParseError} When consent parsing fails
+	 * @throws {ScriptGenerationError} When script generation fails
+	 *
+	 * @example
+	 * ```typescript
+	 * const result = await analytics.scripts({
+	 *   consent: JSON.stringify({
+	 *     necessary: true,
+	 *     measurement: true,
+	 *     marketing: false,
+	 *     functionality: false,
+	 *     experience: false
+	 *   }),
+	 *   organizationId: 'org-123',
+	 *   environment: 'production'
+	 * });
+	 *
+	 * // Load scripts in frontend
+	 * for (const script of result.scripts) {
+	 *   await loadScript(script);
+	 * }
+	 * ```
+	 */
+	scripts: oc
+		.input(ScriptsRequestQuerySchema)
+		.output(ScriptsResponseSchema)
+		.meta({
+			description: 'Generate client-side scripts based on consent',
+			tags: ['analytics', 'scripts'],
 		}),
 };
