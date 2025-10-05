@@ -23,7 +23,10 @@ import type {
 	Script,
 	SpecificAnalyticsEvent,
 	TrackEvent,
+	UniversalDestinationPlugin,
+	UniversalScript,
 } from './core-types';
+import { isUniversalDestination } from './core-types';
 
 describe('AnalyticsConsent', () => {
 	it('should have all required consent purposes', () => {
@@ -367,6 +370,165 @@ describe('Script', () => {
 	});
 });
 
+describe('UniversalScript', () => {
+	it('should extend Script with additional properties', () => {
+		const script: UniversalScript = {
+			type: 'script',
+			src: 'https://example.com/script.js',
+			async: true,
+			strategy: 'consent-based',
+			requiredConsent: ['marketing'],
+			priority: 'high',
+			loadOnce: true,
+		};
+
+		expect(script.type).toBe('script');
+		expect(script.src).toBe('https://example.com/script.js');
+		expect(script.async).toBe(true);
+		expect(script.strategy).toBe('consent-based');
+		expect(script.requiredConsent).toEqual(['marketing']);
+		expect(script.priority).toBe('high');
+		expect(script.loadOnce).toBe(true);
+	});
+
+	it('should support custom load conditions', () => {
+		const consent: AnalyticsConsent = {
+			necessary: true,
+			measurement: true,
+			marketing: false,
+			functionality: false,
+			experience: false,
+		};
+
+		const script: UniversalScript = {
+			type: 'inline',
+			content: 'console.log("test");',
+			strategy: 'consent-based',
+			loadCondition: (consent) => consent.marketing,
+		};
+
+		expect(script.loadCondition).toBeDefined();
+		expect(script.loadCondition?.(consent)).toBe(false);
+	});
+
+	it('should support all loading strategies', () => {
+		const strategies: Array<'eager' | 'lazy' | 'consent-based'> = [
+			'eager',
+			'lazy',
+			'consent-based',
+		];
+
+		strategies.forEach((strategy) => {
+			const script: UniversalScript = {
+				type: 'script',
+				src: 'https://example.com/script.js',
+				strategy,
+			};
+
+			expect(script.strategy).toBe(strategy);
+		});
+	});
+
+	it('should support all priority levels', () => {
+		const priorities: Array<'high' | 'normal' | 'low'> = [
+			'high',
+			'normal',
+			'low',
+		];
+
+		priorities.forEach((priority) => {
+			const script: UniversalScript = {
+				type: 'script',
+				src: 'https://example.com/script.js',
+				priority,
+			};
+
+			expect(script.priority).toBe(priority);
+		});
+	});
+});
+
+describe('UniversalDestinationPlugin', () => {
+	it('should extend DestinationPlugin interface', () => {
+		// Mock implementation for testing
+		class MockUniversalDestination implements UniversalDestinationPlugin {
+			readonly type = 'test';
+			readonly name = 'Test Destination';
+			readonly description = 'Test description';
+			readonly category = 'analytics' as const;
+			readonly version = '1.0.0';
+			readonly gdprCompliant = true;
+			readonly settingsSchema = {} as StandardSchemaV1<Record<string, unknown>>;
+			readonly requiredConsent: readonly ConsentPurpose[] = ['measurement'];
+
+			async initialize(): Promise<void> {
+				// Mock implementation
+			}
+
+			async testConnection(): Promise<boolean> {
+				return true;
+			}
+
+			generateScript(): UniversalScript | null {
+				return {
+					type: 'inline',
+					content: 'console.log("test");',
+					strategy: 'eager',
+					requiredConsent: ['measurement'],
+					priority: 'normal',
+				};
+			}
+
+			getScriptDependencies(): string[] {
+				return [];
+			}
+
+			async validateScriptSettings(): Promise<boolean> {
+				return true;
+			}
+		}
+
+		const destination = new MockUniversalDestination();
+		expect(destination.type).toBe('test');
+		expect(destination.name).toBe('Test Destination');
+		expect(destination.generateScript).toBeDefined();
+		expect(destination.getScriptDependencies).toBeDefined();
+		expect(destination.validateScriptSettings).toBeDefined();
+	});
+
+	it('should support optional methods', () => {
+		class MinimalUniversalDestination implements UniversalDestinationPlugin {
+			readonly type = 'minimal';
+			readonly name = 'Minimal Destination';
+			readonly description = 'Minimal description';
+			readonly category = 'analytics' as const;
+			readonly version = '1.0.0';
+			readonly gdprCompliant = true;
+			readonly settingsSchema = {} as StandardSchemaV1<Record<string, unknown>>;
+			readonly requiredConsent: readonly ConsentPurpose[] = ['measurement'];
+
+			async initialize(): Promise<void> {
+				// Mock implementation
+			}
+
+			async testConnection(): Promise<boolean> {
+				return true;
+			}
+
+			generateScript(): UniversalScript | null {
+				return null;
+			}
+		}
+
+		const destination = new MinimalUniversalDestination();
+		expect(destination.type).toBe('minimal');
+		expect(destination.generateScript()).toBeNull();
+		// Optional methods should be undefined
+		expect(destination.getScriptDependencies).toBeUndefined();
+		expect(destination.validateScriptSettings).toBeUndefined();
+	});
+});
+
 describe('DestinationConfig', () => {
 	it('should have required properties', () => {
 		const config: DestinationConfig = {
@@ -511,5 +673,85 @@ describe('DestinationPlugin Interface', () => {
 		// This is just a type check - the interface should compile
 		const plugin: TestPlugin = {} as TestPlugin;
 		expect(plugin).toBeDefined();
+	});
+});
+
+describe('isUniversalDestination type guard', () => {
+	it('should identify universal destinations correctly', () => {
+		class RegularDestination implements DestinationPlugin {
+			readonly type = 'regular';
+			readonly name = 'Regular Destination';
+			readonly description = 'Regular description';
+			readonly category = 'analytics' as const;
+			readonly version = '1.0.0';
+			readonly gdprCompliant = true;
+			readonly settingsSchema = {} as StandardSchemaV1<Record<string, unknown>>;
+			readonly requiredConsent: readonly ConsentPurpose[] = ['measurement'];
+
+			async initialize(): Promise<void> {
+				// Mock implementation
+			}
+
+			async testConnection(): Promise<boolean> {
+				return true;
+			}
+		}
+
+		class UniversalDestination implements UniversalDestinationPlugin {
+			readonly type = 'universal';
+			readonly name = 'Universal Destination';
+			readonly description = 'Universal description';
+			readonly category = 'analytics' as const;
+			readonly version = '1.0.0';
+			readonly gdprCompliant = true;
+			readonly settingsSchema = {} as StandardSchemaV1<Record<string, unknown>>;
+			readonly requiredConsent: readonly ConsentPurpose[] = ['measurement'];
+
+			async initialize(): Promise<void> {
+				// Mock implementation
+			}
+
+			async testConnection(): Promise<boolean> {
+				return true;
+			}
+
+			generateScript(): UniversalScript | null {
+				return null;
+			}
+		}
+
+		const regularDest = new RegularDestination();
+		const universalDest = new UniversalDestination();
+
+		expect(isUniversalDestination(regularDest)).toBe(false);
+		expect(isUniversalDestination(universalDest)).toBe(true);
+	});
+
+	it('should handle destinations with optional generateScript method', () => {
+		class OptionalScriptDestination implements DestinationPlugin {
+			readonly type = 'optional';
+			readonly name = 'Optional Script Destination';
+			readonly description = 'Optional script description';
+			readonly category = 'analytics' as const;
+			readonly version = '1.0.0';
+			readonly gdprCompliant = true;
+			readonly settingsSchema = {} as StandardSchemaV1<Record<string, unknown>>;
+			readonly requiredConsent: readonly ConsentPurpose[] = ['measurement'];
+
+			async initialize(): Promise<void> {
+				// Mock implementation
+			}
+
+			async testConnection(): Promise<boolean> {
+				return true;
+			}
+
+			generateScript?(): Script | Script[] | null {
+				return null;
+			}
+		}
+
+		const dest = new OptionalScriptDestination();
+		expect(isUniversalDestination(dest)).toBe(true);
 	});
 });

@@ -256,6 +256,106 @@ export interface Script {
 }
 
 /**
+ * Enhanced script interface for universal destinations.
+ * Supports more advanced script loading patterns and consent management.
+ */
+export interface UniversalScript extends Script {
+	/** Script loading strategy */
+	strategy?: 'eager' | 'lazy' | 'consent-based';
+	/** Required consent purposes for this script to load */
+	requiredConsent?: ReadonlyArray<ConsentPurpose>;
+	/** Script priority for loading order */
+	priority?: 'high' | 'normal' | 'low';
+	/** Whether this script should be loaded only once */
+	loadOnce?: boolean;
+	/** Custom conditions for script loading */
+	loadCondition?: (consent: AnalyticsConsent) => boolean;
+}
+
+/**
+ * Universal destination plugin interface that extends DestinationPlugin
+ * to support both server-side event processing and client-side script generation.
+ *
+ * This interface enables destinations to provide a unified configuration
+ * that controls both server-side analytics and client-side tracking scripts.
+ */
+export interface UniversalDestinationPlugin<TSettings = Record<string, unknown>>
+	extends DestinationPlugin<TSettings> {
+	/**
+	 * Generate client-side scripts for this destination.
+	 * This method is required for universal destinations.
+	 *
+	 * @param settings - Destination settings
+	 * @param consent - Current consent state
+	 * @returns Script or array of scripts to inject into the page, or null if no scripts needed
+	 *
+	 * @example
+	 * ```typescript
+	 * generateScript(settings, consent) {
+	 *   if (!consent.marketing) return null;
+	 *
+	 *   return {
+	 *     type: 'script',
+	 *     src: 'https://connect.facebook.net/en_US/fbevents.js',
+	 *     async: true,
+	 *     strategy: 'consent-based',
+	 *     requiredConsent: ['marketing'],
+	 *     priority: 'high'
+	 *   };
+	 * }
+	 * ```
+	 */
+	generateScript(
+		settings: TSettings,
+		consent: AnalyticsConsent
+	): UniversalScript | UniversalScript[] | null;
+
+	/**
+	 * Get script dependencies for this destination.
+	 * Used to ensure proper loading order of related scripts.
+	 *
+	 * @param settings - Destination settings
+	 * @returns Array of script identifiers this destination depends on
+	 */
+	getScriptDependencies?(settings: TSettings): string[];
+
+	/**
+	 * Validate script configuration for this destination.
+	 * Called before script generation to ensure settings are valid for client-side use.
+	 *
+	 * @param settings - Destination settings
+	 * @returns Promise resolving to true if settings are valid for script generation
+	 */
+	validateScriptSettings?(settings: TSettings): Promise<boolean>;
+}
+
+/**
+ * Type guard to check if a destination plugin is a universal destination.
+ *
+ * @param plugin - Destination plugin to check
+ * @returns True if the plugin implements UniversalDestinationPlugin
+ */
+export function isUniversalDestination(
+	plugin: DestinationPlugin
+): plugin is UniversalDestinationPlugin {
+	return (
+		'generateScript' in plugin && typeof plugin.generateScript === 'function'
+	);
+}
+
+/**
+ * Utility type to extract settings type from a destination plugin.
+ */
+export type DestinationSettings<T extends DestinationPlugin> =
+	T extends DestinationPlugin<infer S> ? S : never;
+
+/**
+ * Utility type to extract settings type from a universal destination plugin.
+ */
+export type UniversalDestinationSettings<T extends UniversalDestinationPlugin> =
+	T extends UniversalDestinationPlugin<infer S> ? S : never;
+
+/**
  * Base destination configuration interface.
  */
 export interface BaseDestinationConfig<TSettings = Record<string, unknown>> {

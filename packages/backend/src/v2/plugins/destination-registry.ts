@@ -151,7 +151,10 @@ export function getDestinationFactory(
  *
  * @returns Copy of the plugins map for safe iteration
  */
-export function getRegisteredDestinations(): Map<string, DestinationFactory> {
+export function getRegisteredDestinations(): Record<
+	string,
+	DestinationFactory
+> {
 	return destinationPlugins.getPlugins();
 }
 

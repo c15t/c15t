@@ -127,14 +127,14 @@ describe('DestinationRegistry', () => {
 			registerDestination('test2', factory2);
 
 			const destinations = getRegisteredDestinations();
-			expect(destinations.size).toBe(2);
-			expect(destinations.has('test1')).toBe(true);
-			expect(destinations.has('test2')).toBe(true);
+			expect(Object.keys(destinations)).toHaveLength(2);
+			expect('test1' in destinations).toBe(true);
+			expect('test2' in destinations).toBe(true);
 		});
 
 		it('should return empty map when no destinations registered', () => {
 			const destinations = getRegisteredDestinations();
-			expect(destinations.size).toBe(0);
+			expect(Object.keys(destinations)).toHaveLength(0);
 		});
 
 		it('should return a copy of the registry', () => {

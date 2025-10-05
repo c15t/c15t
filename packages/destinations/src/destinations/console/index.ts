@@ -16,48 +16,135 @@ import { z } from 'zod';
 
 /**
  * Console destination settings schema
+ *
+ * @internal
+ * Defines the configuration options available for the console destination.
+ * All settings are optional with sensible defaults for development use.
  */
 const ConsoleSettingsSchema = z.object({
+	/**
+	 * Log level for console output
+	 * @default 'info'
+	 */
 	logLevel: z
 		.enum(['debug', 'info', 'warn', 'error'])
 		.optional()
 		.default('info'),
+
+	/**
+	 * Whether to include event context in logs
+	 * @default true
+	 */
 	includeContext: z.boolean().optional().default(true),
+
+	/**
+	 * Whether to include timestamp in logs
+	 * @default true
+	 */
 	includeTimestamp: z.boolean().optional().default(true),
+
+	/**
+	 * Whether to include event ID in logs
+	 * @default true
+	 */
 	includeEventId: z.boolean().optional().default(true),
 });
 
+/**
+ * Configuration settings for the console destination
+ *
+ * @typeParam SettingsType - The type of settings object (inferred from schema)
+ */
 export type ConsoleSettings = z.infer<typeof ConsoleSettingsSchema>;
 
 /**
- * Console destination implementation
+ * Console destination implementation for server-side analytics debugging
  *
- * Logs analytics events to the console for debugging and development.
- * Always works and requires minimal consent.
+ * Logs analytics events to the server console for debugging and development.
+ * This destination is primarily for server-side logging and does not generate
+ * client-side scripts since console logging happens automatically in browsers.
+ *
+ * @typeParam SettingsType - The settings type for this destination
+ *
+ * @example
+ * ```typescript
+ * const consoleDest = new ConsoleDestination(logger);
+ * await consoleDest.initialize({
+ *   logLevel: 'debug',
+ *   includeContext: true
+ * });
+ * ```
  */
 export class ConsoleDestination implements DestinationPlugin<ConsoleSettings> {
+	/** @internal */
 	readonly type = 'console';
+
+	/** @internal */
 	readonly name = 'Console';
+
+	/** @internal */
 	readonly description = 'Console logging destination for debugging';
+
+	/** @internal */
 	readonly category = 'other' as const;
+
+	/** @internal */
 	readonly version = '1.0.0';
+
+	/** @internal */
 	readonly gdprCompliant = true;
-	// Note: Zod schemas are incompatible with StandardSchemaV1 interface
-	// Using unknown instead of any for better type safety
+
+	/**
+	 * Settings schema for validation
+	 * @internal
+	 * Note: Zod schemas are incompatible with StandardSchemaV1 interface
+	 * Using unknown instead of any for better type safety
+	 */
 	readonly settingsSchema =
 		ConsoleSettingsSchema as unknown as StandardSchemaV1<ConsoleSettings>;
+
+	/** @internal */
 	readonly requiredConsent: readonly ConsentPurpose[] = ['necessary'] as const;
 
+	/** @internal */
 	private settings: ConsoleSettings;
+
+	/** @internal */
 	private logger: Logger;
 
+	/**
+	 * Creates a new console destination instance
+	 *
+	 * @param logger - Logger instance for internal logging
+	 *
+	 * @throws {Error} When logger is not provided
+	 */
 	constructor(logger: Logger) {
+		if (!logger) {
+			throw new Error('Logger is required for ConsoleDestination');
+		}
 		this.logger = logger;
 		this.settings = {} as ConsoleSettings; // Will be set in initialize
 	}
 
 	/**
-	 * Initialize the Console destination with settings
+	 * Initializes the console destination with validated settings
+	 *
+	 * @param settings - Configuration settings for the console destination
+	 * @returns Promise that resolves when initialization is complete
+	 *
+	 * @throws {ZodError} When settings validation fails
+	 * @throws {Error} When initialization encounters an unexpected error
+	 *
+	 * @example
+	 * ```typescript
+	 * await consoleDest.initialize({
+	 *   logLevel: 'debug',
+	 *   includeContext: true,
+	 *   includeTimestamp: true,
+	 *   includeEventId: false
+	 * });
+	 * ```
 	 */
 	async initialize(settings: ConsoleSettings): Promise<void> {
 		try {
@@ -77,7 +164,15 @@ export class ConsoleDestination implements DestinationPlugin<ConsoleSettings> {
 	}
 
 	/**
-	 * Test connection (console always works)
+	 * Tests the connection to the console destination
+	 *
+	 * @returns Promise that always resolves to true since console logging always works
+	 *
+	 * @example
+	 * ```typescript
+	 * const isConnected = await consoleDest.testConnection();
+	 * console.log('Console destination connected:', isConnected); // Always true
+	 * ```
 	 */
 	async testConnection(): Promise<boolean> {
 		this.logger.debug('Console connection test (always succeeds)');
@@ -85,49 +180,91 @@ export class ConsoleDestination implements DestinationPlugin<ConsoleSettings> {
 	}
 
 	/**
-	 * Handle track events
+	 * Handles track events by logging them to the console
+	 *
+	 * @param event - The track event to log
+	 * @param context - Event context containing session and user data
+	 * @returns Promise that resolves when logging is complete
+	 *
+	 * @example
+	 * ```typescript
+	 * await consoleDest.track({
+	 *   type: 'track',
+	 *   name: 'Button Clicked',
+	 *   properties: { buttonId: 'submit-btn' },
+	 *   timestamp: new Date().toISOString(),
+	 *   messageId: 'msg-123'
+	 * }, context);
+	 * ```
 	 */
 	async track(event: TrackEvent, context: EventContext): Promise<void> {
 		this.log('track', event, context);
 	}
 
 	/**
-	 * Handle page events
+	 * Handles page events by logging them to the console
+	 *
+	 * @param event - The page event to log
+	 * @param context - Event context containing session and user data
+	 * @returns Promise that resolves when logging is complete
 	 */
 	async page(event: PageEvent, context: EventContext): Promise<void> {
 		this.log('page', event, context);
 	}
 
 	/**
-	 * Handle identify events
+	 * Handles identify events by logging them to the console
+	 *
+	 * @param event - The identify event to log
+	 * @param context - Event context containing session and user data
+	 * @returns Promise that resolves when logging is complete
 	 */
 	async identify(event: IdentifyEvent, context: EventContext): Promise<void> {
 		this.log('identify', event, context);
 	}
 
 	/**
-	 * Handle group events
+	 * Handles group events by logging them to the console
+	 *
+	 * @param event - The group event to log
+	 * @param context - Event context containing session and user data
+	 * @returns Promise that resolves when logging is complete
 	 */
 	async group(event: GroupEvent, context: EventContext): Promise<void> {
 		this.log('group', event, context);
 	}
 
 	/**
-	 * Handle alias events
+	 * Handles alias events by logging them to the console
+	 *
+	 * @param event - The alias event to log
+	 * @param context - Event context containing session and user data
+	 * @returns Promise that resolves when logging is complete
 	 */
 	async alias(event: AliasEvent, context: EventContext): Promise<void> {
 		this.log('alias', event, context);
 	}
 
 	/**
-	 * Handle consent events
+	 * Handles consent events by logging them to the console
+	 *
+	 * @param event - The consent event to log
+	 * @param context - Event context containing session and user data
+	 * @returns Promise that resolves when logging is complete
 	 */
 	async consent(event: ConsentEvent, context: EventContext): Promise<void> {
 		this.log('consent', event, context);
 	}
 
 	/**
-	 * Log event data to console
+	 * Logs event data to the server console with appropriate formatting
+	 *
+	 * @internal
+	 * @param eventType - The type of event being logged
+	 * @param event - The analytics event to log
+	 * @param context - Event context containing session and user data
+	 *
+	 * @throws {Error} When console logging fails (rare, but possible in some environments)
 	 */
 	private log(
 		eventType: string,
@@ -149,41 +286,41 @@ export class ConsoleDestination implements DestinationPlugin<ConsoleSettings> {
 		switch (eventType) {
 			case 'track':
 				logData.event = {
-					...(logData.event as any),
+					...(logData.event as Record<string, unknown>),
 					name: (event as TrackEvent).name,
 					properties: (event as TrackEvent).properties,
 				};
 				break;
 			case 'page':
 				logData.event = {
-					...(logData.event as any),
+					...(logData.event as Record<string, unknown>),
 					name: (event as PageEvent).name,
 					properties: (event as PageEvent).properties,
 				};
 				break;
 			case 'identify':
 				logData.event = {
-					...(logData.event as any),
+					...(logData.event as Record<string, unknown>),
 					userId: (event as IdentifyEvent).userId,
 					traits: (event as IdentifyEvent).traits,
 				};
 				break;
 			case 'group':
 				logData.event = {
-					...(logData.event as any),
+					...(logData.event as Record<string, unknown>),
 					groupId: (event as GroupEvent).groupId,
 					traits: (event as GroupEvent).traits,
 				};
 				break;
 			case 'alias':
 				logData.event = {
-					...(logData.event as any),
+					...(logData.event as Record<string, unknown>),
 					properties: (event as AliasEvent).properties,
 				};
 				break;
 			case 'consent':
 				logData.event = {
-					...(logData.event as any),
+					...(logData.event as Record<string, unknown>),
 					properties: (event as ConsentEvent).properties,
 				};
 				break;
@@ -237,7 +374,16 @@ export class ConsoleDestination implements DestinationPlugin<ConsoleSettings> {
 	}
 
 	/**
-	 * Handle errors gracefully
+	 * Handles errors that occur during event processing
+	 *
+	 * @param error - The error that occurred
+	 * @param event - The event that was being processed when the error occurred
+	 * @returns Promise that resolves when error handling is complete
+	 *
+	 * @example
+	 * ```typescript
+	 * await consoleDest.onError(new Error('Processing failed'), event);
+	 * ```
 	 */
 	async onError(error: Error, event: AnalyticsEvent): Promise<void> {
 		const errorData = {
@@ -254,7 +400,14 @@ export class ConsoleDestination implements DestinationPlugin<ConsoleSettings> {
 	}
 
 	/**
-	 * Cleanup resources (no-op for console)
+	 * Cleans up resources when the destination is destroyed
+	 *
+	 * @returns Promise that resolves when cleanup is complete
+	 *
+	 * @example
+	 * ```typescript
+	 * await consoleDest.destroy();
+	 * ```
 	 */
 	async destroy(): Promise<void> {
 		this.logger.info('Console destination destroyed');
@@ -262,7 +415,26 @@ export class ConsoleDestination implements DestinationPlugin<ConsoleSettings> {
 }
 
 /**
- * Factory function to create Console destination configuration
+ * Factory function to create a console destination configuration
+ *
+ * @param settings - Optional configuration settings for the console destination
+ * @returns Destination configuration object ready for use with c15t analytics
+ *
+ * @example
+ * ```typescript
+ * // Create with default settings
+ * const config = createConsoleDestination();
+ *
+ * // Create with custom settings
+ * const config = createConsoleDestination({
+ *   logLevel: 'debug',
+ *   includeContext: true,
+ *   includeTimestamp: false,
+ *   includeEventId: true
+ * });
+ * ```
+ *
+ * @see {@link ConsoleSettings} for available configuration options
  */
 export function createConsoleDestination(
 	settings: ConsoleSettings = {

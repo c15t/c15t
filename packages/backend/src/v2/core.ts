@@ -387,8 +387,11 @@ export type {
 	GroupEvent,
 	IdentifyEvent,
 	PageEvent,
+	Script,
 	SpecificAnalyticsEvent,
 	TrackEvent,
+	UniversalDestinationPlugin,
+	UniversalScript,
 } from './handlers/analytics/core-types';
 export { registerDestination } from './plugins/destination-registry';
 export type {

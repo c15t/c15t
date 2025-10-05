@@ -1,14 +1,16 @@
 import type {
 	AliasEvent,
+	AnalyticsConsent,
 	AnalyticsEvent,
 	ConsentEvent,
 	ConsentPurpose,
-	DestinationPlugin,
 	EventContext,
 	GroupEvent,
 	IdentifyEvent,
 	PageEvent,
 	TrackEvent,
+	UniversalDestinationPlugin,
+	UniversalScript,
 } from '@c15t/backend/v2';
 import type { Logger } from '@doubletie/logger';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
@@ -32,8 +34,13 @@ export type PostHogSettings = z.infer<typeof PostHogSettingsSchema>;
  *
  * Sends analytics events to PostHog for product analytics.
  * Supports all event types with proper GDPR consent filtering.
+ *
+ * Implements UniversalDestinationPlugin to support both server-side event processing
+ * and client-side PostHog JavaScript SDK integration.
  */
-export class PostHogDestination implements DestinationPlugin<PostHogSettings> {
+export class PostHogDestination
+	implements UniversalDestinationPlugin<PostHogSettings>
+{
 	readonly type = 'post-hog';
 	readonly name = 'PostHog';
 	readonly description = 'PostHog product analytics destination';
@@ -317,6 +324,73 @@ export class PostHogDestination implements DestinationPlugin<PostHogSettings> {
 			this.client = null;
 		}
 		this.logger.info('PostHog destination destroyed');
+	}
+
+	/**
+	 * Generate client-side PostHog script.
+	 * Creates the PostHog JavaScript SDK initialization script.
+	 */
+	generateScript(
+		settings: PostHogSettings,
+		consent: AnalyticsConsent
+	): UniversalScript | null {
+		// Only generate script if measurement consent is granted
+		if (!consent.measurement) {
+			return null;
+		}
+
+		// Create PostHog initialization script
+		const scriptContent = `
+(function() {
+	'use strict';
+	
+	// PostHog initialization
+	!function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]);t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+	
+	// Initialize PostHog with settings
+	posthog.init('${settings.apiKey}', {
+		api_host: '${settings.host || 'https://app.posthog.com'}',
+		autocapture: false,
+		capture_pageview: false,
+		capture_pageleave: false,
+		loaded: function(posthog) {
+			console.info('[c15t:posthog] PostHog initialized');
+		}
+	});
+	
+	// Expose PostHog instance globally for c15t integration
+	window.c15tPostHog = posthog;
+})();
+		`.trim();
+
+		return {
+			type: 'inline',
+			content: scriptContent,
+			strategy: 'consent-based',
+			requiredConsent: ['measurement'],
+			priority: 'high',
+			loadOnce: true,
+		};
+	}
+
+	/**
+	 * Get script dependencies (none for PostHog)
+	 */
+	getScriptDependencies(): string[] {
+		return [];
+	}
+
+	/**
+	 * Validate script settings for PostHog
+	 */
+	async validateScriptSettings(settings: PostHogSettings): Promise<boolean> {
+		try {
+			const validatedSettings = PostHogSettingsSchema.parse(settings);
+			// Additional validation for client-side use
+			return !!validatedSettings.apiKey && !!validatedSettings.host;
+		} catch {
+			return false;
+		}
 	}
 }
 
