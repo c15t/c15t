@@ -10,7 +10,7 @@ import { z } from 'zod';
  * Base analytics event schema for validation.
  */
 const BaseAnalyticsEventSchema = z.object({
-	type: z.enum(['track', 'page', 'identify', 'group', 'alias']),
+	type: z.enum(['track', 'page', 'identify', 'group', 'alias', 'consent']),
 	userId: z.string().optional(),
 	anonymousId: z.string(),
 	sessionId: z.string(),
@@ -27,8 +27,10 @@ const BaseAnalyticsEventSchema = z.object({
 				.optional(),
 			userAgent: z.string().optional(),
 			ip: z.string().optional(),
+			referrer: z.string().optional(),
 			locale: z.string().optional(),
 			timezone: z.string().optional(),
+			custom: z.record(z.string(), z.unknown()).optional(),
 		})
 		.optional(),
 });
@@ -77,6 +79,16 @@ const AliasEventSchema = BaseAnalyticsEventSchema.extend({
 });
 
 /**
+ * Consent event schema.
+ */
+const ConsentEventSchema = BaseAnalyticsEventSchema.extend({
+	type: z.literal('consent'),
+	action: z.enum(['granted', 'revoked', 'updated']),
+	preferences: z.record(z.string(), z.boolean()),
+	source: z.enum(['banner', 'api', 'admin']),
+});
+
+/**
  * Union schema for all analytics events.
  */
 const AnalyticsEventSchema = z.discriminatedUnion('type', [
@@ -85,6 +97,7 @@ const AnalyticsEventSchema = z.discriminatedUnion('type', [
 	IdentifyEventSchema,
 	GroupEventSchema,
 	AliasEventSchema,
+	ConsentEventSchema,
 ]);
 
 /**

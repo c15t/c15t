@@ -15,6 +15,7 @@ export const EVENT_PURPOSE_MAP = {
 	identify: 'measurement',
 	group: 'measurement',
 	alias: 'measurement',
+	consent: 'necessary', // Consent events always require necessary consent
 } as const;
 
 /**
