@@ -35,16 +35,6 @@ export interface AnalyticsConsent {
 }
 
 /**
- * Event type discriminator for analytics events.
- */
-export type AnalyticsEventType =
-	| 'track'
-	| 'page'
-	| 'identify'
-	| 'group'
-	| 'alias';
-
-/**
  * Base properties that can be included in analytics events.
  */
 export interface BaseEventProperties {
@@ -58,6 +48,17 @@ export interface BaseEventProperties {
 		| BaseEventProperties
 		| BaseEventProperties[];
 }
+
+/**
+ * Event type discriminator for analytics events.
+ */
+export type AnalyticsEventType =
+	| 'track'
+	| 'page'
+	| 'identify'
+	| 'group'
+	| 'alias'
+	| 'consent';
 
 /**
  * Strictly typed properties for track events.
@@ -371,6 +372,7 @@ export const EVENT_PURPOSE_MAP: Record<AnalyticsEventType, ConsentPurpose> = {
 	identify: 'measurement',
 	group: 'measurement',
 	alias: 'measurement',
+	consent: 'necessary', // Consent events are always necessary
 };
 
 /**
