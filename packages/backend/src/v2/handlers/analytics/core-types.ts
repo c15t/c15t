@@ -90,6 +90,7 @@ export interface IdentifyEvent extends AnalyticsEvent {
 
 export interface GroupEvent extends AnalyticsEvent {
 	type: 'group';
+	groupId: string;
 	traits: Record<string, unknown>;
 }
 
@@ -114,9 +115,29 @@ export interface ConsentEvent extends AnalyticsEvent {
 }
 
 /**
+ * Generic type for specific analytics events.
+ * @typeParam T - The event type ('track', 'page', 'identify', 'group', 'alias', 'consent')
+ */
+export type SpecificAnalyticsEvent<
+	T extends AnalyticsEvent['type'] = AnalyticsEvent['type'],
+> = T extends 'track'
+	? TrackEvent
+	: T extends 'page'
+		? PageEvent
+		: T extends 'identify'
+			? IdentifyEvent
+			: T extends 'group'
+				? GroupEvent
+				: T extends 'alias'
+					? AliasEvent
+					: T extends 'consent'
+						? ConsentEvent
+						: never;
+
+/**
  * Union type for all specific event types.
  */
-export type SpecificAnalyticsEvent =
+export type AnySpecificAnalyticsEvent =
 	| TrackEvent
 	| PageEvent
 	| IdentifyEvent
@@ -206,13 +227,13 @@ export interface DestinationPlugin<TSettings = Record<string, unknown>> {
 
 	/** Lifecycle hooks */
 	onBeforeEvent?(
-		event: SpecificAnalyticsEvent
-	): Promise<SpecificAnalyticsEvent>;
+		event: AnySpecificAnalyticsEvent
+	): Promise<AnySpecificAnalyticsEvent>;
 	onAfterEvent?(
-		event: SpecificAnalyticsEvent,
+		event: AnySpecificAnalyticsEvent,
 		result: EventResult
 	): Promise<void>;
-	onError?(error: Error, event: SpecificAnalyticsEvent): Promise<void>;
+	onError?(error: Error, event: AnySpecificAnalyticsEvent): Promise<void>;
 	destroy?(): Promise<void>;
 
 	/** Script generation for client-side destinations */

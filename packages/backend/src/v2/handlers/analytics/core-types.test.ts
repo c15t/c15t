@@ -204,12 +204,14 @@ describe('Specific Event Types', () => {
 	it('should create GroupEvent with traits', () => {
 		const event: GroupEvent = {
 			type: 'group',
+			groupId: 'group-123',
 			traits: { name: 'Acme Corp', plan: 'enterprise' },
 			timestamp: '2024-01-01T00:00:00Z',
 			messageId: 'msg-123',
 		};
 
 		expect(event.type).toBe('group');
+		expect(event.groupId).toBe('group-123');
 		expect(event.traits).toEqual({ name: 'Acme Corp', plan: 'enterprise' });
 	});
 
@@ -252,7 +254,7 @@ describe('Specific Event Types', () => {
 
 describe('SpecificAnalyticsEvent', () => {
 	it('should accept all specific event types', () => {
-		const trackEvent: SpecificAnalyticsEvent = {
+		const trackEvent: SpecificAnalyticsEvent<'track'> = {
 			type: 'track',
 			name: 'Button Clicked',
 			properties: { button: 'cta' },
@@ -260,35 +262,38 @@ describe('SpecificAnalyticsEvent', () => {
 			messageId: 'msg-123',
 		};
 
-		const pageEvent: SpecificAnalyticsEvent = {
+		const pageEvent: SpecificAnalyticsEvent<'page'> = {
 			type: 'page',
+			name: 'Home Page',
 			properties: { path: '/home' },
 			timestamp: '2024-01-01T00:00:00Z',
 			messageId: 'msg-123',
 		};
 
-		const identifyEvent: SpecificAnalyticsEvent = {
+		const identifyEvent: SpecificAnalyticsEvent<'identify'> = {
 			type: 'identify',
+			userId: 'user-123',
 			traits: { email: 'user@example.com' },
 			timestamp: '2024-01-01T00:00:00Z',
 			messageId: 'msg-123',
 		};
 
-		const groupEvent: SpecificAnalyticsEvent = {
+		const groupEvent: SpecificAnalyticsEvent<'group'> = {
 			type: 'group',
+			groupId: 'group-123',
 			traits: { name: 'Acme Corp' },
 			timestamp: '2024-01-01T00:00:00Z',
 			messageId: 'msg-123',
 		};
 
-		const aliasEvent: SpecificAnalyticsEvent = {
+		const aliasEvent: SpecificAnalyticsEvent<'alias'> = {
 			type: 'alias',
 			properties: { previousId: 'old-id' },
 			timestamp: '2024-01-01T00:00:00Z',
 			messageId: 'msg-123',
 		};
 
-		const consentEvent: SpecificAnalyticsEvent = {
+		const consentEvent: SpecificAnalyticsEvent<'consent'> = {
 			type: 'consent',
 			properties: {
 				action: 'granted',
