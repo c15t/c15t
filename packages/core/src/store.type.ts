@@ -303,4 +303,7 @@ export interface PrivacyConsentState {
 
 	/** Destroys the iframe blocker instance. */
 	destroyIframeBlocker: () => void;
+
+	/** Updates the active GDPR consent types. */
+	updateConsentCategories: (newCategories: AllConsentNames[]) => void;
 }

@@ -88,8 +88,9 @@ export type ConsentManagerOptions = CoreOptions & {
 
 	/**
 	 * Consent Categories to show in the consent banner.
+	 * This will be overridden if you have scripts or iframes that require different consent categories.
 	 * @default ['necessary', 'marketing']
-	 */
+t	 */
 	consentCategories?: AllConsentNames[];
 
 	/**

@@ -605,6 +605,14 @@ export const createConsentManagerStore = (
 		setTranslationConfig: (config: TranslationConfig) => {
 			set({ translationConfig: config });
 		},
+
+		updateConsentCategories: (newCategories: AllConsentNames[]) => {
+			const allCategories = [
+				...new Set([...get().gdprTypes, ...newCategories]),
+			];
+			set({ gdprTypes: allCategories });
+		},
+
 		...createScriptManager(get, set),
 		...createIframeManager(get, set),
 	}));
@@ -614,13 +622,13 @@ export const createConsentManagerStore = (
 
 	// Add script categories to gdprTypes
 	if (options.scripts && options.scripts.length > 0) {
-		const state = store.getState();
-		const newCategories = options.scripts.flatMap((script) =>
-			extractConsentNamesFromCondition(script.category)
-		);
-
-		const allCategories = [...new Set([...state.gdprTypes, ...newCategories])];
-		store.setState({ gdprTypes: allCategories });
+		store
+			.getState()
+			.updateConsentCategories(
+				options.scripts.flatMap((script) =>
+					extractConsentNamesFromCondition(script.category)
+				)
+			);
 	}
 
 	if (typeof window !== 'undefined') {
