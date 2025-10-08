@@ -114,11 +114,13 @@ export interface StoreOptions {
 
 	/**
 	 * Initial compliance settings for different regions.
+	 * @deprecated will be removed in a future version
 	 */
 	initialComplianceSettings?: Record<string, Partial<ComplianceSettings>>;
 
 	/**
 	 * Configuration for the tracking blocker.
+	 * @deprecated will be removed in a future version - use scripts instead
 	 */
 	trackingBlockerConfig?: TrackingBlockerConfig;
 
@@ -131,6 +133,7 @@ export interface StoreOptions {
 	/**
 	 * Flag indicating if the consent manager is using the c15t.dev domain.
 	 * @default false
+	 * @deprecated will be removed in a future version
 	 */
 	isConsentDomain?: boolean;
 
@@ -157,8 +160,9 @@ export interface StoreOptions {
 	translationConfig?: TranslationConfig;
 
 	/**
-	 * Initial showConsentBanner value. This will set a cookie for the consent banner.
-	 * @internal
+	 * If showConsentBanner is fetched prior to the store being created, you can pass the initial data here.
+	 *
+	 * This is useful for server-side rendering (SSR) such as in @c15t/nextjs.
 	 */
 	_initialData?: Promise<ContractsOutputs['consent']['showBanner'] | undefined>;
 
@@ -168,7 +172,10 @@ export interface StoreOptions {
 	callbacks?: Callbacks;
 
 	/**
-	 * Scripts to load.
+	 * Dynamically load scripts based on consent state.
+	 * For scripts such as Google Tag Manager, Meta Pixel, etc.
+	 *
+	 * @see https://c15t.com/docs/frameworks/javascript/script-loader
 	 */
 	scripts?: Script[];
 }

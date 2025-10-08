@@ -25,7 +25,7 @@ Developer-first CMP for React: cookie banner, consent manager, preferences centr
 - Works with React 19, 18, 17, and 16.8
 - Full 'use client' support for React Server Components
 - Headless and fully customizable UI components
-- Automatic GDPR, CCPA, and LGPD compliance
+- Automatic GDPR compliance
 - Minimal configuration with TypeScript-first design
 - Comprehensive Consent Management Platform (CMP)
 - Flexible Cookie Banner and Consent Dialog components
