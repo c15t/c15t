@@ -1,4 +1,5 @@
 import type { PrivacyConsentState } from '../../store.type';
+import { extractConsentNamesFromCondition } from '../has';
 import {
 	getLoadedScriptIds,
 	isScriptLoaded,
@@ -72,9 +73,19 @@ export function createScriptManager(
 				}
 			});
 
+			// Extract categories from new scripts and update gdprTypes
+			const newCategories = scripts.flatMap((script) =>
+				extractConsentNamesFromCondition(script.category)
+			);
+
+			const allCategories = [
+				...new Set([...state.gdprTypes, ...newCategories]),
+			];
+
 			setState({
 				scripts: [...state.scripts, ...scripts],
 				scriptIdMap: newScriptIdMap,
+				gdprTypes: allCategories,
 			});
 
 			updateScriptsFn();

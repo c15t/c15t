@@ -57,6 +57,7 @@ export const initialState: Omit<
 	| 'initializeIframeBlocker'
 	| 'updateIframeConsents'
 	| 'destroyIframeBlocker'
+	| 'updateConsentCategories'
 > = {
 	config: {
 		pkg: 'c15t',
