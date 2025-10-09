@@ -17,6 +17,8 @@ availableIn:
 
 <import>./shared/script-loader.mdx#overview</import>
 
+<import>./shared/script-loader.mdx#tracking-blocker</import>
+
 ## Implementation
 
 ```ts
@@ -24,11 +26,6 @@ import { configureConsentManager } from 'c15t';
 import { googleTagManager } from 'c15t/scripts/google-tag-manager';
 
 const c15t = configureConsentManager({
-  store: {
-    trackingBlockerConfig: {
-      disableAutomaticBlocking: true, // Recommended as Script Loader will replace the tracking blocker
-    }
-  },
   scripts: [
     {
       id: 'example',

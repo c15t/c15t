@@ -11,6 +11,7 @@ import {
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { PrivacyConsentState } from '../store.type';
+import type { createTrackingBlocker } from './tracking-blocker';
 
 type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
 
@@ -23,6 +24,7 @@ interface FetchConsentBannerConfig {
 	initialTranslationConfig?: Partial<TranslationConfig>;
 	get: StoreApi<PrivacyConsentState>['getState'];
 	set: StoreApi<PrivacyConsentState>['setState'];
+	trackingBlocker?: ReturnType<typeof createTrackingBlocker> | null;
 }
 
 /**
@@ -49,7 +51,12 @@ function checkLocalStorageAccess(
  */
 function updateStore(
 	data: ConsentBannerResponse,
-	{ set, get, initialTranslationConfig }: FetchConsentBannerConfig,
+	{
+		set,
+		get,
+		initialTranslationConfig,
+		trackingBlocker,
+	}: FetchConsentBannerConfig,
 	hasLocalStorageAccess: boolean
 ): void {
 	const { consentInfo, ignoreGeoLocation, callbacks, setDetectedCountry } =
@@ -124,6 +131,7 @@ function updateStore(
 	});
 
 	// Update scripts based on current consent state
+	trackingBlocker?.updateConsents(get().consents);
 	get().updateScripts();
 }
 

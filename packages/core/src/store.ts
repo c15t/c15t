@@ -122,6 +122,11 @@ export interface StoreOptions {
 	 * Configuration options for the tracking blocker system.
 	 *
 	 * @remarks
+	 * **Important:** The tracking blocker is automatically disabled when using the Script Loader
+	 * to prevent conflicts between the two systems. If you provide `scripts` in the store options,
+	 * or if you dynamically add scripts using `setScripts()`, the tracking blocker will be
+	 * destroyed to ensure proper script loading behavior.
+	 *
 	 * This interface controls how the tracking blocker intercepts and manages
 	 * network requests based on user consent. The blocker overrides global
 	 * `fetch` and `XMLHttpRequest` APIs to enforce consent requirements.
@@ -130,6 +135,8 @@ export interface StoreOptions {
 	 * The default domain map will be empty in v2.0, requiring users to explicitly
 	 * specify domains to block. Use the new Script Loader
 	 * instead for more granular control over script loading based on consent.
+	 *
+	 * @see https://c15t.com/docs/frameworks/javascript/script-loader
 	 */
 	trackingBlockerConfig?: TrackingBlockerConfig;
 
@@ -249,9 +256,13 @@ export const createConsentManagerStore = (
 	// Load initial state from localStorage if available
 	const storedConsent = getStoredConsent();
 
-	// Initialize tracking blocker
+	// Automatically disable tracking blocker if script loader is in use
+	const shouldDisableTrackingBlocker =
+		options.scripts && options.scripts.length > 0;
+
+	// Initialize tracking blocker only if not using script loader
 	const trackingBlocker =
-		typeof window !== 'undefined'
+		typeof window !== 'undefined' && !shouldDisableTrackingBlocker
 			? createTrackingBlocker(
 					trackingBlockerConfig || {},
 					storedConsent?.consents || initialState.consents
@@ -518,6 +529,7 @@ export const createConsentManagerStore = (
 				initialTranslationConfig: options.initialTranslationConfig,
 				get,
 				set,
+				trackingBlocker,
 			}),
 
 		/**
@@ -629,7 +641,7 @@ export const createConsentManagerStore = (
 			set({ gdprTypes: allCategories });
 		},
 
-		...createScriptManager(get, set),
+		...createScriptManager(get, set, trackingBlocker),
 		...createIframeManager(get, set),
 	}));
 
