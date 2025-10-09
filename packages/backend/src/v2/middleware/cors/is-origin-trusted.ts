@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 
-import type { Logger } from '@doubletie/logger';
+import type { Logger } from '@c15t/logger';
 
 /**
  * Regular expression to strip protocol, trailing slashes, and port numbers from URLs

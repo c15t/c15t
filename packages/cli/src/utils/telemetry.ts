@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import os from 'node:os';
-import type { Logger } from '@doubletie/logger';
+import type { Logger } from '@c15t/logger';
 import { PostHog } from 'posthog-node';
 
 // Environment variable for disabling telemetry

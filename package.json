@@ -15,7 +15,7 @@
 		"check-types": "turbo check-types",
 		"ci:publish": "pnpm changeset tag && pnpm publish -r",
 		"ci:version": "pnpm changeset version",
-		"dev": "turbo dev",
+		"dev": "turbo dev --concurrency=11",
 		"dev:docs-app": "pnpm --prefix .docs dev",
 		"fmt": "turbo fmt",
 		"fmt:docs": "pnpm remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",

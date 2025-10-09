@@ -1,0 +1,13 @@
+{
+	"extends": "@c15t/typescript-config/base.json",
+	"compilerOptions": {
+		"moduleResolution": "bundler",
+		"baseUrl": ".",
+		"types": ["@vitest/browser/matchers"],
+		"paths": {
+			"~/*": ["./src/*"]
+		}
+	},
+	"include": ["src"],
+	"exclude": ["node_modules"]
+}

@@ -1,4 +1,4 @@
-import type { LoggerOptions } from '@doubletie/logger';
+import type { LoggerOptions } from '@c15t/logger';
 import type { TableMetadata } from 'kysely';
 import type { Field } from '~/pkgs/data-model';
 import type { KyselyDatabaseType } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';

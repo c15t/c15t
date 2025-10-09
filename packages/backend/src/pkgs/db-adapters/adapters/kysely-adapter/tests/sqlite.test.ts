@@ -1,4 +1,4 @@
-import { logger } from '@doubletie/logger';
+import { logger } from '@c15t/logger';
 import { LibsqlDialect } from '@libsql/kysely-libsql';
 import { Kysely, sql } from 'kysely';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
