@@ -3,7 +3,7 @@
 /**
  * @packageDocumentation
  * A collection of components for building privacy consent management dialogs.
- * Built with accessibility and customization in mind, following GDPR, CCPA, and other privacy regulation requirements.
+ * Built with accessibility and customization in mind, following GDPR and other privacy regulation requirements.
  */
 
 import { forwardRef, type ReactNode, type Ref } from 'react';
@@ -216,7 +216,6 @@ export const BrandingFooter = () => {
  *
  * @remarks
  * - Provides a complete privacy settings interface
- * - Follows GDPR and CCPA requirements
  * - Includes consent type management
  * - Built-in accessibility features
  */

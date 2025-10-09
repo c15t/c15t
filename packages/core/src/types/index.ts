@@ -6,34 +6,7 @@
  */
 
 export type { Callback, Callbacks } from './callbacks';
-/**
- * @module
- * Compliance and Privacy Types
- *
- * @remarks
- * Exports types related to privacy compliance and consent management:
- * - Region-specific compliance settings
- * - Consent state tracking
- * - Privacy preferences
- * - Namespace configuration
- *
- * @example
- * Import compliance-related types:
- * ```typescript
- * import type {
- *   ComplianceRegion,
- *   ComplianceSettings,
- * } from 'c15t/types';
- *
- * const euSettings: ComplianceSettings = {
- *   enabled: true,
- *   appliesGlobally: false,
- *   applies: true
- * };
- *
- * const region: ComplianceRegion = 'gdpr';
- * ```
- */
+
 export type {
 	ComplianceRegion,
 	ComplianceSettings,

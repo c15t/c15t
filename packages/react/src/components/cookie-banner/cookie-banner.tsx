@@ -3,7 +3,7 @@
 /**
  * @packageDocumentation
  * Provides the main cookie banner component for privacy consent management.
- * Implements an accessible, customizable banner following GDPR and CCPA requirements.
+ * Implements an accessible, customizable banner following GDPR requirements.
  */
 
 import type { FC, ReactNode } from 'react';
