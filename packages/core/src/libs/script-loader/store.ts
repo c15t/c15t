@@ -1,5 +1,6 @@
 import type { PrivacyConsentState } from '../../store.type';
 import { extractConsentNamesFromCondition } from '../has';
+import type { createTrackingBlocker } from '../tracking-blocker';
 import {
 	getLoadedScriptIds,
 	isScriptLoaded,
@@ -19,12 +20,14 @@ import {
  *
  * @param getState - Function to get the current state from the store
  * @param setState - Function to update the state in the store
+ * @param trackingBlocker - Optional tracking blocker instance to destroy when scripts are added
  * @returns Object containing script management functions
  * @internal
  */
 export function createScriptManager(
 	getState: () => PrivacyConsentState,
-	setState: (partial: Partial<PrivacyConsentState>) => void
+	setState: (partial: Partial<PrivacyConsentState>) => void,
+	trackingBlocker?: ReturnType<typeof createTrackingBlocker> | null
 ) {
 	const updateScriptsFn = () => {
 		const { scripts, consents, scriptIdMap } = getState();
@@ -61,8 +64,17 @@ export function createScriptManager(
 		 * Adds multiple script configurations to the store.
 		 *
 		 * @param scripts - Array of script configurations to add
+		 *
+		 * @remarks
+		 * When scripts are added, the tracking blocker is automatically destroyed
+		 * to prevent conflicts between the two systems.
 		 */
 		setScripts: (scripts: Script[]) => {
+			// Destroy tracking blocker to avoid conflicts with script loader
+			if (trackingBlocker) {
+				trackingBlocker.destroy();
+			}
+
 			const state = getState();
 			const newScriptIdMap = { ...state.scriptIdMap };
 
