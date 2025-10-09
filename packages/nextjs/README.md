@@ -25,7 +25,7 @@ Developer-first CMP for Next.js: cookie banner, consent manager, preferences cen
 - Works with Next.js 15, 14, and 13
 - Full 'use client' support for React Server Components
 - Server-side rendering support for both app and pages routers
-- Automatic GDPR, CCPA, and LGPD compliance
+- Automatic GDPR compliance
 - Minimal configuration with TypeScript-first design
 - Headless, customisable UI components (Cookie Banner, Consent Dialog, etc.)
 - Built-in internationalisation support

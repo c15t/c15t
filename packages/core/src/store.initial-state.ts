@@ -17,13 +17,6 @@ export const STORAGE_KEY = 'privacy-consent-storage';
  * This configuration establishes the baseline state for the consent manager,
  * including default consent values, compliance settings, and privacy preferences.
  *
- * Notable defaults include:
- * - All consents start with their type-specific default values
- * - GDPR compliance is globally enabled
- * - CCPA compliance is enabled for US users only
- * - Do Not Track is respected by default
- * - Only necessary and marketing consents are included in gdprTypes
- *
  * @example
  * Using the initial state:
  * ```typescript

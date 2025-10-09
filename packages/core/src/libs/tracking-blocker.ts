@@ -11,17 +11,60 @@ import type { AllConsentNames, ConsentState } from '../types';
 import DEFAULT_DOMAIN_CONSENT_MAP from './tracking-domains';
 
 /**
- * Configuration options for the tracking blocker
- * @deprecated This is deprecated and will be removed in the next major version. Use the new [ScriptLoader](https://c15t.com/docs/react/script-loader) instead.
+ * Configuration options for the tracking blocker system.
+ *
+ * @remarks
+ * This interface controls how the tracking blocker intercepts and manages
+ * network requests based on user consent. The blocker overrides global
+ * `fetch` and `XMLHttpRequest` APIs to enforce consent requirements.
+ *
+ * @deprecated This interface is deprecated and will be removed in v2.0.
+ * The default domain map will be empty in v2.0, requiring users to explicitly
+ * specify domains to block. Recommended to use the Script Loader to load scripts based on consent.
+ * instead for more granular control over script loading based on consent.
  */
 export interface TrackingBlockerConfig {
-	/** Whether to disable automatic blocking (defaults to false) */
+	/**
+	 * Whether to disable automatic blocking of network requests.
+	 *
+	 * @default false
+	 *
+	 * @remarks
+	 * When `true`, the tracking blocker will not automatically intercept
+	 * and block network requests. This is useful for testing or when
+	 * implementing custom blocking logic.
+	 */
 	disableAutomaticBlocking?: boolean;
 
-	/** Override the default domain consent map */
+	/**
+	 * Whether to completely override the default domain consent map.
+	 *
+	 * @default false
+	 *
+	 * @remarks
+	 * When `true`, only the domains specified in `domainConsentMap` will be
+	 * considered for blocking. When `false`, the provided domains will be
+	 * merged with the default domain map.
+	 */
 	overrideDomainConsentMap?: boolean;
 
-	/** Map of domains to their required consent types */
+	/**
+	 * Map of domains to their required consent types.
+	 *
+	 * @remarks
+	 * Each domain should be mapped to the consent type required to allow
+	 * requests to that domain. Domains are normalized (lowercase, no www,
+	 * no port) before matching.
+	 *
+	 * @example
+	 * ```typescript
+	 * {
+	 *   'google-analytics.com': 'measurement',
+	 *   'facebook.com': 'marketing',
+	 *   'hotjar.com': 'experience'
+	 * }
+	 * ```
+	 */
 	domainConsentMap?: Record<string, AllConsentNames>;
 }
 
