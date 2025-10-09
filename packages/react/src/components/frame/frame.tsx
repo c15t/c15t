@@ -12,14 +12,17 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 		{ children, category, placeholder, noStyle, className, theme, ...props },
 		ref
 	) => {
-		const { has, hasFetchedBanner } = useConsentManager();
+		const { has, hasFetchedBanner, updateConsentCategories, gdprTypes } =
+			useConsentManager();
 		const [isMounted, setIsMounted] = useState(false);
 
 		const hasConsent = has(category);
 
+		// biome-ignore lint/correctness/useExhaustiveDependencies: we only want to update the consent categories when the component is mounted
 		useEffect(() => {
 			setIsMounted(true);
-		}, []);
+			updateConsentCategories([...gdprTypes, category]);
+		}, [category]);
 
 		const renderContent = () => {
 			// Avoids a flash of the placeholder

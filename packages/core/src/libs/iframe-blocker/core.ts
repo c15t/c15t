@@ -199,3 +199,146 @@ export function createIframeBlocker(
 		},
 	};
 }
+
+/**
+ * Extracts consent categories from all iframes with data-category attributes on the page.
+ * Returns an array of unique category names found in iframes.
+ *
+ * @returns Array of consent category names found in iframes
+ *
+ * @example
+ * ```typescript
+ * // <iframe data-category="marketing" />
+ * // <iframe data-category="measurement" />
+ * const categories = getIframeConsentCategories();
+ * // Returns: ['marketing', 'measurement']
+ * ```
+ */
+export function getIframeConsentCategories(): AllConsentNames[] {
+	if (typeof document === 'undefined') {
+		return [];
+	}
+
+	const iframes = document.querySelectorAll('iframe[data-category]');
+	const categories = new Set<AllConsentNames>();
+
+	iframes.forEach((iframe) => {
+		const categoryAttr = iframe.getAttribute('data-category');
+
+		if (!categoryAttr) {
+			return;
+		}
+
+		// Parse category - handle both single categories and complex conditions
+		// For now, extract simple category names (like script loader does)
+		const category = categoryAttr.trim();
+
+		// Check if it's a valid consent name
+		if (allConsentNames.includes(category as AllConsentNames)) {
+			categories.add(category as AllConsentNames);
+		}
+	});
+
+	return Array.from(categories);
+}
+
+/**
+ * Processes all iframes on the page based on current consent state.
+ * This is a pure function following the script loader pattern.
+ *
+ * @param consents - Current consent state
+ *
+ * @example
+ * ```typescript
+ * // Process all iframes with current consents
+ * processAllIframes({ marketing: true, necessary: true });
+ *
+ * // After consent changes, process again
+ * processAllIframes({ marketing: false, necessary: true });
+ * ```
+ */
+export function processAllIframes(consents: ConsentState): void {
+	if (typeof document === 'undefined') {
+		return;
+	}
+
+	const iframes = document.querySelectorAll('iframe');
+
+	iframes.forEach((iframe) => {
+		processIframeElement(iframe, consents);
+	});
+}
+
+/**
+ * Creates and starts a MutationObserver to watch for dynamically added iframes.
+ * The observer will automatically process new iframes based on the provided consent getter.
+ * It also triggers category discovery when new iframes with data-category are added.
+ *
+ * @param getConsents - Function to get current consent state
+ * @param onCategoriesDiscovered - Optional callback when new categories are discovered
+ * @returns The active MutationObserver instance
+ *
+ * @example
+ * ```typescript
+ * const observer = setupIframeObserver(
+ *   () => store.getState().consents,
+ *   (categories) => store.getState().updateConsentCategories(categories)
+ * );
+ *
+ * // Later, clean up
+ * observer.disconnect();
+ * ```
+ */
+export function setupIframeObserver(
+	getConsents: () => ConsentState,
+	onCategoriesDiscovered?: (categories: AllConsentNames[]) => void
+): MutationObserver {
+	const observer = new MutationObserver((mutations) => {
+		const currentConsents = getConsents();
+		let hasNewCategories = false;
+
+		mutations.forEach((mutation) => {
+			mutation.addedNodes.forEach((node) => {
+				if (node.nodeType === Node.ELEMENT_NODE) {
+					const element = node as Element;
+
+					// Check if the added node is an iframe
+					if (element.tagName && element.tagName.toUpperCase() === 'IFRAME') {
+						processIframeElement(element as HTMLIFrameElement, currentConsents);
+						// Check if iframe has a data-category attribute
+						if (element.hasAttribute('data-category')) {
+							hasNewCategories = true;
+						}
+					}
+
+					// Check if the added node contains iframes
+					const iframes = element.querySelectorAll?.('iframe');
+					if (iframes && iframes.length > 0) {
+						iframes.forEach((iframe) => {
+							processIframeElement(iframe, currentConsents);
+							// Check if iframe has a data-category attribute
+							if (iframe.hasAttribute('data-category')) {
+								hasNewCategories = true;
+							}
+						});
+					}
+				}
+			});
+		});
+
+		// If new iframes with categories were added, trigger category discovery
+		if (hasNewCategories && onCategoriesDiscovered) {
+			const categories = getIframeConsentCategories();
+			if (categories.length > 0) {
+				onCategoriesDiscovered(categories);
+			}
+		}
+	});
+
+	observer.observe(document.body, {
+		childList: true,
+		subtree: true,
+	});
+
+	return observer;
+}

@@ -4,18 +4,22 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrivacyConsentState } from '../../../store.type';
-import { createIframeBlocker } from '../core';
-import { createIframeManager, resetIframeBlocker } from '../store';
+import {
+	getIframeConsentCategories,
+	processAllIframes,
+	setupIframeObserver,
+} from '../core';
+import { createIframeManager } from '../store';
 
-// Mock the core iframe blocker
-const mockIframeBlocker = {
-	updateConsents: vi.fn(),
-	processIframes: vi.fn(),
-	destroy: vi.fn(),
+// Mock the pure functions from core
+const mockObserver = {
+	disconnect: vi.fn(),
 };
 
 vi.mock('../core', () => ({
-	createIframeBlocker: vi.fn(() => mockIframeBlocker),
+	getIframeConsentCategories: vi.fn(() => []),
+	processAllIframes: vi.fn(),
+	setupIframeObserver: vi.fn(() => mockObserver),
 }));
 
 describe('createIframeManager', () => {
@@ -30,9 +34,6 @@ describe('createIframeManager', () => {
 
 		// Clear all mocks
 		vi.clearAllMocks();
-
-		// Reset the iframe blocker instance for each test
-		resetIframeBlocker();
 	});
 
 	afterEach(() => {
@@ -57,69 +58,106 @@ describe('createIframeManager', () => {
 			manager.initializeIframeBlocker();
 
 			expect(mockGet).toHaveBeenCalled();
-			// The createIframeBlocker should be called with the config and consents
-			expect(createIframeBlocker).toHaveBeenCalledWith(
-				mockState.iframeBlockerConfig,
-				mockState.consents
-			);
+			// Pure function should process all iframes with current consents
+			expect(processAllIframes).toHaveBeenCalledWith(mockState.consents);
+			// Observer should be set up
+			expect(setupIframeObserver).toHaveBeenCalled();
+			// Should update state to mark blocker as active (like script loader pattern)
 		});
 
 		it('should not initialize iframe blocker when already initialized', () => {
 			// First initialization
-			mockGet.mockReturnValue({
-				iframeBlockerConfig: {},
+			mockGet.mockReturnValueOnce({
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				consents: {},
 			});
 
 			manager.initializeIframeBlocker();
 
-			// Second initialization should not create another instance
+			// Second initialization should not process again
+			mockGet.mockReturnValueOnce({
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
+				consents: {},
+			});
+
 			manager.initializeIframeBlocker();
 
-			expect(createIframeBlocker).toHaveBeenCalledTimes(1);
+			expect(processAllIframes).toHaveBeenCalledTimes(1);
+			expect(setupIframeObserver).toHaveBeenCalledTimes(1);
+			// mockSet is not used in the current implementation, so it should not be called
+			expect(mockSet).not.toHaveBeenCalled();
 		});
 
-		it('should not initialize iframe blocker on server side', () => {
-			// Mock window as undefined (server side)
-			const originalWindow = global.window;
-			// @ts-expect-error - intentionally setting to undefined for test
-			global.window = undefined;
-
+		it('should respect disableAutomaticBlocking config', () => {
 			mockGet.mockReturnValue({
-				iframeBlockerConfig: {},
+				iframeBlockerConfig: { disableAutomaticBlocking: true },
 				consents: {},
 			});
 
 			manager.initializeIframeBlocker();
 
-			expect(createIframeBlocker).not.toHaveBeenCalled();
-
-			// Restore window
-			global.window = originalWindow;
+			// Should not process or set up observer when automatic blocking is disabled
+			expect(processAllIframes).not.toHaveBeenCalled();
+			expect(setupIframeObserver).not.toHaveBeenCalled();
+			expect(mockSet).not.toHaveBeenCalled();
 		});
 
-		it('should handle missing config gracefully', () => {
+		it('should discover and update consent categories from iframes', () => {
+			const mockUpdateConsentCategories = vi.fn();
+
+			// Mock that iframes have marketing and measurement categories
+			vi.mocked(getIframeConsentCategories).mockReturnValueOnce([
+				'marketing',
+				'measurement',
+			]);
+
 			mockGet.mockReturnValue({
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				consents: {},
+				updateConsentCategories: mockUpdateConsentCategories,
 			});
 
 			manager.initializeIframeBlocker();
 
-			expect(createIframeBlocker).toHaveBeenCalledWith(undefined, {});
+			// Should extract categories from iframes
+			expect(getIframeConsentCategories).toHaveBeenCalled();
+			// Should update gdprTypes with discovered categories
+			expect(mockUpdateConsentCategories).toHaveBeenCalledWith([
+				'marketing',
+				'measurement',
+			]);
+		});
+
+		it('should not update categories when no iframes with categories exist', () => {
+			const mockUpdateConsentCategories = vi.fn();
+
+			// Mock that no iframes have categories
+			vi.mocked(getIframeConsentCategories).mockReturnValueOnce([]);
+
+			mockGet.mockReturnValue({
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
+				consents: {},
+				updateConsentCategories: mockUpdateConsentCategories,
+			});
+
+			manager.initializeIframeBlocker();
+
+			// Should still call the extraction function
+			expect(getIframeConsentCategories).toHaveBeenCalled();
+			// Should not update categories when none found
+			expect(mockUpdateConsentCategories).not.toHaveBeenCalled();
 		});
 	});
 
 	describe('updateIframeConsents', () => {
-		it('should update iframe blocker consents when blocker exists', () => {
-			// Initialize the blocker first
-			mockGet.mockReturnValue({
-				iframeBlockerConfig: {},
+		it('should reprocess all iframes when blocker is active', () => {
+			// First initialize the blocker
+			mockGet.mockReturnValueOnce({
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				consents: {},
 			});
-
 			manager.initializeIframeBlocker();
 
-			// Now test update
 			const mockConsents = {
 				necessary: true,
 				functionality: true,
@@ -129,153 +167,140 @@ describe('createIframeManager', () => {
 			};
 
 			mockGet.mockReturnValue({
-				iframeBlockerConfig: {},
 				consents: mockConsents,
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 			});
 
 			manager.updateIframeConsents();
 
-			expect(mockIframeBlocker.updateConsents).toHaveBeenCalledWith(
-				mockConsents
-			);
+			// Should call pure function to process all iframes with new consents
+			expect(processAllIframes).toHaveBeenCalledWith(mockConsents);
 		});
 
-		it('should not update iframe blocker when blocker does not exist', () => {
-			// Don't initialize the blocker
+		it('should not process iframes when blocker is not active', () => {
+			// Don't initialize the blocker first
 			mockGet.mockReturnValue({
 				consents: {},
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 			});
 
 			manager.updateIframeConsents();
 
-			expect(mockIframeBlocker.updateConsents).not.toHaveBeenCalled();
+			// Should not process if blocker isn't active
+			expect(processAllIframes).not.toHaveBeenCalled();
 		});
 	});
 
 	describe('destroyIframeBlocker', () => {
-		it('should destroy iframe blocker when it exists', () => {
-			// Initialize the blocker first
-			mockGet.mockReturnValue({
-				iframeBlockerConfig: {},
+		it('should disconnect observer and mark as inactive', () => {
+			// First initialize
+			mockGet.mockReturnValueOnce({
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				consents: {},
 			});
-
 			manager.initializeIframeBlocker();
 
-			// Now destroy
+			// Then destroy
+			mockGet.mockReturnValueOnce({
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
+				consents: {},
+			});
 			manager.destroyIframeBlocker();
 
-			expect(mockIframeBlocker.destroy).toHaveBeenCalled();
+			expect(mockObserver.disconnect).toHaveBeenCalled();
 		});
 
-		it('should not throw error when destroying non-existent blocker', () => {
+		it('should not throw error when destroying non-initialized blocker', () => {
 			// Don't initialize the blocker
 			expect(() => {
 				manager.destroyIframeBlocker();
 			}).not.toThrow();
-
-			expect(mockIframeBlocker.destroy).not.toHaveBeenCalled();
-		});
-
-		it('should reset iframe blocker reference after destroy', () => {
-			// Initialize the blocker first
-			mockGet.mockReturnValue({
-				iframeBlockerConfig: {},
-				consents: {},
-			});
-
-			manager.initializeIframeBlocker();
-
-			// Destroy
-			manager.destroyIframeBlocker();
-
-			// Try to update consents after destroy
-			manager.updateIframeConsents();
-
-			expect(mockIframeBlocker.updateConsents).not.toHaveBeenCalled();
 		});
 	});
 
 	describe('integration scenarios', () => {
 		it('should handle full lifecycle correctly', () => {
-			const mockState: Partial<PrivacyConsentState> = {
-				iframeBlockerConfig: { disableAutomaticBlocking: false },
-				consents: {
-					necessary: true,
-					functionality: false,
-					experience: false,
-					marketing: false,
-					measurement: false,
-				},
+			const initialConsents = {
+				necessary: true,
+				functionality: false,
+				experience: false,
+				marketing: false,
+				measurement: false,
 			};
 
-			mockGet.mockReturnValue(mockState);
-
 			// Initialize
+			mockGet.mockReturnValueOnce({
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
+				consents: initialConsents,
+			});
+
 			manager.initializeIframeBlocker();
 
-			expect(createIframeBlocker).toHaveBeenCalledWith(
-				mockState.iframeBlockerConfig,
-				mockState.consents
-			);
+			expect(processAllIframes).toHaveBeenCalledWith(initialConsents);
+			expect(setupIframeObserver).toHaveBeenCalled();
 
 			// Update consents
 			const updatedConsents = {
-				...mockState.consents,
+				...initialConsents,
 				marketing: true,
 			};
 
-			mockGet.mockReturnValue({
-				...mockState,
+			mockGet.mockReturnValueOnce({
 				consents: updatedConsents,
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 			});
 
 			manager.updateIframeConsents();
-			expect(mockIframeBlocker.updateConsents).toHaveBeenCalledWith(
-				updatedConsents
-			);
+			expect(processAllIframes).toHaveBeenCalledWith(updatedConsents);
 
 			// Destroy
+			mockGet.mockReturnValueOnce({
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
+				consents: {},
+			});
 			manager.destroyIframeBlocker();
-			expect(mockIframeBlocker.destroy).toHaveBeenCalled();
+			expect(mockObserver.disconnect).toHaveBeenCalled();
 		});
 
 		it('should handle multiple consent updates', () => {
-			// Initialize
-			mockGet.mockReturnValue({
-				iframeBlockerConfig: {},
+			// Initialize first
+			mockGet.mockReturnValueOnce({
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				consents: {},
 			});
-
 			manager.initializeIframeBlocker();
+
+			// Reset call count after init
+			vi.clearAllMocks();
 
 			// Multiple updates
 			const consents1 = { marketing: true };
 			const consents2 = { marketing: false, functionality: true };
 			const consents3 = { marketing: true, functionality: true };
 
-			mockGet.mockReturnValueOnce({ consents: consents1 });
+			mockGet.mockReturnValueOnce({
+				consents: consents1,
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
+			});
 			manager.updateIframeConsents();
 
-			mockGet.mockReturnValueOnce({ consents: consents2 });
+			mockGet.mockReturnValueOnce({
+				consents: consents2,
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
+			});
 			manager.updateIframeConsents();
 
-			mockGet.mockReturnValueOnce({ consents: consents3 });
+			mockGet.mockReturnValueOnce({
+				consents: consents3,
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
+			});
 			manager.updateIframeConsents();
 
-			expect(mockIframeBlocker.updateConsents).toHaveBeenCalledTimes(3);
-			expect(mockIframeBlocker.updateConsents).toHaveBeenNthCalledWith(
-				1,
-				consents1
-			);
-			expect(mockIframeBlocker.updateConsents).toHaveBeenNthCalledWith(
-				2,
-				consents2
-			);
-			expect(mockIframeBlocker.updateConsents).toHaveBeenNthCalledWith(
-				3,
-				consents3
-			);
+			// Pure function called 3 times with different consents
+			expect(processAllIframes).toHaveBeenCalledTimes(3);
+			expect(processAllIframes).toHaveBeenNthCalledWith(1, consents1);
+			expect(processAllIframes).toHaveBeenNthCalledWith(2, consents2);
+			expect(processAllIframes).toHaveBeenNthCalledWith(3, consents3);
 		});
 	});
 });

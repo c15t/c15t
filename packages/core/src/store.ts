@@ -16,7 +16,11 @@ import {
 } from './libs/consent-utils';
 import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
 import { type GTMConfiguration, setupGTM } from './libs/gtm';
-import { type HasCondition, has } from './libs/has';
+import {
+	extractConsentNamesFromCondition,
+	type HasCondition,
+	has,
+} from './libs/has';
 import type { IframeBlockerConfig } from './libs/iframe-blocker';
 import { createIframeManager } from './libs/iframe-blocker/store';
 import { saveConsents } from './libs/save-consents';
@@ -240,6 +244,7 @@ export const createConsentManagerStore = (
 
 	const store = createStore<PrivacyConsentState>((set, get) => ({
 		...initialState,
+		gdprTypes: options.initialGdprTypes ?? initialState.gdprTypes,
 		ignoreGeoLocation: options.ignoreGeoLocation ?? false,
 		config: options.config ?? initialState.config,
 		iframeBlockerConfig:
@@ -600,12 +605,31 @@ export const createConsentManagerStore = (
 		setTranslationConfig: (config: TranslationConfig) => {
 			set({ translationConfig: config });
 		},
+
+		updateConsentCategories: (newCategories: AllConsentNames[]) => {
+			const allCategories = [
+				...new Set([...get().gdprTypes, ...newCategories]),
+			];
+			set({ gdprTypes: allCategories });
+		},
+
 		...createScriptManager(get, set),
 		...createIframeManager(get, set),
 	}));
 
 	// Initialize the iframe blocker after the store is created
 	store.getState().initializeIframeBlocker();
+
+	// Add script categories to gdprTypes
+	if (options.scripts && options.scripts.length > 0) {
+		store
+			.getState()
+			.updateConsentCategories(
+				options.scripts.flatMap((script) =>
+					extractConsentNamesFromCondition(script.category)
+				)
+			);
+	}
 
 	if (typeof window !== 'undefined') {
 		// biome-ignore lint/suspicious/noExplicitAny: its okay
