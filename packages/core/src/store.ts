@@ -114,13 +114,22 @@ export interface StoreOptions {
 
 	/**
 	 * Initial compliance settings for different regions.
-	 * @deprecated will be removed in a future version
+	 * @deprecated will be removed in v2.0 due to unused functionality
 	 */
 	initialComplianceSettings?: Record<string, Partial<ComplianceSettings>>;
 
 	/**
-	 * Configuration for the tracking blocker.
-	 * @deprecated will be removed in a future version - use scripts instead
+	 * Configuration options for the tracking blocker system.
+	 *
+	 * @remarks
+	 * This interface controls how the tracking blocker intercepts and manages
+	 * network requests based on user consent. The blocker overrides global
+	 * `fetch` and `XMLHttpRequest` APIs to enforce consent requirements.
+	 *
+	 * @deprecated This interface is deprecated and will be removed in v2.0.
+	 * The default domain map will be empty in v2.0, requiring users to explicitly
+	 * specify domains to block. Use the new Script Loader
+	 * instead for more granular control over script loading based on consent.
 	 */
 	trackingBlockerConfig?: TrackingBlockerConfig;
 

@@ -51,8 +51,7 @@ export type ConsentState = Record<AllConsentNames, boolean>;
  * ```
  *
  * @public
- * @deprecated will be removed in a future version due to unused functionality
- */
+ * @deprecated Will be removed in v2.0 along with ComplianceRegion. 
 export type ComplianceRegion = 'gdpr' | 'ccpa' | 'lgpd' | 'usStatePrivacy';
 
 /**
