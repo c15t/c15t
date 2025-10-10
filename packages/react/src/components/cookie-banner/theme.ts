@@ -7,7 +7,7 @@ import type { ThemeValue } from '../../types/theme';
  */
 export type CookieBannerTheme = Partial<{
 	/** @remarks Styles for the root container element */
-	'banner.root': ThemeValue;
+	'banner.root': ThemeValue<RootCSSVariables>;
 	/** @remarks Styles for the card element */
 	'banner.card': ThemeValue<CardCSSVariables>;
 	/** @remarks Styles for the main content wrapper */
@@ -29,6 +29,23 @@ export type CookieBannerTheme = Partial<{
 	/** @remarks Styles for the overlay element */
 	'banner.overlay': ThemeValue<OverlayCSSVariables>;
 }>;
+
+/** Root component CSS variables */
+/**
+ * CSS custom properties for the root banner container element.
+ * Defines typography-related variables that control font rendering.
+ * @internal
+ */
+type RootCSSVariables = {
+	/** Font family stack for banner text */
+	'--banner-font-family': string;
+	/** Line height for banner text */
+	'--banner-line-height': string;
+	/** Text size adjustment for WebKit browsers */
+	'--banner-text-size-adjust': string;
+	/** Tab character width in spaces */
+	'--banner-tab-size': string;
+};
 
 /** Card component CSS variables */
 type CardCSSVariables = {
