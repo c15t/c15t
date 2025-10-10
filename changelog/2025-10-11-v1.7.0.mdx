@@ -1,0 +1,122 @@
+---
+title: "v1.7.0 - Script Loader & iFrame Blocking"
+version: "1.7.0"
+date: 2025-10-11
+description: "Minor release with a new approach to script loader and iFrame blocking."
+tags:
+  - release
+  - stable
+  - nextjs
+  - react
+  - backend
+canary: true
+type: release
+breaking: false
+draft: false
+authors: [KayleeWilliams]
+packages:
+  - "@c15t/backend@1.7.0"
+  - "@c15t/cli@1.7.0"
+  - "@c15t/nextjs@1.7.0"
+  - "@c15t/react@1.7.0"
+  - "@c15t/translations@1.7.0"
+  - "@c15t/scripts@1.7.0"
+  - "c15t@1.7.0"
+---
+
+## ✨ New Features
+
+### Script Loader
+
+We're deprecating the tracking blocker and replacing it with a new approach to managing script loading based on consent.
+
+The [script loader](/docs/frameworks/javascript/script-loader) will handle the loading, unloading and life cycle of all scripts based on consent. 
+
+To make using the script loader easier, we've added a new `@c15t/scripts` package that contains prebuilt scripts for common analytics and marketing tools as well as introduced [integration guides](/docs/integrations) for integrating c15t with your tools such as Google Tag Manager (GTM) and PostHog.
+
+```ts
+import { ConsentManagerProvider } from '@c15t/react';
+import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+
+export function App({ children }: { children: React.ReactNode }) {
+  return (
+    <ConsentManagerProvider options={{
+      scripts: [
+        googleTagManager({
+          id: 'GTM-XXXXXXX',
+        }),
+        {
+          id: 'example',
+          src: 'https://analytics.example.com/script.js',
+          category: 'analytics',
+        }
+      ]
+    }}>
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+⚠️ **Heads-up:** the current tracking blocker will be removed in c15t v2.0. It is automatically disabled when using the script loader in v1.7.0.
+
+See the [Script Loader documentation](/docs/frameworks/react/script-loader) for full details.
+
+### iFrame Blocking
+
+Stopping iframes such as YouTube embeds from loading until consent is given is important for privacy and compliance. This update introduces two new ways to block iframes:
+
+- Frame Component (React - Recommended): This is a React component that conditionally renders content and provides a pre-built/customizable placeholder providing great UX. [Learn more about the Frame component](/docs/frameworks/react/components/frame)
+- Headless: This is a headless implementation that does not render any DOM elements. It only manages the src/data-src attributes of existing iframe elements.
+
+```ts
+import { Frame } from '@c15t/react';
+
+export function App({ children }: { children: React.ReactNode }) {
+  return (
+    <Frame category="marketing" className="aspect-video w-full">
+      <iframe
+        title="Cool Duck Video"
+        src="https://www.youtube.com/embed/mQJ6q1ZCzsg"
+        width="100%"
+        height="100%"
+      />
+    </Frame>
+  );
+}
+
+See the [iFrame Blocking documentation](/docs/frameworks/react/iframe-blocking) for full details.
+```
+
+### New Examples!
+
+We've moved our examples to a new repository, [c15t-examples](https://github.com/c15t/c15t-examples). As well as added more detailed examples instead of barebones examples.
+
+Currently the in-depth examples are only available for the React & Next.js frameworks but we'll be updating the JavaScript examples soon.
+
+INSERT PIC HERE OF EXAMPLES
+
+## 🐛 Bug Fixes & Improvements
+
+### **@c15t/nextjs**
+
+* Fixed both headless exports for Next.js
+
+### **@c15t/react**
+
+* Fixed missing CSS variables for font-family & line-height for the cookie banner
+* Improved button hover transitions when changing theme
+
+### **@c15t/backend**
+
+* Fixed handling of multiple subdomains e.g. `foo.bar.example.com`
+
+### **@c15t/cli**
+
+* Corrected spelling of "GitHub" in CLI commands
+
+### **@c15t/logger**
+
+* Added a new logger package for logging errors and warnings for use in the CLI & backend to replace external logging package.
+
+<ContributorBlock usernames={["KayleeWilliams", "BurnedChris"]} title="Thank you to our contributors" />
