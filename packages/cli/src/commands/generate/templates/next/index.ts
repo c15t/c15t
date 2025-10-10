@@ -63,6 +63,10 @@ export async function updateNextLayout(
 	filePath: string | null;
 	alreadyModified: boolean;
 	structureType: NextStructure;
+	componentFiles?: {
+		consentManager: string;
+		consentManagerClient?: string;
+	};
 }> {
 	const structureType = detectNextJsStructure(options.projectRoot);
 
@@ -79,6 +83,10 @@ export async function updateNextLayout(
 		updated: boolean;
 		filePath: string | null;
 		alreadyModified: boolean;
+		componentFiles?: {
+			consentManager: string;
+			consentManagerClient?: string;
+		};
 	};
 
 	if (structureType === 'app') {
