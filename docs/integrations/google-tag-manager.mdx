@@ -7,7 +7,7 @@ canary: true
 
 c15t supports Google Tag Manager (GTM) and Consent Mode v2. The pre-built c15t script will automatically inject the GTM script into your page and update the consent state in GTM to match the consent state in c15t.
 
-By default, GTM is loaded when the 'necessary' category is given consent, as it controls the loading of other scripts.
+By default, c15t will always load this script regardless of consent. This is because GTM manages its own consent state internally & loads other scripts based on the consent state.
 
 Allowing c15t to manage GTM prevents any issues with GTM scripts being loaded without consent.
 

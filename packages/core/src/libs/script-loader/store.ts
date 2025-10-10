@@ -1,5 +1,5 @@
 import type { PrivacyConsentState } from '../../store.type';
-import { extractConsentNamesFromCondition } from '../has';
+import { extractConsentNamesFromCondition, has } from '../has';
 import type { createTrackingBlocker } from '../tracking-blocker';
 import {
 	getLoadedScriptIds,
@@ -128,6 +128,7 @@ export function createScriptManager(
 						elementId,
 						consents: state.consents,
 						element: scriptElement,
+						hasConsent: has(script?.category ?? 'necessary', state.consents),
 					};
 
 					// Execute onDelete callback if provided
