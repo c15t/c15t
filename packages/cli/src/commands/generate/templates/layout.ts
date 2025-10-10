@@ -4,6 +4,8 @@
  * based on the detected project structure (App Directory vs Pages Directory)
  */
 
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import {
 	Project,
 	type ReturnStatement,
@@ -12,11 +14,8 @@ import {
 } from 'ts-morph';
 import type { AvailablePackages } from '~/context/framework-detection';
 import { updateNextLayout } from './next';
-import {
-	generateOptionsText,
-	getBaseImports,
-	getCustomModeImports,
-} from './shared/options';
+import { generateConsentManagerTemplate } from './react/components';
+import { generateOptionsText } from './shared/options';
 
 interface UpdateReactLayoutOptions {
 	projectRoot: string;
@@ -27,75 +26,61 @@ interface UpdateReactLayoutOptions {
 	proxyNextjs?: boolean;
 }
 
+interface ComponentFilePaths {
+	consentManager: string;
+}
+
 /**
- * Updates imports for generic React projects
- * Adds ConsentManagerProvider and related imports to the layout file
+ * Adds the ConsentManager import to the layout file
  *
  * @param layoutFile - The source file to update
- * @param packageName - The package name to import from
- * @param mode - The storage mode being used
  *
- * @throws {Error} When imports cannot be added to the file
+ * @remarks
+ * Adds: import { ConsentManager } from './consent-manager';
  */
-function updateGenericReactImports(
-	layoutFile: SourceFile,
-	packageName: string,
-	mode: string
-): void {
-	const requiredImports = ['ConsentManagerProvider', ...getBaseImports()];
-	let hasPackageImport = false;
+function addConsentManagerImport(layoutFile: SourceFile): void {
+	// Check if import already exists
+	const existingImports = layoutFile.getImportDeclarations();
+	const hasConsentManagerImport = existingImports.some(
+		(importDecl) =>
+			importDecl.getModuleSpecifierValue() === './consent-manager' ||
+			importDecl.getModuleSpecifierValue() === './consent-manager.tsx'
+	);
 
-	// Check existing imports and update if needed
-	for (const importDecl of layoutFile.getImportDeclarations()) {
-		if (importDecl.getModuleSpecifierValue() === packageName) {
-			hasPackageImport = true;
-			const namedImports = importDecl.getNamedImports().map((i) => i.getName());
-			const missingImports = requiredImports.filter(
-				(imp) => !namedImports.includes(imp)
-			);
-			if (missingImports.length > 0) {
-				importDecl.addNamedImports(missingImports);
-			}
-			break;
-		}
-	}
-
-	// Add new import if none exists
-	if (!hasPackageImport) {
+	if (!hasConsentManagerImport) {
 		layoutFile.addImportDeclaration({
-			namedImports: requiredImports,
-			moduleSpecifier: packageName,
+			namedImports: ['ConsentManager'],
+			moduleSpecifier: './consent-manager',
 		});
-	}
-
-	// Add custom mode imports if needed
-	if (mode === 'custom') {
-		for (const customImport of getCustomModeImports()) {
-			layoutFile.addImportDeclaration(customImport);
-		}
 	}
 }
 
 /**
+ * Determines the source directory based on the layout file location
+ *
+ * @param layoutFilePath - Full path to the layout file
+ * @returns The source directory path relative to project root
+ *
+ * @remarks
+ * Returns 'src' if the file is in src directory, otherwise returns empty string for root level
+ */
+function getSourceDirectory(layoutFilePath: string): string {
+	if (layoutFilePath.includes('/src/')) {
+		return 'src';
+	}
+	return '';
+}
+
+/**
  * Updates JSX content for generic React projects
- * Wraps the main component's return JSX with ConsentManagerProvider
+ * Wraps the main component's return JSX with ConsentManager component
  *
  * @param layoutFile - The source file to update
- * @param mode - The storage mode being used
- * @param backendURL - Optional backend URL for c15t mode
- * @param useEnvFile - Whether to use environment variables
- * @param proxyNextjs - Whether to use Next.js proxy (not applicable for generic React)
  * @returns True if JSX was successfully updated, false otherwise
  *
  * @throws {Error} When JSX cannot be parsed or updated
  */
-function updateGenericReactJsx(
-	layoutFile: SourceFile,
-	mode: string,
-	backendURL?: string,
-	useEnvFile?: boolean,
-	proxyNextjs?: boolean
-): boolean {
+function updateGenericReactJsx(layoutFile: SourceFile): boolean {
 	// Find the main function component (could be function declaration or arrow function)
 	const functionDeclarations = layoutFile.getFunctions();
 	const variableDeclarations = layoutFile.getVariableDeclarations();
@@ -106,13 +91,7 @@ function updateGenericReactJsx(
 			SyntaxKind.ReturnStatement
 		)[0];
 		if (returnStatement) {
-			return wrapReturnStatement(
-				returnStatement,
-				mode,
-				backendURL,
-				useEnvFile,
-				proxyNextjs
-			);
+			return wrapReturnStatementWithConsentManager(returnStatement);
 		}
 	}
 
@@ -124,13 +103,7 @@ function updateGenericReactJsx(
 				SyntaxKind.ReturnStatement
 			)[0];
 			if (returnStatement) {
-				return wrapReturnStatement(
-					returnStatement,
-					mode,
-					backendURL,
-					useEnvFile,
-					proxyNextjs
-				);
+				return wrapReturnStatementWithConsentManager(returnStatement);
 			}
 		}
 	}
@@ -139,21 +112,13 @@ function updateGenericReactJsx(
 }
 
 /**
- * Wraps a return statement's JSX with ConsentManagerProvider
+ * Wraps a return statement's JSX with ConsentManager component
  *
  * @param returnStatement - The return statement to wrap
- * @param mode - The storage mode being used
- * @param backendURL - Optional backend URL for c15t mode
- * @param useEnvFile - Whether to use environment variables
- * @param proxyNextjs - Whether to use Next.js proxy
  * @returns True if successfully wrapped, false otherwise
  */
-function wrapReturnStatement(
-	returnStatement: ReturnStatement,
-	mode: string,
-	backendURL?: string,
-	useEnvFile?: boolean,
-	proxyNextjs?: boolean
+function wrapReturnStatementWithConsentManager(
+	returnStatement: ReturnStatement
 ): boolean {
 	const expression = returnStatement.getExpression();
 	if (!expression) {
@@ -161,24 +126,51 @@ function wrapReturnStatement(
 	}
 
 	const originalJsx = expression.getText();
-	const optionsText = generateOptionsText(
-		mode,
-		backendURL,
-		useEnvFile,
-		proxyNextjs
-	);
 
-	// Wrap the JSX with ConsentManagerProvider
+	// Wrap the JSX with ConsentManager
 	const newJsx = `(
-		<ConsentManagerProvider options={${optionsText}}>
-			<CookieBanner />
-			<ConsentManagerDialog />
+		<ConsentManager>
 			${originalJsx}
-		</ConsentManagerProvider>
+		</ConsentManager>
 	)`;
 
 	returnStatement.replaceWithText(`return ${newJsx}`);
 	return true;
+}
+
+/**
+ * Creates the consent-manager component file in the React project
+ *
+ * @param projectRoot - Root directory of the project
+ * @param sourceDir - Source directory path (either 'src' or '')
+ * @param optionsText - Stringified options object for ConsentManagerProvider
+ * @returns Object containing path to created file
+ *
+ * @throws {Error} When file cannot be created
+ *
+ * @remarks
+ * Creates one file:
+ * - consent-manager.tsx - Component with provider, UI, scripts, and callbacks
+ */
+async function createConsentManagerComponent(
+	projectRoot: string,
+	sourceDir: string,
+	optionsText: string
+): Promise<ComponentFilePaths> {
+	const targetDir = sourceDir ? path.join(projectRoot, sourceDir) : projectRoot;
+
+	// Generate component file content
+	const consentManagerContent = generateConsentManagerTemplate(optionsText);
+
+	// Define file path
+	const consentManagerPath = path.join(targetDir, 'consent-manager.tsx');
+
+	// Write file
+	await fs.writeFile(consentManagerPath, consentManagerContent, 'utf-8');
+
+	return {
+		consentManager: consentManagerPath,
+	};
 }
 
 /**
@@ -193,7 +185,6 @@ function wrapReturnStatement(
 async function updateGenericReactLayout({
 	projectRoot,
 	mode,
-	pkg,
 	backendURL,
 	useEnvFile,
 	proxyNextjs,
@@ -201,6 +192,7 @@ async function updateGenericReactLayout({
 	updated: boolean;
 	filePath: string | null;
 	alreadyModified: boolean;
+	componentFiles?: ComponentFilePaths;
 }> {
 	// Generic React layout patterns (Vite, CRA, etc.)
 	const layoutPatterns = [
@@ -241,45 +233,60 @@ async function updateGenericReactLayout({
 		};
 	}
 
-	// Check if file already has imports from our package
+	const layoutFilePath = layoutFile.getFilePath();
+	const sourceDir = getSourceDirectory(layoutFilePath);
+
+	// Check if ConsentManager is already imported
 	const existingImports = layoutFile.getImportDeclarations();
-	const hasPackageImport = existingImports.some(
-		(importDecl) => importDecl.getModuleSpecifierValue() === pkg
+	const hasConsentManagerImport = existingImports.some(
+		(importDecl) =>
+			importDecl.getModuleSpecifierValue() === './consent-manager' ||
+			importDecl.getModuleSpecifierValue() === './consent-manager.tsx'
 	);
 
-	if (hasPackageImport) {
+	if (hasConsentManagerImport) {
 		return {
 			updated: false,
-			filePath: layoutFile.getFilePath(),
+			filePath: layoutFilePath,
 			alreadyModified: true,
 		};
 	}
 
 	try {
-		// Add required imports
-		updateGenericReactImports(layoutFile, pkg, mode);
-
-		// Update the component JSX
-		const updated = updateGenericReactJsx(
-			layoutFile,
+		// Generate options text for the component
+		const optionsText = generateOptionsText(
 			mode,
 			backendURL,
 			useEnvFile,
 			proxyNextjs
 		);
 
+		// Create consent manager component file
+		const componentFiles = await createConsentManagerComponent(
+			projectRoot,
+			sourceDir,
+			optionsText
+		);
+
+		// Add import for ConsentManager
+		addConsentManagerImport(layoutFile);
+
+		// Update the component JSX
+		const updated = updateGenericReactJsx(layoutFile);
+
 		if (updated) {
 			await layoutFile.save();
 			return {
 				updated: true,
-				filePath: layoutFile.getFilePath(),
+				filePath: layoutFilePath,
 				alreadyModified: false,
+				componentFiles,
 			};
 		}
 
 		return {
 			updated: false,
-			filePath: layoutFile.getFilePath(),
+			filePath: layoutFilePath,
 			alreadyModified: false,
 		};
 	} catch (error) {
@@ -295,6 +302,7 @@ export async function updateReactLayout(
 	updated: boolean;
 	filePath: string | null;
 	alreadyModified: boolean;
+	componentFiles?: ComponentFilePaths;
 }> {
 	// Check package type first to determine which implementation to use
 	if (options.pkg === '@c15t/nextjs') {
@@ -306,6 +314,7 @@ export async function updateReactLayout(
 				updated: nextResult.updated,
 				filePath: nextResult.filePath,
 				alreadyModified: nextResult.alreadyModified,
+				componentFiles: nextResult.componentFiles,
 			};
 		}
 	}
