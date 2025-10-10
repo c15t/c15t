@@ -135,7 +135,6 @@ export const createCliLogger = (level: LogLevel): CliLogger => {
 	};
 
 	// Add success method (final message)
-	//@ts-expect-error
 	extendedLogger.success = (message: string, ...args: unknown[]) => {
 		logMessage('success', message, ...args);
 	};
