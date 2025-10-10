@@ -60,40 +60,103 @@ function findPagesAppFile(
 /**
  * Determines the pages directory path based on the _app file location
  *
- * @param appFilePath - Full path to the _app file
+ * @param appFilePath - Full path to the _app file (can be absolute or relative)
  * @returns The pages directory path relative to project root
  *
  * @remarks
- * Returns either 'pages' or 'src/pages' depending on where the _app file is located
+ * Returns either 'pages' or 'src/pages' depending on where the _app file is located.
+ * Uses path utilities for cross-platform compatibility (handles both Windows and Unix paths).
  */
 function getPagesDirectory(appFilePath: string): string {
-	if (appFilePath.includes('src/pages')) {
-		return 'src/pages';
+	// Normalize the path to handle different path separators and formats
+	const normalizedPath = path.normalize(appFilePath);
+
+	// Create platform-specific path segment to check for
+	const srcPagesSegment = path.join('src', 'pages');
+
+	// Check if the normalized path contains the 'src/pages' (or 'src\pages' on Windows) segment
+	if (normalizedPath.includes(srcPagesSegment)) {
+		return path.join('src', 'pages');
 	}
+
 	return 'pages';
+}
+
+/**
+ * Computes a relative module specifier from one file to another
+ *
+ * @param fromFilePath - The file that will contain the import (e.g., _app file)
+ * @param toFilePath - The file being imported (e.g., consent-manager file)
+ * @returns A relative module specifier suitable for ES modules (e.g., './consent-manager' or '../consent-manager')
+ *
+ * @remarks
+ * - Computes the relative path between two files
+ * - Normalizes path separators to forward slashes for ES modules
+ * - Ensures the path starts with './' or '../'
+ * - Strips the file extension for bare imports
+ */
+function computeRelativeModuleSpecifier(
+	fromFilePath: string,
+	toFilePath: string
+): string {
+	// Get the directory of the file that will contain the import
+	const fromDir = path.dirname(fromFilePath);
+
+	// Compute relative path from the source directory to the target file
+	let relativePath = path.relative(fromDir, toFilePath);
+
+	// Normalize path separators to forward slashes (for module specifiers)
+	relativePath = relativePath.split(path.sep).join('/');
+
+	// Strip the file extension (.ts, .tsx, .js, .jsx)
+	relativePath = relativePath.replace(/\.(tsx?|jsx?)$/, '');
+
+	// Ensure the path starts with './' or '../'
+	if (!relativePath.startsWith('.')) {
+		relativePath = `./${relativePath}`;
+	}
+
+	return relativePath;
 }
 
 /**
  * Adds the ConsentManager import to the _app file
  *
  * @param appFile - The _app source file to update
+ * @param consentManagerFilePath - The absolute path to the consent-manager file
  *
  * @remarks
- * Adds: import { ConsentManager } from './consent-manager';
+ * Computes the correct relative import path from the _app file to the consent-manager file,
+ * handling nested directory structures correctly.
  */
-function addConsentManagerImport(appFile: SourceFile): void {
-	// Check if import already exists
-	const existingImports = appFile.getImportDeclarations();
-	const hasConsentManagerImport = existingImports.some(
-		(importDecl) =>
-			importDecl.getModuleSpecifierValue() === './consent-manager' ||
-			importDecl.getModuleSpecifierValue() === './consent-manager.tsx'
+function addConsentManagerImport(
+	appFile: SourceFile,
+	consentManagerFilePath: string
+): void {
+	const appFilePath = appFile.getFilePath();
+
+	// Compute the correct relative module specifier
+	const moduleSpecifier = computeRelativeModuleSpecifier(
+		appFilePath,
+		consentManagerFilePath
 	);
+
+	// Check if import already exists (check for the computed path or common variations)
+	const existingImports = appFile.getImportDeclarations();
+	const hasConsentManagerImport = existingImports.some((importDecl) => {
+		const existingSpec = importDecl.getModuleSpecifierValue();
+		// Check if it matches the computed specifier or ends with 'consent-manager'
+		return (
+			existingSpec === moduleSpecifier ||
+			existingSpec.endsWith('consent-manager') ||
+			existingSpec.endsWith('consent-manager.tsx')
+		);
+	});
 
 	if (!hasConsentManagerImport) {
 		appFile.addImportDeclaration({
 			namedImports: ['ConsentManager'],
-			moduleSpecifier: './consent-manager',
+			moduleSpecifier,
 		});
 	}
 }
@@ -309,8 +372,8 @@ export async function updatePagesLayout({
 		optionsText
 	);
 
-	// Add import for ConsentManager
-	addConsentManagerImport(appFile);
+	// Add import for ConsentManager with correct relative path
+	addConsentManagerImport(appFile, componentFiles.consentManager);
 	updateAppComponentTyping(appFile);
 	addServerSideDataComment(appFile, backendURL, useEnvFile, proxyNextjs);
 

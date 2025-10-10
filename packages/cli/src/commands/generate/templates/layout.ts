@@ -31,26 +31,80 @@ interface ComponentFilePaths {
 }
 
 /**
+ * Computes a relative module specifier from one file to another
+ *
+ * @param fromFilePath - The file that will contain the import (e.g., layout file)
+ * @param toFilePath - The file being imported (e.g., consent-manager file)
+ * @returns A relative module specifier suitable for ES modules (e.g., './consent-manager' or '../consent-manager')
+ *
+ * @remarks
+ * - Computes the relative path between two files
+ * - Normalizes path separators to forward slashes for ES modules
+ * - Ensures the path starts with './' or '../'
+ * - Strips the file extension for bare imports
+ */
+function computeRelativeModuleSpecifier(
+	fromFilePath: string,
+	toFilePath: string
+): string {
+	// Get the directory of the file that will contain the import
+	const fromDir = path.dirname(fromFilePath);
+
+	// Compute relative path from the source directory to the target file
+	let relativePath = path.relative(fromDir, toFilePath);
+
+	// Normalize path separators to forward slashes (for module specifiers)
+	relativePath = relativePath.split(path.sep).join('/');
+
+	// Strip the file extension (.ts, .tsx, .js, .jsx)
+	relativePath = relativePath.replace(/\.(tsx?|jsx?)$/, '');
+
+	// Ensure the path starts with './' or '../'
+	if (!relativePath.startsWith('.')) {
+		relativePath = `./${relativePath}`;
+	}
+
+	return relativePath;
+}
+
+/**
  * Adds the ConsentManager import to the layout file
  *
  * @param layoutFile - The source file to update
+ * @param consentManagerFilePath - The absolute path to the consent-manager file
  *
  * @remarks
- * Adds: import { ConsentManager } from './consent-manager';
+ * Computes the correct relative import path from the layout file to the consent-manager file,
+ * handling nested directory structures correctly.
  */
-function addConsentManagerImport(layoutFile: SourceFile): void {
-	// Check if import already exists
-	const existingImports = layoutFile.getImportDeclarations();
-	const hasConsentManagerImport = existingImports.some(
-		(importDecl) =>
-			importDecl.getModuleSpecifierValue() === './consent-manager' ||
-			importDecl.getModuleSpecifierValue() === './consent-manager.tsx'
+function addConsentManagerImport(
+	layoutFile: SourceFile,
+	consentManagerFilePath: string
+): void {
+	const layoutFilePath = layoutFile.getFilePath();
+
+	// Compute the correct relative module specifier
+	const moduleSpecifier = computeRelativeModuleSpecifier(
+		layoutFilePath,
+		consentManagerFilePath
 	);
+
+	// Check if import already exists (check for the computed path or common variations)
+	const existingImports = layoutFile.getImportDeclarations();
+	const hasConsentManagerImport = existingImports.some((importDecl) => {
+		const existingSpec = importDecl.getModuleSpecifierValue();
+		// Check if it matches the computed specifier or ends with 'consent-manager'
+		return (
+			existingSpec === moduleSpecifier ||
+			existingSpec.endsWith('consent-manager') ||
+			existingSpec.endsWith('consent-manager.tsx')
+		);
+	});
 
 	if (!hasConsentManagerImport) {
 		layoutFile.addImportDeclaration({
 			namedImports: ['ConsentManager'],
-			moduleSpecifier: './consent-manager',
+			moduleSpecifier,
 		});
 	}
 }
@@ -58,16 +112,25 @@ function addConsentManagerImport(layoutFile: SourceFile): void {
 /**
  * Determines the source directory based on the layout file location
  *
- * @param layoutFilePath - Full path to the layout file
+ * @param layoutFilePath - Full path to the layout file (can be absolute or relative)
  * @returns The source directory path relative to project root
  *
  * @remarks
- * Returns 'src' if the file is in src directory, otherwise returns empty string for root level
+ * Returns 'src' if the file is in src directory, otherwise returns empty string for root level.
+ * Uses path utilities for cross-platform compatibility (handles both Windows and Unix paths).
  */
 function getSourceDirectory(layoutFilePath: string): string {
-	if (layoutFilePath.includes('/src/')) {
+	// Normalize the path to handle different path separators and formats
+	const normalizedPath = path.normalize(layoutFilePath);
+
+	// Split the path into segments using the platform-specific separator
+	const segments = normalizedPath.split(path.sep);
+
+	// Check if 'src' is one of the path segments
+	if (segments.includes('src')) {
 		return 'src';
 	}
+
 	return '';
 }
 
@@ -268,8 +331,8 @@ async function updateGenericReactLayout({
 			optionsText
 		);
 
-		// Add import for ConsentManager
-		addConsentManagerImport(layoutFile);
+		// Add import for ConsentManager with correct relative path
+		addConsentManagerImport(layoutFile, componentFiles.consentManager);
 
 		// Update the component JSX
 		const updated = updateGenericReactJsx(layoutFile);

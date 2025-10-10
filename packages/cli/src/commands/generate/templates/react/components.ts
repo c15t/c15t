@@ -19,7 +19,8 @@
  * ```
  */
 export function generateConsentManagerTemplate(optionsText: string): string {
-	return `import {
+	return `import type { ReactNode } from 'react';
+import {
 	ConsentManagerDialog,
 	ConsentManagerProvider,
 	CookieBanner,
@@ -50,7 +51,7 @@ export function generateConsentManagerTemplate(optionsText: string): string {
  * }
  * \`\`\`
  */
-export function ConsentManager({ children }: { children: React.ReactNode }) {
+export function ConsentManager({ children }: { children: ReactNode }) {
 	return (
 		<ConsentManagerProvider
 			options={${optionsText}}

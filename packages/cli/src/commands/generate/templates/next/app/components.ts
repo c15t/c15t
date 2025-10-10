@@ -22,7 +22,8 @@
  * ```
  */
 export function generateConsentManagerTemplate(optionsText: string): string {
-	return `import {
+	return `import type { ReactNode } from 'react';
+import {
 	ConsentManagerDialog,
 	ConsentManagerProvider,
 	CookieBanner,
@@ -68,7 +69,7 @@ import { ConsentManagerClient } from './consent-manager.client';
  * }
  * \`\`\`
  */
-export function ConsentManager({ children }: { children: React.ReactNode }) {
+export function ConsentManager({ children }: { children: ReactNode }) {
 	return (
 		<ConsentManagerProvider
 			options={${optionsText}}
@@ -104,6 +105,7 @@ export function ConsentManager({ children }: { children: React.ReactNode }) {
 export function generateConsentManagerClientTemplate(): string {
 	return `'use client';
 
+import type { ReactNode } from 'react';
 import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
 /**
@@ -125,7 +127,7 @@ import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 export function ConsentManagerClient({
 	children,
 }: {
-	children: React.ReactNode;
+	children: ReactNode;
 }) {
 	return (
 		<ClientSideOptionsProvider
