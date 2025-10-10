@@ -138,6 +138,12 @@ describe('Store Script Loader Integration', () => {
 			src: 'https://example.com/analytics.js',
 			category: 'measurement',
 		},
+		{
+			id: 'gtm-script',
+			src: 'https://www.googletagmanager.com/gtm.js?id=GTM-XXXX',
+			category: 'measurement',
+			alwaysLoad: true,
+		},
 	];
 
 	// Helper function to create a store with initial consents
@@ -203,7 +209,7 @@ describe('Store Script Loader Integration', () => {
 			store.getState().removeScript('marketing-script');
 
 			// Check that script was removed
-			expect(store.getState().scripts).toHaveLength(2);
+			expect(store.getState().scripts).toHaveLength(3); // Updated: now includes gtm-script
 			expect(store.getState().scripts.map((s) => s.id)).not.toContain(
 				'marketing-script'
 			);
@@ -514,6 +520,120 @@ describe('Store Script Loader Integration', () => {
 			expect(store.getState().isScriptLoaded('necessary-script')).toBe(true);
 			expect(store.getState().isScriptLoaded('analytics-script')).toBe(false);
 			expect(store.getState().isScriptLoaded('marketing-script')).toBe(false);
+		});
+	});
+
+	describe('Always Load Scripts', () => {
+		it('should load scripts with alwaysLoad=true regardless of consent', () => {
+			const store = createTestStore({
+				necessary: true,
+				measurement: false, // GTM script requires measurement but has alwaysLoad
+				marketing: false,
+				functionality: false,
+				experience: false,
+			});
+
+			// Add scripts including GTM with alwaysLoad
+			store.getState().setScripts(scripts);
+
+			// Update scripts
+			const state = store.getState();
+			const result = updateScripts(
+				state.scripts || [],
+				state.consents,
+				state.scriptIdMap || {}
+			);
+
+			// Update loadedScripts state
+			const newLoadedScripts = { ...state.loadedScripts };
+
+			// Mark loaded scripts
+			result.loaded.forEach((id) => {
+				newLoadedScripts[id] = true;
+			});
+
+			// Mark unloaded scripts
+			result.unloaded.forEach((id) => {
+				newLoadedScripts[id] = false;
+			});
+
+			store.setState({ loadedScripts: newLoadedScripts });
+
+			// GTM script should be loaded even though measurement consent is false
+			expect(store.getState().isScriptLoaded('gtm-script')).toBe(true);
+			expect(store.getState().isScriptLoaded('necessary-script')).toBe(true);
+			expect(store.getState().isScriptLoaded('analytics-script')).toBe(false);
+		});
+
+		it('should never unload scripts with alwaysLoad=true when consent is revoked', () => {
+			const store = createTestStore({
+				necessary: true,
+				measurement: true,
+				marketing: false,
+				functionality: false,
+				experience: false,
+			});
+
+			// Add scripts
+			store.getState().setScripts(scripts);
+
+			// Update scripts initially
+			const state = store.getState();
+			const result = updateScripts(
+				state.scripts || [],
+				state.consents,
+				state.scriptIdMap || {}
+			);
+
+			// Update loadedScripts state
+			const newLoadedScripts = { ...state.loadedScripts };
+
+			// Mark loaded scripts
+			result.loaded.forEach((id) => {
+				newLoadedScripts[id] = true;
+			});
+
+			store.setState({ loadedScripts: newLoadedScripts });
+
+			// Both GTM and analytics should be loaded
+			expect(store.getState().isScriptLoaded('gtm-script')).toBe(true);
+			expect(store.getState().isScriptLoaded('analytics-script')).toBe(true);
+
+			// Revoke measurement consent
+			store.setState((state) => ({
+				...state,
+				consents: {
+					...state.consents,
+					measurement: false,
+				},
+				selectedConsents: {
+					...state.selectedConsents,
+					measurement: false,
+				},
+			}));
+
+			// Update scripts
+			const state2 = store.getState();
+			const result2 = updateScripts(
+				state2.scripts || [],
+				state2.consents,
+				state2.scriptIdMap || {}
+			);
+
+			// Update loadedScripts state
+			const newLoadedScripts2 = { ...state2.loadedScripts };
+
+			// Mark unloaded scripts
+			result2.unloaded.forEach((id) => {
+				newLoadedScripts2[id] = false;
+			});
+
+			store.setState({ loadedScripts: newLoadedScripts2 });
+
+			// GTM script should still be loaded (alwaysLoad=true)
+			// but analytics script should be unloaded
+			expect(store.getState().isScriptLoaded('gtm-script')).toBe(true);
+			expect(store.getState().isScriptLoaded('analytics-script')).toBe(false);
 		});
 	});
 });

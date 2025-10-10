@@ -1,0 +1,275 @@
+---
+title: PostHog
+description: Learn how to sync c15t consent with PostHog.
+lastModified: 2025-09-19
+canary: true
+---
+
+Posthog allows for both cookieless and cookie-based tracking. This means that you can sync c15t with Posthog, allowing you to continue using Posthog even when users have not given consent.
+
+## PostHog SDK Implementation
+
+This is the recommended approach if you're using the Posthog JS SDK, this is commonly used in React projects.
+
+<Steps>
+  <Step>
+    ### Initialize Posthog
+
+    When you initialize posthog make sure to set `cookieless_mode` to `on_reject`.
+
+    ```ts
+    posthog.init("phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", {
+      api_host: "https://eu.i.posthog.com",
+      defaults: "2025-05-24",
+      cookieless_mode: 'on_reject'
+    })
+
+    posthog.has_opted_out_capturing() // Avoids accidental tracking without consent till c15t has loaded
+    ```
+  </Step>
+
+  <Step>
+    ### Adding the script to c15t
+
+    <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
+      <Tab value="JavaScript">
+        ```ts
+        import { configureConsentManager } from 'c15t';
+        import { posthog } from 'posthog-js';
+
+        configureConsentManager({
+          // ... 
+          callbacks: {
+            onConsentSet({ preferences }) {
+              if (preferences.measurement) {
+                posthog.opt_in_capturing();
+              } else {
+                posthog.opt_out_capturing();
+              }
+            }
+          }
+        });
+        ```
+      </Tab>
+
+      <Tab value="React">
+        ```tsx
+        import { posthog } from 'posthog-js';
+        import { ConsentManagerProvider } from '@c15t/react';
+
+        export function App({ children }: { children: React.ReactNode }) {
+          return (
+            <ConsentManagerProvider
+              options={{
+                callbacks: {
+                    onConsentSet({ preferences }) {
+                      if (preferences.measurement) {
+                        posthog.opt_in_capturing();
+                      } else {
+                        posthog.opt_out_capturing();
+                      }
+                    }
+                  }
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
+        }
+        ```
+      </Tab>
+
+      <Tab value="Next.js + App Router">
+        ```tsx
+        'use client';
+        import { posthog } from 'posthog-js';
+        import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
+
+        export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
+          return (
+            <ClientSideOptionsProvider
+           <ClientSideOptionsProvider
+              callbacks={{
+                 onConsentSet({ preferences }) {
+                     if (preferences.measurement) {
+                       posthog.opt_in_capturing();
+                     } else {
+                       posthog.opt_out_capturing();
+                     }
+                 }
+              }}
+           >
+            >
+              {children}
+            </ClientSideOptionsProvider>
+          );
+        }
+        ```
+      </Tab>
+
+      <Tab value="Next.js + Pages Router">
+        ```tsx
+        import { posthog } from 'posthog-js';
+        import { ConsentManagerProvider } from '@c15t/nextjs';
+
+        export function App({ children }: { children: React.ReactNode }) {
+        return (
+        <ConsentManagerProvider
+        options={{
+        // ... other options
+        callbacks: {
+          onConsentSet({ preferences }) {
+            if (preferences.measurement) {
+              posthog.opt_in_capturing();
+            } else {
+              posthog.opt_out_capturing();
+            }
+          }
+        }
+        }}
+        >
+        {children}
+        </ConsentManagerProvider>
+        );
+        }
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+</Steps>
+
+## PostHog Script Implementation
+
+If you want to load posthog via a script tag it's recommended to use this approach.
+
+By default c15t will always load the script regardless of consent. This is because the script has built-in functionality to opt into and out of tracking based on consent.
+
+<Steps>
+  <Step>
+    ### Initialize Posthog
+
+    This script does not load the Posthog script, it only syncs the consent state with Posthog via the Posthog JS SDK.
+
+    This is due to Posthog's use of cookieless tracking. However, you need to set `cookieless_mode` to `on_reject` when initializing Posthog.
+
+    ```ts
+    posthog.init("phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", {
+      api_host: "https://eu.i.posthog.com",
+      defaults: "2025-05-24",
+      // PostHog will not set any cookies until the user has given consent
+      cookieless_mode: 'on_reject'
+    })
+    ```
+  </Step>
+
+  <Step>
+    ### Adding the script to c15t
+
+    <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
+      <Tab value="JavaScript">
+        ```ts
+        import { configureConsentManager } from 'c15t';
+        import { posthog } from '@c15t/scripts/posthog';
+
+        configureConsentManager({
+          // ... 
+          scripts: [
+            posthog({ 
+              id: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 
+              apiHost: 'https://eu.i.posthog.com',
+              defaults: '2025-05-24', 
+              options: { person_profiles: 'identified_only' }
+            }),
+           ],
+        });
+        ```
+      </Tab>
+
+      <Tab value="React">
+        ```tsx
+        import { posthog } from '@c15t/scripts/posthog';
+        import { ConsentManagerProvider } from '@c15t/react';
+
+        export function App({ children }: { children: React.ReactNode }) {
+          return (
+            <ConsentManagerProvider
+              options={{
+                scripts: [
+                  posthog({ 
+                      id: 'phc_foobar', 
+                      apiHost: 'https://eu.i.posthog.com',
+                      defaults: '2025-05-24', 
+                      options: { person_profiles: 'identified_only' }
+                    }),
+                ],
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
+        }
+        ```
+      </Tab>
+
+      <Tab value="Next.js + App Router">
+        ```tsx
+        'use client';
+        import { posthog } from '@c15t/scripts/posthog';
+        import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
+
+        export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
+          return (
+            <ClientSideOptionsProvider
+              scripts={[
+                posthog({ 
+                    id: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 
+                    apiHost: 'https://eu.i.posthog.com',
+                    defaults: '2025-05-24', 
+                    options: { person_profiles: 'identified_only' }
+                  }),
+              ]}
+            >
+              {children}
+            </ClientSideOptionsProvider>
+          );
+        }
+        ```
+      </Tab>
+
+      <Tab value="Next.js + Pages Router">
+        ```tsx
+        import { posthog } from '@c15t/scripts/posthog';
+        import { ConsentManagerProvider } from '@c15t/nextjs';
+
+        export function App({ children }: { children: React.ReactNode }) {
+          <ConsentManagerProvider
+            options={{
+              // ... other options
+              scripts: [
+                posthog({ 
+                  id: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 
+                  apiHost: 'https://eu.i.posthog.com',
+                  defaults: '2025-05-24', 
+                  options: { person_profiles: 'identified_only' }
+                }),
+              ],
+            }}
+          >
+            {children}
+          </ConsentManagerProvider>
+        }
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+</Steps>
+
+## Types
+
+### PosthogConsentOptions
+
+<AutoTypeTable path="./packages/scripts/src/posthog.ts" name="PosthogConsentOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

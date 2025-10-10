@@ -33,6 +33,7 @@ export interface GtagOptions {
 	 * - `id`: 'gtag'
 	 * - `src`: `https://www.googletagmanager.com/gtag/js?id=${id}`
 	 * - `async`: true
+	 * - `alwaysLoad`: true
 	 */
 	script?: Partial<Omit<Script, 'category'>>;
 }
@@ -54,6 +55,7 @@ export function gtag({ id, script, category }: GtagOptions): Script {
 		category: category,
 		async: script?.async ?? true,
 		persistAfterConsentRevoked: true,
+		alwaysLoad: true,
 		onBeforeLoad: ({ consents, elementId, ...rest }) => {
 			let gtmConsent = DEFAULT_GTM_CONSENT_CONFIG;
 
