@@ -47,7 +47,28 @@ export type OnErrorPayload = {
  * @public
  */
 export interface Callbacks {
+	/**
+	 * Called when the consent banner is fetched.
+	 *
+	 * @param payload - The payload containing the consent banner information
+	 */
 	onBannerFetched?: Callback<OnBannerFetchedPayload>;
+	/**
+	 * Called when the consent is set.
+	 *
+	 * @remarks
+	 * Consent may be set automatically in certain cases, such as
+	 * when no jurisdiction is detected or when the store is initialized
+	 * with default consents. If you use setCallbacks() to set this
+	 * callback, it will be called immediately with the store's consent state.
+	 *
+	 * @param payload - The payload containing the consent state
+	 */
 	onConsentSet?: Callback<OnConsentSetPayload>;
+	/**
+	 * Called when an error occurs.
+	 *
+	 * @param payload - The payload containing the error information
+	 */
 	onError?: Callback<OnErrorPayload>;
 }
