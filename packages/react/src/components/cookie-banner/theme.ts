@@ -31,10 +31,19 @@ export type CookieBannerTheme = Partial<{
 }>;
 
 /** Root component CSS variables */
+/**
+ * CSS custom properties for the root banner container element.
+ * Defines typography-related variables that control font rendering.
+ * @internal
+ */
 type RootCSSVariables = {
+	/** Font family stack for banner text */
 	'--banner-font-family': string;
+	/** Line height for banner text */
 	'--banner-line-height': string;
+	/** Text size adjustment for WebKit browsers */
 	'--banner-text-size-adjust': string;
+	/** Tab character width in spaces */
 	'--banner-tab-size': string;
 };
 
