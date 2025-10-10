@@ -39,12 +39,6 @@
 	"resolutions": {
 		"@libsql/kysely-libsql": "^0.4.1"
 	},
-	"pnpm": {
-		"overrides": {
-			"@types/react": "19.1.1",
-			"@types/react-dom": "19.1.2"
-		}
-	},
 	"devDependencies": {
 		"@biomejs/biome": "2.2.0",
 		"@changesets/changelog-github": "^0.5.1",
@@ -76,5 +70,11 @@
 	"packageManager": "pnpm@10.8.0",
 	"engines": {
 		"node": ">=18.17.0"
+	},
+	"pnpm": {
+		"overrides": {
+			"@types/react": "19.1.1",
+			"@types/react-dom": "19.1.2"
+		}
 	}
 }
