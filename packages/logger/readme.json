@@ -1,0 +1,13 @@
+{
+	"title": "@c15t/logger: Logger for c15t",
+	"description": "Logger for c15t, providing ready-to-use logging for c15t.",
+	"features": [
+		"Configurable log levels and filters",
+		"Color-coded console output",
+		"Error logging for Result/ResultAsync types from neverthrow",
+		"Custom log handlers",
+		"Console redirection functionality"
+	],
+	"docsLink": "https://c15t.com/",
+	"showCLIGeneration": false
+}

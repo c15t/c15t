@@ -15,7 +15,7 @@
 		"check-types": "turbo check-types",
 		"ci:publish": "pnpm changeset tag && pnpm publish -r",
 		"ci:version": "pnpm changeset version",
-		"dev": "turbo dev",
+		"dev": "turbo dev --concurrency=11",
 		"dev:docs-app": "pnpm --prefix .docs dev",
 		"fmt": "turbo fmt",
 		"fmt:docs": "pnpm remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
@@ -47,8 +47,8 @@
 		"@rsbuild/plugin-react": "^1.2.0",
 		"@rslib/core": "^0.6.2",
 		"@types/node": "22.14.1",
-		"@types/react": "^19.1.1",
-		"@types/react-dom": "^19.1.2",
+		"@types/react": "19.1.1",
+		"@types/react-dom": "19.1.2",
 		"@vitejs/plugin-react": "^4.3.4",
 		"@vitest/browser": "^3.1.1",
 		"@vitest/coverage-istanbul": "^3.1.1",
@@ -70,5 +70,11 @@
 	"packageManager": "pnpm@10.8.0",
 	"engines": {
 		"node": ">=18.17.0"
+	},
+	"pnpm": {
+		"overrides": {
+			"@types/react": "19.1.1",
+			"@types/react-dom": "19.1.2"
+		}
 	}
 }

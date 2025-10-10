@@ -1,4 +1,4 @@
-import type { LoggerOptions } from '@doubletie/logger';
+import type { LoggerOptions } from '@c15t/logger';
 import type { OpenAPIGeneratorOptions } from '@orpc/openapi';
 /**
  * c15t Consent Management System Configuration Types

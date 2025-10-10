@@ -1,5 +1,5 @@
+import { createLogger, type Logger } from '@c15t/logger';
 import * as p from '@clack/prompts';
-import { createLogger, type Logger } from '@doubletie/logger';
 import color from 'picocolors';
 
 // Define standard log levels
@@ -135,7 +135,6 @@ export const createCliLogger = (level: LogLevel): CliLogger => {
 	};
 
 	// Add success method (final message)
-	//@ts-expect-error
 	extendedLogger.success = (message: string, ...args: unknown[]) => {
 		logMessage('success', message, ...args);
 	};

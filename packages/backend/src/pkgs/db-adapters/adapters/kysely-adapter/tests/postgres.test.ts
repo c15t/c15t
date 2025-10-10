@@ -1,4 +1,4 @@
-import { logger } from '@doubletie/logger';
+import { logger } from '@c15t/logger';
 import { PGlite } from '@electric-sql/pglite';
 import { Kysely } from 'kysely';
 import { KyselyPGlite } from 'kysely-pglite';

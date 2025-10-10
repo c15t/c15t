@@ -1,5 +1,5 @@
+import type { LoggerOptions } from '@c15t/logger';
 import type { Translations } from '@c15t/translations';
-import type { LoggerOptions } from '@doubletie/logger';
 import type { Tracer } from '@opentelemetry/api';
 import type { DatabaseHook } from '~/pkgs/data-model';
 import type { DatabaseConfiguration } from '~/pkgs/db-adapters/adapters/kysely-adapter/types';
