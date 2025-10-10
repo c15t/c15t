@@ -34,11 +34,14 @@ function matchesWildcard(
 	logger?: Logger
 ): boolean {
 	const wildcardDomain = wildcardPattern.slice(2); // Remove *. prefix
-	const parts = hostname.split('.');
-	const isValid = parts.length > 2 && hostname.endsWith(wildcardDomain);
+
+	// Ensure the hostname is not the base domain and ends with .wildcardDomain
+	// This prevents matching domains like 'foobar-my-site.com' against '*.my-site.com'
+	const isValid =
+		hostname !== wildcardDomain && hostname.endsWith(`.${wildcardDomain}`);
 
 	logger?.debug(
-		`Wildcard match result: ${isValid} ${hostname} ends with ${wildcardDomain} ${parts.length > 2} ${hostname.endsWith(wildcardDomain)}`
+		`Wildcard match result: ${isValid} ${hostname} ends with .${wildcardDomain}`
 	);
 
 	return isValid;
