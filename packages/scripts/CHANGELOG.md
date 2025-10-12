@@ -1,5 +1,11 @@
 # @c15t/scripts
 
+## 1.0.0-canary-20251012181938
+
+### Major Changes
+
+- 0c80bed: feat: added script loader, deprecated tracking blocker
+
 ## 1.6.0
 
 ### Minor Changes
