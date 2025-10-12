@@ -1,6 +1,6 @@
 ---
 "@c15t/backend": patch
-"@c15t/logger": patch
+"@c15t/logger": major
 "@c15t/cli": patch
 ---
 
