@@ -1,0 +1,80 @@
+# 🚀 c15t docs preview deployment workflow
+name: Deploy docs (Preview)
+
+on:
+  # 📌 Trigger on PRs that modify docs (build previews for reviews)
+  pull_request:
+    branches:
+      - '**'
+  # ⏰ Periodic check for upstream template changes (consentdotio/c15t-docs)
+  schedule:
+    # Run once daily at 00:15 UTC to avoid excessive runs
+    - cron: '15 0 * * *'
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  deployments: write
+
+jobs:
+  deploy:
+    concurrency:
+      group: docs-preview-${{ github.ref }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 📦 Setup pnpm (used by docs template/scripts)
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: ♻️ Setup pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: 📥 Install workspace deps
+        run: pnpm install --frozen-lockfile
+
+      - name: ▲ C15T Docs Preview (Deploy + PR Comment)
+        id: c15t
+        uses: ./internals/c15t-github-action
+        with:
+          # Auth
+          GITHUB_TOKEN: ${{ github.token }}
+          github_app_id: ${{ secrets.CONSENT_APP_ID }}
+          github_app_private_key: ${{ secrets.CONSENT_APP_PRIVATE_KEY }}
+          github_app_installation_id: 81013186
+
+          # Comment behavior
+          header: c15t-docs-preview
+          append: "true"
+          hide_details: "true"
+
+          # Vercel
+          vercel_token: ${{ secrets.VERCEL_TOKEN }}
+          vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
+
+          alias_domains: |
+            pr-${{ github.event.pull_request.number }}.c15t.dev
+
+          # Branch deployment policies
+          deploy_on_pr_base_branches: "main,canary"
+
+          # Orchestration & gating
+          consent_git_token: ${{ secrets.CONSENT_GIT_TOKEN }}
+          only_if_changed: "true"
+          change_globs: |
+            docs/**
+            packages/*/src/**
+            packages/*/package.json
+          check_template_changes: "true"
