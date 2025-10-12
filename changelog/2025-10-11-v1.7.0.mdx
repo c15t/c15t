@@ -1,7 +1,7 @@
 ---
 title: "v1.7.0 - Script Loader & iFrame Blocking"
 version: "1.7.0"
-date: 2025-10-11
+date: 2025-10-12
 description: "Minor release with a new approach to script loader and iFrame blocking."
 tags:
   - release
@@ -88,6 +88,12 @@ export function App({ children }: { children: React.ReactNode }) {
 See the [iFrame Blocking documentation](/docs/frameworks/react/iframe-blocking) for full details.
 ```
 
+## Dynamic Consent Categories
+
+Consent categories are now dynamic and update based on the content of the page. For example, if you set the categories to `['necessary', 'marketing']` but there is an script (via the script loader) with the category `['experience']`, the consent banner will show the `experience` category as well.
+
+This logic is applied to the iframe blocking as well via the `data-category` attribute and the Frame component in React.
+
 ### New Examples!
 
 We've moved our examples to a new repository, [c15t-examples](https://github.com/c15t/c15t-examples). As well as added more detailed examples instead of barebones examples.
@@ -114,9 +120,14 @@ INSERT PIC HERE OF EXAMPLES
 ### **@c15t/cli**
 
 * Corrected spelling of "GitHub" in CLI commands
+* Generated React & Next.js code now follows a new pattern for improved DX
 
 ### **@c15t/logger**
 
 * Added a new logger package for logging errors and warnings for use in the CLI & backend to replace external logging package.
+
+### **@c15t/translations**
+
+* Added translations for the Frame component
 
 <ContributorBlock usernames={["KayleeWilliams", "BurnedChris"]} title="Thank you to our contributors" />
