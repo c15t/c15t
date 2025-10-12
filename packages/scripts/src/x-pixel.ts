@@ -36,7 +36,7 @@ export interface XPixelContent {
 	 */
 	content_group_id?: string;
 }
-interface XPixelEvent {
+export interface XPixelEvent {
 	/**
 	 * Total value of the conversion event (ex: $ value of the transaction in case of a purchase, etc.)
 	 * @example 10.00
