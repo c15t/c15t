@@ -8,6 +8,8 @@ canary: true
 Google Tag (gtag.js) is used to send data to various Google products like Analytics, Ads & Floodlight.
 Based on the product you are using you should set the category to `marketing` (Ads & Floodlight) or `measurement` (Analytics).
 
+By default, c15t will always load this script regardless of consent. This is because Google Tag manages its own consent state via Google Consent Mode v2.
+
 c15t will automatically sync the consent state so you don't need to do anything extra.
 
 ## Implementation

@@ -64,6 +64,10 @@ function updateStore(
 
 	const { translations, location, showConsentBanner } = data;
 
+	// Check if consents should be automatically granted
+	const shouldAutoGrantConsents =
+		data.jurisdiction?.code === 'NONE' && !data.showConsentBanner;
+
 	const updatedStore: Partial<PrivacyConsentState> = {
 		isLoadingConsentInfo: false,
 		branding: data.branding ?? 'c15t',
@@ -75,16 +79,15 @@ function updateStore(
 			: {}),
 
 		// If the banner is not shown and has no requirement consent to all
-		...(data.jurisdiction?.code === 'NONE' &&
-			!data.showConsentBanner && {
-				consents: {
-					necessary: true,
-					functionality: true,
-					experience: true,
-					marketing: true,
-					measurement: true,
-				},
-			}),
+		...(shouldAutoGrantConsents && {
+			consents: {
+				necessary: true,
+				functionality: true,
+				experience: true,
+				marketing: true,
+				measurement: true,
+			},
+		}),
 		locationInfo: {
 			countryCode: location?.countryCode ?? null,
 			regionCode: location?.regionCode ?? null,
@@ -93,8 +96,8 @@ function updateStore(
 		},
 		jurisdictionInfo: data.jurisdiction,
 	};
-
-	if (translations?.language && translations?.translations) {
+	translations?.language && translations?.translations;
+	{
 		const translationConfig = prepareTranslationConfig(
 			{
 				translations: {
@@ -119,6 +122,19 @@ function updateStore(
 	updatedStore.lastBannerFetchData = data;
 
 	set(updatedStore);
+
+	// Trigger onConsentSet callback when consents are automatically granted
+	if (shouldAutoGrantConsents) {
+		callbacks?.onConsentSet?.({
+			preferences: {
+				necessary: true,
+				functionality: true,
+				experience: true,
+				marketing: true,
+				measurement: true,
+			},
+		});
+	}
 
 	callbacks?.onBannerFetched?.({
 		showConsentBanner: data.showConsentBanner,

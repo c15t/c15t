@@ -480,6 +480,17 @@ export const createConsentManagerStore = (
 				callbacks: { ...state.callbacks, [name]: callback },
 			}));
 
+			// Call the onConsentSet callback with the initial consent state
+			if (
+				name === 'onConsentSet' &&
+				callback &&
+				typeof callback === 'function'
+			) {
+				(callback as Callbacks['onConsentSet'])?.({
+					preferences: currentState.consents,
+				});
+			}
+
 			// Replay missed onBannerFetched callback if banner was already fetched
 			if (
 				name === 'onBannerFetched' &&
@@ -673,7 +684,10 @@ export const createConsentManagerStore = (
 				console.error('Failed to setup Google Tag Manager:', e);
 			}
 		}
-
+		// When the store is initialized, call the onConsentSet callback with the initial consent state
+		store
+			.getState()
+			.callbacks.onConsentSet?.({ preferences: store.getState().consents });
 		store.getState().fetchConsentBannerInfo();
 	}
 

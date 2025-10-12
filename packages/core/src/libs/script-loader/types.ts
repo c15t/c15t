@@ -14,6 +14,9 @@ export interface ScriptCallbackInfo {
 	/** The actual DOM element ID used (anonymized if enabled) */
 	elementId: string;
 
+	/** Has consent  */
+	hasConsent: boolean;
+
 	/** The current consent state */
 	consents: ConsentState;
 
@@ -74,6 +77,30 @@ export interface Script {
 	 * @default false
 	 */
 	persistAfterConsentRevoked?: boolean;
+
+	/**
+	 * Whether the script should always load regardless of consent state.
+	 *
+	 * This is useful for scripts like Google Tag Manager or PostHog that manage
+	 * their own consent state internally. The script will load immediately and
+	 * never be unloaded based on consent changes.
+	 *
+	 * Note: When using this option, you are responsible for ensuring the script
+	 * itself respects user consent preferences through its own consent management.
+	 *
+	 * @default false
+	 *
+	 * @example
+	 * ```ts
+	 * const gtmScript: Script = {
+	 *   id: 'google-tag-manager',
+	 *   src: 'https://www.googletagmanager.com/gtm.js?id=GTM-XXXX',
+	 *   category: 'measurement', // Category is still required but won't gate loading
+	 *   alwaysLoad: true, // GTM will always load and manage its own consent
+	 * };
+	 * ```
+	 */
+	alwaysLoad?: boolean;
 
 	/** Priority hint for browser resource loading */
 	fetchPriority?: 'high' | 'low' | 'auto';

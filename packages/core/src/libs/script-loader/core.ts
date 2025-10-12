@@ -23,13 +23,16 @@ import {
  *
  * @remarks
  * The loading process follows these steps:
- * 1. Check if the script has consent to load
+ * 1. Check if the script has consent to load (skipped if alwaysLoad is true)
  * 2. Check if the script is already loaded
  * 3. Create the script element with all specified attributes
  * 4. Apply ID anonymization if enabled (default behavior)
  * 5. Execute the `onBeforeLoad` callback if provided
  * 6. Add the script to the document
  * 7. Track the loaded script
+ *
+ * Scripts with `alwaysLoad: true` will bypass consent checks and load immediately.
+ * This is useful for scripts like Google Tag Manager that manage their own consent.
  *
  * When anonymizeId is enabled (default), script elements will use randomly generated IDs
  * instead of the original script IDs prefixed with 'c15t-script-'.
@@ -44,8 +47,8 @@ export function loadScripts(
 	const loadedScriptIds: string[] = [];
 
 	scripts.forEach((script) => {
-		// Skip if script doesn't have consent
-		if (!has(script.category, consents)) {
+		// Skip if script doesn't have consent (unless alwaysLoad is true)
+		if (!script.alwaysLoad && !has(script.category, consents)) {
 			return;
 		}
 
@@ -58,6 +61,7 @@ export function loadScripts(
 					script.anonymizeId !== false,
 					scriptIdMap
 				),
+				hasConsent: has(script.category, consents),
 				consents,
 			});
 
@@ -92,6 +96,7 @@ export function loadScripts(
 				id: script.id,
 				elementId,
 				consents,
+				hasConsent: has(script.category, consents),
 			};
 
 			// Execute onBeforeLoad callback if provided
@@ -129,6 +134,7 @@ export function loadScripts(
 				// Script element already exists in DOM, just track it and execute callbacks
 				const callbackInfo: ScriptCallbackInfo = {
 					id: script.id,
+					hasConsent: has(script.category, consents),
 					elementId,
 					consents,
 					element: existingElement,
@@ -189,6 +195,7 @@ export function loadScripts(
 		// Create callback info object
 		const callbackInfo: ScriptCallbackInfo = {
 			id: script.id,
+			hasConsent: has(script.category, consents),
 			elementId,
 			consents,
 			element: scriptElement,
@@ -255,10 +262,13 @@ export function loadScripts(
  * @remarks
  * The unloading process follows these steps:
  * 1. Check if the script is loaded
- * 2. Check if the script no longer has consent
- * 3. Execute the `onDelete` callback if provided
- * 4. Remove the script from the document
- * 5. Remove the script from tracking
+ * 2. Skip if script has alwaysLoad enabled (these scripts are never unloaded)
+ * 3. Check if the script no longer has consent
+ * 4. Execute the `onDelete` callback if provided
+ * 5. Remove the script from the document
+ * 6. Remove the script from tracking
+ *
+ * Scripts with `alwaysLoad: true` will never be unloaded, even if consent is revoked.
  *
  * @public
  */
@@ -272,6 +282,11 @@ export function unloadScripts(
 	scripts.forEach((script) => {
 		// Skip if script is not loaded
 		if (!hasLoadedScript(script.id)) {
+			return;
+		}
+
+		// Skip if script has alwaysLoad enabled (never unload these scripts)
+		if (script.alwaysLoad) {
 			return;
 		}
 
@@ -289,6 +304,7 @@ export function unloadScripts(
 					id: script.id,
 					elementId,
 					consents,
+					hasConsent: has(script.category, consents),
 				};
 
 				// Execute onDelete callback if provided
@@ -307,6 +323,7 @@ export function unloadScripts(
 					id: script.id,
 					elementId,
 					consents,
+					hasConsent: has(script.category, consents),
 					element: scriptElement,
 				};
 
@@ -398,6 +415,8 @@ export function getLoadedScriptIds(): string[] {
  * for each script that is being removed. If consents is also provided, it will be passed
  * to the onDelete callbacks.
  *
+ * Scripts with `alwaysLoad: true` will be skipped and remain loaded.
+ *
  * @public
  */
 export function clearAllScripts(
@@ -408,6 +427,14 @@ export function clearAllScripts(
 	const unloadedScriptIds: string[] = [];
 
 	getLoadedScriptsSnapshot().forEach((scriptElement, id) => {
+		// Skip if script has alwaysLoad enabled (never unload these scripts)
+		if (scripts) {
+			const script = scripts.find((s) => s.id === id);
+			if (script?.alwaysLoad) {
+				return;
+			}
+		}
+
 		// Execute onDelete callback if provided and if we have the script config
 		if (scripts && consents) {
 			const script = scripts.find((s) => s.id === id);
@@ -420,6 +447,7 @@ export function clearAllScripts(
 					id,
 					elementId,
 					consents,
+					hasConsent: has(script.category, consents),
 					...(scriptElement !== null && { element: scriptElement }),
 				};
 
@@ -481,6 +509,7 @@ export function reloadScript(
 				id: scriptId,
 				elementId,
 				consents,
+				hasConsent: has(script.category, consents),
 			};
 
 			// Execute onDelete callback if provided
@@ -497,6 +526,7 @@ export function reloadScript(
 				id: scriptId,
 				elementId,
 				consents,
+				hasConsent: has(script.category, consents),
 				element: scriptElement,
 			};
 
@@ -514,8 +544,8 @@ export function reloadScript(
 		}
 	}
 
-	// Check if the script has consent before reloading
-	if (!has(script.category, consents)) {
+	// Check if the script has consent before reloading (unless alwaysLoad is true)
+	if (!script.alwaysLoad && !has(script.category, consents)) {
 		return false;
 	}
 

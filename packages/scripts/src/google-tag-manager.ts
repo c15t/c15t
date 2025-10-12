@@ -90,6 +90,7 @@ export interface GoogleTagManagerOptions {
 	 * - `id`: 'google-tag-manager'
 	 * - `src`: `https://www.googletagmanager.com/gtm.js?id=${id}`
 	 * - `category`: 'necessary' (You control what scripts get loaded via Google Tag Manager)
+	 * - `alwaysLoad`: true
 	 * - `async`: true
 	 */
 	script?: Partial<Script>;
@@ -116,6 +117,7 @@ export function googleTagManager({
 			: `https://www.googletagmanager.com/gtm.js?id=${id}`,
 		category: script?.category ?? 'necessary',
 		async: script?.async ?? true,
+		alwaysLoad: true,
 
 		/**
 		 * Instead of adding another script for the script loader, we will manage it internally for this script.

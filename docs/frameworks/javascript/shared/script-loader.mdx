@@ -47,11 +47,40 @@ availableIn:
   | --- | --- |
   | Google Tag Manager | [Guide](/docs/integrations/google-tag-manager) |
   | Meta Pixel | [Guide](/docs/integrations/meta-pixel) |
-  | PostHog (Sync-Only) | [Guide](/docs/integrations/posthog) |
+  | PostHog | [Guide](/docs/integrations/posthog) |
   | TikTok Pixel | [Guide](/docs/integrations/tiktok-pixel) |
   | LinkedIn Insights | [Guide](/docs/integrations/linkedin-insights) |
   | Microsoft UET | [Guide](/docs/integrations/microsoft-uet) |
   | X Pixel | [Guide](/docs/integrations/x-pixel) |
+</section>
+
+<section id="always-load">
+  ## Always Load Scripts
+
+  Some tracking scripts, like Google Tag Manager or PostHog, manage their own consent state internally. For these scripts, you'll want them to load immediately and never be unloaded, regardless of the consent state in c15t.
+
+  The `alwaysLoad` property allows you to bypass consent checks and ensure these scripts are always present on the page.
+
+  ### When to Use Always Load
+
+  Use `alwaysLoad: true` for:
+
+  - **Tag Management Systems** (e.g., Google Tag Manager) that handle consent internally
+  - **Analytics Platforms** (e.g., PostHog) with built-in consent management & cookieless behavior
+  - **Scripts that must initialize early** and configure themselves based on consent
+
+  <Callout type="warning">
+    When using `alwaysLoad`, you are responsible for ensuring the script respects user consent through its own consent management API. The script will load regardless of the user's consent choices in c15t.
+  </Callout>
+
+  ### Behavior
+
+  Scripts with `alwaysLoad: true` have the following characteristics:
+
+  - **Load immediately** when the consent manager initializes, bypassing consent checks
+  - **Never unload** when consent is revoked or changed
+  - **Persist through** `clearAllScripts` calls
+  - **Still trigger callbacks** like `onBeforeLoad`, `onLoad`, and `onConsentChange`
 </section>
 
 <section id="script-type">

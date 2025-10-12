@@ -24,7 +24,7 @@ Prebuilt scripts for c15t's script loader, for popular tools you may need to imp
 
 - [Google Tag Manager](https://c15t.com/docs/integrations/google-tag-manager)
 - [Google Tag](https://c15t.com/docs/integrations/google-tag)
-- [PostHog (Sync-Only)](https://c15t.com/docs/integrations/posthog-sync)
+- [PostHog](https://c15t.com/docs/integrations/posthog)
 - [Meta Pixel](https://c15t.com/docs/integrations/meta-pixel)
 - [TikTok Pixel](https://c15t.com/docs/integrations/tiktok-pixel)
 - [LinkedIn Insights](https://c15t.com/docs/integrations/linkedin-insights)
