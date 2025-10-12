@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/cli",
-	"version": "1.6.1",
+	"version": "1.7.0-canary-20251012180517",
 	"description": "CLI for rapid c15t setup. Scaffold React and Next.js cookie banners and a preferences centre, generate types and config, and run migration tooling for self-hosted deployments.",
 	"homepage": "https://c15t.com",
 	"repository": {

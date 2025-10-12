@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/logger",
-	"version": "1.0.0",
+	"version": "1.0.1-canary-20251012180517",
 	"description": "Logger for c15t.",
 	"homepage": "https://c15t.com/",
 	"repository": {

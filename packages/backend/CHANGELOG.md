@@ -1,5 +1,23 @@
 # @c15t/backend
 
+## 1.7.0-canary-20251012180517
+
+### Minor Changes
+
+- a58909c: feat(react): added frame component for conditionally rendering content with a placeholder e.g. iframes
+  feat(core): added headless iframe blocking with the data-src & data-category attributes
+  fix(react): improved button hover transitions when changing theme
+
+### Patch Changes
+
+- c6518dd: refactor: added @c15t/logger package
+- 9f4ef95: fix(backend): handle multiple sub domains
+- Updated dependencies [c6518dd]
+- Updated dependencies [0c80bed]
+- Updated dependencies [a58909c]
+  - @c15t/logger@1.0.1-canary-20251012180517
+  - @c15t/translations@1.7.0-canary-20251012180517
+
 ## 1.6.0
 
 ### Minor Changes
