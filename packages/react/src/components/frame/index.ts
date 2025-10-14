@@ -1,5 +1,4 @@
-export * from './atoms';
-export * from './types';
+'use client';
 
 import type { AllConsentNames } from 'c15t';
 import * as atoms from './atoms';
@@ -33,3 +32,5 @@ const Frame = Object.assign(FrameComponent, {
 }) as FrameCompoundComponent;
 
 export { Frame };
+export { FrameButton, FrameRoot, FrameTitle } from './atoms';
+export type { FrameCompoundComponent, FrameProps } from './types';

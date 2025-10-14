@@ -1,3 +1,5 @@
+'use server';
+
 import {
 	ConsentManagerProvider as ClientConsentManagerProvider,
 	type ConsentManagerProviderProps,
