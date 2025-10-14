@@ -1,0 +1,87 @@
+---
+title: Client Side Options (App Dir)
+description: Handle client-side options for the consent manager in Next.js App Directory.
+lastModified: 2025-10-14
+canary: true
+availableIn:
+  - framework: 'next'
+    url: '/docs/frameworks/next/components/client-side-options'
+    title: 'Next.js'
+---
+
+In React some ConsentManagerProvider options including callbacks and scripts cannot be serialized and sent to the client from the server. This is why we have the ClientSideOptionsProvider component.
+
+It is important to note that this component is not used in the Pages Directory. If you'd like to use a full client-side solution, you can use the `<ConsentManagerProvider />` component from `@c15t/nextjs/client`.
+
+## Usage
+
+```tsx title="app/consent-manager.client.tsx"
+'use client';
+
+import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
+import { gtag } from '@c15t/scripts/google-tag';
+import type { ReactNode } from 'react';
+
+export function ConsentManagerClient({ children }: { children: ReactNode }) {
+return (
+	<ClientSideOptionsProvider
+		scripts={[
+			// Premade Google Tag script which you can use to load Google Analytics, Google Ads etc.
+			gtag({
+				id: 'G-XXXXXXXXXX',
+				category: 'measurement',
+			}),
+		]}
+		callbacks={{
+			onBannerFetched(response) {
+				console.log('onBannerFetched', response);
+			},
+			onConsentSet(response) {
+				console.log('onConsentSet', response);
+			},
+			onError(response) {
+				console.log('onError', response);
+			},
+		}}
+	>
+		{children}
+	</ClientSideOptionsProvider>
+);
+}
+```
+
+Next, you should import this component to be inside your `ConsentManagerProvider` component.
+
+```tsx title="app/consent-manager.tsx"
+import {
+ConsentManagerDialog,
+ConsentManagerProvider,
+CookieBanner
+} from '@c15t/nextjs';
+import { ConsentManagerClient } from "./consent-manager.client";
+
+export function ConsentManager({ children }: { children: React.ReactNode }) {
+return (
+	<ConsentManagerProvider
+		options={{
+			mode: 'c15t',
+			backendURL: '/api/c15t',
+			// ignoreGeoLocation: true, // Useful for development to always view the banner.
+		}}
+	>
+		<CookieBanner />
+  <ConsentManagerDialog />
+		<ConsentManagerClient>{children}</ConsentManagerClient>
+		{children}
+	</ConsentManagerProvider>
+);
+}
+```
+
+## API Reference
+
+### ClientSideOptionsProviderProps
+
+The main component accepts these props:
+
+<AutoTypeTable path="./packages/nextjs/src/components/client-options/index.tsx" name="ClientSideOptionsProviderProps" />

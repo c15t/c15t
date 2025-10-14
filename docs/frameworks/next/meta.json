@@ -19,6 +19,7 @@
 		"components/consent-manager-dialog",
 		"components/consent-manager-widget",
 		"components/frame",
+		"components/client-side-options",
 		"components/dev-tools",
 		"--- Styling the components ---",
 		"styling/overview",

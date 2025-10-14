@@ -6,6 +6,12 @@ import {
 } from '@c15t/react';
 import { useEffect } from 'react';
 
+export type ClientSideOptionsProviderProps = {
+	children: React.ReactNode;
+	callbacks?: ConsentManagerProviderProps['options']['callbacks'];
+	scripts?: ConsentManagerProviderProps['options']['scripts'];
+};
+
 /**
  * This component is used to provide options to the consent manager on the client side.
  * This is seperate from the ConsentManagerProvider component because options like callbacks and scripts can't be seralized.
@@ -19,11 +25,7 @@ export function ClientSideOptionsProvider({
 	children,
 	callbacks,
 	scripts,
-}: {
-	children: React.ReactNode;
-	callbacks?: ConsentManagerProviderProps['options']['callbacks'];
-	scripts?: ConsentManagerProviderProps['options']['scripts'];
-}) {
+}: ClientSideOptionsProviderProps) {
 	const { setCallback, setScripts } = useConsentManager();
 
 	useEffect(() => {

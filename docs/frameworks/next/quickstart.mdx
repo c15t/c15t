@@ -58,7 +58,11 @@ You can get started with the `@c15t/cli` which will generate the code for you!
   <Step>
     ### Adding it to your Next Application
 
-    ```tsx title="app/layout.tsx"
+    <Callout type="tip">
+      If you're using Next.js Rewrites, you can use the `backendURL` option to redirect requests to the c15t backend by setting it to `/api/c15t`.
+    </Callout>
+
+    ```tsx title="app/consent-manager.tsx"
     import { 
       ConsentManagerDialog,
       ConsentManagerProvider,
@@ -66,7 +70,7 @@ You can get started with the `@c15t/cli` which will generate the code for you!
     } from '@c15t/nextjs';
     import type { ReactNode } from 'react';
 
-    export default function Layout({ children }: { children: ReactNode }) {
+    export default function ConsentManager({ children }: { children: ReactNode }) {
       return (
         <ConsentManagerProvider
           options={{
@@ -84,9 +88,17 @@ You can get started with the `@c15t/cli` which will generate the code for you!
     };
     ```
 
-    <Callout type="tip">
-      If you're using Next.js Rewrites, you can use the `backendURL` option to redirect requests to the c15t backend by setting it to `/api/c15t`.
-    </Callout>
+    In your `app/layout.tsx` file, you can import the `ConsentManager` component.
+
+    ```tsx title="app/layout.tsx"
+    import { ConsentManager } from './consent-manager';
+
+    export default function Layout({ children }: { children: ReactNode }) {
+      return <ConsentManager>{children}</ConsentManager>;
+    }
+    ```
+
+    Some options such as scripts & callbacks cannot be seralized and sent to the client from the server. For a guide on how to add these when using the App Directory, [see the ClientSideOptionsProvider documentation](/docs/frameworks/next/components/client-side-options).
   </Step>
 </Steps>
 
