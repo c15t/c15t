@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Enhanced ConsentManagerWidget component with compound components attached.
  *
