@@ -1,5 +1,11 @@
 # @c15t/react
 
+## 1.7.0-canary-20251014174050
+
+### Patch Changes
+
+- 87ce89f: fix(react): missing use-client causing build errors in Next.js 14
+
 ## 1.7.0-canary-20251012181938
 
 ### Minor Changes
