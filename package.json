@@ -53,6 +53,7 @@
 		"@vitest/browser": "^3.2.4",
 		"@vitest/coverage-istanbul": "^3.2.4",
 		"changeset-conventional-commits": "^0.2.5",
+		"happy-dom": ">=20.0.0",
 		"knip": "^5.50.4",
 		"lefthook": "^1.11.10",
 		"playwright": "^1.51.1",
@@ -65,8 +66,7 @@
 		"turbo": "^2.5.0",
 		"typescript": "5.8.3",
 		"vitest": "^3.2.4",
-		"vitest-browser-react": "^1.0.1",
-		"happy-dom": ">=20.0.0"
+		"vitest-browser-react": "^1.0.1"
 	},
 	"packageManager": "pnpm@10.8.0",
 	"engines": {
