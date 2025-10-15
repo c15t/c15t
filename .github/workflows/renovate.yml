@@ -18,7 +18,7 @@ jobs:
         # Minimal checkout is fine, Renovate action handles the rest
 
       - name: Run Renovate Action
-        uses: renovatebot/github-action@v40.2.3 # Use a specific, recent version
+        uses: renovatebot/github-action@8ce0fe8066eb6b16e1bf499b21bc96e5ccd962a4 # v40.2.3 # Use a specific, recent version
         with:
           # Using GITHUB_TOKEN is usually sufficient if you installed the Renovate GitHub App
           # If you need specific permissions or are self-hosting, use a Personal Access Token (PAT)
