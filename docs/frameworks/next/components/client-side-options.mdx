@@ -70,9 +70,10 @@ return (
 		}}
 	>
 		<CookieBanner />
-  <ConsentManagerDialog />
-		<ConsentManagerClient>{children}</ConsentManagerClient>
-		{children}
+    <ConsentManagerDialog />
+		<ConsentManagerClient>
+      {children}
+    </ConsentManagerClient>
 	</ConsentManagerProvider>
 );
 }
