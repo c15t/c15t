@@ -73,9 +73,9 @@
 	},
 	"pnpm": {
 		"overrides": {
+			"@fastify/busboy@<=3.2.0": "3.2.0",
 			"@types/react": "19.1.1",
-			"@types/react-dom": "19.1.2",
-			"@fastify/busboy@<=3.2.0": "3.2.0"
+			"@types/react-dom": "19.1.2"
 		}
 	}
 }
