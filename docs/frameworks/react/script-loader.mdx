@@ -1,0 +1,56 @@
+---
+title: Script Loader
+description: Load scripts based on consent. Used to load scripts that are not necessary for the user's consent, such as analytics scripts.
+lastModified: 2025-09-19
+new: true
+availableIn:
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/script-loader'
+    title: 'JavaScript'
+  - framework: 'next'
+    url: '/docs/frameworks/next/script-loader'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/script-loader'
+    title: 'React'
+---
+
+<import>../javascript/shared/script-loader.mdx#overview</import>
+
+<import>../javascript/shared/script-loader.mdx#tracking-blocker</import>
+
+## Implementation
+
+```ts
+import { ConsentManagerProvider } from '@c15t/react';
+import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+
+export function App({ children }: { children: React.ReactNode }) {
+  return (
+    <ConsentManagerProvider options={{
+      scripts: [
+        googleTagManager({
+          id: 'GTM-XXXXXXX',
+        }), // Prebuilt script or...
+        {
+          id: 'example',
+          src: 'https://analytics.example.com/script.js',
+          category: 'analytics',
+        }
+      ]
+    }}>
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import>../javascript/shared/script-loader.mdx#prebuilt-scripts</import>
+
+<import>../javascript/shared/script-loader.mdx#scripts-table</import>
+
+<import>../javascript/shared/script-loader.mdx#always-load</import>
+
+## Types
+
+<import>../javascript/shared/script-loader.mdx#script-type</import>

@@ -56,7 +56,7 @@ export interface CookieBannerCompoundComponent extends FC<CookieBannerProps> {
  *
  * Key features:
  * - Fully accessible by default
- * - GDPR and CCPA compliant
+ * - GDPR Compliant
  * - Customizable appearance
  * - Responsive design
  * - Error boundary protection

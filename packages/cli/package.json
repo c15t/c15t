@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/cli",
-	"version": "1.6.1",
+	"version": "1.7.0-canary-20251014174050",
 	"description": "CLI for rapid c15t setup. Scaffold React and Next.js cookie banners and a preferences centre, generate types and config, and run migration tooling for self-hosted deployments.",
 	"homepage": "https://c15t.com",
 	"repository": {
@@ -32,9 +32,9 @@
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
+		"@c15t/logger": "workspace:*",
 		"@c15t/react": "workspace:*",
 		"@clack/prompts": "^0.10.1",
-		"@doubletie/logger": "1.0.4",
 		"@mrleebo/prisma-ast": "^0.12.1",
 		"@types/better-sqlite3": "^7.6.13",
 		"better-sqlite3": "^11.9.1",

@@ -1,0 +1,53 @@
+{
+	"name": "@c15t/logger",
+	"version": "1.0.0-canary-20251012181938",
+	"description": "Logger for c15t.",
+	"homepage": "https://c15t.com/",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/logger"
+	},
+	"license": "GPL-3.0-only",
+	"sideEffects": false,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "rslib build",
+		"check-types": "tsc --noEmit",
+		"dev": "rslib build --watch",
+		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --write",
+		"lint": "pnpm biome lint ./src",
+		"test": "vitest run --passWithNoTests",
+		"test:watch": "vitest"
+	},
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	],
+	"dependencies": {
+		"chalk": "^5.4.1",
+		"neverthrow": "^8.2.0",
+		"picocolors": "^1.1.1"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

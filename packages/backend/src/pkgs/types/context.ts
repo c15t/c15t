@@ -1,4 +1,4 @@
-import type { createLogger } from '@doubletie/logger';
+import type { createLogger } from '@c15t/logger';
 import type { DatabaseHook, EntityName } from '~/pkgs/data-model';
 import type { Adapter } from '~/pkgs/db-adapters/types';
 import type { createRegistry } from '~/schema/create-registry';

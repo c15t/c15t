@@ -16,8 +16,15 @@ import {
 } from './libs/consent-utils';
 import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
 import { type GTMConfiguration, setupGTM } from './libs/gtm';
-import { type HasCondition, has } from './libs/has';
+import {
+	extractConsentNamesFromCondition,
+	type HasCondition,
+	has,
+} from './libs/has';
+import type { IframeBlockerConfig } from './libs/iframe-blocker';
+import { createIframeManager } from './libs/iframe-blocker/store';
 import { saveConsents } from './libs/save-consents';
+import { createScriptManager, type Script } from './libs/script-loader';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
 import { createTrackingBlocker } from './libs/tracking-blocker';
 import { initialState, STORAGE_KEY } from './store.initial-state';
@@ -107,22 +114,48 @@ export interface StoreOptions {
 
 	/**
 	 * Initial compliance settings for different regions.
+	 * @deprecated will be removed in v2.0 due to unused functionality
 	 */
 	initialComplianceSettings?: Record<string, Partial<ComplianceSettings>>;
 
 	/**
-	 * Configuration for the tracking blocker.
+	 * Configuration options for the tracking blocker system.
+	 *
+	 * @remarks
+	 * **Important:** The tracking blocker is automatically disabled when using the Script Loader
+	 * to prevent conflicts between the two systems. If you provide `scripts` in the store options,
+	 * or if you dynamically add scripts using `setScripts()`, the tracking blocker will be
+	 * destroyed to ensure proper script loading behavior.
+	 *
+	 * This interface controls how the tracking blocker intercepts and manages
+	 * network requests based on user consent. The blocker overrides global
+	 * `fetch` and `XMLHttpRequest` APIs to enforce consent requirements.
+	 *
+	 * @deprecated This interface is deprecated and will be removed in v2.0.
+	 * The default domain map will be empty in v2.0, requiring users to explicitly
+	 * specify domains to block. Use the new Script Loader
+	 * instead for more granular control over script loading based on consent.
+	 *
+	 * @see https://c15t.com/docs/frameworks/javascript/script-loader
 	 */
 	trackingBlockerConfig?: TrackingBlockerConfig;
 
 	/**
+	 * Configuration for the iframe blocker.
+	 * Controls how iframes are blocked based on consent settings.
+	 */
+	iframeBlockerConfig?: IframeBlockerConfig;
+
+	/**
 	 * Flag indicating if the consent manager is using the c15t.dev domain.
 	 * @default false
+	 * @deprecated will be removed in a future version
 	 */
 	isConsentDomain?: boolean;
 
 	/**
 	 * Google Tag Manager configuration.
+	 * @deprecated use {@link https://c15t.com/docs/integrations/google-tag-manager} instead
 	 */
 	unstable_googleTagManager?: GTMConfiguration;
 
@@ -143,8 +176,9 @@ export interface StoreOptions {
 	translationConfig?: TranslationConfig;
 
 	/**
-	 * Initial showConsentBanner value. This will set a cookie for the consent banner.
-	 * @internal
+	 * If showConsentBanner is fetched prior to the store being created, you can pass the initial data here.
+	 *
+	 * This is useful for server-side rendering (SSR) such as in @c15t/nextjs.
 	 */
 	_initialData?: Promise<ContractsOutputs['consent']['showBanner'] | undefined>;
 
@@ -152,6 +186,14 @@ export interface StoreOptions {
 	 * Callbacks for the consent manager.
 	 */
 	callbacks?: Callbacks;
+
+	/**
+	 * Dynamically load scripts based on consent state.
+	 * For scripts such as Google Tag Manager, Meta Pixel, etc.
+	 *
+	 * @see https://c15t.com/docs/frameworks/javascript/script-loader
+	 */
+	scripts?: Script[];
 }
 
 // For backward compatibility (if needed)
@@ -214,9 +256,13 @@ export const createConsentManagerStore = (
 	// Load initial state from localStorage if available
 	const storedConsent = getStoredConsent();
 
-	// Initialize tracking blocker
+	// Automatically disable tracking blocker if script loader is in use
+	const shouldDisableTrackingBlocker =
+		options.scripts && options.scripts.length > 0;
+
+	// Initialize tracking blocker only if not using script loader
 	const trackingBlocker =
-		typeof window !== 'undefined'
+		typeof window !== 'undefined' && !shouldDisableTrackingBlocker
 			? createTrackingBlocker(
 					trackingBlockerConfig || {},
 					storedConsent?.consents || initialState.consents
@@ -225,12 +271,17 @@ export const createConsentManagerStore = (
 
 	const store = createStore<PrivacyConsentState>((set, get) => ({
 		...initialState,
+		gdprTypes: options.initialGdprTypes ?? initialState.gdprTypes,
 		ignoreGeoLocation: options.ignoreGeoLocation ?? false,
 		config: options.config ?? initialState.config,
+		iframeBlockerConfig:
+			options.iframeBlockerConfig ?? initialState.iframeBlockerConfig,
 		// Set isConsentDomain based on the provider's baseURL
 		isConsentDomain,
 		// Override the callbacks with merged callbacks
 		callbacks: options.callbacks ?? initialState.callbacks,
+		// Set initial scripts if provided
+		scripts: options.scripts ?? initialState.scripts,
 		// Set initial translation config if provided
 		translationConfig: translationConfig || initialState.translationConfig,
 		...(storedConsent
@@ -429,6 +480,17 @@ export const createConsentManagerStore = (
 				callbacks: { ...state.callbacks, [name]: callback },
 			}));
 
+			// Call the onConsentSet callback with the initial consent state
+			if (
+				name === 'onConsentSet' &&
+				callback &&
+				typeof callback === 'function'
+			) {
+				(callback as Callbacks['onConsentSet'])?.({
+					preferences: currentState.consents,
+				});
+			}
+
 			// Replay missed onBannerFetched callback if banner was already fetched
 			if (
 				name === 'onBannerFetched' &&
@@ -478,6 +540,7 @@ export const createConsentManagerStore = (
 				initialTranslationConfig: options.initialTranslationConfig,
 				get,
 				set,
+				trackingBlocker,
 			}),
 
 		/**
@@ -581,7 +644,31 @@ export const createConsentManagerStore = (
 		setTranslationConfig: (config: TranslationConfig) => {
 			set({ translationConfig: config });
 		},
+
+		updateConsentCategories: (newCategories: AllConsentNames[]) => {
+			const allCategories = [
+				...new Set([...get().gdprTypes, ...newCategories]),
+			];
+			set({ gdprTypes: allCategories });
+		},
+
+		...createScriptManager(get, set, trackingBlocker),
+		...createIframeManager(get, set),
 	}));
+
+	// Initialize the iframe blocker after the store is created
+	store.getState().initializeIframeBlocker();
+
+	// Add script categories to gdprTypes
+	if (options.scripts && options.scripts.length > 0) {
+		store
+			.getState()
+			.updateConsentCategories(
+				options.scripts.flatMap((script) =>
+					extractConsentNamesFromCondition(script.category)
+				)
+			);
+	}
 
 	if (typeof window !== 'undefined') {
 		// biome-ignore lint/suspicious/noExplicitAny: its okay
@@ -597,13 +684,11 @@ export const createConsentManagerStore = (
 				console.error('Failed to setup Google Tag Manager:', e);
 			}
 		}
-
-		// Auto-fetch consent banner information if no stored consent
-		if (!getStoredConsent()) {
-			// Immediately invoke the fetch and wait for it to complete
-			// This ensures we have location data before deciding to show the banner
-			store.getState().fetchConsentBannerInfo();
-		}
+		// When the store is initialized, call the onConsentSet callback with the initial consent state
+		store
+			.getState()
+			.callbacks.onConsentSet?.({ preferences: store.getState().consents });
+		store.getState().fetchConsentBannerInfo();
 	}
 
 	return store;

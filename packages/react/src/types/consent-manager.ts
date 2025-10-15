@@ -8,6 +8,8 @@ import type {
 	Callbacks,
 	ConsentManagerOptions as CoreOptions,
 	GTMConfiguration,
+	Script,
+	TrackingBlockerConfig,
 	TranslationConfig,
 } from 'c15t';
 import type { ReactNode } from 'react';
@@ -86,6 +88,7 @@ export type ConsentManagerOptions = CoreOptions & {
 
 	/**
 	 * Consent Categories to show in the consent banner.
+	 * This will be overridden if you have scripts or iframes that require different consent categories.
 	 * @default ['necessary', 'marketing']
 	 */
 	consentCategories?: AllConsentNames[];
@@ -94,6 +97,17 @@ export type ConsentManagerOptions = CoreOptions & {
 	 * Callbacks for the consent manager.
 	 */
 	callbacks?: Callbacks;
+
+	/**
+	 * Scripts to load.
+	 */
+	scripts?: Script[];
+
+	/**
+	 * Tracking blocker configuration.
+	 * @deprecated This is deprecated and will be removed in the next major version. Use the new [ScriptLoader](https://c15t.com/docs/react/script-loader) instead.
+	 */
+	trackingBlockerConfig?: TrackingBlockerConfig;
 };
 
 /**

@@ -1,4 +1,4 @@
-import type { Logger } from '@doubletie/logger';
+import type { Logger } from '@c15t/logger';
 import { type Kysely, type Migration, sql } from 'kysely';
 import { beforeEach, expect, test } from 'vitest';
 import type { Adapter } from '~/pkgs/db-adapters';

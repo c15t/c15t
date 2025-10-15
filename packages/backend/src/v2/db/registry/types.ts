@@ -1,4 +1,4 @@
-import type { createLogger } from '@doubletie/logger';
+import type { createLogger } from '@c15t/logger';
 import type { InferFumaDB } from 'fumadb';
 import type { DB } from '~/v2/db/schema';
 

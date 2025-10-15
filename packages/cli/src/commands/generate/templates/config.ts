@@ -22,84 +22,58 @@ export function generateClientConfigContent(
 
 	switch (mode) {
 		case 'c15t': {
-			configContent = `// c15t Client Configuration
-import type { ConsentManagerOptions } from '@c15t/react';
+			configContent = `
+import {
+  type ConsentManagerOptions,
+  configureConsentManager,
+  createConsentManagerStore
+} from "c15t";
 
-export const c15tConfig = {
-  // Using hosted c15t (consent.io) or self-hosted instance
-  mode: 'c15t',
-  backendURL: ${useEnvFile ? 'process.env.NEXT_PUBLIC_C15T_URL' : `'${backendURL || 'https://your-instance.c15t.dev'}'`},
-  consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
-  ignoreGeoLocation: true, // Useful for development to always view the banner.
-  
-  // Optional: Add callback functions for various events
-  callbacks: {
-    onConsentSet: (response) => {
-      console.log('Consent has been saved');
-    }
-  }
-} satisfies ConsentManagerOptions;
+export const consentManager = configureConsentManager({ mode: "c15t", backendURL: ${useEnvFile ? 'process.env.NEXT_PUBLIC_C15T_URL' : `'${backendURL || 'https://your-instance.c15t.dev'}'`}, });
+export const store = createConsentManagerStore(consentManager, {
+  initialGdprTypes: ["necessary", "marketing"], // Optional: Specify which consent categories to show in the banner.
+  ignoreGeoLocation: true // Useful for development to always view the banner.
+});
 
-// Use in your app layout:
-// <ConsentManagerProvider options={c15tConfig}>
-//   {children}
-//   <CookieBanner />
-//   <ConsentManagerDialog />
-// </ConsentManagerProvider>
+store.getState().setConsent("marketing", true); // set consent to marketing
+store.getState().showPopup; 
 `;
 			break;
 		}
 		case 'offline': {
-			configContent = `// c15t Client Configuration
-import type { ConsentManagerOptions } from '@c15t/react';
+			configContent = `
+import {
+  type ConsentManagerOptions,
+  configureConsentManager,
+  createConsentManagerStore
+} from "c15t";
 
-export const c15tConfig = {
-  // Using offline mode for browser-based storage
-  mode: 'offline',
-  
-  // Optional: Add callback functions for various events
-  callbacks: {
-    onConsentSet: (response) => {
-      console.log('Consent has been saved locally');
-    }
-  }
-} satisfies ConsentManagerOptions;
+export const consentManager = configureConsentManager({ mode: "offline" });
+export const store = createConsentManagerStore(consentManager, {
+  initialGdprTypes: ["necessary", "marketing"], // Optional: Specify which consent categories to show in the banner.
+});
 
-// Use in your app layout:
-// <ConsentManagerProvider options={c15tConfig}>
-//   {children}
-//   <CookieBanner />
-//   <ConsentManagerDialog />
-// </ConsentManagerProvider>
+store.getState().setConsent("marketing", true); // set consent to marketing
+store.getState().showPopup; // should show popup?
+      
 `;
 			break;
 		}
 		case 'custom': {
-			configContent = `// c15t Client Configuration
-import type { ConsentManagerOptions } from '@c15t/react';
-import { createCustomHandlers } from './consent-handlers';
+			configContent = `import {
+  type ConsentManagerOptions,
+  configureConsentManager,
+  createConsentManagerStore
+} from "c15t";
 
-export const c15tConfig = {
-  // Using custom mode for complete control
-  mode: 'custom',
-  endpointHandlers: createCustomHandlers(),
-  
-  // Optional: Add callback functions for various events
-  callbacks: {
-    onConsentSet: (response) => {
-      console.log('Consent has been saved');
-    }
-  }
-} satisfies ConsentManagerOptions;
+export const consentManager = configureConsentManager({ mode: "custom", endpointHandlers: createCustomHandlers(), });
+export const store = createConsentManagerStore(consentManager, {
+  initialGdprTypes: ["necessary", "marketing"], // Optional: Specify which consent categories to show in the banner.
+  ignoreGeoLocation: true // Useful for development to always view the banner.
+});
 
-// Use in your app layout:
-// <ConsentManagerProvider options={c15tConfig}>
-//   {children}
-//   <CookieBanner />
-//   <ConsentManagerDialog />
-// </ConsentManagerProvider>
-
-// Don't forget to implement your custom handlers in consent-handlers.ts!
+store.getState().setConsent("marketing", true); // set consent to marketing
+store.getState().showPopup; // should show popup?
 `;
 			break;
 		}

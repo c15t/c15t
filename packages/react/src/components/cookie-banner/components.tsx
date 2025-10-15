@@ -1,7 +1,7 @@
 /**
  * @packageDocumentation
  * Provides the core components for building cookie consent banners.
- * Implements accessible, customizable components following GDPR and CCPA requirements.
+ * Implements accessible, customizable components following GDPR requirements.
  */
 
 import { forwardRef, type Ref, type RefObject, useRef } from 'react';

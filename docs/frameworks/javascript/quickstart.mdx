@@ -44,46 +44,21 @@ availableIn:
   <Step>
     ### Add to Your JavaScript Application
 
-    <Tabs items={['TypeScript', 'JavaScript']}>
-      <Tab value="TypeScript">
-        ```tsx
-        import { configureConsentManager, type ConsentManagerOptions } from 'c15t';
+    ```tsx
+    import { configureConsentManager, createConsentManagerStore } from 'c15t';
 
-        export const c15tConfig = {
-        	mode: 'offline',
-        } satisfies ConsentManagerOptions;
-
-        export const consentManager = configureConsentManager(c15tConfig);
-        ```
-      </Tab>
-
-      <Tab value="JavaScript">
-        ```js
-        import { configureConsentManager } from 'c15t';
-
-        /** @type {import('c15t').ConsentManagerOptions} */
-        export const c15tConfig = {
-        	mode: 'offline',
-        };
-
-        export const consentManager = configureConsentManager(c15tConfig);
-        ```
-      </Tab>
-    </Tabs>
+    export const consentManager = configureConsentManager({ mode: "c15t", backendURL: "https://your-instance.c15t.dev" });
+    export const store = createConsentManagerStore(consentManager, {
+      initialGdprTypes: ["necessary", "marketing"], // Optional: Specify which consent categories to show in the banner.
+      ignoreGeoLocation: true // Useful for development to always view the banner.
+    });
+    ```
 
     The consent manager is now ready to use. For example:
 
     ```tsx
-    consentManager.setConsent({
-      body: {
-        type: 'cookie_banner',
-        domain: 'localhost',
-        preferences: {
-          necessary: true,
-          marketing: true,
-        },
-      },
-    });
+    store.getState().setConsent('marketing', true); // set consent to marketing
+    store.getState().showPopup; // should show popup?
     ```
 
     <Callout type="tip">

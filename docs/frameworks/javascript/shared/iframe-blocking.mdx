@@ -1,0 +1,40 @@
+---
+title: "iframe blocking"
+description: "Learn how to block iframes based on consent."
+new: true
+availableIn:
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/iframe-blocking'
+    title: 'JavaScript'
+  - framework: 'react'
+    url: '/docs/frameworks/react/iframe-blocking'
+    title: 'React'
+  - framework: 'next'
+    url: '/docs/frameworks/next/iframe-blocking'
+    title: 'Next.js'
+---
+
+<section id="overview">
+  ## Overview
+
+  Iframe blocking is a feature that allows you to block iframes based on consent. This is useful for blocking iframes that are not allowed to load until consent is given.
+  This should be used when an iframe sets cookies such as a YouTube embed.
+</section>
+
+<section id="headless-usage">
+  ## Headless Usage
+
+  ```html
+  // Will render immediately - No blocking
+  <iframe src="https://youtube.com/embed/unblocked" />
+
+  // Does not render until consent is granted
+  <iframe data-src="https://youtube.com/embed/123" data-category="marketing" />
+  ```
+
+  <Callout type="note">
+    The iframe blocker will only block iframes that have a `data-category` & `data-src` attribute.
+
+    No fallback is provided for blocked iframes using this method.
+  </Callout>
+</section>

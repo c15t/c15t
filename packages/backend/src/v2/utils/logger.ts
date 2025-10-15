@@ -1,9 +1,6 @@
-import {
-	createLogger as createDTLogger,
-	type LoggerOptions,
-} from '@doubletie/logger';
+import { createLogger, type LoggerOptions } from '@c15t/logger';
 
-let globalLogger: ReturnType<typeof createDTLogger>;
+let globalLogger: ReturnType<typeof createLogger>;
 
 /**
  * Gets or creates a global logger instance
@@ -13,9 +10,9 @@ let globalLogger: ReturnType<typeof createDTLogger>;
  */
 export function getLogger(
 	options?: LoggerOptions
-): ReturnType<typeof createDTLogger> {
+): ReturnType<typeof createLogger> {
 	if (!globalLogger) {
-		globalLogger = createDTLogger({
+		globalLogger = createLogger({
 			level: 'info',
 			appName: 'c15t',
 			...options,
@@ -32,7 +29,7 @@ export function getLogger(
  */
 export function initLogger(
 	options: LoggerOptions
-): ReturnType<typeof createDTLogger> {
-	globalLogger = createDTLogger(options);
+): ReturnType<typeof createLogger> {
+	globalLogger = createLogger(options);
 	return globalLogger;
 }

@@ -35,6 +35,8 @@ export type ButtonCSSVariables = {
 	'--button-font-size': string;
 	'--button-line-height': string;
 	'--button-transition': string;
+	'--button-hover-transition-color': string;
+	'--button-hover-transition-full': string;
 	'--button-cursor': string;
 
 	/* Shadows */

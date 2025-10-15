@@ -1,4 +1,4 @@
-import { createLogger } from '@doubletie/logger';
+import { createLogger } from '@c15t/logger';
 import { OpenAPIHandler } from '@orpc/openapi/fetch';
 import { CORSPlugin } from '@orpc/server/plugins';
 import defu from 'defu';

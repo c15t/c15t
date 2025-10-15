@@ -11,6 +11,7 @@ import {
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { PrivacyConsentState } from '../store.type';
+import type { createTrackingBlocker } from './tracking-blocker';
 
 type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
 
@@ -23,6 +24,7 @@ interface FetchConsentBannerConfig {
 	initialTranslationConfig?: Partial<TranslationConfig>;
 	get: StoreApi<PrivacyConsentState>['getState'];
 	set: StoreApi<PrivacyConsentState>['setState'];
+	trackingBlocker?: ReturnType<typeof createTrackingBlocker> | null;
 }
 
 /**
@@ -49,13 +51,22 @@ function checkLocalStorageAccess(
  */
 function updateStore(
 	data: ConsentBannerResponse,
-	{ set, get, initialTranslationConfig }: FetchConsentBannerConfig,
+	{
+		set,
+		get,
+		initialTranslationConfig,
+		trackingBlocker,
+	}: FetchConsentBannerConfig,
 	hasLocalStorageAccess: boolean
 ): void {
 	const { consentInfo, ignoreGeoLocation, callbacks, setDetectedCountry } =
 		get();
 
 	const { translations, location, showConsentBanner } = data;
+
+	// Check if consents should be automatically granted
+	const shouldAutoGrantConsents =
+		data.jurisdiction?.code === 'NONE' && !data.showConsentBanner;
 
 	const updatedStore: Partial<PrivacyConsentState> = {
 		isLoadingConsentInfo: false,
@@ -68,16 +79,15 @@ function updateStore(
 			: {}),
 
 		// If the banner is not shown and has no requirement consent to all
-		...(data.jurisdiction?.code === 'NONE' &&
-			!data.showConsentBanner && {
-				consents: {
-					necessary: true,
-					functionality: true,
-					experience: true,
-					marketing: true,
-					measurement: true,
-				},
-			}),
+		...(shouldAutoGrantConsents && {
+			consents: {
+				necessary: true,
+				functionality: true,
+				experience: true,
+				marketing: true,
+				measurement: true,
+			},
+		}),
 		locationInfo: {
 			countryCode: location?.countryCode ?? null,
 			regionCode: location?.regionCode ?? null,
@@ -86,8 +96,8 @@ function updateStore(
 		},
 		jurisdictionInfo: data.jurisdiction,
 	};
-
-	if (translations?.language && translations?.translations) {
+	translations?.language && translations?.translations;
+	{
 		const translationConfig = prepareTranslationConfig(
 			{
 				translations: {
@@ -113,6 +123,19 @@ function updateStore(
 
 	set(updatedStore);
 
+	// Trigger onConsentSet callback when consents are automatically granted
+	if (shouldAutoGrantConsents) {
+		callbacks?.onConsentSet?.({
+			preferences: {
+				necessary: true,
+				functionality: true,
+				experience: true,
+				marketing: true,
+				measurement: true,
+			},
+		});
+	}
+
 	callbacks?.onBannerFetched?.({
 		showConsentBanner: data.showConsentBanner,
 		jurisdiction: data.jurisdiction,
@@ -122,6 +145,10 @@ function updateStore(
 			translations: translations.translations,
 		},
 	});
+
+	// Update scripts based on current consent state
+	trackingBlocker?.updateConsents(get().consents);
+	get().updateScripts();
 }
 
 /**
@@ -134,10 +161,9 @@ export async function fetchConsentBannerInfo(
 	config: FetchConsentBannerConfig
 ): Promise<ConsentBannerResponse | undefined> {
 	const { get, set, manager, initialData } = config;
-	const { hasConsented, callbacks } = get();
+	const { callbacks } = get();
 
-	if (typeof window === 'undefined' || hasConsented()) {
-		set({ isLoadingConsentInfo: false });
+	if (typeof window === 'undefined') {
 		return undefined;
 	}
 
@@ -151,16 +177,19 @@ export async function fetchConsentBannerInfo(
 	set({ isLoadingConsentInfo: true });
 
 	if (initialData) {
-		const showConsentBanner = await initialData;
+		try {
+			const showConsentBanner = await initialData;
 
-		// Ensures the promsie has the expected data
-		if (showConsentBanner) {
-			updateStore(showConsentBanner, config, true);
-
-			return showConsentBanner;
+			// Ensures the promise has the expected data
+			if (showConsentBanner) {
+				updateStore(showConsentBanner, config, true);
+				return showConsentBanner;
+			}
+			// Fall back to API call if no data
+		} catch (error) {
+			// Propagate the error from the initial data promise
+			throw error;
 		}
-
-		// Fall back to API call
 	}
 
 	try {

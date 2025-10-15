@@ -33,6 +33,16 @@ export interface GenerateFilesResult {
 	nextConfigCreated?: boolean;
 }
 
+interface LayoutUpdateResult {
+	updated: boolean;
+	filePath: string | null;
+	alreadyModified: boolean;
+	componentFiles?: {
+		consentManager: string;
+		consentManagerClient?: string;
+	};
+}
+
 /**
  * Handles the React layout file updates
  * @param options - Configuration options for React layout handling
@@ -46,6 +56,7 @@ async function handleReactLayout(options: {
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
 	spinner: ReturnType<typeof p.spinner>;
+	cwd: string;
 }): Promise<{ layoutUpdated: boolean; layoutPath: string | null }> {
 	const {
 		projectRoot,
@@ -55,6 +66,7 @@ async function handleReactLayout(options: {
 		proxyNextjs,
 		pkg,
 		spinner,
+		cwd,
 	} = options;
 	spinner.start('Updating layout file...');
 	const layoutResult = await updateReactLayout({
@@ -70,11 +82,36 @@ async function handleReactLayout(options: {
 		if (layoutResult.alreadyModified) {
 			return {
 				message:
-					'ConsentManagerProvider is already imported. Skipped layout file update.',
+					'ConsentManager is already imported. Skipped layout file update.',
 				type: 'info',
 			};
 		}
 		if (layoutResult.updated) {
+			// Check if component files were created (Next.js)
+			const typedResult = layoutResult as LayoutUpdateResult;
+			if (typedResult.componentFiles) {
+				const relativeConsentManager = path.relative(
+					cwd,
+					typedResult.componentFiles.consentManager
+				);
+				const relativeLayout = path.relative(cwd, layoutResult.filePath || '');
+
+				// App Directory has 2 files, Pages Directory has 1 file
+				if (typedResult.componentFiles.consentManagerClient) {
+					const relativeConsentManagerClient = path.relative(
+						cwd,
+						typedResult.componentFiles.consentManagerClient
+					);
+					return {
+						message: `Layout setup complete!\n  ${color.green('✓')} Created: ${color.cyan(relativeConsentManager)}\n  ${color.green('✓')} Created: ${color.cyan(relativeConsentManagerClient)}\n  ${color.green('✓')} Updated: ${color.cyan(relativeLayout)}`,
+						type: 'info',
+					};
+				}
+				return {
+					message: `Layout setup complete!\n  ${color.green('✓')} Created: ${color.cyan(relativeConsentManager)}\n  ${color.green('✓')} Updated: ${color.cyan(relativeLayout)}`,
+					type: 'info',
+				};
+			}
 			return {
 				message: `Layout file updated: ${layoutResult.filePath}`,
 				type: 'info',
@@ -255,6 +292,7 @@ export async function generateFiles({
 			proxyNextjs,
 			pkg,
 			spinner,
+			cwd: context.cwd,
 		});
 		result.layoutUpdated = layoutResult.layoutUpdated;
 		result.layoutPath = layoutResult.layoutPath;

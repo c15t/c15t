@@ -58,6 +58,11 @@ if (typeof window === 'undefined') {
 	vi.stubGlobal('window', mockWindow);
 }
 
+// Mock location globally for PostHog and other libraries
+if (typeof location === 'undefined') {
+	vi.stubGlobal('location', mockWindow.location);
+}
+
 if (typeof document === 'undefined') {
 	vi.stubGlobal('document', {
 		createElement: vi.fn(),

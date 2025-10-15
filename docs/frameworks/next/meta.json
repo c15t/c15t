@@ -6,6 +6,8 @@
 		"quickstart",
 		"quickstart-pages",
 		"internationalization",
+		"script-loader",
+		"iframe-blocking",
 		"callbacks",
 		"google-tag-manager",
 		"--- Storing Consent ---",
@@ -16,6 +18,8 @@
 		"components/cookie-banner",
 		"components/consent-manager-dialog",
 		"components/consent-manager-widget",
+		"components/frame",
+		"components/client-side-options",
 		"components/dev-tools",
 		"--- Styling the components ---",
 		"styling/overview",
@@ -29,6 +33,8 @@
 		"./hooks/use-consent-manager/setting-consent",
 		"--- Hooks ---",
 		"hooks/use-translations",
-		"hooks/use-focus-trap"
+		"hooks/use-focus-trap",
+		"--- ---",
+		"headless"
 	]
 }

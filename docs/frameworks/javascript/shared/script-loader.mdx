@@ -1,0 +1,90 @@
+---
+title: Script Loader
+description: Load scripts based on consent. Used to load scripts that are not necessary for the user's consent, such as analytics scripts.
+lastModified: 2025-09-19
+new: true
+availableIn:
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/script-loader'
+    title: 'JavaScript'
+  - framework: 'next'
+    url: '/docs/frameworks/next/script-loader'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/script-loader'
+    title: 'React'
+---
+
+<section id="tracking-blocker">
+  <Callout type="note">
+    When using the Script Loader, the tracking blocker will be disabled automatically (If enabled). This is because the tracking blocker is deprecated and may cause conflicts with the script loader.
+    The current approach of the tracking blocker will only be available in v1.x of c15t, and will be removed in v2.0.
+  </Callout>
+</section>
+
+<section id="overview">
+  ## Overview
+
+  c15t provides the ability to load and unload scripts based on consent. This is useful for loading scripts that are not necessary for the user's consent, such as analytics scripts.
+
+  One common flaw of CMPs is they'll maintain a list of scripts that are blocked and then unblocked based on consent. This is a problem because it's not always accurate and can lead to scripts being missed or incorrectly blocked.
+
+  Our approach gives you, the developer, full control over the scripts that are loaded and unloaded, as no one knows your site better than you do.
+</section>
+
+<section id="prebuilt-scripts">
+  ## Prebuilt Scripts
+
+  A lot of scripts you may need to implement may be common, such as Google Tag Manager (GTM), PostHog, Meta Pixel, etc. To save you time, we have provided a set of prebuilt scripts for you to use.
+
+  These scripts are available in the `@c15t/scripts` package.
+</section>
+
+<section id="scripts-table">
+  ### All Prebuilt Scripts
+
+  | Script | Guide |
+  | --- | --- |
+  | Google Tag Manager | [Guide](/docs/integrations/google-tag-manager) |
+  | Meta Pixel | [Guide](/docs/integrations/meta-pixel) |
+  | PostHog | [Guide](/docs/integrations/posthog) |
+  | TikTok Pixel | [Guide](/docs/integrations/tiktok-pixel) |
+  | LinkedIn Insights | [Guide](/docs/integrations/linkedin-insights) |
+  | Microsoft UET | [Guide](/docs/integrations/microsoft-uet) |
+  | X Pixel | [Guide](/docs/integrations/x-pixel) |
+</section>
+
+<section id="always-load">
+  ## Always Load Scripts
+
+  Some tracking scripts, like Google Tag Manager or PostHog, manage their own consent state internally. For these scripts, you'll want them to load immediately and never be unloaded, regardless of the consent state in c15t.
+
+  The `alwaysLoad` property allows you to bypass consent checks and ensure these scripts are always present on the page.
+
+  ### When to Use Always Load
+
+  Use `alwaysLoad: true` for:
+
+  - **Tag Management Systems** (e.g., Google Tag Manager) that handle consent internally
+  - **Analytics Platforms** (e.g., PostHog) with built-in consent management & cookieless behavior
+  - **Scripts that must initialize early** and configure themselves based on consent
+
+  <Callout type="warning">
+    When using `alwaysLoad`, you are responsible for ensuring the script respects user consent through its own consent management API. The script will load regardless of the user's consent choices in c15t.
+  </Callout>
+
+  ### Behavior
+
+  Scripts with `alwaysLoad: true` have the following characteristics:
+
+  - **Load immediately** when the consent manager initializes, bypassing consent checks
+  - **Never unload** when consent is revoked or changed
+  - **Persist through** `clearAllScripts` calls
+  - **Still trigger callbacks** like `onBeforeLoad`, `onLoad`, and `onConsentChange`
+</section>
+
+<section id="script-type">
+  ### Script
+
+  <AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+</section>

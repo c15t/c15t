@@ -1,4 +1,4 @@
-import type { Logger } from '@doubletie/logger';
+import type { Logger } from '@c15t/logger';
 import { PostHog } from 'posthog-node';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {

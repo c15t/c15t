@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Enhanced ConsentManagerWidget component with compound components attached.
  *
@@ -29,6 +31,8 @@ import { Footer, FooterSubGroup } from './atoms/footer';
 import { Root } from './atoms/root';
 import { ConsentManagerWidget as ConsentManagerWidgetComponent } from './consent-manager-widget';
 import type { ConsentManagerWidgetProps } from './types';
+
+export type { ConsentManagerWidgetProps };
 
 /**
  * This interface extends the base ConsentManagerWidget component with additional sub-components

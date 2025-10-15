@@ -10,6 +10,9 @@ interface SaveConsentsProps {
 	type: 'necessary' | 'all' | 'custom';
 	get: StoreApi<PrivacyConsentState>['getState'];
 	set: StoreApi<PrivacyConsentState>['setState'];
+	/**
+	 * @deprecated This method is deprecated and will be removed in the next major version. Use the new script loader instead.
+	 */
 	trackingBlocker: ReturnType<typeof createTrackingBlocker> | null;
 }
 
@@ -20,13 +23,24 @@ export async function saveConsents({
 	set,
 	trackingBlocker,
 }: SaveConsentsProps) {
-	const { callbacks, selectedConsents, consents, consentTypes } = get();
+	const {
+		callbacks,
+		selectedConsents,
+		consents,
+		consentTypes,
+		updateScripts,
+		updateIframeConsents,
+		gdprTypes,
+	} = get();
 
 	const newConsents = selectedConsents ?? consents ?? {};
 
 	if (type === 'all') {
 		for (const consent of consentTypes) {
-			newConsents[consent.name] = true;
+			// Only include consents that are configured in gdprTypes
+			if (gdprTypes.includes(consent.name)) {
+				newConsents[consent.name] = true;
+			}
 		}
 	} else if (type === 'necessary') {
 		for (const consent of consentTypes) {
@@ -53,7 +67,9 @@ export async function saveConsents({
 
 	// Run after yielding to avoid blocking the click INP
 	trackingBlocker?.updateConsents(newConsents);
+	updateIframeConsents();
 	updateGTMConsent(newConsents);
+	updateScripts();
 
 	try {
 		localStorage.setItem(

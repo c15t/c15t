@@ -1,4 +1,4 @@
-import type { Logger } from '@doubletie/logger';
+import type { Logger } from '@c15t/logger';
 import type { Adapter } from '~/pkgs/db-adapters/types';
 import type { createRegistry } from '~/schema/create-registry';
 import type { DoubleTieOptions } from '../../types/options';

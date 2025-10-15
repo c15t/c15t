@@ -1,0 +1,87 @@
+---
+title: Frame
+description: Conditionally render children based on consent, with a placeholder for when consent is not given.
+lastModified: 2025-10-12
+new: true
+availableIn:
+  - framework: 'next'
+    url: '/docs/frameworks/next/components/frame'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/components/frame'
+    title: 'React'
+---
+
+The Frame component provides an elegant way to conditionally render children based on consent, with a placeholder for when consent is not given. This is designed perfectly for Iframe components like youtube embeds that should only be shown when consent is granted.
+
+## Usage
+
+The frame component provides a pre-built placeholder, however, this can be modified with a more custom placeholder to suit your needs.
+
+<Tabs groupId="Version" items={["Recommended", "Expanded"]}>
+  <Tab value="Recommended">
+    ```tsx
+    export default function App() {
+      return (
+        <>
+          <Frame category="marketing" style={{ width: '500px', height: '500px' }}>
+            <iframe
+              title="Cool Duck Video"
+              src="https://www.youtube.com/embed/mQJ6q1ZCzsg"
+              width="100%"
+              height="100%"
+            />
+          </Frame>
+        </>
+      );
+    };
+
+    ```
+  </Tab>
+
+  <Tab value="expanded">
+    ```tsx
+
+    const CustomFrame = () => {
+    	return (
+       	<Frame.Root>
+          <Frame.Title> hello </Frame.Title>
+          <Frame.Button category="marketing"> world </Frame.Button>{' '}
+        </Frame.Root>
+    	);
+    };
+
+
+    export default function App() {
+      return (
+       	<Frame
+    				category="marketing"
+          style={{ width: '500px', height: '500px' }}
+    				placeholder={
+    					<CustomFrame />
+    				}
+    			>
+    				<iframe
+    					title="Cool Duck Video"
+    					src="https://www.youtube.com/embed/mQJ6q1ZCzsg"
+    					width="100%"
+    					height="100%"
+    				/>
+    			</Frame>
+      );
+    };
+    ```
+  </Tab>
+</Tabs>
+
+## API Reference
+
+### Frame
+
+The main component accepts these props:
+
+<AutoTypeTable path="./packages/react/src/components/frame/types.ts" name="FrameProps" />
+
+### Compound Components
+
+<AutoTypeTable path="./packages/react/src/components/frame/types.ts" name="FrameCompoundComponent" />

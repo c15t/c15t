@@ -1,4 +1,4 @@
-import { logger } from '@doubletie/logger';
+import { logger } from '@c15t/logger';
 import { ZodError } from 'zod';
 import type { Field, PluginSchema } from '~/pkgs/data-model';
 import type { C15TOptions } from '~/types';

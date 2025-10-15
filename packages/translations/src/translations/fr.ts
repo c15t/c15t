@@ -44,4 +44,8 @@ export const frTranslations: CompleteTranslations = {
 				'Ces cookies nous permettent de fournir une meilleure expérience utilisateur et de tester de nouvelles fonctionnalités.',
 		},
 	},
+	frame: {
+		title: 'Acceptez {category} pour afficher ce contenu.',
+		actionButton: 'Activer le consentement {category}',
+	},
 };

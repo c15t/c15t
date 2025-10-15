@@ -1,0 +1,36 @@
+---
+title: Integrations
+description: How to integrate your tools with c15t.
+lastModified: 2025-10-02
+new: true
+---
+
+## Overview
+
+Many of your tools may require consent to be given before they can be used. This is especially true for analytics and marketing tools.
+
+c15t has various ways to integrate with your tools, depending on the tool you are using.
+
+## Script Loader
+
+Many marketing and analytics tools are commonly loaded using a script tag, such as Google Tag Manager (GTM), Google Tag (gtag.js), Meta Pixel and TikTok Pixel.
+
+c15t's script loader allows you to easily integrate your tools that require consent with c15t, to make this even easier we have provided a set of prebuilt scripts for you to use.
+
+- [JavaScript](/docs/frameworks/javascript/script-loader)
+- [React](/docs/frameworks/react/script-loader)
+- [Next.js](/docs/frameworks/next/script-loader)
+
+## has() method
+
+The `has()` method allows you to check if the user has given consent for a specific purpose. You can learn more about the `has()` method [here](/docs/frameworks/javascript/store/checking-consent).
+
+```ts
+
+
+const hasAnalytics = has('measurement');
+
+if (hasAnalytics) {
+  myAnalyticsLibrary.track('checkout_completed');
+}
+```

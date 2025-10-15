@@ -17,13 +17,6 @@ export const STORAGE_KEY = 'privacy-consent-storage';
  * This configuration establishes the baseline state for the consent manager,
  * including default consent values, compliance settings, and privacy preferences.
  *
- * Notable defaults include:
- * - All consents start with their type-specific default values
- * - GDPR compliance is globally enabled
- * - CCPA compliance is enabled for US users only
- * - Do Not Track is respected by default
- * - Only necessary and marketing consents are included in gdprTypes
- *
  * @example
  * Using the initial state:
  * ```typescript
@@ -47,6 +40,17 @@ export const initialState: Omit<
 	| 'getEffectiveConsents'
 	| 'hasConsentFor'
 	| 'setSelectedConsent'
+	| 'updateScripts'
+	| 'isScriptLoaded'
+	| 'getLoadedScriptIds'
+	| 'addScript'
+	| 'addScripts'
+	| 'removeScript'
+	| 'setScripts'
+	| 'initializeIframeBlocker'
+	| 'updateIframeConsents'
+	| 'destroyIframeBlocker'
+	| 'updateConsentCategories'
 > = {
 	config: {
 		pkg: 'c15t',
@@ -132,6 +136,11 @@ export const initialState: Omit<
 	/** Use predefined consent types */
 	consentTypes: consentTypes,
 
+	/** Default iframe blocker configuration */
+	iframeBlockerConfig: {
+		disableAutomaticBlocking: false,
+	},
+
 	/** Default to not ignoring geo location */
 	ignoreGeoLocation: false,
 
@@ -180,4 +189,13 @@ export const initialState: Omit<
 	setTranslationConfig: () => {
 		/* no-op */
 	},
+
+	/** Initial empty scripts array */
+	scripts: [],
+
+	/** Initial empty loadedScripts record */
+	loadedScripts: {},
+
+	/** Initial empty scriptIdMap record */
+	scriptIdMap: {},
 };

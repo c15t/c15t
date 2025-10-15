@@ -234,3 +234,39 @@ export function has<CategoryType extends AllConsentNames>(
 ): boolean {
 	return evaluateConditionRecursive(condition, consents);
 }
+
+/**
+ * Extracts all consent category names from a {@link HasCondition}.
+ *
+ * @typeParam CategoryType - The type of consent categories
+ * @param condition - The condition to extract categories from
+ * @returns An array of unique consent category names
+ * @public
+ */
+export function extractConsentNamesFromCondition<
+	CategoryType extends AllConsentNames,
+>(condition: HasCondition<CategoryType>): CategoryType[] {
+	const categories = new Set<CategoryType>();
+
+	function recurse(cond: HasCondition<CategoryType>) {
+		if (typeof cond === 'string') {
+			categories.add(cond);
+			return;
+		}
+
+		if (typeof cond === 'object' && cond !== null) {
+			if ('and' in cond) {
+				const conditions = Array.isArray(cond.and) ? cond.and : [cond.and];
+				conditions.forEach(recurse);
+			} else if ('or' in cond) {
+				const conditions = Array.isArray(cond.or) ? cond.or : [cond.or];
+				conditions.forEach(recurse);
+			} else if ('not' in cond) {
+				recurse(cond.not);
+			}
+		}
+	}
+
+	recurse(condition);
+	return Array.from(categories);
+}

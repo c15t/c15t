@@ -5,6 +5,8 @@
 
 import type { ContractsOutputs } from '@c15t/backend/contracts';
 import type { HasCondition } from './libs/has';
+import type { IframeBlockerConfig } from './libs/iframe-blocker';
+import type { Script } from './libs/script-loader';
 import type {
 	AllConsentNames,
 	Callbacks,
@@ -111,6 +113,9 @@ export interface PrivacyConsentState {
 
 	/** Available consent type configurations */
 	consentTypes: ConsentType[];
+
+	/** Configuration for the iframe blocker */
+	iframeBlockerConfig: IframeBlockerConfig;
 
 	/*
 	 * Updates the selected consent state for a specific consent type.
@@ -243,4 +248,62 @@ export interface PrivacyConsentState {
 		region: ComplianceRegion,
 		settings: Partial<ComplianceSettings>
 	) => void;
+
+	/**
+	 * Script management section
+	 */
+
+	/** Array of script configurations to manage */
+	scripts: Script[];
+
+	/** Map of currently loaded script IDs to a boolean loaded-state */
+	loadedScripts: Record<string, boolean>;
+
+	/** Map of anonymized script IDs to their original IDs */
+	scriptIdMap: Record<string, string>;
+
+	/**
+	 * Sets multiple script configurations to the store.
+	 * @param scripts - Array of script configurations to add
+	 */
+	setScripts: (scripts: Script[]) => void;
+
+	/**
+	 * Removes a script configuration from the store.
+	 * @param scriptId - ID of the script to remove
+	 */
+	removeScript: (scriptId: string) => void;
+
+	/**
+	 * Updates scripts based on current consent state.
+	 * Loads scripts that have consent and aren't loaded yet.
+	 * Unloads scripts that no longer have consent.
+	 * @returns Object containing arrays of loaded and unloaded script IDs
+	 */
+	updateScripts: () => { loaded: string[]; unloaded: string[] };
+
+	/**
+	 * Checks if a script is currently loaded.
+	 * @param scriptId - ID of the script to check
+	 * @returns True if the script is loaded, false otherwise
+	 */
+	isScriptLoaded: (scriptId: string) => boolean;
+
+	/**
+	 * Gets all currently loaded script IDs.
+	 * @returns Array of loaded script IDs
+	 */
+	getLoadedScriptIds: () => string[];
+
+	/** Initializes the iframe blocker instance. */
+	initializeIframeBlocker: () => void;
+
+	/** Updates consents for the iframe blocker. */
+	updateIframeConsents: () => void;
+
+	/** Destroys the iframe blocker instance. */
+	destroyIframeBlocker: () => void;
+
+	/** Updates the active GDPR consent types. */
+	updateConsentCategories: (newCategories: AllConsentNames[]) => void;
 }

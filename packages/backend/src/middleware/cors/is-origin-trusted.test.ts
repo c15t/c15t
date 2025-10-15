@@ -100,5 +100,65 @@ describe('CORS utilities', () => {
 				false
 			);
 		});
+
+		describe('multiple subdomain levels', () => {
+			it('should match base domain when explicitly listed', () => {
+				const trustedDomains = ['my-site.com'];
+				expect(isOriginTrusted('https://my-site.com', trustedDomains)).toBe(
+					true
+				);
+			});
+
+			it('should match single-level subdomain with wildcard pattern', () => {
+				const trustedDomains = ['*.my-site.com'];
+				expect(
+					isOriginTrusted('https://foobar.my-site.com', trustedDomains)
+				).toBe(true);
+			});
+
+			it('should match multi-level subdomain with wildcard pattern', () => {
+				const trustedDomains = ['*.my-site.com'];
+				expect(
+					isOriginTrusted('https://foo.bar.my-site.com', trustedDomains)
+				).toBe(true);
+			});
+
+			it('should match three-level subdomain with wildcard pattern', () => {
+				const trustedDomains = ['*.my-site.com'];
+				expect(
+					isOriginTrusted('https://a.b.c.my-site.com', trustedDomains)
+				).toBe(true);
+			});
+
+			it('should not match base domain with wildcard pattern', () => {
+				const trustedDomains = ['*.my-site.com'];
+				expect(isOriginTrusted('https://my-site.com', trustedDomains)).toBe(
+					false
+				);
+			});
+
+			it('should not match similar domain that is not a subdomain', () => {
+				const trustedDomains = ['*.my-site.com'];
+				expect(isOriginTrusted('https://notmy-site.com', trustedDomains)).toBe(
+					false
+				);
+				expect(
+					isOriginTrusted('https://foobar-my-site.com', trustedDomains)
+				).toBe(false);
+			});
+
+			it('should match both base domain and subdomains when both are configured', () => {
+				const trustedDomains = ['my-site.com', '*.my-site.com'];
+				expect(isOriginTrusted('https://my-site.com', trustedDomains)).toBe(
+					true
+				);
+				expect(
+					isOriginTrusted('https://foobar.my-site.com', trustedDomains)
+				).toBe(true);
+				expect(
+					isOriginTrusted('https://foo.bar.my-site.com', trustedDomains)
+				).toBe(true);
+			});
+		});
 	});
 });
