@@ -66,9 +66,8 @@
 		"@types/express": "^5.0.1",
 		"@types/node": "20.14.13",
 		"@types/pg": "8.11.6",
-		"kysely-pglite": "^0.6.1",
 		"msw": "^2.7.6",
 		"typescript": "^5.8.3",
-		"vitest": "^3.1.1"
+		"vitest": "^3.2.4"
 	}
 }

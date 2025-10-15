@@ -37,7 +37,6 @@
 		"@clack/prompts": "^0.10.1",
 		"@mrleebo/prisma-ast": "^0.12.1",
 		"@types/better-sqlite3": "^7.6.13",
-		"better-sqlite3": "^11.9.1",
 		"c12": "^3.0.3",
 		"dotenv": "^16.5.0",
 		"figlet": "^1.8.1",
@@ -55,7 +54,7 @@
 		"@c15t/vitest-config": "workspace:*",
 		"@types/figlet": "^1.7.0",
 		"@types/fs-extra": "^11.0.4",
-		"vitest": "^3.1.1"
+		"vitest": "^3.2.4"
 	},
 	"publishConfig": {
 		"access": "public",
