@@ -1,5 +1,18 @@
 # @c15t/cli
 
+## 1.7.0
+
+### Minor Changes
+
+- aa16d03: You can find the full changelog at https://c15t.com/changelog/2025-10-11-v1.7.0
+
+### Patch Changes
+
+- Updated dependencies [aa16d03]
+  - @c15t/logger@1.0.0
+  - @c15t/react@1.7.0
+  - @c15t/backend@1.7.0
+
 ## 1.7.0-canary-20251014174050
 
 ### Patch Changes
