@@ -24,13 +24,10 @@ type ForwardedHeader =
 	| 'x-c15t-country'
 	| 'x-c15t-region';
 
-export function extractRelevantHeaders(
-	headersList: Headers
-): Record<ForwardedHeader, string> {
-	const relevantHeaders: Record<ForwardedHeader, string> = {} as Record<
-		ForwardedHeader,
-		string
-	>;
+type RelevantHeaders = Partial<Record<ForwardedHeader, string>>;
+
+export function extractRelevantHeaders(headersList: Headers): RelevantHeaders {
+	const relevantHeaders: RelevantHeaders = {};
 
 	// Extract all relevant headers
 	for (const headerName of FORWARDED_HEADERS) {
