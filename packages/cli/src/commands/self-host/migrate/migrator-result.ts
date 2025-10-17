@@ -1,3 +1,5 @@
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import type { MigrationResult } from '@c15t/backend/v2/db/migrator';
 import * as p from '@clack/prompts';
 import type { CliContext } from '~/context/types';
@@ -12,21 +14,26 @@ export async function handleMigrationResult(
 		success: true,
 	});
 
-	const viewSQL = await p.confirm({
-		message: 'View SQL for this migration?',
+	const saveSQL = await p.confirm({
+		message: 'Save SQL to file?',
 		initialValue: true,
 	});
 
-	if (p.isCancel(viewSQL)) {
+	if (p.isCancel(saveSQL)) {
 		telemetry.trackEvent(TelemetryEventName.MIGRATION_FAILED, {
 			viewSQL: false,
 		});
 		return;
 	}
 
-	if (viewSQL) {
+	if (saveSQL) {
 		const sql = result.getSQL?.() ?? '';
-		logger.info(sql);
+		const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+		const filename = `migration-${timestamp}.sql`;
+		const filepath = join(process.cwd(), filename);
+
+		await writeFile(filepath, sql, 'utf-8');
+		logger.success(`SQL saved to: ${filename}`);
 	}
 
 	const execute = await p.confirm({
