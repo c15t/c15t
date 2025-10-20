@@ -222,6 +222,11 @@ export function getIframeConsentCategories(): AllConsentNames[] {
 	const iframes = document.querySelectorAll('iframe[data-category]');
 	const categories = new Set<AllConsentNames>();
 
+	// Guard against null/undefined querySelectorAll result
+	if (!iframes) {
+		return [];
+	}
+
 	iframes.forEach((iframe) => {
 		const categoryAttr = iframe.getAttribute('data-category');
 
@@ -263,6 +268,11 @@ export function processAllIframes(consents: ConsentState): void {
 	}
 
 	const iframes = document.querySelectorAll('iframe');
+
+	// Guard against null/undefined querySelectorAll result
+	if (!iframes) {
+		return;
+	}
 
 	iframes.forEach((iframe) => {
 		processIframeElement(iframe, consents);
