@@ -54,8 +54,7 @@
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"@types/figlet": "^1.7.0",
-		"@types/fs-extra": "^11.0.4",
-		"vitest": "^3.1.1"
+		"@types/fs-extra": "^11.0.4"
 	},
 	"publishConfig": {
 		"access": "public",
