@@ -66,18 +66,17 @@ export async function getSharedFrontendOptions({
 		proxyNextjs = proxyNextjsSelection as boolean;
 	}
 
-	context.logger.info(
-		'@c15t/scripts has various prebuilt scripts for you to use. Learn more: https://c15t.com/docs/integrations'
-	);
-
 	const addScriptsSelection = await getScriptsToAdd({ context, handleCancel });
+
+	const dependenciesToAdd: string[] = [context.framework.pkg];
+
+	if (addScriptsSelection) {
+		dependenciesToAdd.push('@c15t/scripts');
+	}
 
 	return {
 		proxyNextjs,
 		useEnvFile,
-		dependenciesToAdd: [
-			context.framework.pkg,
-			...(addScriptsSelection ? ['@c15t/scripts'] : []),
-		],
+		dependenciesToAdd,
 	};
 }

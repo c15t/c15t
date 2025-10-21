@@ -22,7 +22,7 @@ export async function getScriptsToAdd({
 	if (handleCancel?.(addScriptsSelection)) {
 		context.error.handleCancel('Setup cancelled.', {
 			command: 'onboarding',
-			stage: 'self_hosted_proxy_nextjs_setup',
+			stage: 'scripts_addition',
 		});
 	}
 

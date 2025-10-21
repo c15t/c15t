@@ -40,12 +40,14 @@ export async function setupOfflineMode({
 		spinner,
 	});
 
+	const dependenciesToAdd: string[] = [context.framework.pkg];
+	if (addScriptsSelection) {
+		dependenciesToAdd.push('@c15t/scripts');
+	}
+
 	const { ranInstall, installDepsConfirmed } = await installDependencies({
 		context,
-		dependenciesToAdd: [
-			context.framework.pkg,
-			...(addScriptsSelection ? ['@c15t/scripts'] : []),
-		],
+		dependenciesToAdd,
 	});
 
 	return {

@@ -3,11 +3,9 @@ import { once } from 'node:events';
 import path from 'node:path';
 import * as p from '@clack/prompts';
 import color from 'picocolors';
+import type { PackageManager } from '~/context/package-manager-detection';
 import type { CliContext } from '~/context/types';
 import { TelemetryEventName } from '~/utils/telemetry';
-
-// Define PackageManager type here since the import isn't working
-export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
 
 /**
  * Installs dependencies using the detected package manager

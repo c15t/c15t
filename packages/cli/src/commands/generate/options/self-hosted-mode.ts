@@ -32,16 +32,14 @@ export async function setupSelfHostedMode({
 }: SelfHostModeOptions): Promise<SelfHostModeResult> {
 	const dependenciesToAdd = new Set([context.framework.pkg, '@c15t/backend']);
 	const targetPath = path.join(context.cwd, 'c15t-backend.config.ts');
+
 	let createBackendConfig = false;
-
 	if (!(await pathExists(targetPath))) {
-		if (createBackendConfig) {
-			const config = await ensureBackendConfig(context);
-			createBackendConfig = true;
+		const config = await ensureBackendConfig(context);
+		createBackendConfig = true;
 
-			for (const dep of config?.dependencies ?? []) {
-				dependenciesToAdd.add(dep);
-			}
+		for (const dep of config?.dependencies ?? []) {
+			dependenciesToAdd.add(dep);
 		}
 	}
 

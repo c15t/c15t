@@ -217,9 +217,12 @@ async function createConsentManagerComponent(
 	// Determine the components directory path based on pages directory location
 	// If pages is at 'src/pages', components should be at 'src/components'
 	// If pages is at 'pages', components should be at 'components'
-	const componentsDir = pagesDir.includes('src')
-		? path.join('src', 'components')
-		: 'components';
+	let componentsDir: string;
+	if (pagesDir.includes('src')) {
+		componentsDir = path.join('src', 'components');
+	} else {
+		componentsDir = 'components';
+	}
 
 	const componentsDirPath = path.join(projectRoot, componentsDir);
 
