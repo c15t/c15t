@@ -4,7 +4,7 @@ import {
 	type ConsentManagerProviderProps,
 	useConsentManager,
 } from '@c15t/react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export type ClientSideOptionsProviderProps = {
 	children: React.ReactNode;
@@ -20,6 +20,12 @@ export type ClientSideOptionsProviderProps = {
  * @param children - The children to render.
  * @param callbacks - The callbacks to set.
  * @param scripts - The scripts to load.
+ *
+ * @remarks
+ * This component performs one-time initialization on mount. Callbacks and scripts are captured
+ * once when the component first mounts and are not updated on subsequent prop changes. This
+ * ensures stable behavior and prevents inconsistent state in the consent manager.
+ * You can pass inline objects without needing to wrap them in useMemo.
  */
 export function ClientSideOptionsProvider({
 	children,
@@ -28,23 +34,36 @@ export function ClientSideOptionsProvider({
 }: ClientSideOptionsProviderProps) {
 	const { setCallback, setScripts } = useConsentManager();
 
+	// Capture initial values of callbacks and scripts for one-time initialization
+	const callbacksRef = useRef(callbacks);
+	const scriptsRef = useRef(scripts);
+
+	// Track if we've initialized to only set once
+	const initializedRef = useRef({ callbacks: false, scripts: false });
+
+	// Set callbacks only once on mount
 	useEffect(() => {
-		if (!callbacks) {
+		if (initializedRef.current.callbacks || !callbacksRef.current) {
 			return;
 		}
 
-		for (const [key, value] of Object.entries(callbacks)) {
-			setCallback(key as keyof typeof callbacks, value);
+		for (const [key, value] of Object.entries(callbacksRef.current)) {
+			const callbackKey = key as keyof typeof callbacksRef.current;
+			setCallback(callbackKey, value);
 		}
-	}, [callbacks, setCallback]);
 
+		initializedRef.current.callbacks = true;
+	}, [setCallback]); // setCallback is stable from the store
+
+	// Set scripts only once on mount
 	useEffect(() => {
-		if (!scripts) {
+		if (initializedRef.current.scripts || !scriptsRef.current) {
 			return;
 		}
 
-		setScripts(scripts);
-	}, [scripts, setScripts]);
+		setScripts(scriptsRef.current);
+		initializedRef.current.scripts = true;
+	}, [setScripts]); // setScripts is stable from the store
 
 	return children;
 }
