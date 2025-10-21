@@ -21,7 +21,7 @@ export async function handleMigrationResult(
 
 	if (p.isCancel(saveSQL)) {
 		telemetry.trackEvent(TelemetryEventName.MIGRATION_FAILED, {
-			viewSQL: false,
+			saveSql: false,
 		});
 		return;
 	}

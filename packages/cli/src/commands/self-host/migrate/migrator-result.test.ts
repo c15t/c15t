@@ -61,7 +61,7 @@ describe('handleMigrationResult', () => {
 		);
 		expect(context.telemetry.trackEvent).toHaveBeenCalledWith(
 			TelemetryEventName.MIGRATION_FAILED,
-			{ viewSQL: false }
+			{ saveSql: false }
 		);
 		expect(result.execute).not.toHaveBeenCalled();
 	});
