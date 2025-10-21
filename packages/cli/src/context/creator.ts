@@ -30,7 +30,7 @@ export async function createCliContext(
 		commands
 	);
 
-	let desiredLogLevel: LogLevel = 'debug';
+	let desiredLogLevel: LogLevel = 'info';
 	const levelArg = parsedFlags.logger;
 
 	if (typeof levelArg === 'string') {

@@ -152,11 +152,12 @@ export async function setupC15tMode({
 		handleCancel
 	);
 
-	const { useEnvFile, proxyNextjs } = await getSharedFrontendOptions({
-		backendURL: backendURL as string,
-		context,
-		handleCancel,
-	});
+	const { useEnvFile, proxyNextjs, dependenciesToAdd } =
+		await getSharedFrontendOptions({
+			backendURL: backendURL as string,
+			context,
+			handleCancel,
+		});
 
 	await generateFiles({
 		context,
@@ -169,7 +170,7 @@ export async function setupC15tMode({
 
 	const { ranInstall, installDepsConfirmed } = await installDependencies({
 		context,
-		dependenciesToAdd: [context.framework.pkg],
+		dependenciesToAdd,
 		handleCancel,
 	});
 
