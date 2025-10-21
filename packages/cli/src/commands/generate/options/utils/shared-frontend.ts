@@ -1,5 +1,6 @@
 import * as p from '@clack/prompts';
 import type { CliContext } from '~/context/types';
+import { getScriptsToAdd } from '../shared/scripts';
 
 interface SharedFrontendOptions {
 	backendURL: string | undefined;
@@ -10,6 +11,7 @@ interface SharedFrontendOptions {
 interface SharedFrontendResult {
 	proxyNextjs?: boolean;
 	useEnvFile?: boolean;
+	dependenciesToAdd: string[];
 }
 
 export async function getSharedFrontendOptions({
@@ -24,6 +26,7 @@ export async function getSharedFrontendOptions({
 		return {
 			proxyNextjs: undefined,
 			useEnvFile: undefined,
+			dependenciesToAdd: [],
 		};
 	}
 
@@ -63,8 +66,18 @@ export async function getSharedFrontendOptions({
 		proxyNextjs = proxyNextjsSelection as boolean;
 	}
 
+	context.logger.info(
+		'@c15t/scripts has various prebuilt scripts for you to use. Learn more: https://c15t.com/docs/integrations'
+	);
+
+	const addScriptsSelection = await getScriptsToAdd({ context, handleCancel });
+
 	return {
 		proxyNextjs,
 		useEnvFile,
+		dependenciesToAdd: [
+			context.framework.pkg,
+			...(addScriptsSelection ? ['@c15t/scripts'] : []),
+		],
 	};
 }
