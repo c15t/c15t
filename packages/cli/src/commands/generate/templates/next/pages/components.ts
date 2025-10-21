@@ -53,7 +53,7 @@ import {
  * @example
  * \`\`\`tsx
  * // In your pages/_app.tsx
- * import { ConsentManager } from './consent-manager';
+ * import { ConsentManager } from '../components/consent-manager';
  *
  * export default function MyApp({ Component, pageProps }) {
  *   return (
