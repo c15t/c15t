@@ -22,8 +22,10 @@ export type ClientSideOptionsProviderProps = {
  * @param scripts - The scripts to load.
  *
  * @remarks
- * This component automatically handles memoization of callbacks and scripts to prevent
- * infinite rerender loops. You can pass inline objects without needing to wrap them in useMemo.
+ * This component performs one-time initialization on mount. Callbacks and scripts are captured
+ * once when the component first mounts and are not updated on subsequent prop changes. This
+ * ensures stable behavior and prevents inconsistent state in the consent manager.
+ * You can pass inline objects without needing to wrap them in useMemo.
  */
 export function ClientSideOptionsProvider({
 	children,
@@ -32,13 +34,9 @@ export function ClientSideOptionsProvider({
 }: ClientSideOptionsProviderProps) {
 	const { setCallback, setScripts } = useConsentManager();
 
-	// Use refs to store the callbacks and scripts to avoid triggering effects on every render
+	// Capture initial values of callbacks and scripts for one-time initialization
 	const callbacksRef = useRef(callbacks);
 	const scriptsRef = useRef(scripts);
-
-	// Update refs when props change
-	callbacksRef.current = callbacks;
-	scriptsRef.current = scripts;
 
 	// Track if we've initialized to only set once
 	const initializedRef = useRef({ callbacks: false, scripts: false });
