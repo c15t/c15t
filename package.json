@@ -36,9 +36,6 @@
 		"version:prerelease:exit": "changeset pre exit",
 		"view-report": "turbo run view-report"
 	},
-	"resolutions": {
-		"@libsql/kysely-libsql": "^0.4.1"
-	},
 	"devDependencies": {
 		"@biomejs/biome": "2.2.0",
 		"@changesets/changelog-github": "^0.5.1",
@@ -55,7 +52,7 @@
 		"changeset-conventional-commits": "^0.2.5",
 		"knip": "^5.50.4",
 		"lefthook": "^1.11.10",
-		"playwright": "^1.51.1",
+		"playwright": "^1.56.1",
 		"react": "19.2.0",
 		"react-dom": "19.2.0",
 		"remark-cli": "^12.0.1",
@@ -75,19 +72,7 @@
 	},
 	"pnpm": {
 		"overrides": {
-			"@libsql/kysely-libsql": "^0.4.1",
-			"@types/react": "19.2.0",
-			"@types/react-dom": "19.2.0",
-			"axios@<=1.12.0": "1.12.0",
-			"brace-expansion@<=2.0.2": "2.0.2",
-			"copy-anything@<=4.0.4": "4.0.4",
-			"cross-spawn": ">=6.0.6",
-			"form-data@<=4.0.4": "4.0.4",
-			"happy-dom@<20.0.2": "20.0.2",
-			"jake@<=10.9.4": "10.9.4",
-			"next@<=15.4.7": "15.4.7",
-			"undici": ">=6.21.2",
-			"undici@<=6.15.0": "6.15.0"
+			"cross-spawn": ">=6.0.6"
 		}
 	}
 }
