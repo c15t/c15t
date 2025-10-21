@@ -5,3 +5,4 @@
 feat(cli): add bun support
 feat(cli): add install @c15t/scripts prompt
 fix(cli): default log level to info
+fix(cli): create consent manager component in components directory (pages)

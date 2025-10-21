@@ -190,7 +190,7 @@ function wrapPagesJsxContent(originalJsx: string): string {
 }
 
 /**
- * Creates the consent-manager component file in the pages directory
+ * Creates the consent-manager component file in a components directory
  *
  * @param projectRoot - Root directory of the project
  * @param pagesDir - Pages directory path (either 'pages' or 'src/pages')
@@ -200,8 +200,11 @@ function wrapPagesJsxContent(originalJsx: string): string {
  * @throws {Error} When file cannot be created
  *
  * @remarks
+ * Creates the component in a sibling `components` directory to avoid creating
+ * an unintended route (files in `pages/` automatically become routes in Next.js).
+ *
  * Creates one file:
- * - consent-manager.tsx - Component with provider, UI, scripts, and callbacks
+ * - components/consent-manager.tsx - Component with provider, UI, scripts, and callbacks
  *
  * Unlike App Directory, Pages Directory doesn't need a separate client component
  * because it doesn't use the 'use client' directive pattern.
@@ -211,13 +214,26 @@ async function createConsentManagerComponent(
 	pagesDir: string,
 	optionsText: string
 ): Promise<ComponentFilePaths> {
-	const pagesDirPath = path.join(projectRoot, pagesDir);
+	// Determine the components directory path based on pages directory location
+	// If pages is at 'src/pages', components should be at 'src/components'
+	// If pages is at 'pages', components should be at 'components'
+	const componentsDir = pagesDir.includes('src')
+		? path.join('src', 'components')
+		: 'components';
+
+	const componentsDirPath = path.join(projectRoot, componentsDir);
+
+	// Ensure components directory exists
+	await fs.mkdir(componentsDirPath, { recursive: true });
 
 	// Generate component file content
 	const consentManagerContent = generateConsentManagerTemplate(optionsText);
 
-	// Define file path
-	const consentManagerPath = path.join(pagesDirPath, 'consent-manager.tsx');
+	// Define file path in components directory
+	const consentManagerPath = path.join(
+		componentsDirPath,
+		'consent-manager.tsx'
+	);
 
 	// Write file
 	await fs.writeFile(consentManagerPath, consentManagerContent, 'utf-8');
@@ -343,11 +359,16 @@ export async function updatePagesLayout({
 
 	// Check if ConsentManager is already imported
 	const existingImports = appFile.getImportDeclarations();
-	const hasConsentManagerImport = existingImports.some(
-		(importDecl) =>
-			importDecl.getModuleSpecifierValue() === './consent-manager' ||
-			importDecl.getModuleSpecifierValue() === './consent-manager.tsx'
-	);
+	const hasConsentManagerImport = existingImports.some((importDecl) => {
+		const specifier = importDecl.getModuleSpecifierValue();
+		// Check for any import ending with 'consent-manager' (handles various paths)
+		return (
+			specifier.endsWith('/consent-manager') ||
+			specifier.endsWith('/consent-manager.tsx') ||
+			specifier === './consent-manager' ||
+			specifier === './consent-manager.tsx'
+		);
+	});
 
 	if (hasConsentManagerImport) {
 		return {
