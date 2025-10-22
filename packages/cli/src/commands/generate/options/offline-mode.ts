@@ -1,5 +1,6 @@
 import type * as p from '@clack/prompts';
 import type { CliContext } from '../../../context/types';
+import { getScriptsToAdd } from './shared/scripts';
 import type { BaseOptions, BaseResult } from './types';
 import { installDependencies } from './utils/dependencies';
 import { generateFiles } from './utils/generate-files';
@@ -14,6 +15,7 @@ export interface OfflineModeResult extends BaseResult {
 interface OfflineModeOptions extends BaseOptions {
 	context: CliContext;
 	spinner: ReturnType<typeof p.spinner>;
+	handleCancel?: (value: unknown) => boolean;
 }
 
 /**
@@ -28,16 +30,24 @@ interface OfflineModeOptions extends BaseOptions {
 export async function setupOfflineMode({
 	context,
 	spinner,
+	handleCancel,
 }: OfflineModeOptions): Promise<OfflineModeResult> {
+	const addScriptsSelection = await getScriptsToAdd({ context, handleCancel });
+
 	const result = await generateFiles({
 		context,
 		mode: 'offline',
 		spinner,
 	});
 
+	const dependenciesToAdd: string[] = [context.framework.pkg];
+	if (addScriptsSelection) {
+		dependenciesToAdd.push('@c15t/scripts');
+	}
+
 	const { ranInstall, installDepsConfirmed } = await installDependencies({
 		context,
-		dependenciesToAdd: [context.framework.pkg],
+		dependenciesToAdd,
 	});
 
 	return {

@@ -28,6 +28,9 @@
 	/* Shadow */
 	--frame-placeholder-shadow: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
 	--frame-placeholder-shadow-dark: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
+
+	--frame-placeholder-opacity: 0;
+	--frame-placeholder-animation: fadeIn 0.15s ease-in forwards;
 }
 
 .placeholder {
@@ -43,10 +46,17 @@
 	border-width: var(--frame-placeholder-border-width);
 	border-color: var(--frame-placeholder-border-color);
 	background-color: var(--frame-placeholder-background-color);
-	opacity: 1;
+	opacity: var(--frame-placeholder-opacity);
 	transform: scale(1);
 	pointer-events: auto;
 	gap: var(--frame-placeholder-gap);
+	animation: var(--frame-placeholder-animation);
+}
+
+@keyframes fadeIn {
+	to {
+		opacity: 1;
+	}
 }
 
 :global(.c15t-dark) .placeholder {

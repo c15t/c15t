@@ -198,7 +198,7 @@
 		"@orpc/zod": "1.8.1",
 		"base-x": "^5.0.1",
 		"defu": "^6.1.4",
-		"drizzle-orm": "^0.41.0",
+		"drizzle-orm": "^0.44.6",
 		"fumadb": "^0.1.1",
 		"kysely": "^0.27.6",
 		"neverthrow": "^8.2.0",
@@ -217,8 +217,7 @@
 		"genversion": "^3.2.0",
 		"kysely-pglite": "^0.6.1",
 		"msw": "^2.7.6",
-		"typescript": "^5.8.3",
-		"vitest": "^3.1.1"
+		"typescript": "^5.8.3"
 	},
 	"publishConfig": {
 		"access": "public"
