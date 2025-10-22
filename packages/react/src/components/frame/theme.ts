@@ -38,4 +38,7 @@ type PlaceholderCSSVariables = {
 	/** Shadow effects */
 	'--frame-placeholder-shadow': string;
 	'--frame-placeholder-shadow-dark': string;
+
+	'--frame-placeholder-opacity': string;
+	'--frame-placeholder-animation': string;
 };
