@@ -12,9 +12,9 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 		{ children, category, placeholder, noStyle, className, theme, ...props },
 		ref
 	) => {
-		const { has, hasFetchedBanner, updateConsentCategories, gdprTypes } =
-			useConsentManager();
+		const { has, updateConsentCategories, gdprTypes } = useConsentManager();
 		const [isMounted, setIsMounted] = useState(false);
+		const [isReady, setIsReady] = useState(false);
 
 		const hasConsent = has(category);
 
@@ -24,16 +24,27 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 			updateConsentCategories([...gdprTypes, category]);
 		}, [category]);
 
+		// Wait for next frame to ensure styles are loaded
+		useEffect(() => {
+			if (isMounted) {
+				requestAnimationFrame(() => {
+					setIsReady(true);
+				});
+			}
+		}, [isMounted]);
+
 		const renderContent = () => {
-			// Avoids a flash of the placeholder
-			if (!isMounted && hasFetchedBanner) {
-				return placeholder || null;
+			// Before ready, show nothing to prevent FOUC
+			if (!isMounted || !isReady) {
+				return null;
 			}
 
+			// After ready, show children if consent is granted
 			if (hasConsent) {
 				return children;
 			}
 
+			// Otherwise show placeholder
 			return placeholder || <DefaultPlaceholder category={category} />;
 		};
 
