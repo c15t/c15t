@@ -1,5 +1,13 @@
 # @c15t/react
 
+## 1.7.1
+
+### Patch Changes
+
+- bacbf14: fix(react): frame component hydration error
+- Updated dependencies [bacbf14]
+  - c15t@1.7.1
+
 ## 1.7.0
 
 ### Minor Changes

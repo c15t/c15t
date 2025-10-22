@@ -1,5 +1,15 @@
 # @c15t/nextjs
 
+## 1.7.1
+
+### Patch Changes
+
+- bacbf14: fix(nextjs): missing certain headers on non-rewrite requests
+- bacbf14: fix(nextjs): client side options re-render
+- bacbf14: fix(nextjs): missing InitialDataPromise type export for pages
+- Updated dependencies [bacbf14]
+  - @c15t/react@1.7.1
+
 ## 1.7.0
 
 ### Patch Changes

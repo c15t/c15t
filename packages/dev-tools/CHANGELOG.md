@@ -1,5 +1,12 @@
 # @c15t/dev-tools
 
+## 1.7.1
+
+### Patch Changes
+
+- Updated dependencies [bacbf14]
+  - c15t@1.7.1
+
 ## 1.7.0
 
 ### Patch Changes

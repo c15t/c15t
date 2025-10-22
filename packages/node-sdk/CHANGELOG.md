@@ -1,5 +1,13 @@
 # @c15t/node-sdk
 
+## 1.7.1
+
+### Patch Changes
+
+- bacbf14: chore: update various dependancies
+- Updated dependencies [bacbf14]
+  - @c15t/backend@1.7.1
+
 ## 1.7.0
 
 ### Patch Changes
