@@ -7,13 +7,6 @@ vi.mock('@clack/prompts', () => {
 	};
 });
 
-vi.mock('node:fs/promises', () => {
-	return {
-		writeFile: vi.fn().mockResolvedValue(undefined),
-	};
-});
-
-import { writeFile } from 'node:fs/promises';
 import * as prompts from '@clack/prompts';
 import { TelemetryEventName } from '../../../utils/telemetry';
 import { handleMigrationResult } from './migrator-result';
@@ -46,7 +39,7 @@ describe('handleMigrationResult', () => {
 		vi.restoreAllMocks();
 	});
 
-	it('tracks failure when user cancels at save SQL prompt', async () => {
+	it('tracks failure when user cancels at view SQL prompt', async () => {
 		const context = createMockContext();
 		const result = createResult();
 		(
@@ -61,29 +54,22 @@ describe('handleMigrationResult', () => {
 		);
 		expect(context.telemetry.trackEvent).toHaveBeenCalledWith(
 			TelemetryEventName.MIGRATION_FAILED,
-			{ saveSql: false }
+			{ viewSQL: false }
 		);
 		expect(result.execute).not.toHaveBeenCalled();
 	});
 
-	it('saves SQL to file when user chooses to save, then cancels execute', async () => {
+	it('logs SQL when user chooses to view, then cancels execute', async () => {
 		const context = createMockContext();
 		const result = createResult();
 		(prompts.confirm as unknown as ReturnType<typeof vi.fn>)
-			.mockResolvedValueOnce(true) // save SQL
+			.mockResolvedValueOnce(true) // view SQL
 			.mockResolvedValueOnce(Symbol.for('CANCEL')); // execute cancel
 
 		await handleMigrationResult(context, result);
 
 		expect(result.getSQL).toHaveBeenCalled();
-		expect(writeFile).toHaveBeenCalledWith(
-			expect.stringMatching(/migration-.*\.sql$/),
-			'SELECT 1;',
-			'utf-8'
-		);
-		expect(context.logger.success).toHaveBeenCalledWith(
-			expect.stringMatching(/^SQL saved to: migration-.*\.sql$/)
-		);
+		expect(context.logger.info).toHaveBeenCalledWith('SELECT 1;');
 		expect(context.telemetry.trackEvent).toHaveBeenCalledWith(
 			TelemetryEventName.MIGRATION_FAILED,
 			{ execute: false }
@@ -95,7 +81,7 @@ describe('handleMigrationResult', () => {
 		const context = createMockContext();
 		const result = createResult();
 		(prompts.confirm as unknown as ReturnType<typeof vi.fn>)
-			.mockResolvedValueOnce(false) // do not save SQL
+			.mockResolvedValueOnce(false) // do not view SQL
 			.mockResolvedValueOnce(true); // execute
 
 		await handleMigrationResult(context, result);

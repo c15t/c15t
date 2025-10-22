@@ -1,6 +1,5 @@
 import * as p from '@clack/prompts';
 import type { CliContext } from '~/context/types';
-import { getScriptsToAdd } from '../shared/scripts';
 
 interface SharedFrontendOptions {
 	backendURL: string | undefined;
@@ -11,7 +10,6 @@ interface SharedFrontendOptions {
 interface SharedFrontendResult {
 	proxyNextjs?: boolean;
 	useEnvFile?: boolean;
-	dependenciesToAdd: string[];
 }
 
 export async function getSharedFrontendOptions({
@@ -26,7 +24,6 @@ export async function getSharedFrontendOptions({
 		return {
 			proxyNextjs: undefined,
 			useEnvFile: undefined,
-			dependenciesToAdd: [],
 		};
 	}
 
@@ -66,17 +63,8 @@ export async function getSharedFrontendOptions({
 		proxyNextjs = proxyNextjsSelection as boolean;
 	}
 
-	const addScriptsSelection = await getScriptsToAdd({ context, handleCancel });
-
-	const dependenciesToAdd: string[] = [context.framework.pkg];
-
-	if (addScriptsSelection) {
-		dependenciesToAdd.push('@c15t/scripts');
-	}
-
 	return {
 		proxyNextjs,
 		useEnvFile,
-		dependenciesToAdd,
 	};
 }

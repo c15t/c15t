@@ -12,8 +12,6 @@ describe('extractRelevantHeaders', () => {
 		headers.set('x-region-code', 'WEST');
 		headers.set('accept-language', 'en-US,en;q=0.9');
 		headers.set('user-agent', 'Mozilla/5.0');
-		headers.set('x-forwarded-host', 'example.com');
-		headers.set('x-forwarded-for', '127.0.0.1');
 
 		const result = extractRelevantHeaders(headers);
 
@@ -28,8 +26,6 @@ describe('extractRelevantHeaders', () => {
 			'user-agent': 'Mozilla/5.0',
 			'x-c15t-country': 'US',
 			'x-c15t-region': 'CA-ON',
-			'x-forwarded-host': 'example.com',
-			'x-forwarded-for': '127.0.0.1',
 		});
 	});
 

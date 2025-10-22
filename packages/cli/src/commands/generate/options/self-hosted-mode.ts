@@ -30,16 +30,15 @@ export async function setupSelfHostedMode({
 	spinner,
 	handleCancel,
 }: SelfHostModeOptions): Promise<SelfHostModeResult> {
-	const dependenciesToAdd = new Set([context.framework.pkg, '@c15t/backend']);
+	const dependenciesToAdd: string[] = [context.framework.pkg, '@c15t/backend'];
 	const targetPath = path.join(context.cwd, 'c15t-backend.config.ts');
-
 	let createBackendConfig = false;
-	if (!(await pathExists(targetPath))) {
-		const config = await ensureBackendConfig(context);
-		createBackendConfig = true;
 
-		for (const dep of config?.dependencies ?? []) {
-			dependenciesToAdd.add(dep);
+	if (!(await pathExists(targetPath))) {
+		if (createBackendConfig) {
+			const config = await ensureBackendConfig(context);
+			createBackendConfig = true;
+			dependenciesToAdd.push(...(config?.dependencies ?? []));
 		}
 	}
 
@@ -55,19 +54,11 @@ export async function setupSelfHostedMode({
 		});
 	}
 
-	const {
-		useEnvFile,
-		proxyNextjs,
-		dependenciesToAdd: sharedDependenciesToAdd,
-	} = await getSharedFrontendOptions({
+	const { useEnvFile, proxyNextjs } = await getSharedFrontendOptions({
 		backendURL: backendURL as string,
 		context,
 		handleCancel,
 	});
-
-	for (const dep of sharedDependenciesToAdd) {
-		dependenciesToAdd.add(dep);
-	}
 
 	await generateFiles({
 		context,
@@ -80,7 +71,7 @@ export async function setupSelfHostedMode({
 
 	const { ranInstall, installDepsConfirmed } = await installDependencies({
 		context,
-		dependenciesToAdd: Array.from(dependenciesToAdd),
+		dependenciesToAdd,
 		handleCancel,
 	});
 

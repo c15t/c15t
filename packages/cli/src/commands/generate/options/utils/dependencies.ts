@@ -3,16 +3,18 @@ import { once } from 'node:events';
 import path from 'node:path';
 import * as p from '@clack/prompts';
 import color from 'picocolors';
-import type { PackageManager } from '~/context/package-manager-detection';
 import type { CliContext } from '~/context/types';
 import { TelemetryEventName } from '~/utils/telemetry';
+
+// Define PackageManager type here since the import isn't working
+export type PackageManager = 'npm' | 'yarn' | 'pnpm';
 
 /**
  * Installs dependencies using the detected package manager
  *
  * @param projectRoot - The root directory of the project
  * @param dependencies - Array of package names to install
- * @param packageManager - The package manager to use (npm, yarn, pnpm, bun)
+ * @param packageManager - The package manager to use (npm, yarn, pnpm)
  * @returns Promise that resolves when installation is complete
  */
 export async function addAndInstallDependenciesViaPM(
@@ -41,11 +43,6 @@ export async function addAndInstallDependenciesViaPM(
 		}
 		case 'pnpm': {
 			command = 'pnpm';
-			args = ['add', ...dependencies];
-			break;
-		}
-		case 'bun': {
-			command = 'bun';
 			args = ['add', ...dependencies];
 			break;
 		}
@@ -83,8 +80,6 @@ export function getManualInstallCommand(
 			return `yarn add ${dependencies.join(' ')}`;
 		case 'pnpm':
 			return `pnpm add ${dependencies.join(' ')}`;
-		case 'bun':
-			return `bun add ${dependencies.join(' ')}`;
 		default:
 			return `npm install ${dependencies.join(' ')}`;
 	}

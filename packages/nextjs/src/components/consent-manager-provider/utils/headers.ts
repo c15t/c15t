@@ -1,3 +1,8 @@
+type LocationHeader =
+	| (typeof LOCATION_HEADERS)[number]
+	| 'x-c15t-country'
+	| 'x-c15t-region';
+
 const COUNTRY_PRIORITY = [
 	'cf-ipcountry',
 	'x-vercel-ip-country',
@@ -10,27 +15,23 @@ const REGION_PRIORITY = [
 	'x-region-code',
 ] as const;
 
-const FORWARDED_HEADERS = [
+const LOCATION_HEADERS = [
 	...COUNTRY_PRIORITY,
 	...REGION_PRIORITY,
 	'accept-language',
 	'user-agent',
-	'x-forwarded-host',
-	'x-forwarded-for',
 ] as const;
 
-type ForwardedHeader =
-	| (typeof FORWARDED_HEADERS)[number]
-	| 'x-c15t-country'
-	| 'x-c15t-region';
-
-type RelevantHeaders = Partial<Record<ForwardedHeader, string>>;
-
-export function extractRelevantHeaders(headersList: Headers): RelevantHeaders {
-	const relevantHeaders: RelevantHeaders = {};
+export function extractRelevantHeaders(
+	headersList: Headers
+): Record<LocationHeader, string> {
+	const relevantHeaders: Record<LocationHeader, string> = {} as Record<
+		LocationHeader,
+		string
+	>;
 
 	// Extract all relevant headers
-	for (const headerName of FORWARDED_HEADERS) {
+	for (const headerName of LOCATION_HEADERS) {
 		const value = headersList.get(headerName);
 		if (value) {
 			relevantHeaders[headerName] = value;
