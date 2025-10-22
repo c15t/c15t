@@ -25,6 +25,7 @@ import {
 	ConsentManagerDialog,
 	ConsentManagerProvider,
 	CookieBanner,
+  type InitialDataPromise
 } from '@c15t/nextjs/pages';
 // For client-only apps (non-SSR), you can use:
 // import { ConsentManagerProvider } from '@c15t/nextjs/client';
@@ -52,7 +53,7 @@ import {
  * @example
  * \`\`\`tsx
  * // In your pages/_app.tsx
- * import { ConsentManager } from './consent-manager';
+ * import { ConsentManager } from '../components/consent-manager';
  *
  * export default function MyApp({ Component, pageProps }) {
  *   return (
@@ -68,7 +69,7 @@ export function ConsentManager({
 	initialData,
 }: {
 	children: ReactNode;
-	initialData?: unknown;
+	initialData?: InitialDataPromise;
 }) {
 	return (
 		<ConsentManagerProvider

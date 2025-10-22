@@ -30,7 +30,7 @@ jobs:
 
       # Setup pnpm and Node.js using versions consistent with your ci.yml
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
 
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
@@ -43,7 +43,7 @@ jobs:
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets # Give the step an ID to potentially reference outputs
-        uses: changesets/action@v1
+        uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
         with:
           # The command to run for publishing. It matches your root package.json script.
           publish: pnpm run release
