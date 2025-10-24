@@ -1,114 +1,108 @@
 ---
-title: Google Tag (gtag.js)
-description: Learn how to use Google Tag (gtag.js) with c15t.
+title: GA4 + Google Ads (gtag.js)
+description: Send data to Google Analytics 4 and Google Ads with automatic Consent Mode v2 support.
 lastModified: 2025-09-24
 new: true
 icon: google-analytics
 ---
 
-Google Tag (gtag.js) is used to send data to various Google products like Analytics, Ads & Floodlight.
-Based on the product you are using you should set the category to `marketing` (Ads & Floodlight) or `measurement` (Analytics).
+Google Tag (`gtag.js`) is Google's unified tracking script for sending data to Google Analytics 4 (GA4), Google Ads, and Floodlight. It measures user behavior, tracks conversions, and powers Google's advertising ecosystem.
 
-By default, c15t will always load this script regardless of consent. This is because Google Tag manages its own consent state via Google Consent Mode v2.
+c15t initializes Google Tag with Consent Mode v2 defaults set to denied and automatically updates the consent state when users make choices. You don't need to configure Google Consent Mode yourself.
 
-c15t will automatically sync the consent state so you don't need to do anything extra.
+**Choosing the right category:**
 
-## Implementation
+- Use `category: 'measurement'` for analytics-only tracking (GA4 events)
+- Use `category: 'marketing'` for advertising and conversion tracking (Google Ads)
 
-<Steps>
-  <Step>
-    ### Adding the script to c15t
+  ### Adding the GA4 + Google Ads to c15t
 
-    <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
-      <Tab value="JavaScript">
-        ```ts
-        import { configureConsentManager } from 'c15t';
-        import { gtag } from '@c15t/scripts/google-tag';
+  <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
+    <Tab value="JavaScript">
+      ```ts
+      import { configureConsentManager } from 'c15t';
+      import { gtag } from '@c15t/scripts/google-tag';
 
-        configureConsentManager({
-          // ... 
-          scripts: [
-            gtag({
-              id: 'G-XXXXXXXXXX',
-              category: 'marketing',
-            }),
-          ],
-        });
-        ```
-      </Tab>
+      configureConsentManager({
+        scripts: [
+          gtag({
+            id: 'G-XXXXXXXXXX',
+            category: 'measurement', // or 'marketing'
+          }),
+        ],
+      });
+      ```
+    </Tab>
 
-      <Tab value="React">
-        ```tsx
-        import { gtag } from '@c15t/scripts/google-tag';
-        import { ConsentManagerProvider } from '@c15t/react';
+    <Tab value="React">
+      ```tsx
+      import { gtag } from '@c15t/scripts/google-tag';
+      import { ConsentManagerProvider } from '@c15t/react';
 
-        export function App({ children }: { children: React.ReactNode }) { 
-          return (
-            <ConsentManagerProvider
-              options={{
-                scripts: [
-                  gtag({
-                    id: 'G-XXXXXXXXXX',
-                  }),
-                ],
-              }}
-            >
-              {children}
-            </ConsentManagerProvider>
-          );
-        }
-        ```
-      </Tab>
-
-      <Tab value="Next.js + App Router">
-        ```tsx
-        'use client';
-        import { gtag } from '@c15t/scripts/google-tag';
-        import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
-
-        export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
-          return (
-            <ClientSideOptionsProvider
-              scripts={[
+      export function App({ children }: { children: React.ReactNode }) { 
+        return (
+          <ConsentManagerProvider
+            options={{
+              scripts: [
                 gtag({
                   id: 'G-XXXXXXXXXX',
                 }),
-              ]}
-            >
-              {children}
-            </ClientSideOptionsProvider>
-          );
-        }
-        ```
-      </Tab>
+              ],
+            }}
+          >
+            {children}
+          </ConsentManagerProvider>
+        );
+      }
+      ```
+    </Tab>
 
-      <Tab value="Next.js + Pages Router">
-        ```tsx
-        import { gtag } from '@c15t/scripts/google-tag';
-        import { ConsentManagerProvider } from '@c15t/nextjs';
+    <Tab value="Next.js + App Router">
+      ```tsx
+      'use client';
+      import { gtag } from '@c15t/scripts/google-tag';
+      import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
 
-        export function App() { 
-          return (
-            <ConsentManagerProvider
-              options={{
-                // ... other options
-                scripts: [
-                  gtag({
-                    id: 'G-XXXXXXXXXX',
-                    category: 'measurement',
-                  }),
-                ],
-              }}
-            >
-              {children}
-            </ConsentManagerProvider>
-          );
-        }
-        ```
-      </Tab>
-    </Tabs>
-  </Step>
-</Steps>
+      export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
+        return (
+          <ClientSideOptionsProvider
+            scripts={[
+              gtag({
+                id: 'G-XXXXXXXXXX',
+              }),
+            ]}
+          >
+            {children}
+          </ClientSideOptionsProvider>
+        );
+      }
+      ```
+    </Tab>
+
+    <Tab value="Next.js + Pages Router">
+      ```tsx
+      import { gtag } from '@c15t/scripts/google-tag';
+      import { ConsentManagerProvider } from '@c15t/nextjs';
+
+      export function App() { 
+        return (
+          <ConsentManagerProvider
+            options={{
+              scripts: [
+                gtag({
+                  id: 'G-XXXXXXXXXX',
+                  category: 'measurement',
+                }),
+              ],
+            }}
+          >
+            {children}
+          </ConsentManagerProvider>
+        );
+      }
+      ```
+    </Tab>
+  </Tabs>
 
 ## Types
 
