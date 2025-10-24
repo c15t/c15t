@@ -12,7 +12,7 @@ Microsoft UET (Universal Event Tracking) is Microsoft's conversion tracking tag 
   UET can also load Microsoft Clarity (if enabled in your UET tag settings). Since Clarity is an analytics tool, we recommend loading it separately with `measurement` consent instead.
 </Callout>
 
-### Adding the Microsoft UET to c15t
+### Adding Microsoft UET to c15t
 
 <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
   <Tab value="JavaScript">
@@ -37,17 +37,19 @@ Microsoft UET (Universal Event Tracking) is Microsoft's conversion tracking tag 
     import { ConsentManagerProvider } from '@c15t/react';
 
     export function App({ children }: { children: React.ReactNode }) { 
-      <ConsentManagerProvider
-        options={{
-          scripts: [
-            microsoftUet({
-              id: '123456789012345',
-            }),
-          ],
-        }}
-      >
-        {children}
-      </ConsentManagerProvider>
+      	return (
+        <ConsentManagerProvider
+          options={{
+            scripts: [
+              microsoftUet({
+                id: '123456789012345',
+              }),
+            ],
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
     }
     ```
   </Tab>
@@ -80,6 +82,7 @@ Microsoft UET (Universal Event Tracking) is Microsoft's conversion tracking tag 
     import { ConsentManagerProvider } from '@c15t/nextjs';
 
     export function App({ children }: { children: React.ReactNode }) { 
+      return (
       <ConsentManagerProvider
         options={{
           // ... other options
@@ -92,6 +95,7 @@ Microsoft UET (Universal Event Tracking) is Microsoft's conversion tracking tag 
       >
         {children}
       </ConsentManagerProvider>
+      );
     }
     ```
   </Tab>

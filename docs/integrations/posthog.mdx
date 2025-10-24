@@ -13,6 +13,7 @@ PostHog is an open-source product analytics platform that helps you understand u
 This is the recommended approach if you're using the Posthog JS SDK, this is commonly used in React projects.
 
 ### Adding the PostHog SDK to c15t
+
 <Steps>
   <Step>
     ### Initialize Posthog
@@ -89,7 +90,6 @@ This is the recommended approach if you're using the Posthog JS SDK, this is com
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
           return (
-            <ClientSideOptionsProvider
            <ClientSideOptionsProvider
               callbacks={{
                  onConsentSet({ preferences }) {
@@ -101,7 +101,6 @@ This is the recommended approach if you're using the Posthog JS SDK, this is com
                  }
               }}
            >
-            >
               {children}
             </ClientSideOptionsProvider>
           );
@@ -244,21 +243,22 @@ By default c15t will always load the script regardless of consent. This is becau
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
         export function App({ children }: { children: React.ReactNode }) {
-          <ConsentManagerProvider
-            options={{
-              // ... other options
-              scripts: [
-                posthog({ 
-                  id: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 
-                  apiHost: 'https://eu.i.posthog.com',
-                  defaults: '2025-05-24', 
-                  options: { person_profiles: 'identified_only' }
-                }),
-              ],
-            }}
-          >
-            {children}
-          </ConsentManagerProvider>
+           return (
+            <ConsentManagerProvider
+              options={{
+                scripts: [
+                  posthog({ 
+                    id: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 
+                    apiHost: 'https://eu.i.posthog.com',
+                    defaults: '2025-05-24', 
+                    options: { person_profiles: 'identified_only' }
+                  }),
+                ],
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
         }
         ```
       </Tab>

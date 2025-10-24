@@ -32,18 +32,20 @@ LinkedIn Insights Tag is LinkedIn's conversion tracking and audience matching to
     import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
     import { ConsentManagerProvider } from '@c15t/react';
 
-    export function App({ children }: { children: React.ReactNode }) { 
-      <ConsentManagerProvider
-        options={{
-          scripts: [
-            linkedinInsights({
-              id: '123456789012345',
-            }),
-          ],
-        }}
-      >
-        {children}
-      </ConsentManagerProvider>
+    export function App({ children }: { children: React.ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            scripts: [
+              linkedinInsights({
+                id: '123456789012345',
+              }),
+            ],
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
     }
     ```
   </Tab>
@@ -75,19 +77,20 @@ LinkedIn Insights Tag is LinkedIn's conversion tracking and audience matching to
     import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
     import { ConsentManagerProvider } from '@c15t/nextjs';
 
-    export function App({ children }: { children: React.ReactNode }) { 
-      <ConsentManagerProvider
-        options={{
-          // ... other options
-          scripts: [
-            linkedinInsights({
-              id: '123456789012345',
-            }),
-          ],
-        }}
-      >
-        {children}
-      </ConsentManagerProvider>
+    export function App({ children }: { children: React.ReactNode }) {
+      return ( 
+        <ConsentManagerProvider
+          options={{
+            scripts: [
+              linkedinInsights({
+                id: '123456789012345',
+              }),
+            ],
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
     }
     ```
   </Tab>
