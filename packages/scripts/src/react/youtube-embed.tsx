@@ -8,7 +8,7 @@ import type {
 } from 'react';
 import { forwardRef } from 'react';
 
-// Cast to remove compound component properties for type compatibility
+// Cast FrameComponent to FC type for compatibility with @c15t/react export
 const Frame = FrameComponent as FC<FrameProps>;
 
 export interface YouTubeEmbedProps
@@ -131,7 +131,8 @@ export const YouTubeEmbed = forwardRef<HTMLDivElement, YouTubeEmbedProps>(
 		ref
 	) => {
 		// Construct the YouTube embed URL
-		const embedUrl = `https://www.youtube.com/embed/${videoId}${params ? `?${params}` : ''}`;
+		const paramsPart = params ? `?${params}` : '';
+		const embedUrl = `https://www.youtube.com/embed/${videoId}${paramsPart}`;
 
 		// Merge styles for the Frame container
 		const containerStyle: CSSProperties = {
