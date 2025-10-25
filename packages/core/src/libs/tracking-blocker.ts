@@ -84,7 +84,7 @@ function createDefaultConsentState(): ConsentState {
 interface TrackingBlocker {
 	/**
 	 * Updates the consents
-	 * @deprecated This method is deprecated and will be removed in the next major version. Use [ScriptLoader](https://c15t.com/docs/react/script-loader) instead.
+	 * @deprecated This method is deprecated and will be removed in the next major version. Use [ScriptLoader](https://c15t.com/docs/frameworks/react/script-loader) instead.
 	 */
 	updateConsents: (newConsents: Partial<ConsentState>) => void;
 	destroy: () => void;
@@ -102,7 +102,7 @@ const PORT_NUMBER_REGEX = /:\d+$/;
 
 /**
  * Creates a tracking blocker instance that handles blocking of tracking scripts and network requests
- * @deprecated This function is deprecated and will be removed in the next major version. Use [ScriptLoader](https://c15t.com/docs/react/script-loader) instead.
+ * @deprecated This function is deprecated and will be removed in the next major version. Use [ScriptLoader](https://c15t.com/docs/frameworks/react/script-loader) instead.
  */
 export function createTrackingBlocker(
 	config: TrackingBlockerConfig = {},

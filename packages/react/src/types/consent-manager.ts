@@ -105,7 +105,7 @@ export type ConsentManagerOptions = CoreOptions & {
 
 	/**
 	 * Tracking blocker configuration.
-	 * @deprecated This is deprecated and will be removed in the next major version. Use the new [ScriptLoader](https://c15t.com/docs/react/script-loader) instead.
+	 * @deprecated This is deprecated and will be removed in the next major version. Use the new [ScriptLoader](https://c15t.com/docs/frameworks/react/script-loader) instead.
 	 */
 	trackingBlockerConfig?: TrackingBlockerConfig;
 };

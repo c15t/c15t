@@ -1,5 +1,11 @@
 # @c15t/backend
 
+## 1.7.1
+
+### Patch Changes
+
+- 8f3f146: chore: update various dependancies
+
 ## 1.7.0
 
 ### Patch Changes

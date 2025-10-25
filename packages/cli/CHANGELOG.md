@@ -1,5 +1,21 @@
 # @c15t/cli
 
+## 1.7.1
+
+### Patch Changes
+
+- 2b2605b: feat(cli): save migrations to a .sql file instead of in the console
+- 3e780eb: feat(cli): add bun support
+  feat(cli): add install @c15t/scripts prompt
+  fix(cli): default log level to info
+  fix(cli): create consent manager component in components directory (pages)
+- 8f3f146: chore: update various dependancies
+- 2ad1ff3: fix(nextjs): missing InitialDataPromise type export for pages
+- Updated dependencies [067c7af]
+- Updated dependencies [8f3f146]
+  - @c15t/react@1.7.1
+  - @c15t/backend@1.7.1
+
 ## 1.7.0
 
 ### Minor Changes

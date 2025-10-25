@@ -1,5 +1,15 @@
 # @c15t/nextjs
 
+## 1.7.1
+
+### Patch Changes
+
+- 37561e1: fix(nextjs): missing certain headers on non-rewrite requests
+- ccf32a2: fix(nextjs): client side options re-render
+- 2ad1ff3: fix(nextjs): missing InitialDataPromise type export for pages
+- Updated dependencies [067c7af]
+  - @c15t/react@1.7.1
+
 ## 1.7.0
 
 ### Patch Changes
