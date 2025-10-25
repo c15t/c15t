@@ -3,7 +3,8 @@
 import type { LucideIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { memo, useCallback, useEffect, useState } from 'react';
-import './expandable-tabs.css';
+import { cn } from '~/libs/utils';
+import styles from './expandable-tabs.module.css';
 
 interface Tab {
 	title: string;
@@ -48,7 +49,7 @@ const spanVariants = {
 const transition = { delay: 0.1, type: 'spring', bounce: 0, duration: 0.6 };
 
 const Separator = memo(() => (
-	<div className="c15t-devtool-tab-separator" aria-hidden="true" />
+	<div className={styles.separator} aria-hidden="true" />
 ));
 Separator.displayName = 'Separator';
 
@@ -76,7 +77,11 @@ const TabButton = memo(
 				custom={isSelected}
 				onClick={() => onClick(index)}
 				transition={transition}
-				className={`c15t-devtool-tab-button ${isSelected ? `selected ${activeColor}` : ''}`}
+				className={cn(
+					styles.button,
+					isSelected && styles.selected,
+					isSelected && activeColor === 'primary' && styles.primary
+				)}
 			>
 				<Icon size={20} />
 				<AnimatePresence initial={false}>
@@ -87,7 +92,7 @@ const TabButton = memo(
 							animate="animate"
 							exit="exit"
 							transition={transition}
-							className="c15t-devtool-tab-title"
+							className={styles.title}
 						>
 							{tab.title}
 						</motion.span>
@@ -124,7 +129,7 @@ export function ExpandableTabs({
 	);
 
 	return (
-		<div className={`c15t-devtool-tabs-container ${className || ''}`}>
+		<div className={cn(styles.container, className)}>
 			{tabs.map((tab, index) =>
 				tab.type === 'separator' ? (
 					<Separator key={`separator-${index}`} />

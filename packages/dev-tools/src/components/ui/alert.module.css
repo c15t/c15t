@@ -1,4 +1,4 @@
-.c15t-devtool-alert {
+.alert {
 	position: relative;
 	width: 100%;
 	border-radius: 0.5rem;
@@ -7,28 +7,28 @@
 	font-size: 0.875rem;
 }
 
-.c15t-devtool-alert > svg {
+.alert > svg {
 	position: absolute;
 	top: 1rem;
 	left: 1rem;
 	color: var(--c15t-dev-tools-foreground);
 }
 
-.c15t-devtool-alert > svg + div {
+.alert > svg + div {
 	transform: translateY(-3px);
 }
 
-.c15t-devtool-alert > svg ~ * {
+.alert > svg ~ * {
 	padding-left: 1.75rem;
 }
 
 /* Variants */
-.c15t-devtool-alert-default {
+.default {
 	background-color: var(--c15t-dev-tools-background);
 	color: var(--c15t-dev-tools-foreground);
 }
 
-.c15t-devtool-alert-destructive {
+.destructive {
 	border-color: color-mix(
 		in srgb,
 		var(--c15t-dev-tools-destructive) 50%,
@@ -37,28 +37,30 @@
 	color: var(--c15t-dev-tools-destructive);
 }
 
-.c15t-devtool-alert-destructive > svg {
+.destructive > svg {
 	color: var(--c15t-dev-tools-destructive);
 }
 
 /* Dark mode override for destructive variant */
 @media (prefers-color-scheme: dark) {
-	.c15t-devtool-alert-destructive {
+	.destructive {
 		border-color: var(--c15t-dev-tools-destructive);
 	}
 }
 
-.c15t-devtool-alert-title {
+.title {
 	margin-bottom: 0.25rem;
 	font-weight: 500;
 	line-height: 1;
 	letter-spacing: -0.025em;
 }
 
-.c15t-devtool-alert-description {
+.description {
 	font-size: 0.875rem;
 }
 
-.c15t-devtool-alert-description p {
+.description p {
 	line-height: 1.625;
 }
+
+

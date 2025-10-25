@@ -14,7 +14,7 @@ import { ErrorState } from './components/error-state';
 import { Header } from './components/header';
 import DevToolWrapper from './components/wrapper';
 import { Router } from './router/router';
-import './styles/theme.css';
+
 const PrivacyC15TContext = createContext<{
 	state: PrivacyConsentState | null;
 	store: StoreApi<PrivacyConsentState> | null;

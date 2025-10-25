@@ -1,15 +1,15 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 import type { HTMLAttributes } from 'react';
 import { cn } from '~/libs/utils';
-import './badge.css';
+import styles from './badge.module.css';
 
-const badgeVariants = cva('c15t-devtool-badge', {
+const badgeVariants = cva(styles.badge, {
 	variants: {
 		variant: {
-			default: 'c15t-devtool-badge-default',
-			secondary: 'c15t-devtool-badge-secondary',
-			destructive: 'c15t-devtool-badge-destructive',
-			outline: 'c15t-devtool-badge-outline',
+			default: styles.default,
+			secondary: styles.secondary,
+			destructive: styles.destructive,
+			outline: styles.outline,
 		},
 	},
 	defaultVariants: {

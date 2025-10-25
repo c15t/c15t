@@ -1,6 +1,6 @@
 import { X } from 'lucide-react';
+import styles from './header.module.css';
 import { Button } from './ui/button';
-import './header.css';
 import { C15TIcon } from './ui/logo';
 
 interface HeaderProps {
@@ -9,12 +9,12 @@ interface HeaderProps {
 
 export function Header({ onClose }: HeaderProps) {
 	return (
-		<div className="c15t-devtool-header">
-			<div className="c15t-devtool-header-title">
-				<C15TIcon className="c15t-devtool-header-logo" />
+		<div className={styles.header}>
+			<div className={styles.title}>
+				<C15TIcon className={styles.logo} />
 				{/* <span>Consent Management</span> */}
 			</div>
-			<div className="c15t-devtool-header-actions">
+			<div className={styles.actions}>
 				{onClose && (
 					<Button
 						variant="ghost"

@@ -1,4 +1,4 @@
-.c15t-devtool-tabs-container {
+.container {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -10,7 +10,7 @@
 	box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
-.c15t-devtool-tab-separator {
+.separator {
 	margin-left: 0.25rem;
 	margin-right: 0.25rem;
 	height: 24px;
@@ -18,7 +18,7 @@
 	background-color: var(--border);
 }
 
-.c15t-devtool-tab-button {
+.button {
 	position: relative;
 	display: flex;
 	flex-grow: 1;
@@ -33,24 +33,26 @@
 	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.c15t-devtool-tab-button:not(.selected) {
+.button:not(.selected) {
 	color: var(--c15t-dev-tools-muted-foreground);
 }
 
-.c15t-devtool-tab-button:not(.selected):hover {
+.button:not(.selected):hover {
 	background-color: var(--c15t-dev-tools-muted);
 	color: var(--c15t-dev-tools-foreground);
 }
 
-.c15t-devtool-tab-button.selected {
+.button.selected {
 	background-color: var(--c15t-dev-tools-muted);
 }
 
-.c15t-devtool-tab-button.selected.primary {
+.button.selected.primary {
 	color: var(--c15t-dev-tools-primary);
 }
 
-.c15t-devtool-tab-title {
+.title {
 	overflow: hidden;
 	white-space: nowrap;
 }
+
+

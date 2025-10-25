@@ -2,10 +2,11 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import './wrapper.css';
 import { cn } from '~/libs/utils';
+import themeStyles from '~/styles/theme.module.css';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
+import styles from './wrapper.module.css';
 
 /**
  * Dev Tool Wrapper Component
@@ -39,26 +40,32 @@ export function DevToolWrapper({
 		<AnimatePresence>
 			{isOpen && (
 				<motion.div
-					className="c15t-devtool-wrapper-overlay"
+					className={cn(styles.overlay, themeStyles.theme)}
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 					exit={{ opacity: 0 }}
 					transition={{ type: 'spring', stiffness: 400, damping: 40 }}
 				>
 					<motion.div
-						className="c15t-devtool-wrapper-backdrop"
+						className={styles.backdrop}
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						exit={{ opacity: 0 }}
 						onClick={toggleOpen}
 					/>
 					<motion.div
-						className={cn('c15t-devtool-wrapper-content', position)}
+						className={cn(
+							styles.content,
+							position === 'bottom-right' && styles.bottomRight,
+							position === 'top-right' && styles.topRight,
+							position === 'bottom-left' && styles.bottomLeft,
+							position === 'top-left' && styles.topLeft
+						)}
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						exit={{ opacity: 0, y: 20 }}
 					>
-						<Card className="c15t-devtool-wrapper-card">{children}</Card>
+						<Card className={styles.card}>{children}</Card>
 					</motion.div>
 				</motion.div>
 			)}
@@ -74,19 +81,19 @@ export function DevToolWrapper({
 						animate={{ scale: 1, opacity: 1 }}
 						exit={{ scale: 0.95, opacity: 0 }}
 						transition={{ type: 'spring', stiffness: 400, damping: 40 }}
-						className="c15t-devtool-wrapper-button-container"
+						className={styles.buttonContainer}
 					>
 						<Button
 							variant="outline"
 							size="icon"
-							className="c15t-devtool-wrapper-button"
+							className={styles.button}
 							onClick={toggleOpen}
 						>
 							<svg
 								viewBox="0 0 149 149"
 								fill="none"
 								xmlns="http://www.w3.org/2000/svg"
-								className="c15t-devtool-wrapper-button-icon"
+								className={styles.buttonIcon}
 							>
 								<title>c15t-devtool-icon</title>
 								<path

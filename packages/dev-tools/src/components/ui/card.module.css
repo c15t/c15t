@@ -1,4 +1,4 @@
-.c15t-devtool-card {
+.card {
 	border-radius: 0.5rem;
 	border: 1px solid var(--c15t-dev-tools-border);
 	background-color: var(--c15t-dev-tools-card);
@@ -7,36 +7,38 @@
 	overflow: hidden;
 }
 
-.c15t-devtool-card-header {
+.header {
 	display: flex;
 	flex-direction: column;
 	padding: 1.5rem;
 }
 
-.c15t-devtool-card-header > * + * {
+.header > * + * {
 	margin-top: 0.375rem;
 }
 
-.c15t-devtool-card-title {
+.title {
 	font-weight: 600;
 	font-size: 1.5rem;
 	line-height: 1;
 	letter-spacing: -0.025em;
 }
 
-.c15t-devtool-card-description {
+.description {
 	color: var(--c15t-dev-tools-muted-foreground);
 	font-size: 0.875rem;
 }
 
-.c15t-devtool-card-content {
+.content {
 	padding: 1.5rem;
 	padding-top: 0;
 }
 
-.c15t-devtool-card-footer {
+.footer {
 	display: flex;
 	align-items: center;
 	padding: 1.5rem;
 	padding-top: 0;
 }
+
+

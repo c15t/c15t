@@ -1,15 +1,15 @@
-.c15t-devtool-scroll-root {
+.root {
 	position: relative;
 	overflow: hidden;
 }
 
-.c15t-devtool-scroll-viewport {
+.viewport {
 	height: 100%;
 	width: 100%;
 	border-radius: inherit;
 }
 
-.c15t-devtool-scroll-bar {
+.bar {
 	display: flex;
 	touch-action: none;
 	user-select: none;
@@ -18,23 +18,25 @@
 	transition-duration: 150ms;
 }
 
-.c15t-devtool-scroll-bar[data-orientation="vertical"] {
+.bar[data-orientation="vertical"] {
 	height: 100%;
 	width: 10px;
 	border-left: 1px solid transparent;
 	padding: 1px;
 }
 
-.c15t-devtool-scroll-bar[data-orientation="horizontal"] {
+.bar[data-orientation="horizontal"] {
 	height: 10px;
 	flex-direction: column;
 	border-top: 1px solid transparent;
 	padding: 1px;
 }
 
-.c15t-devtool-scroll-thumb {
+.thumb {
 	position: relative;
 	flex: 1;
 	border-radius: 9999px;
 	background-color: var(--c15t-dev-tools-border);
 }
+
+

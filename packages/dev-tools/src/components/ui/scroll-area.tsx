@@ -7,7 +7,8 @@ import {
 	type ComponentRef,
 	forwardRef,
 } from 'react';
-import './scroll-area.css';
+import { cn } from '~/libs/utils';
+import styles from './scroll-area.module.css';
 
 const ScrollArea = forwardRef<
 	ComponentRef<typeof ScrollAreaPrimitive.Root>,
@@ -15,10 +16,10 @@ const ScrollArea = forwardRef<
 >(({ className, children, ...props }, ref) => (
 	<ScrollAreaPrimitive.Root
 		ref={ref}
-		className={`c15t-devtool-scroll-root ${className || ''}`}
+		className={cn(styles.root, className)}
 		{...props}
 	>
-		<ScrollAreaPrimitive.Viewport className="c15t-devtool-scroll-viewport">
+		<ScrollAreaPrimitive.Viewport className={styles.viewport}>
 			{children}
 		</ScrollAreaPrimitive.Viewport>
 		<ScrollBar />
@@ -34,10 +35,10 @@ const ScrollBar = forwardRef<
 	<ScrollAreaPrimitive.ScrollAreaScrollbar
 		ref={ref}
 		orientation={orientation}
-		className={`c15t-devtool-scroll-bar ${className || ''}`}
+		className={cn(styles.bar, className)}
 		{...props}
 	>
-		<ScrollAreaPrimitive.ScrollAreaThumb className="c15t-devtool-scroll-thumb" />
+		<ScrollAreaPrimitive.ScrollAreaThumb className={styles.thumb} />
 	</ScrollAreaPrimitive.ScrollAreaScrollbar>
 ));
 ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName;
