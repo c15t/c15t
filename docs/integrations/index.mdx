@@ -1,15 +1,27 @@
 ---
 title: Integrations
-description: How to integrate your tools with c15t.
+description: "Many of your tools may require consent to be given before they can be used. This is especially true for analytics and marketing tools. \nc15t has various ways to integrate with your tools, depending on the tool you are using."
 lastModified: 2025-10-02
 new: true
 ---
 
-## Overview
+<Cards className="my-10 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 @container not-prose grid gap-4">
+  <Card variant="interactive" title="GA4 + Google Ads (gtag.js)" description="Send data to Google Analytics 4 and Google Ads with automatic Consent Mode v2 support." icon={<Icon name="google-analytics" />} href="/docs/integrations/google-tag" />
 
-Many of your tools may require consent to be given before they can be used. This is especially true for analytics and marketing tools.
+  <Card variant="interactive" title="Google Tag Manager" description="Deploy and manage marketing tags centrally with automatic consent state synchronization." icon={<Icon name="google-tag-manager" />} href="/docs/integrations/google-tag-manager" />
 
-c15t has various ways to integrate with your tools, depending on the tool you are using.
+  <Card variant="interactive" title="PostHog" description="Open-source product analytics with cookieless tracking that works even without consent." icon={<Icon name="posthog" />} href="/docs/integrations/posthog" />
+
+  <Card variant="interactive" title="Meta Pixel" description="Track conversions and build audiences for Facebook and Instagram advertising campaigns." icon={<Icon name="meta" />} href="/docs/integrations/meta-pixel" />
+
+  <Card variant="interactive" title="TikTok Pixel" description="Measure ad performance and build audiences for TikTok advertising campaigns." icon={<Icon name="tiktok" />} href="/docs/integrations/tiktok-pixel" />
+
+  <Card variant="interactive" title="LinkedIn Insights" description="Track conversions and build matched audiences for LinkedIn advertising campaigns." icon={<Icon name="linkedin" />} href="/docs/integrations/linkedin-insights" />
+
+  <Card variant="interactive" title="Microsoft UET" description="Track conversions and measure performance for Microsoft Advertising." icon={<Icon name="microsoft" />} href="/docs/integrations/microsoft-uet" />
+
+  <Card variant="interactive" title="X Pixel" description="Measure ad performance and build audiences for advertising campaigns on X (Twitter)." icon={<Icon name="x" />} href="/docs/integrations/x-pixel" />
+</Cards>
 
 ## Script Loader
 
