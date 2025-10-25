@@ -1,15 +1,18 @@
 ---
 title: PostHog
-description: Learn how to sync c15t consent with PostHog.
+description: PostHog is an open-source product analytics platform for tracking user behavior, session replays, feature flags, and A/B testing. It supports cookieless tracking, allowing analytics to continue even without cookie consent.
 lastModified: 2025-09-19
 new: true
+icon: posthog
 ---
 
-Posthog allows for both cookieless and cookie-based tracking. This means that you can sync c15t with Posthog, allowing you to continue using Posthog even when users have not given consent.
+PostHog is an open-source product analytics platform that helps you understand user behavior, track events, and analyze product usage. Unlike traditional analytics tools, PostHog supports both cookieless and cookie-based tracking. This means you can sync c15t with PostHog and continue collecting analytics even when users haven't given consent—PostHog simply operates in cookieless mode until consent is granted.
 
 ## PostHog SDK Implementation
 
 This is the recommended approach if you're using the Posthog JS SDK, this is commonly used in React projects.
+
+### Adding the PostHog SDK to c15t
 
 <Steps>
   <Step>
@@ -87,7 +90,6 @@ This is the recommended approach if you're using the Posthog JS SDK, this is com
 
         export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
           return (
-            <ClientSideOptionsProvider
            <ClientSideOptionsProvider
               callbacks={{
                  onConsentSet({ preferences }) {
@@ -99,7 +101,6 @@ This is the recommended approach if you're using the Posthog JS SDK, this is com
                  }
               }}
            >
-            >
               {children}
             </ClientSideOptionsProvider>
           );
@@ -242,21 +243,22 @@ By default c15t will always load the script regardless of consent. This is becau
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
         export function App({ children }: { children: React.ReactNode }) {
-          <ConsentManagerProvider
-            options={{
-              // ... other options
-              scripts: [
-                posthog({ 
-                  id: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 
-                  apiHost: 'https://eu.i.posthog.com',
-                  defaults: '2025-05-24', 
-                  options: { person_profiles: 'identified_only' }
-                }),
-              ],
-            }}
-          >
-            {children}
-          </ConsentManagerProvider>
+           return (
+            <ConsentManagerProvider
+              options={{
+                scripts: [
+                  posthog({ 
+                    id: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 
+                    apiHost: 'https://eu.i.posthog.com',
+                    defaults: '2025-05-24', 
+                    options: { person_profiles: 'identified_only' }
+                  }),
+                ],
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
         }
         ```
       </Tab>

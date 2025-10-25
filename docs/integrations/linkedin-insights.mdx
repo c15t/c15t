@@ -1,102 +1,100 @@
 ---
 title: LinkedIn Insights
-description: Learn how to use LinkedIn Insights with c15t.
+description: Track conversions and build matched audiences for LinkedIn advertising campaigns.
 lastModified: 2025-09-24
 new: true
+icon: linkedin
 ---
 
-LinkedIn Insights is a popular tracking pixel for marketing purposes. By default c15t will load the script based on `marketing` consent.
+LinkedIn Insights Tag is LinkedIn's conversion tracking and audience matching tool for LinkedIn advertising campaigns. It tracks website actions, measures ad performance, builds matched audiences for retargeting, and provides demographic insights about your visitors. By default, c15t loads this script based on `marketing` consent.
 
-## Implementation
+### Adding the LinkedIn Insights Tag to c15t
 
-<Steps>
-  <Step>
-    ### Adding the script to c15t
+<Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
+  <Tab value="JavaScript">
+    ```ts
+    import { configureConsentManager } from 'c15t';
+    import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
 
-    <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
-      <Tab value="JavaScript">
-        ```ts
-        import { configureConsentManager } from 'c15t';
-        import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
+    configureConsentManager({
+      // ... 
+      scripts: [
+        linkedinInsights({
+          id: '123456789012345',
+        }),
+      ],
+    });
+    ```
+  </Tab>
 
-        configureConsentManager({
-          // ... 
-          scripts: [
+  <Tab value="React">
+    ```tsx
+    import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
+    import { ConsentManagerProvider } from '@c15t/react';
+
+    export function App({ children }: { children: React.ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            scripts: [
+              linkedinInsights({
+                id: '123456789012345',
+              }),
+            ],
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js + App Router">
+    ```tsx
+    'use client';
+    import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
+    import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
+
+    export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
+      return (
+        <ClientSideOptionsProvider
+          scripts={[
             linkedinInsights({
               id: '123456789012345',
             }),
-          ],
-        });
-        ```
-      </Tab>
+          ]}
+        >
+          {children}
+        </ClientSideOptionsProvider>
+      );
+    }
+    ```
+  </Tab>
 
-      <Tab value="React">
-        ```tsx
-        import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
-        import { ConsentManagerProvider } from '@c15t/react';
+  <Tab value="Next.js + Pages Router">
+    ```tsx
+    import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
 
-        export function App({ children }: { children: React.ReactNode }) { 
-          <ConsentManagerProvider
-            options={{
-              scripts: [
-                linkedinInsights({
-                  id: '123456789012345',
-                }),
-              ],
-            }}
-          >
-            {children}
-          </ConsentManagerProvider>
-        }
-        ```
-      </Tab>
-
-      <Tab value="Next.js + App Router">
-        ```tsx
-        'use client';
-        import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
-        import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
-
-        export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
-          return (
-            <ClientSideOptionsProvider
-              scripts={[
-                linkedinInsights({
-                  id: '123456789012345',
-                }),
-              ]}
-            >
-              {children}
-            </ClientSideOptionsProvider>
-          );
-        }
-        ```
-      </Tab>
-
-      <Tab value="Next.js + Pages Router">
-        ```tsx
-        import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
-        import { ConsentManagerProvider } from '@c15t/nextjs';
-
-        export function App({ children }: { children: React.ReactNode }) { 
-          <ConsentManagerProvider
-            options={{
-              // ... other options
-              scripts: [
-                linkedinInsights({
-                  id: '123456789012345',
-                }),
-              ],
-            }}
-          >
-            {children}
-          </ConsentManagerProvider>
-        }
-        ```
-      </Tab>
-    </Tabs>
-  </Step>
-</Steps>
+    export function App({ children }: { children: React.ReactNode }) {
+      return ( 
+        <ConsentManagerProvider
+          options={{
+            scripts: [
+              linkedinInsights({
+                id: '123456789012345',
+              }),
+            ],
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
 
 ## Types
 
