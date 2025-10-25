@@ -3,6 +3,7 @@
 	"compilerOptions": {
 		"moduleResolution": "bundler",
 		"baseUrl": ".",
+		"jsx": "react-jsx",
 		"types": ["@vitest/browser/matchers"],
 		"paths": {
 			"~/*": ["./src/*"]

@@ -1,0 +1,92 @@
+---
+title: YouTube Embed
+description: Embed YouTube videos that respect user consent preferences using the Frame component wrapper.
+---
+
+The YouTube Embed component provides an easy way to embed YouTube videos on your website while respecting user consent preferences. Built on top of the [Frame component](/docs/frameworks/react/components/frame), it displays a consent placeholder when permission hasn't been granted.
+
+## Installation
+
+<PackageCommandTabs mode="install" command="@c15t/react @c15t/scripts" />
+
+## Usage
+
+### Basic Implementation
+
+```tsx
+import { YouTubeEmbed } from '@c15t/scripts/react/youtube-embed';
+
+export default function VideoPage() {
+	return <YouTubeEmbed videoId="dQw4w9WgXcQ" />;
+}
+```
+
+### With Custom Configuration
+
+```tsx
+import { YouTubeEmbed } from '@c15t/scripts/react/youtube-embed';
+
+export default function VideoPage() {
+	return (
+		<YouTubeEmbed
+			videoId="dQw4w9WgXcQ"
+			title="Rick Astley - Never Gonna Give You Up"
+			category="marketing"
+			width="100%"
+			height={500}
+			params="autoplay=1&mute=1"
+		/>
+	);
+}
+```
+
+### Custom Styling
+
+```tsx
+import { YouTubeEmbed } from '@c15t/scripts/react/youtube-embed';
+
+export default function VideoPage() {
+	return (
+		<YouTubeEmbed
+			videoId="dQw4w9WgXcQ"
+			style={{
+				maxWidth: '800px',
+				margin: '0 auto',
+				borderRadius: '12px',
+				overflow: 'hidden',
+			}}
+			iframeClassName="custom-iframe"
+		/>
+	);
+}
+```
+
+### Custom Placeholder
+
+You can provide a custom placeholder component that will be shown when consent is not granted:
+
+```tsx
+import { YouTubeEmbed } from '@c15t/scripts/react/youtube-embed';
+
+const CustomPlaceholder = () => (
+	<div style={{ padding: '2rem', textAlign: 'center' }}>
+		<h3>Video requires consent</h3>
+		<p>Please accept measurement cookies to watch this video.</p>
+	</div>
+);
+
+export default function VideoPage() {
+	return (
+		<YouTubeEmbed
+			videoId="dQw4w9WgXcQ"
+			placeholder={<CustomPlaceholder />}
+		/>
+	);
+}
+```
+
+## Configuration Options
+
+### YouTubeEmbedProps
+
+<AutoTypeTable path="./packages/scripts/src/react/youtube-embed.tsx" name="YouTubeEmbedProps" />

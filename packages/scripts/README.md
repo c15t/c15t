@@ -22,6 +22,8 @@ Prebuilt scripts for c15t's script loader, for popular tools you may need to imp
 
 ## Scripts
 
+### Analytics & Marketing Tools
+
 - [Google Tag Manager](https://c15t.com/docs/integrations/google-tag-manager)
 - [Google Tag](https://c15t.com/docs/integrations/google-tag)
 - [PostHog](https://c15t.com/docs/integrations/posthog)
@@ -30,6 +32,11 @@ Prebuilt scripts for c15t's script loader, for popular tools you may need to imp
 - [LinkedIn Insights](https://c15t.com/docs/integrations/linkedin-insights)
 - [Microsoft UET](https://c15t.com/docs/integrations/microsoft-uet)
 - [X Pixel](https://c15t.com/docs/integrations/x-pixel)
+
+### Framework Components
+
+- [YouTube Embed (React)](https://c15t.com/docs/integrations/youtube-embed) - Available at `@c15t/scripts/react/youtube-embed`
+- More frameworks coming soon (Preact, Svelte, Vue, etc.)
 
 ## Support
 
