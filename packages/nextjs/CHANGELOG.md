@@ -1,5 +1,11 @@
 # @c15t/nextjs
 
+## 1.7.2
+
+### Patch Changes
+
+- e7e6f44: chore(nextjs): add Nextjs 16 as peer dependency
+
 ## 1.7.1
 
 ### Patch Changes
