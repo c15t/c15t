@@ -1,5 +1,12 @@
 # @c15t/dev-tools
 
+## 1.7.1-canary-20251025002031
+
+### Patch Changes
+
+- Updated dependencies [8f3f146]
+  - c15t@1.7.1-canary-20251025002031
+
 ## 1.7.0
 
 ### Patch Changes
