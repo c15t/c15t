@@ -84,24 +84,32 @@ describe('YouTubeEmbed', () => {
 		);
 	};
 
+	const waitForIframe = async (
+		selector = 'iframe'
+	): Promise<HTMLIFrameElement> => {
+		let iframe: HTMLIFrameElement | null = null;
+		await vi.waitFor(() => {
+			iframe = document.querySelector(selector);
+			expect(iframe).toBeInTheDocument();
+		});
+		return iframe as unknown as HTMLIFrameElement;
+	};
+
 	describe('Basic Rendering', () => {
 		test('should render youtube iframe with correct video ID', async () => {
 			renderWithProvider(<YouTubeEmbed videoId="dQw4w9WgXcQ" />);
 
-			// Wait for Frame to render children after consent check
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe') as HTMLIFrameElement;
-			expect(iframe).toBeInTheDocument();
-			expect(iframe.src).toContain('https://www.youtube.com/embed/dQw4w9WgXcQ');
+			const iframe = await waitForIframe();
+			expect(iframe).toHaveAttribute(
+				'src',
+				'https://www.youtube.com/embed/dQw4w9WgXcQ'
+			);
 		});
 
 		test('should use default title when not provided', async () => {
 			renderWithProvider(<YouTubeEmbed videoId="dQw4w9WgXcQ" />);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe') as HTMLIFrameElement;
+			const iframe = await waitForIframe();
 			expect(iframe.title).toBe('YouTube video');
 		});
 
@@ -113,20 +121,15 @@ describe('YouTubeEmbed', () => {
 				/>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe') as HTMLIFrameElement;
+			const iframe = await waitForIframe();
 			expect(iframe.title).toBe('Rick Astley - Never Gonna Give You Up');
 		});
 
 		test('should apply default dimensions', async () => {
 			renderWithProvider(<YouTubeEmbed videoId="dQw4w9WgXcQ" />);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			// The Frame wrapper is the parent div
-			const wrapper = document.querySelector('iframe')
-				?.parentElement as HTMLElement;
+			const iframe = await waitForIframe();
+			const wrapper = iframe.parentElement as HTMLElement;
 			expect(wrapper).toBeInTheDocument();
 			expect(wrapper.style.width).toBe('100%');
 			expect(wrapper.style.height).toBe('315px');
@@ -137,10 +140,8 @@ describe('YouTubeEmbed', () => {
 				<YouTubeEmbed videoId="dQw4w9WgXcQ" width={640} height={480} />
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const wrapper = document.querySelector('iframe')
-				?.parentElement as HTMLElement;
+			const iframe = await waitForIframe();
+			const wrapper = iframe.parentElement as HTMLElement;
 			expect(wrapper.style.width).toBe('640px');
 			expect(wrapper.style.height).toBe('480px');
 		});
@@ -150,10 +151,11 @@ describe('YouTubeEmbed', () => {
 		test('should construct embed URL without params', async () => {
 			renderWithProvider(<YouTubeEmbed videoId="dQw4w9WgXcQ" />);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe') as HTMLIFrameElement;
-			expect(iframe.src).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+			const iframe = await waitForIframe();
+			expect(iframe).toHaveAttribute(
+				'src',
+				'https://www.youtube.com/embed/dQw4w9WgXcQ'
+			);
 		});
 
 		test('should append query params when provided', async () => {
@@ -161,10 +163,9 @@ describe('YouTubeEmbed', () => {
 				<YouTubeEmbed videoId="dQw4w9WgXcQ" params="autoplay=1&mute=1" />
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe') as HTMLIFrameElement;
-			expect(iframe.src).toBe(
+			const iframe = await waitForIframe();
+			expect(iframe).toHaveAttribute(
+				'src',
 				'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1'
 			);
 		});
@@ -174,10 +175,9 @@ describe('YouTubeEmbed', () => {
 				<YouTubeEmbed videoId="dQw4w9WgXcQ" params="autoplay=1" />
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe') as HTMLIFrameElement;
-			expect(iframe.src).toBe(
+			const iframe = await waitForIframe();
+			expect(iframe).toHaveAttribute(
+				'src',
 				'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1'
 			);
 		});
@@ -185,10 +185,11 @@ describe('YouTubeEmbed', () => {
 		test('should not add question mark when params is empty string', async () => {
 			renderWithProvider(<YouTubeEmbed videoId="dQw4w9WgXcQ" params="" />);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe') as HTMLIFrameElement;
-			expect(iframe.src).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+			const iframe = await waitForIframe();
+			expect(iframe).toHaveAttribute(
+				'src',
+				'https://www.youtube.com/embed/dQw4w9WgXcQ'
+			);
 		});
 	});
 
@@ -196,9 +197,7 @@ describe('YouTubeEmbed', () => {
 		test('should render iframe when measurement consent is granted', async () => {
 			renderWithProvider(<YouTubeEmbed videoId="dQw4w9WgXcQ" />);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe');
+			const iframe = await waitForIframe();
 			expect(iframe).toBeInTheDocument();
 		});
 
@@ -207,9 +206,7 @@ describe('YouTubeEmbed', () => {
 				<YouTubeEmbed videoId="dQw4w9WgXcQ" category="marketing" />
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe');
+			const iframe = await waitForIframe();
 			expect(iframe).toBeInTheDocument();
 		});
 
@@ -223,20 +220,16 @@ describe('YouTubeEmbed', () => {
 				/>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
 			// Since we have consent, the iframe should render (not the placeholder)
-			const iframe = document.querySelector('iframe');
+			const iframe = await waitForIframe();
 			expect(iframe).toBeInTheDocument();
 		});
 
 		test('should pass correct category prop to Frame', async () => {
 			renderWithProvider(<YouTubeEmbed videoId="dQw4w9WgXcQ" />);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
 			// Verify the component renders successfully with default category
-			const iframe = document.querySelector('iframe');
+			const iframe = await waitForIframe();
 			expect(iframe).toBeInTheDocument();
 		});
 	});
@@ -247,10 +240,8 @@ describe('YouTubeEmbed', () => {
 				<YouTubeEmbed videoId="dQw4w9WgXcQ" className="custom-class" />
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const wrapper = document.querySelector('iframe')
-				?.parentElement as HTMLElement;
+			const iframe = await waitForIframe();
+			const wrapper = iframe.parentElement as HTMLElement;
 			expect(wrapper.className).toContain('custom-class');
 		});
 
@@ -262,10 +253,8 @@ describe('YouTubeEmbed', () => {
 				/>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const wrapper = document.querySelector('iframe')
-				?.parentElement as HTMLElement;
+			const iframe = await waitForIframe();
+			const wrapper = iframe.parentElement as HTMLElement;
 			expect(wrapper.style.border).toBe('2px solid red');
 			expect(wrapper.style.borderRadius).toBe('8px');
 		});
@@ -278,10 +267,8 @@ describe('YouTubeEmbed', () => {
 				/>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe');
-			expect(iframe?.className).toContain('custom-iframe-class');
+			const iframe = await waitForIframe();
+			expect(iframe.className).toContain('custom-iframe-class');
 		});
 
 		test('should apply custom iframe styles', async () => {
@@ -292,9 +279,7 @@ describe('YouTubeEmbed', () => {
 				/>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe') as HTMLIFrameElement;
+			const iframe = await waitForIframe();
 			expect(iframe.style.borderRadius).toBe('12px');
 			expect(iframe.style.opacity).toBe('0.9');
 		});
@@ -302,9 +287,7 @@ describe('YouTubeEmbed', () => {
 		test('should maintain default iframe styles', async () => {
 			renderWithProvider(<YouTubeEmbed videoId="dQw4w9WgXcQ" />);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe') as HTMLIFrameElement;
+			const iframe = await waitForIframe();
 			expect(iframe.style.width).toBe('100%');
 			expect(iframe.style.height).toBe('100%');
 			expect(iframe.style.border).toBe('0px');
@@ -315,9 +298,7 @@ describe('YouTubeEmbed', () => {
 		test('should set correct allow attribute', async () => {
 			renderWithProvider(<YouTubeEmbed videoId="dQw4w9WgXcQ" />);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe') as HTMLIFrameElement;
+			const iframe = await waitForIframe();
 			expect(iframe.getAttribute('allow')).toBe(
 				'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
 			);
@@ -326,9 +307,7 @@ describe('YouTubeEmbed', () => {
 		test('should set correct referrerPolicy', async () => {
 			renderWithProvider(<YouTubeEmbed videoId="dQw4w9WgXcQ" />);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe') as HTMLIFrameElement;
+			const iframe = await waitForIframe();
 			expect(iframe.getAttribute('referrerpolicy')).toBe(
 				'strict-origin-when-cross-origin'
 			);
@@ -337,9 +316,7 @@ describe('YouTubeEmbed', () => {
 		test('should have allowFullScreen attribute', async () => {
 			renderWithProvider(<YouTubeEmbed videoId="dQw4w9WgXcQ" />);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe') as HTMLIFrameElement;
+			const iframe = await waitForIframe();
 			expect(iframe.allowFullscreen).toBe(true);
 		});
 	});
@@ -350,10 +327,10 @@ describe('YouTubeEmbed', () => {
 
 			renderWithProvider(<YouTubeEmbed videoId="dQw4w9WgXcQ" ref={ref} />);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			expect(ref.current).toBeInstanceOf(HTMLDivElement);
-			expect(ref.current?.tagName).toBe('DIV');
+			await vi.waitFor(() => {
+				expect(ref.current).toBeInstanceOf(HTMLDivElement);
+				expect(ref.current?.tagName).toBe('DIV');
+			});
 		});
 	});
 
@@ -366,22 +343,16 @@ describe('YouTubeEmbed', () => {
 				/>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe') as HTMLIFrameElement;
+			const iframe = await waitForIframe();
 			expect(iframe.title).toBe('Educational video about React');
 		});
 
 		test('should maintain semantic structure', async () => {
 			renderWithProvider(<YouTubeEmbed videoId="dQw4w9WgXcQ" />);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const wrapper = document.querySelector('iframe')
-				?.parentElement as HTMLElement;
+			const iframe = await waitForIframe();
+			const wrapper = iframe.parentElement as HTMLElement;
 			expect(wrapper.tagName).toBe('DIV');
-
-			const iframe = document.querySelector('iframe');
 			expect(iframe).toBeInTheDocument();
 		});
 	});
@@ -390,29 +361,23 @@ describe('YouTubeEmbed', () => {
 		test('should handle special characters in video ID', async () => {
 			renderWithProvider(<YouTubeEmbed videoId="abc-123_XYZ" />);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe') as HTMLIFrameElement;
+			const iframe = await waitForIframe();
 			expect(iframe.src).toContain('abc-123_XYZ');
 		});
 
 		test('should handle percentage width', async () => {
 			renderWithProvider(<YouTubeEmbed videoId="dQw4w9WgXcQ" width="80%" />);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const wrapper = document.querySelector('iframe')
-				?.parentElement as HTMLElement;
+			const iframe = await waitForIframe();
+			const wrapper = iframe.parentElement as HTMLElement;
 			expect(wrapper.style.width).toBe('80%');
 		});
 
 		test('should handle numeric height', async () => {
 			renderWithProvider(<YouTubeEmbed videoId="dQw4w9WgXcQ" height={720} />);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const wrapper = document.querySelector('iframe')
-				?.parentElement as HTMLElement;
+			const iframe = await waitForIframe();
+			const wrapper = iframe.parentElement as HTMLElement;
 			expect(wrapper.style.height).toBe('720px');
 		});
 
@@ -424,9 +389,7 @@ describe('YouTubeEmbed', () => {
 				/>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const iframe = document.querySelector('iframe') as HTMLIFrameElement;
+			const iframe = await waitForIframe();
 			// Custom styles should override defaults
 			expect(iframe.style.border).toBe('1px solid blue');
 			expect(iframe.style.width).toBe('90%');
@@ -445,10 +408,8 @@ describe('YouTubeEmbed', () => {
 				/>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const wrapper = document.querySelector('iframe')
-				?.parentElement as HTMLElement;
+			const iframe = await waitForIframe();
+			const wrapper = iframe.parentElement as HTMLElement;
 			expect(wrapper.getAttribute('data-tracking-id')).toBe('yt-embed-1');
 			expect(wrapper.getAttribute('data-section')).toBe('hero');
 		});
@@ -462,10 +423,8 @@ describe('YouTubeEmbed', () => {
 				/>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			const wrapper = document.querySelector('iframe')
-				?.parentElement as HTMLElement;
+			const iframe = await waitForIframe();
+			const wrapper = iframe.parentElement as HTMLElement;
 			expect(wrapper.getAttribute('aria-label')).toBe('Featured video');
 			expect(wrapper.getAttribute('aria-describedby')).toBe(
 				'video-description'
