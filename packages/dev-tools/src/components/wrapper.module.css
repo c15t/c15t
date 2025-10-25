@@ -88,16 +88,8 @@
 
 .buttonContainer {
 	position: fixed;
-	right: var(--c15t-dev-tools-spacing-md);
-	bottom: var(--c15t-dev-tools-spacing-md);
 	z-index: var(--c15t-dev-tools-z-index);
-}
-
-@media (min-width: 640px) {
-	.buttonContainer {
-		right: var(--c15t-dev-tools-spacing-lg);
-		bottom: var(--c15t-dev-tools-spacing-lg);
-	}
+	transition: none;
 }
 
 .button {
@@ -105,20 +97,54 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	width: 48px;
+	height: 48px;
+	padding: 0;
 	border-radius: 9999px;
-	border: 1px solid var(--c15t-dev-tools-border);
-	background-color: var(--c15t-dev-tools-background);
-	color: var(--c15t-dev-tools-foreground);
-	box-shadow: var(--c15t-dev-tools-card-shadow);
+	border: none;
+	background: rgba(0, 0, 0, 0.8);
+	backdrop-filter: blur(48px);
+	color: white;
+	cursor: pointer;
+	user-select: none;
+	box-shadow:
+		0 0 0 1px #171717,
+		inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+		0px 16px 32px -8px rgba(0, 0, 0, 0.24);
 	transition:
-		border-color var(--c15t-dev-tools-animation-duration)
-			var(--c15t-dev-tools-animation-timing),
-		background-color var(--c15t-dev-tools-animation-duration)
-			var(--c15t-dev-tools-animation-timing);
+		scale 150ms cubic-bezier(0.23, 0.88, 0.26, 0.92),
+		box-shadow 150ms ease;
 }
 
 .button:hover {
-	border-color: var(--c15t-dev-tools-primary);
+	box-shadow:
+		0 0 0 1px #171717,
+		inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+		0px 20px 40px -10px rgba(0, 0, 0, 0.32);
+}
+
+.button:active {
+	scale: 0.95;
+}
+
+.button:focus-visible {
+	outline: 2px solid var(--c15t-dev-tools-primary, #3b82f6);
+	outline-offset: 3px;
+}
+
+/* Light theme styles */
+:global(.light) .button {
+	background: rgba(255, 255, 255, 0.95);
+	color: #171717;
+	box-shadow:
+		0 0 0 1px rgba(0, 0, 0, 0.06),
+		0px 16px 32px -8px rgba(0, 0, 0, 0.12);
+}
+
+:global(.light) .button:hover {
+	box-shadow:
+		0 0 0 1px rgba(0, 0, 0, 0.1),
+		0px 20px 40px -10px rgba(0, 0, 0, 0.16);
 }
 
 .buttonIcon {
@@ -143,5 +169,14 @@
 	flex: 1;
 	overflow-y: auto;
 	padding: var(--c15t-dev-tools-spacing-md);
+}
+
+/* Draggable states */
+:global(.dev-tools-grabbing) {
+	cursor: grabbing !important;
+}
+
+:global(.dev-tools-grabbing) > * {
+	pointer-events: none;
 }
 

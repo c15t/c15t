@@ -1,58 +1,87 @@
 .container {
 	display: flex;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
 	align-items: center;
-	gap: 0.5rem;
-	border-radius: 1rem;
-	border: 1px solid var(--c15t-dev-tools-border);
-	background-color: var(--c15t-dev-tools-background);
-	padding: 0.25rem;
-	box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+	width: max-content;
+	gap: 6px;
+	border-radius: 10px;
+	background: rgba(255, 255, 255, 0.05);
+	padding: 4px;
 }
 
 .separator {
-	margin-left: 0.25rem;
-	margin-right: 0.25rem;
+	margin-left: 4px;
+	margin-right: 4px;
 	height: 24px;
-	width: 1.2px;
-	background-color: var(--border);
+	width: 1px;
+	background: rgba(255, 255, 255, 0.1);
 }
 
 .button {
 	position: relative;
 	display: flex;
-	flex-grow: 1;
 	align-items: center;
 	justify-content: center;
-	border-radius: 0.75rem;
-	padding: 0.5rem 1rem;
-	font-size: 0.875rem;
+	border-radius: 8px;
+	padding: 8px 12px;
+	font-size: 14px;
 	font-weight: 500;
-	transition-property: color, background-color;
-	transition-duration: 300ms;
-	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+	line-height: 20px;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	transition:
+		color 150ms ease,
+		background-color 150ms ease;
+	color: rgba(255, 255, 255, 0.6);
+	min-width: 0;
+	flex-shrink: 0;
 }
 
-.button:not(.selected) {
-	color: var(--c15t-dev-tools-muted-foreground);
-}
-
-.button:not(.selected):hover {
-	background-color: var(--c15t-dev-tools-muted);
-	color: var(--c15t-dev-tools-foreground);
+.button:hover {
+	background: rgba(255, 255, 255, 0.08);
+	color: rgba(255, 255, 255, 0.9);
 }
 
 .button.selected {
-	background-color: var(--c15t-dev-tools-muted);
+	background: rgba(255, 255, 255, 0.1);
+	color: rgba(255, 255, 255, 0.9);
 }
 
 .button.selected.primary {
-	color: var(--c15t-dev-tools-primary);
+	color: #3b82f6;
 }
 
 .title {
 	overflow: hidden;
 	white-space: nowrap;
+}
+
+/* Light theme overrides */
+:global(.light) .container {
+	background: rgba(0, 0, 0, 0.04);
+}
+
+:global(.light) .separator {
+	background: rgba(0, 0, 0, 0.1);
+}
+
+:global(.light) .button {
+	color: rgba(0, 0, 0, 0.6);
+}
+
+:global(.light) .button:hover {
+	background: rgba(0, 0, 0, 0.06);
+	color: rgba(0, 0, 0, 0.9);
+}
+
+:global(.light) .button.selected {
+	background: rgba(0, 0, 0, 0.08);
+	color: rgba(0, 0, 0, 0.9);
+}
+
+:global(.light) .button.selected.primary {
+	color: #2563eb;
 }
 
 

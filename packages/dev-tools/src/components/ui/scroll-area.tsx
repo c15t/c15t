@@ -10,19 +10,30 @@ import {
 import { cn } from '~/libs/utils';
 import styles from './scroll-area.module.css';
 
+interface ScrollAreaProps
+	extends ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root> {
+	orientation?: 'vertical' | 'horizontal' | 'both';
+}
+
 const ScrollArea = forwardRef<
 	ComponentRef<typeof ScrollAreaPrimitive.Root>,
-	ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root>
->(({ className, children, ...props }, ref) => (
+	ScrollAreaProps
+>(({ className, children, orientation = 'vertical', ...props }, ref) => (
 	<ScrollAreaPrimitive.Root
 		ref={ref}
 		className={cn(styles.root, className)}
+		data-orientation={orientation}
 		{...props}
 	>
 		<ScrollAreaPrimitive.Viewport className={styles.viewport}>
 			{children}
 		</ScrollAreaPrimitive.Viewport>
-		<ScrollBar />
+		{(orientation === 'vertical' || orientation === 'both') && (
+			<ScrollBar orientation="vertical" />
+		)}
+		{(orientation === 'horizontal' || orientation === 'both') && (
+			<ScrollBar orientation="horizontal" />
+		)}
 		<ScrollAreaPrimitive.Corner />
 	</ScrollAreaPrimitive.Root>
 ));
@@ -44,3 +55,4 @@ const ScrollBar = forwardRef<
 ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName;
 
 export { ScrollArea, ScrollBar };
+export type { ScrollAreaProps };

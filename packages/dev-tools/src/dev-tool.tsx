@@ -10,10 +10,11 @@ import {
 	useState,
 } from 'react';
 import type { StoreApi } from 'zustand/vanilla';
-import { ErrorState } from './components/error-state';
-import { Header } from './components/header';
 import DevToolWrapper from './components/wrapper';
+import type { Corners } from './libs/draggable';
 import { Router } from './router/router';
+
+const STORAGE_KEY_POSITION = 'c15t-devtools-position';
 
 const PrivacyC15TContext = createContext<{
 	state: PrivacyConsentState | null;
@@ -57,19 +58,78 @@ export const getStore = () => {
 export default PrivacyC15TContext;
 
 export interface ConsentManagerProviderProps extends NamespaceProps {
-	position?: 'bottom-right' | 'top-right' | 'bottom-left' | 'top-left';
+	position?: Corners;
+}
+
+/**
+ * Load position from localStorage
+ *
+ * @param defaultPosition - The default position if none is stored
+ * @returns The stored position or the default
+ */
+function loadPosition(defaultPosition: Corners): Corners {
+	if (typeof window === 'undefined') {
+		return defaultPosition;
+	}
+
+	try {
+		const stored = localStorage.getItem(STORAGE_KEY_POSITION);
+		if (stored) {
+			const parsed = JSON.parse(stored) as Corners;
+			// Validate the stored value
+			if (
+				['top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(
+					parsed
+				)
+			) {
+				return parsed;
+			}
+		}
+	} catch {
+		// Silently fail and use default
+	}
+
+	return defaultPosition;
+}
+
+/**
+ * Save position to localStorage
+ *
+ * @param position - The position to save
+ */
+function savePosition(position: Corners): void {
+	if (typeof window === 'undefined') {
+		return;
+	}
+
+	try {
+		localStorage.setItem(STORAGE_KEY_POSITION, JSON.stringify(position));
+	} catch {
+		// Silently fail if localStorage is not available
+	}
 }
 
 export const C15TDevTools: FC<ConsentManagerProviderProps> = ({
 	namespace = 'c15tStore',
-	position = 'bottom-right',
+	position: initialPosition = 'bottom-right',
 }) => {
 	const [state, setState] = useState<PrivacyConsentState | null>(null);
 	const [store, setStore] = useState<StoreApi<PrivacyConsentState> | null>(
 		null
 	);
 	const [isOpen, setIsOpen] = useState(false);
-	const toggleOpen = useCallback(() => setIsOpen((prev) => !prev), []);
+	const [position, setPosition] = useState<Corners>(() => {
+		return loadPosition(initialPosition);
+	});
+
+	const toggleOpen = useCallback(() => {
+		return setIsOpen((prev) => !prev);
+	}, []);
+
+	const handlePositionChange = useCallback((newPosition: Corners) => {
+		setPosition(newPosition);
+		savePosition(newPosition);
+	}, []);
 
 	useEffect(() => {
 		const storeInstance =
@@ -100,15 +160,11 @@ export const C15TDevTools: FC<ConsentManagerProviderProps> = ({
 		<PrivacyC15TContext.Provider value={{ state, store }}>
 			<DevToolWrapper
 				isOpen={isOpen}
-				toggleOpen={toggleOpen}
+				onPositionChange={handlePositionChange}
 				position={position}
+				toggleOpen={toggleOpen}
 			>
-				<Header onClose={() => setIsOpen(false)} />
-				{state ? (
-					<Router onClose={() => setIsOpen(false)} />
-				) : (
-					<ErrorState namespace={namespace} />
-				)}
+				<Router onClose={toggleOpen} />
 			</DevToolWrapper>
 		</PrivacyC15TContext.Provider>
 	);

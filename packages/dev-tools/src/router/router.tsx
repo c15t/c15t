@@ -8,6 +8,7 @@ import { Badge } from '~/components/ui/badge';
 import { ExpandableTabs } from '../components/ui/expandable-tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { getStore } from '../dev-tool';
+import styles from './router.module.css';
 
 type TabSection = 'Consents' | 'Compliance' | 'Scripts' | 'Conditional';
 
@@ -77,17 +78,18 @@ export function Router({ onClose: _onClose }: RouterProps) {
 
 	return (
 		<>
-			<div className="border-b p-4">
-				<ExpandableTabs
-					tabs={Array.from(tabs)}
-					activeColor="text-primary"
-					className="border-muted"
-					onChange={handleTabChange}
-				/>
+			<div className={styles.tabsContainer}>
+				<ScrollArea orientation="horizontal" className={styles.tabsScrollArea}>
+					<ExpandableTabs
+						tabs={Array.from(tabs)}
+						activeColor="primary"
+						onChange={handleTabChange}
+					/>
+				</ScrollArea>
 			</div>
-			<ScrollArea className="h-[300px]">
+			<ScrollArea className={styles.scrollContainer}>
 				<motion.div
-					className="space-y-2 p-4"
+					className={styles.contentContainer}
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 					exit={{ opacity: 0 }}
@@ -95,17 +97,15 @@ export function Router({ onClose: _onClose }: RouterProps) {
 					{contentItems.map((item, index) => (
 						<motion.div
 							key={`${activeSection}-${item.title}`}
-							className="flex items-center justify-between rounded-lg border bg-card p-3"
+							className={styles.itemCard}
 							initial={{ opacity: 0, y: 20 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: index * 0.05 }}
 						>
-							<div className="flex flex-col">
-								<span className="font-medium text-sm">{item.title}</span>
+							<div className={styles.itemContent}>
+								<span className={styles.itemTitle}>{item.title}</span>
 								{item.details && (
-									<span className="text-muted-foreground text-xs">
-										{item.details}
-									</span>
+									<span className={styles.itemDetails}>{item.details}</span>
 								)}
 							</div>
 							<Badge
@@ -124,22 +124,6 @@ export function Router({ onClose: _onClose }: RouterProps) {
 					))}
 				</motion.div>
 			</ScrollArea>
-			{/* <div className="border-t p-4">
-				<div className="flex flex-col gap-2">
-					<Button variant="outline" size="sm" onClick={handleResetConsent}>
-						<RefreshCw className="mr-2 h-4 w-4" />
-						Reset Local Storage Consent
-					</Button>
-					<Button variant="outline" size="sm" onClick={handleOpenPrivacyModal}>
-						<FileText className="mr-2 h-4 w-4" />
-						Open Privacy Settings
-					</Button>
-					<Button variant="outline" size="sm" onClick={handleOpenCookiePopup}>
-						<Cookie className="mr-2 h-4 w-4" />
-						Open Cookie Popup
-					</Button>
-				</div>
-			</div> */}
 		</>
 	);
 }
