@@ -39,7 +39,6 @@
 		"@c15t/react": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"@types/react": "19.2.2",
 		"c15t": "workspace:*"
 	},
 	"peerDependencies": {
