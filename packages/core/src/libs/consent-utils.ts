@@ -55,6 +55,6 @@ export function hasConsentFor(
  * @param consentInfo - The consent information.
  * @returns True if the user has consented, false otherwise.
  */
-export function hasConsented(consentInfo: ConsentInfo): boolean {
+export function hasConsented(consentInfo: ConsentInfo | null): boolean {
 	return consentInfo !== null;
 }
