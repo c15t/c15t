@@ -8,20 +8,20 @@ export const nlTranslations: CompleteTranslations = {
 		save: 'Instellingen opslaan',
 	},
 	cookieBanner: {
-		title: 'Wij hechten waarde aan uw privacy',
+		title: 'We waarderen uw privacy',
 		description:
-			'Deze site gebruikt cookies om uw surfervaring te verbeteren, het verkeer op de site te analyseren en gepersonaliseerde inhoud te tonen',
+			'Deze site gebruikt cookies om uw browse-ervaring te verbeteren, siteverkeer te analyseren en gepersonaliseerde inhoud te tonen.',
 	},
 	consentManagerDialog: {
 		title: 'Privacy-instellingen',
 		description:
-			'Pas hier uw privacyinstellingen aan. U kunt kiezen welke soorten cookies en trackingtechnologieën u toestaat.',
+			'Pas hier uw privacy-instellingen aan. U kunt kiezen welke soorten cookies en trackingtechnologieën u toestaat.',
 	},
 	consentTypes: {
 		necessary: {
 			title: 'Strikt noodzakelijk',
 			description:
-				'Deze cookies zijn essentieel voor het goed functioneren van de website en kunnen niet worden uitgeschakeld',
+				'Deze cookies zijn essentieel voor het juist functioneren van de website en kunnen niet worden uitgeschakeld.',
 		},
 		functionality: {
 			title: 'Functionaliteit',
@@ -31,21 +31,26 @@ export const nlTranslations: CompleteTranslations = {
 		marketing: {
 			title: 'Marketing',
 			description:
-				'Deze cookies worden gebruikt om relevante advertenties aan te bieden en de effectiviteit ervan bij te houden',
+				'Deze cookies worden gebruikt om relevante advertenties te leveren en hun effectiviteit te volgen.',
 		},
 		measurement: {
 			title: 'Analytics',
 			description:
-				'Deze cookies helpen ons te begrijpen hoe bezoekers omgaan met de website en de prestaties ervan te verbeteren',
+				'Deze cookies helpen ons begrijpen hoe bezoekers omgaan met de website en de prestaties ervan te verbeteren.',
 		},
 		experience: {
 			title: 'Ervaring',
 			description:
-				'Deze cookies helpen ons om een betere gebruikerservaring te bieden en nieuwe functies te testen',
+				'Deze cookies helpen ons een betere gebruikerservaring te bieden en nieuwe functies te testen.',
 		},
 	},
 	frame: {
-		title: 'Accepteer {category} om deze inhoud te bekijken',
+		title: 'Accepteer {category} toestemming om deze inhoud te bekijken.',
 		actionButton: 'Schakel {category} toestemming in',
+	},
+	legalLinks: {
+		privacyPolicy: 'Privacybeleid',
+		cookiePolicy: 'Cookiebeleid',
+		termsOfService: 'Servicevoorwaarden',
 	},
 };

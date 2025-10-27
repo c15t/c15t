@@ -26,6 +26,8 @@ export type CookieBannerTheme = Partial<{
 	'banner.footer.customize-button': ThemeValue<ButtonCSSVariables>;
 	/** @remarks Styles for the footer accept button element */
 	'banner.footer.accept-button': ThemeValue<ButtonCSSVariables>;
+	/** @remarks Styles for the legal links in the footer */
+	'banner.footer.legal-links': ThemeValue;
 	/** @remarks Styles for the overlay element */
 	'banner.overlay': ThemeValue<OverlayCSSVariables>;
 }>;

@@ -10,6 +10,10 @@ import { forwardRef, type ReactNode, type Ref } from 'react';
 
 import { ConsentManagerWidget } from '~/components/consent-manager-widget/consent-manager-widget';
 import { Box, type BoxProps } from '~/components/shared/primitives/box';
+import {
+	type LegalLink,
+	LegalLinks,
+} from '~/components/shared/primitives/legal-links';
 import { C15TIcon, ConsentLogo } from '~/components/shared/ui/logo';
 import { useConsentManager } from '~/hooks';
 import { useTranslations } from '~/hooks/use-translations';
@@ -207,11 +211,14 @@ export const BrandingFooter = () => {
  *
  * @param {Object} props - Component props
  * @param {boolean} [props.noStyle] - When true, removes default styling
- * @param {boolean} [props.useConsentLogo] - When true, uses the Consent logo instead of C15T logo
+ * @param {LegalLink[]} [props.legalLinks] - Legal document links to display in footer
  *
  * @example
  * ```tsx
- * <ConsentCustomizationCard noStyle={false} />
+ * <ConsentCustomizationCard
+ *   noStyle={false}
+ *   legalLinks={[{label: "Privacy Policy", href: "/privacy"}]}
+ * />
  * ```
  *
  * @remarks
@@ -219,7 +226,13 @@ export const BrandingFooter = () => {
  * - Includes consent type management
  * - Built-in accessibility features
  */
-const ConsentCustomizationCard = ({ noStyle }: { noStyle?: boolean }) => {
+const ConsentCustomizationCard = ({
+	noStyle,
+	legalLinks,
+}: {
+	noStyle?: boolean;
+	legalLinks?: LegalLink[];
+}) => {
 	const { consentManagerDialog: translations } = useTranslations();
 
 	return (
@@ -238,6 +251,13 @@ const ConsentCustomizationCard = ({ noStyle }: { noStyle?: boolean }) => {
 				/>
 			</DialogContent>
 			<DialogFooter themeKey="dialog.footer">
+				{legalLinks && (
+					<LegalLinks
+						links={legalLinks}
+						themeKey="dialog.footer.legal-links"
+						data-testid="consent-manager-dialog-legal-links"
+					/>
+				)}
 				<BrandingFooter />
 			</DialogFooter>
 		</DialogCard>

@@ -2,50 +2,56 @@ import type { CompleteTranslations } from '../types';
 
 export const ptTranslations: CompleteTranslations = {
 	common: {
-		acceptAll: 'Aceitar todos',
-		rejectAll: 'Rejeitar todos',
+		acceptAll: 'Aceitar Tudo',
+		rejectAll: 'Rejeitar Tudo',
 		customize: 'Personalizar',
-		save: 'Salvar configurações',
+		save: 'Salvar Configurações',
 	},
 	cookieBanner: {
-		title: 'Respeitamos a sua privacidade',
+		title: 'Valorizamos sua privacidade',
 		description:
-			'Este site utiliza cookies para melhorar a sua experiência de navegação, analisar o tráfego do site e mostrar conteúdos personalizados.',
+			'Este site usa cookies para melhorar sua experiência de navegação, analisar o tráfego do site e mostrar conteúdo personalizado.',
 	},
 	consentManagerDialog: {
-		title: 'Configurações',
+		title: 'Configurações de Privacidade',
 		description:
-			'Personalize suas configurações de privacidade aqui. Você pode escolher quais tipos de cookies e tecnologias de rastreamento você permite.',
+			'Personalize suas configurações de privacidade aqui. Você pode escolher quais tipos de cookies e tecnologias de rastreamento permitir.',
 	},
 	consentTypes: {
 		necessary: {
-			title: 'Estritamente necessário',
+			title: 'Estritamente Necessários',
 			description:
-				'Estes cookies são essenciais para o site funcionar corretamente e não podem ser desativados.',
+				'Estes cookies são essenciais para o funcionamento adequado do site e não podem ser desabilitados.',
 		},
 		functionality: {
 			title: 'Funcionalidade',
 			description:
-				'Estes cookies permitem funcionalidades aprimoradas e personalização do site.',
+				'Estes cookies permitem funcionalidade aprimorada e personalização do site.',
 		},
 		marketing: {
 			title: 'Marketing',
 			description:
-				'Estes cookies são utilizados para fornecer publicidade relevante e rastrear a sua eficácia.',
+				'Estes cookies são usados para entregar anúncios relevantes e rastrear sua eficácia.',
 		},
 		measurement: {
 			title: 'Análise',
 			description:
-				'Estes cookies nos ajudam a compreender como os visitantes interagem com o site e melhoram o seu desempenho.',
+				'Estes cookies nos ajudam a entender como os visitantes interagem com o site e melhorar seu desempenho.',
 		},
 		experience: {
 			title: 'Experiência',
 			description:
-				'Estes cookies nos ajudam a fornecer uma experiência de usuário melhor e testar novas funcionalidades.',
+				'Estes cookies nos ajudam a fornecer uma melhor experiência do usuário e testar novos recursos.',
 		},
 	},
 	frame: {
-		title: 'Aceite {category} para ver este conteúdo',
-		actionButton: 'Ativar consentimento {category}',
+		title:
+			'Aceite o consentimento de {category} para visualizar este conteúdo.',
+		actionButton: 'Habilitar consentimento de {category}',
+	},
+	legalLinks: {
+		privacyPolicy: 'Política de Privacidade',
+		cookiePolicy: 'Política de Cookies',
+		termsOfService: 'Termos de Serviço',
 	},
 };

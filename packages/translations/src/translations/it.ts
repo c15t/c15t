@@ -13,9 +13,9 @@ export const itTranslations: CompleteTranslations = {
 			'Questo sito utilizza cookies per migliorare la tua esperienza di navigazione, analizzare il traffico e mostrare contenuti personalizzati.',
 	},
 	consentManagerDialog: {
-		title: 'Impostazioni di privacy',
+		title: 'Impostazioni Privacy',
 		description:
-			'Personalizza le tue impostazioni di privacy. Puoi scegliere i tipi di cookies e tecnologie di tracciamento che autorizzi.',
+			'Personalizza le tue impostazioni di privacy qui. Puoi scegliere quali tipi di cookies e tecnologie di tracciamento consentire.',
 	},
 	consentTypes: {
 		necessary: {
@@ -47,5 +47,10 @@ export const itTranslations: CompleteTranslations = {
 	frame: {
 		title: 'Accetta {category} per visualizzare questo contenuto',
 		actionButton: 'Abilita consenso {category}',
+	},
+	legalLinks: {
+		privacyPolicy: 'Informativa sulla Privacy',
+		cookiePolicy: 'Politica sui Cookie',
+		termsOfService: 'Termini di Servizio',
 	},
 };

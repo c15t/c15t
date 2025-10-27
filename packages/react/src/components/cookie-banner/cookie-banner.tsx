@@ -8,6 +8,10 @@
 
 import type { FC, ReactNode } from 'react';
 import { ConsentButton } from '~/components/shared/primitives/button';
+import {
+	type LegalLink,
+	LegalLinks,
+} from '~/components/shared/primitives/legal-links';
 import { useTheme } from '~/hooks/use-theme';
 import { useTranslations } from '~/hooks/use-translations';
 import { CookieBannerRoot } from './atoms/root';
@@ -101,6 +105,13 @@ export interface CookieBannerProps {
 	 * @default false
 	 */
 	disableAnimation?: boolean;
+
+	/**
+	 * Legal document links to display in the banner footer
+	 * @remarks Provides links to privacy policy, cookie policy, terms of service, etc.
+	 * @default undefined
+	 */
+	legalLinks?: LegalLink[];
 }
 
 export const CookieBanner: FC<CookieBannerProps> = ({
@@ -114,6 +125,7 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 	rejectButtonText,
 	customizeButtonText,
 	acceptButtonText,
+	legalLinks,
 }) => {
 	const { cookieBanner, common } = useTranslations();
 
@@ -174,6 +186,13 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 						>
 							{customizeButtonText || common.customize}
 						</ConsentButton>
+						{legalLinks && (
+							<LegalLinks
+								links={legalLinks}
+								themeKey="banner.footer.legal-links"
+								data-testid="cookie-banner-legal-links"
+							/>
+						)}
 					</CookieBannerFooter>
 				</CookieBannerCard>
 			</CookieBannerRoot>
