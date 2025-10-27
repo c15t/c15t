@@ -14,6 +14,8 @@ import {
 	hasConsented,
 	hasConsentFor,
 } from './libs/consent-utils';
+import type { StorageConfig } from './libs/cookie';
+import { deleteConsentFromStorage, getConsentFromStorage } from './libs/cookie';
 import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
 import { type GTMConfiguration, setupGTM } from './libs/gtm';
 import {
@@ -27,7 +29,7 @@ import { saveConsents } from './libs/save-consents';
 import { createScriptManager, type Script } from './libs/script-loader';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
 import { createTrackingBlocker } from './libs/tracking-blocker';
-import { initialState, STORAGE_KEY } from './store.initial-state';
+import { initialState } from './store.initial-state';
 import type { PrivacyConsentState } from './store.type';
 import type { Callbacks } from './types/callbacks';
 import type {
@@ -54,31 +56,28 @@ interface StoredConsent {
 }
 
 /**
- * Retrieves stored consent data from localStorage.
+ * Retrieves stored consent data from localStorage or cookie.
  *
  * @remarks
  * This function handles:
  * - Checking for browser environment
- * - Parsing stored JSON data
+ * - Reading from localStorage (primary)
+ * - Falling back to cookie if localStorage unavailable
+ * - Syncing cookie if localStorage exists but cookie doesn't
  * - Error handling for invalid data
  *
  * @returns The stored consent data or null if not available
  * @internal
  */
-const getStoredConsent = (): StoredConsent | null => {
+const getStoredConsent = (config?: StorageConfig): StoredConsent | null => {
 	if (typeof window === 'undefined') {
 		return null;
 	}
 
-	const stored = localStorage.getItem(STORAGE_KEY);
-	if (!stored) {
-		return null;
-	}
-
 	try {
-		return JSON.parse(stored);
+		return getConsentFromStorage<StoredConsent>(config);
 	} catch (e) {
-		console.error('Failed to parse stored consent:', e);
+		console.error('Failed to retrieve stored consent:', e);
 		return null;
 	}
 };
@@ -194,6 +193,27 @@ export interface StoreOptions {
 	 * @see https://c15t.com/docs/frameworks/javascript/script-loader
 	 */
 	scripts?: Script[];
+
+	/**
+	 * Storage configuration for consent persistence.
+	 *
+	 * @remarks
+	 * Configure how consent data is stored in localStorage and cookies.
+	 *
+	 * @example
+	 * ```typescript
+	 * const store = createConsentManagerStore(client, {
+	 *   storageConfig: {
+	 *     storageKey: 'my-consent',
+	 *     crossSubdomain: true,
+	 *     defaultExpiryDays: 180
+	 *   }
+	 * });
+	 * ```
+	 *
+	 * @see {@link StorageConfig} for available options
+	 */
+	storageConfig?: StorageConfig;
 }
 
 // For backward compatibility (if needed)
@@ -251,10 +271,11 @@ export const createConsentManagerStore = (
 		trackingBlockerConfig,
 		isConsentDomain = false,
 		translationConfig,
+		storageConfig,
 	} = options;
 
 	// Load initial state from localStorage if available
-	const storedConsent = getStoredConsent();
+	const storedConsent = getStoredConsent(storageConfig);
 
 	// Automatically disable tracking blocker if script loader is in use
 	const shouldDisableTrackingBlocker =
@@ -284,6 +305,8 @@ export const createConsentManagerStore = (
 		scripts: options.scripts ?? initialState.scripts,
 		// Set initial translation config if provided
 		translationConfig: translationConfig || initialState.translationConfig,
+		// Set storage configuration
+		storageConfig: storageConfig,
 		...(storedConsent
 			? {
 					consents: storedConsent.consents,
@@ -410,7 +433,7 @@ export const createConsentManagerStore = (
 		 * This function:
 		 * 1. Resets all consents to their type-specific defaults
 		 * 2. Clears consent information
-		 * 3. Removes stored consent from localStorage
+		 * 3. Removes stored consent from localStorage and cookie
 		 */
 		resetConsents: () => {
 			set(() => {
@@ -424,7 +447,7 @@ export const createConsentManagerStore = (
 					selectedConsents: consents,
 					consentInfo: null,
 				};
-				localStorage.removeItem(STORAGE_KEY);
+				deleteConsentFromStorage(undefined, storageConfig);
 				return resetState;
 			});
 		},

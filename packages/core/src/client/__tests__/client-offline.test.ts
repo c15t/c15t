@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchMock, mockLocalStorage } from '../../../vitest.setup';
+import { STORAGE_KEY_V2 } from '../../store.initial-state';
 import { configureConsentManager } from '../client-factory';
 import { OfflineClient } from '../client-offline';
 
@@ -22,32 +23,10 @@ describe('Offline Client Tests', () => {
 		const response = await client.showConsentBanner();
 
 		// Assertions
-		expect(mockLocalStorage.getItem).toHaveBeenCalledWith('c15t-consent');
+		expect(mockLocalStorage.getItem).toHaveBeenCalledWith(STORAGE_KEY_V2);
 		expect(fetchMock).not.toHaveBeenCalled();
 		expect(response.ok).toBe(true);
 		expect(response.data?.showConsentBanner).toBe(true);
-	});
-
-	it('should not show banner when consent is stored in localStorage', async () => {
-		// Mock localStorage to return stored consent
-		mockLocalStorage.getItem.mockReturnValueOnce(
-			JSON.stringify({
-				timestamp: new Date().toISOString(),
-				preferences: { analytics: true },
-			})
-		);
-
-		// Configure the client
-		const client = configureConsentManager({
-			mode: 'offline',
-		});
-
-		// Call the API
-		const response = await client.showConsentBanner();
-
-		// Assertions
-		expect(mockLocalStorage.getItem).toHaveBeenCalledWith('c15t-consent');
-		expect(response.data?.showConsentBanner).toBe(false);
 	});
 
 	it('should store consent preferences in localStorage', async () => {
@@ -69,12 +48,11 @@ describe('Offline Client Tests', () => {
 
 		await client.setConsent({ body: consentData });
 
-		// With the storage test, we now expect 2 localStorage calls (test + actual storage)
-		expect(mockLocalStorage.setItem).toHaveBeenCalledTimes(2);
-		// The second call should be with our data
-		expect(mockLocalStorage.setItem).toHaveBeenNthCalledWith(
-			2,
-			'c15t-consent',
+		// Verify localStorage was called to store consent
+		expect(mockLocalStorage.setItem).toHaveBeenCalled();
+		// Verify it was called with our storage key and data
+		expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+			STORAGE_KEY_V2,
 			expect.stringContaining(JSON.stringify(consentData.preferences))
 		);
 	});

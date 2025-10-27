@@ -136,6 +136,26 @@ export type OfflineClientOptions = {
  */
 export type ConsentManagerOptions = {
 	store?: StoreOptions;
+	/**
+	 * Storage configuration for consent persistence
+	 *
+	 * @remarks
+	 * This is shared between the client and store to ensure consistent storage behavior.
+	 * If not provided here, you can also configure it in store options.
+	 *
+	 * @example
+	 * ```typescript
+	 * const manager = configureConsentManager({
+	 *   client: 'c15t',
+	 *   projectId: 'your-project-id',
+	 *   storageConfig: {
+	 *     crossSubdomain: true,
+	 *     storageKey: 'my-consent',
+	 *   },
+	 * });
+	 * ```
+	 */
+	storageConfig?: import('../libs/cookie').StorageConfig;
 } & (CustomClientOptions | C15TClientOptions | OfflineClientOptions);
 
 /**
@@ -253,7 +273,7 @@ export function configureConsentManager(
 			break;
 		}
 		case 'offline':
-			client = new OfflineClient();
+			client = new OfflineClient(options.storageConfig);
 			break;
 		default: {
 			const c15tOptions = options as {
@@ -267,6 +287,7 @@ export function configureConsentManager(
 				headers: c15tOptions.headers,
 				customFetch: c15tOptions.customFetch,
 				retryConfig: c15tOptions.retryConfig,
+				storageConfig: options.storageConfig,
 			});
 			break;
 		}
