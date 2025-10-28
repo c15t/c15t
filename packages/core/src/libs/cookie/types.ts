@@ -39,10 +39,6 @@ export interface StorageConfig {
 	 * The default changed from 'privacy-consent-storage' to 'c15t' in v1.8+
 	 * to reduce cookie size. Legacy data is automatically migrated.
 	 *
-	 * Change this if you need to:
-	 * - Avoid conflicts with other libraries
-	 * - Use multiple consent instances
-	 * - Migrate from existing storage
 	 */
 	storageKey?: string;
 
