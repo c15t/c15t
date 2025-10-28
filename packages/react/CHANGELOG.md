@@ -1,12 +1,17 @@
 # @c15t/react
 
-## 1.7.1
+## 1.8.0-canary-20251028143243
+
+### Minor Changes
+
+- a0fab48: feat(core): cookie/local-storage hybrid approach
 
 ### Patch Changes
 
 - 067c7af: fix(react): frame component hydration error
 - Updated dependencies [8f3f146]
-  - c15t@1.7.1
+- Updated dependencies [a0fab48]
+  - c15t@1.8.0-canary-20251028143243
 
 ## 1.7.0
 

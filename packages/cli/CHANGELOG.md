@@ -1,6 +1,6 @@
 # @c15t/cli
 
-## 1.7.1
+## 1.8.0-canary-20251028143243
 
 ### Patch Changes
 
@@ -13,8 +13,9 @@
 - 2ad1ff3: fix(nextjs): missing InitialDataPromise type export for pages
 - Updated dependencies [067c7af]
 - Updated dependencies [8f3f146]
-  - @c15t/react@1.7.1
-  - @c15t/backend@1.7.1
+- Updated dependencies [a0fab48]
+  - @c15t/react@1.8.0-canary-20251028143243
+  - @c15t/backend@1.8.0-canary-20251028143243
 
 ## 1.7.0
 
