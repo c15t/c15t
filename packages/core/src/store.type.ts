@@ -13,6 +13,7 @@ import type {
 	ComplianceRegion,
 	ComplianceSettings,
 	ConsentBannerResponse,
+	ConsentInfo,
 	ConsentState,
 	ConsentType,
 	consentTypes,
@@ -70,7 +71,7 @@ export interface PrivacyConsentState {
 	selectedConsents: ConsentState;
 
 	/** Information about when and how consent was given */
-	consentInfo: { time: number; type: 'all' | 'custom' | 'necessary' } | null;
+	consentInfo: ConsentInfo | null;
 
 	/** Whether to show the consent popup */
 	showPopup: boolean;
@@ -101,6 +102,9 @@ export interface PrivacyConsentState {
 
 	/** Whether to ignore geo location. Will always show the consent banner. */
 	ignoreGeoLocation: boolean;
+
+	/** Storage configuration for consent persistence */
+	storageConfig?: import('./libs/cookie').StorageConfig;
 
 	/**
 	 * Updates the translation configuration.
