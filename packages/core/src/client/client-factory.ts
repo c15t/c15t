@@ -27,12 +27,56 @@ const DEFAULT_CLIENT_MODE = 'c15t';
 const clientRegistry = new Map<string, ConsentManagerInterface>();
 
 /**
+ * Serializes storageConfig to a stable string representation
+ *
+ * @param storageConfig - The storage configuration to serialize
+ * @returns A stable string representation of the storageConfig
+ *
+ * @internal
+ */
+function serializeStorageConfig(
+	storageConfig?: import('../libs/cookie').StorageConfig
+): string {
+	if (!storageConfig) {
+		return '';
+	}
+
+	// Sort keys alphabetically for stability and serialize
+	const sorted = Object.keys(storageConfig)
+		.sort()
+		.map((key) => {
+			const value = storageConfig[key as keyof typeof storageConfig];
+			// Handle different value types consistently
+			if (value === undefined || value === null) {
+				return `${key}:null`;
+			}
+			return `${key}:${String(value)}`;
+		})
+		.join('|');
+
+	return sorted;
+}
+
+/**
  * Create a stable cache key for client instances
+ *
+ * @param options - The consent manager options
+ * @returns A unique cache key string
+ *
+ * @remarks
+ * The cache key includes all configuration that affects client behavior,
+ * including storageConfig to ensure clients with different storage
+ * configurations don't share cache entries.
+ *
  * @internal
  */
 function getClientCacheKey(options: ConsentManagerOptions): string {
+	// Serialize storageConfig for all modes
+	const storageConfigPart = serializeStorageConfig(options.storageConfig);
+	const storageKey = storageConfigPart ? `:storage:${storageConfigPart}` : '';
+
 	if (options.mode === 'offline') {
-		return 'offline';
+		return `offline${storageKey}`;
 	}
 
 	if (options.mode === 'custom') {
@@ -40,7 +84,7 @@ function getClientCacheKey(options: ConsentManagerOptions): string {
 		const handlerKeys = Object.keys(options.endpointHandlers || {})
 			.sort()
 			.join(',');
-		return `custom:${handlerKeys}`;
+		return `custom:${handlerKeys}${storageKey}`;
 	}
 
 	// For c15t clients, include headers in the cache key if present
@@ -52,7 +96,7 @@ function getClientCacheKey(options: ConsentManagerOptions): string {
 	}
 
 	// For c15t clients, use the backendURL as the key
-	return `c15t:${options.backendURL || ''}${headersPart}`;
+	return `c15t:${options.backendURL || ''}${headersPart}${storageKey}`;
 }
 
 /**
