@@ -1,4 +1,9 @@
 import { defaultTranslationConfig } from '~/translations';
+import {
+	getConsentFromStorage,
+	type StorageConfig,
+	saveConsentToStorage,
+} from '../libs/cookie';
 import type {
 	ConsentManagerInterface,
 	SetConsentRequestBody,
@@ -21,6 +26,12 @@ export type OfflineClientOptions = Record<string, never>;
  * Returns empty successful responses without making any HTTP requests.
  */
 export class OfflineClient implements ConsentManagerInterface {
+	private readonly storageConfig?: StorageConfig;
+
+	constructor(storageConfig?: StorageConfig) {
+		this.storageConfig = storageConfig;
+	}
+
 	/**
 	 * Creates a response context object for success cases.
 	 */
@@ -51,27 +62,23 @@ export class OfflineClient implements ConsentManagerInterface {
 
 	/**
 	 * Checks if a consent banner should be shown.
-	 * In offline mode, will always return true unless localStorage has a value.
+	 * In offline mode, will always return true unless localStorage or cookie has a value.
 	 */
 	async showConsentBanner(
 		options?: FetchOptions<ShowConsentBannerResponse>
 	): Promise<ResponseContext<ShowConsentBannerResponse>> {
-		// Check localStorage to see if the banner has been shown
+		// Check localStorage and cookie to see if the banner has been shown
 		let shouldShow = true;
 
 		try {
-			if (typeof window !== 'undefined' && window.localStorage) {
-				// Test localStorage access with a simple operation
-				window.localStorage.setItem('c15t-storage-test-key', 'test');
-				window.localStorage.removeItem('c15t-storage-test-key');
-
-				const storedConsent = window.localStorage.getItem('c15t-consent');
+			if (typeof window !== 'undefined') {
+				const storedConsent = getConsentFromStorage(this.storageConfig);
 				shouldShow = storedConsent === null;
 			}
 		} catch (error) {
-			// Ignore localStorage errors (e.g., in environments where it's blocked)
-			console.warn('Failed to access localStorage:', error);
-			// If localStorage is unavailable, default to not showing the banner
+			// Ignore storage errors (e.g., in environments where it's blocked)
+			console.warn('Failed to access storage:', error);
+			// If storage is unavailable, default to not showing the banner
 			// to prevent repeated failed attempts causing memory leaks
 			shouldShow = false;
 		}
@@ -103,29 +110,28 @@ export class OfflineClient implements ConsentManagerInterface {
 
 	/**
 	 * Sets consent preferences for a subject.
-	 * In offline mode, saves to localStorage to track that consent was set.
+	 * In offline mode, saves to both localStorage and cookie to track that consent was set.
 	 */
 	async setConsent(
 		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 	): Promise<ResponseContext<SetConsentResponse>> {
-		// Save to localStorage to remember that consent was set
+		// Save to localStorage and cookie to remember that consent was set
 		try {
-			if (typeof window !== 'undefined' && window.localStorage) {
-				// Test localStorage access with a simple operation
-				window.localStorage.setItem('c15t-storage-test-key', 'test');
-				window.localStorage.removeItem('c15t-storage-test-key');
-
-				window.localStorage.setItem(
-					'c15t-consent',
-					JSON.stringify({
-						timestamp: new Date().toISOString(),
-						preferences: options?.body?.preferences || {},
-					})
+			if (typeof window !== 'undefined') {
+				saveConsentToStorage(
+					{
+						consentInfo: {
+							time: Date.now(),
+						},
+						consents: options?.body?.preferences || {},
+					},
+					undefined,
+					this.storageConfig
 				);
 			}
 		} catch (error) {
-			// Ignore localStorage errors but log them
-			console.warn('Failed to write to localStorage:', error);
+			// Ignore storage errors but log them
+			console.warn('Failed to write to storage:', error);
 		}
 
 		return await this.handleOfflineResponse<SetConsentResponse>(options);

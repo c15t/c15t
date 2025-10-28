@@ -9,6 +9,7 @@ import type {
 	ConsentManagerOptions as CoreOptions,
 	GTMConfiguration,
 	Script,
+	StorageConfig,
 	TrackingBlockerConfig,
 	TranslationConfig,
 } from 'c15t';
@@ -108,6 +109,17 @@ export type ConsentManagerOptions = CoreOptions & {
 	 * @deprecated This is deprecated and will be removed in the next major version. Use the new [ScriptLoader](https://c15t.com/docs/react/script-loader) instead.
 	 */
 	trackingBlockerConfig?: TrackingBlockerConfig;
+
+	/**
+	 * Storage configuration options
+	 *
+	 * @remarks
+	 * Configure storage behavior through store options for better control
+	 * and testability.
+	 *
+	 * @see {@link StorageConfig} for available options
+	 */
+	storageConfig?: StorageConfig;
 };
 
 /**

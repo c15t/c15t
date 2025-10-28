@@ -1,4 +1,4 @@
-import type { AllConsentNames, ConsentState } from '../types';
+import type { AllConsentNames, ConsentInfo, ConsentState } from '../types';
 
 /**
  * Determines the effective consents based on the user's Do Not Track setting.
@@ -55,8 +55,6 @@ export function hasConsentFor(
  * @param consentInfo - The consent information.
  * @returns True if the user has consented, false otherwise.
  */
-export function hasConsented(
-	consentInfo: { time: number; type: 'all' | 'custom' | 'necessary' } | null
-): boolean {
+export function hasConsented(consentInfo: ConsentInfo | null): boolean {
 	return consentInfo !== null;
 }

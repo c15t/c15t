@@ -122,12 +122,11 @@ describe('CookieBanner E2E Tests', () => {
 		).not.toBeInTheDocument();
 
 		// Check localStorage for consent
-		const consent = JSON.parse(
-			window.localStorage.getItem('privacy-consent-storage') || '{}'
-		);
+		const consent = JSON.parse(window.localStorage.getItem('c15t') || '{}');
 
-		expect(consent.consents).toBeTruthy();
-		expect(consent.consentInfo.type).toBe('all');
+		expect(consent.consents.necessary).toBeTruthy();
+		expect(consent.consents.marketing).toBeTruthy();
+		expect(consent.consents.experience).toBeFalsy();
 	});
 
 	test('should reject non-essential cookies when clicking Reject All', async () => {
@@ -152,11 +151,8 @@ describe('CookieBanner E2E Tests', () => {
 		).not.toBeInTheDocument();
 
 		// Check localStorage for consent
-		const consent = JSON.parse(
-			window.localStorage.getItem('privacy-consent-storage') || '{}'
-		);
+		const consent = JSON.parse(window.localStorage.getItem('c15t') || '{}');
 		expect(consent.consents).toBeTruthy();
-		expect(consent.consentInfo.type).toBe('necessary');
 
 		// Only necessary cookies should be true
 		expect(consent.consents.necessary).toBe(true);
@@ -223,12 +219,10 @@ describe('CookieBanner E2E Tests', () => {
 		expect(mockIsPrivacyDialogOpen).toBe(false);
 
 		// Check localStorage for custom consent
-		const consent = JSON.parse(
-			window.localStorage.getItem('privacy-consent-storage') || '{}'
-		);
+		const consent = JSON.parse(window.localStorage.getItem('c15t') || '{}');
 		expect(consent.consents).toBeTruthy();
-		expect(consent.consentInfo.type).toBe('custom');
 		expect(consent.consents.marketing).toBe(true);
+		expect(consent.consents.functionality).toBeFalsy();
 	});
 
 	test('should be keyboard accessible', async () => {
