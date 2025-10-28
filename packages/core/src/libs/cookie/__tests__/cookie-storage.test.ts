@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../../store.initial-state';
+import type { ConsentState } from '../../../types';
+import type { ConsentInfo } from '../../../types/gdpr';
 import {
 	deleteConsentFromStorage,
 	deleteCookie,
@@ -22,6 +24,21 @@ describe('Cookie Storage', () => {
 		document.cookie = '';
 		window.localStorage.clear();
 	});
+
+	// Helper to compare consent data, accounting for normalization
+	function expectConsentsToMatch(
+		actual: Partial<ConsentState> | undefined,
+		expected: Partial<ConsentState>
+	) {
+		if (!actual) {
+			throw new Error('Actual consents is undefined');
+		}
+
+		// Check that all expected consents match
+		for (const [key, value] of Object.entries(expected)) {
+			expect(actual[key as keyof ConsentState]).toBe(value);
+		}
+	}
 
 	describe('setCookie', () => {
 		it('should set a cookie with a string value', () => {
@@ -154,26 +171,29 @@ describe('Cookie Storage', () => {
 	describe('getConsentFromStorage', () => {
 		it('should retrieve consent from localStorage when available', () => {
 			const consentData = {
-				consents: { necessary: true, analytics: true },
-				consentInfo: { time: Date.now(), type: 'all' },
+				consents: { necessary: true, measurement: true },
+				consentInfo: { time: Date.now(), type: 'all' as const },
 			};
 
 			window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(consentData));
 
 			const retrieved = getConsentFromStorage();
-			expect(retrieved).toEqual(consentData);
+			// Retrieved data will have all standard consents normalized
+			expectConsentsToMatch(retrieved?.consents, consentData.consents);
+			expect(retrieved?.consentInfo).toEqual(consentData.consentInfo);
 		});
 
 		it('should fallback to cookie when localStorage is empty', () => {
 			const consentData = {
 				consents: { necessary: true },
-				consentInfo: { time: Date.now(), type: 'necessary' },
+				consentInfo: { time: Date.now(), type: 'necessary' as const },
 			};
 
 			setCookie(STORAGE_KEY_V2, consentData);
 
 			const retrieved = getConsentFromStorage();
-			expect(retrieved).toEqual(consentData);
+			expectConsentsToMatch(retrieved?.consents, consentData.consents);
+			expect(retrieved?.consentInfo).toEqual(consentData.consentInfo);
 		});
 
 		it('should sync cookie when localStorage has data but cookie does not', () => {
@@ -182,8 +202,8 @@ describe('Cookie Storage', () => {
 				.mockImplementation(() => {});
 
 			const consentData = {
-				consents: { necessary: true, analytics: false },
-				consentInfo: { time: Date.now(), type: 'custom' },
+				consents: { necessary: true, measurement: false },
+				consentInfo: { time: Date.now(), type: 'custom' as const },
 			};
 
 			// Set only in localStorage
@@ -191,7 +211,8 @@ describe('Cookie Storage', () => {
 
 			const retrieved = getConsentFromStorage();
 
-			expect(retrieved).toEqual(consentData);
+			expectConsentsToMatch(retrieved?.consents, consentData.consents);
+			expect(retrieved?.consentInfo).toEqual(consentData.consentInfo);
 			expect(consoleLogSpy).toHaveBeenCalledWith(
 				'Synced consent from localStorage to cookie'
 			);
@@ -234,7 +255,7 @@ describe('Cookie Storage', () => {
 
 			const legacyConsentData = {
 				consents: { necessary: true, marketing: false },
-				consentInfo: { time: Date.now(), type: 'custom' },
+				consentInfo: { time: Date.now(), type: 'custom' as const },
 			};
 
 			// Put data in legacy localStorage key
@@ -246,8 +267,9 @@ describe('Cookie Storage', () => {
 			// Retrieve should migrate automatically
 			const retrieved = getConsentFromStorage();
 
-			// Should return the migrated data
-			expect(retrieved).toEqual(legacyConsentData);
+			// Should return the migrated data (normalized)
+			expectConsentsToMatch(retrieved?.consents, legacyConsentData.consents);
+			expect(retrieved?.consentInfo).toEqual(legacyConsentData.consentInfo);
 
 			// New key should have the data
 			const newKeyData = window.localStorage.getItem(STORAGE_KEY_V2);
@@ -268,13 +290,13 @@ describe('Cookie Storage', () => {
 
 		it('should not migrate if new key already has data', () => {
 			const newConsentData = {
-				consents: { necessary: true, analytics: true },
-				consentInfo: { time: Date.now(), type: 'all' },
+				consents: { necessary: true, measurement: true },
+				consentInfo: { time: Date.now(), type: 'all' as const },
 			};
 
 			const legacyConsentData = {
 				consents: { necessary: true },
-				consentInfo: { time: Date.now(), type: 'necessary' },
+				consentInfo: { time: Date.now(), type: 'necessary' as const },
 			};
 
 			// Set both keys
@@ -290,8 +312,9 @@ describe('Cookie Storage', () => {
 			// Retrieve should use new key data and cleanup legacy
 			const retrieved = getConsentFromStorage();
 
-			// Should return new key data, not legacy
-			expect(retrieved).toEqual(newConsentData);
+			// Should return new key data, not legacy (normalized)
+			expectConsentsToMatch(retrieved?.consents, newConsentData.consents);
+			expect(retrieved?.consentInfo).toEqual(newConsentData.consentInfo);
 
 			// Legacy key should be cleaned up
 			const legacyKeyData = window.localStorage.getItem(STORAGE_KEY);
@@ -369,7 +392,7 @@ describe('Cookie Storage', () => {
 	describe('Key shortening optimization', () => {
 		it('should shorten metadata keys in cookies while preserving consent keys', () => {
 			const consentData = {
-				consents: { necessary: true, analytics: false, marketing: true },
+				consents: { necessary: true, measurement: false, marketing: true },
 				consentInfo: { time: 1234567890 },
 			};
 
@@ -384,10 +407,12 @@ describe('Cookie Storage', () => {
 			expect(cookieValue).toContain('i.'); // consentInfo -> i
 			expect(cookieValue).toContain('.t:'); // time -> t
 
-			// But consent keys should be preserved for readability
+			// Consent keys that are true should be preserved
 			expect(cookieValue).toContain('necessary');
-			expect(cookieValue).toContain('analytics');
 			expect(cookieValue).toContain('marketing');
+
+			// Optimization: False values should be omitted
+			expect(cookieValue).not.toContain('measurement');
 
 			// Should use flat format (no JSON characters)
 			expect(cookieValue).not.toContain('{');
@@ -397,42 +422,57 @@ describe('Cookie Storage', () => {
 
 		it('should correctly expand shortened keys when reading from cookie', () => {
 			const originalData = {
-				consents: { necessary: true, analytics: false },
+				consents: { necessary: true, measurement: false },
 				consentInfo: { time: Date.now() },
 			};
 
 			saveConsentToStorage(originalData);
 
-			// Read back and verify it matches original structure
+			// Clear localStorage to test cookie-only behavior
+			window.localStorage.clear();
+
+			// Read back from cookie - false values are omitted in storage but normalized on retrieval
 			const retrieved = getConsentFromStorage<typeof originalData>();
 
-			expect(retrieved).toEqual(originalData);
-			expect(retrieved?.consents).toBeDefined();
+			// True values and metadata should be preserved
+			expect(retrieved?.consents?.necessary).toBe(true);
 			expect(retrieved?.consentInfo).toBeDefined();
 			expect(retrieved?.consentInfo?.time).toBe(originalData.consentInfo.time);
+
+			// False values are omitted from cookie but explicitly returned as false (not undefined)
+			expect(retrieved?.consents?.measurement).toBe(false);
+			expect(typeof retrieved?.consents?.measurement).toBe('boolean');
 		});
 
 		it('should preserve consent key names in both storage and retrieval', () => {
 			const consentData = {
 				consents: {
 					necessary: true,
-					functional: true,
-					analytics: false,
-					performance: true,
-					advertisement: false,
-					measurement: true,
+					functionality: true,
+					measurement: false,
+					experience: true,
+					marketing: false,
 				},
 				consentInfo: { time: Date.now() },
 			};
 
 			saveConsentToStorage(consentData);
+
+			// Clear localStorage to test cookie-only behavior
+			window.localStorage.clear();
+
 			const retrieved = getConsentFromStorage<typeof consentData>();
 
-			// All consent keys should be preserved exactly
-			expect(retrieved?.consents).toEqual(consentData.consents);
-			Object.keys(consentData.consents).forEach((key) => {
-				expect(retrieved?.consents?.[key]).toBe(consentData.consents[key]);
-			});
+			// True consent values should be preserved exactly
+			expect(retrieved?.consents?.necessary).toBe(true);
+			expect(retrieved?.consents?.functionality).toBe(true);
+			expect(retrieved?.consents?.experience).toBe(true);
+
+			// False values are omitted from cookie but explicitly returned as false (not undefined)
+			expect(retrieved?.consents?.measurement).toBe(false);
+			expect(retrieved?.consents?.marketing).toBe(false);
+			expect(typeof retrieved?.consents?.measurement).toBe('boolean');
+			expect(typeof retrieved?.consents?.marketing).toBe('boolean');
 		});
 
 		it('should handle timestamp field shortening', () => {
@@ -461,9 +501,9 @@ describe('Cookie Storage', () => {
 			expect(retrieved?.preferences).toEqual(dataWithTimestamp.preferences);
 		});
 
-		it('should convert booleans to 1/0 for compression', () => {
+		it('should convert true booleans to 1 and omit false for compression', () => {
 			const consentData = {
-				consents: { necessary: true, analytics: false, marketing: true },
+				consents: { necessary: true, measurement: false, marketing: true },
 				consentInfo: { time: 1234567890 },
 			};
 
@@ -473,23 +513,28 @@ describe('Cookie Storage', () => {
 			const cookieValue =
 				document.cookie.split(`${STORAGE_KEY_V2}=`)[1]?.split(';')[0] || '';
 
-			// Booleans should be stored as 1/0 in flat format
+			// True booleans should be stored as 1 in flat format
 			expect(cookieValue).toContain(':1'); // true -> 1
-			expect(cookieValue).toContain(':0'); // false -> 0
+			// False booleans should be omitted entirely for better compression
+			expect(cookieValue).not.toContain(':0'); // false -> omitted
 			expect(cookieValue).not.toContain('true');
 			expect(cookieValue).not.toContain('false');
 
-			// But reading back should restore to booleans
+			// Clear localStorage to test cookie-only behavior
+			window.localStorage.clear();
+
+			// Reading back from cookie should restore true to boolean and normalize false values
 			const retrieved = getConsentFromStorage<typeof consentData>();
 			expect(retrieved?.consents?.necessary).toBe(true);
-			expect(retrieved?.consents?.analytics).toBe(false);
+			expect(retrieved?.consents?.measurement).toBe(false); // explicitly false, not undefined
 			expect(retrieved?.consents?.marketing).toBe(true);
 			expect(typeof retrieved?.consents?.necessary).toBe('boolean');
+			expect(typeof retrieved?.consents?.measurement).toBe('boolean');
 		});
 
 		it('should reduce cookie size with flat format and key shortening', () => {
 			const consentData = {
-				consents: { necessary: true, analytics: false },
+				consents: { necessary: true, measurement: false },
 				consentInfo: { time: Date.now() },
 			};
 
@@ -498,7 +543,7 @@ describe('Cookie Storage', () => {
 				JSON.stringify(consentData)
 			).length;
 
-			// Save with shortened keys + flat format (new approach)
+			// Save with shortened keys + flat format + false omission (new approach)
 			saveConsentToStorage(consentData);
 
 			// Extract cookie value size
@@ -506,9 +551,9 @@ describe('Cookie Storage', () => {
 				document.cookie.split(`${STORAGE_KEY_V2}=`)[1]?.split(';')[0] || '';
 			const optimizedSize = cookieValue.length;
 
-			// New approach should be significantly smaller (50-70% of original size)
+			// New approach should be significantly smaller (even more with false omission)
 			expect(optimizedSize).toBeLessThan(fullKeysUrlEncoded);
-			expect(optimizedSize).toBeLessThan(fullKeysUrlEncoded * 0.7);
+			expect(optimizedSize).toBeLessThan(fullKeysUrlEncoded * 0.5);
 
 			// Verify flat format is used
 			expect(cookieValue).toContain(':');
@@ -516,9 +561,150 @@ describe('Cookie Storage', () => {
 			expect(cookieValue).not.toContain('{');
 			expect(cookieValue).not.toContain('"');
 
-			// Verify it still works correctly
+			// Verify false value is omitted from cookie
+			expect(cookieValue).not.toContain('measurement');
+
+			// Verify it still works correctly (false values are explicitly returned as false)
 			const retrieved = getConsentFromStorage<typeof consentData>();
-			expect(retrieved).toEqual(consentData);
+			expect(retrieved?.consents?.necessary).toBe(true);
+			expect(retrieved?.consents?.measurement).toBe(false); // explicitly false
+			expect(retrieved?.consentInfo?.time).toBe(consentData.consentInfo.time);
+		});
+	});
+
+	describe('Explicit false values', () => {
+		it('should return explicit false for all standard consent types', () => {
+			const consentData: {
+				consents: Partial<ConsentState>;
+				consentInfo: ConsentInfo;
+			} = {
+				consents: { necessary: true }, // Only one consent is true
+				consentInfo: { time: Date.now(), type: 'custom' },
+			};
+
+			saveConsentToStorage(consentData);
+
+			// Clear localStorage to test cookie-only behavior
+			window.localStorage.clear();
+
+			const retrieved = getConsentFromStorage<typeof consentData>();
+
+			// All standard consent types should have explicit boolean values
+			expect(retrieved?.consents?.necessary).toBe(true);
+			expect(retrieved?.consents?.functionality).toBe(false);
+			expect(retrieved?.consents?.measurement).toBe(false);
+			expect(retrieved?.consents?.experience).toBe(false);
+			expect(retrieved?.consents?.marketing).toBe(false);
+
+			// All should be booleans, not undefined
+			expect(typeof retrieved?.consents?.necessary).toBe('boolean');
+			expect(typeof retrieved?.consents?.functionality).toBe('boolean');
+			expect(typeof retrieved?.consents?.measurement).toBe('boolean');
+			expect(typeof retrieved?.consents?.experience).toBe('boolean');
+			expect(typeof retrieved?.consents?.marketing).toBe('boolean');
+		});
+
+		it('should preserve custom consent types while normalizing standard ones', () => {
+			const consentData: {
+				consents: Partial<ConsentState> & { customConsent?: boolean };
+				consentInfo: ConsentInfo;
+			} = {
+				consents: {
+					necessary: true,
+					customConsent: true, // Non-standard consent type
+				},
+				consentInfo: { time: Date.now(), type: 'custom' },
+			};
+
+			saveConsentToStorage(consentData);
+
+			// Clear localStorage to test cookie-only behavior
+			window.localStorage.clear();
+
+			const retrieved = getConsentFromStorage<typeof consentData>();
+
+			// Standard consent types should be normalized
+			expect(retrieved?.consents?.necessary).toBe(true);
+			expect(retrieved?.consents?.functionality).toBe(false);
+
+			// Custom consent type should be preserved
+			expect(retrieved?.consents?.customConsent).toBe(true);
+		});
+	});
+
+	describe('Backward compatibility', () => {
+		it('should correctly read legacy cookies with explicit false values (0)', () => {
+			// Simulate a legacy cookie format with '0' for false values
+			const legacyCookieValue =
+				'c.necessary:1,c.analytics:0,c.marketing:0,i.t:1234567890';
+			document.cookie = `${STORAGE_KEY_V2}=${legacyCookieValue}`;
+
+			// Read the legacy cookie
+			const retrieved = getConsentFromStorage<{
+				consents: {
+					necessary: boolean;
+					analytics: boolean;
+					marketing: boolean;
+				};
+				consentInfo: { time: number };
+			}>();
+
+			// Should correctly parse '0' as false for backward compatibility
+			expect(retrieved?.consents?.necessary).toBe(true);
+			expect(retrieved?.consents?.analytics).toBe(false);
+			expect(retrieved?.consents?.marketing).toBe(false);
+			expect(retrieved?.consentInfo?.time).toBe(1234567890);
+		});
+
+		it('should save new cookies without false values (optimized)', () => {
+			const consentData = {
+				consents: { necessary: true, analytics: false, marketing: false },
+				consentInfo: { time: 1234567890 },
+			};
+
+			saveConsentToStorage(consentData);
+
+			// Extract the new cookie format
+			const cookieValue =
+				document.cookie.split(`${STORAGE_KEY_V2}=`)[1]?.split(';')[0] || '';
+
+			// New format should omit false values
+			expect(cookieValue).not.toContain(':0');
+			expect(cookieValue).toContain('c.necessary:1');
+			expect(cookieValue).not.toContain('analytics');
+			expect(cookieValue).not.toContain('marketing');
+		});
+
+		it('should handle mixed scenario: read legacy, save optimized', () => {
+			// Start with legacy cookie
+			const legacyCookieValue = 'c.necessary:0,c.analytics:1,i.t:1111111111';
+			document.cookie = `${STORAGE_KEY_V2}=${legacyCookieValue}`;
+
+			// Read legacy
+			const retrieved = getConsentFromStorage<{
+				consents: { necessary: boolean; analytics: boolean };
+				consentInfo: { time: number };
+			}>();
+
+			expect(retrieved?.consents?.necessary).toBe(false);
+			expect(retrieved?.consents?.analytics).toBe(true);
+
+			// Now save new data (should use optimized format)
+			const newData = {
+				consents: { necessary: true, analytics: false, marketing: true },
+				consentInfo: { time: 2222222222 },
+			};
+
+			saveConsentToStorage(newData);
+
+			// Verify new format is optimized
+			const newCookieValue =
+				document.cookie.split(`${STORAGE_KEY_V2}=`)[1]?.split(';')[0] || '';
+
+			expect(newCookieValue).toContain('necessary:1');
+			expect(newCookieValue).toContain('marketing:1');
+			expect(newCookieValue).not.toContain('analytics');
+			expect(newCookieValue).not.toContain(':0');
 		});
 	});
 
@@ -570,16 +756,17 @@ describe('Cookie Storage', () => {
 
 		it('should save cookies with custom domain for cross-subdomain', () => {
 			const consentData = {
-				consents: { necessary: true, analytics: false },
-				consentInfo: { time: Date.now() },
+				consents: { necessary: true, measurement: false },
+				consentInfo: { time: Date.now(), type: 'custom' as const },
 			};
 
 			// Save with explicit cross-domain
 			saveConsentToStorage(consentData, { domain: '.example.com' });
 
-			// Verify cookie was set (checking it exists)
+			// Verify cookie was set (checking it exists, normalized)
 			const cookie = getConsentFromStorage();
-			expect(cookie).toEqual(consentData);
+			expectConsentsToMatch(cookie?.consents, consentData.consents);
+			expect(cookie?.consentInfo).toEqual(consentData.consentInfo);
 		});
 	});
 
@@ -620,8 +807,8 @@ describe('Cookie Storage', () => {
 	describe('Storage configuration', () => {
 		it('should work with flat format for basic consent data', () => {
 			const consentData = {
-				consents: { necessary: true, analytics: false },
-				consentInfo: { time: 1234567890 },
+				consents: { necessary: true, measurement: false },
+				consentInfo: { time: 1234567890, type: 'custom' as const },
 			};
 
 			saveConsentToStorage(consentData);
@@ -630,28 +817,30 @@ describe('Cookie Storage', () => {
 			const cookieStr = document.cookie;
 			expect(cookieStr).toContain(`${STORAGE_KEY_V2}=`);
 
-			// Retrieve and verify
+			// Retrieve and verify (normalized)
 			const retrieved = getConsentFromStorage();
-			expect(retrieved).toEqual(consentData);
+			expectConsentsToMatch(retrieved?.consents, consentData.consents);
+			expect(retrieved?.consentInfo).toEqual(consentData.consentInfo);
 		});
 
 		it('should allow custom storage key via config parameter', () => {
 			const consentData = {
 				consents: { necessary: true },
-				consentInfo: { time: Date.now() },
+				consentInfo: { time: Date.now(), type: 'custom' as const },
 			};
 
 			const customConfig = { storageKey: 'my-custom-consent' };
 
 			saveConsentToStorage(consentData, undefined, customConfig);
 
-			// Verify retrieval works with config (this is the most important part)
+			// Verify retrieval works with config (normalized)
 			const retrieved = getConsentFromStorage(customConfig);
-			expect(retrieved).toEqual(consentData);
+			expectConsentsToMatch(retrieved?.consents, consentData.consents);
+			expect(retrieved?.consentInfo).toEqual(consentData.consentInfo);
 
 			// Check that it's NOT in the default storage key
 			const defaultRetrieved = getConsentFromStorage();
-			expect(defaultRetrieved).not.toEqual(consentData);
+			expect(defaultRetrieved).toBeNull();
 		});
 
 		it('should use crossSubdomain flag as simple alternative to explicit domain', () => {
@@ -676,13 +865,14 @@ describe('Cookie Storage', () => {
 		it('should delete consent using custom storage key config', () => {
 			const consentData = {
 				consents: { necessary: true },
-				consentInfo: { time: Date.now() },
+				consentInfo: { time: Date.now(), type: 'custom' as const },
 			};
 
 			const customConfig = { storageKey: 'my-custom-consent' };
 
 			saveConsentToStorage(consentData, undefined, customConfig);
-			expect(getConsentFromStorage(customConfig)).toEqual(consentData);
+			const saved = getConsentFromStorage(customConfig);
+			expectConsentsToMatch(saved?.consents, consentData.consents);
 
 			deleteConsentFromStorage(undefined, customConfig);
 

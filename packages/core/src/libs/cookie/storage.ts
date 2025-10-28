@@ -9,7 +9,7 @@
 
 import type { ConsentState } from '../..';
 import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../store.initial-state';
-import type { ConsentInfo } from '../../types/gdpr';
+import { allConsentNames, type ConsentInfo } from '../../types/gdpr';
 import { deleteCookie, getCookie, setCookie } from './operations';
 import type { CookieOptions, StorageConfig } from './types';
 
@@ -120,6 +120,46 @@ export function saveConsentToStorage(
 }
 
 /**
+ * Normalizes consent data to ensure all consent values are explicitly set.
+ *
+ * @param data - Consent data that may have missing consent keys
+ * @returns Normalized consent data with all consent keys explicitly set to booleans
+ *
+ * @remarks
+ * This function ensures that all known consent types from {@link allConsentNames}
+ * have explicit boolean values. Missing consent keys are defaulted to `false`.
+ * This is important because the optimized cookie storage omits `false` values,
+ * but the application should always work with explicit boolean values.
+ *
+ * Preserves any custom/unknown consent keys that may exist in the data.
+ *
+ * @internal
+ */
+function normalizeConsentData<
+	DataType extends { consents?: Partial<ConsentState> },
+>(data: DataType): DataType {
+	if (!data.consents) {
+		return data;
+	}
+
+	// Start with existing consents to preserve any custom/unknown consent types
+	const normalizedConsents: Record<string, boolean> = {
+		...data.consents,
+	};
+
+	// Ensure all known consent types have explicit boolean values
+	for (const consentName of allConsentNames) {
+		// If the consent is defined, use its value; otherwise default to false
+		normalizedConsents[consentName] = data.consents[consentName] ?? false;
+	}
+
+	return {
+		...data,
+		consents: normalizedConsents as ConsentState,
+	};
+}
+
+/**
  * Retrieves consent data from localStorage or cookie (with fallback).
  *
  * @typeParam ReturnType - The expected type of the consent data
@@ -134,13 +174,17 @@ export function saveConsentToStorage(
  * 3. localStorage with legacy key (migration)
  * 4. If localStorage exists but cookie doesn't, sync cookie from localStorage
  *
- * This function automatically handles migration from legacy storage keys.
+ * This function automatically:
+ * - Handles migration from legacy storage keys
+ * - Normalizes consent data to ensure all consent values are explicit booleans
+ * - Defaults missing consent keys to `false` (important for optimized cookie storage)
  *
  * @example
  * ```typescript
  * const consent = getConsentFromStorage();
  * if (consent) {
- *   console.log('Found consent:', consent);
+ *   // All consent values are guaranteed to be explicit booleans
+ *   console.log('Analytics consent:', consent.consents.analytics); // true or false, never undefined
  * }
  * ```
  *
@@ -185,8 +229,15 @@ export function getConsentFromStorage<ReturnType = unknown>(
 		}
 	}
 
-	// Return localStorage data if available, otherwise cookie data
-	return localStorageData || cookieData;
+	// Get the data (localStorage takes priority)
+	const rawData = localStorageData || cookieData;
+
+	// Normalize consent data to ensure all values are explicit booleans
+	if (rawData && typeof rawData === 'object' && 'consents' in rawData) {
+		return normalizeConsentData(rawData as never) as ReturnType;
+	}
+
+	return rawData;
 }
 
 /**
