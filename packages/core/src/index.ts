@@ -24,6 +24,7 @@ export type {
 	ConsentTypesTranslations,
 	ConsentTypeTranslations,
 	CookieBannerTranslations,
+	LegalLinksTranslations,
 	TranslationConfig,
 	Translations,
 } from '@c15t/translations';
