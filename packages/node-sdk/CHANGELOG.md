@@ -1,5 +1,13 @@
 # @c15t/node-sdk
 
+## 1.8.0-canary-20251028143243
+
+### Patch Changes
+
+- 8f3f146: chore: update various dependancies
+- Updated dependencies [8f3f146]
+  - @c15t/backend@1.8.0-canary-20251028143243
+
 ## 1.7.0
 
 ### Patch Changes
