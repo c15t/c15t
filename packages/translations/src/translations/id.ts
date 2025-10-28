@@ -10,23 +10,23 @@ export const idTranslations: CompleteTranslations = {
 	cookieBanner: {
 		title: 'Kami menghargai privasi Anda',
 		description:
-			'Situs ini menggunakan cookie untuk meningkatkan pengalaman browsing Anda, menganalisis lalu lintas situs, dan menampilkan konten yang dipersonalisasi.',
+			'Situs ini menggunakan cookie untuk meningkatkan pengalaman penelusuran Anda, menganalisis lalu lintas situs, dan menampilkan konten yang dipersonalisasi.',
 	},
 	consentManagerDialog: {
 		title: 'Pengaturan Privasi',
 		description:
-			'Sesuaikan pengaturan privasi Anda di sini. Anda dapat memilih jenis cookie dan teknologi pelacakan yang ingin Anda izinkan.',
+			'Atur preferensi privasi Anda di sini. Anda dapat memilih jenis cookie dan teknologi pelacakan yang diizinkan.',
 	},
 	consentTypes: {
 		necessary: {
 			title: 'Sangat Diperlukan',
 			description:
-				'Cookie ini penting untuk fungsi website yang tepat dan tidak dapat dinonaktifkan.',
+				'Cookie ini penting agar situs web dapat berfungsi dengan baik dan tidak dapat dinonaktifkan.',
 		},
 		functionality: {
 			title: 'Fungsionalitas',
 			description:
-				'Cookie ini memungkinkan fungsionalitas yang ditingkatkan dan personalisasi website.',
+				'Cookie ini memungkinkan peningkatan fungsionalitas dan personalisasi situs web.',
 		},
 		marketing: {
 			title: 'Pemasaran',
@@ -36,7 +36,7 @@ export const idTranslations: CompleteTranslations = {
 		measurement: {
 			title: 'Analitik',
 			description:
-				'Cookie ini membantu kami memahami bagaimana pengunjung berinteraksi dengan website dan meningkatkan kinerjanya.',
+				'Cookie ini membantu kami memahami bagaimana pengunjung berinteraksi dengan situs web dan meningkatkan kinerjanya.',
 		},
 		experience: {
 			title: 'Pengalaman',
@@ -45,12 +45,7 @@ export const idTranslations: CompleteTranslations = {
 		},
 	},
 	frame: {
-		title: 'Terima persetujuan {category} untuk melihat konten ini.',
+		title: 'Setujui {category} untuk melihat konten ini.',
 		actionButton: 'Aktifkan persetujuan {category}',
-	},
-	legalLinks: {
-		privacyPolicy: 'Kebijakan Privasi',
-		cookiePolicy: 'Kebijakan Cookie',
-		termsOfService: 'Syarat Layanan',
 	},
 };

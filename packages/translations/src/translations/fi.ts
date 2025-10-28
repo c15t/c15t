@@ -10,33 +10,33 @@ export const fiTranslations: CompleteTranslations = {
 	cookieBanner: {
 		title: 'Arvostamme yksityisyyttäsi',
 		description:
-			'Tämä sivusto käyttää evästeitä parantaakseen selaamiskokemustasi, analysoidakseen sivuston liikennettä ja näyttääkseen henkilökohtaista sisältöä.',
+			'Tämä sivusto käyttää evästeitä parantaakseen selauskokemustasi, analysoidakseen sivuston liikennettä ja näyttääkseen yksilöllistä sisältöä.',
 	},
 	consentManagerDialog: {
-		title: 'Yksityisyysasetukset',
+		title: 'Tietosuoja-asetukset',
 		description:
-			'Mukauta yksityisyysasetuksiasi täällä. Voit valita, minkä tyyppisiä evästeitä ja seurantateknologioita sallit.',
+			'Mukauta yksityisyysasetuksiasi täällä. Voit valita, minkä tyyppiset evästeet ja seurantatekniikat sallit.',
 	},
 	consentTypes: {
 		necessary: {
-			title: 'Välttämättömät',
+			title: 'Ehdottoman tarpeellinen',
 			description:
-				'Nämä evästeet ovat välttämättömiä verkkosivuston asianmukaiselle toiminnalle, eikä niitä voi poistaa käytöstä.',
+				'Nämä evästeet ovat välttämättömiä, jotta verkkosivusto toimisi oikein, eikä niitä voi poistaa käytöstä.',
 		},
 		functionality: {
 			title: 'Toiminnallisuus',
 			description:
-				'Nämä evästeet mahdollistavat verkkosivuston parannetun toiminnallisuuden ja personoinnin.',
+				'Nämä evästeet mahdollistavat verkkosivuston tehostetun toiminnallisuuden ja personoinnin.',
 		},
 		marketing: {
 			title: 'Markkinointi',
 			description:
-				'Näitä evästeitä käytetään asiaankuuluvan mainonnan toimittamiseen ja niiden tehokkuuden seuraamiseen.',
+				'Näitä evästeitä käytetään relevanttien mainosten lähettämiseen ja niiden tehokkuuden seurantaan.',
 		},
 		measurement: {
 			title: 'Analytiikka',
 			description:
-				'Nämä evästeet auttavat meitä ymmärtämään, miten vierailijat ovat vuorovaikutuksessa verkkosivuston kanssa ja parantamaan sen suorituskykyä.',
+				'Nämä evästeet auttavat meitä ymmärtämään, miten kävijät ovat vuorovaikutuksessa verkkosivuston kanssa, ja parantamaan sen suorituskykyä.',
 		},
 		experience: {
 			title: 'Kokemus',
@@ -45,12 +45,7 @@ export const fiTranslations: CompleteTranslations = {
 		},
 	},
 	frame: {
-		title: 'Hyväksy {category} nähdäksesi tämän sisällön.',
-		actionButton: 'Ota käyttöön {category} suostumus',
-	},
-	legalLinks: {
-		privacyPolicy: 'Tietosuojakäytäntö',
-		cookiePolicy: 'Evästekäytäntö',
-		termsOfService: 'Käyttöehdot',
+		title: 'Hyväksy {category}, jotta voit tarkastella tätä sisältöä.',
+		actionButton: 'Ota {category} käyttöön',
 	},
 };

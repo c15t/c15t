@@ -48,9 +48,4 @@ export const deTranslations: CompleteTranslations = {
 		title: 'Akzeptieren Sie {category}, um diesen Inhalt anzuzeigen.',
 		actionButton: 'Zustimmung für {category} aktivieren',
 	},
-	legalLinks: {
-		privacyPolicy: 'Datenschutzerklärung',
-		cookiePolicy: 'Cookie-Richtlinie',
-		termsOfService: 'Nutzungsbedingungen',
-	},
 };
