@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ThemeContextValue } from '~/context/theme-context';
+import type { LegalLinksProps } from '../shared/primitives/legal-links';
 import type { ConsentManagerWidgetTheme } from './theme';
 
 export interface ConsentManagerWidgetRootProps
@@ -18,4 +19,5 @@ export interface ConsentManagerWidgetRootProps
 export interface ConsentManagerWidgetProps
 	extends Omit<ConsentManagerWidgetRootProps, 'children'> {
 	hideBrading?: boolean;
+	legalLinks?: LegalLinksProps['links'];
 }

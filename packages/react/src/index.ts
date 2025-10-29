@@ -22,7 +22,6 @@ export { CookieBanner } from './components/cookie-banner';
 export type { CookieBannerProps } from './components/cookie-banner/cookie-banner';
 export { Frame, type FrameProps } from './components/frame';
 export {
-	type LegalLink,
 	LegalLinks,
 	type LegalLinksProps,
 } from './components/shared/primitives/legal-links';

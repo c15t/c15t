@@ -156,3 +156,5 @@ export {
 	type ConsentType,
 	consentTypes,
 } from './types/gdpr';
+
+export type { LegalLink, LegalLinks } from './types/legal-links';

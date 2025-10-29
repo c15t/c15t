@@ -83,8 +83,6 @@ export function ConsentManagerProvider({
 	// Extract and memoize stable options
 	const { mode, backendURL, store = {}, translations, react = {} } = options;
 
-	// Destructure once to avoid redundant access
-	const { initialGdprTypes, initialComplianceSettings } = store;
 	const {
 		theme,
 		disableAnimation = false,
@@ -168,6 +166,7 @@ export function ConsentManagerProvider({
 			callbacks: options.callbacks,
 			trackingBlockerConfig: options.trackingBlockerConfig,
 			scripts: options.scripts,
+			legalLinks: options.legalLinks,
 			...store,
 			isConsentDomain,
 			initialTranslationConfig: translations,
@@ -185,6 +184,7 @@ export function ConsentManagerProvider({
 		options.consentCategories,
 		options.trackingBlockerConfig,
 		options.scripts,
+		options.legalLinks,
 		store,
 		isConsentDomain,
 		translations,

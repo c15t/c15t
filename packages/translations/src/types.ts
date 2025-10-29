@@ -59,7 +59,7 @@ export interface CompleteTranslations {
 	consentManagerDialog: ConsentManagerDialogTranslations;
 	consentTypes: ConsentTypesTranslations;
 	frame: FrameTranslations;
-	legalLinks?: LegalLinksTranslations;
+	legalLinks: LegalLinksTranslations;
 }
 
 // Partial translations interface (used for other languages)

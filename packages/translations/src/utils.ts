@@ -6,7 +6,8 @@ type TranslationSection =
 	| 'cookieBanner'
 	| 'consentManagerDialog'
 	| 'consentTypes'
-	| 'frame';
+	| 'frame'
+	| 'legalLinks';
 
 /**
  * Deep merges translation objects
@@ -21,6 +22,7 @@ export function deepMergeTranslations(
 		'common',
 		'consentTypes',
 		'frame',
+		'legalLinks',
 	];
 
 	return sections.reduce((result, section) => {

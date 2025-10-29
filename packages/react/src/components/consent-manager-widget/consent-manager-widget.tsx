@@ -7,6 +7,7 @@ import {
 	BrandingFooter,
 	DialogFooter,
 } from '../consent-manager-dialog/atoms/dialog-card';
+import { LegalLinks } from '../shared/primitives/legal-links/index';
 import {
 	ConsentManagerWidgetAccordion,
 	ConsentManagerWidgetAccordionItems,
@@ -22,9 +23,9 @@ import {
 } from './atoms/footer';
 import { ConsentManagerWidgetRoot } from './atoms/root';
 import type { ConsentManagerWidgetProps } from './types';
-
 export const ConsentManagerWidget = ({
 	hideBrading,
+	legalLinks,
 	theme: localTheme,
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
@@ -62,6 +63,11 @@ export const ConsentManagerWidget = ({
 				onValueChange={setOpenItems}
 			>
 				<ConsentManagerWidgetAccordionItems />
+				<LegalLinks
+					links={legalLinks}
+					themeKey="widget.legal-links"
+					data-testid="consent-manager-widget-legal-links"
+				/>
 			</ConsentManagerWidgetAccordion>
 			<ConsentManagerWidgetFooter>
 				<ConsentManagerWidgetFooterSubGroup themeKey="widget.footer.sub-group">

@@ -36,6 +36,7 @@ import type {
 	ConsentState,
 } from './types/compliance';
 import { type AllConsentNames, consentTypes } from './types/gdpr';
+import type { LegalLinks } from './types/legal-links';
 
 /**
  * Structure of consent data stored in localStorage.
@@ -194,6 +195,14 @@ export interface StoreOptions {
 	 * @see https://c15t.com/docs/frameworks/javascript/script-loader
 	 */
 	scripts?: Script[];
+
+	/**
+	 * Display links to various legal documents such as privacy policy, terms of service, etc across the consent manager.
+	 * This can be used to display links in the consent banner, dialog, etc.
+	 *
+	 * @defaultValue {}
+	 */
+	legalLinks?: LegalLinks;
 }
 
 // For backward compatibility (if needed)
@@ -282,7 +291,8 @@ export const createConsentManagerStore = (
 		callbacks: options.callbacks ?? initialState.callbacks,
 		// Set initial scripts if provided
 		scripts: options.scripts ?? initialState.scripts,
-		// Set initial translation config if provided
+
+		legalLinks: options.legalLinks ?? initialState.legalLinks,
 		translationConfig: translationConfig || initialState.translationConfig,
 		...(storedConsent
 			? {

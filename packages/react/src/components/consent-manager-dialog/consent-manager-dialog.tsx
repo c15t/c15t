@@ -10,7 +10,7 @@
  */
 
 import type { FC } from 'react';
-import type { LegalLink } from '~/components/shared/primitives/legal-links';
+import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
 import type { ThemeContextValue } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useTheme } from '~/hooks/use-theme';
@@ -33,11 +33,30 @@ export interface ConsentManagerDialogProps
 	open?: boolean;
 
 	/**
-	 * Legal document links to display in the dialog footer
-	 * @remarks Provides links to privacy policy, cookie policy, terms of service, etc.
-	 * @default undefined
+	 * Controls which legal links to display.
+	 *
+	 * - `undefined` (default): Shows all available legal links
+	 * - `null`: Explicitly hides all legal links
+	 * - Array of keys: Shows only the specified legal links
+	 *
+	 * @defaultValue undefined
+	 *
+	 * @example
+	 * ```tsx
+	 * // Show all links
+	 * <ConsentManagerDialog legalLinks={undefined} />
+	 *
+	 * // Show no links
+	 * <ConsentManagerDialog legalLinks={null} />
+	 *
+	 * // Show only privacy policy
+	 * <ConsentManagerDialog legalLinks={['privacyPolicy']} />
+	 * ```
+	 *
+	 * @remarks
+	 * You must set the legal links in the ConsentManagerProvider options.
 	 */
-	legalLinks?: LegalLink[];
+	legalLinks?: LegalLinksProps['links'];
 }
 
 export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({

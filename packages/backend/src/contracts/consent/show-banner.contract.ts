@@ -65,6 +65,14 @@ const PartialTranslationsSchema = z.object({
 		})
 		.partial()
 		.optional(),
+	legalLinks: z
+		.object({
+			privacyPolicy: z.string().optional(),
+			termsOfService: z.string().optional(),
+			cookiePolicy: z.string().optional(),
+		})
+		.partial()
+		.optional(),
 });
 
 /**

@@ -9,8 +9,8 @@
 import type { FC, ReactNode } from 'react';
 import { ConsentButton } from '~/components/shared/primitives/button';
 import {
-	type LegalLink,
 	LegalLinks,
+	type LegalLinksProps,
 } from '~/components/shared/primitives/legal-links';
 import { useTheme } from '~/hooks/use-theme';
 import { useTranslations } from '~/hooks/use-translations';
@@ -107,11 +107,30 @@ export interface CookieBannerProps {
 	disableAnimation?: boolean;
 
 	/**
-	 * Legal document links to display in the banner footer
-	 * @remarks Provides links to privacy policy, cookie policy, terms of service, etc.
-	 * @default undefined
+	 * Controls which legal links to display.
+	 *
+	 * - `undefined` (default): Shows all available legal links
+	 * - `null`: Explicitly hides all legal links
+	 * - Array of keys: Shows only the specified legal links
+	 *
+	 * @defaultValue undefined
+	 *
+	 * @example
+	 * ```tsx
+	 * // Show all links
+	 * <CookieBanner legalLinks={undefined} />
+	 *
+	 * // Show no links
+	 * <CookieBanner legalLinks={null} />
+	 *
+	 * // Show only privacy policy
+	 * <CookieBanner legalLinks={['privacyPolicy']} />
+	 * ```
+	 *
+	 * @remarks
+	 * You must set the legal links in the ConsentManagerProvider options.
 	 */
-	legalLinks?: LegalLink[];
+	legalLinks?: LegalLinksProps['links'];
 }
 
 export const CookieBanner: FC<CookieBannerProps> = ({
@@ -157,6 +176,11 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 						<CookieBannerDescription>
 							{description || cookieBanner.description}
 						</CookieBannerDescription>
+						<LegalLinks
+							links={legalLinks}
+							themeKey="banner.header.legal-links"
+							data-testid="cookie-banner-legal-links"
+						/>
 					</CookieBannerHeader>
 					<CookieBannerFooter>
 						<CookieBannerFooterSubGroup>
@@ -186,13 +210,6 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 						>
 							{customizeButtonText || common.customize}
 						</ConsentButton>
-						{legalLinks && (
-							<LegalLinks
-								links={legalLinks}
-								themeKey="banner.footer.legal-links"
-								data-testid="cookie-banner-legal-links"
-							/>
-						)}
 					</CookieBannerFooter>
 				</CookieBannerCard>
 			</CookieBannerRoot>

@@ -10,10 +10,7 @@ import { forwardRef, type ReactNode, type Ref } from 'react';
 
 import { ConsentManagerWidget } from '~/components/consent-manager-widget/consent-manager-widget';
 import { Box, type BoxProps } from '~/components/shared/primitives/box';
-import {
-	type LegalLink,
-	LegalLinks,
-} from '~/components/shared/primitives/legal-links';
+import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { C15TIcon, ConsentLogo } from '~/components/shared/ui/logo';
 import { useConsentManager } from '~/hooks';
 import { useTranslations } from '~/hooks/use-translations';
@@ -231,7 +228,7 @@ const ConsentCustomizationCard = ({
 	legalLinks,
 }: {
 	noStyle?: boolean;
-	legalLinks?: LegalLink[];
+	legalLinks?: LegalLinksProps['links'];
 }) => {
 	const { consentManagerDialog: translations } = useTranslations();
 
@@ -248,16 +245,10 @@ const ConsentCustomizationCard = ({
 					hideBrading
 					noStyle={noStyle}
 					useProvider={true}
+					legalLinks={legalLinks}
 				/>
 			</DialogContent>
 			<DialogFooter themeKey="dialog.footer">
-				{legalLinks && (
-					<LegalLinks
-						links={legalLinks}
-						themeKey="dialog.footer.legal-links"
-						data-testid="consent-manager-dialog-legal-links"
-					/>
-				)}
 				<BrandingFooter />
 			</DialogFooter>
 		</DialogCard>
