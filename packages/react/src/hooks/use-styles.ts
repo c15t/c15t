@@ -117,13 +117,17 @@ export function useStyles(
 		}
 
 		// Ensure className is included and prevent duplication
+		// baseClassName comes first so it can be overridden by theme and component styles
 		const finalClassName = Array.from(
 			new Set(
 				[
+					typeof componentStyle === 'object'
+						? componentStyle?.baseClassName
+						: undefined,
+					finalMergedStyle.className,
 					typeof componentStyle === 'string'
 						? componentStyle
 						: componentStyle?.className,
-					finalMergedStyle.className,
 				]
 					.filter(Boolean)
 					.flat()

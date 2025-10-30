@@ -10,6 +10,7 @@
  */
 
 import type { FC } from 'react';
+import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
 import type { ThemeContextValue } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useTheme } from '~/hooks/use-theme';
@@ -30,6 +31,32 @@ export interface ConsentManagerDialogProps
 	 * `useConsentManager().isPrivacyDialogOpen`.
 	 */
 	open?: boolean;
+
+	/**
+	 * Controls which legal links to display.
+	 *
+	 * - `undefined` (default): Shows all available legal links
+	 * - `null`: Explicitly hides all legal links
+	 * - Array of keys: Shows only the specified legal links
+	 *
+	 * @defaultValue undefined
+	 *
+	 * @example
+	 * ```tsx
+	 * // Show all links
+	 * <ConsentManagerDialog legalLinks={undefined} />
+	 *
+	 * // Show no links
+	 * <ConsentManagerDialog legalLinks={null} />
+	 *
+	 * // Show only privacy policy
+	 * <ConsentManagerDialog legalLinks={['privacyPolicy']} />
+	 * ```
+	 *
+	 * @remarks
+	 * You must set the legal links in the ConsentManagerProvider options.
+	 */
+	legalLinks?: LegalLinksProps['links'];
 }
 
 export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
@@ -39,6 +66,7 @@ export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 	disableAnimation: localDisableAnimation,
 	scrollLock: localScrollLock = true,
 	trapFocus: localTrapFocus = true,
+	legalLinks,
 }) => {
 	// Global default settings from provider
 	const globalTheme = useTheme();
@@ -64,7 +92,10 @@ export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 
 	return (
 		<ConsentManagerDialogRoot {...rootProps}>
-			<ConsentCustomizationCard noStyle={rootProps.noStyle} />
+			<ConsentCustomizationCard
+				noStyle={rootProps.noStyle}
+				legalLinks={legalLinks}
+			/>
 		</ConsentManagerDialogRoot>
 	);
 };

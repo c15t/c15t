@@ -75,3 +75,4 @@ export type {
 } from '@c15t/translations';
 
 export * from './compliance';
+export * from './legal-links';

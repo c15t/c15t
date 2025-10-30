@@ -1,4 +1,5 @@
 import type { ThemeValue } from '~/types/theme';
+import type { LegalLinksCSSVariables } from '../shared/primitives/legal-links/theme';
 import type {
 	AccordionContentCSSVariables,
 	AccordionCSSVariables,
@@ -57,4 +58,8 @@ export type ConsentManagerWidgetTheme = Partial<{
 	'widget.switch.track': ThemeValue<SwitchTrackCSSVariables>;
 	/** @remarks Styles for the switch thumb element */
 	'widget.switch.thumb': ThemeValue<SwitchThumbCSSVariables>;
+	/** @remarks Styles for the legal links container */
+	'widget.legal-links': ThemeValue<LegalLinksCSSVariables>;
+	/** @remarks Styles for individual legal link elements */
+	'widget.legal-links.link': ThemeValue;
 }>;

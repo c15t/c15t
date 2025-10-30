@@ -18,6 +18,7 @@ import type {
 	ConsentType,
 	consentTypes,
 	JurisdictionInfo,
+	LegalLinks,
 	LocationInfo,
 	PrivacySettings,
 	TranslationConfig,
@@ -96,6 +97,15 @@ export interface PrivacyConsentState {
 
 	/** Subject's location information */
 	locationInfo: LocationInfo | null;
+
+	/**
+	 * Configuration for the legal links
+	 * @defaultValue {}
+	 *
+	 * @remarks
+	 * Legal links can display across different parts of the consent manager such as the consent banner & dialog.
+	 */
+	legalLinks: LegalLinks;
 
 	/** Translation configuration */
 	translationConfig: TranslationConfig;
