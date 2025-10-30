@@ -1,4 +1,6 @@
 import type {
+	IdentifyUserRequestBody,
+	IdentifyUserResponse,
 	SetConsentRequestBody,
 	SetConsentResponse,
 	ShowConsentBannerResponse,
@@ -39,6 +41,11 @@ export interface EndpointHandlers {
 		VerifyConsentResponse,
 		VerifyConsentRequestBody
 	>;
+
+	/**
+	 * Handler for the identifyUser endpoint
+	 */
+	identifyUser: EndpointHandler<IdentifyUserResponse, IdentifyUserRequestBody>;
 }
 
 /**

@@ -5,6 +5,8 @@
 
 import type {
 	ConsentManagerInterface,
+	IdentifyUserRequestBody,
+	IdentifyUserResponse,
 	SetConsentRequestBody,
 	SetConsentResponse,
 	ShowConsentBannerResponse,
@@ -15,6 +17,7 @@ import type { FetchOptions, ResponseContext } from '../types';
 import { DEFAULT_RETRY_CONFIG } from './constants';
 import type { FetcherContext } from './fetcher';
 import { fetcher } from './fetcher';
+import { identifyUser } from './identify-user';
 import {
 	checkPendingConsentSubmissions,
 	processPendingSubmissions,
@@ -155,6 +158,15 @@ export class C15tClient implements ConsentManagerInterface {
 		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
 	): Promise<ResponseContext<VerifyConsentResponse>> {
 		return verifyConsent(this.fetcherContext, options);
+	}
+
+	/**
+	 * Links a subject's external ID to a consent record by consent ID.
+	 */
+	async identifyUser(
+		options?: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
+	): Promise<ResponseContext<IdentifyUserResponse>> {
+		return identifyUser(this.fetcherContext, this.storageConfig, options);
 	}
 
 	/**

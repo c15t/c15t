@@ -16,6 +16,11 @@ export const API_ENDPOINTS = {
 	 * Path for verifying consent
 	 */
 	VERIFY_CONSENT: '/consent/verify',
+
+	/**
+	 * Path for identifying a user by linking external ID to consent
+	 */
+	IDENTIFY_CONSENT: '/consent/identify',
 } as const;
 
 /**

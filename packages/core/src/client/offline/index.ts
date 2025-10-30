@@ -5,6 +5,8 @@
 
 import type {
 	ConsentManagerInterface,
+	IdentifyUserRequestBody,
+	IdentifyUserResponse,
 	SetConsentRequestBody,
 	SetConsentResponse,
 	ShowConsentBannerResponse,
@@ -12,6 +14,7 @@ import type {
 	VerifyConsentResponse,
 } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
+import { identifyUser } from './identify-user';
 import { setConsent } from './set-consent';
 import { showConsentBanner } from './show-consent-banner';
 import type { OfflineClientOptions } from './types';
@@ -56,6 +59,15 @@ export class OfflineClient implements ConsentManagerInterface {
 		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
 	): Promise<ResponseContext<VerifyConsentResponse>> {
 		return verifyConsent(options);
+	}
+
+	/**
+	 * Links a subject's external ID to a consent record by consent ID.
+	 */
+	async identifyUser(
+		options?: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
+	): Promise<ResponseContext<IdentifyUserResponse>> {
+		return identifyUser(options);
 	}
 
 	/**

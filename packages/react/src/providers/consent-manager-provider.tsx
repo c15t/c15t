@@ -182,6 +182,7 @@ export function ConsentManagerProvider({
 			trackingBlockerConfig: options.trackingBlockerConfig,
 			scripts: options.scripts,
 			storageConfig: options.storageConfig,
+			externalId: options.externalId,
 			...store,
 			isConsentDomain,
 			initialTranslationConfig: translations,
@@ -203,6 +204,7 @@ export function ConsentManagerProvider({
 		isConsentDomain,
 		translations,
 		options.storageConfig,
+		options.externalId,
 	]);
 
 	// Initialize state with the current state from the consent manager store

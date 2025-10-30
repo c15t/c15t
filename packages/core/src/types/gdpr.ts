@@ -259,6 +259,14 @@ export type ConsentInfo = {
 	id?: string;
 
 	/**
+	 * If the consent was identified by an external ID
+	 *
+	 * @remarks
+	 * This is used to link a consent record to an authenticated user
+	 */
+	identified?: boolean;
+
+	/**
 	 * The type of consent granted
 	 * @deprecated un-used and will be removed in a future version
 	 */

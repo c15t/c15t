@@ -5,6 +5,8 @@
 
 import type {
 	ConsentManagerInterface,
+	IdentifyUserRequestBody,
+	IdentifyUserResponse,
 	SetConsentRequestBody,
 	SetConsentResponse,
 	ShowConsentBannerResponse,
@@ -13,6 +15,7 @@ import type {
 } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
 import { customFetch } from './fetch';
+import { identifyUser } from './identify-user';
 import { setConsent } from './set-consent';
 import { showConsentBanner } from './show-consent-banner';
 import type {
@@ -76,6 +79,15 @@ export class CustomClient implements ConsentManagerInterface {
 		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
 	): Promise<ResponseContext<VerifyConsentResponse>> {
 		return verifyConsent(this.endpointHandlers, options);
+	}
+
+	/**
+	 * Links a subject's external ID to a consent record by consent ID.
+	 */
+	async identifyUser(
+		options?: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
+	): Promise<ResponseContext<IdentifyUserResponse>> {
+		return identifyUser(this.endpointHandlers, options);
 	}
 
 	/**
