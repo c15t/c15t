@@ -32,6 +32,11 @@ const CompleteTranslationsSchema = z.object({
 		title: z.string(),
 		actionButton: z.string(),
 	}),
+	legalLinks: z.object({
+		privacyPolicy: z.string(),
+		termsOfService: z.string(),
+		cookiePolicy: z.string(),
++	}),
 });
 
 /**
