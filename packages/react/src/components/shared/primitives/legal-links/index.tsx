@@ -7,6 +7,15 @@ import type { AllThemeKeys } from '~/types/theme/style-keys';
 import { Box, type BoxProps } from '../box';
 import styles from './legal-links.module.css';
 
+/**
+ * Valid theme key prefixes for the LegalLinks component.
+ * These are the only allowed parent keys that have corresponding `.link` child keys defined in the theme.
+ */
+type LegalLinksThemeKey =
+	| 'banner.header.legal-links'
+	| 'widget.legal-links'
+	| 'dialog.legal-links';
+
 export interface LegalLinksProps extends Omit<BoxProps, 'themeKey'> {
 	/**
 	 * Controls which legal links to display.
@@ -20,13 +29,13 @@ export interface LegalLinksProps extends Omit<BoxProps, 'themeKey'> {
 	 * @example
 	 * ```tsx
 	 * // Show all links
-	 * <LegalLinks themeKey="banner" />
+	 * <LegalLinks themeKey="banner.header.legal-links" />
 	 *
 	 * // Show no links
-	 * <LegalLinks links={null} themeKey="banner" />
+	 * <LegalLinks links={null} themeKey="banner.header.legal-links" />
 	 *
 	 * // Show only privacy policy
-	 * <LegalLinks links={['privacyPolicy']} themeKey="banner" />
+	 * <LegalLinks links={['privacyPolicy']} themeKey="banner.header.legal-links" />
 	 * ```
 	 *
 	 * @remarks
@@ -34,8 +43,8 @@ export interface LegalLinksProps extends Omit<BoxProps, 'themeKey'> {
 	 */
 	links?: (keyof LegalLinksType)[] | null;
 
-	/** Theme key for styling the component */
-	themeKey: AllThemeKeys;
+	/** Theme key for styling the component. Must be one of the valid legal-links parent keys. */
+	themeKey: LegalLinksThemeKey;
 }
 
 /**
@@ -45,7 +54,7 @@ export interface LegalLinksProps extends Omit<BoxProps, 'themeKey'> {
  * ```tsx
  * <LegalLinks
  *   links={['privacyPolicy', 'cookiePolicy']}
- *   themeKey="cookieBanner"
+ *   themeKey="banner.header.legal-links"
  * />
  * ```
  */
@@ -54,21 +63,31 @@ export const LegalLinks = forwardRef<HTMLDivElement, LegalLinksProps>(
 		const { legalLinks } = useConsentManager();
 		const { legalLinks: t } = useTranslations();
 
+		// TypeScript now knows that `${themeKey}.link` is valid because
+		// all three LegalLinksThemeKey values have corresponding `.link` child keys
 		const linkStyles = useStyles(`${themeKey}.link` as AllThemeKeys, {
 			baseClassName: styles.legalLink,
 		});
 
 		// Filter legalLinks based on the links prop
-		const filteredLinks =
-			links === null
-				? null // Explicitly hide all links
-				: links === undefined
-					? legalLinks // Show all links (default)
-					: (Object.fromEntries(
-							Object.entries(legalLinks ?? {}).filter(([key]) =>
-								links.includes(key as keyof LegalLinksType)
-							)
-						) as LegalLinksType); // Show only specified links
+		const filteredLinks = (() => {
+			// Explicitly hide all links
+			if (links === null) {
+				return null;
+			}
+
+			// Show all links (default behavior)
+			if (links === undefined) {
+				return legalLinks;
+			}
+
+			// Show only specified links
+			const entries = Object.entries(legalLinks ?? {});
+			const filtered = entries.filter(([key]) =>
+				links.includes(key as keyof LegalLinksType)
+			);
+			return Object.fromEntries(filtered) as LegalLinksType;
+		})();
 
 		// Don't render if filteredLinks is null or empty
 		if (!filteredLinks || Object.keys(filteredLinks).length === 0) {
