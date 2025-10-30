@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { C15tClient } from '../client-c15t';
+import { C15tClient } from '../c15t';
 
 /**
  * @vitest-environment jsdom

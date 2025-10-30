@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchMock, mockLocalStorage } from '../../../vitest.setup';
 import { STORAGE_KEY_V2 } from '../../store.initial-state';
-import { C15tClient } from '../client-c15t';
+import { C15tClient } from '../c15t';
 import {
 	type ConsentManagerOptions,
 	configureConsentManager,

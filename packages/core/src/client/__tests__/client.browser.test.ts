@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { STORAGE_KEY_V2 } from '../../store.initial-state';
-import { C15tClient } from '../client-c15t';
-import { CustomClient } from '../client-custom';
+import { C15tClient } from '../c15t';
 import { configureConsentManager } from '../client-factory';
-import type { OfflineClient } from '../client-offline';
+import { CustomClient } from '../custom';
+import type { OfflineClient } from '../offline';
 
 // Note: For Vitest browser mode, we don't need to mock localStorage or fetch
 // as they're available in the browser environment
