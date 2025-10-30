@@ -10,6 +10,7 @@ import type {
 	GTMConfiguration,
 	LegalLinks,
 	Script,
+	StorageConfig,
 	TrackingBlockerConfig,
 	TranslationConfig,
 } from 'c15t';
@@ -120,6 +121,17 @@ export type ConsentManagerOptions = CoreOptions & {
 	 * @defaultValue {}
 	 */
 	legalLinks?: LegalLinks;
+  
+  /**
+	 * Storage configuration options
+	 *
+	 * @remarks
+	 * Configure storage behavior through store options for better control
+	 * and testability.
+	 *
+	 * @see {@link StorageConfig} for available options
+	 */
+	storageConfig?: StorageConfig;
 };
 
 /**

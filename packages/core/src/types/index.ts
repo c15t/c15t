@@ -46,6 +46,7 @@ export type {
 export {
 	type AllConsentNames,
 	allConsentNames,
+	type ConsentInfo,
 	type ConsentType,
 	consentTypes,
 } from './gdpr';

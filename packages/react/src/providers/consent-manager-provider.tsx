@@ -4,6 +4,7 @@ import {
 	configureConsentManager,
 	createConsentManagerStore,
 	type PrivacyConsentState,
+	type StorageConfig,
 } from 'c15t';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -40,13 +41,21 @@ export function clearConsentManagerCache(): void {
 	managerCache.clear();
 }
 
+interface CacheKeyOptions {
+	mode: string;
+	backendURL: string | undefined;
+	endpointHandlers: unknown;
+	storageConfig: StorageConfig | undefined;
+}
 // Generate a cache key based on critical configuration options
-function generateCacheKey(
-	mode: string,
-	backendURL: string | undefined,
-	endpointHandlers: unknown
-): string {
-	return `${mode}:${backendURL ?? 'default'}:${endpointHandlers ? 'custom' : 'none'}`;
+
+function generateCacheKey({
+	mode,
+	backendURL,
+	endpointHandlers,
+	storageConfig,
+}: CacheKeyOptions): string {
+	return `${mode}:${backendURL ?? 'default'}:${endpointHandlers ? 'custom' : 'none'}:${storageConfig?.storageKey ?? 'default'}`;
 }
 
 /**
@@ -83,6 +92,7 @@ export function ConsentManagerProvider({
 	// Extract and memoize stable options
 	const { mode, backendURL, store = {}, translations, react = {} } = options;
 
+	// Destructure once to avoid redundant access
 	const {
 		theme,
 		disableAnimation = false,
@@ -108,11 +118,13 @@ export function ConsentManagerProvider({
 	}, [mode, backendURL]);
 
 	// Generate cache key for manager and store persistence
-	const cacheKey = generateCacheKey(
-		mode || 'c15t',
-		backendURL || '/api/c15t',
-		'endpointHandlers' in options ? options.endpointHandlers : undefined
-	);
+	const cacheKey = generateCacheKey({
+		mode: mode || 'c15t',
+		backendURL: backendURL || '/api/c15t',
+		endpointHandlers:
+			'endpointHandlers' in options ? options.endpointHandlers : undefined,
+		storageConfig: options.storageConfig,
+	});
 
 	// Get or create consent manager with caching
 	const consentManager = useMemo(() => {
@@ -127,18 +139,21 @@ export function ConsentManagerProvider({
 			newManager = configureConsentManager({
 				mode: 'offline',
 				store,
+				storageConfig: options.storageConfig,
 			});
 		} else if (mode === 'custom' && 'endpointHandlers' in options) {
 			newManager = configureConsentManager({
 				mode: 'custom',
 				endpointHandlers: options.endpointHandlers,
 				store,
+				storageConfig: options.storageConfig,
 			});
 		} else {
 			newManager = configureConsentManager({
 				mode: 'c15t',
 				backendURL: backendURL || '/api/c15t',
 				store,
+				storageConfig: options.storageConfig,
 			});
 		}
 
@@ -167,6 +182,7 @@ export function ConsentManagerProvider({
 			trackingBlockerConfig: options.trackingBlockerConfig,
 			scripts: options.scripts,
 			legalLinks: options.legalLinks,
+			storageConfig: options.storageConfig,
 			...store,
 			isConsentDomain,
 			initialTranslationConfig: translations,
@@ -188,6 +204,7 @@ export function ConsentManagerProvider({
 		store,
 		isConsentDomain,
 		translations,
+		options.storageConfig,
 	]);
 
 	// Initialize state with the current state from the consent manager store

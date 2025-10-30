@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoreApi } from 'zustand';
 import type { ConsentManagerInterface } from '../../client/client-interface';
-import { STORAGE_KEY } from '../../store.initial-state';
 import type { PrivacyConsentState } from '../../store.type';
 import { saveConsents } from '../save-consents';
 
@@ -42,11 +41,15 @@ describe('saveConsents', () => {
 
 		// Mock window and localStorage globally
 		vi.stubGlobal('localStorage', mockLocalStorage);
+		vi.stubGlobal('document', {
+			cookie: '',
+		});
 		vi.stubGlobal('window', {
 			...globalThis.window,
 			localStorage: mockLocalStorage,
 			location: {
 				hostname: 'test.example.com',
+				protocol: 'https:',
 			},
 		});
 
@@ -285,8 +288,8 @@ describe('saveConsents', () => {
 		});
 	});
 
-	describe('localStorage persistence', () => {
-		it('should save consents to localStorage', async () => {
+	describe('state management', () => {
+		it('should update state immediately for responsive UI', async () => {
 			await saveConsents({
 				manager: mockManager,
 				type: 'all',
@@ -295,38 +298,23 @@ describe('saveConsents', () => {
 				trackingBlocker: mockTrackingBlocker,
 			});
 
-			expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-				STORAGE_KEY,
-				expect.stringMatching(
-					/{"consents":{"necessary":true,"functionality":true,"measurement":true,"experience":true,"marketing":true},"consentInfo":{"time":\d+,"type":"all"}}/
-				)
+			// Verify state was updated with new consents
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					consents: expect.objectContaining({
+						necessary: true,
+						functionality: true,
+						measurement: true,
+						experience: true,
+						marketing: true,
+					}),
+					showPopup: false,
+					consentInfo: expect.objectContaining({
+						type: 'all',
+						time: expect.any(Number),
+					}),
+				})
 			);
-		});
-
-		it('should handle localStorage errors gracefully', async () => {
-			const consoleWarnSpy = vi
-				.spyOn(console, 'warn')
-				.mockImplementation(() => {});
-			const originalSetItem = mockLocalStorage.setItem;
-			mockLocalStorage.setItem = vi.fn().mockImplementation(() => {
-				throw new Error('localStorage not available');
-			});
-
-			await saveConsents({
-				manager: mockManager,
-				type: 'all',
-				get: mockGet,
-				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
-			});
-
-			expect(consoleWarnSpy).toHaveBeenCalledWith(
-				'Failed to persist consents to localStorage:',
-				expect.any(Error)
-			);
-
-			consoleWarnSpy.mockRestore();
-			mockLocalStorage.setItem = originalSetItem;
 		});
 	});
 
@@ -373,10 +361,6 @@ describe('saveConsents', () => {
 						time: expect.any(Number),
 					}),
 				})
-			);
-			expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-				STORAGE_KEY,
-				expect.any(String)
 			);
 		});
 	});

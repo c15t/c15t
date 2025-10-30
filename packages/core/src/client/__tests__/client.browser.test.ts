@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { STORAGE_KEY_V2 } from '../../store.initial-state';
 import { C15tClient } from '../client-c15t';
 import { CustomClient } from '../client-custom';
 import { configureConsentManager } from '../client-factory';
@@ -167,7 +168,7 @@ describe('Offline Client Browser Tests', () => {
 		}) as OfflineClient;
 
 		// First check that localStorage doesn't have consent data
-		expect(localStorage.getItem('c15t-consent')).toBeNull();
+		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
 
 		// Set consent data
 		const response = await client.setConsent({
@@ -185,12 +186,12 @@ describe('Offline Client Browser Tests', () => {
 		expect(response.ok).toBe(true);
 
 		// Verify localStorage was updated
-		const storedData = localStorage.getItem('c15t-consent');
+		const storedData = localStorage.getItem(STORAGE_KEY_V2);
 		expect(storedData).not.toBeNull();
 
 		if (storedData !== null) {
 			const parsedData = JSON.parse(storedData);
-			expect(parsedData.preferences).toEqual({
+			expect(parsedData.consents).toMatchObject({
 				analytics: true,
 				marketing: false,
 			});
@@ -198,6 +199,15 @@ describe('Offline Client Browser Tests', () => {
 	});
 
 	it('should check real localStorage for consent banner visibility', async () => {
+		// Clear both localStorage and cookies first
+		localStorage.clear();
+		// Clear all cookies
+		document.cookie.split(';').forEach((c) => {
+			document.cookie = c
+				.replace(/^ +/, '')
+				.replace(/=.*/, `=;expires=${new Date().toUTCString()};path=/`);
+		});
+
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'offline',
@@ -209,10 +219,10 @@ describe('Offline Client Browser Tests', () => {
 
 		// Store consent data in localStorage
 		localStorage.setItem(
-			'c15t-consent',
+			STORAGE_KEY_V2,
 			JSON.stringify({
-				timestamp: new Date().toISOString(),
-				preferences: { analytics: true },
+				consents: { analytics: true },
+				consentInfo: { time: Date.now() },
 			})
 		);
 
@@ -317,7 +327,7 @@ describe('Custom Client Browser Tests', () => {
 		expect(storedData).not.toBeNull();
 		if (storedData !== null) {
 			const parsedData = JSON.parse(storedData);
-			expect(parsedData.preferences).toEqual({
+			expect(parsedData.preferences).toMatchObject({
 				analytics: true,
 				marketing: false,
 			});

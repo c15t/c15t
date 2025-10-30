@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchMock, mockLocalStorage } from '../../../vitest.setup';
+import { STORAGE_KEY_V2 } from '../../store.initial-state';
 import { C15tClient } from '../client-c15t';
 import {
 	type ConsentManagerOptions,
@@ -655,12 +656,8 @@ describe('c15t Client Offline Fallback Tests', () => {
 
 		// Check localStorage for both the consent and pending submissions
 		expect(localStorageSetItemSpy).toHaveBeenCalledWith(
-			'c15t-storage-test-key',
+			STORAGE_KEY_V2,
 			expect.any(String)
-		);
-		expect(localStorageSetItemSpy).toHaveBeenCalledWith(
-			'c15t-consent',
-			expect.stringContaining(JSON.stringify(consentData.preferences))
 		);
 		expect(localStorageSetItemSpy).toHaveBeenCalledWith(
 			'c15t-pending-consent-submissions',
@@ -746,11 +743,7 @@ describe('c15t Client Offline Fallback Tests', () => {
 		expect(parsedSubmissions).toContainEqual(termsConsent);
 
 		// Verify localStorage interactions
-		expect(setItemSpy).toHaveBeenCalledWith(
-			'c15t-storage-test-key',
-			expect.any(String)
-		);
-		expect(setItemSpy).toHaveBeenCalledWith('c15t-consent', expect.any(String));
+		expect(setItemSpy).toHaveBeenCalledWith(STORAGE_KEY_V2, expect.any(String));
 		expect(setItemSpy).toHaveBeenCalledWith(
 			'c15t-pending-consent-submissions',
 			expect.stringContaining(JSON.stringify([cookieBannerConsent]))

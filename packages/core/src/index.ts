@@ -57,8 +57,18 @@ export type {
  * Exports the API endpoints for the consent management system.
  */
 export { API_ENDPOINTS } from './client/types';
+// Export cookie storage utilities
+export type { CookieOptions, StorageConfig } from './libs/cookie';
+export {
+	deleteConsentFromStorage,
+	deleteCookie,
+	getConsentFromStorage,
+	getCookie,
+	getRootDomain,
+	saveConsentToStorage,
+	setCookie,
+} from './libs/cookie';
 export type { GTMConfiguration } from './libs/gtm';
-
 export type { HasCondition } from './libs/has';
 export {
 	createIframeBlocker,

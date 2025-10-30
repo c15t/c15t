@@ -1,5 +1,11 @@
 # @c15t/backend
 
+## 1.8.0-canary-20251028143243
+
+### Patch Changes
+
+- 8f3f146: chore: update various dependancies
+
 ## 1.7.0
 
 ### Patch Changes
