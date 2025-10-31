@@ -72,20 +72,13 @@ describe('c15t Client Tests', () => {
 			backendURL: '/api/c15t',
 		});
 
-		// Error callback mock
-		const onErrorMock = vi.fn();
+		// Call the API - should fallback to offline mode
+		const response = await client.showConsentBanner();
 
-		// Call the API with error callback - use testing flag to bypass fallback
-		const response = await client.showConsentBanner({
-			onError: onErrorMock,
-			testing: true, // Ensure we get the original error response
-		});
-
-		// Assertions
-		expect(response.ok).toBe(false);
-		expect(response.error).toBeDefined();
-		expect(response.error?.status).toBe(0);
-		expect(onErrorMock).toHaveBeenCalledTimes(1);
+		// Assertions - should use offline fallback which returns ok: true
+		expect(response.ok).toBe(true);
+		expect(response.data).toBeDefined();
+		expect(response.data?.showConsentBanner).toBeDefined();
 	});
 
 	it('should set consent preferences', async () => {
@@ -322,13 +315,11 @@ describe('c15t Client Retry Logic Tests', () => {
 		};
 
 		const client = configureConsentManager(config);
-		const response = await client.showConsentBanner({
-			testing: true, // Ensure we get the original error response
-		});
+		const response = await client.showConsentBanner();
 
-		// Should only call fetch once, no retries
+		// Should only call fetch once, no retries, then fallback to offline mode
 		expect(fetchMock).toHaveBeenCalledTimes(1);
-		expect(response.ok).toBe(false);
+		expect(response.ok).toBe(true); // Offline fallback returns success
 	});
 
 	it('should retry on network errors', async () => {
@@ -487,17 +478,14 @@ describe('c15t Client Retry Logic Tests', () => {
 
 		const client = configureConsentManager(config);
 
-		// Call the API with testing flag to avoid fallback
-		const response = await client.showConsentBanner({
-			testing: true, // Ensure we get the original error response
-		});
+		// Call the API - should fallback to offline mode for 404
+		const response = await client.showConsentBanner();
 
 		// Assertions
 		expect(fetchMock).toHaveBeenCalledTimes(1); // Should only be called once
 		expect(setTimeoutSpy).not.toHaveBeenCalled(); // No retry delay should be scheduled
-		expect(response.ok).toBe(false);
-		expect(response.error?.status).toBe(404);
-		expect(response.error?.code).toBe('NOT_FOUND');
+		expect(response.ok).toBe(true); // Offline fallback returns success
+		expect(response.data).toBeDefined();
 	});
 
 	it('should handle a mix of 404 and retryable errors correctly', async () => {
@@ -532,16 +520,14 @@ describe('c15t Client Retry Logic Tests', () => {
 			},
 		};
 
-		// First call - should return 404 with no retries
+		// First call - should fallback to offline mode for 404 (no retries)
 		const client = configureConsentManager(config);
-		const firstResponse = await client.showConsentBanner({
-			testing: true,
-		});
+		const firstResponse = await client.showConsentBanner();
 
-		// Should have only made one request and returned the 404
+		// Should have only made one request, then fallback to offline mode
 		expect(fetchMock).toHaveBeenCalledTimes(1);
-		expect(firstResponse.ok).toBe(false);
-		expect(firstResponse.error?.status).toBe(404);
+		expect(firstResponse.ok).toBe(true); // Offline fallback returns success
+		expect(firstResponse.data).toBeDefined();
 
 		// Reset mock for next test
 		fetchMock.mockReset();

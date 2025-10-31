@@ -127,7 +127,7 @@ export async function setConsent(
 		);
 
 		// If the request was successful
-		if ((response.ok && response.data) || options?.testing) {
+		if (response.ok && response.data) {
 			saveConsentToStorage(
 				{
 					consents: options?.body?.preferences || {},
@@ -150,29 +150,7 @@ export async function setConsent(
 		);
 		return offlineFallbackForSetConsent(storageConfig, options);
 	} catch (error) {
-		// If in a test environment or if fallback is disabled, propagate the error
-		if (options?.testing || options?.disableFallback) {
-			// Create an error response to match what would normally happen
-			const errorResponse = createResponseContext<SetConsentResponse>(
-				false,
-				null,
-				{
-					message: error instanceof Error ? error.message : String(error),
-					status: 0,
-					code: 'NETWORK_ERROR',
-					cause: error,
-				},
-				null
-			);
-
-			if (options?.onError) {
-				await options.onError(errorResponse, API_ENDPOINTS.SET_CONSENT);
-			}
-
-			return errorResponse;
-		}
-
-		// If an error was thrown, also fall back to offline mode
+		// If an error was thrown, fall back to offline mode
 		console.warn('Error setting consent, falling back to offline mode:', error);
 		return offlineFallbackForSetConsent(storageConfig, options);
 	}
