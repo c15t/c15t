@@ -10,7 +10,7 @@ export const identifyUserContract = oc
 	.route({
 		method: 'PATCH',
 		path: '/consent/identify',
-		description: '',
+		description: `Links a subject's external ID to a consent record by consent ID. This is used to identify a user across multiple devices and sessions.`,
 		tags: ['consent', 'cookie-banner'],
 	})
 	.errors({
