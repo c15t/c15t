@@ -25,8 +25,9 @@ export async function customFetch<
 	const endpointName = path.replace(LEADING_SLASHES_REGEX, '').split('/')[0];
 
 	// Check for dynamic handlers first
-	if (path in dynamicHandlers) {
-		const handler = dynamicHandlers[path];
+	const handler = dynamicHandlers[path];
+
+	if (handler) {
 		try {
 			return await handler(options);
 		} catch (error) {
