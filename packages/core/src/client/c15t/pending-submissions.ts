@@ -1,4 +1,6 @@
 import type {
+	IdentifyUserRequestBody,
+	IdentifyUserResponse,
 	SetConsentRequestBody,
 	SetConsentResponse,
 } from '../client-interface';
@@ -63,7 +65,7 @@ export function checkPendingConsentSubmissions(
  * Process pending consent submissions
  * @internal
  */
-export async function processPendingSubmissions(
+export async function processPendingConsentSubmissions(
 	context: FetcherContext,
 	submissions: SetConsentRequestBody[]
 ) {
@@ -137,5 +139,146 @@ export async function processPendingSubmissions(
 		}
 	} catch (error) {
 		console.warn('Error updating pending submissions storage:', error);
+	}
+}
+
+/**
+ * Check for pending identify-user submissions on initialization
+ * @internal
+ */
+export function checkPendingIdentifyUserSubmissions(
+	_context: FetcherContext,
+	processPendingSubmissions: (
+		submissions: IdentifyUserRequestBody[]
+	) => Promise<void>
+) {
+	const pendingSubmissionsKey = 'c15t-pending-identify-user-submissions';
+
+	// Don't attempt to access localStorage in SSR context
+	if (typeof window === 'undefined' || !window.localStorage) {
+		return;
+	}
+
+	try {
+		// Test localStorage access first
+		window.localStorage.setItem('c15t-storage-test-key', 'test');
+		window.localStorage.removeItem('c15t-storage-test-key');
+
+		const pendingSubmissionsStr = window.localStorage.getItem(
+			pendingSubmissionsKey
+		);
+		if (!pendingSubmissionsStr) {
+			return; // No pending submissions
+		}
+
+		const pendingSubmissions: IdentifyUserRequestBody[] = JSON.parse(
+			pendingSubmissionsStr
+		);
+		if (!pendingSubmissions.length) {
+			// Clean up empty array
+			window.localStorage.removeItem(pendingSubmissionsKey);
+			return;
+		}
+
+		console.log(
+			`Found ${pendingSubmissions.length} pending identify-user submission(s) to retry`
+		);
+
+		// Process submissions asynchronously to avoid blocking page load
+		setTimeout(() => {
+			processPendingSubmissions(pendingSubmissions);
+		}, 2000); // Delay to ensure page is loaded and network is likely available
+	} catch (error) {
+		// Ignore localStorage errors but log them
+		console.warn(
+			'Failed to check for pending identify-user submissions:',
+			error
+		);
+	}
+}
+
+/**
+ * Process pending identify-user submissions
+ * @internal
+ */
+export async function processPendingIdentifyUserSubmissions(
+	context: FetcherContext,
+	submissions: IdentifyUserRequestBody[]
+) {
+	const pendingSubmissionsKey = 'c15t-pending-identify-user-submissions';
+	const maxRetries = 3;
+	const remainingSubmissions = [...submissions];
+
+	for (let i = 0; i < maxRetries && remainingSubmissions.length > 0; i++) {
+		// Try to send each pending submission
+		const successfulSubmissions: number[] = [];
+
+		for (let j = 0; j < remainingSubmissions.length; j++) {
+			const submission = remainingSubmissions[j];
+			try {
+				console.log('Retrying identify-user submission:', submission);
+
+				// Use the actual API endpoint, not our offlineFallback
+				const response = await fetcher<
+					IdentifyUserResponse,
+					IdentifyUserRequestBody
+				>(context, API_ENDPOINTS.IDENTIFY_CONSENT, {
+					method: 'PATCH',
+					body: submission,
+				});
+
+				if (response.ok) {
+					console.log('Successfully resubmitted identify-user');
+					successfulSubmissions.push(j);
+				}
+			} catch (error) {
+				console.warn('Failed to resend identify-user submission:', error);
+				// Continue with the next submission
+			}
+		}
+
+		// Remove successful submissions from the list (in reverse order to not affect indices)
+		for (let k = successfulSubmissions.length - 1; k >= 0; k--) {
+			const index = successfulSubmissions[k];
+			if (index !== undefined) {
+				remainingSubmissions.splice(index, 1);
+			}
+		}
+
+		// If we've processed all submissions, exit the loop
+		if (remainingSubmissions.length === 0) {
+			break;
+		}
+
+		// Wait before retrying again
+		if (i < maxRetries - 1) {
+			await delay(1000 * (i + 1)); // Increasing delay between retries
+		}
+	}
+
+	// Update storage with remaining submissions (if any)
+	try {
+		if (typeof window !== 'undefined' && window.localStorage) {
+			if (remainingSubmissions.length > 0) {
+				window.localStorage.setItem(
+					pendingSubmissionsKey,
+					JSON.stringify(remainingSubmissions)
+				);
+				console.log(
+					`${remainingSubmissions.length} identify-user submissions still pending for future retry`
+				);
+			} else {
+				// All submissions processed, clear the storage
+				window.localStorage.removeItem(pendingSubmissionsKey);
+				console.log(
+					'All pending identify-user submissions processed successfully'
+				);
+			}
+		}
+	} catch (error) {
+		console.warn(
+			'Error updating pending identify-user submissions storage:',
+			error
+		);
 	}
 }

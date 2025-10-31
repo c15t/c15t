@@ -20,7 +20,9 @@ import { fetcher } from './fetcher';
 import { identifyUser } from './identify-user';
 import {
 	checkPendingConsentSubmissions,
-	processPendingSubmissions,
+	checkPendingIdentifyUserSubmissions,
+	processPendingConsentSubmissions,
+	processPendingIdentifyUserSubmissions,
 } from './pending-submissions';
 import { setConsent } from './set-consent';
 import { showConsentBanner } from './show-consent-banner';
@@ -129,6 +131,7 @@ export class C15tClient implements ConsentManagerInterface {
 
 		// Check for pending consent submissions on initialization
 		this.checkPendingConsentSubmissions();
+		this.checkPendingIdentifyUserSubmissions();
 	}
 
 	/**
@@ -189,7 +192,7 @@ export class C15tClient implements ConsentManagerInterface {
 	 */
 	private checkPendingConsentSubmissions() {
 		checkPendingConsentSubmissions(this.fetcherContext, (submissions) =>
-			this.processPendingSubmissions(submissions)
+			this.processPendingConsentSubmissions(submissions)
 		);
 	}
 
@@ -197,10 +200,33 @@ export class C15tClient implements ConsentManagerInterface {
 	 * Process pending consent submissions
 	 * @internal
 	 */
-	private async processPendingSubmissions(
+	private async processPendingConsentSubmissions(
 		submissions: SetConsentRequestBody[]
 	) {
-		return processPendingSubmissions(this.fetcherContext, submissions);
+		return processPendingConsentSubmissions(this.fetcherContext, submissions);
+	}
+
+	/**
+	 * Check for pending identify-user submissions on initialization
+	 * @internal
+	 */
+	private checkPendingIdentifyUserSubmissions() {
+		checkPendingIdentifyUserSubmissions(this.fetcherContext, (submissions) =>
+			this.processPendingIdentifyUserSubmissions(submissions)
+		);
+	}
+
+	/**
+	 * Process pending identify-user submissions
+	 * @internal
+	 */
+	private async processPendingIdentifyUserSubmissions(
+		submissions: IdentifyUserRequestBody[]
+	) {
+		return processPendingIdentifyUserSubmissions(
+			this.fetcherContext,
+			submissions
+		);
 	}
 }
 

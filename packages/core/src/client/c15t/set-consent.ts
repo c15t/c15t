@@ -6,7 +6,8 @@ import type {
 import type { FetchOptions, ResponseContext } from '../types';
 import { API_ENDPOINTS } from '../types';
 import type { FetcherContext } from './fetcher';
-import { createResponseContext, fetcher } from './fetcher';
+import { createResponseContext } from './fetcher';
+import { withFallback } from './with-fallback';
 
 /**
  * Provides offline mode fallback for setConsent API.
@@ -115,43 +116,34 @@ export async function setConsent(
 	storageConfig: import('../../libs/cookie').StorageConfig | undefined,
 	options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 ): Promise<ResponseContext<SetConsentResponse>> {
-	try {
-		// First try the actual API request
-		const response = await fetcher<SetConsentResponse, SetConsentRequestBody>(
-			context,
-			API_ENDPOINTS.SET_CONSENT,
-			{
-				method: 'POST',
-				...options,
-			}
-		);
-
-		// If the request was successful
-		if (response.ok && response.data) {
-			saveConsentToStorage(
-				{
-					consents: options?.body?.preferences || {},
-					consentInfo: {
-						time: Date.now(),
-						id: response.data.id,
-						identified: Boolean(options?.body?.externalId),
-					},
-				},
-				undefined,
-				storageConfig
-			);
-
-			return response;
+	const response = await withFallback<
+		SetConsentResponse,
+		SetConsentRequestBody
+	>(
+		context,
+		API_ENDPOINTS.SET_CONSENT,
+		'POST',
+		options,
+		async (fallbackOptions) => {
+			return offlineFallbackForSetConsent(storageConfig, fallbackOptions);
 		}
+	);
 
-		// If we got here, the request failed but didn't throw - fall back to offline mode
-		console.warn(
-			'API request failed, falling back to offline mode for setting consent'
+	// If the request was successful
+	if (response.ok && response.data) {
+		saveConsentToStorage(
+			{
+				consents: options?.body?.preferences || {},
+				consentInfo: {
+					time: Date.now(),
+					id: response.data.id,
+					identified: Boolean(options?.body?.externalId),
+				},
+			},
+			undefined,
+			storageConfig
 		);
-		return offlineFallbackForSetConsent(storageConfig, options);
-	} catch (error) {
-		// If an error was thrown, fall back to offline mode
-		console.warn('Error setting consent, falling back to offline mode:', error);
-		return offlineFallbackForSetConsent(storageConfig, options);
 	}
+
+	return response;
 }
