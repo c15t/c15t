@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchMock, mockLocalStorage } from '../../../vitest.setup';
-import { C15tClient } from '../client-c15t';
-import { CustomClient } from '../client-custom';
+import { C15tClient } from '../c15t';
 import { configureConsentManager } from '../client-factory';
-import { OfflineClient } from '../client-offline';
+import { CustomClient } from '../custom';
+import { OfflineClient } from '../offline';
 
 describe('Client Factory Tests', () => {
 	beforeEach(() => {

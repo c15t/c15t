@@ -121,6 +121,20 @@ export interface PrivacyConsentState {
 	/** Configuration for the iframe blocker */
 	iframeBlockerConfig: IframeBlockerConfig;
 
+	/**
+	 * Usually your own internal ID for the user from your auth provider */
+	externalId?: string;
+
+	/**
+	 * Identifies the user by setting the external ID
+	 *
+	 * @remarks
+	 * If the user has already consented, it will update the existing record.
+	 *
+	 * @param id - The external ID of the user
+	 */
+	identifyUser: (id: string) => Promise<void>;
+
 	/*
 	 * Updates the selected consent state for a specific consent type.
 	 * @param name - The consent type to update

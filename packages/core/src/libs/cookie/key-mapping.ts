@@ -22,6 +22,7 @@ export const COOKIE_KEY_MAP = {
 	time: 't',
 	type: 'y',
 	id: 'id',
+	identified: 'eid', // "eid" for "External ID"
 } as const;
 
 /**

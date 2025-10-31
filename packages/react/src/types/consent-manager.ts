@@ -120,6 +120,17 @@ export type ConsentManagerOptions = CoreOptions & {
 	 * @see {@link StorageConfig} for available options
 	 */
 	storageConfig?: StorageConfig;
+
+	/**
+	 * The external ID of the user.
+	 * Usually your own internal ID for the user from your auth provider
+	 *
+	 * @remarks
+	 * This can be set later using the {@link identifyUser} method.
+	 *
+	 * @default undefined
+	 */
+	externalId?: string;
 };
 
 /**

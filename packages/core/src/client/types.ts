@@ -16,6 +16,11 @@ export const API_ENDPOINTS = {
 	 * Path for verifying consent
 	 */
 	VERIFY_CONSENT: '/consent/verify',
+
+	/**
+	 * Path for identifying a user by linking external ID to consent
+	 */
+	IDENTIFY_CONSENT: '/consent/identify',
 } as const;
 
 /**
@@ -202,19 +207,6 @@ export interface FetchOptions<
 	 * Request-specific retry configuration. Overrides the global `retryConfig` set in `C15tClientOptions`.
 	 */
 	retryConfig?: RetryConfig;
-
-	/**
-	 * Indicates this request is coming from a test environment.
-	 * When set to true, offline fallbacks will be skipped to allow testing error handling.
-	 * @internal
-	 */
-	testing?: boolean;
-
-	/**
-	 * Disables the offline fallback mechanism for this specific request.
-	 * When set to true, no offline fallback will be attempted if the request fails.
-	 */
-	disableFallback?: boolean;
 }
 
 /**

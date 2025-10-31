@@ -4,10 +4,10 @@
  * client instances based on configuration options.
  */
 import type { StoreOptions } from '../store';
-import { C15tClient } from './client-c15t';
-import { CustomClient, type EndpointHandlers } from './client-custom';
+import { C15tClient } from './c15t';
 import type { ConsentManagerInterface } from './client-interface';
-import { OfflineClient } from './client-offline';
+import { CustomClient, type EndpointHandlers } from './custom';
+import { OfflineClient } from './offline';
 import type { RetryConfig } from './types';
 
 export type { ConsentManagerInterface } from './client-interface';

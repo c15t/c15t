@@ -7,21 +7,21 @@
 export {
 	C15tClient,
 	type C15tClientOptions,
-} from './client-c15t';
-// Export Custom client for advanced usage scenarios
-export {
-	CustomClient,
-	type CustomClientOptions,
-	type EndpointHandler,
-} from './client-custom';
+} from './c15t';
 export {
 	type ConsentManagerInterface,
 	type ConsentManagerOptions,
 	configureConsentManager,
 } from './client-factory';
+// Export Custom client for advanced usage scenarios
+export {
+	CustomClient,
+	type CustomClientOptions,
+	type EndpointHandler,
+} from './custom';
 
 // Export Offline client for testing and development
 export {
 	OfflineClient,
 	type OfflineClientOptions,
-} from './client-offline';
+} from './offline';

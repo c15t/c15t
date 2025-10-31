@@ -247,7 +247,8 @@ export const allConsentNames = consentTypes.map(
  */
 export type ConsentInfo = {
 	/**
-	 * The timestamp of when the consent was granted
+	 * The epoch timestamp of when the consent was recorded
+	 * @example 1761911048
 	 */
 	time: number;
 
@@ -257,6 +258,14 @@ export type ConsentInfo = {
 	 * This is optional as old or offline consent may not have an associated id
 	 */
 	id?: string;
+
+	/**
+	 * If the consent was identified by an external ID
+	 *
+	 * @remarks
+	 * This is used to link a consent record to an authenticated user
+	 */
+	identified?: boolean;
 
 	/**
 	 * The type of consent granted
