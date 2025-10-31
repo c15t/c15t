@@ -1,0 +1,209 @@
+---
+title: Databuddy
+description: Databuddy is a privacy-focused analytics platform that helps you understand user behavior and track events. It supports cookieless tracking and manages consent automatically through c15t's consent state synchronization.
+lastModified: 2025-10-31
+new: true
+icon: chart-line
+---
+
+Databuddy is a privacy-focused analytics platform that helps you understand user behavior, track events, and analyze product usage. It integrates seamlessly with c15t's consent management system, automatically enabling or disabling tracking based on user consent preferences.
+
+## Script Implementation
+
+The Databuddy script automatically respects consent preferences by toggling tracking on and off based on the user's consent state.
+
+<Steps>
+  <Step>
+    ### Adding the Databuddy script to c15t
+
+    <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
+      <Tab value="JavaScript">
+        ```ts
+        import { configureConsentManager } from 'c15t';
+        import { databuddy } from '@c15t/scripts/databuddy';
+
+        configureConsentManager({
+          // ... 
+          scripts: [
+            databuddy({ 
+              clientId: 'your-client-id',
+              scriptUrl: 'https://cdn.databuddy.cc/databuddy.js',
+              apiUrl: 'https://basket.databuddy.cc',
+              options: {
+                trackScreenViews: true,
+                trackOutgoingLinks: true,
+              }
+            }),
+          ],
+        });
+        ```
+      </Tab>
+
+      <Tab value="React">
+        ```tsx
+        import { databuddy } from '@c15t/scripts/databuddy';
+        import { ConsentManagerProvider } from '@c15t/react';
+
+        export function App({ children }: { children: React.ReactNode }) {
+          return (
+            <ConsentManagerProvider
+              options={{
+                scripts: [
+                  databuddy({ 
+                    clientId: 'your-client-id',
+                    scriptUrl: 'https://cdn.databuddy.cc/databuddy.js',
+                    apiUrl: 'https://basket.databuddy.cc',
+                    options: {
+                      trackScreenViews: true,
+                      trackOutgoingLinks: true,
+                    }
+                  }),
+                ],
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
+        }
+        ```
+      </Tab>
+
+      <Tab value="Next.js + App Router">
+        ```tsx
+        'use client';
+        import { databuddy } from '@c15t/scripts/databuddy';
+        import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
+
+        export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
+          return (
+            <ClientSideOptionsProvider
+              scripts={[
+                databuddy({ 
+                  clientId: 'your-client-id',
+                  scriptUrl: 'https://cdn.databuddy.cc/databuddy.js',
+                  apiUrl: 'https://basket.databuddy.cc',
+                  options: {
+                    trackScreenViews: true,
+                    trackOutgoingLinks: true,
+                  }
+                }),
+              ]}
+            >
+              {children}
+            </ClientSideOptionsProvider>
+          );
+        }
+        ```
+      </Tab>
+
+      <Tab value="Next.js + Pages Router">
+        ```tsx
+        import { databuddy } from '@c15t/scripts/databuddy';
+        import { ConsentManagerProvider } from '@c15t/nextjs';
+
+        export function App({ children }: { children: React.ReactNode }) {
+          return (
+            <ConsentManagerProvider
+              options={{
+                scripts: [
+                  databuddy({ 
+                    clientId: 'your-client-id',
+                    scriptUrl: 'https://cdn.databuddy.cc/databuddy.js',
+                    apiUrl: 'https://basket.databuddy.cc',
+                    options: {
+                      trackScreenViews: true,
+                      trackOutgoingLinks: true,
+                    }
+                  }),
+                ],
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
+        }
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step>
+    ### Using Databuddy in your application
+
+    Once initialized, Databuddy is available globally via `window.databuddy` or `window.db`:
+
+    ```ts
+    // Track a custom event
+    window.databuddy?.trackCustomEvent('button_clicked', {
+      button_id: 'signup',
+      page: '/landing'
+    });
+
+    // Or use the shorthand
+    window.db?.track('purchase_completed', {
+      amount: 99.99,
+      currency: 'USD'
+    });
+
+    // Track a screen view manually
+    window.databuddy?.screenView('/dashboard', {
+      user_role: 'admin'
+    });
+
+    // Set global properties for all events
+    window.databuddy?.setGlobalProperties({
+      app_version: '1.2.3',
+      environment: 'production'
+    });
+    ```
+  </Step>
+</Steps>
+
+## How Consent Management Works
+
+The Databuddy integration automatically handles consent management:
+
+1. **Before Script Load**: Sets `window.databuddyConfig.disabled` based on initial consent state
+2. **On Consent Grant**: Enables tracking by setting `window.databuddy.options.disabled = false`
+3. **On Consent Revoke**: Disables tracking by setting `window.databuddy.options.disabled = true`
+
+This ensures that no tracking occurs without user consent, keeping your analytics privacy-compliant.
+
+## Configuration Options
+
+The `options` parameter allows you to customize Databuddy's behavior:
+
+```ts
+databuddy({
+  clientId: 'your-client-id',
+  scriptUrl: 'https://cdn.databuddy.cc/databuddy.js',
+  apiUrl: 'https://basket.databuddy.cc', // Optional, defaults to basket.databuddy.cc, change if self-hosting
+  options: {
+    // Tracking options
+    trackScreenViews: true,        // Automatically track page views
+    trackOutgoingLinks: true,      // Track clicks on external links
+    trackAttributes: false,        // Track data-track attributes on elements
+    trackErrors: false,            // Track JavaScript errors
+    trackPerformance: true,        // Track performance metrics
+    trackWebVitals: false,         // Track Core Web Vitals
+  
+    
+    // Network options
+    enableBatching: false,         // Batch events before sending
+    batchSize: 10,                 // Events per batch
+    batchTimeout: 2000,            // Batch timeout in ms
+    samplingRate: 1.0,             // Sample rate (0.0-1.0)
+  }
+})
+```
+
+## Types
+
+### DatabuddyConsentOptions
+
+<AutoTypeTable path="./packages/scripts/src/databuddy.ts" name="DatabuddyConsentOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+
