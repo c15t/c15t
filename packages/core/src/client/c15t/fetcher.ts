@@ -4,7 +4,6 @@ import {
 	ABSOLUTE_URL_REGEX,
 	DEFAULT_RETRY_CONFIG,
 	LEADING_SLASHES_REGEX,
-	TRAILING_SLASHES_REGEX,
 } from './constants';
 import { delay, generateUUID } from './utils';
 
@@ -20,6 +19,18 @@ export interface FetcherContext {
 }
 
 /**
+ * Removes trailing slashes from a string efficiently.
+ * More performant than regex for strings with many trailing slashes.
+ */
+function removeTrailingSlashes(str: string): string {
+	let i = str.length;
+	while (i > 0 && str[i - 1] === '/') {
+		i--;
+	}
+	return str.slice(0, i);
+}
+
+/**
  * Resolves a URL path against the backend URL, handling both absolute and relative URLs.
  *
  * @param backendURL - The backend URL (can be absolute or relative)
@@ -31,7 +42,7 @@ export function resolveUrl(backendURL: string, path: string): string {
 	if (ABSOLUTE_URL_REGEX.test(backendURL)) {
 		const backendURLObj = new URL(backendURL);
 		// Remove trailing slashes from base path and leading slashes from the path to join
-		const basePath = backendURLObj.pathname.replace(TRAILING_SLASHES_REGEX, '');
+		const basePath = removeTrailingSlashes(backendURLObj.pathname);
 		const cleanPath = path.replace(LEADING_SLASHES_REGEX, '');
 		// Combine the paths with a single slash
 		const newPath = `${basePath}/${cleanPath}`;
@@ -42,7 +53,7 @@ export function resolveUrl(backendURL: string, path: string): string {
 
 	// Case 2: backendURL is relative (like '/api/c15t')
 	// For relative URLs, we use string concatenation with proper slash handling
-	const cleanBase = backendURL.replace(TRAILING_SLASHES_REGEX, '');
+	const cleanBase = removeTrailingSlashes(backendURL);
 	const cleanPath = path.replace(LEADING_SLASHES_REGEX, '');
 	return `${cleanBase}/${cleanPath}`;
 }
