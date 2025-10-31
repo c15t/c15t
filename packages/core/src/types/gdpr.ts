@@ -247,7 +247,8 @@ export const allConsentNames = consentTypes.map(
  */
 export type ConsentInfo = {
 	/**
-	 * The timestamp of when the consent was granted
+	 * The epoch timestamp of when the consent was recorded
+	 * @example 1761911048
 	 */
 	time: number;
 
