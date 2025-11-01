@@ -1,8 +1,8 @@
 import { C15TDevTools } from '@c15t/dev-tools';
 import {
-  ConsentManagerDialog,
-  ConsentManagerProvider,
-  CookieBanner,
+	ConsentManagerDialog,
+	ConsentManagerProvider,
+	CookieBanner,
 } from '@c15t/react';
 import { useState } from 'react';
 import viteLogo from '/vite.svg';

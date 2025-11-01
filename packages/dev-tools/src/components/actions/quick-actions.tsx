@@ -2,13 +2,13 @@
 
 import type { PrivacyConsentState } from 'c15t';
 import {
-  AlertCircle,
-  Download,
-  Eye,
-  RefreshCw,
-  RotateCcw,
-  ToggleLeft,
-  Trash2,
+	AlertCircle,
+	Download,
+	Eye,
+	RefreshCw,
+	RotateCcw,
+	ToggleLeft,
+	Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Alert } from '~/components/ui/alert';
@@ -23,7 +23,13 @@ interface ActionButtonProps {
 	label: string;
 	description: string;
 	onClick: () => void;
-	variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+	variant?:
+		| 'default'
+		| 'destructive'
+		| 'outline'
+		| 'secondary'
+		| 'ghost'
+		| 'link';
 	disabled?: boolean;
 }
 
@@ -72,7 +78,7 @@ function ActionSelect({
 	onChange,
 }: ActionSelectProps) {
 	const selectId = `select-${label.toLowerCase().replace(/\s+/g, '-')}`;
-	
+
 	return (
 		<div className={styles.preferenceSection}>
 			<div className={styles.preferenceHeader}>
@@ -203,13 +209,20 @@ export function QuickActions() {
 					name: string;
 					countryCode: string;
 					regionCode: string | null;
-					jurisdiction: 'GDPR' | 'CH' | 'BR' | 'PIPEDA' | 'AU' | 'APPI' | 'PIPA' | 'NONE';
+					jurisdiction:
+						| 'GDPR'
+						| 'CH'
+						| 'BR'
+						| 'PIPEDA'
+						| 'AU'
+						| 'APPI'
+						| 'PIPA'
+						| 'NONE';
 					jurisdictionMessage: string;
 					showBanner: boolean;
 				}
 			> = {
-				GB:
-				{
+				GB: {
 					name: 'UK',
 					countryCode: 'GB',
 					regionCode: 'ENG',
@@ -331,7 +344,9 @@ export function QuickActions() {
 				state.setShowPopup(true, true);
 			}
 
-			const bannerStatus = country.showBanner ? 'Banner shown' : 'Banner hidden';
+			const bannerStatus = country.showBanner
+				? 'Banner shown'
+				: 'Banner hidden';
 			showNotification('success', `${country.name} - ${bannerStatus}`);
 		} catch {
 			showNotification('error', 'Failed to simulate country');
@@ -340,7 +355,6 @@ export function QuickActions() {
 
 	const handleSimulateLanguage = (languageCode: string): void => {
 		try {
-
 			// Update translation config with the new language
 			state.setTranslationConfig({
 				...state.translationConfig,

@@ -35,7 +35,9 @@ export function Consents({ state }: ConsentsProps) {
 						<div className={styles.itemContent}>
 							<span className={styles.itemTitle}>{item.title}</span>
 						</div>
-						<Badge variant={item.status === 'Enabled' ? 'default' : 'destructive'}>
+						<Badge
+							variant={item.status === 'Enabled' ? 'default' : 'destructive'}
+						>
 							{item.status}
 						</Badge>
 					</motion.div>
@@ -44,8 +46,3 @@ export function Consents({ state }: ConsentsProps) {
 		</ScrollArea>
 	);
 }
-
-
-
-
-

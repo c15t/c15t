@@ -12,6 +12,6 @@ export const c15tOptions: ConsentManagerOptions = {
 	backendURL: 'https://consent-io-europe-c15t-examples.c15t.dev/api/c15t',
 	store: {
 		initialGdprTypes: ['necessary', 'marketing'],
-    ignoreGeoLocation: true,
+		ignoreGeoLocation: true,
 	},
 };

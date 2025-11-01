@@ -52,8 +52,3 @@ export function Compliance({ state }: ComplianceProps) {
 		</ScrollArea>
 	);
 }
-
-
-
-
-

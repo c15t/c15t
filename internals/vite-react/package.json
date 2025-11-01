@@ -9,8 +9,8 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
-    "@c15t/dev-tools": "workspace:*",
-    "@c15t/react": "workspace:*",
+		"@c15t/dev-tools": "workspace:*",
+		"@c15t/react": "workspace:*",
 		"react": "19.2.0",
 		"react-dom": "19.2.0"
 	},
