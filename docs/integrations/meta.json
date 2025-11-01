@@ -8,6 +8,7 @@
 		"google-tag-manager",
 		"google-tag",
 		"--- Measurement ---",
+		"databuddy",
 		"posthog",
 		"--- Advertising & Conversion Tracking ---",
 		"meta-pixel",
