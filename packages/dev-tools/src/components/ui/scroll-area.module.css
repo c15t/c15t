@@ -5,6 +5,7 @@
 
 .viewport {
 	border-radius: inherit;
+  max-height: 450px;
 }
 
 .root[data-orientation="vertical"] {

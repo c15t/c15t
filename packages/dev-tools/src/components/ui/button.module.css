@@ -1,4 +1,18 @@
 .button {
+	/* Reset browser defaults */
+	appearance: none;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	border: none;
+	margin: 0;
+	padding: 0;
+	background: none;
+	font-family: inherit;
+	cursor: pointer;
+	text-decoration: none;
+	line-height: 1;
+	
+	/* Custom styling */
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
