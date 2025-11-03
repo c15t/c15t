@@ -1,6 +1,6 @@
 import type { CompleteTranslations } from '../types';
 
-export const enTranslations: CompleteTranslations = {
+export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Accept All',
 		rejectAll: 'Reject All',
@@ -49,3 +49,5 @@ export const enTranslations: CompleteTranslations = {
 		actionButton: 'Enable {category} consent',
 	},
 };
+
+export default translations;

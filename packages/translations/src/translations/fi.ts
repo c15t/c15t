@@ -1,6 +1,5 @@
 import type { CompleteTranslations } from '../types';
-
-export const fiTranslations: CompleteTranslations = {
+export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Hyväksy kaikki',
 		rejectAll: 'Hylkää kaikki',
@@ -49,3 +48,4 @@ export const fiTranslations: CompleteTranslations = {
 		actionButton: 'Ota {category} käyttöön',
 	},
 };
+export default translations;
