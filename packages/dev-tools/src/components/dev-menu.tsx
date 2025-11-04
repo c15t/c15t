@@ -2,6 +2,7 @@
 import { type CSSProperties, useEffect, useLayoutEffect, useRef } from 'react';
 import type { Corners } from '~/libs/draggable';
 import { cn } from '~/libs/utils';
+import { useWidthContext, WidthProvider } from '~/router/width-context';
 import styles from './dev-menu.module.css';
 
 const INDICATOR_PADDING = 20;
@@ -96,6 +97,47 @@ export function DevMenu({
 		[vertical]: `${INDICATOR_PADDING + 56}px`, // Offset for icon size
 		[horizontal]: `${INDICATOR_PADDING}px`,
 	} as CSSProperties;
+
+	return (
+		<WidthProvider>
+			<DevMenuContent menuRef={menuRef} positionStyle={positionStyle}>
+				{children}
+			</DevMenuContent>
+		</WidthProvider>
+	);
+}
+
+function DevMenuContent({
+	menuRef,
+	positionStyle,
+	children,
+}: {
+	menuRef: React.RefObject<HTMLDivElement | null>;
+	positionStyle: CSSProperties;
+	children: React.ReactNode;
+}) {
+	const { tabWidth, selectedTabIndex, tabWidths } = useWidthContext();
+
+	// Update CSS variable when width changes
+	// Use tab-specific width if configured, otherwise use measured width
+	useEffect(() => {
+		const menuElement = menuRef.current;
+		if (menuElement && selectedTabIndex !== null) {
+			const configuredWidth = tabWidths.get(selectedTabIndex);
+
+			if (configuredWidth) {
+				// Use configured width (either 'auto' or a pixel value like '450px')
+				if (configuredWidth === 'auto') {
+					menuElement.style.setProperty('--dev-menu-width', 'auto');
+				} else {
+					menuElement.style.setProperty('--dev-menu-width', configuredWidth);
+				}
+			} else if (tabWidth !== null) {
+				// Fall back to measured width
+				menuElement.style.setProperty('--dev-menu-width', `${tabWidth}px`);
+			}
+		}
+	}, [tabWidth, selectedTabIndex, tabWidths, menuRef]);
 
 	return (
 		<div

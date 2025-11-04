@@ -87,8 +87,8 @@
 	--c15t-dev-tools-card: hsl(0, 0%, 10%);
 	--c15t-dev-tools-card-foreground: hsl(0, 0%, 90%);
 
-	--c15t-dev-tools-border: hsl(0, 0%, 20%);
-	--c15t-dev-tools-input: hsl(0, 0%, 20%);
+	--c15t-dev-tools-border: hsl(0, 0%, 90%);
+	--c15t-dev-tools-input: hsl(0, 0%, 90%);
 
 	--c15t-dev-tools-ring: hsl(0, 0%, 60%);
 

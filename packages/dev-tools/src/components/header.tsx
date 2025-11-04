@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { Icon, type IconName } from '~/components/icons';
 import styles from './header.module.css';
 import { Button } from './ui/button';
 import { C15TIcon } from './ui/logo';
@@ -22,7 +22,7 @@ export function Header({ onClose }: HeaderProps) {
 						onClick={onClose}
 						aria-label="Close"
 					>
-						<X className="h-4 w-4" />
+						<Icon name="close" size={16} />
 					</Button>
 				)}
 			</div>

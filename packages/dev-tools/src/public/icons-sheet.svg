@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><defs/><symbol id="alert" viewBox="0 0 24 24" fill="none">
+  <path fill="currentColor" d="M12 14.25a.75.75 0 0 0 0 1.5v-1.5Zm.01 1.5a.75.75 0 0 0 0-1.5v1.5Zm-.01 0h.01v-1.5H12v1.5ZM10.403 5.411l.53.53-.53-.53Zm-4.992 4.992-.53-.53.53.53Zm0 3.194.53-.53-.53.53Zm4.992 4.992.53-.53-.53.53Zm3.194 0 .53.53-.53-.53Zm4.992-8.186.53-.53-.53.53Zm-4.992-4.992.53-.53-.53.53Zm-3.724-.53L4.881 9.873l1.06 1.06 4.993-4.991L9.873 4.88Zm-4.992 9.246 4.992 4.992 1.06-1.06-4.991-4.993-1.061 1.061Zm9.246 4.992 4.992-4.992-1.06-1.06-4.993 4.991 1.061 1.061Zm4.992-9.246-4.992-4.992-1.06 1.06 4.991 4.993 1.061-1.061Zm0 4.254a3.008 3.008 0 0 0 0-4.254l-1.06 1.06a1.508 1.508 0 0 1 0 2.133l1.06 1.061Zm-9.246 4.992a3.008 3.008 0 0 0 4.254 0l-1.06-1.06a1.508 1.508 0 0 1-2.133 0l-1.061 1.06ZM4.881 9.873a3.008 3.008 0 0 0 0 4.254l1.06-1.06a1.508 1.508 0 0 1 0-2.133l-1.06-1.061Zm6.053-3.931a1.508 1.508 0 0 1 2.132 0l1.061-1.061a3.008 3.008 0 0 0-4.254 0l1.06 1.06Z"/>
+  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8.75v3.5"/>
+</symbol><symbol id="chevron-down" viewBox="0 0 24 24" fill="none">
+  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.25 10.75 12 14.25l-3.25-3.5"/>
+</symbol><symbol id="close" viewBox="0 0 24 24" fill="none">
+  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m17.25 6.75-10.5 10.5m0-10.5 10.5 10.5"/>
+</symbol><symbol id="external-link" viewBox="0 0 24 24" fill="currentColor">
+  <path d="M10 6v2H5v11h11v-5h2v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6Zm11-3v8h-2V6.413l-7.793 7.794-1.414-1.414L17.585 5H13V3h8Z"/>
+</symbol><symbol id="eye" viewBox="0 0 24 24" fill="none">
+  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.25 12c0 1-1.75 6.25-7.25 6.25S4.75 13 4.75 12 6.5 5.75 12 5.75 19.25 11 19.25 12Z"/>
+  <circle cx="12" cy="12" r="2.25" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/>
+</symbol><symbol id="minus" viewBox="0 0 24 24" fill="none">
+  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.25 12.25H5.75"/>
+</symbol><symbol id="radio-button" viewBox="0 0 24 24" fill="currentColor">
+  <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10Zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm0-3a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z"/>
+</symbol><symbol id="refresh" viewBox="0 0 24 24" fill="none">
+  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.25 4.75 8.75 7l2.5 2.25m1.5 10 2.5-2.25-2.5-2.25"/>
+  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 7h3.5a6 6 0 0 1 6 6v.25m-5 3.75h-3.5a6 6 0 0 1-6-6v-.25"/>
+</symbol><symbol id="speed-fast" viewBox="0 0 24 24" fill="none">
+  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.029 18.5a6.25 6.25 0 1 0 0-11M4.75 10h3.5m-3.5 6h3.5m-3.5-3h1.5M16.5 8.5l.75-.75M12 6.5V4.75m0 0H9.75m2.25 0h2.25m0 6-2.5 2.5"/>
+</symbol></svg>

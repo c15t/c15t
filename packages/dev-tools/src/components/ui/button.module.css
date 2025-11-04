@@ -63,7 +63,7 @@
 
 .outline {
 	border: 1px solid var(--c15t-dev-tools-input);
-	background-color: var(--c15t-dev-tools-background);
+  color: var(--c15t-dev-tools-foreground);
 }
 
 .outline:hover {

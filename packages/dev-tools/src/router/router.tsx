@@ -1,8 +1,8 @@
 'use client';
 
 import type { PrivacyConsentState } from 'c15t';
-import { GanttChartSquare, ToggleLeft, Zap } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import type { IconName } from '~/components/icons';
 import { ExpandableTabs } from '../components/ui/expandable-tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { getStore } from '../dev-tool';
@@ -12,10 +12,24 @@ import { Actions, Compliance, Consents } from './sections';
 type TabSection = 'Consents' | 'Compliance' | 'Actions';
 
 const tabs = [
-	{ title: 'Consents' as const, icon: ToggleLeft },
-	{ title: 'Compliance' as const, icon: GanttChartSquare },
-	{ title: 'Actions' as const, icon: Zap },
-] as const;
+	{
+		title: 'Consents' as const,
+		icon: 'radio-button' as IconName,
+		iconType: 'optin' as const,
+	},
+	// { title: 'Compliance' as const, icon: GanttChartSquare },
+	{
+		title: 'Actions' as const,
+		icon: 'speed-fast' as IconName,
+		iconType: 'optin' as const,
+		width: '450px' as const,
+	},
+] as const satisfies Array<{
+	title: TabSection;
+	icon: IconName;
+	iconType?: 'optin' | 'flags';
+	width?: '450px';
+}>;
 
 interface RouterProps {
 	onClose: () => void;

@@ -141,17 +141,18 @@ Actions are grouped into three sections:
 
 ## Icon Usage
 
-- Reset Consents: `RotateCcw`
-- Clear LocalStorage: `Trash2`
-- Toggle All: `ToggleLeft`
-- Simulate Country: `Globe`
-- Switch Language: `Languages`
-- Reload Scripts: `RefreshCw`
-- Show Popup: `Eye`
-- Export State: `Download`
-- Tab Icon: `Zap`
+- Reset Consents: `refresh`
+- Clear LocalStorage: `minus`
+- Toggle All: `radio-button`
+- Simulate Country: `world`
+- Switch Language: `language`
+- Reload Scripts: `refresh`
+- Show Popup: `eye`
+- Export State: `external-link`
+- Tab Icon: `speed-fast`
+- Consents Tab: `radio-button`
 
-All icons from `lucide-react`.
+All icons from the custom icon system (`Icon` component).
 
 ## Error Handling
 

@@ -1,5 +1,5 @@
-import { AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
+import { Icon, type IconName } from '~/components/icons';
 import styles from './error-state.module.css';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
@@ -12,7 +12,7 @@ export function ErrorState({ namespace }: { namespace: string }) {
 			exit={{ opacity: 0 }}
 		>
 			<Alert variant="destructive" className={styles.alert}>
-				<AlertCircle className={styles.icon} />
+				<Icon name="alert" size={16} className={styles.icon} />
 				<AlertTitle className={styles.title}>
 					SDK Initialization Failed
 				</AlertTitle>

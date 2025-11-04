@@ -1,16 +1,8 @@
 'use client';
 
 import type { PrivacyConsentState } from 'c15t';
-import {
-	AlertCircle,
-	Download,
-	Eye,
-	RefreshCw,
-	RotateCcw,
-	ToggleLeft,
-	Trash2,
-} from 'lucide-react';
 import { useState } from 'react';
+import { Icon } from '~/components/icons';
 import { Alert } from '~/components/ui/alert';
 import { Button } from '~/components/ui/button';
 import { getStore } from '../../dev-tool';
@@ -448,79 +440,77 @@ export function QuickActions() {
 					variant={notification.type === 'error' ? 'destructive' : 'default'}
 					className={styles.notification}
 				>
-					<AlertCircle size={16} />
+					<Icon name="alert" size={16} />
 					<span>{notification.message}</span>
 				</Alert>
 			)}
 
-			<div className={styles.container}>
-				<h2 className={styles.sectionTitle}>Consent Management</h2>
-				<div className={styles.preferencesContainer}>
-					<ActionButton
-						icon={<RotateCcw size={16} />}
-						label="Reset Consents"
-						description="Reset all consent preferences to default values"
-						onClick={handleResetConsents}
-						variant="outline"
-					/>
-					<ActionButton
-						icon={<ToggleLeft size={16} />}
-						label="Toggle All Consents"
-						description="Enable or disable all consent categories at once"
-						onClick={handleToggleAllConsents}
-						variant="outline"
-					/>
-				</div>
+			<h2 className={styles.sectionTitle}>Consent Management</h2>
+			<div className={styles.preferencesContainer}>
+				<ActionButton
+					icon={<Icon name="refresh" size={16} />}
+					label="Reset Consents"
+					description="Reset all consent preferences to default values"
+					onClick={handleResetConsents}
+					variant="outline"
+				/>
+				<ActionButton
+					icon={<Icon name="radio-button" size={16} />}
+					label="Toggle All Consents"
+					description="Enable or disable all consent categories at once"
+					onClick={handleToggleAllConsents}
+					variant="outline"
+				/>
+			</div>
 
-				<h2 className={styles.sectionTitle}>Storage & State</h2>
-				<div className={styles.preferencesContainer}>
-					<ActionButton
-						icon={<Trash2 size={16} />}
-						label="Clear LocalStorage"
-						description="Remove stored consent data from browser"
-						onClick={handleClearLocalStorage}
-						variant="outline"
-					/>
-					<ActionButton
-						icon={<Download size={16} />}
-						label="Export State"
-						description="Download current state as JSON file"
-						onClick={handleExportState}
-						variant="outline"
-					/>
-				</div>
+			<h2 className={styles.sectionTitle}>Storage & State</h2>
+			<div className={styles.preferencesContainer}>
+				<ActionButton
+					icon={<Icon name="minus" size={16} />}
+					label="Clear LocalStorage"
+					description="Remove stored consent data from browser"
+					onClick={handleClearLocalStorage}
+					variant="outline"
+				/>
+				<ActionButton
+					icon={<Icon name="external-link" size={16} />}
+					label="Export State"
+					description="Download current state as JSON file"
+					onClick={handleExportState}
+					variant="outline"
+				/>
+			</div>
 
-				<h2 className={styles.sectionTitle}>Testing & Debugging</h2>
-				<div className={styles.preferencesContainer}>
-					<ActionSelect
-						label="Simulate Country"
-						description="Test different countries and banner visibility"
-						value={currentCountry}
-						options={countryOptions}
-						onChange={handleSimulateCountry}
-					/>
-					<ActionSelect
-						label="Switch Language"
-						description="Cycle through available translations (i18n)"
-						value={currentLanguage}
-						options={languageOptions}
-						onChange={handleSimulateLanguage}
-					/>
-					<ActionButton
-						icon={<RefreshCw size={16} />}
-						label="Reload Scripts"
-						description="Force update of all consent-based scripts"
-						onClick={handleReloadScripts}
-						variant="outline"
-					/>
-					<ActionButton
-						icon={<Eye size={16} />}
-						label="Show Popup"
-						description="Manually trigger the consent banner"
-						onClick={handleShowPopup}
-						variant="outline"
-					/>
-				</div>
+			<h2 className={styles.sectionTitle}>Testing & Debugging</h2>
+			<div className={styles.preferencesContainer}>
+				<ActionSelect
+					label="Simulate Country"
+					description="Test different countries and banner visibility"
+					value={currentCountry}
+					options={countryOptions}
+					onChange={handleSimulateCountry}
+				/>
+				<ActionSelect
+					label="Switch Language"
+					description="Cycle through available translations (i18n)"
+					value={currentLanguage}
+					options={languageOptions}
+					onChange={handleSimulateLanguage}
+				/>
+				<ActionButton
+					icon={<Icon name="refresh" size={16} />}
+					label="Reload Scripts"
+					description="Force update of all consent-based scripts"
+					onClick={handleReloadScripts}
+					variant="outline"
+				/>
+				<ActionButton
+					icon={<Icon name="eye" size={16} />}
+					label="Show Popup"
+					description="Manually trigger the consent banner"
+					onClick={handleShowPopup}
+					variant="outline"
+				/>
 			</div>
 		</>
 	);
