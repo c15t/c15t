@@ -22,6 +22,7 @@ import type {
 	LocationInfo,
 	PrivacySettings,
 	TranslationConfig,
+	User,
 } from './types';
 
 /**
@@ -132,8 +133,9 @@ export interface PrivacyConsentState {
 	iframeBlockerConfig: IframeBlockerConfig;
 
 	/**
-	 * Usually your own internal ID for the user from your auth provider */
-	externalId?: string;
+	 * User information
+	 */
+	user?: User;
 
 	/**
 	 * Identifies the user by setting the external ID
@@ -141,9 +143,9 @@ export interface PrivacyConsentState {
 	 * @remarks
 	 * If the user has already consented, it will update the existing record.
 	 *
-	 * @param id - The external ID of the user
+	 * @param user - The user's information
 	 */
-	identifyUser: (id: string) => Promise<void>;
+	identifyUser: (user: User) => Promise<void>;
 
 	/*
 	 * Updates the selected consent state for a specific consent type.

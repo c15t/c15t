@@ -1,9 +1,10 @@
 import type { StoreApi } from 'zustand';
 import type { ConsentManagerInterface } from '~/client/client-interface';
 import type { PrivacyConsentState } from '~/store.type';
+import type { User } from '~/types/user';
 
 interface IdentifyUserProps {
-	externalId: string;
+	user: User;
 	manager: ConsentManagerInterface;
 	get: StoreApi<PrivacyConsentState>['getState'];
 	set: StoreApi<PrivacyConsentState>['setState'];
@@ -15,12 +16,12 @@ interface IdentifyUserProps {
  * @remarks
  * If the user has consented, it will call the API to identify the user.
  *
- * @param externalId - The external ID of the user
+ * @param user - The user's information
  * @param get - The get function from the store
  * @param set - The set function from the store
  */
 export async function identifyUser({
-	externalId,
+	user,
 	manager,
 	get,
 	set,
@@ -29,15 +30,21 @@ export async function identifyUser({
 
 	const consented = hasConsented() && !!consentInfo?.id;
 	const isIdentified = !!consentInfo?.identified;
-
+	console.log('identifyUser', user);
+	console.log('consented', consented);
+	console.log('isIdentified', isIdentified);
 	set({
-		externalId,
+		user,
 	});
 
 	// If the user has consented and is not identified, call the API to identify the user
 	if (consented && !isIdentified) {
 		await manager.identifyUser({
-			body: { consentId: consentInfo.id, externalId },
+			body: {
+				consentId: consentInfo.id,
+				externalId: user.id,
+				identityProvider: user.identityProvider,
+			},
 		});
 
 		set({

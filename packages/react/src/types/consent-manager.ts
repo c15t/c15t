@@ -13,6 +13,7 @@ import type {
 	StorageConfig,
 	TrackingBlockerConfig,
 	TranslationConfig,
+	User,
 } from 'c15t';
 import type { ReactNode } from 'react';
 import type { ConsentManagerDialogTheme } from '~/components/consent-manager-dialog/theme';
@@ -134,15 +135,14 @@ export type ConsentManagerOptions = CoreOptions & {
 	storageConfig?: StorageConfig;
 
 	/**
-	 * The external ID of the user.
+	 * The user's information.
 	 * Usually your own internal ID for the user from your auth provider
 	 *
 	 * @remarks
 	 * This can be set later using the {@link identifyUser} method.
-	 *
 	 * @default undefined
 	 */
-	externalId?: string;
+	user?: User;
 };
 
 /**

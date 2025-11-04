@@ -44,6 +44,7 @@ import {
 	consentTypes,
 } from './types/gdpr';
 import type { LegalLinks } from './types/legal-links';
+import type { User } from './types/user';
 
 /**
  * Structure of consent data stored in localStorage.
@@ -227,14 +228,14 @@ export interface StoreOptions {
 	storageConfig?: StorageConfig;
 
 	/**
-	 * The external ID of the user.
+	 * The user's information.
 	 * Usually your own internal ID for the user from your auth provider
 	 *
 	 * @remarks
-	 * This can be set later using the {@link setExternalId} method.
+	 * This can be set later using the {@link setUser} method.
 	 * @default undefined
 	 */
-	externalId?: string;
+	user?: User;
 }
 
 // For backward compatibility (if needed)
@@ -329,7 +330,7 @@ export const createConsentManagerStore = (
 		translationConfig: translationConfig || initialState.translationConfig,
 		// Set storage configuration
 		storageConfig: storageConfig,
-		externalId: options.externalId ?? initialState.externalId,
+		user: options.user ?? initialState.user,
 		...(storedConsent
 			? {
 					consents: storedConsent.consents,
@@ -695,8 +696,7 @@ export const createConsentManagerStore = (
 			set({ gdprTypes: allCategories });
 		},
 
-		identifyUser: (id: string) =>
-			identifyUser({ externalId: id, manager, get, set }),
+		identifyUser: (user: User) => identifyUser({ user, manager, get, set }),
 
 		...createScriptManager(get, set, trackingBlocker),
 		...createIframeManager(get, set),
@@ -736,8 +736,8 @@ export const createConsentManagerStore = (
 			.callbacks.onConsentSet?.({ preferences: store.getState().consents });
 
 		// Identify the user if an external ID is provided
-		if (options.externalId) {
-			store.getState().identifyUser(options.externalId);
+		if (options.user) {
+			store.getState().identifyUser(options.user);
 		}
 
 		store.getState().fetchConsentBannerInfo();

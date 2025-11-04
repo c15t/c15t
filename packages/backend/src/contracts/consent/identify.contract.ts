@@ -4,6 +4,7 @@ import { z } from 'zod';
 const identifyUserSchema = z.object({
 	consentId: z.string(),
 	externalId: z.string(),
+	identityProvider: z.string().optional(),
 });
 
 export const identifyUserContract = oc

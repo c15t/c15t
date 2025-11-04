@@ -9,7 +9,7 @@ export const identifyUser = os.consent.identify.handler(
 		const { db, logger } = typedContext;
 		logger.info('Handling identify-user request');
 
-		const { consentId, externalId } = input;
+		const { consentId, externalId, identityProvider = 'external' } = input;
 
 		const consent = await db.findFirst('consent', {
 			where: (b) => b('id', '=', consentId),
@@ -43,6 +43,7 @@ export const identifyUser = os.consent.identify.handler(
 					currentSubjectId,
 					oldSubjectId,
 					externalId,
+					identityProvider,
 				});
 
 				// Update all consent records
@@ -86,6 +87,7 @@ export const identifyUser = os.consent.identify.handler(
 					eventTimezone: 'UTC',
 					metadata: {
 						externalId,
+						identityProvider,
 						mergedFrom: currentSubjectId,
 					},
 				});
@@ -95,7 +97,7 @@ export const identifyUser = os.consent.identify.handler(
 					where: (b) => b('id', '=', consent.subjectId),
 					set: {
 						externalId,
-						identityProvider: 'external',
+						identityProvider,
 						isIdentified: true,
 						updatedAt: new Date(),
 					},
@@ -112,6 +114,7 @@ export const identifyUser = os.consent.identify.handler(
 					eventTimezone: 'UTC',
 					metadata: {
 						externalId,
+						identityProvider,
 					},
 				});
 			}

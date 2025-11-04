@@ -85,14 +85,20 @@ An external ID can be set in various ways:
 ```tsx
 <ConsentManagerProvider
   options={{
-    externalId: 'usr_foobar',
+    user: {
+      id: 'usr_foobar',
+      identityProvider: 'better-auth',
+    }
   }}
 >
 
 // Or via the `identifyUser` method in the Store
 const { identifyUser } = useConsentManager();
 
-identifyUser('usr_foobar');
+identifyUser({
+  id: 'usr_foobar',
+  identityProvider: 'better-auth',
+});
 ```
 
 This change also brings a new endpoint to the backend: `/consent/identify`. So you'll need to update your backend to support this new endpoint.

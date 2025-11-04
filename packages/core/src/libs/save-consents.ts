@@ -80,7 +80,8 @@ export async function saveConsents({
 			type: 'cookie_banner',
 			domain: window.location.hostname,
 			preferences: newConsents,
-			externalSubjectId: get().externalId,
+			externalSubjectId: get().user?.id,
+			identityProvider: get().user?.identityProvider,
 			metadata: {
 				source: 'consent_widget',
 				acceptanceMethod: type,
