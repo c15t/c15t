@@ -1,3 +1,4 @@
+import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 import { defineConfig } from '@rslib/core';
 
 export default defineConfig({
@@ -19,6 +20,25 @@ export default defineConfig({
 		cleanDistPath: true,
 		filename: {
 			js: '[name].mjs',
+		},
+	},
+	tools: {
+		rspack: {
+			plugins: [
+				...(process.env.RSDOCTOR === 'true'
+					? [
+							new RsdoctorRspackPlugin({
+								port: 3004,
+								output: {
+									mode: 'brief',
+									options: {
+										type: ['json'],
+									},
+								},
+							}),
+						]
+					: []),
+			],
 		},
 	},
 });

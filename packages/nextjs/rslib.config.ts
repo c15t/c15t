@@ -54,14 +54,19 @@ export default defineConfig({
 	tools: {
 		rspack: {
 			plugins: [
-				new RsdoctorRspackPlugin({
-					output: {
-						mode: 'brief',
-						options: {
-							type: ['json'],
-						},
-					},
-				}),
+				...(process.env.RSDOCTOR === 'true'
+					? [
+							new RsdoctorRspackPlugin({
+								port: 3002,
+								output: {
+									mode: 'brief',
+									options: {
+										type: ['json'],
+									},
+								},
+							}),
+						]
+					: []),
 			],
 		},
 	},

@@ -48,7 +48,7 @@ jobs:
         run: |
           git checkout ${{ steps.base-branch.outputs.base }} || git checkout main
           pnpm install --frozen-lockfile
-          pnpm turbo run build --filter="./packages/*" || true
+          RSDOCTOR=true pnpm turbo run build --filter="./packages/*" || true
           mkdir -p .bundle-base
           # Copy rsdoctor data files
           find packages -name "rsdoctor-data.json" -exec cp --parents {} .bundle-base/ \;
@@ -58,7 +58,7 @@ jobs:
         run: |
           git checkout ${{ github.sha }}
           pnpm install --frozen-lockfile
-          pnpm turbo run build --filter="./packages/*"
+          RSDOCTOR=true pnpm turbo run build --filter="./packages/*"
 
       - name: 📊 Analyze bundle differences
         uses: ./internals/bundle-analysis-action

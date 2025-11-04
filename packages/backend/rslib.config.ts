@@ -1,3 +1,4 @@
+import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 import { defineConfig } from '@rslib/core';
 
 const externals = [
@@ -106,5 +107,24 @@ export default defineConfig({
 		target: 'node',
 		cleanDistPath: true,
 		externals,
+	},
+	tools: {
+		rspack: {
+			plugins: [
+				...(process.env.RSDOCTOR === 'true'
+					? [
+							new RsdoctorRspackPlugin({
+								port: 3003,
+								output: {
+									mode: 'brief',
+									options: {
+										type: ['json'],
+									},
+								},
+							}),
+						]
+					: []),
+			],
+		},
 	},
 });
