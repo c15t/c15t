@@ -1,4 +1,5 @@
 import { defineConfig } from '@rslib/core';
+import { getRsdoctorPlugins } from '../shared/rslib-utils';
 
 const externals = [
 	// Frameworks
@@ -106,5 +107,10 @@ export default defineConfig({
 		target: 'node',
 		cleanDistPath: true,
 		externals,
+	},
+	tools: {
+		rspack: {
+			plugins: [...getRsdoctorPlugins()],
+		},
 	},
 });
