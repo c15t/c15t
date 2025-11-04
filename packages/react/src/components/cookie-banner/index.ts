@@ -126,7 +126,7 @@ const CookieBanner = Object.assign(CookieBannerComponent, {
 
 // Export the main component as both default and named export
 export default CookieBanner;
-export { CookieBanner };
+export { CookieBanner, type CookieBannerProps };
 
 // Export individual components for backward compatibility
 export { CookieBannerOverlay, Overlay } from './atoms/overlay';
