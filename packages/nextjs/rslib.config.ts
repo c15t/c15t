@@ -1,4 +1,5 @@
 import { pluginReact } from '@rsbuild/plugin-react';
+import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 import { defineConfig } from '@rslib/core';
 
 const externals = ['next', 'next/headers', 'react', 'react-dom'];
@@ -8,6 +9,16 @@ export default defineConfig({
 		entry: {
 			index: ['./src/**'],
 		},
+		exclude: [
+			'**/.DS_Store',
+			'**/__tests__/**',
+			'**/*.test.ts',
+			'**/*.test.tsx',
+			'**/*.spec.ts',
+			'**/*.spec.tsx',
+			'**/*.browser.test.ts',
+			'**/*.e2e.test.tsx',
+		],
 	},
 	lib: [
 		{
@@ -40,4 +51,18 @@ export default defineConfig({
 		},
 	},
 	plugins: [pluginReact()],
+	tools: {
+		rspack: {
+			plugins: [
+				new RsdoctorRspackPlugin({
+					output: {
+						mode: 'brief',
+						options: {
+							type: ['json'],
+						},
+					},
+				}),
+			],
+		},
+	},
 });

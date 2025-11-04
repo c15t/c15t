@@ -1,4 +1,5 @@
 import { pluginReact } from '@rsbuild/plugin-react';
+import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 import { defineConfig } from '@rslib/core';
 
 export default defineConfig({
@@ -30,4 +31,18 @@ export default defineConfig({
 		cleanDistPath: true,
 	},
 	plugins: [pluginReact()],
+	tools: {
+		rspack: {
+			plugins: [
+				new RsdoctorRspackPlugin({
+					output: {
+						mode: 'brief',
+						options: {
+							type: ['json'],
+						},
+					},
+				}),
+			],
+		},
+	},
 });

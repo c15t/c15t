@@ -1,0 +1,78 @@
+name: Bundle Analysis
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: ['main', 'canary']
+
+jobs:
+  bundle-analysis:
+    name: 📦 Bundle Size Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+    steps:
+      - name: ⬇️ Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history needed for base branch comparison
+
+      - name: 🅿️ Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔍 Determine base branch
+        id: base-branch
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "base=${{ github.event.pull_request.base.ref }}" >> $GITHUB_OUTPUT
+          else
+            echo "base=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🏗️ Build base branch
+        id: build-base
+        run: |
+          git checkout ${{ steps.base-branch.outputs.base }} || git checkout main
+          pnpm install --frozen-lockfile
+          pnpm turbo run build --filter="./packages/*" || true
+          mkdir -p .bundle-base
+          # Copy rsdoctor data files
+          find packages -name "rsdoctor-data.json" -exec cp --parents {} .bundle-base/ \;
+
+      - name: 🏗️ Build current branch
+        id: build-current
+        run: |
+          git checkout ${{ github.sha }}
+          pnpm install --frozen-lockfile
+          pnpm turbo run build --filter="./packages/*"
+
+      - name: 📊 Analyze bundle differences
+        uses: ./internals/bundle-analysis-action
+        with:
+          base_dir: .bundle-base
+          current_dir: .
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          fail_on_increase: false
+
+      - name: 📤 Upload bundle diff report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-diff-report
+          path: bundle-diff.md
+          if-no-files-found: ignore
+          retention-days: 7
