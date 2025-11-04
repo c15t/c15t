@@ -36,7 +36,7 @@ const CompleteTranslationsSchema = z.object({
 		privacyPolicy: z.string(),
 		termsOfService: z.string(),
 		cookiePolicy: z.string(),
-+	}),
+	}),
 });
 
 /**
