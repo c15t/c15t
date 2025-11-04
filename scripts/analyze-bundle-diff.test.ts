@@ -1,4 +1,11 @@
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import {
+	existsSync,
+	type PathLike,
+	type PathOrFileDescriptor,
+	readdirSync,
+	readFileSync,
+	statSync,
+} from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	analyzePackage,
@@ -94,10 +101,10 @@ describe('analyze-bundle-diff', () => {
 			vi.mocked(existsSync).mockReturnValue(true);
 			vi.mocked(readdirSync).mockReturnValue([
 				'rsdoctor-data.json',
-			] as unknown as string[]);
+			] as unknown as ReturnType<typeof readdirSync>);
 			vi.mocked(statSync).mockReturnValue({
 				isDirectory: () => false,
-			} as unknown as ReturnType<typeof statSync>);
+			} as ReturnType<typeof statSync>);
 
 			const result = findRsdoctorDataFiles('/test');
 			expect(result).toEqual(['/test/rsdoctor-data.json']);
@@ -105,25 +112,27 @@ describe('analyze-bundle-diff', () => {
 
 		it('should recursively search subdirectories', () => {
 			vi.mocked(existsSync).mockReturnValue(true);
-			vi.mocked(readdirSync).mockImplementation((path: string) => {
+			vi.mocked(readdirSync).mockImplementation((path: PathLike) => {
 				if (path === '/test') {
-					return ['subdir'] as unknown as string[];
+					return ['subdir'] as unknown as ReturnType<typeof readdirSync>;
 				}
 				if (path === '/test/subdir') {
-					return ['rsdoctor-data.json'] as unknown as string[];
+					return ['rsdoctor-data.json'] as unknown as ReturnType<
+						typeof readdirSync
+					>;
 				}
-				return [] as unknown as string[];
+				return [] as unknown as ReturnType<typeof readdirSync>;
 			});
 
-			vi.mocked(statSync).mockImplementation((path: string) => {
+			vi.mocked(statSync).mockImplementation((path: PathLike) => {
 				if (path === '/test/subdir') {
 					return {
 						isDirectory: () => true,
-					} as unknown as ReturnType<typeof statSync>;
+					} as ReturnType<typeof statSync>;
 				}
 				return {
 					isDirectory: () => false,
-				} as unknown as ReturnType<typeof statSync>;
+				} as ReturnType<typeof statSync>;
 			});
 
 			const result = findRsdoctorDataFiles('/test');
@@ -135,10 +144,10 @@ describe('analyze-bundle-diff', () => {
 			vi.mocked(readdirSync).mockReturnValue([
 				'other-file.json',
 				'package.json',
-			] as unknown as string[]);
+			] as unknown as ReturnType<typeof readdirSync>);
 			vi.mocked(statSync).mockReturnValue({
 				isDirectory: () => false,
-			} as unknown as ReturnType<typeof statSync>);
+			} as ReturnType<typeof statSync>);
 
 			const result = findRsdoctorDataFiles('/test');
 			expect(result).toEqual([]);
@@ -642,24 +651,26 @@ describe('analyze-bundle-diff', () => {
 				},
 			};
 
-			vi.mocked(existsSync).mockImplementation((path: string) => {
-				return path.includes('dist');
+			vi.mocked(existsSync).mockImplementation((path: PathLike) => {
+				return String(path).includes('dist');
 			});
 
 			vi.mocked(readdirSync).mockReturnValue([
 				'rsdoctor-data.json',
-			] as unknown as string[]);
+			] as unknown as ReturnType<typeof readdirSync>);
 
 			vi.mocked(statSync).mockReturnValue({
 				isDirectory: () => false,
-			} as unknown as ReturnType<typeof statSync>);
+			} as ReturnType<typeof statSync>);
 
-			vi.mocked(readFileSync).mockImplementation((path: string) => {
-				if (path.includes('base')) {
-					return JSON.stringify(baseData);
+			vi.mocked(readFileSync).mockImplementation(
+				(path: PathOrFileDescriptor) => {
+					if (String(path).includes('base')) {
+						return JSON.stringify(baseData);
+					}
+					return JSON.stringify(currentData);
 				}
-				return JSON.stringify(currentData);
-			});
+			);
 
 			const result = analyzePackage(packageDir, baseDir, currentDir);
 
@@ -680,10 +691,10 @@ describe('analyze-bundle-diff', () => {
 			vi.mocked(existsSync).mockReturnValue(true);
 			vi.mocked(readdirSync).mockReturnValue([
 				'rsdoctor-data.json',
-			] as unknown as string[]);
+			] as unknown as ReturnType<typeof readdirSync>);
 			vi.mocked(statSync).mockReturnValue({
 				isDirectory: () => false,
-			} as unknown as ReturnType<typeof statSync>);
+			} as ReturnType<typeof statSync>);
 			vi.mocked(readFileSync).mockReturnValue(
 				JSON.stringify({ data: { chunkGraph: { chunks: [] } } })
 			);
@@ -724,17 +735,19 @@ describe('analyze-bundle-diff', () => {
 			vi.mocked(existsSync).mockReturnValue(true);
 			vi.mocked(readdirSync).mockReturnValue([
 				'rsdoctor-data.json',
-			] as unknown as string[]);
+			] as unknown as ReturnType<typeof readdirSync>);
 			vi.mocked(statSync).mockReturnValue({
 				isDirectory: () => false,
-			} as unknown as ReturnType<typeof statSync>);
+			} as ReturnType<typeof statSync>);
 
-			vi.mocked(readFileSync).mockImplementation((path: string) => {
-				if (path.includes('base')) {
-					return JSON.stringify(baseData);
+			vi.mocked(readFileSync).mockImplementation(
+				(path: PathOrFileDescriptor) => {
+					if (String(path).includes('base')) {
+						return JSON.stringify(baseData);
+					}
+					return JSON.stringify(currentData);
 				}
-				return JSON.stringify(currentData);
-			});
+			);
 
 			const result = analyzePackage(packageDir, baseDir, currentDir);
 			expect(result?.totalDiffPercent).toBe(20);

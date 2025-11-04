@@ -1,6 +1,8 @@
 import {
 	existsSync,
 	promises as fs,
+	type PathLike,
+	type PathOrFileDescriptor,
 	readdirSync,
 	readFileSync,
 	statSync,
@@ -454,21 +456,21 @@ describe('bundle-analysis', () => {
 				},
 			};
 
-			vi.mocked(existsSync).mockImplementation((path: string) => {
-				return path === 'packages' || path.includes('dist');
+			vi.mocked(existsSync).mockImplementation((path: PathLike) => {
+				return String(path) === 'packages' || String(path).includes('dist');
 			});
 
 			vi.mocked(readdirSync).mockReturnValue([
 				'package1',
 				'package2',
-			] as unknown as string[]);
+			] as unknown as ReturnType<typeof readdirSync>);
 
 			vi.mocked(statSync).mockReturnValue({
 				isDirectory: () => true,
 			} as unknown as ReturnType<typeof statSync>);
 
-			vi.mocked(fs.readdir).mockImplementation(async (path: string) => {
-				if (path.includes('dist')) {
+			vi.mocked(fs.readdir).mockImplementation(async (path: PathLike) => {
+				if (String(path).includes('dist')) {
 					return [
 						{
 							name: 'rsdoctor-data.json',
@@ -481,12 +483,14 @@ describe('bundle-analysis', () => {
 				return [] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
 			});
 
-			vi.mocked(readFileSync).mockImplementation((path: string) => {
-				if (path.includes('base')) {
-					return JSON.stringify(baseData);
+			vi.mocked(readFileSync).mockImplementation(
+				(path: PathOrFileDescriptor) => {
+					if (String(path).includes('base')) {
+						return JSON.stringify(baseData);
+					}
+					return JSON.stringify(currentData);
 				}
-				return JSON.stringify(currentData);
-			});
+			);
 
 			const result = await analyzeBundles('/base', '/current', 'packages');
 
@@ -499,7 +503,7 @@ describe('bundle-analysis', () => {
 			vi.mocked(existsSync).mockReturnValue(true);
 			vi.mocked(readdirSync).mockReturnValue([
 				'package1',
-			] as unknown as string[]);
+			] as unknown as ReturnType<typeof readdirSync>);
 			vi.mocked(statSync).mockReturnValue({
 				isDirectory: () => true,
 			} as unknown as ReturnType<typeof statSync>);
