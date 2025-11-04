@@ -202,8 +202,8 @@ export interface StoreOptions {
 	 * @defaultValue {}
 	 */
 	legalLinks?: LegalLinks;
-	
-  /**
+
+	/**
 	 * Storage configuration for consent persistence.
 	 *
 	 * @remarks

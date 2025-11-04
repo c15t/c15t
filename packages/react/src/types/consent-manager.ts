@@ -121,8 +121,8 @@ export type ConsentManagerOptions = CoreOptions & {
 	 * @defaultValue {}
 	 */
 	legalLinks?: LegalLinks;
-  
-  /**
+
+	/**
 	 * Storage configuration options
 	 *
 	 * @remarks
