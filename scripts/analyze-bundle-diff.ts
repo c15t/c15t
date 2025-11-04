@@ -17,6 +17,13 @@ import { fileURLToPath } from 'node:url';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT_DIR = join(__dirname, '..');
 
+function getSizeChangeEmoji(diffPercent: number): string {
+	if (diffPercent > 5) return '🔴';
+	if (diffPercent > 0) return '🟡';
+	if (diffPercent < -5) return '🟢';
+	return '⚪';
+}
+
 interface BundleStats {
 	name: string;
 	path: string;
@@ -133,8 +140,10 @@ function extractBundleSizes(jsonPath: string): BundleStats[] {
 							size: 0,
 						});
 					}
-					const bundle = chunkMap.get(chunkName)!;
-					bundle.size += size;
+					const bundle = chunkMap.get(chunkName);
+					if (bundle) {
+						bundle.size += size;
+					}
 				}
 			}
 
@@ -184,13 +193,14 @@ function compareBundles(
 		const currentBundle = currentMap.get(name);
 		if (currentBundle && baseBundle.size !== currentBundle.size) {
 			const diff = currentBundle.size - baseBundle.size;
-			const diffPercent = (diff / baseBundle.size) * 100;
+			const diffPercent =
+				baseBundle.size > 0 ? (diff / baseBundle.size) * 100 : null;
 			changed.push({
 				name,
 				baseSize: baseBundle.size,
 				currentSize: currentBundle.size,
 				diff,
-				diffPercent,
+				diffPercent: diffPercent ?? 0,
 			});
 		}
 	}
@@ -249,7 +259,7 @@ function formatBytes(bytes: number): string {
 	const k = 1024;
 	const sizes = ['B', 'KB', 'MB', 'GB'];
 	const i = Math.floor(Math.log(Math.abs(bytes)) / Math.log(k));
-	return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
+	return `${(bytes / k ** i).toFixed(2)} ${sizes[i]}`;
 }
 
 function generateMarkdownReport(packages: PackageBundleData[]): string {
@@ -267,14 +277,7 @@ function generateMarkdownReport(packages: PackageBundleData[]): string {
 
 	for (const pkg of packages) {
 		const sign = pkg.totalDiff >= 0 ? '+' : '';
-		const emoji =
-			pkg.totalDiffPercent > 5
-				? '🔴'
-				: pkg.totalDiffPercent > 0
-					? '🟡'
-					: pkg.totalDiffPercent < -5
-						? '🟢'
-						: '⚪';
+		const emoji = getSizeChangeEmoji(pkg.totalDiffPercent);
 		markdown += `| ${emoji} \`${pkg.packageName}\` | ${formatBytes(pkg.totalBaseSize)} | ${formatBytes(pkg.totalCurrentSize)} | ${sign}${formatBytes(pkg.totalDiff)} | ${sign}${pkg.totalDiffPercent.toFixed(2)}% |\n`;
 	}
 
@@ -312,14 +315,7 @@ function generateMarkdownReport(packages: PackageBundleData[]): string {
 			markdown += '|--------|-----------|--------------|--------|----------|\n';
 			for (const change of pkg.diffs.changed) {
 				const sign = change.diff >= 0 ? '+' : '';
-				const emoji =
-					change.diffPercent > 5
-						? '🔴'
-						: change.diffPercent > 0
-							? '🟡'
-							: change.diffPercent < -5
-								? '🟢'
-								: '⚪';
+				const emoji = getSizeChangeEmoji(change.diffPercent);
 				markdown += `| ${emoji} \`${change.name}\` | ${formatBytes(change.baseSize)} | ${formatBytes(change.currentSize)} | ${sign}${formatBytes(change.diff)} | ${sign}${change.diffPercent.toFixed(2)}% |\n`;
 			}
 			markdown += '\n';

@@ -29,6 +29,14 @@ inputs:
     description: "Directory containing packages to analyze"
     default: "packages"
     required: false
+  fail_on_increase:
+    description: "Fail the action if bundle size increases significantly"
+    default: "false"
+    required: false
+  threshold:
+    description: "Percentage threshold for significant bundle size increase"
+    default: "10"
+    required: false
 
 outputs:
   report_path:
@@ -54,4 +62,5 @@ runs:
         INPUT_SKIP_COMMENT: ${{ inputs.skip_comment }}
         INPUT_FAIL_ON_INCREASE: ${{ inputs.fail_on_increase }}
         INPUT_PACKAGES_DIR: ${{ inputs.packages_dir }}
+        INPUT_THRESHOLD: ${{ inputs.threshold }}
 

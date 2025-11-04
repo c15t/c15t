@@ -20,6 +20,7 @@ import {
 	prNumber,
 	repo,
 	skipComment,
+	threshold,
 } from './config/inputs';
 import { ensureComment } from './github/pr-comment';
 
@@ -28,7 +29,7 @@ async function run(): Promise<void> {
 		core.info('Starting bundle analysis...');
 
 		// Analyze bundles
-		const packages = analyzeBundles(baseDir, currentDir, packagesDir);
+		const packages = await analyzeBundles(baseDir, currentDir, packagesDir);
 		core.info(`Analyzed ${packages.length} packages`);
 
 		// Calculate total diff
@@ -59,12 +60,13 @@ async function run(): Promise<void> {
 
 		// Fail if significant increase detected
 		if (failOnIncrease) {
+			core.info(`Using threshold: ${threshold}%`);
 			const hasSignificantIncrease = packages.some(
-				(p) => p.totalDiffPercent > 10
+				(p) => p.totalDiffPercent > threshold
 			);
 			if (hasSignificantIncrease) {
 				core.setFailed(
-					'Bundle size increased significantly (>10%). Review the changes above.'
+					`Bundle size increased significantly (>${threshold}%). Review the changes above.`
 				);
 			}
 		}

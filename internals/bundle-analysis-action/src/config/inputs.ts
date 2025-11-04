@@ -57,6 +57,14 @@ export const packagesDir =
 	core.getInput('packages_dir', { required: false }) || 'packages';
 
 /**
+ * Percentage threshold for significant bundle size increase
+ */
+const thresholdInput = core.getInput('threshold', { required: false }) || '10';
+const parsedThreshold = parseFloat(thresholdInput);
+export const threshold =
+	isNaN(parsedThreshold) || parsedThreshold < 0 ? 10 : parsedThreshold;
+
+/**
  * Repository descriptor where the action will run
  */
 export const repo = {

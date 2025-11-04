@@ -4,12 +4,13 @@
  */
 import {
 	existsSync,
+	promises as fs,
 	readdirSync,
 	readFileSync,
 	statSync,
 	writeFileSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 
 export interface BundleStats {
 	name: string;
@@ -39,26 +40,33 @@ export interface PackageBundleData {
 	totalDiffPercent: number;
 }
 
-function findRsdoctorDataFiles(dir: string): string[] {
+async function findRsdoctorDataFiles(dir: string): Promise<string[]> {
 	const files: string[] = [];
 	if (!existsSync(dir)) {
 		return files;
 	}
 
-	function walk(currentDir: string) {
-		const entries = readdirSync(currentDir);
+	async function walk(currentDir: string): Promise<void> {
+		const entries = await fs.readdir(currentDir, { withFileTypes: true });
+		const promises: Promise<void>[] = [];
+
 		for (const entry of entries) {
-			const fullPath = join(currentDir, entry);
-			const stat = statSync(fullPath);
-			if (stat.isDirectory()) {
-				walk(fullPath);
-			} else if (entry === 'rsdoctor-data.json') {
+			const fullPath = join(currentDir, entry.name);
+			if (entry.isSymbolicLink()) {
+				// Skip symlinks to avoid circular dependencies
+				continue;
+			}
+			if (entry.isDirectory()) {
+				promises.push(walk(fullPath));
+			} else if (entry.name === 'rsdoctor-data.json') {
 				files.push(fullPath);
 			}
 		}
+
+		await Promise.all(promises);
 	}
 
-	walk(dir);
+	await walk(dir);
 	return files;
 }
 
@@ -126,8 +134,10 @@ function extractBundleSizes(jsonPath: string): BundleStats[] {
 							size: 0,
 						});
 					}
-					const bundle = chunkMap.get(chunkName)!;
-					bundle.size += size;
+					const bundle = chunkMap.get(chunkName);
+					if (bundle) {
+						bundle.size += size;
+					}
 				}
 			}
 
@@ -177,13 +187,14 @@ function compareBundles(
 		const currentBundle = currentMap.get(name);
 		if (currentBundle && baseBundle.size !== currentBundle.size) {
 			const diff = currentBundle.size - baseBundle.size;
-			const diffPercent = (diff / baseBundle.size) * 100;
+			const diffPercent =
+				baseBundle.size > 0 ? (diff / baseBundle.size) * 100 : null;
 			changed.push({
 				name,
 				baseSize: baseBundle.size,
 				currentSize: currentBundle.size,
 				diff,
-				diffPercent,
+				diffPercent: diffPercent ?? 0,
 			});
 		}
 	}
@@ -191,17 +202,17 @@ function compareBundles(
 	return { added, removed, changed };
 }
 
-function analyzePackage(
+async function analyzePackage(
 	packageDir: string,
 	baseDir: string,
 	currentDir: string
-): PackageBundleData | null {
-	const packageName = packageDir.replace(/.*\//, '');
+): Promise<PackageBundleData | null> {
+	const packageName = basename(packageDir);
 	const baseDistPath = join(baseDir, packageDir, 'dist');
 	const currentDistPath = join(currentDir, packageDir, 'dist');
 
-	const baseFiles = findRsdoctorDataFiles(baseDistPath);
-	const currentFiles = findRsdoctorDataFiles(currentDistPath);
+	const baseFiles = await findRsdoctorDataFiles(baseDistPath);
+	const currentFiles = await findRsdoctorDataFiles(currentDistPath);
 
 	if (baseFiles.length === 0 && currentFiles.length === 0) {
 		return null;
@@ -242,7 +253,14 @@ export function formatBytes(bytes: number): string {
 	const k = 1024;
 	const sizes = ['B', 'KB', 'MB', 'GB'];
 	const i = Math.floor(Math.log(Math.abs(bytes)) / Math.log(k));
-	return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
+	return `${(bytes / k ** i).toFixed(2)} ${sizes[i]}`;
+}
+
+function getChangeEmoji(diffPercent: number): string {
+	if (diffPercent > 5) return '🔴';
+	if (diffPercent > 0) return '🟡';
+	if (diffPercent < -5) return '🟢';
+	return '⚪';
 }
 
 export function generateMarkdownReport(packages: PackageBundleData[]): string {
@@ -260,14 +278,7 @@ export function generateMarkdownReport(packages: PackageBundleData[]): string {
 
 	for (const pkg of packages) {
 		const sign = pkg.totalDiff >= 0 ? '+' : '';
-		const emoji =
-			pkg.totalDiffPercent > 5
-				? '🔴'
-				: pkg.totalDiffPercent > 0
-					? '🟡'
-					: pkg.totalDiffPercent < -5
-						? '🟢'
-						: '⚪';
+		const emoji = getChangeEmoji(pkg.totalDiffPercent);
 		markdown += `| ${emoji} \`${pkg.packageName}\` | ${formatBytes(pkg.totalBaseSize)} | ${formatBytes(pkg.totalCurrentSize)} | ${sign}${formatBytes(pkg.totalDiff)} | ${sign}${pkg.totalDiffPercent.toFixed(2)}% |\n`;
 	}
 
@@ -305,14 +316,7 @@ export function generateMarkdownReport(packages: PackageBundleData[]): string {
 			markdown += '|--------|-----------|--------------|--------|----------|\n';
 			for (const change of pkg.diffs.changed) {
 				const sign = change.diff >= 0 ? '+' : '';
-				const emoji =
-					change.diffPercent > 5
-						? '🔴'
-						: change.diffPercent > 0
-							? '🟡'
-							: change.diffPercent < -5
-								? '🟢'
-								: '⚪';
+				const emoji = getChangeEmoji(change.diffPercent);
 				markdown += `| ${emoji} \`${change.name}\` | ${formatBytes(change.baseSize)} | ${formatBytes(change.currentSize)} | ${sign}${formatBytes(change.diff)} | ${sign}${change.diffPercent.toFixed(2)}% |\n`;
 			}
 			markdown += '\n';
@@ -328,11 +332,11 @@ export function generateMarkdownReport(packages: PackageBundleData[]): string {
 /**
  * Analyzes bundle differences between base and current branches.
  */
-export function analyzeBundles(
+export async function analyzeBundles(
 	baseDir: string,
 	currentDir: string,
-	packagesDir: string = 'packages'
-): PackageBundleData[] {
+	packagesDir = 'packages'
+): Promise<PackageBundleData[]> {
 	const packages: string[] = [];
 
 	if (existsSync(packagesDir)) {
@@ -340,14 +344,14 @@ export function analyzeBundles(
 		for (const entry of entries) {
 			const fullPath = join(packagesDir, entry);
 			if (statSync(fullPath).isDirectory()) {
-				packages.push(join('packages', entry));
+				packages.push(join(packagesDir, entry));
 			}
 		}
 	}
 
 	const results: PackageBundleData[] = [];
 	for (const pkg of packages) {
-		const result = analyzePackage(pkg, baseDir, currentDir);
+		const result = await analyzePackage(pkg, baseDir, currentDir);
 		if (result && (result.totalBaseSize > 0 || result.totalCurrentSize > 0)) {
 			results.push(result);
 		}
@@ -363,8 +367,17 @@ export function writeReport(
 	packages: PackageBundleData[],
 	outputPath: string
 ): void {
-	const report = generateMarkdownReport(packages);
-	writeFileSync(outputPath, report, 'utf-8');
+	try {
+		const report = generateMarkdownReport(packages);
+		writeFileSync(outputPath, report, 'utf-8');
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		const errorStack =
+			error instanceof Error && error.stack ? error.stack : errorMessage;
+		throw new Error(
+			`Failed to write bundle analysis report to ${outputPath}: ${errorStack}`
+		);
+	}
 }
 
 /**

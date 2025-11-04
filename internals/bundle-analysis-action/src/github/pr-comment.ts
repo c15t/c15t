@@ -5,8 +5,6 @@
 import * as core from '@actions/core';
 import type { GitHub } from '@actions/github/lib/utils';
 
-const RE_BOT_SUFFIX = /\[bot\]$/i;
-
 function autoStart(header: string): string {
 	const key = (header || 'bundle-analysis').trim() || 'bundle-analysis';
 	return `<!-- c15t:${key}:START -->`;
@@ -28,14 +26,15 @@ export async function findPreviousComment(
 	header: string
 ): Promise<{ id: number; body: string } | undefined> {
 	const start = autoStart(header);
-	let after: string | null = null;
-	let hasNextPage = true;
+	let page = 1;
+	const perPage = 100;
 
-	while (hasNextPage) {
+	while (true) {
 		const { data } = await octokit.rest.issues.listComments({
 			...repo,
 			issue_number: number,
-			per_page: 100,
+			per_page: perPage,
+			page,
 		});
 
 		for (const comment of data) {
@@ -47,12 +46,11 @@ export async function findPreviousComment(
 			}
 		}
 
-		hasNextPage = data.length === 100;
-		if (hasNextPage && data.length > 0) {
-			after = String(data[data.length - 1]?.id);
-		} else {
+		if (data.length < perPage) {
 			break;
 		}
+
+		page++;
 	}
 
 	return undefined;
