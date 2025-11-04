@@ -26,10 +26,16 @@ export function deepMergeTranslations(
 	];
 
 	return sections.reduce((result, section) => {
-		result[section] = {
-			...base[section],
-			...(override[section] || {}),
-		};
+		const baseSection = base[section];
+		const overrideSection = override[section];
+
+		// Only include section if it exists in base or override
+		if (baseSection || overrideSection) {
+			result[section] = {
+				...(baseSection || {}),
+				...(overrideSection || {}),
+			};
+		}
 		return result;
 	}, {} as Translations);
 }
