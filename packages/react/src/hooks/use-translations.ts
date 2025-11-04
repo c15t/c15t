@@ -62,8 +62,7 @@ function isTranslations(value: unknown): value is Translations {
 		'cookieBanner' in obj &&
 		'consentManagerDialog' in obj &&
 		'consentTypes' in obj &&
-		'common' in obj &&
-		'frame' in obj;
+		'common' in obj;
 
 	return hasRequiredKeys;
 }
