@@ -1,5 +1,6 @@
 import { pluginReact } from '@rsbuild/plugin-react';
 import { defineConfig } from '@rslib/core';
+import { getRsdoctorPlugins } from '../shared/rslib-utils';
 
 export default defineConfig({
 	source: {
@@ -25,4 +26,9 @@ export default defineConfig({
 		cleanDistPath: true,
 	},
 	plugins: [pluginReact()],
+	tools: {
+		rspack: {
+			plugins: [...getRsdoctorPlugins()],
+		},
+	},
 });
