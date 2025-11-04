@@ -13,6 +13,7 @@ export type {
 	ConsentTypesTranslations,
 	ConsentTypeTranslations,
 	CookieBannerTranslations,
+	LegalLinksTranslations,
 	TranslationConfig,
 	Translations,
 } from '@c15t/translations';
@@ -90,3 +91,5 @@ export {
 	type ConsentType,
 	consentTypes,
 } from './types/gdpr';
+
+export type { LegalLink, LegalLinks } from './types/legal-links';
