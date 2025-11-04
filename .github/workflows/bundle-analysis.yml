@@ -58,7 +58,7 @@ jobs:
         run: |
           git checkout ${{ github.sha }}
           pnpm install --frozen-lockfile
-          RSDOCTOR=true pnpm turbo run build --filter="./packages/*"
+          RSDOCTOR=1 pnpm turbo run build --filter="./packages/*"
 
       - name: 📊 Analyze bundle differences
         uses: ./internals/bundle-analysis-action

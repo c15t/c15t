@@ -34,10 +34,10 @@ export default defineConfig({
 	tools: {
 		rspack: {
 			plugins: [
-				...(process.env.RSDOCTOR === 'true'
+				...(process.env.RSDOCTOR
 					? [
 							new RsdoctorRspackPlugin({
-								port: 3000,
+								disableClientServer: true,
 								output: {
 									mode: 'brief',
 									options: {
