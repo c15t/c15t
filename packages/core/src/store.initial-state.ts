@@ -71,7 +71,6 @@ export const initialState: Omit<
 	| 'updateIframeConsents'
 	| 'destroyIframeBlocker'
 	| 'updateConsentCategories'
-	| 'setExternalId'
 	| 'identifyUser'
 > = {
 	config: {
@@ -177,7 +176,7 @@ export const initialState: Omit<
 		honorDoNotTrack: true,
 	},
 
-	externalId: undefined,
+	user: undefined,
 
 	// Initialize all methods as no-ops
 	setConsent: () => {
