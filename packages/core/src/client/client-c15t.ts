@@ -4,6 +4,7 @@
  */
 
 import { enTranslations } from '@c15t/translations';
+import { saveConsentToStorage } from '../libs/cookie';
 import type {
 	ConsentManagerInterface,
 	SetConsentRequestBody,
@@ -67,6 +68,11 @@ export interface C15tClientOptions {
 	 * @default { maxRetries: 3, initialDelayMs: 100, backoffFactor: 2, retryableStatusCodes: [500, 502, 503, 504] }
 	 */
 	retryConfig?: RetryConfig;
+
+	/**
+	 * Storage configuration for offline fallback
+	 */
+	storageConfig?: import('../libs/cookie').StorageConfig;
 }
 
 /**
@@ -118,6 +124,12 @@ export class C15tClient implements ConsentManagerInterface {
 	private backendURL: string;
 
 	/**
+	 * Storage configuration for offline fallback
+	 * @internal
+	 */
+	private readonly storageConfig?: import('../libs/cookie').StorageConfig;
+
+	/**
 	 * Default headers to include with all requests
 	 * @internal
 	 */
@@ -158,6 +170,7 @@ export class C15tClient implements ConsentManagerInterface {
 
 		this.customFetch = options.customFetch;
 		this.corsMode = options.corsMode || 'cors';
+		this.storageConfig = options.storageConfig;
 
 		// Merge provided retry config with defaults
 		this.retryConfig = {
@@ -677,6 +690,18 @@ export class C15tClient implements ConsentManagerInterface {
 
 			// If the request was successful
 			if ((response.ok && response.data) || options?.testing) {
+				saveConsentToStorage(
+					{
+						consents: options?.body?.preferences || {},
+						consentInfo: {
+							time: Date.now(),
+							id: response.data.id,
+						},
+					},
+					undefined,
+					this.storageConfig
+				);
+
 				return response;
 			}
 
@@ -728,22 +753,21 @@ export class C15tClient implements ConsentManagerInterface {
 		const pendingSubmissionsKey = 'c15t-pending-consent-submissions';
 
 		try {
-			if (typeof window !== 'undefined' && window.localStorage) {
-				// Test localStorage access with a simple operation
-				window.localStorage.setItem('c15t-storage-test-key', 'test');
-				window.localStorage.removeItem('c15t-storage-test-key');
-
-				// Store the consent preferences locally
-				window.localStorage.setItem(
-					'c15t-consent',
-					JSON.stringify({
-						timestamp: new Date().toISOString(),
-						preferences: options?.body?.preferences || {},
-					})
+			if (typeof window !== 'undefined') {
+				// Store the consent preferences locally in both localStorage and cookie
+				saveConsentToStorage(
+					{
+						consents: options?.body?.preferences || {},
+						consentInfo: {
+							time: Date.now(),
+						},
+					},
+					undefined,
+					this.storageConfig
 				);
 
 				// Store the submission in the pending queue for retry on next page load
-				if (options?.body) {
+				if (options?.body && window.localStorage) {
 					let pendingSubmissions: SetConsentRequestBody[] = [];
 
 					try {
@@ -796,6 +820,20 @@ export class C15tClient implements ConsentManagerInterface {
 			null,
 			null
 		);
+
+		if (response.ok && response.data) {
+			saveConsentToStorage(
+				{
+					consents: options?.body?.preferences || {},
+					consentInfo: {
+						time: Date.now(),
+						id: response.data.id,
+					},
+				},
+				undefined,
+				this.storageConfig
+			);
+		}
 
 		// Call success callback if provided
 		if (options?.onSuccess) {

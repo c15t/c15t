@@ -13,10 +13,12 @@ import type {
 	ComplianceRegion,
 	ComplianceSettings,
 	ConsentBannerResponse,
+	ConsentInfo,
 	ConsentState,
 	ConsentType,
 	consentTypes,
 	JurisdictionInfo,
+	LegalLinks,
 	LocationInfo,
 	PrivacySettings,
 	TranslationConfig,
@@ -70,7 +72,7 @@ export interface PrivacyConsentState {
 	selectedConsents: ConsentState;
 
 	/** Information about when and how consent was given */
-	consentInfo: { time: number; type: 'all' | 'custom' | 'necessary' } | null;
+	consentInfo: ConsentInfo | null;
 
 	/** Whether to show the consent popup */
 	showPopup: boolean;
@@ -96,11 +98,23 @@ export interface PrivacyConsentState {
 	/** Subject's location information */
 	locationInfo: LocationInfo | null;
 
+	/**
+	 * Configuration for the legal links
+	 * @defaultValue {}
+	 *
+	 * @remarks
+	 * Legal links can display across different parts of the consent manager such as the consent banner & dialog.
+	 */
+	legalLinks: LegalLinks;
+
 	/** Translation configuration */
 	translationConfig: TranslationConfig;
 
 	/** Whether to ignore geo location. Will always show the consent banner. */
 	ignoreGeoLocation: boolean;
+
+	/** Storage configuration for consent persistence */
+	storageConfig?: import('./libs/cookie').StorageConfig;
 
 	/**
 	 * Updates the translation configuration.

@@ -1,0 +1,89 @@
+---
+title: "v1.8.0 - Cross-Subdomain Cookies"
+version: "1.8.0"
+date: 2025-10-28
+description: "Minor release with a new hybrid cookie/local storage approach for consent storage."
+tags:
+  - release
+  - stable
+  - nextjs
+  - react
+  - backend
+type: release
+breaking: false
+draft: true
+canary: true
+authors: [KayleeWilliams]
+packages:
+  - "@c15t/backend@1.8.0"
+  - "@c15t/cli@1.8.0"
+  - "@c15t/nextjs@1.8.0"
+  - "@c15t/react@1.8.0"
+  - "@c15t/translations@1.8.0"
+  - "@c15t/scripts@1.8.0"
+  - "c15t@1.8.0"
+---
+
+## ✨ New Features
+
+### Hybrid Cookie/LocalStorage Approach for consent
+
+This update changes how we store consent in the browser, from using local-storage only to a hybrid approach with both cookies & local storage.
+
+Cookies will now allow you to check consent on the server side & persist consent across subdomains e.g. `dashboard.example.com` & `example.com`.
+
+To enable this, you use the `storageConfig` option. 
+
+```tsx
+<ConsentManagerProvider
+  options={{
+    storageConfig: {
+      storageKey: 'my-consent', // Custom override for local storage + cookie key 
+      crossSubdomain: true,
+    },
+  }}
+>
+```
+
+Existing consent under the old `privacy-consent-storage` key will be automatically migrated to the new `c15t` key.
+
+### Configurable Legal Links
+
+You can now add various legal links to the consent manager. This can be used to display links in the consent banner, dialog, etc.
+
+```tsx
+<ConsentManagerProvider
+  options={{
+    legalLinks: {
+      privacyPolicy: { href: '/privacy-policy' },
+      termsOfService: { href: '/terms-of-service' },
+      cookiePolicy: { href: '/cookie-policy' },
+    },
+  }}
+>
+```
+
+You can filter what legal links you want to display (if any) on the pre-made components by passing the `legalLinks` prop.
+
+```tsx
+// Show all legal links
+<CookieBanner />
+
+// Show both cookie policy and terms of service
+<CookieBanner legalLinks={['cookiePolicy', 'termsOfService']} />
+
+// Show no legal links
+<CookieBanner legalLinks={null} />
+```
+
+## 🐛 Bug Fixes & Improvements
+
+### **@c15t/nextjs**
+
+* Ensure all exports from core are re-exported
+
+### **@c15t/react**
+
+* Ensure all exports from core are re-exported
+
+<ContributorBlock usernames={["KayleeWilliams", "BurnedChris"]} title="Thank you to our contributors" />

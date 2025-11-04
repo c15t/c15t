@@ -7,5 +7,7 @@
  * @see {@link @c15t/react} for React components and hooks
  * @see {@link ./middleware} for Next.js middleware integration
  */
-export { ConsentManagerProvider } from './components/consent-manager-provider';
+
+// biome-ignore assist/source/organizeImports: Ensure ConsentManagerProvider is overridden by the Next.js-specific implementation
 export * from './shared';
+export { ConsentManagerProvider } from './components/consent-manager-provider';

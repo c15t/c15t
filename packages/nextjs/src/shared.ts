@@ -1,29 +1,9 @@
 // Shared Exports between all directories
 
-// Export types
-export type {
-	ConsentManagerDialogProps,
-	ConsentManagerInterface,
-	ConsentManagerOptions,
-	ConsentManagerWidgetProps,
-	CookieBannerProps,
-} from '@c15t/react';
+// Export everything from @c15t/react
+// Note: ConsentManagerProvider will be overridden by the Next.js-specific
+// implementation exported from index.ts
+export * from '@c15t/react';
 
-export {
-	ConsentManagerDialog,
-	ConsentManagerProvider as ClientConsentManagerProvider,
-	ConsentManagerWidget,
-	CookieBanner,
-	configureConsentManager,
-	defaultTranslationConfig,
-	detectBrowserLanguage,
-	Frame,
-	mergeTranslationConfigs,
-	// Translation utilities
-	prepareTranslationConfig,
-	useColorScheme,
-	// Export hooks
-	useConsentManager,
-	useFocusTrap,
-	useTranslations,
-} from '@c15t/react';
+// Export ConsentManagerProvider with client-specific name for internal use
+export { ConsentManagerProvider as ClientConsentManagerProvider } from '@c15t/react';
