@@ -8,6 +8,7 @@ import type {
 	Callbacks,
 	ConsentManagerOptions as CoreOptions,
 	GTMConfiguration,
+	LegalLinks,
 	Script,
 	StorageConfig,
 	TrackingBlockerConfig,
@@ -100,7 +101,10 @@ export type ConsentManagerOptions = CoreOptions & {
 	callbacks?: Callbacks;
 
 	/**
-	 * Scripts to load.
+	 * Dynamically load scripts based on consent state.
+	 * For scripts such as Google Tag Manager, Meta Pixel, etc.
+	 *
+	 * @see https://c15t.com/docs/frameworks/react/script-loader
 	 */
 	scripts?: Script[];
 
@@ -109,6 +113,14 @@ export type ConsentManagerOptions = CoreOptions & {
 	 * @deprecated This is deprecated and will be removed in the next major version. Use the new [ScriptLoader](https://c15t.com/docs/react/script-loader) instead.
 	 */
 	trackingBlockerConfig?: TrackingBlockerConfig;
+
+	/**
+	 * Display links to various legal documents such as privacy policy, terms of service, etc across the consent manager.
+	 * This can be used to display links in the consent banner, dialog, etc.
+	 *
+	 * @defaultValue {}
+	 */
+	legalLinks?: LegalLinks;
 
 	/**
 	 * Storage configuration options

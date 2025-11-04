@@ -10,6 +10,7 @@
 	--dialog-description-font-size: 1rem;
 	--dialog-description-font-weight: 400;
 	--dialog-description-line-height: 1.15;
+	--dialog-footer-gap: 0.75rem;
 	--dialog-footer-font-size: 14px;
 	--dialog-branding-font-size: 1rem;
 	--dialog-branding-font-weight: 500;
@@ -273,8 +274,10 @@
 
 .footer {
 	display: flex;
+	flex-direction: column;
 	align-items: center;
 	justify-content: center;
+	gap: var(--dialog-footer-gap);
 	font-size: var(--dialog-footer-font-size);
 	padding-top: var(--dialog-footer-padding-y);
 	padding-bottom: var(--dialog-footer-padding-y);
