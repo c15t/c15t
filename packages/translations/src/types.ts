@@ -12,6 +12,12 @@ export interface CommonTranslations {
 	save: string;
 }
 
+export interface LegalLinksTranslations {
+	privacyPolicy: string;
+	cookiePolicy: string;
+	termsOfService: string;
+}
+
 export interface CookieBannerTranslations {
 	title: string;
 	description: string;
@@ -53,6 +59,7 @@ export interface CompleteTranslations {
 	consentManagerDialog: ConsentManagerDialogTranslations;
 	consentTypes: ConsentTypesTranslations;
 	frame: FrameTranslations;
+	legalLinks: LegalLinksTranslations;
 }
 
 // Partial translations interface (used for other languages)
@@ -64,6 +71,7 @@ export interface Translations {
 		[key in AllConsentNames]?: Partial<ConsentTypeTranslations>;
 	};
 	frame?: Partial<FrameTranslations>;
+	legalLinks?: Partial<LegalLinksTranslations>;
 }
 
 export interface TranslationConfig {

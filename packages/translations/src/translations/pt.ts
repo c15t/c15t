@@ -48,4 +48,9 @@ export const ptTranslations: CompleteTranslations = {
 		title: 'Aceite {category} para ver este conteúdo',
 		actionButton: 'Ativar consentimento {category}',
 	},
+	legalLinks: {
+		privacyPolicy: 'Política de Privacidade',
+		cookiePolicy: 'Política de Cookies',
+		termsOfService: 'Termos de Serviço',
+	},
 };
