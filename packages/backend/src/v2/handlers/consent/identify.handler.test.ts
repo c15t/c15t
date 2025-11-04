@@ -134,6 +134,7 @@ describe('identifyUser handler', () => {
 				eventTimezone: 'UTC',
 				metadata: {
 					externalId: 'ext_user_456',
+					identityProvider: 'external',
 				},
 			});
 		});
@@ -181,11 +182,17 @@ describe('identifyUser handler', () => {
 				where: expect.any(Function),
 			});
 
+			// Verify initial logging
+			expect(mockLogger.info).toHaveBeenCalledWith(
+				'Handling identify-user request'
+			);
+
 			// Verify merge logging
 			expect(mockLogger.info).toHaveBeenCalledWith('Merging subjects', {
 				currentSubjectId: 'sub_current_789',
 				oldSubjectId: 'sub_existing_123',
 				externalId: 'ext_user_456',
+				identityProvider: 'external',
 			});
 
 			// Verify consent records were updated
@@ -229,6 +236,7 @@ describe('identifyUser handler', () => {
 				eventTimezone: 'UTC',
 				metadata: {
 					externalId: 'ext_user_456',
+					identityProvider: 'external',
 					mergedFrom: 'sub_current_789',
 				},
 			});
@@ -352,6 +360,7 @@ describe('identifyUser handler', () => {
 				eventTimezone: 'UTC',
 				metadata: {
 					externalId: 'ext_user_456',
+					identityProvider: 'external',
 				},
 			});
 		});

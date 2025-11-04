@@ -30,9 +30,6 @@ export async function identifyUser({
 
 	const consented = hasConsented() && !!consentInfo?.id;
 	const isIdentified = !!consentInfo?.identified;
-	console.log('identifyUser', user);
-	console.log('consented', consented);
-	console.log('isIdentified', isIdentified);
 	set({
 		user,
 	});

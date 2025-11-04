@@ -232,7 +232,7 @@ export interface StoreOptions {
 	 * Usually your own internal ID for the user from your auth provider
 	 *
 	 * @remarks
-	 * This can be set later using the {@link setUser} method.
+	 * This can be set later using the {@link identifyUser} method.
 	 * @default undefined
 	 */
 	user?: User;
