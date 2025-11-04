@@ -8,7 +8,7 @@ import { fetcher } from './fetcher';
  *
  * @param context - Fetcher context for API requests
  * @param endpoint - API endpoint path
- * @param method - HTTP method
+ * @param method - HTTP method ('GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH')
  * @param options - Request options
  * @param fallbackFn - Fallback function to call if API request fails
  * @returns Response from API or fallback
@@ -21,7 +21,7 @@ export async function withFallback<
 >(
 	context: FetcherContext,
 	endpoint: string,
-	method: string,
+	method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
 	options: FetchOptions<ResponseType, BodyType, QueryType> | undefined,
 	fallbackFn: (
 		options?: FetchOptions<ResponseType, BodyType, QueryType>
