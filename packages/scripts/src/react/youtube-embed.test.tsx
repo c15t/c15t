@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { YouTubeEmbed } from './youtube-embed';
@@ -42,15 +42,20 @@ vi.mock('c15t', async () => {
 });
 
 // Dynamically import after mocks are set up
-// biome-ignore lint/suspicious/noExplicitAny: Dynamic import after mock setup requires any
-let ConsentManagerProvider: any;
+type ConsentProviderComponent = ComponentType<{
+	options: { mode: string };
+	children: ReactNode;
+}>;
+
+let ConsentManagerProvider: ConsentProviderComponent | undefined;
 
 describe('YouTubeEmbed', () => {
 	beforeEach(async () => {
 		// Import the provider after mocks are established
 		if (!ConsentManagerProvider) {
 			const reactModule = await import('@c15t/react');
-			ConsentManagerProvider = reactModule.ConsentManagerProvider;
+			ConsentManagerProvider =
+				reactModule.ConsentManagerProvider as ConsentProviderComponent;
 		}
 
 		// Clear localStorage before each test
@@ -59,6 +64,12 @@ describe('YouTubeEmbed', () => {
 	});
 
 	const renderWithProvider = (children: ReactNode) => {
+		if (!ConsentManagerProvider) {
+			throw new Error(
+				'ConsentManagerProvider must be initialized before rendering'
+			);
+		}
+
 		// Mock localStorage with full consent granted
 		window.localStorage.setItem(
 			'privacy-consent-storage',

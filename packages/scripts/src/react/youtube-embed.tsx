@@ -131,7 +131,10 @@ export const YouTubeEmbed = forwardRef<HTMLDivElement, YouTubeEmbedProps>(
 		ref
 	) => {
 		// Construct the YouTube embed URL
-		const paramsPart = params ? `?${params}` : '';
+		let paramsPart = '';
+		if (params) {
+			paramsPart = `?${params}`;
+		}
 		const embedUrl = `https://www.youtube.com/embed/${videoId}${paramsPart}`;
 
 		// Merge styles for the Frame container
