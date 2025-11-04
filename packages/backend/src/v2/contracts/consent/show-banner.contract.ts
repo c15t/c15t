@@ -32,6 +32,11 @@ const CompleteTranslationsSchema = z.object({
 		title: z.string(),
 		actionButton: z.string(),
 	}),
+	legalLinks: z.object({
+		privacyPolicy: z.string(),
+		termsOfService: z.string(),
+		cookiePolicy: z.string(),
+	}),
 });
 
 /**
@@ -63,7 +68,16 @@ const PartialTranslationsSchema = z.object({
 			title: z.string().optional(),
 			actionButton: z.string().optional(),
 		})
-		.partial(),
+		.partial()
+		.optional(),
+	legalLinks: z
+		.object({
+			privacyPolicy: z.string().optional(),
+			termsOfService: z.string().optional(),
+			cookiePolicy: z.string().optional(),
+		})
+		.partial()
+		.optional(),
 });
 
 /**

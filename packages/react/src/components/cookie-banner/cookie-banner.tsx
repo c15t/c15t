@@ -8,6 +8,10 @@
 
 import type { FC, ReactNode } from 'react';
 import { ConsentButton } from '~/components/shared/primitives/button';
+import {
+	LegalLinks,
+	type LegalLinksProps,
+} from '~/components/shared/primitives/legal-links';
 import { useTheme } from '~/hooks/use-theme';
 import { useTranslations } from '~/hooks/use-translations';
 import { CookieBannerRoot } from './atoms/root';
@@ -101,6 +105,32 @@ export interface CookieBannerProps {
 	 * @default false
 	 */
 	disableAnimation?: boolean;
+
+	/**
+	 * Controls which legal links to display.
+	 *
+	 * - `undefined` (default): Shows all available legal links
+	 * - `null`: Explicitly hides all legal links
+	 * - Array of keys: Shows only the specified legal links
+	 *
+	 * @defaultValue undefined
+	 *
+	 * @example
+	 * ```tsx
+	 * // Show all links
+	 * <CookieBanner legalLinks={undefined} />
+	 *
+	 * // Show no links
+	 * <CookieBanner legalLinks={null} />
+	 *
+	 * // Show only privacy policy
+	 * <CookieBanner legalLinks={['privacyPolicy']} />
+	 * ```
+	 *
+	 * @remarks
+	 * You must set the legal links in the ConsentManagerProvider options.
+	 */
+	legalLinks?: LegalLinksProps['links'];
 }
 
 export const CookieBanner: FC<CookieBannerProps> = ({
@@ -114,6 +144,7 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 	rejectButtonText,
 	customizeButtonText,
 	acceptButtonText,
+	legalLinks,
 }) => {
 	const { cookieBanner, common } = useTranslations();
 
@@ -145,6 +176,11 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 						<CookieBannerDescription>
 							{description || cookieBanner.description}
 						</CookieBannerDescription>
+						<LegalLinks
+							links={legalLinks}
+							themeKey="banner.header.legal-links"
+							data-testid="cookie-banner-legal-links"
+						/>
 					</CookieBannerHeader>
 					<CookieBannerFooter>
 						<CookieBannerFooterSubGroup>
