@@ -1,22 +1,16 @@
 import { pluginReact } from '@rsbuild/plugin-react';
-import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 import { defineConfig } from '@rslib/core';
+import {
+	getRsdoctorPlugins,
+	standardExcludePatterns,
+} from '../shared/rslib-utils';
 
 export default defineConfig({
 	source: {
 		entry: {
 			index: ['./src/**'],
 		},
-		exclude: [
-			'**/.DS_Store',
-			'**/__tests__/**',
-			'**/*.test.ts',
-			'**/*.test.tsx',
-			'**/*.spec.ts',
-			'**/*.spec.tsx',
-			'**/*.browser.test.ts',
-			'**/*.e2e.test.tsx',
-		],
+		exclude: standardExcludePatterns,
 	},
 	lib: [
 		{
@@ -46,21 +40,7 @@ export default defineConfig({
 	plugins: [pluginReact()],
 	tools: {
 		rspack: {
-			plugins: [
-				...(process.env.RSDOCTOR
-					? [
-							new RsdoctorRspackPlugin({
-								disableClientServer: true,
-								output: {
-									mode: 'brief',
-									options: {
-										type: ['json'],
-									},
-								},
-							}),
-						]
-					: []),
-			],
+			plugins: [...getRsdoctorPlugins()],
 		},
 	},
 });

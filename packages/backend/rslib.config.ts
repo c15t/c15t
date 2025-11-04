@@ -1,5 +1,5 @@
-import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 import { defineConfig } from '@rslib/core';
+import { getRsdoctorPlugins } from '../shared/rslib-utils';
 
 const externals = [
 	// Frameworks
@@ -110,21 +110,7 @@ export default defineConfig({
 	},
 	tools: {
 		rspack: {
-			plugins: [
-				...(process.env.RSDOCTOR
-					? [
-							new RsdoctorRspackPlugin({
-								disableClientServer: true,
-								output: {
-									mode: 'brief',
-									options: {
-										type: ['json'],
-									},
-								},
-							}),
-						]
-					: []),
-			],
+			plugins: [...getRsdoctorPlugins()],
 		},
 	},
 });

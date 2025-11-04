@@ -1,6 +1,6 @@
 import { pluginReact } from '@rsbuild/plugin-react';
-import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 import { defineConfig } from '@rslib/core';
+import { getRsdoctorPlugins } from '../shared/rslib-utils';
 
 export default defineConfig({
 	source: {
@@ -33,21 +33,7 @@ export default defineConfig({
 	plugins: [pluginReact()],
 	tools: {
 		rspack: {
-			plugins: [
-				...(process.env.RSDOCTOR
-					? [
-							new RsdoctorRspackPlugin({
-								disableClientServer: true,
-								output: {
-									mode: 'brief',
-									options: {
-										type: ['json'],
-									},
-								},
-							}),
-						]
-					: []),
-			],
+			plugins: [...getRsdoctorPlugins()],
 		},
 	},
 });
