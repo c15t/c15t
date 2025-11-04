@@ -17,21 +17,21 @@ import { fileURLToPath } from 'node:url';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT_DIR = join(__dirname, '..');
 
-function getSizeChangeEmoji(diffPercent: number): string {
+export function getSizeChangeEmoji(diffPercent: number): string {
 	if (diffPercent > 5) return '🔴';
 	if (diffPercent > 0) return '🟡';
 	if (diffPercent < -5) return '🟢';
 	return '⚪';
 }
 
-interface BundleStats {
+export interface BundleStats {
 	name: string;
 	path: string;
 	size: number;
 	gzipSize?: number;
 }
 
-interface PackageBundleData {
+export interface PackageBundleData {
 	packageName: string;
 	baseBundles: BundleStats[];
 	currentBundles: BundleStats[];
@@ -52,7 +52,7 @@ interface PackageBundleData {
 	totalDiffPercent: number;
 }
 
-function findRsdoctorDataFiles(dir: string): string[] {
+export function findRsdoctorDataFiles(dir: string): string[] {
 	const files: string[] = [];
 	if (!existsSync(dir)) {
 		return files;
@@ -75,7 +75,7 @@ function findRsdoctorDataFiles(dir: string): string[] {
 	return files;
 }
 
-function extractBundleSizes(jsonPath: string): BundleStats[] {
+export function extractBundleSizes(jsonPath: string): BundleStats[] {
 	try {
 		const content = readFileSync(jsonPath, 'utf-8');
 		const data = JSON.parse(content);
@@ -157,7 +157,7 @@ function extractBundleSizes(jsonPath: string): BundleStats[] {
 	}
 }
 
-function compareBundles(
+export function compareBundles(
 	baseBundles: BundleStats[],
 	currentBundles: BundleStats[]
 ): PackageBundleData['diffs'] {
@@ -208,7 +208,7 @@ function compareBundles(
 	return { added, removed, changed };
 }
 
-function analyzePackage(
+export function analyzePackage(
 	packageDir: string,
 	baseDir: string,
 	currentDir: string
@@ -254,7 +254,7 @@ function analyzePackage(
 	};
 }
 
-function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number): string {
 	if (bytes === 0) return '0 B';
 	const k = 1024;
 	const sizes = ['B', 'KB', 'MB', 'GB'];
@@ -262,7 +262,7 @@ function formatBytes(bytes: number): string {
 	return `${(bytes / k ** i).toFixed(2)} ${sizes[i]}`;
 }
 
-function generateMarkdownReport(packages: PackageBundleData[]): string {
+export function generateMarkdownReport(packages: PackageBundleData[]): string {
 	let markdown = '# 📦 Bundle Size Analysis\n\n';
 
 	if (packages.length === 0) {
@@ -281,7 +281,7 @@ function generateMarkdownReport(packages: PackageBundleData[]): string {
 		markdown += `| ${emoji} \`${pkg.packageName}\` | ${formatBytes(pkg.totalBaseSize)} | ${formatBytes(pkg.totalCurrentSize)} | ${sign}${formatBytes(pkg.totalDiff)} | ${sign}${pkg.totalDiffPercent.toFixed(2)}% |\n`;
 	}
 
-	// Detailed changes per package
+	// Detailed changes per package (collapsible)
 	for (const pkg of packages) {
 		if (
 			pkg.diffs.added.length === 0 &&
@@ -291,7 +291,11 @@ function generateMarkdownReport(packages: PackageBundleData[]): string {
 			continue;
 		}
 
-		markdown += `\n## \`${pkg.packageName}\`\n\n`;
+		const sign = pkg.totalDiff >= 0 ? '+' : '';
+		const emoji = getSizeChangeEmoji(pkg.totalDiffPercent);
+		const summaryText = `${emoji} \`${pkg.packageName}\`: ${sign}${formatBytes(pkg.totalDiff)} (${sign}${pkg.totalDiffPercent.toFixed(2)}%)`;
+
+		markdown += `\n<details>\n<summary><strong>${summaryText}</strong></summary>\n\n`;
 
 		if (pkg.diffs.added.length > 0) {
 			markdown += '### ➕ Added Bundles\n\n';
@@ -320,6 +324,8 @@ function generateMarkdownReport(packages: PackageBundleData[]): string {
 			}
 			markdown += '\n';
 		}
+
+		markdown += '</details>\n';
 	}
 
 	return markdown;
@@ -368,7 +374,9 @@ function main() {
 	}
 }
 
-main().catch((error) => {
+try {
+	main();
+} catch (error) {
 	console.error('Error:', error);
 	process.exit(1);
-});
+}

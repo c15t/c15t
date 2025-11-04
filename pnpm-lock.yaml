@@ -120,6 +120,9 @@ importers:
       tsx:
         specifier: ^4.19.3
         version: 4.20.5
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@24.6.2)(@vitest/browser@3.2.4)(@vitest/ui@3.2.4)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@24.6.2)(typescript@5.9.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.20.5)(yaml@2.7.1)
 
   internals/c15t-github-action:
     dependencies:

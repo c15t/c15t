@@ -70,7 +70,7 @@ async function findRsdoctorDataFiles(dir: string): Promise<string[]> {
 	return files;
 }
 
-function extractBundleSizes(jsonPath: string): BundleStats[] {
+export function extractBundleSizes(jsonPath: string): BundleStats[] {
 	try {
 		const content = readFileSync(jsonPath, 'utf-8');
 		const data = JSON.parse(content);
@@ -151,7 +151,7 @@ function extractBundleSizes(jsonPath: string): BundleStats[] {
 	}
 }
 
-function compareBundles(
+export function compareBundles(
 	baseBundles: BundleStats[],
 	currentBundles: BundleStats[]
 ): PackageBundleData['diffs'] {
@@ -282,7 +282,7 @@ export function generateMarkdownReport(packages: PackageBundleData[]): string {
 		markdown += `| ${emoji} \`${pkg.packageName}\` | ${formatBytes(pkg.totalBaseSize)} | ${formatBytes(pkg.totalCurrentSize)} | ${sign}${formatBytes(pkg.totalDiff)} | ${sign}${pkg.totalDiffPercent.toFixed(2)}% |\n`;
 	}
 
-	// Detailed changes per package
+	// Detailed changes per package (collapsible)
 	for (const pkg of packages) {
 		if (
 			pkg.diffs.added.length === 0 &&
@@ -292,7 +292,11 @@ export function generateMarkdownReport(packages: PackageBundleData[]): string {
 			continue;
 		}
 
-		markdown += `\n## \`${pkg.packageName}\`\n\n`;
+		const sign = pkg.totalDiff >= 0 ? '+' : '';
+		const emoji = getChangeEmoji(pkg.totalDiffPercent);
+		const summaryText = `${emoji} \`${pkg.packageName}\`: ${sign}${formatBytes(pkg.totalDiff)} (${sign}${pkg.totalDiffPercent.toFixed(2)}%)`;
+
+		markdown += `\n<details>\n<summary><strong>${summaryText}</strong></summary>\n\n`;
 
 		if (pkg.diffs.added.length > 0) {
 			markdown += '### ➕ Added Bundles\n\n';
@@ -321,6 +325,8 @@ export function generateMarkdownReport(packages: PackageBundleData[]): string {
 			}
 			markdown += '\n';
 		}
+
+		markdown += '</details>\n';
 	}
 
 	markdown +=
