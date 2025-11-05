@@ -1,4 +1,5 @@
 import { defineConfig } from '@rslib/core';
+import { getRsdoctorPlugins } from '../shared/rslib-utils';
 
 export default defineConfig({
 	source: {
@@ -19,6 +20,11 @@ export default defineConfig({
 		cleanDistPath: true,
 		filename: {
 			js: '[name].mjs',
+		},
+	},
+	tools: {
+		rspack: {
+			plugins: [...getRsdoctorPlugins()],
 		},
 	},
 });
