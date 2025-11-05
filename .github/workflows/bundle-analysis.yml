@@ -68,7 +68,7 @@ jobs:
         with:
           base_dir: .bundle-base
           current_dir: .
-          github_token: ${{ secrets.BUNDLE_ANALYSIS_GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           fail_on_increase: false
 
       - name: 📤 Upload bundle diff report
