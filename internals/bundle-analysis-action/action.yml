@@ -1,0 +1,66 @@
+name: "Bundle Analysis"
+description: "Analyze bundle size differences using rsdoctor and comment on PRs"
+author: "c15t"
+
+inputs:
+  base_dir:
+    description: "Directory containing base branch rsdoctor data"
+    default: ".bundle-base"
+    required: false
+  current_dir:
+    description: "Directory containing current branch rsdoctor data"
+    default: "."
+    required: false
+  github_token:
+    description: "GitHub token for posting comments"
+    required: true
+  header:
+    description: "Header to identify the comment (for sticky comments)"
+    default: "bundle-analysis"
+    required: false
+  pr_number:
+    description: "Pull request number (auto-detected if not provided)"
+    required: false
+  skip_comment:
+    description: "Skip posting comment if true"
+    default: "false"
+    required: false
+  packages_dir:
+    description: "Directory containing packages to analyze"
+    default: "packages"
+    required: false
+  fail_on_increase:
+    description: "Fail the action if bundle size increases significantly"
+    default: "false"
+    required: false
+  threshold:
+    description: "Percentage threshold for significant bundle size increase"
+    default: "10"
+    required: false
+
+outputs:
+  report_path:
+    description: "Path to the generated bundle diff report"
+  has_changes:
+    description: "Whether bundle changes were detected"
+  total_diff_percent:
+    description: "Total bundle size change percentage"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run bundle analysis
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: pnpm -w exec tsx "$GITHUB_ACTION_PATH/src/main.ts"
+      env:
+        INPUT_BASE_DIR: ${{ inputs.base_dir }}
+        INPUT_CURRENT_DIR: ${{ inputs.current_dir }}
+        INPUT_GITHUB_TOKEN: ${{ inputs.github_token }}
+        INPUT_HEADER: ${{ inputs.header }}
+        INPUT_PR_NUMBER: ${{ inputs.pr_number }}
+        INPUT_SKIP_COMMENT: ${{ inputs.skip_comment }}
+        INPUT_FAIL_ON_INCREASE: ${{ inputs.fail_on_increase }}
+        INPUT_PACKAGES_DIR: ${{ inputs.packages_dir }}
+        INPUT_THRESHOLD: ${{ inputs.threshold }}
+
