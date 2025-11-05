@@ -256,30 +256,62 @@ export function getConsentFromStorage<ReturnType = unknown>(
 			}
 		} else if (chosenSource === 'cookie') {
 			// Sync cookie to localStorage (cookie is source of truth, especially for cross-subdomain)
-			// Always sync when cookie is chosen, regardless of localStorage state
-			// Normalize the data before syncing to ensure all standard consent names are present
+			// Only sync if the normalized cookie data differs from localStorage
 			try {
 				if (typeof window !== 'undefined' && window.localStorage) {
-					let dataToSync: ReturnType = chosenData;
-					// Normalize before syncing to ensure all standard consent names are present
+					// Normalize cookie data before comparison
+					let normalizedCookieData: ReturnType = chosenData;
 					if (
-						typeof dataToSync === 'object' &&
-						dataToSync !== null &&
-						'consents' in dataToSync
+						typeof normalizedCookieData === 'object' &&
+						normalizedCookieData !== null &&
+						'consents' in normalizedCookieData
 					) {
-						dataToSync = normalizeConsentData(
-							dataToSync as { consents?: Partial<ConsentState> }
+						normalizedCookieData = normalizeConsentData(
+							normalizedCookieData as { consents?: Partial<ConsentState> }
 						) as ReturnType;
 					}
-					window.localStorage.setItem(storageKey, JSON.stringify(dataToSync));
-					if (!localStorageData) {
-						console.log('[c15t] Synced consent from cookie to localStorage');
-					} else if (isCrossSubdomain) {
-						console.log(
-							'[c15t] Updated localStorage with consent from cookie (cross-subdomain mode)'
-						);
-					} else {
-						console.log('[c15t] Updated localStorage with consent from cookie');
+
+					// Parse and normalize existing localStorage data for comparison
+					let normalizedLocalStorageData: ReturnType | null = null;
+					try {
+						const stored = window.localStorage.getItem(storageKey);
+						if (stored) {
+							const parsed = JSON.parse(stored) as ReturnType;
+							if (
+								typeof parsed === 'object' &&
+								parsed !== null &&
+								'consents' in parsed
+							) {
+								normalizedLocalStorageData = normalizeConsentData(
+									parsed as { consents?: Partial<ConsentState> }
+								) as ReturnType;
+							} else {
+								normalizedLocalStorageData = parsed;
+							}
+						}
+					} catch {
+						// Invalid JSON in localStorage, treat as if no data exists
+						normalizedLocalStorageData = null;
+					}
+
+					// Compare normalized data using JSON.stringify for stable comparison
+					const cookieJson = JSON.stringify(normalizedCookieData);
+					const localStorageJson = JSON.stringify(normalizedLocalStorageData);
+
+					// Only write if data differs
+					if (cookieJson !== localStorageJson) {
+						window.localStorage.setItem(storageKey, cookieJson);
+						if (!normalizedLocalStorageData) {
+							console.log('[c15t] Synced consent from cookie to localStorage');
+						} else if (isCrossSubdomain) {
+							console.log(
+								'[c15t] Updated localStorage with consent from cookie (cross-subdomain mode)'
+							);
+						} else {
+							console.log(
+								'[c15t] Updated localStorage with consent from cookie'
+							);
+						}
 					}
 				}
 			} catch (error) {
