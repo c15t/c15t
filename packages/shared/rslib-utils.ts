@@ -16,12 +16,12 @@ export const standardExcludePatterns = [
 ];
 
 /**
- * Returns an array of RsdoctorRspackPlugin instances if RSDOCTOR environment variable is set,
+ * Returns an array of RsdoctorRspackPlugin instances if WITH_RSDOCTOR environment variable is set,
  * otherwise returns an empty array.
  * This utility centralizes the Rsdoctor plugin configuration across all rslib configs.
  */
 export function getRsdoctorPlugins() {
-	if (process.env.RSDOCTOR) {
+	if (process.env.WITH_RSDOCTOR) {
 		return [
 			new RsdoctorRspackPlugin({
 				disableClientServer: true,
