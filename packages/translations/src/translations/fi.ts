@@ -47,5 +47,10 @@ export const translations: CompleteTranslations = {
 		title: 'Hyväksy {category}, jotta voit tarkastella tätä sisältöä.',
 		actionButton: 'Ota {category} käyttöön',
 	},
+	legalLinks: {
+		privacyPolicy: 'Tietosuojakäytäntö',
+		cookiePolicy: 'Evästekäytäntö',
+		termsOfService: 'Käyttöehdot',
+	},
 };
 export default translations;

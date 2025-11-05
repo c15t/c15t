@@ -48,6 +48,11 @@ export const translations: CompleteTranslations = {
 		title: 'Accept {category} consent to view this content.',
 		actionButton: 'Enable {category} consent',
 	},
+	legalLinks: {
+		privacyPolicy: 'Privacy Policy',
+		cookiePolicy: 'Cookie Policy',
+		termsOfService: 'Terms of Service',
+	},
 };
 
 export default translations;

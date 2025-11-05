@@ -47,5 +47,10 @@ export const translations: CompleteTranslations = {
 		title: 'Setujui {category} untuk melihat konten ini.',
 		actionButton: 'Aktifkan persetujuan {category}',
 	},
+	legalLinks: {
+		privacyPolicy: 'Kebijakan Privasi',
+		cookiePolicy: 'Kebijakan Cookie',
+		termsOfService: 'Syarat Layanan',
+	},
 };
 export default translations;

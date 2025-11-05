@@ -1,5 +1,6 @@
 import type { ButtonCSSVariables } from '../../components/shared/ui/button';
 import type { ThemeValue } from '../../types/theme';
+import type { LegalLinksCSSVariables } from '../shared/primitives/legal-links/theme';
 
 /**
  * Configuration object for styling different parts of the CookieBanner component.
@@ -16,6 +17,10 @@ export type CookieBannerTheme = Partial<{
 	'banner.header.title': ThemeValue<TitleCSSVariables>;
 	/** @remarks Styles for the banner description text */
 	'banner.header.description': ThemeValue<DescriptionCSSVariables>;
+	/** @remarks Styles for the legal links container in the header */
+	'banner.header.legal-links': ThemeValue<LegalLinksCSSVariables>;
+	/** @remarks Styles for individual legal link elements in the header */
+	'banner.header.legal-links.link': ThemeValue;
 	/** @remarks Styles for the footer container */
 	'banner.footer': ThemeValue<FooterCSSVariables>;
 	/** @remarks Styles for the footer sub-group element */

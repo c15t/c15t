@@ -44,5 +44,10 @@ export const translations: CompleteTranslations = {
 		title: 'קבל {category} כדי להציג תוכן זה.',
 		actionButton: 'הפעל {category} רשות',
 	},
+	legalLinks: {
+		privacyPolicy: 'מדיניות פרטיות',
+		cookiePolicy: 'מדיניות עוגיות',
+		termsOfService: 'תנאי שירות',
+	},
 };
 export default translations;

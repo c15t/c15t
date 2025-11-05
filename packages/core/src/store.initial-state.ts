@@ -144,6 +144,8 @@ export const initialState: Omit<
 	/** No location information initially */
 	locationInfo: null,
 
+	legalLinks: {},
+
 	/** No jurisdiction information initially */
 	jurisdictionInfo: null,
 

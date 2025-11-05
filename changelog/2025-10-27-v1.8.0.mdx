@@ -47,10 +47,73 @@ To enable this, you use the `storageConfig` option.
 
 Existing consent under the old `privacy-consent-storage` key will be automatically migrated to the new `c15t` key.
 
-More changes will be added soon...
+### Configurable Legal Links
+
+You can now add various legal links to the consent manager. This can be used to display links in the consent banner, dialog, etc.
+
+```tsx
+<ConsentManagerProvider
+  options={{
+    legalLinks: {
+      privacyPolicy: { href: '/privacy-policy' },
+      termsOfService: { href: '/terms-of-service' },
+      cookiePolicy: { href: '/cookie-policy' },
+    },
+  }}
+>
+```
+
+You can filter what legal links you want to display (if any) on the pre-made components by passing the `legalLinks` prop.
+
+```tsx
+// Show all legal links
+<CookieBanner />
+
+// Show both cookie policy and terms of service
+<CookieBanner legalLinks={['cookiePolicy', 'termsOfService']} />
+
+// Show no legal links
+<CookieBanner legalLinks={null} />
+```
 
 ## 🐛 Bug Fixes & Improvements
 
-More changes will be added soon...
+### **@c15t/nextjs**
+
+* Ensure all exports from core are re-exported
+* Updated dependencies
+
+### **@c15t/react**
+
+* Ensure all exports from core are re-exported
+* Updated dependencies
+
+### **c15t**
+
+* Updated dependencies
+
+### **@c15t/translations**
+
+* Updated dependencies
+
+### **@c15t/scripts**
+
+* Updated dependencies
+
+### **@c15t/cli**
+
+* Updated dependencies
+
+### **@c15t/backend**
+
+* Updated dependencies
+
+### **@c15t/node-sdk**
+
+* Updated dependencies
+
+### **@c15t/dev-tools**
+
+* Updated dependencies
 
 <ContributorBlock usernames={["KayleeWilliams", "BurnedChris"]} title="Thank you to our contributors" />

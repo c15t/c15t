@@ -42,5 +42,10 @@ export const translations: CompleteTranslations = {
 		title: '接受 {category} 以查看此内容。',
 		actionButton: '启用 {category} 同意',
 	},
+	legalLinks: {
+		privacyPolicy: '隐私政策',
+		cookiePolicy: 'Cookie政策',
+		termsOfService: '服务条款',
+	},
 };
 export default translations;

@@ -47,5 +47,10 @@ export const translations: CompleteTranslations = {
 		title: 'Akzeptieren Sie {category}, um diesen Inhalt anzuzeigen.',
 		actionButton: 'Zustimmung für {category} aktivieren',
 	},
+	legalLinks: {
+		privacyPolicy: 'Datenschutzerklärung',
+		cookiePolicy: 'Cookie-Richtlinie',
+		termsOfService: 'Nutzungsbedingungen',
+	},
 };
 export default translations;
