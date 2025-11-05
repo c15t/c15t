@@ -1,0 +1,40 @@
+{
+	"$schema": "https://context7.com/schema/context7.json",
+	"projectTitle": "c15t",
+	"description": "A headless consent engine that transforms privacy management from a compliance checkbox into a fully observable system. Built for modern development teams with GDPR compliance, TypeScript-first APIs, and framework-agnostic design.",
+	"folders": ["docs"],
+	"branchVersions": ["canary", "main"],
+	"excludeFolders": [
+		"internals",
+		"node_modules",
+		"**/dist",
+		"**/coverage",
+		"**/node_modules",
+		"changelog",
+		"**/__tests__",
+		"**/test",
+		"**/.turbo"
+	],
+	"excludeFiles": [],
+	"rules": [
+		"Package selection: Use @c15t/react for React apps, @c15t/nextjs for Next.js (App Router & Pages Router), or c15t for vanilla JavaScript",
+		"Use @c15t/cli generate for the easiest setup - it installs packages, configures your instance, sets up environment variables, and adds components automatically",
+		"Configuration modes: Use mode: 'c15t' with backendURL for hosted/managed consent.io instances (recommended), mode: 'offline' for client-side only with localStorage, or custom client for full control",
+		"For production, use consent.io (hosted) or self-hosted @c15t/backend. Offline mode is only for development or simple implementations",
+		"Consent categories: Use 'necessary' (always required), 'measurement' (analytics like GA4), 'marketing' (advertising like Google Ads, Meta Pixel), and 'functional' (optional features)",
+		"Always check consent before loading analytics/tracking scripts using the has() method: has('measurement') for analytics, has('marketing') for advertising",
+		"Use the script loader for conditional script loading: add scripts array to ConsentManagerProvider options with category property matching consent categories",
+		"For tag managers (GTM, PostHog) that handle consent internally, use alwaysLoad: true - these scripts load immediately and manage their own consent state",
+		"React/Next.js: Wrap your app with ConsentManagerProvider, include CookieBanner and ConsentManagerDialog components. In Next.js App Router, use 'use client' directive",
+		"Next.js: Use Next.js Rewrites to proxy backendURL through /api/c15t/:path* to hide the backend URL from users",
+		"Consent checking: Use has() with simple checks (has('marketing')), complex logic (has({ and: ['measurement', 'marketing'] })), or nested conditions (has({ and: ['necessary', { or: ['measurement', 'marketing'] }] }))",
+		"Prebuilt scripts available in @c15t/scripts: googleTagManager, googleTag (GA4 + Google Ads with Consent Mode v2), metaPixel, posthog, tiktokPixel, linkedinInsights, microsoftUet, xPixel",
+		"Google Tag (gtag.js): Use category: 'measurement' for GA4 analytics-only, category: 'marketing' for Google Ads. c15t automatically configures Consent Mode v2 defaults",
+		"Geo-location: Set ignoreGeoLocation: true during development to always show the banner. In production, GDPR banners show automatically for EU users",
+		"Server-side rendering: Consent state is stored in cookies accessible both client and server-side. Use server-side consent checks in Next.js middleware and API routes",
+		"Translations: Import from @c15t/translations package. Supports partial or complete translations with type-safe interfaces",
+		"TypeScript-first: All APIs are fully typed. Use TypeScript for best experience with autocomplete and type safety",
+		"Performance: c15t is lightweight with minimal bundle impact. Scripts load/unload dynamically based on consent changes",
+		"Privacy by design: GDPR-compliant by default with granular consent controls and complete audit trail for compliance"
+	]
+}
