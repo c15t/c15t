@@ -42,8 +42,9 @@ export interface DatabuddyConsentOptions {
 
 	/**
 	 * The Databuddy script URL.
+	 * @default 'https://cdn.databuddy.cc/databuddy.js'
 	 */
-	scriptUrl: string;
+	scriptUrl?: string;
 
 	/**
 	 * Additional configuration options for Databuddy.
@@ -99,7 +100,7 @@ export interface DatabuddyConsentOptions {
  *   scripts: [
  *     databuddy({
  *       clientId: 'db_1234567890abcdef',
- *       scriptUrl: 'https://cdn.databuddy.cc/databuddy.js',
+ *       // scriptUrl: 'https://cdn.databuddy.cc/databuddy.js', // Optional, defaults to cdn.databuddy.cc
  *       // apiUrl: 'https://basket.databuddy.cc', // Optional, defaults to basket.databuddy.cc
  *       options: {
  *         trackScreenViews: true,
@@ -131,7 +132,7 @@ export function databuddy(options: DatabuddyConsentOptions): Script {
 	return {
 		id: script?.id ?? 'databuddy',
 		category: script?.category ?? 'measurement',
-		src: options.scriptUrl,
+		src: options.scriptUrl ?? 'https://cdn.databuddy.cc/databuddy.js',
 		async: true,
 		attributes: {
 			crossorigin: 'anonymous',
