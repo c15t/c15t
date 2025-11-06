@@ -48,5 +48,10 @@ export const translations: CompleteTranslations = {
 			'Prijmite súhlas pre kategóriu {category} na zobrazenie tohto obsahu.',
 		actionButton: 'Povoliť súhlas pre {category}',
 	},
+	legalLinks: {
+		privacyPolicy: 'Zásady ochrany osobných údajov',
+		cookiePolicy: 'Zásady používania súborov cookie',
+		termsOfService: 'Podmienky používania služby',
+	},
 };
 export default translations;

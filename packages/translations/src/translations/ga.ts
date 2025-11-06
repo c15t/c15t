@@ -47,5 +47,10 @@ export const translations: CompleteTranslations = {
 		title: 'Glac le toiliú {category} chun an t-ábhar seo a fheiceáil.',
 		actionButton: 'Cumasaigh toiliú {category}',
 	},
+	legalLinks: {
+		privacyPolicy: 'Beartas Príobháideachta',
+		cookiePolicy: 'Beartas Fianán',
+		termsOfService: 'Téarmaí Seirbhíse',
+	},
 };
 export default translations;

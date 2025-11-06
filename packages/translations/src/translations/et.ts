@@ -47,5 +47,10 @@ export const translations: CompleteTranslations = {
 		title: 'Selle sisu vaatamiseks nõustuge kategooria {category} nõusolekuga.',
 		actionButton: 'Luba kategooria {category} nõusolek',
 	},
+	legalLinks: {
+		privacyPolicy: 'Privaatsuspoliitika',
+		cookiePolicy: 'Küpsiste poliitika',
+		termsOfService: 'Kasutustingimused',
+	},
 };
 export default translations;

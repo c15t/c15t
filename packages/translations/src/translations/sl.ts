@@ -47,5 +47,10 @@ export const translations: CompleteTranslations = {
 		title: 'Za ogled te vsebine sprejmite soglasje za kategorijo {category}.',
 		actionButton: 'Omogoči soglasje za {category}',
 	},
+	legalLinks: {
+		privacyPolicy: 'Pravilnik o zasebnosti',
+		cookiePolicy: 'Pravilnik o piškotkih',
+		termsOfService: 'Pogoji uporabe',
+	},
 };
 export default translations;

@@ -47,5 +47,10 @@ export const translations: CompleteTranslations = {
 		title: 'Приемете съгласие за {category}, за да видите това съдържание.',
 		actionButton: 'Активирайте съгласие за {category}',
 	},
+	legalLinks: {
+		privacyPolicy: 'Политика за поверителност',
+		cookiePolicy: 'Политика за бисквитки',
+		termsOfService: 'Общи условия',
+	},
 };
 export default translations;

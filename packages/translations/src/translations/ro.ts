@@ -48,5 +48,10 @@ export const translations: CompleteTranslations = {
 			'Acceptă consimțământul pentru {category} pentru a vizualiza acest conținut.',
 		actionButton: 'Activează consimțământul pentru {category}',
 	},
+	legalLinks: {
+		privacyPolicy: 'Politica de confidențialitate',
+		cookiePolicy: 'Politica privind cookie-urile',
+		termsOfService: 'Termeni și condiții',
+	},
 };
 export default translations;

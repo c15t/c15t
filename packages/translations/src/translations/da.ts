@@ -47,5 +47,10 @@ export const translations: CompleteTranslations = {
 		title: 'Accepter {category}-samtykke for at se dette indhold.',
 		actionButton: 'Aktivér {category}-samtykke',
 	},
+	legalLinks: {
+		privacyPolicy: 'Privatlivspolitik',
+		cookiePolicy: 'Cookiepolitik',
+		termsOfService: 'Servicevilkår',
+	},
 };
 export default translations;

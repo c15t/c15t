@@ -47,5 +47,10 @@ export const translations: CompleteTranslations = {
 		title: 'Pieņemiet {category} piekrišanu, lai skatītu šo saturu.',
 		actionButton: 'Iespējot {category} piekrišanu',
 	},
+	legalLinks: {
+		privacyPolicy: 'Privātuma politika',
+		cookiePolicy: 'Sīkdatņu politika',
+		termsOfService: 'Pakalpojumu sniegšanas noteikumi',
+	},
 };
 export default translations;

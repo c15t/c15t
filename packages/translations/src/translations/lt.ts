@@ -48,5 +48,10 @@ export const translations: CompleteTranslations = {
 			'Priimkite {category} sutikimą, kad galėtumėte peržiūrėti šį turinį.',
 		actionButton: 'Įgalinti {category} sutikimą',
 	},
+	legalLinks: {
+		privacyPolicy: 'Privatumo politika',
+		cookiePolicy: 'Slapukų politika',
+		termsOfService: 'Naudojimosi sąlygos',
+	},
 };
 export default translations;

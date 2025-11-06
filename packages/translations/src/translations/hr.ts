@@ -47,5 +47,10 @@ export const translations: CompleteTranslations = {
 		title: 'Prihvatite {category} privolu za prikaz ovog sadržaja.',
 		actionButton: 'Omogući {category} privolu',
 	},
+	legalLinks: {
+		privacyPolicy: 'Pravila o privatnosti',
+		cookiePolicy: 'Pravila o kolačićima',
+		termsOfService: 'Uvjeti pružanja usluge',
+	},
 };
 export default translations;

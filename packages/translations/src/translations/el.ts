@@ -48,5 +48,10 @@ export const translations: CompleteTranslations = {
 			'Αποδεχτείτε τη συγκατάθεση {category} για να δείτε αυτό το περιεχόμενο.',
 		actionButton: 'Ενεργοποίηση συγκατάθεσης {category}',
 	},
+	legalLinks: {
+		privacyPolicy: 'Πολιτική απορρήτου',
+		cookiePolicy: 'Πολιτική cookies',
+		termsOfService: 'Όροι χρήσης',
+	},
 };
 export default translations;

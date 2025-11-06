@@ -47,5 +47,10 @@ export const translations: CompleteTranslations = {
 		title: "Aċċetta l-kunsens ta' {category} biex tara dan il-kontenut.",
 		actionButton: "Attiva l-kunsens ta' {category}",
 	},
+	legalLinks: {
+		privacyPolicy: 'Politika tal-Privatezza',
+		cookiePolicy: 'Politika tal-Cookies',
+		termsOfService: 'Termini tas-Servizz',
+	},
 };
 export default translations;

@@ -48,5 +48,10 @@ export const translations: CompleteTranslations = {
 			'Fogadja el a(z) {category} hozzájárulást a tartalom megtekintéséhez.',
 		actionButton: 'A(z) {category} hozzájárulás engedélyezése',
 	},
+	legalLinks: {
+		privacyPolicy: 'Adatvédelmi szabályzat',
+		cookiePolicy: 'Süti szabályzat',
+		termsOfService: 'Felhasználási feltételek',
+	},
 };
 export default translations;

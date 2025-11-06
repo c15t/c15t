@@ -30,6 +30,7 @@
 		"dist"
 	],
 	"scripts": {
+		"generate:i18n": "lingo.dev i18n",
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
 		"dev": "rslib build --watch",
@@ -45,7 +46,8 @@
 	],
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
-		"@c15t/vitest-config": "workspace:*"
+		"@c15t/vitest-config": "workspace:*",
+		"lingo.dev": "^0.114.4"
 	},
 	"publishConfig": {
 		"access": "public"

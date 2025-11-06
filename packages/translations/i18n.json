@@ -34,7 +34,7 @@
 	},
 	"buckets": {
 		"typescript": {
-			"include": ["packages/translations/src/translations/[locale].ts"]
+			"include": ["src/translations/[locale].ts"]
 		}
 	}
 }
