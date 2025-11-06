@@ -138,6 +138,37 @@ export interface PrivacyConsentState {
 	user?: User;
 
 	/**
+	 * Forcefully set values like country, region, language for the consent manager
+	 */
+	overrides?: {
+		/**
+		 * Country code to forcefully set
+		 * @example 'DE'
+		 */
+		country?: string;
+		/**
+		 * Region code to forcefully set
+		 * @example 'BE'
+		 */
+		region?: string;
+		/**
+		 * Language code to forcefully set
+		 * @example 'de'
+		 */
+		language?: string;
+	};
+
+	/**
+	 * Sets the overrides for the consent manager
+	 * @param overrides - The overrides to set
+	 */
+	setOverrides: (overrides: {
+		country?: string;
+		region?: string;
+		language?: string;
+	}) => void;
+
+	/**
 	 * Identifies the user by setting the external ID
 	 *
 	 * @remarks

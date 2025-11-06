@@ -135,7 +135,7 @@ describe('C15T CORS Configuration', () => {
 				'GET, HEAD, PUT, POST, DELETE, PATCH'
 			);
 			expect(response.headers.get('Access-Control-Allow-Headers')).toBe(
-				'Content-Type, Authorization, x-request-id'
+				'Content-Type, Authorization, x-request-id, x-c15t-country, x-c15t-region, accept-language'
 			);
 			expect(response.headers.get('Access-Control-Max-Age')).toBe('600');
 			expect(response.headers.get('Access-Control-Allow-Credentials')).toBe(
@@ -154,7 +154,7 @@ describe('C15T CORS Configuration', () => {
 				'GET, HEAD, PUT, POST, DELETE, PATCH'
 			);
 			expect(response.headers.get('Access-Control-Allow-Headers')).toBe(
-				'Content-Type, Authorization, x-request-id'
+				'Content-Type, Authorization, x-request-id, x-c15t-country, x-c15t-region, accept-language'
 			);
 			expect(response.headers.get('Access-Control-Max-Age')).toBe('600');
 			expect(response.headers.get('Access-Control-Allow-Credentials')).toBe(
@@ -248,7 +248,7 @@ describe('C15T CORS Configuration', () => {
 				'GET, HEAD, PUT, POST, DELETE, PATCH'
 			);
 			expect(response.headers.get('Access-Control-Allow-Headers')).toBe(
-				'Content-Type, Authorization, x-request-id'
+				'Content-Type, Authorization, x-request-id, x-c15t-country, x-c15t-region, accept-language'
 			);
 			expect(response.headers.get('Access-Control-Max-Age')).toBe('600');
 		});

@@ -321,18 +321,10 @@ export function QuickActions() {
 				return;
 			}
 
-			// Update location info
-			state.setLocationInfo({
-				countryCode: country.countryCode,
-				regionCode: country.regionCode,
-				jurisdiction: country.jurisdiction,
-				jurisdictionMessage: country.jurisdictionMessage,
+			state.setOverrides?.({
+				country: countryCode,
 			});
-
-			// Also update showPopup based on whether banner should show
-			if (country.showBanner) {
-				state.setShowPopup(true, true);
-			}
+			state.fetchConsentBannerInfo();
 
 			const bannerStatus = country.showBanner
 				? 'Banner shown'
@@ -345,17 +337,11 @@ export function QuickActions() {
 
 	const handleSimulateLanguage = (languageCode: string): void => {
 		try {
-			// Update translation config with the new language
-			state.setTranslationConfig({
-				...state.translationConfig,
-				defaultLanguage: languageCode,
-				disableAutoLanguageSwitch: true,
+			state.setOverrides?.({
+				language: languageCode,
 			});
-
-			const languageName =
-				languageOptions.find((l) => l.value === languageCode)?.label ||
-				languageCode;
-			showNotification('success', `Language: ${languageName}`);
+			state.fetchConsentBannerInfo();
+			showNotification('success', `Language: ${languageCode}`);
 		} catch {
 			showNotification('error', 'Failed to simulate language');
 		}

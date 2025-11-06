@@ -32,6 +32,7 @@ import type { TrackingBlockerConfig } from './libs/tracking-blocker';
 import { createTrackingBlocker } from './libs/tracking-blocker';
 import { initialState } from './store.initial-state';
 import type { PrivacyConsentState } from './store.type';
+import type { Overrides } from './types';
 import type { Callbacks } from './types/callbacks';
 import type {
 	ComplianceSettings,
@@ -236,6 +237,14 @@ export interface StoreOptions {
 	 * @default undefined
 	 */
 	user?: User;
+
+	/**
+	 * Forcefully set values like country, region, language for the consent manager
+	 * These values will override the values detected from the browser.
+	 *
+	 * @defaultValue undefined
+	 */
+	overrides?: Overrides;
 }
 
 // For backward compatibility (if needed)
@@ -697,6 +706,9 @@ export const createConsentManagerStore = (
 		},
 
 		identifyUser: (user: User) => identifyUser({ user, manager, get, set }),
+
+		setOverrides: (overrides: PrivacyConsentState['overrides']) =>
+			set({ overrides: { ...get().overrides, ...overrides } }),
 
 		...createScriptManager(get, set, trackingBlocker),
 		...createIframeManager(get, set),
