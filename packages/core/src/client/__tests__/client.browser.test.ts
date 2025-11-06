@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { STORAGE_KEY_V2 } from '../../store.initial-state';
-import { C15tClient } from '../client-c15t';
-import { CustomClient } from '../client-custom';
+import { C15tClient } from '../c15t';
 import { configureConsentManager } from '../client-factory';
-import type { OfflineClient } from '../client-offline';
+import { CustomClient } from '../custom';
+import type { OfflineClient } from '../offline';
 
 // Note: For Vitest browser mode, we don't need to mock localStorage or fetch
 // as they're available in the browser environment
@@ -137,22 +137,17 @@ describe('c15t Client Browser Tests', () => {
 			errorWasCaught = true;
 		};
 
-		// Call the API with our error handler
+		// Call the API - should fallback to offline mode
 		const response = await client.showConsentBanner({
 			onError: errorHandler,
-			testing: true, // Disable offline fallback
 		});
 
-		// Check error handler was called
+		// Check response properties - offline fallback returns success
+		expect(response.ok).toBe(true);
+		expect(response.data).toBeDefined();
+		expect(response.error).toBeNull();
+		// Error handler is called by fetcher when network error occurs, before fallback
 		expect(errorWasCaught).toBe(true);
-
-		// Check response properties
-		expect(response.ok).toBe(false);
-		expect(response.error).toBeDefined();
-		expect(response.error?.message).toBeTruthy(); // Just check that there is an error message
-
-		// The error code may be either NETWORK_ERROR or API_ERROR depending on environment
-		expect(response.error?.code).toBeDefined();
 	});
 });
 

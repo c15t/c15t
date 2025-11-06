@@ -176,7 +176,7 @@ describe('subjectRegistry', () => {
 					create: {
 						id: 'sub_test_123',
 						externalId: 'ext_existing',
-						identityProvider: 'anonymous',
+						identityProvider: 'external',
 						lastIpAddress: '192.168.1.200',
 						isIdentified: true,
 					},
@@ -220,7 +220,7 @@ describe('subjectRegistry', () => {
 					create: {
 						id: 'sub_test_123',
 						externalId: 'ext_new',
-						identityProvider: 'anonymous',
+						identityProvider: 'external',
 						lastIpAddress: '192.168.1.200',
 						isIdentified: true,
 					},
@@ -255,7 +255,7 @@ describe('subjectRegistry', () => {
 					create: {
 						id: 'sub_test_123',
 						externalId: 'ext_test',
-						identityProvider: 'anonymous',
+						identityProvider: 'external',
 						lastIpAddress: 'unknown',
 						isIdentified: true,
 					},
@@ -485,7 +485,7 @@ describe('subjectRegistry', () => {
 					create: expect.objectContaining({
 						id: 'sub_test_123',
 						externalId: 'ext_test',
-						identityProvider: 'anonymous',
+						identityProvider: 'external',
 						lastIpAddress: 'unknown',
 						isIdentified: true,
 					}),

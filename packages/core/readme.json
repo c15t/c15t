@@ -16,7 +16,7 @@
 	],
 	"manualInstallation": [
 		"",
-		"```bash\npnpm add @c15t/core\n```",
+		"```bash\npnpm add c15t\n```",
 		"",
 		"To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/javascript/quickstart#manual-setup)."
 	],
@@ -26,7 +26,7 @@
 		"Manage user consent across your application",
 		"Customize consent banners and preference centers",
 		"For full implementation details, see the [JavaScript quickstart docs](https://c15t.com/docs/frameworks/javascript/quickstart)",
-		"```typescript\n// Example usage\nimport { ConsentManager } from '@c15t/core'\n\nconst consentManager = new ConsentManager({\n  // Your configuration\n})\n```"
+		"```typescript\n// Example usage\nimport { ConsentManager } from 'c15t'\n\nconst consentManager = new ConsentManager({\n  // Your configuration\n})\n```"
 	],
 	"docsLink": "https://c15t.com/docs/frameworks/javascript/quickstart",
 	"quickStartLink": "https://c15t.com/docs/frameworks/javascript/quickstart",

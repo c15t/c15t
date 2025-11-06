@@ -12,6 +12,8 @@ export type ShowConsentBannerResponse =
 	ContractsOutputs['consent']['showBanner'];
 export type VerifyConsentRequestBody = ContractsInputs['consent']['verify'];
 export type VerifyConsentResponse = ContractsOutputs['consent']['verify'];
+export type IdentifyUserRequestBody = ContractsInputs['consent']['identify'];
+export type IdentifyUserResponse = ContractsOutputs['consent']['identify'];
 
 /**
  * Core interface that all consent management clients must implement
@@ -50,6 +52,16 @@ export interface ConsentManagerInterface {
 	verifyConsent(
 		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
 	): Promise<ResponseContext<VerifyConsentResponse>>;
+
+	/**
+	 * Links a subject's external ID to a consent record by consent ID.
+	 *
+	 * @param options - Optional request configuration with consent ID and external ID
+	 * @returns Response confirming the user was identified
+	 */
+	identifyUser(
+		options?: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
+	): Promise<ResponseContext<IdentifyUserResponse>>;
 
 	/**
 	 * Makes a custom API request to any endpoint.
