@@ -1,7 +1,7 @@
 name: Bundle Analysis
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened]
   push:
     branches: ['main', 'canary']
@@ -21,6 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Full history needed for base branch comparison
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: 🅿️ Setup pnpm
         uses: pnpm/action-setup@v4
@@ -37,7 +38,7 @@ jobs:
       - name: 🔍 Determine base branch
         id: base-branch
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [ "${{ github.event_name }}" = "pull_request_target" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "base=${{ github.event.pull_request.base.ref }}" >> $GITHUB_OUTPUT
           else
             echo "base=${{ github.ref_name }}" >> $GITHUB_OUTPUT
@@ -58,7 +59,7 @@ jobs:
         id: build-current
         timeout-minutes: 5
         run: |
-          git checkout ${{ github.sha }}
+          git checkout ${{ github.event.pull_request.head.sha || github.sha }}
           pnpm install --frozen-lockfile
           WITH_RSDOCTOR=1 pnpm turbo run build --filter="./packages/*"
 
