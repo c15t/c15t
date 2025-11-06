@@ -168,16 +168,23 @@ function normalizeConsentData<
  * @returns Consent data or null if not found
  *
  * @remarks
- * Priority order:
- * 1. localStorage with new key (primary)
- * 2. Cookie with new key (fallback)
- * 3. localStorage with legacy key (migration)
- * 4. If localStorage exists but cookie doesn't, sync cookie from localStorage
+ * Priority order (optimized for performance):
+ * 1. Cookie (if exists) - cookies are more reliable and work across subdomains
+ * 2. localStorage (if cookie doesn't exist) - fallback for single-domain scenarios
  *
  * This function automatically:
  * - Handles migration from legacy storage keys
+ * - Always prioritizes cookies when both sources exist (better performance, no timestamp comparison)
+ * - Syncs from the chosen source to the other storage location
  * - Normalizes consent data to ensure all consent values are explicit booleans
  * - Defaults missing consent keys to `false` (important for optimized cookie storage)
+ *
+ * This is especially important for cross-subdomain scenarios where:
+ * - Cookies are shared across subdomains (e.g., `domain=.example.com`)
+ * - localStorage is subdomain-specific
+ * - Consent updated on one subdomain should be reflected on all subdomains
+ *
+ * Performance: Cookies are always prioritized when both exist to avoid timestamp comparison overhead.
  *
  * @example
  * ```typescript
@@ -219,25 +226,110 @@ export function getConsentFromStorage<ReturnType = unknown>(
 		console.warn('Failed to read consent from cookie:', error);
 	}
 
-	// If localStorage has data but cookie doesn't, sync the cookie
-	if (localStorageData && !cookieData) {
-		try {
-			setCookie(storageKey, localStorageData, undefined, config);
-			console.log('Synced consent from localStorage to cookie');
-		} catch (error) {
-			console.warn('Failed to sync consent to cookie:', error);
+	// Determine which data source to use
+	let chosenData: ReturnType | null = null;
+	let chosenSource: 'localStorage' | 'cookie' | null = null;
+
+	// Priority: cookie > localStorage (cookies are more reliable, especially for cross-subdomain)
+	if (cookieData) {
+		// Cookie takes priority when it exists (more reliable, especially for cross-subdomain)
+		chosenData = cookieData;
+		chosenSource = 'cookie';
+	} else if (localStorageData) {
+		// Fallback to localStorage if cookie doesn't exist
+		chosenData = localStorageData;
+		chosenSource = 'localStorage';
+	}
+
+	// Sync from chosen source to the other storage location
+	if (chosenData && chosenSource) {
+		const isCrossSubdomain =
+			config?.crossSubdomain === true || !!config?.defaultDomain;
+
+		if (chosenSource === 'localStorage' && !cookieData) {
+			// Sync localStorage to cookie
+			try {
+				setCookie(storageKey, chosenData, undefined, config);
+				console.log('[c15t] Synced consent from localStorage to cookie');
+			} catch (error) {
+				console.warn('[c15t] Failed to sync consent to cookie:', error);
+			}
+		} else if (chosenSource === 'cookie') {
+			// Sync cookie to localStorage (cookie is source of truth, especially for cross-subdomain)
+			// Only sync if the normalized cookie data differs from localStorage
+			try {
+				if (typeof window !== 'undefined' && window.localStorage) {
+					// Normalize cookie data before comparison
+					let normalizedCookieData: ReturnType = chosenData;
+					if (
+						typeof normalizedCookieData === 'object' &&
+						normalizedCookieData !== null &&
+						'consents' in normalizedCookieData
+					) {
+						normalizedCookieData = normalizeConsentData(
+							normalizedCookieData as { consents?: Partial<ConsentState> }
+						) as ReturnType;
+					}
+
+					// Parse and normalize existing localStorage data for comparison
+					let normalizedLocalStorageData: ReturnType | null = null;
+					try {
+						const stored = window.localStorage.getItem(storageKey);
+						if (stored) {
+							const parsed = JSON.parse(stored) as ReturnType;
+							if (
+								typeof parsed === 'object' &&
+								parsed !== null &&
+								'consents' in parsed
+							) {
+								normalizedLocalStorageData = normalizeConsentData(
+									parsed as { consents?: Partial<ConsentState> }
+								) as ReturnType;
+							} else {
+								normalizedLocalStorageData = parsed;
+							}
+						}
+					} catch {
+						// Invalid JSON in localStorage, treat as if no data exists
+						normalizedLocalStorageData = null;
+					}
+
+					// Compare normalized data using JSON.stringify for stable comparison
+					const cookieJson = JSON.stringify(normalizedCookieData);
+					const localStorageJson = JSON.stringify(normalizedLocalStorageData);
+
+					// Only write if data differs
+					if (cookieJson !== localStorageJson) {
+						window.localStorage.setItem(storageKey, cookieJson);
+						if (!normalizedLocalStorageData) {
+							console.log('[c15t] Synced consent from cookie to localStorage');
+						} else if (isCrossSubdomain) {
+							console.log(
+								'[c15t] Updated localStorage with consent from cookie (cross-subdomain mode)'
+							);
+						} else {
+							console.log(
+								'[c15t] Updated localStorage with consent from cookie'
+							);
+						}
+					}
+				}
+			} catch (error) {
+				console.warn('[c15t] Failed to sync consent to localStorage:', error);
+			}
 		}
 	}
 
-	// Get the data (localStorage takes priority)
-	const rawData = localStorageData || cookieData;
-
 	// Normalize consent data to ensure all values are explicit booleans
-	if (rawData && typeof rawData === 'object' && 'consents' in rawData) {
-		return normalizeConsentData(rawData as never) as ReturnType;
+	if (
+		chosenData &&
+		typeof chosenData === 'object' &&
+		'consents' in chosenData
+	) {
+		return normalizeConsentData(chosenData as never) as ReturnType;
 	}
 
-	return rawData;
+	return chosenData;
 }
 
 /**
