@@ -1,7 +1,6 @@
 import type { StoreApi } from 'zustand';
 import type { PrivacyConsentState } from '~/store.type';
 import type { ConsentManagerInterface } from '../client/client-interface';
-import { STORAGE_KEY } from '../store.initial-state';
 import { updateGTMConsent } from './gtm';
 import type { createTrackingBlocker } from './tracking-blocker';
 
@@ -71,18 +70,6 @@ export async function saveConsents({
 	updateGTMConsent(newConsents);
 	updateScripts();
 
-	try {
-		localStorage.setItem(
-			STORAGE_KEY,
-			JSON.stringify({
-				consents: newConsents,
-				consentInfo,
-			})
-		);
-	} catch (e) {
-		console.warn('Failed to persist consents to localStorage:', e);
-	}
-
 	callbacks.onConsentSet?.({
 		preferences: newConsents,
 	});
@@ -93,6 +80,8 @@ export async function saveConsents({
 			type: 'cookie_banner',
 			domain: window.location.hostname,
 			preferences: newConsents,
+			externalSubjectId: get().user?.id,
+			identityProvider: get().user?.identityProvider,
 			metadata: {
 				source: 'consent_widget',
 				acceptanceMethod: type,

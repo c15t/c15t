@@ -1,4 +1,4 @@
-import { enTranslations } from './translations/en';
+import { translations as enTranslations } from './translations/en';
 import type { TranslationConfig, Translations } from './types';
 
 type TranslationSection =
@@ -6,7 +6,8 @@ type TranslationSection =
 	| 'cookieBanner'
 	| 'consentManagerDialog'
 	| 'consentTypes'
-	| 'frame';
+	| 'frame'
+	| 'legalLinks';
 
 /**
  * Deep merges translation objects
@@ -21,13 +22,20 @@ export function deepMergeTranslations(
 		'common',
 		'consentTypes',
 		'frame',
+		'legalLinks',
 	];
 
 	return sections.reduce((result, section) => {
-		result[section] = {
-			...base[section],
-			...(override[section] || {}),
-		};
+		const baseSection = base[section];
+		const overrideSection = override[section];
+
+		// Only include section if it exists in base or override
+		if (baseSection || overrideSection) {
+			result[section] = {
+				...(baseSection || {}),
+				...(overrideSection || {}),
+			};
+		}
 		return result;
 	}, {} as Translations);
 }

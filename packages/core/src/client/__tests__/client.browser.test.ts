@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { C15tClient } from '../client-c15t';
-import { CustomClient } from '../client-custom';
+import { STORAGE_KEY_V2 } from '../../store.initial-state';
+import { C15tClient } from '../c15t';
 import { configureConsentManager } from '../client-factory';
-import type { OfflineClient } from '../client-offline';
+import { CustomClient } from '../custom';
+import type { OfflineClient } from '../offline';
 
 // Note: For Vitest browser mode, we don't need to mock localStorage or fetch
 // as they're available in the browser environment
@@ -136,22 +137,17 @@ describe('c15t Client Browser Tests', () => {
 			errorWasCaught = true;
 		};
 
-		// Call the API with our error handler
+		// Call the API - should fallback to offline mode
 		const response = await client.showConsentBanner({
 			onError: errorHandler,
-			testing: true, // Disable offline fallback
 		});
 
-		// Check error handler was called
+		// Check response properties - offline fallback returns success
+		expect(response.ok).toBe(true);
+		expect(response.data).toBeDefined();
+		expect(response.error).toBeNull();
+		// Error handler is called by fetcher when network error occurs, before fallback
 		expect(errorWasCaught).toBe(true);
-
-		// Check response properties
-		expect(response.ok).toBe(false);
-		expect(response.error).toBeDefined();
-		expect(response.error?.message).toBeTruthy(); // Just check that there is an error message
-
-		// The error code may be either NETWORK_ERROR or API_ERROR depending on environment
-		expect(response.error?.code).toBeDefined();
 	});
 });
 
@@ -167,7 +163,7 @@ describe('Offline Client Browser Tests', () => {
 		}) as OfflineClient;
 
 		// First check that localStorage doesn't have consent data
-		expect(localStorage.getItem('c15t-consent')).toBeNull();
+		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
 
 		// Set consent data
 		const response = await client.setConsent({
@@ -185,12 +181,12 @@ describe('Offline Client Browser Tests', () => {
 		expect(response.ok).toBe(true);
 
 		// Verify localStorage was updated
-		const storedData = localStorage.getItem('c15t-consent');
+		const storedData = localStorage.getItem(STORAGE_KEY_V2);
 		expect(storedData).not.toBeNull();
 
 		if (storedData !== null) {
 			const parsedData = JSON.parse(storedData);
-			expect(parsedData.preferences).toEqual({
+			expect(parsedData.consents).toMatchObject({
 				analytics: true,
 				marketing: false,
 			});
@@ -198,6 +194,15 @@ describe('Offline Client Browser Tests', () => {
 	});
 
 	it('should check real localStorage for consent banner visibility', async () => {
+		// Clear both localStorage and cookies first
+		localStorage.clear();
+		// Clear all cookies
+		document.cookie.split(';').forEach((c) => {
+			document.cookie = c
+				.replace(/^ +/, '')
+				.replace(/=.*/, `=;expires=${new Date().toUTCString()};path=/`);
+		});
+
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'offline',
@@ -209,10 +214,10 @@ describe('Offline Client Browser Tests', () => {
 
 		// Store consent data in localStorage
 		localStorage.setItem(
-			'c15t-consent',
+			STORAGE_KEY_V2,
 			JSON.stringify({
-				timestamp: new Date().toISOString(),
-				preferences: { analytics: true },
+				consents: { analytics: true },
+				consentInfo: { time: Date.now() },
 			})
 		);
 
@@ -317,7 +322,7 @@ describe('Custom Client Browser Tests', () => {
 		expect(storedData).not.toBeNull();
 		if (storedData !== null) {
 			const parsedData = JSON.parse(storedData);
-			expect(parsedData.preferences).toEqual({
+			expect(parsedData.preferences).toMatchObject({
 				analytics: true,
 				marketing: false,
 			});

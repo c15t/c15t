@@ -1,6 +1,5 @@
 import type { CompleteTranslations } from '../types';
-
-export const heTranslations: CompleteTranslations = {
+export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'אפשר הכל',
 		rejectAll: 'דחה הכל',
@@ -45,4 +44,10 @@ export const heTranslations: CompleteTranslations = {
 		title: 'קבל {category} כדי להציג תוכן זה.',
 		actionButton: 'הפעל {category} רשות',
 	},
+	legalLinks: {
+		privacyPolicy: 'מדיניות פרטיות',
+		cookiePolicy: 'מדיניות עוגיות',
+		termsOfService: 'תנאי שירות',
+	},
 };
+export default translations;

@@ -46,9 +46,12 @@ export type {
 export {
 	type AllConsentNames,
 	allConsentNames,
+	type ConsentInfo,
 	type ConsentType,
 	consentTypes,
 } from './gdpr';
+
+export type { User } from './user';
 
 /**
  * @module
@@ -74,3 +77,4 @@ export type {
 } from '@c15t/translations';
 
 export * from './compliance';
+export * from './legal-links';
