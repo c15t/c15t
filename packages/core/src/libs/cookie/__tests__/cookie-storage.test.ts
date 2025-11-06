@@ -126,7 +126,7 @@ describe('Cookie Storage', () => {
 	describe('saveConsentToStorage', () => {
 		it('should save consent to both localStorage and cookie using new storage key', () => {
 			const consentData = {
-				consents: { necessary: true, analytics: false },
+				consents: { necessary: true, measurement: false },
 				consentInfo: { time: Date.now() },
 			};
 
@@ -214,7 +214,7 @@ describe('Cookie Storage', () => {
 			expectConsentsToMatch(retrieved?.consents, consentData.consents);
 			expect(retrieved?.consentInfo).toEqual(consentData.consentInfo);
 			expect(consoleLogSpy).toHaveBeenCalledWith(
-				'Synced consent from localStorage to cookie'
+				'[c15t] Synced consent from localStorage to cookie'
 			);
 			expect(document.cookie).toContain(`${STORAGE_KEY_V2}=`);
 
@@ -636,14 +636,14 @@ describe('Cookie Storage', () => {
 		it('should correctly read legacy cookies with explicit false values (0)', () => {
 			// Simulate a legacy cookie format with '0' for false values
 			const legacyCookieValue =
-				'c.necessary:1,c.analytics:0,c.marketing:0,i.t:1234567890';
+				'c.necessary:1,c.measurement:0,c.marketing:0,i.t:1234567890';
 			document.cookie = `${STORAGE_KEY_V2}=${legacyCookieValue}`;
 
 			// Read the legacy cookie
 			const retrieved = getConsentFromStorage<{
 				consents: {
 					necessary: boolean;
-					analytics: boolean;
+					measurement: boolean;
 					marketing: boolean;
 				};
 				consentInfo: { time: number };
@@ -651,14 +651,14 @@ describe('Cookie Storage', () => {
 
 			// Should correctly parse '0' as false for backward compatibility
 			expect(retrieved?.consents?.necessary).toBe(true);
-			expect(retrieved?.consents?.analytics).toBe(false);
+			expect(retrieved?.consents?.measurement).toBe(false);
 			expect(retrieved?.consents?.marketing).toBe(false);
 			expect(retrieved?.consentInfo?.time).toBe(1234567890);
 		});
 
 		it('should save new cookies without false values (optimized)', () => {
 			const consentData = {
-				consents: { necessary: true, analytics: false, marketing: false },
+				consents: { necessary: true, measurement: false, marketing: false },
 				consentInfo: { time: 1234567890 },
 			};
 
@@ -671,27 +671,27 @@ describe('Cookie Storage', () => {
 			// New format should omit false values
 			expect(cookieValue).not.toContain(':0');
 			expect(cookieValue).toContain('c.necessary:1');
-			expect(cookieValue).not.toContain('analytics');
+			expect(cookieValue).not.toContain('measurement');
 			expect(cookieValue).not.toContain('marketing');
 		});
 
 		it('should handle mixed scenario: read legacy, save optimized', () => {
 			// Start with legacy cookie
-			const legacyCookieValue = 'c.necessary:0,c.analytics:1,i.t:1111111111';
+			const legacyCookieValue = 'c.necessary:0,c.measurement:1,i.t:1111111111';
 			document.cookie = `${STORAGE_KEY_V2}=${legacyCookieValue}`;
 
 			// Read legacy
 			const retrieved = getConsentFromStorage<{
-				consents: { necessary: boolean; analytics: boolean };
+				consents: { necessary: boolean; measurement: boolean };
 				consentInfo: { time: number };
 			}>();
 
 			expect(retrieved?.consents?.necessary).toBe(false);
-			expect(retrieved?.consents?.analytics).toBe(true);
+			expect(retrieved?.consents?.measurement).toBe(true);
 
 			// Now save new data (should use optimized format)
 			const newData = {
-				consents: { necessary: true, analytics: false, marketing: true },
+				consents: { necessary: true, measurement: false, marketing: true },
 				consentInfo: { time: 2222222222 },
 			};
 
@@ -703,7 +703,7 @@ describe('Cookie Storage', () => {
 
 			expect(newCookieValue).toContain('necessary:1');
 			expect(newCookieValue).toContain('marketing:1');
-			expect(newCookieValue).not.toContain('analytics');
+			expect(newCookieValue).not.toContain('measurement');
 			expect(newCookieValue).not.toContain(':0');
 		});
 	});
@@ -879,6 +879,324 @@ describe('Cookie Storage', () => {
 			// Verify retrieval returns null or empty after deletion
 			const retrieved = getConsentFromStorage(customConfig);
 			expect(retrieved === null || retrieved === '').toBe(true);
+		});
+	});
+
+	describe('Cross-subdomain timestamp comparison', () => {
+		it('should prioritize cookie when both exist (optimized for performance)', () => {
+			const consoleLogSpy = vi
+				.spyOn(console, 'log')
+				.mockImplementation(() => {});
+
+			const olderConsent = {
+				consents: { necessary: true, measurement: false },
+				consentInfo: { time: 1000000000 },
+			};
+
+			const newerConsent = {
+				consents: { necessary: true, measurement: true },
+				consentInfo: { time: 2000000000 },
+			};
+
+			// Set older data in localStorage
+			window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(olderConsent));
+
+			// Set newer data in cookie
+			setCookie(STORAGE_KEY_V2, newerConsent);
+
+			const retrieved = getConsentFromStorage();
+
+			// Should return cookie data (always prioritized when both exist)
+			expectConsentsToMatch(retrieved?.consents, newerConsent.consents);
+			expect(retrieved?.consentInfo.time).toBe(newerConsent.consentInfo.time);
+
+			// Should sync cookie to localStorage
+			const syncedLS = JSON.parse(
+				window.localStorage.getItem(STORAGE_KEY_V2) || '{}'
+			);
+			expectConsentsToMatch(syncedLS.consents, newerConsent.consents);
+			expect(syncedLS.consentInfo.time).toBe(newerConsent.consentInfo.time);
+
+			expect(consoleLogSpy).toHaveBeenCalledWith(
+				'[c15t] Updated localStorage with consent from cookie'
+			);
+
+			consoleLogSpy.mockRestore();
+		});
+
+		it('should prioritize cookie even when localStorage is newer (cookie is source of truth)', () => {
+			const consoleLogSpy = vi
+				.spyOn(console, 'log')
+				.mockImplementation(() => {});
+
+			const olderConsent = {
+				consents: { necessary: true, measurement: false },
+				consentInfo: { time: 1000000000 },
+			};
+
+			const newerConsent = {
+				consents: { necessary: true, measurement: true },
+				consentInfo: { time: 2000000000 },
+			};
+
+			// Set newer data in localStorage
+			window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(newerConsent));
+
+			// Set older data in cookie
+			setCookie(STORAGE_KEY_V2, olderConsent);
+
+			const retrieved = getConsentFromStorage();
+
+			// Should return cookie data (always prioritized, even if older)
+			expectConsentsToMatch(retrieved?.consents, olderConsent.consents);
+			expect(retrieved?.consentInfo.time).toBe(olderConsent.consentInfo.time);
+
+			// Should sync cookie to localStorage (cookie is source of truth)
+			const syncedLS = JSON.parse(
+				window.localStorage.getItem(STORAGE_KEY_V2) || '{}'
+			);
+			expectConsentsToMatch(syncedLS.consents, olderConsent.consents);
+			expect(syncedLS.consentInfo.time).toBe(olderConsent.consentInfo.time);
+
+			expect(consoleLogSpy).toHaveBeenCalledWith(
+				'[c15t] Updated localStorage with consent from cookie'
+			);
+
+			consoleLogSpy.mockRestore();
+		});
+
+		it('should prioritize cookie when crossSubdomain is enabled, regardless of timestamp', () => {
+			const consoleLogSpy = vi
+				.spyOn(console, 'log')
+				.mockImplementation(() => {});
+
+			const newerConsent = {
+				consents: { necessary: true, measurement: true },
+				consentInfo: { time: 2000000000 },
+			};
+
+			const olderConsent = {
+				consents: { necessary: true, measurement: false },
+				consentInfo: { time: 1000000000 },
+			};
+
+			// Set newer data in localStorage
+			window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(newerConsent));
+
+			// Set older data in cookie
+			setCookie(STORAGE_KEY_V2, olderConsent);
+
+			const config = { crossSubdomain: true };
+
+			const retrieved = getConsentFromStorage(config);
+
+			// Should return cookie data (prioritized in cross-subdomain mode)
+			expectConsentsToMatch(retrieved?.consents, olderConsent.consents);
+			expect(retrieved?.consentInfo.time).toBe(olderConsent.consentInfo.time);
+
+			// Should sync cookie to localStorage (cookie is source of truth)
+			const syncedLS = JSON.parse(
+				window.localStorage.getItem(STORAGE_KEY_V2) || '{}'
+			);
+			expectConsentsToMatch(syncedLS.consents, olderConsent.consents);
+			expect(syncedLS.consentInfo.time).toBe(olderConsent.consentInfo.time);
+
+			expect(consoleLogSpy).toHaveBeenCalledWith(
+				'[c15t] Updated localStorage with consent from cookie (cross-subdomain mode)'
+			);
+
+			consoleLogSpy.mockRestore();
+		});
+
+		it('should prioritize cookie when defaultDomain is set, regardless of timestamp', () => {
+			const consoleLogSpy = vi
+				.spyOn(console, 'log')
+				.mockImplementation(() => {});
+
+			const newerConsent = {
+				consents: { necessary: true, measurement: true },
+				consentInfo: { time: 2000000000 },
+			};
+
+			const olderConsent = {
+				consents: { necessary: true, measurement: false },
+				consentInfo: { time: 1000000000 },
+			};
+
+			// Set newer data in localStorage
+			window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(newerConsent));
+
+			// Set older data in cookie
+			setCookie(STORAGE_KEY_V2, olderConsent);
+
+			const config = { defaultDomain: '.example.com' };
+
+			const retrieved = getConsentFromStorage(config);
+
+			// Should return cookie data (prioritized when defaultDomain is set)
+			expectConsentsToMatch(retrieved?.consents, olderConsent.consents);
+			expect(retrieved?.consentInfo.time).toBe(olderConsent.consentInfo.time);
+
+			// Should sync cookie to localStorage
+			const syncedLS = JSON.parse(
+				window.localStorage.getItem(STORAGE_KEY_V2) || '{}'
+			);
+			expectConsentsToMatch(syncedLS.consents, olderConsent.consents);
+
+			expect(consoleLogSpy).toHaveBeenCalledWith(
+				'[c15t] Updated localStorage with consent from cookie (cross-subdomain mode)'
+			);
+
+			consoleLogSpy.mockRestore();
+		});
+
+		it('should use cookie when localStorage is empty and sync to localStorage', () => {
+			const consoleLogSpy = vi
+				.spyOn(console, 'log')
+				.mockImplementation(() => {});
+
+			const consentData = {
+				consents: { necessary: true, measurement: true },
+				consentInfo: { time: Date.now() },
+			};
+
+			// Set only in cookie
+			setCookie(STORAGE_KEY_V2, consentData);
+
+			const retrieved = getConsentFromStorage();
+
+			// Should return cookie data
+			expectConsentsToMatch(retrieved?.consents, consentData.consents);
+			expect(retrieved?.consentInfo.time).toBe(consentData.consentInfo.time);
+
+			// Should sync cookie to localStorage
+			const syncedLS = JSON.parse(
+				window.localStorage.getItem(STORAGE_KEY_V2) || '{}'
+			);
+			expectConsentsToMatch(syncedLS.consents, consentData.consents);
+			expect(syncedLS.consentInfo.time).toBe(consentData.consentInfo.time);
+
+			expect(consoleLogSpy).toHaveBeenCalledWith(
+				'[c15t] Synced consent from cookie to localStorage'
+			);
+
+			consoleLogSpy.mockRestore();
+		});
+
+		it('should use localStorage when cookie is empty and sync to cookie', () => {
+			const consoleLogSpy = vi
+				.spyOn(console, 'log')
+				.mockImplementation(() => {});
+
+			const consentData = {
+				consents: { necessary: true, measurement: true },
+				consentInfo: { time: Date.now() },
+			};
+
+			// Set only in localStorage
+			window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(consentData));
+
+			const retrieved = getConsentFromStorage();
+
+			// Should return localStorage data
+			expectConsentsToMatch(retrieved?.consents, consentData.consents);
+			expect(retrieved?.consentInfo.time).toBe(consentData.consentInfo.time);
+
+			// Should sync localStorage to cookie
+			const syncedCookie = getCookie(STORAGE_KEY_V2);
+			expectConsentsToMatch(syncedCookie?.consents, consentData.consents);
+			expect(syncedCookie?.consentInfo.time).toBe(consentData.consentInfo.time);
+
+			expect(consoleLogSpy).toHaveBeenCalledWith(
+				'[c15t] Synced consent from localStorage to cookie'
+			);
+
+			consoleLogSpy.mockRestore();
+		});
+
+		it('should prioritize cookie when both have equal timestamps (cookie is source of truth)', () => {
+			const consentData = {
+				consents: { necessary: true, measurement: true },
+				consentInfo: { time: 1000000000 },
+			};
+
+			// Set same timestamp in both
+			window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(consentData));
+			setCookie(STORAGE_KEY_V2, consentData);
+
+			const retrieved = getConsentFromStorage();
+
+			// Should return cookie data (always prioritized when both exist)
+			expectConsentsToMatch(retrieved?.consents, consentData.consents);
+			expect(retrieved?.consentInfo.time).toBe(consentData.consentInfo.time);
+		});
+
+		it('should prioritize cookie even when localStorage has consentInfo.time but cookie does not', () => {
+			const consentWithoutTime = {
+				consents: { necessary: true },
+				// Missing consentInfo.time
+			};
+
+			const consentWithTime = {
+				consents: { necessary: true, measurement: true },
+				consentInfo: { time: 2000000000 },
+			};
+
+			// Set data with time in localStorage
+			window.localStorage.setItem(
+				STORAGE_KEY_V2,
+				JSON.stringify(consentWithTime)
+			);
+
+			// Set data without time in cookie
+			setCookie(STORAGE_KEY_V2, consentWithoutTime);
+
+			const retrieved = getConsentFromStorage();
+
+			// Should prefer cookie (always prioritized when both exist)
+			expectConsentsToMatch(retrieved?.consents, consentWithoutTime.consents);
+			expect(retrieved?.consentInfo).toBeUndefined();
+		});
+
+		it('should handle cross-subdomain scenario: cookie updated on app.example.com is read on example.com', () => {
+			const consoleLogSpy = vi
+				.spyOn(console, 'log')
+				.mockImplementation(() => {});
+
+			// Simulate: consent was set on example.com (older localStorage)
+			const olderConsent = {
+				consents: { necessary: true, measurement: false },
+				consentInfo: { time: 1000000000 },
+			};
+			window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(olderConsent));
+
+			// Simulate: consent was updated on app.example.com (newer cookie shared across subdomains)
+			const newerConsent = {
+				consents: { necessary: true, measurement: true },
+				consentInfo: { time: 2000000000 },
+			};
+			setCookie(STORAGE_KEY_V2, newerConsent);
+
+			// Now reading on example.com with crossSubdomain enabled
+			const config = { crossSubdomain: true };
+			const retrieved = getConsentFromStorage(config);
+
+			// Should return newer cookie data (shared across subdomains)
+			expectConsentsToMatch(retrieved?.consents, newerConsent.consents);
+			expect(retrieved?.consentInfo.time).toBe(newerConsent.consentInfo.time);
+
+			// Should update localStorage with cookie data
+			const updatedLS = JSON.parse(
+				window.localStorage.getItem(STORAGE_KEY_V2) || '{}'
+			);
+			expectConsentsToMatch(updatedLS.consents, newerConsent.consents);
+			expect(updatedLS.consentInfo.time).toBe(newerConsent.consentInfo.time);
+
+			expect(consoleLogSpy).toHaveBeenCalledWith(
+				'[c15t] Updated localStorage with consent from cookie (cross-subdomain mode)'
+			);
+
+			consoleLogSpy.mockRestore();
 		});
 	});
 });
