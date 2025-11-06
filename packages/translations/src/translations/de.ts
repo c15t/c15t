@@ -1,6 +1,5 @@
 import type { CompleteTranslations } from '../types';
-
-export const deTranslations: CompleteTranslations = {
+export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Alle akzeptieren',
 		rejectAll: 'Alle ablehnen',
@@ -54,3 +53,4 @@ export const deTranslations: CompleteTranslations = {
 		termsOfService: 'Nutzungsbedingungen',
 	},
 };
+export default translations;

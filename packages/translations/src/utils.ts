@@ -1,4 +1,4 @@
-import { enTranslations } from './translations/en';
+import { translations as enTranslations } from './translations/en';
 import type { TranslationConfig, Translations } from './types';
 
 type TranslationSection =
