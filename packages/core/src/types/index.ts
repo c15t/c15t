@@ -51,6 +51,8 @@ export {
 	consentTypes,
 } from './gdpr';
 
+export type { User } from './user';
+
 /**
  * @module
  * Translation Types

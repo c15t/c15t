@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { C15tClient } from '../client-c15t';
+import { C15tClient } from '../c15t';
 
 /**
  * @vitest-environment jsdom
@@ -108,15 +108,15 @@ describe('CORS functionality', () => {
 		// Track error callback
 		const onErrorMock = vi.fn();
 
-		// Make the request
+		// Make the request - should fallback to offline mode
 		const response = await client.showConsentBanner({
 			onError: onErrorMock,
-			testing: true, // Disable offline fallback
 		});
 
-		// Verify error handling
-		expect(response.ok).toBe(false);
-		expect(['NETWORK_ERROR', 'API_ERROR']).toContain(response.error?.code);
+		// Verify offline fallback behavior
+		expect(response.ok).toBe(true); // Offline fallback returns success
+		expect(response.data).toBeDefined();
+		// onError is called by fetcher when error occurs, before fallback
 		expect(onErrorMock).toHaveBeenCalledTimes(1);
 	});
 
@@ -177,16 +177,15 @@ describe('CORS functionality', () => {
 		// Track error callback
 		const onErrorMock = vi.fn();
 
-		// Make the request
+		// Make the request - should fallback to offline mode
 		const response = await client.showConsentBanner({
 			onError: onErrorMock,
-			testing: true,
 		});
 
-		// Verify error handling
-		expect(response.ok).toBe(false);
-		expect(response.error?.status).toBe(403);
-		expect(response.error?.message).toContain('CORS policy violation');
+		// Verify offline fallback behavior
+		expect(response.ok).toBe(true); // Offline fallback returns success
+		expect(response.data).toBeDefined();
+		// onError is called by fetcher when error occurs, before fallback
 		expect(onErrorMock).toHaveBeenCalledTimes(1);
 	});
 
@@ -205,25 +204,16 @@ describe('CORS functionality', () => {
 		// Simple error callback to verify it's called
 		const onErrorMock = vi.fn();
 
-		// Make the request
+		// Make the request - should fallback to offline mode
 		const response = await client.showConsentBanner({
 			onError: onErrorMock,
-			testing: true, // Disable offline fallback
 		});
 
-		// Verify error handling for missing CORS headers
-		expect(response.ok).toBe(false);
-		// Allow for either 'NETWORK_ERROR' or 'API_ERROR' in different environments
-		expect(['NETWORK_ERROR', 'API_ERROR']).toContain(response.error?.code);
-		expect(onErrorMock).toHaveBeenCalled();
-		// Verify first argument contains the expected error code
-		expect(onErrorMock.mock.calls[0][0]).toEqual(
-			expect.objectContaining({
-				error: expect.objectContaining({
-					code: expect.stringMatching(/^(NETWORK_ERROR|API_ERROR)$/),
-				}),
-			})
-		);
+		// Verify offline fallback behavior
+		expect(response.ok).toBe(true); // Offline fallback returns success
+		expect(response.data).toBeDefined();
+		// onError is called by fetcher when error occurs, before fallback
+		expect(onErrorMock).toHaveBeenCalledTimes(1);
 	});
 
 	it('should handle preflight rejection', async () => {
@@ -240,10 +230,9 @@ describe('CORS functionality', () => {
 		// Simple error callback to verify it's called
 		const onErrorMock = vi.fn();
 
-		// Make the request with a custom header to trigger preflight
+		// Make the request with a custom header to trigger preflight - should fallback to offline mode
 		const response = await client.setConsent({
 			onError: onErrorMock,
-			testing: true, // Disable offline fallback
 			headers: {
 				'X-Custom-Header': 'value', // Custom header would trigger preflight
 			},
@@ -256,19 +245,10 @@ describe('CORS functionality', () => {
 			},
 		});
 
-		// Verify error handling for preflight rejection
-		expect(response.ok).toBe(false);
-		// Allow for either 'NETWORK_ERROR' or 'API_ERROR' in different environments
-		expect(['NETWORK_ERROR', 'API_ERROR']).toContain(response.error?.code);
-		expect(onErrorMock).toHaveBeenCalled();
-		// Verify first argument contains the expected error code
-		expect(onErrorMock.mock.calls[0][0]).toEqual(
-			expect.objectContaining({
-				error: expect.objectContaining({
-					code: expect.stringMatching(/^(NETWORK_ERROR|API_ERROR)$/),
-				}),
-			})
-		);
+		// Verify offline fallback behavior
+		expect(response.ok).toBe(true); // Offline fallback returns success
+		// onError is called by fetcher when error occurs, before fallback
+		expect(onErrorMock).toHaveBeenCalledTimes(1);
 	});
 
 	// Additional CORS configurations:

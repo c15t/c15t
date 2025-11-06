@@ -6,7 +6,6 @@
  */
 
 export type { ContractsInputs, ContractsOutputs } from '@c15t/backend';
-
 export type {
 	CommonTranslations,
 	ConsentManagerDialogTranslations,
@@ -24,14 +23,12 @@ export {
 	mergeTranslationConfigs,
 	prepareTranslationConfig,
 } from '@c15t/translations';
-
 export * from './client';
 // Export basic types directly for convenience
 export type {
 	FetchOptions,
 	ResponseContext,
 } from './client/types';
-
 export { API_ENDPOINTS } from './client/types';
 // Export cookie storage utilities
 export type { CookieOptions, StorageConfig } from './libs/cookie';
@@ -60,7 +57,6 @@ export {
 	unloadScripts,
 	updateScripts,
 } from './libs/script-loader';
-
 export type { TrackingBlockerConfig } from './libs/tracking-blocker';
 // Export tracking blocker
 export { createTrackingBlocker } from './libs/tracking-blocker';
@@ -71,7 +67,6 @@ export type { PrivacyConsentState } from './store.type';
 // Export default translation config
 export { defaultTranslationConfig } from './translations';
 export type { Callback, Callbacks } from './types/callbacks';
-
 export type {
 	ComplianceRegion,
 	ComplianceSettings,
@@ -82,14 +77,12 @@ export type {
 	LocationInfo,
 	NamespaceProps,
 } from './types/compliance';
-
 export * from './types/compliance';
-
 export {
 	type AllConsentNames,
 	allConsentNames,
 	type ConsentType,
 	consentTypes,
 } from './types/gdpr';
-
 export type { LegalLink, LegalLinks } from './types/legal-links';
+export type { User } from './types/user';
