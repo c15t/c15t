@@ -54,3 +54,4 @@ coverage.json
 
 examples/*
 version.ts
+i18n.cache

@@ -34,6 +34,7 @@
 		"check-types": "tsc --noEmit",
 		"dev": "rslib build --watch",
 		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --write",
+		"generate:i18n": "lingo.dev i18n",
 		"lint": "pnpm biome lint ./src",
 		"test": "vitest run",
 		"test:watch": "vitest"
@@ -45,7 +46,8 @@
 	],
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
-		"@c15t/vitest-config": "workspace:*"
+		"@c15t/vitest-config": "workspace:*",
+		"lingo.dev": "^0.114.4"
 	},
 	"publishConfig": {
 		"access": "public"

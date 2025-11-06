@@ -1,6 +1,5 @@
 import type { CompleteTranslations } from '../types';
-
-export const zhTranslations: CompleteTranslations = {
+export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: '全部同意',
 		rejectAll: '全部拒绝',
@@ -49,3 +48,4 @@ export const zhTranslations: CompleteTranslations = {
 		termsOfService: '服务条款',
 	},
 };
+export default translations;

@@ -1,8 +1,8 @@
 ---
-title: "v1.8.0 - Cross-Subdomain Cookies"
+title: "v1.8.0 - Cross-Subdomain Consent, Legal Links, User Identification & 27 Languages"
 version: "1.8.0"
-date: 2025-10-28
-description: "Minor release with a new hybrid cookie/local storage approach for consent storage."
+date: 2025-11-06
+description: "Feature release adding cross-subdomain consent persistence via cookies, configurable legal links in components, user identification tracking, and comprehensive language support with all 24 EU official languages."
 tags:
   - release
   - stable
@@ -11,7 +11,6 @@ tags:
   - backend
 type: release
 breaking: false
-draft: true
 canary: true
 authors: [KayleeWilliams]
 packages:
@@ -76,7 +75,7 @@ You can filter what legal links you want to display (if any) on the pre-made com
 <CookieBanner legalLinks={null} />
 ```
 
-<TODO: INSERT IMAGE HERE>
+TODO: INSERT IMAGE HERE
 
 ### User Identification
 
@@ -103,7 +102,21 @@ identifyUser({
 });
 ```
 
-This change also brings a new endpoint to the backend: `/consent/identify`. So you'll need to update your backend to support this new endpoint.
+This change also brings a new endpoint to the backend: `PATCH /consent/identify`. So you'll need to update your backend to support this new endpoint.
+
+### All 24 Official Languages of the European Union
+
+We've added support for all 24 official languages of the European Union to the translations package bringing the total number of supported languages to 27.
+
+Current languages include:
+
+| | | | | | | |
+| --- | --- | --- | --- | --- | --- | --- |
+| Bulgarian (bg) | Czech (cs) | Danish (da) | German (de) | Greek (el) | English (en) | Spanish (es) |
+| Estonian (et) | Finnish (fi) | French (fr) | Irish (ga) | Hebrew (he) | Croatian (hr) | Hungarian (hu) |
+| Indonesian (id) | Italian (it) | Lithuanian (lt) | Latvian (lv) | Maltese (mt) | Dutch (nl) | Polish (pl) |
+| Portuguese (pt) | Romanian (ro) | Slovak (sk) | Slovenian (sl) | Swedish (sv) | Chinese (zh) | |
+
 
 ## 🐛 Bug Fixes & Improvements
 
@@ -150,4 +163,4 @@ This change also brings a new endpoint to the backend: `/consent/identify`. So y
 
 * Updated dependencies
 
-<ContributorBlock usernames={["KayleeWilliams", "BurnedChris", "izadoesdev", "djmisha"]} title="Thank you to our contributors" />
+<ContributorBlock usernames={["KayleeWilliams", "BurnedChris", "izadoesdev", "djmisha", "davidturnbull"]} title="Thank you to our contributors" />
