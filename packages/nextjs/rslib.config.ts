@@ -1,5 +1,9 @@
 import { pluginReact } from '@rsbuild/plugin-react';
 import { defineConfig } from '@rslib/core';
+import {
+	getRsdoctorPlugins,
+	standardExcludePatterns,
+} from '../shared/rslib-utils';
 
 const externals = ['next', 'next/headers', 'react', 'react-dom'];
 
@@ -8,6 +12,7 @@ export default defineConfig({
 		entry: {
 			index: ['./src/**'],
 		},
+		exclude: standardExcludePatterns,
 	},
 	lib: [
 		{
@@ -40,4 +45,9 @@ export default defineConfig({
 		},
 	},
 	plugins: [pluginReact()],
+	tools: {
+		rspack: {
+			plugins: [...getRsdoctorPlugins()],
+		},
+	},
 });

@@ -1,5 +1,5 @@
 // Base translations
 export { baseTranslations } from './translations';
-export { enTranslations } from './translations/en';
+export { translations as enTranslations } from './translations/en';
 export * from './types';
 export * from './utils';

@@ -6,6 +6,7 @@ import { PolicyTypeSchema } from '~/schema';
 const baseConsentSchema = z.object({
 	subjectId: z.string().optional(),
 	externalSubjectId: z.string().optional(),
+	identityProvider: z.string().optional(),
 	domain: z.string(),
 	type: PolicyTypeSchema,
 	metadata: z.record(z.string(), z.unknown()).optional(),
