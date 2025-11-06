@@ -32,7 +32,7 @@ import { translations as zh } from './zh';
  * Maps ISO 639-1 language codes to their respective translation objects.
  * Includes all 24 official languages of the European Union as well as additional languages.
  *
- * + * @example
+ * @example
  * ```typescript
  * import { baseTranslations } from '@c15t/translations';
  * const english = baseTranslations.en;
