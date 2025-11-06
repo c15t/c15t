@@ -8,10 +8,12 @@ export function subjectRegistry({ db, ctx }: Registry) {
 		findOrCreateSubject: async ({
 			subjectId,
 			externalSubjectId,
+			identityProvider,
 			ipAddress = 'unknown',
 		}: {
 			subjectId?: string;
 			externalSubjectId?: string;
+			identityProvider?: string;
 			ipAddress?: string;
 		}) => {
 			// If both subjectId and externalSubjectId are provided, validate they match
@@ -69,7 +71,7 @@ export function subjectRegistry({ db, ctx }: Registry) {
 					create: {
 						id: await generateUniqueId(db, 'subject', ctx),
 						externalId: externalSubjectId,
-						identityProvider: 'anonymous',
+						identityProvider: identityProvider ?? 'external',
 						lastIpAddress: ipAddress,
 						isIdentified: !!externalSubjectId,
 					},

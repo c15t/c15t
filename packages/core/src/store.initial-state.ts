@@ -71,6 +71,7 @@ export const initialState: Omit<
 	| 'updateIframeConsents'
 	| 'destroyIframeBlocker'
 	| 'updateConsentCategories'
+	| 'identifyUser'
 > = {
 	config: {
 		pkg: 'c15t',
@@ -174,6 +175,8 @@ export const initialState: Omit<
 		/** Respect Do Not Track by default */
 		honorDoNotTrack: true,
 	},
+
+	user: undefined,
 
 	// Initialize all methods as no-ops
 	setConsent: () => {
