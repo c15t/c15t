@@ -38,6 +38,7 @@ export const postConsent = os.consent.post.handler(
 		const {
 			type,
 			subjectId,
+			identityProvider,
 			externalSubjectId,
 			domain,
 			metadata,
@@ -47,6 +48,7 @@ export const postConsent = os.consent.post.handler(
 		logger.debug('Request parameters', {
 			type,
 			subjectId,
+			identityProvider,
 			externalSubjectId,
 			domain,
 		});
@@ -55,6 +57,7 @@ export const postConsent = os.consent.post.handler(
 			const subject = await registry.findOrCreateSubject({
 				subjectId,
 				externalSubjectId,
+				identityProvider,
 				ipAddress: typedContext.ipAddress,
 			});
 
@@ -224,6 +227,7 @@ export const postConsent = os.consent.post.handler(
 				id: result.consent.id,
 				subjectId: subject.id,
 				externalSubjectId: subject.externalId ?? undefined,
+				identityProvider: subject.identityProvider ?? undefined,
 				domainId: domainRecord.id,
 				domain: domainRecord.name,
 				type,

@@ -23,6 +23,7 @@ import {
 	type HasCondition,
 	has,
 } from './libs/has';
+import { identifyUser } from './libs/identify-user';
 import type { IframeBlockerConfig } from './libs/iframe-blocker';
 import { createIframeManager } from './libs/iframe-blocker/store';
 import { saveConsents } from './libs/save-consents';
@@ -37,8 +38,13 @@ import type {
 	ConsentBannerResponse,
 	ConsentState,
 } from './types/compliance';
-import { type AllConsentNames, consentTypes } from './types/gdpr';
+import {
+	type AllConsentNames,
+	type ConsentInfo,
+	consentTypes,
+} from './types/gdpr';
 import type { LegalLinks } from './types/legal-links';
+import type { User } from './types/user';
 
 /**
  * Structure of consent data stored in localStorage.
@@ -50,10 +56,7 @@ interface StoredConsent {
 	consents: ConsentState;
 
 	/** Metadata about when and how consent was given */
-	consentInfo: {
-		time: number;
-		type: string;
-	} | null;
+	consentInfo: ConsentInfo | null;
 }
 
 /**
@@ -76,7 +79,7 @@ const getStoredConsent = (config?: StorageConfig): StoredConsent | null => {
 	}
 
 	try {
-		return getConsentFromStorage<StoredConsent>(config);
+		return getConsentFromStorage(config);
 	} catch (e) {
 		console.error('Failed to retrieve stored consent:', e);
 		return null;
@@ -223,6 +226,16 @@ export interface StoreOptions {
 	 * @see {@link StorageConfig} for available options
 	 */
 	storageConfig?: StorageConfig;
+
+	/**
+	 * The user's information.
+	 * Usually your own internal ID for the user from your auth provider
+	 *
+	 * @remarks
+	 * This can be set later using the {@link identifyUser} method.
+	 * @default undefined
+	 */
+	user?: User;
 }
 
 // For backward compatibility (if needed)
@@ -317,14 +330,12 @@ export const createConsentManagerStore = (
 		translationConfig: translationConfig || initialState.translationConfig,
 		// Set storage configuration
 		storageConfig: storageConfig,
+		user: options.user ?? initialState.user,
 		...(storedConsent
 			? {
 					consents: storedConsent.consents,
 					selectedConsents: storedConsent.consents,
-					consentInfo: storedConsent.consentInfo as {
-						time: number;
-						type: 'necessary' | 'all' | 'custom';
-					} | null,
+					consentInfo: storedConsent.consentInfo,
 					showPopup: false, // Don't show popup if we have stored consent
 					isLoadingConsentInfo: false, // Not loading if we have stored consent
 				}
@@ -685,6 +696,8 @@ export const createConsentManagerStore = (
 			set({ gdprTypes: allCategories });
 		},
 
+		identifyUser: (user: User) => identifyUser({ user, manager, get, set }),
+
 		...createScriptManager(get, set, trackingBlocker),
 		...createIframeManager(get, set),
 	}));
@@ -721,6 +734,12 @@ export const createConsentManagerStore = (
 		store
 			.getState()
 			.callbacks.onConsentSet?.({ preferences: store.getState().consents });
+
+		// Identify the user if an external ID is provided
+		if (options.user) {
+			store.getState().identifyUser(options.user);
+		}
+
 		store.getState().fetchConsentBannerInfo();
 	}
 

@@ -78,11 +78,13 @@ export function subjectRegistry({ adapter, ...ctx }: RegistryContext) {
 		findOrCreateSubject: async function ({
 			subjectId,
 			externalSubjectId,
+			identityProvider,
 			ipAddress = 'unknown',
 			context,
 		}: {
 			subjectId?: string;
 			externalSubjectId?: string;
+			identityProvider?: string;
 			ipAddress?: string;
 			context?: GenericEndpointContext;
 		}) {
@@ -175,7 +177,7 @@ export function subjectRegistry({ adapter, ...ctx }: RegistryContext) {
 					return await this.createSubject(
 						{
 							externalId: externalSubjectId,
-							identityProvider: 'external',
+							identityProvider: identityProvider ?? 'external',
 							lastIpAddress: ipAddress,
 							isIdentified: true,
 						},

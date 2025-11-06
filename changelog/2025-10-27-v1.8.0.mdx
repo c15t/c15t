@@ -76,7 +76,41 @@ You can filter what legal links you want to display (if any) on the pre-made com
 <CookieBanner legalLinks={null} />
 ```
 
+<TODO: INSERT IMAGE HERE>
+
+### User Identification
+
+We've enabled user identification in the consent manager. This allows you to link a user's ID to a consent record both before & after consent is given.
+
+An external ID can be set in various ways: 
+
+```tsx
+<ConsentManagerProvider
+  options={{
+    user: {
+      id: 'usr_foobar',
+      identityProvider: 'better-auth',
+    }
+  }}
+>
+
+// Or via the `identifyUser` method in the Store
+const { identifyUser } = useConsentManager();
+
+identifyUser({
+  id: 'usr_foobar',
+  identityProvider: 'better-auth',
+});
+```
+
+This change also brings a new endpoint to the backend: `/consent/identify`. So you'll need to update your backend to support this new endpoint.
+
 ## 🐛 Bug Fixes & Improvements
+
+### **@c15t/scripts**
+
+* Added new [Databuddy](https://c15t.com/docs/integrations/databuddy) prebuilt script
+* Updated dependencies
 
 ### **@c15t/nextjs**
 
@@ -116,4 +150,4 @@ You can filter what legal links you want to display (if any) on the pre-made com
 
 * Updated dependencies
 
-<ContributorBlock usernames={["KayleeWilliams", "BurnedChris"]} title="Thank you to our contributors" />
+<ContributorBlock usernames={["KayleeWilliams", "BurnedChris", "izadoesdev", "djmisha"]} title="Thank you to our contributors" />

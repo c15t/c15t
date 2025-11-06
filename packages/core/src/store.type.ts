@@ -22,6 +22,7 @@ import type {
 	LocationInfo,
 	PrivacySettings,
 	TranslationConfig,
+	User,
 } from './types';
 
 /**
@@ -130,6 +131,21 @@ export interface PrivacyConsentState {
 
 	/** Configuration for the iframe blocker */
 	iframeBlockerConfig: IframeBlockerConfig;
+
+	/**
+	 * User information
+	 */
+	user?: User;
+
+	/**
+	 * Identifies the user by setting the external ID
+	 *
+	 * @remarks
+	 * If the user has already consented, it will update the existing record.
+	 *
+	 * @param user - The user's information
+	 */
+	identifyUser: (user: User) => Promise<void>;
 
 	/*
 	 * Updates the selected consent state for a specific consent type.

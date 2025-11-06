@@ -1,6 +1,11 @@
 import type { ResponseContext } from './types';
 
 /**
+ * Regex pattern to remove leading slashes
+ */
+export const LEADING_SLASHES_REGEX = /^\/+/;
+
+/**
  * Creates a response context object for success or error cases.
  *
  * @param isSuccess - Whether the response was successful
@@ -27,4 +32,26 @@ export function createResponseContext<T>(
 		ok: isSuccess,
 		response,
 	};
+}
+
+/**
+ * Creates a basic response context for error cases.
+ */
+export function createErrorResponse<T>(
+	message: string,
+	status = 500,
+	code = 'ERROR',
+	cause?: unknown
+): ResponseContext<T> {
+	return createResponseContext<T>(
+		false,
+		null,
+		{
+			message,
+			status,
+			code,
+			cause,
+		},
+		null
+	);
 }
