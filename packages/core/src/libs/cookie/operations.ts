@@ -150,8 +150,13 @@ export function getCookie<ReturnType = unknown>(
  * Deletes a cookie by name.
  *
  * @param name - Cookie name to delete
- * @param options - Cookie configuration options (domain and path should match the original cookie)
- * @param config - Storage configuration
+ * @param options - Optional cookie configuration options (if provided, must match the original cookie's attributes)
+ * @param config - Optional storage configuration
+ *
+ * @remarks
+ * Browsers require matching attributes (path, domain, secure, sameSite) to delete cookies.
+ * This function uses sensible defaults that match how cookies are set via setCookie().
+ * If a cookie was set with custom options, pass matching options here.
  *
  * @internal
  */
@@ -180,6 +185,14 @@ export function deleteCookie(
 
 		if (opts.domain) {
 			parts.push(`domain=${opts.domain}`);
+		}
+
+		if (opts.secure) {
+			parts.push('secure');
+		}
+
+		if (opts.sameSite) {
+			parts.push(`SameSite=${opts.sameSite}`);
 		}
 
 		document.cookie = parts.join('; ');

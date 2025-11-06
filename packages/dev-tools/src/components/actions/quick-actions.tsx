@@ -1,14 +1,13 @@
 'use client';
 
 import type { PrivacyConsentState } from 'c15t';
+import { deleteConsentFromStorage } from 'c15t';
 import { useState } from 'react';
 import { Icon } from '~/components/icons';
 import { Alert } from '~/components/ui/alert';
 import { Button } from '~/components/ui/button';
 import { getStore } from '../../dev-tool';
 import styles from './quick-actions.module.css';
-
-const STORAGE_KEY = 'privacy-consent-storage';
 
 interface ActionButtonProps {
 	icon: React.ReactNode;
@@ -99,6 +98,7 @@ function ActionSelect({
 
 export function QuickActions() {
 	const state = getStore() as PrivacyConsentState;
+
 	const [notification, setNotification] = useState<{
 		type: 'success' | 'error';
 		message: string;
@@ -126,12 +126,10 @@ export function QuickActions() {
 		}
 	};
 
-	const handleClearLocalStorage = (): void => {
+	const handleClearConsentStorage = (): void => {
 		try {
-			if (typeof window !== 'undefined') {
-				localStorage.removeItem(STORAGE_KEY);
-				showNotification('success', 'LocalStorage cleared successfully');
-			}
+			deleteConsentFromStorage(undefined, state.storageConfig);
+			showNotification('success', 'LocalStorage cleared successfully');
 		} catch {
 			showNotification('error', 'Failed to clear localStorage');
 		}
@@ -467,9 +465,9 @@ export function QuickActions() {
 			<div className={styles.preferencesContainer}>
 				<ActionButton
 					icon={<Icon name="minus" size={16} />}
-					label="Clear LocalStorage"
+					label="Clear Consent Storage"
 					description="Remove stored consent data from browser"
-					onClick={handleClearLocalStorage}
+					onClick={handleClearConsentStorage}
 					variant="outline"
 				/>
 				<ActionButton
