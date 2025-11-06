@@ -53,8 +53,7 @@
 
 	/* Effects */
 	--c15t-dev-tools-card-shadow:
-		0 20px 25px -5px rgb(0 0 0 / 0.1),
-		0 8px 10px -6px rgb(0 0 0 / 0.1);
+		0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 	--c15t-dev-tools-border-width: 1px;
 
 	/* Animation */
@@ -97,4 +96,3 @@
 
 	--c15t-dev-tools-overlay: rgb(0 0 0 / 0.7);
 }
-

@@ -75,11 +75,11 @@
 	outline: none;
 }
 
-.item[role='menuitem'] {
+.item[role="menuitem"] {
 	cursor: pointer;
 }
 
-.itemSelected[role='menuitem'] {
+.itemSelected[role="menuitem"] {
 	background-color: rgba(255, 255, 255, 0.08);
 }
 
@@ -102,25 +102,27 @@
 }
 
 /* Interactive item styling */
-.item[role='menuitem'] .itemValue {
+.item[role="menuitem"] .itemValue {
 	color: rgba(255, 255, 255, 0.4);
 	transition: color 150ms ease;
 }
 
-.item[role='menuitem']:hover .itemValue,
-.itemSelected[role='menuitem'] .itemValue {
+.item[role="menuitem"]:hover .itemValue,
+.itemSelected[role="menuitem"] .itemValue {
 	color: rgba(255, 255, 255, 0.7);
 }
 
-.item[role='menuitem'] .itemValue svg {
+.item[role="menuitem"] .itemValue svg {
 	width: 16px;
 	height: 16px;
 	opacity: 0.6;
-	transition: opacity 150ms ease, transform 150ms ease;
+	transition:
+		opacity 150ms ease,
+		transform 150ms ease;
 }
 
-.item[role='menuitem']:hover .itemValue svg,
-.itemSelected[role='menuitem'] .itemValue svg {
+.item[role="menuitem"]:hover .itemValue svg,
+.itemSelected[role="menuitem"] .itemValue svg {
 	opacity: 1;
 	transform: translateX(2px);
 }
@@ -139,7 +141,7 @@
 	border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-:global(.light) .itemSelected[role='menuitem'] {
+:global(.light) .itemSelected[role="menuitem"] {
 	background-color: rgba(0, 0, 0, 0.04);
 }
 
@@ -151,12 +153,11 @@
 	color: rgba(0, 0, 0, 0.5);
 }
 
-:global(.light) .item[role='menuitem'] .itemValue {
+:global(.light) .item[role="menuitem"] .itemValue {
 	color: rgba(0, 0, 0, 0.35);
 }
 
-:global(.light) .item[role='menuitem']:hover .itemValue,
-:global(.light) .itemSelected[role='menuitem'] .itemValue {
+:global(.light) .item[role="menuitem"]:hover .itemValue,
+:global(.light) .itemSelected[role="menuitem"] .itemValue {
 	color: rgba(0, 0, 0, 0.65);
 }
-

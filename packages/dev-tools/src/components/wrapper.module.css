@@ -39,9 +39,9 @@
 	max-height: var(--c15t-dev-tools-card-max-height);
 	transition:
 		opacity var(--c15t-dev-tools-animation-duration)
-			var(--c15t-dev-tools-animation-timing),
+		var(--c15t-dev-tools-animation-timing),
 		transform var(--c15t-dev-tools-animation-duration)
-			cubic-bezier(0.34, 1.56, 0.64, 1);
+		cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .bottomRight {
@@ -179,4 +179,3 @@
 :global(.dev-tools-grabbing) > * {
 	pointer-events: none;
 }
-

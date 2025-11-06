@@ -11,7 +11,7 @@
 	cursor: pointer;
 	text-decoration: none;
 	line-height: 1;
-	
+
 	/* Custom styling */
 	display: inline-flex;
 	align-items: center;
@@ -63,7 +63,7 @@
 
 .outline {
 	border: 1px solid var(--c15t-dev-tools-input);
-  color: var(--c15t-dev-tools-foreground);
+	color: var(--c15t-dev-tools-foreground);
 }
 
 .outline:hover {
@@ -120,5 +120,3 @@
 	height: 2.5rem;
 	width: 2.5rem;
 }
-
-

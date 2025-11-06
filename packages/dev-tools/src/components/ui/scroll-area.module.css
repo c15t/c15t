@@ -5,7 +5,7 @@
 
 .viewport {
 	border-radius: inherit;
-  max-height: 450px;
+	max-height: 450px;
 }
 
 .root[data-orientation="vertical"] {
@@ -80,5 +80,3 @@
 :global(.light) .thumb:hover {
 	background: rgba(0, 0, 0, 0.25);
 }
-
-
