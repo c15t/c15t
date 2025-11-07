@@ -78,3 +78,21 @@ export type {
 
 export * from './compliance';
 export * from './legal-links';
+
+export type Overrides = {
+	/**
+	 * Country code to forcefully set
+	 * @example 'DE'
+	 */
+	country?: string;
+	/**
+	 * Region code to forcefully set
+	 * @example 'BE'
+	 */
+	region?: string;
+	/**
+	 * Language code to forcefully set
+	 * @example 'de-DE'
+	 */
+	language?: string;
+};

@@ -1,0 +1,86 @@
+.container {
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: center;
+	width: max-content;
+	gap: 6px;
+	border-radius: 10px;
+	background: rgba(255, 255, 255, 0.05);
+	padding: 4px;
+	overflow: visible;
+}
+
+.separator {
+	margin-left: 4px;
+	margin-right: 4px;
+	height: 24px;
+	width: 1px;
+	background: rgba(255, 255, 255, 0.1);
+}
+
+.button {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 8px;
+	padding: 8px 12px;
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 20px;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	transition:
+		color 150ms ease,
+		background-color 150ms ease;
+	color: rgba(255, 255, 255, 0.6);
+	min-width: 0;
+	flex-shrink: 0;
+}
+
+.button:hover {
+	background: rgba(255, 255, 255, 0.08);
+	color: rgba(255, 255, 255, 0.9);
+}
+
+.button.selected {
+	background: rgba(255, 255, 255, 0.1);
+	color: rgba(255, 255, 255, 0.9);
+}
+
+.button.selected.primary {
+	color: #3b82f6;
+}
+
+.title {
+	overflow: hidden;
+	white-space: nowrap;
+}
+
+/* Light theme overrides */
+:global(.light) .container {
+	background: rgba(0, 0, 0, 0.04);
+}
+
+:global(.light) .separator {
+	background: rgba(0, 0, 0, 0.1);
+}
+
+:global(.light) .button {
+	color: rgba(0, 0, 0, 0.6);
+}
+
+:global(.light) .button:hover {
+	background: rgba(0, 0, 0, 0.06);
+	color: rgba(0, 0, 0, 0.9);
+}
+
+:global(.light) .button.selected {
+	background: rgba(0, 0, 0, 0.08);
+	color: rgba(0, 0, 0, 0.9);
+}
+
+:global(.light) .button.selected.primary {
+	color: #2563eb;
+}

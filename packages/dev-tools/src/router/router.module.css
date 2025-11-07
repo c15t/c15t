@@ -1,0 +1,92 @@
+/* Router container styles */
+.tabsContainer {
+	padding: 12px 16px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	width: 100%;
+}
+
+.tabsScrollArea {
+	width: 100%;
+	max-width: 100%;
+	height: auto;
+	overflow: visible;
+}
+
+.scrollContainer {
+	max-height: 480px;
+	height: auto;
+	width: 100%;
+}
+
+.contentContainer {
+	padding: 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	position: relative;
+}
+
+/* Content item card */
+.itemCard {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px;
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	transition:
+		background-color 150ms ease,
+		border-color 150ms ease;
+}
+
+.itemCard:hover {
+	background: rgba(255, 255, 255, 0.08);
+	border-color: rgba(255, 255, 255, 0.12);
+}
+
+.itemContent {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.itemTitle {
+	font-size: 14px;
+	line-height: 20px;
+	font-weight: 500;
+	color: rgba(255, 255, 255, 0.9);
+	overflow-wrap: break-word;
+	word-break: break-word;
+}
+
+.itemDetails {
+	font-size: 12px;
+	line-height: 16px;
+	color: rgba(255, 255, 255, 0.6);
+	overflow-wrap: break-word;
+	word-break: break-word;
+}
+
+/* Light theme overrides */
+:global(.light) .tabsContainer {
+	border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+:global(.light) .itemCard {
+	background: rgba(0, 0, 0, 0.02);
+	border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+:global(.light) .itemCard:hover {
+	background: rgba(0, 0, 0, 0.04);
+	border-color: rgba(0, 0, 0, 0.12);
+}
+
+:global(.light) .itemTitle {
+	color: rgba(0, 0, 0, 0.9);
+}
+
+:global(.light) .itemDetails {
+	color: rgba(0, 0, 0, 0.6);
+}

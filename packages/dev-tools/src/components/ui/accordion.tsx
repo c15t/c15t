@@ -1,13 +1,14 @@
 'use client';
 
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
-import { ChevronDown } from 'lucide-react';
 import {
 	type ComponentPropsWithoutRef,
 	type ComponentRef,
 	forwardRef,
 } from 'react';
-import './accordion.css';
+import { Icon, type IconName } from '~/components/icons';
+import { cn } from '~/libs/utils';
+import styles from './accordion.module.css';
 
 const Accordion = AccordionPrimitive.Root;
 
@@ -17,7 +18,7 @@ const AccordionItem = forwardRef<
 >(({ className, ...props }, ref) => (
 	<AccordionPrimitive.Item
 		ref={ref}
-		className={`c15t-devtool-accordion-item ${className || ''}`}
+		className={cn(styles.item, className)}
 		{...props}
 	/>
 ));
@@ -30,11 +31,11 @@ const AccordionTrigger = forwardRef<
 	<AccordionPrimitive.Header className="flex">
 		<AccordionPrimitive.Trigger
 			ref={ref}
-			className={`c15t-devtool-accordion-trigger ${className || ''}`}
+			className={cn(styles.trigger, className)}
 			{...props}
 		>
 			{children}
-			<ChevronDown className="c15t-devtool-accordion-chevron h-4 w-4" />
+			<Icon name="chevron-down" size={16} className={cn(styles.chevron)} />
 		</AccordionPrimitive.Trigger>
 	</AccordionPrimitive.Header>
 ));
@@ -46,10 +47,10 @@ const AccordionContent = forwardRef<
 >(({ className, children, ...props }, ref) => (
 	<AccordionPrimitive.Content
 		ref={ref}
-		className={`c15t-devtool-accordion-content ${className || ''}`}
+		className={cn(styles.content, className)}
 		{...props}
 	>
-		<div className="c15t-devtool-accordion-content-inner">{children}</div>
+		<div className={styles.contentInner}>{children}</div>
 	</AccordionPrimitive.Content>
 ));
 AccordionContent.displayName = AccordionPrimitive.Content.displayName;

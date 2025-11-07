@@ -1,145 +1,110 @@
 'use client';
 
 import type { PrivacyConsentState } from 'c15t';
-import { GanttChartSquare, ToggleLeft } from 'lucide-react';
-import { motion } from 'motion/react';
 import { useCallback, useState } from 'react';
-import { Badge } from '~/components/ui/badge';
+import type { IconName } from '~/components/icons';
 import { ExpandableTabs } from '../components/ui/expandable-tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { getStore } from '../dev-tool';
+import styles from './router.module.css';
+import {
+	Actions,
+	Compliance,
+	Consents,
+	GeoI18n,
+	Misc,
+	Scripts,
+} from './sections';
 
-type TabSection = 'Consents' | 'Compliance' | 'Scripts' | 'Conditional';
+type TabSection =
+	| 'Consents'
+	| 'Geo & i18n'
+	| 'Scripts'
+	| 'Misc'
+	| 'Compliance'
+	| 'Actions';
 
 const tabs = [
-	{ title: 'Consents' as const, icon: ToggleLeft },
-	{ title: 'Compliance' as const, icon: GanttChartSquare },
-] as const;
-
-interface ContentItem {
-	title: string;
-	status: string;
-	details?: string;
-}
+	{
+		title: 'Consents' as const,
+		icon: 'radio-button' as IconName,
+		iconType: 'optin' as const,
+		width: '500px' as const,
+	},
+	{
+		title: 'Geo & i18n' as const,
+		icon: 'GB' as IconName,
+		iconType: 'flags' as const,
+		width: '500px' as const,
+	},
+	{
+		title: 'Scripts' as const,
+		icon: 'refresh' as IconName,
+		iconType: 'optin' as const,
+		width: '500px' as const,
+	},
+	{
+		title: 'Misc' as const,
+		icon: 'external-link' as IconName,
+		iconType: 'optin' as const,
+		width: '500px' as const,
+	},
+] as const satisfies Array<{
+	title: TabSection;
+	icon: IconName;
+	iconType?: 'optin' | 'flags';
+	width?: '450px' | '500px' | '550px';
+}>;
 
 interface RouterProps {
 	onClose: () => void;
 }
 
 export function Router({ onClose: _onClose }: RouterProps) {
-	const privacyConsent = getStore() as PrivacyConsentState;
+	const state = getStore() as PrivacyConsentState;
 
 	const [activeSection, setActiveSection] = useState<TabSection>('Consents');
 
 	// Handle tab change locally
 	const handleTabChange = useCallback((index: number | null) => {
 		if (index !== null) {
-			//@ts-expect-error
+			//@ts-expect-error - tabs array is const and index is valid
 			setActiveSection(tabs[index].title);
 		}
 	}, []);
 
-	// Compute rendering state without conditions
-	const renderingState = [
-		{ componentName: 'MarketingContent', consentType: 'marketing' as const },
-		{ componentName: 'AnalyticsContent', consentType: 'measurement' as const },
-		{
-			componentName: 'PersonalizationComponent',
-			consentType: 'ad_personalization' as const,
-		},
-	];
-
-	// Compute content items based on active section
-	const contentItems: ContentItem[] = (() => {
+	// Render active section
+	const renderSection = () => {
 		switch (activeSection) {
 			case 'Consents':
-				return Object.entries(privacyConsent.consents).map(([name, value]) => ({
-					title: name,
-					status: value ? 'Enabled' : 'Disabled',
-				}));
+				return <Consents state={state} />;
+			case 'Geo & i18n':
+				return <GeoI18n state={state} />;
+			case 'Scripts':
+				return <Scripts state={state} />;
+			case 'Misc':
+				return <Misc state={state} />;
 			case 'Compliance':
-				return Object.entries(privacyConsent.complianceSettings).map(
-					([region, settings]) => ({
-						title: region,
-						status: settings.enabled ? 'Active' : 'Inactive',
-					})
-				);
-			case 'Conditional':
-				return renderingState.map((item) => ({
-					title: item.componentName,
-					status: 'Rendered',
-					details: `Requires: ${item.consentType}`,
-				}));
+				return <Compliance state={state} />;
+			case 'Actions':
+				return <Actions />;
 			default:
-				return [];
+				return null;
 		}
-	})();
+	};
 
 	return (
 		<>
-			<div className="border-b p-4">
-				<ExpandableTabs
-					tabs={Array.from(tabs)}
-					activeColor="text-primary"
-					className="border-muted"
-					onChange={handleTabChange}
-				/>
+			<div className={styles.tabsContainer}>
+				<ScrollArea orientation="horizontal" className={styles.tabsScrollArea}>
+					<ExpandableTabs
+						tabs={Array.from(tabs)}
+						activeColor="primary"
+						onChange={handleTabChange}
+					/>
+				</ScrollArea>
 			</div>
-			<ScrollArea className="h-[300px]">
-				<motion.div
-					className="space-y-2 p-4"
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					exit={{ opacity: 0 }}
-				>
-					{contentItems.map((item, index) => (
-						<motion.div
-							key={`${activeSection}-${item.title}`}
-							className="flex items-center justify-between rounded-lg border bg-card p-3"
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ delay: index * 0.05 }}
-						>
-							<div className="flex flex-col">
-								<span className="font-medium text-sm">{item.title}</span>
-								{item.details && (
-									<span className="text-muted-foreground text-xs">
-										{item.details}
-									</span>
-								)}
-							</div>
-							<Badge
-								variant={
-									item.status === 'Enabled' ||
-									item.status === 'Active' ||
-									item.status === 'active' ||
-									item.status === 'Rendered'
-										? 'default'
-										: 'destructive'
-								}
-							>
-								{item.status}
-							</Badge>
-						</motion.div>
-					))}
-				</motion.div>
-			</ScrollArea>
-			{/* <div className="border-t p-4">
-				<div className="flex flex-col gap-2">
-					<Button variant="outline" size="sm" onClick={handleResetConsent}>
-						<RefreshCw className="mr-2 h-4 w-4" />
-						Reset Local Storage Consent
-					</Button>
-					<Button variant="outline" size="sm" onClick={handleOpenPrivacyModal}>
-						<FileText className="mr-2 h-4 w-4" />
-						Open Privacy Settings
-					</Button>
-					<Button variant="outline" size="sm" onClick={handleOpenCookiePopup}>
-						<Cookie className="mr-2 h-4 w-4" />
-						Open Cookie Popup
-					</Button>
-				</div>
-			</div> */}
+			{renderSection()}
 		</>
 	);
 }

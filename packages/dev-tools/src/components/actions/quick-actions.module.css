@@ -1,0 +1,195 @@
+.container {
+	padding: 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.notification {
+	position: fixed;
+	top: 16px;
+	right: 16px;
+	z-index: 1000;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 12px 16px;
+	border-radius: 8px;
+	background: rgba(0, 0, 0, 0.9);
+	color: white;
+	font-size: 14px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+	animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+	from {
+		transform: translateX(100%);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
+
+.sectionTitle {
+	font-size: 16px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.95);
+	margin: 24px 0 12px 0;
+	letter-spacing: -0.02em;
+}
+
+.sectionTitle:first-child {
+	margin-top: 0;
+}
+
+.preferencesContainer {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	border-radius: 8px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	overflow: hidden;
+	background: rgba(255, 255, 255, 0.02);
+}
+
+.preferenceSection {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16px 20px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	transition: background-color 150ms ease;
+}
+
+.preferenceSection:last-child {
+	border-bottom: none;
+}
+
+.preferenceSection:hover {
+	background: rgba(255, 255, 255, 0.02);
+}
+
+.preferenceHeader {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding-right: 16px;
+}
+
+.preferenceLabel {
+	font-size: 14px;
+	font-weight: 500;
+	color: rgba(255, 255, 255, 0.95);
+	line-height: 1.4;
+	margin: 0;
+}
+
+.preferenceDescription {
+	font-size: 13px;
+	color: rgba(255, 255, 255, 0.6);
+	line-height: 1.5;
+	margin: 0;
+}
+
+.preferenceControl {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+}
+
+.actionButton {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-width: 100px;
+}
+
+.actionSelect {
+	/* Reset browser defaults */
+	appearance: none;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	margin: 0;
+	font-family: inherit;
+	font-size: 13px;
+	line-height: 1;
+
+	/* Styling */
+	padding: 8px 32px 8px 12px;
+	border-radius: 6px;
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	color: rgba(255, 255, 255, 0.95);
+	cursor: pointer;
+	transition:
+		background-color 150ms ease,
+		border-color 150ms ease;
+	min-width: 180px;
+
+	/* Custom dropdown arrow */
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='rgba(255,255,255,0.95)' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 10px center;
+	background-size: 12px;
+}
+
+.actionSelect:hover {
+	background-color: rgba(255, 255, 255, 0.08);
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+.actionSelect:focus {
+	outline: none;
+	border-color: rgba(96, 165, 250, 0.6);
+	box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+}
+
+/* Style select options */
+.actionSelect option {
+	background: rgba(0, 0, 0, 0.95);
+	color: rgba(255, 255, 255, 0.9);
+	padding: 8px 12px;
+}
+
+/* Light theme overrides */
+:global(.light) .sectionTitle {
+	color: rgba(0, 0, 0, 0.9);
+}
+
+:global(.light) .preferencesContainer {
+	background: rgba(0, 0, 0, 0.02);
+	border-color: rgba(0, 0, 0, 0.1);
+}
+
+:global(.light) .preferenceSection {
+	border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+:global(.light) .preferenceSection:hover {
+	background: rgba(0, 0, 0, 0.02);
+}
+
+:global(.light) .preferenceLabel {
+	color: rgba(0, 0, 0, 0.95);
+}
+
+:global(.light) .preferenceDescription {
+	color: rgba(0, 0, 0, 0.6);
+}
+
+.actionSelect {
+	min-width: 180px;
+	width: 100%;
+	max-width: 220px;
+}
+
+:global(.light) .notification {
+	background: rgba(255, 255, 255, 0.95);
+	color: rgba(0, 0, 0, 0.9);
+	border: 1px solid rgba(0, 0, 0, 0.1);
+}

@@ -1,0 +1,64 @@
+.alert {
+	position: relative;
+	width: 100%;
+	border-radius: 0.5rem;
+	border: 1px solid var(--c15t-dev-tools-border);
+	padding: 0.75rem 1rem;
+	font-size: 0.875rem;
+}
+
+.alert > svg {
+	position: absolute;
+	top: 1rem;
+	left: 1rem;
+	color: var(--c15t-dev-tools-foreground);
+}
+
+.alert > svg + div {
+	transform: translateY(-3px);
+}
+
+.alert > svg ~ * {
+	padding-left: 1.75rem;
+}
+
+/* Variants */
+.default {
+	background-color: var(--c15t-dev-tools-background);
+	color: var(--c15t-dev-tools-foreground);
+}
+
+.destructive {
+	border-color: color-mix(
+		in srgb,
+		var(--c15t-dev-tools-destructive) 50%,
+		transparent
+	);
+	color: var(--c15t-dev-tools-destructive);
+}
+
+.destructive > svg {
+	color: var(--c15t-dev-tools-destructive);
+}
+
+/* Dark mode override for destructive variant */
+@media (prefers-color-scheme: dark) {
+	.destructive {
+		border-color: var(--c15t-dev-tools-destructive);
+	}
+}
+
+.title {
+	margin-bottom: 0.25rem;
+	font-weight: 500;
+	line-height: 1;
+	letter-spacing: -0.025em;
+}
+
+.description {
+	font-size: 0.875rem;
+}
+
+.description p {
+	line-height: 1.625;
+}

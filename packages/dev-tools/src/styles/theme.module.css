@@ -1,0 +1,98 @@
+.theme {
+	/* Typography */
+	--c15t-dev-tools-font-family:
+		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+		"Apple Color Emoji", "Segoe UI Emoji";
+	--c15t-dev-tools-line-height: 1.5;
+	--c15t-dev-tools-font-size: 0.875rem;
+
+	/* Base colors */
+	--c15t-dev-tools-background: hsl(0, 0%, 100%);
+	--c15t-dev-tools-foreground: hsl(0, 0%, 9.02%);
+
+	/* Primary colors */
+	--c15t-dev-tools-primary: hsl(0, 0%, 9.02%);
+	--c15t-dev-tools-primary-foreground: hsl(0, 0%, 100%);
+
+	/* Secondary colors */
+	--c15t-dev-tools-secondary: hsl(0, 0%, 96%);
+	--c15t-dev-tools-secondary-foreground: hsl(0, 0%, 9.02%);
+
+	/* Accent colors */
+	--c15t-dev-tools-accent: hsl(0, 0%, 96%);
+	--c15t-dev-tools-accent-foreground: hsl(0, 0%, 9.02%);
+
+	/* Muted colors */
+	--c15t-dev-tools-muted: hsl(0, 0%, 96%);
+	--c15t-dev-tools-muted-foreground: hsl(0, 0%, 36.08%);
+
+	/* Card colors */
+	--c15t-dev-tools-card: hsl(0, 0%, 100%);
+	--c15t-dev-tools-card-foreground: hsl(0, 0%, 9.02%);
+
+	/* Border colors */
+	--c15t-dev-tools-border: hsl(0, 0%, 92.16%);
+	--c15t-dev-tools-input: hsl(0, 0%, 92.16%);
+
+	/* Ring colors */
+	--c15t-dev-tools-ring: hsl(0, 0%, 36.08%);
+
+	/* Destructive colors */
+	--c15t-dev-tools-destructive: hsl(0, 84%, 60%);
+	--c15t-dev-tools-destructive-foreground: hsl(0, 0%, 100%);
+
+	/* Overlay colors */
+	--c15t-dev-tools-overlay: rgb(0 0 0 / 0.5);
+
+	/* Layout */
+	--c15t-dev-tools-card-radius: 0.75rem;
+	--c15t-dev-tools-card-width: 28rem;
+	--c15t-dev-tools-card-max-height: 90vh;
+	--c15t-dev-tools-z-index: 999999999;
+	--c15t-dev-tools-overlay-z-index: 999999998;
+
+	/* Effects */
+	--c15t-dev-tools-card-shadow:
+		0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+	--c15t-dev-tools-border-width: 1px;
+
+	/* Animation */
+	--c15t-dev-tools-animation-duration: 200ms;
+	--c15t-dev-tools-animation-timing: ease-out;
+
+	/* Spacing */
+	--c15t-dev-tools-spacing-sm: 0.5rem;
+	--c15t-dev-tools-spacing-md: 1rem;
+	--c15t-dev-tools-spacing-lg: 1.5rem;
+}
+
+/* Dark mode overrides */
+:global(.dark) .theme {
+	--c15t-dev-tools-background: hsl(0, 0%, 10%);
+	--c15t-dev-tools-foreground: hsl(0, 0%, 90%);
+
+	--c15t-dev-tools-primary: hsl(0, 0%, 90%);
+	--c15t-dev-tools-primary-foreground: hsl(0, 0%, 10%);
+
+	--c15t-dev-tools-secondary: hsl(0, 0%, 20%);
+	--c15t-dev-tools-secondary-foreground: hsl(0, 0%, 90%);
+
+	--c15t-dev-tools-accent: hsl(0, 0%, 20%);
+	--c15t-dev-tools-accent-foreground: hsl(0, 0%, 90%);
+
+	--c15t-dev-tools-muted: hsl(0, 0%, 20%);
+	--c15t-dev-tools-muted-foreground: hsl(0, 0%, 60%);
+
+	--c15t-dev-tools-card: hsl(0, 0%, 10%);
+	--c15t-dev-tools-card-foreground: hsl(0, 0%, 90%);
+
+	--c15t-dev-tools-border: hsl(0, 0%, 90%);
+	--c15t-dev-tools-input: hsl(0, 0%, 90%);
+
+	--c15t-dev-tools-ring: hsl(0, 0%, 60%);
+
+	--c15t-dev-tools-destructive: hsl(0, 84%, 30%);
+	--c15t-dev-tools-destructive-foreground: hsl(0, 0%, 90%);
+
+	--c15t-dev-tools-overlay: rgb(0 0 0 / 0.7);
+}

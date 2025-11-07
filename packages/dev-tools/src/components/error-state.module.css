@@ -1,0 +1,56 @@
+.container {
+	margin-top: 1rem;
+	margin-bottom: 1rem;
+	border-radius: 0.5rem;
+	text-align: center;
+	font-size: 1rem;
+	box-shadow:
+		0 10px 15px -3px rgb(0 0 0 / 0.1),
+		0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.alert {
+	max-width: 42rem;
+	border-top-left-radius: 0;
+	border-top-right-radius: 0;
+}
+
+.icon {
+	height: 1rem;
+	width: 1rem;
+}
+
+.title {
+	font-weight: 600;
+	font-size: 1.125rem;
+}
+
+.description {
+	margin-left: -1.75rem;
+	margin-top: 0.5rem;
+}
+
+.message {
+	margin-bottom: 0.5rem;
+}
+
+.list {
+	list-style-type: disc;
+	padding-left: 1.5rem;
+	margin-top: 0.25rem;
+}
+
+.namespace {
+	margin-top: 0.75rem;
+	font-size: 0.875rem;
+}
+
+.code {
+	border-radius: 0.25rem;
+	background-color: color-mix(
+		in srgb,
+		var(--c15t-dev-tools-destructive) 10%,
+		transparent
+	);
+	padding: 0.125rem 0.25rem;
+}

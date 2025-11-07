@@ -1,23 +1,24 @@
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { type ButtonHTMLAttributes, forwardRef } from 'react';
-import './button.css';
+import { cn } from '~/libs/utils';
+import styles from './button.module.css';
 
-const buttonVariants = cva('c15t-devtool-button', {
+const buttonVariants = cva(styles.button, {
 	variants: {
 		variant: {
-			default: 'c15t-devtool-button-default',
-			destructive: 'c15t-devtool-button-destructive',
-			outline: 'c15t-devtool-button-outline',
-			secondary: 'c15t-devtool-button-secondary',
-			ghost: 'c15t-devtool-button-ghost',
-			link: 'c15t-devtool-button-link',
+			default: styles.default,
+			destructive: styles.destructive,
+			outline: styles.outline,
+			secondary: styles.secondary,
+			ghost: styles.ghost,
+			link: styles.link,
 		},
 		size: {
-			default: 'c15t-devtool-button-size-default',
-			sm: 'c15t-devtool-button-size-sm',
-			lg: 'c15t-devtool-button-size-lg',
-			icon: 'c15t-devtool-button-size-icon',
+			default: styles.sizeDefault,
+			sm: styles.sizeSm,
+			lg: styles.sizeLg,
+			icon: styles.sizeIcon,
 		},
 	},
 	defaultVariants: {
@@ -37,7 +38,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 		const Comp = asChild ? Slot : 'button';
 		return (
 			<Comp
-				className={`${buttonVariants({ variant, size })} ${className || ''}`}
+				className={cn(buttonVariants({ variant, size }), className)}
 				ref={ref}
 				{...props}
 			/>

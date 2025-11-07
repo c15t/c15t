@@ -1,0 +1,82 @@
+.root {
+	position: relative;
+	overflow: hidden;
+}
+
+.viewport {
+	border-radius: inherit;
+	max-height: 450px;
+}
+
+.root[data-orientation="vertical"] {
+	height: 100%;
+}
+
+.root[data-orientation="vertical"] .viewport {
+	height: 100%;
+	width: 100%;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+
+.root[data-orientation="horizontal"] .viewport {
+	height: 100%;
+	width: 100%;
+	overflow-x: auto;
+	overflow-y: hidden;
+}
+
+.root[data-orientation="both"] .viewport {
+	height: 100%;
+	width: 100%;
+	overflow: auto;
+}
+
+.bar {
+	display: flex;
+	touch-action: none;
+	user-select: none;
+	transition: opacity 150ms ease;
+	opacity: 0;
+}
+
+.bar:hover {
+	opacity: 1;
+}
+
+.root:hover .bar {
+	opacity: 1;
+}
+
+.bar[data-orientation="vertical"] {
+	height: 100%;
+	width: 8px;
+	padding: 2px;
+}
+
+.bar[data-orientation="horizontal"] {
+	height: 8px;
+	flex-direction: column;
+	padding: 2px;
+}
+
+.thumb {
+	position: relative;
+	flex: 1;
+	border-radius: 4px;
+	background: rgba(255, 255, 255, 0.2);
+	transition: background-color 150ms ease;
+}
+
+.thumb:hover {
+	background: rgba(255, 255, 255, 0.3);
+}
+
+/* Light theme overrides */
+:global(.light) .thumb {
+	background: rgba(0, 0, 0, 0.15);
+}
+
+:global(.light) .thumb:hover {
+	background: rgba(0, 0, 0, 0.25);
+}

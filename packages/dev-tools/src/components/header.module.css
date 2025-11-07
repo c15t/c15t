@@ -1,0 +1,30 @@
+.header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.75rem var(--c15t-dev-tools-spacing-md);
+	border-bottom: var(--c15t-dev-tools-border-width) solid
+		var(--c15t-dev-tools-border);
+	background-color: var(--c15t-dev-tools-background);
+}
+
+.title {
+	display: flex;
+	align-items: center;
+	gap: var(--c15t-dev-tools-spacing-sm);
+	font-size: var(--c15t-dev-tools-font-size);
+	font-weight: 500;
+	color: var(--c15t-dev-tools-foreground);
+}
+
+.actions {
+	display: flex;
+	align-items: center;
+	gap: var(--c15t-dev-tools-spacing-sm);
+}
+
+.logo {
+	width: auto;
+	height: 1.4rem;
+	fill: var(--c15t-dev-tools-muted-foreground);
+}

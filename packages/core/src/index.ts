@@ -84,5 +84,6 @@ export {
 	type ConsentType,
 	consentTypes,
 } from './types/gdpr';
+export type { Overrides } from './types/index';
 export type { LegalLink, LegalLinks } from './types/legal-links';
 export type { User } from './types/user';

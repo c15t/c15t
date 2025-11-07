@@ -1,13 +1,18 @@
 'use client';
 
-import type { LucideIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { memo, useCallback, useEffect, useState } from 'react';
-import './expandable-tabs.css';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { Icon, type IconName } from '~/components/icons';
+import { FlagsIcon } from '~/components/icons/flags';
+import { cn } from '~/libs/utils';
+import { useWidthContext } from '~/router/use-width-context';
+import styles from './expandable-tabs.module.css';
 
 interface Tab {
 	title: string;
-	icon: LucideIcon;
+	icon: IconName;
+	iconType?: 'flags' | 'optin';
+	width?: 'auto' | `${number}px`;
 	type?: never;
 }
 
@@ -48,7 +53,7 @@ const spanVariants = {
 const transition = { delay: 0.1, type: 'spring', bounce: 0, duration: 0.6 };
 
 const Separator = memo(() => (
-	<div className="c15t-devtool-tab-separator" aria-hidden="true" />
+	<div className={styles.separator} aria-hidden="true" />
 ));
 Separator.displayName = 'Separator';
 
@@ -66,7 +71,7 @@ const TabButton = memo(
 		activeColor: string;
 		onClick: (index: number) => void;
 	}) => {
-		const Icon = tab.icon;
+		const iconType = tab.iconType || 'optin';
 
 		return (
 			<motion.button
@@ -76,9 +81,17 @@ const TabButton = memo(
 				custom={isSelected}
 				onClick={() => onClick(index)}
 				transition={transition}
-				className={`c15t-devtool-tab-button ${isSelected ? `selected ${activeColor}` : ''}`}
+				className={cn(
+					styles.button,
+					isSelected && styles.selected,
+					isSelected && activeColor === 'primary' && styles.primary
+				)}
 			>
-				<Icon size={20} />
+				{iconType === 'flags' ? (
+					<FlagsIcon name={tab.icon} size={20} />
+				) : (
+					<Icon name={tab.icon} size={20} />
+				)}
 				<AnimatePresence initial={false}>
 					{isSelected && (
 						<motion.span
@@ -87,7 +100,7 @@ const TabButton = memo(
 							animate="animate"
 							exit="exit"
 							transition={transition}
-							className="c15t-devtool-tab-title"
+							className={styles.title}
 						>
 							{tab.title}
 						</motion.span>
@@ -106,6 +119,8 @@ export function ExpandableTabs({
 	onChange,
 }: ExpandableTabsProps) {
 	const [selected, setSelected] = useState<number | null>(0);
+	const containerRef = useRef<HTMLDivElement>(null);
+	const { setTabWidth, setSelectedTabIndex, setTabWidths } = useWidthContext();
 
 	const handleInitialChange = useCallback(() => {
 		onChange?.(0);
@@ -115,16 +130,67 @@ export function ExpandableTabs({
 		handleInitialChange();
 	}, [handleInitialChange]);
 
+	// Extract tab widths from tabs array and store in context
+	useEffect(() => {
+		const widths = new Map<number, 'auto' | `${number}px`>();
+		tabs.forEach((tab, index) => {
+			if (tab.type !== 'separator' && tab.width) {
+				widths.set(index, tab.width);
+			}
+		});
+		setTabWidths(widths);
+	}, [tabs, setTabWidths]);
+
+	// Measure width and update CSS variable
+	const measureWidth = useCallback(() => {
+		const container = containerRef.current;
+		if (!container) {
+			return;
+		}
+
+		const width = container.scrollWidth;
+		setTabWidth(width);
+		// Also set CSS variable on container for CSS transitions
+		container.style.setProperty('--tabs-container-width', `${width}px`);
+	}, [setTabWidth]);
+
+	// Update selected tab index when it changes
+	useEffect(() => {
+		setSelectedTabIndex(selected);
+	}, [selected, setSelectedTabIndex]);
+
+	// Use ResizeObserver to track width changes
+	useEffect(() => {
+		const container = containerRef.current;
+		if (!container) {
+			return;
+		}
+
+		const observer = new ResizeObserver(() => {
+			measureWidth();
+		});
+
+		observer.observe(container);
+		measureWidth(); // Initial measurement
+
+		return () => observer.disconnect();
+	}, [measureWidth]);
+
 	const handleSelect = useCallback(
 		(index: number) => {
 			setSelected(index);
+			setSelectedTabIndex(index);
 			onChange?.(index);
+			// Remeasure after tab animations complete (delay: 0.1s + duration: 0.6s = 0.7s + buffer)
+			setTimeout(() => {
+				measureWidth();
+			}, 800);
 		},
-		[onChange]
+		[onChange, measureWidth, setSelectedTabIndex]
 	);
 
 	return (
-		<div className={`c15t-devtool-tabs-container ${className || ''}`}>
+		<div ref={containerRef} className={cn(styles.container, className)}>
 			{tabs.map((tab, index) =>
 				tab.type === 'separator' ? (
 					<Separator key={`separator-${index}`} />
