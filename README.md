@@ -38,9 +38,9 @@ c15t is a headless consent engine that transforms privacy management from a comp
 
 Comprehensive guides for different frameworks:
 
-- [Next.js Quickstart](/docs/frameworks/next/quickstart)
-- [React Quickstart](/docs/frameworks/react/quickstart)
-- [JavaScript Quickstart](/docs/frameworks/javascript/quickstart)
+- [Next.js Quickstart](https://c15t.com/docs/frameworks/next/quickstart)
+- [React Quickstart](https://c15t.com/docs/frameworks/react/quickstart)
+- [JavaScript Quickstart](https://c15t.com/docs/frameworks/javascript/quickstart)
 
 ## Support
 
