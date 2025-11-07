@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 
 // Default support and contributing sections
 const DEFAULT_SUPPORT_SECTIONS = [
-	'Join our [Discord community](https://c15t.com/discord)',
+	'Join our [Discord community](https://c15t.link/discord)',
 	'Open an issue on our [GitHub repository](https://github.com/c15t/c15t/issues)',
 	'Visit [consent.io](https://consent.io) and use the chat widget',
 	'Contact our support team via email [support@consent.io](mailto:support@consent.io)',
@@ -151,7 +151,7 @@ const baseReadmeTemplate = (rawConfig: PackageReadmeConfig) => {
 [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
-[![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.com/discord)
+[![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.link/discord)
 [![npm version](https://img.shields.io/npm/v/${npmBadgeName}?style=flat-square)](${npmPackageLink})
 [![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
