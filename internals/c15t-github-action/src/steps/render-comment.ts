@@ -171,7 +171,7 @@ export function renderCommentMarkdown(
 			'- Visit our [Documentation](https://c15t.com/docs) for detailed information on how to use c15t.'
 		);
 		lines.push(
-			'- Join our [Discord Community](https://c15t.com/discord) to get help, request features, and share feedback.'
+			'- Join our [Discord Community](https://c15t.link/discord) to get help, request features, and share feedback.'
 		);
 		lines.push(
 			'- Follow us on [X](https://twitter.com/consentdotio) for updates and announcements.'

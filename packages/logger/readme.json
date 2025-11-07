@@ -1,13 +1,22 @@
 {
 	"title": "@c15t/logger: Logger for c15t",
-	"description": "Logger for c15t, providing ready-to-use logging for c15t.",
+	"description": "A lightweight, customizable logging utility for Node.js and TypeScript applications. Designed for use in c15t CLI and backend applications.",
 	"features": [
-		"Configurable log levels and filters",
-		"Color-coded console output",
-		"Error logging for Result/ResultAsync types from neverthrow",
+		"Color-coded console output with picocolors",
+		"Configurable log levels (error, warn, info, debug, success)",
 		"Custom log handlers",
-		"Console redirection functionality"
+		"Type-safe with TypeScript",
+		"Error logging for Result/ResultAsync types from neverthrow",
+		"Console redirection functionality",
+		"Lightweight with minimal dependencies"
 	],
+	"installation": ["```bash", "pnpm add @c15t/logger", "```"],
 	"docsLink": "https://c15t.com/",
-	"showCLIGeneration": false
+	"showCLIGeneration": false,
+	"customSections": {
+		"Quick Start": "```typescript\nimport { createLogger } from '@c15t/logger';\n\n// Create a logger instance\nconst logger = createLogger({\n  level: 'info',\n  appName: 'my-app',\n});\n\n// Log messages at different levels\nlogger.info('Application started');\nlogger.debug('Debug information', { userId: 123 });\nlogger.warn('Warning message');\nlogger.error('Error occurred', new Error('Something went wrong'));\nlogger.success('Operation completed successfully');\n```",
+		"Configuration": "### LoggerOptions\n\n```typescript\ninterface LoggerOptions {\n  /** Whether logging is disabled */\n  disabled?: boolean;\n\n  /** The minimum log level to publish */\n  level?: 'error' | 'warn' | 'info' | 'debug';\n\n  /** Custom log handler function */\n  log?: (level: LogLevel, message: string, ...args: unknown[]) => void;\n\n  /** Custom application name to display in log messages */\n  appName?: string;\n}\n```",
+		"Advanced Usage": "### Custom Log Handler\n\n```typescript\nconst logger = createLogger({\n  level: 'info',\n  appName: 'my-app',\n  log: (level, message, ...args) => {\n    // Send logs to external service\n    sendToLoggingService({ level, message, args });\n  },\n});\n```\n\n### Extending the Logger\n\n```typescript\nimport { extendLogger } from '@c15t/logger';\n\nconst baseLogger = createLogger({ level: 'info' });\n\nconst extendedLogger = extendLogger(baseLogger, {\n  http: (message, ...args) => baseLogger.info(`HTTP: ${message}`, ...args),\n  database: (message, ...args) => baseLogger.info(`DB: ${message}`, ...args),\n});\n\nextendedLogger.http('GET /api/users');\nextendedLogger.database('Query executed in 10ms');\n```\n\n### Error Logging with neverthrow\n\n```typescript\nimport { logResult, logResultAsync } from '@c15t/logger';\nimport { ok, err, okAsync } from 'neverthrow';\n\nconst result = err(new Error('Something went wrong'));\n\n// Log if the result is an error\nlogResult(result, logger, 'Operation failed');\n\n// For async results\nconst asyncResult = okAsync({ data: 'success' });\nawait logResultAsync(asyncResult, logger, 'Async operation');\n```",
+		"API Reference": "### Core Functions\n\n- `createLogger(options?: LoggerOptions): Logger` - Creates a configured logger instance\n- `logger` - Default logger instance with standard configuration\n- `extendLogger<T>(baseLogger: Logger, extensions: T): ExtendedLogger<T>` - Extends a logger with additional methods\n\n### Utility Functions\n\n- `logResult(result, logger, message)` - Logs neverthrow Result if it's an error\n- `logResultAsync(result, logger, message)` - Logs neverthrow ResultAsync if it's an error\n- `formatArgs(args)` - Formats arguments for display\n- `formatMessage(level, message, args, appName)` - Formats a log message with app name and styling"
+	}
 }
