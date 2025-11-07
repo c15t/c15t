@@ -8,5 +8,8 @@
 		"Supported vendors include Google Tag Manager, Meta Pixel, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, and X Pixel"
 	],
 	"docsLink": "https://c15t.com/docs/integrations",
-	"showCLIGeneration": false
+	"showCLIGeneration": false,
+	"customSections": {
+		"Scripts": "- [Google Tag Manager](https://c15t.link/google-tag-manager)\n- [Google Tag](https://c15t.link/google-tag)\n- [PostHog](https://c15t.link/posthog)\n- [Meta Pixel](https://c15t.link/meta-pixel)\n- [TikTok Pixel](https://c15t.link/tiktok-pixel)\n- [LinkedIn Insights](https://c15t.link/linkedin-insights)\n- [Microsoft UET](https://c15t.link/microsoft-uet)\n- [X Pixel](https://c15t.link/x-pixel)"
+	}
 }
