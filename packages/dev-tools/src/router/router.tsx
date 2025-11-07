@@ -7,28 +7,53 @@ import { ExpandableTabs } from '../components/ui/expandable-tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { getStore } from '../dev-tool';
 import styles from './router.module.css';
-import { Actions, Compliance, Consents } from './sections';
+import {
+	Actions,
+	Compliance,
+	Consents,
+	GeoI18n,
+	Misc,
+	Scripts,
+} from './sections';
 
-type TabSection = 'Consents' | 'Compliance' | 'Actions';
+type TabSection =
+	| 'Consents'
+	| 'Geo & i18n'
+	| 'Scripts'
+	| 'Misc'
+	| 'Compliance'
+	| 'Actions';
 
 const tabs = [
 	{
 		title: 'Consents' as const,
 		icon: 'radio-button' as IconName,
 		iconType: 'optin' as const,
+		width: '500px' as const,
 	},
-	// { title: 'Compliance' as const, icon: GanttChartSquare },
 	{
-		title: 'Actions' as const,
-		icon: 'speed-fast' as IconName,
+		title: 'Geo & i18n' as const,
+		icon: 'GB' as IconName,
+		iconType: 'flags' as const,
+		width: '500px' as const,
+	},
+	{
+		title: 'Scripts' as const,
+		icon: 'refresh' as IconName,
 		iconType: 'optin' as const,
-		width: '450px' as const,
+		width: '500px' as const,
+	},
+	{
+		title: 'Misc' as const,
+		icon: 'external-link' as IconName,
+		iconType: 'optin' as const,
+		width: '500px' as const,
 	},
 ] as const satisfies Array<{
 	title: TabSection;
 	icon: IconName;
 	iconType?: 'optin' | 'flags';
-	width?: '450px';
+	width?: '450px' | '500px' | '550px';
 }>;
 
 interface RouterProps {
@@ -53,6 +78,12 @@ export function Router({ onClose: _onClose }: RouterProps) {
 		switch (activeSection) {
 			case 'Consents':
 				return <Consents state={state} />;
+			case 'Geo & i18n':
+				return <GeoI18n state={state} />;
+			case 'Scripts':
+				return <Scripts state={state} />;
+			case 'Misc':
+				return <Misc state={state} />;
 			case 'Compliance':
 				return <Compliance state={state} />;
 			case 'Actions':

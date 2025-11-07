@@ -23,6 +23,7 @@
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
+	position: relative;
 }
 
 /* Content item card */
@@ -55,12 +56,16 @@
 	line-height: 20px;
 	font-weight: 500;
 	color: rgba(255, 255, 255, 0.9);
+	overflow-wrap: break-word;
+	word-break: break-word;
 }
 
 .itemDetails {
 	font-size: 12px;
 	line-height: 16px;
 	color: rgba(255, 255, 255, 0.6);
+	overflow-wrap: break-word;
+	word-break: break-word;
 }
 
 /* Light theme overrides */
