@@ -1,4 +1,5 @@
 import { pluginReact } from '@rsbuild/plugin-react';
+import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { defineConfig } from '@rslib/core';
 import { getRsdoctorPlugins } from '../shared/rslib-utils';
 
@@ -33,7 +34,15 @@ export default defineConfig({
 		},
 	},
 
-	plugins: [pluginReact()],
+	plugins: [
+		pluginReact(),
+		pluginSvgr({
+			mixedImport: true,
+			svgrOptions: {
+				exportType: 'named',
+			},
+		}),
+	],
 	tools: {
 		rspack: {
 			plugins: [...getRsdoctorPlugins()],
