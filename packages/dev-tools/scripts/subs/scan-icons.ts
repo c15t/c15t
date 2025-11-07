@@ -23,6 +23,7 @@ function findProjectRoot(dir = process.cwd()): string {
 
 const SVG_EXTENSION_LENGTH = 4; // Length of '.svg' extension
 const ICONS_DIR = 'src/icons';
+const FLAGS_SHEET = 'src/public/flags-sheet.svg';
 const TYPES_FILE = 'src/components/icons/types.ts';
 const ICON_NAME_PATTERN =
 	/\/\/ @generated BEGIN IconName[\s\S]*?\/\/ @generated END IconName/;
@@ -47,6 +48,33 @@ function scanIcons(): string[] {
 	}
 
 	return iconNames.sort();
+}
+
+function scanFlags(): string[] {
+	const projectRoot = findProjectRoot();
+	const flagsPath = path.join(projectRoot, FLAGS_SHEET);
+
+	if (!fs.existsSync(flagsPath)) {
+		console.warn(`⚠️  Flags sheet not found: ${flagsPath}`);
+		return [];
+	}
+
+	const content = fs.readFileSync(flagsPath, 'utf8');
+	const flagNames: string[] = [];
+
+	// Extract symbol IDs from the SVG sprite sheet
+	// Match <symbol id="FLAG_CODE"> patterns
+	const symbolRegex = /<symbol\s+id=["']([^"']+)["']/g;
+	let match = symbolRegex.exec(content);
+	while (match !== null) {
+		const flagName = match[1];
+		if (flagName) {
+			flagNames.push(flagName);
+		}
+		match = symbolRegex.exec(content);
+	}
+
+	return flagNames.sort();
 }
 
 function updateTypesFile(iconNames: string[]): void {
@@ -86,17 +114,33 @@ function main() {
 	console.log(`🔍 Scanning icons from ${ICONS_DIR}...`);
 	const iconNames = scanIcons();
 
-	if (iconNames.length === 0) {
+	console.log(`🔍 Scanning flags from ${FLAGS_SHEET}...`);
+	const flagNames = scanFlags();
+
+	// Combine both lists
+	const allIconNames = [...iconNames, ...flagNames].sort();
+
+	if (allIconNames.length === 0) {
 		console.warn('⚠️  No icons found!');
 		return;
 	}
 
-	console.log(`✅ Found ${iconNames.length} icons: ${iconNames.join(', ')}`);
+	console.log(
+		`✅ Found ${iconNames.length} icons and ${flagNames.length} flags`
+	);
+	console.log(`   Icons: ${iconNames.join(', ')}`);
+	if (flagNames.length > 0) {
+		console.log(
+			`   Flags: ${flagNames.slice(0, 5).join(', ')}${flagNames.length > 5 ? ` ... and ${flagNames.length - 5} more` : ''}`
+		);
+	}
 
 	console.log(`📝 Updating ${TYPES_FILE}...`);
-	updateTypesFile(iconNames);
+	updateTypesFile(allIconNames);
 
-	console.log(`✅ Updated IconName type with ${iconNames.length} icons`);
+	console.log(
+		`✅ Updated IconName type with ${allIconNames.length} total icons`
+	);
 }
 
 main();

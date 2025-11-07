@@ -62,6 +62,12 @@ export function DevMenu({
 	useEffect(() => {
 		function handleClickOutside(event: MouseEvent) {
 			const target = event.target as HTMLElement;
+
+			// Don't close if clicking on select dropdown (Radix UI portals it outside)
+			if (target.closest('[data-radix-select-content]')) {
+				return;
+			}
+
 			if (
 				closeOnClickOutside &&
 				menuRef.current &&

@@ -3,9 +3,10 @@
 import type { PrivacyConsentState } from 'c15t';
 import { deleteConsentFromStorage } from 'c15t';
 import { useState } from 'react';
-import { Icon } from '~/components/icons';
+import { Icon, type IconName } from '~/components/icons';
 import { Alert } from '~/components/ui/alert';
 import { Button } from '~/components/ui/button';
+import * as Select from '~/components/ui/select';
 import { getStore } from '../../dev-tool';
 import styles from './quick-actions.module.css';
 
@@ -57,7 +58,7 @@ interface ActionSelectProps {
 	label: string;
 	description: string;
 	value: string;
-	options: Array<{ value: string; label: string }>;
+	options: Array<{ value: string; label: string; flag?: IconName }>;
 	onChange: (value: string) => void;
 }
 
@@ -68,29 +69,30 @@ function ActionSelect({
 	options,
 	onChange,
 }: ActionSelectProps) {
-	const selectId = `select-${label.toLowerCase().replace(/\s+/g, '-')}`;
+	const selectedOption = options.find((opt) => opt.value === value);
+	const selectedFlag = selectedOption?.flag;
 
 	return (
 		<div className={styles.preferenceSection}>
 			<div className={styles.preferenceHeader}>
-				<label htmlFor={selectId} className={styles.preferenceLabel}>
-					{label}
-				</label>
+				<div className={styles.preferenceLabel}>{label}</div>
 				<p className={styles.preferenceDescription}>{description}</p>
 			</div>
 			<div className={styles.preferenceControl}>
-				<select
-					id={selectId}
-					value={value}
-					onChange={(e) => onChange(e.target.value)}
-					className={styles.actionSelect}
-				>
-					{options.map((option) => (
-						<option key={option.value} value={option.value}>
-							{option.label}
-						</option>
-					))}
-				</select>
+				<Select.Root value={value} onValueChange={onChange} size="small">
+					<Select.Trigger className={styles.actionSelect}>
+						{selectedFlag && <Select.TriggerIcon flag={selectedFlag} />}
+						<Select.Value placeholder={selectedOption?.label || 'Select...'} />
+					</Select.Trigger>
+					<Select.Content>
+						{options.map((option) => (
+							<Select.Item key={option.value} value={option.value}>
+								{option.flag && <Select.ItemIcon flag={option.flag} />}
+								<span>{option.label}</span>
+							</Select.Item>
+						))}
+					</Select.Content>
+				</Select.Root>
 			</div>
 		</div>
 	);
@@ -161,33 +163,33 @@ export function QuickActions() {
 
 	// Country options for dropdown
 	const countryOptions = [
-		{ value: 'GB', label: '🇬🇧 UK (GDPR)' },
-		{ value: 'US', label: '🇺🇸 USA (No banner)' },
-		{ value: 'DE', label: '🇩🇪 Germany (GDPR)' },
-		{ value: 'FR', label: '🇫🇷 France (GDPR)' },
-		{ value: 'CH', label: '🇨🇭 Switzerland' },
-		{ value: 'BR', label: '🇧🇷 Brazil (LGPD)' },
-		{ value: 'CA', label: '🇨🇦 Canada (PIPEDA)' },
-		{ value: 'AU', label: '🇦🇺 Australia' },
-		{ value: 'JP', label: '🇯🇵 Japan (APPI)' },
-		{ value: 'KR', label: '🇰🇷 South Korea (PIPA)' },
-		{ value: 'MX', label: '🇲🇽 Mexico (No banner)' },
-		{ value: 'IN', label: '🇮🇳 India (No banner)' },
+		{ value: 'GB', label: 'UK (GDPR)', flag: 'GB' as IconName },
+		{ value: 'US', label: 'USA (No banner)', flag: 'US' as IconName },
+		{ value: 'DE', label: 'Germany (GDPR)', flag: 'DE' as IconName },
+		{ value: 'FR', label: 'France (GDPR)', flag: 'FR' as IconName },
+		{ value: 'CH', label: 'Switzerland', flag: 'CH' as IconName },
+		{ value: 'BR', label: 'Brazil (LGPD)', flag: 'BR' as IconName },
+		{ value: 'CA', label: 'Canada (PIPEDA)', flag: 'CA' as IconName },
+		{ value: 'AU', label: 'Australia', flag: 'AU' as IconName },
+		{ value: 'JP', label: 'Japan (APPI)', flag: 'JP' as IconName },
+		{ value: 'KR', label: 'South Korea (PIPA)', flag: 'KR' as IconName },
+		{ value: 'MX', label: 'Mexico (No banner)', flag: 'MX' as IconName },
+		{ value: 'IN', label: 'India (No banner)', flag: 'IN' as IconName },
 	];
 
-	// Language options for dropdown
+	// Language options for dropdown - map language codes to flag codes
 	const languageOptions = [
-		{ value: 'en', label: '🇬🇧 English' },
-		{ value: 'de', label: '🇩🇪 Deutsch' },
-		{ value: 'es', label: '🇪🇸 Español' },
-		{ value: 'fr', label: '🇫🇷 Français' },
-		{ value: 'it', label: '🇮🇹 Italiano' },
-		{ value: 'pt', label: '🇵🇹 Português' },
-		{ value: 'nl', label: '🇳🇱 Nederlands' },
-		{ value: 'zh', label: '🇨🇳 中文' },
-		{ value: 'fi', label: '🇫🇮 Suomi' },
-		{ value: 'id', label: '🇮🇩 Indonesia' },
-		{ value: 'he', label: '🇮🇱 עברית' },
+		{ value: 'en', label: 'English', flag: 'GB' as IconName },
+		{ value: 'de', label: 'Deutsch', flag: 'DE' as IconName },
+		{ value: 'es', label: 'Español', flag: 'ES' as IconName },
+		{ value: 'fr', label: 'Français', flag: 'FR' as IconName },
+		{ value: 'it', label: 'Italiano', flag: 'IT' as IconName },
+		{ value: 'pt', label: 'Português', flag: 'PT' as IconName },
+		{ value: 'nl', label: 'Nederlands', flag: 'NL' as IconName },
+		{ value: 'zh', label: '中文', flag: 'CN' as IconName },
+		{ value: 'fi', label: 'Suomi', flag: 'FI' as IconName },
+		{ value: 'id', label: 'Indonesia', flag: 'ID' as IconName },
+		{ value: 'he', label: 'עברית', flag: 'IL' as IconName },
 	];
 
 	const handleSimulateCountry = (countryCode: string): void => {

@@ -182,26 +182,10 @@
 	color: rgba(0, 0, 0, 0.6);
 }
 
-:global(.light) .actionSelect {
-	background-color: rgba(255, 255, 255, 0.8);
-	border: 1px solid rgba(0, 0, 0, 0.12);
-	color: rgba(0, 0, 0, 0.95);
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='rgba(0,0,0,0.95)' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
-}
-
-:global(.light) .actionSelect:hover {
-	background-color: rgba(255, 255, 255, 1);
-	border-color: rgba(0, 0, 0, 0.18);
-}
-
-:global(.light) .actionSelect:focus {
-	border-color: rgba(59, 130, 246, 0.6);
-	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-}
-
-:global(.light) .actionSelect option {
-	background: rgba(255, 255, 255, 0.95);
-	color: rgba(0, 0, 0, 0.9);
+.actionSelect {
+	min-width: 180px;
+	width: 100%;
+	max-width: 220px;
 }
 
 :global(.light) .notification {
