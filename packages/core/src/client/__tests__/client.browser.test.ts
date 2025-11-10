@@ -193,37 +193,33 @@ describe('Offline Client Browser Tests', () => {
 		}
 	});
 
-	it('should check real localStorage for consent banner visibility', async () => {
-		// Clear both localStorage and cookies first
-		localStorage.clear();
-		// Clear all cookies
-		document.cookie.split(';').forEach((c) => {
-			document.cookie = c
-				.replace(/^ +/, '')
-				.replace(/=.*/, `=;expires=${new Date().toUTCString()};path=/`);
-		});
-
+	it('should use jurisdiction checking for consent banner visibility', async () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'offline',
 		}) as OfflineClient;
 
-		// First call with empty localStorage
+		// Call without headers (defaults to GB - GDPR jurisdiction)
 		let response = await client.showConsentBanner();
 		expect(response.data?.showConsentBanner).toBe(true);
+		expect(response.data?.jurisdiction?.code).toBe('GDPR');
+		expect(response.data?.location?.countryCode).toBe('GB');
 
-		// Store consent data in localStorage
-		localStorage.setItem(
-			STORAGE_KEY_V2,
-			JSON.stringify({
-				consents: { analytics: true },
-				consentInfo: { time: Date.now() },
-			})
-		);
+		// Call with GDPR country header
+		response = await client.showConsentBanner({
+			headers: { 'x-c15t-country': 'DE' },
+		});
+		expect(response.data?.showConsentBanner).toBe(true);
+		expect(response.data?.jurisdiction?.code).toBe('GDPR');
+		expect(response.data?.location?.countryCode).toBe('DE');
 
-		// Second call with localStorage data
-		response = await client.showConsentBanner();
+		// Call with non-regulated country header
+		response = await client.showConsentBanner({
+			headers: { 'x-c15t-country': 'US' },
+		});
 		expect(response.data?.showConsentBanner).toBe(false);
+		expect(response.data?.jurisdiction?.code).toBe('NONE');
+		expect(response.data?.location?.countryCode).toBe('US');
 	});
 });
 

@@ -9,6 +9,7 @@ import type {
 	ConsentManagerOptions as CoreOptions,
 	GTMConfiguration,
 	LegalLinks,
+	Overrides,
 	Script,
 	StorageConfig,
 	TrackingBlockerConfig,
@@ -143,6 +144,14 @@ export type ConsentManagerOptions = CoreOptions & {
 	 * @default undefined
 	 */
 	user?: User;
+
+	/**
+	 * Forcefully set values like country, region, language for the consent manager
+	 * These values will override the values detected from the browser.
+	 *
+	 * @defaultValue undefined
+	 */
+	overrides?: Overrides;
 };
 
 /**

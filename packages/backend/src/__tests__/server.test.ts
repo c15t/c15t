@@ -77,9 +77,13 @@ describe('C15T /status endpoint', () => {
 		expect(response.headers.get('access-control-allow-origin')).toBe(
 			'https://test.consent.io'
 		);
-		expect(response.headers.get('access-control-allow-headers')).toContain(
-			'Content-Type, Authorization, x-request-id'
-		);
+		const allowHeaders = response.headers.get('access-control-allow-headers');
+		expect(allowHeaders).toContain('Content-Type');
+		expect(allowHeaders).toContain('Authorization');
+		expect(allowHeaders).toContain('x-request-id');
+		expect(allowHeaders).toContain('x-c15t-country');
+		expect(allowHeaders).toContain('x-c15t-region');
+		expect(allowHeaders).toContain('accept-language');
 	});
 });
 
