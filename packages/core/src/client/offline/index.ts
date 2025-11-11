@@ -17,7 +17,6 @@ import type { FetchOptions, ResponseContext } from '../types';
 import { identifyUser } from './identify-user';
 import { setConsent } from './set-consent';
 import { showConsentBanner } from './show-consent-banner';
-import type { OfflineClientOptions } from './types';
 import { handleOfflineResponse } from './utils';
 import { verifyConsent } from './verify-consent';
 
@@ -34,12 +33,12 @@ export class OfflineClient implements ConsentManagerInterface {
 
 	/**
 	 * Checks if a consent banner should be shown.
-	 * In offline mode, will always return true unless localStorage or cookie has a value.
+	 * The location can be controlled via overrides in the store, but defaults to GB.
 	 */
 	async showConsentBanner(
 		options?: FetchOptions<ShowConsentBannerResponse>
 	): Promise<ResponseContext<ShowConsentBannerResponse>> {
-		return showConsentBanner(this.storageConfig, options);
+		return showConsentBanner(options);
 	}
 
 	/**

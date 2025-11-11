@@ -16,7 +16,7 @@ type BaseProviderProps = {
  * Props when using c15t mode - initialData is required
  */
 type C15tModeProps = BaseProviderProps & {
-	options: ConsentManagerProviderProps['options'] & {
+	options: Omit<ConsentManagerProviderProps['options'], 'overrides'> & {
 		mode?: 'c15t' | undefined;
 	};
 	initialData: InitialDataPromise;
@@ -43,6 +43,9 @@ export function ConsentManagerProvider(props: SharedProviderProps) {
 	// Only access initialData if it exists (c15t mode)
 	const initialData = 'initialData' in props ? props.initialData : undefined;
 
+	// enrichOptions handles the overrides logic internally:
+	// - In c15t mode (when initialData exists), it sets overrides to undefined
+	// - In other modes, it passes through the options as-is
 	return (
 		<ClientConsentManagerProvider
 			options={enrichOptions({

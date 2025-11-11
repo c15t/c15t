@@ -176,25 +176,34 @@ export async function fetchConsentBannerInfo(
 
 	set({ isLoadingConsentInfo: true });
 
-	if (initialData) {
-		try {
-			const showConsentBanner = await initialData;
+	// If there is any overrides we skip the initial data
+	if (initialData && !get().overrides) {
+		const showConsentBanner = await initialData;
 
-			// Ensures the promise has the expected data
-			if (showConsentBanner) {
-				updateStore(showConsentBanner, config, true);
-				return showConsentBanner;
-			}
-			// Fall back to API call if no data
-		} catch (error) {
-			// Propagate the error from the initial data promise
-			throw error;
+		// Ensures the promise has the expected data
+		if (showConsentBanner) {
+			updateStore(showConsentBanner, config, true);
+			return showConsentBanner;
 		}
 	}
 
 	try {
-		// Let the client handle offline mode internally
+		const language = get().overrides?.language;
+		const country = get().overrides?.country;
+		const region = get().overrides?.region;
+
 		const { data, error } = await manager.showConsentBanner({
+			headers: {
+				...(language && {
+					'accept-language': language,
+				}),
+				...(country && {
+					'x-c15t-country': country,
+				}),
+				...(region && {
+					'x-c15t-region': region,
+				}),
+			},
 			// Add onError callback specific to this request
 			onError: callbacks.onError
 				? (context) => {
