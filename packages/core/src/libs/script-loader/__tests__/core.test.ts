@@ -460,6 +460,124 @@ fbq('track', 'PageView');
 				})
 			);
 		});
+
+		it('should default to loading scripts in head when target is not specified', () => {
+			const script: Script = {
+				id: 'head-default-script',
+				src: 'https://example.com/head.js',
+				category: 'necessary',
+			};
+
+			loadScripts([script], sampleConsents);
+
+			// Should append to head
+			expect(document.head.appendChild).toHaveBeenCalledTimes(1);
+			expect(document.body.appendChild).not.toHaveBeenCalled();
+		});
+
+		it('should load scripts in head when target is explicitly set to head', () => {
+			const script: Script = {
+				id: 'head-script',
+				src: 'https://example.com/head.js',
+				category: 'necessary',
+				target: 'head',
+			};
+
+			loadScripts([script], sampleConsents);
+
+			// Should append to head
+			expect(document.head.appendChild).toHaveBeenCalledTimes(1);
+			expect(document.body.appendChild).not.toHaveBeenCalled();
+		});
+
+		it('should load scripts in body when target is set to body', () => {
+			const script: Script = {
+				id: 'body-script',
+				src: 'https://example.com/body.js',
+				category: 'necessary',
+				target: 'body',
+			};
+
+			loadScripts([script], sampleConsents);
+
+			// Should append to body
+			expect(document.body.appendChild).toHaveBeenCalledTimes(1);
+			expect(document.head.appendChild).not.toHaveBeenCalled();
+		});
+
+		it('should handle mixed head and body scripts', () => {
+			const headScript: Script = {
+				id: 'head-script',
+				src: 'https://example.com/head.js',
+				category: 'necessary',
+				target: 'head',
+			};
+
+			const bodyScript: Script = {
+				id: 'body-script',
+				src: 'https://example.com/body.js',
+				category: 'necessary',
+				target: 'body',
+			};
+
+			loadScripts([headScript, bodyScript], sampleConsents);
+
+			// Should append to both head and body
+			expect(document.head.appendChild).toHaveBeenCalledTimes(1);
+			expect(document.body.appendChild).toHaveBeenCalledTimes(1);
+		});
+
+		it('should throw error when target body is not available', () => {
+			// Temporarily remove body
+			const originalBody = document.body;
+			Object.defineProperty(document, 'body', {
+				value: null,
+				writable: true,
+			});
+
+			const script: Script = {
+				id: 'body-script',
+				src: 'https://example.com/body.js',
+				category: 'necessary',
+				target: 'body',
+			};
+
+			expect(() => {
+				loadScripts([script], sampleConsents);
+			}).toThrow('Document body is not available for script injection');
+
+			// Restore body
+			Object.defineProperty(document, 'body', {
+				value: originalBody,
+				writable: true,
+			});
+		});
+
+		it('should throw error when target head is not available', () => {
+			// Temporarily remove head
+			const originalHead = document.head;
+			Object.defineProperty(document, 'head', {
+				value: null,
+				writable: true,
+			});
+
+			const script: Script = {
+				id: 'head-script',
+				src: 'https://example.com/head.js',
+				category: 'necessary',
+				target: 'head',
+			};
+
+			expect(() => {
+				loadScripts([script], sampleConsents);
+			}).toThrow('Document head is not available for script injection');
+
+			// Restore head
+			Object.defineProperty(document, 'head', {
+				value: originalHead,
+				writable: true,
+			});
+		});
 	});
 
 	describe('unloadScripts', () => {
@@ -597,6 +715,49 @@ fbq('track', 'PageView');
 			// We can't directly check mockScriptElement.remove since it's not accessible here
 			// But we know that if it were called, document.createElement would have been called first
 			expect(document.createElement).not.toHaveBeenCalled();
+		});
+
+		it('should unload scripts from body correctly', () => {
+			const onDelete = vi.fn();
+			const bodyScript: Script = {
+				id: 'body-script-unload',
+				src: 'https://example.com/body.js',
+				category: 'measurement',
+				target: 'body',
+				onDelete,
+			};
+
+			const scriptIdMap: Record<string, string> = {};
+
+			// First load the script in body
+			loadScripts([bodyScript], sampleConsents, scriptIdMap);
+
+			// Verify it was loaded in body
+			expect(isScriptLoaded('body-script-unload')).toBe(true);
+			expect(document.body.appendChild).toHaveBeenCalledTimes(1);
+
+			// Change consent state to revoke consent
+			const newConsents: ConsentState = {
+				...sampleConsents,
+				measurement: false,
+			};
+
+			// Unload scripts without consent
+			const unloadedIds = unloadScripts([bodyScript], newConsents, scriptIdMap);
+
+			// Should unload the body script
+			expect(unloadedIds).toContain('body-script-unload');
+			expect(isScriptLoaded('body-script-unload')).toBe(false);
+
+			// onDelete should have been called
+			expect(onDelete).toHaveBeenCalledTimes(1);
+
+			// Get the script element and verify remove was called
+			const mockCreateElement = document.createElement as unknown as {
+				mock: { results: Array<{ value: HTMLScriptElement }> };
+			};
+			const scriptElement = mockCreateElement.mock.results[0].value;
+			expect(scriptElement.remove).toHaveBeenCalled();
 		});
 	});
 
