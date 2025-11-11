@@ -7,9 +7,36 @@ Object.defineProperty(global, 'document', {
 	value: {
 		querySelectorAll: vi.fn().mockReturnValue([]),
 		cookie: '',
+		readyState: 'complete',
+		body: {
+			appendChild: vi.fn(),
+			removeChild: vi.fn(),
+		},
+		addEventListener: vi.fn(),
 	},
 	writable: true,
 });
+
+// Mock MutationObserver
+if (typeof global.MutationObserver === 'undefined') {
+	global.MutationObserver = class MutationObserver {
+		constructor(_callback: MutationCallback) {
+			// Mock implementation
+		}
+
+		observe(_target: Node, _options?: MutationObserverInit) {
+			// Mock implementation
+		}
+
+		disconnect() {
+			// Mock implementation
+		}
+
+		takeRecords(): MutationRecord[] {
+			return [];
+		}
+	} as typeof MutationObserver;
+}
 
 const createMockConsentManager = (): ConsentManagerInterface => ({
 	showConsentBanner: vi.fn(),
