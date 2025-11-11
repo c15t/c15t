@@ -1,5 +1,5 @@
+import { checkJurisdiction } from '~/libs/jurisdiction';
 import { defaultTranslationConfig } from '~/translations';
-import { getConsentFromStorage } from '../../libs/cookie';
 import type { ShowConsentBannerResponse } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
 import { createResponseContext } from './utils';
@@ -9,39 +9,31 @@ import { createResponseContext } from './utils';
  * In offline mode, will always return true unless localStorage or cookie has a value.
  */
 export async function showConsentBanner(
-	storageConfig: import('../../libs/cookie').StorageConfig | undefined,
 	options?: FetchOptions<ShowConsentBannerResponse>
 ): Promise<ResponseContext<ShowConsentBannerResponse>> {
 	// Check localStorage and cookie to see if the banner has been shown
-	let shouldShow = true;
 
-	try {
-		if (typeof window !== 'undefined') {
-			const storedConsent = getConsentFromStorage(storageConfig);
-			shouldShow = storedConsent === null;
-		}
-	} catch (error) {
-		// Ignore storage errors (e.g., in environments where it's blocked)
-		console.warn('Failed to access storage:', error);
-		// If storage is unavailable, default to not showing the banner
-		// to prevent repeated failed attempts causing memory leaks
-		shouldShow = false;
-	}
+	const country = options?.headers?.['x-c15t-country'] ?? 'GB';
+	const region = options?.headers?.['x-c15t-region'] ?? null;
+	const language =
+		options?.headers?.['accept-language'] ??
+		defaultTranslationConfig.defaultLanguage ??
+		'en';
+
+	const { showConsentBanner, jurisdictionCode, message } =
+		checkJurisdiction(country);
 
 	const response = createResponseContext<ShowConsentBannerResponse>({
-		showConsentBanner: shouldShow,
+		showConsentBanner: showConsentBanner,
 		jurisdiction: {
-			code: 'GDPR',
-			message: 'EU',
+			code: jurisdictionCode,
+			message: message,
 		},
 		branding: 'c15t',
-		location: { countryCode: 'GB', regionCode: null },
+		location: { countryCode: country, regionCode: region },
 		translations: {
-			language: defaultTranslationConfig.defaultLanguage,
-			translations:
-				defaultTranslationConfig.translations[
-					defaultTranslationConfig.defaultLanguage ?? 'en'
-				],
+			language: language,
+			translations: defaultTranslationConfig.translations[language],
 		},
 	});
 

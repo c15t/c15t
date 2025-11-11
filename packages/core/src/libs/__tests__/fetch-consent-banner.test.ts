@@ -100,6 +100,8 @@ const createMockStoreState = (
 	hasConsentFor: vi.fn(),
 	setSelectedConsent: vi.fn(),
 	has: vi.fn(),
+	overrides: undefined,
+	setOverrides: vi.fn(),
 	...overrides,
 });
 
@@ -283,6 +285,98 @@ describe('fetchConsentBannerInfo', () => {
 			expect(mockManager.showConsentBanner).toHaveBeenCalled();
 		});
 
+		it('should skip initial data when overrides are present', async () => {
+			const mockResponse = createMockConsentBannerResponse();
+			const initialData = Promise.resolve(mockResponse);
+
+			mockState.overrides = {
+				country: 'DE',
+				region: 'BE',
+				language: 'de',
+			};
+
+			const apiResponse = createMockConsentBannerResponse({
+				location: { countryCode: 'DE', regionCode: 'BE' },
+			});
+
+			mockManager.showConsentBanner = vi.fn().mockResolvedValue({
+				data: apiResponse,
+				error: null,
+			});
+
+			const result = await fetchConsentBannerInfo({
+				manager: mockManager,
+				get: mockGet,
+				set: mockSet,
+				initialData,
+			});
+
+			// Should use API response, not initial data
+			expect(result).toEqual(apiResponse);
+			expect(mockManager.showConsentBanner).toHaveBeenCalled();
+		});
+
+		it('should pass overrides as headers to showConsentBanner', async () => {
+			mockState.overrides = {
+				country: 'FR',
+				region: 'IDF',
+				language: 'fr',
+			};
+
+			const mockResponse = createMockConsentBannerResponse({
+				location: { countryCode: 'FR', regionCode: 'IDF' },
+			});
+
+			mockManager.showConsentBanner = vi.fn().mockResolvedValue({
+				data: mockResponse,
+				error: null,
+			});
+
+			await fetchConsentBannerInfo({
+				manager: mockManager,
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(mockManager.showConsentBanner).toHaveBeenCalledWith({
+				headers: {
+					'x-c15t-country': 'FR',
+					'x-c15t-region': 'IDF',
+					'accept-language': 'fr',
+				},
+				onError: expect.any(Function),
+			});
+		});
+
+		it('should only pass defined override headers', async () => {
+			mockState.overrides = {
+				country: 'CA',
+				// region and language are undefined
+			};
+
+			const mockResponse = createMockConsentBannerResponse({
+				location: { countryCode: 'CA', regionCode: null },
+			});
+
+			mockManager.showConsentBanner = vi.fn().mockResolvedValue({
+				data: mockResponse,
+				error: null,
+			});
+
+			await fetchConsentBannerInfo({
+				manager: mockManager,
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(mockManager.showConsentBanner).toHaveBeenCalledWith({
+				headers: {
+					'x-c15t-country': 'CA',
+				},
+				onError: expect.any(Function),
+			});
+		});
+
 		// it('should handle rejected initial data promise', async () => {
 		// 	// Mock console.error to prevent test output noise
 		// 	const originalConsoleError = console.error;
@@ -323,6 +417,7 @@ describe('fetchConsentBannerInfo', () => {
 
 			expect(result).toEqual(mockResponse);
 			expect(mockManager.showConsentBanner).toHaveBeenCalledWith({
+				headers: {},
 				onError: expect.any(Function),
 			});
 			expect(mockSet).toHaveBeenCalledWith({ isLoadingConsentInfo: true });

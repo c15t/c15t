@@ -1,3 +1,4 @@
+import type { Overrides } from '@c15t/react';
 import type { GetServerSideProps, GetServerSidePropsContext } from 'next';
 import type { InitialData } from '../../types';
 import { getC15TInitialData } from './utils/initial-data';
@@ -10,6 +11,7 @@ interface WithInitialC15TDataProps {
  * Higher-order function that automatically adds to any page.
  * For use in pages directory.
  * @param getServerSideProps - Optional existing getServerSideProps function
+ * @param overrides - Optional overrides to use for the consent manager
  * @returns Enhanced getServerSideProps with consent data
  *
  * @example
@@ -21,7 +23,8 @@ export function withInitialC15TData<
 	Props extends Record<string, unknown> = Record<string, never>,
 >(
 	backendURL: string,
-	getServerSideProps?: GetServerSideProps<Props>
+	getServerSideProps?: GetServerSideProps<Props>,
+	overrides?: Overrides
 ): GetServerSideProps<Props & WithInitialC15TDataProps> {
 	return async (context: GetServerSidePropsContext) => {
 		let initialData: InitialData;
@@ -29,7 +32,8 @@ export function withInitialC15TData<
 		try {
 			initialData = await getC15TInitialData(
 				backendURL,
-				new Headers(context.req.headers as Record<string, string>)
+				new Headers(context.req.headers as Record<string, string>),
+				overrides
 			);
 		} catch (error) {
 			// Silently handle consent data fetch errors
