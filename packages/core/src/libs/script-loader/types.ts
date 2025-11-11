@@ -124,6 +124,35 @@ export interface Script {
 	anonymizeId?: boolean;
 
 	/**
+	 * Where to inject the script element in the DOM.
+	 * - `'head'`: Scripts are appended to `<head>` (default)
+	 * - `'body'`: Scripts are appended to `<body>`
+	 *
+	 * Use `'body'` for scripts that:
+	 * - Need to manipulate DOM elements that don't exist until body loads
+	 * - Should load after page content for performance reasons
+	 * - Are required by third-party services to be in the body
+	 *
+	 * Use `'head'` (default) for scripts that:
+	 * - Need to track early page events (analytics)
+	 * - Should be available before page render
+	 * - Most tracking/analytics scripts
+	 *
+	 * @default 'head'
+	 *
+	 * @example
+	 * ```ts
+	 * const script: Script = {
+	 *   id: 'my-script',
+	 *   src: 'https://example.com/script.js',
+	 *   category: 'analytics',
+	 *   target: 'body', // Load in body instead of head
+	 * };
+	 * ```
+	 */
+	target?: 'head' | 'body';
+
+	/**
 	 * Callback executed before the script is loaded
 	 * @param info - Information about the script and current consent state
 	 */

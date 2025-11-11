@@ -7,6 +7,11 @@ export const mockHead = {
 	appendChild: vi.fn(),
 };
 
+// Mock document.body for testing
+export const mockBody = {
+	appendChild: vi.fn(),
+};
+
 // Registry to track created elements for proper getElementById mocking
 const createdElements: Map<string, HTMLElement> = new Map();
 
@@ -78,6 +83,12 @@ export function setupDomMocks() {
 	// Mock document.head
 	Object.defineProperty(document, 'head', {
 		value: mockHead,
+		writable: true,
+	});
+
+	// Mock document.body
+	Object.defineProperty(document, 'body', {
+		value: mockBody,
 		writable: true,
 	});
 
