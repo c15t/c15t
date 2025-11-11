@@ -242,8 +242,19 @@ export function loadScripts(
 			script.onBeforeLoad(callbackInfo);
 		}
 
+		// Determine target location (default to 'head')
+		const target = script.target ?? 'head';
+		const targetElement = target === 'body' ? document.body : document.head;
+
+		// Validate target element exists
+		if (!targetElement) {
+			throw new Error(
+				`Document ${target} is not available for script injection`
+			);
+		}
+
 		// Add to document and track
-		document.head.appendChild(scriptElement);
+		targetElement.appendChild(scriptElement);
 		setLoadedScript(script.id, scriptElement);
 		loadedScriptIds.push(script.id);
 	});

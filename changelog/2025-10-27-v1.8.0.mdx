@@ -117,6 +117,22 @@ Current languages include:
 | Indonesian (id) | Italian (it) | Lithuanian (lt) | Latvian (lv) | Maltese (mt) | Dutch (nl) | Polish (pl) |
 | Portuguese (pt) | Romanian (ro) | Slovak (sk) | Slovenian (sl) | Swedish (sv) | Chinese (zh) | |
 
+### Script Loader Target Location
+
+The script loader now supports specifying the target location of the script in the DOM. This is useful for scripts that need to be loaded in the body of the document.
+
+This can be done with the `target` option.
+
+```tsx
+{
+  id: 'example',
+  src: 'https://analytics.example.com/script.js',
+  category: 'analytics',
+  target: 'body',
+}
+```
+
+The default target is `head`.
 
 ## 🐛 Bug Fixes & Improvements
 
