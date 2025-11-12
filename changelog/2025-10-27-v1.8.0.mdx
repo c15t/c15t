@@ -75,7 +75,18 @@ You can filter what legal links you want to display (if any) on the pre-made com
 <CookieBanner legalLinks={null} />
 ```
 
-TODO: INSERT IMAGE HERE
+<div style={{ display: 'flex', gap: 16, maxHeight: 250, alignItems: 'flex-start', overflow: 'visible' }}>
+  <img
+    src="https://qawfa2yzgrix7k7v.public.blob.vercel-storage.com/changelogs/1.8.0-Legal-Links-Banner.png"
+    alt="Legal Links Banner"
+    style={{ maxHeight: 250, objectFit: 'contain', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+  />
+  <img
+    src="https://qawfa2yzgrix7k7v.public.blob.vercel-storage.com/changelogs/1.8.0-Legal-Links-Dialog.png"
+    alt="Legal Links Dialog"
+    style={{ maxHeight: 250, objectFit: 'contain', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+  />
+</div>
 
 ### User Identification
 
@@ -121,7 +132,7 @@ Current languages include:
 
 The script loader now supports specifying the target location of the script in the DOM. This is useful for scripts that need to be loaded in the body of the document.
 
-This can be done with the `target` option.
+This can be done with the `target` option, which defaults to `head` if not specified.
 
 ```tsx
 {
@@ -131,8 +142,6 @@ This can be done with the `target` option.
   target: 'body',
 }
 ```
-
-The default target is `head`.
 
 ## 🐛 Bug Fixes & Improvements
 
