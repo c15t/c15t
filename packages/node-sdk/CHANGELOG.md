@@ -1,5 +1,16 @@
 # @c15t/node-sdk
 
+## 1.8.0-canary-20251112105612
+
+### Patch Changes
+
+- 6e3034c: refactor: update rslib to latest version
+- Updated dependencies [7043a2e]
+- Updated dependencies [6e3034c]
+- Updated dependencies [bee7789]
+- Updated dependencies [69d6680]
+  - @c15t/backend@1.8.0-canary-20251112105612
+
 ## 1.8.0-canary-20251028143243
 
 ### Patch Changes
