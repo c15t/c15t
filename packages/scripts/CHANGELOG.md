@@ -1,5 +1,12 @@
 # @c15t/scripts
 
+## 1.0.1-canary-20251112105612
+
+### Patch Changes
+
+- 5f75d2f: feat: add databuddy integration
+- 6e3034c: refactor: update rslib to latest version
+
 ## 1.0.0
 
 ### Major Changes
