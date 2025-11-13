@@ -1,5 +1,6 @@
 import { translations as bg } from './bg';
 import { translations as cs } from './cs';
+import { translations as cy } from './cy';
 import { translations as da } from './da';
 import { translations as de } from './de';
 import { translations as el } from './el';
@@ -13,13 +14,18 @@ import { translations as he } from './he';
 import { translations as hr } from './hr';
 import { translations as hu } from './hu';
 import { translations as id } from './id';
+import { translations as is } from './is';
 import { translations as it } from './it';
+import { translations as lb } from './lb';
 import { translations as lt } from './lt';
 import { translations as lv } from './lv';
 import { translations as mt } from './mt';
+import { translations as nb } from './nb';
 import { translations as nl } from './nl';
+import { translations as nn } from './nn';
 import { translations as pl } from './pl';
 import { translations as pt } from './pt';
+import { translations as rm } from './rm';
 import { translations as ro } from './ro';
 import { translations as sk } from './sk';
 import { translations as sl } from './sl';
@@ -67,6 +73,12 @@ const baseTranslations = {
 	sl,
 	sv,
 	zh,
+	is,
+	nb,
+	nn,
+	lb,
+	rm,
+	cy,
 } as const;
 
 /**
