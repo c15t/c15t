@@ -47,18 +47,17 @@ export async function saveConsents({
 		}
 	}
 
-	const consentInfo = {
-		time: Date.now(),
-		type: type as 'necessary' | 'all' | 'custom',
-	};
-
 	// Immediately update the UI state to close banners/dialogs
 	// This makes the interface feel more responsive
 	set({
 		consents: newConsents,
 		selectedConsents: newConsents,
 		showPopup: false,
-		consentInfo,
+		consentInfo: {
+			time: Date.now(),
+			type: type as 'necessary' | 'all' | 'custom',
+			identified: !!get().user?.id,
+		},
 	});
 
 	// Yield to the next task so the UI can paint before running heavier work
