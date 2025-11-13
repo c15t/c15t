@@ -8,10 +8,7 @@
 
 import type { FC, ReactNode } from 'react';
 import { ConsentButton } from '~/components/shared/primitives/button';
-import {
-	LegalLinks,
-	type LegalLinksProps,
-} from '~/components/shared/primitives/legal-links';
+import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { useTheme } from '~/hooks/use-theme';
 import { useTranslations } from '~/hooks/use-translations';
 import { CookieBannerRoot } from './atoms/root';
@@ -173,14 +170,9 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 				<CookieBannerCard aria-label={cookieBanner.title}>
 					<CookieBannerHeader>
 						<CookieBannerTitle>{title || cookieBanner.title}</CookieBannerTitle>
-						<CookieBannerDescription>
+						<CookieBannerDescription legalLinks={legalLinks}>
 							{description || cookieBanner.description}
 						</CookieBannerDescription>
-						<LegalLinks
-							links={legalLinks}
-							themeKey="banner.header.legal-links"
-							data-testid="cookie-banner-legal-links"
-						/>
 					</CookieBannerHeader>
 					<CookieBannerFooter>
 						<CookieBannerFooterSubGroup>
