@@ -152,6 +152,7 @@ describe('identifyUser handler (v1)', () => {
 					eventTimezone: 'UTC',
 					metadata: {
 						externalId: 'ext_user_456',
+						identityProvider: 'external',
 					},
 				},
 			});
@@ -409,6 +410,7 @@ describe('identifyUser handler (v1)', () => {
 					eventTimezone: 'UTC',
 					metadata: {
 						externalId: 'ext_user_456',
+						identityProvider: 'external',
 					},
 				},
 			});

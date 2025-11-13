@@ -35,7 +35,7 @@ vi.mock('./db/registry', () => ({
 vi.mock('./db/schema', () => ({
 	DB: {
 		client: vi.fn().mockImplementation((adapter) => ({
-			orm: vi.fn().mockResolvedValue({ adapter }),
+			orm: vi.fn().mockReturnValue({ adapter }),
 		})),
 	},
 }));
