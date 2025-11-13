@@ -9,14 +9,12 @@ export const identifyUser = os.consent.identify.handler(
 		const { adapter, logger } = typedContext;
 		logger.info('Handling identify-user request');
 
-		const { consentId, externalId } = input;
-
 		const rawConsent = await adapter.findOne({
 			model: 'consent',
 			where: [
 				{
 					field: 'id',
-					value: consentId,
+					value: input.consentId,
 				},
 			],
 		});
@@ -28,7 +26,7 @@ export const identifyUser = os.consent.identify.handler(
 		if (!consent) {
 			throw new ORPCError('CONSENT_NOT_FOUND', {
 				data: {
-					consentId,
+					consentId: input.consentId,
 				},
 			});
 		}
@@ -41,7 +39,7 @@ export const identifyUser = os.consent.identify.handler(
 					where: [
 						{
 							field: 'externalId',
-							value: externalId,
+							value: input.externalId,
 						},
 						{
 							field: 'id',
@@ -61,7 +59,7 @@ export const identifyUser = os.consent.identify.handler(
 					logger.info('Merging subjects', {
 						currentSubjectId,
 						oldSubjectId,
-						externalId,
+						externalId: input.externalId,
 					});
 
 					// Update all consent records
@@ -129,7 +127,7 @@ export const identifyUser = os.consent.identify.handler(
 							userAgent: typedContext.userAgent || null,
 							eventTimezone: 'UTC',
 							metadata: {
-								externalId,
+								externalId: input.externalId,
 								mergedFrom: currentSubjectId,
 							},
 						},
@@ -145,8 +143,8 @@ export const identifyUser = os.consent.identify.handler(
 							},
 						],
 						update: {
-							externalId,
-							identityProvider: 'external',
+							externalId: input.externalId,
+							identityProvider: input.identityProvider || 'external',
 							isIdentified: true,
 							updatedAt: new Date(),
 						},
@@ -164,7 +162,8 @@ export const identifyUser = os.consent.identify.handler(
 							userAgent: typedContext.userAgent || null,
 							eventTimezone: 'UTC',
 							metadata: {
-								externalId,
+								externalId: input.externalId,
+								identityProvider: input.identityProvider || 'external',
 							},
 						},
 					});
