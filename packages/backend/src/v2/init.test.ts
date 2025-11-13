@@ -2,10 +2,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { C15TOptions } from './types';
 
 // Mock OpenTelemetry modules before any imports
+// Use a closure to capture the start mock
+let getStartMock: (() => ReturnType<typeof vi.fn>) | undefined;
+
 vi.mock('@opentelemetry/sdk-node', () => ({
-	NodeSDK: vi.fn().mockImplementation(() => ({
-		start: vi.fn(),
-	})),
+	NodeSDK: vi.fn(function NodeSDK() {
+		const startFn = getStartMock ? getStartMock() : vi.fn();
+		return {
+			start: startFn,
+		};
+	}),
 }));
 
 vi.mock('@opentelemetry/resources', () => ({
@@ -15,7 +21,9 @@ vi.mock('@opentelemetry/resources', () => ({
 }));
 
 vi.mock('@opentelemetry/sdk-trace-base', () => ({
-	ConsoleSpanExporter: vi.fn().mockImplementation(() => ({})),
+	ConsoleSpanExporter: vi.fn(function ConsoleSpanExporter() {
+		return {};
+	}),
 }));
 
 // Mock local modules
@@ -42,6 +50,7 @@ vi.mock('./db/schema', () => ({
 
 afterEach(() => {
 	vi.clearAllMocks();
+	getStartMock = undefined;
 });
 
 interface SetupParams {
@@ -52,20 +61,17 @@ interface SetupParams {
 async function setup(params: SetupParams = {}) {
 	const { telemetryDisabled = false, appName } = params;
 
+	// Create the start mock
+	const startMock = vi.fn();
+
+	// Set up the getter function before resetting modules
+	getStartMock = () => startMock;
+
 	// Reset the module cache to ensure a fresh instance for every test run
 	vi.resetModules();
 
-	// Get the mocked modules
-	const { NodeSDK } = await import('@opentelemetry/sdk-node');
+	// Get the mocked modules - the mock factory will use getStartMock
 	const { DB } = await import('./db/schema');
-
-	// Get the start mock from the NodeSDK instance
-	const startMock = vi.fn();
-	const nodeSDKMock = NodeSDK as any;
-	nodeSDKMock.mockImplementation(() => ({
-		start: startMock,
-	}));
-
 	const { init } = await import('./init');
 
 	const options: Record<string, unknown> = {
