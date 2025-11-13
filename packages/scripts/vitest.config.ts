@@ -30,11 +30,6 @@ export default mergeConfig(
 				'**/.cache/**',
 				'**/coverage/**',
 			],
-			browser: {
-				enabled: true,
-				provider: 'playwright',
-				instances: [{ browser: 'chromium' }],
-			},
 		},
 	})
 );

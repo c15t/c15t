@@ -30,8 +30,8 @@ export const baseConfig = defineConfig({
 			reportOnFailure: true,
 			enabled: true,
 			reportsDirectory: './coverage', // Output to ./coverage
-			// Set standard directory structure for different report types
-			all: true, // Make sure all files are included
+			// Include covered and uncovered files matching this pattern
+			// If not set, only files loaded during test run will be included
 			include: ['**/*.{ts,tsx,js,jsx}', '!**/*.d.ts', '!**/node_modules/**'],
 		},
 	},

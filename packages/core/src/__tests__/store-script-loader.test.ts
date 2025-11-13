@@ -97,12 +97,16 @@ describe('Store Script Loader Integration', () => {
 			configurable: true,
 		});
 
-		// Mock MutationObserver
-		global.MutationObserver = vi.fn().mockImplementation(() => ({
-			observe: vi.fn(),
-			disconnect: vi.fn(),
-			takeRecords: vi.fn(),
-		}));
+		// Mock MutationObserver as a constructor class
+		global.MutationObserver = class MutationObserver {
+			constructor(_callback: MutationCallback) {
+				// Mock implementation
+			}
+
+			observe = vi.fn();
+			disconnect = vi.fn();
+			takeRecords = vi.fn().mockReturnValue([]);
+		} as unknown as typeof MutationObserver;
 
 		// Clear any scripts that might have been loaded in previous tests
 		// Note: We don't mock Map here as it breaks the loadedScripts Map
