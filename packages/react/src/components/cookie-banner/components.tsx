@@ -10,6 +10,8 @@ import { useTheme } from '~/hooks/use-theme';
 import { Box, type BoxProps } from '../shared/primitives/box';
 import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
+import type { LegalLinksProps } from '../shared/primitives/legal-links';
+import { InlineLegalLinks } from '../shared/primitives/legal-links';
 import styles from './cookie-banner.module.css';
 
 const COOKIE_BANNER_TITLE_NAME = 'CookieBannerTitle';
@@ -61,6 +63,7 @@ CookieBannerTitle.displayName = COOKIE_BANNER_TITLE_NAME;
  * @remarks
  * Provides explanatory text about cookie usage and privacy policies.
  * Supports rich text content and proper accessibility attributes.
+ * Can include legal links inline with the description.
  *
  * @example
  * ```tsx
@@ -71,8 +74,10 @@ CookieBannerTitle.displayName = COOKIE_BANNER_TITLE_NAME;
  */
 const CookieBannerDescription = forwardRef<
 	HTMLDivElement,
-	Omit<BoxProps, 'themeKey'>
->(({ children, ...props }, ref) => {
+	Omit<BoxProps, 'themeKey'> & {
+		legalLinks?: LegalLinksProps['links'];
+	}
+>(({ children, legalLinks, ...props }, ref) => {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
@@ -82,6 +87,11 @@ const CookieBannerDescription = forwardRef<
 			{...props}
 		>
 			{children}
+			<InlineLegalLinks
+				links={legalLinks}
+				themeKey="banner.header.legal-links"
+				testIdPrefix="cookie-banner-legal-link"
+			/>
 		</Box>
 	);
 });
