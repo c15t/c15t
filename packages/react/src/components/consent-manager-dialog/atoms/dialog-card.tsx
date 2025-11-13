@@ -7,10 +7,10 @@
  */
 
 import { forwardRef, type ReactNode, type Ref } from 'react';
-
 import { ConsentManagerWidget } from '~/components/consent-manager-widget/consent-manager-widget';
 import { Box, type BoxProps } from '~/components/shared/primitives/box';
 import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
+import { InlineLegalLinks } from '~/components/shared/primitives/legal-links';
 import { C15TIcon, ConsentLogo } from '~/components/shared/ui/logo';
 import { useConsentManager } from '~/hooks';
 import { useTranslations } from '~/hooks/use-translations';
@@ -101,11 +101,14 @@ const DialogHeaderTitle = forwardRef<
  * - Should be used after DialogHeaderTitle
  * - Supports theme customization
  * - Important for explaining privacy choices to users
+ * - Can include legal links inline with the description
  */
 const DialogHeaderDescription = forwardRef<
 	HTMLDivElement,
-	Omit<BoxProps, 'themeKey'>
->(({ children, ...props }, ref) => {
+	Omit<BoxProps, 'themeKey'> & {
+		legalLinks?: LegalLinksProps['links'];
+	}
+>(({ children, legalLinks, ...props }, ref) => {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
@@ -115,6 +118,11 @@ const DialogHeaderDescription = forwardRef<
 			data-testid="consent-manager-dialog-description"
 		>
 			{children}
+			<InlineLegalLinks
+				links={legalLinks}
+				themeKey="dialog.legal-links"
+				testIdPrefix="consent-manager-dialog-legal-link"
+			/>
 		</Box>
 	);
 });
@@ -236,7 +244,7 @@ const ConsentCustomizationCard = ({
 		<DialogCard>
 			<DialogHeader>
 				<DialogHeaderTitle>{translations.title}</DialogHeaderTitle>
-				<DialogHeaderDescription>
+				<DialogHeaderDescription legalLinks={legalLinks}>
 					{translations.description}
 				</DialogHeaderDescription>
 			</DialogHeader>
@@ -245,7 +253,6 @@ const ConsentCustomizationCard = ({
 					hideBrading
 					noStyle={noStyle}
 					useProvider={true}
-					legalLinks={legalLinks}
 				/>
 			</DialogContent>
 			<DialogFooter themeKey="dialog.footer">

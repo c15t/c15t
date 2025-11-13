@@ -65,14 +65,12 @@ You can now add various legal links to the consent manager. This can be used to 
 You can filter what legal links you want to display (if any) on the pre-made components by passing the `legalLinks` prop.
 
 ```tsx
-// Show all legal links
+// Show no legal links (default)
 <CookieBanner />
 
 // Show both cookie policy and terms of service
 <CookieBanner legalLinks={['cookiePolicy', 'termsOfService']} />
 
-// Show no legal links
-<CookieBanner legalLinks={null} />
 ```
 
 <div style={{ display: 'flex', gap: 16, maxHeight: 250, alignItems: 'flex-start', overflow: 'visible' }}>

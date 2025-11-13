@@ -119,6 +119,54 @@ Open Consent Dialog
   </Tab>
 </Tabs>
 
+## Legal Links
+
+You can display legal links (like Privacy Policy or Cookie Policy) inline with the dialog description. Legal links are rendered inline with the description text, styled as links with commas separating multiple links.
+
+### Setting Up Legal Links
+
+First, configure your legal links in the `ConsentManagerProvider`:
+
+```tsx
+<ConsentManagerProvider
+  options={{
+    legalLinks: {
+      privacyPolicy: {
+        href: '/privacy',
+        label: 'Privacy Policy',
+      },
+      cookiePolicy: {
+        href: '/cookies',
+        label: 'Cookie Policy',
+      },
+      termsOfService: {
+        href: '/terms',
+        label: 'Terms of Service',
+      },
+    },
+  }}
+>
+  <ConsentManagerDialog />
+</ConsentManagerProvider>
+```
+
+### Displaying Legal Links
+
+By default, the Consent Manager Dialog shows no legal links. To display them, pass the `legalLinks` prop with an array of the link keys you want to show:
+
+```tsx
+// Show no legal links (default)
+<ConsentManagerDialog />
+
+// Show privacy policy and cookie policy
+<ConsentManagerDialog legalLinks={['privacyPolicy', 'cookiePolicy']} />
+
+// Show only terms of service
+<ConsentManagerDialog legalLinks={['termsOfService']} />
+```
+
+Legal links appear inline with the description text. For example, if your description is "Customize your privacy preferences", it will render as: "Customize your privacy preferences Privacy Policy, Cookie Policy" where the links are styled in blue and underlined on hover.
+
 ## Styling
 
 The Consent Manager Dialog is designed to adapt to your application's visual style. Learn more about our [styling system](/docs/react/styling/overview).
