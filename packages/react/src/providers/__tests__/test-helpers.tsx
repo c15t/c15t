@@ -1,7 +1,7 @@
 // test-helpers.ts - Common mock setup
 import type { ContractsInputs, ContractsOutputs } from 'c15t';
 
-import { beforeEach, vi } from 'vitest';
+import { beforeEach, type Mock, vi } from 'vitest';
 import { type ConsentManagerOptions, useConsentManager } from '~/index';
 
 export type SetConsentRequestBody = ContractsInputs['consent']['post'];
@@ -11,7 +11,10 @@ export type ShowConsentBannerResponse =
 export type VerifyConsentRequestBody = ContractsInputs['consent']['verify'];
 export type VerifyConsentResponse = ContractsOutputs['consent']['verify'];
 
-export function setupMocks() {
+export function setupMocks(): {
+	mockFetch: Mock;
+	mockConfigureConsentManager: Mock;
+} {
 	// Mock fetch globally
 	const mockFetch = vi.fn();
 	window.fetch = mockFetch;

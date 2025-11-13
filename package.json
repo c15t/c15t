@@ -47,9 +47,10 @@
 		"@types/node": "22.14.1",
 		"@types/react": "19.2.0",
 		"@types/react-dom": "19.2.0",
-		"@vitejs/plugin-react": "^5.0.4",
-		"@vitest/browser": "^3.2.4",
-		"@vitest/coverage-istanbul": "^3.2.4",
+		"@vitejs/plugin-react": "^5.1.1",
+		"@vitest/browser": "^4.0.8",
+		"@vitest/browser-playwright": "^4.0.8",
+		"@vitest/coverage-istanbul": "^4.0.8",
 		"changeset-conventional-commits": "^0.2.5",
 		"knip": "^5.50.4",
 		"lefthook": "^1.11.10",
@@ -64,7 +65,7 @@
 		"tsx": "^4.19.3",
 		"turbo": "^2.5.0",
 		"typescript": "5.8.3",
-		"vitest": "^3.2.4",
+		"vitest": "^4.0.8",
 		"vitest-browser-react": "^1.0.1"
 	},
 	"packageManager": "pnpm@10.8.0",
@@ -73,7 +74,8 @@
 	},
 	"pnpm": {
 		"overrides": {
-			"cross-spawn": ">=6.0.6"
+			"cross-spawn": ">=6.0.6",
+			"typeorm": ">=0.3.26"
 		}
 	}
 }

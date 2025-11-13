@@ -18,7 +18,7 @@ const mockConfig = {
 	authorLogin: 'consentdotio',
 };
 
-vi.mock('../src/config', () => {
+vi.mock('../src/config/inputs', () => {
 	return mockConfig;
 });
 
@@ -89,7 +89,7 @@ test('repo', async () => {
 
 	mockConfig.repo = { owner: 'jin', repo: 'other' };
 
-	const config = await import('../src/config');
+	const config = await import('../src/config/inputs');
 	expect(config).toMatchObject({
 		pullRequestNumber: expect.any(Number),
 		repo: { owner: 'jin', repo: 'other' },
@@ -112,7 +112,7 @@ test('header', async () => {
 	process.env['INPUT_HEADER'] = 'header';
 	mockConfig.header = 'header';
 
-	const config = await import('../src/config');
+	const config = await import('../src/config/inputs');
 	expect(config).toMatchObject({
 		pullRequestNumber: expect.any(Number),
 		repo: { owner: 'marocchino', repo: 'stick-pull-request-comment' },
@@ -135,7 +135,7 @@ test('append', async () => {
 	process.env['INPUT_APPEND'] = 'true';
 	mockConfig.append = true;
 
-	const config = await import('../src/config');
+	const config = await import('../src/config/inputs');
 	expect(config).toMatchObject({
 		pullRequestNumber: expect.any(Number),
 		repo: { owner: 'marocchino', repo: 'stick-pull-request-comment' },
@@ -158,7 +158,7 @@ test('recreate', async () => {
 	process.env['INPUT_RECREATE'] = 'true';
 	mockConfig.recreate = true;
 
-	const config = await import('../src/config');
+	const config = await import('../src/config/inputs');
 	expect(config).toMatchObject({
 		pullRequestNumber: expect.any(Number),
 		repo: { owner: 'marocchino', repo: 'stick-pull-request-comment' },
@@ -181,7 +181,7 @@ test('delete', async () => {
 	process.env['INPUT_DELETE'] = 'true';
 	mockConfig.deleteOldComment = true;
 
-	const config = await import('../src/config');
+	const config = await import('../src/config/inputs');
 	expect(config).toMatchObject({
 		pullRequestNumber: expect.any(Number),
 		repo: { owner: 'marocchino', repo: 'stick-pull-request-comment' },
@@ -204,7 +204,7 @@ test('hideOldComment', async () => {
 	process.env['INPUT_HIDE'] = 'true';
 	mockConfig.hideOldComment = true;
 
-	const config = await import('../src/config');
+	const config = await import('../src/config/inputs');
 	expect(config).toMatchObject({
 		pullRequestNumber: expect.any(Number),
 		repo: { owner: 'marocchino', repo: 'stick-pull-request-comment' },
@@ -227,7 +227,7 @@ test('hideAndRecreate', async () => {
 	process.env['INPUT_HIDE_AND_RECREATE'] = 'true';
 	mockConfig.hideAndRecreate = true;
 
-	const config = await import('../src/config');
+	const config = await import('../src/config/inputs');
 	expect(config).toMatchObject({
 		pullRequestNumber: expect.any(Number),
 		repo: { owner: 'marocchino', repo: 'stick-pull-request-comment' },
@@ -250,7 +250,7 @@ test('hideClassify', async () => {
 	process.env['INPUT_HIDE_CLASSIFY'] = 'OFF_TOPIC';
 	mockConfig.hideClassify = 'OFF_TOPIC';
 
-	const config = await import('../src/config');
+	const config = await import('../src/config/inputs');
 	expect(config).toMatchObject({
 		pullRequestNumber: expect.any(Number),
 		repo: { owner: 'marocchino', repo: 'stick-pull-request-comment' },
@@ -273,7 +273,7 @@ test('hideDetails', async () => {
 	process.env['INPUT_HIDE_DETAILS'] = 'true';
 	mockConfig.hideDetails = true;
 
-	const config = await import('../src/config');
+	const config = await import('../src/config/inputs');
 	expect(config).toMatchObject({
 		pullRequestNumber: expect.any(Number),
 		repo: { owner: 'marocchino', repo: 'stick-pull-request-comment' },
@@ -297,7 +297,7 @@ describe('path', () => {
 		process.env['INPUT_PATH'] = './__tests__/assets/result';
 		mockConfig.getBody.mockResolvedValue('hi there\n');
 
-		const config = await import('../src/config');
+		const config = await import('../src/config/inputs');
 		expect(config).toMatchObject({
 			pullRequestNumber: expect.any(Number),
 			repo: { owner: 'marocchino', repo: 'stick-pull-request-comment' },
@@ -320,7 +320,7 @@ describe('path', () => {
 		process.env['INPUT_PATH'] = './__tests__/assets/*';
 		mockConfig.getBody.mockResolvedValue('hi there\n\nhey there\n');
 
-		const config = await import('../src/config');
+		const config = await import('../src/config/inputs');
 		expect(config).toMatchObject({
 			pullRequestNumber: expect.any(Number),
 			repo: { owner: 'marocchino', repo: 'stick-pull-request-comment' },
@@ -343,7 +343,7 @@ describe('path', () => {
 		process.env['INPUT_PATH'] = './__tests__/assets/not_exists';
 		mockConfig.getBody.mockResolvedValue('');
 
-		const config = await import('../src/config');
+		const config = await import('../src/config/inputs');
 		expect(config).toMatchObject({
 			pullRequestNumber: expect.any(Number),
 			repo: { owner: 'marocchino', repo: 'stick-pull-request-comment' },
@@ -367,7 +367,7 @@ test('message', async () => {
 	process.env['INPUT_MESSAGE'] = 'hello there';
 	mockConfig.getBody.mockResolvedValue('hello there');
 
-	const config = await import('../src/config');
+	const config = await import('../src/config/inputs');
 	expect(config).toMatchObject({
 		pullRequestNumber: expect.any(Number),
 		repo: { owner: 'marocchino', repo: 'stick-pull-request-comment' },
@@ -390,7 +390,7 @@ test('ignore_empty', async () => {
 	process.env['INPUT_IGNORE_EMPTY'] = 'true';
 	mockConfig.ignoreEmpty = true;
 
-	const config = await import('../src/config');
+	const config = await import('../src/config/inputs');
 	expect(config).toMatchObject({
 		pullRequestNumber: expect.any(Number),
 		repo: { owner: 'marocchino', repo: 'stick-pull-request-comment' },
@@ -413,7 +413,7 @@ test('skip_unchanged', async () => {
 	process.env['INPUT_SKIP_UNCHANGED'] = 'true';
 	mockConfig.skipUnchanged = true;
 
-	const config = await import('../src/config');
+	const config = await import('../src/config/inputs');
 	expect(config).toMatchObject({
 		pullRequestNumber: expect.any(Number),
 		repo: { owner: 'marocchino', repo: 'stick-pull-request-comment' },

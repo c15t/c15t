@@ -18,8 +18,10 @@ export default mergeConfig(
 		},
 		test: {
 			environment: 'node',
-			deps: {
-				inline: ['fumadb'],
+			server: {
+				deps: {
+					inline: ['fumadb'],
+				},
 			},
 		},
 	})
