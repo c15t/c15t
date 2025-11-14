@@ -1,5 +1,11 @@
 # @c15t/nextjs
 
+## 1.8.0-canary-20251114100415
+
+### Patch Changes
+
+- e7e6f44: chore(nextjs): add Nextjs 16 as peer dependency
+
 ## 1.8.0-canary-20251112105612
 
 ### Minor Changes
