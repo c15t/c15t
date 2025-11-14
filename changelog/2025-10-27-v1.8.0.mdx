@@ -141,6 +141,22 @@ This can be done with the `target` option, which defaults to `head` if not speci
 }
 ```
 
+### Overriding Country, Region & Language
+
+You can now override the country, region & language of the consent manager. This overrides the headers sent to the backend, allowing for better testing, this also works in offline mode.
+
+```tsx
+<ConsentManagerProvider
+  options={{
+    overrides: {
+      country: "DE",
+      region: "BE",
+      language: "de",
+    }
+  }}
+>
+```
+
 ## 🐛 Bug Fixes & Improvements
 
 ### **@c15t/scripts**
