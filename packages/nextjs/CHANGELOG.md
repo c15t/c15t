@@ -1,5 +1,17 @@
 # @c15t/nextjs
 
+## 1.8.0-canary-20251114102143
+
+### Minor Changes
+
+- 9af8f8f: Full Chagelog: https://c15t.com/changelog/2025-10-27-v1.8.0
+
+### Patch Changes
+
+- Updated dependencies [9af8f8f]
+  - @c15t/react@1.8.0-canary-20251114102143
+  - @c15t/translations@1.8.0-canary-20251114102143
+
 ## 1.8.0-canary-20251112105612
 
 ### Minor Changes
