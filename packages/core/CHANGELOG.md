@@ -1,5 +1,11 @@
 # c15t
 
+## 1.8.1
+
+### Patch Changes
+
+- 0f55bf2: fix(core): identified flag not saved in browser storage
+
 ## 1.8.0
 
 ### Minor Changes

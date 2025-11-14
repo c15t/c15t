@@ -1,5 +1,11 @@
 # @c15t/nextjs
 
+## 1.8.1
+
+### Patch Changes
+
+- @c15t/react@1.8.1
+
 ## 1.8.0
 
 ### Minor Changes

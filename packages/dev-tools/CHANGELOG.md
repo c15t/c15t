@@ -1,5 +1,12 @@
 # @c15t/dev-tools
 
+## 1.8.1
+
+### Patch Changes
+
+- Updated dependencies [0f55bf2]
+  - c15t@1.8.1
+
 ## 1.8.0
 
 ### Patch Changes
