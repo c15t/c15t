@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/react",
-	"version": "1.8.0",
+	"version": "1.8.1",
 	"description": "Developer-first CMP for React: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization",
 	"keywords": [
 		"react",
