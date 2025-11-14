@@ -28,7 +28,7 @@ export async function offlineFallbackForSetConsent(
 					consents: options?.body?.preferences || {},
 					consentInfo: {
 						time: Date.now(),
-						identified: Boolean(options?.body?.externalId),
+						identified: Boolean(options?.body?.externalSubjectId),
 					},
 				},
 				undefined,
@@ -92,6 +92,7 @@ export async function offlineFallbackForSetConsent(
 				consentInfo: {
 					time: Date.now(),
 					id: response.data.id,
+					identified: Boolean(options?.body?.externalSubjectId),
 				},
 			},
 			undefined,
@@ -137,7 +138,7 @@ export async function setConsent(
 				consentInfo: {
 					time: Date.now(),
 					id: response.data.id,
-					identified: Boolean(options?.body?.externalId),
+					identified: Boolean(options?.body?.externalSubjectId),
 				},
 			},
 			undefined,

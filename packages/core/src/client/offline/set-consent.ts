@@ -21,7 +21,7 @@ export async function setConsent(
 				{
 					consentInfo: {
 						time: Date.now(),
-						identified: Boolean(options?.body?.externalId),
+						identified: Boolean(options?.body?.externalSubjectId),
 					},
 					consents: options?.body?.preferences || {},
 				},
