@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/translations",
-	"version": "1.8.0-canary-20251112105612",
+	"version": "1.8.0",
 	"description": "Translation utils for c15t, providing type-safe internationalization support.",
 	"homepage": "https://c15t.com/docs/frameworks/react/hooks/use-translations",
 	"repository": {

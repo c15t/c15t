@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/scripts",
-	"version": "1.0.1-canary-20251112105612",
+	"version": "1.0.1",
 	"description": "Pre-built scripts of popular tools for c15t's script loader.",
 	"homepage": "https://c15t.com/docs/frameworks/javascript/script-loader",
 	"repository": {

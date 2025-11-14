@@ -1,5 +1,14 @@
 # @c15t/cli
 
+## 1.8.0
+
+### Patch Changes
+
+- Updated dependencies [68a7324]
+  - @c15t/backend@1.8.0
+  - @c15t/react@1.8.0
+  - @c15t/logger@1.0.1
+
 ## 1.8.0-canary-20251112105612
 
 ### Patch Changes

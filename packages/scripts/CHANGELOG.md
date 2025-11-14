@@ -1,5 +1,11 @@
 # @c15t/scripts
 
+## 1.0.1
+
+### Patch Changes
+
+- 68a7324: Full Changelog: https://c15t.com/changelog/2025-10-27-v1.8.0
+
 ## 1.0.1-canary-20251112105612
 
 ### Patch Changes
