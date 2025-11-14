@@ -1,6 +1,5 @@
 import type { CompleteTranslations } from '../types';
-
-export const fiTranslations: CompleteTranslations = {
+export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Hyväksy kaikki',
 		rejectAll: 'Hylkää kaikki',
@@ -48,4 +47,10 @@ export const fiTranslations: CompleteTranslations = {
 		title: 'Hyväksy {category}, jotta voit tarkastella tätä sisältöä.',
 		actionButton: 'Ota {category} käyttöön',
 	},
+	legalLinks: {
+		privacyPolicy: 'Tietosuojakäytäntö',
+		cookiePolicy: 'Evästekäytäntö',
+		termsOfService: 'Käyttöehdot',
+	},
 };
+export default translations;

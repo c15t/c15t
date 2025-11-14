@@ -1,15 +1,16 @@
 ---
 title: Google Tag Manager
-description: Learn how to integrate c15t with Google Tag Manager (GTM).
+description: Deploy and manage marketing tags centrally with automatic consent state synchronization.
 lastModified: 2025-09-19
-new: true
+
+icon: google-tag-manager
 ---
 
-c15t supports Google Tag Manager (GTM) and Consent Mode v2. The pre-built c15t script will automatically inject the GTM script into your page and update the consent state in GTM to match the consent state in c15t.
+Google Tag Manager (GTM) is Google's tag management system that lets you deploy and manage marketing tags, analytics scripts, and conversion pixels without modifying your codebase. Instead of hardcoding multiple scripts, you configure them through GTM's web interface.
 
-By default, c15t will always load this script regardless of consent. This is because GTM manages its own consent state internally & loads other scripts based on the consent state.
+c15t automatically injects the GTM script into your page and syncs consent state with GTM using Consent Mode v2. By default, c15t loads GTM regardless of consent because GTM manages its own internal consent state and only fires tags when appropriate consent is granted.
 
-Allowing c15t to manage GTM prevents any issues with GTM scripts being loaded without consent.
+This prevents GTM-managed scripts from loading without proper consent while giving you centralized control over your marketing stack.
 
 ## Implementation
 

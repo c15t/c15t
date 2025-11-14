@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { C15tClient } from '../client-c15t';
-import { CustomClient } from '../client-custom';
+import { STORAGE_KEY_V2 } from '../../store.initial-state';
+import { C15tClient } from '../c15t';
 import { configureConsentManager } from '../client-factory';
-import type { OfflineClient } from '../client-offline';
+import { CustomClient } from '../custom';
+import type { OfflineClient } from '../offline';
 
 // Note: For Vitest browser mode, we don't need to mock localStorage or fetch
 // as they're available in the browser environment
@@ -136,22 +137,17 @@ describe('c15t Client Browser Tests', () => {
 			errorWasCaught = true;
 		};
 
-		// Call the API with our error handler
+		// Call the API - should fallback to offline mode
 		const response = await client.showConsentBanner({
 			onError: errorHandler,
-			testing: true, // Disable offline fallback
 		});
 
-		// Check error handler was called
+		// Check response properties - offline fallback returns success
+		expect(response.ok).toBe(true);
+		expect(response.data).toBeDefined();
+		expect(response.error).toBeNull();
+		// Error handler is called by fetcher when network error occurs, before fallback
 		expect(errorWasCaught).toBe(true);
-
-		// Check response properties
-		expect(response.ok).toBe(false);
-		expect(response.error).toBeDefined();
-		expect(response.error?.message).toBeTruthy(); // Just check that there is an error message
-
-		// The error code may be either NETWORK_ERROR or API_ERROR depending on environment
-		expect(response.error?.code).toBeDefined();
 	});
 });
 
@@ -167,7 +163,7 @@ describe('Offline Client Browser Tests', () => {
 		}) as OfflineClient;
 
 		// First check that localStorage doesn't have consent data
-		expect(localStorage.getItem('c15t-consent')).toBeNull();
+		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
 
 		// Set consent data
 		const response = await client.setConsent({
@@ -185,40 +181,45 @@ describe('Offline Client Browser Tests', () => {
 		expect(response.ok).toBe(true);
 
 		// Verify localStorage was updated
-		const storedData = localStorage.getItem('c15t-consent');
+		const storedData = localStorage.getItem(STORAGE_KEY_V2);
 		expect(storedData).not.toBeNull();
 
 		if (storedData !== null) {
 			const parsedData = JSON.parse(storedData);
-			expect(parsedData.preferences).toEqual({
+			expect(parsedData.consents).toMatchObject({
 				analytics: true,
 				marketing: false,
 			});
 		}
 	});
 
-	it('should check real localStorage for consent banner visibility', async () => {
+	it('should use jurisdiction checking for consent banner visibility', async () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'offline',
 		}) as OfflineClient;
 
-		// First call with empty localStorage
+		// Call without headers (defaults to GB - GDPR jurisdiction)
 		let response = await client.showConsentBanner();
 		expect(response.data?.showConsentBanner).toBe(true);
+		expect(response.data?.jurisdiction?.code).toBe('GDPR');
+		expect(response.data?.location?.countryCode).toBe('GB');
 
-		// Store consent data in localStorage
-		localStorage.setItem(
-			'c15t-consent',
-			JSON.stringify({
-				timestamp: new Date().toISOString(),
-				preferences: { analytics: true },
-			})
-		);
+		// Call with GDPR country header
+		response = await client.showConsentBanner({
+			headers: { 'x-c15t-country': 'DE' },
+		});
+		expect(response.data?.showConsentBanner).toBe(true);
+		expect(response.data?.jurisdiction?.code).toBe('GDPR');
+		expect(response.data?.location?.countryCode).toBe('DE');
 
-		// Second call with localStorage data
-		response = await client.showConsentBanner();
+		// Call with non-regulated country header
+		response = await client.showConsentBanner({
+			headers: { 'x-c15t-country': 'US' },
+		});
 		expect(response.data?.showConsentBanner).toBe(false);
+		expect(response.data?.jurisdiction?.code).toBe('NONE');
+		expect(response.data?.location?.countryCode).toBe('US');
 	});
 });
 
@@ -317,7 +318,7 @@ describe('Custom Client Browser Tests', () => {
 		expect(storedData).not.toBeNull();
 		if (storedData !== null) {
 			const parsedData = JSON.parse(storedData);
-			expect(parsedData.preferences).toEqual({
+			expect(parsedData.preferences).toMatchObject({
 				analytics: true,
 				marketing: false,
 			});

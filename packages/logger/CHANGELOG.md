@@ -1,5 +1,11 @@
 # @c15t/logger
 
+## 1.0.1-canary-20251112105612
+
+### Patch Changes
+
+- 6e3034c: refactor: update rslib to latest version
+
 ## 1.0.0
 
 ### Major Changes

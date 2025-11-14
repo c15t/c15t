@@ -241,3 +241,35 @@ export const consentTypes: ConsentType[] = [
 export const allConsentNames = consentTypes.map(
 	(consent) => consent.name
 ) as AllConsentNames[];
+
+/**
+ * Information about the consent granted
+ */
+export type ConsentInfo = {
+	/**
+	 * The epoch timestamp of when the consent was recorded
+	 * @example 1761911048
+	 */
+	time: number;
+
+	/**
+	 * The id of the consent
+	 * @remarks
+	 * This is optional as old or offline consent may not have an associated id
+	 */
+	id?: string;
+
+	/**
+	 * If the consent was identified by an external ID
+	 *
+	 * @remarks
+	 * This is used to link a consent record to an authenticated user
+	 */
+	identified?: boolean;
+
+	/**
+	 * The type of consent granted
+	 * @deprecated un-used and will be removed in a future version
+	 */
+	type?: 'all' | 'custom' | 'necessary';
+};

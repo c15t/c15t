@@ -1,6 +1,25 @@
 # @c15t/nextjs
 
-## 1.7.1
+## 1.8.0-canary-20251112105612
+
+### Minor Changes
+
+- 69d6680: feat: country, region & language overrides
+
+### Patch Changes
+
+- 31953f4: refactor: improve package exports ensuring React has same exports as core
+- 6e3034c: refactor: update rslib to latest version
+- Updated dependencies [31953f4]
+- Updated dependencies [221a553]
+- Updated dependencies [7043a2e]
+- Updated dependencies [6e3034c]
+- Updated dependencies [bee7789]
+- Updated dependencies [69d6680]
+  - @c15t/react@1.8.0-canary-20251112105612
+  - @c15t/translations@1.8.0-canary-20251112105612
+
+## 1.8.0-canary-20251028143243
 
 ### Patch Changes
 
@@ -8,7 +27,8 @@
 - ccf32a2: fix(nextjs): client side options re-render
 - 2ad1ff3: fix(nextjs): missing InitialDataPromise type export for pages
 - Updated dependencies [067c7af]
-  - @c15t/react@1.7.1
+- Updated dependencies [a0fab48]
+  - @c15t/react@1.8.0-canary-20251028143243
 
 ## 1.7.0
 

@@ -1,7 +1,4 @@
-import {
-	ConsentManagerProvider as ClientConsentManagerProvider,
-	type ConsentManagerProviderProps,
-} from '@c15t/react';
+import { ConsentManagerProvider as ClientConsentManagerProvider } from '@c15t/react';
 import { headers } from 'next/headers';
 import type {
 	AppDirectoryConsentManagerProviderProps,
@@ -23,17 +20,26 @@ export function ConsentManagerProvider({
 				throw new Error('backendURL is required for c15t mode');
 			}
 
-			initialDataPromise = getC15TInitialData(options.backendURL, headers());
+			// In c15t mode, overrides are sent with the fetch request
+			initialDataPromise = getC15TInitialData(
+				options.backendURL,
+				headers(),
+				options.overrides
+			);
 			break;
 		}
 		default:
 			initialDataPromise = undefined;
 	}
 
+	// enrichOptions handles the overrides logic:
+	// - In c15t mode (when initialData exists), it sets overrides to undefined
+	//   (since they're already used in the fetch above)
+	// - In other modes (offline/custom), it passes overrides through to the client component
 	return (
 		<ClientConsentManagerProvider
 			options={enrichOptions({
-				options: options as ConsentManagerProviderProps['options'],
+				options,
 				initialData: initialDataPromise,
 				usingAppDir: true,
 			})}

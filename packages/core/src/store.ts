@@ -14,6 +14,8 @@ import {
 	hasConsented,
 	hasConsentFor,
 } from './libs/consent-utils';
+import type { StorageConfig } from './libs/cookie';
+import { deleteConsentFromStorage, getConsentFromStorage } from './libs/cookie';
 import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
 import { type GTMConfiguration, setupGTM } from './libs/gtm';
 import {
@@ -21,21 +23,29 @@ import {
 	type HasCondition,
 	has,
 } from './libs/has';
+import { identifyUser } from './libs/identify-user';
 import type { IframeBlockerConfig } from './libs/iframe-blocker';
 import { createIframeManager } from './libs/iframe-blocker/store';
 import { saveConsents } from './libs/save-consents';
 import { createScriptManager, type Script } from './libs/script-loader';
 import type { TrackingBlockerConfig } from './libs/tracking-blocker';
 import { createTrackingBlocker } from './libs/tracking-blocker';
-import { initialState, STORAGE_KEY } from './store.initial-state';
+import { initialState } from './store.initial-state';
 import type { PrivacyConsentState } from './store.type';
+import type { Overrides } from './types';
 import type { Callbacks } from './types/callbacks';
 import type {
 	ComplianceSettings,
 	ConsentBannerResponse,
 	ConsentState,
 } from './types/compliance';
-import { type AllConsentNames, consentTypes } from './types/gdpr';
+import {
+	type AllConsentNames,
+	type ConsentInfo,
+	consentTypes,
+} from './types/gdpr';
+import type { LegalLinks } from './types/legal-links';
+import type { User } from './types/user';
 
 /**
  * Structure of consent data stored in localStorage.
@@ -47,38 +57,32 @@ interface StoredConsent {
 	consents: ConsentState;
 
 	/** Metadata about when and how consent was given */
-	consentInfo: {
-		time: number;
-		type: string;
-	} | null;
+	consentInfo: ConsentInfo | null;
 }
 
 /**
- * Retrieves stored consent data from localStorage.
+ * Retrieves stored consent data from localStorage or cookie.
  *
  * @remarks
  * This function handles:
  * - Checking for browser environment
- * - Parsing stored JSON data
+ * - Reading from localStorage (primary)
+ * - Falling back to cookie if localStorage unavailable
+ * - Syncing cookie if localStorage exists but cookie doesn't
  * - Error handling for invalid data
  *
  * @returns The stored consent data or null if not available
  * @internal
  */
-const getStoredConsent = (): StoredConsent | null => {
+const getStoredConsent = (config?: StorageConfig): StoredConsent | null => {
 	if (typeof window === 'undefined') {
 		return null;
 	}
 
-	const stored = localStorage.getItem(STORAGE_KEY);
-	if (!stored) {
-		return null;
-	}
-
 	try {
-		return JSON.parse(stored);
+		return getConsentFromStorage(config);
 	} catch (e) {
-		console.error('Failed to parse stored consent:', e);
+		console.error('Failed to retrieve stored consent:', e);
 		return null;
 	}
 };
@@ -194,6 +198,53 @@ export interface StoreOptions {
 	 * @see https://c15t.com/docs/frameworks/javascript/script-loader
 	 */
 	scripts?: Script[];
+
+	/**
+	 * Display links to various legal documents such as privacy policy, terms of service, etc across the consent manager.
+	 * This can be used to display links in the consent banner, dialog, etc.
+	 *
+	 * @defaultValue {}
+	 */
+	legalLinks?: LegalLinks;
+
+	/**
+	 * Storage configuration for consent persistence.
+	 *
+	 * @remarks
+	 * Configure how consent data is stored in localStorage and cookies.
+	 *
+	 * @example
+	 * ```typescript
+	 * const store = createConsentManagerStore(client, {
+	 *   storageConfig: {
+	 *     storageKey: 'my-consent',
+	 *     crossSubdomain: true,
+	 *     defaultExpiryDays: 180
+	 *   }
+	 * });
+	 * ```
+	 *
+	 * @see {@link StorageConfig} for available options
+	 */
+	storageConfig?: StorageConfig;
+
+	/**
+	 * The user's information.
+	 * Usually your own internal ID for the user from your auth provider
+	 *
+	 * @remarks
+	 * This can be set later using the {@link identifyUser} method.
+	 * @default undefined
+	 */
+	user?: User;
+
+	/**
+	 * Forcefully set values like country, region, language for the consent manager
+	 * These values will override the values detected from the browser.
+	 *
+	 * @defaultValue undefined
+	 */
+	overrides?: Overrides;
 }
 
 // For backward compatibility (if needed)
@@ -251,10 +302,11 @@ export const createConsentManagerStore = (
 		trackingBlockerConfig,
 		isConsentDomain = false,
 		translationConfig,
+		storageConfig,
 	} = options;
 
 	// Load initial state from localStorage if available
-	const storedConsent = getStoredConsent();
+	const storedConsent = getStoredConsent(storageConfig);
 
 	// Automatically disable tracking blocker if script loader is in use
 	const shouldDisableTrackingBlocker =
@@ -282,16 +334,17 @@ export const createConsentManagerStore = (
 		callbacks: options.callbacks ?? initialState.callbacks,
 		// Set initial scripts if provided
 		scripts: options.scripts ?? initialState.scripts,
-		// Set initial translation config if provided
+
+		legalLinks: options.legalLinks ?? initialState.legalLinks,
 		translationConfig: translationConfig || initialState.translationConfig,
+		// Set storage configuration
+		storageConfig: storageConfig,
+		user: options.user ?? initialState.user,
 		...(storedConsent
 			? {
 					consents: storedConsent.consents,
 					selectedConsents: storedConsent.consents,
-					consentInfo: storedConsent.consentInfo as {
-						time: number;
-						type: 'necessary' | 'all' | 'custom';
-					} | null,
+					consentInfo: storedConsent.consentInfo,
 					showPopup: false, // Don't show popup if we have stored consent
 					isLoadingConsentInfo: false, // Not loading if we have stored consent
 				}
@@ -410,7 +463,7 @@ export const createConsentManagerStore = (
 		 * This function:
 		 * 1. Resets all consents to their type-specific defaults
 		 * 2. Clears consent information
-		 * 3. Removes stored consent from localStorage
+		 * 3. Removes stored consent from localStorage and cookie
 		 */
 		resetConsents: () => {
 			set(() => {
@@ -424,7 +477,7 @@ export const createConsentManagerStore = (
 					selectedConsents: consents,
 					consentInfo: null,
 				};
-				localStorage.removeItem(STORAGE_KEY);
+				deleteConsentFromStorage(undefined, storageConfig);
 				return resetState;
 			});
 		},
@@ -652,6 +705,11 @@ export const createConsentManagerStore = (
 			set({ gdprTypes: allCategories });
 		},
 
+		identifyUser: (user: User) => identifyUser({ user, manager, get, set }),
+
+		setOverrides: (overrides: PrivacyConsentState['overrides']) =>
+			set({ overrides: { ...get().overrides, ...overrides } }),
+
 		...createScriptManager(get, set, trackingBlocker),
 		...createIframeManager(get, set),
 	}));
@@ -688,6 +746,12 @@ export const createConsentManagerStore = (
 		store
 			.getState()
 			.callbacks.onConsentSet?.({ preferences: store.getState().consents });
+
+		// Identify the user if an external ID is provided
+		if (options.user) {
+			store.getState().identifyUser(options.user);
+		}
+
 		store.getState().fetchConsentBannerInfo();
 	}
 

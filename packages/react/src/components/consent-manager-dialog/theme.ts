@@ -16,6 +16,8 @@ export type ConsentManagerDialogTheme = Partial<
 		'dialog.description': ThemeValue;
 		'dialog.content': ThemeValue;
 		'dialog.footer': ThemeValue;
+		'dialog.legal-links': ThemeValue;
+		'dialog.legal-links.link': ThemeValue;
 		'dialog.overlay': ThemeValue;
 	} & ConsentManagerWidgetTheme
 >;

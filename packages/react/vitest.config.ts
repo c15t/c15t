@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { baseConfig } from '@c15t/vitest-config/base';
 import react from '@vitejs/plugin-react';
+import { playwright } from '@vitest/browser-playwright';
 import { defineConfig, mergeConfig } from 'vitest/config';
 
 export default mergeConfig(
@@ -22,7 +23,7 @@ export default mergeConfig(
 			],
 			browser: {
 				enabled: true,
-				provider: 'playwright',
+				provider: playwright(),
 				instances: [{ browser: 'chromium' }],
 			},
 		},

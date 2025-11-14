@@ -23,12 +23,14 @@ vi.mock('posthog-node', () => {
 	const mockDebug = vi.fn();
 
 	return {
-		PostHog: vi.fn().mockImplementation(() => ({
-			capture: mockCapture,
-			flush: mockFlush,
-			shutdown: mockShutdown,
-			debug: mockDebug,
-		})),
+		PostHog: vi.fn(function PostHog() {
+			return {
+				capture: mockCapture,
+				flush: mockFlush,
+				shutdown: mockShutdown,
+				debug: mockDebug,
+			};
+		}),
 	};
 });
 

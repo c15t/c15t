@@ -8,6 +8,26 @@ import { defaultTranslationConfig } from './translations';
 import { type ConsentState, consentTypes } from './types';
 import { version } from './version';
 
+/**
+ * Current storage key (v1.8+)
+ *
+ * @remarks
+ * This is the default storage key used for both localStorage and cookies.
+ * It replaces the legacy `privacy-consent-storage` key to reduce cookie size.
+ * Migration from the legacy key happens automatically on first read.
+ */
+export const STORAGE_KEY_V2 = 'c15t';
+
+/**
+ * Legacy storage key (<= v1.7.x)
+ *
+ * @remarks
+ * This key is maintained for backward compatibility and automatic migration.
+ * New consents are stored in STORAGE_KEY_V2, and old consents are automatically
+ * migrated from this key to STORAGE_KEY_V2 when accessed.
+ *
+ * @deprecated This key is for legacy support only. Use STORAGE_KEY_V2 instead.
+ */
 export const STORAGE_KEY = 'privacy-consent-storage';
 
 /**
@@ -51,6 +71,8 @@ export const initialState: Omit<
 	| 'updateIframeConsents'
 	| 'destroyIframeBlocker'
 	| 'updateConsentCategories'
+	| 'identifyUser'
+	| 'setOverrides'
 > = {
 	config: {
 		pkg: 'c15t',
@@ -124,6 +146,8 @@ export const initialState: Omit<
 	/** No location information initially */
 	locationInfo: null,
 
+	legalLinks: {},
+
 	/** No jurisdiction information initially */
 	jurisdictionInfo: null,
 
@@ -144,11 +168,16 @@ export const initialState: Omit<
 	/** Default to not ignoring geo location */
 	ignoreGeoLocation: false,
 
+	/** Default storage configuration (uses default storage key) */
+	storageConfig: undefined,
+
 	/** Default privacy settings */
 	privacySettings: {
 		/** Respect Do Not Track by default */
 		honorDoNotTrack: true,
 	},
+
+	user: undefined,
 
 	// Initialize all methods as no-ops
 	setConsent: () => {

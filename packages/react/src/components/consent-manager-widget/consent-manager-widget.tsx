@@ -22,7 +22,6 @@ import {
 } from './atoms/footer';
 import { ConsentManagerWidgetRoot } from './atoms/root';
 import type { ConsentManagerWidgetProps } from './types';
-
 export const ConsentManagerWidget = ({
 	hideBrading,
 	theme: localTheme,

@@ -1,12 +1,39 @@
 # @c15t/react
 
-## 1.7.1
+## 1.8.0-canary-20251112105612
+
+### Minor Changes
+
+- 7043a2e: feat: add configurable legal links to consent banner and consent dialog
+- bee7789: feat(core): identify users before & after consent is set
+  feat(backend): add endpoint to identify subject with consent ID
+  refactor(core): improved structure of client API & removed unused options
+- 69d6680: feat: country, region & language overrides
+
+### Patch Changes
+
+- 31953f4: refactor: improve package exports ensuring React has same exports as core
+- 6e3034c: refactor: update rslib to latest version
+- Updated dependencies [31953f4]
+- Updated dependencies [7043a2e]
+- Updated dependencies [6e3034c]
+- Updated dependencies [bee7789]
+- Updated dependencies [b3df4d0]
+- Updated dependencies [69d6680]
+  - c15t@1.8.0-canary-20251112105612
+
+## 1.8.0-canary-20251028143243
+
+### Minor Changes
+
+- a0fab48: feat(core): cookie/local-storage hybrid approach
 
 ### Patch Changes
 
 - 067c7af: fix(react): frame component hydration error
 - Updated dependencies [8f3f146]
-  - c15t@1.7.1
+- Updated dependencies [a0fab48]
+  - c15t@1.8.0-canary-20251028143243
 
 ## 1.7.0
 

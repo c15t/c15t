@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/translations",
-	"version": "1.7.0",
+	"version": "1.8.0-canary-20251112105612",
 	"description": "Translation utils for c15t, providing type-safe internationalization support.",
 	"homepage": "https://c15t.com/docs/frameworks/react/hooks/use-translations",
 	"repository": {
@@ -34,6 +34,7 @@
 		"check-types": "tsc --noEmit",
 		"dev": "rslib build --watch",
 		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --write",
+		"generate:i18n": "lingo.dev i18n",
 		"lint": "pnpm biome lint ./src",
 		"test": "vitest run",
 		"test:watch": "vitest"
@@ -45,7 +46,8 @@
 	],
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
-		"@c15t/vitest-config": "workspace:*"
+		"@c15t/vitest-config": "workspace:*",
+		"lingo.dev": "^0.115.0"
 	},
 	"publishConfig": {
 		"access": "public"

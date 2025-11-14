@@ -13,13 +13,16 @@ import type {
 	ComplianceRegion,
 	ComplianceSettings,
 	ConsentBannerResponse,
+	ConsentInfo,
 	ConsentState,
 	ConsentType,
 	consentTypes,
 	JurisdictionInfo,
+	LegalLinks,
 	LocationInfo,
 	PrivacySettings,
 	TranslationConfig,
+	User,
 } from './types';
 
 /**
@@ -70,7 +73,7 @@ export interface PrivacyConsentState {
 	selectedConsents: ConsentState;
 
 	/** Information about when and how consent was given */
-	consentInfo: { time: number; type: 'all' | 'custom' | 'necessary' } | null;
+	consentInfo: ConsentInfo | null;
 
 	/** Whether to show the consent popup */
 	showPopup: boolean;
@@ -96,11 +99,23 @@ export interface PrivacyConsentState {
 	/** Subject's location information */
 	locationInfo: LocationInfo | null;
 
+	/**
+	 * Configuration for the legal links
+	 * @defaultValue {}
+	 *
+	 * @remarks
+	 * Legal links can display across different parts of the consent manager such as the consent banner & dialog.
+	 */
+	legalLinks: LegalLinks;
+
 	/** Translation configuration */
 	translationConfig: TranslationConfig;
 
 	/** Whether to ignore geo location. Will always show the consent banner. */
 	ignoreGeoLocation: boolean;
+
+	/** Storage configuration for consent persistence */
+	storageConfig?: import('./libs/cookie').StorageConfig;
 
 	/**
 	 * Updates the translation configuration.
@@ -116,6 +131,52 @@ export interface PrivacyConsentState {
 
 	/** Configuration for the iframe blocker */
 	iframeBlockerConfig: IframeBlockerConfig;
+
+	/**
+	 * User information
+	 */
+	user?: User;
+
+	/**
+	 * Forcefully set values like country, region, language for the consent manager
+	 */
+	overrides?: {
+		/**
+		 * Country code to forcefully set
+		 * @example 'DE'
+		 */
+		country?: string;
+		/**
+		 * Region code to forcefully set
+		 * @example 'BE'
+		 */
+		region?: string;
+		/**
+		 * Language code to forcefully set
+		 * @example 'de'
+		 */
+		language?: string;
+	};
+
+	/**
+	 * Sets the overrides for the consent manager
+	 * @param overrides - The overrides to set
+	 */
+	setOverrides: (overrides: {
+		country?: string;
+		region?: string;
+		language?: string;
+	}) => void;
+
+	/**
+	 * Identifies the user by setting the external ID
+	 *
+	 * @remarks
+	 * If the user has already consented, it will update the existing record.
+	 *
+	 * @param user - The user's information
+	 */
+	identifyUser: (user: User) => Promise<void>;
 
 	/*
 	 * Updates the selected consent state for a specific consent type.

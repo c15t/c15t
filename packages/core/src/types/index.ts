@@ -46,9 +46,12 @@ export type {
 export {
 	type AllConsentNames,
 	allConsentNames,
+	type ConsentInfo,
 	type ConsentType,
 	consentTypes,
 } from './gdpr';
+
+export type { User } from './user';
 
 /**
  * @module
@@ -74,3 +77,22 @@ export type {
 } from '@c15t/translations';
 
 export * from './compliance';
+export * from './legal-links';
+
+export type Overrides = {
+	/**
+	 * Country code to forcefully set
+	 * @example 'DE'
+	 */
+	country?: string;
+	/**
+	 * Region code to forcefully set
+	 * @example 'BE'
+	 */
+	region?: string;
+	/**
+	 * Language code to forcefully set
+	 * @example 'de-DE'
+	 */
+	language?: string;
+};

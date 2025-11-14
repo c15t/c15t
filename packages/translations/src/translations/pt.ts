@@ -1,6 +1,5 @@
 import type { CompleteTranslations } from '../types';
-
-export const ptTranslations: CompleteTranslations = {
+export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Aceitar todos',
 		rejectAll: 'Rejeitar todos',
@@ -48,4 +47,10 @@ export const ptTranslations: CompleteTranslations = {
 		title: 'Aceite {category} para ver este conteúdo',
 		actionButton: 'Ativar consentimento {category}',
 	},
+	legalLinks: {
+		privacyPolicy: 'Política de Privacidade',
+		cookiePolicy: 'Política de Cookies',
+		termsOfService: 'Termos de Serviço',
+	},
 };
+export default translations;

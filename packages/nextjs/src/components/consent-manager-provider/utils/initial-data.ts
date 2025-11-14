@@ -1,4 +1,5 @@
 import type { ContractsOutputs } from '@c15t/backend/contracts';
+import type { Overrides } from '@c15t/react';
 import { extractRelevantHeaders } from './headers';
 import { normalizeBackendURL } from './normalize-url';
 
@@ -6,7 +7,8 @@ type ShowConsentBanner = ContractsOutputs['consent']['showBanner'] | undefined;
 
 export async function getC15TInitialData(
 	backendURL: string,
-	initialHeaders: Headers | Promise<Headers>
+	initialHeaders: Headers | Promise<Headers>,
+	overrides?: Overrides
 ): Promise<ShowConsentBanner> {
 	const headers = await initialHeaders;
 	const relevantHeaders = extractRelevantHeaders(headers);
@@ -21,6 +23,16 @@ export async function getC15TInitialData(
 
 	if (!normalizedURL) {
 		return undefined;
+	}
+
+	if (overrides?.country) {
+		relevantHeaders['x-c15t-country'] = overrides.country;
+	}
+	if (overrides?.region) {
+		relevantHeaders['x-c15t-region'] = overrides.region;
+	}
+	if (overrides?.language) {
+		relevantHeaders['accept-language'] = overrides.language;
 	}
 
 	try {

@@ -1,0 +1,97 @@
+name: Bundle Analysis
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: ['main', 'canary']
+
+jobs:
+  bundle-analysis:
+    name: 📦 Bundle Size Analysis
+    runs-on: ubuntu-latest
+    # SECURITY: Using pull_request_target with safe checkout pattern
+    # This pattern is recommended by GitHub for workflows that need to:
+    # - Analyze untrusted PR code (for bundle size comparison)
+    # - Post comments on fork PRs (requires write permissions)
+    #
+    # Security mitigations:
+    # 1. Checkout BASE repository first (trusted code from main repo)
+    # 2. Set up build environment using trusted base code
+    # 3. Only then checkout PR code separately (untrusted)
+    # 4. GITHUB_TOKEN is scoped to base repository only, preventing PR code from
+    #    accessing secrets or writing to the repository
+    #
+    # CodeQL may still warn about executing untrusted code, but this is necessary
+    # for bundle analysis. The risk is mitigated by the checkout order and token scoping.
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+    steps:
+      # Step 1: Checkout BASE repository (trusted code from main repo)
+      - name: ⬇️ Check out base repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref || github.ref }}
+          fetch-depth: 0 # Full history needed for base branch comparison
+
+      - name: 🅿️ Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      # Step 2: Build base branch (using trusted code)
+      - name: 🏗️ Build base branch
+        id: build-base
+        timeout-minutes: 5
+        run: |
+          pnpm install --frozen-lockfile
+          WITH_RSDOCTOR=true pnpm turbo run build --filter="./packages/*" || true
+          mkdir -p .bundle-base
+          # Copy rsdoctor data files
+          find packages -name "rsdoctor-data.json" -exec cp --parents {} .bundle-base/ \;
+
+      # Step 3: Checkout PR code (untrusted) - only for PR events
+      # SECURITY: We checkout PR code after setting up environment from trusted base code
+      # The checkout action handles authentication securely for fork PRs
+      - name: ⬇️ Check out PR code
+        if: github.event_name == 'pull_request_target'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          # For fork PRs, checkout action uses GITHUB_TOKEN which has read access
+          # to the PR head repository via pull_request_target event permissions
+
+      # Step 4: Build PR branch (untrusted code runs here, but in isolated context)
+      - name: 🏗️ Build current branch
+        id: build-current
+        timeout-minutes: 5
+        run: |
+          pnpm install --frozen-lockfile
+          WITH_RSDOCTOR=1 pnpm turbo run build --filter="./packages/*"
+
+      - name: 📊 Analyze bundle differences
+        uses: ./internals/bundle-analysis-action
+        with:
+          base_dir: .bundle-base
+          current_dir: .
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pr_number: ${{ github.event.pull_request.number }}
+          skip_comment: false
+          fail_on_increase: false
+
+      - name: 📤 Upload bundle diff report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-diff-report
+          path: bundle-diff.md
+          if-no-files-found: ignore
+          retention-days: 7
