@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/node-sdk",
-	"version": "1.8.0-canary-20251112105612",
+	"version": "1.8.0",
 	"description": "Official Node.js SDK for c15t. Connects to the Consent Engine to read and write consent records and preferences. TypeScript-first, simple APIs, built-in auth and retries.",
 	"keywords": [
 		"react",
