@@ -205,6 +205,14 @@
 		"superjson": "^2.2.2",
 		"zod": "^4.0.17"
 	},
+	"peerDependencies": {
+		"reflect-metadata": "^0.1.0"
+	},
+	"peerDependenciesMeta": {
+		"reflect-metadata": {
+			"optional": true
+		}
+	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
