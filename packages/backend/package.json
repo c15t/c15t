@@ -219,6 +219,14 @@
 		"msw": "^2.7.6",
 		"typescript": "^5.8.3"
 	},
+	"peerDependencies": {
+		"reflect-metadata": "^0.1.0"
+	},
+	"peerDependenciesMeta": {
+		"reflect-metadata": {
+			"optional": true
+		}
+	},
 	"publishConfig": {
 		"access": "public"
 	}

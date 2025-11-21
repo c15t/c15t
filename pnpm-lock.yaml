@@ -47,13 +47,13 @@ importers:
         version: 5.1.1(vite@7.1.10(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))
       '@vitest/browser':
         specifier: ^4.0.8
-        version: 4.0.8(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(vite@7.1.10(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))(vitest@4.0.8)
+        version: 4.0.8(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(vite@7.1.10(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))(vitest@4.0.8(@types/debug@4.1.12)(@types/node@22.14.1)(@vitest/browser-playwright@4.0.8)(@vitest/ui@4.0.8)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))
       '@vitest/browser-playwright':
         specifier: ^4.0.8
         version: 4.0.8(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(playwright@1.56.1)(vite@7.1.10(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))(vitest@4.0.8)
       '@vitest/coverage-istanbul':
         specifier: ^4.0.8
-        version: 4.0.8(vitest@4.0.8)
+        version: 4.0.8(vitest@4.0.8(@types/debug@4.1.12)(@types/node@22.14.1)(@vitest/browser-playwright@4.0.8)(@vitest/ui@4.0.8)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))
       changeset-conventional-commits:
         specifier: ^0.2.5
         version: 0.2.5
@@ -101,7 +101,7 @@ importers:
         version: 4.0.8(@types/debug@4.1.12)(@types/node@22.14.1)(@vitest/browser-playwright@4.0.8)(@vitest/ui@4.0.8)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1)
       vitest-browser-react:
         specifier: ^1.0.1
-        version: 1.0.1(@types/react-dom@19.2.0(@types/react@19.2.0))(@types/react@19.2.0)(@vitest/browser@4.0.8(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(vite@7.1.10(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))(vitest@4.0.8))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(vitest@4.0.8)
+        version: 1.0.1(@types/react-dom@19.2.0(@types/react@19.2.0))(@types/react@19.2.0)(@vitest/browser@4.0.8(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(vite@7.1.10(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))(vitest@4.0.8(@types/debug@4.1.12)(@types/node@22.14.1)(@vitest/browser-playwright@4.0.8)(@vitest/ui@4.0.8)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1)))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(vitest@4.0.8(@types/debug@4.1.12)(@types/node@22.14.1)(@vitest/browser-playwright@4.0.8)(@vitest/ui@4.0.8)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))
 
   internals/bundle-analysis-action:
     dependencies:
@@ -216,13 +216,16 @@ importers:
         version: 0.44.6(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@12.2.0)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3))
       fumadb:
         specifier: ^0.1.1
-        version: 0.1.1(drizzle-orm@0.44.6(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@12.2.0)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3)))(prisma@6.6.0(typescript@5.8.3))(typeorm@0.3.27(better-sqlite3@12.2.0)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2))
+        version: 0.1.1(drizzle-orm@0.44.6(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@12.2.0)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3)))(prisma@6.6.0(typescript@5.8.3))(typeorm@0.3.27(better-sqlite3@12.2.0)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.1.14))
       kysely:
         specifier: ^0.27.6
         version: 0.27.6
       neverthrow:
         specifier: ^8.2.0
         version: 8.2.0
+      reflect-metadata:
+        specifier: ^0.1.0
+        version: 0.1.14
       superjson:
         specifier: ^2.2.2
         version: 2.2.2
@@ -366,7 +369,7 @@ importers:
         version: 3.2.0
       vitest-localstorage-mock:
         specifier: ^0.1.2
-        version: 0.1.2(vitest@4.0.8)
+        version: 0.1.2(vitest@4.0.8(@types/debug@4.1.12)(@types/node@24.6.2)(@vitest/browser-playwright@4.0.8)(@vitest/ui@4.0.8)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@24.6.2)(typescript@5.9.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.20.5)(yaml@2.7.1))
 
   packages/dev-tools:
     dependencies:
@@ -6603,8 +6606,8 @@ packages:
     resolution: {integrity: sha512-HFM8rkZ+i3zrV+4LQjwQ0W+ez98pApMGM3HUrN04j3CqzPOzl9nmP15Y8YXNm8QHGv/eacOVEjqhmWpkRV0NAw==}
     engines: {node: '>= 0.10'}
 
-  reflect-metadata@0.2.2:
-    resolution: {integrity: sha512-urBwgfrvVP/eAyXx4hluJivBKzuEbSQs9rKWCrCkbSxNv8mxPcUZKeuoF3Uy4mJl3Lwprp6yy5/39VWigZ4K6Q==}
+  reflect-metadata@0.1.14:
+    resolution: {integrity: sha512-ZhYeb6nRaXCfhnndflDK8qI6ZQ/YcWZCISRAWICW9XYqMUwjZM9Z0DveWX/ABN01oxSHwVxKQmxeYZSsm0jh5A==}
 
   regenerator-runtime@0.14.1:
     resolution: {integrity: sha512-dYnhHh0nJoMfnkZs6GmmhFknAGRrLznOu5nc9ML+EJxGvrx6H7teuevqVqCuPcPK//3eDrrjQhehXVx9cnkGdw==}
@@ -11240,7 +11243,7 @@ snapshots:
 
   '@vitest/browser-playwright@4.0.8(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(playwright@1.56.1)(vite@7.1.10(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))(vitest@4.0.8)':
     dependencies:
-      '@vitest/browser': 4.0.8(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(vite@7.1.10(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))(vitest@4.0.8)
+      '@vitest/browser': 4.0.8(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(vite@7.1.10(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))(vitest@4.0.8(@types/debug@4.1.12)(@types/node@22.14.1)(@vitest/browser-playwright@4.0.8)(@vitest/ui@4.0.8)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))
       '@vitest/mocker': 4.0.8(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(vite@7.1.10(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))
       playwright: 1.56.1
       tinyrainbow: 3.0.3
@@ -11253,7 +11256,7 @@ snapshots:
 
   '@vitest/browser-playwright@4.0.8(msw@2.7.6(@types/node@24.6.2)(typescript@5.9.3))(playwright@1.56.1)(vite@7.1.10(@types/node@24.6.2)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.20.5)(yaml@2.7.1))(vitest@4.0.8)':
     dependencies:
-      '@vitest/browser': 4.0.8(msw@2.7.6(@types/node@24.6.2)(typescript@5.9.3))(vite@7.1.10(@types/node@24.6.2)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.20.5)(yaml@2.7.1))(vitest@4.0.8)
+      '@vitest/browser': 4.0.8(msw@2.7.6(@types/node@24.6.2)(typescript@5.9.3))(vite@7.1.10(@types/node@24.6.2)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.20.5)(yaml@2.7.1))(vitest@4.0.8(@types/debug@4.1.12)(@types/node@24.6.2)(@vitest/browser-playwright@4.0.8)(@vitest/ui@4.0.8)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@24.6.2)(typescript@5.9.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.20.5)(yaml@2.7.1))
       '@vitest/mocker': 4.0.8(msw@2.7.6(@types/node@24.6.2)(typescript@5.9.3))(vite@7.1.10(@types/node@24.6.2)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.20.5)(yaml@2.7.1))
       playwright: 1.56.1
       tinyrainbow: 3.0.3
@@ -11265,7 +11268,7 @@ snapshots:
       - vite
     optional: true
 
-  '@vitest/browser@4.0.8(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(vite@7.1.10(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))(vitest@4.0.8)':
+  '@vitest/browser@4.0.8(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(vite@7.1.10(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))(vitest@4.0.8(@types/debug@4.1.12)(@types/node@22.14.1)(@vitest/browser-playwright@4.0.8)(@vitest/ui@4.0.8)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))':
     dependencies:
       '@vitest/mocker': 4.0.8(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(vite@7.1.10(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))
       '@vitest/utils': 4.0.8
@@ -11282,7 +11285,7 @@ snapshots:
       - utf-8-validate
       - vite
 
-  '@vitest/browser@4.0.8(msw@2.7.6(@types/node@24.6.2)(typescript@5.9.3))(vite@7.1.10(@types/node@24.6.2)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.20.5)(yaml@2.7.1))(vitest@4.0.8)':
+  '@vitest/browser@4.0.8(msw@2.7.6(@types/node@24.6.2)(typescript@5.9.3))(vite@7.1.10(@types/node@24.6.2)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.20.5)(yaml@2.7.1))(vitest@4.0.8(@types/debug@4.1.12)(@types/node@24.6.2)(@vitest/browser-playwright@4.0.8)(@vitest/ui@4.0.8)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@24.6.2)(typescript@5.9.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.20.5)(yaml@2.7.1))':
     dependencies:
       '@vitest/mocker': 4.0.8(msw@2.7.6(@types/node@24.6.2)(typescript@5.9.3))(vite@7.1.10(@types/node@24.6.2)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.20.5)(yaml@2.7.1))
       '@vitest/utils': 4.0.8
@@ -11300,7 +11303,7 @@ snapshots:
       - vite
     optional: true
 
-  '@vitest/coverage-istanbul@4.0.8(vitest@4.0.8)':
+  '@vitest/coverage-istanbul@4.0.8(vitest@4.0.8(@types/debug@4.1.12)(@types/node@22.14.1)(@vitest/browser-playwright@4.0.8)(@vitest/ui@4.0.8)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))':
     dependencies:
       '@istanbuljs/schema': 0.1.3
       debug: 4.4.3
@@ -12504,19 +12507,19 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  fumadb@0.1.1(drizzle-orm@0.44.6(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@12.2.0)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3)))(prisma@6.6.0(typescript@5.8.3))(typeorm@0.3.27(better-sqlite3@12.2.0)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2)):
+  fumadb@0.1.1(drizzle-orm@0.44.6(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@12.2.0)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3)))(prisma@6.6.0(typescript@5.8.3))(typeorm@0.3.27(better-sqlite3@12.2.0)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.1.14)):
     dependencies:
       '@clack/prompts': 0.11.0
       '@paralleldrive/cuid2': 2.2.2
       commander: 14.0.0
       kysely: 0.28.4
-      kysely-typeorm: 0.3.0(kysely@0.28.4)(typeorm@0.3.27(better-sqlite3@12.2.0)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2))
+      kysely-typeorm: 0.3.0(kysely@0.28.4)(typeorm@0.3.27(better-sqlite3@12.2.0)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.1.14))
       semver: 7.7.2
       zod: 4.0.17
     optionalDependencies:
       drizzle-orm: 0.44.6(@cloudflare/workers-types@4.20250507.0)(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(@types/better-sqlite3@7.6.13)(@types/pg@8.11.6)(better-sqlite3@12.2.0)(kysely@0.27.6)(mysql2@3.14.3)(pg@8.16.3)(prisma@6.6.0(typescript@5.8.3))
       prisma: 6.6.0(typescript@5.8.3)
-      typeorm: 0.3.27(better-sqlite3@12.2.0)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2)
+      typeorm: 0.3.27(better-sqlite3@12.2.0)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.1.14)
 
   function-bind@1.1.2: {}
 
@@ -13255,10 +13258,10 @@ snapshots:
       - tarn
       - tedious
 
-  kysely-typeorm@0.3.0(kysely@0.28.4)(typeorm@0.3.27(better-sqlite3@12.2.0)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2)):
+  kysely-typeorm@0.3.0(kysely@0.28.4)(typeorm@0.3.27(better-sqlite3@12.2.0)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.1.14)):
     dependencies:
       kysely: 0.28.4
-      typeorm: 0.3.27(better-sqlite3@12.2.0)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2)
+      typeorm: 0.3.27(better-sqlite3@12.2.0)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.1.14)
 
   kysely@0.27.6: {}
 
@@ -14941,7 +14944,7 @@ snapshots:
     dependencies:
       resolve: 1.22.10
 
-  reflect-metadata@0.2.2: {}
+  reflect-metadata@0.1.14: {}
 
   regenerator-runtime@0.14.1: {}
 
@@ -16008,7 +16011,7 @@ snapshots:
 
   typedarray@0.0.6: {}
 
-  typeorm@0.3.27(better-sqlite3@12.2.0)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.2.2):
+  typeorm@0.3.27(better-sqlite3@12.2.0)(mysql2@3.14.3)(pg@8.16.3)(reflect-metadata@0.1.14):
     dependencies:
       '@sqltools/formatter': 1.2.5
       ansis: 3.17.0
@@ -16019,7 +16022,7 @@ snapshots:
       dedent: 1.7.0
       dotenv: 16.6.1
       glob: 10.4.5
-      reflect-metadata: 0.2.2
+      reflect-metadata: 0.1.14
       sha.js: 2.4.12
       sql-highlight: 6.1.0
       tslib: 2.8.1
@@ -16317,9 +16320,9 @@ snapshots:
       tsx: 4.20.5
       yaml: 2.7.1
 
-  vitest-browser-react@1.0.1(@types/react-dom@19.2.0(@types/react@19.2.0))(@types/react@19.2.0)(@vitest/browser@4.0.8(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(vite@7.1.10(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))(vitest@4.0.8))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(vitest@4.0.8):
+  vitest-browser-react@1.0.1(@types/react-dom@19.2.0(@types/react@19.2.0))(@types/react@19.2.0)(@vitest/browser@4.0.8(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(vite@7.1.10(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))(vitest@4.0.8(@types/debug@4.1.12)(@types/node@22.14.1)(@vitest/browser-playwright@4.0.8)(@vitest/ui@4.0.8)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1)))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(vitest@4.0.8(@types/debug@4.1.12)(@types/node@22.14.1)(@vitest/browser-playwright@4.0.8)(@vitest/ui@4.0.8)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1)):
     dependencies:
-      '@vitest/browser': 4.0.8(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(vite@7.1.10(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))(vitest@4.0.8)
+      '@vitest/browser': 4.0.8(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(vite@7.1.10(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))(vitest@4.0.8(@types/debug@4.1.12)(@types/node@22.14.1)(@vitest/browser-playwright@4.0.8)(@vitest/ui@4.0.8)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1))
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
       vitest: 4.0.8(@types/debug@4.1.12)(@types/node@22.14.1)(@vitest/browser-playwright@4.0.8)(@vitest/ui@4.0.8)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@22.14.1)(typescript@5.8.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.19.3)(yaml@2.7.1)
@@ -16327,7 +16330,7 @@ snapshots:
       '@types/react': 19.2.0
       '@types/react-dom': 19.2.0(@types/react@19.2.0)
 
-  vitest-localstorage-mock@0.1.2(vitest@4.0.8):
+  vitest-localstorage-mock@0.1.2(vitest@4.0.8(@types/debug@4.1.12)(@types/node@24.6.2)(@vitest/browser-playwright@4.0.8)(@vitest/ui@4.0.8)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@24.6.2)(typescript@5.9.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.20.5)(yaml@2.7.1)):
     dependencies:
       vitest: 4.0.8(@types/debug@4.1.12)(@types/node@24.6.2)(@vitest/browser-playwright@4.0.8)(@vitest/ui@4.0.8)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(msw@2.7.6(@types/node@24.6.2)(typescript@5.9.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.20.5)(yaml@2.7.1)
 
