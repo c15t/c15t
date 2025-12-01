@@ -1,0 +1,128 @@
+name: Reusable Deploy Docs
+
+on:
+	workflow_call:
+		inputs:
+			ref:
+				description: "Git ref to checkout"
+				required: false
+				type: string
+			target:
+				description: "Deployment target (production/staging)"
+				required: false
+				type: string
+			header:
+				description: "Comment header identifier"
+				required: true
+				type: string
+			assign_alias_on_branch:
+				description: "Branch to assign alias on"
+				required: false
+				type: string
+			alias_domains:
+				description: "Alias domains (newline-separated)"
+				required: false
+				type: string
+			deploy_on_push_branches:
+				description: "Branches to deploy on push"
+				required: false
+				type: string
+			deploy_on_pr_base_branches:
+				description: "PR base branches to deploy previews"
+				required: false
+				type: string
+			only_if_changed:
+				description: "Only deploy if changed"
+				required: false
+				type: string
+				default: "false"
+			change_globs:
+				description: "Change detection globs (newline-separated)"
+				required: false
+				type: string
+			check_template_changes:
+				description: "Check template changes"
+				required: false
+				type: string
+				default: "false"
+		secrets:
+			CONSENT_APP_ID:
+				required: true
+			CONSENT_APP_PRIVATE_KEY:
+				required: true
+			VERCEL_TOKEN:
+				required: true
+			VERCEL_PROJECT_ID:
+				required: true
+			VERCEL_ORG_ID:
+				required: true
+			CONSENT_GIT_TOKEN:
+				required: true
+
+permissions:
+	contents: read
+	issues: write
+	pull-requests: write
+	deployments: write
+
+jobs:
+	deploy:
+		runs-on: ubuntu-latest
+		steps:
+			- name: 📥 Checkout repository
+				uses: actions/checkout@v4
+				with:
+					ref: ${{ inputs.ref }}
+					fetch-depth: 0
+
+			# 📦 Setup pnpm (used by docs template/scripts)
+			- name: 📦 Setup pnpm
+				uses: pnpm/action-setup@v4
+				with:
+					run_install: false
+
+			- name: ♻️ Setup pnpm cache
+				uses: actions/setup-node@v4
+				with:
+					node-version: 20
+					cache: "pnpm"
+
+			- name: 📥 Install workspace deps
+				run: pnpm install --frozen-lockfile
+
+			- name: ▲ C15T Deployment
+				id: c15t
+				uses: ./internals/c15t-github-action
+				with:
+					# Auth
+					GITHUB_TOKEN: ${{ github.token }}
+					github_app_id: ${{ secrets.CONSENT_APP_ID }}
+					github_app_private_key: ${{ secrets.CONSENT_APP_PRIVATE_KEY }}
+					github_app_installation_id: 81013186
+
+					# Production target
+					target: ${{ inputs.target }}
+
+					# Comment behavior
+					header: ${{ inputs.header }}
+					append: "true"
+					hide_details: "true"
+
+					# Vercel
+					vercel_token: ${{ secrets.VERCEL_TOKEN }}
+					vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
+					vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
+
+					assign_alias_on_branch: ${{ inputs.assign_alias_on_branch }}
+					alias_domains: ${{ inputs.alias_domains }}
+
+					# Branch deployment policies
+					deploy_on_push_branches: ${{ inputs.deploy_on_push_branches }}
+					deploy_on_pr_base_branches: ${{ inputs.deploy_on_pr_base_branches }}
+
+					# Orchestration & gating
+					consent_git_token: ${{ secrets.CONSENT_GIT_TOKEN }}
+					only_if_changed: ${{ inputs.only_if_changed }}
+					change_globs: ${{ inputs.change_globs }}
+					check_template_changes: ${{ inputs.check_template_changes }}
+

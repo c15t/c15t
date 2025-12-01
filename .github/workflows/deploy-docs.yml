@@ -1,0 +1,74 @@
+# 🚀 c15t docs deployment workflow (Unified)
+name: Deploy docs
+
+on:
+	# 📌 Trigger on PRs that modify docs (build previews for reviews)
+	pull_request:
+		branches:
+			- "**"
+	# 📌 Manual trigger for production deployments
+	workflow_dispatch:
+		inputs:
+			branch:
+				description: "Branch to deploy (main or canary)"
+				required: true
+				type: choice
+				options:
+					- main
+					- canary
+
+permissions:
+	contents: read
+	issues: write
+	pull-requests: write
+	deployments: write
+
+jobs:
+	setup:
+		runs-on: ubuntu-latest
+		outputs:
+			alias_domains: ${{ steps.set-vars.outputs.alias_domains }}
+		steps:
+			- id: set-vars
+				run: |
+					if [ "${{ github.event_name }}" == "pull_request" ]; then
+						echo "alias_domains=pr-${{ github.event.pull_request.number }}.c15t.dev" >> $GITHUB_OUTPUT
+					elif [ "${{ github.event.inputs.branch }}" == "canary" ]; then
+						echo "alias_domains=canary.c15t.com" >> $GITHUB_OUTPUT
+					else
+						echo "alias_domains=c15t.com" >> $GITHUB_OUTPUT
+					fi
+	deploy:
+		needs: setup
+		concurrency:
+			group: ${{ github.event_name == 'pull_request' && 'docs-preview-' || 'docs-production-' }}${{ github.event_name == 'pull_request' && github.ref || github.event.inputs.branch }}
+			cancel-in-progress: true
+		uses: ./.github/workflows/deploy-docs-reusable.yml
+		with:
+			# Determine ref based on event type
+			ref: ${{ github.event_name == 'pull_request' && '' || github.event.inputs.branch }}
+			# Production for manual dispatch, staging for PRs
+			target: ${{ github.event_name == 'workflow_dispatch' && 'production' || '' }}
+			# Header based on event type
+			header: ${{ github.event_name == 'pull_request' && 'c15t-docs-preview' || 'c15t-docs-production' }}
+			# Alias assignment
+			assign_alias_on_branch: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || '' }}
+			# Alias domains
+			alias_domains: ${{ needs.setup.outputs.alias_domains }}
+			# Branch deployment policies
+			deploy_on_push_branches: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || '' }}
+			deploy_on_pr_base_branches: ${{ github.event_name == 'pull_request' && 'main,canary' || '' }}
+			# Change detection
+			only_if_changed: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
+			change_globs: |
+				docs/**
+				packages/*/src/**
+				packages/*/package.json
+			check_template_changes: "true"
+		secrets:
+			CONSENT_APP_ID: ${{ secrets.CONSENT_APP_ID }}
+			CONSENT_APP_PRIVATE_KEY: ${{ secrets.CONSENT_APP_PRIVATE_KEY }}
+			VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+			VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+			VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+			CONSENT_GIT_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}

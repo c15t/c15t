@@ -2,7 +2,7 @@ name: Report Coverage
 
 on:
   workflow_run:
-    # Important: Match the name of your testing workflow file (ci.yml -> CI)
+    # Important: Match the name of your testing workflow (ci-main.yml -> CI)
     workflows: ["CI"]
     types:
       - completed # Trigger when the CI workflow finishes
