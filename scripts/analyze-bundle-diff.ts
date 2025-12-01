@@ -376,7 +376,17 @@ function main() {
 
 try {
 	main();
-} catch (error) {
-	console.error('Error:', error);
+} catch (err) {
+	const formattedError =
+		err instanceof Error
+			? err.stack || err.message
+			: (() => {
+					try {
+						return JSON.stringify(err);
+					} catch {
+						return String(err);
+					}
+				})();
+	console.error('Bundle analysis failed:', formattedError);
 	process.exit(1);
 }

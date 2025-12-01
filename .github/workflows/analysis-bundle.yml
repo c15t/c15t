@@ -78,7 +78,7 @@ jobs:
           WITH_RSDOCTOR=1 pnpm turbo run build --filter="./packages/*"
 
       - name: 📊 Analyze bundle differences
-        uses: ./internals/bundle-analysis-action
+        uses: consentdotio/github-actions/bundle-analysis-action@main
         with:
           base_dir: .bundle-base
           current_dir: .
@@ -86,6 +86,7 @@ jobs:
           pr_number: ${{ github.event.pull_request.number }}
           skip_comment: false
           fail_on_increase: false
+          header: "bundle-analysis"
 
       - name: 📤 Upload bundle diff report
         if: always()
