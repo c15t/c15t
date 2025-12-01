@@ -14,8 +14,10 @@ Our repository includes a composite GitHub Action that:
 
 ## Where it lives
 
-- Action entry: `internals/c15t-github-action/action.yml` (composite)
-- Runtime code: `internals/c15t-github-action/src/main.ts` and `src/steps/*`
+The action is maintained in a separate repository:
+- Repository: [`consentdotio/github-actions`](https://github.com/consentdotio/github-actions)
+- Action: `docs-preview-action`
+- Usage: `consentdotio/github-actions/docs-preview-action@main`
 
 ## When it runs
 
@@ -63,19 +65,6 @@ When a deployment is skipped, we still post a comment indicating "Skipped" and s
   (on PR) or a commit comment (on push with `comment_on_push: true`). You can
   override the body with `skip_message`.
 
-## Local development
-
-The action is executed using `tsx` directly (composite action), so no bundling step is required locally or in CI.
-
-```yaml
-runs:
-  using: composite
-  steps:
-    - name: Run c15t action (tsx)
-      shell: bash
-      working-directory: ${{ github.action_path }}
-      run: pnpm -w exec tsx "$GITHUB_ACTION_PATH/src/main.ts"
-```
 
 ## Troubleshooting
 
@@ -85,7 +74,12 @@ runs:
 
 ## Related files
 
-- `internals/c15t-github-action/src/steps/deployment.ts`
-- `internals/c15t-github-action/src/steps/render-comment.ts`
-- `internals/c15t-github-action/src/steps/comments.ts`
-- `internals/c15t-github-action/src/steps/push-comment.ts`
+The action source code is in the [`consentdotio/github-actions`](https://github.com/consentdotio/github-actions) repository:
+- `docs-preview-action/src/steps/deployment.ts`
+- `docs-preview-action/src/steps/render-comment.ts`
+- `docs-preview-action/src/steps/comments.ts`
+- `docs-preview-action/src/steps/push-comment.ts`
+
+## Local development
+
+The action is executed using `tsx` directly (composite action), so no bundling step is required locally or in CI. To modify the action, clone the `consentdotio/github-actions` repository and make changes there.

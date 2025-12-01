@@ -92,7 +92,7 @@ jobs:
 
       - name: ▲ C15T Deployment
         id: c15t
-        uses: ./internals/c15t-github-action
+        uses: consentdotio/github-actions/docs-preview-action@main
         with:
           # Auth
           GITHUB_TOKEN: ${{ github.token }}
@@ -122,6 +122,19 @@ jobs:
 
           # Orchestration & gating
           consent_git_token: ${{ secrets.CONSENT_GIT_TOKEN }}
+          docs_template_repo: consentdotio/c15t-docs
           only_if_changed: ${{ inputs.only_if_changed }}
           change_globs: ${{ inputs.change_globs }}
           check_template_changes: ${{ inputs.check_template_changes }}
+
+          # Branding customization
+          comment_marker_prefix: "c15t"
+          first_contributor_title: "🎉 **Your first c15t commit!**"
+          first_contributor_message: "This is your first contribution to c15t, and I just wanted to say thank you. You're helping us build the best developer-first consent infrastructure. Here's to many more commits ahead! 🚀"
+          first_contributor_author: "Christopher, Author of c15t, [@burnedchris](https://x.com/burnedchris)"
+          share_text_template: "I just contributed to c15t.com, the fastest open-source cookie banner on the web. Fully developer-first, beating every major CMP in benchmarks and free for everyone to use or self-host. Check it out: github.com/c15t/c15t {{url}}"
+          share_url_default: "https://c15t.com"
+          docs_url: "https://c15t.com/docs"
+          community_url: "https://c15t.link/discord"
+          twitter_handle: "consentdotio"
+          footer_text: "***Baked with 💙 by [Consent](https://consent.io?ref=c15t-github-comment), powered by COOKIE***\n(Consent Oversees Our Key Integration Events)\nbecause every CI needs a snack."
