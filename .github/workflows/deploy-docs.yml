@@ -62,6 +62,7 @@ jobs:
       only_if_changed: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
       change_globs: |
         docs/**
+        changelog/**
         packages/*/src/**
         packages/*/package.json
       check_template_changes: "true"
