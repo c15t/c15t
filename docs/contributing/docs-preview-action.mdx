@@ -15,6 +15,7 @@ Our repository includes a composite GitHub Action that:
 ## Where it lives
 
 The action is maintained in a separate repository:
+
 - Repository: [`consentdotio/github-actions`](https://github.com/consentdotio/github-actions)
 - Action: `docs-preview-action`
 - Usage: `consentdotio/github-actions/docs-preview-action@main`
@@ -65,7 +66,6 @@ When a deployment is skipped, we still post a comment indicating "Skipped" and s
   (on PR) or a commit comment (on push with `comment_on_push: true`). You can
   override the body with `skip_message`.
 
-
 ## Troubleshooting
 
 - No comment on push: set `comment_on_push: "true"` in workflow inputs.
@@ -75,6 +75,7 @@ When a deployment is skipped, we still post a comment indicating "Skipped" and s
 ## Related files
 
 The action source code is in the [`consentdotio/github-actions`](https://github.com/consentdotio/github-actions) repository:
+
 - `docs-preview-action/src/steps/deployment.ts`
 - `docs-preview-action/src/steps/render-comment.ts`
 - `docs-preview-action/src/steps/comments.ts`
