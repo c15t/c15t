@@ -1,14 +1,7 @@
 import { baseTranslations } from '@c15t/translations';
 import { describe, expect, it } from 'vitest';
 
-// import { createContractTests } from '~/testing/contract-testing';
 import { showConsentBannerContract } from './show-banner.contract';
-
-// // Create base tests for the contract using the utility
-// const tester = createContractTests(
-// 	'Show Consent Banner',
-// 	showConsentBannerContract
-// );
 
 // Add custom tests specific to the show-banner contract
 describe('Show Consent Banner Contract Custom Tests', () => {
@@ -156,7 +149,6 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 					},
 					branding: 'c15t',
 				};
-
 				const result = validateOutput(output);
 				expect(result?.success).toBe(true);
 			});
