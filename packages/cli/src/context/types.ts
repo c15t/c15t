@@ -1,4 +1,4 @@
-import type { C15TOptions, C15TPlugin } from '@c15t/backend';
+import type { C15TOptions } from '@c15t/backend';
 import type { CliLogger } from '../utils/logger';
 import type { Telemetry } from '../utils/telemetry';
 import type { FrameworkDetectionResult } from './framework-detection';
@@ -50,8 +50,8 @@ export interface ErrorHandlers {
 
 // --- Config Management ---
 export interface ConfigManagement {
-	loadConfig: () => Promise<C15TOptions<C15TPlugin[]> | null>;
-	requireConfig: () => Promise<C15TOptions<C15TPlugin[]>>;
+	loadConfig: () => Promise<C15TOptions | null>;
+	requireConfig: () => Promise<C15TOptions>;
 	getPathAliases: (configPath?: string) => Record<string, string> | null;
 }
 

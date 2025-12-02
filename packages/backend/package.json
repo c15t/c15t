@@ -28,145 +28,70 @@
 	"license": "GPL-3.0-only",
 	"type": "module",
 	"exports": {
-		"./v2": {
-			"types": "./dist/v2/core.d.ts",
-			"import": "./dist/v2/core.js",
-			"require": "./dist/v2/core.cjs"
-		},
-		"./v2/define-config": {
-			"types": "./dist/v2/define-config.d.ts",
-			"import": "./dist/v2/define-config.js",
-			"require": "./dist/v2/define-config.cjs"
-		},
-		"./v2/router": {
-			"types": "./dist/v2/router.d.ts",
-			"import": "./dist/v2/router.js",
-			"require": "./dist/v2/router.cjs"
-		},
-		"./v2/contracts": {
-			"types": "./dist/v2/contracts/index.d.ts",
-			"import": "./dist/v2/contracts/index.js",
-			"require": "./dist/v2/contracts/index.cjs"
-		},
-		"./v2/db/schema": {
-			"types": "./dist/v2/db/schema/index.d.ts",
-			"import": "./dist/v2/db/schema/index.js",
-			"require": "./dist/v2/db/schema/index.cjs"
-		},
-		"./v2/db/adapters": {
-			"types": "./dist/v2/db/adapters/index.d.ts",
-			"import": "./dist/v2/db/adapters/index.js",
-			"require": "./dist/v2/db/adapters/index.cjs"
-		},
-		"./v2/db/adapters/kysely": {
-			"types": "./dist/v2/db/adapters/kysely.d.ts",
-			"import": "./dist/v2/db/adapters/kysely.js",
-			"require": "./dist/v2/db/adapters/kysely.cjs"
-		},
-		"./v2/db/adapters/drizzle": {
-			"types": "./dist/v2/db/adapters/drizzle.d.ts",
-			"import": "./dist/v2/db/adapters/drizzle.js",
-			"require": "./dist/v2/db/adapters/drizzle.cjs"
-		},
-		"./v2/db/adapters/prisma": {
-			"types": "./dist/v2/db/adapters/prisma.d.ts",
-			"import": "./dist/v2/db/adapters/prisma.js",
-			"require": "./dist/v2/db/adapters/prisma.cjs"
-		},
-		"./v2/db/adapters/typeorm": {
-			"types": "./dist/v2/db/adapters/typeorm.d.ts",
-			"import": "./dist/v2/db/adapters/typeorm.js",
-			"require": "./dist/v2/db/adapters/typeorm.cjs"
-		},
-		"./v2/db/adapters/mongo": {
-			"types": "./dist/v2/db/adapters/mongo.d.ts",
-			"import": "./dist/v2/db/adapters/mongo.js",
-			"require": "./dist/v2/db/adapters/mongo.cjs"
-		},
-		"./v2/db/migrator": {
-			"types": "./dist/v2/db/migrator/index.d.ts",
-			"import": "./dist/v2/db/migrator/index.js",
-			"require": "./dist/v2/db/migrator/index.cjs"
-		},
-		"./v2/types": {
-			"types": "./dist/v2/types/index.d.ts",
-			"import": "./dist/v2/types/index.js",
-			"require": "./dist/v2/types/index.cjs"
-		},
 		".": {
 			"types": "./dist/core.d.ts",
 			"import": "./dist/core.js",
 			"require": "./dist/core.cjs"
+		},
+		"./define-config": {
+			"types": "./dist/define-config.d.ts",
+			"import": "./dist/define-config.js",
+			"require": "./dist/define-config.cjs"
 		},
 		"./router": {
 			"types": "./dist/router.d.ts",
 			"import": "./dist/router.js",
 			"require": "./dist/router.cjs"
 		},
-		"./schema": {
-			"types": "./dist/schema/index.d.ts",
-			"import": "./dist/schema/index.js",
-			"require": "./dist/schema/index.cjs"
-		},
 		"./contracts": {
 			"types": "./dist/contracts/index.d.ts",
-			"import": "./dist/contracts.js",
-			"require": "./dist/contracts.cjs"
+			"import": "./dist/contracts/index.js",
+			"require": "./dist/contracts/index.cjs"
 		},
-		"./pkgs/data-model/fields": {
-			"types": "./dist/pkgs/data-model/fields/index.d.ts",
-			"import": "./dist/pkgs/data-model/fields/index.js",
-			"require": "./dist/pkgs/data-model/fields/index.cjs"
+		"./db/schema": {
+			"types": "./dist/db/schema/index.d.ts",
+			"import": "./dist/db/schema/index.js",
+			"require": "./dist/db/schema/index.cjs"
 		},
-		"./pkgs/data-model": {
-			"types": "./dist/pkgs/data-model/index.d.ts",
-			"import": "./dist/pkgs/data-model/index.js",
-			"require": "./dist/pkgs/data-model/index.cjs"
+		"./db/adapters": {
+			"types": "./dist/db/adapters/index.d.ts",
+			"import": "./dist/db/adapters/index.js",
+			"require": "./dist/db/adapters/index.cjs"
 		},
-		"./pkgs/data-model/schema": {
-			"types": "./dist/pkgs/data-model/schema/index.d.ts",
-			"import": "./dist/pkgs/data-model/schema/index.js",
-			"require": "./dist/pkgs/data-model/schema/index.cjs"
+		"./db/adapters/kysely": {
+			"types": "./dist/db/adapters/kysely.d.ts",
+			"import": "./dist/db/adapters/kysely.js",
+			"require": "./dist/db/adapters/kysely.cjs"
 		},
-		"./pkgs/db-adapters/adapters/drizzle-adapter": {
-			"types": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.d.ts",
-			"import": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.js",
-			"require": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.cjs"
+		"./db/adapters/drizzle": {
+			"types": "./dist/db/adapters/drizzle.d.ts",
+			"import": "./dist/db/adapters/drizzle.js",
+			"require": "./dist/db/adapters/drizzle.cjs"
 		},
-		"./pkgs/db-adapters/adapters/kysely-adapter": {
-			"types": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.d.ts",
-			"import": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.js",
-			"require": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.cjs"
+		"./db/adapters/prisma": {
+			"types": "./dist/db/adapters/prisma.d.ts",
+			"import": "./dist/db/adapters/prisma.js",
+			"require": "./dist/db/adapters/prisma.cjs"
 		},
-		"./pkgs/db-adapters/adapters/memory-adapter": {
-			"types": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.d.ts",
-			"import": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.js",
-			"require": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.cjs"
+		"./db/adapters/typeorm": {
+			"types": "./dist/db/adapters/typeorm.d.ts",
+			"import": "./dist/db/adapters/typeorm.js",
+			"require": "./dist/db/adapters/typeorm.cjs"
 		},
-		"./pkgs/db-adapters/adapters/prisma-adapter": {
-			"types": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.d.ts",
-			"import": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.js",
-			"require": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.cjs"
+		"./db/adapters/mongo": {
+			"types": "./dist/db/adapters/mongo.d.ts",
+			"import": "./dist/db/adapters/mongo.js",
+			"require": "./dist/db/adapters/mongo.cjs"
 		},
-		"./pkgs/db-adapters": {
-			"types": "./dist/pkgs/db-adapters/index.d.ts",
-			"import": "./dist/pkgs/db-adapters/index.js",
-			"require": "./dist/pkgs/db-adapters/index.cjs"
+		"./db/migrator": {
+			"types": "./dist/db/migrator/index.d.ts",
+			"import": "./dist/db/migrator/index.js",
+			"require": "./dist/db/migrator/index.cjs"
 		},
-		"./pkgs/results": {
-			"types": "./dist/pkgs/results/index.d.ts",
-			"import": "./dist/pkgs/results/index.js",
-			"require": "./dist/pkgs/results/index.cjs"
-		},
-		"./pkgs/migrations": {
-			"types": "./dist/pkgs/migrations/index.d.ts",
-			"import": "./dist/pkgs/migrations/index.js",
-			"require": "./dist/pkgs/migrations/index.cjs"
-		},
-		"./pkgs/types": {
-			"types": "./dist/pkgs/types/index.d.ts",
-			"import": "./dist/pkgs/types/index.js",
-			"require": "./dist/pkgs/types/index.cjs"
+		"./types": {
+			"types": "./dist/types/index.d.ts",
+			"import": "./dist/types/index.js",
+			"require": "./dist/types/index.cjs"
 		}
 	},
 	"main": "./dist/server.cjs",

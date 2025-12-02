@@ -1,5 +1,5 @@
 import type { C15TOptions } from '~/types';
-import { version } from '../../version';
+import { version } from '~/version';
 /**
  * Default OpenAPI configuration
  */
@@ -9,7 +9,7 @@ export const createOpenAPIConfig = (options: C15TOptions) => {
 		enabled: true,
 		specPath: `${basePath}/spec.json`,
 		docsPath: `${basePath}/docs`,
-		...(options.openapi || {}),
+		...(options.advanced?.openapi || {}),
 	};
 };
 

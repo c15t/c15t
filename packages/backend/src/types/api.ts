@@ -29,5 +29,4 @@ export type ApiPath =
 	| `${ApiPathBase}/consent`
 	| `${ApiPathBase}/consent/:id`
 	| `${ApiPathBase}/jurisdictions`
-	| `${ApiPathBase}/jurisdictions/:code`
-	| `${ApiPathBase}/plugins/:id`;
+	| `${ApiPathBase}/jurisdictions/:code`;

@@ -21,10 +21,7 @@ Use this endpoint for health checks, monitoring, and service status verification
 			status: z.enum(['ok', 'error']),
 			version: z.string(),
 			timestamp: z.date(),
-			storage: z.object({
-				type: z.string(),
-				available: z.boolean(),
-			}),
+
 			client: z.object({
 				ip: z.string().nullable(),
 				userAgent: z.string().nullable(),
