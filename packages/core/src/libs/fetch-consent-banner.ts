@@ -11,6 +11,7 @@ import {
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { ConsentStoreState } from '../store/type';
+import { hasGlobalPrivacyControlSignal } from './global-privacy-control';
 
 type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
 
@@ -62,6 +63,22 @@ function updateStore(
 		!data.showConsentBanner &&
 		!consentInfo;
 
+	// Detect Global Privacy Control (GPC) signal on the client
+	const hasGpcSignal = hasGlobalPrivacyControlSignal();
+
+	// Base auto-granted consents when no regulation applies.
+	// When a GPC signal is present, treat it as an opt-out for
+	// marketing and measurement under CCPA-style rules.
+	const autoGrantedConsents = shouldAutoGrantConsents
+		? {
+				necessary: true,
+				functionality: !hasGpcSignal,
+				experience: !hasGpcSignal,
+				marketing: !hasGpcSignal,
+				measurement: !hasGpcSignal,
+			}
+		: null;
+
 	const updatedStore: Partial<ConsentStoreState> = {
 		isLoadingConsentInfo: false,
 		branding: data.branding ?? 'c15t',
@@ -74,20 +91,8 @@ function updateStore(
 
 		// If the banner is not shown and has no requirement consent to all
 		...(shouldAutoGrantConsents && {
-			consents: {
-				necessary: true,
-				functionality: true,
-				experience: true,
-				marketing: true,
-				measurement: true,
-			},
-			selectedConsents: {
-				necessary: true,
-				functionality: true,
-				experience: true,
-				marketing: true,
-				measurement: true,
-			},
+			consents: autoGrantedConsents ?? undefined,
+			selectedConsents: autoGrantedConsents ?? undefined,
 		}),
 		locationInfo: {
 			countryCode: location?.countryCode ?? null,
@@ -121,7 +126,7 @@ function updateStore(
 	// Trigger onConsentSet callback when consents are automatically granted
 	if (shouldAutoGrantConsents) {
 		callbacks?.onConsentSet?.({
-			preferences: {
+			preferences: autoGrantedConsents ?? {
 				necessary: true,
 				functionality: true,
 				experience: true,
