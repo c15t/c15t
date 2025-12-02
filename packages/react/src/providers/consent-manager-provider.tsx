@@ -105,21 +105,6 @@ export function ConsentManagerProvider({
 		noStyle = false,
 	} = react;
 
-	// Determine if using c15t.dev domain (memoize the calculation)
-	const isConsentDomain = useMemo(() => {
-		if (typeof window === 'undefined') {
-			return false;
-		}
-
-		return Boolean(
-			(mode === 'c15t' || mode === 'offline') &&
-				(backendURL?.includes('c15t.dev') ||
-					backendURL?.includes('c15t.cloud') ||
-					window.location.hostname.includes('c15t.dev') ||
-					window.location.hostname.includes('c15t.cloud'))
-		);
-	}, [mode, backendURL]);
-
 	// Generate cache key for manager and store persistence
 	const cacheKey = generateCacheKey({
 		mode: mode || 'c15t',
@@ -174,7 +159,6 @@ export function ConsentManagerProvider({
 		}
 
 		const newStore = createConsentManagerStore(consentManager, {
-			unstable_googleTagManager: options.unstable_googleTagManager,
 			config: {
 				pkg: '@c15t/react',
 				version: version,
@@ -184,14 +168,13 @@ export function ConsentManagerProvider({
 			ignoreGeoLocation: options.ignoreGeoLocation,
 			initialGdprTypes: options.consentCategories,
 			callbacks: options.callbacks,
-			trackingBlockerConfig: options.trackingBlockerConfig,
+			networkBlocker: options.networkBlocker,
 			scripts: options.scripts,
 			legalLinks: options.legalLinks,
 			storageConfig: options.storageConfig,
 			user: options.user,
 			overrides: options.overrides,
 			...store,
-			isConsentDomain,
 			initialTranslationConfig: translations,
 		});
 
@@ -202,16 +185,14 @@ export function ConsentManagerProvider({
 		consentManager,
 		mode,
 		options.callbacks,
-		options.unstable_googleTagManager,
-		options.ignoreGeoLocation,
 		options.consentCategories,
-		options.trackingBlockerConfig,
+		options.networkBlocker,
+		options.ignoreGeoLocation,
 		options.scripts,
 		options.legalLinks,
 		options.user,
 		options.overrides,
 		store,
-		isConsentDomain,
 		translations,
 		options.storageConfig,
 	]);
