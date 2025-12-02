@@ -57,13 +57,6 @@ export function Router({ onClose: _onClose }: RouterProps) {
 					title: name,
 					status: value ? 'Enabled' : 'Disabled',
 				}));
-			case 'Compliance':
-				return Object.entries(privacyConsent.complianceSettings).map(
-					([region, settings]) => ({
-						title: region,
-						status: settings.enabled ? 'Active' : 'Inactive',
-					})
-				);
 			case 'Conditional':
 				return renderingState.map((item) => ({
 					title: item.componentName,

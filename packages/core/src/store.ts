@@ -13,26 +13,26 @@ import type { StorageConfig } from './libs/cookie';
 import { deleteConsentFromStorage, getConsentFromStorage } from './libs/cookie';
 import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
 import {
-	extractConsentNamesFromCondition,
-	type HasCondition,
-	has,
+  extractConsentNamesFromCondition,
+  type HasCondition,
+  has,
 } from './libs/has';
 import { identifyUser } from './libs/identify-user';
 import type { IframeBlockerConfig } from './libs/iframe-blocker';
 import { createIframeManager } from './libs/iframe-blocker/store';
+import type { NetworkBlockerConfig } from './libs/network-blocker';
+import { createNetworkBlockerManager } from './libs/network-blocker/store';
 import { saveConsents } from './libs/save-consents';
 import { createScriptManager, type Script } from './libs/script-loader';
-import type { TrackingBlockerConfig } from './libs/tracking-blocker';
-import { createTrackingBlocker } from './libs/tracking-blocker';
 import { initialState } from './store.initial-state';
 import type { PrivacyConsentState } from './store.type';
 import type { Overrides } from './types';
 import type { Callbacks } from './types/callbacks';
 import type { ConsentBannerResponse, ConsentState } from './types/compliance';
 import {
-	type AllConsentNames,
-	type ConsentInfo,
-	consentTypes,
+  type AllConsentNames,
+  type ConsentInfo,
+  consentTypes,
 } from './types/gdpr';
 import type { LegalLinks } from './types/legal-links';
 import type { User } from './types/user';
@@ -93,6 +93,8 @@ export interface StoreOptions {
 	 */
 	namespace?: string;
 
+  enabled?: boolean;
+
 	/** Information about the consent manager */
 	config?: {
 		pkg: string;
@@ -107,28 +109,6 @@ export interface StoreOptions {
 	initialGdprTypes?: AllConsentNames[];
 
 	/**
-	 * Configuration options for the tracking blocker system.
-	 *
-	 * @remarks
-	 * **Important:** The tracking blocker is automatically disabled when using the Script Loader
-	 * to prevent conflicts between the two systems. If you provide `scripts` in the store options,
-	 * or if you dynamically add scripts using `setScripts()`, the tracking blocker will be
-	 * destroyed to ensure proper script loading behavior.
-	 *
-	 * This interface controls how the tracking blocker intercepts and manages
-	 * network requests based on user consent. The blocker overrides global
-	 * `fetch` and `XMLHttpRequest` APIs to enforce consent requirements.
-	 *
-	 * @deprecated This interface is deprecated and will be removed in v2.0.
-	 * The default domain map will be empty in v2.0, requiring users to explicitly
-	 * specify domains to block. Use the new Script Loader
-	 * instead for more granular control over script loading based on consent.
-	 *
-	 * @see https://c15t.com/docs/frameworks/javascript/script-loader
-	 */
-	trackingBlockerConfig?: TrackingBlockerConfig;
-
-	/**
 	 * Configuration for the iframe blocker.
 	 * Controls how iframes are blocked based on consent settings.
 	 */
@@ -139,21 +119,6 @@ export interface StoreOptions {
 	 * @default false
 	 */
 	ignoreGeoLocation?: boolean;
-
-	/**
-	 * Globally enable or disable the consent manager.
-	 *
-	 * @remarks
-	 * When set to `false`, c15t will not fetch location or consent banner
-	 * information from the backend and will treat all consents as granted
-	 * on the client side.
-	 *
-	 * This is useful when you want to temporarily disable consent handling
-	 * while still keeping the integration code in place.
-	 *
-	 * @default true
-	 */
-	enabled?: boolean;
 
 	/**
 	 * Initial Translation Config
@@ -233,15 +198,30 @@ export interface StoreOptions {
 	overrides?: Overrides;
 
 	/**
-	 * Respect the Global Privacy Signal in opt-out jurisdiction, like California (CCPA).
-	 * @defaultValue false
+	 * Configuration for the network request blocker.
+	 *
+	 * @remarks
+	 * The network blocker intercepts global `fetch` and `XMLHttpRequest`
+	 * calls and blocks requests based on the current consent state and
+	 * configured domain rules.
+	 *
+	 * @example
+	 * ```ts
+	 * const store = createConsentManagerStore(client, {
+	 *   networkBlocker: {
+	 *     rules: [
+	 *       {
+	 *         id: 'ga-marketing',
+	 *         domain: 'google-analytics.com',
+	 *         category: 'marketing',
+	 *       },
+	 *     ],
+	 *   },
+	 * });
+	 * ```
 	 */
-	experimental_globalPrivacyControl?: boolean;
+	networkBlocker?: NetworkBlockerConfig;
 }
-
-// For backward compatibility (if needed)
-export interface StoreConfig
-	extends Pick<StoreOptions, 'trackingBlockerConfig'> {}
 
 /**
  * Creates a new consent manager store instance.
@@ -289,31 +269,12 @@ export const createConsentManagerStore = (
 	manager: ConsentManagerInterface,
 	options: StoreOptions = {}
 ) => {
-	const {
-		namespace = 'c15tStore',
-		trackingBlockerConfig,
-		translationConfig,
-		storageConfig,
-		enabled = true,
-	} = options;
+	const { namespace = 'c15tStore', translationConfig, storageConfig, enabled = true } = options;
 
 	// Load initial state from localStorage if available
 	const storedConsent = getStoredConsent(storageConfig);
 
-	// Automatically disable tracking blocker if script loader is in use
-	const shouldDisableTrackingBlocker =
-		options.scripts && options.scripts.length > 0;
-
-	// Initialize tracking blocker only if not using script loader
-	const trackingBlocker =
-		typeof window !== 'undefined' && !shouldDisableTrackingBlocker
-			? createTrackingBlocker(
-					trackingBlockerConfig || {},
-					storedConsent?.consents || initialState.consents
-				)
-			: null;
-
-	const getInitialConsentState = (): Partial<PrivacyConsentState> => {
+  const getInitialConsentState = (): Partial<PrivacyConsentState> => {
 		if (!enabled) {
 			const consents = consentTypes.reduce((acc, consent) => {
 				acc[consent.name] = true;
@@ -325,7 +286,6 @@ export const createConsentManagerStore = (
 				selectedConsents: consents,
 				consentInfo: {
 					time: Date.now(),
-					type: 'all',
 					identified: !!options.user?.id,
 				},
 				showPopup: false,
@@ -360,7 +320,7 @@ export const createConsentManagerStore = (
 		config: options.config ?? initialState.config,
 		iframeBlockerConfig:
 			options.iframeBlockerConfig ?? initialState.iframeBlockerConfig,
-
+		networkBlocker: options.networkBlocker ?? initialState.networkBlocker,
 		// Override the callbacks with merged callbacks
 		callbacks: options.callbacks ?? initialState.callbacks,
 		// Set initial scripts if provided
@@ -455,7 +415,6 @@ export const createConsentManagerStore = (
 				type,
 				get,
 				set,
-				trackingBlocker,
 			}),
 
 		setConsent: (name, value) => {
@@ -576,20 +535,14 @@ export const createConsentManagerStore = (
 		 *
 		 * @returns A promise that resolves with the consent banner response when the fetch is complete
 		 */
-		fetchConsentBannerInfo: (): Promise<ConsentBannerResponse | undefined> => {
-			if (!enabled) {
-				return Promise.resolve(undefined);
-			}
-
-			return fetchConsentBannerInfoUtil({
+		fetchConsentBannerInfo: (): Promise<ConsentBannerResponse | undefined> =>
+			fetchConsentBannerInfoUtil({
 				manager,
 				initialData: options._initialData,
 				initialTranslationConfig: options.initialTranslationConfig,
 				get,
 				set,
-				trackingBlocker,
-			});
-		},
+			}),
 
 		/**
 		 * Retrieves the list of consent types that should be displayed.
@@ -670,12 +623,21 @@ export const createConsentManagerStore = (
 		setOverrides: (overrides: PrivacyConsentState['overrides']) =>
 			set({ overrides: { ...get().overrides, ...overrides } }),
 
-		...createScriptManager(get, set, trackingBlocker),
+		...createScriptManager(get, set),
 		...createIframeManager(get, set),
+		...createNetworkBlockerManager(get, set),
 	}));
 
 	// Initialize the iframe blocker after the store is created
 	store.getState().initializeIframeBlocker();
+
+	// Initialize the network blocker after the store is created
+	if (options.networkBlocker) {
+		store.setState({
+			networkBlocker: options.networkBlocker,
+		});
+		store.getState().initializeNetworkBlocker();
+	}
 
 	// Add script categories to gdprTypes
 	if (options.scripts && options.scripts.length > 0) {
@@ -703,12 +665,9 @@ export const createConsentManagerStore = (
 		}
 
 		// Update based on the initial consent state
-		trackingBlocker?.updateConsents(store.getState().consents);
 		store.getState().updateScripts();
-
-		if (enabled) {
-			store.getState().fetchConsentBannerInfo();
-		}
+    store.getState().updateNetworkBlockerConsents();
+		store.getState().fetchConsentBannerInfo();
 	}
 
 	return store;
