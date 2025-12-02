@@ -1,7 +1,6 @@
 import type { StoreApi } from 'zustand';
 import type { PrivacyConsentState } from '~/store.type';
 import type { ConsentManagerInterface } from '../client/client-interface';
-import { updateGTMConsent } from './gtm';
 import type { createTrackingBlocker } from './tracking-blocker';
 
 interface SaveConsentsProps {
@@ -55,7 +54,6 @@ export async function saveConsents({
 		showPopup: false,
 		consentInfo: {
 			time: Date.now(),
-			type: type as 'necessary' | 'all' | 'custom',
 			identified: !!get().user?.id,
 		},
 	});
@@ -66,7 +64,6 @@ export async function saveConsents({
 	// Run after yielding to avoid blocking the click INP
 	trackingBlocker?.updateConsents(newConsents);
 	updateIframeConsents();
-	updateGTMConsent(newConsents);
 	updateScripts();
 
 	callbacks.onConsentSet?.({

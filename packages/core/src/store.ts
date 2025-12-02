@@ -9,15 +9,9 @@ import type { ContractsOutputs } from '@c15t/backend/contracts';
 import type { TranslationConfig } from '@c15t/translations';
 import { createStore } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from './client/client-factory';
-import {
-	getEffectiveConsents,
-	hasConsented,
-	hasConsentFor,
-} from './libs/consent-utils';
 import type { StorageConfig } from './libs/cookie';
 import { deleteConsentFromStorage, getConsentFromStorage } from './libs/cookie';
 import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from './libs/fetch-consent-banner';
-import { type GTMConfiguration, setupGTM } from './libs/gtm';
 import {
 	extractConsentNamesFromCondition,
 	type HasCondition,
@@ -34,11 +28,7 @@ import { initialState } from './store.initial-state';
 import type { PrivacyConsentState } from './store.type';
 import type { Overrides } from './types';
 import type { Callbacks } from './types/callbacks';
-import type {
-	ComplianceSettings,
-	ConsentBannerResponse,
-	ConsentState,
-} from './types/compliance';
+import type { ConsentBannerResponse, ConsentState } from './types/compliance';
 import {
 	type AllConsentNames,
 	type ConsentInfo,
@@ -117,12 +107,6 @@ export interface StoreOptions {
 	initialGdprTypes?: AllConsentNames[];
 
 	/**
-	 * Initial compliance settings for different regions.
-	 * @deprecated will be removed in v2.0 due to unused functionality
-	 */
-	initialComplianceSettings?: Record<string, Partial<ComplianceSettings>>;
-
-	/**
 	 * Configuration options for the tracking blocker system.
 	 *
 	 * @remarks
@@ -149,19 +133,6 @@ export interface StoreOptions {
 	 * Controls how iframes are blocked based on consent settings.
 	 */
 	iframeBlockerConfig?: IframeBlockerConfig;
-
-	/**
-	 * Flag indicating if the consent manager is using the c15t.dev domain.
-	 * @default false
-	 * @deprecated will be removed in a future version
-	 */
-	isConsentDomain?: boolean;
-
-	/**
-	 * Google Tag Manager configuration.
-	 * @deprecated use {@link https://c15t.com/docs/integrations/google-tag-manager} instead
-	 */
-	unstable_googleTagManager?: GTMConfiguration;
 
 	/**
 	 * Whether to ignore geo location. Will always show the consent banner.
@@ -300,7 +271,6 @@ export const createConsentManagerStore = (
 	const {
 		namespace = 'c15tStore',
 		trackingBlockerConfig,
-		isConsentDomain = false,
 		translationConfig,
 		storageConfig,
 	} = options;
@@ -328,8 +298,7 @@ export const createConsentManagerStore = (
 		config: options.config ?? initialState.config,
 		iframeBlockerConfig:
 			options.iframeBlockerConfig ?? initialState.iframeBlockerConfig,
-		// Set isConsentDomain based on the provider's baseURL
-		isConsentDomain,
+
 		// Override the callbacks with merged callbacks
 		callbacks: options.callbacks ?? initialState.callbacks,
 		// Set initial scripts if provided
@@ -490,31 +459,6 @@ export const createConsentManagerStore = (
 		setGdprTypes: (types) => set({ gdprTypes: types }),
 
 		/**
-		 * Updates compliance settings for a specific region.
-		 *
-		 * @param region - The region to update
-		 * @param settings - New compliance settings
-		 *
-		 * @remarks
-		 * Merges new settings with existing ones for the specified region
-		 */
-		setComplianceSetting: (region, settings) =>
-			set((state) => ({
-				complianceSettings: {
-					...state.complianceSettings,
-					[region]: { ...state.complianceSettings[region], ...settings },
-				},
-			})),
-
-		/**
-		 * Resets compliance settings to their default values.
-		 */
-		resetComplianceSettings: () =>
-			set({
-				complianceSettings: initialState.complianceSettings,
-			}),
-
-		/**
 		 * Sets a callback for a specific consent event.
 		 *
 		 * @param name - The callback event name
@@ -568,13 +512,6 @@ export const createConsentManagerStore = (
 		},
 
 		/**
-		 * Updates the user's detected country.
-		 *
-		 * @param country - The country code
-		 */
-		setDetectedCountry: (country) => set({ detectedCountry: country }),
-
-		/**
 		 * Updates the user's location information.
 		 *
 		 * @param location - The location information
@@ -604,41 +541,6 @@ export const createConsentManagerStore = (
 		getDisplayedConsents: () => {
 			const { gdprTypes, consentTypes } = get();
 			return consentTypes.filter((consent) => gdprTypes.includes(consent.name));
-		},
-
-		/**
-		 * Checks if the user has provided any form of consent.
-		 *
-		 * @returns True if any consent has been given
-		 */
-		hasConsented: () => {
-			const { consentInfo } = get();
-			return hasConsented(consentInfo);
-		},
-
-		/**
-		 * Gets the effective consent states after applying privacy settings.
-		 * @deprecated will be removed in a future version
-		 * @returns The effective consent states considering Do Not Track
-		 */
-		getEffectiveConsents: () => {
-			const { consents, privacySettings } = get();
-			return getEffectiveConsents(consents, privacySettings.honorDoNotTrack);
-		},
-
-		/**
-		 * Checks if consent has been given for a specific type.
-		 * @deprecated will be removed in a future version
-		 * @param consentType - The consent type to check
-		 * @returns True if consent is granted for the specified type
-		 */
-		hasConsentFor: (consentType) => {
-			const { consents, privacySettings } = get();
-			return hasConsentFor(
-				consentType,
-				consents,
-				privacySettings.honorDoNotTrack
-			);
 		},
 
 		/**
@@ -732,16 +634,6 @@ export const createConsentManagerStore = (
 		// biome-ignore lint/suspicious/noExplicitAny: its okay
 		(window as any)[namespace] = store;
 
-		if (options.unstable_googleTagManager) {
-			try {
-				setupGTM({
-					...options.unstable_googleTagManager,
-					consentState: store.getState().consents,
-				});
-			} catch (e) {
-				console.error('Failed to setup Google Tag Manager:', e);
-			}
-		}
 		// When the store is initialized, call the onConsentSet callback with the initial consent state
 		store
 			.getState()
