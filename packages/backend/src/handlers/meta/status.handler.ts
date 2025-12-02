@@ -1,6 +1,6 @@
 import { os } from '~/contracts';
 import type { C15TContext } from '~/types';
-import { version } from '../../version';
+import { version } from '~/version';
 
 // Use os.meta.status.handler to connect to the contract
 export const statusHandler = os.meta.status.handler(({ context }) => {
@@ -31,10 +31,6 @@ export const statusHandler = os.meta.status.handler(({ context }) => {
 		status: 'ok' as const,
 		version,
 		timestamp: new Date(),
-		storage: {
-			type: typedContext.adapter?.id ?? 'MemoryAdapter',
-			available: !!typedContext.adapter,
-		},
 		client: {
 			ip: typedContext.ipAddress ?? null,
 			userAgent: typedContext.userAgent ?? null,
