@@ -18,15 +18,13 @@ describe('Show Consent Banner Handler', () => {
 	// Helper to create mock context with headers
 	const createMockContext = (
 		headers: Record<string, string>,
-		advanced?: Partial<C15TContext['options']['advanced']>
+		advanced?: Partial<C15TContext['advanced']>
 	) => {
 		return {
 			context: {
 				headers: new Headers(headers),
-				options: {
-					advanced: {
-						...(advanced ?? {}),
-					},
+				advanced: {
+					...(advanced ?? {}),
 				},
 			},
 		};
