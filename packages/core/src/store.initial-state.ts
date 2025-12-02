@@ -68,6 +68,10 @@ export const initialState: Omit<
 	| 'initializeIframeBlocker'
 	| 'updateIframeConsents'
 	| 'destroyIframeBlocker'
+	| 'initializeNetworkBlocker'
+	| 'updateNetworkBlockerConsents'
+	| 'setNetworkBlocker'
+	| 'destroyNetworkBlocker'
 	| 'updateConsentCategories'
 	| 'identifyUser'
 	| 'setOverrides'
@@ -134,6 +138,9 @@ export const initialState: Omit<
 	iframeBlockerConfig: {
 		disableAutomaticBlocking: false,
 	},
+
+	/** No network blocker configuration by default */
+	networkBlocker: undefined,
 
 	/** Default to not ignoring geo location */
 	ignoreGeoLocation: false,
