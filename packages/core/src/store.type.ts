@@ -10,21 +10,16 @@ import type { Script } from './libs/script-loader';
 import type {
 	AllConsentNames,
 	Callbacks,
-	ComplianceRegion,
-	ComplianceSettings,
 	ConsentBannerResponse,
 	ConsentInfo,
 	ConsentState,
 	ConsentType,
 	consentTypes,
-	JurisdictionInfo,
 	LegalLinks,
 	LocationInfo,
-	PrivacySettings,
 	TranslationConfig,
 	User,
 } from './types';
-
 /**
  * Core state and methods interface for the privacy consent management store.
  *
@@ -259,62 +254,12 @@ export interface PrivacyConsentState {
 	hasConsented: () => boolean;
 
 	/**
-	 * Checks if consent has been given for a specific type.
-	 * @param consentType - The consent type to check
-	 * @deprecated will be removed in a future version
-	 */
-	hasConsentFor: (consentType: AllConsentNames) => boolean;
-
-	/**
 	 * Evaluates whether current consent state satisfies the given condition.
 	 * @param condition - The consent condition to evaluate
 	 */
 	has: <CategoryType extends AllConsentNames>(
 		condition: HasCondition<CategoryType>
 	) => boolean;
-
-	/**
-	 * Deprecated variables and methods thatwill be removed in a future version
-	 */
-
-	/** Whether the provider is using c15t.dev domain  @deprecated will be removed in a future version */
-	isConsentDomain: boolean;
-
-	/** Subject's detected country code @deprecated will be removed in a future version - use locationInfo instead */
-	detectedCountry: string | null;
-
-	/** Privacy Related Settings @deprecated will be removed in a future version */
-	privacySettings: PrivacySettings;
-
-	/** Region-specific compliance settings @deprecated will be removed in a future version due to unused functionality */
-	complianceSettings: Record<ComplianceRegion, ComplianceSettings>;
-
-	/** Applicable jurisdiction information @deprecated will be removed in a future version use locationInfo instead */
-	jurisdictionInfo: JurisdictionInfo | null;
-
-	/** Gets the effective consent states after applying privacy settings @deprecated will be removed in a future version */
-	getEffectiveConsents: () => ConsentState;
-
-	/**
-	 * Updates the user's detected country.
-	 * @param country - The country code
-	 * @deprecated will be removed in a future version - use setLocationInfo instead
-	 */
-	setDetectedCountry: (country: string) => void;
-
-	/** Resets compliance settings to their default values @deprecated will be removed in a future version due to unused functionality */
-	resetComplianceSettings: () => void;
-
-	/**
-	 * Updates compliance settings for a specific region.
-	 * @param region - The region to update
-	 * @param settings - New compliance settings
-	 * @deprecated will be removed in a future version due to unused functionality
-	 */
-	setComplianceSetting: (
-		region: ComplianceRegion,
-		settings: Partial<ComplianceSettings>
-	) => void;
 
 	/**
 	 * Script management section
