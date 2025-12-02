@@ -20,10 +20,10 @@ import {
 import { identifyUser } from './libs/identify-user';
 import type { IframeBlockerConfig } from './libs/iframe-blocker';
 import { createIframeManager } from './libs/iframe-blocker/store';
+import type { NetworkBlockerConfig } from './libs/network-blocker';
+import { createNetworkBlockerManager } from './libs/network-blocker/store';
 import { saveConsents } from './libs/save-consents';
 import { createScriptManager, type Script } from './libs/script-loader';
-import type { TrackingBlockerConfig } from './libs/tracking-blocker';
-import { createTrackingBlocker } from './libs/tracking-blocker';
 import { initialState } from './store.initial-state';
 import type { PrivacyConsentState } from './store.type';
 import type { Overrides } from './types';
@@ -105,28 +105,6 @@ export interface StoreOptions {
 	 * Initial GDPR consent types to activate.
 	 */
 	initialGdprTypes?: AllConsentNames[];
-
-	/**
-	 * Configuration options for the tracking blocker system.
-	 *
-	 * @remarks
-	 * **Important:** The tracking blocker is automatically disabled when using the Script Loader
-	 * to prevent conflicts between the two systems. If you provide `scripts` in the store options,
-	 * or if you dynamically add scripts using `setScripts()`, the tracking blocker will be
-	 * destroyed to ensure proper script loading behavior.
-	 *
-	 * This interface controls how the tracking blocker intercepts and manages
-	 * network requests based on user consent. The blocker overrides global
-	 * `fetch` and `XMLHttpRequest` APIs to enforce consent requirements.
-	 *
-	 * @deprecated This interface is deprecated and will be removed in v2.0.
-	 * The default domain map will be empty in v2.0, requiring users to explicitly
-	 * specify domains to block. Use the new Script Loader
-	 * instead for more granular control over script loading based on consent.
-	 *
-	 * @see https://c15t.com/docs/frameworks/javascript/script-loader
-	 */
-	trackingBlockerConfig?: TrackingBlockerConfig;
 
 	/**
 	 * Configuration for the iframe blocker.
@@ -216,11 +194,32 @@ export interface StoreOptions {
 	 * @defaultValue undefined
 	 */
 	overrides?: Overrides;
-}
 
-// For backward compatibility (if needed)
-export interface StoreConfig
-	extends Pick<StoreOptions, 'trackingBlockerConfig'> {}
+	/**
+	 * Configuration for the network request blocker.
+	 *
+	 * @remarks
+	 * The network blocker intercepts global `fetch` and `XMLHttpRequest`
+	 * calls and blocks requests based on the current consent state and
+	 * configured domain rules.
+	 *
+	 * @example
+	 * ```ts
+	 * const store = createConsentManagerStore(client, {
+	 *   networkBlocker: {
+	 *     rules: [
+	 *       {
+	 *         id: 'ga-marketing',
+	 *         domain: 'google-analytics.com',
+	 *         category: 'marketing',
+	 *       },
+	 *     ],
+	 *   },
+	 * });
+	 * ```
+	 */
+	networkBlocker?: NetworkBlockerConfig;
+}
 
 /**
  * Creates a new consent manager store instance.
@@ -268,28 +267,10 @@ export const createConsentManagerStore = (
 	manager: ConsentManagerInterface,
 	options: StoreOptions = {}
 ) => {
-	const {
-		namespace = 'c15tStore',
-		trackingBlockerConfig,
-		translationConfig,
-		storageConfig,
-	} = options;
+	const { namespace = 'c15tStore', translationConfig, storageConfig } = options;
 
 	// Load initial state from localStorage if available
 	const storedConsent = getStoredConsent(storageConfig);
-
-	// Automatically disable tracking blocker if script loader is in use
-	const shouldDisableTrackingBlocker =
-		options.scripts && options.scripts.length > 0;
-
-	// Initialize tracking blocker only if not using script loader
-	const trackingBlocker =
-		typeof window !== 'undefined' && !shouldDisableTrackingBlocker
-			? createTrackingBlocker(
-					trackingBlockerConfig || {},
-					storedConsent?.consents || initialState.consents
-				)
-			: null;
 
 	const store = createStore<PrivacyConsentState>((set, get) => ({
 		...initialState,
@@ -298,7 +279,7 @@ export const createConsentManagerStore = (
 		config: options.config ?? initialState.config,
 		iframeBlockerConfig:
 			options.iframeBlockerConfig ?? initialState.iframeBlockerConfig,
-
+		networkBlocker: options.networkBlocker ?? initialState.networkBlocker,
 		// Override the callbacks with merged callbacks
 		callbacks: options.callbacks ?? initialState.callbacks,
 		// Set initial scripts if provided
@@ -314,13 +295,12 @@ export const createConsentManagerStore = (
 					consents: storedConsent.consents,
 					selectedConsents: storedConsent.consents,
 					consentInfo: storedConsent.consentInfo,
-					showPopup: false, // Don't show popup if we have stored consent
-					isLoadingConsentInfo: false, // Not loading if we have stored consent
+					showPopup: false,
+					isLoadingConsentInfo: false,
 				}
 			: {
-					// Don't show popup initially - we'll set it after location check
 					showPopup: false,
-					isLoadingConsentInfo: true, // Start in loading state
+					isLoadingConsentInfo: true,
 				}),
 
 		/**
@@ -402,7 +382,6 @@ export const createConsentManagerStore = (
 				type,
 				get,
 				set,
-				trackingBlocker,
 			}),
 
 		setConsent: (name, value) => {
@@ -530,7 +509,6 @@ export const createConsentManagerStore = (
 				initialTranslationConfig: options.initialTranslationConfig,
 				get,
 				set,
-				trackingBlocker,
 			}),
 
 		/**
@@ -612,12 +590,21 @@ export const createConsentManagerStore = (
 		setOverrides: (overrides: PrivacyConsentState['overrides']) =>
 			set({ overrides: { ...get().overrides, ...overrides } }),
 
-		...createScriptManager(get, set, trackingBlocker),
+		...createScriptManager(get, set),
 		...createIframeManager(get, set),
+		...createNetworkBlockerManager(get, set),
 	}));
 
 	// Initialize the iframe blocker after the store is created
 	store.getState().initializeIframeBlocker();
+
+	// Initialize the network blocker after the store is created
+	if (options.networkBlocker) {
+		store.setState({
+			networkBlocker: options.networkBlocker,
+		});
+		store.getState().initializeNetworkBlocker();
+	}
 
 	// Add script categories to gdprTypes
 	if (options.scripts && options.scripts.length > 0) {

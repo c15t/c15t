@@ -7,12 +7,11 @@ import type {
 	AllConsentNames,
 	Callbacks,
 	ConsentManagerOptions as CoreOptions,
-	GTMConfiguration,
 	LegalLinks,
+	NetworkBlockerConfig,
 	Overrides,
 	Script,
 	StorageConfig,
-	TrackingBlockerConfig,
 	TranslationConfig,
 	User,
 } from 'c15t';
@@ -78,12 +77,6 @@ export type ConsentManagerOptions = CoreOptions & {
 	translations?: Partial<TranslationConfig>;
 
 	/**
-	 * Google Tag Manager configuration.
-	 * Once you set this, the consent manager will automatically setup Google Tag Manager for you.
-	 */
-	unstable_googleTagManager?: GTMConfiguration;
-
-	/**
 	 * Whether to ignore geo location. Will always show the consent banner.
 	 * It is recommended to disable this option in production.
 	 * @default false
@@ -111,10 +104,12 @@ export type ConsentManagerOptions = CoreOptions & {
 	scripts?: Script[];
 
 	/**
-	 * Tracking blocker configuration.
-	 * @deprecated This is deprecated and will be removed in the next major version. Use the new [ScriptLoader](https://c15t.com/docs/frameworks/react/script-loader) instead.
+	 * Network blocker configuration.
+	 *
+	 * @remarks
+	 * Intercepts global fetch and XMLHttpRequest calls and blocks requests based on the current consent state and configured domain rules.
 	 */
-	trackingBlockerConfig?: TrackingBlockerConfig;
+	networkBlocker?: NetworkBlockerConfig;
 
 	/**
 	 * Display links to various legal documents such as privacy policy, terms of service, etc across the consent manager.

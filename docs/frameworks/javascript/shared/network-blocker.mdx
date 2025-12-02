@@ -1,0 +1,317 @@
+---
+title: Network Blocker
+description: Block fetch and XMLHttpRequest calls based on user consent, with domain rules and callbacks.
+lastModified: 2025-12-02
+canary: true
+availableIn:
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/network-blocker'
+    title: 'JavaScript'
+  - framework: 'next'
+    url: '/docs/frameworks/next/network-blocker'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/network-blocker'
+    title: 'React'
+---
+
+## Overview
+
+The **network blocker** lets you block outgoing `fetch` and `XMLHttpRequest` calls
+based on the current consent state.
+
+You configure it with a list of domain rules and an optional callback so you can:
+
+- Stop trackers (for example, Google Analytics) when there is no marketing consent.
+- Prevent calls to specific backends until the user has accepted a category.
+- Log or inspect all blocked requests for debugging.
+
+The blocker works alongside the store and script loader:
+
+- It evaluates **current consents** via the store.
+- It uses a **slightly delayed snapshot** of consents so that script `onDelete`
+  callbacks can run teardown logic before network access is tightened.
+</section>
+
+<section id="basic-usage">
+## Basic usage
+
+### Enabling the network blocker
+
+Add the `networkBlocker` option when you configure the consent manager:
+
+```ts
+{
+	networkBlocker: {
+		rules: [
+			{
+				id: 'ga-marketing',
+				domain: 'google-analytics.com',
+				category: 'marketing',
+			},
+		],
+	},
+};
+```
+
+With this configuration:
+
+- Any `fetch` or `XMLHttpRequest` to `google-analytics.com` or its subdomains
+  will be **blocked** when `marketing` consent is not granted.
+- The blocker is **enabled by default**; set `enabled: false` to turn it off.
+
+### What happens when a request is blocked
+
+When a **`fetch`** call is blocked:
+
+- The real network request is **never sent**.
+- The wrapper returns a **synthetic `Response`**:
+	- `ok === false`
+	- `status === 451`
+	- `statusText === 'Request blocked by consent manager'`
+
+Example:
+
+```ts
+const response = await fetch('https://www.google-analytics.com/collect');
+
+if (!response.ok && response.status === 451) {
+	console.log('Request blocked by consent manager');
+}
+```
+
+When an **`XMLHttpRequest`** is blocked:
+
+- The request is aborted with `abort()`.
+- An `'error'` event is dispatched on the XHR instance.
+- If `xhr.onerror` is defined, it will be called with the error event.
+
+```ts
+const xhr = new XMLHttpRequest();
+
+xhr.open('GET', 'https://www.google-analytics.com/collect');
+
+xhr.onerror = () => {
+	console.log('XHR blocked by consent manager');
+};
+
+xhr.send();
+```
+
+Blocked requests do **not** appear in the browser Network tab, because the
+request is never made.
+
+## Configuration
+
+### NetworkBlockerConfig
+
+You configure the blocker via the `networkBlocker` option:
+
+```ts
+import type { NetworkBlockerConfig } from 'c15t';
+
+const networkBlocker: NetworkBlockerConfig = {
+	enabled: true,
+	logBlockedRequests: true,
+	rules: [
+		{
+			id: 'ga-marketing',
+			domain: 'google-analytics.com',
+			category: 'marketing',
+		},
+	],
+	onRequestBlocked: ({ method, url, rule }) => {
+		console.log('Blocked request', { method, url, ruleId: rule?.id });
+	},
+};
+```
+
+#### Properties
+
+- **`enabled?: boolean`**
+
+	- When omitted, the blocker is **enabled by default**.
+	- Set to `false` to disable the blocker while keeping the configuration.
+
+- **`rules: NetworkBlockerRule[]`**
+
+	- Domain rules that determine which requests should be blocked.
+	- See **`NetworkBlockerRule`** below.
+
+- **`initialConsents?: ConsentState`**
+
+	- Optional consent snapshot to use when the blocker is first initialized.
+	- Normally you do not need to set this manually. The store will manage
+		consent snapshots so script teardown callbacks can finish before
+		stricter blocking is applied.
+
+- **`logBlockedRequests?: boolean`**
+
+	- When omitted, blocked requests are logged with `console.warn`.
+	- Set to `false` to silence automatic logging.
+
+- **`onRequestBlocked?: (info: BlockedRequestInfo) => void`**
+
+	- Callback fired every time a request is blocked (for both `fetch` and XHR).
+	- Use this to send telemetry or drive your own dev-tools UI.
+
+### NetworkBlockerRule
+
+Each rule matches a set of requests and defines which consent is required:
+
+```ts
+interface NetworkBlockerRule {
+	id?: string;
+	domain: string;
+	pathIncludes?: string;
+	methods?: string[];
+	category: HasCondition<AllConsentNames>;
+}
+```
+
+- **`id?: string`**
+	- Optional identifier for the rule.
+	- Used in logs and callback payloads.
+
+- **`domain: string`**
+
+	Defines the domain the rule applies to.
+
+	Matching behavior:
+
+	- Exact match: `hostname === domain`
+	- Subdomains: `hostname` ends with `.${domain}`
+
+	Examples:
+
+	- `domain: 'google-analytics.com'` matches:
+		- `google-analytics.com`
+		- `www.google-analytics.com`
+		- `stats.google-analytics.com`
+
+- **`pathIncludes?: string`**
+
+	Optional substring that must be present in the URL path.
+
+	Example:
+
+	```ts
+	{
+		domain: 'google-analytics.com',
+		pathIncludes: '/collect',
+		category: 'marketing',
+	}
+	```
+
+	This only matches URLs like:
+
+	- `https://www.google-analytics.com/collect`
+	- `https://google-analytics.com/r/collect?v=1`
+
+- **`methods?: string[]`**
+
+	Optional list of HTTP methods that the rule applies to.
+
+	- When omitted, the rule applies to all methods.
+	- Methods are compared case-insensitively.
+
+	```ts
+	{
+		domain: 'api.example.com',
+		methods: ['POST', 'PUT'],
+		category: 'experience',
+	}
+	```
+
+- **`category: HasCondition<AllConsentNames>`**
+
+	Consent condition that must be satisfied to allow the request.
+
+	- If `has(category, consents)` is **false**, matching requests are blocked.
+	- Supports the same condition syntax as the script loader:
+
+	```ts
+	category: 'marketing',
+
+	// or more complex:
+	category: { and: ['necessary', 'measurement'] },
+	```
+
+### BlockedRequestInfo
+
+The `onRequestBlocked` callback receives a `BlockedRequestInfo`:
+
+```ts
+interface BlockedRequestInfo {
+	method: string;
+	url: string;
+	rule?: NetworkBlockerRule;
+}
+```
+
+Currently, `rule` is optional and may be `undefined` if the rule cannot be
+resolved at the time of logging.
+
+## Logging blocked requests
+
+By default, the network blocker logs blocked requests using `console.warn`:
+
+```ts
+[c15t] Network request blocked by consent manager {
+  method: 'GET',
+  url: 'https://www.google-analytics.com/collect',
+  ruleId: 'ga-marketing'
+}
+```
+
+You can disable automatic logging:
+
+```ts
+networkBlocker: {
+	logBlockedRequests: false,
+	rules: [
+		{
+			id: 'debug-only',
+			domain: 'debug.example.com',
+			category: 'experience',
+		},
+	],
+},
+```
+
+And use `onRequestBlocked` to hook into your own logging or telemetry:
+
+```ts
+networkBlocker: {
+	rules: [
+		{
+			id: 'ga-marketing',
+			domain: 'google-analytics.com',
+			category: 'marketing',
+		},
+	],
+	onRequestBlocked: ({ method, url, rule }) => {
+		myTelemetryClient.trackEvent('c15t.network.blocked', {
+			method,
+			url,
+			ruleId: rule?.id ?? 'unknown',
+		});
+	},
+},
+```
+
+## Interaction with the script loader
+
+When consents change, the store updates in this order:
+
+1. **Script loader** runs `updateScripts()` and executes any `onDelete` callbacks.
+2. **Network blocker** updates its internal consent snapshot.
+
+This ordering ensures that:
+
+- Scripts that rely on network calls during teardown (inside `onDelete`) can run
+  without being blocked by the network blocker.
+- After teardown completes, the network blocker enforces the new, stricter
+  consent state for subsequent requests.
+
+

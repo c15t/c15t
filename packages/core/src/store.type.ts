@@ -6,6 +6,7 @@
 import type { ContractsOutputs } from '@c15t/backend/contracts';
 import type { HasCondition } from './libs/has';
 import type { IframeBlockerConfig } from './libs/iframe-blocker';
+import type { NetworkBlockerConfig } from './libs/network-blocker';
 import type { Script } from './libs/script-loader';
 import type {
 	AllConsentNames,
@@ -126,6 +127,9 @@ export interface PrivacyConsentState {
 
 	/** Configuration for the iframe blocker */
 	iframeBlockerConfig: IframeBlockerConfig;
+
+	/** Configuration for the network request blocker */
+	networkBlocker?: NetworkBlockerConfig;
 
 	/**
 	 * User information
@@ -309,6 +313,18 @@ export interface PrivacyConsentState {
 
 	/** Destroys the iframe blocker instance. */
 	destroyIframeBlocker: () => void;
+
+	/** Initializes the network blocker instance. */
+	initializeNetworkBlocker: () => void;
+
+	/** Updates the consent snapshot used by the network blocker. */
+	updateNetworkBlockerConsents: () => void;
+
+	/** Updates the network blocker configuration at runtime. */
+	setNetworkBlocker: (config: PrivacyConsentState['networkBlocker']) => void;
+
+	/** Destroys the network blocker instance. */
+	destroyNetworkBlocker: () => void;
 
 	/** Updates the active GDPR consent types. */
 	updateConsentCategories: (newCategories: AllConsentNames[]) => void;
