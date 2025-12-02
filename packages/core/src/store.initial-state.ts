@@ -57,8 +57,6 @@ export const initialState: Omit<
 	PrivacyConsentState,
 	| 'has'
 	| 'fetchConsentBannerInfo'
-	| 'getEffectiveConsents'
-	| 'hasConsentFor'
 	| 'setSelectedConsent'
 	| 'updateScripts'
 	| 'isScriptLoaded'
@@ -115,41 +113,13 @@ export const initialState: Omit<
 	/** Privacy dialog starts closed */
 	isPrivacyDialogOpen: false,
 
-	/** Default to not using c15t.dev domain */
-	isConsentDomain: false,
-
-	/** Default compliance settings per region */
-	complianceSettings: {
-		/** GDPR: Enabled globally by default */
-		gdpr: { enabled: true, appliesGlobally: true, applies: true },
-
-		/** CCPA: Enabled for US only */
-		ccpa: { enabled: true, appliesGlobally: false, applies: undefined },
-
-		/** LGPD: Disabled by default */
-		lgpd: { enabled: false, appliesGlobally: false, applies: undefined },
-
-		/** US State Privacy: Enabled for US only */
-		usStatePrivacy: {
-			enabled: true,
-			appliesGlobally: false,
-			applies: undefined,
-		},
-	},
-
 	/** Empty callbacks object - should be populated by implementation */
 	callbacks: {},
-
-	/** Default to US if no country detected */
-	detectedCountry: null,
 
 	/** No location information initially */
 	locationInfo: null,
 
 	legalLinks: {},
-
-	/** No jurisdiction information initially */
-	jurisdictionInfo: null,
 
 	/** Default translation configuration */
 	translationConfig: defaultTranslationConfig,
@@ -170,12 +140,6 @@ export const initialState: Omit<
 
 	/** Default storage configuration (uses default storage key) */
 	storageConfig: undefined,
-
-	/** Default privacy settings */
-	privacySettings: {
-		/** Respect Do Not Track by default */
-		honorDoNotTrack: true,
-	},
 
 	user: undefined,
 
@@ -200,16 +164,7 @@ export const initialState: Omit<
 	setGdprTypes: () => {
 		/* no-op */
 	},
-	setComplianceSetting: () => {
-		/* no-op */
-	},
-	resetComplianceSettings: () => {
-		/* no-op */
-	},
 	setCallback: () => {
-		/* no-op */
-	},
-	setDetectedCountry: () => {
 		/* no-op */
 	},
 	setLocationInfo: () => {

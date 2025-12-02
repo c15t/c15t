@@ -41,7 +41,6 @@ export {
 	saveConsentToStorage,
 	setCookie,
 } from './libs/cookie';
-export type { GTMConfiguration } from './libs/gtm';
 export type { HasCondition } from './libs/has';
 export {
 	createIframeBlocker,
@@ -68,11 +67,8 @@ export type { PrivacyConsentState } from './store.type';
 export { defaultTranslationConfig } from './translations';
 export type { Callback, Callbacks } from './types/callbacks';
 export type {
-	ComplianceRegion,
-	ComplianceSettings,
 	ConsentBannerResponse,
 	ConsentState,
-	HasConsentedProps,
 	JurisdictionInfo,
 	LocationInfo,
 	NamespaceProps,
