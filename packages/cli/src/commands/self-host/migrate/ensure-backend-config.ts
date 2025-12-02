@@ -1,10 +1,10 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { drizzleAdapter } from '@c15t/backend/v2/db/adapters/drizzle';
-import type { kyselyAdapter } from '@c15t/backend/v2/db/adapters/kysely';
-import type { mongoAdapter } from '@c15t/backend/v2/db/adapters/mongo';
-import type { prismaAdapter } from '@c15t/backend/v2/db/adapters/prisma';
-import type { typeormAdapter } from '@c15t/backend/v2/db/adapters/typeorm';
+import type { drizzleAdapter } from '@c15t/backend/db/adapters/drizzle';
+import type { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
+import type { mongoAdapter } from '@c15t/backend/db/adapters/mongo';
+import type { prismaAdapter } from '@c15t/backend/db/adapters/prisma';
+import type { typeormAdapter } from '@c15t/backend/db/adapters/typeorm';
 import * as p from '@clack/prompts';
 import type { CliContext } from '~/context/types';
 
@@ -273,7 +273,7 @@ function buildFileContent(
 ): string {
 	const adapterPath =
 		adapter === 'mongoAdapter' ? 'mongo' : adapter.replace('Adapter', '');
-	const importAdapter = `import { ${adapter} } from '@c15t/backend/v2/db/adapters/${adapterPath}';`;
+	const importAdapter = `import { ${adapter} } from '@c15t/backend/db/adapters/${adapterPath}';`;
 	let extras = { imports: '', prelude: '' };
 	if (adapter === 'kyselyAdapter') {
 		if (provider === 'sqlite') {
@@ -303,7 +303,7 @@ function buildFileContent(
 	} else if (adapter === 'mongoAdapter') {
 		extras = buildMongoPrelude(connection);
 	}
-	return `import { defineConfig } from '@c15t/backend/v2';
+	return `import { defineConfig } from '@c15t/backend';
 ${importAdapter}
 ${extras.imports ? `${extras.imports}\n` : ''}
 ${extras.prelude ? `${extras.prelude}\n` : ''}

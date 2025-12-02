@@ -1,4 +1,4 @@
-import { createConsistencyTests } from '~/testing/contract-testing';
+import { createConsistencyTests } from '~/contracts/test.utils';
 import { consentContracts } from '.';
 
 // Add consistency tests
