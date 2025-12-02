@@ -8,15 +8,11 @@
 export type { Callback, Callbacks } from './callbacks';
 
 export type {
-	ComplianceRegion,
-	ComplianceSettings,
 	ConsentBannerResponse,
 	ConsentState,
-	HasConsentedProps,
 	JurisdictionInfo,
 	LocationInfo,
 	NamespaceProps,
-	PrivacySettings,
 } from './compliance';
 /**
  * @module

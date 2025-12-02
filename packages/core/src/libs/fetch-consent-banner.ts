@@ -59,8 +59,7 @@ function updateStore(
 	}: FetchConsentBannerConfig,
 	hasLocalStorageAccess: boolean
 ): void {
-	const { consentInfo, ignoreGeoLocation, callbacks, setDetectedCountry } =
-		get();
+	const { consentInfo, ignoreGeoLocation, callbacks } = get();
 
 	const { translations, location, showConsentBanner } = data;
 
@@ -94,7 +93,6 @@ function updateStore(
 			jurisdiction: data.jurisdiction?.code ?? null,
 			jurisdictionMessage: data.jurisdiction?.message ?? null,
 		},
-		jurisdictionInfo: data.jurisdiction,
 	};
 	translations?.language && translations?.translations;
 	{
@@ -110,11 +108,6 @@ function updateStore(
 		);
 
 		updatedStore.translationConfig = translationConfig;
-	}
-
-	if (data.location?.countryCode) {
-		// Handle location detection callbacks
-		setDetectedCountry(data.location.countryCode);
 	}
 
 	// Store banner fetch data and mark as fetched
