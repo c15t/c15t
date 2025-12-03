@@ -311,6 +311,31 @@ describe('saveConsents', () => {
 
 			expect(updateNetworkBlockerConsentsMock).toHaveBeenCalledTimes(1);
 		});
+
+		it('should update scripts before updating network blocker consents', async () => {
+			const callOrder: string[] = [];
+
+			updateScriptsMock.mockImplementation(() => {
+				callOrder.push('updateScripts');
+				return { loaded: [], unloaded: [] };
+			});
+
+			updateNetworkBlockerConsentsMock.mockImplementation(() => {
+				callOrder.push('updateNetworkBlockerConsents');
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'all',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(callOrder).toEqual([
+				'updateScripts',
+				'updateNetworkBlockerConsents',
+			]);
+		});
 	});
 
 	describe('callback execution', () => {
