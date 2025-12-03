@@ -31,9 +31,7 @@ The blocker works alongside the store and script loader:
 - It evaluates **current consents** via the store.
 - It uses a **slightly delayed snapshot** of consents so that script `onDelete`
   callbacks can run teardown logic before network access is tightened.
-</section>
 
-<section id="basic-usage">
 ## Basic usage
 
 ### Enabling the network blocker
@@ -66,9 +64,9 @@ When a **`fetch`** call is blocked:
 
 - The real network request is **never sent**.
 - The wrapper returns a **synthetic `Response`**:
-	- `ok === false`
-	- `status === 451`
-	- `statusText === 'Request blocked by consent manager'`
+  - `ok === false`
+  - `status === 451`
+  - `statusText === 'Request blocked by consent manager'`
 
 Example:
 
@@ -130,30 +128,30 @@ const networkBlocker: NetworkBlockerConfig = {
 
 - **`enabled?: boolean`**
 
-	- When omitted, the blocker is **enabled by default**.
-	- Set to `false` to disable the blocker while keeping the configuration.
+  - When omitted, the blocker is **enabled by default**.
+  - Set to `false` to disable the blocker while keeping the configuration.
 
 - **`rules: NetworkBlockerRule[]`**
 
-	- Domain rules that determine which requests should be blocked.
-	- See **`NetworkBlockerRule`** below.
+  - Domain rules that determine which requests should be blocked.
+  - See **`NetworkBlockerRule`** below.
 
 - **`initialConsents?: ConsentState`**
 
-	- Optional consent snapshot to use when the blocker is first initialized.
-	- Normally you do not need to set this manually. The store will manage
-		consent snapshots so script teardown callbacks can finish before
-		stricter blocking is applied.
+  - Optional consent snapshot to use when the blocker is first initialized.
+  - Normally you do not need to set this manually. The store will manage
+    consent snapshots so script teardown callbacks can finish before
+    stricter blocking is applied.
 
 - **`logBlockedRequests?: boolean`**
 
-	- When omitted, blocked requests are logged with `console.warn`.
-	- Set to `false` to silence automatic logging.
+  - When omitted, blocked requests are logged with `console.warn`.
+  - Set to `false` to silence automatic logging.
 
 - **`onRequestBlocked?: (info: BlockedRequestInfo) => void`**
 
-	- Callback fired every time a request is blocked (for both `fetch` and XHR).
-	- Use this to send telemetry or drive your own dev-tools UI.
+  - Callback fired every time a request is blocked (for both `fetch` and XHR).
+  - Use this to send telemetry or drive your own dev-tools UI.
 
 ### NetworkBlockerRule
 
@@ -170,72 +168,72 @@ interface NetworkBlockerRule {
 ```
 
 - **`id?: string`**
-	- Optional identifier for the rule.
-	- Used in logs and callback payloads.
+  - Optional identifier for the rule.
+  - Used in logs and callback payloads.
 
 - **`domain: string`**
 
-	Defines the domain the rule applies to.
+  Defines the domain the rule applies to.
 
-	Matching behavior:
+  Matching behavior:
 
-	- Exact match: `hostname === domain`
-	- Subdomains: `hostname` ends with `.${domain}`
+  - Exact match: `hostname === domain`
+  - Subdomains: `hostname` ends with `.${domain}`
 
-	Examples:
+  Examples:
 
-	- `domain: 'google-analytics.com'` matches:
-		- `google-analytics.com`
-		- `www.google-analytics.com`
-		- `stats.google-analytics.com`
+  - `domain: 'google-analytics.com'` matches:
+    - `google-analytics.com`
+    - `www.google-analytics.com`
+    - `stats.google-analytics.com`
 
 - **`pathIncludes?: string`**
 
-	Optional substring that must be present in the URL path.
+  Optional substring that must be present in the URL path.
 
-	Example:
+  Example:
 
-	```ts
-	{
-		domain: 'google-analytics.com',
-		pathIncludes: '/collect',
-		category: 'marketing',
-	}
-	```
+  ```ts
+  {
+  	domain: 'google-analytics.com',
+  	pathIncludes: '/collect',
+  	category: 'marketing',
+  }
+  ```
 
-	This only matches URLs like:
+  This only matches URLs like:
 
-	- `https://www.google-analytics.com/collect`
-	- `https://google-analytics.com/r/collect?v=1`
+  - `https://www.google-analytics.com/collect`
+  - `https://google-analytics.com/r/collect?v=1`
 
 - **`methods?: string[]`**
 
-	Optional list of HTTP methods that the rule applies to.
+  Optional list of HTTP methods that the rule applies to.
 
-	- When omitted, the rule applies to all methods.
-	- Methods are compared case-insensitively.
+  - When omitted, the rule applies to all methods.
+  - Methods are compared case-insensitively.
 
-	```ts
-	{
-		domain: 'api.example.com',
-		methods: ['POST', 'PUT'],
-		category: 'experience',
-	}
-	```
+  ```ts
+  {
+  	domain: 'api.example.com',
+  	methods: ['POST', 'PUT'],
+  	category: 'experience',
+  }
+  ```
 
 - **`category: HasCondition<AllConsentNames>`**
 
-	Consent condition that must be satisfied to allow the request.
+  Consent condition that must be satisfied to allow the request.
 
-	- If `has(category, consents)` is **false**, matching requests are blocked.
-	- Supports the same condition syntax as the script loader:
+  - If `has(category, consents)` is **false**, matching requests are blocked.
+  - Supports the same condition syntax as the script loader:
 
-	```ts
-	category: 'marketing',
+  ```ts
+  category: 'marketing',
 
-	// or more complex:
-	category: { and: ['necessary', 'measurement'] },
-	```
+  // or more complex:
+  category: { and: ['necessary', 'measurement'] },
+  ```
 
 ### BlockedRequestInfo
 
@@ -313,5 +311,3 @@ This ordering ensures that:
   without being blocked by the network blocker.
 - After teardown completes, the network blocker enforces the new, stricter
   consent state for subsequent requests.
-
-
