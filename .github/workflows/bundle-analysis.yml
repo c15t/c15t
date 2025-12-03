@@ -65,6 +65,8 @@ jobs:
         if: github.event_name == 'pull_request_target'
         uses: actions/checkout@v4
         with:
+          # Keep .bundle-base from the base branch so bundle analysis can compare
+          clean: false
           ref: ${{ github.event.pull_request.head.sha }}
           # For fork PRs, checkout action uses GITHUB_TOKEN which has read access
           # to the PR head repository via pull_request_target event permissions
