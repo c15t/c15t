@@ -67,7 +67,7 @@ export function createNetworkBlockerManager(get: GetState, _set: SetState) {
 			return;
 		}
 
-		originalFetch = window.fetch.bind(window);
+		originalFetch = window.fetch;
 
 		window.fetch = ((
 			input: RequestInfo | URL,
@@ -84,7 +84,7 @@ export function createNetworkBlockerManager(get: GetState, _set: SetState) {
 				config?.enabled && config?.rules && config?.rules.length > 0;
 
 			if (!hasRules) {
-				return originalFetch(input, init);
+				return originalFetch.call(window, input, init);
 			}
 
 			let method = 'GET';
@@ -129,7 +129,7 @@ export function createNetworkBlockerManager(get: GetState, _set: SetState) {
 				return Promise.resolve(blockedResponse);
 			}
 
-			return originalFetch(input, init);
+			return originalFetch.call(window, input, init);
 		}) as typeof window.fetch;
 	};
 
