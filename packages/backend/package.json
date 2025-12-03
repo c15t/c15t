@@ -45,18 +45,18 @@
 		},
 		"./contracts": {
 			"types": "./dist/contracts/index.d.ts",
-			"import": "./dist/contracts/index.js",
-			"require": "./dist/contracts/index.cjs"
+			"import": "./dist/contracts.js",
+			"require": "./dist/contracts.cjs"
 		},
 		"./db/schema": {
 			"types": "./dist/db/schema/index.d.ts",
-			"import": "./dist/db/schema/index.js",
-			"require": "./dist/db/schema/index.cjs"
+			"import": "./dist/schema.js",
+			"require": "./dist/schema.cjs"
 		},
 		"./db/adapters": {
 			"types": "./dist/db/adapters/index.d.ts",
-			"import": "./dist/db/adapters/index.js",
-			"require": "./dist/db/adapters/index.cjs"
+			"import": "./dist/adapters.js",
+			"require": "./dist/adapters.cjs"
 		},
 		"./db/adapters/kysely": {
 			"types": "./dist/db/adapters/kysely.d.ts",
@@ -85,13 +85,13 @@
 		},
 		"./db/migrator": {
 			"types": "./dist/db/migrator/index.d.ts",
-			"import": "./dist/db/migrator/index.js",
-			"require": "./dist/db/migrator/index.cjs"
+			"import": "./dist/migrator.js",
+			"require": "./dist/migrator.cjs"
 		},
 		"./types": {
 			"types": "./dist/types/index.d.ts",
-			"import": "./dist/types/index.js",
-			"require": "./dist/types/index.cjs"
+			"import": "./dist/types.js",
+			"require": "./dist/types.cjs"
 		}
 	},
 	"main": "./dist/server.cjs",
