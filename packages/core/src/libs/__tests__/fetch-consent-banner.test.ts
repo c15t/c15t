@@ -505,7 +505,6 @@ describe('fetchConsentBannerInfo', () => {
 						jurisdiction: mockResponse.jurisdiction?.code ?? null,
 						jurisdictionMessage: mockResponse.jurisdiction?.message ?? null,
 					},
-					jurisdictionInfo: mockResponse.jurisdiction,
 					translationConfig: expect.any(Object),
 				})
 			);
@@ -641,7 +640,7 @@ describe('fetchConsentBannerInfo', () => {
 			});
 		});
 
-		it('should call setDetectedCountry when location data is available', async () => {
+		it('should update locationInfo when location data is available', async () => {
 			const mockResponse = createMockConsentBannerResponse({
 				location: { countryCode: 'FR', regionCode: 'IDF' },
 			});
@@ -657,10 +656,19 @@ describe('fetchConsentBannerInfo', () => {
 				set: mockSet,
 			});
 
-			expect(mockState.setDetectedCountry).toHaveBeenCalledWith('FR');
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					locationInfo: {
+						countryCode: 'FR',
+						regionCode: 'IDF',
+						jurisdiction: mockResponse.jurisdiction?.code ?? null,
+						jurisdictionMessage: mockResponse.jurisdiction?.message ?? null,
+					},
+				})
+			);
 		});
 
-		it('should not call setDetectedCountry when location data is missing', async () => {
+		it('should set null country and region in locationInfo when location data is missing', async () => {
 			const mockResponse = createMockConsentBannerResponse({
 				location: { countryCode: null, regionCode: null },
 			});
@@ -676,7 +684,16 @@ describe('fetchConsentBannerInfo', () => {
 				set: mockSet,
 			});
 
-			expect(mockState.setDetectedCountry).not.toHaveBeenCalled();
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					locationInfo: {
+						countryCode: null,
+						regionCode: null,
+						jurisdiction: mockResponse.jurisdiction?.code ?? null,
+						jurisdictionMessage: mockResponse.jurisdiction?.message ?? null,
+					},
+				})
+			);
 		});
 	});
 
