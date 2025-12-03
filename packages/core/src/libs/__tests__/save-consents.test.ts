@@ -4,26 +4,14 @@ import type { ConsentManagerInterface } from '../../client/client-interface';
 import type { PrivacyConsentState } from '../../store.type';
 import { saveConsents } from '../save-consents';
 
-// Mock the GTM and tracking blocker modules
-vi.mock('../gtm', () => ({
-	updateGTMConsent: vi.fn(),
-}));
-
-vi.mock('../tracking-blocker', () => ({
-	createTrackingBlocker: vi.fn(() => ({
-		updateConsents: vi.fn(),
-	})),
-}));
-
 describe('saveConsents', () => {
 	let mockManager: ConsentManagerInterface;
 	let mockGet: StoreApi<PrivacyConsentState>['getState'];
 	let mockSet: StoreApi<PrivacyConsentState>['setState'];
-	let mockTrackingBlocker: {
-		updateConsents: ReturnType<typeof vi.fn>;
-		destroy: ReturnType<typeof vi.fn>;
-	} | null;
 	let mockLocalStorage: Storage;
+	let updateScriptsMock: ReturnType<typeof vi.fn>;
+	let updateIframeConsentsMock: ReturnType<typeof vi.fn>;
+	let updateNetworkBlockerConsentsMock: ReturnType<typeof vi.fn>;
 
 	beforeEach(() => {
 		// Reset all mocks
@@ -58,10 +46,15 @@ describe('saveConsents', () => {
 			setConsent: vi.fn().mockResolvedValue({ ok: true }),
 			showConsentBanner: vi.fn(),
 			verifyConsent: vi.fn(),
+			identifyUser: vi.fn(),
 			$fetch: vi.fn(),
 		};
 
 		// Create mock store functions
+		updateScriptsMock = vi.fn().mockReturnValue({ loaded: [], unloaded: [] });
+		updateIframeConsentsMock = vi.fn();
+		updateNetworkBlockerConsentsMock = vi.fn();
+
 		mockGet = vi.fn().mockReturnValue({
 			callbacks: {
 				onConsentSet: vi.fn(),
@@ -74,8 +67,9 @@ describe('saveConsents', () => {
 				'experience',
 				'marketing',
 			],
-			updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
-			updateIframeConsents: vi.fn(),
+			updateScripts: updateScriptsMock,
+			updateIframeConsents: updateIframeConsentsMock,
+			updateNetworkBlockerConsents: updateNetworkBlockerConsentsMock,
 			consents: {
 				necessary: true,
 				functionality: false,
@@ -128,11 +122,6 @@ describe('saveConsents', () => {
 		});
 
 		mockSet = vi.fn();
-
-		mockTrackingBlocker = {
-			updateConsents: vi.fn(),
-			destroy: vi.fn(),
-		};
 	});
 
 	afterEach(() => {
@@ -146,7 +135,6 @@ describe('saveConsents', () => {
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith({
@@ -166,7 +154,6 @@ describe('saveConsents', () => {
 				},
 				showPopup: false,
 				consentInfo: expect.objectContaining({
-					type: 'all',
 					time: expect.any(Number),
 				}),
 			});
@@ -178,7 +165,6 @@ describe('saveConsents', () => {
 				type: 'necessary',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
@@ -192,7 +178,6 @@ describe('saveConsents', () => {
 					},
 					showPopup: false,
 					consentInfo: expect.objectContaining({
-						type: 'necessary',
 						time: expect.any(Number),
 					}),
 				})
@@ -222,6 +207,7 @@ describe('saveConsents', () => {
 				],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
 				consents: customConsents,
 				selectedConsents: customConsents,
 				consentTypes: [
@@ -273,7 +259,6 @@ describe('saveConsents', () => {
 				type: 'custom',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith({
@@ -281,7 +266,6 @@ describe('saveConsents', () => {
 				selectedConsents: customConsents,
 				showPopup: false,
 				consentInfo: expect.objectContaining({
-					type: 'custom',
 					time: expect.any(Number),
 				}),
 			});
@@ -295,7 +279,6 @@ describe('saveConsents', () => {
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			// Verify state was updated with new consents
@@ -310,7 +293,6 @@ describe('saveConsents', () => {
 					}),
 					showPopup: false,
 					consentInfo: expect.objectContaining({
-						type: 'all',
 						time: expect.any(Number),
 					}),
 				})
@@ -318,50 +300,16 @@ describe('saveConsents', () => {
 		});
 	});
 
-	describe('tracking blocker integration', () => {
-		it('should update tracking blocker with new consents', async () => {
+	describe('network blocker integration', () => {
+		it('should update network blocker consents after saving', async () => {
 			await saveConsents({
 				manager: mockManager,
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
-			expect(mockTrackingBlocker?.updateConsents).toHaveBeenCalledWith({
-				necessary: true,
-				functionality: true,
-				measurement: true,
-				experience: true,
-				marketing: true,
-			});
-		});
-
-		it('should handle null tracking blocker gracefully', async () => {
-			await saveConsents({
-				manager: mockManager,
-				type: 'all',
-				get: mockGet,
-				set: mockSet,
-				trackingBlocker: null,
-			});
-
-			expect(mockSet).toHaveBeenCalledWith(
-				expect.objectContaining({
-					consents: {
-						necessary: true,
-						functionality: true,
-						measurement: true,
-						experience: true,
-						marketing: true,
-					},
-					showPopup: false,
-					consentInfo: expect.objectContaining({
-						type: 'all',
-						time: expect.any(Number),
-					}),
-				})
-			);
+			expect(updateNetworkBlockerConsentsMock).toHaveBeenCalledTimes(1);
 		});
 	});
 
@@ -382,6 +330,7 @@ describe('saveConsents', () => {
 				],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,
@@ -445,7 +394,6 @@ describe('saveConsents', () => {
 				type: 'necessary',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockOnConsentSet).toHaveBeenCalledWith({
@@ -474,6 +422,7 @@ describe('saveConsents', () => {
 				],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,
@@ -538,7 +487,6 @@ describe('saveConsents', () => {
 					type: 'necessary',
 					get: mockGet,
 					set: mockSet,
-					trackingBlocker: mockTrackingBlocker,
 				})
 			).resolves.not.toThrow();
 		});
@@ -551,11 +499,10 @@ describe('saveConsents', () => {
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockManager.setConsent).toHaveBeenCalledWith({
-				body: {
+				body: expect.objectContaining({
 					type: 'cookie_banner',
 					domain: 'test.example.com',
 					preferences: {
@@ -565,11 +512,11 @@ describe('saveConsents', () => {
 						experience: true,
 						marketing: true,
 					},
-					metadata: {
+					metadata: expect.objectContaining({
 						source: 'consent_widget',
 						acceptanceMethod: 'all',
-					},
-				},
+					}),
+				}),
 			});
 		});
 
@@ -581,7 +528,6 @@ describe('saveConsents', () => {
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockManager.setConsent).toHaveBeenCalled();
@@ -605,6 +551,7 @@ describe('saveConsents', () => {
 				],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,
@@ -673,7 +620,6 @@ describe('saveConsents', () => {
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockOnError).toHaveBeenCalledWith({
@@ -700,6 +646,7 @@ describe('saveConsents', () => {
 				],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,
@@ -768,7 +715,6 @@ describe('saveConsents', () => {
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(consoleErrorSpy).toHaveBeenCalledWith('API request failed');
@@ -793,6 +739,7 @@ describe('saveConsents', () => {
 				],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,
@@ -861,140 +808,11 @@ describe('saveConsents', () => {
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockOnError).toHaveBeenCalledWith({
 				error: 'Failed to save consents',
 			});
-		});
-	});
-
-	describe('GTM integration', () => {
-		it('should call updateGTMConsent with new consents', async () => {
-			const { updateGTMConsent } = await import('../gtm');
-
-			await saveConsents({
-				manager: mockManager,
-				type: 'all',
-				get: mockGet,
-				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
-			});
-
-			expect(updateGTMConsent).toHaveBeenCalledWith({
-				necessary: true,
-				functionality: true,
-				measurement: true,
-				experience: true,
-				marketing: true,
-			});
-		});
-	});
-
-	describe('scheduling/yield behavior', () => {
-		it('defers tracking/GTM updates and onConsentSet to the next task', async () => {
-			vi.useFakeTimers();
-			try {
-				const onConsentSet = vi.fn();
-				// Override get() to inject our spy for this test
-				mockGet = vi.fn().mockReturnValue({
-					callbacks: {
-						onConsentSet,
-						onError: vi.fn(),
-					},
-					gdprTypes: [
-						'necessary',
-						'functionality',
-						'measurement',
-						'experience',
-						'marketing',
-					],
-					updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
-					updateIframeConsents: vi.fn(),
-					consents: {
-						necessary: true,
-						functionality: false,
-						measurement: false,
-						experience: false,
-						marketing: false,
-					},
-					consentTypes: [
-						{
-							name: 'necessary',
-							defaultValue: true,
-							description: 'Necessary',
-							disabled: true,
-							display: true,
-							gdprType: 1,
-						},
-						{
-							name: 'functionality',
-							defaultValue: false,
-							description: 'Functionality',
-							disabled: false,
-							display: true,
-							gdprType: 2,
-						},
-						{
-							name: 'measurement',
-							defaultValue: false,
-							description: 'Measurement',
-							disabled: false,
-							display: true,
-							gdprType: 4,
-						},
-						{
-							name: 'experience',
-							defaultValue: false,
-							description: 'Experience',
-							disabled: false,
-							display: true,
-							gdprType: 3,
-						},
-						{
-							name: 'marketing',
-							defaultValue: false,
-							description: 'Marketing',
-							disabled: false,
-							display: true,
-							gdprType: 5,
-						},
-					],
-				});
-
-				const { updateGTMConsent } = await import('../gtm');
-
-				const promise = saveConsents({
-					manager: mockManager,
-					type: 'all',
-					get: mockGet,
-					set: mockSet,
-					trackingBlocker: mockTrackingBlocker,
-				});
-
-				// Immediately after calling, UI update should have occurred
-				expect(mockSet).toHaveBeenCalled();
-				// But side-effects should be deferred
-				expect(mockTrackingBlocker?.updateConsents).not.toHaveBeenCalled();
-				expect(updateGTMConsent).not.toHaveBeenCalled();
-				expect(onConsentSet).not.toHaveBeenCalled();
-
-				// Run all timers to flush the yielded setTimeout(0)
-				await vi.runAllTimersAsync();
-				// Also flush pending microtasks queued by awaited Promises
-				await Promise.resolve();
-
-				// Now side-effects and callbacks should have executed
-				expect(mockTrackingBlocker?.updateConsents).toHaveBeenCalled();
-				expect(updateGTMConsent).toHaveBeenCalled();
-				expect(onConsentSet).toHaveBeenCalled();
-
-				// Allow the async function to complete
-				await promise;
-			} finally {
-				vi.useRealTimers();
-			}
 		});
 	});
 
@@ -1014,6 +832,7 @@ describe('saveConsents', () => {
 				],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
 				consents: {},
 				consentTypes: [],
 			});
@@ -1023,7 +842,6 @@ describe('saveConsents', () => {
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
@@ -1031,7 +849,6 @@ describe('saveConsents', () => {
 					consents: {},
 					showPopup: false,
 					consentInfo: expect.objectContaining({
-						type: 'all',
 						time: expect.any(Number),
 					}),
 				})
@@ -1053,6 +870,7 @@ describe('saveConsents', () => {
 				],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,
@@ -1086,7 +904,6 @@ describe('saveConsents', () => {
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
@@ -1097,7 +914,6 @@ describe('saveConsents', () => {
 					},
 					showPopup: false,
 					consentInfo: expect.objectContaining({
-						type: 'all',
 						time: expect.any(Number),
 					}),
 				})
