@@ -12,11 +12,29 @@ import {
 } from 'vitest';
 import { c15tClient } from './index';
 
-// Server configuration for integration tests
+// Create a minimal in-memory FumaDB adapter for tests.
+// The status endpoint used in these tests does not interact with the database,
+// so these are safe no-ops that satisfy the backend's v2 C15TOptions type.
+const testAdapter = {
+	async createORM() {
+		return {
+			findFirst: async () => null,
+			create: async () => null,
+			update: async () => null,
+			delete: async () => null,
+		} as unknown;
+	},
+	async getSchemaVersion() {
+		return '1.0.0';
+	},
+} as C15TOptions['adapter'];
+
+// Server configuration for integration tests (v2 backend)
 const mockOptions: C15TOptions = {
 	appName: 'C15T Test Server',
 	basePath: '/',
 	trustedOrigins: ['localhost', 'test.example.com'],
+	adapter: testAdapter,
 	cors: true,
 	advanced: {
 		cors: {
@@ -189,15 +207,11 @@ describe('C15T Node SDK', () => {
 		it('should connect to status endpoint', async () => {
 			const response = await client.meta.status();
 
-			// Test exact structure based on actual response
+			// Test structure based on v2 status contract
 			expect(response).toEqual({
 				status: 'ok',
 				version: expect.any(String),
 				timestamp: expect.any(String),
-				storage: {
-					type: 'memory',
-					available: true,
-				},
 				client: {
 					ip: expect.any(String),
 					userAgent: expect.any(String),
