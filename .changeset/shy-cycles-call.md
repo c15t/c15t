@@ -9,4 +9,6 @@
 feat(core)!: removed deprecated options, values from store
 feat(core)!: replaced deprecated tracking blocker with network blocker
 feat(backend)!: removed deprecated v1 backend
-
+feat(core)!: updated core store to use the new ConsentStoreState
+feat(cli)!: updated self-host migrate command to use the new backend migrator entrypoint (no more /v2 path)
+docs: added network blocker documentation for JavaScript, React, and Next.js
