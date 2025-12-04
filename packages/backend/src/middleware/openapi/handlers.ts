@@ -15,6 +15,12 @@ type MemoizedSpecFunction = {
 /**
  * Merges user OpenAPI options with default options
  */
+const isRecordOfUnknown = (
+	value: unknown
+): value is Record<string, unknown> => {
+	return value !== null && typeof value === 'object';
+};
+
 const mergeOpenAPIOptions = (
 	defaultOptions: Record<string, unknown>,
 	userOptions: Record<string, unknown>
@@ -69,11 +75,9 @@ export const createOpenAPISpec = (
 		}
 
 		const defaultOptions = createDefaultOpenAPIOptions(options);
-		const mergedOptions = options.advanced?.openapi?.options
-			? mergeOpenAPIOptions(
-					defaultOptions,
-					options.advanced.openapi.options as Record<string, unknown>
-				)
+		const advancedOpenAPIOptions = options.advanced?.openapi?.options;
+		const mergedOptions = isRecordOfUnknown(advancedOpenAPIOptions)
+			? mergeOpenAPIOptions(defaultOptions, advancedOpenAPIOptions)
 			: defaultOptions;
 
 		try {
