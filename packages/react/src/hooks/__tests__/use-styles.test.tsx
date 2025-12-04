@@ -14,13 +14,13 @@ describe('useStyles', () => {
 		},
 	};
 
-	test('returns component styles when no theme is provided', () => {
+	test('returns component styles when no theme is provided', async () => {
 		const componentStyle = {
 			className: 'component-class',
 			style: { backgroundColor: 'red' },
 		};
 
-		const { result } = renderHook(
+		const { result } = await renderHook(
 			() => useStyles('dialog.root', componentStyle),
 			{
 				wrapper: ({ children }) => (
@@ -35,13 +35,13 @@ describe('useStyles', () => {
 		expect(result.current.style).toEqual({ backgroundColor: 'red' });
 	});
 
-	test('merges theme and component styles correctly', () => {
+	test('merges theme and component styles correctly', async () => {
 		const componentStyle = {
 			className: 'component-class',
 			style: { backgroundColor: 'red' },
 		};
 
-		const { result } = renderHook(
+		const { result } = await renderHook(
 			() => useStyles('dialog.root', componentStyle),
 			{
 				wrapper: ({ children }) => (
@@ -60,10 +60,10 @@ describe('useStyles', () => {
 		});
 	});
 
-	test('handles string className correctly', () => {
+	test('handles string className correctly', async () => {
 		const componentStyle = 'component-class';
 
-		const { result } = renderHook(
+		const { result } = await renderHook(
 			() => useStyles('dialog.root', componentStyle),
 			{
 				wrapper: ({ children }) => (
@@ -78,7 +78,7 @@ describe('useStyles', () => {
 		expect(result.current.className).toContain('component-class');
 	});
 
-	test('should remove default styles but keep custom classNames when theme object provides noStyle: true', () => {
+	test('should remove default styles but keep custom classNames when theme object provides noStyle: true', async () => {
 		const mockNoStyleTheme = {
 			theme: {
 				'dialog.root': {
@@ -95,7 +95,7 @@ describe('useStyles', () => {
 			noStyle: true,
 		};
 
-		const { result } = renderHook(
+		const { result } = await renderHook(
 			() => useStyles('dialog.root', componentStyle),
 			{
 				wrapper: ({ children }) => (
