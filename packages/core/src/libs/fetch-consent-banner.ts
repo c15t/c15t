@@ -58,8 +58,11 @@ function updateStore(
 	const { translations, location, showConsentBanner } = data;
 
 	// Check if consents should be automatically granted
+	// Only auto-grant when there is no existing consent information.
 	const shouldAutoGrantConsents =
-		data.jurisdiction?.code === 'NONE' && !data.showConsentBanner;
+		data.jurisdiction?.code === 'NONE' &&
+		!data.showConsentBanner &&
+		consentInfo === null;
 
 	// Detect Global Privacy Control (GPC) signal on the client
 	const hasGpcSignal = hasGlobalPrivacyControlSignal();
