@@ -3,7 +3,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PrivacyConsentState } from '../../../store.type';
+import type { ConsentStoreState } from '../../../store/type';
 import type { ConsentState } from '../../../types';
 import { shouldBlockRequest } from '../core';
 import { createNetworkBlockerManager } from '../store';
@@ -23,14 +23,14 @@ const baseConsents: ConsentState = {
 
 function createState(
 	overrides: Partial<
-		Pick<PrivacyConsentState, 'consents' | 'networkBlocker'>
+		Pick<ConsentStoreState, 'consents' | 'networkBlocker'>
 	> = {}
-): PrivacyConsentState {
+): ConsentStoreState {
 	return {
 		consents: baseConsents,
 		networkBlocker: undefined,
-		...(overrides as Partial<PrivacyConsentState>),
-	} as PrivacyConsentState;
+		...(overrides as Partial<ConsentStoreState>),
+	} as ConsentStoreState;
 }
 
 describe('createNetworkBlockerManager', () => {
@@ -86,7 +86,7 @@ describe('createNetworkBlockerManager', () => {
 		);
 
 		const manager = createNetworkBlockerManager(
-			getState as () => PrivacyConsentState,
+			getState as () => ConsentStoreState,
 			setState
 		);
 
@@ -168,7 +168,7 @@ describe('createNetworkBlockerManager', () => {
 		);
 
 		const manager = createNetworkBlockerManager(
-			getState as () => PrivacyConsentState,
+			getState as () => ConsentStoreState,
 			setState
 		);
 
@@ -233,7 +233,7 @@ describe('createNetworkBlockerManager', () => {
 		);
 
 		const manager = createNetworkBlockerManager(
-			getState as () => PrivacyConsentState,
+			getState as () => ConsentStoreState,
 			setState
 		);
 
@@ -307,7 +307,7 @@ describe('createNetworkBlockerManager', () => {
 		);
 
 		const manager = createNetworkBlockerManager(
-			getState as () => PrivacyConsentState,
+			getState as () => ConsentStoreState,
 			setState
 		);
 

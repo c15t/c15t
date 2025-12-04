@@ -1,5 +1,5 @@
 'use client';
-import type { NamespaceProps, PrivacyConsentState } from 'c15t';
+import type { ConsentStoreState, NamespaceProps } from 'c15t';
 
 import {
 	createContext,
@@ -16,8 +16,8 @@ import DevToolWrapper from './components/wrapper';
 import { Router } from './router/router';
 import './styles/theme.css';
 const PrivacyC15TContext = createContext<{
-	state: PrivacyConsentState | null;
-	store: StoreApi<PrivacyConsentState> | null;
+	state: ConsentStoreState | null;
+	store: StoreApi<ConsentStoreState> | null;
 } | null>(null);
 
 export const getStore = () => {
@@ -41,7 +41,7 @@ export const getStore = () => {
 
 		// Subscribe to store updates
 		const unsubscribe = context.store.subscribe(
-			(newState: PrivacyConsentState) => {
+			(newState: ConsentStoreState) => {
 				setLocalState(newState);
 			}
 		);
@@ -64,10 +64,8 @@ export const C15TDevTools: FC<ConsentManagerProviderProps> = ({
 	namespace = 'c15tStore',
 	position = 'bottom-right',
 }) => {
-	const [state, setState] = useState<PrivacyConsentState | null>(null);
-	const [store, setStore] = useState<StoreApi<PrivacyConsentState> | null>(
-		null
-	);
+	const [state, setState] = useState<ConsentStoreState | null>(null);
+	const [store, setStore] = useState<StoreApi<ConsentStoreState> | null>(null);
 	const [isOpen, setIsOpen] = useState(false);
 	const toggleOpen = useCallback(() => setIsOpen((prev) => !prev), []);
 
@@ -79,12 +77,12 @@ export const C15TDevTools: FC<ConsentManagerProviderProps> = ({
 
 		if (storeInstance) {
 			setStore(storeInstance);
-			const currentState = storeInstance.getState() as PrivacyConsentState;
+			const currentState = storeInstance.getState() as ConsentStoreState;
 			setState(currentState);
 
 			// Subscribe to store updates
 			const unsubscribe = storeInstance.subscribe(
-				(newState: PrivacyConsentState) => {
+				(newState: ConsentStoreState) => {
 					setState(newState);
 				}
 			);

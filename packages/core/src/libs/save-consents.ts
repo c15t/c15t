@@ -1,12 +1,12 @@
 import type { StoreApi } from 'zustand';
-import type { PrivacyConsentState } from '~/store.type';
+import type { ConsentStoreState } from '~/store/type';
 import type { ConsentManagerInterface } from '../client/client-interface';
 
 interface SaveConsentsProps {
 	manager: ConsentManagerInterface;
 	type: 'necessary' | 'all' | 'custom';
-	get: StoreApi<PrivacyConsentState>['getState'];
-	set: StoreApi<PrivacyConsentState>['setState'];
+	get: StoreApi<ConsentStoreState>['getState'];
+	set: StoreApi<ConsentStoreState>['setState'];
 }
 
 export async function saveConsents({
