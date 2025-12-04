@@ -2,9 +2,6 @@
 name: Deploy docs (Canary - Scheduled)
 
 on:
-  # ⏰ Schedule: Every 2 hours
-  schedule:
-    - cron: '0 */2 * * *'
   # 🔄 Allow manual trigger as well
   workflow_dispatch:
 
