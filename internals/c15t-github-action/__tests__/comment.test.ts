@@ -340,20 +340,17 @@ describe('commentsEqual', () => {
 		{ body: 'body', previous: 'body', header: 'header', expected: true },
 		{ body: 'body', previous: '', header: 'header', expected: false },
 		{ body: '', previous: 'body', header: 'header', expected: false },
-	])(
-		'commentsEqual(%s, %s, %s)',
-		({
-			body,
-			previous,
-			header,
-			expected,
-		}: {
-			body: string;
-			previous: string;
-			header: string;
-			expected: boolean;
-		}) => {
-			expect(commentsEqual(body, previous, header)).toEqual(expected);
-		}
-	);
+	])('commentsEqual(%s, %s, %s)', ({
+		body,
+		previous,
+		header,
+		expected,
+	}: {
+		body: string;
+		previous: string;
+		header: string;
+		expected: boolean;
+	}) => {
+		expect(commentsEqual(body, previous, header)).toEqual(expected);
+	});
 });
