@@ -34,31 +34,29 @@ describe('checkJurisdiction', () => {
 			'SE',
 		];
 
-		it.each(euCountries)(
-			'should identify %s as GDPR jurisdiction',
-			(countryCode) => {
-				const result = checkJurisdiction(countryCode);
+		it.each(
+			euCountries
+		)('should identify %s as GDPR jurisdiction', (countryCode) => {
+			const result = checkJurisdiction(countryCode);
 
-				expect(result.showConsentBanner).toBe(true);
-				expect(result.jurisdictionCode).toBe('GDPR');
-				expect(result.message).toBe(JurisdictionMessages.GDPR);
-			}
-		);
+			expect(result.showConsentBanner).toBe(true);
+			expect(result.jurisdictionCode).toBe('GDPR');
+			expect(result.message).toBe(JurisdictionMessages.GDPR);
+		});
 	});
 
 	describe('GDPR jurisdiction (EEA countries)', () => {
 		const eeaCountries = ['IS', 'NO', 'LI'];
 
-		it.each(eeaCountries)(
-			'should identify %s as GDPR jurisdiction',
-			(countryCode) => {
-				const result = checkJurisdiction(countryCode);
+		it.each(
+			eeaCountries
+		)('should identify %s as GDPR jurisdiction', (countryCode) => {
+			const result = checkJurisdiction(countryCode);
 
-				expect(result.showConsentBanner).toBe(true);
-				expect(result.jurisdictionCode).toBe('GDPR');
-				expect(result.message).toBe(JurisdictionMessages.GDPR);
-			}
-		);
+			expect(result.showConsentBanner).toBe(true);
+			expect(result.jurisdictionCode).toBe('GDPR');
+			expect(result.message).toBe(JurisdictionMessages.GDPR);
+		});
 	});
 
 	describe('GDPR jurisdiction (UK)', () => {
@@ -81,16 +79,19 @@ describe('checkJurisdiction', () => {
 			{ country: 'KR', code: 'PIPA', message: JurisdictionMessages.PIPA },
 		] as const;
 
-		it.each(jurisdictionCases)(
-			'should identify $country as $code jurisdiction',
-			({ country, code, message }) => {
-				const result = checkJurisdiction(country);
+		it.each(
+			jurisdictionCases
+		)('should identify $country as $code jurisdiction', ({
+			country,
+			code,
+			message,
+		}) => {
+			const result = checkJurisdiction(country);
 
-				expect(result.showConsentBanner).toBe(true);
-				expect(result.jurisdictionCode).toBe(code);
-				expect(result.message).toBe(message);
-			}
-		);
+			expect(result.showConsentBanner).toBe(true);
+			expect(result.jurisdictionCode).toBe(code);
+			expect(result.message).toBe(message);
+		});
 	});
 
 	describe('Non-regulated countries', () => {
@@ -107,16 +108,15 @@ describe('checkJurisdiction', () => {
 			'PH', // Philippines
 		];
 
-		it.each(nonRegulatedCountries)(
-			'should identify %s as non-regulated (NONE jurisdiction)',
-			(countryCode) => {
-				const result = checkJurisdiction(countryCode);
+		it.each(
+			nonRegulatedCountries
+		)('should identify %s as non-regulated (NONE jurisdiction)', (countryCode) => {
+			const result = checkJurisdiction(countryCode);
 
-				expect(result.showConsentBanner).toBe(false);
-				expect(result.jurisdictionCode).toBe('NONE');
-				expect(result.message).toBe(JurisdictionMessages.NONE);
-			}
-		);
+			expect(result.showConsentBanner).toBe(false);
+			expect(result.jurisdictionCode).toBe('NONE');
+			expect(result.message).toBe(JurisdictionMessages.NONE);
+		});
 	});
 
 	describe('Edge cases', () => {

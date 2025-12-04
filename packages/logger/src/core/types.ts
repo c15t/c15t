@@ -69,12 +69,13 @@ export interface LoggerOptions {
  *
  * @internal
  */
-export type LogEntry = Parameters<NonNullable<LoggerOptions['log']>> extends [
-	LogLevel,
-	...infer Rest,
-]
-	? Rest
-	: never;
+export type LogEntry =
+	Parameters<NonNullable<LoggerOptions['log']>> extends [
+		LogLevel,
+		...infer Rest,
+	]
+		? Rest
+		: never;
 
 /**
  * Type representing a logger instance with methods for each log level.
