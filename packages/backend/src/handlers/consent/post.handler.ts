@@ -134,9 +134,20 @@ export const postConsent = os.consent.post.handler(
 					)
 				);
 
-				const purposes = purposesRaw.map((purpose) => purpose?.id);
+				const purposes = purposesRaw
+					.map((purpose) => purpose?.id ?? null)
+					.filter((id): id is string => Boolean(id));
 
-				logger.debug('Purposes: ', { purposes });
+				logger.debug('Filtered purposes', { purposes });
+
+				if (purposes.length === 0) {
+					logger.warn(
+						'No valid purpose IDs found after filtering. Using empty list.',
+						{
+							consentedPurposes,
+						}
+					);
+				}
 
 				purposeIds = purposes;
 			}
