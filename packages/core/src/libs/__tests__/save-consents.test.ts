@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoreApi } from 'zustand';
 import type { ConsentManagerInterface } from '../../client/client-interface';
-import type { PrivacyConsentState } from '../../store.type';
+import type { ConsentStoreState } from '../../store/type';
 import { saveConsents } from '../save-consents';
 
 describe('saveConsents', () => {
 	let mockManager: ConsentManagerInterface;
-	let mockGet: StoreApi<PrivacyConsentState>['getState'];
-	let mockSet: StoreApi<PrivacyConsentState>['setState'];
+	let mockGet: StoreApi<ConsentStoreState>['getState'];
+	let mockSet: StoreApi<ConsentStoreState>['setState'];
 	let mockLocalStorage: Storage;
 	let updateScriptsMock: ReturnType<typeof vi.fn>;
 	let updateIframeConsentsMock: ReturnType<typeof vi.fn>;

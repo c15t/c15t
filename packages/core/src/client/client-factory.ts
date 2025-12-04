@@ -3,7 +3,7 @@
  * This module provides the main factory function for creating
  * client instances based on configuration options.
  */
-import type { StoreOptions } from '../store';
+import type { StoreOptions } from '../store/type';
 import { C15tClient } from './c15t';
 import type { ConsentManagerInterface } from './client-interface';
 import { CustomClient, type EndpointHandlers } from './custom';
