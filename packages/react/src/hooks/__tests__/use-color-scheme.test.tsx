@@ -45,21 +45,21 @@ describe('useColorScheme', () => {
 		vi.restoreAllMocks();
 	});
 
-	test('sets light theme correctly', () => {
-		renderHook(() => useColorScheme('light'));
+	test('sets light theme correctly', async () => {
+		await renderHook(() => useColorScheme('light'));
 		expect(document.documentElement.classList.contains('c15t-dark')).toBe(
 			false
 		);
 	});
 
-	test('sets dark theme correctly', () => {
-		renderHook(() => useColorScheme('dark'));
+	test('sets dark theme correctly', async () => {
+		await renderHook(() => useColorScheme('dark'));
 		expect(document.documentElement.classList.contains('c15t-dark')).toBe(true);
 	});
 
-	test('responds to system preference', () => {
+	test('responds to system preference', async () => {
 		mediaQueryList.matches = true;
-		renderHook(() => useColorScheme('system'));
+		await renderHook(() => useColorScheme('system'));
 		expect(document.documentElement.classList.contains('c15t-dark')).toBe(true);
 		expect(addEventListenerSpy).toHaveBeenCalledWith(
 			'change',
@@ -67,14 +67,14 @@ describe('useColorScheme', () => {
 		);
 	});
 
-	test('cleans up system preference listener on unmount', () => {
-		const { unmount } = renderHook(() => useColorScheme('system'));
+	test('cleans up system preference listener on unmount', async () => {
+		const { unmount } = await renderHook(() => useColorScheme('system'));
 		unmount();
 		expect(removeEventListenerSpy).toHaveBeenCalled();
 	});
 
-	test('updates theme when system preference changes', () => {
-		renderHook(() => useColorScheme('system'));
+	test('updates theme when system preference changes', async () => {
+		await renderHook(() => useColorScheme('system'));
 
 		const calls = addEventListenerSpy.mock.calls;
 		const callback = calls[0]?.[1];
@@ -87,9 +87,9 @@ describe('useColorScheme', () => {
 		expect(document.documentElement.classList.contains('c15t-dark')).toBe(true);
 	});
 
-	test('handles default theme based on document class', () => {
+	test('handles default theme based on document class', async () => {
 		document.documentElement.classList.add('dark');
-		renderHook(() => useColorScheme(null));
+		await renderHook(() => useColorScheme(null));
 		expect(document.documentElement.classList.contains('c15t-dark')).toBe(true);
 	});
 

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { STORAGE_KEY_V2 } from '../../store.initial-state';
+import { STORAGE_KEY_V2 } from '../../store/initial-state';
 import { C15tClient } from '../c15t';
 import { configureConsentManager } from '../client-factory';
 import { CustomClient } from '../custom';

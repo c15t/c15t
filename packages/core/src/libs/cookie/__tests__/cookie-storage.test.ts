@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../../store.initial-state';
+import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../../store/initial-state';
 import type { ConsentState } from '../../../types';
 import type { ConsentInfo } from '../../../types/gdpr';
 import {
