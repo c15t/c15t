@@ -1,7 +1,7 @@
 import type { ContractsOutputs } from '@c15t/backend/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ConsentManagerInterface } from '../../client/client-factory';
-import type { PrivacyConsentState } from '../../store.type';
+import type { ConsentStoreState } from '../../store/type';
 import { fetchConsentBannerInfo } from '../fetch-consent-banner';
 
 // Mock types for testing
@@ -24,8 +24,8 @@ const createMockConsentManager = (
  * Mock store state for testing
  */
 const createMockStoreState = (
-	overrides: Partial<PrivacyConsentState> = {}
-): PrivacyConsentState => ({
+	overrides: Partial<ConsentStoreState> = {}
+): ConsentStoreState => ({
 	config: { pkg: 'test', version: '1.0.0', mode: 'test' },
 	branding: 'c15t',
 	consents: {
@@ -169,7 +169,7 @@ describe('fetchConsentBannerInfo', () => {
 	let mockGet: ReturnType<typeof vi.fn>;
 	let mockSet: ReturnType<typeof vi.fn>;
 	let mockManager: ConsentManagerInterface;
-	let mockState: PrivacyConsentState;
+	let mockState: ConsentStoreState;
 
 	beforeEach(() => {
 		// Reset all mocks

@@ -5,15 +5,9 @@
 
 import type {
 	AllConsentNames,
-	Callbacks,
 	ConsentManagerOptions as CoreOptions,
-	LegalLinks,
-	NetworkBlockerConfig,
-	Overrides,
-	Script,
-	StorageConfig,
+	StoreOptions,
 	TranslationConfig,
-	User,
 } from 'c15t';
 import type { ReactNode } from 'react';
 import type { ConsentManagerDialogTheme } from '~/components/consent-manager-dialog/theme';
@@ -63,91 +57,55 @@ export interface ReactUIOptions {
 }
 
 /**
- * Extended configuration options for the React consent manager
+ * Store-related options that are exposed at the top-level React configuration.
+ *
+ * @remarks
+ * These are a curated subset of the full {@link StoreOptions} surface that are
+ * commonly configured via the React provider. Advanced options can still be
+ * provided through the `store` property on {@link ConsentManagerOptions}.
  */
-export type ConsentManagerOptions = CoreOptions & {
-	/**
-	 * React-specific UI configuration options
-	 */
-	react?: ReactUIOptions;
+type InlineStoreOptions = Pick<
+	StoreOptions,
+	| 'ignoreGeoLocation'
+	| 'callbacks'
+	| 'scripts'
+	| 'legalLinks'
+	| 'storageConfig'
+	| 'user'
+	| 'overrides'
+	| 'networkBlocker'
+>;
 
-	/**
-	 * Translation configuration
-	 */
-	translations?: Partial<TranslationConfig>;
+/**
+ * Extended configuration options for the React consent manager.
+ *
+ * @remarks
+ * This type composes:
+ * - Core client options from {@link CoreOptions}
+ * - A curated subset of store options from {@link StoreOptions}
+ * - React-specific UI and translation configuration
+ */
+export type ConsentManagerOptions = CoreOptions &
+	InlineStoreOptions & {
+		/**
+		 * React-specific UI configuration options.
+		 */
+		react?: ReactUIOptions;
 
-	/**
-	 * Whether to ignore geo location. Will always show the consent banner.
-	 * It is recommended to disable this option in production.
-	 * @default false
-	 */
-	ignoreGeoLocation?: boolean;
+		/**
+		 * Translation configuration to seed the store with.
+		 */
+		translations?: Partial<TranslationConfig>;
 
-	/**
-	 * Consent Categories to show in the consent banner.
-	 * This will be overridden if you have scripts or iframes that require different consent categories.
-	 * @default ['necessary', 'marketing']
-	 */
-	consentCategories?: AllConsentNames[];
-
-	/**
-	 * Callbacks for the consent manager.
-	 */
-	callbacks?: Callbacks;
-
-	/**
-	 * Dynamically load scripts based on consent state.
-	 * For scripts such as Google Tag Manager, Meta Pixel, etc.
-	 *
-	 * @see https://c15t.com/docs/frameworks/react/script-loader
-	 */
-	scripts?: Script[];
-
-	/**
-	 * Network blocker configuration.
-	 *
-	 * @remarks
-	 * Intercepts global fetch and XMLHttpRequest calls and blocks requests based on the current consent state and configured domain rules.
-	 */
-	networkBlocker?: NetworkBlockerConfig;
-
-	/**
-	 * Display links to various legal documents such as privacy policy, terms of service, etc across the consent manager.
-	 * This can be used to display links in the consent banner, dialog, etc.
-	 *
-	 * @defaultValue {}
-	 */
-	legalLinks?: LegalLinks;
-
-	/**
-	 * Storage configuration options
-	 *
-	 * @remarks
-	 * Configure storage behavior through store options for better control
-	 * and testability.
-	 *
-	 * @see {@link StorageConfig} for available options
-	 */
-	storageConfig?: StorageConfig;
-
-	/**
-	 * The user's information.
-	 * Usually your own internal ID for the user from your auth provider
-	 *
-	 * @remarks
-	 * This can be set later using the {@link identifyUser} method.
-	 * @default undefined
-	 */
-	user?: User;
-
-	/**
-	 * Forcefully set values like country, region, language for the consent manager
-	 * These values will override the values detected from the browser.
-	 *
-	 * @defaultValue undefined
-	 */
-	overrides?: Overrides;
-};
+		/**
+		 * Consent categories to show in the consent banner.
+		 * This will be overridden if you have scripts or iframes that require
+		 * different consent categories.
+		 *
+		 * @default ['necessary', 'marketing']
+		 */
+		consentCategories?: AllConsentNames[];
+	};
 
 /**
  * Configuration options for the ConsentManagerProvider.

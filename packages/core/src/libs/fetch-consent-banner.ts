@@ -10,7 +10,7 @@ import {
 } from '@c15t/translations';
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
-import type { PrivacyConsentState } from '../store.type';
+import type { ConsentStoreState } from '../store/type';
 
 type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
 
@@ -21,8 +21,8 @@ interface FetchConsentBannerConfig {
 	manager: ConsentManagerInterface;
 	initialData?: Promise<ContractsOutputs['consent']['showBanner'] | undefined>;
 	initialTranslationConfig?: Partial<TranslationConfig>;
-	get: StoreApi<PrivacyConsentState>['getState'];
-	set: StoreApi<PrivacyConsentState>['setState'];
+	get: StoreApi<ConsentStoreState>['getState'];
+	set: StoreApi<ConsentStoreState>['setState'];
 }
 
 /**
@@ -60,7 +60,7 @@ function updateStore(
 	const shouldAutoGrantConsents =
 		data.jurisdiction?.code === 'NONE' && !data.showConsentBanner;
 
-	const updatedStore: Partial<PrivacyConsentState> = {
+	const updatedStore: Partial<ConsentStoreState> = {
 		isLoadingConsentInfo: false,
 		branding: data.branding ?? 'c15t',
 		...(consentInfo === null
