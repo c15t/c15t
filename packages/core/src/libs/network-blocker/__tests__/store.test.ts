@@ -91,7 +91,10 @@ describe('createNetworkBlockerManager', () => {
 		);
 
 		const shouldBlockRequestMock = vi.mocked(shouldBlockRequest);
-		shouldBlockRequestMock.mockReturnValue(true);
+		shouldBlockRequestMock.mockReturnValue({
+			shouldBlock: true,
+			rule: config.rules[0],
+		} as unknown as ReturnType<typeof shouldBlockRequest>);
 
 		const warnSpy = vi
 			.spyOn(console, 'warn')
@@ -173,7 +176,10 @@ describe('createNetworkBlockerManager', () => {
 		);
 
 		const shouldBlockRequestMock = vi.mocked(shouldBlockRequest);
-		shouldBlockRequestMock.mockReturnValue(true);
+		shouldBlockRequestMock.mockReturnValue({
+			shouldBlock: true,
+			rule: config.rules[0],
+		} as unknown as ReturnType<typeof shouldBlockRequest>);
 
 		const warnSpy = vi
 			.spyOn(console, 'warn')
@@ -241,7 +247,9 @@ describe('createNetworkBlockerManager', () => {
 
 		// Block when marketing consent is false, allow when true
 		shouldBlockRequestMock.mockImplementation((_request, consents) => {
-			return !consents.marketing;
+			return {
+				shouldBlock: !consents.marketing,
+			} as unknown as ReturnType<typeof shouldBlockRequest>;
 		});
 
 		manager.initializeNetworkBlocker();
@@ -315,7 +323,9 @@ describe('createNetworkBlockerManager', () => {
 
 		// Block when marketing consent is false, allow when true
 		shouldBlockRequestMock.mockImplementation((_request, consents) => {
-			return !consents.marketing;
+			return {
+				shouldBlock: !consents.marketing,
+			} as unknown as ReturnType<typeof shouldBlockRequest>;
 		});
 
 		manager.initializeNetworkBlocker();
