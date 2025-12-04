@@ -58,6 +58,7 @@ function updateStore(
 	const { translations, location, showConsentBanner } = data;
 
 	// Check if consents should be automatically granted
+	// Only auto-grant when there is no existing consent information.
 	const shouldAutoGrantConsents =
 		data.jurisdiction?.code === 'NONE' &&
 		!data.showConsentBanner &&

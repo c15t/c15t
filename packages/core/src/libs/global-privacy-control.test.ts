@@ -31,7 +31,7 @@ describe('hasGlobalPrivacyControlSignal', () => {
 		// @ts-expect-error - We intentionally delete the global window
 		delete (globalThis as typeof globalThis & { window?: unknown }).window;
 
-		const result = hasGlobalPrivacyControlSignal(true);
+		const result = hasGlobalPrivacyControlSignal();
 
 		expect(result).toBe(false);
 	});
@@ -47,7 +47,7 @@ describe('hasGlobalPrivacyControlSignal', () => {
 		// @ts-expect-error - We intentionally override the global window
 		globalThis.window = mockWindow;
 
-		const result = hasGlobalPrivacyControlSignal(true);
+		const result = hasGlobalPrivacyControlSignal();
 
 		expect(result).toBe(true);
 	});
@@ -62,7 +62,7 @@ describe('hasGlobalPrivacyControlSignal', () => {
 		// @ts-expect-error - We intentionally override the global window
 		globalThis.window = mockWindow;
 
-		const result = hasGlobalPrivacyControlSignal(true);
+		const result = hasGlobalPrivacyControlSignal();
 
 		expect(result).toBe(true);
 	});
@@ -77,7 +77,7 @@ describe('hasGlobalPrivacyControlSignal', () => {
 		// @ts-expect-error - We intentionally override the global window
 		globalThis.window = mockWindow;
 
-		const resultFalse = hasGlobalPrivacyControlSignal(true);
+		const resultFalse = hasGlobalPrivacyControlSignal();
 
 		expect(resultFalse).toBe(false);
 
@@ -90,7 +90,7 @@ describe('hasGlobalPrivacyControlSignal', () => {
 		// @ts-expect-error - We intentionally override the global window
 		globalThis.window = mockWindowWithoutFlag;
 
-		const resultMissing = hasGlobalPrivacyControlSignal(true);
+		const resultMissing = hasGlobalPrivacyControlSignal();
 
 		expect(resultMissing).toBe(false);
 	});
@@ -109,7 +109,7 @@ describe('hasGlobalPrivacyControlSignal', () => {
 		// @ts-expect-error - We intentionally override the global window
 		globalThis.window = throwingWindow;
 
-		const result = hasGlobalPrivacyControlSignal(true);
+		const result = hasGlobalPrivacyControlSignal();
 
 		expect(result).toBe(false);
 	});
