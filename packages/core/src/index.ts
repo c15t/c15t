@@ -57,10 +57,13 @@ export {
 	unloadScripts,
 	updateScripts,
 } from './libs/script-loader';
-export type { StoreOptions } from './store';
 // Export store
 export { createConsentManagerStore } from './store';
-export type { PrivacyConsentState } from './store.type';
+export type {
+	ConsentStoreState,
+	PrivacyConsentState,
+	StoreOptions,
+} from './store/type';
 // Export default translation config
 export { defaultTranslationConfig } from './translations';
 export type { Callback, Callbacks } from './types/callbacks';

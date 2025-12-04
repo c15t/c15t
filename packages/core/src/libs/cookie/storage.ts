@@ -8,7 +8,7 @@
  */
 
 import type { ConsentState } from '../..';
-import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../store.initial-state';
+import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../store/initial-state';
 import { allConsentNames, type ConsentInfo } from '../../types/gdpr';
 import { deleteCookie, getCookie, setCookie } from './operations';
 import type { CookieOptions, StorageConfig } from './types';

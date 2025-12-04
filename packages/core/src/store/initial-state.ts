@@ -3,10 +3,10 @@
  * Provides the default initial state configuration for the consent management store.
  */
 
-import type { PrivacyConsentState } from './store.type';
-import { defaultTranslationConfig } from './translations';
-import { type ConsentState, consentTypes } from './types';
-import { version } from './version';
+import { defaultTranslationConfig } from '../translations';
+import { type ConsentState, consentTypes } from '../types';
+import { version } from '../version';
+import type { StoreRuntimeState } from './type';
 
 /**
  * Current storage key (v1.8+)
@@ -53,29 +53,7 @@ export const STORAGE_KEY = 'privacy-consent-storage';
  *
  * @public
  */
-export const initialState: Omit<
-	PrivacyConsentState,
-	| 'has'
-	| 'fetchConsentBannerInfo'
-	| 'setSelectedConsent'
-	| 'updateScripts'
-	| 'isScriptLoaded'
-	| 'getLoadedScriptIds'
-	| 'addScript'
-	| 'addScripts'
-	| 'removeScript'
-	| 'setScripts'
-	| 'initializeIframeBlocker'
-	| 'updateIframeConsents'
-	| 'destroyIframeBlocker'
-	| 'initializeNetworkBlocker'
-	| 'updateNetworkBlockerConsents'
-	| 'setNetworkBlocker'
-	| 'destroyNetworkBlocker'
-	| 'updateConsentCategories'
-	| 'identifyUser'
-	| 'setOverrides'
-> = {
+export const initialState: StoreRuntimeState = {
 	config: {
 		pkg: 'c15t',
 		version,
@@ -105,46 +83,41 @@ export const initialState: Omit<
 	/** Initial loading state for consent banner information */
 	isLoadingConsentInfo: false,
 
-	/** Banner has not been fetched initially */
 	hasFetchedBanner: false,
 
-	/** No last banner fetch data initially */
 	lastBannerFetchData: null,
 
-	/** Default GDPR consent types to include */
 	gdprTypes: ['necessary', 'marketing'],
 
-	/** Privacy dialog starts closed */
 	isPrivacyDialogOpen: false,
 
-	/** Empty callbacks object - should be populated by implementation */
 	callbacks: {},
 
-	/** No location information initially */
 	locationInfo: null,
+
+	overrides: undefined,
 
 	legalLinks: {},
 
-	/** Default translation configuration */
 	translationConfig: defaultTranslationConfig,
 
-	/** Don't include non-displayed consents by default */
+	user: undefined,
+
+	networkBlocker: undefined,
+
+	storageConfig: undefined,
+
 	includeNonDisplayedConsents: false,
 
-	/** Use predefined consent types */
 	consentTypes: consentTypes,
 
-	/** Default iframe blocker configuration */
 	iframeBlockerConfig: {
 		disableAutomaticBlocking: false,
 	},
 
-	/** No network blocker configuration by default */
-	networkBlocker: undefined,
-
-	/** Default to not ignoring geo location */
 	ignoreGeoLocation: false,
 
+<<<<<<< HEAD:packages/core/src/store.initial-state.ts
 	/** Default storage configuration (uses default storage key) */
 	storageConfig: undefined,
 
@@ -184,11 +157,11 @@ export const initialState: Omit<
 	},
 
 	/** Initial empty scripts array */
+=======
+>>>>>>> de3f5a19 (refactor(core): improve store types & comments):packages/core/src/store/initial-state.ts
 	scripts: [],
 
-	/** Initial empty loadedScripts record */
 	loadedScripts: {},
 
-	/** Initial empty scriptIdMap record */
 	scriptIdMap: {},
 };

@@ -3,7 +3,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PrivacyConsentState } from '../../../store.type';
+import type { ConsentStoreState } from '../../../store/type';
 import {
 	getIframeConsentCategories,
 	processAllIframes,
@@ -42,7 +42,7 @@ describe('createIframeManager', () => {
 
 	describe('initializeIframeBlocker', () => {
 		it('should initialize iframe blocker with config and consents', () => {
-			const mockState: Partial<PrivacyConsentState> = {
+			const mockState: Partial<ConsentStoreState> = {
 				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				consents: {
 					necessary: true,

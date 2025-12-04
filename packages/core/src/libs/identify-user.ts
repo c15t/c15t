@@ -1,13 +1,13 @@
 import type { StoreApi } from 'zustand';
 import type { ConsentManagerInterface } from '~/client/client-interface';
-import type { PrivacyConsentState } from '~/store.type';
+import type { ConsentStoreState } from '~/store/type';
 import type { User } from '~/types/user';
 
 interface IdentifyUserProps {
 	user: User;
 	manager: ConsentManagerInterface;
-	get: StoreApi<PrivacyConsentState>['getState'];
-	set: StoreApi<PrivacyConsentState>['setState'];
+	get: StoreApi<ConsentStoreState>['getState'];
+	set: StoreApi<ConsentStoreState>['setState'];
 }
 
 /**

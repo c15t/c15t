@@ -1,6 +1,6 @@
 import type {
+	ConsentStoreState,
 	JurisdictionInfo,
-	PrivacyConsentState,
 	Translations,
 } from '../index';
 
@@ -27,7 +27,7 @@ export type OnBannerFetchedPayload = {
 	};
 };
 export type OnConsentSetPayload = {
-	preferences: PrivacyConsentState['consents'];
+	preferences: ConsentStoreState['consents'];
 };
 export type OnErrorPayload = {
 	error: string;

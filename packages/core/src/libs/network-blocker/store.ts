@@ -1,15 +1,28 @@
-import type { PrivacyConsentState } from '../../store.type';
+import type { ConsentStoreState } from '../../store/type';
 import type { ConsentState } from '../../types';
 import { shouldBlockRequest } from './core';
 import type { BlockedRequestInfo, NetworkBlockerConfig } from './types';
 
-type SetState = (partial: Partial<PrivacyConsentState>) => void;
-type GetState = () => PrivacyConsentState;
+type SetState = (partial: Partial<ConsentStoreState>) => void;
+type GetState = () => ConsentStoreState;
 type XhrOpen = XMLHttpRequest['open'];
 type XhrSend = XMLHttpRequest['send'];
 
 /**
  * Creates a network blocker manager that integrates with the main consent store.
+ *
+ * @remarks
+ * The returned methods are designed to be spread into the
+ * {@link ConsentStoreState} and provide network-blocking behavior for both
+ * `fetch` and `XMLHttpRequest` based on the current consent snapshot.
+ *
+ * This helper is browser-only and will no-op when `window` is undefined.
+ *
+ * @param get - Store getter used to read the current consent state and
+ * configuration
+ * @param _set - Store setter used to update `networkBlocker` configuration
+ * @returns An object with network blocker lifecycle methods to merge into
+ * the store
  *
  * @internal
  */
@@ -105,7 +118,7 @@ export function createNetworkBlockerManager(get: GetState, _set: SetState) {
 
 			const consents = getBlockingConsents();
 
-			const shouldBlock = shouldBlockRequest(
+			const { shouldBlock, rule } = shouldBlockRequest(
 				{
 					url,
 					method,
@@ -118,7 +131,7 @@ export function createNetworkBlockerManager(get: GetState, _set: SetState) {
 				notifyBlockedRequest(config, {
 					method,
 					url,
-					rule: undefined,
+					rule,
 				});
 
 				const blockedResponse = new Response(null, {
@@ -202,7 +215,7 @@ export function createNetworkBlockerManager(get: GetState, _set: SetState) {
 				const url = internal.__c15tUrl || '';
 				const consents = getBlockingConsents();
 
-				const shouldBlock = shouldBlockRequest(
+				const { shouldBlock, rule } = shouldBlockRequest(
 					{
 						url,
 						method,
@@ -215,7 +228,7 @@ export function createNetworkBlockerManager(get: GetState, _set: SetState) {
 					notifyBlockedRequest(config, {
 						method,
 						url,
-						rule: undefined,
+						rule,
 					});
 
 					try {
@@ -246,7 +259,17 @@ export function createNetworkBlockerManager(get: GetState, _set: SetState) {
 	return {
 		/**
 		 * Initializes the network blocker by patching global fetch and XHR.
-		 * Uses a snapshot of the current consent state for blocking decisions.
+		 *
+		 * @remarks
+		 * - No-ops when running in non-browser environments
+		 * - No-ops when network blocking is disabled or no rules are
+		 *   configured
+		 * - Takes a snapshot of the current `consents` state that is used
+		 *   for all subsequent blocking decisions until updated via
+		 *   {@link ConsentStoreState.updateNetworkBlockerConsents}
+		 *
+		 * Safe to call multiple times; initialization runs only once per
+		 * page lifecycle.
 		 */
 		initializeNetworkBlocker: () => {
 			if (isInitialized) {
@@ -292,13 +315,15 @@ export function createNetworkBlockerManager(get: GetState, _set: SetState) {
 		 * Updates the network blocker configuration at runtime.
 		 * When enabling the blocker, this will initialize it if needed.
 		 * When disabling, this will restore the original browser APIs.
+		 *
+		 * @param config - New network blocker configuration to apply
 		 */
-		setNetworkBlocker: (config: PrivacyConsentState['networkBlocker']) => {
+		setNetworkBlocker: (config: ConsentStoreState['networkBlocker']) => {
 			const isEnabled = config?.enabled !== false;
 			const shouldEnable =
 				isEnabled && config?.rules && config?.rules.length > 0;
 
-			const partial: Partial<PrivacyConsentState> = { networkBlocker: config };
+			const partial: Partial<ConsentStoreState> = { networkBlocker: config };
 
 			_set(partial);
 
@@ -338,6 +363,11 @@ export function createNetworkBlockerManager(get: GetState, _set: SetState) {
 
 		/**
 		 * Destroys the network blocker and restores the original browser APIs.
+		 *
+		 * @remarks
+		 * Restores the original `fetch` and `XMLHttpRequest` implementations
+		 * and clears the internal consent snapshot. Safe to call multiple
+		 * times and in non-browser environments.
 		 */
 		destroyNetworkBlocker: () => {
 			if (!isInitialized) {
