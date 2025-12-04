@@ -1,9 +1,15 @@
 import type { ContractsOutputs } from '@c15t/backend/contracts';
-import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../../client/client-factory';
+import type { IframeBlockerConfig } from '../../libs/iframe-blocker';
 import type { ConsentStoreState } from '../../store/type';
 import { fetchConsentBannerInfo } from '../fetch-consent-banner';
+import { hasGlobalPrivacyControlSignal } from '../global-privacy-control';
+
+vi.mock('../global-privacy-control', () => ({
+	hasGlobalPrivacyControlSignal: vi.fn(),
+}));
 
 // Mock types for testing
 type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
@@ -11,16 +17,27 @@ type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
 /**
  * Mock consent manager for testing
  */
+type MockableConsentManagerMethods = Pick<
+	ConsentManagerInterface,
+	'showConsentBanner' | 'setConsent' | 'verifyConsent' | '$fetch'
+>;
+
 const createMockConsentManager = (
-	overrides: Partial<ConsentManagerInterface> = {}
-): ConsentManagerInterface => ({
-	showConsentBanner: vi.fn(),
-	setConsent: vi.fn(),
-	verifyConsent: vi.fn(),
-	identifyUser: vi.fn(),
-	$fetch: vi.fn(),
-	...overrides,
-});
+	overrides: Partial<MockableConsentManagerMethods> = {}
+): ConsentManagerInterface => {
+	const base: ConsentManagerInterface = {
+		showConsentBanner: vi.fn(),
+		setConsent: vi.fn(),
+		verifyConsent: vi.fn(),
+		identifyUser: vi.fn(),
+		$fetch: vi.fn(),
+	};
+
+	return {
+		...base,
+		...overrides,
+	};
+};
 
 /**
  * Mock store state for testing
@@ -29,6 +46,7 @@ const createMockStoreState = (
 	overrides: Partial<ConsentStoreState> = {}
 ): ConsentStoreState => ({
 	config: { pkg: 'test', version: '1.0.0', mode: 'test' },
+	legalLinks: {},
 	branding: 'c15t',
 	consents: {
 		necessary: false,
@@ -51,30 +69,15 @@ const createMockStoreState = (
 	lastBannerFetchData: null,
 	gdprTypes: [],
 	isPrivacyDialogOpen: false,
-	complianceSettings: {
-		gdpr: { enabled: true, appliesGlobally: false, applies: undefined },
-		ccpa: { enabled: true, appliesGlobally: false, applies: undefined },
-		lgpd: { enabled: true, appliesGlobally: false, applies: undefined },
-		usStatePrivacy: {
-			enabled: true,
-			appliesGlobally: false,
-			applies: undefined,
-		},
-	},
+	iframeBlockerConfig: {} as IframeBlockerConfig,
 	callbacks: {},
-	detectedCountry: null,
 	locationInfo: null,
-	jurisdictionInfo: null,
-	legalLinks: {},
 	translationConfig: {
 		translations: {},
 		defaultLanguage: 'en',
 		disableAutoLanguageSwitch: false,
 	},
-	iframeBlockerConfig: {},
-	isConsentDomain: false,
 	ignoreGeoLocation: false,
-	privacySettings: { honorDoNotTrack: false },
 	setTranslationConfig: vi.fn(),
 	includeNonDisplayedConsents: false,
 	consentTypes: [],
@@ -91,17 +94,21 @@ const createMockStoreState = (
 	setIsPrivacyDialogOpen: vi.fn(),
 	saveConsents: vi.fn(),
 	resetConsents: vi.fn(),
+	initializeIframeBlocker: vi.fn(),
+	updateIframeConsents: vi.fn(),
+	destroyIframeBlocker: vi.fn(),
+	initializeNetworkBlocker: vi.fn(),
+	updateNetworkBlockerConsents: vi.fn(),
+	setNetworkBlocker: vi.fn(),
+	destroyNetworkBlocker: vi.fn(),
+	updateConsentCategories: vi.fn(),
+	identifyUser: vi.fn(),
 	setGdprTypes: vi.fn(),
-	setComplianceSetting: vi.fn(),
-	resetComplianceSettings: vi.fn(),
 	setCallback: vi.fn(),
-	setDetectedCountry: vi.fn(),
 	setLocationInfo: vi.fn(),
 	fetchConsentBannerInfo: vi.fn(),
 	getDisplayedConsents: vi.fn(),
 	hasConsented: vi.fn(),
-	getEffectiveConsents: vi.fn(),
-	hasConsentFor: vi.fn(),
 	setSelectedConsent: vi.fn(),
 	has: vi.fn(),
 	overrides: undefined,
@@ -175,8 +182,10 @@ const createMockConsentBannerResponse = (
 });
 
 describe('fetchConsentBannerInfo', () => {
-	let mockGet: Mock<StoreApi<PrivacyConsentState>['getState']>;
-	let mockSet: Mock<StoreApi<PrivacyConsentState>['setState']>;
+	let mockGet: ReturnType<typeof vi.fn>;
+	let mockSet: ReturnType<typeof vi.fn>;
+	let storeGet: StoreApi<ConsentStoreState>['getState'];
+	let storeSet: StoreApi<ConsentStoreState>['setState'];
 	let mockManager: ConsentManagerInterface;
 	let mockState: ConsentStoreState;
 
@@ -187,6 +196,8 @@ describe('fetchConsentBannerInfo', () => {
 		// Create mock store functions
 		mockGet = vi.fn();
 		mockSet = vi.fn();
+		storeGet = mockGet as unknown as StoreApi<ConsentStoreState>['getState'];
+		storeSet = mockSet as unknown as StoreApi<ConsentStoreState>['setState'];
 
 		// Create mock state
 		mockState = createMockStoreState({
@@ -213,8 +224,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			const result = await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(result).toBeUndefined();
@@ -238,8 +249,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			const result = await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(result).toBeUndefined();
@@ -260,8 +271,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			const result = await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 				initialData,
 			});
 
@@ -281,8 +292,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			const result = await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet, // @ts-ignore
+				get: storeGet,
+				set: storeSet,
 				initialData,
 			});
 
@@ -311,8 +322,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			const result = await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet, // @ts-ignore
+				get: storeGet,
+				set: storeSet,
 				initialData,
 			});
 
@@ -339,8 +350,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(mockManager.showConsentBanner).toHaveBeenCalledWith({
@@ -370,8 +381,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet, // @ts-ignore
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(mockManager.showConsentBanner).toHaveBeenCalledWith({
@@ -416,8 +427,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			const result = await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet, // @ts-ignore
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(result).toEqual(mockResponse);
@@ -437,8 +448,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			const result = await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(result).toBeUndefined();
@@ -455,8 +466,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			const result = await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(result).toBeUndefined();
@@ -473,8 +484,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			const result = await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(result).toBeUndefined();
@@ -495,8 +506,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
@@ -528,8 +539,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			// Verify that set was called with consents set to true when jurisdiction.code is 'NONE'
@@ -573,9 +584,48 @@ describe('fetchConsentBannerInfo', () => {
 			);
 		});
 
-		it('should not show popup when consent info already exists', async () => {
-			const mockResponse = createMockConsentBannerResponse();
-			mockState.consentInfo = { time: Date.now(), type: 'all' };
+		it('should honor Global Privacy Control when auto granting consents', async () => {
+			const mockResponse = createMockConsentBannerResponse({
+				jurisdiction: { code: 'NONE', message: 'No requirements' },
+				showConsentBanner: false,
+			});
+
+			mockManager.showConsentBanner = vi.fn().mockResolvedValue({
+				data: mockResponse,
+				error: null,
+			});
+
+			vi.mocked(hasGlobalPrivacyControlSignal).mockReturnValue(true);
+
+			await fetchConsentBannerInfo({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			const lastCall =
+				mockSet.mock.calls[mockSet.mock.calls.length - 1]?.[0] ?? {};
+
+			expect(lastCall).toEqual(
+				expect.objectContaining({
+					consents: {
+						necessary: true,
+						functionality: false,
+						experience: false,
+						marketing: false,
+						measurement: false,
+					},
+				})
+			);
+		});
+
+		it('should not auto grant consents when user already has consent info', async () => {
+			const mockResponse = createMockConsentBannerResponse({
+				jurisdiction: { code: 'NONE', message: 'No requirements' },
+				showConsentBanner: false,
+			});
+
+			mockState.consentInfo = { time: Date.now() };
 
 			mockManager.showConsentBanner = vi.fn().mockResolvedValue({
 				data: mockResponse,
@@ -584,8 +634,29 @@ describe('fetchConsentBannerInfo', () => {
 
 			await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			const lastCall =
+				mockSet.mock.calls[mockSet.mock.calls.length - 1]?.[0] ?? {};
+
+			expect(lastCall).not.toHaveProperty('consents');
+		});
+
+		it('should not show popup when consent info already exists', async () => {
+			const mockResponse = createMockConsentBannerResponse();
+			mockState.consentInfo = { time: Date.now() };
+
+			mockManager.showConsentBanner = vi.fn().mockResolvedValue({
+				data: mockResponse,
+				error: null,
+			});
+
+			await fetchConsentBannerInfo({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
@@ -608,8 +679,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
@@ -632,8 +703,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
@@ -657,8 +728,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(onBannerFetched).toHaveBeenCalledWith({
@@ -684,8 +755,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
@@ -712,8 +783,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
@@ -741,8 +812,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 				initialTranslationConfig,
 			});
 
@@ -755,8 +826,10 @@ describe('fetchConsentBannerInfo', () => {
 
 		it('should not set translation config when translations are missing', async () => {
 			// Create a response without translations field
-			const { translations, ...mockResponseWithoutTranslations } =
-				createMockConsentBannerResponse();
+			const {
+				translations: _translations,
+				...mockResponseWithoutTranslations
+			} = createMockConsentBannerResponse();
 
 			mockManager.showConsentBanner = vi.fn().mockResolvedValue({
 				data: mockResponseWithoutTranslations,
@@ -765,8 +838,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
@@ -787,8 +860,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(mockState.callbacks.onError).toHaveBeenCalledWith({
@@ -802,8 +875,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(mockState.callbacks.onError).toHaveBeenCalledWith({
@@ -820,8 +893,8 @@ describe('fetchConsentBannerInfo', () => {
 			await expect(
 				fetchConsentBannerInfo({
 					manager: mockManager,
-					get: mockGet,
-					set: mockSet,
+					get: storeGet,
+					set: storeSet,
 				})
 			).resolves.toBeUndefined();
 		});
@@ -843,8 +916,8 @@ describe('fetchConsentBannerInfo', () => {
 
 			await fetchConsentBannerInfo({
 				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
+				get: storeGet,
+				set: storeSet,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
