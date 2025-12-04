@@ -36,7 +36,7 @@ describe('shouldBlockRequest', () => {
 			undefined
 		);
 
-		expect(result).toBe(false);
+		expect(result).toEqual({ shouldBlock: false });
 	});
 
 	it('should return false when blocker is disabled', () => {
@@ -59,7 +59,7 @@ describe('shouldBlockRequest', () => {
 			config
 		);
 
-		expect(result).toBe(false);
+		expect(result).toEqual({ shouldBlock: false });
 	});
 
 	it('should return false when no rules are configured', () => {
@@ -77,7 +77,7 @@ describe('shouldBlockRequest', () => {
 			config
 		);
 
-		expect(result).toBe(false);
+		expect(result).toEqual({ shouldBlock: false });
 	});
 
 	it('should block requests when consent is missing for a matching rule', () => {
@@ -105,7 +105,14 @@ describe('shouldBlockRequest', () => {
 			config
 		);
 
-		expect(result).toBe(true);
+		expect(result).toEqual({
+			shouldBlock: true,
+			rule: {
+				id: 'ga-marketing',
+				domain: 'google-analytics.com',
+				category: 'marketing',
+			},
+		});
 	});
 
 	it('should allow requests when consent is granted for a matching rule', () => {
@@ -133,7 +140,7 @@ describe('shouldBlockRequest', () => {
 			config
 		);
 
-		expect(result).toBe(false);
+		expect(result).toEqual({ shouldBlock: false });
 	});
 
 	it('should match subdomains and pathIncludes correctly', () => {
@@ -162,7 +169,15 @@ describe('shouldBlockRequest', () => {
 			config
 		);
 
-		expect(result).toBe(true);
+		expect(result).toEqual({
+			shouldBlock: true,
+			rule: {
+				id: 'ga-marketing',
+				domain: 'google-analytics.com',
+				pathIncludes: '/collect',
+				category: 'marketing',
+			},
+		});
 	});
 
 	it('should respect HTTP method filters on rules', () => {
@@ -202,8 +217,16 @@ describe('shouldBlockRequest', () => {
 			config
 		);
 
-		expect(getResult).toBe(false);
-		expect(postResult).toBe(true);
+		expect(getResult).toEqual({ shouldBlock: false });
+		expect(postResult).toEqual({
+			shouldBlock: true,
+			rule: {
+				id: 'api-experience',
+				domain: 'api.example.com',
+				methods: ['POST'],
+				category: 'experience',
+			},
+		});
 	});
 
 	it('should return false for invalid URLs that cannot be parsed', () => {
@@ -231,6 +254,6 @@ describe('shouldBlockRequest', () => {
 			config
 		);
 
-		expect(result).toBe(false);
+		expect(result).toEqual({ shouldBlock: false });
 	});
 });

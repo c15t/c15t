@@ -67,7 +67,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		// First, clear any mock calls from previous tests
 		mockFetch.mockClear();
 
-		const { rerender } = render(
+		const { rerender } = await render(
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline', // Use offline mode to prevent additional fetches
@@ -104,7 +104,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	});
 
 	it('should make a new request when core options change', async () => {
-		const { rerender } = render(
+		const { rerender } = await render(
 			<ConsentManagerProvider
 				options={{
 					mode: 'c15t',
@@ -153,7 +153,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		// First, clear any mock calls from previous tests
 		mockFetch.mockClear();
 
-		const { rerender } = render(
+		const { rerender } = await render(
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline', // Use offline mode to avoid fetch calls

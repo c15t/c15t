@@ -14,7 +14,7 @@ type TestTheme = {
 };
 
 describe('useTheme', () => {
-	test('returns global theme when no local theme is provided', () => {
+	test('returns global theme when no local theme is provided', async () => {
 		const globalTheme: TestTheme = {
 			noStyle: false,
 			theme: {
@@ -22,7 +22,7 @@ describe('useTheme', () => {
 			},
 		};
 
-		const { result } = renderHook(() => useTheme(), {
+		const { result } = await renderHook(() => useTheme(), {
 			wrapper: ({ children }) => (
 				<GlobalThemeContext.Provider value={globalTheme}>
 					{children}
@@ -33,7 +33,7 @@ describe('useTheme', () => {
 		expect(result.current).toEqual(globalTheme);
 	});
 
-	test('merges global and local themes correctly', () => {
+	test('merges global and local themes correctly', async () => {
 		const globalTheme: TestTheme = {
 			noStyle: false,
 			theme: {
@@ -49,7 +49,7 @@ describe('useTheme', () => {
 			},
 		};
 
-		const { result } = renderHook(() => useTheme(), {
+		const { result } = await renderHook(() => useTheme(), {
 			wrapper: ({ children }) => (
 				<GlobalThemeContext.Provider value={globalTheme}>
 					<LocalThemeContext.Provider value={localTheme}>
@@ -69,7 +69,7 @@ describe('useTheme', () => {
 		});
 	});
 
-	test('local theme takes precedence over global theme', () => {
+	test('local theme takes precedence over global theme', async () => {
 		const globalTheme: TestTheme = {
 			noStyle: false,
 			theme: {
@@ -84,7 +84,7 @@ describe('useTheme', () => {
 			},
 		};
 
-		const { result } = renderHook(() => useTheme(), {
+		const { result } = await renderHook(() => useTheme(), {
 			wrapper: ({ children }) => (
 				<GlobalThemeContext.Provider value={globalTheme}>
 					<LocalThemeContext.Provider value={localTheme}>

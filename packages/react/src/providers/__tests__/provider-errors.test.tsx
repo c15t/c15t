@@ -82,7 +82,7 @@ describe('ConsentManagerProvider Error Handling', () => {
 			);
 		};
 
-		const { getByTestId } = render(
+		const { getByTestId } = await render(
 			<ConsentManagerProvider
 				options={{
 					mode: 'c15t',
