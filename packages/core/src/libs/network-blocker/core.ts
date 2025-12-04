@@ -116,25 +116,25 @@ export function shouldBlockRequest(
 	request: NetworkRequestContext,
 	consents: ConsentState,
 	config?: NetworkBlockerConfig
-): boolean {
+): { shouldBlock: boolean; rule?: NetworkBlockerRule } {
 	if (!config) {
-		return false;
+		return { shouldBlock: false };
 	}
 
 	const isEnabled = config.enabled !== false;
 
 	if (!isEnabled) {
-		return false;
+		return { shouldBlock: false };
 	}
 
 	if (!config.rules || config.rules.length === 0) {
-		return false;
+		return { shouldBlock: false };
 	}
 
 	const url = createUrl(request.url);
 
 	if (!url) {
-		return false;
+		return { shouldBlock: false };
 	}
 
 	const method = normalizeMethod(request.method);
@@ -149,9 +149,9 @@ export function shouldBlockRequest(
 		const hasRequiredConsent = has(rule.category, consents);
 
 		if (!hasRequiredConsent) {
-			return true;
+			return { shouldBlock: true, rule };
 		}
 	}
 
-	return false;
+	return { shouldBlock: false };
 }

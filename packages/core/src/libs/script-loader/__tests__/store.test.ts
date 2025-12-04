@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PrivacyConsentState } from '../../../store.type';
+import type { ConsentStoreState } from '../../../store/type';
 import type { AllConsentNames } from '../../../types/gdpr';
 import { clearAllScripts, loadScripts, updateScripts } from '../core';
 import { createScriptManager } from '../store';
@@ -20,10 +20,10 @@ describe('Script Manager Store Integration', () => {
 		loadedScripts: {} as Record<string, boolean>,
 		scriptIdMap: {} as Record<string, string>,
 		consents: sampleConsents,
-	} as PrivacyConsentState;
+	} as ConsentStoreState;
 
-	const getState = vi.fn(() => mockState as PrivacyConsentState);
-	const setState = vi.fn((partial: Partial<PrivacyConsentState>) => {
+	const getState = vi.fn(() => mockState as ConsentStoreState);
+	const setState = vi.fn((partial: Partial<ConsentStoreState>) => {
 		Object.assign(mockState, partial);
 	});
 
