@@ -19,7 +19,7 @@ type ConsentBannerResponse = ContractsOutputs['init'];
 /**
  * Configuration for fetching consent banner information
  */
-interface FetchConsentBannerConfig {
+interface InitConsentManagerConfig {
 	manager: ConsentManagerInterface;
 	initialData?: Promise<ContractsOutputs['init'] | undefined>;
 	initialTranslationConfig?: Partial<TranslationConfig>;
@@ -31,7 +31,7 @@ interface FetchConsentBannerConfig {
  * Checks if localStorage is available and accessible
  */
 function checkLocalStorageAccess(
-	set: FetchConsentBannerConfig['set']
+	set: InitConsentManagerConfig['set']
 ): boolean {
 	try {
 		if (window.localStorage) {
@@ -51,7 +51,7 @@ function checkLocalStorageAccess(
  */
 function updateStore(
 	data: ConsentBannerResponse,
-	{ set, get, initialTranslationConfig }: FetchConsentBannerConfig,
+	{ set, get, initialTranslationConfig }: InitConsentManagerConfig,
 	hasLocalStorageAccess: boolean
 ): void {
 	const { consentInfo, ignoreGeoLocation, callbacks } = get();
@@ -159,8 +159,8 @@ function updateStore(
  * @param config - Configuration object containing store and manager instances
  * @returns A promise that resolves with the consent banner response when the fetch is complete
  */
-export async function fetchConsentBannerInfo(
-	config: FetchConsentBannerConfig
+export async function initConsentManager(
+	config: InitConsentManagerConfig
 ): Promise<ConsentBannerResponse | undefined> {
 	const { get, set, manager, initialData } = config;
 	const { callbacks } = get();
@@ -180,12 +180,12 @@ export async function fetchConsentBannerInfo(
 
 	// If there is any overrides we skip the initial data
 	if (initialData && !get().overrides) {
-		const showConsentBanner = await initialData;
+		const data = await initialData;
 
 		// Ensures the promise has the expected data
-		if (showConsentBanner) {
-			updateStore(showConsentBanner, config, true);
-			return showConsentBanner;
+		if (data) {
+			updateStore(data, config, true);
+			return data;
 		}
 	}
 

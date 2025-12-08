@@ -51,7 +51,7 @@ describe('Custom Client Tests', () => {
 		});
 
 		// Call the API
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
 		// Assertions
 		expect(showConsentBannerMock).toHaveBeenCalledTimes(1);

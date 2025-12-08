@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchMock, mockLocalStorage } from '../../../../vitest.setup';
-import { STORAGE_KEY_V2 } from '../../../store.initial-state';
 import {
 	type ConsentManagerOptions,
 	configureConsentManager,
@@ -72,7 +71,7 @@ describe('c15t Client Tests', () => {
 		});
 
 		// Call the API - should fallback to offline mode
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
 		// Assertions - should use offline fallback which returns ok: true
 		expect(response.ok).toBe(true);
@@ -190,7 +189,7 @@ describe('c15t Client Tests', () => {
 		const client = configureConsentManager(config);
 
 		// Call the API
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
 		// Assertions
 		expect(fetchMock).toHaveBeenCalledTimes(2);
