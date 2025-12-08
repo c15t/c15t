@@ -71,6 +71,7 @@ const createMockStoreState = (
 	isPrivacyDialogOpen: false,
 	iframeBlockerConfig: {} as IframeBlockerConfig,
 	callbacks: {},
+	model: null,
 	locationInfo: null,
 	translationConfig: {
 		translations: {},
@@ -127,12 +128,8 @@ const createMockStoreState = (
 const createMockConsentBannerResponse = (
 	overrides: Partial<ConsentBannerResponse> = {}
 ): ConsentBannerResponse => ({
-	showConsentBanner: true,
 	branding: 'c15t',
-	jurisdiction: {
-		code: 'GDPR',
-		message: 'EU General Data Protection Regulation',
-	},
+	jurisdiction: 'GDPR',
 	location: {
 		countryCode: 'DE',
 		regionCode: 'BE',
@@ -518,18 +515,17 @@ describe('fetchConsentBannerInfo', () => {
 					locationInfo: {
 						countryCode: 'DE',
 						regionCode: 'BE',
-						jurisdiction: mockResponse.jurisdiction?.code ?? null,
-						jurisdictionMessage: mockResponse.jurisdiction?.message ?? null,
+						jurisdiction: mockResponse.jurisdiction ?? null,
+						jurisdictionMessage: null,
 					},
 					translationConfig: expect.any(Object),
 				})
 			);
 		});
 
-		it('should handle jurisdiction with NONE code correctly', async () => {
+		it('should handle jurisdiction with NONE code correctly (auto-grant consents)', async () => {
 			const mockResponse = createMockConsentBannerResponse({
-				jurisdiction: { code: 'NONE', message: 'No requirements' },
-				showConsentBanner: false,
+				jurisdiction: 'NONE',
 			});
 
 			mockManager.showConsentBanner = vi.fn().mockResolvedValue({
@@ -543,7 +539,7 @@ describe('fetchConsentBannerInfo', () => {
 				set: storeSet,
 			});
 
-			// Verify that set was called with consents set to true when jurisdiction.code is 'NONE'
+			// Verify that consents are auto-granted when jurisdiction is 'NONE'
 			expect(mockSet).toHaveBeenCalledWith(
 				expect.objectContaining({
 					consents: {
@@ -586,8 +582,7 @@ describe('fetchConsentBannerInfo', () => {
 
 		it('should honor Global Privacy Control when auto granting consents', async () => {
 			const mockResponse = createMockConsentBannerResponse({
-				jurisdiction: { code: 'NONE', message: 'No requirements' },
-				showConsentBanner: false,
+				jurisdiction: 'NONE',
 			});
 
 			mockManager.showConsentBanner = vi.fn().mockResolvedValue({
@@ -621,8 +616,7 @@ describe('fetchConsentBannerInfo', () => {
 
 		it('should not auto grant consents when user already has consent info', async () => {
 			const mockResponse = createMockConsentBannerResponse({
-				jurisdiction: { code: 'NONE', message: 'No requirements' },
-				showConsentBanner: false,
+				jurisdiction: 'NONE',
 			});
 
 			mockState.consentInfo = { time: Date.now() };
@@ -644,7 +638,7 @@ describe('fetchConsentBannerInfo', () => {
 			expect(lastCall).not.toHaveProperty('consents');
 		});
 
-		it('should not show popup when consent info already exists', async () => {
+		it('should not show popup when consent info already exists regardless of jurisdiction', async () => {
 			const mockResponse = createMockConsentBannerResponse();
 			mockState.consentInfo = { time: Date.now() };
 
@@ -666,9 +660,9 @@ describe('fetchConsentBannerInfo', () => {
 			);
 		});
 
-		it('should show popup when consent info is null and banner should be shown', async () => {
+		it('should show popup when consent info is null and jurisdiction is regulated', async () => {
 			const mockResponse = createMockConsentBannerResponse({
-				showConsentBanner: true,
+				jurisdiction: 'GDPR',
 			});
 			mockState.consentInfo = null;
 
@@ -690,9 +684,9 @@ describe('fetchConsentBannerInfo', () => {
 			);
 		});
 
-		it('should not show popup when banner should not be shown', async () => {
+		it('should not show popup when jurisdiction is NONE', async () => {
 			const mockResponse = createMockConsentBannerResponse({
-				showConsentBanner: false,
+				jurisdiction: 'NONE',
 			});
 			mockState.consentInfo = null;
 
@@ -733,8 +727,11 @@ describe('fetchConsentBannerInfo', () => {
 			});
 
 			expect(onBannerFetched).toHaveBeenCalledWith({
-				showConsentBanner: mockResponse.showConsentBanner,
-				jurisdiction: mockResponse.jurisdiction,
+				showConsentBanner: true,
+				jurisdiction: {
+					code: mockResponse.jurisdiction,
+					message: '',
+				},
 				location: mockResponse.location,
 				translations: {
 					language: mockResponse.translations.language,
@@ -764,8 +761,8 @@ describe('fetchConsentBannerInfo', () => {
 					locationInfo: {
 						countryCode: 'FR',
 						regionCode: 'IDF',
-						jurisdiction: mockResponse.jurisdiction?.code ?? null,
-						jurisdictionMessage: mockResponse.jurisdiction?.message ?? null,
+						jurisdiction: mockResponse.jurisdiction ?? null,
+						jurisdictionMessage: null,
 					},
 				})
 			);
@@ -792,8 +789,8 @@ describe('fetchConsentBannerInfo', () => {
 					locationInfo: {
 						countryCode: null,
 						regionCode: null,
-						jurisdiction: mockResponse.jurisdiction?.code ?? null,
-						jurisdictionMessage: mockResponse.jurisdiction?.message ?? null,
+						jurisdiction: mockResponse.jurisdiction ?? null,
+						jurisdictionMessage: null,
 					},
 				})
 			);
@@ -906,7 +903,7 @@ describe('fetchConsentBannerInfo', () => {
 			mockState.consentInfo = null;
 
 			const mockResponse = createMockConsentBannerResponse({
-				showConsentBanner: false,
+				jurisdiction: 'NONE',
 			});
 
 			mockManager.showConsentBanner = vi.fn().mockResolvedValue({
