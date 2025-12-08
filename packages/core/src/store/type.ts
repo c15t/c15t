@@ -406,12 +406,9 @@ export interface StoreActions {
 	setLocationInfo: (location: LocationInfo | null) => void;
 
 	/**
-	 * Fetches consent banner information from the API and updates the store.
-	 *
-	 * @returns A promise that resolves with the consent banner response when
-	 * the fetch is complete, or undefined if it fails
+	 * Initializes the consent manager by fetching jurisdiction, location, translations, and branding information.
 	 */
-	fetchConsentBannerInfo: () => Promise<ConsentBannerResponse | undefined>;
+	initConsentManager: () => Promise<ContractsOutputs['init'] | undefined>;
 
 	/** Retrieves the list of consent types that should be displayed */
 	getDisplayedConsents: () => typeof consentTypes;

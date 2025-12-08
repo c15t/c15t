@@ -32,7 +32,7 @@ describe('c15t Client Offline Fallback Tests', () => {
 		const consoleWarnSpy = vi.spyOn(console, 'warn');
 
 		// Call the API that will fail
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
 		// Assertions - should get a successful response from offline fallback
 		// We just verify the functionality works, not how many times fetch was called

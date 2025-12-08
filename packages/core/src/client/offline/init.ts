@@ -15,17 +15,26 @@ export async function init(
 
 	const country = options?.headers?.['x-c15t-country'] ?? 'GB';
 	const region = options?.headers?.['x-c15t-region'] ?? null;
-	const language =
-		options?.headers?.['accept-language'] ??
-		defaultTranslationConfig.defaultLanguage ??
-		'en';
+	const fallbackLanguage = defaultTranslationConfig.defaultLanguage ?? 'en';
+	const language = options?.headers?.['accept-language'] ?? fallbackLanguage;
+
+	const translationsForLanguage =
+		defaultTranslationConfig.translations[
+			language as keyof typeof defaultTranslationConfig.translations
+		] ??
+		defaultTranslationConfig.translations[
+			fallbackLanguage as keyof typeof defaultTranslationConfig.translations
+		];
 
 	const jurisdictionCode = checkJurisdiction(country);
 
 	const response = createResponseContext<InitResponse>({
 		jurisdiction: jurisdictionCode,
 		location: { countryCode: country, regionCode: region },
-		translations: defaultTranslationConfig.translations[language],
+		translations: {
+			language,
+			translations: translationsForLanguage,
+		},
 		branding: 'c15t',
 	});
 

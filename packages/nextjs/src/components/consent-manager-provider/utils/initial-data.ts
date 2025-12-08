@@ -3,13 +3,13 @@ import type { Overrides } from '@c15t/react';
 import { extractRelevantHeaders } from './headers';
 import { normalizeBackendURL } from './normalize-url';
 
-type ShowConsentBanner = ContractsOutputs['consent']['showBanner'] | undefined;
+type InitResponse = ContractsOutputs['init'] | undefined;
 
 export async function getC15TInitialData(
 	backendURL: string,
 	initialHeaders: Headers | Promise<Headers>,
 	overrides?: Overrides
-): Promise<ShowConsentBanner> {
+): Promise<InitResponse> {
 	const headers = await initialHeaders;
 	const relevantHeaders = extractRelevantHeaders(headers);
 

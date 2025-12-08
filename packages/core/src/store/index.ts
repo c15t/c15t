@@ -11,7 +11,6 @@ import {
 	deleteConsentFromStorage,
 	getConsentFromStorage,
 } from '../libs/cookie';
-import { fetchConsentBannerInfo as fetchConsentBannerInfoUtil } from '../libs/fetch-consent-banner';
 import {
 	extractConsentNamesFromCondition,
 	type HasCondition,
@@ -19,6 +18,7 @@ import {
 } from '../libs/has';
 import { identifyUser } from '../libs/identify-user';
 import { createIframeManager } from '../libs/iframe-blocker/store';
+import { initConsentManager } from '../libs/init-consent-manager';
 import { createNetworkBlockerManager } from '../libs/network-blocker/store';
 import { saveConsents } from '../libs/save-consents';
 import { createScriptManager } from '../libs/script-loader';
@@ -296,8 +296,8 @@ export const createConsentManagerStore = (
 		},
 		setLocationInfo: (location) => set({ locationInfo: location }),
 
-		fetchConsentBannerInfo: (): Promise<ConsentBannerResponse | undefined> =>
-			fetchConsentBannerInfoUtil({
+		initConsentManager: (): Promise<ConsentBannerResponse | undefined> =>
+			initConsentManager({
 				manager,
 				initialData: options._initialData,
 				initialTranslationConfig: options.initialTranslationConfig,
@@ -381,7 +381,7 @@ export const createConsentManagerStore = (
 			store.getState().identifyUser(options.user);
 		}
 
-		store.getState().fetchConsentBannerInfo();
+		store.getState().initConsentManager();
 	}
 
 	return store;

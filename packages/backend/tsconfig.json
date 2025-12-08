@@ -3,9 +3,7 @@
 	"compilerOptions": {
 		"baseUrl": ".",
 		"paths": {
-			"~/*": ["./src/*"],
-			"@c15t/translations": ["../translations"],
-			"@c15t/logger": ["../logger"]
+			"~/*": ["./src/*"]
 		}
 	},
 	"include": ["src"],

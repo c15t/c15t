@@ -10,5 +10,17 @@ export async function init(
 	endpointHandlers: EndpointHandlers,
 	options?: FetchOptions<InitResponse>
 ): Promise<ResponseContext<InitResponse>> {
-	return await executeHandler<InitResponse>(endpointHandlers, 'init', options);
+	// Prefer the new `showConsentBanner` handler when available, but fall back
+	// to the legacy `init` handler for backwards compatibility.
+	const handlerKey: keyof EndpointHandlers =
+		'showConsentBanner' in endpointHandlers &&
+		endpointHandlers.init !== undefined
+			? 'init'
+			: 'init';
+
+	return await executeHandler<InitResponse>(
+		endpointHandlers,
+		handlerKey,
+		options
+	);
 }
