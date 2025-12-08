@@ -273,11 +273,20 @@ export const createConsentManagerStore = (
 			) {
 				const { lastBannerFetchData } = currentState;
 
+				const jurisdictionCode = lastBannerFetchData.jurisdiction ?? 'NONE';
+
 				// Type assertion to ensure callback is the correct type
 				(callback as Callbacks['onBannerFetched'])?.({
-					showConsentBanner: lastBannerFetchData.showConsentBanner,
-					jurisdiction: lastBannerFetchData.jurisdiction,
-					location: lastBannerFetchData.location,
+					// Derived visibility: show banner when jurisdiction is not NONE
+					jurisdiction: {
+						code: jurisdictionCode,
+						// Message is no longer returned from the backend; leave empty
+						message: '',
+					},
+					location: {
+						countryCode: lastBannerFetchData.location.countryCode ?? null,
+						regionCode: lastBannerFetchData.location.regionCode ?? null,
+					},
 					translations: {
 						language: lastBannerFetchData.translations.language,
 						translations: lastBannerFetchData.translations.translations,

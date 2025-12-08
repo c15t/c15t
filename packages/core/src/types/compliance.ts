@@ -90,35 +90,8 @@ export type LocationInfo = {
 
 	/** Jurisdiction code (e.g. 'GDPR') */
 	jurisdiction:
-		| ContractsOutputs['consent']['showBanner']['jurisdiction']['code']
+		| ContractsOutputs['consent']['showBanner']['jurisdiction']
 		| null;
-
-	/** Jurisdiction message (e.g. 'GDPR or equivalent regulations require a cookie banner.') */
-	jurisdictionMessage: string | null;
-};
-
-/**
- * Represents jurisdiction information for consent requirements.
- *
- * @remarks
- * Identifies which privacy regulation applies and provides context.
- *
- * @example
- * ```typescript
- * const jurisdiction: JurisdictionInfo = {
- *   code: 'GDPR',
- *   message: 'GDPR or equivalent regulations require a cookie banner.'
- * };
- * ```
- *
- * @public
- */
-export type JurisdictionInfo = {
-	/** Code identifying the applicable regulation (e.g., 'GDPR', 'CCPA') */
-	code: string;
-
-	/** Human-readable message explaining the regulation requirement */
-	message: string;
 };
 
 /**

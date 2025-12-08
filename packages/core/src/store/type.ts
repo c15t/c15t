@@ -4,6 +4,7 @@
  */
 
 import type { ContractsOutputs } from '@c15t/backend/contracts';
+import type { Model } from '~/libs/determine-model';
 import type { StorageConfig } from '../libs/cookie';
 import type { HasCondition } from '../libs/has';
 import type { IframeBlockerConfig } from '../libs/iframe-blocker';
@@ -285,6 +286,14 @@ export interface StoreRuntimeState extends StoreConfig {
 
 	/** Map of anonymized script IDs to their original IDs */
 	scriptIdMap: Record<string, string>;
+
+	/**
+	 * What type of consent model to use for the consent manager.
+	 *
+	 * - 'opt-in' - Requires explicit consent before non-essential cookies or tracking. (GDPR Style)
+	 * - 'opt-out' - Allows processing until the user exercises a right to opt out. (CCPA Style)
+	 */
+	model: Model;
 }
 
 /**

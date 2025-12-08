@@ -24,7 +24,9 @@ interface BaseOptions {
 	trustedOrigins: string[];
 	advanced?: {
 		/**
-		 * Disable geo location - Banner will allways be shown
+		 * Disables the use of Geo Location to determine the jurisdiction
+		 *
+		 * When enabled, the jurisdiction will be set to "GDPR" to show the strictest version of the banner as we don't know the jurisdiction in this case
 		 *
 		 * @default false
 		 */

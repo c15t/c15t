@@ -1,7 +1,21 @@
 import { oc } from '@orpc/contract';
 import { z } from 'zod';
 import { branding } from '~/types';
-import { JurisdictionInfoSchema } from '../shared/jurisdiction.schema';
+
+export const JurisdictionCodeSchema = z.enum([
+	'UK_GDPR',
+	'GDPR',
+	'CH',
+	'BR',
+	'PIPEDA',
+	'AU',
+	'APPI',
+	'PIPA',
+	'CCPA',
+	'NONE',
+]);
+
+export type JurisdictionCode = z.infer<typeof JurisdictionCodeSchema>;
 
 const TitleDescriptionSchema = z.object({
 	title: z.string(),
@@ -121,8 +135,7 @@ Use this endpoint to implement geo-targeted consent banners and ensure complianc
 	})
 	.output(
 		z.object({
-			showConsentBanner: z.boolean(),
-			jurisdiction: JurisdictionInfoSchema,
+			jurisdiction: JurisdictionCodeSchema,
 			location: z.object({
 				countryCode: z.string().nullable(),
 				regionCode: z.string().nullable(),

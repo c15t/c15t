@@ -1,9 +1,6 @@
 import type { Translations } from '@c15t/translations';
 import { os } from '~/contracts';
-import {
-	type JurisdictionCode,
-	JurisdictionMessages,
-} from '~/contracts/shared/jurisdiction.schema';
+import type { JurisdictionCode } from '~/contracts/consent/show-banner.contract';
 import type { Branding, C15TContext } from '~/types';
 import { checkJurisdiction } from './geo';
 import { getTranslations } from './translations';
@@ -51,26 +48,19 @@ function getHeaders(headers: Headers | undefined) {
 }
 
 function buildResponse({
-	shouldShowBanner,
 	jurisdiction,
 	location,
 	acceptLanguage,
 	customTranslations,
 	branding = 'c15t',
 }: {
-	shouldShowBanner: boolean;
-
-	jurisdiction: {
-		code: JurisdictionCode;
-		message: string;
-	};
+	jurisdiction: JurisdictionCode;
 	location: { countryCode: string | null; regionCode: string | null };
 	acceptLanguage: string | null;
 	customTranslations: Record<string, Partial<Translations>> | undefined;
 	branding?: Branding;
 }) {
 	return {
-		showConsentBanner: shouldShowBanner,
 		jurisdiction,
 		location,
 		translations: getTranslations(acceptLanguage, customTranslations),
@@ -91,13 +81,11 @@ export const showConsentBanner = os.consent.showBanner.handler(
 			typedContext.headers
 		);
 
+		// We default to an Opt-In jurisdiction when geo location is disabled
+		// As we don't know the jurisdiction in this case, it's better to show the strictest version of the banner
 		if (disableGeoLocation) {
 			return buildResponse({
-				shouldShowBanner: true,
-				jurisdiction: {
-					code: 'NONE',
-					message: JurisdictionMessages.NONE,
-				},
+				jurisdiction: 'GDPR',
 				location: { countryCode: null, regionCode: null },
 				acceptLanguage,
 				customTranslations,
@@ -105,15 +93,10 @@ export const showConsentBanner = os.consent.showBanner.handler(
 			});
 		}
 
-		const { showConsentBanner, jurisdictionCode, message } =
-			checkJurisdiction(countryCode);
+		const jurisdiction = checkJurisdiction(countryCode, regionCode);
 
 		return buildResponse({
-			shouldShowBanner: showConsentBanner,
-			jurisdiction: {
-				code: jurisdictionCode,
-				message,
-			},
+			jurisdiction,
 			location: { countryCode, regionCode },
 			acceptLanguage,
 			customTranslations,

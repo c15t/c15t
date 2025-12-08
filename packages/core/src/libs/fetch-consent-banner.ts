@@ -11,6 +11,7 @@ import {
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { ConsentStoreState } from '../store/type';
+import { determineModel } from './determine-model';
 import { hasGlobalPrivacyControlSignal } from './global-privacy-control';
 
 type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
@@ -55,17 +56,19 @@ function updateStore(
 ): void {
 	const { consentInfo, ignoreGeoLocation, callbacks } = get();
 
-	const { translations, location, showConsentBanner } = data;
+	const { translations, location } = data;
+
+	// Show banner only when a jurisdiction applies
+	const consentModel = determineModel(data.jurisdiction);
+
+	// Detect Global Privacy Control (GPC) signal on the client
+	const hasGpcSignal = hasGlobalPrivacyControlSignal();
 
 	// Check if consents should be automatically granted
 	// Only auto-grant when there is no existing consent information.
 	const shouldAutoGrantConsents =
-		data.jurisdiction?.code === 'NONE' &&
-		!data.showConsentBanner &&
-		!consentInfo;
-
-	// Detect Global Privacy Control (GPC) signal on the client
-	const hasGpcSignal = hasGlobalPrivacyControlSignal();
+		(consentModel === null || consentModel === 'opt-out') &&
+		consentInfo === null;
 
 	// Base auto-granted consents when no regulation applies.
 	// When a GPC signal is present, treat it as an opt-out for
@@ -81,12 +84,13 @@ function updateStore(
 		: null;
 
 	const updatedStore: Partial<ConsentStoreState> = {
+		model: consentModel,
 		isLoadingConsentInfo: false,
 		branding: data.branding ?? 'c15t',
 		...(consentInfo === null
 			? {
 					showPopup:
-						(showConsentBanner && hasLocalStorageAccess) || ignoreGeoLocation,
+						(consentModel && hasLocalStorageAccess) || ignoreGeoLocation,
 				}
 			: {}),
 
@@ -98,8 +102,7 @@ function updateStore(
 		locationInfo: {
 			countryCode: location?.countryCode ?? null,
 			regionCode: location?.regionCode ?? null,
-			jurisdiction: data.jurisdiction?.code ?? null,
-			jurisdictionMessage: data.jurisdiction?.message ?? null,
+			jurisdiction: data.jurisdiction ?? null,
 		},
 	};
 	translations?.language && translations?.translations;
@@ -138,7 +141,6 @@ function updateStore(
 	}
 
 	callbacks?.onBannerFetched?.({
-		showConsentBanner: data.showConsentBanner,
 		jurisdiction: data.jurisdiction,
 		location: data.location,
 		translations: {
