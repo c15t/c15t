@@ -1,9 +1,9 @@
 import type {
 	IdentifyUserRequestBody,
 	IdentifyUserResponse,
+	InitResponse,
 	SetConsentRequestBody,
 	SetConsentResponse,
-	ShowConsentBannerResponse,
 	VerifyConsentRequestBody,
 	VerifyConsentResponse,
 } from '../client-interface';
@@ -25,9 +25,9 @@ export type EndpointHandler<
  */
 export interface EndpointHandlers {
 	/**
-	 * Handler for the showConsentBanner endpoint
+	 * Handler for the init endpoint
 	 */
-	showConsentBanner: EndpointHandler<ShowConsentBannerResponse>;
+	init: EndpointHandler<InitResponse>;
 
 	/**
 	 * Handler for the setConsent endpoint

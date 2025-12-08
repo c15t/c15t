@@ -7,17 +7,17 @@ import type {
 	ConsentManagerInterface,
 	IdentifyUserRequestBody,
 	IdentifyUserResponse,
+	InitResponse,
 	SetConsentRequestBody,
 	SetConsentResponse,
-	ShowConsentBannerResponse,
 	VerifyConsentRequestBody,
 	VerifyConsentResponse,
 } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
 import { customFetch } from './fetch';
 import { identifyUser } from './identify-user';
+import { init } from './init';
 import { setConsent } from './set-consent';
-import { showConsentBanner } from './show-consent-banner';
 import type {
 	CustomClientOptions,
 	EndpointHandler,
@@ -57,10 +57,10 @@ export class CustomClient implements ConsentManagerInterface {
 	/**
 	 * Checks if a consent banner should be shown.
 	 */
-	async showConsentBanner(
-		options?: FetchOptions<ShowConsentBannerResponse>
-	): Promise<ResponseContext<ShowConsentBannerResponse>> {
-		return showConsentBanner(this.endpointHandlers, options);
+	async init(
+		options?: FetchOptions<InitResponse>
+	): Promise<ResponseContext<InitResponse>> {
+		return init(this.endpointHandlers, options);
 	}
 
 	/**

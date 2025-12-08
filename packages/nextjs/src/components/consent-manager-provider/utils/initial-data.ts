@@ -36,7 +36,7 @@ export async function getC15TInitialData(
 	}
 
 	try {
-		const response = await fetch(`${normalizedURL}/show-consent-banner`, {
+		const response = await fetch(`${normalizedURL}/init`, {
 			method: 'GET',
 			headers: relevantHeaders,
 		});

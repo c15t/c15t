@@ -1,14 +1,14 @@
 import { baseTranslations } from '@c15t/translations';
 import { describe, expect, it } from 'vitest';
 
-import { showConsentBannerContract } from './show-banner.contract';
+import { initContract } from './init';
 
 // Add custom tests specific to the show-banner contract
-describe('Show Consent Banner Contract Custom Tests', () => {
+describe('Init Contract Custom Tests', () => {
 	// Helper to access schemas consistently throughout tests
 	const schemas = {
-		input: showConsentBannerContract['~orpc'].inputSchema,
-		output: showConsentBannerContract['~orpc'].outputSchema,
+		input: initContract['~orpc'].inputSchema,
+		output: initContract['~orpc'].outputSchema,
 	};
 
 	const validateOutput = (output: unknown) => {
@@ -54,12 +54,14 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 			it('validates all supported jurisdiction codes', () => {
 				const jurisdictionCodes = [
 					'GDPR',
+					'UK_GDPR',
 					'CH',
 					'BR',
 					'PIPEDA',
 					'AU',
 					'APPI',
 					'PIPA',
+					'CCPA',
 					'NONE',
 				];
 
@@ -242,11 +244,3 @@ describe('Show Consent Banner Contract Custom Tests', () => {
 		});
 	});
 });
-
-// // Add required fields testing using the utility
-// // No required fields for input since it's an empty object
-// tester.testRequiredFields('output', [
-// 	'showConsentBanner',
-// 	'jurisdiction',
-// 	'location',
-// ]);

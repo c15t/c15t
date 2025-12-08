@@ -8,8 +8,7 @@ import type { FetchOptions, ResponseContext } from './types';
 
 export type SetConsentRequestBody = ContractsInputs['consent']['post'];
 export type SetConsentResponse = ContractsOutputs['consent']['post'];
-export type ShowConsentBannerResponse =
-	ContractsOutputs['consent']['showBanner'];
+export type InitResponse = ContractsOutputs['init'];
 export type VerifyConsentRequestBody = ContractsInputs['consent']['verify'];
 export type VerifyConsentResponse = ContractsOutputs['consent']['verify'];
 export type IdentifyUserRequestBody = ContractsInputs['consent']['identify'];
@@ -29,9 +28,9 @@ export interface ConsentManagerInterface {
 	 * @param options - Optional request configuration
 	 * @returns Response with information about whether to show the consent banner
 	 */
-	showConsentBanner(
-		options?: FetchOptions<ShowConsentBannerResponse>
-	): Promise<ResponseContext<ShowConsentBannerResponse>>;
+	init(
+		options?: FetchOptions<InitResponse>
+	): Promise<ResponseContext<InitResponse>>;
 
 	/**
 	 * Sets consent preferences for a subject.

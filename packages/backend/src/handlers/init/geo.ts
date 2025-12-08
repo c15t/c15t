@@ -1,4 +1,4 @@
-import type { JurisdictionCode } from '~/contracts/consent/show-banner.contract';
+import type { JurisdictionCode } from '~/contracts/init';
 
 /**
  * Determines the applicable jurisdiction based on country and region codes.
