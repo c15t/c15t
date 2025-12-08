@@ -1,6 +1,7 @@
 import { createLogger } from '@c15t/logger';
 import { OpenAPIHandler } from '@orpc/openapi/fetch';
 import { ORPCError } from '@orpc/server';
+import { CompressionPlugin } from '@orpc/server/fetch';
 import { CORSPlugin } from '@orpc/server/plugins';
 import defu from 'defu';
 import { createCORSOptions } from '~/middleware/cors';
@@ -95,7 +96,7 @@ export const c15tInstance = (options: C15TOptions) => {
 
 	// Create the oRPC handler with plugins
 	const rpcHandler = new OpenAPIHandler(router, {
-		plugins: [new CORSPlugin(corsOptions)],
+		plugins: [new CORSPlugin(corsOptions), new CompressionPlugin()],
 	});
 
 	// Set up OpenAPI configuration
