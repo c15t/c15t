@@ -1,5 +1,5 @@
 import { OpenAPIGenerator } from '@orpc/openapi';
-import { ZodToJsonSchemaConverter } from '@orpc/zod';
+import { ZodToJsonSchemaConverter } from '@orpc/zod/zod4';
 import { router } from '~/router';
 import type { C15TContext, C15TOptions } from '~/types';
 import { createDefaultOpenAPIOptions, createOpenAPIConfig } from './config';

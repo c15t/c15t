@@ -62,7 +62,7 @@ describe('c15t Client Browser Tests', () => {
 		// Assertions
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		expect(fetchSpy).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t/show-consent-banner'),
+			expect.stringContaining('/api/c15t/init'),
 			expect.any(Object)
 		);
 		expect(response.ok).toBe(true);

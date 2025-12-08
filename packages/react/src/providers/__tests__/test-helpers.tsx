@@ -51,7 +51,7 @@ export function setupMocks(): {
 							// Each unique URL should trigger a fetch call once
 							if (!fetchCallMap.has(backendURL)) {
 								// Make the mock fetch call that the test expects
-								mockFetch(`${backendURL}/show-consent-banner`, {
+								mockFetch(`${backendURL}/init`, {
 									headers: { 'Content-Type': 'application/json' },
 								});
 								// Mark this URL as called

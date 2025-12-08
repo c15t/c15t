@@ -7,16 +7,16 @@ import type {
 	ConsentManagerInterface,
 	IdentifyUserRequestBody,
 	IdentifyUserResponse,
+	InitResponse,
 	SetConsentRequestBody,
 	SetConsentResponse,
-	ShowConsentBannerResponse,
 	VerifyConsentRequestBody,
 	VerifyConsentResponse,
 } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
 import { identifyUser } from './identify-user';
+import { init } from './init';
 import { setConsent } from './set-consent';
-import { showConsentBanner } from './show-consent-banner';
 import { handleOfflineResponse } from './utils';
 import { verifyConsent } from './verify-consent';
 
@@ -35,10 +35,10 @@ export class OfflineClient implements ConsentManagerInterface {
 	 * Checks if a consent banner should be shown.
 	 * The location can be controlled via overrides in the store, but defaults to GB.
 	 */
-	async showConsentBanner(
-		options?: FetchOptions<ShowConsentBannerResponse>
-	): Promise<ResponseContext<ShowConsentBannerResponse>> {
-		return showConsentBanner(options);
+	async init(
+		options?: FetchOptions<InitResponse>
+	): Promise<ResponseContext<InitResponse>> {
+		return init(options);
 	}
 
 	/**

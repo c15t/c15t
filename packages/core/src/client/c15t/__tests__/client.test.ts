@@ -34,12 +34,12 @@ describe('c15t Client Tests', () => {
 		});
 
 		// Call the API
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
 		// Assertions
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 		expect(fetchMock).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t/show-consent-banner'),
+			expect.stringContaining('/api/c15t/init'),
 			expect.any(Object)
 		);
 		expect(response.ok).toBe(true);
@@ -143,7 +143,7 @@ describe('c15t Client Tests', () => {
 		});
 
 		// Call the API
-		await client.showConsentBanner();
+		await client.init();
 
 		// Verify fetch was called
 		expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -154,7 +154,7 @@ describe('c15t Client Tests', () => {
 		const options = mockCall[1];
 
 		// Check the URL
-		expect(url).toContain('/api/c15t/show-consent-banner');
+		expect(url).toContain('/api/c15t/init');
 
 		// Check that our custom headers were included
 		expect(options.headers['X-Custom-Header']).toBe('test-value');

@@ -1,5 +1,5 @@
 import { enTranslations } from '@c15t/translations';
-import type { ShowConsentBannerResponse } from '../client-interface';
+import type { InitResponse } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
 import { API_ENDPOINTS } from '../types';
 import type { FetcherContext } from './fetcher';
@@ -11,8 +11,8 @@ import { createResponseContext, fetcher } from './fetcher';
  * @internal
  */
 export async function offlineFallbackForConsentBanner(
-	options?: FetchOptions<ShowConsentBannerResponse>
-): Promise<ResponseContext<ShowConsentBannerResponse>> {
+	options?: FetchOptions<InitResponse>
+): Promise<ResponseContext<InitResponse>> {
 	// Check localStorage to see if the banner has been shown
 	let shouldShow = true;
 	let hasLocalStorageAccess = false;
@@ -35,7 +35,7 @@ export async function offlineFallbackForConsentBanner(
 	}
 
 	// Create a simulated response similar to what the API would return
-	const response = createResponseContext<ShowConsentBannerResponse>(
+	const response = createResponseContext<InitResponse>(
 		true, // Mark as successful even though we're in fallback mode
 		{
 			showConsentBanner: shouldShow && hasLocalStorageAccess,
@@ -65,20 +65,16 @@ export async function offlineFallbackForConsentBanner(
  * Checks if a consent banner should be shown.
  * If the API request fails, falls back to offline mode behavior.
  */
-export async function showConsentBanner(
+export async function init(
 	context: FetcherContext,
-	options?: FetchOptions<ShowConsentBannerResponse>
-): Promise<ResponseContext<ShowConsentBannerResponse>> {
+	options?: FetchOptions<InitResponse>
+): Promise<ResponseContext<InitResponse>> {
 	try {
 		// First try to make the actual API request
-		const response = await fetcher<ShowConsentBannerResponse>(
-			context,
-			API_ENDPOINTS.SHOW_CONSENT_BANNER,
-			{
-				method: 'GET',
-				...options,
-			}
-		);
+		const response = await fetcher<InitResponse>(context, API_ENDPOINTS.INIT, {
+			method: 'GET',
+			...options,
+		});
 
 		// If the request was successful
 		if (response.ok) {

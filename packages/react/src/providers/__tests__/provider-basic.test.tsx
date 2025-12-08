@@ -58,7 +58,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		// Should make one request
 		expect(mockFetch).toHaveBeenCalledTimes(1);
 		expect(mockFetch).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t/show-consent-banner'),
+			expect.stringContaining('/api/c15t/init'),
 			expect.any(Object)
 		);
 	});
@@ -119,7 +119,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		await vi.runAllTimersAsync();
 		expect(mockFetch).toHaveBeenCalledTimes(1);
 		expect(mockFetch).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t-1/show-consent-banner'),
+			expect.stringContaining('/api/c15t-1/init'),
 			expect.any(Object)
 		);
 
@@ -144,7 +144,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		// Should make a new request with the new URL
 		// expect(mockFetch).toHaveBeenCalledTimes(1); // Removed: Real implementation calls twice
 		expect(mockFetch).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t-2/show-consent-banner'),
+			expect.stringContaining('/api/c15t-2/init'),
 			expect.any(Object)
 		);
 	});

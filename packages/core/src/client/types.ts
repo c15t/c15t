@@ -3,9 +3,9 @@
  */
 export const API_ENDPOINTS = {
 	/**
-	 * Path for the consent banner information endpoint
+	 * Path for the init endpoint
 	 */
-	SHOW_CONSENT_BANNER: '/show-consent-banner',
+	INIT: '/init',
 
 	/**
 	 * Path for setting consent

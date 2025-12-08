@@ -1,6 +1,6 @@
 import type { Translations } from '@c15t/translations';
 import { os } from '~/contracts';
-import type { JurisdictionCode } from '~/contracts/consent/show-banner.contract';
+import type { JurisdictionCode } from '~/contracts/init';
 import type { Branding, C15TContext } from '~/types';
 import { checkJurisdiction } from './geo';
 import { getTranslations } from './translations';
@@ -72,35 +72,33 @@ function buildResponse({
  * Handler for the show consent banner endpoint
  * Determines if a user should see a consent banner based on their location
  */
-export const showConsentBanner = os.consent.showBanner.handler(
-	({ context }) => {
-		const typedContext = context as C15TContext;
-		const { customTranslations, disableGeoLocation, branding } =
-			typedContext.advanced ?? {};
-		const { countryCode, regionCode, acceptLanguage } = getHeaders(
-			typedContext.headers
-		);
+export const init = os.init.handler(({ context }) => {
+	const typedContext = context as C15TContext;
+	const { customTranslations, disableGeoLocation, branding } =
+		typedContext.advanced ?? {};
+	const { countryCode, regionCode, acceptLanguage } = getHeaders(
+		typedContext.headers
+	);
 
-		// We default to an Opt-In jurisdiction when geo location is disabled
-		// As we don't know the jurisdiction in this case, it's better to show the strictest version of the banner
-		if (disableGeoLocation) {
-			return buildResponse({
-				jurisdiction: 'GDPR',
-				location: { countryCode: null, regionCode: null },
-				acceptLanguage,
-				customTranslations,
-				branding,
-			});
-		}
-
-		const jurisdiction = checkJurisdiction(countryCode, regionCode);
-
+	// We default to an Opt-In jurisdiction when geo location is disabled
+	// As we don't know the jurisdiction in this case, it's better to show the strictest version of the banner
+	if (disableGeoLocation) {
 		return buildResponse({
-			jurisdiction,
-			location: { countryCode, regionCode },
+			jurisdiction: 'GDPR',
+			location: { countryCode: null, regionCode: null },
 			acceptLanguage,
 			customTranslations,
 			branding,
 		});
 	}
-);
+
+	const jurisdiction = checkJurisdiction(countryCode, regionCode);
+
+	return buildResponse({
+		jurisdiction,
+		location: { countryCode, regionCode },
+		acceptLanguage,
+		customTranslations,
+		branding,
+	});
+});
