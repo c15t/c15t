@@ -14,14 +14,14 @@ import type { ConsentStoreState } from '../store/type';
 import { determineModel } from './determine-model';
 import { hasGlobalPrivacyControlSignal } from './global-privacy-control';
 
-type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
+type ConsentBannerResponse = ContractsOutputs['init'];
 
 /**
  * Configuration for fetching consent banner information
  */
 interface FetchConsentBannerConfig {
 	manager: ConsentManagerInterface;
-	initialData?: Promise<ContractsOutputs['consent']['showBanner'] | undefined>;
+	initialData?: Promise<ContractsOutputs['init'] | undefined>;
 	initialTranslationConfig?: Partial<TranslationConfig>;
 	get: StoreApi<ConsentStoreState>['getState'];
 	set: StoreApi<ConsentStoreState>['setState'];
@@ -194,7 +194,7 @@ export async function fetchConsentBannerInfo(
 		const country = get().overrides?.country;
 		const region = get().overrides?.region;
 
-		const { data, error } = await manager.showConsentBanner({
+		const { data, error } = await manager.init({
 			headers: {
 				...(language && {
 					'accept-language': language,

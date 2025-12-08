@@ -22,7 +22,7 @@ vi.mock('c15t', async () => {
 			// Only register fetch calls for c15t mode
 			if (options.mode === 'c15t') {
 				// Mock an error response for the first call
-				mockFetch(`${backendURL}/show-consent-banner`, {
+				mockFetch(`${backendURL}/init`, {
 					headers: { 'Content-Type': 'application/json' },
 				});
 			}

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { C15tClient } from '../c15t';
+import { API_ENDPOINTS } from '../types';
 
 /**
  * @vitest-environment jsdom
@@ -269,7 +270,7 @@ describe('CORS functionality', () => {
 		});
 
 		// Make the request with request-specific fetch options
-		await client.$fetch('/show-consent-banner', {
+		await client.$fetch(API_ENDPOINTS.INIT, {
 			fetchOptions: {
 				credentials: 'omit', // Override the default 'include'
 			},

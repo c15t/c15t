@@ -89,9 +89,7 @@ export type LocationInfo = {
 	regionCode: string | null;
 
 	/** Jurisdiction code (e.g. 'GDPR') */
-	jurisdiction:
-		| ContractsOutputs['consent']['showBanner']['jurisdiction']
-		| null;
+	jurisdiction: ContractsOutputs['init']['jurisdiction'] | null;
 };
 
 /**
@@ -100,21 +98,6 @@ export type LocationInfo = {
  * @remarks
  * Contains information about whether to show the consent banner and why.
  *
- * @example
- * ```typescript
- * const response: ConsentBannerResponse = {
- *   showConsentBanner: true,
- *   jurisdiction: {
- *     code: 'GDPR',
- *     message: 'GDPR or equivalent regulations require a cookie banner.'
- *   },
- *   location: {
- *     countryCode: 'GB',
- *     regionCode: 'ENG'
- *   }
- * };
- * ```
- *
  * @public
  */
-export type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
+export type ConsentBannerResponse = ContractsOutputs['init'];

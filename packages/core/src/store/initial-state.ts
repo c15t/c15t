@@ -122,4 +122,6 @@ export const initialState: StoreRuntimeState = {
 	loadedScripts: {},
 
 	scriptIdMap: {},
+
+	model: 'opt-in',
 };

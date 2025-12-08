@@ -210,7 +210,7 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	 *
 	 * This is useful for server-side rendering (SSR) such as in @c15t/nextjs.
 	 */
-	_initialData?: Promise<ContractsOutputs['consent']['showBanner'] | undefined>;
+	_initialData?: Promise<ContractsOutputs['init'] | undefined>;
 
 	/**
 	 * Callbacks for the consent manager.
@@ -240,7 +240,7 @@ export interface StoreOptions extends Partial<StoreConfig> {
  */
 export interface StoreRuntimeState extends StoreConfig {
 	/** Whether to show the branding */
-	branding: ContractsOutputs['consent']['showBanner']['branding'];
+	branding: ContractsOutputs['init']['branding'];
 
 	/** Current consent states for all consent types */
 	consents: ConsentState;

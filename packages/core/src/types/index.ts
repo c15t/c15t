@@ -10,7 +10,6 @@ export type { Callback, Callbacks } from './callbacks';
 export type {
 	ConsentBannerResponse,
 	ConsentState,
-	JurisdictionInfo,
 	LocationInfo,
 	NamespaceProps,
 } from './compliance';

@@ -103,33 +103,17 @@ const TranslationsSchema = z.union([
 	PartialTranslationsSchema,
 ]);
 
-export const showConsentBannerContract = oc
+export const initContract = oc
 	.route({
 		method: 'GET',
-		path: '/show-consent-banner',
-		description: `Determines if a user should see a consent banner based on their location and applicable privacy regulations.
-This endpoint performs the following checks:
-
-1. Detects the user's location using various header information:
-   - Cloudflare country headers
-   - Vercel IP country headers
-   - AWS CloudFront headers
-   - Custom country code headers
-
-2. Determines the applicable jurisdiction based on the location:
-   - GDPR (EU/EEA/UK)
-   - Swiss Data Protection Act
-   - LGPD (Brazil)
-   - PIPEDA (Canada)
-   - Australian Privacy Principles
-   - APPI (Japan)
-   - PIPA (South Korea)
-
-3. Returns detailed information about:
-   - Whether to show the consent banner
-   - The applicable jurisdiction and its requirements
-   - The user's detected location (country and region)
-
+		path: '/init',
+		description: `Initializes the consent manager and returns the initial state.
+    
+    - The jurisdiction of the user (Optional - Defaults to GDPR if Geo-Location is disabled)
+    - The location of the user  (Optional - Defaults to null if Geo-Location is disabled)
+    - The translations of the consent manager (Based of the accept-language header)
+    - The branding of the consent manager 
+    
 Use this endpoint to implement geo-targeted consent banners and ensure compliance with regional privacy regulations.`,
 		tags: ['cookie-banner'],
 	})
