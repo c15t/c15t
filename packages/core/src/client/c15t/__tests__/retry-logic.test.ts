@@ -62,7 +62,7 @@ describe('c15t Client Retry Logic Tests', () => {
 		};
 
 		const client = configureConsentManager(config);
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
 		// The implementation uses attemptsMade starting from 0, and loops while attemptsMade <= maxRetries
 		// So with maxRetries=2, we expect 3 total fetch calls (attemptsMade: 0, 1, 2)
@@ -100,7 +100,7 @@ describe('c15t Client Retry Logic Tests', () => {
 		};
 
 		const client = configureConsentManager(config);
-		await client.showConsentBanner();
+		await client.init();
 
 		// Verify delays are captured and increase exponentially
 		// Note: timestamps are captured from setTimeout calls in the delay function
@@ -133,7 +133,7 @@ describe('c15t Client Retry Logic Tests', () => {
 		};
 
 		const client = configureConsentManager(config);
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
 		// Should only call fetch once, no retries, then fallback to offline mode
 		expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -162,7 +162,7 @@ describe('c15t Client Retry Logic Tests', () => {
 		};
 
 		const client = configureConsentManager(config);
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
 		// Should retry once after network error
 		expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -222,7 +222,7 @@ describe('c15t Client Retry Logic Tests', () => {
 
 		try {
 			// Make the API call that should trigger our retry
-			const response = await client.showConsentBanner();
+			const response = await client.init();
 
 			// Verify the retry function was called
 			expect(shouldRetryFn).toHaveBeenCalled();
@@ -260,7 +260,7 @@ describe('c15t Client Retry Logic Tests', () => {
 		};
 
 		const client = configureConsentManager(config);
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
 		// With 503 status code, the fetch should be called twice (original + retry)
 		expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -297,7 +297,7 @@ describe('c15t Client Retry Logic Tests', () => {
 		const client = configureConsentManager(config);
 
 		// Call the API - should fallback to offline mode for 404
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
 		// Assertions
 		expect(fetchMock).toHaveBeenCalledTimes(1); // Should only be called once
@@ -340,7 +340,7 @@ describe('c15t Client Retry Logic Tests', () => {
 
 		// First call - should fallback to offline mode for 404 (no retries)
 		const client = configureConsentManager(config);
-		const firstResponse = await client.showConsentBanner();
+		const firstResponse = await client.init();
 
 		// Should have only made one request, then fallback to offline mode
 		expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -366,7 +366,7 @@ describe('c15t Client Retry Logic Tests', () => {
 			);
 
 		// Second call - should retry on 503 and eventually succeed
-		const secondResponse = await client.showConsentBanner();
+		const secondResponse = await client.init();
 
 		// Should have made two requests (original + retry)
 		expect(fetchMock).toHaveBeenCalledTimes(2);

@@ -25,9 +25,9 @@ export type EndpointHandler<
  */
 export interface EndpointHandlers {
 	/**
-	 * Handler for the init endpoint
+	 * Handler for the init endpoint.
 	 */
-	init: EndpointHandler<InitResponse>;
+	init?: EndpointHandler<InitResponse>;
 
 	/**
 	 * Handler for the setConsent endpoint

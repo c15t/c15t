@@ -35,7 +35,7 @@ describe('CORS functionality', () => {
 		);
 
 		// Make the request
-		await client.showConsentBanner();
+		await client.init();
 
 		// Verify the CORS mode was set correctly
 		expect(window.fetch).toHaveBeenCalledWith(
@@ -61,7 +61,7 @@ describe('CORS functionality', () => {
 		);
 
 		// Make the request
-		await client.showConsentBanner();
+		await client.init();
 
 		// Verify the default CORS mode was used
 		expect(window.fetch).toHaveBeenCalledWith(
@@ -86,7 +86,7 @@ describe('CORS functionality', () => {
 		);
 
 		// Make the request
-		await client.showConsentBanner();
+		await client.init();
 
 		// Verify credentials are included
 		expect(window.fetch).toHaveBeenCalledWith(
@@ -110,7 +110,7 @@ describe('CORS functionality', () => {
 		const onErrorMock = vi.fn();
 
 		// Make the request - should fallback to offline mode
-		const response = await client.showConsentBanner({
+		const response = await client.init({
 			onError: onErrorMock,
 		});
 
@@ -139,7 +139,7 @@ describe('CORS functionality', () => {
 		);
 
 		// Make the request
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
 		// Verify the request was properly configured and successful
 		expect(window.fetch).toHaveBeenCalledWith(
@@ -179,7 +179,7 @@ describe('CORS functionality', () => {
 		const onErrorMock = vi.fn();
 
 		// Make the request - should fallback to offline mode
-		const response = await client.showConsentBanner({
+		const response = await client.init({
 			onError: onErrorMock,
 		});
 
@@ -206,7 +206,7 @@ describe('CORS functionality', () => {
 		const onErrorMock = vi.fn();
 
 		// Make the request - should fallback to offline mode
-		const response = await client.showConsentBanner({
+		const response = await client.init({
 			onError: onErrorMock,
 		});
 
@@ -307,7 +307,7 @@ describe('CORS functionality', () => {
 		);
 
 		// Make the request
-		await client.showConsentBanner();
+		await client.init();
 
 		// Verify custom headers were included
 		expect(window.fetch).toHaveBeenCalledWith(
@@ -364,7 +364,7 @@ describe('CORS functionality', () => {
 
 		try {
 			// Make the request
-			const response = await client.showConsentBanner();
+			const response = await client.init();
 
 			// Verify the fetch was called twice (original + retry)
 			expect(fetchMock).toHaveBeenCalledTimes(2);
