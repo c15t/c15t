@@ -1,8 +1,12 @@
 /**
- * Checks if a consent banner should be shown based on country code
- * and returns appropriate jurisdiction information
+ * Determines the jurisdiction code based on the provided country code.
+ *
+ * @remarks
+ * This mirrors the backend jurisdiction logic and returns only the
+ * jurisdiction code. Banner visibility is derived elsewhere using
+ * `jurisdiction !== 'NONE'`.
  */
-export function checkJurisdiction(countryCode: string | null) {
+export function checkJurisdiction(countryCode: string | null): string {
 	const jurisdictions = {
 		EU: new Set([
 			'AT',
@@ -43,17 +47,13 @@ export function checkJurisdiction(countryCode: string | null) {
 		KR: new Set(['KR']),
 	};
 
-	// Default to no jurisdiction, but show banner
-	let showConsentBanner = true;
+	// Default to no jurisdiction
 	let jurisdictionCode = 'NONE';
 
 	// Check country code against jurisdiction sets
 	if (countryCode) {
 		// Normalize country code to uppercase for case-insensitive comparison
 		const normalizedCountryCode = countryCode.toUpperCase();
-
-		// Default to false as we don't know if it fits any jurisdiction yet
-		showConsentBanner = false;
 
 		// Map jurisdiction sets to their respective codes
 		const jurisdictionMap = [
@@ -73,18 +73,10 @@ export function checkJurisdiction(countryCode: string | null) {
 		for (const { sets, code } of jurisdictionMap) {
 			if (sets.some((set) => set.has(normalizedCountryCode))) {
 				jurisdictionCode = code;
-				showConsentBanner = true;
 				break;
 			}
 		}
 	}
 
-	// Get corresponding message from shared schema
-	const message = '';
-
-	return {
-		showConsentBanner,
-		jurisdictionCode,
-		message,
-	};
+	return jurisdictionCode;
 }
