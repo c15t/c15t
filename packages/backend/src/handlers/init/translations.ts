@@ -2,6 +2,7 @@ import {
 	baseTranslations,
 	type CompleteTranslations,
 	deepMergeTranslations,
+	selectLanguage,
 	type Translations,
 } from '@c15t/translations';
 
@@ -9,33 +10,6 @@ type SupportedBaseLanguage = keyof typeof baseTranslations;
 
 function isSupportedBaseLanguage(lang: string): lang is SupportedBaseLanguage {
 	return lang in baseTranslations;
-}
-
-/**
- * Extracts the preferred language from Accept-Language header
- * Falls back to 'en' if no supported language is found
- */
-function getPreferredLanguage(
-	acceptLanguage: string | null,
-	supportedLanguages: string[]
-): string {
-	if (!acceptLanguage) {
-		return 'en';
-	}
-
-	// Get the primary language code
-	const primaryLang = acceptLanguage
-		.split(',')[0]
-		?.split(';')[0]
-		?.split('-')[0]
-		?.toLowerCase();
-
-	// Check if it's a supported language
-	if (primaryLang && supportedLanguages.includes(primaryLang)) {
-		return primaryLang;
-	}
-
-	return 'en';
 }
 
 /**
@@ -57,10 +31,10 @@ export function getTranslations(
 		...supportedCustomLanguages,
 	];
 
-	const preferredLanguage = getPreferredLanguage(
-		acceptLanguage,
-		supportedLanguages
-	);
+	const preferredLanguage = selectLanguage(supportedLanguages, {
+		header: acceptLanguage,
+		fallback: 'en',
+	});
 
 	const base = isSupportedBaseLanguage(preferredLanguage)
 		? baseTranslations[preferredLanguage]

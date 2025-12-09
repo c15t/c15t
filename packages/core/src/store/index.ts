@@ -337,8 +337,27 @@ export const createConsentManagerStore = (
 
 		identifyUser: (user: User) => identifyUser({ user, manager, get, set }),
 
-		setOverrides: (overrides: ConsentStoreState['overrides']) =>
-			set({ overrides: { ...get().overrides, ...overrides } }),
+		setOverrides: async (
+			overrides: ConsentStoreState['overrides']
+		): Promise<ConsentBannerResponse | undefined> => {
+			set({ overrides: { ...get().overrides, ...overrides } });
+
+			return await initConsentManager({
+				manager,
+				initialTranslationConfig: options.initialTranslationConfig,
+				get,
+				set,
+			});
+		},
+
+		setLanguage: async (
+			language: string
+		): Promise<ConsentBannerResponse | undefined> => {
+			return await get().setOverrides({
+				...(get().overrides ?? {}),
+				language,
+			});
+		},
 
 		...createScriptManager(get, set),
 		...createIframeManager(get, set),
