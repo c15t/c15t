@@ -9,8 +9,74 @@ type TranslationSection =
 	| 'frame'
 	| 'legalLinks';
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	if (!value) {
+		return false;
+	}
+
+	if (typeof value !== 'object') {
+		return false;
+	}
+
+	if (Array.isArray(value)) {
+		return false;
+	}
+
+	return true;
+}
+
+function deepMergeSection<K extends TranslationSection>(
+	baseSection: Translations[K] | undefined,
+	overrideSection: Translations[K] | undefined
+): Translations[K];
+
+function deepMergeSection<TSection extends Record<string, unknown>>(
+	baseSection: TSection | undefined,
+	overrideSection: Partial<TSection> | undefined
+): TSection {
+	if (!baseSection && !overrideSection) {
+		return {} as TSection;
+	}
+
+	const result: Record<string, unknown> = {};
+
+	if (baseSection) {
+		for (const key of Object.keys(baseSection)) {
+			result[key] = baseSection[key];
+		}
+	}
+
+	if (!overrideSection) {
+		return result as TSection;
+	}
+
+	for (const key of Object.keys(overrideSection)) {
+		const overrideValue = overrideSection[key];
+
+		if (overrideValue === undefined) {
+			continue;
+		}
+
+		const baseValue = baseSection ? baseSection[key] : undefined;
+		if (isPlainObject(baseValue) && isPlainObject(overrideValue)) {
+			result[key] = deepMergeSection(
+				baseValue as Record<string, unknown>,
+				overrideValue as Record<string, unknown>
+			);
+		} else {
+			result[key] = overrideValue;
+		}
+	}
+
+	return result as TSection;
+}
+
 /**
  * Deep merges translation objects
+ *
+ * This performs a deep merge across all translation sections so that
+ * nested overrides (for example, only overriding the title of a consent
+ * type) still preserve default values for other keys.
  */
 export function deepMergeTranslations(
 	base: Translations,
@@ -25,19 +91,74 @@ export function deepMergeTranslations(
 		'legalLinks',
 	];
 
-	return sections.reduce((result, section) => {
+	const result: Partial<Translations> = {};
+
+	for (const section of sections) {
 		const baseSection = base[section];
 		const overrideSection = override[section];
 
-		// Only include section if it exists in base or override
 		if (baseSection || overrideSection) {
-			result[section] = {
-				...(baseSection || {}),
-				...(overrideSection || {}),
-			};
+			result[section] = deepMergeSection(baseSection, overrideSection);
 		}
-		return result;
-	}, {} as Translations);
+	}
+
+	// All required sections are present on the base translations object,
+	// so after merging we can safely treat the result as complete.
+	return result as Translations;
+}
+
+/**
+ * Parses an Accept-Language header into a list of normalized language codes.
+ *
+ * The result is ordered by client preference. Each entry is the primary
+ * language subtag in lowercase (e.g. "de" from "de-DE").
+ */
+export function parseAcceptLanguage(
+	header: string | null | undefined
+): string[] {
+	if (!header) {
+		return [];
+	}
+
+	return header
+		.split(',')
+		.map((part) => part.split(';')[0]?.trim().toLowerCase())
+		.filter((part): part is string => Boolean(part))
+		.map((code) => code.split('-')[0] ?? code);
+}
+
+interface SelectLanguageOptions {
+	header?: string | null;
+	fallback?: string;
+}
+
+/**
+ * Selects the best matching language given an Accept-Language header and
+ * a list of available language codes.
+ *
+ * - Tries languages from the header in order of preference.
+ * - Matches on primary language code (e.g. "de" for "de-DE").
+ * - Falls back to the provided fallback or "en".
+ */
+export function selectLanguage(
+	available: string[],
+	options?: SelectLanguageOptions
+): string {
+	const fallback = options?.fallback ?? 'en';
+
+	if (!available.length) {
+		return fallback;
+	}
+
+	const candidates = parseAcceptLanguage(options?.header);
+
+	for (const candidate of candidates) {
+		if (available.includes(candidate)) {
+			return candidate;
+		}
+	}
+
+	return fallback;
 }
 
 /**
@@ -48,7 +169,7 @@ export function mergeTranslationConfigs(
 	customConfig?: Partial<TranslationConfig>
 ): TranslationConfig {
 	const translations: Record<string, Partial<Translations>> = {
-		en: JSON.parse(JSON.stringify(enTranslations)),
+		en: enTranslations,
 	};
 
 	const allTranslationSets = [

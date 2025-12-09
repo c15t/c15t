@@ -61,7 +61,6 @@ export {
 export { createConsentManagerStore } from './store';
 export type {
 	ConsentStoreState,
-	PrivacyConsentState,
 	StoreOptions,
 } from './store/type';
 // Export default translation config

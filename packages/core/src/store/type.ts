@@ -316,9 +316,24 @@ export interface StoreActions {
 	/**
 	 * Sets the overrides for the consent manager.
 	 *
+	 * Automatically attempts to fetch the consent manager again with the new overrides.
+	 *
 	 * @param overrides - The overrides to set
+	 * @returns A promise that resolves when the consent manager has been fetched again
 	 */
-	setOverrides: (overrides: StoreConfig['overrides']) => void;
+	setOverrides: (
+		overrides: StoreConfig['overrides']
+	) => Promise<ContractsOutputs['init'] | undefined>;
+
+	/**
+	 * Set the language override for the consent manager. This will override the language detected from the browser and re-fetch the consent banner information.
+	 *
+	 * @param language - The language code to override with (for example, "de" or "fr")
+	 * @returns A promise that resolves when the consent manager has been fetched again
+	 */
+	setLanguage: (
+		language: string
+	) => Promise<ContractsOutputs['init'] | undefined>;
 
 	/**
 	 * Identifies the user by setting the external ID.
@@ -557,8 +572,3 @@ export interface StoreActions {
  * @public
  */
 export type ConsentStoreState = StoreRuntimeState & StoreActions;
-
-/**
- * @deprecated Use {@link ConsentStoreState} instead.
- */
-export type PrivacyConsentState = ConsentStoreState;

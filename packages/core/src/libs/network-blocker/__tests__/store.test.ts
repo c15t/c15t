@@ -21,6 +21,9 @@ const baseConsents: ConsentState = {
 	measurement: false,
 };
 
+type MockSetState = ReturnType<typeof vi.fn> &
+	((partial: Partial<ConsentStoreState>) => void);
+
 function createState(
 	overrides: Partial<
 		Pick<ConsentStoreState, 'consents' | 'networkBlocker'>
@@ -35,13 +38,13 @@ function createState(
 
 describe('createNetworkBlockerManager', () => {
 	let getState: ReturnType<typeof vi.fn>;
-	let setState: ReturnType<typeof vi.fn>;
+	let setState: MockSetState;
 	let originalWindowFetch: typeof window.fetch;
 	let originalXMLHttpRequest: typeof window.XMLHttpRequest;
 
 	beforeEach(() => {
 		getState = vi.fn();
-		setState = vi.fn();
+		setState = vi.fn() as MockSetState;
 		originalWindowFetch = window.fetch;
 		originalXMLHttpRequest = window.XMLHttpRequest;
 		vi.clearAllMocks();
@@ -394,7 +397,7 @@ describe('createNetworkBlockerManager', () => {
 		);
 
 		const manager = createNetworkBlockerManager(
-			getState as () => PrivacyConsentState,
+			getState as () => ConsentStoreState,
 			setState
 		);
 

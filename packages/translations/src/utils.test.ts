@@ -4,7 +4,9 @@ import {
 	deepMergeTranslations,
 	detectBrowserLanguage,
 	mergeTranslationConfigs,
+	parseAcceptLanguage,
 	prepareTranslationConfig,
+	selectLanguage,
 } from './utils';
 
 describe('deepMergeTranslations', () => {
@@ -208,6 +210,72 @@ describe('detectBrowserLanguage', () => {
 		mockNavigator.language = 'fr-FR';
 		const result = detectBrowserLanguage({ en: {}, de: {} }, 'en', false);
 		expect(result).toBe('en');
+	});
+});
+
+describe('parseAcceptLanguage', () => {
+	it('should return empty array when header is null or empty', () => {
+		expect(parseAcceptLanguage(null)).toEqual([]);
+		expect(parseAcceptLanguage(undefined)).toEqual([]);
+		expect(parseAcceptLanguage('')).toEqual([]);
+	});
+
+	it('should parse single language without region', () => {
+		expect(parseAcceptLanguage('de')).toEqual(['de']);
+	});
+
+	it('should normalize region codes and lowercase', () => {
+		expect(parseAcceptLanguage('DE-de')).toEqual(['de']);
+		expect(parseAcceptLanguage('en-US')).toEqual(['en']);
+	});
+
+	it('should parse multiple languages in order', () => {
+		expect(parseAcceptLanguage('de-DE,en;q=0.9,fr;q=0.8')).toEqual([
+			'de',
+			'en',
+			'fr',
+		]);
+	});
+});
+
+describe('selectLanguage', () => {
+	it('should return fallback when no available languages', () => {
+		expect(selectLanguage([], { header: 'de', fallback: 'en' })).toBe('en');
+	});
+
+	it('should return first matching language from header', () => {
+		const available = ['en', 'de'];
+		expect(
+			selectLanguage(available, {
+				header: 'de-DE,en;q=0.9',
+				fallback: 'en',
+			})
+		).toBe('de');
+	});
+
+	it('should fall back when header languages are unsupported', () => {
+		const available = ['en', 'de'];
+		expect(
+			selectLanguage(available, {
+				header: 'xx-XX,yy;q=0.9',
+				fallback: 'en',
+			})
+		).toBe('en');
+	});
+
+	it('should prefer second header language if first is unsupported but second is available', () => {
+		const available = ['en', 'de'];
+		expect(
+			selectLanguage(available, {
+				header: 'xx-XX,en;q=0.9,de;q=0.8',
+				fallback: 'de',
+			})
+		).toBe('en');
+	});
+
+	it('should default fallback to "en" when not provided', () => {
+		const available = ['de'];
+		expect(selectLanguage(available, { header: 'xx-XX' })).toBe('en');
 	});
 });
 
