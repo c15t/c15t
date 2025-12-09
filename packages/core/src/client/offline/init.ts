@@ -1,3 +1,4 @@
+import { selectLanguage } from '@c15t/translations';
 import { checkJurisdiction } from '~/libs/jurisdiction';
 import { defaultTranslationConfig } from '~/translations';
 import type { InitResponse } from '../client-interface';
@@ -15,15 +16,17 @@ export async function init(
 
 	const country = options?.headers?.['x-c15t-country'] ?? 'GB';
 	const region = options?.headers?.['x-c15t-region'] ?? null;
+	const availableLanguages = Object.keys(defaultTranslationConfig.translations);
 	const fallbackLanguage = defaultTranslationConfig.defaultLanguage ?? 'en';
-	const language = options?.headers?.['accept-language'] ?? fallbackLanguage;
+	const language = selectLanguage(availableLanguages, {
+		header:
+			(options?.headers?.['accept-language'] as string | undefined) ?? null,
+		fallback: fallbackLanguage,
+	});
 
 	const translationsForLanguage =
 		defaultTranslationConfig.translations[
 			language as keyof typeof defaultTranslationConfig.translations
-		] ??
-		defaultTranslationConfig.translations[
-			fallbackLanguage as keyof typeof defaultTranslationConfig.translations
 		];
 
 	const jurisdictionCode = checkJurisdiction(country);

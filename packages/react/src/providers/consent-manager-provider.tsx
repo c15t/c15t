@@ -46,6 +46,7 @@ interface CacheKeyOptions {
 	backendURL: string | undefined;
 	endpointHandlers: unknown;
 	storageConfig: StorageConfig | undefined;
+	defaultLanguage: string | undefined;
 	enabled: boolean | undefined;
 }
 // Generate a cache key based on critical configuration options
@@ -55,10 +56,11 @@ function generateCacheKey({
 	backendURL,
 	endpointHandlers,
 	storageConfig,
+	defaultLanguage,
 	enabled,
 }: CacheKeyOptions): string {
 	const enabledKey = enabled === false ? 'disabled' : 'enabled';
-	return `${mode}:${backendURL ?? 'default'}:${endpointHandlers ? 'custom' : 'none'}:${storageConfig?.storageKey ?? 'default'}:${enabledKey}`;
+	return `${mode}:${backendURL ?? 'default'}:${endpointHandlers ? 'custom' : 'none'}:${storageConfig?.storageKey ?? 'default'}:${defaultLanguage ?? 'default'}:${enabledKey}`;
 }
 
 /**
@@ -102,6 +104,7 @@ export function ConsentManagerProvider({
 		endpointHandlers:
 			'endpointHandlers' in options ? options.endpointHandlers : undefined,
 		storageConfig: options.storageConfig,
+		defaultLanguage: options.translations?.defaultLanguage,
 		enabled: options.enabled,
 	});
 
