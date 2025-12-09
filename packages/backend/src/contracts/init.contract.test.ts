@@ -19,11 +19,7 @@ describe('Init Contract Custom Tests', () => {
 		describe('Required fields', () => {
 			it('validates complete output object', () => {
 				const validOutput = {
-					showConsentBanner: true,
-					jurisdiction: {
-						code: 'GDPR',
-						message: 'GDPR or equivalent regulations require a cookie banner.',
-					},
+					jurisdiction: 'GDPR',
 					location: {
 						countryCode: 'DE',
 						regionCode: null,
@@ -53,8 +49,8 @@ describe('Init Contract Custom Tests', () => {
 		describe('Jurisdiction validation', () => {
 			it('validates all supported jurisdiction codes', () => {
 				const jurisdictionCodes = [
-					'GDPR',
 					'UK_GDPR',
+					'GDPR',
 					'CH',
 					'BR',
 					'PIPEDA',
@@ -67,11 +63,7 @@ describe('Init Contract Custom Tests', () => {
 
 				for (const code of jurisdictionCodes) {
 					const output = {
-						showConsentBanner: true,
-						jurisdiction: {
-							code,
-							message: 'Test message',
-						},
+						jurisdiction: code,
 						location: {
 							countryCode: 'US',
 							regionCode: null,
@@ -90,11 +82,7 @@ describe('Init Contract Custom Tests', () => {
 
 			it('rejects invalid jurisdiction codes', () => {
 				const output = {
-					showConsentBanner: true,
-					jurisdiction: {
-						code: 'INVALID_CODE', // Invalid code
-						message: 'Test message',
-					},
+					jurisdiction: 'INVALID_CODE', // Invalid code
 					location: {
 						countryCode: 'US',
 						regionCode: null,
@@ -114,11 +102,7 @@ describe('Init Contract Custom Tests', () => {
 		describe('Location validation', () => {
 			it('accepts null country and region codes', () => {
 				const output = {
-					showConsentBanner: false,
-					jurisdiction: {
-						code: 'NONE',
-						message: 'No specific requirements',
-					},
+					jurisdiction: 'NONE',
 					location: {
 						countryCode: null,
 						regionCode: null,
@@ -136,11 +120,7 @@ describe('Init Contract Custom Tests', () => {
 
 			it('accepts valid country and region codes', () => {
 				const output = {
-					showConsentBanner: true,
-					jurisdiction: {
-						code: 'GDPR',
-						message: 'GDPR applies',
-					},
+					jurisdiction: 'GDPR',
 					location: {
 						countryCode: 'DE',
 						regionCode: 'BY',
@@ -157,11 +137,7 @@ describe('Init Contract Custom Tests', () => {
 
 			it('rejects non-string non-null country codes', () => {
 				const output = {
-					showConsentBanner: true,
-					jurisdiction: {
-						code: 'GDPR',
-						message: 'GDPR applies',
-					},
+					jurisdiction: 'GDPR',
 					location: {
 						countryCode: 123, // Invalid type
 						regionCode: null,
@@ -175,70 +151,6 @@ describe('Init Contract Custom Tests', () => {
 
 				// Need to use type assertion to bypass TypeScript
 				const result = validateOutput(output);
-				expect(result?.success).toBe(false);
-			});
-		});
-
-		describe('ShowConsentBanner flag', () => {
-			it('validates boolean value', () => {
-				const trueOutput = {
-					showConsentBanner: true,
-					jurisdiction: {
-						code: 'GDPR',
-						message: 'GDPR applies',
-					},
-					location: {
-						countryCode: 'DE',
-						regionCode: null,
-					},
-					translations: {
-						translations: baseTranslations.en,
-						language: 'en',
-					},
-					branding: 'c15t',
-				};
-
-				const falseOutput = {
-					showConsentBanner: false,
-					jurisdiction: {
-						code: 'NONE',
-						message: 'No requirements',
-					},
-					location: {
-						countryCode: 'US',
-						regionCode: null,
-					},
-					translations: {
-						translations: baseTranslations.en,
-						language: 'en',
-					},
-					branding: 'c15t',
-				};
-
-				expect(validateOutput(trueOutput)?.success).toBe(true);
-				expect(validateOutput(falseOutput)?.success).toBe(true);
-			});
-
-			it('rejects non-boolean values', () => {
-				const invalidOutput = {
-					showConsentBanner: 'yes', // Invalid type
-					jurisdiction: {
-						code: 'GDPR',
-						message: 'GDPR applies',
-					},
-					location: {
-						countryCode: 'DE',
-						regionCode: null,
-					},
-					translations: {
-						translations: baseTranslations.en,
-						language: 'en',
-					},
-					branding: 'c15t',
-				};
-
-				// Need to use type assertion to bypass TypeScript
-				const result = validateOutput(invalidOutput);
 				expect(result?.success).toBe(false);
 			});
 		});

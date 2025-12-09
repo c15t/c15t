@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { gunzipSync } from 'node:zlib';
 import type { C15TOptions } from '@c15t/backend';
 import { c15tInstance } from '@c15t/backend';
 import {
@@ -83,20 +84,33 @@ describe('C15T Node SDK', () => {
 
 				// Set response status and headers
 				res.statusCode = response.status;
-				for (const [key, value] of response.headers.entries()) {
-					res.setHeader(key, value);
+				// Normalize response body to JSON, handling potential gzip compression
+				const encoding = response.headers.get('content-encoding');
+				const arrayBuffer = await response.arrayBuffer();
+				const buffer = Buffer.from(arrayBuffer);
+
+				let decodedBody: string;
+
+				if (encoding === 'gzip') {
+					decodedBody = gunzipSync(buffer).toString('utf-8');
+				} else {
+					decodedBody = buffer.toString('utf-8');
 				}
 
-				// Ensure content-type is set for JSON responses
-				if (!response.headers.get('content-type')) {
-					res.setHeader('content-type', 'application/json');
+				let normalizedBody: string;
+
+				try {
+					// Try to parse as JSON first
+					const parsed = decodedBody ? JSON.parse(decodedBody) : null;
+					normalizedBody = JSON.stringify(parsed);
+				} catch {
+					// Fallback for non-JSON responses: wrap in a JSON envelope
+					normalizedBody = JSON.stringify({ message: decodedBody });
 				}
 
-				// Get response body
-				const responseBody = await response.text();
-
-				// Send response
-				res.end(responseBody);
+				// Always respond with JSON to the client
+				res.setHeader('content-type', 'application/json');
+				res.end(normalizedBody);
 			} catch (error) {
 				console.error('Server error:', error);
 				res.statusCode = 500;
