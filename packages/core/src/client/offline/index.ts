@@ -3,6 +3,7 @@
  * Returns empty successful responses without making any HTTP requests.
  */
 
+import type { TranslationConfig } from '../../types';
 import type {
 	ConsentManagerInterface,
 	IdentifyUserRequestBody,
@@ -26,9 +27,14 @@ import { verifyConsent } from './verify-consent';
  */
 export class OfflineClient implements ConsentManagerInterface {
 	private readonly storageConfig?: import('../../libs/cookie').StorageConfig;
+	private readonly initialTranslationConfig?: Partial<TranslationConfig>;
 
-	constructor(storageConfig?: import('../../libs/cookie').StorageConfig) {
+	constructor(
+		storageConfig?: import('../../libs/cookie').StorageConfig,
+		initialTranslationConfig?: Partial<TranslationConfig>
+	) {
 		this.storageConfig = storageConfig;
+		this.initialTranslationConfig = initialTranslationConfig;
 	}
 
 	/**
@@ -38,7 +44,7 @@ export class OfflineClient implements ConsentManagerInterface {
 	async init(
 		options?: FetchOptions<InitResponse>
 	): Promise<ResponseContext<InitResponse>> {
-		return init(options);
+		return init(this.initialTranslationConfig, options);
 	}
 
 	/**

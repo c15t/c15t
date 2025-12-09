@@ -97,6 +97,16 @@ export function ConsentManagerProvider({
 	// Extract and memoize stable options
 	const { mode, backendURL, store } = options;
 
+	// Normalize store options so that initial translations are always available
+	// to both the core store and the underlying client (including offline).
+	const normalizedStoreOptions = useMemo(
+		() => ({
+			...store,
+			initialTranslationConfig: options.translations,
+		}),
+		[store, options.translations]
+	);
+
 	// Generate cache key for manager and store persistence
 	const cacheKey = generateCacheKey({
 		mode: mode || 'c15t',
@@ -120,28 +130,28 @@ export function ConsentManagerProvider({
 		if (mode === 'offline') {
 			newManager = configureConsentManager({
 				mode: 'offline',
-				store,
+				store: normalizedStoreOptions,
 				storageConfig: options.storageConfig,
 			});
 		} else if (mode === 'custom' && 'endpointHandlers' in options) {
 			newManager = configureConsentManager({
 				mode: 'custom',
 				endpointHandlers: options.endpointHandlers,
-				store,
+				store: normalizedStoreOptions,
 				storageConfig: options.storageConfig,
 			});
 		} else {
 			newManager = configureConsentManager({
 				mode: 'c15t',
 				backendURL: backendURL || '/api/c15t',
-				store,
+				store: normalizedStoreOptions,
 				storageConfig: options.storageConfig,
 			});
 		}
 
 		managerCache.set(cacheKey, newManager);
 		return newManager;
-	}, [cacheKey, mode, backendURL, store, options]);
+	}, [cacheKey, mode, backendURL, normalizedStoreOptions, options]);
 
 	// Get or create consent store with caching
 	const consentStore = useMemo(() => {
@@ -158,13 +168,12 @@ export function ConsentManagerProvider({
 				mode: mode || 'Unknown',
 			},
 			...options,
-			...store,
-			initialTranslationConfig: options.translations,
+			...normalizedStoreOptions,
 		});
 
 		storeCache.set(cacheKey, newStore);
 		return newStore;
-	}, [cacheKey, consentManager, mode, options, store]);
+	}, [cacheKey, consentManager, mode, options, normalizedStoreOptions]);
 
 	// Initialize state with the current state from the consent manager store
 	const [state, setState] = useState<ConsentStoreState>(() => {
