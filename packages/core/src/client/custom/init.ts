@@ -13,8 +13,7 @@ export async function init(
 	// Prefer the new `showConsentBanner` handler when available, but fall back
 	// to the legacy `init` handler for backwards compatibility.
 	const handlerKey: keyof EndpointHandlers =
-		'showConsentBanner' in endpointHandlers &&
-		endpointHandlers.init !== undefined
+		'init' in endpointHandlers && endpointHandlers.init !== undefined
 			? 'init'
 			: 'init';
 
