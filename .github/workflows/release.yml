@@ -54,7 +54,7 @@ jobs:
       # Canary release: Create and publish snapshot release
       - name: Create and publish canary snapshot release
         if: github.ref == 'refs/heads/canary'
-        id: changesets
+        id: changesets-canary
         uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
         with:
           version: pnpm run version:canary
@@ -68,7 +68,7 @@ jobs:
       # Regular release: Create Release Pull Request or Publish to npm
       - name: Create Release Pull Request or Publish to npm
         if: github.ref != 'refs/heads/canary'
-        id: changesets
+        id: changesets-production
         uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
         with:
           # The command to run for publishing. It matches your root package.json script.
@@ -87,8 +87,8 @@ jobs:
       - name: Print changeset outputs
         if: |
           github.ref != 'refs/heads/canary' &&
-          steps.changesets.outputs.published == 'true'
+          steps.changesets-production.outputs.published == 'true'
         run: |
-          echo "Published: ${{ steps.changesets.outputs.published }}"
-          echo "Published packages: ${{ steps.changesets.outputs.publishedPackages }}"
-          echo "New versions: ${{ steps.changesets.outputs.newVersions }}"
+          echo "Published: ${{ steps.changesets-production.outputs.published }}"
+          echo "Published packages: ${{ steps.changesets-production.outputs.publishedPackages }}"
+          echo "New versions: ${{ steps.changesets-production.outputs.newVersions }}"

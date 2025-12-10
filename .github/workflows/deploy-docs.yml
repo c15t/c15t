@@ -132,7 +132,7 @@ jobs:
           github.event_name == 'pull_request' ||
           github.event_name == 'schedule' ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.deployment_type == 'preview')
-        id: c15t
+        id: c15t-preview
         uses: ./internals/c15t-github-action
         with:
           # Auth
@@ -172,7 +172,7 @@ jobs:
         if: |
           (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/canary')) ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.deployment_type == 'production')
-        id: c15t
+        id: c15t-production
         uses: ./internals/c15t-github-action
         with:
           # Auth
