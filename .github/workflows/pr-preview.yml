@@ -13,9 +13,9 @@ concurrency:
 	group: pr-preview-${{ github.event.pull_request.number }}
 	cancel-in-progress: false
 
-jobs:
+	jobs:
 	detect-changed-packages:
-		name: Detect Changed Packages
+		name: 🔍 Detect Changed Packages
 		runs-on: ubuntu-latest
 		permissions:
 			contents: read
@@ -68,7 +68,7 @@ jobs:
 					fi
 
 	deploy-preview:
-		name: Deploy Preview Packages
+		name: 📦 Deploy Preview Packages
 		needs: detect-changed-packages
 		if: |
 			(contains(github.event.pull_request.author_association, 'MEMBER') ||
