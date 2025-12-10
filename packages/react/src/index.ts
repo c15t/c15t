@@ -16,6 +16,7 @@ export {
 } from './components/cookie-banner';
 export { Frame, type FrameProps } from './components/frame';
 export {
+	InlineLegalLinks,
 	LegalLinks,
 	type LegalLinksProps,
 } from './components/shared/primitives/legal-links';

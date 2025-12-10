@@ -108,12 +108,26 @@ const DialogHeaderDescription = forwardRef<
 	Omit<BoxProps, 'themeKey'> & {
 		legalLinks?: LegalLinksProps['links'];
 	}
->(({ children, legalLinks, ...props }, ref) => {
+>(({ children, legalLinks, asChild, ...props }, ref) => {
+	if (asChild) {
+		return (
+			<Box
+				ref={ref as Ref<HTMLDivElement>}
+				className={styles.description}
+				themeKey="dialog.description"
+				asChild={asChild}
+				{...props}
+			>
+				{children}
+			</Box>
+		);
+	}
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			className={styles.description}
 			themeKey="dialog.description"
+			asChild={asChild}
 			{...props}
 			data-testid="consent-manager-dialog-description"
 		>

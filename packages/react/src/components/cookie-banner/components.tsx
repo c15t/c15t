@@ -77,13 +77,29 @@ const CookieBannerDescription = forwardRef<
 	Omit<BoxProps, 'themeKey'> & {
 		legalLinks?: LegalLinksProps['links'];
 	}
->(({ children, legalLinks, ...props }, ref) => {
+>(({ children, legalLinks, asChild, ...props }, ref) => {
+	if (asChild) {
+		return (
+			<Box
+				ref={ref as Ref<HTMLDivElement>}
+				baseClassName={styles.description}
+				data-testid="cookie-banner-description"
+				themeKey="banner.header.description"
+				asChild={asChild}
+				{...props}
+			>
+				{children}
+			</Box>
+		);
+	}
+
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.description}
 			data-testid="cookie-banner-description"
 			themeKey="banner.header.description"
+			asChild={asChild}
 			{...props}
 		>
 			{children}

@@ -167,6 +167,8 @@ export interface LegalLinksProps extends Omit<BoxProps, 'themeKey'> {
  *   themeKey="banner.header.legal-links"
  * />
  * ```
+ *
+ * @deprecated use InlineLegalLinks instead as this component is no longer used
  */
 export const LegalLinks = forwardRef<HTMLDivElement, LegalLinksProps>(
 	({ links, themeKey, ...props }, ref) => {
