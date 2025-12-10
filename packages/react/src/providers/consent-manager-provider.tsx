@@ -6,7 +6,7 @@ import {
 	type PrivacyConsentState,
 	type StorageConfig,
 } from 'c15t';
-import { useEffect, useMemo, useState } from 'react';
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import {
 	ConsentStateContext,
 	type ConsentStateContextValue,
@@ -220,6 +220,9 @@ export function ConsentManagerProvider({
 		return consentStore.getState();
 	});
 
+	// Track if we've initialized to avoid redundant state updates during hydration
+	const initializedRef = useRef(false);
+
 	// Set up subscription immediately and separately from initialization
 	useEffect(() => {
 		if (!consentStore) {
@@ -229,17 +232,25 @@ export function ConsentManagerProvider({
 		// Set up subscription FIRST to catch all state changes
 		const unsubscribe = consentStore.subscribe(setState);
 
-		return unsubscribe;
-	}, [consentStore]);
-
-	// Initialize the store (only run once per store instance)
-	useEffect(() => {
-		if (!consentStore) {
-			return;
+		// Sync state only if it has changed (to avoid unnecessary re-renders during hydration)
+		// Use startTransition to make this update non-blocking and prevent hydration flash
+		if (!initializedRef.current) {
+			const currentStoreState = consentStore.getState();
+			startTransition(() => {
+				setState((prevState) => {
+					// Only update if state reference has actually changed
+					if (prevState !== currentStoreState) {
+						initializedRef.current = true;
+						return currentStoreState;
+					}
+					initializedRef.current = true;
+					return prevState;
+				});
+			});
 		}
 
-		setState(consentStore.getState());
-	}, [consentStore]); // Only depend on consentStore to avoid reinitializing on every option change
+		return unsubscribe;
+	}, [consentStore]);
 
 	// Create theme context value
 	const themeContextValue = useMemo(() => {
