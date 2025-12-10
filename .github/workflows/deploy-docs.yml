@@ -2,210 +2,210 @@
 name: Deploy docs
 
 on:
-	# 📌 Trigger on PRs that modify docs (build previews for reviews)
-	pull_request:
-		branches:
-			- '**'
-	# 🚀 Automatic deployments on push to main/canary
-	push:
-		branches:
-			- main
-			- canary
-	# ⏰ Periodic check for upstream template changes (consentdotio/c15t-docs)
-	schedule:
-		# Run once daily at 00:15 UTC to avoid excessive runs
-		- cron: '15 0 * * *'
-	# 🔧 Manual trigger for deployments
-	workflow_dispatch:
-		inputs:
-			deployment_type:
-				description: 'Deployment type'
-				required: true
-				type: choice
-				options:
-					- preview
-					- production
-			branch:
-				description: 'Branch to deploy (for preview or production)'
-				required: true
-				type: string
-				default: 'main'
-			pr_number:
-				description: 'PR number (for preview only, leave empty to deploy branch)'
-				required: false
-				type: string
+  # 📌 Trigger on PRs that modify docs (build previews for reviews)
+  pull_request:
+    branches:
+      - '**'
+  # 🚀 Automatic deployments on push to main/canary
+  push:
+    branches:
+      - main
+      - canary
+  # ⏰ Periodic check for upstream template changes (consentdotio/c15t-docs)
+  schedule:
+    # Run once daily at 00:15 UTC to avoid excessive runs
+    - cron: '15 0 * * *'
+  # 🔧 Manual trigger for deployments
+  workflow_dispatch:
+    inputs:
+      deployment_type:
+        description: 'Deployment type'
+        required: true
+        type: choice
+        options:
+          - preview
+          - production
+      branch:
+        description: 'Branch to deploy (for preview or production)'
+        required: true
+        type: string
+        default: 'main'
+      pr_number:
+        description: 'PR number (for preview only, leave empty to deploy branch)'
+        required: false
+        type: string
 
 permissions:
-	contents: read
-	issues: write
-	pull-requests: write
-	deployments: write
+  contents: read
+  issues: write
+  pull-requests: write
+  deployments: write
 
 jobs:
-	deploy:
-		name: Deploy docs ${{ github.event_name == 'pull_request' && '(Preview)' || (github.event_name == 'workflow_dispatch' && github.event.inputs.deployment_type == 'preview' && '(Preview)' || github.event_name == 'workflow_dispatch' && github.event.inputs.deployment_type == 'production' && '(Production)' || github.ref == 'refs/heads/canary' && '(Canary)' || '(Production)') }}
-		concurrency:
-			group: docs-${{ github.event_name == 'pull_request' && format('preview-{0}', github.ref) || github.event_name == 'workflow_dispatch' && github.event.inputs.deployment_type == 'preview' && format('preview-{0}', github.event.inputs.branch) || github.event_name == 'workflow_dispatch' && github.event.inputs.deployment_type == 'production' && format('production-{0}', github.event.inputs.branch) || github.ref == 'refs/heads/canary' && 'canary' || 'production' }}
-			cancel-in-progress: true
-		runs-on: ubuntu-latest
-		steps:
-			- name: Extract deployment info
-				id: deploy-info
-				run: |
-					if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-						if [ "${{ github.event.inputs.deployment_type }}" = "preview" ] && [ -n "${{ github.event.inputs.pr_number }}" ]; then
-							# For preview with PR number, we'll fetch PR branch in checkout step
-							PR_NUMBER="${{ github.event.inputs.pr_number }}"
-							echo "type=preview" >> $GITHUB_OUTPUT
-							echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-							echo "use_pr=true" >> $GITHUB_OUTPUT
-							echo "Deployment: Preview for PR #$PR_NUMBER"
-						else
-							# For preview/production with branch
-							BRANCH="${{ github.event.inputs.branch }}"
-							TYPE="${{ github.event.inputs.deployment_type }}"
-							echo "type=$TYPE" >> $GITHUB_OUTPUT
-							echo "branch=$BRANCH" >> $GITHUB_OUTPUT
-							echo "ref=$BRANCH" >> $GITHUB_OUTPUT
-							echo "use_pr=false" >> $GITHUB_OUTPUT
-							echo "Deployment: $TYPE for branch $BRANCH"
-						fi
-					elif [ "${{ github.event_name }}" = "pull_request" ]; then
-						BRANCH="${{ github.event.pull_request.base.ref }}"
-						echo "type=preview" >> $GITHUB_OUTPUT
-						echo "branch=$BRANCH" >> $GITHUB_OUTPUT
-						echo "ref=${{ github.event.pull_request.head.ref }}" >> $GITHUB_OUTPUT
-						echo "use_pr=false" >> $GITHUB_OUTPUT
-					else
-						BRANCH="${GITHUB_REF#refs/heads/}"
-						echo "type=${{ github.ref == 'refs/heads/canary' && 'canary' || 'production' }}" >> $GITHUB_OUTPUT
-						echo "branch=$BRANCH" >> $GITHUB_OUTPUT
-						echo "ref=${{ github.ref }}" >> $GITHUB_OUTPUT
-						echo "use_pr=false" >> $GITHUB_OUTPUT
-					fi
+  deploy:
+    name: Deploy docs ${{ github.event_name == 'pull_request' && '(Preview)' || (github.event_name == 'workflow_dispatch' && github.event.inputs.deployment_type == 'preview' && '(Preview)' || github.event_name == 'workflow_dispatch' && github.event.inputs.deployment_type == 'production' && '(Production)' || github.ref == 'refs/heads/canary' && '(Canary)' || '(Production)') }}
+    concurrency:
+      group: docs-${{ github.event_name == 'pull_request' && format('preview-{0}', github.ref) || github.event_name == 'workflow_dispatch' && github.event.inputs.deployment_type == 'preview' && format('preview-{0}', github.event.inputs.branch) || github.event_name == 'workflow_dispatch' && github.event.inputs.deployment_type == 'production' && format('production-{0}', github.event.inputs.branch) || github.ref == 'refs/heads/canary' && 'canary' || 'production' }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract deployment info
+        id: deploy-info
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "${{ github.event.inputs.deployment_type }}" = "preview" ] && [ -n "${{ github.event.inputs.pr_number }}" ]; then
+              # For preview with PR number, we'll fetch PR branch in checkout step
+              PR_NUMBER="${{ github.event.inputs.pr_number }}"
+              echo "type=preview" >> $GITHUB_OUTPUT
+              echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+              echo "use_pr=true" >> $GITHUB_OUTPUT
+              echo "Deployment: Preview for PR #$PR_NUMBER"
+            else
+              # For preview/production with branch
+              BRANCH="${{ github.event.inputs.branch }}"
+              TYPE="${{ github.event.inputs.deployment_type }}"
+              echo "type=$TYPE" >> $GITHUB_OUTPUT
+              echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+              echo "ref=$BRANCH" >> $GITHUB_OUTPUT
+              echo "use_pr=false" >> $GITHUB_OUTPUT
+              echo "Deployment: $TYPE for branch $BRANCH"
+            fi
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            BRANCH="${{ github.event.pull_request.base.ref }}"
+            echo "type=preview" >> $GITHUB_OUTPUT
+            echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+            echo "ref=${{ github.event.pull_request.head.ref }}" >> $GITHUB_OUTPUT
+            echo "use_pr=false" >> $GITHUB_OUTPUT
+          else
+            BRANCH="${GITHUB_REF#refs/heads/}"
+            echo "type=${{ github.ref == 'refs/heads/canary' && 'canary' || 'production' }}" >> $GITHUB_OUTPUT
+            echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+            echo "ref=${{ github.ref }}" >> $GITHUB_OUTPUT
+            echo "use_pr=false" >> $GITHUB_OUTPUT
+          fi
 
-			- name: 📥 Checkout repository
-				uses: actions/checkout@v4
-				with:
-					# For manual preview with PR number, checkout PR head
-					# For manual with branch, checkout that branch
-					# Otherwise use default ref
-					ref: ${{ steps.deploy-info.outputs.use_pr == 'true' && format('pull/{0}/head', steps.deploy-info.outputs.pr_number) || steps.deploy-info.outputs.ref || github.ref }}
-					fetch-depth: 0
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # For manual preview with PR number, checkout PR head
+          # For manual with branch, checkout that branch
+          # Otherwise use default ref
+          ref: ${{ steps.deploy-info.outputs.use_pr == 'true' && format('pull/{0}/head', steps.deploy-info.outputs.pr_number) || steps.deploy-info.outputs.ref || github.ref }}
+          fetch-depth: 0
 
-			- name: Extract branch name
-				id: branch
-				run: |
-					if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-						if [ -n "${{ steps.deploy-info.outputs.branch }}" ]; then
-							BRANCH="${{ steps.deploy-info.outputs.branch }}"
-						else
-							# Extract branch from PR if needed
-							BRANCH="${GITHUB_REF#refs/heads/}"
-						fi
-					elif [ "${{ github.event_name }}" = "pull_request" ]; then
-						BRANCH="${{ github.event.pull_request.base.ref }}"
-					else
-						BRANCH="${GITHUB_REF#refs/heads/}"
-					fi
-					echo "name=$BRANCH" >> $GITHUB_OUTPUT
-					echo "Branch: $BRANCH"
+      - name: Extract branch name
+        id: branch
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ -n "${{ steps.deploy-info.outputs.branch }}" ]; then
+              BRANCH="${{ steps.deploy-info.outputs.branch }}"
+            else
+              # Extract branch from PR if needed
+              BRANCH="${GITHUB_REF#refs/heads/}"
+            fi
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            BRANCH="${{ github.event.pull_request.base.ref }}"
+          else
+            BRANCH="${GITHUB_REF#refs/heads/}"
+          fi
+          echo "name=$BRANCH" >> $GITHUB_OUTPUT
+          echo "Branch: $BRANCH"
 
-			# 📦 Setup pnpm (used by docs template/scripts)
-			- name: 📦 Setup pnpm
-				uses: pnpm/action-setup@v4
-				with:
-					run_install: false
+      # 📦 Setup pnpm (used by docs template/scripts)
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
 
-			- name: ♻️ Setup pnpm cache
-				uses: actions/setup-node@v4
-				with:
-					node-version: 20
-					cache: 'pnpm'
+      - name: ♻️ Setup pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
 
-			- name: 📥 Install workspace deps
-				run: pnpm install --frozen-lockfile
+      - name: 📥 Install workspace deps
+        run: pnpm install --frozen-lockfile
 
-			# Preview deployment: PRs, manual preview, or scheduled
-			- name: ▲ C15T Docs Preview (Deploy + PR Comment)
-				if: |
-					github.event_name == 'pull_request' ||
-					github.event_name == 'schedule' ||
-					(github.event_name == 'workflow_dispatch' && github.event.inputs.deployment_type == 'preview')
-				id: c15t
-				uses: ./internals/c15t-github-action
-				with:
-					# Auth
-					GITHUB_TOKEN: ${{ github.token }}
-					github_app_id: ${{ secrets.CONSENT_APP_ID }}
-					github_app_private_key: ${{ secrets.CONSENT_APP_PRIVATE_KEY }}
-					github_app_installation_id: 81013186
+      # Preview deployment: PRs, manual preview, or scheduled
+      - name: ▲ C15T Docs Preview (Deploy + PR Comment)
+        if: |
+          github.event_name == 'pull_request' ||
+          github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.deployment_type == 'preview')
+        id: c15t
+        uses: ./internals/c15t-github-action
+        with:
+          # Auth
+          GITHUB_TOKEN: ${{ github.token }}
+          github_app_id: ${{ secrets.CONSENT_APP_ID }}
+          github_app_private_key: ${{ secrets.CONSENT_APP_PRIVATE_KEY }}
+          github_app_installation_id: 81013186
 
-					# Comment behavior
-					header: c15t-docs-preview
-					append: "true"
-					hide_details: "true"
+          # Comment behavior
+          header: c15t-docs-preview
+          append: "true"
+          hide_details: "true"
 
-					# Vercel
-					vercel_token: ${{ secrets.VERCEL_TOKEN }}
-					vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
-					vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
+          # Vercel
+          vercel_token: ${{ secrets.VERCEL_TOKEN }}
+          vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
 
-					alias_domains: |
-						${{ github.event_name == 'pull_request' && format('pr-{0}.c15t.dev', github.event.pull_request.number) || github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number && format('pr-{0}.c15t.dev', github.event.inputs.pr_number) || format('preview-{0}.c15t.dev', steps.deploy-info.outputs.branch) }}
+          alias_domains: |
+            ${{ github.event_name == 'pull_request' && format('pr-{0}.c15t.dev', github.event.pull_request.number) || github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number && format('pr-{0}.c15t.dev', github.event.inputs.pr_number) || format('preview-{0}.c15t.dev', steps.deploy-info.outputs.branch) }}
 
-					# Branch deployment policies
-					deploy_on_pr_base_branches: "main,canary"
-					deploy_on_push_branches: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deployment_type == 'preview' && steps.branch.outputs.name || '' }}
+          # Branch deployment policies
+          deploy_on_pr_base_branches: "main,canary"
+          deploy_on_push_branches: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deployment_type == 'preview' && steps.branch.outputs.name || '' }}
 
-					# Orchestration & gating
-					consent_git_token: ${{ secrets.CONSENT_GIT_TOKEN }}
-					only_if_changed: "true"
-					change_globs: |
-						docs/**
-						packages/*/src/**
-						packages/*/package.json
-					check_template_changes: "true"
+          # Orchestration & gating
+          consent_git_token: ${{ secrets.CONSENT_GIT_TOKEN }}
+          only_if_changed: "true"
+          change_globs: |
+            docs/**
+            packages/*/src/**
+            packages/*/package.json
+          check_template_changes: "true"
 
-			# Production/Canary deployment: Push to main/canary or manual production dispatch
-			- name: ▲ C15T Production/Canary Deployment
-				if: |
-					(github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/canary')) ||
-					(github.event_name == 'workflow_dispatch' && github.event.inputs.deployment_type == 'production')
-				id: c15t
-				uses: ./internals/c15t-github-action
-				with:
-					# Auth
-					GITHUB_TOKEN: ${{ github.token }}
-					github_app_id: ${{ secrets.CONSENT_APP_ID }}
-					github_app_private_key: ${{ secrets.CONSENT_APP_PRIVATE_KEY }}
-					github_app_installation_id: 81013186
+      # Production/Canary deployment: Push to main/canary or manual production dispatch
+      - name: ▲ C15T Production/Canary Deployment
+        if: |
+          (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/canary')) ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.deployment_type == 'production')
+        id: c15t
+        uses: ./internals/c15t-github-action
+        with:
+          # Auth
+          GITHUB_TOKEN: ${{ github.token }}
+          github_app_id: ${{ secrets.CONSENT_APP_ID }}
+          github_app_private_key: ${{ secrets.CONSENT_APP_PRIVATE_KEY }}
+          github_app_installation_id: 81013186
 
-					# Production target
-					target: ${{ steps.branch.outputs.name == 'canary' && 'staging' || 'production' }}
+          # Production target
+          target: ${{ steps.branch.outputs.name == 'canary' && 'staging' || 'production' }}
 
-					# Comment behavior
-					header: c15t-docs-${{ steps.branch.outputs.name == 'canary' && 'canary' || 'production' }}
-					append: "true"
-					hide_details: "true"
+          # Comment behavior
+          header: c15t-docs-${{ steps.branch.outputs.name == 'canary' && 'canary' || 'production' }}
+          append: "true"
+          hide_details: "true"
 
-					# Vercel
-					vercel_token: ${{ secrets.VERCEL_TOKEN }}
-					vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
-					vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
+          # Vercel
+          vercel_token: ${{ secrets.VERCEL_TOKEN }}
+          vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
 
-					assign_alias_on_branch: ${{ steps.branch.outputs.name }}
-					alias_domains: |
-						${{ steps.branch.outputs.name == 'canary' && 'canary.c15t.com' || 'c15t.com' }}
+          assign_alias_on_branch: ${{ steps.branch.outputs.name }}
+          alias_domains: |
+            ${{ steps.branch.outputs.name == 'canary' && 'canary.c15t.com' || 'c15t.com' }}
 
-					# Branch deployment policies
-					deploy_on_push_branches: ${{ steps.branch.outputs.name }}
+          # Branch deployment policies
+          deploy_on_push_branches: ${{ steps.branch.outputs.name }}
 
-					# Orchestration & gating
-					consent_git_token: ${{ secrets.CONSENT_GIT_TOKEN }}
-					only_if_changed: "false"
-					change_globs: |
-						docs/**
-						packages/*/src/**
-						packages/*/package.json
-					check_template_changes: "true"
+          # Orchestration & gating
+          consent_git_token: ${{ secrets.CONSENT_GIT_TOKEN }}
+          only_if_changed: "false"
+          change_globs: |
+            docs/**
+            packages/*/src/**
+            packages/*/package.json
+          check_template_changes: "true"

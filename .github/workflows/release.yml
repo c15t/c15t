@@ -2,93 +2,93 @@
 name: Release
 
 on:
-	push:
-		branches:
-			- main # Matches your config.json baseBranch
-			- canary # Canary releases
+  push:
+    branches:
+      - main # Matches your config.json baseBranch
+      - canary # Canary releases
 
 # Prevent multiple concurrent release workflows
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 permissions:
-	contents: write # Needed by changesets/action to create releases/tags and commit version bumps
-	pull-requests: write # Needed by changesets/action to create the "Version Packages" PR
+  contents: write # Needed by changesets/action to create releases/tags and commit version bumps
+  pull-requests: write # Needed by changesets/action to create the "Version Packages" PR
 
 jobs:
-	release:
-		name: Release ${{ github.ref == 'refs/heads/canary' && 'Canary' || '' }}
-		runs-on: ubuntu-latest
+  release:
+    name: Release ${{ github.ref == 'refs/heads/canary' && 'Canary' || '' }}
+    runs-on: ubuntu-latest
 
-		if: github.repository == 'c15t/c15t'
-		steps:
-			- name: Check out code
-				uses: actions/checkout@v4
-				with:
-					# Fetch entire history is required for changesets to correctly determine version bumps
-					fetch-depth: 0
-					# Optionally persist credentials for commit/push by the action
-					# persist-credentials: false # Uncomment if you have issues with GITHUB_TOKEN permissions
+    if: github.repository == 'c15t/c15t'
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          # Fetch entire history is required for changesets to correctly determine version bumps
+          fetch-depth: 0
+          # Optionally persist credentials for commit/push by the action
+          # persist-credentials: false # Uncomment if you have issues with GITHUB_TOKEN permissions
 
-			# Setup pnpm and Node.js using versions consistent with your ci.yml
-			- name: Setup pnpm
-				uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+      # Setup pnpm and Node.js using versions consistent with your ci.yml
+      - name: Setup pnpm
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
 
-			- name: Setup Node.js environment
-				uses: actions/setup-node@v4
-				with:
-					node-version: 22
-					cache: 'pnpm'
-					registry-url: 'https://registry.npmjs.org'
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
 
-			# Configure pnpm to use npm registry with auth token (needed for canary releases)
-			- name: Setup pnpm config
-				if: github.ref == 'refs/heads/canary'
-				run: |
-					pnpm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
-				env:
-					NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Configure pnpm to use npm registry with auth token (needed for canary releases)
+      - name: Setup pnpm config
+        if: github.ref == 'refs/heads/canary'
+        run: |
+          pnpm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-			- name: Install dependencies
-				run: pnpm install --frozen-lockfile # Use frozen lockfile for reliability in CI
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile # Use frozen lockfile for reliability in CI
 
-			# Canary release: Create and publish snapshot release
-			- name: Create and publish canary snapshot release
-				if: github.ref == 'refs/heads/canary'
-				id: changesets
-				uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
-				with:
-					version: pnpm run version:canary
-					publish: pnpm run release:canary
-					commit: "chore: publish canary snapshot"
-					title: "chore: publish canary snapshot"
-				env:
-					GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-					NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Canary release: Create and publish snapshot release
+      - name: Create and publish canary snapshot release
+        if: github.ref == 'refs/heads/canary'
+        id: changesets
+        uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
+        with:
+          version: pnpm run version:canary
+          publish: pnpm run release:canary
+          commit: "chore: publish canary snapshot"
+          title: "chore: publish canary snapshot"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-			# Regular release: Create Release Pull Request or Publish to npm
-			- name: Create Release Pull Request or Publish to npm
-				if: github.ref != 'refs/heads/canary'
-				id: changesets
-				uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
-				with:
-					# The command to run for publishing. It matches your root package.json script.
-					publish: pnpm run release
-					# Optional: If you want the action to commit the version changes
-					# commit: "chore: update versions"
-					# Optional: If you want the action to create tags
-					# version: pnpm run version # Add a 'version' script to package.json if needed for this
-				env:
-					# GITHUB_TOKEN is used by the action to create PRs, releases, comments
-					GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-					# NPM_TOKEN is used by 'changeset publish' (called via 'pnpm run release')
-					NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # MUST be set in repo secrets
+      # Regular release: Create Release Pull Request or Publish to npm
+      - name: Create Release Pull Request or Publish to npm
+        if: github.ref != 'refs/heads/canary'
+        id: changesets
+        uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
+        with:
+          # The command to run for publishing. It matches your root package.json script.
+          publish: pnpm run release
+          # Optional: If you want the action to commit the version changes
+          # commit: "chore: update versions"
+          # Optional: If you want the action to create tags
+          # version: pnpm run version # Add a 'version' script to package.json if needed for this
+        env:
+          # GITHUB_TOKEN is used by the action to create PRs, releases, comments
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # NPM_TOKEN is used by 'changeset publish' (called via 'pnpm run release')
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # MUST be set in repo secrets
 
-			# Optional: Output the results for debugging or confirmation (only for regular releases)
-			- name: Print changeset outputs
-				if: |
-					github.ref != 'refs/heads/canary' &&
-					steps.changesets.outputs.published == 'true'
-				run: |
-					echo "Published: ${{ steps.changesets.outputs.published }}"
-					echo "Published packages: ${{ steps.changesets.outputs.publishedPackages }}"
-					echo "New versions: ${{ steps.changesets.outputs.newVersions }}"
+      # Optional: Output the results for debugging or confirmation (only for regular releases)
+      - name: Print changeset outputs
+        if: |
+          github.ref != 'refs/heads/canary' &&
+          steps.changesets.outputs.published == 'true'
+        run: |
+          echo "Published: ${{ steps.changesets.outputs.published }}"
+          echo "Published packages: ${{ steps.changesets.outputs.publishedPackages }}"
+          echo "New versions: ${{ steps.changesets.outputs.newVersions }}"
