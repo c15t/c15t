@@ -13,6 +13,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 permissions:
   contents: write # Needed by changesets/action to create releases/tags and commit version bumps
   pull-requests: write # Needed by changesets/action to create the "Version Packages" PR
+  id-token: write # Required for OIDC trusted publishing with npm (bypasses 2FA requirement)
 
 jobs:
   release:
@@ -40,16 +41,12 @@ jobs:
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
-      # Configure npm/pnpm authentication for publishing
-      - name: Setup npm authentication
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_RELEASE_TOKEN }}" >> ~/.npmrc
-          pnpm config set //registry.npmjs.org/:_authToken ${{ secrets.NPM_RELEASE_TOKEN }}
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile # Use frozen lockfile for reliability in CI
+
+      # Ensure npm 11.5.1+ for trusted publishing (OIDC)
+      - name: Update npm for trusted publishing
+        run: npm install -g npm@latest
 
       # Canary release: Create and publish snapshot release
       - name: Create and publish canary snapshot release
