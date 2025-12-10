@@ -1,0 +1,95 @@
+name: Report Coverage
+
+on:
+  workflow_run:
+    # Important: Match the name of your testing workflow (ci-main.yml -> CI)
+    workflows: ["CI"]
+    types:
+      - completed # Trigger when the CI workflow finishes
+
+jobs:
+  report:
+    name: Generate Coverage Comment(s)
+    runs-on: ubuntu-latest
+    # Only run this job if the triggering workflow run was successful AND was triggered by a pull_request event
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' }}
+
+    # Permissions needed to write comments on PRs
+    permissions:
+      pull-requests: write
+
+    outputs: # Define outputs for the matrix generation job
+      matrix: ${{ steps.generate-matrix.outputs.matrix }}
+
+    steps:
+      # Checkout is needed to potentially read thresholds from vite config later? Optional otherwise.
+      - name: Checkout code (optional, for context)
+        uses: actions/checkout@v4
+
+      # Download the coverage artifacts uploaded by the CI workflow
+      - name: Download Individual Coverage Reports
+        uses: actions/download-artifact@v4
+        with:
+          name: individual-coverage-data # Match upload name
+          # Download to a predictable directory, maintaining structure
+          path: coverage-artifacts 
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: List Downloaded Files (for debugging)
+        run: find coverage-artifacts -type f
+
+      - name: Generate Matrix from Found Reports
+        id: generate-matrix
+        run: |
+          matrix=()
+          # Find summary files and extract package/app name and path prefix
+          while IFS= read -r file; do
+            # Extract path like "packages/core" or "apps/my-app" from "coverage-artifacts/packages/core/coverage/coverage-summary.json"
+            prefix=$(dirname "$file" | sed -E 's|coverage-artifacts/([^/]+/[^/]+)/coverage$|\1|')
+            package_name=$(basename "$(dirname "$(dirname "$file")")")
+            # Use package name unless it's just 'packages' or 'apps', then use prefix
+            display_name=$([[ "$package_name" == "packages" || "$package_name" == "apps" ]] && echo "$prefix" || echo "$package_name")
+            # Ensure final report exists for this package
+            final_path="${prefix}/coverage/coverage-final.json"
+            if [[ -f "coverage-artifacts/$final_path" ]]; then
+              matrix+=("{ \"name\": \"$display_name\", \"summary_path\": \"$file\", \"final_path\": \"coverage-artifacts/$final_path\" }")
+            else 
+              # If no final report, only include summary
+              matrix+=("{ \"name\": \"$display_name\", \"summary_path\": \"$file\", \"final_path\": \"\" }") 
+            fi
+          done < <(find coverage-artifacts -path '*/coverage/coverage-summary.json' -type f)
+          
+          echo "Generated matrix: $(IFS=,; echo "[${matrix[*]}]")"
+          echo "matrix=[$(IFS=,; echo "${matrix[*]}")]" >> "$GITHUB_OUTPUT"
+
+  # New job that depends on the matrix generation
+  report_coverage_matrix:
+    name: Report Coverage (${{ matrix.package.name }})
+    needs: report # Depends on the job that generated the matrix
+    runs-on: ubuntu-latest
+    if: needs.report.outputs.matrix != '[]' # Only run if matrix is not empty
+    permissions:
+      pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.report.outputs.matrix) }}
+
+    steps:
+      # We need to re-download the artifact in each matrix job
+      - name: Download Individual Coverage Reports
+        uses: actions/download-artifact@v4
+        with:
+          name: individual-coverage-data # Match upload name
+          path: coverage-artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ needs.report.outputs.run_id || github.event.workflow_run.id }} # Use run_id from needs if possible
+          
+      - name: 📊 Report Coverage Comment on PR
+        uses: davelosert/vitest-coverage-report-action@v2
+        with:
+          name: ${{ matrix.package.name }} # Use package name for comment section title
+          json_summary_path: ${{ matrix.package.summary_path }}
+          # Only include final path if it exists (not empty string)
+          json_final_path: ${{ matrix.package.final_path || '' }}
