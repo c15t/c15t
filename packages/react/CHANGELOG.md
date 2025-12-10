@@ -1,5 +1,11 @@
 # @c15t/react
 
+## 1.8.2-canary-20251210105424
+
+### Patch Changes
+
+- 3eb3f4a: fix(react): hydration error when wrapped in an SSR component
+
 ## 1.8.1
 
 ### Patch Changes
