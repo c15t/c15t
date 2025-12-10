@@ -39,14 +39,8 @@ jobs:
           node-version: 22
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
-
-      # Configure pnpm to use npm registry with auth token (needed for canary releases)
-      - name: Setup pnpm config
-        if: github.ref == 'refs/heads/canary'
-        run: |
-          pnpm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # Configure npm authentication for publishing
+          registry-auth-token: ${{ secrets.NPM_RELEASE_TOKEN }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile # Use frozen lockfile for reliability in CI
@@ -63,7 +57,7 @@ jobs:
           title: "chore: publish canary snapshot"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
 
       # Regular release: Create Release Pull Request or Publish to npm
       - name: Create Release Pull Request or Publish to npm
@@ -81,7 +75,7 @@ jobs:
           # GITHUB_TOKEN is used by the action to create PRs, releases, comments
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # NPM_TOKEN is used by 'changeset publish' (called via 'pnpm run release')
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # MUST be set in repo secrets
+          NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }} # MUST be set in repo secrets
 
       # Optional: Output the results for debugging or confirmation (only for regular releases)
       - name: Print changeset outputs
