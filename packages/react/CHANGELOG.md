@@ -1,5 +1,11 @@
 # @c15t/react
 
+## 1.8.2-canary-20251210222051
+
+### Patch Changes
+
+- a03d607: fix(react): legal links using the asChild slot causing multi-child error
+
 ## 1.8.2-canary-20251210105424
 
 ### Patch Changes

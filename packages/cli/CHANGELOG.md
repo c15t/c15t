@@ -1,5 +1,12 @@
 # @c15t/cli
 
+## 1.8.2-canary-20251210222051
+
+### Patch Changes
+
+- Updated dependencies [a03d607]
+  - @c15t/react@1.8.2-canary-20251210222051
+
 ## 1.8.2-canary-20251210105424
 
 ### Patch Changes
