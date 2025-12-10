@@ -61,6 +61,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
+          # Enable npm provenance (automatic with trusted publishing, but explicit for compatibility)
+          NPM_CONFIG_PROVENANCE: "true"
 
       # Regular release: Create Release Pull Request or Publish to npm
       - name: Create Release Pull Request or Publish to npm
@@ -79,6 +81,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # NPM_TOKEN is used by 'changeset publish' (called via 'pnpm run release')
           NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }} # MUST be set in repo secrets
+          # Enable npm provenance (automatic with trusted publishing, but explicit for compatibility)
+          NPM_CONFIG_PROVENANCE: "true"
 
       # Optional: Output the results for debugging or confirmation (only for regular releases)
       - name: Print changeset outputs
