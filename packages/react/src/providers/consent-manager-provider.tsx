@@ -46,6 +46,7 @@ interface CacheKeyOptions {
 	backendURL: string | undefined;
 	endpointHandlers: unknown;
 	storageConfig: StorageConfig | undefined;
+	enabled: boolean | undefined;
 }
 // Generate a cache key based on critical configuration options
 
@@ -54,8 +55,10 @@ function generateCacheKey({
 	backendURL,
 	endpointHandlers,
 	storageConfig,
+	enabled,
 }: CacheKeyOptions): string {
-	return `${mode}:${backendURL ?? 'default'}:${endpointHandlers ? 'custom' : 'none'}:${storageConfig?.storageKey ?? 'default'}`;
+	const enabledKey = enabled === false ? 'disabled' : 'enabled';
+	return `${mode}:${backendURL ?? 'default'}:${endpointHandlers ? 'custom' : 'none'}:${storageConfig?.storageKey ?? 'default'}:${enabledKey}`;
 }
 
 /**
@@ -124,6 +127,7 @@ export function ConsentManagerProvider({
 		endpointHandlers:
 			'endpointHandlers' in options ? options.endpointHandlers : undefined,
 		storageConfig: options.storageConfig,
+		enabled: options.enabled,
 	});
 
 	// Get or create consent manager with caching
@@ -176,6 +180,7 @@ export function ConsentManagerProvider({
 				version: version,
 				mode: mode || 'Unknown',
 			},
+			enabled: options.enabled,
 			ignoreGeoLocation: options.ignoreGeoLocation,
 			initialGdprTypes: options.consentCategories,
 			callbacks: options.callbacks,
