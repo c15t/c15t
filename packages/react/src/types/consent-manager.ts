@@ -4,10 +4,10 @@
  */
 
 import type {
-  AllConsentNames,
-  ConsentManagerOptions as CoreOptions,
-  StoreOptions,
-  TranslationConfig,
+	AllConsentNames,
+	ConsentManagerOptions as CoreOptions,
+	StoreOptions,
+	TranslationConfig,
 } from 'c15t';
 import type { ReactNode } from 'react';
 import type { ConsentManagerDialogTheme } from '~/components/consent-manager-dialog/theme';
