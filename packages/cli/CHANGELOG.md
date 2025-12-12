@@ -1,5 +1,19 @@
 # @c15t/cli
 
+## 1.8.2
+
+### Patch Changes
+
+- 2ce4d5a: \* feat(core): Added ability to disable c15t with the `enabled` prop. c15t will grant all consents by default when disabled as well as loading all scripts by default. Useful for when you want to disable consent handling but still allow the integration code to be in place.
+
+  - fix(react): Frame component CSS overriding
+  - fix(react): Legal links using the asChild slot causing multi-child error
+
+  https://c15t.com/changelog/2025-12-12-v1.8.2
+
+- Updated dependencies [2ce4d5a]
+  - @c15t/react@1.8.2
+
 ## 1.8.2-canary-20251212163241
 
 ### Patch Changes
