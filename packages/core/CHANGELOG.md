@@ -1,5 +1,11 @@
 # c15t
 
+## 1.8.2-canary-20251212112113
+
+### Patch Changes
+
+- 7284b23: feat(core): add ability to disable c15t
+
 ## 1.8.1
 
 ### Patch Changes
