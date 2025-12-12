@@ -800,6 +800,10 @@ export const createConsentManagerStore = (
 			store.getState().identifyUser(options.user);
 		}
 
+		// Update based on the initial consent state
+		trackingBlocker?.updateConsents(store.getState().consents);
+		store.getState().updateScripts();
+
 		if (enabled) {
 			store.getState().fetchConsentBannerInfo();
 		}
