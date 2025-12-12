@@ -11,18 +11,18 @@ import type { IframeBlockerConfig } from '../libs/iframe-blocker';
 import type { NetworkBlockerConfig } from '../libs/network-blocker';
 import type { Script } from '../libs/script-loader';
 import type {
-  AllConsentNames,
-  Callbacks,
-  ConsentBannerResponse,
-  ConsentInfo,
-  ConsentState,
-  ConsentType,
-  consentTypes,
-  LegalLinks,
-  LocationInfo,
-  Overrides,
-  TranslationConfig,
-  User,
+	AllConsentNames,
+	Callbacks,
+	ConsentBannerResponse,
+	ConsentInfo,
+	ConsentState,
+	ConsentType,
+	consentTypes,
+	LegalLinks,
+	LocationInfo,
+	Overrides,
+	TranslationConfig,
+	User,
 } from '../types';
 
 /**
@@ -153,12 +153,12 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	 * @default 'c15tStore'
 	 */
 	namespace?: string;
-  
-  /**
+
+	/**
 	 * Whether c15t should be active.
 	 *
 	 * @remarks
-	 * When set to `false`, c15t will not run the initialization process and 
+	 * When set to `false`, c15t will not run the initialization process and
 	 * all consents will be treated as granted on the client side.
 	 * client side.
 	 *
