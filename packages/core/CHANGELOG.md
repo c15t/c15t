@@ -1,5 +1,11 @@
 # c15t
 
+## 1.8.2-canary-20251212163241
+
+### Patch Changes
+
+- a368512: fix(react): scripts not loading when c15t disabled
+
 ## 1.8.2-canary-20251212112113
 
 ### Patch Changes

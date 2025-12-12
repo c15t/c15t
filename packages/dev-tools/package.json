@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/dev-tools",
-	"version": "1.8.2-canary-20251212112113",
+	"version": "1.8.2-canary-20251212163241",
 	"description": "A collection of developer tools and utilities for the c15t ecosystem, currently under active development.",
 	"homepage": "https://c15t.com",
 	"repository": {
