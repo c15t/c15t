@@ -1,5 +1,14 @@
 # @c15t/react
 
+## 1.8.2-canary-20251212112113
+
+### Patch Changes
+
+- 7284b23: feat(core): add ability to disable c15t
+- dfd5e4f: fix(react): frame css overiding
+- Updated dependencies [7284b23]
+  - c15t@1.8.2-canary-20251212112113
+
 ## 1.8.2-canary-20251210222051
 
 ### Patch Changes
