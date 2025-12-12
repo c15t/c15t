@@ -1,5 +1,33 @@
 # @c15t/react
 
+## 1.8.2-canary-20251212163241
+
+### Patch Changes
+
+- Updated dependencies [a368512]
+  - c15t@1.8.2-canary-20251212163241
+
+## 1.8.2-canary-20251212112113
+
+### Patch Changes
+
+- 7284b23: feat(core): add ability to disable c15t
+- dfd5e4f: fix(react): frame css overiding
+- Updated dependencies [7284b23]
+  - c15t@1.8.2-canary-20251212112113
+
+## 1.8.2-canary-20251210222051
+
+### Patch Changes
+
+- a03d607: fix(react): legal links using the asChild slot causing multi-child error
+
+## 1.8.2-canary-20251210105424
+
+### Patch Changes
+
+- 3eb3f4a: fix(react): hydration error when wrapped in an SSR component
+
 ## 1.8.1
 
 ### Patch Changes

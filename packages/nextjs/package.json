@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/nextjs",
-	"version": "1.8.1",
+	"version": "1.8.2-canary-20251212163241",
 	"description": "Developer-first CMP for Next.js: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization.",
 	"keywords": [
 		"nextjs",

@@ -68,6 +68,22 @@ export interface ReactUIOptions {
  */
 export type ConsentManagerOptions = CoreOptions & {
 	/**
+	 * Whether c15t should be active.
+	 *
+	 * @remarks
+	 * When set to `false`, c15t will not fetch location or consent banner
+	 * information and all consents will be treated as granted on the
+	 * client side.
+	 *
+	 * This is useful when you want to temporarily disable consent handling
+	 * (for example in certain environments) without removing the
+	 * integration code.
+	 *
+	 * @default true
+	 */
+	enabled?: boolean;
+
+	/**
 	 * React-specific UI configuration options
 	 */
 	react?: ReactUIOptions;

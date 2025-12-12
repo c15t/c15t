@@ -1,0 +1,123 @@
+name: PR Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, labeled]
+    paths:
+      - 'packages/**/src/**'
+      - 'packages/**/package.json'
+      - 'packages/**/tsconfig.json'
+      - 'packages/**/rslib.config.ts'
+
+concurrency:
+  group: pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  detect-changed-packages:
+    name: 🔍 Detect Changed Packages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      packages: ${{ steps.changes.outputs.packages }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed packages
+        id: changes
+        run: |
+          # Get changed files in PR
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+            HEAD_SHA="${{ github.event.after }}"
+          fi
+
+          # Get list of changed files
+          CHANGED_FILES=$(git diff --name-only $BASE_SHA $HEAD_SHA || echo "")
+
+          # Extract unique package directories that changed
+          PACKAGES=$(echo "$CHANGED_FILES" | grep -E '^packages/[^/]+/' | sed 's|^packages/\([^/]*\).*|\1|' | sort -u | grep -v '^$' || echo "")
+
+          # Filter to only packages that have publishConfig (published packages)
+          PUBLISHED_PACKAGES=""
+          for pkg in $PACKAGES; do
+            if [ -f "packages/$pkg/package.json" ]; then
+              # Check if package has publishConfig or is not private
+              if grep -q '"publishConfig"' "packages/$pkg/package.json" || ! grep -q '"private":\s*true' "packages/$pkg/package.json"; then
+                PUBLISHED_PACKAGES="$PUBLISHED_PACKAGES $pkg"
+              fi
+            fi
+          done
+
+          # Output as JSON array
+          if [ -n "$PUBLISHED_PACKAGES" ]; then
+            PACKAGE_ARRAY=$(echo $PUBLISHED_PACKAGES | tr ' ' '\n' | jq -R . | jq -s .)
+            echo "packages=$PACKAGE_ARRAY" >> $GITHUB_OUTPUT
+            echo "Changed packages: $PACKAGE_ARRAY"
+          else
+            echo "packages=[]" >> $GITHUB_OUTPUT
+            echo "No published packages changed"
+          fi
+
+  deploy-preview:
+    name: 📦 Deploy Preview Packages
+    needs: detect-changed-packages
+    if: |
+      (contains(github.event.pull_request.author_association, 'MEMBER') ||
+       contains(github.event.pull_request.labels.*.name, 'deploy:preview')) &&
+      needs.detect-changed-packages.outputs.packages != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.detect-changed-packages.outputs.packages) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package
+        run: pnpm build --filter ${{ matrix.package }}
+
+      - name: Get package name and set version
+        id: pkg-info
+        run: |
+          cd packages/${{ matrix.package }}
+          # Read package name using jq (more reliable than node for ESM)
+          PACKAGE_NAME=$(jq -r '.name' package.json)
+          VERSION="0.0.0-preview.${{ github.event.pull_request.head.sha }}"
+          # Update version in package.json using jq
+          jq --arg v "$VERSION" '.version = $v' package.json > package.json.tmp && mv package.json.tmp package.json
+          echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Package: $PACKAGE_NAME@$VERSION"
+          echo "::notice title=Install (PR)::pnpm add https://pkg.pr.new/$PACKAGE_NAME@${{ github.event.pull_request.number }}"
+          echo "::notice title=Install (SHA)::pnpm add https://pkg.pr.new/$PACKAGE_NAME@${{ github.event.pull_request.head.sha }}"
+          echo "::notice title=Version::$VERSION"
+
+      - name: Publish to pkg.pr.new
+        run: pnpx pkg-pr-new publish --compact './packages/${{ matrix.package }}' --no-template --packageManager=pnpm --pnpm

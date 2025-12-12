@@ -170,6 +170,21 @@ export interface StoreOptions {
 	ignoreGeoLocation?: boolean;
 
 	/**
+	 * Globally enable or disable the consent manager.
+	 *
+	 * @remarks
+	 * When set to `false`, c15t will not fetch location or consent banner
+	 * information from the backend and will treat all consents as granted
+	 * on the client side.
+	 *
+	 * This is useful when you want to temporarily disable consent handling
+	 * while still keeping the integration code in place.
+	 *
+	 * @default true
+	 */
+	enabled?: boolean;
+
+	/**
 	 * Initial Translation Config
 	 */
 	initialTranslationConfig?: Partial<TranslationConfig>;
@@ -303,6 +318,7 @@ export const createConsentManagerStore = (
 		isConsentDomain = false,
 		translationConfig,
 		storageConfig,
+		enabled = true,
 	} = options;
 
 	// Load initial state from localStorage if available
@@ -320,6 +336,45 @@ export const createConsentManagerStore = (
 					storedConsent?.consents || initialState.consents
 				)
 			: null;
+
+	const getInitialConsentState = (): Partial<PrivacyConsentState> => {
+		if (!enabled) {
+			const consents = consentTypes.reduce((acc, consent) => {
+				acc[consent.name] = true;
+				return acc;
+			}, {} as ConsentState);
+
+			return {
+				consents,
+				selectedConsents: consents,
+				consentInfo: {
+					time: Date.now(),
+					type: 'all',
+					identified: !!options.user?.id,
+				},
+				showPopup: false,
+				isLoadingConsentInfo: false,
+				hasFetchedBanner: false,
+				lastBannerFetchData: null,
+			};
+		}
+
+		if (storedConsent) {
+			return {
+				consents: storedConsent.consents,
+				selectedConsents: storedConsent.consents,
+				consentInfo: storedConsent.consentInfo,
+				showPopup: false,
+				isLoadingConsentInfo: false,
+			};
+		}
+
+		return {
+			// Do not show popup initially - will be set after location check
+			showPopup: false,
+			isLoadingConsentInfo: true,
+		};
+	};
 
 	const store = createStore<PrivacyConsentState>((set, get) => ({
 		...initialState,
@@ -340,19 +395,7 @@ export const createConsentManagerStore = (
 		// Set storage configuration
 		storageConfig: storageConfig,
 		user: options.user ?? initialState.user,
-		...(storedConsent
-			? {
-					consents: storedConsent.consents,
-					selectedConsents: storedConsent.consents,
-					consentInfo: storedConsent.consentInfo,
-					showPopup: false, // Don't show popup if we have stored consent
-					isLoadingConsentInfo: false, // Not loading if we have stored consent
-				}
-			: {
-					// Don't show popup initially - we'll set it after location check
-					showPopup: false,
-					isLoadingConsentInfo: true, // Start in loading state
-				}),
+		...getInitialConsentState(),
 
 		/**
 		 * Controls the visibility of the consent popup.
@@ -586,15 +629,20 @@ export const createConsentManagerStore = (
 		 *
 		 * @returns A promise that resolves with the consent banner response when the fetch is complete
 		 */
-		fetchConsentBannerInfo: (): Promise<ConsentBannerResponse | undefined> =>
-			fetchConsentBannerInfoUtil({
+		fetchConsentBannerInfo: (): Promise<ConsentBannerResponse | undefined> => {
+			if (!enabled) {
+				return Promise.resolve(undefined);
+			}
+
+			return fetchConsentBannerInfoUtil({
 				manager,
 				initialData: options._initialData,
 				initialTranslationConfig: options.initialTranslationConfig,
 				get,
 				set,
 				trackingBlocker,
-			}),
+			});
+		},
 
 		/**
 		 * Retrieves the list of consent types that should be displayed.
@@ -752,7 +800,13 @@ export const createConsentManagerStore = (
 			store.getState().identifyUser(options.user);
 		}
 
-		store.getState().fetchConsentBannerInfo();
+		// Update based on the initial consent state
+		trackingBlocker?.updateConsents(store.getState().consents);
+		store.getState().updateScripts();
+
+		if (enabled) {
+			store.getState().fetchConsentBannerInfo();
+		}
 	}
 
 	return store;

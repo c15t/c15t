@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main # Matches your config.json baseBranch
+      - canary # Canary releases
 
 # Prevent multiple concurrent release workflows
 concurrency: ${{ github.workflow }}-${{ github.ref }}
@@ -12,10 +13,11 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 permissions:
   contents: write # Needed by changesets/action to create releases/tags and commit version bumps
   pull-requests: write # Needed by changesets/action to create the "Version Packages" PR
+  id-token: write # Required for OIDC trusted publishing with npm (bypasses 2FA requirement)
 
 jobs:
   release:
-    name: Release
+    name: Release ${{ github.ref == 'refs/heads/canary' && 'Canary' || '' }}
     runs-on: ubuntu-latest
 
     if: github.repository == 'c15t/c15t'
@@ -37,12 +39,35 @@ jobs:
         with:
           node-version: 22
           cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile # Use frozen lockfile for reliability in CI
 
+      # Ensure npm 11.5.1+ for trusted publishing (OIDC)
+      - name: Update npm for trusted publishing
+        run: npm install -g npm@latest
+
+      # Canary release: Create and publish snapshot release
+      - name: Create and publish canary snapshot release
+        if: github.ref == 'refs/heads/canary'
+        id: changesets-canary
+        uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
+        with:
+          version: pnpm run version:canary
+          publish: pnpm run release:canary
+          commit: "chore: publish canary snapshot"
+          title: "chore: publish canary snapshot"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
+          # Enable npm provenance (automatic with trusted publishing, but explicit for compatibility)
+          NPM_CONFIG_PROVENANCE: "true"
+
+      # Regular release: Create Release Pull Request or Publish to npm
       - name: Create Release Pull Request or Publish to npm
-        id: changesets # Give the step an ID to potentially reference outputs
+        if: github.ref != 'refs/heads/canary'
+        id: changesets-production
         uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
         with:
           # The command to run for publishing. It matches your root package.json script.
@@ -55,12 +80,16 @@ jobs:
           # GITHUB_TOKEN is used by the action to create PRs, releases, comments
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # NPM_TOKEN is used by 'changeset publish' (called via 'pnpm run release')
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # MUST be set in repo secrets
+          NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }} # MUST be set in repo secrets
+          # Enable npm provenance (automatic with trusted publishing, but explicit for compatibility)
+          NPM_CONFIG_PROVENANCE: "true"
 
-      # Optional: Output the results for debugging or confirmation
+      # Optional: Output the results for debugging or confirmation (only for regular releases)
       - name: Print changeset outputs
-        if: steps.changesets.outputs.published == 'true'
+        if: |
+          github.ref != 'refs/heads/canary' &&
+          steps.changesets-production.outputs.published == 'true'
         run: |
-          echo "Published: ${{ steps.changesets.outputs.published }}"
-          echo "Published packages: ${{ steps.changesets.outputs.publishedPackages }}"
-          echo "New versions: ${{ steps.changesets.outputs.newVersions }}"
+          echo "Published: ${{ steps.changesets-production.outputs.published }}"
+          echo "Published packages: ${{ steps.changesets-production.outputs.publishedPackages }}"
+          echo "New versions: ${{ steps.changesets-production.outputs.newVersions }}"

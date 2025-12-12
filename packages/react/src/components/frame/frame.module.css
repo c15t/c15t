@@ -1,14 +1,7 @@
 :root {
-	isolation: isolate;
-
-	/* css reset */
-	font-family:
-		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+  --frame-font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
 		"Apple Color Emoji", "Segoe UI Emoji";
-	line-height: 1.5;
-	-webkit-text-size-adjust: 100%;
-	tab-size: 4;
-
+	--frame-line-height: 1.5;
 	--frame-placeholder-gap: 1rem;
 
 	/* Border */
@@ -34,6 +27,8 @@
 }
 
 .placeholder {
+	font-family: var(--frame-font-family);
+	line-height: var(--frame-line-height);
 	display: flex;
 	flex-direction: column;
 	align-items: center;
