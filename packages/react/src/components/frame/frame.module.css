@@ -1,5 +1,6 @@
 :root {
-  --frame-font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+	--frame-font-family:
+		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
 		"Apple Color Emoji", "Segoe UI Emoji";
 	--frame-line-height: 1.5;
 	--frame-placeholder-gap: 1rem;
