@@ -41,4 +41,7 @@ type PlaceholderCSSVariables = {
 
 	'--frame-placeholder-opacity': string;
 	'--frame-placeholder-animation': string;
+
+	'--frame-font-family': string;
+	'--frame-line-height': string;
 };

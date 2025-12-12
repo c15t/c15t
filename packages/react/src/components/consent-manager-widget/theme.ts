@@ -13,13 +13,20 @@ import type {
 	SwitchTrackCSSVariables,
 } from '../shared/ui/switch';
 
+type WidgetRootVariables = {
+	/** Font family stack for widget text */
+	'--widget-font-family': string;
+	/** Line height for widget text */
+	'--widget-line-height': string;
+};
+
 /**
  * Configuration object for styling different parts of the ConsentManagerWidget component.
  * @public
  */
 export type ConsentManagerWidgetTheme = Partial<{
 	/** @remarks Styles for the root container element */
-	'widget.root': ThemeValue;
+	'widget.root': ThemeValue<WidgetRootVariables>;
 	/** @remarks Styles for the branding element */
 	'widget.branding': ThemeValue;
 	/** @remarks Styles for the footer element */

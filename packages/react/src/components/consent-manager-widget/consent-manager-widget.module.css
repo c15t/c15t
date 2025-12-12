@@ -57,16 +57,16 @@
 	--widget-accordion-focus-ring-dark: hsl(228.07, 69.8%, 48.04%);
 	--widget-accordion-focus-shadow: 0 0 0 2px hsl(227.93, 100%, 63.92%);
 	--widget-accordion-focus-shadow-dark: 0 0 0 2px hsl(228.07, 69.8%, 48.04%);
+
+  --widget-font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+		"Apple Color Emoji", "Segoe UI Emoji";
+  --widget-line-height: 1.15;
+
 }
 
 .widget {
-	isolation: isolate;
-	font-family:
-		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
-		"Apple Color Emoji", "Segoe UI Emoji";
-	line-height: 1.15;
-	-webkit-text-size-adjust: 100%;
-	tab-size: 4;
+	font-family: var(--widget-font-family);
+	line-height: var(--widget-line-height);
 }
 
 .widget > :not([hidden]) ~ :not([hidden]) {
