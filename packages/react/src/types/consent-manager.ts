@@ -67,7 +67,6 @@ export interface ReactUIOptions {
 type InlineStoreOptions = Pick<
 	StoreOptions,
 	| 'enabled'
-	| 'ignoreGeoLocation'
 	| 'callbacks'
 	| 'scripts'
 	| 'legalLinks'
