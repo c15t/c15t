@@ -68,7 +68,7 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { exit } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
@@ -537,6 +537,17 @@ type PackageJson = {
 	readonly scripts?: Record<string, string>;
 };
 
+function ensureDirExists(dirPath: string): void {
+	if (existsSync(dirPath)) {
+		return;
+	}
+	try {
+		execSync(`mkdir -p "${dirPath}"`, { stdio: 'ignore' });
+	} catch {
+		// ignore
+	}
+}
+
 function patchC15tDocsTemplatePackageJson(
 	buildMode: BuildMode,
 	branch: GitBranch
@@ -572,9 +583,62 @@ function patchC15tDocsTemplatePackageJson(
 	const existingScripts = parsed.scripts ?? {};
 	const scripts: Record<string, string> = { ...existingScripts };
 
-	// Ensure fumadocs-mdx can import workspace TS sources by running it under tsx.
-	// This is critical because several workspace packages export .ts entrypoints.
-	scripts['fumadocs-mdx'] = 'tsx node_modules/.bin/fumadocs-mdx';
+	// Ensure fumadocs-mdx can import workspace TS sources by running it under tsx,
+	// but avoid executing the pnpm .bin shim (often a shell script).
+	const internalDir = join(
+		dirname(templatePackageJsonPath),
+		'scripts',
+		'internal'
+	);
+	ensureDirExists(internalDir);
+	const runnerPath = join(internalDir, 'run-fumadocs-mdx.ts');
+	const runnerSource = `import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+
+const require = createRequire(import.meta.url);
+
+type Pkg = { bin?: string | Record<string, string> };
+
+function resolveBinPath(): string {
+	const pkgJsonPath = require.resolve('fumadocs-mdx/package.json');
+	const pkg = JSON.parse(readFileSync(pkgJsonPath, 'utf8')) as Pkg;
+	const rel =
+		typeof pkg.bin === 'string'
+			? pkg.bin
+			: typeof pkg.bin === 'object' && pkg.bin
+				? (pkg.bin['fumadocs-mdx'] ?? '')
+				: '';
+	if (!rel) {
+		throw new Error('fumadocs-mdx bin entry not found in package.json');
+	}
+	return path.resolve(path.dirname(pkgJsonPath), rel);
+}
+
+const binPath = resolveBinPath();
+const args = process.argv.slice(2);
+const result = spawnSync('tsx', [binPath, ...args], { stdio: 'inherit' });
+if (result.error) {
+	throw result.error;
+}
+process.exit(typeof result.status === 'number' ? result.status : 1);
+`;
+
+	try {
+		if (!existsSync(runnerPath)) {
+			writeFileSync(runnerPath, runnerSource, 'utf8');
+		}
+	} catch {
+		throw new FetchScriptError(
+			`Failed to write fumadocs-mdx runner at ${runnerPath}`,
+			'patch_template_package_json',
+			buildMode,
+			branch
+		);
+	}
+
+	scripts['fumadocs-mdx'] = 'tsx scripts/internal/run-fumadocs-mdx.ts';
 
 	if (scripts.postinstall?.includes('fumadocs-mdx')) {
 		scripts.postinstall = 'pnpm fumadocs-mdx';
