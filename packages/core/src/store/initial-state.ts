@@ -115,6 +115,7 @@ export const initialState: StoreRuntimeState = {
 		disableAutomaticBlocking: false,
 	},
 
+<<<<<<< HEAD
 	ignoreGeoLocation: false,
 
 <<<<<<< HEAD:packages/core/src/store.initial-state.ts
@@ -159,6 +160,8 @@ export const initialState: StoreRuntimeState = {
 	/** Initial empty scripts array */
 =======
 >>>>>>> de3f5a19 (refactor(core): improve store types & comments):packages/core/src/store/initial-state.ts
+=======
+>>>>>>> e0868978 (feat!: remove ignoreGeoLocation prop use overrides instead)
 	scripts: [],
 
 	loadedScripts: {},

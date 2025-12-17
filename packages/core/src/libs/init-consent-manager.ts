@@ -54,7 +54,7 @@ function updateStore(
 	{ set, get, initialTranslationConfig }: InitConsentManagerConfig,
 	hasLocalStorageAccess: boolean
 ): void {
-	const { consentInfo, ignoreGeoLocation, callbacks } = get();
+	const { consentInfo, callbacks } = get();
 
 	const { translations, location } = data;
 
@@ -89,8 +89,7 @@ function updateStore(
 		branding: data.branding ?? 'c15t',
 		...(consentInfo === null
 			? {
-					showPopup:
-						(consentModel && hasLocalStorageAccess) || ignoreGeoLocation,
+					showPopup: consentModel && hasLocalStorageAccess,
 				}
 			: {}),
 

@@ -26,7 +26,9 @@ export default function App() {
     mode: 'c15t', 
     backendURL: process.env.REACT_APP_C15T_URL,
     consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
-    ignoreGeoLocation: true, // Useful for development to always view the banner.
+    overrides: {
+      country: 'GB', // Useful for development to always view the banner.
+    },
     callbacks: {
       onBannerFetched(response) {
         console.log('Consent banner fetched', response);
