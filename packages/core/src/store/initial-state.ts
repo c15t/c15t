@@ -115,8 +115,6 @@ export const initialState: StoreRuntimeState = {
 		disableAutomaticBlocking: false,
 	},
 
-	ignoreGeoLocation: false,
-
 	scripts: [],
 
 	loadedScripts: {},

@@ -52,12 +52,6 @@ export interface StoreConfig {
 	legalLinks: LegalLinks;
 
 	/**
-	 * Whether to ignore geo location. Will always show the consent banner.
-	 * @default false
-	 */
-	ignoreGeoLocation: boolean;
-
-	/**
 	 * Storage configuration for consent persistence.
 	 *
 	 * @remarks
@@ -184,12 +178,6 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	 * @see {@link IframeBlockerConfig} for available options
 	 */
 	iframeBlockerConfig?: IframeBlockerConfig;
-
-	/**
-	 * Whether to ignore geo location. Will always show the consent banner.
-	 * @default false
-	 */
-	ignoreGeoLocation?: boolean;
 
 	/**
 	 * Initial Translation Config

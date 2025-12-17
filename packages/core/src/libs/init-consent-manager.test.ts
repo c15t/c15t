@@ -79,7 +79,6 @@ const createMockStoreState = (
 		defaultLanguage: 'en',
 		disableAutoLanguageSwitch: false,
 	},
-	ignoreGeoLocation: false,
 	setTranslationConfig: vi.fn(),
 	includeNonDisplayedConsents: false,
 	consentTypes: [],
@@ -895,34 +894,6 @@ describe('initConsentManager', () => {
 					set: storeSet,
 				})
 			).resolves.toBeUndefined();
-		});
-	});
-
-	describe('Ignore geo location handling', () => {
-		it('should show popup when ignoreGeoLocation is true', async () => {
-			mockState.ignoreGeoLocation = true;
-			mockState.consentInfo = null;
-
-			const mockResponse = createMockConsentBannerResponse({
-				jurisdiction: 'NONE',
-			});
-
-			mockManager.init = vi.fn().mockResolvedValue({
-				data: mockResponse,
-				error: null,
-			});
-
-			await initConsentManager({
-				manager: mockManager,
-				get: storeGet,
-				set: storeSet,
-			});
-
-			expect(mockSet).toHaveBeenCalledWith(
-				expect.objectContaining({
-					showPopup: true,
-				})
-			);
 		});
 	});
 });
