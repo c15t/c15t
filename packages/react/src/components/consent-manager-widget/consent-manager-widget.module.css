@@ -58,10 +58,10 @@
 	--widget-accordion-focus-shadow: 0 0 0 2px hsl(227.93, 100%, 63.92%);
 	--widget-accordion-focus-shadow-dark: 0 0 0 2px hsl(228.07, 69.8%, 48.04%);
 
-  --widget-font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+	--widget-font-family:
+		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
 		"Apple Color Emoji", "Segoe UI Emoji";
-  --widget-line-height: 1.15;
-
+	--widget-line-height: 1.15;
 }
 
 .widget {
