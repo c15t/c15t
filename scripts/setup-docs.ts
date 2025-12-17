@@ -59,7 +59,14 @@ const error = console.error;
  */
 
 import { execSync } from 'node:child_process';
-import { cpSync, existsSync, readdirSync, rmSync } from 'node:fs';
+import {
+	cpSync,
+	existsSync,
+	readdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { exit } from 'node:process';
@@ -513,11 +520,87 @@ function installDocumentationTemplate(
 			recursive: true,
 		});
 		cleanupDocsTemplates(buildMode, branch);
+		patchC15tDocsTemplatePackageJson(buildMode, branch);
 		log('✅ Installation completed successfully');
 	} catch {
 		throw new FetchScriptError(
 			`Failed to copy template from ${FETCH_CONFIG.TEMP_DOCS_DIR} to ${FETCH_CONFIG.DOCS_APP_DIR}`,
 			'install_template',
+			buildMode,
+			branch
+		);
+	}
+}
+
+type PackageJson = {
+	readonly name?: string;
+	readonly scripts?: Record<string, string>;
+};
+
+function patchC15tDocsTemplatePackageJson(
+	buildMode: BuildMode,
+	branch: GitBranch
+): void {
+	const templatePackageJsonPath = join(
+		FETCH_CONFIG.DOCS_APP_DIR,
+		'templates',
+		'c15t',
+		'package.json'
+	);
+	if (!existsSync(templatePackageJsonPath)) {
+		throw new FetchScriptError(
+			`Template package.json not found at ${templatePackageJsonPath}`,
+			'patch_template_package_json',
+			buildMode,
+			branch
+		);
+	}
+
+	let parsed: PackageJson;
+	try {
+		const raw = readFileSync(templatePackageJsonPath, 'utf8');
+		parsed = JSON.parse(raw) as PackageJson;
+	} catch {
+		throw new FetchScriptError(
+			`Failed to read/parse template package.json at ${templatePackageJsonPath}`,
+			'patch_template_package_json',
+			buildMode,
+			branch
+		);
+	}
+
+	const existingScripts = parsed.scripts ?? {};
+	const scripts: Record<string, string> = { ...existingScripts };
+
+	// Ensure fumadocs-mdx can import workspace TS sources by running it under tsx.
+	// This is critical because several workspace packages export .ts entrypoints.
+	scripts['fumadocs-mdx'] = 'tsx node_modules/.bin/fumadocs-mdx';
+
+	if (scripts.postinstall?.includes('fumadocs-mdx')) {
+		scripts.postinstall = 'pnpm fumadocs-mdx';
+	}
+	if (scripts['types:check']?.includes('fumadocs-mdx')) {
+		scripts['types:check'] = scripts['types:check'].replace(
+			'fumadocs-mdx',
+			'pnpm fumadocs-mdx'
+		);
+	}
+
+	const updated = {
+		...parsed,
+		scripts,
+	};
+
+	try {
+		writeFileSync(
+			templatePackageJsonPath,
+			`${JSON.stringify(updated, null, 2)}\n`,
+			'utf8'
+		);
+	} catch {
+		throw new FetchScriptError(
+			`Failed to write template package.json at ${templatePackageJsonPath}`,
+			'patch_template_package_json',
 			buildMode,
 			branch
 		);
@@ -799,6 +882,18 @@ if (
 	process.argv[1] &&
 	fileURLToPath(import.meta.url) === resolve(process.argv[1])
 ) {
+	const fetchOptions = parseFetchOptions();
+	main(fetchOptions);
+}
+process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
+)
+{
+	const fetchOptions = parseFetchOptions();
+	main(fetchOptions);
+}
+process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
+)
+{
 	const fetchOptions = parseFetchOptions();
 	main(fetchOptions);
 }
