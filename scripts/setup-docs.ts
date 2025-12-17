@@ -885,15 +885,3 @@ if (
 	const fetchOptions = parseFetchOptions();
 	main(fetchOptions);
 }
-process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
-)
-{
-	const fetchOptions = parseFetchOptions();
-	main(fetchOptions);
-}
-process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
-)
-{
-	const fetchOptions = parseFetchOptions();
-	main(fetchOptions);
-}
