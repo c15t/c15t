@@ -150,6 +150,7 @@ jobs:
           vercel_token: ${{ secrets.VERCEL_TOKEN }}
           vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
+          working_directory: .docs
 
           alias_domains: |
             ${{ github.event_name == 'pull_request' && format('pr-{0}.c15t.dev', github.event.pull_request.number) || github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number && format('pr-{0}.c15t.dev', github.event.inputs.pr_number) || format('preview-{0}.c15t.dev', steps.deploy-info.outputs.branch) }}
@@ -193,6 +194,7 @@ jobs:
           vercel_token: ${{ secrets.VERCEL_TOKEN }}
           vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
+          working_directory: .docs
 
           assign_alias_on_branch: ${{ steps.branch.outputs.name }}
           alias_domains: |

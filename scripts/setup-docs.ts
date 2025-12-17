@@ -59,7 +59,7 @@ const error = console.error;
  */
 
 import { execSync } from 'node:child_process';
-import { cpSync, existsSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { exit } from 'node:process';
@@ -512,6 +512,7 @@ function installDocumentationTemplate(
 		cpSync(FETCH_CONFIG.TEMP_DOCS_DIR, FETCH_CONFIG.DOCS_APP_DIR, {
 			recursive: true,
 		});
+		cleanupDocsTemplates(buildMode, branch);
 		log('✅ Installation completed successfully');
 	} catch {
 		throw new FetchScriptError(
@@ -521,6 +522,61 @@ function installDocumentationTemplate(
 			branch
 		);
 	}
+}
+
+function cleanupDocsTemplates(buildMode: BuildMode, branch: GitBranch): void {
+	const templatesDir = join(FETCH_CONFIG.DOCS_APP_DIR, 'templates');
+	if (!existsSync(templatesDir)) {
+		return;
+	}
+	try {
+		const entries = readdirSync(templatesDir, { withFileTypes: true });
+		for (const entry of entries) {
+			if (!entry.isDirectory()) {
+				continue;
+			}
+			if (entry.name === 'c15t') {
+				continue;
+			}
+			const templatePath = join(templatesDir, entry.name);
+			log(`🧹 Removing unwanted docs template: ${entry.name}`);
+			rmSync(templatePath, { recursive: true, force: true });
+		}
+	} catch {
+		throw new FetchScriptError(
+			`Failed to clean templates directory at ${templatesDir}`,
+			'cleanup_templates',
+			buildMode,
+			branch
+		);
+	}
+}
+
+function pullTemplateContent(buildMode: BuildMode, branch: GitBranch): void {
+	const templateDir = join(FETCH_CONFIG.DOCS_APP_DIR, 'templates', 'c15t');
+	if (!existsSync(templateDir)) {
+		throw new FetchScriptError(
+			`Template directory not found at ${templateDir}`,
+			'pull_content',
+			buildMode,
+			branch
+		);
+	}
+	if (buildMode === 'production') {
+		executeCommand(
+			`cd ${templateDir} && pnpm tsx scripts/content/pull.ts --vercel --branch=${branch}`,
+			'Pulling docs content into templates/c15t/.c15t',
+			buildMode,
+			branch
+		);
+		return;
+	}
+	executeCommand(
+		`cd ${templateDir} && pnpm tsx scripts/content/pull.ts --branch=${branch}`,
+		'Pulling docs content into templates/c15t/.c15t',
+		buildMode,
+		branch
+	);
 }
 
 /**
@@ -548,14 +604,15 @@ function installDocumentationTemplate(
  * @see {@link https://fumadocs.vercel.app/docs/mdx | Fumadocs MDX Documentation}
  */
 function processMDXContent(buildMode: BuildMode, branch: GitBranch): void {
+	const templateDir = join(FETCH_CONFIG.DOCS_APP_DIR, 'templates', 'c15t');
 	executeCommand(
-		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm copy-content`,
+		`cd ${templateDir} && pnpm copy-content`,
 		'Copying MDX content with copy-content',
 		buildMode,
 		branch
 	);
 	executeCommand(
-		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm fumadocs-mdx`,
+		`cd ${templateDir} && pnpm exec fumadocs-mdx`,
 		'Processing MDX content with fumadocs-mdx',
 		buildMode,
 		branch
@@ -591,8 +648,8 @@ function installDocsAppDependencies(
 	branch: GitBranch
 ): void {
 	executeCommand(
-		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm install --ignore-workspace --frozen-lockfile`,
-		'Installing .docs dependencies in isolation',
+		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm install --frozen-lockfile`,
+		'Installing .docs workspace dependencies',
 		buildMode,
 		branch
 	);
@@ -695,9 +752,16 @@ function main(fetchOptions: FetchOptions): void {
 		// Phase 3: Integrate template into workspace
 		installDocumentationTemplate(fetchOptions.mode, fetchOptions.branch);
 
-		// Development: Install dependencies and process content locally
+		// Phase 4: Install workspace deps so the template can execute its scripts
 		installDocsAppDependencies(fetchOptions.mode, fetchOptions.branch);
-		processMDXContent(fetchOptions.mode, fetchOptions.branch);
+
+		// Phase 5: Pull content into templates/c15t/.c15t (required for build)
+		pullTemplateContent(fetchOptions.mode, fetchOptions.branch);
+
+		// Development: Process MDX for local dev (production build can rely on Vercel build)
+		if (!fetchOptions.isProduction) {
+			processMDXContent(fetchOptions.mode, fetchOptions.branch);
+		}
 
 		// Phase 5: Skip building here; Vercel will run the build
 		if (fetchOptions.isProduction) {
