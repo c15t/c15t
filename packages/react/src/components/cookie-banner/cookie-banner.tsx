@@ -6,7 +6,7 @@
  * Implements an accessible, customizable banner following GDPR requirements.
  */
 
-import type { FC, ReactNode } from 'react';
+import { type FC, Fragment, type ReactNode } from 'react';
 import { ConsentButton } from '~/components/shared/primitives/button';
 import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { useTheme } from '~/hooks/use-theme';
@@ -22,6 +22,21 @@ import {
 } from './components';
 import { ErrorBoundary } from './error-boundary';
 import type { CookieBannerTheme } from './theme';
+
+/**
+ * Identifiers for the available buttons in the cookie banner.
+ * @public
+ */
+export type CookieBannerButton = 'reject' | 'accept' | 'customize';
+
+/**
+ * Structure for defining the layout of buttons in the cookie banner.
+ * Supports nesting for grouping buttons.
+ * @public
+ */
+export type CookieBannerLayout = (CookieBannerButton | CookieBannerButton[])[];
+
+const DEFAULT_LAYOUT: CookieBannerLayout = [['reject', 'accept'], 'customize'];
 
 /**
  * Props for configuring and customizing the CookieBanner component.
@@ -128,6 +143,21 @@ export interface CookieBannerProps {
 	 * You must set the legal links in the ConsentManagerProvider options.
 	 */
 	legalLinks?: LegalLinksProps['links'];
+
+	/**
+	 * Defines the layout of buttons in the footer.
+	 * Allows reordering and grouping of buttons.
+	 *
+	 * @defaultValue [['reject', 'accept'], 'customize']
+	 */
+	layout?: CookieBannerLayout;
+
+	/**
+	 * Specifies which button(s) should be highlighted as the primary action.
+	 *
+	 * @defaultValue 'customize'
+	 */
+	primaryButton?: CookieBannerButton | CookieBannerButton[];
 }
 
 export const CookieBanner: FC<CookieBannerProps> = ({
@@ -142,6 +172,8 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 	customizeButtonText,
 	acceptButtonText,
 	legalLinks,
+	layout = DEFAULT_LAYOUT,
+	primaryButton = 'customize',
 }) => {
 	const { cookieBanner, common } = useTranslations();
 
@@ -162,6 +194,52 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 		trapFocus: localTrapFocus ?? globalTheme.trapFocus,
 	};
 
+	const renderButton = (type: CookieBannerButton) => {
+		const isPrimary = Array.isArray(primaryButton)
+			? primaryButton.includes(type)
+			: type === primaryButton;
+		const variant = isPrimary ? 'primary' : undefined;
+
+		switch (type) {
+			case 'reject':
+				return (
+					<ConsentButton
+						action="reject-consent"
+						closeCookieBanner
+						themeKey="banner.footer.reject-button"
+						data-testid="cookie-banner-reject-button"
+						variant={variant}
+					>
+						{rejectButtonText || common.rejectAll}
+					</ConsentButton>
+				);
+			case 'accept':
+				return (
+					<ConsentButton
+						action="accept-consent"
+						closeCookieBanner
+						themeKey="banner.footer.accept-button"
+						data-testid="cookie-banner-accept-button"
+						variant={variant}
+					>
+						{acceptButtonText || common.acceptAll}
+					</ConsentButton>
+				);
+			case 'customize':
+				return (
+					<ConsentButton
+						action="open-consent-dialog"
+						closeCookieBanner
+						themeKey="banner.footer.customize-button"
+						data-testid="cookie-banner-customize-button"
+						variant={variant}
+					>
+						{customizeButtonText || common.customize}
+					</ConsentButton>
+				);
+		}
+	};
+
 	return (
 		<ErrorBoundary
 			fallback={<div>Something went wrong with the Cookie Banner.</div>}
@@ -175,33 +253,21 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 						</CookieBannerDescription>
 					</CookieBannerHeader>
 					<CookieBannerFooter>
-						<CookieBannerFooterSubGroup>
-							<ConsentButton
-								action="reject-consent"
-								closeCookieBanner
-								themeKey="banner.footer.reject-button"
-								data-testid="cookie-banner-reject-button"
-							>
-								{rejectButtonText || common.rejectAll}
-							</ConsentButton>
-							<ConsentButton
-								action="accept-consent"
-								closeCookieBanner
-								themeKey="banner.footer.accept-button"
-								data-testid="cookie-banner-accept-button"
-							>
-								{acceptButtonText || common.acceptAll}
-							</ConsentButton>
-						</CookieBannerFooterSubGroup>
-						<ConsentButton
-							action="open-consent-dialog"
-							variant="primary"
-							closeCookieBanner
-							themeKey="banner.footer.customize-button"
-							data-testid="cookie-banner-customize-button"
-						>
-							{customizeButtonText || common.customize}
-						</ConsentButton>
+						{layout.map((item, index) => {
+							if (Array.isArray(item)) {
+								const groupKey = item.join('-');
+								return (
+									<CookieBannerFooterSubGroup
+										key={groupKey ? `group-${groupKey}` : `group-${index}`}
+									>
+										{item.map((subItem) => (
+											<Fragment key={subItem}>{renderButton(subItem)}</Fragment>
+										))}
+									</CookieBannerFooterSubGroup>
+								);
+							}
+							return <Fragment key={item}>{renderButton(item)}</Fragment>;
+						})}
 					</CookieBannerFooter>
 				</CookieBannerCard>
 			</CookieBannerRoot>
