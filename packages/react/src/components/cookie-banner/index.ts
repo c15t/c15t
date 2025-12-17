@@ -25,7 +25,9 @@ import {
 	Title,
 } from './components';
 import {
+	type CookieBannerButton,
 	CookieBanner as CookieBannerComponent,
+	type CookieBannerLayout,
 	type CookieBannerProps,
 } from './cookie-banner';
 
@@ -126,7 +128,12 @@ const CookieBanner = Object.assign(CookieBannerComponent, {
 
 // Export the main component as both default and named export
 export default CookieBanner;
-export { CookieBanner, type CookieBannerProps };
+export {
+	CookieBanner,
+	type CookieBannerButton,
+	type CookieBannerLayout,
+	type CookieBannerProps,
+};
 
 // Export individual components for backward compatibility
 export { CookieBannerOverlay, Overlay } from './atoms/overlay';
