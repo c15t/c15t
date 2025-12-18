@@ -67,11 +67,11 @@ importers:
         specifier: 1.57.0
         version: 1.57.0
       react:
-        specifier: 19.2.1
-        version: 19.2.1
+        specifier: 19.2.3
+        version: 19.2.3
       react-dom:
-        specifier: 19.2.1
-        version: 19.2.1(react@19.2.1)
+        specifier: 19.2.3
+        version: 19.2.3(react@19.2.3)
       remark-cli:
         specifier: 12.0.1
         version: 12.0.1
@@ -101,7 +101,7 @@ importers:
         version: 4.0.15(@opentelemetry/api@1.9.0)(@types/node@24.10.1)(@vitest/browser-playwright@4.0.15)(@vitest/ui@4.0.15)(jiti@2.6.1)(jsdom@27.2.0)(lightningcss@1.30.2)(msw@2.12.4(@types/node@24.10.1)(typescript@5.9.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.2)
       vitest-browser-react:
         specifier: 2.0.2
-        version: 2.0.2(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(vitest@4.0.15)
+        version: 2.0.2(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vitest@4.0.15)
 
   internals/bundle-analysis-action:
     dependencies:
@@ -299,7 +299,7 @@ importers:
         version: link:../translations
       zustand:
         specifier: 5.0.9
-        version: 5.0.9(@types/react@19.2.7)(immer@9.0.21)(react@19.2.1)(use-sync-external-store@1.6.0(react@19.2.1))
+        version: 5.0.9(@types/react@19.2.7)(immer@9.0.21)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))
     devDependencies:
       '@c15t/typescript-config':
         specifier: workspace:*
@@ -518,7 +518,7 @@ importers:
         version: link:../../internals/vitest-config
       lingo.dev:
         specifier: 0.117.10
-        version: 0.117.10(@types/node@24.10.1)(@types/react@19.2.7)(encoding@0.1.13)(next@16.0.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.1(react@19.2.0))(react@19.2.0)(sass@1.89.2))
+        version: 0.117.10(@types/node@24.10.1)(@types/react@19.2.7)(encoding@0.1.13)(next@16.0.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.0))(react@19.2.0)(sass@1.89.2))
 
 packages:
 
@@ -6212,6 +6212,11 @@ packages:
     peerDependencies:
       react: ^19.2.1
 
+  react-dom@19.2.3:
+    resolution: {integrity: sha512-yELu4WmLPw5Mr/lmeEpox5rw3RETacE++JgHqQzd2dg+YbJuat3jH4ingc+WPZhxaoFzdv9y33G+F7Nl5O0GBg==}
+    peerDependencies:
+      react: ^19.2.3
+
   react-draggable@4.5.0:
     resolution: {integrity: sha512-VC+HBLEZ0XJxnOxVAZsdRi8rD04Iz3SiiKOoYzamjylUcju/hP9np/aZdLHf/7WOD268WMoNJMvYfB5yAK45cw==}
     peerDependencies:
@@ -6241,6 +6246,10 @@ packages:
 
   react@19.2.1:
     resolution: {integrity: sha512-DGrYcCWK7tvYMnWh79yrPHt+vdx9tY+1gPZa7nJQtO/p8bLTDaHp4dzwEhQB7pZ4Xe3ok4XKuEPrVuc+wlpkmw==}
+    engines: {node: '>=0.10.0'}
+
+  react@19.2.3:
+    resolution: {integrity: sha512-Ku/hhYbVjOQnXDZFv2+RibmLFGwFdeeKHFcOTlrt7xplBnya5OGn/hIRDsqDiSUcfORsDC7MPxwork8jBwsIWA==}
     engines: {node: '>=0.10.0'}
 
   read-package-json-fast@3.0.2:
@@ -8741,11 +8750,11 @@ snapshots:
     dependencies:
       iso-639-3: 3.0.1
 
-  '@lingo.dev/_react@0.7.0(next@16.0.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.1(react@19.2.0))(react@19.2.0)(sass@1.89.2))':
+  '@lingo.dev/_react@0.7.0(next@16.0.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.0))(react@19.2.0)(sass@1.89.2))':
     dependencies:
       js-cookie: 3.0.5
       lodash: 4.17.21
-      next: 16.0.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.1(react@19.2.0))(react@19.2.0)(sass@1.89.2)
+      next: 16.0.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.0))(react@19.2.0)(sass@1.89.2)
 
   '@lingo.dev/_sdk@0.13.3':
     dependencies:
@@ -12478,7 +12487,7 @@ snapshots:
 
   lines-and-columns@2.0.4: {}
 
-  lingo.dev@0.117.10(@types/node@24.10.1)(@types/react@19.2.7)(encoding@0.1.13)(next@16.0.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.1(react@19.2.0))(react@19.2.0)(sass@1.89.2)):
+  lingo.dev@0.117.10(@types/node@24.10.1)(@types/react@19.2.7)(encoding@0.1.13)(next@16.0.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.0))(react@19.2.0)(sass@1.89.2)):
     dependencies:
       '@ai-sdk/anthropic': 1.2.11(zod@3.25.76)
       '@ai-sdk/google': 1.2.19(zod@3.25.76)
@@ -12496,7 +12505,7 @@ snapshots:
       '@inquirer/prompts': 7.8.0(@types/node@24.10.1)
       '@lingo.dev/_compiler': 0.8.4(react@19.2.0)
       '@lingo.dev/_locales': 0.3.0
-      '@lingo.dev/_react': 0.7.0(next@16.0.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.1(react@19.2.0))(react@19.2.0)(sass@1.89.2))
+      '@lingo.dev/_react': 0.7.0(next@16.0.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.0))(react@19.2.0)(sass@1.89.2))
       '@lingo.dev/_sdk': 0.13.3
       '@lingo.dev/_spec': 0.44.3
       '@markdoc/markdoc': 0.5.4(@types/react@19.2.7)(react@19.2.0)
@@ -13312,14 +13321,14 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  next@16.0.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.1(react@19.2.0))(react@19.2.0)(sass@1.89.2):
+  next@16.0.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.0))(react@19.2.0)(sass@1.89.2):
     dependencies:
       '@next/env': 16.0.0
       '@swc/helpers': 0.5.15
       caniuse-lite: 1.0.30001751
       postcss: 8.4.31
       react: 19.2.0
-      react-dom: 19.2.1(react@19.2.0)
+      react-dom: 19.2.3(react@19.2.0)
       styled-jsx: 5.1.6(@babel/core@7.28.5)(react@19.2.0)
     optionalDependencies:
       '@next/swc-darwin-arm64': 16.0.0
@@ -13904,14 +13913,19 @@ snapshots:
       react: 19.1.0
       scheduler: 0.26.0
 
-  react-dom@19.2.1(react@19.2.0):
+  react-dom@19.2.1(react@19.2.1):
+    dependencies:
+      react: 19.2.1
+      scheduler: 0.27.0
+
+  react-dom@19.2.3(react@19.2.0):
     dependencies:
       react: 19.2.0
       scheduler: 0.27.0
 
-  react-dom@19.2.1(react@19.2.1):
+  react-dom@19.2.3(react@19.2.3):
     dependencies:
-      react: 19.2.1
+      react: 19.2.3
       scheduler: 0.27.0
 
   react-draggable@4.5.0(react-dom@19.2.1(react@19.2.1))(react@19.2.1):
@@ -13936,6 +13950,8 @@ snapshots:
   react@19.2.0: {}
 
   react@19.2.1: {}
+
+  react@19.2.3: {}
 
   read-package-json-fast@3.0.2:
     dependencies:
@@ -15201,6 +15217,11 @@ snapshots:
       react: 19.2.1
     optional: true
 
+  use-sync-external-store@1.6.0(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+    optional: true
+
   usehooks-ts@3.1.1(react@19.2.1):
     dependencies:
       lodash.debounce: 4.0.8
@@ -15275,10 +15296,10 @@ snapshots:
       tsx: 4.21.0
       yaml: 2.8.2
 
-  vitest-browser-react@2.0.2(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(vitest@4.0.15):
+  vitest-browser-react@2.0.2(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vitest@4.0.15):
     dependencies:
-      react: 19.2.1
-      react-dom: 19.2.1(react@19.2.1)
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
       vitest: 4.0.15(@opentelemetry/api@1.9.0)(@types/node@24.10.1)(@vitest/browser-playwright@4.0.15)(@vitest/ui@4.0.15)(jiti@2.6.1)(jsdom@27.2.0)(lightningcss@1.30.2)(msw@2.12.4(@types/node@24.10.1)(typescript@5.9.3))(sass@1.89.2)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.2)
     optionalDependencies:
       '@types/react': 19.2.7
@@ -15505,5 +15526,12 @@ snapshots:
       immer: 9.0.21
       react: 19.2.1
       use-sync-external-store: 1.6.0(react@19.2.1)
+
+  zustand@5.0.9(@types/react@19.2.7)(immer@9.0.21)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3)):
+    optionalDependencies:
+      '@types/react': 19.2.7
+      immer: 9.0.21
+      react: 19.2.3
+      use-sync-external-store: 1.6.0(react@19.2.3)
 
   zwitch@2.0.4: {}

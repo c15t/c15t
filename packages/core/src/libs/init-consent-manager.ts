@@ -89,7 +89,7 @@ function updateStore(
 		branding: data.branding ?? 'c15t',
 		...(consentInfo === null
 			? {
-					showPopup: consentModel && hasLocalStorageAccess,
+					showPopup: !!consentModel && hasLocalStorageAccess,
 				}
 			: {}),
 

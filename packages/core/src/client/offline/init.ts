@@ -5,8 +5,8 @@ import {
 	type TranslationConfig,
 	type Translations,
 } from '@c15t/translations';
-import { checkJurisdiction } from '~/libs/jurisdiction';
-import { defaultTranslationConfig } from '~/translations';
+import { checkJurisdiction } from '../../libs/jurisdiction';
+import { defaultTranslationConfig } from '../../translations';
 import type { InitResponse } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
 import { createResponseContext } from './utils';
