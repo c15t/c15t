@@ -80,6 +80,7 @@ const createMockStoreState = (
 		disableAutoLanguageSwitch: false,
 	},
 	setTranslationConfig: vi.fn(),
+	setLanguage: vi.fn(),
 	includeNonDisplayedConsents: false,
 	consentTypes: [],
 	scripts: [],

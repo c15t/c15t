@@ -1,6 +1,6 @@
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
-import type { C15TOptions } from '~/types';
-import { version } from '~/version';
+import type { C15TOptions } from '../types';
+import { version } from '../version';
 
 type TelemetryConfig = NonNullable<C15TOptions['advanced']>['telemetry'];
 

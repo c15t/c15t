@@ -70,6 +70,13 @@ describe('Offline Client Tests', () => {
 	it('should handle language header', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			store: {
+				initialTranslationConfig: {
+					translations: {
+						de: {},
+					},
+				},
+			},
 		});
 
 		const response = await client.init({
