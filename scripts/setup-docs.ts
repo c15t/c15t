@@ -1109,6 +1109,44 @@ function copyWorkspacePackages(buildMode: BuildMode, branch: GitBranch): void {
 			// Ensure parent directory exists
 			ensureDirExists(dirname(destPath));
 
+			// Debug: List source directory contents before copying
+			if (source.includes('optin/docs')) {
+				log(`   🔍 Source directory: ${sourcePath}`);
+				if (existsSync(sourcePath)) {
+					const sourceContents = readdirSync(sourcePath, {
+						withFileTypes: true,
+					});
+					log(`   📋 Source contents (${sourceContents.length} items):`);
+					for (const item of sourceContents.slice(0, 20)) {
+						log(`      ${item.isDirectory() ? '📁' : '📄'} ${item.name}`);
+					}
+					// Check if build directory exists in source
+					const sourceScriptsDir = join(sourcePath, 'src', 'scripts');
+					if (existsSync(sourceScriptsDir)) {
+						const scriptsContents = readdirSync(sourceScriptsDir, {
+							withFileTypes: true,
+						});
+						log('   📋 Source scripts directory contents:');
+						for (const item of scriptsContents) {
+							log(`      ${item.isDirectory() ? '📁' : '📄'} ${item.name}`);
+						}
+						// Check specifically for build directory
+						const sourceBuildDir = join(sourceScriptsDir, 'build');
+						if (existsSync(sourceBuildDir)) {
+							const buildContents = readdirSync(sourceBuildDir, {
+								withFileTypes: true,
+							});
+							log('   📋 Source build directory contents:');
+							for (const item of buildContents) {
+								log(`      ${item.isDirectory() ? '📁' : '📄'} ${item.name}`);
+							}
+						} else {
+							log('   ⚠️  Source build directory does not exist!');
+						}
+					}
+				}
+			}
+
 			cpSync(sourcePath, destPath, {
 				recursive: true,
 				force: true,
