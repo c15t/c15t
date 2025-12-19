@@ -1088,6 +1088,7 @@ function copyWorkspacePackages(buildMode: BuildMode, branch: GitBranch): void {
 	const monorepoRoot = FETCH_CONFIG.TEMP_DOCS_DIR;
 	const packagesToCopy = [
 		{ source: 'pkgs/icon-scanner', dest: 'pkgs/icon-scanner' },
+		{ source: 'pkgs/typescript-config', dest: 'pkgs/typescript-config' },
 		{ source: 'pkgs/optin/og', dest: 'pkgs/optin/og' },
 		{ source: 'pkgs/optin/components', dest: 'pkgs/optin/components' },
 		{ source: 'pkgs/optin/docs', dest: 'pkgs/optin/docs' },
