@@ -808,9 +808,41 @@ function installDocumentationTemplate(
 				branch
 			);
 		}
+
+		// Debug: List contents of source directory
+		log(`📂 Source directory: ${templateSourceDir}`);
+		if (existsSync(templateSourceDir)) {
+			const sourceContents = readdirSync(templateSourceDir, {
+				withFileTypes: true,
+			});
+			log(`📋 Source directory contents (${sourceContents.length} items):`);
+			for (const item of sourceContents.slice(0, 20)) {
+				log(`   ${item.isDirectory() ? '📁' : '📄'} ${item.name}`);
+			}
+			if (sourceContents.length > 20) {
+				log(`   ... and ${sourceContents.length - 20} more items`);
+			}
+		}
+
 		cpSync(templateSourceDir, FETCH_CONFIG.DOCS_APP_DIR, {
 			recursive: true,
 		});
+
+		// Debug: List contents of destination directory
+		log(`📂 Destination directory: ${FETCH_CONFIG.DOCS_APP_DIR}`);
+		if (existsSync(FETCH_CONFIG.DOCS_APP_DIR)) {
+			const destContents = readdirSync(FETCH_CONFIG.DOCS_APP_DIR, {
+				withFileTypes: true,
+			});
+			log(`📋 Destination directory contents (${destContents.length} items):`);
+			for (const item of destContents.slice(0, 20)) {
+				log(`   ${item.isDirectory() ? '📁' : '📄'} ${item.name}`);
+			}
+			if (destContents.length > 20) {
+				log(`   ... and ${destContents.length - 20} more items`);
+			}
+		}
+
 		cleanupDocsTemplates(buildMode, branch);
 		patchC15tDocsTemplatePackageJson(buildMode, branch);
 		log('✅ Installation completed successfully');
@@ -853,7 +885,45 @@ function patchC15tDocsTemplatePackageJson(
 		'c15t',
 		'package.json'
 	);
+
+	// Debug: Check what's actually in the .docs directory
+	log(`🔍 Looking for template package.json at: ${templatePackageJsonPath}`);
 	if (!existsSync(templatePackageJsonPath)) {
+		// Debug: List what's actually in .docs/templates if it exists
+		const templatesDir = join(FETCH_CONFIG.DOCS_APP_DIR, 'templates');
+		if (existsSync(templatesDir)) {
+			log('📋 Contents of .docs/templates:');
+			const templatesContents = readdirSync(templatesDir, {
+				withFileTypes: true,
+			});
+			for (const item of templatesContents) {
+				log(`   ${item.isDirectory() ? '📁' : '📄'} ${item.name}`);
+				if (item.isDirectory()) {
+					const subDir = join(templatesDir, item.name);
+					const subContents = readdirSync(subDir, { withFileTypes: true });
+					log(`      (${subContents.length} items)`);
+					for (const subItem of subContents.slice(0, 5)) {
+						log(`      ${subItem.isDirectory() ? '📁' : '📄'} ${subItem.name}`);
+					}
+					if (subContents.length > 5) {
+						log(`      ... and ${String(subContents.length - 5)} more`);
+					}
+				}
+			}
+		} else {
+			log('⚠️  .docs/templates directory does not exist');
+			// List root of .docs
+			if (existsSync(FETCH_CONFIG.DOCS_APP_DIR)) {
+				log('📋 Contents of .docs root:');
+				const rootContents = readdirSync(FETCH_CONFIG.DOCS_APP_DIR, {
+					withFileTypes: true,
+				});
+				for (const item of rootContents.slice(0, 20)) {
+					log(`   ${item.isDirectory() ? '📁' : '📄'} ${item.name}`);
+				}
+			}
+		}
+
 		throw new FetchScriptError(
 			`Template package.json not found at ${templatePackageJsonPath}`,
 			'patch_template_package_json',
