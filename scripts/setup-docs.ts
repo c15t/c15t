@@ -63,7 +63,13 @@ const error = console.error;
  */
 
 import { execSync } from 'node:child_process';
-import { cpSync, existsSync, rmSync, writeFileSync } from 'node:fs';
+import {
+	cpSync,
+	existsSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { exit } from 'node:process';
@@ -618,8 +624,36 @@ function installDocumentationTemplate(
 		}
 
 		// Create pnpm-workspace.yaml in .docs to enable workspace dependencies
+		// Include catalog from monorepo to resolve catalog: references
+		const monorepoWorkspacePath = join(
+			FETCH_CONFIG.TEMP_DOCS_DIR,
+			'pnpm-workspace.yaml'
+		);
+		let catalogSection = '';
+
+		if (existsSync(monorepoWorkspacePath)) {
+			log('📖 Reading catalog from monorepo pnpm-workspace.yaml');
+			const monorepoWorkspaceContent = readFileSync(
+				monorepoWorkspacePath,
+				'utf-8'
+			);
+			// Extract catalog section from monorepo workspace file
+			// Match "catalog:" followed by indented entries
+			const catalogMatch = monorepoWorkspaceContent.match(
+				/^catalog:\s*\n((?: {2}[^\n:]+:[^\n]+\n?)+)/m
+			);
+			if (catalogMatch) {
+				catalogSection = '\n' + catalogMatch[0];
+				log('✅ Catalog section found in monorepo workspace file');
+			} else {
+				log('⚠️  WARNING: No catalog section found in monorepo workspace file');
+			}
+		} else {
+			log('⚠️  WARNING: Monorepo pnpm-workspace.yaml not found');
+		}
+
 		const workspaceConfig = `packages:
-  - "pkgs/**"
+  - "pkgs/**"${catalogSection}
 `;
 		const workspaceConfigPath = join(
 			FETCH_CONFIG.DOCS_APP_DIR,
@@ -629,33 +663,32 @@ function installDocumentationTemplate(
 		writeFileSync(workspaceConfigPath, workspaceConfig, 'utf-8');
 		log('✅ pnpm-workspace.yaml created successfully');
 
-		// Check for lockfile and copy from monorepo root if needed
-		const monorepoLockfilePath = join(
-			FETCH_CONFIG.TEMP_DOCS_DIR,
-			'pnpm-lock.yaml'
-		);
+		// Check for lockfile - only use template's lockfile if it exists
+		// Do NOT copy monorepo root lockfile as it's for a different workspace
+		// The monorepo root lockfile contains dependencies for the root package.json,
+		// not for the isolated .docs workspace, so it will cause mismatches
 		const docsLockfilePath = join(FETCH_CONFIG.DOCS_APP_DIR, 'pnpm-lock.yaml');
 		const templateLockfilePath = join(docsTemplatePath, 'pnpm-lock.yaml');
 
 		log('🔍 DEBUG: Checking for lockfile...');
 		log(
-			`🔍 DEBUG: Monorepo lockfile exists: ${existsSync(monorepoLockfilePath)}`
-		);
-		log(
 			`🔍 DEBUG: Template lockfile exists: ${existsSync(templateLockfilePath)}`
 		);
 		log(`🔍 DEBUG: Docs lockfile exists: ${existsSync(docsLockfilePath)}`);
 
+		// Only copy lockfile from template if it exists and is specific to the docs app
+		// Do NOT copy monorepo root lockfile - it's for a different workspace and will cause mismatches
 		if (existsSync(templateLockfilePath)) {
 			log('📦 Copying lockfile from template to .docs');
 			cpSync(templateLockfilePath, docsLockfilePath);
 			log('✅ Lockfile copied from template');
-		} else if (existsSync(monorepoLockfilePath)) {
-			log('📦 Copying lockfile from monorepo root to .docs');
-			cpSync(monorepoLockfilePath, docsLockfilePath);
-			log('✅ Lockfile copied from monorepo root');
 		} else {
-			log('⚠️  WARNING: No lockfile found. Will generate one during install.');
+			log(
+				'ℹ️  INFO: No template lockfile found. Will generate a new lockfile during install.'
+			);
+			log(
+				'ℹ️  INFO: This is expected since we are creating an isolated workspace.'
+			);
 		}
 
 		log('✅ Installation completed successfully');
@@ -738,22 +771,38 @@ function installDocsAppDependencies(
 	branch: GitBranch
 ): void {
 	const lockfilePath = join(FETCH_CONFIG.DOCS_APP_DIR, 'pnpm-lock.yaml');
+	const packageJsonPath = join(FETCH_CONFIG.DOCS_APP_DIR, 'package.json');
 	const hasLockfile = existsSync(lockfilePath);
+	const hasPackageJson = existsSync(packageJsonPath);
 
-	log('🔍 DEBUG: Checking lockfile before install...');
+	log('🔍 DEBUG: Checking before install...');
 	log(`🔍 DEBUG: Lockfile path: ${lockfilePath}`);
 	log(`🔍 DEBUG: Lockfile exists: ${hasLockfile}`);
+	log(`🔍 DEBUG: Package.json exists: ${hasPackageJson}`);
+
+	if (!hasPackageJson) {
+		throw new FetchScriptError(
+			`package.json not found at ${packageJsonPath}. Template installation may have failed.`,
+			'install_dependencies',
+			buildMode,
+			branch
+		);
+	}
 
 	// Install dependencies with workspace support (no --ignore-workspace flag)
 	// The pnpm-workspace.yaml allows workspace:* dependencies to resolve
-	// Use --frozen-lockfile only if lockfile exists, otherwise generate it
-	const installCommand = hasLockfile
-		? `cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm install --frozen-lockfile`
-		: `cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm install`;
+	// For isolated workspace, we generate a fresh lockfile rather than using monorepo's
+	// The monorepo root lockfile won't match because it's for a different package.json
+	// Always generate a new lockfile to ensure it matches the isolated workspace
+	const installCommand = `cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm install`;
 
-	if (!hasLockfile) {
+	if (hasLockfile) {
 		log(
-			'⚠️  WARNING: No lockfile found. Installing without --frozen-lockfile to generate one.'
+			'ℹ️  INFO: Lockfile exists but will be regenerated to match isolated workspace.'
+		);
+	} else {
+		log(
+			'ℹ️  INFO: No lockfile found. Generating a new lockfile for isolated workspace.'
 		);
 	}
 
