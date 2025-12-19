@@ -68,7 +68,7 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { exit } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
@@ -828,6 +828,12 @@ function installDocumentationTemplate(
 			recursive: true,
 		});
 
+		// Copy required workspace packages that docs depends on
+		copyWorkspacePackages(buildMode, branch);
+
+		// Create pnpm-workspace.yaml for the standalone workspace
+		createWorkspaceConfig(buildMode, branch);
+
 		// Debug: List contents of destination directory
 		log(`📂 Destination directory: ${FETCH_CONFIG.DOCS_APP_DIR}`);
 		if (existsSync(FETCH_CONFIG.DOCS_APP_DIR)) {
@@ -1041,11 +1047,10 @@ function patchVercelJson(buildMode: BuildMode, branch: GitBranch): void {
 
 	// Update installCommand to install only in current directory
 	// Remove the monorepo-specific command that causes memory issues
-	// Use `pnpm install` without --frozen-lockfile since we don't have a lockfile
-	// in the standalone .docs directory (it was part of a monorepo)
+	// Use --frozen-lockfile now that we copy the lockfile from the monorepo
 	const updatedConfig = {
 		...vercelConfig,
-		installCommand: 'pnpm install',
+		installCommand: 'pnpm install --frozen-lockfile',
 	};
 
 	try {
@@ -1062,6 +1067,144 @@ function patchVercelJson(buildMode: BuildMode, branch: GitBranch): void {
 			buildMode,
 			branch
 		);
+	}
+}
+
+/**
+ * Copies required workspace packages that the docs app depends on
+ *
+ * The docs app has workspace dependencies that need to be available. This function
+ * copies the necessary packages from the monorepo into the .docs directory structure.
+ *
+ * @param buildMode - Current build mode for error context
+ * @param branch - Current branch for error context
+ *
+ * @throws {FetchScriptError} When package copying fails
+ */
+function copyWorkspacePackages(buildMode: BuildMode, branch: GitBranch): void {
+	log('📦 Copying required workspace packages...');
+
+	const monorepoRoot = FETCH_CONFIG.TEMP_DOCS_DIR;
+	const packagesToCopy = [
+		{ source: 'pkgs/icon-scanner', dest: 'pkgs/icon-scanner' },
+		{ source: 'pkgs/optin/og', dest: 'pkgs/optin/og' },
+		{ source: 'pkgs/optin/components', dest: 'pkgs/optin/components' },
+		{ source: 'pkgs/optin/docs', dest: 'pkgs/optin/docs' },
+		{ source: 'pkgs/optin/flags', dest: 'pkgs/optin/flags' },
+		{ source: 'pkgs/optin/icons', dest: 'pkgs/optin/icons' },
+	];
+
+	for (const { source, dest } of packagesToCopy) {
+		const sourcePath = join(monorepoRoot, source);
+		const destPath = join(FETCH_CONFIG.DOCS_APP_DIR, dest);
+
+		if (!existsSync(sourcePath)) {
+			log(`⚠️  Package ${source} not found, skipping...`);
+			continue;
+		}
+
+		try {
+			// Ensure parent directory exists
+			ensureDirExists(dirname(destPath));
+
+			cpSync(sourcePath, destPath, {
+				recursive: true,
+			});
+			log(`   ✅ Copied ${source} -> ${dest}`);
+		} catch (error) {
+			throw new FetchScriptError(
+				`Failed to copy workspace package ${source} to ${dest}: ${error instanceof Error ? error.message : String(error)}`,
+				'copy_workspace_packages',
+				buildMode,
+				branch
+			);
+		}
+	}
+}
+
+/**
+ * Creates a pnpm-workspace.yaml file for the standalone .docs workspace
+ *
+ * This enables pnpm to resolve workspace dependencies within the .docs directory.
+ * Also copies the pnpm-lock.yaml from the monorepo root to ensure version consistency.
+ *
+ * @param buildMode - Current build mode for error context
+ * @param branch - Current branch for error context
+ *
+ * @throws {FetchScriptError} When workspace config cannot be written
+ */
+function createWorkspaceConfig(buildMode: BuildMode, branch: GitBranch): void {
+	const workspaceConfigPath = join(
+		FETCH_CONFIG.DOCS_APP_DIR,
+		'pnpm-workspace.yaml'
+	);
+
+	// Read catalog from monorepo's pnpm-workspace.yaml to preserve catalog dependencies
+	let catalogSection = '';
+	const monorepoWorkspacePath = join(
+		FETCH_CONFIG.TEMP_DOCS_DIR,
+		'pnpm-workspace.yaml'
+	);
+	if (existsSync(monorepoWorkspacePath)) {
+		try {
+			const monorepoWorkspace = readFileSync(monorepoWorkspacePath, 'utf8');
+			// Extract catalog section if it exists (everything after "catalog:")
+			const catalogStart = monorepoWorkspace.indexOf('catalog:');
+			if (catalogStart !== -1) {
+				const catalogContent = monorepoWorkspace.substring(catalogStart);
+				// Take everything up to the end or next top-level key
+				const lines = catalogContent.split('\n');
+				const catalogLines: string[] = [];
+				for (let i = 0; i < lines.length; i++) {
+					const line = lines[i];
+					if (!line) {
+						continue;
+					}
+					// Stop if we hit a top-level key (starts at column 0, no leading spaces)
+					if (
+						i > 0 &&
+						line.length > 0 &&
+						!line.startsWith(' ') &&
+						!line.startsWith('\t') &&
+						line.includes(':')
+					) {
+						break;
+					}
+					catalogLines.push(line);
+				}
+				catalogSection = `\n${catalogLines.join('\n')}`;
+			}
+		} catch {
+			// If we can't read it, continue without catalog
+		}
+	}
+
+	const workspaceConfig = `packages:
+  - "pkgs/**"
+  - "."${catalogSection}`;
+
+	try {
+		writeFileSync(workspaceConfigPath, workspaceConfig, 'utf8');
+		log('✅ Created pnpm-workspace.yaml');
+	} catch {
+		throw new FetchScriptError(
+			`Failed to write pnpm-workspace.yaml at ${workspaceConfigPath}`,
+			'create_workspace_config',
+			buildMode,
+			branch
+		);
+	}
+
+	// Copy pnpm-lock.yaml from monorepo root if it exists
+	const lockfileSource = join(FETCH_CONFIG.TEMP_DOCS_DIR, 'pnpm-lock.yaml');
+	const lockfileDest = join(FETCH_CONFIG.DOCS_APP_DIR, 'pnpm-lock.yaml');
+	if (existsSync(lockfileSource)) {
+		try {
+			cpSync(lockfileSource, lockfileDest);
+			log('✅ Copied pnpm-lock.yaml');
+		} catch {
+			log('⚠️  Failed to copy pnpm-lock.yaml, pnpm will generate a new one');
+		}
 	}
 }
 
