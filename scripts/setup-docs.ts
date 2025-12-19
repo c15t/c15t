@@ -845,6 +845,7 @@ function installDocumentationTemplate(
 
 		cleanupDocsTemplates(buildMode, branch);
 		patchC15tDocsTemplatePackageJson(buildMode, branch);
+		patchVercelJson(buildMode, branch);
 		log('✅ Installation completed successfully');
 	} catch (error) {
 		if (error instanceof FetchScriptError) {
@@ -994,6 +995,68 @@ process.exit(typeof result.status === 'number' ? result.status : 1);
 		throw new FetchScriptError(
 			`Failed to write template package.json at ${templatePackageJsonPath}`,
 			'patch_template_package_json',
+			buildMode,
+			branch
+		);
+	}
+}
+
+/**
+ * Patches vercel.json to use standalone install command instead of monorepo filter
+ *
+ * The monorepo's vercel.json uses `cd ../.. && pnpm install --filter c15t-docs` which
+ * tries to install from the monorepo root, causing memory issues. Since .docs is now
+ * a standalone app, it should just install its own dependencies.
+ *
+ * @param buildMode - Current build mode for error context
+ * @param branch - Current branch for error context
+ *
+ * @throws {FetchScriptError} When vercel.json cannot be read or written
+ */
+function patchVercelJson(buildMode: BuildMode, branch: GitBranch): void {
+	const vercelJsonPath = join(FETCH_CONFIG.DOCS_APP_DIR, 'vercel.json');
+
+	// If vercel.json doesn't exist, that's okay - Vercel will auto-detect
+	if (!existsSync(vercelJsonPath)) {
+		return;
+	}
+
+	let vercelConfig: {
+		installCommand?: string;
+		buildCommand?: string;
+		[key: string]: unknown;
+	};
+
+	try {
+		const raw = readFileSync(vercelJsonPath, 'utf8');
+		vercelConfig = JSON.parse(raw) as typeof vercelConfig;
+	} catch {
+		throw new FetchScriptError(
+			`Failed to read/parse vercel.json at ${vercelJsonPath}`,
+			'patch_vercel_json',
+			buildMode,
+			branch
+		);
+	}
+
+	// Update installCommand to install only in current directory
+	// Remove the monorepo-specific command that causes memory issues
+	const updatedConfig = {
+		...vercelConfig,
+		installCommand: 'pnpm install --frozen-lockfile',
+	};
+
+	try {
+		writeFileSync(
+			vercelJsonPath,
+			`${JSON.stringify(updatedConfig, null, 2)}\n`,
+			'utf8'
+		);
+		log('✅ Updated vercel.json installCommand for standalone deployment');
+	} catch {
+		throw new FetchScriptError(
+			`Failed to write vercel.json at ${vercelJsonPath}`,
+			'patch_vercel_json',
 			buildMode,
 			branch
 		);
