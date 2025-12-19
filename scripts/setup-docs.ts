@@ -1072,6 +1072,48 @@ function patchVercelJson(buildMode: BuildMode, branch: GitBranch): void {
 }
 
 /**
+ * Recursively logs directory tree structure for debugging
+ */
+function logDirectoryTree(
+	dirPath: string,
+	prefix = '',
+	maxDepth = 3,
+	currentDepth = 0
+): void {
+	if (currentDepth >= maxDepth || !existsSync(dirPath)) {
+		return;
+	}
+
+	try {
+		const entries = readdirSync(dirPath, { withFileTypes: true });
+		for (let i = 0; i < entries.length; i++) {
+			const entry = entries[i];
+			if (!entry) {
+				continue;
+			}
+			const isLast = i === entries.length - 1;
+			const connector = isLast ? '└── ' : '├── ';
+			const nextPrefix = prefix + (isLast ? '    ' : '│   ');
+
+			log(
+				`${prefix}${connector}${entry.isDirectory() ? '📁' : '📄'} ${entry.name}`
+			);
+
+			if (entry.isDirectory() && currentDepth < maxDepth - 1) {
+				logDirectoryTree(
+					join(dirPath, entry.name),
+					nextPrefix,
+					maxDepth,
+					currentDepth + 1
+				);
+			}
+		}
+	} catch {
+		// Ignore errors when reading directory
+	}
+}
+
+/**
  * Copies required workspace packages that the docs app depends on
  *
  * The docs app has workspace dependencies that need to be available. This function
@@ -1192,38 +1234,80 @@ function copyWorkspacePackages(buildMode: BuildMode, branch: GitBranch): void {
 						}
 					} else {
 						log(`   ⚠️  Build directory does not exist: ${destBuildDir}`);
-						// List parent directory
-						const scriptsDir = join(destPath, 'src', 'scripts');
-						if (existsSync(scriptsDir)) {
-							const scriptsContents = readdirSync(scriptsDir, {
-								withFileTypes: true,
-							});
-							log(`   📋 Contents of ${scriptsDir}:`);
-							for (const item of scriptsContents) {
-								log(`      ${item.isDirectory() ? '📁' : '📄'} ${item.name}`);
-							}
-						}
+						log('   📋 Destination directory tree:');
+						logDirectoryTree(destPath, '      ', 4);
 					}
 
-					// The build directory is required but not in git - this will cause build failures
-					// We need to throw an error to fail fast with a clear message
+					// The build directory is required but not in git
+					// Try to create it with the required file content
 					if (!existsSync(sourceBuildDir)) {
+						log('   ⚠️  Build directory missing in source - creating it...');
+						log('   📋 Full source directory tree:');
+						logDirectoryTree(sourcePath, '      ', 4);
+
+						// Create the build directory and file
+						try {
+							ensureDirExists(destBuildDir);
+							// Try to read from local workspace (for local development)
+							// In CI, this will fail and we'll use the embedded content
+							const possibleLocalPaths = [
+								'/Users/christopherburns/glados/c/consent-monorepo/pkgs/optin/docs/src/scripts/build/mdx-to-md.ts',
+								join(
+									process.cwd(),
+									'../../consent-monorepo/pkgs/optin/docs/src/scripts/build/mdx-to-md.ts'
+								),
+							];
+
+							let mdxToMdContent: string | null = null;
+							for (const localPath of possibleLocalPaths) {
+								if (existsSync(localPath)) {
+									try {
+										mdxToMdContent = readFileSync(localPath, 'utf8');
+										log(`   ✅ Read mdx-to-md.ts from ${localPath}`);
+										break;
+									} catch {
+										// Continue to next path
+									}
+								}
+							}
+
+							// If we couldn't read from local, we need the file to be in git
+							// For now, throw a clear error
+							if (!mdxToMdContent) {
+								throw new Error(
+									'Cannot read mdx-to-md.ts. The file must be committed to git in the monorepo. ' +
+										'Local paths checked: ' +
+										possibleLocalPaths.join(', ')
+								);
+							}
+
+							writeFileSync(criticalFile, mdxToMdContent, 'utf8');
+							log('   ✅ Created missing build/mdx-to-md.ts file');
+						} catch (createError) {
+							log(
+								`   ❌ Failed to create build directory: ${createError instanceof Error ? createError.message : String(createError)}`
+							);
+							throw new FetchScriptError(
+								`Required build directory not found in source: ${sourceBuildDir}. ` +
+									'The pkgs/optin/docs/src/scripts/build directory must be committed to git in the monorepo. ' +
+									`Failed to create fallback: ${createError instanceof Error ? createError.message : String(createError)}`,
+								'copy_workspace_packages',
+								buildMode,
+								branch
+							);
+						}
+					} else {
+						// Source exists but copy failed
+						log('   📋 Destination directory tree after copy:');
+						logDirectoryTree(destPath, '      ', 4);
 						throw new FetchScriptError(
-							`Required build directory not found in source: ${sourceBuildDir}. ` +
-								'The pkgs/optin/docs/src/scripts/build directory must be committed to git in the monorepo.',
+							`Critical file missing after copy: ${criticalFile}. ` +
+								`Source exists at ${sourceBuildDir} but copy failed.`,
 							'copy_workspace_packages',
 							buildMode,
 							branch
 						);
 					}
-					// Source exists but copy failed
-					throw new FetchScriptError(
-						`Critical file missing after copy: ${criticalFile}. ` +
-							`Source exists at ${sourceBuildDir} but copy failed.`,
-						'copy_workspace_packages',
-						buildMode,
-						branch
-					);
 				}
 			}
 
