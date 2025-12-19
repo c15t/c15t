@@ -1041,9 +1041,11 @@ function patchVercelJson(buildMode: BuildMode, branch: GitBranch): void {
 
 	// Update installCommand to install only in current directory
 	// Remove the monorepo-specific command that causes memory issues
+	// Use `pnpm install` without --frozen-lockfile since we don't have a lockfile
+	// in the standalone .docs directory (it was part of a monorepo)
 	const updatedConfig = {
 		...vercelConfig,
-		installCommand: 'pnpm install --frozen-lockfile',
+		installCommand: 'pnpm install',
 	};
 
 	try {
