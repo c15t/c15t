@@ -927,7 +927,16 @@ function main(fetchOptions: FetchOptions): void {
 
 		// Development: Install dependencies and process content locally
 		installDocsAppDependencies(fetchOptions.mode, fetchOptions.branch);
-		processMDXContent(fetchOptions.mode, fetchOptions.branch);
+
+		// Skip MDX processing in production mode; the build pipeline (prebuild) will handle it
+		// This avoids running fumadocs-mdx twice and prevents TypeScript import issues
+		if (!fetchOptions.isProduction) {
+			processMDXContent(fetchOptions.mode, fetchOptions.branch);
+		} else {
+			log(
+				'⏭️  Skipping MDX processing in production mode; build pipeline will handle it.'
+			);
+		}
 
 		// Phase 5: Skip building here; Vercel will run the build
 		if (fetchOptions.isProduction) {
