@@ -1204,17 +1204,25 @@ function copyWorkspacePackages(buildMode: BuildMode, branch: GitBranch): void {
 							}
 						}
 					}
-					// Don't throw error if build directory doesn't exist in source (it might be generated)
-					if (existsSync(sourceBuildDir)) {
+
+					// The build directory is required but not in git - this will cause build failures
+					// We need to throw an error to fail fast with a clear message
+					if (!existsSync(sourceBuildDir)) {
 						throw new FetchScriptError(
-							`Critical file missing after copy: ${criticalFile}`,
+							`Required build directory not found in source: ${sourceBuildDir}. ` +
+								'The pkgs/optin/docs/src/scripts/build directory must be committed to git in the monorepo.',
 							'copy_workspace_packages',
 							buildMode,
 							branch
 						);
 					}
-					log(
-						'   ⚠️  Build directory not found in source - it may be generated during build'
+					// Source exists but copy failed
+					throw new FetchScriptError(
+						`Critical file missing after copy: ${criticalFile}. ` +
+							`Source exists at ${sourceBuildDir} but copy failed.`,
+						'copy_workspace_packages',
+						buildMode,
+						branch
 					);
 				}
 			}
