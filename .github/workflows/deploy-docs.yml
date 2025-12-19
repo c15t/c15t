@@ -127,6 +127,29 @@ jobs:
       - name: 📥 Install workspace deps
         run: pnpm install --frozen-lockfile
 
+      - name: 📦 Clone monorepo
+        run: |
+          MONOREPO_DIR="monorepo"
+          BRANCH="${{ steps.branch.outputs.name }}"
+          
+          # Clean up existing clone
+          if [ -d "$MONOREPO_DIR" ]; then
+            rm -rf "$MONOREPO_DIR"
+          fi
+          
+          # Clone monorepo with authentication
+          BASIC_AUTH=$(echo -n "x-access-token:${{ secrets.CONSENT_GIT_TOKEN }}" | base64)
+          git -c http.extraheader="Authorization: Basic $BASIC_AUTH" \
+            clone --depth=1 --branch="$BRANCH" \
+            "https://github.com/consentdotio/monorepo.git" "$MONOREPO_DIR" || \
+          git -c http.extraheader="Authorization: Basic $BASIC_AUTH" \
+            clone --depth=1 --branch="main" \
+            "https://github.com/consentdotio/monorepo.git" "$MONOREPO_DIR"
+
+      - name: 📦 Install monorepo dependencies
+        working-directory: monorepo
+        run: pnpm install --frozen-lockfile
+
       # Preview deployment: PRs, manual preview, or scheduled
       - name: ▲ C15T Docs Preview (Deploy + PR Comment)
         if: |
@@ -151,7 +174,8 @@ jobs:
           vercel_token: ${{ secrets.VERCEL_TOKEN }}
           vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
-          working_directory: .docs
+          working_directory: monorepo/docs/c15t
+          setup_docs: "false"
 
           alias_domains: |
             ${{ github.event_name == 'pull_request' && format('pr-{0}.c15t.dev', github.event.pull_request.number) || github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number && format('pr-{0}.c15t.dev', github.event.inputs.pr_number) || format('preview-{0}.c15t.dev', steps.deploy-info.outputs.branch) }}
@@ -195,7 +219,8 @@ jobs:
           vercel_token: ${{ secrets.VERCEL_TOKEN }}
           vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
-          working_directory: .docs
+          working_directory: monorepo/docs/c15t
+          setup_docs: "false"
 
           assign_alias_on_branch: ${{ steps.branch.outputs.name }}
           alias_domains: |
