@@ -7,18 +7,23 @@ const error = console.error;
  * Unified Documentation Fetcher for C15t
  *
  * This script handles both local development setup and production builds for the
- * documentation site. It fetches a private Next.js documentation template from
- * GitHub and configures it for either development or production deployment.
+ * documentation site. It fetches the private monorepo from GitHub, extracts the
+ * docs/c15t template, and configures it for either development or production deployment.
  *
  * **Default Mode (Development):**
  * - Loads token from `.env` file
- * - Sets up .docs for immediate `pnpm dev` usage
- * - Skips workspace dependencies and production build
+ * - Clones monorepo and extracts docs/c15t to .docs
+ * - Sets up workspace packages (pkgs) for workspace dependencies
+ * - Copies content directories (docs, packages, changelog) to .docs/.c15t
+ * - Installs dependencies including workspace packages
+ * - Processes MDX content
  *
  * **Production Mode (--vercel flag):**
  * - Uses environment CONSENT_GIT_TOKEN
- * - Skips all pnpm installs (Vercel handles installs)
- * - Skips content processing (handled in template/build)
+ * - Clones monorepo and extracts docs/c15t to .docs
+ * - Sets up workspace packages and content directories
+ * - Installs dependencies
+ * - Processes MDX content
  * - Skips building; Vercel will run the build during deployment
  *
  * **Branch Selection (--branch flag):**
@@ -27,7 +32,7 @@ const error = console.error;
  * - Use --branch=develop for development branch
  *
  * @author Generated for C15t workspace
- * @version 2.1.0
+ * @version 2.2.0
  * @since 2025
  *
  * @see {@link https://c15t.com/docs/contributing/documentation-setup | Setup Documentation}
@@ -37,7 +42,6 @@ const error = console.error;
  * @requires CONSENT_GIT_TOKEN environment variable (production) or .env file (development)
  * @requires pnpm package manager for dependency management
  * @requires git for repository cloning operations
- * @requires rsync for efficient file synchronization
  *
  * @throws {ProcessExitError} When CONSENT_GIT_TOKEN is missing or invalid
  * @throws {FetchScriptError} When any fetch step fails
@@ -59,7 +63,7 @@ const error = console.error;
  */
 
 import { execSync } from 'node:child_process';
-import { cpSync, existsSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { exit } from 'node:process';
@@ -158,9 +162,9 @@ class FetchScriptError extends Error {
  * Immutable configuration constants for the fetch process
  */
 const FETCH_CONFIG: FetchConfiguration = {
-	TEMP_DOCS_DIR: join(tmpdir(), 'c15t-docs'),
+	TEMP_DOCS_DIR: join(tmpdir(), 'consent-monorepo'),
 	DOCS_APP_DIR: '.docs',
-	DOCS_REPO_URL: 'https://github.com/consentdotio/c15t-docs.git',
+	DOCS_REPO_URL: 'https://github.com/consentdotio/monorepo.git',
 	DEFAULT_BRANCH: 'main',
 } as const;
 
@@ -392,12 +396,12 @@ function executeCommand(
 }
 
 /**
- * Clones the private documentation template repository to temporary storage
+ * Clones the private monorepo repository to temporary storage
  *
- * This function performs an authenticated shallow clone of the private Next.js
- * documentation template repository from the specified branch. The shallow clone
- * (depth=1) optimization significantly reduces download time and bandwidth usage
- * by fetching only the latest commit without the full git history.
+ * This function performs an authenticated shallow clone of the private monorepo
+ * repository from the specified branch. The shallow clone (depth=1) optimization
+ * significantly reduces download time and bandwidth usage by fetching only the
+ * latest commit without the full git history.
  *
  * @param authenticationToken - Valid GitHub personal access token with repository read permissions
  * @param buildMode - Current build mode for error context
@@ -411,11 +415,11 @@ function executeCommand(
  * @example
  * ```typescript
  * const token = validateGitHubToken('development', 'main');
- * cloneDocumentationRepository(token, 'development', 'main');
- * // Repository now available at /tmp/new-docs from main branch
+ * cloneMonorepoRepository(token, 'development', 'main');
+ * // Repository now available at /tmp/consent-monorepo from main branch
  *
- * cloneDocumentationRepository(token, 'development', 'canary');
- * // Repository now available at /tmp/new-docs from canary branch
+ * cloneMonorepoRepository(token, 'development', 'canary');
+ * // Repository now available at /tmp/consent-monorepo from canary branch
  * ```
  *
  * @see {@link https://git-scm.com/docs/git-clone | Git Clone Documentation}
@@ -423,12 +427,12 @@ function executeCommand(
  *
  * @internal This function handles sensitive authentication tokens
  */
-function cloneDocumentationRepository(
+function cloneMonorepoRepository(
 	authenticationToken: GitHubToken,
 	buildMode: BuildMode,
 	branch: GitBranch
 ): void {
-	const repoUrl = 'https://github.com/consentdotio/c15t-docs.git';
+	const repoUrl = 'https://github.com/consentdotio/monorepo.git';
 	const basicAuth = Buffer.from(
 		`x-access-token:${authenticationToken}`
 	).toString('base64');
@@ -436,57 +440,41 @@ function cloneDocumentationRepository(
 	// Clean up any existing temporary directory from failed previous runs
 	cleanupDirectory(
 		FETCH_CONFIG.TEMP_DOCS_DIR,
-		'temporary docs directory',
+		'temporary monorepo directory',
 		buildMode,
 		branch
 	);
 
 	executeCommand(
 		`git -c http.extraheader="Authorization: Basic ${basicAuth}" clone --depth=1 --branch=${branch} "${repoUrl}" ${FETCH_CONFIG.TEMP_DOCS_DIR}`,
-		`Fetching private Next.js documentation template (${branch} branch)`,
+		`Fetching private monorepo (${branch} branch)`,
 		buildMode,
 		branch,
 		{ redact: [authenticationToken, basicAuth] }
 	);
-
-	// Note: For reproducible builds across environments, consider pinning to specific commit:
-	// executeCommand(
-	//   `git -C ${FETCH_CONFIG.TEMP_DOCS_DIR} checkout <commit-sha>`,
-	//   'Pinning to specific commit for reproducible builds',
-	//   buildMode,
-	//   branch
-	// );
 }
 
 /**
- * Installs the fetched documentation template into the workspace
+ * Installs the fetched documentation template from monorepo into the workspace
  *
- * This function performs a complete synchronization of the cloned documentation
- * template into the workspace's .docs directory. The rsync operation with
- * --delete flag ensures a pristine copy by removing any files that exist in
- * the destination but not in the source.
- *
- * After installation, it creates symbolic links to connect the documentation
- * app to the main repository's content directories, enabling hot module reloading
- * without content duplication.
+ * This function extracts the docs/c15t directory from the cloned monorepo and
+ * copies it to the workspace's .docs directory. It also sets up the necessary
+ * workspace packages and content directories that the docs app depends on.
  *
  * @param buildMode - Current build mode for error context
  * @param branch - Current branch for error context
  *
- * @throws {FetchScriptError} When rsync operation fails
+ * @throws {FetchScriptError} When copy operation fails
  * @throws {FetchScriptError} When source directory is missing or inaccessible
  * @throws {FetchScriptError} When destination directory cannot be created or written
- * @throws {FetchScriptError} When symbolic link creation fails
  *
  * @example
  * ```typescript
- * // After successful template clone
- * cloneDocumentationRepository(token, 'development', 'main');
+ * // After successful monorepo clone
+ * cloneMonorepoRepository(token, 'development', 'main');
  * installDocumentationTemplate('development', 'main');
- * // Template now available at ./.docs/ with symlinks to ../docs and ../packages
+ * // Template now available at ./.docs/ with workspace packages set up
  * ```
- *
- * @see {@link https://rsync.samba.org/documentation.html | Rsync Documentation}
  */
 function installDocumentationTemplate(
 	buildMode: BuildMode,
@@ -500,6 +488,12 @@ function installDocumentationTemplate(
 		branch
 	);
 
+	const docsTemplatePath = join(FETCH_CONFIG.TEMP_DOCS_DIR, 'docs', 'c15t');
+	const workspacePackagesPath = join(FETCH_CONFIG.TEMP_DOCS_DIR, 'pkgs');
+	const docsContentPath = join(FETCH_CONFIG.TEMP_DOCS_DIR, 'docs');
+	const packagesPath = join(FETCH_CONFIG.TEMP_DOCS_DIR, 'packages');
+	const changelogPath = join(FETCH_CONFIG.TEMP_DOCS_DIR, 'changelog');
+
 	executeCommand(
 		'true',
 		'Installing documentation template into workspace',
@@ -509,13 +503,66 @@ function installDocumentationTemplate(
 	);
 	try {
 		log('Installing documentation template into workspace...');
-		cpSync(FETCH_CONFIG.TEMP_DOCS_DIR, FETCH_CONFIG.DOCS_APP_DIR, {
+
+		// Copy the docs/c15t template to .docs
+		if (!existsSync(docsTemplatePath)) {
+			throw new FetchScriptError(
+				`Docs template not found at ${docsTemplatePath}. Ensure docs/c15t exists in monorepo.`,
+				'install_template',
+				buildMode,
+				branch
+			);
+		}
+
+		cpSync(docsTemplatePath, FETCH_CONFIG.DOCS_APP_DIR, {
 			recursive: true,
 		});
+
+		// Set up workspace packages that the docs app depends on
+		// Copy pkgs to .docs/pkgs for workspace dependencies
+		if (existsSync(workspacePackagesPath)) {
+			const targetPkgsPath = join(FETCH_CONFIG.DOCS_APP_DIR, 'pkgs');
+			cpSync(workspacePackagesPath, targetPkgsPath, {
+				recursive: true,
+			});
+		}
+
+		// Copy content directories directly to .docs/.c15t/
+		// This is where the docs app expects them (copy-content script copies from repo root to here)
+		const c15tContentDir = join(FETCH_CONFIG.DOCS_APP_DIR, '.c15t');
+		if (existsSync(docsContentPath)) {
+			cpSync(docsContentPath, join(c15tContentDir, 'docs'), {
+				recursive: true,
+			});
+		}
+		if (existsSync(packagesPath)) {
+			cpSync(packagesPath, join(c15tContentDir, 'packages'), {
+				recursive: true,
+			});
+		}
+		if (existsSync(changelogPath)) {
+			cpSync(changelogPath, join(c15tContentDir, 'changelog'), {
+				recursive: true,
+			});
+		}
+
+		// Create pnpm-workspace.yaml in .docs to enable workspace dependencies
+		const workspaceConfig = `packages:
+  - "pkgs/**"
+`;
+		const workspaceConfigPath = join(
+			FETCH_CONFIG.DOCS_APP_DIR,
+			'pnpm-workspace.yaml'
+		);
+		writeFileSync(workspaceConfigPath, workspaceConfig, 'utf-8');
+
 		log('✅ Installation completed successfully');
-	} catch {
+	} catch (error) {
+		if (error instanceof FetchScriptError) {
+			throw error;
+		}
 		throw new FetchScriptError(
-			`Failed to copy template from ${FETCH_CONFIG.TEMP_DOCS_DIR} to ${FETCH_CONFIG.DOCS_APP_DIR}`,
+			`Failed to copy template from ${FETCH_CONFIG.TEMP_DOCS_DIR} to ${FETCH_CONFIG.DOCS_APP_DIR}: ${error}`,
 			'install_template',
 			buildMode,
 			branch
@@ -530,6 +577,9 @@ function installDocumentationTemplate(
  * and generate the necessary metadata for the documentation system. It must be
  * called after dependencies are installed since fumadocs-mdx needs to be available
  * in node_modules.
+ *
+ * Note: Content has already been copied to .docs/.c15t/ during template installation,
+ * so we skip the copy-content step and proceed directly to fumadocs-mdx processing.
  *
  * @param buildMode - Current build mode for error context
  * @param branch - Current branch for error context
@@ -548,12 +598,8 @@ function installDocumentationTemplate(
  * @see {@link https://fumadocs.vercel.app/docs/mdx | Fumadocs MDX Documentation}
  */
 function processMDXContent(buildMode: BuildMode, branch: GitBranch): void {
-	executeCommand(
-		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm copy-content`,
-		'Copying MDX content with copy-content',
-		buildMode,
-		branch
-	);
+	// Content has already been copied to .docs/.c15t/ during template installation
+	// Skip copy-content step and proceed directly to fumadocs-mdx processing
 	executeCommand(
 		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm fumadocs-mdx`,
 		'Processing MDX content with fumadocs-mdx',
@@ -563,12 +609,11 @@ function processMDXContent(buildMode: BuildMode, branch: GitBranch): void {
 }
 
 /**
- * Installs documentation application dependencies in complete isolation
+ * Installs documentation application dependencies with workspace support
  *
- * This function establishes the .docs dependency environment in complete
- * isolation from the main workspace. The --ignore-workspace flag prevents
- * pnpm from treating .docs as part of the workspace monorepo, while
- * --frozen-lockfile ensures reproducible dependency installation.
+ * This function installs dependencies for the .docs app, including workspace
+ * packages from pkgs. The workspace is configured via pnpm-workspace.yaml to
+ * allow the docs app to use workspace:* dependencies.
  *
  * @param buildMode - Current build mode for error context
  * @param branch - Current branch for error context
@@ -580,7 +625,7 @@ function processMDXContent(buildMode: BuildMode, branch: GitBranch): void {
  * @example
  * ```typescript
  * installDocsAppDependencies('development', 'canary');
- * // .docs/node_modules now contains isolated dependencies
+ * // .docs/node_modules now contains dependencies including workspace packages
  * ```
  *
  * @see {@link https://pnpm.io/cli/install | PNPM Install Documentation}
@@ -590,9 +635,11 @@ function installDocsAppDependencies(
 	buildMode: BuildMode,
 	branch: GitBranch
 ): void {
+	// Install dependencies with workspace support (no --ignore-workspace flag)
+	// The pnpm-workspace.yaml allows workspace:* dependencies to resolve
 	executeCommand(
-		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm install --ignore-workspace --frozen-lockfile`,
-		'Installing .docs dependencies in isolation',
+		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm install --frozen-lockfile`,
+		'Installing .docs dependencies with workspace packages',
 		buildMode,
 		branch
 	);
@@ -633,17 +680,22 @@ function installDocsAppDependencies(
  *
  * **Development Mode Pipeline:**
  * 1. **Authentication**: Load token from .env file
- * 2. **Template Acquisition**: Clone latest documentation template from specified branch
- * 3. **Workspace Integration**: Sync template to .docs and create content symlinks
- * 4. **Dependency Setup**: Install .docs dependencies
- * 5. **Content Processing**: Run fumadocs-mdx to process linked MDX content
+ * 2. **Monorepo Acquisition**: Clone latest monorepo from specified branch
+ * 3. **Template Extraction**: Extract docs/c15t to .docs directory
+ * 4. **Workspace Setup**: Copy pkgs to .docs/pkgs and create pnpm-workspace.yaml
+ * 5. **Content Setup**: Copy docs, packages, and changelog to .docs/.c15t
+ * 6. **Dependency Setup**: Install .docs dependencies including workspace packages
+ * 7. **Content Processing**: Run fumadocs-mdx to process MDX content (content already copied)
  *
  * **Production Mode Pipeline:**
  * 1. **Authentication**: Validate environment token
- * 2. **Template Acquisition**: Clone latest documentation template from specified branch
- * 3. **Workspace Integration**: Sync template to .docs and create content symlinks
- * 4. Skips installations and content processing (handled by Vercel build)
- * 5. **Build handled by Vercel**
+ * 2. **Monorepo Acquisition**: Clone latest monorepo from specified branch
+ * 3. **Template Extraction**: Extract docs/c15t to .docs directory
+ * 4. **Workspace Setup**: Copy pkgs to .docs/pkgs and create pnpm-workspace.yaml
+ * 5. **Content Setup**: Copy docs, packages, and changelog to .docs/.c15t
+ * 6. **Dependency Setup**: Install .docs dependencies including workspace packages
+ * 7. **Content Processing**: Run fumadocs-mdx to process MDX content (content already copied)
+ * 8. **Build handled by Vercel**
  *
  * @param fetchOptions - Parsed command line options determining build mode and branch
  *
@@ -685,8 +737,8 @@ function main(fetchOptions: FetchOptions): void {
 			fetchOptions.branch
 		);
 
-		// Phase 2: Acquire latest documentation template from specified branch
-		cloneDocumentationRepository(
+		// Phase 2: Acquire latest monorepo from specified branch
+		cloneMonorepoRepository(
 			githubAuthenticationToken,
 			fetchOptions.mode,
 			fetchOptions.branch
