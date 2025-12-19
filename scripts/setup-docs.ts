@@ -437,6 +437,11 @@ function cloneMonorepoRepository(
 		`x-access-token:${authenticationToken}`
 	).toString('base64');
 
+	log('🔍 DEBUG: Cloning monorepo...');
+	log(`🔍 DEBUG: Repository URL: ${repoUrl}`);
+	log(`🔍 DEBUG: Branch: ${branch}`);
+	log(`🔍 DEBUG: Temp directory: ${FETCH_CONFIG.TEMP_DOCS_DIR}`);
+
 	// Clean up any existing temporary directory from failed previous runs
 	cleanupDirectory(
 		FETCH_CONFIG.TEMP_DOCS_DIR,
@@ -452,6 +457,33 @@ function cloneMonorepoRepository(
 		branch,
 		{ redact: [authenticationToken, basicAuth] }
 	);
+
+	// Verify clone was successful
+	if (existsSync(FETCH_CONFIG.TEMP_DOCS_DIR)) {
+		log(`✅ Monorepo cloned successfully to ${FETCH_CONFIG.TEMP_DOCS_DIR}`);
+		// List some key directories to verify structure
+		const keyPaths = [
+			'docs/c15t',
+			'pkgs',
+			'docs',
+			'packages',
+			'changelog',
+			'pnpm-lock.yaml',
+		];
+		log('🔍 DEBUG: Verifying monorepo structure...');
+		for (const keyPath of keyPaths) {
+			const fullPath = join(FETCH_CONFIG.TEMP_DOCS_DIR, keyPath);
+			const exists = existsSync(fullPath);
+			log(`🔍 DEBUG:   ${keyPath}: ${exists ? '✓' : '✗'}`);
+		}
+	} else {
+		throw new FetchScriptError(
+			`Monorepo clone failed - directory not found at ${FETCH_CONFIG.TEMP_DOCS_DIR}`,
+			'clone_monorepo',
+			buildMode,
+			branch
+		);
+	}
 }
 
 /**
@@ -503,6 +535,11 @@ function installDocumentationTemplate(
 	);
 	try {
 		log('Installing documentation template into workspace...');
+		log(`🔍 DEBUG: Template path: ${docsTemplatePath}`);
+		log(`🔍 DEBUG: Workspace packages path: ${workspacePackagesPath}`);
+		log(`🔍 DEBUG: Docs content path: ${docsContentPath}`);
+		log(`🔍 DEBUG: Packages path: ${packagesPath}`);
+		log(`🔍 DEBUG: Changelog path: ${changelogPath}`);
 
 		// Copy the docs/c15t template to .docs
 		if (!existsSync(docsTemplatePath)) {
@@ -514,36 +551,70 @@ function installDocumentationTemplate(
 			);
 		}
 
+		log(
+			`📦 Copying template from ${docsTemplatePath} to ${FETCH_CONFIG.DOCS_APP_DIR}`
+		);
 		cpSync(docsTemplatePath, FETCH_CONFIG.DOCS_APP_DIR, {
 			recursive: true,
 		});
+		log('✅ Template copied successfully');
 
 		// Set up workspace packages that the docs app depends on
 		// Copy pkgs to .docs/pkgs for workspace dependencies
 		if (existsSync(workspacePackagesPath)) {
 			const targetPkgsPath = join(FETCH_CONFIG.DOCS_APP_DIR, 'pkgs');
+			log(
+				`📦 Copying workspace packages from ${workspacePackagesPath} to ${targetPkgsPath}`
+			);
 			cpSync(workspacePackagesPath, targetPkgsPath, {
 				recursive: true,
 			});
+			log('✅ Workspace packages copied successfully');
+		} else {
+			log(
+				`⚠️  WARNING: Workspace packages path not found at ${workspacePackagesPath}`
+			);
 		}
 
 		// Copy content directories directly to .docs/.c15t/
 		// This is where the docs app expects them (copy-content script copies from repo root to here)
 		const c15tContentDir = join(FETCH_CONFIG.DOCS_APP_DIR, '.c15t');
+		log(`📁 Creating content directory at ${c15tContentDir}`);
+
 		if (existsSync(docsContentPath)) {
+			log(
+				`📦 Copying docs content from ${docsContentPath} to ${join(c15tContentDir, 'docs')}`
+			);
 			cpSync(docsContentPath, join(c15tContentDir, 'docs'), {
 				recursive: true,
 			});
+			log('✅ Docs content copied successfully');
+		} else {
+			log(`⚠️  WARNING: Docs content path not found at ${docsContentPath}`);
 		}
+
 		if (existsSync(packagesPath)) {
+			log(
+				`📦 Copying packages from ${packagesPath} to ${join(c15tContentDir, 'packages')}`
+			);
 			cpSync(packagesPath, join(c15tContentDir, 'packages'), {
 				recursive: true,
 			});
+			log('✅ Packages copied successfully');
+		} else {
+			log(`⚠️  WARNING: Packages path not found at ${packagesPath}`);
 		}
+
 		if (existsSync(changelogPath)) {
+			log(
+				`📦 Copying changelog from ${changelogPath} to ${join(c15tContentDir, 'changelog')}`
+			);
 			cpSync(changelogPath, join(c15tContentDir, 'changelog'), {
 				recursive: true,
 			});
+			log('✅ Changelog copied successfully');
+		} else {
+			log(`⚠️  WARNING: Changelog path not found at ${changelogPath}`);
 		}
 
 		// Create pnpm-workspace.yaml in .docs to enable workspace dependencies
@@ -554,7 +625,38 @@ function installDocumentationTemplate(
 			FETCH_CONFIG.DOCS_APP_DIR,
 			'pnpm-workspace.yaml'
 		);
+		log(`📝 Creating pnpm-workspace.yaml at ${workspaceConfigPath}`);
 		writeFileSync(workspaceConfigPath, workspaceConfig, 'utf-8');
+		log('✅ pnpm-workspace.yaml created successfully');
+
+		// Check for lockfile and copy from monorepo root if needed
+		const monorepoLockfilePath = join(
+			FETCH_CONFIG.TEMP_DOCS_DIR,
+			'pnpm-lock.yaml'
+		);
+		const docsLockfilePath = join(FETCH_CONFIG.DOCS_APP_DIR, 'pnpm-lock.yaml');
+		const templateLockfilePath = join(docsTemplatePath, 'pnpm-lock.yaml');
+
+		log('🔍 DEBUG: Checking for lockfile...');
+		log(
+			`🔍 DEBUG: Monorepo lockfile exists: ${existsSync(monorepoLockfilePath)}`
+		);
+		log(
+			`🔍 DEBUG: Template lockfile exists: ${existsSync(templateLockfilePath)}`
+		);
+		log(`🔍 DEBUG: Docs lockfile exists: ${existsSync(docsLockfilePath)}`);
+
+		if (existsSync(templateLockfilePath)) {
+			log('📦 Copying lockfile from template to .docs');
+			cpSync(templateLockfilePath, docsLockfilePath);
+			log('✅ Lockfile copied from template');
+		} else if (existsSync(monorepoLockfilePath)) {
+			log('📦 Copying lockfile from monorepo root to .docs');
+			cpSync(monorepoLockfilePath, docsLockfilePath);
+			log('✅ Lockfile copied from monorepo root');
+		} else {
+			log('⚠️  WARNING: No lockfile found. Will generate one during install.');
+		}
 
 		log('✅ Installation completed successfully');
 	} catch (error) {
@@ -635,14 +737,39 @@ function installDocsAppDependencies(
 	buildMode: BuildMode,
 	branch: GitBranch
 ): void {
+	const lockfilePath = join(FETCH_CONFIG.DOCS_APP_DIR, 'pnpm-lock.yaml');
+	const hasLockfile = existsSync(lockfilePath);
+
+	log('🔍 DEBUG: Checking lockfile before install...');
+	log(`🔍 DEBUG: Lockfile path: ${lockfilePath}`);
+	log(`🔍 DEBUG: Lockfile exists: ${hasLockfile}`);
+
 	// Install dependencies with workspace support (no --ignore-workspace flag)
 	// The pnpm-workspace.yaml allows workspace:* dependencies to resolve
+	// Use --frozen-lockfile only if lockfile exists, otherwise generate it
+	const installCommand = hasLockfile
+		? `cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm install --frozen-lockfile`
+		: `cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm install`;
+
+	if (!hasLockfile) {
+		log(
+			'⚠️  WARNING: No lockfile found. Installing without --frozen-lockfile to generate one.'
+		);
+	}
+
 	executeCommand(
-		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm install --frozen-lockfile`,
+		installCommand,
 		'Installing .docs dependencies with workspace packages',
 		buildMode,
 		branch
 	);
+
+	// Verify lockfile was created/generated
+	if (existsSync(lockfilePath)) {
+		log(`✅ Lockfile verified at ${lockfilePath}`);
+	} else {
+		log(`⚠️  WARNING: Lockfile not found after install at ${lockfilePath}`);
+	}
 }
 
 /**
