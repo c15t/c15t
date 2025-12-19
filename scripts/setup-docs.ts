@@ -1111,7 +1111,47 @@ function copyWorkspacePackages(buildMode: BuildMode, branch: GitBranch): void {
 
 			cpSync(sourcePath, destPath, {
 				recursive: true,
+				force: true,
+				errorOnExist: false,
 			});
+
+			// Verify critical files exist after copying for optin/docs package
+			if (source.includes('optin/docs')) {
+				const buildDir = join(destPath, 'src', 'scripts', 'build');
+				const criticalFile = join(buildDir, 'mdx-to-md.ts');
+				if (!existsSync(criticalFile)) {
+					// Debug: List what's actually in the build directory
+					if (existsSync(buildDir)) {
+						const buildContents = readdirSync(buildDir, {
+							withFileTypes: true,
+						});
+						log(`   📋 Contents of ${buildDir}:`);
+						for (const item of buildContents) {
+							log(`      ${item.isDirectory() ? '📁' : '📄'} ${item.name}`);
+						}
+					} else {
+						log(`   ⚠️  Build directory does not exist: ${buildDir}`);
+						// List parent directory
+						const scriptsDir = join(destPath, 'src', 'scripts');
+						if (existsSync(scriptsDir)) {
+							const scriptsContents = readdirSync(scriptsDir, {
+								withFileTypes: true,
+							});
+							log(`   📋 Contents of ${scriptsDir}:`);
+							for (const item of scriptsContents) {
+								log(`      ${item.isDirectory() ? '📁' : '📄'} ${item.name}`);
+							}
+						}
+					}
+					throw new FetchScriptError(
+						`Critical file missing after copy: ${criticalFile}`,
+						'copy_workspace_packages',
+						buildMode,
+						branch
+					);
+				}
+			}
+
 			log(`   ✅ Copied ${source} -> ${dest}`);
 		} catch (error) {
 			throw new FetchScriptError(
