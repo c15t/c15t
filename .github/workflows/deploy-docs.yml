@@ -128,9 +128,17 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 📦 Clone monorepo
+        env:
+          CONSENT_GIT_TOKEN: ${{ secrets.CONSENT_GIT_TOKEN }}
         run: |
           MONOREPO_DIR="monorepo"
           BRANCH="${{ steps.branch.outputs.name }}"
+          
+          # Validate token is available
+          if [ -z "$CONSENT_GIT_TOKEN" ]; then
+            echo "❌ Error: CONSENT_GIT_TOKEN secret is not set"
+            exit 1
+          fi
           
           # Clean up existing clone
           if [ -d "$MONOREPO_DIR" ]; then
@@ -138,13 +146,38 @@ jobs:
           fi
           
           # Clone monorepo with authentication
-          BASIC_AUTH=$(echo -n "x-access-token:${{ secrets.CONSENT_GIT_TOKEN }}" | base64)
-          git -c http.extraheader="Authorization: Basic $BASIC_AUTH" \
+          # GitHub Actions runs on Ubuntu Linux, so base64 -w 0 works
+          BASIC_AUTH=$(printf "x-access-token:%s" "$CONSENT_GIT_TOKEN" | base64 -w 0)
+          
+          echo "📦 Cloning monorepo (branch: $BRANCH)..."
+          
+          # Try cloning the requested branch first
+          CLONE_OUTPUT=$(git -c http.extraheader="Authorization: Basic $BASIC_AUTH" \
             clone --depth=1 --branch="$BRANCH" \
-            "https://github.com/consentdotio/monorepo.git" "$MONOREPO_DIR" || \
-          git -c http.extraheader="Authorization: Basic $BASIC_AUTH" \
-            clone --depth=1 --branch="main" \
-            "https://github.com/consentdotio/monorepo.git" "$MONOREPO_DIR"
+            "https://github.com/consentdotio/monorepo.git" "$MONOREPO_DIR" 2>&1) || CLONE_EXIT_CODE=$?
+          
+          if [ -z "$CLONE_EXIT_CODE" ] || [ "$CLONE_EXIT_CODE" -eq 0 ]; then
+            echo "✅ Monorepo cloned successfully (branch: $BRANCH)"
+          else
+            echo "⚠️  Failed to clone branch '$BRANCH': $CLONE_OUTPUT"
+            echo "⚠️  Falling back to 'main' branch..."
+            
+            CLONE_OUTPUT=$(git -c http.extraheader="Authorization: Basic $BASIC_AUTH" \
+              clone --depth=1 --branch="main" \
+              "https://github.com/consentdotio/monorepo.git" "$MONOREPO_DIR" 2>&1) || CLONE_EXIT_CODE=$?
+            
+            if [ -n "$CLONE_EXIT_CODE" ] && [ "$CLONE_EXIT_CODE" -ne 0 ]; then
+              echo "❌ Failed to clone monorepo even with fallback to 'main'"
+              echo "Error output: $CLONE_OUTPUT"
+              echo ""
+              echo "Troubleshooting:"
+              echo "1. Verify CONSENT_GIT_TOKEN secret is set in repository settings"
+              echo "2. Ensure the token has 'repo' scope and access to consentdotio/monorepo"
+              echo "3. Check that the token hasn't expired"
+              exit 1
+            fi
+            echo "✅ Monorepo cloned successfully (branch: main, fallback)"
+          fi
 
       - name: 📦 Install monorepo dependencies
         working-directory: monorepo
