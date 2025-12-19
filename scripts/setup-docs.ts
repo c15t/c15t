@@ -735,8 +735,10 @@ function installDocumentationTemplate(
 function processMDXContent(buildMode: BuildMode, branch: GitBranch): void {
 	// Content has already been copied to .docs/.c15t/ during template installation
 	// Skip copy-content step and proceed directly to fumadocs-mdx processing
+	// Use NODE_OPTIONS to register tsx import hook so fumadocs-mdx can handle TypeScript imports
+	// from workspace packages. Node.js 20+ uses --import flag for ESM import hooks
 	executeCommand(
-		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm fumadocs-mdx`,
+		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && NODE_OPTIONS="--import tsx/esm" pnpm fumadocs-mdx`,
 		'Processing MDX content with fumadocs-mdx',
 		buildMode,
 		branch
