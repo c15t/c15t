@@ -107,6 +107,11 @@ type BuildMode = 'development' | 'production';
 type GitBranch = string;
 
 /**
+ * GitHub repository full name (owner/repo)
+ */
+type GitHubRepoFullName = string;
+
+/**
  * Configuration object for fetch process
  */
 interface FetchConfiguration {
@@ -130,7 +135,17 @@ interface FetchOptions {
 	readonly mode: BuildMode;
 	/** Git branch to fetch from */
 	readonly branch: GitBranch;
+	/** When true, prints resolved settings and exits before side effects */
+	readonly dryRun: boolean;
 }
+
+type PullSourceKind = 'github-pr' | 'explicit-branch' | 'default-branch';
+
+type PullSource = {
+	readonly kind: PullSourceKind;
+	readonly branch: GitBranch;
+	readonly repo?: GitHubRepoFullName;
+};
 
 /**
  * Custom error class for fetch process failures
@@ -193,9 +208,10 @@ const FETCH_CONFIG: FetchConfiguration = {
  */
 function parseFetchOptions(): FetchOptions {
 	const isProduction = process.argv.includes('--vercel');
+	const dryRun = process.argv.includes('--dry-run');
 
 	// Parse branch flag: --branch=canary or --branch canary
-	let branch = FETCH_CONFIG.DEFAULT_BRANCH;
+	let branch = resolveDefaultTemplateBranch();
 	const branchFlag = process.argv.find((arg) => arg.startsWith('--branch'));
 
 	if (branchFlag) {
@@ -220,7 +236,112 @@ function parseFetchOptions(): FetchOptions {
 			return 'development';
 		})(),
 		branch: branch || FETCH_CONFIG.DEFAULT_BRANCH,
+		dryRun,
 	};
+}
+
+type GitHubPullRequestEventPayload = {
+	readonly pull_request?: {
+		readonly base?: { readonly ref?: string };
+		readonly head?: {
+			readonly ref?: string;
+			readonly repo?: { readonly full_name?: string };
+		};
+	};
+};
+
+function readGitHubEventPayload(): GitHubPullRequestEventPayload | undefined {
+	const eventPath = process.env.GITHUB_EVENT_PATH;
+	if (!eventPath) {
+		return undefined;
+	}
+	try {
+		const raw = readFileSync(eventPath, 'utf8');
+		return JSON.parse(raw) as GitHubPullRequestEventPayload;
+	} catch {
+		return undefined;
+	}
+}
+
+function resolveBranchFromEnvRef(githubRef: string | undefined): string {
+	if (!githubRef) {
+		return '';
+	}
+	if (githubRef.startsWith('refs/heads/')) {
+		return githubRef.replace('refs/heads/', '');
+	}
+	if (githubRef.startsWith('refs/tags/')) {
+		return githubRef.replace('refs/tags/', '');
+	}
+	return '';
+}
+
+function resolveDefaultTemplateBranch(): GitBranch {
+	// When the caller explicitly provided `--branch`, parseFetchOptions() will
+	// read it and override whatever we return here.
+	const eventName = process.env.GITHUB_EVENT_NAME || '';
+	const isPullRequestEvent =
+		eventName === 'pull_request' || eventName === 'pull_request_target';
+
+	if (isPullRequestEvent) {
+		// For PR previews, the template should follow the PR base branch
+		// (main/canary), while content is pulled from the PR head branch.
+		const payload = readGitHubEventPayload();
+		const payloadBaseRef = payload?.pull_request?.base?.ref || '';
+		const envBaseRef = process.env.GITHUB_BASE_REF || '';
+		const baseRef = payloadBaseRef || envBaseRef;
+		if (baseRef) {
+			return baseRef;
+		}
+		return FETCH_CONFIG.DEFAULT_BRANCH;
+	}
+
+	// For push/schedule/manual runs, prefer the current ref name if present.
+	const refName = process.env.GITHUB_REF_NAME || '';
+	if (refName) {
+		return refName;
+	}
+	const fromRef = resolveBranchFromEnvRef(process.env.GITHUB_REF);
+	if (fromRef) {
+		return fromRef;
+	}
+	return FETCH_CONFIG.DEFAULT_BRANCH;
+}
+
+function resolvePullSource(fetchOptions: FetchOptions): PullSource {
+	const eventName = process.env.GITHUB_EVENT_NAME || '';
+	const isPullRequestEvent =
+		eventName === 'pull_request' || eventName === 'pull_request_target';
+	if (isPullRequestEvent) {
+		const payload = readGitHubEventPayload();
+		const envHeadRef = process.env.GITHUB_HEAD_REF || '';
+		const payloadHeadRef = payload?.pull_request?.head?.ref || '';
+		const headRef = payloadHeadRef || envHeadRef;
+
+		const payloadHeadRepo = payload?.pull_request?.head?.repo?.full_name || '';
+		const envRepo = process.env.GITHUB_REPOSITORY || '';
+		const repo = payloadHeadRepo || envRepo;
+
+		if (!headRef) {
+			return { kind: 'default-branch', branch: fetchOptions.branch };
+		}
+		if (!repo) {
+			return { kind: 'github-pr', branch: headRef };
+		}
+
+		return { kind: 'github-pr', branch: headRef, repo };
+	}
+
+	// Non-PR events: allow explicit `--branch` to control which branch we pull
+	// content from (and it also controls the template branch elsewhere).
+	const explicitBranchFlag = process.argv.some((arg) =>
+		arg.startsWith('--branch')
+	);
+	if (explicitBranchFlag) {
+		return { kind: 'explicit-branch', branch: fetchOptions.branch };
+	}
+
+	return { kind: 'default-branch', branch: fetchOptions.branch };
 }
 
 /**
@@ -593,16 +714,16 @@ function patchC15tDocsTemplatePackageJson(
 	ensureDirExists(internalDir);
 	const runnerPath = join(internalDir, 'run-fumadocs-mdx.ts');
 	const runnerSource = `import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-
-const require = createRequire(import.meta.url);
 
 type Pkg = { bin?: string | Record<string, string> };
 
-function resolveBinPath(): string {
-	const pkgJsonPath = require.resolve('fumadocs-mdx/package.json');
+function resolveBinPath(cwd: string): string {
+	const pkgJsonPath = path.join(cwd, 'node_modules', 'fumadocs-mdx', 'package.json');
+	if (!existsSync(pkgJsonPath)) {
+		throw new Error(\`fumadocs-mdx package.json not found at \${pkgJsonPath}\`);
+	}
 	const pkg = JSON.parse(readFileSync(pkgJsonPath, 'utf8')) as Pkg;
 	const rel =
 		typeof pkg.bin === 'string'
@@ -616,7 +737,8 @@ function resolveBinPath(): string {
 	return path.resolve(path.dirname(pkgJsonPath), rel);
 }
 
-const binPath = resolveBinPath();
+const cwd = process.cwd();
+const binPath = resolveBinPath(cwd);
 const args = process.argv.slice(2);
 const result = spawnSync('tsx', [binPath, ...args], { stdio: 'inherit' });
 if (result.error) {
@@ -710,16 +832,26 @@ function pullTemplateContent(buildMode: BuildMode, branch: GitBranch): void {
 		);
 	}
 	if (buildMode === 'production') {
+		let repoFlag = '';
+		const envRepo = process.env.C15T_DOCS_SOURCE_REPO || '';
+		if (envRepo) {
+			repoFlag = ` --repo="${envRepo}"`;
+		}
 		executeCommand(
-			`cd ${templateDir} && pnpm tsx scripts/content/pull.ts --vercel --branch=${branch}`,
+			`cd ${templateDir} && pnpm tsx scripts/content/pull.ts --vercel --branch="${branch}"${repoFlag}`,
 			'Pulling docs content into templates/c15t/.c15t',
 			buildMode,
 			branch
 		);
 		return;
 	}
+	let repoFlag = '';
+	const envRepo = process.env.C15T_DOCS_SOURCE_REPO || '';
+	if (envRepo) {
+		repoFlag = ` --repo="${envRepo}"`;
+	}
 	executeCommand(
-		`cd ${templateDir} && pnpm tsx scripts/content/pull.ts --branch=${branch}`,
+		`cd ${templateDir} && pnpm tsx scripts/content/pull.ts --branch="${branch}"${repoFlag}`,
 		'Pulling docs content into templates/c15t/.c15t',
 		buildMode,
 		branch
@@ -878,9 +1010,28 @@ function main(fetchOptions: FetchOptions): void {
 		modeText = 'development setup';
 	}
 
-	log(
-		`${modeEmoji} Starting ${modeText} for documentation site (${fetchOptions.branch} branch)...\n`
-	);
+	const pullSource = resolvePullSource(fetchOptions);
+	process.env.C15T_DOCS_SOURCE_REPO = pullSource.repo || '';
+
+	log(`${modeEmoji} Starting ${modeText} for documentation site...\n`);
+	log(`📋 Template branch: ${fetchOptions.branch}`);
+	if (pullSource.kind === 'github-pr') {
+		log(`📋 Content source: PR head (${pullSource.branch})`);
+		if (pullSource.repo) {
+			log(`📋 Content repo: ${pullSource.repo}`);
+		}
+	} else if (pullSource.kind === 'explicit-branch') {
+		log(`📋 Content source: explicit --branch (${pullSource.branch})`);
+	} else {
+		log(`📋 Content source: default (${pullSource.branch})`);
+	}
+
+	if (fetchOptions.dryRun) {
+		log(
+			'\n🧪 Dry run: exiting before authentication, cloning, installs, or builds.'
+		);
+		return;
+	}
 
 	try {
 		// Phase 1: Validate authentication credentials
@@ -903,7 +1054,7 @@ function main(fetchOptions: FetchOptions): void {
 		installDocsAppDependencies(fetchOptions.mode, fetchOptions.branch);
 
 		// Phase 5: Pull content into templates/c15t/.c15t (required for build)
-		pullTemplateContent(fetchOptions.mode, fetchOptions.branch);
+		pullTemplateContent(fetchOptions.mode, pullSource.branch);
 
 		// Development: Process MDX for local dev (production build can rely on Vercel build)
 		if (!fetchOptions.isProduction) {
@@ -917,7 +1068,11 @@ function main(fetchOptions: FetchOptions): void {
 
 		// Success messaging based on mode
 		log(`\n🎉 ${modeText} completed successfully!`);
-		log(`📋 Branch: ${fetchOptions.branch}`);
+		log(`📋 Template branch: ${fetchOptions.branch}`);
+		log(`📋 Content branch: ${pullSource.branch}`);
+		if (pullSource.repo) {
+			log(`📋 Content repo: ${pullSource.repo}`);
+		}
 
 		if (fetchOptions.isProduction) {
 			log('📦 Documentation site prepared; Vercel will perform the build.');
