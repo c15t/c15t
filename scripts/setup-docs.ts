@@ -862,6 +862,7 @@ function installDocumentationTemplate(
 type PackageJson = {
 	readonly name?: string;
 	readonly scripts?: Record<string, string>;
+	readonly packageManager?: string;
 };
 
 function ensureDirExists(dirPath: string): void {
@@ -974,10 +975,14 @@ process.exit(typeof result.status === 'number' ? result.status : 1);
 		);
 	}
 
+	// Remove packageManager field to prevent Vercel from trying to download pnpm via Corepack
+	// Vercel already has pnpm available and will use it via the installCommand in vercel.json
 	const updated = {
 		...parsed,
 		scripts,
 	};
+	// eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+	delete (updated as Record<string, unknown>).packageManager;
 
 	try {
 		writeFileSync(
