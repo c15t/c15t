@@ -1047,10 +1047,11 @@ function patchVercelJson(buildMode: BuildMode, branch: GitBranch): void {
 
 	// Update installCommand to install only in current directory
 	// Remove the monorepo-specific command that causes memory issues
-	// Use --frozen-lockfile now that we copy the lockfile from the monorepo
+	// Use pnpm install without --frozen-lockfile since we generate a new lockfile
+	// for the standalone workspace (the monorepo lockfile doesn't match)
 	const updatedConfig = {
 		...vercelConfig,
-		installCommand: 'pnpm install --frozen-lockfile',
+		installCommand: 'pnpm install',
 	};
 
 	try {
@@ -1195,15 +1196,17 @@ function createWorkspaceConfig(buildMode: BuildMode, branch: GitBranch): void {
 		);
 	}
 
-	// Copy pnpm-lock.yaml from monorepo root if it exists
-	const lockfileSource = join(FETCH_CONFIG.TEMP_DOCS_DIR, 'pnpm-lock.yaml');
+	// Don't copy pnpm-lock.yaml from monorepo root - it contains dependencies for the entire
+	// monorepo and won't match the standalone .docs workspace. pnpm will generate a new
+	// lockfile when installing dependencies for the standalone workspace.
+	// Remove any existing lockfile that might have been copied previously
 	const lockfileDest = join(FETCH_CONFIG.DOCS_APP_DIR, 'pnpm-lock.yaml');
-	if (existsSync(lockfileSource)) {
+	if (existsSync(lockfileDest)) {
 		try {
-			cpSync(lockfileSource, lockfileDest);
-			log('✅ Copied pnpm-lock.yaml');
+			rmSync(lockfileDest);
+			log('🧹 Removed existing pnpm-lock.yaml (will be regenerated)');
 		} catch {
-			log('⚠️  Failed to copy pnpm-lock.yaml, pnpm will generate a new one');
+			// Ignore if we can't remove it
 		}
 	}
 }
@@ -1343,8 +1346,10 @@ function installDocsAppDependencies(
 	buildMode: BuildMode,
 	branch: GitBranch
 ): void {
+	// Don't use --frozen-lockfile since we're creating a new standalone workspace
+	// The monorepo lockfile doesn't match the standalone .docs package.json
 	executeCommand(
-		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm install --frozen-lockfile`,
+		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm install`,
 		'Installing .docs workspace dependencies',
 		buildMode,
 		branch
