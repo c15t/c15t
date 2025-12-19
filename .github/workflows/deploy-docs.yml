@@ -111,18 +111,21 @@ jobs:
           echo "name=$BRANCH" >> $GITHUB_OUTPUT
           echo "Branch: $BRANCH"
 
+      # 📦 Setup pnpm first (required before Node.js cache setup)
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.0
+          run_install: false
+
       - name: ♻️ Setup Node + pnpm cache
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'pnpm'
 
-      - name: 📦 Enable pnpm (corepack) + install workspace deps
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.8.0 --activate
-          pnpm --version
-          pnpm install --frozen-lockfile
+      - name: 📥 Install workspace deps
+        run: pnpm install --frozen-lockfile
 
       # Preview deployment: PRs, manual preview, or scheduled
       - name: ▲ C15T Docs Preview (Deploy + PR Comment)
