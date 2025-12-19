@@ -1271,14 +1271,327 @@ function copyWorkspacePackages(buildMode: BuildMode, branch: GitBranch): void {
 								}
 							}
 
-							// If we couldn't read from local, we need the file to be in git
-							// For now, throw a clear error
+							// If we couldn't read from local, use embedded content (for CI)
 							if (!mdxToMdContent) {
-								throw new Error(
-									'Cannot read mdx-to-md.ts. The file must be committed to git in the monorepo. ' +
-										'Local paths checked: ' +
-										possibleLocalPaths.join(', ')
+								log(
+									'   📦 Using embedded mdx-to-md.ts content (file not in git)'
 								);
+								// Embedded full content of mdx-to-md.ts - this is the complete file
+								mdxToMdContent = `import fs from "node:fs";
+import { cpus } from "node:os";
+import path from "node:path";
+import type { Plugin } from "unified";
+import { remark } from "remark";
+import remarkGfm from "remark-gfm";
+import remarkMdx from "remark-mdx";
+
+// Create remark processor with configurable plugins
+// biome-ignore lint/suspicious/noExplicitAny: unified processor types are complex
+function createRemarkProcessor(additionalPlugins: any[] = []) {
+	// biome-ignore lint/suspicious/noExplicitAny: unified processor types are complex
+	let processor: any = remark().use(remarkMdx).use(remarkGfm);
+	for (const plugin of additionalPlugins) {
+		processor = processor.use(plugin);
+	}
+	return processor;
+}
+
+export type MDXToMDConfig = {
+	/** Source directory containing .mdx files (defaults to .c15t) */
+	srcDir?: string;
+	/** Output directory for .md files (defaults to public) */
+	outDir?: string;
+	/** Additional remark plugins to use (e.g., from @inth/optin-docs/mdx-components/remark-plugins) */
+	// biome-ignore lint/suspicious/noExplicitAny: remark plugins have complex types
+	remarkPlugins?: any[];
+};
+
+// Regex for MDX file extension - defined at top level for performance
+const MDX_EXTENSION_REGEX = /\\.mdx$/;
+const DECIMAL_RADIX = 10;
+const MAX_CONCURRENCY_CAP = 8;
+
+// Regex for frontmatter extraction - defined at top level for performance
+const FRONTMATTER_REGEX = /^---\\n([\\s\\S]*?)\\n---\\n([\\s\\S]*)$/;
+
+/**
+ * Ensure directory exists, create if it doesn't
+ */
+function ensureDir(dir: string): void {
+	if (!fs.existsSync(dir)) {
+		fs.mkdirSync(dir, { recursive: true });
+	}
+}
+
+/**
+ * Walk through directory and find all MDX files
+ */
+function* walkMdxFiles(dir: string): Generator<string> {
+	if (!fs.existsSync(dir)) {
+		return;
+	}
+
+	for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+		const fullPath = path.join(dir, entry.name);
+
+		if (entry.isDirectory() || entry.isSymbolicLink()) {
+			yield* walkMdxFiles(fullPath);
+		} else if (entry.isFile() && fullPath.endsWith(".mdx")) {
+			yield fullPath;
+		}
+	}
+}
+
+/**
+ * Derive output .md path from an input .mdx path
+ */
+function deriveOutputPath(
+	inputFilePath: string,
+	srcDir: string,
+	outDir: string
+): string {
+	// Prefer preserving the relative structure if the file lives under SRC_DIR
+	const normalizedSrcDir = path.resolve(srcDir) + path.sep;
+	const normalizedInput = path.resolve(inputFilePath);
+
+	// Perform case-insensitive comparison to handle Windows drive letter differences
+	if (
+		normalizedInput.toLowerCase().startsWith(normalizedSrcDir.toLowerCase())
+	) {
+		const relativePath = path.relative(srcDir, normalizedInput);
+		return path.join(outDir, relativePath.replace(MDX_EXTENSION_REGEX, ".md"));
+	}
+
+	// Fallback: place the converted file at OUT_DIR root using only the basename
+	return path.join(
+		outDir,
+		path.basename(normalizedInput).replace(MDX_EXTENSION_REGEX, ".md")
+	);
+}
+
+/**
+ * Convert MDX content to Markdown using remark processor
+ */
+async function convertMdxToMarkdown(
+	mdxContent: string,
+	filePath: string | undefined,
+	// biome-ignore lint/suspicious/noExplicitAny: remark plugins have complex types
+	remarkPlugins: any[]
+): Promise<string> {
+	const remarkProcessor = createRemarkProcessor(remarkPlugins);
+	try {
+		// Extract frontmatter to preserve it from remark processing
+		const frontmatterMatch = mdxContent.match(FRONTMATTER_REGEX);
+		let frontmatter = "";
+		let content = mdxContent;
+
+		if (frontmatterMatch) {
+			frontmatter = frontmatterMatch[1];
+			content = frontmatterMatch[2];
+		}
+
+		// Process only the content part through remark
+		const processed = await remarkProcessor.process({
+			value: content,
+			path: filePath ?? "virtual.mdx",
+		});
+
+		// Reattach the preserved frontmatter
+		const processedContent = String(processed);
+
+		if (frontmatter) {
+			return \`---\\n\${frontmatter}\\n---\\n\${processedContent}\`;
+		}
+
+		return processedContent;
+	} catch (error) {
+		// Fallback to simple cleanup if remark processing fails
+		process.stderr.write(
+			\`Warning: Remark processing failed for \${filePath}: \${error}\\n\`
+		);
+		return mdxContent;
+	}
+}
+
+/**
+ * Process and write a single MDX file to Markdown
+ */
+async function processMdxFile(
+	mdxFilePath: string,
+	srcDir: string,
+	outDir: string,
+	// biome-ignore lint/suspicious/noExplicitAny: remark plugins have complex types
+	remarkPlugins: any[],
+	writeToStdout = false
+): Promise<boolean> {
+	try {
+		const resolvedPath = path.resolve(mdxFilePath);
+
+		if (!fs.existsSync(resolvedPath)) {
+			process.stderr.write(\`File not found: \${resolvedPath}\\n\`);
+			return false;
+		}
+
+		if (!resolvedPath.endsWith(".mdx")) {
+			process.stderr.write(\`Not an MDX file: \${resolvedPath}\\n\`);
+			return false;
+		}
+
+		const outputPath = deriveOutputPath(resolvedPath, srcDir, outDir);
+		ensureDir(path.dirname(outputPath));
+
+		const mdxContent = fs.readFileSync(resolvedPath, "utf8");
+		const markdownContent = await convertMdxToMarkdown(
+			mdxContent,
+			resolvedPath,
+			remarkPlugins
+		);
+
+		// Write to stdout if requested (for single-file conversion)
+		if (writeToStdout) {
+			process.stdout.write(markdownContent);
+		}
+
+		// Always write to file
+		fs.writeFileSync(outputPath, markdownContent, "utf8");
+
+		if (writeToStdout) {
+			process.stdout.write(
+				\`✓ Converted 1 file: \${resolvedPath} → \${outputPath}\\n\`
+			);
+		}
+
+		return true;
+	} catch (error) {
+		process.stderr.write(\`Failed to process \${mdxFilePath}: \${error}\\n\`);
+		return false;
+	}
+}
+
+/**
+ * Convert a single MDX file to Markdown and write it to the output path
+ */
+export async function convertSingleMdxFile(
+	mdxFilePath: string,
+	config: MDXToMDConfig = {}
+): Promise<boolean> {
+	const srcDir = config.srcDir
+		? path.resolve(config.srcDir)
+		: path.resolve(process.cwd(), ".c15t");
+	const outDir = config.outDir
+		? path.resolve(config.outDir)
+		: path.resolve(process.cwd(), "public");
+	const remarkPlugins = config.remarkPlugins ?? [];
+	return await processMdxFile(mdxFilePath, srcDir, outDir, remarkPlugins, true);
+}
+
+/**
+ * Convert all MDX files to MD files and copy them to the output directory
+ */
+export async function convertAllMdx(
+	config: MDXToMDConfig = {}
+): Promise<void> {
+	try {
+		const srcDir = config.srcDir
+			? path.resolve(config.srcDir)
+			: path.resolve(process.cwd(), ".c15t");
+		const outDir = config.outDir
+			? path.resolve(config.outDir)
+			: path.resolve(process.cwd(), "public");
+
+		if (!fs.existsSync(srcDir)) {
+			process.stdout.write(\`Source directory not found: \${srcDir}\\n\`);
+			return;
+		}
+
+		// Gather all MDX files first
+		const mdxFiles: string[] = [];
+		for (const filePath of walkMdxFiles(srcDir)) {
+			mdxFiles.push(filePath);
+		}
+
+		// Concurrency chooser (env override or CPU count, capped)
+		const getConcurrency = (): number => {
+			const envValue = process.env.CONVERT_MDX_CONCURRENCY;
+			if (envValue) {
+				const parsed = Number.parseInt(envValue, DECIMAL_RADIX);
+				if (Number.isFinite(parsed) && parsed > 0) {
+					return parsed;
+				}
+			}
+			const cpuCount = cpus().length;
+			return Math.max(1, Math.min(MAX_CONCURRENCY_CAP, cpuCount));
+		};
+
+		const concurrency = getConcurrency();
+		const remarkPlugins = config.remarkPlugins ?? [];
+		let fileCount = 0;
+
+		for (let i = 0; i < mdxFiles.length; i += concurrency) {
+			const chunk = mdxFiles.slice(i, i + concurrency);
+			const results = await Promise.all(
+				chunk.map(async (mdxFilePath) => {
+					try {
+						const outputPath = deriveOutputPath(
+							mdxFilePath,
+							srcDir,
+							outDir
+						);
+
+						ensureDir(path.dirname(outputPath));
+
+						const mdxContent = fs.readFileSync(mdxFilePath, "utf8");
+						const markdownContent = await convertMdxToMarkdown(
+							mdxContent,
+							mdxFilePath,
+							remarkPlugins
+						);
+						fs.writeFileSync(outputPath, markdownContent, "utf8");
+						return true;
+					} catch (fileError) {
+						process.stderr.write(
+							\`Failed to process \${mdxFilePath}: \${fileError}\\n\`
+						);
+						return false;
+					}
+				})
+			);
+			for (const succeeded of results) {
+				if (succeeded) {
+					fileCount++;
+				}
+			}
+		}
+
+		process.stdout.write(
+			\`✓ Converted \${fileCount} MDX files to MD: \${srcDir} → \${outDir}\\n\`
+		);
+	} catch (error) {
+		process.stderr.write(\`Failed to convert MDX files: \${error}\\n\`);
+	}
+}
+
+// Run the conversion if this file is executed directly
+if (import.meta.url === \`file://\${process.argv[1]}\`) {
+	const inputArg = process.argv[2];
+	const run = async (): Promise<void> => {
+		if (inputArg) {
+			const ok = await convertSingleMdxFile(inputArg);
+			if (!ok) {
+				process.exitCode = 1;
+			}
+			return;
+		}
+
+		await convertAllMdx();
+	};
+
+	run().catch((error) => {
+		process.stderr.write(\`MDX conversion failed: \${error}\\n\`);
+		process.exit(1);
+	});
+}
+`;
 							}
 
 							writeFileSync(criticalFile, mdxToMdContent, 'utf8');
