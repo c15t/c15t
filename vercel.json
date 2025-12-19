@@ -2,7 +2,7 @@
 	"$schema": "https://openapi.vercel.sh/vercel.json",
 	"buildCommand": "tsx scripts/setup-docs.ts --vercel && cd .docs && pnpm build",
 	"outputDirectory": ".docs/.next",
-	"installCommand": "pnpm install --frozen-lockfile --filter .",
+	"installCommand": "pnpm install --frozen-lockfile --filter . --no-verify-store-integrity || pnpm install --frozen-lockfile",
 	"framework": "nextjs",
 	"ignoreCommand": "exit 0"
 }
