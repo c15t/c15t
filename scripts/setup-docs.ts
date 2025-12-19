@@ -68,7 +68,7 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { exit } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
@@ -879,51 +879,13 @@ function patchC15tDocsTemplatePackageJson(
 	buildMode: BuildMode,
 	branch: GitBranch
 ): void {
+	// In the new monorepo structure, package.json is directly in .docs (not in templates/c15t)
 	const templatePackageJsonPath = join(
 		FETCH_CONFIG.DOCS_APP_DIR,
-		'templates',
-		'c15t',
 		'package.json'
 	);
 
-	// Debug: Check what's actually in the .docs directory
-	log(`🔍 Looking for template package.json at: ${templatePackageJsonPath}`);
 	if (!existsSync(templatePackageJsonPath)) {
-		// Debug: List what's actually in .docs/templates if it exists
-		const templatesDir = join(FETCH_CONFIG.DOCS_APP_DIR, 'templates');
-		if (existsSync(templatesDir)) {
-			log('📋 Contents of .docs/templates:');
-			const templatesContents = readdirSync(templatesDir, {
-				withFileTypes: true,
-			});
-			for (const item of templatesContents) {
-				log(`   ${item.isDirectory() ? '📁' : '📄'} ${item.name}`);
-				if (item.isDirectory()) {
-					const subDir = join(templatesDir, item.name);
-					const subContents = readdirSync(subDir, { withFileTypes: true });
-					log(`      (${subContents.length} items)`);
-					for (const subItem of subContents.slice(0, 5)) {
-						log(`      ${subItem.isDirectory() ? '📁' : '📄'} ${subItem.name}`);
-					}
-					if (subContents.length > 5) {
-						log(`      ... and ${String(subContents.length - 5)} more`);
-					}
-				}
-			}
-		} else {
-			log('⚠️  .docs/templates directory does not exist');
-			// List root of .docs
-			if (existsSync(FETCH_CONFIG.DOCS_APP_DIR)) {
-				log('📋 Contents of .docs root:');
-				const rootContents = readdirSync(FETCH_CONFIG.DOCS_APP_DIR, {
-					withFileTypes: true,
-				});
-				for (const item of rootContents.slice(0, 20)) {
-					log(`   ${item.isDirectory() ? '📁' : '📄'} ${item.name}`);
-				}
-			}
-		}
-
 		throw new FetchScriptError(
 			`Template package.json not found at ${templatePackageJsonPath}`,
 			'patch_template_package_json',
@@ -950,11 +912,7 @@ function patchC15tDocsTemplatePackageJson(
 
 	// Ensure fumadocs-mdx can import workspace TS sources by running it under tsx,
 	// but avoid executing the pnpm .bin shim (often a shell script).
-	const internalDir = join(
-		dirname(templatePackageJsonPath),
-		'scripts',
-		'internal'
-	);
+	const internalDir = join(FETCH_CONFIG.DOCS_APP_DIR, 'scripts', 'internal');
 	ensureDirExists(internalDir);
 	const runnerPath = join(internalDir, 'run-fumadocs-mdx.ts');
 	const runnerSource = `import { spawnSync } from 'node:child_process';
@@ -1066,7 +1024,8 @@ function cleanupDocsTemplates(buildMode: BuildMode, branch: GitBranch): void {
 }
 
 function pullTemplateContent(buildMode: BuildMode, branch: GitBranch): void {
-	const templateDir = join(FETCH_CONFIG.DOCS_APP_DIR, 'templates', 'c15t');
+	// In the new monorepo structure, the template is directly in .docs (not in templates/c15t)
+	const templateDir = FETCH_CONFIG.DOCS_APP_DIR;
 	if (!existsSync(templateDir)) {
 		throw new FetchScriptError(
 			`Template directory not found at ${templateDir}`,
@@ -1083,7 +1042,7 @@ function pullTemplateContent(buildMode: BuildMode, branch: GitBranch): void {
 		}
 		executeCommand(
 			`cd ${templateDir} && pnpm tsx scripts/content/pull.ts --vercel --branch="${branch}"${repoFlag}`,
-			'Pulling docs content into templates/c15t/.c15t',
+			'Pulling docs content into .docs/.c15t',
 			buildMode,
 			branch
 		);
@@ -1096,7 +1055,7 @@ function pullTemplateContent(buildMode: BuildMode, branch: GitBranch): void {
 	}
 	executeCommand(
 		`cd ${templateDir} && pnpm tsx scripts/content/pull.ts --branch="${branch}"${repoFlag}`,
-		'Pulling docs content into templates/c15t/.c15t',
+		'Pulling docs content into .docs/.c15t',
 		buildMode,
 		branch
 	);
@@ -1127,7 +1086,8 @@ function pullTemplateContent(buildMode: BuildMode, branch: GitBranch): void {
  * @see {@link https://fumadocs.vercel.app/docs/mdx | Fumadocs MDX Documentation}
  */
 function processMDXContent(buildMode: BuildMode, branch: GitBranch): void {
-	const templateDir = join(FETCH_CONFIG.DOCS_APP_DIR, 'templates', 'c15t');
+	// In the new monorepo structure, the template is directly in .docs (not in templates/c15t)
+	const templateDir = FETCH_CONFIG.DOCS_APP_DIR;
 	executeCommand(
 		`cd ${templateDir} && pnpm copy-content`,
 		'Copying MDX content with copy-content',
@@ -1300,7 +1260,7 @@ function main(fetchOptions: FetchOptions): void {
 		// Phase 4: Install workspace deps so the template can execute its scripts
 		installDocsAppDependencies(fetchOptions.mode, fetchOptions.branch);
 
-		// Phase 5: Pull content into templates/c15t/.c15t (required for build)
+		// Phase 5: Pull content into .docs/.c15t (required for build)
 		pullTemplateContent(fetchOptions.mode, pullSource.branch);
 
 		// Development: Process MDX for local dev (production build can rely on Vercel build)
