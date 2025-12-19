@@ -1,6 +1,6 @@
 {
 	"$schema": "https://openapi.vercel.sh/vercel.json",
-	"buildCommand": "tsx scripts/setup-docs.ts --vercel",
+	"buildCommand": "tsx scripts/vercel-build.ts",
 	"outputDirectory": ".docs/.next",
 	"installCommand": "pnpm install --frozen-lockfile",
 	"framework": "nextjs",
