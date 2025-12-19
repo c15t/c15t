@@ -58,7 +58,7 @@ const error = console.error;
  * ```
  */
 
-import { execSync } from 'node:child_process';
+import { execSync, spawnSync } from 'node:child_process';
 import {
 	cpSync,
 	existsSync,
@@ -182,7 +182,7 @@ class FetchScriptError extends Error {
 const FETCH_CONFIG: FetchConfiguration = {
 	TEMP_DOCS_DIR: join(tmpdir(), 'c15t-docs'),
 	DOCS_APP_DIR: '.docs',
-	DOCS_REPO_URL: 'https://github.com/consentdotio/c15t-docs.git',
+	DOCS_REPO_URL: 'https://github.com/consentdotio/monorepo.git',
 	DEFAULT_BRANCH: 'main',
 } as const;
 
@@ -580,6 +580,59 @@ function executeCommand(
 }
 
 /**
+ * Attempts to clone a git repository branch, capturing error output to detect branch-not-found errors
+ *
+ * @param command - The git clone command to execute
+ * @param buildMode - Current build mode for error context
+ * @param branch - Branch being cloned
+ * @param redact - Secrets to redact from error messages
+ * @returns true if clone succeeded, false if branch not found
+ * @throws {FetchScriptError} For other errors
+ */
+function tryCloneBranch(
+	command: ShellCommand,
+	buildMode: BuildMode,
+	branch: GitBranch,
+	redact: string[]
+): boolean {
+	// Use spawnSync with shell to properly handle quoted arguments
+	const result = spawnSync(command, [], {
+		shell: true,
+		stdio: ['inherit', 'inherit', 'pipe'],
+		encoding: 'utf8',
+		maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+	});
+
+	if (result.status === 0) {
+		return true;
+	}
+
+	// Check stderr for branch-not-found error
+	// With encoding: 'utf8', stderr should be a string
+	const stderr = String(result.stderr || '');
+	const isBranchNotFound =
+		stderr.includes('Remote branch') &&
+		stderr.includes('not found in upstream origin');
+
+	if (isBranchNotFound) {
+		return false;
+	}
+
+	// For other errors, throw a proper FetchScriptError
+	const sanitized = redact.reduce(
+		(cmd, secret) => (secret ? cmd.split(secret).join('***') : cmd),
+		command
+	);
+	throw new FetchScriptError(
+		`Command execution failed: git clone${stderr ? ` - ${stderr.substring(0, 200)}` : ''}`,
+		'command_execution',
+		buildMode,
+		branch,
+		sanitized
+	);
+}
+
+/**
  * Clones the private documentation template repository to temporary storage
  *
  * This function performs an authenticated shallow clone of the private Next.js
@@ -587,14 +640,16 @@ function executeCommand(
  * (depth=1) optimization significantly reduces download time and bandwidth usage
  * by fetching only the latest commit without the full git history.
  *
+ * If the requested branch doesn't exist in the template repository, it automatically
+ * falls back to the default branch (main).
+ *
  * @param authenticationToken - Valid GitHub personal access token with repository read permissions
  * @param buildMode - Current build mode for error context
  * @param branch - Git branch to clone from the repository
  *
- * @throws {FetchScriptError} When git clone operation fails
+ * @throws {FetchScriptError} When git clone operation fails (except branch-not-found, which triggers fallback)
  * @throws {FetchScriptError} When authentication fails due to invalid token
  * @throws {FetchScriptError} When network connectivity issues prevent cloning
- * @throws {FetchScriptError} When specified branch doesn't exist
  *
  * @example
  * ```typescript
@@ -603,7 +658,7 @@ function executeCommand(
  * // Repository now available at /tmp/new-docs from main branch
  *
  * cloneDocumentationRepository(token, 'development', 'canary');
- * // Repository now available at /tmp/new-docs from canary branch
+ * // If canary doesn't exist, falls back to main branch
  * ```
  *
  * @see {@link https://git-scm.com/docs/git-clone | Git Clone Documentation}
@@ -616,7 +671,7 @@ function cloneDocumentationRepository(
 	buildMode: BuildMode,
 	branch: GitBranch
 ): void {
-	const repoUrl = 'https://github.com/consentdotio/c15t-docs.git';
+	const repoUrl = 'https://github.com/consentdotio/monorepo.git';
 	const basicAuth = Buffer.from(
 		`x-access-token:${authenticationToken}`
 	).toString('base64');
@@ -629,13 +684,59 @@ function cloneDocumentationRepository(
 		branch
 	);
 
-	executeCommand(
-		`git -c http.extraheader="Authorization: Basic ${basicAuth}" clone --depth=1 --branch=${branch} "${repoUrl}" ${FETCH_CONFIG.TEMP_DOCS_DIR}`,
-		`Fetching private Next.js documentation template (${branch} branch)`,
-		buildMode,
-		branch,
-		{ redact: [authenticationToken, basicAuth] }
-	);
+	// Try to clone the requested branch
+	const cloneCommand = `git -c http.extraheader="Authorization: Basic ${basicAuth}" clone --depth=1 --branch=${branch} "${repoUrl}" ${FETCH_CONFIG.TEMP_DOCS_DIR}`;
+	const branchExists = tryCloneBranch(cloneCommand, buildMode, branch, [
+		authenticationToken,
+		basicAuth,
+	]);
+
+	if (branchExists) {
+		log(`✅ Fetched private Next.js documentation template (${branch} branch)`);
+		return;
+	}
+
+	// Branch doesn't exist, fallback to default branch
+	if (branch !== FETCH_CONFIG.DEFAULT_BRANCH) {
+		log(
+			`⚠️  Branch '${branch}' not found in template repo, falling back to '${FETCH_CONFIG.DEFAULT_BRANCH}'`
+		);
+		// Clean up failed attempt
+		cleanupDirectory(
+			FETCH_CONFIG.TEMP_DOCS_DIR,
+			'temporary docs directory',
+			buildMode,
+			FETCH_CONFIG.DEFAULT_BRANCH
+		);
+		// Retry with default branch
+		const fallbackCommand = `git -c http.extraheader="Authorization: Basic ${basicAuth}" clone --depth=1 --branch=${FETCH_CONFIG.DEFAULT_BRANCH} "${repoUrl}" ${FETCH_CONFIG.TEMP_DOCS_DIR}`;
+		const fallbackSucceeded = tryCloneBranch(
+			fallbackCommand,
+			buildMode,
+			FETCH_CONFIG.DEFAULT_BRANCH,
+			[authenticationToken, basicAuth]
+		);
+
+		if (!fallbackSucceeded) {
+			throw new FetchScriptError(
+				`Failed to clone documentation template: neither '${branch}' nor '${FETCH_CONFIG.DEFAULT_BRANCH}' branch exists`,
+				'clone_template',
+				buildMode,
+				branch
+			);
+		}
+
+		log(
+			`✅ Fetched private Next.js documentation template (${FETCH_CONFIG.DEFAULT_BRANCH} branch, fallback)`
+		);
+	} else {
+		throw new FetchScriptError(
+			`Failed to clone documentation template: default branch '${FETCH_CONFIG.DEFAULT_BRANCH}' not found`,
+			'clone_template',
+			buildMode,
+			branch
+		);
+	}
 
 	// Note: For reproducible builds across environments, consider pinning to specific commit:
 	// executeCommand(
@@ -697,15 +798,28 @@ function installDocumentationTemplate(
 	);
 	try {
 		log('Installing documentation template into workspace...');
-		cpSync(FETCH_CONFIG.TEMP_DOCS_DIR, FETCH_CONFIG.DOCS_APP_DIR, {
+		// Docs are located at docs/c15t subdirectory in the monorepo
+		const templateSourceDir = join(FETCH_CONFIG.TEMP_DOCS_DIR, 'docs', 'c15t');
+		if (!existsSync(templateSourceDir)) {
+			throw new FetchScriptError(
+				`Template directory not found at ${templateSourceDir}. Ensure docs/c15t exists in the repository.`,
+				'install_template',
+				buildMode,
+				branch
+			);
+		}
+		cpSync(templateSourceDir, FETCH_CONFIG.DOCS_APP_DIR, {
 			recursive: true,
 		});
 		cleanupDocsTemplates(buildMode, branch);
 		patchC15tDocsTemplatePackageJson(buildMode, branch);
 		log('✅ Installation completed successfully');
-	} catch {
+	} catch (error) {
+		if (error instanceof FetchScriptError) {
+			throw error;
+		}
 		throw new FetchScriptError(
-			`Failed to copy template from ${FETCH_CONFIG.TEMP_DOCS_DIR} to ${FETCH_CONFIG.DOCS_APP_DIR}`,
+			`Failed to copy template from ${join(FETCH_CONFIG.TEMP_DOCS_DIR, 'docs', 'c15t')} to ${FETCH_CONFIG.DOCS_APP_DIR}`,
 			'install_template',
 			buildMode,
 			branch
