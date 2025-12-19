@@ -456,6 +456,66 @@ function cleanupDirectory(
 }
 
 /**
+ * Ensures pnpm is available in the PATH, enabling it via corepack if necessary
+ *
+ * This function checks if pnpm is available and executable. If not found, it
+ * attempts to enable pnpm via Node.js corepack, which is the recommended way
+ * to manage package managers in modern Node.js environments.
+ *
+ * @param buildMode - Current build mode for error context
+ * @param branch - Current branch for error context
+ *
+ * @throws {FetchScriptError} When pnpm cannot be found and corepack enable fails
+ * @throws {FetchScriptError} When corepack prepare fails to activate pnpm
+ *
+ * @example
+ * ```typescript
+ * ensurePnpmAvailable('development', 'main');
+ * // pnpm is now guaranteed to be available
+ * ```
+ *
+ * @see {@link https://nodejs.org/api/corepack.html | Node.js Corepack Documentation}
+ * @see {@link https://pnpm.io/installation | PNPM Installation Guide}
+ */
+function ensurePnpmAvailable(buildMode: BuildMode, branch: GitBranch): void {
+	// Check if pnpm is already available
+	try {
+		execSync('pnpm --version', { stdio: 'ignore' });
+		return;
+	} catch {
+		// pnpm not found, try to enable via corepack
+	}
+
+	log('📦 pnpm not found; attempting to enable via corepack...');
+
+	try {
+		execSync('corepack enable', { stdio: 'inherit' });
+	} catch {
+		throw new FetchScriptError(
+			'Failed to enable corepack. Ensure Node.js 16.10+ is installed.',
+			'pnpm_setup',
+			buildMode,
+			branch,
+			'corepack enable'
+		);
+	}
+
+	try {
+		// Use the same pnpm version as specified in the workflow
+		execSync('corepack prepare pnpm@10.8.0 --activate', { stdio: 'inherit' });
+		log('✅ pnpm enabled successfully via corepack');
+	} catch {
+		throw new FetchScriptError(
+			'Failed to prepare pnpm via corepack. Check Node.js version compatibility.',
+			'pnpm_setup',
+			buildMode,
+			branch,
+			'corepack prepare pnpm@10.8.0 --activate'
+		);
+	}
+}
+
+/**
  * Executes a shell command with comprehensive error handling and logging
  *
  * This function provides a robust wrapper around Node.js `execSync` with
@@ -1039,6 +1099,9 @@ function main(fetchOptions: FetchOptions): void {
 			fetchOptions.mode,
 			fetchOptions.branch
 		);
+
+		// Phase 1.5: Ensure pnpm is available before any package manager operations
+		ensurePnpmAvailable(fetchOptions.mode, fetchOptions.branch);
 
 		// Phase 2: Acquire latest documentation template from specified branch
 		cloneDocumentationRepository(
