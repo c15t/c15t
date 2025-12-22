@@ -89,6 +89,13 @@ function updateStore(
 				marketing: true,
 				measurement: true,
 			},
+			selectedConsents: {
+				necessary: true,
+				functionality: true,
+				experience: true,
+				marketing: true,
+				measurement: true,
+			},
 		}),
 		locationInfo: {
 			countryCode: location?.countryCode ?? null,
