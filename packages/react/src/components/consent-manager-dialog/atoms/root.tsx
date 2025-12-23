@@ -7,6 +7,9 @@
  * focus trapping, scroll locking and portal rendering.
  */
 
+import type { ConsentManagerDialogTheme } from '@c15t/styles/components/consent-manager-dialog';
+import styles from '@c15t/styles/components/consent-manager-dialog/css';
+import type { CSSPropertiesWithVars } from '@c15t/styles/types';
 import clsx from 'clsx';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
@@ -21,9 +24,6 @@ import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
-import type { CSSPropertiesWithVars } from '~/types/theme';
-import styles from '../consent-manager-dialog.module.css';
-import type { ConsentManagerDialogTheme } from '../theme';
 import { Overlay } from './overlay';
 
 /**

@@ -1,7 +1,7 @@
+import type { FrameTheme } from '@c15t/styles/components/frame';
 import type { AllConsentNames } from 'c15t';
 import type { ComponentPropsWithRef, FC, ReactNode } from 'react';
 import type * as Atom from './atoms';
-import type { FrameTheme } from './theme';
 
 export interface FrameProps extends ComponentPropsWithRef<'div'> {
 	/**

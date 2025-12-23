@@ -113,6 +113,7 @@ const ConsentManagerDialog = Object.assign(ConsentManagerDialogComponent, {
 export default ConsentManagerDialog;
 export { ConsentManagerDialog };
 
+export type { ConsentManagerDialogTheme } from '@c15t/styles/components/consent-manager-dialog';
 // Export individual components for backward compatibility
 export {
 	Card,
@@ -128,8 +129,5 @@ export {
 	HeaderDescription,
 	HeaderTitle,
 } from './atoms/dialog-card';
-
 export { ConsentManagerDialogOverlay, Overlay } from './atoms/overlay';
 export { ConsentManagerDialogRoot, Root } from './atoms/root';
-
-export type { ConsentManagerDialogTheme } from './theme';

@@ -3,13 +3,13 @@
  * Provides the overlay backdrop component for the CookieBanner.
  */
 
+import styles from '@c15t/styles/components/cookie-banner/css';
 import clsx from 'clsx';
 import { forwardRef, type HTMLAttributes, useEffect, useState } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
-import styles from '../cookie-banner.module.css';
 
 /**
  * Props for the Overlay component.

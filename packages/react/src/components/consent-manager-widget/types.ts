@@ -1,7 +1,7 @@
+import type { ConsentManagerWidgetTheme } from '@c15t/styles/components/consent-manager-widget';
 import type { ReactNode } from 'react';
 import type { ThemeContextValue } from '~/context/theme-context';
 import type { LegalLinksProps } from '../shared/primitives/legal-links';
-import type { ConsentManagerWidgetTheme } from './theme';
 
 export interface ConsentManagerWidgetRootProps
 	extends ThemeContextValue<ConsentManagerWidgetTheme> {

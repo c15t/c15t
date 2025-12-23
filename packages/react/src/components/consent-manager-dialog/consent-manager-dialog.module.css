@@ -164,8 +164,8 @@
 }
 
 .brandingC15T {
-	width: var(--dialog-branding-icon-width);
-	height: var(--dialog-branding-icon-height);
+	height: 1rem;
+	width: auto;
 }
 
 .brandingConsent {

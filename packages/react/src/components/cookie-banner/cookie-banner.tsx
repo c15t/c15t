@@ -6,6 +6,7 @@
  * Implements an accessible, customizable banner following GDPR requirements.
  */
 
+import type { CookieBannerTheme } from '@c15t/styles/components/cookie-banner';
 import { type FC, Fragment, type ReactNode } from 'react';
 import { ConsentButton } from '~/components/shared/primitives/button';
 import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
@@ -21,7 +22,6 @@ import {
 	CookieBannerTitle,
 } from './components';
 import { ErrorBoundary } from './error-boundary';
-import type { CookieBannerTheme } from './theme';
 
 /**
  * Identifiers for the available buttons in the cookie banner.
@@ -274,14 +274,3 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 		</ErrorBoundary>
 	);
 };
-
-/**
- * Component type definition for the CookieBanner with its compound components.
- *
- * @remarks
- * This interface extends the base CookieBanner component with additional sub-components
- * that can be used to compose the banner's structure. Each component is designed to be
- * fully accessible and customizable while maintaining compliance with privacy regulations.
- *
- * @public
- */

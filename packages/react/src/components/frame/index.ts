@@ -1,9 +1,9 @@
 'use client';
 
+import type { FrameTheme } from '@c15t/styles/components/frame';
 import type { AllConsentNames } from 'c15t';
 import * as atoms from './atoms';
 import { Frame as FrameComponent } from './frame';
-import type { FrameTheme } from './theme';
 import type { FrameCompoundComponent } from './types';
 
 /**

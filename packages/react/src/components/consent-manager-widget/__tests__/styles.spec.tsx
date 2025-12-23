@@ -1,10 +1,10 @@
+import type { ConsentManagerWidgetTheme } from '@c15t/styles/components/consent-manager-widget';
+import styles from '@c15t/styles/components/consent-manager-widget/css';
+import type { ThemeValue } from '@c15t/styles/types';
 import { defaultTranslationConfig } from 'c15t';
 import { expect, test, vi } from 'vitest';
 import { ConsentManagerWidget } from '~/components/consent-manager-widget/consent-manager-widget';
-import type { ThemeValue } from '~/types/theme';
 import testComponentStyles from '~/utils/test-helpers';
-import styles from '../consent-manager-widget.module.css';
-import type { ConsentManagerWidgetTheme } from '../theme';
 
 vi.mock('~/hooks/use-consent-manager', () => ({
 	useConsentManager: vi.fn().mockReturnValue({

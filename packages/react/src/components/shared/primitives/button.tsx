@@ -1,10 +1,10 @@
+import type { CSSPropertiesWithVars, CSSVariables } from '@c15t/styles/types';
 import { Slot } from '@radix-ui/react-slot';
 import type { AllConsentNames } from 'c15t';
 import { forwardRef, type MouseEvent, useCallback } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
-import type { CSSPropertiesWithVars, CSSVariables } from '~/types/theme';
 import * as Button from '../ui/button';
 import type { ButtonVariantsProps } from '../ui/button/button';
 import type { ConsentButtonElement, ConsentButtonProps } from './button.types';

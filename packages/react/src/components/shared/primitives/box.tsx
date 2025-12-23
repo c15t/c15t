@@ -1,10 +1,9 @@
 'use client';
 
+import type { ExtendThemeKeys } from '@c15t/styles/types';
 import { Slot } from '@radix-ui/react-slot';
 import { forwardRef, type HTMLAttributes } from 'react';
-
 import { useStyles } from '~/hooks/use-styles';
-import type { ExtendThemeKeys } from '~/types/theme';
 
 /**
  * Props for the description text component of the CookieBanner.

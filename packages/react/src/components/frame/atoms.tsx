@@ -1,16 +1,16 @@
+import { frameStyles } from '@c15t/styles/components/frame/css';
 import type { AllConsentNames } from 'c15t';
 import { forwardRef, type Ref } from 'react';
 import { Box, type BoxProps } from '../shared/primitives/box';
 import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
-import styles from './frame.module.css';
 
 const FrameRoot = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
 	({ children, ...props }, ref) => {
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
-				baseClassName={styles.placeholder}
+				baseClassName={frameStyles.placeholder}
 				themeKey="frame.placeholder.root"
 				{...props}
 			>
@@ -25,7 +25,7 @@ const FrameTitle = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
-				baseClassName={styles.placeholderTitle}
+				baseClassName={frameStyles.title}
 				themeKey="frame.placeholder.title"
 				{...props}
 			>
