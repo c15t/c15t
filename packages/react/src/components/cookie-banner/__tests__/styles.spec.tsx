@@ -1,12 +1,11 @@
+import type { CookieBannerTheme } from '@c15t/styles/components/cookie-banner';
 import styles from '@c15t/styles/components/cookie-banner/css';
 import buttonStyles from '@c15t/styles/primitives/button/css';
+import type { ThemeValue } from '@c15t/styles/types';
 import { defaultTranslationConfig } from 'c15t';
 import { expect, test, vi } from 'vitest';
 import { CookieBanner } from '~/components/cookie-banner/cookie-banner';
-import type { ThemeValue } from '~/types/theme';
 import testComponentStyles from '~/utils/test-helpers';
-
-import type { CookieBannerTheme } from '../theme';
 
 vi.mock('~/hooks/use-consent-manager', () => ({
 	useConsentManager: () => ({
@@ -249,8 +248,8 @@ test('should handle empty strings and empty style objects in theme prop graceful
 		'banner.footer': {
 			className: '',
 			style: {
-				margin: '0',
-				padding: '0',
+				'--banner-footer-background-color': 'initial',
+				'--banner-footer-background-color-dark': 'initial',
 			},
 		},
 	};
@@ -273,8 +272,8 @@ test('should handle empty strings and empty style objects in theme prop graceful
 				styles: {
 					className: '',
 					style: {
-						margin: '0',
-						padding: '0',
+						'--banner-footer-background-color': 'initial',
+						'--banner-footer-background-color-dark': 'initial',
 					},
 				},
 			},

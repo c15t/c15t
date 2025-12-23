@@ -34,7 +34,7 @@ export async function renderComponentStyles({
 		<ConsentManagerProvider
 			options={{
 				mode: 'offline',
-				ui: {
+				react: {
 					noStyle,
 				},
 			}}

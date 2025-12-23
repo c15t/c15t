@@ -1,4 +1,4 @@
-import type { ClassNameStyle, ThemeValue } from '~/types/theme';
+import type { ClassNameStyle, ThemeValue } from '@c15t/styles/types';
 import { cnExt } from '~/utils/cn';
 
 /**

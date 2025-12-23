@@ -1,13 +1,11 @@
 :root {
-	isolation: isolate;
-
-	/* css reset */
-	font-family:
+	/* Typography */
+	--banner-font-family:
 		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
 		"Apple Color Emoji", "Segoe UI Emoji";
-	line-height: 1.5;
-	-webkit-text-size-adjust: 100%;
-	tab-size: 4;
+	--banner-line-height: 1.5;
+	--banner-text-size-adjust: 100%;
+	--banner-tab-size: 4;
 
 	/* Layout variables */
 	--banner-border-radius-sm: 0.3125rem;
@@ -51,6 +49,10 @@
 	display: flex;
 	z-index: 999999998;
 	position: fixed;
+	font-family: var(--banner-font-family);
+	line-height: var(--banner-line-height);
+	-webkit-text-size-adjust: var(--banner-text-size-adjust);
+	tab-size: var(--banner-tab-size);
 }
 
 /* Banner animation classes */

@@ -3,6 +3,9 @@
  * Type definitions for the consent manager components.
  */
 
+import type { ConsentManagerDialogTheme } from '@c15t/styles/components/consent-manager-dialog';
+import type { ConsentManagerWidgetTheme } from '@c15t/styles/components/consent-manager-widget';
+import type { CookieBannerTheme } from '@c15t/styles/components/cookie-banner';
 import type {
 	AllConsentNames,
 	ConsentManagerOptions as CoreOptions,
@@ -10,9 +13,6 @@ import type {
 	TranslationConfig,
 } from 'c15t';
 import type { ReactNode } from 'react';
-import type { ConsentManagerDialogTheme } from '~/components/consent-manager-dialog/theme';
-import type { ConsentManagerWidgetTheme } from '~/components/consent-manager-widget/theme';
-import type { CookieBannerTheme } from '~/components/cookie-banner/theme';
 
 /**
  * React-specific configuration options

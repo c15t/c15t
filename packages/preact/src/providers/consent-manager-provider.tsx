@@ -1,13 +1,13 @@
 import {
-  type ComplianceRegion,
-  configureConsentManager,
-  createConsentManagerStore,
-  type PrivacyConsentState,
+	type ConsentStoreState,
+	configureConsentManager,
+	createConsentManagerStore,
+	type StorageConfig,
 } from 'c15t';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import {
-  ConsentStateContext,
-  type ConsentStateContextValue,
+	ConsentStateContext,
+	type ConsentStateContextValue,
 } from '../context/consent-manager-context';
 import { GlobalThemeContext } from '../context/theme-context';
 import { useColorScheme } from '../hooks/use-color-scheme';
@@ -39,13 +39,26 @@ export function clearConsentManagerCache(): void {
 	managerCache.clear();
 }
 
+interface CacheKeyOptions {
+	mode: string;
+	backendURL: string | undefined;
+	endpointHandlers: unknown;
+	storageConfig: StorageConfig | undefined;
+	defaultLanguage: string | undefined;
+	enabled: boolean | undefined;
+}
+
 // Generate a cache key based on critical configuration options
-function generateCacheKey(
-	mode: string,
-	backendURL: string | undefined,
-	endpointHandlers: unknown
-): string {
-	return `${mode}:${backendURL ?? 'default'}:${endpointHandlers ? 'custom' : 'none'}`;
+function generateCacheKey({
+	mode,
+	backendURL,
+	endpointHandlers,
+	storageConfig,
+	defaultLanguage,
+	enabled,
+}: CacheKeyOptions): string {
+	const enabledKey = enabled === false ? 'disabled' : 'enabled';
+	return `${mode}:${backendURL ?? 'default'}:${endpointHandlers ? 'custom' : 'none'}:${storageConfig?.storageKey ?? 'default'}:${defaultLanguage ?? 'default'}:${enabledKey}`;
 }
 
 /**
@@ -58,49 +71,28 @@ export function ConsentManagerProvider({
 	options,
 }: ConsentManagerProviderProps) {
 	// Extract and memoise stable options
-	const {
-		mode,
-		backendURL,
-		store = {},
-		translations,
-		ui = {},
-	} = options;
+	const { mode, backendURL, store } = options;
 
-	const { initialGdprTypes, initialComplianceSettings } = store;
-	const {
-		theme,
-		disableAnimation = false,
-		scrollLock = false,
-		trapFocus = true,
-		colorScheme,
-		noStyle = false,
-	} = ui;
-
-	const isConsentDomain = (() => {
-		// Safe check for browser environment
-		const isBrowser =
-			typeof window !== 'undefined' && typeof window.location !== 'undefined';
-
-		if (!isBrowser) {
-			// For client-side, use a configuration-based check
-			return mode === 'c15t' || mode === 'offline';
-		}
-
-		return (
-			(mode === 'c15t' || mode === 'offline') &&
-			(backendURL?.includes('c15t.dev') ||
-				backendURL?.includes('c15t.cloud') ||
-				window.location.hostname.includes('c15t.dev') ||
-				window.location.hostname.includes('c15t.cloud'))
-		);
-	})();
+	// Normalize store options so that initial translations are always available
+	// to both the core store and the underlying client (including offline).
+	const normalizedStoreOptions = useMemo(
+		() => ({
+			...store,
+			initialTranslationConfig: options.translations,
+		}),
+		[store, options.translations]
+	);
 
 	// Generate cache key for manager and store persistence
-	const cacheKey = generateCacheKey(
-		mode || 'c15t',
-		backendURL || '/api/c15t',
-		'endpointHandlers' in options ? options.endpointHandlers : undefined
-	);
+	const cacheKey = generateCacheKey({
+		mode: mode || 'c15t',
+		backendURL: backendURL || '/api/c15t',
+		endpointHandlers:
+			'endpointHandlers' in options ? options.endpointHandlers : undefined,
+		storageConfig: options.storageConfig,
+		defaultLanguage: options.translations?.defaultLanguage,
+		enabled: options.enabled,
+	});
 
 	// Get or create consent manager with caching
 	const consentManager = useMemo(() => {
@@ -111,25 +103,28 @@ export function ConsentManagerProvider({
 		if (mode === 'offline') {
 			newManager = configureConsentManager({
 				mode: 'offline',
-				store,
+				store: normalizedStoreOptions,
+				storageConfig: options.storageConfig,
 			});
 		} else if (mode === 'custom' && 'endpointHandlers' in options) {
 			newManager = configureConsentManager({
 				mode: 'custom',
 				endpointHandlers: options.endpointHandlers,
-				store,
+				store: normalizedStoreOptions,
+				storageConfig: options.storageConfig,
 			});
 		} else {
 			newManager = configureConsentManager({
 				mode: 'c15t',
 				backendURL: backendURL || '/api/c15t',
-				store,
+				store: normalizedStoreOptions,
+				storageConfig: options.storageConfig,
 			});
 		}
 
 		managerCache.set(cacheKey, newManager);
 		return newManager;
-	}, [cacheKey, mode, backendURL, store, options]);
+	}, [cacheKey, mode, backendURL, normalizedStoreOptions, options]);
 
 	// Get or create consent store with caching
 	const consentStore = useMemo(() => {
@@ -137,96 +132,73 @@ export function ConsentManagerProvider({
 		if (cachedStore) return cachedStore;
 
 		const newStore = createConsentManagerStore(consentManager, {
-			unstable_googleTagManager: options.unstable_googleTagManager,
 			config: {
 				pkg: '@c15t/preact',
 				version: version,
 				mode: mode || 'Unknown',
 			},
-			ignoreGeoLocation: options.ignoreGeoLocation,
-			initialGdprTypes: options.consentCategories,
-			callbacks: options.callbacks,
-			...store,
-			isConsentDomain,
-			initialTranslationConfig: translations,
+			...options,
+			...normalizedStoreOptions,
 		});
 
 		storeCache.set(cacheKey, newStore);
 		return newStore;
-	}, [
-		cacheKey,
-		consentManager,
-		mode,
-		options.unstable_googleTagManager,
-		options.ignoreGeoLocation,
-		options.consentCategories,
-		options.callbacks,
-		store,
-		isConsentDomain,
-		translations,
-	]);
+	}, [cacheKey, consentManager, mode, options, normalizedStoreOptions]);
 
-	// Store initial configuration values to avoid reinitialising when options change
-	const initialConfigRef = useRef({
-		gdprTypes: initialGdprTypes,
-		complianceSettings: initialComplianceSettings,
-		consentCategories: options.consentCategories,
-	});
-
-	// Initial state from the consent manager store
-	const [state, setState] = useState<PrivacyConsentState>(() => {
-		if (!consentStore) return {} as PrivacyConsentState;
+	// Initialize state with the current state from the consent manager store
+	const [state, setState] = useState<ConsentStoreState>(() => {
+		if (!consentStore) {
+			return {} as ConsentStoreState;
+		}
 		return consentStore.getState();
 	});
 
-	// Subscribe to store changes
+	// Track if we've initialized to avoid redundant state updates during hydration
+	const initializedRef = useRef(false);
+
+	// Set up subscription immediately and separately from initialization
 	useEffect(() => {
 		if (!consentStore) return;
+
+		// Set up subscription FIRST to catch all state changes
 		const unsubscribe = consentStore.subscribe(setState);
+
+		// Sync state only if it has changed
+		if (!initializedRef.current) {
+			const currentStoreState = consentStore.getState();
+			setState((prevState) => {
+				// Only update if state reference has actually changed
+				if (prevState !== currentStoreState) {
+					initializedRef.current = true;
+					return currentStoreState;
+				}
+				initializedRef.current = true;
+				return prevState;
+			});
+		}
+
 		return unsubscribe;
 	}, [consentStore]);
 
-	// One-time initialisation per store instance
-	useEffect(() => {
-		if (!consentStore) return;
-
-		const { setGdprTypes, setComplianceSetting } = consentStore.getState();
-		const config = initialConfigRef.current;
-
-		if (config.gdprTypes || config.consentCategories) {
-			setGdprTypes(config.gdprTypes || config.consentCategories || []);
-		}
-
-		if (config.complianceSettings) {
-			for (const [region, settings] of Object.entries(
-				config.complianceSettings
-			)) {
-				setComplianceSetting(region as ComplianceRegion, settings);
-			}
-		}
-
-		setState(consentStore.getState());
-	}, [consentStore]);
-
-	// Theme context value
+	// Create theme context value
+	const { react = {} } = options;
 	const themeContextValue = useMemo(() => {
 		return {
-			theme,
-			noStyle,
-			disableAnimation,
-			scrollLock,
-			trapFocus,
-			colorScheme,
+			theme: react.theme,
+			noStyle: react.noStyle,
+			disableAnimation: react.disableAnimation,
+			trapFocus: react.trapFocus ?? true,
+			colorScheme: react.colorScheme,
 		};
-	}, [theme, noStyle, disableAnimation, scrollLock, trapFocus, colorScheme]);
+	}, [react]);
 
-	useColorScheme(colorScheme);
+	useColorScheme(react.colorScheme);
 
 	// Consent context value
 	const consentContextValue = useMemo<ConsentStateContextValue>(() => {
 		if (!consentStore) {
 			throw new Error(
-				'Consent store must be initialised before creating context value'
+				'Consent store must be initialized before creating context value'
 			);
 		}
 		return {

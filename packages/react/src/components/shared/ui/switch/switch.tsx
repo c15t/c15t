@@ -1,13 +1,13 @@
 import styles from '@c15t/styles/primitives/switch/css';
+import type { ExtendThemeKeys, ThemeValue } from '@c15t/styles/types';
 import * as SwitchPrimitives from '@radix-ui/react-switch';
 import {
-  type ComponentPropsWithoutRef,
-  type ComponentRef,
-  forwardRef,
+	type ComponentPropsWithoutRef,
+	type ComponentRef,
+	forwardRef,
 } from 'react';
 import { Box } from '~/components/shared/primitives/box';
 import { useStyles } from '~/hooks/use-styles';
-import type { ExtendThemeKeys, ThemeValue } from '~/types/theme';
 
 export type SwitchStylesKeys = {
 	'switch.root': ThemeValue;

@@ -5,12 +5,12 @@
  */
 
 import styles from '@c15t/styles/components/consent-manager-dialog/css';
+import type { ThemeValue } from '@c15t/styles/types';
 import clsx from 'clsx';
 import { type FC, type PropsWithChildren, useEffect, useState } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
-import type { ThemeValue } from '~/types/theme';
 
 /**
  * Props for the Overlay component.

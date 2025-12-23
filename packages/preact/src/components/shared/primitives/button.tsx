@@ -1,8 +1,9 @@
 import {
-  type ButtonVariantsProps,
-  buttonVariants,
+	type ButtonVariantsProps,
+	buttonVariants,
 } from '@c15t/styles/primitives/button';
 import type { CSSPropertiesWithVars, CSSVariables } from '@c15t/styles/types';
+import type { AllConsentNames } from 'c15t';
 import type { JSX } from 'preact';
 import { forwardRef } from 'preact/compat';
 import { useCallback } from 'preact/hooks';
@@ -26,7 +27,9 @@ export const ConsentButton = forwardRef<
 				| 'accept-consent'
 				| 'reject-consent'
 				| 'custom-consent'
-				| 'open-consent-dialog';
+				| 'open-consent-dialog'
+				| 'set-consent';
+			category?: AllConsentNames;
 			closeCustomizeDialog?: boolean;
 			closeCookieBanner?: boolean;
 		}
@@ -45,12 +48,18 @@ export const ConsentButton = forwardRef<
 		onClick: forwardedOnClick,
 		closeCookieBanner = false,
 		closeCustomizeDialog = false,
+		category,
 		...props
 	},
 	ref
 ) {
-	const { saveConsents, setShowPopup, setIsPrivacyDialogOpen } =
+	const { saveConsents, setShowPopup, setIsPrivacyDialogOpen, setConsent } =
 		useConsentManager();
+
+	// Need to know what category to set
+	if (!category && action === 'set-consent') {
+		throw new Error('Category is required for set-consent action');
+	}
 	const { noStyle: contextNoStyle } = useTheme();
 
 	const buttonStyle = useStyles(themeKey ?? 'button', {
@@ -102,6 +111,12 @@ export const ConsentButton = forwardRef<
 					case 'custom-consent':
 						saveConsents('custom');
 						break;
+					case 'set-consent':
+						if (!category) {
+							throw new Error('Category is required for set-consent action');
+						}
+						setConsent(category, true);
+						break;
 					default:
 						break;
 				}
@@ -114,6 +129,8 @@ export const ConsentButton = forwardRef<
 			saveConsents,
 			setIsPrivacyDialogOpen,
 			setShowPopup,
+			setConsent,
+			category,
 			action,
 		]
 	);

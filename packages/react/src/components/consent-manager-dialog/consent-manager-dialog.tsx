@@ -9,6 +9,7 @@
  * prefer a one-line `<ConsentManagerDialog />` usage still have it.
  */
 
+import type { ConsentManagerDialogTheme } from '@c15t/styles/components/consent-manager-dialog';
 import type { FC } from 'react';
 import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
 import type { ThemeContextValue } from '~/context/theme-context';
@@ -16,7 +17,6 @@ import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useTheme } from '~/hooks/use-theme';
 import { ConsentCustomizationCard } from './atoms/dialog-card';
 import { Root as ConsentManagerDialogRoot } from './atoms/root';
-import type { ConsentManagerDialogTheme } from './theme';
 
 /**
  * Props for the `<ConsentManagerDialog />` convenience component.

@@ -1,4 +1,3 @@
-
 import styles from '@c15t/styles/components/cookie-banner/css';
 import type { Ref, RefObject } from 'preact';
 import { forwardRef } from 'preact/compat';
@@ -8,6 +7,10 @@ import { useTheme } from '~/hooks/use-theme';
 import { Box, type BoxProps } from '../shared/primitives/box';
 import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
+import {
+	LegalLinks,
+	type LegalLinksProps,
+} from '../shared/primitives/legal-links';
 
 const COOKIE_BANNER_TITLE_NAME = 'CookieBannerTitle';
 const COOKIE_BANNER_DESCRIPTION_NAME = 'CookieBannerDescription';
@@ -45,17 +48,40 @@ CookieBannerTitle.displayName = COOKIE_BANNER_TITLE_NAME;
  */
 const CookieBannerDescription = forwardRef<
 	HTMLDivElement,
-	Omit<BoxProps, 'themeKey'>
->(({ children, ...props }, ref) => {
+	Omit<BoxProps, 'themeKey'> & {
+		legalLinks?: LegalLinksProps['links'];
+	}
+>(({ children, asChild, legalLinks, ...props }, ref) => {
+	if (asChild) {
+		return (
+			<Box
+				ref={ref as Ref<HTMLDivElement>}
+				baseClassName={styles.description}
+				data-testid="cookie-banner-description"
+				themeKey="banner.header.description"
+				asChild={asChild}
+				{...props}
+			>
+				{children}
+			</Box>
+		);
+	}
+
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.description}
 			data-testid="cookie-banner-description"
 			themeKey="banner.header.description"
+			asChild={asChild}
 			{...props}
 		>
 			{children}
+			<LegalLinks
+				links={legalLinks}
+				themeKey="banner.header.legal-links"
+				testIdPrefix="cookie-banner-legal-link"
+			/>
 		</Box>
 	);
 });

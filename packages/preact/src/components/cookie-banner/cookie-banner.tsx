@@ -8,24 +8,37 @@ import type { CookieBannerTheme } from '@c15t/styles/components/cookie-banner';
 import styles from '@c15t/styles/components/cookie-banner/css';
 import type { CSSPropertiesWithVars } from '@c15t/styles/types';
 import type { ComponentChildren, FunctionComponent, JSX } from 'preact';
-import { createPortal, forwardRef, type Ref } from 'preact/compat';
+import { createPortal, Fragment, forwardRef, type Ref } from 'preact/compat';
 import { useEffect, useState } from 'preact/hooks';
+import { useTranslations } from '~/hooks/use-translations';
 import { LocalThemeContext } from '../../context/theme-context';
 import { useConsentManager } from '../../hooks/use-consent-manager';
 import { useStyles } from '../../hooks/use-styles';
+import { ConsentButton } from '../shared/primitives/button';
 import { Overlay } from './atoms/overlay';
-// Import the sub-components that the CookieBanner uses
 import {
-  CookieBannerAcceptButton,
-  CookieBannerCard,
-  CookieBannerCustomizeButton,
-  CookieBannerDescription,
-  CookieBannerFooter,
-  CookieBannerFooterSubGroup,
-  CookieBannerHeader,
-  CookieBannerRejectButton,
-  CookieBannerTitle,
+	CookieBannerCard,
+	CookieBannerDescription,
+	CookieBannerFooter,
+	CookieBannerFooterSubGroup,
+	CookieBannerHeader,
+	CookieBannerTitle,
 } from './components';
+
+/**
+ * Identifiers for the available buttons in the cookie banner.
+ * @public
+ */
+export type CookieBannerButton = 'reject' | 'accept' | 'customize';
+
+/**
+ * Structure for defining the layout of buttons in the cookie banner.
+ * Supports nesting for grouping buttons.
+ * @public
+ */
+export type CookieBannerLayout = (CookieBannerButton | CookieBannerButton[])[];
+
+const DEFAULT_LAYOUT: CookieBannerLayout = [['reject', 'accept'], 'customize'];
 
 /**
  * Props for configuring and customizing the CookieBanner component.
@@ -106,6 +119,21 @@ export interface CookieBannerProps {
 	 * @default false
 	 */
 	disableAnimation?: boolean;
+
+	/**
+	 * Defines the layout of buttons in the footer.
+	 * Allows reordering and grouping of buttons.
+	 *
+	 * @defaultValue [['reject', 'accept'], 'customize']
+	 */
+	layout?: CookieBannerLayout;
+
+	/**
+	 * Specifies which button(s) should be highlighted as the primary action.
+	 *
+	 * @defaultValue 'customize'
+	 */
+	primaryButton?: CookieBannerButton | CookieBannerButton[];
 }
 
 /**
@@ -143,21 +171,10 @@ const CookieBanner: FunctionComponent<CookieBannerProps> = ({
 	rejectButtonText,
 	customizeButtonText,
 	acceptButtonText,
+	layout = DEFAULT_LAYOUT,
+	primaryButton = 'customize',
 }) => {
-	// For now, we'll use basic default values since we don't have a full translations system
-	const translations = {
-		cookieBanner: {
-			title: title || 'Cookie Notice',
-			description:
-				description ||
-				'We use cookies to enhance your browsing experience and analyze our traffic.',
-		},
-		common: {
-			rejectAll: rejectButtonText || 'Reject All',
-			customize: customizeButtonText || 'Customize',
-			acceptAll: acceptButtonText || 'Accept All',
-		},
-	};
+	const { cookieBanner, common } = useTranslations();
 
 	const mergedTheme = localTheme || {};
 	const mergedProps = {
@@ -168,29 +185,77 @@ const CookieBanner: FunctionComponent<CookieBannerProps> = ({
 		trapFocus: localTrapFocus,
 	};
 
+	const renderButton = (type: CookieBannerButton) => {
+		const isPrimary = Array.isArray(primaryButton)
+			? primaryButton.includes(type)
+			: type === primaryButton;
+		const variant = isPrimary ? 'primary' : undefined;
+
+		switch (type) {
+			case 'reject':
+				return (
+					<ConsentButton
+						action="reject-consent"
+						closeCookieBanner
+						themeKey="banner.footer.reject-button"
+						data-testid="cookie-banner-reject-button"
+						variant={variant}
+					>
+						{rejectButtonText || common.rejectAll}
+					</ConsentButton>
+				);
+			case 'accept':
+				return (
+					<ConsentButton
+						action="accept-consent"
+						closeCookieBanner
+						themeKey="banner.footer.accept-button"
+						data-testid="cookie-banner-accept-button"
+						variant={variant}
+					>
+						{acceptButtonText || common.acceptAll}
+					</ConsentButton>
+				);
+			case 'customize':
+				return (
+					<ConsentButton
+						action="open-consent-dialog"
+						closeCookieBanner
+						themeKey="banner.footer.customize-button"
+						data-testid="cookie-banner-customize-button"
+						variant={variant}
+					>
+						{customizeButtonText || common.customize}
+					</ConsentButton>
+				);
+		}
+	};
+
 	return (
 		<CookieBannerRoot {...mergedProps}>
-			<CookieBannerCard aria-label={String(translations.cookieBanner.title)}>
+			<CookieBannerCard aria-label={cookieBanner.title}>
 				<CookieBannerHeader>
-					<CookieBannerTitle>
-						{translations.cookieBanner.title}
-					</CookieBannerTitle>
+					<CookieBannerTitle>{title || cookieBanner.title}</CookieBannerTitle>
 					<CookieBannerDescription>
-						{translations.cookieBanner.description}
+						{description || cookieBanner.description}
 					</CookieBannerDescription>
 				</CookieBannerHeader>
 				<CookieBannerFooter>
-					<CookieBannerFooterSubGroup>
-						<CookieBannerRejectButton themeKey="banner.footer.reject-button">
-							{translations.common.rejectAll}
-						</CookieBannerRejectButton>
-						<CookieBannerAcceptButton themeKey="banner.footer.accept-button">
-							{translations.common.acceptAll}
-						</CookieBannerAcceptButton>
-					</CookieBannerFooterSubGroup>
-					<CookieBannerCustomizeButton themeKey="banner.footer.customize-button">
-						{translations.common.customize}
-					</CookieBannerCustomizeButton>
+					{layout.map((item, index) => {
+						if (Array.isArray(item)) {
+							const groupKey = item.join('-');
+							return (
+								<CookieBannerFooterSubGroup
+									key={groupKey ? `group-${groupKey}` : `group-${index}`}
+								>
+									{item.map((subItem) => (
+										<Fragment key={subItem}>{renderButton(subItem)}</Fragment>
+									))}
+								</CookieBannerFooterSubGroup>
+							);
+						}
+						return <Fragment key={item}>{renderButton(item)}</Fragment>;
+					})}
 				</CookieBannerFooter>
 			</CookieBannerCard>
 		</CookieBannerRoot>

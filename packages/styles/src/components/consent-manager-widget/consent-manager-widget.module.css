@@ -57,16 +57,16 @@
 	--widget-accordion-focus-ring-dark: hsl(228.07, 69.8%, 48.04%);
 	--widget-accordion-focus-shadow: 0 0 0 2px hsl(227.93, 100%, 63.92%);
 	--widget-accordion-focus-shadow-dark: 0 0 0 2px hsl(228.07, 69.8%, 48.04%);
+	--widget-font-family:
+		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+		"Apple Color Emoji", "Segoe UI Emoji";
+	--widget-line-height: 1.15;
 }
 
 .widget {
 	isolation: isolate;
-	font-family:
-		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
-		"Apple Color Emoji", "Segoe UI Emoji";
-	line-height: 1.15;
-	-webkit-text-size-adjust: 100%;
-	tab-size: 4;
+	font-family: var(--widget-font-family);
+	line-height: var(--widget-line-height);
 }
 
 .widget > :not([hidden]) ~ :not([hidden]) {
@@ -85,7 +85,6 @@
 	background-color: var(--widget-background-color);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .card {
 	background-color: var(--widget-background-color-dark);
 	border-color: var(--widget-border-color-dark);
@@ -115,7 +114,6 @@
 	color: var(--widget-text-color);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .title {
 	color: var(--widget-text-color-dark);
 }
@@ -124,7 +122,6 @@
 	color: var(--widget-text-muted-color);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .description {
 	color: var(--widget-text-muted-color-dark);
 }
@@ -142,7 +139,6 @@
 	background-color: var(--widget-footer-background-color);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .footer {
 	background-color: var(--widget-footer-background-color-dark);
 }
@@ -183,7 +179,6 @@
 	padding-top: 1rem;
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .branding {
 	border-color: var(--widget-border-color-dark);
 }
@@ -200,7 +195,6 @@
 	justify-content: center;
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .brandingLink {
 	color: var(--widget-link-text-color-dark);
 }
@@ -267,7 +261,6 @@
 	box-shadow: 0 0 0 2px var(--widget-accordion-focus-ring);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .accordionItem {
 	border-color: var(--widget-accordion-border-color-dark);
 	background-color: var(--widget-accordion-background-color-dark);
@@ -289,12 +282,10 @@
 	background-color: var(--widget-accordion-background-hover);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .accordionTrigger {
 	color: var(--widget-accordion-text-color-dark);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .accordionTrigger:hover {
 	background-color: var(--widget-accordion-background-hover-dark);
 }
@@ -316,7 +307,6 @@
 	line-height: 1.5;
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .accordionContent {
 	color: var(--widget-accordion-content-color-dark);
 }
@@ -329,7 +319,6 @@
 		var(--widget-accordion-ease);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .accordionArrow {
 	color: var(--widget-accordion-arrow-color-dark);
 }
@@ -352,7 +341,6 @@
 		var(--widget-accordion-ease);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .switch {
 	background-color: var(--widget-accordion-background-hover-dark);
 }
@@ -361,7 +349,6 @@
 	background-color: var(--widget-accordion-focus-ring);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .switch[data-state="checked"] {
 	background-color: var(--widget-accordion-focus-ring-dark);
 }

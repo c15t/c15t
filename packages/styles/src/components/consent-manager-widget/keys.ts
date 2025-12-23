@@ -1,14 +1,14 @@
 import type {
-  AccordionContentCSSVariables,
-  AccordionCSSVariables,
-  AccordionIconCSSVariables,
-  AccordionItemCSSVariables,
-  AccordionTriggerCSSVariables,
+	AccordionContentCSSVariables,
+	AccordionCSSVariables,
+	AccordionIconCSSVariables,
+	AccordionItemCSSVariables,
+	AccordionTriggerCSSVariables,
 } from '../../primitives/accordion/css-vars';
 import type {
-  SwitchCSSVariables,
-  SwitchThumbCSSVariables,
-  SwitchTrackCSSVariables,
+	SwitchCSSVariables,
+	SwitchThumbCSSVariables,
+	SwitchTrackCSSVariables,
 } from '../../primitives/switch/css-vars';
 import type { ThemeValue } from '../../types/style-types';
 

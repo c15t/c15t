@@ -1,4 +1,3 @@
-
 /**
  * @packageDocumentation
  * A collection of components for building privacy consent management dialogs.
@@ -7,14 +6,17 @@
 
 import styles from '@c15t/styles/components/consent-manager-dialog/css';
 import type { ClassNameStyle } from '@c15t/styles/types';
-import type { JSX } from 'preact';
-import { forwardRef, type Ref } from 'preact/compat';
+import type { ComponentChildren } from 'preact';
+import { forwardRef } from 'preact/compat';
 import { ConsentManagerWidget } from '~/components/consent-manager-widget/consent-manager-widget';
 import { Box, type BoxProps } from '~/components/shared/primitives/box';
+import {
+	LegalLinks,
+	type LegalLinksProps,
+} from '~/components/shared/primitives/legal-links';
 import { C15TIcon, ConsentLogo } from '~/components/shared/ui/logo';
 import { useConsentManager } from '~/hooks';
 import { useTranslations } from '~/hooks/use-translations';
-
 
 /**
  * Props for the DialogCard and related components
@@ -22,8 +24,9 @@ import { useTranslations } from '~/hooks/use-translations';
  */
 type DialogCardProps = {
 	/** The content to be rendered inside the dialog card */
-	children?: JSX.Element | JSX.Element[] | null;
-} & ClassNameStyle;
+	children?: ComponentChildren;
+} & ClassNameStyle &
+	Omit<BoxProps, 'children' | 'themeKey'>;
 
 /**
  * The root component for creating a privacy consent dialog card.
@@ -42,17 +45,14 @@ type DialogCardProps = {
  * ```
  */
 const DialogCard = forwardRef<HTMLDivElement, DialogCardProps>(
-	(
-		{ children, ...props }: { children?: any },
-		ref: Ref<HTMLDivElement> | null
-	) => {
+	({ children, ...props }, ref) => {
 		return (
 			<Box
 				ref={ref}
 				className={styles.card}
 				{...props}
-				themeKey="dialog.root"
-				data-testid="consent-manager-dialog-root"
+				themeKey="dialog.card"
+				data-testid="consent-manager-dialog-card"
 			>
 				{children}
 			</Box>
@@ -70,10 +70,7 @@ const DialogCard = forwardRef<HTMLDivElement, DialogCardProps>(
  * - Styled according to the theme configuration
  */
 const DialogHeader = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
-	(
-		{ children, ...props }: { children?: any },
-		ref: Ref<HTMLDivElement> | null
-	) => {
+	({ children, ...props }, ref) => {
 		return (
 			<Box
 				ref={ref}
@@ -100,24 +97,19 @@ const DialogHeader = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
 const DialogHeaderTitle = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(
-	(
-		{ children, ...props }: { children?: any },
-		ref: Ref<HTMLDivElement> | null
-	) => {
-		return (
-			<Box
-				ref={ref}
-				className={styles.title}
-				themeKey="dialog.title"
-				{...props}
-				data-testid="consent-manager-dialog-title"
-			>
-				{children}
-			</Box>
-		);
-	}
-);
+>(({ children, ...props }, ref) => {
+	return (
+		<Box
+			ref={ref}
+			className={styles.title}
+			themeKey="dialog.title"
+			{...props}
+			data-testid="consent-manager-dialog-title"
+		>
+			{children}
+		</Box>
+	);
+});
 
 /**
  * The description component for the privacy dialog header.
@@ -130,25 +122,41 @@ const DialogHeaderTitle = forwardRef<
  */
 const DialogHeaderDescription = forwardRef<
 	HTMLDivElement,
-	Omit<BoxProps, 'themeKey'>
->(
-	(
-		{ children, ...props }: { children?: any },
-		ref: Ref<HTMLDivElement> | null
-	) => {
+	Omit<BoxProps, 'themeKey'> & {
+		legalLinks?: LegalLinksProps['links'];
+	}
+>(({ children, legalLinks, asChild, ...props }, ref) => {
+	if (asChild) {
 		return (
 			<Box
 				ref={ref}
 				className={styles.description}
 				themeKey="dialog.description"
+				asChild={asChild}
 				{...props}
-				data-testid="consent-manager-dialog-description"
 			>
 				{children}
 			</Box>
 		);
 	}
-);
+
+	return (
+		<Box
+			ref={ref}
+			className={styles.description}
+			themeKey="dialog.description"
+			{...props}
+			data-testid="consent-manager-dialog-description"
+		>
+			{children}
+			<LegalLinks
+				links={legalLinks}
+				themeKey="dialog.legal-links"
+				testIdPrefix="consent-manager-dialog-legal-link"
+			/>
+		</Box>
+	);
+});
 
 /**
  * The main content area of the privacy dialog.
@@ -160,10 +168,7 @@ const DialogHeaderDescription = forwardRef<
  * - Handles user interactions with privacy settings
  */
 const DialogContent = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
-	(
-		{ children, ...props }: { children?: any },
-		ref: Ref<HTMLDivElement> | null
-	) => {
+	({ children, ...props }, ref) => {
 		return (
 			<Box
 				ref={ref}
@@ -188,10 +193,7 @@ const DialogContent = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
  * - Can be customized through theme configuration
  */
 const DialogFooter = forwardRef<HTMLDivElement, BoxProps>(
-	(
-		{ children, themeKey, ...props }: { children?: any; themeKey: any },
-		ref: Ref<HTMLDivElement> | null
-	) => {
+	({ children, themeKey, ...props }, ref) => {
 		return (
 			<Box
 				ref={ref}
@@ -210,7 +212,11 @@ const DialogFooter = forwardRef<HTMLDivElement, BoxProps>(
  * The branding footer with configurable logo
  */
 export const BrandingFooter = () => {
-	const consentManager = useConsentManager();
+	const { branding } = useConsentManager();
+
+	if (branding === 'none') {
+		return null;
+	}
 
 	const refParam =
 		typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
@@ -219,13 +225,13 @@ export const BrandingFooter = () => {
 		<a
 			className={styles.branding}
 			href={
-				consentManager.isConsentDomain
+				branding === 'consent'
 					? `https://consent.io${refParam}`
 					: `https://c15t.com${refParam}`
 			}
 		>
-			Secured by{' '}
-			{consentManager.isConsentDomain ? (
+			Secured by Secured by{' '}
+			{branding === 'consent' ? (
 				<ConsentLogo className={styles.brandingConsent} />
 			) : (
 				<C15TIcon className={styles.brandingC15T} />

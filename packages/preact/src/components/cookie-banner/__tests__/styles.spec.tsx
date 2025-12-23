@@ -6,8 +6,8 @@ import { defaultTranslationConfig } from 'c15t';
 import { expect, test, vi } from 'vitest';
 import { CookieBanner } from '~/components/cookie-banner/cookie-banner';
 import {
-  assertElementStyles,
-  renderComponentStyles,
+	assertElementStyles,
+	renderComponentStyles,
 } from '~/utils/test-helpers';
 
 vi.mock('~/hooks/use-consent-manager', async (importOriginal) => {
@@ -294,7 +294,6 @@ test('should handle empty strings and empty style objects in theme prop graceful
 		'banner.footer': {
 			className: '',
 			style: {
-        //@ts-expect-error - margin is not a valid property in FooterCSSVariables
 				margin: '0',
 				padding: '0',
 			},

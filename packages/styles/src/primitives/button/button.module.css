@@ -93,12 +93,10 @@
 	box-shadow: var(--button-shadow-primary-focus);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button:focus-visible {
 	box-shadow: var(--button-shadow-primary-focus-dark);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button {
 	color: var(--button-text-dark);
 }
@@ -143,7 +141,6 @@
 	box-shadow: var(--button-shadow-primary-focus);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-primary-filled {
 	background-color: var(--button-primary-dark);
 	color: var(--button-background-color-dark);
@@ -153,7 +150,6 @@
 	background-color: var(--button-primary-hover);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-primary-filled:hover:not(:disabled) {
 	background-color: var(--button-primary-hover-dark);
 }
@@ -164,7 +160,6 @@
 	box-shadow: var(--button-shadow-primary);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-primary-stroke {
 	background-color: var(--button-background-color-dark);
 	color: var(--button-primary-dark);
@@ -176,7 +171,6 @@
 	box-shadow: var(--button-shadow-primary-hover);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-primary-stroke:hover:not(:disabled) {
 	background-color: var(--button-primary-hover-dark);
 	box-shadow: var(--button-shadow-primary-hover-dark);
@@ -187,7 +181,6 @@
 	color: var(--button-primary);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-primary-lighter {
 	background-color: color-mix(
 		in srgb,
@@ -201,7 +194,6 @@
 	background-color: color-mix(in srgb, var(--button-primary) 20%, transparent);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-primary-lighter:hover:not(:disabled) {
 	background-color: color-mix(
 		in srgb,
@@ -214,7 +206,6 @@
 	color: var(--button-primary);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-primary-ghost {
 	color: var(--button-primary-dark);
 }
@@ -223,7 +214,6 @@
 	background-color: var(--button-hover-overlay);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-primary-ghost:hover:not(:disabled) {
 	background-color: var(--button-hover-overlay-dark);
 }
@@ -238,7 +228,6 @@
 	box-shadow: var(--button-shadow-neutral-focus);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-neutral-filled {
 	background-color: var(--button-neutral-dark);
 	color: var(--button-background-color-dark);
@@ -248,7 +237,6 @@
 	background-color: var(--button-neutral-hover);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-neutral-filled:hover:not(:disabled) {
 	background-color: var(--button-neutral-hover-dark);
 }
@@ -258,7 +246,6 @@
 	box-shadow: var(--button-shadow-neutral);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-neutral-stroke {
 	background-color: var(--button-background-color-dark);
 	box-shadow: var(--button-shadow-neutral-dark);
@@ -270,7 +257,6 @@
 	color: var(--button-text-hover);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-neutral-stroke:hover:not(:disabled) {
 	box-shadow: var(--button-shadow-neutral-hover-dark);
 	color: var(--button-text-hover-dark);
@@ -281,7 +267,6 @@
 	color: var(--button-neutral);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-neutral-lighter {
 	background-color: color-mix(
 		in srgb,
@@ -295,7 +280,6 @@
 	background-color: color-mix(in srgb, var(--button-neutral) 20%, transparent);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-neutral-lighter:hover:not(:disabled) {
 	background-color: color-mix(
 		in srgb,
@@ -308,7 +292,6 @@
 	color: var(--button-neutral);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-neutral-ghost {
 	color: var(--button-neutral-dark);
 }
@@ -317,7 +300,6 @@
 	background-color: var(--button-hover-overlay);
 }
 
-/* biome-ignore lint/nursery/noUnknownPseudoClass: Allow global `.dark` class for theme overrides */
 :global(.c15t-dark) .button-neutral-ghost:hover:not(:disabled) {
 	background-color: var(--button-hover-overlay-dark);
 }

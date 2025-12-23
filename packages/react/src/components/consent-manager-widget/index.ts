@@ -127,6 +127,7 @@ const ConsentManagerWidget = Object.assign(ConsentManagerWidgetComponent, {
 export default ConsentManagerWidget;
 export { ConsentManagerWidget };
 
+export type { ConsentManagerWidgetTheme } from '@c15t/styles/components/consent-manager-widget';
 // Export individual components for backward compatibility
 export {
 	Accordion,
@@ -166,5 +167,3 @@ export {
 	ConsentManagerWidgetRoot,
 	Root,
 } from './atoms/root';
-
-export type { ConsentManagerWidgetTheme } from './theme';

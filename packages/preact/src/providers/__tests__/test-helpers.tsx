@@ -1,7 +1,7 @@
 // test-helpers.ts - Common mock setup
 import type { ContractsInputs, ContractsOutputs } from 'c15t';
 
-import { beforeEach, vi } from 'vitest';
+import { beforeEach, type Mock, vi } from 'vitest';
 import { type ConsentManagerOptions, useConsentManager } from '~/index';
 
 export type SetConsentRequestBody = ContractsInputs['consent']['post'];
@@ -11,7 +11,10 @@ export type ShowConsentBannerResponse =
 export type VerifyConsentRequestBody = ContractsInputs['consent']['verify'];
 export type VerifyConsentResponse = ContractsOutputs['consent']['verify'];
 
-export function setupMocks() {
+export function setupMocks(): {
+	mockFetch: Mock;
+	mockConfigureConsentManager: Mock;
+} {
 	// Mock fetch globally
 	const mockFetch = vi.fn();
 	window.fetch = mockFetch;
@@ -48,7 +51,7 @@ export function setupMocks() {
 							// Each unique URL should trigger a fetch call once
 							if (!fetchCallMap.has(backendURL)) {
 								// Make the mock fetch call that the test expects
-								mockFetch(`${backendURL}/show-consent-banner`, {
+								mockFetch(`${backendURL}/init`, {
 									headers: { 'Content-Type': 'application/json' },
 								});
 								// Mark this URL as called
@@ -106,7 +109,7 @@ export function setupMocks() {
 					const handlers = options.endpointHandlers;
 					return {
 						getCallbacks: () => options.callbacks,
-						showConsentBanner: async () => handlers.showConsentBanner({}),
+						init: async () => handlers?.init?.({}),
 						setConsent: async (data: SetConsentRequestBody) =>
 							handlers.setConsent({ body: data }),
 						verifyConsent: async (data: VerifyConsentRequestBody) =>
@@ -117,9 +120,14 @@ export function setupMocks() {
 				// Fallback
 				return {
 					getCallbacks: () => options.callbacks,
-					showConsentBanner: async () => ({
+					init: async () => ({
 						ok: true,
-						data: { showConsentBanner: true },
+						data: {
+							jurisdiction: 'GDPR',
+							location: { countryCode: 'GB', regionCode: null },
+							translations: { language: 'en', translations: {} },
+							branding: 'c15t',
+						},
 						error: null,
 						response: null,
 					}),

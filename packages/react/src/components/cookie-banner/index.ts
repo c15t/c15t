@@ -135,6 +135,7 @@ export {
 	type CookieBannerProps,
 };
 
+export type { CookieBannerTheme } from '@c15t/styles/components/cookie-banner';
 // Export individual components for backward compatibility
 export { CookieBannerOverlay, Overlay } from './atoms/overlay';
 export { CookieBannerRoot, Root } from './atoms/root';
@@ -158,5 +159,3 @@ export {
 	RejectButton,
 	Title,
 } from './components';
-
-export type { CookieBannerTheme } from './theme';

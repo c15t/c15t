@@ -23,7 +23,7 @@ export function App() {
 		<ConsentManagerProvider
 			options={{
 				mode: 'offline',
-				ui: { noStyle: false },
+				// react: { noStyle: false },
 			}}
 		>
 			<div>

@@ -5,8 +5,8 @@ import { render } from 'vitest-browser-preact';
 import { useConsentManager } from '../../hooks/use-consent-manager';
 import type { ConsentManagerOptions } from '../../types/consent-manager';
 import {
-  ConsentManagerProvider,
-  clearConsentManagerCache,
+	ConsentManagerProvider,
+	clearConsentManagerCache,
 } from '../consent-manager-provider';
 import { setupMocks } from './test-helpers';
 
@@ -119,7 +119,7 @@ describe('ConsentManagerProvider Context Values', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
-					ui: { theme: { 'banner.root': 'dark' } },
+					react: { theme: { 'banner.root': 'dark' } },
 				}}
 			>
 				<ConsumerComponent />

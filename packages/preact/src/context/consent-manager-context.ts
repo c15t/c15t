@@ -3,7 +3,7 @@
  * Provides the context for sharing consent management state across components.
  */
 
-import type { ConsentManagerInterface, PrivacyConsentState } from 'c15t';
+import type { ConsentManagerInterface, ConsentStoreState } from 'c15t';
 import { createContext } from 'preact';
 
 /**
@@ -13,16 +13,16 @@ export interface ConsentStateContextValue {
 	/**
 	 * Current consent management state
 	 */
-	state: PrivacyConsentState;
+	state: ConsentStoreState;
 
 	/**
 	 * Reference to the consent manager store instance
 	 * We use object type to avoid circular dependencies
 	 */
 	store: {
-		getState: () => PrivacyConsentState;
-		subscribe: (listener: (state: PrivacyConsentState) => void) => () => void;
-		setState: (state: Partial<PrivacyConsentState>) => void;
+		getState: () => ConsentStoreState;
+		subscribe: (listener: (state: ConsentStoreState) => void) => () => void;
+		setState: (state: Partial<ConsentStoreState>) => void;
 	};
 
 	/**

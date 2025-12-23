@@ -2,14 +2,14 @@ import styles from './cookie-banner.module.css';
 
 /**
  * CSS Module exports for cookie-banner component styles
- * 
+ *
  * @description Provides typed access to CSS class names for the cookie banner component.
  * Each property maps to a CSS class defined in the corresponding CSS module file.
- * 
+ *
  * @example
  * ```tsx
  * import styles from '@c15t/styles/components/cookie-banner.module';
- * 
+ *
  * <div className={styles.root}>
  *   <div className={styles.card}>
  *     <header className={styles.header}>

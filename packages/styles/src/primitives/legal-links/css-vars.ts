@@ -1,9 +1,10 @@
-/**
- * CSS variables for the LegalLinks component.
- * @public
- */
-export type LegalLinksCSSVariables = {
+/** Legal links container CSS variables */
+export type LegalLinksContainerCSSVariables = {
 	'--legal-links-gap': string;
+};
+
+/** Legal link item CSS variables */
+export type LegalLinkCSSVariables = {
 	'--legal-links-font-size': string;
 	'--legal-links-transition': string;
 	'--legal-links-text-decoration': string;
@@ -14,3 +15,7 @@ export type LegalLinksCSSVariables = {
 	'--legal-links-focus-color': string;
 	'--legal-links-focus-color-dark': string;
 };
+
+/** All legal links CSS variables combined */
+export type LegalLinksCSSVariables = LegalLinksContainerCSSVariables &
+	LegalLinkCSSVariables;

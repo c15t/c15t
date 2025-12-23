@@ -73,7 +73,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			<ConsentManagerProviderWithOptions
 				options={{
 					mode: 'offline', // Use offline mode to prevent additional fetches
-					ui: { theme: { 'banner.root': 'light' } },
+					react: { theme: { 'banner.root': 'light' } },
 				}}
 			>
 				<div>Light theme</div>
@@ -91,7 +91,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			<ConsentManagerProviderWithOptions
 				options={{
 					mode: 'offline',
-					ui: { theme: { 'banner.root': 'dark' } },
+					react: { theme: { 'banner.root': 'dark' } },
 				}}
 			>
 				<div>Dark theme</div>

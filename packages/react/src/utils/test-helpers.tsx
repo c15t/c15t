@@ -1,8 +1,8 @@
+import type { ThemeValue } from '@c15t/styles/types';
 import type { ReactNode } from 'react';
 import { expect } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentManagerProvider } from '~/providers/consent-manager-provider';
-import type { ThemeValue } from '~/types/theme';
 
 interface ComponentStyles {
 	component: ReactNode;

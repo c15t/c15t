@@ -1,9 +1,9 @@
 import {
-    type ElementType,
-    forwardRef,
-    type JSX,
-    type Ref,
-    type SVGProps,
+	type ElementType,
+	forwardRef,
+	type JSX,
+	type Ref,
+	type SVGProps,
 } from 'preact/compat';
 
 const Icon = (
@@ -14,6 +14,7 @@ const Icon = (
 ) => (
 	<svg
 		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 24 24"
 		fill="none"
 		stroke="currentColor"
 		strokeLinecap="round"

@@ -1,12 +1,16 @@
 import type { ButtonCSSVariables } from '../../primitives/button/css-vars';
+import type {
+	LegalLinkCSSVariables,
+	LegalLinksCSSVariables,
+} from '../../primitives/legal-links/css-vars';
 import type { ThemeValue } from '../../types/style-types';
 import type {
-  CardCSSVariables,
-  DescriptionCSSVariables,
-  FooterCSSVariables,
-  HeaderCSSVariables,
-  OverlayCSSVariables,
-  TitleCSSVariables,
+	CardCSSVariables,
+	DescriptionCSSVariables,
+	FooterCSSVariables,
+	HeaderCSSVariables,
+	OverlayCSSVariables,
+	TitleCSSVariables,
 } from './css-vars';
 
 /**
@@ -36,4 +40,6 @@ export type CookieBannerTheme = Partial<{
 	'banner.footer.accept-button': ThemeValue<ButtonCSSVariables>;
 	/** @remarks Styles for the overlay element */
 	'banner.overlay': ThemeValue<OverlayCSSVariables>;
+	/** @remarks Styles for the legal links container in the header */
+	'banner.header.legal-links': ThemeValue<LegalLinksCSSVariables>;
 }>;
