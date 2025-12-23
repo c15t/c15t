@@ -57,6 +57,7 @@ vi.mock('~/hooks/use-consent-manager', () => ({
 		saveConsents: vi.fn(),
 		setShowPopup: vi.fn(),
 		setIsPrivacyDialogOpen: vi.fn(),
+		branding: 'c15t', // Required by BrandingFooter
 		translationConfig: {
 			defaultLanguage: 'en',
 		},
@@ -263,7 +264,7 @@ test('should override base layer styles', async () => {
 		'dialog.title': 'custom-dialog-text',
 	};
 
-	const test = <ConsentManagerDialog open scrollLock theme={customTheme} />;
+	const test = <ConsentManagerDialog open theme={customTheme} />;
 
 	// testComponentStyles verifies that custom classes are applied correctly
 	await testComponentStyles({
@@ -282,19 +283,29 @@ test('should override base layer styles', async () => {
 });
 
 test('Base layer styles are applied when no custom classes are provided', async () => {
-	const test = <ConsentManagerDialog open scrollLock />;
+	const test = <ConsentManagerDialog open />;
 
 	// testComponentStyles verifies that base classes are applied
 	// The dialog should render with default styling when no custom theme is provided
 	await testComponentStyles({
 		component: test,
-		testCases: [
-			{
-				testId: 'consent-manager-dialog-root',
-				styles: styles.root || '',
-			},
-		],
+		testCases: [],
 	});
+
+	const root = document.querySelector(
+		'[data-testid="consent-manager-dialog-root"]'
+	);
+	const title = document.querySelector(
+		'[data-testid="consent-manager-dialog-title"]'
+	);
+
+	if (!root || !title) {
+		throw new Error('Required elements not found in the document');
+	}
+
+	// The dialog root has transparent background (the card has the white background)
+	expect(getComputedStyle(root).backgroundColor).toBe('rgba(0, 0, 0, 0)');
+	expect(getComputedStyle(title).color).toBe('rgb(23, 23, 23)');
 });
 
 test('Multiple custom classes can be applied and override base layer', async () => {
@@ -302,7 +313,7 @@ test('Multiple custom classes can be applied and override base layer', async () 
 		'dialog.root': 'custom-padding custom-border',
 	};
 
-	const test = <ConsentManagerDialog open scrollLock theme={customTheme} />;
+	const test = <ConsentManagerDialog open theme={customTheme} />;
 
 	// testComponentStyles verifies that multiple custom classes are applied
 	await testComponentStyles({
@@ -335,7 +346,7 @@ test('All consent manager dialog components should have their base classes appli
 		testCases: [
 			{
 				testId: 'consent-manager-dialog-root',
-				styles: `${styles.card} ${styles.card} ${styles.card}`,
+				styles: baseClasses.root,
 			},
 			{
 				testId: 'consent-manager-dialog-card',
