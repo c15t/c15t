@@ -57,6 +57,7 @@ vi.mock('~/hooks/use-consent-manager', () => ({
 		saveConsents: vi.fn(),
 		setShowPopup: vi.fn(),
 		setIsPrivacyDialogOpen: vi.fn(),
+		branding: 'c15t', // Required by BrandingFooter
 		translationConfig: {
 			defaultLanguage: 'en',
 		},
@@ -274,7 +275,7 @@ test('should override base layer styles', async () => {
 		'dialog.title': 'custom-dialog-text',
 	};
 
-	const test = <ConsentManagerDialog theme={customTheme} />;
+	const test = <ConsentManagerDialog open theme={customTheme} />;
 
 	await testComponentStyles({
 		component: test,
@@ -308,7 +309,7 @@ test('should override base layer styles', async () => {
 });
 
 test('Base layer styles are applied when no custom classes are provided', async () => {
-	const test = <ConsentManagerDialog />;
+	const test = <ConsentManagerDialog open />;
 
 	await testComponentStyles({
 		component: test,
@@ -326,7 +327,8 @@ test('Base layer styles are applied when no custom classes are provided', async 
 		throw new Error('Required elements not found in the document');
 	}
 
-	expect(getComputedStyle(root).backgroundColor).toBe('rgb(255, 255, 255)');
+	// The dialog root has transparent background (the card has the white background)
+	expect(getComputedStyle(root).backgroundColor).toBe('rgba(0, 0, 0, 0)');
 	expect(getComputedStyle(title).color).toBe('rgb(23, 23, 23)');
 });
 
@@ -346,7 +348,7 @@ test('Multiple custom classes can be applied and override base layer', async () 
 		'dialog.root': 'custom-padding custom-border',
 	};
 
-	const test = <ConsentManagerDialog theme={customTheme} />;
+	const test = <ConsentManagerDialog open theme={customTheme} />;
 
 	await testComponentStyles({
 		component: test,
@@ -391,7 +393,7 @@ test('All consent manager dialog components should have their base classes appli
 		testCases: [
 			{
 				testId: 'consent-manager-dialog-root',
-				styles: `${styles.card} ${styles.card} ${styles.card}`,
+				styles: baseClasses.root,
 			},
 			{
 				testId: 'consent-manager-dialog-card',
