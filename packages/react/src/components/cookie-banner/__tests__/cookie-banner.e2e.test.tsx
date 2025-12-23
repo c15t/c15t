@@ -1,3 +1,4 @@
+import { userEvent } from '@vitest/browser/context';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentManagerDialog } from '~/components/consent-manager-dialog/consent-manager-dialog';
@@ -7,28 +8,6 @@ import {
 } from '~/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/types/consent-manager';
 import { CookieBanner } from '../cookie-banner';
-
-// Create a mutable showPopup value we can control
-let mockShowPopup = true;
-let mockIsPrivacyDialogOpen = false;
-
-vi.mock('~/hooks/use-consent-manager', async (importOriginal) => {
-	const realModule =
-		await importOriginal<typeof import('~/hooks/use-consent-manager')>();
-	return {
-		useConsentManager: () => ({
-			...realModule.useConsentManager(),
-			showPopup: mockShowPopup,
-			isPrivacyDialogOpen: mockIsPrivacyDialogOpen,
-			setShowPopup: (value: boolean) => {
-				mockShowPopup = value;
-			},
-			setIsPrivacyDialogOpen: (value: boolean) => {
-				mockIsPrivacyDialogOpen = value;
-			},
-		}),
-	};
-});
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -60,8 +39,14 @@ describe('CookieBanner E2E Tests', () => {
 	beforeEach(() => {
 		// Clear localStorage before each test
 		window.localStorage.clear();
-		// Reset showPopup before each test
-		mockShowPopup = true;
+		// Clear cookies
+		const cookies = document.cookie.split(';');
+		for (const cookie of cookies) {
+			const eqPos = cookie.indexOf('=');
+			const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+			document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+			document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT';
+		}
 		// Reset all mocks
 		vi.clearAllMocks();
 		clearConsentManagerCache();
@@ -75,12 +60,15 @@ describe('CookieBanner E2E Tests', () => {
 			</ConsentManagerProvider>
 		);
 
-		const element = document.body.querySelector(
-			`[data-testid="cookie-banner-root"]`
+		await vi.waitFor(
+			() => {
+				const element = document.body.querySelector(
+					`[data-testid="cookie-banner-root"]`
+				);
+				expect(element).toBeInTheDocument();
+			},
+			{ timeout: 2000 }
 		);
-
-		expect(element).toBeInTheDocument();
-		expect(mockShowPopup).toBe(true);
 
 		// Verify all essential elements are present
 		expect(
@@ -109,17 +97,22 @@ describe('CookieBanner E2E Tests', () => {
 		);
 
 		// Click accept all button
-		const acceptButton = document.querySelector(
-			'[data-testid="cookie-banner-accept-button"]'
-		);
-		acceptButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		const acceptButton = await vi.waitFor(() => {
+			const btn = document.querySelector(
+				'[data-testid="cookie-banner-accept-button"]'
+			);
+			if (!btn) throw new Error('Accept button not found');
+			return btn;
+		});
+
+		await userEvent.click(acceptButton);
 
 		// Banner should disappear
-		await new Promise((resolve) => setTimeout(resolve, 100));
-		expect(mockShowPopup).toBe(false);
-		expect(
-			document.querySelector('[data-testid="cookie-banner-root"]')
-		).not.toBeInTheDocument();
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector('[data-testid="cookie-banner-root"]')
+			).not.toBeInTheDocument();
+		});
 
 		// Check localStorage for consent
 		const consent = JSON.parse(window.localStorage.getItem('c15t') || '{}');
@@ -138,17 +131,25 @@ describe('CookieBanner E2E Tests', () => {
 		);
 
 		// Click reject all button
-		const rejectButton = document.querySelector(
-			'[data-testid="cookie-banner-reject-button"]'
+		const rejectButton = await vi.waitFor(
+			() => {
+				const btn = document.querySelector(
+					'[data-testid="cookie-banner-reject-button"]'
+				);
+				if (!btn) throw new Error('Reject button not found');
+				return btn;
+			},
+			{ timeout: 2000 }
 		);
-		rejectButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+		await userEvent.click(rejectButton);
 
 		// Banner should disappear
-		await new Promise((resolve) => setTimeout(resolve, 100));
-		expect(mockShowPopup).toBe(false);
-		expect(
-			document.querySelector('[data-testid="cookie-banner-root"]')
-		).not.toBeInTheDocument();
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector('[data-testid="cookie-banner-root"]')
+			).not.toBeInTheDocument();
+		});
 
 		// Check localStorage for consent
 		const consent = JSON.parse(window.localStorage.getItem('c15t') || '{}');
@@ -171,36 +172,36 @@ describe('CookieBanner E2E Tests', () => {
 		);
 
 		// Click customize button
-		const customizeButton = document.querySelector(
-			'[data-testid="cookie-banner-customize-button"]'
+		const customizeButton = await vi.waitFor(
+			() => {
+				const btn = document.querySelector(
+					'[data-testid="cookie-banner-customize-button"]'
+				);
+				if (!btn) throw new Error('Customize button not found');
+				return btn;
+			},
+			{ timeout: 2000 }
 		);
-		customizeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+		await userEvent.click(customizeButton);
 
 		// Cookie banner should be hidden
-		await new Promise((resolve) => setTimeout(resolve, 100));
-		expect(mockShowPopup).toBe(false);
-		expect(
-			document.querySelector('[data-testid="cookie-banner-root"]')
-		).not.toBeInTheDocument();
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector('[data-testid="cookie-banner-root"]')
+			).not.toBeInTheDocument();
+		});
 
-		// Verify setIsPrivacyDialogOpen was called with true
-		expect(mockIsPrivacyDialogOpen).toBe(true);
-	});
-
-	test('should render consent manager dialog with switches when open', async () => {
-		// Render dialog in open state directly
-		render(
-			<ConsentManagerProvider options={defaultOptions}>
-				<ConsentManagerDialog open />
-			</ConsentManagerProvider>
+		// Consent manager dialog should be visible
+		await vi.waitFor(
+			() => {
+				const dialog = document.querySelector(
+					'[data-testid="consent-manager-dialog-root"]'
+				);
+				expect(dialog).toBeInTheDocument();
+			},
+			{ timeout: 2000 }
 		);
-
-		await new Promise((resolve) => setTimeout(resolve, 100));
-
-		const dialog = document.querySelector(
-			'[data-testid="consent-manager-dialog-root"]'
-		);
-		expect(dialog).toBeInTheDocument();
 
 		// Check for consent type switches
 		expect(
@@ -229,15 +230,21 @@ describe('CookieBanner E2E Tests', () => {
 		const marketingSwitch = document.querySelector(
 			'[data-testid="consent-manager-widget-switch-marketing"]'
 		);
-		marketingSwitch?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		if (!marketingSwitch) throw new Error('Marketing switch not found');
+		await userEvent.click(marketingSwitch);
 
 		const saveButton = document.querySelector(
 			'[data-testid="consent-manager-widget-footer-save-button"]'
 		);
-		saveButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		if (!saveButton) throw new Error('Save button not found');
+		await userEvent.click(saveButton);
 
-		// Wait for save to complete
-		await new Promise((resolve) => setTimeout(resolve, 100));
+		// Dialog should close
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector('[data-testid="consent-manager-dialog-root"]')
+			).not.toBeInTheDocument();
+		});
 
 		// Check localStorage for custom consent
 		const consent = JSON.parse(window.localStorage.getItem('c15t') || '{}');
@@ -253,10 +260,18 @@ describe('CookieBanner E2E Tests', () => {
 			</ConsentManagerProvider>
 		);
 
-		// Focus should start on first interactive element
-		const rejectButton = document.querySelector(
-			'[data-testid="cookie-banner-reject-button"]'
-		) as HTMLElement;
+		// Wait for banner to appear
+		const rejectButton = await vi.waitFor(
+			() => {
+				const btn = document.querySelector(
+					'[data-testid="cookie-banner-reject-button"]'
+				) as HTMLElement;
+				if (!btn) throw new Error('Reject button not found');
+				return btn;
+			},
+			{ timeout: 2000 }
+		);
+
 		const customizeButton = document.querySelector(
 			'[data-testid="cookie-banner-customize-button"]'
 		) as HTMLElement;
@@ -283,21 +298,29 @@ describe('CookieBanner E2E Tests', () => {
 			</ConsentManagerProvider>
 		);
 
-		// Check if overlay is present when scrollLock is true
-		expect(
-			document.querySelector('[data-testid="cookie-banner-overlay"]')
-		).toBeInTheDocument();
+		// Wait for overlay to appear
+		await vi.waitFor(
+			() => {
+				const overlay = document.querySelector(
+					'[data-testid="cookie-banner-overlay"]'
+				);
+				expect(overlay).toBeInTheDocument();
+			},
+			{ timeout: 2000 }
+		);
 
 		// Accept cookies
 		const acceptButton = document.querySelector(
 			'[data-testid="cookie-banner-accept-button"]'
 		);
-		acceptButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		if (!acceptButton) throw new Error('Accept button not found');
+		await userEvent.click(acceptButton);
 
 		// Overlay should be removed
-		await new Promise((resolve) => setTimeout(resolve, 100));
-		expect(
-			document.querySelector('[data-testid="cookie-banner-overlay"]')
-		).not.toBeInTheDocument();
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector('[data-testid="cookie-banner-overlay"]')
+			).not.toBeInTheDocument();
+		});
 	});
 });
