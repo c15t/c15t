@@ -33,37 +33,32 @@ describe('checkJurisdiction', () => {
 			'SE',
 		];
 
-		it.each(euCountries)(
-			'should identify %s as GDPR jurisdiction',
-			(countryCode) => {
-				const result = checkJurisdiction(countryCode);
+		it.each(
+			euCountries
+		)('should identify %s as GDPR jurisdiction', (countryCode) => {
+			const result = checkJurisdiction(countryCode);
 
-				expect(result.showConsentBanner).toBe(true);
-				expect(result.jurisdictionCode).toBe('GDPR');
-			}
-		);
+			expect(result).toBe('GDPR');
+		});
 	});
 
 	describe('GDPR jurisdiction (EEA countries)', () => {
 		const eeaCountries = ['IS', 'NO', 'LI'];
 
-		it.each(eeaCountries)(
-			'should identify %s as GDPR jurisdiction',
-			(countryCode) => {
-				const result = checkJurisdiction(countryCode);
+		it.each(
+			eeaCountries
+		)('should identify %s as GDPR jurisdiction', (countryCode) => {
+			const result = checkJurisdiction(countryCode);
 
-				expect(result.showConsentBanner).toBe(true);
-				expect(result.jurisdictionCode).toBe('GDPR');
-			}
-		);
+			expect(result).toBe('GDPR');
+		});
 	});
 
 	describe('GDPR jurisdiction (UK)', () => {
 		it('should identify GB as GDPR jurisdiction', () => {
 			const result = checkJurisdiction('GB');
 
-			expect(result.showConsentBanner).toBe(true);
-			expect(result.jurisdictionCode).toBe('GDPR');
+			expect(result).toBe('GDPR');
 		});
 	});
 
@@ -77,16 +72,13 @@ describe('checkJurisdiction', () => {
 			{ country: 'KR', code: 'PIPA', message: '' },
 		] as const;
 
-		it.each(jurisdictionCases)(
-			'should identify $country as $code jurisdiction',
-			({ country, code, message }) => {
-				const result = checkJurisdiction(country);
+		it.each(
+			jurisdictionCases
+		)('should identify $country as $code jurisdiction', ({ country, code }) => {
+			const result = checkJurisdiction(country);
 
-				expect(result.showConsentBanner).toBe(true);
-				expect(result.jurisdictionCode).toBe(code);
-				expect(result.message).toBe(message);
-			}
-		);
+			expect(result).toBe(code);
+		});
 	});
 
 	describe('Non-regulated countries', () => {
@@ -103,38 +95,33 @@ describe('checkJurisdiction', () => {
 			'PH', // Philippines
 		];
 
-		it.each(nonRegulatedCountries)(
-			'should identify %s as non-regulated (NONE jurisdiction)',
-			(countryCode) => {
-				const result = checkJurisdiction(countryCode);
+		it.each(
+			nonRegulatedCountries
+		)('should identify %s as non-regulated (NONE jurisdiction)', (countryCode) => {
+			const result = checkJurisdiction(countryCode);
 
-				expect(result.showConsentBanner).toBe(false);
-				expect(result.jurisdictionCode).toBe('NONE');
-			}
-		);
+			expect(result).toBe('NONE');
+		});
 	});
 
 	describe('Edge cases', () => {
-		it('should handle null country code by defaulting to show banner with NONE jurisdiction', () => {
+		it('should handle null country code by defaulting to NONE jurisdiction', () => {
 			const result = checkJurisdiction(null);
 
-			expect(result.showConsentBanner).toBe(true);
-			expect(result.jurisdictionCode).toBe('NONE');
+			expect(result).toBe('NONE');
 		});
 
-		it('should handle empty string country code by defaulting to show banner with NONE jurisdiction', () => {
+		it('should handle empty string country code by defaulting to NONE jurisdiction', () => {
 			const result = checkJurisdiction('');
 
-			expect(result.showConsentBanner).toBe(true);
-			expect(result.jurisdictionCode).toBe('NONE');
+			expect(result).toBe('NONE');
 		});
 
 		it('should handle lowercase country codes correctly', () => {
 			const result = checkJurisdiction('de');
 
 			// Should now match because we normalize to uppercase
-			expect(result.showConsentBanner).toBe(true);
-			expect(result.jurisdictionCode).toBe('GDPR');
+			expect(result).toBe('GDPR');
 		});
 
 		it('should handle mixed case country codes across different jurisdictions', () => {
@@ -153,8 +140,7 @@ describe('checkJurisdiction', () => {
 			for (const { input, expectedJurisdiction } of testCases) {
 				const result = checkJurisdiction(input);
 
-				expect(result.showConsentBanner).toBe(true);
-				expect(result.jurisdictionCode).toBe(expectedJurisdiction);
+				expect(result).toBe(expectedJurisdiction);
 			}
 		});
 
@@ -164,25 +150,16 @@ describe('checkJurisdiction', () => {
 			for (const code of invalidCodes) {
 				const result = checkJurisdiction(code);
 
-				expect(result.showConsentBanner).toBe(false);
-				expect(result.jurisdictionCode).toBe('NONE');
+				expect(result).toBe('NONE');
 			}
 		});
 	});
 
 	describe('Return value structure', () => {
-		it('should always return an object with required properties', () => {
+		it('should always return a jurisdiction code string', () => {
 			const result = checkJurisdiction('DE');
 
-			expect(result).toEqual({
-				showConsentBanner: expect.any(Boolean),
-				jurisdictionCode: expect.any(String),
-				message: expect.any(String),
-			});
-
-			expect(result).toHaveProperty('showConsentBanner');
-			expect(result).toHaveProperty('jurisdictionCode');
-			expect(result).toHaveProperty('message');
+			expect(typeof result).toBe('string');
 		});
 
 		it('should return consistent types regardless of input', () => {
@@ -191,9 +168,7 @@ describe('checkJurisdiction', () => {
 			for (const input of inputs) {
 				const result = checkJurisdiction(input);
 
-				expect(typeof result.showConsentBanner).toBe('boolean');
-				expect(typeof result.jurisdictionCode).toBe('string');
-				expect(typeof result.message).toBe('string');
+				expect(typeof result).toBe('string');
 			}
 		});
 	});
@@ -262,8 +237,7 @@ describe('checkJurisdiction', () => {
 			for (const { input, expectedJurisdiction, expectedShow } of testCases) {
 				const result = checkJurisdiction(input);
 
-				expect(result.showConsentBanner).toBe(expectedShow);
-				expect(result.jurisdictionCode).toBe(expectedJurisdiction);
+				expect(result).toBe(expectedJurisdiction);
 			}
 		});
 	});

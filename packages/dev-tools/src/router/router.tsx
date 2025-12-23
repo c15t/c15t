@@ -1,6 +1,6 @@
 'use client';
 
-import type { PrivacyConsentState } from 'c15t';
+import type { ConsentStoreState } from 'c15t';
 import { GanttChartSquare, ToggleLeft } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useCallback, useState } from 'react';
@@ -27,7 +27,7 @@ interface RouterProps {
 }
 
 export function Router({ onClose: _onClose }: RouterProps) {
-	const privacyConsent = getStore() as PrivacyConsentState;
+	const privacyConsent = getStore() as ConsentStoreState;
 
 	const [activeSection, setActiveSection] = useState<TabSection>('Consents');
 
@@ -57,13 +57,6 @@ export function Router({ onClose: _onClose }: RouterProps) {
 					title: name,
 					status: value ? 'Enabled' : 'Disabled',
 				}));
-			case 'Compliance':
-				return Object.entries(privacyConsent.complianceSettings).map(
-					([region, settings]) => ({
-						title: region,
-						status: settings.enabled ? 'Active' : 'Inactive',
-					})
-				);
 			case 'Conditional':
 				return renderingState.map((item) => ({
 					title: item.componentName,

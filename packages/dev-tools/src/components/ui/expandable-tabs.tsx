@@ -1,6 +1,7 @@
 'use client';
 
 import type { LucideIcon } from 'lucide-react';
+import type { Transition } from 'motion';
 import { AnimatePresence, motion } from 'motion/react';
 import { memo, useCallback, useEffect, useState } from 'react';
 import './expandable-tabs.css';
@@ -45,7 +46,12 @@ const spanVariants = {
 	exit: { width: 0, opacity: 0 },
 };
 
-const transition = { delay: 0.1, type: 'spring', bounce: 0, duration: 0.6 };
+const transition: Transition = {
+	delay: 0.1,
+	type: 'spring',
+	bounce: 0,
+	duration: 0.6,
+};
 
 const Separator = memo(() => (
 	<div className="c15t-devtool-tab-separator" aria-hidden="true" />

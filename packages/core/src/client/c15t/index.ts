@@ -7,9 +7,9 @@ import type {
 	ConsentManagerInterface,
 	IdentifyUserRequestBody,
 	IdentifyUserResponse,
+	InitResponse,
 	SetConsentRequestBody,
 	SetConsentResponse,
-	ShowConsentBannerResponse,
 	VerifyConsentRequestBody,
 	VerifyConsentResponse,
 } from '../client-interface';
@@ -18,6 +18,7 @@ import { DEFAULT_RETRY_CONFIG } from './constants';
 import type { FetcherContext } from './fetcher';
 import { fetcher } from './fetcher';
 import { identifyUser } from './identify-user';
+import { init } from './init';
 import {
 	checkPendingConsentSubmissions,
 	checkPendingIdentifyUserSubmissions,
@@ -25,7 +26,6 @@ import {
 	processPendingIdentifyUserSubmissions,
 } from './pending-submissions';
 import { setConsent } from './set-consent';
-import { showConsentBanner } from './show-consent-banner';
 import type { C15tClientOptions } from './types';
 import { verifyConsent } from './verify-consent';
 
@@ -138,10 +138,10 @@ export class C15tClient implements ConsentManagerInterface {
 	 * Checks if a consent banner should be shown.
 	 * If the API request fails, falls back to offline mode behavior.
 	 */
-	async showConsentBanner(
-		options?: FetchOptions<ShowConsentBannerResponse>
-	): Promise<ResponseContext<ShowConsentBannerResponse>> {
-		return showConsentBanner(this.fetcherContext, options);
+	async init(
+		options?: FetchOptions<InitResponse>
+	): Promise<ResponseContext<InitResponse>> {
+		return init(this.fetcherContext, options);
 	}
 
 	/**

@@ -1,6 +1,6 @@
-import type { PrivacyConsentState } from '../../store.type';
+import type { ConsentStoreState } from '../../store/type';
+import type { AllConsentNames } from '../../types';
 import { extractConsentNamesFromCondition, has } from '../has';
-import type { createTrackingBlocker } from '../tracking-blocker';
 import {
 	getLoadedScriptIds,
 	isScriptLoaded,
@@ -18,16 +18,20 @@ import {
 /**
  * Creates script management functions for the consent manager store.
  *
+ * @remarks
+ * The returned methods are intended to be spread into the
+ * {@link ConsentStoreState} and provide script loading/unloading behavior
+ * based on the current consent state.
+ *
  * @param getState - Function to get the current state from the store
  * @param setState - Function to update the state in the store
- * @param trackingBlocker - Optional tracking blocker instance to destroy when scripts are added
  * @returns Object containing script management functions
+ *
  * @internal
  */
 export function createScriptManager(
-	getState: () => PrivacyConsentState,
-	setState: (partial: Partial<PrivacyConsentState>) => void,
-	trackingBlocker?: ReturnType<typeof createTrackingBlocker> | null
+	getState: () => ConsentStoreState,
+	setState: (partial: Partial<ConsentStoreState>) => void
 ) {
 	const updateScriptsFn = () => {
 		const { scripts, consents, scriptIdMap } = getState();
@@ -56,25 +60,17 @@ export function createScriptManager(
 		 * Updates scripts based on current consent state.
 		 * Loads scripts that have consent and aren't loaded yet.
 		 * Unloads scripts that no longer have consent.
+		 *
 		 * @returns Object containing arrays of loaded and unloaded script IDs
 		 */
 		updateScripts: () => updateScriptsFn(),
 
 		/**
-		 * Adds multiple script configurations to the store.
+		 * Sets multiple script configurations to the store.
 		 *
 		 * @param scripts - Array of script configurations to add
-		 *
-		 * @remarks
-		 * When scripts are added, the tracking blocker is automatically destroyed
-		 * to prevent conflicts between the two systems.
 		 */
 		setScripts: (scripts: Script[]) => {
-			// Destroy tracking blocker to avoid conflicts with script loader
-			if (trackingBlocker) {
-				trackingBlocker.destroy();
-			}
-
 			const state = getState();
 			const newScriptIdMap = { ...state.scriptIdMap };
 
@@ -90,9 +86,11 @@ export function createScriptManager(
 				extractConsentNamesFromCondition(script.category)
 			);
 
-			const allCategories = [
-				...new Set([...state.gdprTypes, ...newCategories]),
-			];
+			const allCategoriesSet = new Set<AllConsentNames>([
+				...state.gdprTypes,
+				...newCategories,
+			]);
+			const allCategories = Array.from(allCategoriesSet);
 
 			setState({
 				scripts: [...state.scripts, ...scripts],
@@ -107,6 +105,11 @@ export function createScriptManager(
 		 * Removes a script configuration from the store.
 		 *
 		 * @param scriptId - ID of the script to remove
+		 *
+		 * @remarks
+		 * If the script is currently loaded, it will be unloaded, its
+		 * `onDelete` callback (if any) will be called, and the DOM element
+		 * will be removed.
 		 */
 		removeScript: (scriptId: string) => {
 			const state = getState();
@@ -157,10 +160,12 @@ export function createScriptManager(
 		},
 
 		/**
-		 * Reloads a specific script.
+		 * Reloads a specific script based on its configuration and current
+		 * consent state.
 		 *
 		 * @param scriptId - ID of the script to reload
-		 * @returns True if the script was reloaded, false otherwise
+		 * @returns A promise that resolves to the reloaded script element, or
+		 * `null` if the script could not be reloaded
 		 */
 		reloadScript: (scriptId: string) => {
 			const state = getState();

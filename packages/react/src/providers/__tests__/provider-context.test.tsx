@@ -113,7 +113,7 @@ describe('ConsentManagerProvider Context Values', () => {
 			);
 		};
 
-		const { getByTestId } = render(
+		const { getByTestId } = await render(
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',

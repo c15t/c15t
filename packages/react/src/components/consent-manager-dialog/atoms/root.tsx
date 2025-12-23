@@ -204,6 +204,7 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 						aria-labelledby="privacy-settings-title"
 						tabIndex={-1}
 						dir={textDirection}
+						data-testid="consent-manager-dialog-root"
 						open
 					>
 						<div

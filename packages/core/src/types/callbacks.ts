@@ -1,6 +1,6 @@
 import type {
-	JurisdictionInfo,
-	PrivacyConsentState,
+	ConsentStoreState,
+	ContractsOutputs,
 	Translations,
 } from '../index';
 
@@ -15,19 +15,15 @@ export type Callback<T = void> = (arg: T) => void;
  * Payload types for the callbacks
  */
 export type OnBannerFetchedPayload = {
-	showConsentBanner: boolean;
-	jurisdiction: JurisdictionInfo;
-	location: {
-		countryCode: string | null;
-		regionCode: string | null;
-	};
+	jurisdiction: ContractsOutputs['consent']['showBanner']['jurisdiction'];
+	location: ContractsOutputs['consent']['showBanner']['location'];
 	translations: {
 		language: string;
 		translations: Translations;
 	};
 };
 export type OnConsentSetPayload = {
-	preferences: PrivacyConsentState['consents'];
+	preferences: ConsentStoreState['consents'];
 };
 export type OnErrorPayload = {
 	error: string;

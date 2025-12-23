@@ -39,7 +39,7 @@ if (typeof global.MutationObserver === 'undefined') {
 }
 
 const createMockConsentManager = (): ConsentManagerInterface => ({
-	showConsentBanner: vi.fn(),
+	init: vi.fn(),
 	setConsent: vi.fn(),
 	verifyConsent: vi.fn(),
 	identifyUser: vi.fn(),

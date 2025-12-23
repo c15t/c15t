@@ -1,0 +1,68 @@
+---
+title: "v2.0.0 - Network blocker, GPC & v2 backend"
+version: "2.0.0"
+date: 2025-12-09
+description: "Major Release" 
+tags:
+  - release
+  - stable
+  - nextjs
+  - react
+  - backend
+type: release
+breaking: true
+draft: true
+authors: [KayleeWilliams]
+---
+
+## Global Privacy Control (GPC) 
+
+This release adds first-class support for Global Privacy Control (GPC) signals across the core store
+and backend. If a browser sends a GPC signal, the consent manager now:
+
+- Applies stricter defaults for tracking categories.
+- Reflects GPC-driven state in the consent UI and callbacks.
+- Exposes helpers so you can detect and react to GPC in custom flows.
+
+## 💥 Breaking changes
+
+- **Backend v1 removed, v2 promoted to default**: the deprecated `v1` backend implementation and
+  `/v1` routes have been removed. The former `v2` contracts, handlers, and types have been moved
+  to the top-level backend entrypoints. If you were still relying on `v1`, you must migrate to the
+  current backend API surface.
+- **`/show-consent-banner` endpoint replaced with `/init`**: the endpoint has been renamed with a more accurate name (initialization).
+  (geo data, consent info, translations, etc.). Any custom integrations calling
+  `/show-consent-banner` should update to use `/init`.
+- **`showConsentBanner` prop removed in favour of jurisdiction-based flow**: the old
+  `showConsentBanner` flag has been removed from the SDK. Instead, banner visibility is now driven
+  by jurisdiction and model detection, with built-in support for opt-out banners. Update any custom
+  logic that toggled `showConsentBanner` to use the new jurisdiction-aware configuration.
+- **Tracking blocker removed, replaced with network blocker**: the legacy tracking blocker and
+  related types have been removed. It is replaced by the new **network blocker** module, which
+  intercepts `fetch`/`XMLHttpRequest` and blocks requests based on consent and domain rules. Use the
+  new `networkBlocker` configuration in the store and corresponding helpers to migrate.
+- **Deprecated store options cleaned up**: several previously deprecated store options and
+  deep-imports have been removed as part of the new `store/index.ts` API. If you were importing
+  store internals directly, switch to the documented `createConsentManagerStore` and
+  `StoreOptions` types instead.
+
+## ✨ New features
+
+- **Network blocker**: new network-blocker module that lets you configure domain-based blocking of
+  network requests based on consent, replacing the older tracking blocker implementation.
+- **GPC-aware consent flows**: store helpers and backend logic that make it easy to honour Global
+  Privacy Control signals by default.
+- **Smaller backend responses**: backend `init`/geo responses are now compressed, reducing payload
+  size for geo-location requests by around 14%.
+- **Translations helper**: new `selectLanguage` helper and cached language key in the translations
+  package to make language selection and caching more predictable.
+
+## 🐛 Bug Fixes & Improvements
+
+- **Core & backend types tightened**: store types, backend contracts, and options have been
+  refactored to be easier to navigate and harder to misuse, while keeping the public surface area
+  stable where possible.
+- **Tests & tooling**: tests have been updated to the new v2 defaults (including node SDK and core
+  store), CI bundle analysis has been improved, and unused internals have been removed.
+
+<ContributorBlock usernames={["KayleeWilliams", "BurnedChris", "izadoesdev", "djmisha", "davidturnbull"]} title="Thank you to our contributors" />

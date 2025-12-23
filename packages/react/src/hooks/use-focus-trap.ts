@@ -57,7 +57,7 @@ export function useFocusTrap(
 			}
 
 			const firstElement = focusableElements[0];
-			const lastElement = focusableElements.at(-1);
+			const lastElement = focusableElements[focusableElements.length - 1];
 
 			// Shift+Tab on first element cycles to last element
 			if (e.shiftKey && document.activeElement === firstElement) {

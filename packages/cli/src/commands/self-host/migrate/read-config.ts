@@ -1,9 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { DB } from '@c15t/backend/v2/db/schema';
-import type { DatabaseConfig } from '@c15t/backend/v2/define-config';
+import { DB } from '@c15t/backend/db/schema';
 import { loadConfig } from 'c12';
 import type { CliContext } from '~/context/types';
+
+type MigratorDatabaseConfig = {
+	adapter: Parameters<(typeof DB)['client']>[0];
+} & Record<string, unknown>;
 
 export async function readConfigAndGetDb(
 	context: CliContext,
@@ -24,7 +27,7 @@ export async function readConfigAndGetDb(
 	}
 
 	try {
-		const { config } = await loadConfig<DatabaseConfig>({
+		const { config } = await loadConfig<MigratorDatabaseConfig>({
 			configFile: absoluteConfigPath,
 			jitiOptions: {
 				extensions: [
@@ -42,6 +45,12 @@ export async function readConfigAndGetDb(
 		});
 
 		logger.debug('Imported Config');
+
+		if (!config || typeof config !== 'object' || !('adapter' in config)) {
+			throw new Error(
+				'Invalid backend config: missing required "adapter" property'
+			);
+		}
 
 		return {
 			db: DB.client(config.adapter),

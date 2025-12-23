@@ -153,6 +153,28 @@ By default, the Cookie Banner shows no legal links. To display them, pass the `l
 
 Legal links appear inline with the description text. For example, if your description is "We use cookies to enhance your experience", it will render as: "We use cookies to enhance your experience Privacy Policy, Cookie Policy" where the links are styled in blue and underlined on hover.
 
+## Layout
+
+The Cookie Banner supports a `layout` prop that controls button order and grouping. Buttons can be arranged individually or grouped together (typically displayed as a flex row).
+
+The `primaryButton` prop determines which button(s) receive the primary styling variant (usually more prominent/colorful).
+
+### Examples
+
+```tsx
+// Default: Reject and Accept grouped, Customize separate and primary
+<CookieBanner 
+  layout={[['reject', 'accept'], 'customize']} 
+  primaryButton="customize" 
+/>
+
+// Customize first and primary, Reject and Accept grouped and both primary
+<CookieBanner 
+  layout={['customize', ['reject', 'accept']]} 
+  primaryButton={['reject', 'accept']} 
+/>
+```
+
 ## Styling
 
 The Cookie Banner is designed to adapt to your application's visual style. Learn more about our [styling system](/docs/frameworks/react/styling/overview).

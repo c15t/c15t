@@ -266,10 +266,4 @@ export type ConsentInfo = {
 	 * This is used to link a consent record to an authenticated user
 	 */
 	identified?: boolean;
-
-	/**
-	 * The type of consent granted
-	 * @deprecated un-used and will be removed in a future version
-	 */
-	type?: 'all' | 'custom' | 'necessary';
 };

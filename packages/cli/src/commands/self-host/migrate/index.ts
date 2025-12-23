@@ -1,4 +1,4 @@
-import { migrator } from '@c15t/backend/v2/db/migrator';
+import { migrator } from '@c15t/backend/db/migrator';
 import { installDependencies } from '~/commands/generate/options/utils/dependencies';
 import { ensureBackendConfig } from '~/commands/self-host/migrate/ensure-backend-config';
 import { handleMigrationResult } from '~/commands/self-host/migrate/migrator-result';

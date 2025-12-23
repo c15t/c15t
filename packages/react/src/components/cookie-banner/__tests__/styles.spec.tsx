@@ -10,10 +10,14 @@ import type { CookieBannerTheme } from '../theme';
 vi.mock('~/hooks/use-consent-manager', () => ({
 	useConsentManager: () => ({
 		showPopup: true,
+		model: 'opt-in',
 		translationConfig: {
 			defaultLanguage: 'en',
 		},
-		...vi.fn(),
+		saveConsents: vi.fn(),
+		setShowPopup: vi.fn(),
+		setIsPrivacyDialogOpen: vi.fn(),
+		setConsent: vi.fn(),
 	}),
 }));
 

@@ -234,11 +234,13 @@ const CookieBannerRootChildren = forwardRef<
 		},
 		ref
 	) => {
-		const { showPopup, translationConfig } = useConsentManager();
+		const { showPopup, translationConfig, model } = useConsentManager();
 		const textDirection = useTextDirection(translationConfig.defaultLanguage);
 		const [isVisible, setIsVisible] = useState(false);
 		const [hasAnimated, setHasAnimated] = useState(false);
 		const [animationDurationMs, setAnimationDurationMs] = useState(200); // Default fallback for SSR
+
+		const shouldShowBanner = model === 'opt-in' && showPopup;
 
 		// Get animation duration from CSS custom property (client-side only)
 		useEffect(() => {
@@ -253,7 +255,7 @@ const CookieBannerRootChildren = forwardRef<
 
 		// Handle animation visibility state
 		useEffect(() => {
-			if (showPopup) {
+			if (shouldShowBanner) {
 				// If showPopup is true but we haven't animated yet, trigger the animation
 				if (hasAnimated) {
 					setIsVisible(true);
@@ -278,7 +280,7 @@ const CookieBannerRootChildren = forwardRef<
 					return () => clearTimeout(timer);
 				}
 			}
-		}, [showPopup, disableAnimation, hasAnimated, animationDurationMs]);
+		}, [shouldShowBanner, disableAnimation, hasAnimated, animationDurationMs]);
 
 		// Apply styles from the CookieBanner context and merge with local styles.
 		// Uses the 'content' style key for consistent theming.
@@ -313,7 +315,7 @@ const CookieBannerRootChildren = forwardRef<
 			: `${contentStyle.className || ''} ${isVisible ? styles.bannerVisible : styles.bannerHidden}`;
 
 		// Only render when the banner should be shown
-		return showPopup
+		return shouldShowBanner
 			? createPortal(
 					<>
 						<Overlay />

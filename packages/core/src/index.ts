@@ -41,13 +41,13 @@ export {
 	saveConsentToStorage,
 	setCookie,
 } from './libs/cookie';
-export type { GTMConfiguration } from './libs/gtm';
 export type { HasCondition } from './libs/has';
 export {
 	createIframeBlocker,
 	type IframeBlocker,
 	type IframeBlockerConfig,
 } from './libs/iframe-blocker';
+export type { NetworkBlockerConfig } from './libs/network-blocker';
 // Export script loader
 export {
 	getLoadedScriptIds,
@@ -57,23 +57,18 @@ export {
 	unloadScripts,
 	updateScripts,
 } from './libs/script-loader';
-export type { TrackingBlockerConfig } from './libs/tracking-blocker';
-// Export tracking blocker
-export { createTrackingBlocker } from './libs/tracking-blocker';
-export type { StoreConfig, StoreOptions } from './store';
 // Export store
 export { createConsentManagerStore } from './store';
-export type { PrivacyConsentState } from './store.type';
+export type {
+	ConsentStoreState,
+	StoreOptions,
+} from './store/type';
 // Export default translation config
 export { defaultTranslationConfig } from './translations';
 export type { Callback, Callbacks } from './types/callbacks';
 export type {
-	ComplianceRegion,
-	ComplianceSettings,
 	ConsentBannerResponse,
 	ConsentState,
-	HasConsentedProps,
-	JurisdictionInfo,
 	LocationInfo,
 	NamespaceProps,
 } from './types/compliance';

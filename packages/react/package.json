@@ -97,18 +97,18 @@
 		"not op_mini all"
 	],
 	"dependencies": {
-		"@radix-ui/react-accordion": "1.2.4",
-		"@radix-ui/react-slot": "1.2.0",
-		"@radix-ui/react-switch": "1.1.4",
+		"@radix-ui/react-accordion": "1.2.12",
+		"@radix-ui/react-slot": "1.2.4",
+		"@radix-ui/react-switch": "1.2.6",
 		"c15t": "workspace:*",
 		"clsx": "2.1.1",
-		"zustand": "^5.0.3"
+		"zustand": "5.0.9"
 	},
 	"devDependencies": {
 		"@c15t/backend": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"genversion": "^3.2.0"
+		"genversion": "3.2.0"
 	},
 	"peerDependencies": {
 		"react": "^19.0.0 || ^19.0.0-rc || ^18.0.0 || ^17.0.0 || ^16.8.0",

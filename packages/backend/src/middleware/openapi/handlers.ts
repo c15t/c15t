@@ -1,5 +1,5 @@
 import { OpenAPIGenerator } from '@orpc/openapi';
-import { ZodToJsonSchemaConverter } from '@orpc/zod';
+import { ZodToJsonSchemaConverter } from '@orpc/zod/zod4';
 import { router } from '~/router';
 import type { C15TContext, C15TOptions } from '~/types';
 import { createDefaultOpenAPIOptions, createOpenAPIConfig } from './config';
@@ -15,6 +15,12 @@ type MemoizedSpecFunction = {
 /**
  * Merges user OpenAPI options with default options
  */
+const isRecordOfUnknown = (
+	value: unknown
+): value is Record<string, unknown> => {
+	return value !== null && typeof value === 'object';
+};
+
 const mergeOpenAPIOptions = (
 	defaultOptions: Record<string, unknown>,
 	userOptions: Record<string, unknown>
@@ -69,11 +75,9 @@ export const createOpenAPISpec = (
 		}
 
 		const defaultOptions = createDefaultOpenAPIOptions(options);
-		const mergedOptions = options.openapi?.options
-			? mergeOpenAPIOptions(
-					defaultOptions,
-					options.openapi.options as Record<string, unknown>
-				)
+		const advancedOpenAPIOptions = options.advanced?.openapi?.options;
+		const mergedOptions = isRecordOfUnknown(advancedOpenAPIOptions)
+			? mergeOpenAPIOptions(defaultOptions, advancedOpenAPIOptions)
 			: defaultOptions;
 
 		try {
