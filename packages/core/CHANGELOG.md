@@ -1,5 +1,11 @@
 # c15t
 
+## 1.8.3-canary-20251222100111
+
+### Patch Changes
+
+- 3d8eb68: fix(core): selected consents not updated when consents are auto-granted
+
 ## 1.8.3-canary-20251218133143
 
 ### Patch Changes

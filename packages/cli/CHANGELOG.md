@@ -1,5 +1,11 @@
 # @c15t/cli
 
+## 1.8.3-canary-20251222100111
+
+### Patch Changes
+
+- @c15t/react@1.8.3-canary-20251222100111
+
 ## 1.8.3-canary-20251218133143
 
 ### Patch Changes
