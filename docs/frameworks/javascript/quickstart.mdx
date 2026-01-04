@@ -49,7 +49,7 @@ availableIn:
 
     export const consentManager = configureConsentManager({ mode: "c15t", backendURL: "https://your-instance.c15t.dev" });
     export const store = createConsentManagerStore(consentManager, {
-      initialGdprTypes: ["necessary", "marketing"], // Optional: Specify which consent categories to show in the banner.
+      consentCategories: ["necessary", "marketing"], // Optional: Specify which consent categories to show in the banner.
       ignoreGeoLocation: true // Useful for development to always view the banner.
     });
     ```
@@ -107,10 +107,9 @@ availableIn:
 
 For more advanced setup options, please refer to:
 
-- [Overview](/docs/storing-consent/overview) - Compare different approaches to storing consent decisions in your application
-- [Hosted c15t](/docs/storing-consent/hosted-c15t) - Complete guide to using consent.io
-- [Offline Mode](/docs/storing-consent/offline-mode) - Complete guide to using c15t without a backend
-- [Custom Client](/docs/storing-consent/custom-client) - Advanced implementation with custom handlers for full control
+- [Overview](/docs/frameworks/javascript/storing-consent/overview) - Compare different approaches to storing consent decisions in your application
+- [Hosted c15t](/docs/frameworks/javascript/storing-consent/hosted) - Complete guide to using consent.io
+- [Offline Mode](/docs/frameworks/javascript/storing-consent/offline) - Complete guide to using c15t without a backend
 
 ## Decision Guide
 

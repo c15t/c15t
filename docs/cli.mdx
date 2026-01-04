@@ -1,0 +1,84 @@
+---
+title: c15t CLI
+description: Command-line interface for rapid c15t setup. Scaffold React and Next.js components, generate types, and run migrations for self-hosted deployments.
+lastModified: 2026-01-04
+---
+
+## Overview
+
+The `@c15t/cli` provides a command-line interface for rapid c15t setup and management. It helps you scaffold React and Next.js cookie banners, generate types and configuration, and run migration tooling for self-hosted deployments.
+
+## Installation
+
+<PackageCommandTabs mode="install" command="@c15t/cli" />
+
+## Commands
+
+### `generate`
+
+Generates c15t code and configuration for your project.
+
+<PackageCommandTabs command="@c15t/cli generate" />
+
+This command will:
+- Scaffold consent management components for your framework
+- Generate TypeScript types and configuration
+- Set up initial project structure
+
+### `migrate`
+
+Runs database migrations for self-hosted c15t deployments.
+
+<Callout type="note">
+This is only required if you are self-hosting c15t.
+</Callout>
+
+<PackageCommandTabs command="@c15t/cli migrate" />
+
+This command will:
+- Apply database schema migrations
+- Update existing database structures
+- Ensure compatibility with the latest c15t version
+
+## Getting Started
+
+The quickest way to get started with c15t is using the CLI:
+
+<Steps>
+  <Step>
+    ### Run the CLI
+
+    <PackageCommandTabs command="@c15t/cli generate" />
+
+    This will walk you through setting up c15t for your project and framework.
+  </Step>
+
+  <Step>
+    ### Follow Framework-Specific Guides
+
+    After running the CLI, refer to your framework-specific documentation:
+
+    - [JavaScript](/docs/frameworks/javascript/quickstart)
+    - [React](/docs/frameworks/react/quickstart)
+    - [Next.js](/docs/frameworks/next/quickstart)
+  </Step>
+</Steps>
+
+## Self-Hosting
+
+For self-hosted deployments, you'll need to run migrations:
+
+<Steps>
+  <Step>
+    ### Run Migrations
+
+    <PackageCommandTabs command="@c15t/cli migrate" />
+  </Step>
+
+  <Step>
+    ### Follow Self-Host Guides
+
+    - [Self-Host v1](/docs/self-host/v1/)
+    - [Self-Host v2](/docs/self-host/v2/)
+  </Step>
+</Steps>
