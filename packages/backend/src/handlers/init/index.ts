@@ -5,7 +5,13 @@ import type { Branding, C15TContext } from '~/types';
 import { checkJurisdiction } from './geo';
 import { getTranslations } from './translations';
 
-function getHeaders(headers: Headers | undefined) {
+/**
+ * Gets the headers from the context.
+ *
+ * @param headers - The headers to get the headers from.
+ * @returns The headers or null if the headers are not present.
+ */
+export function getHeaders(headers: Headers | undefined) {
 	if (!headers) {
 		return {
 			countryCode: null,
