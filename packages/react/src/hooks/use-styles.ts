@@ -6,9 +6,13 @@
  * Implements a flexible styling system that merges theme and component-level styles.
  */
 
+import type {
+	AllThemeKeys,
+	ClassNameStyle,
+	ThemeValue,
+} from '@c15t/styles/types';
 import { useMemo } from 'react';
 import { useTheme } from '~/hooks/use-theme';
-import type { AllThemeKeys, ClassNameStyle, ThemeValue } from '~/types/theme';
 import { mergeStyles } from '~/utils/merge-styles';
 
 /**

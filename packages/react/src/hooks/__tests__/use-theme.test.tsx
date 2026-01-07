@@ -1,7 +1,7 @@
+import type { ThemeValue } from '@c15t/styles/types';
 import { describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 import { GlobalThemeContext, LocalThemeContext } from '~/context/theme-context';
-import type { ThemeValue } from '~/types/theme';
 import { useTheme } from '../use-theme';
 
 type TestTheme = {

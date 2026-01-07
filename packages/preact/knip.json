@@ -1,0 +1,28 @@
+{
+	"$schema": "https://unpkg.com/knip@latest/schema.json",
+	"entry": [
+		"./src/index.ts",
+		"./src/components/consent-manager-dialog/index.ts",
+		"./src/components/consent-manager-widget/index.ts",
+		"./src/components/cookie-banner/index.tsx",
+		"./src/hooks/index.ts",
+		"./src/context/index.ts",
+		"./src/types/index.ts",
+		"./src/utils/index.ts"
+	],
+	"ignoreBinaries": ["biome", "rslib", "tsc", "vitest"],
+	"ignore": [
+		"**/*.spec.{js,ts,tsx}",
+		"**/*.test.{js,ts,tsx}",
+		"**/__tests__/**",
+		"rslib.config.ts"
+	],
+	"ignoreDependencies": ["@c15t/typescript-config", "c15t", "zustand"],
+	"rules": {
+		"exports": "warn",
+		"types": "warn",
+		"dependencies": "error",
+		"files": "warn"
+	},
+	"ignoreExportsUsedInFile": true
+}

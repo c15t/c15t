@@ -1,11 +1,11 @@
+import styles from '@c15t/styles/components/consent-manager-widget/css';
 import type { AllConsentNames, ConsentType } from 'c15t';
-
 import {
-	type ComponentPropsWithoutRef,
-	type ComponentRef,
-	forwardRef,
-	type Ref,
-	useCallback,
+  type ComponentPropsWithoutRef,
+  type ComponentRef,
+  forwardRef,
+  type Ref,
+  useCallback,
 } from 'react';
 import { Box, type BoxProps } from '~/components/shared/primitives/box';
 import * as RadixAccordion from '~/components/shared/ui/accordion';
@@ -13,7 +13,6 @@ import { LucideIcon } from '~/components/shared/ui/icon';
 import * as RadixSwitch from '~/components/shared/ui/switch';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useTranslations } from '~/hooks/use-translations';
-import styles from '../consent-manager-widget.module.css';
 
 /**
  * Accordion Trigger Component
@@ -129,7 +128,6 @@ const ConsentManagerWidgetAccordionItems = () => {
 						root: { themeKey: 'widget.switch', className: styles.switch },
 						thumb: {
 							themeKey: 'widget.switch.thumb',
-							className: styles.switchThumb,
 						},
 						track: { themeKey: 'widget.switch.track' },
 					}}

@@ -6,6 +6,7 @@
  * Implements context provider pattern with theme support and state management.
  */
 
+import type { ConsentManagerWidgetTheme } from '@c15t/styles/components/consent-manager-widget';
 import type { FC, ReactNode } from 'react';
 import { Box } from '~/components/shared/primitives/box';
 import {
@@ -14,7 +15,6 @@ import {
 } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useTextDirection } from '~/hooks/use-text-direction';
-import type { ConsentManagerWidgetTheme } from '../theme';
 
 /**
  * Props for the ConsentManagerWidgetRoot component.

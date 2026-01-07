@@ -1,0 +1,88 @@
+{
+	"name": "@c15t/styles",
+	"version": "1.5.0",
+	"description": "Shared CSS styles and utilities for C15T consent management components",
+	"keywords": [
+		"css",
+		"styles",
+		"consent",
+		"privacy",
+		"gdpr",
+		"ccpa",
+		"theming",
+		"components"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/styles"
+	},
+	"license": "GPL-3.0-only",
+	"sideEffects": [
+		"**/*.css"
+	],
+	"type": "module",
+	"exports": {
+		"./types": {
+			"types": "./dist/types/index.d.ts",
+			"import": "./dist/types/index.js"
+		},
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./primitives/*": {
+			"types": "./dist/primitives/*/index.d.ts",
+			"import": "./dist/primitives/*/index.js"
+		},
+		"./primitives/*/css": {
+			"types": "./dist/primitives/*/css-module.d.ts",
+			"import": "./dist/primitives/*/css-module.js"
+		},
+		"./components/*": {
+			"types": "./dist/components/*/index.d.ts",
+			"import": "./dist/components/*/index.js"
+		},
+		"./components/*/css": {
+			"types": "./dist/components/*/css-module.d.ts",
+			"import": "./dist/components/*/css-module.js"
+		}
+	},
+	"main": "./dist/index.js",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist",
+		"README.md",
+		"CHANGELOG.md"
+	],
+	"scripts": {
+		"build": "pnpm genversion --esm --semi src/version.ts && rslib build",
+		"clean": "rm -rf dist",
+		"dev": "rslib build --watch",
+		"format": "pnpm biome format --write ./src",
+		"lint": "pnpm biome lint ./src",
+		"lint:fix": "pnpm biome lint --write ./src",
+		"typecheck": "tsc --noEmit"
+	},
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	],
+	"dependencies": {
+		"clsx": "2.1.1"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@microsoft/api-extractor": "^7.52.15",
+		"@rsbuild/plugin-typed-css-modules": "^1.1.1",
+		"@rslib/core": "^0.12.4",
+		"genversion": "^3.2.0",
+		"typed-css-modules": "^0.9.1",
+		"typescript": "^5.6.2"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}
