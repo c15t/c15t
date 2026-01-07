@@ -18,12 +18,11 @@ Use this endpoint for health checks, monitoring, and service status verification
 	})
 	.output(
 		z.object({
-			status: z.enum(['ok', 'error']),
 			version: z.string(),
 			timestamp: z.date(),
-
 			client: z.object({
 				ip: z.string().nullable(),
+				acceptLanguage: z.string().nullable(),
 				userAgent: z.string().nullable(),
 				region: z.object({
 					countryCode: z.string().nullable(),
@@ -31,4 +30,10 @@ Use this endpoint for health checks, monitoring, and service status verification
 				}),
 			}),
 		})
-	);
+	)
+	.errors({
+		SERVICE_UNAVAILABLE: {
+			message: 'Database health check failed',
+			status: 503,
+		},
+	});

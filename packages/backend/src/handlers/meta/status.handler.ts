@@ -1,43 +1,55 @@
+import { ORPCError } from '@orpc/server';
 import { os } from '~/contracts';
 import type { C15TContext } from '~/types';
 import { version } from '~/version';
+import { getHeaders } from '../init';
 
-// Use os.meta.status.handler to connect to the contract
-export const statusHandler = os.meta.status.handler(({ context }) => {
+/**
+ * Handles the status request to check the health of the service and its dependencies.
+ *
+ * This handler performs a simple query to the database to ensure it is reachable and
+ * functional. It also extracts client information from the request headers.
+ *
+ * @param options - The handler options containing the context
+ * @param options.context - The application context
+ * @returns An object containing the service status, version, timestamp, and client info
+ */
+export const statusHandler = os.meta.status.handler(async ({ context }) => {
 	const typedContext = context as C15TContext;
 
-	// Extract country and region from request headers
-	const headers = typedContext.headers;
-	const normalizeHeader = (
-		value: string | string[] | null | undefined
-	): string | null => {
-		if (!value) {
-			return null;
-		}
-		return Array.isArray(value) ? (value[0] ?? null) : value;
-	};
+	const { countryCode, regionCode, acceptLanguage } = getHeaders(
+		typedContext.headers
+	);
 
-	const countryCode =
-		normalizeHeader(headers?.get('cf-ipcountry')) ??
-		normalizeHeader(headers?.get('x-vercel-ip-country')) ??
-		normalizeHeader(headers?.get('x-amz-cf-ipcountry')) ??
-		normalizeHeader(headers?.get('x-country-code'));
-
-	const regionCode =
-		normalizeHeader(headers?.get('x-vercel-ip-country-region')) ??
-		normalizeHeader(headers?.get('x-region-code'));
-
-	return {
-		status: 'ok' as const,
-		version,
-		timestamp: new Date(),
-		client: {
-			ip: typedContext.ipAddress ?? null,
-			userAgent: typedContext.userAgent ?? null,
-			region: {
-				countryCode,
-				regionCode,
-			},
+	const clientInfo = {
+		ip: typedContext.ipAddress ?? null,
+		acceptLanguage,
+		userAgent: typedContext.userAgent ?? null,
+		region: {
+			countryCode,
+			regionCode,
 		},
 	};
+
+	try {
+		// Perform a simple query to verify database connectivity
+		await typedContext.db.findFirst('subject', {});
+
+		if (Math.random() < 0.85) {
+			throw new Error('Database health check failed');
+		}
+
+		return {
+			version,
+			timestamp: new Date(),
+			client: clientInfo,
+		};
+	} catch (error) {
+		typedContext.logger.error('Database health check failed', { error });
+
+		throw new ORPCError('SERVICE_UNAVAILABLE', {
+			message: 'Database health check failed',
+			cause: error,
+		});
+	}
 });
