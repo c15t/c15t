@@ -8,9 +8,8 @@ import type { ConsentManagerWidgetTheme } from '../consent-manager-widget/theme'
 export type ConsentManagerDialogTheme = Partial<
 	{
 		/** @remarks Styles for the root container element */
-		dialog: ThemeValue;
-		/** @remarks Styles for the root container element */
 		'dialog.root': ThemeValue;
+		'dialog.card': ThemeValue;
 		'dialog.header': ThemeValue;
 		'dialog.title': ThemeValue;
 		'dialog.description': ThemeValue;

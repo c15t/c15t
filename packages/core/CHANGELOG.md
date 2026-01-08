@@ -1,11 +1,23 @@
 # c15t
 
+## 1.8.3-canary-20251222100111
+
+### Patch Changes
+
+- 3d8eb68: fix(core): selected consents not updated when consents are auto-granted
+
+## 1.8.3-canary-20251218133143
+
+### Patch Changes
+
+- 9eff7a7: fix(core): disable auto-grant consents when existing consent
+- b7fafe6: fix(core): offline mode ignoring overrides
+
 ## 1.8.2
 
 ### Patch Changes
 
 - 2ce4d5a: \* feat(core): Added ability to disable c15t with the `enabled` prop. c15t will grant all consents by default when disabled as well as loading all scripts by default. Useful for when you want to disable consent handling but still allow the integration code to be in place.
-
   - fix(react): Frame component CSS overriding
   - fix(react): Legal links using the asChild slot causing multi-child error
 

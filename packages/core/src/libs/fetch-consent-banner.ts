@@ -66,7 +66,9 @@ function updateStore(
 
 	// Check if consents should be automatically granted
 	const shouldAutoGrantConsents =
-		data.jurisdiction?.code === 'NONE' && !data.showConsentBanner;
+		data.jurisdiction?.code === 'NONE' &&
+		!data.showConsentBanner &&
+		!consentInfo;
 
 	const updatedStore: Partial<PrivacyConsentState> = {
 		isLoadingConsentInfo: false,
@@ -81,6 +83,13 @@ function updateStore(
 		// If the banner is not shown and has no requirement consent to all
 		...(shouldAutoGrantConsents && {
 			consents: {
+				necessary: true,
+				functionality: true,
+				experience: true,
+				marketing: true,
+				measurement: true,
+			},
+			selectedConsents: {
 				necessary: true,
 				functionality: true,
 				experience: true,

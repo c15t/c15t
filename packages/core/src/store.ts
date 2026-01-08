@@ -395,6 +395,7 @@ export const createConsentManagerStore = (
 		// Set storage configuration
 		storageConfig: storageConfig,
 		user: options.user ?? initialState.user,
+		overrides: options.overrides,
 		...getInitialConsentState(),
 
 		/**

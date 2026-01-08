@@ -42,9 +42,13 @@ import { mergeStyles } from '~/utils/merge-styles';
 
 export function useStyles(
 	themeKey: AllThemeKeys,
-	componentStyle?: ThemeValue
+	componentStyle?: ThemeValue,
+	themeOverride?: Partial<Record<AllThemeKeys, ThemeValue>>
 ): ClassNameStyle {
-	const { noStyle: contextNoStyle, theme } = useTheme();
+	const { noStyle: contextNoStyle, theme: contextTheme } = useTheme();
+
+	// Use override if provided, otherwise fallback to context theme
+	const theme = themeOverride ?? contextTheme;
 
 	const themeNoStyle = Boolean(
 		typeof theme?.[themeKey as keyof typeof theme] === 'object'

@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { Box, type BoxProps } from '~/components/shared/primitives/box';
 import * as RadixAccordion from '~/components/shared/ui/accordion';
+import { LucideIcon } from '~/components/shared/ui/icon';
 import * as RadixSwitch from '~/components/shared/ui/switch';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useTranslations } from '~/hooks/use-translations';
@@ -97,6 +98,20 @@ const ConsentManagerWidgetAccordionItems = () => {
 					<ConsentManagerWidgetAccordionArrow
 						data-testid={`consent-manager-widget-accordion-arrow-${consent.name}`}
 						className={styles.accordionArrow}
+						openIcon={{
+							Element: LucideIcon({
+								title: 'Open',
+								iconPath: <path d="M5 12h14M12 5v14" />,
+							}),
+							themeKey: 'widget.accordion.arrow.open',
+						}}
+						closeIcon={{
+							Element: LucideIcon({
+								title: 'Close',
+								iconPath: <path d="M5 12h14" />,
+							}),
+							themeKey: 'widget.accordion.arrow.close',
+						}}
 					/>
 					{consentTypes[consent.name]?.title ?? formatConsentName(consent.name)}
 				</ConsentManagerWidgetAccordionTriggerInner>
