@@ -360,9 +360,10 @@ export const createConsentManagerStore = (
 		}
 
 		if (storedConsent) {
+			const consents = storedConsent.consents || initialState.consents;
 			return {
-				consents: storedConsent.consents,
-				selectedConsents: storedConsent.consents,
+				consents: consents,
+				selectedConsents: consents,
 				consentInfo: storedConsent.consentInfo,
 				showPopup: false,
 				isLoadingConsentInfo: false,
