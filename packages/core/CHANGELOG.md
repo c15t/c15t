@@ -1,5 +1,11 @@
 # c15t
 
+## 1.8.3-canary-20260109181827
+
+### Patch Changes
+
+- 486c46f: fix(core): normalize consent data handling in storage and store
+
 ## 1.8.3-canary-20251222100111
 
 ### Patch Changes

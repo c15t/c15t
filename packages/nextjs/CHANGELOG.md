@@ -1,5 +1,11 @@
 # @c15t/nextjs
 
+## 1.8.3-canary-20260109181827
+
+### Patch Changes
+
+- @c15t/react@1.8.3-canary-20260109181827
+
 ## 1.8.3-canary-20251222100111
 
 ### Patch Changes
