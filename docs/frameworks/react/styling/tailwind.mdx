@@ -1,0 +1,33 @@
+---
+title: Tailwind CSS
+description: Learn how to customize components using Tailwind CSS.
+lastModified: 2026-01-13
+canary: true
+availableIn:
+  - framework: 'next'
+    url: '/docs/frameworks/next/styling/classnames'
+    title: 'Next.js'
+  - framework: 'react'
+    url: '/docs/frameworks/react/styling/classnames'
+    title: 'React'
+---
+
+Tailwind supports customizing components using Tailwind CSS. You can use Tailwind's utility classes to customize the appearance of c15t's components.
+
+```bg-red-500``` 
+
+## Tailwind CSS v3
+
+Tailwind CSS v3.x does not use CSS Layers for its core utilities. Since our components use the `@layer c15t` layer, Tailwind's unlayered utilities will always take precedence automatically causing our pre-defined styles to be overridden.
+
+To ensure our pre-defined styles are applied, you need to wrap your Tailwind configuration in a `@layer base, components;` layer.
+```css
+@layer base, components;
+
+@layer base {
+  @tailwind base;
+}
+
+@tailwind components;
+@tailwind utilities;
+```
