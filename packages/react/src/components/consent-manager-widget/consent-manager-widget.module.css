@@ -64,291 +64,293 @@
 	--widget-line-height: 1.15;
 }
 
-.widget {
-	font-family: var(--widget-font-family);
-	line-height: var(--widget-line-height);
-}
+@layer components {
+	.widget {
+		font-family: var(--widget-font-family);
+		line-height: var(--widget-line-height);
+	}
 
-.widget > :not([hidden]) ~ :not([hidden]) {
-	--space-y-reverse: 0;
-	margin-top: calc(1.5rem * calc(1 - var(--space-y-reverse)));
-	margin-bottom: calc(1.5rem * var(--space-y-reverse));
-}
+	.widget > :not([hidden]) ~ :not([hidden]) {
+		--space-y-reverse: 0;
+		margin-top: calc(1.5rem * calc(1 - var(--space-y-reverse)));
+		margin-bottom: calc(1.5rem * var(--space-y-reverse));
+	}
 
-/* Card styles */
-.card {
-	position: relative;
-	width: 100%;
-	max-width: var(--widget-max-width);
-	border-radius: var(--widget-radius);
-	border: var(--widget-border-width) solid var(--widget-border-color);
-	background-color: var(--widget-background-color);
-}
+	/* Card styles */
+	.card {
+		position: relative;
+		width: 100%;
+		max-width: var(--widget-max-width);
+		border-radius: var(--widget-radius);
+		border: var(--widget-border-width) solid var(--widget-border-color);
+		background-color: var(--widget-background-color);
+	}
 
-:global(.c15t-dark) .card {
-	background-color: var(--widget-background-color-dark);
-	border-color: var(--widget-border-color-dark);
-}
+	:global(.c15t-dark) .card {
+		background-color: var(--widget-background-color-dark);
+		border-color: var(--widget-border-color-dark);
+	}
 
-/* Animation states */
-.card[data-state="open"] {
-	animation: var(--widget-entry-animation);
-}
+	/* Animation states */
+	.card[data-state="open"] {
+		animation: var(--widget-entry-animation);
+	}
 
-.card[data-state="closed"] {
-	animation: var(--widget-exit-animation);
-}
+	.card[data-state="closed"] {
+		animation: var(--widget-exit-animation);
+	}
 
-.header {
-	display: flex;
-	flex-direction: column;
-	gap: var(--widget-gap);
-	padding: var(--widget-padding);
-}
-
-.title {
-	font-size: var(--widget-title-size);
-	line-height: var(--widget-title-line-height);
-	letter-spacing: var(--widget-title-tracking);
-	font-weight: var(--widget-title-weight);
-	color: var(--widget-text-color);
-}
-
-:global(.c15t-dark) .title {
-	color: var(--widget-text-color-dark);
-}
-
-.description {
-	color: var(--widget-text-muted-color);
-}
-
-:global(.c15t-dark) .description {
-	color: var(--widget-text-muted-color-dark);
-}
-
-.content {
-	padding: 0 var(--widget-padding);
-	padding-bottom: var(--widget-padding);
-}
-
-.footer {
-	display: flex;
-	justify-content: space-between;
-	gap: 1rem;
-	padding: var(--widget-footer-padding);
-	background-color: var(--widget-footer-background-color);
-}
-
-:global(.c15t-dark) .footer {
-	background-color: var(--widget-footer-background-color-dark);
-}
-
-@media (max-width: 640px) {
-	.footer {
+	.header {
+		display: flex;
 		flex-direction: column;
+		gap: var(--widget-gap);
+		padding: var(--widget-padding);
 	}
-}
 
-@media (min-width: 640px) {
+	.title {
+		font-size: var(--widget-title-size);
+		line-height: var(--widget-title-line-height);
+		letter-spacing: var(--widget-title-tracking);
+		font-weight: var(--widget-title-weight);
+		color: var(--widget-text-color);
+	}
+
+	:global(.c15t-dark) .title {
+		color: var(--widget-text-color-dark);
+	}
+
+	.description {
+		color: var(--widget-text-muted-color);
+	}
+
+	:global(.c15t-dark) .description {
+		color: var(--widget-text-muted-color-dark);
+	}
+
+	.content {
+		padding: 0 var(--widget-padding);
+		padding-bottom: var(--widget-padding);
+	}
+
 	.footer {
-		flex-direction: row;
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: var(--widget-footer-padding);
+		background-color: var(--widget-footer-background-color);
 	}
-}
 
-.footerGroup {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	gap: 1rem;
-}
+	:global(.c15t-dark) .footer {
+		background-color: var(--widget-footer-background-color-dark);
+	}
 
-@media (max-width: 640px) {
+	@media (max-width: 640px) {
+		.footer {
+			flex-direction: column;
+		}
+	}
+
+	@media (min-width: 640px) {
+		.footer {
+			flex-direction: row;
+		}
+	}
+
 	.footerGroup {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	@media (max-width: 640px) {
+		.footerGroup {
+			width: 100%;
+		}
+		.footerGroup button {
+			width: 100%;
+		}
+	}
+
+	.branding {
+		display: flex;
+		justify-content: center;
 		width: 100%;
+		border-top: var(--widget-border-width) solid var(--widget-border-color);
+		padding-top: 1rem;
 	}
-	.footerGroup button {
+
+	:global(.c15t-dark) .branding {
+		border-color: var(--widget-border-color-dark);
+	}
+
+	.brandingLink {
+		color: var(--widget-link-text-color);
+		text-decoration: none;
+		text-align: center;
+		flex-direction: row;
+		display: flex;
+		flex: 1;
+		gap: 0.5rem;
+		align-items: center;
+		justify-content: center;
+	}
+
+	:global(.c15t-dark) .brandingLink {
+		color: var(--widget-link-text-color-dark);
+	}
+
+	.brandingLink svg {
+		height: 1.2rem;
+	}
+
+	/* Animation keyframes */
+	@keyframes enter {
+		from {
+			opacity: 0;
+			transform: scale(0.95);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1);
+		}
+	}
+
+	@keyframes exit {
+		from {
+			opacity: 1;
+			transform: scale(1);
+		}
+		to {
+			opacity: 0;
+			transform: scale(0.95);
+		}
+	}
+
+	/* Position variants */
+	.bottomLeft {
+		left: 0px;
+		bottom: 0px;
+	}
+
+	.bottomRight {
+		right: 0px;
+		bottom: 0px;
+	}
+
+	.topLeft {
+		left: 0px;
+		top: 0px;
+	}
+
+	.topRight {
+		right: 0px;
+		top: 0px;
+	}
+
+	/* Accordion styles */
+	.accordionItem {
+		border-radius: var(--widget-accordion-radius);
+		border: 1px solid var(--widget-accordion-border-color);
+		background-color: var(--widget-accordion-background-color);
+		position: relative;
+		overflow: visible;
+	}
+
+	/* Add focus styles to accordionItem when accordionTriggerInner is focused */
+	.accordionItem:has(.accordionTriggerInner:focus-visible) {
+		box-shadow: 0 0 0 2px var(--widget-accordion-focus-ring);
+	}
+
+	:global(.c15t-dark) .accordionItem {
+		border-color: var(--widget-accordion-border-color-dark);
+		background-color: var(--widget-accordion-background-color-dark);
+	}
+
+	.accordionTrigger {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
 		width: 100%;
+		/* padding: var(--widget-accordion-padding); */
+		color: var(--widget-accordion-text-color);
+		background-color: transparent;
+		transition: background-color var(--widget-accordion-duration)
+			var(--widget-accordion-ease);
 	}
-}
 
-.branding {
-	display: flex;
-	justify-content: center;
-	width: 100%;
-	border-top: var(--widget-border-width) solid var(--widget-border-color);
-	padding-top: 1rem;
-}
-
-:global(.c15t-dark) .branding {
-	border-color: var(--widget-border-color-dark);
-}
-
-.brandingLink {
-	color: var(--widget-link-text-color);
-	text-decoration: none;
-	text-align: center;
-	flex-direction: row;
-	display: flex;
-	flex: 1;
-	gap: 0.5rem;
-	align-items: center;
-	justify-content: center;
-}
-
-:global(.c15t-dark) .brandingLink {
-	color: var(--widget-link-text-color-dark);
-}
-
-.brandingLink svg {
-	height: 1.2rem;
-}
-
-/* Animation keyframes */
-@keyframes enter {
-	from {
-		opacity: 0;
-		transform: scale(0.95);
+	.accordionTrigger:hover {
+		background-color: var(--widget-accordion-background-hover);
 	}
-	to {
-		opacity: 1;
-		transform: scale(1);
+
+	:global(.c15t-dark) .accordionTrigger {
+		color: var(--widget-accordion-text-color-dark);
 	}
-}
 
-@keyframes exit {
-	from {
-		opacity: 1;
-		transform: scale(1);
+	:global(.c15t-dark) .accordionTrigger:hover {
+		background-color: var(--widget-accordion-background-hover-dark);
 	}
-	to {
-		opacity: 0;
-		transform: scale(0.95);
+
+	.accordionTriggerInner {
+		display: flex;
+		align-items: center;
+		gap: var(--widget-gap);
+		font-size: var(--widget-title-size);
+		font-weight: var(--widget-title-weight);
+		position: relative;
+		border-radius: var(--widget-accordion-radius);
 	}
-}
 
-/* Position variants */
-.bottomLeft {
-	left: 0px;
-	bottom: 0px;
-}
+	.accordionContent {
+		padding: var(--widget-accordion-padding);
+		color: var(--widget-accordion-content-color);
+		font-size: 0.875rem;
+		line-height: 1.5;
+	}
 
-.bottomRight {
-	right: 0px;
-	bottom: 0px;
-}
+	:global(.c15t-dark) .accordionContent {
+		color: var(--widget-accordion-content-color-dark);
+	}
 
-.topLeft {
-	left: 0px;
-	top: 0px;
-}
+	.accordionArrow {
+		color: var(--widget-accordion-arrow-color);
+		width: var(--widget-accordion-icon-size);
+		height: var(--widget-accordion-icon-size);
+		transition: transform var(--widget-accordion-duration)
+			var(--widget-accordion-ease);
+	}
 
-.topRight {
-	right: 0px;
-	top: 0px;
-}
+	:global(.c15t-dark) .accordionArrow {
+		color: var(--widget-accordion-arrow-color-dark);
+	}
 
-/* Accordion styles */
-.accordionItem {
-	border-radius: var(--widget-accordion-radius);
-	border: 1px solid var(--widget-accordion-border-color);
-	background-color: var(--widget-accordion-background-color);
-	position: relative;
-	overflow: visible;
-}
+	.accordionItem[data-state="open"] .accordionArrow {
+		transform: rotate(180deg);
+	}
 
-/* Add focus styles to accordionItem when accordionTriggerInner is focused */
-.accordionItem:has(.accordionTriggerInner:focus-visible) {
-	box-shadow: 0 0 0 2px var(--widget-accordion-focus-ring);
-}
+	/* Switch styles */
+	.switch {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		width: 2rem;
+		height: 1.25rem;
+		background-color: var(--widget-accordion-background-hover);
+		border-radius: 9999px;
+		transition: background-color var(--widget-accordion-duration)
+			var(--widget-accordion-ease);
+	}
 
-:global(.c15t-dark) .accordionItem {
-	border-color: var(--widget-accordion-border-color-dark);
-	background-color: var(--widget-accordion-background-color-dark);
-}
+	:global(.c15t-dark) .switch {
+		background-color: var(--widget-accordion-background-hover-dark);
+	}
 
-.accordionTrigger {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	width: 100%;
-	/* padding: var(--widget-accordion-padding); */
-	color: var(--widget-accordion-text-color);
-	background-color: transparent;
-	transition: background-color var(--widget-accordion-duration)
-		var(--widget-accordion-ease);
-}
+	.switch[data-state="checked"] {
+		background-color: var(--widget-accordion-focus-ring);
+	}
 
-.accordionTrigger:hover {
-	background-color: var(--widget-accordion-background-hover);
-}
-
-:global(.c15t-dark) .accordionTrigger {
-	color: var(--widget-accordion-text-color-dark);
-}
-
-:global(.c15t-dark) .accordionTrigger:hover {
-	background-color: var(--widget-accordion-background-hover-dark);
-}
-
-.accordionTriggerInner {
-	display: flex;
-	align-items: center;
-	gap: var(--widget-gap);
-	font-size: var(--widget-title-size);
-	font-weight: var(--widget-title-weight);
-	position: relative;
-	border-radius: var(--widget-accordion-radius);
-}
-
-.accordionContent {
-	padding: var(--widget-accordion-padding);
-	color: var(--widget-accordion-content-color);
-	font-size: 0.875rem;
-	line-height: 1.5;
-}
-
-:global(.c15t-dark) .accordionContent {
-	color: var(--widget-accordion-content-color-dark);
-}
-
-.accordionArrow {
-	color: var(--widget-accordion-arrow-color);
-	width: var(--widget-accordion-icon-size);
-	height: var(--widget-accordion-icon-size);
-	transition: transform var(--widget-accordion-duration)
-		var(--widget-accordion-ease);
-}
-
-:global(.c15t-dark) .accordionArrow {
-	color: var(--widget-accordion-arrow-color-dark);
-}
-
-.accordionItem[data-state="open"] .accordionArrow {
-	transform: rotate(180deg);
-}
-
-/* Switch styles */
-.switch {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	width: 2rem;
-	height: 1.25rem;
-	background-color: var(--widget-accordion-background-hover);
-	border-radius: 9999px;
-	transition: background-color var(--widget-accordion-duration)
-		var(--widget-accordion-ease);
-}
-
-:global(.c15t-dark) .switch {
-	background-color: var(--widget-accordion-background-hover-dark);
-}
-
-.switch[data-state="checked"] {
-	background-color: var(--widget-accordion-focus-ring);
-}
-
-:global(.c15t-dark) .switch[data-state="checked"] {
-	background-color: var(--widget-accordion-focus-ring-dark);
+	:global(.c15t-dark) .switch[data-state="checked"] {
+		background-color: var(--widget-accordion-focus-ring-dark);
+	}
 }

@@ -1,7 +1,7 @@
 ---
 title: "v2.0.0 - Network blocker, GPC & v2 backend"
 version: "2.0.0"
-date: 2025-12-09
+date: 2026-01-30
 description: "Major Release" 
 tags:
   - release
@@ -45,6 +45,7 @@ and backend. If a browser sends a GPC signal, the consent manager now:
   deep-imports have been removed as part of the new `store/index.ts` API. If you were importing
   store internals directly, switch to the documented `createConsentManagerStore` and
   `StoreOptions` types instead.
+- **Tailwind CSS v3 compatibility**: We've added CSS Layers for better DX with Tailwind CSS. This means you wont have to prefix your classnames with `!` anymore! Tailwind CSS v3.x does not use CSS Layers so [view the documentation](/docs/frameworks/react/styling/tailwind) on using Tailwind 3.x with c15t.
 
 ## ✨ New features
 
