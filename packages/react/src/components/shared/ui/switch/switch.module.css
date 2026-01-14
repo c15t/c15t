@@ -34,187 +34,189 @@
 	--switch-focus-shadow-dark: 0 0 0 2px var(--switch-focus-ring-dark);
 }
 
-/* Root switch wrapper */
-.root {
-	display: block;
-	height: var(--switch-height);
-	width: var(--switch-width);
-	flex-shrink: 0;
-	padding: var(--switch-padding);
-	outline: none;
-	font-family: inherit;
-	font-size: 100%;
-	line-height: 1.15;
-	margin: 0;
-	white-space: nowrap;
-	border: 0;
-	background: none;
-	border-radius: 9999px;
-}
+@layer components {
+	/* Root switch wrapper */
+	.root {
+		display: block;
+		height: var(--switch-height);
+		width: var(--switch-width);
+		flex-shrink: 0;
+		padding: var(--switch-padding);
+		outline: none;
+		font-family: inherit;
+		font-size: 100%;
+		line-height: 1.15;
+		margin: 0;
+		white-space: nowrap;
+		border: 0;
+		background: none;
+		border-radius: 9999px;
+	}
 
-/* Switch track */
-.track {
-	position: relative;
-	height: calc(var(--switch-height) - 2 * var(--switch-padding));
-	width: calc(var(--switch-width) - 2 * var(--switch-padding));
-	border-radius: 9999px;
-	padding: var(--switch-padding);
-	background-color: var(--switch-background-color);
-	outline: none;
-	transition: all var(--switch-duration) var(--switch-ease);
-}
+	/* Switch track */
+	.track {
+		position: relative;
+		height: calc(var(--switch-height) - 2 * var(--switch-padding));
+		width: calc(var(--switch-width) - 2 * var(--switch-padding));
+		border-radius: 9999px;
+		padding: var(--switch-padding);
+		background-color: var(--switch-background-color);
+		outline: none;
+		transition: all var(--switch-duration) var(--switch-ease);
+	}
 
-:global(.c15t-dark) .track {
-	background-color: var(--switch-background-color-dark);
-}
+	:global(.c15t-dark) .track {
+		background-color: var(--switch-background-color-dark);
+	}
 
-/* Track states */
-.track:hover {
-	background-color: var(--switch-background-color-hover);
-}
+	/* Track states */
+	.track:hover {
+		background-color: var(--switch-background-color-hover);
+	}
 
-:global(.c15t-dark) .track:hover {
-	background-color: var(--switch-background-color-hover-dark);
-}
+	:global(.c15t-dark) .track:hover {
+		background-color: var(--switch-background-color-hover-dark);
+	}
 
-.track:focus-visible {
-	background-color: var(--switch-background-color-hover);
-}
+	.track:focus-visible {
+		background-color: var(--switch-background-color-hover);
+	}
 
-:global(.c15t-dark) .track:focus-visible {
-	background-color: var(--switch-background-color-hover-dark);
-}
+	:global(.c15t-dark) .track:focus-visible {
+		background-color: var(--switch-background-color-hover-dark);
+	}
 
-.track:active {
-	background-color: var(--switch-background-color);
-}
+	.track:active {
+		background-color: var(--switch-background-color);
+	}
 
-:global(.c15t-dark) .track:active {
-	background-color: var(--switch-background-color-dark);
-}
+	:global(.c15t-dark) .track:active {
+		background-color: var(--switch-background-color-dark);
+	}
 
-.root[data-state="checked"] .track {
-	background-color: var(--switch-background-color-checked);
-}
+	.root[data-state="checked"] .track {
+		background-color: var(--switch-background-color-checked);
+	}
 
-:global(.c15t-dark) .root[data-state="checked"] .track {
-	background-color: var(--switch-background-color-checked-dark);
-}
+	:global(.c15t-dark) .root[data-state="checked"] .track {
+		background-color: var(--switch-background-color-checked-dark);
+	}
 
-.root[data-state="checked"]:hover .track {
-	background-color: var(--switch-background-color-checked);
-}
+	.root[data-state="checked"]:hover .track {
+		background-color: var(--switch-background-color-checked);
+	}
 
-:global(.c15t-dark) .root[data-state="checked"]:hover .track {
-	background-color: var(--switch-background-color-checked-dark);
-}
+	:global(.c15t-dark) .root[data-state="checked"]:hover .track {
+		background-color: var(--switch-background-color-checked-dark);
+	}
 
-/* Disabled states */
-.root[data-disabled] {
-	cursor: not-allowed;
-}
+	/* Disabled states */
+	.root[data-disabled] {
+		cursor: not-allowed;
+	}
 
-.root:focus {
-	outline: none;
-}
+	.root:focus {
+		outline: none;
+	}
 
-:global(.c15t-dark) .root:focus {
-	outline: none;
-}
+	:global(.c15t-dark) .root:focus {
+		outline: none;
+	}
 
-.track-disabled {
-	background-color: var(--switch-background-color-disabled);
-	opacity: 0.4;
-	box-shadow: inset 0 0 0 1px hsl(0, 0%, 92.16%);
-}
+	.track-disabled {
+		background-color: var(--switch-background-color-disabled);
+		opacity: 0.4;
+		box-shadow: inset 0 0 0 1px hsl(0, 0%, 92.16%);
+	}
 
-:global(.c15t-dark) .track-disabled {
-	background-color: var(--switch-background-color-disabled-dark);
-}
+	:global(.c15t-dark) .track-disabled {
+		background-color: var(--switch-background-color-disabled-dark);
+	}
 
-.root[data-state="checked"] .track-disabled {
-	background-color: var(--switch-background-color-checked);
-	opacity: 0.4;
-	box-shadow: none;
-}
+	.root[data-state="checked"] .track-disabled {
+		background-color: var(--switch-background-color-checked);
+		opacity: 0.4;
+		box-shadow: none;
+	}
 
-:global(.c15t-dark) .root[data-state="checked"] .track-disabled {
-	background-color: var(--switch-background-color-checked-dark);
-}
+	:global(.c15t-dark) .root[data-state="checked"] .track-disabled {
+		background-color: var(--switch-background-color-checked-dark);
+	}
 
-/* Switch thumb */
-.thumb {
-	position: relative;
-	display: block;
-	pointer-events: none;
-	width: var(--switch-thumb-size);
-	height: var(--switch-thumb-size);
-	transition: transform var(--switch-duration) var(--switch-ease);
-	transform: translateX(0);
-}
+	/* Switch thumb */
+	.thumb {
+		position: relative;
+		display: block;
+		pointer-events: none;
+		width: var(--switch-thumb-size);
+		height: var(--switch-thumb-size);
+		transition: transform var(--switch-duration) var(--switch-ease);
+		transform: translateX(0);
+	}
 
-/* Thumb states */
-.thumb::before {
-	content: "";
-	position: absolute;
-	inset-block: 0;
-	left: 0;
-	width: 100%;
-	border-radius: 9999px;
-	background-color: var(--switch-thumb-background-color);
-	mask:
-		radial-gradient(
-			circle farthest-side at 50% 50%,
-			#0000 1.95px,
-			#000 2.05px 100%
-		)
-		50% 50% / 100% 100% no-repeat;
-}
+	/* Thumb states */
+	.thumb::before {
+		content: "";
+		position: absolute;
+		inset-block: 0;
+		left: 0;
+		width: 100%;
+		border-radius: 9999px;
+		background-color: var(--switch-thumb-background-color);
+		mask:
+			radial-gradient(
+				circle farthest-side at 50% 50%,
+				#0000 1.95px,
+				#000 2.05px 100%
+			)
+			50% 50% / 100% 100% no-repeat;
+	}
 
-:global(.c15t-dark) .thumb::before {
-	background-color: var(--switch-thumb-background-color-dark);
-}
+	:global(.c15t-dark) .thumb::before {
+		background-color: var(--switch-thumb-background-color-dark);
+	}
 
-.thumb::after {
-	content: "";
-	position: absolute;
-	inset-block: 0;
-	left: 0;
-	width: 100%;
-	border-radius: 9999px;
-	box-shadow: var(--switch-shadow-thumb);
-}
+	.thumb::after {
+		content: "";
+		position: absolute;
+		inset-block: 0;
+		left: 0;
+		width: 100%;
+		border-radius: 9999px;
+		box-shadow: var(--switch-shadow-thumb);
+	}
 
-:global(.c15t-dark) .thumb::after {
-	box-shadow: var(--switch-shadow-thumb-dark);
-}
+	:global(.c15t-dark) .thumb::after {
+		box-shadow: var(--switch-shadow-thumb-dark);
+	}
 
-.root[data-state="checked"] .thumb {
-	transform: translateX(var(--switch-thumb-translate));
-}
+	.root[data-state="checked"] .thumb {
+		transform: translateX(var(--switch-thumb-translate));
+	}
 
-.root[dir="rtl"][data-state="checked"] .thumb {
-	transform: translateX(calc(-1 * var(--switch-thumb-translate)));
-}
+	.root[dir="rtl"][data-state="checked"] .thumb {
+		transform: translateX(calc(-1 * var(--switch-thumb-translate)));
+	}
 
-.track:active .thumb {
-	transform: scale(0.833);
-}
+	.track:active .thumb {
+		transform: scale(0.833);
+	}
 
-/* Disabled thumb */
-.thumb-disabled {
-	box-shadow: none;
-}
+	/* Disabled thumb */
+	.thumb-disabled {
+		box-shadow: none;
+	}
 
-.root[data-state="checked"] .thumb-disabled {
-	transform: translateX(var(--switch-thumb-translate));
-}
+	.root[data-state="checked"] .thumb-disabled {
+		transform: translateX(var(--switch-thumb-translate));
+	}
 
-.root:focus-visible {
-	outline: none;
-	box-shadow: var(--switch-focus-shadow);
-}
+	.root:focus-visible {
+		outline: none;
+		box-shadow: var(--switch-focus-shadow);
+	}
 
-:global(.c15t-dark) .root:focus-visible {
-	box-shadow: var(--switch-focus-shadow-dark);
+	:global(.c15t-dark) .root:focus-visible {
+		box-shadow: var(--switch-focus-shadow-dark);
+	}
 }

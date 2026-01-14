@@ -24,6 +24,7 @@
 		"styling/color-scheme",
 		"styling/css-variables",
 		"styling/classnames",
+		"styling/tailwind",
 		"--- useConsentManager ---",
 		"./hooks/use-consent-manager/overview",
 		"./hooks/use-consent-manager/checking-consent",

@@ -11,29 +11,31 @@
 	--legal-links-focus-color-dark: hsl(228.07, 69.8%, 48.04%);
 }
 
-.legalLinks {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--legal-links-gap);
-	align-items: center;
-}
+@layer components {
+	.legalLinks {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--legal-links-gap);
+		align-items: center;
+	}
 
-.legalLink {
-	color: var(--legal-links-color);
-	text-decoration: var(--legal-links-text-decoration);
-	font-size: var(--legal-links-font-size);
-	transition: var(--legal-links-transition);
-}
+	.legalLink {
+		color: var(--legal-links-color);
+		text-decoration: var(--legal-links-text-decoration);
+		font-size: var(--legal-links-font-size);
+		transition: var(--legal-links-transition);
+	}
 
-:global(.c15t-dark) .legalLink {
-	color: var(--legal-links-focus-color-dark);
-}
+	:global(.c15t-dark) .legalLink {
+		color: var(--legal-links-focus-color-dark);
+	}
 
-.legalLink:hover {
-	text-decoration: var(--legal-links-text-decoration-hover);
-}
+	.legalLink:hover {
+		text-decoration: var(--legal-links-text-decoration-hover);
+	}
 
-.legalLink:focus {
-	outline: none;
-	text-decoration: underline;
+	.legalLink:focus {
+		outline: none;
+		text-decoration: underline;
+	}
 }

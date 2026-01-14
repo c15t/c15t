@@ -73,260 +73,278 @@
 	--button-shadow-neutral-hover-dark: none;
 }
 
-/* Base Button Styles */
-.button {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 0.5rem;
-	border-radius: var(--button-border-radius);
-	font-weight: var(--button-font-weight);
-	transition: var(--button-transition);
-	cursor: var(--button-cursor);
-	border: var(--button-border-width) var(--button-border-style)
-		var(--button-border-color);
-	font-size: var(--button-font-size);
-	line-height: var(--button-line-height);
-	color: var(--button-text);
-	font-family: var(--button-font);
-}
+@layer components {
+	/* Base Button Styles */
+	.button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		border-radius: var(--button-border-radius);
+		font-weight: var(--button-font-weight);
+		transition: var(--button-transition);
+		cursor: var(--button-cursor);
+		border: var(--button-border-width) var(--button-border-style)
+			var(--button-border-color);
+		font-size: var(--button-font-size);
+		line-height: var(--button-line-height);
+		color: var(--button-text);
+		font-family: var(--button-font);
+	}
 
-/* Focus Styles */
-.button:focus-visible {
-	outline: none;
-	box-shadow: var(--button-shadow-primary-focus);
-}
+	/* Focus Styles */
+	.button:focus-visible {
+		outline: none;
+		box-shadow: var(--button-shadow-primary-focus);
+	}
 
-:global(.c15t-dark) .button:focus-visible {
-	box-shadow: var(--button-shadow-primary-focus-dark);
-}
+	:global(.c15t-dark) .button:focus-visible {
+		box-shadow: var(--button-shadow-primary-focus-dark);
+	}
 
-:global(.c15t-dark) .button {
-	color: var(--button-text-dark);
-}
+	:global(.c15t-dark) .button {
+		color: var(--button-text-dark);
+	}
 
-.button:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
-}
+	.button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
 
-/* Size Variants */
-.button-medium {
-	padding: 0.625rem 1rem;
-	font-size: var(--button-font-size);
-	line-height: var(--button-line-height);
-}
+	/* Size Variants */
+	.button-medium {
+		padding: 0.625rem 1rem;
+		font-size: var(--button-font-size);
+		line-height: var(--button-line-height);
+	}
 
-.button-small {
-	padding: 0.5rem 0.75rem;
-	font-size: var(--button-font-size);
-	line-height: var(--button-line-height);
-}
+	.button-small {
+		padding: 0.5rem 0.75rem;
+		font-size: var(--button-font-size);
+		line-height: var(--button-line-height);
+	}
 
-.button-xsmall {
-	padding: 0.375rem 0.625rem;
-	font-size: var(--button-font-size);
-	line-height: var(--button-line-height);
-}
+	.button-xsmall {
+		padding: 0.375rem 0.625rem;
+		font-size: var(--button-font-size);
+		line-height: var(--button-line-height);
+	}
 
-.button-xxsmall {
-	padding: 0.25rem 0.5rem;
-	font-size: var(--button-font-size);
-	line-height: var(--button-line-height);
-}
+	.button-xxsmall {
+		padding: 0.25rem 0.5rem;
+		font-size: var(--button-font-size);
+		line-height: var(--button-line-height);
+	}
 
-/* Primary Button Variants */
-.button-primary-filled {
-	background-color: var(--button-primary);
-	color: var(--button-background-color);
-}
+	/* Primary Button Variants */
+	.button-primary-filled {
+		background-color: var(--button-primary);
+		color: var(--button-background-color);
+	}
 
-.button-primary-filled:focus-visible {
-	box-shadow: var(--button-shadow-primary-focus);
-}
+	.button-primary-filled:focus-visible {
+		box-shadow: var(--button-shadow-primary-focus);
+	}
 
-:global(.c15t-dark) .button-primary-filled {
-	background-color: var(--button-primary-dark);
-	color: var(--button-background-color-dark);
-}
+	:global(.c15t-dark) .button-primary-filled {
+		background-color: var(--button-primary-dark);
+		color: var(--button-background-color-dark);
+	}
 
-.button-primary-filled:hover:not(:disabled) {
-	background-color: var(--button-primary-hover);
-	transition: var(--button-hover-transition-color);
-}
+	.button-primary-filled:hover:not(:disabled) {
+		background-color: var(--button-primary-hover);
+		transition: var(--button-hover-transition-color);
+	}
 
-:global(.c15t-dark) .button-primary-filled:hover:not(:disabled) {
-	background-color: var(--button-primary-hover-dark);
-	transition: var(--button-hover-transition-color);
-}
+	:global(.c15t-dark) .button-primary-filled:hover:not(:disabled) {
+		background-color: var(--button-primary-hover-dark);
+		transition: var(--button-hover-transition-color);
+	}
 
-.button-primary-stroke {
-	background-color: var(--button-background-color);
-	color: var(--button-primary);
-	box-shadow: var(--button-shadow-primary);
-}
+	.button-primary-stroke {
+		background-color: var(--button-background-color);
+		color: var(--button-primary);
+		box-shadow: var(--button-shadow-primary);
+	}
 
-:global(.c15t-dark) .button-primary-stroke {
-	background-color: var(--button-background-color-dark);
-	color: var(--button-primary-dark);
-	box-shadow: var(--button-shadow-primary-dark);
-}
+	:global(.c15t-dark) .button-primary-stroke {
+		background-color: var(--button-background-color-dark);
+		color: var(--button-primary-dark);
+		box-shadow: var(--button-shadow-primary-dark);
+	}
 
-.button-primary-stroke:hover:not(:disabled) {
-	background-color: var(--button-primary-hover);
-	box-shadow: var(--button-shadow-primary-hover);
-	transition: var(--button-hover-transition-full);
-}
+	.button-primary-stroke:hover:not(:disabled) {
+		background-color: var(--button-primary-hover);
+		box-shadow: var(--button-shadow-primary-hover);
+		transition: var(--button-hover-transition-full);
+	}
 
-:global(.c15t-dark) .button-primary-stroke:hover:not(:disabled) {
-	background-color: var(--button-primary-hover-dark);
-	box-shadow: var(--button-shadow-primary-hover-dark);
-	transition: var(--button-hover-transition-full);
-}
+	:global(.c15t-dark) .button-primary-stroke:hover:not(:disabled) {
+		background-color: var(--button-primary-hover-dark);
+		box-shadow: var(--button-shadow-primary-hover-dark);
+		transition: var(--button-hover-transition-full);
+	}
 
-.button-primary-lighter {
-	background-color: color-mix(in srgb, var(--button-primary) 10%, transparent);
-	color: var(--button-primary);
-}
+	.button-primary-lighter {
+		background-color: color-mix(
+			in srgb,
+			var(--button-primary) 10%,
+			transparent
+		);
+		color: var(--button-primary);
+	}
 
-:global(.c15t-dark) .button-primary-lighter {
-	background-color: color-mix(
-		in srgb,
-		var(--button-primary-dark) 10%,
-		transparent
-	);
-	color: var(--button-primary-dark);
-}
+	:global(.c15t-dark) .button-primary-lighter {
+		background-color: color-mix(
+			in srgb,
+			var(--button-primary-dark) 10%,
+			transparent
+		);
+		color: var(--button-primary-dark);
+	}
 
-.button-primary-lighter:hover:not(:disabled) {
-	background-color: color-mix(in srgb, var(--button-primary) 20%, transparent);
-	transition: var(--button-hover-transition-color);
-}
+	.button-primary-lighter:hover:not(:disabled) {
+		background-color: color-mix(
+			in srgb,
+			var(--button-primary) 20%,
+			transparent
+		);
+		transition: var(--button-hover-transition-color);
+	}
 
-:global(.c15t-dark) .button-primary-lighter:hover:not(:disabled) {
-	background-color: color-mix(
-		in srgb,
-		var(--button-primary-dark) 20%,
-		transparent
-	);
-	transition: var(--button-hover-transition-color);
-}
+	:global(.c15t-dark) .button-primary-lighter:hover:not(:disabled) {
+		background-color: color-mix(
+			in srgb,
+			var(--button-primary-dark) 20%,
+			transparent
+		);
+		transition: var(--button-hover-transition-color);
+	}
 
-.button-primary-ghost {
-	color: var(--button-primary);
-}
+	.button-primary-ghost {
+		color: var(--button-primary);
+	}
 
-:global(.c15t-dark) .button-primary-ghost {
-	color: var(--button-primary-dark);
-}
+	:global(.c15t-dark) .button-primary-ghost {
+		color: var(--button-primary-dark);
+	}
 
-.button-primary-ghost:hover:not(:disabled) {
-	background-color: var(--button-hover-overlay);
-	transition: var(--button-hover-transition-color);
-}
+	.button-primary-ghost:hover:not(:disabled) {
+		background-color: var(--button-hover-overlay);
+		transition: var(--button-hover-transition-color);
+	}
 
-:global(.c15t-dark) .button-primary-ghost:hover:not(:disabled) {
-	background-color: var(--button-hover-overlay-dark);
-	transition: var(--button-hover-transition-color);
-}
+	:global(.c15t-dark) .button-primary-ghost:hover:not(:disabled) {
+		background-color: var(--button-hover-overlay-dark);
+		transition: var(--button-hover-transition-color);
+	}
 
-/* Neutral Button Variants */
-.button-neutral-filled {
-	background-color: var(--button-neutral);
-	color: var(--button-background-color);
-}
+	/* Neutral Button Variants */
+	.button-neutral-filled {
+		background-color: var(--button-neutral);
+		color: var(--button-background-color);
+	}
 
-.button-neutral-filled:focus-visible {
-	box-shadow: var(--button-shadow-neutral-focus);
-}
+	.button-neutral-filled:focus-visible {
+		box-shadow: var(--button-shadow-neutral-focus);
+	}
 
-:global(.c15t-dark) .button-neutral-filled {
-	background-color: var(--button-neutral-dark);
-	color: var(--button-background-color-dark);
-}
+	:global(.c15t-dark) .button-neutral-filled {
+		background-color: var(--button-neutral-dark);
+		color: var(--button-background-color-dark);
+	}
 
-.button-neutral-filled:hover:not(:disabled) {
-	background-color: var(--button-neutral-hover);
-	transition: var(--button-hover-transition-color);
-}
+	.button-neutral-filled:hover:not(:disabled) {
+		background-color: var(--button-neutral-hover);
+		transition: var(--button-hover-transition-color);
+	}
 
-:global(.c15t-dark) .button-neutral-filled:hover:not(:disabled) {
-	background-color: var(--button-neutral-hover-dark);
-	transition: var(--button-hover-transition-color);
-}
+	:global(.c15t-dark) .button-neutral-filled:hover:not(:disabled) {
+		background-color: var(--button-neutral-hover-dark);
+		transition: var(--button-hover-transition-color);
+	}
 
-.button-neutral-stroke {
-	background-color: var(--button-background-color);
-	box-shadow: var(--button-shadow-neutral);
-}
+	.button-neutral-stroke {
+		background-color: var(--button-background-color);
+		box-shadow: var(--button-shadow-neutral);
+	}
 
-:global(.c15t-dark) .button-neutral-stroke {
-	background-color: var(--button-background-color-dark);
-	box-shadow: var(--button-shadow-neutral-dark);
-}
+	:global(.c15t-dark) .button-neutral-stroke {
+		background-color: var(--button-background-color-dark);
+		box-shadow: var(--button-shadow-neutral-dark);
+	}
 
-.button-neutral-stroke:hover:not(:disabled) {
-	background-color: transparent;
-	box-shadow: var(--button-shadow-neutral-hover);
-	color: var(--button-text-hover);
-	transition: var(--button-hover-transition-full);
-}
+	.button-neutral-stroke:hover:not(:disabled) {
+		background-color: transparent;
+		box-shadow: var(--button-shadow-neutral-hover);
+		color: var(--button-text-hover);
+		transition: var(--button-hover-transition-full);
+	}
 
-:global(.c15t-dark) .button-neutral-stroke:hover:not(:disabled) {
-	box-shadow: var(--button-shadow-neutral-hover-dark);
-	color: var(--button-text-hover-dark);
-	transition: var(--button-hover-transition-full);
-}
+	:global(.c15t-dark) .button-neutral-stroke:hover:not(:disabled) {
+		box-shadow: var(--button-shadow-neutral-hover-dark);
+		color: var(--button-text-hover-dark);
+		transition: var(--button-hover-transition-full);
+	}
 
-.button-neutral-lighter {
-	background-color: color-mix(in srgb, var(--button-neutral) 10%, transparent);
-	color: var(--button-neutral);
-}
+	.button-neutral-lighter {
+		background-color: color-mix(
+			in srgb,
+			var(--button-neutral) 10%,
+			transparent
+		);
+		color: var(--button-neutral);
+	}
 
-:global(.c15t-dark) .button-neutral-lighter {
-	background-color: color-mix(
-		in srgb,
-		var(--button-neutral-dark) 10%,
-		transparent
-	);
-	color: var(--button-neutral-dark);
-}
+	:global(.c15t-dark) .button-neutral-lighter {
+		background-color: color-mix(
+			in srgb,
+			var(--button-neutral-dark) 10%,
+			transparent
+		);
+		color: var(--button-neutral-dark);
+	}
 
-.button-neutral-lighter:hover:not(:disabled) {
-	background-color: color-mix(in srgb, var(--button-neutral) 20%, transparent);
-	transition: var(--button-hover-transition-color);
-}
+	.button-neutral-lighter:hover:not(:disabled) {
+		background-color: color-mix(
+			in srgb,
+			var(--button-neutral) 20%,
+			transparent
+		);
+		transition: var(--button-hover-transition-color);
+	}
 
-:global(.c15t-dark) .button-neutral-lighter:hover:not(:disabled) {
-	background-color: color-mix(
-		in srgb,
-		var(--button-neutral-dark) 20%,
-		transparent
-	);
-	transition: var(--button-hover-transition-color);
-}
+	:global(.c15t-dark) .button-neutral-lighter:hover:not(:disabled) {
+		background-color: color-mix(
+			in srgb,
+			var(--button-neutral-dark) 20%,
+			transparent
+		);
+		transition: var(--button-hover-transition-color);
+	}
 
-.button-neutral-ghost {
-	color: var(--button-neutral);
-}
+	.button-neutral-ghost {
+		color: var(--button-neutral);
+	}
 
-:global(.c15t-dark) .button-neutral-ghost {
-	color: var(--button-neutral-dark);
-}
+	:global(.c15t-dark) .button-neutral-ghost {
+		color: var(--button-neutral-dark);
+	}
 
-.button-neutral-ghost:hover:not(:disabled) {
-	background-color: var(--button-hover-overlay);
-	transition: var(--button-hover-transition-color);
-}
+	.button-neutral-ghost:hover:not(:disabled) {
+		background-color: var(--button-hover-overlay);
+		transition: var(--button-hover-transition-color);
+	}
 
-:global(.c15t-dark) .button-neutral-ghost:hover:not(:disabled) {
-	background-color: var(--button-hover-overlay-dark);
-	transition: var(--button-hover-transition-color);
-}
+	:global(.c15t-dark) .button-neutral-ghost:hover:not(:disabled) {
+		background-color: var(--button-hover-overlay-dark);
+		transition: var(--button-hover-transition-color);
+	}
 
-/* Icon Styles */
-.button-icon {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
+	/* Icon Styles */
+	.button-icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
 }
