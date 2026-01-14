@@ -53,7 +53,7 @@ const AccordionRoot = forwardRef<
 	) => {
 		const { noStyle: contextNoStyle } = useTheme();
 
-		const accordionStyle = useStyles(themeKey, {
+		const accordionStyle = useStyles((themeKey as any) ?? 'widgetAccordion', {
 			baseClassName: [baseClassName, styles.root],
 			className,
 			noStyle: contextNoStyle || noStyle,
@@ -82,12 +82,15 @@ const AccordionItem = forwardRef<
 	) => {
 		const { noStyle: contextNoStyle } = useTheme();
 
-		const accordionItemStyle = useStyles(themeKey ?? 'accordion.item', {
-			baseClassName: [baseClassName, styles.item],
-			className,
-			noStyle: contextNoStyle || noStyle,
-			style,
-		});
+		const accordionItemStyle = useStyles(
+			(themeKey as any) ?? 'widgetAccordion',
+			{
+				baseClassName: [baseClassName, styles.item],
+				className,
+				noStyle: contextNoStyle || noStyle,
+				style,
+			}
+		);
 		return (
 			<AccordionPrimitive.Item
 				ref={forwardedRef}
@@ -110,7 +113,7 @@ const AccordionTrigger = forwardRef<
 		const { noStyle: contextNoStyle } = useTheme();
 
 		const accordionTriggerStyle = useStyles(
-			themeKey ?? 'accordion.trigger-inner',
+			(themeKey as any) ?? 'widgetAccordion',
 			{
 				baseClassName: [baseClassName, styles.triggerInner],
 				className,
@@ -141,7 +144,7 @@ function AccordionIcon<T extends ElementType>({
 	as,
 	...rest
 }: PolymorphicComponentProps<T> & ExtendThemeKeys) {
-	const accordionIconStyle = useStyles(themeKey ?? 'accordion.icon', {
+	const accordionIconStyle = useStyles((themeKey as any) ?? 'widgetAccordion', {
 		baseClassName: [baseClassName, styles.icon],
 		className,
 		noStyle,
@@ -169,11 +172,11 @@ function AccordionArrow({
 			title: 'Open',
 			iconPath: <path d="M5 12h14M12 5v14" />,
 		}),
-		themeKey: 'accordion.arrow.open',
+		themeKey: 'widgetAccordion' as any,
 	},
 	closeIcon = {
 		Element: LucideIcon({ title: 'Close', iconPath: <path d="M5 12h14" /> }),
-		themeKey: 'accordion.arrow.close',
+		themeKey: 'widgetAccordion' as any,
 	},
 	...rest
 }: AccordionArrowProps) {
@@ -208,7 +211,7 @@ const AccordionContent = forwardRef<
 	const { noStyle: contextNoStyle } = useTheme();
 
 	const accordionContentStyle = useStyles(
-		theme?.content?.themeKey ?? 'accordion.content',
+		(theme?.content?.themeKey as any) ?? 'widgetAccordion',
 		{
 			baseClassName: [theme?.content?.baseClassName, styles.content],
 			className,
@@ -227,7 +230,7 @@ const AccordionContent = forwardRef<
 				{...{
 					...theme?.contentInner,
 					baseClassName: [theme?.content?.baseClassName, styles.contentInner],
-					themeKey: theme?.contentInner?.themeKey ?? 'accordion.content-inner',
+					themeKey: (theme?.contentInner?.themeKey as any) ?? 'widgetAccordion',
 				}}
 			>
 				{children}

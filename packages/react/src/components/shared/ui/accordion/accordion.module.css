@@ -1,30 +1,30 @@
 :root {
 	/* Layout variables */
-	--accordion-padding: 0.875rem;
-	--accordion-radius: 0.625rem;
-	--accordion-duration: 200ms;
-	--accordion-ease: cubic-bezier(0.4, 0, 0.2, 1);
+	--accordion-padding: var(--c15t-space-md);
+	--accordion-radius: var(--c15t-radius-md);
+	--accordion-duration: var(--c15t-duration-normal);
+	--accordion-ease: var(--c15t-easing);
 
 	/* Icon sizes */
 	--accordion-icon-size: 1.25rem;
 
 	/* Colors */
-	--accordion-background-color: hsl(0, 0%, 100%);
-	--accordion-background-color-dark: hsl(0, 0%, 9.02%);
-	--accordion-background-hover: hsl(0, 0%, 96.86%);
-	--accordion-background-hover-dark: hsl(0, 0%, 10.98%);
-	--accordion-border-color: hsl(0, 0%, 92.16%);
-	--accordion-border-color-dark: hsl(0, 0%, 20%);
-	--accordion-text-color: hsl(0, 0%, 9.02%);
-	--accordion-text-color-dark: hsl(0, 0%, 90%);
-	--accordion-icon-color: hsl(0, 0%, 36.08%);
-	--accordion-icon-color-dark: hsl(0, 0%, 60%);
-	--accordion-arrow-color: hsl(0, 0%, 63.92%);
-	--accordion-arrow-color-dark: hsl(0, 0%, 80%);
-	--accordion-content-color: hsl(0, 0%, 36.08%);
-	--accordion-content-color-dark: hsl(0, 0%, 60%);
-	--accordion-focus-ring: hsl(227.93, 100%, 63.92%);
-	--accordion-focus-ring-dark: hsl(228.07, 69.8%, 48.04%);
+	--accordion-background-color: var(--c15t-surface);
+	--accordion-background-color-dark: var(--c15t-surface);
+	--accordion-background-hover: var(--c15t-surface-hover);
+	--accordion-background-hover-dark: var(--c15t-surface-hover);
+	--accordion-border-color: var(--c15t-border);
+	--accordion-border-color-dark: var(--c15t-border);
+	--accordion-text-color: var(--c15t-text);
+	--accordion-text-color-dark: var(--c15t-text);
+	--accordion-icon-color: var(--c15t-text-muted);
+	--accordion-icon-color-dark: var(--c15t-text-muted);
+	--accordion-arrow-color: var(--c15t-text-muted);
+	--accordion-arrow-color-dark: var(--c15t-text-muted);
+	--accordion-content-color: var(--c15t-text-muted);
+	--accordion-content-color-dark: var(--c15t-text-muted);
+	--accordion-focus-ring: var(--c15t-primary);
+	--accordion-focus-ring-dark: var(--c15t-primary);
 	--accordion-focus-shadow: 0 0 0 2px var(--accordion-focus-ring);
 	--accordion-focus-shadow-dark: 0 0 0 2px var(--accordion-focus-ring-dark);
 }

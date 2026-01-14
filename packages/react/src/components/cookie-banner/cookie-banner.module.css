@@ -1,45 +1,43 @@
 :root {
 	/* Typography */
-	--banner-font-family:
-		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
-		"Apple Color Emoji", "Segoe UI Emoji";
-	--banner-line-height: 1.5;
+	--banner-font-family: var(--c15t-font-family);
+	--banner-line-height: var(--c15t-line-height-normal);
 	--banner-text-size-adjust: 100%;
 	--banner-tab-size: 4;
 
 	/* Layout variables */
-	--banner-border-radius-sm: 0.3125rem;
-	--banner-border-radius: 1.25rem;
+	--banner-border-radius-sm: var(--c15t-radius-sm);
+	--banner-border-radius: var(--c15t-radius-lg);
 	--banner-max-width: 440px;
 
 	/* Animation variables */
-	--banner-animation-duration: 200ms;
-	--banner-animation-timing: ease-out;
-	--banner-entry-animation: enter 150ms ease-out;
-	--banner-exit-animation: exit 150ms ease-out;
+	--banner-animation-duration: var(--c15t-duration-normal);
+	--banner-animation-timing: var(--c15t-easing);
+	--banner-entry-animation: enter var(--c15t-duration-fast) var(--c15t-easing);
+	--banner-exit-animation: exit var(--c15t-duration-fast) var(--c15t-easing);
 
 	/* Border */
 	--banner-border-width: 1px;
 
 	/* Shadow */
-	--banner-shadow: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
-	--banner-shadow-dark: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
+	--banner-shadow: var(--c15t-shadow-lg);
+	--banner-shadow-dark: var(--c15t-shadow-lg);
 
 	/* Colors */
-	--banner-background-color: hsla(0 0% 100% / 1);
-	--banner-background-color-dark: hsla(0 0% 9.02% / 1);
-	--banner-footer-background-color: hsla(0 0% 96.86% / 1);
-	--banner-footer-background-color-dark: hsla(0 0% 10.98% / 1);
-	--banner-text-color: hsla(0 0% 9.02% / 1);
-	--banner-text-color-dark: hsla(0 0% 90% / 1);
-	--banner-border-color: hsla(0 0% 92.16% / 1);
-	--banner-border-color-dark: hsla(0 0% 20% / 1);
-	--banner-title-color: hsla(0 0% 9.02% / 1);
-	--banner-title-color-dark: hsla(0 0% 90% / 1);
-	--banner-description-color: hsla(0 0% 36.08% / 1);
-	--banner-description-color-dark: hsla(0 0% 60% / 1);
-	--banner-overlay-background-color: hsla(0 0% 0% / 0.5);
-	--banner-overlay-background-color-dark: hsla(0 0% 0% / 0.5);
+	--banner-background-color: var(--c15t-surface);
+	--banner-background-color-dark: var(--c15t-surface);
+	--banner-footer-background-color: var(--c15t-surface-hover);
+	--banner-footer-background-color-dark: var(--c15t-surface-hover);
+	--banner-text-color: var(--c15t-text);
+	--banner-text-color-dark: var(--c15t-text);
+	--banner-border-color: var(--c15t-border);
+	--banner-border-color-dark: var(--c15t-border);
+	--banner-title-color: var(--c15t-text);
+	--banner-title-color-dark: var(--c15t-text);
+	--banner-description-color: var(--c15t-text-muted);
+	--banner-description-color-dark: var(--c15t-text-muted);
+	--banner-overlay-background-color: var(--c15t-overlay);
+	--banner-overlay-background-color-dark: var(--c15t-overlay);
 }
 
 @layer components {

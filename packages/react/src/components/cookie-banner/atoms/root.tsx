@@ -16,7 +16,6 @@ import { useStyles } from '~/hooks/use-styles';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/types/theme';
 import styles from '../cookie-banner.module.css';
-import type { CookieBannerTheme } from '../theme';
 import { Overlay } from './overlay';
 
 /**
@@ -43,13 +42,6 @@ interface CookieBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	 * Useful when implementing completely custom styles.
 	 */
 	noStyle?: boolean;
-
-	/**
-	 * @remarks
-	 * Custom styles to be applied to the banner and its child components.
-	 * These styles are made available through the CookieBanner context.
-	 */
-	theme?: Partial<CookieBannerTheme>;
 
 	/**
 	 * @remarks
@@ -117,7 +109,6 @@ const CookieBannerRoot: FC<CookieBannerRootProps> = ({
 	className,
 	noStyle,
 	disableAnimation,
-	theme,
 	scrollLock,
 	trapFocus = true,
 	...props
@@ -129,7 +120,6 @@ const CookieBannerRoot: FC<CookieBannerRootProps> = ({
 	const contextValue = {
 		disableAnimation,
 		noStyle,
-		theme,
 		scrollLock,
 		trapFocus,
 	};
@@ -284,7 +274,7 @@ const CookieBannerRootChildren = forwardRef<
 
 		// Apply styles from the CookieBanner context and merge with local styles.
 		// Uses the 'content' style key for consistent theming.
-		const contentStyle = useStyles('banner.root', {
+		const contentStyle = useStyles('banner', {
 			baseClassName: [
 				styles.root,
 				textDirection === 'ltr' ? styles.bottomLeft : styles.bottomRight,

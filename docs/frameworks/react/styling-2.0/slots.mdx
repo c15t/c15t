@@ -1,0 +1,66 @@
+---
+title: Component Slots
+description: Use component slots for fine-grained control when design tokens aren't enough.
+canary: true
+---
+
+## Overview
+
+Component slots allow you to target specific elements within a component. This is useful for adding custom classes (e.g., from Tailwind) or applying unique styles to a single component without affecting the global theme.
+
+## Using Slots
+
+Each slot can accept either a `string` (interpreted as a className) or an `object` containing both `className` and `style`.
+
+```tsx
+theme: {
+  slots: {
+    // Simple className
+    bannerCard: 'bg-blue-50 border-blue-200',
+
+    // Full object for complex overrides
+    buttonPrimary: {
+      className: 'shadow-md active:scale-95',
+      style: { transition: 'transform 0.1s' }
+    }
+  }
+}
+```
+
+## Available Slots
+
+Slots are organized by component for easy discovery.
+
+### Banner
+- `banner`: The root container.
+- `bannerCard`: The main card element.
+- `bannerTitle`: The heading text.
+- `bannerDescription`: The body text.
+- `bannerFooter`: The button container.
+
+### Dialog
+- `dialog`: The modal container.
+- `dialogCard`: The dialog panel.
+- `dialogHeader`: The top section.
+- `dialogContent`: The scrollable area.
+- `dialogFooter`: The action area.
+
+### Shared
+- `buttonPrimary`: Primary action buttons (Accept, Save).
+- `buttonSecondary`: Secondary action buttons (Reject, Cancel).
+- `toggle`: The switch component.
+
+## `noStyle` Mode
+
+If you want to completely remove default c15t styles for a specific slot, you can set `noStyle: true` within that slot's configuration.
+
+```tsx
+theme: {
+  slots: {
+    bannerCard: {
+      noStyle: true,
+      className: 'my-completely-custom-card'
+    }
+  }
+}
+```

@@ -1,11 +1,3 @@
-'use client';
-
-/**
- * @packageDocumentation
- * Provides hooks and utilities for managing component styles with theme support.
- * Implements a flexible styling system that merges theme and component-level styles.
- */
-
 import { useMemo } from 'react';
 import { useTheme } from '~/hooks/use-theme';
 import type { AllThemeKeys, ClassNameStyle, ThemeValue } from '~/types/theme';
@@ -15,129 +7,74 @@ import { mergeStyles } from '~/utils/merge-styles';
  * Hook for retrieving and merging styles from theme context and component props.
  *
  * @remarks
- * This hook manages the style resolution process by:
- * - Retrieving styles from theme context
- * - Merging with component-level styles
- * - Handling style disabling through noStyle flags
- * - Memoizing results for performance
+ * This hook manages the style resolution process by pulling styles from
+ * theme slots and merging them with component-level props.
  *
- * @param themeKey - The theme key to lookup styles
+ * Precedence (lowest to highest):
+ * 1. Component internal base classes (baseClassName)
+ * 2. Theme slot classes (from theme context)
+ * 3. Component prop classes (from className prop)
+ *
+ * @param themeKey - The slot key to lookup styles (e.g. 'bannerCard')
  * @param componentStyle - Optional component-level styles to merge
- *
- * @example
- * ```tsx
- * const MyComponent = () => {
- *   const styles = useStyles('root', {
- *     className: 'custom-class',
- *     style: { backgroundColor: 'white' }
- *   });
- *
- *   return <div {...styles} />;
- * };
- * ```
+ * @param themeOverride - Optional theme override
  *
  * @returns An object containing merged className and style properties
  * @public
  */
-
 export function useStyles(
 	themeKey: AllThemeKeys,
 	componentStyle?: ThemeValue,
-	themeOverride?: Partial<Record<AllThemeKeys, ThemeValue>>
+	themeOverride?: any
 ): ClassNameStyle {
 	const { noStyle: contextNoStyle, theme: contextTheme } = useTheme();
 
 	// Use override if provided, otherwise fallback to context theme
 	const theme = themeOverride ?? contextTheme;
 
-	const themeNoStyle = Boolean(
-		typeof theme?.[themeKey as keyof typeof theme] === 'object'
-			? (theme?.[themeKey as keyof typeof theme] as ClassNameStyle)?.noStyle
-			: false
-	);
-
-	const mergedNoStyle = Boolean(
-		(typeof componentStyle === 'object' && 'noStyle' in componentStyle
-			? componentStyle.noStyle
-			: false) ||
-			themeNoStyle ||
-			contextNoStyle
-	);
-
-	// Memoize theme styles retrieval
-	const themeStylesObject = useMemo(() => {
-		return themeKey
-			? (theme as Record<AllThemeKeys, ThemeValue>)?.[themeKey]
-			: null;
-	}, [themeKey, theme]);
-
-	// Memoize initial style setup
-	const initialStyle = useMemo(() => {
-		const initial = {
-			className:
-				typeof componentStyle === 'string'
-					? componentStyle
-					: componentStyle?.className,
-			style: undefined,
-		};
-
-		return initial;
-	}, [componentStyle]);
-
-	// Memoize merged style with context
-	const mergedWithContext = useMemo(() => {
-		const merged = themeStylesObject
-			? mergeStyles(initialStyle, themeStylesObject)
-			: initialStyle;
-
-		return merged;
-	}, [initialStyle, themeStylesObject]);
-
-	// Memoize final merged style
-	const finalMergedStyle = useMemo(() => {
-		const final = componentStyle
-			? mergeStyles(mergedWithContext, componentStyle)
-			: mergedWithContext;
-
-		return final;
-	}, [mergedWithContext, componentStyle]);
-
-	// Return the final merged style, ensuring immutability
 	return useMemo(() => {
-		if (mergedNoStyle) {
-			// When noStyle is true, only return theme styles if they exist
-			if (!themeStylesObject) {
-				return {};
-			}
+		const themeStyle = (theme?.slots as any)?.[themeKey];
 
-			const noStyleResult =
-				typeof themeStylesObject === 'string'
-					? { className: themeStylesObject }
-					: {
-							className: themeStylesObject.className,
-							style: themeStylesObject.style,
-						};
-			return noStyleResult;
+		// Handle noStyle flags
+		const themeNoStyle =
+			typeof themeStyle === 'object' && themeStyle !== null
+				? Boolean(themeStyle.noStyle)
+				: false;
+
+		const componentNoStyle =
+			typeof componentStyle === 'object' && componentStyle !== null
+				? Boolean(componentStyle.noStyle)
+				: false;
+
+		const isNoStyle = contextNoStyle || themeNoStyle || componentNoStyle;
+
+		// If noStyle is active, we only return the overrides, skipping base classes
+		if (isNoStyle) {
+			// Merge theme overrides with component overrides
+			const merged = mergeStyles(themeStyle || {}, componentStyle || {});
+			return {
+				className: merged.className,
+				style: merged.style,
+			};
 		}
 
-		// Ensure className is included and prevent duplication
-		// baseClassName comes first so it can be overridden by theme and component styles
-		const finalClassName = Array.from(
-			new Set(
-				[
-					typeof componentStyle === 'object'
-						? componentStyle?.baseClassName
-						: undefined,
-					finalMergedStyle.className,
-					typeof componentStyle === 'string'
-						? componentStyle
-						: componentStyle?.className,
-				]
-					.filter(Boolean)
-					.flat()
-			)
-		).join(' ');
+		// Standard merge: theme overrides applied ON TOP of component defaults
+		// We use a base object to hold componentStyle's baseClassName and other internal info
+		const baseDefaults: ThemeValue =
+			typeof componentStyle === 'object'
+				? { ...componentStyle, className: undefined }
+				: {};
 
-		return { ...finalMergedStyle, className: finalClassName };
-	}, [finalMergedStyle, mergedNoStyle, themeStylesObject, componentStyle]);
+		// 1. Start with internal base classes and defaults from component
+		// 2. Apply theme overrides from slots
+		const withTheme = mergeStyles(baseDefaults, themeStyle || {});
+
+		// 3. Apply component prop overrides (className, style)
+		const final = mergeStyles(withTheme, componentStyle || {});
+
+		return {
+			className: final.className,
+			style: final.style,
+		};
+	}, [themeKey, theme, componentStyle, contextNoStyle]);
 }

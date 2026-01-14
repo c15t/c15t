@@ -88,7 +88,7 @@ const ConsentManagerDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 	const customClassName = typeof style === 'string' ? style : style?.className;
 
 	// Apply theme styles
-	const theme = useStyles('dialog.overlay', {
+	const theme = useStyles('dialogOverlay', {
 		baseClassName: !(isThemeNoStyle || noStyle) && styles.overlay,
 		className: customClassName,
 		noStyle: isThemeNoStyle || noStyle,

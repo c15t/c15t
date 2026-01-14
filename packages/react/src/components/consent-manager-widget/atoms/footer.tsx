@@ -20,7 +20,7 @@ export const ConsentManagerWidgetFooter = forwardRef<
 			baseClassName={styles.footer}
 			data-testid="consent-manager-widget-footer"
 			{...props}
-			themeKey="widget.footer"
+			themeKey="widgetFooter"
 		>
 			{children}
 		</Box>
@@ -37,7 +37,7 @@ export const ConsentManagerWidgetFooterSubGroup = forwardRef<
 			baseClassName={styles.footerGroup}
 			data-testid="consent-manager-widget-footer-sub-group"
 			{...props}
-			themeKey="widget.footer.sub-group"
+			themeKey="widgetFooter"
 		>
 			{children}
 		</Box>

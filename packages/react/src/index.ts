@@ -14,7 +14,9 @@ export {
 	CookieBanner,
 	type CookieBannerProps,
 } from './components/cookie-banner';
+export * from './components/cookie-banner/components';
 export { Frame, type FrameProps } from './components/frame';
+export { ConsentButton } from './components/shared/primitives/button';
 export {
 	InlineLegalLinks,
 	LegalLinks,
@@ -33,3 +35,16 @@ export type {
 	ConsentManagerOptions,
 	ConsentManagerProviderProps,
 } from './types/consent-manager';
+
+// Theme types
+export type {
+	ColorTokens,
+	ComponentSlots,
+	MotionTokens,
+	RadiusTokens,
+	ShadowTokens,
+	SlotStyle,
+	SpacingTokens,
+	Theme,
+	TypographyTokens,
+} from './types/theme';

@@ -2,11 +2,7 @@
 
 import { useState } from 'react';
 import { useTheme } from '~/hooks/use-theme';
-import { useTranslations } from '~/hooks/use-translations';
-import {
-	BrandingFooter,
-	DialogFooter,
-} from '../consent-manager-dialog/atoms/dialog-card';
+import { DialogFooter } from '../consent-manager-dialog/atoms/dialog-card';
 import {
 	ConsentManagerWidgetAccordion,
 	ConsentManagerWidgetAccordionItems,
@@ -23,8 +19,7 @@ import {
 import { ConsentManagerWidgetRoot } from './atoms/root';
 import type { ConsentManagerWidgetProps } from './types';
 export const ConsentManagerWidget = ({
-	hideBrading,
-	theme: localTheme,
+	hideBranding,
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
 	scrollLock: localScrollLock,
@@ -32,19 +27,11 @@ export const ConsentManagerWidget = ({
 	...props
 }: ConsentManagerWidgetProps) => {
 	const [openItems, setOpenItems] = useState<string[]>([]);
-	const { common: translations } = useTranslations();
 
-	// Get global theme context and merge with local props
+	// Get global theme context
 	const globalTheme = useTheme();
 
-	// Merge global theme context with local props (local takes precedence)
-	const mergedTheme = {
-		...globalTheme.theme,
-		...localTheme,
-	};
-
 	const mergedProps = {
-		theme: mergedTheme,
 		noStyle: localNoStyle ?? globalTheme.noStyle,
 		disableAnimation: localDisableAnimation ?? globalTheme.disableAnimation,
 		scrollLock: localScrollLock ?? globalTheme.scrollLock,
@@ -55,7 +42,7 @@ export const ConsentManagerWidget = ({
 	return (
 		<ConsentManagerWidgetRoot {...mergedProps}>
 			<ConsentManagerWidgetAccordion
-				themeKey="widget.accordion"
+				themeKey="widgetAccordion"
 				type="multiple"
 				value={openItems}
 				onValueChange={setOpenItems}
@@ -63,23 +50,16 @@ export const ConsentManagerWidget = ({
 				<ConsentManagerWidgetAccordionItems />
 			</ConsentManagerWidgetAccordion>
 			<ConsentManagerWidgetFooter>
-				<ConsentManagerWidgetFooterSubGroup themeKey="widget.footer.sub-group">
-					<ConsentManagerWidgetRejectButton themeKey="widget.footer.reject-button">
-						{translations.rejectAll}
-					</ConsentManagerWidgetRejectButton>
-					<ConsentManagerWidgetAcceptAllButton themeKey="widget.footer.accept-button">
-						{translations.acceptAll}
-					</ConsentManagerWidgetAcceptAllButton>
+				<ConsentManagerWidgetFooterSubGroup themeKey="widgetFooter">
+					<ConsentManagerWidgetRejectButton />
+					<ConsentManagerWidgetAcceptAllButton />
 				</ConsentManagerWidgetFooterSubGroup>
-				<ConsentManagerWidgetSaveButton themeKey="widget.footer.save-button">
-					{translations.save}
-				</ConsentManagerWidgetSaveButton>
+				<ConsentManagerWidgetSaveButton />
 			</ConsentManagerWidgetFooter>
-			{!hideBrading && (
-				<DialogFooter themeKey="widget.branding">
-					<BrandingFooter />
-				</DialogFooter>
-			)}
+			<DialogFooter
+				themeKey="widgetBranding"
+				hideBranding={hideBranding ?? true}
+			/>
 		</ConsentManagerWidgetRoot>
 	);
 };

@@ -1,54 +1,54 @@
 :root {
 	/* Widget Colors */
-	--widget-background-color: hsl(0, 0%, 100%);
-	--widget-background-color-dark: hsl(0, 0%, 10%);
-	--widget-border-color: hsl(0, 0%, 92.16%);
-	--widget-border-color-dark: hsl(0, 0%, 20%);
-	--widget-text-color: hsl(0, 0%, 9.02%);
-	--widget-text-color-dark: hsl(0, 0%, 90%);
-	--widget-text-muted-color: hsl(0, 0%, 36.08%);
-	--widget-text-muted-color-dark: hsl(0, 0%, 60%);
+	--widget-background-color: var(--c15t-surface);
+	--widget-background-color-dark: var(--c15t-surface);
+	--widget-border-color: var(--c15t-border);
+	--widget-border-color-dark: var(--c15t-border);
+	--widget-text-color: var(--c15t-text);
+	--widget-text-color-dark: var(--c15t-text);
+	--widget-text-muted-color: var(--c15t-text-muted);
+	--widget-text-muted-color-dark: var(--c15t-text-muted);
 	--widget-footer-background-color: transparent;
 	--widget-footer-background-color-dark: transparent;
-	--widget-link-text-color: hsl(0, 0%, 9.02%);
-	--widget-link-text-color-dark: hsl(0, 0%, 90%);
-	--widget-branding-link-color: #47c2ff;
+	--widget-link-text-color: var(--c15t-text);
+	--widget-link-text-color-dark: var(--c15t-text);
+	--widget-branding-link-color: var(--c15t-primary);
 
 	/* Widget Layout */
 	--widget-padding: 0;
 	--widget-radius: 0;
-	--widget-gap: 0.375rem;
+	--widget-gap: var(--c15t-space-xs);
 	--widget-border-width: 0;
 	--widget-max-width: 32rem;
 	--widget-z-index: 50;
-	--widget-footer-padding: 1.5rem 0 0 0;
+	--widget-footer-padding: var(--c15t-space-lg) 0 0 0;
 
 	/* Typography */
-	--widget-title-size: 0.875rem;
-	--widget-title-line-height: 1.25;
+	--widget-title-size: var(--c15t-font-size-sm);
+	--widget-title-line-height: var(--c15t-line-height-tight);
 	--widget-title-tracking: -0.006em;
-	--widget-title-weight: 600;
+	--widget-title-weight: var(--c15t-font-weight-semibold);
 
 	/* Animation */
-	--widget-entry-animation: enter 150ms ease-out;
-	--widget-exit-animation: exit 150ms ease-out;
+	--widget-entry-animation: enter var(--c15t-duration-fast) var(--c15t-easing);
+	--widget-exit-animation: exit var(--c15t-duration-fast) var(--c15t-easing);
 
-	/* Accordion */
-	--widget-accordion-padding: 0.875rem;
-	--widget-accordion-radius: 0.625rem;
-	--widget-accordion-duration: 200ms;
-	--widget-accordion-ease: cubic-bezier(0.4, 0, 0.2, 1);
+	/* Accordion (Inherit from shared accordion tokens) */
+	--widget-accordion-padding: var(--c15t-space-md);
+	--widget-accordion-radius: var(--c15t-radius-md);
+	--widget-accordion-duration: var(--c15t-duration-normal);
+	--widget-accordion-ease: var(--c15t-easing);
 	--widget-accordion-icon-size: 1.25rem;
-	--widget-accordion-background-color: hsl(0, 0%, 100%);
-	--widget-accordion-background-color-dark: hsl(0, 0%, 9.02%);
-	--widget-accordion-background-hover: hsl(0, 0%, 96.86%);
-	--widget-accordion-background-hover-dark: hsl(0, 0%, 10.98%);
-	--widget-accordion-border-color: hsl(0, 0%, 92.16%);
-	--widget-accordion-border-color-dark: hsl(0, 0%, 20%);
-	--widget-accordion-text-color: hsl(0, 0%, 9.02%);
-	--widget-accordion-text-color-dark: hsl(0, 0%, 90%);
-	--widget-accordion-icon-color: hsl(0, 0%, 36.08%);
-	--widget-accordion-icon-color-dark: hsl(0, 0%, 60%);
+	--widget-accordion-background-color: var(--c15t-surface);
+	--widget-accordion-background-color-dark: var(--c15t-surface);
+	--widget-accordion-background-hover: var(--c15t-surface-hover);
+	--widget-accordion-background-hover-dark: var(--c15t-surface-hover);
+	--widget-accordion-border-color: var(--c15t-border);
+	--widget-accordion-border-color-dark: var(--c15t-border);
+	--widget-accordion-text-color: var(--c15t-text);
+	--widget-accordion-text-color-dark: var(--c15t-text);
+	--widget-accordion-icon-color: var(--c15t-text-muted);
+	--widget-accordion-icon-color-dark: var(--c15t-text-muted);
 	--widget-accordion-arrow-color: hsl(0, 0%, 63.92%);
 	--widget-accordion-arrow-color-dark: hsl(0, 0%, 80%);
 	--widget-accordion-content-color: hsl(0, 0%, 36.08%);

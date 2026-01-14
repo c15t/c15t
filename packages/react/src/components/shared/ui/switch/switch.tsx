@@ -33,17 +33,17 @@ export interface SwitchProps
 const Switch = forwardRef<
 	ComponentRef<typeof SwitchPrimitives.Root>,
 	SwitchProps
->(({ className, disabled, slot, theme, ...rest }, forwardedRef) => {
-	const switchRoot = useStyles(theme?.root.themeKey ?? 'switch.root', {
+>(({ className, disabled, theme, ...rest }, forwardedRef) => {
+	const switchRoot = useStyles((theme?.root.themeKey as any) ?? 'toggle', {
 		...theme?.root,
-		baseClassName: [styles.root, theme?.root.baseClassName],
+		baseClassName: [styles.root, theme?.root?.baseClassName],
 		className,
 	});
 
-	const switchThumb = useStyles(theme?.thumb.themeKey ?? 'switch.thumb', {
+	const switchThumb = useStyles((theme?.thumb.themeKey as any) ?? 'toggle', {
 		...theme?.thumb,
 		baseClassName: [
-			theme?.thumb.baseClassName,
+			theme?.thumb?.baseClassName,
 			styles.thumb,
 			disabled && styles['thumb-disabled'],
 		],
@@ -62,9 +62,9 @@ const Switch = forwardRef<
 			{...switchRoot}
 		>
 			<Box
-				themeKey={theme?.track.themeKey ?? 'switch.track'}
+				themeKey={(theme?.track?.themeKey as any) ?? 'toggle'}
 				baseClassName={[styles.track, disabled && styles['track-disabled']]}
-				style={theme?.track.style}
+				style={theme?.track?.style}
 			>
 				<SwitchPrimitives.Thumb {...switchThumb} />
 			</Box>

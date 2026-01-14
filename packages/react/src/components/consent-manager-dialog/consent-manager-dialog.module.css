@@ -1,50 +1,48 @@
 :root {
 	/* Typography */
-	--dialog-font-family:
-		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
-		"Apple Color Emoji", "Segoe UI Emoji";
-	--dialog-line-height: 1.15;
-	--dialog-title-font-size: 0.875rem;
-	--dialog-title-font-weight: 600;
+	--dialog-font-family: var(--c15t-font-family);
+	--dialog-line-height: var(--c15t-line-height-tight);
+	--dialog-title-font-size: var(--c15t-font-size-sm);
+	--dialog-title-font-weight: var(--c15t-font-weight-semibold);
 	--dialog-title-letter-spacing: -0.025em;
-	--dialog-description-font-size: 1rem;
-	--dialog-description-font-weight: 400;
-	--dialog-description-line-height: 1.15;
-	--dialog-footer-gap: 0.75rem;
+	--dialog-description-font-size: var(--c15t-font-size-base);
+	--dialog-description-font-weight: var(--c15t-font-weight-normal);
+	--dialog-description-line-height: var(--c15t-line-height-normal);
+	--dialog-footer-gap: var(--c15t-space-sm);
 	--dialog-footer-font-size: 14px;
-	--dialog-branding-font-size: 1rem;
-	--dialog-branding-font-weight: 500;
-	--dialog-branding-line-height: 1.5;
+	--dialog-branding-font-size: var(--c15t-font-size-base);
+	--dialog-branding-font-weight: var(--c15t-font-weight-medium);
+	--dialog-branding-line-height: var(--c15t-line-height-relaxed);
 	--dialog-branding-letter-spacing: -0.01em;
 
 	/* Colors */
-	--dialog-stroke-color: hsl(0, 0%, 92.16%);
-	--dialog-stroke-color-dark: hsl(0, 0%, 20%);
-	--dialog-branding-focus-color: hsl(227.93, 100%, 63.92%);
-	--dialog-branding-focus-color-dark: hsl(228.07, 69.8%, 48.04%);
-	--dialog-link-text-color: hsl(0, 0%, 9.02%);
-	--dialog-link-text-color-dark: hsl(0, 0%, 90%);
-	--dialog-border-color: hsl(0, 0%, 92.16%);
-	--dialog-border-color-dark: hsl(0, 0%, 20%);
-	--dialog-background-color: white;
-	--dialog-background-color-dark: hsl(0, 0%, 10%);
-	--dialog-foreground-color: hsl(0, 0%, 9.02%);
-	--dialog-foreground-color-dark: hsl(0, 0%, 90%);
-	--dialog-muted-color: hsl(0, 0%, 45.1%);
-	--dialog-muted-color-dark: hsl(0, 0%, 63.9%);
-	--dialog-overlay-background-color: rgb(0 0 0 / 0.5);
-	--dialog-overlay-background-color-dark: rgb(0 0 0 / 0.5);
+	--dialog-stroke-color: var(--c15t-border);
+	--dialog-stroke-color-dark: var(--c15t-border);
+	--dialog-branding-focus-color: var(--c15t-primary);
+	--dialog-branding-focus-color-dark: var(--c15t-primary);
+	--dialog-link-text-color: var(--c15t-text);
+	--dialog-link-text-color-dark: var(--c15t-text);
+	--dialog-border-color: var(--c15t-border);
+	--dialog-border-color-dark: var(--c15t-border);
+	--dialog-background-color: var(--c15t-surface);
+	--dialog-background-color-dark: var(--c15t-surface);
+	--dialog-foreground-color: var(--c15t-text);
+	--dialog-foreground-color-dark: var(--c15t-text);
+	--dialog-muted-color: var(--c15t-text-muted);
+	--dialog-muted-color-dark: var(--c15t-text-muted);
+	--dialog-overlay-background-color: var(--c15t-overlay);
+	--dialog-overlay-background-color-dark: var(--c15t-overlay);
 
 	/* Spacing */
-	--dialog-card-padding: 1.5rem;
-	--dialog-card-padding-mobile: 1rem;
-	--dialog-card-gap: 0.375rem;
-	--dialog-header-gap: 0.375rem;
-	--dialog-content-gap: 1rem;
-	--dialog-footer-padding-y: 1rem;
+	--dialog-card-padding: var(--c15t-space-lg);
+	--dialog-card-padding-mobile: var(--c15t-space-md);
+	--dialog-card-gap: var(--c15t-space-xs);
+	--dialog-header-gap: var(--c15t-space-xs);
+	--dialog-content-gap: var(--c15t-space-md);
+	--dialog-footer-padding-y: var(--c15t-space-md);
 
 	/* Layout */
-	--dialog-card-radius: 1.25rem;
+	--dialog-card-radius: var(--c15t-radius-lg);
 	--dialog-max-width: 28rem;
 	--dialog-height: 80%;
 	--dialog-z-index: 999999999;

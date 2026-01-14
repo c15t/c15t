@@ -81,7 +81,7 @@ const CookieBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 		}, [showPopup, disableAnimation]);
 
 		// Apply theme styles
-		const theme = useStyles('banner.overlay', {
+		const theme = useStyles('bannerOverlay', {
 			baseClassName: !(contextNoStyle || noStyle) && styles.overlay,
 			className, // Always pass custom className
 			noStyle: contextNoStyle || noStyle,

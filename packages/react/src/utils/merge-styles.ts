@@ -4,7 +4,7 @@ import { cnExt } from '~/utils/cn';
 /**
  * Merges two styles objects, handling theme values and style properties.
  *
- * @param style1 - The first style object to merge
+ * @param style1 - The first style object to merge (lower precedence)
  * @param style2 - The second style object to merge (Takes precedence over style1)
  *
  * @returns The merged styles object
@@ -13,46 +13,47 @@ export function mergeStyles(
 	style1: ThemeValue,
 	style2?: ThemeValue
 ): ClassNameStyle {
-	const getThemeValue = (
+	const normalize = (
 		style: ThemeValue | undefined
-	): ThemeValue | undefined => {
-		if (typeof style === 'string' || style === undefined) {
-			return style;
-		}
-		if ('className' in style || 'style' in style || 'noStyle' in style) {
-			return style;
-		}
-		return undefined;
+	): ClassNameStyle | undefined => {
+		if (style === undefined) return undefined;
+		if (typeof style === 'string') return { className: style };
+		return style as ClassNameStyle;
 	};
 
-	const s1 = getThemeValue(Array.isArray(style1) ? style1[0] : style1);
-	const s2 = getThemeValue(style2);
+	const s1 = normalize(style1);
+	const s2 = normalize(style2);
 
-	// If either style has noStyle, return empty styles
-	if (
-		(typeof s1 === 'object' && s1?.noStyle) ||
-		(typeof s2 === 'object' && s2?.noStyle)
-	) {
-		return {
-			className: undefined,
-			style: undefined,
-		};
+	// If either style has noStyle, we should respect it.
+	// In the v2 system, noStyle logic is mostly handled in useStyles,
+	// but we keep some basic protection here.
+	if (s1?.noStyle || s2?.noStyle) {
+		// If s2 has noStyle, it completely overrides s1
+		if (s2?.noStyle) {
+			return {
+				className: s2.className,
+				style: s2.style,
+				noStyle: true,
+			};
+		}
 	}
 
-	const className = cnExt([
-		typeof s1 === 'string' ? s1 : s1?.className,
-		typeof s2 === 'string' ? s2 : s2?.className,
-		typeof s1 === 'object' && s1?.baseClassName,
-		typeof s2 === 'object' && s2?.baseClassName,
-	]);
+	// Correct order: baseClassName -> s1 classes -> s2 classes
+	const className = cnExt(
+		s1?.baseClassName,
+		s1?.className,
+		s2?.baseClassName,
+		s2?.className
+	);
 
-	const style = {
-		...(typeof s1 === 'object' && s1?.style),
-		...(typeof s2 === 'object' && s2?.style),
+	const mergedStyle = {
+		...s1?.style,
+		...s2?.style,
 	};
 
 	return {
 		className: className || undefined,
-		style: Object.keys(style).length > 0 ? style : undefined,
+		style: Object.keys(mergedStyle).length > 0 ? mergedStyle : undefined,
+		noStyle: s1?.noStyle || s2?.noStyle,
 	};
 }

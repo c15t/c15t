@@ -23,7 +23,6 @@ import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
 import type { CSSPropertiesWithVars } from '~/types/theme';
 import styles from '../consent-manager-dialog.module.css';
-import type { ConsentManagerDialogTheme } from '../theme';
 import { Overlay } from './overlay';
 
 /**
@@ -32,8 +31,7 @@ import { Overlay } from './overlay';
  * @public
  */
 export interface ConsentManagerDialogRootProps
-	extends ThemeContextValue<ConsentManagerDialogTheme>,
-		HTMLAttributes<HTMLDialogElement> {
+	extends HTMLAttributes<HTMLDialogElement> {
 	/**
 	 * React children that will be rendered inside the dialog container.
 	 * Typically this includes `ConsentManagerDialog.Card` and its sub-components.
@@ -98,17 +96,10 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 	overlay,
 	className,
 	style,
-	theme: localTheme,
 	...rest
 }) => {
 	// Global theme from provider (if any)
 	const globalTheme = useTheme();
-
-	// Merge theme values – local props take precedence.
-	const theme = {
-		...globalTheme.theme,
-		...localTheme,
-	} as ConsentManagerDialogTheme | undefined;
 
 	const disableAnimation =
 		localDisableAnimation ?? globalTheme.disableAnimation ?? false;
@@ -143,17 +134,14 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 		} else if (disableAnimation) {
 			setIsVisible(false);
 		} else {
-			// Delay hide to allow closing animation to finish
-			const duration = Number.parseInt(
-				getComputedStyle(document.documentElement).getPropertyValue(
-					'--dialog-animation-duration'
-				) || '200',
-				10
-			);
+			// Get duration from theme tokens, falling back to 200ms
+			const durationStr = globalTheme.theme.motion?.duration?.normal || '200ms';
+			const duration = Number.parseInt(durationStr.replace('ms', ''), 10);
+
 			const timer = setTimeout(() => setIsVisible(false), duration);
 			return () => clearTimeout(timer);
 		}
-	}, [isOpen, disableAnimation]);
+	}, [isOpen, disableAnimation, globalTheme.theme.motion?.duration?.normal]);
 
 	// Trap focus when dialog open
 	useFocusTrap(isOpen && trapFocus, dialogRef as RefObject<HTMLElement>);
@@ -170,23 +158,19 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 	);
 
 	// Styles (using theme util)
-	const themedStyle = useStyles(
-		'dialog.root',
-		{
-			baseClassName: undefined,
-			className: rootClasses,
-			style: style as CSSPropertiesWithVars<Record<string, never>>,
-			noStyle,
-		},
-		theme
-	);
+	const themedStyle = useStyles('dialog', {
+		baseClassName: undefined,
+		className: rootClasses,
+		style: style as CSSPropertiesWithVars<Record<string, never>>,
+		noStyle,
+	});
 
 	const contextValue: ThemeContextValue = {
 		disableAnimation,
 		noStyle,
 		scrollLock,
 		trapFocus,
-		theme,
+		theme: globalTheme.theme,
 	};
 
 	const dialogNode = (

@@ -1,47 +1,26 @@
 'use client';
 
 import { createContext } from 'react';
+import type { Theme } from '~/types/theme';
 
 /**
  * Configuration value type for the ThemeContext.
  *
  * @remarks
  * Provides type-safe theme customization options for components.
- * Supports generic theme types for different component variants.
- * Includes animation and style control features.
+ * Supports both token-based (v2) and key-based (v1) themes.
  *
- * @typeParam Theme - The theme configuration type for the component
- *
- * @example
- * ```tsx
- * type MyTheme = {
- *   colors: {
- *     primary: string;
- *     secondary: string;
- *   };
- * };
- *
- * const value: ThemeContextValue<MyTheme> = {
- *   theme: {
- *     colors: {
- *       primary: '#007bff',
- *       secondary: '#6c757d'
- *     }
- *   },
- *   noStyle: false,
- *   disableAnimation: false
- * };
- * ```
+ * @typeParam T - The theme configuration type for the component
  *
  * @public
  */
-export type ThemeContextValue<Theme = unknown> = {
+export type ThemeContextValue<T = any> = {
 	/**
 	 * Theme configuration object for styling components
-	 * @remarks Partial to allow incremental theme overrides
+	 * @remarks Supports Theme (v2) or legacy key-based themes (v1)
 	 * @default undefined
 	 */
-	theme?: Partial<Theme>;
+	theme?: T;
 
 	/**
 	 * Disables all animations when true
@@ -70,6 +49,12 @@ export type ThemeContextValue<Theme = unknown> = {
 	 * @default true
 	 */
 	trapFocus?: boolean;
+
+	/**
+	 * Color scheme preference.
+	 * @default 'system'
+	 */
+	colorScheme?: 'light' | 'dark' | 'system';
 };
 
 /**
@@ -80,13 +65,6 @@ export type ThemeContextValue<Theme = unknown> = {
  * Must be provided by a parent Theme.Root component.
  * Supports TypeScript generic themes for type safety.
  *
- * @example
- * ```tsx
- * <ThemeContext.Provider value={{ theme: myTheme, noStyle: false }}>
- *   <App />
- * </ThemeContext.Provider>
- * ```
- *
  * @public
  */
 export const GlobalThemeContext = createContext<ThemeContextValue>({
@@ -95,23 +73,17 @@ export const GlobalThemeContext = createContext<ThemeContextValue>({
 	disableAnimation: false,
 	scrollLock: false,
 	trapFocus: true,
+	colorScheme: 'system',
 });
+
 /**
- * Context for providing theme values to components.
+ * Context for providing theme values to components locally.
  *
  * @remarks
- * Combines consent management state with theme configuration.
- * Must be provided by a parent Theme.Root component.
- * Supports TypeScript generic themes for type safety.
- *
- * @example
- * ```tsx
- * <ThemeContext.Provider value={{ theme: myTheme, noStyle: false }}>
- *   <App />
- * </ThemeContext.Provider>
- * ```
+ * Allows for overriding theme values for specific component subtrees.
  *
  * @public
  */
-export const LocalThemeContext =
-	createContext<ThemeContextValue<unknown> | null>(null);
+export const LocalThemeContext = createContext<ThemeContextValue<any> | null>(
+	null
+);

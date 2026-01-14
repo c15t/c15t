@@ -3,8 +3,8 @@
 	--switch-height: 1.25rem;
 	--switch-width: 2rem;
 	--switch-padding: 0.125rem;
-	--switch-duration: 200ms;
-	--switch-ease: cubic-bezier(0.4, 0, 0.2, 1);
+	--switch-duration: var(--c15t-duration-normal);
+	--switch-ease: var(--c15t-easing);
 
 	/* Thumb sizes */
 	--switch-thumb-size: 0.75rem;
@@ -12,24 +12,24 @@
 	--switch-thumb-translate: 0.75rem;
 
 	/* Colors */
-	--switch-background-color: hsl(0, 0%, 92%);
-	--switch-background-color-dark: hsl(0, 0%, 20%);
-	--switch-background-color-hover: hsl(0, 0%, 82%);
-	--switch-background-color-hover-dark: hsl(0, 0%, 16.08%);
-	--switch-background-color-checked: hsl(227.94, 100%, 60%);
-	--switch-background-color-checked-dark: hsl(228.07, 69.8%, 48.04%);
-	--switch-background-color-disabled: hsl(0, 0%, 100%);
-	--switch-background-color-disabled-dark: hsl(0, 0%, 9.02%);
-	--switch-thumb-background-color: hsl(0, 0%, 100%);
-	--switch-thumb-background-color-dark: hsl(0, 0%, 96.86%);
-	--switch-thumb-background-color-disabled: hsl(0, 0%, 96.86%);
-	--switch-thumb-background-color-disabled-dark: hsl(0, 0%, 20%);
+	--switch-background-color: var(--c15t-switch-track);
+	--switch-background-color-dark: var(--c15t-switch-track);
+	--switch-background-color-hover: var(--c15t-surface-hover);
+	--switch-background-color-hover-dark: var(--c15t-surface-hover);
+	--switch-background-color-checked: var(--c15t-switch-track-active);
+	--switch-background-color-checked-dark: var(--c15t-switch-track-active);
+	--switch-background-color-disabled: var(--c15t-border);
+	--switch-background-color-disabled-dark: var(--c15t-border);
+	--switch-thumb-background-color: var(--c15t-switch-thumb);
+	--switch-thumb-background-color-dark: var(--c15t-switch-thumb);
+	--switch-thumb-background-color-disabled: var(--c15t-surface-hover);
+	--switch-thumb-background-color-disabled-dark: var(--c15t-surface-hover);
 
 	/* Shadows */
-	--switch-shadow-thumb: 0 0 0 1px hsl(0, 0%, 92.16%);
-	--switch-shadow-thumb-dark: 0 0 0 1px hsl(0, 0%, 20%);
-	--switch-focus-ring: hsl(228, 100%, 60%);
-	--switch-focus-ring-dark: hsl(228.07, 69.8%, 48.04%);
+	--switch-shadow-thumb: 0 0 0 1px var(--c15t-border);
+	--switch-shadow-thumb-dark: 0 0 0 1px var(--c15t-border);
+	--switch-focus-ring: var(--c15t-primary);
+	--switch-focus-ring-dark: var(--c15t-primary);
 	--switch-focus-shadow: 0 0 0 2px var(--switch-focus-ring);
 	--switch-focus-shadow-dark: 0 0 0 2px var(--switch-focus-ring-dark);
 }

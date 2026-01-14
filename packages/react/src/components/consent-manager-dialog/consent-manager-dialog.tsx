@@ -11,21 +11,41 @@
 
 import type { FC } from 'react';
 import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
-import type { ThemeContextValue } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useTheme } from '~/hooks/use-theme';
 import { ConsentCustomizationCard } from './atoms/dialog-card';
 import { Root as ConsentManagerDialogRoot } from './atoms/root';
-import type { ConsentManagerDialogTheme } from './theme';
 
 /**
  * Props for the `<ConsentManagerDialog />` convenience component.
- *
- * Extends the theme context props so that the caller can override styling or
- * disable animations exactly the same way as when using the compound API.
  */
-export interface ConsentManagerDialogProps
-	extends ThemeContextValue<ConsentManagerDialogTheme> {
+export interface ConsentManagerDialogProps {
+	/**
+	 * Theme configuration override (deprecated)
+	 * @deprecated Theme should be set on the ConsentManagerProvider
+	 */
+	theme?: never;
+
+	/**
+	 * Disables all animations when true
+	 */
+	disableAnimation?: boolean;
+
+	/**
+	 * Removes default styles when true
+	 */
+	noStyle?: boolean;
+
+	/**
+	 * Locks the scroll when true
+	 */
+	scrollLock?: boolean;
+
+	/**
+	 * Traps keyboard focus within a dialog when true
+	 */
+	trapFocus?: boolean;
+
 	/**
 	 * Control the open state. If omitted the dialog follows
 	 * `useConsentManager().isPrivacyDialogOpen`.
@@ -57,15 +77,22 @@ export interface ConsentManagerDialogProps
 	 * You must set the legal links in the ConsentManagerProvider options.
 	 */
 	legalLinks?: LegalLinksProps['links'];
+
+	/**
+	 * Controls whether to hide the branding in the dialog footer.
+	 *
+	 * @defaultValue false
+	 */
+	hideBranding?: boolean;
 }
 
 export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 	open,
-	theme: localTheme,
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
 	scrollLock: localScrollLock = true,
 	trapFocus: localTrapFocus = true,
+	hideBranding,
 	legalLinks,
 }) => {
 	// Global default settings from provider
@@ -74,16 +101,9 @@ export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 	// Consent-manager state controls open/close when `open` prop is undefined
 	const { isPrivacyDialogOpen } = useConsentManager();
 
-	// Merge theme objects – local wins over global
-	const mergedTheme = {
-		...globalTheme.theme,
-		...localTheme,
-	};
-
 	// Compose the props we want to forward to the Root primitive
 	const rootProps = {
 		open: open ?? isPrivacyDialogOpen,
-		theme: mergedTheme,
 		noStyle: localNoStyle ?? globalTheme.noStyle,
 		disableAnimation: localDisableAnimation ?? globalTheme.disableAnimation,
 		scrollLock: localScrollLock ?? globalTheme.scrollLock,
@@ -95,6 +115,7 @@ export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 			<ConsentCustomizationCard
 				noStyle={rootProps.noStyle}
 				legalLinks={legalLinks}
+				hideBranding={hideBranding}
 			/>
 		</ConsentManagerDialogRoot>
 	);

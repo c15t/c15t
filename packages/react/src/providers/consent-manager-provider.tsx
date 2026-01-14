@@ -14,7 +14,28 @@ import {
 import { GlobalThemeContext } from '../context/theme-context';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import type { ConsentManagerProviderProps } from '../types/consent-manager';
+import { defaultTheme, generateThemeCSS } from '../utils/theme-utils';
 import { version } from '../version';
+
+/**
+ * Deep merges two objects recursively
+ */
+function deepMerge<T extends Record<string, any>>(target: T, source: any): T {
+	if (!source || typeof source !== 'object') return target;
+	const result = { ...target } as any;
+	for (const key in source) {
+		if (
+			source[key] &&
+			typeof source[key] === 'object' &&
+			!Array.isArray(source[key])
+		) {
+			result[key] = deepMerge(result[key] || {}, source[key]);
+		} else {
+			result[key] = source[key];
+		}
+	}
+	return result as T;
+}
 
 // Module-level cache to persist stores across component unmounts/remounts
 const storeCache = new Map<
@@ -217,18 +238,32 @@ export function ConsentManagerProvider({
 	}, [consentStore]);
 
 	// Create theme context value
-	const { react = {} } = options;
 	const themeContextValue = useMemo(() => {
-		return {
-			theme: react.theme,
-			noStyle: react.noStyle,
-			disableAnimation: react.disableAnimation,
-			trapFocus: react.trapFocus ?? true,
-			colorScheme: react.colorScheme,
-		};
-	}, [react]);
+		const {
+			theme = {},
+			noStyle,
+			disableAnimation,
+			trapFocus = true,
+			colorScheme,
+		} = options;
 
-	useColorScheme(react.colorScheme);
+		const mergedTheme = deepMerge(defaultTheme, theme);
+
+		return {
+			theme: mergedTheme,
+			noStyle,
+			disableAnimation,
+			trapFocus,
+			colorScheme,
+		};
+	}, [options]);
+
+	// Generate CSS variables for the theme
+	const themeCSS = useMemo(() => {
+		return generateThemeCSS(themeContextValue.theme);
+	}, [themeContextValue.theme]);
+
+	useColorScheme(options.colorScheme);
 
 	// Create consent context value - without theme properties
 	const consentContextValue = useMemo<ConsentStateContextValue>(() => {
@@ -247,6 +282,12 @@ export function ConsentManagerProvider({
 	return (
 		<ConsentStateContext.Provider value={consentContextValue}>
 			<GlobalThemeContext.Provider value={themeContextValue}>
+				{themeCSS && (
+					<style
+						id="c15t-theme-v2"
+						dangerouslySetInnerHTML={{ __html: themeCSS }}
+					/>
+				)}
 				{children}
 			</GlobalThemeContext.Provider>
 		</ConsentStateContext.Provider>

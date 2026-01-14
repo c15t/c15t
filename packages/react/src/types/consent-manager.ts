@@ -1,8 +1,3 @@
-/**
- * @packageDocumentation
- * Type definitions for the consent manager components.
- */
-
 import type {
 	AllConsentNames,
 	ConsentManagerOptions as CoreOptions,
@@ -10,20 +5,16 @@ import type {
 	TranslationConfig,
 } from 'c15t';
 import type { ReactNode } from 'react';
-import type { ConsentManagerDialogTheme } from '~/components/consent-manager-dialog/theme';
-import type { ConsentManagerWidgetTheme } from '~/components/consent-manager-widget/theme';
-import type { CookieBannerTheme } from '~/components/cookie-banner/theme';
+import type { Theme } from '~/types/theme';
 
 /**
  * React-specific configuration options
  */
 export interface ReactUIOptions {
 	/**
-	 * Visual theme to apply.
+	 * Visual theme to apply (v2 token-based system).
 	 */
-	theme?: CookieBannerTheme &
-		ConsentManagerWidgetTheme &
-		ConsentManagerDialogTheme;
+	theme?: Theme;
 	/**
 	 * Whether to disable animations.
 	 * @default false
@@ -86,12 +77,8 @@ type InlineStoreOptions = Pick<
  * - React-specific UI and translation configuration
  */
 export type ConsentManagerOptions = CoreOptions &
-	InlineStoreOptions & {
-		/**
-		 * React-specific UI configuration options.
-		 */
-		react?: ReactUIOptions;
-
+	InlineStoreOptions &
+	ReactUIOptions & {
 		/**
 		 * Translation configuration to seed the store with.
 		 */
