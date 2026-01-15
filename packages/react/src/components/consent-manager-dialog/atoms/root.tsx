@@ -7,7 +7,7 @@
  * focus trapping, scroll locking and portal rendering.
  */
 
-import clsx from 'clsx';
+import styles from '@c15t/ui/styles/components/consent-manager-dialog.module.css';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -22,7 +22,7 @@ import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
 import type { CSSPropertiesWithVars } from '~/types/theme';
-import styles from '../consent-manager-dialog.module.css';
+import { cnExt as cn } from '~/utils/cn';
 import { Overlay } from './overlay';
 
 /**
@@ -150,7 +150,7 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 	useScrollLock(isOpen && scrollLock);
 
 	// Compose class names
-	const rootClasses = clsx(
+	const rootClasses = cn(
 		styles.root,
 		!disableAnimation &&
 			(isVisible ? styles.dialogVisible : styles.dialogHidden),
@@ -196,7 +196,7 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 							className={
 								noStyle
 									? undefined
-									: clsx(
+									: cn(
 											styles.container,
 											!disableAnimation && isVisible
 												? styles.contentVisible

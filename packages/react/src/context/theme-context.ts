@@ -14,13 +14,12 @@ import type { Theme } from '~/types/theme';
  *
  * @public
  */
-export type ThemeContextValue<T = any> = {
+export type ThemeContextValue = {
 	/**
 	 * Theme configuration object for styling components
-	 * @remarks Supports Theme (v2) or legacy key-based themes (v1)
 	 * @default undefined
 	 */
-	theme?: T;
+	theme?: Theme;
 
 	/**
 	 * Disables all animations when true
@@ -84,6 +83,4 @@ export const GlobalThemeContext = createContext<ThemeContextValue>({
  *
  * @public
  */
-export const LocalThemeContext = createContext<ThemeContextValue<any> | null>(
-	null
-);
+export const LocalThemeContext = createContext<ThemeContextValue | null>(null);

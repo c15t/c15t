@@ -1,3 +1,4 @@
+import styles from '@c15t/ui/styles/primitives/legal-links.module.css';
 import type { LegalLinks as LegalLinksType } from 'c15t';
 import { forwardRef } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
@@ -5,7 +6,6 @@ import { useStyles } from '~/hooks/use-styles';
 import { useTranslations } from '~/hooks/use-translations';
 import type { AllThemeKeys } from '~/types/theme/style-keys';
 import { Box, type BoxProps } from '../box';
-import styles from './legal-links.module.css';
 
 /**
  * Hook to filter legal links based on the provided links prop.

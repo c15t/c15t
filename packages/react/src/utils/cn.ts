@@ -1,10 +1,11 @@
-import clsx, { type ClassValue } from 'clsx';
+import type { ClassValue } from '@c15t/ui/utils';
+import { cn as baseCn } from '@c15t/ui/utils';
 
-export type { ClassValue } from 'clsx';
+export type { ClassValue };
 
 /**
- * Utilizes `clsx` with `tailwind-merge`, use in cases of possible class conflicts.
+ * Utilizes framework-agnostic `cn` from @c15t/ui.
  */
 export function cnExt(...classes: ClassValue[]) {
-	return clsx(...classes);
+	return baseCn(...classes);
 }

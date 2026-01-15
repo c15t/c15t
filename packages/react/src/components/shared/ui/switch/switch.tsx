@@ -1,5 +1,5 @@
+import styles from '@c15t/ui/styles/primitives/switch.module.css';
 import * as SwitchPrimitives from '@radix-ui/react-switch';
-
 import {
 	type ComponentPropsWithoutRef,
 	type ComponentRef,
@@ -8,7 +8,6 @@ import {
 import { Box } from '~/components/shared/primitives/box';
 import { useStyles } from '~/hooks/use-styles';
 import type { ExtendThemeKeys, ThemeValue } from '~/types/theme';
-import styles from './switch.module.css';
 
 export type SwitchStylesKeys = {
 	'switch.root': ThemeValue;

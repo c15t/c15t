@@ -1,5 +1,6 @@
 'use client';
 
+import styles from '@c15t/ui/styles/components/cookie-banner.module.css';
 import {
 	type CSSProperties,
 	type FC,
@@ -15,7 +16,6 @@ import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/types/theme';
-import styles from '../cookie-banner.module.css';
 import { Overlay } from './overlay';
 
 /**

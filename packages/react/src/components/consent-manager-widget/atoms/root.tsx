@@ -24,7 +24,7 @@ import { useTextDirection } from '~/hooks/use-text-direction';
  *
  * @public
  */
-export interface ConsentManagerWidgetRootProps extends ThemeContextValue<any> {
+export interface ConsentManagerWidgetRootProps extends ThemeContextValue {
 	/**
 	 * Child components to be rendered within the consent manager context.
 	 *

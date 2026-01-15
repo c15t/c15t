@@ -101,6 +101,7 @@
 		"@radix-ui/react-slot": "1.2.4",
 		"@radix-ui/react-switch": "1.2.6",
 		"c15t": "workspace:*",
+		"@c15t/ui": "workspace:*",
 		"clsx": "2.1.1",
 		"zustand": "5.0.9"
 	},

@@ -1,5 +1,5 @@
+import styles from '@c15t/ui/styles/components/consent-manager-widget.module.css';
 import type { AllConsentNames, ConsentType } from 'c15t';
-
 import {
 	type ComponentPropsWithoutRef,
 	type ComponentRef,
@@ -13,7 +13,6 @@ import { LucideIcon } from '~/components/shared/ui/icon';
 import * as RadixSwitch from '~/components/shared/ui/switch';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useTranslations } from '~/hooks/use-translations';
-import styles from '../consent-manager-widget.module.css';
 
 /**
  * Accordion Trigger Component

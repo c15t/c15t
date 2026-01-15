@@ -1,10 +1,10 @@
+import styles from '@c15t/ui/styles/components/frame.module.css';
 import type { AllConsentNames } from 'c15t';
 import { forwardRef, type Ref } from 'react';
 import { useTranslations } from '~/hooks/use-translations';
 import { Box, type BoxProps } from '../shared/primitives/box';
 import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
-import styles from './frame.module.css';
 
 const FrameRoot = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
 	({ children, ...props }, ref) => {

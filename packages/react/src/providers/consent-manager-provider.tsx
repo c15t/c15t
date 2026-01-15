@@ -1,11 +1,12 @@
 'use client';
 
+import { generateThemeCSS } from '@c15t/ui/theme';
 import {
-	type ConsentStoreState,
-	configureConsentManager,
-	createConsentManagerStore,
-	type StorageConfig,
-} from 'c15t';
+	clearConsentManagerCache as baseClearCache,
+	deepMerge,
+	initConsentManager,
+} from '@c15t/ui/utils';
+import type { ConsentStoreState } from 'c15t';
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import {
 	ConsentStateContext,
@@ -14,38 +15,8 @@ import {
 import { GlobalThemeContext } from '../context/theme-context';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import type { ConsentManagerProviderProps } from '../types/consent-manager';
-import { defaultTheme, generateThemeCSS } from '../utils/theme-utils';
+import { defaultTheme } from '../utils/theme-utils';
 import { version } from '../version';
-
-/**
- * Deep merges two objects recursively
- */
-function deepMerge<T extends Record<string, any>>(target: T, source: any): T {
-	if (!source || typeof source !== 'object') return target;
-	const result = { ...target } as any;
-	for (const key in source) {
-		if (
-			source[key] &&
-			typeof source[key] === 'object' &&
-			!Array.isArray(source[key])
-		) {
-			result[key] = deepMerge(result[key] || {}, source[key]);
-		} else {
-			result[key] = source[key];
-		}
-	}
-	return result as T;
-}
-
-// Module-level cache to persist stores across component unmounts/remounts
-const storeCache = new Map<
-	string,
-	ReturnType<typeof createConsentManagerStore>
->();
-const managerCache = new Map<
-	string,
-	ReturnType<typeof configureConsentManager>
->();
 
 /**
  * Clears all cached consent managers and stores.
@@ -58,30 +29,7 @@ const managerCache = new Map<
  * @internal
  */
 export function clearConsentManagerCache(): void {
-	storeCache.clear();
-	managerCache.clear();
-}
-
-interface CacheKeyOptions {
-	mode: string;
-	backendURL: string | undefined;
-	endpointHandlers: unknown;
-	storageConfig: StorageConfig | undefined;
-	defaultLanguage: string | undefined;
-	enabled: boolean | undefined;
-}
-// Generate a cache key based on critical configuration options
-
-function generateCacheKey({
-	mode,
-	backendURL,
-	endpointHandlers,
-	storageConfig,
-	defaultLanguage,
-	enabled,
-}: CacheKeyOptions): string {
-	const enabledKey = enabled === false ? 'disabled' : 'enabled';
-	return `${mode}:${backendURL ?? 'default'}:${endpointHandlers ? 'custom' : 'none'}:${storageConfig?.storageKey ?? 'default'}:${defaultLanguage ?? 'default'}:${enabledKey}`;
+	baseClearCache();
 }
 
 /**
@@ -115,86 +63,13 @@ export function ConsentManagerProvider({
 	children,
 	options,
 }: ConsentManagerProviderProps) {
-	// Extract and memoize stable options
-	const { mode, backendURL, store } = options;
-
-	// Normalize store options so that initial translations are always available
-	// to both the core store and the underlying client (including offline).
-	const normalizedStoreOptions = useMemo(
-		() => ({
-			...store,
-			initialTranslationConfig: options.translations,
-		}),
-		[store, options.translations]
-	);
-
-	// Generate cache key for manager and store persistence
-	const cacheKey = generateCacheKey({
-		mode: mode || 'c15t',
-		backendURL: backendURL || '/api/c15t',
-		endpointHandlers:
-			'endpointHandlers' in options ? options.endpointHandlers : undefined,
-		storageConfig: options.storageConfig,
-		defaultLanguage: options.translations?.defaultLanguage,
-		enabled: options.enabled,
-	});
-
-	// Get or create consent manager with caching
-	const consentManager = useMemo(() => {
-		const cachedManager = managerCache.get(cacheKey);
-
-		if (cachedManager) {
-			return cachedManager;
-		}
-
-		let newManager: ReturnType<typeof configureConsentManager>;
-		if (mode === 'offline') {
-			newManager = configureConsentManager({
-				mode: 'offline',
-				store: normalizedStoreOptions,
-				storageConfig: options.storageConfig,
-			});
-		} else if (mode === 'custom' && 'endpointHandlers' in options) {
-			newManager = configureConsentManager({
-				mode: 'custom',
-				endpointHandlers: options.endpointHandlers,
-				store: normalizedStoreOptions,
-				storageConfig: options.storageConfig,
-			});
-		} else {
-			newManager = configureConsentManager({
-				mode: 'c15t',
-				backendURL: backendURL || '/api/c15t',
-				store: normalizedStoreOptions,
-				storageConfig: options.storageConfig,
-			});
-		}
-
-		managerCache.set(cacheKey, newManager);
-		return newManager;
-	}, [cacheKey, mode, backendURL, normalizedStoreOptions, options]);
-
-	// Get or create consent store with caching
-	const consentStore = useMemo(() => {
-		const cachedStore = storeCache.get(cacheKey);
-
-		if (cachedStore) {
-			return cachedStore;
-		}
-
-		const newStore = createConsentManagerStore(consentManager, {
-			config: {
-				pkg: '@c15t/react',
-				version: version,
-				mode: mode || 'Unknown',
-			},
-			...options,
-			...normalizedStoreOptions,
+	// Initialize consent manager and store using shared logic from @c15t/ui
+	const { consentManager, consentStore } = useMemo(() => {
+		return initConsentManager(options, {
+			pkg: '@c15t/react',
+			version,
 		});
-
-		storeCache.set(cacheKey, newStore);
-		return newStore;
-	}, [cacheKey, consentManager, mode, options, normalizedStoreOptions]);
+	}, [options]);
 
 	// Initialize state with the current state from the consent manager store
 	const [state, setState] = useState<ConsentStoreState>(() => {
@@ -282,12 +157,13 @@ export function ConsentManagerProvider({
 	return (
 		<ConsentStateContext.Provider value={consentContextValue}>
 			<GlobalThemeContext.Provider value={themeContextValue}>
-				{themeCSS && (
+				{themeCSS ? (
 					<style
-						id="c15t-theme-v2"
+						id="c15t-theme"
+						// biome-ignore lint/security/noDangerouslySetInnerHtml: It's safe to set innerHTML here
 						dangerouslySetInnerHTML={{ __html: themeCSS }}
 					/>
-				)}
+				) : null}
 				{children}
 			</GlobalThemeContext.Provider>
 		</ConsentStateContext.Provider>

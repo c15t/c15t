@@ -4,13 +4,13 @@
  * Implements accessible modal behavior with animation support.
  */
 
-import clsx from 'clsx';
+import styles from '@c15t/ui/styles/components/consent-manager-dialog.module.css';
 import { type FC, type PropsWithChildren, useEffect, useState } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
 import type { ThemeValue } from '~/types/theme';
-import styles from '../consent-manager-dialog.module.css';
+import { cnExt as cn } from '~/utils/cn';
 
 /**
  * Props for the Overlay component.
@@ -107,7 +107,7 @@ const ConsentManagerDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 	}
 
 	// Combine theme className with animation class if needed
-	const finalClassName = clsx(theme.className, animationClass);
+	const finalClassName = cn(theme.className, animationClass);
 
 	return (
 		<div

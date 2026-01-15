@@ -5,7 +5,9 @@
 		"baseUrl": ".",
 		"types": ["@vitest/browser/matchers"],
 		"paths": {
-			"~/*": ["./src/*"]
+			"~/*": ["./src/*"],
+			"@c15t/ui": ["../ui/src/index"],
+			"@c15t/ui/*": ["../ui/src/*"]
 		}
 	},
 	"include": ["src"],
