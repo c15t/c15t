@@ -31,7 +31,7 @@ const DialogCard = forwardRef<HTMLDivElement, DialogCardProps>(
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
-				className={styles.card}
+				baseClassName={styles.card}
 				{...props}
 				themeKey="dialogCard"
 				data-testid="consent-manager-dialog-card"
@@ -56,7 +56,7 @@ const DialogHeader = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
-				className={styles.header}
+				baseClassName={styles.header}
 				{...props}
 				themeKey="dialogHeader"
 				data-testid="consent-manager-dialog-header"
@@ -84,7 +84,7 @@ const DialogHeaderTitle = forwardRef<
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
-			className={styles.title}
+			baseClassName={styles.title}
 			themeKey="dialogTitle"
 			{...props}
 			data-testid="consent-manager-dialog-title"
@@ -115,7 +115,7 @@ const DialogHeaderDescription = forwardRef<
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
-				className={styles.description}
+				baseClassName={styles.description}
 				themeKey="dialogDescription"
 				asChild={asChild}
 				{...props}
@@ -127,7 +127,7 @@ const DialogHeaderDescription = forwardRef<
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
-			className={styles.description}
+			baseClassName={styles.description}
 			themeKey="dialogDescription"
 			asChild={asChild}
 			{...props}
@@ -157,7 +157,7 @@ const DialogContent = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
-				className={styles.content}
+				baseClassName={styles.content}
 				themeKey="dialogContent"
 				data-testid="consent-manager-dialog-content"
 				{...props}
@@ -174,26 +174,25 @@ const DialogContent = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
  */
 const DialogFooter = forwardRef<
 	HTMLDivElement,
-	BoxProps & { hideBranding?: boolean }
->(({ children, themeKey, hideBranding, ...props }, ref) => {
-	const Footer = ({ content }: { content: ReactNode }) => (
-		<Box
-			ref={ref as Ref<HTMLDivElement>}
-			className={styles.footer}
-			themeKey={themeKey ?? 'dialogFooter'}
-			{...props}
-			data-testid="consent-manager-dialog-footer"
-		>
-			{content}
-		</Box>
-	);
-
-	if (children) {
-		return <Footer content={children} />;
+	BoxProps & { hideBranding?: boolean; 'data-testid'?: string }
+>(
+	(
+		{ children, themeKey, hideBranding, 'data-testid': testId, ...props },
+		ref
+	) => {
+		return (
+			<Box
+				ref={ref as Ref<HTMLDivElement>}
+				baseClassName={styles.footer}
+				data-testid={testId ?? 'consent-manager-dialog-footer'}
+				{...props}
+				themeKey={themeKey ?? 'dialogFooter'}
+			>
+				{children ?? <Branding hideBranding={hideBranding ?? false} />}
+			</Box>
+		);
 	}
-
-	return <Footer content={<Branding hideBranding={hideBranding ?? false} />} />;
-});
+);
 
 export function Branding({ hideBranding }: { hideBranding: boolean }) {
 	const { branding } = useConsentManager();

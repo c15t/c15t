@@ -38,9 +38,9 @@ export function mergeStyles(
 
 	// Correct order: baseClassName -> s1 classes -> s2 classes
 	const className = cn(
-		s1?.baseClassName as any,
+		s1?.baseClassName,
 		s1?.className,
-		s2?.baseClassName as any,
+		s2?.baseClassName,
 		s2?.className
 	);
 

@@ -51,7 +51,7 @@ docs/public/r/*
 *.tsbuildinfo
 coverage.json
 
-
+.pnpm-store
 examples/*
 version.ts
 i18n.cache

@@ -7,7 +7,7 @@ import {
 export default defineConfig({
 	source: {
 		entry: {
-			index: ['./src/**'],
+			index: ['./src/**', '!./src/**/__tests__/**'],
 		},
 		exclude: standardExcludePatterns,
 	},

@@ -127,6 +127,9 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 		setIsMounted(true);
 	}, []);
 
+	// Get animation duration from theme
+	const animationDuration = globalTheme.theme?.motion?.duration?.normal;
+
 	// Manage visibility with respect to animation
 	useEffect(() => {
 		if (isOpen) {
@@ -135,13 +138,13 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 			setIsVisible(false);
 		} else {
 			// Get duration from theme tokens, falling back to 200ms
-			const durationStr = globalTheme.theme.motion?.duration?.normal || '200ms';
+			const durationStr = animationDuration || '200ms';
 			const duration = Number.parseInt(durationStr.replace('ms', ''), 10);
 
 			const timer = setTimeout(() => setIsVisible(false), duration);
 			return () => clearTimeout(timer);
 		}
-	}, [isOpen, disableAnimation, globalTheme.theme.motion?.duration?.normal]);
+	}, [isOpen, disableAnimation, animationDuration]);
 
 	// Trap focus when dialog open
 	useFocusTrap(isOpen && trapFocus, dialogRef as RefObject<HTMLElement>);

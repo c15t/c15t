@@ -59,6 +59,7 @@ export const ConsentManagerWidget = ({
 			<DialogFooter
 				themeKey="widgetBranding"
 				hideBranding={hideBranding ?? true}
+				data-testid="consent-manager-widget-branding"
 			/>
 		</ConsentManagerWidgetRoot>
 	);

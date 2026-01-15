@@ -32,7 +32,8 @@
 		"build": "rslib build",
 		"dev": "rslib build --watch",
 		"fmt": "pnpm biome format --write .",
-		"lint": "pnpm biome lint ./src"
+		"lint": "pnpm biome lint ./src",
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"@c15t/translations": "workspace:*",
@@ -41,8 +42,10 @@
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
 		"@rslib/core": "0.18.3",
-		"typescript": "5.9.3"
+		"typescript": "5.9.3",
+		"vitest": "4.0.15"
 	},
 	"publishConfig": {
 		"access": "public"
