@@ -35,8 +35,8 @@
 		"lint": "pnpm biome lint ./src"
 	},
 	"dependencies": {
-		"c15t": "workspace:*",
 		"@c15t/translations": "workspace:*",
+		"c15t": "workspace:*",
 		"clsx": "2.1.1"
 	},
 	"devDependencies": {
