@@ -87,21 +87,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Build package
-        run: pnpm build --filter ${{ matrix.package }}
+        run: bun build --filter ${{ matrix.package }}
 
       - name: Get package name and set version
         id: pkg-info
@@ -115,9 +116,9 @@ jobs:
           echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Package: $PACKAGE_NAME@$VERSION"
-          echo "::notice title=Install (PR)::pnpm add https://pkg.pr.new/$PACKAGE_NAME@${{ github.event.pull_request.number }}"
-          echo "::notice title=Install (SHA)::pnpm add https://pkg.pr.new/$PACKAGE_NAME@${{ github.event.pull_request.head.sha }}"
+          echo "::notice title=Install (PR)::bun add https://pkg.pr.new/$PACKAGE_NAME@${{ github.event.pull_request.number }}"
+          echo "::notice title=Install (SHA)::bun add https://pkg.pr.new/$PACKAGE_NAME@${{ github.event.pull_request.head.sha }}"
           echo "::notice title=Version::$VERSION"
 
       - name: Publish to pkg.pr.new
-        run: pnpx pkg-pr-new publish --compact './packages/${{ matrix.package }}' --no-template --packageManager=pnpm --pnpm
+        run: bunx pkg-pr-new publish --compact './packages/${{ matrix.package }}' --no-template --packageManager=bun --bun
