@@ -1,5 +1,12 @@
 # @c15t/dev-tools
 
+## 1.8.3
+
+### Patch Changes
+
+- Updated dependencies [6c28663]
+  - c15t@1.8.3
+
 ## 1.8.3-canary-20260109181827
 
 ### Patch Changes
