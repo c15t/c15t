@@ -44,6 +44,8 @@
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
+		"@types/react": "^19.0.0",
+		"@types/react-dom": "^19.0.0",
 		"postcss": "^8.5.3"
 	},
 	"peerDependencies": {
