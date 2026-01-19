@@ -260,6 +260,12 @@ export interface StoreOptions {
 	 * @defaultValue undefined
 	 */
 	overrides?: Overrides;
+
+	/**
+	 * Respect the Global Privacy Signal in opt-out jurisdiction, like California (CCPA).
+	 * @defaultValue false
+	 */
+	experimental_globalPrivacyControl?: boolean;
 }
 
 // For backward compatibility (if needed)
@@ -360,9 +366,10 @@ export const createConsentManagerStore = (
 		}
 
 		if (storedConsent) {
+			const consents = storedConsent.consents || initialState.consents;
 			return {
-				consents: storedConsent.consents,
-				selectedConsents: storedConsent.consents,
+				consents: consents,
+				selectedConsents: consents,
 				consentInfo: storedConsent.consentInfo,
 				showPopup: false,
 				isLoadingConsentInfo: false,
@@ -395,6 +402,9 @@ export const createConsentManagerStore = (
 		// Set storage configuration
 		storageConfig: storageConfig,
 		user: options.user ?? initialState.user,
+		overrides: options.overrides,
+		experimental_globalPrivacyControl:
+			options.experimental_globalPrivacyControl ?? false,
 		...getInitialConsentState(),
 
 		/**
