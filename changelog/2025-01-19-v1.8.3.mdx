@@ -1,0 +1,30 @@
+---
+title: "v1.8.3 - Experimental Global Privacy Control Support & Bug Fixes"
+version: "1.8.3"
+date: 2025-01-19
+description: "Patch release with experimental Global Privacy Control support and bug fixes."
+tags:
+  - release
+  - stable
+  - core
+  - react
+type: release
+breaking: false
+draft: false
+authors: [KayleeWilliams]
+---
+
+## 🐛 Bug Fixes & Improvements
+
+### **c15t**
+
+* Added `experimental_globalPrivacyControl` option. This will respect the Global Privacy Control signal in opt-out jurisdictions, like California (CCPA). This is set to `false` by default.
+* Fixed auto-grant ignoring existing consents.
+* Fixed offline mode ignoring overrides.
+* Fixed auto-grant not updating selected consents.
+
+### **@c15t/react**
+
+* Fixed custom styling support for dialog and accordion.
+
+<ContributorBlock usernames={["KayleeWilliams"]} title="Thank you to our contributors" />
