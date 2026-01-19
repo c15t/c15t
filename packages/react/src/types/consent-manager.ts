@@ -168,6 +168,12 @@ export type ConsentManagerOptions = CoreOptions & {
 	 * @defaultValue undefined
 	 */
 	overrides?: Overrides;
+
+	/**
+	 * Respect the Global Privacy Signal in opt-out jurisdiction, like California (CCPA).
+	 * @defaultValue false
+	 */
+	experimental_globalPrivacyControl?: boolean;
 };
 
 /**

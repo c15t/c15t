@@ -11,9 +11,10 @@ import {
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { PrivacyConsentState } from '../store.type';
+import { hasGlobalPrivacyControlSignal } from './global-privacy-control';
 import type { createTrackingBlocker } from './tracking-blocker';
 
-type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
+type ConsentBannerResponse = ContractsOutputs['consent']['post'];
 
 /**
  * Configuration for fetching consent banner information
@@ -59,8 +60,13 @@ function updateStore(
 	}: FetchConsentBannerConfig,
 	hasLocalStorageAccess: boolean
 ): void {
-	const { consentInfo, ignoreGeoLocation, callbacks, setDetectedCountry } =
-		get();
+	const {
+		consentInfo,
+		ignoreGeoLocation,
+		callbacks,
+		setDetectedCountry,
+		experimental_globalPrivacyControl,
+	} = get();
 
 	const { translations, location, showConsentBanner } = data;
 
@@ -69,6 +75,20 @@ function updateStore(
 		data.jurisdiction?.code === 'NONE' &&
 		!data.showConsentBanner &&
 		!consentInfo;
+
+	const hasGpcSignal = hasGlobalPrivacyControlSignal(
+		experimental_globalPrivacyControl
+	);
+
+	const autoGrantedConsents = shouldAutoGrantConsents
+		? {
+				necessary: true,
+				functionality: true,
+				experience: true,
+				marketing: !hasGpcSignal,
+				measurement: !hasGpcSignal,
+			}
+		: null;
 
 	const updatedStore: Partial<PrivacyConsentState> = {
 		isLoadingConsentInfo: false,
@@ -82,20 +102,8 @@ function updateStore(
 
 		// If the banner is not shown and has no requirement consent to all
 		...(shouldAutoGrantConsents && {
-			consents: {
-				necessary: true,
-				functionality: true,
-				experience: true,
-				marketing: true,
-				measurement: true,
-			},
-			selectedConsents: {
-				necessary: true,
-				functionality: true,
-				experience: true,
-				marketing: true,
-				measurement: true,
-			},
+			consents: autoGrantedConsents,
+			selectedConsents: autoGrantedConsents,
 		}),
 		locationInfo: {
 			countryCode: location?.countryCode ?? null,
@@ -136,11 +144,7 @@ function updateStore(
 	if (shouldAutoGrantConsents) {
 		callbacks?.onConsentSet?.({
 			preferences: {
-				necessary: true,
-				functionality: true,
-				experience: true,
-				marketing: true,
-				measurement: true,
+				...autoGrantedConsents,
 			},
 		});
 	}

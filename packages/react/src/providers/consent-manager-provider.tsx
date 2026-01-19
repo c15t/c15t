@@ -190,6 +190,8 @@ export function ConsentManagerProvider({
 			storageConfig: options.storageConfig,
 			user: options.user,
 			overrides: options.overrides,
+			experimental_globalPrivacyControl:
+				options.experimental_globalPrivacyControl,
 			...store,
 			isConsentDomain,
 			initialTranslationConfig: translations,
@@ -214,6 +216,7 @@ export function ConsentManagerProvider({
 		isConsentDomain,
 		translations,
 		options.storageConfig,
+		options.experimental_globalPrivacyControl,
 	]);
 
 	// Initialize state with the current state from the consent manager store
