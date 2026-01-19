@@ -21,7 +21,7 @@ on:
         description: 'PR number for preview deployment (required if environment is preview)'
         required: false
         type: string
-
+permissions: {}
 jobs:
   # ============================================================================
   # PREVIEW DEPLOYMENTS (for PRs)
