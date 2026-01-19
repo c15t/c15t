@@ -9,6 +9,7 @@
 	},
 	"license": "GPL-3.0-only",
 	"type": "module",
+	"packageManager": "bun@1.3.6",
 	"workspaces": [
 		"configs/*",
 		"packages/**",
@@ -17,25 +18,33 @@
 	"scripts": {
 		"build": "turbo build",
 		"build:libs": "turbo build --filter=./packages/**",
+		"build:libs": "turbo build --filter=./packages/**",
 		"changeset": "changeset",
 		"check-types": "turbo check-types",
 		"ci:publish": "bunx changeset tag && bun publish",
 		"ci:version": "bun changeset version",
+		"ci:publish": "bunx changeset tag && bun publish",
+		"ci:version": "bun changeset version",
 		"dev": "turbo dev --concurrency=15 --filter=!./examples/**",
 		"dev:docs-app": "bun --cwd .docs dev",
+		"dev:docs-app": "bun --cwd .docs dev",
 		"fmt": "turbo fmt",
+		"fmt:docs": "bunx remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
 		"fmt:docs": "bunx remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
 		"generate:readmes": "tsx scripts/generate-readme.ts",
 		"postinstall": "lefthook install",
 		"knip": "knip",
 		"lint": "turbo lint",
 		"lint:docs": "bunx remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
+		"lint:docs": "bunx remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
 		"lint:fix": "turbo lint -- --write",
-		"release": "bun runbuild && changeset publish",
-		"release:canary": "bun run build && changeset publish --tag canary",
+		"release": "bun build && changeset publish",
+		"release:canary": "bun build && changeset publish --tag canary",
 		"setup:docs": "tsx scripts/setup-docs.ts",
 		"test": "turbo test",
 		"vercel-build": "tsx scripts/setup-docs.ts --vercel",
+		"version": "changeset version && bun install",
+		"version:canary": "changeset version --snapshot canary && bun install",
 		"version": "changeset version && bun install",
 		"version:canary": "changeset version --snapshot canary && bun install",
 		"version:prerelease": "changeset pre enter canary",
@@ -77,10 +86,19 @@
 		"turbo": "^2.5.0",
 		"typescript": "5.8.3",
 		"vitest": "^4.0.8",
-		"vitest-browser-react": "^1.0.1"
+		"vitest-browser-react": "^1.0.1",
+		"@types/bun": "latest"
 	},
-	"packageManager": "bun@1.3.6",
 	"engines": {
 		"node": ">=18.17.0"
-	}
+	},
+	"overrides": {
+		"cross-spawn": ">=6.0.6",
+		"typeorm": ">=0.3.26"
+	},
+	"workspaces": [
+		"configs/*",
+		"packages/**",
+		"internals/**"
+	]
 }
