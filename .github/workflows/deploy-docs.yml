@@ -11,11 +11,16 @@ on:
     inputs:
       environment:
         description: 'Deployment environment'
-        required: true
+        required: false
         type: choice
         options:
           - production
           - staging
+          - preview
+      pr_number:
+        description: 'PR number for preview deployment (required if environment is preview)'
+        required: false
+        type: string
 
 jobs:
   # ============================================================================
@@ -66,6 +71,65 @@ jobs:
               "sha": "${{ github.event.pull_request.head.sha }}",
               "action": "closed"
             }
+
+  # ============================================================================
+  # MANUAL PREVIEW DEPLOYMENT (workflow_dispatch with PR number)
+  # ============================================================================
+  trigger-manual-preview:
+    name: 🔍 Trigger Manual Preview
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'preview'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - name: 📋 Get PR information
+        id: pr-info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = '${{ github.event.inputs.pr_number }}';
+            if (!prNumber) {
+              core.setFailed('PR number is required for preview deployment');
+              return;
+            }
+            
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: parseInt(prNumber)
+            });
+            
+            core.setOutput('pr_number', pr.number);
+            core.setOutput('branch', pr.head.ref);
+            core.setOutput('sha', pr.head.sha);
+            core.setOutput('repo', pr.head.repo.full_name);
+            core.setOutput('action', 'opened');
+
+      - name: 📤 Trigger docs preview
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
+          repository: ${{ secrets.DOCS_REPO }}
+          event-type: docs-preview
+          client-payload: |
+            {
+              "pr_number": "${{ steps.pr-info.outputs.pr_number }}",
+              "branch": "${{ steps.pr-info.outputs.branch }}",
+              "repo": "${{ steps.pr-info.outputs.repo }}",
+              "sha": "${{ steps.pr-info.outputs.sha }}",
+              "action": "${{ steps.pr-info.outputs.action }}"
+            }
+
+      - name: 📝 Summary
+        run: |
+          echo "### 🔄 Manual Docs Preview Triggered" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "A preview deployment has been triggered for PR #${{ steps.pr-info.outputs.pr_number }}." >> $GITHUB_STEP_SUMMARY
+          echo "Watch for a comment on the PR with the preview URL." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**PR:** #${{ steps.pr-info.outputs.pr_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ steps.pr-info.outputs.branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ steps.pr-info.outputs.sha }}" >> $GITHUB_STEP_SUMMARY
 
   # ============================================================================
   # PRODUCTION DEPLOYMENT (main → c15t.com)
