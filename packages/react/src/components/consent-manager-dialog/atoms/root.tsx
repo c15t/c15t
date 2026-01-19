@@ -7,7 +7,7 @@
  * focus trapping, scroll locking and portal rendering.
  */
 
-import clsx from 'clsx';
+import styles from '@c15t/ui/styles/components/consent-manager-dialog.module.css';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -22,8 +22,7 @@ import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
 import type { CSSPropertiesWithVars } from '~/types/theme';
-import styles from '../consent-manager-dialog.module.css';
-import type { ConsentManagerDialogTheme } from '../theme';
+import { cnExt as cn } from '~/utils/cn';
 import { Overlay } from './overlay';
 
 /**
@@ -32,8 +31,7 @@ import { Overlay } from './overlay';
  * @public
  */
 export interface ConsentManagerDialogRootProps
-	extends ThemeContextValue<ConsentManagerDialogTheme>,
-		HTMLAttributes<HTMLDialogElement> {
+	extends HTMLAttributes<HTMLDialogElement> {
 	/**
 	 * React children that will be rendered inside the dialog container.
 	 * Typically this includes `ConsentManagerDialog.Card` and its sub-components.
@@ -98,17 +96,10 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 	overlay,
 	className,
 	style,
-	theme: localTheme,
 	...rest
 }) => {
 	// Global theme from provider (if any)
 	const globalTheme = useTheme();
-
-	// Merge theme values – local props take precedence.
-	const theme = {
-		...globalTheme.theme,
-		...localTheme,
-	} as ConsentManagerDialogTheme | undefined;
 
 	const disableAnimation =
 		localDisableAnimation ?? globalTheme.disableAnimation ?? false;
@@ -136,6 +127,9 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 		setIsMounted(true);
 	}, []);
 
+	// Get animation duration from theme
+	const animationDuration = globalTheme.theme?.motion?.duration?.normal;
+
 	// Manage visibility with respect to animation
 	useEffect(() => {
 		if (isOpen) {
@@ -143,17 +137,14 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 		} else if (disableAnimation) {
 			setIsVisible(false);
 		} else {
-			// Delay hide to allow closing animation to finish
-			const duration = Number.parseInt(
-				getComputedStyle(document.documentElement).getPropertyValue(
-					'--dialog-animation-duration'
-				) || '200',
-				10
-			);
+			// Get duration from theme tokens, falling back to 200ms
+			const durationStr = animationDuration || '200ms';
+			const duration = Number.parseInt(durationStr.replace('ms', ''), 10);
+
 			const timer = setTimeout(() => setIsVisible(false), duration);
 			return () => clearTimeout(timer);
 		}
-	}, [isOpen, disableAnimation]);
+	}, [isOpen, disableAnimation, animationDuration]);
 
 	// Trap focus when dialog open
 	useFocusTrap(isOpen && trapFocus, dialogRef as RefObject<HTMLElement>);
@@ -162,7 +153,7 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 	useScrollLock(isOpen && scrollLock);
 
 	// Compose class names
-	const rootClasses = clsx(
+	const rootClasses = cn(
 		styles.root,
 		!disableAnimation &&
 			(isVisible ? styles.dialogVisible : styles.dialogHidden),
@@ -170,23 +161,19 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 	);
 
 	// Styles (using theme util)
-	const themedStyle = useStyles(
-		'dialog.root',
-		{
-			baseClassName: undefined,
-			className: rootClasses,
-			style: style as CSSPropertiesWithVars<Record<string, never>>,
-			noStyle,
-		},
-		theme
-	);
+	const themedStyle = useStyles('dialog', {
+		baseClassName: undefined,
+		className: rootClasses,
+		style: style as CSSPropertiesWithVars<Record<string, never>>,
+		noStyle,
+	});
 
 	const contextValue: ThemeContextValue = {
 		disableAnimation,
 		noStyle,
 		scrollLock,
 		trapFocus,
-		theme,
+		theme: globalTheme.theme,
 	};
 
 	const dialogNode = (
@@ -212,7 +199,7 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 							className={
 								noStyle
 									? undefined
-									: clsx(
+									: cn(
 											styles.container,
 											!disableAnimation && isVisible
 												? styles.contentVisible

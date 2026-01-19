@@ -1,7 +1,6 @@
 import type { AllConsentNames } from 'c15t';
 import type { ComponentPropsWithRef, FC, ReactNode } from 'react';
 import type * as Atom from './atoms';
-import type { FrameTheme } from './theme';
 
 export interface FrameProps extends ComponentPropsWithRef<'div'> {
 	/**
@@ -32,9 +31,8 @@ export interface FrameProps extends ComponentPropsWithRef<'div'> {
 	 * accessibility. Merges with defaults. Ignored when `noStyle={true}`.
 	 *
 	 * @default undefined
-	 * @see {@link FrameTheme}
 	 */
-	theme?: FrameTheme;
+	theme?: any;
 }
 
 export interface FrameCompoundComponent extends FC<FrameProps> {

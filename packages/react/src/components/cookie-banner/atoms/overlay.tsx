@@ -3,13 +3,13 @@
  * Provides the overlay backdrop component for the CookieBanner.
  */
 
-import clsx from 'clsx';
+import styles from '@c15t/ui/styles/components/cookie-banner.module.css';
 import { forwardRef, type HTMLAttributes, useEffect, useState } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
-import styles from '../cookie-banner.module.css';
+import { cnExt as cn } from '~/utils/cn';
 
 /**
  * Props for the Overlay component.
@@ -81,7 +81,7 @@ const CookieBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 		}, [showPopup, disableAnimation]);
 
 		// Apply theme styles
-		const theme = useStyles('banner.overlay', {
+		const theme = useStyles('bannerOverlay', {
 			baseClassName: !(contextNoStyle || noStyle) && styles.overlay,
 			className, // Always pass custom className
 			noStyle: contextNoStyle || noStyle,
@@ -99,7 +99,7 @@ const CookieBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 		}
 
 		// Combine theme className with animation class if needed
-		const finalClassName = clsx(theme.className, animationClass);
+		const finalClassName = cn(theme.className, animationClass);
 
 		useScrollLock(!!(showPopup && scrollLock));
 

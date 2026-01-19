@@ -24,6 +24,11 @@ export {
 	prepareTranslationConfig,
 } from '@c15t/translations';
 export * from './client';
+export {
+	type ConsentManagerInterface,
+	type ConsentManagerOptions,
+	configureConsentManager,
+} from './client';
 // Export basic types directly for convenience
 export type {
 	FetchOptions,

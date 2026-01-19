@@ -1,0 +1,53 @@
+{
+	"name": "@c15t/ui",
+	"version": "2.0.0",
+	"description": "Framework-agnostic UI and styling system for c15t",
+	"type": "module",
+	"exports": {
+		"./theme": {
+			"types": "./dist/theme/index.d.ts",
+			"import": "./dist/theme/index.js",
+			"require": "./dist/theme/index.cjs"
+		},
+		"./utils": {
+			"types": "./dist/utils/index.d.ts",
+			"import": "./dist/utils/index.js",
+			"require": "./dist/utils/index.cjs"
+		},
+		"./styles/*": "./src/styles/*",
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist",
+		"src/styles"
+	],
+	"scripts": {
+		"build": "rslib build",
+		"dev": "rslib build --watch",
+		"fmt": "pnpm biome format --write .",
+		"lint": "pnpm biome lint ./src",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@c15t/translations": "workspace:*",
+		"c15t": "workspace:*",
+		"clsx": "2.1.1"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
+		"@rslib/core": "0.18.3",
+		"typescript": "5.9.3",
+		"vitest": "4.0.15"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

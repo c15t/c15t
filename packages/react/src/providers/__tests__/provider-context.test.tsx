@@ -117,9 +117,7 @@ describe('ConsentManagerProvider Context Values', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
-					react: {
-						theme: { 'banner.root': 'dark' },
-					},
+					theme: { slots: { bannerCard: 'dark' } },
 				}}
 			>
 				<ConsumerComponent />

@@ -1,0 +1,68 @@
+---
+title: Styling System 2.0
+description: A modern, token-based approach to styling c15t components with maximum flexibility and minimal complexity.
+canary: true
+---
+
+## Overview
+
+c15t components use a modern styling system built on **Design Tokens**, **Smart Defaults**, and **Component Slots**. This system provides a balance between ease of use for simple brand changes and deep customization for complex design requirements.
+
+## Core Architecture
+
+The system is structured into two levels of customization:
+
+### Level 1: Design Tokens
+
+Design tokens are the global foundation of your theme. They define the core values for colors, typography, spacing, and borders that apply across all c15t components.
+
+```tsx
+<ConsentManagerProvider
+  options={{
+    theme: {
+      colors: {
+        primary: '#0066ff',
+        surface: '#ffffff',
+        text: '#111111',
+      },
+      typography: {
+        fontFamily: 'Inter, sans-serif',
+      },
+      radius: {
+        md: '12px',
+      },
+    }
+  }}
+>
+  {children}
+</ConsentManagerProvider>
+```
+
+### Level 2: Component Slots
+
+For fine-grained control, you can target specific elements within a component using slots. This allows you to add custom classes or specific inline styles to individual parts of the UI without affecting the global design tokens.
+
+```tsx
+theme: {
+  slots: {
+    bannerCard: 'my-custom-card-class',
+    buttonPrimary: {
+      className: 'font-bold px-6',
+      style: { textTransform: 'uppercase' }
+    }
+  }
+}
+```
+
+## Features
+
+- **Semantic Naming**: Tokens use names like `primary`, `surface`, and `textMuted` to reflect design intent rather than component implementation.
+- **Smart Inheritance**: Components automatically inherit global tokens, so setting your `primary` color once updates all buttons and interactive elements.
+- **Animation Synchronization**: Component unmounting and visibility transitions are automatically synchronized with your `motion` tokens, ensuring smooth animations without hardcoded timeouts.
+- **Type-Safe Discovery**: The entire theme object is strictly typed, providing full autocomplete and build-time validation for all tokens and slots.
+
+## Next Steps
+
+- Explore the available [Design Tokens](/docs/frameworks/react/styling-2.0/tokens) to set up your global theme.
+- Learn how to target specific elements using [Component Slots](/docs/frameworks/react/styling-2.0/slots).
+- Check the [Color Scheme](/docs/frameworks/react/styling/color-scheme) guide for light and dark mode configuration.
