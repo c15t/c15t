@@ -23,9 +23,9 @@
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
 		"dev": "rslib build --watch",
-		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --write",
+		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"knip": "knip",
-		"lint": "pnpm biome lint ./src",
+		"lint": "bun biome lint ./src",
 		"start": "node ./dist/index.mjs",
 		"test": "vitest run",
 		"test:watch": "vitest"

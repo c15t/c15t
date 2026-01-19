@@ -10,8 +10,8 @@
 	"scripts": {
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
-		"lint": "pnpm biome lint ./src",
-		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --write"
+		"lint": "bun biome lint ./src",
+		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
