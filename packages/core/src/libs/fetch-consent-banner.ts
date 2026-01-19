@@ -14,7 +14,7 @@ import type { PrivacyConsentState } from '../store.type';
 import { hasGlobalPrivacyControlSignal } from './global-privacy-control';
 import type { createTrackingBlocker } from './tracking-blocker';
 
-type ConsentBannerResponse = ContractsOutputs['consent']['post'];
+type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
 
 /**
  * Configuration for fetching consent banner information
@@ -101,7 +101,7 @@ function updateStore(
 			: {}),
 
 		// If the banner is not shown and has no requirement consent to all
-		...(shouldAutoGrantConsents && {
+		...(autoGrantedConsents && {
 			consents: autoGrantedConsents,
 			selectedConsents: autoGrantedConsents,
 		}),
@@ -141,11 +141,9 @@ function updateStore(
 	set(updatedStore);
 
 	// Trigger onConsentSet callback when consents are automatically granted
-	if (shouldAutoGrantConsents) {
+	if (autoGrantedConsents) {
 		callbacks?.onConsentSet?.({
-			preferences: {
-				...autoGrantedConsents,
-			},
+			preferences: autoGrantedConsents,
 		});
 	}
 
