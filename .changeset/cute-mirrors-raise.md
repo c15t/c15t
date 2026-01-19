@@ -3,4 +3,4 @@
 "c15t": patch
 ---
 
-feat(core): experimental Global Privacy Control support
+Full Changelog: https://c15t.com/changelog/2026-01-19-v1.8.3
