@@ -1,5 +1,12 @@
 # @c15t/nextjs
 
+## 1.8.3-canary-20260119205350
+
+### Patch Changes
+
+- Updated dependencies [6c28663]
+  - @c15t/react@1.8.3-canary-20260119205350
+
 ## 1.8.3-canary-20260109181827
 
 ### Patch Changes

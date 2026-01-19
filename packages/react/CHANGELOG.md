@@ -1,5 +1,13 @@
 # @c15t/react
 
+## 1.8.3-canary-20260119205350
+
+### Patch Changes
+
+- 6c28663: Full Changelog: https://c15t.com/changelog/2026-01-19-v1.8.3
+- Updated dependencies [6c28663]
+  - c15t@1.8.3-canary-20260119205350
+
 ## 1.8.3-canary-20260109181827
 
 ### Patch Changes
