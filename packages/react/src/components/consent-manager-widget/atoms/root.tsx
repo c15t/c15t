@@ -14,7 +14,6 @@ import {
 } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useTextDirection } from '~/hooks/use-text-direction';
-import type { ConsentManagerWidgetTheme } from '../theme';
 
 /**
  * Props for the ConsentManagerWidgetRoot component.
@@ -25,8 +24,7 @@ import type { ConsentManagerWidgetTheme } from '../theme';
  *
  * @public
  */
-export interface ConsentManagerWidgetRootProps
-	extends ThemeContextValue<ConsentManagerWidgetTheme> {
+export interface ConsentManagerWidgetRootProps extends ThemeContextValue {
 	/**
 	 * Child components to be rendered within the consent manager context.
 	 *
@@ -94,7 +92,6 @@ const ConsentManagerWidgetRoot: FC<ConsentManagerWidgetRootProps> = ({
 	children,
 	noStyle = false,
 	disableAnimation = false,
-	theme,
 	useProvider = true,
 }) => {
 	const { translationConfig } = useConsentManager();
@@ -106,13 +103,12 @@ const ConsentManagerWidgetRoot: FC<ConsentManagerWidgetRootProps> = ({
 	const contextValue = {
 		disableAnimation,
 		noStyle,
-		theme,
 	};
 
 	const content = (
 		<Box
 			data-testid="consent-manager-widget-root"
-			themeKey="widget.root"
+			themeKey="widget"
 			dir={textDirection}
 		>
 			{children}

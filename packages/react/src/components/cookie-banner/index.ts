@@ -74,12 +74,6 @@ export interface CookieBannerCompoundComponent extends FC<CookieBannerProps> {
  * Customized usage with all props:
  * ```tsx
  * <CookieBanner
- *   theme={{
- *     root: "bg-white p-4",
- *     title: "text-xl font-bold",
- *     description: "text-gray-600",
- *     actions: "mt-4 flex gap-2"
- *   }}
  *   title="Cookie Settings"
  *   description="We use cookies to enhance your browsing experience"
  *   rejectButtonText="Decline"
@@ -158,5 +152,3 @@ export {
 	RejectButton,
 	Title,
 } from './components';
-
-export type { CookieBannerTheme } from './theme';

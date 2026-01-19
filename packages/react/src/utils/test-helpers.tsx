@@ -11,6 +11,7 @@ interface ComponentStyles {
 		styles: string | ThemeValue;
 	}[];
 	noStyle?: boolean;
+	theme?: any;
 }
 
 /**
@@ -25,7 +26,8 @@ interface ComponentStyles {
  * @example
  * ```tsx
  * await testComponentStyles({
- *   component: <MyComponent theme={{ root: 'custom-class' }} />,
+ *   component: <MyComponent />,
+ *   theme: { slots: { root: 'custom-class' } },
  *   testCases: [{ testId: 'my-component-root', styles: 'custom-class' }]
  * });
  * ```
@@ -34,15 +36,15 @@ export async function testComponentStyles({
 	component,
 	testCases,
 	noStyle = false,
+	theme,
 }: ComponentStyles) {
 	// Render the component with the ConsentManagerProvider
 	const { container } = await render(
 		<ConsentManagerProvider
 			options={{
 				mode: 'offline',
-				react: {
-					noStyle,
-				},
+				noStyle,
+				theme,
 			}}
 		>
 			{component}

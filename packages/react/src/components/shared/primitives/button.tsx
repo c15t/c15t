@@ -4,7 +4,11 @@ import { forwardRef, type MouseEvent, useCallback } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
-import type { CSSPropertiesWithVars, CSSVariables } from '~/types/theme';
+import type {
+	AllThemeKeys,
+	CSSPropertiesWithVars,
+	CSSVariables,
+} from '~/types/theme';
 import * as Button from '../ui/button';
 import type { ButtonVariantsProps } from '../ui/button/button';
 import type { ConsentButtonElement, ConsentButtonProps } from './button.types';
@@ -48,7 +52,8 @@ export const ConsentButton = forwardRef<
 			action,
 			themeKey,
 			baseClassName,
-			variant = 'neutral',
+			variant: forwardedVariant,
+			primary,
 			mode = 'stroke',
 			size = 'small',
 			onClick: forwardedOnClick,
@@ -63,21 +68,29 @@ export const ConsentButton = forwardRef<
 			useConsentManager();
 		const { noStyle: contextNoStyle } = useTheme();
 
-		const buttonStyle = useStyles(themeKey ?? 'button', {
-			baseClassName: [
-				!(contextNoStyle || noStyle) &&
-					Button.buttonVariants({
-						variant,
-						mode,
-						size,
-					}).root(),
-			],
-			style: {
-				...(style as CSSPropertiesWithVars<CSSVariables>),
-			},
-			className: forwardedClassName,
-			noStyle: contextNoStyle || noStyle,
-		});
+		const variant = primary ? 'primary' : (forwardedVariant ?? 'neutral');
+
+		const defaultThemeKey =
+			variant === 'primary' ? 'buttonPrimary' : 'buttonSecondary';
+
+		const buttonStyle = useStyles(
+			(themeKey as AllThemeKeys) ?? defaultThemeKey,
+			{
+				baseClassName: [
+					!(contextNoStyle || noStyle) &&
+						Button.buttonVariants({
+							variant,
+							mode,
+							size,
+						}).root(),
+				],
+				style: {
+					...(style as CSSPropertiesWithVars<CSSVariables>),
+				},
+				className: forwardedClassName,
+				noStyle: contextNoStyle || noStyle,
+			}
+		);
 
 		// Need to know what category to set
 		if (!category && action === 'set-consent') {
@@ -137,6 +150,8 @@ export const ConsentButton = forwardRef<
 				setIsPrivacyDialogOpen,
 				setShowPopup,
 				action,
+				category,
+				setConsent,
 			]
 		);
 

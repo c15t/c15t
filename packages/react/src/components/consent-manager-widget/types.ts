@@ -1,12 +1,28 @@
 import type { ReactNode } from 'react';
-import type { ThemeContextValue } from '~/context/theme-context';
 import type { LegalLinksProps } from '../shared/primitives/legal-links';
-import type { ConsentManagerWidgetTheme } from './theme';
 
-export interface ConsentManagerWidgetRootProps
-	extends ThemeContextValue<ConsentManagerWidgetTheme> {
+export interface ConsentManagerWidgetRootProps {
 	children: ReactNode;
 	useProvider?: boolean;
+	/**
+	 * Disables all animations when true
+	 */
+	disableAnimation?: boolean;
+
+	/**
+	 * Removes default styles when true
+	 */
+	noStyle?: boolean;
+
+	/**
+	 * Locks the scroll when true
+	 */
+	scrollLock?: boolean;
+
+	/**
+	 * Traps keyboard focus within a dialog when true
+	 */
+	trapFocus?: boolean;
 }
 
 /**
@@ -23,7 +39,7 @@ export interface ConsentManagerWidgetProps
 	 *
 	 * @defaultValue false
 	 */
-	hideBrading?: boolean;
+	hideBranding?: boolean;
 	/**
 	 * Controls which legal links to display in the widget footer.
 	 *

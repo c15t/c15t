@@ -7,21 +7,22 @@
  */
 
 import { type FC, Fragment, type ReactNode } from 'react';
-import { ConsentButton } from '~/components/shared/primitives/button';
 import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { useTheme } from '~/hooks/use-theme';
 import { useTranslations } from '~/hooks/use-translations';
 import { CookieBannerRoot } from './atoms/root';
 import {
+	CookieBannerAcceptButton,
 	CookieBannerCard,
+	CookieBannerCustomizeButton,
 	CookieBannerDescription,
 	CookieBannerFooter,
 	CookieBannerFooterSubGroup,
 	CookieBannerHeader,
+	CookieBannerRejectButton,
 	CookieBannerTitle,
 } from './components';
 import { ErrorBoundary } from './error-boundary';
-import type { CookieBannerTheme } from './theme';
 
 /**
  * Identifiers for the available buttons in the cookie banner.
@@ -48,13 +49,6 @@ const DEFAULT_LAYOUT: CookieBannerLayout = [['reject', 'accept'], 'customize'];
  * @public
  */
 export interface CookieBannerProps {
-	/**
-	 * Custom styles to apply to the banner and its child components
-	 * @remarks Allows for deep customization of the banner's appearance while maintaining accessibility
-	 * @default undefined
-	 */
-	theme?: CookieBannerTheme;
-
 	/**
 	 * When true, removes all default styling from the component
 	 * @remarks Useful for implementing completely custom designs
@@ -161,7 +155,6 @@ export interface CookieBannerProps {
 }
 
 export const CookieBanner: FC<CookieBannerProps> = ({
-	theme: localTheme,
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
 	scrollLock: localScrollLock,
@@ -175,19 +168,12 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 	layout = DEFAULT_LAYOUT,
 	primaryButton = 'customize',
 }) => {
-	const { cookieBanner, common } = useTranslations();
+	const { cookieBanner } = useTranslations();
 
-	// Get global theme context and merge with local props
+	// Get global theme context
 	const globalTheme = useTheme();
 
-	// Merge global theme context with local props (local takes precedence)
-	const mergedTheme = {
-		...globalTheme.theme,
-		...localTheme,
-	};
-
 	const mergedProps = {
-		theme: mergedTheme,
 		noStyle: localNoStyle ?? globalTheme.noStyle,
 		disableAnimation: localDisableAnimation ?? globalTheme.disableAnimation,
 		scrollLock: localScrollLock ?? globalTheme.scrollLock,
@@ -198,44 +184,34 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 		const isPrimary = Array.isArray(primaryButton)
 			? primaryButton.includes(type)
 			: type === primaryButton;
-		const variant = isPrimary ? 'primary' : undefined;
 
 		switch (type) {
 			case 'reject':
 				return (
-					<ConsentButton
-						action="reject-consent"
-						closeCookieBanner
-						themeKey="banner.footer.reject-button"
+					<CookieBannerRejectButton
+						primary={isPrimary}
 						data-testid="cookie-banner-reject-button"
-						variant={variant}
 					>
-						{rejectButtonText || common.rejectAll}
-					</ConsentButton>
+						{rejectButtonText}
+					</CookieBannerRejectButton>
 				);
 			case 'accept':
 				return (
-					<ConsentButton
-						action="accept-consent"
-						closeCookieBanner
-						themeKey="banner.footer.accept-button"
+					<CookieBannerAcceptButton
+						primary={isPrimary}
 						data-testid="cookie-banner-accept-button"
-						variant={variant}
 					>
-						{acceptButtonText || common.acceptAll}
-					</ConsentButton>
+						{acceptButtonText}
+					</CookieBannerAcceptButton>
 				);
 			case 'customize':
 				return (
-					<ConsentButton
-						action="open-consent-dialog"
-						closeCookieBanner
-						themeKey="banner.footer.customize-button"
+					<CookieBannerCustomizeButton
+						primary={isPrimary}
 						data-testid="cookie-banner-customize-button"
-						variant={variant}
 					>
-						{customizeButtonText || common.customize}
-					</ConsentButton>
+						{customizeButtonText}
+					</CookieBannerCustomizeButton>
 				);
 		}
 	};
@@ -247,9 +223,9 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 			<CookieBannerRoot {...mergedProps}>
 				<CookieBannerCard aria-label={cookieBanner.title}>
 					<CookieBannerHeader>
-						<CookieBannerTitle>{title || cookieBanner.title}</CookieBannerTitle>
+						<CookieBannerTitle>{title}</CookieBannerTitle>
 						<CookieBannerDescription legalLinks={legalLinks}>
-							{description || cookieBanner.description}
+							{description}
 						</CookieBannerDescription>
 					</CookieBannerHeader>
 					<CookieBannerFooter>

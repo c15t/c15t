@@ -1,0 +1,100 @@
+---
+title: Design Tokens
+description: Learn how to use design tokens to control the global appearance of c15t components.
+canary: true
+---
+
+## Overview
+
+Design tokens are the foundation of Styling System 2.0. By defining tokens in your theme, you ensure consistency across all components with minimal effort.
+
+## Color Tokens
+
+Colors use semantic naming to reflect their purpose rather than their appearance.
+
+| Token | Description | Applied to |
+| :--- | :--- | :--- |
+| `primary` | Your main brand color | Accept buttons, focus states, active toggles |
+| `primaryHover` | Hover state for primary color | Buttons on hover |
+| `surface` | Background color | Cards, dialogs, panels |
+| `surfaceHover` | Hover state for surface | Interactive list items, hoverable cards |
+| `text` | Primary text color | Headings, body text |
+| `textMuted` | Secondary text color | Descriptions, captions, metadata |
+| `textOnPrimary` | Text color on primary background | Text inside primary buttons |
+| `border` | Default border color | Card outlines, dividers, inputs |
+| `overlay` | Backdrop color | Modal background dimming |
+
+```tsx
+theme: {
+  colors: {
+    primary: '#6366f1',
+    surface: '#ffffff',
+    text: '#111827',
+    textMuted: '#6b7280',
+  }
+}
+```
+
+## Typography Tokens
+
+Control the global font family and hierarchy.
+
+| Token | Description |
+| :--- | :--- |
+| `fontFamily` | The font stack applied to all components |
+| `fontSize` | Preset sizes: `sm` (label), `base` (body), `lg` (heading) |
+| `fontWeight` | Weights: `normal` (400), `medium` (500), `semibold` (600) |
+| `lineHeight` | Spacing: `tight`, `normal`, `relaxed` |
+
+```tsx
+theme: {
+  typography: {
+    fontFamily: '"Inter", system-ui, sans-serif',
+    fontSize: { base: '16px' }
+  }
+}
+```
+
+## Spacing Tokens
+
+Maintain consistent layout using a standard spacing scale (`xs`, `sm`, `md`, `lg`, `xl`).
+
+```tsx
+theme: {
+  spacing: {
+    md: '1rem',
+    lg: '1.5rem',
+  }
+}
+```
+
+## Radius Tokens
+
+Control the corner rounding for buttons, cards, and dialogs.
+
+```tsx
+theme: {
+  radius: {
+    md: '8px',
+    full: '9999px',
+  }
+}
+```
+
+## Motion Tokens
+
+Sync your animation timings between React logic and CSS transitions.
+
+| Token | Description | Default |
+| :--- | :--- | :--- |
+| `duration.normal` | Standard transition speed | `200ms` |
+| `easing` | The transition timing function | `cubic-bezier(0.4, 0, 0.2, 1)` |
+
+```tsx
+theme: {
+  motion: {
+    duration: { normal: '300ms' },
+    easing: 'ease-out'
+  }
+}
+```

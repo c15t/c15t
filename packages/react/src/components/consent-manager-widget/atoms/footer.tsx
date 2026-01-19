@@ -1,6 +1,6 @@
+import styles from '@c15t/ui/styles/components/consent-manager-widget.module.css';
 import { forwardRef, type Ref } from 'react';
 import { Box, type BoxProps } from '../../shared/primitives/box';
-import styles from '../consent-manager-widget.module.css';
 
 /**
  * Footer component for consent management actions.
@@ -20,7 +20,7 @@ export const ConsentManagerWidgetFooter = forwardRef<
 			baseClassName={styles.footer}
 			data-testid="consent-manager-widget-footer"
 			{...props}
-			themeKey="widget.footer"
+			themeKey="widgetFooter"
 		>
 			{children}
 		</Box>
@@ -37,7 +37,7 @@ export const ConsentManagerWidgetFooterSubGroup = forwardRef<
 			baseClassName={styles.footerGroup}
 			data-testid="consent-manager-widget-footer-sub-group"
 			{...props}
-			themeKey="widget.footer.sub-group"
+			themeKey="widgetFooter"
 		>
 			{children}
 		</Box>

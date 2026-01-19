@@ -1,24 +1,20 @@
 import { describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
-import { GlobalThemeContext, LocalThemeContext } from '~/context/theme-context';
-import type { ThemeValue } from '~/types/theme';
+import {
+	GlobalThemeContext,
+	LocalThemeContext,
+	type ThemeContextValue,
+} from '~/context/theme-context';
 import { useTheme } from '../use-theme';
-
-type TestTheme = {
-	noStyle: boolean;
-	theme: {
-		'dialog.root': ThemeValue;
-		'dialog.title'?: ThemeValue;
-		'dialog.content'?: ThemeValue;
-	};
-};
 
 describe('useTheme', () => {
 	test('returns global theme when no local theme is provided', async () => {
-		const globalTheme: TestTheme = {
+		const globalTheme: ThemeContextValue = {
 			noStyle: false,
 			theme: {
-				'dialog.root': 'global-style',
+				slots: {
+					dialog: 'global-style',
+				},
 			},
 		};
 
@@ -34,18 +30,22 @@ describe('useTheme', () => {
 	});
 
 	test('merges global and local themes correctly', async () => {
-		const globalTheme: TestTheme = {
+		const globalTheme: ThemeContextValue = {
 			noStyle: false,
 			theme: {
-				'dialog.root': 'global-style',
-				'dialog.title': 'global-title',
+				slots: {
+					dialog: 'global-style',
+					dialogTitle: 'global-title',
+				},
 			},
 		};
 
-		const localTheme: Partial<TestTheme> = {
+		const localTheme: ThemeContextValue = {
 			theme: {
-				'dialog.root': 'local-style',
-				'dialog.content': 'local-content',
+				slots: {
+					dialog: 'local-style',
+					dialogContent: 'local-content',
+				},
 			},
 		};
 
@@ -59,28 +59,34 @@ describe('useTheme', () => {
 			),
 		});
 
-		expect(result.current).toEqual<TestTheme>({
+		expect(result.current).toEqual({
 			noStyle: false,
 			theme: {
-				'dialog.root': 'local-style',
-				'dialog.title': 'global-title',
-				'dialog.content': 'local-content',
+				slots: {
+					dialog: 'local-style',
+					dialogTitle: 'global-title',
+					dialogContent: 'local-content',
+				},
 			},
 		});
 	});
 
 	test('local theme takes precedence over global theme', async () => {
-		const globalTheme: TestTheme = {
+		const globalTheme: ThemeContextValue = {
 			noStyle: false,
 			theme: {
-				'dialog.root': 'global-style',
+				slots: {
+					dialog: 'global-style',
+				},
 			},
 		};
 
-		const localTheme: TestTheme = {
+		const localTheme: ThemeContextValue = {
 			noStyle: true,
 			theme: {
-				'dialog.root': 'local-style',
+				slots: {
+					dialog: 'local-style',
+				},
 			},
 		};
 
@@ -94,8 +100,7 @@ describe('useTheme', () => {
 			),
 		});
 
-		const theme = result.current as TestTheme;
-		expect(theme.theme['dialog.root']).toBe('local-style');
-		expect(theme.noStyle).toBe(true);
+		expect(result.current.theme?.slots?.dialog).toBe('local-style');
+		expect(result.current.noStyle).toBe(true);
 	});
 });

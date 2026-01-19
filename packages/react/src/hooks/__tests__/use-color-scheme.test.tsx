@@ -87,21 +87,16 @@ describe('useColorScheme', () => {
 		expect(document.documentElement.classList.contains('c15t-dark')).toBe(true);
 	});
 
-	test('handles default theme based on document class', async () => {
+	test('does nothing when colorScheme is null (opt-out behavior)', async () => {
+		// When colorScheme is null, the hook opts out and does nothing
+		// This allows users to manage color scheme themselves
 		document.documentElement.classList.add('dark');
 		await renderHook(() => useColorScheme(null));
-		expect(document.documentElement.classList.contains('c15t-dark')).toBe(true);
-	});
-
-	test('updates theme when default theme changes', async () => {
-		renderHook(() => useColorScheme(null));
-
-		// Simulate class change
-		document.documentElement.classList.add('dark');
-
-		// Wait for MutationObserver to process
-		await new Promise((resolve) => setTimeout(resolve, 0));
-
-		expect(document.documentElement.classList.contains('c15t-dark')).toBe(true);
+		// c15t-dark should NOT be added - the hook is inactive when null
+		expect(document.documentElement.classList.contains('c15t-dark')).toBe(
+			false
+		);
+		// The original 'dark' class should still be there (untouched)
+		expect(document.documentElement.classList.contains('dark')).toBe(true);
 	});
 });

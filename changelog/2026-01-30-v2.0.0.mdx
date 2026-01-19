@@ -24,8 +24,19 @@ and backend. If a browser sends a GPC signal, the consent manager now:
 - Reflects GPC-driven state in the consent UI and callbacks.
 - Exposes helpers so you can detect and react to GPC in custom flows.
 
+## Styling System 2.0
+
+We've completely redesigned how c15t components are styled. This release introduces a modern, token-based system that replaces the complex and deeply nested theme keys of v1.
+
+- **Design Tokens**: Control colors, typography, spacing, and radius globally using semantic tokens.
+- **Flattened API**: Styling options like `theme`, `colorScheme`, and `disableAnimation` have been moved to the top level of `ConsentManagerProvider` options.
+- **Component Slots**: Fine-grained control over specific elements using a flat, discoverable slot structure.
+- **Animation Sync**: Transitions are now synchronized between React and CSS using motion tokens, eliminating hardcoded timeouts.
+
 ## 💥 Breaking changes
 
+- **Styling System v1 replaced by v2**: The legacy deeply-nested theme keys and per-component CSS variables have been removed. You must migrate to the new Token-based styling system.
+- **Flattened Provider Options**: The `react: { ... }` configuration object in `ConsentManagerProvider` has been removed. All UI options are now top-level.
 - **Backend v1 removed, v2 promoted to default**: the deprecated `v1` backend implementation and
   `/v1` routes have been removed. The former `v2` contracts, handlers, and types have been moved
   to the top-level backend entrypoints. If you were still relying on `v1`, you must migrate to the

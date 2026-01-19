@@ -6,6 +6,7 @@
  * Built with accessibility and customization in mind, following GDPR and other privacy regulation requirements.
  */
 
+import styles from '@c15t/ui/styles/components/consent-manager-dialog.module.css';
 import { forwardRef, type ReactNode, type Ref } from 'react';
 import { ConsentManagerWidget } from '~/components/consent-manager-widget/consent-manager-widget';
 import { Box, type BoxProps } from '~/components/shared/primitives/box';
@@ -15,7 +16,6 @@ import { C15TIcon, ConsentLogo } from '~/components/shared/ui/logo';
 import { useConsentManager } from '~/hooks';
 import { useTranslations } from '~/hooks/use-translations';
 import type { ClassNameStyle } from '~/types/theme';
-import styles from '../consent-manager-dialog.module.css';
 
 /**
  * Props for the DialogCard and related components
@@ -31,9 +31,9 @@ const DialogCard = forwardRef<HTMLDivElement, DialogCardProps>(
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
-				className={styles.card}
+				baseClassName={styles.card}
 				{...props}
-				themeKey="dialog.card"
+				themeKey="dialogCard"
 				data-testid="consent-manager-dialog-card"
 			>
 				{children}
@@ -56,9 +56,9 @@ const DialogHeader = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
-				className={styles.header}
+				baseClassName={styles.header}
 				{...props}
-				themeKey="dialog.header"
+				themeKey="dialogHeader"
 				data-testid="consent-manager-dialog-header"
 			>
 				{children}
@@ -80,15 +80,16 @@ const DialogHeaderTitle = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
 >(({ children, ...props }, ref) => {
+	const { consentManagerDialog } = useTranslations();
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
-			className={styles.title}
-			themeKey="dialog.title"
+			baseClassName={styles.title}
+			themeKey="dialogTitle"
 			{...props}
 			data-testid="consent-manager-dialog-title"
 		>
-			{children}
+			{children ?? consentManagerDialog.title}
 		</Box>
 	);
 });
@@ -109,32 +110,33 @@ const DialogHeaderDescription = forwardRef<
 		legalLinks?: LegalLinksProps['links'];
 	}
 >(({ children, legalLinks, asChild, ...props }, ref) => {
+	const { consentManagerDialog } = useTranslations();
 	if (asChild) {
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
-				className={styles.description}
-				themeKey="dialog.description"
+				baseClassName={styles.description}
+				themeKey="dialogDescription"
 				asChild={asChild}
 				{...props}
 			>
-				{children}
+				{children ?? consentManagerDialog.description}
 			</Box>
 		);
 	}
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
-			className={styles.description}
-			themeKey="dialog.description"
+			baseClassName={styles.description}
+			themeKey="dialogDescription"
 			asChild={asChild}
 			{...props}
 			data-testid="consent-manager-dialog-description"
 		>
-			{children}
+			{children ?? consentManagerDialog.description}
 			<InlineLegalLinks
 				links={legalLinks}
-				themeKey="dialog.legal-links"
+				themeKey="dialogContent"
 				testIdPrefix="consent-manager-dialog-legal-link"
 			/>
 		</Box>
@@ -155,8 +157,8 @@ const DialogContent = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
-				className={styles.content}
-				themeKey="dialog.content"
+				baseClassName={styles.content}
+				themeKey="dialogContent"
 				data-testid="consent-manager-dialog-content"
 				{...props}
 			>
@@ -168,36 +170,34 @@ const DialogContent = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
 
 /**
  * The footer section of the privacy dialog.
- * Contains branding and additional privacy-related links.
- *
- * @remarks
- * - Should be the last child of DialogCard
- * - Includes c15t.com branding by default
- * - Can be customized through theme configuration
+ * This contains the branding but can be overidden with a custom footer.
  */
-const DialogFooter = forwardRef<HTMLDivElement, BoxProps>(
-	({ children, themeKey, ...props }, ref) => {
+const DialogFooter = forwardRef<
+	HTMLDivElement,
+	BoxProps & { hideBranding?: boolean; 'data-testid'?: string }
+>(
+	(
+		{ children, themeKey, hideBranding, 'data-testid': testId, ...props },
+		ref
+	) => {
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
-				className={styles.footer}
-				themeKey={themeKey || 'dialog.footer'}
+				baseClassName={styles.footer}
+				data-testid={testId ?? 'consent-manager-dialog-footer'}
 				{...props}
-				data-testid="consent-manager-dialog-footer"
+				themeKey={themeKey ?? 'dialogFooter'}
 			>
-				{children}
+				{children ?? <Branding hideBranding={hideBranding ?? false} />}
 			</Box>
 		);
 	}
 );
 
-/**
- * The branding footer with configurable logo
- */
-export const BrandingFooter = () => {
+export function Branding({ hideBranding }: { hideBranding: boolean }) {
 	const { branding } = useConsentManager();
 
-	if (branding === 'none') {
+	if (branding === 'none' || hideBranding) {
 		return null;
 	}
 
@@ -222,7 +222,7 @@ export const BrandingFooter = () => {
 			)}
 		</a>
 	);
-};
+}
 
 /**
  * A pre-configured privacy settings dialog card.
@@ -231,12 +231,14 @@ export const BrandingFooter = () => {
  * @param {Object} props - Component props
  * @param {boolean} [props.noStyle] - When true, removes default styling
  * @param {LegalLink[]} [props.legalLinks] - Legal document links to display in footer
+ * @param {boolean} [props.hideBranding] - Whether to hide the branding in the footer
  *
  * @example
  * ```tsx
  * <ConsentCustomizationCard
  *   noStyle={false}
  *   legalLinks={[{label: "Privacy Policy", href: "/privacy"}]}
+ *   hideBranding={false}
  * />
  * ```
  *
@@ -248,30 +250,26 @@ export const BrandingFooter = () => {
 const ConsentCustomizationCard = ({
 	noStyle,
 	legalLinks,
+	hideBranding,
 }: {
 	noStyle?: boolean;
 	legalLinks?: LegalLinksProps['links'];
+	hideBranding?: boolean;
 }) => {
-	const { consentManagerDialog: translations } = useTranslations();
-
 	return (
 		<DialogCard>
 			<DialogHeader>
-				<DialogHeaderTitle>{translations.title}</DialogHeaderTitle>
-				<DialogHeaderDescription legalLinks={legalLinks}>
-					{translations.description}
-				</DialogHeaderDescription>
+				<DialogHeaderTitle />
+				<DialogHeaderDescription legalLinks={legalLinks} />
 			</DialogHeader>
 			<DialogContent>
 				<ConsentManagerWidget
-					hideBrading
+					hideBranding
 					noStyle={noStyle}
 					useProvider={true}
 				/>
 			</DialogContent>
-			<DialogFooter themeKey="dialog.footer">
-				<BrandingFooter />
-			</DialogFooter>
+			<DialogFooter hideBranding={hideBranding} />
 		</DialogCard>
 	);
 };

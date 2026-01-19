@@ -1,3 +1,4 @@
+import styles from '@c15t/ui/styles/primitives/legal-links.module.css';
 import type { LegalLinks as LegalLinksType } from 'c15t';
 import { forwardRef } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
@@ -5,7 +6,6 @@ import { useStyles } from '~/hooks/use-styles';
 import { useTranslations } from '~/hooks/use-translations';
 import type { AllThemeKeys } from '~/types/theme/style-keys';
 import { Box, type BoxProps } from '../box';
-import styles from './legal-links.module.css';
 
 /**
  * Hook to filter legal links based on the provided links prop.
@@ -76,7 +76,7 @@ export function InlineLegalLinks({
 }: InlineLegalLinksProps) {
 	const filteredLinks = useFilteredLegalLinks(links);
 	const { legalLinks: t } = useTranslations();
-	const linkStyles = useStyles(`${themeKey}.link` as AllThemeKeys, {
+	const linkStyles = useStyles(themeKey as any, {
 		baseClassName: styles.legalLink,
 	});
 
@@ -119,12 +119,8 @@ export function InlineLegalLinks({
 
 /**
  * Valid theme key prefixes for the LegalLinks component.
- * These are the only allowed parent keys that have corresponding `.link` child keys defined in the theme.
  */
-type LegalLinksThemeKey =
-	| 'banner.header.legal-links'
-	| 'widget.legal-links'
-	| 'dialog.legal-links';
+type LegalLinksThemeKey = AllThemeKeys;
 
 export interface LegalLinksProps extends Omit<BoxProps, 'themeKey'> {
 	/**
@@ -177,7 +173,7 @@ export const LegalLinks = forwardRef<HTMLDivElement, LegalLinksProps>(
 
 		// TypeScript now knows that `${themeKey}.link` is valid because
 		// all three LegalLinksThemeKey values have corresponding `.link` child keys
-		const linkStyles = useStyles(`${themeKey}.link` as AllThemeKeys, {
+		const linkStyles = useStyles(themeKey as any, {
 			baseClassName: styles.legalLink,
 		});
 

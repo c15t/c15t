@@ -19,9 +19,7 @@ describe('useTranslations', () => {
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+						noStyle: false,
 					}}
 				>
 					{children}
@@ -51,9 +49,7 @@ describe('useTranslations', () => {
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+						noStyle: false,
 						translations: {
 							defaultLanguage: 'de',
 							disableAutoLanguageSwitch: true,
@@ -121,9 +117,7 @@ describe('useTranslations', () => {
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+						noStyle: false,
 						translations: customTranslations,
 					}}
 				>
@@ -152,9 +146,7 @@ describe('useTranslations', () => {
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+						noStyle: false,
 						translations: {
 							defaultLanguage: 'fr', // Language that doesn't exist
 						},
@@ -185,9 +177,7 @@ describe('useTranslations', () => {
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+						noStyle: false,
 						translations: {
 							defaultLanguage: 'en',
 							disableAutoLanguageSwitch: true,

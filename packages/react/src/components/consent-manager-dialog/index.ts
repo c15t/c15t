@@ -131,5 +131,3 @@ export {
 
 export { ConsentManagerDialogOverlay, Overlay } from './atoms/overlay';
 export { ConsentManagerDialogRoot, Root } from './atoms/root';
-
-export type { ConsentManagerDialogTheme } from './theme';

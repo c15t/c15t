@@ -80,12 +80,7 @@ export interface ConsentManagerWidgetCompoundComponent
  * Basic usage:
  * ```tsx
  * <ConsentManagerWidget
- *   theme={{
- *     root: "custom-root-class",
- *     accordion: "custom-accordion-class",
- *     footer: "custom-footer-class"
- *   }}
- *   hideBrading={true}
+ *   hideBranding={true}
  * />
  * ```
  *
@@ -166,5 +161,3 @@ export {
 	ConsentManagerWidgetRoot,
 	Root,
 } from './atoms/root';
-
-export type { ConsentManagerWidgetTheme } from './theme';

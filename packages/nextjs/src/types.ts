@@ -16,9 +16,7 @@ import type { ConsentManagerProviderProps as ReactConsentManagerProviderProps } 
  *   options={{
  *     mode: 'c15t',
  *     backendURL: '/api/c15t',
- *     react: {
- *       theme: customTheme
- *     }
+ *     theme: customTheme
  *   }}
  * >
  *   {children}

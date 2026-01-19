@@ -97,6 +97,7 @@
 		"not op_mini all"
 	],
 	"dependencies": {
+		"@c15t/ui": "workspace:*",
 		"@radix-ui/react-accordion": "1.2.12",
 		"@radix-ui/react-slot": "1.2.4",
 		"@radix-ui/react-switch": "1.2.6",

@@ -4,7 +4,7 @@ import { Slot } from '@radix-ui/react-slot';
 import { forwardRef, type HTMLAttributes } from 'react';
 
 import { useStyles } from '~/hooks/use-styles';
-import type { ExtendThemeKeys } from '~/types/theme';
+import type { AllThemeKeys, ExtendThemeKeys } from '~/types/theme';
 
 /**
  * Props for the description text component of the CookieBanner.
@@ -53,15 +53,19 @@ export interface BoxProps
  * @public
  */
 export const Box = forwardRef<HTMLDivElement, BoxProps>(
-	({ asChild, className, style, themeKey, baseClassName, ...props }, ref) => {
+	(
+		{ asChild, className, style, themeKey, baseClassName, noStyle, ...props },
+		ref
+	) => {
 		/**
 		 * Apply styles from the CookieBanner context and merge with local styles.
 		 * Uses the 'description' style key for consistent theming.
 		 */
-		const descriptionStyle = useStyles(themeKey, {
+		const descriptionStyle = useStyles(themeKey as AllThemeKeys, {
 			baseClassName,
 			className,
 			style,
+			noStyle,
 		});
 
 		const Comp = asChild ? Slot : 'div';
