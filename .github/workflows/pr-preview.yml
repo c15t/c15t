@@ -102,7 +102,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build package
-        run: bun build --filter ${{ matrix.package }}
+        run: bun run build --filter ${{ matrix.package }}
 
       - name: Get package name and set version
         id: pkg-info
