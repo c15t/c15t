@@ -1,0 +1,22 @@
+{
+	"name": "@c15t/benchmarks",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"bench": "bun run micro/*.bench.ts",
+		"bench:store": "bun run micro/store.bench.ts",
+		"bench:has": "bun run micro/has-condition.bench.ts",
+		"bench:translations": "bun run micro/translations.bench.ts",
+		"bench:cookie": "bun run micro/cookie.bench.ts",
+		"bench:script-loader": "bun run micro/script-loader.bench.ts"
+	},
+	"dependencies": {
+		"mitata": "^1.0.10",
+		"c15t": "workspace:*",
+		"@c15t/react": "workspace:*",
+		"@c15t/translations": "workspace:*"
+	},
+	"devDependencies": {
+		"typescript": "5.8.3"
+	}
+}
