@@ -91,6 +91,10 @@ jobs:
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -102,7 +106,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build package
-        run: bun run build --filter ${{ matrix.package }}
+        run: bun build --filter ${{ matrix.package }}
 
       - name: Get package name and set version
         id: pkg-info
@@ -116,6 +120,8 @@ jobs:
           echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Package: $PACKAGE_NAME@$VERSION"
+          echo "::notice title=Install (PR)::bun add https://pkg.pr.new/$PACKAGE_NAME@${{ github.event.pull_request.number }}"
+          echo "::notice title=Install (SHA)::bun add https://pkg.pr.new/$PACKAGE_NAME@${{ github.event.pull_request.head.sha }}"
           echo "::notice title=Install (PR)::bun add https://pkg.pr.new/$PACKAGE_NAME@${{ github.event.pull_request.number }}"
           echo "::notice title=Install (SHA)::bun add https://pkg.pr.new/$PACKAGE_NAME@${{ github.event.pull_request.head.sha }}"
           echo "::notice title=Version::$VERSION"
