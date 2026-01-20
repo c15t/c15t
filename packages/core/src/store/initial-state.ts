@@ -115,53 +115,6 @@ export const initialState: StoreRuntimeState = {
 		disableAutomaticBlocking: false,
 	},
 
-<<<<<<< HEAD
-	ignoreGeoLocation: false,
-
-<<<<<<< HEAD:packages/core/src/store.initial-state.ts
-	/** Default storage configuration (uses default storage key) */
-	storageConfig: undefined,
-
-	user: undefined,
-
-	experimental_globalPrivacyControl: false,
-
-	// Initialize all methods as no-ops
-	setConsent: () => {
-		/* no-op */
-	},
-	setShowPopup: () => {
-		/* no-op */
-	},
-	setIsPrivacyDialogOpen: () => {
-		/* no-op */
-	},
-	saveConsents: () => {
-		/* no-op */
-	},
-	resetConsents: () => {
-		/* no-op */
-	},
-	setGdprTypes: () => {
-		/* no-op */
-	},
-	setCallback: () => {
-		/* no-op */
-	},
-	setLocationInfo: () => {
-		/* no-op */
-	},
-	getDisplayedConsents: () => [],
-	hasConsented: () => false,
-	setTranslationConfig: () => {
-		/* no-op */
-	},
-
-	/** Initial empty scripts array */
-=======
->>>>>>> de3f5a19 (refactor(core): improve store types & comments):packages/core/src/store/initial-state.ts
-=======
->>>>>>> e0868978 (feat!: remove ignoreGeoLocation prop use overrides instead)
 	scripts: [],
 
 	loadedScripts: {},
