@@ -58,6 +58,7 @@
 		"@c15t/backend": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
+		"@iabtechlabtcf/core": "^1.5.20",
 		"zustand": "5.0.9"
 	},
 	"devDependencies": {

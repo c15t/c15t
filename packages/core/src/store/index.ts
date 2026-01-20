@@ -22,6 +22,7 @@ import { initConsentManager } from '../libs/init-consent-manager';
 import { createNetworkBlockerManager } from '../libs/network-blocker/store';
 import { saveConsents } from '../libs/save-consents';
 import { createScriptManager } from '../libs/script-loader';
+import { createIABManager } from '../libs/tcf/store';
 import type { TranslationConfig, User } from '../types';
 import type { Callbacks } from '../types/callbacks';
 import type { ConsentBannerResponse, ConsentState } from '../types/compliance';
@@ -124,15 +125,29 @@ export const createConsentManagerStore = (
 	manager: ConsentManagerInterface,
 	options: StoreOptions = {}
 ) => {
-	const { namespace = 'c15tStore' } = options;
+	const {
+		namespace = 'c15tStore',
+		// Extract options that shouldn't be spread directly into state
+		iab,
+		_initialData: _unusedInitialData,
+		initialGdprTypes,
+		initialTranslationConfig: _unusedInitialTranslationConfig,
+		enabled: _unusedEnabled,
+		// The rest are valid StoreConfig properties
+		...storeConfigOptions
+	} = options;
 
 	// Load initial state from localStorage if available
 	const storedConsent = getStoredConsent(options.storageConfig);
 
 	const store = createStore<ConsentStoreState>((set, get) => ({
 		...initialState,
-		...options,
+		...storeConfigOptions,
 		namespace,
+		// Map iab option to iabConfig in the runtime state
+		iabConfig: iab ?? null,
+		// Apply initial GDPR types if provided
+		...(initialGdprTypes && { gdprTypes: initialGdprTypes }),
 		...(storedConsent
 			? {
 					consents: storedConsent.consents,
@@ -362,6 +377,7 @@ export const createConsentManagerStore = (
 		...createScriptManager(get, set),
 		...createIframeManager(get, set),
 		...createNetworkBlockerManager(get, set),
+		...createIABManager(get, set),
 	}));
 
 	// Initialize the iframe blocker after the store is created

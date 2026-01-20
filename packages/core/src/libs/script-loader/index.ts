@@ -4,6 +4,7 @@
  * @packageDocumentation
  */
 
+export type { IABConsentState, ScriptLoaderOptions } from './core';
 export {
 	clearAllScripts,
 	getLoadedScriptIds,
