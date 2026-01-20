@@ -1,5 +1,5 @@
+import { statusOutputSchema } from '@c15t/schema';
 import { oc } from '@orpc/contract';
-import { z } from 'zod';
 
 export const statusContract = oc
 	.route({
@@ -16,21 +16,7 @@ This endpoint provides real-time information about:
 Use this endpoint for health checks, monitoring, and service status verification.`,
 		tags: ['meta'],
 	})
-	.output(
-		z.object({
-			version: z.string(),
-			timestamp: z.date(),
-			client: z.object({
-				ip: z.string().nullable(),
-				acceptLanguage: z.string().nullable(),
-				userAgent: z.string().nullable(),
-				region: z.object({
-					countryCode: z.string().nullable(),
-					regionCode: z.string().nullable(),
-				}),
-			}),
-		})
-	)
+	.output(statusOutputSchema)
 	.errors({
 		SERVICE_UNAVAILABLE: {
 			message: 'Database health check failed',

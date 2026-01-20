@@ -1,4 +1,4 @@
-import type { ContractsOutputs } from '@c15t/backend/contracts';
+import type { InitOutput, JurisdictionCode } from '@c15t/schema/types';
 import type { AllConsentNames } from './gdpr';
 /**
  * @packageDocumentation
@@ -89,7 +89,7 @@ export type LocationInfo = {
 	regionCode: string | null;
 
 	/** Jurisdiction code (e.g. 'GDPR') */
-	jurisdiction: ContractsOutputs['init']['jurisdiction'] | null;
+	jurisdiction: JurisdictionCode | null;
 };
 
 /**
@@ -100,4 +100,4 @@ export type LocationInfo = {
  *
  * @public
  */
-export type ConsentBannerResponse = ContractsOutputs['init'];
+export type ConsentBannerResponse = InitOutput;

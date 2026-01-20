@@ -111,6 +111,7 @@
 	},
 	"dependencies": {
 		"@c15t/logger": "workspace:*",
+		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
 		"@opentelemetry/api": "1.9.0",
 		"@opentelemetry/resources": "2.2.0",

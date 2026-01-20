@@ -1,5 +1,22 @@
 // Core exports
-export * from 'c15t';
+export type {
+	AllConsentNames,
+	ConsentManagerInterface,
+	ConsentStoreState,
+	ConsentType,
+	ContractsInputs,
+	ContractsOutputs,
+	Overrides,
+	Translations,
+} from 'c15t';
+
+export {
+	configureConsentManager,
+	defaultTranslationConfig,
+	detectBrowserLanguage,
+	mergeTranslationConfigs,
+	prepareTranslationConfig,
+} from 'c15t';
 
 // Components
 export {

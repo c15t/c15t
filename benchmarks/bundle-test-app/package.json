@@ -10,16 +10,16 @@
 		"analyze:ci": "next build && bun run analyze-bundle.ts --json > bundle-sizes.json"
 	},
 	"dependencies": {
-		"next": "15.2.4",
+		"next": "16.1.4",
 		"react": "19.2.3",
 		"react-dom": "19.2.3",
 		"c15t": "workspace:*",
 		"@c15t/react": "workspace:*"
 	},
 	"devDependencies": {
-		"@next/bundle-analyzer": "15.2.4",
+		"@next/bundle-analyzer": "16.1.4",
 		"typescript": "5.8.3",
-		"@types/react": "19.2.3",
+		"@types/react": "19.2.8",
 		"@types/node": "22.14.1"
 	}
 }

@@ -38,16 +38,16 @@ export async function offlineFallbackForConsentBanner(
 	const response = createResponseContext<InitResponse>(
 		true, // Mark as successful even though we're in fallback mode
 		{
-			showConsentBanner: shouldShow && hasLocalStorageAccess,
-			jurisdiction: {
-				code: 'NONE', // We don't know the jurisdiction in offline mode
-				message: 'Unknown (offline mode)',
-			},
+			jurisdiction: 'NONE', // We don't know the jurisdiction in offline mode
 			location: {
 				countryCode: null,
 				regionCode: null,
 			},
-			translations: enTranslations,
+			translations: {
+				language: 'en',
+				translations: enTranslations,
+			},
+			branding: 'c15t',
 		},
 		null,
 		null

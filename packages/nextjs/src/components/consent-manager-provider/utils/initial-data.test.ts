@@ -1,4 +1,4 @@
-import type { ContractsOutputs } from '@c15t/backend/contracts';
+import type { InitOutput } from 'c15t';
 import {
 	afterEach,
 	beforeEach,
@@ -12,7 +12,7 @@ import { extractRelevantHeaders } from './headers';
 import { getC15TInitialData } from './initial-data';
 import { normalizeBackendURL } from './normalize-url';
 
-type Init = ContractsOutputs['init'];
+type Init = InitOutput;
 
 // Mock next/headers
 vi.mock('next/headers', () => ({

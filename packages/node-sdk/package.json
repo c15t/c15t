@@ -51,7 +51,7 @@
 		"test:watch": "vitest"
 	},
 	"dependencies": {
-		"@c15t/backend": "workspace:*",
+		"@c15t/schema": "workspace:*",
 		"@orpc/client": "1.12.2",
 		"@orpc/contract": "1.12.2",
 		"@orpc/openapi-client": "1.12.2",

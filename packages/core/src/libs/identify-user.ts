@@ -38,7 +38,7 @@ export async function identifyUser({
 	});
 
 	// If the user has consented and is not identified, call the API to identify the user
-	if (consented && !isIdentified) {
+	if (consented && !isIdentified && consentInfo?.id) {
 		await manager.identifyUser({
 			body: {
 				consentId: consentInfo.id,

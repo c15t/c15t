@@ -3,7 +3,7 @@
  * Handles fetching and processing consent banner information.
  */
 
-import type { ContractsOutputs } from '@c15t/backend/contracts';
+import type { InitOutput } from '@c15t/schema/types';
 import {
 	prepareTranslationConfig,
 	type TranslationConfig,
@@ -14,14 +14,14 @@ import type { ConsentStoreState } from '../store/type';
 import { determineModel } from './determine-model';
 import { hasGlobalPrivacyControlSignal } from './global-privacy-control';
 
-type ConsentBannerResponse = ContractsOutputs['init'];
+type ConsentBannerResponse = InitOutput;
 
 /**
  * Configuration for fetching consent banner information
  */
 interface InitConsentManagerConfig {
 	manager: ConsentManagerInterface;
-	initialData?: Promise<ContractsOutputs['init'] | undefined>;
+	initialData?: Promise<InitOutput | undefined>;
 	initialTranslationConfig?: Partial<TranslationConfig>;
 	get: StoreApi<ConsentStoreState>['getState'];
 	set: StoreApi<ConsentStoreState>['setState'];
