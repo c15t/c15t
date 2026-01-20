@@ -33,9 +33,9 @@
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
 		"dev": "rslib build --watch",
-		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --write",
+		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"generate:i18n": "lingo.dev i18n",
-		"lint": "pnpm biome lint ./src",
+		"lint": "bun biome lint ./src",
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},

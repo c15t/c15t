@@ -38,15 +38,6 @@ jobs:
           ref: ${{ github.event.pull_request.base.ref || github.ref }}
           fetch-depth: 0 # Full history needed for base branch comparison
 
-      - name: 🅿️ Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'pnpm'
-
       - name: 🟢 Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
@@ -61,6 +52,7 @@ jobs:
             bun install --frozen-lockfile || bun install
             WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*" || true
           elif [ -f pnpm-lock.yaml ]; then
+            corepack enable
             pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
             WITH_RSDOCTOR=1 pnpm exec turbo run build --filter="./packages/*" || true
           else
@@ -93,6 +85,7 @@ jobs:
             bun install --frozen-lockfile || bun install
             WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*"
           elif [ -f pnpm-lock.yaml ]; then
+            corepack enable
             pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
             WITH_RSDOCTOR=1 pnpm exec turbo run build --filter="./packages/*"
           else
