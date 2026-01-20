@@ -12,7 +12,8 @@
 	"workspaces": [
 		"configs/*",
 		"packages/**",
-		"internals/**"
+		"internals/**",
+		"examples/**"
 	],
 	"scripts": {
 		"build": "turbo build",

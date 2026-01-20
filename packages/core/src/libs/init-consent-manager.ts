@@ -13,6 +13,7 @@ import type { ConsentManagerInterface } from '../client/client-factory';
 import type { ConsentStoreState } from '../store/type';
 import { determineModel } from './determine-model';
 import { hasGlobalPrivacyControlSignal } from './global-privacy-control';
+import type { IABConfig } from './tcf/types';
 
 type ConsentBannerResponse = InitOutput;
 
@@ -54,12 +55,13 @@ function updateStore(
 	{ set, get, initialTranslationConfig }: InitConsentManagerConfig,
 	hasLocalStorageAccess: boolean
 ): void {
-	const { consentInfo, callbacks } = get();
+	const { consentInfo, callbacks, iabConfig } = get();
 
 	const { translations, location } = data;
 
 	// Show banner only when a jurisdiction applies
-	const consentModel = determineModel(data.jurisdiction);
+	// Pass IAB enabled flag to potentially return 'iab' model for GDPR jurisdictions
+	const consentModel = determineModel(data.jurisdiction, iabConfig?.enabled);
 
 	// Detect Global Privacy Control (GPC) signal on the client
 	const hasGpcSignal = hasGlobalPrivacyControlSignal();
@@ -150,6 +152,102 @@ function updateStore(
 
 	// Update scripts based on current consent state
 	get().updateScripts();
+
+	// Initialize IAB mode if enabled and in IAB jurisdiction
+	if (iabConfig?.enabled && consentModel === 'iab') {
+		initializeIABMode(iabConfig, { set, get });
+	}
+}
+
+/**
+ * Initializes IAB TCF mode.
+ *
+ * This function:
+ * 1. Initializes the IAB stub immediately (queues __tcfapi calls)
+ * 2. Fetches the GVL from consent.io (filtered by configured vendors)
+ * 3. Initializes the CMP API
+ * 4. Loads existing TC String from storage if available
+ */
+async function initializeIABMode(
+	iab: IABConfig,
+	{ set, get }: Pick<InitConsentManagerConfig, 'set' | 'get'>
+): Promise<void> {
+	// Mark GVL as loading
+	set({
+		isLoadingGVL: true,
+		nonIABVendors: iab.customVendors ?? [],
+	});
+
+	try {
+		// Dynamically import IAB modules (lazy loading)
+		const { initializeIABStub, fetchGVL, createCMPApi } = await import('./tcf');
+
+		// Initialize IAB stub immediately to start queuing __tcfapi calls
+		initializeIABStub();
+
+		// Extract vendor IDs from the configuration
+		const vendorIds = Object.keys(iab.vendors).map(Number);
+
+		// Fetch GVL from consent.io (filtered by configured vendors)
+		const gvl = await fetchGVL(vendorIds);
+
+		// Update store with GVL
+		set({ gvl, isLoadingGVL: false });
+
+		// Initialize CMP API
+		const cmpApi = createCMPApi({
+			cmpId: iab.cmpId,
+			cmpVersion: iab.cmpVersion ?? 1,
+			gvl,
+			gdprApplies: true,
+		});
+
+		set({ cmpApi });
+
+		// Load existing TC String from storage if available
+		const existingTcString = cmpApi.loadFromStorage();
+
+		if (existingTcString) {
+			set({ tcString: existingTcString });
+
+			// Decode and populate consent state from TC String
+			try {
+				const { decodeTCString } = await import('./tcf');
+				const decoded = await decodeTCString(existingTcString);
+
+				set({
+					purposeConsents: decoded.purposeConsents,
+					purposeLegitimateInterests: decoded.purposeLegitimateInterests,
+					vendorConsents: decoded.vendorConsents,
+					vendorLegitimateInterests: decoded.vendorLegitimateInterests,
+					specialFeatureOptIns: decoded.specialFeatureOptIns,
+				});
+
+				// Map IAB consents to c15t consents
+				const { iabPurposesToC15tConsents } = await import('./tcf');
+				const c15tConsents = iabPurposesToC15tConsents(decoded.purposeConsents);
+
+				// Update c15t consent state
+				set({
+					consents: c15tConsents,
+					selectedConsents: c15tConsents,
+					showPopup: false, // User already has consent
+				});
+			} catch {
+				// Invalid TC String, ignore
+			}
+		} else {
+			// No existing consent - initialize default IAB state
+			// Purpose 1 (Storage) is required, so we might auto-consent it
+			// based on your compliance requirements
+		}
+
+		// Update scripts based on IAB consent state
+		get().updateScripts();
+	} catch (error) {
+		console.error('Failed to initialize IAB mode:', error);
+		set({ isLoadingGVL: false });
+	}
 }
 
 /**

@@ -72,7 +72,9 @@ export type {
 } from '@c15t/translations';
 
 export * from './compliance';
+export * from './iab-tcf';
 export * from './legal-links';
+export * from './non-iab-vendor';
 
 export type Overrides = {
 	/**

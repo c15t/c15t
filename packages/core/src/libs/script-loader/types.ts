@@ -198,6 +198,85 @@ export interface Script {
 	 * ```
 	 */
 	onConsentChange?: (info: ScriptCallbackInfo) => void;
+
+	// ─────────────────────────────────────────────────────────────────────────
+	// IAB TCF Properties
+	// ─────────────────────────────────────────────────────────────────────────
+
+	/**
+	 * IAB TCF vendor ID - links script to a registered vendor.
+	 *
+	 * When in IAB mode, the script will only load if this vendor has consent.
+	 * Takes precedence over `category` when in IAB mode.
+	 *
+	 * @example
+	 * ```ts
+	 * const script: Script = {
+	 *   id: 'google-analytics',
+	 *   src: 'https://www.googletagmanager.com/gtag/js',
+	 *   category: 'measurement',
+	 *   vendorId: 755, // Google Advertising Products
+	 * };
+	 * ```
+	 */
+	vendorId?: number;
+
+	/**
+	 * IAB TCF purpose IDs this script requires consent for.
+	 *
+	 * When in IAB mode and no vendorId is set, the script will only load
+	 * if ALL specified purposes have consent.
+	 *
+	 * @example
+	 * ```ts
+	 * const script: Script = {
+	 *   id: 'ad-script',
+	 *   src: 'https://ads.example.com/script.js',
+	 *   category: 'marketing',
+	 *   iabPurposes: [2, 3, 4], // Advertising purposes
+	 * };
+	 * ```
+	 */
+	iabPurposes?: number[];
+
+	/**
+	 * IAB TCF legitimate interest purpose IDs.
+	 *
+	 * These purposes can operate under legitimate interest instead of consent.
+	 * The script loads if all iabPurposes have consent OR all iabLegIntPurposes
+	 * have legitimate interest established.
+	 *
+	 * @example
+	 * ```ts
+	 * const script: Script = {
+	 *   id: 'analytics',
+	 *   src: 'https://analytics.example.com/script.js',
+	 *   category: 'measurement',
+	 *   iabPurposes: [7], // Measure ad performance (consent)
+	 *   iabLegIntPurposes: [9, 10], // Stats & development (legit interest)
+	 * };
+	 * ```
+	 */
+	iabLegIntPurposes?: number[];
+
+	/**
+	 * IAB TCF special feature IDs this script requires.
+	 *
+	 * Special features require explicit opt-in:
+	 * - 1: Use precise geolocation data
+	 * - 2: Actively scan device characteristics for identification
+	 *
+	 * @example
+	 * ```ts
+	 * const script: Script = {
+	 *   id: 'location-tracker',
+	 *   src: 'https://geo.example.com/tracker.js',
+	 *   category: 'measurement',
+	 *   iabSpecialFeatures: [1], // Requires precise geolocation
+	 * };
+	 * ```
+	 */
+	iabSpecialFeatures?: number[];
 }
 
 /**

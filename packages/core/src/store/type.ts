@@ -10,6 +10,7 @@ import type { HasCondition } from '../libs/has';
 import type { IframeBlockerConfig } from '../libs/iframe-blocker';
 import type { NetworkBlockerConfig } from '../libs/network-blocker';
 import type { Script } from '../libs/script-loader';
+import type { CMPApi, IABConfig } from '../libs/tcf/types';
 import type {
 	AllConsentNames,
 	Callbacks,
@@ -18,12 +19,14 @@ import type {
 	ConsentState,
 	ConsentType,
 	consentTypes,
+	GlobalVendorList,
 	LegalLinks,
 	LocationInfo,
 	Overrides,
 	TranslationConfig,
 	User,
 } from '../types';
+import type { NonIABVendor } from '../types/non-iab-vendor';
 
 /**
  * Shared configuration-related properties between store options and runtime state.
@@ -201,6 +204,24 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	_initialData?: Promise<InitOutput | undefined>;
 
 	/**
+	 * IAB TCF 2.3 configuration.
+	 *
+	 * Most users don't need this - only enable if you work with
+	 * IAB-registered programmatic advertising vendors.
+	 *
+	 * @remarks
+	 * When enabled, c15t will:
+	 * - Fetch GVL from gvl.consent.io
+	 * - Initialize __tcfapi CMP API
+	 * - Generate TC Strings for IAB compliance
+	 *
+	 * This is an opt-in feature with zero bundle impact when not enabled.
+	 *
+	 * @see https://iabeurope.eu/transparency-consent-framework/
+	 */
+	iab?: IABConfig;
+
+	/**
 	 * Callbacks for the consent manager.
 	 *
 	 * @see {@link Callbacks} for available options
@@ -280,8 +301,46 @@ export interface StoreRuntimeState extends StoreConfig {
 	 *
 	 * - 'opt-in' - Requires explicit consent before non-essential cookies or tracking. (GDPR Style)
 	 * - 'opt-out' - Allows processing until the user exercises a right to opt out. (CCPA Style)
+	 * - 'iab' - IAB TCF 2.3 mode for programmatic advertising compliance. (GDPR jurisdictions only)
 	 */
 	model: Model;
+
+	// ─────────────────────────────────────────────────────────────────────────
+	// IAB TCF State
+	// ─────────────────────────────────────────────────────────────────────────
+
+	/** IAB TCF configuration (null when not configured) */
+	iabConfig: IABConfig | null;
+
+	/** Global Vendor List data (null when not in IAB mode) */
+	gvl: GlobalVendorList | null;
+
+	/** Whether GVL is currently being fetched */
+	isLoadingGVL: boolean;
+
+	/** Non-IAB vendors configured by the publisher */
+	nonIABVendors: NonIABVendor[];
+
+	/** IAB TCF consent string (TC String) */
+	tcString: string | null;
+
+	/** Per-vendor consent state (keyed by vendor ID) */
+	vendorConsents: Record<number, boolean>;
+
+	/** Per-vendor legitimate interest state */
+	vendorLegitimateInterests: Record<number, boolean>;
+
+	/** Per-purpose consent state (IAB purposes 1-11) */
+	purposeConsents: Record<number, boolean>;
+
+	/** Per-purpose legitimate interest state */
+	purposeLegitimateInterests: Record<number, boolean>;
+
+	/** Special feature opt-ins (e.g., precise geolocation) */
+	specialFeatureOptIns: Record<number, boolean>;
+
+	/** CMP API controls (manages __tcfapi) */
+	cmpApi: CMPApi | null;
 }
 
 /**
@@ -527,6 +586,67 @@ export interface StoreActions {
 	 * @param newCategories - New consent categories detected from scripts
 	 */
 	updateConsentCategories: (newCategories: AllConsentNames[]) => void;
+
+	// ─────────────────────────────────────────────────────────────────────────
+	// IAB TCF Actions
+	// ─────────────────────────────────────────────────────────────────────────
+
+	/**
+	 * Sets IAB purpose consent.
+	 *
+	 * @param purposeId - IAB purpose ID (1-11)
+	 * @param value - Whether consent is granted
+	 */
+	setPurposeConsent: (purposeId: number, value: boolean) => void;
+
+	/**
+	 * Sets IAB purpose legitimate interest.
+	 *
+	 * @param purposeId - IAB purpose ID (1-11)
+	 * @param value - Whether legitimate interest is established
+	 */
+	setPurposeLegitimateInterest: (purposeId: number, value: boolean) => void;
+
+	/**
+	 * Sets IAB vendor consent.
+	 *
+	 * @param vendorId - IAB vendor ID
+	 * @param value - Whether consent is granted
+	 */
+	setVendorConsent: (vendorId: number, value: boolean) => void;
+
+	/**
+	 * Sets IAB vendor legitimate interest.
+	 *
+	 * @param vendorId - IAB vendor ID
+	 * @param value - Whether legitimate interest is established
+	 */
+	setVendorLegitimateInterest: (vendorId: number, value: boolean) => void;
+
+	/**
+	 * Sets special feature opt-in.
+	 *
+	 * @param featureId - IAB special feature ID (1-2)
+	 * @param value - Whether opt-in is granted
+	 */
+	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
+
+	/**
+	 * Accepts all IAB purposes, vendors, and special features.
+	 */
+	acceptAllIAB: () => void;
+
+	/**
+	 * Rejects all IAB purposes (except necessary/Purpose 1) and vendors.
+	 */
+	rejectAllIAB: () => void;
+
+	/**
+	 * Saves IAB consents and generates TC String.
+	 *
+	 * @returns Promise that resolves when consents are saved
+	 */
+	saveIABConsents: () => Promise<void>;
 }
 
 /**
