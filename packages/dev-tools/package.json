@@ -17,8 +17,8 @@
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
 		"dev": "rslib build --watch",
-		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "pnpm biome lint ./src"
+		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
+		"lint": "bun biome lint ./src"
 	},
 	"browserslist": [
 		">0.2%",
@@ -44,8 +44,8 @@
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
-		"@types/react": "^19.0.0",
-		"@types/react-dom": "^19.0.0",
+		"@types/react": "19.2.0",
+		"@types/react-dom": "19.2.0",
 		"postcss": "^8.5.3"
 	},
 	"peerDependencies": {

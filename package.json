@@ -9,32 +9,42 @@
 	},
 	"license": "GPL-3.0-only",
 	"type": "module",
+	"workspaces": [
+		"configs/*",
+		"packages/**",
+		"internals/**"
+	],
 	"scripts": {
 		"build": "turbo build",
+		"build:libs": "turbo build --filter=./packages/**",
 		"changeset": "changeset",
 		"check-types": "turbo check-types",
-		"ci:publish": "pnpm changeset tag && pnpm publish -r",
-		"ci:version": "pnpm changeset version",
+		"ci:publish": "bunx changeset tag && bun publish",
+		"ci:version": "bun changeset version",
 		"dev": "turbo dev --concurrency=15 --filter=!./examples/**",
-		"dev:docs-app": "pnpm --prefix .docs dev",
+		"dev:docs-app": "bun --cwd .docs dev",
 		"fmt": "turbo fmt",
-		"fmt:docs": "pnpm remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
+		"fmt:docs": "bunx remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
 		"generate:readmes": "tsx scripts/generate-readme.ts",
 		"postinstall": "lefthook install",
 		"knip": "knip",
 		"lint": "turbo lint",
-		"lint:docs": "pnpm remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
+		"lint:docs": "bunx remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
 		"lint:fix": "turbo lint -- --write",
-		"release": "pnpm build && changeset publish",
-		"release:canary": "pnpm build && changeset publish --tag canary",
+		"release": "bun runbuild && changeset publish",
+		"release:canary": "bun run build && changeset publish --tag canary",
 		"setup:docs": "tsx scripts/setup-docs.ts",
 		"test": "turbo test",
 		"vercel-build": "tsx scripts/setup-docs.ts --vercel",
-		"version": "changeset version && pnpm install --lockfile-only",
-		"version:canary": "changeset version --snapshot canary && pnpm install --lockfile-only",
+		"version": "changeset version && bun install",
+		"version:canary": "changeset version --snapshot canary && bun install",
 		"version:prerelease": "changeset pre enter canary",
 		"version:prerelease:exit": "changeset pre exit",
 		"view-report": "turbo run view-report"
+	},
+	"overrides": {
+		"cross-spawn": ">=6.0.6",
+		"typeorm": ">=0.3.26"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.2.0",
@@ -44,6 +54,7 @@
 		"@rsbuild/plugin-react": "^1.4.1",
 		"@rsdoctor/rspack-plugin": "^1.3.7",
 		"@rslib/core": "^0.17.0",
+		"@types/bun": "latest",
 		"@types/node": "22.14.1",
 		"@types/react": "19.2.0",
 		"@types/react-dom": "19.2.0",
@@ -68,14 +79,8 @@
 		"vitest": "^4.0.8",
 		"vitest-browser-react": "^1.0.1"
 	},
-	"packageManager": "pnpm@10.8.0",
+	"packageManager": "bun@1.3.6",
 	"engines": {
 		"node": ">=18.17.0"
-	},
-	"pnpm": {
-		"overrides": {
-			"cross-spawn": ">=6.0.6",
-			"typeorm": ">=0.3.26"
-		}
 	}
 }

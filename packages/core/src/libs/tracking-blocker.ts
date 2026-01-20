@@ -197,7 +197,7 @@ export function createTrackingBlocker(
 	function interceptNetworkRequests(): void {
 		// Override fetch only if it hasn't been modified by another script
 		if (window.fetch === originalFetch) {
-			window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+			const newFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
 				const url = input instanceof Request ? input.url : input.toString();
 				if (!isRequestAllowed(url)) {
 					dispatchConsentBlockedEvent(url);
@@ -208,6 +208,10 @@ export function createTrackingBlocker(
 
 				return await originalFetch.call(window, input, init);
 			};
+			// Preserve properties from original fetch (e.g., preconnect in Bun)
+			Object.setPrototypeOf(newFetch, originalFetch);
+			Object.assign(newFetch, originalFetch);
+			window.fetch = newFetch as typeof window.fetch;
 		}
 
 		// Override XMLHttpRequest only if it hasn't been modified
