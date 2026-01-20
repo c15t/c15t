@@ -1,5 +1,5 @@
-import type { ContractsOutputs } from '@c15t/backend/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { InitOutput } from '@c15t/schema/types';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { ConsentStoreState } from '../store/type';
@@ -13,7 +13,7 @@ vi.mock('../global-privacy-control', () => ({
 }));
 
 // Mock types for testing
-type InitResponse = ContractsOutputs['init'];
+type InitResponse = InitOutput;
 
 /**
  * Mock consent manager for testing

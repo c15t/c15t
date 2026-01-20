@@ -1,8 +1,6 @@
-import type {
-	ConsentStoreState,
-	ContractsOutputs,
-	Translations,
-} from '../index';
+import type { JurisdictionCode } from '@c15t/schema/types';
+import type { Translations } from '@c15t/translations';
+import type { ConsentStoreState } from '../store/type';
 
 /**
  * A generic type for callback functions that can accept an argument of type T.
@@ -15,8 +13,11 @@ export type Callback<T = void> = (arg: T) => void;
  * Payload types for the callbacks
  */
 export type OnBannerFetchedPayload = {
-	jurisdiction: ContractsOutputs['consent']['showBanner']['jurisdiction'];
-	location: ContractsOutputs['consent']['showBanner']['location'];
+	jurisdiction: JurisdictionCode | { code: JurisdictionCode; message: string };
+	location: {
+		countryCode: string | null;
+		regionCode: string | null;
+	};
 	translations: {
 		language: string;
 		translations: Translations;

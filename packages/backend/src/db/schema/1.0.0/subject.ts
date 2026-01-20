@@ -1,5 +1,5 @@
+import { type Subject, subjectSchema } from '@c15t/schema';
 import { column, idColumn, table } from 'fumadb/schema';
-import { z } from 'zod';
 
 export const subjectTable = table('subject', {
 	id: idColumn('id', 'varchar(255)'),
@@ -12,15 +12,4 @@ export const subjectTable = table('subject', {
 	updatedAt: column('updatedAt', 'timestamp').defaultTo$('now'),
 });
 
-export const subjectSchema = z.object({
-	id: z.string(),
-	isIdentified: z.boolean().prefault(false),
-	externalId: z.string().nullish(),
-	identityProvider: z.string().nullish(),
-	lastIpAddress: z.string().optional(),
-	subjectTimezone: z.string().nullish(),
-	createdAt: z.date().prefault(() => new Date()),
-	updatedAt: z.date().prefault(() => new Date()),
-});
-
-export type Subject = z.infer<typeof subjectSchema>;
+export { subjectSchema, type Subject };

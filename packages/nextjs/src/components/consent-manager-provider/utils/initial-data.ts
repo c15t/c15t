@@ -1,9 +1,9 @@
-import type { ContractsOutputs } from '@c15t/backend/contracts';
 import type { Overrides } from '@c15t/react';
+import type { InitOutput } from 'c15t';
 import { extractRelevantHeaders } from './headers';
 import { normalizeBackendURL } from './normalize-url';
 
-type InitResponse = ContractsOutputs['init'] | undefined;
+type InitResponse = InitOutput | undefined;
 
 export async function getC15TInitialData(
 	backendURL: string,

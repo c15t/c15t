@@ -1,4 +1,5 @@
 import type { createLogger, LoggerOptions } from '@c15t/logger';
+import { type Branding, brandingValues } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
 import type { Tracer } from '@opentelemetry/api';
 import type { OpenAPIGeneratorOptions } from '@orpc/openapi';
@@ -8,8 +9,9 @@ import type { DB } from '../db/schema';
 
 export * from './api';
 
-export const branding = ['c15t', 'consent', 'none'] as const;
-export type Branding = (typeof branding)[number];
+// Re-export from @c15t/schema for backward compatibility
+export const branding = brandingValues;
+export type { Branding };
 
 export interface DatabaseOptions {
 	/**

@@ -5,7 +5,18 @@
  * GDPR-compliant consent management.
  */
 
-export type { ContractsInputs, ContractsOutputs } from '@c15t/backend';
+// Export schema types directly for new code
+export type {
+	Branding,
+	IdentifyUserInput,
+	IdentifyUserOutput,
+	InitOutput,
+	JurisdictionCode,
+	PostConsentInput,
+	PostConsentOutput,
+	VerifyConsentInput,
+	VerifyConsentOutput,
+} from '@c15t/schema/types';
 export type {
 	CommonTranslations,
 	ConsentManagerDialogTranslations,

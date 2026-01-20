@@ -74,7 +74,8 @@
 	},
 	"dependencies": {
 		"@c15t/react": "workspace:*",
-		"@c15t/translations": "workspace:*"
+		"@c15t/translations": "workspace:*",
+		"c15t": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/backend": "workspace:*",

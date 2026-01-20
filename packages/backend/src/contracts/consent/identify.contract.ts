@@ -1,11 +1,9 @@
+import {
+	identifyUserErrorSchemas,
+	identifyUserInputSchema,
+	identifyUserOutputSchema,
+} from '@c15t/schema';
 import { oc } from '@orpc/contract';
-import { z } from 'zod';
-
-const identifyUserSchema = z.object({
-	consentId: z.string(),
-	externalId: z.string(),
-	identityProvider: z.string().optional(),
-});
 
 export const identifyUserContract = oc
 	.route({
@@ -17,22 +15,14 @@ export const identifyUserContract = oc
 	.errors({
 		CONSENT_NOT_FOUND: {
 			status: 404,
-			data: z.object({
-				consentId: z.string(),
-			}),
+			data: identifyUserErrorSchemas.consentNotFound,
 			error: 'Consent not found',
 		},
 		IDENTIFICATION_FAILED: {
 			status: 500,
-			data: z.object({
-				consentId: z.string(),
-			}),
+			data: identifyUserErrorSchemas.identificationFailed,
 			error: 'Failed to identify user',
 		},
 	})
-	.input(identifyUserSchema)
-	.output(
-		z.object({
-			success: z.boolean(),
-		})
-	);
+	.input(identifyUserInputSchema)
+	.output(identifyUserOutputSchema);

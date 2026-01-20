@@ -1,3 +1,5 @@
+import type { JurisdictionCode } from '@c15t/schema/types';
+
 /**
  * Determines the jurisdiction code based on the provided country code.
  *
@@ -6,7 +8,9 @@
  * jurisdiction code. Banner visibility is derived elsewhere using
  * `jurisdiction !== 'NONE'`.
  */
-export function checkJurisdiction(countryCode: string | null): string {
+export function checkJurisdiction(
+	countryCode: string | null
+): JurisdictionCode {
 	const jurisdictions = {
 		EU: new Set([
 			'AT',
@@ -48,7 +52,7 @@ export function checkJurisdiction(countryCode: string | null): string {
 	};
 
 	// Default to no jurisdiction
-	let jurisdictionCode = 'NONE';
+	let jurisdictionCode: JurisdictionCode = 'NONE';
 
 	// Check country code against jurisdiction sets
 	if (countryCode) {
@@ -56,7 +60,10 @@ export function checkJurisdiction(countryCode: string | null): string {
 		const normalizedCountryCode = countryCode.toUpperCase();
 
 		// Map jurisdiction sets to their respective codes
-		const jurisdictionMap = [
+		const jurisdictionMap: Array<{
+			sets: Set<string>[];
+			code: JurisdictionCode;
+		}> = [
 			{
 				sets: [jurisdictions.EU, jurisdictions.EEA, jurisdictions.UK],
 				code: 'GDPR',
@@ -67,7 +74,7 @@ export function checkJurisdiction(countryCode: string | null): string {
 			{ sets: [jurisdictions.AU], code: 'AU' },
 			{ sets: [jurisdictions.JP], code: 'APPI' },
 			{ sets: [jurisdictions.KR], code: 'PIPA' },
-		] as const;
+		];
 
 		// Find matching jurisdiction
 		for (const { sets, code } of jurisdictionMap) {

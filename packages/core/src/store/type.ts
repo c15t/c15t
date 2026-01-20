@@ -3,7 +3,7 @@
  * Defines the core types and interfaces for the consent management store.
  */
 
-import type { ContractsOutputs } from '@c15t/backend/contracts';
+import type { Branding, InitOutput } from '@c15t/schema/types';
 import type { Model } from '~/libs/determine-model';
 import type { StorageConfig } from '../libs/cookie';
 import type { HasCondition } from '../libs/has';
@@ -198,7 +198,7 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	 *
 	 * This is useful for server-side rendering (SSR) such as in @c15t/nextjs.
 	 */
-	_initialData?: Promise<ContractsOutputs['init'] | undefined>;
+	_initialData?: Promise<InitOutput | undefined>;
 
 	/**
 	 * Callbacks for the consent manager.
@@ -228,7 +228,7 @@ export interface StoreOptions extends Partial<StoreConfig> {
  */
 export interface StoreRuntimeState extends StoreConfig {
 	/** Whether to show the branding */
-	branding: ContractsOutputs['init']['branding'];
+	branding: Branding;
 
 	/** Current consent states for all consent types */
 	consents: ConsentState;
@@ -311,7 +311,7 @@ export interface StoreActions {
 	 */
 	setOverrides: (
 		overrides: StoreConfig['overrides']
-	) => Promise<ContractsOutputs['init'] | undefined>;
+	) => Promise<InitOutput | undefined>;
 
 	/**
 	 * Set the language override for the consent manager. This will override the language detected from the browser and re-fetch the consent banner information.
@@ -319,9 +319,7 @@ export interface StoreActions {
 	 * @param language - The language code to override with (for example, "de" or "fr")
 	 * @returns A promise that resolves when the consent manager has been fetched again
 	 */
-	setLanguage: (
-		language: string
-	) => Promise<ContractsOutputs['init'] | undefined>;
+	setLanguage: (language: string) => Promise<InitOutput | undefined>;
 
 	/**
 	 * Identifies the user by setting the external ID.
@@ -411,7 +409,7 @@ export interface StoreActions {
 	/**
 	 * Initializes the consent manager by fetching jurisdiction, location, translations, and branding information.
 	 */
-	initConsentManager: () => Promise<ContractsOutputs['init'] | undefined>;
+	initConsentManager: () => Promise<InitOutput | undefined>;
 
 	/** Retrieves the list of consent types that should be displayed */
 	getDisplayedConsents: () => typeof consentTypes;
