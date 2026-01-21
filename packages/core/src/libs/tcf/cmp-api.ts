@@ -45,7 +45,7 @@ function getCookie(name: string): string | null {
 	}
 
 	const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-	if (match) {
+	if (match?.[2]) {
 		return decodeURIComponent(match[2]);
 	}
 	return null;
@@ -138,6 +138,9 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 
 		const tcData: TCData = {
 			tcString,
+			tcfPolicyVersion: gvl.tcfPolicyVersion,
+			cmpId,
+			cmpVersion,
 			gdprApplies,
 			listenerId,
 			eventStatus,
@@ -324,7 +327,7 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 
 		// Process queued calls
 		for (const args of queuedCalls) {
-			window.__tcfapi(...args);
+			window.__tcfapi?.(...args);
 		}
 
 		// Mark as loaded

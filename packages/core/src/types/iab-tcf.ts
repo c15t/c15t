@@ -430,6 +430,15 @@ export interface TCData {
 	/** TC String */
 	tcString: string;
 
+	/** TCF policy version (e.g., 2 for TCF 2.0, 4 for TCF 2.2) */
+	tcfPolicyVersion?: number;
+
+	/** CMP ID registered with IAB */
+	cmpId?: number;
+
+	/** CMP version */
+	cmpVersion?: number;
+
 	/** Whether GDPR applies */
 	gdprApplies: boolean;
 

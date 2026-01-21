@@ -75,7 +75,8 @@ export async function generateTCString(
 	const { TCModel, TCString, GVL } = await getTCFCore();
 
 	// Create GVL instance
-	const gvl = new GVL(gvlData);
+	// biome-ignore lint/suspicious/noExplicitAny: GVL library types don't match our domain types
+	const gvl = new GVL(gvlData as any);
 
 	// Create TC Model
 	const tcModel = new TCModel(gvl);
@@ -218,8 +219,8 @@ export async function decodeTCString(
 	};
 
 	return {
-		cmpId: tcModel.cmpId,
-		cmpVersion: tcModel.cmpVersion,
+		cmpId: tcModel.cmpId as number,
+		cmpVersion: tcModel.cmpVersion as number,
 		consentLanguage: tcModel.consentLanguage,
 		isServiceSpecific: tcModel.isServiceSpecific,
 		purposeConsents: vectorToRecord(tcModel.purposeConsents, 11),
@@ -235,8 +236,8 @@ export async function decodeTCString(
 		specialFeatureOptIns: vectorToRecord(tcModel.specialFeatureOptins, 2),
 		created: tcModel.created,
 		lastUpdated: tcModel.lastUpdated,
-		vendorListVersion: tcModel.vendorListVersion,
-		policyVersion: tcModel.policyVersion,
+		vendorListVersion: tcModel.vendorListVersion as number,
+		policyVersion: tcModel.policyVersion as number,
 	};
 }
 
