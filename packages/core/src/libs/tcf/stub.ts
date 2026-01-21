@@ -126,8 +126,15 @@ function handlePostMessage(event: MessageEvent): void {
 	}
 
 	// Execute the command and send response
-	window.__tcfapi(
-		call.command as 'ping',
+	(
+		window.__tcfapi as (
+			command: string,
+			version: number,
+			callback: TCFApiCallback<unknown>,
+			parameter?: unknown
+		) => void
+	)(
+		call.command,
 		call.version,
 		(returnValue: unknown, success: boolean) => {
 			const response = {

@@ -4,8 +4,6 @@ export type {
 	ConsentManagerInterface,
 	ConsentStoreState,
 	ConsentType,
-	ContractsInputs,
-	ContractsOutputs,
 	Overrides,
 	Translations,
 } from 'c15t';
