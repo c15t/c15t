@@ -157,6 +157,9 @@ export const initialState: StoreRuntimeState = {
 	/** Special feature opt-ins */
 	specialFeatureOptIns: {},
 
+	/** Vendors disclosed to the user in the CMP UI (TCF 2.3) */
+	vendorsDisclosed: {},
+
 	/** CMP API controls */
 	cmpApi: null,
 };

@@ -289,6 +289,10 @@ export function createMockTCFConsent(
 			1: false,
 			2: false,
 		},
+		vendorsDisclosed: {
+			1: true,
+			2: true,
+		},
 		...overrides,
 	};
 }
@@ -311,6 +315,7 @@ export function createMockTCFConsentAllGranted(): TCFConsentData {
 		vendorConsents: { 1: true, 2: true, 10: true, 755: true },
 		vendorLegitimateInterests: { 1: true, 2: true, 10: true, 755: true },
 		specialFeatureOptIns: { 1: true, 2: true },
+		vendorsDisclosed: { 1: true, 2: true, 10: true, 755: true },
 	};
 }
 

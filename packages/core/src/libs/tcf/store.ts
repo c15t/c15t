@@ -184,6 +184,12 @@ export function createIABManager(
 				'./index'
 			);
 
+			// Build vendorsDisclosed from configured vendors (all are disclosed in UI)
+			const vendorsDisclosed: Record<number, boolean> = {};
+			for (const vendorId of Object.keys(iabConfig.vendors)) {
+				vendorsDisclosed[Number(vendorId)] = true;
+			}
+
 			// Generate TC String
 			const tcString = await generateTCString(
 				{
@@ -192,6 +198,7 @@ export function createIABManager(
 					vendorConsents,
 					vendorLegitimateInterests,
 					specialFeatureOptIns,
+					vendorsDisclosed,
 				},
 				gvl,
 				{
@@ -213,6 +220,7 @@ export function createIABManager(
 
 			setState({
 				tcString,
+				vendorsDisclosed,
 				consents: c15tConsents,
 				selectedConsents: c15tConsents,
 				showPopup: false,
