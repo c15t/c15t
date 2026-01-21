@@ -5,7 +5,7 @@ import type { Tracer } from '@opentelemetry/api';
 import type { OpenAPIGeneratorOptions } from '@orpc/openapi';
 import type { FumaDB, InferFumaDB } from 'fumadb';
 import type { createRegistry } from '../db/registry';
-import type { DB } from '../db/schema';
+import type { DB, LatestDB } from '../db/schema';
 
 export * from './api';
 
@@ -90,8 +90,25 @@ interface BaseOptions {
 			defaultAttributes?: Record<string, string | number | boolean>;
 		};
 		ipAddress?: {
-			disableIpTracking?: boolean;
-			// Override default ip address headers
+			/**
+			 * Enable/disable IP address tracking.
+			 * When disabled, all IP addresses will be stored as 'unknown'.
+			 * @default true
+			 */
+			tracking?: boolean;
+
+			/**
+			 * Enable/disable IP address masking to reduce PII collection.
+			 * - IPv4: Last octet is replaced with 0 (e.g., 192.168.1.100 -> 192.168.1.0)
+			 * - IPv6: Last 80 bits are masked (e.g., 2001:db8:85a3::1 -> 2001:db8:85a3::)
+			 * @default true
+			 */
+			masking?: boolean;
+
+			/**
+			 * Override the default IP address headers used to extract client IP.
+			 * Headers are checked in order, first match wins.
+			 */
 			ipAddressHeaders?: string[];
 		};
 	};
@@ -106,7 +123,7 @@ export interface C15TContext extends BaseOptions {
 	appName: string;
 	logger: ReturnType<typeof createLogger>;
 	registry: ReturnType<typeof createRegistry>;
-	db: ReturnType<InferFumaDB<typeof DB>['orm']>;
+	db: ReturnType<InferFumaDB<typeof LatestDB>['orm']>;
 
 	// Resolved from request
 	ipAddress?: string;

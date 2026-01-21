@@ -1,3 +1,4 @@
+import type { ConsentManagerInterface } from '../../client/client-interface';
 import type { ConsentStoreState } from '../../store/type';
 import type { GlobalVendorList } from '../../types';
 import type { IABConfig } from './types';
@@ -12,13 +13,15 @@ import type { IABConfig } from './types';
  *
  * @param getState - Function to get the current state from the store
  * @param setState - Function to update the state in the store
+ * @param manager - The consent manager interface for API calls
  * @returns Object containing IAB TCF management functions
  *
  * @internal
  */
 export function createIABManager(
 	getState: () => ConsentStoreState,
-	setState: (partial: Partial<ConsentStoreState>) => void
+	setState: (partial: Partial<ConsentStoreState>) => void,
+	manager: ConsentManagerInterface
 ) {
 	return {
 		/**
@@ -167,6 +170,9 @@ export function createIABManager(
 				vendorConsents,
 				vendorLegitimateInterests,
 				specialFeatureOptIns,
+				locationInfo,
+				user,
+				callbacks,
 			} = getState();
 
 			if (!cmpApi || !iabConfig || !gvl) {
@@ -208,10 +214,45 @@ export function createIABManager(
 				consents: c15tConsents,
 				selectedConsents: c15tConsents,
 				showPopup: false,
+				consentInfo: {
+					time: Date.now(),
+					identified: !!user?.id,
+				},
 			});
 
 			// Update scripts based on new consent state
 			getState().updateScripts();
+
+			// Send consent to backend API
+			const consent = await manager.setConsent({
+				body: {
+					type: 'cookie_banner',
+					domain: typeof window !== 'undefined' ? window.location.hostname : '',
+					preferences: c15tConsents,
+					externalSubjectId: user?.id,
+					identityProvider: user?.identityProvider,
+					tcString,
+					jurisdiction: locationInfo?.jurisdiction ?? undefined,
+					jurisdictionModel: 'iab',
+					metadata: {
+						source: 'iab_tcf',
+						acceptanceMethod: 'iab',
+					},
+				},
+			});
+
+			// Handle error case if the API request fails
+			if (!consent.ok) {
+				const errorMsg =
+					consent.error?.message ?? 'Failed to save IAB consents';
+				callbacks.onError?.({
+					error: errorMsg,
+				});
+				// Fallback console only when no handler is provided
+				if (!callbacks.onError) {
+					console.error(errorMsg);
+				}
+			}
 		},
 	};
 }

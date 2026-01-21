@@ -43,7 +43,10 @@ export const postConsent = os.consent.post.handler(
 			domain,
 			metadata,
 			preferences,
+			givenAt: givenAtEpoch,
 		} = input;
+
+		const givenAt = new Date(givenAtEpoch);
 
 		logger.debug('Request parameters', {
 			type,
@@ -168,8 +171,12 @@ export const postConsent = os.consent.post.handler(
 					purposeIds: { json: purposeIds },
 					status: 'active',
 					isActive: true,
-					ipAddress: typedContext.ipAddress || null,
-					userAgent: typedContext.userAgent || null,
+					ipAddress: typedContext.ipAddress,
+					userAgent: typedContext.userAgent,
+					jurisdiction: input.jurisdiction,
+					jurisdictionModel: input.jurisdictionModel,
+					tcString: input.tcString,
+					givenAt,
 				});
 
 				logger.debug('Created consent', {

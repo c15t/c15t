@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { policyTypeSchema } from '~/domain/consent-policy';
+import { policyTypeSchema } from '../../domain/consent-policy';
 
 /**
  * Base consent input schema
@@ -11,6 +11,14 @@ const baseConsentSchema = z.object({
 	domain: z.string(),
 	type: policyTypeSchema,
 	metadata: z.record(z.string(), z.unknown()).optional(),
+	/** When the consent was given in epoch milliseconds */
+	givenAt: z.number(),
+	/** Jurisdiction code (e.g., 'GDPR', 'UK_GDPR', 'CCPA') */
+	jurisdiction: z.string().optional(),
+	/** Consent model used (e.g., 'opt-in', 'opt-out', 'iab') */
+	jurisdictionModel: z.string().optional(),
+	/** IAB TCF TC String (only for IAB consents) */
+	tcString: z.string().optional(),
 });
 
 /**
