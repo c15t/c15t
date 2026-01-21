@@ -132,6 +132,16 @@ export async function generateTCString(
 		}
 	}
 
+	// Set vendors disclosed (TCF 2.3 requirement)
+	// This indicates which vendors were shown to the user in the CMP UI
+	for (const [vendorId, value] of Object.entries(
+		consentData.vendorsDisclosed
+	)) {
+		if (value) {
+			tcModel.vendorsDisclosed.set(Number(vendorId));
+		}
+	}
+
 	// Encode and return
 	return TCString.encode(tcModel);
 }
@@ -168,6 +178,9 @@ export interface DecodedTCString {
 
 	/** Special feature opt-ins */
 	specialFeatureOptIns: Record<number, boolean>;
+
+	/** Vendors that were disclosed to the user in the CMP UI (TCF 2.3) */
+	vendorsDisclosed: Record<number, boolean>;
 
 	/** Created date */
 	created: Date;
@@ -234,6 +247,7 @@ export async function decodeTCString(
 			1000
 		),
 		specialFeatureOptIns: vectorToRecord(tcModel.specialFeatureOptins, 2),
+		vendorsDisclosed: vectorToRecord(tcModel.vendorsDisclosed, 1000),
 		created: tcModel.created,
 		lastUpdated: tcModel.lastUpdated,
 		vendorListVersion: tcModel.vendorListVersion as number,

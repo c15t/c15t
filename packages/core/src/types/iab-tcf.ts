@@ -333,6 +333,14 @@ export interface TCFConsentData {
 	/** Special feature opt-ins (keyed by special feature ID 1-2) */
 	specialFeatureOptIns: Record<number, boolean>;
 
+	/**
+	 * Vendors disclosed to the user in the CMP UI (keyed by vendor ID).
+	 *
+	 * Required for IAB TCF 2.3 compliance. Each vendor shown in the UI should
+	 * have their ID set to true, regardless of whether consent was given.
+	 */
+	vendorsDisclosed: Record<number, boolean>;
+
 	/** Publisher restrictions (optional) */
 	publisherRestrictions?: PublisherRestriction[];
 }

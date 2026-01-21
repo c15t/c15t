@@ -15,9 +15,18 @@ import type {
 } from '../../../types/iab-tcf';
 import { createCMPApi } from '../cmp-api';
 import { destroyIABStub, initializeIABStub } from '../stub';
-import { isValidTCStringFormat } from '../tc-string';
+import {
+	decodeTCString,
+	generateTCString,
+	isValidTCStringFormat,
+} from '../tc-string';
 import type { CMPApi } from '../types';
-import { cleanupTCFApi, createMockGVL, setupStorageMock } from './test-setup';
+import {
+	cleanupTCFApi,
+	createMockGVL,
+	createMockTCFConsentAllGranted,
+	setupStorageMock,
+} from './test-setup';
 
 describe('IAB TCF Spec Compliance', () => {
 	let cmpApi: CMPApi;
@@ -317,6 +326,82 @@ describe('IAB TCF Spec Compliance', () => {
 			expect(isValidTCStringFormat(undefined)).toBe(false);
 			// @ts-expect-error Testing invalid input
 			expect(isValidTCStringFormat(123)).toBe(false);
+		});
+	});
+
+	describe('TCF 2.3 vendorsDisclosed Compliance', () => {
+		it('should encode vendorsDisclosed in TC String', async () => {
+			const consentData = createMockTCFConsentAllGranted();
+
+			// Ensure vendorsDisclosed is set
+			expect(consentData.vendorsDisclosed).toBeDefined();
+			expect(consentData.vendorsDisclosed[1]).toBe(true);
+			expect(consentData.vendorsDisclosed[755]).toBe(true);
+
+			const tcString = await generateTCString(consentData, mockGVL, {
+				cmpId: 28,
+				cmpVersion: 1,
+			});
+
+			expect(tcString).toBeDefined();
+			expect(typeof tcString).toBe('string');
+			expect(tcString.length).toBeGreaterThan(0);
+		});
+
+		it('should decode vendorsDisclosed from TC String', async () => {
+			const consentData = createMockTCFConsentAllGranted();
+
+			const tcString = await generateTCString(consentData, mockGVL, {
+				cmpId: 28,
+				cmpVersion: 1,
+			});
+
+			const decoded = await decodeTCString(tcString);
+
+			// Verify vendorsDisclosed is decoded
+			expect(decoded.vendorsDisclosed).toBeDefined();
+			expect(decoded.vendorsDisclosed[1]).toBe(true);
+			expect(decoded.vendorsDisclosed[2]).toBe(true);
+			expect(decoded.vendorsDisclosed[10]).toBe(true);
+			expect(decoded.vendorsDisclosed[755]).toBe(true);
+		});
+
+		it('should handle partial vendorsDisclosed', async () => {
+			const consentData = createMockTCFConsentAllGranted();
+			// Only disclose some vendors
+			consentData.vendorsDisclosed = {
+				1: true,
+				2: true,
+				// 10 and 755 not disclosed
+			};
+
+			const tcString = await generateTCString(consentData, mockGVL, {
+				cmpId: 28,
+				cmpVersion: 1,
+			});
+
+			const decoded = await decodeTCString(tcString);
+
+			// Verify only disclosed vendors are in the decoded string
+			expect(decoded.vendorsDisclosed[1]).toBe(true);
+			expect(decoded.vendorsDisclosed[2]).toBe(true);
+			expect(decoded.vendorsDisclosed[10]).toBeUndefined();
+			expect(decoded.vendorsDisclosed[755]).toBeUndefined();
+		});
+
+		it('should encode empty vendorsDisclosed', async () => {
+			const consentData = createMockTCFConsentAllGranted();
+			consentData.vendorsDisclosed = {};
+
+			const tcString = await generateTCString(consentData, mockGVL, {
+				cmpId: 28,
+				cmpVersion: 1,
+			});
+
+			const decoded = await decodeTCString(tcString);
+
+			// Should have empty vendorsDisclosed
+			expect(Object.keys(decoded.vendorsDisclosed).length).toBe(0);
 		});
 	});
 

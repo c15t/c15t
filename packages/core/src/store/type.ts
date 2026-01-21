@@ -367,6 +367,14 @@ export interface StoreRuntimeState extends StoreConfig {
 	/** Special feature opt-ins (e.g., precise geolocation) */
 	specialFeatureOptIns: Record<number, boolean>;
 
+	/**
+	 * Vendors disclosed to the user in the CMP UI (TCF 2.3 requirement).
+	 *
+	 * This tracks which vendors were shown to the user, regardless of
+	 * whether consent was given. Required for TC String generation.
+	 */
+	vendorsDisclosed: Record<number, boolean>;
+
 	/** CMP API controls (manages __tcfapi) */
 	cmpApi: CMPApi | null;
 }
