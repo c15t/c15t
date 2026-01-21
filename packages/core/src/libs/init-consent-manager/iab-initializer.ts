@@ -5,8 +5,24 @@
  */
 
 import type { GlobalVendorList } from '../../types/iab-tcf';
-import type { IABConfig } from '../tcf/types';
+import type { IABConfig, IABState } from '../tcf/types';
 import type { StoreAccess } from './types';
+
+/**
+ * Helper to update nested IAB state.
+ */
+function updateIABState(
+	{ get, set }: StoreAccess,
+	updates: Partial<IABState>
+): void {
+	const { iab } = get();
+	if (!iab) {
+		return;
+	}
+	set({
+		iab: { ...iab, ...updates },
+	});
+}
 
 /**
  * Initializes IAB TCF mode.
@@ -26,17 +42,19 @@ import type { StoreAccess } from './types';
  */
 export async function initializeIABMode(
 	iab: IABConfig,
-	{ set, get }: StoreAccess,
+	storeAccess: StoreAccess,
 	prefetchedGVL?: GlobalVendorList | null
 ): Promise<void> {
+	const { get } = storeAccess;
+
 	// If GVL is null, it means we're in a non-IAB region (204 response)
 	// Skip IAB initialization entirely
 	if (prefetchedGVL === null) {
 		return;
 	}
 
-	// Mark GVL as loading
-	set({
+	// Mark GVL as loading and set non-IAB vendors
+	updateIABState(storeAccess, {
 		isLoadingGVL: true,
 		nonIABVendors: iab.customVendors ?? [],
 	});
@@ -63,13 +81,13 @@ export async function initializeIABMode(
 
 			// If GVL is null (non-IAB region), skip initialization
 			if (gvl === null) {
-				set({ isLoadingGVL: false });
+				updateIABState(storeAccess, { isLoadingGVL: false });
 				return;
 			}
 		}
 
 		// Update store with GVL
-		set({ gvl, isLoadingGVL: false });
+		updateIABState(storeAccess, { gvl, isLoadingGVL: false });
 
 		// Initialize CMP API
 		const cmpApi = createCMPApi({
@@ -79,13 +97,13 @@ export async function initializeIABMode(
 			gdprApplies: true,
 		});
 
-		set({ cmpApi });
+		updateIABState(storeAccess, { cmpApi });
 
 		// Load existing TC String from storage if available
 		const existingTcString = cmpApi.loadFromStorage();
 
 		if (existingTcString) {
-			await restoreConsentFromTCString(existingTcString, { set, get });
+			await restoreConsentFromTCString(existingTcString, storeAccess);
 		}
 		// No existing consent - initialize default IAB state
 		// Purpose 1 (Storage) is required, so we might auto-consent it
@@ -95,7 +113,7 @@ export async function initializeIABMode(
 		get().updateScripts();
 	} catch (error) {
 		console.error('Failed to initialize IAB mode:', error);
-		set({ isLoadingGVL: false });
+		updateIABState(storeAccess, { isLoadingGVL: false });
 	}
 }
 
@@ -107,8 +125,10 @@ export async function initializeIABMode(
  */
 async function restoreConsentFromTCString(
 	tcString: string,
-	{ set }: StoreAccess
+	storeAccess: StoreAccess
 ): Promise<void> {
+	const { set } = storeAccess;
+
 	try {
 		const { decodeTCString, iabPurposesToC15tConsents } = await import(
 			'../tcf'
@@ -118,14 +138,18 @@ async function restoreConsentFromTCString(
 		// Map IAB consents to c15t consents
 		const c15tConsents = iabPurposesToC15tConsents(decoded.purposeConsents);
 
-		// Update store with tcString and all decoded fields in one go
-		set({
+		// Update IAB state with decoded TC String data
+		updateIABState(storeAccess, {
 			tcString,
 			purposeConsents: decoded.purposeConsents,
 			purposeLegitimateInterests: decoded.purposeLegitimateInterests,
 			vendorConsents: decoded.vendorConsents,
 			vendorLegitimateInterests: decoded.vendorLegitimateInterests,
 			specialFeatureOptIns: decoded.specialFeatureOptIns,
+		});
+
+		// Update core consent state
+		set({
 			consents: c15tConsents,
 			selectedConsents: c15tConsents,
 			showPopup: false, // User already has consent

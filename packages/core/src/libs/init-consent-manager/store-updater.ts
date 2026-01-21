@@ -83,13 +83,13 @@ function buildStoreUpdate(
 	hasLocalStorageAccess: boolean
 ): Partial<ConsentStoreState> {
 	const { get, initialTranslationConfig } = config;
-	const { consentInfo, iabConfig } = get();
+	const { consentInfo, iab } = get();
 	const { translations, location } = data;
 
 	// Compute auto-grant info using helper
 	const { consentModel, autoGrantedConsents } = computeAutoGrantInfo(
 		(data.jurisdiction as JurisdictionCode) ?? null,
-		iabConfig?.enabled,
+		iab?.config.enabled,
 		consentInfo
 	);
 
@@ -193,12 +193,12 @@ export function updateStore(
 	prefetchedGVL?: GlobalVendorList | null
 ): void {
 	const { set, get } = config;
-	const { consentInfo, iabConfig } = get();
+	const { consentInfo, iab } = get();
 
 	// Compute auto-grant info once to be used by buildStoreUpdate and triggerCallbacks
 	const { consentModel, autoGrantedConsents } = computeAutoGrantInfo(
 		(data.jurisdiction as JurisdictionCode) ?? null,
-		iabConfig?.enabled,
+		iab?.config.enabled,
 		consentInfo
 	);
 
@@ -213,9 +213,9 @@ export function updateStore(
 	get().updateScripts();
 
 	// Initialize IAB mode if enabled and in IAB jurisdiction
-	if (iabConfig?.enabled && consentModel === 'iab') {
+	if (iab?.config.enabled && consentModel === 'iab') {
 		// Non-blocking initialization - errors are handled within initializeIABMode
-		initializeIABMode(iabConfig, { set, get }, prefetchedGVL).catch((err) => {
+		initializeIABMode(iab.config, { set, get }, prefetchedGVL).catch((err) => {
 			console.error('Failed to initialize IAB mode in updateStore:', err);
 		});
 	}

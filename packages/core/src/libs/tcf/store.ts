@@ -1,120 +1,148 @@
 import type { ConsentManagerInterface } from '../../client/client-interface';
 import type { ConsentStoreState } from '../../store/type';
 import type { GlobalVendorList } from '../../types';
-import type { IABConfig } from './types';
+import type { IABActions, IABConfig, IABManager, IABState } from './types';
 
 /**
- * Creates IAB TCF management functions for the consent manager store.
+ * Creates the initial IAB state with default values.
+ *
+ * @param config - The IAB configuration from store options
+ * @returns Initial IAB state with empty consent records
+ *
+ * @internal
+ */
+export function createInitialIABState(config: IABConfig): IABState {
+	return {
+		config,
+		gvl: null,
+		isLoadingGVL: false,
+		nonIABVendors: [],
+		tcString: null,
+		vendorConsents: {},
+		vendorLegitimateInterests: {},
+		purposeConsents: {},
+		purposeLegitimateInterests: {},
+		specialFeatureOptIns: {},
+		vendorsDisclosed: {},
+		cmpApi: null,
+	};
+}
+
+/**
+ * Creates IAB action methods that operate on nested IAB state.
  *
  * @remarks
- * The returned methods are intended to be spread into the
- * {@link ConsentStoreState} and provide IAB TCF consent management
- * based on the TCF 2.3 specification.
+ * The returned actions close over getState/setState and update the nested
+ * `iab` property of the store. These are combined with IABState to form
+ * the complete IABManager.
  *
  * @param getState - Function to get the current state from the store
  * @param setState - Function to update the state in the store
  * @param manager - The consent manager interface for API calls
- * @returns Object containing IAB TCF management functions
+ * @returns IAB action methods
  *
  * @internal
  */
-export function createIABManager(
+export function createIABActions(
 	getState: () => ConsentStoreState,
 	setState: (partial: Partial<ConsentStoreState>) => void,
 	manager: ConsentManagerInterface
-) {
+): IABActions {
+	/**
+	 * Helper to update nested IAB state.
+	 */
+	const updateState = (updates: Partial<IABState>): void => {
+		const { iab } = getState();
+		if (!iab) {
+			return;
+		}
+		// Preserve the action methods when updating state
+		setState({
+			iab: { ...iab, ...updates },
+		});
+	};
+
 	return {
-		/**
-		 * Sets IAB purpose consent.
-		 *
-		 * @param purposeId - IAB purpose ID (1-11)
-		 * @param value - Whether consent is granted
-		 */
+		_updateState: updateState,
+
 		setPurposeConsent: (purposeId: number, value: boolean) => {
-			setState({
+			const { iab } = getState();
+			if (!iab) {
+				return;
+			}
+			updateState({
 				purposeConsents: {
-					...getState().purposeConsents,
+					...iab.purposeConsents,
 					[purposeId]: value,
 				},
 			});
 		},
 
-		/**
-		 * Sets IAB purpose legitimate interest.
-		 *
-		 * @param purposeId - IAB purpose ID (1-11)
-		 * @param value - Whether legitimate interest is established
-		 */
 		setPurposeLegitimateInterest: (purposeId: number, value: boolean) => {
-			setState({
+			const { iab } = getState();
+			if (!iab) {
+				return;
+			}
+			updateState({
 				purposeLegitimateInterests: {
-					...getState().purposeLegitimateInterests,
+					...iab.purposeLegitimateInterests,
 					[purposeId]: value,
 				},
 			});
 		},
 
-		/**
-		 * Sets IAB vendor consent.
-		 *
-		 * @param vendorId - IAB vendor ID
-		 * @param value - Whether consent is granted
-		 */
 		setVendorConsent: (vendorId: number, value: boolean) => {
-			setState({
+			const { iab } = getState();
+			if (!iab) {
+				return;
+			}
+			updateState({
 				vendorConsents: {
-					...getState().vendorConsents,
+					...iab.vendorConsents,
 					[vendorId]: value,
 				},
 			});
 		},
 
-		/**
-		 * Sets IAB vendor legitimate interest.
-		 *
-		 * @param vendorId - IAB vendor ID
-		 * @param value - Whether legitimate interest is established
-		 */
 		setVendorLegitimateInterest: (vendorId: number, value: boolean) => {
-			setState({
+			const { iab } = getState();
+			if (!iab) {
+				return;
+			}
+			updateState({
 				vendorLegitimateInterests: {
-					...getState().vendorLegitimateInterests,
+					...iab.vendorLegitimateInterests,
 					[vendorId]: value,
 				},
 			});
 		},
 
-		/**
-		 * Sets special feature opt-in.
-		 *
-		 * @param featureId - IAB special feature ID (1-2)
-		 * @param value - Whether opt-in is granted
-		 */
 		setSpecialFeatureOptIn: (featureId: number, value: boolean) => {
-			setState({
+			const { iab } = getState();
+			if (!iab) {
+				return;
+			}
+			updateState({
 				specialFeatureOptIns: {
-					...getState().specialFeatureOptIns,
+					...iab.specialFeatureOptIns,
 					[featureId]: value,
 				},
 			});
 		},
 
-		/**
-		 * Accepts all IAB purposes, vendors, and special features.
-		 */
-		acceptAllIAB: () => {
-			const { gvl, iabConfig } = getState();
-			if (!gvl || !iabConfig) {
+		acceptAll: () => {
+			const { iab } = getState();
+			if (!iab?.gvl) {
 				return;
 			}
 
 			const { purposeConsents, purposeLegitimateInterests } =
-				buildAllPurposeConsents(gvl, true);
+				buildAllPurposeConsents(iab.gvl, true);
 			const { vendorConsents, vendorLegitimateInterests } =
-				buildAllVendorConsents(iabConfig, true);
-			const specialFeatureOptIns = buildAllSpecialFeatureOptIns(gvl, true);
+				buildAllVendorConsents(iab.config, true);
+			const specialFeatureOptIns = buildAllSpecialFeatureOptIns(iab.gvl, true);
 
-			setState({
+			updateState({
 				purposeConsents,
 				purposeLegitimateInterests,
 				vendorConsents,
@@ -123,19 +151,16 @@ export function createIABManager(
 			});
 		},
 
-		/**
-		 * Rejects all IAB purposes (except necessary/Purpose 1) and vendors.
-		 */
-		rejectAllIAB: () => {
-			const { gvl, iabConfig } = getState();
-			if (!gvl || !iabConfig) {
+		rejectAll: () => {
+			const { iab } = getState();
+			if (!iab?.gvl) {
 				return;
 			}
 
 			// Reject all purposes except Purpose 1 (strictly necessary)
 			const purposeConsents: Record<number, boolean> = { 1: true };
 			const purposeLegitimateInterests: Record<number, boolean> = {};
-			for (const purposeId of Object.keys(gvl.purposes)) {
+			for (const purposeId of Object.keys(iab.gvl.purposes)) {
 				if (Number(purposeId) !== 1) {
 					purposeConsents[Number(purposeId)] = false;
 					purposeLegitimateInterests[Number(purposeId)] = false;
@@ -143,10 +168,10 @@ export function createIABManager(
 			}
 
 			const { vendorConsents, vendorLegitimateInterests } =
-				buildAllVendorConsents(iabConfig, false);
-			const specialFeatureOptIns = buildAllSpecialFeatureOptIns(gvl, false);
+				buildAllVendorConsents(iab.config, false);
+			const specialFeatureOptIns = buildAllSpecialFeatureOptIns(iab.gvl, false);
 
-			setState({
+			updateState({
 				purposeConsents,
 				purposeLegitimateInterests,
 				vendorConsents,
@@ -155,29 +180,23 @@ export function createIABManager(
 			});
 		},
 
-		/**
-		 * Saves IAB consents and generates TC String.
-		 *
-		 * @returns Promise that resolves when consents are saved
-		 */
-		saveIABConsents: async () => {
+		save: async () => {
+			const { iab, locationInfo, user, callbacks } = getState();
+
+			if (!iab?.cmpApi || !iab.gvl) {
+				return;
+			}
+
 			const {
-				cmpApi,
-				iabConfig,
+				config: iabConfig,
 				gvl,
+				cmpApi,
 				purposeConsents,
 				purposeLegitimateInterests,
 				vendorConsents,
 				vendorLegitimateInterests,
 				specialFeatureOptIns,
-				locationInfo,
-				user,
-				callbacks,
-			} = getState();
-
-			if (!cmpApi || !iabConfig || !gvl) {
-				return;
-			}
+			} = iab;
 
 			// Dynamically import TC String generation
 			const { generateTCString, iabPurposesToC15tConsents } = await import(
@@ -218,9 +237,14 @@ export function createIABManager(
 
 			const givenAt = Date.now();
 
-			setState({
+			// Update IAB state with TC string and vendors disclosed
+			updateState({
 				tcString,
 				vendorsDisclosed,
+			});
+
+			// Update core consent state
+			setState({
 				consents: c15tConsents,
 				selectedConsents: c15tConsents,
 				showPopup: false,
@@ -265,6 +289,32 @@ export function createIABManager(
 				}
 			}
 		},
+	};
+}
+
+/**
+ * Creates a complete IAB manager with state and actions.
+ *
+ * @param config - IAB configuration
+ * @param getState - Function to get the current state from the store
+ * @param setState - Function to update the state in the store
+ * @param manager - The consent manager interface for API calls
+ * @returns Complete IABManager with state and actions
+ *
+ * @internal
+ */
+export function createIABManager(
+	config: IABConfig,
+	getState: () => ConsentStoreState,
+	setState: (partial: Partial<ConsentStoreState>) => void,
+	manager: ConsentManagerInterface
+): IABManager {
+	const state = createInitialIABState(config);
+	const actions = createIABActions(getState, setState, manager);
+
+	return {
+		...state,
+		...actions,
 	};
 }
 

@@ -123,43 +123,6 @@ export const initialState: StoreRuntimeState = {
 
 	model: 'opt-in',
 
-	// ─────────────────────────────────────────────────────────────────────────
-	// IAB TCF State
-	// ─────────────────────────────────────────────────────────────────────────
-
-	/** IAB TCF configuration (null when not configured) */
-	iabConfig: null,
-
-	/** Global Vendor List (null when not in IAB mode) */
-	gvl: null,
-
-	/** Whether GVL is currently being fetched */
-	isLoadingGVL: false,
-
-	/** Non-IAB vendors configured by the publisher */
-	nonIABVendors: [],
-
-	/** IAB TCF consent string */
-	tcString: null,
-
-	/** Per-vendor consent state */
-	vendorConsents: {},
-
-	/** Per-vendor legitimate interest state */
-	vendorLegitimateInterests: {},
-
-	/** Per-purpose consent state (IAB purposes 1-11) */
-	purposeConsents: {},
-
-	/** Per-purpose legitimate interest state */
-	purposeLegitimateInterests: {},
-
-	/** Special feature opt-ins */
-	specialFeatureOptIns: {},
-
-	/** Vendors disclosed to the user in the CMP UI (TCF 2.3) */
-	vendorsDisclosed: {},
-
-	/** CMP API controls */
-	cmpApi: null,
+	/** IAB TCF state (null when not configured) */
+	iab: null,
 };
