@@ -50,13 +50,13 @@
 		},
 		"./db/schema": {
 			"types": "./dist/db/schema/index.d.ts",
-			"import": "./dist/schema.js",
-			"require": "./dist/schema.cjs"
+			"import": "./dist/db/schema.js",
+			"require": "./dist/db/schema.cjs"
 		},
 		"./db/adapters": {
 			"types": "./dist/db/adapters/index.d.ts",
-			"import": "./dist/adapters.js",
-			"require": "./dist/adapters.cjs"
+			"import": "./dist/db/adapters.js",
+			"require": "./dist/db/adapters.cjs"
 		},
 		"./db/adapters/kysely": {
 			"types": "./dist/db/adapters/kysely.d.ts",
@@ -85,8 +85,8 @@
 		},
 		"./db/migrator": {
 			"types": "./dist/db/migrator/index.d.ts",
-			"import": "./dist/migrator.js",
-			"require": "./dist/migrator.cjs"
+			"import": "./dist/db/migrator.js",
+			"require": "./dist/db/migrator.cjs"
 		},
 		"./types": {
 			"types": "./dist/types/index.d.ts",

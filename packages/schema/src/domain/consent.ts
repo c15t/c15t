@@ -16,6 +16,12 @@ export const consentSchema = z.object({
 	givenAt: z.date().prefault(() => new Date()),
 	validUntil: z.date().nullish(),
 	isActive: z.boolean().prefault(true),
+	/** Jurisdiction code (e.g., 'GDPR', 'UK_GDPR', 'CCPA') */
+	jurisdiction: z.string().nullish(),
+	/** Consent model used (e.g., 'opt-in', 'opt-out', 'iab') */
+	jurisdictionModel: z.string().nullish(),
+	/** IAB TCF TC String (only for IAB consents) */
+	tcString: z.string().nullish(),
 });
 
 export type Consent = z.infer<typeof consentSchema>;

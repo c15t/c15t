@@ -377,7 +377,7 @@ export const createConsentManagerStore = (
 		...createScriptManager(get, set),
 		...createIframeManager(get, set),
 		...createNetworkBlockerManager(get, set),
-		...createIABManager(get, set),
+		...createIABManager(get, set, manager),
 	}));
 
 	// Initialize the iframe blocker after the store is created

@@ -1,9 +1,9 @@
 import baseX from 'base-x';
 import type { InferFumaDB } from 'fumadb';
-import type { DB } from '~/db/schema';
+import type { LatestDB } from '~/db/schema';
 import type { C15TContext } from '~/types';
 
-type Tables = InferFumaDB<typeof DB>['schemas'][-1]['tables'];
+type Tables = InferFumaDB<typeof LatestDB>['schemas'][-1]['tables'];
 
 const prefixes: Record<keyof Tables, string> = {
 	auditLog: 'log',
@@ -58,7 +58,7 @@ function generateId(model: keyof typeof prefixes): string {
  * @throws {Error} When max retry attempts are exceeded
  */
 export async function generateUniqueId(
-	db: ReturnType<InferFumaDB<typeof DB>['orm']>,
+	db: ReturnType<InferFumaDB<typeof LatestDB>['orm']>,
 	model: keyof Tables,
 	ctx?: Partial<C15TContext> | undefined,
 	options: {

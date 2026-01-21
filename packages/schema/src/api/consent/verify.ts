@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { policyTypeSchema } from '~/domain/consent-policy';
+import { policyTypeSchema } from '../../domain/consent-policy';
 
 /**
  * Input schema for verify consent endpoint

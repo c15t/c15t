@@ -107,7 +107,7 @@ export const init = (options: C15TOptions): C15TContext => {
 	// Initialize core components
 	const client = DB.client(options.adapter);
 
-	const orm = client.orm('1.0.0');
+	const orm = client.orm('2.0.0');
 
 	const context: C15TContext = {
 		...options,

@@ -24,9 +24,12 @@ export async function saveConsents({
 		updateIframeConsents,
 		updateNetworkBlockerConsents,
 		gdprTypes,
+		locationInfo,
+		model,
 	} = get();
 
 	const newConsents = selectedConsents ?? consents ?? {};
+	const givenAt = Date.now();
 
 	if (type === 'all') {
 		for (const consent of consentTypes) {
@@ -48,7 +51,7 @@ export async function saveConsents({
 		selectedConsents: newConsents,
 		showPopup: false,
 		consentInfo: {
-			time: Date.now(),
+			time: givenAt,
 			identified: !!get().user?.id,
 		},
 	});
@@ -73,6 +76,9 @@ export async function saveConsents({
 			preferences: newConsents,
 			externalSubjectId: get().user?.id,
 			identityProvider: get().user?.identityProvider,
+			jurisdiction: locationInfo?.jurisdiction ?? undefined,
+			jurisdictionModel: model ?? undefined,
+			givenAt,
 			metadata: {
 				source: 'consent_widget',
 				acceptanceMethod: type,
