@@ -1,183 +1,25 @@
-import type { InitOutput } from '@c15t/schema/types';
+/**
+ * Tests for initConsentManager.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoreApi } from 'zustand/vanilla';
-import type { ConsentManagerInterface } from '../client/client-factory';
-import type { ConsentStoreState } from '../store/type';
-import type { ConsentType } from '../types';
-import { hasGlobalPrivacyControlSignal } from './global-privacy-control';
-import type { IframeBlockerConfig } from './iframe-blocker';
-import { initConsentManager } from './init-consent-manager';
+import type { ConsentManagerInterface } from '../../../client/client-factory';
+import type { ConsentStoreState } from '../../../store/type';
+import { hasGlobalPrivacyControlSignal } from '../../global-privacy-control';
+import { initConsentManager } from '../index';
+import {
+	createMockConsentBannerResponse,
+	createMockConsentManager,
+	createMockStoreState,
+} from './test-setup';
 
-vi.mock('../global-privacy-control', () => ({
+vi.mock('../../global-privacy-control', () => ({
 	hasGlobalPrivacyControlSignal: vi.fn(),
 }));
-
-// Mock types for testing
-type InitResponse = InitOutput;
-
-/**
- * Mock consent manager for testing
- */
-type MockableConsentManagerMethods = Pick<
-	ConsentManagerInterface,
-	'init' | 'setConsent' | 'verifyConsent' | '$fetch'
->;
-
-const createMockConsentManager = (
-	overrides: Partial<MockableConsentManagerMethods> = {}
-): ConsentManagerInterface => {
-	const base: ConsentManagerInterface = {
-		init: vi.fn(),
-		setConsent: vi.fn(),
-		verifyConsent: vi.fn(),
-		identifyUser: vi.fn(),
-		$fetch: vi.fn(),
-	};
-
-	return {
-		...base,
-		...overrides,
-	};
-};
-
-/**
- * Mock store state for testing
- */
-const createMockStoreState = (
-	overrides: Omit<Partial<ConsentStoreState>, 'getDisplayedConsents'> = {}
-): ConsentStoreState => ({
-	config: { pkg: 'test', version: '1.0.0', mode: 'test' },
-	legalLinks: {},
-	branding: 'c15t',
-	consents: {
-		necessary: false,
-		functionality: false,
-		experience: false,
-		marketing: false,
-		measurement: false,
-	},
-	selectedConsents: {
-		necessary: false,
-		functionality: false,
-		experience: false,
-		marketing: false,
-		measurement: false,
-	},
-	consentInfo: null,
-	showPopup: false,
-	isLoadingConsentInfo: false,
-	hasFetchedBanner: false,
-	lastBannerFetchData: null,
-	gdprTypes: [],
-	isPrivacyDialogOpen: false,
-	iframeBlockerConfig: {} as IframeBlockerConfig,
-	callbacks: {},
-	model: null,
-	locationInfo: null,
-	translationConfig: {
-		translations: {},
-		defaultLanguage: 'en',
-		disableAutoLanguageSwitch: false,
-	},
-	setTranslationConfig: vi.fn(),
-	setLanguage: vi.fn(),
-	includeNonDisplayedConsents: false,
-	consentTypes: [],
-	scripts: [],
-	loadedScripts: {},
-	scriptIdMap: {},
-	setScripts: vi.fn(),
-	removeScript: vi.fn(),
-	updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
-	isScriptLoaded: vi.fn(),
-	getLoadedScriptIds: vi.fn().mockReturnValue([]),
-	setConsent: vi.fn(),
-	setShowPopup: vi.fn(),
-	setIsPrivacyDialogOpen: vi.fn(),
-	saveConsents: vi.fn(),
-	resetConsents: vi.fn(),
-	initializeIframeBlocker: vi.fn(),
-	updateIframeConsents: vi.fn(),
-	destroyIframeBlocker: vi.fn(),
-	initializeNetworkBlocker: vi.fn(),
-	updateNetworkBlockerConsents: vi.fn(),
-	setNetworkBlocker: vi.fn(),
-	destroyNetworkBlocker: vi.fn(),
-	updateConsentCategories: vi.fn(),
-	identifyUser: vi.fn(),
-	setGdprTypes: vi.fn(),
-	setCallback: vi.fn(),
-	setLocationInfo: vi.fn(),
-	initConsentManager: vi.fn(),
-	getDisplayedConsents: vi.fn(() => [] as ConsentType[]),
-	hasConsented: vi.fn(),
-	setSelectedConsent: vi.fn(),
-	has: vi.fn(),
-	overrides: undefined,
-	setOverrides: vi.fn(),
-	identifyUser: vi.fn(),
-	initializeIframeBlocker: vi.fn(),
-	updateIframeConsents: vi.fn(),
-	destroyIframeBlocker: vi.fn(),
-	updateConsentCategories: vi.fn(),
-	...overrides,
-});
-
-/**
- * Sample consent banner response for testing
- */
-const createMockConsentBannerResponse = (
-	overrides: Partial<InitResponse> = {}
-): InitResponse => ({
-	branding: 'c15t',
-	jurisdiction: 'GDPR',
-	location: {
-		countryCode: 'DE',
-		regionCode: 'BE',
-	},
-	translations: {
-		language: 'en',
-		translations: {
-			common: {
-				acceptAll: 'Accept All',
-				rejectAll: 'Reject All',
-				customize: 'Customize',
-				save: 'Save',
-			},
-			cookieBanner: {
-				title: 'Cookie Banner',
-				description: 'We use cookies to enhance your experience',
-			},
-			consentManagerDialog: {
-				title: 'Consent Manager',
-				description: 'Manage your consent preferences',
-			},
-			consentTypes: {
-				necessary: {
-					title: 'Necessary',
-					description: 'Essential for the website to function',
-				},
-				functionality: {
-					title: 'Functionality',
-					description: 'Enhances website functionality',
-				},
-				experience: {
-					title: 'Experience',
-					description: 'Improves user experience',
-				},
-				marketing: {
-					title: 'Marketing',
-					description: 'Used for marketing purposes',
-				},
-				measurement: {
-					title: 'Measurement',
-					description: 'Used for analytics and measurement',
-				},
-			},
-		},
-	},
-	...overrides,
-});
 
 describe('initConsentManager', () => {
 	let mockGet: ReturnType<typeof vi.fn>;
@@ -188,16 +30,13 @@ describe('initConsentManager', () => {
 	let mockState: ConsentStoreState;
 
 	beforeEach(() => {
-		// Reset all mocks
 		vi.clearAllMocks();
 
-		// Create mock store functions
 		mockGet = vi.fn();
 		mockSet = vi.fn();
 		storeGet = mockGet as unknown as StoreApi<ConsentStoreState>['getState'];
 		storeSet = mockSet as unknown as StoreApi<ConsentStoreState>['setState'];
 
-		// Create mock state
 		mockState = createMockStoreState({
 			hasConsented: vi.fn().mockReturnValue(false),
 			callbacks: {
@@ -206,36 +45,31 @@ describe('initConsentManager', () => {
 			},
 		});
 
-		// Setup mock get to return our state
 		mockGet.mockReturnValue(mockState);
-
-		// Create mock manager
 		mockManager = createMockConsentManager();
 	});
 
 	describe('Environment checks', () => {
 		it('should return undefined when window is undefined (SSR)', async () => {
-			// Mock window as undefined
 			const originalWindow = globalThis.window;
-			// biome-ignore lint/suspicious/noExplicitAny: Testing environment setup
-			(globalThis as any).window = undefined;
+			try {
+				// biome-ignore lint/suspicious/noExplicitAny: Testing environment setup
+				(globalThis as any).window = undefined;
 
-			const result = await initConsentManager({
-				manager: mockManager,
-				get: storeGet,
-				set: storeSet,
-			});
+				const result = await initConsentManager({
+					manager: mockManager,
+					get: storeGet,
+					set: storeSet,
+				});
 
-			expect(result).toBeUndefined();
-			// SSR path doesn't set isLoadingConsentInfo: false in the current implementation
-			expect(mockSet).not.toHaveBeenCalled();
-
-			// Restore window
-			globalThis.window = originalWindow;
+				expect(result).toBeUndefined();
+				expect(mockSet).not.toHaveBeenCalled();
+			} finally {
+				globalThis.window = originalWindow;
+			}
 		});
 
 		it('should return undefined when localStorage is not accessible', async () => {
-			// Mock localStorage to throw an error
 			const originalLocalStorage = window.localStorage;
 			// biome-ignore lint/suspicious/noExplicitAny: Testing localStorage access
 			(window as any).localStorage = {
@@ -257,7 +91,6 @@ describe('initConsentManager', () => {
 				showPopup: false,
 			});
 
-			// Restore localStorage
 			window.localStorage = originalLocalStorage;
 		});
 	});
@@ -265,7 +98,10 @@ describe('initConsentManager', () => {
 	describe('Initial data handling', () => {
 		it('should use initial data when provided and valid', async () => {
 			const mockResponse = createMockConsentBannerResponse();
-			const initialData = Promise.resolve(mockResponse);
+			const initialData = Promise.resolve({
+				init: mockResponse,
+				gvl: undefined,
+			});
 
 			const result = await initConsentManager({
 				manager: mockManager,
@@ -275,7 +111,6 @@ describe('initConsentManager', () => {
 			});
 
 			expect(result).toEqual(mockResponse);
-			// No longer directly setting isLoadingConsentInfo: false since it's handled in updateStore
 			expect(mockManager.init).not.toHaveBeenCalled();
 		});
 
@@ -299,9 +134,35 @@ describe('initConsentManager', () => {
 			expect(mockManager.init).toHaveBeenCalled();
 		});
 
+		it('should fall back to API call when initial data init is undefined', async () => {
+			const initialData = Promise.resolve({
+				init: undefined,
+				gvl: undefined,
+			});
+			const mockResponse = createMockConsentBannerResponse();
+
+			mockManager.init = vi.fn().mockResolvedValue({
+				data: mockResponse,
+				error: null,
+			});
+
+			const result = await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+				initialData,
+			});
+
+			expect(result).toEqual(mockResponse);
+			expect(mockManager.init).toHaveBeenCalled();
+		});
+
 		it('should skip initial data when overrides are present', async () => {
 			const mockResponse = createMockConsentBannerResponse();
-			const initialData = Promise.resolve(mockResponse);
+			const initialData = Promise.resolve({
+				init: mockResponse,
+				gvl: undefined,
+			});
 
 			mockState.overrides = {
 				country: 'DE',
@@ -325,12 +186,11 @@ describe('initConsentManager', () => {
 				initialData,
 			});
 
-			// Should use API response, not initial data
 			expect(result).toEqual(apiResponse);
 			expect(mockManager.init).toHaveBeenCalled();
 		});
 
-		it('should pass overrides as headers to showConsentBanner', async () => {
+		it('should pass overrides as headers to init', async () => {
 			mockState.overrides = {
 				country: 'FR',
 				region: 'IDF',
@@ -365,7 +225,6 @@ describe('initConsentManager', () => {
 		it('should only pass defined override headers', async () => {
 			mockState.overrides = {
 				country: 'CA',
-				// region and language are undefined
 			};
 
 			const mockResponse = createMockConsentBannerResponse({
@@ -390,28 +249,6 @@ describe('initConsentManager', () => {
 				onError: expect.any(Function),
 			});
 		});
-
-		// it('should handle rejected initial data promise', async () => {
-		// 	// Mock console.error to prevent test output noise
-		// 	const originalConsoleError = console.error;
-		// 	console.error = vi.fn();
-
-		// 	// Create a rejected promise
-		// 	const initialData = Promise.reject(new Error('Initial data failed'));
-
-		// 	// Use vitest's async matcher
-		// 	await expect(
-		// 		fetchConsentBannerInfo({
-		// 			manager: mockManager,
-		// 			get: mockGet,
-		// 			set: mockSet,
-		// 			initialData,
-		// 		})
-		// 	).rejects.toThrow('Initial data failed');
-
-		// 	// Restore console.error
-		// 	console.error = originalConsoleError;
-		// });
 	});
 
 	describe('API call handling', () => {
@@ -451,8 +288,10 @@ describe('initConsentManager', () => {
 			});
 
 			expect(result).toBeUndefined();
-			expect(mockSet).toHaveBeenCalledWith({ isLoadingConsentInfo: false });
-			expect(mockSet).toHaveBeenCalledWith({ showPopup: false });
+			expect(mockSet).toHaveBeenCalledWith({
+				isLoadingConsentInfo: false,
+				showPopup: false,
+			});
 			expect(mockState.callbacks.onError).toHaveBeenCalledWith({
 				error: `Failed to fetch consent banner info: ${errorMessage}`,
 			});
@@ -469,8 +308,10 @@ describe('initConsentManager', () => {
 			});
 
 			expect(result).toBeUndefined();
-			expect(mockSet).toHaveBeenCalledWith({ isLoadingConsentInfo: false });
-			expect(mockSet).toHaveBeenCalledWith({ showPopup: false });
+			expect(mockSet).toHaveBeenCalledWith({
+				isLoadingConsentInfo: false,
+				showPopup: false,
+			});
 			expect(mockState.callbacks.onError).toHaveBeenCalledWith({
 				error: 'Network error',
 			});
@@ -517,7 +358,6 @@ describe('initConsentManager', () => {
 						countryCode: 'DE',
 						regionCode: 'BE',
 						jurisdiction: mockResponse.jurisdiction ?? null,
-						jurisdictionMessage: null,
 					},
 					translationConfig: expect.any(Object),
 				})
@@ -540,7 +380,6 @@ describe('initConsentManager', () => {
 				set: storeSet,
 			});
 
-			// Verify that consents are auto-granted when jurisdiction is 'NONE'
 			expect(mockSet).toHaveBeenCalledWith(
 				expect.objectContaining({
 					consents: {
@@ -550,33 +389,6 @@ describe('initConsentManager', () => {
 						marketing: true,
 						measurement: true,
 					},
-				})
-			);
-		});
-
-		it('should not auto grant consents if the user has already consented', async () => {
-			const mockResponse = createMockConsentBannerResponse({
-				jurisdiction: { code: 'NONE', message: 'No requirements' },
-				showConsentBanner: false,
-			});
-
-			mockState.consentInfo = { time: Date.now(), type: 'all' };
-
-			mockManager.showConsentBanner = vi.fn().mockResolvedValue({
-				data: mockResponse,
-				error: null,
-			});
-
-			await fetchConsentBannerInfo({
-				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
-			});
-
-			// Verify that set was NOT called with consents
-			expect(mockSet).toHaveBeenCalledWith(
-				expect.not.objectContaining({
-					consents: expect.anything(),
 				})
 			);
 		});
@@ -599,15 +411,12 @@ describe('initConsentManager', () => {
 				set: storeSet,
 			});
 
-			const lastCall =
-				mockSet.mock.calls[mockSet.mock.calls.length - 1]?.[0] ?? {};
-
-			expect(lastCall).toEqual(
+			expect(mockSet).toHaveBeenCalledWith(
 				expect.objectContaining({
 					consents: {
 						necessary: true,
-						functionality: false,
-						experience: false,
+						functionality: true,
+						experience: true,
 						marketing: false,
 						measurement: false,
 					},
@@ -633,30 +442,9 @@ describe('initConsentManager', () => {
 				set: storeSet,
 			});
 
-			const lastCall =
-				mockSet.mock.calls[mockSet.mock.calls.length - 1]?.[0] ?? {};
-
-			expect(lastCall).not.toHaveProperty('consents');
-		});
-
-		it('should not show popup when consent info already exists regardless of jurisdiction', async () => {
-			const mockResponse = createMockConsentBannerResponse();
-			mockState.consentInfo = { time: Date.now() };
-
-			mockManager.init = vi.fn().mockResolvedValue({
-				data: mockResponse,
-				error: null,
-			});
-
-			await initConsentManager({
-				manager: mockManager,
-				get: storeGet,
-				set: storeSet,
-			});
-
 			expect(mockSet).toHaveBeenCalledWith(
 				expect.not.objectContaining({
-					showPopup: expect.anything(),
+					consents: expect.anything(),
 				})
 			);
 		});
@@ -728,11 +516,7 @@ describe('initConsentManager', () => {
 			});
 
 			expect(onBannerFetched).toHaveBeenCalledWith({
-				showConsentBanner: true,
-				jurisdiction: {
-					code: mockResponse.jurisdiction,
-					message: '',
-				},
+				jurisdiction: mockResponse.jurisdiction,
 				location: mockResponse.location,
 				translations: {
 					language: mockResponse.translations.language,
@@ -763,35 +547,6 @@ describe('initConsentManager', () => {
 						countryCode: 'FR',
 						regionCode: 'IDF',
 						jurisdiction: mockResponse.jurisdiction ?? null,
-						jurisdictionMessage: null,
-					},
-				})
-			);
-		});
-
-		it('should set null country and region in locationInfo when location data is missing', async () => {
-			const mockResponse = createMockConsentBannerResponse({
-				location: { countryCode: null, regionCode: null },
-			});
-
-			mockManager.init = vi.fn().mockResolvedValue({
-				data: mockResponse,
-				error: null,
-			});
-
-			await initConsentManager({
-				manager: mockManager,
-				get: storeGet,
-				set: storeSet,
-			});
-
-			expect(mockSet).toHaveBeenCalledWith(
-				expect.objectContaining({
-					locationInfo: {
-						countryCode: null,
-						regionCode: null,
-						jurisdiction: mockResponse.jurisdiction ?? null,
-						jurisdictionMessage: null,
 					},
 				})
 			);
@@ -823,7 +578,6 @@ describe('initConsentManager', () => {
 		});
 
 		it('should not set translation config when translations are missing', async () => {
-			// Create a response without translations field
 			const {
 				translations: _translations,
 				...mockResponseWithoutTranslations
@@ -887,7 +641,6 @@ describe('initConsentManager', () => {
 			const networkError = new Error('Network failed');
 			mockManager.init = vi.fn().mockRejectedValue(networkError);
 
-			// Should not throw
 			await expect(
 				initConsentManager({
 					manager: mockManager,

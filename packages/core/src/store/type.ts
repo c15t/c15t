@@ -29,6 +29,30 @@ import type {
 import type { NonIABVendor } from '../types/non-iab-vendor';
 
 /**
+ * Initial data structure for SSR prefetching.
+ *
+ * @remarks
+ * When using frameworks like Next.js, both init and GVL data can be
+ * prefetched in parallel on the server and passed to the client.
+ *
+ * @public
+ */
+export interface SSRInitialData {
+	/**
+	 * Init endpoint response with jurisdiction, location, and translations.
+	 */
+	init: InitOutput | undefined;
+
+	/**
+	 * Global Vendor List data for IAB TCF mode.
+	 * - `undefined` means IAB is not enabled or fetch wasn't attempted
+	 * - `null` means the user is in a non-IAB region (204 response)
+	 * - `GlobalVendorList` contains the vendor list data
+	 */
+	gvl?: GlobalVendorList | null;
+}
+
+/**
  * Shared configuration-related properties between store options and runtime state.
  *
  * @remarks
@@ -200,8 +224,12 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	 * If showConsentBanner is fetched prior to the store being created, you can pass the initial data here.
 	 *
 	 * This is useful for server-side rendering (SSR) such as in @c15t/nextjs.
+	 *
+	 * @remarks
+	 * The data can include both init data and optional GVL data when IAB mode is enabled.
+	 * The GVL is fetched in parallel with init for better performance.
 	 */
-	_initialData?: Promise<InitOutput | undefined>;
+	_initialData?: Promise<SSRInitialData | undefined>;
 
 	/**
 	 * IAB TCF 2.3 configuration.

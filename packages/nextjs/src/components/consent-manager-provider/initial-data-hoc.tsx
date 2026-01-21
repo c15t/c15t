@@ -33,7 +33,7 @@ export function withInitialC15TData<
 			initialData = await getC15TInitialData(
 				backendURL,
 				new Headers(context.req.headers as Record<string, string>),
-				overrides
+				{ overrides }
 			);
 		} catch (error) {
 			// Silently handle consent data fetch errors
