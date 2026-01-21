@@ -209,13 +209,15 @@ export function createIABManager(
 			// Map IAB consents to c15t consents
 			const c15tConsents = iabPurposesToC15tConsents(purposeConsents);
 
+			const givenAt = Date.now();
+
 			setState({
 				tcString,
 				consents: c15tConsents,
 				selectedConsents: c15tConsents,
 				showPopup: false,
 				consentInfo: {
-					time: Date.now(),
+					time: givenAt,
 					identified: !!user?.id,
 				},
 			});
@@ -226,6 +228,7 @@ export function createIABManager(
 			// Send consent to backend API
 			const consent = await manager.setConsent({
 				body: {
+					givenAt,
 					type: 'cookie_banner',
 					domain: typeof window !== 'undefined' ? window.location.hostname : '',
 					preferences: c15tConsents,

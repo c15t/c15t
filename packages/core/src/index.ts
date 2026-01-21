@@ -77,6 +77,7 @@ export {
 export { createConsentManagerStore } from './store';
 export type {
 	ConsentStoreState,
+	SSRInitialData,
 	StoreOptions,
 } from './store/type';
 // Export default translation config
@@ -95,6 +96,7 @@ export {
 	type ConsentType,
 	consentTypes,
 } from './types/gdpr';
+export type { GlobalVendorList } from './types/iab-tcf';
 export type { Overrides } from './types/index';
 export type { LegalLink, LegalLinks } from './types/legal-links';
 export type { User } from './types/user';

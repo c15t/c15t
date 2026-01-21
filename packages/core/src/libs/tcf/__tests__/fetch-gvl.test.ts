@@ -4,11 +4,10 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearGVLCache, fetchGVL, getCachedGVL } from '../fetch-gvl';
-import { createMockGVL, setupFetchMock, setupStorageMock } from './test-setup';
+import { setupFetchMock } from './test-setup';
 
 describe('GVL Fetching', () => {
 	let fetchMock: ReturnType<typeof setupFetchMock>;
-	let storageMock: ReturnType<typeof setupStorageMock>;
 
 	beforeEach(() => {
 		// Clear cache before each test
@@ -16,12 +15,10 @@ describe('GVL Fetching', () => {
 
 		// Setup mocks
 		fetchMock = setupFetchMock();
-		storageMock = setupStorageMock();
 	});
 
 	afterEach(() => {
 		fetchMock.cleanup();
-		storageMock.cleanup();
 	});
 
 	describe('fetchGVL', () => {
@@ -29,9 +26,9 @@ describe('GVL Fetching', () => {
 			const gvl = await fetchGVL();
 
 			expect(gvl).toBeDefined();
-			expect(gvl.vendorListVersion).toBeDefined();
-			expect(gvl.purposes).toBeDefined();
-			expect(gvl.vendors).toBeDefined();
+			expect(gvl?.vendorListVersion).toBeDefined();
+			expect(gvl?.purposes).toBeDefined();
+			expect(gvl?.vendors).toBeDefined();
 		});
 
 		it('should include vendorIds in query params when provided', async () => {
@@ -39,7 +36,8 @@ describe('GVL Fetching', () => {
 
 			expect(fetchMock.mockFetch).toHaveBeenCalled();
 			const callUrl = fetchMock.mockFetch.mock.calls[0][0] as string;
-			expect(callUrl).toContain('vendorIds=1,2,755');
+			// URL encodes commas as %2C
+			expect(callUrl).toContain('vendorIds=1%2C2%2C755');
 		});
 
 		it('should not include vendorIds when array is empty', async () => {
@@ -56,19 +54,17 @@ describe('GVL Fetching', () => {
 			expect(callUrl).toContain('https://custom.endpoint.com');
 		});
 
-		it('should cache the result in memory', async () => {
-			await fetchGVL([1, 2]);
-			await fetchGVL([1, 2]);
+		it('should pass headers when provided', async () => {
+			await fetchGVL([], {
+				headers: { 'x-c15t-country': 'DE' },
+			});
 
-			// Should only fetch once due to cache
-			expect(fetchMock.mockFetch).toHaveBeenCalledTimes(1);
-		});
-
-		it('should bypass cache when bypassCache is true', async () => {
-			await fetchGVL([1, 2]);
-			await fetchGVL([1, 2], { bypassCache: true });
-
-			expect(fetchMock.mockFetch).toHaveBeenCalledTimes(2);
+			expect(fetchMock.mockFetch).toHaveBeenCalledWith(
+				expect.any(String),
+				expect.objectContaining({
+					headers: { 'x-c15t-country': 'DE' },
+				})
+			);
 		});
 
 		it('should throw on fetch failure', async () => {
@@ -98,6 +94,58 @@ describe('GVL Fetching', () => {
 
 			await expect(fetchGVL()).rejects.toThrow('Invalid GVL response');
 		});
+
+		it('should return null for 204 response (non-IAB region)', async () => {
+			fetchMock.cleanup();
+			fetchMock = {
+				mockFetch: vi.fn(() =>
+					Promise.resolve(new Response(null, { status: 204 }))
+				),
+				cleanup: () => {},
+			};
+			globalThis.fetch = fetchMock.mockFetch as typeof fetch;
+
+			const result = await fetchGVL();
+			expect(result).toBeNull();
+		});
+	});
+
+	describe('In-flight request deduplication', () => {
+		it('should deduplicate concurrent requests', async () => {
+			// Start two concurrent requests
+			const promise1 = fetchGVL([1, 2]);
+			const promise2 = fetchGVL([1, 2]);
+
+			const [result1, result2] = await Promise.all([promise1, promise2]);
+
+			// Should only fetch once
+			expect(fetchMock.mockFetch).toHaveBeenCalledTimes(1);
+
+			// Both should get the same result
+			expect(result1).toBe(result2);
+		});
+
+		it('should not deduplicate concurrent requests with different vendorIds', async () => {
+			// Start two concurrent requests with different vendorIds
+			const promise1 = fetchGVL([1, 2]);
+			const promise2 = fetchGVL([3, 4]);
+
+			const [result1, result2] = await Promise.all([promise1, promise2]);
+
+			// Should fetch twice (one for each set of vendorIds)
+			expect(fetchMock.mockFetch).toHaveBeenCalledTimes(2);
+
+			// Results should be different
+			expect(result1).not.toBe(result2);
+		});
+
+		it('should allow new fetch after previous completes', async () => {
+			await fetchGVL([1, 2]);
+			await fetchGVL([1, 2]);
+
+			// Should fetch twice since requests are sequential (not concurrent)
+			expect(fetchMock.mockFetch).toHaveBeenCalledTimes(2);
+		});
 	});
 
 	describe('getCachedGVL', () => {
@@ -113,6 +161,22 @@ describe('GVL Fetching', () => {
 			expect(cached).not.toBeNull();
 			expect(cached?.vendorListVersion).toBeDefined();
 		});
+
+		it('should return null after fetch returns 204', async () => {
+			fetchMock.cleanup();
+			fetchMock = {
+				mockFetch: vi.fn(() =>
+					Promise.resolve(new Response(null, { status: 204 }))
+				),
+				cleanup: () => {},
+			};
+			globalThis.fetch = fetchMock.mockFetch as typeof fetch;
+
+			await fetchGVL();
+
+			const cached = getCachedGVL();
+			expect(cached).toBeNull();
+		});
 	});
 
 	describe('clearGVLCache', () => {
@@ -122,38 +186,6 @@ describe('GVL Fetching', () => {
 
 			clearGVLCache();
 			expect(getCachedGVL()).toBeNull();
-		});
-
-		it('should clear localStorage cache', async () => {
-			await fetchGVL();
-
-			clearGVLCache();
-
-			// Should need to fetch again
-			await fetchGVL();
-			expect(fetchMock.mockFetch).toHaveBeenCalledTimes(2);
-		});
-	});
-
-	describe('Cache Validation', () => {
-		it('should serve from cache when vendor IDs are subset', async () => {
-			// First fetch with vendors 1, 2, 10
-			await fetchGVL([1, 2, 10]);
-
-			// Second fetch with subset (1, 2) should use cache
-			await fetchGVL([1, 2]);
-
-			expect(fetchMock.mockFetch).toHaveBeenCalledTimes(1);
-		});
-
-		it('should not serve from cache when requesting new vendor IDs', async () => {
-			// First fetch with vendors 1, 2
-			await fetchGVL([1, 2]);
-
-			// Second fetch with new vendor (755) should fetch again
-			await fetchGVL([1, 2, 755]);
-
-			expect(fetchMock.mockFetch).toHaveBeenCalledTimes(2);
 		});
 	});
 });

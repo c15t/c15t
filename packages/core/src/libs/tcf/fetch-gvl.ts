@@ -2,114 +2,34 @@
  * GVL (Global Vendor List) Fetcher
  *
  * Fetches the IAB TCF Global Vendor List from the consent.io endpoint.
- * Includes caching to avoid repeated fetches.
+ * Relies on HTTP Cache-Control headers for caching.
  *
  * @packageDocumentation
  */
 
 import type { GlobalVendorList } from '../../types/iab-tcf';
-import { GVL_ENDPOINT, IAB_STORAGE_KEYS } from './types';
+import { GVL_ENDPOINT } from './types';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface CachedGVL {
-	gvl: GlobalVendorList;
-	timestamp: number;
-	vendorIds: number[];
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Module State (Closures)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** In-memory cache for the current session */
-let memoryCache: CachedGVL | null = null;
-
-/** Cache TTL in milliseconds (24 hours) */
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Cache Helpers
+// Module State
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Checks if a cached GVL is valid for the requested vendor IDs.
+ * In-flight request promises for deduplication, keyed by request parameters.
+ * When multiple components request the GVL simultaneously with the same
+ * parameters, they share the same promise to avoid duplicate network calls.
  */
-function isCacheValid(
-	cache: CachedGVL | null,
-	vendorIds: number[]
-): cache is CachedGVL {
-	if (!cache) {
-		return false;
-	}
-
-	// Check if cache has expired
-	const isExpired = Date.now() - cache.timestamp > CACHE_TTL_MS;
-	if (isExpired) {
-		return false;
-	}
-
-	// Check if all requested vendor IDs are in the cached response
-	// If we requested fewer vendors, the cache is still valid
-	const cachedVendorSet = new Set(cache.vendorIds);
-	const allVendorsPresent = vendorIds.every((id) => cachedVendorSet.has(id));
-
-	return allVendorsPresent;
-}
+const inflightRequests = new Map<string, Promise<GlobalVendorList | null>>();
 
 /**
- * Loads GVL from localStorage cache.
+ * Cached GVL result for synchronous access after fetch completes.
+ * This is a simple reference cache, not a TTL-based cache.
+ *
+ * - undefined: Not yet fetched
+ * - null: Fetched and returned 204 (non-IAB region)
+ * - GlobalVendorList: Fetched and returned GVL data
  */
-function loadFromStorage(): CachedGVL | null {
-	if (typeof window === 'undefined') {
-		return null;
-	}
-
-	try {
-		const stored = localStorage.getItem(IAB_STORAGE_KEYS.GVL_CACHE);
-		if (!stored) {
-			return null;
-		}
-
-		const parsed = JSON.parse(stored) as CachedGVL;
-		return parsed;
-	} catch {
-		// Invalid cache, ignore
-		return null;
-	}
-}
-
-/**
- * Saves GVL to localStorage cache.
- */
-function saveToStorage(cache: CachedGVL): void {
-	if (typeof window === 'undefined') {
-		return;
-	}
-
-	try {
-		localStorage.setItem(IAB_STORAGE_KEYS.GVL_CACHE, JSON.stringify(cache));
-	} catch {
-		// Storage full or disabled, ignore
-	}
-}
-
-/**
- * Clears the GVL cache (both memory and storage).
- */
-export function clearGVLCache(): void {
-	memoryCache = null;
-
-	if (typeof window !== 'undefined') {
-		try {
-			localStorage.removeItem(IAB_STORAGE_KEYS.GVL_CACHE);
-		} catch {
-			// Ignore
-		}
-	}
-}
+let cachedGVL: GlobalVendorList | null | undefined = undefined;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Fetcher
@@ -120,12 +40,13 @@ export function clearGVLCache(): void {
  *
  * Features:
  * - Accepts optional vendor IDs to filter the response (smaller payload)
- * - Uses in-memory and localStorage caching
- * - Validates cache before serving
+ * - In-flight request deduplication (multiple callers share the same promise)
+ * - Relies on HTTP Cache-Control headers for caching
+ * - Returns null for 204 responses (non-IAB regions)
  *
  * @param vendorIds - Optional array of vendor IDs to include (filters response)
  * @param options - Fetch options
- * @returns The Global Vendor List
+ * @returns The Global Vendor List, or null if 204 (non-IAB region)
  *
  * @example
  * ```typescript
@@ -135,89 +56,96 @@ export function clearGVLCache(): void {
  * // Fetch filtered GVL with specific vendors
  * const filteredGvl = await fetchGVL([1, 2, 10, 755]);
  *
- * // Force fresh fetch (bypass cache)
- * const freshGvl = await fetchGVL([1, 2], { bypassCache: true });
+ * // Check for non-IAB region
+ * if (gvl === null) {
+ *   console.log('User is in a non-IAB region');
+ * }
  * ```
  *
  * @public
  */
 export async function fetchGVL(
 	vendorIds?: number[],
-	options: { bypassCache?: boolean; endpoint?: string } = {}
-): Promise<GlobalVendorList> {
-	const { bypassCache = false, endpoint = GVL_ENDPOINT } = options;
-	const requestedVendorIds = vendorIds ?? [];
+	options: { endpoint?: string; headers?: HeadersInit } = {}
+): Promise<GlobalVendorList | null> {
+	const { endpoint = GVL_ENDPOINT, headers } = options;
 
-	// Try memory cache first
-	if (!bypassCache && isCacheValid(memoryCache, requestedVendorIds)) {
-		return memoryCache.gvl;
-	}
+	// Create a stable key for the request based on sorted vendorIds and headers
+	const sortedVendorIds = vendorIds ? [...vendorIds].sort((a, b) => a - b) : [];
+	const headersKey = headers ? JSON.stringify(headers) : '';
+	const cacheKey = `${endpoint}|${sortedVendorIds.join(',')}|${headersKey}`;
 
-	// Try localStorage cache
-	if (!bypassCache) {
-		const storedCache = loadFromStorage();
-		if (isCacheValid(storedCache, requestedVendorIds)) {
-			// Populate memory cache from storage
-			memoryCache = storedCache;
-			return storedCache.gvl;
-		}
+	// Return in-flight request if one exists for these parameters (deduplication)
+	const existingRequest = inflightRequests.get(cacheKey);
+	if (existingRequest) {
+		return existingRequest;
 	}
 
 	// Build URL with vendor IDs filter
 	const url = new URL(endpoint);
-	if (requestedVendorIds.length > 0) {
-		url.searchParams.set('vendorIds', requestedVendorIds.join(','));
+	if (sortedVendorIds.length > 0) {
+		url.searchParams.set('vendorIds', sortedVendorIds.join(','));
 	}
 
-	// Fetch from network
-	const response = await fetch(url.toString());
+	// Create and store the in-flight promise
+	const promise = (async () => {
+		try {
+			const response = await fetch(url.toString(), {
+				headers,
+			});
 
-	if (!response.ok) {
-		throw new Error(
-			`Failed to fetch GVL: ${response.status} ${response.statusText}`
-		);
-	}
+			// 204 means non-IAB region - no GVL needed
+			if (response.status === 204) {
+				cachedGVL = null;
+				return null;
+			}
 
-	const gvl = (await response.json()) as GlobalVendorList;
+			if (!response.ok) {
+				throw new Error(
+					`Failed to fetch GVL: ${response.status} ${response.statusText}`
+				);
+			}
 
-	// Validate the response has required fields
-	if (!gvl.vendorListVersion || !gvl.purposes || !gvl.vendors) {
-		throw new Error('Invalid GVL response: missing required fields');
-	}
+			const gvl = (await response.json()) as GlobalVendorList;
 
-	// Cache the response
-	const cache: CachedGVL = {
-		gvl,
-		timestamp: Date.now(),
-		vendorIds:
-			requestedVendorIds.length > 0
-				? requestedVendorIds
-				: Object.keys(gvl.vendors).map(Number),
-	};
+			// Validate the response has required fields
+			if (!gvl.vendorListVersion || !gvl.purposes || !gvl.vendors) {
+				throw new Error('Invalid GVL response: missing required fields');
+			}
 
-	memoryCache = cache;
-	saveToStorage(cache);
+			// Store for synchronous access
+			cachedGVL = gvl;
 
-	return gvl;
+			return gvl;
+		} finally {
+			// Clear in-flight request when done (success or error)
+			inflightRequests.delete(cacheKey);
+		}
+	})();
+
+	inflightRequests.set(cacheKey, promise);
+
+	return promise;
 }
 
 /**
- * Gets the current GVL from cache without fetching.
+ * Gets the current GVL from memory without fetching.
  *
- * @returns The cached GVL or null if not available
+ * @returns The cached GVL, null if fetched 204, or undefined if not yet fetched
  *
  * @public
  */
-export function getCachedGVL(): GlobalVendorList | null {
-	if (memoryCache) {
-		return memoryCache.gvl;
-	}
+export function getCachedGVL(): GlobalVendorList | null | undefined {
+	return cachedGVL;
+}
 
-	const storedCache = loadFromStorage();
-	if (storedCache && Date.now() - storedCache.timestamp <= CACHE_TTL_MS) {
-		memoryCache = storedCache;
-		return storedCache.gvl;
-	}
-
-	return null;
+/**
+ * Clears the in-flight requests and cached GVL.
+ * Primarily used for testing.
+ *
+ * @public
+ */
+export function clearGVLCache(): void {
+	inflightRequests.clear();
+	cachedGVL = undefined;
 }
