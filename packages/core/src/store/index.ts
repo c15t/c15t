@@ -144,8 +144,8 @@ export const createConsentManagerStore = (
 		...initialState,
 		...storeConfigOptions,
 		namespace,
-		// Map iab option to iabConfig in the runtime state
-		iabConfig: iab ?? null,
+		// Initialize IAB manager (state + actions) if iab config is provided
+		iab: iab ? createIABManager(iab, get, set, manager) : null,
 		// Apply initial GDPR types if provided
 		...(initialGdprTypes && { gdprTypes: initialGdprTypes }),
 		...(storedConsent
@@ -377,7 +377,6 @@ export const createConsentManagerStore = (
 		...createScriptManager(get, set),
 		...createIframeManager(get, set),
 		...createNetworkBlockerManager(get, set),
-		...createIABManager(get, set, manager),
 	}));
 
 	// Initialize the iframe blocker after the store is created

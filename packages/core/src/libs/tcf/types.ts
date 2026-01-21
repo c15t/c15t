@@ -7,6 +7,152 @@
 import type { GlobalVendorList, TCFConsentData } from '../../types/iab-tcf';
 import type { NonIABVendor } from '../../types/non-iab-vendor';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// IAB Store State & Actions
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * IAB TCF 2.3 runtime state.
+ *
+ * @remarks
+ * This interface encapsulates all IAB-specific state, including the Global Vendor List,
+ * consent strings, and per-vendor/purpose consent states.
+ *
+ * @public
+ */
+export interface IABState {
+	/** IAB TCF configuration */
+	config: IABConfig;
+
+	/** Global Vendor List data (null when not yet fetched or in non-IAB region) */
+	gvl: GlobalVendorList | null;
+
+	/** Whether GVL is currently being fetched */
+	isLoadingGVL: boolean;
+
+	/** Non-IAB vendors configured by the publisher */
+	nonIABVendors: NonIABVendor[];
+
+	/** IAB TCF consent string (TC String) */
+	tcString: string | null;
+
+	/** Per-vendor consent state (keyed by vendor ID) */
+	vendorConsents: Record<number, boolean>;
+
+	/** Per-vendor legitimate interest state */
+	vendorLegitimateInterests: Record<number, boolean>;
+
+	/** Per-purpose consent state (IAB purposes 1-11) */
+	purposeConsents: Record<number, boolean>;
+
+	/** Per-purpose legitimate interest state */
+	purposeLegitimateInterests: Record<number, boolean>;
+
+	/** Special feature opt-ins (e.g., precise geolocation) */
+	specialFeatureOptIns: Record<number, boolean>;
+
+	/**
+	 * Vendors disclosed to the user in the CMP UI (TCF 2.3 requirement).
+	 *
+	 * This tracks which vendors were shown to the user, regardless of
+	 * whether consent was given. Required for TC String generation.
+	 */
+	vendorsDisclosed: Record<number, boolean>;
+
+	/** CMP API controls (manages __tcfapi) */
+	cmpApi: CMPApi | null;
+}
+
+/**
+ * IAB TCF action methods.
+ *
+ * @remarks
+ * These methods manage IAB consent state and are accessed via `store.iab?.methodName()`.
+ *
+ * @public
+ */
+export interface IABActions {
+	/**
+	 * Sets IAB purpose consent.
+	 *
+	 * @param purposeId - IAB purpose ID (1-11)
+	 * @param value - Whether consent is granted
+	 */
+	setPurposeConsent: (purposeId: number, value: boolean) => void;
+
+	/**
+	 * Sets IAB purpose legitimate interest.
+	 *
+	 * @param purposeId - IAB purpose ID (1-11)
+	 * @param value - Whether legitimate interest is established
+	 */
+	setPurposeLegitimateInterest: (purposeId: number, value: boolean) => void;
+
+	/**
+	 * Sets IAB vendor consent.
+	 *
+	 * @param vendorId - IAB vendor ID
+	 * @param value - Whether consent is granted
+	 */
+	setVendorConsent: (vendorId: number, value: boolean) => void;
+
+	/**
+	 * Sets IAB vendor legitimate interest.
+	 *
+	 * @param vendorId - IAB vendor ID
+	 * @param value - Whether legitimate interest is established
+	 */
+	setVendorLegitimateInterest: (vendorId: number, value: boolean) => void;
+
+	/**
+	 * Sets special feature opt-in.
+	 *
+	 * @param featureId - IAB special feature ID (1-2)
+	 * @param value - Whether opt-in is granted
+	 */
+	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
+
+	/**
+	 * Accepts all IAB purposes, vendors, and special features.
+	 */
+	acceptAll: () => void;
+
+	/**
+	 * Rejects all IAB purposes (except necessary/Purpose 1) and vendors.
+	 */
+	rejectAll: () => void;
+
+	/**
+	 * Saves IAB consents and generates TC String.
+	 *
+	 * @returns Promise that resolves when consents are saved
+	 */
+	save: () => Promise<void>;
+
+	/**
+	 * Updates IAB state (internal use).
+	 *
+	 * @param updates - Partial IAB state to merge
+	 * @internal
+	 */
+	_updateState: (updates: Partial<IABState>) => void;
+}
+
+/**
+ * Combined IAB state and actions.
+ *
+ * @remarks
+ * This is the type of `store.iab` when IAB mode is enabled.
+ * When IAB is not configured, `store.iab` is `null`.
+ *
+ * @public
+ */
+export type IABManager = IABState & IABActions;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CMP API Types
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Configuration for creating a CMP API instance.
  *

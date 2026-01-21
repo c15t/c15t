@@ -139,15 +139,15 @@ async function fetchFromAPI(
 	callbacks: ReturnType<InitConsentManagerConfig['get']>['callbacks']
 ): Promise<ConsentBannerResponse | undefined> {
 	const { get, set } = config;
-	const { iabConfig } = get();
+	const { iab } = get();
 
 	try {
 		const { language, country, region } = get().overrides ?? {};
 
 		// Start GVL fetch in parallel if IAB is enabled
 		const gvlPromise =
-			iabConfig?.enabled && iabConfig.vendors
-				? performGVLFetch(Object.keys(iabConfig.vendors).map(Number))
+			iab?.config.enabled && iab.config.vendors
+				? performGVLFetch(Object.keys(iab.config.vendors).map(Number))
 				: Promise.resolve(undefined);
 
 		// Start init fetch

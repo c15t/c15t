@@ -10,7 +10,7 @@ import type { HasCondition } from '../libs/has';
 import type { IframeBlockerConfig } from '../libs/iframe-blocker';
 import type { NetworkBlockerConfig } from '../libs/network-blocker';
 import type { Script } from '../libs/script-loader';
-import type { CMPApi, IABConfig } from '../libs/tcf/types';
+import type { IABConfig, IABManager } from '../libs/tcf/types';
 import type {
 	AllConsentNames,
 	Callbacks,
@@ -26,7 +26,9 @@ import type {
 	TranslationConfig,
 	User,
 } from '../types';
-import type { NonIABVendor } from '../types/non-iab-vendor';
+
+// Re-export IAB types for external consumers
+export type { IABActions, IABManager, IABState } from '../libs/tcf/types';
 
 /**
  * Initial data structure for SSR prefetching.
@@ -333,50 +335,22 @@ export interface StoreRuntimeState extends StoreConfig {
 	 */
 	model: Model;
 
-	// ─────────────────────────────────────────────────────────────────────────
-	// IAB TCF State
-	// ─────────────────────────────────────────────────────────────────────────
-
-	/** IAB TCF configuration (null when not configured) */
-	iabConfig: IABConfig | null;
-
-	/** Global Vendor List data (null when not in IAB mode) */
-	gvl: GlobalVendorList | null;
-
-	/** Whether GVL is currently being fetched */
-	isLoadingGVL: boolean;
-
-	/** Non-IAB vendors configured by the publisher */
-	nonIABVendors: NonIABVendor[];
-
-	/** IAB TCF consent string (TC String) */
-	tcString: string | null;
-
-	/** Per-vendor consent state (keyed by vendor ID) */
-	vendorConsents: Record<number, boolean>;
-
-	/** Per-vendor legitimate interest state */
-	vendorLegitimateInterests: Record<number, boolean>;
-
-	/** Per-purpose consent state (IAB purposes 1-11) */
-	purposeConsents: Record<number, boolean>;
-
-	/** Per-purpose legitimate interest state */
-	purposeLegitimateInterests: Record<number, boolean>;
-
-	/** Special feature opt-ins (e.g., precise geolocation) */
-	specialFeatureOptIns: Record<number, boolean>;
-
 	/**
-	 * Vendors disclosed to the user in the CMP UI (TCF 2.3 requirement).
+	 * IAB TCF 2.3 state and actions (null when not configured or not in IAB mode).
 	 *
-	 * This tracks which vendors were shown to the user, regardless of
-	 * whether consent was given. Required for TC String generation.
+	 * @remarks
+	 * This encapsulates all IAB-specific state and methods including the Global Vendor List,
+	 * consent strings, per-vendor/purpose consent states, and management functions.
+	 *
+	 * When IAB mode is enabled, access state and actions via:
+	 * - `store.iab?.gvl` - Global Vendor List
+	 * - `store.iab?.vendorConsents` - Vendor consent state
+	 * - `store.iab?.acceptAll()` - Accept all IAB consents
+	 * - `store.iab?.save()` - Save IAB consents
+	 *
+	 * @see {@link IABManager} for the full state and action interface
 	 */
-	vendorsDisclosed: Record<number, boolean>;
-
-	/** CMP API controls (manages __tcfapi) */
-	cmpApi: CMPApi | null;
+	iab: IABManager | null;
 }
 
 /**
@@ -622,67 +596,6 @@ export interface StoreActions {
 	 * @param newCategories - New consent categories detected from scripts
 	 */
 	updateConsentCategories: (newCategories: AllConsentNames[]) => void;
-
-	// ─────────────────────────────────────────────────────────────────────────
-	// IAB TCF Actions
-	// ─────────────────────────────────────────────────────────────────────────
-
-	/**
-	 * Sets IAB purpose consent.
-	 *
-	 * @param purposeId - IAB purpose ID (1-11)
-	 * @param value - Whether consent is granted
-	 */
-	setPurposeConsent: (purposeId: number, value: boolean) => void;
-
-	/**
-	 * Sets IAB purpose legitimate interest.
-	 *
-	 * @param purposeId - IAB purpose ID (1-11)
-	 * @param value - Whether legitimate interest is established
-	 */
-	setPurposeLegitimateInterest: (purposeId: number, value: boolean) => void;
-
-	/**
-	 * Sets IAB vendor consent.
-	 *
-	 * @param vendorId - IAB vendor ID
-	 * @param value - Whether consent is granted
-	 */
-	setVendorConsent: (vendorId: number, value: boolean) => void;
-
-	/**
-	 * Sets IAB vendor legitimate interest.
-	 *
-	 * @param vendorId - IAB vendor ID
-	 * @param value - Whether legitimate interest is established
-	 */
-	setVendorLegitimateInterest: (vendorId: number, value: boolean) => void;
-
-	/**
-	 * Sets special feature opt-in.
-	 *
-	 * @param featureId - IAB special feature ID (1-2)
-	 * @param value - Whether opt-in is granted
-	 */
-	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
-
-	/**
-	 * Accepts all IAB purposes, vendors, and special features.
-	 */
-	acceptAllIAB: () => void;
-
-	/**
-	 * Rejects all IAB purposes (except necessary/Purpose 1) and vendors.
-	 */
-	rejectAllIAB: () => void;
-
-	/**
-	 * Saves IAB consents and generates TC String.
-	 *
-	 * @returns Promise that resolves when consents are saved
-	 */
-	saveIABConsents: () => Promise<void>;
 }
 
 /**
