@@ -31,6 +31,12 @@ export {
 } from './components/cookie-banner';
 export * from './components/cookie-banner/components';
 export { Frame, type FrameProps } from './components/frame';
+// IAB TCF 2.3 Components
+export { IABBanner, type IABBannerProps } from './components/iab-banner';
+export {
+	IABPreferenceCenter,
+	type IABPreferenceCenterProps,
+} from './components/iab-preference-center';
 export { ConsentButton } from './components/shared/primitives/button';
 export {
 	InlineLegalLinks,

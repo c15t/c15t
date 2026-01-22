@@ -89,6 +89,49 @@ export async function initializeIABMode(
 		// Update store with GVL
 		updateIABState(storeAccess, { gvl, isLoadingGVL: false });
 
+		// Initialize all vendor consents to false by default (GDPR requires opt-in)
+		// Purposes and vendors remain false by default - user must explicitly enable them
+		const initialVendorConsents: Record<number, boolean> = {};
+		const initialVendorLegitimateInterests: Record<number, boolean> = {};
+
+		// Initialize IAB vendors to false (user must consent)
+		for (const vendorId of Object.keys(iab.vendors)) {
+			initialVendorConsents[Number(vendorId)] = false;
+			// LI defaults to true (allowed) - user can object to opt-out
+			initialVendorLegitimateInterests[Number(vendorId)] = true;
+		}
+
+		// Initialize custom vendors (IDs start from 90000 to match UI component)
+		const customVendors = iab.customVendors ?? [];
+		customVendors.forEach((_, index) => {
+			const customVendorId = 90000 + index;
+			initialVendorConsents[customVendorId] = false;
+			// LI defaults to true (allowed) - user can object to opt-out
+			initialVendorLegitimateInterests[customVendorId] = true;
+		});
+
+		updateIABState(storeAccess, {
+			vendorConsents: initialVendorConsents,
+			vendorLegitimateInterests: initialVendorLegitimateInterests,
+		});
+
+		// Warn about CMP registration in development
+		if (
+			process.env.NODE_ENV === 'development' ||
+			process.env.NODE_ENV === 'test'
+		) {
+			// Common placeholder/test CMP IDs that indicate the CMP is not registered
+			const PLACEHOLDER_CMP_IDS = [0, 1, 28, 123, 999];
+			if (PLACEHOLDER_CMP_IDS.includes(iab.cmpId)) {
+				console.warn(
+					`[c15t] IAB TCF Warning: Using CMP ID ${iab.cmpId} which appears to be a placeholder.\n` +
+						'For production IAB TCF 2.3 compliance, you must register your CMP with IAB Europe.\n' +
+						'Registration: https://iabeurope.eu/tcf-for-cmps/\n' +
+						'CMP List: https://iabeurope.eu/cmp-list/'
+				);
+			}
+		}
+
 		// Initialize CMP API
 		const cmpApi = createCMPApi({
 			cmpId: iab.cmpId,

@@ -52,5 +52,79 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Beartas Fianán',
 		termsOfService: 'Téarmaí Seirbhíse',
 	},
+	iab: {
+		banner: {
+			title: 'Socruithe príobháideachais',
+			description:
+				'Stórálaimid agus/nó faighimid rochtain ar fhaisnéis ar do ghléas, muid féin agus ár {partnerCount} comhpháirtí, agus próiseálaimid sonraí pearsanta, amhail aitheantóirí uathúla agus sonraí brabhsála, don suíomh gréasáin seo, chun:',
+			partnersLink: '{count} comhpháirtí',
+			andMore: 'Agus {count} eile...',
+			legitimateInterestNotice:
+				'Éilíonn roinnt comhpháirtithe leas dlisteanach chun do shonraí a phróiseáil. Tá an ceart agat cur in aghaidh an phróiseála seo, do roghanna a shaincheapadh, agus do thoiliú a tharraingt siar am ar bith.',
+		},
+		preferenceCenter: {
+			title: 'Socruithe príobháideachais',
+			description:
+				'Saincheap do shocruithe príobháideachais anseo. Is féidir leat na cineálacha fianán agus teicneolaíochtaí rianaithe a cheadaíonn tú a roghnú.',
+			tabs: {
+				purposes: 'Cuspóirí',
+				vendors: 'Soláthróirí',
+			},
+			purposeItem: {
+				partners: '{count} comhpháirtí',
+				vendorsUseLegitimateInterest:
+					'Éilíonn {count} soláthróir leas dlisteanach',
+				examples: 'Samplaí',
+				partnersUsingPurpose: 'Comhpháirtithe a úsáideann an cuspóir seo',
+				withYourPermission: 'Le do chead',
+				legitimateInterest: 'Leas dlisteanach',
+				objectButton: 'Cuir in aghaidh',
+				objected: 'Curtha in aghaidh',
+				rightToObject:
+					'Tá an ceart agat cur in aghaidh próiseála bunaithe ar leas dlisteanach.',
+			},
+			specialPurposes: {
+				title: 'Feidhmeanna riachtanacha (éigeantach)',
+				tooltip:
+					"Tá siad seo riachtanach d'fheidhmiúlacht agus slándáil an tsuímh. De réir IAB TCF, ní féidir leat cur in aghaidh na gcuspóirí speisialta seo.",
+			},
+			vendorList: {
+				search: 'Cuardaigh soláthróirí...',
+				showingCount: '{filtered} as {total} soláthróir',
+				iabVendorsHeading: 'Soláthróirí cláraithe IAB',
+				iabVendorsNotice:
+					'Tá na comhpháirtithe seo cláraithe le Creat Trédhearcachta agus Toilithe IAB (TCF), caighdeán tionscail chun toiliú a bhainistiú',
+				customVendorsHeading: 'Comhpháirtithe saincheaptha',
+				customVendorsNotice:
+					"Is comhpháirtithe saincheaptha iad seo nach bhfuil cláraithe le Creat Trédhearcachta agus Toilithe IAB (TCF). Próiseálann siad sonraí bunaithe ar do thoiliú agus d'fhéadfadh cleachtais phríobháideachta éagsúla a bheith acu ó dhíoltóirí cláraithe IAB.",
+				purposes: 'Cuspóirí',
+				specialPurposes: 'Cuspóirí speisialta',
+				specialFeatures: 'Gnéithe speisialta',
+				dataCategories: 'Catagóirí sonraí',
+				usesCookies: 'Úsáideann fianáin',
+				nonCookieAccess: 'Rochtain neamh-fhianán',
+				maxAge: 'Uasaois: {days}l',
+				legitimateInterest: 'Leas dlisteanach',
+				privacyPolicy: 'Beartas príobháideachta',
+				storageDisclosure: 'Nochtadh stórála',
+				requiredNotice:
+					"Riachtanach d'fheidhmiúlacht an tsuímh, ní féidir é a dhíchumasú",
+			},
+			footer: {
+				consentStorage:
+					'Stóráiltear roghanna toilithe i bhfianán darb ainm "euconsent-v2" ar feadh 13 mhí.',
+			},
+		},
+		common: {
+			acceptAll: 'Glac le gach rud',
+			rejectAll: 'Diúltaigh do gach rud',
+			customize: 'Saincheap',
+			saveSettings: 'Sábháil socruithe',
+			loading: 'Á lódáil...',
+			showingSelectedVendor: 'Díoltóir roghnaithe á thaispeáint',
+			clearSelection: 'Glan',
+			customPartner: 'Comhpháirtí saincheaptha nach bhfuil cláraithe le IAB',
+		},
+	},
 };
 export default translations;

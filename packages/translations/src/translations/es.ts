@@ -52,5 +52,79 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Política de Cookies',
 		termsOfService: 'Términos de Servicio',
 	},
+	iab: {
+		banner: {
+			title: 'Configuración de privacidad',
+			description:
+				'Nosotros y nuestros {partnerCount} socios almacenamos y/o accedemos a información en tu dispositivo y procesamos datos personales, como identificadores únicos y datos de navegación, para este sitio web, con el fin de:',
+			partnersLink: '{count} socios',
+			andMore: 'Y {count} más...',
+			legitimateInterestNotice:
+				'Algunos socios reclaman un interés legítimo para procesar tus datos. Tienes derecho a oponerte a este procesamiento, personalizar tus opciones y retirar tu consentimiento en cualquier momento.',
+		},
+		preferenceCenter: {
+			title: 'Configuración de privacidad',
+			description:
+				'Personaliza tus ajustes de privacidad aquí. Puedes elegir qué tipos de cookies y tecnologías de seguimiento permites.',
+			tabs: {
+				purposes: 'Propósitos',
+				vendors: 'Proveedores',
+			},
+			purposeItem: {
+				partners: '{count} socios',
+				vendorsUseLegitimateInterest:
+					'{count} proveedores reclaman interés legítimo',
+				examples: 'Ejemplos',
+				partnersUsingPurpose: 'Socios que utilizan este propósito',
+				withYourPermission: 'Con tu permiso',
+				legitimateInterest: 'Interés legítimo',
+				objectButton: 'Oponerse',
+				objected: 'Opuesto',
+				rightToObject:
+					'Tienes derecho a oponerte al procesamiento basado en interés legítimo.',
+			},
+			specialPurposes: {
+				title: 'Funciones esenciales (requeridas)',
+				tooltip:
+					'Estas son necesarias para la funcionalidad y seguridad del sitio. Según el TCF de IAB, no puedes oponerte a estos propósitos especiales.',
+			},
+			vendorList: {
+				search: 'Buscar proveedores...',
+				showingCount: '{filtered} de {total} proveedores',
+				iabVendorsHeading: 'Proveedores registrados en IAB',
+				iabVendorsNotice:
+					'Estos socios están registrados en el Marco de Transparencia y Consentimiento (TCF) de IAB, un estándar de la industria para gestionar el consentimiento',
+				customVendorsHeading: 'Socios personalizados',
+				customVendorsNotice:
+					'Estos son socios personalizados no registrados en el Marco de Transparencia y Consentimiento de IAB (TCF). Procesan datos basándose en tu consentimiento y pueden tener prácticas de privacidad diferentes a las de los proveedores registrados en IAB.',
+				purposes: 'Finalidades',
+				specialPurposes: 'Finalidades especiales',
+				specialFeatures: 'Características especiales',
+				dataCategories: 'Categorías de datos',
+				usesCookies: 'Usa cookies',
+				nonCookieAccess: 'Acceso sin cookies',
+				maxAge: 'Duración máxima: {days}d',
+				legitimateInterest: 'Interés legítimo',
+				privacyPolicy: 'Política de privacidad',
+				storageDisclosure: 'Divulgación de almacenamiento',
+				requiredNotice:
+					'Requerido para la funcionalidad del sitio, no se puede desactivar',
+			},
+			footer: {
+				consentStorage:
+					'Las preferencias de consentimiento se almacenan en una cookie llamada "euconsent-v2" durante 13 meses.',
+			},
+		},
+		common: {
+			acceptAll: 'Aceptar todo',
+			rejectAll: 'Rechazar todo',
+			customize: 'Personalizar',
+			saveSettings: 'Guardar ajustes',
+			loading: 'Cargando...',
+			showingSelectedVendor: 'Mostrando proveedor seleccionado',
+			clearSelection: 'Limpiar',
+			customPartner: 'Socio personalizado no registrado en IAB',
+		},
+	},
 };
 export default translations;

@@ -1,0 +1,1430 @@
+:root {
+	/* Typography */
+	--iab-pc-font-family: var(--c15t-font-family);
+	--iab-pc-line-height: var(--c15t-line-height-tight);
+	--iab-pc-title-font-size: 1.125rem;
+	--iab-pc-title-font-weight: var(--c15t-font-weight-semibold);
+	--iab-pc-description-font-size: 0.75rem;
+	--iab-pc-description-line-height: var(--c15t-line-height-normal);
+
+	/* Colors */
+	--iab-pc-background-color: var(--c15t-surface);
+	--iab-pc-background-color-dark: var(--c15t-surface);
+	--iab-pc-text-color: var(--c15t-text);
+	--iab-pc-text-color-dark: var(--c15t-text);
+	--iab-pc-text-muted-color: var(--c15t-text-muted);
+	--iab-pc-text-muted-color-dark: var(--c15t-text-muted);
+	--iab-pc-border-color: var(--c15t-border);
+	--iab-pc-border-color-dark: var(--c15t-border);
+	--iab-pc-overlay-background: var(--c15t-overlay);
+	--iab-pc-overlay-background-dark: var(--c15t-overlay);
+	--iab-pc-primary-color: var(--c15t-primary);
+	--iab-pc-primary-color-dark: var(--c15t-primary);
+	--iab-pc-surface-hover: var(--c15t-surface-hover);
+	--iab-pc-surface-hover-dark: var(--c15t-surface-hover);
+
+	/* Layout */
+	--iab-pc-max-width: 48rem;
+	--iab-pc-height: 85vh;
+	--iab-pc-border-radius: var(--c15t-radius-lg);
+	--iab-pc-z-index: 999999999;
+	--iab-pc-overlay-z-index: 999999998;
+
+	/* Spacing */
+	--iab-pc-padding: var(--c15t-space-md);
+	--iab-pc-padding-sm: var(--c15t-space-sm);
+	--iab-pc-gap: var(--c15t-space-sm);
+
+	/* Animation */
+	--iab-pc-animation-duration: 150ms;
+	--iab-pc-animation-timing: ease-out;
+
+	/* Shadow */
+	--iab-pc-shadow: var(--c15t-shadow-xl);
+}
+
+@layer components {
+	/* Root container */
+	.root {
+		isolation: isolate;
+		font-family: var(--iab-pc-font-family);
+		line-height: var(--iab-pc-line-height);
+		-webkit-text-size-adjust: 100%;
+		tab-size: 4;
+		margin: 0;
+		padding: var(--iab-pc-padding);
+		border: 0;
+		background: none;
+		position: fixed;
+		inset: 0;
+		z-index: var(--iab-pc-z-index);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+
+	.dialogVisible {
+		opacity: 1;
+		transition: opacity var(--iab-pc-animation-duration)
+			var(--iab-pc-animation-timing);
+	}
+
+	.dialogHidden {
+		opacity: 0;
+		transition: opacity var(--iab-pc-animation-duration)
+			var(--iab-pc-animation-timing);
+	}
+
+	.contentVisible {
+		opacity: 1;
+		transform: scale(1);
+		transition:
+			opacity var(--iab-pc-animation-duration) var(--iab-pc-animation-timing),
+			transform var(--iab-pc-animation-duration)
+			cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+
+	.contentHidden {
+		opacity: 0;
+		transform: scale(0.95);
+		transition:
+			opacity var(--iab-pc-animation-duration) var(--iab-pc-animation-timing),
+			transform var(--iab-pc-animation-duration) var(--iab-pc-animation-timing);
+	}
+
+	/* Overlay */
+	.overlay {
+		position: fixed;
+		inset: 0;
+		background-color: var(--iab-pc-overlay-background);
+		z-index: var(--iab-pc-overlay-z-index);
+	}
+
+	.overlayVisible {
+		opacity: 1;
+		transition: opacity var(--iab-pc-animation-duration)
+			var(--iab-pc-animation-timing);
+	}
+
+	.overlayHidden {
+		opacity: 0;
+		transition: opacity var(--iab-pc-animation-duration)
+			var(--iab-pc-animation-timing);
+	}
+
+	:global(.c15t-dark) .overlay {
+		background-color: var(--iab-pc-overlay-background-dark);
+	}
+
+	/* Card container */
+	.card {
+		width: 100%;
+		max-width: var(--iab-pc-max-width);
+		height: var(--iab-pc-height);
+		border-radius: var(--iab-pc-border-radius);
+		border: 1px solid var(--iab-pc-border-color);
+		background-color: var(--iab-pc-background-color);
+		box-shadow: var(--iab-pc-shadow);
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	:global(.c15t-dark) .card {
+		background-color: var(--iab-pc-background-color-dark);
+		border-color: var(--iab-pc-border-color-dark);
+	}
+
+	/* Header */
+	.header {
+		padding: 0.75rem 1rem;
+		border-bottom: 1px solid var(--iab-pc-border-color);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-shrink: 0;
+	}
+
+	:global(.c15t-dark) .header {
+		border-color: var(--iab-pc-border-color-dark);
+	}
+
+	@media (min-width: 768px) {
+		.header {
+			padding: 1rem;
+		}
+	}
+
+	.headerContent {
+		flex: 1;
+	}
+
+	.title {
+		font-size: var(--iab-pc-title-font-size);
+		font-weight: var(--iab-pc-title-font-weight);
+		color: var(--iab-pc-text-color);
+		margin: 0;
+		line-height: 1.25;
+	}
+
+	:global(.c15t-dark) .title {
+		color: var(--iab-pc-text-color-dark);
+	}
+
+	.description {
+		font-size: var(--iab-pc-description-font-size);
+		color: var(--iab-pc-text-muted-color);
+		margin: 0.25rem 0 0;
+		line-height: var(--iab-pc-description-line-height);
+	}
+
+	:global(.c15t-dark) .description {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	.closeButton {
+		padding: 0.375rem;
+		border-radius: var(--c15t-radius-md);
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		color: var(--iab-pc-text-muted-color);
+		transition: background-color 150ms ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.closeButton:hover {
+		background-color: var(--iab-pc-surface-hover);
+	}
+
+	:global(.c15t-dark) .closeButton {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	:global(.c15t-dark) .closeButton:hover {
+		background-color: var(--iab-pc-surface-hover-dark);
+	}
+
+	/* Tabs */
+	.tabsContainer {
+		border-bottom: 1px solid var(--iab-pc-border-color);
+		flex-shrink: 0;
+	}
+
+	:global(.c15t-dark) .tabsContainer {
+		border-color: var(--iab-pc-border-color-dark);
+	}
+
+	.tabsList {
+		display: flex;
+		padding: 0 0.75rem;
+	}
+
+	@media (min-width: 768px) {
+		.tabsList {
+			padding: 0 1rem;
+		}
+	}
+
+	.tabButton {
+		padding: 0.5rem 0.75rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		border: none;
+		background: transparent;
+		cursor: pointer;
+		border-bottom: 2px solid transparent;
+		color: var(--iab-pc-text-muted-color);
+		transition: all 150ms ease;
+		margin-bottom: -1px;
+	}
+
+	.tabButton:hover {
+		color: var(--iab-pc-text-color);
+	}
+
+	.tabButton[data-state="active"] {
+		border-bottom-color: var(--iab-pc-primary-color);
+		color: var(--iab-pc-primary-color);
+	}
+
+	:global(.c15t-dark) .tabButton {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	:global(.c15t-dark) .tabButton:hover {
+		color: var(--iab-pc-text-color-dark);
+	}
+
+	:global(.c15t-dark) .tabButton[data-state="active"] {
+		border-bottom-color: var(--iab-pc-primary-color-dark);
+		color: var(--iab-pc-primary-color-dark);
+	}
+
+	@media (min-width: 768px) {
+		.tabButton {
+			padding: 0.625rem 0.75rem;
+		}
+	}
+
+	/* Content area */
+	.content {
+		flex: 1;
+		overflow-y: auto;
+		padding: 0.75rem;
+		min-height: 300px;
+	}
+
+	@media (min-width: 768px) {
+		.content {
+			padding: 1rem;
+			min-height: 400px;
+		}
+	}
+
+	/* Purpose item */
+	.purposeItem {
+		border-radius: var(--c15t-radius-md);
+		border: 1px solid var(--iab-pc-border-color);
+		background-color: var(--iab-pc-background-color);
+		margin-bottom: 0.5rem;
+	}
+
+	:global(.c15t-dark) .purposeItem {
+		border-color: var(--iab-pc-border-color-dark);
+		background-color: var(--iab-pc-background-color-dark);
+	}
+
+	.purposeHeader {
+		padding: 0.75rem;
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 0.75rem;
+	}
+
+	.purposeTrigger {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex: 1;
+		min-width: 0;
+		text-align: left;
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		padding: 0;
+	}
+
+	.purposeArrow {
+		width: 1rem;
+		height: 1rem;
+		color: var(--iab-pc-text-muted-color);
+		flex-shrink: 0;
+	}
+
+	:global(.c15t-dark) .purposeArrow {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	.purposeInfo {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.purposeName {
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: var(--iab-pc-text-color);
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 0;
+	}
+
+	:global(.c15t-dark) .purposeName {
+		color: var(--iab-pc-text-color-dark);
+	}
+
+	.lockIcon {
+		width: 0.75rem;
+		height: 0.75rem;
+		color: var(--iab-pc-text-muted-color);
+	}
+
+	:global(.c15t-dark) .lockIcon {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	.purposeMeta {
+		font-size: 0.75rem;
+		color: var(--iab-pc-text-muted-color);
+		margin: 0.125rem 0 0;
+	}
+
+	:global(.c15t-dark) .purposeMeta {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	.legitimateInterestBadge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		font-size: 0.625rem;
+		font-weight: 500;
+		color: var(--iab-pc-text-muted-color);
+		margin-top: 0.25rem;
+	}
+
+	.legitimateInterestIcon {
+		width: 0.75rem;
+		height: 0.75rem;
+	}
+
+	.purposeContent {
+		padding: 0 0.75rem 0.75rem;
+		border-top: 1px solid var(--iab-pc-border-color);
+		margin-top: 0.75rem;
+		padding-top: 0.75rem;
+	}
+
+	:global(.c15t-dark) .purposeContent {
+		border-color: var(--iab-pc-border-color-dark);
+	}
+
+	.purposeDescription {
+		font-size: 0.75rem;
+		line-height: 1.5;
+		color: var(--iab-pc-text-muted-color);
+		margin: 0;
+	}
+
+	:global(.c15t-dark) .purposeDescription {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	/* Examples section */
+	.examplesToggle {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: var(--iab-pc-text-color);
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		padding: 0;
+		margin-top: 0.75rem;
+	}
+
+	.examplesToggle:hover {
+		color: var(--iab-pc-primary-color);
+	}
+
+	:global(.c15t-dark) .examplesToggle {
+		color: var(--iab-pc-text-color-dark);
+	}
+
+	:global(.c15t-dark) .examplesToggle:hover {
+		color: var(--iab-pc-primary-color-dark);
+	}
+
+	.examplesList {
+		margin: 0.375rem 0 0;
+		padding-left: 1rem;
+		list-style-type: disc;
+	}
+
+	.examplesList li {
+		font-size: 0.75rem;
+		line-height: 1.5;
+		color: var(--iab-pc-text-muted-color);
+	}
+
+	:global(.c15t-dark) .examplesList li {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	/* Vendors section in purpose */
+	.vendorsToggle {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: var(--iab-pc-text-color);
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		padding: 0;
+		margin-top: 0.75rem;
+	}
+
+	.vendorsToggle:hover {
+		color: var(--iab-pc-primary-color);
+	}
+
+	:global(.c15t-dark) .vendorsToggle {
+		color: var(--iab-pc-text-color-dark);
+	}
+
+	.vendorSection {
+		margin-top: 0.375rem;
+	}
+
+	.vendorSectionTitle {
+		font-size: 0.625rem;
+		font-weight: 500;
+		color: var(--iab-pc-text-muted-color);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		margin: 0.5rem 0 0.375rem;
+	}
+
+	:global(.c15t-dark) .vendorSectionTitle {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	.vendorSectionTitleLI {
+		color: var(--iab-pc-text-muted-color);
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.vendorRow {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		padding: 0.5rem;
+		border-radius: var(--c15t-radius-sm);
+		background-color: var(--iab-pc-surface-hover);
+		margin-bottom: 0.375rem;
+	}
+
+	:global(.c15t-dark) .vendorRow {
+		background-color: var(--iab-pc-surface-hover-dark);
+	}
+
+	.vendorRowLI {
+		background-color: var(--iab-pc-surface-hover);
+		border: 1px solid var(--iab-pc-border-color);
+	}
+
+	.vendorInfo {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.vendorName {
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: var(--iab-pc-text-color);
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		padding: 0;
+		text-align: left;
+	}
+
+	.vendorName:hover {
+		color: var(--iab-pc-primary-color);
+	}
+
+	:global(.c15t-dark) .vendorName {
+		color: var(--iab-pc-text-color-dark);
+	}
+
+	.customVendorIcon {
+		width: 0.75rem;
+		height: 0.75rem;
+		color: var(--iab-pc-primary-color);
+	}
+
+	:global(.c15t-dark) .customVendorIcon {
+		color: var(--iab-pc-primary-color-dark);
+	}
+
+	.vendorDetails {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-top: 0.125rem;
+	}
+
+	.vendorDetail {
+		font-size: 0.625rem;
+		color: var(--iab-pc-text-muted-color);
+	}
+
+	:global(.c15t-dark) .vendorDetail {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	.vendorDetailLI {
+		color: var(--iab-pc-text-muted-color);
+		font-weight: 500;
+	}
+
+	/* Stack item */
+	.stackItem {
+		border-radius: var(--c15t-radius-md);
+		border: 1px solid var(--iab-pc-border-color);
+		background-color: var(--iab-pc-background-color);
+		margin-bottom: 0.5rem;
+	}
+
+	:global(.c15t-dark) .stackItem {
+		border-color: var(--iab-pc-border-color-dark);
+		background-color: var(--iab-pc-background-color-dark);
+	}
+
+	.stackHeader {
+		padding: 0.75rem;
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 0.75rem;
+	}
+
+	.stackTrigger {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex: 1;
+		min-width: 0;
+		text-align: left;
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		padding: 0;
+	}
+
+	.stackInfo {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.stackName {
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: var(--iab-pc-text-color);
+		line-height: 1.25;
+		margin: 0;
+	}
+
+	:global(.c15t-dark) .stackName {
+		color: var(--iab-pc-text-color-dark);
+	}
+
+	.stackMeta {
+		font-size: 0.75rem;
+		color: var(--iab-pc-text-muted-color);
+		margin-top: 0.25rem;
+	}
+
+	:global(.c15t-dark) .stackMeta {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	.stackControls {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-shrink: 0;
+	}
+
+	.partialIndicator {
+		width: 0.375rem;
+		height: 0.375rem;
+		border-radius: 50%;
+		background-color: var(--iab-pc-primary-color);
+	}
+
+	.stackDescription {
+		font-size: 0.75rem;
+		color: var(--iab-pc-text-muted-color);
+		margin: 0.5rem 0 0 1.5rem;
+		padding-bottom: 0.75rem;
+	}
+
+	:global(.c15t-dark) .stackDescription {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	.stackContent {
+		border-top: 1px solid var(--iab-pc-border-color);
+		background-color: var(--iab-pc-surface-hover);
+		padding: 0.5rem;
+	}
+
+	:global(.c15t-dark) .stackContent {
+		border-color: var(--iab-pc-border-color-dark);
+		background-color: var(--iab-pc-surface-hover-dark);
+	}
+
+	/* Special purposes section */
+	.specialPurposesSection {
+		border-radius: var(--c15t-radius-md);
+		border: 1px solid var(--iab-pc-border-color);
+		background-color: var(--iab-pc-background-color);
+		margin-bottom: 0.5rem;
+	}
+
+	:global(.c15t-dark) .specialPurposesSection {
+		border-color: var(--iab-pc-border-color-dark);
+		background-color: var(--iab-pc-background-color-dark);
+	}
+
+	.specialPurposesHeader {
+		padding: 0.75rem;
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 0.75rem;
+	}
+
+	.specialPurposesTitle {
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: var(--iab-pc-text-color);
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 0;
+	}
+
+	:global(.c15t-dark) .specialPurposesTitle {
+		color: var(--iab-pc-text-color-dark);
+	}
+
+	.infoIcon {
+		width: 0.875rem;
+		height: 0.875rem;
+		color: var(--iab-pc-text-muted-color);
+		cursor: help;
+	}
+
+	:global(.c15t-dark) .infoIcon {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	.tooltip {
+		position: absolute;
+		right: 0;
+		top: 1.5rem;
+		width: 16rem;
+		padding: 0.5rem;
+		background-color: var(--iab-pc-background-color);
+		border: 1px solid var(--iab-pc-border-color);
+		border-radius: var(--c15t-radius-md);
+		box-shadow: var(--c15t-shadow-lg);
+		font-size: 0.75rem;
+		color: var(--iab-pc-text-color);
+		z-index: 10;
+		opacity: 0;
+		visibility: hidden;
+		transition: all 150ms ease;
+	}
+
+	.tooltipVisible {
+		opacity: 1;
+		visibility: visible;
+	}
+
+	:global(.c15t-dark) .tooltip {
+		background-color: var(--iab-pc-background-color-dark);
+		border-color: var(--iab-pc-border-color-dark);
+		color: var(--iab-pc-text-color-dark);
+	}
+
+	/* Vendor list tab */
+	.vendorListHeader {
+		position: sticky;
+		top: -0.75rem;
+		background-color: var(--iab-pc-background-color);
+		padding-top: 0.75rem;
+		padding-bottom: 0.5rem;
+		margin-top: -0.75rem;
+		z-index: 10;
+	}
+
+	@media (min-width: 768px) {
+		.vendorListHeader {
+			top: -1rem;
+			padding-top: 1rem;
+			margin-top: -1rem;
+		}
+	}
+
+	:global(.c15t-dark) .vendorListHeader {
+		background-color: var(--iab-pc-background-color-dark);
+	}
+
+	.searchContainer {
+		position: relative;
+	}
+
+	.searchIcon {
+		position: absolute;
+		left: 0.625rem;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 0.875rem;
+		height: 0.875rem;
+		color: var(--iab-pc-text-muted-color);
+	}
+
+	:global(.c15t-dark) .searchIcon {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	.searchInput {
+		width: 100%;
+		padding: 0.5rem 0.75rem 0.5rem 2rem;
+		border-radius: var(--c15t-radius-md);
+		border: 1px solid var(--iab-pc-border-color);
+		background-color: var(--iab-pc-background-color);
+		font-size: 0.875rem;
+		color: var(--iab-pc-text-color);
+	}
+
+	.searchInput:focus {
+		outline: none;
+		border-color: var(--iab-pc-primary-color);
+		box-shadow: 0 0 0 2px rgb(59 130 246 / 0.2);
+	}
+
+	:global(.c15t-dark) .searchInput {
+		background-color: var(--iab-pc-background-color-dark);
+		border-color: var(--iab-pc-border-color-dark);
+		color: var(--iab-pc-text-color-dark);
+	}
+
+	.vendorCount {
+		font-size: 0.75rem;
+		color: var(--iab-pc-text-muted-color);
+		margin-top: 0.375rem;
+	}
+
+	:global(.c15t-dark) .vendorCount {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	.selectedVendorBanner {
+		position: sticky;
+		top: 0;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.375rem 0.625rem;
+		background-color: rgb(59 130 246 / 0.1);
+		border: 1px solid rgb(59 130 246 / 0.2);
+		border-radius: var(--c15t-radius-md);
+		margin-bottom: 0.25rem;
+		z-index: 20;
+	}
+
+	.selectedVendorText {
+		flex: 1;
+		font-size: 0.75rem;
+		color: var(--iab-pc-primary-color);
+	}
+
+	.clearSelectionButton {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		font-size: 0.75rem;
+		color: var(--iab-pc-primary-color);
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		padding: 0;
+	}
+
+	.clearSelectionButton:hover {
+		opacity: 0.8;
+	}
+
+	.clearIcon {
+		width: 0.75rem;
+		height: 0.75rem;
+	}
+
+	/* Vendor list items */
+	.vendorListItem {
+		border: 1px solid var(--iab-pc-border-color);
+		border-radius: var(--c15t-radius-md);
+		overflow: hidden;
+		margin-bottom: 0.375rem;
+		scroll-margin-top: 6rem;
+	}
+
+	:global(.c15t-dark) .vendorListItem {
+		border-color: var(--iab-pc-border-color-dark);
+	}
+
+	.vendorListItemHeader {
+		padding: 0.625rem;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.vendorListTrigger {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		min-width: 0;
+		text-align: left;
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		padding: 0;
+	}
+
+	.vendorListTrigger:hover {
+		color: var(--iab-pc-primary-color);
+	}
+
+	.vendorListInfo {
+		min-width: 0;
+		flex: 1;
+	}
+
+	.vendorListName {
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: var(--iab-pc-text-color);
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 0;
+	}
+
+	:global(.c15t-dark) .vendorListName {
+		color: var(--iab-pc-text-color-dark);
+	}
+
+	.vendorListMeta {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.375rem;
+		margin-top: 0.125rem;
+	}
+
+	.vendorListMetaText {
+		font-size: 0.75rem;
+		color: var(--iab-pc-text-muted-color);
+	}
+
+	:global(.c15t-dark) .vendorListMetaText {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	.vendorListLIBadge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.125rem;
+		font-size: 0.625rem;
+		font-weight: 500;
+		color: var(--iab-pc-text-muted-color);
+	}
+
+	.vendorListContent {
+		padding: 0 0.625rem 0.625rem;
+		border-top: 1px solid var(--iab-pc-border-color);
+		background-color: var(--iab-pc-surface-hover);
+	}
+
+	:global(.c15t-dark) .vendorListContent {
+		border-color: var(--iab-pc-border-color-dark);
+		background-color: var(--iab-pc-surface-hover-dark);
+	}
+
+	.vendorLinks {
+		padding-top: 0.5rem;
+	}
+
+	.vendorLink {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		font-size: 0.75rem;
+		color: var(--iab-pc-primary-color);
+		text-decoration: none;
+		margin-right: 0.75rem;
+	}
+
+	.vendorLink:hover {
+		text-decoration: underline;
+	}
+
+	.vendorLinkIcon {
+		width: 0.75rem;
+		height: 0.75rem;
+	}
+
+	.vendorBadges {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-top: 0.375rem;
+	}
+
+	.vendorBadge {
+		font-size: 0.625rem;
+		padding: 0.125rem 0.375rem;
+		border-radius: var(--c15t-radius-sm);
+		background-color: var(--iab-pc-surface-hover);
+		color: var(--iab-pc-text-muted-color);
+	}
+
+	:global(.c15t-dark) .vendorBadge {
+		background-color: var(--iab-pc-surface-hover-dark);
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	.vendorPurposesList {
+		margin-top: 0.5rem;
+	}
+
+	.vendorPurposesTitle {
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: var(--iab-pc-text-color);
+		margin: 0 0 0.25rem;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	:global(.c15t-dark) .vendorPurposesTitle {
+		color: var(--iab-pc-text-color-dark);
+	}
+
+	.vendorPurposesItems {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.vendorPurposeItem {
+		font-size: 0.75rem;
+		color: var(--iab-pc-text-muted-color);
+		padding-left: 0.5rem;
+		border-left: 2px solid var(--iab-pc-border-color);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		margin-bottom: 0.125rem;
+	}
+
+	:global(.c15t-dark) .vendorPurposeItem {
+		color: var(--iab-pc-text-muted-color-dark);
+		border-color: var(--iab-pc-border-color-dark);
+	}
+
+	.vendorPurposeItemLI {
+		border-color: var(--iab-pc-text-muted-color);
+		color: var(--iab-pc-text-muted-color);
+	}
+
+	.vendorRetention {
+		font-size: 0.625rem;
+		opacity: 0.7;
+	}
+
+	/* Footer */
+	.footer {
+		padding: 0.75rem 1rem;
+		border-top: 1px solid var(--iab-pc-border-color);
+		background-color: var(--iab-pc-surface-hover);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-shrink: 0;
+	}
+
+	:global(.c15t-dark) .footer {
+		border-color: var(--iab-pc-border-color-dark);
+		background-color: var(--iab-pc-surface-hover-dark);
+	}
+
+	.footerButtons {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.footerSpacer {
+		flex: 1;
+	}
+
+	/* Consent storage notice */
+	.consentNotice {
+		text-align: center;
+		margin-top: 2rem;
+		padding-top: 1.5rem;
+		border-top: 1px solid var(--iab-pc-border-color);
+	}
+
+	:global(.c15t-dark) .consentNotice {
+		border-color: var(--iab-pc-border-color-dark);
+	}
+
+	.consentNoticeText {
+		font-size: 0.625rem;
+		color: var(--iab-pc-text-muted-color);
+		margin: 0;
+	}
+
+	:global(.c15t-dark) .consentNoticeText {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	/* Loading state */
+	.loadingContainer {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		height: 100%;
+		gap: 0.75rem;
+	}
+
+	.loadingSpinner {
+		width: 1.75rem;
+		height: 1.75rem;
+		border: 2px solid var(--iab-pc-border-color);
+		border-top-color: var(--iab-pc-primary-color);
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	.loadingText {
+		font-size: 0.875rem;
+		color: var(--iab-pc-text-muted-color);
+	}
+
+	:global(.c15t-dark) .loadingText {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	/* Empty state */
+	.emptyState {
+		text-align: center;
+		padding: 2rem;
+	}
+
+	.emptyStateText {
+		font-size: 0.875rem;
+		color: var(--iab-pc-text-muted-color);
+		margin: 0;
+	}
+
+	:global(.c15t-dark) .emptyStateText {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	/* Branding */
+	.branding {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.75rem;
+		border-top: 1px solid var(--iab-pc-border-color);
+		font-size: 0.75rem;
+		color: var(--iab-pc-text-color);
+		text-decoration: none;
+	}
+
+	:global(.c15t-dark) .branding {
+		border-color: var(--iab-pc-border-color-dark);
+		color: var(--iab-pc-text-color-dark);
+	}
+
+	.brandingIcon {
+		height: 1.25rem;
+		width: auto;
+	}
+
+	/* Vendor sections */
+	.vendorSection {
+		margin-bottom: 1.5rem;
+	}
+
+	.vendorSectionHeading {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.75rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--iab-pc-text-muted-color);
+		padding: 0.75rem 0rem;
+		margin: 0;
+		background: var(--iab-pc-surface-hover-color);
+		border-bottom: 1px solid var(--iab-pc-border-color);
+	}
+
+	:global(.c15t-dark) .vendorSectionHeading {
+		color: var(--iab-pc-text-muted-color-dark);
+		background: var(--iab-pc-surface-hover-color-dark);
+		border-color: var(--iab-pc-border-color-dark);
+	}
+
+	.vendorSectionIcon {
+		width: 1rem;
+		height: 1rem;
+		flex-shrink: 0;
+	}
+
+	.iabVendorSectionHeader {
+		position: sticky;
+		top: 2rem;
+		background-color: var(--iab-pc-background-color);
+		border-bottom: 1px solid var(--iab-pc-border-color);
+		z-index: 9;
+		padding-bottom: 0.5rem;
+	}
+
+	@media (min-width: 768px) {
+		.iabVendorSectionHeader {
+			top: 2.25rem;
+		}
+	}
+
+	:global(.c15t-dark) .iabVendorSectionHeader {
+		border-color: var(--iab-pc-border-color-dark);
+		background-color: var(--iab-pc-background-color-dark);
+	}
+
+	.iabVendorSectionHeader .vendorSectionHeading {
+		border-bottom: none;
+		padding-bottom: 0.25rem;
+	}
+
+	.iabVendorNotice {
+		font-size: 0.6875rem;
+		color: var(--iab-pc-text-muted-color);
+		margin: 0;
+	}
+
+	:global(.c15t-dark) .iabVendorNotice {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	.customVendorSectionHeader {
+		position: sticky;
+		top: 2rem;
+		background-color: var(--iab-pc-background-color);
+		border-bottom: 1px solid var(--iab-pc-border-color);
+		z-index: 9;
+		padding-bottom: 0.5rem;
+	}
+
+	@media (min-width: 768px) {
+		.customVendorSectionHeader {
+			top: 2.25rem;
+		}
+	}
+
+	:global(.c15t-dark) .customVendorSectionHeader {
+		border-color: var(--iab-pc-border-color-dark);
+		background-color: var(--iab-pc-background-color-dark);
+	}
+
+	.customVendorSectionHeader .vendorSectionHeading {
+		background: transparent;
+		border-bottom: none;
+		padding-bottom: 0.25rem;
+	}
+
+	.customVendorNotice {
+		font-size: 0.6875rem;
+		color: var(--iab-pc-text-muted-color);
+		padding: 0.25rem 0 1rem;
+		margin: 0;
+	}
+
+	:global(.c15t-dark) .customVendorNotice {
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	.customVendorItem {
+		border-left: 3px solid var(--iab-pc-primary-color);
+	}
+
+	:global(.c15t-dark) .customVendorItem {
+		border-left-color: var(--iab-pc-primary-color-dark);
+	}
+
+	/* Custom vendor section within purpose item */
+	.customVendorPurposeSection {
+		margin-top: 0.75rem;
+		padding-top: 0.75rem;
+		border-top: 1px solid var(--iab-pc-border-color);
+	}
+
+	:global(.c15t-dark) .customVendorPurposeSection {
+		border-color: var(--iab-pc-border-color-dark);
+	}
+
+	.vendorSectionTitleCustom {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		font-size: 0.625rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--iab-pc-primary-color);
+		margin: 0 0 0.5rem;
+	}
+
+	:global(.c15t-dark) .vendorSectionTitleCustom {
+		color: var(--iab-pc-primary-color-dark);
+	}
+
+	/* Legitimate Interest objection button */
+	.objectButton {
+		font-size: 0.6875rem;
+		font-weight: 500;
+		padding: 0.25rem 0.5rem;
+		border-radius: var(--c15t-radius-sm);
+		border: 1px solid var(--iab-pc-border-color);
+		background-color: transparent;
+		color: var(--iab-pc-text-muted-color);
+		cursor: pointer;
+		transition: all 150ms ease;
+		white-space: nowrap;
+	}
+
+	.objectButton:hover {
+		border-color: var(--iab-pc-text-muted-color);
+		color: var(--iab-pc-text-color);
+	}
+
+	.objectButtonActive {
+		background-color: var(--iab-pc-text-muted-color);
+		border-color: var(--iab-pc-text-muted-color);
+		color: var(--iab-pc-background-color);
+	}
+
+	.objectButtonActive:hover {
+		opacity: 0.9;
+	}
+
+	:global(.c15t-dark) .objectButton {
+		border-color: var(--iab-pc-border-color-dark);
+		color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	:global(.c15t-dark) .objectButton:hover {
+		border-color: var(--iab-pc-text-muted-color-dark);
+		color: var(--iab-pc-text-color-dark);
+	}
+
+	:global(.c15t-dark) .objectButtonActive {
+		background-color: var(--iab-pc-text-muted-color-dark);
+		border-color: var(--iab-pc-text-muted-color-dark);
+		color: var(--iab-pc-background-color-dark);
+	}
+
+	/* Legitimate Interest explanation text */
+	.liExplanation {
+		font-size: 0.6875rem;
+		font-style: italic;
+		color: var(--iab-pc-text-muted-color);
+		background-color: var(--iab-pc-surface-hover);
+	}
+
+	:global(.c15t-dark) .liExplanation {
+		color: var(--iab-pc-text-muted-color-dark);
+		background-color: var(--iab-pc-surface-hover-dark);
+		border-color: var(--iab-pc-text-muted-color-dark);
+	}
+
+	/* Vendor LI Section in Vendors tab */
+	.vendorLISection {
+		margin-top: 0.75rem;
+		padding-top: 0.75rem;
+		border-top: 1px solid var(--iab-pc-border-color);
+	}
+
+	:global(.c15t-dark) .vendorLISection {
+		border-color: var(--iab-pc-border-color-dark);
+	}
+
+	.vendorLISectionHeader {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		margin-bottom: 0.375rem;
+	}
+
+	.vendorLISectionHeader .vendorPurposesTitle {
+		margin: 0;
+		display: flex;
+		align-items: center;
+	}
+
+	/* Purpose-level Legitimate Interest Section */
+	.purposeLISection {
+		margin: 0.75rem 0;
+		padding: 0.75rem;
+		background-color: var(--iab-pc-surface-hover);
+		border-radius: var(--c15t-radius-sm);
+		border: 1px solid var(--iab-pc-border-color);
+	}
+
+	:global(.c15t-dark) .purposeLISection {
+		background-color: var(--iab-pc-surface-hover-dark);
+		border-color: var(--iab-pc-border-color-dark);
+	}
+
+	.purposeLISectionHeader {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.purposeLIInfo {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: var(--iab-pc-text-color);
+	}
+
+	:global(.c15t-dark) .purposeLIInfo {
+		color: var(--iab-pc-text-color-dark);
+	}
+
+	.purposeLIInfo .legitimateInterestIcon {
+		flex-shrink: 0;
+	}
+}

@@ -52,5 +52,80 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Политика за бисквитки',
 		termsOfService: 'Общи условия',
 	},
+	iab: {
+		banner: {
+			title: 'Настройки за поверителност',
+			description:
+				'Ние и нашите {partnerCount} партньори съхраняваме и/или осъществяваме достъп до информация на вашето устройство и обработваме лични данни, като уникални идентификатори и данни за сърфиране, за този уебсайт, за да:',
+			partnersLink: '{count, plural, one {# партньор} other {# партньора}}',
+			andMore: 'И още {count, plural, one {# партньор} other {# партньора}}...',
+			legitimateInterestNotice:
+				'Някои партньори претендират за законен интерес да обработват вашите данни. Имате право да възразите срещу тази обработка, да персонализирате вашите избори и да оттеглите съгласието си по всяко време.',
+		},
+		preferenceCenter: {
+			title: 'Настройки за поверителност',
+			description:
+				'Персонализирайте вашите настройки за поверителност тук. Можете да изберете кои видове бисквитки и технологии за проследяване разрешавате.',
+			tabs: {
+				purposes: 'Цели',
+				vendors: 'Доставчици',
+			},
+			purposeItem: {
+				partners: '{count, plural, one {# партньор} other {# партньора}}',
+				vendorsUseLegitimateInterest:
+					'{count, plural, one {# доставчик претендира} other {# доставчика претендират}} за законен интерес',
+				examples: 'Примери',
+				partnersUsingPurpose: 'Партньори, използващи тази цел',
+				withYourPermission: 'С вашето разрешение',
+				legitimateInterest: 'Законен интерес',
+				objectButton: 'Възразявам',
+				objected: 'Възразено',
+				rightToObject:
+					'Имате право да възразите срещу обработка, базирана на законен интерес.',
+			},
+			specialPurposes: {
+				title: 'Основни функции (задължителни)',
+				tooltip:
+					'Те са необходими за функционалността и сигурността на сайта. Съгласно IAB TCF не можете да възразите срещу тези специални цели.',
+			},
+			vendorList: {
+				search: 'Търсене на доставчици...',
+				showingCount:
+					'{filtered} от {total, plural, one {# доставчик} other {# доставчика}}',
+				iabVendorsHeading: 'Регистрирани доставчици в IAB',
+				iabVendorsNotice:
+					'Тези партньори са регистрирани в IAB Transparency & Consent Framework (TCF), индустриален стандарт за управление на съгласието',
+				customVendorsHeading: 'Персонализирани партньори',
+				customVendorsNotice:
+					'Това са персонализирани партньори, които не са регистрирани в IAB Transparency & Consent Framework (TCF). Те обработват данни въз основа на вашето съгласие и може да имат различни практики за поверителност от регистрираните в IAB доставчици.',
+				purposes: 'Цели',
+				specialPurposes: 'Специални цели',
+				specialFeatures: 'Специални функции',
+				dataCategories: 'Категории данни',
+				usesCookies: 'Използва бисквитки',
+				nonCookieAccess: 'Достъп без бисквитки',
+				maxAge: 'Максимална давност: {days} д',
+				legitimateInterest: 'Законен интерес',
+				privacyPolicy: 'Политика за поверителност',
+				storageDisclosure: 'Декларация за съхранение',
+				requiredNotice:
+					'Необходимо за функционалността на сайта, не може да бъде деактивирано',
+			},
+			footer: {
+				consentStorage:
+					'Предпочитанията за съгласие се съхраняват в бисквитка с име "euconsent-v2" за 13 месеца.',
+			},
+		},
+		common: {
+			acceptAll: 'Приеми всички',
+			rejectAll: 'Отхвърли всички',
+			customize: 'Персонализирай',
+			saveSettings: 'Запази настройките',
+			loading: 'Зареждане...',
+			showingSelectedVendor: 'Показване на избран доставчик',
+			clearSelection: 'Изчисти',
+			customPartner: 'Персонализиран партньор, нерегистриран в IAB',
+		},
+	},
 };
 export default translations;

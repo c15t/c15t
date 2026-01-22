@@ -53,5 +53,80 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Πολιτική cookies',
 		termsOfService: 'Όροι χρήσης',
 	},
+	iab: {
+		banner: {
+			title: 'Ρυθμίσεις απορρήτου',
+			description:
+				'Εμείς και οι {partnerCount} συνεργάτες μας αποθηκεύουμε ή/και έχουμε πρόσβαση σε πληροφορίες στη συσκευή σας και επεξεργαζόμαστε προσωπικά δεδομένα, όπως μοναδικά αναγνωριστικά και δεδομένα περιήγησης, για αυτόν τον ιστότοπο, για να:',
+			partnersLink: '{count} συνεργάτες',
+			andMore: 'Και {count} ακόμη...',
+			legitimateInterestNotice:
+				'Ορισμένοι συνεργάτες επικαλούνται έννομο συμφέρον για την επεξεργασία των δεδομένων σας. Έχετε το δικαίωμα να αντιταχθείτε σε αυτήν την επεξεργασία, να προσαρμόσετε τις επιλογές σας και να ανακαλέσετε τη συγκατάθεσή σας ανά πάσα στιγμή.',
+		},
+		preferenceCenter: {
+			title: 'Ρυθμίσεις απορρήτου',
+			description:
+				'Προσαρμόστε τις ρυθμίσεις απορρήτου σας εδώ. Μπορείτε να επιλέξετε ποιους τύπους cookies και τεχνολογιών παρακολούθησης επιτρέπετε.',
+			tabs: {
+				purposes: 'Σκοποί',
+				vendors: 'Συνεργάτες',
+			},
+			purposeItem: {
+				partners: '{count} συνεργάτες',
+				vendorsUseLegitimateInterest:
+					'{count} συνεργάτες επικαλούνται έννομο συμφέρον',
+				examples: 'Παραδείγματα',
+				partnersUsingPurpose: 'Συνεργάτες που χρησιμοποιούν αυτόν τον σκοπό',
+				withYourPermission: 'Με τη συγκατάθεσή σας',
+				legitimateInterest: 'Έννομο συμφέρον',
+				objectButton: 'Αντίρρηση',
+				objected: 'Αντιτάχθηκε',
+				rightToObject:
+					'Έχετε το δικαίωμα να αντιταχθείτε στην επεξεργασία που βασίζεται σε έννομο συμφέρον.',
+			},
+			specialPurposes: {
+				title: 'Βασικές λειτουργίες (απαιτούνται)',
+				tooltip:
+					'Αυτές είναι απαραίτητες για τη λειτουργικότητα και την ασφάλεια του ιστότοπου. Σύμφωνα με το IAB TCF, δεν μπορείτε να αντιταχθείτε σε αυτούς τους ειδικούς σκοπούς.',
+			},
+			vendorList: {
+				search: 'Αναζήτηση συνεργατών...',
+				showingCount: '{filtered} από {total} συνεργάτες',
+				iabVendorsHeading: 'Εγγεγραμμένοι συνεργάτες IAB',
+				iabVendorsNotice:
+					'Αυτοί οι συνεργάτες είναι εγγεγραμμένοι στο IAB Transparency & Consent Framework (TCF), ένα βιομηχανικό πρότυπο για τη διαχείριση της συγκατάθεσης',
+				customVendorsHeading: 'Προσαρμοσμένοι συνεργάτες',
+				customVendorsNotice:
+					'Αυτοί είναι προσαρμοσμένοι συνεργάτες που δεν είναι εγγεγραμμένοι στο IAB Transparency & Consent Framework (TCF). Επεξεργάζονται δεδομένα με βάση τη συγκατάθεσή σας και ενδέχεται να έχουν διαφορετικές πρακτικές απορρήτου από τους εγγεγραμμένους συνεργάτες του IAB.',
+				purposes: 'Σκοποί',
+				specialPurposes: 'Ειδικοί σκοποί',
+				specialFeatures: 'Ειδικά χαρακτηριστικά',
+				dataCategories: 'Κατηγορίες δεδομένων',
+				usesCookies: 'Χρησιμοποιεί cookies',
+				nonCookieAccess: 'Πρόσβαση χωρίς cookies',
+				maxAge: 'Μέγιστη διάρκεια: {days} ημ.',
+				legitimateInterest: 'Έννομο συμφέρον',
+				privacyPolicy: 'Πολιτική απορρήτου',
+				storageDisclosure: 'Γνωστοποίηση αποθήκευσης',
+				requiredNotice:
+					'Απαιτείται για τη λειτουργικότητα του ιστότοπου, δεν μπορεί να απενεργοποιηθεί',
+			},
+			footer: {
+				consentStorage:
+					'Οι προτιμήσεις συγκατάθεσης αποθηκεύονται σε cookie με το όνομα "euconsent-v2" για 13 μήνες.',
+			},
+		},
+		common: {
+			acceptAll: 'Αποδοχή όλων',
+			rejectAll: 'Απόρριψη όλων',
+			customize: 'Προσαρμογή',
+			saveSettings: 'Αποθήκευση ρυθμίσεων',
+			loading: 'Φόρτωση...',
+			showingSelectedVendor: 'Εμφάνιση επιλεγμένου συνεργάτη',
+			clearSelection: 'Εκκαθάριση',
+			customPartner:
+				'Προσαρμοσμένος συνεργάτης που δεν είναι εγγεγραμμένος στο IAB',
+		},
+	},
 };
 export default translations;

@@ -1,0 +1,360 @@
+:root {
+	/* Typography */
+	--iab-banner-font-family: var(--c15t-font-family);
+	--iab-banner-line-height: var(--c15t-line-height-normal);
+	--iab-banner-text-size-adjust: 100%;
+	--iab-banner-tab-size: 4;
+
+	/* Layout variables */
+	--iab-banner-border-radius-sm: var(--c15t-radius-sm);
+	--iab-banner-border-radius: var(--c15t-radius-lg);
+	--iab-banner-max-width: 560px;
+
+	/* Animation variables */
+	--iab-banner-animation-duration: var(--c15t-duration-normal);
+	--iab-banner-animation-timing: var(--c15t-easing);
+	--iab-banner-entry-animation: iabEnter var(--c15t-duration-fast)
+		var(--c15t-easing);
+	--iab-banner-exit-animation: iabExit var(--c15t-duration-fast)
+		var(--c15t-easing);
+
+	/* Border */
+	--iab-banner-border-width: 1px;
+
+	/* Shadow */
+	--iab-banner-shadow: var(--c15t-shadow-lg);
+	--iab-banner-shadow-dark: var(--c15t-shadow-lg);
+
+	/* Colors */
+	--iab-banner-background-color: var(--c15t-surface);
+	--iab-banner-background-color-dark: var(--c15t-surface);
+	--iab-banner-footer-background-color: var(--c15t-surface-hover);
+	--iab-banner-footer-background-color-dark: var(--c15t-surface-hover);
+	--iab-banner-text-color: var(--c15t-text);
+	--iab-banner-text-color-dark: var(--c15t-text);
+	--iab-banner-border-color: var(--c15t-border);
+	--iab-banner-border-color-dark: var(--c15t-border);
+	--iab-banner-title-color: var(--c15t-text);
+	--iab-banner-title-color-dark: var(--c15t-text);
+	--iab-banner-description-color: var(--c15t-text-muted);
+	--iab-banner-description-color-dark: var(--c15t-text-muted);
+	--iab-banner-overlay-background-color: var(--c15t-overlay);
+	--iab-banner-overlay-background-color-dark: var(--c15t-overlay);
+	--iab-banner-link-color: var(--c15t-primary);
+	--iab-banner-link-color-dark: var(--c15t-primary);
+}
+
+@layer components {
+	.root {
+		padding: 1rem;
+		flex-direction: column;
+		width: 100%;
+		display: flex;
+		z-index: 999999998;
+		position: fixed;
+		font-family: var(--iab-banner-font-family);
+		line-height: var(--iab-banner-line-height);
+		-webkit-text-size-adjust: var(--iab-banner-text-size-adjust);
+		tab-size: var(--iab-banner-tab-size);
+	}
+
+	/* Banner animation classes */
+	.bannerVisible {
+		opacity: 1;
+		transform: translateY(0);
+		transition:
+			opacity var(--iab-banner-animation-duration)
+			var(--iab-banner-animation-timing),
+			transform var(--iab-banner-animation-duration)
+			cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+
+	.bannerHidden {
+		opacity: 0;
+		transform: translateY(50px);
+		transition:
+			opacity var(--iab-banner-animation-duration)
+			var(--iab-banner-animation-timing),
+			transform var(--iab-banner-animation-duration)
+			var(--iab-banner-animation-timing);
+	}
+
+	@media (min-width: 640px) {
+		.root {
+			padding: 1.5rem;
+			width: auto;
+		}
+	}
+
+	.bottomLeft {
+		left: 0;
+		bottom: 0;
+	}
+
+	.bottomRight {
+		right: 0;
+		bottom: 0;
+	}
+
+	.topLeft {
+		left: 0;
+		top: 0;
+	}
+
+	.topRight {
+		right: 0;
+		top: 0;
+	}
+
+	.bottomCenter {
+		left: 50%;
+		bottom: 0;
+		transform: translateX(-50%);
+	}
+
+	/* Card styles */
+	.card {
+		position: relative;
+		width: 100%;
+		max-width: var(--iab-banner-max-width);
+		border-radius: var(--iab-banner-border-radius);
+		border-width: var(--iab-banner-border-width);
+		border-style: solid;
+		border-color: var(--iab-banner-border-color);
+		background-color: var(--iab-banner-background-color);
+		box-shadow: var(--iab-banner-shadow);
+		overflow: hidden;
+	}
+
+	:global(.c15t-dark) .card {
+		background-color: var(--iab-banner-background-color-dark);
+		border-color: var(--iab-banner-border-color-dark);
+		box-shadow: var(--iab-banner-shadow-dark);
+	}
+
+	/* Animation states */
+	.card[data-state="open"] {
+		animation: var(--iab-banner-entry-animation);
+	}
+
+	.card[data-state="closed"] {
+		animation: var(--iab-banner-exit-animation);
+	}
+
+	/* Divider between sections */
+	.card > :not([hidden]) ~ :not([hidden]) {
+		border-top-width: var(--iab-banner-border-width);
+		border-top-style: solid;
+		border-color: var(--iab-banner-border-color);
+	}
+
+	:global(.c15t-dark) .card > :not([hidden]) ~ :not([hidden]) {
+		border-color: var(--iab-banner-border-color-dark);
+	}
+
+	/* Focus styles */
+	.card:focus {
+		outline: none;
+		outline-offset: 2px;
+	}
+
+	/* Animation keyframes */
+	@keyframes iabEnter {
+		from {
+			opacity: 0;
+			transform: scale(0.95);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1);
+		}
+	}
+
+	@keyframes iabExit {
+		from {
+			opacity: 1;
+			transform: scale(1);
+		}
+		to {
+			opacity: 0;
+			transform: scale(0.95);
+		}
+	}
+
+	.header {
+		display: flex;
+		flex-direction: column;
+		padding: 1.25rem;
+		color: var(--iab-banner-text-color);
+		gap: 0.5rem;
+	}
+
+	:global(.c15t-dark) .header {
+		color: var(--iab-banner-text-color-dark);
+	}
+
+	@media (min-width: 640px) {
+		.header {
+			padding: 1.5rem;
+		}
+	}
+
+	.title {
+		font-size: 1.125rem;
+		line-height: 1.5rem;
+		letter-spacing: -0.011em;
+		font-weight: 600;
+		color: var(--iab-banner-title-color);
+		margin: 0;
+	}
+
+	:global(.c15t-dark) .title {
+		color: var(--iab-banner-title-color-dark);
+	}
+
+	.description {
+		font-size: 0.875rem;
+		line-height: 1.5;
+		letter-spacing: -0.006em;
+		font-weight: 400;
+		color: var(--iab-banner-description-color);
+		margin: 0;
+	}
+
+	:global(.c15t-dark) .description {
+		color: var(--iab-banner-description-color-dark);
+	}
+
+	.partnersLink {
+		color: var(--iab-banner-link-color);
+		font-weight: 500;
+		text-decoration: none;
+		cursor: pointer;
+		background: none;
+		border: none;
+		padding: 0;
+		font-size: inherit;
+	}
+
+	.partnersLink:hover {
+		text-decoration: underline;
+	}
+
+	:global(.c15t-dark) .partnersLink {
+		color: var(--iab-banner-link-color-dark);
+	}
+
+	.purposeList {
+		font-size: 0.875rem;
+		line-height: 1.5;
+		color: var(--iab-banner-description-color);
+		margin: 0.5rem 0 0;
+		padding-left: 1.25rem;
+		list-style-type: disc;
+	}
+
+	.purposeList li {
+		margin-bottom: 0.25rem;
+	}
+
+	:global(.c15t-dark) .purposeList {
+		color: var(--iab-banner-description-color-dark);
+	}
+
+	.legitimateInterestNotice {
+		font-size: 0.8125rem;
+		line-height: 1.5;
+		color: var(--iab-banner-description-color);
+		margin-top: 0.75rem;
+	}
+
+	:global(.c15t-dark) .legitimateInterestNotice {
+		color: var(--iab-banner-description-color-dark);
+	}
+
+	.privacyLink {
+		color: var(--iab-banner-link-color);
+		text-decoration: none;
+		cursor: pointer;
+		background: none;
+		border: none;
+		padding: 0;
+		font-size: inherit;
+	}
+
+	.privacyLink:hover {
+		text-decoration: underline;
+	}
+
+	:global(.c15t-dark) .privacyLink {
+		color: var(--iab-banner-link-color-dark);
+	}
+
+	.footer {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		justify-content: space-between;
+		padding: 0.75rem 1rem;
+		background-color: var(--iab-banner-footer-background-color);
+	}
+
+	:global(.c15t-dark) .footer {
+		background-color: var(--iab-banner-footer-background-color-dark);
+	}
+
+	@media (min-width: 640px) {
+		.footer {
+			flex-direction: row;
+			padding: 1rem;
+		}
+	}
+
+	.footerButtonGroup {
+		display: flex;
+		flex-direction: row;
+		gap: 0.5rem;
+	}
+
+	.footerSpacer {
+		flex: 1;
+	}
+
+	.rejectButton,
+	.acceptButton,
+	.customizeButton {
+		flex: 1;
+	}
+
+	@media (min-width: 640px) {
+		.rejectButton,
+		.acceptButton,
+		.customizeButton {
+			flex: none;
+		}
+	}
+
+	.overlay {
+		position: fixed;
+		inset: 0;
+		background-color: var(--iab-banner-overlay-background-color);
+		z-index: 999999997;
+	}
+
+	/* Animation classes for overlay */
+	.overlayVisible {
+		opacity: 1;
+		transition: opacity var(--iab-banner-animation-duration)
+			var(--iab-banner-animation-timing);
+	}
+
+	.overlayHidden {
+		opacity: 0;
+		transition: opacity var(--iab-banner-animation-duration)
+			var(--iab-banner-animation-timing);
+	}
+
+	:global(.c15t-dark) .overlay {
+		background-color: var(--iab-banner-overlay-background-color-dark);
+	}
+}

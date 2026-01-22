@@ -1,6 +1,7 @@
 import type { ConsentManagerInterface } from '../../client/client-interface';
 import type { ConsentStoreState } from '../../store/type';
 import type { GlobalVendorList } from '../../types';
+import type { NonIABVendor } from '../../types/non-iab-vendor';
 import type { IABActions, IABConfig, IABManager, IABState } from './types';
 
 /**
@@ -139,7 +140,7 @@ export function createIABActions(
 			const { purposeConsents, purposeLegitimateInterests } =
 				buildAllPurposeConsents(iab.gvl, true);
 			const { vendorConsents, vendorLegitimateInterests } =
-				buildAllVendorConsents(iab.config, true);
+				buildAllVendorConsents(iab.config, iab.nonIABVendors, true);
 			const specialFeatureOptIns = buildAllSpecialFeatureOptIns(iab.gvl, true);
 
 			updateState({
@@ -168,7 +169,7 @@ export function createIABActions(
 			}
 
 			const { vendorConsents, vendorLegitimateInterests } =
-				buildAllVendorConsents(iab.config, false);
+				buildAllVendorConsents(iab.config, iab.nonIABVendors, false);
 			const specialFeatureOptIns = buildAllSpecialFeatureOptIns(iab.gvl, false);
 
 			updateState({
@@ -344,10 +345,16 @@ function buildAllPurposeConsents(
 }
 
 /**
- * Builds vendor consent objects for all configured vendors.
+ * Builds vendor consent objects for all configured vendors (IAB + custom).
+ *
+ * @remarks
+ * Custom vendors are assigned numeric IDs starting from 90000 to avoid
+ * collision with IAB vendor IDs. This matches the ID generation in the
+ * preference center UI component.
  */
 function buildAllVendorConsents(
 	iabConfig: IABConfig,
+	customVendors: NonIABVendor[],
 	value: boolean
 ): {
 	vendorConsents: Record<number, boolean>;
@@ -356,10 +363,18 @@ function buildAllVendorConsents(
 	const vendorConsents: Record<number, boolean> = {};
 	const vendorLegitimateInterests: Record<number, boolean> = {};
 
+	// Add IAB vendors
 	for (const vendorId of Object.keys(iabConfig.vendors)) {
 		vendorConsents[Number(vendorId)] = value;
 		vendorLegitimateInterests[Number(vendorId)] = value;
 	}
+
+	// Add custom vendors (IDs start from 90000 to match UI component)
+	customVendors.forEach((_, index) => {
+		const customVendorId = 90000 + index;
+		vendorConsents[customVendorId] = value;
+		vendorLegitimateInterests[customVendorId] = value;
+	});
 
 	return { vendorConsents, vendorLegitimateInterests };
 }

@@ -237,10 +237,22 @@ export interface IABConfig {
 	enabled: boolean;
 
 	/**
-	 * Your registered CMP ID with IAB.
+	 * Your registered CMP ID with IAB Europe.
 	 *
-	 * Required for production IAB compliance.
-	 * @see https://iabeurope.eu/cmp-list/
+	 * **IMPORTANT: Production Requirement**
+	 *
+	 * For production IAB TCF 2.3 compliance, you MUST register your CMP with
+	 * IAB Europe and use your assigned CMP ID. Using an unregistered or
+	 * placeholder ID violates TCF policies and may result in your TC Strings
+	 * being rejected by vendors.
+	 *
+	 * Registration steps:
+	 * 1. Apply at https://iabeurope.eu/tcf-for-cmps/
+	 * 2. Complete the registration and validation process
+	 * 3. Use your assigned CMP ID here
+	 *
+	 * @see https://iabeurope.eu/cmp-list/ - List of registered CMPs
+	 * @see https://iabeurope.eu/tcf-for-cmps/ - CMP registration information
 	 */
 	cmpId: number;
 
