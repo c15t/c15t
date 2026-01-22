@@ -233,6 +233,17 @@ export interface ComponentSlots {
 	// --- FRAME SLOTS ---
 	frame?: SlotStyle;
 
+	// --- IAB BANNER SLOTS ---
+	iabBanner?: SlotStyle;
+	iabBannerCard?: SlotStyle;
+	iabBannerHeader?: SlotStyle;
+	iabBannerFooter?: SlotStyle;
+	iabBannerOverlay?: SlotStyle;
+
+	// --- IAB PREFERENCE CENTER SLOTS ---
+	iabPreferenceCenter?: SlotStyle;
+	iabPreferenceCenterOverlay?: SlotStyle;
+
 	// --- SHARED SLOTS ---
 	buttonPrimary?: SlotStyle;
 	buttonSecondary?: SlotStyle;

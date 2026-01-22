@@ -52,5 +52,79 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Pravilnik o piškotkih',
 		termsOfService: 'Pogoji uporabe',
 	},
+	iab: {
+		banner: {
+			title: 'Nastavitve zasebnosti',
+			description:
+				'Mi in naših {partnerCount} partnerjev shranjujemo in/ali dostopamo do informacij na vaši napravi ter obdelujemo osebne podatke, kot so edinstveni identifikatorji in podatki o brskanju, za to spletno mesto, da bi:',
+			partnersLink: '{count} partnerjev',
+			andMore: 'In še {count}...',
+			legitimateInterestNotice:
+				'Nekateri partnerji uveljavljajo zakoniti interes za obdelavo vaših podatkov. Imate pravico do ugovora tej obdelavi, prilagoditve svojih izbir in preklica soglasja kadar koli.',
+		},
+		preferenceCenter: {
+			title: 'Nastavitve zasebnosti',
+			description:
+				'Tukaj prilagodite svoje nastavitve zasebnosti. Izberete lahko, katere vrste piškotkov in tehnologij sledenja dovolite.',
+			tabs: {
+				purposes: 'Nameni',
+				vendors: 'Ponudniki',
+			},
+			purposeItem: {
+				partners: '{count} partnerjev',
+				vendorsUseLegitimateInterest:
+					'{count} ponudnikov uveljavlja zakoniti interes',
+				examples: 'Primeri',
+				partnersUsingPurpose: 'Partnerji, ki uporabljajo ta namen',
+				withYourPermission: 'Z vašim dovoljenjem',
+				legitimateInterest: 'Zakoniti interes',
+				objectButton: 'Ugovarjaj',
+				objected: 'Ugovarjano',
+				rightToObject:
+					'Imate pravico do ugovora obdelavi, ki temelji na zakonitem interesu.',
+			},
+			specialPurposes: {
+				title: 'Bistvene funkcije (obvezno)',
+				tooltip:
+					'Te so potrebne for funkcionalnost in varnost spletnega mesta. V skladu z IAB TCF ne morete ugovarjati tem posebnim namenom.',
+			},
+			vendorList: {
+				search: 'Išči ponudnike...',
+				showingCount: 'Prikazano {filtered} od {total} ponudnikov',
+				iabVendorsHeading: 'Ponudniki, registrirani v IAB',
+				iabVendorsNotice:
+					'Ti partnerji so registrirani v okviru IAB Transparency & Consent Framework (TCF), industrijskega standarda za upravljanje soglasij',
+				customVendorsHeading: 'Partnerji po meri',
+				customVendorsNotice:
+					'To so partnerji po meri, ki niso registrirani v okviru IAB Transparency & Consent Framework (TCF). Podatke obdelujejo na podlagi vašega soglasja in imajo lahko drugačne prakse zasebnosti kot ponudniki, registrirani v IAB.',
+				purposes: 'Nameni',
+				specialPurposes: 'Posebni nameni',
+				specialFeatures: 'Posebne funkcije',
+				dataCategories: 'Kategorije podatkov',
+				usesCookies: 'Uporablja piškotke',
+				nonCookieAccess: 'Dostop brez piškotkov',
+				maxAge: 'Najv. starost: {days}d',
+				legitimateInterest: 'Zakoniti int.',
+				privacyPolicy: 'Pravilnik o zasebnosti',
+				storageDisclosure: 'Razkritje shranjevanja',
+				requiredNotice:
+					'Zahtevano za delovanje spletnega mesta, ni mogoče onemogočiti',
+			},
+			footer: {
+				consentStorage:
+					'Preference glede soglasja so shranjene v piškotku z imenom "euconsent-v2" 13 mesecev.',
+			},
+		},
+		common: {
+			acceptAll: 'Sprejmi vse',
+			rejectAll: 'Zavrni vse',
+			customize: 'Prilagodi',
+			saveSettings: 'Shrani nastavitve',
+			loading: 'Nalaganje...',
+			showingSelectedVendor: 'Prikaz izbranega ponudnika',
+			clearSelection: 'Počisti',
+			customPartner: 'Partner po meri, ki ni registriran v IAB',
+		},
+	},
 };
 export default translations;
