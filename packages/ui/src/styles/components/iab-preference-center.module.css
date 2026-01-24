@@ -472,6 +472,8 @@
 	}
 
 	.vendorSection {
+		position: relative;
+		z-index: 1;
 		margin-top: 0.375rem;
 	}
 
@@ -824,12 +826,19 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		padding: 0.375rem 0.625rem;
-		background-color: rgb(59 130 246 / 0.1);
-		border: 1px solid rgb(59 130 246 / 0.2);
+		padding: 0.5rem 0.625rem;
+		background-color: rgb(219 234 254);
+		border: 1px solid rgb(59 130 246 / 0.3);
 		border-radius: var(--c15t-radius-md);
-		margin-bottom: 0.25rem;
-		z-index: 20;
+		margin-bottom: 0.5rem;
+		z-index: 100;
+		isolation: isolate;
+		box-shadow: 0 2px 4px rgb(0 0 0 / 0.05);
+	}
+
+	:global(.c15t-dark) .selectedVendorBanner {
+		background-color: rgb(30 58 138);
+		border-color: rgb(59 130 246 / 0.4);
 	}
 
 	.selectedVendorText {
@@ -861,6 +870,8 @@
 
 	/* Vendor list items */
 	.vendorListItem {
+		position: relative;
+		z-index: 1;
 		border: 1px solid var(--iab-pc-border-color);
 		border-radius: var(--c15t-radius-md);
 		overflow: hidden;
@@ -1168,6 +1179,8 @@
 
 	/* Vendor sections */
 	.vendorSection {
+		position: relative;
+		z-index: 1;
 		margin-bottom: 1.5rem;
 	}
 
@@ -1199,18 +1212,11 @@
 	}
 
 	.iabVendorSectionHeader {
-		position: sticky;
-		top: 2rem;
+		position: relative;
 		background-color: var(--iab-pc-background-color);
 		border-bottom: 1px solid var(--iab-pc-border-color);
-		z-index: 9;
-		padding-bottom: 0.5rem;
-	}
-
-	@media (min-width: 768px) {
-		.iabVendorSectionHeader {
-			top: 2.25rem;
-		}
+		z-index: 10;
+		padding: 0.5rem 0;
 	}
 
 	:global(.c15t-dark) .iabVendorSectionHeader {
@@ -1234,18 +1240,11 @@
 	}
 
 	.customVendorSectionHeader {
-		position: sticky;
-		top: 2rem;
+		position: relative;
 		background-color: var(--iab-pc-background-color);
 		border-bottom: 1px solid var(--iab-pc-border-color);
-		z-index: 9;
-		padding-bottom: 0.5rem;
-	}
-
-	@media (min-width: 768px) {
-		.customVendorSectionHeader {
-			top: 2.25rem;
-		}
+		z-index: 10;
+		padding: 0.5rem 0;
 	}
 
 	:global(.c15t-dark) .customVendorSectionHeader {

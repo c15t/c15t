@@ -265,7 +265,7 @@
 		font-size: 0.8125rem;
 		line-height: 1.5;
 		color: var(--iab-banner-description-color);
-		margin-top: 0.75rem;
+		margin-top: 0.25rem;
 	}
 
 	:global(.c15t-dark) .legitimateInterestNotice {

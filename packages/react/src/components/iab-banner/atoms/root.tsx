@@ -81,14 +81,17 @@ const IABBannerRootChildren = forwardRef<
 		},
 		ref
 	) => {
-		const { showPopup, translationConfig, model, iab } = useConsentManager();
+		const { showPopup, translationConfig, model, iab, isPrivacyDialogOpen } =
+			useConsentManager();
 		const textDirection = useTextDirection(translationConfig.defaultLanguage);
 		const [isVisible, setIsVisible] = useState(false);
 		const [hasAnimated, setHasAnimated] = useState(false);
 		const [animationDurationMs, setAnimationDurationMs] = useState(200);
 
 		// IAB banner shows when IAB mode is enabled (model is 'iab' in GDPR jurisdictions with IAB enabled)
-		const shouldShowBanner = model === 'iab' && showPopup && iab !== null;
+		// Hide banner when preference center is open - it will reappear if closed without consent
+		const shouldShowBanner =
+			model === 'iab' && showPopup && iab !== null && !isPrivacyDialogOpen;
 
 		useEffect(() => {
 			const duration = Number.parseInt(
