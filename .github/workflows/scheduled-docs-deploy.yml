@@ -1,0 +1,53 @@
+name: Scheduled Docs Redeploy
+
+on:
+  schedule:
+    # Run every hour at minute 0
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  redeploy-docs:
+    name: 🔄 Redeploy All Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📤 Trigger production deploy
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
+          repository: ${{ secrets.DOCS_REPO }}
+          event-type: docs-production
+          client-payload: |
+            {
+              "branch": "main",
+              "repo": "${{ github.repository }}",
+              "sha": "${{ github.sha }}",
+              "scheduled": true
+            }
+
+      - name: 📤 Trigger canary deploy
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
+          repository: ${{ secrets.DOCS_REPO }}
+          event-type: docs-staging
+          client-payload: |
+            {
+              "branch": "canary",
+              "repo": "${{ github.repository }}",
+              "sha": "${{ github.sha }}",
+              "scheduled": true
+            }
+
+      - name: 📝 Summary
+        run: |
+          echo "### 🔄 Scheduled Docs Redeploy" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | Target |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Production | https://c15t.com/docs |" >> $GITHUB_STEP_SUMMARY
+          echo "| Canary | https://canary.c15t.com/docs |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered at:** $(date -u)" >> $GITHUB_STEP_SUMMARY
