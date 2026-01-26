@@ -28,145 +28,70 @@
 	"license": "GPL-3.0-only",
 	"type": "module",
 	"exports": {
-		"./v2": {
-			"types": "./dist/v2/core.d.ts",
-			"import": "./dist/v2/core.js",
-			"require": "./dist/v2/core.cjs"
-		},
-		"./v2/define-config": {
-			"types": "./dist/v2/define-config.d.ts",
-			"import": "./dist/v2/define-config.js",
-			"require": "./dist/v2/define-config.cjs"
-		},
-		"./v2/router": {
-			"types": "./dist/v2/router.d.ts",
-			"import": "./dist/v2/router.js",
-			"require": "./dist/v2/router.cjs"
-		},
-		"./v2/contracts": {
-			"types": "./dist/v2/contracts/index.d.ts",
-			"import": "./dist/v2/contracts/index.js",
-			"require": "./dist/v2/contracts/index.cjs"
-		},
-		"./v2/db/schema": {
-			"types": "./dist/v2/db/schema/index.d.ts",
-			"import": "./dist/v2/db/schema/index.js",
-			"require": "./dist/v2/db/schema/index.cjs"
-		},
-		"./v2/db/adapters": {
-			"types": "./dist/v2/db/adapters/index.d.ts",
-			"import": "./dist/v2/db/adapters/index.js",
-			"require": "./dist/v2/db/adapters/index.cjs"
-		},
-		"./v2/db/adapters/kysely": {
-			"types": "./dist/v2/db/adapters/kysely.d.ts",
-			"import": "./dist/v2/db/adapters/kysely.js",
-			"require": "./dist/v2/db/adapters/kysely.cjs"
-		},
-		"./v2/db/adapters/drizzle": {
-			"types": "./dist/v2/db/adapters/drizzle.d.ts",
-			"import": "./dist/v2/db/adapters/drizzle.js",
-			"require": "./dist/v2/db/adapters/drizzle.cjs"
-		},
-		"./v2/db/adapters/prisma": {
-			"types": "./dist/v2/db/adapters/prisma.d.ts",
-			"import": "./dist/v2/db/adapters/prisma.js",
-			"require": "./dist/v2/db/adapters/prisma.cjs"
-		},
-		"./v2/db/adapters/typeorm": {
-			"types": "./dist/v2/db/adapters/typeorm.d.ts",
-			"import": "./dist/v2/db/adapters/typeorm.js",
-			"require": "./dist/v2/db/adapters/typeorm.cjs"
-		},
-		"./v2/db/adapters/mongo": {
-			"types": "./dist/v2/db/adapters/mongo.d.ts",
-			"import": "./dist/v2/db/adapters/mongo.js",
-			"require": "./dist/v2/db/adapters/mongo.cjs"
-		},
-		"./v2/db/migrator": {
-			"types": "./dist/v2/db/migrator/index.d.ts",
-			"import": "./dist/v2/db/migrator/index.js",
-			"require": "./dist/v2/db/migrator/index.cjs"
-		},
-		"./v2/types": {
-			"types": "./dist/v2/types/index.d.ts",
-			"import": "./dist/v2/types/index.js",
-			"require": "./dist/v2/types/index.cjs"
-		},
 		".": {
 			"types": "./dist/core.d.ts",
 			"import": "./dist/core.js",
 			"require": "./dist/core.cjs"
+		},
+		"./define-config": {
+			"types": "./dist/define-config.d.ts",
+			"import": "./dist/define-config.js",
+			"require": "./dist/define-config.cjs"
 		},
 		"./router": {
 			"types": "./dist/router.d.ts",
 			"import": "./dist/router.js",
 			"require": "./dist/router.cjs"
 		},
-		"./schema": {
-			"types": "./dist/schema/index.d.ts",
-			"import": "./dist/schema/index.js",
-			"require": "./dist/schema/index.cjs"
-		},
 		"./contracts": {
 			"types": "./dist/contracts/index.d.ts",
 			"import": "./dist/contracts.js",
 			"require": "./dist/contracts.cjs"
 		},
-		"./pkgs/data-model/fields": {
-			"types": "./dist/pkgs/data-model/fields/index.d.ts",
-			"import": "./dist/pkgs/data-model/fields/index.js",
-			"require": "./dist/pkgs/data-model/fields/index.cjs"
+		"./db/schema": {
+			"types": "./dist/db/schema/index.d.ts",
+			"import": "./dist/schema.js",
+			"require": "./dist/schema.cjs"
 		},
-		"./pkgs/data-model": {
-			"types": "./dist/pkgs/data-model/index.d.ts",
-			"import": "./dist/pkgs/data-model/index.js",
-			"require": "./dist/pkgs/data-model/index.cjs"
+		"./db/adapters": {
+			"types": "./dist/db/adapters/index.d.ts",
+			"import": "./dist/adapters.js",
+			"require": "./dist/adapters.cjs"
 		},
-		"./pkgs/data-model/schema": {
-			"types": "./dist/pkgs/data-model/schema/index.d.ts",
-			"import": "./dist/pkgs/data-model/schema/index.js",
-			"require": "./dist/pkgs/data-model/schema/index.cjs"
+		"./db/adapters/kysely": {
+			"types": "./dist/db/adapters/kysely.d.ts",
+			"import": "./dist/db/adapters/kysely.js",
+			"require": "./dist/db/adapters/kysely.cjs"
 		},
-		"./pkgs/db-adapters/adapters/drizzle-adapter": {
-			"types": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.d.ts",
-			"import": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.js",
-			"require": "./dist/pkgs/db-adapters/adapters/drizzle-adapter/index.cjs"
+		"./db/adapters/drizzle": {
+			"types": "./dist/db/adapters/drizzle.d.ts",
+			"import": "./dist/db/adapters/drizzle.js",
+			"require": "./dist/db/adapters/drizzle.cjs"
 		},
-		"./pkgs/db-adapters/adapters/kysely-adapter": {
-			"types": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.d.ts",
-			"import": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.js",
-			"require": "./dist/pkgs/db-adapters/adapters/kysely-adapter/index.cjs"
+		"./db/adapters/prisma": {
+			"types": "./dist/db/adapters/prisma.d.ts",
+			"import": "./dist/db/adapters/prisma.js",
+			"require": "./dist/db/adapters/prisma.cjs"
 		},
-		"./pkgs/db-adapters/adapters/memory-adapter": {
-			"types": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.d.ts",
-			"import": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.js",
-			"require": "./dist/pkgs/db-adapters/adapters/memory-adapter/index.cjs"
+		"./db/adapters/typeorm": {
+			"types": "./dist/db/adapters/typeorm.d.ts",
+			"import": "./dist/db/adapters/typeorm.js",
+			"require": "./dist/db/adapters/typeorm.cjs"
 		},
-		"./pkgs/db-adapters/adapters/prisma-adapter": {
-			"types": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.d.ts",
-			"import": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.js",
-			"require": "./dist/pkgs/db-adapters/adapters/prisma-adapter/index.cjs"
+		"./db/adapters/mongo": {
+			"types": "./dist/db/adapters/mongo.d.ts",
+			"import": "./dist/db/adapters/mongo.js",
+			"require": "./dist/db/adapters/mongo.cjs"
 		},
-		"./pkgs/db-adapters": {
-			"types": "./dist/pkgs/db-adapters/index.d.ts",
-			"import": "./dist/pkgs/db-adapters/index.js",
-			"require": "./dist/pkgs/db-adapters/index.cjs"
+		"./db/migrator": {
+			"types": "./dist/db/migrator/index.d.ts",
+			"import": "./dist/migrator.js",
+			"require": "./dist/migrator.cjs"
 		},
-		"./pkgs/results": {
-			"types": "./dist/pkgs/results/index.d.ts",
-			"import": "./dist/pkgs/results/index.js",
-			"require": "./dist/pkgs/results/index.cjs"
-		},
-		"./pkgs/migrations": {
-			"types": "./dist/pkgs/migrations/index.d.ts",
-			"import": "./dist/pkgs/migrations/index.js",
-			"require": "./dist/pkgs/migrations/index.cjs"
-		},
-		"./pkgs/types": {
-			"types": "./dist/pkgs/types/index.d.ts",
-			"import": "./dist/pkgs/types/index.js",
-			"require": "./dist/pkgs/types/index.cjs"
+		"./types": {
+			"types": "./dist/types/index.d.ts",
+			"import": "./dist/types.js",
+			"require": "./dist/types.cjs"
 		}
 	},
 	"main": "./dist/server.cjs",
@@ -186,38 +111,28 @@
 	},
 	"dependencies": {
 		"@c15t/logger": "workspace:*",
+		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
 		"@opentelemetry/api": "1.9.0",
-		"@opentelemetry/resources": "^2.0.1",
-		"@opentelemetry/sdk-node": "^0.203.0",
-		"@opentelemetry/sdk-trace-base": "^2.0.1",
-		"@orpc/contract": "1.8.1",
-		"@orpc/openapi": "1.8.1",
-		"@orpc/otel": "^1.8.1",
-		"@orpc/server": "1.8.1",
-		"@orpc/zod": "1.8.1",
-		"base-x": "^5.0.1",
-		"defu": "^6.1.4",
-		"drizzle-orm": "^0.44.6",
-		"fumadb": "^0.1.1",
-		"kysely": "^0.27.6",
-		"neverthrow": "^8.2.0",
-		"superjson": "^2.2.2",
-		"zod": "^4.0.17"
+		"@opentelemetry/resources": "2.2.0",
+		"@opentelemetry/sdk-node": "0.208.0",
+		"@opentelemetry/sdk-trace-base": "2.2.0",
+		"@orpc/contract": "1.12.2",
+		"@orpc/openapi": "1.12.2",
+		"@orpc/otel": "1.12.2",
+		"@orpc/server": "1.12.2",
+		"@orpc/zod": "1.12.2",
+		"base-x": "5.0.1",
+		"defu": "6.1.4",
+		"fumadb": "0.2.1",
+		"zod": "4.1.13"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"@electric-sql/pglite": "0.2.17",
-		"@libsql/kysely-libsql": "^0.4.1",
-		"@types/better-sqlite3": "^7.6.13",
-		"@types/express": "^5.0.1",
-		"@types/node": "20.14.13",
-		"@types/pg": "8.11.6",
-		"genversion": "^3.2.0",
-		"kysely-pglite": "^0.6.1",
-		"msw": "^2.7.6",
-		"typescript": "^5.8.3"
+		"@types/node": "24.10.1",
+		"genversion": "3.2.0",
+		"typescript": "5.9.3"
 	},
 	"publishConfig": {
 		"access": "public"

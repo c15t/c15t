@@ -32,7 +32,9 @@ export default function Layout ({ children }: { children: ReactNode }) => {
           mode: 'c15t',
           backendURL: '/api/c15t',
           consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner.
-          ignoreGeoLocation: true, // Useful for development to always view the banner.
+          overrides: {
+            country: 'GB', // Useful for development to always view the banner.
+          }
         }}
       >
         <CookieBanner />

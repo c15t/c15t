@@ -5,7 +5,18 @@
  * GDPR-compliant consent management.
  */
 
-export type { ContractsInputs, ContractsOutputs } from '@c15t/backend';
+// Export schema types directly for new code
+export type {
+	Branding,
+	IdentifyUserInput,
+	IdentifyUserOutput,
+	InitOutput,
+	JurisdictionCode,
+	PostConsentInput,
+	PostConsentOutput,
+	VerifyConsentInput,
+	VerifyConsentOutput,
+} from '@c15t/schema/types';
 export type {
 	CommonTranslations,
 	ConsentManagerDialogTranslations,
@@ -24,6 +35,11 @@ export {
 	prepareTranslationConfig,
 } from '@c15t/translations';
 export * from './client';
+export {
+	type ConsentManagerInterface,
+	type ConsentManagerOptions,
+	configureConsentManager,
+} from './client';
 // Export basic types directly for convenience
 export type {
 	FetchOptions,
@@ -41,13 +57,13 @@ export {
 	saveConsentToStorage,
 	setCookie,
 } from './libs/cookie';
-export type { GTMConfiguration } from './libs/gtm';
 export type { HasCondition } from './libs/has';
 export {
 	createIframeBlocker,
 	type IframeBlocker,
 	type IframeBlockerConfig,
 } from './libs/iframe-blocker';
+export type { NetworkBlockerConfig } from './libs/network-blocker';
 // Export script loader
 export {
 	getLoadedScriptIds,
@@ -57,23 +73,18 @@ export {
 	unloadScripts,
 	updateScripts,
 } from './libs/script-loader';
-export type { TrackingBlockerConfig } from './libs/tracking-blocker';
-// Export tracking blocker
-export { createTrackingBlocker } from './libs/tracking-blocker';
-export type { StoreConfig, StoreOptions } from './store';
 // Export store
 export { createConsentManagerStore } from './store';
-export type { PrivacyConsentState } from './store.type';
+export type {
+	ConsentStoreState,
+	StoreOptions,
+} from './store/type';
 // Export default translation config
 export { defaultTranslationConfig } from './translations';
 export type { Callback, Callbacks } from './types/callbacks';
 export type {
-	ComplianceRegion,
-	ComplianceSettings,
 	ConsentBannerResponse,
 	ConsentState,
-	HasConsentedProps,
-	JurisdictionInfo,
 	LocationInfo,
 	NamespaceProps,
 } from './types/compliance';

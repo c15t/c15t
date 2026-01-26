@@ -58,7 +58,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		// Should make one request
 		expect(mockFetch).toHaveBeenCalledTimes(1);
 		expect(mockFetch).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t/show-consent-banner'),
+			expect.stringContaining('/api/c15t/init'),
 			expect.any(Object)
 		);
 	});
@@ -67,11 +67,11 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		// First, clear any mock calls from previous tests
 		mockFetch.mockClear();
 
-		const { rerender } = render(
+		const { rerender } = await render(
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline', // Use offline mode to prevent additional fetches
-					react: { theme: { 'banner.root': 'light' } },
+					theme: { slots: { bannerCard: 'light' } },
 				}}
 			>
 				<div>Light theme</div>
@@ -89,7 +89,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
-					react: { theme: { 'banner.root': 'dark' } },
+					theme: { slots: { bannerCard: 'dark' } },
 				}}
 			>
 				<div>Dark theme</div>
@@ -104,7 +104,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	});
 
 	it('should make a new request when core options change', async () => {
-		const { rerender } = render(
+		const { rerender } = await render(
 			<ConsentManagerProvider
 				options={{
 					mode: 'c15t',
@@ -119,7 +119,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		await vi.runAllTimersAsync();
 		expect(mockFetch).toHaveBeenCalledTimes(1);
 		expect(mockFetch).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t-1/show-consent-banner'),
+			expect.stringContaining('/api/c15t-1/init'),
 			expect.any(Object)
 		);
 
@@ -144,7 +144,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		// Should make a new request with the new URL
 		// expect(mockFetch).toHaveBeenCalledTimes(1); // Removed: Real implementation calls twice
 		expect(mockFetch).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t-2/show-consent-banner'),
+			expect.stringContaining('/api/c15t-2/init'),
 			expect.any(Object)
 		);
 	});
@@ -153,7 +153,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		// First, clear any mock calls from previous tests
 		mockFetch.mockClear();
 
-		const { rerender } = render(
+		const { rerender } = await render(
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline', // Use offline mode to avoid fetch calls

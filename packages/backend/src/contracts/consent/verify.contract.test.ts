@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createContractTests } from '~/testing/contract-testing';
+import { createContractTests } from '~/contracts/test.utils';
 import { verifyConsentContract } from './verify.contract';
 
 // Create base tests for the contract using the utility

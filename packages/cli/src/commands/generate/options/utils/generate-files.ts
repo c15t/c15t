@@ -6,6 +6,7 @@ import type { AvailablePackages } from '~/context/framework-detection';
 import type { CliContext } from '~/context/types';
 import { formatLogMessage } from '~/utils/logger';
 import { generateClientConfigContent } from '../../templates/config';
+import { updateTailwindCss } from '../../templates/css';
 import {
 	generateEnvExampleContent,
 	generateEnvFileContent,
@@ -31,6 +32,8 @@ export interface GenerateFilesResult {
 	nextConfigUpdated?: boolean;
 	nextConfigPath?: string | null;
 	nextConfigCreated?: boolean;
+	tailwindCssUpdated?: boolean;
+	tailwindCssPath?: string | null;
 }
 
 interface LayoutUpdateResult {
@@ -335,6 +338,29 @@ export async function generateFiles({
 			spinner,
 			cwd: context.cwd,
 		});
+	}
+
+	// Update Tailwind CSS if needed (v3 detection)
+	if (context.framework.tailwindVersion) {
+		spinner.start('Checking Tailwind CSS compatibility...');
+		const tailwindResult = await updateTailwindCss(
+			projectRoot,
+			context.framework.tailwindVersion
+		);
+		if (tailwindResult.updated) {
+			result.tailwindCssUpdated = true;
+			result.tailwindCssPath = tailwindResult.filePath;
+			spinner.stop(
+				formatLogMessage(
+					'info',
+					`Tailwind CSS updated for v3 compatibility: ${color.cyan(path.relative(context.cwd, tailwindResult.filePath || ''))}`
+				)
+			);
+		} else {
+			spinner.stop(
+				formatLogMessage('debug', 'Tailwind CSS update not needed.')
+			);
+		}
 	}
 
 	return result;

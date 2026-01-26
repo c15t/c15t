@@ -31,7 +31,9 @@ function App() {
       mode: 'c15t', 
       backendURL: "https://your-instance.c15t.dev",
       consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
-      ignoreGeoLocation: true, // Useful for development to always view the banner.
+      overrides: {
+        country: 'GB', // Useful for development to always view the banner.
+      }
     }}>
       <div className="App">
         {/* Your application content */}

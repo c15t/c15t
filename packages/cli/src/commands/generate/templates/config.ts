@@ -32,7 +32,9 @@ import {
 export const consentManager = configureConsentManager({ mode: "c15t", backendURL: ${useEnvFile ? 'process.env.NEXT_PUBLIC_C15T_URL' : `'${backendURL || 'https://your-instance.c15t.dev'}'`}, });
 export const store = createConsentManagerStore(consentManager, {
   initialGdprTypes: ["necessary", "marketing"], // Optional: Specify which consent categories to show in the banner.
-  ignoreGeoLocation: true // Useful for development to always view the banner.
+  overrides: {
+    country: 'GB', // Useful for development to always view the banner.
+  }
 });
 
 store.getState().setConsent("marketing", true); // set consent to marketing
@@ -69,7 +71,9 @@ store.getState().showPopup; // should show popup?
 export const consentManager = configureConsentManager({ mode: "custom", endpointHandlers: createCustomHandlers(), });
 export const store = createConsentManagerStore(consentManager, {
   initialGdprTypes: ["necessary", "marketing"], // Optional: Specify which consent categories to show in the banner.
-  ignoreGeoLocation: true // Useful for development to always view the banner.
+  overrides: {
+    country: 'GB', // Useful for development to always view the banner.
+  }
 });
 
 store.getState().setConsent("marketing", true); // set consent to marketing

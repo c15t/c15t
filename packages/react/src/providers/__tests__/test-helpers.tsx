@@ -1,15 +1,20 @@
 // test-helpers.ts - Common mock setup
-import type { ContractsInputs, ContractsOutputs } from 'c15t';
+import type {
+	InitOutput,
+	PostConsentInput,
+	PostConsentOutput,
+	VerifyConsentInput,
+	VerifyConsentOutput,
+} from 'c15t';
 
 import { beforeEach, type Mock, vi } from 'vitest';
 import { type ConsentManagerOptions, useConsentManager } from '~/index';
 
-export type SetConsentRequestBody = ContractsInputs['consent']['post'];
-export type SetConsentResponse = ContractsOutputs['consent']['post'];
-export type ShowConsentBannerResponse =
-	ContractsOutputs['consent']['showBanner'];
-export type VerifyConsentRequestBody = ContractsInputs['consent']['verify'];
-export type VerifyConsentResponse = ContractsOutputs['consent']['verify'];
+export type SetConsentRequestBody = PostConsentInput;
+export type SetConsentResponse = PostConsentOutput;
+export type ShowConsentBannerResponse = InitOutput;
+export type VerifyConsentRequestBody = VerifyConsentInput;
+export type VerifyConsentResponse = VerifyConsentOutput;
 
 export function setupMocks(): {
 	mockFetch: Mock;
@@ -51,7 +56,7 @@ export function setupMocks(): {
 							// Each unique URL should trigger a fetch call once
 							if (!fetchCallMap.has(backendURL)) {
 								// Make the mock fetch call that the test expects
-								mockFetch(`${backendURL}/show-consent-banner`, {
+								mockFetch(`${backendURL}/init`, {
 									headers: { 'Content-Type': 'application/json' },
 								});
 								// Mark this URL as called
@@ -109,7 +114,7 @@ export function setupMocks(): {
 					const handlers = options.endpointHandlers;
 					return {
 						getCallbacks: () => options.callbacks,
-						showConsentBanner: async () => handlers.showConsentBanner({}),
+						init: async () => handlers?.init?.({}),
 						setConsent: async (data: SetConsentRequestBody) =>
 							handlers.setConsent({ body: data }),
 						verifyConsent: async (data: VerifyConsentRequestBody) =>
@@ -120,9 +125,14 @@ export function setupMocks(): {
 				// Fallback
 				return {
 					getCallbacks: () => options.callbacks,
-					showConsentBanner: async () => ({
+					init: async () => ({
 						ok: true,
-						data: { showConsentBanner: true },
+						data: {
+							jurisdiction: 'GDPR',
+							location: { countryCode: 'GB', regionCode: null },
+							translations: { language: 'en', translations: {} },
+							branding: 'c15t',
+						},
 						error: null,
 						response: null,
 					}),

@@ -3,7 +3,6 @@
 import type { AllConsentNames } from 'c15t';
 import { forwardRef, useEffect, useState } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
-import { useTranslations } from '~/hooks/use-translations';
 import { FrameButton, FrameRoot, FrameTitle } from './atoms';
 import type { FrameProps } from './types';
 
@@ -59,21 +58,10 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 FrameComponent.displayName = 'Frame';
 
 const DefaultPlaceholder = ({ category }: { category: AllConsentNames }) => {
-	const { frame, consentTypes } = useTranslations();
-
-	const translatedTitle = frame?.title?.replace(
-		'{category}',
-		consentTypes?.[category]?.title ?? category
-	);
-	const translatedActionButton = frame?.actionButton?.replace(
-		'{category}',
-		category
-	);
-
 	return (
 		<FrameRoot>
-			<FrameTitle>{translatedTitle}</FrameTitle>
-			<FrameButton category={category}>{translatedActionButton}</FrameButton>
+			<FrameTitle category={category} />
+			<FrameButton category={category} />
 		</FrameRoot>
 	);
 };

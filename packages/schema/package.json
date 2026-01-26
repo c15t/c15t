@@ -1,0 +1,66 @@
+{
+	"name": "@c15t/schema",
+	"version": "1.8.0",
+	"description": "Framework-agnostic Zod schemas and TypeScript types for c15t consent management",
+	"keywords": [
+		"consent",
+		"privacy",
+		"gdpr",
+		"ccpa",
+		"schema",
+		"zod",
+		"typescript",
+		"validation"
+	],
+	"homepage": "https://c15t.com/docs",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/schema"
+	},
+	"license": "GPL-3.0-only",
+	"sideEffects": false,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		},
+		"./types": {
+			"types": "./dist/types.d.ts",
+			"import": "./dist/types.js",
+			"require": "./dist/types.cjs"
+		}
+	},
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "rslib build",
+		"check-types": "tsc --noEmit",
+		"dev": "rslib build --watch",
+		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
+		"lint": "bun biome lint ./src",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	],
+	"dependencies": {
+		"zod": "4.1.13"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

@@ -113,13 +113,11 @@ describe('ConsentManagerProvider Context Values', () => {
 			);
 		};
 
-		const { getByTestId } = render(
+		const { getByTestId } = await render(
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
-					react: {
-						theme: { 'banner.root': 'dark' },
-					},
+					theme: { slots: { bannerCard: 'dark' } },
 				}}
 			>
 				<ConsumerComponent />

@@ -27,4 +27,15 @@ export interface ConsentButtonProps
 	 * Allows for custom click handling.
 	 */
 	onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
+	/**
+	 * @remarks
+	 * The visual variant of the button.
+	 * @default 'neutral'
+	 */
+	variant?: 'primary' | 'neutral';
+	/**
+	 * @remarks
+	 * Shorthand for variant="primary"
+	 */
+	primary?: boolean;
 }

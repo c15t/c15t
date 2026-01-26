@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { gunzipSync } from 'node:zlib';
 import type { C15TOptions } from '@c15t/backend';
 import { c15tInstance } from '@c15t/backend';
 import {
@@ -12,11 +13,29 @@ import {
 } from 'vitest';
 import { c15tClient } from './index';
 
-// Server configuration for integration tests
+// Create a minimal in-memory FumaDB adapter for tests.
+// The status endpoint used in these tests does not interact with the database,
+// so these are safe no-ops that satisfy the backend's v2 C15TOptions type.
+const testAdapter = {
+	async createORM() {
+		return {
+			findFirst: async () => null,
+			create: async () => null,
+			update: async () => null,
+			delete: async () => null,
+		} as unknown;
+	},
+	async getSchemaVersion() {
+		return '1.0.0';
+	},
+} as C15TOptions['adapter'];
+
+// Server configuration for integration tests (v2 backend)
 const mockOptions: C15TOptions = {
 	appName: 'C15T Test Server',
 	basePath: '/',
 	trustedOrigins: ['localhost', 'test.example.com'],
+	adapter: testAdapter,
 	cors: true,
 	advanced: {
 		cors: {
@@ -65,20 +84,33 @@ describe('C15T Node SDK', () => {
 
 				// Set response status and headers
 				res.statusCode = response.status;
-				for (const [key, value] of response.headers.entries()) {
-					res.setHeader(key, value);
+				// Normalize response body to JSON, handling potential gzip compression
+				const encoding = response.headers.get('content-encoding');
+				const arrayBuffer = await response.arrayBuffer();
+				const buffer = Buffer.from(arrayBuffer);
+
+				let decodedBody: string;
+
+				if (encoding === 'gzip') {
+					decodedBody = gunzipSync(buffer).toString('utf-8');
+				} else {
+					decodedBody = buffer.toString('utf-8');
 				}
 
-				// Ensure content-type is set for JSON responses
-				if (!response.headers.get('content-type')) {
-					res.setHeader('content-type', 'application/json');
+				let normalizedBody: string;
+
+				try {
+					// Try to parse as JSON first
+					const parsed = decodedBody ? JSON.parse(decodedBody) : null;
+					normalizedBody = JSON.stringify(parsed);
+				} catch {
+					// Fallback for non-JSON responses: wrap in a JSON envelope
+					normalizedBody = JSON.stringify({ message: decodedBody });
 				}
 
-				// Get response body
-				const responseBody = await response.text();
-
-				// Send response
-				res.end(responseBody);
+				// Always respond with JSON to the client
+				res.setHeader('content-type', 'application/json');
+				res.end(normalizedBody);
 			} catch (error) {
 				console.error('Server error:', error);
 				res.statusCode = 500;
@@ -189,15 +221,11 @@ describe('C15T Node SDK', () => {
 		it('should connect to status endpoint', async () => {
 			const response = await client.meta.status();
 
-			// Test exact structure based on actual response
+			// Test structure based on v2 status contract
 			expect(response).toEqual({
 				status: 'ok',
 				version: expect.any(String),
 				timestamp: expect.any(String),
-				storage: {
-					type: 'memory',
-					available: true,
-				},
 				client: {
 					ip: expect.any(String),
 					userAgent: expect.any(String),

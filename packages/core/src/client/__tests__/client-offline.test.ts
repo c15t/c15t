@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchMock, mockLocalStorage } from '../../../vitest.setup';
-import { STORAGE_KEY_V2 } from '../../store.initial-state';
+import { STORAGE_KEY_V2 } from '../../store/initial-state';
 import { configureConsentManager } from '../client-factory';
 import { OfflineClient } from '../offline';
 
@@ -10,20 +10,19 @@ describe('Offline Client Tests', () => {
 		mockLocalStorage.clear();
 	});
 
-	it('should use jurisdiction checking for consent banner visibility', async () => {
+	it('should use jurisdiction checking for consent eligibility', async () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'offline',
 		});
 
 		// Call the API without headers (defaults to GB)
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
-		// Assertions - GB is a GDPR jurisdiction, so banner should show
+		// Assertions - GB is a GDPR jurisdiction
 		expect(fetchMock).not.toHaveBeenCalled();
 		expect(response.ok).toBe(true);
-		expect(response.data?.showConsentBanner).toBe(true);
-		expect(response.data?.jurisdiction?.code).toBe('GDPR');
+		expect(response.data?.jurisdiction).toBe('GDPR');
 		expect(response.data?.location?.countryCode).toBe('GB');
 	});
 
@@ -33,23 +32,21 @@ describe('Offline Client Tests', () => {
 		});
 
 		// Test with GDPR country (DE)
-		let response = await client.showConsentBanner({
+		let response = await client.init({
 			headers: { 'x-c15t-country': 'DE' },
 		});
 
 		expect(response.ok).toBe(true);
-		expect(response.data?.showConsentBanner).toBe(true);
-		expect(response.data?.jurisdiction?.code).toBe('GDPR');
+		expect(response.data?.jurisdiction).toBe('GDPR');
 		expect(response.data?.location?.countryCode).toBe('DE');
 
 		// Test with non-regulated country (US)
-		response = await client.showConsentBanner({
+		response = await client.init({
 			headers: { 'x-c15t-country': 'US' },
 		});
 
 		expect(response.ok).toBe(true);
-		expect(response.data?.showConsentBanner).toBe(false);
-		expect(response.data?.jurisdiction?.code).toBe('NONE');
+		expect(response.data?.jurisdiction).toBe('NONE');
 		expect(response.data?.location?.countryCode).toBe('US');
 	});
 
@@ -58,7 +55,7 @@ describe('Offline Client Tests', () => {
 			mode: 'offline',
 		});
 
-		const response = await client.showConsentBanner({
+		const response = await client.init({
 			headers: {
 				'x-c15t-country': 'DE',
 				'x-c15t-region': 'BE',
@@ -73,9 +70,16 @@ describe('Offline Client Tests', () => {
 	it('should handle language header', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
+			store: {
+				initialTranslationConfig: {
+					translations: {
+						de: {},
+					},
+				},
+			},
 		});
 
-		const response = await client.showConsentBanner({
+		const response = await client.init({
 			headers: {
 				'x-c15t-country': 'DE',
 				'accept-language': 'de',
@@ -91,11 +95,11 @@ describe('Offline Client Tests', () => {
 			mode: 'offline',
 		});
 
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
 		expect(response.ok).toBe(true);
 		expect(response.data?.location?.countryCode).toBe('GB');
-		expect(response.data?.jurisdiction?.code).toBe('GDPR');
+		expect(response.data?.jurisdiction).toBe('GDPR');
 	});
 
 	it('should store consent preferences in localStorage', async () => {
@@ -134,12 +138,11 @@ describe('Offline Client Tests', () => {
 
 		// Call the API - should work regardless of localStorage
 		// Defaults to GB which is GDPR jurisdiction
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
 		// Assertions - jurisdiction checking doesn't depend on localStorage
 		expect(response.ok).toBe(true);
-		expect(response.data?.showConsentBanner).toBe(true);
-		expect(response.data?.jurisdiction?.code).toBe('GDPR');
+		expect(response.data?.jurisdiction).toBe('GDPR');
 	});
 
 	it('should always verify consent as valid in offline mode', async () => {

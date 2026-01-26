@@ -1,35 +1,9 @@
+import {
+	postConsentErrorSchemas,
+	postConsentInputSchema,
+	postConsentOutputSchema,
+} from '@c15t/schema';
 import { oc } from '@orpc/contract';
-import { z } from 'zod';
-
-import { PolicyTypeSchema } from '~/schema';
-
-const baseConsentSchema = z.object({
-	subjectId: z.string().optional(),
-	externalSubjectId: z.string().optional(),
-	identityProvider: z.string().optional(),
-	domain: z.string(),
-	type: PolicyTypeSchema,
-	metadata: z.record(z.string(), z.unknown()).optional(),
-});
-
-// Cookie banner needs preferences
-const cookieBannerSchema = baseConsentSchema.extend({
-	type: z.literal('cookie_banner'),
-	preferences: z.record(z.string(), z.boolean()),
-});
-
-// Policy based consent just needs the policy ID
-const policyBasedSchema = baseConsentSchema.extend({
-	type: z.enum(['privacy_policy', 'dpa', 'terms_and_conditions']),
-	policyId: z.string().optional(),
-	preferences: z.record(z.string(), z.boolean()).optional(),
-});
-
-// Other consent types just need the base fields
-const otherConsentSchema = baseConsentSchema.extend({
-	type: z.enum(['marketing_communications', 'age_verification', 'other']),
-	preferences: z.record(z.string(), z.boolean()).optional(),
-});
 
 export const postConsentContract = oc
 	.route({
@@ -65,92 +39,46 @@ Use this endpoint to record user consent and maintain a compliant consent manage
 		tags: ['consent', 'cookie-banner'],
 	})
 	.errors({
-		// Input validation errors
 		INPUT_VALIDATION_FAILED: {
 			status: 422,
-			data: z.object({
-				formErrors: z.array(z.string()),
-				fieldErrors: z.record(z.string(), z.array(z.string())),
-			}),
+			data: postConsentErrorSchemas.inputValidationFailed,
 			error: 'Invalid input parameters',
 		},
-		// Subject errors
 		SUBJECT_CREATION_FAILED: {
 			status: 400,
-			data: z.object({
-				subjectId: z.string().optional(),
-				externalSubjectId: z.string().optional(),
-			}),
+			data: postConsentErrorSchemas.subjectCreationFailed,
 			error: 'Failed to create or find subject',
 		},
-		// Domain errors
 		DOMAIN_CREATION_FAILED: {
 			status: 500,
-			data: z.object({
-				domain: z.string(),
-			}),
+			data: postConsentErrorSchemas.domainCreationFailed,
 			error: 'Failed to create or find domain',
 		},
-		// Policy errors
 		POLICY_NOT_FOUND: {
 			status: 404,
-			data: z.object({
-				policyId: z.string(),
-				type: z.string(),
-			}),
+			data: postConsentErrorSchemas.policyNotFound,
 			error: 'Policy not found',
 		},
 		POLICY_INACTIVE: {
 			status: 409,
-			data: z.object({
-				policyId: z.string(),
-				type: z.string(),
-			}),
+			data: postConsentErrorSchemas.policyInactive,
 			error: 'Policy is not active',
 		},
 		POLICY_CREATION_FAILED: {
 			status: 500,
-			data: z.object({
-				type: z.string(),
-			}),
+			data: postConsentErrorSchemas.policyCreationFailed,
 			error: 'Failed to create or find policy',
 		},
-		// Purpose errors
 		PURPOSE_CREATION_FAILED: {
 			status: 500,
-			data: z.object({
-				purposeCode: z.string(),
-			}),
+			data: postConsentErrorSchemas.purposeCreationFailed,
 			error: 'Failed to create consent purpose',
 		},
-		// Transaction errors
 		CONSENT_CREATION_FAILED: {
 			status: 500,
-			data: z.object({
-				subjectId: z.string(),
-				domain: z.string(),
-			}),
+			data: postConsentErrorSchemas.consentCreationFailed,
 			error: 'Failed to create consent record',
 		},
 	})
-	.input(
-		z.discriminatedUnion('type', [
-			cookieBannerSchema,
-			policyBasedSchema,
-			otherConsentSchema,
-		])
-	)
-	.output(
-		z.object({
-			id: z.string(),
-			subjectId: z.string().optional(),
-			externalSubjectId: z.string().optional(),
-			domainId: z.string(),
-			domain: z.string(),
-			type: PolicyTypeSchema,
-			status: z.string(),
-			recordId: z.string(),
-			metadata: z.record(z.string(), z.unknown()).optional(),
-			givenAt: z.date(),
-		})
-	);
+	.input(postConsentInputSchema)
+	.output(postConsentOutputSchema);

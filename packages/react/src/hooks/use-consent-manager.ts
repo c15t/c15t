@@ -3,6 +3,7 @@
  * Hook for accessing and managing consent state.
  */
 
+import type { ConsentManagerInterface, ConsentStoreState } from 'c15t';
 import { useContext } from 'react';
 import { ConsentStateContext } from '../context/consent-manager-context';
 
@@ -25,7 +26,9 @@ import { ConsentStateContext } from '../context/consent-manager-context';
  * @returns Combined state and methods for consent management
  * @public
  */
-export function useConsentManager() {
+export function useConsentManager(): ConsentStoreState & {
+	manager: ConsentManagerInterface | null;
+} {
 	const context = useContext(ConsentStateContext);
 
 	if (context === undefined) {
@@ -37,7 +40,6 @@ export function useConsentManager() {
 	// Return the reactive state from context, not a snapshot from store.getState()
 	return {
 		...context.state,
-		// Include manager in returned object if available
-		...(context.manager ? { manager: context.manager } : {}),
+		manager: context.manager,
 	};
 }

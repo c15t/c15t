@@ -45,15 +45,13 @@ vi.mock('c15t', async () => {
 });
 
 describe('useConsentManager', () => {
-	test('returns consent state and methods when used within provider', () => {
-		const { result } = renderHook(() => useConsentManager(), {
+	test('returns consent state and methods when used within provider', async () => {
+		const { result } = await renderHook(() => useConsentManager(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+						noStyle: false,
 					}}
 				>
 					{children}
@@ -65,15 +63,13 @@ describe('useConsentManager', () => {
 		expect(typeof result.current.showPopup).toBe('boolean');
 	});
 
-	test('provides manager object when configured', () => {
-		const { result } = renderHook(() => useConsentManager(), {
+	test('provides manager object when configured', async () => {
+		const { result } = await renderHook(() => useConsentManager(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+						noStyle: false,
 					}}
 				>
 					{children}

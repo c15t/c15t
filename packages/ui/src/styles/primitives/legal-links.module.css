@@ -1,0 +1,41 @@
+:root {
+	--legal-links-gap: 0.75rem;
+	--legal-links-font-size: 0.875rem;
+	--legal-links-transition: text-decoration 0.2s ease;
+	--legal-links-text-decoration: none;
+	--legal-links-text-decoration-hover: underline;
+	--legal-links-outline: 2px solid currentColor;
+	--legal-links-outline-offset: 2px;
+	--legal-links-color: hsl(227.93, 100%, 63.92%);
+	--legal-links-focus-color: hsl(227.93, 100%, 63.92%);
+	--legal-links-focus-color-dark: hsl(228.07, 69.8%, 48.04%);
+}
+
+@layer components {
+	.legalLinks {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--legal-links-gap);
+		align-items: center;
+	}
+
+	.legalLink {
+		color: var(--legal-links-color);
+		text-decoration: var(--legal-links-text-decoration);
+		font-size: var(--legal-links-font-size);
+		transition: var(--legal-links-transition);
+	}
+
+	:global(.c15t-dark) .legalLink {
+		color: var(--legal-links-focus-color-dark);
+	}
+
+	.legalLink:hover {
+		text-decoration: var(--legal-links-text-decoration-hover);
+	}
+
+	.legalLink:focus {
+		outline: none;
+		text-decoration: underline;
+	}
+}

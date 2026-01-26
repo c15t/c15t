@@ -3,20 +3,21 @@
  * Returns empty successful responses without making any HTTP requests.
  */
 
+import type { TranslationConfig } from '../../types';
 import type {
 	ConsentManagerInterface,
 	IdentifyUserRequestBody,
 	IdentifyUserResponse,
+	InitResponse,
 	SetConsentRequestBody,
 	SetConsentResponse,
-	ShowConsentBannerResponse,
 	VerifyConsentRequestBody,
 	VerifyConsentResponse,
 } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
 import { identifyUser } from './identify-user';
+import { init } from './init';
 import { setConsent } from './set-consent';
-import { showConsentBanner } from './show-consent-banner';
 import { handleOfflineResponse } from './utils';
 import { verifyConsent } from './verify-consent';
 
@@ -26,19 +27,24 @@ import { verifyConsent } from './verify-consent';
  */
 export class OfflineClient implements ConsentManagerInterface {
 	private readonly storageConfig?: import('../../libs/cookie').StorageConfig;
+	private readonly initialTranslationConfig?: Partial<TranslationConfig>;
 
-	constructor(storageConfig?: import('../../libs/cookie').StorageConfig) {
+	constructor(
+		storageConfig?: import('../../libs/cookie').StorageConfig,
+		initialTranslationConfig?: Partial<TranslationConfig>
+	) {
 		this.storageConfig = storageConfig;
+		this.initialTranslationConfig = initialTranslationConfig;
 	}
 
 	/**
 	 * Checks if a consent banner should be shown.
 	 * The location can be controlled via overrides in the store, but defaults to GB.
 	 */
-	async showConsentBanner(
-		options?: FetchOptions<ShowConsentBannerResponse>
-	): Promise<ResponseContext<ShowConsentBannerResponse>> {
-		return showConsentBanner(options);
+	async init(
+		options?: FetchOptions<InitResponse>
+	): Promise<ResponseContext<InitResponse>> {
+		return init(this.initialTranslationConfig, options);
 	}
 
 	/**

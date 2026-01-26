@@ -1,20 +1,21 @@
 import { createLogger } from '@c15t/logger';
 import { OpenAPIHandler } from '@orpc/openapi/fetch';
+import { ORPCError } from '@orpc/server';
+import { CompressionPlugin } from '@orpc/server/fetch';
 import { CORSPlugin } from '@orpc/server/plugins';
 import defu from 'defu';
-import { DoubleTieError, ERROR_CODES } from '~/pkgs/results';
-import type { DeepPartial } from '~/pkgs/types/helper';
-import type { C15TContext, C15TOptions, C15TPlugin } from '~/types';
-import { init } from './init';
-import { createCORSOptions, processCors } from './middleware/cors';
+import { createCORSOptions } from '~/middleware/cors';
+import { processCors } from '~/middleware/cors/process-cors';
 import {
 	createDocsUI,
 	createOpenAPIConfig,
 	createOpenAPISpec,
-} from './middleware/openapi';
-import { withRequestSpan } from './pkgs/api-router/telemetry';
-import { getIp } from './pkgs/api-router/utils/ip';
-import { router } from './router';
+} from '~/middleware/openapi';
+import { getIpAddress } from '~/middleware/process-ip';
+import { router } from '~/router';
+import type { C15TContext, C15TOptions, DeepPartial } from '~/types';
+import { init } from './init';
+import { withRequestSpan } from './utils/create-telemetry-options';
 
 /**
  * Type representing an API route
@@ -28,30 +29,12 @@ export type Route = {
 /**
  * Interface representing a configured c15t consent management instance.
  *
- * @typeParam PluginTypes - Array of plugin types used in this instance
- *
  * @remarks
  * The C15TInstance provides the main interface for interacting with the consent
  * management system. It includes methods for handling requests, accessing API
  * endpoints, and managing the system's configuration.
- *
- * All asynchronous operations return Promises for consistent error handling.
- *
- * @example
- * ```typescript
- * const instance: C15TInstance = c15tInstance({
- *   secret: 'your-secret',
- *   storage: memoryAdapter()
- * });
- *
- * // Handle an incoming request
- * const response = await instance.handler(request);
- * ```
- *
- * @deprecated Will be removed in the next major version. Update to `@c15t/backend/v2`, view migration guide for more details.
- * @see https://c15t.com/docs/self-host/migrate-from-v1
  */
-export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
+export interface C15TInstance {
 	/**
 	 * Processes incoming HTTP requests and routes them to appropriate handlers.
 	 *
@@ -73,7 +56,7 @@ export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
 	/**
 	 * The configuration options used for this instance.
 	 */
-	options: C15TOptions<PluginTypes>;
+	options: C15TOptions;
 
 	/**
 	 * Access to the underlying context.
@@ -104,38 +87,21 @@ export interface C15TInstance<PluginTypes extends C15TPlugin[] = C15TPlugin[]> {
  * Creates a new c15t consent management instance.
  *
  * This version provides a unified handler that works with oRPC to handle requests.
- *
- * @deprecated Will be removed in the next major version. Update to `@c15t/backend/v2`, view migration guide for more details.
- * @see https://c15t.com/docs/self-host/migrate-from-v1
  */
-export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
-	options: C15TOptions<PluginTypes>
-) => {
-	// Initialize context
-	const contextPromise = init(options);
+export const c15tInstance = (options: C15TOptions) => {
+	const context = init(options);
 
 	// Replace the inline corsOptions with the imported one
 	const corsOptions = createCORSOptions(options.trustedOrigins);
 
 	// Create the oRPC handler with plugins
 	const rpcHandler = new OpenAPIHandler(router, {
-		plugins: [new CORSPlugin(corsOptions)],
+		plugins: [new CORSPlugin(corsOptions), new CompressionPlugin()],
 	});
 
 	// Set up OpenAPI configuration
 	const openApiConfig = createOpenAPIConfig(options);
 	const getDocsUI = () => createDocsUI(options);
-
-	/**
-	 * Process IP tracking and add it to the context
-	 */
-	const processIp = (request: Request, context: C15TContext) => {
-		const ip = getIp(request, options);
-		if (ip) {
-			context.ipAddress = ip;
-		}
-		return context;
-	};
 
 	/**
 	 * Add telemetry tracking to the context
@@ -145,7 +111,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 		const path = url.pathname;
 		const method = request.method;
 
-		// Add a span to the context that can be accessed by handlers
+		// // Add a span to the context that can be accessed by handlers
 		withRequestSpan(
 			method,
 			path,
@@ -173,25 +139,9 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 		url: URL
 	): Promise<Response | null> => {
 		if (openApiConfig.enabled && url.pathname === openApiConfig.specPath) {
-			const ctxResult = await contextPromise;
-			if (!ctxResult.isOk()) {
-				throw ctxResult.error;
-			}
-			const ctx = ctxResult.value;
-			const orpcContext = {
-				adapter: ctx.adapter,
-				registry: ctx.registry,
-				logger: ctx.logger,
-				generateId: ctx.generateId,
-				headers: new Headers(),
-				appName: options.appName || 'c15t',
-				options,
-				trustedOrigins: options.trustedOrigins || [],
-				baseURL: options.baseURL || '/',
-				tables: ctx.tables,
-			};
-			const getOpenAPISpec = createOpenAPISpec(orpcContext, options);
+			const getOpenAPISpec = createOpenAPISpec(context, options);
 			const spec = await getOpenAPISpec();
+
 			return new Response(JSON.stringify(spec), {
 				status: 200,
 				headers: { 'Content-Type': 'application/json' },
@@ -219,24 +169,26 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 	};
 
 	/**
-	 * Create error response for DoubleTieError
+	 * Create error response for ORPCError
 	 */
-	const createDoubleTieErrorResponse = (error: DoubleTieError): Response => {
-		// Sanitize error message to prevent sensitive information disclosure
+	const createORPCErrorResponse = (
+		error: ORPCError<string, unknown>
+	): Response => {
 		const sanitizedMessage = error.message.replace(
 			/[^\w\s.,;:!?()[\]{}'"+-]/g,
 			''
 		);
+
 		return new Response(
 			JSON.stringify({
 				code: error.code,
 				message: sanitizedMessage,
-				data: error.meta,
-				status: error.statusCode,
+				data: error.data ?? {},
+				status: error.status,
 				defined: true,
 			}),
 			{
-				status: error.statusCode,
+				status: error.status,
 				headers: { 'Content-Type': 'application/json' },
 			}
 		);
@@ -262,7 +214,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 
 		return new Response(
 			JSON.stringify({
-				code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+				code: 'INTERNAL_SERVER_ERROR',
 				message,
 				status,
 				defined: true,
@@ -282,41 +234,29 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 		request: Request,
 		ctx: C15TContext
 	): Promise<Response> => {
-		// Create context for the handler with c15t specifics
-		const orpcContext = {
-			adapter: ctx.adapter,
-			registry: ctx.registry,
-			logger: ctx.logger,
-			generateId: ctx.generateId,
-			headers: request.headers,
+		const { logger } = ctx;
+
+		const enrichedContext: C15TContext = {
+			...context,
+			ipAddress: getIpAddress(request, options),
 			userAgent: request.headers.get('user-agent') || undefined,
-			appName: options.appName || 'c15t',
-			options: ctx.options,
-			trustedOrigins: options.trustedOrigins || [],
-			baseURL: options.baseURL || '/',
-			tables: ctx.tables,
 		};
 
-		// Apply middleware processing to enrich the context
-		processIp(request, orpcContext);
-		processCors(request, orpcContext, options.trustedOrigins);
-		processTelemetry(request, orpcContext);
+		processCors(request, enrichedContext, options.trustedOrigins);
+		processTelemetry(request, enrichedContext);
 
-		// Use oRPC handler to handle the request with our enhanced context
-		const handlerContext = orpcContext as Record<string, unknown>;
-
-		orpcContext.logger.debug?.('Handling prefix', {
+		logger.debug?.('Handling prefix', {
 			prefix: (options.basePath as `/${string}`) || '/',
 		});
 
 		const { matched, response } = await rpcHandler.handle(request, {
 			prefix: (options.basePath as `/${string}`) || '/',
-			context: handlerContext,
+			context: enrichedContext,
 		});
 
 		// Return the response if handler matched
 		if (matched && response) {
-			orpcContext.logger.debug('Handler matched', {
+			logger.debug('Handler matched', {
 				request,
 				matched,
 				response,
@@ -324,7 +264,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 			return response;
 		}
 
-		orpcContext.logger.debug('No handler matched', {
+		logger.debug('No handler matched', {
 			request,
 			matched,
 			response,
@@ -360,17 +300,11 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 				return docsResponse;
 			}
 
-			// Get context, handling Result type properly
-			const ctxResult = await contextPromise;
-			if (!ctxResult.isOk()) {
-				throw ctxResult.error;
-			}
+			const ctx = defu(ctxOverride || {}, context) as C15TContext;
 
-			const ctx = defu(ctxOverride || {}, ctxResult.value) as C15TContext;
-
-			// After options/baseURL/basePath is set/used
-			const basePath = options.basePath || options.baseURL || '/';
-			createLogger(options.logger)?.debug?.('[c15t] Using basePath/baseURL', {
+			// After options is used
+			const basePath = options.basePath;
+			createLogger(options.logger)?.debug?.('[c15t] Using basePath', {
 				basePath,
 			});
 
@@ -389,8 +323,8 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 			logger.error('Request handling error:', error);
 
 			// Handle different error types
-			if (error instanceof DoubleTieError) {
-				return createDoubleTieErrorResponse(error);
+			if (error instanceof ORPCError) {
+				return createORPCErrorResponse(error);
 			}
 
 			return createUnknownErrorResponse(error);
@@ -419,12 +353,7 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 		options,
 
 		// Unwrap the Result when exposing the context
-		$context: contextPromise.then((result) => {
-			if (!result.isOk()) {
-				throw result.error;
-			}
-			return result.value;
-		}),
+		$context: context,
 
 		// Export router for direct access
 		router,
@@ -436,31 +365,16 @@ export const c15tInstance = <PluginTypes extends C15TPlugin[] = C15TPlugin[]>(
 		...createNextHandlers(),
 
 		// OpenAPI functionality
-		getOpenAPISpec: async () => {
-			const ctxResult = await contextPromise;
-			if (!ctxResult.isOk()) {
-				throw ctxResult.error;
-			}
-			const ctx = ctxResult.value;
-			const orpcContext = {
-				adapter: ctx.adapter,
-				registry: ctx.registry,
-				logger: ctx.logger,
-				generateId: ctx.generateId,
-				headers: new Headers(),
-				appName: options.appName || 'c15t',
-				options,
-				trustedOrigins: options.trustedOrigins || [],
-				baseURL: options.baseURL || '/',
-				tables: ctx.tables,
-			};
-			const getOpenAPISpec = createOpenAPISpec(orpcContext, options);
+		getOpenAPISpec: () => {
+			const getOpenAPISpec = createOpenAPISpec(context, options);
+
 			return getOpenAPISpec();
 		},
 		getDocsUI,
 	};
 };
 
-export type { C15TPlugin, C15TOptions, C15TContext };
-export type { ContractsInputs, ContractsOutputs } from './contracts';
+export type { ContractsInputs, ContractsOutputs } from '~/contracts';
+export { defineConfig } from './define-config';
+export type { C15TContext, C15TOptions } from './types';
 export { version } from './version';

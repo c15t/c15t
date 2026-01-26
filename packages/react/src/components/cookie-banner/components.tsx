@@ -4,15 +4,16 @@
  * Implements accessible, customizable components following GDPR requirements.
  */
 
+import styles from '@c15t/ui/styles/components/cookie-banner.module.css';
 import { forwardRef, type Ref, type RefObject, useRef } from 'react';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useTheme } from '~/hooks/use-theme';
+import { useTranslations } from '~/hooks/use-translations';
 import { Box, type BoxProps } from '../shared/primitives/box';
 import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
 import type { LegalLinksProps } from '../shared/primitives/legal-links';
 import { InlineLegalLinks } from '../shared/primitives/legal-links';
-import styles from './cookie-banner.module.css';
 
 const COOKIE_BANNER_TITLE_NAME = 'CookieBannerTitle';
 const COOKIE_BANNER_DESCRIPTION_NAME = 'CookieBannerDescription';
@@ -42,15 +43,16 @@ const CookieBannerTitle = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
 >(({ children, ...props }, ref) => {
+	const { cookieBanner } = useTranslations();
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.title}
 			data-testid="cookie-banner-title"
-			themeKey="banner.header.title"
+			themeKey="bannerTitle"
 			{...props}
 		>
-			{children}
+			{children ?? cookieBanner.title}
 		</Box>
 	);
 });
@@ -78,17 +80,19 @@ const CookieBannerDescription = forwardRef<
 		legalLinks?: LegalLinksProps['links'];
 	}
 >(({ children, legalLinks, asChild, ...props }, ref) => {
+	const { cookieBanner } = useTranslations();
+
 	if (asChild) {
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
 				baseClassName={styles.description}
 				data-testid="cookie-banner-description"
-				themeKey="banner.header.description"
+				themeKey="bannerDescription"
 				asChild={asChild}
 				{...props}
 			>
-				{children}
+				{children ?? cookieBanner.description}
 			</Box>
 		);
 	}
@@ -98,14 +102,14 @@ const CookieBannerDescription = forwardRef<
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.description}
 			data-testid="cookie-banner-description"
-			themeKey="banner.header.description"
+			themeKey="bannerDescription"
 			asChild={asChild}
 			{...props}
 		>
-			{children}
+			{children ?? cookieBanner.description}
 			<InlineLegalLinks
 				links={legalLinks}
-				themeKey="banner.header.legal-links"
+				themeKey="bannerDescription"
 				testIdPrefix="cookie-banner-legal-link"
 			/>
 		</Box>
@@ -138,7 +142,7 @@ const CookieBannerFooter = forwardRef<
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.footer}
 			data-testid="cookie-banner-footer"
-			themeKey="banner.footer"
+			themeKey="bannerFooter"
 			{...props}
 		>
 			{children}
@@ -180,7 +184,7 @@ const CookieBannerCard = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
 				tabIndex={0}
 				baseClassName={styles.card}
 				data-testid="cookie-banner-card"
-				themeKey="banner.card"
+				themeKey="bannerCard"
 				aria-label={props['aria-label'] || 'Cookie Banner'}
 				aria-modal={shouldTrapFocus ? 'true' : undefined}
 				role={shouldTrapFocus ? 'dialog' : undefined}
@@ -210,7 +214,7 @@ const CookieBannerHeader = forwardRef<
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.header}
 			data-testid="cookie-banner-header"
-			themeKey="banner.header.root"
+			themeKey="bannerHeader"
 			{...props}
 		>
 			{children}
@@ -236,7 +240,7 @@ const CookieBannerFooterSubGroup = forwardRef<
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.footerSubGroup}
 			data-testid="cookie-banner-footer-sub-group"
-			themeKey="banner.footer.sub-group"
+			themeKey="bannerFooterSubGroup"
 			{...props}
 		>
 			{children}
@@ -264,6 +268,7 @@ const CookieBannerRejectButton = forwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
+	const { common } = useTranslations();
 	return (
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
@@ -272,7 +277,7 @@ const CookieBannerRejectButton = forwardRef<
 			closeCookieBanner
 			{...props}
 		>
-			{children}
+			{children ?? common.rejectAll}
 		</ConsentButton>
 	);
 });
@@ -290,6 +295,7 @@ const CookieBannerCustomizeButton = forwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
+	const { common } = useTranslations();
 	return (
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
@@ -297,7 +303,7 @@ const CookieBannerCustomizeButton = forwardRef<
 			data-testid="cookie-banner-customize-button"
 			{...props}
 		>
-			{children}
+			{children ?? common.customize}
 		</ConsentButton>
 	);
 });
@@ -323,18 +329,18 @@ const CookieBannerAcceptButton = forwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
+	const { common } = useTranslations();
 	const { noStyle } = useTheme();
 	return (
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
 			action="accept-consent"
-			variant="primary"
 			data-testid="cookie-banner-accept-button"
 			closeCookieBanner
 			noStyle={noStyle}
 			{...props}
 		>
-			{children}
+			{children ?? common.acceptAll}
 		</ConsentButton>
 	);
 });

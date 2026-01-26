@@ -1,4 +1,4 @@
-import type { ContractsOutputs } from '@c15t/backend/contracts';
+import type { InitOutput } from 'c15t';
 import {
 	afterEach,
 	beforeEach,
@@ -12,7 +12,7 @@ import { extractRelevantHeaders } from './headers';
 import { getC15TInitialData } from './initial-data';
 import { normalizeBackendURL } from './normalize-url';
 
-type ShowConsentBanner = ContractsOutputs['consent']['showBanner'];
+type Init = InitOutput;
 
 // Mock next/headers
 vi.mock('next/headers', () => ({
@@ -75,14 +75,10 @@ describe('getC15TInitialData', () => {
 		expect(result).toBeUndefined();
 	});
 
-	it('should successfully fetch and return consent banner data', async () => {
-		const mockResponse: ShowConsentBanner = {
-			showConsentBanner: true,
+	it('should successfully fetch and return init data', async () => {
+		const mockResponse: Init = {
 			branding: 'c15t',
-			jurisdiction: {
-				message: 'Please accept cookies',
-				code: 'GDPR',
-			},
+			jurisdiction: 'GDPR',
 			location: {
 				countryCode: 'US',
 				regionCode: 'CA',
@@ -136,13 +132,10 @@ describe('getC15TInitialData', () => {
 
 		const result = await getC15TInitialData('https://example.com', mockHeaders);
 
-		expect(mockFetch).toHaveBeenCalledWith(
-			'https://api.example.com/show-consent-banner',
-			{
-				method: 'GET',
-				headers: mockRelevantHeaders,
-			}
-		);
+		expect(mockFetch).toHaveBeenCalledWith('https://api.example.com/init', {
+			method: 'GET',
+			headers: mockRelevantHeaders,
+		});
 		expect(result).toEqual(mockResponse);
 	});
 

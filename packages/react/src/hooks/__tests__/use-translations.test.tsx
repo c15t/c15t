@@ -14,14 +14,12 @@ describe('useTranslations', () => {
 	});
 
 	test('returns English translations by default', async () => {
-		const { result } = renderHook(() => useTranslations(), {
+		const { result } = await renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+						noStyle: false,
 					}}
 				>
 					{children}
@@ -46,14 +44,12 @@ describe('useTranslations', () => {
 	});
 
 	test('returns German translations instead of English when German is selected', async () => {
-		const { result } = renderHook(() => useTranslations(), {
+		const { result } = await renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+						noStyle: false,
 						translations: {
 							defaultLanguage: 'de',
 							disableAutoLanguageSwitch: true,
@@ -116,14 +112,12 @@ describe('useTranslations', () => {
 			},
 		};
 
-		const { result } = renderHook(() => useTranslations(), {
+		const { result } = await renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+						noStyle: false,
 						translations: customTranslations,
 					}}
 				>
@@ -147,14 +141,12 @@ describe('useTranslations', () => {
 	});
 
 	test('falls back to English when selected language is not available', async () => {
-		const { result } = renderHook(() => useTranslations(), {
+		const { result } = await renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+						noStyle: false,
 						translations: {
 							defaultLanguage: 'fr', // Language that doesn't exist
 						},
@@ -180,14 +172,12 @@ describe('useTranslations', () => {
 	});
 
 	test('Custom English instead of English when German is selected', async () => {
-		const { result } = renderHook(() => useTranslations(), {
+		const { result } = await renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+						noStyle: false,
 						translations: {
 							defaultLanguage: 'en',
 							disableAutoLanguageSwitch: true,

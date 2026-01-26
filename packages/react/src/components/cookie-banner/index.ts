@@ -25,7 +25,9 @@ import {
 	Title,
 } from './components';
 import {
+	type CookieBannerButton,
 	CookieBanner as CookieBannerComponent,
+	type CookieBannerLayout,
 	type CookieBannerProps,
 } from './cookie-banner';
 
@@ -72,12 +74,6 @@ export interface CookieBannerCompoundComponent extends FC<CookieBannerProps> {
  * Customized usage with all props:
  * ```tsx
  * <CookieBanner
- *   theme={{
- *     root: "bg-white p-4",
- *     title: "text-xl font-bold",
- *     description: "text-gray-600",
- *     actions: "mt-4 flex gap-2"
- *   }}
  *   title="Cookie Settings"
  *   description="We use cookies to enhance your browsing experience"
  *   rejectButtonText="Decline"
@@ -126,7 +122,12 @@ const CookieBanner = Object.assign(CookieBannerComponent, {
 
 // Export the main component as both default and named export
 export default CookieBanner;
-export { CookieBanner, type CookieBannerProps };
+export {
+	CookieBanner,
+	type CookieBannerButton,
+	type CookieBannerLayout,
+	type CookieBannerProps,
+};
 
 // Export individual components for backward compatibility
 export { CookieBannerOverlay, Overlay } from './atoms/overlay';
@@ -151,5 +152,3 @@ export {
 	RejectButton,
 	Title,
 } from './components';
-
-export type { CookieBannerTheme } from './theme';

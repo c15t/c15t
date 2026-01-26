@@ -3,7 +3,7 @@
  * This module provides the main factory function for creating
  * client instances based on configuration options.
  */
-import type { StoreOptions } from '../store';
+import type { StoreOptions } from '../store/type';
 import { C15tClient } from './c15t';
 import type { ConsentManagerInterface } from './client-interface';
 import { CustomClient, type EndpointHandlers } from './custom';
@@ -76,7 +76,16 @@ function getClientCacheKey(options: ConsentManagerOptions): string {
 	const storageKey = storageConfigPart ? `:storage:${storageConfigPart}` : '';
 
 	if (options.mode === 'offline') {
-		return `offline${storageKey}`;
+		// Include basic translation configuration in the cache key so that
+		// different offline clients with different language sets do not share
+		// the same instance.
+		const initialTranslations =
+			options.store?.initialTranslationConfig?.translations;
+		const translationPart = initialTranslations
+			? `:translations:${Object.keys(initialTranslations).sort().join(',')}`
+			: '';
+
+		return `offline${storageKey}${translationPart}`;
 	}
 
 	if (options.mode === 'custom') {
@@ -317,7 +326,10 @@ export function configureConsentManager(
 			break;
 		}
 		case 'offline':
-			client = new OfflineClient(options.storageConfig);
+			client = new OfflineClient(
+				options.storageConfig,
+				options.store?.initialTranslationConfig
+			);
 			break;
 		default: {
 			const c15tOptions = options as {

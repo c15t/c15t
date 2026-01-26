@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { C15tClient } from '../c15t';
+import { API_ENDPOINTS } from '../types';
 
 /**
  * @vitest-environment jsdom
@@ -34,7 +35,7 @@ describe('CORS functionality', () => {
 		);
 
 		// Make the request
-		await client.showConsentBanner();
+		await client.init();
 
 		// Verify the CORS mode was set correctly
 		expect(window.fetch).toHaveBeenCalledWith(
@@ -60,7 +61,7 @@ describe('CORS functionality', () => {
 		);
 
 		// Make the request
-		await client.showConsentBanner();
+		await client.init();
 
 		// Verify the default CORS mode was used
 		expect(window.fetch).toHaveBeenCalledWith(
@@ -85,7 +86,7 @@ describe('CORS functionality', () => {
 		);
 
 		// Make the request
-		await client.showConsentBanner();
+		await client.init();
 
 		// Verify credentials are included
 		expect(window.fetch).toHaveBeenCalledWith(
@@ -109,7 +110,7 @@ describe('CORS functionality', () => {
 		const onErrorMock = vi.fn();
 
 		// Make the request - should fallback to offline mode
-		const response = await client.showConsentBanner({
+		const response = await client.init({
 			onError: onErrorMock,
 		});
 
@@ -138,7 +139,7 @@ describe('CORS functionality', () => {
 		);
 
 		// Make the request
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
 		// Verify the request was properly configured and successful
 		expect(window.fetch).toHaveBeenCalledWith(
@@ -178,7 +179,7 @@ describe('CORS functionality', () => {
 		const onErrorMock = vi.fn();
 
 		// Make the request - should fallback to offline mode
-		const response = await client.showConsentBanner({
+		const response = await client.init({
 			onError: onErrorMock,
 		});
 
@@ -205,7 +206,7 @@ describe('CORS functionality', () => {
 		const onErrorMock = vi.fn();
 
 		// Make the request - should fallback to offline mode
-		const response = await client.showConsentBanner({
+		const response = await client.init({
 			onError: onErrorMock,
 		});
 
@@ -269,7 +270,7 @@ describe('CORS functionality', () => {
 		});
 
 		// Make the request with request-specific fetch options
-		await client.$fetch('/show-consent-banner', {
+		await client.$fetch(API_ENDPOINTS.INIT, {
 			fetchOptions: {
 				credentials: 'omit', // Override the default 'include'
 			},
@@ -306,7 +307,7 @@ describe('CORS functionality', () => {
 		);
 
 		// Make the request
-		await client.showConsentBanner();
+		await client.init();
 
 		// Verify custom headers were included
 		expect(window.fetch).toHaveBeenCalledWith(
@@ -363,7 +364,7 @@ describe('CORS functionality', () => {
 
 		try {
 			// Make the request
-			const response = await client.showConsentBanner();
+			const response = await client.init();
 
 			// Verify the fetch was called twice (original + retry)
 			expect(fetchMock).toHaveBeenCalledTimes(2);

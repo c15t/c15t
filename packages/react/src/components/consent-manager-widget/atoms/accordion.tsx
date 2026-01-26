@@ -1,5 +1,5 @@
+import styles from '@c15t/ui/styles/components/consent-manager-widget.module.css';
 import type { AllConsentNames, ConsentType } from 'c15t';
-
 import {
 	type ComponentPropsWithoutRef,
 	type ComponentRef,
@@ -13,7 +13,6 @@ import { LucideIcon } from '~/components/shared/ui/icon';
 import * as RadixSwitch from '~/components/shared/ui/switch';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useTranslations } from '~/hooks/use-translations';
-import styles from '../consent-manager-widget.module.css';
 
 /**
  * Accordion Trigger Component
@@ -83,15 +82,15 @@ const ConsentManagerWidgetAccordionItems = () => {
 		<ConsentManagerWidgetAccordionItem
 			value={consent.name}
 			key={consent.name}
-			themeKey="widget.accordion.item"
+			themeKey="widgetAccordion"
 			className={styles.accordionItem}
 		>
 			<ConsentManagerWidgetAccordionTrigger
-				themeKey="widget.accordion.trigger"
+				themeKey="widgetAccordion"
 				data-testid={`consent-manager-widget-accordion-trigger-${consent.name}`}
 			>
 				<ConsentManagerWidgetAccordionTriggerInner
-					themeKey="widget.accordion.trigger-inner"
+					themeKey="widgetAccordion"
 					className={styles.accordionTriggerInner}
 					data-testid={`consent-manager-widget-accordion-trigger-inner-${consent.name}`}
 				>
@@ -103,14 +102,14 @@ const ConsentManagerWidgetAccordionItems = () => {
 								title: 'Open',
 								iconPath: <path d="M5 12h14M12 5v14" />,
 							}),
-							themeKey: 'widget.accordion.arrow.open',
+							themeKey: 'widgetAccordion' as any,
 						}}
 						closeIcon={{
 							Element: LucideIcon({
 								title: 'Close',
 								iconPath: <path d="M5 12h14" />,
 							}),
-							themeKey: 'widget.accordion.arrow.close',
+							themeKey: 'widgetAccordion' as any,
 						}}
 					/>
 					{consentTypes[consent.name]?.title ?? formatConsentName(consent.name)}
@@ -126,12 +125,12 @@ const ConsentManagerWidgetAccordionItems = () => {
 					}
 					disabled={consent.disabled}
 					theme={{
-						root: { themeKey: 'widget.switch', className: styles.switch },
+						root: { themeKey: 'toggle' as any, className: styles.switch },
 						thumb: {
-							themeKey: 'widget.switch.thumb',
+							themeKey: 'toggle' as any,
 							className: styles.switchThumb,
 						},
-						track: { themeKey: 'widget.switch.track' },
+						track: { themeKey: 'toggle' as any },
 					}}
 					data-testid={`consent-manager-widget-switch-${consent.name}`}
 				/>
@@ -139,11 +138,11 @@ const ConsentManagerWidgetAccordionItems = () => {
 			<ConsentManagerWidgetAccordionContent
 				theme={{
 					content: {
-						themeKey: 'widget.accordion.content',
+						themeKey: 'widgetAccordion' as any,
 						className: styles.accordionContent,
 					},
 					contentInner: {
-						themeKey: 'widget.accordion.content-inner',
+						themeKey: 'widgetAccordion' as any,
 					},
 				}}
 				data-testid={`consent-manager-widget-accordion-content-${consent.name}`}

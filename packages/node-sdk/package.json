@@ -51,23 +51,16 @@
 		"test:watch": "vitest"
 	},
 	"dependencies": {
-		"@c15t/backend": "workspace:*",
-		"@orpc/client": "1.8.1",
-		"@orpc/contract": "1.8.1",
-		"@orpc/openapi-client": "^1.8.1",
-		"@orpc/server": "1.8.1"
+		"@c15t/schema": "workspace:*",
+		"@orpc/client": "1.12.2",
+		"@orpc/contract": "1.12.2",
+		"@orpc/openapi-client": "1.12.2",
+		"@orpc/server": "1.12.2"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"@electric-sql/pglite": "0.2.17",
-		"@libsql/kysely-libsql": "^0.4.1",
-		"@types/better-sqlite3": "^7.6.13",
-		"@types/express": "^5.0.1",
-		"@types/node": "20.14.13",
-		"@types/pg": "8.11.6",
-		"kysely-pglite": "^0.6.1",
-		"msw": "^2.7.6",
-		"typescript": "^5.8.3"
+		"@types/node": "24.10.1",
+		"typescript": "5.9.3"
 	}
 }

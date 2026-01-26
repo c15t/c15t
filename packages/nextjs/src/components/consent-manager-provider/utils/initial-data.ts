@@ -1,15 +1,15 @@
-import type { ContractsOutputs } from '@c15t/backend/contracts';
 import type { Overrides } from '@c15t/react';
+import type { InitOutput } from 'c15t';
 import { extractRelevantHeaders } from './headers';
 import { normalizeBackendURL } from './normalize-url';
 
-type ShowConsentBanner = ContractsOutputs['consent']['showBanner'] | undefined;
+type InitResponse = InitOutput | undefined;
 
 export async function getC15TInitialData(
 	backendURL: string,
 	initialHeaders: Headers | Promise<Headers>,
 	overrides?: Overrides
-): Promise<ShowConsentBanner> {
+): Promise<InitResponse> {
 	const headers = await initialHeaders;
 	const relevantHeaders = extractRelevantHeaders(headers);
 
@@ -36,7 +36,7 @@ export async function getC15TInitialData(
 	}
 
 	try {
-		const response = await fetch(`${normalizedURL}/show-consent-banner`, {
+		const response = await fetch(`${normalizedURL}/init`, {
 			method: 'GET',
 			headers: relevantHeaders,
 		});

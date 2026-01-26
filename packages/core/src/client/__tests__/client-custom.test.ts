@@ -5,19 +5,25 @@ import { CustomClient } from '../custom';
 
 describe('Custom Client Tests', () => {
 	// Mocks for custom handlers
-	const showConsentBannerMock = vi.fn();
+	const initMock = vi.fn();
 	const setConsentMock = vi.fn();
 	const verifyConsentMock = vi.fn();
+	const identifyUserMock = vi.fn();
 
 	beforeEach(() => {
 		vi.resetAllMocks();
 		mockLocalStorage.clear();
 
 		// Set up default responses for the mock handlers
-		showConsentBannerMock.mockResolvedValue({
+		initMock.mockResolvedValue({
 			data: {
-				showConsentBanner: true,
-				jurisdiction: { code: 'EU', message: 'European Union' },
+				jurisdiction: 'GDPR',
+				location: { countryCode: 'DE', regionCode: null },
+				translations: {
+					language: 'en',
+					translations: {},
+				},
+				branding: 'c15t',
 			},
 			ok: true,
 			error: null,
@@ -39,27 +45,33 @@ describe('Custom Client Tests', () => {
 		});
 	});
 
-	it('should use custom handler for showing consent banner', async () => {
+	it('should use custom handler for init', async () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'custom',
 			endpointHandlers: {
-				showConsentBanner: showConsentBannerMock,
+				init: initMock,
 				setConsent: setConsentMock,
 				verifyConsent: verifyConsentMock,
+				identifyUser: identifyUserMock,
 			},
 		});
 
 		// Call the API
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
 		// Assertions
-		expect(showConsentBannerMock).toHaveBeenCalledTimes(1);
+		expect(initMock).toHaveBeenCalledTimes(1);
 		expect(fetchMock).not.toHaveBeenCalled();
 		expect(response.ok).toBe(true);
 		expect(response.data).toEqual({
-			showConsentBanner: true,
-			jurisdiction: { code: 'EU', message: 'European Union' },
+			jurisdiction: 'GDPR',
+			location: { countryCode: 'DE', regionCode: null },
+			translations: {
+				language: 'en',
+				translations: {},
+			},
+			branding: 'c15t',
 		});
 	});
 
@@ -68,9 +80,10 @@ describe('Custom Client Tests', () => {
 		const client = configureConsentManager({
 			mode: 'custom',
 			endpointHandlers: {
-				showConsentBanner: showConsentBannerMock,
+				init: initMock,
 				setConsent: setConsentMock,
 				verifyConsent: verifyConsentMock,
+				identifyUser: identifyUserMock,
 			},
 		});
 
@@ -115,9 +128,10 @@ describe('Custom Client Tests', () => {
 		const client = configureConsentManager({
 			mode: 'custom',
 			endpointHandlers: {
-				showConsentBanner: showConsentBannerMock,
+				init: initMock,
 				setConsent: setConsentMock,
 				verifyConsent: verifyConsentMock,
+				identifyUser: identifyUserMock,
 			},
 		});
 
@@ -143,9 +157,10 @@ describe('Custom Client Tests', () => {
 		// Configure the client
 		const client = new CustomClient({
 			endpointHandlers: {
-				showConsentBanner: showConsentBannerMock,
+				init: initMock,
 				setConsent: setConsentMock,
 				verifyConsent: verifyConsentMock,
+				identifyUser: identifyUserMock,
 			},
 		});
 

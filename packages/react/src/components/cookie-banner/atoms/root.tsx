@@ -1,5 +1,6 @@
 'use client';
 
+import styles from '@c15t/ui/styles/components/cookie-banner.module.css';
 import {
 	type CSSProperties,
 	type FC,
@@ -15,8 +16,6 @@ import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/types/theme';
-import styles from '../cookie-banner.module.css';
-import type { CookieBannerTheme } from '../theme';
 import { Overlay } from './overlay';
 
 /**
@@ -43,13 +42,6 @@ interface CookieBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	 * Useful when implementing completely custom styles.
 	 */
 	noStyle?: boolean;
-
-	/**
-	 * @remarks
-	 * Custom styles to be applied to the banner and its child components.
-	 * These styles are made available through the CookieBanner context.
-	 */
-	theme?: Partial<CookieBannerTheme>;
 
 	/**
 	 * @remarks
@@ -117,7 +109,6 @@ const CookieBannerRoot: FC<CookieBannerRootProps> = ({
 	className,
 	noStyle,
 	disableAnimation,
-	theme,
 	scrollLock,
 	trapFocus = true,
 	...props
@@ -129,7 +120,6 @@ const CookieBannerRoot: FC<CookieBannerRootProps> = ({
 	const contextValue = {
 		disableAnimation,
 		noStyle,
-		theme,
 		scrollLock,
 		trapFocus,
 	};
@@ -234,11 +224,13 @@ const CookieBannerRootChildren = forwardRef<
 		},
 		ref
 	) => {
-		const { showPopup, translationConfig } = useConsentManager();
+		const { showPopup, translationConfig, model } = useConsentManager();
 		const textDirection = useTextDirection(translationConfig.defaultLanguage);
 		const [isVisible, setIsVisible] = useState(false);
 		const [hasAnimated, setHasAnimated] = useState(false);
 		const [animationDurationMs, setAnimationDurationMs] = useState(200); // Default fallback for SSR
+
+		const shouldShowBanner = model === 'opt-in' && showPopup;
 
 		// Get animation duration from CSS custom property (client-side only)
 		useEffect(() => {
@@ -253,7 +245,7 @@ const CookieBannerRootChildren = forwardRef<
 
 		// Handle animation visibility state
 		useEffect(() => {
-			if (showPopup) {
+			if (shouldShowBanner) {
 				// If showPopup is true but we haven't animated yet, trigger the animation
 				if (hasAnimated) {
 					setIsVisible(true);
@@ -278,11 +270,11 @@ const CookieBannerRootChildren = forwardRef<
 					return () => clearTimeout(timer);
 				}
 			}
-		}, [showPopup, disableAnimation, hasAnimated, animationDurationMs]);
+		}, [shouldShowBanner, disableAnimation, hasAnimated, animationDurationMs]);
 
 		// Apply styles from the CookieBanner context and merge with local styles.
 		// Uses the 'content' style key for consistent theming.
-		const contentStyle = useStyles('banner.root', {
+		const contentStyle = useStyles('banner', {
 			baseClassName: [
 				styles.root,
 				textDirection === 'ltr' ? styles.bottomLeft : styles.bottomRight,
@@ -313,7 +305,7 @@ const CookieBannerRootChildren = forwardRef<
 			: `${contentStyle.className || ''} ${isVisible ? styles.bannerVisible : styles.bannerHidden}`;
 
 		// Only render when the banner should be shown
-		return showPopup
+		return shouldShowBanner
 			? createPortal(
 					<>
 						<Overlay />

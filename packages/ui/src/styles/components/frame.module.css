@@ -1,0 +1,76 @@
+:root {
+	--frame-font-family:
+		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+		"Apple Color Emoji", "Segoe UI Emoji";
+	--frame-line-height: 1.5;
+	--frame-placeholder-gap: 1rem;
+
+	/* Border */
+	--frame-placeholder-border-radius: 1.25rem;
+	--frame-placeholder-border-width: 1px;
+	--frame-placeholder-border-color: hsla(0 0% 92.16% / 1);
+	--frame-placeholder-border-color-dark: hsla(0 0% 20% / 1);
+
+	/* Colors */
+	--frame-placeholder-background-color: hsl(0, 0%, 100%);
+	--frame-placeholder-background-color-dark: hsla(0 0% 9.02% / 1);
+	--frame-placeholder-text-color: hsla(0 0% 9.02% / 1);
+	--frame-placeholder-text-color-dark: hsla(0 0% 90% / 1);
+	--frame-placeholder-title-color: hsla(0 0% 9.02% / 1);
+	--frame-placeholder-title-color-dark: hsla(0 0% 90% / 1);
+
+	/* Shadow */
+	--frame-placeholder-shadow: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
+	--frame-placeholder-shadow-dark: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
+
+	--frame-placeholder-opacity: 0;
+	--frame-placeholder-animation: fadeIn 0.15s ease-in forwards;
+}
+
+@layer components {
+	.placeholder {
+		font-family: var(--frame-font-family);
+		line-height: var(--frame-line-height);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		height: 100%;
+		width: 100%;
+		padding: 1rem;
+		text-align: center;
+		border-radius: var(--frame-placeholder-border-radius);
+		border-width: var(--frame-placeholder-border-width);
+		border-color: var(--frame-placeholder-border-color);
+		background-color: var(--frame-placeholder-background-color);
+		opacity: var(--frame-placeholder-opacity);
+		transform: scale(1);
+		pointer-events: auto;
+		gap: var(--frame-placeholder-gap);
+		animation: var(--frame-placeholder-animation);
+	}
+
+	@keyframes fadeIn {
+		to {
+			opacity: 1;
+		}
+	}
+
+	:global(.c15t-dark) .placeholder {
+		background-color: var(--frame-placeholder-background-color-dark);
+		border-color: var(--frame-placeholder-border-color-dark);
+		box-shadow: var(--frame-placeholder-shadow-dark);
+	}
+
+	.title {
+		font-size: 1rem;
+		line-height: 1.5rem;
+		letter-spacing: -0.011em;
+		font-weight: 500;
+		color: var(--frame-placeholder-title-color);
+	}
+
+	:global(.c15t-dark) .title {
+		color: var(--frame-placeholder-title-color-dark);
+	}
+}
