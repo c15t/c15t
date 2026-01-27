@@ -4,6 +4,7 @@
  * @packageDocumentation
  */
 
+import { CMP_ID, CMP_VERSION } from '../../cmp-defaults';
 import type { GlobalVendorList } from '../../types/iab-tcf';
 import type { IABConfig, IABState } from '../tcf/types';
 import type { StoreAccess } from './types';
@@ -73,11 +74,9 @@ export async function initializeIABMode(
 		if (prefetchedGVL) {
 			gvl = prefetchedGVL;
 		} else {
-			// Extract vendor IDs from the configuration
-			const vendorIds = Object.keys(iab.vendors).map(Number);
-
-			// Fetch GVL from consent.io (filtered by configured vendors)
-			gvl = await fetchGVL(vendorIds);
+			// Fetch GVL from consent.io (no client-side filtering - GVL is source of truth)
+			// Backend may still filter vendorIds if configured
+			gvl = await fetchGVL();
 
 			// If GVL is null (non-IAB region), skip initialization
 			if (gvl === null) {
@@ -89,31 +88,49 @@ export async function initializeIABMode(
 		// Update store with GVL
 		updateIABState(storeAccess, { gvl, isLoadingGVL: false });
 
-		// Initialize all vendor consents to false by default (GDPR requires opt-in)
-		// Purposes and vendors remain false by default - user must explicitly enable them
+		// Initialize vendor consents based on their declared legal bases
+		// - Only set consent for vendors with consent-based purposes
+		// - Only set LI for vendors with LI-based purposes
+		// - Consent defaults to false (GDPR requires opt-in)
+		// - LI defaults to true (allowed) - user can object to opt-out
 		const initialVendorConsents: Record<number, boolean> = {};
 		const initialVendorLegitimateInterests: Record<number, boolean> = {};
 
-		// Initialize IAB vendors to false (user must consent)
-		for (const vendorId of Object.keys(iab.vendors)) {
-			initialVendorConsents[Number(vendorId)] = false;
-			// LI defaults to true (allowed) - user can object to opt-out
-			initialVendorLegitimateInterests[Number(vendorId)] = true;
+		// Initialize GVL vendors based on their declared legal bases
+		for (const [vendorId, vendor] of Object.entries(gvl.vendors)) {
+			const id = Number(vendorId);
+			// Only track consent for vendors that have consent-based purposes
+			if (vendor.purposes && vendor.purposes.length > 0) {
+				initialVendorConsents[id] = false;
+			}
+			// Only track LI for vendors that have LI-based purposes
+			if (vendor.legIntPurposes && vendor.legIntPurposes.length > 0) {
+				// LI defaults to true (allowed) - user can object to opt-out
+				initialVendorLegitimateInterests[id] = true;
+			}
 		}
 
 		// Initialize custom vendors (IDs start from 90000 to match UI component)
 		const customVendors = iab.customVendors ?? [];
-		customVendors.forEach((_, index) => {
+		customVendors.forEach((cv, index) => {
 			const customVendorId = 90000 + index;
-			initialVendorConsents[customVendorId] = false;
-			// LI defaults to true (allowed) - user can object to opt-out
-			initialVendorLegitimateInterests[customVendorId] = true;
+			// Only track consent for custom vendors with purposes
+			if (cv.purposes && cv.purposes.length > 0) {
+				initialVendorConsents[customVendorId] = false;
+			}
+			// Only track LI for custom vendors with legIntPurposes
+			if (cv.legIntPurposes && cv.legIntPurposes.length > 0) {
+				initialVendorLegitimateInterests[customVendorId] = true;
+			}
 		});
 
 		updateIABState(storeAccess, {
 			vendorConsents: initialVendorConsents,
 			vendorLegitimateInterests: initialVendorLegitimateInterests,
 		});
+
+		const effectiveCmpId = iab.cmpId ?? CMP_ID;
+		const effectiveCmpVersion = iab.cmpVersion ?? CMP_VERSION;
 
 		// Warn about CMP registration in development
 		if (
@@ -122,9 +139,9 @@ export async function initializeIABMode(
 		) {
 			// Common placeholder/test CMP IDs that indicate the CMP is not registered
 			const PLACEHOLDER_CMP_IDS = [0, 1, 28, 123, 999];
-			if (PLACEHOLDER_CMP_IDS.includes(iab.cmpId)) {
+			if (PLACEHOLDER_CMP_IDS.includes(effectiveCmpId)) {
 				console.warn(
-					`[c15t] IAB TCF Warning: Using CMP ID ${iab.cmpId} which appears to be a placeholder.\n` +
+					`[c15t] IAB TCF Warning: Using CMP ID ${effectiveCmpId} which appears to be a placeholder.\n` +
 						'For production IAB TCF 2.3 compliance, you must register your CMP with IAB Europe.\n' +
 						'Registration: https://iabeurope.eu/tcf-for-cmps/\n' +
 						'CMP List: https://iabeurope.eu/cmp-list/'
@@ -134,8 +151,8 @@ export async function initializeIABMode(
 
 		// Initialize CMP API
 		const cmpApi = createCMPApi({
-			cmpId: iab.cmpId,
-			cmpVersion: iab.cmpVersion ?? 1,
+			cmpId: effectiveCmpId,
+			cmpVersion: effectiveCmpVersion,
 			gvl,
 			gdprApplies: true,
 		});

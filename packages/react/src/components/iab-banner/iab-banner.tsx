@@ -97,13 +97,15 @@ export const IABBanner: FC<IABBannerProps> = ({
 		trapFocus: localTrapFocus ?? globalTheme.trapFocus,
 	};
 
-	// Get vendor count from IAB state
+	// Get vendor count from GVL + custom vendors
 	const vendorCount = useMemo(() => {
-		if (!iabState?.config?.vendors) {
+		if (!iabState?.gvl) {
 			return 0;
 		}
-		return Object.keys(iabState.config.vendors).length;
-	}, [iabState?.config?.vendors]);
+		const gvlVendorCount = Object.keys(iabState.gvl.vendors).length;
+		const customVendorCount = iabState.nonIABVendors?.length ?? 0;
+		return gvlVendorCount + customVendorCount;
+	}, [iabState?.gvl, iabState?.nonIABVendors]);
 
 	// Get filtered stack names from GVL (same logic as preference center)
 	const MAX_DISPLAY_ITEMS = 5;
@@ -113,17 +115,15 @@ export const IABBanner: FC<IABBannerProps> = ({
 		}
 
 		const gvl = iabState.gvl;
-		const configVendors = iabState.config.vendors;
 
-		// Get purposes that have configured vendors (matching preference center logic)
+		// Get purposes that have vendors (all GVL vendors)
 		const purposesWithVendors = Object.entries(gvl.purposes)
 			.filter(([id]) => {
-				// Check if any configured vendor uses this purpose
-				return Object.entries(gvl.vendors).some(
-					([vendorId, vendor]) =>
-						configVendors[Number(vendorId)] &&
-						(vendor.purposes?.includes(Number(id)) ||
-							vendor.legIntPurposes?.includes(Number(id)))
+				// Check if any vendor uses this purpose
+				return Object.values(gvl.vendors).some(
+					(vendor) =>
+						vendor.purposes?.includes(Number(id)) ||
+						vendor.legIntPurposes?.includes(Number(id))
 				);
 			})
 			.map(([id, purpose]) => ({ id: Number(id), name: purpose.name }));
@@ -185,13 +185,11 @@ export const IABBanner: FC<IABBannerProps> = ({
 			(p) => !assignedPurposeIds.has(p.id)
 		);
 
-		// Get special features that have configured vendors
+		// Get special features that have vendors
 		const specialFeaturesWithVendors = Object.entries(gvl.specialFeatures || {})
 			.filter(([id]) => {
-				return Object.entries(gvl.vendors).some(
-					([vendorId, vendor]) =>
-						configVendors[Number(vendorId)] &&
-						vendor.specialFeatures?.includes(Number(id))
+				return Object.values(gvl.vendors).some((vendor) =>
+					vendor.specialFeatures?.includes(Number(id))
 				);
 			})
 			.map(([, feature]) => feature.name);
@@ -223,7 +221,7 @@ export const IABBanner: FC<IABBannerProps> = ({
 		const remainingCount = Math.max(0, items.length - MAX_DISPLAY_ITEMS);
 
 		return { displayed, remainingCount, isReady: true };
-	}, [iabState?.gvl, iabState?.config.vendors]);
+	}, [iabState?.gvl]);
 
 	// Handle button actions
 	const handleAcceptAll = () => {

@@ -22,8 +22,8 @@ export interface TCStringConfig {
 	/** CMP ID registered with IAB */
 	cmpId: number;
 
-	/** CMP version */
-	cmpVersion?: number;
+	/** CMP version (number for TC model; string from ~/cmp-defaults is coerced) */
+	cmpVersion?: number | string;
 
 	/** Consent screen ID */
 	consentScreen?: number;
@@ -83,7 +83,10 @@ export async function generateTCString(
 
 	// Set CMP metadata
 	tcModel.cmpId = config.cmpId;
-	tcModel.cmpVersion = config.cmpVersion ?? 1;
+	tcModel.cmpVersion =
+		typeof config.cmpVersion === 'number'
+			? config.cmpVersion
+			: Number.parseInt(String(config.cmpVersion ?? '1'), 10) || 1;
 	tcModel.consentScreen = config.consentScreen ?? 1;
 	tcModel.consentLanguage = config.consentLanguage ?? 'EN';
 	tcModel.publisherCountryCode = config.publisherCountryCode ?? 'US';

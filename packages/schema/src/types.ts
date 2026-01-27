@@ -58,5 +58,11 @@ export type {
 	GVLVendorUrl,
 } from './shared/gvl';
 
+// Non-IAB vendor types - Custom vendors not registered with IAB
+export type {
+	NonIABVendor,
+	NonIABVendorConsent,
+} from './shared/non-iab-vendor';
+
 // Re-export constants for runtime checks (no Zod involved)
 export { brandingValues, jurisdictionCodes };

@@ -417,7 +417,7 @@ export interface PingData {
 	apiVersion: string;
 
 	/** CMP version */
-	cmpVersion: number;
+	cmpVersion: string;
 
 	/** CMP ID registered with IAB */
 	cmpId: number;

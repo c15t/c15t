@@ -1,3 +1,5 @@
+import { version } from '~/version';
+
 /**
  * IAB TCF Stub
  *
@@ -34,8 +36,8 @@ function createStubPingData(): PingData {
 		cmpLoaded: false,
 		cmpStatus: 'stub',
 		displayStatus: 'hidden',
-		apiVersion: '2.2',
-		cmpVersion: 0,
+		apiVersion: '2.3',
+		cmpVersion: version,
 		cmpId: 0,
 		gvlVersion: 0,
 		tcfPolicyVersion: 5, // TCF 2.3

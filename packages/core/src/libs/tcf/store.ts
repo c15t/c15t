@@ -1,4 +1,5 @@
 import type { ConsentManagerInterface } from '../../client/client-interface';
+import { CMP_ID, CMP_VERSION } from '../../cmp-defaults';
 import type { ConsentStoreState } from '../../store/type';
 import type { GlobalVendorList } from '../../types';
 import type { NonIABVendor } from '../../types/non-iab-vendor';
@@ -140,7 +141,7 @@ export function createIABActions(
 			const { purposeConsents, purposeLegitimateInterests } =
 				buildAllPurposeConsents(iab.gvl, true);
 			const { vendorConsents, vendorLegitimateInterests } =
-				buildAllVendorConsents(iab.config, iab.nonIABVendors, true);
+				buildAllVendorConsents(iab.gvl, iab.nonIABVendors, true);
 			const specialFeatureOptIns = buildAllSpecialFeatureOptIns(iab.gvl, true);
 
 			updateState({
@@ -169,7 +170,7 @@ export function createIABActions(
 			}
 
 			const { vendorConsents, vendorLegitimateInterests } =
-				buildAllVendorConsents(iab.config, iab.nonIABVendors, false);
+				buildAllVendorConsents(iab.gvl, iab.nonIABVendors, false);
 			const specialFeatureOptIns = buildAllSpecialFeatureOptIns(iab.gvl, false);
 
 			updateState({
@@ -204,9 +205,9 @@ export function createIABActions(
 				'./index'
 			);
 
-			// Build vendorsDisclosed from configured vendors (all are disclosed in UI)
+			// Build vendorsDisclosed from all GVL vendors (all are disclosed in UI)
 			const vendorsDisclosed: Record<number, boolean> = {};
-			for (const vendorId of Object.keys(iabConfig.vendors)) {
+			for (const vendorId of Object.keys(gvl.vendors)) {
 				vendorsDisclosed[Number(vendorId)] = true;
 			}
 
@@ -222,8 +223,8 @@ export function createIABActions(
 				},
 				gvl,
 				{
-					cmpId: iabConfig.cmpId,
-					cmpVersion: iabConfig.cmpVersion ?? 1,
+					cmpId: iabConfig.cmpId ?? CMP_ID,
+					cmpVersion: iabConfig.cmpVersion ?? CMP_VERSION,
 					publisherCountryCode: iabConfig.publisherCountryCode ?? 'GB',
 					isServiceSpecific: iabConfig.isServiceSpecific ?? true,
 				}
@@ -345,15 +346,17 @@ function buildAllPurposeConsents(
 }
 
 /**
- * Builds vendor consent objects for all configured vendors (IAB + custom).
+ * Builds vendor consent objects for all GVL vendors + custom vendors.
  *
  * @remarks
- * Custom vendors are assigned numeric IDs starting from 90000 to avoid
- * collision with IAB vendor IDs. This matches the ID generation in the
- * preference center UI component.
+ * - Only sets consent for vendors that have consent-based purposes (purposes.length > 0)
+ * - Only sets LI for vendors that have LI-based purposes (legIntPurposes.length > 0)
+ * - This ensures internal state matches what the TC string will encode
+ * - Custom vendors are assigned numeric IDs starting from 90000 to avoid
+ *   collision with IAB vendor IDs
  */
 function buildAllVendorConsents(
-	iabConfig: IABConfig,
+	gvl: GlobalVendorList,
 	customVendors: NonIABVendor[],
 	value: boolean
 ): {
@@ -363,17 +366,30 @@ function buildAllVendorConsents(
 	const vendorConsents: Record<number, boolean> = {};
 	const vendorLegitimateInterests: Record<number, boolean> = {};
 
-	// Add IAB vendors
-	for (const vendorId of Object.keys(iabConfig.vendors)) {
-		vendorConsents[Number(vendorId)] = value;
-		vendorLegitimateInterests[Number(vendorId)] = value;
+	// Add GVL vendors - only set consent/LI for vendors that actually use those legal bases
+	for (const [vendorId, vendor] of Object.entries(gvl.vendors)) {
+		const id = Number(vendorId);
+		// Only set consent for vendors that have consent-based purposes
+		if (vendor.purposes && vendor.purposes.length > 0) {
+			vendorConsents[id] = value;
+		}
+		// Only set LI for vendors that have LI-based purposes
+		if (vendor.legIntPurposes && vendor.legIntPurposes.length > 0) {
+			vendorLegitimateInterests[id] = value;
+		}
 	}
 
 	// Add custom vendors (IDs start from 90000 to match UI component)
-	customVendors.forEach((_, index) => {
+	customVendors.forEach((cv, index) => {
 		const customVendorId = 90000 + index;
-		vendorConsents[customVendorId] = value;
-		vendorLegitimateInterests[customVendorId] = value;
+		// Custom vendors: set consent if they have purposes
+		if (cv.purposes && cv.purposes.length > 0) {
+			vendorConsents[customVendorId] = value;
+		}
+		// Custom vendors: set LI if they have legIntPurposes
+		if (cv.legIntPurposes && cv.legIntPurposes.length > 0) {
+			vendorLegitimateInterests[customVendorId] = value;
+		}
 	});
 
 	return { vendorConsents, vendorLegitimateInterests };

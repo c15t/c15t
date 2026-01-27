@@ -1,4 +1,4 @@
-import type { GlobalVendorList } from '@c15t/schema/types';
+import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
 import { createGVLResolver } from '~/cache/gvl-resolver';
 import { os } from '~/contracts';
@@ -92,6 +92,7 @@ function buildResponse({
 	customTranslations,
 	branding = 'c15t',
 	gvl,
+	customVendors,
 }: {
 	jurisdiction: JurisdictionCode;
 	location: { countryCode: string | null; regionCode: string | null };
@@ -99,6 +100,7 @@ function buildResponse({
 	customTranslations: Record<string, Partial<Translations>> | undefined;
 	branding?: Branding;
 	gvl?: GlobalVendorList;
+	customVendors?: NonIABVendor[];
 }) {
 	return {
 		jurisdiction,
@@ -106,6 +108,7 @@ function buildResponse({
 		translations: getTranslations(acceptLanguage, customTranslations),
 		branding: branding,
 		gvl: gvl ?? null,
+		customVendors: customVendors ?? undefined,
 	};
 }
 
@@ -137,6 +140,9 @@ export const init = os.init.handler(async ({ context }) => {
 		resolvedGvl = await gvlResolver.get(language);
 	}
 
+	// Get custom vendors from config (only when GVL is enabled)
+	const customVendors = gvl?.enabled ? gvl.customVendors : undefined;
+
 	// We default to an Opt-In jurisdiction when geo location is disabled
 	// As we don't know the jurisdiction in this case, it's better to show the strictest version of the banner
 	if (disableGeoLocation) {
@@ -147,6 +153,7 @@ export const init = os.init.handler(async ({ context }) => {
 			customTranslations,
 			branding,
 			gvl: resolvedGvl ?? undefined,
+			customVendors,
 		});
 	}
 
@@ -159,5 +166,6 @@ export const init = os.init.handler(async ({ context }) => {
 		customTranslations,
 		branding,
 		gvl: resolvedGvl ?? undefined,
+		customVendors,
 	});
 });

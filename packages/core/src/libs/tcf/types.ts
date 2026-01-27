@@ -156,14 +156,16 @@ export type IABManager = IABState & IABActions;
 /**
  * Configuration for creating a CMP API instance.
  *
+ * When cmpId or cmpVersion are omitted, defaults from `~/cmp-defaults` are used.
+ *
  * @internal
  */
 export interface CMPApiConfig {
-	/** CMP ID registered with IAB */
-	cmpId: number;
+	/** CMP ID (default: 160 from ~/cmp-defaults; shared for all c15t users) */
+	cmpId?: number;
 
-	/** CMP version */
-	cmpVersion?: number;
+	/** CMP version (default: package version from ~/cmp-defaults) */
+	cmpVersion?: number | string;
 
 	/** Global Vendor List data */
 	gvl: GlobalVendorList;
@@ -237,33 +239,28 @@ export interface IABConfig {
 	enabled: boolean;
 
 	/**
-	 * Your registered CMP ID with IAB Europe.
+	 * CMP ID with IAB Europe.
 	 *
-	 * **IMPORTANT: Production Requirement**
-	 *
-	 * For production IAB TCF 2.3 compliance, you MUST register your CMP with
-	 * IAB Europe and use your assigned CMP ID. Using an unregistered or
-	 * placeholder ID violates TCF policies and may result in your TC Strings
-	 * being rejected by vendors.
-	 *
-	 * Registration steps:
-	 * 1. Apply at https://iabeurope.eu/tcf-for-cmps/
-	 * 2. Complete the registration and validation process
-	 * 3. Use your assigned CMP ID here
+	 * When omitted, defaults to 160 from `~/cmp-defaults` (the shared c15t CMP ID;
+	 * used by all c15t users, not dev-only). Override only if using a different
+	 * CMP registration.
 	 *
 	 * @see https://iabeurope.eu/cmp-list/ - List of registered CMPs
 	 * @see https://iabeurope.eu/tcf-for-cmps/ - CMP registration information
 	 */
-	cmpId: number;
+	cmpId?: number;
 
 	/**
-	 * CMP version (optional).
-	 * @default 1
+	 * CMP version. When omitted, defaults to package version from `~/cmp-defaults`
+	 * (which uses ~/version).
 	 */
-	cmpVersion?: number;
+	cmpVersion?: number | string;
 
 	/**
-	 * IAB-registered vendors to include.
+	 * IAB-registered vendors to include (optional, deprecated).
+	 *
+	 * @deprecated GVL is now the source of truth for vendors. This field is
+	 * kept for backwards compatibility but no longer filters displayed vendors.
 	 *
 	 * Map of vendor ID to a readable name (for self-documentation).
 	 * The names are used for code readability and debug logging.
@@ -278,7 +275,7 @@ export interface IABConfig {
 	 * }
 	 * ```
 	 */
-	vendors: Record<number, string>;
+	vendors?: Record<number, string>;
 
 	/**
 	 * Custom vendors not registered with IAB.

@@ -249,9 +249,28 @@ export function updateStore(
 
 	// Initialize IAB mode if effectively enabled and in IAB jurisdiction
 	if (effectiveIABEnabled && consentModel === 'iab' && iab) {
+		// Merge server-provided customVendors with client-configured ones
+		const serverCustomVendors = data.customVendors ?? [];
+		const clientCustomVendors = iab.config.customVendors ?? [];
+
+		// Deduplicate by vendor ID (server vendors take precedence)
+		const serverVendorIds = new Set(serverCustomVendors.map((v) => v.id));
+		const mergedCustomVendors = [
+			...serverCustomVendors,
+			...clientCustomVendors.filter((v) => !serverVendorIds.has(v.id)),
+		];
+
+		// Create merged config with customVendors from both sources
+		const mergedConfig = {
+			...iab.config,
+			customVendors: mergedCustomVendors,
+		};
+
 		// Non-blocking initialization - errors are handled within initializeIABMode
-		initializeIABMode(iab.config, { set, get }, prefetchedGVL).catch((err) => {
-			console.error('Failed to initialize IAB mode in updateStore:', err);
-		});
+		initializeIABMode(mergedConfig, { set, get }, prefetchedGVL).catch(
+			(err) => {
+				console.error('Failed to initialize IAB mode in updateStore:', err);
+			}
+		);
 	}
 }
