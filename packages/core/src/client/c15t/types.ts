@@ -1,4 +1,19 @@
 /**
+ * IAB configuration for offline/fallback mode GVL fetching.
+ */
+export interface IABFallbackConfig {
+	/**
+	 * Whether IAB mode is enabled on the client.
+	 */
+	enabled: boolean;
+
+	/**
+	 * Vendor IDs to fetch from GVL endpoint.
+	 */
+	vendorIds?: number[];
+}
+
+/**
  * Configuration options for the c15t backend client
  */
 export interface C15tClientOptions {
@@ -36,4 +51,11 @@ export interface C15tClientOptions {
 	 * Storage configuration for offline fallback
 	 */
 	storageConfig?: import('../../libs/cookie').StorageConfig;
+
+	/**
+	 * IAB configuration for offline/fallback mode.
+	 * When the backend is unavailable and IAB is enabled,
+	 * the client will fetch GVL from gvl.consent.io with these settings.
+	 */
+	iabConfig?: IABFallbackConfig;
 }

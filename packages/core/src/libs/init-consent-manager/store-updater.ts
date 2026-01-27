@@ -75,21 +75,24 @@ function computeAutoGrantInfo(
  * @param data - Banner response data
  * @param config - Init configuration
  * @param hasLocalStorageAccess - Whether localStorage is accessible
+ * @param effectiveIABEnabled - Whether IAB is effectively enabled (considering server override)
  * @returns Partial store state to merge
  */
 function buildStoreUpdate(
 	data: ConsentBannerResponse,
 	config: InitConsentManagerConfig,
-	hasLocalStorageAccess: boolean
+	hasLocalStorageAccess: boolean,
+	effectiveIABEnabled: boolean | undefined
 ): Partial<ConsentStoreState> {
 	const { get, initialTranslationConfig } = config;
-	const { consentInfo, iab } = get();
+	const { consentInfo } = get();
 	const { translations, location } = data;
 
-	// Compute auto-grant info using helper
+	// Compute auto-grant info using effective IAB enabled state
+	// This ensures the model is 'opt-in' instead of 'iab' when server disables GVL
 	const { consentModel, autoGrantedConsents } = computeAutoGrantInfo(
 		(data.jurisdiction as JurisdictionCode) ?? null,
-		iab?.config.enabled,
+		effectiveIABEnabled,
 		consentInfo
 	);
 
@@ -179,12 +182,15 @@ function triggerCallbacks(
  * 2. Auto-grants consents if no regulation applies
  * 3. Updates location and translation info
  * 4. Triggers appropriate callbacks
- * 5. Initializes IAB mode if enabled
+ * 5. Initializes IAB mode if enabled and GVL is available
+ *
+ * Note: If client has IAB enabled but server returns 200 without GVL,
+ * the IAB settings will be overridden to disabled (server takes precedence).
  *
  * @param data - Banner response data from the API
  * @param config - Init configuration
  * @param hasLocalStorageAccess - Whether localStorage is accessible
- * @param prefetchedGVL - Optional prefetched GVL from SSR
+ * @param prefetchedGVL - Optional prefetched GVL from SSR or init response
  */
 export function updateStore(
 	data: ConsentBannerResponse,
@@ -195,15 +201,44 @@ export function updateStore(
 	const { set, get } = config;
 	const { consentInfo, iab } = get();
 
+	// Check if client has IAB enabled but server didn't provide GVL
+	// This means the server has disabled IAB/GVL, so we should override client settings
+	const serverDisabledGVL = iab?.config.enabled && !prefetchedGVL;
+	const effectiveIABEnabled = iab?.config.enabled && !serverDisabledGVL;
+
+	// Log warning if IAB was overridden
+	if (serverDisabledGVL) {
+		console.warn(
+			'IAB mode disabled: Server returned 200 without GVL. Client IAB settings overridden.'
+		);
+	}
+
 	// Compute auto-grant info once to be used by buildStoreUpdate and triggerCallbacks
 	const { consentModel, autoGrantedConsents } = computeAutoGrantInfo(
 		(data.jurisdiction as JurisdictionCode) ?? null,
-		iab?.config.enabled,
+		effectiveIABEnabled,
 		consentInfo
 	);
 
-	// Build and apply store update
-	const storeUpdate = buildStoreUpdate(data, config, hasLocalStorageAccess);
+	// Build and apply store update (pass effectiveIABEnabled so model is correctly set)
+	const storeUpdate = buildStoreUpdate(
+		data,
+		config,
+		hasLocalStorageAccess,
+		effectiveIABEnabled
+	);
+
+	// If server disabled GVL, update the IAB config in the store
+	if (serverDisabledGVL && iab) {
+		storeUpdate.iab = {
+			...iab,
+			config: {
+				...iab.config,
+				enabled: false,
+			},
+		};
+	}
+
 	set(storeUpdate);
 
 	// Trigger callbacks
@@ -212,8 +247,8 @@ export function updateStore(
 	// Update scripts based on current consent state
 	get().updateScripts();
 
-	// Initialize IAB mode if enabled and in IAB jurisdiction
-	if (iab?.config.enabled && consentModel === 'iab') {
+	// Initialize IAB mode if effectively enabled and in IAB jurisdiction
+	if (effectiveIABEnabled && consentModel === 'iab' && iab) {
 		// Non-blocking initialization - errors are handled within initializeIABMode
 		initializeIABMode(iab.config, { set, get }, prefetchedGVL).catch((err) => {
 			console.error('Failed to initialize IAB mode in updateStore:', err);

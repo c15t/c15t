@@ -1,4 +1,6 @@
+import type { GlobalVendorList } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
+import { createGVLResolver } from '~/cache/gvl-resolver';
 import { os } from '~/contracts';
 import type { JurisdictionCode } from '~/contracts/init';
 import type { Branding, C15TContext } from '~/types';
@@ -53,24 +55,57 @@ export function getHeaders(headers: Headers | undefined) {
 	};
 }
 
+/**
+ * Parse Accept-Language header to get the primary language code.
+ *
+ * @param acceptLanguage - The Accept-Language header value
+ * @returns The primary language code (e.g., "en", "de"), defaults to "en"
+ */
+function parseAcceptLanguage(acceptLanguage: string | null): string {
+	if (!acceptLanguage) {
+		return 'en';
+	}
+
+	// Parse "en-US,en;q=0.9,de;q=0.8" format
+	// Split by comma, take the first part, then extract language code
+	const firstLanguage = acceptLanguage.split(',')[0];
+	if (!firstLanguage) {
+		return 'en';
+	}
+
+	// Remove quality factor if present (e.g., "en;q=0.9" -> "en")
+	const languageWithRegion = firstLanguage.split(';')[0]?.trim();
+	if (!languageWithRegion) {
+		return 'en';
+	}
+
+	// Extract language code without region (e.g., "en-US" -> "en")
+	const languageCode = languageWithRegion.split('-')[0]?.toLowerCase();
+
+	return languageCode ?? 'en';
+}
+
 function buildResponse({
 	jurisdiction,
 	location,
 	acceptLanguage,
 	customTranslations,
 	branding = 'c15t',
+	gvl,
 }: {
 	jurisdiction: JurisdictionCode;
 	location: { countryCode: string | null; regionCode: string | null };
 	acceptLanguage: string | null;
 	customTranslations: Record<string, Partial<Translations>> | undefined;
 	branding?: Branding;
+	gvl?: GlobalVendorList;
 }) {
 	return {
 		jurisdiction,
 		location,
 		translations: getTranslations(acceptLanguage, customTranslations),
 		branding: branding,
+		gvl: gvl ?? null,
 	};
 }
 
@@ -78,13 +113,29 @@ function buildResponse({
  * Handler for the show consent banner endpoint
  * Determines if a user should see a consent banner based on their location
  */
-export const init = os.init.handler(({ context }) => {
+export const init = os.init.handler(async ({ context }) => {
 	const typedContext = context as C15TContext;
-	const { customTranslations, disableGeoLocation, branding } =
+	const { customTranslations, disableGeoLocation, branding, gvl, cache } =
 		typedContext.advanced ?? {};
 	const { countryCode, regionCode, acceptLanguage } = getHeaders(
 		typedContext.headers
 	);
+
+	// Resolve GVL based on configuration
+	let resolvedGvl: GlobalVendorList | null = null;
+
+	if (gvl?.enabled) {
+		const language = parseAcceptLanguage(acceptLanguage);
+		const gvlResolver = createGVLResolver({
+			appName: typedContext.appName,
+			bundled: gvl.bundled,
+			cacheAdapter: cache?.adapter,
+			vendorIds: gvl.vendorIds,
+			endpoint: gvl.endpoint,
+		});
+
+		resolvedGvl = await gvlResolver.get(language);
+	}
 
 	// We default to an Opt-In jurisdiction when geo location is disabled
 	// As we don't know the jurisdiction in this case, it's better to show the strictest version of the banner
@@ -95,6 +146,7 @@ export const init = os.init.handler(({ context }) => {
 			acceptLanguage,
 			customTranslations,
 			branding,
+			gvl: resolvedGvl ?? undefined,
 		});
 	}
 
@@ -106,5 +158,6 @@ export const init = os.init.handler(({ context }) => {
 		acceptLanguage,
 		customTranslations,
 		branding,
+		gvl: resolvedGvl ?? undefined,
 	});
 });

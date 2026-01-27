@@ -6,9 +6,11 @@ import {
 	type Translations,
 } from '@c15t/translations';
 import { checkJurisdiction } from '../../libs/jurisdiction';
+import { fetchGVL } from '../../libs/tcf/fetch-gvl';
 import { defaultTranslationConfig } from '../../translations';
 import type { InitResponse } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
+import type { IABFallbackConfig } from './types';
 import { createResponseContext } from './utils';
 
 /**
@@ -17,7 +19,8 @@ import { createResponseContext } from './utils';
  */
 export async function init(
 	initialTranslationConfig?: Partial<TranslationConfig>,
-	options?: FetchOptions<InitResponse>
+	options?: FetchOptions<InitResponse>,
+	iabConfig?: IABFallbackConfig
 ): Promise<ResponseContext<InitResponse>> {
 	// Check localStorage and cookie to see if the banner has been shown
 	const country = options?.headers?.['x-c15t-country'] ?? 'GB';
@@ -75,6 +78,17 @@ export async function init(
 
 	const jurisdictionCode = checkJurisdiction(country);
 
+	// Fetch GVL from external endpoint in offline mode
+	// Only when IAB is enabled on the client
+	let gvl = null;
+	if (iabConfig?.enabled) {
+		try {
+			gvl = await fetchGVL(iabConfig.vendorIds);
+		} catch (error) {
+			console.warn('Failed to fetch GVL in offline mode:', error);
+		}
+	}
+
 	const response = createResponseContext<InitResponse>({
 		jurisdiction: jurisdictionCode,
 		location: { countryCode: country, regionCode: region },
@@ -83,6 +97,7 @@ export async function init(
 			translations: translationsForLanguage,
 		},
 		branding: 'c15t',
+		gvl,
 	});
 
 	// Call success callback if provided

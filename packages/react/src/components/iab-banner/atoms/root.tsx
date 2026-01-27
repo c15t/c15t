@@ -90,8 +90,10 @@ const IABBannerRootChildren = forwardRef<
 
 		// IAB banner shows when IAB mode is enabled (model is 'iab' in GDPR jurisdictions with IAB enabled)
 		// Hide banner when preference center is open - it will reappear if closed without consent
+		// Check that IAB is configured AND enabled (server may have disabled it by returning null GVL)
+		const isIABActive = iab?.config.enabled;
 		const shouldShowBanner =
-			model === 'iab' && showPopup && iab !== null && !isPrivacyDialogOpen;
+			model === 'iab' && showPopup && isIABActive && !isPrivacyDialogOpen;
 
 		useEffect(() => {
 			const duration = Number.parseInt(

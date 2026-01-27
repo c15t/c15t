@@ -251,8 +251,8 @@ export const IABBanner: FC<IABBannerProps> = ({
 	const isPrimary = (button: 'reject' | 'accept' | 'customize') =>
 		button === primaryButton;
 
-	// Don't render until calculations are complete to avoid flash
-	if (!displayItems.isReady) {
+	// Don't render if IAB is disabled (e.g., server returned null GVL) or calculations not complete
+	if (!iabState?.config.enabled || !displayItems.isReady) {
 		return null;
 	}
 

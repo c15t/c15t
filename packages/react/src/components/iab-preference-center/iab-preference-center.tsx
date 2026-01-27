@@ -470,7 +470,8 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 		}
 	}, [isOpen, mergedProps.disableAnimation]);
 
-	if (!isMounted || !iabState) {
+	// Don't render if not mounted, no IAB state, or IAB is disabled (e.g., server returned null GVL)
+	if (!isMounted || !iabState?.config.enabled) {
 		return null;
 	}
 

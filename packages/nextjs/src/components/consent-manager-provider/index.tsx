@@ -20,19 +20,10 @@ export function ConsentManagerProvider({
 				throw new Error('backendURL is required for c15t mode');
 			}
 
-			// Extract IAB config from store options
-			const iabConfig = options.store?.iab;
-
-			// In c15t mode, overrides and IAB config are sent with the fetch request
-			// Both init and GVL are fetched in parallel when IAB is enabled
+			// In c15t mode, overrides are sent with the fetch request
+			// GVL is included in the init response when server has it configured
 			initialDataPromise = getC15TInitialData(options.backendURL, headers(), {
 				overrides: options.overrides,
-				iab: iabConfig
-					? {
-							enabled: iabConfig.enabled,
-							vendors: iabConfig.vendors,
-						}
-					: undefined,
 			});
 			break;
 		}

@@ -7,7 +7,6 @@
  * @packageDocumentation
  */
 
-import type { GlobalVendorList } from '../../types/iab-tcf';
 import { updateStore } from './store-updater';
 import type { ConsentBannerResponse, InitConsentManagerConfig } from './types';
 import { checkLocalStorageAccess } from './utils';
@@ -94,37 +93,8 @@ async function tryUseSSRData(
 	return undefined;
 }
 
-/** Default GVL endpoint */
-const GVL_ENDPOINT = 'https://gvl.consent.io';
-
-/**
- * Performs GVL fetch directly without dynamic import overhead.
- * Returns a promise immediately to enable true parallel fetching.
- */
-function performGVLFetch(
-	vendorIds: number[]
-): Promise<GlobalVendorList | null | undefined> {
-	const url = new URL(GVL_ENDPOINT);
-	if (vendorIds.length > 0) {
-		url.searchParams.set('vendorIds', vendorIds.join(','));
-	}
-
-	return fetch(url.toString())
-		.then((response) => {
-			if (response.status === 204) {
-				return null;
-			}
-			if (!response.ok) {
-				return undefined;
-			}
-			return response.json() as Promise<GlobalVendorList>;
-		})
-		.catch(() => undefined);
-}
-
 /**
  * Fetches consent data from the API.
- * When IAB is enabled, starts GVL fetch in parallel with init fetch.
  *
  * @param config - Init configuration
  * @param hasLocalStorageAccess - Whether localStorage is accessible
@@ -138,20 +108,13 @@ async function fetchFromAPI(
 	manager: InitConsentManagerConfig['manager'],
 	callbacks: ReturnType<InitConsentManagerConfig['get']>['callbacks']
 ): Promise<ConsentBannerResponse | undefined> {
-	const { get, set } = config;
-	const { iab } = get();
+	const { set } = config;
 
 	try {
-		const { language, country, region } = get().overrides ?? {};
+		const { language, country, region } = config.get().overrides ?? {};
 
-		// Start GVL fetch in parallel if IAB is enabled
-		const gvlPromise =
-			iab?.config.enabled && iab.config.vendors
-				? performGVLFetch(Object.keys(iab.config.vendors).map(Number))
-				: Promise.resolve(undefined);
-
-		// Start init fetch
-		const initPromise = manager.init({
+		// Fetch init data (GVL is included in response when server has it configured)
+		const { data, error } = await manager.init({
 			headers: {
 				...(language && { 'accept-language': language }),
 				...(country && { 'x-c15t-country': country }),
@@ -166,15 +129,13 @@ async function fetchFromAPI(
 				: undefined,
 		});
 
-		// Wait for both to complete
-		const [{ data, error }, gvl] = await Promise.all([initPromise, gvlPromise]);
-
 		if (error || !data) {
 			throw new Error(`Failed to fetch consent banner info: ${error?.message}`);
 		}
 
-		// Update store with prefetched GVL (if available)
-		updateStore(data, config, hasLocalStorageAccess, gvl ?? undefined);
+		// Update store with GVL from response (if available)
+		// If GVL is missing from 200 response, store-updater will override IAB to disabled
+		updateStore(data, config, hasLocalStorageAccess, data.gvl ?? undefined);
 
 		return data as ConsentBannerResponse;
 	} catch (error) {

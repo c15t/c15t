@@ -92,6 +92,11 @@
 			"types": "./dist/types/index.d.ts",
 			"import": "./dist/types.js",
 			"require": "./dist/types.cjs"
+		},
+		"./cache": {
+			"types": "./dist/cache/index.d.ts",
+			"import": "./dist/cache.js",
+			"require": "./dist/cache.cjs"
 		}
 	},
 	"main": "./dist/server.cjs",
@@ -131,8 +136,12 @@
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"@types/node": "24.10.1",
+		"@upstash/redis": "^1.0.0",
 		"genversion": "3.2.0",
 		"typescript": "5.9.3"
+	},
+	"peerDependencies": {
+		"@upstash/redis": ">=1.0.0"
 	},
 	"publishConfig": {
 		"access": "public"

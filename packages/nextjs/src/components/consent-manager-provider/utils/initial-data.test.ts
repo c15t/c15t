@@ -139,10 +139,10 @@ describe('getC15TInitialData', () => {
 			headers: mockRelevantHeaders,
 		});
 
-		// Should return SSRInitialData format
+		// Should return SSRInitialData format with gvl from init response
 		expect(result).toEqual({
 			init: mockInitResponse,
-			gvl: undefined,
+			gvl: mockInitResponse.gvl,
 		});
 	});
 
@@ -164,58 +164,67 @@ describe('getC15TInitialData', () => {
 		expect(result).toBeUndefined();
 	});
 
-	describe('with IAB config', () => {
+	describe('with GVL in init response', () => {
 		const mockGVL = {
 			gvlSpecificationVersion: 3,
 			vendorListVersion: 100,
 			tcfPolicyVersion: 4,
 			lastUpdated: '2024-01-01T00:00:00Z',
 			purposes: {
-				1: { id: 1, name: 'Store information', description: 'test' },
+				1: {
+					id: 1,
+					name: 'Store information',
+					description: 'test',
+					illustrations: [],
+				},
 			},
 			specialPurposes: {},
 			features: {},
 			specialFeatures: {},
 			vendors: {
-				755: { id: 755, name: 'Google' },
+				755: {
+					id: 755,
+					name: 'Google',
+					purposes: [],
+					legIntPurposes: [],
+					flexiblePurposes: [],
+					specialPurposes: [],
+					features: [],
+					specialFeatures: [],
+					cookieMaxAgeSeconds: null,
+					usesCookies: true,
+					cookieRefresh: false,
+					usesNonCookieAccess: false,
+					urls: [],
+				},
 			},
 			stacks: {},
 			dataCategories: {},
 		};
 
-		it('should fetch GVL in parallel when IAB is enabled', async () => {
-			mockFetch
-				.mockResolvedValueOnce({
-					ok: true,
-					json: () => Promise.resolve(mockInitResponse),
-				})
-				.mockResolvedValueOnce({
-					ok: true,
-					json: () => Promise.resolve(mockGVL),
-				});
+		it('should return GVL from init response when present', async () => {
+			const initWithGVL = { ...mockInitResponse, gvl: mockGVL };
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve(initWithGVL),
+			});
 
 			const result = await getC15TInitialData(
 				'https://example.com',
-				mockHeaders,
-				{
-					iab: {
-						enabled: true,
-						vendors: { 755: 'google' },
-					},
-				}
+				mockHeaders
 			);
 
-			// Should make two fetch calls (init + GVL)
-			expect(mockFetch).toHaveBeenCalledTimes(2);
+			// Should only make one fetch call (init includes GVL)
+			expect(mockFetch).toHaveBeenCalledTimes(1);
 
-			// Should return both init and GVL
+			// Should return both init and GVL from init response
 			expect(result).toEqual({
-				init: mockInitResponse,
+				init: initWithGVL,
 				gvl: mockGVL,
 			});
 		});
 
-		it('should not fetch GVL when IAB is disabled', async () => {
+		it('should return undefined gvl when init response has no GVL', async () => {
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: () => Promise.resolve(mockInitResponse),
@@ -223,78 +232,35 @@ describe('getC15TInitialData', () => {
 
 			const result = await getC15TInitialData(
 				'https://example.com',
-				mockHeaders,
-				{
-					iab: {
-						enabled: false,
-						vendors: { 755: 'google' },
-					},
-				}
+				mockHeaders
 			);
 
 			// Should only fetch init
 			expect(mockFetch).toHaveBeenCalledTimes(1);
 
+			// gvl should be undefined when not in init response
 			expect(result).toEqual({
 				init: mockInitResponse,
 				gvl: undefined,
 			});
 		});
 
-		it('should return null for GVL on 204 response (non-IAB region)', async () => {
-			mockFetch
-				.mockResolvedValueOnce({
-					ok: true,
-					json: () => Promise.resolve(mockInitResponse),
-				})
-				.mockResolvedValueOnce({
-					ok: false,
-					status: 204,
-				});
+		it('should return null gvl when init response has explicit null GVL', async () => {
+			const initWithNullGVL = { ...mockInitResponse, gvl: null };
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve(initWithNullGVL),
+			});
 
 			const result = await getC15TInitialData(
 				'https://example.com',
-				mockHeaders,
-				{
-					iab: {
-						enabled: true,
-						vendors: { 755: 'google' },
-					},
-				}
+				mockHeaders
 			);
 
 			expect(result).toEqual({
-				init: mockInitResponse,
+				init: initWithNullGVL,
 				gvl: null,
 			});
-		});
-
-		it('should include vendorIds in GVL query params', async () => {
-			mockFetch
-				.mockResolvedValueOnce({
-					ok: true,
-					json: () => Promise.resolve(mockInitResponse),
-				})
-				.mockResolvedValueOnce({
-					ok: true,
-					json: () => Promise.resolve(mockGVL),
-				});
-
-			await getC15TInitialData('https://example.com', mockHeaders, {
-				iab: {
-					enabled: true,
-					vendors: { 1: 'vendor1', 755: 'google' },
-				},
-			});
-
-			// Check second call (GVL fetch)
-			const gvlCall = mockFetch.mock.calls[1];
-			expect(gvlCall).toBeDefined();
-			if (gvlCall) {
-				const gvlCallUrl = gvlCall[0] as string;
-				expect(gvlCallUrl).toContain('vendorIds=');
-				expect(gvlCallUrl).toMatch(/vendorIds=\d+(,\d+)*/);
-			}
 		});
 	});
 

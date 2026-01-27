@@ -231,7 +231,9 @@ const CookieBannerRootChildren = forwardRef<
 		const [animationDurationMs, setAnimationDurationMs] = useState(200); // Default fallback for SSR
 
 		// CookieBanner only shows when IAB is NOT enabled (use IABBanner for IAB mode)
-		const shouldShowBanner = model === 'opt-in' && showPopup && iab === null;
+		// Check both: IAB not configured (null) OR IAB configured but disabled by server
+		const isIABActive = iab?.config.enabled;
+		const shouldShowBanner = model === 'opt-in' && showPopup && !isIABActive;
 
 		// Get animation duration from CSS custom property (client-side only)
 		useEffect(() => {

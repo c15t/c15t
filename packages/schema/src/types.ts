@@ -45,5 +45,18 @@ export type {
 export type Branding = (typeof brandingValues)[number];
 export type JurisdictionCode = (typeof jurisdictionCodes)[number];
 
+// GVL types - IAB TCF Global Vendor List
+export type {
+	GlobalVendorList,
+	GVLDataCategory,
+	GVLFeature,
+	GVLPurpose,
+	GVLSpecialFeature,
+	GVLSpecialPurpose,
+	GVLStack,
+	GVLVendor,
+	GVLVendorUrl,
+} from './shared/gvl';
+
 // Re-export constants for runtime checks (no Zod involved)
 export { brandingValues, jurisdictionCodes };
