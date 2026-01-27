@@ -43,7 +43,7 @@
 		"build": "bun prebuild && rslib build",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"check-types:test": "tsc -p tsconfig.test.json",
-		"dev": "bun prebuild && rslib build --watch",
+		"dev": "bun prebuild && rslib build",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
 		"test": "bun prebuild && vitest run",

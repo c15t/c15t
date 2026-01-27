@@ -30,9 +30,9 @@
 	],
 	"scripts": {
 		"build": "rslib build",
-		"dev": "rslib build --watch",
-		"fmt": "pnpm biome format --write .",
-		"lint": "pnpm biome lint ./src",
+		"dev": "rslib build",
+		"fmt": "bun biome format --write .",
+		"lint": "bun biome lint ./src",
 		"test": "vitest run"
 	},
 	"dependencies": {
