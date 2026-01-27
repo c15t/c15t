@@ -32,7 +32,7 @@
 	"scripts": {
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
-		"dev": "rslib build --watch",
+		"dev": "rslib build",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"generate:i18n": "lingo.dev i18n",
 		"lint": "bun biome lint ./src",

@@ -106,7 +106,7 @@
 		"prebuild": "genversion --esm --semi src/version.ts",
 		"build": "bun prebuild && rslib build",
 		"check-types": "bun prebuild && tsc --noEmit",
-		"dev": "bun prebuild && rslib build --watch",
+		"dev": "bun prebuild && rslib build",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"knip": "knip",
 		"lint": "bun biome lint ./src",

@@ -1,5 +1,5 @@
 {
-	"$schema": "https://turbo.build/schema.json",
+	"$schema": "https://turborepo.dev/schema.v2.json",
 	"ui": "tui",
 	"tasks": {
 		"build": {
@@ -14,14 +14,15 @@
 		},
 		"lint": {
 			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc", "**/biome.json"],
-			"dependsOn": ["^lint"]
+			"dependsOn": ["transit"]
 		},
 		"check-types": {
-			"dependsOn": ["^build", "^check-types"]
+			"dependsOn": ["^build"]
 		},
 		"dev": {
+			"dependsOn": ["^dev"],
 			"cache": false,
-			"persistent": true
+			"persistent": false
 		},
 		"test": {
 			"dependsOn": ["^build", "transit", "@c15t/vitest-config#build"],
