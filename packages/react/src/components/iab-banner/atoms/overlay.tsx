@@ -23,8 +23,9 @@ const IABBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 
 		const [isVisible, setIsVisible] = useState(false);
 
-		// Only show for IAB mode
-		const shouldShow = showPopup && iab !== null;
+		// Only show for IAB mode (check that IAB is configured AND enabled)
+		const isIABActive = iab?.config.enabled;
+		const shouldShow = showPopup && isIABActive;
 
 		useEffect(() => {
 			if (shouldShow) {

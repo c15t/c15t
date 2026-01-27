@@ -34,22 +34,25 @@ export type { IABActions, IABManager, IABState } from '../libs/tcf/types';
  * Initial data structure for SSR prefetching.
  *
  * @remarks
- * When using frameworks like Next.js, both init and GVL data can be
- * prefetched in parallel on the server and passed to the client.
+ * When using frameworks like Next.js, init data can be prefetched
+ * on the server and passed to the client. GVL is included in the
+ * init response when the server has it configured.
  *
  * @public
  */
 export interface SSRInitialData {
 	/**
-	 * Init endpoint response with jurisdiction, location, and translations.
+	 * Init endpoint response with jurisdiction, location, translations, and optional GVL.
 	 */
 	init: InitOutput | undefined;
 
 	/**
 	 * Global Vendor List data for IAB TCF mode.
-	 * - `undefined` means IAB is not enabled or fetch wasn't attempted
-	 * - `null` means the user is in a non-IAB region (204 response)
-	 * - `GlobalVendorList` contains the vendor list data
+	 * - `undefined` means IAB is not enabled on server or GVL wasn't configured
+	 * - `null` means the user is in a non-IAB region (204 response from gvl.consent.io)
+	 * - `GlobalVendorList` contains the vendor list data from init response
+	 *
+	 * Note: When init returns 200 without gvl, client IAB settings are overridden to disabled.
 	 */
 	gvl?: GlobalVendorList | null;
 }
@@ -228,8 +231,8 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	 * This is useful for server-side rendering (SSR) such as in @c15t/nextjs.
 	 *
 	 * @remarks
-	 * The data can include both init data and optional GVL data when IAB mode is enabled.
-	 * The GVL is fetched in parallel with init for better performance.
+	 * The data includes init data with optional GVL when the server has IAB configured.
+	 * GVL is included in the init response, not fetched separately.
 	 */
 	_initialData?: Promise<SSRInitialData | undefined>;
 
@@ -241,9 +244,14 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	 *
 	 * @remarks
 	 * When enabled, c15t will:
-	 * - Fetch GVL from gvl.consent.io
+	 * - Use GVL from backend /init response (backend must have GVL configured)
 	 * - Initialize __tcfapi CMP API
 	 * - Generate TC Strings for IAB compliance
+	 *
+	 * Note: If the server returns 200 without GVL, client IAB settings are
+	 * automatically overridden to disabled (server takes precedence).
+	 *
+	 * In offline/fallback mode, GVL is fetched from gvl.consent.io.
 	 *
 	 * This is an opt-in feature with zero bundle impact when not enabled.
 	 *

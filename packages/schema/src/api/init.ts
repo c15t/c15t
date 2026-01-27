@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { brandingSchema } from '~/shared/branding';
+import { globalVendorListSchema } from '~/shared/gvl';
 import { jurisdictionCodeSchema } from '~/shared/jurisdiction';
 
 /**
@@ -110,6 +111,12 @@ export const initOutputSchema = z.object({
 		translations: translationsSchema,
 	}),
 	branding: brandingSchema,
+	/**
+	 * Global Vendor List for IAB TCF compliance.
+	 * Present when server has GVL configured.
+	 * If absent (and response is 200), IAB mode should be disabled on client.
+	 */
+	gvl: globalVendorListSchema.nullable().optional(),
 });
 
 export type InitOutput = z.infer<typeof initOutputSchema>;

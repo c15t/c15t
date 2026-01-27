@@ -1,9 +1,14 @@
 import type { createLogger, LoggerOptions } from '@c15t/logger';
-import { type Branding, brandingValues } from '@c15t/schema/types';
+import {
+	type Branding,
+	brandingValues,
+	type GlobalVendorList,
+} from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
 import type { Tracer } from '@opentelemetry/api';
 import type { OpenAPIGeneratorOptions } from '@orpc/openapi';
 import type { FumaDB, InferFumaDB } from 'fumadb';
+import type { CacheAdapter } from '../cache/types';
 import type { createRegistry } from '../db/registry';
 import type { DB, LatestDB } from '../db/schema';
 
@@ -110,6 +115,60 @@ interface BaseOptions {
 			 * Headers are checked in order, first match wins.
 			 */
 			ipAddressHeaders?: string[];
+		};
+
+		/**
+		 * Cache configuration for external persistent storage.
+		 * Used for caching GVL and other data.
+		 */
+		cache?: {
+			/**
+			 * External cache adapter (Redis, KV, etc.).
+			 * If not provided, only in-memory cache is used.
+			 */
+			adapter?: CacheAdapter;
+		};
+
+		/**
+		 * GVL (Global Vendor List) configuration for IAB TCF compliance.
+		 * Disabled by default - most users don't need IAB TCF.
+		 * Set enabled: true to activate GVL support.
+		 */
+		gvl?: {
+			/**
+			 * Enable GVL support.
+			 * When false or not provided, /init returns gvl: null.
+			 */
+			enabled: true;
+
+			/**
+			 * Bundled GVL translations by language code.
+			 * These are checked first before any cache or fetch.
+			 *
+			 * @example
+			 * ```ts
+			 * import enGVL from './gvl/en.json';
+			 * import deGVL from './gvl/de.json';
+			 *
+			 * gvl: {
+			 *   enabled: true,
+			 *   bundled: { en: enGVL, de: deGVL }
+			 * }
+			 * ```
+			 */
+			bundled?: Record<string, GlobalVendorList>;
+
+			/**
+			 * Vendor IDs to filter when fetching non-bundled languages.
+			 * Reduces payload size.
+			 */
+			vendorIds?: number[];
+
+			/**
+			 * Override the default GVL endpoint.
+			 * @default 'https://gvl.consent.io'
+			 */
+			endpoint?: string;
 		};
 	};
 }

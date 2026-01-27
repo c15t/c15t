@@ -47,6 +47,12 @@ export class C15tClient implements ConsentManagerInterface {
 	private readonly storageConfig?: import('../../libs/cookie').StorageConfig;
 
 	/**
+	 * IAB configuration for offline/fallback mode
+	 * @internal
+	 */
+	private readonly iabConfig?: C15tClientOptions['iabConfig'];
+
+	/**
 	 * Default headers to include with all requests
 	 * @internal
 	 */
@@ -94,6 +100,7 @@ export class C15tClient implements ConsentManagerInterface {
 		this.customFetch = options.customFetch;
 		this.corsMode = options.corsMode || 'cors';
 		this.storageConfig = options.storageConfig;
+		this.iabConfig = options.iabConfig;
 
 		// Merge provided retry config with defaults
 		this.retryConfig = {
@@ -141,7 +148,7 @@ export class C15tClient implements ConsentManagerInterface {
 	async init(
 		options?: FetchOptions<InitResponse>
 	): Promise<ResponseContext<InitResponse>> {
-		return init(this.fetcherContext, options);
+		return init(this.fetcherContext, options, this.iabConfig);
 	}
 
 	/**

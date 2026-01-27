@@ -325,12 +325,23 @@ export function configureConsentManager(
 			});
 			break;
 		}
-		case 'offline':
+		case 'offline': {
+			// Extract IAB config for offline mode
+			const iabConfig = options.store?.iab;
 			client = new OfflineClient(
 				options.storageConfig,
-				options.store?.initialTranslationConfig
+				options.store?.initialTranslationConfig,
+				iabConfig
+					? {
+							enabled: iabConfig.enabled,
+							vendorIds: iabConfig.vendors
+								? Object.keys(iabConfig.vendors).map(Number)
+								: undefined,
+						}
+					: undefined
 			);
 			break;
+		}
 		default: {
 			const c15tOptions = options as {
 				backendURL: string;
@@ -338,12 +349,22 @@ export function configureConsentManager(
 				customFetch?: typeof fetch;
 				retryConfig?: RetryConfig;
 			};
+			// Extract IAB config for fallback mode
+			const iabConfig = options.store?.iab;
 			client = new C15tClient({
 				backendURL: c15tOptions.backendURL || DEFAULT_BACKEND_URL,
 				headers: c15tOptions.headers,
 				customFetch: c15tOptions.customFetch,
 				retryConfig: c15tOptions.retryConfig,
 				storageConfig: options.storageConfig,
+				iabConfig: iabConfig
+					? {
+							enabled: iabConfig.enabled,
+							vendorIds: iabConfig.vendors
+								? Object.keys(iabConfig.vendors).map(Number)
+								: undefined,
+						}
+					: undefined,
 			});
 			break;
 		}

@@ -113,7 +113,9 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 
 	// Final open state (controlled or managed by consent manager)
 	// ConsentManagerDialog only shows when IAB is NOT enabled (use IABPreferenceCenter for IAB mode)
-	const isOpen = iab === null && (openProp ?? isPrivacyDialogOpen);
+	// Check both: IAB not configured (null) OR IAB configured but disabled by server
+	const isIABActive = iab?.config.enabled;
+	const isOpen = !isIABActive && (openProp ?? isPrivacyDialogOpen);
 
 	// Animation visibility flag – mirrors logic in original component
 	const [isVisible, setIsVisible] = useState(false);

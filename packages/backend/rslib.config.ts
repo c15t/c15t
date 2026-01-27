@@ -60,6 +60,7 @@ export default defineConfig({
 			'db/migrator': ['./src/db/migrator/index.ts'],
 			'define-config': ['./src/define-config.ts'],
 			types: ['./src/types/index.ts'],
+			cache: ['./src/cache/index.ts'],
 		},
 	},
 	lib: [
