@@ -3,6 +3,7 @@ import {
 	type Branding,
 	brandingValues,
 	type GlobalVendorList,
+	type NonIABVendor,
 } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
 import type { Tracer } from '@opentelemetry/api';
@@ -169,6 +170,24 @@ interface BaseOptions {
 			 * @default 'https://gvl.consent.io'
 			 */
 			endpoint?: string;
+
+			/**
+			 * Custom vendors not registered with IAB.
+			 * These are synced to the frontend via the /init endpoint.
+			 *
+			 * @example
+			 * ```ts
+			 * customVendors: [
+			 *   {
+			 *     id: 'internal-analytics',
+			 *     name: 'Our Analytics',
+			 *     privacyPolicyUrl: 'https://example.com/privacy',
+			 *     purposes: [1, 8],
+			 *   }
+			 * ]
+			 * ```
+			 */
+			customVendors?: NonIABVendor[];
 		};
 	};
 }

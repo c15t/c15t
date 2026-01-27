@@ -147,7 +147,6 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 		}
 
 		const gvl = iabState.gvl;
-		const configVendors = iabState.config.vendors;
 		const customVendors = iabState.nonIABVendors || [];
 
 		// Generate numeric IDs for custom vendors (starting from 90000 to avoid collision)
@@ -204,11 +203,10 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 		// Process purposes
 		const processedPurposes: ProcessedPurpose[] = Object.entries(gvl.purposes)
 			.map(([id, purpose]) => {
-				// Get IAB vendors for this purpose
+				// Get IAB vendors for this purpose (all vendors from GVL)
 				const iabVendorsForPurpose: ProcessedVendor[] = Object.entries(
 					gvl.vendors
 				)
-					.filter(([vendorId]) => configVendors[Number(vendorId)])
 					.filter(([, vendor]) => {
 						return (
 							vendor.purposes?.includes(Number(id)) ||
@@ -244,7 +242,6 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 		)
 			.map(([id, purpose]) => {
 				const vendorsForPurpose: ProcessedVendor[] = Object.entries(gvl.vendors)
-					.filter(([vendorId]) => configVendors[Number(vendorId)])
 					.filter(([, vendor]) => {
 						return vendor.specialPurposes?.includes(Number(id));
 					})
@@ -268,7 +265,6 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 		)
 			.map(([id, feature]) => {
 				const vendorsForFeature: ProcessedVendor[] = Object.entries(gvl.vendors)
-					.filter(([vendorId]) => configVendors[Number(vendorId)])
 					.filter(([, vendor]) => {
 						return vendor.specialFeatures?.includes(Number(id));
 					})
@@ -367,15 +363,17 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 			stacks: processedStacks,
 			standalonePurposes: finalStandalonePurposes,
 		};
-	}, [iabState?.gvl, iabState?.config.vendors]);
+	}, [iabState?.gvl, iabState?.nonIABVendors]);
 
-	// Get total vendor count
+	// Get total vendor count (all GVL vendors + custom vendors)
 	const totalVendors = useMemo(() => {
 		if (!iabState?.gvl) {
 			return 0;
 		}
-		return Object.keys(iabState.config.vendors).length;
-	}, [iabState?.gvl, iabState?.config.vendors]);
+		const gvlVendorCount = Object.keys(iabState.gvl.vendors).length;
+		const customVendorCount = iabState.nonIABVendors?.length ?? 0;
+		return gvlVendorCount + customVendorCount;
+	}, [iabState?.gvl, iabState?.nonIABVendors]);
 
 	// Handlers
 	const handlePurposeToggle = useCallback(

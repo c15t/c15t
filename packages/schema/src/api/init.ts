@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { brandingSchema } from '~/shared/branding';
 import { globalVendorListSchema } from '~/shared/gvl';
 import { jurisdictionCodeSchema } from '~/shared/jurisdiction';
+import { nonIABVendorSchema } from '~/shared/non-iab-vendor';
 
 /**
  * Title and description schema for translations
@@ -117,6 +118,11 @@ export const initOutputSchema = z.object({
 	 * If absent (and response is 200), IAB mode should be disabled on client.
 	 */
 	gvl: globalVendorListSchema.nullable().optional(),
+	/**
+	 * Custom vendors not registered with IAB.
+	 * These are configured on the backend and synced to the frontend.
+	 */
+	customVendors: z.array(nonIABVendorSchema).optional(),
 });
 
 export type InitOutput = z.infer<typeof initOutputSchema>;

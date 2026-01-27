@@ -33,3 +33,9 @@ export {
 	jurisdictionCodeSchema,
 	jurisdictionCodes,
 } from './jurisdiction';
+export {
+	type NonIABVendor,
+	type NonIABVendorConsent,
+	nonIABVendorConsentSchema,
+	nonIABVendorSchema,
+} from './non-iab-vendor';

@@ -6,6 +6,7 @@
  * @packageDocumentation
  */
 
+import { CMP_ID, CMP_VERSION } from '../../cmp-defaults';
 import type {
 	CMPStatus,
 	DisplayStatus,
@@ -67,8 +68,6 @@ function getCookie(name: string): string | null {
  * @example
  * ```typescript
  * const cmpApi = createCMPApi({
- *   cmpId: 28,
- *   cmpVersion: 1,
  *   gvl: gvlData,
  * });
  *
@@ -85,7 +84,12 @@ function getCookie(name: string): string | null {
  * @public
  */
 export function createCMPApi(config: CMPApiConfig): CMPApi {
-	const { cmpId, cmpVersion = 1, gvl, gdprApplies = true } = config;
+	const {
+		cmpId = CMP_ID,
+		cmpVersion = CMP_VERSION,
+		gvl,
+		gdprApplies = true,
+	} = config;
 
 	// ─────────────────────────────────────────────────────────────────────────
 	// Internal State (Closure)
@@ -136,11 +140,15 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 			}
 		}
 
+		const cmpVersionNum =
+			typeof cmpVersion === 'number'
+				? cmpVersion
+				: Number.parseInt(String(cmpVersion), 10) || 1;
 		const tcData: TCData = {
 			tcString,
 			tcfPolicyVersion: gvl.tcfPolicyVersion,
 			cmpId,
-			cmpVersion,
+			cmpVersion: cmpVersionNum,
 			gdprApplies,
 			listenerId,
 			eventStatus,
@@ -190,8 +198,9 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 			cmpLoaded: cmpStatus === 'loaded',
 			cmpStatus,
 			displayStatus,
-			apiVersion: '2.2',
-			cmpVersion,
+			apiVersion: '2.3',
+			cmpVersion:
+				typeof cmpVersion === 'string' ? cmpVersion : String(cmpVersion),
 			cmpId,
 			gvlVersion: gvl.vendorListVersion,
 			tcfPolicyVersion: gvl.tcfPolicyVersion,
