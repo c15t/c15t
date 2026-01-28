@@ -13,3 +13,5 @@ export {
 } from './init';
 
 export * from './meta';
+
+export * from './subject';

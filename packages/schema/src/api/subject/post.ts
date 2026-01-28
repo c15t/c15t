@@ -1,15 +1,35 @@
+/**
+ * POST /subject schemas - Records consent (append-only).
+ *
+ * @packageDocumentation
+ */
+
 import { z } from 'zod';
 import { policyTypeSchema } from '../../domain/consent-policy';
 
 /**
- * Base consent input schema
+ * Base subject ID validation - must be in sub_xxx format
  */
-const baseConsentSchema = z.object({
-	subjectId: z.string().optional(),
+export const subjectIdSchema = z
+	.string()
+	.regex(/^sub_[1-9A-HJ-NP-Za-km-z]+$/, 'Invalid subject ID format');
+
+/**
+ * Base consent input schema for POST /subject
+ * Note: subjectId is now required (client-generated)
+ */
+const baseSubjectConsentSchema = z.object({
+	/** Client-generated subject ID in sub_xxx format (required) */
+	subjectId: subjectIdSchema,
+	/** External subject ID from your auth system (optional) */
 	externalSubjectId: z.string().optional(),
+	/** Identity provider name (optional) */
 	identityProvider: z.string().optional(),
+	/** Domain where consent was given */
 	domain: z.string(),
+	/** Type of consent */
 	type: policyTypeSchema,
+	/** Additional metadata */
 	metadata: z.record(z.string(), z.unknown()).optional(),
 	/** When the consent was given in epoch milliseconds */
 	givenAt: z.number(),
@@ -22,46 +42,45 @@ const baseConsentSchema = z.object({
 });
 
 /**
- * Cookie banner consent input schema - requires preferences
+ * Cookie banner consent - requires preferences
  */
-export const cookieBannerInputSchema = baseConsentSchema.extend({
+export const subjectCookieBannerInputSchema = baseSubjectConsentSchema.extend({
 	type: z.literal('cookie_banner'),
 	preferences: z.record(z.string(), z.boolean()),
 });
 
 /**
- * Policy-based consent input schema
+ * Policy-based consent
  */
-export const policyBasedInputSchema = baseConsentSchema.extend({
+export const subjectPolicyBasedInputSchema = baseSubjectConsentSchema.extend({
 	type: z.enum(['privacy_policy', 'dpa', 'terms_and_conditions']),
 	policyId: z.string().optional(),
 	preferences: z.record(z.string(), z.boolean()).optional(),
 });
 
 /**
- * Other consent types input schema
+ * Other consent types
  */
-export const otherConsentInputSchema = baseConsentSchema.extend({
+export const subjectOtherConsentInputSchema = baseSubjectConsentSchema.extend({
 	type: z.enum(['marketing_communications', 'age_verification', 'other']),
 	preferences: z.record(z.string(), z.boolean()).optional(),
 });
 
 /**
- * Combined input schema using discriminated union
+ * POST /subject input schema - discriminated union
  */
-export const postConsentInputSchema = z.discriminatedUnion('type', [
-	cookieBannerInputSchema,
-	policyBasedInputSchema,
-	otherConsentInputSchema,
+export const postSubjectInputSchema = z.discriminatedUnion('type', [
+	subjectCookieBannerInputSchema,
+	subjectPolicyBasedInputSchema,
+	subjectOtherConsentInputSchema,
 ]);
 
 /**
- * Output schema for post consent endpoint
+ * POST /subject output schema
  */
-export const postConsentOutputSchema = z.object({
-	id: z.string(),
-	subjectId: z.string().optional(),
-	externalSubjectId: z.string().optional(),
+export const postSubjectOutputSchema = z.object({
+	subjectId: z.string(),
+	consentId: z.string(),
 	domainId: z.string(),
 	domain: z.string(),
 	type: policyTypeSchema,
@@ -72,22 +91,21 @@ export const postConsentOutputSchema = z.object({
 });
 
 /**
- * Error data schemas for post consent endpoint
+ * Error schemas for POST /subject
  */
-export const postConsentErrorSchemas = {
+export const postSubjectErrorSchemas = {
 	inputValidationFailed: z.object({
 		formErrors: z.array(z.string()),
 		fieldErrors: z.record(z.string(), z.array(z.string())),
 	}),
 	subjectCreationFailed: z.object({
-		subjectId: z.string().optional(),
-		externalSubjectId: z.string().optional(),
+		subjectId: z.string(),
 	}),
 	domainCreationFailed: z.object({
 		domain: z.string(),
 	}),
 	policyNotFound: z.object({
-		policyId: z.string(),
+		policyId: z.string().optional(),
 		type: z.string(),
 	}),
 	policyInactive: z.object({
@@ -106,5 +124,6 @@ export const postConsentErrorSchemas = {
 	}),
 };
 
-export type PostConsentInput = z.infer<typeof postConsentInputSchema>;
-export type PostConsentOutput = z.infer<typeof postConsentOutputSchema>;
+// Type exports
+export type PostSubjectInput = z.infer<typeof postSubjectInputSchema>;
+export type PostSubjectOutput = z.infer<typeof postSubjectOutputSchema>;

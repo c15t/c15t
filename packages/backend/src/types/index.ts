@@ -131,6 +131,17 @@ interface BaseOptions {
 		};
 
 		/**
+		 * API keys for authenticated endpoints.
+		 * Used for server-side endpoints like GET /subjects.
+		 *
+		 * @example
+		 * ```ts
+		 * apiKeys: ['sk_live_abc123', 'sk_live_def456']
+		 * ```
+		 */
+		apiKeys?: string[];
+
+		/**
 		 * GVL (Global Vendor List) configuration for IAB TCF compliance.
 		 * Disabled by default - most users don't need IAB TCF.
 		 * Set enabled: true to activate GVL support.
@@ -211,6 +222,13 @@ export interface C15TContext extends BaseOptions {
 	path?: string;
 	method?: string;
 	headers?: Headers;
+
+	// Authentication state
+	/**
+	 * Whether the request was authenticated with a valid API key.
+	 * Set to true when a valid Bearer token is provided in the Authorization header.
+	 */
+	apiKeyAuthenticated?: boolean;
 }
 
 export type DeepPartial<T> = T extends (...args: unknown[]) => unknown

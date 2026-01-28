@@ -66,10 +66,12 @@ describe('c15t Client Offline Fallback Tests', () => {
 		// Spy on localStorage to verify it's called
 		const localStorageSetItemSpy = vi.spyOn(mockLocalStorage, 'setItem');
 
-		// Consent data to test
+		// Consent data to test - v2.0 requires subjectId and givenAt
 		const consentData = {
+			subjectId: 'sub_test123abc',
 			type: 'cookie_banner' as const,
 			domain: 'example.com',
+			givenAt: Date.now(),
 			preferences: {
 				analytics: true,
 				marketing: false,
@@ -117,10 +119,12 @@ describe('c15t Client Offline Fallback Tests', () => {
 			},
 		});
 
-		// Create two different consent submissions
+		// Create two different consent submissions - v2.0 requires subjectId and givenAt
 		const cookieBannerConsent = {
+			subjectId: 'sub_test123abc',
 			type: 'cookie_banner' as const,
 			domain: 'example.com',
+			givenAt: Date.now(),
 			preferences: {
 				analytics: true,
 				marketing: false,
@@ -132,8 +136,10 @@ describe('c15t Client Offline Fallback Tests', () => {
 		};
 
 		const termsConsent = {
+			subjectId: 'sub_test123abc',
 			type: 'terms_and_conditions' as const,
 			domain: 'example.com',
+			givenAt: Date.now(),
 			preferences: {
 				terms: true,
 				privacy: true,
@@ -193,9 +199,12 @@ describe('c15t Client Offline Fallback Tests', () => {
 	it('should retry pending submissions on initialization', async () => {
 		// Mock localStorage with existing pending submissions
 		const pendingSubmissionsKey = 'c15t-pending-consent-submissions';
+		// v2.0: requires subjectId and givenAt
 		const cookieBannerConsent = {
+			subjectId: 'sub_test123abc',
 			type: 'cookie_banner',
 			domain: 'example.com',
+			givenAt: Date.now(),
 			preferences: { analytics: true },
 		};
 
@@ -224,9 +233,9 @@ describe('c15t Client Offline Fallback Tests', () => {
 		// @ts-expect-error accessing private method for testing
 		await client.processPendingConsentSubmissions([cookieBannerConsent]);
 
-		// Assertions
+		// Assertions - v2.0: Uses POST /subject endpoint
 		expect(fetchMock).toHaveBeenCalledWith(
-			expect.stringContaining(API_ENDPOINTS.SET_CONSENT),
+			expect.stringContaining(API_ENDPOINTS.POST_SUBJECT),
 			expect.objectContaining({
 				method: 'POST',
 				body: JSON.stringify(cookieBannerConsent),
@@ -244,16 +253,20 @@ describe('c15t Client Offline Fallback Tests', () => {
 	});
 
 	it('should handle multiple retries with mixed success/failure', async () => {
-		// Set up pending submissions
+		// Set up pending submissions - v2.0: requires subjectId and givenAt
 		const pendingSubmissions = [
 			{
+				subjectId: 'sub_test123abc',
 				type: 'cookie_banner',
 				domain: 'example.com',
+				givenAt: Date.now(),
 				preferences: { analytics: true },
 			},
 			{
+				subjectId: 'sub_test123abc',
 				type: 'terms_and_conditions',
 				domain: 'example.com',
+				givenAt: Date.now(),
 				preferences: { terms: true },
 			},
 		];

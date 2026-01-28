@@ -16,7 +16,6 @@ import {
 	type HasCondition,
 	has,
 } from '../libs/has';
-import { identifyUser } from '../libs/identify-user';
 import { createIframeManager } from '../libs/iframe-blocker/store';
 import { initConsentManager } from '../libs/init-consent-manager';
 import { createNetworkBlockerManager } from '../libs/network-blocker/store';
@@ -153,6 +152,12 @@ export const createConsentManagerStore = (
 					consents: storedConsent.consents,
 					selectedConsents: storedConsent.consents,
 					consentInfo: storedConsent.consentInfo,
+					user: storedConsent.consentInfo?.externalId
+						? {
+								id: storedConsent.consentInfo.externalId,
+								identityProvider: storedConsent.consentInfo.identityProvider,
+							}
+						: undefined,
 					showPopup: false,
 					isLoadingConsentInfo: false,
 				}
@@ -350,7 +355,40 @@ export const createConsentManagerStore = (
 			set({ gdprTypes: allCategories });
 		},
 
-		identifyUser: (user: User) => identifyUser({ user, manager, get, set }),
+		identifyUser: async (user: User) => {
+			const currentInfo = get().consentInfo;
+			const subjectId = currentInfo?.subjectId;
+
+			// Always store the user in state (so it's available when consent is given)
+			set({ user });
+
+			// If no consent yet, just store in state and return early
+			// The user will be linked when they give consent via saveConsents
+			// Don't set consentInfo here - it should only exist after actual consent
+			if (!subjectId) {
+				return;
+			}
+
+			// Make API call to link the user to the subject
+			await manager.identifyUser({
+				body: {
+					id: subjectId,
+					externalId: user.id,
+					identityProvider: user.identityProvider,
+				},
+			});
+
+			// Sync store state
+			set({
+				consentInfo: {
+					...currentInfo,
+					time: currentInfo?.time || Date.now(),
+					subjectId,
+					externalId: user.id,
+					identityProvider: user.identityProvider,
+				},
+			});
+		},
 
 		setOverrides: async (
 			overrides: ConsentStoreState['overrides']

@@ -11,14 +11,11 @@
 // Import constants directly to avoid Zod
 import { brandingValues, jurisdictionCodes } from './shared/constants';
 
-// API types - Consent
+// API types - Consent (v2.0: only check endpoint remains)
 export type {
-	IdentifyUserInput,
-	IdentifyUserOutput,
-	PostConsentInput,
-	PostConsentOutput,
-	VerifyConsentInput,
-	VerifyConsentOutput,
+	CheckConsentOutput,
+	CheckConsentQuery,
+	ConsentCheckResult,
 } from './api/consent';
 // API types - Init
 export type {
@@ -28,6 +25,23 @@ export type {
 } from './api/init';
 // API types - Meta
 export type { StatusOutput } from './api/meta';
+// API types - Subject
+export type {
+	ConsentItem,
+	GetSubjectInput,
+	GetSubjectOutput,
+	GetSubjectParams,
+	GetSubjectQuery,
+	ListSubjectsOutput,
+	ListSubjectsQuery,
+	PatchSubjectFullInput,
+	PatchSubjectInput,
+	PatchSubjectOutput,
+	PatchSubjectParams,
+	PostSubjectInput,
+	PostSubjectOutput,
+	SubjectItem,
+} from './api/subject';
 // Domain types
 export type {
 	AuditLog,

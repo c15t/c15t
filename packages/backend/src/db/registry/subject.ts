@@ -1,10 +1,23 @@
-import { ORPCError } from '@orpc/server';
 import type { Registry } from './types';
 import { generateUniqueId } from './utils/generate-id';
 
 export function subjectRegistry({ db, ctx }: Registry) {
 	const { logger } = ctx;
 	return {
+		/**
+		 * Finds or creates a subject.
+		 *
+		 * For the subject-centric API (v2.0):
+		 * - subjectId is required and client-generated
+		 * - Creates subject if it doesn't exist with the provided ID
+		 * - externalSubjectId can be provided at creation time
+		 * - Multiple subjects can have the same externalId (1:many relationship)
+		 *
+		 * @param subjectId - Client-generated subject ID (required for v2.0)
+		 * @param externalSubjectId - Optional external user ID from auth system
+		 * @param identityProvider - Optional identity provider name
+		 * @param ipAddress - Client IP address
+		 */
 		findOrCreateSubject: async ({
 			subjectId,
 			externalSubjectId,
@@ -16,76 +29,74 @@ export function subjectRegistry({ db, ctx }: Registry) {
 			identityProvider?: string;
 			ipAddress?: string;
 		}) => {
-			// If both subjectId and externalSubjectId are provided, validate they match
-			if (subjectId && externalSubjectId) {
-				const subject = await db.findFirst('subject', {
-					where: (b) =>
-						b.and(
-							b('id', '=', subjectId),
-							b('externalId', '=', externalSubjectId)
-						),
+			// If subjectId is provided (v2.0 flow), find or create with that ID
+			if (subjectId) {
+				logger.debug('Finding/Creating subject with client-generated ID', {
+					subjectId,
 				});
 
-				if (!subject) {
-					logger?.error('Subject not found', {
-						providedSubjectId: subjectId,
-						providedExternalId: externalSubjectId,
-					});
-
-					throw new ORPCError('SUBJECT_NOT_FOUND', {
-						message:
-							'The specified subject could not be found. Please verify the subject identifiers and try again.',
-						status: 404,
-						data: {
-							providedSubjectId: subjectId,
-							providedExternalId: externalSubjectId,
-						},
-					});
-				}
-
-				return subject;
-			}
-
-			// Try to find subject by subjectId if provided
-			if (subjectId) {
-				const subject = await db.findFirst('subject', {
+				// Try to find existing subject
+				const existingSubject = await db.findFirst('subject', {
 					where: (b) => b('id', '=', subjectId),
 				});
 
-				if (!subject) {
-					throw new ORPCError('SUBJECT_NOT_FOUND', {
-						message: 'Subject not found by subjectId',
-						status: 404,
-						data: { subjectId },
-					});
+				if (existingSubject) {
+					logger.debug('Found existing subject', { subjectId });
+
+					// Update IP address if different
+					if (existingSubject.lastIpAddress !== ipAddress) {
+						await db.updateMany('subject', {
+							where: (b) => b('id', '=', subjectId),
+							set: {
+								lastIpAddress: ipAddress,
+								updatedAt: new Date(),
+							},
+						});
+					}
+
+					return existingSubject;
 				}
 
-				return subject;
+				// Create new subject with client-provided ID
+				logger.debug('Creating new subject with client-generated ID', {
+					subjectId,
+				});
+
+				const newSubject = await db.create('subject', {
+					id: subjectId,
+					externalId: externalSubjectId ?? null,
+					identityProvider: externalSubjectId
+						? (identityProvider ?? 'external')
+						: 'anonymous',
+					lastIpAddress: ipAddress,
+					isIdentified: !!externalSubjectId,
+				});
+
+				logger.debug('Created new subject', { subject: newSubject });
+
+				return newSubject;
 			}
 
-			// If externalSubjectId provided, try to find or create with upsert
+			// Legacy flow: If only externalSubjectId provided, find or create
+			// Note: This creates a new subject for each call since we don't have a subjectId
+			// With 1:many relationship, we should not upsert by externalId anymore
 			if (externalSubjectId) {
-				logger.debug('Finding/Creating subject with external id');
-				await db.upsert('subject', {
-					where: (b) => b('externalId', '=', externalSubjectId),
-					create: {
-						id: await generateUniqueId(db, 'subject', ctx),
-						externalId: externalSubjectId,
-						identityProvider: identityProvider ?? 'external',
-						lastIpAddress: ipAddress,
-						isIdentified: !!externalSubjectId,
-					},
-					update: { lastIpAddress: ipAddress },
+				logger.debug('Creating subject with external ID (legacy flow)', {
+					externalSubjectId,
 				});
 
-				const subject = await db.findFirst('subject', {
-					where: (b) => b('externalId', '=', externalSubjectId),
+				const subject = await db.create('subject', {
+					id: await generateUniqueId(db, 'subject', ctx),
+					externalId: externalSubjectId,
+					identityProvider: identityProvider ?? 'external',
+					lastIpAddress: ipAddress,
+					isIdentified: true,
 				});
 
 				return subject;
 			}
 
-			// If unknown, create an anonymous subject
+			// If no identifiers provided, create an anonymous subject
 			logger?.debug('Creating new anonymous subject');
 			const subject = await db.create('subject', {
 				id: await generateUniqueId(db, 'subject', ctx),

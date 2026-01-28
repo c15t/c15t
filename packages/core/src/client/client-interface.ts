@@ -4,30 +4,51 @@
  */
 
 import type {
-	IdentifyUserInput,
-	IdentifyUserOutput,
+	CheckConsentOutput,
+	CheckConsentQuery,
+	GetSubjectInput,
+	GetSubjectOutput,
 	InitOutput,
-	PostConsentInput,
-	PostConsentOutput,
-	VerifyConsentInput,
-	VerifyConsentOutput,
+	ListSubjectsOutput,
+	ListSubjectsQuery,
+	PatchSubjectFullInput,
+	PatchSubjectOutput,
+	PostSubjectInput,
+	PostSubjectOutput,
 } from '@c15t/schema/types';
 import type { FetchOptions, ResponseContext } from './types';
 
-export type SetConsentRequestBody = PostConsentInput;
-export type SetConsentResponse = PostConsentOutput;
+export type { PostSubjectInput, PostSubjectOutput };
+export type { GetSubjectInput, GetSubjectOutput };
+export type { PatchSubjectFullInput, PatchSubjectOutput };
+export type { ListSubjectsQuery, ListSubjectsOutput };
+export type { CheckConsentQuery, CheckConsentOutput };
+
+/**
+ * Request body for setConsent.
+ */
+export type SetConsentRequestBody = PostSubjectInput;
+
+/**
+ * Response from setConsent.
+ */
+export type SetConsentResponse = PostSubjectOutput;
+
+/**
+ * Request body for identifyUser (links external ID to subject).
+ * Requires subjectId in path, externalId and identityProvider in body.
+ */
+export type IdentifyUserRequestBody = PatchSubjectFullInput;
+
+/**
+ * Response from identifyUser.
+ */
+export type IdentifyUserResponse = PatchSubjectOutput;
+
 export type InitResponse = InitOutput;
-export type VerifyConsentRequestBody = VerifyConsentInput;
-export type VerifyConsentResponse = VerifyConsentOutput;
-export type IdentifyUserRequestBody = IdentifyUserInput;
-export type IdentifyUserResponse = IdentifyUserOutput;
 
 /**
  * Core interface that all consent management clients must implement
- *
- * @remarks
- * This interface defines the standard methods for interacting with
- * consent management functionality, regardless of implementation.
  */
 export interface ConsentManagerInterface {
 	/**
@@ -51,23 +72,13 @@ export interface ConsentManagerInterface {
 	): Promise<ResponseContext<SetConsentResponse>>;
 
 	/**
-	 * Verifies if valid consent exists.
+	 * Links an external user ID to a subject (PATCH /subject/:id).
 	 *
-	 * @param options - Optional request configuration with verification criteria
-	 * @returns Response with consent verification status
-	 */
-	verifyConsent(
-		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
-	): Promise<ResponseContext<VerifyConsentResponse>>;
-
-	/**
-	 * Links a subject's external ID to a consent record by consent ID.
-	 *
-	 * @param options - Optional request configuration with consent ID and external ID
-	 * @returns Response confirming the user was identified
+	 * @param options - Request configuration with subjectId, externalId, and identityProvider
+	 * @returns Response confirming the subject was updated
 	 */
 	identifyUser(
-		options?: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
+		options: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
 	): Promise<ResponseContext<IdentifyUserResponse>>;
 
 	/**

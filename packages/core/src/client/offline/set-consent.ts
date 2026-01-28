@@ -9,11 +9,17 @@ import { handleOfflineResponse } from './utils';
 /**
  * Sets consent preferences for a subject.
  * In offline mode, saves to both localStorage and cookie to track that consent was set.
+ *
+ * @remarks
+ * v2.0: The body must include a client-generated subjectId.
  */
 export async function setConsent(
 	storageConfig: import('../../libs/cookie').StorageConfig | undefined,
 	options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 ): Promise<ResponseContext<SetConsentResponse>> {
+	// Get the client-generated subjectId from the request
+	const subjectId = options?.body?.subjectId;
+
 	// Save to localStorage and cookie to remember that consent was set
 	try {
 		if (typeof window !== 'undefined') {
@@ -21,7 +27,9 @@ export async function setConsent(
 				{
 					consentInfo: {
 						time: Date.now(),
-						identified: Boolean(options?.body?.externalSubjectId),
+						subjectId,
+						externalId: options?.body?.externalSubjectId,
+						identityProvider: options?.body?.identityProvider,
 					},
 					consents: options?.body?.preferences || {},
 				},

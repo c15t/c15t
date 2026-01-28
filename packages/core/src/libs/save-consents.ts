@@ -1,6 +1,7 @@
 import type { StoreApi } from 'zustand';
 import type { ConsentStoreState } from '~/store/type';
 import type { ConsentManagerInterface } from '../client/client-interface';
+import { generateSubjectId } from './generate-subject-id';
 
 interface SaveConsentsProps {
 	manager: ConsentManagerInterface;
@@ -26,6 +27,7 @@ export async function saveConsents({
 		gdprTypes,
 		locationInfo,
 		model,
+		consentInfo,
 	} = get();
 
 	const newConsents = selectedConsents ?? consents ?? {};
@@ -44,6 +46,18 @@ export async function saveConsents({
 		}
 	}
 
+	// Get or generate subjectId
+	// If we have a subjectId from previous consent, reuse it
+	let subjectId = consentInfo?.subjectId;
+	if (!subjectId) {
+		subjectId = generateSubjectId();
+	}
+
+	// Use pending externalId from store or from user prop
+	const externalId = get().consentInfo?.externalId || get().user?.id;
+	const identityProvider =
+		get().consentInfo?.identityProvider || get().user?.identityProvider;
+
 	// Immediately update the UI state to close banners/dialogs
 	// This makes the interface feel more responsive
 	set({
@@ -52,7 +66,9 @@ export async function saveConsents({
 		showPopup: false,
 		consentInfo: {
 			time: givenAt,
-			identified: !!get().user?.id,
+			subjectId,
+			externalId,
+			identityProvider,
 		},
 	});
 
@@ -74,8 +90,9 @@ export async function saveConsents({
 			type: 'cookie_banner',
 			domain: window.location.hostname,
 			preferences: newConsents,
-			externalSubjectId: get().user?.id,
-			identityProvider: get().user?.identityProvider,
+			subjectId,
+			externalSubjectId: externalId,
+			identityProvider,
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
 			jurisdictionModel: model ?? undefined,
 			givenAt,

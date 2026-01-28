@@ -1,3 +1,9 @@
+/**
+ * Pending submissions management for offline fallback.
+ *
+ * @packageDocumentation
+ */
+
 import type {
 	IdentifyUserRequestBody,
 	IdentifyUserResponse,
@@ -9,6 +15,9 @@ import type { FetcherContext } from './fetcher';
 import { fetcher } from './fetcher';
 import { delay } from './utils';
 
+const PENDING_CONSENT_KEY = 'c15t-pending-consent-submissions';
+const PENDING_IDENTIFY_KEY = 'c15t-pending-identify-submissions';
+
 /**
  * Check for pending consent submissions on initialization
  * @internal
@@ -19,7 +28,7 @@ export function checkPendingConsentSubmissions(
 		submissions: SetConsentRequestBody[]
 	) => Promise<void>
 ) {
-	const pendingSubmissionsKey = 'c15t-pending-consent-submissions';
+	const pendingSubmissionsKey = PENDING_CONSENT_KEY;
 
 	// Don't attempt to access localStorage in SSR context
 	if (typeof window === 'undefined' || !window.localStorage) {
@@ -69,7 +78,7 @@ export async function processPendingConsentSubmissions(
 	context: FetcherContext,
 	submissions: SetConsentRequestBody[]
 ) {
-	const pendingSubmissionsKey = 'c15t-pending-consent-submissions';
+	const pendingSubmissionsKey = PENDING_CONSENT_KEY;
 	const maxRetries = 3;
 	const remainingSubmissions = [...submissions];
 
@@ -82,11 +91,10 @@ export async function processPendingConsentSubmissions(
 			try {
 				console.log('Retrying consent submission:', submission);
 
-				// Use the actual API endpoint, not our offlineFallback
 				const response = await fetcher<
 					SetConsentResponse,
 					SetConsentRequestBody
-				>(context, API_ENDPOINTS.SET_CONSENT, {
+				>(context, API_ENDPOINTS.POST_SUBJECT, {
 					method: 'POST',
 					body: submission,
 				});
@@ -143,30 +151,23 @@ export async function processPendingConsentSubmissions(
 }
 
 /**
- * Check for pending identify-user submissions on initialization
+ * Check for pending identify user submissions on initialization
  * @internal
  */
-export function checkPendingIdentifyUserSubmissions(
+export function checkPendingIdentifySubmissions(
 	_context: FetcherContext,
 	processPendingSubmissions: (
 		submissions: IdentifyUserRequestBody[]
 	) => Promise<void>
 ) {
-	const pendingSubmissionsKey = 'c15t-pending-identify-user-submissions';
-
 	// Don't attempt to access localStorage in SSR context
 	if (typeof window === 'undefined' || !window.localStorage) {
 		return;
 	}
 
 	try {
-		// Test localStorage access first
-		window.localStorage.setItem('c15t-storage-test-key', 'test');
-		window.localStorage.removeItem('c15t-storage-test-key');
-
-		const pendingSubmissionsStr = window.localStorage.getItem(
-			pendingSubmissionsKey
-		);
+		const pendingSubmissionsStr =
+			window.localStorage.getItem(PENDING_IDENTIFY_KEY);
 		if (!pendingSubmissionsStr) {
 			return; // No pending submissions
 		}
@@ -176,36 +177,32 @@ export function checkPendingIdentifyUserSubmissions(
 		);
 		if (!pendingSubmissions.length) {
 			// Clean up empty array
-			window.localStorage.removeItem(pendingSubmissionsKey);
+			window.localStorage.removeItem(PENDING_IDENTIFY_KEY);
 			return;
 		}
 
 		console.log(
-			`Found ${pendingSubmissions.length} pending identify-user submission(s) to retry`
+			`Found ${pendingSubmissions.length} pending identify user submission(s) to retry`
 		);
 
 		// Process submissions asynchronously to avoid blocking page load
 		setTimeout(() => {
 			processPendingSubmissions(pendingSubmissions);
-		}, 2000); // Delay to ensure page is loaded and network is likely available
+		}, 2500); // Delay slightly longer than consent to avoid race conditions
 	} catch (error) {
 		// Ignore localStorage errors but log them
-		console.warn(
-			'Failed to check for pending identify-user submissions:',
-			error
-		);
+		console.warn('Failed to check for pending identify submissions:', error);
 	}
 }
 
 /**
- * Process pending identify-user submissions
+ * Process pending identify user submissions
  * @internal
  */
-export async function processPendingIdentifyUserSubmissions(
+export async function processPendingIdentifySubmissions(
 	context: FetcherContext,
 	submissions: IdentifyUserRequestBody[]
 ) {
-	const pendingSubmissionsKey = 'c15t-pending-identify-user-submissions';
 	const maxRetries = 3;
 	const remainingSubmissions = [...submissions];
 
@@ -215,24 +212,32 @@ export async function processPendingIdentifyUserSubmissions(
 
 		for (let j = 0; j < remainingSubmissions.length; j++) {
 			const submission = remainingSubmissions[j];
-			try {
-				console.log('Retrying identify-user submission:', submission);
+			if (!submission) {
+				continue;
+			}
 
-				// Use the actual API endpoint, not our offlineFallback
-				const response = await fetcher<
-					IdentifyUserResponse,
-					IdentifyUserRequestBody
-				>(context, API_ENDPOINTS.IDENTIFY_CONSENT, {
-					method: 'PATCH',
-					body: submission,
-				});
+			try {
+				console.log('Retrying identify user submission:', submission);
+
+				// Build the path with the subject ID
+				const path = `${API_ENDPOINTS.PATCH_SUBJECT}/${submission.id}`;
+				const { id: _subjectId, ...patchBody } = submission;
+
+				const response = await fetcher<IdentifyUserResponse, typeof patchBody>(
+					context,
+					path,
+					{
+						method: 'PATCH',
+						body: patchBody,
+					}
+				);
 
 				if (response.ok) {
-					console.log('Successfully resubmitted identify-user');
+					console.log('Successfully resubmitted identify user');
 					successfulSubmissions.push(j);
 				}
 			} catch (error) {
-				console.warn('Failed to resend identify-user submission:', error);
+				console.warn('Failed to resend identify user submission:', error);
 				// Continue with the next submission
 			}
 		}
@@ -261,24 +266,19 @@ export async function processPendingIdentifyUserSubmissions(
 		if (typeof window !== 'undefined' && window.localStorage) {
 			if (remainingSubmissions.length > 0) {
 				window.localStorage.setItem(
-					pendingSubmissionsKey,
+					PENDING_IDENTIFY_KEY,
 					JSON.stringify(remainingSubmissions)
 				);
 				console.log(
-					`${remainingSubmissions.length} identify-user submissions still pending for future retry`
+					`${remainingSubmissions.length} identify submissions still pending for future retry`
 				);
 			} else {
 				// All submissions processed, clear the storage
-				window.localStorage.removeItem(pendingSubmissionsKey);
-				console.log(
-					'All pending identify-user submissions processed successfully'
-				);
+				window.localStorage.removeItem(PENDING_IDENTIFY_KEY);
+				console.log('All pending identify submissions processed successfully');
 			}
 		}
 	} catch (error) {
-		console.warn(
-			'Error updating pending identify-user submissions storage:',
-			error
-		);
+		console.warn('Error updating pending identify submissions storage:', error);
 	}
 }

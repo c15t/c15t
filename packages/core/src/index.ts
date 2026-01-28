@@ -8,14 +8,16 @@
 // Export schema types directly for new code
 export type {
 	Branding,
-	IdentifyUserInput,
-	IdentifyUserOutput,
+	GetSubjectInput,
+	GetSubjectOutput,
 	InitOutput,
 	JurisdictionCode,
-	PostConsentInput,
-	PostConsentOutput,
-	VerifyConsentInput,
-	VerifyConsentOutput,
+	ListSubjectsOutput,
+	ListSubjectsQuery,
+	PatchSubjectFullInput,
+	PatchSubjectOutput,
+	PostSubjectInput,
+	PostSubjectOutput,
 } from '@c15t/schema/types';
 export type {
 	CommonTranslations,
@@ -57,6 +59,10 @@ export {
 	saveConsentToStorage,
 	setCookie,
 } from './libs/cookie';
+export {
+	generateSubjectId,
+	isValidSubjectId,
+} from './libs/generate-subject-id';
 export type { HasCondition } from './libs/has';
 export {
 	createIframeBlocker,

@@ -4,6 +4,7 @@ import { ORPCError } from '@orpc/server';
 import { CompressionPlugin } from '@orpc/server/fetch';
 import { CORSPlugin } from '@orpc/server/plugins';
 import defu from 'defu';
+import { validateRequestAuth } from '~/middleware/auth';
 import { createCORSOptions } from '~/middleware/cors';
 import { processCors } from '~/middleware/cors/process-cors';
 import {
@@ -236,10 +237,17 @@ export const c15tInstance = (options: C15TOptions) => {
 	): Promise<Response> => {
 		const { logger } = ctx;
 
+		// Check API key authentication
+		const apiKeyAuthenticated = validateRequestAuth(
+			request.headers,
+			options.advanced?.apiKeys
+		);
+
 		const enrichedContext: C15TContext = {
 			...context,
 			ipAddress: getIpAddress(request, options),
 			userAgent: request.headers.get('user-agent') || undefined,
+			apiKeyAuthenticated,
 		};
 
 		processCors(request, enrichedContext, options.trustedOrigins);
