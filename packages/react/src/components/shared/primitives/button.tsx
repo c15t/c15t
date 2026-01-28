@@ -52,8 +52,7 @@ export const ConsentButton = forwardRef<
 			action,
 			themeKey,
 			baseClassName,
-			variant: forwardedVariant,
-			primary,
+			variant = 'neutral',
 			mode = 'stroke',
 			size = 'small',
 			onClick: forwardedOnClick,
@@ -67,8 +66,6 @@ export const ConsentButton = forwardRef<
 		const { saveConsents, setShowPopup, setIsPrivacyDialogOpen, setConsent } =
 			useConsentManager();
 		const { noStyle: contextNoStyle } = useTheme();
-
-		const variant = primary ? 'primary' : (forwardedVariant ?? 'neutral');
 
 		const defaultThemeKey =
 			variant === 'primary' ? 'buttonPrimary' : 'buttonSecondary';

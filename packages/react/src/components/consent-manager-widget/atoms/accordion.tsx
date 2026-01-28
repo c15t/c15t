@@ -25,12 +25,11 @@ import { useTranslations } from '~/hooks/use-translations';
 const ConsentManagerWidgetAccordionTrigger = forwardRef<
 	HTMLDivElement,
 	BoxProps
->(({ children, themeKey, ...props }, ref) => {
+>(({ children, ...props }, ref) => {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.accordionTrigger}
-			themeKey={themeKey}
 			{...props}
 		>
 			{children}
@@ -82,15 +81,12 @@ const ConsentManagerWidgetAccordionItems = () => {
 		<ConsentManagerWidgetAccordionItem
 			value={consent.name}
 			key={consent.name}
-			themeKey="widgetAccordion"
 			className={styles.accordionItem}
 		>
 			<ConsentManagerWidgetAccordionTrigger
-				themeKey="widgetAccordion"
 				data-testid={`consent-manager-widget-accordion-trigger-${consent.name}`}
 			>
 				<ConsentManagerWidgetAccordionTriggerInner
-					themeKey="widgetAccordion"
 					className={styles.accordionTriggerInner}
 					data-testid={`consent-manager-widget-accordion-trigger-inner-${consent.name}`}
 				>
@@ -102,14 +98,14 @@ const ConsentManagerWidgetAccordionItems = () => {
 								title: 'Open',
 								iconPath: <path d="M5 12h14M12 5v14" />,
 							}),
-							themeKey: 'widgetAccordion' as any,
+							className: styles.accordionArrowIcon,
 						}}
 						closeIcon={{
 							Element: LucideIcon({
 								title: 'Close',
 								iconPath: <path d="M5 12h14" />,
 							}),
-							themeKey: 'widgetAccordion' as any,
+							className: styles.accordionArrowIcon,
 						}}
 					/>
 					{consentTypes[consent.name]?.title ?? formatConsentName(consent.name)}
@@ -124,27 +120,13 @@ const ConsentManagerWidgetAccordionItems = () => {
 						handleConsentChange(consent.name, checked)
 					}
 					disabled={consent.disabled}
-					theme={{
-						root: { themeKey: 'toggle' as any, className: styles.switch },
-						thumb: {
-							themeKey: 'toggle' as any,
-							className: styles.switchThumb,
-						},
-						track: { themeKey: 'toggle' as any },
-					}}
+					className={styles.switch}
+					size="small"
 					data-testid={`consent-manager-widget-switch-${consent.name}`}
 				/>
 			</ConsentManagerWidgetAccordionTrigger>
 			<ConsentManagerWidgetAccordionContent
-				theme={{
-					content: {
-						themeKey: 'widgetAccordion' as any,
-						className: styles.accordionContent,
-					},
-					contentInner: {
-						themeKey: 'widgetAccordion' as any,
-					},
-				}}
+				className={styles.accordionContent}
 				data-testid={`consent-manager-widget-accordion-content-${consent.name}`}
 			>
 				{consentTypes[consent.name]?.description ?? consent.description}

@@ -19,11 +19,11 @@ import {
 import { createPortal } from 'react-dom';
 import { Branding } from '~/components/consent-manager-dialog/atoms/dialog-card';
 import * as Button from '~/components/shared/ui/button';
+import { useComponentConfig } from '~/hooks/use-component-config';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useTextDirection } from '~/hooks/use-text-direction';
-import { useTheme } from '~/hooks/use-theme';
 import { IABPreferenceCenterOverlay } from './atoms/overlay';
 import { PurposeItem } from './atoms/purpose-item';
 import { StackItem } from './atoms/stack-item';
@@ -99,7 +99,6 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 	hideBranding,
 }) => {
 	const iabTranslations = useIABTranslations();
-	const globalTheme = useTheme();
 	const {
 		iab: iabState,
 		isPrivacyDialogOpen,
@@ -121,12 +120,13 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 
 	const isOpen = open ?? isPrivacyDialogOpen;
 
-	const mergedProps = {
-		noStyle: localNoStyle ?? globalTheme.noStyle,
-		disableAnimation: localDisableAnimation ?? globalTheme.disableAnimation,
-		scrollLock: localScrollLock ?? globalTheme.scrollLock,
-		trapFocus: localTrapFocus ?? globalTheme.trapFocus,
-	};
+	// Merge local props with global theme context
+	const config = useComponentConfig({
+		noStyle: localNoStyle,
+		disableAnimation: localDisableAnimation,
+		scrollLock: localScrollLock,
+		trapFocus: localTrapFocus,
+	});
 
 	// Process GVL data into UI-friendly format
 	const {
@@ -442,12 +442,12 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 
 	// Focus trap
 	useFocusTrap(
-		Boolean(isOpen && mergedProps.trapFocus),
+		Boolean(isOpen && config.trapFocus),
 		cardRef as RefObject<HTMLElement>
 	);
 
 	// Scroll lock
-	useScrollLock(Boolean(isOpen && mergedProps.scrollLock));
+	useScrollLock(Boolean(isOpen && config.scrollLock));
 
 	// Mount state for portal
 	useEffect(() => {
@@ -458,7 +458,7 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 	useEffect(() => {
 		if (isOpen) {
 			setIsVisible(true);
-		} else if (mergedProps.disableAnimation) {
+		} else if (config.disableAnimation) {
 			setIsVisible(false);
 		} else {
 			const timer = setTimeout(() => {
@@ -466,7 +466,7 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 			}, 150);
 			return () => clearTimeout(timer);
 		}
-	}, [isOpen, mergedProps.disableAnimation]);
+	}, [isOpen, config.disableAnimation]);
 
 	// Don't render if not mounted, no IAB state, or IAB is disabled (e.g., server returned null GVL)
 	if (!isMounted || !iabState?.config.enabled) {
@@ -487,7 +487,7 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 					ref={cardRef}
 					className={`${styles.card} ${isVisible ? styles.contentVisible : styles.contentHidden}`}
 					role="dialog"
-					aria-modal={mergedProps.trapFocus ? 'true' : undefined}
+					aria-modal={config.trapFocus ? 'true' : undefined}
 					aria-label={iabTranslations.preferenceCenter.title}
 					tabIndex={0}
 					data-testid="iab-preference-center-card"
