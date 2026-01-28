@@ -8,24 +8,24 @@ export const API_ENDPOINTS = {
 	INIT: '/init',
 
 	/**
-	 * Path for recording consent (POST /subject)
+	 * Path for recording consent (POST /subjects)
 	 */
-	POST_SUBJECT: '/subject',
+	POST_SUBJECT: '/subjects',
 
 	/**
-	 * Path for checking a subject's consent (GET /subject/:id)
+	 * Path for checking a subject's consent (GET /subjects/:id)
 	 */
-	GET_SUBJECT: '/subject',
+	GET_SUBJECT: '/subjects',
 
 	/**
-	 * Path for linking external ID to subject (PATCH /subject/:id)
+	 * Path for linking external ID to subject (PATCH /subjects/:id)
 	 */
-	PATCH_SUBJECT: '/subject',
+	PATCH_SUBJECT: '/subjects',
 
 	/**
-	 * Path for checking if externalId has consented (GET /consent/check)
+	 * Path for checking if externalId has consented (GET /consents/check)
 	 */
-	CHECK_CONSENT: '/consent/check',
+	CHECK_CONSENT: '/consents/check',
 
 	/**
 	 * Path for listing subjects by externalId (GET /subjects)
@@ -231,7 +231,7 @@ export interface FetchOptions<
  * @example
  * ```typescript
  * // Processing a response context
- * const response: ResponseContext<SubjectData> = await client.$fetch('/subject/123');
+ * const response: ResponseContext<SubjectData> = await client.$fetch('/subjects/123');
  *
  * if (response.ok) {
  *   // Handle successful response

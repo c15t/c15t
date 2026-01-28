@@ -3,9 +3,10 @@
  *
  * This module provides OpenAPI functionality including:
  * - Configuration management
- * - Specification generation
  * - Documentation UI
+ *
+ * Note: OpenAPI spec generation is now handled by hono-openapi middleware.
  */
 
 export { createDefaultOpenAPIOptions, createOpenAPIConfig } from './config';
-export { createDocsUI, createOpenAPISpec } from './handlers';
+export { createDocsUI } from './handlers';

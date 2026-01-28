@@ -1,4 +1,36 @@
-import type { JurisdictionCode } from '~/contracts/init';
+import type { C15TOptions } from '~/types';
+import type { JurisdictionCode } from '~/types/api';
+
+/**
+ * Normalizes a header value to a string or null.
+ */
+function normalizeHeader(
+	value: string | string[] | null | undefined
+): string | null {
+	if (!value) {
+		return null;
+	}
+	return Array.isArray(value) ? (value[0] ?? null) : value;
+}
+
+/**
+ * Gets geo-related headers from the request.
+ */
+function getGeoHeaders(headers: Headers) {
+	const countryCode =
+		normalizeHeader(headers.get('x-c15t-country')) ??
+		normalizeHeader(headers.get('cf-ipcountry')) ??
+		normalizeHeader(headers.get('x-vercel-ip-country')) ??
+		normalizeHeader(headers.get('x-amz-cf-ipcountry')) ??
+		normalizeHeader(headers.get('x-country-code'));
+
+	const regionCode =
+		normalizeHeader(headers.get('x-c15t-region')) ??
+		normalizeHeader(headers.get('x-vercel-ip-country-region')) ??
+		normalizeHeader(headers.get('x-region-code'));
+
+	return { countryCode, regionCode };
+}
 
 /**
  * Determines the applicable jurisdiction based on country and region codes.
@@ -105,4 +137,41 @@ export function checkJurisdiction(
 	}
 
 	return jurisdiction;
+}
+
+/**
+ * Gets the location from the request headers.
+ *
+ * @param request - The incoming request
+ * @param options - The C15T options
+ * @returns The location object with countryCode and regionCode
+ */
+export async function getLocation(
+	request: Request,
+	options: C15TOptions
+): Promise<{ countryCode: string | null; regionCode: string | null }> {
+	if (options.advanced?.disableGeoLocation) {
+		return { countryCode: null, regionCode: null };
+	}
+
+	const { countryCode, regionCode } = getGeoHeaders(request.headers);
+	return { countryCode, regionCode };
+}
+
+/**
+ * Gets the jurisdiction based on location and options.
+ *
+ * @param location - The location object
+ * @param options - The C15T options
+ * @returns The jurisdiction code
+ */
+export function getJurisdiction(
+	location: { countryCode: string | null; regionCode: string | null },
+	options: C15TOptions
+): JurisdictionCode {
+	if (options.advanced?.disableGeoLocation) {
+		return 'GDPR';
+	}
+
+	return checkJurisdiction(location.countryCode, location.regionCode);
 }

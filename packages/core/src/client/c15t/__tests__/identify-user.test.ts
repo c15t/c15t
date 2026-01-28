@@ -11,7 +11,7 @@ describe('c15t Client identifyUser Tests', () => {
 		mockLocalStorage.clear();
 	});
 
-	it('should call PATCH /subject/:id to link external ID', async () => {
+	it('should call PATCH /subjects/:id to link external ID', async () => {
 		// Mock successful response
 		fetchMock.mockResolvedValueOnce(
 			new Response(

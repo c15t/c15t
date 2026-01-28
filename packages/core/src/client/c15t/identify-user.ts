@@ -85,7 +85,7 @@ export async function offlineFallbackForIdentifyUser(
 }
 
 /**
- * Links an external user ID to a subject via PATCH /subject/:id.
+ * Links an external user ID to a subject via PATCH /subjects/:id.
  * Saves to storage first (optimistic), then makes API call with fallback.
  *
  * @param context - Fetcher context for API requests

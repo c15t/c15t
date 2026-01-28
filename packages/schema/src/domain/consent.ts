@@ -1,28 +1,32 @@
-import { z } from 'zod';
+import * as v from 'valibot';
 
-export const consentStatusSchema = z.enum(['active', 'withdrawn', 'expired']);
+export const consentStatusSchema = v.picklist([
+	'active',
+	'withdrawn',
+	'expired',
+]);
 
-export const consentSchema = z.object({
-	id: z.string(),
-	subjectId: z.string(),
-	domainId: z.string(),
-	purposeIds: z.array(z.string()),
-	metadata: z.record(z.string(), z.unknown()).nullish(),
-	policyId: z.string().optional(),
-	ipAddress: z.string().nullish(),
-	userAgent: z.string().nullish(),
-	status: consentStatusSchema.prefault('active'),
-	withdrawalReason: z.string().nullish(),
-	givenAt: z.date().prefault(() => new Date()),
-	validUntil: z.date().nullish(),
-	isActive: z.boolean().prefault(true),
+export const consentSchema = v.object({
+	id: v.string(),
+	subjectId: v.string(),
+	domainId: v.string(),
+	purposeIds: v.array(v.string()),
+	metadata: v.nullish(v.record(v.string(), v.unknown())),
+	policyId: v.optional(v.string()),
+	ipAddress: v.nullish(v.string()),
+	userAgent: v.nullish(v.string()),
+	status: v.optional(consentStatusSchema, 'active'),
+	withdrawalReason: v.nullish(v.string()),
+	givenAt: v.optional(v.date(), () => new Date()),
+	validUntil: v.nullish(v.date()),
+	isActive: v.optional(v.boolean(), true),
 	/** Jurisdiction code (e.g., 'GDPR', 'UK_GDPR', 'CCPA') */
-	jurisdiction: z.string().nullish(),
+	jurisdiction: v.nullish(v.string()),
 	/** Consent model used (e.g., 'opt-in', 'opt-out', 'iab') */
-	jurisdictionModel: z.string().nullish(),
+	jurisdictionModel: v.nullish(v.string()),
 	/** IAB TCF TC String (only for IAB consents) */
-	tcString: z.string().nullish(),
+	tcString: v.nullish(v.string()),
 });
 
-export type Consent = z.infer<typeof consentSchema>;
-export type ConsentStatus = z.infer<typeof consentStatusSchema>;
+export type Consent = v.InferOutput<typeof consentSchema>;
+export type ConsentStatus = v.InferOutput<typeof consentStatusSchema>;

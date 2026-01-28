@@ -233,7 +233,7 @@ describe('c15t Client Offline Fallback Tests', () => {
 		// @ts-expect-error accessing private method for testing
 		await client.processPendingConsentSubmissions([cookieBannerConsent]);
 
-		// Assertions - v2.0: Uses POST /subject endpoint
+		// Assertions - v2.0: Uses POST /subjects endpoint
 		expect(fetchMock).toHaveBeenCalledWith(
 			expect.stringContaining(API_ENDPOINTS.POST_SUBJECT),
 			expect.objectContaining({

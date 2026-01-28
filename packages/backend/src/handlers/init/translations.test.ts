@@ -1,10 +1,10 @@
 import { baseTranslations } from '@c15t/translations';
 import { describe, expect, it } from 'vitest';
-import { getTranslations } from './translations';
+import { getTranslationsData } from './translations';
 
-describe('showBanner > getTranslations', () => {
+describe('showBanner > getTranslationsData', () => {
 	it("should return 'en' translations when Accept-Language is null", () => {
-		const { translations, language } = getTranslations(null);
+		const { translations, language } = getTranslationsData(null);
 		expect(language).toBe('en');
 		expect(translations.cookieBanner.title).toBe(
 			baseTranslations.en.cookieBanner.title
@@ -12,7 +12,7 @@ describe('showBanner > getTranslations', () => {
 	});
 
 	it("should return 'en' translations for unsupported language", () => {
-		const { translations, language } = getTranslations('xx-XX,en;q=0.9');
+		const { translations, language } = getTranslationsData('xx-XX,en;q=0.9');
 		expect(language).toBe('en');
 		expect(translations.cookieBanner.title).toBe(
 			baseTranslations.en.cookieBanner.title
@@ -20,7 +20,7 @@ describe('showBanner > getTranslations', () => {
 	});
 
 	it("should return 'de' translations for 'de-DE'", () => {
-		const { translations, language } = getTranslations(
+		const { translations, language } = getTranslationsData(
 			'de-DE,de;q=0.9,en;q=0.8'
 		);
 		expect(language).toBe('de');
@@ -37,7 +37,7 @@ describe('showBanner > getTranslations', () => {
 				},
 			},
 		};
-		const { translations, language } = getTranslations(
+		const { translations, language } = getTranslationsData(
 			'en-US,en;q=0.9',
 			customTranslations
 		);
@@ -55,7 +55,7 @@ describe('showBanner > getTranslations', () => {
 				},
 			},
 		};
-		const { translations, language } = getTranslations(
+		const { translations, language } = getTranslationsData(
 			'en-US,en;q=0.9',
 			customTranslations
 		);
@@ -74,7 +74,7 @@ describe('showBanner > getTranslations', () => {
 				},
 			},
 		};
-		const { translations, language } = getTranslations(
+		const { translations, language } = getTranslationsData(
 			'en-US,en;q=0.9',
 			customTranslations
 		);
@@ -93,7 +93,7 @@ describe('showBanner > getTranslations', () => {
 		const customTranslations = {
 			de: {},
 		};
-		const { translations, language } = getTranslations(
+		const { translations, language } = getTranslationsData(
 			'de-DE,de;q=0.9',
 			customTranslations
 		);
@@ -104,7 +104,7 @@ describe('showBanner > getTranslations', () => {
 	});
 
 	it('should return custom translations for unsupported base language', () => {
-		const { translations, language } = getTranslations('xx-XX,en;q=0.9', {
+		const { translations, language } = getTranslationsData('xx-XX,en;q=0.9', {
 			xx: {
 				cookieBanner: {
 					title: 'XX Title',

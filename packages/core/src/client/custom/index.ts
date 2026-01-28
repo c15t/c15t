@@ -102,7 +102,7 @@ export class CustomClient implements ConsentManagerInterface {
 				},
 			};
 		}
-		return this.$fetch(`/subject/${subjectId}`, {
+		return this.$fetch(`/subjects/${subjectId}`, {
 			...options,
 			method: 'PATCH',
 		});

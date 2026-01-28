@@ -38,7 +38,7 @@ export interface EndpointHandlers {
 	setConsent: EndpointHandler<SetConsentResponse, SetConsentRequestBody>;
 
 	/**
-	 * Handler for the identifyUser endpoint (PATCH /subject/:id).
+	 * Handler for the identifyUser endpoint (PATCH /subjects/:id).
 	 * @remarks v2.0: Links external ID to a subject.
 	 */
 	identifyUser?: EndpointHandler<IdentifyUserResponse, IdentifyUserRequestBody>;

@@ -9,8 +9,4 @@
  * @packageDocumentation
  */
 
-import { checkConsent } from './check.handler';
-
-export const consentHandlers = {
-	check: checkConsent,
-};
+export { checkConsentHandler } from './check.handler';

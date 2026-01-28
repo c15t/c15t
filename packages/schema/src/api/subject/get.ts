@@ -4,77 +4,77 @@
  * @packageDocumentation
  */
 
-import { z } from 'zod';
+import * as v from 'valibot';
 import { subjectIdSchema } from './post';
 
 /**
  * GET /subject/:id combined input schema (path param + query params).
- * oRPC flattens path params and query params into a single input object.
+ * Hono flattens path params and query params into a single input object.
  */
-export const getSubjectInputSchema = z.object({
+export const getSubjectInputSchema = v.object({
 	/** Subject ID from path parameter */
 	id: subjectIdSchema,
 	/** Filter by consent type(s), comma-separated (query param) */
-	type: z.string().optional(),
+	type: v.optional(v.string()),
 });
 
 /**
  * @deprecated Use getSubjectInputSchema instead. Kept for backward compatibility.
  */
-export const getSubjectQuerySchema = z.object({
+export const getSubjectQuerySchema = v.object({
 	/** Filter by consent type(s), comma-separated */
-	type: z.string().optional(),
+	type: v.optional(v.string()),
 });
 
 /**
  * @deprecated Use getSubjectInputSchema instead. Kept for backward compatibility.
  */
-export const getSubjectParamsSchema = z.object({
+export const getSubjectParamsSchema = v.object({
 	id: subjectIdSchema,
 });
 
 /**
  * Consent item in GET /subject/:id response
  */
-export const consentItemSchema = z.object({
-	id: z.string(),
-	type: z.string(),
-	policyId: z.string().optional(),
-	isLatestPolicy: z.boolean(),
-	preferences: z.record(z.string(), z.boolean()).optional(),
-	givenAt: z.date(),
+export const consentItemSchema = v.object({
+	id: v.string(),
+	type: v.string(),
+	policyId: v.optional(v.string()),
+	isLatestPolicy: v.boolean(),
+	preferences: v.optional(v.record(v.string(), v.boolean())),
+	givenAt: v.date(),
 });
 
 /**
  * GET /subject/:id output schema
  */
-export const getSubjectOutputSchema = z.object({
-	subject: z.object({
-		id: z.string(),
-		externalId: z.string().optional(),
-		isIdentified: z.boolean(),
-		createdAt: z.date().optional(),
+export const getSubjectOutputSchema = v.object({
+	subject: v.object({
+		id: v.string(),
+		externalId: v.optional(v.string()),
+		isIdentified: v.boolean(),
+		createdAt: v.optional(v.date()),
 	}),
-	consents: z.array(consentItemSchema),
-	isValid: z.boolean(),
+	consents: v.array(consentItemSchema),
+	isValid: v.boolean(),
 });
 
 /**
  * Error schemas for GET /subject/:id
  */
 export const getSubjectErrorSchemas = {
-	inputValidationFailed: z.object({
-		formErrors: z.array(z.string()),
-		fieldErrors: z.record(z.string(), z.array(z.string())),
+	inputValidationFailed: v.object({
+		formErrors: v.array(v.string()),
+		fieldErrors: v.record(v.string(), v.array(v.string())),
 	}),
-	subjectNotFound: z.object({
-		subjectId: z.string(),
+	subjectNotFound: v.object({
+		subjectId: v.string(),
 	}),
 };
 
 // Type exports
-export type GetSubjectInput = z.infer<typeof getSubjectInputSchema>;
-export type GetSubjectQuery = z.infer<typeof getSubjectQuerySchema>;
-export type GetSubjectParams = z.infer<typeof getSubjectParamsSchema>;
-export type GetSubjectOutput = z.infer<typeof getSubjectOutputSchema>;
-export type ConsentItem = z.infer<typeof consentItemSchema>;
+export type GetSubjectInput = v.InferOutput<typeof getSubjectInputSchema>;
+export type GetSubjectQuery = v.InferOutput<typeof getSubjectQuerySchema>;
+export type GetSubjectParams = v.InferOutput<typeof getSubjectParamsSchema>;
+export type GetSubjectOutput = v.InferOutput<typeof getSubjectOutputSchema>;
+export type ConsentItem = v.InferOutput<typeof consentItemSchema>;
