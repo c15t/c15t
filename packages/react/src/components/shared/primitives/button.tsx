@@ -14,6 +14,12 @@ import type { ButtonVariantsProps } from '../ui/button/button';
 import type { ConsentButtonElement, ConsentButtonProps } from './button.types';
 
 /**
+ * Props that should be filtered out before spreading to the DOM element.
+ * These are custom props used for component logic that are not valid HTML attributes.
+ */
+const NON_DOM_PROPS = ['primary', 'secondary', 'neutral'] as const;
+
+/**
  * Button component that allows users to reject non-essential cookies.
  *
  * @remarks
@@ -154,7 +160,17 @@ export const ConsentButton = forwardRef<
 
 		const Comp = asChild ? Slot : 'button';
 
-		return <Comp ref={ref} {...buttonStyle} onClick={buttonClick} {...props} />;
+		// Filter out non-DOM props to prevent React warnings
+		const domProps = Object.fromEntries(
+			Object.entries(props).filter(
+				([key]) =>
+					!NON_DOM_PROPS.includes(key as (typeof NON_DOM_PROPS)[number])
+			)
+		);
+
+		return (
+			<Comp ref={ref} {...buttonStyle} onClick={buttonClick} {...domProps} />
+		);
 	}
 );
 

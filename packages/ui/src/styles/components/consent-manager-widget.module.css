@@ -333,4 +333,17 @@
 	.switch {
 		cursor: pointer;
 	}
+
+	/* Reduced motion preference */
+	@media (prefers-reduced-motion: reduce) {
+		.card[data-state="open"],
+		.card[data-state="closed"] {
+			animation: none;
+		}
+
+		.accordionTrigger,
+		.accordionArrow {
+			transition: none;
+		}
+	}
 }

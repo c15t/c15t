@@ -237,7 +237,9 @@
 		cursor: pointer;
 		border-bottom: 2px solid transparent;
 		color: var(--iab-pc-text-muted-color);
-		transition: all 150ms ease;
+		transition:
+			color 150ms ease,
+			border-color 150ms ease;
 		margin-bottom: -1px;
 	}
 
@@ -733,7 +735,9 @@
 		z-index: 10;
 		opacity: 0;
 		visibility: hidden;
-		transition: all 150ms ease;
+		transition:
+			opacity 150ms ease,
+			visibility 150ms ease;
 	}
 
 	.tooltipVisible {
@@ -1314,7 +1318,10 @@
 		background-color: transparent;
 		color: var(--iab-pc-text-muted-color);
 		cursor: pointer;
-		transition: all 150ms ease;
+		transition:
+			background-color 150ms ease,
+			border-color 150ms ease,
+			color 150ms ease;
 		white-space: nowrap;
 	}
 
@@ -1425,5 +1432,41 @@
 
 	.purposeLIInfo .legitimateInterestIcon {
 		flex-shrink: 0;
+	}
+
+	/* Reduced motion preference */
+	@media (prefers-reduced-motion: reduce) {
+		.dialogVisible,
+		.dialogHidden,
+		.contentVisible,
+		.contentHidden,
+		.overlayVisible,
+		.overlayHidden,
+		.closeButton,
+		.tabButton,
+		.tooltip,
+		.objectButton {
+			transition: none;
+		}
+
+		.loadingSpinner {
+			animation: none;
+		}
+	}
+
+	/* Touch device hover reset - prevents "sticky" hover on tap */
+	@media (hover: none) {
+		.closeButton:hover {
+			background-color: transparent;
+		}
+
+		.tabButton:hover {
+			color: var(--iab-pc-text-muted-color);
+		}
+
+		.objectButton:hover {
+			border-color: var(--iab-pc-border-color);
+			color: var(--iab-pc-text-muted-color);
+		}
 	}
 }

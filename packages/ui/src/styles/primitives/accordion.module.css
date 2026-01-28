@@ -43,7 +43,9 @@
 		padding: var(--accordion-padding);
 		background-color: var(--accordion-background-color);
 		box-shadow: inset 0 0 0 1px var(--accordion-border-color);
-		transition: all var(--accordion-duration) var(--accordion-ease);
+		transition:
+			background-color var(--accordion-duration) var(--accordion-ease),
+			box-shadow var(--accordion-duration) var(--accordion-ease);
 		border-radius: var(--accordion-radius);
 		overflow: visible;
 	}
@@ -178,6 +180,22 @@
 		overflow: hidden;
 	}
 
+	/*
+	 * Accordion height animation using Radix UI's CSS variable approach.
+	 *
+	 * Note: Animating `height` triggers layout recalculation, which is less
+	 * performant than transform/opacity-only animations. However, this is
+	 * the standard pattern for Radix Accordion and provides the best UX for
+	 * content that needs to smoothly expand/collapse.
+	 *
+	 * Alternatives considered:
+	 * - CSS Grid (grid-template-rows: 0fr -> 1fr): More performant but requires
+	 *   different HTML structure and doesn't work well with Radix's approach.
+	 * - max-height: Less precise timing and can feel sluggish.
+	 *
+	 * The prefers-reduced-motion query below disables these animations for
+	 * users who prefer reduced motion.
+	 */
 	@keyframes accordionDown {
 		from {
 			height: 0;
@@ -217,5 +235,30 @@
 
 	:global(.c15t-dark) .contentInner {
 		color: var(--accordion-content-color-dark);
+	}
+
+	/* Reduced motion preference */
+	@media (prefers-reduced-motion: reduce) {
+		.item,
+		.arrowOpen,
+		.arrowClose {
+			transition: none;
+		}
+
+		.content[data-state="open"],
+		.content[data-state="closed"] {
+			animation: none;
+		}
+	}
+
+	/* Touch device hover reset - prevents "sticky" hover on tap */
+	@media (hover: none) {
+		.item:hover {
+			background-color: var(--accordion-background-color);
+		}
+
+		.item:hover .arrowOpen {
+			color: var(--accordion-arrow-color);
+		}
 	}
 }
