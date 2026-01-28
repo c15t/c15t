@@ -12,7 +12,7 @@ import { ConsentManagerWidget } from '~/components/consent-manager-widget/consen
 import { Box, type BoxProps } from '~/components/shared/primitives/box';
 import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { InlineLegalLinks } from '~/components/shared/primitives/legal-links';
-import { C15TIcon, ConsentLogo } from '~/components/shared/ui/logo';
+import { C15TIcon, ConsentIconOnly } from '~/components/shared/ui/logo';
 import { useConsentManager } from '~/hooks';
 import { useTranslations } from '~/hooks/use-translations';
 import type { ClassNameStyle } from '~/types/theme';
@@ -216,7 +216,7 @@ export function Branding({ hideBranding }: { hideBranding: boolean }) {
 		>
 			Secured by{' '}
 			{branding === 'consent' ? (
-				<ConsentLogo className={styles.brandingConsent} />
+				<ConsentIconOnly className={styles.brandingConsent} />
 			) : (
 				<C15TIcon className={styles.brandingC15T} />
 			)}

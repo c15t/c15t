@@ -55,6 +55,8 @@
 
 	/* Switch track */
 	.track {
+		display: flex;
+		align-items: center;
 		position: relative;
 		height: calc(var(--switch-height) - 2 * var(--switch-padding));
 		width: calc(var(--switch-width) - 2 * var(--switch-padding));
