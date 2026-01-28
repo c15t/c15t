@@ -1,11 +1,11 @@
 /**
- * GET /subject/:id handler - Check this device's consent status.
+ * GET /subjects/:id handler - Check this device's consent status.
  *
  * @packageDocumentation
  */
 
-import { ORPCError } from '@orpc/server';
-import { os } from '~/contracts';
+import type { Context } from 'hono';
+import { HTTPException } from 'hono/http-exception';
 import type { C15TContext } from '~/types';
 
 /**
@@ -14,15 +14,16 @@ import type { C15TContext } from '~/types';
  * Returns the subject's information and their consent records,
  * optionally filtered by consent type(s).
  */
-export const getSubject = os.subject.get.handler(async ({ input, context }) => {
-	const typedContext = context as C15TContext;
-	const logger = typedContext.logger;
-	logger.info('Handling GET /subject/:id request');
+export const getSubjectHandler = async (c: Context) => {
+	const ctx = c.get('c15tContext') as C15TContext;
+	const logger = ctx.logger;
+	logger.info('Handling GET /subjects/:id request');
 
-	const { db, registry } = typedContext;
+	const { db, registry } = ctx;
 
-	// Flat input structure: { id, type? }
-	const { id: subjectId, type } = input;
+	// Get input from validated params and query
+	const subjectId = c.req.param('id');
+	const type = c.req.query('type');
 	const typeFilter = type?.split(',').map((t) => t.trim()) || [];
 
 	logger.debug('Request parameters', { subjectId, typeFilter });
@@ -34,10 +35,9 @@ export const getSubject = os.subject.get.handler(async ({ input, context }) => {
 		});
 
 		if (!subject) {
-			throw new ORPCError('SUBJECT_NOT_FOUND', {
-				data: {
-					subjectId,
-				},
+			throw new HTTPException(404, {
+				message: 'Subject not found',
+				cause: { code: 'SUBJECT_NOT_FOUND', subjectId },
 			});
 		}
 
@@ -119,17 +119,19 @@ export const getSubject = os.subject.get.handler(async ({ input, context }) => {
 		// Filter by type if specified
 		const filteredConsents =
 			typeFilter.length > 0
-				? consentItems.filter((c) => typeFilter.includes(c.type))
+				? consentItems.filter((consent) => typeFilter.includes(consent.type))
 				: consentItems;
 
 		// Determine if consent is valid for requested types
 		const isValid =
 			typeFilter.length === 0 ||
-			typeFilter.every((type) =>
-				filteredConsents.some((c) => c.type === type && c.isLatestPolicy)
+			typeFilter.every((t) =>
+				filteredConsents.some(
+					(consent) => consent.type === t && consent.isLatestPolicy
+				)
 			);
 
-		return {
+		return c.json({
 			subject: {
 				id: subject.id,
 				externalId: subject.externalId ?? undefined,
@@ -138,19 +140,20 @@ export const getSubject = os.subject.get.handler(async ({ input, context }) => {
 			},
 			consents: filteredConsents,
 			isValid,
-		};
+		});
 	} catch (error) {
-		logger.error('Error in GET /subject/:id handler', {
+		logger.error('Error in GET /subjects/:id handler', {
 			error: error instanceof Error ? error.message : String(error),
 			errorType: error instanceof Error ? error.constructor.name : typeof error,
 		});
 
-		if (error instanceof ORPCError) {
+		if (error instanceof HTTPException) {
 			throw error;
 		}
 
-		throw new ORPCError('INTERNAL_SERVER_ERROR', {
+		throw new HTTPException(500, {
 			message: error instanceof Error ? error.message : String(error),
+			cause: { code: 'INTERNAL_SERVER_ERROR' },
 		});
 	}
-});
+};

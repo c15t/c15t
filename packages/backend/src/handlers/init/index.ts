@@ -1,11 +1,8 @@
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
-import { createGVLResolver } from '~/cache/gvl-resolver';
-import { os } from '~/contracts';
-import type { JurisdictionCode } from '~/contracts/init';
-import type { Branding, C15TContext } from '~/types';
-import { checkJurisdiction } from './geo';
-import { getTranslations } from './translations';
+import type { Branding } from '~/types';
+import type { JurisdictionCode } from '~/types/api';
+import { getTranslationsData } from './translations';
 
 /**
  * Gets the headers from the context.
@@ -61,7 +58,7 @@ export function getHeaders(headers: Headers | undefined) {
  * @param acceptLanguage - The Accept-Language header value
  * @returns The primary language code (e.g., "en", "de"), defaults to "en"
  */
-function parseAcceptLanguage(acceptLanguage: string | null): string {
+export function parseAcceptLanguage(acceptLanguage: string | null): string {
 	if (!acceptLanguage) {
 		return 'en';
 	}
@@ -85,7 +82,7 @@ function parseAcceptLanguage(acceptLanguage: string | null): string {
 	return languageCode ?? 'en';
 }
 
-function buildResponse({
+export function buildResponse({
 	jurisdiction,
 	location,
 	acceptLanguage,
@@ -105,67 +102,13 @@ function buildResponse({
 	return {
 		jurisdiction,
 		location,
-		translations: getTranslations(acceptLanguage, customTranslations),
+		translations: getTranslationsData(acceptLanguage, customTranslations),
 		branding: branding,
 		gvl: gvl ?? null,
 		customVendors: customVendors ?? undefined,
 	};
 }
 
-/**
- * Handler for the show consent banner endpoint
- * Determines if a user should see a consent banner based on their location
- */
-export const init = os.init.handler(async ({ context }) => {
-	const typedContext = context as C15TContext;
-	const { customTranslations, disableGeoLocation, branding, gvl, cache } =
-		typedContext.advanced ?? {};
-	const { countryCode, regionCode, acceptLanguage } = getHeaders(
-		typedContext.headers
-	);
-
-	// Resolve GVL based on configuration
-	let resolvedGvl: GlobalVendorList | null = null;
-
-	if (gvl?.enabled) {
-		const language = parseAcceptLanguage(acceptLanguage);
-		const gvlResolver = createGVLResolver({
-			appName: typedContext.appName,
-			bundled: gvl.bundled,
-			cacheAdapter: cache?.adapter,
-			vendorIds: gvl.vendorIds,
-			endpoint: gvl.endpoint,
-		});
-
-		resolvedGvl = await gvlResolver.get(language);
-	}
-
-	// Get custom vendors from config (only when GVL is enabled)
-	const customVendors = gvl?.enabled ? gvl.customVendors : undefined;
-
-	// We default to an Opt-In jurisdiction when geo location is disabled
-	// As we don't know the jurisdiction in this case, it's better to show the strictest version of the banner
-	if (disableGeoLocation) {
-		return buildResponse({
-			jurisdiction: 'GDPR',
-			location: { countryCode: null, regionCode: null },
-			acceptLanguage,
-			customTranslations,
-			branding,
-			gvl: resolvedGvl ?? undefined,
-			customVendors,
-		});
-	}
-
-	const jurisdiction = checkJurisdiction(countryCode, regionCode);
-
-	return buildResponse({
-		jurisdiction,
-		location: { countryCode, regionCode },
-		acceptLanguage,
-		customTranslations,
-		branding,
-		gvl: resolvedGvl ?? undefined,
-		customVendors,
-	});
-});
+export { checkJurisdiction, getJurisdiction, getLocation } from './geo';
+// Re-export translations functions
+export { getTranslations, getTranslationsData } from './translations';

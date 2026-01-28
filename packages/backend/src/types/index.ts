@@ -7,7 +7,6 @@ import {
 } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
 import type { Tracer } from '@opentelemetry/api';
-import type { OpenAPIGeneratorOptions } from '@orpc/openapi';
 import type { FumaDB, InferFumaDB } from 'fumadb';
 import type { CacheAdapter } from '../cache/types';
 import type { createRegistry } from '../db/registry';
@@ -80,9 +79,16 @@ interface BaseOptions {
 
 			/**
 			 * OpenAPI specification options
-			 * These are passed to the OpenAPIGenerator.generate() method
 			 */
-			options?: Partial<OpenAPIGeneratorOptions>;
+			options?: {
+				info?: {
+					title?: string;
+					version?: string;
+					description?: string;
+				};
+				servers?: Array<{ url: string; description?: string }>;
+				security?: Array<Record<string, string[]>>;
+			};
 
 			/**
 			 * Custom template for rendering the API documentation UI

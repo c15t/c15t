@@ -4,14 +4,7 @@
  * @packageDocumentation
  */
 
-import { getSubject } from './get.handler';
-import { listSubjects } from './list.handler';
-import { patchSubject } from './patch.handler';
-import { postSubject } from './post.handler';
-
-export const subjectHandlers = {
-	post: postSubject,
-	get: getSubject,
-	patch: patchSubject,
-	list: listSubjects,
-};
+export { getSubjectHandler } from './get.handler';
+export { listSubjectsHandler } from './list.handler';
+export { patchSubjectHandler } from './patch.handler';
+export { postSubjectHandler } from './post.handler';

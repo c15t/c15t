@@ -1,6 +1,6 @@
-import { z } from 'zod';
+import * as v from 'valibot';
 
-export const policyTypeSchema = z.enum([
+export const policyTypeSchema = v.picklist([
 	'cookie_banner',
 	'privacy_policy',
 	'dpa',
@@ -10,18 +10,18 @@ export const policyTypeSchema = z.enum([
 	'other',
 ]);
 
-export const consentPolicySchema = z.object({
-	id: z.string(),
-	version: z.string(),
+export const consentPolicySchema = v.object({
+	id: v.string(),
+	version: v.string(),
 	type: policyTypeSchema,
-	name: z.string(),
-	effectiveDate: z.date(),
-	expirationDate: z.date().nullish(),
-	content: z.string(),
-	contentHash: z.string(),
-	isActive: z.boolean().prefault(true),
-	createdAt: z.date().prefault(() => new Date()),
+	name: v.string(),
+	effectiveDate: v.date(),
+	expirationDate: v.nullish(v.date()),
+	content: v.string(),
+	contentHash: v.string(),
+	isActive: v.optional(v.boolean(), true),
+	createdAt: v.optional(v.date(), () => new Date()),
 });
 
-export type ConsentPolicy = z.infer<typeof consentPolicySchema>;
-export type PolicyType = z.infer<typeof policyTypeSchema>;
+export type ConsentPolicy = v.InferOutput<typeof consentPolicySchema>;
+export type PolicyType = v.InferOutput<typeof policyTypeSchema>;

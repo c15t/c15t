@@ -72,7 +72,7 @@ export interface ConsentManagerInterface {
 	): Promise<ResponseContext<SetConsentResponse>>;
 
 	/**
-	 * Links an external user ID to a subject (PATCH /subject/:id).
+	 * Links an external user ID to a subject (PATCH /subjects/:id).
 	 *
 	 * @param options - Request configuration with subjectId, externalId, and identityProvider
 	 * @returns Response confirming the subject was updated

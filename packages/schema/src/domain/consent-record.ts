@@ -1,12 +1,12 @@
-import { z } from 'zod';
+import * as v from 'valibot';
 
-export const consentRecordSchema = z.object({
-	id: z.string(),
-	subjectId: z.string(),
-	consentId: z.string().nullish(),
-	actionType: z.string(),
-	details: z.record(z.string(), z.unknown()).nullish(),
-	createdAt: z.date().prefault(() => new Date()),
+export const consentRecordSchema = v.object({
+	id: v.string(),
+	subjectId: v.string(),
+	consentId: v.nullish(v.string()),
+	actionType: v.string(),
+	details: v.nullish(v.record(v.string(), v.unknown())),
+	createdAt: v.optional(v.date(), () => new Date()),
 });
 
-export type ConsentRecord = z.infer<typeof consentRecordSchema>;
+export type ConsentRecord = v.InferOutput<typeof consentRecordSchema>;

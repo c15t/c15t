@@ -113,7 +113,7 @@ describe('c15t Client Tests', () => {
 
 		// Assertions
 		expect(fetchMock).toHaveBeenCalledTimes(1);
-		// v2.0: Uses POST /subject endpoint
+		// v2.0: Uses POST /subjects endpoint
 		expect(fetchMock).toHaveBeenCalledWith(
 			expect.stringContaining(API_ENDPOINTS.POST_SUBJECT),
 			expect.objectContaining({

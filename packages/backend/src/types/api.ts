@@ -1,4 +1,19 @@
 /**
+ * Jurisdiction code type for privacy regulations
+ */
+export type JurisdictionCode =
+	| 'UK_GDPR'
+	| 'GDPR'
+	| 'CH'
+	| 'BR'
+	| 'PIPEDA'
+	| 'AU'
+	| 'APPI'
+	| 'PIPA'
+	| 'CCPA'
+	| 'NONE';
+
+/**
  * Base API path template literal for c15t consent endpoints
  *
  * This type defines the base path for all consent API routes in the c15t system.

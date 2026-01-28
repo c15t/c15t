@@ -1,20 +1,20 @@
-import { z } from 'zod';
+import * as v from 'valibot';
 
 /**
  * Output schema for status endpoint
  */
-export const statusOutputSchema = z.object({
-	version: z.string(),
-	timestamp: z.date(),
-	client: z.object({
-		ip: z.string().nullable(),
-		acceptLanguage: z.string().nullable(),
-		userAgent: z.string().nullable(),
-		region: z.object({
-			countryCode: z.string().nullable(),
-			regionCode: z.string().nullable(),
+export const statusOutputSchema = v.object({
+	version: v.string(),
+	timestamp: v.date(),
+	client: v.object({
+		ip: v.nullable(v.string()),
+		acceptLanguage: v.nullable(v.string()),
+		userAgent: v.nullable(v.string()),
+		region: v.object({
+			countryCode: v.nullable(v.string()),
+			regionCode: v.nullable(v.string()),
 		}),
 	}),
 });
 
-export type StatusOutput = z.infer<typeof statusOutputSchema>;
+export type StatusOutput = v.InferOutput<typeof statusOutputSchema>;

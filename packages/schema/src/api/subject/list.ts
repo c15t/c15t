@@ -4,51 +4,51 @@
  * @packageDocumentation
  */
 
-import { z } from 'zod';
+import * as v from 'valibot';
 import { consentItemSchema } from './get';
 
 /**
  * GET /subjects query params (requires API key)
  */
-export const listSubjectsQuerySchema = z.object({
-	externalId: z.string(),
+export const listSubjectsQuerySchema = v.object({
+	externalId: v.string(),
 });
 
 /**
  * Subject item in GET /subjects response
  */
-export const subjectItemSchema = z.object({
-	id: z.string(),
-	externalId: z.string(),
-	isIdentified: z.boolean(),
-	createdAt: z.date(),
-	consents: z.array(consentItemSchema),
+export const subjectItemSchema = v.object({
+	id: v.string(),
+	externalId: v.string(),
+	isIdentified: v.boolean(),
+	createdAt: v.date(),
+	consents: v.array(consentItemSchema),
 });
 
 /**
  * GET /subjects output schema
  */
-export const listSubjectsOutputSchema = z.object({
-	subjects: z.array(subjectItemSchema),
+export const listSubjectsOutputSchema = v.object({
+	subjects: v.array(subjectItemSchema),
 });
 
 /**
  * Error schemas for GET /subjects
  */
 export const listSubjectsErrorSchemas = {
-	inputValidationFailed: z.object({
-		formErrors: z.array(z.string()),
-		fieldErrors: z.record(z.string(), z.array(z.string())),
+	inputValidationFailed: v.object({
+		formErrors: v.array(v.string()),
+		fieldErrors: v.record(v.string(), v.array(v.string())),
 	}),
-	unauthorized: z.object({
-		message: z.string(),
+	unauthorized: v.object({
+		message: v.string(),
 	}),
-	externalIdRequired: z.object({
-		message: z.string(),
+	externalIdRequired: v.object({
+		message: v.string(),
 	}),
 };
 
 // Type exports
-export type ListSubjectsQuery = z.infer<typeof listSubjectsQuerySchema>;
-export type ListSubjectsOutput = z.infer<typeof listSubjectsOutputSchema>;
-export type SubjectItem = z.infer<typeof subjectItemSchema>;
+export type ListSubjectsQuery = v.InferOutput<typeof listSubjectsQuerySchema>;
+export type ListSubjectsOutput = v.InferOutput<typeof listSubjectsOutputSchema>;
+export type SubjectItem = v.InferOutput<typeof subjectItemSchema>;

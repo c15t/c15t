@@ -1,22 +1,23 @@
 import { createLogger } from '@c15t/logger';
-import { OpenAPIHandler } from '@orpc/openapi/fetch';
-import { ORPCError } from '@orpc/server';
-import { CompressionPlugin } from '@orpc/server/fetch';
-import { CORSPlugin } from '@orpc/server/plugins';
-import defu from 'defu';
+import { apiReference } from '@scalar/hono-api-reference';
+import { Hono } from 'hono';
+import { compress } from 'hono/compress';
+import { cors } from 'hono/cors';
+import { HTTPException } from 'hono/http-exception';
+import { openAPIRouteHandler } from 'hono-openapi';
 import { validateRequestAuth } from '~/middleware/auth';
 import { createCORSOptions } from '~/middleware/cors';
-import { processCors } from '~/middleware/cors/process-cors';
-import {
-	createDocsUI,
-	createOpenAPIConfig,
-	createOpenAPISpec,
-} from '~/middleware/openapi';
+import { createOpenAPIConfig } from '~/middleware/openapi';
 import { getIpAddress } from '~/middleware/process-ip';
-import { router } from '~/router';
-import type { C15TContext, C15TOptions, DeepPartial } from '~/types';
+import type { C15TContext, C15TOptions } from '~/types';
 import { init } from './init';
+import { createConsentRoutes } from './routes/consent';
+// Import route handlers
+import { createInitRoute } from './routes/init';
+import { createStatusRoute } from './routes/status';
+import { createSubjectRoutes } from './routes/subject';
 import { withRequestSpan } from './utils/create-telemetry-options';
+import { version } from './version';
 
 /**
  * Type representing an API route
@@ -26,6 +27,11 @@ export type Route = {
 	method: string;
 	description?: string;
 };
+
+/**
+ * Hono app type with c15t context
+ */
+export type C15TApp = Hono<{ Variables: { c15tContext: C15TContext } }>;
 
 /**
  * Interface representing a configured c15t consent management instance.
@@ -62,12 +68,12 @@ export interface C15TInstance {
 	/**
 	 * Access to the underlying context.
 	 */
-	$context: Promise<C15TContext>;
+	$context: C15TContext;
 
 	/**
-	 * Access to the router for direct usage.
+	 * Access to the Hono app for direct usage.
 	 */
-	router: typeof router;
+	app: C15TApp;
 
 	/**
 	 * Generates and returns the OpenAPI specification as a JSON object.
@@ -87,155 +93,29 @@ export interface C15TInstance {
 /**
  * Creates a new c15t consent management instance.
  *
- * This version provides a unified handler that works with oRPC to handle requests.
+ * This version uses Hono as the HTTP framework with OpenAPI support.
  */
-export const c15tInstance = (options: C15TOptions) => {
+export const c15tInstance = (options: C15TOptions): C15TInstance => {
 	const context = init(options);
+	const logger = createLogger(options.logger);
 
-	// Replace the inline corsOptions with the imported one
-	const corsOptions = createCORSOptions(options.trustedOrigins);
-
-	// Create the oRPC handler with plugins
-	const rpcHandler = new OpenAPIHandler(router, {
-		plugins: [new CORSPlugin(corsOptions), new CompressionPlugin()],
-	});
+	// Create the Hono app
+	const app = new Hono<{ Variables: { c15tContext: C15TContext } }>();
 
 	// Set up OpenAPI configuration
 	const openApiConfig = createOpenAPIConfig(options);
-	const getDocsUI = () => createDocsUI(options);
+	const basePath = options.basePath || '/';
 
-	/**
-	 * Add telemetry tracking to the context
-	 */
-	const processTelemetry = (request: Request, context: C15TContext) => {
-		const url = new URL(request.url);
-		const path = url.pathname;
-		const method = request.method;
+	// CORS middleware
+	const corsOptions = createCORSOptions(options.trustedOrigins);
+	app.use('*', cors(corsOptions));
 
-		// // Add a span to the context that can be accessed by handlers
-		withRequestSpan(
-			method,
-			path,
-			async () => {
-				// This callback is intentionally empty - we're only creating the span
-				// The span automatically tracks the current execution context and
-				// will be associated with the request processing that follows
-			},
-			options
-		);
+	// Compression middleware
+	app.use('*', compress());
 
-		// Add path and method to context for easier access
-		context.path = path;
-		context.method = method;
-		context.headers = request.headers;
-		context.userAgent = request.headers.get('user-agent') || undefined;
-
-		return context;
-	};
-
-	/**
-	 * Handle OpenAPI spec requests
-	 */
-	const handleOpenApiSpecRequest = async (
-		url: URL
-	): Promise<Response | null> => {
-		if (openApiConfig.enabled && url.pathname === openApiConfig.specPath) {
-			const getOpenAPISpec = createOpenAPISpec(context, options);
-			const spec = await getOpenAPISpec();
-
-			return new Response(JSON.stringify(spec), {
-				status: 200,
-				headers: { 'Content-Type': 'application/json' },
-			});
-		}
-		return null;
-	};
-
-	/**
-	 * Handle API docs UI requests
-	 */
-	const handleDocsUiRequest = (url: URL): Response | null => {
-		if (openApiConfig.enabled && url.pathname === openApiConfig.docsPath) {
-			const html = getDocsUI();
-			return new Response(html, {
-				status: 200,
-				headers: {
-					'Content-Type': 'text/html',
-					'Content-Security-Policy':
-						"default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;",
-				},
-			});
-		}
-		return null;
-	};
-
-	/**
-	 * Create error response for ORPCError
-	 */
-	const createORPCErrorResponse = (
-		error: ORPCError<string, unknown>
-	): Response => {
-		const sanitizedMessage = error.message.replace(
-			/[^\w\s.,;:!?()[\]{}'"+-]/g,
-			''
-		);
-
-		return new Response(
-			JSON.stringify({
-				code: error.code,
-				message: sanitizedMessage,
-				data: error.data ?? {},
-				status: error.status,
-				defined: true,
-			}),
-			{
-				status: error.status,
-				headers: { 'Content-Type': 'application/json' },
-			}
-		);
-	};
-
-	/**
-	 * Create error response for unknown errors
-	 */
-	const createUnknownErrorResponse = (error: unknown): Response => {
-		const message = error instanceof Error ? error.message : String(error);
-		// More safely determine the status code with proper type checks
-		let status = 500;
-		if (error instanceof Error && 'status' in error) {
-			const statusValue = (error as { status: unknown }).status;
-			if (
-				typeof statusValue === 'number' &&
-				statusValue >= 100 &&
-				statusValue < 600
-			) {
-				status = statusValue;
-			}
-		}
-
-		return new Response(
-			JSON.stringify({
-				code: 'INTERNAL_SERVER_ERROR',
-				message,
-				status,
-				defined: true,
-				data: {},
-			}),
-			{
-				status,
-				headers: { 'Content-Type': 'application/json' },
-			}
-		);
-	};
-
-	/**
-	 * Handle API requests via oRPC
-	 */
-	const handleApiRequest = async (
-		request: Request,
-		ctx: C15TContext
-	): Promise<Response> => {
-		const { logger } = ctx;
+	// Context middleware - enriches each request with c15t context
+	app.use('*', async (c, next) => {
+		const request = c.req.raw;
 
 		// Check API key authentication
 		const apiKeyAuthenticated = validateRequestAuth(
@@ -248,141 +128,191 @@ export const c15tInstance = (options: C15TOptions) => {
 			ipAddress: getIpAddress(request, options),
 			userAgent: request.headers.get('user-agent') || undefined,
 			apiKeyAuthenticated,
+			path: c.req.path,
+			method: c.req.method,
+			headers: request.headers,
 		};
 
-		processCors(request, enrichedContext, options.trustedOrigins);
-		processTelemetry(request, enrichedContext);
+		// Add telemetry span
+		withRequestSpan(
+			c.req.method,
+			c.req.path,
+			async () => {
+				// Span tracks the request
+			},
+			options
+		);
 
-		logger.debug?.('Handling prefix', {
-			prefix: (options.basePath as `/${string}`) || '/',
-		});
+		c.set('c15tContext', enrichedContext);
+		await next();
+	});
 
-		const { matched, response } = await rpcHandler.handle(request, {
-			prefix: (options.basePath as `/${string}`) || '/',
-			context: enrichedContext,
-		});
+	// OpenAPI spec endpoint
+	if (openApiConfig.enabled) {
+		app.get(
+			openApiConfig.specPath,
+			openAPIRouteHandler(app, {
+				documentation: {
+					openapi: '3.1.0',
+					info: {
+						title: options.appName || 'c15t API',
+						version,
+						description: 'API for consent management',
+					},
+					servers: [{ url: basePath }],
+					components: {
+						securitySchemes: {
+							bearerAuth: {
+								type: 'http',
+								scheme: 'bearer',
+							},
+						},
+					},
+				},
+			})
+		);
 
-		// Return the response if handler matched
-		if (matched && response) {
-			logger.debug('Handler matched', {
-				request,
-				matched,
-				response,
-			});
-			return response;
+		// Docs UI endpoint
+		// The spec URL needs to include the basePath since it's used by the browser
+		const publicSpecUrl = `${basePath}${openApiConfig.specPath}`.replace(
+			/\/+/g,
+			'/'
+		);
+		app.get(
+			openApiConfig.docsPath,
+			apiReference({
+				spec: {
+					url: publicSpecUrl,
+				},
+				pageTitle: `${options.appName || 'c15t API'} Documentation`,
+			})
+		);
+	}
+
+	// Mount routes - using plural nouns for REST conventions
+	app.route('/init', createInitRoute(options));
+	app.route('/subjects', createSubjectRoutes());
+	app.route('/consents', createConsentRoutes());
+	app.route('/status', createStatusRoute());
+
+	// Global error handler
+	app.onError((err, c) => {
+		const ctx = c.get('c15tContext');
+		const log = ctx?.logger || logger;
+
+		log.error('Request handling error:', err);
+
+		if (err instanceof HTTPException) {
+			const cause = err.cause as
+				| { code?: string; [key: string]: unknown }
+				| undefined;
+			return c.json(
+				{
+					code: cause?.code || 'HTTP_ERROR',
+					message: err.message,
+					data: cause || {},
+					status: err.status,
+					defined: true,
+				},
+				err.status
+			);
 		}
 
-		logger.debug('No handler matched', {
-			request,
-			matched,
-			response,
-		});
-		// If no handler matched, return 404
-		return new Response('Not Found', { status: 404 });
-	};
+		const message = err instanceof Error ? err.message : String(err);
+		return c.json(
+			{
+				code: 'INTERNAL_SERVER_ERROR',
+				message,
+				status: 500,
+				defined: true,
+				data: {},
+			},
+			500
+		);
+	});
 
-	/**
-	 * Handle an incoming request using oRPC
-	 */
-	const handler = async (
-		request: Request,
-		ctxOverride?: DeepPartial<C15TContext>
-	): Promise<Response> => {
-		try {
+	// 404 handler
+	app.notFound((c) => {
+		return c.json(
+			{
+				code: 'NOT_FOUND',
+				message: 'Not Found',
+				status: 404,
+				defined: true,
+				data: {},
+			},
+			404
+		);
+	});
+
+	// Create the handler function
+	const handler = async (request: Request): Promise<Response> => {
+		logger?.debug?.('Incoming request', {
+			method: request.method,
+			url: request.url,
+		});
+
+		// Strip the basePath from the URL if present
+		// This allows Hono routes to be defined without the basePath prefix
+		let modifiedRequest = request;
+		if (basePath && basePath !== '/') {
 			const url = new URL(request.url);
-
-			// Add this debug log:
-			createLogger(options.logger)?.debug?.('Incoming request', {
-				method: request.method,
-				pathname: url.pathname,
-			});
-
-			// Check for OpenAPI spec or docs UI requests
-			const openApiResponse = await handleOpenApiSpecRequest(url);
-			if (openApiResponse) {
-				return openApiResponse;
+			const normalizedBasePath = basePath.replace(/\/$/, ''); // Remove trailing slash
+			if (url.pathname.startsWith(normalizedBasePath)) {
+				const newPath = url.pathname.slice(normalizedBasePath.length) || '/';
+				url.pathname = newPath;
+				modifiedRequest = new Request(url.toString(), {
+					method: request.method,
+					headers: request.headers,
+					body: request.body,
+					duplex: 'half',
+				} as RequestInit);
 			}
-
-			const docsResponse = handleDocsUiRequest(url);
-			if (docsResponse) {
-				return docsResponse;
-			}
-
-			const ctx = defu(ctxOverride || {}, context) as C15TContext;
-
-			// After options is used
-			const basePath = options.basePath;
-			createLogger(options.logger)?.debug?.('[c15t] Using basePath', {
-				basePath,
-			});
-
-			// Add this debug log:
-			createLogger(options.logger)?.debug?.('[c15t] Routing request', {
-				method: request.method,
-				url: request.url,
-				prefix: basePath,
-			});
-
-			// Handle API request
-			return await handleApiRequest(request, ctx);
-		} catch (error) {
-			// Log the error
-			const logger = options.logger ? createLogger(options.logger) : console;
-			logger.error('Request handling error:', error);
-
-			// Handle different error types
-			if (error instanceof ORPCError) {
-				return createORPCErrorResponse(error);
-			}
-
-			return createUnknownErrorResponse(error);
 		}
+
+		return app.fetch(modifiedRequest);
 	};
 
-	// Create Next.js-compatible route handlers
-	const createNextHandlers = () => {
-		const nextHandler = async (request: Request) => {
-			return await handler(request);
-		};
-
-		return {
-			GET: nextHandler,
-			POST: nextHandler,
-			PUT: nextHandler,
-			PATCH: nextHandler,
-			DELETE: nextHandler,
-			OPTIONS: nextHandler,
-			HEAD: nextHandler,
-		};
+	// Create docs UI helper
+	const getDocsUI = () => {
+		const specUrl = `${basePath}${openApiConfig.specPath}`.replace(/\/+/g, '/');
+		return `
+<!doctype html> 
+<html>
+  <head>
+    <title>${options.appName || 'c15t API'} Documentation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="https://c15t.com/icon.svg" />
+  </head>
+  <body>
+    <script
+      id="api-reference"
+      data-url="${encodeURI(specUrl)}">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+  </body>
+</html>
+`;
 	};
 
 	// Return the instance
 	return {
 		options,
-
-		// Unwrap the Result when exposing the context
 		$context: context,
-
-		// Export router for direct access
-		router,
-
-		// Request handler for standard environments
+		app,
 		handler,
-
-		// Next.js route handlers
-		...createNextHandlers(),
-
-		// OpenAPI functionality
-		getOpenAPISpec: () => {
-			const getOpenAPISpec = createOpenAPISpec(context, options);
-
-			return getOpenAPISpec();
+		getOpenAPISpec: async () => {
+			// Generate OpenAPI spec by fetching from our own endpoint
+			const specResponse = await app.fetch(
+				new Request(`http://localhost${openApiConfig.specPath}`)
+			);
+			return specResponse.json() as Promise<Record<string, unknown>>;
 		},
 		getDocsUI,
 	};
 };
 
-export type { ContractsInputs, ContractsOutputs } from '~/contracts';
 export { defineConfig } from './define-config';
 export type { C15TContext, C15TOptions } from './types';
 export { version } from './version';

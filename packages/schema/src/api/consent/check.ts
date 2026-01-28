@@ -4,53 +4,53 @@
  * @packageDocumentation
  */
 
-import { z } from 'zod';
+import * as v from 'valibot';
 
 /**
  * Query params for consent check
  */
-export const checkConsentQuerySchema = z.object({
+export const checkConsentQuerySchema = v.object({
 	/** External user ID to check */
-	externalId: z.string(),
+	externalId: v.string(),
 	/** Consent type(s) to check, comma-separated */
-	type: z.string(),
+	type: v.string(),
 });
 
 /**
  * Result for a single consent type
  */
-export const consentCheckResultSchema = z.object({
+export const consentCheckResultSchema = v.object({
 	/** Whether consent has been given for this type */
-	hasConsent: z.boolean(),
+	hasConsent: v.boolean(),
 	/** Whether the consent is for the latest policy version */
-	isLatestPolicy: z.boolean(),
+	isLatestPolicy: v.boolean(),
 });
 
 /**
  * Output schema for consent check
  */
-export const checkConsentOutputSchema = z.object({
+export const checkConsentOutputSchema = v.object({
 	/** Results keyed by consent type */
-	results: z.record(z.string(), consentCheckResultSchema),
+	results: v.record(v.string(), consentCheckResultSchema),
 });
 
 /**
  * Error schemas for consent check
  */
 export const checkConsentErrorSchemas = {
-	inputValidationFailed: z.object({
-		formErrors: z.array(z.string()),
-		fieldErrors: z.record(z.string(), z.array(z.string())),
+	inputValidationFailed: v.object({
+		formErrors: v.array(v.string()),
+		fieldErrors: v.record(v.string(), v.array(v.string())),
 	}),
-	externalIdRequired: z.object({
-		message: z.string(),
+	externalIdRequired: v.object({
+		message: v.string(),
 	}),
-	typeRequired: z.object({
-		message: z.string(),
+	typeRequired: v.object({
+		message: v.string(),
 	}),
 };
 
 // Type exports
-export type CheckConsentQuery = z.infer<typeof checkConsentQuerySchema>;
-export type CheckConsentOutput = z.infer<typeof checkConsentOutputSchema>;
-export type ConsentCheckResult = z.infer<typeof consentCheckResultSchema>;
+export type CheckConsentQuery = v.InferOutput<typeof checkConsentQuerySchema>;
+export type CheckConsentOutput = v.InferOutput<typeof checkConsentOutputSchema>;
+export type ConsentCheckResult = v.InferOutput<typeof consentCheckResultSchema>;

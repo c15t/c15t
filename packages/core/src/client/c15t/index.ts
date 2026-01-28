@@ -158,7 +158,7 @@ export class C15tClient implements ConsentManagerInterface {
 	 * If the API request fails, falls back to offline mode behavior.
 	 *
 	 * @remarks
-	 * v2.0: This calls POST /subject with a client-generated subjectId.
+	 * v2.0: This calls POST /subjects with a client-generated subjectId.
 	 */
 	async setConsent(
 		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
@@ -167,11 +167,11 @@ export class C15tClient implements ConsentManagerInterface {
 	}
 
 	/**
-	 * Links an external user ID to a subject via PATCH /subject/:id.
+	 * Links an external user ID to a subject via PATCH /subjects/:id.
 	 * Saves to storage first (optimistic), then makes API call with fallback.
 	 *
 	 * @remarks
-	 * v2.0: Maps to PATCH /subject/:id endpoint.
+	 * v2.0: Maps to PATCH /subjects/:id endpoint.
 	 */
 	async identifyUser(
 		options: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>

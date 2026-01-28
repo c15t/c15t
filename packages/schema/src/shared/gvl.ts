@@ -4,139 +4,139 @@
  * Based on IAB TCF v2.3 specification.
  * @see https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework
  */
-import { z } from 'zod';
+import * as v from 'valibot';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Purpose Schemas
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const gvlPurposeSchema = z.object({
-	id: z.number(),
-	name: z.string(),
-	description: z.string(),
-	illustrations: z.array(z.string()),
-	descriptionLegal: z.string().optional(),
+export const gvlPurposeSchema = v.object({
+	id: v.number(),
+	name: v.string(),
+	description: v.string(),
+	illustrations: v.array(v.string()),
+	descriptionLegal: v.optional(v.string()),
 });
 
-export const gvlSpecialPurposeSchema = z.object({
-	id: z.number(),
-	name: z.string(),
-	description: z.string(),
-	illustrations: z.array(z.string()),
-	descriptionLegal: z.string().optional(),
+export const gvlSpecialPurposeSchema = v.object({
+	id: v.number(),
+	name: v.string(),
+	description: v.string(),
+	illustrations: v.array(v.string()),
+	descriptionLegal: v.optional(v.string()),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Feature Schemas
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const gvlFeatureSchema = z.object({
-	id: z.number(),
-	name: z.string(),
-	description: z.string(),
-	illustrations: z.array(z.string()),
-	descriptionLegal: z.string().optional(),
+export const gvlFeatureSchema = v.object({
+	id: v.number(),
+	name: v.string(),
+	description: v.string(),
+	illustrations: v.array(v.string()),
+	descriptionLegal: v.optional(v.string()),
 });
 
-export const gvlSpecialFeatureSchema = z.object({
-	id: z.number(),
-	name: z.string(),
-	description: z.string(),
-	illustrations: z.array(z.string()),
-	descriptionLegal: z.string().optional(),
+export const gvlSpecialFeatureSchema = v.object({
+	id: v.number(),
+	name: v.string(),
+	description: v.string(),
+	illustrations: v.array(v.string()),
+	descriptionLegal: v.optional(v.string()),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Vendor Schemas
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const gvlVendorUrlSchema = z.object({
-	langId: z.string(),
-	privacy: z.string().optional(),
-	legIntClaim: z.string().optional(),
+export const gvlVendorUrlSchema = v.object({
+	langId: v.string(),
+	privacy: v.optional(v.string()),
+	legIntClaim: v.optional(v.string()),
 });
 
-export const gvlVendorSchema = z.object({
-	id: z.number(),
-	name: z.string(),
-	purposes: z.array(z.number()),
-	legIntPurposes: z.array(z.number()),
-	flexiblePurposes: z.array(z.number()),
-	specialPurposes: z.array(z.number()),
-	features: z.array(z.number()),
-	specialFeatures: z.array(z.number()),
-	cookieMaxAgeSeconds: z.number().nullable(),
-	usesCookies: z.boolean(),
-	cookieRefresh: z.boolean(),
-	usesNonCookieAccess: z.boolean(),
-	urls: z.array(gvlVendorUrlSchema),
-	deviceStorageDisclosureUrl: z.string().optional(),
-	dataCategories: z.array(z.number()).optional(),
-	dataRetention: z
-		.object({
-			purposes: z.record(z.string(), z.number()).optional(),
-			specialPurposes: z.record(z.string(), z.number()).optional(),
-			stdRetention: z.number().optional(),
+export const gvlVendorSchema = v.object({
+	id: v.number(),
+	name: v.string(),
+	purposes: v.array(v.number()),
+	legIntPurposes: v.array(v.number()),
+	flexiblePurposes: v.array(v.number()),
+	specialPurposes: v.array(v.number()),
+	features: v.array(v.number()),
+	specialFeatures: v.array(v.number()),
+	cookieMaxAgeSeconds: v.nullable(v.number()),
+	usesCookies: v.boolean(),
+	cookieRefresh: v.boolean(),
+	usesNonCookieAccess: v.boolean(),
+	urls: v.array(gvlVendorUrlSchema),
+	deviceStorageDisclosureUrl: v.optional(v.string()),
+	dataCategories: v.optional(v.array(v.number())),
+	dataRetention: v.optional(
+		v.object({
+			purposes: v.optional(v.record(v.string(), v.number())),
+			specialPurposes: v.optional(v.record(v.string(), v.number())),
+			stdRetention: v.optional(v.number()),
 		})
-		.optional(),
-	deletedDate: z.string().optional(),
-	overflow: z
-		.object({
-			httpGetLimit: z.number(),
+	),
+	deletedDate: v.optional(v.string()),
+	overflow: v.optional(
+		v.object({
+			httpGetLimit: v.number(),
 		})
-		.optional(),
+	),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Stack Schema
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const gvlStackSchema = z.object({
-	id: z.number(),
-	name: z.string(),
-	description: z.string(),
-	purposes: z.array(z.number()),
-	specialFeatures: z.array(z.number()),
+export const gvlStackSchema = v.object({
+	id: v.number(),
+	name: v.string(),
+	description: v.string(),
+	purposes: v.array(v.number()),
+	specialFeatures: v.array(v.number()),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data Category Schema
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const gvlDataCategorySchema = z.object({
-	id: z.number(),
-	name: z.string(),
-	description: z.string(),
+export const gvlDataCategorySchema = v.object({
+	id: v.number(),
+	name: v.string(),
+	description: v.string(),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Global Vendor List Schema
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const globalVendorListSchema = z.object({
-	gvlSpecificationVersion: z.number(),
-	vendorListVersion: z.number(),
-	tcfPolicyVersion: z.number(),
-	lastUpdated: z.string(),
-	purposes: z.record(z.string(), gvlPurposeSchema),
-	specialPurposes: z.record(z.string(), gvlSpecialPurposeSchema),
-	features: z.record(z.string(), gvlFeatureSchema),
-	specialFeatures: z.record(z.string(), gvlSpecialFeatureSchema),
-	vendors: z.record(z.string(), gvlVendorSchema),
-	stacks: z.record(z.string(), gvlStackSchema),
-	dataCategories: z.record(z.string(), gvlDataCategorySchema).optional(),
+export const globalVendorListSchema = v.object({
+	gvlSpecificationVersion: v.number(),
+	vendorListVersion: v.number(),
+	tcfPolicyVersion: v.number(),
+	lastUpdated: v.string(),
+	purposes: v.record(v.string(), gvlPurposeSchema),
+	specialPurposes: v.record(v.string(), gvlSpecialPurposeSchema),
+	features: v.record(v.string(), gvlFeatureSchema),
+	specialFeatures: v.record(v.string(), gvlSpecialFeatureSchema),
+	vendors: v.record(v.string(), gvlVendorSchema),
+	stacks: v.record(v.string(), gvlStackSchema),
+	dataCategories: v.optional(v.record(v.string(), gvlDataCategorySchema)),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Type Exports
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type GVLPurpose = z.infer<typeof gvlPurposeSchema>;
-export type GVLSpecialPurpose = z.infer<typeof gvlSpecialPurposeSchema>;
-export type GVLFeature = z.infer<typeof gvlFeatureSchema>;
-export type GVLSpecialFeature = z.infer<typeof gvlSpecialFeatureSchema>;
-export type GVLVendorUrl = z.infer<typeof gvlVendorUrlSchema>;
-export type GVLVendor = z.infer<typeof gvlVendorSchema>;
-export type GVLStack = z.infer<typeof gvlStackSchema>;
-export type GVLDataCategory = z.infer<typeof gvlDataCategorySchema>;
-export type GlobalVendorList = z.infer<typeof globalVendorListSchema>;
+export type GVLPurpose = v.InferOutput<typeof gvlPurposeSchema>;
+export type GVLSpecialPurpose = v.InferOutput<typeof gvlSpecialPurposeSchema>;
+export type GVLFeature = v.InferOutput<typeof gvlFeatureSchema>;
+export type GVLSpecialFeature = v.InferOutput<typeof gvlSpecialFeatureSchema>;
+export type GVLVendorUrl = v.InferOutput<typeof gvlVendorUrlSchema>;
+export type GVLVendor = v.InferOutput<typeof gvlVendorSchema>;
+export type GVLStack = v.InferOutput<typeof gvlStackSchema>;
+export type GVLDataCategory = v.InferOutput<typeof gvlDataCategorySchema>;
+export type GlobalVendorList = v.InferOutput<typeof globalVendorListSchema>;

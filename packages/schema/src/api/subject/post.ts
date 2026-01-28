@@ -4,72 +4,76 @@
  * @packageDocumentation
  */
 
-import { z } from 'zod';
+import * as v from 'valibot';
 import { policyTypeSchema } from '../../domain/consent-policy';
 
 /**
  * Base subject ID validation - must be in sub_xxx format
  */
-export const subjectIdSchema = z
-	.string()
-	.regex(/^sub_[1-9A-HJ-NP-Za-km-z]+$/, 'Invalid subject ID format');
+export const subjectIdSchema = v.pipe(
+	v.string(),
+	v.regex(/^sub_[1-9A-HJ-NP-Za-km-z]+$/, 'Invalid subject ID format')
+);
 
 /**
  * Base consent input schema for POST /subject
  * Note: subjectId is now required (client-generated)
  */
-const baseSubjectConsentSchema = z.object({
+const baseSubjectConsentSchema = v.object({
 	/** Client-generated subject ID in sub_xxx format (required) */
 	subjectId: subjectIdSchema,
 	/** External subject ID from your auth system (optional) */
-	externalSubjectId: z.string().optional(),
+	externalSubjectId: v.optional(v.string()),
 	/** Identity provider name (optional) */
-	identityProvider: z.string().optional(),
+	identityProvider: v.optional(v.string()),
 	/** Domain where consent was given */
-	domain: z.string(),
+	domain: v.string(),
 	/** Type of consent */
 	type: policyTypeSchema,
 	/** Additional metadata */
-	metadata: z.record(z.string(), z.unknown()).optional(),
+	metadata: v.optional(v.record(v.string(), v.unknown())),
 	/** When the consent was given in epoch milliseconds */
-	givenAt: z.number(),
+	givenAt: v.number(),
 	/** Jurisdiction code (e.g., 'GDPR', 'UK_GDPR', 'CCPA') */
-	jurisdiction: z.string().optional(),
+	jurisdiction: v.optional(v.string()),
 	/** Consent model used (e.g., 'opt-in', 'opt-out', 'iab') */
-	jurisdictionModel: z.string().optional(),
+	jurisdictionModel: v.optional(v.string()),
 	/** IAB TCF TC String (only for IAB consents) */
-	tcString: z.string().optional(),
+	tcString: v.optional(v.string()),
 });
 
 /**
  * Cookie banner consent - requires preferences
  */
-export const subjectCookieBannerInputSchema = baseSubjectConsentSchema.extend({
-	type: z.literal('cookie_banner'),
-	preferences: z.record(z.string(), z.boolean()),
+export const subjectCookieBannerInputSchema = v.object({
+	...baseSubjectConsentSchema.entries,
+	type: v.literal('cookie_banner'),
+	preferences: v.record(v.string(), v.boolean()),
 });
 
 /**
  * Policy-based consent
  */
-export const subjectPolicyBasedInputSchema = baseSubjectConsentSchema.extend({
-	type: z.enum(['privacy_policy', 'dpa', 'terms_and_conditions']),
-	policyId: z.string().optional(),
-	preferences: z.record(z.string(), z.boolean()).optional(),
+export const subjectPolicyBasedInputSchema = v.object({
+	...baseSubjectConsentSchema.entries,
+	type: v.picklist(['privacy_policy', 'dpa', 'terms_and_conditions']),
+	policyId: v.optional(v.string()),
+	preferences: v.optional(v.record(v.string(), v.boolean())),
 });
 
 /**
  * Other consent types
  */
-export const subjectOtherConsentInputSchema = baseSubjectConsentSchema.extend({
-	type: z.enum(['marketing_communications', 'age_verification', 'other']),
-	preferences: z.record(z.string(), z.boolean()).optional(),
+export const subjectOtherConsentInputSchema = v.object({
+	...baseSubjectConsentSchema.entries,
+	type: v.picklist(['marketing_communications', 'age_verification', 'other']),
+	preferences: v.optional(v.record(v.string(), v.boolean())),
 });
 
 /**
- * POST /subject input schema - discriminated union
+ * POST /subject input schema - variant (discriminated union)
  */
-export const postSubjectInputSchema = z.discriminatedUnion('type', [
+export const postSubjectInputSchema = v.variant('type', [
 	subjectCookieBannerInputSchema,
 	subjectPolicyBasedInputSchema,
 	subjectOtherConsentInputSchema,
@@ -78,52 +82,52 @@ export const postSubjectInputSchema = z.discriminatedUnion('type', [
 /**
  * POST /subject output schema
  */
-export const postSubjectOutputSchema = z.object({
-	subjectId: z.string(),
-	consentId: z.string(),
-	domainId: z.string(),
-	domain: z.string(),
+export const postSubjectOutputSchema = v.object({
+	subjectId: v.string(),
+	consentId: v.string(),
+	domainId: v.string(),
+	domain: v.string(),
 	type: policyTypeSchema,
-	status: z.string(),
-	recordId: z.string(),
-	metadata: z.record(z.string(), z.unknown()).optional(),
-	givenAt: z.date(),
+	status: v.string(),
+	recordId: v.string(),
+	metadata: v.optional(v.record(v.string(), v.unknown())),
+	givenAt: v.date(),
 });
 
 /**
  * Error schemas for POST /subject
  */
 export const postSubjectErrorSchemas = {
-	inputValidationFailed: z.object({
-		formErrors: z.array(z.string()),
-		fieldErrors: z.record(z.string(), z.array(z.string())),
+	inputValidationFailed: v.object({
+		formErrors: v.array(v.string()),
+		fieldErrors: v.record(v.string(), v.array(v.string())),
 	}),
-	subjectCreationFailed: z.object({
-		subjectId: z.string(),
+	subjectCreationFailed: v.object({
+		subjectId: v.string(),
 	}),
-	domainCreationFailed: z.object({
-		domain: z.string(),
+	domainCreationFailed: v.object({
+		domain: v.string(),
 	}),
-	policyNotFound: z.object({
-		policyId: z.string().optional(),
-		type: z.string(),
+	policyNotFound: v.object({
+		policyId: v.optional(v.string()),
+		type: v.string(),
 	}),
-	policyInactive: z.object({
-		policyId: z.string(),
-		type: z.string(),
+	policyInactive: v.object({
+		policyId: v.string(),
+		type: v.string(),
 	}),
-	policyCreationFailed: z.object({
-		type: z.string(),
+	policyCreationFailed: v.object({
+		type: v.string(),
 	}),
-	purposeCreationFailed: z.object({
-		purposeCode: z.string(),
+	purposeCreationFailed: v.object({
+		purposeCode: v.string(),
 	}),
-	consentCreationFailed: z.object({
-		subjectId: z.string(),
-		domain: z.string(),
+	consentCreationFailed: v.object({
+		subjectId: v.string(),
+		domain: v.string(),
 	}),
 };
 
 // Type exports
-export type PostSubjectInput = z.infer<typeof postSubjectInputSchema>;
-export type PostSubjectOutput = z.infer<typeof postSubjectOutputSchema>;
+export type PostSubjectInput = v.InferOutput<typeof postSubjectInputSchema>;
+export type PostSubjectOutput = v.InferOutput<typeof postSubjectOutputSchema>;

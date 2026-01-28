@@ -49,7 +49,6 @@ export default defineConfig({
 		entry: {
 			core: ['./src/core.ts'],
 			router: ['./src/router.ts'],
-			contracts: ['./src/contracts/index.ts'],
 			'db/schema': ['./src/db/schema/index.ts'],
 			'db/adapters': ['./src/db/adapters/index.ts'],
 			'db/adapters/kysely': ['./src/db/adapters/kysely.ts'],

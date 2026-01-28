@@ -43,11 +43,6 @@
 			"import": "./dist/router.js",
 			"require": "./dist/router.cjs"
 		},
-		"./contracts": {
-			"types": "./dist/contracts/index.d.ts",
-			"import": "./dist/contracts.js",
-			"require": "./dist/contracts.cjs"
-		},
 		"./db/schema": {
 			"types": "./dist/db/schema/index.d.ts",
 			"import": "./dist/db/schema.js",
@@ -118,19 +113,20 @@
 		"@c15t/logger": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
+		"@hono/standard-validator": "^0.2.2",
+		"@hono/valibot-validator": "0.6.1",
 		"@opentelemetry/api": "1.9.0",
 		"@opentelemetry/resources": "2.2.0",
 		"@opentelemetry/sdk-node": "0.208.0",
 		"@opentelemetry/sdk-trace-base": "2.2.0",
-		"@orpc/contract": "1.12.2",
-		"@orpc/openapi": "1.12.2",
-		"@orpc/otel": "1.12.2",
-		"@orpc/server": "1.12.2",
-		"@orpc/zod": "1.12.2",
+		"@scalar/hono-api-reference": "0.5.175",
+		"@valibot/to-json-schema": "1.0.0",
 		"base-x": "5.0.1",
 		"defu": "6.1.4",
 		"fumadb": "0.2.1",
-		"zod": "4.1.13"
+		"hono": "4.11.7",
+		"hono-openapi": "1.2.0",
+		"valibot": "1.2.0"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

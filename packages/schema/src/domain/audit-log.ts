@@ -1,17 +1,17 @@
-import { z } from 'zod';
+import * as v from 'valibot';
 
-export const auditLogSchema = z.object({
-	id: z.string(),
-	entityType: z.string(),
-	entityId: z.string(),
-	actionType: z.string(),
-	subjectId: z.string().optional(),
-	ipAddress: z.string().optional(),
-	userAgent: z.string().optional(),
-	changes: z.record(z.string(), z.unknown()).optional(),
-	metadata: z.record(z.string(), z.unknown()).optional(),
-	createdAt: z.date().prefault(() => new Date()),
-	eventTimezone: z.string().prefault('UTC'),
+export const auditLogSchema = v.object({
+	id: v.string(),
+	entityType: v.string(),
+	entityId: v.string(),
+	actionType: v.string(),
+	subjectId: v.optional(v.string()),
+	ipAddress: v.optional(v.string()),
+	userAgent: v.optional(v.string()),
+	changes: v.optional(v.record(v.string(), v.unknown())),
+	metadata: v.optional(v.record(v.string(), v.unknown())),
+	createdAt: v.optional(v.date(), () => new Date()),
+	eventTimezone: v.optional(v.string(), 'UTC'),
 });
 
-export type AuditLog = z.infer<typeof auditLogSchema>;
+export type AuditLog = v.InferOutput<typeof auditLogSchema>;
