@@ -1,37 +1,30 @@
+/**
+ * POST /subject handler - Records consent (append-only).
+ *
+ * @packageDocumentation
+ */
+
 import { ORPCError } from '@orpc/server';
 import { os } from '~/contracts';
 import { generateUniqueId } from '~/db/registry/utils';
 import type { C15TContext } from '~/types';
 
 /**
- * Handles the creation of a new consent record.
+ * Handles the creation of a new consent record for a subject.
  *
- * This handler processes consent submissions, creates necessary records in the database,
- * and returns a formatted response. It handles different types of consent (cookie banner,
- * policy-based, and other types) with their specific requirements.
+ * This handler processes consent submissions with client-generated subject IDs.
+ * Each call creates a new consent record (append-only), preserving the full audit trail.
  *
- * @throws {ORPCError} When:
- * - Subject creation fails
- * - Policy is not found or inactive
- * - Database transaction fails
- * - Required fields are missing
- *
- * @example
- * ```ts
- * // Cookie banner consent
- * const response = await postConsent({
- *   type: 'cookie_banner',
- *   domain: 'example.com',
- *   preferences: { analytics: true, marketing: false }
- * });
- * ```
+ * Key differences from the legacy POST /consent/set:
+ * - subjectId is required (client-generated)
+ * - Creates subject if it doesn't exist
+ * - Always appends new consent records (never updates)
  */
-
-export const postConsent = os.consent.post.handler(
+export const postSubject = os.subject.post.handler(
 	async ({ input, context }) => {
 		const typedContext = context as C15TContext;
 		const logger = typedContext.logger;
-		logger.info('Handling post-consent request');
+		logger.info('Handling POST /subject request');
 
 		const { db, registry } = typedContext;
 
@@ -57,6 +50,7 @@ export const postConsent = os.consent.post.handler(
 		});
 
 		try {
+			// Find or create subject with the client-provided ID
 			const subject = await registry.findOrCreateSubject({
 				subjectId,
 				externalSubjectId,
@@ -68,14 +62,13 @@ export const postConsent = os.consent.post.handler(
 				throw new ORPCError('SUBJECT_CREATION_FAILED', {
 					data: {
 						subjectId,
-						externalSubjectId,
 					},
 				});
 			}
 
 			logger.debug('Subject found/created', { subjectId: subject.id });
-			const domainRecord =
-				await typedContext.registry.findOrCreateDomain(domain);
+
+			const domainRecord = await registry.findOrCreateDomain(domain);
 
 			if (!domainRecord) {
 				throw new ORPCError('DOMAIN_CREATION_FAILED', {
@@ -92,8 +85,7 @@ export const postConsent = os.consent.post.handler(
 				policyId = input.policyId;
 
 				// Verify the policy exists and is active
-				const policy =
-					await typedContext.registry.findConsentPolicyById(policyId);
+				const policy = await registry.findConsentPolicyById(policyId);
 				if (!policy) {
 					throw new ORPCError('POLICY_NOT_FOUND', {
 						data: {
@@ -111,7 +103,7 @@ export const postConsent = os.consent.post.handler(
 					});
 				}
 			} else {
-				const policy = await typedContext.registry.findOrCreatePolicy(type);
+				const policy = await registry.findOrCreatePolicy(type);
 				if (!policy) {
 					throw new ORPCError('POLICY_CREATION_FAILED', {
 						data: {
@@ -133,7 +125,7 @@ export const postConsent = os.consent.post.handler(
 				// Batch fetch all existing purposes
 				const purposesRaw = await Promise.all(
 					consentedPurposes.map((purposeCode) =>
-						typedContext.registry.findOrCreateConsentPurposeByCode(purposeCode)
+						registry.findOrCreateConsentPurposeByCode(purposeCode)
 					)
 				);
 
@@ -146,9 +138,7 @@ export const postConsent = os.consent.post.handler(
 				if (purposes.length === 0) {
 					logger.warn(
 						'No valid purpose IDs found after filtering. Using empty list.',
-						{
-							consentedPurposes,
-						}
+						{ consentedPurposes }
 					);
 				}
 
@@ -163,6 +153,7 @@ export const postConsent = os.consent.post.handler(
 					purposeIds,
 				});
 
+				// Always create a new consent record (append-only)
 				const consentRecord = await tx.create('consent', {
 					id: await generateUniqueId(tx, 'consent', typedContext),
 					subjectId: subject.id,
@@ -179,15 +170,7 @@ export const postConsent = os.consent.post.handler(
 					givenAt,
 				});
 
-				logger.debug('Created consent', {
-					consentRecord: consentRecord.id,
-				});
-				logger.debug('Creating consentRecord entry', {
-					subjectId: subject.id,
-					consentId: consentRecord.id,
-					actionType: 'consent_given',
-					details: metadata,
-				});
+				logger.debug('Created consent', { consentRecord: consentRecord.id });
 
 				const record = await tx.create('consentRecord', {
 					id: await generateUniqueId(tx, 'consentRecord', typedContext),
@@ -197,16 +180,7 @@ export const postConsent = os.consent.post.handler(
 					details: metadata,
 				});
 
-				logger.debug('Created record entry', {
-					record: record.id,
-				});
-				logger.debug('Creating audit log', {
-					subjectId: subject.id,
-					entityType: 'consent',
-					entityId: consentRecord.id,
-					actionType: 'consent_given',
-					metadata: metadata,
-				});
+				logger.debug('Created record entry', { record: record.id });
 
 				await tx.create('auditLog', {
 					id: await generateUniqueId(tx, 'auditLog', typedContext),
@@ -242,10 +216,8 @@ export const postConsent = os.consent.post.handler(
 
 			// Return the response in the format defined by the contract
 			return {
-				id: result.consent.id,
 				subjectId: subject.id,
-				externalSubjectId: subject.externalId ?? undefined,
-				identityProvider: subject.identityProvider ?? undefined,
+				consentId: result.consent.id,
 				domainId: domainRecord.id,
 				domain: domainRecord.name,
 				type,
@@ -255,19 +227,16 @@ export const postConsent = os.consent.post.handler(
 				givenAt: result.consent.givenAt,
 			};
 		} catch (error) {
-			// Log all errors properly
-			logger.error('Error in post-consent handler', {
+			logger.error('Error in POST /subject handler', {
 				error: error instanceof Error ? error.message : String(error),
 				errorType:
 					error instanceof Error ? error.constructor.name : typeof error,
 			});
 
-			// Re-throw ORPCError instances
 			if (error instanceof ORPCError) {
 				throw error;
 			}
 
-			// Convert other errors to internal server error
 			throw new ORPCError('INTERNAL_SERVER_ERROR', {
 				message: error instanceof Error ? error.message : String(error),
 			});

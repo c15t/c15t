@@ -3,6 +3,7 @@ import { CMP_ID, CMP_VERSION } from '../../cmp-defaults';
 import type { ConsentStoreState } from '../../store/type';
 import type { GlobalVendorList } from '../../types';
 import type { NonIABVendor } from '../../types/non-iab-vendor';
+import { generateSubjectId } from '../generate-subject-id';
 import type { IABActions, IABConfig, IABManager, IABState } from './types';
 
 /**
@@ -245,6 +246,12 @@ export function createIABActions(
 				vendorsDisclosed,
 			});
 
+			// Get or generate subjectId
+			let subjectId = getState().consentInfo?.subjectId;
+			if (!subjectId) {
+				subjectId = generateSubjectId();
+			}
+
 			// Update core consent state
 			setState({
 				consents: c15tConsents,
@@ -252,7 +259,9 @@ export function createIABActions(
 				showPopup: false,
 				consentInfo: {
 					time: givenAt,
-					identified: !!user?.id,
+					subjectId,
+					externalId: user?.id,
+					identityProvider: user?.identityProvider,
 				},
 			});
 
@@ -262,6 +271,7 @@ export function createIABActions(
 			// Send consent to backend API
 			const consent = await manager.setConsent({
 				body: {
+					subjectId,
 					givenAt,
 					type: 'cookie_banner',
 					domain: typeof window !== 'undefined' ? window.location.hostname : '',

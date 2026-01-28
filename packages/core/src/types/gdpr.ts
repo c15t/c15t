@@ -253,17 +253,45 @@ export type ConsentInfo = {
 	time: number;
 
 	/**
-	 * The id of the consent
+	 * The client-generated subject ID in sub_xxx format
+	 *
 	 * @remarks
-	 * This is optional as old or offline consent may not have an associated id
+	 * This is the primary identifier for the device/browser.
+	 * Generated client-side using generateSubjectId() and stored in cookie.
+	 * New in v2.0 - replaces the server-generated consentId.
+	 *
+	 * @example 'sub_2VZxR7YmNpKq3WfLs8TgHd'
+	 */
+	subjectId?: string;
+
+	/**
+	 * @deprecated Use subjectId instead. The id field stored the server-generated
+	 * consentId which is no longer used in v2.0.
+	 *
+	 * @remarks
+	 * This field is kept for migration purposes. If present without subjectId,
+	 * it indicates old storage format that should trigger re-consent.
 	 */
 	id?: string;
 
 	/**
-	 * If the consent was identified by an external ID
+	 * The external user ID linked to this subject
 	 *
 	 * @remarks
-	 * This is used to link a consent record to an authenticated user
+	 * Set via identifyUser() to link a subject (device) to an authenticated user.
+	 * This is the user's ID from your auth system (e.g., Clerk, Auth0, etc.)
+	 *
+	 * @example 'user_123abc'
 	 */
-	identified?: boolean;
+	externalId?: string;
+
+	/**
+	 * The identity provider that provided the external ID
+	 *
+	 * @remarks
+	 * Used to identify which auth system the externalId came from.
+	 *
+	 * @example 'clerk', 'auth0', 'firebase'
+	 */
+	identityProvider?: string;
 };

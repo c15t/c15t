@@ -20,6 +20,9 @@ export async function offlineFallbackForSetConsent(
 ): Promise<ResponseContext<SetConsentResponse>> {
 	const pendingSubmissionsKey = 'c15t-pending-consent-submissions';
 
+	// Get the client-generated subjectId from the request
+	const subjectId = options?.body?.subjectId;
+
 	try {
 		if (typeof window !== 'undefined') {
 			// Store the consent preferences locally in both localStorage and cookie
@@ -28,7 +31,9 @@ export async function offlineFallbackForSetConsent(
 					consents: options?.body?.preferences || {},
 					consentInfo: {
 						time: Date.now(),
-						identified: Boolean(options?.body?.externalSubjectId),
+						subjectId,
+						externalId: options?.body?.externalSubjectId,
+						identityProvider: options?.body?.identityProvider,
 					},
 				},
 				undefined,
@@ -85,21 +90,6 @@ export async function offlineFallbackForSetConsent(
 		null
 	);
 
-	if (response.ok && response.data) {
-		saveConsentToStorage(
-			{
-				consents: options?.body?.preferences || {},
-				consentInfo: {
-					time: Date.now(),
-					id: response.data.id,
-					identified: Boolean(options?.body?.externalSubjectId),
-				},
-			},
-			undefined,
-			storageConfig
-		);
-	}
-
 	// Call success callback if provided
 	if (options?.onSuccess) {
 		await options.onSuccess(response);
@@ -117,34 +107,32 @@ export async function setConsent(
 	storageConfig: import('../../libs/cookie').StorageConfig | undefined,
 	options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 ): Promise<ResponseContext<SetConsentResponse>> {
+	saveConsentToStorage(
+		{
+			consents: options?.body?.preferences || {},
+			consentInfo: {
+				time: Date.now(),
+				subjectId: options?.body?.subjectId,
+				externalId: options?.body?.externalSubjectId,
+				identityProvider: options?.body?.identityProvider,
+			},
+		},
+		undefined,
+		storageConfig
+	);
+
 	const response = await withFallback<
 		SetConsentResponse,
 		SetConsentRequestBody
 	>(
 		context,
-		API_ENDPOINTS.SET_CONSENT,
+		API_ENDPOINTS.POST_SUBJECT,
 		'POST',
 		options,
 		async (fallbackOptions) => {
 			return offlineFallbackForSetConsent(storageConfig, fallbackOptions);
 		}
 	);
-
-	// If the request was successful
-	if (response.ok && response.data) {
-		saveConsentToStorage(
-			{
-				consents: options?.body?.preferences || {},
-				consentInfo: {
-					time: Date.now(),
-					id: response.data.id,
-					identified: Boolean(options?.body?.externalSubjectId),
-				},
-			},
-			undefined,
-			storageConfig
-		);
-	}
 
 	return response;
 }
