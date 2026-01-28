@@ -1,11 +1,14 @@
+/**
+ * Types for the custom client.
+ * @packageDocumentation
+ */
+
 import type {
 	IdentifyUserRequestBody,
 	IdentifyUserResponse,
 	InitResponse,
 	SetConsentRequestBody,
 	SetConsentResponse,
-	VerifyConsentRequestBody,
-	VerifyConsentResponse,
 } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
 
@@ -30,22 +33,15 @@ export interface EndpointHandlers {
 	init?: EndpointHandler<InitResponse>;
 
 	/**
-	 * Handler for the setConsent endpoint
+	 * Handler for the setConsent endpoint.
 	 */
 	setConsent: EndpointHandler<SetConsentResponse, SetConsentRequestBody>;
 
 	/**
-	 * Handler for the verifyConsent endpoint
+	 * Handler for the identifyUser endpoint (PATCH /subjects/:id).
+	 * @remarks v2.0: Links external ID to a subject.
 	 */
-	verifyConsent: EndpointHandler<
-		VerifyConsentResponse,
-		VerifyConsentRequestBody
-	>;
-
-	/**
-	 * Handler for the identifyUser endpoint
-	 */
-	identifyUser: EndpointHandler<IdentifyUserResponse, IdentifyUserRequestBody>;
+	identifyUser?: EndpointHandler<IdentifyUserResponse, IdentifyUserRequestBody>;
 }
 
 /**

@@ -1,354 +1,205 @@
 import { baseTranslations } from '@c15t/translations';
-import { describe, expect, it, vi } from 'vitest';
-import type { C15TContext } from '~/types';
-import { init } from './index';
+import { describe, expect, it } from 'vitest';
+import type { C15TOptions } from '~/types';
+import { checkJurisdiction, getJurisdiction, getLocation } from './geo';
+import {
+	buildResponse,
+	getHeaders,
+	getTranslationsData,
+	parseAcceptLanguage,
+} from './index';
 
-// First, mock the oRPC handler
-vi.mock('~/contracts', () => ({
-	os: {
-		init: {
-			handler: (fn: typeof init) => fn,
-		},
-	},
-}));
-
-describe('Init Handler', () => {
-	// Helper to create mock context with headers
-	const createMockContext = (
-		headers: Record<string, string>,
-		advanced?: Partial<C15TContext['advanced']>
-	) => {
-		return {
-			context: {
-				headers: new Headers(headers),
-				advanced: {
-					...(advanced ?? {}),
-				},
-			},
-		};
-	};
-
-	describe('Header extraction', () => {
-		it('extracts country code from cf-ipcountry header', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(createMockContext({ 'cf-ipcountry': 'DE' }));
-
-			expect(result.location.countryCode).toBe('DE');
+describe('Init Handler Utilities', () => {
+	describe('getHeaders', () => {
+		it('extracts country code from cf-ipcountry header', () => {
+			const headers = new Headers({ 'cf-ipcountry': 'DE' });
+			const result = getHeaders(headers);
+			expect(result.countryCode).toBe('DE');
 		});
 
-		it('falls back to alternative country code headers', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(
-				createMockContext({ 'x-vercel-ip-country': 'FR' })
-			);
-
-			expect(result.location.countryCode).toBe('FR');
+		it('falls back to alternative country code headers', () => {
+			const headers = new Headers({ 'x-vercel-ip-country': 'FR' });
+			const result = getHeaders(headers);
+			expect(result.countryCode).toBe('FR');
 		});
 
-		it('prioritizes cf-ipcountry over other headers when multiple are present', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(
-				createMockContext({
-					'cf-ipcountry': 'DE',
-					'x-vercel-ip-country': 'FR',
-				})
-			);
-
-			expect(result.location.countryCode).toBe('DE');
+		it('prioritizes cf-ipcountry over other headers', () => {
+			const headers = new Headers({
+				'cf-ipcountry': 'DE',
+				'x-vercel-ip-country': 'FR',
+			});
+			const result = getHeaders(headers);
+			expect(result.countryCode).toBe('DE');
 		});
 
-		it('extracts region code from headers', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(
-				createMockContext({
-					'cf-ipcountry': 'US',
-					'x-vercel-ip-country-region': 'CA',
-				})
-			);
-
-			expect(result.location.countryCode).toBe('US');
-			expect(result.location.regionCode).toBe('CA');
+		it('extracts region code from headers', () => {
+			const headers = new Headers({
+				'cf-ipcountry': 'US',
+				'x-vercel-ip-country-region': 'CA',
+			});
+			const result = getHeaders(headers);
+			expect(result.countryCode).toBe('US');
+			expect(result.regionCode).toBe('CA');
 		});
 
-		it('handles missing headers gracefully', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(createMockContext({}));
-
-			expect(result.location.countryCode).toBeNull();
-			expect(result.location.regionCode).toBeNull();
+		it('handles missing headers gracefully', () => {
+			const headers = new Headers({});
+			const result = getHeaders(headers);
+			expect(result.countryCode).toBeNull();
+			expect(result.regionCode).toBeNull();
 		});
 
-		it('handles case-insensitive header names', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(createMockContext({ 'CF-IPCountry': 'GB' }));
-
-			expect(result.location.countryCode).toBe('GB');
+		it('handles undefined headers', () => {
+			const result = getHeaders(undefined);
+			expect(result.countryCode).toBeNull();
+			expect(result.regionCode).toBeNull();
+			expect(result.acceptLanguage).toBeNull();
 		});
 	});
 
-	describe('Integration and response structure', () => {
-		it('returns properly structured response with all required fields', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(createMockContext({ 'cf-ipcountry': 'DE' }));
-
-			// Verify structure
-			expect(result).toHaveProperty('jurisdiction');
-			expect(result).toHaveProperty('location');
-			expect(result).toHaveProperty('translations');
-			expect(result).toHaveProperty('branding');
-
-			// Verify types
-			expect(typeof result.jurisdiction).toBe('string');
-			expect(result.location.countryCode).toBe('DE');
-			expect(
-				typeof result.location.countryCode === 'string' ||
-					result.location.countryCode === null
-			).toBe(true);
-			expect(
-				typeof result.location.regionCode === 'string' ||
-					result.location.regionCode === null
-			).toBe(true);
-			expect(typeof result.translations.language).toBe('string');
-			expect(typeof result.translations.translations).toBe('object');
-			expect(typeof result.branding).toBe('string');
+	describe('checkJurisdiction', () => {
+		it('returns GDPR for EU countries', () => {
+			expect(checkJurisdiction('DE', null)).toBe('GDPR');
+			expect(checkJurisdiction('FR', null)).toBe('GDPR');
+			expect(checkJurisdiction('IT', null)).toBe('GDPR');
 		});
 
-		it('integrates geo logic correctly for regulated countries', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(createMockContext({ 'cf-ipcountry': 'DE' }));
-
-			// DE is in the GDPR jurisdiction
-			expect(result.jurisdiction).toBe('GDPR');
+		it('returns UK_GDPR for UK', () => {
+			expect(checkJurisdiction('GB', null)).toBe('UK_GDPR');
 		});
 
-		it('integrates geo logic correctly for non-regulated countries', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(createMockContext({ 'cf-ipcountry': 'US' }));
-
-			// US (without CCPA regions) is non-regulated
-			expect(result.jurisdiction).toBe('NONE');
+		it('returns CCPA for California', () => {
+			expect(checkJurisdiction('US', 'CA')).toBe('CCPA');
 		});
 
-		it('integrates translations correctly', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(createMockContext({}));
+		it('returns NONE for non-regulated regions', () => {
+			expect(checkJurisdiction('US', null)).toBe('NONE');
+			expect(checkJurisdiction('US', 'TX')).toBe('NONE');
+		});
 
-			expect(result.translations.translations).toStrictEqual(
-				baseTranslations.en
+		it('returns PIPEDA for Canada', () => {
+			expect(checkJurisdiction('CA', null)).toBe('PIPEDA');
+		});
+
+		it('returns CH for Switzerland', () => {
+			expect(checkJurisdiction('CH', null)).toBe('CH');
+		});
+
+		it('handles null country code', () => {
+			expect(checkJurisdiction(null, null)).toBe('NONE');
+		});
+	});
+
+	describe('parseAcceptLanguage', () => {
+		it('returns en for null input', () => {
+			expect(parseAcceptLanguage(null)).toBe('en');
+		});
+
+		it('parses simple language code', () => {
+			expect(parseAcceptLanguage('de')).toBe('de');
+		});
+
+		it('parses language with region', () => {
+			expect(parseAcceptLanguage('de-DE')).toBe('de');
+		});
+
+		it('parses Accept-Language with quality factors', () => {
+			expect(parseAcceptLanguage('de-DE,de;q=0.9,en;q=0.8')).toBe('de');
+		});
+	});
+
+	describe('getTranslationsData', () => {
+		it('returns en translations for null Accept-Language', () => {
+			const result = getTranslationsData(null);
+			expect(result.language).toBe('en');
+			expect(result.translations.cookieBanner.title).toBe(
+				baseTranslations.en.cookieBanner.title
 			);
-			expect(result.translations.language).toBe('en');
 		});
 
-		it('handles custom translations when provided', async () => {
+		it('returns de translations for de-DE', () => {
+			const result = getTranslationsData('de-DE,de;q=0.9,en;q=0.8');
+			expect(result.language).toBe('de');
+			expect(result.translations.cookieBanner.title).toBe(
+				baseTranslations.de.cookieBanner.title
+			);
+		});
+
+		it('merges custom translations', () => {
 			const customTranslations = {
 				en: { cookieBanner: { title: 'Custom Title' } },
 			};
-
-			// @ts-expect-error test context is partially typed
-			const result = await init(createMockContext({}, { customTranslations }));
-
-			expect(result.translations.translations.cookieBanner.title).toBe(
-				'Custom Title'
-			);
-		});
-
-		it('maintains consistency between location and jurisdiction', async () => {
-			// Test that the country code extracted matches the jurisdiction determination
-			// @ts-expect-error test context is partially typed
-			const result = await init(createMockContext({ 'cf-ipcountry': 'CH' }));
-
-			expect(result.location.countryCode).toBe('CH');
-			expect(result.jurisdiction).toBe('CH');
+			const result = getTranslationsData('en-US', customTranslations);
+			expect(result.translations.cookieBanner.title).toBe('Custom Title');
 		});
 	});
 
-	describe('Geo location disabling', () => {
-		it('forces GDPR jurisdiction and clears location when disableGeoLocation is true for regulated country', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(
-				createMockContext(
-					{ 'cf-ipcountry': 'DE' }, // Normally would be GDPR based on geo
-					{ disableGeoLocation: true }
-				)
-			);
+	describe('buildResponse', () => {
+		it('returns properly structured response', () => {
+			const result = buildResponse({
+				jurisdiction: 'GDPR',
+				location: { countryCode: 'DE', regionCode: null },
+				acceptLanguage: 'en',
+				customTranslations: undefined,
+				branding: 'c15t',
+			});
 
-			expect(result.jurisdiction).toBe('GDPR');
-			expect(result.location.countryCode).toBeNull();
-			expect(result.location.regionCode).toBeNull();
-		});
-
-		it('forces GDPR jurisdiction and clears location when disableGeoLocation is true for non-regulated country', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(
-				createMockContext(
-					{ 'cf-ipcountry': 'US' }, // Normally would be NONE
-					{ disableGeoLocation: true }
-				)
-			);
-
-			expect(result.jurisdiction).toBe('GDPR');
-			expect(result.location.countryCode).toBeNull();
-			expect(result.location.regionCode).toBeNull();
-		});
-
-		it('still provides translations when geo location is disabled', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(
-				createMockContext(
-					{ 'cf-ipcountry': 'DE' },
-					{ disableGeoLocation: true }
-				)
-			);
-
-			// Translations should still be provided
-			expect(result.translations.translations).toStrictEqual(
-				baseTranslations.en
-			);
-			expect(result.translations.language).toBe('en');
-		});
-
-		it('respects custom translations when geo location is disabled', async () => {
-			const customTranslations = {
-				en: { cookieBanner: { title: 'Custom Disabled Title' } },
-			};
-
-			// @ts-expect-error test context is partially typed
-			const result = await init(
-				createMockContext(
-					{ 'cf-ipcountry': 'DE' },
-					{ disableGeoLocation: true, customTranslations }
-				)
-			);
-
-			expect(result.translations.translations.cookieBanner.title).toBe(
-				'Custom Disabled Title'
-			);
-			expect(result.jurisdiction).toBe('GDPR');
-			expect(result.location.countryCode).toBeNull();
-			expect(result.location.regionCode).toBeNull();
-		});
-
-		it('ignores all geo headers when geo location is disabled', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(
-				createMockContext(
-					{
-						'cf-ipcountry': 'DE',
-						'x-vercel-ip-country': 'FR',
-						'x-vercel-ip-country-region': 'IDF',
-					},
-					{ disableGeoLocation: true }
-				)
-			);
-
-			// Should ignore all geo headers
-			expect(result.location.countryCode).toBeNull();
-			expect(result.location.regionCode).toBeNull();
-			expect(result.jurisdiction).toBe('GDPR');
-		});
-
-		it('applies normal geo logic when disableGeoLocation is false', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(
-				createMockContext(
-					{ 'cf-ipcountry': 'DE' },
-					{ disableGeoLocation: false }
-				)
-			);
-
-			// Should apply normal geo logic
-			expect(result.jurisdiction).toBe('GDPR');
-			expect(result.location.countryCode).toBe('DE');
-		});
-
-		it('applies normal geo logic when disableGeoLocation is undefined', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(
-				createMockContext(
-					{ 'cf-ipcountry': 'DE' },
-					{ disableGeoLocation: undefined }
-				)
-			);
-
-			// Should apply normal geo logic when undefined
-			expect(result.jurisdiction).toBe('GDPR');
-			expect(result.location.countryCode).toBe('DE');
-		});
-
-		it('maintains consistent response structure when geo is disabled', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(
-				createMockContext(
-					{ 'cf-ipcountry': 'DE' },
-					{ disableGeoLocation: true }
-				)
-			);
-
-			// Verify the response has the same structure as normal responses
 			expect(result).toHaveProperty('jurisdiction');
 			expect(result).toHaveProperty('location');
 			expect(result).toHaveProperty('translations');
 			expect(result).toHaveProperty('branding');
-
-			// Verify specific disabled values
-			expect(typeof result.jurisdiction).toBe('string');
-			expect(result.location.countryCode).toBeNull();
-			expect(result.location.regionCode).toBeNull();
-			expect(typeof result.translations.language).toBe('string');
-			expect(typeof result.translations.translations).toBe('object');
-			expect(typeof result.branding).toBe('string');
+			expect(result.jurisdiction).toBe('GDPR');
+			expect(result.branding).toBe('c15t');
 		});
 	});
 
-	describe('Edge cases and error handling', () => {
-		it('handles malformed headers gracefully', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(
-				createMockContext({
-					'cf-ipcountry': '', // Empty string
-					'x-vercel-ip-country-region': '   ', // Whitespace
-				})
-			);
-
-			// Should handle gracefully without throwing
-			expect(result).toHaveProperty('jurisdiction');
-			expect(result).toHaveProperty('location');
-			expect(result).toHaveProperty('translations');
-			expect(result).toHaveProperty('branding');
-		});
-
-		it('handles undefined context options gracefully', async () => {
-			const contextWithoutOptions = {
-				context: {
-					headers: new Headers({ 'cf-ipcountry': 'DE' }),
-					// No advanced options
-				},
+	describe('getLocation', () => {
+		it('returns null location when geo is disabled', async () => {
+			const request = new Request('http://localhost', {
+				headers: { 'cf-ipcountry': 'DE' },
+			});
+			const options: C15TOptions = {
+				trustedOrigins: [],
+				adapter: {} as C15TOptions['adapter'],
+				advanced: { disableGeoLocation: true },
 			};
 
-			// @ts-expect-error test context is partially typed
-			const result = await init(contextWithoutOptions);
+			const result = await getLocation(request, options);
+			expect(result.countryCode).toBeNull();
+			expect(result.regionCode).toBeNull();
+		});
+	});
 
-			expect(result.translations.translations).toStrictEqual(
-				baseTranslations.en
+	describe('getJurisdiction', () => {
+		it('returns GDPR when geo is disabled', () => {
+			const options: C15TOptions = {
+				trustedOrigins: [],
+				adapter: {} as C15TOptions['adapter'],
+				advanced: { disableGeoLocation: true },
+			};
+
+			const result = getJurisdiction(
+				{ countryCode: 'US', regionCode: null },
+				options
 			);
+			expect(result).toBe('GDPR');
 		});
 
-		it('handles malformed headers gracefully when geo is disabled', async () => {
-			// @ts-expect-error test context is partially typed
-			const result = await init(
-				createMockContext(
-					{
-						'cf-ipcountry': '', // Empty string
-						'x-vercel-ip-country-region': '   ', // Whitespace
-					},
-					{ disableGeoLocation: true }
-				)
-			);
+		it('returns appropriate jurisdiction based on location', () => {
+			const options: C15TOptions = {
+				trustedOrigins: [],
+				adapter: {} as C15TOptions['adapter'],
+			};
 
-			// Should handle gracefully and ignore malformed headers while forcing GDPR
-			expect(result.jurisdiction).toBe('GDPR');
-			expect(result.location.countryCode).toBeNull();
-			expect(result.location.regionCode).toBeNull();
+			expect(
+				getJurisdiction({ countryCode: 'DE', regionCode: null }, options)
+			).toBe('GDPR');
+			expect(
+				getJurisdiction({ countryCode: 'US', regionCode: 'CA' }, options)
+			).toBe('CCPA');
+			expect(
+				getJurisdiction({ countryCode: 'GB', regionCode: null }, options)
+			).toBe('UK_GDPR');
 		});
 	});
 });

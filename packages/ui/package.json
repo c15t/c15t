@@ -14,6 +14,11 @@
 			"import": "./dist/utils/index.js",
 			"require": "./dist/utils/index.cjs"
 		},
+		"./styles/primitives": {
+			"types": "./dist/styles/primitives/index.d.ts",
+			"import": "./dist/styles/primitives/index.js",
+			"require": "./dist/styles/primitives/index.cjs"
+		},
 		"./styles/*": "./src/styles/*",
 		".": {
 			"types": "./dist/index.d.ts",
@@ -30,9 +35,9 @@
 	],
 	"scripts": {
 		"build": "rslib build",
-		"dev": "rslib build --watch",
-		"fmt": "pnpm biome format --write .",
-		"lint": "pnpm biome lint ./src",
+		"dev": "rslib build",
+		"fmt": "bun biome format --write .",
+		"lint": "bun biome lint ./src",
 		"test": "vitest run"
 	},
 	"dependencies": {

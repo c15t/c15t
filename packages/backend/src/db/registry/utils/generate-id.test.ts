@@ -1,10 +1,10 @@
 import { randomBytes } from 'node:crypto';
 import type { InferFumaDB } from 'fumadb';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { DB } from '~/db/schema';
+import type { LatestDB } from '~/db/schema';
 import { generateUniqueId } from './generate-id';
 
-type MockDB = ReturnType<InferFumaDB<typeof DB>['orm']>;
+type MockDB = ReturnType<InferFumaDB<typeof LatestDB>['orm']>;
 
 // Define regex patterns at the top level for performance
 const SUBJECT_ID_PATTERN = /^sub_[A-Za-z0-9]+$/;

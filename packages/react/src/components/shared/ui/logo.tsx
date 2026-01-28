@@ -1,15 +1,42 @@
 import type { SVGProps } from 'react';
 
-interface C15TIconProps {
+interface IconProps {
 	title?: string;
 	titleId?: string;
 }
 
+/**
+ * c15t icon only (without text).
+ * Use this for compact displays like the floating trigger.
+ */
+export const C15TIconOnly = ({
+	title = 'c15t',
+	titleId = 'c15t-icon',
+	...props
+}: SVGProps<SVGSVGElement> & IconProps) => (
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 446 445"
+		aria-labelledby={titleId}
+		{...props}
+	>
+		<title id={titleId}>{title}</title>
+		<path
+			fill="currentColor"
+			d="M223.178.313c39.064 0 70.732 31.668 70.732 70.732-.001 39.064-31.668 70.731-70.732 70.731-12.181 0-23.642-3.079-33.649-8.502l-55.689 55.689a70.267 70.267 0 0 1 5.574 13.441h167.531c8.695-29.217 35.762-50.523 67.804-50.523 39.064 0 70.731 31.668 70.731 70.732s-31.668 70.732-70.731 70.732c-32.042 0-59.108-21.306-67.803-50.523H139.413a70.417 70.417 0 0 1-7.888 17.396l54.046 54.046c10.893-6.851 23.786-10.815 37.605-10.815 39.064 0 70.732 31.669 70.732 70.733 0 39.064-31.668 70.731-70.732 70.731s-70.732-31.667-70.732-70.731c0-10.518 2.296-20.499 6.414-29.471l-57.78-57.78c-8.972 4.117-18.952 6.414-29.47 6.414-39.063 0-70.731-31.668-70.732-70.732 0-39.064 31.669-70.732 70.733-70.732 12.18 0 23.642 3.079 33.649 8.502l55.688-55.688c-5.423-10.007-8.502-21.469-8.502-33.65 0-39.064 31.668-70.733 70.732-70.733Zm0 343.555c-16.742 0-30.314 13.572-30.314 30.314 0 16.741 13.572 30.313 30.314 30.313s30.314-13.572 30.314-30.313c0-16.742-13.572-30.314-30.314-30.314ZM71.611 192.299c-16.742 0-30.315 13.572-30.315 30.314s13.573 30.314 30.315 30.314c16.741 0 30.313-13.572 30.313-30.314 0-16.741-13.572-30.314-30.313-30.314Zm303.138 0c-16.729 0-30.294 13.551-30.315 30.275l.001.039-.001.038c.021 16.725 13.586 30.276 30.315 30.276 16.741 0 30.313-13.572 30.313-30.314 0-16.741-13.572-30.314-30.313-30.314ZM223.178 40.73c-16.742 0-30.314 13.573-30.314 30.315s13.573 30.313 30.314 30.313c16.742 0 30.313-13.572 30.314-30.313 0-16.742-13.572-30.314-30.314-30.315Z"
+		/>
+	</svg>
+);
+
+/**
+ * c15t full logo with text.
+ * Use this for branding displays.
+ */
 export const C15TIcon = ({
 	title = 'c15t',
 	titleId = 'c15t',
 	...props
-}: SVGProps<SVGSVGElement> & C15TIconProps) => (
+}: SVGProps<SVGSVGElement> & IconProps) => (
 	<svg
 		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 408 149"
@@ -30,12 +57,12 @@ export const C15TIcon = ({
 	</svg>
 );
 
-// Consent logo for c15t.dev domain
+// Consent logo for consent.io domain
 export const ConsentLogo = ({
 	title = 'Consent',
 	titleId = 'consent-logo',
 	...props
-}: SVGProps<SVGSVGElement> & C15TIconProps) => (
+}: SVGProps<SVGSVGElement> & IconProps) => (
 	<svg
 		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 595 97"
@@ -60,5 +87,96 @@ export const ConsentLogo = ({
 			fill="currentColor"
 			d="M566.424 36.6h-7.8V23.52h7.8V.36h14.4v23.16h13.08V36.6h-13.08V84h-14.4V36.6ZM497.535 23.52h14.28v8.64c2.76-5.76 9.6-9.84 18.36-9.84 14.52 0 22.92 9.36 22.92 24.24V84h-14.4V48.6c0-8.16-4.68-13.44-12.84-13.44s-14.04 5.76-14.04 14.04V84h-14.28V23.52ZM429.265 53.76c0-19.44 13.56-31.92 31.68-31.92 18 0 29.88 13.56 29.88 30.48 0 0 0 2.64-.24 5.04h-47.04c.48 9.6 7.56 15.84 18.24 15.84 7.32 0 11.76-2.4 16.32-6.96l8.64 8.4c-7.8 8.28-16.32 10.8-25.44 10.8-18.96 0-32.04-12.24-32.04-31.2v-.48Zm46.92-6.48c0-7.2-6.84-13.2-15.24-13.2-9 0-16.44 5.88-17.04 13.2h32.28ZM385.367 65.52c2.52 4.08 8.159 7.56 15.959 7.56 8.28 0 10.8-3.48 10.8-6.6 0-5.04-7.2-6.24-16.56-9.6-8.88-3.24-14.88-7.8-14.88-17.04 0-11.64 9.84-18.12 21.36-18.12 10.08 0 16.8 3.84 21 9.12l-8.039 8.52c-2.521-3-6.6-5.28-13.2-5.28-4.56 0-7.321 2.16-7.321 5.4 0 4.56 5.041 5.16 15.241 8.88 11.16 3.96 16.199 9.24 16.199 18 0 10.44-7.559 19.2-24.839 19.2-12.6 0-21.241-5.04-24.961-12.24l9.241-7.8ZM315.997 23.52h14.28v8.64c2.76-5.76 9.6-9.84 18.36-9.84 14.52 0 22.92 9.36 22.92 24.24V84h-14.4V48.6c0-8.16-4.68-13.44-12.84-13.44s-14.04 5.76-14.04 14.04V84h-14.28V23.52ZM242.806 53.76c0-18.12 14.64-32.04 33-32.04 18.24 0 33 13.92 33 32.04 0 18.12-14.76 32.04-33 32.04-18.36 0-33-13.92-33-32.04Zm14.28 0c0 10.68 8.04 18.96 18.72 18.96 10.56 0 18.72-8.28 18.72-18.96 0-10.68-8.16-18.96-18.72-18.96-10.68 0-18.72 8.28-18.72 18.96ZM183.387 53.64c0-18.48 14.64-32.04 32.88-32.04 9 0 17.28 3 24.24 10.44l-8.88 9.24c-4.08-4.2-8.88-6.6-15.36-6.6-10.56 0-18.6 8.04-18.6 18.96 0 10.92 8.04 18.96 18.6 18.96 6.48 0 11.28-2.4 15.36-6.6l8.88 9.24c-6.96 7.44-15.24 10.44-24.24 10.44-18.24 0-32.88-13.56-32.88-32.04Z"
 		/>
+	</svg>
+);
+
+/**
+ * Consent icon only (without text).
+ * Use this for compact displays like the preference center footer.
+ */
+export const ConsentIconOnly = ({
+	title = 'Consent',
+	titleId = 'consent-icon',
+	...props
+}: SVGProps<SVGSVGElement> & IconProps) => (
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 140 97"
+		fill="none"
+		aria-labelledby={titleId}
+		{...props}
+	>
+		<title id={titleId}>{title}</title>
+		<path
+			fill="currentColor"
+			fillRule="evenodd"
+			d="M53.179 70.787c6.17 0 11.172-5.002 11.172-11.172 0-4.009-2.111-7.524-5.283-9.495a23.87 23.87 0 0 1 8.817-1.677c13.217 0 23.93 10.714 23.93 23.93s-10.713 23.93-23.93 23.93c-13.216 0-23.93-10.714-23.93-23.93 0-1.924.227-3.795.656-5.588a11.148 11.148 0 0 0 8.568 4.002Z"
+			clipRule="evenodd"
+		/>
+		<path
+			fill="currentColor"
+			fillRule="evenodd"
+			d="M.618 74.716a68.453 68.453 0 0 1-.098-3.654c0-37.205 30.16-67.365 67.365-67.365s67.365 30.16 67.365 67.365c0 1.226-.032 2.444-.097 3.654h-21.927c.041-.776.061-1.557.061-2.343 0-24.531-19.887-44.418-44.418-44.418-24.532 0-44.418 19.887-44.418 44.418 0 .786.02 1.567.06 2.343H.618Z"
+			clipRule="evenodd"
+		/>
+	</svg>
+);
+
+/**
+ * Fingerprint icon for privacy/consent contexts.
+ * A generic icon representing user identity and privacy.
+ */
+export const FingerprintIcon = ({
+	title = 'Privacy',
+	titleId = 'fingerprint-icon',
+	...props
+}: SVGProps<SVGSVGElement> & IconProps) => (
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		strokeWidth="2"
+		strokeLinecap="round"
+		strokeLinejoin="round"
+		aria-labelledby={titleId}
+		{...props}
+	>
+		<title id={titleId}>{title}</title>
+		<path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4" />
+		<path d="M14 13.12c0 2.38 0 6.38-1 8.88" />
+		<path d="M17.29 21.02c.12-.6.43-2.3.5-3.02" />
+		<path d="M2 12a10 10 0 0 1 18-6" />
+		<path d="M2 16h.01" />
+		<path d="M21.8 16c.2-2 .131-5.354 0-6" />
+		<path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2" />
+		<path d="M8.65 22c.21-.66.45-1.32.57-2" />
+		<path d="M9 6.8a6 6 0 0 1 9 5.2v2" />
+	</svg>
+);
+
+/**
+ * Settings/gear icon for preference contexts.
+ * A generic icon representing configuration and settings.
+ */
+export const SettingsIcon = ({
+	title = 'Settings',
+	titleId = 'settings-icon',
+	...props
+}: SVGProps<SVGSVGElement> & IconProps) => (
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		strokeWidth="2"
+		strokeLinecap="round"
+		strokeLinejoin="round"
+		aria-labelledby={titleId}
+		{...props}
+	>
+		<title id={titleId}>{title}</title>
+		<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+		<circle cx="12" cy="12" r="3" />
 	</svg>
 );

@@ -10,9 +10,13 @@
  */
 
 import type { FC } from 'react';
+import {
+	PreferenceCenterTrigger,
+	type PreferenceCenterTriggerProps,
+} from '~/components/preference-center-trigger';
 import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
+import { useComponentConfig } from '~/hooks/use-component-config';
 import { useConsentManager } from '~/hooks/use-consent-manager';
-import { useTheme } from '~/hooks/use-theme';
 import { ConsentCustomizationCard } from './atoms/dialog-card';
 import { Root as ConsentManagerDialogRoot } from './atoms/root';
 
@@ -84,6 +88,18 @@ export interface ConsentManagerDialogProps {
 	 * @defaultValue false
 	 */
 	hideBranding?: boolean;
+
+	/**
+	 * Show a floating trigger button to resurface the preference center.
+	 * Useful for allowing users to re-open the dialog after dismissing.
+	 *
+	 * - `true` - Show trigger with default settings
+	 * - `false` - Hide trigger (default)
+	 * - `PreferenceCenterTriggerProps` - Show trigger with custom props
+	 *
+	 * @default false
+	 */
+	showTrigger?: boolean | PreferenceCenterTriggerProps;
 }
 
 export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
@@ -94,9 +110,15 @@ export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 	trapFocus: localTrapFocus = true,
 	hideBranding,
 	legalLinks,
+	showTrigger = false,
 }) => {
-	// Global default settings from provider
-	const globalTheme = useTheme();
+	// Merge local props with global theme context
+	const config = useComponentConfig({
+		noStyle: localNoStyle,
+		disableAnimation: localDisableAnimation,
+		scrollLock: localScrollLock,
+		trapFocus: localTrapFocus,
+	});
 
 	// Consent-manager state controls open/close when `open` prop is undefined
 	const { isPrivacyDialogOpen } = useConsentManager();
@@ -104,19 +126,27 @@ export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 	// Compose the props we want to forward to the Root primitive
 	const rootProps = {
 		open: open ?? isPrivacyDialogOpen,
-		noStyle: localNoStyle ?? globalTheme.noStyle,
-		disableAnimation: localDisableAnimation ?? globalTheme.disableAnimation,
-		scrollLock: localScrollLock ?? globalTheme.scrollLock,
-		trapFocus: localTrapFocus ?? globalTheme.trapFocus,
+		...config,
 	};
 
+	// Resolve trigger props
+	const triggerProps: PreferenceCenterTriggerProps | null =
+		showTrigger === true
+			? {} // Use defaults
+			: showTrigger === false
+				? null
+				: showTrigger;
+
 	return (
-		<ConsentManagerDialogRoot {...rootProps}>
-			<ConsentCustomizationCard
-				noStyle={rootProps.noStyle}
-				legalLinks={legalLinks}
-				hideBranding={hideBranding}
-			/>
-		</ConsentManagerDialogRoot>
+		<>
+			{triggerProps && <PreferenceCenterTrigger {...triggerProps} />}
+			<ConsentManagerDialogRoot {...rootProps}>
+				<ConsentCustomizationCard
+					noStyle={rootProps.noStyle}
+					legalLinks={legalLinks}
+					hideBranding={hideBranding}
+				/>
+			</ConsentManagerDialogRoot>
+		</>
 	);
 };

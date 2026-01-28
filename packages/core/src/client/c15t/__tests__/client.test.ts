@@ -94,10 +94,12 @@ describe('c15t Client Tests', () => {
 			backendURL: '/api/c15t',
 		});
 
-		// Consent preferences to set
+		// Consent preferences to set - v2.0 requires subjectId
 		const consentData = {
+			subjectId: 'sub_test123abc',
 			type: 'cookie_banner' as const,
 			domain: 'example.com',
+			givenAt: Date.now(),
 			preferences: {
 				analytics: true,
 				marketing: false,
@@ -111,8 +113,9 @@ describe('c15t Client Tests', () => {
 
 		// Assertions
 		expect(fetchMock).toHaveBeenCalledTimes(1);
+		// v2.0: Uses POST /subjects endpoint
 		expect(fetchMock).toHaveBeenCalledWith(
-			expect.stringContaining(API_ENDPOINTS.SET_CONSENT),
+			expect.stringContaining(API_ENDPOINTS.POST_SUBJECT),
 			expect.objectContaining({
 				method: 'POST',
 				body: JSON.stringify(consentData),

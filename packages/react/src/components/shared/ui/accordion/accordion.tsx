@@ -1,6 +1,11 @@
 'use client';
 
-import styles from '@c15t/ui/styles/primitives/accordion.module.css';
+import {
+	type AccordionSize,
+	type AccordionVariant,
+	type AccordionVariantsProps,
+	accordionVariants,
+} from '@c15t/ui/styles/primitives';
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import {
 	type ComponentPropsWithoutRef,
@@ -10,11 +15,15 @@ import {
 	type HTMLAttributes,
 } from 'react';
 import type { PolymorphicComponentProps } from '~/components/shared/libs/polymorphic';
-import { Box } from '~/components/shared/primitives/box';
 import { LucideIcon } from '~/components/shared/ui/icon';
-import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
-import type { AllThemeKeys, ExtendThemeKeys, ThemeValue } from '~/types/theme';
+import type { ThemeValue } from '~/types/theme';
+
+// Re-export types for convenience
+export type { AccordionSize, AccordionVariant, AccordionVariantsProps };
+
+// Re-export the helper function
+export { accordionVariants };
 
 const ACCORDION_ROOT_NAME = 'AccordionRoot';
 const ACCORDION_ITEM_NAME = 'AccordionItem';
@@ -35,35 +44,41 @@ export type AccordionStylesKeys = {
 	'accordion.content-inner': ThemeValue;
 };
 
+/**
+ * Props for AccordionRoot component.
+ * @public
+ */
+export type AccordionRootProps = ComponentPropsWithoutRef<
+	typeof AccordionPrimitive.Root
+> &
+	AccordionVariantsProps & {
+		/**
+		 * When true, removes default styles.
+		 */
+		noStyle?: boolean;
+	};
+
 const AccordionRoot = forwardRef<
 	ComponentRef<typeof AccordionPrimitive.Root>,
-	ComponentPropsWithoutRef<typeof AccordionPrimitive.Root> & ExtendThemeKeys
+	AccordionRootProps
 >(
 	(
-		{
-			className,
-			themeKey = 'accordion.root',
-			baseClassName,
-			noStyle,
-			style,
-			...rest
-		},
+		{ className, variant = 'default', size = 'medium', noStyle, ...rest },
 		forwardedRef
 	) => {
 		const { noStyle: contextNoStyle } = useTheme();
+		const variants = accordionVariants({ variant, size });
 
-		const accordionStyle = useStyles((themeKey as any) ?? 'widgetAccordion', {
-			baseClassName: [baseClassName, styles.root],
-			className,
-			noStyle: contextNoStyle || noStyle,
-			style,
-		});
+		const finalNoStyle = contextNoStyle || noStyle;
+		const rootClassName = finalNoStyle
+			? className
+			: variants.root({ class: className as string | undefined });
 
 		return (
 			<AccordionPrimitive.Root
 				ref={forwardedRef}
+				className={rootClassName}
 				{...rest}
-				{...accordionStyle}
 			/>
 		);
 	}
@@ -71,169 +86,196 @@ const AccordionRoot = forwardRef<
 
 AccordionRoot.displayName = ACCORDION_ROOT_NAME;
 
+/**
+ * Props for AccordionItem component.
+ * @public
+ */
+export interface AccordionItemProps
+	extends ComponentPropsWithoutRef<typeof AccordionPrimitive.Item> {
+	/**
+	 * When true, removes default styles.
+	 */
+	noStyle?: boolean;
+}
+
 const AccordionItem = forwardRef<
 	ComponentRef<typeof AccordionPrimitive.Item>,
-	ComponentPropsWithoutRef<typeof AccordionPrimitive.Item> & ExtendThemeKeys
->(
-	(
-		{ className, themeKey, baseClassName, noStyle, style, ...rest },
-		forwardedRef
-	) => {
-		const { noStyle: contextNoStyle } = useTheme();
+	AccordionItemProps
+>(({ className, noStyle, ...rest }, forwardedRef) => {
+	const { noStyle: contextNoStyle } = useTheme();
+	const variants = accordionVariants();
 
-		const accordionItemStyle = useStyles(
-			(themeKey as any) ?? 'widgetAccordion',
-			{
-				baseClassName: [baseClassName, styles.item],
-				className,
-				noStyle: contextNoStyle || noStyle,
-				style,
-			}
-		);
-		return (
-			<AccordionPrimitive.Item
-				ref={forwardedRef}
-				{...rest}
-				{...accordionItemStyle}
-			/>
-		);
-	}
-);
+	const finalNoStyle = contextNoStyle || noStyle;
+	const itemClassName = finalNoStyle
+		? className
+		: variants.item({ class: className });
+
+	return (
+		<AccordionPrimitive.Item
+			ref={forwardedRef}
+			className={itemClassName}
+			{...rest}
+		/>
+	);
+});
 AccordionItem.displayName = ACCORDION_ITEM_NAME;
+
+/**
+ * Props for AccordionTrigger component.
+ * @public
+ */
+export interface AccordionTriggerProps
+	extends ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger> {
+	/**
+	 * When true, removes default styles.
+	 */
+	noStyle?: boolean;
+}
 
 const AccordionTrigger = forwardRef<
 	ComponentRef<typeof AccordionPrimitive.Trigger>,
-	ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger> & ExtendThemeKeys
->(
-	(
-		{ children, className, themeKey, baseClassName, noStyle, style, ...rest },
-		forwardedRef
-	) => {
-		const { noStyle: contextNoStyle } = useTheme();
+	AccordionTriggerProps
+>(({ children, className, noStyle, ...rest }, forwardedRef) => {
+	const { noStyle: contextNoStyle } = useTheme();
+	const variants = accordionVariants();
 
-		const accordionTriggerStyle = useStyles(
-			(themeKey as any) ?? 'widgetAccordion',
-			{
-				baseClassName: [baseClassName, styles.triggerInner],
-				className,
-				noStyle: contextNoStyle || noStyle,
-				style,
-			}
-		);
+	const finalNoStyle = contextNoStyle || noStyle;
+	const triggerClassName = finalNoStyle
+		? className
+		: variants.trigger({ class: className });
 
-		return (
-			<AccordionPrimitive.Trigger
-				ref={forwardedRef}
-				{...rest}
-				{...accordionTriggerStyle}
-			>
-				{children}
-			</AccordionPrimitive.Trigger>
-		);
-	}
-);
+	return (
+		<AccordionPrimitive.Trigger
+			ref={forwardedRef}
+			className={triggerClassName}
+			{...rest}
+		>
+			{children}
+		</AccordionPrimitive.Trigger>
+	);
+});
 AccordionTrigger.displayName = ACCORDION_TRIGGER_NAME;
+
+/**
+ * Props for AccordionIcon component.
+ * @public
+ */
+export interface AccordionIconBaseProps extends Record<string, unknown> {
+	/**
+	 * When true, removes default styles.
+	 */
+	noStyle?: boolean;
+}
 
 function AccordionIcon<T extends ElementType>({
 	className,
-	themeKey,
-	baseClassName,
 	noStyle,
-	style,
 	as,
 	...rest
-}: PolymorphicComponentProps<T> & ExtendThemeKeys) {
-	const accordionIconStyle = useStyles((themeKey as any) ?? 'widgetAccordion', {
-		baseClassName: [baseClassName, styles.icon],
-		className,
-		noStyle,
-		style,
-	});
+}: PolymorphicComponentProps<T, AccordionIconBaseProps>) {
+	const variants = accordionVariants();
+
+	const classNameStr = typeof className === 'string' ? className : undefined;
+	const iconClassName = noStyle
+		? classNameStr
+		: variants.icon({ class: classNameStr });
 
 	const Component = as || 'div';
 
-	return <Component {...rest} {...accordionIconStyle} />;
+	return <Component className={iconClassName} {...rest} />;
 }
 AccordionIcon.displayName = ACCORDION_ICON_NAME;
 
+/**
+ * Props for AccordionArrow component.
+ * @public
+ */
 type AccordionArrowProps = HTMLAttributes<HTMLDivElement> & {
-	openIcon?: { Element: ElementType; themeKey: AllThemeKeys } & ExtendThemeKeys;
-	closeIcon?: {
-		Element: ElementType;
-		themeKey: AllThemeKeys;
-	} & ExtendThemeKeys;
+	/**
+	 * Custom open icon element.
+	 */
+	openIcon?: { Element: ElementType; className?: string };
+	/**
+	 * Custom close icon element.
+	 */
+	closeIcon?: { Element: ElementType; className?: string };
+	/**
+	 * When true, removes default styles.
+	 */
+	noStyle?: boolean;
 };
 
-// open/close
 function AccordionArrow({
 	openIcon = {
 		Element: LucideIcon({
 			title: 'Open',
 			iconPath: <path d="M5 12h14M12 5v14" />,
 		}),
-		themeKey: 'widgetAccordion' as any,
 	},
 	closeIcon = {
 		Element: LucideIcon({ title: 'Close', iconPath: <path d="M5 12h14" /> }),
-		themeKey: 'widgetAccordion' as any,
 	},
+	noStyle,
 	...rest
 }: AccordionArrowProps) {
-	const accordionArrowOpenStyle = useStyles(openIcon.themeKey, {
-		baseClassName: [openIcon.baseClassName, styles.arrowOpen],
-		className: openIcon.className,
-		noStyle: openIcon.noStyle,
-		style: openIcon.style,
-	});
-	const accordionArrowClosedStyle = useStyles(closeIcon.themeKey, {
-		baseClassName: [closeIcon.baseClassName, styles.arrowClose],
-		className: closeIcon.className,
-		noStyle: closeIcon.noStyle,
-		style: closeIcon.style,
-	});
+	const variants = accordionVariants();
+
+	const openClassName = noStyle
+		? openIcon.className
+		: variants.arrowOpen({ class: openIcon.className });
+
+	const closeClassName = noStyle
+		? closeIcon.className
+		: variants.arrowClose({ class: closeIcon.className });
 
 	return (
 		<>
-			<openIcon.Element {...rest} {...accordionArrowOpenStyle} />
-			<closeIcon.Element {...rest} {...accordionArrowClosedStyle} />
+			<openIcon.Element {...rest} className={openClassName} />
+			<closeIcon.Element {...rest} className={closeClassName} />
 		</>
 	);
 }
 AccordionArrow.displayName = ACCORDION_ARROW_NAME;
 
+/**
+ * Props for AccordionContent component.
+ * @public
+ */
+export interface AccordionContentProps
+	extends ComponentPropsWithoutRef<typeof AccordionPrimitive.Content> {
+	/**
+	 * When true, removes default styles.
+	 */
+	noStyle?: boolean;
+	/**
+	 * Class name for the inner content wrapper.
+	 */
+	innerClassName?: string;
+}
+
 const AccordionContent = forwardRef<
 	ComponentRef<typeof AccordionPrimitive.Content>,
-	ComponentPropsWithoutRef<typeof AccordionPrimitive.Content> & {
-		theme: { content: ExtendThemeKeys; contentInner: ExtendThemeKeys };
-	}
->(({ children, className, theme, ...rest }, forwardedRef) => {
+	AccordionContentProps
+>(({ children, className, innerClassName, noStyle, ...rest }, forwardedRef) => {
 	const { noStyle: contextNoStyle } = useTheme();
+	const variants = accordionVariants();
 
-	const accordionContentStyle = useStyles(
-		(theme?.content?.themeKey as any) ?? 'widgetAccordion',
-		{
-			baseClassName: [theme?.content?.baseClassName, styles.content],
-			className,
-			noStyle: theme?.content?.noStyle || contextNoStyle,
-			style: theme?.content?.style,
-		}
-	);
+	const finalNoStyle = contextNoStyle || noStyle;
+	const contentClassName = finalNoStyle
+		? className
+		: variants.content({ class: className });
+
+	const contentInnerClassName = finalNoStyle
+		? innerClassName
+		: variants.contentInner({ class: innerClassName });
 
 	return (
 		<AccordionPrimitive.Content
 			ref={forwardedRef}
+			className={contentClassName}
 			{...rest}
-			{...accordionContentStyle}
 		>
-			<Box
-				{...{
-					...theme?.contentInner,
-					baseClassName: [theme?.content?.baseClassName, styles.contentInner],
-					themeKey: (theme?.contentInner?.themeKey as any) ?? 'widgetAccordion',
-				}}
-			>
-				{children}
-			</Box>
+			<div className={contentInnerClassName}>{children}</div>
 		</AccordionPrimitive.Content>
 	);
 });

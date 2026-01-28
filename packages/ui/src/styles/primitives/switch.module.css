@@ -55,6 +55,8 @@
 
 	/* Switch track */
 	.track {
+		display: flex;
+		align-items: center;
 		position: relative;
 		height: calc(var(--switch-height) - 2 * var(--switch-padding));
 		width: calc(var(--switch-width) - 2 * var(--switch-padding));
@@ -62,7 +64,7 @@
 		padding: var(--switch-padding);
 		background-color: var(--switch-background-color);
 		outline: none;
-		transition: all var(--switch-duration) var(--switch-ease);
+		transition: background-color var(--switch-duration) var(--switch-ease);
 	}
 
 	:global(.c15t-dark) .track {
@@ -218,5 +220,24 @@
 
 	:global(.c15t-dark) .root:focus-visible {
 		box-shadow: var(--switch-focus-shadow-dark);
+	}
+
+	/* Reduced motion preference */
+	@media (prefers-reduced-motion: reduce) {
+		.track,
+		.thumb {
+			transition: none;
+		}
+	}
+
+	/* Touch device hover reset - prevents "sticky" hover on tap */
+	@media (hover: none) {
+		.track:hover {
+			background-color: var(--switch-background-color);
+		}
+
+		.root[data-state="checked"] .track:hover {
+			background-color: var(--switch-background-color-checked);
+		}
 	}
 }

@@ -368,4 +368,64 @@
 		align-items: center;
 		justify-content: center;
 	}
+
+	/* Reduced motion preference */
+	@media (prefers-reduced-motion: reduce) {
+		.button,
+		.button-primary-filled:hover:not(:disabled),
+		.button-primary-stroke:hover:not(:disabled),
+		.button-primary-lighter:hover:not(:disabled),
+		.button-primary-ghost:hover:not(:disabled),
+		.button-neutral-filled:hover:not(:disabled),
+		.button-neutral-stroke:hover:not(:disabled),
+		.button-neutral-lighter:hover:not(:disabled),
+		.button-neutral-ghost:hover:not(:disabled) {
+			transition: none;
+		}
+	}
+
+	/* Touch device hover reset - prevents "sticky" hover on tap */
+	@media (hover: none) {
+		.button-primary-filled:hover:not(:disabled) {
+			background-color: var(--button-primary);
+		}
+
+		.button-primary-stroke:hover:not(:disabled) {
+			background-color: var(--button-background-color);
+			box-shadow: var(--button-shadow-primary);
+		}
+
+		.button-primary-lighter:hover:not(:disabled) {
+			background-color: color-mix(
+				in srgb,
+				var(--button-primary) 10%,
+				transparent
+			);
+		}
+
+		.button-primary-ghost:hover:not(:disabled) {
+			background-color: transparent;
+		}
+
+		.button-neutral-filled:hover:not(:disabled) {
+			background-color: var(--button-neutral);
+		}
+
+		.button-neutral-stroke:hover:not(:disabled) {
+			background-color: var(--button-background-color);
+			box-shadow: var(--button-shadow-neutral);
+		}
+
+		.button-neutral-lighter:hover:not(:disabled) {
+			background-color: color-mix(
+				in srgb,
+				var(--button-neutral) 10%,
+				transparent
+			);
+		}
+
+		.button-neutral-ghost:hover:not(:disabled) {
+			background-color: transparent;
+		}
+	}
 }

@@ -1,37 +1,31 @@
 import { enTranslations } from '@c15t/translations';
+import { fetchGVL } from '../../libs/tcf/fetch-gvl';
 import type { InitResponse } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
 import { API_ENDPOINTS } from '../types';
 import type { FetcherContext } from './fetcher';
 import { createResponseContext, fetcher } from './fetcher';
+import type { IABFallbackConfig } from './types';
 
 /**
  * Provides offline mode fallback for showConsentBanner API.
  * Simulates the behavior of OfflineClient when API requests fail.
+ * In fallback mode, fetches GVL from gvl.consent.io when IAB is enabled.
  * @internal
  */
 export async function offlineFallbackForConsentBanner(
-	options?: FetchOptions<InitResponse>
+	options?: FetchOptions<InitResponse>,
+	iabConfig?: IABFallbackConfig
 ): Promise<ResponseContext<InitResponse>> {
-	// Check localStorage to see if the banner has been shown
-	let shouldShow = true;
-	let hasLocalStorageAccess = false;
-
-	try {
-		if (typeof window !== 'undefined' && window.localStorage) {
-			// Test localStorage access with a simple operation
-			window.localStorage.setItem('c15t-storage-test-key', 'test');
-			window.localStorage.removeItem('c15t-storage-test-key');
-			hasLocalStorageAccess = true;
-
-			const storedConsent = window.localStorage.getItem('c15t-consent');
-			shouldShow = storedConsent === null;
+	// Fetch GVL from external endpoint in offline/fallback mode
+	// Only when IAB is enabled on the client
+	let gvl = null;
+	if (iabConfig?.enabled) {
+		try {
+			gvl = await fetchGVL(iabConfig.vendorIds);
+		} catch (error) {
+			console.warn('Failed to fetch GVL in offline fallback:', error);
 		}
-	} catch (error) {
-		// Ignore localStorage errors (e.g., in environments where it's blocked)
-		console.warn('Failed to access localStorage in offline fallback:', error);
-		// Default to not showing if localStorage isn't available to prevent memory leaks
-		shouldShow = false;
 	}
 
 	// Create a simulated response similar to what the API would return
@@ -48,6 +42,7 @@ export async function offlineFallbackForConsentBanner(
 				translations: enTranslations,
 			},
 			branding: 'c15t',
+			gvl,
 		},
 		null,
 		null
@@ -67,7 +62,8 @@ export async function offlineFallbackForConsentBanner(
  */
 export async function init(
 	context: FetcherContext,
-	options?: FetchOptions<InitResponse>
+	options?: FetchOptions<InitResponse>,
+	iabConfig?: IABFallbackConfig
 ): Promise<ResponseContext<InitResponse>> {
 	try {
 		// First try to make the actual API request
@@ -85,13 +81,13 @@ export async function init(
 		console.warn(
 			'API request failed, falling back to offline mode for consent banner'
 		);
-		return offlineFallbackForConsentBanner(options);
+		return offlineFallbackForConsentBanner(options, iabConfig);
 	} catch (error) {
 		// If an error was thrown, fall back to offline mode
 		console.warn(
 			'Error fetching consent banner info, falling back to offline mode:',
 			error
 		);
-		return offlineFallbackForConsentBanner(options);
+		return offlineFallbackForConsentBanner(options, iabConfig);
 	}
 }

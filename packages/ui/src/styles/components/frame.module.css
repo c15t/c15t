@@ -73,4 +73,12 @@
 	:global(.c15t-dark) .title {
 		color: var(--frame-placeholder-title-color-dark);
 	}
+
+	/* Reduced motion preference */
+	@media (prefers-reduced-motion: reduce) {
+		.placeholder {
+			animation: none;
+			opacity: 1;
+		}
+	}
 }

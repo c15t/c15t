@@ -49,7 +49,6 @@ export default defineConfig({
 		entry: {
 			core: ['./src/core.ts'],
 			router: ['./src/router.ts'],
-			contracts: ['./src/contracts/index.ts'],
 			'db/schema': ['./src/db/schema/index.ts'],
 			'db/adapters': ['./src/db/adapters/index.ts'],
 			'db/adapters/kysely': ['./src/db/adapters/kysely.ts'],
@@ -60,6 +59,7 @@ export default defineConfig({
 			'db/migrator': ['./src/db/migrator/index.ts'],
 			'define-config': ['./src/define-config.ts'],
 			types: ['./src/types/index.ts'],
+			cache: ['./src/cache/index.ts'],
 		},
 	},
 	lib: [

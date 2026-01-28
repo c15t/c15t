@@ -42,7 +42,6 @@ export const ConsentManagerWidget = ({
 	return (
 		<ConsentManagerWidgetRoot {...mergedProps}>
 			<ConsentManagerWidgetAccordion
-				themeKey="widgetAccordion"
 				type="multiple"
 				value={openItems}
 				onValueChange={setOpenItems}

@@ -1,4 +1,5 @@
 import type { ConsentState } from '../../types/compliance';
+import type { Model } from '../determine-model';
 import { has } from '../has';
 import type { Script, ScriptCallbackInfo, ScriptUpdateResult } from './types';
 import {
@@ -12,11 +13,120 @@ import {
 } from './utils';
 
 /**
+ * IAB consent state for script loading checks.
+ *
+ * @public
+ */
+export interface IABConsentState {
+	/** Per-vendor consent state */
+	vendorConsents: Record<number, boolean>;
+	/** Per-vendor legitimate interest state */
+	vendorLegitimateInterests: Record<number, boolean>;
+	/** Per-purpose consent state (IAB purposes 1-11) */
+	purposeConsents: Record<number, boolean>;
+	/** Per-purpose legitimate interest state */
+	purposeLegitimateInterests: Record<number, boolean>;
+	/** Special feature opt-ins */
+	specialFeatureOptIns: Record<number, boolean>;
+}
+
+/**
+ * Options for script loading operations.
+ *
+ * @public
+ */
+export interface ScriptLoaderOptions {
+	/** Current consent model ('opt-in', 'opt-out', 'iab', or null) */
+	model?: Model;
+	/** IAB consent state (required when model is 'iab') */
+	iabConsent?: IABConsentState;
+}
+
+/**
+ * Checks if a script has IAB consent to load.
+ *
+ * In IAB mode, consent is checked differently:
+ * - If script has vendorId, check vendor consent
+ * - If script has iabPurposes, check purpose consents
+ * - If script has iabLegIntPurposes, check legitimate interest
+ * - If script has iabSpecialFeatures, check special feature opt-ins
+ *
+ * @internal
+ */
+function hasIABConsent(script: Script, iabConsent: IABConsentState): boolean {
+	// If script has a vendorId, check vendor consent
+	if (script.vendorId !== undefined) {
+		if (!iabConsent.vendorConsents[script.vendorId]) {
+			return false;
+		}
+	}
+
+	// Check purpose consents if specified
+	if (script.iabPurposes && script.iabPurposes.length > 0) {
+		const hasAllPurposeConsents = script.iabPurposes.every(
+			(purposeId) => iabConsent.purposeConsents[purposeId] === true
+		);
+		if (!hasAllPurposeConsents) {
+			return false;
+		}
+	}
+
+	// Check legitimate interest purposes if specified
+	if (script.iabLegIntPurposes && script.iabLegIntPurposes.length > 0) {
+		const hasAllLegIntConsents = script.iabLegIntPurposes.every(
+			(purposeId) => iabConsent.purposeLegitimateInterests[purposeId] === true
+		);
+		if (!hasAllLegIntConsents) {
+			return false;
+		}
+	}
+
+	// Check special features if specified
+	if (script.iabSpecialFeatures && script.iabSpecialFeatures.length > 0) {
+		const hasAllSpecialFeatures = script.iabSpecialFeatures.every(
+			(featureId) => iabConsent.specialFeatureOptIns[featureId] === true
+		);
+		if (!hasAllSpecialFeatures) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Checks if a script has consent to load based on current model and consent state.
+ *
+ * @internal
+ */
+function scriptHasConsent(
+	script: Script,
+	consents: ConsentState,
+	options?: ScriptLoaderOptions
+): boolean {
+	// In IAB mode, use IAB consent checks if the script has IAB properties
+	if (
+		options?.model === 'iab' &&
+		options.iabConsent &&
+		(script.vendorId !== undefined ||
+			script.iabPurposes ||
+			script.iabLegIntPurposes ||
+			script.iabSpecialFeatures)
+	) {
+		return hasIABConsent(script, options.iabConsent);
+	}
+
+	// Fall back to standard category-based consent check
+	return has(script.category, consents);
+}
+
+/**
  * Loads scripts based on user consent settings.
  *
  * @param scripts - Array of script configurations to potentially load
  * @param consents - Current user consent state
  * @param scriptIdMap - Map of anonymized script IDs to original IDs
+ * @param options - Additional options including IAB consent state
  * @returns Array of script IDs that were loaded
  *
  * @throws {Error} When a script with the same ID is already loaded
@@ -37,18 +147,22 @@ import {
  * When anonymizeId is enabled (default), script elements will use randomly generated IDs
  * instead of the original script IDs prefixed with 'c15t-script-'.
  *
+ * In IAB mode, scripts with vendorId or iabPurposes will use IAB consent checks
+ * instead of category-based consent.
+ *
  * @public
  */
 export function loadScripts(
 	scripts: Script[],
 	consents: ConsentState,
-	scriptIdMap: Record<string, string> = {}
+	scriptIdMap: Record<string, string> = {},
+	options?: ScriptLoaderOptions
 ): string[] {
 	const loadedScriptIds: string[] = [];
 
 	scripts.forEach((script) => {
 		// Skip if script doesn't have consent (unless alwaysLoad is true)
-		if (!script.alwaysLoad && !has(script.category, consents)) {
+		if (!script.alwaysLoad && !scriptHasConsent(script, consents, options)) {
 			return;
 		}
 
@@ -61,7 +175,7 @@ export function loadScripts(
 					script.anonymizeId !== false,
 					scriptIdMap
 				),
-				hasConsent: has(script.category, consents),
+				hasConsent: scriptHasConsent(script, consents, options),
 				consents,
 			});
 
@@ -96,7 +210,7 @@ export function loadScripts(
 				id: script.id,
 				elementId,
 				consents,
-				hasConsent: has(script.category, consents),
+				hasConsent: scriptHasConsent(script, consents, options),
 			};
 
 			// Execute onBeforeLoad callback if provided
@@ -134,7 +248,7 @@ export function loadScripts(
 				// Script element already exists in DOM, just track it and execute callbacks
 				const callbackInfo: ScriptCallbackInfo = {
 					id: script.id,
-					hasConsent: has(script.category, consents),
+					hasConsent: scriptHasConsent(script, consents, options),
 					elementId,
 					consents,
 					element: existingElement,
@@ -195,7 +309,7 @@ export function loadScripts(
 		// Create callback info object
 		const callbackInfo: ScriptCallbackInfo = {
 			id: script.id,
-			hasConsent: has(script.category, consents),
+			hasConsent: scriptHasConsent(script, consents, options),
 			elementId,
 			consents,
 			element: scriptElement,
@@ -268,6 +382,7 @@ export function loadScripts(
  * @param scripts - Array of script configurations to check
  * @param consents - Current user consent state
  * @param scriptIdMap - Map of anonymized script IDs to original IDs
+ * @param options - Additional options including IAB consent state
  * @returns Array of script IDs that were unloaded
  *
  * @remarks
@@ -281,12 +396,15 @@ export function loadScripts(
  *
  * Scripts with `alwaysLoad: true` will never be unloaded, even if consent is revoked.
  *
+ * In IAB mode, scripts with vendorId or iabPurposes will use IAB consent checks.
+ *
  * @public
  */
 export function unloadScripts(
 	scripts: Script[],
 	consents: ConsentState,
-	scriptIdMap: Record<string, string> = {}
+	scriptIdMap: Record<string, string> = {},
+	options?: ScriptLoaderOptions
 ): string[] {
 	const unloadedScriptIds: string[] = [];
 
@@ -302,7 +420,7 @@ export function unloadScripts(
 		}
 
 		// Check if script no longer has consent
-		if (!has(script.category, consents)) {
+		if (!scriptHasConsent(script, consents, options)) {
 			const scriptElement = getLoadedScript(script.id);
 
 			// Get the element ID (either anonymized or prefixed)
@@ -315,7 +433,7 @@ export function unloadScripts(
 					id: script.id,
 					elementId,
 					consents,
-					hasConsent: has(script.category, consents),
+					hasConsent: scriptHasConsent(script, consents, options),
 				};
 
 				// Execute onDelete callback if provided
@@ -334,7 +452,7 @@ export function unloadScripts(
 					id: script.id,
 					elementId,
 					consents,
-					hasConsent: has(script.category, consents),
+					hasConsent: scriptHasConsent(script, consents, options),
 					element: scriptElement,
 				};
 
@@ -368,21 +486,25 @@ export function unloadScripts(
  * @param scripts - Array of script configurations to manage
  * @param consents - Current user consent state
  * @param scriptIdMap - Map of anonymized script IDs to original IDs
+ * @param options - Additional options including IAB consent state
  * @returns Object containing arrays of loaded and unloaded script IDs
  *
  * @remarks
  * When anonymizeId is enabled (default), script elements will use randomly generated IDs
  * instead of the original script IDs prefixed with 'c15t-script-'.
  *
+ * In IAB mode, scripts with vendorId or iabPurposes will use IAB consent checks.
+ *
  * @public
  */
 export function updateScripts(
 	scripts: Script[],
 	consents: ConsentState,
-	scriptIdMap: Record<string, string> = {}
+	scriptIdMap: Record<string, string> = {},
+	options?: ScriptLoaderOptions
 ): ScriptUpdateResult {
-	const unloaded = unloadScripts(scripts, consents, scriptIdMap);
-	const loaded = loadScripts(scripts, consents, scriptIdMap);
+	const unloaded = unloadScripts(scripts, consents, scriptIdMap, options);
+	const loaded = loadScripts(scripts, consents, scriptIdMap, options);
 
 	return {
 		loaded,
@@ -419,6 +541,7 @@ export function getLoadedScriptIds(): string[] {
  * @param scripts - Optional array of script configurations to check for onDelete callbacks
  * @param consents - Optional consent state to pass to onDelete callbacks
  * @param scriptIdMap - Map of anonymized script IDs to original IDs
+ * @param options - Additional options including IAB consent state
  * @returns Array of script IDs that were unloaded
  *
  * @remarks
@@ -433,7 +556,8 @@ export function getLoadedScriptIds(): string[] {
 export function clearAllScripts(
 	scripts?: Script[],
 	consents?: ConsentState,
-	scriptIdMap: Record<string, string> = {}
+	scriptIdMap: Record<string, string> = {},
+	options?: ScriptLoaderOptions
 ): string[] {
 	const unloadedScriptIds: string[] = [];
 
@@ -458,7 +582,7 @@ export function clearAllScripts(
 					id,
 					elementId,
 					consents,
-					hasConsent: has(script.category, consents),
+					hasConsent: scriptHasConsent(script, consents, options),
 					...(scriptElement !== null && { element: scriptElement }),
 				};
 
@@ -490,6 +614,7 @@ export function clearAllScripts(
  * @param scripts - Array of script configurations
  * @param consents - Current user consent state
  * @param scriptIdMap - Map of anonymized script IDs to original IDs
+ * @param options - Additional options including IAB consent state
  * @returns True if the script was reloaded, false otherwise
  *
  * @public
@@ -498,7 +623,8 @@ export function reloadScript(
 	scriptId: string,
 	scripts: Script[],
 	consents: ConsentState,
-	scriptIdMap: Record<string, string> = {}
+	scriptIdMap: Record<string, string> = {},
+	options?: ScriptLoaderOptions
 ): boolean {
 	const script = scripts.find((s) => s.id === scriptId);
 
@@ -520,7 +646,7 @@ export function reloadScript(
 				id: scriptId,
 				elementId,
 				consents,
-				hasConsent: has(script.category, consents),
+				hasConsent: scriptHasConsent(script, consents, options),
 			};
 
 			// Execute onDelete callback if provided
@@ -537,7 +663,7 @@ export function reloadScript(
 				id: scriptId,
 				elementId,
 				consents,
-				hasConsent: has(script.category, consents),
+				hasConsent: scriptHasConsent(script, consents, options),
 				element: scriptElement,
 			};
 
@@ -556,11 +682,11 @@ export function reloadScript(
 	}
 
 	// Check if the script has consent before reloading (unless alwaysLoad is true)
-	if (!script.alwaysLoad && !has(script.category, consents)) {
+	if (!script.alwaysLoad && !scriptHasConsent(script, consents, options)) {
 		return false;
 	}
 
 	// Load the script
-	loadScripts([script], consents, scriptIdMap);
+	loadScripts([script], consents, scriptIdMap, options);
 	return true;
 }

@@ -43,20 +43,15 @@
 			"import": "./dist/router.js",
 			"require": "./dist/router.cjs"
 		},
-		"./contracts": {
-			"types": "./dist/contracts/index.d.ts",
-			"import": "./dist/contracts.js",
-			"require": "./dist/contracts.cjs"
-		},
 		"./db/schema": {
 			"types": "./dist/db/schema/index.d.ts",
-			"import": "./dist/schema.js",
-			"require": "./dist/schema.cjs"
+			"import": "./dist/db/schema.js",
+			"require": "./dist/db/schema.cjs"
 		},
 		"./db/adapters": {
 			"types": "./dist/db/adapters/index.d.ts",
-			"import": "./dist/adapters.js",
-			"require": "./dist/adapters.cjs"
+			"import": "./dist/db/adapters.js",
+			"require": "./dist/db/adapters.cjs"
 		},
 		"./db/adapters/kysely": {
 			"types": "./dist/db/adapters/kysely.d.ts",
@@ -85,13 +80,18 @@
 		},
 		"./db/migrator": {
 			"types": "./dist/db/migrator/index.d.ts",
-			"import": "./dist/migrator.js",
-			"require": "./dist/migrator.cjs"
+			"import": "./dist/db/migrator.js",
+			"require": "./dist/db/migrator.cjs"
 		},
 		"./types": {
 			"types": "./dist/types/index.d.ts",
 			"import": "./dist/types.js",
 			"require": "./dist/types.cjs"
+		},
+		"./cache": {
+			"types": "./dist/cache/index.d.ts",
+			"import": "./dist/cache.js",
+			"require": "./dist/cache.cjs"
 		}
 	},
 	"main": "./dist/server.cjs",
@@ -101,7 +101,7 @@
 		"prebuild": "genversion --esm --semi src/version.ts",
 		"build": "bun prebuild && rslib build",
 		"check-types": "bun prebuild && tsc --noEmit",
-		"dev": "bun prebuild && rslib build --watch",
+		"dev": "bun prebuild && rslib build",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"knip": "knip",
 		"lint": "bun biome lint ./src",
@@ -113,26 +113,31 @@
 		"@c15t/logger": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
+		"@hono/standard-validator": "^0.2.2",
+		"@hono/valibot-validator": "0.6.1",
 		"@opentelemetry/api": "1.9.0",
 		"@opentelemetry/resources": "2.2.0",
 		"@opentelemetry/sdk-node": "0.208.0",
 		"@opentelemetry/sdk-trace-base": "2.2.0",
-		"@orpc/contract": "1.12.2",
-		"@orpc/openapi": "1.12.2",
-		"@orpc/otel": "1.12.2",
-		"@orpc/server": "1.12.2",
-		"@orpc/zod": "1.12.2",
+		"@scalar/hono-api-reference": "0.5.175",
+		"@valibot/to-json-schema": "1.0.0",
 		"base-x": "5.0.1",
 		"defu": "6.1.4",
 		"fumadb": "0.2.1",
-		"zod": "4.1.13"
+		"hono": "4.11.7",
+		"hono-openapi": "1.2.0",
+		"valibot": "1.2.0"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"@types/node": "24.10.1",
+		"@upstash/redis": "^1.0.0",
 		"genversion": "3.2.0",
 		"typescript": "5.9.3"
+	},
+	"peerDependencies": {
+		"@upstash/redis": ">=1.0.0"
 	},
 	"publishConfig": {
 		"access": "public"

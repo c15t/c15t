@@ -13,13 +13,13 @@ function isSupportedBaseLanguage(lang: string): lang is SupportedBaseLanguage {
 }
 
 /**
- * Gets the translations for a given language, merging custom translations if provided.
+ * Gets the translations data for a given language, merging custom translations if provided.
  *
  * @param acceptLanguage - The `Accept-Language` header from the request.
  * @param customTranslations - An object containing custom translations to merge with the base translations.
  * @returns An object containing the final translations and the determined language.
  */
-export function getTranslations(
+export function getTranslationsData(
 	acceptLanguage: string | null,
 	customTranslations?: Record<string, Partial<Translations>>
 ) {
@@ -50,4 +50,23 @@ export function getTranslations(
 		translations: translations as CompleteTranslations,
 		language: preferredLanguage,
 	};
+}
+
+/**
+ * Gets the translations for a given language from options.
+ *
+ * @param acceptLanguage - The `Accept-Language` header from the request.
+ * @param options - The C15T options containing custom translations.
+ * @returns An object containing the final translations and the determined language.
+ */
+export async function getTranslations(
+	acceptLanguage: string,
+	options: {
+		advanced?: { customTranslations?: Record<string, Partial<Translations>> };
+	}
+) {
+	return getTranslationsData(
+		acceptLanguage,
+		options.advanced?.customTranslations
+	);
 }

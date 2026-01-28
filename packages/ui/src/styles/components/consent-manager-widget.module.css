@@ -302,7 +302,8 @@
 	}
 
 	.accordionContent {
-		padding: var(--widget-accordion-padding);
+		padding: var(--widget-gap) var(--widget-accordion-padding) var(--widget-gap)
+			0;
 		color: var(--widget-accordion-content-color);
 		font-size: 0.875rem;
 		line-height: 1.5;
@@ -328,29 +329,21 @@
 		transform: rotate(180deg);
 	}
 
-	/* Switch styles */
+	/* Switch styles - layout only, colors handled by switch primitive */
 	.switch {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
 		cursor: pointer;
-		width: 2rem;
-		height: 1.25rem;
-		background-color: var(--widget-accordion-background-hover);
-		border-radius: 9999px;
-		transition: background-color var(--widget-accordion-duration)
-			var(--widget-accordion-ease);
 	}
 
-	:global(.c15t-dark) .switch {
-		background-color: var(--widget-accordion-background-hover-dark);
-	}
+	/* Reduced motion preference */
+	@media (prefers-reduced-motion: reduce) {
+		.card[data-state="open"],
+		.card[data-state="closed"] {
+			animation: none;
+		}
 
-	.switch[data-state="checked"] {
-		background-color: var(--widget-accordion-focus-ring);
-	}
-
-	:global(.c15t-dark) .switch[data-state="checked"] {
-		background-color: var(--widget-accordion-focus-ring-dark);
+		.accordionTrigger,
+		.accordionArrow {
+			transition: none;
+		}
 	}
 }

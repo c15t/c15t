@@ -40,6 +40,9 @@ describe('defaultTheme', () => {
 	test('has motion settings', () => {
 		expect(defaultTheme.motion.duration).toBeDefined();
 		expect(defaultTheme.motion.easing).toBeDefined();
+		expect(defaultTheme.motion.easingOut).toBeDefined();
+		expect(defaultTheme.motion.easingInOut).toBeDefined();
+		expect(defaultTheme.motion.easingSpring).toBeDefined();
 	});
 });
 
@@ -128,12 +131,24 @@ describe('themeToVars', () => {
 					normal: '200ms',
 				},
 				easing: 'ease-in-out',
+				easingOut: 'cubic-bezier(0.215, 0.61, 0.355, 1)',
+				easingInOut: 'cubic-bezier(0.645, 0.045, 0.355, 1)',
+				easingSpring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
 			},
 		};
 		const vars = themeToVars(theme);
 		expect(vars['--c15t-duration-fast']).toBe('100ms');
 		expect(vars['--c15t-duration-normal']).toBe('200ms');
 		expect(vars['--c15t-easing']).toBe('ease-in-out');
+		expect(vars['--c15t-easing-out']).toBe(
+			'cubic-bezier(0.215, 0.61, 0.355, 1)'
+		);
+		expect(vars['--c15t-easing-in-out']).toBe(
+			'cubic-bezier(0.645, 0.045, 0.355, 1)'
+		);
+		expect(vars['--c15t-easing-spring']).toBe(
+			'cubic-bezier(0.34, 1.56, 0.64, 1)'
+		);
 	});
 
 	test('uses dark colors when isDark is true', () => {
@@ -215,7 +230,22 @@ describe('generateThemeCSS', () => {
 		};
 		const css = generateThemeCSS(theme);
 		// Should have opening and closing braces
-		expect(css.match(/{/g)?.length).toBe(2); // light and dark selectors
-		expect(css.match(/}/g)?.length).toBe(2);
+		// (light, dark, and no-transitions utility with pseudo-elements = 4 selectors)
+		const openBraces = css.match(/{/g)?.length ?? 0;
+		const closeBraces = css.match(/}/g)?.length ?? 0;
+		expect(openBraces).toBe(closeBraces);
+		expect(openBraces).toBeGreaterThanOrEqual(3);
+	});
+
+	test('includes no-transitions utility class', () => {
+		const theme: Theme = {
+			colors: {
+				primary: '#ff0000',
+			},
+		};
+		const css = generateThemeCSS(theme);
+		expect(css).toContain('.c15t-no-transitions');
+		expect(css).toContain('transition: none !important');
+		expect(css).toContain('animation: none !important');
 	});
 });

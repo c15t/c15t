@@ -10,6 +10,7 @@ import type { HasCondition } from '../libs/has';
 import type { IframeBlockerConfig } from '../libs/iframe-blocker';
 import type { NetworkBlockerConfig } from '../libs/network-blocker';
 import type { Script } from '../libs/script-loader';
+import type { IABConfig, IABManager } from '../libs/tcf/types';
 import type {
 	AllConsentNames,
 	Callbacks,
@@ -18,12 +19,43 @@ import type {
 	ConsentState,
 	ConsentType,
 	consentTypes,
+	GlobalVendorList,
 	LegalLinks,
 	LocationInfo,
 	Overrides,
 	TranslationConfig,
 	User,
 } from '../types';
+
+// Re-export IAB types for external consumers
+export type { IABActions, IABManager, IABState } from '../libs/tcf/types';
+
+/**
+ * Initial data structure for SSR prefetching.
+ *
+ * @remarks
+ * When using frameworks like Next.js, init data can be prefetched
+ * on the server and passed to the client. GVL is included in the
+ * init response when the server has it configured.
+ *
+ * @public
+ */
+export interface SSRInitialData {
+	/**
+	 * Init endpoint response with jurisdiction, location, translations, and optional GVL.
+	 */
+	init: InitOutput | undefined;
+
+	/**
+	 * Global Vendor List data for IAB TCF mode.
+	 * - `undefined` means IAB is not enabled on server or GVL wasn't configured
+	 * - `null` means the user is in a non-IAB region (204 response from gvl.consent.io)
+	 * - `GlobalVendorList` contains the vendor list data from init response
+	 *
+	 * Note: When init returns 200 without gvl, client IAB settings are overridden to disabled.
+	 */
+	gvl?: GlobalVendorList | null;
+}
 
 /**
  * Shared configuration-related properties between store options and runtime state.
@@ -197,8 +229,35 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	 * If showConsentBanner is fetched prior to the store being created, you can pass the initial data here.
 	 *
 	 * This is useful for server-side rendering (SSR) such as in @c15t/nextjs.
+	 *
+	 * @remarks
+	 * The data includes init data with optional GVL when the server has IAB configured.
+	 * GVL is included in the init response, not fetched separately.
 	 */
-	_initialData?: Promise<InitOutput | undefined>;
+	_initialData?: Promise<SSRInitialData | undefined>;
+
+	/**
+	 * IAB TCF 2.3 configuration.
+	 *
+	 * Most users don't need this - only enable if you work with
+	 * IAB-registered programmatic advertising vendors.
+	 *
+	 * @remarks
+	 * When enabled, c15t will:
+	 * - Use GVL from backend /init response (backend must have GVL configured)
+	 * - Initialize __tcfapi CMP API
+	 * - Generate TC Strings for IAB compliance
+	 *
+	 * Note: If the server returns 200 without GVL, client IAB settings are
+	 * automatically overridden to disabled (server takes precedence).
+	 *
+	 * In offline/fallback mode, GVL is fetched from gvl.consent.io.
+	 *
+	 * This is an opt-in feature with zero bundle impact when not enabled.
+	 *
+	 * @see https://iabeurope.eu/transparency-consent-framework/
+	 */
+	iab?: IABConfig;
 
 	/**
 	 * Callbacks for the consent manager.
@@ -280,8 +339,26 @@ export interface StoreRuntimeState extends StoreConfig {
 	 *
 	 * - 'opt-in' - Requires explicit consent before non-essential cookies or tracking. (GDPR Style)
 	 * - 'opt-out' - Allows processing until the user exercises a right to opt out. (CCPA Style)
+	 * - 'iab' - IAB TCF 2.3 mode for programmatic advertising compliance. (GDPR jurisdictions only)
 	 */
 	model: Model;
+
+	/**
+	 * IAB TCF 2.3 state and actions (null when not configured or not in IAB mode).
+	 *
+	 * @remarks
+	 * This encapsulates all IAB-specific state and methods including the Global Vendor List,
+	 * consent strings, per-vendor/purpose consent states, and management functions.
+	 *
+	 * When IAB mode is enabled, access state and actions via:
+	 * - `store.iab?.gvl` - Global Vendor List
+	 * - `store.iab?.vendorConsents` - Vendor consent state
+	 * - `store.iab?.acceptAll()` - Accept all IAB consents
+	 * - `store.iab?.save()` - Save IAB consents
+	 *
+	 * @see {@link IABManager} for the full state and action interface
+	 */
+	iab: IABManager | null;
 }
 
 /**

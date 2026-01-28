@@ -1,6 +1,8 @@
 /**
  * Custom implementation of the consent client interface.
  * This client uses provided handlers instead of making HTTP requests.
+ *
+
  */
 
 import type {
@@ -10,12 +12,9 @@ import type {
 	InitResponse,
 	SetConsentRequestBody,
 	SetConsentResponse,
-	VerifyConsentRequestBody,
-	VerifyConsentResponse,
 } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
 import { customFetch } from './fetch';
-import { identifyUser } from './identify-user';
 import { init } from './init';
 import { setConsent } from './set-consent';
 import type {
@@ -23,11 +22,13 @@ import type {
 	EndpointHandler,
 	EndpointHandlers,
 } from './types';
-import { verifyConsent } from './verify-consent';
 
 /**
  * Custom implementation of the consent client interface.
  * Uses provided handlers instead of making HTTP requests.
+ *
+ * @remarks
+ * v2.0: Subject-centric API. Use setConsent for all consent operations.
  */
 export class CustomClient implements ConsentManagerInterface {
 	/**
@@ -65,6 +66,9 @@ export class CustomClient implements ConsentManagerInterface {
 
 	/**
 	 * Sets consent preferences for a subject.
+	 *
+	 * @remarks
+	 * v2.0: This uses the subject endpoint handler.
 	 */
 	async setConsent(
 		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
@@ -73,21 +77,35 @@ export class CustomClient implements ConsentManagerInterface {
 	}
 
 	/**
-	 * Verifies if valid consent exists.
-	 */
-	async verifyConsent(
-		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
-	): Promise<ResponseContext<VerifyConsentResponse>> {
-		return verifyConsent(this.endpointHandlers, options);
-	}
-
-	/**
-	 * Links a subject's external ID to a consent record by consent ID.
+	 * Links an external user ID to a subject.
+	 *
+	 * @remarks
+	 * v2.0: Uses identifyUser endpoint handler if provided, otherwise falls back to $fetch.
 	 */
 	async identifyUser(
-		options?: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
+		options: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
 	): Promise<ResponseContext<IdentifyUserResponse>> {
-		return identifyUser(this.endpointHandlers, options);
+		if (this.endpointHandlers.identifyUser) {
+			return this.endpointHandlers.identifyUser(options);
+		}
+		// Fallback: use $fetch with the path
+		const subjectId = options.body?.id;
+		if (!subjectId) {
+			return {
+				ok: false,
+				data: null,
+				response: null,
+				error: {
+					message: 'Subject ID is required to identify user',
+					status: 400,
+					code: 'MISSING_SUBJECT_ID',
+				},
+			};
+		}
+		return this.$fetch(`/subjects/${subjectId}`, {
+			...options,
+			method: 'PATCH',
+		});
 	}
 
 	/**

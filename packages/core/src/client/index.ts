@@ -13,6 +13,14 @@ export {
 	type ConsentManagerOptions,
 	configureConsentManager,
 } from './client-factory';
+// Export client interface types
+export type {
+	IdentifyUserRequestBody,
+	IdentifyUserResponse,
+	InitResponse,
+	SetConsentRequestBody,
+	SetConsentResponse,
+} from './client-interface';
 // Export Custom client for advanced usage scenarios
 export {
 	CustomClient,
