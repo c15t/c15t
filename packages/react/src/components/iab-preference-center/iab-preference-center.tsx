@@ -18,6 +18,10 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Branding } from '~/components/consent-manager-dialog/atoms/dialog-card';
+import {
+	PreferenceCenterTrigger,
+	type PreferenceCenterTriggerProps,
+} from '~/components/preference-center-trigger';
 import * as Button from '~/components/shared/ui/button';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useConsentManager } from '~/hooks/use-consent-manager';
@@ -75,6 +79,18 @@ export interface IABPreferenceCenterProps {
 	 * @default false
 	 */
 	hideBranding?: boolean;
+
+	/**
+	 * Show a floating trigger button to resurface the preference center.
+	 * IAB TCF requires the preference center to be easily resurfaceable.
+	 *
+	 * - `true` - Show trigger with default settings
+	 * - `false` - Hide trigger (default)
+	 * - `PreferenceCenterTriggerProps` - Show trigger with custom props
+	 *
+	 * @default false
+	 */
+	showTrigger?: boolean | PreferenceCenterTriggerProps;
 }
 
 /**
@@ -97,6 +113,7 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 	scrollLock: localScrollLock = true,
 	trapFocus: localTrapFocus = true,
 	hideBranding,
+	showTrigger = false,
 }) => {
 	const iabTranslations = useIABTranslations();
 	const {
@@ -819,9 +836,27 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 		</>
 	);
 
+	// Resolve trigger props
+	const triggerProps: PreferenceCenterTriggerProps | null =
+		showTrigger === true
+			? {} // Use defaults
+			: showTrigger === false
+				? null
+				: showTrigger;
+
+	// Render trigger even when dialog is closed
+	const triggerElement = triggerProps ? (
+		<PreferenceCenterTrigger {...triggerProps} />
+	) : null;
+
 	if (!isOpen && !isVisible) {
-		return null;
+		return triggerElement;
 	}
 
-	return createPortal(dialogContent, document.body);
+	return (
+		<>
+			{triggerElement}
+			{createPortal(dialogContent, document.body)}
+		</>
+	);
 };
