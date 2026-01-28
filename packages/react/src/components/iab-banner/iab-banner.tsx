@@ -10,9 +10,9 @@ import styles from '@c15t/ui/styles/components/iab-banner.module.css';
 import { type FC, type RefObject, useMemo, useRef } from 'react';
 import { Box } from '~/components/shared/primitives/box';
 import * as Button from '~/components/shared/ui/button';
+import { useComponentConfig } from '~/hooks/use-component-config';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
-import { useTheme } from '~/hooks/use-theme';
 import { useIABTranslations } from '../iab-preference-center/use-iab-translations';
 import { IABBannerRoot } from './atoms/root';
 
@@ -81,7 +81,6 @@ export const IABBanner: FC<IABBannerProps> = ({
 	primaryButton = 'customize',
 }) => {
 	const iabT = useIABTranslations();
-	const globalTheme = useTheme();
 	const {
 		iab: iabState,
 		setShowPopup,
@@ -90,12 +89,13 @@ export const IABBanner: FC<IABBannerProps> = ({
 
 	const cardRef = useRef<HTMLDivElement>(null);
 
-	const mergedProps = {
-		noStyle: localNoStyle ?? globalTheme.noStyle,
-		disableAnimation: localDisableAnimation ?? globalTheme.disableAnimation,
-		scrollLock: localScrollLock ?? globalTheme.scrollLock,
-		trapFocus: localTrapFocus ?? globalTheme.trapFocus,
-	};
+	// Merge local props with global theme context
+	const config = useComponentConfig({
+		noStyle: localNoStyle,
+		disableAnimation: localDisableAnimation,
+		scrollLock: localScrollLock,
+		trapFocus: localTrapFocus,
+	});
 
 	// Get vendor count from GVL + custom vendors
 	const vendorCount = useMemo(() => {
@@ -241,10 +241,7 @@ export const IABBanner: FC<IABBannerProps> = ({
 	};
 
 	// Focus trap
-	useFocusTrap(
-		Boolean(mergedProps.trapFocus),
-		cardRef as RefObject<HTMLElement>
-	);
+	useFocusTrap(Boolean(config.trapFocus), cardRef as RefObject<HTMLElement>);
 
 	const isPrimary = (button: 'reject' | 'accept' | 'customize') =>
 		button === primaryButton;
@@ -267,14 +264,14 @@ export const IABBanner: FC<IABBannerProps> = ({
 	);
 
 	return (
-		<IABBannerRoot {...mergedProps}>
+		<IABBannerRoot {...config}>
 			<Box
 				ref={cardRef}
 				baseClassName={styles.card}
 				themeKey="iabBannerCard"
 				tabIndex={0}
 				role="dialog"
-				aria-modal={mergedProps.trapFocus ? 'true' : undefined}
+				aria-modal={config.trapFocus ? 'true' : undefined}
 				aria-label={iabT.banner.title}
 				data-testid="iab-banner-card"
 			>

@@ -60,7 +60,7 @@ const ConsentManagerWidgetSaveButton = forwardRef<
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
 			action="custom-consent"
-			primary
+			variant="primary"
 			closeCustomizeDialog
 			{...props}
 			themeKey="buttonPrimary"

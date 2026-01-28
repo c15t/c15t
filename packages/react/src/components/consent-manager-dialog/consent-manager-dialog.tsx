@@ -11,8 +11,8 @@
 
 import type { FC } from 'react';
 import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
+import { useComponentConfig } from '~/hooks/use-component-config';
 import { useConsentManager } from '~/hooks/use-consent-manager';
-import { useTheme } from '~/hooks/use-theme';
 import { ConsentCustomizationCard } from './atoms/dialog-card';
 import { Root as ConsentManagerDialogRoot } from './atoms/root';
 
@@ -95,8 +95,13 @@ export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 	hideBranding,
 	legalLinks,
 }) => {
-	// Global default settings from provider
-	const globalTheme = useTheme();
+	// Merge local props with global theme context
+	const config = useComponentConfig({
+		noStyle: localNoStyle,
+		disableAnimation: localDisableAnimation,
+		scrollLock: localScrollLock,
+		trapFocus: localTrapFocus,
+	});
 
 	// Consent-manager state controls open/close when `open` prop is undefined
 	const { isPrivacyDialogOpen } = useConsentManager();
@@ -104,10 +109,7 @@ export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 	// Compose the props we want to forward to the Root primitive
 	const rootProps = {
 		open: open ?? isPrivacyDialogOpen,
-		noStyle: localNoStyle ?? globalTheme.noStyle,
-		disableAnimation: localDisableAnimation ?? globalTheme.disableAnimation,
-		scrollLock: localScrollLock ?? globalTheme.scrollLock,
-		trapFocus: localTrapFocus ?? globalTheme.trapFocus,
+		...config,
 	};
 
 	return (
