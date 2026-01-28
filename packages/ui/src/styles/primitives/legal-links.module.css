@@ -38,4 +38,11 @@
 		outline: none;
 		text-decoration: underline;
 	}
+
+	/* Reduced motion preference */
+	@media (prefers-reduced-motion: reduce) {
+		.legalLink {
+			transition: none;
+		}
+	}
 }

@@ -187,10 +187,28 @@ export interface MotionTokens {
 		slow?: string;
 	};
 	/**
-	 * CSS easing function for animation curves.
+	 * Default CSS easing function for general animation curves.
 	 * @default 'cubic-bezier(0.4, 0, 0.2, 1)'
 	 */
 	easing?: string;
+	/**
+	 * CSS easing function for enter/exit animations.
+	 * Use for modals, tooltips, dropdowns, and any element entering or exiting.
+	 * @default 'cubic-bezier(0.215, 0.61, 0.355, 1)'
+	 */
+	easingOut?: string;
+	/**
+	 * CSS easing function for on-screen movement.
+	 * Use when elements already on screen need to move or morph.
+	 * @default 'cubic-bezier(0.645, 0.045, 0.355, 1)'
+	 */
+	easingInOut?: string;
+	/**
+	 * CSS easing function with spring-like overshoot.
+	 * Use for playful, bouncy animations.
+	 * @default 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+	 */
+	easingSpring?: string;
 }
 
 /**

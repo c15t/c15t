@@ -67,6 +67,12 @@ export const defaultTheme: Required<Omit<Theme, 'slots' | 'dark'>> = {
 			slow: '300ms',
 		},
 		easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+		// ease-out-cubic: fast start, smooth end - ideal for enter/exit
+		easingOut: 'cubic-bezier(0.215, 0.61, 0.355, 1)',
+		// ease-in-out-cubic: smooth acceleration and deceleration - ideal for movement
+		easingInOut: 'cubic-bezier(0.645, 0.045, 0.355, 1)',
+		// Spring-like overshoot - ideal for playful animations
+		easingSpring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
 	},
 };
 
@@ -162,6 +168,12 @@ export function themeToVars(
 		if (theme.motion.duration?.slow)
 			vars['--c15t-duration-slow'] = theme.motion.duration.slow;
 		if (theme.motion.easing) vars['--c15t-easing'] = theme.motion.easing;
+		if (theme.motion.easingOut)
+			vars['--c15t-easing-out'] = theme.motion.easingOut;
+		if (theme.motion.easingInOut)
+			vars['--c15t-easing-in-out'] = theme.motion.easingInOut;
+		if (theme.motion.easingSpring)
+			vars['--c15t-easing-spring'] = theme.motion.easingSpring;
 	}
 
 	return vars;
@@ -189,6 +201,27 @@ ${lightCSS}
 
 .dark :root, .dark .c15t-theme-root, .c15t-dark :root, .c15t-dark .c15t-theme-root {
 ${darkCSS}
+}
+
+/*
+ * Utility class to disable transitions during theme switching.
+ * Apply this class to the root element before switching themes,
+ * then remove it after a short delay to prevent flash of
+ * animated content during the color scheme change.
+ *
+ * Example usage:
+ *   document.documentElement.classList.add('c15t-no-transitions');
+ *   // Switch theme...
+ *   requestAnimationFrame(() => {
+ *     document.documentElement.classList.remove('c15t-no-transitions');
+ *   });
+ */
+.c15t-no-transitions,
+.c15t-no-transitions *,
+.c15t-no-transitions *::before,
+.c15t-no-transitions *::after {
+	transition: none !important;
+	animation: none !important;
 }
 	`.trim();
 }
