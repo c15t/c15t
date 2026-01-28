@@ -10,6 +10,10 @@
  */
 
 import type { FC } from 'react';
+import {
+	PreferenceCenterTrigger,
+	type PreferenceCenterTriggerProps,
+} from '~/components/preference-center-trigger';
 import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useConsentManager } from '~/hooks/use-consent-manager';
@@ -84,6 +88,18 @@ export interface ConsentManagerDialogProps {
 	 * @defaultValue false
 	 */
 	hideBranding?: boolean;
+
+	/**
+	 * Show a floating trigger button to resurface the preference center.
+	 * Useful for allowing users to re-open the dialog after dismissing.
+	 *
+	 * - `true` - Show trigger with default settings
+	 * - `false` - Hide trigger (default)
+	 * - `PreferenceCenterTriggerProps` - Show trigger with custom props
+	 *
+	 * @default false
+	 */
+	showTrigger?: boolean | PreferenceCenterTriggerProps;
 }
 
 export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
@@ -94,6 +110,7 @@ export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 	trapFocus: localTrapFocus = true,
 	hideBranding,
 	legalLinks,
+	showTrigger = false,
 }) => {
 	// Merge local props with global theme context
 	const config = useComponentConfig({
@@ -112,13 +129,24 @@ export const ConsentManagerDialog: FC<ConsentManagerDialogProps> = ({
 		...config,
 	};
 
+	// Resolve trigger props
+	const triggerProps: PreferenceCenterTriggerProps | null =
+		showTrigger === true
+			? {} // Use defaults
+			: showTrigger === false
+				? null
+				: showTrigger;
+
 	return (
-		<ConsentManagerDialogRoot {...rootProps}>
-			<ConsentCustomizationCard
-				noStyle={rootProps.noStyle}
-				legalLinks={legalLinks}
-				hideBranding={hideBranding}
-			/>
-		</ConsentManagerDialogRoot>
+		<>
+			{triggerProps && <PreferenceCenterTrigger {...triggerProps} />}
+			<ConsentManagerDialogRoot {...rootProps}>
+				<ConsentCustomizationCard
+					noStyle={rootProps.noStyle}
+					legalLinks={legalLinks}
+					hideBranding={hideBranding}
+				/>
+			</ConsentManagerDialogRoot>
+		</>
 	);
 };
