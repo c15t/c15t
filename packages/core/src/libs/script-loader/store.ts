@@ -1,6 +1,6 @@
 import type { ConsentStoreState } from '../../store/type';
 import type { AllConsentNames } from '../../types';
-import { extractConsentNamesFromCondition, has } from '../has';
+import { extractConsentNamesFromCondition } from '../has';
 import {
 	getLoadedScriptIds,
 	isScriptLoaded,
@@ -119,38 +119,16 @@ export function createScriptManager(
 		 * @param scriptId - ID of the script to remove
 		 *
 		 * @remarks
-		 * If the script is currently loaded, it will be unloaded, its
-		 * `onDelete` callback (if any) will be called, and the DOM element
-		 * will be removed.
+		 * If the script is currently loaded, it will be unloaded and the DOM
+		 * element will be removed.
 		 */
 		removeScript: (scriptId: string) => {
 			const state = getState();
-
-			// Find the script configuration
-			const script = state.scripts.find((s) => s.id === scriptId);
 
 			// If the script is loaded, unload it first
 			if (hasLoadedScript(scriptId)) {
 				const scriptElement = getLoadedScript(scriptId);
 				if (scriptElement) {
-					// Get the element ID (either anonymized or prefixed)
-					const elementId =
-						state.scriptIdMap[scriptId] || `c15t-script-${scriptId}`;
-
-					// Create callback info object
-					const callbackInfo = {
-						id: scriptId,
-						elementId,
-						consents: state.consents,
-						element: scriptElement,
-						hasConsent: has(script?.category ?? 'necessary', state.consents),
-					};
-
-					// Execute onDelete callback if provided
-					if (script?.onDelete) {
-						script.onDelete(callbackInfo);
-					}
-
 					scriptElement.remove();
 					deleteLoadedScript(scriptId);
 				}

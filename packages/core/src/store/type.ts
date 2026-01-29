@@ -274,6 +274,27 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	 * @see {@link Script} for available options
 	 */
 	scripts?: Script[];
+
+	/**
+	 * When true, triggers a page reload when consent is revoked instead of
+	 * trusting script cleanup callbacks. This ensures complete cleanup of
+	 * third-party scripts by refreshing the page with the new consent state.
+	 *
+	 * @remarks
+	 * Reload only happens when:
+	 * - User had previously granted consent (scripts were loaded)
+	 * - User is now revoking one or more consents
+	 *
+	 * Reload does NOT happen when:
+	 * - User is declining consent for the first time (no scripts were loaded)
+	 * - User is adding more consent (just loads new scripts)
+	 *
+	 * The consent is persisted locally before reload, and the API sync
+	 * happens on the fresh page load.
+	 *
+	 * @default true (recommended for privacy compliance)
+	 */
+	reloadOnConsentRevoked?: boolean;
 }
 
 /**
@@ -359,6 +380,13 @@ export interface StoreRuntimeState extends StoreConfig {
 	 * @see {@link IABManager} for the full state and action interface
 	 */
 	iab: IABManager | null;
+
+	/**
+	 * Whether to reload the page when consent is revoked.
+	 *
+	 * @see {@link StoreOptions.reloadOnConsentRevoked} for details
+	 */
+	reloadOnConsentRevoked: boolean;
 }
 
 /**

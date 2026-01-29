@@ -191,12 +191,16 @@ fbq('track', 'PageView');
 		// This is a persistent script because it has an API to manage the consent state
 		persistAfterConsentRevoked: true,
 
-		// This will run before the script is deleted
-		onDelete: (payload) => {
-			window.fbq('consent', 'revoke');
+		onConsentChange: ({ consents, ...rest }) => {
+			// Update Meta Pixel consent based on current consent state
+			if (consents.marketing) {
+				window.fbq('consent', 'grant');
+			} else {
+				window.fbq('consent', 'revoke');
+			}
 
-			if (script?.onDelete) {
-				script.onDelete(payload);
+			if (script?.onConsentChange) {
+				script.onConsentChange({ consents, ...rest });
 			}
 		},
 	};

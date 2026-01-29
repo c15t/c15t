@@ -40,6 +40,7 @@ export type OnErrorPayload = {
  * onBannerFetched: Consent banner fetched
  * onConsentSet: Consent set
  * onError: Error
+ * onBeforeConsentRevocationReload: Before page reload on consent revocation
  *
  * @public
  */
@@ -68,4 +69,20 @@ export interface Callbacks {
 	 * @param payload - The payload containing the error information
 	 */
 	onError?: Callback<OnErrorPayload>;
+
+	/**
+	 * Called before the page reloads when consent is revoked.
+	 *
+	 * @remarks
+	 * This callback is triggered when `reloadOnConsentRevoked` is enabled
+	 * and a user revokes consent that was previously granted. Use this
+	 * callback to show a loading state or perform any cleanup before
+	 * the page reloads.
+	 *
+	 * Note: This callback runs synchronously before the reload, so
+	 * avoid long-running operations.
+	 *
+	 * @param payload - The payload containing the new consent preferences
+	 */
+	onBeforeConsentRevocationReload?: Callback<OnConsentSetPayload>;
 }

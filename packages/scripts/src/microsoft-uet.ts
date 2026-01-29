@@ -97,13 +97,14 @@ export function microsoftUet({ id, script }: MicrosoftUetOptions): Script {
 				script.onLoad(rest);
 			}
 		},
-		onDelete({ elementId, ...rest }) {
+		onConsentChange({ consents, ...rest }) {
+			// Update Microsoft UET consent based on current consent state
 			window.uetq?.push('consent', 'update', {
-				ad_storage: 'denied',
+				ad_storage: consents.marketing ? 'granted' : 'denied',
 			});
 
-			if (script?.onDelete) {
-				script.onDelete({ elementId, ...rest });
+			if (script?.onConsentChange) {
+				script.onConsentChange({ consents, ...rest });
 			}
 		},
 	};

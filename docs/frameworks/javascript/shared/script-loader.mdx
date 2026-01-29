@@ -54,6 +54,60 @@ availableIn:
   | X Pixel | [Guide](/docs/integrations/x-pixel) |
 </section>
 
+<section id="consent-revocation">
+  ## Consent Revocation Behavior
+
+  When a user revokes consent that was previously granted, c15t triggers a page reload by default. This ensures complete cleanup of third-party scripts since we cannot trust that scripts properly implement their cleanup APIs.
+
+  ### Why Page Reload?
+
+  Third-party scripts often:
+  - Set cookies and localStorage data that persist after script removal
+  - Create global variables and event listeners
+  - Send data before cleanup can occur
+
+  A page reload ensures:
+  - All JavaScript execution is refreshed
+  - Scripts without consent are never loaded
+  - No residual tracking state remains
+
+  ### When Reload Happens
+
+  | Scenario | Reload? |
+  | --- | --- |
+  | First visit, user declines consent | No (scripts were never loaded) |
+  | User had consent, now revoking | Yes |
+  | Opt-out jurisdiction (CCPA), user opts out | Yes |
+  | User adds more consent | No (just loads new scripts) |
+
+  ### Configuration
+
+  You can disable this behavior if needed:
+
+  ```ts
+  <ConsentManagerProvider options={{
+    reloadOnConsentRevoked: false, // Disable page reload (not recommended)
+  }}>
+  ```
+
+  <Callout type="warning">
+    Disabling `reloadOnConsentRevoked` means you are trusting third-party scripts to properly clean up when consent is revoked. This is not recommended for privacy compliance.
+  </Callout>
+
+  ### Callback
+
+  Use the `onBeforeConsentRevocationReload` callback to show a loading state before reload:
+
+  ```ts
+  callbacks: {
+    onBeforeConsentRevocationReload: ({ preferences }) => {
+      // Show loading state before page reloads
+      document.body.classList.add('reloading');
+    },
+  }
+  ```
+</section>
+
 <section id="always-load">
   ## Always Load Scripts
 
@@ -81,6 +135,8 @@ availableIn:
   - **Never unload** when consent is revoked or changed
   - **Persist through** `clearAllScripts` calls
   - **Still trigger callbacks** like `onBeforeLoad`, `onLoad`, and `onConsentChange`
+
+  When a page reloads due to consent revocation, `alwaysLoad` scripts will load again with the new consent state via the `onBeforeLoad` callback.
 </section>
 
 <section id="script-type">

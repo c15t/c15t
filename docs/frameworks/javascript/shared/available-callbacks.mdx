@@ -22,3 +22,11 @@ Called when the consent is set.
 Called when an error occurs.
 
 <AutoTypeTable path="./packages/core/src/types/callbacks.ts" name="OnErrorPayload" />
+
+### onBeforeConsentRevocationReload
+
+Called before the page reloads when consent is revoked. This only fires when `reloadOnConsentRevoked` is enabled (default: `true`) and the user revokes previously granted consent.
+
+Use this callback to show a loading state or perform cleanup before the page reloads.
+
+<AutoTypeTable path="./packages/core/src/types/callbacks.ts" name="OnConsentSetPayload" />

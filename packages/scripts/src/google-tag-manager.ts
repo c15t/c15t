@@ -156,19 +156,6 @@ export function googleTagManager({
 				script.onBeforeLoad({ consents, elementId, ...rest });
 			}
 		},
-		onDelete: ({ elementId, ...rest }) => {
-			const setupScript = document.getElementById(
-				`${elementId}-init`
-			) as HTMLScriptElement;
-
-			if (setupScript) {
-				setupScript.remove();
-			}
-
-			if (script?.onDelete) {
-				script.onDelete({ elementId, ...rest });
-			}
-		},
 		onConsentChange({ consents, ...rest }) {
 			if (window.gtag) {
 				window.gtag('consent', 'update', mapConsentStateToGTM(consents));

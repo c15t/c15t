@@ -68,11 +68,16 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
 				script.onLoad(rest);
 			}
 		},
-		onDelete: (rest) => {
-			window.ttq.revokeConsent();
+		onConsentChange: ({ consents, ...rest }) => {
+			// Update TikTok Pixel consent based on current consent state
+			if (consents.marketing) {
+				window.ttq.grantConsent();
+			} else {
+				window.ttq.revokeConsent();
+			}
 
-			if (script?.onDelete) {
-				script.onDelete(rest);
+			if (script?.onConsentChange) {
+				script.onConsentChange({ consents, ...rest });
 			}
 		},
 	};
