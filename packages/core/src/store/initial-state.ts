@@ -125,4 +125,7 @@ export const initialState: StoreRuntimeState = {
 
 	/** IAB TCF state (null when not configured) */
 	iab: null,
+
+	/** Reload page when consent is revoked (recommended for privacy compliance) */
+	reloadOnConsentRevoked: true,
 };

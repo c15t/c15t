@@ -87,18 +87,5 @@ s.parentNode.insertBefore(b, s);})(window.lintrk);
 				script.onBeforeLoad({ elementId, ...rest });
 			}
 		},
-		onDelete({ elementId, ...rest }) {
-			// Try to call the script's own disable function
-			if (
-				window.ORIBILI &&
-				typeof window.ORIBILI._DEBUG?.disableScript === 'function'
-			) {
-				window.ORIBILI._DEBUG.disableScript();
-			}
-
-			if (script?.onDelete) {
-				script.onDelete({ elementId, ...rest });
-			}
-		},
 	};
 }

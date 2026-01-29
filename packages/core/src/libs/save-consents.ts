@@ -1,13 +1,75 @@
 import type { StoreApi } from 'zustand';
 import type { ConsentStoreState } from '~/store/type';
 import type { ConsentManagerInterface } from '../client/client-interface';
+import type { ConsentInfo, ConsentState } from '../types';
 import { generateSubjectId } from './generate-subject-id';
+
+/**
+ * Storage key for pending consent sync after page reload.
+ * When consent is revoked and page reloads, the API sync happens on the fresh page.
+ */
+export const PENDING_CONSENT_SYNC_KEY = 'c15t:pending-consent-sync';
+
+/**
+ * Data structure for pending consent sync stored in localStorage.
+ */
+export interface PendingConsentSync {
+	type: 'necessary' | 'all' | 'custom';
+	subjectId: string;
+	externalId?: string;
+	identityProvider?: string;
+	preferences: ConsentState;
+	givenAt: number;
+	jurisdiction?: string;
+	jurisdictionModel?: string | null;
+	domain: string;
+}
 
 interface SaveConsentsProps {
 	manager: ConsentManagerInterface;
 	type: 'necessary' | 'all' | 'custom';
 	get: StoreApi<ConsentStoreState>['getState'];
 	set: StoreApi<ConsentStoreState>['setState'];
+}
+
+/**
+ * Determines if a page reload is needed when consent changes.
+ *
+ * Reload is needed when:
+ * - reloadOnConsentRevoked is enabled (default: true)
+ * - User had previously granted consent (consentInfo is not null)
+ * - Any non-necessary consent was revoked (went from true to false)
+ *
+ * Reload is NOT needed when:
+ * - reloadOnConsentRevoked is disabled
+ * - User is declining consent for the first time (no prior consent)
+ * - User is only adding consent (no revocations)
+ */
+function shouldReloadOnConsentChange(
+	previousConsents: ConsentState,
+	newConsents: ConsentState,
+	previousConsentInfo: ConsentInfo | null,
+	reloadOnConsentRevoked: boolean
+): boolean {
+	// Explicitly disabled
+	if (!reloadOnConsentRevoked) {
+		return false;
+	}
+
+	// No prior consent info means scripts were never loaded
+	// (opt-in model, first visit - user is just declining)
+	if (previousConsentInfo === null) {
+		return false;
+	}
+
+	// Check if any non-necessary consent was revoked
+	// (was true before, is false now)
+	const wasAnyConsentRevoked = Object.entries(newConsents).some(
+		([key, value]) =>
+			key !== 'necessary' && previousConsents[key] === true && value === false
+	);
+
+	return wasAnyConsentRevoked;
 }
 
 export async function saveConsents({
@@ -28,7 +90,12 @@ export async function saveConsents({
 		locationInfo,
 		model,
 		consentInfo,
+		reloadOnConsentRevoked,
 	} = get();
+
+	// Store previous consents for revocation detection
+	const previousConsents = { ...consents };
+	const previousConsentInfo = consentInfo;
 
 	const newConsents = selectedConsents ?? consents ?? {};
 	const givenAt = Date.now();
@@ -58,8 +125,17 @@ export async function saveConsents({
 	const identityProvider =
 		get().consentInfo?.identityProvider || get().user?.identityProvider;
 
+	// Check if we need to reload the page due to consent revocation
+	const needsReload = shouldReloadOnConsentChange(
+		previousConsents,
+		newConsents,
+		previousConsentInfo,
+		reloadOnConsentRevoked
+	);
+
 	// Immediately update the UI state to close banners/dialogs
 	// This makes the interface feel more responsive
+	// This also persists the consent to localStorage/cookies
 	set({
 		consents: newConsents,
 		selectedConsents: newConsents,
@@ -71,6 +147,44 @@ export async function saveConsents({
 			identityProvider,
 		},
 	});
+
+	// If consent was revoked and reload is enabled, store pending sync and reload
+	if (needsReload) {
+		// Store pending sync data for API call after reload
+		const pendingSync: PendingConsentSync = {
+			type,
+			subjectId,
+			externalId,
+			identityProvider,
+			preferences: newConsents,
+			givenAt,
+			jurisdiction: locationInfo?.jurisdiction ?? undefined,
+			jurisdictionModel: model,
+			domain: window.location.hostname,
+		};
+
+		try {
+			localStorage.setItem(
+				PENDING_CONSENT_SYNC_KEY,
+				JSON.stringify(pendingSync)
+			);
+		} catch {
+			// localStorage might be unavailable, continue with reload anyway
+			// Consent is already persisted via the store's set() call
+		}
+
+		// Trigger callback before reload
+		callbacks.onConsentSet?.({
+			preferences: newConsents,
+		});
+		callbacks.onBeforeConsentRevocationReload?.({
+			preferences: newConsents,
+		});
+
+		// Reload the page to ensure complete cleanup of third-party scripts
+		window.location.reload();
+		return;
+	}
 
 	// Yield to the next task so the UI can paint before running heavier work
 	await new Promise<void>((resolve) => setTimeout(resolve, 0));

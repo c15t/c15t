@@ -7,6 +7,10 @@
  * @packageDocumentation
  */
 
+import {
+	PENDING_CONSENT_SYNC_KEY,
+	type PendingConsentSync,
+} from '../save-consents';
 import { updateStore } from './store-updater';
 import type { ConsentBannerResponse, InitConsentManagerConfig } from './types';
 import { checkLocalStorageAccess } from './utils';
@@ -56,6 +60,10 @@ export async function initConsentManager(
 	}
 
 	set({ isLoadingConsentInfo: true });
+
+	// Process any pending consent sync from a previous page reload
+	// This fires the API call that was deferred when consent was revoked
+	processPendingConsentSync(manager, callbacks);
 
 	// Try to use SSR-prefetched data first
 	const ssrResult = await tryUseSSRData(config);
@@ -150,5 +158,76 @@ async function fetchFromAPI(
 		callbacks.onError?.({ error: errorMessage });
 
 		return undefined;
+	}
+}
+
+/**
+ * Processes any pending consent sync from a previous page reload.
+ *
+ * When consent is revoked with `reloadOnConsentRevoked` enabled, the page
+ * reloads before the API call can complete. The consent data is stored in
+ * localStorage and synced to the API on the next page load.
+ *
+ * @param manager - Consent manager client
+ * @param callbacks - Store callbacks for error handling
+ */
+function processPendingConsentSync(
+	manager: InitConsentManagerConfig['manager'],
+	callbacks: ReturnType<InitConsentManagerConfig['get']>['callbacks']
+): void {
+	try {
+		const pendingSync = localStorage.getItem(PENDING_CONSENT_SYNC_KEY);
+		if (!pendingSync) {
+			return;
+		}
+
+		// Clear immediately to prevent duplicate syncs
+		localStorage.removeItem(PENDING_CONSENT_SYNC_KEY);
+
+		const data: PendingConsentSync = JSON.parse(pendingSync);
+
+		// Fire API call (non-blocking)
+		manager
+			.setConsent({
+				body: {
+					type: 'cookie_banner',
+					domain: data.domain,
+					preferences: data.preferences,
+					subjectId: data.subjectId,
+					externalSubjectId: data.externalId,
+					identityProvider: data.identityProvider,
+					jurisdiction: data.jurisdiction,
+					jurisdictionModel: data.jurisdictionModel ?? undefined,
+					givenAt: data.givenAt,
+					metadata: {
+						source: 'consent_widget',
+						acceptanceMethod: data.type,
+						syncedAfterReload: true,
+					},
+				},
+			})
+			.then((result) => {
+				if (!result.ok) {
+					const errorMsg =
+						result.error?.message ?? 'Failed to sync consent after reload';
+					callbacks.onError?.({ error: errorMsg });
+					if (!callbacks.onError) {
+						console.error('Failed to sync consent after reload:', errorMsg);
+					}
+				}
+			})
+			.catch((err) => {
+				const errorMsg =
+					err instanceof Error
+						? err.message
+						: 'Failed to sync consent after reload';
+				callbacks.onError?.({ error: errorMsg });
+				if (!callbacks.onError) {
+					console.error('Failed to sync consent after reload:', err);
+				}
+			});
+	} catch {
+		// localStorage might be unavailable or data might be corrupted
+		// Silently ignore - consent is already persisted locally
 	}
 }

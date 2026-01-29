@@ -165,12 +165,6 @@ export interface Script {
 	onLoad?: (info: ScriptCallbackInfo) => void;
 
 	/**
-	 * Callback executed when the script is being unloaded/removed
-	 * @param info - Information about the script and current consent state
-	 */
-	onDelete?: (info: ScriptCallbackInfo) => void;
-
-	/**
 	 * Callback executed if the script fails to load
 	 * @param info - Information about the script, error, and current consent state
 	 */

@@ -391,11 +391,13 @@ export function loadScripts(
  * 1. Check if the script is loaded
  * 2. Skip if script has alwaysLoad enabled (these scripts are never unloaded)
  * 3. Check if the script no longer has consent
- * 4. Execute the `onDelete` callback if provided
- * 5. Remove the script from the document
- * 6. Remove the script from tracking
+ * 4. Remove the script from the document
+ * 5. Remove the script from tracking
  *
  * Scripts with `alwaysLoad: true` will never be unloaded, even if consent is revoked.
+ *
+ * Note: When `reloadOnConsentRevoked` is enabled (default), this function may not
+ * be called for consent revocation as the page will reload instead.
  *
  * In IAB mode, scripts with vendorId or iabPurposes will use IAB consent checks.
  *
@@ -424,44 +426,14 @@ export function unloadScripts(
 		if (!scriptHasConsent(script, consents, options)) {
 			const scriptElement = getLoadedScript(script.id);
 
-			// Get the element ID (either anonymized or prefixed)
-			const elementId = scriptIdMap[script.id] || `c15t-script-${script.id}`;
-
 			// Handle callback-only scripts
 			if (script.callbackOnly === true || scriptElement === null) {
-				// Create callback info object without an element
-				const callbackInfo: ScriptCallbackInfo = {
-					id: script.id,
-					elementId,
-					consents,
-					hasConsent: scriptHasConsent(script, consents, options),
-				};
-
-				// Execute onDelete callback if provided
-				if (script.onDelete) {
-					script.onDelete(callbackInfo);
-				}
-
 				// Remove from tracking
 				deleteLoadedScript(script.id);
 				unloadedScriptIds.push(script.id);
 			}
 			// Handle standard scripts with DOM elements
 			else if (scriptElement) {
-				// Create callback info object
-				const callbackInfo: ScriptCallbackInfo = {
-					id: script.id,
-					elementId,
-					consents,
-					hasConsent: scriptHasConsent(script, consents, options),
-					element: scriptElement,
-				};
-
-				// Execute onDelete callback if provided
-				if (script.onDelete) {
-					script.onDelete(callbackInfo);
-				}
-
 				// Only remove from DOM if persistAfterConsentRevoked is not true
 				if (!script.persistAfterConsentRevoked) {
 					scriptElement.remove();
@@ -539,27 +511,15 @@ export function getLoadedScriptIds(): string[] {
 /**
  * Removes all loaded scripts from the DOM and clears the tracking.
  *
- * @param scripts - Optional array of script configurations to check for onDelete callbacks
- * @param consents - Optional consent state to pass to onDelete callbacks
- * @param scriptIdMap - Map of anonymized script IDs to original IDs
- * @param options - Additional options including IAB consent state
+ * @param scripts - Optional array of script configurations to check for alwaysLoad
  * @returns Array of script IDs that were unloaded
  *
  * @remarks
- * If the scripts parameter is provided, the function will call the onDelete callback
- * for each script that is being removed. If consents is also provided, it will be passed
- * to the onDelete callbacks.
- *
  * Scripts with `alwaysLoad: true` will be skipped and remain loaded.
  *
  * @public
  */
-export function clearAllScripts(
-	scripts?: Script[],
-	consents?: ConsentState,
-	scriptIdMap: Record<string, string> = {},
-	options?: ScriptLoaderOptions
-): string[] {
+export function clearAllScripts(scripts?: Script[]): string[] {
 	const unloadedScriptIds: string[] = [];
 
 	getLoadedScriptsSnapshot().forEach((scriptElement, id) => {
@@ -568,26 +528,6 @@ export function clearAllScripts(
 			const script = scripts.find((s) => s.id === id);
 			if (script?.alwaysLoad) {
 				return;
-			}
-		}
-
-		// Execute onDelete callback if provided and if we have the script config
-		if (scripts && consents) {
-			const script = scripts.find((s) => s.id === id);
-			if (script?.onDelete) {
-				// Get the element ID (either anonymized or prefixed)
-				const elementId = scriptIdMap[id] || `c15t-script-${id}`;
-
-				// Create callback info object with or without element based on script type
-				const callbackInfo: ScriptCallbackInfo = {
-					id,
-					elementId,
-					consents,
-					hasConsent: scriptHasConsent(script, consents, options),
-					...(scriptElement !== null && { element: scriptElement }),
-				};
-
-				script.onDelete(callbackInfo);
 			}
 		}
 
@@ -637,42 +577,12 @@ export function reloadScript(
 	if (hasLoadedScript(scriptId)) {
 		const scriptElement = getLoadedScript(scriptId);
 
-		// Get the element ID (either anonymized or prefixed)
-		const elementId = scriptIdMap[scriptId] || `c15t-script-${scriptId}`;
-
 		// Handle callback-only scripts
 		if (script.callbackOnly === true || scriptElement === null) {
-			// Create callback info object without an element
-			const callbackInfo: ScriptCallbackInfo = {
-				id: scriptId,
-				elementId,
-				consents,
-				hasConsent: scriptHasConsent(script, consents, options),
-			};
-
-			// Execute onDelete callback if provided
-			if (script.onDelete) {
-				script.onDelete(callbackInfo);
-			}
-
 			deleteLoadedScript(scriptId);
 		}
 		// Handle standard scripts with DOM elements
 		else if (scriptElement) {
-			// Create callback info object
-			const callbackInfo: ScriptCallbackInfo = {
-				id: scriptId,
-				elementId,
-				consents,
-				hasConsent: scriptHasConsent(script, consents, options),
-				element: scriptElement,
-			};
-
-			// Execute onDelete callback if provided
-			if (script.onDelete) {
-				script.onDelete(callbackInfo);
-			}
-
 			// Only remove from DOM if persistAfterConsentRevoked is not true
 			if (!script.persistAfterConsentRevoked) {
 				scriptElement.remove();
