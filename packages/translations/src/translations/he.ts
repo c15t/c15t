@@ -58,6 +58,9 @@ export const translations: CompleteTranslations = {
 			andMore: 'ועוד {count}...',
 			legitimateInterestNotice:
 				'חלק מהשותפים טוענים לאינטרס לגיטימי לעבד את הנתונים שלך. יש לך זכות להתנגד לעיבוד זה, להתאים אישית את הבחירות שלך ולבטל את הסכמתך בכל עת.',
+			scopeServiceSpecific:
+				'ההסכמה שלך חלה רק על אתר זה ולא תשפיע על שירותים אחרים.',
+			scopeGroup: 'הבחירה שלך חלה על כל האתרים שלנו בקבוצה זו.',
 		},
 		preferenceCenter: {
 			title: 'הגדרות פרטיות',
@@ -106,7 +109,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'העדפות הסכמה נשמרות בעוגייה בשם "euconsent-v2" למשך 13 חודשים.',
+					'העדפות הסכמה נשמרות בעוגייה בשם "euconsent-v2" למשך 13 חודשים. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

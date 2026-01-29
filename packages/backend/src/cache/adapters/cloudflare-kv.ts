@@ -9,10 +9,6 @@
 import type { CacheAdapter } from '../types';
 import { GVL_TTL_MS } from '../types';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * Cloudflare KV Namespace interface.
  * Matches the KVNamespace type from @cloudflare/workers-types.
@@ -28,10 +24,6 @@ export interface KVNamespace {
 	): Promise<void>;
 	delete(key: string): Promise<void>;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Adapter Factory
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Creates a Cloudflare KV cache adapter.

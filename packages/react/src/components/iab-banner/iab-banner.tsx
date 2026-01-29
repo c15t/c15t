@@ -35,7 +35,7 @@ export interface IABBannerProps {
 
 	/**
 	 * When true, locks page scroll when the banner is visible.
-	 * @default false
+	 * @default true
 	 */
 	scrollLock?: boolean;
 
@@ -66,7 +66,7 @@ export interface IABBannerProps {
  *
  * @example
  * ```tsx
- * <ConsentManagerProvider options={{ iab: { enabled: true, cmpId: 000, vendors: {} } }}>
+ * <ConsentManagerProvider options={{ iab: { enabled: true, cmpId: 000, vendors: [1, 2, 10] } }}>
  *   <IABBanner />
  * </ConsentManagerProvider>
  * ```
@@ -76,7 +76,7 @@ export interface IABBannerProps {
 export const IABBanner: FC<IABBannerProps> = ({
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
-	scrollLock: localScrollLock,
+	scrollLock: localScrollLock = true,
 	trapFocus: localTrapFocus = true,
 	primaryButton = 'customize',
 }) => {
@@ -237,6 +237,12 @@ export const IABBanner: FC<IABBannerProps> = ({
 	};
 
 	const handleCustomize = () => {
+		iabState?.setPreferenceCenterTab('purposes');
+		setIsPrivacyDialogOpen(true);
+	};
+
+	const handleViewVendors = () => {
+		iabState?.setPreferenceCenterTab('vendors');
 		setIsPrivacyDialogOpen(true);
 	};
 
@@ -263,6 +269,8 @@ export const IABBanner: FC<IABBannerProps> = ({
 		String(vendorCount)
 	);
 
+	const scopeNotice = iabT.banner.scopeServiceSpecific;
+
 	return (
 		<IABBannerRoot {...config}>
 			<Box
@@ -287,7 +295,7 @@ export const IABBanner: FC<IABBannerProps> = ({
 						<button
 							type="button"
 							className={styles.partnersLink}
-							onClick={handleCustomize}
+							onClick={handleViewVendors}
 							onMouseEnter={() => {
 								// Prefetch vendor list on hover
 							}}
@@ -310,7 +318,7 @@ export const IABBanner: FC<IABBannerProps> = ({
 						)}
 					</ul>
 					<p className={styles.legitimateInterestNotice}>
-						{iabT.banner.legitimateInterestNotice}
+						{iabT.banner.legitimateInterestNotice} {scopeNotice}
 					</p>
 				</Box>
 

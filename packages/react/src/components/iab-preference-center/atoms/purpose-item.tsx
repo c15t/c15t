@@ -3,21 +3,24 @@
 import styles from '@c15t/ui/styles/components/iab-preference-center.module.css';
 import { type FC, useState } from 'react';
 import * as Switch from '~/components/shared/ui/switch';
-import type { ProcessedPurpose, ProcessedVendor } from '../types';
+import type { ProcessedPurpose, ProcessedVendor, VendorId } from '../types';
 import { useIABTranslations } from '../use-iab-translations';
 
 interface PurposeItemProps {
 	purpose: ProcessedPurpose;
 	isEnabled: boolean;
 	onToggle: (value: boolean) => void;
-	vendorConsents: Record<number, boolean>;
-	onVendorToggle: (vendorId: number, value: boolean) => void;
-	onVendorClick: (vendorId: number) => void;
+	vendorConsents: Record<string, boolean>;
+	onVendorToggle: (vendorId: VendorId, value: boolean) => void;
+	onVendorClick: (vendorId: VendorId) => void;
 	isLocked?: boolean;
 	/** Legitimate interest objections - true means user has NOT objected (allowed) */
-	vendorLegitimateInterests?: Record<number, boolean>;
+	vendorLegitimateInterests?: Record<string, boolean>;
 	/** Handler for legitimate interest objection toggle */
-	onVendorLegitimateInterestToggle?: (vendorId: number, value: boolean) => void;
+	onVendorLegitimateInterestToggle?: (
+		vendorId: VendorId,
+		value: boolean
+	) => void;
 	/** Purpose-level legitimate interest state - true means NOT objected (allowed) */
 	purposeLegitimateInterests?: Record<number, boolean>;
 	/** Handler for purpose-level legitimate interest objection toggle */
@@ -49,6 +52,10 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 	const consentVendors = purpose.vendors.filter(
 		(v) => !v.usesLegitimateInterest
 	);
+	const getVendorConsent = (vendorId: VendorId) =>
+		vendorConsents[String(vendorId)] ?? false;
+	const getVendorLegitimateInterest = (vendorId: VendorId) =>
+		vendorLegitimateInterests[String(vendorId)] ?? true;
 
 	// Check if purpose-level LI is allowed (not objected)
 	const isPurposeLIAllowed = purposeLegitimateInterests[purpose.id] ?? true;
@@ -283,7 +290,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 											<VendorRow
 												key={vendor.id}
 												vendor={vendor}
-												isConsented={vendorConsents[vendor.id] ?? false}
+												isConsented={getVendorConsent(vendor.id)}
 												onToggle={(value) => onVendorToggle(vendor.id, value)}
 												onClick={() => onVendorClick(vendor.id)}
 											/>
@@ -315,13 +322,13 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 											<VendorRow
 												key={vendor.id}
 												vendor={vendor}
-												isConsented={vendorConsents[vendor.id] ?? false}
+												isConsented={getVendorConsent(vendor.id)}
 												onToggle={(value) => onVendorToggle(vendor.id, value)}
 												onClick={() => onVendorClick(vendor.id)}
 												isLegitimateInterest
-												isLegitimateInterestAllowed={
-													vendorLegitimateInterests[vendor.id] ?? true
-												}
+												isLegitimateInterestAllowed={getVendorLegitimateInterest(
+													vendor.id
+												)}
 												onLegitimateInterestToggle={
 													onVendorLegitimateInterestToggle
 														? (value) =>
@@ -359,7 +366,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 											<VendorRow
 												key={vendor.id}
 												vendor={vendor}
-												isConsented={vendorConsents[vendor.id] ?? false}
+												isConsented={getVendorConsent(vendor.id)}
 												onToggle={(value) => onVendorToggle(vendor.id, value)}
 												onClick={() => onVendorClick(vendor.id)}
 											/>
@@ -368,13 +375,13 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 											<VendorRow
 												key={vendor.id}
 												vendor={vendor}
-												isConsented={vendorConsents[vendor.id] ?? false}
+												isConsented={getVendorConsent(vendor.id)}
 												onToggle={(value) => onVendorToggle(vendor.id, value)}
 												onClick={() => onVendorClick(vendor.id)}
 												isLegitimateInterest
-												isLegitimateInterestAllowed={
-													vendorLegitimateInterests[vendor.id] ?? true
-												}
+												isLegitimateInterestAllowed={getVendorLegitimateInterest(
+													vendor.id
+												)}
 												onLegitimateInterestToggle={
 													onVendorLegitimateInterestToggle
 														? (value) =>

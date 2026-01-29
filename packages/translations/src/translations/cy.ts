@@ -61,6 +61,10 @@ export const translations: CompleteTranslations = {
 			andMore: 'Ac {count} arall...',
 			legitimateInterestNotice:
 				'Mae rhai partneriaid yn hawlio buddiant cyfreithlon i brosesu eich data. Mae gennych hawl i wrthwynebu’r prosesu hwn, addasu eich dewisiadau, a thynnu eich cydsyniad yn ôl unrhyw bryd.',
+			scopeServiceSpecific:
+				'Mae eich caniatâd yn berthnasol i’r wefan hon yn unig ac ni fydd yn effeithio ar wasanaethau eraill.',
+			scopeGroup:
+				'Mae eich dewis yn berthnasol ar draws ein gwefannau yn y grŵp hwn.',
 		},
 		preferenceCenter: {
 			title: 'Gosodiadau preifatrwydd',
@@ -112,7 +116,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Mae dewisiadau cydsyniad yn cael eu storio mewn cwci o’r enw "euconsent-v2" am 13 mis.',
+					'Mae dewisiadau cydsyniad yn cael eu storio mewn cwci o’r enw "euconsent-v2" am 13 mis. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

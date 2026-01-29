@@ -37,6 +37,7 @@ import type {
 	ProcessedSpecialFeature,
 	ProcessedStack,
 	ProcessedVendor,
+	VendorId,
 } from './types';
 import { useIABTranslations } from './use-iab-translations';
 
@@ -128,9 +129,11 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 	const cardRef = useRef<HTMLDivElement>(null);
 
 	const [activeTab, setActiveTab] = useState<'purposes' | 'vendors'>(
-		'purposes'
+		iabState?.preferenceCenterTab ?? 'purposes'
 	);
-	const [selectedVendorId, setSelectedVendorId] = useState<number | null>(null);
+	const [selectedVendorId, setSelectedVendorId] = useState<VendorId | null>(
+		null
+	);
 	const [specialPurposesExpanded, setSpecialPurposesExpanded] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
 	const [isVisible, setIsVisible] = useState(false);
@@ -166,12 +169,6 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 		const gvl = iabState.gvl;
 		const customVendors = iabState.nonIABVendors || [];
 
-		// Generate numeric IDs for custom vendors (starting from 90000 to avoid collision)
-		const customVendorIdMap = new Map<string, number>();
-		customVendors.forEach((cv, index) => {
-			customVendorIdMap.set(cv.id, 90000 + index);
-		});
-
 		// Helper to map GVL vendor to ProcessedVendor
 		const mapVendor = (
 			vendorId: string,
@@ -185,6 +182,9 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 			deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
 			usesCookies: vendor.usesCookies,
 			cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds,
+			cookieRefresh: vendor.cookieRefresh,
+			legitimateInterestUrl:
+				vendor.urls?.find((url) => url.legIntClaim)?.legIntClaim ?? null,
 			specialPurposes: vendor.specialPurposes || [],
 			specialFeatures: vendor.specialFeatures || [],
 			purposes: vendor.purposes || [],
@@ -192,6 +192,7 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 			usesLegitimateInterest: purposeId
 				? (vendor.legIntPurposes?.includes(purposeId) ?? false)
 				: false,
+			dataRetention: vendor.dataRetention,
 			isCustom: false,
 		});
 
@@ -200,13 +201,15 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 			cv: (typeof customVendors)[number],
 			purposeId?: number
 		): ProcessedVendor => ({
-			id: customVendorIdMap.get(cv.id) ?? 90000,
+			id: cv.id,
 			name: cv.name,
 			policyUrl: cv.privacyPolicyUrl,
 			usesNonCookieAccess: cv.usesNonCookieAccess ?? false,
 			deviceStorageDisclosureUrl: null,
 			usesCookies: cv.usesCookies ?? false,
 			cookieMaxAgeSeconds: cv.cookieMaxAgeSeconds ?? null,
+			cookieRefresh: undefined,
+			legitimateInterestUrl: null,
 			specialPurposes: [],
 			specialFeatures: cv.specialFeatures || [],
 			purposes: cv.purposes || [],
@@ -214,6 +217,7 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 			usesLegitimateInterest: purposeId
 				? (cv.legIntPurposes?.includes(purposeId) ?? false)
 				: false,
+			dataRetention: undefined,
 			isCustom: true,
 		});
 
@@ -408,14 +412,14 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 	);
 
 	const handleVendorToggle = useCallback(
-		(vendorId: number, value: boolean) => {
+		(vendorId: VendorId, value: boolean) => {
 			iabState?.setVendorConsent(vendorId, value);
 		},
 		[iabState]
 	);
 
 	const handleVendorLegitimateInterestToggle = useCallback(
-		(vendorId: number, value: boolean) => {
+		(vendorId: VendorId, value: boolean) => {
 			iabState?.setVendorLegitimateInterest(vendorId, value);
 		},
 		[iabState]
@@ -452,9 +456,10 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 		setIsPrivacyDialogOpen(false);
 	};
 
-	const handleVendorClick = (vendorId: number) => {
+	const handleVendorClick = (vendorId: VendorId) => {
 		setSelectedVendorId(vendorId);
 		setActiveTab('vendors');
+		iabState?.setPreferenceCenterTab('vendors');
 	};
 
 	// Focus trap
@@ -484,6 +489,12 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 			return () => clearTimeout(timer);
 		}
 	}, [isOpen, config.disableAnimation]);
+
+	useEffect(() => {
+		if (isOpen && iabState?.preferenceCenterTab) {
+			setActiveTab(iabState.preferenceCenterTab);
+		}
+	}, [isOpen, iabState?.preferenceCenterTab]);
 
 	// Don't render if not mounted, no IAB state, or IAB is disabled (e.g., server returned null GVL)
 	if (!isMounted || !iabState?.config.enabled) {
@@ -543,7 +554,10 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 						<div className={styles.tabsList}>
 							<button
 								type="button"
-								onClick={() => setActiveTab('purposes')}
+								onClick={() => {
+									setActiveTab('purposes');
+									iabState?.setPreferenceCenterTab('purposes');
+								}}
 								className={styles.tabButton}
 								data-state={activeTab === 'purposes' ? 'active' : 'inactive'}
 							>
@@ -553,7 +567,10 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 							</button>
 							<button
 								type="button"
-								onClick={() => setActiveTab('vendors')}
+								onClick={() => {
+									setActiveTab('vendors');
+									iabState?.setPreferenceCenterTab('vendors');
+								}}
 								className={styles.tabButton}
 								data-state={activeTab === 'vendors' ? 'active' : 'inactive'}
 							>

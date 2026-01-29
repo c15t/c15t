@@ -12,10 +12,6 @@ import { Redis } from '@upstash/redis';
 import type { CacheAdapter } from '../types';
 import { GVL_TTL_MS } from '../types';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * Options for creating an Upstash Redis adapter.
  *
@@ -32,10 +28,6 @@ export interface UpstashRedisAdapterOptions {
 	 */
 	token: string;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Adapter Factory
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Creates an Upstash Redis cache adapter.

@@ -9,10 +9,6 @@
 
 import type { GVLPurpose, GVLStack } from '../../types/iab-tcf';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * Purpose 1 is always shown separately as it's required for TCF to function.
  * "Store and/or access information on a device"
@@ -58,10 +54,6 @@ export const DEFAULT_STACKS: Record<number, GVLStack> = {
 	},
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * A stack with its resolved purposes.
  *
@@ -87,10 +79,6 @@ export interface GroupedPurposes<T extends { id: number }> {
 	/** Purposes not in any stack */
 	ungroupedPurposes: T[];
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Grouping Functions
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Groups purposes into stacks for cleaner UI display.

@@ -7,28 +7,16 @@
  * @packageDocumentation
  */
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * The lazy-loaded TCF core module type.
  */
 export type TCFCoreModule = typeof import('@iabtechlabtcf/core');
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Module State
-// ─────────────────────────────────────────────────────────────────────────────
 
 /** Cached module reference */
 let tcfCoreModule: TCFCoreModule | null = null;
 
 /** Promise for in-flight loading */
 let loadingPromise: Promise<TCFCoreModule> | null = null;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Lazy Loader
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Lazily loads the @iabtechlabtcf/core module.

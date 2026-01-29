@@ -56,6 +56,8 @@ export const translations: CompleteTranslations = {
 			andMore: '还有 {count} 个...',
 			legitimateInterestNotice:
 				'某些合作伙伴声称对处理您的数据具有正当利益。您有权反对这种处理、自定义您的选择并随时撤回您的同意。',
+			scopeServiceSpecific: '您的同意仅适用于本网站，不会影响其他服务。',
+			scopeGroup: '您的选择适用于本组内的所有网站。',
 		},
 		preferenceCenter: {
 			title: '隐私设置',
@@ -104,7 +106,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'同意偏好存储在名为 "euconsent-v2" 的 cookie 中，有效期为 13 个月。',
+					'同意偏好存储在名为 "euconsent-v2" 的 cookie 中，有效期为 13 个月。 The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

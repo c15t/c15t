@@ -44,10 +44,6 @@ export interface FrameTranslations {
 	actionButton: string;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// IAB TCF 2.3 Translations
-// ─────────────────────────────────────────────────────────────────────────────
-
 export interface IABBannerTranslations {
 	title: string;
 	/**
@@ -63,6 +59,10 @@ export interface IABBannerTranslations {
 	 */
 	andMore: string;
 	legitimateInterestNotice: string;
+	/** Consent scope for service-specific setups */
+	scopeServiceSpecific: string;
+	/** Consent scope for group or network setups */
+	scopeGroup: string;
 }
 
 export interface IABPreferenceCenterTranslations {

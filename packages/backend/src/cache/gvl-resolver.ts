@@ -16,18 +16,10 @@ import { createGVLCacheKey } from './keys';
 import type { CacheAdapter } from './types';
 import { GVL_TTL_MS, MEMORY_TTL_MS } from './types';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * Default GVL endpoint.
  */
 const GVL_ENDPOINT = 'https://gvl.consent.io';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Options for creating a GVL resolver.
@@ -79,10 +71,6 @@ export interface GVLResolver {
 	 */
 	get(language: string): Promise<GlobalVendorList | null>;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GVL Fetcher
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * In-flight request promises for deduplication.
@@ -187,10 +175,6 @@ async function fetchGVLWithLanguage(
 
 	return promise;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GVL Resolver Factory
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Creates a GVL resolver with multi-layer caching.

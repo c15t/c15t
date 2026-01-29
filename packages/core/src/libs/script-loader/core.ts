@@ -19,9 +19,9 @@ import {
  */
 export interface IABConsentState {
 	/** Per-vendor consent state */
-	vendorConsents: Record<number, boolean>;
+	vendorConsents: Record<string, boolean>;
 	/** Per-vendor legitimate interest state */
-	vendorLegitimateInterests: Record<number, boolean>;
+	vendorLegitimateInterests: Record<string, boolean>;
 	/** Per-purpose consent state (IAB purposes 1-11) */
 	purposeConsents: Record<number, boolean>;
 	/** Per-purpose legitimate interest state */
@@ -56,7 +56,8 @@ export interface ScriptLoaderOptions {
 function hasIABConsent(script: Script, iabConsent: IABConsentState): boolean {
 	// If script has a vendorId, check vendor consent
 	if (script.vendorId !== undefined) {
-		if (!iabConsent.vendorConsents[script.vendorId]) {
+		const vendorKey = String(script.vendorId);
+		if (!iabConsent.vendorConsents[vendorKey]) {
 			return false;
 		}
 	}

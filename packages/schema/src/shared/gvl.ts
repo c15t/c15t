@@ -6,10 +6,6 @@
  */
 import * as v from 'valibot';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Purpose Schemas
-// ─────────────────────────────────────────────────────────────────────────────
-
 export const gvlPurposeSchema = v.object({
 	id: v.number(),
 	name: v.string(),
@@ -26,10 +22,6 @@ export const gvlSpecialPurposeSchema = v.object({
 	descriptionLegal: v.optional(v.string()),
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Feature Schemas
-// ─────────────────────────────────────────────────────────────────────────────
-
 export const gvlFeatureSchema = v.object({
 	id: v.number(),
 	name: v.string(),
@@ -45,10 +37,6 @@ export const gvlSpecialFeatureSchema = v.object({
 	illustrations: v.array(v.string()),
 	descriptionLegal: v.optional(v.string()),
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Vendor Schemas
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const gvlVendorUrlSchema = v.object({
 	langId: v.string(),
@@ -87,10 +75,6 @@ export const gvlVendorSchema = v.object({
 	),
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Stack Schema
-// ─────────────────────────────────────────────────────────────────────────────
-
 export const gvlStackSchema = v.object({
 	id: v.number(),
 	name: v.string(),
@@ -99,19 +83,11 @@ export const gvlStackSchema = v.object({
 	specialFeatures: v.array(v.number()),
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Data Category Schema
-// ─────────────────────────────────────────────────────────────────────────────
-
 export const gvlDataCategorySchema = v.object({
 	id: v.number(),
 	name: v.string(),
 	description: v.string(),
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Global Vendor List Schema
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const globalVendorListSchema = v.object({
 	gvlSpecificationVersion: v.number(),
@@ -126,10 +102,6 @@ export const globalVendorListSchema = v.object({
 	stacks: v.record(v.string(), gvlStackSchema),
 	dataCategories: v.optional(v.record(v.string(), gvlDataCategorySchema)),
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Type Exports
-// ─────────────────────────────────────────────────────────────────────────────
 
 export type GVLPurpose = v.InferOutput<typeof gvlPurposeSchema>;
 export type GVLSpecialPurpose = v.InferOutput<typeof gvlSpecialPurposeSchema>;

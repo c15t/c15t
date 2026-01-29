@@ -6,6 +6,7 @@
 
 import { CMP_ID, CMP_VERSION } from '../../cmp-defaults';
 import type { GlobalVendorList } from '../../types/iab-tcf';
+import { getConsentFromStorage } from '../cookie';
 import type { IABConfig, IABState } from '../tcf/types';
 import type { StoreAccess } from './types';
 
@@ -93,12 +94,12 @@ export async function initializeIABMode(
 		// - Only set LI for vendors with LI-based purposes
 		// - Consent defaults to false (GDPR requires opt-in)
 		// - LI defaults to true (allowed) - user can object to opt-out
-		const initialVendorConsents: Record<number, boolean> = {};
-		const initialVendorLegitimateInterests: Record<number, boolean> = {};
+		const initialVendorConsents: Record<string, boolean> = {};
+		const initialVendorLegitimateInterests: Record<string, boolean> = {};
 
 		// Initialize GVL vendors based on their declared legal bases
 		for (const [vendorId, vendor] of Object.entries(gvl.vendors)) {
-			const id = Number(vendorId);
+			const id = String(vendorId);
 			// Only track consent for vendors that have consent-based purposes
 			if (vendor.purposes && vendor.purposes.length > 0) {
 				initialVendorConsents[id] = false;
@@ -110,10 +111,10 @@ export async function initializeIABMode(
 			}
 		}
 
-		// Initialize custom vendors (IDs start from 90000 to match UI component)
+		// Initialize custom vendors using their configured IDs
 		const customVendors = iab.customVendors ?? [];
-		customVendors.forEach((cv, index) => {
-			const customVendorId = 90000 + index;
+		customVendors.forEach((cv) => {
+			const customVendorId = String(cv.id);
 			// Only track consent for custom vendors with purposes
 			if (cv.purposes && cv.purposes.length > 0) {
 				initialVendorConsents[customVendorId] = false;
@@ -123,6 +124,24 @@ export async function initializeIABMode(
 				initialVendorLegitimateInterests[customVendorId] = true;
 			}
 		});
+
+		// Merge persisted custom vendor consents (string IDs) if available
+		const storedConsent = getConsentFromStorage<{
+			iabCustomVendorConsents?: Record<string, boolean>;
+			iabCustomVendorLegitimateInterests?: Record<string, boolean>;
+		}>(get().storageConfig);
+		if (storedConsent?.iabCustomVendorConsents) {
+			Object.assign(
+				initialVendorConsents,
+				storedConsent.iabCustomVendorConsents
+			);
+		}
+		if (storedConsent?.iabCustomVendorLegitimateInterests) {
+			Object.assign(
+				initialVendorLegitimateInterests,
+				storedConsent.iabCustomVendorLegitimateInterests
+			);
+		}
 
 		updateIABState(storeAccess, {
 			vendorConsents: initialVendorConsents,
@@ -194,6 +213,18 @@ async function restoreConsentFromTCString(
 			'../tcf'
 		);
 		const decoded = await decodeTCString(tcString);
+		const storedConsent = getConsentFromStorage<{
+			iabCustomVendorConsents?: Record<string, boolean>;
+			iabCustomVendorLegitimateInterests?: Record<string, boolean>;
+		}>(storeAccess.get().storageConfig);
+		const mergedVendorConsents = {
+			...decoded.vendorConsents,
+			...(storedConsent?.iabCustomVendorConsents ?? {}),
+		};
+		const mergedVendorLegitimateInterests = {
+			...decoded.vendorLegitimateInterests,
+			...(storedConsent?.iabCustomVendorLegitimateInterests ?? {}),
+		};
 
 		// Map IAB consents to c15t consents
 		const c15tConsents = iabPurposesToC15tConsents(decoded.purposeConsents);
@@ -203,8 +234,8 @@ async function restoreConsentFromTCString(
 			tcString,
 			purposeConsents: decoded.purposeConsents,
 			purposeLegitimateInterests: decoded.purposeLegitimateInterests,
-			vendorConsents: decoded.vendorConsents,
-			vendorLegitimateInterests: decoded.vendorLegitimateInterests,
+			vendorConsents: mergedVendorConsents,
+			vendorLegitimateInterests: mergedVendorLegitimateInterests,
 			specialFeatureOptIns: decoded.specialFeatureOptIns,
 		});
 

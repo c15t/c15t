@@ -18,6 +18,8 @@ export const COOKIE_KEY_MAP = {
 	consents: 'c',
 	consentInfo: 'i',
 	timestamp: 'ts',
+	iabCustomVendorConsents: 'icv',
+	iabCustomVendorLegitimateInterests: 'icvli',
 	// ConsentInfo keys
 	time: 't',
 	type: 'y',

@@ -38,9 +38,10 @@ export interface NonIABVendor {
 	/**
 	 * Unique identifier for the vendor.
 	 *
-	 * Should be a slug-like string (e.g., 'internal-analytics', 'live-chat').
+	 * Use a slug-like string (e.g., 'internal-analytics', 'live-chat') or a
+	 * numeric ID if you already have one.
 	 */
-	id: string;
+	id: string | number;
 
 	/** Display name shown to users */
 	name: string;
@@ -148,7 +149,7 @@ export interface NonIABVendor {
  */
 export interface NonIABVendorConsent {
 	/** Vendor ID */
-	vendorId: string;
+	vendorId: string | number;
 
 	/** Whether the user has consented */
 	consented: boolean;

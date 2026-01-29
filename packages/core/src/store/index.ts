@@ -44,6 +44,12 @@ interface StoredConsent {
 
 	/** Metadata about when and how consent was given */
 	consentInfo: ConsentInfo | null;
+
+	/** Stored custom vendor consents (IAB mode only) */
+	iabCustomVendorConsents?: Record<string, boolean>;
+
+	/** Stored custom vendor LI state (IAB mode only) */
+	iabCustomVendorLegitimateInterests?: Record<string, boolean>;
 }
 
 /**

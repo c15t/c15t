@@ -61,6 +61,10 @@ export const translations: CompleteTranslations = {
 			andMore: 'Agus {count} eile...',
 			legitimateInterestNotice:
 				'Éilíonn roinnt comhpháirtithe leas dlisteanach chun do shonraí a phróiseáil. Tá an ceart agat cur in aghaidh an phróiseála seo, do roghanna a shaincheapadh, agus do thoiliú a tharraingt siar am ar bith.',
+			scopeServiceSpecific:
+				'Baineann do thoiliú leis an suíomh gréasáin seo amháin agus ní dhéanfaidh sé difear do sheirbhísí eile.',
+			scopeGroup:
+				'Baineann do rogha le gach ceann dár láithreáin ghréasáin sa ghrúpa seo.',
 		},
 		preferenceCenter: {
 			title: 'Socruithe príobháideachais',
@@ -112,7 +116,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Stóráiltear roghanna toilithe i bhfianán darb ainm "euconsent-v2" ar feadh 13 mhí.',
+					'Stóráiltear roghanna toilithe i bhfianán darb ainm "euconsent-v2" ar feadh 13 mhí. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

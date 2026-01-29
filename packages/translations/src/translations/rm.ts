@@ -61,6 +61,10 @@ export const translations: CompleteTranslations = {
 			andMore: 'Ed anc {count}...',
 			legitimateInterestNotice:
 				'Inscunter partunaris pretendan in interess legitim per processar vossas datas. Vus avais il dretg da far opposiziun cunter quest processament, persunalisar vossas tschernas e revocar voss consentiment en mintga mument.',
+			scopeServiceSpecific:
+				'Voss consent vala be per questa pagina web e na pertutga betg auters servetschs.',
+			scopeGroup:
+				'Vossa tscherna vala per tut nossas websites en quest gruppa.',
 		},
 		preferenceCenter: {
 			title: 'Configuraziuns da la sfera privata',
@@ -112,7 +116,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Las preferenzas da consentiment vegnan memorisadas en in cookie numnà "euconsent-v2" per 13 mais.',
+					'Las preferenzas da consentiment vegnan memorisadas en in cookie numnà "euconsent-v2" per 13 mais. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

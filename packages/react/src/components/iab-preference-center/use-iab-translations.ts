@@ -13,6 +13,8 @@ interface IABTranslations {
 		partnersLink: string;
 		andMore: string;
 		legitimateInterestNotice: string;
+		scopeServiceSpecific: string;
+		scopeGroup: string;
 	};
 	common: {
 		acceptAll: string;

@@ -61,6 +61,10 @@ export const translations: CompleteTranslations = {
 			andMore: 'Y {count} más...',
 			legitimateInterestNotice:
 				'Algunos socios reclaman un interés legítimo para procesar tus datos. Tienes derecho a oponerte a este procesamiento, personalizar tus opciones y retirar tu consentimiento en cualquier momento.',
+			scopeServiceSpecific:
+				'Tu consentimiento se aplica solo a este sitio web y no afectará a otros servicios.',
+			scopeGroup:
+				'Su elección se aplica a todos nuestros sitios web de este grupo.',
 		},
 		preferenceCenter: {
 			title: 'Configuración de privacidad',
@@ -112,7 +116,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Las preferencias de consentimiento se almacenan en una cookie llamada "euconsent-v2" durante 13 meses.',
+					'Las preferencias de consentimiento se almacenan en una cookie llamada "euconsent-v2" durante 13 meses. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

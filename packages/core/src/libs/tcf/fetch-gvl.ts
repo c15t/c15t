@@ -10,10 +10,6 @@
 import type { GlobalVendorList } from '../../types/iab-tcf';
 import { GVL_ENDPOINT } from './types';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Module State
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * In-flight request promises for deduplication, keyed by request parameters.
  * When multiple components request the GVL simultaneously with the same
@@ -30,10 +26,6 @@ const inflightRequests = new Map<string, Promise<GlobalVendorList | null>>();
  * - GlobalVendorList: Fetched and returned GVL data
  */
 let cachedGVL: GlobalVendorList | null | undefined = undefined;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Main Fetcher
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Fetches the Global Vendor List from the GVL endpoint.

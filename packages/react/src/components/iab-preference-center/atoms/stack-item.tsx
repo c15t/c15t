@@ -3,20 +3,23 @@
 import styles from '@c15t/ui/styles/components/iab-preference-center.module.css';
 import { type FC, useState } from 'react';
 import * as Switch from '~/components/shared/ui/switch';
-import type { ProcessedStack } from '../types';
+import type { ProcessedStack, VendorId } from '../types';
 import { PurposeItem } from './purpose-item';
 
 interface StackItemProps {
 	stack: ProcessedStack;
 	consents: Record<number, boolean>;
 	onToggle: (purposeId: number, value: boolean) => void;
-	vendorConsents: Record<number, boolean>;
-	onVendorToggle: (vendorId: number, value: boolean) => void;
-	onVendorClick: (vendorId: number) => void;
+	vendorConsents: Record<string, boolean>;
+	onVendorToggle: (vendorId: VendorId, value: boolean) => void;
+	onVendorClick: (vendorId: VendorId) => void;
 	/** Legitimate interest objections - true means user has NOT objected (allowed) */
-	vendorLegitimateInterests?: Record<number, boolean>;
+	vendorLegitimateInterests?: Record<string, boolean>;
 	/** Handler for legitimate interest objection toggle */
-	onVendorLegitimateInterestToggle?: (vendorId: number, value: boolean) => void;
+	onVendorLegitimateInterestToggle?: (
+		vendorId: VendorId,
+		value: boolean
+	) => void;
 	/** Purpose-level legitimate interest state - true means NOT objected (allowed) */
 	purposeLegitimateInterests?: Record<number, boolean>;
 	/** Handler for purpose-level legitimate interest objection toggle */

@@ -61,6 +61,9 @@ export const translations: CompleteTranslations = {
 			andMore: 'Og {count} mere...',
 			legitimateInterestNotice:
 				'Nogle partnere påberåber sig legitim interesse for at behandle dine data. Du har ret til at gøre indsigelse mod denne behandling, tilpasse dine valg og trække dit samtykke tilbage til enhver tid.',
+			scopeServiceSpecific:
+				'Dit samtykke gælder kun for dette websted og vil ikke påvirke andre tjenester.',
+			scopeGroup: 'Dit valg gælder på tværs af vores websteder i denne gruppe.',
 		},
 		preferenceCenter: {
 			title: 'Privatlivsindstillinger',
@@ -112,7 +115,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Samtykkepræferencer gemmes i en cookie med navnet "euconsent-v2" i 13 måneder.',
+					'Samtykkepræferencer gemmes i en cookie med navnet "euconsent-v2" i 13 måneder. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

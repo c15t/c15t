@@ -7,10 +7,6 @@
 import type { GlobalVendorList, TCFConsentData } from '../../types/iab-tcf';
 import type { NonIABVendor } from '../../types/non-iab-vendor';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// IAB Store State & Actions
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * IAB TCF 2.3 runtime state.
  *
@@ -37,10 +33,10 @@ export interface IABState {
 	tcString: string | null;
 
 	/** Per-vendor consent state (keyed by vendor ID) */
-	vendorConsents: Record<number, boolean>;
+	vendorConsents: Record<string, boolean>;
 
 	/** Per-vendor legitimate interest state */
-	vendorLegitimateInterests: Record<number, boolean>;
+	vendorLegitimateInterests: Record<string, boolean>;
 
 	/** Per-purpose consent state (IAB purposes 1-11) */
 	purposeConsents: Record<number, boolean>;
@@ -61,6 +57,9 @@ export interface IABState {
 
 	/** CMP API controls (manages __tcfapi) */
 	cmpApi: CMPApi | null;
+
+	/** Active tab for the IAB preference center UI */
+	preferenceCenterTab: 'purposes' | 'vendors';
 }
 
 /**
@@ -91,18 +90,21 @@ export interface IABActions {
 	/**
 	 * Sets IAB vendor consent.
 	 *
-	 * @param vendorId - IAB vendor ID
+	 * @param vendorId - IAB or custom vendor ID
 	 * @param value - Whether consent is granted
 	 */
-	setVendorConsent: (vendorId: number, value: boolean) => void;
+	setVendorConsent: (vendorId: number | string, value: boolean) => void;
 
 	/**
 	 * Sets IAB vendor legitimate interest.
 	 *
-	 * @param vendorId - IAB vendor ID
+	 * @param vendorId - IAB or custom vendor ID
 	 * @param value - Whether legitimate interest is established
 	 */
-	setVendorLegitimateInterest: (vendorId: number, value: boolean) => void;
+	setVendorLegitimateInterest: (
+		vendorId: number | string,
+		value: boolean
+	) => void;
 
 	/**
 	 * Sets special feature opt-in.
@@ -111,6 +113,13 @@ export interface IABActions {
 	 * @param value - Whether opt-in is granted
 	 */
 	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
+
+	/**
+	 * Sets the active tab for the IAB preference center.
+	 *
+	 * @param tab - The tab to show first
+	 */
+	setPreferenceCenterTab: (tab: 'purposes' | 'vendors') => void;
 
 	/**
 	 * Accepts all IAB purposes, vendors, and special features.
@@ -148,10 +157,6 @@ export interface IABActions {
  * @public
  */
 export type IABManager = IABState & IABActions;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CMP API Types
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Configuration for creating a CMP API instance.
@@ -257,25 +262,17 @@ export interface IABConfig {
 	cmpVersion?: number | string;
 
 	/**
-	 * IAB-registered vendors to include (optional, deprecated).
+	 * IAB-registered vendor IDs to include (optional).
 	 *
-	 * @deprecated GVL is now the source of truth for vendors. This field is
-	 * kept for backwards compatibility but no longer filters displayed vendors.
-	 *
-	 * Map of vendor ID to a readable name (for self-documentation).
-	 * The names are used for code readability and debug logging.
+	 * Used to scope the vendor list when fetching GVL or when c15t fallback
+	 * paths are used (e.g. if GVL fetch fails).
 	 *
 	 * @example
 	 * ```typescript
-	 * vendors: {
-	 *   1: 'exponential-interactive',
-	 *   2: 'captify',
-	 *   10: 'index-exchange',
-	 *   755: 'google-advertising',
-	 * }
+	 * vendors: [1, 2, 10, 755]
 	 * ```
 	 */
-	vendors?: Record<number, string>;
+	vendors?: number[];
 
 	/**
 	 * Custom vendors not registered with IAB.
@@ -322,12 +319,6 @@ export const IAB_STORAGE_KEYS = {
 
 	/** TC String localStorage key */
 	TC_STRING_LOCAL: 'c15t_tc_string',
-
-	/** GVL cache localStorage key */
-	GVL_CACHE: 'c15t_gvl_cache',
-
-	/** Consent timestamp */
-	CONSENT_TIMESTAMP: 'c15t_consent_timestamp',
 } as const;
 
 /**
