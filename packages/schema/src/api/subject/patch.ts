@@ -21,21 +21,6 @@ export const patchSubjectFullInputSchema = v.object({
 });
 
 /**
- * @deprecated Use patchSubjectFullInputSchema instead. Kept for backward compatibility.
- */
-export const patchSubjectParamsSchema = v.object({
-	id: subjectIdSchema,
-});
-
-/**
- * @deprecated Use patchSubjectFullInputSchema instead. Kept for backward compatibility.
- */
-export const patchSubjectInputSchema = v.object({
-	externalId: v.string(),
-	identityProvider: v.optional(v.string()),
-});
-
-/**
  * PATCH /subject/:id output schema
  */
 export const patchSubjectOutputSchema = v.object({
@@ -64,6 +49,4 @@ export const patchSubjectErrorSchemas = {
 export type PatchSubjectFullInput = v.InferOutput<
 	typeof patchSubjectFullInputSchema
 >;
-export type PatchSubjectParams = v.InferOutput<typeof patchSubjectParamsSchema>;
-export type PatchSubjectInput = v.InferOutput<typeof patchSubjectInputSchema>;
 export type PatchSubjectOutput = v.InferOutput<typeof patchSubjectOutputSchema>;

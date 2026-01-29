@@ -1,7 +1,6 @@
 import { createLogger } from '@c15t/logger';
 import { apiReference } from '@scalar/hono-api-reference';
 import { Hono } from 'hono';
-import { compress } from 'hono/compress';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { openAPIRouteHandler } from 'hono-openapi';
@@ -17,6 +16,7 @@ import { createInitRoute } from './routes/init';
 import { createStatusRoute } from './routes/status';
 import { createSubjectRoutes } from './routes/subject';
 import { withRequestSpan } from './utils/create-telemetry-options';
+import { getMetrics } from './utils/metrics';
 import { version } from './version';
 
 /**
@@ -110,12 +110,16 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 	const corsOptions = createCORSOptions(options.trustedOrigins);
 	app.use('*', cors(corsOptions));
 
-	// Compression middleware
-	app.use('*', compress());
+	// Note: Compression disabled - causes issues with response passthrough in wrapper scenarios
+	// app.use('*', compress());
+
+	// Get metrics instance (null if telemetry is disabled)
+	const metrics = getMetrics(options);
 
 	// Context middleware - enriches each request with c15t context
 	app.use('*', async (c, next) => {
 		const request = c.req.raw;
+		const startTime = Date.now();
 
 		// Check API key authentication
 		const apiKeyAuthenticated = validateRequestAuth(
@@ -133,18 +137,30 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 			headers: request.headers,
 		};
 
-		// Add telemetry span
-		withRequestSpan(
+		c.set('c15tContext', enrichedContext);
+
+		// Wrap request handling in a telemetry span (if enabled)
+		await withRequestSpan(
 			c.req.method,
 			c.req.path,
 			async () => {
-				// Span tracks the request
+				await next();
 			},
 			options
 		);
 
-		c.set('c15tContext', enrichedContext);
-		await next();
+		// Record HTTP metrics after request completes
+		if (metrics) {
+			const durationMs = Date.now() - startTime;
+			metrics.recordHttpRequest(
+				{
+					method: c.req.method,
+					route: c.req.path,
+					status: c.res.status,
+				},
+				durationMs
+			);
+		}
 	});
 
 	// OpenAPI spec endpoint
