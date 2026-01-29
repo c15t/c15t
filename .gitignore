@@ -53,6 +53,5 @@ docs/public/r/*
 coverage.json
 
 .pnpm-store
-examples/*
 version.ts
 i18n.cache
