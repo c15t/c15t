@@ -2,6 +2,7 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.css';
 import { type FC, useState } from 'react';
+import { AnimatedCollapse } from '~/components/shared/ui/animated-collapse';
 import * as Switch from '~/components/shared/ui/switch';
 import type { ProcessedPurpose, ProcessedVendor, VendorId } from '../types';
 import { useIABTranslations } from '../use-iab-translations';
@@ -161,7 +162,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 				/>
 			</div>
 
-			{isExpanded && (
+			<AnimatedCollapse isOpen={isExpanded}>
 				<div className={styles.purposeContent}>
 					<p className={styles.purposeDescription}>{purpose.description}</p>
 
@@ -245,13 +246,13 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 								{iab.preferenceCenter.purposeItem.examples} (
 								{purpose.illustrations.length})
 							</button>
-							{showExamples && (
+							<AnimatedCollapse isOpen={showExamples}>
 								<ul className={styles.examplesList}>
 									{purpose.illustrations.map((illustration, index) => (
 										<li key={index}>{illustration}</li>
 									))}
 								</ul>
-							)}
+							</AnimatedCollapse>
 						</div>
 					)}
 
@@ -277,7 +278,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 							{iab.preferenceCenter.purposeItem.partnersUsingPurpose} (
 							{purpose.vendors.length})
 						</button>
-						{showVendors && (
+						<AnimatedCollapse isOpen={showVendors}>
 							<div className={styles.vendorSection}>
 								{/* IAB Consent Vendors */}
 								{iabConsentVendors.length > 0 && (
@@ -396,10 +397,10 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 									</div>
 								)}
 							</div>
-						)}
+						</AnimatedCollapse>
 					</div>
 				</div>
-			)}
+			</AnimatedCollapse>
 		</div>
 	);
 };

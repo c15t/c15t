@@ -114,6 +114,7 @@
 		border-radius: var(--accordion-radius);
 		position: relative;
 		z-index: 1;
+		touch-action: manipulation;
 	}
 
 	:global(.c15t-dark) .triggerInner {

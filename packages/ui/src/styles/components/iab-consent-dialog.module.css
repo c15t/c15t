@@ -25,7 +25,7 @@
 
 	/* Layout */
 	--iab-cd-max-width: 48rem;
-	--iab-cd-height: 85vh;
+	--iab-cd-max-height: 85vh;
 	--iab-cd-border-radius: var(--c15t-radius-lg);
 	--iab-cd-z-index: 999999999;
 	--iab-cd-overlay-z-index: 999999998;
@@ -120,7 +120,7 @@
 	.card {
 		width: 100%;
 		max-width: var(--iab-cd-max-width);
-		height: var(--iab-cd-height);
+		max-height: var(--iab-cd-max-height);
 		border-radius: var(--iab-cd-border-radius);
 		border: 1px solid var(--iab-cd-border-color);
 		background-color: var(--iab-cd-background-color);
@@ -273,16 +273,14 @@
 
 	/* Content area */
 	.content {
-		flex: 1;
+		flex: 1 1 auto;
 		overflow-y: auto;
 		padding: 0.75rem;
-		min-height: 300px;
 	}
 
 	@media (min-width: 768px) {
 		.content {
 			padding: 1rem;
-			min-height: 400px;
 		}
 	}
 

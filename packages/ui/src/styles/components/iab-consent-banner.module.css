@@ -20,6 +20,7 @@
 
 	/* Border */
 	--iab-consent-banner-border-width: 1px;
+	--iab-consent-banner-border-width-hairline: 1px;
 
 	/* Shadow */
 	--iab-consent-banner-shadow: var(--c15t-shadow-lg);
@@ -44,6 +45,13 @@
 	--iab-consent-banner-link-color-dark: var(--c15t-primary);
 }
 
+/* Hairline borders for retina displays */
+@media only screen and (min-resolution: 192dpi) {
+	:root {
+		--iab-consent-banner-border-width-hairline: 0.5px;
+	}
+}
+
 @layer components {
 	.root {
 		padding: 1rem;
@@ -55,6 +63,7 @@
 		font-family: var(--iab-consent-banner-font-family);
 		line-height: var(--iab-consent-banner-line-height);
 		-webkit-text-size-adjust: var(--iab-consent-banner-text-size-adjust);
+		-webkit-font-smoothing: antialiased;
 		tab-size: var(--iab-consent-banner-tab-size);
 	}
 

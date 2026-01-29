@@ -51,6 +51,7 @@
 		border: 0;
 		background: none;
 		border-radius: 9999px;
+		touch-action: manipulation;
 	}
 
 	/* Switch track */

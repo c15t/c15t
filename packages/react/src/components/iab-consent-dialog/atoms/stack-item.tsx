@@ -2,6 +2,7 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.css';
 import { type FC, useState } from 'react';
+import { AnimatedCollapse } from '~/components/shared/ui/animated-collapse';
 import * as Switch from '~/components/shared/ui/switch';
 import type { ProcessedStack, VendorId } from '../types';
 import { PurposeItem } from './purpose-item';
@@ -108,37 +109,35 @@ export const StackItem: FC<StackItemProps> = ({
 					/>
 				</div>
 			</div>
-			{isExpanded && (
-				<>
-					<div className={styles.stackDescription}>
-						<p>{stack.description}</p>
-						<p className={styles.stackMeta}>
-							{totalVendors} {totalVendors === 1 ? 'partner' : 'partners'}
-						</p>
-					</div>
-					<div className={styles.stackContent}>
-						{stack.purposes.map((purpose) => (
-							<PurposeItem
-								key={purpose.id}
-								purpose={purpose}
-								isEnabled={consents[purpose.id] ?? false}
-								onToggle={(value) => onToggle(purpose.id, value)}
-								vendorConsents={vendorConsents}
-								onVendorToggle={onVendorToggle}
-								onVendorClick={onVendorClick}
-								vendorLegitimateInterests={vendorLegitimateInterests}
-								onVendorLegitimateInterestToggle={
-									onVendorLegitimateInterestToggle
-								}
-								purposeLegitimateInterests={purposeLegitimateInterests}
-								onPurposeLegitimateInterestToggle={
-									onPurposeLegitimateInterestToggle
-								}
-							/>
-						))}
-					</div>
-				</>
-			)}
+			<AnimatedCollapse isOpen={isExpanded}>
+				<div className={styles.stackDescription}>
+					<p>{stack.description}</p>
+					<p className={styles.stackMeta}>
+						{totalVendors} {totalVendors === 1 ? 'partner' : 'partners'}
+					</p>
+				</div>
+				<div className={styles.stackContent}>
+					{stack.purposes.map((purpose) => (
+						<PurposeItem
+							key={purpose.id}
+							purpose={purpose}
+							isEnabled={consents[purpose.id] ?? false}
+							onToggle={(value) => onToggle(purpose.id, value)}
+							vendorConsents={vendorConsents}
+							onVendorToggle={onVendorToggle}
+							onVendorClick={onVendorClick}
+							vendorLegitimateInterests={vendorLegitimateInterests}
+							onVendorLegitimateInterestToggle={
+								onVendorLegitimateInterestToggle
+							}
+							purposeLegitimateInterests={purposeLegitimateInterests}
+							onPurposeLegitimateInterestToggle={
+								onPurposeLegitimateInterestToggle
+							}
+						/>
+					))}
+				</div>
+			</AnimatedCollapse>
 		</div>
 	);
 };
