@@ -7,10 +7,6 @@
  * @packageDocumentation
  */
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Cache Adapter Interface
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * Generic cache adapter interface.
  *
@@ -52,10 +48,6 @@ export interface CacheAdapter {
 	 */
 	has(key: string): Promise<boolean>;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Cache Constants
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Default TTL for GVL cache entries (3 days).

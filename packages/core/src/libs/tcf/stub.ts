@@ -13,19 +13,11 @@ import { version } from '~/version';
 
 import type { PingData, TCFApi, TCFApiCallback } from '../../types/iab-tcf';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Module State
-// ─────────────────────────────────────────────────────────────────────────────
-
 /** Whether the stub has been initialized */
 let stubInitialized = false;
 
 /** Iframe element for cross-frame communication */
 let locatorIframe: HTMLIFrameElement | null = null;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Stub Implementation
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Creates the initial stub ping response.
@@ -155,10 +147,6 @@ function handlePostMessage(event: MessageEvent): void {
 		call.parameter
 	);
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Public API
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Initializes the IAB TCF stub.

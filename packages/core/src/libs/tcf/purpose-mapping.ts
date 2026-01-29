@@ -8,10 +8,6 @@
 
 import type { AllConsentNames } from '../../types/gdpr';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Purpose Mapping
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * Maps IAB TCF purpose IDs to c15t consent categories.
  *
@@ -56,10 +52,6 @@ export const C15T_TO_IAB_PURPOSE_MAP: Record<AllConsentNames, number[]> = {
 	measurement: [7, 8, 9],
 	functionality: [10, 11],
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Conversion Functions
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Converts an IAB purpose ID to a c15t consent category.

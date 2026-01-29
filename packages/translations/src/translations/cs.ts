@@ -63,6 +63,9 @@ export const translations: CompleteTranslations = {
 			andMore: 'A dalších {count}...',
 			legitimateInterestNotice:
 				'Někteří partneři uplatňují oprávněný zájem na zpracování vašich údajů. Máte právo proti tomuto zpracování vznést námitku, přizpůsobit své volby a kdykoli odvolat svůj souhlas.',
+			scopeServiceSpecific:
+				'Váš souhlas platí pouze pro tento web a neovlivní jiné služby.',
+			scopeGroup: 'Vaše volba platí pro všechny naše weby v této skupině.',
 		},
 		preferenceCenter: {
 			title: 'Nastavení soukromí',
@@ -115,7 +118,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Předvolby souhlasu jsou uloženy v cookie s názvem "euconsent-v2" po dobu 13 měsíců.',
+					'Předvolby souhlasu jsou uloženy v cookie s názvem "euconsent-v2" po dobu 13 měsíců. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

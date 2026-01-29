@@ -61,6 +61,10 @@ export const translations: CompleteTranslations = {
 			andMore: 'Og {count} til...',
 			legitimateInterestNotice:
 				'Nokre partnarar krev legitim interesse for å behandle dataa dine. Du har rett til å protestere mot denne behandlinga, tilpasse vala dine og trekkje tilbake samtykket ditt når som helst.',
+			scopeServiceSpecific:
+				'Samtykket ditt gjeld berre for denne nettstaden og påverkar ikkje andre tenester.',
+			scopeGroup:
+				'Valet ditt gjeld på tvers av nettsidene våre i denne gruppa.',
 		},
 		preferenceCenter: {
 			title: 'Personverninnstillingar',
@@ -112,7 +116,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Samtykkepreferansar blir lagra i ein informasjonskapsel kalla "euconsent-v2" i 13 månader.',
+					'Samtykkepreferansar blir lagra i ein informasjonskapsel kalla "euconsent-v2" i 13 månader. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

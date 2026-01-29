@@ -61,6 +61,9 @@ export const translations: CompleteTranslations = {
 			andMore: 'An nach {count}...',
 			legitimateInterestNotice:
 				'E puer Partner behaapten e berechtegten Interessi fir Är Daten ze veraarbechten. Dir hutt d’Recht géint dës Veraarbechtung ze protestéieren, Är Wiel unzepassen an Är Zoustëmmung zu all Moment zréckzezéien.',
+			scopeServiceSpecific:
+				'Är Zoustëmmung gëllt nëmme fir dës Websäit a wäert aner Servicer net beaflossen.',
+			scopeGroup: 'Är Auswiel gëllt fir all eis Websäiten an dëser Grupp.',
 		},
 		preferenceCenter: {
 			title: 'Privatsphär Astellungen',
@@ -112,7 +115,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Zoustëmmungsvirléiften ginn an engem Cookie mam Numm "euconsent-v2" fir 13 Méint gespäichert.',
+					'Zoustëmmungsvirléiften ginn an engem Cookie mam Numm "euconsent-v2" fir 13 Méint gespäichert. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

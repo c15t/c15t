@@ -61,6 +61,10 @@ export const translations: CompleteTranslations = {
 			andMore: 'И още {count, plural, one {# партньор} other {# партньора}}...',
 			legitimateInterestNotice:
 				'Някои партньори претендират за законен интерес да обработват вашите данни. Имате право да възразите срещу тази обработка, да персонализирате вашите избори и да оттеглите съгласието си по всяко време.',
+			scopeServiceSpecific:
+				'Вашето съгласие важи само за този уебсайт и няма да повлияе на други услуги.',
+			scopeGroup:
+				'Вашият избор се прилага към всички наши уебсайтове в тази група.',
 		},
 		preferenceCenter: {
 			title: 'Настройки за поверителност',
@@ -113,7 +117,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Предпочитанията за съгласие се съхраняват в бисквитка с име "euconsent-v2" за 13 месеца.',
+					'Предпочитанията за съгласие се съхраняват в бисквитка с име "euconsent-v2" за 13 месеца. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

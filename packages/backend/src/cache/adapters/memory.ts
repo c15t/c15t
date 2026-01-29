@@ -10,28 +10,16 @@
 import type { CacheAdapter } from '../types';
 import { MEMORY_TTL_MS } from '../types';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface CacheEntry<T = unknown> {
 	value: T;
 	expiresAt: number;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Module-Level Cache
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Module-level cache shared across requests in the same worker/process.
  * This provides fast 0ms access for repeated requests.
  */
 const memoryCache = new Map<string, CacheEntry>();
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Cache Adapter Implementation
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Creates an in-memory cache adapter.

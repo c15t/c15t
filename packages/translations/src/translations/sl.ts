@@ -61,6 +61,9 @@ export const translations: CompleteTranslations = {
 			andMore: 'In še {count}...',
 			legitimateInterestNotice:
 				'Nekateri partnerji uveljavljajo zakoniti interes za obdelavo vaših podatkov. Imate pravico do ugovora tej obdelavi, prilagoditve svojih izbir in preklica soglasja kadar koli.',
+			scopeServiceSpecific:
+				'Vaše soglasje velja samo za to spletno mesto in ne bo vplivalo na druge storitve.',
+			scopeGroup: 'Vaša izbira velja za vse naše spletne strani v tej skupini.',
 		},
 		preferenceCenter: {
 			title: 'Nastavitve zasebnosti',
@@ -112,7 +115,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Preference glede soglasja so shranjene v piškotku z imenom "euconsent-v2" 13 mesecev.',
+					'Preference glede soglasja so shranjene v piškotku z imenom "euconsent-v2" 13 mesecev. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

@@ -61,6 +61,10 @@ export const translations: CompleteTranslations = {
 			andMore: 'Dan {count} lainnya...',
 			legitimateInterestNotice:
 				'Beberapa mitra mengklaim kepentingan sah untuk memproses data Anda. Anda memiliki hak untuk menolak pemrosesan ini, menyesuaikan pilihan Anda, dan menarik persetujuan Anda kapan saja.',
+			scopeServiceSpecific:
+				'Persetujuan Anda hanya berlaku untuk situs web ini dan tidak memengaruhi layanan lainnya.',
+			scopeGroup:
+				'Pilihan Anda berlaku untuk semua situs web kami dalam grup ini.',
 		},
 		preferenceCenter: {
 			title: 'Pengaturan Privasi',
@@ -112,7 +116,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Preferensi persetujuan disimpan dalam cookie bernama "euconsent-v2" selama 13 bulan.',
+					'Preferensi persetujuan disimpan dalam cookie bernama "euconsent-v2" selama 13 bulan. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

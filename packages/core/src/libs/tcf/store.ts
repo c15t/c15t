@@ -3,6 +3,7 @@ import { CMP_ID, CMP_VERSION } from '../../cmp-defaults';
 import type { ConsentStoreState } from '../../store/type';
 import type { GlobalVendorList } from '../../types';
 import type { NonIABVendor } from '../../types/non-iab-vendor';
+import { saveConsentToStorage } from '../cookie';
 import { generateSubjectId } from '../generate-subject-id';
 import type { IABActions, IABConfig, IABManager, IABState } from './types';
 
@@ -28,6 +29,7 @@ export function createInitialIABState(config: IABConfig): IABState {
 		specialFeatureOptIns: {},
 		vendorsDisclosed: {},
 		cmpApi: null,
+		preferenceCenterTab: 'purposes',
 	};
 }
 
@@ -94,7 +96,7 @@ export function createIABActions(
 			});
 		},
 
-		setVendorConsent: (vendorId: number, value: boolean) => {
+		setVendorConsent: (vendorId: number | string, value: boolean) => {
 			const { iab } = getState();
 			if (!iab) {
 				return;
@@ -102,12 +104,15 @@ export function createIABActions(
 			updateState({
 				vendorConsents: {
 					...iab.vendorConsents,
-					[vendorId]: value,
+					[String(vendorId)]: value,
 				},
 			});
 		},
 
-		setVendorLegitimateInterest: (vendorId: number, value: boolean) => {
+		setVendorLegitimateInterest: (
+			vendorId: number | string,
+			value: boolean
+		) => {
 			const { iab } = getState();
 			if (!iab) {
 				return;
@@ -115,7 +120,7 @@ export function createIABActions(
 			updateState({
 				vendorLegitimateInterests: {
 					...iab.vendorLegitimateInterests,
-					[vendorId]: value,
+					[String(vendorId)]: value,
 				},
 			});
 		},
@@ -131,6 +136,10 @@ export function createIABActions(
 					[featureId]: value,
 				},
 			});
+		},
+
+		setPreferenceCenterTab: (tab) => {
+			updateState({ preferenceCenterTab: tab });
 		},
 
 		acceptAll: () => {
@@ -265,6 +274,36 @@ export function createIABActions(
 				},
 			});
 
+			// Persist custom vendor consents (string IDs are not in TC String)
+			const customVendorConsents: Record<string, boolean> = {};
+			const customVendorLegitimateInterests: Record<string, boolean> = {};
+			for (const vendor of iab.nonIABVendors) {
+				const vendorKey = String(vendor.id);
+				if (vendor.purposes && vendor.purposes.length > 0) {
+					customVendorConsents[vendorKey] = vendorConsents[vendorKey] ?? false;
+				}
+				if (vendor.legIntPurposes && vendor.legIntPurposes.length > 0) {
+					customVendorLegitimateInterests[vendorKey] =
+						vendorLegitimateInterests[vendorKey] ?? true;
+				}
+			}
+
+			saveConsentToStorage(
+				{
+					consents: c15tConsents,
+					consentInfo: {
+						time: givenAt,
+						subjectId,
+						externalId: user?.id,
+						identityProvider: user?.identityProvider,
+					},
+					iabCustomVendorConsents: customVendorConsents,
+					iabCustomVendorLegitimateInterests: customVendorLegitimateInterests,
+				},
+				undefined,
+				getState().storageConfig
+			);
+
 			// Update scripts based on new consent state
 			getState().updateScripts();
 
@@ -330,10 +369,6 @@ export function createIABManager(
 	};
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helper functions
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * Builds purpose consent objects for all purposes in the GVL.
  */
@@ -362,23 +397,22 @@ function buildAllPurposeConsents(
  * - Only sets consent for vendors that have consent-based purposes (purposes.length > 0)
  * - Only sets LI for vendors that have LI-based purposes (legIntPurposes.length > 0)
  * - This ensures internal state matches what the TC string will encode
- * - Custom vendors are assigned numeric IDs starting from 90000 to avoid
- *   collision with IAB vendor IDs
+ * - Custom vendors are keyed by their configured IDs to avoid collisions
  */
 function buildAllVendorConsents(
 	gvl: GlobalVendorList,
 	customVendors: NonIABVendor[],
 	value: boolean
 ): {
-	vendorConsents: Record<number, boolean>;
-	vendorLegitimateInterests: Record<number, boolean>;
+	vendorConsents: Record<string, boolean>;
+	vendorLegitimateInterests: Record<string, boolean>;
 } {
-	const vendorConsents: Record<number, boolean> = {};
-	const vendorLegitimateInterests: Record<number, boolean> = {};
+	const vendorConsents: Record<string, boolean> = {};
+	const vendorLegitimateInterests: Record<string, boolean> = {};
 
 	// Add GVL vendors - only set consent/LI for vendors that actually use those legal bases
 	for (const [vendorId, vendor] of Object.entries(gvl.vendors)) {
-		const id = Number(vendorId);
+		const id = String(vendorId);
 		// Only set consent for vendors that have consent-based purposes
 		if (vendor.purposes && vendor.purposes.length > 0) {
 			vendorConsents[id] = value;
@@ -389,9 +423,9 @@ function buildAllVendorConsents(
 		}
 	}
 
-	// Add custom vendors (IDs start from 90000 to match UI component)
-	customVendors.forEach((cv, index) => {
-		const customVendorId = 90000 + index;
+	// Add custom vendors using their configured IDs
+	customVendors.forEach((cv) => {
+		const customVendorId = String(cv.id);
 		// Custom vendors: set consent if they have purposes
 		if (cv.purposes && cv.purposes.length > 0) {
 			vendorConsents[customVendorId] = value;

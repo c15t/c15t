@@ -58,12 +58,6 @@ export function useGVLData(): GVLData {
 		const gvl = iabState.gvl;
 		const customVendors = iabState.nonIABVendors || [];
 
-		// Generate numeric IDs for custom vendors (starting from 90000 to avoid collision)
-		const customVendorIdMap = new Map<string, number>();
-		customVendors.forEach((cv, index) => {
-			customVendorIdMap.set(cv.id, 90000 + index);
-		});
-
 		// Helper to map GVL vendor to ProcessedVendor
 		const mapVendor = (
 			vendorId: string,
@@ -92,7 +86,7 @@ export function useGVLData(): GVLData {
 			cv: (typeof customVendors)[number],
 			purposeId?: number
 		): ProcessedVendor => ({
-			id: customVendorIdMap.get(cv.id) ?? 90000,
+			id: cv.id,
 			name: cv.name,
 			policyUrl: cv.privacyPolicyUrl,
 			usesNonCookieAccess: cv.usesNonCookieAccess ?? false,

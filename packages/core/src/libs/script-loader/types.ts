@@ -208,6 +208,7 @@ export interface Script {
 	 *
 	 * When in IAB mode, the script will only load if this vendor has consent.
 	 * Takes precedence over `category` when in IAB mode.
+	 * Use custom vendor IDs (string or number) to gate non-IAB vendors too.
 	 *
 	 * @example
 	 * ```ts
@@ -219,7 +220,7 @@ export interface Script {
 	 * };
 	 * ```
 	 */
-	vendorId?: number;
+	vendorId?: number | string;
 
 	/**
 	 * IAB TCF purpose IDs this script requires consent for.

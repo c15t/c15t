@@ -334,9 +334,7 @@ export function configureConsentManager(
 				iabConfig
 					? {
 							enabled: iabConfig.enabled,
-							vendorIds: iabConfig.vendors
-								? Object.keys(iabConfig.vendors).map(Number)
-								: undefined,
+							vendorIds: iabConfig.vendors,
 						}
 					: undefined
 			);
@@ -360,9 +358,7 @@ export function configureConsentManager(
 				iabConfig: iabConfig
 					? {
 							enabled: iabConfig.enabled,
-							vendorIds: iabConfig.vendors
-								? Object.keys(iabConfig.vendors).map(Number)
-								: undefined,
+							vendorIds: iabConfig.vendors,
 						}
 					: undefined,
 			});

@@ -6,10 +6,6 @@
  * @packageDocumentation
  */
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GVL Cache Keys
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * Create a GVL cache key.
  *
@@ -43,10 +39,6 @@ export function createGVLCacheKey(
 		: 'all';
 	return `${appName}:gvl:${language}:${sortedIds}`;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Generic Cache Keys
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Create a generic cache key with namespace and parts.

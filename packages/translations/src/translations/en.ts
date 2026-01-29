@@ -62,6 +62,9 @@ export const translations: CompleteTranslations = {
 			andMore: 'And {count} more...',
 			legitimateInterestNotice:
 				'Some partners claim a legitimate interest to process your data. You have the right to object to this processing, customize your choices, and withdraw your consent at any time.',
+			scopeServiceSpecific:
+				'Your consent applies only to this website and will not affect other services.',
+			scopeGroup: 'Your choice applies across our websites in this group.',
 		},
 		preferenceCenter: {
 			title: 'Privacy Settings',
@@ -112,7 +115,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Consent preferences are stored in a cookie named "euconsent-v2" for 13 months.',
+					'Consent preferences are stored in a cookie named "euconsent-v2" for 13 months. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

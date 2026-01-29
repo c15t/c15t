@@ -19,9 +19,10 @@ import * as v from 'valibot';
 export const nonIABVendorSchema = v.object({
 	/**
 	 * Unique identifier for the vendor.
-	 * Should be a slug-like string (e.g., 'internal-analytics', 'live-chat').
+	 * Use a slug-like string (e.g., 'internal-analytics', 'live-chat') or a
+	 * numeric ID if you already have one.
 	 */
-	id: v.string(),
+	id: v.union([v.string(), v.pipe(v.number(), v.integer())]),
 
 	/** Display name shown to users */
 	name: v.string(),
@@ -97,7 +98,7 @@ export const nonIABVendorSchema = v.object({
  */
 export const nonIABVendorConsentSchema = v.object({
 	/** Vendor ID */
-	vendorId: v.string(),
+	vendorId: v.union([v.string(), v.pipe(v.number(), v.integer())]),
 
 	/** Whether the user has consented */
 	consented: v.boolean(),

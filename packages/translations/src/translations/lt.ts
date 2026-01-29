@@ -62,6 +62,10 @@ export const translations: CompleteTranslations = {
 			andMore: 'Ir dar {count}...',
 			legitimateInterestNotice:
 				'Kai kurie partneriai teigia turintys teisėtą interesą tvarkyti jūsų duomenis. Jūs turite teisę nesutikti su tokiu tvarkymu, tinkinti savo pasirinkimus ir bet kada atšaukti sutikimą.',
+			scopeServiceSpecific:
+				'Jūsų sutikimas taikomas tik šiai svetainei ir neturės įtakos kitoms paslaugoms.',
+			scopeGroup:
+				'Jūsų pasirinkimas taikomas visoms mūsų svetainėms šioje grupėje.',
 		},
 		preferenceCenter: {
 			title: 'Privatumo nustatymai',
@@ -113,7 +117,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Sutikimo nuostatos saugomos slapuke pavadinimu „euconsent-v2“ 13 mėnesių.',
+					'Sutikimo nuostatos saugomos slapuke pavadinimu „euconsent-v2“ 13 mėnesių. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

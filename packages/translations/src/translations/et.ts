@@ -61,6 +61,9 @@ export const translations: CompleteTranslations = {
 			andMore: 'Ja veel {count}...',
 			legitimateInterestNotice:
 				'Mõned partnerid väidavad, et neil on õigustatud huvi teie andmete töötlemiseks. Teil on õigus sellele töötlemisele vastu vaielda, oma valikuid kohandada ja nõusolek igal ajal tagasi võtta.',
+			scopeServiceSpecific:
+				'Sinu nõusolek kehtib ainult sellele veebisaidile ega mõjuta teisi teenuseid.',
+			scopeGroup: 'Teie valik kehtib kõigil meie veebisaitidel selles grupis.',
 		},
 		preferenceCenter: {
 			title: 'Privaatsusseaded',
@@ -111,7 +114,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Nõusoleku eelistused salvestatakse küpsisesse nimega "euconsent-v2" 13 kuuks.',
+					'Nõusoleku eelistused salvestatakse küpsisesse nimega "euconsent-v2" 13 kuuks. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

@@ -19,6 +19,7 @@ export type CommonInlineStoreOptions = Pick<
 	| 'user'
 	| 'overrides'
 	| 'networkBlocker'
+	| 'iab'
 >;
 
 /**

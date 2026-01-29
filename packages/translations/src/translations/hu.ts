@@ -62,6 +62,10 @@ export const translations: CompleteTranslations = {
 			andMore: 'És még {count}...',
 			legitimateInterestNotice:
 				'Néhány partner jogos érdekre hivatkozik az Ön adatainak feldolgozásához. Önnek joga van tiltakozni ez ellen a feldolgozás ellen, testreszabni választásait, és bármikor visszavonni hozzájárulását.',
+			scopeServiceSpecific:
+				'Az Ön hozzájárulása csak erre a webhelyre vonatkozik, és nem érinti más szolgáltatásokat.',
+			scopeGroup:
+				'A választása az ebben a csoportban lévő összes weboldalunkra vonatkozik.',
 		},
 		preferenceCenter: {
 			title: 'Adatvédelmi beállítások',
@@ -112,7 +116,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'A hozzájárulási beállításokat egy "euconsent-v2" nevű sütiben tároljuk 13 hónapig.',
+					'A hozzájárulási beállításokat egy "euconsent-v2" nevű sütiben tároljuk 13 hónapig. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

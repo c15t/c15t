@@ -61,6 +61,9 @@ export const translations: CompleteTranslations = {
 			andMore: 'I još {count}...',
 			legitimateInterestNotice:
 				'Neki partneri polažu pravo na legitimni interes za obradu vaših podataka. Imate pravo prigovora na ovu obradu, prilagodbe svojih izbora i povlačenja privole u bilo kojem trenutku.',
+			scopeServiceSpecific:
+				'Vaš pristanak odnosi se samo na ovu web stranicu i neće utjecati na druge usluge.',
+			scopeGroup: 'Vaš izbor vrijedi za sve naše web stranice u ovoj grupi.',
 		},
 		preferenceCenter: {
 			title: 'Postavke privatnosti',
@@ -112,7 +115,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Postavke privole pohranjuju se u kolačiću pod nazivom "euconsent-v2" tijekom 13 mjeseci.',
+					'Postavke privole pohranjuju se u kolačiću pod nazivom "euconsent-v2" tijekom 13 mjeseci. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

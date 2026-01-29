@@ -62,6 +62,10 @@ export const translations: CompleteTranslations = {
 			andMore: 'Και {count} ακόμη...',
 			legitimateInterestNotice:
 				'Ορισμένοι συνεργάτες επικαλούνται έννομο συμφέρον για την επεξεργασία των δεδομένων σας. Έχετε το δικαίωμα να αντιταχθείτε σε αυτήν την επεξεργασία, να προσαρμόσετε τις επιλογές σας και να ανακαλέσετε τη συγκατάθεσή σας ανά πάσα στιγμή.',
+			scopeServiceSpecific:
+				'Η συγκατάθεσή σας ισχύει μόνο για αυτόν τον ιστότοπο και δεν θα επηρεάσει άλλες υπηρεσίες.',
+			scopeGroup:
+				'Η επιλογή σας ισχύει για όλες τις ιστοσελίδες μας σε αυτή την ομάδα.',
 		},
 		preferenceCenter: {
 			title: 'Ρυθμίσεις απορρήτου',
@@ -113,7 +117,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Οι προτιμήσεις συγκατάθεσης αποθηκεύονται σε cookie με το όνομα "euconsent-v2" για 13 μήνες.',
+					'Οι προτιμήσεις συγκατάθεσης αποθηκεύονται σε cookie με το όνομα "euconsent-v2" για 13 μήνες. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

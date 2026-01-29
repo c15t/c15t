@@ -1,21 +1,29 @@
+export type VendorId = number | string;
+
 /**
  * Processed vendor data for UI display.
  */
 export interface ProcessedVendor {
-	id: number;
+	id: VendorId;
 	name: string;
 	policyUrl: string;
 	usesNonCookieAccess: boolean;
 	deviceStorageDisclosureUrl: string | null;
 	usesCookies: boolean;
 	cookieMaxAgeSeconds: number | null;
+	cookieRefresh?: boolean;
 	specialPurposes: number[];
 	specialFeatures: number[];
 	purposes: number[];
 	legIntPurposes: number[];
+	legitimateInterestUrl?: string | null;
 	isCustom?: boolean;
 	usesLegitimateInterest?: boolean;
-	retention?: Record<number, number>;
+	dataRetention?: {
+		purposes?: Record<number, number>;
+		specialPurposes?: Record<number, number>;
+		stdRetention?: number;
+	};
 	dataDeclaration?: number[];
 }
 

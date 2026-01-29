@@ -61,6 +61,10 @@ export const translations: CompleteTranslations = {
 			andMore: 'U {count} oħra...',
 			legitimateInterestNotice:
 				'Xi sħab jitolbu interess leġittimu biex jipproċessaw id-data tiegħek. Għandek id-dritt li toġġezzjona għal dan il-proċessar, tippersonalizza l-għażliet tiegħek, u tirtira l-kunsens tiegħek fi kwalunkwe ħin.',
+			scopeServiceSpecific:
+				'Il-kunsens tiegħek japplika biss għal dan is-sit web u ma jaffettwax servizzi oħra.',
+			scopeGroup:
+				"L-għażla tiegħek tapplika għal kull sit web tagħna f'din il-grupp.",
 		},
 		preferenceCenter: {
 			title: 'Settings tal-privatezza',
@@ -112,7 +116,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Il-preferenzi tal-kunsens huma maħżuna f’cookie msemmija "euconsent-v2" għal 13-il xahar.',
+					'Il-preferenzi tal-kunsens huma maħżuna f’cookie msemmija "euconsent-v2" għal 13-il xahar. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

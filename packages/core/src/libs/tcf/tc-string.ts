@@ -9,10 +9,6 @@
 import type { GlobalVendorList, TCFConsentData } from '../../types/iab-tcf';
 import { getTCFCore } from './lazy-load';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Configuration
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * Configuration for TC String generation.
  *
@@ -37,10 +33,6 @@ export interface TCStringConfig {
 	/** Whether consent is service-specific (not global) */
 	isServiceSpecific?: boolean;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TC String Generation
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Generates an IAB TCF TC String from consent data.
@@ -112,8 +104,9 @@ export async function generateTCString(
 
 	// Set vendor consents
 	for (const [vendorId, value] of Object.entries(consentData.vendorConsents)) {
-		if (value) {
-			tcModel.vendorConsents.set(Number(vendorId));
+		const numericVendorId = Number(vendorId);
+		if (value && Number.isFinite(numericVendorId)) {
+			tcModel.vendorConsents.set(numericVendorId);
 		}
 	}
 
@@ -121,8 +114,9 @@ export async function generateTCString(
 	for (const [vendorId, value] of Object.entries(
 		consentData.vendorLegitimateInterests
 	)) {
-		if (value) {
-			tcModel.vendorLegitimateInterests.set(Number(vendorId));
+		const numericVendorId = Number(vendorId);
+		if (value && Number.isFinite(numericVendorId)) {
+			tcModel.vendorLegitimateInterests.set(numericVendorId);
 		}
 	}
 

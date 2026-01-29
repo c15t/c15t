@@ -62,6 +62,10 @@ export const translations: CompleteTranslations = {
 			andMore: 'Și încă {count}...',
 			legitimateInterestNotice:
 				'Unii parteneri invocă un interes legitim pentru a procesa datele tale. Ai dreptul de a te opune acestei procesări, de a-ți personaliza alegerile și de a-ți retrage consimțământul în orice moment.',
+			scopeServiceSpecific:
+				'Consimțământul tău se aplică doar acestui site web și nu va afecta alte servicii.',
+			scopeGroup:
+				'Alegerea dvs. se aplică tuturor site-urilor noastre din acest grup.',
 		},
 		preferenceCenter: {
 			title: 'Setări de confidențialitate',
@@ -113,7 +117,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Preferințele de consimțământ sunt stocate într-un cookie numit „euconsent-v2” timp de 13 luni.',
+					'Preferințele de consimțământ sunt stocate într-un cookie numit „euconsent-v2” timp de 13 luni. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

@@ -61,6 +61,9 @@ export const translations: CompleteTranslations = {
 			andMore: 'Un vēl {count}...',
 			legitimateInterestNotice:
 				'Daži partneri pieprasa leģitīmas intereses jūsu datu apstrādei. Jums ir tiesības iebilst pret šo apstrādi, pielāgot savu izvēli un jebkurā laikā atsaukt savu piekrišanu.',
+			scopeServiceSpecific:
+				'Jūsu piekrišana attiecas tikai uz šo vietni un neietekmēs citus pakalpojumus.',
+			scopeGroup: 'Jūsu izvēle attiecas uz visām mūsu vietnēm šajā grupā.',
 		},
 		preferenceCenter: {
 			title: 'Privātuma iestatījumi',
@@ -111,7 +114,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Piekrišanas preferences tiek glabātas sīkdatnē ar nosaukumu "euconsent-v2" 13 mēnešus.',
+					'Piekrišanas preferences tiek glabātas sīkdatnē ar nosaukumu "euconsent-v2" 13 mēnešus. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

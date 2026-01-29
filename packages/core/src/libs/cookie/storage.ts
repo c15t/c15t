@@ -117,6 +117,8 @@ export function saveConsentToStorage(
 	data: {
 		consents: Partial<ConsentState>;
 		consentInfo: ConsentInfo;
+		iabCustomVendorConsents?: Record<string, boolean>;
+		iabCustomVendorLegitimateInterests?: Record<string, boolean>;
 	},
 	options?: CookieOptions,
 	config?: StorageConfig
@@ -125,11 +127,39 @@ export function saveConsentToStorage(
 	let cookieSuccess = false;
 
 	const storageKey = config?.storageKey || STORAGE_KEY_V2;
+	const existing = getConsentFromStorage<{
+		consents: Partial<ConsentState>;
+		consentInfo: ConsentInfo;
+		iabCustomVendorConsents?: Record<string, boolean>;
+		iabCustomVendorLegitimateInterests?: Record<string, boolean>;
+	}>(config);
+	const mergedData = {
+		...existing,
+		...data,
+		iabCustomVendorConsents:
+			data.iabCustomVendorConsents ?? existing?.iabCustomVendorConsents,
+		iabCustomVendorLegitimateInterests:
+			data.iabCustomVendorLegitimateInterests ??
+			existing?.iabCustomVendorLegitimateInterests,
+	};
+	const cleanedData = { ...mergedData };
+	if (
+		!cleanedData.iabCustomVendorConsents ||
+		Object.keys(cleanedData.iabCustomVendorConsents).length === 0
+	) {
+		delete cleanedData.iabCustomVendorConsents;
+	}
+	if (
+		!cleanedData.iabCustomVendorLegitimateInterests ||
+		Object.keys(cleanedData.iabCustomVendorLegitimateInterests).length === 0
+	) {
+		delete cleanedData.iabCustomVendorLegitimateInterests;
+	}
 
 	// Save to localStorage
 	try {
 		if (typeof window !== 'undefined' && window.localStorage) {
-			window.localStorage.setItem(storageKey, JSON.stringify(data));
+			window.localStorage.setItem(storageKey, JSON.stringify(cleanedData));
 			localStorageSuccess = true;
 		}
 	} catch (error) {
@@ -138,7 +168,7 @@ export function saveConsentToStorage(
 
 	// Save to cookie
 	try {
-		setCookie(storageKey, data, options, config);
+		setCookie(storageKey, cleanedData, options, config);
 		cookieSuccess = true;
 	} catch (error) {
 		console.warn('Failed to save consent to cookie:', error);

@@ -61,6 +61,9 @@ export const translations: CompleteTranslations = {
 			andMore: 'En nog {count}...',
 			legitimateInterestNotice:
 				'Sommige partners maken aanspraak op een gerechtvaardigd belang om uw gegevens te verwerken. U heeft het recht om bezwaar te maken tegen deze verwerking, uw keuzes aan te passen en uw toestemming op elk moment in te trekken.',
+			scopeServiceSpecific:
+				'Je toestemming geldt alleen voor deze website en heeft geen invloed op andere diensten.',
+			scopeGroup: 'Uw keuze geldt voor al onze websites in deze groep.',
 		},
 		preferenceCenter: {
 			title: 'Privacy-instellingen',
@@ -112,7 +115,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Toestemmingsvoorkeuren worden gedurende 13 maanden opgeslagen in een cookie genaamd "euconsent-v2".',
+					'Toestemmingsvoorkeuren worden gedurende 13 maanden opgeslagen in een cookie genaamd "euconsent-v2". The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

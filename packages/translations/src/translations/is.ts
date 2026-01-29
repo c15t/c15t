@@ -61,6 +61,9 @@ export const translations: CompleteTranslations = {
 			andMore: 'Og {count} til viðbótar...',
 			legitimateInterestNotice:
 				'Sumir samstarfsaðilar krefjast lögmætra hagsmuna til að vinna gögnin þín. Þú átt rétt á að andmæla þessari vinnslu, sérsníða val þitt og draga samþykki þitt til baka hvenær sem er.',
+			scopeServiceSpecific:
+				'Samþykki þitt gildir aðeins fyrir þessa vefsíðu og hefur ekki áhrif á aðrar þjónustur.',
+			scopeGroup: 'Val þitt gildir á öllum vefsíðum okkar í þessum hóp.',
 		},
 		preferenceCenter: {
 			title: 'Persónuverndastillingar',
@@ -112,7 +115,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Samþykkisstillingar eru geymdar í vafraköku sem heitir "euconsent-v2" í 13 mánuði.',
+					'Samþykkisstillingar eru geymdar í vafraköku sem heitir "euconsent-v2" í 13 mánuði. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

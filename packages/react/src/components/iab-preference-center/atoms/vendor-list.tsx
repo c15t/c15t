@@ -4,12 +4,12 @@ import styles from '@c15t/ui/styles/components/iab-preference-center.module.css'
 import type { GlobalVendorList } from 'c15t';
 import { type FC, useEffect, useState } from 'react';
 import * as Switch from '~/components/shared/ui/switch';
-import type { ProcessedPurpose, ProcessedVendor } from '../types';
+import type { ProcessedPurpose, ProcessedVendor, VendorId } from '../types';
 import { useIABTranslations } from '../use-iab-translations';
 
 /** Custom vendor not registered with IAB */
 interface CustomVendor {
-	id: string;
+	id: string | number;
 	name: string;
 	privacyPolicyUrl: string;
 	purposes: number[];
@@ -24,15 +24,18 @@ interface CustomVendor {
 interface VendorListProps {
 	vendorData: GlobalVendorList | null;
 	purposes: ProcessedPurpose[];
-	vendorConsents: Record<number, boolean>;
-	onVendorToggle: (vendorId: number, value: boolean) => void;
-	selectedVendorId: number | null;
+	vendorConsents: Record<string, boolean>;
+	onVendorToggle: (vendorId: VendorId, value: boolean) => void;
+	selectedVendorId: VendorId | null;
 	onClearSelection: () => void;
 	customVendors?: CustomVendor[];
 	/** Legitimate interest state - true means user has NOT objected (allowed) */
-	vendorLegitimateInterests?: Record<number, boolean>;
+	vendorLegitimateInterests?: Record<string, boolean>;
 	/** Handler for legitimate interest objection toggle */
-	onVendorLegitimateInterestToggle?: (vendorId: number, value: boolean) => void;
+	onVendorLegitimateInterestToggle?: (
+		vendorId: VendorId,
+		value: boolean
+	) => void;
 }
 
 export const VendorList: FC<VendorListProps> = ({
@@ -47,7 +50,7 @@ export const VendorList: FC<VendorListProps> = ({
 	onVendorLegitimateInterestToggle,
 }) => {
 	const [searchTerm, setSearchTerm] = useState('');
-	const [expandedVendors, setExpandedVendors] = useState<Set<number>>(
+	const [expandedVendors, setExpandedVendors] = useState<Set<VendorId>>(
 		new Set()
 	);
 	const iab = useIABTranslations();
@@ -63,14 +66,15 @@ export const VendorList: FC<VendorListProps> = ({
 				deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
 				usesCookies: vendor.usesCookies,
 				cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds,
+				cookieRefresh: vendor.cookieRefresh,
 				specialPurposes: vendor.specialPurposes || [],
 				specialFeatures: vendor.specialFeatures || [],
 				purposes: vendor.purposes || [],
 				legIntPurposes: vendor.legIntPurposes || [],
 				isCustom: false,
-				retention:
-					(vendor as unknown as { retention?: Record<number, number> })
-						.retention || {},
+				legitimateInterestUrl:
+					vendor.urls?.find((url) => url.legIntClaim)?.legIntClaim ?? null,
+				dataRetention: vendor.dataRetention,
 				dataDeclaration:
 					(vendor as unknown as { dataDeclaration?: number[] })
 						.dataDeclaration || [],
@@ -78,24 +82,24 @@ export const VendorList: FC<VendorListProps> = ({
 		: [];
 
 	// Map custom/non-IAB vendors
-	const mappedCustomVendors: ProcessedVendor[] = customVendors.map(
-		(cv, index) => ({
-			id: 90000 + index,
-			name: cv.name,
-			policyUrl: cv.privacyPolicyUrl,
-			usesNonCookieAccess: cv.usesNonCookieAccess ?? false,
-			deviceStorageDisclosureUrl: null,
-			usesCookies: cv.usesCookies ?? false,
-			cookieMaxAgeSeconds: cv.cookieMaxAgeSeconds ?? null,
-			specialPurposes: [],
-			specialFeatures: cv.specialFeatures || [],
-			purposes: cv.purposes || [],
-			legIntPurposes: cv.legIntPurposes || [],
-			isCustom: true,
-			retention: {},
-			dataDeclaration: cv.dataCategories || [],
-		})
-	);
+	const mappedCustomVendors: ProcessedVendor[] = customVendors.map((cv) => ({
+		id: cv.id,
+		name: cv.name,
+		policyUrl: cv.privacyPolicyUrl,
+		usesNonCookieAccess: cv.usesNonCookieAccess ?? false,
+		deviceStorageDisclosureUrl: null,
+		usesCookies: cv.usesCookies ?? false,
+		cookieMaxAgeSeconds: cv.cookieMaxAgeSeconds ?? null,
+		cookieRefresh: undefined,
+		specialPurposes: [],
+		specialFeatures: cv.specialFeatures || [],
+		purposes: cv.purposes || [],
+		legIntPurposes: cv.legIntPurposes || [],
+		isCustom: true,
+		legitimateInterestUrl: null,
+		dataRetention: undefined,
+		dataDeclaration: cv.dataCategories || [],
+	}));
 
 	// Combine and sort all vendors
 	const vendors: ProcessedVendor[] = [
@@ -104,10 +108,12 @@ export const VendorList: FC<VendorListProps> = ({
 	].sort((a, b) => a.name.localeCompare(b.name));
 
 	useEffect(() => {
-		if (selectedVendorId) {
+		if (selectedVendorId !== null) {
 			setExpandedVendors((prev) => new Set(prev).add(selectedVendorId));
 			setTimeout(() => {
-				const element = document.getElementById(`vendor-${selectedVendorId}`);
+				const element = document.getElementById(
+					`vendor-${String(selectedVendorId)}`
+				);
 				if (element) {
 					element.scrollIntoView({ behavior: 'smooth', block: 'start' });
 				}
@@ -115,17 +121,18 @@ export const VendorList: FC<VendorListProps> = ({
 		}
 	}, [selectedVendorId]);
 
-	const filteredVendors = selectedVendorId
-		? vendors.filter((v) => v.id === selectedVendorId)
-		: vendors.filter((vendor) =>
-				vendor.name.toLowerCase().includes(searchTerm.toLowerCase())
-			);
+	const filteredVendors =
+		selectedVendorId !== null
+			? vendors.filter((v) => String(v.id) === String(selectedVendorId))
+			: vendors.filter((vendor) =>
+					vendor.name.toLowerCase().includes(searchTerm.toLowerCase())
+				);
 
 	// Separate IAB and custom vendors for display
 	const filteredIABVendors = filteredVendors.filter((v) => !v.isCustom);
 	const filteredCustomVendors = filteredVendors.filter((v) => v.isCustom);
 
-	const toggleVendor = (vendorId: number) => {
+	const toggleVendor = (vendorId: VendorId) => {
 		setExpandedVendors((prev) => {
 			const newSet = new Set(prev);
 			if (newSet.has(vendorId)) {
@@ -137,22 +144,24 @@ export const VendorList: FC<VendorListProps> = ({
 		});
 	};
 
-	const getVendorPurposes = (vendorId: number) => {
-		const vendor = vendors.find((v) => v.id === vendorId);
+	const getVendorPurposes = (vendorId: VendorId) => {
+		const vendor = vendors.find((v) => String(v.id) === String(vendorId));
 		if (!vendor) {
 			return [];
 		}
 
 		return purposes
-			.filter((purpose) => purpose.vendors.some((v) => v.id === vendorId))
+			.filter((purpose) =>
+				purpose.vendors.some((v) => String(v.id) === String(vendorId))
+			)
 			.map((purpose) => ({
 				...purpose,
 				usesLegitimateInterest: vendor.legIntPurposes.includes(purpose.id),
 			}));
 	};
 
-	const getVendorSpecialPurposes = (vendorId: number) => {
-		const vendor = vendors.find((v) => v.id === vendorId);
+	const getVendorSpecialPurposes = (vendorId: VendorId) => {
+		const vendor = vendors.find((v) => String(v.id) === String(vendorId));
 		if (!vendor || !vendorData) {
 			return [];
 		}
@@ -167,8 +176,8 @@ export const VendorList: FC<VendorListProps> = ({
 			}));
 	};
 
-	const getVendorSpecialFeatures = (vendorId: number) => {
-		const vendor = vendors.find((v) => v.id === vendorId);
+	const getVendorSpecialFeatures = (vendorId: VendorId) => {
+		const vendor = vendors.find((v) => String(v.id) === String(vendorId));
 		if (!vendor || !vendorData) {
 			return [];
 		}
@@ -185,7 +194,7 @@ export const VendorList: FC<VendorListProps> = ({
 
 	return (
 		<div>
-			{selectedVendorId ? (
+			{selectedVendorId !== null ? (
 				<div className={styles.selectedVendorBanner}>
 					<p className={styles.selectedVendorText}>
 						{iab.common.showingSelectedVendor}
@@ -306,6 +315,7 @@ export const VendorList: FC<VendorListProps> = ({
 	);
 
 	function renderVendorItem(vendor: ProcessedVendor) {
+		const vendorKey = String(vendor.id);
 		const vendorPurposes = getVendorPurposes(vendor.id);
 		const vendorSpecialPurposes = getVendorSpecialPurposes(vendor.id);
 		const vendorSpecialFeatures = getVendorSpecialFeatures(vendor.id);
@@ -315,12 +325,24 @@ export const VendorList: FC<VendorListProps> = ({
 		).length;
 		const hasLegitimateInterest = vendor.legIntPurposes.length > 0;
 		const isLegitimateInterestAllowed =
-			vendorLegitimateInterests[vendor.id] ?? true;
+			vendorLegitimateInterests[vendorKey] ?? true;
+		const standardRetentionDays = vendor.dataRetention?.stdRetention;
+		let maxAgeText: string | null = null;
+
+		if (vendor.cookieMaxAgeSeconds) {
+			maxAgeText = iab.preferenceCenter.vendorList.maxAge.replace(
+				'{days}',
+				String(Math.floor(vendor.cookieMaxAgeSeconds / 86400))
+			);
+			if (vendor.cookieRefresh) {
+				maxAgeText = `${maxAgeText} (refreshes)`;
+			}
+		}
 
 		return (
 			<div
 				key={vendor.id}
-				id={`vendor-${vendor.id}`}
+				id={`vendor-${vendorKey}`}
 				className={`${styles.vendorListItem} ${vendor.isCustom ? styles.customVendorItem : ''}`}
 			>
 				<div className={styles.vendorListItemHeader}>
@@ -390,7 +412,7 @@ export const VendorList: FC<VendorListProps> = ({
 						</svg>
 					</button>
 					<Switch.Root
-						checked={vendorConsents[vendor.id] ?? false}
+						checked={vendorConsents[vendorKey] ?? false}
 						onCheckedChange={(value) => onVendorToggle(vendor.id, value)}
 					/>
 				</div>
@@ -417,6 +439,27 @@ export const VendorList: FC<VendorListProps> = ({
 								</svg>
 								{iab.preferenceCenter.vendorList.privacyPolicy}
 							</a>
+							{vendor.legitimateInterestUrl && (
+								<a
+									href={vendor.legitimateInterestUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									className={styles.vendorLink}
+								>
+									<svg
+										className={styles.vendorLinkIcon}
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="2"
+									>
+										<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+										<polyline points="15 3 21 3 21 9" />
+										<line x1="10" y1="14" x2="21" y2="3" />
+									</svg>
+									{iab.preferenceCenter.purposeItem.legitimateInterest}
+								</a>
+							)}
 							{vendor.deviceStorageDisclosureUrl && (
 								<a
 									href={vendor.deviceStorageDisclosureUrl}
@@ -451,15 +494,16 @@ export const VendorList: FC<VendorListProps> = ({
 									{iab.preferenceCenter.vendorList.nonCookieAccess}
 								</span>
 							)}
-							{vendor.cookieMaxAgeSeconds && (
-								<span className={styles.vendorBadge}>
-									{iab.preferenceCenter.vendorList.maxAge.replace(
-										'{days}',
-										String(Math.floor(vendor.cookieMaxAgeSeconds / 86400))
-									)}
-								</span>
+							{maxAgeText && (
+								<span className={styles.vendorBadge}>{maxAgeText}</span>
 							)}
 						</div>
+
+						{standardRetentionDays && (
+							<p className={styles.vendorListMetaText}>
+								Retention: {standardRetentionDays}d
+							</p>
+						)}
 
 						{vendorPurposes.length > 0 && (
 							<div className={styles.vendorPurposesList}>
@@ -469,7 +513,12 @@ export const VendorList: FC<VendorListProps> = ({
 								</h4>
 								<ul className={styles.vendorPurposesItems}>
 									{vendorPurposes.map((purpose) => {
-										const retentionDays = vendor.retention?.[purpose.id];
+										let retentionDays: number | undefined;
+										if (vendor.dataRetention?.purposes?.[purpose.id]) {
+											retentionDays = vendor.dataRetention.purposes[purpose.id];
+										} else if (vendor.dataRetention?.stdRetention) {
+											retentionDays = vendor.dataRetention.stdRetention;
+										}
 										return (
 											<li
 												key={purpose.id}
@@ -600,11 +649,28 @@ export const VendorList: FC<VendorListProps> = ({
 									{vendorSpecialPurposes.length})
 								</h4>
 								<ul className={styles.vendorPurposesItems}>
-									{vendorSpecialPurposes.map((sp) => (
-										<li key={sp.id} className={styles.vendorPurposeItem}>
-											{sp.name}
-										</li>
-									))}
+									{vendorSpecialPurposes.map((sp) => {
+										let retentionDays: number | undefined;
+										if (vendor.dataRetention?.specialPurposes?.[sp.id]) {
+											retentionDays =
+												vendor.dataRetention.specialPurposes[sp.id];
+										} else if (vendor.dataRetention?.stdRetention) {
+											retentionDays = vendor.dataRetention.stdRetention;
+										}
+										return (
+											<li key={sp.id} className={styles.vendorPurposeItem}>
+												<span>
+													{sp.name}
+													{retentionDays && (
+														<span className={styles.vendorRetention}>
+															{' '}
+															(Retained: {retentionDays}d)
+														</span>
+													)}
+												</span>
+											</li>
+										);
+									})}
 								</ul>
 								<p
 									className={styles.vendorListMetaText}

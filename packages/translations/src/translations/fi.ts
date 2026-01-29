@@ -61,6 +61,9 @@ export const translations: CompleteTranslations = {
 			andMore: 'Ja {count} muuta...',
 			legitimateInterestNotice:
 				'Jotkut kumppanit vetoavat oikeutettuun etuun tietojesi käsittelyssä. Sinulla on oikeus vastustaa tätä käsittelyä, mukauttaa valintojasi ja peruuttaa suostumuksesi milloin tahansa.',
+			scopeServiceSpecific:
+				'Suostumuksesi koskee vain tätä verkkosivustoa eikä vaikuta muihin palveluihin.',
+			scopeGroup: 'Valintasi koskee kaikkia verkkosivujamme tässä ryhmässä.',
 		},
 		preferenceCenter: {
 			title: 'Tietosuoja-asetukset',
@@ -112,7 +115,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Suostumusasetukset tallennetaan evästeeseen nimeltä "euconsent-v2" 13 kuukaudeksi.',
+					'Suostumusasetukset tallennetaan evästeeseen nimeltä "euconsent-v2" 13 kuukaudeksi. The storage duration may be refreshed when you update your preferences.',
 			},
 		},
 		common: {

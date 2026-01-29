@@ -8,10 +8,6 @@
  * @packageDocumentation
  */
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Purpose Types
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * IAB TCF Purpose definition from the GVL.
  *
@@ -62,10 +58,6 @@ export interface GVLSpecialPurpose {
 	descriptionLegal?: string;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Feature Types
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * IAB TCF Feature definition.
  *
@@ -115,10 +107,6 @@ export interface GVLSpecialFeature {
 	/** Legal description */
 	descriptionLegal?: string;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Vendor Types
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Vendor URL entry for privacy policy and other legal pages.
@@ -211,10 +199,6 @@ export interface GVLVendor {
 	};
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Stack Types
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * IAB TCF Stack definition.
  *
@@ -239,10 +223,6 @@ export interface GVLStack {
 	specialFeatures: number[];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Data Category Types
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * IAB TCF Data Category definition.
  *
@@ -261,10 +241,6 @@ export interface GVLDataCategory {
 	/** Full description */
 	description: string;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Global Vendor List
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Complete Global Vendor List structure.
@@ -308,10 +284,6 @@ export interface GlobalVendorList {
 	dataCategories?: Record<number, GVLDataCategory>;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TCF Consent State Types
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * TCF consent data structure for generating TC Strings.
  *
@@ -325,10 +297,10 @@ export interface TCFConsentData {
 	purposeLegitimateInterests: Record<number, boolean>;
 
 	/** Per-vendor consent state (keyed by vendor ID) */
-	vendorConsents: Record<number, boolean>;
+	vendorConsents: Record<string, boolean>;
 
 	/** Per-vendor legitimate interest state */
-	vendorLegitimateInterests: Record<number, boolean>;
+	vendorLegitimateInterests: Record<string, boolean>;
 
 	/** Special feature opt-ins (keyed by special feature ID 1-2) */
 	specialFeatureOptIns: Record<number, boolean>;
@@ -365,10 +337,6 @@ export interface PublisherRestriction {
 	/** Vendor IDs this restriction applies to */
 	vendorIds: number[];
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CMP API Types
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * CMP status values per IAB TCF spec.
@@ -544,20 +512,11 @@ export interface TCFApi {
 	/** Queue for stub to store calls before CMP loads */
 	queue?: Array<Parameters<TCFApi>>;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Global Window Extension
-// ─────────────────────────────────────────────────────────────────────────────
-
 declare global {
 	interface Window {
 		__tcfapi?: TCFApi;
 	}
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// IAB Purpose ID Constants
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * IAB TCF Purpose IDs.

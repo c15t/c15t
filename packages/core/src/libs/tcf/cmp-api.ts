@@ -21,10 +21,6 @@ import { decodeTCString } from './tc-string';
 import type { CMPApi, CMPApiConfig } from './types';
 import { IAB_STORAGE_KEYS } from './types';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Storage Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * Sets a cookie value.
  */
@@ -51,10 +47,6 @@ function getCookie(name: string): string | null {
 	}
 	return null;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CMP API Factory
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Creates a CMP API instance using functional composition.
@@ -91,10 +83,6 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 		gdprApplies = true,
 	} = config;
 
-	// ─────────────────────────────────────────────────────────────────────────
-	// Internal State (Closure)
-	// ─────────────────────────────────────────────────────────────────────────
-
 	let tcString = '';
 	let cmpStatus: CMPStatus = 'loading';
 	let displayStatus: DisplayStatus = 'hidden';
@@ -103,11 +91,6 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 
 	// Decoded TC data cache
 	let cachedTCData: TCData | null = null;
-
-	// ─────────────────────────────────────────────────────────────────────────
-	// TC Data Construction
-	// ─────────────────────────────────────────────────────────────────────────
-
 	/**
 	 * Builds TC Data from current state.
 	 */
@@ -185,10 +168,6 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 		return tcData;
 	}
 
-	// ─────────────────────────────────────────────────────────────────────────
-	// Command Handlers
-	// ─────────────────────────────────────────────────────────────────────────
-
 	/**
 	 * Handles the 'ping' command.
 	 */
@@ -265,10 +244,6 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 		callback(existed, true);
 	}
 
-	// ─────────────────────────────────────────────────────────────────────────
-	// Event Notifications
-	// ─────────────────────────────────────────────────────────────────────────
-
 	/**
 	 * Notifies all event listeners of a state change.
 	 */
@@ -278,10 +253,6 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 			callback(tcData, true);
 		}
 	}
-
-	// ─────────────────────────────────────────────────────────────────────────
-	// Install __tcfapi
-	// ─────────────────────────────────────────────────────────────────────────
 
 	function initializeAPI(): void {
 		if (typeof window === 'undefined') {
@@ -345,10 +316,6 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 
 	// Initialize on creation
 	initializeAPI();
-
-	// ─────────────────────────────────────────────────────────────────────────
-	// Public Interface
-	// ─────────────────────────────────────────────────────────────────────────
 
 	return {
 		updateConsent: (newTcString: string) => {
