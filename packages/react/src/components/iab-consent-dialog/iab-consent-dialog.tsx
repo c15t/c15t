@@ -669,11 +669,13 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 						</button>
 					</div>
 
-					{/* Tabs */}
+					{/* Segmented Control Tabs */}
 					<div className={styles.tabsContainer}>
-						<div className={styles.tabsList}>
+						<div className={styles.tabsList} role="tablist">
 							<button
 								type="button"
+								role="tab"
+								aria-selected={activeTab === 'purposes'}
 								onClick={() => handleTabChange('purposes')}
 								className={styles.tabButton}
 								data-state={activeTab === 'purposes' ? 'active' : 'inactive'}
@@ -684,6 +686,8 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 							</button>
 							<button
 								type="button"
+								role="tab"
+								aria-selected={activeTab === 'vendors'}
 								onClick={() => handleTabChange('vendors')}
 								className={styles.tabButton}
 								data-state={activeTab === 'vendors' ? 'active' : 'inactive'}
@@ -691,6 +695,12 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 								{iabTranslations.preferenceCenter.tabs.vendors}
 								{!isLoading && ` (${totalVendors})`}
 							</button>
+							{/* Sliding indicator */}
+							<div
+								className={styles.tabIndicator}
+								data-active-tab={activeTab}
+								aria-hidden="true"
+							/>
 						</div>
 					</div>
 

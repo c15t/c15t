@@ -207,49 +207,68 @@
 		background-color: var(--iab-cd-surface-hover-dark);
 	}
 
-	/* Tabs */
+	/* Segmented Control Tabs */
 	.tabsContainer {
-		border-bottom: 1px solid var(--iab-cd-border-color);
 		flex-shrink: 0;
-	}
-
-	:global(.c15t-dark) .tabsContainer {
-		border-color: var(--iab-cd-border-color-dark);
-	}
-
-	.tabsList {
-		display: flex;
-		padding: 0 0.75rem;
+		padding: .75rem .75rem 0 .75rem;
 	}
 
 	@media (min-width: 768px) {
-		.tabsList {
-			padding: 0 1rem;
+		.tabsContainer {
+			padding: 1rem 1rem 0 1rem;
 		}
 	}
 
+	.tabsList {
+		position: relative;
+		isolation: isolate;
+		display: grid;
+		grid-auto-columns: 1fr;
+		grid-auto-flow: column;
+		gap: 0.25rem;
+		padding: 0.25rem;
+		border-radius: var(--c15t-radius-lg, 0.625rem);
+		background-color: var(--iab-cd-surface-hover);
+	}
+
+	:global(.c15t-dark) .tabsList {
+		background-color: var(--iab-cd-surface-hover-dark);
+	}
+
 	.tabButton {
-		padding: 0.5rem 0.75rem;
-		font-size: 0.875rem;
+		position: relative;
+		z-index: 10;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.375rem;
+		height: 2rem;
+		padding: 0 0.75rem;
+		font-size: 0.8125rem;
 		font-weight: 500;
+		white-space: nowrap;
 		border: none;
+		border-radius: var(--c15t-radius-md, 0.375rem);
 		background: transparent;
-		cursor: pointer;
-		border-bottom: 2px solid transparent;
 		color: var(--iab-cd-text-muted-color);
+		cursor: pointer;
+		outline: none;
 		transition:
-			color 150ms ease,
-			border-color 150ms ease;
-		margin-bottom: -1px;
+			color 200ms cubic-bezier(0.33, 1, 0.68, 1),
+			background-color 200ms cubic-bezier(0.33, 1, 0.68, 1);
 	}
 
 	.tabButton:hover {
 		color: var(--iab-cd-text-color);
 	}
 
+	.tabButton:focus-visible {
+		outline: 2px solid var(--iab-cd-primary-color);
+		outline-offset: 2px;
+	}
+
 	.tabButton[data-state="active"] {
-		border-bottom-color: var(--iab-cd-primary-color);
-		color: var(--iab-cd-primary-color);
+		color: var(--iab-cd-text-color);
 	}
 
 	:global(.c15t-dark) .tabButton {
@@ -261,14 +280,42 @@
 	}
 
 	:global(.c15t-dark) .tabButton[data-state="active"] {
-		border-bottom-color: var(--iab-cd-primary-color-dark);
-		color: var(--iab-cd-primary-color-dark);
+		color: var(--iab-cd-text-color-dark);
 	}
 
-	@media (min-width: 768px) {
-		.tabButton {
-			padding: 0.625rem 0.75rem;
-		}
+	/* Sliding indicator */
+	.tabIndicator {
+		position: absolute;
+		inset-block: 0.25rem;
+		z-index: 0;
+		border-radius: var(--c15t-radius-md, 0.375rem);
+		background-color: var(--iab-cd-background-color);
+		box-shadow:
+			0 1px 2px rgb(0 0 0 / 0.06),
+			0 1px 3px rgb(0 0 0 / 0.1);
+		transition:
+			transform 300ms cubic-bezier(0.65, 0, 0.35, 1),
+			width 300ms cubic-bezier(0.65, 0, 0.35, 1);
+	}
+
+	:global(.c15t-dark) .tabIndicator {
+		background-color: var(--iab-cd-background-color-dark);
+		box-shadow:
+			0 1px 2px rgb(0 0 0 / 0.2),
+			0 1px 3px rgb(0 0 0 / 0.3);
+	}
+
+	/* Tab indicator positions based on data attribute */
+	.tabIndicator[data-active-tab="purposes"] {
+		transform: translateX(0);
+		width: calc(50% - 0.125rem);
+		left: 0.25rem;
+	}
+
+	.tabIndicator[data-active-tab="vendors"] {
+		transform: translateX(100%);
+		width: calc(50% - 0.125rem);
+		left: 0.125rem;
 	}
 
 	/* Content area */
@@ -1087,9 +1134,7 @@
 	/* Consent storage notice */
 	.consentNotice {
 		text-align: center;
-		margin-top: 2rem;
 		padding-top: 1.5rem;
-		border-top: 1px solid var(--iab-cd-border-color);
 	}
 
 	:global(.c15t-dark) .consentNotice {
@@ -1099,7 +1144,8 @@
 	.consentNoticeText {
 		font-size: 0.625rem;
 		color: var(--iab-cd-text-muted-color);
-		margin: 0;
+		margin-block-start: 0em;
+		margin-block-end: 0em;
 	}
 
 	:global(.c15t-dark) .consentNoticeText {
