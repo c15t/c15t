@@ -289,4 +289,19 @@
 	:global(.c15t-dark) .overlay {
 		background-color: var(--banner-overlay-background-color-dark);
 	}
+
+	/* Reduced motion preference */
+	@media (prefers-reduced-motion: reduce) {
+		.bannerVisible,
+		.bannerHidden,
+		.overlayVisible,
+		.overlayHidden {
+			transition: none;
+		}
+
+		.card[data-state="open"],
+		.card[data-state="closed"] {
+			animation: none;
+		}
+	}
 }

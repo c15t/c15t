@@ -1,14 +1,14 @@
-import { z } from 'zod';
+import * as v from 'valibot';
 
-export const subjectSchema = z.object({
-	id: z.string(),
-	isIdentified: z.boolean().prefault(false),
-	externalId: z.string().nullish(),
-	identityProvider: z.string().nullish(),
-	lastIpAddress: z.string().optional(),
-	subjectTimezone: z.string().nullish(),
-	createdAt: z.date().prefault(() => new Date()),
-	updatedAt: z.date().prefault(() => new Date()),
+export const subjectSchema = v.object({
+	id: v.string(),
+	isIdentified: v.optional(v.boolean(), false),
+	externalId: v.nullish(v.string()),
+	identityProvider: v.nullish(v.string()),
+	lastIpAddress: v.optional(v.string()),
+	subjectTimezone: v.nullish(v.string()),
+	createdAt: v.optional(v.date(), () => new Date()),
+	updatedAt: v.optional(v.date(), () => new Date()),
 });
 
-export type Subject = z.infer<typeof subjectSchema>;
+export type Subject = v.InferOutput<typeof subjectSchema>;

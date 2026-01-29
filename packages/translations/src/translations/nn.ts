@@ -52,5 +52,83 @@ export const translations: CompleteTranslations = {
 		cookiePolicy: 'Retningslinjer for informasjonskapslar',
 		termsOfService: 'Brukarvilkår',
 	},
+	iab: {
+		banner: {
+			title: 'Personverninnstillingar',
+			description:
+				'Vi og våre {partnerCount} partnarar lagrar og/eller har tilgang til informasjon på eininga di og behandlar personopplysningar, som unike identifikatorar og nettlesardata, for denne nettstaden, for å:',
+			partnersLink: '{count} partnarar',
+			andMore: 'Og {count} til...',
+			legitimateInterestNotice:
+				'Nokre partnarar krev legitim interesse for å behandle dataa dine. Du har rett til å protestere mot denne behandlinga, tilpasse vala dine og trekkje tilbake samtykket ditt når som helst.',
+			scopeServiceSpecific:
+				'Samtykket ditt gjeld berre for denne nettstaden og påverkar ikkje andre tenester.',
+			scopeGroup:
+				'Valet ditt gjeld på tvers av nettsidene våre i denne gruppa.',
+		},
+		preferenceCenter: {
+			title: 'Personverninnstillingar',
+			description:
+				'Tilpass personverninnstillingane dine her. Du kan velje kva typar informasjonskapslar og sporingsteknologiar du tillèt.',
+			tabs: {
+				purposes: 'Føremål',
+				vendors: 'Leverandørar',
+			},
+			purposeItem: {
+				partners: '{count} partnarar',
+				vendorsUseLegitimateInterest:
+					'{count} leverandørar krev legitim interesse',
+				examples: 'Døme',
+				partnersUsingPurpose: 'Partnarar som brukar dette føremålet',
+				withYourPermission: 'Med di tillating',
+				legitimateInterest: 'Legitim interesse',
+				objectButton: 'Protester',
+				objected: 'Protestert',
+				rightToObject:
+					'Du har rett til å protestere mot behandling basert på legitim interesse.',
+			},
+			specialPurposes: {
+				title: 'Viktige funksjonar (påkravd)',
+				tooltip:
+					'Desse er nødvendige for funksjonaliteten og tryggleiken til nettstaden. I følgje IAB TCF kan du ikkje protestere mot desse spesielle føremåla.',
+			},
+			vendorList: {
+				search: 'Søk etter leverandørar...',
+				showingCount: '{filtered} av {total} leverandørar',
+				iabVendorsHeading: 'IAB-registrerte leverandørar',
+				iabVendorsNotice:
+					'Disse partnarane er registrerte i IAB Transparency & Consent Framework (TCF), ein bransjestandard for administrasjon av samtykke',
+				customVendorsHeading: 'Eigendefinerte partnarar',
+				customVendorsNotice:
+					'Dette er eigendefinerte partnarar som ikkje er registrerte i IAB Transparency & Consent Framework (TCF). Dei behandlar data basert på ditt samtykke og kan ha annan personvernpraksis enn IAB-registrerte leverandørar.',
+				purposes: 'Føremål',
+				specialPurposes: 'Spesielle føremål',
+				specialFeatures: 'Spesielle funksjonar',
+				dataCategories: 'Datakategoriar',
+				usesCookies: 'Brukar informasjonskapslar',
+				nonCookieAccess: 'Ikkje-informasjonskapsel-tilgang',
+				maxAge: 'Maks alder: {days}d',
+				legitimateInterest: 'Leg. interesse',
+				privacyPolicy: 'Personvernerklæring',
+				storageDisclosure: 'Lagringsinformasjon',
+				requiredNotice:
+					'Påkravd for funksjonaliteten til nettstaden, kan ikkje deaktiverast',
+			},
+			footer: {
+				consentStorage:
+					'Samtykkepreferansar blir lagra i ein informasjonskapsel kalla "euconsent-v2" i 13 månader. The storage duration may be refreshed when you update your preferences.',
+			},
+		},
+		common: {
+			acceptAll: 'Godta alle',
+			rejectAll: 'Avvis alle',
+			customize: 'Tilpass',
+			saveSettings: 'Lagre innstillingar',
+			loading: 'Lastar...',
+			showingSelectedVendor: 'Viser vald leverandør',
+			clearSelection: 'Tøm',
+			customPartner: 'Eigendefinert partnar ikkje registrert i IAB',
+		},
+	},
 };
 export default translations;

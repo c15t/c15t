@@ -18,11 +18,15 @@ export const COOKIE_KEY_MAP = {
 	consents: 'c',
 	consentInfo: 'i',
 	timestamp: 'ts',
+	iabCustomVendorConsents: 'icv',
+	iabCustomVendorLegitimateInterests: 'icvli',
 	// ConsentInfo keys
 	time: 't',
 	type: 'y',
-	id: 'id',
-	identified: 'eid', // "eid" for "External ID"
+	id: 'id', // Legacy: consentId (deprecated in v2.0)
+	subjectId: 'sid', // New in v2.0: client-generated subject ID
+	externalId: 'eid', // The external user ID
+	identityProvider: 'idp', // The identity provider (e.g., 'clerk', 'auth0')
 } as const;
 
 /**

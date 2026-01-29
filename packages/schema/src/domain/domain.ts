@@ -1,14 +1,14 @@
-import { z } from 'zod';
+import * as v from 'valibot';
 
-export const domainSchema = z.object({
-	id: z.string(),
-	name: z.string(),
-	description: z.string().nullish(),
-	allowedOrigins: z.array(z.string()).nullish(),
-	isVerified: z.boolean().prefault(true),
-	isActive: z.boolean().prefault(true),
-	createdAt: z.date().prefault(() => new Date()),
-	updatedAt: z.date().prefault(() => new Date()),
+export const domainSchema = v.object({
+	id: v.string(),
+	name: v.string(),
+	description: v.nullish(v.string()),
+	allowedOrigins: v.nullish(v.array(v.string())),
+	isVerified: v.optional(v.boolean(), true),
+	isActive: v.optional(v.boolean(), true),
+	createdAt: v.optional(v.date(), () => new Date()),
+	updatedAt: v.optional(v.date(), () => new Date()),
 });
 
-export type Domain = z.infer<typeof domainSchema>;
+export type Domain = v.InferOutput<typeof domainSchema>;

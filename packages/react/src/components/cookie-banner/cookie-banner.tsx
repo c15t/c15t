@@ -8,7 +8,7 @@
 
 import { type FC, Fragment, type ReactNode } from 'react';
 import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
-import { useTheme } from '~/hooks/use-theme';
+import { useComponentConfig } from '~/hooks/use-component-config';
 import { useTranslations } from '~/hooks/use-translations';
 import { CookieBannerRoot } from './atoms/root';
 import {
@@ -170,15 +170,13 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 }) => {
 	const { cookieBanner } = useTranslations();
 
-	// Get global theme context
-	const globalTheme = useTheme();
-
-	const mergedProps = {
-		noStyle: localNoStyle ?? globalTheme.noStyle,
-		disableAnimation: localDisableAnimation ?? globalTheme.disableAnimation,
-		scrollLock: localScrollLock ?? globalTheme.scrollLock,
-		trapFocus: localTrapFocus ?? globalTheme.trapFocus,
-	};
+	// Merge local props with global theme context
+	const config = useComponentConfig({
+		noStyle: localNoStyle,
+		disableAnimation: localDisableAnimation,
+		scrollLock: localScrollLock,
+		trapFocus: localTrapFocus,
+	});
 
 	const renderButton = (type: CookieBannerButton) => {
 		const isPrimary = Array.isArray(primaryButton)
@@ -189,7 +187,7 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 			case 'reject':
 				return (
 					<CookieBannerRejectButton
-						primary={isPrimary}
+						variant={isPrimary ? 'primary' : 'neutral'}
 						data-testid="cookie-banner-reject-button"
 					>
 						{rejectButtonText}
@@ -198,7 +196,7 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 			case 'accept':
 				return (
 					<CookieBannerAcceptButton
-						primary={isPrimary}
+						variant={isPrimary ? 'primary' : 'neutral'}
 						data-testid="cookie-banner-accept-button"
 					>
 						{acceptButtonText}
@@ -207,7 +205,7 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 			case 'customize':
 				return (
 					<CookieBannerCustomizeButton
-						primary={isPrimary}
+						variant={isPrimary ? 'primary' : 'neutral'}
 						data-testid="cookie-banner-customize-button"
 					>
 						{customizeButtonText}
@@ -220,7 +218,7 @@ export const CookieBanner: FC<CookieBannerProps> = ({
 		<ErrorBoundary
 			fallback={<div>Something went wrong with the Cookie Banner.</div>}
 		>
-			<CookieBannerRoot {...mergedProps}>
+			<CookieBannerRoot {...config}>
 				<CookieBannerCard aria-label={cookieBanner.title}>
 					<CookieBannerHeader>
 						<CookieBannerTitle>{title}</CookieBannerTitle>

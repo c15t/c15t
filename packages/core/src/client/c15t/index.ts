@@ -1,6 +1,8 @@
 /**
  * c15t backend implementation of the consent client interface.
  * This client makes HTTP requests to the c15t consent management backend.
+ *
+
  */
 
 import type {
@@ -10,8 +12,6 @@ import type {
 	InitResponse,
 	SetConsentRequestBody,
 	SetConsentResponse,
-	VerifyConsentRequestBody,
-	VerifyConsentResponse,
 } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
 import { DEFAULT_RETRY_CONFIG } from './constants';
@@ -21,17 +21,19 @@ import { identifyUser } from './identify-user';
 import { init } from './init';
 import {
 	checkPendingConsentSubmissions,
-	checkPendingIdentifyUserSubmissions,
+	checkPendingIdentifySubmissions,
 	processPendingConsentSubmissions,
-	processPendingIdentifyUserSubmissions,
+	processPendingIdentifySubmissions,
 } from './pending-submissions';
 import { setConsent } from './set-consent';
 import type { C15tClientOptions } from './types';
-import { verifyConsent } from './verify-consent';
 
 /**
  * c15t backend implementation of the consent client interface.
  * Makes HTTP requests to the c15t consent management backend.
+ *
+ * @remarks
+ * v2.0: Subject-centric API. Use setConsent for all consent operations.
  */
 export class C15tClient implements ConsentManagerInterface {
 	/**
@@ -45,6 +47,12 @@ export class C15tClient implements ConsentManagerInterface {
 	 * @internal
 	 */
 	private readonly storageConfig?: import('../../libs/cookie').StorageConfig;
+
+	/**
+	 * IAB configuration for offline/fallback mode
+	 * @internal
+	 */
+	private readonly iabConfig?: C15tClientOptions['iabConfig'];
 
 	/**
 	 * Default headers to include with all requests
@@ -94,6 +102,7 @@ export class C15tClient implements ConsentManagerInterface {
 		this.customFetch = options.customFetch;
 		this.corsMode = options.corsMode || 'cors';
 		this.storageConfig = options.storageConfig;
+		this.iabConfig = options.iabConfig;
 
 		// Merge provided retry config with defaults
 		this.retryConfig = {
@@ -129,9 +138,9 @@ export class C15tClient implements ConsentManagerInterface {
 			retryConfig: this.retryConfig,
 		};
 
-		// Check for pending consent submissions on initialization
+		// Check for pending submissions on initialization
 		this.checkPendingConsentSubmissions();
-		this.checkPendingIdentifyUserSubmissions();
+		this.checkPendingIdentifySubmissions();
 	}
 
 	/**
@@ -141,12 +150,15 @@ export class C15tClient implements ConsentManagerInterface {
 	async init(
 		options?: FetchOptions<InitResponse>
 	): Promise<ResponseContext<InitResponse>> {
-		return init(this.fetcherContext, options);
+		return init(this.fetcherContext, options, this.iabConfig);
 	}
 
 	/**
 	 * Sets consent preferences for a subject.
 	 * If the API request fails, falls back to offline mode behavior.
+	 *
+	 * @remarks
+	 * v2.0: This calls POST /subjects with a client-generated subjectId.
 	 */
 	async setConsent(
 		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
@@ -155,19 +167,14 @@ export class C15tClient implements ConsentManagerInterface {
 	}
 
 	/**
-	 * Verifies if valid consent exists.
-	 */
-	async verifyConsent(
-		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
-	): Promise<ResponseContext<VerifyConsentResponse>> {
-		return verifyConsent(this.fetcherContext, options);
-	}
-
-	/**
-	 * Links a subject's external ID to a consent record by consent ID.
+	 * Links an external user ID to a subject via PATCH /subjects/:id.
+	 * Saves to storage first (optimistic), then makes API call with fallback.
+	 *
+	 * @remarks
+	 * v2.0: Maps to PATCH /subjects/:id endpoint.
 	 */
 	async identifyUser(
-		options?: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
+		options: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
 	): Promise<ResponseContext<IdentifyUserResponse>> {
 		return identifyUser(this.fetcherContext, this.storageConfig, options);
 	}
@@ -207,26 +214,23 @@ export class C15tClient implements ConsentManagerInterface {
 	}
 
 	/**
-	 * Check for pending identify-user submissions on initialization
+	 * Check for pending identify user submissions on initialization
 	 * @internal
 	 */
-	private checkPendingIdentifyUserSubmissions() {
-		checkPendingIdentifyUserSubmissions(this.fetcherContext, (submissions) =>
-			this.processPendingIdentifyUserSubmissions(submissions)
+	private checkPendingIdentifySubmissions() {
+		checkPendingIdentifySubmissions(this.fetcherContext, (submissions) =>
+			this.processPendingIdentifySubmissions(submissions)
 		);
 	}
 
 	/**
-	 * Process pending identify-user submissions
+	 * Process pending identify user submissions
 	 * @internal
 	 */
-	private async processPendingIdentifyUserSubmissions(
+	private async processPendingIdentifySubmissions(
 		submissions: IdentifyUserRequestBody[]
 	) {
-		return processPendingIdentifyUserSubmissions(
-			this.fetcherContext,
-			submissions
-		);
+		return processPendingIdentifySubmissions(this.fetcherContext, submissions);
 	}
 }
 

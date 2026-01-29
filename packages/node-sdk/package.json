@@ -44,7 +44,7 @@
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
 		"check-types:test": "tsc -p tsconfig.test.json",
-		"dev": "rslib build --watch",
+		"dev": "rslib build",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
 		"test": "vitest run",

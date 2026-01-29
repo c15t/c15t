@@ -1,4 +1,10 @@
-import styles from '@c15t/ui/styles/primitives/button.module.css';
+import {
+	type ButtonMode,
+	type ButtonSize,
+	type ButtonVariant,
+	type ButtonVariantsProps,
+	buttonVariants,
+} from '@c15t/ui/styles/primitives';
 import { Slot } from '@radix-ui/react-slot';
 import {
 	type ButtonHTMLAttributes,
@@ -10,6 +16,12 @@ import {
 import type { PolymorphicComponentProps } from '../../libs/polymorphic';
 import { recursiveCloneChildren } from '../../libs/recursive-clone-children';
 
+// Re-export types for convenience
+export type { ButtonMode, ButtonSize, ButtonVariant, ButtonVariantsProps };
+
+// Re-export the helper function
+export { buttonVariants };
+
 /**
  * Constants for component display names
  * @internal
@@ -17,66 +29,12 @@ import { recursiveCloneChildren } from '../../libs/recursive-clone-children';
 const BUTTON_ROOT_NAME = 'ButtonRoot';
 const BUTTON_ICON_NAME = 'ButtonIcon';
 
-/**
- * Button variant types
- */
-export type ButtonVariant = 'primary' | 'neutral';
-export type ButtonMode = 'filled' | 'stroke' | 'lighter' | 'ghost';
-export type ButtonSize = 'medium' | 'small' | 'xsmall' | 'xxsmall';
-
-/**
- * Button variants props interface
- */
-export interface ButtonVariantsProps {
-	variant?: ButtonVariant;
-	mode?: ButtonMode;
-	size?: ButtonSize;
-}
-
 // Define a type that can be used with PolymorphicComponentProps
 export interface ButtonIconProps extends Record<string, unknown> {
 	variant?: ButtonVariant;
 	mode?: ButtonMode;
 	size?: ButtonSize;
 }
-
-/**
- * Helper function to generate button classes based on variants
- */
-export const buttonVariants = ({
-	variant = 'primary',
-	mode = 'filled',
-	size = 'medium',
-}: ButtonVariantsProps = {}) => {
-	const rootClasses = [styles.button, styles[`button-${size}`]];
-
-	const compoundMap: Record<
-		`${ButtonVariant}-${ButtonMode}`,
-		keyof typeof styles
-	> = {
-		'primary-filled': 'button-primary-filled',
-		'primary-stroke': 'button-primary-stroke',
-		'primary-lighter': 'button-primary-lighter',
-		'primary-ghost': 'button-primary-ghost',
-		'neutral-filled': 'button-neutral-filled',
-		'neutral-stroke': 'button-neutral-stroke',
-		'neutral-lighter': 'button-neutral-lighter',
-		'neutral-ghost': 'button-neutral-ghost',
-	};
-
-	rootClasses.push(styles[compoundMap[`${variant}-${mode}`]]);
-
-	const iconClasses = [styles['button-icon']];
-
-	return {
-		root: (options?: { class?: string }) => {
-			return [...rootClasses, options?.class].filter(Boolean).join(' ');
-		},
-		icon: (options?: { class?: string }) => {
-			return [...iconClasses, options?.class].filter(Boolean).join(' ');
-		},
-	};
-};
 
 // Type for props that can be used with recursiveCloneChildren
 export type RecursiveCloneableProps = Record<string, unknown>;

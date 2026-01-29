@@ -294,4 +294,16 @@
 	:global(.c15t-dark) .footer {
 		border-color: var(--dialog-stroke-color-dark);
 	}
+
+	/* Reduced motion preference */
+	@media (prefers-reduced-motion: reduce) {
+		.dialogVisible,
+		.dialogHidden,
+		.contentVisible,
+		.contentHidden,
+		.overlayVisible,
+		.overlayHidden {
+			transition: none;
+		}
+	}
 }

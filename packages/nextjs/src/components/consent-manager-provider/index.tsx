@@ -21,11 +21,10 @@ export function ConsentManagerProvider({
 			}
 
 			// In c15t mode, overrides are sent with the fetch request
-			initialDataPromise = getC15TInitialData(
-				options.backendURL,
-				headers(),
-				options.overrides
-			);
+			// GVL is included in the init response when server has it configured
+			initialDataPromise = getC15TInitialData(options.backendURL, headers(), {
+				overrides: options.overrides,
+			});
 			break;
 		}
 		default:

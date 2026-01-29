@@ -6,3 +6,4 @@ export * from './manager';
 export * from './merge-styles';
 export * from './resolve-styles';
 export * from './translations';
+export * from './trigger-utils';

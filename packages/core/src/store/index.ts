@@ -16,12 +16,12 @@ import {
 	type HasCondition,
 	has,
 } from '../libs/has';
-import { identifyUser } from '../libs/identify-user';
 import { createIframeManager } from '../libs/iframe-blocker/store';
 import { initConsentManager } from '../libs/init-consent-manager';
 import { createNetworkBlockerManager } from '../libs/network-blocker/store';
 import { saveConsents } from '../libs/save-consents';
 import { createScriptManager } from '../libs/script-loader';
+import { createIABManager } from '../libs/tcf/store';
 import type { TranslationConfig, User } from '../types';
 import type { Callbacks } from '../types/callbacks';
 import type { ConsentBannerResponse, ConsentState } from '../types/compliance';
@@ -44,6 +44,12 @@ interface StoredConsent {
 
 	/** Metadata about when and how consent was given */
 	consentInfo: ConsentInfo | null;
+
+	/** Stored custom vendor consents (IAB mode only) */
+	iabCustomVendorConsents?: Record<string, boolean>;
+
+	/** Stored custom vendor LI state (IAB mode only) */
+	iabCustomVendorLegitimateInterests?: Record<string, boolean>;
 }
 
 /**
@@ -124,20 +130,40 @@ export const createConsentManagerStore = (
 	manager: ConsentManagerInterface,
 	options: StoreOptions = {}
 ) => {
-	const { namespace = 'c15tStore' } = options;
+	const {
+		namespace = 'c15tStore',
+		// Extract options that shouldn't be spread directly into state
+		iab,
+		_initialData: _unusedInitialData,
+		initialGdprTypes,
+		initialTranslationConfig: _unusedInitialTranslationConfig,
+		enabled: _unusedEnabled,
+		// The rest are valid StoreConfig properties
+		...storeConfigOptions
+	} = options;
 
 	// Load initial state from localStorage if available
 	const storedConsent = getStoredConsent(options.storageConfig);
 
 	const store = createStore<ConsentStoreState>((set, get) => ({
 		...initialState,
-		...options,
+		...storeConfigOptions,
 		namespace,
+		// Initialize IAB manager (state + actions) if iab config is provided
+		iab: iab ? createIABManager(iab, get, set, manager) : null,
+		// Apply initial GDPR types if provided
+		...(initialGdprTypes && { gdprTypes: initialGdprTypes }),
 		...(storedConsent
 			? {
 					consents: storedConsent.consents,
 					selectedConsents: storedConsent.consents,
 					consentInfo: storedConsent.consentInfo,
+					user: storedConsent.consentInfo?.externalId
+						? {
+								id: storedConsent.consentInfo.externalId,
+								identityProvider: storedConsent.consentInfo.identityProvider,
+							}
+						: undefined,
 					showPopup: false,
 					isLoadingConsentInfo: false,
 				}
@@ -335,7 +361,49 @@ export const createConsentManagerStore = (
 			set({ gdprTypes: allCategories });
 		},
 
-		identifyUser: (user: User) => identifyUser({ user, manager, get, set }),
+		identifyUser: async (user: User) => {
+			const currentInfo = get().consentInfo;
+			const subjectId = currentInfo?.subjectId;
+
+			// Always store the user in state (so it's available when consent is given)
+			set({ user });
+
+			// If no consent yet, just store in state and return early
+			// The user will be linked when they give consent via saveConsents
+			// Don't set consentInfo here - it should only exist after actual consent
+			if (!subjectId) {
+				return;
+			}
+
+			// Skip API call if the user is already linked with the same externalId
+			// This prevents unnecessary PATCH calls on page load
+			if (
+				String(currentInfo?.externalId) === String(user.id) &&
+				currentInfo?.identityProvider === user.identityProvider
+			) {
+				return;
+			}
+
+			// Make API call to link the user to the subject
+			await manager.identifyUser({
+				body: {
+					id: subjectId,
+					externalId: user.id,
+					identityProvider: user.identityProvider,
+				},
+			});
+
+			// Sync store state
+			set({
+				consentInfo: {
+					...currentInfo,
+					time: currentInfo?.time || Date.now(),
+					subjectId,
+					externalId: user.id,
+					identityProvider: user.identityProvider,
+				},
+			});
+		},
 
 		setOverrides: async (
 			overrides: ConsentStoreState['overrides']

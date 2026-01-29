@@ -122,4 +122,7 @@ export const initialState: StoreRuntimeState = {
 	scriptIdMap: {},
 
 	model: 'opt-in',
+
+	/** IAB TCF state (null when not configured) */
+	iab: null,
 };

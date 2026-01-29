@@ -1,6 +1,8 @@
 /**
  * Offline implementation of the consent client interface.
  * Returns empty successful responses without making any HTTP requests.
+ *
+
  */
 
 import type { TranslationConfig } from '../../types';
@@ -11,30 +13,33 @@ import type {
 	InitResponse,
 	SetConsentRequestBody,
 	SetConsentResponse,
-	VerifyConsentRequestBody,
-	VerifyConsentResponse,
 } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
-import { identifyUser } from './identify-user';
 import { init } from './init';
 import { setConsent } from './set-consent';
+import type { IABFallbackConfig } from './types';
 import { handleOfflineResponse } from './utils';
-import { verifyConsent } from './verify-consent';
 
 /**
  * Offline implementation of the consent client interface.
  * Returns empty successful responses without making any HTTP requests.
+ *
+ * @remarks
+ * v2.0: Subject-centric API. Use setConsent for all consent operations.
  */
 export class OfflineClient implements ConsentManagerInterface {
 	private readonly storageConfig?: import('../../libs/cookie').StorageConfig;
 	private readonly initialTranslationConfig?: Partial<TranslationConfig>;
+	private readonly iabConfig?: IABFallbackConfig;
 
 	constructor(
 		storageConfig?: import('../../libs/cookie').StorageConfig,
-		initialTranslationConfig?: Partial<TranslationConfig>
+		initialTranslationConfig?: Partial<TranslationConfig>,
+		iabConfig?: IABFallbackConfig
 	) {
 		this.storageConfig = storageConfig;
 		this.initialTranslationConfig = initialTranslationConfig;
+		this.iabConfig = iabConfig;
 	}
 
 	/**
@@ -44,12 +49,15 @@ export class OfflineClient implements ConsentManagerInterface {
 	async init(
 		options?: FetchOptions<InitResponse>
 	): Promise<ResponseContext<InitResponse>> {
-		return init(this.initialTranslationConfig, options);
+		return init(this.initialTranslationConfig, options, this.iabConfig);
 	}
 
 	/**
 	 * Sets consent preferences for a subject.
 	 * In offline mode, saves to both localStorage and cookie to track that consent was set.
+	 *
+	 * @remarks
+	 * v2.0: This stores the client-generated subjectId.
 	 */
 	async setConsent(
 		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
@@ -58,21 +66,19 @@ export class OfflineClient implements ConsentManagerInterface {
 	}
 
 	/**
-	 * Verifies if valid consent exists.
-	 */
-	async verifyConsent(
-		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
-	): Promise<ResponseContext<VerifyConsentResponse>> {
-		return verifyConsent(options);
-	}
-
-	/**
-	 * Links a subject's external ID to a consent record by consent ID.
+	 * Links an external user ID to a subject.
+	 * In offline mode, this is a no-op that returns success.
+	 *
+	 * @remarks
+	 * v2.0: Offline mode cannot actually link to external ID.
 	 */
 	async identifyUser(
 		options?: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
 	): Promise<ResponseContext<IdentifyUserResponse>> {
-		return identifyUser(options);
+		console.warn(
+			'identifyUser called in offline mode - external ID will not be linked'
+		);
+		return handleOfflineResponse<IdentifyUserResponse>(options);
 	}
 
 	/**

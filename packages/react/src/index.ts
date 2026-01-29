@@ -4,8 +4,6 @@ export type {
 	ConsentManagerInterface,
 	ConsentStoreState,
 	ConsentType,
-	ContractsInputs,
-	ContractsOutputs,
 	Overrides,
 	Translations,
 } from 'c15t';
@@ -33,6 +31,37 @@ export {
 } from './components/cookie-banner';
 export * from './components/cookie-banner/components';
 export { Frame, type FrameProps } from './components/frame';
+// IAB TCF 2.3 Components
+export { IABBanner, type IABBannerProps } from './components/iab-banner';
+export {
+	IABPreferenceCenter,
+	type IABPreferenceCenterProps,
+} from './components/iab-preference-center';
+
+// Preference Center Trigger (floating button for resurfacing consent dialogs)
+export {
+	PreferenceCenterTrigger,
+	type PreferenceCenterTriggerCompound,
+	type PreferenceCenterTriggerProps,
+	TriggerButton,
+	type TriggerButtonProps,
+	TriggerIcon,
+	type TriggerIconProps,
+	type TriggerIconType,
+	// Atom components for direct usage
+	TriggerRoot,
+	type TriggerRootProps,
+	type TriggerSize,
+	TriggerText,
+	type TriggerTextProps,
+	type TriggerVisibility,
+	type UseDraggableOptions,
+	type UseDraggableReturn,
+	// Hook and types
+	useDraggable,
+	useTriggerContext,
+} from './components/preference-center-trigger';
+
 export { ConsentButton } from './components/shared/primitives/button';
 export {
 	InlineLegalLinks,

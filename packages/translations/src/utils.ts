@@ -7,7 +7,8 @@ type TranslationSection =
 	| 'consentManagerDialog'
 	| 'consentTypes'
 	| 'frame'
-	| 'legalLinks';
+	| 'legalLinks'
+	| 'iab';
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
 	if (!value) {
@@ -89,6 +90,7 @@ export function deepMergeTranslations(
 		'consentTypes',
 		'frame',
 		'legalLinks',
+		'iab',
 	];
 
 	const result: Partial<Translations> = {};

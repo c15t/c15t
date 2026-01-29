@@ -1,14 +1,14 @@
 {
 	"name": "@c15t/schema",
 	"version": "1.8.0",
-	"description": "Framework-agnostic Zod schemas and TypeScript types for c15t consent management",
+	"description": "Framework-agnostic Valibot schemas and TypeScript types for c15t consent management",
 	"keywords": [
 		"consent",
 		"privacy",
 		"gdpr",
 		"ccpa",
 		"schema",
-		"zod",
+		"valibot",
 		"typescript",
 		"validation"
 	],
@@ -42,7 +42,7 @@
 	"scripts": {
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
-		"dev": "rslib build --watch",
+		"dev": "rslib build",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
 		"test": "vitest run",
@@ -54,7 +54,7 @@
 		"not op_mini all"
 	],
 	"dependencies": {
-		"zod": "4.1.13"
+		"valibot": "1.2.0"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

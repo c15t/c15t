@@ -1,4 +1,5 @@
 import { createLogger, type LoggerOptions } from '@c15t/logger';
+import { getTraceContext } from './create-telemetry-options';
 
 let globalLogger: ReturnType<typeof createLogger>;
 
@@ -15,6 +16,7 @@ export function getLogger(
 		globalLogger = createLogger({
 			level: 'info',
 			appName: 'c15t',
+			getTraceContext,
 			...options,
 		});
 	}
@@ -30,6 +32,10 @@ export function getLogger(
 export function initLogger(
 	options: LoggerOptions
 ): ReturnType<typeof createLogger> {
-	globalLogger = createLogger(options);
+	globalLogger = createLogger({
+		...options,
+		// Always include trace context for log correlation
+		getTraceContext,
+	});
 	return globalLogger;
 }

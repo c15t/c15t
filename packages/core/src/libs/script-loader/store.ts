@@ -34,9 +34,21 @@ export function createScriptManager(
 	setState: (partial: Partial<ConsentStoreState>) => void
 ) {
 	const updateScriptsFn = () => {
-		const { scripts, consents, scriptIdMap } = getState();
+		const { scripts, consents, scriptIdMap, model, iab } = getState();
+		const iabConsent = iab?.config.enabled
+			? {
+					vendorConsents: iab.vendorConsents,
+					vendorLegitimateInterests: iab.vendorLegitimateInterests,
+					purposeConsents: iab.purposeConsents,
+					purposeLegitimateInterests: iab.purposeLegitimateInterests,
+					specialFeatureOptIns: iab.specialFeatureOptIns,
+				}
+			: undefined;
 
-		const result = updateScripts(scripts, consents, scriptIdMap);
+		const result = updateScripts(scripts, consents, scriptIdMap, {
+			model,
+			iabConsent,
+		});
 
 		// Update loadedScripts state
 		const newLoadedScripts = { ...getState().loadedScripts };

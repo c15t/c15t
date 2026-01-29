@@ -8,14 +8,16 @@
 // Export schema types directly for new code
 export type {
 	Branding,
-	IdentifyUserInput,
-	IdentifyUserOutput,
+	GetSubjectInput,
+	GetSubjectOutput,
 	InitOutput,
 	JurisdictionCode,
-	PostConsentInput,
-	PostConsentOutput,
-	VerifyConsentInput,
-	VerifyConsentOutput,
+	ListSubjectsOutput,
+	ListSubjectsQuery,
+	PatchSubjectFullInput,
+	PatchSubjectOutput,
+	PostSubjectInput,
+	PostSubjectOutput,
 } from '@c15t/schema/types';
 export type {
 	CommonTranslations,
@@ -57,6 +59,10 @@ export {
 	saveConsentToStorage,
 	setCookie,
 } from './libs/cookie';
+export {
+	generateSubjectId,
+	isValidSubjectId,
+} from './libs/generate-subject-id';
 export type { HasCondition } from './libs/has';
 export {
 	createIframeBlocker,
@@ -77,6 +83,7 @@ export {
 export { createConsentManagerStore } from './store';
 export type {
 	ConsentStoreState,
+	SSRInitialData,
 	StoreOptions,
 } from './store/type';
 // Export default translation config
@@ -95,6 +102,7 @@ export {
 	type ConsentType,
 	consentTypes,
 } from './types/gdpr';
+export type { GlobalVendorList } from './types/iab-tcf';
 export type { Overrides } from './types/index';
 export type { LegalLink, LegalLinks } from './types/legal-links';
 export type { User } from './types/user';

@@ -33,9 +33,4 @@ export interface ConsentButtonProps
 	 * @default 'neutral'
 	 */
 	variant?: 'primary' | 'neutral';
-	/**
-	 * @remarks
-	 * Shorthand for variant="primary"
-	 */
-	primary?: boolean;
 }

@@ -1,0 +1,230 @@
+/**
+ * PreferenceCenterTrigger Component Styles
+ *
+ * A draggable floating button that opens the preference center.
+ * Uses CSS variables from the c15t design system.
+ */
+
+.trigger {
+	/* Component-specific variables */
+	--pct-size-sm: 32px;
+	--pct-size-md: 40px;
+	--pct-size-lg: 48px;
+	--pct-bg: var(--c15t-surface, #ffffff);
+	--pct-bg-hover: var(--c15t-surface-hover, var(--pct-bg));
+	--pct-border: var(--c15t-border, #e5e5e5);
+	--pct-shadow: var(
+		--c15t-shadow-lg,
+		0 10px 15px -3px rgb(0 0 0 / 0.1),
+		0 4px 6px -4px rgb(0 0 0 / 0.1)
+	);
+	--pct-shadow-hover: var(
+		--c15t-shadow-xl,
+		0 20px 25px -5px rgb(0 0 0 / 0.1),
+		0 8px 10px -6px rgb(0 0 0 / 0.1)
+	);
+	--pct-radius: var(--c15t-radius-full, 9999px);
+	--pct-offset: var(--c15t-space-md, 20px);
+	--pct-transition-duration: var(--c15t-motion-duration, 200ms);
+	--pct-transition-easing: var(--c15t-motion-easing, ease-out);
+	--pct-snap-duration: var(--c15t-motion-duration-slow, 300ms);
+	/* ease-in-out-quart: best for on-screen movement */
+	--pct-snap-easing: var(
+		--c15t-motion-easing-smooth,
+		cubic-bezier(0.77, 0, 0.175, 1)
+	);
+	--pct-icon-color: var(--c15t-text, #171717);
+	--pct-focus-ring: var(--c15t-primary, #3b82f6);
+
+	/* Base styles */
+	position: fixed;
+	z-index: 9999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--pct-size-md);
+	height: var(--pct-size-md);
+	padding: 0;
+	margin: 0;
+	border: 1px solid var(--pct-border);
+	border-radius: var(--pct-radius);
+	background: var(--pct-bg);
+	box-shadow: var(--pct-shadow);
+	cursor: grab;
+	transition:
+		transform var(--pct-transition-duration) var(--pct-transition-easing),
+		box-shadow var(--pct-transition-duration) var(--pct-transition-easing),
+		background var(--pct-transition-duration) var(--pct-transition-easing);
+	touch-action: none;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-tap-highlight-color: transparent;
+	will-change: transform;
+}
+
+/* Only apply hover effects on devices that support hover */
+@media (hover: hover) and (pointer: fine) {
+	.trigger:hover {
+		background: var(--pct-bg-hover);
+		box-shadow: var(--pct-shadow-hover);
+	}
+}
+
+.trigger:active,
+.trigger.dragging {
+	cursor: grabbing;
+	transform: scale(1.02);
+}
+
+.trigger:focus {
+	outline: none;
+}
+
+.trigger:focus-visible {
+	outline: 2px solid var(--pct-focus-ring);
+	outline-offset: 2px;
+}
+
+/* Size variants */
+.sm {
+	width: var(--pct-size-sm);
+	height: var(--pct-size-sm);
+}
+
+.md {
+	width: var(--pct-size-md);
+	height: var(--pct-size-md);
+}
+
+.lg {
+	width: var(--pct-size-lg);
+	height: var(--pct-size-lg);
+}
+
+/* Icon container */
+.icon {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	width: 50%;
+	height: 50%;
+	color: var(--pct-icon-color);
+	pointer-events: none;
+}
+
+.icon svg {
+	width: 100%;
+	height: 100%;
+}
+
+/* Text label */
+.text {
+	margin-left: var(--c15t-space-xs, 6px);
+	font-family: var(--c15t-font-family, system-ui, sans-serif);
+	font-size: var(--c15t-font-size-sm, 14px);
+	font-weight: var(--c15t-font-weight-medium, 500);
+	line-height: 1;
+	color: var(--pct-icon-color);
+	white-space: nowrap;
+	pointer-events: none;
+}
+
+/* When trigger has text, adjust sizing */
+.trigger:has(.text) {
+	width: auto;
+	height: auto;
+	padding: var(--c15t-space-sm, 8px) var(--c15t-space-md, 16px);
+	border-radius: var(--c15t-radius-lg, 12px);
+	gap: var(--c15t-space-xs, 6px);
+}
+
+.trigger:has(.text) .icon {
+	width: 16px;
+	height: 16px;
+}
+
+.trigger:has(.text).sm {
+	padding: var(--c15t-space-xs, 6px) var(--c15t-space-sm, 10px);
+}
+
+.trigger:has(.text).sm .icon {
+	width: 14px;
+	height: 14px;
+}
+
+.trigger:has(.text).sm .text {
+	font-size: var(--c15t-font-size-xs, 12px);
+}
+
+.trigger:has(.text).lg {
+	padding: var(--c15t-space-md, 12px) var(--c15t-space-lg, 20px);
+}
+
+.trigger:has(.text).lg .icon {
+	width: 20px;
+	height: 20px;
+}
+
+.trigger:has(.text).lg .text {
+	font-size: var(--c15t-font-size-md, 16px);
+}
+
+/* Corner positioning utilities */
+.bottomRight {
+	right: var(--pct-offset);
+	bottom: var(--pct-offset);
+}
+
+.bottomLeft {
+	bottom: var(--pct-offset);
+	left: var(--pct-offset);
+}
+
+.topRight {
+	top: var(--pct-offset);
+	right: var(--pct-offset);
+}
+
+.topLeft {
+	top: var(--pct-offset);
+	left: var(--pct-offset);
+}
+
+/* Transition state for snapping to corners */
+.snapping {
+	transition:
+		top var(--pct-snap-duration) var(--pct-snap-easing),
+		right var(--pct-snap-duration) var(--pct-snap-easing),
+		bottom var(--pct-snap-duration) var(--pct-snap-easing),
+		left var(--pct-snap-duration) var(--pct-snap-easing),
+		transform var(--pct-snap-duration) var(--pct-snap-easing);
+}
+
+/* Hidden state */
+.hidden {
+	display: none;
+}
+
+/* Dark mode support */
+:global(.c15t-dark) .trigger {
+	--pct-bg: var(--c15t-surface, #262626);
+	--pct-bg-hover: var(--c15t-surface-hover, #404040);
+	--pct-border: var(--c15t-border, #404040);
+	--pct-icon-color: var(--c15t-text, #fafafa);
+	--pct-shadow:
+		0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+	--pct-shadow-hover:
+		0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+	.trigger {
+		transition: none;
+	}
+
+	.snapping {
+		transition: none;
+	}
+}

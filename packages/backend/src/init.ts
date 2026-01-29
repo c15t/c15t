@@ -1,77 +1,39 @@
-import { resourceFromAttributes } from '@opentelemetry/resources';
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-base';
 import type { C15TContext, C15TOptions } from '~/types';
 import { createRegistry } from './db/registry';
 import { DB } from './db/schema';
-import { createTelemetryOptions } from './utils/create-telemetry-options';
+import {
+	createTelemetryOptions,
+	isTelemetryEnabled,
+} from './utils/create-telemetry-options';
 import { initLogger } from './utils/logger';
-import { version as packageVersion } from './version';
-
-// SDK instance should be at module level for proper lifecycle management
-let telemetrySdk: NodeSDK | undefined;
 
 /**
- * Initializes telemetry SDK with the provided configuration
+ * Initializes the c15t backend context.
  *
- * @param appName - The application name for telemetry service identification
- * @param telemetryOptions - Telemetry configuration options
- * @param logger - Logger instance for telemetry status reporting
- * @returns Whether telemetry was successfully initialized
+ * Telemetry (tracing and metrics) is opt-in and disabled by default.
+ * Users must:
+ * 1. Set up their own OpenTelemetry SDK (Node.js, Bun, edge runtime, etc.)
+ * 2. Pass enabled: true and optionally a tracer/meter to the telemetry config
+ *
+ * @example
+ * ```typescript
+ * // User sets up their own SDK before calling init
+ * import { NodeSDK } from '@opentelemetry/sdk-node';
+ * const sdk = new NodeSDK({ ... });
+ * sdk.start();
+ *
+ * // Then pass telemetry config
+ * const instance = c15tInstance({
+ *   advanced: {
+ *     telemetry: {
+ *       enabled: true,
+ *       tracer: trace.getTracer('my-app'),
+ *       meter: metrics.getMeter('my-app'),
+ *     },
+ *   },
+ * });
+ * ```
  */
-const initializeTelemetry = (
-	appName: string,
-	telemetryOptions: ReturnType<typeof createTelemetryOptions>,
-	logger: ReturnType<typeof initLogger>
-): boolean => {
-	// Skip if SDK already initialized or telemetry is disabled
-	if (telemetrySdk) {
-		logger.debug('Telemetry SDK already initialized, skipping');
-		return true;
-	}
-
-	if (telemetryOptions?.disabled) {
-		logger.info('Telemetry is disabled by configuration');
-		return false;
-	}
-
-	try {
-		// Create a telemetry resource with provided values or safe defaults
-		const resource = resourceFromAttributes({
-			'service.name': appName,
-			'service.version': packageVersion,
-			...(telemetryOptions?.defaultAttributes || {}),
-		});
-
-		logger.debug('Initializing telemetry with resource attributes', {
-			attributes: resource.attributes,
-		});
-
-		// Use provided tracer or fallback to console exporter
-		const traceExporter = telemetryOptions?.tracer
-			? undefined // SDK will use the provided tracer
-			: new ConsoleSpanExporter();
-
-		// Create and start the SDK
-		telemetrySdk = new NodeSDK({
-			resource,
-			traceExporter,
-		});
-
-		telemetrySdk.start();
-		logger.info('Telemetry successfully initialized');
-		return true;
-	} catch (error) {
-		// Log the error but don't crash the application
-		logger.error('Telemetry initialization failed', {
-			error: error instanceof Error ? error.message : String(error),
-			stack: error instanceof Error ? error.stack : undefined,
-		});
-		logger.warn('Continuing without telemetry');
-		return false;
-	}
-};
-
 export const init = (options: C15TOptions): C15TContext => {
 	const appName = options.appName || 'c15t';
 
@@ -80,34 +42,27 @@ export const init = (options: C15TOptions): C15TContext => {
 		appName: String(appName),
 	});
 
-	// Create telemetry options
+	// Create telemetry options (validates and merges with defaults)
 	const telemetryOptions = createTelemetryOptions(
 		String(appName),
 		options.advanced?.telemetry
 	);
 
-	// Initialize telemetry
-	const telemetryInitialized = initializeTelemetry(
-		String(appName),
-		telemetryOptions,
-		logger
-	);
-
-	// Log final telemetry status
-	if (telemetryOptions?.disabled) {
-		logger.info('Telemetry is disabled by configuration');
-	} else if (telemetryInitialized) {
-		logger.info('Telemetry initialized successfully');
+	// Log telemetry status
+	if (isTelemetryEnabled(options)) {
+		logger.debug('Telemetry is enabled', {
+			hasTracer: !!telemetryOptions?.tracer,
+			hasMeter: !!telemetryOptions?.meter,
+			attributes: telemetryOptions?.defaultAttributes,
+		});
 	} else {
-		logger.warn(
-			'Telemetry initialization failed, continuing without telemetry'
-		);
+		logger.debug('Telemetry is disabled (opt-in required)');
 	}
 
 	// Initialize core components
 	const client = DB.client(options.adapter);
 
-	const orm = client.orm('1.0.0');
+	const orm = client.orm('2.0.0');
 
 	const context: C15TContext = {
 		...options,
