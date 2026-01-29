@@ -138,7 +138,38 @@ async function fetchGVLWithLanguage(
 				);
 			}
 
-			const gvl = (await response.json()) as GlobalVendorList;
+			// Use text() then JSON.parse to handle malformed responses (e.g. trailing
+			// content or BOM) that would break response.json()
+			const text = await response.text();
+			const trimmed = text.trim().replace(/^\uFEFF/, ''); // Strip BOM
+			let gvl: GlobalVendorList;
+			try {
+				gvl = JSON.parse(trimmed) as GlobalVendorList;
+			} catch {
+				// If response has valid JSON followed by extra content, try parsing
+				// only the first complete JSON value (find matching braces)
+				let depth = 0;
+				let end = -1;
+				const start = trimmed.indexOf('{');
+				if (start >= 0) {
+					for (let i = start; i < trimmed.length; i++) {
+						const c = trimmed[i];
+						if (c === '{') depth++;
+						else if (c === '}') {
+							depth--;
+							if (depth === 0) {
+								end = i + 1;
+								break;
+							}
+						}
+					}
+				}
+				if (end > 0) {
+					gvl = JSON.parse(trimmed.slice(0, end)) as GlobalVendorList;
+				} else {
+					throw new SyntaxError('Invalid GVL response: not valid JSON');
+				}
+			}
 
 			// Validate the response has required fields
 			if (!gvl.vendorListVersion || !gvl.purposes || !gvl.vendors) {

@@ -369,6 +369,15 @@ export const createConsentManagerStore = (
 				return;
 			}
 
+			// Skip API call if the user is already linked with the same externalId
+			// This prevents unnecessary PATCH calls on page load
+			if (
+				String(currentInfo?.externalId) === String(user.id) &&
+				currentInfo?.identityProvider === user.identityProvider
+			) {
+				return;
+			}
+
 			// Make API call to link the user to the subject
 			await manager.identifyUser({
 				body: {

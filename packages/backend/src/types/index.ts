@@ -6,7 +6,7 @@ import {
 	type NonIABVendor,
 } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
-import type { Tracer } from '@opentelemetry/api';
+import type { Meter, Tracer } from '@opentelemetry/api';
 import type { FumaDB, InferFumaDB } from 'fumadb';
 import type { CacheAdapter } from '../cache/types';
 import type { createRegistry } from '../db/registry';
@@ -96,9 +96,33 @@ interface BaseOptions {
 			 */
 			customUiTemplate?: string;
 		};
+		/**
+		 * OpenTelemetry configuration for tracing and metrics.
+		 * Telemetry is opt-in and disabled by default.
+		 * Users must provide their own SDK setup (Node, Bun, edge, etc.).
+		 */
 		telemetry?: {
-			disabled?: boolean;
+			/**
+			 * Enable telemetry (tracing and metrics).
+			 * Must be explicitly set to true to activate.
+			 * @default false
+			 */
+			enabled?: boolean;
+			/**
+			 * User-provided tracer instance.
+			 * Users should set up their own OpenTelemetry SDK and pass the tracer here.
+			 * @example trace.getTracer('my-app')
+			 */
 			tracer?: Tracer;
+			/**
+			 * User-provided meter instance for metrics.
+			 * Users should set up their own OpenTelemetry SDK and pass the meter here.
+			 * @example metrics.getMeter('my-app')
+			 */
+			meter?: Meter;
+			/**
+			 * Default attributes to include on all spans and metrics.
+			 */
 			defaultAttributes?: Record<string, string | number | boolean>;
 		};
 		ipAddress?: {

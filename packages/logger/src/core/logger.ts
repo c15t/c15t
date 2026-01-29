@@ -29,6 +29,21 @@ import type {
  * logger.debug('This debug message won\'t be shown');
  * ```
  *
+ * @example
+ * ```ts
+ * // Create a logger with trace context for log correlation
+ * import { getTraceContext } from '@c15t/backend/telemetry';
+ *
+ * const logger = createLogger({
+ *   level: 'info',
+ *   getTraceContext: () => getTraceContext(),
+ * });
+ *
+ * // Logs will include traceId and spanId when available
+ * logger.info('Request processed', { userId: 123 });
+ * // Output includes: { traceId: '...', spanId: '...', userId: 123 }
+ * ```
+ *
  * @public
  */
 export const createLogger = (options?: LoggerOptions | Logger): Logger => {
@@ -46,6 +61,7 @@ export const createLogger = (options?: LoggerOptions | Logger): Logger => {
 	const enabled = loggerOptions?.disabled !== true;
 	const logLevel = loggerOptions?.level ?? 'error';
 	const appName = loggerOptions?.appName ?? 'c15t';
+	const getTraceContext = loggerOptions?.getTraceContext;
 
 	/**
 	 * Internal function that handles the actual logging logic.
@@ -65,6 +81,28 @@ export const createLogger = (options?: LoggerOptions | Logger): Logger => {
 		success: console.log.bind(console),
 	};
 
+	/**
+	 * Enriches log args with trace context if available.
+	 */
+	const enrichArgsWithTraceContext = (args: unknown[]): unknown[] => {
+		if (!getTraceContext) {
+			return args;
+		}
+
+		const traceContext = getTraceContext();
+		if (!traceContext) {
+			return args;
+		}
+
+		// If first arg is an object, merge trace context into it
+		if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
+			return [{ ...traceContext, ...(args[0] as object) }, ...args.slice(1)];
+		}
+
+		// Otherwise, prepend trace context as first arg
+		return [traceContext, ...args];
+	};
+
 	const logFunc = (
 		level: LogLevel,
 		message: string,
@@ -74,16 +112,23 @@ export const createLogger = (options?: LoggerOptions | Logger): Logger => {
 			return;
 		}
 
+		// Enrich args with trace context for log correlation
+		const enrichedArgs = enrichArgsWithTraceContext(args);
+
 		const formatter = getFormatter('default');
-		const formattedMessage = formatter(level, message, args, appName);
+		const formattedMessage = formatter(level, message, enrichedArgs, appName);
 
 		if (!loggerOptions || typeof loggerOptions.log !== 'function') {
 			const consoleMethod = consoleMethods[level];
-			consoleMethod(formattedMessage, ...args);
+			consoleMethod(formattedMessage, ...enrichedArgs);
 			return;
 		}
 
-		loggerOptions.log(level === 'success' ? 'info' : level, message, ...args);
+		loggerOptions.log(
+			level === 'success' ? 'info' : level,
+			message,
+			...enrichedArgs
+		);
 	};
 
 	return Object.fromEntries(
