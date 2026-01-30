@@ -15,6 +15,7 @@ interface CustomVendor {
 	purposes: number[];
 	legIntPurposes?: number[];
 	specialFeatures?: number[];
+	features?: number[];
 	dataCategories?: number[];
 	usesCookies?: boolean;
 	usesNonCookieAccess?: boolean;
@@ -69,6 +70,7 @@ export const VendorList: FC<VendorListProps> = ({
 				cookieRefresh: vendor.cookieRefresh,
 				specialPurposes: vendor.specialPurposes || [],
 				specialFeatures: vendor.specialFeatures || [],
+				features: vendor.features || [],
 				purposes: vendor.purposes || [],
 				legIntPurposes: vendor.legIntPurposes || [],
 				isCustom: false,
@@ -93,6 +95,7 @@ export const VendorList: FC<VendorListProps> = ({
 		cookieRefresh: undefined,
 		specialPurposes: [],
 		specialFeatures: cv.specialFeatures || [],
+		features: cv.features || [],
 		purposes: cv.purposes || [],
 		legIntPurposes: cv.legIntPurposes || [],
 		isCustom: true,
@@ -189,6 +192,22 @@ export const VendorList: FC<VendorListProps> = ({
 				id: sf.id,
 				name: sf.name,
 				description: sf.description,
+			}));
+	};
+
+	const getVendorFeatures = (vendorId: VendorId) => {
+		const vendor = vendors.find((v) => String(v.id) === String(vendorId));
+		if (!vendor || !vendorData) {
+			return [];
+		}
+
+		return (vendor.features || [])
+			.map((id) => vendorData.features[id])
+			.filter((f): f is NonNullable<typeof f> => f != null)
+			.map((f) => ({
+				id: f.id,
+				name: f.name,
+				description: f.description,
 			}));
 	};
 
@@ -319,6 +338,7 @@ export const VendorList: FC<VendorListProps> = ({
 		const vendorPurposes = getVendorPurposes(vendor.id);
 		const vendorSpecialPurposes = getVendorSpecialPurposes(vendor.id);
 		const vendorSpecialFeatures = getVendorSpecialFeatures(vendor.id);
+		const vendorFeatures = getVendorFeatures(vendor.id);
 		const isExpanded = expandedVendors.has(vendor.id);
 		const legIntCount = vendorPurposes.filter(
 			(p) => p.usesLegitimateInterest
@@ -497,13 +517,15 @@ export const VendorList: FC<VendorListProps> = ({
 							{maxAgeText && (
 								<span className={styles.vendorBadge}>{maxAgeText}</span>
 							)}
+							{standardRetentionDays && (
+								<span className={styles.vendorBadge}>
+									{iab.preferenceCenter.vendorList.retention.replace(
+										'{days}',
+										String(standardRetentionDays)
+									)}
+								</span>
+							)}
 						</div>
-
-						{standardRetentionDays && (
-							<p className={styles.vendorListMetaText}>
-								Retention: {standardRetentionDays}d
-							</p>
-						)}
 
 						{vendorPurposes.length > 0 && (
 							<div className={styles.vendorPurposesList}>
@@ -691,6 +713,22 @@ export const VendorList: FC<VendorListProps> = ({
 									{vendorSpecialFeatures.map((sf) => (
 										<li key={sf.id} className={styles.vendorPurposeItem}>
 											{sf.name}
+										</li>
+									))}
+								</ul>
+							</div>
+						)}
+
+						{vendorFeatures.length > 0 && (
+							<div className={styles.vendorPurposesList}>
+								<h4 className={styles.vendorPurposesTitle}>
+									{iab.preferenceCenter.vendorList.features} (
+									{vendorFeatures.length})
+								</h4>
+								<ul className={styles.vendorPurposesItems}>
+									{vendorFeatures.map((f) => (
+										<li key={f.id} className={styles.vendorPurposeItem}>
+											{f.name}
 										</li>
 									))}
 								</ul>

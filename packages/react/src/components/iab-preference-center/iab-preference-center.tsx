@@ -33,6 +33,7 @@ import { PurposeItem } from './atoms/purpose-item';
 import { StackItem } from './atoms/stack-item';
 import { VendorList } from './atoms/vendor-list';
 import type {
+	ProcessedFeature,
 	ProcessedPurpose,
 	ProcessedSpecialFeature,
 	ProcessedStack,
@@ -153,6 +154,7 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 		purposes,
 		specialPurposes,
 		specialFeatures,
+		features,
 		stacks,
 		standalonePurposes,
 	} = useMemo(() => {
@@ -161,6 +163,7 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 				purposes: [],
 				specialPurposes: [],
 				specialFeatures: [],
+				features: [],
 				stacks: [] as ProcessedStack[],
 				standalonePurposes: [],
 			};
@@ -187,6 +190,7 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 				vendor.urls?.find((url) => url.legIntClaim)?.legIntClaim ?? null,
 			specialPurposes: vendor.specialPurposes || [],
 			specialFeatures: vendor.specialFeatures || [],
+			features: vendor.features || [],
 			purposes: vendor.purposes || [],
 			legIntPurposes: vendor.legIntPurposes || [],
 			usesLegitimateInterest: purposeId
@@ -212,6 +216,7 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 			legitimateInterestUrl: null,
 			specialPurposes: [],
 			specialFeatures: cv.specialFeatures || [],
+			features: cv.features || [],
 			purposes: cv.purposes || [],
 			legIntPurposes: cv.legIntPurposes || [],
 			usesLegitimateInterest: purposeId
@@ -302,6 +307,28 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 			})
 			.filter((sf) => sf.vendors.length > 0);
 
+		// Process features (informational, no consent toggle)
+		const processedFeatures: ProcessedFeature[] = Object.entries(
+			gvl.features || {}
+		)
+			.map(([id, feature]) => {
+				const vendorsForFeature: ProcessedVendor[] = Object.entries(gvl.vendors)
+					.filter(([, vendor]) => {
+						return vendor.features?.includes(Number(id));
+					})
+					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
+
+				return {
+					id: Number(id),
+					name: feature.name,
+					description: feature.description,
+					descriptionLegal: feature.descriptionLegal,
+					illustrations: feature.illustrations || [],
+					vendors: vendorsForFeature,
+				};
+			})
+			.filter((f) => f.vendors.length > 0);
+
 		// Group purposes into stacks (Purpose 1 is always standalone per IAB TCF spec)
 		const STANDALONE_PURPOSE_ID = 1;
 		const standalonePurpose = processedPurposes.find(
@@ -381,6 +408,7 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 			purposes: processedPurposes,
 			specialPurposes: processedSpecialPurposes,
 			specialFeatures: processedSpecialFeatures,
+			features: processedFeatures,
 			stacks: processedStacks,
 			standalonePurposes: finalStandalonePurposes,
 		};
@@ -563,7 +591,7 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 							>
 								{iabTranslations.preferenceCenter.tabs.purposes}
 								{!isLoading &&
-									` (${purposes.length + specialPurposes.length + specialFeatures.length})`}
+									` (${purposes.length + specialPurposes.length + specialFeatures.length + features.length})`}
 							</button>
 							<button
 								type="button"
@@ -686,8 +714,8 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 									</div>
 								)}
 
-								{/* Special Purposes (locked) */}
-								{specialPurposes.length > 0 && (
+								{/* Essential Functions: Special Purposes + Features (locked) */}
+								{(specialPurposes.length > 0 || features.length > 0) && (
 									<div className={styles.specialPurposesSection}>
 										<div className={styles.specialPurposesHeader}>
 											<button
@@ -736,11 +764,14 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 													</h3>
 													<p className={styles.purposeMeta}>
 														{
-															new Set(
-																specialPurposes.flatMap((sp) =>
+															new Set([
+																...specialPurposes.flatMap((sp) =>
 																	sp.vendors.map((v) => v.id)
-																)
-															).size
+																),
+																...features.flatMap((f) =>
+																	f.vendors.map((v) => v.id)
+																),
+															]).size
 														}{' '}
 														partners
 													</p>
@@ -767,10 +798,31 @@ export const IABPreferenceCenter: FC<IABPreferenceCenterProps> = ({
 
 										{specialPurposesExpanded && (
 											<div style={{ padding: '0.75rem' }}>
+												{/* Special Purposes */}
 												{specialPurposes.map((purpose) => (
 													<PurposeItem
 														key={`special-${purpose.id}`}
 														purpose={purpose}
+														isEnabled={true}
+														onToggle={() => {}}
+														vendorConsents={iabState.vendorConsents}
+														onVendorToggle={handleVendorToggle}
+														onVendorClick={handleVendorClick}
+														isLocked={true}
+													/>
+												))}
+
+												{/* Features */}
+												{features.map((feature) => (
+													<PurposeItem
+														key={`feature-${feature.id}`}
+														purpose={{
+															id: feature.id,
+															name: feature.name,
+															description: feature.description,
+															illustrations: feature.illustrations,
+															vendors: feature.vendors,
+														}}
 														isEnabled={true}
 														onToggle={() => {}}
 														vendorConsents={iabState.vendorConsents}

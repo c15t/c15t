@@ -110,6 +110,7 @@ export interface IABPreferenceCenterTranslations {
 		purposes: string;
 		specialPurposes: string;
 		specialFeatures: string;
+		features: string;
 		dataCategories: string;
 		usesCookies: string;
 		nonCookieAccess: string;
@@ -117,6 +118,10 @@ export interface IABPreferenceCenterTranslations {
 		 * Use {days} placeholder for max age in days.
 		 */
 		maxAge: string;
+		/**
+		 * Use {days} placeholder for retention in days.
+		 */
+		retention: string;
 		legitimateInterest: string;
 		privacyPolicy: string;
 		storageDisclosure: string;

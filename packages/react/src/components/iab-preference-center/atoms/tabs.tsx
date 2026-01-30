@@ -64,6 +64,7 @@ const IABPreferenceCenterTabs = forwardRef<
 		purposes,
 		specialPurposes,
 		specialFeatures,
+		features,
 		totalVendors,
 		isLoading,
 	} = useGVLData();
@@ -89,7 +90,7 @@ const IABPreferenceCenterTabs = forwardRef<
 						>
 							{iabTranslations.preferenceCenter.tabs.purposes}
 							{!isLoading &&
-								` (${purposes.length + specialPurposes.length + specialFeatures.length})`}
+								` (${purposes.length + specialPurposes.length + specialFeatures.length + features.length})`}
 						</button>
 						<button
 							type="button"

@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import type {
+	ProcessedFeature,
 	ProcessedPurpose,
 	ProcessedSpecialFeature,
 	ProcessedStack,
@@ -17,6 +18,7 @@ export interface GVLData {
 	purposes: ProcessedPurpose[];
 	specialPurposes: ProcessedPurpose[];
 	specialFeatures: ProcessedSpecialFeature[];
+	features: ProcessedFeature[];
 	stacks: ProcessedStack[];
 	standalonePurposes: ProcessedPurpose[];
 	totalVendors: number;
@@ -42,6 +44,7 @@ export function useGVLData(): GVLData {
 		purposes,
 		specialPurposes,
 		specialFeatures,
+		features,
 		stacks,
 		standalonePurposes,
 	} = useMemo(() => {
@@ -50,6 +53,7 @@ export function useGVLData(): GVLData {
 				purposes: [],
 				specialPurposes: [],
 				specialFeatures: [],
+				features: [],
 				stacks: [] as ProcessedStack[],
 				standalonePurposes: [],
 			};
@@ -73,6 +77,7 @@ export function useGVLData(): GVLData {
 			cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds,
 			specialPurposes: vendor.specialPurposes || [],
 			specialFeatures: vendor.specialFeatures || [],
+			features: vendor.features || [],
 			purposes: vendor.purposes || [],
 			legIntPurposes: vendor.legIntPurposes || [],
 			usesLegitimateInterest: purposeId
@@ -95,6 +100,7 @@ export function useGVLData(): GVLData {
 			cookieMaxAgeSeconds: cv.cookieMaxAgeSeconds ?? null,
 			specialPurposes: [],
 			specialFeatures: cv.specialFeatures || [],
+			features: cv.features || [],
 			purposes: cv.purposes || [],
 			legIntPurposes: cv.legIntPurposes || [],
 			usesLegitimateInterest: purposeId
@@ -184,6 +190,28 @@ export function useGVLData(): GVLData {
 			})
 			.filter((sf) => sf.vendors.length > 0);
 
+		// Process features (informational, no consent toggle)
+		const processedFeatures: ProcessedFeature[] = Object.entries(
+			gvl.features || {}
+		)
+			.map(([id, feature]) => {
+				const vendorsForFeature: ProcessedVendor[] = Object.entries(gvl.vendors)
+					.filter(([, vendor]) => {
+						return vendor.features?.includes(Number(id));
+					})
+					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
+
+				return {
+					id: Number(id),
+					name: feature.name,
+					description: feature.description,
+					descriptionLegal: feature.descriptionLegal,
+					illustrations: feature.illustrations || [],
+					vendors: vendorsForFeature,
+				};
+			})
+			.filter((f) => f.vendors.length > 0);
+
 		// Group purposes into stacks (Purpose 1 is always standalone per IAB TCF spec)
 		const STANDALONE_PURPOSE_ID = 1;
 		const standalonePurpose = processedPurposes.find(
@@ -263,6 +291,7 @@ export function useGVLData(): GVLData {
 			purposes: processedPurposes,
 			specialPurposes: processedSpecialPurposes,
 			specialFeatures: processedSpecialFeatures,
+			features: processedFeatures,
 			stacks: processedStacks,
 			standalonePurposes: finalStandalonePurposes,
 		};
@@ -284,6 +313,7 @@ export function useGVLData(): GVLData {
 		purposes,
 		specialPurposes,
 		specialFeatures,
+		features,
 		stacks,
 		standalonePurposes,
 		totalVendors,
