@@ -108,6 +108,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 							},
 						],
 					},
+
 					scripts: [
 						{
 							id: 'example-analytics-iab',
