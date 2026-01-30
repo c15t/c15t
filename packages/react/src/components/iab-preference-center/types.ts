@@ -14,6 +14,7 @@ export interface ProcessedVendor {
 	cookieRefresh?: boolean;
 	specialPurposes: number[];
 	specialFeatures: number[];
+	features: number[];
 	purposes: number[];
 	legIntPurposes: number[];
 	legitimateInterestUrl?: string | null;
@@ -44,6 +45,19 @@ export interface ProcessedPurpose {
  * Special feature data for UI display.
  */
 export interface ProcessedSpecialFeature {
+	id: number;
+	name: string;
+	description: string;
+	descriptionLegal?: string;
+	illustrations: string[];
+	vendors: ProcessedVendor[];
+}
+
+/**
+ * Feature data for UI display.
+ * Features are informational (no consent toggle) and describe technical capabilities.
+ */
+export interface ProcessedFeature {
 	id: number;
 	name: string;
 	description: string;

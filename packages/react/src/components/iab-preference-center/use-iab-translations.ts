@@ -58,10 +58,12 @@ interface IABTranslations {
 			purposes: string;
 			specialPurposes: string;
 			specialFeatures: string;
+			features: string;
 			dataCategories: string;
 			usesCookies: string;
 			nonCookieAccess: string;
 			maxAge: string;
+			retention: string;
 			legitimateInterest: string;
 			privacyPolicy: string;
 			storageDisclosure: string;
