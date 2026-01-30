@@ -11,6 +11,7 @@
 	"dependencies": {
 		"@biomejs/biome": "^2.3.8",
 		"@c15t/backend": "workspace:*",
+		"@c15t/node-sdk": "workspace:*",
 		"@opentelemetry/api": "^1.9.0",
 		"@opentelemetry/exporter-metrics-otlp-proto": "^0.57.0",
 		"@opentelemetry/exporter-trace-otlp-proto": "^0.57.0",

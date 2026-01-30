@@ -64,7 +64,9 @@ function shouldReloadOnConsentChange(
 
 	// Check if any non-necessary consent was revoked
 	// (was true before, is false now)
-	const wasAnyConsentRevoked = Object.entries(newConsents).some(
+	const wasAnyConsentRevoked = (
+		Object.entries(newConsents) as [keyof ConsentState, boolean][]
+	).some(
 		([key, value]) =>
 			key !== 'necessary' && previousConsents[key] === true && value === false
 	);
