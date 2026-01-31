@@ -1,0 +1,455 @@
+/**
+ * Panel Styles
+ * Main DevTools panel with floating button, backdrop, and content area
+ * Uses c15t/ui design tokens with fallbacks for standalone usage
+ */
+
+/* === Container === */
+.container {
+	position: fixed;
+	z-index: var(--c15t-devtools-z-index, 99999);
+	font-family: var(--c15t-font-family, system-ui, -apple-system, sans-serif);
+	font-size: var(--c15t-font-size-sm, 0.875rem);
+	line-height: var(--c15t-line-height-normal, 1.5);
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* === Floating Button === */
+/* Matches PreferenceCenterTrigger sizing for visual consistency */
+.floatingButton {
+	position: fixed;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	/* Match PreferenceCenterTrigger md size (40px) */
+	width: var(--c15t-devtools-button-size, 40px);
+	height: var(--c15t-devtools-button-size, 40px);
+	padding: 0;
+	border: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
+	/* Match PreferenceCenterTrigger fully rounded style */
+	border-radius: var(--c15t-radius-full, 9999px);
+	background-color: var(--c15t-surface, #fff);
+	/* Match PreferenceCenterTrigger shadow */
+	box-shadow: var(
+		--c15t-shadow-lg,
+		0 10px 15px -3px rgb(0 0 0 / 0.1),
+		0 4px 6px -4px rgb(0 0 0 / 0.1)
+	);
+	cursor: grab;
+	z-index: var(--c15t-devtools-z-index, 99999);
+	transition: transform var(--c15t-duration-fast, 100ms)
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+		box-shadow var(--c15t-duration-fast, 100ms)
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+		background-color var(--c15t-duration-fast, 100ms)
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+	transform-origin: center;
+	touch-action: none;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-tap-highlight-color: transparent;
+}
+
+/* Only apply hover effects on devices that support hover */
+@media (hover: hover) and (pointer: fine) {
+	.floatingButton:hover {
+		background-color: var(--c15t-surface-hover, hsl(0, 0%, 95%));
+		box-shadow: var(
+			--c15t-shadow-xl,
+			0 20px 25px -5px rgb(0 0 0 / 0.1),
+			0 8px 10px -6px rgb(0 0 0 / 0.1)
+		);
+	}
+}
+
+.floatingButton:focus {
+	outline: none;
+}
+
+.floatingButton:focus-visible {
+	outline: 2px solid var(--c15t-primary, hsl(228, 100%, 60%));
+	outline-offset: 2px;
+}
+
+.floatingButton:active {
+	cursor: grabbing;
+	transform: scale(1.02);
+}
+
+.floatingButtonIcon {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	/* 50% of button size, matching PreferenceCenterTrigger */
+	width: 50%;
+	height: 50%;
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+	pointer-events: none;
+}
+
+.floatingButtonIcon svg {
+	width: 100%;
+	height: 100%;
+}
+
+/* Position variants */
+.positionBottomRight {
+	bottom: 20px;
+	right: 20px;
+}
+
+.positionBottomLeft {
+	bottom: 20px;
+	left: 20px;
+}
+
+.positionTopRight {
+	top: 20px;
+	right: 20px;
+}
+
+.positionTopLeft {
+	top: 20px;
+	left: 20px;
+}
+
+/* === Backdrop === */
+.backdrop {
+	position: fixed;
+	inset: 0;
+	background-color: var(--c15t-overlay, hsla(0, 0%, 0%, 0.5));
+	z-index: calc(var(--c15t-devtools-z-index, 99999) + 1);
+}
+
+/* === Panel === */
+.panel {
+	position: fixed;
+	display: flex;
+	flex-direction: column;
+	width: var(--c15t-devtools-panel-width, 480px);
+	max-height: var(--c15t-devtools-panel-max-height, 560px);
+	background-color: var(--c15t-surface, #fff);
+	border: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
+	border-radius: var(--c15t-radius-lg, 0.75rem);
+	box-shadow: var(--c15t-shadow-lg, 0 8px 24px hsla(0, 0%, 0%, 0.12));
+	/* overflow: hidden clips content but allows children with overflow-y: auto to scroll */
+	overflow: hidden;
+	z-index: calc(var(--c15t-devtools-z-index, 99999) + 2);
+}
+
+/* Panel position variants */
+.panel.positionBottomRight {
+	bottom: 80px;
+	right: 20px;
+	transform-origin: bottom right;
+}
+
+.panel.positionBottomLeft {
+	bottom: 80px;
+	left: 20px;
+	transform-origin: bottom left;
+}
+
+.panel.positionTopRight {
+	top: 80px;
+	right: 20px;
+	transform-origin: top right;
+}
+
+.panel.positionTopLeft {
+	top: 80px;
+	left: 20px;
+	transform-origin: top left;
+}
+
+/* === Header === */
+.header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--c15t-space-sm, 0.5rem) var(--c15t-space-md, 1rem);
+	border-bottom: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
+	background-color: var(--c15t-devtools-surface-muted, hsl(0, 0%, 96%));
+}
+
+.headerTitle {
+	display: flex;
+	align-items: center;
+	gap: var(--c15t-space-sm, 0.5rem);
+	font-size: var(--c15t-font-size-sm, 0.875rem);
+	font-weight: var(--c15t-font-weight-semibold, 600);
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+}
+
+.headerLogo {
+	width: 20px;
+	height: 20px;
+	color: var(--c15t-primary, hsl(228, 100%, 60%));
+}
+
+.closeButton {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	border: none;
+	border-radius: var(--c15t-radius-sm, 0.25rem);
+	background-color: transparent;
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+	cursor: pointer;
+	transition: background-color var(--c15t-duration-fast, 100ms)
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+		color var(--c15t-duration-fast, 100ms)
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.closeButton:hover {
+	background-color: var(--c15t-surface-hover, hsl(0, 0%, 97%));
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+}
+
+.closeButton:focus-visible {
+	outline: 2px solid var(--c15t-primary, hsl(228, 100%, 60%));
+	outline-offset: 1px;
+}
+
+.closeButtonIcon {
+	width: 16px;
+	height: 16px;
+}
+
+/* === Content === */
+.content {
+	flex: 1 1 auto;
+	/* min-height ensures content area is visible even when empty */
+	min-height: 200px;
+	overflow-y: auto;
+	overflow-x: hidden;
+	overscroll-behavior: contain;
+	/* Enable smooth scrolling on touch devices */
+	-webkit-overflow-scrolling: touch;
+}
+
+/* === Footer === */
+.footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--c15t-space-xs, 0.25rem) var(--c15t-space-md, 1rem);
+	border-top: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
+	background-color: var(--c15t-devtools-surface-muted, hsl(0, 0%, 96%));
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+}
+
+.footerStatus {
+	display: flex;
+	align-items: center;
+	gap: var(--c15t-space-xs, 0.25rem);
+}
+
+.statusDot {
+	width: 6px;
+	height: 6px;
+	border-radius: var(--c15t-radius-full, 9999px);
+}
+
+.statusConnected {
+	background-color: var(--c15t-devtools-badge-success, hsl(142, 71%, 45%));
+}
+
+.statusDisconnected {
+	background-color: var(--c15t-devtools-badge-error, hsl(0, 84%, 60%));
+}
+
+/* === Error State === */
+.errorState {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--c15t-space-xl, 2rem);
+	text-align: center;
+	gap: var(--c15t-space-md, 1rem);
+}
+
+.errorIcon {
+	width: 48px;
+	height: 48px;
+	color: var(--c15t-devtools-badge-warning, hsl(38, 92%, 50%));
+}
+
+.errorTitle {
+	font-size: var(--c15t-font-size-base, 1rem);
+	font-weight: var(--c15t-font-weight-semibold, 600);
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+}
+
+.errorMessage {
+	font-size: var(--c15t-font-size-sm, 0.875rem);
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+	max-width: 280px;
+}
+
+/* === Reduced Motion === */
+@media (prefers-reduced-motion: reduce) {
+	.floatingButton,
+	.closeButton {
+		transition: none;
+	}
+}
+
+/* === Touch Device Handling === */
+@media (hover: none) {
+	.floatingButton:hover {
+		transform: none;
+		box-shadow: var(--c15t-shadow-md, 0 4px 12px hsla(0, 0%, 0%, 0.08));
+	}
+}
+
+/* === Dropdown Menu === */
+.dropdownMenu {
+	position: fixed;
+	min-width: 200px;
+	padding: var(--c15t-space-xs, 0.25rem);
+	border: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
+	border-radius: var(--c15t-radius-lg, 0.75rem);
+	background-color: var(--c15t-surface, #fff);
+	box-shadow: var(--c15t-shadow-lg, 0 8px 24px hsla(0, 0%, 0%, 0.12));
+	z-index: calc(var(--c15t-devtools-z-index, 99999) + 1);
+	opacity: 0;
+	transform: scale(0.95) translateY(8px);
+	transform-origin: bottom left;
+	pointer-events: none;
+	transition: opacity var(--c15t-duration-fast, 100ms) var(--c15t-easing-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+		transform var(--c15t-duration-fast, 100ms) var(--c15t-easing-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
+.dropdownMenu[data-state="open"] {
+	opacity: 1;
+	transform: scale(1) translateY(0);
+	pointer-events: auto;
+}
+
+/* Position classes set transform-origin only - actual position is set via JS */
+.dropdownMenuBottomLeft {
+	transform-origin: bottom left;
+}
+
+.dropdownMenuBottomRight {
+	transform-origin: bottom right;
+}
+
+.dropdownMenuTopLeft {
+	transform-origin: top left;
+}
+
+.dropdownMenuTopRight {
+	transform-origin: top right;
+}
+
+.menuItem {
+	display: flex;
+	align-items: center;
+	gap: var(--c15t-space-sm, 0.5rem);
+	width: 100%;
+	padding: var(--c15t-space-sm, 0.5rem) var(--c15t-space-md, 0.75rem);
+	border: none;
+	border-radius: var(--c15t-radius-md, 0.5rem);
+	background: transparent;
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+	font-size: var(--c15t-font-size-sm, 0.875rem);
+	font-weight: var(--c15t-font-weight-medium, 500);
+	text-align: left;
+	cursor: pointer;
+	transition: background-color var(--c15t-duration-fast, 100ms) var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.menuItem:hover {
+	background-color: var(--c15t-surface-hover, hsl(0, 0%, 95%));
+}
+
+.menuItem:focus-visible {
+	outline: 2px solid var(--c15t-primary, hsl(228, 100%, 60%));
+	outline-offset: -2px;
+}
+
+.menuItemIcon {
+	width: 20px;
+	height: 20px;
+	flex-shrink: 0;
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+}
+
+.menuItemLabel {
+	flex: 1;
+}
+
+.menuItemDescription {
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+	font-weight: var(--c15t-font-weight-normal, 400);
+}
+
+.menuItemContent {
+	flex: 1;
+	min-width: 0;
+}
+
+/* Toggle switch for menu items */
+.menuItemToggle {
+	flex-shrink: 0;
+	margin-left: auto;
+}
+
+.menuItemToggleTrack {
+	position: relative;
+	width: 36px;
+	height: 20px;
+	background-color: var(--c15t-switch-track, hsl(0, 0%, 85%));
+	border-radius: var(--c15t-radius-full, 9999px);
+	transition: background-color var(--c15t-duration-fast, 100ms) var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.menuItemToggleThumb {
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 16px;
+	height: 16px;
+	background-color: var(--c15t-switch-thumb, hsl(0, 0%, 100%));
+	border-radius: var(--c15t-radius-full, 9999px);
+	box-shadow: var(--c15t-shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.1));
+	transition: transform var(--c15t-duration-fast, 100ms) var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.menuItemToggleChecked .menuItemToggleTrack {
+	background-color: var(--c15t-switch-track-checked, hsl(228, 100%, 60%));
+}
+
+.menuItemToggleChecked .menuItemToggleThumb {
+	transform: translateX(16px);
+}
+
+.menuDivider {
+	height: 1px;
+	margin: var(--c15t-space-xs, 0.25rem) 0;
+	background-color: var(--c15t-border, hsl(0, 0%, 89%));
+}
+
+/* Unified button wrapper - inherits positioning from button */
+.unifiedButtonWrapper {
+	/* This is just a logical grouping container, not positioned */
+	display: contents;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.dropdownMenu {
+		transition: none;
+	}
+}

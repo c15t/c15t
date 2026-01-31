@@ -1,0 +1,104 @@
+/**
+ * Tabs Styles
+ * Tab navigation component
+ * Uses c15t/ui design tokens with fallbacks for standalone usage
+ */
+
+/* === Tab List === */
+.tabList {
+	display: flex;
+	gap: var(--c15t-space-xs, 0.25rem);
+	padding: var(--c15t-space-sm, 0.5rem) var(--c15t-space-md, 1rem);
+	border-bottom: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
+	background-color: var(--c15t-surface, #fff);
+	overflow-x: auto;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+}
+
+.tabList::-webkit-scrollbar {
+	display: none;
+}
+
+/* === Tab Button === */
+.tab {
+	display: flex;
+	align-items: center;
+	gap: var(--c15t-space-xs, 0.25rem);
+	padding: var(--c15t-space-xs, 0.25rem) var(--c15t-space-sm, 0.5rem);
+	border: none;
+	border-radius: var(--c15t-radius-md, 0.5rem);
+	background-color: transparent;
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+	font-family: inherit;
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	font-weight: var(--c15t-font-weight-medium, 500);
+	cursor: pointer;
+	white-space: nowrap;
+	transition: background-color var(--c15t-duration-fast, 100ms)
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+		color var(--c15t-duration-fast, 100ms)
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.tab:hover {
+	background-color: var(--c15t-surface-hover, hsl(0, 0%, 97%));
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+}
+
+.tab:focus-visible {
+	outline: 2px solid var(--c15t-primary, hsl(228, 100%, 60%));
+	outline-offset: 1px;
+}
+
+.tabActive {
+	background-color: var(--c15t-primary, hsl(228, 100%, 60%));
+	color: var(--c15t-text-on-primary, #fff);
+}
+
+.tabActive:hover {
+	background-color: var(--c15t-primary-hover, hsl(228, 100%, 50%));
+	color: var(--c15t-text-on-primary, #fff);
+}
+
+.tabIcon {
+	width: 14px;
+	height: 14px;
+	flex-shrink: 0;
+}
+
+/* === Disabled Tab State === */
+.tabDisabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+.tabDisabled:hover {
+	background-color: transparent;
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+}
+
+/* === Tab Panel === */
+.tabPanel {
+	display: none;
+}
+
+.tabPanelActive {
+	display: block;
+}
+
+/* === Reduced Motion === */
+@media (prefers-reduced-motion: reduce) {
+	.tab {
+		transition: none;
+	}
+}
+
+/* === Touch Device Handling === */
+@media (hover: none) {
+	.tab:hover:not(.tabActive) {
+		background-color: transparent;
+		color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+	}
+}

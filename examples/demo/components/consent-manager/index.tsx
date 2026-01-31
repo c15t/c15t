@@ -1,5 +1,6 @@
 'use client';
 
+import { C15TDevTools } from '@c15t/dev-tools/react';
 import {
 	ConsentManagerProvider,
 	IABBanner,
@@ -166,6 +167,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 				<IABBanner />
 				<IABPreferenceCenter />
 				<PreferenceCenterTrigger />
+				<C15TDevTools position="bottom-left" />
 				{/* <CustomDialogTailwind /> */}
 				{/* <PresetDialog /> */}
 				{children}
