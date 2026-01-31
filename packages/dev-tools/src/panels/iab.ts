@@ -4,13 +4,7 @@
  */
 
 import type { ConsentStoreState } from 'c15t';
-import {
-	createBadge,
-	createButton,
-	createGrid,
-	createGridCard,
-	createSection,
-} from '../components/ui';
+import { createBadge, createButton, createSection } from '../components/ui';
 import { clearElement, div, span } from '../core/renderer';
 
 export interface IabPanelOptions {
@@ -112,104 +106,153 @@ export function renderIabPanel(
 
 	container.appendChild(tcStringSection);
 
-	// Purposes section
-	const purposeConsents = iabState.purposeConsents || {};
 	const gvl = iabState.gvl;
-	const purposes = gvl?.purposes || {};
 
+	// Purposes section - single column, scrollable
+	const purposeConsents = iabState.purposeConsents || {};
+	const purposes = gvl?.purposes || {};
 	const purposeEntries = Object.entries(purposeConsents);
+
 	if (purposeEntries.length > 0) {
-		const purposeCards: HTMLElement[] = [];
+		const purposeList = div({
+			style: {
+				display: 'flex',
+				flexDirection: 'column',
+				gap: '4px',
+				maxHeight: '120px',
+				overflowY: 'auto',
+			},
+		});
 
 		for (const [purposeId, consent] of purposeEntries) {
 			const purposeInfo = purposes[purposeId as unknown as number];
 			const purposeName = purposeInfo?.name || `Purpose ${purposeId}`;
 
-			const badge = createBadge({
-				text: consent ? 'Consent' : 'Denied',
-				variant: consent ? 'success' : 'error',
-			});
-
-			const card = createGridCard({
-				title: `${purposeId}. ${truncateText(purposeName, 20)}`,
-				action: badge,
-			});
-
-			purposeCards.push(card);
+			purposeList.appendChild(
+				createPurposeRow(purposeId, purposeName, Boolean(consent))
+			);
 		}
-
-		const purposesGrid = createGrid({
-			columns: 2,
-			children: purposeCards,
-		});
 
 		const purposesSection = createSection({
 			title: `Purposes (${purposeEntries.length})`,
-			children: [purposesGrid],
+			children: [purposeList],
 		});
 
 		container.appendChild(purposesSection);
 	}
 
-	// Vendors section
+	// Special Features section (specialFeatureOptIns)
+	const specialFeatureOptIns = iabState.specialFeatureOptIns || {};
+	const specialFeatures = gvl?.specialFeatures || {};
+	const specialFeatureEntries = Object.entries(specialFeatureOptIns);
+
+	if (specialFeatureEntries.length > 0) {
+		const specialFeatureList = div({
+			style: {
+				display: 'flex',
+				flexDirection: 'column',
+				gap: '4px',
+				maxHeight: '100px',
+				overflowY: 'auto',
+			},
+		});
+
+		for (const [featureId, optIn] of specialFeatureEntries) {
+			const featureInfo = specialFeatures[featureId as unknown as number];
+			const featureName = featureInfo?.name || `Special Feature ${featureId}`;
+
+			specialFeatureList.appendChild(
+				createPurposeRow(featureId, featureName, Boolean(optIn))
+			);
+		}
+
+		const specialFeaturesSection = createSection({
+			title: `Special Features (${specialFeatureEntries.length})`,
+			children: [specialFeatureList],
+		});
+
+		container.appendChild(specialFeaturesSection);
+	}
+
+	// Vendors section - differentiate IAB vs Custom
 	const vendorConsents = iabState.vendorConsents || {};
 	const vendors = gvl?.vendors || {};
-
 	const vendorEntries = Object.entries(vendorConsents);
-	if (vendorEntries.length > 0) {
+
+	// Separate IAB vendors (in GVL) from custom vendors
+	const iabVendors: Array<[string, boolean, string]> = [];
+	const customVendors: Array<[string, boolean, string]> = [];
+
+	for (const [vendorId, consent] of vendorEntries) {
+		const vendorInfo = vendors[vendorId as unknown as number];
+		const vendorName = vendorInfo?.name || `Vendor ${vendorId}`;
+		const isIabVendor = vendorInfo !== undefined;
+
+		if (isIabVendor) {
+			iabVendors.push([vendorId, Boolean(consent), vendorName]);
+		} else {
+			customVendors.push([vendorId, Boolean(consent), vendorName]);
+		}
+	}
+
+	// IAB Vendors
+	if (iabVendors.length > 0) {
 		const vendorList = div({
 			style: {
 				display: 'flex',
 				flexDirection: 'column',
 				gap: '4px',
-				maxHeight: '200px',
+				maxHeight: '120px',
 				overflowY: 'auto',
-				padding: '0 8px',
 			},
 		});
 
-		for (const [vendorId, consent] of vendorEntries) {
-			const vendorInfo = vendors[vendorId as unknown as number];
-			const vendorName = vendorInfo?.name || `Vendor ${vendorId}`;
-
-			const vendorItem = div({
-				style: {
-					display: 'flex',
-					alignItems: 'center',
-					justifyContent: 'space-between',
-					padding: '6px 8px',
-					borderRadius: '4px',
-					backgroundColor: 'var(--c15t-surface)',
-					border: '1px solid var(--c15t-border)',
-				},
-				children: [
-					span({
-						style: {
-							fontSize: 'var(--c15t-devtools-font-size-xs)',
-							color: 'var(--c15t-text)',
-						},
-						text: `${vendorId}. ${truncateText(vendorName, 30)}`,
-					}),
-					createBadge({
-						text: consent ? 'Consent' : 'Denied',
-						variant: consent ? 'success' : 'error',
-					}),
-				],
-			});
-
-			vendorList.appendChild(vendorItem);
+		for (const [vendorId, consent, vendorName] of iabVendors) {
+			vendorList.appendChild(
+				createVendorRow(vendorId, vendorName, consent, 'iab')
+			);
 		}
 
 		const vendorsSection = createSection({
-			title: `Vendors (${vendorEntries.length})`,
+			title: `IAB Vendors (${iabVendors.length})`,
 			children: [vendorList],
 		});
 
 		container.appendChild(vendorsSection);
 	}
 
+	// Custom Vendors
+	if (customVendors.length > 0) {
+		const customVendorList = div({
+			style: {
+				display: 'flex',
+				flexDirection: 'column',
+				gap: '4px',
+				maxHeight: '100px',
+				overflowY: 'auto',
+			},
+		});
+
+		for (const [vendorId, consent, vendorName] of customVendors) {
+			customVendorList.appendChild(
+				createVendorRow(vendorId, vendorName, consent, 'custom')
+			);
+		}
+
+		const customVendorsSection = createSection({
+			title: `Custom Vendors (${customVendors.length})`,
+			children: [customVendorList],
+		});
+
+		container.appendChild(customVendorsSection);
+	}
+
 	// Empty state if no purposes or vendors
-	if (purposeEntries.length === 0 && vendorEntries.length === 0) {
+	if (
+		purposeEntries.length === 0 &&
+		specialFeatureEntries.length === 0 &&
+		vendorEntries.length === 0
+	) {
 		container.appendChild(
 			div({
 				style: {
@@ -222,6 +265,106 @@ export function renderIabPanel(
 			})
 		);
 	}
+}
+
+/**
+ * Creates a purpose row item
+ */
+function createPurposeRow(
+	id: string,
+	name: string,
+	consent: boolean
+): HTMLElement {
+	return div({
+		style: {
+			display: 'flex',
+			alignItems: 'center',
+			justifyContent: 'space-between',
+			padding: '4px 0',
+			fontSize: 'var(--c15t-devtools-font-size-xs)',
+			borderBottom: '1px solid var(--c15t-border)',
+		},
+		children: [
+			span({
+				style: {
+					color: 'var(--c15t-text)',
+					overflow: 'hidden',
+					textOverflow: 'ellipsis',
+					whiteSpace: 'nowrap',
+					flex: '1',
+					marginRight: '8px',
+				},
+				text: `${id}. ${name}`,
+				title: name,
+			}),
+			createBadge({
+				text: consent ? '✓' : '✕',
+				variant: consent ? 'success' : 'error',
+			}),
+		],
+	});
+}
+
+/**
+ * Creates a vendor row item
+ */
+function createVendorRow(
+	id: string,
+	name: string,
+	consent: boolean,
+	type: 'iab' | 'custom'
+): HTMLElement {
+	return div({
+		style: {
+			display: 'flex',
+			alignItems: 'center',
+			justifyContent: 'space-between',
+			padding: '4px 0',
+			fontSize: 'var(--c15t-devtools-font-size-xs)',
+			borderBottom: '1px solid var(--c15t-border)',
+		},
+		children: [
+			div({
+				style: {
+					display: 'flex',
+					alignItems: 'center',
+					gap: '6px',
+					overflow: 'hidden',
+					flex: '1',
+					marginRight: '8px',
+				},
+				children: [
+					type === 'custom'
+						? span({
+								style: {
+									fontSize: '9px',
+									padding: '1px 4px',
+									backgroundColor: 'var(--c15t-devtools-badge-info-bg)',
+									color: 'var(--c15t-devtools-badge-info)',
+									borderRadius: '2px',
+									flexShrink: '0',
+								},
+								text: 'CUSTOM',
+							})
+						: null,
+					span({
+						style: {
+							color: 'var(--c15t-text)',
+							overflow: 'hidden',
+							textOverflow: 'ellipsis',
+							whiteSpace: 'nowrap',
+						},
+						text: `${id}. ${truncateText(name, 25)}`,
+						title: name,
+					}),
+				].filter(Boolean) as HTMLElement[],
+			}),
+			createBadge({
+				text: consent ? '✓' : '✕',
+				variant: consent ? 'success' : 'error',
+			}),
+		],
+	});
 }
 
 /**

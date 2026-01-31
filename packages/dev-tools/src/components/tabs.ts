@@ -50,8 +50,8 @@ const TABS: TabConfig[] = [
 	{ id: 'consents', label: 'Consents', icon: CONSENTS_ICON },
 	{ id: 'scripts', label: 'Scripts', icon: SCRIPTS_ICON },
 	{ id: 'iab', label: 'IAB', icon: IAB_ICON },
-	{ id: 'events', label: 'Events', icon: EVENTS_ICON },
 	{ id: 'actions', label: 'Actions', icon: ACTIONS_ICON },
+	{ id: 'events', label: 'Events', icon: EVENTS_ICON },
 ];
 
 export interface TabsOptions {

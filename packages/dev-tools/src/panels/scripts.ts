@@ -67,15 +67,26 @@ export function renderScriptsPanel(
 	const loadedScripts = state.loadedScripts || {};
 	const networkBlocker = state.networkBlocker;
 
-	// Scripts section
+	// Scripts section with heading
 	if (scripts.length === 0) {
-		const emptyState = createEmptyState({
-			icon: CODE_ICON,
-			text: 'No scripts configured',
+		const scriptsSection = createSection({
+			title: 'Configured Scripts',
+			children: [
+				createEmptyState({
+					icon: CODE_ICON,
+					text: 'No scripts configured',
+				}),
+			],
 		});
-		container.appendChild(emptyState);
+		container.appendChild(scriptsSection);
 	} else {
-		const scriptsList = div({});
+		const scriptsList = div({
+			style: {
+				display: 'flex',
+				flexDirection: 'column',
+				gap: '4px',
+			},
+		});
 
 		for (const script of scripts) {
 			const scriptId = script.id;
@@ -119,7 +130,12 @@ export function renderScriptsPanel(
 			scriptsList.appendChild(item);
 		}
 
-		container.appendChild(scriptsList);
+		const scriptsSection = createSection({
+			title: `Configured Scripts (${scripts.length})`,
+			children: [scriptsList],
+		});
+
+		container.appendChild(scriptsSection);
 	}
 
 	// Network blocker section
@@ -338,19 +354,15 @@ function createDomScannerSection(state: ConsentStoreState | null): HTMLElement {
 		children: [],
 	});
 
-	// Add placeholder content
-	resultsContainer = div({
-		style: {
-			padding: '0 8px 12px',
-		},
-	});
+	// Add placeholder content - no extra padding, section handles it
+	resultsContainer = div({});
 
 	const placeholder = div({
 		style: {
 			fontSize: 'var(--c15t-devtools-font-size-xs)',
 			color: 'var(--c15t-text-muted)',
 			textAlign: 'center',
-			padding: '12px 8px',
+			padding: '8px 0',
 		},
 		text: 'Click "Scan DOM" to check for external scripts and iframes',
 	});
@@ -384,7 +396,7 @@ function renderScanResults(
 					fontSize: 'var(--c15t-devtools-font-size-xs)',
 					color: 'var(--c15t-text-muted)',
 					textAlign: 'center',
-					padding: '12px 8px',
+					padding: '8px 0',
 				},
 				text: 'No external scripts or iframes found',
 			})
@@ -399,7 +411,7 @@ function renderScanResults(
 					fontSize: 'var(--c15t-devtools-font-size-xs)',
 					color: 'var(--c15t-text-muted)',
 					textAlign: 'center',
-					padding: '12px 8px',
+					padding: '8px 0',
 				},
 				text: `All ${results.length} alerts dismissed`,
 			})
