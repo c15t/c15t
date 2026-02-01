@@ -9,6 +9,7 @@ import { clearElement, div, span } from '../core/renderer';
 
 export interface IabPanelOptions {
 	getState: () => ConsentStoreState | null;
+	onReset: () => void;
 }
 
 /**
@@ -18,7 +19,7 @@ export function renderIabPanel(
 	container: HTMLElement,
 	options: IabPanelOptions
 ): void {
-	const { getState } = options;
+	const { getState, onReset } = options;
 
 	clearElement(container);
 
@@ -265,6 +266,28 @@ export function renderIabPanel(
 			})
 		);
 	}
+
+	// Footer with reset button
+	const footer = div({
+		style: {
+			display: 'flex',
+			alignItems: 'center',
+			justifyContent: 'flex-end',
+			padding: '12px 16px',
+			marginTop: 'auto',
+			borderTop: '1px solid var(--c15t-border)',
+			backgroundColor: 'var(--c15t-surface)',
+		},
+		children: [
+			createButton({
+				text: 'Reset All',
+				variant: 'danger',
+				small: true,
+				onClick: onReset,
+			}),
+		],
+	});
+	container.appendChild(footer);
 }
 
 /**

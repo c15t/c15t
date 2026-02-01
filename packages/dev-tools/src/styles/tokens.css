@@ -1,5 +1,5 @@
 /**
- * c15t Dev Tools Design Tokens
+ * c15t DevTools Design Tokens
  * 
  * This file only defines DevTools-specific variables that don't exist in c15t/ui.
  * Shared tokens (colors, typography, spacing, etc.) are inherited from c15t/ui's
@@ -7,14 +7,12 @@
  */
 
 :root {
-	/* === DevTools-Specific Layout === */
 	--c15t-devtools-panel-width: 480px;
 	--c15t-devtools-panel-max-height: 560px;
 	/* Match PreferenceCenterTrigger md size (40px) */
 	--c15t-devtools-button-size: 40px;
 	--c15t-devtools-z-index: 99999;
 
-	/* === DevTools-Specific Colors === */
 	/* Surface muted - maps to surface-hover from ui */
 	--c15t-devtools-surface-muted: var(--c15t-surface-hover, hsl(0, 0%, 97%));
 

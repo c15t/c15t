@@ -1,5 +1,5 @@
 /**
- * React wrapper for c15t Dev Tools
+ * React wrapper for c15t DevTools
  *
  * Provides a React component for easy integration into React applications.
  *
@@ -42,7 +42,7 @@ export interface C15TDevToolsProps extends Partial<DevToolsOptions> {
 }
 
 /**
- * React component that renders the c15t Dev Tools
+ * React component that renders the c15t DevTools
  *
  * This component creates a floating DevTools button that, when clicked,
  * opens a panel showing consent state, location info, scripts, and actions.

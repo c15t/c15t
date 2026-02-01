@@ -18,6 +18,7 @@ export interface ConsentsPanelOptions {
 	onSave: () => void;
 	onAcceptAll: () => void;
 	onRejectAll: () => void;
+	onReset: () => void;
 }
 
 /**
@@ -27,8 +28,14 @@ export function renderConsentsPanel(
 	container: HTMLElement,
 	options: ConsentsPanelOptions
 ): void {
-	const { getState, onConsentChange, onSave, onAcceptAll, onRejectAll } =
-		options;
+	const {
+		getState,
+		onConsentChange,
+		onSave,
+		onAcceptAll,
+		onRejectAll,
+		onReset,
+	} = options;
 
 	clearElement(container);
 
@@ -156,9 +163,29 @@ export function renderConsentsPanel(
 		container.appendChild(grid);
 	}
 
-	// Footer with actions - don't show in IAB mode
+	// Footer with actions
 	if (isIabMode) {
-		// No footer needed in IAB mode
+		// In IAB mode, only show reset button
+		const footer = div({
+			style: {
+				display: 'flex',
+				alignItems: 'center',
+				justifyContent: 'flex-end',
+				padding: '12px 16px',
+				marginTop: 'auto',
+				borderTop: '1px solid var(--c15t-border)',
+				backgroundColor: 'var(--c15t-surface)',
+			},
+			children: [
+				createButton({
+					text: 'Reset All',
+					variant: 'danger',
+					small: true,
+					onClick: onReset,
+				}),
+			],
+		});
+		container.appendChild(footer);
 		return;
 	}
 
@@ -193,6 +220,12 @@ export function renderConsentsPanel(
 						variant: 'default',
 						small: true,
 						onClick: onRejectAll,
+					}),
+					createButton({
+						text: 'Reset',
+						variant: 'danger',
+						small: true,
+						onClick: onReset,
 					}),
 				],
 			}),

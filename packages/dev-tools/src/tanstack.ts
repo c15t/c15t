@@ -33,7 +33,7 @@ export interface DevToolsPlugin {
 }
 
 /**
- * Options for the c15t Dev Tools plugin
+ * Options for the c15t DevTools plugin
  */
 export interface C15tDevtoolsPluginOptions {
 	/**

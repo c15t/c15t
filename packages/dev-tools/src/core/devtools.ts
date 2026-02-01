@@ -305,6 +305,37 @@ export function createDevTools(
 							});
 						}
 					},
+					onReset: async () => {
+						const store = storeConnector.getStore();
+						if (store) {
+							const storeState = store.getState();
+							storeState.resetConsents();
+
+							// Clear c15t cookies
+							document.cookie =
+								'c15t=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+							document.cookie =
+								'euconsent-v2=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+
+							// Clear all c15t localStorage entries
+							try {
+								localStorage.removeItem('c15t');
+								localStorage.removeItem('c15t:pending-consent-sync');
+								localStorage.removeItem('c15t-pending-consent-submissions');
+								localStorage.removeItem('euconsent-v2');
+							} catch {
+								// localStorage might be unavailable
+							}
+
+							// Re-initialize to reset IAB state in memory
+							await storeState.initConsentManager();
+
+							stateManager.addEvent({
+								type: 'consent_reset',
+								message: 'All consents reset (storage cleared)',
+							});
+						}
+					},
 				});
 				break;
 
@@ -360,6 +391,37 @@ export function createDevTools(
 			case 'iab':
 				renderIabPanel(panelContent, {
 					getState: getStoreState,
+					onReset: async () => {
+						const store = storeConnector.getStore();
+						if (store) {
+							const storeState = store.getState();
+							storeState.resetConsents();
+
+							// Clear c15t cookies
+							document.cookie =
+								'c15t=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+							document.cookie =
+								'euconsent-v2=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+
+							// Clear all c15t localStorage entries
+							try {
+								localStorage.removeItem('c15t');
+								localStorage.removeItem('c15t:pending-consent-sync');
+								localStorage.removeItem('c15t-pending-consent-submissions');
+								localStorage.removeItem('euconsent-v2');
+							} catch {
+								// localStorage might be unavailable
+							}
+
+							// Re-initialize to reset IAB state in memory
+							await storeState.initConsentManager();
+
+							stateManager.addEvent({
+								type: 'consent_reset',
+								message: 'All consents reset (storage cleared)',
+							});
+						}
+					},
 				});
 				break;
 
@@ -379,13 +441,34 @@ export function createDevTools(
 			case 'actions':
 				renderActionsPanel(panelContent, {
 					getState: getStoreState,
-					onResetConsents: () => {
+					onResetConsents: async () => {
 						const store = storeConnector.getStore();
 						if (store) {
-							store.getState().resetConsents();
+							const storeState = store.getState();
+							storeState.resetConsents();
+
+							// Clear c15t cookies
+							document.cookie =
+								'c15t=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+							document.cookie =
+								'euconsent-v2=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+
+							// Clear all c15t localStorage entries
+							try {
+								localStorage.removeItem('c15t');
+								localStorage.removeItem('c15t:pending-consent-sync');
+								localStorage.removeItem('c15t-pending-consent-submissions');
+								localStorage.removeItem('euconsent-v2');
+							} catch {
+								// localStorage might be unavailable
+							}
+
+							// Re-initialize to reset IAB state in memory
+							await storeState.initConsentManager();
+
 							stateManager.addEvent({
 								type: 'consent_reset',
-								message: 'All consents reset',
+								message: 'All consents reset (storage cleared)',
 							});
 						}
 					},
@@ -568,6 +651,32 @@ export function createDevToolsPanel(options: {
 					onRejectAll: () => {
 						storeConnector.getStore()?.getState().saveConsents('necessary');
 					},
+					onReset: async () => {
+						const store = storeConnector.getStore();
+						if (store) {
+							const storeState = store.getState();
+							storeState.resetConsents();
+
+							// Clear c15t cookies
+							document.cookie =
+								'c15t=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+							document.cookie =
+								'euconsent-v2=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+
+							// Clear all c15t localStorage entries
+							try {
+								localStorage.removeItem('c15t');
+								localStorage.removeItem('c15t:pending-consent-sync');
+								localStorage.removeItem('c15t-pending-consent-submissions');
+								localStorage.removeItem('euconsent-v2');
+							} catch {
+								// localStorage might be unavailable
+							}
+
+							// Re-initialize to reset IAB state in memory
+							await storeState.initConsentManager();
+						}
+					},
 				});
 				break;
 
@@ -596,6 +705,32 @@ export function createDevToolsPanel(options: {
 			case 'iab':
 				renderIabPanel(contentArea, {
 					getState: getStoreState,
+					onReset: async () => {
+						const store = storeConnector.getStore();
+						if (store) {
+							const storeState = store.getState();
+							storeState.resetConsents();
+
+							// Clear c15t cookies
+							document.cookie =
+								'c15t=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+							document.cookie =
+								'euconsent-v2=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+
+							// Clear all c15t localStorage entries
+							try {
+								localStorage.removeItem('c15t');
+								localStorage.removeItem('c15t:pending-consent-sync');
+								localStorage.removeItem('c15t-pending-consent-submissions');
+								localStorage.removeItem('euconsent-v2');
+							} catch {
+								// localStorage might be unavailable
+							}
+
+							// Re-initialize to reset IAB state in memory
+							await storeState.initConsentManager();
+						}
+					},
 				});
 				break;
 
@@ -611,8 +746,31 @@ export function createDevToolsPanel(options: {
 			case 'actions':
 				renderActionsPanel(contentArea, {
 					getState: getStoreState,
-					onResetConsents: () => {
-						storeConnector.getStore()?.getState().resetConsents();
+					onResetConsents: async () => {
+						const store = storeConnector.getStore();
+						if (store) {
+							const storeState = store.getState();
+							storeState.resetConsents();
+
+							// Clear c15t cookies
+							document.cookie =
+								'c15t=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+							document.cookie =
+								'euconsent-v2=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+
+							// Clear all c15t localStorage entries
+							try {
+								localStorage.removeItem('c15t');
+								localStorage.removeItem('c15t:pending-consent-sync');
+								localStorage.removeItem('c15t-pending-consent-submissions');
+								localStorage.removeItem('euconsent-v2');
+							} catch {
+								// localStorage might be unavailable
+							}
+
+							// Re-initialize to reset IAB state in memory
+							await storeState.initConsentManager();
+						}
 					},
 					onRefetchBanner: async () => {
 						await storeConnector.getStore()?.getState().initConsentManager();

@@ -462,7 +462,7 @@ describe('IAB TCF Spec Compliance', () => {
 
 			// Check that the cookie would be named correctly
 			// (We're testing localStorage in our mock, but the key pattern is checked)
-			const stored = storageMock.storage.get('c15t_tc_string');
+			const stored = storageMock.storage.get('euconsent-v2');
 			expect(stored).toBe(tcString);
 		});
 

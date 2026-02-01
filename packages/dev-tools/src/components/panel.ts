@@ -231,7 +231,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 		// Update button label based on mode
 		floatingButton.ariaLabel = useUnifiedMode
 			? 'Open c15t Options'
-			: 'Open c15t Dev Tools';
+			: 'Open c15t DevTools';
 	}
 
 	// Create draggable instance for the button wrapper
@@ -288,7 +288,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 		const panel = div({
 			className: `${panelStyles.panel} ${positionClass} ${animationStyles.animateEnter}`,
 			role: 'dialog',
-			ariaLabel: 'c15t Dev Tools',
+			ariaLabel: 'c15t DevTools',
 		});
 
 		// Header
@@ -305,7 +305,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 							);
 							return logoWrapper;
 						})(),
-						span({ text: 'c15t Dev Tools' }),
+						span({ text: 'c15t DevTools' }),
 					],
 				}),
 				button({
