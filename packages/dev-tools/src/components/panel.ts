@@ -18,6 +18,11 @@ import type { StoreConnector } from '../core/store-connector';
 import animationStyles from '../styles/animations.module.css';
 import panelStyles from '../styles/panel.module.css';
 import {
+	detectPreferenceTrigger,
+	getPreferenceCenterOpener,
+	setPreferenceTriggerVisibility,
+} from '../utils/preference-trigger';
+import {
 	createDropdownMenu,
 	DEVTOOLS_ICON,
 	type DropdownMenuInstance,
@@ -76,36 +81,6 @@ export interface PanelInstance {
 }
 
 /**
- * Detect if PreferenceCenterTrigger is on the page
- */
-function detectPreferenceTrigger(): boolean {
-	// Check for preference trigger elements
-	const triggers = document.querySelectorAll(
-		'[data-c15t-trigger], [aria-label*="privacy settings"], [aria-label*="preference"]'
-	);
-	return triggers.length > 0;
-}
-
-/**
- * Get the preference center opener from the store
- */
-function getPreferenceCenterOpener(): (() => void) | null {
-	const win = window as unknown as Record<string, unknown>;
-	const store = win.c15tStore as
-		| Record<string, (...args: unknown[]) => unknown>
-		| undefined;
-	if (store && typeof store.getState === 'function') {
-		const state = store.getState() as Record<string, unknown>;
-		if (typeof state.setIsPrivacyDialogOpen === 'function') {
-			return () => {
-				(state.setIsPrivacyDialogOpen as (value: boolean) => void)(true);
-			};
-		}
-	}
-	return null;
-}
-
-/**
  * Creates the main panel component
  */
 export function createPanel(options: PanelOptions): PanelInstance {
@@ -125,20 +100,11 @@ export function createPanel(options: PanelOptions): PanelInstance {
 	// Start with trigger hidden when DevTools is present - developer can toggle it on if needed
 	let preferenceTriggerVisible = false;
 
-	// Get preference trigger elements
-	function getPreferenceTriggerElements(): NodeListOf<HTMLElement> {
-		return document.querySelectorAll(
-			'[data-c15t-trigger], [aria-label*="privacy settings"]'
-		) as NodeListOf<HTMLElement>;
-	}
-
-	// Toggle preference trigger visibility
-	function setPreferenceTriggerVisibility(visible: boolean): void {
+	// Toggle preference trigger visibility (wraps utility with local state management)
+	function updatePreferenceTriggerVisibility(visible: boolean): void {
 		preferenceTriggerVisible = visible;
-		const triggers = getPreferenceTriggerElements();
-		for (const trigger of triggers) {
-			trigger.style.display = visible ? '' : 'none';
-		}
+		// Use utility for DOM manipulation
+		setPreferenceTriggerVisibility(visible);
 		// Update the menu item checked state
 		if (dropdownMenu) {
 			dropdownMenu.updateItemChecked('toggle-trigger', visible);
@@ -207,7 +173,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 						type: 'toggle',
 						checked: preferenceTriggerVisible,
 						onClick: () => {
-							setPreferenceTriggerVisibility(!preferenceTriggerVisible);
+							updatePreferenceTriggerVisibility(!preferenceTriggerVisible);
 						},
 					},
 				],
@@ -225,7 +191,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 			container.appendChild(dropdownMenu.element);
 
 			// Auto-hide the preference trigger in unified mode for cleaner DX
-			setPreferenceTriggerVisibility(false);
+			updatePreferenceTriggerVisibility(false);
 		}
 
 		// Update button label based on mode

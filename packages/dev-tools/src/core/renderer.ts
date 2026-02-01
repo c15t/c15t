@@ -18,6 +18,7 @@ export type ElementAttributes = {
 	ariaHidden?: string;
 	ariaSelected?: string;
 	ariaControls?: string;
+	ariaChecked?: string;
 	title?: string;
 	type?: string;
 	value?: string;
@@ -156,6 +157,9 @@ export function createElement(options: CreateElementOptions = {}): HTMLElement {
 	}
 	if (attrs.ariaControls !== undefined) {
 		element.setAttribute('aria-controls', attrs.ariaControls as string);
+	}
+	if (attrs.ariaChecked !== undefined) {
+		element.setAttribute('aria-checked', attrs.ariaChecked as string);
 	}
 
 	// Set other attributes

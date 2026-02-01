@@ -317,35 +317,11 @@ export function createDropdownMenu(
 	};
 }
 
-/**
- * Check if PreferenceCenterTrigger exists on the page
- */
-export function detectPreferenceCenterTrigger(): boolean {
-	// Look for the PreferenceCenterTrigger by checking for elements with data attribute
-	// or specific class names that the trigger uses
-	const triggers = document.querySelectorAll(
-		'[data-c15t-trigger], [aria-label*="privacy settings"]'
-	);
-	return triggers.length > 0;
-}
-
-/**
- * Get the preference center open function if available
- */
-export function getPreferenceCenterOpener(): (() => void) | null {
-	// Try to find the c15tStore and use it to open the preference center
-	const win = window as unknown as Record<string, unknown>;
-	const store = win.c15tStore as Record<string, unknown> | undefined;
-	if (store && typeof store.getState === 'function') {
-		const state = (store.getState as () => Record<string, unknown>)();
-		if (typeof state.setIsPrivacyDialogOpen === 'function') {
-			return () => {
-				(state.setIsPrivacyDialogOpen as (value: boolean) => void)(true);
-			};
-		}
-	}
-	return null;
-}
+// Re-export from utilities for backwards compatibility
+export {
+	detectPreferenceTrigger as detectPreferenceCenterTrigger,
+	getPreferenceCenterOpener,
+} from '../utils/preference-trigger';
 
 // Export icon constants for use in other components
 export { DEVTOOLS_ICON, PREFERENCES_ICON, EYE_ICON };

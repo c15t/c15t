@@ -35,7 +35,9 @@
 		"check-types": "tsc --noEmit",
 		"dev": "rslib build --watch",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint ./src"
+		"lint": "bun biome lint ./src",
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"browserslist": [
 		">0.2%",
@@ -50,7 +52,9 @@
 		"@c15t/typescript-config": "workspace:*",
 		"@types/react": "19.2.10",
 		"@types/react-dom": "19.2.3",
-		"postcss": "8.5.6"
+		"jsdom": "27.2.0",
+		"postcss": "8.5.6",
+		"vitest": "4.0.15"
 	},
 	"peerDependencies": {
 		"react": "^18.0.0 || ^19.0.0",

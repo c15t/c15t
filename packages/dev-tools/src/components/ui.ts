@@ -254,3 +254,23 @@ export function createGridCard(options: GridCardOptions): HTMLElement {
 		children,
 	});
 }
+
+// === Disconnected State ===
+
+/**
+ * Creates a "Store not connected" message element
+ * Used when the c15t store is not available
+ */
+export function createDisconnectedState(
+	message = 'Store not connected'
+): HTMLElement {
+	return div({
+		style: {
+			padding: '24px',
+			textAlign: 'center',
+			color: 'var(--c15t-text-muted)',
+			fontSize: 'var(--c15t-devtools-font-size-sm)',
+		},
+		text: message,
+	});
+}

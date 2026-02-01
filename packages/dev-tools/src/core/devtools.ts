@@ -13,6 +13,7 @@ import { renderIabPanel } from '../panels/iab';
 import { renderLocationPanel } from '../panels/location';
 import { renderScriptsPanel } from '../panels/scripts';
 import { clearElement, div } from './renderer';
+import { resetAllConsents } from './reset-consents';
 import {
 	createStateManager,
 	type DevToolsPosition,
@@ -308,32 +309,7 @@ export function createDevTools(
 					onReset: async () => {
 						const store = storeConnector.getStore();
 						if (store) {
-							const storeState = store.getState();
-							storeState.resetConsents();
-
-							// Clear c15t cookies
-							document.cookie =
-								'c15t=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-							document.cookie =
-								'euconsent-v2=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-
-							// Clear all c15t localStorage entries
-							try {
-								localStorage.removeItem('c15t');
-								localStorage.removeItem('c15t:pending-consent-sync');
-								localStorage.removeItem('c15t-pending-consent-submissions');
-								localStorage.removeItem('euconsent-v2');
-							} catch {
-								// localStorage might be unavailable
-							}
-
-							// Re-initialize to reset IAB state in memory
-							await storeState.initConsentManager();
-
-							stateManager.addEvent({
-								type: 'consent_reset',
-								message: 'All consents reset (storage cleared)',
-							});
+							await resetAllConsents(store, stateManager);
 						}
 					},
 				});
@@ -394,32 +370,7 @@ export function createDevTools(
 					onReset: async () => {
 						const store = storeConnector.getStore();
 						if (store) {
-							const storeState = store.getState();
-							storeState.resetConsents();
-
-							// Clear c15t cookies
-							document.cookie =
-								'c15t=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-							document.cookie =
-								'euconsent-v2=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-
-							// Clear all c15t localStorage entries
-							try {
-								localStorage.removeItem('c15t');
-								localStorage.removeItem('c15t:pending-consent-sync');
-								localStorage.removeItem('c15t-pending-consent-submissions');
-								localStorage.removeItem('euconsent-v2');
-							} catch {
-								// localStorage might be unavailable
-							}
-
-							// Re-initialize to reset IAB state in memory
-							await storeState.initConsentManager();
-
-							stateManager.addEvent({
-								type: 'consent_reset',
-								message: 'All consents reset (storage cleared)',
-							});
+							await resetAllConsents(store, stateManager);
 						}
 					},
 				});
@@ -444,32 +395,7 @@ export function createDevTools(
 					onResetConsents: async () => {
 						const store = storeConnector.getStore();
 						if (store) {
-							const storeState = store.getState();
-							storeState.resetConsents();
-
-							// Clear c15t cookies
-							document.cookie =
-								'c15t=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-							document.cookie =
-								'euconsent-v2=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-
-							// Clear all c15t localStorage entries
-							try {
-								localStorage.removeItem('c15t');
-								localStorage.removeItem('c15t:pending-consent-sync');
-								localStorage.removeItem('c15t-pending-consent-submissions');
-								localStorage.removeItem('euconsent-v2');
-							} catch {
-								// localStorage might be unavailable
-							}
-
-							// Re-initialize to reset IAB state in memory
-							await storeState.initConsentManager();
-
-							stateManager.addEvent({
-								type: 'consent_reset',
-								message: 'All consents reset (storage cleared)',
-							});
+							await resetAllConsents(store, stateManager);
 						}
 					},
 					onRefetchBanner: async () => {
@@ -654,27 +580,7 @@ export function createDevToolsPanel(options: {
 					onReset: async () => {
 						const store = storeConnector.getStore();
 						if (store) {
-							const storeState = store.getState();
-							storeState.resetConsents();
-
-							// Clear c15t cookies
-							document.cookie =
-								'c15t=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-							document.cookie =
-								'euconsent-v2=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-
-							// Clear all c15t localStorage entries
-							try {
-								localStorage.removeItem('c15t');
-								localStorage.removeItem('c15t:pending-consent-sync');
-								localStorage.removeItem('c15t-pending-consent-submissions');
-								localStorage.removeItem('euconsent-v2');
-							} catch {
-								// localStorage might be unavailable
-							}
-
-							// Re-initialize to reset IAB state in memory
-							await storeState.initConsentManager();
+							await resetAllConsents(store);
 						}
 					},
 				});
@@ -708,27 +614,7 @@ export function createDevToolsPanel(options: {
 					onReset: async () => {
 						const store = storeConnector.getStore();
 						if (store) {
-							const storeState = store.getState();
-							storeState.resetConsents();
-
-							// Clear c15t cookies
-							document.cookie =
-								'c15t=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-							document.cookie =
-								'euconsent-v2=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-
-							// Clear all c15t localStorage entries
-							try {
-								localStorage.removeItem('c15t');
-								localStorage.removeItem('c15t:pending-consent-sync');
-								localStorage.removeItem('c15t-pending-consent-submissions');
-								localStorage.removeItem('euconsent-v2');
-							} catch {
-								// localStorage might be unavailable
-							}
-
-							// Re-initialize to reset IAB state in memory
-							await storeState.initConsentManager();
+							await resetAllConsents(store);
 						}
 					},
 				});
@@ -749,27 +635,7 @@ export function createDevToolsPanel(options: {
 					onResetConsents: async () => {
 						const store = storeConnector.getStore();
 						if (store) {
-							const storeState = store.getState();
-							storeState.resetConsents();
-
-							// Clear c15t cookies
-							document.cookie =
-								'c15t=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-							document.cookie =
-								'euconsent-v2=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-
-							// Clear all c15t localStorage entries
-							try {
-								localStorage.removeItem('c15t');
-								localStorage.removeItem('c15t:pending-consent-sync');
-								localStorage.removeItem('c15t-pending-consent-submissions');
-								localStorage.removeItem('euconsent-v2');
-							} catch {
-								// localStorage might be unavailable
-							}
-
-							// Re-initialize to reset IAB state in memory
-							await storeState.initConsentManager();
+							await resetAllConsents(store);
 						}
 					},
 					onRefetchBanner: async () => {
