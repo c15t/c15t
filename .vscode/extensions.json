@@ -1,14 +1,12 @@
 {
 	"recommendations": [
 		"biomejs.biome",
-		"YoavBls.pretty-ts-errors",
 		"bradlc.vscode-tailwindcss",
-		"vivaxy.vscode-conventional-commits",
-		"usernamehw.errorlens",
-		"Vercel.turbo-vsc"
+		"ms-playwright.playwright",
+		"eamodio.gitlens"
 	],
 	"unwantedRecommendations": [
-		"esbenp.prettier-vscode",
-		"dbaeumer.vscode-eslint"
+		"dbaeumer.vscode-eslint",
+		"esbenp.prettier-vscode"
 	]
 }
