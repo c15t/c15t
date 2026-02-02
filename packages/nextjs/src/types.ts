@@ -1,5 +1,8 @@
 // Export types
-import type { ConsentManagerProviderProps as ReactConsentManagerProviderProps } from '@c15t/react';
+import type {
+	Overrides,
+	ConsentManagerProviderProps as ReactConsentManagerProviderProps,
+} from '@c15t/react';
 
 /**
  * NextJS-specific configuration options for the ConsentManagerProvider.
@@ -45,3 +48,37 @@ export type InitialDataPromise = NonNullable<
 >['_initialData'];
 
 export type InitialData = Awaited<InitialDataPromise>;
+
+/**
+ * Options for the fetchInitialData function.
+ */
+export interface FetchInitialDataOptions {
+	/**
+	 * The backend URL to fetch consent data from
+	 */
+	backendURL: string;
+	/**
+	 * Optional overrides for geo-location
+	 */
+	overrides?: Overrides;
+}
+
+/**
+ * Props for the client-side ConsentManagerProvider
+ */
+export interface ClientConsentManagerProviderProps {
+	/**
+	 * React children to render within the provider
+	 */
+	children: ReactConsentManagerProviderProps['children'];
+	/**
+	 * Initial consent data fetched from the server.
+	 * Pass the result of fetchInitialData() from a server component.
+	 */
+	initialData?: InitialDataPromise;
+	/**
+	 * Configuration options for the consent manager.
+	 * This can include callbacks and scripts since this is a client component.
+	 */
+	options: ReactConsentManagerProviderProps['options'];
+}
