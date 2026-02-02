@@ -114,8 +114,9 @@ describe('c15t Client Browser Tests', () => {
 		});
 
 		// Verify Content-Type header was set
+		// v2.0 uses POST /subjects endpoint
 		expect(fetchSpy).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t/consent/set'), // Updated to match the correct path
+			expect.stringContaining('/api/c15t/subjects'),
 			expect.objectContaining({
 				method: 'POST',
 				headers: expect.objectContaining({

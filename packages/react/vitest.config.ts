@@ -28,6 +28,7 @@ export default mergeConfig(
 				provider: playwright(),
 				instances: [{ browser: 'chromium' }],
 			},
+			setupFiles: ['./src/test-setup.browser.ts'],
 		},
 	})
 );

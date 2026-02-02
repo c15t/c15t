@@ -11,12 +11,26 @@ import { destroyIABStub, initializeIABStub } from '../stub';
 import type { CMPApi } from '../types';
 import { cleanupTCFApi, createMockGVL, setupStorageMock } from './test-setup';
 
+// Helper to clear all cookies
+function clearAllCookies() {
+	const cookies = document.cookie.split(';');
+	for (const cookie of cookies) {
+		const name = cookie.split('=')[0]?.trim();
+		if (name) {
+			document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+		}
+	}
+}
+
 describe('CMP API', () => {
 	let cmpApi: CMPApi;
 	let mockGVL: GlobalVendorList;
 	let storageMock: ReturnType<typeof setupStorageMock>;
 
 	beforeEach(() => {
+		// Clear cookies first to prevent test pollution
+		clearAllCookies();
+
 		// Clean up any existing __tcfapi
 		cleanupTCFApi();
 
@@ -41,6 +55,8 @@ describe('CMP API', () => {
 		destroyIABStub();
 		cleanupTCFApi();
 		storageMock.cleanup();
+		// Clear cookies after each test too
+		clearAllCookies();
 	});
 
 	describe('createCMPApi', () => {
@@ -70,10 +86,11 @@ describe('CMP API', () => {
 						cmpLoaded: true,
 						cmpStatus: 'loaded',
 						cmpId: 28,
-						cmpVersion: 1,
 						gvlVersion: mockGVL.vendorListVersion,
 						tcfPolicyVersion: mockGVL.tcfPolicyVersion,
 					});
+					// cmpVersion may be number or string
+					expect(Number(data?.cmpVersion)).toBe(1);
 					resolve();
 				});
 			});

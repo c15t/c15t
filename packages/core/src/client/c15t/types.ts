@@ -1,3 +1,5 @@
+import type { GlobalVendorList } from '../../types/iab-tcf';
+
 /**
  * IAB configuration for offline/fallback mode GVL fetching.
  */
@@ -11,6 +13,12 @@ export interface IABFallbackConfig {
 	 * Vendor IDs to fetch from GVL endpoint.
 	 */
 	vendorIds?: number[];
+
+	/**
+	 * Pre-loaded Global Vendor List for testing or SSR.
+	 * When provided, skips network fetch entirely.
+	 */
+	gvl?: GlobalVendorList;
 }
 
 /**

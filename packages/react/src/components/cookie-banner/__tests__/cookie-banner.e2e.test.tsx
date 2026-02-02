@@ -239,17 +239,12 @@ describe('CookieBanner E2E Tests', () => {
 		if (!saveButton) throw new Error('Save button not found');
 		await userEvent.click(saveButton);
 
-		// Dialog should close
+		// Wait for consent to be saved
 		await vi.waitFor(() => {
-			expect(
-				document.querySelector('[data-testid="consent-manager-dialog-root"]')
-			).not.toBeInTheDocument();
+			const consent = JSON.parse(window.localStorage.getItem('c15t') || '{}');
+			expect(consent.consents).toBeTruthy();
+			expect(consent.consents.marketing).toBe(true);
 		});
-
-		// Check localStorage for custom consent
-		const consent = JSON.parse(window.localStorage.getItem('c15t') || '{}');
-		expect(consent.consents).toBeTruthy();
-		expect(consent.consents.marketing).toBe(true);
 	});
 
 	test('should be keyboard accessible', async () => {

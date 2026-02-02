@@ -60,6 +60,24 @@ export async function fetchGVL(
 	vendorIds?: number[],
 	options: { endpoint?: string; headers?: HeadersInit } = {}
 ): Promise<GlobalVendorList | null> {
+	// Check for window-level mock GVL first (for testing in browser mode)
+	const windowMockGVL =
+		typeof window !== 'undefined'
+			? (window as unknown as { __c15t_mock_gvl?: GlobalVendorList | null })
+					.__c15t_mock_gvl
+			: undefined;
+
+	if (windowMockGVL !== undefined) {
+		cachedGVL = windowMockGVL;
+		return windowMockGVL;
+	}
+
+	// If module-level mock GVL is set, return it immediately (for testing)
+	if (mockGVLData !== undefined) {
+		cachedGVL = mockGVLData;
+		return mockGVLData;
+	}
+
 	const { endpoint = GVL_ENDPOINT, headers } = options;
 
 	// Create a stable key for the request based on sorted vendorIds and headers
@@ -140,4 +158,34 @@ export function getCachedGVL(): GlobalVendorList | null | undefined {
 export function clearGVLCache(): void {
 	inflightRequests.clear();
 	cachedGVL = undefined;
+	mockGVLData = undefined;
+}
+
+/**
+ * Mock GVL data for testing.
+ * When set, fetchGVL will return this instead of making a network request.
+ * @internal
+ */
+let mockGVLData: GlobalVendorList | null | undefined = undefined;
+
+/**
+ * Sets mock GVL data for testing.
+ * When set, fetchGVL will return this instead of making a network request.
+ *
+ * @param gvl - The mock GVL to return, null for 204 response, undefined to clear
+ * @internal
+ */
+export function setMockGVL(gvl: GlobalVendorList | null | undefined): void {
+	mockGVLData = gvl;
+	if (gvl !== undefined) {
+		cachedGVL = gvl;
+	}
+}
+
+/**
+ * Gets the current mock GVL data.
+ * @internal
+ */
+export function getMockGVL(): GlobalVendorList | null | undefined {
+	return mockGVLData;
 }

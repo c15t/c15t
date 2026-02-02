@@ -10,7 +10,7 @@
 // CMP API
 export { createCMPApi } from './cmp-api';
 // GVL fetching
-export { clearGVLCache, fetchGVL, getCachedGVL } from './fetch-gvl';
+export { clearGVLCache, fetchGVL, getCachedGVL, setMockGVL } from './fetch-gvl';
 
 // Lazy loading
 export {

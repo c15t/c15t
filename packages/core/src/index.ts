@@ -79,6 +79,8 @@ export {
 	unloadScripts,
 	updateScripts,
 } from './libs/script-loader';
+// Export TCF utilities for testing
+export { clearGVLCache, fetchGVL, getCachedGVL, setMockGVL } from './libs/tcf';
 // Export store
 export { createConsentManagerStore } from './store';
 export type {

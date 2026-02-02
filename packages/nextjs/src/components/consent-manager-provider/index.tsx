@@ -7,28 +7,48 @@ import type {
 import { enrichOptions } from './utils/enrich-options';
 import { getC15TInitialData } from './utils/initial-data';
 
+/**
+ * Extended props for the server ConsentManagerProvider that supports
+ * optional pre-fetched initialData.
+ */
+interface ServerConsentManagerProviderProps
+	extends AppDirectoryConsentManagerProviderProps {
+	/**
+	 * Optional pre-fetched initial data.
+	 * If provided, the internal fetch will be skipped.
+	 * Use fetchInitialData() to obtain this value.
+	 */
+	initialData?: InitialDataPromise;
+}
+
 export function ConsentManagerProvider({
 	children,
 	options,
-}: AppDirectoryConsentManagerProviderProps) {
+	initialData,
+}: ServerConsentManagerProviderProps) {
 	let initialDataPromise: InitialDataPromise;
 
-	// Initial data is only required for c15t mode
-	switch (options.mode) {
-		case 'c15t': {
-			if (!options.backendURL) {
-				throw new Error('backendURL is required for c15t mode');
-			}
+	// If initialData is provided, use it; otherwise fetch internally
+	if (initialData !== undefined) {
+		initialDataPromise = initialData;
+	} else {
+		// Initial data is only required for c15t mode
+		switch (options.mode) {
+			case 'c15t': {
+				if (!options.backendURL) {
+					throw new Error('backendURL is required for c15t mode');
+				}
 
-			// In c15t mode, overrides are sent with the fetch request
-			// GVL is included in the init response when server has it configured
-			initialDataPromise = getC15TInitialData(options.backendURL, headers(), {
-				overrides: options.overrides,
-			});
-			break;
+				// In c15t mode, overrides are sent with the fetch request
+				// GVL is included in the init response when server has it configured
+				initialDataPromise = getC15TInitialData(options.backendURL, headers(), {
+					overrides: options.overrides,
+				});
+				break;
+			}
+			default:
+				initialDataPromise = undefined;
 		}
-		default:
-			initialDataPromise = undefined;
 	}
 
 	// enrichOptions handles the overrides logic:

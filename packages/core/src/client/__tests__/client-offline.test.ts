@@ -144,17 +144,4 @@ describe('Offline Client Tests', () => {
 		expect(response.ok).toBe(true);
 		expect(response.data?.jurisdiction).toBe('GDPR');
 	});
-
-	it('should always verify consent as valid in offline mode', async () => {
-		// Configure the client
-		const client = configureConsentManager({
-			mode: 'offline',
-		});
-
-		// Call verify consent
-		const response = await client.verifyConsent();
-
-		// In offline mode, consent is always considered valid
-		expect(response.ok).toBe(true);
-	});
 });

@@ -527,3 +527,311 @@ export function setupStorageMock(initialData?: Record<string, string>): {
 		},
 	};
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Publisher Restrictions Mock Factory
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Restriction types per IAB TCF spec.
+ */
+export enum RestrictionType {
+	/** Purpose is not allowed for this vendor */
+	NOT_ALLOWED = 0,
+	/** Vendor must use consent (cannot use LI) */
+	REQUIRE_CONSENT = 1,
+	/** Vendor must use LI (cannot use consent) */
+	REQUIRE_LEGITIMATE_INTEREST = 2,
+}
+
+/**
+ * Publisher restriction entry.
+ */
+export interface PublisherRestriction {
+	purposeId: number;
+	restrictionType: RestrictionType;
+	vendorIds: number[];
+}
+
+/**
+ * Creates a mock publisher restriction.
+ */
+export function createMockPublisherRestriction(
+	overrides?: Partial<PublisherRestriction>
+): PublisherRestriction {
+	return {
+		purposeId: 2,
+		restrictionType: RestrictionType.NOT_ALLOWED,
+		vendorIds: [1, 2],
+		...overrides,
+	};
+}
+
+/**
+ * Creates multiple publisher restrictions for testing.
+ */
+export function createMockPublisherRestrictions(): PublisherRestriction[] {
+	return [
+		// Type 0: Purpose 2 not allowed for vendors 1, 2
+		{
+			purposeId: 2,
+			restrictionType: RestrictionType.NOT_ALLOWED,
+			vendorIds: [1, 2],
+		},
+		// Type 1: Purpose 7 requires consent for vendor 10
+		{
+			purposeId: 7,
+			restrictionType: RestrictionType.REQUIRE_CONSENT,
+			vendorIds: [10],
+		},
+		// Type 2: Purpose 9 requires LI for vendor 755
+		{
+			purposeId: 9,
+			restrictionType: RestrictionType.REQUIRE_LEGITIMATE_INTEREST,
+			vendorIds: [755],
+		},
+	];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Legitimate Interest State Mock Factory
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Creates a mock legitimate interest state with optional objections.
+ *
+ * @param objections - Object mapping vendorIds or purposeIds to objection state
+ * @returns LI state object
+ */
+export function createMockLegitimateInterestState(objections?: {
+	vendorObjections?: Record<number, boolean>;
+	purposeObjections?: Record<number, boolean>;
+}): {
+	vendorLegitimateInterests: Record<number, boolean>;
+	purposeLegitimateInterests: Record<number, boolean>;
+} {
+	// Default: all LI allowed (true)
+	const vendorLegitimateInterests: Record<number, boolean> = {
+		1: true,
+		2: true,
+		10: true,
+		755: true,
+	};
+
+	const purposeLegitimateInterests: Record<number, boolean> = {
+		2: true,
+		3: true,
+		4: true,
+		5: true,
+		6: true,
+		7: true,
+		8: true,
+		9: true,
+		10: true,
+		11: true,
+	};
+
+	// Apply objections (set to false)
+	if (objections?.vendorObjections) {
+		for (const [vendorId, objected] of Object.entries(
+			objections.vendorObjections
+		)) {
+			if (objected) {
+				vendorLegitimateInterests[Number(vendorId)] = false;
+			}
+		}
+	}
+
+	if (objections?.purposeObjections) {
+		for (const [purposeId, objected] of Object.entries(
+			objections.purposeObjections
+		)) {
+			if (objected) {
+				purposeLegitimateInterests[Number(purposeId)] = false;
+			}
+		}
+	}
+
+	return {
+		vendorLegitimateInterests,
+		purposeLegitimateInterests,
+	};
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Consent Event Mock Factory
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Event status values per IAB TCF spec.
+ */
+export type EventStatus = 'tcloaded' | 'cmpuishown' | 'useractioncomplete';
+
+/**
+ * Creates a mock consent event.
+ */
+export function createMockConsentEvent(
+	status: EventStatus,
+	overrides?: Partial<{
+		tcString: string;
+		listenerId: number;
+		cmpStatus: 'stub' | 'loading' | 'loaded' | 'error';
+	}>
+): {
+	eventStatus: EventStatus;
+	tcString: string;
+	listenerId: number;
+	cmpStatus: string;
+	gdprApplies: boolean;
+	isServiceSpecific: boolean;
+	useNonStandardTexts: boolean;
+	publisherCC: string;
+	purposeOneTreatment: boolean;
+	purpose: {
+		consents: Record<number, boolean>;
+		legitimateInterests: Record<number, boolean>;
+	};
+	vendor: {
+		consents: Record<number, boolean>;
+		legitimateInterests: Record<number, boolean>;
+	};
+	specialFeatureOptins: Record<number, boolean>;
+	publisher: {
+		consents: Record<number, boolean>;
+		legitimateInterests: Record<number, boolean>;
+		customPurpose: {
+			consents: Record<number, boolean>;
+			legitimateInterests: Record<number, boolean>;
+		};
+		restrictions: Record<number, Record<number, number>>;
+	};
+} {
+	return {
+		eventStatus: status,
+		tcString: overrides?.tcString ?? '',
+		listenerId: overrides?.listenerId ?? 0,
+		cmpStatus: overrides?.cmpStatus ?? 'loaded',
+		gdprApplies: true,
+		isServiceSpecific: true,
+		useNonStandardTexts: false,
+		publisherCC: 'GB',
+		purposeOneTreatment: false,
+		purpose: {
+			consents: {},
+			legitimateInterests: {},
+		},
+		vendor: {
+			consents: {},
+			legitimateInterests: {},
+		},
+		specialFeatureOptins: {},
+		publisher: {
+			consents: {},
+			legitimateInterests: {},
+			customPurpose: { consents: {}, legitimateInterests: {} },
+			restrictions: {},
+		},
+	};
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LI Objection Simulation Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Simulates a user objecting to LI for a vendor and/or purpose.
+ *
+ * @param state - Current consent state
+ * @param vendorId - Vendor to object to
+ * @param purposeId - Optional purpose to object to (cascades to all vendors if set)
+ * @returns Updated state with objection applied
+ */
+export function simulateUserObjection(
+	state: TCFConsentData,
+	vendorId: number,
+	purposeId?: number
+): TCFConsentData {
+	const updated = { ...state };
+
+	// Always set vendor LI to false (objection)
+	updated.vendorLegitimateInterests = {
+		...state.vendorLegitimateInterests,
+		[vendorId]: false,
+	};
+
+	// If purpose is specified, also object at purpose level
+	if (purposeId !== undefined) {
+		updated.purposeLegitimateInterests = {
+			...state.purposeLegitimateInterests,
+			[purposeId]: false,
+		};
+	}
+
+	return updated;
+}
+
+/**
+ * Creates a GVL with vendors that have legitimate interest purposes.
+ */
+export function createMockGVLWithLIVendors(): GlobalVendorList {
+	return createMockGVL({
+		vendors: {
+			1: createMockVendor(1, {
+				purposes: [1, 2],
+				legIntPurposes: [7, 8, 9],
+				flexiblePurposes: [2],
+			}),
+			2: createMockVendor(2, {
+				purposes: [1, 2, 3],
+				legIntPurposes: [9, 10],
+				flexiblePurposes: [],
+			}),
+			10: createMockVendor(10, {
+				purposes: [1],
+				legIntPurposes: [2, 7, 9, 10],
+				flexiblePurposes: [],
+			}),
+			755: createMockVendor(755, {
+				purposes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+				legIntPurposes: [],
+				flexiblePurposes: [2, 7, 9, 10, 11],
+			}),
+		},
+	});
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TC String Assertion Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Asserts that a TC String contains an LI objection for a specific vendor.
+ * This is a helper for use with decodeTCString.
+ */
+export function assertTCStringHasLIObjection(
+	decoded: { vendorLegitimateInterests: Record<number, boolean> },
+	vendorId: number
+): void {
+	// LI objection means the vendor is NOT in the LI consent list
+	const hasLI = decoded.vendorLegitimateInterests[vendorId] === true;
+	if (hasLI) {
+		throw new Error(
+			`Expected vendor ${vendorId} to have LI objection, but LI is still granted`
+		);
+	}
+}
+
+/**
+ * Asserts that a TC String contains consent for a specific purpose.
+ */
+export function assertTCStringHasConsent(
+	decoded: { purposeConsents: Record<number, boolean> },
+	purposeId: number
+): void {
+	const hasConsent = decoded.purposeConsents[purposeId] === true;
+	if (!hasConsent) {
+		throw new Error(
+			`Expected purpose ${purposeId} to have consent, but it does not`
+		);
+	}
+}

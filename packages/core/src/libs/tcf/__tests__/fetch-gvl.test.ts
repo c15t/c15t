@@ -149,9 +149,10 @@ describe('GVL Fetching', () => {
 	});
 
 	describe('getCachedGVL', () => {
-		it('should return null when no cache exists', () => {
+		it('should return undefined when no cache exists', () => {
 			const cached = getCachedGVL();
-			expect(cached).toBeNull();
+			// Returns undefined when not yet fetched, null when fetched 204
+			expect(cached).toBeUndefined();
 		});
 
 		it('should return cached GVL after fetch', async () => {
@@ -182,10 +183,11 @@ describe('GVL Fetching', () => {
 	describe('clearGVLCache', () => {
 		it('should clear memory cache', async () => {
 			await fetchGVL();
-			expect(getCachedGVL()).not.toBeNull();
+			expect(getCachedGVL()).not.toBeUndefined();
 
 			clearGVLCache();
-			expect(getCachedGVL()).toBeNull();
+			// After clearing, returns undefined (not yet fetched state)
+			expect(getCachedGVL()).toBeUndefined();
 		});
 	});
 });
