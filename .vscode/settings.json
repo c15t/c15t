@@ -1,29 +1,44 @@
 {
-	"typescript.tsdk": "node_modules/typescript/lib",
 	"editor.defaultFormatter": "biomejs.biome",
-	"emmet.showExpandedAbbreviation": "never",
-	"editor.tabSize": 2,
-	"editor.detectIndentation": false,
+	"editor.formatOnSave": true,
 	"editor.codeActionsOnSave": {
-		"source.fixAll.biome": "explicit",
-		"source.organizeImports.biome": "explicit",
-		"source.removeUnusedImports": "explicit"
+		"source.fixAll.biome": "explicit"
 	},
 
-	"[typescript]": {
-		"editor.defaultFormatter": "biomejs.biome"
+	"editor.tabSize": 2,
+	"editor.insertSpaces": false,
+
+	"eslint.enable": false,
+	"prettier.enable": false,
+
+	"typescript.tsdk": "node_modules/typescript/lib",
+	"typescript.preferences.importModuleSpecifier": "non-relative",
+
+	"search.exclude": {
+		"**/node_modules": true,
+		"**/dist": true,
+		"**/.turbo": true,
+		"**/coverage": true,
+		"**/.vercel": true
 	},
-	"[json]": {
-		"editor.defaultFormatter": "biomejs.biome"
+	"files.watcherExclude": {
+		"**/node_modules/**": true,
+		"**/.turbo/**": true,
+		"**/dist/**": true,
+		"**/coverage/**": true
 	},
-	"[javascript]": {
-		"editor.defaultFormatter": "biomejs.biome"
+
+	"tailwindCSS.includeLanguages": {
+		"typescript": "javascript",
+		"typescriptreact": "javascript"
 	},
-	"[jsonc]": {
-		"editor.defaultFormatter": "biomejs.biome"
-	},
-	"[typescriptreact]": {
-		"editor.defaultFormatter": "biomejs.biome"
-	},
-	"cSpell.words": ["Kysely"]
+	"tailwindCSS.experimental.classRegex": [
+		["clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"],
+		["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+		["cn\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+	],
+
+	"files.associations": {
+		"*.css": "tailwindcss"
+	}
 }
