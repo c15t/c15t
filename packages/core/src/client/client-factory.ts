@@ -335,6 +335,7 @@ export function configureConsentManager(
 					? {
 							enabled: iabConfig.enabled,
 							vendorIds: iabConfig.vendors,
+							gvl: iabConfig.gvl,
 						}
 					: undefined
 			);
@@ -359,6 +360,7 @@ export function configureConsentManager(
 					? {
 							enabled: iabConfig.enabled,
 							vendorIds: iabConfig.vendors,
+							gvl: iabConfig.gvl,
 						}
 					: undefined,
 			});

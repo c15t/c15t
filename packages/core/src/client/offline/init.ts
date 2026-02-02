@@ -78,14 +78,19 @@ export async function init(
 
 	const jurisdictionCode = checkJurisdiction(country);
 
-	// Fetch GVL from external endpoint in offline mode
-	// Only when IAB is enabled on the client
+	// Get GVL for IAB mode
+	// Priority: 1) Pre-loaded from config, 2) Fetch from external endpoint
 	let gvl = null;
 	if (iabConfig?.enabled) {
-		try {
-			gvl = await fetchGVL(iabConfig.vendorIds);
-		} catch (error) {
-			console.warn('Failed to fetch GVL in offline mode:', error);
+		if (iabConfig.gvl) {
+			// Use pre-loaded GVL from config (testing/SSR)
+			gvl = iabConfig.gvl;
+		} else {
+			try {
+				gvl = await fetchGVL(iabConfig.vendorIds);
+			} catch (error) {
+				console.warn('Failed to fetch GVL in offline mode:', error);
+			}
 		}
 	}
 

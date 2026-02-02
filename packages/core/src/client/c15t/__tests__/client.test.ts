@@ -74,9 +74,10 @@ describe('c15t Client Tests', () => {
 		const response = await client.init();
 
 		// Assertions - should use offline fallback which returns ok: true
+		// Offline fallback returns jurisdiction and location instead of showConsentBanner
 		expect(response.ok).toBe(true);
 		expect(response.data).toBeDefined();
-		expect(response.data?.showConsentBanner).toBeDefined();
+		expect(response.data?.jurisdiction).toBeDefined();
 	});
 
 	it('should set consent preferences', async () => {

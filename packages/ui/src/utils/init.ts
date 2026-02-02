@@ -28,7 +28,7 @@ export function initConsentManager(
 	options: BaseConsentManagerOptions,
 	pkgInfo: { pkg: string; version: string }
 ): InitResult {
-	const { mode, backendURL, store, translations, storageConfig, enabled } =
+	const { mode, backendURL, store, translations, storageConfig, enabled, iab } =
 		options;
 
 	const cacheKey = generateCacheKey({
@@ -46,6 +46,7 @@ export function initConsentManager(
 		const normalizedStoreOptions = {
 			...store,
 			initialTranslationConfig: translations,
+			iab,
 		};
 
 		if (mode === 'offline') {

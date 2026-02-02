@@ -293,6 +293,24 @@ export interface IABConfig {
 	 * @default true
 	 */
 	isServiceSpecific?: boolean;
+
+	/**
+	 * Pre-loaded Global Vendor List for testing or SSR.
+	 *
+	 * When provided, skips network fetch entirely. This is useful for:
+	 * - Testing (avoids network calls and mocking complexity)
+	 * - SSR (use server-fetched GVL)
+	 * - Offline/air-gapped deployments
+	 *
+	 * @example
+	 * ```typescript
+	 * iab: {
+	 *   enabled: true,
+	 *   gvl: preloadedGVL, // Skip network fetch
+	 * }
+	 * ```
+	 */
+	gvl?: GlobalVendorList;
 }
 
 /**

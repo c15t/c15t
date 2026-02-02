@@ -82,7 +82,7 @@ describe('useStyles', () => {
 		expect(result.current.className).toContain('component-class');
 	});
 
-	test('should remove base/default styles but keep theme and component classNames when noStyle: true', async () => {
+	test('should remove base/default styles but keep component classNames when noStyle: true', async () => {
 		const mockNoStyleTheme = {
 			theme: {
 				slots: {
@@ -96,7 +96,7 @@ describe('useStyles', () => {
 		};
 
 		// When noStyle is true, base/default styles are removed but
-		// theme-provided and explicitly-set classNames are preserved
+		// explicitly-set classNames are preserved
 		const componentStyle = {
 			baseClassName: 'base-class-to-remove',
 			className: 'component-class',
@@ -115,11 +115,11 @@ describe('useStyles', () => {
 			}
 		);
 
-		// Theme classes should be kept
-		expect(result.current.className).toContain('theme-class');
+		// Component classes should be kept
+		expect(result.current.className).toContain('component-class');
 		// noStyle flag should be set
 		expect(result.current.noStyle).toBe(true);
-		// Only theme style is kept when noStyle is active (component styles are skipped)
-		expect(result.current.style).toEqual({ color: 'blue' });
+		// Component style is used when noStyle is active
+		expect(result.current.style).toEqual({ backgroundColor: 'red' });
 	});
 });

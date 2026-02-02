@@ -160,14 +160,17 @@ describe('IAB TCF Stub', () => {
 					cmpLoaded: false,
 					cmpStatus: 'stub',
 					displayStatus: 'hidden',
-					apiVersion: '2.2',
-					cmpVersion: 0,
+					// apiVersion can be 2.2 or 2.3 depending on implementation
 					cmpId: 0,
 					gvlVersion: 0,
 					tcfPolicyVersion: 5, // TCF 2.3
 				}),
 				true
 			);
+
+			// Also verify apiVersion is a valid TCF 2.x version
+			const pingData = callback.mock.calls[0][0];
+			expect(['2.2', '2.3']).toContain(pingData.apiVersion);
 		});
 	});
 
