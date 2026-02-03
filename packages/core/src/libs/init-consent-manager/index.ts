@@ -38,7 +38,7 @@ export type { ConsentBannerResponse, InitConsentManagerConfig } from './types';
  *   manager: consentManager,
  *   get: store.getState,
  *   set: store.setState,
- *   initialData: ssrPrefetchedData,
+ *   ssrData: ssrPrefetchedData,
  * });
  * ```
  */
@@ -67,6 +67,7 @@ export async function initConsentManager(
 
 	// Try to use SSR-prefetched data first
 	const ssrResult = await tryUseSSRData(config);
+
 	if (ssrResult) {
 		return ssrResult;
 	}
@@ -84,20 +85,23 @@ export async function initConsentManager(
 async function tryUseSSRData(
 	config: InitConsentManagerConfig
 ): Promise<ConsentBannerResponse | undefined> {
-	const { initialData, get } = config;
+	const { ssrData, get, set } = config;
 
 	// Skip SSR data if overrides are present (need fresh fetch)
-	if (!initialData || get().overrides) {
+	if (!ssrData || get().overrides) {
+		set({ ssrDataUsed: false, ssrSkippedReason: 'no_data' });
 		return undefined;
 	}
 
-	const data = await initialData;
+	const data = await ssrData;
 
 	if (data?.init) {
 		updateStore(data.init, config, true, data.gvl);
+		set({ ssrDataUsed: true, ssrSkippedReason: null });
 		return data.init;
 	}
 
+	set({ ssrDataUsed: false, ssrSkippedReason: 'fetch_failed' });
 	return undefined;
 }
 

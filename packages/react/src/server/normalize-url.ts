@@ -10,6 +10,24 @@ function trimTrailingSlash(url: string): string {
 	return url.endsWith('/') ? url.slice(0, -1) : url;
 }
 
+/**
+ * Validates and normalizes a backend URL.
+ *
+ * @param backendURL - The URL to validate (absolute or relative)
+ * @returns An object with isAbsolute flag and the normalized URL
+ * @throws {Error} If the URL format is invalid
+ *
+ * @example
+ * ```ts
+ * validateBackendURL('https://api.example.com/');
+ * // Returns: { isAbsolute: true, normalizedURL: 'https://api.example.com' }
+ *
+ * validateBackendURL('/api/consent/');
+ * // Returns: { isAbsolute: false, normalizedURL: '/api/consent' }
+ * ```
+ *
+ * @public
+ */
 export function validateBackendURL(backendURL: string): {
 	isAbsolute: boolean;
 	normalizedURL: string;
@@ -39,6 +57,34 @@ export function validateBackendURL(backendURL: string): {
 	);
 }
 
+/**
+ * Normalizes a backend URL, resolving relative URLs using request headers.
+ *
+ * @remarks
+ * For absolute URLs, returns the URL as-is (with trailing slash trimmed).
+ * For relative URLs, attempts to construct the full URL using:
+ * 1. x-forwarded-proto + x-forwarded-host/host headers
+ * 2. Referer header as fallback
+ *
+ * @param backendURL - The backend URL (absolute or relative)
+ * @param headersList - The Headers object from the incoming request
+ * @returns The normalized absolute URL, or null if it cannot be determined
+ *
+ * @example
+ * ```ts
+ * import { normalizeBackendURL } from '@c15t/react/server';
+ *
+ * // Absolute URL - returns as-is
+ * normalizeBackendURL('https://api.example.com/', headers);
+ * // Returns: 'https://api.example.com'
+ *
+ * // Relative URL - resolved from headers
+ * normalizeBackendURL('/api/consent', headers);
+ * // Returns: 'https://example.com/api/consent' (based on headers)
+ * ```
+ *
+ * @public
+ */
 export function normalizeBackendURL(
 	backendURL: string,
 	headersList: Headers
@@ -66,14 +112,8 @@ export function normalizeBackendURL(
 			);
 		}
 
-		if (process.env.NODE_ENV === 'development') {
-			console.warn('Could not determine base URL for relative backend URL');
-		}
 		return null;
-	} catch (error) {
-		if (process.env.NODE_ENV === 'development') {
-			console.warn('Invalid backend URL:', error);
-		}
+	} catch {
 		return null;
 	}
 }

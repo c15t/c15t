@@ -1,4 +1,12 @@
 import { CookieBanner } from '@c15t/react/cookie-banner';
+// import { CookieBannerPreset } from "@c15t/react";
+
+// export default function () {
+// 	return (
+// 		<CookieBanner legalLinks={['privacyPolicy', 'termsOfService']}
+// 		/>
+// 	);
+// }
 
 export default function () {
 	return (

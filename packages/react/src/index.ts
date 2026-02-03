@@ -74,6 +74,7 @@ export {
 export { useColorScheme } from './hooks/use-color-scheme';
 export { useConsentManager } from './hooks/use-consent-manager';
 export { useFocusTrap } from './hooks/use-focus-trap';
+export { useSSRStatus } from './hooks/use-ssr-status';
 export { useTranslations } from './hooks/use-translations';
 
 // Providers

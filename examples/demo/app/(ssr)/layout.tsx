@@ -1,8 +1,8 @@
 import { Analytics } from '@vercel/analytics/next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import type React from 'react';
-import './globals.css';
-import { ConsentManager } from '../components/consent-manager';
+import '../globals.css';
+import { ConsentManager } from '../../components/next-consent-manager';
 
 const _geist = Geist({ subsets: ['latin'] });
 const _geistMono = Geist_Mono({ subsets: ['latin'] });

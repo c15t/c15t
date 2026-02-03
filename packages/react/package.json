@@ -29,6 +29,11 @@
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
+		"./server": {
+			"types": "./dist/server/index.d.ts",
+			"import": "./dist/server/index.js",
+			"require": "./dist/server/index.cjs"
+		},
 		"./headless": {
 			"types": "./dist/headless.d.ts",
 			"import": "./dist/headless.js",
