@@ -14,10 +14,10 @@ import {
 	clearConsentManagerCache,
 } from '~/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/types/consent-manager';
-import { ConsentManagerDialog } from '../consent-manager-dialog/consent-manager-dialog';
-import { ConsentManagerWidget } from '../consent-manager-widget/consent-manager-widget';
 import { CookieBanner } from '../cookie-banner/cookie-banner';
+import { PreferenceCenter } from '../preference-center/preference-center';
 import { PreferenceCenterTrigger } from '../preference-center-trigger/preference-center-trigger';
+import { PreferenceCenterWidget } from '../preference-center-widget/preference-center-widget';
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -274,14 +274,14 @@ describe('Consent Flow E2E Tests', () => {
 		test('should render widget with all consent categories', async () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
-					<ConsentManagerWidget />
+					<PreferenceCenterWidget />
 				</ConsentManagerProvider>
 			);
 
 			await vi.waitFor(
 				() => {
 					const widget = document.querySelector(
-						'[data-testid="consent-manager-widget-root"]'
+						'[data-testid="preference-center-widget-root"]'
 					);
 					expect(widget).toBeInTheDocument();
 				},
@@ -301,14 +301,14 @@ describe('Consent Flow E2E Tests', () => {
 		test('should have disabled necessary consent toggle', async () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
-					<ConsentManagerWidget />
+					<PreferenceCenterWidget />
 				</ConsentManagerProvider>
 			);
 
 			await vi.waitFor(
 				() => {
 					const necessarySwitch = document.querySelector(
-						'[data-testid="consent-manager-widget-switch-necessary"]'
+						'[data-testid="preference-center-widget-switch-necessary"]'
 					);
 					expect(necessarySwitch).toBeInTheDocument();
 					// Necessary consent is always required, so the switch should be disabled
@@ -323,14 +323,14 @@ describe('Consent Flow E2E Tests', () => {
 		test('should show dialog when open prop is true', async () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
-					<ConsentManagerDialog open={true} />
+					<PreferenceCenter open={true} />
 				</ConsentManagerProvider>
 			);
 
 			await vi.waitFor(
 				() => {
 					const dialog = document.querySelector(
-						'[data-testid="consent-manager-dialog-root"]'
+						'[data-testid="preference-center-root"]'
 					);
 					expect(dialog).toBeInTheDocument();
 				},
@@ -341,14 +341,14 @@ describe('Consent Flow E2E Tests', () => {
 		test('should contain widget inside dialog', async () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
-					<ConsentManagerDialog open={true} />
+					<PreferenceCenter open={true} />
 				</ConsentManagerProvider>
 			);
 
 			await vi.waitFor(
 				() => {
 					const widget = document.querySelector(
-						'[data-testid="consent-manager-widget-root"]'
+						'[data-testid="preference-center-widget-root"]'
 					);
 					expect(widget).toBeInTheDocument();
 				},
@@ -362,7 +362,7 @@ describe('Consent Flow E2E Tests', () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
 					<CookieBanner />
-					<ConsentManagerDialog />
+					<PreferenceCenter />
 				</ConsentManagerProvider>
 			);
 
@@ -387,7 +387,7 @@ describe('Consent Flow E2E Tests', () => {
 			await vi.waitFor(
 				() => {
 					const dialog = document.querySelector(
-						'[data-testid="consent-manager-dialog-root"]'
+						'[data-testid="preference-center-root"]'
 					);
 					expect(dialog).toBeInTheDocument();
 				},
@@ -396,7 +396,7 @@ describe('Consent Flow E2E Tests', () => {
 
 			// Step 4: Toggle a consent category
 			const marketingSwitch = document.querySelector(
-				'[data-testid="consent-manager-widget-switch-marketing"]'
+				'[data-testid="preference-center-widget-switch-marketing"]'
 			);
 			if (marketingSwitch) {
 				await userEvent.click(marketingSwitch);
@@ -404,7 +404,7 @@ describe('Consent Flow E2E Tests', () => {
 
 			// Step 5: Save preferences
 			const saveButton = document.querySelector(
-				'[data-testid="consent-manager-widget-footer-save-button"]'
+				'[data-testid="preference-center-widget-footer-save-button"]'
 			);
 			await userEvent.click(saveButton!);
 

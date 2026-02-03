@@ -109,3 +109,19 @@ bun --hot ./index.ts
 ```
 
 For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+
+## Project-Specific Conventions
+
+### Package Names
+- The core package is `c15t` (NOT `@c15t/core`)
+- All other packages use the `@c15t/` scope:
+  - `@c15t/react`
+  - `@c15t/nextjs`
+  - `@c15t/backend`
+  - `@c15t/node-sdk`
+  - `@c15t/cli`
+  - `@c15t/ui`
+  - `@c15t/schema`
+  - `@c15t/logger`
+  - `@c15t/translations`
+  - `@c15t/dev-tools`

@@ -45,8 +45,8 @@ export const ConsentButton = forwardRef<
 				| 'open-consent-dialog'
 				| 'set-consent';
 			category?: AllConsentNames;
-			closeCustomizeDialog?: boolean;
-			closeCookieBanner?: boolean;
+			closeConsentDialog?: boolean;
+			closeConsentBanner?: boolean;
 		}
 >(
 	(
@@ -62,8 +62,8 @@ export const ConsentButton = forwardRef<
 			mode = 'stroke',
 			size = 'small',
 			onClick: forwardedOnClick,
-			closeCookieBanner = false,
-			closeCustomizeDialog = false,
+			closeConsentBanner = false,
+			closeConsentDialog = false,
 			category,
 			...props
 		},
@@ -103,11 +103,11 @@ export const ConsentButton = forwardRef<
 		const buttonClick = useCallback(
 			(e: MouseEvent<HTMLButtonElement>) => {
 				// Handle UI first - prioritize closing dialogs
-				if (closeCookieBanner) {
+				if (closeConsentBanner) {
 					setShowPopup(false);
 				}
 
-				if (closeCustomizeDialog) {
+				if (closeConsentDialog) {
 					setIsPrivacyDialogOpen(false);
 				}
 
@@ -146,8 +146,8 @@ export const ConsentButton = forwardRef<
 				}
 			},
 			[
-				closeCookieBanner,
-				closeCustomizeDialog,
+				closeConsentBanner,
+				closeConsentDialog,
 				forwardedOnClick,
 				saveConsents,
 				setIsPrivacyDialogOpen,

@@ -15,34 +15,21 @@ export {
 	mergeTranslationConfigs,
 	prepareTranslationConfig,
 } from 'c15t';
-
+export {
+	ConsentBanner,
+	type ConsentBannerProps,
+} from './components/consent-banner';
+export * from './components/consent-banner/components';
 // Components
 export {
-	ConsentManagerDialog,
-	type ConsentManagerDialogProps,
-} from './components/consent-manager-dialog';
+	ConsentDialog,
+	type ConsentDialogProps,
+} from './components/consent-dialog';
+// Consent Dialog Trigger (floating button for resurfacing consent dialogs)
 export {
-	ConsentManagerWidget,
-	type ConsentManagerWidgetProps,
-} from './components/consent-manager-widget';
-export {
-	CookieBanner,
-	type CookieBannerProps,
-} from './components/cookie-banner';
-export * from './components/cookie-banner/components';
-export { Frame, type FrameProps } from './components/frame';
-// IAB TCF 2.3 Components
-export { IABBanner, type IABBannerProps } from './components/iab-banner';
-export {
-	IABPreferenceCenter,
-	type IABPreferenceCenterProps,
-} from './components/iab-preference-center';
-
-// Preference Center Trigger (floating button for resurfacing consent dialogs)
-export {
-	PreferenceCenterTrigger,
-	type PreferenceCenterTriggerCompound,
-	type PreferenceCenterTriggerProps,
+	ConsentDialogTrigger,
+	type ConsentDialogTriggerCompound,
+	type ConsentDialogTriggerProps,
 	TriggerButton,
 	type TriggerButtonProps,
 	TriggerIcon,
@@ -60,7 +47,21 @@ export {
 	// Hook and types
 	useDraggable,
 	useTriggerContext,
-} from './components/preference-center-trigger';
+} from './components/consent-dialog-trigger';
+export {
+	ConsentWidget,
+	type ConsentWidgetProps,
+} from './components/consent-widget';
+export { Frame, type FrameProps } from './components/frame';
+// IAB TCF 2.3 Components
+export {
+	IABConsentBanner,
+	type IABConsentBannerProps,
+} from './components/iab-consent-banner';
+export {
+	IABConsentDialog,
+	type IABConsentDialogProps,
+} from './components/iab-consent-dialog';
 
 export { ConsentButton } from './components/shared/primitives/button';
 export {
