@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 
-import type { GlobalVendorList } from '@c15t/core';
+import type { GlobalVendorList } from 'c15t';
 
 /**
  * Mock GVL for React component testing

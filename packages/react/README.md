@@ -28,7 +28,7 @@ Developer-first CMP for React: cookie banner, consent manager, preferences centr
 - Automatic GDPR compliance
 - Minimal configuration with TypeScript-first design
 - Comprehensive Consent Management Platform (CMP)
-- Flexible Cookie Banner and Consent Dialog components
+- Flexible Cookie Banner and Preference Center components
 - Built-in internationalization support
 - Seamless consent storage and tracking
 
@@ -68,7 +68,7 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
 ## Usage
 
 1. Import `ConsentManagerProvider` in your app's root component
-2. Add `CookieBanner` and `ConsentManagerDialog` components
+2. Add `CookieBanner` and `PreferenceCenter` components
 3. Customise styling and behaviour to fit your app
 4. For full implementation details, see the [React quickstart docs](https://c15t.com/docs/frameworks/react/quickstart)
 

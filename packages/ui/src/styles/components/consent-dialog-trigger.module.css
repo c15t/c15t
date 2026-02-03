@@ -1,0 +1,230 @@
+/**
+ * ConsentDialogTrigger Component Styles
+ *
+ * A draggable floating button that opens the consent dialog.
+ * Uses CSS variables from the c15t design system.
+ */
+
+.trigger {
+	/* Component-specific variables */
+	--cdt-size-sm: 32px;
+	--cdt-size-md: 40px;
+	--cdt-size-lg: 48px;
+	--cdt-bg: var(--c15t-surface, #ffffff);
+	--cdt-bg-hover: var(--c15t-surface-hover, var(--cdt-bg));
+	--cdt-border: var(--c15t-border, #e5e5e5);
+	--cdt-shadow: var(
+		--c15t-shadow-lg,
+		0 10px 15px -3px rgb(0 0 0 / 0.1),
+		0 4px 6px -4px rgb(0 0 0 / 0.1)
+	);
+	--cdt-shadow-hover: var(
+		--c15t-shadow-xl,
+		0 20px 25px -5px rgb(0 0 0 / 0.1),
+		0 8px 10px -6px rgb(0 0 0 / 0.1)
+	);
+	--cdt-radius: var(--c15t-radius-full, 9999px);
+	--cdt-offset: var(--c15t-space-md, 20px);
+	--cdt-transition-duration: var(--c15t-motion-duration, 200ms);
+	--cdt-transition-easing: var(--c15t-motion-easing, ease-out);
+	--cdt-snap-duration: var(--c15t-motion-duration-slow, 300ms);
+	/* ease-in-out-quart: best for on-screen movement */
+	--cdt-snap-easing: var(
+		--c15t-motion-easing-smooth,
+		cubic-bezier(0.77, 0, 0.175, 1)
+	);
+	--cdt-icon-color: var(--c15t-text, #171717);
+	--cdt-focus-ring: var(--c15t-primary, #3b82f6);
+
+	/* Base styles */
+	position: fixed;
+	z-index: 9999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--cdt-size-md);
+	height: var(--cdt-size-md);
+	padding: 0;
+	margin: 0;
+	border: 1px solid var(--cdt-border);
+	border-radius: var(--cdt-radius);
+	background: var(--cdt-bg);
+	box-shadow: var(--cdt-shadow);
+	cursor: grab;
+	transition:
+		transform var(--cdt-transition-duration) var(--cdt-transition-easing),
+		box-shadow var(--cdt-transition-duration) var(--cdt-transition-easing),
+		background var(--cdt-transition-duration) var(--cdt-transition-easing);
+	touch-action: none;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-tap-highlight-color: transparent;
+	will-change: transform;
+}
+
+/* Only apply hover effects on devices that support hover */
+@media (hover: hover) and (pointer: fine) {
+	.trigger:hover {
+		background: var(--cdt-bg-hover);
+		box-shadow: var(--cdt-shadow-hover);
+	}
+}
+
+.trigger:active,
+.trigger.dragging {
+	cursor: grabbing;
+	transform: scale(1.02);
+}
+
+.trigger:focus {
+	outline: none;
+}
+
+.trigger:focus-visible {
+	outline: 2px solid var(--cdt-focus-ring);
+	outline-offset: 2px;
+}
+
+/* Size variants */
+.sm {
+	width: var(--cdt-size-sm);
+	height: var(--cdt-size-sm);
+}
+
+.md {
+	width: var(--cdt-size-md);
+	height: var(--cdt-size-md);
+}
+
+.lg {
+	width: var(--cdt-size-lg);
+	height: var(--cdt-size-lg);
+}
+
+/* Icon container */
+.icon {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	width: 50%;
+	height: 50%;
+	color: var(--cdt-icon-color);
+	pointer-events: none;
+}
+
+.icon svg {
+	width: 100%;
+	height: 100%;
+}
+
+/* Text label */
+.text {
+	margin-left: var(--c15t-space-xs, 6px);
+	font-family: var(--c15t-font-family, system-ui, sans-serif);
+	font-size: var(--c15t-font-size-sm, 14px);
+	font-weight: var(--c15t-font-weight-medium, 500);
+	line-height: 1;
+	color: var(--cdt-icon-color);
+	white-space: nowrap;
+	pointer-events: none;
+}
+
+/* When trigger has text, adjust sizing */
+.trigger:has(.text) {
+	width: auto;
+	height: auto;
+	padding: var(--c15t-space-sm, 8px) var(--c15t-space-md, 16px);
+	border-radius: var(--c15t-radius-lg, 12px);
+	gap: var(--c15t-space-xs, 6px);
+}
+
+.trigger:has(.text) .icon {
+	width: 16px;
+	height: 16px;
+}
+
+.trigger:has(.text).sm {
+	padding: var(--c15t-space-xs, 6px) var(--c15t-space-sm, 10px);
+}
+
+.trigger:has(.text).sm .icon {
+	width: 14px;
+	height: 14px;
+}
+
+.trigger:has(.text).sm .text {
+	font-size: var(--c15t-font-size-xs, 12px);
+}
+
+.trigger:has(.text).lg {
+	padding: var(--c15t-space-md, 12px) var(--c15t-space-lg, 20px);
+}
+
+.trigger:has(.text).lg .icon {
+	width: 20px;
+	height: 20px;
+}
+
+.trigger:has(.text).lg .text {
+	font-size: var(--c15t-font-size-md, 16px);
+}
+
+/* Corner positioning utilities */
+.bottomRight {
+	right: var(--cdt-offset);
+	bottom: var(--cdt-offset);
+}
+
+.bottomLeft {
+	bottom: var(--cdt-offset);
+	left: var(--cdt-offset);
+}
+
+.topRight {
+	top: var(--cdt-offset);
+	right: var(--cdt-offset);
+}
+
+.topLeft {
+	top: var(--cdt-offset);
+	left: var(--cdt-offset);
+}
+
+/* Transition state for snapping to corners */
+.snapping {
+	transition:
+		top var(--cdt-snap-duration) var(--cdt-snap-easing),
+		right var(--cdt-snap-duration) var(--cdt-snap-easing),
+		bottom var(--cdt-snap-duration) var(--cdt-snap-easing),
+		left var(--cdt-snap-duration) var(--cdt-snap-easing),
+		transform var(--cdt-snap-duration) var(--cdt-snap-easing);
+}
+
+/* Hidden state */
+.hidden {
+	display: none;
+}
+
+/* Dark mode support */
+:global(.c15t-dark) .trigger {
+	--cdt-bg: var(--c15t-surface, #262626);
+	--cdt-bg-hover: var(--c15t-surface-hover, #404040);
+	--cdt-border: var(--c15t-border, #404040);
+	--cdt-icon-color: var(--c15t-text, #fafafa);
+	--cdt-shadow:
+		0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+	--cdt-shadow-hover:
+		0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+	.trigger {
+		transition: none;
+	}
+
+	.snapping {
+		transition: none;
+	}
+}

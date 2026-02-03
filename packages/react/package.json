@@ -34,15 +34,15 @@
 			"import": "./dist/headless.js",
 			"require": "./dist/headless.cjs"
 		},
-		"./consent-manager-dialog": {
-			"types": "./dist/components/consent-manager-dialog/index.d.ts",
-			"import": "./dist/components/consent-manager-dialog/index.js",
-			"require": "./dist/components/consent-manager-dialog/index.cjs"
+		"./preference-center": {
+			"types": "./dist/components/preference-center/index.d.ts",
+			"import": "./dist/components/preference-center/index.js",
+			"require": "./dist/components/preference-center/index.cjs"
 		},
-		"./consent-manager-widget": {
-			"types": "./dist/components/consent-manager-widget/index.d.ts",
-			"import": "./dist/components/consent-manager-widget/index.js",
-			"require": "./dist/components/consent-manager-widget/index.cjs"
+		"./preference-center-widget": {
+			"types": "./dist/components/preference-center-widget/index.d.ts",
+			"import": "./dist/components/preference-center-widget/index.js",
+			"require": "./dist/components/preference-center-widget/index.cjs"
 		},
 		"./cookie-banner": {
 			"types": "./dist/components/cookie-banner/index.d.ts",

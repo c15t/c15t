@@ -222,45 +222,45 @@ export type SlotStyle = string | ClassNameStyle;
  * @public
  */
 export interface ComponentSlots {
-	// --- BANNER SLOTS ---
-	banner?: SlotStyle;
-	bannerCard?: SlotStyle;
-	bannerHeader?: SlotStyle;
-	bannerTitle?: SlotStyle;
-	bannerDescription?: SlotStyle;
-	bannerFooter?: SlotStyle;
-	bannerFooterSubGroup?: SlotStyle;
-	bannerOverlay?: SlotStyle;
+	// --- CONSENT BANNER SLOTS ---
+	consentBanner?: SlotStyle;
+	consentBannerCard?: SlotStyle;
+	consentBannerHeader?: SlotStyle;
+	consentBannerTitle?: SlotStyle;
+	consentBannerDescription?: SlotStyle;
+	consentBannerFooter?: SlotStyle;
+	consentBannerFooterSubGroup?: SlotStyle;
+	consentBannerOverlay?: SlotStyle;
 
-	// --- DIALOG SLOTS ---
-	dialog?: SlotStyle;
-	dialogCard?: SlotStyle;
-	dialogHeader?: SlotStyle;
-	dialogTitle?: SlotStyle;
-	dialogDescription?: SlotStyle;
-	dialogContent?: SlotStyle;
-	dialogFooter?: SlotStyle;
-	dialogOverlay?: SlotStyle;
+	// --- CONSENT DIALOG SLOTS ---
+	consentDialog?: SlotStyle;
+	consentDialogCard?: SlotStyle;
+	consentDialogHeader?: SlotStyle;
+	consentDialogTitle?: SlotStyle;
+	consentDialogDescription?: SlotStyle;
+	consentDialogContent?: SlotStyle;
+	consentDialogFooter?: SlotStyle;
+	consentDialogOverlay?: SlotStyle;
 
-	// --- WIDGET SLOTS ---
-	widget?: SlotStyle;
-	widgetAccordion?: SlotStyle;
-	widgetFooter?: SlotStyle;
-	widgetBranding?: SlotStyle;
+	// --- CONSENT WIDGET SLOTS ---
+	consentWidget?: SlotStyle;
+	consentWidgetAccordion?: SlotStyle;
+	consentWidgetFooter?: SlotStyle;
+	consentWidgetBranding?: SlotStyle;
 
 	// --- FRAME SLOTS ---
 	frame?: SlotStyle;
 
-	// --- IAB BANNER SLOTS ---
-	iabBanner?: SlotStyle;
-	iabBannerCard?: SlotStyle;
-	iabBannerHeader?: SlotStyle;
-	iabBannerFooter?: SlotStyle;
-	iabBannerOverlay?: SlotStyle;
+	// --- IAB CONSENT BANNER SLOTS ---
+	iabConsentBanner?: SlotStyle;
+	iabConsentBannerCard?: SlotStyle;
+	iabConsentBannerHeader?: SlotStyle;
+	iabConsentBannerFooter?: SlotStyle;
+	iabConsentBannerOverlay?: SlotStyle;
 
-	// --- IAB PREFERENCE CENTER SLOTS ---
-	iabPreferenceCenter?: SlotStyle;
-	iabPreferenceCenterOverlay?: SlotStyle;
+	// --- IAB CONSENT DIALOG SLOTS ---
+	iabConsentDialog?: SlotStyle;
+	iabConsentDialogOverlay?: SlotStyle;
 
 	// --- SHARED SLOTS ---
 	buttonPrimary?: SlotStyle;
