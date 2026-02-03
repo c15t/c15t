@@ -30,19 +30,20 @@ jobs:
           # Optionally persist credentials for commit/push by the action
           # persist-credentials: false # Uncomment if you have issues with GITHUB_TOKEN permissions
 
-      # Setup pnpm and Node.js using versions consistent with your ci.yml
-      - name: Setup pnpm
-        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+      # Setup Bun using versions consistent with your ci.yml
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
 
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile # Use frozen lockfile for reliability in CI
+        run: bun install --frozen-lockfile # Use frozen lockfile for reliability in CI
 
       # Ensure npm 11.5.1+ for trusted publishing (OIDC)
       - name: Update npm for trusted publishing
@@ -54,8 +55,8 @@ jobs:
         id: changesets-canary
         uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
         with:
-          version: pnpm run version:canary
-          publish: pnpm run release:canary
+          version: bun run version:canary
+          publish: bun run release:canary
           commit: "chore: publish canary snapshot"
           title: "chore: publish canary snapshot"
         env:
@@ -71,15 +72,15 @@ jobs:
         uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
         with:
           # The command to run for publishing. It matches your root package.json script.
-          publish: pnpm run release
+          publish: bun run release
           # Optional: If you want the action to commit the version changes
           # commit: "chore: update versions"
           # Optional: If you want the action to create tags
-          # version: pnpm run version # Add a 'version' script to package.json if needed for this
+          # version: bun run version # Add a 'version' script to package.json if needed for this
         env:
           # GITHUB_TOKEN is used by the action to create PRs, releases, comments
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # NPM_TOKEN is used by 'changeset publish' (called via 'pnpm run release')
+          # NPM_TOKEN is used by 'changeset publish' (called via 'bun run release')
           NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }} # MUST be set in repo secrets
           # Enable npm provenance (automatic with trusted publishing, but explicit for compatibility)
           NPM_CONFIG_PROVENANCE: "true"

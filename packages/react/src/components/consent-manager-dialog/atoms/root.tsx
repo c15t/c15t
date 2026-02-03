@@ -170,12 +170,16 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 	);
 
 	// Styles (using theme util)
-	const themedStyle = useStyles('dialog.root', {
-		baseClassName: undefined,
-		className: rootClasses,
-		style: style as CSSPropertiesWithVars<Record<string, never>>,
-		noStyle,
-	});
+	const themedStyle = useStyles(
+		'dialog.root',
+		{
+			baseClassName: undefined,
+			className: rootClasses,
+			style: style as CSSPropertiesWithVars<Record<string, never>>,
+			noStyle,
+		},
+		theme
+	);
 
 	const contextValue: ThemeContextValue = {
 		disableAnimation,
@@ -200,15 +204,20 @@ const ConsentManagerDialogRoot: FC<ConsentManagerDialogRootProps> = ({
 						aria-labelledby="privacy-settings-title"
 						tabIndex={-1}
 						dir={textDirection}
+						open
 					>
 						<div
 							ref={contentRef}
-							className={clsx(
-								styles.container,
-								!disableAnimation && isVisible
-									? styles.contentVisible
-									: styles.contentHidden
-							)}
+							className={
+								noStyle
+									? undefined
+									: clsx(
+											styles.container,
+											!disableAnimation && isVisible
+												? styles.contentVisible
+												: styles.contentHidden
+										)
+							}
 						>
 							{children}
 						</div>

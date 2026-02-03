@@ -159,6 +159,12 @@ export interface PrivacyConsentState {
 	};
 
 	/**
+	 * Respect the Global Privacy Signal in opt-out jurisdiction, like California (CCPA).
+	 * @defaultValue false
+	 */
+	experimental_globalPrivacyControl: boolean;
+
+	/**
 	 * Sets the overrides for the consent manager
 	 * @param overrides - The overrides to set
 	 */

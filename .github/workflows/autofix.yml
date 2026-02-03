@@ -14,18 +14,14 @@ jobs:
       - name: ⬇️ Check out code
         uses: actions/checkout@v4
 
-      # Setup pnpm and Node.js, caching pnpm store
-      - name: 🅿️ Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: 🟢 Setup Node.js environment
-        uses: actions/setup-node@v4
+      # Setup Bun
+      - name: 🟢 Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: 22 # Or your preferred Node.js version
-          cache: 'pnpm'
+          bun-version: latest
 
       - name: 📦 Install dependencies
-        run: pnpm install
+        run: bun install
 
       # Cache Biome for faster formatting
       - name: ⚡ Cache Biome
@@ -38,12 +34,12 @@ jobs:
             ${{ runner.os }}-biome-
 
       - name: ✨ Format code
-        run: pnpm fmt
+        run: bun fmt
 
       - name: 📦 Format package.json
-        run: npx --yes sort-package-json "package.json" "packages/*/package.json"
+        run: bunx sort-package-json "package.json" "packages/*/package.json"
 
       - name: 📚 Format Docs 
-        run: pnpm fmt:docs
+        run: bun fmt:docs
 
       - uses: autofix-ci/action@ff86a557419858bb967097bfc916833f5647fa8c

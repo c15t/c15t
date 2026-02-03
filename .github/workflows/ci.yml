@@ -23,20 +23,16 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: 🅿️ Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
+      - name: 🟢 Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: 22
-          cache: 'pnpm'
+          bun-version: latest
 
       - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: 👀 Type Check
-        run: pnpm turbo run check-types
+        run: bun turbo run check-types
 
       - name: 🧹 Run Biome with Reviewdog
         uses: mongolyy/reviewdog-action-biome@v2.1.0
@@ -59,20 +55,16 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: 🅿️ Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
+      - name: 🟢 Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: 22
-          cache: 'pnpm'
+          bun-version: latest
 
       - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: 🏗️ Build
-        run: pnpm turbo run build --filter="./packages/*"
+        run: bun turbo run build --filter="./packages/*"
 
   test:
     name: 🧪 Run Tests & Coverage
@@ -89,33 +81,29 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: 🅿️ Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
+      - name: 🟢 Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: 22
-          cache: 'pnpm'
+          bun-version: latest
 
       - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: 🎭 Cache Playwright browsers
         id: playwright-cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-browsers-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          key: playwright-browsers-${{ runner.os }}-${{ hashFiles('**/bun.lockb') }}
           restore-keys: |
             playwright-browsers-${{ runner.os }}-
 
       - name: 🎭 Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm exec playwright install
+        run: bunx playwright install
 
       - name: 🧪 Run Tests
-        run: pnpm turbo run test
+        run: bun turbo run test
 
       - name: ⬆️ Upload Individual Coverage Reports
         uses: actions/upload-artifact@v4

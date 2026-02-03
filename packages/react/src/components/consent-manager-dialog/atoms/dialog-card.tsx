@@ -33,8 +33,8 @@ const DialogCard = forwardRef<HTMLDivElement, DialogCardProps>(
 				ref={ref as Ref<HTMLDivElement>}
 				className={styles.card}
 				{...props}
-				themeKey="dialog.root"
-				data-testid="consent-manager-dialog-root"
+				themeKey="dialog.card"
+				data-testid="consent-manager-dialog-card"
 			>
 				{children}
 			</Box>

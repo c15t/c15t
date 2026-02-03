@@ -138,19 +138,17 @@ export function saveConsentToStorage(
 function normalizeConsentData<
 	DataType extends { consents?: Partial<ConsentState> },
 >(data: DataType): DataType {
-	if (!data.consents) {
-		return data;
-	}
+	const consents = data.consents || {};
 
 	// Start with existing consents to preserve any custom/unknown consent types
 	const normalizedConsents: Record<string, boolean> = {
-		...data.consents,
+		...consents,
 	};
 
 	// Ensure all known consent types have explicit boolean values
 	for (const consentName of allConsentNames) {
 		// If the consent is defined, use its value; otherwise default to false
-		normalizedConsents[consentName] = data.consents[consentName] ?? false;
+		normalizedConsents[consentName] = consents[consentName] ?? false;
 	}
 
 	return {
@@ -321,11 +319,7 @@ export function getConsentFromStorage<ReturnType = unknown>(
 	}
 
 	// Normalize consent data to ensure all values are explicit booleans
-	if (
-		chosenData &&
-		typeof chosenData === 'object' &&
-		'consents' in chosenData
-	) {
+	if (chosenData && typeof chosenData === 'object') {
 		return normalizeConsentData(chosenData as never) as ReturnType;
 	}
 

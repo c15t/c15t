@@ -179,6 +179,8 @@ export const initialState: Omit<
 
 	user: undefined,
 
+	experimental_globalPrivacyControl: false,
+
 	// Initialize all methods as no-ops
 	setConsent: () => {
 		/* no-op */

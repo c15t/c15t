@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import {
@@ -29,7 +29,7 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 	});
 
 	it('should render children immediately without blocking during hydration', async () => {
-		const { getByTestId } = render(
+		const { getByTestId } = await render(
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
@@ -52,7 +52,7 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 	});
 
 	it('should not block SSR provider content when ConsentManager wraps SSR provider', async () => {
-		const { getByTestId } = render(
+		const { getByTestId } = await render(
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
@@ -79,7 +79,7 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 	});
 
 	it('should not block SSR provider content when SSR provider wraps ConsentManager', async () => {
-		const { getByTestId } = render(
+		const { getByTestId } = await render(
 			<MockSSRProvider>
 				<ConsentManagerProvider
 					options={{
@@ -108,7 +108,7 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 	});
 
 	it('should handle rapid re-renders without blocking children', async () => {
-		const { rerender, getByTestId } = render(
+		const { rerender, getByTestId } = await render(
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
@@ -150,7 +150,7 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 			return <div data-testid="hydration-test">Content</div>;
 		};
 
-		const { getByTestId } = render(
+		const { getByTestId } = await render(
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',

@@ -231,7 +231,10 @@ describe('Cookie Storage', () => {
 				.spyOn(console, 'warn')
 				.mockImplementation(() => {});
 
-			const consentData = { test: 'data' };
+			const consentData = {
+				consents: { necessary: true, marketing: false },
+				consentInfo: { time: Date.now(), type: 'custom' as const },
+			};
 			setCookie(STORAGE_KEY_V2, consentData);
 
 			// Mock localStorage to throw an error
@@ -240,12 +243,16 @@ describe('Cookie Storage', () => {
 				throw new Error('Storage access denied');
 			});
 
-			const retrieved = getConsentFromStorage();
-			expect(retrieved).toEqual(consentData);
-
-			// Restore
-			window.localStorage.getItem = originalGetItem;
-			consoleWarnSpy.mockRestore();
+			try {
+				const retrieved = getConsentFromStorage();
+				// Should fallback to cookie data (normalized)
+				expectConsentsToMatch(retrieved?.consents, consentData.consents);
+				expect(retrieved?.consentInfo).toEqual(consentData.consentInfo);
+			} finally {
+				// Restore - ensure this runs even if assertions fail
+				window.localStorage.getItem = originalGetItem;
+				consoleWarnSpy.mockRestore();
+			}
 		});
 
 		it('should migrate data from legacy storage key', () => {

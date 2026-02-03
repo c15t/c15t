@@ -38,22 +38,18 @@ jobs:
           ref: ${{ github.event.pull_request.base.ref || github.ref }}
           fetch-depth: 0 # Full history needed for base branch comparison
 
-      - name: 🅿️ Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
+      - name: 🟢 Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: 22
-          cache: 'pnpm'
+          bun-version: latest
 
       # Step 2: Build base branch (using trusted code)
       - name: 🏗️ Build base branch
         id: build-base
         timeout-minutes: 5
         run: |
-          pnpm install --frozen-lockfile
-          WITH_RSDOCTOR=true pnpm turbo run build --filter="./packages/*" || true
+          bun install --frozen-lockfile
+          WITH_RSDOCTOR=true bun turbo run build --filter="./packages/*" || true
           mkdir -p .bundle-base
           # Copy rsdoctor data files
           find packages -name "rsdoctor-data.json" -exec cp --parents {} .bundle-base/ \;
@@ -76,8 +72,8 @@ jobs:
         id: build-current
         timeout-minutes: 5
         run: |
-          pnpm install --frozen-lockfile
-          WITH_RSDOCTOR=1 pnpm turbo run build --filter="./packages/*"
+          bun install --frozen-lockfile
+          WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*"
 
       - name: 📊 Analyze bundle differences
         uses: ./internals/bundle-analysis-action
