@@ -11,3 +11,9 @@
 // biome-ignore assist/source/organizeImports: Ensure ConsentManagerProvider is overridden by the Next.js-specific implementation
 export * from './shared';
 export { ConsentManagerProvider } from './components/consent-manager-provider';
+export { fetchInitialData } from './fetch-initial-data';
+export type {
+	FetchInitialDataOptions,
+	InitialDataPromise,
+	ClientConsentManagerProviderProps,
+} from './types';
