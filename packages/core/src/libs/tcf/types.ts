@@ -335,8 +335,8 @@ export const IAB_STORAGE_KEYS = {
 	/** TC String cookie name (per TCF spec) */
 	TC_STRING_COOKIE: 'euconsent-v2',
 
-	/** TC String localStorage key */
-	TC_STRING_LOCAL: 'c15t_tc_string',
+	/** TC String localStorage key (use same key as cookie for consistency) */
+	TC_STRING_LOCAL: 'euconsent-v2',
 } as const;
 
 /**

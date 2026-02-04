@@ -207,7 +207,7 @@ export async function saveConsents({
 			domain: window.location.hostname,
 			preferences: newConsents,
 			subjectId,
-			externalSubjectId: externalId,
+			externalSubjectId: String(externalId),
 			identityProvider,
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
 			jurisdictionModel: model ?? undefined,

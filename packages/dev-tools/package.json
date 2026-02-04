@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/dev-tools",
 	"version": "1.8.3",
-	"description": "A collection of developer tools and utilities for the c15t ecosystem, currently under active development.",
+	"description": "Developer tools for debugging and inspecting c15t consent management state.",
 	"homepage": "https://c15t.com",
 	"repository": {
 		"type": "git",
@@ -10,15 +10,34 @@
 	},
 	"license": "GPL-3.0-only",
 	"type": "module",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs",
+			"types": "./dist/index.d.ts"
+		},
+		"./react": {
+			"import": "./dist/react.js",
+			"require": "./dist/react.cjs",
+			"types": "./dist/react.d.ts"
+		},
+		"./tanstack": {
+			"import": "./dist/tanstack.js",
+			"require": "./dist/tanstack.cjs",
+			"types": "./dist/tanstack.d.ts"
+		}
+	},
 	"main": "dist/index.cjs",
 	"module": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"scripts": {
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
-		"dev": "rslib build",
+		"dev": "rslib build --watch",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint ./src"
+		"lint": "bun biome lint ./src",
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"browserslist": [
 		">0.2%",
@@ -26,31 +45,28 @@
 		"not op_mini all"
 	],
 	"dependencies": {
-		"@radix-ui/react-accordion": "1.2.12",
-		"@radix-ui/react-scroll-area": "1.2.10",
-		"@radix-ui/react-slot": "1.2.4",
-		"@radix-ui/react-switch": "1.2.6",
-		"@radix-ui/react-tooltip": "1.2.8",
-		"c15t": "workspace:*",
-		"class-variance-authority": "0.7.1",
-		"clsx": "2.1.1",
-		"lucide-react": "0.555.0",
-		"motion": "12.23.25",
-		"react-draggable": "4.5.0",
-		"tailwind-merge": "3.4.0",
-		"tsc-alias": "1.8.16",
-		"usehooks-ts": "3.1.1",
-		"zustand": "5.0.9"
+		"@c15t/ui": "workspace:*",
+		"c15t": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
-		"@types/react": "19.2.0",
-		"@types/react-dom": "19.2.0",
-		"postcss": "8.5.6"
+		"@types/react": "19.2.10",
+		"@types/react-dom": "19.2.3",
+		"jsdom": "27.2.0",
+		"postcss": "8.5.6",
+		"vitest": "4.0.15"
 	},
 	"peerDependencies": {
-		"react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
-		"react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
+		"react": "^18.0.0 || ^19.0.0",
+		"react-dom": "^18.0.0 || ^19.0.0"
+	},
+	"peerDependenciesMeta": {
+		"react": {
+			"optional": true
+		},
+		"react-dom": {
+			"optional": true
+		}
 	},
 	"publishConfig": {
 		"access": "public"

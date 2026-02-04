@@ -1,0 +1,60 @@
+/**
+ * c15t DevTools Design Tokens
+ * 
+ * This file only defines DevTools-specific variables that don't exist in c15t/ui.
+ * Shared tokens (colors, typography, spacing, etc.) are inherited from c15t/ui's
+ * --c15t-* CSS variables.
+ */
+
+:root {
+	--c15t-devtools-panel-width: 480px;
+	--c15t-devtools-panel-max-height: 560px;
+	/* Match PreferenceCenterTrigger md size (40px) */
+	--c15t-devtools-button-size: 40px;
+	--c15t-devtools-z-index: 99999;
+
+	/* Surface muted - maps to surface-hover from ui */
+	--c15t-devtools-surface-muted: var(--c15t-surface-hover, hsl(0, 0%, 97%));
+
+	/* Font size xs - not in c15t/ui */
+	--c15t-devtools-font-size-xs: 0.75rem;
+
+	/* Badge colors - DevTools-specific status indicators */
+	--c15t-devtools-badge-success: hsl(142, 71%, 45%);
+	--c15t-devtools-badge-success-bg: hsl(142, 76%, 94%);
+	--c15t-devtools-badge-error: hsl(0, 84%, 60%);
+	--c15t-devtools-badge-error-bg: hsl(0, 86%, 95%);
+	--c15t-devtools-badge-warning: hsl(38, 92%, 50%);
+	--c15t-devtools-badge-warning-bg: hsl(48, 96%, 93%);
+	--c15t-devtools-badge-info: hsl(221, 83%, 53%);
+	--c15t-devtools-badge-info-bg: hsl(214, 95%, 93%);
+	--c15t-devtools-badge-neutral: hsl(0, 0%, 45%);
+	--c15t-devtools-badge-neutral-bg: hsl(0, 0%, 94%);
+}
+
+/* === Dark Mode via class === */
+:global(.c15t-dark),
+:global(.dark) {
+	--c15t-devtools-surface-muted: var(--c15t-surface-hover, hsl(0, 0%, 16%));
+
+	/* Badge colors - darker backgrounds for dark mode */
+	--c15t-devtools-badge-success-bg: hsla(142, 71%, 45%, 0.2);
+	--c15t-devtools-badge-error-bg: hsla(0, 84%, 60%, 0.2);
+	--c15t-devtools-badge-warning-bg: hsla(38, 92%, 50%, 0.2);
+	--c15t-devtools-badge-info-bg: hsla(221, 83%, 53%, 0.2);
+	--c15t-devtools-badge-neutral-bg: hsl(0, 0%, 22%);
+}
+
+/* === Dark Mode via system preference === */
+@media (prefers-color-scheme: dark) {
+	:root {
+		--c15t-devtools-surface-muted: var(--c15t-surface-hover, hsl(0, 0%, 16%));
+
+		/* Badge colors - darker backgrounds for dark mode */
+		--c15t-devtools-badge-success-bg: hsla(142, 71%, 45%, 0.2);
+		--c15t-devtools-badge-error-bg: hsla(0, 84%, 60%, 0.2);
+		--c15t-devtools-badge-warning-bg: hsla(38, 92%, 50%, 0.2);
+		--c15t-devtools-badge-info-bg: hsla(221, 83%, 53%, 0.2);
+		--c15t-devtools-badge-neutral-bg: hsl(0, 0%, 22%);
+	}
+}
