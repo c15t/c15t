@@ -24,13 +24,15 @@
 	--frame-placeholder-shadow-dark: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
 
 	--frame-placeholder-opacity: 0;
-	--frame-placeholder-animation: fadeIn 0.15s ease-in forwards;
+	/* ease-out for entering elements - provides immediate visual feedback */
+	--frame-placeholder-animation: fadeIn 0.15s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
 }
 
 @layer components {
 	.placeholder {
 		font-family: var(--frame-font-family);
 		line-height: var(--frame-line-height);
+		-webkit-font-smoothing: antialiased;
 		display: flex;
 		flex-direction: column;
 		align-items: center;

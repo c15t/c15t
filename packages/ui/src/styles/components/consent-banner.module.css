@@ -18,6 +18,7 @@
 
 	/* Border */
 	--consent-banner-border-width: 1px;
+	--consent-banner-border-width-hairline: 1px;
 
 	/* Shadow */
 	--consent-banner-shadow: var(--c15t-shadow-lg);
@@ -40,6 +41,13 @@
 	--consent-banner-overlay-background-color-dark: var(--c15t-overlay);
 }
 
+/* Hairline borders for retina displays */
+@media only screen and (min-resolution: 192dpi) {
+	:root {
+		--consent-banner-border-width-hairline: 0.5px;
+	}
+}
+
 @layer components {
 	.root {
 		padding: 1rem;
@@ -51,6 +59,7 @@
 		font-family: var(--consent-banner-font-family);
 		line-height: var(--consent-banner-line-height);
 		-webkit-text-size-adjust: var(--consent-banner-text-size-adjust);
+		-webkit-font-smoothing: antialiased;
 		tab-size: var(--consent-banner-tab-size);
 	}
 
