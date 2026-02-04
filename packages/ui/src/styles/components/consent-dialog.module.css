@@ -51,6 +51,7 @@
 	/* Effects */
 	--consent-dialog-card-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 	--consent-dialog-border-width: 1px;
+	--consent-dialog-border-width-hairline: 1px;
 	--consent-dialog-border-style: solid;
 
 	/* Animation */
@@ -61,6 +62,13 @@
 	--consent-dialog-branding-gap: 0.5rem;
 	--consent-dialog-branding-icon-height: 1.25rem;
 	--consent-dialog-branding-icon-width: auto;
+}
+
+/* Hairline borders for retina displays */
+@media only screen and (min-resolution: 192dpi) {
+	:root {
+		--consent-dialog-border-width-hairline: 0.5px;
+	}
 }
 
 @layer components {

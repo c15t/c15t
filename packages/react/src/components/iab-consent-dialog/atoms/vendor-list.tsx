@@ -3,6 +3,7 @@
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.css';
 import type { GlobalVendorList } from 'c15t';
 import { type FC, useEffect, useState } from 'react';
+import { AnimatedCollapse } from '~/components/shared/ui/animated-collapse';
 import * as Switch from '~/components/shared/ui/switch';
 import type { ProcessedPurpose, ProcessedVendor, VendorId } from '../types';
 import { useIABTranslations } from '../use-iab-translations';
@@ -437,7 +438,7 @@ export const VendorList: FC<VendorListProps> = ({
 					/>
 				</div>
 
-				{isExpanded && (
+				<AnimatedCollapse isOpen={isExpanded}>
 					<div className={styles.vendorListContent}>
 						<div className={styles.vendorLinks}>
 							<a
@@ -735,7 +736,7 @@ export const VendorList: FC<VendorListProps> = ({
 							</div>
 						)}
 					</div>
-				)}
+				</AnimatedCollapse>
 			</div>
 		);
 	}

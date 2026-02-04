@@ -106,6 +106,7 @@
 		line-height: var(--button-line-height);
 		color: var(--button-text);
 		font-family: var(--button-font);
+		touch-action: manipulation;
 	}
 
 	/* Focus Styles */
@@ -125,6 +126,11 @@
 	.button:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+	}
+
+	/* Active state - provides responsive press feel */
+	.button:active:not(:disabled) {
+		transform: scale(0.97);
 	}
 
 	/* Size Variants */
