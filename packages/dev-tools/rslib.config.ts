@@ -5,25 +5,27 @@ import { getRsdoctorPlugins } from '../shared/rslib-utils';
 export default defineConfig({
 	source: {
 		entry: {
-			index: ['./src/**'],
+			index: './src/index.ts',
+			react: './src/react.ts',
+			tanstack: './src/tanstack.ts',
 		},
 	},
 	lib: [
 		{
-			bundle: false,
+			bundle: true,
 			dts: true,
 			format: 'esm',
 		},
 		{
-			bundle: false,
+			bundle: true,
 			dts: true,
 			format: 'cjs',
 		},
 	],
 	output: {
 		target: 'web',
-
 		cleanDistPath: true,
+		injectStyles: true,
 	},
 	plugins: [pluginReact()],
 	tools: {

@@ -1,0 +1,225 @@
+/**
+ * c15t DevTools Animations
+ * Uses c15t/ui design tokens with fallbacks for standalone usage
+ * 
+ * Following Web Interface Guidelines:
+ * - Honor prefers-reduced-motion
+ * - Animate transform/opacity only (compositor-friendly)
+ * - Never transition: all
+ * - Set explicit transform-origin
+ */
+
+/* === Panel Animations === */
+@keyframes devtoolsEnter {
+	from {
+		opacity: 0;
+		transform: scale(0.95) translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1) translateY(0);
+	}
+}
+
+@keyframes devtoolsExit {
+	from {
+		opacity: 1;
+		transform: scale(1) translateY(0);
+	}
+	to {
+		opacity: 0;
+		transform: scale(0.95) translateY(8px);
+	}
+}
+
+/* === Button Animations === */
+@keyframes buttonPulse {
+	0%,
+	100% {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(1.05);
+	}
+}
+
+@keyframes buttonEnter {
+	from {
+		opacity: 0;
+		transform: scale(0.8);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+@keyframes buttonExit {
+	from {
+		opacity: 1;
+		transform: scale(1);
+	}
+	to {
+		opacity: 0;
+		transform: scale(0.8);
+	}
+}
+
+/* === Accordion Animations === */
+@keyframes accordionDown {
+	from {
+		height: 0;
+		opacity: 0;
+	}
+	to {
+		height: var(--accordion-content-height);
+		opacity: 1;
+	}
+}
+
+@keyframes accordionUp {
+	from {
+		height: var(--accordion-content-height);
+		opacity: 1;
+	}
+	to {
+		height: 0;
+		opacity: 0;
+	}
+}
+
+/* === Fade Animations === */
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes fadeOut {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+	}
+}
+
+/* === Slide Animations === */
+@keyframes slideInFromRight {
+	from {
+		opacity: 0;
+		transform: translateX(16px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+@keyframes slideInFromBottom {
+	from {
+		opacity: 0;
+		transform: translateY(16px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* === Animation Classes === */
+.animateEnter {
+	animation: devtoolsEnter var(--c15t-duration-normal, 200ms)
+		var(--c15t-easing-out, cubic-bezier(0.215, 0.61, 0.355, 1)) forwards;
+	transform-origin: bottom right;
+}
+
+.animateExit {
+	animation: devtoolsExit var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing-out, cubic-bezier(0.215, 0.61, 0.355, 1)) forwards;
+	transform-origin: bottom right;
+}
+
+.animateButtonEnter {
+	animation: buttonEnter var(--c15t-duration-normal, 200ms)
+		var(--c15t-easing-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) forwards;
+	transform-origin: center;
+}
+
+.animateButtonExit {
+	animation: buttonExit var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing-out, cubic-bezier(0.215, 0.61, 0.355, 1)) forwards;
+	transform-origin: center;
+}
+
+.animateFadeIn {
+	animation: fadeIn var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)) forwards;
+}
+
+.animateFadeOut {
+	animation: fadeOut var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)) forwards;
+}
+
+.animateSlideIn {
+	animation: slideInFromBottom var(--c15t-duration-normal, 200ms)
+		var(--c15t-easing-out, cubic-bezier(0.215, 0.61, 0.355, 1)) forwards;
+}
+
+/* === Stagger Animation for List Items === */
+.staggerItem {
+	opacity: 0;
+	animation: slideInFromRight var(--c15t-duration-normal, 200ms)
+		var(--c15t-easing-out, cubic-bezier(0.215, 0.61, 0.355, 1)) forwards;
+}
+
+.staggerItem:nth-child(1) {
+	animation-delay: 0ms;
+}
+.staggerItem:nth-child(2) {
+	animation-delay: 30ms;
+}
+.staggerItem:nth-child(3) {
+	animation-delay: 60ms;
+}
+.staggerItem:nth-child(4) {
+	animation-delay: 90ms;
+}
+.staggerItem:nth-child(5) {
+	animation-delay: 120ms;
+}
+.staggerItem:nth-child(6) {
+	animation-delay: 150ms;
+}
+.staggerItem:nth-child(7) {
+	animation-delay: 180ms;
+}
+.staggerItem:nth-child(8) {
+	animation-delay: 210ms;
+}
+.staggerItem:nth-child(9) {
+	animation-delay: 240ms;
+}
+.staggerItem:nth-child(10) {
+	animation-delay: 270ms;
+}
+
+/* === Reduced Motion Support (REQUIRED) === */
+@media (prefers-reduced-motion: reduce) {
+	.animateEnter,
+	.animateExit,
+	.animateButtonEnter,
+	.animateButtonExit,
+	.animateFadeIn,
+	.animateFadeOut,
+	.animateSlideIn,
+	.staggerItem {
+		animation: none;
+		opacity: 1;
+		transform: none;
+	}
+}

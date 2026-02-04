@@ -13,7 +13,7 @@
 		"configs/*",
 		"packages/**",
 		"internals/**",
-		"examples/**"
+		"examples/demo/**"
 	],
 	"scripts": {
 		"build": "turbo run build",
@@ -63,6 +63,7 @@
 		"@vitest/browser": "4.0.15",
 		"@vitest/browser-playwright": "4.0.15",
 		"@vitest/coverage-istanbul": "4.0.15",
+		"@vitest/coverage-v8": "4.0.15",
 		"baseline-browser-mapping": "latest",
 		"changeset-conventional-commits": "0.2.5",
 		"knip": "5.71.0",

@@ -1,0 +1,381 @@
+/**
+ * Common Component Styles
+ * Toggle, Badge, Button, Input, etc.
+ * Uses c15t/ui design tokens with fallbacks for standalone usage
+ */
+
+/* === Toggle Switch === */
+.toggle {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	width: 36px;
+	height: 20px;
+	padding: 0;
+	border: none;
+	border-radius: var(--c15t-radius-full, 9999px);
+	background-color: var(--c15t-switch-track, hsl(0, 0%, 80%));
+	cursor: pointer;
+	transition: background-color var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.toggle:focus-visible {
+	outline: 2px solid var(--c15t-primary, hsl(228, 100%, 60%));
+	outline-offset: 2px;
+}
+
+.toggleActive {
+	background-color: var(--c15t-switch-track-active, hsl(228, 100%, 60%));
+}
+
+.toggleThumb {
+	position: absolute;
+	left: 2px;
+	width: 16px;
+	height: 16px;
+	border-radius: var(--c15t-radius-full, 9999px);
+	background-color: var(--c15t-switch-thumb, #fff);
+	box-shadow: 0 1px 2px hsla(0, 0%, 0%, 0.2);
+	transition: transform var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+.toggleActive .toggleThumb {
+	transform: translateX(16px);
+}
+
+/* Disabled toggle state */
+.toggle:disabled,
+.toggleDisabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.toggle:disabled .toggleThumb,
+.toggleDisabled .toggleThumb {
+	box-shadow: none;
+}
+
+/* === Badge === */
+.badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 6px;
+	border-radius: var(--c15t-radius-sm, 0.25rem);
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	font-weight: var(--c15t-font-weight-medium, 500);
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.badgeSuccess {
+	background-color: var(--c15t-devtools-badge-success-bg, hsl(142, 76%, 94%));
+	color: var(--c15t-devtools-badge-success, hsl(142, 71%, 45%));
+}
+
+.badgeError {
+	background-color: var(--c15t-devtools-badge-error-bg, hsl(0, 86%, 95%));
+	color: var(--c15t-devtools-badge-error, hsl(0, 84%, 60%));
+}
+
+.badgeWarning {
+	background-color: var(--c15t-devtools-badge-warning-bg, hsl(48, 96%, 93%));
+	color: var(--c15t-devtools-badge-warning, hsl(38, 92%, 50%));
+}
+
+.badgeInfo {
+	background-color: var(--c15t-devtools-badge-info-bg, hsl(214, 95%, 93%));
+	color: var(--c15t-devtools-badge-info, hsl(221, 83%, 53%));
+}
+
+.badgeNeutral {
+	background-color: var(--c15t-devtools-badge-neutral-bg, hsl(0, 0%, 94%));
+	color: var(--c15t-devtools-badge-neutral, hsl(0, 0%, 45%));
+}
+
+/* === Button === */
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--c15t-space-xs, 0.25rem);
+	padding: var(--c15t-space-xs, 0.25rem) var(--c15t-space-sm, 0.5rem);
+	border: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
+	border-radius: var(--c15t-radius-md, 0.5rem);
+	background-color: var(--c15t-surface, #fff);
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+	font-family: inherit;
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	font-weight: var(--c15t-font-weight-medium, 500);
+	cursor: pointer;
+	transition: background-color var(--c15t-duration-fast, 100ms)
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+		border-color var(--c15t-duration-fast, 100ms)
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.btn:hover {
+	background-color: var(--c15t-surface-hover, hsl(0, 0%, 97%));
+	border-color: var(--c15t-border-hover, hsl(0, 0%, 79%));
+}
+
+.btn:focus-visible {
+	outline: 2px solid var(--c15t-primary, hsl(228, 100%, 60%));
+	outline-offset: 1px;
+}
+
+.btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.btnPrimary {
+	background-color: var(--c15t-primary, hsl(228, 100%, 60%));
+	border-color: var(--c15t-primary, hsl(228, 100%, 60%));
+	color: var(--c15t-text-on-primary, #fff);
+}
+
+.btnPrimary:hover {
+	background-color: var(--c15t-primary-hover, hsl(228, 100%, 50%));
+	border-color: var(--c15t-primary-hover, hsl(228, 100%, 50%));
+}
+
+.btnDanger {
+	background-color: var(--c15t-devtools-badge-error, hsl(0, 84%, 60%));
+	border-color: var(--c15t-devtools-badge-error, hsl(0, 84%, 60%));
+	color: var(--c15t-text-on-primary, #fff);
+}
+
+.btnDanger:hover {
+	background-color: hsl(0, 84%, 50%);
+	border-color: hsl(0, 84%, 50%);
+}
+
+.btnSmall {
+	padding: 2px var(--c15t-space-xs, 0.25rem);
+	font-size: 10px;
+}
+
+.btnIcon {
+	width: 14px;
+	height: 14px;
+	flex-shrink: 0;
+}
+
+/* === Input === */
+.input {
+	width: 100%;
+	padding: var(--c15t-space-xs, 0.25rem) var(--c15t-space-sm, 0.5rem);
+	border: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
+	border-radius: var(--c15t-radius-md, 0.5rem);
+	background-color: var(--c15t-surface, #fff);
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+	font-family: inherit;
+	font-size: var(--c15t-font-size-sm, 0.875rem);
+	transition: border-color var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.input:focus {
+	outline: none;
+	border-color: var(--c15t-primary, hsl(228, 100%, 60%));
+}
+
+.input::placeholder {
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+}
+
+.inputSmall {
+	padding: 2px var(--c15t-space-xs, 0.25rem);
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+}
+
+/* === Select === */
+.select {
+	width: 100%;
+	padding: var(--c15t-space-xs, 0.25rem) var(--c15t-space-sm, 0.5rem);
+	border: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
+	border-radius: var(--c15t-radius-md, 0.5rem);
+	background-color: var(--c15t-surface, #fff);
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+	font-family: inherit;
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	cursor: pointer;
+}
+
+.select:focus {
+	outline: none;
+	border-color: var(--c15t-primary, hsl(228, 100%, 60%));
+}
+
+/* === Grid Layouts === */
+.grid {
+	display: grid;
+	gap: var(--c15t-space-sm, 0.5rem);
+	padding: var(--c15t-space-sm, 0.5rem) var(--c15t-space-md, 1rem);
+}
+
+.gridCols2 {
+	grid-template-columns: repeat(2, 1fr);
+}
+
+.gridCols3 {
+	grid-template-columns: repeat(3, 1fr);
+}
+
+/* === Grid Card Item === */
+.gridCard {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--c15t-space-sm, 0.5rem) var(--c15t-space-md, 0.75rem);
+	border: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
+	border-radius: var(--c15t-radius-md, 0.5rem);
+	background-color: var(--c15t-surface, #fff);
+	transition: border-color var(--c15t-duration-fast, 100ms) var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.gridCard:hover {
+	border-color: var(--c15t-border-hover, hsl(0, 0%, 79%));
+}
+
+.gridCardTitle {
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	font-weight: var(--c15t-font-weight-medium, 500);
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+}
+
+/* === List Item === */
+.listItem {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--c15t-space-xs, 0.25rem) var(--c15t-space-md, 1rem);
+	border-bottom: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
+}
+
+.listItem:last-child {
+	border-bottom: none;
+}
+
+.listItemContent {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+	flex: 1;
+}
+
+.listItemTitle {
+	font-size: var(--c15t-font-size-sm, 0.875rem);
+	font-weight: var(--c15t-font-weight-medium, 500);
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+}
+
+.listItemDescription {
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.listItemActions {
+	display: flex;
+	align-items: center;
+	gap: var(--c15t-space-sm, 0.5rem);
+	flex-shrink: 0;
+}
+
+/* === Section === */
+.section {
+	padding: var(--c15t-space-sm, 0.5rem) var(--c15t-space-md, 1rem);
+	border-bottom: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
+}
+
+.section:last-child {
+	border-bottom: none;
+}
+
+.sectionHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: var(--c15t-space-sm, 0.5rem);
+}
+
+.sectionTitle {
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	font-weight: var(--c15t-font-weight-semibold, 600);
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+/* === Info Row === */
+.infoRow {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--c15t-space-xs, 0.25rem) 0;
+}
+
+.infoLabel {
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+}
+
+.infoValue {
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	font-weight: var(--c15t-font-weight-medium, 500);
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+	font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas,
+		'DejaVu Sans Mono', monospace;
+}
+
+/* === Empty State === */
+.emptyState {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--c15t-space-xl, 2rem);
+	text-align: center;
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+}
+
+.emptyStateIcon {
+	width: 32px;
+	height: 32px;
+	margin-bottom: var(--c15t-space-sm, 0.5rem);
+	opacity: 0.5;
+}
+
+.emptyStateText {
+	font-size: var(--c15t-font-size-sm, 0.875rem);
+}
+
+/* === Reduced Motion === */
+@media (prefers-reduced-motion: reduce) {
+	.toggle,
+	.toggleThumb,
+	.btn,
+	.input,
+	.select {
+		transition: none;
+	}
+}
+
+/* === Touch Device Handling === */
+@media (hover: none) {
+	.btn:hover {
+		background-color: var(--c15t-surface, #fff);
+		border-color: var(--c15t-border, hsl(0, 0%, 89%));
+	}
+
+	.btnPrimary:hover {
+		background-color: var(--c15t-primary, hsl(228, 100%, 60%));
+		border-color: var(--c15t-primary, hsl(228, 100%, 60%));
+	}
+}

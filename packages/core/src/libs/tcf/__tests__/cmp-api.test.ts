@@ -4,7 +4,7 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { GlobalVendorList } from '../../../types/iab-tcf';
 import { createCMPApi } from '../cmp-api';
 import { destroyIABStub, initializeIABStub } from '../stub';
@@ -286,12 +286,12 @@ describe('CMP API', () => {
 			cmpApi.saveToStorage(tcString);
 
 			// Check localStorage was called
-			expect(storageMock.storage.has('c15t_tc_string')).toBe(true);
+			expect(storageMock.storage.has('euconsent-v2')).toBe(true);
 		});
 
 		it('should load TC string from storage', () => {
 			const tcString = 'stored-tc-string';
-			storageMock.storage.set('c15t_tc_string', tcString);
+			storageMock.storage.set('euconsent-v2', tcString);
 
 			const loaded = cmpApi.loadFromStorage();
 			expect(loaded).toBe(tcString);

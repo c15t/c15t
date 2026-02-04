@@ -1,0 +1,207 @@
+/**
+ * Scripts Panel
+ * Displays script loading status and configuration
+ */
+
+import type { ConsentStoreState } from 'c15t';
+import {
+	createBadge,
+	createEmptyState,
+	createInfoRow,
+	createListItem,
+	createSection,
+} from '../components/ui';
+import { clearElement, div } from '../core/renderer';
+import { createDomScannerSection } from './dom-scanner';
+
+// Icons
+const CODE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <polyline points="16 18 22 12 16 6"></polyline>
+  <polyline points="8 6 2 12 8 18"></polyline>
+</svg>`;
+
+export interface ScriptsPanelOptions {
+	getState: () => ConsentStoreState | null;
+}
+
+/**
+ * Renders the scripts panel content
+ */
+export function renderScriptsPanel(
+	container: HTMLElement,
+	options: ScriptsPanelOptions
+): void {
+	const { getState } = options;
+
+	clearElement(container);
+
+	const state = getState();
+
+	if (!state) {
+		container.appendChild(
+			div({
+				style: {
+					padding: '24px',
+					textAlign: 'center',
+					color: 'var(--c15t-text-muted)',
+					fontSize: 'var(--c15t-devtools-font-size-sm)',
+				},
+				text: 'Store not connected',
+			})
+		);
+		return;
+	}
+
+	const scripts = state.scripts || [];
+	const loadedScripts = state.loadedScripts || {};
+	const networkBlocker = state.networkBlocker;
+
+	// Scripts section with heading
+	if (scripts.length === 0) {
+		const scriptsSection = createSection({
+			title: 'Configured Scripts',
+			children: [
+				createEmptyState({
+					icon: CODE_ICON,
+					text: 'No scripts configured',
+				}),
+			],
+		});
+		container.appendChild(scriptsSection);
+	} else {
+		const scriptsList = div({
+			style: {
+				display: 'flex',
+				flexDirection: 'column',
+				gap: '4px',
+			},
+		});
+
+		for (const script of scripts) {
+			const scriptId = script.id;
+			const isLoaded = loadedScripts[scriptId] === true;
+
+			// Get the category - can be a string or a complex condition object
+			const category = script.category;
+			const categoryDisplay =
+				typeof category === 'string' ? category : JSON.stringify(category);
+
+			// Determine status
+			let status: 'loaded' | 'pending' | 'blocked' = 'pending';
+			let statusVariant: 'success' | 'warning' | 'neutral' = 'neutral';
+
+			if (isLoaded) {
+				status = 'loaded';
+				statusVariant = 'success';
+			} else {
+				// Check if consent is granted
+				const hasConsent = checkScriptConsent(state, category);
+				if (hasConsent) {
+					status = 'pending';
+					statusVariant = 'warning';
+				} else {
+					status = 'blocked';
+					statusVariant = 'neutral';
+				}
+			}
+
+			const badge = createBadge({
+				text: status.charAt(0).toUpperCase() + status.slice(1),
+				variant: statusVariant,
+			});
+
+			const item = createListItem({
+				title: scriptId,
+				description: `Category: ${categoryDisplay}`,
+				actions: [badge],
+			});
+
+			scriptsList.appendChild(item);
+		}
+
+		const scriptsSection = createSection({
+			title: `Configured Scripts (${scripts.length})`,
+			children: [scriptsList],
+		});
+
+		container.appendChild(scriptsSection);
+	}
+
+	// Network blocker section
+	const networkSection = createSection({
+		title: 'Network Blocker',
+		children: networkBlocker
+			? [
+					createInfoRow({
+						label: 'Status',
+						value: 'Active',
+					}),
+					createInfoRow({
+						label: 'Blocked Domains',
+						value: String(networkBlocker.rules?.length || 0),
+					}),
+				]
+			: [
+					div({
+						style: {
+							fontSize: 'var(--c15t-devtools-font-size-xs)',
+							color: 'var(--c15t-devtools-text-muted)',
+						},
+						text: 'Network blocker not configured',
+					}),
+				],
+	});
+
+	container.appendChild(networkSection);
+
+	// Loaded scripts summary
+	const loadedCount = Object.values(loadedScripts).filter(Boolean).length;
+	const totalCount = scripts.length;
+
+	const summarySection = createSection({
+		title: 'Summary',
+		children: [
+			createInfoRow({
+				label: 'Total Scripts',
+				value: String(totalCount),
+			}),
+			createInfoRow({
+				label: 'Loaded',
+				value: String(loadedCount),
+			}),
+			createInfoRow({
+				label: 'Pending/Blocked',
+				value: String(totalCount - loadedCount),
+			}),
+		],
+	});
+
+	container.appendChild(summarySection);
+
+	// DOM Scanner section
+	const scannerSection = createDomScannerSection(state);
+	container.appendChild(scannerSection);
+}
+
+/**
+ * Checks if consent is granted for a script category
+ * Simplified check - for complex conditions, just assume pending
+ */
+function checkScriptConsent(
+	state: ConsentStoreState,
+	category: unknown
+): boolean {
+	if (!category) {
+		return true;
+	}
+
+	// Simple string category
+	if (typeof category === 'string') {
+		const consents = state.consents || {};
+		return (consents as Record<string, boolean>)[category] === true;
+	}
+
+	// Complex condition - use the store's has() method if available
+	// For now, just return false for complex conditions
+	return false;
+}
