@@ -44,6 +44,7 @@
 		"picocolors": "1.1.1",
 		"posthog-node": "5.17.0",
 		"ts-morph": "27.0.2",
+		"xstate": "^5.26.0",
 		"zod": "4.1.13"
 	},
 	"devDependencies": {

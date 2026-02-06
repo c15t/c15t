@@ -3,53 +3,112 @@
  * Generates consent-manager.tsx and consent-manager.client.tsx components
  */
 
+interface GenerateConsentManagerTemplateOptions {
+	enableSSR: boolean;
+	backendURLValue: string;
+}
+
+interface GenerateConsentManagerClientTemplateOptions {
+	enableSSR: boolean;
+	optionsText: string;
+}
+
 /**
  * Generates the server-side consent-manager.tsx component template
  *
- * @param optionsText - The stringified options object for ConsentManagerProvider
+ * @param options - Template generation options
+ * @param options.enableSSR - Whether to include fetchInitialData for SSR
+ * @param options.backendURLValue - The backend URL value (could be env var or literal)
  * @returns The complete component file content
  *
  * @remarks
- * This component is rendered on the server and contains:
- * - ConsentManagerProvider with server-side configuration
- * - CookieBanner component
- * - ConsentManagerDialog component
- * - ConsentManagerClient wrapper for client-side features
+ * This component is rendered on the server. When SSR is enabled, it:
+ * - Calls fetchInitialData() to pre-fetch consent data
+ * - Passes the SSR data promise to the client component
+ *
+ * When SSR is disabled, it simply wraps children with the client component.
  *
  * @example
  * ```ts
- * const content = generateConsentManagerTemplate('{ mode: "c15t", backendURL: "/api/c15t" }');
+ * // With SSR enabled
+ * const content = generateConsentManagerTemplate({
+ *   enableSSR: true,
+ *   backendURLValue: 'process.env.NEXT_PUBLIC_C15T_URL!',
+ * });
+ *
+ * // Without SSR
+ * const content = generateConsentManagerTemplate({
+ *   enableSSR: false,
+ *   backendURLValue: '"/api/c15t"',
+ * });
  * ```
  */
-export function generateConsentManagerTemplate(optionsText: string): string {
-	return `import type { ReactNode } from 'react';
-import {
-	ConsentManagerDialog,
-	ConsentManagerProvider,
-	CookieBanner,
-} from '@c15t/nextjs';
-// For client-only apps (non-SSR), you can use:
-// import { ConsentManagerProvider } from '@c15t/nextjs/client';
-import { ConsentManagerClient } from './consent-manager.client';
+export function generateConsentManagerTemplate({
+	enableSSR,
+	backendURLValue,
+}: GenerateConsentManagerTemplateOptions): string {
+	if (enableSSR) {
+		return `import { fetchInitialData } from '@c15t/nextjs';
+import type { ReactNode } from 'react';
+import ConsentManagerProvider from './provider';
 
 /**
  * Server-side rendered consent management wrapper for Next.js App Router
  *
- * This component provides SSR-compatible consent management by separating
- * server-side configuration from client-side functionality. The server handles
- * initial setup and configuration, while client-side features (callbacks,
- * scripts) are delegated to the ConsentManagerClient component.
+ * This component pre-fetches consent data on the server for faster hydration.
+ * The fetchInitialData() function uses Next.js headers() API, which means:
+ * - The route will be dynamically rendered (not statically generated)
+ * - Works in server components and dynamic routes
  *
  * @param props - Component properties
  * @param props.children - Child components to render within the consent manager context
  *
- * @returns The consent manager provider with banner, dialog, and client wrapper
+ * @example
+ * \`\`\`tsx
+ * // In your root layout.tsx
+ * import { ConsentManager } from './consent-manager';
  *
- * @remarks
- * This split architecture is necessary because certain options like callbacks
- * and scripts cannot be serialized during server-side rendering. For
- * client-only implementations, use \`<ConsentManagerProvider />\` from
- * \`@c15t/nextjs/client\`.
+ * export default function RootLayout({ children }) {
+ *   return (
+ *     <html>
+ *       <body>
+ *         <ConsentManager>
+ *           {children}
+ *         </ConsentManager>
+ *       </body>
+ *     </html>
+ *   );
+ * }
+ * \`\`\`
+ */
+export function ConsentManager({ children }: { children: ReactNode }) {
+	const ssrData = fetchInitialData({
+		backendURL: ${backendURLValue},
+	});
+
+	return (
+		<ConsentManagerProvider ssrData={ssrData}>
+			{children}
+		</ConsentManagerProvider>
+	);
+}
+`;
+	}
+
+	// Without SSR - simpler pattern
+	return `import type { ReactNode } from 'react';
+import ConsentManagerProvider from './provider';
+
+/**
+ * Consent management wrapper for Next.js App Router (client-side only)
+ *
+ * This component uses client-side data fetching. Use this pattern when:
+ * - Your site uses static generation (generateStaticParams)
+ * - You want to avoid the headers() dynamic API
+ * - SSR data fetching causes issues in your setup
+ *
+ * @param props - Component properties
+ * @param props.children - Child components to render within the consent manager context
  *
  * @example
  * \`\`\`tsx
@@ -71,12 +130,8 @@ import { ConsentManagerClient } from './consent-manager.client';
  */
 export function ConsentManager({ children }: { children: ReactNode }) {
 	return (
-		<ConsentManagerProvider
-			options={${optionsText}}
-		>
-			<CookieBanner />
-			<ConsentManagerDialog />
-			<ConsentManagerClient>{children}</ConsentManagerClient>
+		<ConsentManagerProvider>
+			{children}
 		</ConsentManagerProvider>
 	);
 }
@@ -86,76 +141,92 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 /**
  * Generates the client-side consent-manager.client.tsx component template
  *
+ * @param options - Template generation options
+ * @param options.enableSSR - Whether SSR data will be passed from server component
+ * @param options.optionsText - The stringified options object for ConsentManagerProvider
  * @returns The complete client component file content
  *
  * @remarks
  * This component is marked with 'use client' directive and handles:
- * - ClientSideOptionsProvider for callbacks and scripts
- * - Integration scripts (Google Tag Manager, Meta Pixel, etc.)
- * - Client-side callbacks (onConsentSet, onError, etc.)
+ * - ConsentManagerProvider with configuration
+ * - CookieBanner and ConsentManagerDialog components
+ * - SSR data hydration (when enableSSR is true)
  *
  * Users should customize this file to add their specific scripts and callbacks.
  *
  * @example
  * ```ts
- * const content = generateConsentManagerClientTemplate();
+ * const content = generateConsentManagerClientTemplate({
+ *   enableSSR: true,
+ *   optionsText: 'mode: "c15t",\n\t\t\t\tbackendURL: "/api/c15t"',
+ * });
  * await fs.writeFile('consent-manager.client.tsx', content);
  * ```
  */
-export function generateConsentManagerClientTemplate(): string {
+export function generateConsentManagerClientTemplate({
+	enableSSR,
+	optionsText,
+}: GenerateConsentManagerClientTemplateOptions): string {
+	const propsInterface = enableSSR
+		? `interface Props {
+	children: ReactNode;
+	ssrData?: InitialDataPromise;
+}`
+		: `interface Props {
+	children: ReactNode;
+}`;
+
+	const propsDestructure = enableSSR
+		? '{ children, ssrData }: Props'
+		: '{ children }: Props';
+
+	const typeImports = enableSSR
+		? `import type { InitialDataPromise } from '@c15t/nextjs';`
+		: '';
+
+	const ssrDataOption = enableSSR ? '\n\t\t\t\tssrData,' : '';
+
 	return `'use client';
 
 import type { ReactNode } from 'react';
-import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
+import {
+	ConsentManagerProvider,
+	CookieBanner,
+	ConsentManagerDialog,
+} from '@c15t/nextjs';
+${typeImports}
+
+${propsInterface}
 
 /**
- * Client-side consent manager wrapper for handling scripts and callbacks
+ * Client-side consent manager provider
  *
- * This component is rendered on the client and provides the ability to:
- * - Load integration scripts (Google Tag Manager, Meta Pixel, TikTok Pixel, etc.)
- * - Handle client-side callbacks (onConsentSet, onError, onBannerFetched)
- * - Manage script lifecycle (onLoad, onDelete)
+ * This component handles:
+ * - Consent state management
+ * - Cookie banner and dialog display
+ * - Script loading based on consent${enableSSR ? '\n * - SSR data hydration' : ''}
  *
- * @param props - Component properties
- * @param props.children - Child components to render within the client-side context
- *
- * @returns The client-side options provider with children
- *
- * @see https://c15t.com/docs/frameworks/next/callbacks
- * @see https://c15t.com/docs/frameworks/next/script-loader
+ * @see https://c15t.com/docs/frameworks/nextjs
  */
-export function ConsentManagerClient({
-	children,
-}: {
-	children: ReactNode;
-}) {
+export default function ConsentManagerClient(${propsDestructure}) {
 	return (
-		<ClientSideOptionsProvider
-			// 📝 Add your integration scripts here
-			// Scripts are loaded when consent is given and removed when consent is revoked
-			scripts={[
-				// Example:
-				// googleTagManager({
-				//   id: 'GTM-XXXXXX',
-				//   script: {
-				//     onLoad: () => console.log('GTM loaded'),
-				//   },
-				// }),
-			]}
-			// 📝 Add your callbacks here
-			// Callbacks allow you to react to consent events
-			callbacks={{
-				// Example:
-				// onConsentSet(response) {
-				//   console.log('Consent updated:', response);
-				// },
-				// onError(error) {
-				//   console.error('Consent error:', error);
+		<ConsentManagerProvider
+			options={{
+				${optionsText}${ssrDataOption}
+				// Add your scripts here:
+				// scripts: [
+				//   googleTagManager({ id: 'GTM-XXXXXX' }),
+				// ],
+				// Add your callbacks here:
+				// callbacks: {
+				//   onConsentSet: (response) => console.log('Consent updated:', response),
 				// },
 			}}
 		>
+			<CookieBanner />
+			<ConsentManagerDialog />
 			{children}
-		</ClientSideOptionsProvider>
+		</ConsentManagerProvider>
 	);
 }
 `;

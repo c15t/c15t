@@ -3,6 +3,12 @@
  */
 
 export {
+	EXPANDED_THEME_OPTIONS,
+	type ExpandedTheme,
+	getExpandedThemeInfo,
+	promptForExpandedTheme,
+} from './expanded-theme';
+export {
 	type InstanceSelectionResult,
 	promptForInstance,
 } from './instance';
@@ -28,3 +34,9 @@ export {
 	THEME_OPTIONS,
 	type ThemeId,
 } from './theme';
+export {
+	getUIStyleInfo,
+	promptForUIStyle,
+	UI_STYLE_OPTIONS,
+	type UIStyle,
+} from './ui-style';

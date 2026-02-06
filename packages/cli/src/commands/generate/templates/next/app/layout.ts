@@ -8,16 +8,65 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { Project, type SourceFile, SyntaxKind } from 'ts-morph';
 import type { AvailablePackages } from '~/context/framework-detection';
-import { generateOptionsText } from '../../shared/options';
+import type { ExpandedTheme, UIStyle } from '../../../prompts';
+import { generateOptionsText, getBackendURLValue } from '../../shared/options';
 import {
 	generateConsentManagerClientTemplate,
 	generateConsentManagerTemplate,
 } from './components';
+import {
+	generateExpandedCookieBannerTemplate,
+	generateExpandedPreferenceCenterTemplate,
+	generateExpandedProviderTemplate,
+	generateExpandedServerComponent,
+	generateExpandedThemeTemplate,
+} from './expanded-files';
 
 const HTML_TAG_REGEX = /<html[^>]*>([\s\S]*)<\/html>/;
 const BODY_TAG_REGEX = /<body[^>]*>([\s\S]*)<\/body>/;
 const BODY_OPENING_TAG_REGEX = /<body[^>]*>/;
 const HTML_CONTENT_REGEX = /([\s\S]*<\/html>)/;
+
+/**
+ * Detects or determines the components directory path
+ *
+ * @param projectRoot - Root directory of the project
+ * @param appDir - App directory path (either 'app' or 'src/app')
+ * @returns The components directory path relative to project root
+ *
+ * @remarks
+ * Checks for existing components folders in order:
+ * 1. src/components (if using src/app)
+ * 2. components (root level)
+ * 3. app/components (inside app dir)
+ * Creates src/components or components based on project structure
+ */
+async function getComponentsDirectory(
+	projectRoot: string,
+	appDir: string
+): Promise<string> {
+	const isSrcApp = appDir.startsWith('src');
+
+	// Check existing locations in order of preference
+	const candidates = isSrcApp
+		? ['src/components', 'components']
+		: ['components', 'src/components'];
+
+	for (const candidate of candidates) {
+		try {
+			const candidatePath = path.join(projectRoot, candidate);
+			const stat = await fs.stat(candidatePath);
+			if (stat.isDirectory()) {
+				return candidate;
+			}
+		} catch {
+			// Directory doesn't exist, continue checking
+		}
+	}
+
+	// No existing components folder, create one based on structure
+	return isSrcApp ? 'src/components' : 'components';
+}
 
 interface UpdateAppLayoutOptions {
 	projectRoot: string;
@@ -26,11 +75,15 @@ interface UpdateAppLayoutOptions {
 	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
+	enableSSR?: boolean;
+	uiStyle?: UIStyle;
+	expandedTheme?: ExpandedTheme;
 }
 
 interface ComponentFilePaths {
 	consentManager: string;
-	consentManagerClient: string;
+	consentManagerClient?: string;
+	consentManagerDir?: string;
 }
 
 /**
@@ -119,6 +172,9 @@ function computeRelativeModuleSpecifier(
 
 	// Strip the file extension (.ts, .tsx, .js, .jsx)
 	relativePath = relativePath.replace(/\.(tsx?|jsx?)$/, '');
+
+	// Strip /index suffix for cleaner imports (bundlers resolve index files automatically)
+	relativePath = relativePath.replace(/\/index$/, '');
 
 	// Ensure the path starts with './' or '../'
 	if (!relativePath.startsWith('.')) {
@@ -239,51 +295,186 @@ function wrapAppJsxContent(originalJsx: string): string {
 }
 
 /**
- * Creates the consent-manager component files in the app directory
+ * Creates the expanded consent-manager component files in a directory structure
  *
  * @param projectRoot - Root directory of the project
  * @param appDir - App directory path (either 'app' or 'src/app')
- * @param optionsText - Stringified options object for ConsentManagerProvider
+ * @param options - Configuration options for template generation
+ * @returns Object containing paths to created files
+ *
+ * @throws {Error} When files or directories cannot be created
+ *
+ * @remarks
+ * Creates in components/consent-manager/:
+ * - index.tsx - Main server component entry point
+ * - provider.tsx - Client provider wrapper
+ * - cookie-banner.tsx - Compound component banner
+ * - preference-center.tsx - Compound component dialog
+ * - theme.ts - Theme preset configuration
+ */
+async function createExpandedConsentManagerComponents(
+	projectRoot: string,
+	appDir: string,
+	options: {
+		mode: string;
+		backendURL?: string;
+		useEnvFile?: boolean;
+		proxyNextjs?: boolean;
+		enableSSR: boolean;
+		expandedTheme: ExpandedTheme;
+	}
+): Promise<ComponentFilePaths> {
+	const {
+		mode,
+		backendURL,
+		useEnvFile,
+		proxyNextjs,
+		enableSSR,
+		expandedTheme,
+	} = options;
+
+	// Detect or create components directory
+	const componentsDir = await getComponentsDirectory(projectRoot, appDir);
+	const consentManagerDirPath = path.join(
+		projectRoot,
+		componentsDir,
+		'consent-manager'
+	);
+
+	// Get the backend URL value for fetchInitialData
+	const backendURLValue = getBackendURLValue(
+		backendURL,
+		useEnvFile,
+		proxyNextjs
+	);
+
+	// Generate options text for the provider component
+	const optionsText = generateOptionsText(
+		mode,
+		backendURL,
+		useEnvFile,
+		proxyNextjs
+	);
+
+	// Generate all component file contents
+	const serverComponentContent = generateExpandedServerComponent({
+		enableSSR,
+		backendURLValue,
+	});
+	const providerContent = generateExpandedProviderTemplate({
+		enableSSR,
+		optionsText,
+	});
+	const cookieBannerContent = generateExpandedCookieBannerTemplate();
+	const preferenceCenterContent = generateExpandedPreferenceCenterTemplate();
+	const themeContent = generateExpandedThemeTemplate(expandedTheme);
+
+	// Define file paths - everything in components/consent-manager/
+	const indexPath = path.join(consentManagerDirPath, 'index.tsx');
+	const providerPath = path.join(consentManagerDirPath, 'provider.tsx');
+	const cookieBannerPath = path.join(
+		consentManagerDirPath,
+		'cookie-banner.tsx'
+	);
+	const preferenceCenterPath = path.join(
+		consentManagerDirPath,
+		'preference-center.tsx'
+	);
+	const themePath = path.join(consentManagerDirPath, 'theme.ts');
+
+	// Create directory and write files
+	await fs.mkdir(consentManagerDirPath, { recursive: true });
+	await Promise.all([
+		fs.writeFile(indexPath, serverComponentContent, 'utf-8'),
+		fs.writeFile(providerPath, providerContent, 'utf-8'),
+		fs.writeFile(cookieBannerPath, cookieBannerContent, 'utf-8'),
+		fs.writeFile(preferenceCenterPath, preferenceCenterContent, 'utf-8'),
+		fs.writeFile(themePath, themeContent, 'utf-8'),
+	]);
+
+	return {
+		consentManager: indexPath,
+		consentManagerDir: consentManagerDirPath,
+	};
+}
+
+/**
+ * Creates the consent-manager component files in the components directory
+ *
+ * @param projectRoot - Root directory of the project
+ * @param appDir - App directory path (either 'app' or 'src/app')
+ * @param options - Configuration options for template generation
  * @returns Object containing paths to created files
  *
  * @throws {Error} When files cannot be created
  *
  * @remarks
- * Creates two files:
- * - consent-manager.tsx - Server component with provider and UI
- * - consent-manager.client.tsx - Client component for scripts and callbacks
+ * Creates in components/consent-manager/:
+ * - index.tsx - Main server component entry point
+ * - provider.tsx - Client component with ConsentManagerProvider
  */
-async function createConsentManagerComponents(
+async function createPrebuiltConsentManagerComponents(
 	projectRoot: string,
 	appDir: string,
-	optionsText: string
-): Promise<ComponentFilePaths> {
-	const appDirPath = path.join(projectRoot, appDir);
+	options: {
+		mode: string;
+		backendURL?: string;
+		useEnvFile?: boolean;
+		proxyNextjs?: boolean;
+		enableSSR: boolean;
+	}
+): Promise<
+	Required<Pick<ComponentFilePaths, 'consentManager' | 'consentManagerClient'>>
+> {
+	const { mode, backendURL, useEnvFile, proxyNextjs, enableSSR } = options;
 
-	// Generate component file contents
-	const consentManagerContent = generateConsentManagerTemplate(optionsText);
-	const consentManagerClientContent = generateConsentManagerClientTemplate();
-
-	// Define file paths
-	const consentManagerPath = path.join(appDirPath, 'consent-manager.tsx');
-	const consentManagerClientPath = path.join(
-		appDirPath,
-		'consent-manager.client.tsx'
+	// Detect or create components directory
+	const componentsDir = await getComponentsDirectory(projectRoot, appDir);
+	const consentManagerDirPath = path.join(
+		projectRoot,
+		componentsDir,
+		'consent-manager'
 	);
 
-	// Write files
+	// Get the backend URL value for fetchInitialData
+	const backendURLValue = getBackendURLValue(
+		backendURL,
+		useEnvFile,
+		proxyNextjs
+	);
+
+	// Generate options text for the client component
+	const optionsText = generateOptionsText(
+		mode,
+		backendURL,
+		useEnvFile,
+		proxyNextjs
+	);
+
+	// Generate component file contents
+	const consentManagerContent = generateConsentManagerTemplate({
+		enableSSR,
+		backendURLValue,
+	});
+	const consentManagerClientContent = generateConsentManagerClientTemplate({
+		enableSSR,
+		optionsText,
+	});
+
+	// Define file paths - everything in components/consent-manager/
+	const indexPath = path.join(consentManagerDirPath, 'index.tsx');
+	const providerPath = path.join(consentManagerDirPath, 'provider.tsx');
+
+	// Create directory and write files
+	await fs.mkdir(consentManagerDirPath, { recursive: true });
 	await Promise.all([
-		fs.writeFile(consentManagerPath, consentManagerContent, 'utf-8'),
-		fs.writeFile(
-			consentManagerClientPath,
-			consentManagerClientContent,
-			'utf-8'
-		),
+		fs.writeFile(indexPath, consentManagerContent, 'utf-8'),
+		fs.writeFile(providerPath, consentManagerClientContent, 'utf-8'),
 	]);
 
 	return {
-		consentManager: consentManagerPath,
-		consentManagerClient: consentManagerClientPath,
+		consentManager: indexPath,
+		consentManagerClient: providerPath,
 	};
 }
 
@@ -309,6 +500,9 @@ export async function updateAppLayout({
 	backendURL,
 	useEnvFile,
 	proxyNextjs,
+	enableSSR = true,
+	uiStyle = 'prebuilt',
+	expandedTheme = 'tailwind',
 }: UpdateAppLayoutOptions): Promise<{
 	updated: boolean;
 	filePath: string | null;
@@ -327,11 +521,15 @@ export async function updateAppLayout({
 
 	// Check if ConsentManager is already imported
 	const existingImports = layoutFile.getImportDeclarations();
-	const hasConsentManagerImport = existingImports.some(
-		(importDecl) =>
-			importDecl.getModuleSpecifierValue() === './consent-manager' ||
-			importDecl.getModuleSpecifierValue() === './consent-manager.tsx'
-	);
+	const hasConsentManagerImport = existingImports.some((importDecl) => {
+		const spec = importDecl.getModuleSpecifierValue();
+		return (
+			spec === './consent-manager' ||
+			spec === './consent-manager.tsx' ||
+			spec.endsWith('/consent-manager') ||
+			spec.endsWith('/consent-manager/index')
+		);
+	});
 
 	if (hasConsentManagerImport) {
 		return {
@@ -341,20 +539,35 @@ export async function updateAppLayout({
 		};
 	}
 
-	// Generate options text for the component
-	const optionsText = generateOptionsText(
-		mode,
-		backendURL,
-		useEnvFile,
-		proxyNextjs
-	);
+	// Create consent manager component files based on UI style
+	let componentFiles: ComponentFilePaths;
 
-	// Create consent manager component files
-	const componentFiles = await createConsentManagerComponents(
-		projectRoot,
-		appDir,
-		optionsText
-	);
+	if (uiStyle === 'expanded') {
+		componentFiles = await createExpandedConsentManagerComponents(
+			projectRoot,
+			appDir,
+			{
+				mode,
+				backendURL,
+				useEnvFile,
+				proxyNextjs,
+				enableSSR,
+				expandedTheme,
+			}
+		);
+	} else {
+		componentFiles = await createPrebuiltConsentManagerComponents(
+			projectRoot,
+			appDir,
+			{
+				mode,
+				backendURL,
+				useEnvFile,
+				proxyNextjs,
+				enableSSR,
+			}
+		);
+	}
 
 	// Add import for ConsentManager with correct relative path
 	addConsentManagerImport(layoutFile, componentFiles.consentManager);

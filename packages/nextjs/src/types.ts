@@ -16,5 +16,5 @@ export type FetchInitialDataOptions = FetchSSRDataOptionsBase;
 
 export interface ConsentManagerProps {
 	children: React.ReactNode;
-	initialData?: InitialDataPromise;
+	ssrData?: InitialDataPromise;
 }

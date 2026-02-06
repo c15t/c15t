@@ -14,8 +14,49 @@ import {
 } from 'ts-morph';
 import type { AvailablePackages } from '~/context/framework-detection';
 import type { StorageMode } from '../../../constants';
+import type { ExpandedTheme, UIStyle } from '../prompts';
 import { updateNextLayout } from './next';
 import { generateConsentManagerTemplate } from './react/components';
+
+/**
+ * Detects or determines the components directory path
+ *
+ * @param projectRoot - Root directory of the project
+ * @param sourceDir - Source directory path (either 'src' or '')
+ * @returns The components directory path relative to project root
+ *
+ * @remarks
+ * Checks for existing components folders in order:
+ * 1. src/components (if using src directory)
+ * 2. components (root level)
+ * Creates src/components or components based on project structure
+ */
+async function getComponentsDirectory(
+	projectRoot: string,
+	sourceDir: string
+): Promise<string> {
+	const isSrcDir = sourceDir === 'src';
+
+	// Check existing locations in order of preference
+	const candidates = isSrcDir
+		? ['src/components', 'components']
+		: ['components', 'src/components'];
+
+	for (const candidate of candidates) {
+		try {
+			const candidatePath = path.join(projectRoot, candidate);
+			const stat = await fs.stat(candidatePath);
+			if (stat.isDirectory()) {
+				return candidate;
+			}
+		} catch {
+			// Directory doesn't exist, continue checking
+		}
+	}
+
+	// No existing components folder, create one based on structure
+	return isSrcDir ? 'src/components' : 'components';
+}
 
 interface UpdateReactLayoutOptions {
 	projectRoot: string;
@@ -24,10 +65,14 @@ interface UpdateReactLayoutOptions {
 	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
+	enableSSR?: boolean;
+	uiStyle?: UIStyle;
+	expandedTheme?: ExpandedTheme;
 }
 
 interface ComponentFilePaths {
 	consentManager: string;
+	consentManagerDir?: string;
 }
 
 /**
@@ -58,6 +103,9 @@ function computeRelativeModuleSpecifier(
 
 	// Strip the file extension (.ts, .tsx, .js, .jsx)
 	relativePath = relativePath.replace(/\.(tsx?|jsx?)$/, '');
+
+	// Strip /index suffix for cleaner imports (bundlers resolve index files automatically)
+	relativePath = relativePath.replace(/\/index$/, '');
 
 	// Ensure the path starts with './' or '../'
 	if (!relativePath.startsWith('.')) {
@@ -202,7 +250,7 @@ function wrapReturnStatementWithConsentManager(
 }
 
 /**
- * Creates the consent-manager component file in the React project
+ * Creates the consent-manager component files in the React project
  *
  * @param projectRoot - Root directory of the project
  * @param sourceDir - Source directory path (either 'src' or '')
@@ -214,8 +262,8 @@ function wrapReturnStatementWithConsentManager(
  * @throws {Error} When file cannot be created
  *
  * @remarks
- * Creates one file:
- * - consent-manager.tsx - Component with provider, UI, scripts, and callbacks
+ * Creates in components/consent-manager/:
+ * - index.tsx - Component with provider, UI, scripts, and callbacks
  */
 async function createConsentManagerComponent(
 	projectRoot: string,
@@ -224,7 +272,13 @@ async function createConsentManagerComponent(
 	backendURL?: string,
 	useEnvFile?: boolean
 ): Promise<ComponentFilePaths> {
-	const targetDir = sourceDir ? path.join(projectRoot, sourceDir) : projectRoot;
+	// Detect or create components directory
+	const componentsDir = await getComponentsDirectory(projectRoot, sourceDir);
+	const consentManagerDirPath = path.join(
+		projectRoot,
+		componentsDir,
+		'consent-manager'
+	);
 
 	// Generate component file content
 	const consentManagerContent = generateConsentManagerTemplate(
@@ -233,14 +287,16 @@ async function createConsentManagerComponent(
 		useEnvFile
 	);
 
-	// Define file path
-	const consentManagerPath = path.join(targetDir, 'consent-manager.tsx');
+	// Define file path - main component is index.tsx
+	const indexPath = path.join(consentManagerDirPath, 'index.tsx');
 
-	// Write file
-	await fs.writeFile(consentManagerPath, consentManagerContent, 'utf-8');
+	// Create directory and write file
+	await fs.mkdir(consentManagerDirPath, { recursive: true });
+	await fs.writeFile(indexPath, consentManagerContent, 'utf-8');
 
 	return {
-		consentManager: consentManagerPath,
+		consentManager: indexPath,
+		consentManagerDir: consentManagerDirPath,
 	};
 }
 
@@ -309,11 +365,15 @@ async function updateGenericReactLayout({
 
 	// Check if ConsentManager is already imported
 	const existingImports = layoutFile.getImportDeclarations();
-	const hasConsentManagerImport = existingImports.some(
-		(importDecl) =>
-			importDecl.getModuleSpecifierValue() === './consent-manager' ||
-			importDecl.getModuleSpecifierValue() === './consent-manager.tsx'
-	);
+	const hasConsentManagerImport = existingImports.some((importDecl) => {
+		const spec = importDecl.getModuleSpecifierValue();
+		return (
+			spec === './consent-manager' ||
+			spec === './consent-manager.tsx' ||
+			spec.endsWith('/consent-manager') ||
+			spec.endsWith('/consent-manager/index')
+		);
+	});
 
 	if (hasConsentManagerImport) {
 		return {

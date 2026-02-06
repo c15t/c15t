@@ -1,6 +1,6 @@
 import type * as p from '@clack/prompts';
 import type { CliContext } from '../../../context/types';
-import { getScriptsToAdd } from './shared/scripts';
+import { getFrontendUIOptions, getScriptsToAdd } from './shared';
 import type { BaseOptions, BaseResult } from './types';
 import { installDependencies } from './utils/dependencies';
 import { generateFiles } from './utils/generate-files';
@@ -32,22 +32,34 @@ export async function setupOfflineMode({
 	spinner,
 	handleCancel,
 }: OfflineModeOptions): Promise<OfflineModeResult> {
-	const addScriptsSelection = await getScriptsToAdd({ context, handleCancel });
+	// Frontend UI options (SSR for Next.js, UI style + theme for React/Next.js)
+	const { enableSSR, uiStyle, expandedTheme } = await getFrontendUIOptions({
+		context,
+		handleCancel,
+	});
+
+	// Scripts prompt
+	const addScripts = await getScriptsToAdd({ context, handleCancel });
 
 	const result = await generateFiles({
 		context,
 		mode: 'offline',
 		spinner,
+		enableSSR,
+		uiStyle,
+		expandedTheme,
 	});
 
+	// Build dependencies list
 	const dependenciesToAdd: string[] = [context.framework.pkg];
-	if (addScriptsSelection) {
+	if (addScripts) {
 		dependenciesToAdd.push('@c15t/scripts');
 	}
 
 	const { ranInstall, installDepsConfirmed } = await installDependencies({
 		context,
 		dependenciesToAdd,
+		handleCancel,
 	});
 
 	return {

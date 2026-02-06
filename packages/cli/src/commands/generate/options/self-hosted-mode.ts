@@ -6,10 +6,15 @@ import {
 	ensureBackendConfig,
 	pathExists,
 } from '../../self-host/migrate/ensure-backend-config';
+import {
+	getBackendOptions,
+	getFrontendUIOptions,
+	getScriptsToAdd,
+} from './shared';
 import type { BaseOptions, BaseResult } from './types';
 import { installDependencies } from './utils/dependencies';
 import { generateFiles } from './utils/generate-files';
-import { getSharedFrontendOptions } from './utils/shared-frontend';
+
 export interface SelfHostModeResult extends BaseResult {
 	backendURL: string | undefined;
 	usingEnvFile: boolean;
@@ -55,27 +60,37 @@ export async function setupSelfHostedMode({
 		});
 	}
 
-	const {
-		useEnvFile,
-		proxyNextjs,
-		dependenciesToAdd: sharedDependenciesToAdd,
-	} = await getSharedFrontendOptions({
-		backendURL: backendURL as string,
+	// Backend options (env file + proxy)
+	const { useEnvFile, proxyNextjs } = await getBackendOptions({
 		context,
+		backendURL: backendURL as string,
 		handleCancel,
 	});
 
-	for (const dep of sharedDependenciesToAdd) {
-		dependenciesToAdd.add(dep);
+	// Frontend UI options (SSR + UI style + theme)
+	const { enableSSR, uiStyle, expandedTheme } = await getFrontendUIOptions({
+		context,
+		hasBackend: true,
+		handleCancel,
+	});
+
+	// Scripts prompt
+	const addScripts = await getScriptsToAdd({ context, handleCancel });
+
+	if (addScripts) {
+		dependenciesToAdd.add('@c15t/scripts');
 	}
 
 	await generateFiles({
 		context,
-		mode: 'c15t',
+		mode: 'self-hosted',
 		backendURL: backendURL as string,
 		spinner,
 		useEnvFile,
 		proxyNextjs,
+		enableSSR,
+		uiStyle,
+		expandedTheme,
 	});
 
 	const { ranInstall, installDepsConfirmed } = await installDependencies({

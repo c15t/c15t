@@ -6,6 +6,7 @@
 
 import { Project } from 'ts-morph';
 import type { AvailablePackages } from '~/context/framework-detection';
+import type { ExpandedTheme, UIStyle } from '../../prompts';
 import { updateAppLayout } from './app/layout';
 import { updatePagesLayout } from './pages/layout';
 
@@ -16,6 +17,9 @@ interface UpdateNextLayoutOptions {
 	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
+	enableSSR?: boolean;
+	uiStyle?: UIStyle;
+	expandedTheme?: ExpandedTheme;
 }
 
 type NextStructure = 'app' | 'pages' | null;
@@ -66,6 +70,7 @@ export async function updateNextLayout(
 	componentFiles?: {
 		consentManager: string;
 		consentManagerClient?: string;
+		consentManagerDir?: string;
 	};
 }> {
 	const structureType = detectNextJsStructure(options.projectRoot);
@@ -86,6 +91,7 @@ export async function updateNextLayout(
 		componentFiles?: {
 			consentManager: string;
 			consentManagerClient?: string;
+			consentManagerDir?: string;
 		};
 	};
 
