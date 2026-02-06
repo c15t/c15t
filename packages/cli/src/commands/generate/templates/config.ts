@@ -1,92 +1,190 @@
-import type { CliLogger } from '~/utils/logger';
+/**
+ * Configuration file templates
+ */
+
+import { STORAGE_MODES, type StorageMode } from '../../../constants';
+import type { GenerateOptions } from '../../../types';
 
 /**
- * Generates client configuration file content based on storage mode
+ * Generate the consent manager configuration based on storage mode
  *
- * @param mode - The storage mode ('c15t', 'offline', or 'custom')
- * @param backendURL - URL for the c15t backend/API (for 'c15t' mode)
+ * @param mode - The storage mode
+ * @param backendURL - URL for the c15t backend/API
  * @param useEnvFile - Whether to use environment variable for backendURL
- * @param logger - Optional logger instance
  * @returns The generated configuration file content
  */
 export function generateClientConfigContent(
 	mode: string,
 	backendURL?: string,
-	useEnvFile?: boolean,
-	logger?: CliLogger
+	useEnvFile?: boolean
 ): string {
-	let configContent = '';
-
-	// Validate mode parameter
-	const validModes = ['c15t', 'offline', 'custom'];
-
 	switch (mode) {
-		case 'c15t': {
-			configContent = `
-import {
-  type ConsentManagerOptions,
-  configureConsentManager,
-  createConsentManagerStore
-} from "c15t";
-
-export const consentManager = configureConsentManager({ mode: "c15t", backendURL: ${useEnvFile ? 'process.env.NEXT_PUBLIC_C15T_URL' : `'${backendURL || 'https://your-instance.c15t.dev'}'`}, });
-export const store = createConsentManagerStore(consentManager, {
-  initialGdprTypes: ["necessary", "marketing"], // Optional: Specify which consent categories to show in the banner.
-  overrides: {
-    country: 'GB', // Useful for development to always view the banner.
-  }
-});
-
-store.getState().setConsent("marketing", true); // set consent to marketing
-store.getState().showPopup; 
-`;
-			break;
-		}
-		case 'offline': {
-			configContent = `
-import {
-  type ConsentManagerOptions,
-  configureConsentManager,
-  createConsentManagerStore
-} from "c15t";
-
-export const consentManager = configureConsentManager({ mode: "offline" });
-export const store = createConsentManagerStore(consentManager, {
-  initialGdprTypes: ["necessary", "marketing"], // Optional: Specify which consent categories to show in the banner.
-});
-
-store.getState().setConsent("marketing", true); // set consent to marketing
-store.getState().showPopup; // should show popup?
-      
-`;
-			break;
-		}
-		case 'custom': {
-			configContent = `import {
-  type ConsentManagerOptions,
-  configureConsentManager,
-  createConsentManagerStore
-} from "c15t";
-
-export const consentManager = configureConsentManager({ mode: "custom", endpointHandlers: createCustomHandlers(), });
-export const store = createConsentManagerStore(consentManager, {
-  initialGdprTypes: ["necessary", "marketing"], // Optional: Specify which consent categories to show in the banner.
-  overrides: {
-    country: 'GB', // Useful for development to always view the banner.
-  }
-});
-
-store.getState().setConsent("marketing", true); // set consent to marketing
-store.getState().showPopup; // should show popup?
-`;
-			break;
-		}
-		default: {
-			logger?.failed(
-				`Invalid mode: ${mode}. Valid modes are: ${validModes.join(', ')}`
-			);
-		}
+		case STORAGE_MODES.C15T:
+			return generateC15tConfig(backendURL, useEnvFile);
+		case STORAGE_MODES.OFFLINE:
+			return generateOfflineConfig();
+		case STORAGE_MODES.SELF_HOSTED:
+			return generateSelfHostedConfig(backendURL, useEnvFile);
+		case STORAGE_MODES.CUSTOM:
+			return generateCustomConfig(backendURL, useEnvFile);
+		default:
+			return generateOfflineConfig();
 	}
+}
 
-	return configContent;
+/**
+ * c15t cloud mode config
+ */
+function generateC15tConfig(backendURL?: string, useEnvFile?: boolean): string {
+	const url = useEnvFile
+		? 'process.env.NEXT_PUBLIC_C15T_URL'
+		: `'${backendURL || 'https://your-instance.c15t.dev'}'`;
+
+	return `import {
+	type ConsentManagerOptions,
+	configureConsentManager,
+	createConsentManagerStore
+} from 'c15t';
+
+/**
+ * c15t Cloud Mode Configuration
+ *
+ * Consent data is stored securely on consent.io
+ */
+export const consentManager = configureConsentManager({
+	mode: 'c15t',
+	backendURL: ${url},
+});
+
+export const store = createConsentManagerStore(consentManager, {
+	// Consent categories to show in the banner
+	initialGdprTypes: ['necessary', 'analytics', 'marketing'],
+});
+`;
+}
+
+/**
+ * Offline/browser-only mode config
+ */
+function generateOfflineConfig(): string {
+	return `import {
+	type ConsentManagerOptions,
+	configureConsentManager,
+	createConsentManagerStore
+} from 'c15t';
+
+/**
+ * Browser-Only Mode Configuration
+ *
+ * Consent data is stored in browser cookies/localStorage
+ * No server required - fully client-side
+ */
+export const consentManager = configureConsentManager({
+	mode: 'offline',
+});
+
+export const store = createConsentManagerStore(consentManager, {
+	// Consent categories to show in the banner
+	initialGdprTypes: ['necessary', 'analytics', 'marketing'],
+});
+`;
+}
+
+/**
+ * Self-hosted mode config
+ */
+function generateSelfHostedConfig(
+	backendURL?: string,
+	useEnvFile?: boolean
+): string {
+	const url = useEnvFile
+		? 'process.env.NEXT_PUBLIC_C15T_URL'
+		: `'${backendURL || 'http://localhost:3001'}'`;
+
+	return `import {
+	type ConsentManagerOptions,
+	configureConsentManager,
+	createConsentManagerStore
+} from 'c15t';
+
+/**
+ * Self-Hosted Mode Configuration
+ *
+ * Run your own c15t backend server
+ */
+export const consentManager = configureConsentManager({
+	mode: 'c15t', // Uses the same API as c15t cloud
+	backendURL: ${url},
+});
+
+export const store = createConsentManagerStore(consentManager, {
+	// Consent categories to show in the banner
+	initialGdprTypes: ['necessary', 'analytics', 'marketing'],
+});
+`;
+}
+
+/**
+ * Custom backend mode config
+ */
+function generateCustomConfig(
+	backendURL?: string,
+	useEnvFile?: boolean
+): string {
+	const url = useEnvFile
+		? 'process.env.NEXT_PUBLIC_CONSENT_API_URL'
+		: `'${backendURL || '/api/consent'}'`;
+
+	return `import {
+	type ConsentManagerOptions,
+	configureConsentManager,
+	createConsentManagerStore,
+	type EndpointHandlers
+} from 'c15t';
+
+/**
+ * Custom endpoint handlers
+ * Implement these to connect to your existing consent API
+ */
+function createCustomHandlers(): EndpointHandlers {
+	return {
+		// Get current consent state
+		async getConsent() {
+			const response = await fetch(${url});
+			return response.json();
+		},
+		// Save consent state
+		async setConsent(consent) {
+			const response = await fetch(${url}, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(consent),
+			});
+			return response.json();
+		},
+	};
+}
+
+/**
+ * Custom Backend Mode Configuration
+ *
+ * Connect to your existing consent management API
+ */
+export const consentManager = configureConsentManager({
+	mode: 'custom',
+	endpointHandlers: createCustomHandlers(),
+});
+
+export const store = createConsentManagerStore(consentManager, {
+	// Consent categories to show in the banner
+	initialGdprTypes: ['necessary', 'analytics', 'marketing'],
+});
+`;
+}
+
+/**
+ * Get the config file path
+ */
+export function getConfigFilePath(): string {
+	return 'c15t.config.ts';
 }

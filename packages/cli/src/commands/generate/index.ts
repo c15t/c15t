@@ -1,3 +1,15 @@
+/**
+ * Generate command - sets up c15t in a project
+ *
+ * This command:
+ * 1. Runs pre-flight checks
+ * 2. Prompts for storage mode selection
+ * 3. Configures the selected mode
+ * 4. Generates necessary files
+ * 5. Installs dependencies
+ * 6. Displays next steps
+ */
+
 import path from 'node:path';
 import * as p from '@clack/prompts';
 import open from 'open';
@@ -7,25 +19,38 @@ import {
 	detectProjectRoot,
 } from '~/context/framework-detection';
 import type { PackageManagerResult } from '~/context/package-manager-detection';
-import type { CliContext } from '~/context/types';
+import type { CliCommand, CliContext } from '~/context/types';
 import { TelemetryEventName } from '~/utils/telemetry';
+import type { StorageMode } from '../../constants';
+import { STORAGE_MODES, URLS } from '../../constants';
 import { setupC15tMode } from './options/c15t-mode';
 import { setupCustomMode } from './options/custom-mode';
 import { setupOfflineMode } from './options/offline-mode';
 import { setupSelfHostedMode } from './options/self-hosted-mode';
 import type { BaseOptions } from './options/types';
 import { getManualInstallCommand } from './options/utils/dependencies';
+import { displayPreflightFailure, runPreflightChecks } from './preflight';
+import { explainMode, promptForInstance, promptForMode } from './prompts';
+import {
+	displayCompletionSummary,
+	displayExecutionPlan,
+	promptGitHubStar,
+} from './summary';
 
 const WINDOWS_PATH_SEPARATOR_REGEX = /\\/g;
 const FILE_EXTENSION_REGEX = /\.(ts|js|tsx|jsx)$/;
 
 /**
- * Generate command - loads config, allows updating via onboarding, then generates artifacts.
+ * Generate command action
  */
-export async function generate(context: CliContext, mode?: string) {
-	const { logger, telemetry } = context;
+async function generateAction(context: CliContext): Promise<void> {
+	const { logger, telemetry, commandArgs } = context;
+
+	// Check if mode was passed as argument
+	const modeArg = commandArgs[0] as StorageMode | undefined;
+
 	logger.debug('Starting generate command...');
-	logger.debug(`Mode: ${mode}`);
+	logger.debug(`Mode arg: ${modeArg}`);
 
 	const handleCancel = (value: unknown): value is symbol => {
 		if (p.isCancel(value)) {
@@ -43,13 +68,20 @@ export async function generate(context: CliContext, mode?: string) {
 	};
 
 	try {
+		// Run pre-flight checks
+		const preflightResult = await runPreflightChecks(context);
+		if (!preflightResult.passed) {
+			displayPreflightFailure(context, preflightResult);
+			return;
+		}
+
 		logger.info('Starting onboarding process...');
 		telemetry.trackEvent(TelemetryEventName.ONBOARDING_STARTED, {});
 		telemetry.flushSync();
 
-		await performOnboarding(context, handleCancel, mode);
+		await performOnboarding(context, handleCancel, modeArg);
 
-		logger.success('🚀 Setup completed successfully!');
+		logger.success('Setup completed successfully!');
 	} catch (error) {
 		if (!p.isCancel(error)) {
 			telemetry.trackEvent(TelemetryEventName.ONBOARDING_COMPLETED, {
@@ -57,7 +89,19 @@ export async function generate(context: CliContext, mode?: string) {
 				error: error instanceof Error ? error.message : String(error),
 			});
 		}
+		throw error;
 	}
+}
+
+/**
+ * Legacy generate function for backwards compatibility
+ */
+export async function generate(context: CliContext, mode?: string) {
+	// Set the mode in commandArgs if provided
+	if (mode) {
+		context.commandArgs = [mode];
+	}
+	return generateAction(context);
 }
 
 /**
@@ -352,3 +396,15 @@ If you find this useful, we'd really appreciate a GitHub star - it helps others 
 		}
 	}
 }
+
+/**
+ * Generate command definition
+ */
+export const generateCommand: CliCommand = {
+	name: 'generate',
+	label: 'Generate',
+	hint: 'Add c15t to your project (Recommended)',
+	description:
+		'Set up c15t consent management in your project with interactive configuration',
+	action: generateAction,
+};

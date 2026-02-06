@@ -13,9 +13,9 @@ import {
 	SyntaxKind,
 } from 'ts-morph';
 import type { AvailablePackages } from '~/context/framework-detection';
+import type { StorageMode } from '../../../constants';
 import { updateNextLayout } from './next';
 import { generateConsentManagerTemplate } from './react/components';
-import { generateOptionsText } from './shared/options';
 
 interface UpdateReactLayoutOptions {
 	projectRoot: string;
@@ -206,7 +206,9 @@ function wrapReturnStatementWithConsentManager(
  *
  * @param projectRoot - Root directory of the project
  * @param sourceDir - Source directory path (either 'src' or '')
- * @param optionsText - Stringified options object for ConsentManagerProvider
+ * @param mode - Storage mode for consent management
+ * @param backendURL - Backend URL for c15t/self-hosted modes
+ * @param useEnvFile - Whether to use environment variables
  * @returns Object containing path to created file
  *
  * @throws {Error} When file cannot be created
@@ -218,12 +220,18 @@ function wrapReturnStatementWithConsentManager(
 async function createConsentManagerComponent(
 	projectRoot: string,
 	sourceDir: string,
-	optionsText: string
+	mode: StorageMode,
+	backendURL?: string,
+	useEnvFile?: boolean
 ): Promise<ComponentFilePaths> {
 	const targetDir = sourceDir ? path.join(projectRoot, sourceDir) : projectRoot;
 
 	// Generate component file content
-	const consentManagerContent = generateConsentManagerTemplate(optionsText);
+	const consentManagerContent = generateConsentManagerTemplate(
+		mode,
+		backendURL,
+		useEnvFile
+	);
 
 	// Define file path
 	const consentManagerPath = path.join(targetDir, 'consent-manager.tsx');
@@ -316,19 +324,13 @@ async function updateGenericReactLayout({
 	}
 
 	try {
-		// Generate options text for the component
-		const optionsText = generateOptionsText(
-			mode,
-			backendURL,
-			useEnvFile,
-			proxyNextjs
-		);
-
 		// Create consent manager component file
 		const componentFiles = await createConsentManagerComponent(
 			projectRoot,
 			sourceDir,
-			optionsText
+			mode as StorageMode,
+			backendURL,
+			useEnvFile
 		);
 
 		// Add import for ConsentManager with correct relative path

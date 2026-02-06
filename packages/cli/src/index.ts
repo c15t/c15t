@@ -1,17 +1,30 @@
 #!/usr/bin/env node
 
+/**
+ * c15t CLI - Consent Management Made Easy
+ *
+ * Main entry point for the CLI. Handles:
+ * - Command routing
+ * - Context creation
+ * - Telemetry
+ * - Help/version display
+ */
+
 import * as p from '@clack/prompts';
 import 'dotenv/config';
 import open from 'open';
 import color from 'picocolors';
 import { showHelpMenu } from './actions/show-help-menu';
-import { generate } from './commands/generate';
+import { generate, generateCommand } from './commands/generate';
 import { selfHost } from './commands/self-host';
 import { displayIntro } from './components/intro';
 
+// Import from new v2 modules
+import { URLS } from './constants';
+
 // Import context creator and types
 import { createCliContext } from './context/creator';
-import { globalFlags } from './context/parser'; // Import flags for help menu
+import { globalFlags } from './context/parser';
 import type { CliCommand } from './context/types';
 import { formatLogMessage } from './utils/logger';
 import { TelemetryEventName } from './utils/telemetry';
@@ -43,10 +56,10 @@ const commands: CliCommand[] = [
 			// Show the same messaging as in onboarding.ts
 			logger.note(
 				`We're building c15t as an ${color.bold('open source')} project to make consent management more accessible.\nIf you find this useful, we'd really appreciate a GitHub star - it helps others discover the project!`,
-				'⭐ Star Us on GitHub'
+				'Star Us on GitHub'
 			);
 
-			await open('https://github.com/c15t/c15t');
+			await open(URLS.GITHUB);
 			logger.success('Thank you for your support!');
 		},
 	},
@@ -57,7 +70,7 @@ const commands: CliCommand[] = [
 		description: 'Open the c15t documentation in your browser.',
 		action: async (context) => {
 			const { logger } = context;
-			await open('https://c15t.com/docs?ref=cli');
+			await open(`${URLS.DOCS}?ref=cli`);
 			logger.success('Documentation opened in your browser.');
 		},
 	},
