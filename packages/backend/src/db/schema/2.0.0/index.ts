@@ -3,7 +3,6 @@ import { auditLogTable } from './audit-log';
 import { consentTable } from './consent';
 import { consentPolicyTable } from './consent-policy';
 import { consentPurposeTable } from './consent-purpose';
-import { consentRecordTable } from './consent-record';
 import { domainTable } from './domain';
 import { subjectTable } from './subject';
 
@@ -16,12 +15,10 @@ export const v2 = schema({
 		consentPurpose: consentPurposeTable,
 		consent: consentTable,
 		auditLog: auditLogTable,
-		consentRecord: consentRecordTable,
 	},
 	relations: {
 		subject: ({ many }) => ({
 			consents: many('consent'),
-			consentRecords: many('consentRecord'),
 			auditLogs: many('auditLog'),
 		}),
 		domain: ({ many }) => ({
@@ -31,15 +28,10 @@ export const v2 = schema({
 			consents: many('consent'),
 		}),
 		consentPurpose: () => ({}),
-		consent: ({ one, many }) => ({
+		consent: ({ one }) => ({
 			subject: one('subject', ['subjectId', 'id']).foreignKey(),
 			domain: one('domain', ['domainId', 'id']).foreignKey(),
 			policy: one('consentPolicy', ['policyId', 'id']).foreignKey(),
-			consentRecords: many('consentRecord'),
-		}),
-		consentRecord: ({ one }) => ({
-			subject: one('subject', ['subjectId', 'id']).foreignKey(),
-			consent: one('consent', ['consentId', 'id']).foreignKey(),
 		}),
 		auditLog: ({ one }) => ({
 			subject: one('subject', ['subjectId', 'id']).foreignKey(),
@@ -51,6 +43,5 @@ export * from './audit-log';
 export * from './consent';
 export * from './consent-policy';
 export * from './consent-purpose';
-export * from './consent-record';
 export * from './domain';
 export * from './subject';

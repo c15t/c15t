@@ -122,10 +122,9 @@ function compressIPv6(ip: string): string {
  * @param ip - The IP address to mask
  * @returns The masked IP address
  */
-export function maskIpAddress(ip: string): string {
-	// Handle 'unknown' or empty
-	if (!ip || ip === 'unknown') {
-		return ip;
+export function maskIpAddress(ip: string | null): string | null {
+	if (!ip) {
+		return null;
 	}
 
 	// IPv4 detection (no colons, has dots)
@@ -172,11 +171,11 @@ export function maskIpAddress(ip: string): string {
 export function getIpAddress(
 	req: Request | Headers,
 	options: C15TOptions
-): string | 'unknown' {
+): string | null {
 	const ipAddressConfig = options.advanced?.ipAddress;
 
-	if (ipAddressConfig?.tracking !== false) {
-		return 'unknown';
+	if (ipAddressConfig?.tracking === false) {
+		return null;
 	}
 
 	const ipHeaders = ipAddressConfig?.ipAddressHeaders || DEFAULT_IP_HEADERS;
@@ -196,5 +195,5 @@ export function getIpAddress(
 		}
 	}
 
-	return 'unknown';
+	return null;
 }

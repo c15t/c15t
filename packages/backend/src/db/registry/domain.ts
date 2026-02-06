@@ -31,10 +31,6 @@ export function domainRegistry({ db, ctx }: Registry) {
 			const domain = await db.create('domain', {
 				id: await generateUniqueId(db, 'domain', ctx),
 				name,
-				description: `Auto-created domain for ${name}`,
-				isActive: true,
-				isVerified: true,
-				allowedOrigins: [],
 			});
 
 			if (!domain) {

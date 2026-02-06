@@ -134,7 +134,7 @@ interface BaseOptions {
 		ipAddress?: {
 			/**
 			 * Enable/disable IP address tracking.
-			 * When disabled, all IP addresses will be stored as 'unknown'.
+			 * When disabled, all IP addresses will be stored as null.
 			 * @default true
 			 */
 			tracking?: boolean;
@@ -251,7 +251,7 @@ export interface C15TContext extends BaseOptions {
 	db: ReturnType<InferFumaDB<typeof LatestDB>['orm']>;
 
 	// Resolved from request
-	ipAddress?: string;
+	ipAddress?: string | null;
 	userAgent?: string;
 	origin?: string;
 	trustedOrigin?: boolean;

@@ -1,9 +1,4 @@
-import {
-	type Consent,
-	type ConsentStatus,
-	consentSchema,
-	consentStatusSchema,
-} from '@c15t/schema';
+import { type Consent, consentSchema } from '@c15t/schema';
 import { column, idColumn, table } from 'fumadb/schema';
 
 export const consentTable = table('consent', {
@@ -15,11 +10,8 @@ export const consentTable = table('consent', {
 	metadata: column('metadata', 'json').nullable(),
 	ipAddress: column('ipAddress', 'string').nullable(),
 	userAgent: column('userAgent', 'string').nullable(),
-	status: column('status', 'string').defaultTo$(() => 'active'),
-	withdrawalReason: column('withdrawalReason', 'string').nullable(),
 	givenAt: column('givenAt', 'timestamp').defaultTo$('now'),
 	validUntil: column('validUntil', 'timestamp').nullable(),
-	isActive: column('isActive', 'bool').defaultTo$(() => true),
 	/** Jurisdiction code (e.g., 'GDPR', 'UK_GDPR', 'CCPA') */
 	jurisdiction: column('jurisdiction', 'string').nullable(),
 	/** Consent model used (e.g., 'opt-in', 'opt-out', 'iab') */
@@ -29,4 +21,4 @@ export const consentTable = table('consent', {
 	tenantId: column('tenantId', 'string').nullable(),
 });
 
-export { consentSchema, consentStatusSchema, type Consent, type ConsentStatus };
+export { consentSchema, type Consent };

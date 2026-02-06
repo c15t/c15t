@@ -12,7 +12,6 @@ export const auditLogTable = table('auditLog', {
 	changes: column('changes', 'json').nullable(),
 	metadata: column('metadata', 'json').nullable(),
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
-	eventTimezone: column('eventTimezone', 'string').defaultTo$(() => 'UTC'),
 	tenantId: column('tenantId', 'string').nullable(),
 });
 

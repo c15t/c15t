@@ -25,10 +25,6 @@ describe('domainRegistry', () => {
 	const createMockDomain = (overrides: Partial<Domain> = {}): Domain => ({
 		id: 'dom_test',
 		name: 'example.com',
-		description: 'Auto-created domain for example.com',
-		allowedOrigins: [],
-		isVerified: true,
-		isActive: true,
 		createdAt: new Date('2024-01-01T00:00:00.000Z'),
 		updatedAt: new Date('2024-01-01T00:00:00.000Z'),
 		...overrides,
@@ -112,8 +108,6 @@ describe('domainRegistry', () => {
 			it('should return existing domain when found', async () => {
 				const mockDomain = createMockDomain({
 					name: 'existing.com',
-					description: 'Existing domain description',
-					isVerified: false,
 				});
 
 				const db = {
@@ -144,7 +138,6 @@ describe('domainRegistry', () => {
 			it('should create and return new domain', async () => {
 				const newMockDomain = createMockDomain({
 					name: 'new.com',
-					description: 'Auto-created domain for new.com',
 				});
 
 				const db = {
@@ -166,10 +159,6 @@ describe('domainRegistry', () => {
 				expect(db.create).toHaveBeenCalledWith('domain', {
 					id: 'dom_test',
 					name: 'new.com',
-					description: 'Auto-created domain for new.com',
-					isActive: true,
-					isVerified: true,
-					allowedOrigins: [],
 				});
 
 				expect(result).toEqual(newMockDomain);
@@ -198,10 +187,6 @@ describe('domainRegistry', () => {
 				expect(db.create).toHaveBeenCalledWith('domain', {
 					id: 'dom_test',
 					name: 'test.org',
-					description: 'Auto-created domain for test.org',
-					isActive: true,
-					isVerified: true,
-					allowedOrigins: [],
 				});
 			});
 
@@ -217,7 +202,6 @@ describe('domainRegistry', () => {
 				for (const domainName of specialDomains) {
 					const mockDomain = createMockDomain({
 						name: domainName,
-						description: `Auto-created domain for ${domainName}`,
 					});
 
 					const db = {
@@ -235,10 +219,6 @@ describe('domainRegistry', () => {
 					expect(db.create).toHaveBeenCalledWith('domain', {
 						id: 'dom_test',
 						name: domainName,
-						description: `Auto-created domain for ${domainName}`,
-						isActive: true,
-						isVerified: true,
-						allowedOrigins: [],
 					});
 
 					expect(result).toEqual(mockDomain);
@@ -285,10 +265,6 @@ describe('domainRegistry', () => {
 				expect(db.create).toHaveBeenCalledWith('domain', {
 					id: 'dom_test',
 					name: 'failed.com',
-					description: 'Auto-created domain for failed.com',
-					isActive: true,
-					isVerified: true,
-					allowedOrigins: [],
 				});
 
 				expect(mockLogger.debug).toHaveBeenCalledWith('Creating new domain', {
@@ -420,7 +396,6 @@ describe('domainRegistry', () => {
 			for (const domainName of edgeCaseDomains) {
 				const mockDomain = createMockDomain({
 					name: domainName,
-					description: `Auto-created domain for ${domainName}`,
 				});
 
 				const db = {
@@ -436,9 +411,6 @@ describe('domainRegistry', () => {
 				const result = await registry.findOrCreateDomain(domainName);
 
 				expect(result.name).toBe(domainName);
-				expect(result.description).toBe(
-					`Auto-created domain for ${domainName}`
-				);
 
 				vi.clearAllMocks();
 			}
@@ -465,10 +437,6 @@ describe('domainRegistry', () => {
 			expect(db.create).toHaveBeenCalledWith('domain', {
 				id: 'dom_test',
 				name: upperCaseDomain,
-				description: `Auto-created domain for ${upperCaseDomain}`,
-				isActive: true,
-				isVerified: true,
-				allowedOrigins: [],
 			});
 
 			expect(result.name).toBe(upperCaseDomain);

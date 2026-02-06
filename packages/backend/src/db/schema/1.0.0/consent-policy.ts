@@ -1,9 +1,3 @@
-import {
-	type ConsentPolicy,
-	consentPolicySchema,
-	type PolicyType,
-	policyTypeSchema,
-} from '@c15t/schema';
 import { column, idColumn, table } from 'fumadb/schema';
 
 export const consentPolicyTable = table('consentPolicy', {
@@ -18,14 +12,3 @@ export const consentPolicyTable = table('consentPolicy', {
 	isActive: column('isActive', 'bool').defaultTo$(() => true),
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
 });
-
-// Re-export for backward compatibility
-export {
-	consentPolicySchema,
-	policyTypeSchema,
-	type ConsentPolicy,
-	type PolicyType,
-};
-
-// Backward compatible alias
-export const PolicyTypeSchema = policyTypeSchema;

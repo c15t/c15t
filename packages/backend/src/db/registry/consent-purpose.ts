@@ -20,11 +20,6 @@ export function consentPurposeRegistry({ db, ctx }: Registry) {
 			const createdPurpose = await db.create('consentPurpose', {
 				id: await generateUniqueId(db, 'consentPurpose', ctx),
 				code,
-				name: code,
-				description: `Auto-created consentPurpose for ${code}`,
-				isActive: true,
-				isEssential: false,
-				legalBasis: 'consent',
 			});
 
 			if (!createdPurpose) {

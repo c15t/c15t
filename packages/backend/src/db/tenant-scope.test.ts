@@ -150,7 +150,6 @@ describe('withTenantScope', () => {
 				id: 'sub_1',
 				externalId: null,
 				identityProvider: 'anonymous',
-				lastIpAddress: '127.0.0.1',
 				isIdentified: false,
 			} as any);
 
@@ -158,7 +157,6 @@ describe('withTenantScope', () => {
 				id: 'sub_1',
 				externalId: null,
 				identityProvider: 'anonymous',
-				lastIpAddress: '127.0.0.1',
 				isIdentified: false,
 				tenantId: 'tenant_abc',
 			});
@@ -319,13 +317,13 @@ describe('withTenantScope', () => {
 
 			await scoped.updateMany('subject', {
 				where: (b: any) => b('id', '=', 'sub_1'),
-				set: { lastIpAddress: '10.0.0.1' },
+				set: { identityProvider: 'google' },
 			});
 
 			const passedOpts = db.updateMany.mock.calls[0][1];
 
 			// Verify set is preserved
-			expect(passedOpts.set).toEqual({ lastIpAddress: '10.0.0.1' });
+			expect(passedOpts.set).toEqual({ identityProvider: 'google' });
 
 			// Verify where includes tenantId
 			const b = createWhereBuilder();
@@ -384,7 +382,7 @@ describe('withTenantScope', () => {
 					externalId: 'ext_1',
 					isIdentified: true,
 				} as any,
-				update: { lastIpAddress: '10.0.0.1' },
+				update: { identityProvider: 'google' },
 			});
 
 			const passedOpts = db.upsert.mock.calls[0][1];
@@ -398,7 +396,7 @@ describe('withTenantScope', () => {
 			});
 
 			// Verify update is preserved
-			expect(passedOpts.update).toEqual({ lastIpAddress: '10.0.0.1' });
+			expect(passedOpts.update).toEqual({ identityProvider: 'google' });
 
 			// Verify where includes tenantId
 			const b = createWhereBuilder();
@@ -542,7 +540,7 @@ describe('withTenantScope – row-level isolation (integration)', () => {
 		const tenantA = withTenantScope(orm, 'tenant_a');
 		const tenantB = withTenantScope(orm, 'tenant_b');
 
-		await tenantA.create('consent', { id: 'cns_1', status: 'active' } as any);
+		await tenantA.create('consent', { id: 'cns_1', subjectId: 'sub_1' } as any);
 
 		const fromA = await tenantA.findFirst('consent', {
 			where: (b: any) => b('id', '=', 'cns_1'),
@@ -576,30 +574,30 @@ describe('withTenantScope – row-level isolation (integration)', () => {
 
 		await tenantA.create('subject', {
 			id: 'sub_1',
-			lastIpAddress: '1.1.1.1',
+			identityProvider: '1.1.1.1',
 		} as any);
 		await tenantB.create('subject', {
 			id: 'sub_2',
-			lastIpAddress: '2.2.2.2',
+			identityProvider: '2.2.2.2',
 		} as any);
 
 		// Tenant A updates all their subjects
 		await tenantA.updateMany('subject', {
 			where: (b: any) => b('id', '=', 'sub_1'),
-			set: { lastIpAddress: '9.9.9.9' },
+			set: { identityProvider: '9.9.9.9' },
 		});
 
 		// Tenant A's row is updated
 		const aRow = await tenantA.findFirst('subject', {
 			where: (b: any) => b('id', '=', 'sub_1'),
 		});
-		expect(aRow!.lastIpAddress).toBe('9.9.9.9');
+		expect(aRow!.identityProvider).toBe('9.9.9.9');
 
 		// Tenant B's row is untouched
 		const bRow = await tenantB.findFirst('subject', {
 			where: (b: any) => b('id', '=', 'sub_2'),
 		});
-		expect(bRow!.lastIpAddress).toBe('2.2.2.2');
+		expect(bRow!.identityProvider).toBe('2.2.2.2');
 	});
 
 	it("deleteMany only deletes the calling tenant's rows", async () => {
@@ -630,9 +628,9 @@ describe('withTenantScope – row-level isolation (integration)', () => {
 			create: {
 				id: 'sub_1',
 				externalId: 'ext_1',
-				lastIpAddress: '1.1.1.1',
+				identityProvider: '1.1.1.1',
 			} as any,
-			update: { lastIpAddress: '9.9.9.9' },
+			update: { identityProvider: '9.9.9.9' },
 		});
 
 		// Tenant B upserts same externalId — should also CREATE (not update A's row)
@@ -641,9 +639,9 @@ describe('withTenantScope – row-level isolation (integration)', () => {
 			create: {
 				id: 'sub_2',
 				externalId: 'ext_1',
-				lastIpAddress: '2.2.2.2',
+				identityProvider: '2.2.2.2',
 			} as any,
-			update: { lastIpAddress: '8.8.8.8' },
+			update: { identityProvider: '8.8.8.8' },
 		});
 
 		const aRows = await tenantA.findMany('subject');
@@ -652,11 +650,11 @@ describe('withTenantScope – row-level isolation (integration)', () => {
 		// Each tenant has their own row, even though externalId is the same
 		expect(aRows).toHaveLength(1);
 		expect(aRows[0]!.id).toBe('sub_1');
-		expect(aRows[0]!.lastIpAddress).toBe('1.1.1.1'); // unchanged
+		expect(aRows[0]!.identityProvider).toBe('1.1.1.1'); // unchanged
 
 		expect(bRows).toHaveLength(1);
 		expect(bRows[0]!.id).toBe('sub_2');
-		expect(bRows[0]!.lastIpAddress).toBe('2.2.2.2'); // created, not updated from A
+		expect(bRows[0]!.identityProvider).toBe('2.2.2.2'); // created, not updated from A
 	});
 
 	it("tenant A cannot update tenant B's row even with matching id", async () => {
@@ -666,20 +664,20 @@ describe('withTenantScope – row-level isolation (integration)', () => {
 
 		await tenantB.create('subject', {
 			id: 'sub_1',
-			lastIpAddress: '2.2.2.2',
+			identityProvider: '2.2.2.2',
 		} as any);
 
 		// Tenant A tries to update sub_1 which belongs to B
 		await tenantA.updateMany('subject', {
 			where: (b: any) => b('id', '=', 'sub_1'),
-			set: { lastIpAddress: 'hacked' },
+			set: { identityProvider: 'hacked' },
 		});
 
 		// B's row is still untouched
 		const bRow = await tenantB.findFirst('subject', {
 			where: (b: any) => b('id', '=', 'sub_1'),
 		});
-		expect(bRow!.lastIpAddress).toBe('2.2.2.2');
+		expect(bRow!.identityProvider).toBe('2.2.2.2');
 	});
 
 	it("tenant A cannot delete tenant B's row even with matching id", async () => {

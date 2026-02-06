@@ -5,9 +5,7 @@ export {
 
 export {
 	type Consent,
-	type ConsentStatus,
 	consentSchema,
-	consentStatusSchema,
 } from './consent';
 
 export {
@@ -21,11 +19,6 @@ export {
 	type ConsentPurpose,
 	consentPurposeSchema,
 } from './consent-purpose';
-
-export {
-	type ConsentRecord,
-	consentRecordSchema,
-} from './consent-record';
 
 export {
 	type Domain,

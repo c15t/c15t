@@ -1,31 +1,9 @@
-import { HTTPException } from 'hono/http-exception';
 import type { PolicyType } from '../schema';
 import type { Registry } from './types';
 import { generateUniqueId } from './utils/generate-id';
 
 export function policyRegistry({ db, ctx }: Registry) {
 	const { logger } = ctx;
-	async function generatePolicyPlaceholder(name: string, date: Date) {
-		const content = `[PLACEHOLDER] This is an automatically generated version of the ${name} policy.\n\nThis placeholder content should be replaced with actual policy terms before being presented to users.\n\nGenerated on: ${date.toISOString()}`;
-
-		let contentHash: string;
-		try {
-			// Use Web Crypto API which is available in both browsers and edge environments
-			const encoder = new TextEncoder();
-			const data = encoder.encode(content);
-			const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-			contentHash = Array.from(new Uint8Array(hashBuffer))
-				.map((b) => b.toString(16).padStart(2, '0'))
-				.join('');
-		} catch {
-			throw new HTTPException(500, {
-				message: 'Failed to generate policy content hash',
-				cause: { code: 'POLICY_CREATION_FAILED', name },
-			});
-		}
-
-		return { content, contentHash };
-	}
 
 	return {
 		findConsentPolicyById: async (policyId: string) => {
@@ -50,21 +28,12 @@ export function policyRegistry({ db, ctx }: Registry) {
 				return existingPolicy;
 			}
 
-			const { content, contentHash } = await generatePolicyPlaceholder(
-				type,
-				new Date()
-			);
-
 			const policy = await db.create('consentPolicy', {
 				id: await generateUniqueId(db, 'consentPolicy', ctx),
 				version: '1.0.0',
 				type,
-				name: type,
 				effectiveDate: new Date(),
-				content,
-				contentHash,
 				isActive: true,
-				expirationDate: null,
 			});
 
 			return policy;

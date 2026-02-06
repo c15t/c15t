@@ -22,12 +22,12 @@ export function subjectRegistry({ db, ctx }: Registry) {
 			subjectId,
 			externalSubjectId,
 			identityProvider,
-			ipAddress = 'unknown',
+			ipAddress = null,
 		}: {
 			subjectId?: string;
 			externalSubjectId?: string;
 			identityProvider?: string;
-			ipAddress?: string;
+			ipAddress?: string | null;
 		}) => {
 			// If subjectId is provided (v2.0 flow), find or create with that ID
 			if (subjectId) {
@@ -42,18 +42,6 @@ export function subjectRegistry({ db, ctx }: Registry) {
 
 				if (existingSubject) {
 					logger.debug('Found existing subject', { subjectId });
-
-					// Update IP address if different
-					if (existingSubject.lastIpAddress !== ipAddress) {
-						await db.updateMany('subject', {
-							where: (b) => b('id', '=', subjectId),
-							set: {
-								lastIpAddress: ipAddress,
-								updatedAt: new Date(),
-							},
-						});
-					}
-
 					return existingSubject;
 				}
 
@@ -68,7 +56,6 @@ export function subjectRegistry({ db, ctx }: Registry) {
 					identityProvider: externalSubjectId
 						? (identityProvider ?? 'external')
 						: 'anonymous',
-					lastIpAddress: ipAddress,
 					isIdentified: !!externalSubjectId,
 				});
 
@@ -89,7 +76,6 @@ export function subjectRegistry({ db, ctx }: Registry) {
 					id: await generateUniqueId(db, 'subject', ctx),
 					externalId: externalSubjectId,
 					identityProvider: identityProvider ?? 'external',
-					lastIpAddress: ipAddress,
 					isIdentified: true,
 				});
 
@@ -102,7 +88,6 @@ export function subjectRegistry({ db, ctx }: Registry) {
 				id: await generateUniqueId(db, 'subject', ctx),
 				externalId: null,
 				identityProvider: 'anonymous',
-				lastIpAddress: ipAddress,
 				isIdentified: false,
 			});
 

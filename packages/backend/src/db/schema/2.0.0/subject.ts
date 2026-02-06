@@ -6,8 +6,6 @@ export const subjectTable = table('subject', {
 	isIdentified: column('isIdentified', 'bool').defaultTo$(() => false),
 	externalId: column('externalId', 'string').nullable(),
 	identityProvider: column('identityProvider', 'string').nullable(),
-	lastIpAddress: column('lastIpAddress', 'string').nullable(),
-	subjectTimezone: column('subjectTimezone', 'string').nullable(),
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
 	updatedAt: column('updatedAt', 'timestamp').defaultTo$('now'),
 	tenantId: column('tenantId', 'string').nullable(),

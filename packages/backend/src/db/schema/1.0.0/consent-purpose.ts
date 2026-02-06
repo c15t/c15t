@@ -1,4 +1,3 @@
-import { type ConsentPurpose, consentPurposeSchema } from '@c15t/schema';
 import { column, idColumn, table } from 'fumadb/schema';
 
 export const consentPurposeTable = table('consentPurpose', {
@@ -13,5 +12,3 @@ export const consentPurposeTable = table('consentPurpose', {
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
 	updatedAt: column('updatedAt', 'timestamp').defaultTo$('now'),
 });
-
-export { consentPurposeSchema, type ConsentPurpose };
