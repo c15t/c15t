@@ -66,6 +66,8 @@ create_nextjs_app() {
     "start": "next start"
   },
   "dependencies": {
+    "@c15t/nextjs": "workspace:*",
+    "@c15t/scripts": "workspace:*",
     "next": "^16.1.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
@@ -171,6 +173,8 @@ create_nextjs_pages() {
     "start": "next start"
   },
   "dependencies": {
+    "@c15t/nextjs": "workspace:*",
+    "@c15t/scripts": "workspace:*",
     "next": "^16.1.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
@@ -262,6 +266,8 @@ create_vite_react() {
     "preview": "vite preview"
   },
   "dependencies": {
+    "@c15t/react": "workspace:*",
+    "@c15t/scripts": "workspace:*",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
@@ -462,19 +468,24 @@ EOF
     cd - > /dev/null
 }
 
-# Install dependencies for all test apps
-install_deps() {
-    print_header "Installing dependencies for all test apps"
+# Check if we're in the c15t monorepo
+is_c15t_monorepo() {
+    [ -f "$(pwd)/package.json" ] && grep -q '"name": "c15t-workspace"' "$(pwd)/package.json"
+}
 
-    for dir in "$TEST_DIR"/*/; do
-        if [ -f "$dir/package.json" ]; then
-            echo "Installing deps in $(basename "$dir")..."
-            cd "$dir"
-            bun install --silent
-            cd - > /dev/null
-            print_success "Installed deps for $(basename "$dir")"
-        fi
-    done
+# Install dependencies via workspace from monorepo root
+install_deps() {
+    print_header "Installing workspace dependencies"
+
+    if ! is_c15t_monorepo; then
+        print_error "Not in c15t monorepo root. Run this script from the monorepo root."
+        exit 1
+    fi
+
+    # Run bun install from monorepo root to resolve workspace:* deps
+    bun install
+
+    print_success "All dependencies installed via workspace"
 }
 
 # Show usage

@@ -8,6 +8,7 @@ import { assign, fromPromise, setup } from 'xstate';
 import type { StorageMode } from '~/constants';
 import type { CliContext } from '~/context/types';
 import {
+	checkDependenciesActor,
 	dependencyInstallActor,
 	getManualInstallCommand,
 } from './actors/dependencies';
@@ -54,6 +55,7 @@ export const generateMachine = setup({
 		frontendOptions: frontendOptionsActor,
 		scriptsOption: scriptsOptionActor,
 		fileGeneration: fileGenerationActor,
+		checkDependencies: checkDependenciesActor,
 		installConfirm: installConfirmActor,
 		dependencyInstall: dependencyInstallActor,
 		rollback: rollbackActor,
@@ -386,9 +388,10 @@ export const generateMachine = setup({
 					enableSSR: context.enableSSR,
 					uiStyle: context.uiStyle,
 					expandedTheme: context.expandedTheme,
+					selectedScripts: context.selectedScripts,
 				}),
 				onDone: {
-					target: 'dependencyConfirm',
+					target: 'dependencyCheck',
 					actions: assign({
 						filesCreated: ({ event }) => event.output.filesCreated,
 						filesModified: ({ event }) => event.output.filesModified,
@@ -406,6 +409,28 @@ export const generateMachine = setup({
 							},
 						],
 					}),
+				},
+			},
+		},
+
+		/**
+		 * Check which dependencies are already installed
+		 */
+		dependencyCheck: {
+			invoke: {
+				src: 'checkDependencies',
+				input: ({ context }) => ({
+					projectRoot: context.cliContext!.projectRoot,
+					dependencies: context.dependenciesToAdd,
+				}),
+				onDone: {
+					target: 'dependencyConfirm',
+					actions: assign({
+						dependenciesToAdd: ({ event }) => event.output.missing,
+					}),
+				},
+				onError: {
+					target: 'dependencyConfirm',
 				},
 			},
 		},

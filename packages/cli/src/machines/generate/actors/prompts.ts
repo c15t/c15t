@@ -274,21 +274,33 @@ export const frontendOptionsActor = fromPromise<
 	let uiStyle: UIStyle = 'prebuilt';
 	let expandedTheme: ExpandedTheme | undefined;
 
-	// Next.js: SSR (only with backend) + UI style + theme
+	// Next.js: SSR (only with backend + App Router) + UI style + theme
 	if (pkg === '@c15t/nextjs') {
-		// SSR only makes sense when there's a backend
+		// SSR only makes sense when there's a backend and App Router
 		if (hasBackend) {
-			const ssrResult = await p.confirm({
-				message:
-					'Fetch initial data server-side? (geo-location, jurisdiction, translations)',
-				initialValue: true,
-			});
+			const { existsSync } = await import('node:fs');
+			const { join } = await import('node:path');
+			const projectRoot = cliContext.projectRoot;
+			const isAppRouter = [
+				'app/layout.tsx',
+				'src/app/layout.tsx',
+				'app/layout.ts',
+				'src/app/layout.ts',
+			].some((p) => existsSync(join(projectRoot, p)));
 
-			if (isCancel(ssrResult)) {
-				throw new PromptCancelledError('ssr_option');
+			if (isAppRouter) {
+				const ssrResult = await p.confirm({
+					message:
+						'Start fetching consent data on the server and stream to client? (Recommended for faster banner loads)',
+					initialValue: true,
+				});
+
+				if (isCancel(ssrResult)) {
+					throw new PromptCancelledError('ssr_option');
+				}
+
+				enableSSR = ssrResult as boolean;
 			}
-
-			enableSSR = ssrResult as boolean;
 		}
 
 		// UI style prompt
@@ -511,7 +523,7 @@ export const scriptsOptionActor = fromPromise<
 
 	const addScripts = await p.confirm({
 		message: 'Add @c15t/scripts for third-party script management?',
-		initialValue: false,
+		initialValue: true,
 	});
 
 	if (isCancel(addScripts)) {
@@ -519,31 +531,29 @@ export const scriptsOptionActor = fromPromise<
 	}
 
 	if (!addScripts) {
-		return { addScripts: false, selectedScripts: [] };
+		return {
+			addScripts: false,
+			selectedScripts: [],
+		};
 	}
 
-	// Show multi-select for available scripts
-	cliContext.logger.info(
-		'Select the scripts you want to pre-configure (you can add more later):'
-	);
-
-	const selectedScripts = await p.multiselect({
-		message: 'Which scripts do you need?',
-		options: AVAILABLE_SCRIPTS.map((script) => ({
-			value: script.value,
-			label: script.label,
-			hint: script.hint,
+	const selected = await p.multiselect({
+		message: 'Which scripts do you want to add?',
+		options: AVAILABLE_SCRIPTS.map((s) => ({
+			value: s.value,
+			label: s.label,
+			hint: s.hint,
 		})),
 		required: false,
 	});
 
-	if (isCancel(selectedScripts)) {
+	if (isCancel(selected)) {
 		throw new PromptCancelledError('scripts_selection');
 	}
 
 	return {
 		addScripts: true,
-		selectedScripts: (selectedScripts as AvailableScript[]) ?? [],
+		selectedScripts: selected as AvailableScript[],
 	};
 });
 

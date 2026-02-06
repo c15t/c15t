@@ -3,7 +3,6 @@
  */
 
 import { STORAGE_MODES, type StorageMode } from '../../../constants';
-import type { GenerateOptions } from '../../../types';
 
 /**
  * Generate the consent manager configuration based on storage mode
@@ -180,11 +179,4 @@ export const store = createConsentManagerStore(consentManager, {
 	initialGdprTypes: ['necessary', 'analytics', 'marketing'],
 });
 `;
-}
-
-/**
- * Get the config file path
- */
-export function getConfigFilePath(): string {
-	return 'c15t.config.ts';
 }

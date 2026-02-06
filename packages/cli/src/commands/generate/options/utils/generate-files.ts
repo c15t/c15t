@@ -26,6 +26,7 @@ export interface GenerateFilesOptions extends BaseOptions {
 	enableSSR?: boolean;
 	uiStyle?: UIStyle;
 	expandedTheme?: ExpandedTheme;
+	selectedScripts?: string[];
 }
 
 export interface GenerateFilesResult {
@@ -66,6 +67,7 @@ async function handleReactLayout(options: {
 	enableSSR?: boolean;
 	uiStyle?: UIStyle;
 	expandedTheme?: ExpandedTheme;
+	selectedScripts?: string[];
 	spinner: ReturnType<typeof p.spinner>;
 	cwd: string;
 }): Promise<{ layoutUpdated: boolean; layoutPath: string | null }> {
@@ -78,6 +80,7 @@ async function handleReactLayout(options: {
 		enableSSR,
 		uiStyle,
 		expandedTheme,
+		selectedScripts,
 		pkg,
 		spinner,
 		cwd,
@@ -92,6 +95,7 @@ async function handleReactLayout(options: {
 		enableSSR,
 		uiStyle,
 		expandedTheme,
+		selectedScripts,
 		pkg,
 	});
 
@@ -303,6 +307,7 @@ export async function generateFiles({
 	enableSSR,
 	uiStyle,
 	expandedTheme,
+	selectedScripts,
 }: GenerateFilesOptions): Promise<GenerateFilesResult> {
 	const result: GenerateFilesResult = {
 		layoutUpdated: false,
@@ -323,6 +328,7 @@ export async function generateFiles({
 			enableSSR,
 			uiStyle,
 			expandedTheme,
+			selectedScripts,
 			pkg,
 			spinner,
 			cwd: context.cwd,

@@ -23,6 +23,7 @@ export interface FileGenerationInput {
 	enableSSR: boolean;
 	uiStyle: UIStyle;
 	expandedTheme: ExpandedTheme | null;
+	selectedScripts: string[];
 }
 
 /**
@@ -80,6 +81,7 @@ export const fileGenerationActor = fromPromise<
 		enableSSR,
 		uiStyle,
 		expandedTheme,
+		selectedScripts,
 	} = input;
 
 	const filesCreated: string[] = [];
@@ -148,6 +150,7 @@ export const fileGenerationActor = fromPromise<
 			enableSSR,
 			uiStyle,
 			expandedTheme: expandedTheme ?? undefined,
+			selectedScripts,
 		});
 
 		// Record paths

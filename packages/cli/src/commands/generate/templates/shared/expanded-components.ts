@@ -1,86 +1,26 @@
 /**
- * Expanded component file generators for Next.js App Directory
+ * Expanded component file generators
  * Generates separate files in consent-manager/ directory:
- * - index.tsx (client provider wrapper)
- * - cookie-banner.tsx (compound components)
+ * - provider.tsx (client provider wrapper)
+ * - consent-banner.tsx (compound components)
+ * - preference-center.tsx (compound component dialog)
  * - theme.ts (theme preset)
+ *
+ * Parameterized by FrameworkConfig so it can be reused across
+ * Next.js App Router, TanStack Start, and other RSC frameworks.
  */
 
-import type { ExpandedTheme } from '../../../prompts/expanded-theme';
-
-interface GenerateExpandedServerComponentOptions {
-	enableSSR: boolean;
-	backendURLValue: string;
-}
+import type { ExpandedTheme } from '../../prompts/expanded-theme';
+import type { FrameworkConfig } from './framework-config';
 
 interface GenerateExpandedProviderOptions {
 	enableSSR: boolean;
 	optionsText: string;
+	framework: FrameworkConfig;
 }
 
 /**
- * Generates the server-side consent-manager.tsx component template for expanded mode
- *
- * @param options - Template generation options
- * @returns The complete server component file content
- */
-export function generateExpandedServerComponent({
-	enableSSR,
-	backendURLValue,
-}: GenerateExpandedServerComponentOptions): string {
-	if (enableSSR) {
-		return `import { fetchInitialData } from '@c15t/nextjs';
-import type { ReactNode } from 'react';
-import ConsentManagerProvider from './provider';
-
-/**
- * Server-side rendered consent management wrapper for Next.js App Router
- *
- * This component pre-fetches consent data on the server for faster hydration.
- * The fetchInitialData() function uses Next.js headers() API, which means:
- * - The route will be dynamically rendered (not statically generated)
- * - Works in server components and dynamic routes
- *
- * @see https://c15t.com/docs/frameworks/nextjs/ssr
- */
-export function ConsentManager({ children }: { children: ReactNode }) {
-	const ssrData = fetchInitialData({
-		backendURL: ${backendURLValue},
-	});
-
-	return (
-		<ConsentManagerProvider ssrData={ssrData}>
-			{children}
-		</ConsentManagerProvider>
-	);
-}
-`;
-	}
-
-	return `import type { ReactNode } from 'react';
-import ConsentManagerProvider from './provider';
-
-/**
- * Consent management wrapper for Next.js App Router (client-side only)
- *
- * This component uses client-side data fetching. Use this pattern when:
- * - Your site uses static generation (generateStaticParams)
- * - You want to avoid the headers() dynamic API
- *
- * @see https://c15t.com/docs/frameworks/nextjs
- */
-export function ConsentManager({ children }: { children: ReactNode }) {
-	return (
-		<ConsentManagerProvider>
-			{children}
-		</ConsentManagerProvider>
-	);
-}
-`;
-}
-
-/**
- * Generates the client-side consent-manager/index.tsx provider template
+ * Generates the client-side consent-manager/provider.tsx template
  *
  * @param options - Template generation options
  * @returns The complete client provider file content
@@ -88,6 +28,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 export function generateExpandedProviderTemplate({
 	enableSSR,
 	optionsText,
+	framework,
 }: GenerateExpandedProviderOptions): string {
 	const propsInterface = enableSSR
 		? `interface Props {
@@ -103,7 +44,7 @@ export function generateExpandedProviderTemplate({
 		: '{ children }: Props';
 
 	const typeImports = enableSSR
-		? `import type { InitialDataPromise } from '@c15t/nextjs';`
+		? `import type { InitialDataPromise } from '${framework.importSource}';`
 		: '';
 
 	const ssrDataOption = enableSSR ? '\n\t\t\t\tssrData,' : '';
@@ -111,9 +52,9 @@ export function generateExpandedProviderTemplate({
 	return `'use client';
 
 import type { ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from '${framework.importSource}';
 ${typeImports}
-import CookieBanner from './cookie-banner';
+import ConsentBanner from './consent-banner';
 import PreferenceCenter from './preference-center';
 import { theme } from './theme';
 
@@ -128,11 +69,11 @@ ${propsInterface}
  * - Preference center dialog (using compound components)${enableSSR ? '\n * - SSR data hydration' : ''}
  *
  * Customize the appearance by editing:
- * - ./cookie-banner.tsx - Banner layout and structure
+ * - ./consent-banner.tsx - Banner layout and structure
  * - ./preference-center.tsx - Dialog layout and structure
  * - ./theme.ts - Colors, typography, and styling
  *
- * @see https://c15t.com/docs/frameworks/nextjs/customization
+ * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/customization
  */
 export default function ConsentManagerClient(${propsDestructure}) {
 	return (
@@ -150,7 +91,7 @@ export default function ConsentManagerClient(${propsDestructure}) {
 				// },
 			}}
 		>
-			<CookieBanner />
+			<ConsentBanner />
 			<PreferenceCenter />
 			{children}
 		</ConsentManagerProvider>
@@ -162,13 +103,16 @@ export default function ConsentManagerClient(${propsDestructure}) {
 /**
  * Generates the preference-center.tsx component using compound components
  *
+ * @param framework - Framework-specific configuration
  * @returns The complete preference center file content
  */
-export function generateExpandedPreferenceCenterTemplate(): string {
+export function generateExpandedPreferenceCenterTemplate(
+	framework: FrameworkConfig
+): string {
 	return `'use client';
 
-import { ConsentManagerWidget } from '@c15t/nextjs';
-import { ConsentManagerDialog } from '@c15t/nextjs/consent-manager-dialog';
+import { ConsentWidget } from '${framework.importSource}';
+import { ConsentDialog } from '${framework.consentDialogImport}';
 
 /**
  * Consent preference center using compound components
@@ -177,46 +121,49 @@ import { ConsentManagerDialog } from '@c15t/nextjs/consent-manager-dialog';
  * You can rearrange, remove, or add new elements as needed.
  *
  * Available components:
- * - ConsentManagerDialog.Root - Container that handles visibility and animations
- * - ConsentManagerDialog.Overlay - Background overlay
- * - ConsentManagerDialog.Card - The dialog card styling wrapper
- * - ConsentManagerDialog.Header - Container for title and description
- * - ConsentManagerDialog.HeaderTitle - The dialog title text
- * - ConsentManagerDialog.HeaderDescription - Description text
- * - ConsentManagerDialog.Content - Main content area
- * - ConsentManagerDialog.Footer - Container for action buttons
- * - ConsentManagerWidget - The consent categories/purposes widget
+ * - ConsentDialog.Root - Container that handles visibility and animations
+ * - ConsentDialog.Overlay - Background overlay
+ * - ConsentDialog.Card - The dialog card styling wrapper
+ * - ConsentDialog.Header - Container for title and description
+ * - ConsentDialog.HeaderTitle - The dialog title text
+ * - ConsentDialog.HeaderDescription - Description text
+ * - ConsentDialog.Content - Main content area
+ * - ConsentDialog.Footer - Container for action buttons
+ * - ConsentWidget - The consent categories/purposes widget
  *
- * @see https://c15t.com/docs/frameworks/nextjs/consent-manager-dialog
+ * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/consent-dialog
  */
-export default function PreferenceCenter() {
+export default function () {
 	return (
-		<ConsentManagerDialog.Root>
-			<ConsentManagerDialog.Card>
-				<ConsentManagerDialog.Header>
-					<ConsentManagerDialog.HeaderTitle />
-					<ConsentManagerDialog.HeaderDescription />
-				</ConsentManagerDialog.Header>
-				<ConsentManagerDialog.Content>
-					<ConsentManagerWidget />
-				</ConsentManagerDialog.Content>
-				<ConsentManagerDialog.Footer />
-			</ConsentManagerDialog.Card>
-		</ConsentManagerDialog.Root>
+		<ConsentDialog.Root>
+			<ConsentDialog.Card>
+				<ConsentDialog.Header>
+					<ConsentDialog.HeaderTitle />
+					<ConsentDialog.HeaderDescription />
+				</ConsentDialog.Header>
+				<ConsentDialog.Content>
+					<ConsentWidget />
+				</ConsentDialog.Content>
+				<ConsentDialog.Footer />
+			</ConsentDialog.Card>
+		</ConsentDialog.Root>
 	);
 }
 `;
 }
 
 /**
- * Generates the cookie-banner.tsx component using compound components
+ * Generates the consent-banner.tsx component using compound components
  *
+ * @param framework - Framework-specific configuration
  * @returns The complete cookie banner file content
  */
-export function generateExpandedCookieBannerTemplate(): string {
+export function generateExpandedConsentBannerTemplate(
+	framework: FrameworkConfig
+): string {
 	return `'use client';
 
-import { CookieBanner } from '@c15t/nextjs/cookie-banner';
+import { ConsentBanner } from '${framework.consentBannerImport}';
 
 /**
  * Cookie consent banner using compound components
@@ -225,38 +172,38 @@ import { CookieBanner } from '@c15t/nextjs/cookie-banner';
  * You can rearrange, remove, or add new elements as needed.
  *
  * Available components:
- * - CookieBanner.Root - Container that handles visibility and animations
- * - CookieBanner.Card - The banner card styling wrapper
- * - CookieBanner.Header - Container for title and description
- * - CookieBanner.Title - The banner title text
- * - CookieBanner.Description - Description text with optional legal links
- * - CookieBanner.Footer - Container for buttons
- * - CookieBanner.FooterSubGroup - Groups buttons together
- * - CookieBanner.AcceptButton - Accept all button
- * - CookieBanner.RejectButton - Reject all button
- * - CookieBanner.CustomizeButton - Opens preferences dialog
+ * - ConsentBanner.Root - Container that handles visibility and animations
+ * - ConsentBanner.Card - The banner card styling wrapper
+ * - ConsentBanner.Header - Container for title and description
+ * - ConsentBanner.Title - The banner title text
+ * - ConsentBanner.Description - Description text with optional legal links
+ * - ConsentBanner.Footer - Container for buttons
+ * - ConsentBanner.FooterSubGroup - Groups buttons together
+ * - ConsentBanner.AcceptButton - Accept all button
+ * - ConsentBanner.RejectButton - Reject all button
+ * - ConsentBanner.CustomizeButton - Opens preferences dialog
  *
- * @see https://c15t.com/docs/frameworks/nextjs/cookie-banner
+ * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/consent-banner
  */
 export default function () {
 	return (
-		<CookieBanner.Root>
-			<CookieBanner.Card>
-				<CookieBanner.Header>
-					<CookieBanner.Title />
-					<CookieBanner.Description
+		<ConsentBanner.Root>
+			<ConsentBanner.Card>
+				<ConsentBanner.Header>
+					<ConsentBanner.Title />
+					<ConsentBanner.Description
 						legalLinks={['privacyPolicy', 'termsOfService']}
 					/>
-				</CookieBanner.Header>
-				<CookieBanner.Footer>
-					<CookieBanner.FooterSubGroup>
-						<CookieBanner.RejectButton />
-						<CookieBanner.AcceptButton />
-					</CookieBanner.FooterSubGroup>
-					<CookieBanner.CustomizeButton />
-				</CookieBanner.Footer>
-			</CookieBanner.Card>
-		</CookieBanner.Root>
+				</ConsentBanner.Header>
+				<ConsentBanner.Footer>
+					<ConsentBanner.FooterSubGroup>
+						<ConsentBanner.RejectButton />
+						<ConsentBanner.AcceptButton />
+					</ConsentBanner.FooterSubGroup>
+					<ConsentBanner.CustomizeButton />
+				</ConsentBanner.Footer>
+			</ConsentBanner.Card>
+		</ConsentBanner.Root>
 	);
 }
 `;
@@ -266,23 +213,27 @@ export default function () {
  * Generates the theme.ts file with the selected theme preset
  *
  * @param theme - The selected theme preset
+ * @param framework - Framework-specific configuration
  * @returns The complete theme file content
  */
-export function generateExpandedThemeTemplate(theme: ExpandedTheme): string {
+export function generateExpandedThemeTemplate(
+	theme: ExpandedTheme,
+	framework: FrameworkConfig
+): string {
 	switch (theme) {
 		case 'tailwind':
-			return generateTailwindTheme();
+			return generateTailwindTheme(framework);
 		case 'minimal':
-			return generateMinimalTheme();
+			return generateMinimalTheme(framework);
 		case 'dark':
-			return generateDarkTheme();
+			return generateDarkTheme(framework);
 		default:
-			return generateTailwindTheme();
+			return generateTailwindTheme(framework);
 	}
 }
 
-function generateTailwindTheme(): string {
-	return `import type { Theme } from '@c15t/nextjs';
+function generateTailwindTheme(framework: FrameworkConfig): string {
+	return `import type { Theme } from '${framework.importSource}';
 
 /**
  * Tailwind Theme
@@ -334,8 +285,8 @@ export const theme: Theme = {
 `;
 }
 
-function generateMinimalTheme(): string {
-	return `import type { Theme } from '@c15t/nextjs';
+function generateMinimalTheme(framework: FrameworkConfig): string {
+	return `import type { Theme } from '${framework.importSource}';
 
 /**
  * Minimal Theme
@@ -437,8 +388,8 @@ export const theme: Theme = {
 `;
 }
 
-function generateDarkTheme(): string {
-	return `import type { Theme } from '@c15t/nextjs';
+function generateDarkTheme(framework: FrameworkConfig): string {
+	return `import type { Theme } from '${framework.importSource}';
 
 /**
  * Dark Mode Theme

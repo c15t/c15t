@@ -30,14 +30,15 @@
 export function getBackendURLValue(
 	backendURL?: string,
 	useEnvFile?: boolean,
-	proxyNextjs?: boolean
+	proxyNextjs?: boolean,
+	envVarPrefix = 'NEXT_PUBLIC'
 ): string {
 	if (proxyNextjs) {
 		return '"/api/c15t"';
 	}
 
 	if (useEnvFile) {
-		return 'process.env.NEXT_PUBLIC_C15T_URL!';
+		return `process.env.${envVarPrefix}_C15T_URL!`;
 	}
 
 	return `'${backendURL || 'https://your-instance.c15t.dev'}'`;
@@ -46,10 +47,13 @@ export function getBackendURLValue(
 /**
  * Generates the inner options text for ConsentManagerProvider based on mode and configuration
  *
- * @param mode - The storage mode ('c15t', 'offline', or 'custom')
- * @param backendURL - URL for the c15t backend/API (for 'c15t' mode)
+ * @param mode - The storage mode ('c15t', 'self-hosted', 'offline', or 'custom')
+ * @param backendURL - URL for the c15t backend/API (for 'c15t'/'self-hosted' modes)
  * @param useEnvFile - Whether to use environment variable for backendURL
  * @param proxyNextjs - Whether to use Next.js API proxy for c15t mode
+ * @param inlineCustomHandlers - When true, generates inline fetch-based endpoint handlers
+ *   for 'custom' mode instead of referencing createCustomHandlers(). Used by React templates
+ *   that don't generate a separate handlers file.
  * @returns The formatted options content (without outer braces) as a string
  *
  * @remarks
@@ -67,75 +71,47 @@ export function generateOptionsText(
 	mode: string,
 	backendURL?: string,
 	useEnvFile?: boolean,
-	proxyNextjs?: boolean
+	proxyNextjs?: boolean,
+	inlineCustomHandlers?: boolean,
+	envVarPrefix = 'NEXT_PUBLIC'
 ): string {
 	switch (mode) {
-		case 'c15t': {
+		case 'c15t':
+		case 'self-hosted': {
 			const backendURLValue = getBackendURLValue(
 				backendURL,
 				useEnvFile,
-				proxyNextjs
+				proxyNextjs,
+				envVarPrefix
 			);
 			return `mode: 'c15t',
 				backendURL: ${backendURLValue},`;
 		}
-		case 'custom':
+		case 'custom': {
+			if (inlineCustomHandlers) {
+				const url = useEnvFile
+					? `process.env.${envVarPrefix}_CONSENT_API_URL`
+					: `'${backendURL || '/api/consent'}'`;
+				return `mode: 'custom',
+			endpointHandlers: {
+				async getConsent() {
+					const res = await fetch(${url});
+					return res.json();
+				},
+				async setConsent(consent) {
+					const res = await fetch(${url}, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(consent),
+					});
+					return res.json();
+				},
+			},`;
+			}
 			return `mode: 'custom',
 				endpointHandlers: createCustomHandlers(),`;
+		}
 		default:
 			return `mode: 'offline',`;
 	}
-}
-
-/**
- * Generates the options text with outer braces (for inline usage)
- *
- * @deprecated Use generateOptionsText for new templates that separate server/client
- * @param mode - The storage mode
- * @param backendURL - URL for the c15t backend/API
- * @param useEnvFile - Whether to use environment variable
- * @param proxyNextjs - Whether to use Next.js API proxy
- * @returns The formatted options object as a string with braces
- */
-export function generateOptionsTextWithBraces(
-	mode: string,
-	backendURL?: string,
-	useEnvFile?: boolean,
-	proxyNextjs?: boolean
-): string {
-	const innerOptions = generateOptionsText(
-		mode,
-		backendURL,
-		useEnvFile,
-		proxyNextjs
-	);
-	return `{
-				${innerOptions}
-			}`;
-}
-
-/**
- * Gets the required base imports for ConsentManagerProvider
- *
- * @returns Array of import names needed for basic consent management
- */
-export function getBaseImports(): string[] {
-	return ['CookieBanner', 'ConsentManagerDialog'];
-}
-
-/**
- * Gets additional imports needed for custom mode
- *
- * @returns Array of import configurations for custom handlers
- */
-export function getCustomModeImports(): Array<{
-	namedImports: string[];
-	moduleSpecifier: string;
-}> {
-	return [
-		{
-			namedImports: ['createCustomHandlers'],
-			moduleSpecifier: './consent-handlers',
-		},
-	];
 }

@@ -20,7 +20,7 @@ export const UI_STYLE_OPTIONS = [
 		label: 'Prebuilt (Recommended)',
 		hint: 'Ready-to-use components',
 		description:
-			'Single file with CookieBanner component - simple to set up and customize',
+			'Single file with ConsentBanner component - simple to set up and customize',
 	},
 	{
 		value: 'expanded' as const,

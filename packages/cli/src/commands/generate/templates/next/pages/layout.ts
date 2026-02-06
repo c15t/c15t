@@ -6,10 +6,11 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { Project, type SourceFile, SyntaxKind } from 'ts-morph';
+import type { SourceFile } from 'ts-morph';
 import type { AvailablePackages } from '~/context/framework-detection';
+import { generateConsentComponent } from '../../shared/components';
+import { runLayoutUpdatePipeline } from '../../shared/layout-pipeline';
 import { generateOptionsText } from '../../shared/options';
-import { generateConsentManagerTemplate } from './components';
 
 interface UpdatePagesLayoutOptions {
 	projectRoot: string;
@@ -18,147 +19,11 @@ interface UpdatePagesLayoutOptions {
 	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
+	selectedScripts?: string[];
 }
 
 interface ComponentFilePaths {
 	consentManager: string;
-}
-
-/**
- * Finds the Pages Directory _app file in the project
- *
- * @param project - ts-morph Project instance
- * @param projectRoot - Root directory of the project
- * @returns The _app source file if found, undefined otherwise
- *
- * @remarks
- * Searches for _app files in the following order:
- * - pages/_app.tsx
- * - pages/_app.ts
- * - src/pages/_app.tsx
- * - src/pages/_app.ts
- */
-function findPagesAppFile(
-	project: Project,
-	projectRoot: string
-): SourceFile | undefined {
-	const appPatterns = [
-		'pages/_app.tsx',
-		'pages/_app.ts',
-		'src/pages/_app.tsx',
-		'src/pages/_app.ts',
-	];
-
-	for (const pattern of appPatterns) {
-		const files = project.addSourceFilesAtPaths(`${projectRoot}/${pattern}`);
-		if (files.length > 0) {
-			return files[0];
-		}
-	}
-}
-
-/**
- * Determines the pages directory path based on the _app file location
- *
- * @param appFilePath - Full path to the _app file (can be absolute or relative)
- * @returns The pages directory path relative to project root
- *
- * @remarks
- * Returns either 'pages' or 'src/pages' depending on where the _app file is located.
- * Uses path utilities for cross-platform compatibility (handles both Windows and Unix paths).
- */
-function getPagesDirectory(appFilePath: string): string {
-	// Normalize the path to handle different path separators and formats
-	const normalizedPath = path.normalize(appFilePath);
-
-	// Create platform-specific path segment to check for
-	const srcPagesSegment = path.join('src', 'pages');
-
-	// Check if the normalized path contains the 'src/pages' (or 'src\pages' on Windows) segment
-	if (normalizedPath.includes(srcPagesSegment)) {
-		return path.join('src', 'pages');
-	}
-
-	return 'pages';
-}
-
-/**
- * Computes a relative module specifier from one file to another
- *
- * @param fromFilePath - The file that will contain the import (e.g., _app file)
- * @param toFilePath - The file being imported (e.g., consent-manager file)
- * @returns A relative module specifier suitable for ES modules (e.g., './consent-manager' or '../consent-manager')
- *
- * @remarks
- * - Computes the relative path between two files
- * - Normalizes path separators to forward slashes for ES modules
- * - Ensures the path starts with './' or '../'
- * - Strips the file extension for bare imports
- */
-function computeRelativeModuleSpecifier(
-	fromFilePath: string,
-	toFilePath: string
-): string {
-	// Get the directory of the file that will contain the import
-	const fromDir = path.dirname(fromFilePath);
-
-	// Compute relative path from the source directory to the target file
-	let relativePath = path.relative(fromDir, toFilePath);
-
-	// Normalize path separators to forward slashes (for module specifiers)
-	relativePath = relativePath.split(path.sep).join('/');
-
-	// Strip the file extension (.ts, .tsx, .js, .jsx)
-	relativePath = relativePath.replace(/\.(tsx?|jsx?)$/, '');
-
-	// Ensure the path starts with './' or '../'
-	if (!relativePath.startsWith('.')) {
-		relativePath = `./${relativePath}`;
-	}
-
-	return relativePath;
-}
-
-/**
- * Adds the ConsentManager import to the _app file
- *
- * @param appFile - The _app source file to update
- * @param consentManagerFilePath - The absolute path to the consent-manager file
- *
- * @remarks
- * Computes the correct relative import path from the _app file to the consent-manager file,
- * handling nested directory structures correctly.
- */
-function addConsentManagerImport(
-	appFile: SourceFile,
-	consentManagerFilePath: string
-): void {
-	const appFilePath = appFile.getFilePath();
-
-	// Compute the correct relative module specifier
-	const moduleSpecifier = computeRelativeModuleSpecifier(
-		appFilePath,
-		consentManagerFilePath
-	);
-
-	// Check if import already exists (check for the computed path or common variations)
-	const existingImports = appFile.getImportDeclarations();
-	const hasConsentManagerImport = existingImports.some((importDecl) => {
-		const existingSpec = importDecl.getModuleSpecifierValue();
-		// Check if it matches the computed specifier or ends with 'consent-manager'
-		return (
-			existingSpec === moduleSpecifier ||
-			existingSpec.endsWith('consent-manager') ||
-			existingSpec.endsWith('consent-manager.tsx')
-		);
-	});
-
-	if (!hasConsentManagerImport) {
-		appFile.addImportDeclaration({
-			namedImports: ['ConsentManager'],
-			moduleSpecifier,
-		});
-	}
 }
 
 /**
@@ -212,7 +77,8 @@ function wrapPagesJsxContent(originalJsx: string): string {
 async function createConsentManagerComponent(
 	projectRoot: string,
 	pagesDir: string,
-	optionsText: string
+	optionsText: string,
+	selectedScripts?: string[]
 ): Promise<ComponentFilePaths> {
 	// Determine the components directory path based on pages directory location
 	// If pages is at 'src/pages', components should be at 'src/components'
@@ -230,7 +96,12 @@ async function createConsentManagerComponent(
 	await fs.mkdir(componentsDirPath, { recursive: true });
 
 	// Generate component file content
-	const consentManagerContent = generateConsentManagerTemplate(optionsText);
+	const consentManagerContent = generateConsentComponent({
+		importSource: '@c15t/nextjs',
+		optionsText,
+		selectedScripts,
+		initialDataProp: true,
+	});
 
 	// Define file path in components directory
 	const consentManagerPath = path.join(
@@ -267,7 +138,7 @@ function addServerSideDataComment(
 	const serverSideComment = `/**
  * Note: To get the initial server-side data on other pages, add this to each page:
  *
- * import { withInitialC15TData } from '@c15t/nextjs/pages';
+ * import { withInitialC15TData } from '@c15t/nextjs';
  *
  * export const getServerSideProps = withInitialC15TData(${urlExample});
  *
@@ -318,6 +189,13 @@ function updateAppComponentTyping(appFile: SourceFile): void {
 	}
 }
 
+const PAGES_APP_PATTERNS = [
+	'pages/_app.tsx',
+	'pages/_app.ts',
+	'src/pages/_app.tsx',
+	'src/pages/_app.ts',
+];
+
 /**
  * Updates Next.js Pages Directory _app with consent management component
  *
@@ -344,43 +222,13 @@ export async function updatePagesLayout({
 	backendURL,
 	useEnvFile,
 	proxyNextjs,
+	selectedScripts,
 }: UpdatePagesLayoutOptions): Promise<{
 	updated: boolean;
 	filePath: string | null;
 	alreadyModified: boolean;
 	componentFiles?: ComponentFilePaths;
 }> {
-	const project = new Project();
-	const appFile = findPagesAppFile(project, projectRoot);
-
-	if (!appFile) {
-		return { updated: false, filePath: null, alreadyModified: false };
-	}
-
-	const appFilePath = appFile.getFilePath();
-	const pagesDir = getPagesDirectory(appFilePath);
-
-	// Check if ConsentManager is already imported
-	const existingImports = appFile.getImportDeclarations();
-	const hasConsentManagerImport = existingImports.some((importDecl) => {
-		const specifier = importDecl.getModuleSpecifierValue();
-		// Check for any import ending with 'consent-manager' (handles various paths)
-		return (
-			specifier.endsWith('/consent-manager') ||
-			specifier.endsWith('/consent-manager.tsx') ||
-			specifier === './consent-manager' ||
-			specifier === './consent-manager.tsx'
-		);
-	});
-
-	if (hasConsentManagerImport) {
-		return {
-			updated: false,
-			filePath: appFilePath,
-			alreadyModified: true,
-		};
-	}
-
 	// Generate options text for the component
 	const optionsText = generateOptionsText(
 		mode,
@@ -389,48 +237,22 @@ export async function updatePagesLayout({
 		proxyNextjs
 	);
 
-	// Create consent manager component file
-	const componentFiles = await createConsentManagerComponent(
+	return runLayoutUpdatePipeline({
+		filePatterns: PAGES_APP_PATTERNS,
 		projectRoot,
-		pagesDir,
-		optionsText
-	);
-
-	// Add import for ConsentManager with correct relative path
-	addConsentManagerImport(appFile, componentFiles.consentManager);
-	updateAppComponentTyping(appFile);
-	addServerSideDataComment(appFile, backendURL, useEnvFile, proxyNextjs);
-
-	// Update the _app JSX
-	const returnStatement = appFile.getDescendantsOfKind(
-		SyntaxKind.ReturnStatement
-	)[0];
-	if (!returnStatement) {
-		return {
-			updated: false,
-			filePath: appFilePath,
-			alreadyModified: false,
-		};
-	}
-
-	const expression = returnStatement.getExpression();
-	if (!expression) {
-		return {
-			updated: false,
-			filePath: appFilePath,
-			alreadyModified: false,
-		};
-	}
-
-	const originalJsx = expression.getText();
-	const newJsx = wrapPagesJsxContent(originalJsx);
-	returnStatement.replaceWithText(`return ${newJsx}`);
-
-	await appFile.save();
-	return {
-		updated: true,
-		filePath: appFilePath,
-		alreadyModified: false,
-		componentFiles,
-	};
+		frameworkDirName: 'pages',
+		wrapJsx: wrapPagesJsxContent,
+		createComponents: async (_layoutFilePath, pagesDir) => {
+			return createConsentManagerComponent(
+				projectRoot,
+				pagesDir,
+				optionsText,
+				selectedScripts
+			);
+		},
+		afterImport: (appFile) => {
+			updateAppComponentTyping(appFile);
+			addServerSideDataComment(appFile, backendURL, useEnvFile, proxyNextjs);
+		},
+	});
 }

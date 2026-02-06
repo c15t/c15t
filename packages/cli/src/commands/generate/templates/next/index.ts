@@ -20,6 +20,7 @@ interface UpdateNextLayoutOptions {
 	enableSSR?: boolean;
 	uiStyle?: UIStyle;
 	expandedTheme?: ExpandedTheme;
+	selectedScripts?: string[];
 }
 
 type NextStructure = 'app' | 'pages' | null;
