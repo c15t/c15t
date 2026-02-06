@@ -3,8 +3,23 @@ import type { LatestDB } from './schema';
 
 type ORM = ReturnType<InferFumaDB<typeof LatestDB>['orm']>;
 
+const SCOPED_METHODS = new Set([
+	'create',
+	'createMany',
+	'findFirst',
+	'findMany',
+	'count',
+	'updateMany',
+	'deleteMany',
+	'upsert',
+	'transaction',
+]);
+
 /**
  * Wraps a FumaDB ORM instance to automatically scope all queries to a specific tenant.
+ *
+ * Uses a Proxy so that any ORM method not explicitly handled will throw,
+ * preventing future methods from silently bypassing tenant scoping.
  *
  * - `create`/`createMany`: Injects `tenantId` into the data
  * - `findFirst`/`findMany`/`count`: Adds `tenantId` filter to the `where` clause
@@ -20,8 +35,7 @@ export function withTenantScope(db: ORM, tenantId: string): ORM {
 		return originalWhere ? b.and(originalWhere(b), tenantFilter) : tenantFilter;
 	};
 
-	return {
-		...db,
+	const scopedMethods: Record<string, (...args: any[]) => any> = {
 		create: (table: any, data: any) => db.create(table, { ...data, tenantId }),
 
 		createMany: (table: any, items: any[]) =>
@@ -69,5 +83,21 @@ export function withTenantScope(db: ORM, tenantId: string): ORM {
 
 		transaction: (fn: any) =>
 			db.transaction((tx: any) => fn(withTenantScope(tx, tenantId))),
-	} as ORM;
+	};
+
+	return new Proxy(db, {
+		get(_target, prop, _receiver) {
+			if (typeof prop === 'string' && SCOPED_METHODS.has(prop)) {
+				return scopedMethods[prop];
+			}
+			// Allow symbol access (e.g. Symbol.toStringTag) and standard object props
+			if (typeof prop === 'symbol') {
+				return Reflect.get(db, prop);
+			}
+			throw new Error(
+				`withTenantScope: method "${prop}" is not tenant-scoped. ` +
+					'Add an explicit scoped wrapper before using it.'
+			);
+		},
+	}) as ORM;
 }
