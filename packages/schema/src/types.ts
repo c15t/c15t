@@ -46,8 +46,6 @@ export type {
 	Consent,
 	ConsentPolicy,
 	ConsentPurpose,
-	ConsentRecord,
-	ConsentStatus,
 	Domain,
 	PolicyType,
 	Subject,

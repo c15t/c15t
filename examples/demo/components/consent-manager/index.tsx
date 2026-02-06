@@ -2,15 +2,15 @@
 
 import { C15TDevTools } from '@c15t/dev-tools/react';
 import {
+	ConsentBanner,
+	ConsentDialog,
+	ConsentDialogTrigger,
 	ConsentManagerProvider,
-	IABBanner,
-	IABPreferenceCenter,
-	PreferenceCenterTrigger,
+	IABConsentBanner,
+	IABConsentDialog,
 } from '@c15t/react';
 import { baseTranslations } from '@c15t/translations';
 import type { ReactNode } from 'react';
-import CookieBanner from './cookie-banner';
-import PreferenceCenter from './preference-center';
 import { minimalTheme } from './theme-presets';
 import { ThemeSwitcher, useThemePreset } from './theme-switcher';
 
@@ -162,14 +162,11 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 					},
 				}}
 			>
-				<CookieBanner />
-				<PreferenceCenter />
-				<IABBanner />
-				<IABPreferenceCenter />
-				<PreferenceCenterTrigger />
-				<C15TDevTools position="bottom-left" />
-				{/* <CustomDialogTailwind /> */}
-				{/* <PresetDialog /> */}
+				<ConsentBanner />
+				<IABConsentBanner />
+				<IABConsentDialog />
+				<ConsentDialogTrigger />
+				<ConsentDialog />
 				{children}
 			</ConsentManagerProvider>
 		</>

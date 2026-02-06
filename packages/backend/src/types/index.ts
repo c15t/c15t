@@ -23,6 +23,12 @@ export interface DatabaseOptions {
 	 * The database adapter to use.
 	 */
 	adapter: FumaDB<FumaDBSchema>['adapter'];
+
+	/**
+	 * Tenant ID for multi-tenant deployments.
+	 * When set, all database queries are automatically scoped to this tenant.
+	 */
+	tenantId?: string;
 }
 
 interface BaseOptions {
@@ -128,7 +134,7 @@ interface BaseOptions {
 		ipAddress?: {
 			/**
 			 * Enable/disable IP address tracking.
-			 * When disabled, all IP addresses will be stored as 'unknown'.
+			 * When disabled, all IP addresses will be stored as null.
 			 * @default true
 			 */
 			tracking?: boolean;
@@ -245,7 +251,7 @@ export interface C15TContext extends BaseOptions {
 	db: ReturnType<InferFumaDB<typeof LatestDB>['orm']>;
 
 	// Resolved from request
-	ipAddress?: string;
+	ipAddress?: string | null;
 	userAgent?: string;
 	origin?: string;
 	trustedOrigin?: boolean;

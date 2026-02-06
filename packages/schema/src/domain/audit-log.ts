@@ -11,7 +11,7 @@ export const auditLogSchema = v.object({
 	changes: v.optional(v.record(v.string(), v.unknown())),
 	metadata: v.optional(v.record(v.string(), v.unknown())),
 	createdAt: v.optional(v.date(), () => new Date()),
-	eventTimezone: v.optional(v.string(), 'UTC'),
+	tenantId: v.nullish(v.string()),
 });
 
 export type AuditLog = v.InferOutput<typeof auditLogSchema>;

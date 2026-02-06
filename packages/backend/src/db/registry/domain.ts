@@ -1,4 +1,4 @@
-import { ORPCError } from '@orpc/server';
+import { HTTPException } from 'hono/http-exception';
 import type { Registry } from './types';
 import { generateUniqueId } from './utils/generate-id';
 
@@ -31,17 +31,12 @@ export function domainRegistry({ db, ctx }: Registry) {
 			const domain = await db.create('domain', {
 				id: await generateUniqueId(db, 'domain', ctx),
 				name,
-				description: `Auto-created domain for ${name}`,
-				isActive: true,
-				isVerified: true,
-				allowedOrigins: [],
 			});
 
 			if (!domain) {
-				throw new ORPCError('DOMAIN_CREATION_FAILED', {
+				throw new HTTPException(503, {
 					message: 'Failed to create domain',
-					status: 503,
-					data: { name },
+					cause: { code: 'DOMAIN_CREATION_FAILED', name },
 				});
 			}
 

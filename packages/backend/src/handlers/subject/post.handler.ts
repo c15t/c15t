@@ -152,8 +152,6 @@ export const postSubjectHandler = async (c: Context) => {
 				domainId: domainRecord.id,
 				policyId,
 				purposeIds: { json: purposeIds },
-				status: 'active',
-				isActive: true,
 				ipAddress: ctx.ipAddress,
 				userAgent: ctx.userAgent,
 				jurisdiction: input.jurisdiction,
@@ -164,34 +162,7 @@ export const postSubjectHandler = async (c: Context) => {
 
 			logger.debug('Created consent', { consentRecord: consentRecord.id });
 
-			const record = await tx.create('consentRecord', {
-				id: await generateUniqueId(tx, 'consentRecord', ctx),
-				subjectId: subject.id,
-				consentId: consentRecord.id,
-				actionType: 'consent_given',
-				details: metadata,
-			});
-
-			logger.debug('Created record entry', { record: record.id });
-
-			await tx.create('auditLog', {
-				id: await generateUniqueId(tx, 'auditLog', ctx),
-				subjectId: subject.id,
-				entityType: 'consent',
-				entityId: consentRecord.id,
-				actionType: 'consent_given',
-				metadata: {
-					consentId: consentRecord.id,
-					type,
-				},
-				ipAddress: ctx.ipAddress || null,
-				userAgent: ctx.userAgent || null,
-				eventTimezone: 'UTC',
-			});
-
-			logger.debug('Created audit log');
-
-			if (!consentRecord || !record) {
+			if (!consentRecord) {
 				throw new HTTPException(500, {
 					message: 'Failed to create consent',
 					cause: {
@@ -204,7 +175,6 @@ export const postSubjectHandler = async (c: Context) => {
 
 			return {
 				consent: consentRecord,
-				record,
 			};
 		});
 
@@ -215,8 +185,6 @@ export const postSubjectHandler = async (c: Context) => {
 			domainId: domainRecord.id,
 			domain: domainRecord.name,
 			type,
-			status: result.consent.status,
-			recordId: result.record.id,
 			metadata,
 			givenAt: result.consent.givenAt,
 		});

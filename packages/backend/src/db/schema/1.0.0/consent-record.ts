@@ -1,4 +1,3 @@
-import { type ConsentRecord, consentRecordSchema } from '@c15t/schema';
 import { column, idColumn, table } from 'fumadb/schema';
 
 export const consentRecordTable = table('consentRecord', {
@@ -9,5 +8,3 @@ export const consentRecordTable = table('consentRecord', {
 	details: column('details', 'json').nullable(),
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
 });
-
-export { consentRecordSchema, type ConsentRecord };

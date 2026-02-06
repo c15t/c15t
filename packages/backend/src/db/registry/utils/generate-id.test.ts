@@ -92,7 +92,6 @@ describe('generateUniqueId', () => {
 			{ model: 'consent' as const, expectedPrefix: 'cns_' },
 			{ model: 'consentPolicy' as const, expectedPrefix: 'pol_' },
 			{ model: 'consentPurpose' as const, expectedPrefix: 'pur_' },
-			{ model: 'consentRecord' as const, expectedPrefix: 'rec_' },
 			{ model: 'domain' as const, expectedPrefix: 'dom_' },
 			{ model: 'subject' as const, expectedPrefix: 'sub_' },
 		];

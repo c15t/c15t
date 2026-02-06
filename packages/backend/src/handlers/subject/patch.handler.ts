@@ -71,7 +71,14 @@ export const patchSubjectHandler = async (c: Context) => {
 				actionType: 'identify_user',
 				ipAddress: ctx.ipAddress || null,
 				userAgent: ctx.userAgent || null,
-				eventTimezone: 'UTC',
+				changes: {
+					externalId: { from: subject.externalId, to: externalId },
+					identityProvider: {
+						from: subject.identityProvider,
+						to: identityProvider,
+					},
+					isIdentified: { from: subject.isIdentified, to: true },
+				},
 				metadata: {
 					externalId,
 					identityProvider,

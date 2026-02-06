@@ -65,12 +65,12 @@ describe('maskIpAddress', () => {
 	});
 
 	describe('edge cases', () => {
-		it('should return "unknown" unchanged', () => {
-			expect(maskIpAddress('unknown')).toBe('unknown');
+		it('should return null for null input', () => {
+			expect(maskIpAddress(null)).toBeNull();
 		});
 
-		it('should return empty string unchanged', () => {
-			expect(maskIpAddress('')).toBe('');
+		it('should return null for empty string', () => {
+			expect(maskIpAddress('')).toBeNull();
 		});
 
 		it('should handle malformed IPv4 gracefully', () => {
@@ -95,34 +95,34 @@ describe('getIpAddress', () => {
 	});
 
 	describe('IP extraction', () => {
-		it('should extract IP from x-forwarded-for header', () => {
+		it('should extract and mask IP from x-forwarded-for header by default', () => {
 			const headers = createMockHeaders({
 				'x-forwarded-for': '192.168.1.100, 10.0.0.1',
 			});
 			const options = createBaseOptions();
 
-			expect(getIpAddress(headers, options)).toBe('192.168.1.100');
+			expect(getIpAddress(headers, options)).toBe('192.168.1.0');
 		});
 
-		it('should extract IP from cf-connecting-ip header', () => {
+		it('should extract and mask IP from cf-connecting-ip header by default', () => {
 			const headers = createMockHeaders({
 				'cf-connecting-ip': '8.8.8.8',
 			});
 			const options = createBaseOptions();
 
-			expect(getIpAddress(headers, options)).toBe('8.8.8.8');
+			expect(getIpAddress(headers, options)).toBe('8.8.8.0');
 		});
 
-		it('should return "unknown" when no IP headers present', () => {
+		it('should return null when no IP headers present', () => {
 			const headers = createMockHeaders({});
 			const options = createBaseOptions();
 
-			expect(getIpAddress(headers, options)).toBe('unknown');
+			expect(getIpAddress(headers, options)).toBeNull();
 		});
 	});
 
 	describe('IP tracking disabled', () => {
-		it('should return "unknown" when IP tracking is disabled', () => {
+		it('should return null when IP tracking is disabled', () => {
 			const headers = createMockHeaders({
 				'x-forwarded-for': '192.168.1.100',
 			});
@@ -130,7 +130,7 @@ describe('getIpAddress', () => {
 				tracking: false,
 			});
 
-			expect(getIpAddress(headers, options)).toBe('unknown');
+			expect(getIpAddress(headers, options)).toBeNull();
 		});
 	});
 
@@ -157,13 +157,13 @@ describe('getIpAddress', () => {
 			expect(getIpAddress(headers, options)).toBe('2001:db8:85a3::');
 		});
 
-		it('should not mask when masking is disabled (default)', () => {
+		it('should mask by default when masking is not explicitly disabled', () => {
 			const headers = createMockHeaders({
 				'x-forwarded-for': '192.168.1.100',
 			});
 			const options = createBaseOptions();
 
-			expect(getIpAddress(headers, options)).toBe('192.168.1.100');
+			expect(getIpAddress(headers, options)).toBe('192.168.1.0');
 		});
 
 		it('should not mask when masking is explicitly false', () => {
@@ -188,7 +188,8 @@ describe('getIpAddress', () => {
 				ipAddressHeaders: ['x-custom-ip'],
 			});
 
-			expect(getIpAddress(headers, options)).toBe('10.0.0.1');
+			// Masking is on by default, so last octet is zeroed
+			expect(getIpAddress(headers, options)).toBe('10.0.0.0');
 		});
 	});
 });

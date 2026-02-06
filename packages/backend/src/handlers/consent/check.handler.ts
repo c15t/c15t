@@ -7,6 +7,7 @@
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { C15TContext } from '~/types';
+import { resolveConsentPolicies } from '../utils/consent-enrichment';
 
 /**
  * Handles checking if an externalId has consented to specific policies.
@@ -79,49 +80,17 @@ export const checkConsentHandler = async (c: Context) => {
 
 		const consents = allConsents.flat();
 
-		// Get latest policy IDs for each type
-		const latestPolicyIds = new Map<string, string>();
-		for (const t of types) {
-			const policyTypeArg = t as
-				| 'cookie_banner'
-				| 'privacy_policy'
-				| 'dpa'
-				| 'terms_and_conditions'
-				| 'marketing_communications'
-				| 'age_verification'
-				| 'other';
-			const latestPolicy = await registry.findOrCreatePolicy(policyTypeArg);
-			if (latestPolicy) {
-				latestPolicyIds.set(t, latestPolicy.id);
-			}
-		}
-
-		// Check consents against requested types
-		for (const consent of consents) {
-			if (!consent.policyId) {
-				continue;
-			}
-
-			const policy = await registry.findConsentPolicyById(consent.policyId);
-			if (!policy) {
-				continue;
-			}
-
-			const policyType = policy.type;
-
-			// Only process types we care about
-			if (!types.includes(policyType)) {
-				continue;
-			}
-
-			// Mark as having consent
-			if (results[policyType]) {
-				results[policyType].hasConsent = true;
-
-				// Check if it's the latest policy
-				const latestPolicyId = latestPolicyIds.get(policyType);
-				if (latestPolicyId && consent.policyId === latestPolicyId) {
-					results[policyType].isLatestPolicy = true;
+		const policyInfos = await resolveConsentPolicies(consents, {
+			db,
+			registry,
+		});
+		for (const info of policyInfos) {
+			if (!types.includes(info.policyType)) continue;
+			const entry = results[info.policyType];
+			if (entry) {
+				entry.hasConsent = true;
+				if (info.isLatestPolicy) {
+					entry.isLatestPolicy = true;
 				}
 			}
 		}

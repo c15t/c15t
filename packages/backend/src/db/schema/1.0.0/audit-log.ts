@@ -1,4 +1,3 @@
-import { type AuditLog, auditLogSchema } from '@c15t/schema';
 import { column, idColumn, table } from 'fumadb/schema';
 
 export const auditLogTable = table('auditLog', {
@@ -14,5 +13,3 @@ export const auditLogTable = table('auditLog', {
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
 	eventTimezone: column('eventTimezone', 'string').defaultTo$(() => 'UTC'),
 });
-
-export { auditLogSchema, type AuditLog };

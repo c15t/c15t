@@ -1,4 +1,3 @@
-import { type Domain, domainSchema } from '@c15t/schema';
 import { column, idColumn, table } from 'fumadb/schema';
 
 export const domainTable = table('domain', {
@@ -11,5 +10,3 @@ export const domainTable = table('domain', {
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
 	updatedAt: column('updatedAt', 'timestamp').defaultTo$('now'),
 });
-
-export { domainSchema, type Domain };
