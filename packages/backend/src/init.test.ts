@@ -2,18 +2,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { init } from './init';
 import type { C15TOptions } from './types';
 
-// Create mocks
-const mockLogger = {
-	debug: vi.fn(),
-	info: vi.fn(),
-	warn: vi.fn(),
-	error: vi.fn(),
-	success: vi.fn(),
-};
+// Use vi.hoisted so these are available inside vi.mock factories (which are hoisted)
+const { mockLogger, mockClient, mockClientOrm } = vi.hoisted(() => {
+	const mockLogger = {
+		debug: vi.fn(),
+		info: vi.fn(),
+		warn: vi.fn(),
+		error: vi.fn(),
+		success: vi.fn(),
+	};
 
-const mockClientOrm = vi.fn().mockReturnValue({});
-const mockClient = vi.fn().mockReturnValue({
-	orm: mockClientOrm,
+	const mockClientOrm = vi.fn().mockReturnValue({});
+	const mockClient = vi.fn().mockReturnValue({
+		orm: mockClientOrm,
+	});
+
+	return { mockLogger, mockClient, mockClientOrm };
 });
 
 // Mock local modules

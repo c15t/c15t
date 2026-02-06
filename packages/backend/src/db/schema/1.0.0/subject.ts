@@ -1,4 +1,3 @@
-import { type Subject, subjectSchema } from '@c15t/schema';
 import { column, idColumn, table } from 'fumadb/schema';
 
 export const subjectTable = table('subject', {
@@ -11,5 +10,3 @@ export const subjectTable = table('subject', {
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
 	updatedAt: column('updatedAt', 'timestamp').defaultTo$('now'),
 });
-
-export { subjectSchema, type Subject };

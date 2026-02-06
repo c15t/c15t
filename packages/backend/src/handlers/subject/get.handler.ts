@@ -7,6 +7,7 @@
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { C15TContext } from '~/types';
+import { enrichConsents } from '../utils/consent-enrichment';
 
 /**
  * Handles retrieving a subject's consent status.
@@ -46,75 +47,7 @@ export const getSubjectHandler = async (c: Context) => {
 			where: (b) => b('subjectId', '=', subjectId),
 		});
 
-		// Get the latest policy for each type to check isLatestPolicy
-		const policyCache = new Map<string, string>();
-
-		// Build consent items with isLatestPolicy flag
-		const consentItems = await Promise.all(
-			consents.map(async (consent) => {
-				// Get the policy to determine type
-				let policyType = 'unknown';
-				let isLatestPolicy = false;
-
-				if (consent.policyId) {
-					const policy = await registry.findConsentPolicyById(consent.policyId);
-					if (policy) {
-						policyType = policy.type;
-
-						// Check if this is the latest policy of this type
-						if (!policyCache.has(policyType)) {
-							// Cast to the expected type for findOrCreatePolicy
-							const policyTypeArg = policyType as
-								| 'cookie_banner'
-								| 'privacy_policy'
-								| 'dpa'
-								| 'terms_and_conditions'
-								| 'marketing_communications'
-								| 'age_verification'
-								| 'other';
-							const latestPolicy =
-								await registry.findOrCreatePolicy(policyTypeArg);
-							if (latestPolicy) {
-								policyCache.set(policyType, latestPolicy.id);
-							}
-						}
-
-						isLatestPolicy = policyCache.get(policyType) === consent.policyId;
-					}
-				}
-
-				// Get preferences from purpose IDs
-				let preferences: Record<string, boolean> | undefined;
-				if (consent.purposeIds) {
-					const purposeIds =
-						typeof consent.purposeIds === 'object' &&
-						'json' in consent.purposeIds
-							? (consent.purposeIds.json as string[])
-							: (consent.purposeIds as string[]);
-
-					if (Array.isArray(purposeIds) && purposeIds.length > 0) {
-						preferences = {};
-						for (const purposeId of purposeIds) {
-							const purpose = await db.findFirst('consentPurpose', {
-								where: (b) => b('id', '=', purposeId),
-							});
-							if (purpose) {
-								preferences[purpose.code] = true;
-							}
-						}
-					}
-				}
-
-				return {
-					id: consent.id,
-					type: policyType,
-					policyId: consent.policyId ?? undefined,
-					isLatestPolicy,
-					preferences,
-					givenAt: consent.givenAt,
-				};
-			})
-		);
+		const consentItems = await enrichConsents(consents, { db, registry });
 
 		// Filter by type if specified
 		const filteredConsents =

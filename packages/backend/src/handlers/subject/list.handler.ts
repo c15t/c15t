@@ -7,6 +7,7 @@
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { C15TContext } from '~/types';
+import { enrichConsents } from '../utils/consent-enrichment';
 
 /**
  * Handles listing all subjects linked to an external ID.
@@ -53,74 +54,7 @@ export const listSubjectsHandler = async (c: Context) => {
 					where: (b) => b('subjectId', '=', subject.id),
 				});
 
-				// Get the latest policy for each type
-				const policyCache = new Map<string, string>();
-
-				const consentItems = await Promise.all(
-					consents.map(async (consent) => {
-						let policyType = 'unknown';
-						let isLatestPolicy = false;
-
-						if (consent.policyId) {
-							const policy = await registry.findConsentPolicyById(
-								consent.policyId
-							);
-							if (policy) {
-								policyType = policy.type;
-
-								if (!policyCache.has(policyType)) {
-									const policyTypeArg = policyType as
-										| 'cookie_banner'
-										| 'privacy_policy'
-										| 'dpa'
-										| 'terms_and_conditions'
-										| 'marketing_communications'
-										| 'age_verification'
-										| 'other';
-									const latestPolicy =
-										await registry.findOrCreatePolicy(policyTypeArg);
-									if (latestPolicy) {
-										policyCache.set(policyType, latestPolicy.id);
-									}
-								}
-
-								isLatestPolicy =
-									policyCache.get(policyType) === consent.policyId;
-							}
-						}
-
-						// Get preferences from purpose IDs
-						let preferences: Record<string, boolean> | undefined;
-						if (consent.purposeIds) {
-							const purposeIds =
-								typeof consent.purposeIds === 'object' &&
-								'json' in consent.purposeIds
-									? (consent.purposeIds.json as string[])
-									: (consent.purposeIds as string[]);
-
-							if (Array.isArray(purposeIds) && purposeIds.length > 0) {
-								preferences = {};
-								for (const purposeId of purposeIds) {
-									const purpose = await db.findFirst('consentPurpose', {
-										where: (b) => b('id', '=', purposeId),
-									});
-									if (purpose) {
-										preferences[purpose.code] = true;
-									}
-								}
-							}
-						}
-
-						return {
-							id: consent.id,
-							type: policyType,
-							policyId: consent.policyId ?? undefined,
-							isLatestPolicy,
-							preferences,
-							givenAt: consent.givenAt,
-						};
-					})
-				);
+				const consentItems = await enrichConsents(consents, { db, registry });
 
 				return {
 					id: subject.id,

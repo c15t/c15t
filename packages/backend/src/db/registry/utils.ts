@@ -10,7 +10,6 @@ const prefixes: Record<keyof Tables, string> = {
 	consent: 'cns',
 	consentPolicy: 'pol',
 	consentPurpose: 'pur',
-	consentRecord: 'rec',
 	domain: 'dom',
 	subject: 'sub',
 } as const;

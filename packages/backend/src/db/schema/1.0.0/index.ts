@@ -46,11 +46,3 @@ export const v1 = schema({
 		}),
 	},
 });
-
-export * from './audit-log';
-export * from './consent';
-export * from './consent-policy';
-export * from './consent-purpose';
-export * from './consent-record';
-export * from './domain';
-export * from './subject';

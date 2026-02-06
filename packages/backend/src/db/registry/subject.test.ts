@@ -1,4 +1,3 @@
-import { ORPCError } from '@orpc/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Subject } from '../schema';
 import { subjectRegistry } from './subject';
@@ -22,7 +21,6 @@ describe('subjectRegistry', () => {
 		isIdentified: false,
 		externalId: null,
 		identityProvider: 'anonymous',
-		lastIpAddress: '192.168.1.1',
 		createdAt: new Date('2024-01-01T00:00:00.000Z'),
 		updatedAt: new Date('2024-01-01T00:00:00.000Z'),
 		...overrides,
@@ -33,8 +31,8 @@ describe('subjectRegistry', () => {
 	});
 
 	describe('findOrCreateSubject', () => {
-		describe('when both subjectId and externalSubjectId are provided', () => {
-			it('should return the subject when both IDs match an existing subject', async () => {
+		describe('when subjectId is provided', () => {
+			it('should return existing subject when found', async () => {
 				const mockSubject = createMockSubject({
 					id: 'sub_existing',
 					externalId: 'ext_123',
@@ -63,48 +61,17 @@ describe('subjectRegistry', () => {
 				expect(result).toEqual(mockSubject);
 			});
 
-			it('should throw ORPCError when both IDs are provided but no matching subject exists', async () => {
+			it('should create new subject when subjectId not found', async () => {
+				const createdSubject = createMockSubject({
+					id: 'sub_new',
+					externalId: null,
+					identityProvider: 'anonymous',
+					isIdentified: false,
+				});
+
 				const db = {
 					findFirst: vi.fn().mockResolvedValue(null),
-				};
-
-				const registry = subjectRegistry({
-					db,
-					ctx: { logger: mockLogger },
-				} as unknown as Registry);
-
-				const promise = registry.findOrCreateSubject({
-					subjectId: 'sub_nonexistent',
-					externalSubjectId: 'ext_nonexistent',
-				});
-
-				await expect(promise).rejects.toBeInstanceOf(ORPCError);
-				await expect(promise).rejects.toEqual(
-					expect.objectContaining({
-						code: 'SUBJECT_NOT_FOUND',
-						status: 404,
-						data: {
-							providedSubjectId: 'sub_nonexistent',
-							providedExternalId: 'ext_nonexistent',
-						},
-					})
-				);
-
-				expect(mockLogger.error).toHaveBeenCalledWith('Subject not found', {
-					providedSubjectId: 'sub_nonexistent',
-					providedExternalId: 'ext_nonexistent',
-				});
-			});
-		});
-
-		describe('when only subjectId is provided', () => {
-			it('should return the subject when found by subjectId', async () => {
-				const mockSubject = createMockSubject({
-					id: 'sub_existing',
-				});
-
-				const db = {
-					findFirst: vi.fn().mockResolvedValue(mockSubject),
+					create: vi.fn().mockResolvedValue(createdSubject),
 				};
 
 				const registry = subjectRegistry({
@@ -113,19 +80,34 @@ describe('subjectRegistry', () => {
 				} as unknown as Registry);
 
 				const result = await registry.findOrCreateSubject({
-					subjectId: 'sub_existing',
+					subjectId: 'sub_new',
 				});
 
 				expect(db.findFirst).toHaveBeenCalledWith('subject', {
 					where: expect.any(Function),
 				});
 
-				expect(result).toEqual(mockSubject);
+				expect(db.create).toHaveBeenCalledWith('subject', {
+					id: 'sub_new',
+					externalId: null,
+					identityProvider: 'anonymous',
+					isIdentified: false,
+				});
+
+				expect(result).toEqual(createdSubject);
 			});
 
-			it('should throw ORPCError when subject not found by subjectId', async () => {
+			it('should create new subject with externalId when both IDs provided but subject not found', async () => {
+				const createdSubject = createMockSubject({
+					id: 'sub_new',
+					externalId: 'ext_123',
+					identityProvider: 'external',
+					isIdentified: true,
+				});
+
 				const db = {
 					findFirst: vi.fn().mockResolvedValue(null),
+					create: vi.fn().mockResolvedValue(createdSubject),
 				};
 
 				const registry = subjectRegistry({
@@ -133,32 +115,33 @@ describe('subjectRegistry', () => {
 					ctx: { logger: mockLogger },
 				} as unknown as Registry);
 
-				const promise = registry.findOrCreateSubject({
-					subjectId: 'sub_nonexistent',
+				const result = await registry.findOrCreateSubject({
+					subjectId: 'sub_new',
+					externalSubjectId: 'ext_123',
 				});
 
-				await expect(promise).rejects.toBeInstanceOf(ORPCError);
-				await expect(promise).rejects.toEqual(
-					expect.objectContaining({
-						code: 'SUBJECT_NOT_FOUND',
-						status: 404,
-						data: { subjectId: 'sub_nonexistent' },
-					})
-				);
+				expect(db.create).toHaveBeenCalledWith('subject', {
+					id: 'sub_new',
+					externalId: 'ext_123',
+					identityProvider: 'external',
+					isIdentified: true,
+				});
+
+				expect(result).toEqual(createdSubject);
 			});
 		});
 
 		describe('when only externalSubjectId is provided', () => {
-			it('should find existing subject by externalSubjectId', async () => {
+			it('should create a new subject with external ID', async () => {
 				const mockSubject = createMockSubject({
+					id: 'sub_test_123',
 					externalId: 'ext_existing',
+					identityProvider: 'external',
 					isIdentified: true,
-					lastIpAddress: '192.168.1.100',
 				});
 
 				const db = {
-					upsert: vi.fn().mockResolvedValue(undefined),
-					findFirst: vi.fn().mockResolvedValue(mockSubject),
+					create: vi.fn().mockResolvedValue(mockSubject),
 				};
 
 				const registry = subjectRegistry({
@@ -171,38 +154,30 @@ describe('subjectRegistry', () => {
 					ipAddress: '192.168.1.200',
 				});
 
-				expect(db.upsert).toHaveBeenCalledWith('subject', {
-					where: expect.any(Function),
-					create: {
-						id: 'sub_test_123',
-						externalId: 'ext_existing',
-						identityProvider: 'external',
-						lastIpAddress: '192.168.1.200',
-						isIdentified: true,
-					},
-					update: { lastIpAddress: '192.168.1.200' },
-				});
-
-				expect(db.findFirst).toHaveBeenCalledWith('subject', {
-					where: expect.any(Function),
+				expect(db.create).toHaveBeenCalledWith('subject', {
+					id: 'sub_test_123',
+					externalId: 'ext_existing',
+					identityProvider: 'external',
+					isIdentified: true,
 				});
 
 				expect(result).toEqual(mockSubject);
 				expect(mockLogger.debug).toHaveBeenCalledWith(
-					'Finding/Creating subject with external id'
+					'Creating subject with external ID (legacy flow)',
+					{ externalSubjectId: 'ext_existing' }
 				);
 			});
 
-			it('should create new subject when externalSubjectId does not exist', async () => {
+			it('should use custom identity provider when specified', async () => {
 				const mockSubject = createMockSubject({
+					id: 'sub_test_123',
 					externalId: 'ext_new',
+					identityProvider: 'google',
 					isIdentified: true,
-					lastIpAddress: '192.168.1.200',
 				});
 
 				const db = {
-					upsert: vi.fn().mockResolvedValue(undefined),
-					findFirst: vi.fn().mockResolvedValue(mockSubject),
+					create: vi.fn().mockResolvedValue(mockSubject),
 				};
 
 				const registry = subjectRegistry({
@@ -212,33 +187,26 @@ describe('subjectRegistry', () => {
 
 				const result = await registry.findOrCreateSubject({
 					externalSubjectId: 'ext_new',
-					ipAddress: '192.168.1.200',
+					identityProvider: 'google',
 				});
 
-				expect(db.upsert).toHaveBeenCalledWith('subject', {
-					where: expect.any(Function),
-					create: {
-						id: 'sub_test_123',
-						externalId: 'ext_new',
-						identityProvider: 'external',
-						lastIpAddress: '192.168.1.200',
-						isIdentified: true,
-					},
-					update: { lastIpAddress: '192.168.1.200' },
+				expect(db.create).toHaveBeenCalledWith('subject', {
+					id: 'sub_test_123',
+					externalId: 'ext_new',
+					identityProvider: 'google',
+					isIdentified: true,
 				});
 
 				expect(result).toEqual(mockSubject);
 			});
 
-			it('should use default IP address when not provided', async () => {
+			it('should default identityProvider to "external"', async () => {
 				const mockSubject = createMockSubject({
 					externalId: 'ext_test',
-					lastIpAddress: 'unknown',
 				});
 
 				const db = {
-					upsert: vi.fn().mockResolvedValue(undefined),
-					findFirst: vi.fn().mockResolvedValue(mockSubject),
+					create: vi.fn().mockResolvedValue(mockSubject),
 				};
 
 				const registry = subjectRegistry({
@@ -250,16 +218,11 @@ describe('subjectRegistry', () => {
 					externalSubjectId: 'ext_test',
 				});
 
-				expect(db.upsert).toHaveBeenCalledWith('subject', {
-					where: expect.any(Function),
-					create: {
-						id: 'sub_test_123',
-						externalId: 'ext_test',
-						identityProvider: 'external',
-						lastIpAddress: 'unknown',
-						isIdentified: true,
-					},
-					update: { lastIpAddress: 'unknown' },
+				expect(db.create).toHaveBeenCalledWith('subject', {
+					id: 'sub_test_123',
+					externalId: 'ext_test',
+					identityProvider: 'external',
+					isIdentified: true,
 				});
 			});
 		});
@@ -269,7 +232,6 @@ describe('subjectRegistry', () => {
 				const mockSubject = createMockSubject({
 					externalId: null,
 					isIdentified: false,
-					lastIpAddress: '10.0.0.1',
 				});
 
 				const db = {
@@ -289,7 +251,6 @@ describe('subjectRegistry', () => {
 					id: 'sub_test_123',
 					externalId: null,
 					identityProvider: 'anonymous',
-					lastIpAddress: '10.0.0.1',
 					isIdentified: false,
 				});
 
@@ -299,11 +260,10 @@ describe('subjectRegistry', () => {
 				);
 			});
 
-			it('should use default IP address for anonymous subject when not provided', async () => {
+			it('should create anonymous subject when no arguments provided', async () => {
 				const mockSubject = createMockSubject({
 					externalId: null,
 					isIdentified: false,
-					lastIpAddress: 'unknown',
 				});
 
 				const db = {
@@ -321,7 +281,6 @@ describe('subjectRegistry', () => {
 					id: 'sub_test_123',
 					externalId: null,
 					identityProvider: 'anonymous',
-					lastIpAddress: 'unknown',
 					isIdentified: false,
 				});
 
@@ -351,7 +310,6 @@ describe('subjectRegistry', () => {
 					id: 'sub_test_123',
 					externalId: null,
 					identityProvider: 'anonymous',
-					lastIpAddress: 'unknown',
 					isIdentified: false,
 				});
 			});
@@ -377,98 +335,36 @@ describe('subjectRegistry', () => {
 					id: 'sub_test_123',
 					externalId: null,
 					identityProvider: 'anonymous',
-					lastIpAddress: 'unknown',
 					isIdentified: false,
 				});
-			});
-
-			it('should preserve special IP addresses', async () => {
-				const specialIPs = ['127.0.0.1', '::1', '0.0.0.0', 'localhost'];
-
-				for (const ip of specialIPs) {
-					const mockSubject = createMockSubject({
-						lastIpAddress: ip,
-					});
-
-					const db = {
-						create: vi.fn().mockResolvedValue(mockSubject),
-					};
-
-					const registry = subjectRegistry({
-						db,
-						ctx: { logger: mockLogger },
-					} as unknown as Registry);
-
-					await registry.findOrCreateSubject({
-						ipAddress: ip,
-					});
-
-					expect(db.create).toHaveBeenCalledWith('subject', {
-						id: 'sub_test_123',
-						externalId: null,
-						identityProvider: 'anonymous',
-						lastIpAddress: ip,
-						isIdentified: false,
-					});
-
-					vi.clearAllMocks();
-				}
 			});
 		});
 
 		describe('database query construction', () => {
-			it('should construct correct query for dual identifier lookup', async () => {
-				const db = {
-					findFirst: vi.fn().mockResolvedValue(null),
-				};
-
-				const registry = subjectRegistry({
-					db,
-					ctx: { logger: mockLogger },
-				} as unknown as Registry);
-
-				try {
-					await registry.findOrCreateSubject({
-						subjectId: 'sub_test',
-						externalSubjectId: 'ext_test',
-					});
-				} catch {
-					// Expected to throw
-				}
-
-				expect(db.findFirst).toHaveBeenCalledWith('subject', {
-					where: expect.any(Function),
-				});
-			});
-
-			it('should construct correct query for single subjectId lookup', async () => {
-				const db = {
-					findFirst: vi.fn().mockResolvedValue(null),
-				};
-
-				const registry = subjectRegistry({
-					db,
-					ctx: { logger: mockLogger },
-				} as unknown as Registry);
-
-				try {
-					await registry.findOrCreateSubject({
-						subjectId: 'sub_test',
-					});
-				} catch {
-					// Expected to throw
-				}
-
-				expect(db.findFirst).toHaveBeenCalledWith('subject', {
-					where: expect.any(Function),
-				});
-			});
-
-			it('should construct correct upsert for externalSubjectId', async () => {
+			it('should construct correct findFirst query for subjectId lookup', async () => {
 				const mockSubject = createMockSubject();
 				const db = {
-					upsert: vi.fn().mockResolvedValue(undefined),
 					findFirst: vi.fn().mockResolvedValue(mockSubject),
+				};
+
+				const registry = subjectRegistry({
+					db,
+					ctx: { logger: mockLogger },
+				} as unknown as Registry);
+
+				await registry.findOrCreateSubject({
+					subjectId: 'sub_test',
+				});
+
+				expect(db.findFirst).toHaveBeenCalledWith('subject', {
+					where: expect.any(Function),
+				});
+			});
+
+			it('should construct correct create call for externalSubjectId', async () => {
+				const mockSubject = createMockSubject();
+				const db = {
+					create: vi.fn().mockResolvedValue(mockSubject),
 				};
 
 				const registry = subjectRegistry({
@@ -480,16 +376,11 @@ describe('subjectRegistry', () => {
 					externalSubjectId: 'ext_test',
 				});
 
-				expect(db.upsert).toHaveBeenCalledWith('subject', {
-					where: expect.any(Function),
-					create: expect.objectContaining({
-						id: 'sub_test_123',
-						externalId: 'ext_test',
-						identityProvider: 'external',
-						lastIpAddress: 'unknown',
-						isIdentified: true,
-					}),
-					update: { lastIpAddress: 'unknown' },
+				expect(db.create).toHaveBeenCalledWith('subject', {
+					id: 'sub_test_123',
+					externalId: 'ext_test',
+					identityProvider: 'external',
+					isIdentified: true,
 				});
 			});
 		});

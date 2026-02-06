@@ -1,4 +1,4 @@
-import { ORPCError } from '@orpc/server';
+import { HTTPException } from 'hono/http-exception';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ConsentPurpose } from '../schema';
 import { consentPurposeRegistry } from './consent-purpose';
@@ -28,12 +28,6 @@ describe('consentPurposeRegistry', () => {
 	): ConsentPurpose => ({
 		id: 'cp_test_123',
 		code: 'marketing',
-		name: 'marketing',
-		description: 'Auto-created consentPurpose for marketing',
-		isEssential: false,
-		dataCategory: null,
-		legalBasis: 'consent',
-		isActive: true,
 		createdAt: new Date('2024-01-01T00:00:00.000Z'),
 		updatedAt: new Date('2024-01-01T00:00:00.000Z'),
 		...overrides,
@@ -48,9 +42,6 @@ describe('consentPurposeRegistry', () => {
 			it('should return existing consent purpose when found by code', async () => {
 				const mockPurpose = createMockConsentPurpose({
 					code: 'analytics',
-					name: 'Analytics',
-					description: 'Analytics and performance tracking',
-					isEssential: true,
 				});
 
 				const db = {
@@ -80,25 +71,9 @@ describe('consentPurposeRegistry', () => {
 
 			it('should handle different existing consent purpose types', async () => {
 				const testCases = [
-					{
-						code: 'essential',
-						name: 'Essential',
-						isEssential: true,
-						legalBasis: 'legitimate_interest',
-					},
-					{
-						code: 'preferences',
-						name: 'User Preferences',
-						isEssential: false,
-						legalBasis: 'consent',
-					},
-					{
-						code: 'functional',
-						name: 'Functional Cookies',
-						isEssential: false,
-						legalBasis: 'consent',
-						dataCategory: 'functional',
-					},
+					{ code: 'essential' },
+					{ code: 'preferences' },
+					{ code: 'functional' },
 				];
 
 				for (const testCase of testCases) {
@@ -120,8 +95,6 @@ describe('consentPurposeRegistry', () => {
 
 					expect(result).toEqual(mockPurpose);
 					expect(result.code).toBe(testCase.code);
-					expect(result.isEssential).toBe(testCase.isEssential);
-					expect(result.legalBasis).toBe(testCase.legalBasis);
 
 					vi.clearAllMocks();
 				}
@@ -132,8 +105,6 @@ describe('consentPurposeRegistry', () => {
 			it('should create and return new consent purpose', async () => {
 				const newMockPurpose = createMockConsentPurpose({
 					code: 'new-purpose',
-					name: 'new-purpose',
-					description: 'Auto-created consentPurpose for new-purpose',
 				});
 
 				const db = {
@@ -156,11 +127,6 @@ describe('consentPurposeRegistry', () => {
 				expect(db.create).toHaveBeenCalledWith('consentPurpose', {
 					id: 'cp_test_123',
 					code: 'new-purpose',
-					name: 'new-purpose',
-					description: 'Auto-created consentPurpose for new-purpose',
-					isActive: true,
-					isEssential: false,
-					legalBasis: 'consent',
 				});
 
 				expect(result).toEqual(newMockPurpose);
@@ -192,11 +158,6 @@ describe('consentPurposeRegistry', () => {
 				expect(db.create).toHaveBeenCalledWith('consentPurpose', {
 					id: 'cp_test_123',
 					code: 'test-defaults',
-					name: 'test-defaults',
-					description: 'Auto-created consentPurpose for test-defaults',
-					isActive: true,
-					isEssential: false,
-					legalBasis: 'consent',
 				});
 			});
 
@@ -212,8 +173,6 @@ describe('consentPurposeRegistry', () => {
 				for (const code of specialCodes) {
 					const mockPurpose = createMockConsentPurpose({
 						code,
-						name: code,
-						description: `Auto-created consentPurpose for ${code}`,
 					});
 
 					const db = {
@@ -231,11 +190,6 @@ describe('consentPurposeRegistry', () => {
 					expect(db.create).toHaveBeenCalledWith('consentPurpose', {
 						id: 'cp_test_123',
 						code,
-						name: code,
-						description: `Auto-created consentPurpose for ${code}`,
-						isActive: true,
-						isEssential: false,
-						legalBasis: 'consent',
 					});
 
 					expect(result).toEqual(mockPurpose);
@@ -246,7 +200,7 @@ describe('consentPurposeRegistry', () => {
 		});
 
 		describe('error handling', () => {
-			it('should throw ORPCError when consent purpose creation fails', async () => {
+			it('should throw HTTPException when consent purpose creation fails', async () => {
 				const db = {
 					findFirst: vi.fn().mockResolvedValue(null),
 					create: vi.fn().mockResolvedValue(null),
@@ -260,13 +214,20 @@ describe('consentPurposeRegistry', () => {
 				const promise =
 					registry.findOrCreateConsentPurposeByCode('failed-code');
 
-				await expect(promise).rejects.toBeInstanceOf(ORPCError);
+				await expect(promise).rejects.toBeInstanceOf(HTTPException);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
 						message: 'Failed to create consent purpose',
-						code: 'PURPOSE_CREATION_FAILED',
 						status: 500,
-						data: { purposeCode: 'failed-code' },
+					})
+				);
+				const error = await registry
+					.findOrCreateConsentPurposeByCode('failed-code')
+					.catch((e: any) => e);
+				expect(error.cause).toEqual(
+					expect.objectContaining({
+						code: 'PURPOSE_CREATION_FAILED',
+						purposeCode: 'failed-code',
 					})
 				);
 
@@ -277,11 +238,6 @@ describe('consentPurposeRegistry', () => {
 				expect(db.create).toHaveBeenCalledWith('consentPurpose', {
 					id: 'cp_test_123',
 					code: 'failed-code',
-					name: 'failed-code',
-					description: 'Auto-created consentPurpose for failed-code',
-					isActive: true,
-					isEssential: false,
-					legalBasis: 'consent',
 				});
 
 				expect(mockLogger.debug).toHaveBeenCalledWith(
@@ -292,7 +248,7 @@ describe('consentPurposeRegistry', () => {
 				);
 			});
 
-			it('should throw ORPCError when consent purpose creation returns undefined', async () => {
+			it('should throw HTTPException when consent purpose creation returns undefined', async () => {
 				const db = {
 					findFirst: vi.fn().mockResolvedValue(null),
 					create: vi.fn().mockResolvedValue(undefined),
@@ -306,13 +262,20 @@ describe('consentPurposeRegistry', () => {
 				const promise =
 					registry.findOrCreateConsentPurposeByCode('undefined-code');
 
-				await expect(promise).rejects.toBeInstanceOf(ORPCError);
+				await expect(promise).rejects.toBeInstanceOf(HTTPException);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
 						message: 'Failed to create consent purpose',
-						code: 'PURPOSE_CREATION_FAILED',
 						status: 500,
-						data: { purposeCode: 'undefined-code' },
+					})
+				);
+				const error = await registry
+					.findOrCreateConsentPurposeByCode('undefined-code')
+					.catch((e: any) => e);
+				expect(error.cause).toEqual(
+					expect.objectContaining({
+						code: 'PURPOSE_CREATION_FAILED',
+						purposeCode: 'undefined-code',
 					})
 				);
 			});
@@ -385,14 +348,11 @@ describe('consentPurposeRegistry', () => {
 				'very-long-consent-purpose-code-name', // Long code
 				'CODE_WITH_UNDERSCORES', // Uppercase with underscores
 				'mixed.Case-code_123', // Mixed case with special chars
-				'数据处理', // Unicode/international characters
 			];
 
 			for (const code of edgeCaseCodes) {
 				const mockPurpose = createMockConsentPurpose({
 					code,
-					name: code,
-					description: `Auto-created consentPurpose for ${code}`,
 				});
 
 				const db = {
@@ -408,10 +368,6 @@ describe('consentPurposeRegistry', () => {
 				const result = await registry.findOrCreateConsentPurposeByCode(code);
 
 				expect(result.code).toBe(code);
-				expect(result.name).toBe(code);
-				expect(result.description).toBe(
-					`Auto-created consentPurpose for ${code}`
-				);
 
 				vi.clearAllMocks();
 			}
@@ -421,7 +377,6 @@ describe('consentPurposeRegistry', () => {
 			const mixedCaseCode = 'Analytics_Tracking';
 			const mockPurpose = createMockConsentPurpose({
 				code: mixedCaseCode,
-				name: mixedCaseCode,
 			});
 
 			const db = {
@@ -440,11 +395,6 @@ describe('consentPurposeRegistry', () => {
 			expect(db.create).toHaveBeenCalledWith('consentPurpose', {
 				id: 'cp_test_123',
 				code: mixedCaseCode,
-				name: mixedCaseCode,
-				description: `Auto-created consentPurpose for ${mixedCaseCode}`,
-				isActive: true,
-				isEssential: false,
-				legalBasis: 'consent',
 			});
 
 			expect(result.code).toBe(mixedCaseCode);
@@ -453,8 +403,6 @@ describe('consentPurposeRegistry', () => {
 		it('should handle empty string code gracefully', async () => {
 			const mockPurpose = createMockConsentPurpose({
 				code: '',
-				name: '',
-				description: 'Auto-created consentPurpose for ',
 			});
 
 			const db = {
@@ -472,11 +420,6 @@ describe('consentPurposeRegistry', () => {
 			expect(db.create).toHaveBeenCalledWith('consentPurpose', {
 				id: 'cp_test_123',
 				code: '',
-				name: '',
-				description: 'Auto-created consentPurpose for ',
-				isActive: true,
-				isEssential: false,
-				legalBasis: 'consent',
 			});
 
 			expect(result.code).toBe('');
