@@ -1,4 +1,4 @@
-import { ORPCError } from '@orpc/server';
+import { HTTPException } from 'hono/http-exception';
 import type { AuditLog } from '../schema';
 import type { Registry } from './types';
 import { generateUniqueId } from './utils/generate-id';
@@ -34,9 +34,9 @@ export function auditLogRegistry({
 					auditLog,
 				});
 
-				throw new ORPCError('INTERNAL_SERVER_ERROR', {
+				throw new HTTPException(500, {
 					message: 'Failed to create audit log',
-					status: 500,
+					cause: { code: 'INTERNAL_SERVER_ERROR' },
 				});
 			}
 

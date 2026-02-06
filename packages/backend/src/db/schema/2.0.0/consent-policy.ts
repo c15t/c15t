@@ -17,6 +17,7 @@ export const consentPolicyTable = table('consentPolicy', {
 	contentHash: column('contentHash', 'string'),
 	isActive: column('isActive', 'bool').defaultTo$(() => true),
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
+	tenantId: column('tenantId', 'string').nullable(),
 });
 
 // Re-export for backward compatibility

@@ -1,4 +1,4 @@
-import { ORPCError } from '@orpc/server';
+import { HTTPException } from 'hono/http-exception';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ConsentPurpose } from '../schema';
 import { consentPurposeRegistry } from './consent-purpose';
@@ -246,7 +246,7 @@ describe('consentPurposeRegistry', () => {
 		});
 
 		describe('error handling', () => {
-			it('should throw ORPCError when consent purpose creation fails', async () => {
+			it('should throw HTTPException when consent purpose creation fails', async () => {
 				const db = {
 					findFirst: vi.fn().mockResolvedValue(null),
 					create: vi.fn().mockResolvedValue(null),
@@ -260,13 +260,20 @@ describe('consentPurposeRegistry', () => {
 				const promise =
 					registry.findOrCreateConsentPurposeByCode('failed-code');
 
-				await expect(promise).rejects.toBeInstanceOf(ORPCError);
+				await expect(promise).rejects.toBeInstanceOf(HTTPException);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
 						message: 'Failed to create consent purpose',
-						code: 'PURPOSE_CREATION_FAILED',
 						status: 500,
-						data: { purposeCode: 'failed-code' },
+					})
+				);
+				const error = await registry
+					.findOrCreateConsentPurposeByCode('failed-code')
+					.catch((e: any) => e);
+				expect(error.cause).toEqual(
+					expect.objectContaining({
+						code: 'PURPOSE_CREATION_FAILED',
+						purposeCode: 'failed-code',
 					})
 				);
 
@@ -292,7 +299,7 @@ describe('consentPurposeRegistry', () => {
 				);
 			});
 
-			it('should throw ORPCError when consent purpose creation returns undefined', async () => {
+			it('should throw HTTPException when consent purpose creation returns undefined', async () => {
 				const db = {
 					findFirst: vi.fn().mockResolvedValue(null),
 					create: vi.fn().mockResolvedValue(undefined),
@@ -306,13 +313,20 @@ describe('consentPurposeRegistry', () => {
 				const promise =
 					registry.findOrCreateConsentPurposeByCode('undefined-code');
 
-				await expect(promise).rejects.toBeInstanceOf(ORPCError);
+				await expect(promise).rejects.toBeInstanceOf(HTTPException);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
 						message: 'Failed to create consent purpose',
-						code: 'PURPOSE_CREATION_FAILED',
 						status: 500,
-						data: { purposeCode: 'undefined-code' },
+					})
+				);
+				const error = await registry
+					.findOrCreateConsentPurposeByCode('undefined-code')
+					.catch((e: any) => e);
+				expect(error.cause).toEqual(
+					expect.objectContaining({
+						code: 'PURPOSE_CREATION_FAILED',
+						purposeCode: 'undefined-code',
 					})
 				);
 			});

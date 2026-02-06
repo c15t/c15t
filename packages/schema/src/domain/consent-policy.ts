@@ -21,6 +21,7 @@ export const consentPolicySchema = v.object({
 	contentHash: v.string(),
 	isActive: v.optional(v.boolean(), true),
 	createdAt: v.optional(v.date(), () => new Date()),
+	tenantId: v.nullish(v.string()),
 });
 
 export type ConsentPolicy = v.InferOutput<typeof consentPolicySchema>;

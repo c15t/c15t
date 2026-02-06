@@ -1,4 +1,4 @@
-import { ORPCError } from '@orpc/server';
+import { HTTPException } from 'hono/http-exception';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AuditLog } from '../schema';
 import { auditLogRegistry } from './audit-log';
@@ -57,7 +57,7 @@ describe('auditLogRegistry', () => {
 			vi.useRealTimers();
 		});
 
-		it('should throw ORPCError when creation fails', async () => {
+		it('should throw HTTPException when creation fails', async () => {
 			const db = {
 				create: vi.fn().mockResolvedValue(null),
 			};
@@ -65,11 +65,18 @@ describe('auditLogRegistry', () => {
 			const registry = auditLogRegistry({ db } as unknown as Registry);
 
 			const promise = registry.createAuditLog(baseInput);
-			await expect(promise).rejects.toBeInstanceOf(ORPCError);
+			await expect(promise).rejects.toBeInstanceOf(HTTPException);
 			await expect(promise).rejects.toEqual(
 				expect.objectContaining({
-					code: 'INTERNAL_SERVER_ERROR',
 					status: 500,
+				})
+			);
+			const error = await registry
+				.createAuditLog(baseInput)
+				.catch((e: any) => e);
+			expect(error.cause).toEqual(
+				expect.objectContaining({
+					code: 'INTERNAL_SERVER_ERROR',
 				})
 			);
 		});

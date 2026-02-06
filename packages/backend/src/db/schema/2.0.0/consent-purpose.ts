@@ -12,6 +12,7 @@ export const consentPurposeTable = table('consentPurpose', {
 	isActive: column('isActive', 'bool').defaultTo$(() => true),
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
 	updatedAt: column('updatedAt', 'timestamp').defaultTo$('now'),
+	tenantId: column('tenantId', 'string').nullable(),
 });
 
 export { consentPurposeSchema, type ConsentPurpose };

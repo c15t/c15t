@@ -1,4 +1,4 @@
-import { ORPCError } from '@orpc/server';
+import { HTTPException } from 'hono/http-exception';
 import type { Consent } from '../schema';
 import type { Registry } from './types';
 import { generateUniqueId } from './utils/generate-id';
@@ -26,10 +26,10 @@ export function consentRegistry({ db, ctx }: Registry) {
 			});
 
 			if (!createdConsent) {
-				throw new ORPCError('CONSENT_CREATION_FAILED', {
+				throw new HTTPException(500, {
 					message: 'Failed to create consent - operation returned null',
-					status: 500,
-					data: {
+					cause: {
+						code: 'CONSENT_CREATION_FAILED',
 						subjectId: consent.subjectId,
 						domainId: consent.domainId,
 					},

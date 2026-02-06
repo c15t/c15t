@@ -1,4 +1,4 @@
-import { ORPCError } from '@orpc/server';
+import { HTTPException } from 'hono/http-exception';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Consent } from '../schema';
 import { consentRegistry } from './consent';
@@ -515,7 +515,7 @@ describe('consentRegistry', () => {
 		});
 
 		describe('error handling', () => {
-			it('should throw ORPCError when consent creation fails', async () => {
+			it('should throw HTTPException when consent creation fails', async () => {
 				const consentInput = createConsentInput();
 
 				const db = {
@@ -529,13 +529,21 @@ describe('consentRegistry', () => {
 
 				const promise = registry.createConsent(consentInput);
 
-				await expect(promise).rejects.toBeInstanceOf(ORPCError);
+				await expect(promise).rejects.toBeInstanceOf(HTTPException);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
 						message: 'Failed to create consent - operation returned null',
-						code: 'CONSENT_CREATION_FAILED',
 						status: 500,
-						data: { subjectId: 'sub_test_456', domainId: 'dom_test_789' },
+					})
+				);
+				const error = await registry
+					.createConsent(consentInput)
+					.catch((e: any) => e);
+				expect(error.cause).toEqual(
+					expect.objectContaining({
+						code: 'CONSENT_CREATION_FAILED',
+						subjectId: 'sub_test_456',
+						domainId: 'dom_test_789',
 					})
 				);
 
@@ -559,7 +567,7 @@ describe('consentRegistry', () => {
 				});
 			});
 
-			it('should throw ORPCError when consent creation returns undefined', async () => {
+			it('should throw HTTPException when consent creation returns undefined', async () => {
 				const consentInput = createConsentInput();
 
 				const db = {
@@ -573,13 +581,21 @@ describe('consentRegistry', () => {
 
 				const promise = registry.createConsent(consentInput);
 
-				await expect(promise).rejects.toBeInstanceOf(ORPCError);
+				await expect(promise).rejects.toBeInstanceOf(HTTPException);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
 						message: 'Failed to create consent - operation returned null',
-						code: 'CONSENT_CREATION_FAILED',
 						status: 500,
-						data: { subjectId: 'sub_test_456', domainId: 'dom_test_789' },
+					})
+				);
+				const error = await registry
+					.createConsent(consentInput)
+					.catch((e: any) => e);
+				expect(error.cause).toEqual(
+					expect.objectContaining({
+						code: 'CONSENT_CREATION_FAILED',
+						subjectId: 'sub_test_456',
+						domainId: 'dom_test_789',
 					})
 				);
 			});

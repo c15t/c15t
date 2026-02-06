@@ -10,6 +10,7 @@ export const subjectTable = table('subject', {
 	subjectTimezone: column('subjectTimezone', 'string').nullable(),
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
 	updatedAt: column('updatedAt', 'timestamp').defaultTo$('now'),
+	tenantId: column('tenantId', 'string').nullable(),
 });
 
 export { subjectSchema, type Subject };

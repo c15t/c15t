@@ -1,4 +1,4 @@
-import { ORPCError } from '@orpc/server';
+import { HTTPException } from 'hono/http-exception';
 import type { Registry } from './types';
 import { generateUniqueId } from './utils/generate-id';
 
@@ -28,10 +28,9 @@ export function consentPurposeRegistry({ db, ctx }: Registry) {
 			});
 
 			if (!createdPurpose) {
-				throw new ORPCError('PURPOSE_CREATION_FAILED', {
+				throw new HTTPException(500, {
 					message: 'Failed to create consent purpose',
-					status: 500,
-					data: { purposeCode: code },
+					cause: { code: 'PURPOSE_CREATION_FAILED', purposeCode: code },
 				});
 			}
 

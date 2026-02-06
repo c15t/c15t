@@ -26,6 +26,7 @@ export const consentSchema = v.object({
 	jurisdictionModel: v.nullish(v.string()),
 	/** IAB TCF TC String (only for IAB consents) */
 	tcString: v.nullish(v.string()),
+	tenantId: v.nullish(v.string()),
 });
 
 export type Consent = v.InferOutput<typeof consentSchema>;

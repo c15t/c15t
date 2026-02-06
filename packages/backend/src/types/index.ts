@@ -23,6 +23,12 @@ export interface DatabaseOptions {
 	 * The database adapter to use.
 	 */
 	adapter: FumaDB<FumaDBSchema>['adapter'];
+
+	/**
+	 * Tenant ID for multi-tenant deployments.
+	 * When set, all database queries are automatically scoped to this tenant.
+	 */
+	tenantId?: string;
 }
 
 interface BaseOptions {

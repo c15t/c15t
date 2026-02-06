@@ -7,6 +7,7 @@ export const consentRecordSchema = v.object({
 	actionType: v.string(),
 	details: v.nullish(v.record(v.string(), v.unknown())),
 	createdAt: v.optional(v.date(), () => new Date()),
+	tenantId: v.nullish(v.string()),
 });
 
 export type ConsentRecord = v.InferOutput<typeof consentRecordSchema>;

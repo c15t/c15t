@@ -30,6 +30,7 @@ const handler = c15tInstance({
 	basePath: '/api/self-host',
 	adapter: postgresDb,
 	trustedOrigins: ['localhost', 'vercel.app'],
+	tenantId: 'ins_1',
 	advanced: {
 		branding: 'c15t',
 		customTranslations: {

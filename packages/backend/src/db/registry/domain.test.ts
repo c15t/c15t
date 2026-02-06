@@ -1,4 +1,4 @@
-import { ORPCError } from '@orpc/server';
+import { HTTPException } from 'hono/http-exception';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Domain } from '../schema';
 import { domainRegistry } from './domain';
@@ -249,7 +249,7 @@ describe('domainRegistry', () => {
 		});
 
 		describe('error handling', () => {
-			it('should throw ORPCError when domain creation fails', async () => {
+			it('should throw HTTPException when domain creation fails', async () => {
 				const db = {
 					findFirst: vi.fn().mockResolvedValue(null),
 					create: vi.fn().mockResolvedValue(null),
@@ -262,12 +262,19 @@ describe('domainRegistry', () => {
 
 				const promise = registry.findOrCreateDomain('failed.com');
 
-				await expect(promise).rejects.toBeInstanceOf(ORPCError);
+				await expect(promise).rejects.toBeInstanceOf(HTTPException);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
 						message: 'Failed to create domain',
-						code: 'DOMAIN_CREATION_FAILED',
 						status: 503,
+					})
+				);
+				const error = await registry
+					.findOrCreateDomain('failed.com')
+					.catch((e: any) => e);
+				expect(error.cause).toEqual(
+					expect.objectContaining({
+						code: 'DOMAIN_CREATION_FAILED',
 					})
 				);
 
@@ -289,7 +296,7 @@ describe('domainRegistry', () => {
 				});
 			});
 
-			it('should throw ORPCError when domain creation returns undefined', async () => {
+			it('should throw HTTPException when domain creation returns undefined', async () => {
 				const db = {
 					findFirst: vi.fn().mockResolvedValue(null),
 					create: vi.fn().mockResolvedValue(undefined),
@@ -302,12 +309,19 @@ describe('domainRegistry', () => {
 
 				const promise = registry.findOrCreateDomain('undefined.com');
 
-				await expect(promise).rejects.toBeInstanceOf(ORPCError);
+				await expect(promise).rejects.toBeInstanceOf(HTTPException);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
 						message: 'Failed to create domain',
-						code: 'DOMAIN_CREATION_FAILED',
 						status: 503,
+					})
+				);
+				const error = await registry
+					.findOrCreateDomain('undefined.com')
+					.catch((e: any) => e);
+				expect(error.cause).toEqual(
+					expect.objectContaining({
+						code: 'DOMAIN_CREATION_FAILED',
 					})
 				);
 			});

@@ -8,6 +8,7 @@ export const consentRecordTable = table('consentRecord', {
 	actionType: column('actionType', 'string'),
 	details: column('details', 'json').nullable(),
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
+	tenantId: column('tenantId', 'string').nullable(),
 });
 
 export { consentRecordSchema, type ConsentRecord };

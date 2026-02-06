@@ -26,6 +26,7 @@ export const consentTable = table('consent', {
 	jurisdictionModel: column('jurisdictionModel', 'string').nullable(),
 	/** IAB TCF TC String (only for IAB consents) */
 	tcString: column('tcString', 'string').nullable(),
+	tenantId: column('tenantId', 'string').nullable(),
 });
 
 export { consentSchema, consentStatusSchema, type Consent, type ConsentStatus };

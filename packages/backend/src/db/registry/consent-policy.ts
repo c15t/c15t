@@ -1,4 +1,4 @@
-import { ORPCError } from '@orpc/server';
+import { HTTPException } from 'hono/http-exception';
 import type { PolicyType } from '../schema';
 import type { Registry } from './types';
 import { generateUniqueId } from './utils/generate-id';
@@ -18,10 +18,9 @@ export function policyRegistry({ db, ctx }: Registry) {
 				.map((b) => b.toString(16).padStart(2, '0'))
 				.join('');
 		} catch {
-			throw new ORPCError('POLICY_CREATION_FAILED', {
+			throw new HTTPException(500, {
 				message: 'Failed to generate policy content hash',
-				status: 500,
-				data: { name },
+				cause: { code: 'POLICY_CREATION_FAILED', name },
 			});
 		}
 

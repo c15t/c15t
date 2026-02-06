@@ -1,4 +1,4 @@
-import { ORPCError } from '@orpc/server';
+import { HTTPException } from 'hono/http-exception';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ConsentPolicy, PolicyType } from '../schema';
 import { policyRegistry } from './consent-policy';
@@ -499,7 +499,7 @@ describe('policyRegistry', () => {
 		});
 
 		describe('error handling', () => {
-			it('should throw ORPCError when crypto.subtle.digest fails', async () => {
+			it('should throw HTTPException when crypto.subtle.digest fails', async () => {
 				const cryptoError = new Error('Crypto operation failed');
 				mockCryptoSubtle.digest.mockRejectedValue(cryptoError);
 
@@ -515,13 +515,20 @@ describe('policyRegistry', () => {
 
 				const promise = registry.findOrCreatePolicy('privacy_policy');
 
-				await expect(promise).rejects.toBeInstanceOf(ORPCError);
+				await expect(promise).rejects.toBeInstanceOf(HTTPException);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
 						message: 'Failed to generate policy content hash',
-						code: 'POLICY_CREATION_FAILED',
 						status: 500,
-						data: { name: 'privacy_policy' },
+					})
+				);
+				const error = await registry
+					.findOrCreatePolicy('privacy_policy')
+					.catch((e: any) => e);
+				expect(error.cause).toEqual(
+					expect.objectContaining({
+						code: 'POLICY_CREATION_FAILED',
+						name: 'privacy_policy',
 					})
 				);
 
@@ -544,22 +551,21 @@ describe('policyRegistry', () => {
 
 				const promise = registry.findOrCreatePolicy('privacy_policy');
 
-				await expect(promise).rejects.toBeInstanceOf(ORPCError);
+				await expect(promise).rejects.toBeInstanceOf(HTTPException);
 				await expect(promise).rejects.toEqual(
 					expect.objectContaining({
 						message: 'Failed to generate policy content hash',
-						code: 'POLICY_CREATION_FAILED',
 						status: 500,
-						data: { name: 'privacy_policy' },
 					})
 				);
 
-				const error = await promise.catch((e) => e);
-				expect(error).toEqual(
+				const error = await registry
+					.findOrCreatePolicy('privacy_policy')
+					.catch((e: any) => e);
+				expect(error.cause).toEqual(
 					expect.objectContaining({
 						code: 'POLICY_CREATION_FAILED',
-						status: 500,
-						data: { name: 'privacy_policy' },
+						name: 'privacy_policy',
 					})
 				);
 			});

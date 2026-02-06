@@ -9,6 +9,7 @@ export const domainSchema = v.object({
 	isActive: v.optional(v.boolean(), true),
 	createdAt: v.optional(v.date(), () => new Date()),
 	updatedAt: v.optional(v.date(), () => new Date()),
+	tenantId: v.nullish(v.string()),
 });
 
 export type Domain = v.InferOutput<typeof domainSchema>;
