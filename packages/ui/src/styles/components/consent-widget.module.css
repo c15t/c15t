@@ -30,8 +30,10 @@
 	--consent-widget-title-weight: var(--c15t-font-weight-semibold);
 
 	/* Animation */
-	--consent-widget-entry-animation: enter var(--c15t-duration-fast) var(--c15t-easing);
-	--consent-widget-exit-animation: exit var(--c15t-duration-fast) var(--c15t-easing);
+	--consent-widget-entry-animation: enter var(--c15t-duration-fast)
+		var(--c15t-easing);
+	--consent-widget-exit-animation: exit var(--c15t-duration-fast)
+		var(--c15t-easing);
 
 	/* Accordion (Inherit from shared accordion tokens) */
 	--consent-widget-accordion-padding: var(--c15t-space-md);
@@ -56,7 +58,8 @@
 	--consent-widget-accordion-focus-ring: hsl(227.93, 100%, 63.92%);
 	--consent-widget-accordion-focus-ring-dark: hsl(228.07, 69.8%, 48.04%);
 	--consent-widget-accordion-focus-shadow: 0 0 0 2px hsl(227.93, 100%, 63.92%);
-	--consent-widget-accordion-focus-shadow-dark: 0 0 0 2px hsl(228.07, 69.8%, 48.04%);
+	--consent-widget-accordion-focus-shadow-dark: 0 0 0 2px
+		hsl(228.07, 69.8%, 48.04%);
 
 	--consent-widget-font-family:
 		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
@@ -83,7 +86,8 @@
 		width: 100%;
 		max-width: var(--consent-widget-max-width);
 		border-radius: var(--consent-widget-radius);
-		border: var(--consent-widget-border-width) solid var(--consent-widget-border-color);
+		border: var(--consent-widget-border-width) solid
+			var(--consent-widget-border-color);
 		background-color: var(--consent-widget-background-color);
 	}
 
@@ -177,7 +181,8 @@
 		display: flex;
 		justify-content: center;
 		width: 100%;
-		border-top: var(--consent-widget-border-width) solid var(--consent-widget-border-color);
+		border-top: var(--consent-widget-border-width) solid
+			var(--consent-widget-border-color);
 		padding-top: 1rem;
 	}
 
@@ -303,8 +308,8 @@
 	}
 
 	.accordionContent {
-		padding: var(--consent-widget-gap) var(--consent-widget-accordion-padding) var(--consent-widget-gap)
-			0;
+		padding: var(--consent-widget-gap) var(--consent-widget-accordion-padding)
+			var(--consent-widget-gap) 0;
 		color: var(--consent-widget-accordion-content-color);
 		font-size: 0.875rem;
 		line-height: 1.5;

@@ -13,10 +13,10 @@
 	/* Animation variables */
 	--iab-consent-banner-animation-duration: var(--c15t-duration-normal);
 	--iab-consent-banner-animation-timing: var(--c15t-easing);
-	--iab-consent-banner-entry-animation: iabConsentBannerEnter var(--c15t-duration-fast)
-		var(--c15t-easing);
-	--iab-consent-banner-exit-animation: iabConsentBannerExit var(--c15t-duration-fast)
-		var(--c15t-easing);
+	--iab-consent-banner-entry-animation: iabConsentBannerEnter
+		var(--c15t-duration-fast) var(--c15t-easing);
+	--iab-consent-banner-exit-animation: iabConsentBannerExit
+		var(--c15t-duration-fast) var(--c15t-easing);
 
 	/* Border */
 	--iab-consent-banner-border-width: 1px;

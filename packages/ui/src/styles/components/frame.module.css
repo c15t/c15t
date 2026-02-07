@@ -25,7 +25,8 @@
 
 	--frame-placeholder-opacity: 0;
 	/* ease-out for entering elements - provides immediate visual feedback */
-	--frame-placeholder-animation: fadeIn 0.15s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+	--frame-placeholder-animation: fadeIn 0.15s cubic-bezier(0.165, 0.84, 0.44, 1)
+		forwards;
 }
 
 @layer components {

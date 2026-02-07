@@ -35,10 +35,11 @@
 	font-weight: var(--c15t-font-weight-medium, 500);
 	cursor: pointer;
 	white-space: nowrap;
-	transition: background-color var(--c15t-duration-fast, 100ms)
-			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+	transition:
+		background-color var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		color var(--c15t-duration-fast, 100ms)
-			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .tab:hover {

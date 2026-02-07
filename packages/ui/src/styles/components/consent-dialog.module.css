@@ -116,7 +116,8 @@
 		opacity: 1;
 		transform: scale(1);
 		transition:
-			opacity var(--consent-dialog-animation-duration) var(--consent-dialog-animation-timing),
+			opacity var(--consent-dialog-animation-duration)
+			var(--consent-dialog-animation-timing),
 			transform var(--consent-dialog-animation-duration)
 			cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
@@ -125,8 +126,10 @@
 		opacity: 0;
 		transform: scale(0.95);
 		transition:
-			opacity var(--consent-dialog-animation-duration) var(--consent-dialog-animation-timing),
-			transform var(--consent-dialog-animation-duration) var(--consent-dialog-animation-timing);
+			opacity var(--consent-dialog-animation-duration)
+			var(--consent-dialog-animation-timing),
+			transform var(--consent-dialog-animation-duration)
+			var(--consent-dialog-animation-timing);
 	}
 
 	@media (min-width: 640px) {
@@ -231,8 +234,8 @@
 
 	.card {
 		border-radius: var(--consent-dialog-card-radius);
-		border: var(--consent-dialog-border-width) var(--consent-dialog-border-style)
-			var(--consent-dialog-border-color);
+		border: var(--consent-dialog-border-width)
+			var(--consent-dialog-border-style) var(--consent-dialog-border-color);
 		background-color: var(--consent-dialog-background-color);
 		color: var(--consent-dialog-foreground-color);
 		box-shadow: var(--consent-dialog-card-shadow);
@@ -289,8 +292,8 @@
 		font-size: var(--consent-dialog-footer-font-size);
 		padding-top: var(--consent-dialog-footer-padding-y);
 		padding-bottom: var(--consent-dialog-footer-padding-y);
-		border-top: var(--consent-dialog-border-width) var(--consent-dialog-border-style)
-			var(--consent-dialog-stroke-color);
+		border-top: var(--consent-dialog-border-width)
+			var(--consent-dialog-border-style) var(--consent-dialog-stroke-color);
 	}
 
 	/* Hide footer when it has no children */
