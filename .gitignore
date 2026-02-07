@@ -56,4 +56,4 @@ coverage.json
 version.ts
 i18n.cache
 
-.test-apps/*
+.test-apps/

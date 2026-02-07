@@ -66,8 +66,8 @@ create_nextjs_app() {
     "start": "next start"
   },
   "dependencies": {
-    "@c15t/nextjs": "workspace:*",
-    "@c15t/scripts": "workspace:*",
+    "@c15t/nextjs": "link:../../packages/nextjs",
+    "@c15t/scripts": "link:../../packages/scripts",
     "next": "^16.1.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
@@ -173,8 +173,8 @@ create_nextjs_pages() {
     "start": "next start"
   },
   "dependencies": {
-    "@c15t/nextjs": "workspace:*",
-    "@c15t/scripts": "workspace:*",
+    "@c15t/nextjs": "link:../../packages/nextjs",
+    "@c15t/scripts": "link:../../packages/scripts",
     "next": "^16.1.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
@@ -266,8 +266,8 @@ create_vite_react() {
     "preview": "vite preview"
   },
   "dependencies": {
-    "@c15t/react": "workspace:*",
-    "@c15t/scripts": "workspace:*",
+    "@c15t/react": "link:../../packages/react",
+    "@c15t/scripts": "link:../../packages/scripts",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
@@ -473,19 +473,27 @@ is_c15t_monorepo() {
     [ -f "$(pwd)/package.json" ] && grep -q '"name": "c15t-workspace"' "$(pwd)/package.json"
 }
 
-# Install dependencies via workspace from monorepo root
+# Install dependencies in each test app individually
 install_deps() {
-    print_header "Installing workspace dependencies"
+    print_header "Installing test app dependencies"
 
     if ! is_c15t_monorepo; then
         print_error "Not in c15t monorepo root. Run this script from the monorepo root."
         exit 1
     fi
 
-    # Run bun install from monorepo root to resolve workspace:* deps
-    bun install
+    for dir in "$TEST_DIR"/*/; do
+        if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
+            local name=$(basename "$dir")
+            echo -e "  Installing deps for ${BLUE}$name${NC}..."
+            cd "$dir"
+            bun install
+            cd - > /dev/null
+            print_success "$name dependencies installed"
+        fi
+    done
 
-    print_success "All dependencies installed via workspace"
+    print_success "All test app dependencies installed"
 }
 
 # Show usage
