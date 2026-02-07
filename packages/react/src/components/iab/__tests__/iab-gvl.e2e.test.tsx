@@ -6,8 +6,8 @@
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { IABBanner } from '~/components/iab-banner';
-import { IABPreferenceCenter } from '~/components/iab-preference-center';
+import { IABConsentBanner } from '~/components/iab-consent-banner';
+import { IABConsentDialog } from '~/components/iab-consent-dialog';
 import {
 	ConsentManagerProvider,
 	clearConsentManagerCache,
@@ -32,8 +32,8 @@ describe('IAB GVL E2E Tests', () => {
 		test('should fetch GVL successfully', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -54,8 +54,8 @@ describe('IAB GVL E2E Tests', () => {
 		test('should display vendor count from GVL', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -76,8 +76,8 @@ describe('IAB GVL E2E Tests', () => {
 		test('should have all 11 purposes', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -109,8 +109,8 @@ describe('IAB GVL E2E Tests', () => {
 		test('should have special purposes 1-2', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -132,8 +132,8 @@ describe('IAB GVL E2E Tests', () => {
 		test('should have features 1-3', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -156,8 +156,8 @@ describe('IAB GVL E2E Tests', () => {
 		test('should have special features 1-2', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -179,8 +179,8 @@ describe('IAB GVL E2E Tests', () => {
 		test('should have stacks for UI grouping', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -203,8 +203,8 @@ describe('IAB GVL E2E Tests', () => {
 		test('should have vendors with required fields', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -237,8 +237,8 @@ describe('IAB GVL E2E Tests', () => {
 		test('should have vendorListVersion', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -256,8 +256,8 @@ describe('IAB GVL E2E Tests', () => {
 		test('should have tcfPolicyVersion=5', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 

@@ -9,15 +9,15 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
+import { ConsentBanner } from '~/components/consent-banner';
+import { ConsentDialog } from '~/components/consent-dialog';
+import { ConsentDialogTrigger } from '~/components/consent-dialog-trigger';
+import { ConsentWidget } from '~/components/consent-widget';
 import {
 	ConsentManagerProvider,
 	clearConsentManagerCache,
 } from '~/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/types/consent-manager';
-import { CookieBanner } from '../cookie-banner/cookie-banner';
-import { PreferenceCenter } from '../preference-center/preference-center';
-import { PreferenceCenterTrigger } from '../preference-center-trigger/preference-center-trigger';
-import { PreferenceCenterWidget } from '../preference-center-widget/preference-center-widget';
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -63,7 +63,7 @@ describe('Consent Flow E2E Tests', () => {
 		test('should show cookie banner to first-time visitor', async () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
-					<CookieBanner />
+					<ConsentBanner />
 				</ConsentManagerProvider>
 			);
 
@@ -81,7 +81,7 @@ describe('Consent Flow E2E Tests', () => {
 		test('should hide banner after accepting all', async () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
-					<CookieBanner />
+					<ConsentBanner />
 				</ConsentManagerProvider>
 			);
 
@@ -114,7 +114,7 @@ describe('Consent Flow E2E Tests', () => {
 		test('should hide banner after rejecting all', async () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
-					<CookieBanner />
+					<ConsentBanner />
 				</ConsentManagerProvider>
 			);
 
@@ -149,7 +149,7 @@ describe('Consent Flow E2E Tests', () => {
 		test('should persist consent to localStorage on accept', async () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
-					<CookieBanner />
+					<ConsentBanner />
 				</ConsentManagerProvider>
 			);
 
@@ -183,7 +183,7 @@ describe('Consent Flow E2E Tests', () => {
 		test('should persist reject decision to localStorage', async () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
-					<CookieBanner />
+					<ConsentBanner />
 				</ConsentManagerProvider>
 			);
 
@@ -236,7 +236,7 @@ describe('Consent Flow E2E Tests', () => {
 
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
-					<CookieBanner />
+					<ConsentBanner />
 				</ConsentManagerProvider>
 			);
 
@@ -254,7 +254,7 @@ describe('Consent Flow E2E Tests', () => {
 		test('should show trigger after consent given when showWhen is always', async () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
-					<PreferenceCenterTrigger showWhen="always" />
+					<ConsentDialogTrigger showWhen="always" />
 				</ConsentManagerProvider>
 			);
 
@@ -274,7 +274,7 @@ describe('Consent Flow E2E Tests', () => {
 		test('should render widget with all consent categories', async () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
-					<PreferenceCenterWidget />
+					<ConsentWidget />
 				</ConsentManagerProvider>
 			);
 
@@ -301,7 +301,7 @@ describe('Consent Flow E2E Tests', () => {
 		test('should have disabled necessary consent toggle', async () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
-					<PreferenceCenterWidget />
+					<ConsentWidget />
 				</ConsentManagerProvider>
 			);
 
@@ -323,7 +323,7 @@ describe('Consent Flow E2E Tests', () => {
 		test('should show dialog when open prop is true', async () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
-					<PreferenceCenter open={true} />
+					<ConsentDialog open={true} />
 				</ConsentManagerProvider>
 			);
 
@@ -341,7 +341,7 @@ describe('Consent Flow E2E Tests', () => {
 		test('should contain widget inside dialog', async () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
-					<PreferenceCenter open={true} />
+					<ConsentDialog open={true} />
 				</ConsentManagerProvider>
 			);
 
@@ -361,8 +361,8 @@ describe('Consent Flow E2E Tests', () => {
 		test('should complete full consent flow: banner -> customize -> save', async () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
-					<CookieBanner />
-					<PreferenceCenter />
+					<ConsentBanner />
+					<ConsentDialog />
 				</ConsentManagerProvider>
 			);
 

@@ -7,8 +7,8 @@
 import { userEvent } from '@vitest/browser/context';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { IABBanner } from '~/components/iab-banner';
-import { IABPreferenceCenter } from '~/components/iab-preference-center';
+import { IABConsentBanner } from '~/components/iab-consent-banner';
+import { IABConsentDialog } from '~/components/iab-consent-dialog';
 import {
 	ConsentManagerProvider,
 	clearConsentManagerCache,
@@ -34,8 +34,8 @@ describe('IAB Storage E2E Tests', () => {
 		test('should store consent to localStorage', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -65,8 +65,8 @@ describe('IAB Storage E2E Tests', () => {
 		test('should store TC string in localStorage', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -87,8 +87,8 @@ describe('IAB Storage E2E Tests', () => {
 		test('TC string should be valid base64url format', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -113,8 +113,8 @@ describe('IAB Storage E2E Tests', () => {
 		test('should update storage when Accept All clicked', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -136,8 +136,8 @@ describe('IAB Storage E2E Tests', () => {
 		test('should update storage when Reject All clicked', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -163,8 +163,8 @@ describe('IAB Storage E2E Tests', () => {
 		test('should store consent info with timestamp', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -189,8 +189,8 @@ describe('IAB Storage E2E Tests', () => {
 		test('should store consent info with subjectId', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -212,8 +212,8 @@ describe('IAB Storage E2E Tests', () => {
 		test('should use "c15t" key in localStorage', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -232,8 +232,8 @@ describe('IAB Storage E2E Tests', () => {
 		test('should use "c15t_tc_string" key for TC string', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 

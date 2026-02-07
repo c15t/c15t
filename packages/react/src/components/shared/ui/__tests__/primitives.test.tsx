@@ -482,9 +482,18 @@ describe('Accordion', () => {
 				{ timeout: 3000 }
 			);
 
-			// Click both triggers
+			// Click both triggers, waiting for state to settle between clicks
 			const triggers = document.querySelectorAll('button');
 			await userEvent.click(triggers[0]!);
+			await vi.waitFor(
+				() => {
+					expect(
+						document.querySelector('button[data-state="open"]')
+					).toBeInTheDocument();
+				},
+				{ timeout: 3000 }
+			);
+
 			await userEvent.click(triggers[1]!);
 
 			// Both should be open
@@ -550,13 +559,16 @@ describe('Accordion', () => {
 				{ timeout: 3000 }
 			);
 
-			const trigger = document.querySelector('button');
+			// Query fresh reference right before clicking to avoid stale node
+			const trigger = document.querySelector('button[aria-expanded="false"]');
 			await userEvent.click(trigger!);
 
 			await vi.waitFor(
 				() => {
-					const trigger = document.querySelector('button');
-					expect(trigger?.getAttribute('aria-expanded')).toBe('true');
+					const updatedTrigger = document.querySelector(
+						'button[aria-expanded="true"]'
+					);
+					expect(updatedTrigger).toBeInTheDocument();
 				},
 				{ timeout: 3000 }
 			);

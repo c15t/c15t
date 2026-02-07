@@ -85,11 +85,21 @@ describe('useScrollLock', () => {
 
 			// Toggle on
 			await userEvent.click(toggle!);
-			expect(toggle?.textContent).toContain('locked');
+			await vi.waitFor(
+				() => {
+					expect(toggle?.textContent).toContain('locked');
+				},
+				{ timeout: 3000 }
+			);
 
 			// Toggle off
 			await userEvent.click(toggle!);
-			expect(toggle?.textContent).toContain('unlocked');
+			await vi.waitFor(
+				() => {
+					expect(toggle?.textContent).toContain('unlocked');
+				},
+				{ timeout: 3000 }
+			);
 		});
 	});
 
@@ -110,15 +120,30 @@ describe('useScrollLock', () => {
 
 			// Enable lock
 			await userEvent.click(toggle!);
-			expect(toggle?.textContent).toContain('locked');
+			await vi.waitFor(
+				() => {
+					expect(toggle?.textContent).toContain('locked');
+				},
+				{ timeout: 3000 }
+			);
 
 			// Disable lock (should cleanup)
 			await userEvent.click(toggle!);
-			expect(toggle?.textContent).toContain('unlocked');
+			await vi.waitFor(
+				() => {
+					expect(toggle?.textContent).toContain('unlocked');
+				},
+				{ timeout: 3000 }
+			);
 
 			// Re-enable lock (should work without issues)
 			await userEvent.click(toggle!);
-			expect(toggle?.textContent).toContain('locked');
+			await vi.waitFor(
+				() => {
+					expect(toggle?.textContent).toContain('locked');
+				},
+				{ timeout: 3000 }
+			);
 		});
 	});
 
