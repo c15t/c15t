@@ -14,7 +14,7 @@ import ConsentManagerProvider from './provider';
  */
 export function ConsentManager({ children }: { children: ReactNode }) {
 	const ssrData = fetchInitialData({
-		backendURL: '/api/c15t',
+		backendURL: "/api/c15t",
 	});
 
 	return (

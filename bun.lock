@@ -244,6 +244,7 @@
       "dependencies": {
         "@c15t/ui": "workspace:*",
         "c15t": "workspace:*",
+        "zustand": "^5.0.8",
       },
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",

@@ -102,7 +102,8 @@
 		},
 		"parser": {
 			"allowWrongLineComments": true,
-			"cssModules": true
+			"cssModules": true,
+			"tailwindDirectives": true
 		}
 	},
 	"json": {

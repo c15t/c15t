@@ -1,47 +1,44 @@
 'use client';
 
-import {
-	ConsentBanner,
-	ConsentDialog,
-	ConsentManagerProvider,
-	type InitialDataPromise,
-} from '@c15t/nextjs';
-import {
-	databuddy,
-	linkedinInsights,
-	tiktokPixel,
-	xPixel,
-} from '@c15t/scripts';
 import type { ReactNode } from 'react';
+import { ConsentManagerProvider } from '@c15t/nextjs';
+import type { InitialDataPromise } from '@c15t/nextjs';
+import ConsentBanner from './consent-banner';
+import PreferenceCenter from './preference-center';
+import { theme } from './theme';
+
+interface Props {
+	children: ReactNode;
+	ssrData?: InitialDataPromise;
+}
+
 /**
- * Client-side consent manager provider
+ * Client-side consent manager provider with expanded components
  *
  * This component handles:
  * - Consent state management
- * - Cookie banner and dialog display
- * - Script loading based on consent
+ * - Cookie banner display (using compound components)
+ * - Preference center dialog (using compound components)
  * - SSR data hydration
  *
- * @see https://c15t.com/docs/frameworks/nextjs
+ * Customize the appearance by editing:
+ * - ./consent-banner.tsx - Banner layout and structure
+ * - ./preference-center.tsx - Dialog layout and structure
+ * - ./theme.ts - Colors, typography, and styling
+ *
+ * @see https://c15t.com/docs/frameworks/nextjs/customization
  */
-export default function ConsentManagerClient({
-	children,
-	ssrData,
-}: {
-	children: ReactNode;
-	ssrData?: InitialDataPromise;
-}) {
+export default function ConsentManagerClient({ children, ssrData }: Props) {
 	return (
 		<ConsentManagerProvider
 			options={{
 				mode: 'offline',
 				ssrData,
-				scripts: [
-					databuddy({ id: 'YOUR_ID_HERE' }),
-					xPixel({ id: 'YOUR_ID_HERE' }),
-					tiktokPixel({ id: 'XXXXXXXXXXXXXXXXX' }),
-					linkedinInsights({ id: 'YOUR_ID_HERE' }),
-				],
+				theme,
+				// Add your scripts here:
+				// scripts: [
+				//   googleTagManager({ id: 'GTM-XXXXXX' }),
+				// ],
 				// Add your callbacks here:
 				// callbacks: {
 				//   onConsentSet: (response) => console.log('Consent updated:', response),
@@ -49,7 +46,7 @@ export default function ConsentManagerClient({
 			}}
 		>
 			<ConsentBanner />
-			<ConsentDialog />
+			<PreferenceCenter />
 			{children}
 		</ConsentManagerProvider>
 	);
