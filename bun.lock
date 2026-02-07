@@ -303,6 +303,7 @@
         "@c15t/schema": "workspace:*",
       },
       "devDependencies": {
+        "@c15t/backend": "workspace:*",
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
         "@types/node": "24.10.1",
