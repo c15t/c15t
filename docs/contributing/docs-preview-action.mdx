@@ -74,7 +74,7 @@ runs:
     - name: Run c15t action (tsx)
       shell: bash
       working-directory: ${{ github.action_path }}
-      run: pnpm -w exec tsx "$GITHUB_ACTION_PATH/src/main.ts"
+      run: bunx tsc "$GITHUB_ACTION_PATH/src/main.ts"
 ```
 
 ## Troubleshooting
