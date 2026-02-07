@@ -98,7 +98,7 @@ describe('initConsentManager', () => {
 	describe('Initial data handling', () => {
 		it('should use initial data when provided and valid', async () => {
 			const mockResponse = createMockConsentBannerResponse();
-			const initialData = Promise.resolve({
+			const ssrData = Promise.resolve({
 				init: mockResponse,
 				gvl: undefined,
 			});
@@ -107,7 +107,7 @@ describe('initConsentManager', () => {
 				manager: mockManager,
 				get: storeGet,
 				set: storeSet,
-				initialData,
+				ssrData,
 			});
 
 			expect(result).toEqual(mockResponse);
@@ -115,7 +115,7 @@ describe('initConsentManager', () => {
 		});
 
 		it('should fall back to API call when initial data is undefined', async () => {
-			const initialData = Promise.resolve(undefined);
+			const ssrData = Promise.resolve(undefined);
 			const mockResponse = createMockConsentBannerResponse();
 
 			mockManager.init = vi.fn().mockResolvedValue({
@@ -127,7 +127,7 @@ describe('initConsentManager', () => {
 				manager: mockManager,
 				get: storeGet,
 				set: storeSet,
-				initialData,
+				ssrData,
 			});
 
 			expect(result).toEqual(mockResponse);
@@ -135,7 +135,7 @@ describe('initConsentManager', () => {
 		});
 
 		it('should fall back to API call when initial data init is undefined', async () => {
-			const initialData = Promise.resolve({
+			const ssrData = Promise.resolve({
 				init: undefined,
 				gvl: undefined,
 			});
@@ -150,7 +150,7 @@ describe('initConsentManager', () => {
 				manager: mockManager,
 				get: storeGet,
 				set: storeSet,
-				initialData,
+				ssrData,
 			});
 
 			expect(result).toEqual(mockResponse);
@@ -159,7 +159,7 @@ describe('initConsentManager', () => {
 
 		it('should skip initial data when overrides are present', async () => {
 			const mockResponse = createMockConsentBannerResponse();
-			const initialData = Promise.resolve({
+			const ssrData = Promise.resolve({
 				init: mockResponse,
 				gvl: undefined,
 			});
@@ -183,7 +183,7 @@ describe('initConsentManager', () => {
 				manager: mockManager,
 				get: storeGet,
 				set: storeSet,
-				initialData,
+				ssrData,
 			});
 
 			expect(result).toEqual(apiResponse);

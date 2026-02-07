@@ -12,12 +12,15 @@ import { createCMPApi } from '../cmp-api';
 import { destroyIABStub, initializeIABStub } from '../stub';
 import { generateTCString } from '../tc-string';
 import type { CMPApi } from '../types';
+import { IAB_STORAGE_KEYS } from '../types';
 import {
 	cleanupTCFApi,
 	createMockGVL,
 	createMockTCFConsentAllGranted,
 	setupStorageMock,
 } from './test-setup';
+
+const STORAGE_KEY = IAB_STORAGE_KEYS.TC_STRING_LOCAL;
 
 // Helper to clear all cookies
 function clearAllCookies() {
@@ -65,13 +68,13 @@ describe('Storage Compliance - IAB TCF 2.3', () => {
 			const tcString = 'test-tc-string-for-storage';
 			cmpApi.saveToStorage(tcString);
 
-			const stored = storageMock.storage.get('c15t_tc_string');
+			const stored = storageMock.storage.get(STORAGE_KEY);
 			expect(stored).toBe(tcString);
 		});
 
 		it('should load TC String from localStorage', () => {
 			const tcString = 'stored-tc-string';
-			storageMock.storage.set('c15t_tc_string', tcString);
+			storageMock.storage.set(STORAGE_KEY, tcString);
 
 			const loaded = cmpApi.loadFromStorage();
 			expect(loaded).toBe(tcString);
@@ -84,26 +87,23 @@ describe('Storage Compliance - IAB TCF 2.3', () => {
 
 		it('should overwrite existing TC String', () => {
 			cmpApi.saveToStorage('first-tc-string');
-			expect(storageMock.storage.get('c15t_tc_string')).toBe('first-tc-string');
+			expect(storageMock.storage.get(STORAGE_KEY)).toBe('first-tc-string');
 
 			cmpApi.saveToStorage('second-tc-string');
-			expect(storageMock.storage.get('c15t_tc_string')).toBe(
-				'second-tc-string'
-			);
+			expect(storageMock.storage.get(STORAGE_KEY)).toBe('second-tc-string');
 		});
 	});
 
 	describe('Cookie Storage (euconsent-v2)', () => {
 		it('should save TC String with correct cookie name per TCF spec', () => {
 			// The TCF spec requires the cookie to be named 'euconsent-v2'
-			// Our implementation stores to localStorage with key 'c15t_tc_string'
-			// and separately to cookie 'euconsent-v2' when cookie storage is enabled
+			// Our implementation uses the same key for both localStorage and cookies
 
 			const tcString = 'test-tc-string';
 			cmpApi.saveToStorage(tcString);
 
 			// Verify localStorage has the value
-			const stored = storageMock.storage.get('c15t_tc_string');
+			const stored = storageMock.storage.get(STORAGE_KEY);
 			expect(stored).toBe(tcString);
 		});
 	});
@@ -111,7 +111,7 @@ describe('Storage Compliance - IAB TCF 2.3', () => {
 	describe('Storage Restoration', () => {
 		it('should restore existing TC String on init', () => {
 			const existingTcString = 'existing-tc-string';
-			storageMock.storage.set('c15t_tc_string', existingTcString);
+			storageMock.storage.set(STORAGE_KEY, existingTcString);
 
 			const loaded = cmpApi.loadFromStorage();
 			expect(loaded).toBe(existingTcString);
@@ -135,11 +135,11 @@ describe('Storage Compliance - IAB TCF 2.3', () => {
 	});
 
 	describe('Storage Key Constants', () => {
-		it('should use c15t_tc_string key in localStorage', () => {
+		it('should use correct key in localStorage', () => {
 			cmpApi.saveToStorage('test');
 
 			// Verify the exact key is used
-			expect(storageMock.storage.has('c15t_tc_string')).toBe(true);
+			expect(storageMock.storage.has(STORAGE_KEY)).toBe(true);
 		});
 
 		it('should not store under different keys', () => {
@@ -147,7 +147,7 @@ describe('Storage Compliance - IAB TCF 2.3', () => {
 
 			// Verify no other keys are used
 			const keys = Array.from(storageMock.storage.keys());
-			expect(keys).toEqual(['c15t_tc_string']);
+			expect(keys).toEqual([STORAGE_KEY]);
 		});
 	});
 
@@ -223,7 +223,7 @@ describe('Storage Compliance - IAB TCF 2.3', () => {
 			cmpApi.saveToStorage(tcString);
 
 			// Should be in localStorage
-			expect(storageMock.storage.get('c15t_tc_string')).toBe(tcString);
+			expect(storageMock.storage.get(STORAGE_KEY)).toBe(tcString);
 		});
 	});
 
@@ -249,7 +249,7 @@ describe('Storage Compliance - IAB TCF 2.3', () => {
 
 		it('should support initial data', () => {
 			const cleanup = setupStorageMock({
-				c15t_tc_string: 'initial-tc-string',
+				[STORAGE_KEY]: 'initial-tc-string',
 			});
 
 			// Note: We're using a new storage mock instance
