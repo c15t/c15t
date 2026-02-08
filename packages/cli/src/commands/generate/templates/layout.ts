@@ -32,6 +32,7 @@ interface UpdateReactLayoutOptions {
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
 	enableSSR?: boolean;
+	enableDevTools?: boolean;
 	uiStyle?: UIStyle;
 	expandedTheme?: ExpandedTheme;
 	selectedScripts?: string[];
@@ -131,7 +132,8 @@ async function createConsentManagerComponent(
 	mode: StorageMode,
 	backendURL?: string,
 	useEnvFile?: boolean,
-	selectedScripts?: string[]
+	selectedScripts?: string[],
+	enableDevTools?: boolean
 ): Promise<ComponentFilePaths> {
 	// Detect or create components directory
 	const componentsDir = await getComponentsDirectory(projectRoot, sourceDir);
@@ -153,6 +155,7 @@ async function createConsentManagerComponent(
 		importSource: '@c15t/react',
 		optionsText,
 		selectedScripts,
+		enableDevTools,
 	});
 
 	// Define file path - main component is index.tsx
@@ -184,6 +187,7 @@ async function updateGenericReactLayout({
 	useEnvFile,
 	proxyNextjs,
 	selectedScripts,
+	enableDevTools,
 }: UpdateReactLayoutOptions): Promise<{
 	updated: boolean;
 	filePath: string | null;
@@ -249,7 +253,8 @@ async function updateGenericReactLayout({
 			mode as StorageMode,
 			backendURL,
 			useEnvFile,
-			selectedScripts
+			selectedScripts,
+			enableDevTools
 		);
 
 		// Add import for ConsentManager with correct relative path

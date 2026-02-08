@@ -21,6 +21,7 @@ export interface FileGenerationInput {
 	useEnvFile: boolean;
 	proxyNextjs: boolean;
 	enableSSR: boolean;
+	enableDevTools: boolean;
 	uiStyle: UIStyle;
 	expandedTheme: ExpandedTheme | null;
 	selectedScripts: string[];
@@ -79,6 +80,7 @@ export const fileGenerationActor = fromPromise<
 		useEnvFile,
 		proxyNextjs,
 		enableSSR,
+		enableDevTools,
 		uiStyle,
 		expandedTheme,
 		selectedScripts,
@@ -148,6 +150,7 @@ export const fileGenerationActor = fromPromise<
 			useEnvFile,
 			proxyNextjs,
 			enableSSR,
+			enableDevTools,
 			uiStyle,
 			expandedTheme: expandedTheme ?? undefined,
 			selectedScripts,

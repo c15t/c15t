@@ -4,6 +4,7 @@ import type { CliContext } from '~/context/types';
 interface GetSSROptionOptions {
 	context: CliContext;
 	handleCancel?: (value: unknown) => boolean;
+	onCancel?: () => void;
 }
 
 /**
@@ -21,32 +22,46 @@ interface GetSSROptionOptions {
 export async function getSSROption({
 	context,
 	handleCancel,
+	onCancel,
 }: GetSSROptionOptions): Promise<boolean> {
 	context.logger.info(
-		'SSR data fetching pre-loads consent data on the server for faster hydration.'
+		'SSR consent prefetch starts data loading on the server for faster banner visibility.'
+	);
+	context.logger.info(
+		'Tradeoff: this uses Next.js headers() and makes the route dynamic (not fully static).'
+	);
+	context.logger.info(
+		'On slow backends or cross-region setups, SSR can increase TTFB. Measure both TTFB and banner visibility.'
 	);
 	context.logger.info(
 		'Learn more: https://c15t.com/docs/frameworks/nextjs/ssr'
 	);
 
 	const enableSSR = await p.select({
-		message: 'Enable SSR data fetching? (uses Next.js headers() API)',
+		message:
+			'Enable SSR consent prefetch? (faster first banner visibility, dynamic route)',
 		options: [
 			{
 				value: true,
 				label: 'Yes (Recommended)',
-				hint: 'Pre-fetch consent data on server for faster hydration',
+				hint: 'Fetch consent data on server and stream to client',
 			},
 			{
 				value: false,
 				label: 'No',
-				hint: 'Client-side only (for static sites or if headers() causes issues)',
+				hint: 'Client-only fetch after hydration (better for fully static pages)',
 			},
 		],
 		initialValue: true,
 	});
 
-	if (handleCancel?.(enableSSR)) {
+	const cancelled = handleCancel?.(enableSSR) ?? p.isCancel(enableSSR);
+
+	if (cancelled) {
+		if (onCancel) {
+			onCancel();
+		}
+
 		context.error.handleCancel('Setup cancelled.', {
 			command: 'onboarding',
 			stage: 'ssr_option',

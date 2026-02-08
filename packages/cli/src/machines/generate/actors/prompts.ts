@@ -6,6 +6,8 @@
 
 import * as p from '@clack/prompts';
 import { fromCallback, fromPromise } from 'xstate';
+import { getDevToolsOption } from '~/commands/generate/options/shared/dev-tools';
+import { getSSROption } from '~/commands/generate/options/shared/ssr';
 import type { StorageMode } from '~/constants';
 import type { CliContext } from '~/context/types';
 import type { ExpandedTheme, GenerateMachineContext, UIStyle } from '../types';
@@ -259,6 +261,7 @@ export interface FrontendOptionsInput {
 
 export interface FrontendOptionsOutput {
 	enableSSR?: boolean;
+	enableDevTools?: boolean;
 	uiStyle: UIStyle;
 	expandedTheme?: ExpandedTheme;
 }
@@ -271,6 +274,7 @@ export const frontendOptionsActor = fromPromise<
 	const pkg = cliContext.framework.pkg;
 
 	let enableSSR: boolean | undefined;
+	let enableDevTools = false;
 	let uiStyle: UIStyle = 'prebuilt';
 	let expandedTheme: ExpandedTheme | undefined;
 
@@ -289,17 +293,12 @@ export const frontendOptionsActor = fromPromise<
 			].some((p) => existsSync(join(projectRoot, p)));
 
 			if (isAppRouter) {
-				const ssrResult = await p.confirm({
-					message:
-						'Start fetching consent data on the server and stream to client? (Recommended for faster banner loads)',
-					initialValue: true,
+				enableSSR = await getSSROption({
+					context: cliContext,
+					onCancel: () => {
+						throw new PromptCancelledError('ssr_option');
+					},
 				});
-
-				if (isCancel(ssrResult)) {
-					throw new PromptCancelledError('ssr_option');
-				}
-
-				enableSSR = ssrResult as boolean;
 			}
 		}
 
@@ -440,8 +439,18 @@ export const frontendOptionsActor = fromPromise<
 		}
 	}
 
+	if (pkg === 'c15t' || pkg === '@c15t/react' || pkg === '@c15t/nextjs') {
+		enableDevTools = await getDevToolsOption({
+			context: cliContext,
+			onCancel: () => {
+				throw new PromptCancelledError('dev_tools_option');
+			},
+		});
+	}
+
 	return {
 		enableSSR,
+		enableDevTools,
 		uiStyle,
 		expandedTheme,
 	};

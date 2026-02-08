@@ -24,6 +24,7 @@ export interface GenerateFilesOptions extends BaseOptions {
 	backendURL?: string;
 	useEnvFile?: boolean;
 	enableSSR?: boolean;
+	enableDevTools?: boolean;
 	uiStyle?: UIStyle;
 	expandedTheme?: ExpandedTheme;
 	selectedScripts?: string[];
@@ -65,6 +66,7 @@ async function handleReactLayout(options: {
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
 	enableSSR?: boolean;
+	enableDevTools?: boolean;
 	uiStyle?: UIStyle;
 	expandedTheme?: ExpandedTheme;
 	selectedScripts?: string[];
@@ -78,6 +80,7 @@ async function handleReactLayout(options: {
 		useEnvFile,
 		proxyNextjs,
 		enableSSR,
+		enableDevTools,
 		uiStyle,
 		expandedTheme,
 		selectedScripts,
@@ -93,6 +96,7 @@ async function handleReactLayout(options: {
 		useEnvFile,
 		proxyNextjs,
 		enableSSR,
+		enableDevTools,
 		uiStyle,
 		expandedTheme,
 		selectedScripts,
@@ -305,6 +309,7 @@ export async function generateFiles({
 	proxyNextjs,
 	backendURL,
 	enableSSR,
+	enableDevTools,
 	uiStyle,
 	expandedTheme,
 	selectedScripts,
@@ -326,6 +331,7 @@ export async function generateFiles({
 			useEnvFile,
 			proxyNextjs,
 			enableSSR,
+			enableDevTools,
 			uiStyle,
 			expandedTheme,
 			selectedScripts,
@@ -359,7 +365,8 @@ export async function generateFiles({
 		result.configContent = generateClientConfigContent(
 			mode,
 			backendURL,
-			useEnvFile
+			useEnvFile,
+			enableDevTools
 		);
 		result.configPath = path.join(projectRoot, 'c15t.config.ts');
 		spinner.stop(

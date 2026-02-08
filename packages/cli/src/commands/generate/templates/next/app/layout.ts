@@ -34,6 +34,7 @@ interface UpdateAppLayoutOptions {
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
 	enableSSR?: boolean;
+	enableDevTools?: boolean;
 	uiStyle?: UIStyle;
 	expandedTheme?: ExpandedTheme;
 	selectedScripts?: string[];
@@ -140,6 +141,7 @@ async function createExpandedConsentManagerComponents(
 		useEnvFile?: boolean;
 		proxyNextjs?: boolean;
 		enableSSR: boolean;
+		enableDevTools?: boolean;
 		expandedTheme: ExpandedTheme;
 	}
 ): Promise<ComponentFilePaths> {
@@ -149,6 +151,7 @@ async function createExpandedConsentManagerComponents(
 		useEnvFile,
 		proxyNextjs,
 		enableSSR,
+		enableDevTools,
 		expandedTheme,
 	} = options;
 
@@ -186,6 +189,7 @@ async function createExpandedConsentManagerComponents(
 	});
 	const providerContent = generateExpandedProviderTemplate({
 		enableSSR,
+		enableDevTools: Boolean(enableDevTools),
 		optionsText,
 		framework: NEXTJS_CONFIG,
 	});
@@ -251,6 +255,7 @@ async function createPrebuiltConsentManagerComponents(
 		useEnvFile?: boolean;
 		proxyNextjs?: boolean;
 		enableSSR: boolean;
+		enableDevTools?: boolean;
 		selectedScripts?: string[];
 	}
 ): Promise<
@@ -262,6 +267,7 @@ async function createPrebuiltConsentManagerComponents(
 		useEnvFile,
 		proxyNextjs,
 		enableSSR,
+		enableDevTools,
 		selectedScripts,
 	} = options;
 
@@ -305,6 +311,7 @@ async function createPrebuiltConsentManagerComponents(
 		defaultExport: true,
 		ssrDataOption: enableSSR,
 		callbacksPlaceholder: true,
+		enableDevTools: Boolean(enableDevTools),
 	});
 
 	// Define file paths - everything in components/consent-manager/
@@ -354,6 +361,7 @@ export async function updateAppLayout({
 	useEnvFile,
 	proxyNextjs,
 	enableSSR = true,
+	enableDevTools = false,
 	uiStyle = 'prebuilt',
 	expandedTheme = 'tailwind',
 	selectedScripts,
@@ -376,6 +384,7 @@ export async function updateAppLayout({
 					useEnvFile,
 					proxyNextjs,
 					enableSSR,
+					enableDevTools,
 					expandedTheme,
 				});
 			}
@@ -385,6 +394,7 @@ export async function updateAppLayout({
 				useEnvFile,
 				proxyNextjs,
 				enableSSR,
+				enableDevTools,
 				selectedScripts,
 			});
 		},

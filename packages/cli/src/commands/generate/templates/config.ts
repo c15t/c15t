@@ -15,35 +15,52 @@ import { STORAGE_MODES, type StorageMode } from '../../../constants';
 export function generateClientConfigContent(
 	mode: string,
 	backendURL?: string,
-	useEnvFile?: boolean
+	useEnvFile?: boolean,
+	enableDevTools = false
 ): string {
 	switch (mode) {
 		case STORAGE_MODES.C15T:
-			return generateC15tConfig(backendURL, useEnvFile);
+			return generateC15tConfig(backendURL, useEnvFile, enableDevTools);
 		case STORAGE_MODES.OFFLINE:
-			return generateOfflineConfig();
+			return generateOfflineConfig(enableDevTools);
 		case STORAGE_MODES.SELF_HOSTED:
-			return generateSelfHostedConfig(backendURL, useEnvFile);
+			return generateSelfHostedConfig(backendURL, useEnvFile, enableDevTools);
 		case STORAGE_MODES.CUSTOM:
-			return generateCustomConfig(backendURL, useEnvFile);
+			return generateCustomConfig(backendURL, useEnvFile, enableDevTools);
 		default:
-			return generateOfflineConfig();
+			return generateOfflineConfig(enableDevTools);
 	}
 }
 
 /**
  * c15t cloud mode config
  */
-function generateC15tConfig(backendURL?: string, useEnvFile?: boolean): string {
+function generateC15tConfig(
+	backendURL?: string,
+	useEnvFile?: boolean,
+	enableDevTools = false
+): string {
 	const url = useEnvFile
 		? 'process.env.NEXT_PUBLIC_C15T_URL'
 		: `'${backendURL || 'https://your-instance.c15t.dev'}'`;
+	const devToolsImport = enableDevTools
+		? "import { createDevTools } from '@c15t/dev-tools';\n"
+		: '';
+	const devToolsSetup = enableDevTools
+		? `\nif (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+\tcreateDevTools({
+\t\tnamespace: 'c15tStore',
+\t});
+}
+`
+		: '';
 
 	return `import {
 	type ConsentManagerOptions,
 	configureConsentManager,
 	createConsentManagerStore
 } from 'c15t';
+${devToolsImport}
 
 /**
  * c15t Cloud Mode Configuration
@@ -59,18 +76,32 @@ export const store = createConsentManagerStore(consentManager, {
 	// Consent categories to show in the banner
 	initialGdprTypes: ['necessary', 'analytics', 'marketing'],
 });
+${devToolsSetup}
 `;
 }
 
 /**
  * Offline/browser-only mode config
  */
-function generateOfflineConfig(): string {
+function generateOfflineConfig(enableDevTools = false): string {
+	const devToolsImport = enableDevTools
+		? "import { createDevTools } from '@c15t/dev-tools';\n"
+		: '';
+	const devToolsSetup = enableDevTools
+		? `\nif (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+\tcreateDevTools({
+\t\tnamespace: 'c15tStore',
+\t});
+}
+`
+		: '';
+
 	return `import {
 	type ConsentManagerOptions,
 	configureConsentManager,
 	createConsentManagerStore
 } from 'c15t';
+${devToolsImport}
 
 /**
  * Browser-Only Mode Configuration
@@ -86,6 +117,7 @@ export const store = createConsentManagerStore(consentManager, {
 	// Consent categories to show in the banner
 	initialGdprTypes: ['necessary', 'analytics', 'marketing'],
 });
+${devToolsSetup}
 `;
 }
 
@@ -94,17 +126,30 @@ export const store = createConsentManagerStore(consentManager, {
  */
 function generateSelfHostedConfig(
 	backendURL?: string,
-	useEnvFile?: boolean
+	useEnvFile?: boolean,
+	enableDevTools = false
 ): string {
 	const url = useEnvFile
 		? 'process.env.NEXT_PUBLIC_C15T_URL'
 		: `'${backendURL || 'http://localhost:3001'}'`;
+	const devToolsImport = enableDevTools
+		? "import { createDevTools } from '@c15t/dev-tools';\n"
+		: '';
+	const devToolsSetup = enableDevTools
+		? `\nif (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+\tcreateDevTools({
+\t\tnamespace: 'c15tStore',
+\t});
+}
+`
+		: '';
 
 	return `import {
 	type ConsentManagerOptions,
 	configureConsentManager,
 	createConsentManagerStore
 } from 'c15t';
+${devToolsImport}
 
 /**
  * Self-Hosted Mode Configuration
@@ -120,6 +165,7 @@ export const store = createConsentManagerStore(consentManager, {
 	// Consent categories to show in the banner
 	initialGdprTypes: ['necessary', 'analytics', 'marketing'],
 });
+${devToolsSetup}
 `;
 }
 
@@ -128,11 +174,23 @@ export const store = createConsentManagerStore(consentManager, {
  */
 function generateCustomConfig(
 	backendURL?: string,
-	useEnvFile?: boolean
+	useEnvFile?: boolean,
+	enableDevTools = false
 ): string {
 	const url = useEnvFile
 		? 'process.env.NEXT_PUBLIC_CONSENT_API_URL'
 		: `'${backendURL || '/api/consent'}'`;
+	const devToolsImport = enableDevTools
+		? "import { createDevTools } from '@c15t/dev-tools';\n"
+		: '';
+	const devToolsSetup = enableDevTools
+		? `\nif (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+\tcreateDevTools({
+\t\tnamespace: 'c15tStore',
+\t});
+}
+`
+		: '';
 
 	return `import {
 	type ConsentManagerOptions,
@@ -140,6 +198,7 @@ function generateCustomConfig(
 	createConsentManagerStore,
 	type EndpointHandlers
 } from 'c15t';
+${devToolsImport}
 
 /**
  * Custom endpoint handlers
@@ -178,5 +237,6 @@ export const store = createConsentManagerStore(consentManager, {
 	// Consent categories to show in the banner
 	initialGdprTypes: ['necessary', 'analytics', 'marketing'],
 });
+${devToolsSetup}
 `;
 }

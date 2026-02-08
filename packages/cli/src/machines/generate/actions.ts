@@ -132,6 +132,7 @@ export function setFrontendOptions({
 
 	return {
 		enableSSR: event.enableSSR ?? context.enableSSR,
+		enableDevTools: event.enableDevTools ?? context.enableDevTools,
 		uiStyle: event.uiStyle,
 		expandedTheme: event.expandedTheme ?? null,
 	};
@@ -186,6 +187,11 @@ export function addDependencies({
 	// Add scripts package if selected
 	if (context.addScripts) {
 		deps.push('@c15t/scripts');
+	}
+
+	// Add dev tools package if selected
+	if (context.enableDevTools) {
+		deps.push('@c15t/dev-tools');
 	}
 
 	return {

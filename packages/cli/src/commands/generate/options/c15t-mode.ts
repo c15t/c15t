@@ -164,11 +164,12 @@ export async function setupC15tMode({
 	});
 
 	// Frontend UI options (SSR + UI style + theme)
-	const { enableSSR, uiStyle, expandedTheme } = await getFrontendUIOptions({
-		context,
-		hasBackend: true,
-		handleCancel,
-	});
+	const { enableSSR, enableDevTools, uiStyle, expandedTheme } =
+		await getFrontendUIOptions({
+			context,
+			hasBackend: true,
+			handleCancel,
+		});
 
 	// Scripts prompt
 	const addScripts = await getScriptsToAdd({ context, handleCancel });
@@ -181,6 +182,7 @@ export async function setupC15tMode({
 		useEnvFile,
 		proxyNextjs,
 		enableSSR,
+		enableDevTools,
 		uiStyle,
 		expandedTheme,
 	});
@@ -189,6 +191,9 @@ export async function setupC15tMode({
 	const dependenciesToAdd: string[] = [context.framework.pkg];
 	if (addScripts) {
 		dependenciesToAdd.push('@c15t/scripts');
+	}
+	if (enableDevTools) {
+		dependenciesToAdd.push('@c15t/dev-tools');
 	}
 
 	const { ranInstall, installDepsConfirmed } = await installDependencies({

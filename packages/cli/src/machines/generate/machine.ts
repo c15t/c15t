@@ -330,6 +330,8 @@ export const generateMachine = setup({
 					actions: assign({
 						enableSSR: ({ event, context }) =>
 							event.output.enableSSR ?? context.enableSSR,
+						enableDevTools: ({ event, context }) =>
+							event.output.enableDevTools ?? context.enableDevTools,
 						uiStyle: ({ event }) => event.output.uiStyle,
 						expandedTheme: ({ event }) => event.output.expandedTheme ?? null,
 					}),
@@ -360,6 +362,9 @@ export const generateMachine = setup({
 							if (event.output.addScripts) {
 								deps.push('@c15t/scripts');
 							}
+							if (context.enableDevTools) {
+								deps.push('@c15t/dev-tools');
+							}
 							return deps;
 						},
 					}),
@@ -386,6 +391,7 @@ export const generateMachine = setup({
 					useEnvFile: context.useEnvFile,
 					proxyNextjs: context.proxyNextjs,
 					enableSSR: context.enableSSR,
+					enableDevTools: context.enableDevTools,
 					uiStyle: context.uiStyle,
 					expandedTheme: context.expandedTheme,
 					selectedScripts: context.selectedScripts,

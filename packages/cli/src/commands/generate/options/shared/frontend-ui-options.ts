@@ -10,6 +10,7 @@ import {
 	promptForUIStyle,
 	type UIStyle,
 } from '../../prompts';
+import { getDevToolsOption } from './dev-tools';
 import { getSSROption } from './ssr';
 
 interface FrontendUIOptionsInput {
@@ -24,6 +25,7 @@ interface FrontendUIOptionsInput {
 
 interface FrontendUIOptionsResult {
 	enableSSR?: boolean;
+	enableDevTools?: boolean;
 	uiStyle?: UIStyle;
 	expandedTheme?: ExpandedTheme;
 }
@@ -43,9 +45,10 @@ interface FrontendUIOptionsResult {
  * @c15t/react:
  *   - UI style (prebuilt vs expanded)
  *   - Expanded theme (if expanded selected)
+ *   - DevTools option
  *
  * c15t (core):
- *   - Returns empty object (no UI prompts)
+ *   - DevTools option
  */
 export async function getFrontendUIOptions({
 	context,
@@ -53,6 +56,7 @@ export async function getFrontendUIOptions({
 	handleCancel,
 }: FrontendUIOptionsInput): Promise<FrontendUIOptionsResult> {
 	let enableSSR: boolean | undefined;
+	let enableDevTools: boolean | undefined;
 	let uiStyle: UIStyle | undefined;
 	let expandedTheme: ExpandedTheme | undefined;
 
@@ -82,8 +86,16 @@ export async function getFrontendUIOptions({
 	}
 
 	// Core c15t: no UI prompts
+	if (pkg === 'c15t' || pkg === '@c15t/react' || pkg === '@c15t/nextjs') {
+		enableDevTools = await getDevToolsOption({
+			context,
+			handleCancel,
+		});
+	}
+
 	return {
 		enableSSR,
+		enableDevTools,
 		uiStyle,
 		expandedTheme,
 	};

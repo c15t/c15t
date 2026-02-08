@@ -15,6 +15,7 @@ import type { FrameworkConfig } from './framework-config';
 
 interface GenerateExpandedProviderOptions {
 	enableSSR: boolean;
+	enableDevTools: boolean;
 	optionsText: string;
 	framework: FrameworkConfig;
 }
@@ -27,6 +28,7 @@ interface GenerateExpandedProviderOptions {
  */
 export function generateExpandedProviderTemplate({
 	enableSSR,
+	enableDevTools,
 	optionsText,
 	framework,
 }: GenerateExpandedProviderOptions): string {
@@ -48,13 +50,16 @@ export function generateExpandedProviderTemplate({
 		: '';
 
 	const ssrDataOption = enableSSR ? '\n\t\t\t\tssrData,' : '';
+	const devToolsImport = enableDevTools
+		? "import { C15TDevTools } from '@c15t/dev-tools/react';\n"
+		: '';
 
 	return `'use client';
 
 import type { ReactNode } from 'react';
 import { ConsentManagerProvider } from '${framework.importSource}';
 ${typeImports}
-import ConsentBanner from './consent-banner';
+${devToolsImport}import ConsentBanner from './consent-banner';
 import PreferenceCenter from './preference-center';
 import { theme } from './theme';
 
@@ -93,6 +98,7 @@ export default function ConsentManagerClient(${propsDestructure}) {
 		>
 			<ConsentBanner />
 			<PreferenceCenter />
+			${enableDevTools ? "<C15TDevTools disabled={process.env.NODE_ENV === 'production'} />" : ''}
 			{children}
 		</ConsentManagerProvider>
 	);

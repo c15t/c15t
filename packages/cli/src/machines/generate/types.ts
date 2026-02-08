@@ -71,6 +71,8 @@ export interface GenerateMachineContext extends BaseMachineContext {
 	// --- Frontend UI Options ---
 	/** Whether to enable SSR for initial data fetch */
 	enableSSR: boolean;
+	/** Whether to install and enable c15t DevTools */
+	enableDevTools: boolean;
 	/** UI component style selection */
 	uiStyle: UIStyle;
 	/** Theme preset for expanded components */
@@ -162,6 +164,7 @@ export type GenerateMachineEvent =
 	| {
 			type: 'FRONTEND_OPTIONS_COMPLETE';
 			enableSSR?: boolean;
+			enableDevTools?: boolean;
 			uiStyle: UIStyle;
 			expandedTheme?: ExpandedTheme;
 	  }
@@ -247,6 +250,7 @@ export function createInitialContext(
 
 		// Frontend options
 		enableSSR: true,
+		enableDevTools: false,
 		uiStyle: 'prebuilt',
 		expandedTheme: null,
 

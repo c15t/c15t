@@ -18,6 +18,7 @@ interface UpdateNextLayoutOptions {
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
 	enableSSR?: boolean;
+	enableDevTools?: boolean;
 	uiStyle?: UIStyle;
 	expandedTheme?: ExpandedTheme;
 	selectedScripts?: string[];

@@ -26,6 +26,8 @@ interface GenerateConsentComponentOptions {
 	ssrDataOption?: boolean;
 	/** Whether to add callbacks comment placeholder in options (App Dir client) */
 	callbacksPlaceholder?: boolean;
+	/** Whether to add c15t DevTools component */
+	enableDevTools?: boolean;
 }
 
 /**
@@ -73,6 +75,7 @@ export function generateConsentComponent({
 	defaultExport = false,
 	ssrDataOption = false,
 	callbacksPlaceholder = false,
+	enableDevTools = false,
 }: GenerateConsentComponentOptions): string {
 	// Generate scripts import and config
 	const scriptsImport = generateScriptsImport(selectedScripts);
@@ -132,6 +135,9 @@ export function generateConsentComponent({
 
 	// Build directive
 	const directive = useClientDirective ? "'use client';\n\n" : '';
+	const devToolsImport = enableDevTools
+		? "import { C15TDevTools } from '@c15t/dev-tools/react';\n"
+		: '';
 
 	// Build export
 	const componentName = defaultExport
@@ -160,12 +166,13 @@ export function generateConsentComponent({
 import {
 	${namedImports}
 } from '${importSource}';
-${scriptsImport ? `${scriptsImport}\n` : ''}${preDocComment}${docComment}
+${devToolsImport}${scriptsImport ? `${scriptsImport}\n` : ''}${preDocComment}${docComment}
 ${exportPrefix} ${componentName}(${propsDestructure}) {
 	return (
 		<ConsentManagerProvider${providerProps}>
 			<ConsentBanner />
 			<ConsentDialog />
+			${enableDevTools ? "<C15TDevTools disabled={process.env.NODE_ENV === 'production'} />" : ''}
 			{children}
 		</ConsentManagerProvider>
 	);

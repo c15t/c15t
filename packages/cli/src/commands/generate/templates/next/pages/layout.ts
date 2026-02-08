@@ -19,6 +19,7 @@ interface UpdatePagesLayoutOptions {
 	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
+	enableDevTools?: boolean;
 	selectedScripts?: string[];
 }
 
@@ -78,7 +79,8 @@ async function createConsentManagerComponent(
 	projectRoot: string,
 	pagesDir: string,
 	optionsText: string,
-	selectedScripts?: string[]
+	selectedScripts?: string[],
+	enableDevTools?: boolean
 ): Promise<ComponentFilePaths> {
 	// Determine the components directory path based on pages directory location
 	// If pages is at 'src/pages', components should be at 'src/components'
@@ -101,6 +103,7 @@ async function createConsentManagerComponent(
 		optionsText,
 		selectedScripts,
 		initialDataProp: true,
+		enableDevTools,
 	});
 
 	// Define file path in components directory
@@ -222,6 +225,7 @@ export async function updatePagesLayout({
 	backendURL,
 	useEnvFile,
 	proxyNextjs,
+	enableDevTools = false,
 	selectedScripts,
 }: UpdatePagesLayoutOptions): Promise<{
 	updated: boolean;
@@ -247,7 +251,8 @@ export async function updatePagesLayout({
 				projectRoot,
 				pagesDir,
 				optionsText,
-				selectedScripts
+				selectedScripts,
+				enableDevTools
 			);
 		},
 		afterImport: (appFile) => {
