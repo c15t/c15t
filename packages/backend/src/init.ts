@@ -62,7 +62,8 @@ export const init = (options: C15TOptions): C15TContext => {
 	}
 
 	// Initialize core components
-	const client = DB.client(options.adapter);
+	const db = options.tablePrefix ? DB.names.prefix(options.tablePrefix) : DB;
+	const client = db.client(options.adapter);
 
 	const rawOrm = client.orm('2.0.0');
 	const orm = options.tenantId

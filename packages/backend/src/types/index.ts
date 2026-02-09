@@ -29,6 +29,14 @@ export interface DatabaseOptions {
 	 * When set, all database queries are automatically scoped to this tenant.
 	 */
 	tenantId?: string;
+
+	/**
+	 * Optional prefix for all database table names.
+	 * Useful when sharing a database with other applications to avoid naming conflicts.
+	 *
+	 * @example 'c15t_' // tables become: c15t_subject, c15t_consent, etc.
+	 */
+	tablePrefix?: string;
 }
 
 interface BaseOptions {
