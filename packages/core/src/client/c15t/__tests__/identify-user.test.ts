@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchMock, mockLocalStorage } from '../../../../vitest.setup';
+import { setDebugEnabled } from '../../../libs/debug';
 import { STORAGE_KEY_V2 } from '../../../store/initial-state';
 import { configureConsentManager } from '../../client-factory';
 import { API_ENDPOINTS } from '../../types';
@@ -77,6 +78,7 @@ describe('c15t Client identifyUser Tests', () => {
 	});
 
 	it('should handle API errors and queue for retry (offline fallback)', async () => {
+		setDebugEnabled(true);
 		// Mock network error
 		fetchMock.mockRejectedValueOnce(new Error('Network error'));
 
@@ -116,6 +118,7 @@ describe('c15t Client identifyUser Tests', () => {
 		const parsed = JSON.parse(pendingSubmissions || '[]');
 		expect(parsed).toHaveLength(1);
 		expect(parsed[0].externalId).toBe('user_123');
+		setDebugEnabled(false);
 	});
 
 	it('should save externalId to storage before API call (optimistic update)', async () => {

@@ -40,17 +40,17 @@ describe('IAB Banner E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 
 			// Verify banner structure
 			expect(
-				document.querySelector('[data-testid="iab-banner-card"]')
+				document.querySelector('[data-testid="iab-consent-banner-card"]')
 			).toBeInTheDocument();
 			expect(
-				document.querySelector('[data-testid="iab-banner-header"]')
+				document.querySelector('[data-testid="iab-consent-banner-header"]')
 			).toBeInTheDocument();
 			expect(
-				document.querySelector('[data-testid="iab-banner-footer"]')
+				document.querySelector('[data-testid="iab-consent-banner-footer"]')
 			).toBeInTheDocument();
 		});
 
@@ -62,11 +62,11 @@ describe('IAB Banner E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 
 			// The banner should show partner count
 			const bannerText =
-				document.querySelector('[data-testid="iab-banner-header"]')
+				document.querySelector('[data-testid="iab-consent-banner-header"]')
 					?.textContent || '';
 
 			// Should contain a number (partner count)
@@ -81,11 +81,11 @@ describe('IAB Banner E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 
 			// Should have a purpose list
 			const header = document.querySelector(
-				'[data-testid="iab-banner-header"]'
+				'[data-testid="iab-consent-banner-header"]'
 			);
 			expect(header).toBeInTheDocument();
 		});
@@ -98,11 +98,11 @@ describe('IAB Banner E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 
 			// LI notice should be present
 			const bannerText =
-				document.querySelector('[data-testid="iab-banner-header"]')
+				document.querySelector('[data-testid="iab-consent-banner-header"]')
 					?.textContent || '';
 
 			// Should mention legitimate interest
@@ -119,16 +119,22 @@ describe('IAB Banner E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 
 			expect(
-				document.querySelector('[data-testid="iab-banner-accept-button"]')
+				document.querySelector(
+					'[data-testid="iab-consent-banner-accept-button"]'
+				)
 			).toBeInTheDocument();
 			expect(
-				document.querySelector('[data-testid="iab-banner-reject-button"]')
+				document.querySelector(
+					'[data-testid="iab-consent-banner-reject-button"]'
+				)
 			).toBeInTheDocument();
 			expect(
-				document.querySelector('[data-testid="iab-banner-customize-button"]')
+				document.querySelector(
+					'[data-testid="iab-consent-banner-customize-button"]'
+				)
 			).toBeInTheDocument();
 		});
 	});
@@ -143,13 +149,13 @@ describe('IAB Banner E2E Tests', () => {
 			);
 
 			const acceptButton = await waitForElement(
-				'[data-testid="iab-banner-accept-button"]'
+				'[data-testid="iab-consent-banner-accept-button"]'
 			);
 
 			await userEvent.click(acceptButton);
 
 			// Banner should close
-			await waitForElementRemoved('[data-testid="iab-banner-card"]');
+			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Check localStorage for consent - wait for it to be saved
 			await vi.waitFor(
@@ -170,13 +176,13 @@ describe('IAB Banner E2E Tests', () => {
 			);
 
 			const rejectButton = await waitForElement(
-				'[data-testid="iab-banner-reject-button"]'
+				'[data-testid="iab-consent-banner-reject-button"]'
 			);
 
 			await userEvent.click(rejectButton);
 
 			// Banner should close
-			await waitForElementRemoved('[data-testid="iab-banner-card"]');
+			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Check localStorage for consent
 			const consent = getStoredConsent();
@@ -192,13 +198,13 @@ describe('IAB Banner E2E Tests', () => {
 			);
 
 			const customizeButton = await waitForElement(
-				'[data-testid="iab-banner-customize-button"]'
+				'[data-testid="iab-consent-banner-customize-button"]'
 			);
 
 			await userEvent.click(customizeButton);
 
 			// Preference center should open
-			await waitForElement('[data-testid="iab-preference-center-root"]');
+			await waitForElement('[data-testid="iab-consent-dialog-root"]');
 		});
 	});
 
@@ -211,7 +217,9 @@ describe('IAB Banner E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			const banner = await waitForElement('[data-testid="iab-banner-card"]');
+			const banner = await waitForElement(
+				'[data-testid="iab-consent-banner-card"]'
+			);
 
 			// Should have role dialog
 			expect(banner.getAttribute('role')).toBe('dialog');
@@ -229,13 +237,13 @@ describe('IAB Banner E2E Tests', () => {
 			);
 
 			const rejectButton = await waitForElement(
-				'[data-testid="iab-banner-reject-button"]'
+				'[data-testid="iab-consent-banner-reject-button"]'
 			);
 			const customizeButton = document.querySelector(
-				'[data-testid="iab-banner-customize-button"]'
+				'[data-testid="iab-consent-banner-customize-button"]'
 			) as HTMLElement;
 			const acceptButton = document.querySelector(
-				'[data-testid="iab-banner-accept-button"]'
+				'[data-testid="iab-consent-banner-accept-button"]'
 			) as HTMLElement;
 
 			// Buttons should be focusable

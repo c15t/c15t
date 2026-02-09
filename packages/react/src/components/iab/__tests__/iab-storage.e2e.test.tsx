@@ -40,12 +40,12 @@ describe('IAB Storage E2E Tests', () => {
 			);
 
 			const acceptButton = await waitForElement(
-				'[data-testid="iab-banner-accept-button"]'
+				'[data-testid="iab-consent-banner-accept-button"]'
 			);
 			await waitForCMP();
 
 			await userEvent.click(acceptButton);
-			await waitForElementRemoved('[data-testid="iab-banner-card"]');
+			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Wait for localStorage to be updated
 			await vi.waitFor(
@@ -71,12 +71,12 @@ describe('IAB Storage E2E Tests', () => {
 			);
 
 			const acceptButton = await waitForElement(
-				'[data-testid="iab-banner-accept-button"]'
+				'[data-testid="iab-consent-banner-accept-button"]'
 			);
 			await waitForCMP();
 
 			await userEvent.click(acceptButton);
-			await waitForElementRemoved('[data-testid="iab-banner-card"]');
+			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Verify TC string storage
 			const tcString = getStoredTCString();
@@ -93,12 +93,12 @@ describe('IAB Storage E2E Tests', () => {
 			);
 
 			const acceptButton = await waitForElement(
-				'[data-testid="iab-banner-accept-button"]'
+				'[data-testid="iab-consent-banner-accept-button"]'
 			);
 			await waitForCMP();
 
 			await userEvent.click(acceptButton);
-			await waitForElementRemoved('[data-testid="iab-banner-card"]');
+			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			const tcString = getStoredTCString();
 
@@ -119,7 +119,7 @@ describe('IAB Storage E2E Tests', () => {
 			);
 
 			const acceptButton = await waitForElement(
-				'[data-testid="iab-banner-accept-button"]'
+				'[data-testid="iab-consent-banner-accept-button"]'
 			);
 			await waitForCMP();
 
@@ -127,7 +127,7 @@ describe('IAB Storage E2E Tests', () => {
 			expect(getStoredConsent()).toBeNull();
 
 			await userEvent.click(acceptButton);
-			await waitForElementRemoved('[data-testid="iab-banner-card"]');
+			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// After action
 			expect(getStoredConsent()).not.toBeNull();
@@ -142,7 +142,7 @@ describe('IAB Storage E2E Tests', () => {
 			);
 
 			const rejectButton = await waitForElement(
-				'[data-testid="iab-banner-reject-button"]'
+				'[data-testid="iab-consent-banner-reject-button"]'
 			);
 			await waitForCMP();
 
@@ -150,7 +150,7 @@ describe('IAB Storage E2E Tests', () => {
 			expect(getStoredConsent()).toBeNull();
 
 			await userEvent.click(rejectButton);
-			await waitForElementRemoved('[data-testid="iab-banner-card"]');
+			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// After action
 			const consent = getStoredConsent();
@@ -169,13 +169,13 @@ describe('IAB Storage E2E Tests', () => {
 			);
 
 			const acceptButton = await waitForElement(
-				'[data-testid="iab-banner-accept-button"]'
+				'[data-testid="iab-consent-banner-accept-button"]'
 			);
 			await waitForCMP();
 
 			const beforeTime = Date.now();
 			await userEvent.click(acceptButton);
-			await waitForElementRemoved('[data-testid="iab-banner-card"]');
+			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 			const afterTime = Date.now();
 
 			const consent = getStoredConsent();
@@ -195,12 +195,12 @@ describe('IAB Storage E2E Tests', () => {
 			);
 
 			const acceptButton = await waitForElement(
-				'[data-testid="iab-banner-accept-button"]'
+				'[data-testid="iab-consent-banner-accept-button"]'
 			);
 			await waitForCMP();
 
 			await userEvent.click(acceptButton);
-			await waitForElementRemoved('[data-testid="iab-banner-card"]');
+			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			const consent = getStoredConsent();
 			expect(consent?.consentInfo?.subjectId).toBeDefined();
@@ -218,18 +218,18 @@ describe('IAB Storage E2E Tests', () => {
 			);
 
 			const acceptButton = await waitForElement(
-				'[data-testid="iab-banner-accept-button"]'
+				'[data-testid="iab-consent-banner-accept-button"]'
 			);
 			await waitForCMP();
 
 			await userEvent.click(acceptButton);
-			await waitForElementRemoved('[data-testid="iab-banner-card"]');
+			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Should use c15t key
 			expect(window.localStorage.getItem('c15t')).not.toBeNull();
 		});
 
-		test('should use "c15t_tc_string" key for TC string', async () => {
+		test('should use "euconsent-v2" key for TC string', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
 					<IABConsentBanner />
@@ -238,15 +238,15 @@ describe('IAB Storage E2E Tests', () => {
 			);
 
 			const acceptButton = await waitForElement(
-				'[data-testid="iab-banner-accept-button"]'
+				'[data-testid="iab-consent-banner-accept-button"]'
 			);
 			await waitForCMP();
 
 			await userEvent.click(acceptButton);
-			await waitForElementRemoved('[data-testid="iab-banner-card"]');
+			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			// Should use c15t_tc_string key
-			expect(window.localStorage.getItem('c15t_tc_string')).not.toBeNull();
+			// Should use euconsent-v2 key (IAB standard)
+			expect(window.localStorage.getItem('euconsent-v2')).not.toBeNull();
 		});
 	});
 });
