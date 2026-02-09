@@ -11,6 +11,7 @@ import { createGVLResolver } from '~/cache/gvl-resolver';
 import { getJurisdiction, getLocation } from '~/handlers/init/geo';
 import { getTranslationsData } from '~/handlers/init/translations';
 import type { C15TContext, C15TOptions } from '~/types';
+import { getMetrics } from '~/utils/metrics';
 
 /**
  * Creates the init route handler
@@ -76,6 +77,13 @@ Use for geo-targeted consent banners and regional compliance.`,
 
 			// Get custom vendors if configured
 			const customVendors = options.advanced?.gvl?.customVendors;
+
+			// Record init metric
+			getMetrics()?.recordInit({
+				jurisdiction,
+				country: location?.countryCode ?? undefined,
+				region: location?.regionCode ?? undefined,
+			});
 
 			return c.json({
 				jurisdiction,

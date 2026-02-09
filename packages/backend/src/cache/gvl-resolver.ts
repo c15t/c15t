@@ -11,6 +11,8 @@
  */
 
 import type { GlobalVendorList } from '@c15t/schema/types';
+import { withCacheSpan, withExternalSpan } from '~/utils/instrumentation';
+import { getMetrics } from '~/utils/metrics';
 import { createMemoryCacheAdapter } from './adapters/memory';
 import { createGVLCacheKey } from './keys';
 import type { CacheAdapter } from './types';
@@ -108,63 +110,86 @@ async function fetchGVLWithLanguage(
 
 	// Create and store the in-flight promise
 	const promise = (async () => {
+		const fetchStart = Date.now();
 		try {
-			const response = await fetch(url.toString(), {
-				headers: {
-					'Accept-Language': language,
-				},
-			});
+			const gvl = await withExternalSpan(
+				{ url: url.toString(), method: 'GET' },
+				async () => {
+					const response = await fetch(url.toString(), {
+						headers: {
+							'Accept-Language': language,
+						},
+					});
 
-			// 204 means non-IAB region - no GVL needed
-			if (response.status === 204) {
-				return null;
-			}
+					// 204 means non-IAB region - no GVL needed
+					if (response.status === 204) {
+						return null;
+					}
 
-			if (!response.ok) {
-				throw new Error(
-					`Failed to fetch GVL: ${response.status} ${response.statusText}`
-				);
-			}
+					if (!response.ok) {
+						throw new Error(
+							`Failed to fetch GVL: ${response.status} ${response.statusText}`
+						);
+					}
 
-			// Use text() then JSON.parse to handle malformed responses (e.g. trailing
-			// content or BOM) that would break response.json()
-			const text = await response.text();
-			const trimmed = text.trim().replace(/^\uFEFF/, ''); // Strip BOM
-			let gvl: GlobalVendorList;
-			try {
-				gvl = JSON.parse(trimmed) as GlobalVendorList;
-			} catch {
-				// If response has valid JSON followed by extra content, try parsing
-				// only the first complete JSON value (find matching braces)
-				let depth = 0;
-				let end = -1;
-				const start = trimmed.indexOf('{');
-				if (start >= 0) {
-					for (let i = start; i < trimmed.length; i++) {
-						const c = trimmed[i];
-						if (c === '{') depth++;
-						else if (c === '}') {
-							depth--;
-							if (depth === 0) {
-								end = i + 1;
-								break;
+					// Use text() then JSON.parse to handle malformed responses (e.g. trailing
+					// content or BOM) that would break response.json()
+					const text = await response.text();
+					const trimmed = text.trim().replace(/^\uFEFF/, ''); // Strip BOM
+					let parsed: GlobalVendorList;
+					try {
+						parsed = JSON.parse(trimmed) as GlobalVendorList;
+					} catch {
+						// If response has valid JSON followed by extra content, try parsing
+						// only the first complete JSON value (find matching braces)
+						let depth = 0;
+						let end = -1;
+						const start = trimmed.indexOf('{');
+						if (start >= 0) {
+							for (let i = start; i < trimmed.length; i++) {
+								const c = trimmed[i];
+								if (c === '{') depth++;
+								else if (c === '}') {
+									depth--;
+									if (depth === 0) {
+										end = i + 1;
+										break;
+									}
+								}
 							}
 						}
+						if (end > 0) {
+							parsed = JSON.parse(trimmed.slice(0, end)) as GlobalVendorList;
+						} else {
+							throw new SyntaxError('Invalid GVL response: not valid JSON');
+						}
 					}
-				}
-				if (end > 0) {
-					gvl = JSON.parse(trimmed.slice(0, end)) as GlobalVendorList;
-				} else {
-					throw new SyntaxError('Invalid GVL response: not valid JSON');
-				}
-			}
 
-			// Validate the response has required fields
-			if (!gvl.vendorListVersion || !gvl.purposes || !gvl.vendors) {
-				throw new Error('Invalid GVL response: missing required fields');
-			}
+					// Validate the response has required fields
+					if (
+						!parsed.vendorListVersion ||
+						!parsed.purposes ||
+						!parsed.vendors
+					) {
+						throw new Error('Invalid GVL response: missing required fields');
+					}
+
+					return parsed;
+				}
+			);
+
+			getMetrics()?.recordGvlFetch(
+				{ language, source: 'fetch', status: 200 },
+				Date.now() - fetchStart
+			);
 
 			return gvl;
+		} catch (error) {
+			getMetrics()?.recordGvlError({
+				language,
+				errorType: error instanceof Error ? error.name : 'UnknownError',
+			});
+			throw error;
 		} finally {
 			// Clear in-flight request when done
 			inflightRequests.delete(dedupeKey);
@@ -218,19 +243,29 @@ export function createGVLResolver(options: GVLResolverOptions): GVLResolver {
 			}
 
 			// 2. Check in-memory cache (0ms)
-			const memoryHit = await memoryCache.get<GlobalVendorList>(cacheKey);
+			const memoryHit = await withCacheSpan('get', 'memory', () =>
+				memoryCache.get<GlobalVendorList>(cacheKey)
+			);
 			if (memoryHit) {
+				getMetrics()?.recordCacheHit('memory');
 				return memoryHit;
 			}
+			getMetrics()?.recordCacheMiss('memory');
 
 			// 3. Check external cache if configured (20-40ms)
 			if (cacheAdapter) {
-				const externalHit = await cacheAdapter.get<GlobalVendorList>(cacheKey);
+				const externalHit = await withCacheSpan('get', 'external', () =>
+					cacheAdapter.get<GlobalVendorList>(cacheKey)
+				);
 				if (externalHit) {
+					getMetrics()?.recordCacheHit('external');
 					// Populate memory cache for next request
-					await memoryCache.set(cacheKey, externalHit, MEMORY_TTL_MS);
+					await withCacheSpan('set', 'memory', () =>
+						memoryCache.set(cacheKey, externalHit, MEMORY_TTL_MS)
+					);
 					return externalHit;
 				}
+				getMetrics()?.recordCacheMiss('external');
 			}
 
 			// 4. Fetch from gvl.consent.io with Accept-Language header (100-300ms)
@@ -238,9 +273,13 @@ export function createGVLResolver(options: GVLResolverOptions): GVLResolver {
 
 			if (gvl) {
 				// Populate both caches
-				await memoryCache.set(cacheKey, gvl, MEMORY_TTL_MS);
+				await withCacheSpan('set', 'memory', () =>
+					memoryCache.set(cacheKey, gvl, MEMORY_TTL_MS)
+				);
 				if (cacheAdapter) {
-					await cacheAdapter.set(cacheKey, gvl, GVL_TTL_MS);
+					await withCacheSpan('set', 'external', () =>
+						cacheAdapter.set(cacheKey, gvl, GVL_TTL_MS)
+					);
 				}
 			}
 
