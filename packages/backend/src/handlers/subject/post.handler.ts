@@ -9,6 +9,7 @@ import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { generateUniqueId } from '~/db/registry/utils';
 import type { C15TContext } from '~/types';
+import { getMetrics } from '~/utils/metrics';
 
 /**
  * Handles the creation of a new consent record for a subject.
@@ -177,6 +178,22 @@ export const postSubjectHandler = async (c: Context) => {
 				consent: consentRecord,
 			};
 		});
+
+		// Record telemetry metrics
+		const metrics = getMetrics();
+		if (metrics) {
+			const jurisdiction = input.jurisdiction;
+			metrics.recordConsentCreated({ type, jurisdiction });
+
+			// Determine accepted vs rejected based on preferences
+			const hasAccepted =
+				preferences && Object.values(preferences).some(Boolean);
+			if (hasAccepted) {
+				metrics.recordConsentAccepted({ type, jurisdiction });
+			} else {
+				metrics.recordConsentRejected({ type, jurisdiction });
+			}
+		}
 
 		// Return the response
 		return c.json({

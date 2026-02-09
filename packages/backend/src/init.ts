@@ -46,7 +46,8 @@ export const init = (options: C15TOptions): C15TContext => {
 	// Create telemetry options (validates and merges with defaults)
 	const telemetryOptions = createTelemetryOptions(
 		String(appName),
-		options.advanced?.telemetry
+		options.advanced?.telemetry,
+		options.tenantId
 	);
 
 	// Log telemetry status
@@ -61,7 +62,8 @@ export const init = (options: C15TOptions): C15TContext => {
 	}
 
 	// Initialize core components
-	const client = DB.client(options.adapter);
+	const db = options.tablePrefix ? DB.names.prefix(options.tablePrefix) : DB;
+	const client = db.client(options.adapter);
 
 	const rawOrm = client.orm('2.0.0');
 	const orm = options.tenantId
