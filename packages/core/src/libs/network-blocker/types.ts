@@ -1,5 +1,5 @@
 import type { ConsentState } from '../../types';
-import type { AllConsentNames } from '../../types/gdpr';
+import type { AllConsentNames } from '../../types/consent-types';
 import type { HasCondition } from '../has';
 
 /**

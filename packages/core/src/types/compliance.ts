@@ -1,5 +1,5 @@
 import type { InitOutput, JurisdictionCode } from '@c15t/schema/types';
-import type { AllConsentNames } from './gdpr';
+import type { AllConsentNames } from './consent-types';
 /**
  * @packageDocumentation
  * Provides types and interfaces for managing privacy compliance and consent across different regulatory frameworks.

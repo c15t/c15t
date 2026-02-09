@@ -66,8 +66,7 @@ describe('Consent Store', () => {
 			expect(state.consentInfo).toBeNull();
 			expect(state.showPopup).toBe(false);
 			expect(state.isLoadingConsentInfo).toBe(true);
-			expect(state.gdprTypes).toContain('necessary');
-			expect(state.gdprTypes).toContain('marketing');
+			expect(state.consentCategories).toContain('necessary');
 		});
 
 		it('should initialize consents as default values from consentTypes', () => {
@@ -93,15 +92,15 @@ describe('Consent Store', () => {
 			expect((window as Record<string, unknown>).customStore).toBe(store);
 		});
 
-		it('should apply initial GDPR types if provided', () => {
+		it('should apply initial consent categories if provided', () => {
 			const store = createConsentManagerStore(mockManager, {
-				initialGdprTypes: ['necessary', 'measurement', 'marketing'],
+				initialConsentCategories: ['necessary', 'measurement', 'marketing'],
 			});
 			const state = store.getState();
 
-			expect(state.gdprTypes).toContain('necessary');
-			expect(state.gdprTypes).toContain('measurement');
-			expect(state.gdprTypes).toContain('marketing');
+			expect(state.consentCategories).toContain('necessary');
+			expect(state.consentCategories).toContain('measurement');
+			expect(state.consentCategories).toContain('marketing');
 		});
 
 		it('should restore state from stored consent if available', () => {
@@ -274,20 +273,23 @@ describe('Consent Store', () => {
 	});
 
 	describe('GDPR Types Management', () => {
-		it('should update GDPR types with setGdprTypes', () => {
+		it('should update consent categories with setConsentCategories', () => {
 			const store = createConsentManagerStore(mockManager);
 
-			store.getState().setGdprTypes(['necessary', 'measurement']);
-			expect(store.getState().gdprTypes).toEqual(['necessary', 'measurement']);
+			store.getState().setConsentCategories(['necessary', 'measurement']);
+			expect(store.getState().consentCategories).toEqual([
+				'necessary',
+				'measurement',
+			]);
 		});
 
 		it('should update consent categories with updateConsentCategories', () => {
 			const store = createConsentManagerStore(mockManager);
 
-			const initialTypes = store.getState().gdprTypes;
+			const initialTypes = store.getState().consentCategories;
 			store.getState().updateConsentCategories(['experience', 'functionality']);
 
-			const updatedTypes = store.getState().gdprTypes;
+			const updatedTypes = store.getState().consentCategories;
 			expect(updatedTypes).toContain('experience');
 			expect(updatedTypes).toContain('functionality');
 			// Should still contain initial types
@@ -492,9 +494,9 @@ describe('Consent Store', () => {
 	});
 
 	describe('getDisplayedConsents', () => {
-		it('should return only consents in gdprTypes', () => {
+		it('should return only consents in consentCategories', () => {
 			const store = createConsentManagerStore(mockManager, {
-				initialGdprTypes: ['necessary', 'marketing'],
+				initialConsentCategories: ['necessary', 'marketing'],
 			});
 
 			const displayed = store.getState().getDisplayedConsents();
@@ -703,7 +705,7 @@ describe('Consent Store', () => {
 			expect(mockOnConsentSet).toHaveBeenCalled();
 		});
 
-		it('should apply provided scripts to state and update gdprTypes', () => {
+		it('should apply provided scripts to state and update consentCategories', () => {
 			const store = createConsentManagerStore(mockManager, {
 				scripts: [
 					{
@@ -715,7 +717,7 @@ describe('Consent Store', () => {
 			});
 
 			expect(store.getState().scripts).toHaveLength(1);
-			expect(store.getState().gdprTypes).toContain('measurement');
+			expect(store.getState().consentCategories).toContain('measurement');
 		});
 
 		it('should apply storage config', () => {

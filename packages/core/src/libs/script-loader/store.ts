@@ -93,13 +93,13 @@ export function createScriptManager(
 				}
 			});
 
-			// Extract categories from new scripts and update gdprTypes
+			// Extract categories from new scripts and update consentCategories
 			const newCategories = scripts.flatMap((script) =>
 				extractConsentNamesFromCondition(script.category)
 			);
 
 			const allCategoriesSet = new Set<AllConsentNames>([
-				...state.gdprTypes,
+				...state.consentCategories,
 				...newCategories,
 			]);
 			const allCategories = Array.from(allCategoriesSet);
@@ -107,7 +107,7 @@ export function createScriptManager(
 			setState({
 				scripts: [...state.scripts, ...scripts],
 				scriptIdMap: newScriptIdMap,
-				gdprTypes: allCategories,
+				consentCategories: allCategories,
 			});
 
 			updateScriptsFn();

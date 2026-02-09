@@ -11,7 +11,7 @@
 
 import { vi } from 'vitest';
 import type { ConsentInfo, ConsentState } from '../types';
-import type { AllConsentNames } from '../types/gdpr';
+import type { AllConsentNames } from '../types/consent-types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LocalStorage Mock Factory

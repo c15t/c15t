@@ -4,16 +4,14 @@
  * @packageDocumentation
  */
 
-import type { InitOutput } from '@c15t/schema/types';
 import type { TranslationConfig } from '@c15t/translations';
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../../client/client-factory';
 import type { ConsentStoreState, SSRInitialData } from '../../store/type';
+import type { ConsentBannerResponse } from '../../types/compliance';
 
-/**
- * Consent banner response type alias.
- */
-export type ConsentBannerResponse = InitOutput;
+// Re-export for internal consumers
+export type { ConsentBannerResponse };
 
 /**
  * Configuration for initializing the consent manager.

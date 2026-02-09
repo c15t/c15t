@@ -11,6 +11,7 @@ import {
 	deleteConsentFromStorage,
 	getConsentFromStorage,
 } from '../libs/cookie';
+import { setDebugEnabled } from '../libs/debug';
 import {
 	extractConsentNamesFromCondition,
 	type HasCondition,
@@ -29,7 +30,7 @@ import {
 	type AllConsentNames,
 	type ConsentInfo,
 	consentTypes,
-} from '../types/gdpr';
+} from '../types/consent-types';
 import { initialState } from './initial-state';
 import type { ConsentStoreState, StoreOptions } from './type';
 
@@ -135,12 +136,16 @@ export const createConsentManagerStore = (
 		// Extract options that shouldn't be spread directly into state
 		iab,
 		ssrData: _unusedSsrData,
-		initialGdprTypes,
+		initialConsentCategories,
 		initialTranslationConfig: _unusedInitialTranslationConfig,
 		enabled: _unusedEnabled,
+		debug: _unusedDebug,
 		// The rest are valid StoreConfig properties
 		...storeConfigOptions
 	} = options;
+
+	// Enable the global debug logger based on the debug option
+	setDebugEnabled(options.debug === true);
 
 	// Load initial state from localStorage if available
 	const storedConsent = getStoredConsent(options.storageConfig);
@@ -151,8 +156,10 @@ export const createConsentManagerStore = (
 		namespace,
 		// Initialize IAB manager (state + actions) if iab config is provided
 		iab: iab ? createIABManager(iab, get, set, manager) : null,
-		// Apply initial GDPR types if provided
-		...(initialGdprTypes && { gdprTypes: initialGdprTypes }),
+		// Apply initial consent categories if provided
+		...(initialConsentCategories && {
+			consentCategories: initialConsentCategories,
+		}),
 		...(storedConsent
 			? {
 					consents: storedConsent.consents,
@@ -269,7 +276,7 @@ export const createConsentManagerStore = (
 				return resetState;
 			});
 		},
-		setGdprTypes: (types) => set({ gdprTypes: types }),
+		setConsentCategories: (types) => set({ consentCategories: types }),
 		setCallback: (name, callback) => {
 			const currentState = get();
 
@@ -332,8 +339,10 @@ export const createConsentManagerStore = (
 			}),
 
 		getDisplayedConsents: () => {
-			const { gdprTypes, consentTypes } = get();
-			return consentTypes.filter((consent) => gdprTypes.includes(consent.name));
+			const { consentCategories, consentTypes } = get();
+			return consentTypes.filter((consent) =>
+				consentCategories.includes(consent.name)
+			);
 		},
 
 		hasConsented: () => {
@@ -354,11 +363,11 @@ export const createConsentManagerStore = (
 
 		updateConsentCategories: (newCategories: AllConsentNames[]) => {
 			const allCategoriesSet = new Set<AllConsentNames>([
-				...get().gdprTypes,
+				...get().consentCategories,
 				...newCategories,
 			]);
 			const allCategories = Array.from(allCategoriesSet);
-			set({ gdprTypes: allCategories });
+			set({ consentCategories: allCategories });
 		},
 
 		identifyUser: async (user: User) => {
@@ -443,7 +452,7 @@ export const createConsentManagerStore = (
 		store.getState().initializeNetworkBlocker();
 	}
 
-	// Add script categories to gdprTypes
+	// Add script categories to consentCategories
 	if (options.scripts && options.scripts.length > 0) {
 		store
 			.getState()
