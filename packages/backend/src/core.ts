@@ -1,4 +1,5 @@
 import { createLogger } from '@c15t/logger';
+import { SpanStatusCode } from '@opentelemetry/api';
 import { apiReference } from '@scalar/hono-api-reference';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -15,7 +16,11 @@ import { createConsentRoutes } from './routes/consent';
 import { createInitRoute } from './routes/init';
 import { createStatusRoute } from './routes/status';
 import { createSubjectRoutes } from './routes/subject';
-import { withRequestSpan } from './utils/create-telemetry-options';
+import {
+	createRequestSpan,
+	handleSpanError,
+	withSpanContext,
+} from './utils/create-telemetry-options';
 import { getMetrics } from './utils/metrics';
 import { version } from './version';
 
@@ -139,23 +144,52 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 
 		c.set('c15tContext', enrichedContext);
 
-		// Wrap request handling in a telemetry span (if enabled)
-		await withRequestSpan(
-			c.req.method,
-			c.req.path,
-			async () => {
-				await next();
-			},
-			options
-		);
+		// Create a telemetry span for the request (if enabled)
+		const span = createRequestSpan(c.req.method, c.req.path, options);
+
+		const runNext = async () => {
+			await next();
+		};
+
+		try {
+			if (span) {
+				await withSpanContext(span, runNext);
+				// After routing, update span name with matched route pattern
+				const matchedRoutes = c.req.matchedRoutes;
+				const routePattern =
+					matchedRoutes
+						.map((r) => r.path)
+						.filter((p) => p !== '/*')
+						.pop() ?? c.req.path;
+				span.updateName(`${c.req.method} ${routePattern}`);
+				span.setAttribute('http.route', routePattern);
+				span.setStatus({ code: SpanStatusCode.OK });
+			} else {
+				await runNext();
+			}
+		} catch (error) {
+			if (span) {
+				handleSpanError(span, error);
+			}
+			throw error;
+		} finally {
+			span?.end();
+		}
 
 		// Record HTTP metrics after request completes
 		if (metrics) {
 			const durationMs = Date.now() - startTime;
+			// Use route pattern instead of raw path to avoid high cardinality
+			const matchedRoutes = c.req.matchedRoutes;
+			const routePattern =
+				matchedRoutes
+					.map((r) => r.path)
+					.filter((p) => p !== '/*')
+					.pop() ?? c.req.path;
 			metrics.recordHttpRequest(
 				{
 					method: c.req.method,
-					route: c.req.path,
+					route: routePattern,
 					status: c.res.status,
 				},
 				durationMs

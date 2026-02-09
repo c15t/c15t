@@ -180,6 +180,7 @@
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
+        "@opentelemetry/sdk-trace-base": "^1.30.0",
         "@types/node": "24.10.1",
         "@upstash/redis": "^1.0.0",
         "genversion": "3.2.0",

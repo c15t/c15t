@@ -1,14 +1,20 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { C15TOptions } from '../types';
 import {
 	createRequestSpan,
 	createTelemetryOptions,
+	getDefaultAttributes,
 	getMeter,
 	getTraceContext,
 	getTracer,
 	isTelemetryEnabled,
+	resetTelemetryConfig,
 	withRequestSpan,
 } from './create-telemetry-options';
+
+afterEach(() => {
+	resetTelemetryConfig();
+});
 
 describe('createTelemetryOptions', () => {
 	it('returns disabled by default (opt-in)', () => {
@@ -225,5 +231,72 @@ describe('getTraceContext', () => {
 		const context = getTraceContext();
 
 		expect(context).toBeNull();
+	});
+});
+
+describe('cached telemetry config', () => {
+	it('isTelemetryEnabled returns false before init', () => {
+		expect(isTelemetryEnabled()).toBe(false);
+	});
+
+	it('isTelemetryEnabled returns cached value after init', () => {
+		createTelemetryOptions('test-app', { enabled: true });
+
+		expect(isTelemetryEnabled()).toBe(true);
+	});
+
+	it('getDefaultAttributes returns empty before init', () => {
+		const attrs = getDefaultAttributes();
+
+		expect(Object.keys(attrs)).toHaveLength(0);
+	});
+
+	it('getDefaultAttributes returns cached attributes after init', () => {
+		createTelemetryOptions('test-app', {
+			defaultAttributes: { environment: 'test' },
+		});
+
+		const attrs = getDefaultAttributes();
+		expect(attrs['service.name']).toBe('test-app');
+		expect(attrs['environment']).toBe('test');
+	});
+
+	it('includes tenantId in default attributes when provided', () => {
+		createTelemetryOptions('test-app', {}, 'tenant-123');
+
+		const attrs = getDefaultAttributes();
+		expect(attrs['tenant.id']).toBe('tenant-123');
+	});
+
+	it('does not include tenant.id when tenantId is undefined', () => {
+		createTelemetryOptions('test-app');
+
+		const attrs = getDefaultAttributes();
+		expect(attrs['tenant.id']).toBeUndefined();
+	});
+
+	it('resetTelemetryConfig clears the cache', () => {
+		createTelemetryOptions('test-app', { enabled: true });
+		expect(isTelemetryEnabled()).toBe(true);
+
+		resetTelemetryConfig();
+		expect(isTelemetryEnabled()).toBe(false);
+		expect(Object.keys(getDefaultAttributes())).toHaveLength(0);
+	});
+
+	it('getTracer returns a tracer without explicit options after init', () => {
+		createTelemetryOptions('test-app', { enabled: true });
+
+		const tracer = getTracer();
+		expect(tracer).toBeDefined();
+		expect(tracer.startSpan).toBeDefined();
+	});
+
+	it('getMeter returns a meter without explicit options after init', () => {
+		createTelemetryOptions('test-app', { enabled: true });
+
+		const meter = getMeter();
+		expect(meter).toBeDefined();
+		expect(meter.createCounter).toBeDefined();
 	});
 });

@@ -8,6 +8,7 @@ import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { generateUniqueId } from '~/db/registry/utils';
 import type { C15TContext } from '~/types';
+import { getMetrics } from '~/utils/metrics';
 
 /**
  * Handles linking an external ID to a subject.
@@ -91,6 +92,8 @@ export const patchSubjectHandler = async (c: Context) => {
 			externalId,
 			identityProvider,
 		});
+
+		getMetrics()?.recordSubjectLinked(identityProvider);
 
 		return c.json({
 			success: true,

@@ -7,6 +7,7 @@
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { C15TContext } from '~/types';
+import { getMetrics } from '~/utils/metrics';
 import { resolveConsentPolicies } from '../utils/consent-enrichment';
 
 /**
@@ -96,6 +97,14 @@ export const checkConsentHandler = async (c: Context) => {
 		}
 
 		logger.debug('Consent check results', { externalId, results });
+
+		// Record consent check metrics
+		const metrics = getMetrics();
+		if (metrics) {
+			for (const [type, result] of Object.entries(results)) {
+				metrics.recordConsentCheck(type, result.hasConsent);
+			}
+		}
 
 		return c.json({ results });
 	} catch (error) {

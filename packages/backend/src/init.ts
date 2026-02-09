@@ -46,7 +46,8 @@ export const init = (options: C15TOptions): C15TContext => {
 	// Create telemetry options (validates and merges with defaults)
 	const telemetryOptions = createTelemetryOptions(
 		String(appName),
-		options.advanced?.telemetry
+		options.advanced?.telemetry,
+		options.tenantId
 	);
 
 	// Log telemetry status

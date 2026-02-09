@@ -11,6 +11,10 @@ import { version } from '../version';
 
 type TelemetryConfig = NonNullable<C15TOptions['advanced']>['telemetry'];
 
+// ── Cached config (set once during init) ──────────────────────────────
+let cachedConfig: TelemetryConfig | null = null;
+let cachedDefaultAttributes: Record<string, string | number | boolean> = {};
+
 /**
  * Creates telemetry configuration from provided options
  *
@@ -21,67 +25,102 @@ type TelemetryConfig = NonNullable<C15TOptions['advanced']>['telemetry'];
  *
  * @param appName - The application name to use for service.name attribute
  * @param telemetryConfig - Optional user-provided telemetry configuration
+ * @param tenantId - Optional tenant ID for multi-tenant deployments
  * @returns Properly structured telemetry options for the OpenTelemetry SDK
  */
 export function createTelemetryOptions(
 	appName = 'c15t',
-	telemetryConfig?: TelemetryConfig
+	telemetryConfig?: TelemetryConfig,
+	tenantId?: string
 ): TelemetryConfig {
+	const defaultAttributes: Record<string, string | number | boolean> = {
+		...(telemetryConfig?.defaultAttributes || {}),
+
+		// Always ensure these core attributes are set
+		'service.name': String(appName),
+		'service.version': version,
+	};
+
+	if (tenantId) {
+		defaultAttributes['tenant.id'] = tenantId;
+	}
+
 	const config: TelemetryConfig = {
 		// Opt-in: disabled by default, must be explicitly enabled
 		enabled: telemetryConfig?.enabled ?? false,
 		tracer: telemetryConfig?.tracer,
 		meter: telemetryConfig?.meter,
-
-		defaultAttributes: {
-			...(telemetryConfig?.defaultAttributes || {}),
-
-			// Always ensure these core attributes are set
-			// (will override user values if they exist)
-			'service.name': String(appName),
-			'service.version': version,
-		},
+		defaultAttributes,
 	};
+
+	// Cache for use without explicit options
+	cachedConfig = config;
+	cachedDefaultAttributes = defaultAttributes;
 
 	return config;
 }
 
 /**
- * Checks if telemetry is enabled
+ * Checks if telemetry is enabled.
+ * When called without options, uses the cached config from init.
  */
 export function isTelemetryEnabled(options?: C15TOptions): boolean {
-	return options?.advanced?.telemetry?.enabled === true;
+	if (options) {
+		return options.advanced?.telemetry?.enabled === true;
+	}
+	return cachedConfig?.enabled === true;
 }
 
 /**
- * Gets the tracer for the c15t backend
- * Returns the user-provided tracer or falls back to the global tracer
+ * Gets the tracer for the c15t backend.
+ * When called without options, uses the cached config from init.
  */
 export const getTracer = (options?: C15TOptions) => {
 	if (!isTelemetryEnabled(options)) {
 		// Return a no-op tracer when telemetry is disabled
 		return trace.getTracer('c15t-noop');
 	}
-	if (options?.advanced?.telemetry?.tracer) {
-		return options.advanced.telemetry.tracer;
+	const tracer = options?.advanced?.telemetry?.tracer ?? cachedConfig?.tracer;
+	if (tracer) {
+		return tracer;
 	}
 	return trace.getTracer(options?.appName ?? 'c15t');
 };
 
 /**
- * Gets the meter for the c15t backend
- * Returns the user-provided meter or falls back to the global meter
+ * Gets the meter for the c15t backend.
+ * When called without options, uses the cached config from init.
  */
 export const getMeter = (options?: C15TOptions): Meter => {
 	if (!isTelemetryEnabled(options)) {
 		// Return a no-op meter when telemetry is disabled
 		return metrics.getMeter('c15t-noop');
 	}
-	if (options?.advanced?.telemetry?.meter) {
-		return options.advanced.telemetry.meter;
+	const meter = options?.advanced?.telemetry?.meter ?? cachedConfig?.meter;
+	if (meter) {
+		return meter;
 	}
 	return metrics.getMeter(options?.appName ?? 'c15t');
 };
+
+/**
+ * Gets the cached default attributes.
+ * Used by span wrappers when no explicit options are provided.
+ */
+export function getDefaultAttributes(): Record<
+	string,
+	string | number | boolean
+> {
+	return cachedDefaultAttributes;
+}
+
+/**
+ * Resets the cached telemetry config (for testing).
+ */
+export function resetTelemetryConfig(): void {
+	cachedConfig = null;
+	cachedDefaultAttributes = {};
+}
 
 /**
  * Creates a span for an API request
@@ -96,11 +135,13 @@ export const createRequestSpan = (
 	}
 
 	const tracer = getTracer(options);
+	const defaultAttrs =
+		options?.advanced?.telemetry?.defaultAttributes || getDefaultAttributes();
+
 	const span = tracer.startSpan(`${method} ${path}`, {
 		attributes: {
 			'http.method': method,
-			'http.path': path,
-			...(options?.advanced?.telemetry?.defaultAttributes || {}),
+			...defaultAttrs,
 		},
 	});
 
@@ -108,7 +149,8 @@ export const createRequestSpan = (
 };
 
 /**
- * Wraps an API request handler in a span
+ * Wraps an API request handler in a span.
+ * The span is set as active context so child spans nest correctly.
  */
 export const withRequestSpan = async <T>(
 	method: string,
@@ -123,7 +165,7 @@ export const withRequestSpan = async <T>(
 	}
 
 	try {
-		const result = await operation();
+		const result = await withSpanContext(span, operation);
 		span.setStatus({ code: SpanStatusCode.OK });
 		return result;
 	} catch (error) {
@@ -137,7 +179,7 @@ export const withRequestSpan = async <T>(
 /**
  * Handles errors in spans
  */
-const handleSpanError = (span: Span, error: unknown) => {
+export const handleSpanError = (span: Span, error: unknown) => {
 	span.setStatus({
 		code: SpanStatusCode.ERROR,
 		message: error instanceof Error ? error.message : String(error),
@@ -145,10 +187,6 @@ const handleSpanError = (span: Span, error: unknown) => {
 
 	if (error instanceof Error) {
 		span.setAttribute('error.type', error.name);
-		span.setAttribute('error.message', error.message);
-		if (error.stack) {
-			span.setAttribute('error.stack', error.stack);
-		}
 	}
 };
 
