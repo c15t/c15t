@@ -24,7 +24,7 @@ export interface IABFallbackConfig {
 /**
  * Configuration options for the c15t backend client
  */
-export interface C15tClientOptions {
+export interface C15tInternalClientOptions {
 	/**
 	 * Backend URL for API endpoints. Can be absolute or relative.
 	 *

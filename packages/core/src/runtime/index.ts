@@ -16,6 +16,7 @@ export type ConsentRuntimeOptions = ConsentManagerOptions &
 	Partial<StoreOptions> & {
 		translations?: Partial<TranslationConfig>;
 		consentCategories?: AllConsentNames[];
+		debug?: boolean;
 	};
 
 export interface ConsentRuntimePkgInfo {
@@ -46,8 +47,17 @@ export function getOrCreateConsentRuntime(
 	options: ConsentRuntimeOptions,
 	pkgInfo?: ConsentRuntimePkgInfo
 ): ConsentRuntimeResult {
-	const { mode, backendURL, store, translations, storageConfig, enabled, iab } =
-		options;
+	const {
+		mode,
+		backendURL,
+		store,
+		translations,
+		storageConfig,
+		enabled,
+		iab,
+		consentCategories,
+		debug,
+	} = options;
 
 	const cacheKey = generateRuntimeCacheKey({
 		mode,
@@ -104,6 +114,8 @@ export function getOrCreateConsentRuntime(
 			...options,
 			...store,
 			initialTranslationConfig: translations,
+			initialConsentCategories: consentCategories,
+			debug,
 		});
 
 		storeCache.set(cacheKey, consentStore);

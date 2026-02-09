@@ -10,6 +10,7 @@ export type {
 	Branding,
 	GetSubjectInput,
 	GetSubjectOutput,
+	GlobalVendorList,
 	InitOutput,
 	JurisdictionCode,
 	ListSubjectsOutput,
@@ -37,11 +38,6 @@ export {
 	prepareTranslationConfig,
 } from '@c15t/translations';
 export * from './client';
-export {
-	type ConsentManagerInterface,
-	type ConsentManagerOptions,
-	configureConsentManager,
-} from './client';
 // Export basic types directly for convenience
 export type {
 	FetchOptions,
@@ -64,6 +60,13 @@ export {
 	isValidSubjectId,
 } from './libs/generate-subject-id';
 export type { HasCondition } from './libs/has';
+// Export TCF utilities for testing
+export {
+	clearGVLCache,
+	fetchGVL,
+	getCachedGVL,
+	setMockGVL,
+} from './libs/iab-tcf';
 export {
 	createIframeBlocker,
 	type IframeBlocker,
@@ -79,8 +82,6 @@ export {
 	unloadScripts,
 	updateScripts,
 } from './libs/script-loader';
-// Export TCF utilities for testing
-export { clearGVLCache, fetchGVL, getCachedGVL, setMockGVL } from './libs/tcf';
 export {
 	type ConsentRuntimeOptions,
 	type ConsentRuntimePkgInfo,
@@ -104,14 +105,12 @@ export type {
 	LocationInfo,
 	NamespaceProps,
 } from './types/compliance';
-export * from './types/compliance';
 export {
 	type AllConsentNames,
 	allConsentNames,
 	type ConsentType,
 	consentTypes,
-} from './types/gdpr';
-export type { GlobalVendorList } from './types/iab-tcf';
+} from './types/consent-types';
 export type { Overrides } from './types/index';
 export type { LegalLink, LegalLinks } from './types/legal-links';
 export type { User } from './types/user';

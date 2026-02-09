@@ -37,7 +37,7 @@ export function createIframeManager(
 		 * - No-ops in non-browser environments (when `document` is undefined)
 		 * - Respects `iframeBlockerConfig.disableAutomaticBlocking`
 		 * - Discovers consent categories from iframes and updates
-		 *   `gdprTypes` via {@link ConsentStoreState.updateConsentCategories}
+		 *   `consentCategories` via {@link ConsentStoreState.updateConsentCategories}
 		 *
 		 * Safe to call multiple times; initialization runs only once per
 		 * page lifecycle.

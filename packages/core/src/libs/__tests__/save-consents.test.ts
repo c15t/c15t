@@ -60,7 +60,7 @@ describe('saveConsents', () => {
 				onConsentSet: vi.fn(),
 				onError: vi.fn(),
 			},
-			gdprTypes: [
+			consentCategories: [
 				'necessary',
 				'functionality',
 				'measurement',
@@ -200,7 +200,7 @@ describe('saveConsents', () => {
 					onConsentSet: vi.fn(),
 					onError: vi.fn(),
 				},
-				gdprTypes: [
+				consentCategories: [
 					'necessary',
 					'functionality',
 					'measurement',
@@ -348,7 +348,7 @@ describe('saveConsents', () => {
 					onConsentSet: mockOnConsentSet,
 					onError: vi.fn(),
 				},
-				gdprTypes: [
+				consentCategories: [
 					'necessary',
 					'functionality',
 					'measurement',
@@ -440,7 +440,7 @@ describe('saveConsents', () => {
 					onConsentSet: undefined,
 					onError: vi.fn(),
 				},
-				gdprTypes: [
+				consentCategories: [
 					'necessary',
 					'functionality',
 					'measurement',
@@ -569,7 +569,7 @@ describe('saveConsents', () => {
 					onConsentSet: vi.fn(),
 					onError: mockOnError,
 				},
-				gdprTypes: [
+				consentCategories: [
 					'necessary',
 					'functionality',
 					'measurement',
@@ -664,7 +664,7 @@ describe('saveConsents', () => {
 					onConsentSet: vi.fn(),
 					onError: undefined,
 				},
-				gdprTypes: [
+				consentCategories: [
 					'necessary',
 					'functionality',
 					'measurement',
@@ -757,7 +757,7 @@ describe('saveConsents', () => {
 					onConsentSet: vi.fn(),
 					onError: mockOnError,
 				},
-				gdprTypes: [
+				consentCategories: [
 					'necessary',
 					'functionality',
 					'measurement',
@@ -850,7 +850,7 @@ describe('saveConsents', () => {
 					onConsentSet: vi.fn(),
 					onError: vi.fn(),
 				},
-				gdprTypes: [
+				consentCategories: [
 					'necessary',
 					'functionality',
 					'measurement',
@@ -889,7 +889,7 @@ describe('saveConsents', () => {
 					onConsentSet: vi.fn(),
 					onError: vi.fn(),
 				},
-				gdprTypes: [
+				consentCategories: [
 					'necessary',
 					'functionality',
 					'measurement',
@@ -972,7 +972,7 @@ describe('saveConsents', () => {
 					onConsentSet: vi.fn(),
 					onBeforeConsentRevocationReload: vi.fn(),
 				},
-				gdprTypes: ['necessary', 'marketing'],
+				consentCategories: ['necessary', 'marketing'],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
 				updateNetworkBlockerConsents: vi.fn(),
@@ -1021,7 +1021,7 @@ describe('saveConsents', () => {
 				callbacks: {
 					onConsentSet: vi.fn(),
 				},
-				gdprTypes: ['necessary', 'marketing'],
+				consentCategories: ['necessary', 'marketing'],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
 				updateNetworkBlockerConsents: vi.fn(),
@@ -1070,7 +1070,7 @@ describe('saveConsents', () => {
 				callbacks: {
 					onConsentSet: vi.fn(),
 				},
-				gdprTypes: ['necessary', 'marketing'],
+				consentCategories: ['necessary', 'marketing'],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
 				updateNetworkBlockerConsents: vi.fn(),
@@ -1119,7 +1119,7 @@ describe('saveConsents', () => {
 				callbacks: {
 					onConsentSet: vi.fn(),
 				},
-				gdprTypes: ['necessary', 'marketing'],
+				consentCategories: ['necessary', 'marketing'],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
 				updateNetworkBlockerConsents: vi.fn(),
@@ -1171,7 +1171,7 @@ describe('saveConsents', () => {
 					onConsentSet: vi.fn(),
 					onBeforeConsentRevocationReload: mockOnBeforeReload,
 				},
-				gdprTypes: ['necessary', 'marketing'],
+				consentCategories: ['necessary', 'marketing'],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
 				updateNetworkBlockerConsents: vi.fn(),
@@ -1237,7 +1237,7 @@ describe('saveConsents', () => {
 				callbacks: {
 					onConsentSet: vi.fn(),
 				},
-				gdprTypes: ['necessary', 'marketing'],
+				consentCategories: ['necessary', 'marketing'],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
 				updateNetworkBlockerConsents: vi.fn(),

@@ -1,3 +1,4 @@
+import { getDebugLogger } from '../../libs/debug';
 import type { FetchOptions, ResponseContext, RetryConfig } from '../types';
 import { createResponseContext as createResponseContextShared } from '../utils';
 import {
@@ -238,7 +239,7 @@ export async function fetcher<
 
 			// Check first if this is a status code that should never be retried
 			if (nonRetryableStatusCodes?.includes(response.status)) {
-				console.debug(
+				getDebugLogger().debug(
 					`Not retrying request to ${path} with status ${response.status} (nonRetryableStatusCodes)`
 				);
 				shouldRetryThisRequest = false;
@@ -251,14 +252,14 @@ export async function fetcher<
 						url: url.toString(),
 						method: requestOptions.method || 'GET',
 					});
-					console.debug(
+					getDebugLogger().debug(
 						`Custom retry strategy for ${path} with status ${response.status}: ${shouldRetryThisRequest}`
 					);
 				} catch {
 					// Fall back to status code check if custom function throws
 					shouldRetryThisRequest =
 						retryableStatusCodes?.includes(response.status) ?? false;
-					console.debug(
+					getDebugLogger().debug(
 						`Custom retry strategy failed, falling back to status code check: ${shouldRetryThisRequest}`
 					);
 				}
@@ -266,7 +267,7 @@ export async function fetcher<
 				// Fall back to retryableStatusCodes if no custom strategy
 				shouldRetryThisRequest =
 					retryableStatusCodes?.includes(response.status) ?? false;
-				console.debug(
+				getDebugLogger().debug(
 					`Standard retry check for ${path} with status ${response.status}: ${shouldRetryThisRequest}`
 				);
 			}

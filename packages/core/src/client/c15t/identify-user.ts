@@ -1,7 +1,8 @@
 import type { StorageConfig } from '../../libs/cookie';
 import { getConsentFromStorage, saveConsentToStorage } from '../../libs/cookie';
+import { getDebugLogger } from '../../libs/debug';
 import type { ConsentState } from '../../types/compliance';
-import type { ConsentInfo } from '../../types/gdpr';
+import type { ConsentInfo } from '../../types/consent-types';
 import type {
 	IdentifyUserRequestBody,
 	IdentifyUserResponse,
@@ -54,7 +55,7 @@ export async function offlineFallbackForIdentifyUser(
 					JSON.stringify(pendingSubmissions)
 				);
 
-				console.log(
+				getDebugLogger().log(
 					'Queued identify user submission for retry on next page load'
 				);
 			}

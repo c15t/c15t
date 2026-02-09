@@ -4,6 +4,7 @@
  * @packageDocumentation
  */
 
+import { getDebugLogger } from '../../libs/debug';
 import type {
 	IdentifyUserRequestBody,
 	IdentifyUserResponse,
@@ -56,7 +57,7 @@ export function checkPendingConsentSubmissions(
 			return;
 		}
 
-		console.log(
+		getDebugLogger().log(
 			`Found ${pendingSubmissions.length} pending consent submission(s) to retry`
 		);
 
@@ -89,7 +90,7 @@ export async function processPendingConsentSubmissions(
 		for (let j = 0; j < remainingSubmissions.length; j++) {
 			const submission = remainingSubmissions[j];
 			try {
-				console.log('Retrying consent submission:', submission);
+				getDebugLogger().log('Retrying consent submission:', submission);
 
 				const response = await fetcher<
 					SetConsentResponse,
@@ -100,7 +101,7 @@ export async function processPendingConsentSubmissions(
 				});
 
 				if (response.ok) {
-					console.log('Successfully resubmitted consent');
+					getDebugLogger().log('Successfully resubmitted consent');
 					successfulSubmissions.push(j);
 				}
 			} catch (error) {
@@ -136,13 +137,15 @@ export async function processPendingConsentSubmissions(
 					pendingSubmissionsKey,
 					JSON.stringify(remainingSubmissions)
 				);
-				console.log(
+				getDebugLogger().log(
 					`${remainingSubmissions.length} consent submissions still pending for future retry`
 				);
 			} else {
 				// All submissions processed, clear the storage
 				window.localStorage.removeItem(pendingSubmissionsKey);
-				console.log('All pending consent submissions processed successfully');
+				getDebugLogger().log(
+					'All pending consent submissions processed successfully'
+				);
 			}
 		}
 	} catch (error) {
@@ -181,7 +184,7 @@ export function checkPendingIdentifySubmissions(
 			return;
 		}
 
-		console.log(
+		getDebugLogger().log(
 			`Found ${pendingSubmissions.length} pending identify user submission(s) to retry`
 		);
 
@@ -217,7 +220,7 @@ export async function processPendingIdentifySubmissions(
 			}
 
 			try {
-				console.log('Retrying identify user submission:', submission);
+				getDebugLogger().log('Retrying identify user submission:', submission);
 
 				// Build the path with the subject ID
 				const path = `${API_ENDPOINTS.PATCH_SUBJECT}/${submission.id}`;
@@ -233,7 +236,7 @@ export async function processPendingIdentifySubmissions(
 				);
 
 				if (response.ok) {
-					console.log('Successfully resubmitted identify user');
+					getDebugLogger().log('Successfully resubmitted identify user');
 					successfulSubmissions.push(j);
 				}
 			} catch (error) {
@@ -269,13 +272,15 @@ export async function processPendingIdentifySubmissions(
 					PENDING_IDENTIFY_KEY,
 					JSON.stringify(remainingSubmissions)
 				);
-				console.log(
+				getDebugLogger().log(
 					`${remainingSubmissions.length} identify submissions still pending for future retry`
 				);
 			} else {
 				// All submissions processed, clear the storage
 				window.localStorage.removeItem(PENDING_IDENTIFY_KEY);
-				console.log('All pending identify submissions processed successfully');
+				getDebugLogger().log(
+					'All pending identify submissions processed successfully'
+				);
 			}
 		}
 	} catch (error) {

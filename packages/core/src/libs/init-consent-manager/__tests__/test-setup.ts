@@ -56,6 +56,7 @@ export function createMockStoreState(
 ): ConsentStoreState {
 	return {
 		config: { pkg: 'test', version: '1.0.0', mode: 'test' },
+		debug: false,
 		legalLinks: {},
 		branding: 'c15t',
 		consents: {
@@ -77,7 +78,7 @@ export function createMockStoreState(
 		isLoadingConsentInfo: false,
 		hasFetchedBanner: false,
 		lastBannerFetchData: null,
-		gdprTypes: [],
+		consentCategories: [],
 		isPrivacyDialogOpen: false,
 		iframeBlockerConfig: {} as IframeBlockerConfig,
 		callbacks: {},
@@ -114,7 +115,7 @@ export function createMockStoreState(
 		destroyNetworkBlocker: vi.fn(),
 		updateConsentCategories: vi.fn(),
 		identifyUser: vi.fn(),
-		setGdprTypes: vi.fn(),
+		setConsentCategories: vi.fn(),
 		setCallback: vi.fn(),
 		setLocationInfo: vi.fn(),
 		initConsentManager: vi.fn(),

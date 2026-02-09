@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 
-import type { AllConsentNames } from '../../types/gdpr';
+import type { AllConsentNames } from '../../types/consent-types';
 
 /**
  * Maps IAB TCF purpose IDs to c15t consent categories.

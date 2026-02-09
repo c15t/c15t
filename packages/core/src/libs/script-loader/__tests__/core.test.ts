@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ConsentState } from '../../../types/compliance';
-import type { AllConsentNames } from '../../../types/gdpr';
+import type { AllConsentNames } from '../../../types/consent-types';
 import {
 	clearAllScripts,
 	getLoadedScriptIds,

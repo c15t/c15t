@@ -54,6 +54,8 @@ export const STORAGE_KEY = 'privacy-consent-storage';
  * @public
  */
 export const initialState: StoreRuntimeState = {
+	debug: false,
+
 	config: {
 		pkg: 'c15t',
 		version,
@@ -87,7 +89,7 @@ export const initialState: StoreRuntimeState = {
 
 	lastBannerFetchData: null,
 
-	gdprTypes: ['necessary', 'marketing'],
+	consentCategories: ['necessary'],
 
 	isPrivacyDialogOpen: false,
 

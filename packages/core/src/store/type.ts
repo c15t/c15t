@@ -7,10 +7,10 @@ import type { Branding, InitOutput } from '@c15t/schema/types';
 import type { Model } from '~/libs/determine-model';
 import type { StorageConfig } from '../libs/cookie';
 import type { HasCondition } from '../libs/has';
+import type { IABConfig, IABManager } from '../libs/iab-tcf/types';
 import type { IframeBlockerConfig } from '../libs/iframe-blocker';
 import type { NetworkBlockerConfig } from '../libs/network-blocker';
 import type { Script } from '../libs/script-loader';
-import type { IABConfig, IABManager } from '../libs/tcf/types';
 import type {
 	AllConsentNames,
 	Callbacks,
@@ -28,7 +28,7 @@ import type {
 } from '../types';
 
 // Re-export IAB types for external consumers
-export type { IABActions, IABManager, IABState } from '../libs/tcf/types';
+export type { IABActions, IABManager, IABState } from '../libs/iab-tcf/types';
 
 /**
  * Initial data structure for SSR prefetching.
@@ -197,11 +197,23 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	enabled?: boolean;
 
 	/**
-	 * Initial GDPR consent types to activate.
+	 * Enable debug logging for the consent manager.
+	 *
+	 * @remarks
+	 * When `true`, diagnostic messages are logged to `console.log` / `console.debug`
+	 * with a `[c15t]` prefix. When `false` (default), those calls are no-ops.
+	 * `console.warn` and `console.error` are always shown regardless of this setting.
+	 *
+	 * @default false
+	 */
+	debug?: boolean;
+
+	/**
+	 * Initial consent categories to activate.
 	 *
 	 * @see {@link AllConsentNames} for available options
 	 */
-	initialGdprTypes?: AllConsentNames[];
+	initialConsentCategories?: AllConsentNames[];
 
 	/**
 	 * Configuration for the iframe blocker.
@@ -343,8 +355,11 @@ export interface StoreRuntimeState extends StoreConfig {
 	/** Last consent banner fetch data for callback replay */
 	lastBannerFetchData: ConsentBannerResponse | null;
 
-	/** Active GDPR consent types */
-	gdprTypes: AllConsentNames[];
+	/** Whether debug logging is enabled */
+	debug: boolean;
+
+	/** Active consent categories */
+	consentCategories: AllConsentNames[];
 
 	/** Whether the privacy dialog is currently open */
 	isPrivacyDialogOpen: boolean;
@@ -522,7 +537,7 @@ export interface StoreActions {
 	 *
 	 * @param types - Array of consent types to activate
 	 */
-	setGdprTypes: (types: AllConsentNames[]) => void;
+	setConsentCategories: (types: AllConsentNames[]) => void;
 
 	/**
 	 * Sets a callback for a specific consent event.

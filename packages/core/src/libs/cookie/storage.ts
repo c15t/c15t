@@ -9,7 +9,8 @@
 
 import type { ConsentState } from '../..';
 import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../store/initial-state';
-import { allConsentNames, type ConsentInfo } from '../../types/gdpr';
+import { allConsentNames, type ConsentInfo } from '../../types/consent-types';
+import { getDebugLogger } from '../debug';
 import { deleteCookie, getCookie, setCookie } from './operations';
 import type { CookieOptions, StorageConfig } from './types';
 
@@ -81,8 +82,8 @@ function migrateLegacyStorage(config?: StorageConfig): void {
 				window.localStorage.setItem(newKey, legacyData);
 				// Remove legacy key
 				window.localStorage.removeItem(legacyKey);
-				console.log(
-					`[c15t] Migrated consent data from "${legacyKey}" to "${newKey}"`
+				getDebugLogger().log(
+					`Migrated consent data from "${legacyKey}" to "${newKey}"`
 				);
 			}
 		}
@@ -308,7 +309,7 @@ export function getConsentFromStorage<ReturnType = unknown>(
 			// Sync localStorage to cookie
 			try {
 				setCookie(storageKey, chosenData, undefined, config);
-				console.log('[c15t] Synced consent from localStorage to cookie');
+				getDebugLogger().log('Synced consent from localStorage to cookie');
 			} catch (error) {
 				console.warn('[c15t] Failed to sync consent to cookie:', error);
 			}
@@ -360,14 +361,16 @@ export function getConsentFromStorage<ReturnType = unknown>(
 					if (cookieJson !== localStorageJson) {
 						window.localStorage.setItem(storageKey, cookieJson);
 						if (!normalizedLocalStorageData) {
-							console.log('[c15t] Synced consent from cookie to localStorage');
+							getDebugLogger().log(
+								'Synced consent from cookie to localStorage'
+							);
 						} else if (isCrossSubdomain) {
-							console.log(
-								'[c15t] Updated localStorage with consent from cookie (cross-subdomain mode)'
+							getDebugLogger().log(
+								'Updated localStorage with consent from cookie (cross-subdomain mode)'
 							);
 						} else {
-							console.log(
-								'[c15t] Updated localStorage with consent from cookie'
+							getDebugLogger().log(
+								'Updated localStorage with consent from cookie'
 							);
 						}
 					}
@@ -381,8 +384,8 @@ export function getConsentFromStorage<ReturnType = unknown>(
 	// v2.0: Check for legacy consent format (has id but no subjectId)
 	// If detected, treat as "no consent" to prompt re-consent with new subject-centric model
 	if (chosenData && isLegacyConsentFormat(chosenData)) {
-		console.log(
-			'[c15t] Detected legacy consent format (v1.x). Re-consent required for v2.0.'
+		getDebugLogger().log(
+			'Detected legacy consent format (v1.x). Re-consent required for v2.0.'
 		);
 		// Clear the legacy data from storage
 		deleteConsentFromStorage(undefined, config);
