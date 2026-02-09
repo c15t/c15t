@@ -5,8 +5,8 @@ import {
 	type TranslationConfig,
 	type Translations,
 } from '@c15t/translations';
+import { fetchGVL } from '../../libs/iab-tcf/fetch-gvl';
 import { checkJurisdiction } from '../../libs/jurisdiction';
-import { fetchGVL } from '../../libs/tcf/fetch-gvl';
 import { defaultTranslationConfig } from '../../translations';
 import type { InitResponse } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';

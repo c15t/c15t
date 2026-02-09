@@ -26,7 +26,7 @@ import {
 	processPendingIdentifySubmissions,
 } from './pending-submissions';
 import { setConsent } from './set-consent';
-import type { C15tClientOptions } from './types';
+import type { C15tInternalClientOptions } from './types';
 
 /**
  * c15t backend implementation of the consent client interface.
@@ -52,7 +52,7 @@ export class C15tClient implements ConsentManagerInterface {
 	 * IAB configuration for offline/fallback mode
 	 * @internal
 	 */
-	private readonly iabConfig?: C15tClientOptions['iabConfig'];
+	private readonly iabConfig?: C15tInternalClientOptions['iabConfig'];
 
 	/**
 	 * Default headers to include with all requests
@@ -89,7 +89,7 @@ export class C15tClient implements ConsentManagerInterface {
 	 *
 	 * @param options - Configuration options for the client
 	 */
-	constructor(options: C15tClientOptions) {
+	constructor(options: C15tInternalClientOptions) {
 		this.backendURL = options.backendURL.endsWith('/')
 			? options.backendURL.slice(0, -1)
 			: options.backendURL;
@@ -235,4 +235,4 @@ export class C15tClient implements ConsentManagerInterface {
 }
 
 // Re-export types for convenience
-export type { C15tClientOptions } from './types';
+export type { C15tInternalClientOptions } from './types';

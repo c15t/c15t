@@ -14,7 +14,7 @@
  */
 
 import type { AllConsentNames, ConsentState } from '../../types';
-import { allConsentNames } from '../../types/gdpr';
+import { allConsentNames } from '../../types/consent-types';
 import { has } from '../has';
 import type { IframeBlocker, IframeBlockerConfig } from './types';
 

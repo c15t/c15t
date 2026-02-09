@@ -1,10 +1,10 @@
 import type { ConsentManagerInterface } from '../../client/client-interface';
-import { CMP_ID, CMP_VERSION } from '../../cmp-defaults';
 import type { ConsentStoreState } from '../../store/type';
 import type { GlobalVendorList } from '../../types';
 import type { NonIABVendor } from '../../types/non-iab-vendor';
 import { saveConsentToStorage } from '../cookie';
 import { generateSubjectId } from '../generate-subject-id';
+import { CMP_ID, CMP_VERSION } from './cmp-defaults';
 import type { IABActions, IABConfig, IABManager, IABState } from './types';
 
 /**

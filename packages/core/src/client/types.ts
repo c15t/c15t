@@ -215,7 +215,7 @@ export interface FetchOptions<
 	fetchOptions?: RequestInit;
 
 	/**
-	 * Request-specific retry configuration. Overrides the global `retryConfig` set in `C15tClientOptions`.
+	 * Request-specific retry configuration. Overrides the global `retryConfig` set in `C15tInternalClientOptions`.
 	 */
 	retryConfig?: RetryConfig;
 }

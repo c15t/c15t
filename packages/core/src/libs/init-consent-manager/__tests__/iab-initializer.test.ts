@@ -15,7 +15,7 @@ import { createMockStoreState } from './test-setup';
 const mockLoadFromStorage = vi.fn().mockReturnValue(null);
 const mockCmpApi = { loadFromStorage: mockLoadFromStorage };
 
-vi.mock('../../tcf', () => ({
+vi.mock('../../iab-tcf', () => ({
 	initializeIABStub: vi.fn(),
 	fetchGVL: vi.fn(),
 	createCMPApi: vi.fn(() => mockCmpApi),
@@ -151,7 +151,7 @@ describe('initializeIABMode', () => {
 	describe('GVL loading', () => {
 		it('should use prefetched GVL when provided', async () => {
 			const { fetchGVL, initializeIABStub, createCMPApi } = await import(
-				'../../tcf'
+				'../../iab-tcf'
 			);
 
 			await initializeIABMode(mockState.iab!.config, storeAccess, sampleGVL);
@@ -166,7 +166,7 @@ describe('initializeIABMode', () => {
 		});
 
 		it('should fetch GVL when not prefetched', async () => {
-			const { fetchGVL, initializeIABStub } = await import('../../tcf');
+			const { fetchGVL, initializeIABStub } = await import('../../iab-tcf');
 			vi.mocked(fetchGVL).mockResolvedValue(sampleGVL);
 
 			await initializeIABMode(mockState.iab!.config, storeAccess, undefined);
@@ -176,7 +176,7 @@ describe('initializeIABMode', () => {
 		});
 
 		it('should skip initialization when fetched GVL is null (non-IAB region)', async () => {
-			const { fetchGVL, createCMPApi } = await import('../../tcf');
+			const { fetchGVL, createCMPApi } = await import('../../iab-tcf');
 			vi.mocked(fetchGVL).mockResolvedValue(null);
 
 			await initializeIABMode(mockState.iab!.config, storeAccess, undefined);
@@ -193,7 +193,7 @@ describe('initializeIABMode', () => {
 		});
 
 		it('should mark GVL as loading initially', async () => {
-			const { fetchGVL } = await import('../../tcf');
+			const { fetchGVL } = await import('../../iab-tcf');
 			vi.mocked(fetchGVL).mockResolvedValue(sampleGVL);
 
 			await initializeIABMode(mockState.iab!.config, storeAccess, undefined);
@@ -211,7 +211,7 @@ describe('initializeIABMode', () => {
 
 	describe('Vendor initialization', () => {
 		it('should initialize vendor consents based on purposes', async () => {
-			const { fetchGVL } = await import('../../tcf');
+			const { fetchGVL } = await import('../../iab-tcf');
 			vi.mocked(fetchGVL).mockResolvedValue(sampleGVL);
 
 			await initializeIABMode(mockState.iab!.config, storeAccess, sampleGVL);
@@ -230,7 +230,7 @@ describe('initializeIABMode', () => {
 		});
 
 		it('should initialize vendor legitimate interests based on legIntPurposes', async () => {
-			const { fetchGVL } = await import('../../tcf');
+			const { fetchGVL } = await import('../../iab-tcf');
 			vi.mocked(fetchGVL).mockResolvedValue(sampleGVL);
 
 			await initializeIABMode(mockState.iab!.config, storeAccess, sampleGVL);
@@ -350,7 +350,7 @@ describe('initializeIABMode', () => {
 
 	describe('CMP API initialization', () => {
 		it('should create CMP API with correct config', async () => {
-			const { createCMPApi } = await import('../../tcf');
+			const { createCMPApi } = await import('../../iab-tcf');
 
 			await initializeIABMode(mockState.iab!.config, storeAccess, sampleGVL);
 
@@ -363,7 +363,7 @@ describe('initializeIABMode', () => {
 		});
 
 		it('should use default CMP ID and version when not configured', async () => {
-			const { createCMPApi } = await import('../../tcf');
+			const { createCMPApi } = await import('../../iab-tcf');
 
 			const minimalConfig = {
 				enabled: true,
@@ -402,7 +402,7 @@ describe('initializeIABMode', () => {
 
 			mockLoadFromStorage.mockReturnValue(tcString);
 			const { decodeTCString, iabPurposesToC15tConsents } = await import(
-				'../../tcf'
+				'../../iab-tcf'
 			);
 
 			vi.mocked(decodeTCString).mockResolvedValue({
@@ -431,7 +431,7 @@ describe('initializeIABMode', () => {
 
 			mockLoadFromStorage.mockReturnValue(tcString);
 			const { decodeTCString, iabPurposesToC15tConsents } = await import(
-				'../../tcf'
+				'../../iab-tcf'
 			);
 
 			vi.mocked(decodeTCString).mockResolvedValue({
@@ -465,7 +465,7 @@ describe('initializeIABMode', () => {
 
 	describe('Error handling', () => {
 		it('should handle errors gracefully and stop loading', async () => {
-			const { fetchGVL } = await import('../../tcf');
+			const { fetchGVL } = await import('../../iab-tcf');
 			const error = new Error('Failed to fetch GVL');
 			vi.mocked(fetchGVL).mockRejectedValue(error);
 
@@ -494,7 +494,7 @@ describe('initializeIABMode', () => {
 			const tcString = 'invalid-tc-string';
 
 			mockLoadFromStorage.mockReturnValue(tcString);
-			const { decodeTCString } = await import('../../tcf');
+			const { decodeTCString } = await import('../../iab-tcf');
 
 			vi.mocked(decodeTCString).mockRejectedValue(
 				new Error('Invalid TC String')
@@ -511,7 +511,7 @@ describe('initializeIABMode', () => {
 		it('should handle null IAB state gracefully', async () => {
 			mockState.iab = null;
 
-			const { fetchGVL } = await import('../../tcf');
+			const { fetchGVL } = await import('../../iab-tcf');
 			vi.mocked(fetchGVL).mockResolvedValue(sampleGVL);
 
 			// Should not throw

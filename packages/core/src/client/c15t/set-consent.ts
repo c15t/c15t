@@ -1,4 +1,5 @@
 import { saveConsentToStorage } from '../../libs/cookie';
+import { getDebugLogger } from '../../libs/debug';
 import type {
 	SetConsentRequestBody,
 	SetConsentResponse,
@@ -72,7 +73,9 @@ export async function offlineFallbackForSetConsent(
 						JSON.stringify(pendingSubmissions)
 					);
 
-					console.log('Queued consent submission for retry on next page load');
+					getDebugLogger().log(
+						'Queued consent submission for retry on next page load'
+					);
 				}
 			}
 		}

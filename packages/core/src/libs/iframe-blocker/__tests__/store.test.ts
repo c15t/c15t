@@ -121,7 +121,7 @@ describe('createIframeManager', () => {
 
 			// Should extract categories from iframes
 			expect(getIframeConsentCategories).toHaveBeenCalled();
-			// Should update gdprTypes with discovered categories
+			// Should update consentCategories with discovered categories
 			expect(mockUpdateConsentCategories).toHaveBeenCalledWith([
 				'marketing',
 				'measurement',

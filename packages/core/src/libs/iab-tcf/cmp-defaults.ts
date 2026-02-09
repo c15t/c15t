@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 
-import { version } from './version';
+import { version } from '../../version';
 
 /** CMP ID (IAB Europe) used by all c15t users. Not restricted to dev; safe as default. */
 export const CMP_ID = 0;

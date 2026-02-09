@@ -6,7 +6,6 @@
  * @packageDocumentation
  */
 
-import { CMP_ID, CMP_VERSION } from '../../cmp-defaults';
 import type {
 	CMPStatus,
 	DisplayStatus,
@@ -16,6 +15,7 @@ import type {
 	TCData,
 	TCFApiCallback,
 } from '../../types/iab-tcf';
+import { CMP_ID, CMP_VERSION } from './cmp-defaults';
 import { clearStubQueue, getStubQueue } from './stub';
 import { decodeTCString } from './tc-string';
 import type { CMPApi, CMPApiConfig } from './types';

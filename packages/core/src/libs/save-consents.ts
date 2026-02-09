@@ -1,7 +1,7 @@
 import type { StoreApi } from 'zustand';
 import type { ConsentStoreState } from '~/store/type';
 import type { ConsentManagerInterface } from '../client/client-interface';
-import type { ConsentInfo, ConsentState } from '../types';
+import type { ConsentInfo, ConsentState, ConsentType } from '../types';
 import { generateSubjectId } from './generate-subject-id';
 
 /**
@@ -49,7 +49,8 @@ function shouldReloadOnConsentChange(
 	previousConsents: ConsentState,
 	newConsents: ConsentState,
 	previousConsentInfo: ConsentInfo | null,
-	reloadOnConsentRevoked: boolean
+	reloadOnConsentRevoked: boolean,
+	consentTypes: ConsentType[]
 ): boolean {
 	// Explicitly disabled
 	if (!reloadOnConsentRevoked) {
@@ -62,13 +63,19 @@ function shouldReloadOnConsentChange(
 		return false;
 	}
 
-	// Check if any non-necessary consent was revoked
+	// Check if any non-disabled consent was revoked
 	// (was true before, is false now)
+	const disabledNames = new Set(
+		consentTypes.filter((t) => t.disabled).map((t) => t.name)
+	);
+
 	const wasAnyConsentRevoked = (
 		Object.entries(newConsents) as [keyof ConsentState, boolean][]
 	).some(
 		([key, value]) =>
-			key !== 'necessary' && previousConsents[key] === true && value === false
+			!disabledNames.has(key) &&
+			previousConsents[key] === true &&
+			value === false
 	);
 
 	return wasAnyConsentRevoked;
@@ -88,7 +95,7 @@ export async function saveConsents({
 		updateScripts,
 		updateIframeConsents,
 		updateNetworkBlockerConsents,
-		gdprTypes,
+		consentCategories,
 		locationInfo,
 		model,
 		consentInfo,
@@ -104,14 +111,15 @@ export async function saveConsents({
 
 	if (type === 'all') {
 		for (const consent of consentTypes) {
-			// Only include consents that are configured in gdprTypes
-			if (gdprTypes.includes(consent.name)) {
+			// Only include consents that are configured in consentCategories
+			if (consentCategories.includes(consent.name)) {
 				newConsents[consent.name] = true;
 			}
 		}
 	} else if (type === 'necessary') {
 		for (const consent of consentTypes) {
-			newConsents[consent.name] = consent.name === 'necessary';
+			newConsents[consent.name] =
+				consent.disabled === true ? consent.defaultValue : false;
 		}
 	}
 
@@ -132,7 +140,8 @@ export async function saveConsents({
 		previousConsents,
 		newConsents,
 		previousConsentInfo,
-		reloadOnConsentRevoked
+		reloadOnConsentRevoked,
+		consentTypes
 	);
 
 	// Immediately update the UI state to close banners/dialogs

@@ -6,7 +6,7 @@
 // Export HTTP client for advanced usage scenarios
 export {
 	C15tClient,
-	type C15tClientOptions,
+	type C15tInternalClientOptions,
 } from './c15t';
 export {
 	type ConsentManagerInterface,
