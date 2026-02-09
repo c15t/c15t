@@ -7,11 +7,10 @@
 import { userEvent } from '@vitest/browser/context';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { IABBanner } from '~/components/iab-banner';
-import { IABPreferenceCenter } from '~/components/iab-preference-center';
+import { IABConsentDialog } from '~/components/iab-consent-dialog';
 import {
 	ConsentManagerProvider,
-	clearConsentManagerCache,
+	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
 import {
 	clearConsentState,
@@ -25,14 +24,14 @@ describe('IAB Preference Center E2E Tests', () => {
 	beforeEach(() => {
 		clearConsentState();
 		vi.clearAllMocks();
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 	});
 
 	describe('Preference Center Layout', () => {
 		test('should render with purposes tab by default', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABPreferenceCenter open />
+					<IABConsentDialog open />
 				</ConsentManagerProvider>
 			);
 
@@ -48,7 +47,7 @@ describe('IAB Preference Center E2E Tests', () => {
 		test('should switch between purposes and vendors tabs', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABPreferenceCenter open />
+					<IABConsentDialog open />
 				</ConsentManagerProvider>
 			);
 
@@ -93,7 +92,7 @@ describe('IAB Preference Center E2E Tests', () => {
 
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABPreferenceCenter open />
+					<IABConsentDialog open />
 				</ConsentManagerProvider>
 			);
 
@@ -108,7 +107,7 @@ describe('IAB Preference Center E2E Tests', () => {
 		test('should display purpose toggles', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABPreferenceCenter open />
+					<IABConsentDialog open />
 				</ConsentManagerProvider>
 			);
 
@@ -124,7 +123,7 @@ describe('IAB Preference Center E2E Tests', () => {
 		test('all purpose consents should default to OFF (no pre-checked)', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABPreferenceCenter open />
+					<IABConsentDialog open />
 				</ConsentManagerProvider>
 			);
 
@@ -142,7 +141,7 @@ describe('IAB Preference Center E2E Tests', () => {
 		test('should display LI toggles for purposes 2-11', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABPreferenceCenter open />
+					<IABConsentDialog open />
 				</ConsentManagerProvider>
 			);
 
@@ -167,7 +166,7 @@ describe('IAB Preference Center E2E Tests', () => {
 		test('should display special features with opt-in toggles', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABPreferenceCenter open />
+					<IABConsentDialog open />
 				</ConsentManagerProvider>
 			);
 
@@ -192,7 +191,7 @@ describe('IAB Preference Center E2E Tests', () => {
 		test('should display vendor list', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABPreferenceCenter open />
+					<IABConsentDialog open />
 				</ConsentManagerProvider>
 			);
 
@@ -218,7 +217,7 @@ describe('IAB Preference Center E2E Tests', () => {
 		test('should save preferences when Save button clicked', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABPreferenceCenter open />
+					<IABConsentDialog open />
 				</ConsentManagerProvider>
 			);
 
@@ -243,7 +242,7 @@ describe('IAB Preference Center E2E Tests', () => {
 		test('should accept all when Accept All clicked', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABPreferenceCenter open />
+					<IABConsentDialog open />
 				</ConsentManagerProvider>
 			);
 
@@ -266,7 +265,7 @@ describe('IAB Preference Center E2E Tests', () => {
 		test('should reject all when Reject All clicked', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABPreferenceCenter open />
+					<IABConsentDialog open />
 				</ConsentManagerProvider>
 			);
 
@@ -291,7 +290,7 @@ describe('IAB Preference Center E2E Tests', () => {
 		test('should have proper ARIA attributes', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABPreferenceCenter open />
+					<IABConsentDialog open />
 				</ConsentManagerProvider>
 			);
 

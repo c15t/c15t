@@ -1,10 +1,14 @@
 import * as p from '@clack/prompts';
 import open from 'open';
 import type { CliContext } from '../../../context/types';
+import {
+	getBackendOptions,
+	getFrontendUIOptions,
+	getScriptsToAdd,
+} from './shared';
 import type { BaseOptions, BaseResult } from './types';
 import { installDependencies } from './utils/dependencies';
 import { generateFiles } from './utils/generate-files';
-import { getSharedFrontendOptions } from './utils/shared-frontend';
 
 /**
  * Result of c15t mode setup
@@ -152,12 +156,23 @@ export async function setupC15tMode({
 		handleCancel
 	);
 
-	const { useEnvFile, proxyNextjs, dependenciesToAdd } =
-		await getSharedFrontendOptions({
-			backendURL: backendURL as string,
+	// Backend options (env file + proxy)
+	const { useEnvFile, proxyNextjs } = await getBackendOptions({
+		context,
+		backendURL: backendURL as string,
+		handleCancel,
+	});
+
+	// Frontend UI options (SSR + UI style + theme)
+	const { enableSSR, enableDevTools, uiStyle, expandedTheme } =
+		await getFrontendUIOptions({
 			context,
+			hasBackend: true,
 			handleCancel,
 		});
+
+	// Scripts prompt
+	const addScripts = await getScriptsToAdd({ context, handleCancel });
 
 	await generateFiles({
 		context,
@@ -166,7 +181,20 @@ export async function setupC15tMode({
 		spinner,
 		useEnvFile,
 		proxyNextjs,
+		enableSSR,
+		enableDevTools,
+		uiStyle,
+		expandedTheme,
 	});
+
+	// Build dependencies list
+	const dependenciesToAdd: string[] = [context.framework.pkg];
+	if (addScripts) {
+		dependenciesToAdd.push('@c15t/scripts');
+	}
+	if (enableDevTools) {
+		dependenciesToAdd.push('@c15t/dev-tools');
+	}
 
 	const { ranInstall, installDepsConfirmed } = await installDependencies({
 		context,

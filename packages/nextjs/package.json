@@ -35,21 +35,6 @@
 			"import": "./dist/headless.js",
 			"require": "./dist/headless.cjs"
 		},
-		"./pages/headless": {
-			"types": "./dist/headless.pages.d.ts",
-			"import": "./dist/headless.pages.js",
-			"require": "./dist/headless.pages.cjs"
-		},
-		"./pages": {
-			"types": "./dist/pages.d.ts",
-			"import": "./dist/pages.js",
-			"require": "./dist/pages.cjs"
-		},
-		"./client": {
-			"types": "./dist/client.d.ts",
-			"import": "./dist/client.js",
-			"require": "./dist/client.cjs"
-		},
 		".": {
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js",

@@ -6,11 +6,11 @@
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { IABBanner } from '~/components/iab-banner';
-import { IABPreferenceCenter } from '~/components/iab-preference-center';
+import { IABConsentBanner } from '~/components/iab-consent-banner';
+import { IABConsentDialog } from '~/components/iab-consent-dialog';
 import {
 	ConsentManagerProvider,
-	clearConsentManagerCache,
+	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
 import {
 	clearConsentState,
@@ -23,15 +23,15 @@ describe('IAB Stub E2E Tests', () => {
 	beforeEach(() => {
 		clearConsentState();
 		vi.clearAllMocks();
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 	});
 
 	describe('__tcfapi Availability', () => {
 		test('__tcfapi should be available after CMP loads', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -47,8 +47,8 @@ describe('IAB Stub E2E Tests', () => {
 		test('__tcfapi should accept standard parameters', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -69,8 +69,8 @@ describe('IAB Stub E2E Tests', () => {
 		test('__tcfapi should accept optional parameter', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -100,8 +100,8 @@ describe('IAB Stub E2E Tests', () => {
 		test('ping should return cmpLoaded=true after CMP ready', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -124,8 +124,8 @@ describe('IAB Stub E2E Tests', () => {
 		test('ping should return cmpStatus="loaded" after CMP ready', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -150,8 +150,8 @@ describe('IAB Stub E2E Tests', () => {
 		test('calls should be processed after CMP loads', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -178,8 +178,8 @@ describe('IAB Stub E2E Tests', () => {
 		test('should handle ping command', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -202,8 +202,8 @@ describe('IAB Stub E2E Tests', () => {
 		test('should handle getTCData command', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -230,8 +230,8 @@ describe('IAB Stub E2E Tests', () => {
 		test('should handle addEventListener command', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -255,8 +255,8 @@ describe('IAB Stub E2E Tests', () => {
 		test('should handle getVendorList command', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -281,8 +281,8 @@ describe('IAB Stub E2E Tests', () => {
 		test('should return false for unknown commands', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 

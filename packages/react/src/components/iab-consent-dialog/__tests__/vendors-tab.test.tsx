@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import {
 	ConsentManagerProvider,
-	clearConsentManagerCache,
+	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/types/consent-manager';
 import { IABConsentDialog } from '../iab-consent-dialog';
@@ -162,7 +162,7 @@ describe('Vendors Tab - Display', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
@@ -251,7 +251,7 @@ describe('Vendors Tab - Per-Vendor Consent', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
@@ -290,7 +290,7 @@ describe('Vendors Tab - Per-Vendor Legitimate Interest', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
@@ -329,7 +329,7 @@ describe('Vendors Tab - Vendor Details', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 

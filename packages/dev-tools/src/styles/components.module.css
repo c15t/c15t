@@ -109,10 +109,11 @@
 	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
 	font-weight: var(--c15t-font-weight-medium, 500);
 	cursor: pointer;
-	transition: background-color var(--c15t-duration-fast, 100ms)
-			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+	transition:
+		background-color var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		border-color var(--c15t-duration-fast, 100ms)
-			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .btn:hover {
@@ -233,7 +234,8 @@
 	border: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
 	border-radius: var(--c15t-radius-md, 0.5rem);
 	background-color: var(--c15t-surface, #fff);
-	transition: border-color var(--c15t-duration-fast, 100ms) var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+	transition: border-color var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .gridCard:hover {
@@ -330,8 +332,9 @@
 	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
 	font-weight: var(--c15t-font-weight-medium, 500);
 	color: var(--c15t-text, hsl(0, 0%, 9%));
-	font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas,
-		'DejaVu Sans Mono', monospace;
+	font-family:
+		ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas,
+		"DejaVu Sans Mono", monospace;
 }
 
 /* === Empty State === */

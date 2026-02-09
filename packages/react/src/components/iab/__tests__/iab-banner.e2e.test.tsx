@@ -10,11 +10,11 @@
 import { userEvent } from '@vitest/browser/context';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { IABBanner } from '~/components/iab-banner';
-import { IABPreferenceCenter } from '~/components/iab-preference-center';
+import { IABConsentBanner } from '~/components/iab-consent-banner';
+import { IABConsentDialog } from '~/components/iab-consent-dialog';
 import {
 	ConsentManagerProvider,
-	clearConsentManagerCache,
+	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
 import {
 	clearConsentState,
@@ -28,15 +28,15 @@ describe('IAB Banner E2E Tests', () => {
 	beforeEach(() => {
 		clearConsentState();
 		vi.clearAllMocks();
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 	});
 
 	describe('Banner Display Requirements (IAB Appendix B)', () => {
 		test('should show IAB banner with correct initial display', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -57,8 +57,8 @@ describe('IAB Banner E2E Tests', () => {
 		test('should display partner/vendor count from GVL', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -76,8 +76,8 @@ describe('IAB Banner E2E Tests', () => {
 		test('should display purpose summary with stack grouping', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -93,8 +93,8 @@ describe('IAB Banner E2E Tests', () => {
 		test('should display legitimate interest notice', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -114,8 +114,8 @@ describe('IAB Banner E2E Tests', () => {
 		test('should have Accept, Reject, and Customize buttons', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -137,8 +137,8 @@ describe('IAB Banner E2E Tests', () => {
 		test('should accept all via banner and close', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -164,8 +164,8 @@ describe('IAB Banner E2E Tests', () => {
 		test('should reject all via banner and close', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -186,8 +186,8 @@ describe('IAB Banner E2E Tests', () => {
 		test('should open preference center from banner', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -206,8 +206,8 @@ describe('IAB Banner E2E Tests', () => {
 		test('should have ARIA labels', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 
@@ -223,8 +223,8 @@ describe('IAB Banner E2E Tests', () => {
 		test('should be keyboard accessible', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABBanner />
-					<IABPreferenceCenter />
+					<IABConsentBanner />
+					<IABConsentDialog />
 				</ConsentManagerProvider>
 			);
 

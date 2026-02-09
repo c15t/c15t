@@ -130,11 +130,21 @@ describe('useFocusTrap', () => {
 
 			// Toggle on
 			await userEvent.click(toggle!);
-			expect(toggle?.textContent).toContain('enabled');
+			await vi.waitFor(
+				() => {
+					expect(toggle?.textContent).toContain('enabled');
+				},
+				{ timeout: 3000 }
+			);
 
 			// Toggle off
 			await userEvent.click(toggle!);
-			expect(toggle?.textContent).toContain('disabled');
+			await vi.waitFor(
+				() => {
+					expect(toggle?.textContent).toContain('disabled');
+				},
+				{ timeout: 3000 }
+			);
 		});
 	});
 
@@ -182,15 +192,30 @@ describe('useFocusTrap', () => {
 
 			// Enable trap
 			await userEvent.click(toggle!);
-			expect(toggle?.textContent).toContain('enabled');
+			await vi.waitFor(
+				() => {
+					expect(toggle?.textContent).toContain('enabled');
+				},
+				{ timeout: 3000 }
+			);
 
 			// Disable trap (should cleanup)
 			await userEvent.click(toggle!);
-			expect(toggle?.textContent).toContain('disabled');
+			await vi.waitFor(
+				() => {
+					expect(toggle?.textContent).toContain('disabled');
+				},
+				{ timeout: 3000 }
+			);
 
 			// Re-enable trap (should work without issues)
 			await userEvent.click(toggle!);
-			expect(toggle?.textContent).toContain('enabled');
+			await vi.waitFor(
+				() => {
+					expect(toggle?.textContent).toContain('enabled');
+				},
+				{ timeout: 3000 }
+			);
 		});
 	});
 });

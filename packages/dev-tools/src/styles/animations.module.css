@@ -1,7 +1,7 @@
 /**
  * c15t DevTools Animations
  * Uses c15t/ui design tokens with fallbacks for standalone usage
- * 
+ *
  * Following Web Interface Guidelines:
  * - Honor prefers-reduced-motion
  * - Animate transform/opacity only (compositor-friendly)

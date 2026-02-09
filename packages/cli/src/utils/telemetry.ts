@@ -65,6 +65,12 @@ export const TelemetryEventName = {
 	SELF_HOST_STARTED: 'self-host.started',
 	SELF_HOST_COMPLETED: 'self-host.completed',
 	SELF_HOST_FAILED: 'self-host.failed',
+
+	// State machine events
+	CLI_STATE_TRANSITION: 'cli.state.transition',
+	CLI_STATE_ERROR: 'cli.state.error',
+	CLI_STATE_CANCELLED: 'cli.state.cancelled',
+	CLI_STATE_COMPLETE: 'cli.state.complete',
 } as const;
 
 export type TelemetryEventName =

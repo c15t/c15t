@@ -34,6 +34,7 @@
 		"@c15t/backend": "workspace:*",
 		"@c15t/logger": "workspace:*",
 		"@clack/prompts": "0.11.0",
+		"@modelcontextprotocol/sdk": "^1.0.0",
 		"c12": "3.3.2",
 		"dotenv": "17.2.3",
 		"figlet": "1.9.4",
@@ -43,13 +44,16 @@
 		"picocolors": "1.1.1",
 		"posthog-node": "5.17.0",
 		"ts-morph": "27.0.2",
+		"xstate": "^5.26.0",
 		"zod": "4.1.13"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"@types/figlet": "1.7.0",
-		"@types/fs-extra": "11.0.4"
+		"@types/fs-extra": "11.0.4",
+		"@types/prettier": "^3.0.0",
+		"prettier": "^3.8.1"
 	},
 	"publishConfig": {
 		"access": "public",
