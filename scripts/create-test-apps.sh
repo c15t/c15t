@@ -66,8 +66,6 @@ create_nextjs_app() {
     "start": "next start"
   },
   "dependencies": {
-    "@c15t/nextjs": "link:../../packages/nextjs",
-    "@c15t/scripts": "link:../../packages/scripts",
     "next": "^16.1.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
@@ -173,8 +171,6 @@ create_nextjs_pages() {
     "start": "next start"
   },
   "dependencies": {
-    "@c15t/nextjs": "link:../../packages/nextjs",
-    "@c15t/scripts": "link:../../packages/scripts",
     "next": "^16.1.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
@@ -266,8 +262,6 @@ create_vite_react() {
     "preview": "vite preview"
   },
   "dependencies": {
-    "@c15t/react": "link:../../packages/react",
-    "@c15t/scripts": "link:../../packages/scripts",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
@@ -473,6 +467,16 @@ is_c15t_monorepo() {
     [ -f "$(pwd)/package.json" ] && grep -q '"name": "c15t-workspace"' "$(pwd)/package.json"
 }
 
+# Symlink a local package into a test app's node_modules
+symlink_pkg() {
+    local app=$1 pkg_name=$2 pkg_dir=$3
+    local target="$TEST_DIR/$app/node_modules/$pkg_name"
+    mkdir -p "$(dirname "$target")"
+    rm -rf "$target"
+    ln -s "$(pwd)/packages/$pkg_dir" "$target"
+    echo -e "    Linked ${GREEN}$pkg_name${NC} -> packages/$pkg_dir"
+}
+
 # Install dependencies in each test app individually
 install_deps() {
     print_header "Installing test app dependencies"
@@ -493,7 +497,25 @@ install_deps() {
         fi
     done
 
-    print_success "All test app dependencies installed"
+    print_header "Linking local packages"
+
+    symlink_pkg svelte-app    c15t              core
+    symlink_pkg svelte-app    @c15t/dev-tools   dev-tools
+    symlink_pkg svelte-app    @c15t/scripts     scripts
+
+    symlink_pkg nextjs-app    @c15t/nextjs      nextjs
+    symlink_pkg nextjs-app    @c15t/scripts     scripts
+    symlink_pkg nextjs-app    @c15t/dev-tools   dev-tools
+
+    symlink_pkg nextjs-pages  @c15t/nextjs      nextjs
+    symlink_pkg nextjs-pages  @c15t/scripts     scripts
+    symlink_pkg nextjs-pages  @c15t/dev-tools   dev-tools
+
+    symlink_pkg vite-react    @c15t/react       react
+    symlink_pkg vite-react    @c15t/scripts     scripts
+    symlink_pkg vite-react    @c15t/dev-tools   dev-tools
+
+    print_success "All local packages linked"
 }
 
 # Show usage
