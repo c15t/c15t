@@ -39,7 +39,7 @@ describe('IAB Events E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const eventData = await addCMPEventListener();
@@ -56,7 +56,7 @@ describe('IAB Events E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			// Set up listener to capture events
@@ -91,7 +91,7 @@ describe('IAB Events E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			// Set up listener
@@ -104,7 +104,7 @@ describe('IAB Events E2E Tests', () => {
 
 			// Perform user action
 			const acceptButton = document.querySelector(
-				'[data-testid="iab-banner-accept-button"]'
+				'[data-testid="iab-consent-banner-accept-button"]'
 			);
 			if (acceptButton) {
 				await userEvent.click(acceptButton);
@@ -133,7 +133,7 @@ describe('IAB Events E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			let called = false;
@@ -163,7 +163,7 @@ describe('IAB Events E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const event1 = await addCMPEventListener();
@@ -188,7 +188,7 @@ describe('IAB Events E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			let callCount = 0;
@@ -220,7 +220,7 @@ describe('IAB Events E2E Tests', () => {
 
 			// Click accept to trigger another event
 			const acceptButton = document.querySelector(
-				'[data-testid="iab-banner-accept-button"]'
+				'[data-testid="iab-consent-banner-accept-button"]'
 			);
 			if (acceptButton) {
 				await userEvent.click(acceptButton);
@@ -241,7 +241,7 @@ describe('IAB Events E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const listener1Events: string[] = [];
@@ -291,7 +291,7 @@ describe('IAB Events E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			let receivedData: Record<string, unknown> | null = null;
@@ -325,7 +325,7 @@ describe('IAB Events E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const eventData = await addCMPEventListener();

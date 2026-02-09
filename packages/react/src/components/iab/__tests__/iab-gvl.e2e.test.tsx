@@ -37,7 +37,7 @@ describe('IAB GVL E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			// GVL should be available via getVendorList
@@ -59,12 +59,12 @@ describe('IAB GVL E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			// Banner should show vendor count
 			const bannerText =
-				document.querySelector('[data-testid="iab-banner-header"]')
+				document.querySelector('[data-testid="iab-consent-banner-header"]')
 					?.textContent || '';
 
 			// Should contain a number
@@ -81,7 +81,7 @@ describe('IAB GVL E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const gvl = await tcfApiPromise<{
@@ -114,7 +114,7 @@ describe('IAB GVL E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const gvl = await tcfApiPromise<{
@@ -137,7 +137,7 @@ describe('IAB GVL E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const gvl = await tcfApiPromise<{
@@ -161,7 +161,7 @@ describe('IAB GVL E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const gvl = await tcfApiPromise<{
@@ -184,7 +184,7 @@ describe('IAB GVL E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const gvl = await tcfApiPromise<{
@@ -208,7 +208,7 @@ describe('IAB GVL E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const gvl = await tcfApiPromise<{
@@ -242,7 +242,7 @@ describe('IAB GVL E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const gvl = await tcfApiPromise<{
@@ -261,7 +261,7 @@ describe('IAB GVL E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const gvl = await tcfApiPromise<{

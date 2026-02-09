@@ -70,7 +70,7 @@ describe('Consent Flow E2E Tests', () => {
 			await vi.waitFor(
 				() => {
 					const banner = document.querySelector(
-						'[data-testid="cookie-banner-root"]'
+						'[data-testid="consent-banner-root"]'
 					);
 					expect(banner).toBeInTheDocument();
 				},
@@ -88,7 +88,7 @@ describe('Consent Flow E2E Tests', () => {
 			await vi.waitFor(
 				() => {
 					const acceptButton = document.querySelector(
-						'[data-testid="cookie-banner-accept-button"]'
+						'[data-testid="consent-banner-accept-button"]'
 					);
 					expect(acceptButton).toBeInTheDocument();
 				},
@@ -96,14 +96,14 @@ describe('Consent Flow E2E Tests', () => {
 			);
 
 			const acceptButton = document.querySelector(
-				'[data-testid="cookie-banner-accept-button"]'
+				'[data-testid="consent-banner-accept-button"]'
 			);
 			await userEvent.click(acceptButton!);
 
 			await vi.waitFor(
 				() => {
 					const banner = document.querySelector(
-						'[data-testid="cookie-banner-root"]'
+						'[data-testid="consent-banner-root"]'
 					);
 					expect(banner).not.toBeInTheDocument();
 				},
@@ -121,7 +121,7 @@ describe('Consent Flow E2E Tests', () => {
 			await vi.waitFor(
 				() => {
 					const rejectButton = document.querySelector(
-						'[data-testid="cookie-banner-reject-button"]'
+						'[data-testid="consent-banner-reject-button"]'
 					);
 					expect(rejectButton).toBeInTheDocument();
 				},
@@ -129,14 +129,14 @@ describe('Consent Flow E2E Tests', () => {
 			);
 
 			const rejectButton = document.querySelector(
-				'[data-testid="cookie-banner-reject-button"]'
+				'[data-testid="consent-banner-reject-button"]'
 			);
 			await userEvent.click(rejectButton!);
 
 			await vi.waitFor(
 				() => {
 					const banner = document.querySelector(
-						'[data-testid="cookie-banner-root"]'
+						'[data-testid="consent-banner-root"]'
 					);
 					expect(banner).not.toBeInTheDocument();
 				},
@@ -156,7 +156,7 @@ describe('Consent Flow E2E Tests', () => {
 			await vi.waitFor(
 				() => {
 					const acceptButton = document.querySelector(
-						'[data-testid="cookie-banner-accept-button"]'
+						'[data-testid="consent-banner-accept-button"]'
 					);
 					expect(acceptButton).toBeInTheDocument();
 				},
@@ -164,7 +164,7 @@ describe('Consent Flow E2E Tests', () => {
 			);
 
 			const acceptButton = document.querySelector(
-				'[data-testid="cookie-banner-accept-button"]'
+				'[data-testid="consent-banner-accept-button"]'
 			);
 			await userEvent.click(acceptButton!);
 
@@ -190,7 +190,7 @@ describe('Consent Flow E2E Tests', () => {
 			await vi.waitFor(
 				() => {
 					const rejectButton = document.querySelector(
-						'[data-testid="cookie-banner-reject-button"]'
+						'[data-testid="consent-banner-reject-button"]'
 					);
 					expect(rejectButton).toBeInTheDocument();
 				},
@@ -198,7 +198,7 @@ describe('Consent Flow E2E Tests', () => {
 			);
 
 			const rejectButton = document.querySelector(
-				'[data-testid="cookie-banner-reject-button"]'
+				'[data-testid="consent-banner-reject-button"]'
 			);
 			await userEvent.click(rejectButton!);
 
@@ -244,7 +244,7 @@ describe('Consent Flow E2E Tests', () => {
 			await new Promise((resolve) => setTimeout(resolve, 500));
 
 			const banner = document.querySelector(
-				'[data-testid="cookie-banner-root"]'
+				'[data-testid="consent-banner-root"]'
 			);
 			expect(banner).not.toBeInTheDocument();
 		});
@@ -281,7 +281,7 @@ describe('Consent Flow E2E Tests', () => {
 			await vi.waitFor(
 				() => {
 					const widget = document.querySelector(
-						'[data-testid="preference-center-widget-root"]'
+						'[data-testid="consent-widget-root"]'
 					);
 					expect(widget).toBeInTheDocument();
 				},
@@ -308,7 +308,7 @@ describe('Consent Flow E2E Tests', () => {
 			await vi.waitFor(
 				() => {
 					const necessarySwitch = document.querySelector(
-						'[data-testid="preference-center-widget-switch-necessary"]'
+						'[data-testid="consent-widget-switch-necessary"]'
 					);
 					expect(necessarySwitch).toBeInTheDocument();
 					// Necessary consent is always required, so the switch should be disabled
@@ -330,7 +330,7 @@ describe('Consent Flow E2E Tests', () => {
 			await vi.waitFor(
 				() => {
 					const dialog = document.querySelector(
-						'[data-testid="preference-center-root"]'
+						'[data-testid="consent-dialog-root"]'
 					);
 					expect(dialog).toBeInTheDocument();
 				},
@@ -348,7 +348,7 @@ describe('Consent Flow E2E Tests', () => {
 			await vi.waitFor(
 				() => {
 					const widget = document.querySelector(
-						'[data-testid="preference-center-widget-root"]'
+						'[data-testid="consent-widget-root"]'
 					);
 					expect(widget).toBeInTheDocument();
 				},
@@ -370,7 +370,7 @@ describe('Consent Flow E2E Tests', () => {
 			await vi.waitFor(
 				() => {
 					const banner = document.querySelector(
-						'[data-testid="cookie-banner-root"]'
+						'[data-testid="consent-banner-root"]'
 					);
 					expect(banner).toBeInTheDocument();
 				},
@@ -379,7 +379,7 @@ describe('Consent Flow E2E Tests', () => {
 
 			// Step 2: Click customize
 			const customizeButton = document.querySelector(
-				'[data-testid="cookie-banner-customize-button"]'
+				'[data-testid="consent-banner-customize-button"]'
 			);
 			await userEvent.click(customizeButton!);
 
@@ -387,7 +387,7 @@ describe('Consent Flow E2E Tests', () => {
 			await vi.waitFor(
 				() => {
 					const dialog = document.querySelector(
-						'[data-testid="preference-center-root"]'
+						'[data-testid="consent-dialog-root"]'
 					);
 					expect(dialog).toBeInTheDocument();
 				},
@@ -396,7 +396,7 @@ describe('Consent Flow E2E Tests', () => {
 
 			// Step 4: Toggle a consent category
 			const marketingSwitch = document.querySelector(
-				'[data-testid="preference-center-widget-switch-marketing"]'
+				'[data-testid="consent-widget-switch-marketing"]'
 			);
 			if (marketingSwitch) {
 				await userEvent.click(marketingSwitch);
@@ -404,7 +404,7 @@ describe('Consent Flow E2E Tests', () => {
 
 			// Step 5: Save preferences
 			const saveButton = document.querySelector(
-				'[data-testid="preference-center-widget-footer-save-button"]'
+				'[data-testid="consent-widget-footer-save-button"]'
 			);
 			await userEvent.click(saveButton!);
 

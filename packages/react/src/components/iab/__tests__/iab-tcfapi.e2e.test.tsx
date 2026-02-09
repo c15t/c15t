@@ -41,7 +41,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 
 			// Wait for CMP to be ready
 			await waitForCMP();
@@ -58,7 +58,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const pingData = await getCMPPingData();
@@ -73,7 +73,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const pingData = await getCMPPingData();
@@ -88,7 +88,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const pingData = await getCMPPingData();
@@ -103,7 +103,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const pingData = await getCMPPingData();
@@ -118,7 +118,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const pingData = await getCMPPingData();
@@ -135,7 +135,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const eventData = await addCMPEventListener();
@@ -151,7 +151,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const event1 = await addCMPEventListener();
@@ -170,7 +170,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const eventData = await addCMPEventListener();
@@ -187,7 +187,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const eventData = await addCMPEventListener();
@@ -203,7 +203,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const success = await removeCMPEventListener(999999);
@@ -220,7 +220,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const tcData = await getCMPTCData();
@@ -243,7 +243,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const tcData = await getCMPTCData();
@@ -258,7 +258,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const tcData = await getCMPTCData();
@@ -276,7 +276,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const tcData = await getCMPTCData();
@@ -294,7 +294,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const tcData = await getCMPTCData();
@@ -309,7 +309,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const tcData = await getCMPTCData();
@@ -329,7 +329,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const gvl = await tcfApiPromise<{
@@ -350,7 +350,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const gvl = await tcfApiPromise<{
@@ -373,7 +373,7 @@ describe('__tcfapi E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const tcData = await getCMPTCData();

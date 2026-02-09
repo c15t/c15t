@@ -306,7 +306,7 @@ export function getStoredConsent(): {
  * Gets TC string from localStorage
  */
 export function getStoredTCString(): string | null {
-	return window.localStorage.getItem('c15t_tc_string');
+	return window.localStorage.getItem('euconsent-v2');
 }
 
 /**

@@ -11,7 +11,8 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 		{ children, category, placeholder, noStyle, className, theme, ...props },
 		ref
 	) => {
-		const { has, updateConsentCategories, gdprTypes } = useConsentManager();
+		const { has, updateConsentCategories, consentCategories } =
+			useConsentManager();
 		const [isMounted, setIsMounted] = useState(false);
 		const [isReady, setIsReady] = useState(false);
 
@@ -20,7 +21,7 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 		// biome-ignore lint/correctness/useExhaustiveDependencies: we only want to update the consent categories when the component is mounted
 		useEffect(() => {
 			setIsMounted(true);
-			updateConsentCategories([...gdprTypes, category]);
+			updateConsentCategories([...consentCategories, category]);
 		}, [category]);
 
 		// Wait for next frame to ensure styles are loaded

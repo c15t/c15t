@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchMock, mockLocalStorage } from '../../../../vitest.setup';
+import { setDebugEnabled } from '../../../libs/debug';
 import { STORAGE_KEY_V2 } from '../../../store/initial-state';
 import { configureConsentManager } from '../../client-factory';
 import { API_ENDPOINTS } from '../../types';
@@ -196,6 +197,7 @@ describe('c15t Client Offline Fallback Tests', () => {
 	}, 10000);
 
 	it('should retry pending submissions on initialization', async () => {
+		setDebugEnabled(true);
 		// Mock localStorage with existing pending submissions
 		const pendingSubmissionsKey = 'c15t-pending-consent-submissions';
 		// v2.0: requires subjectId and givenAt
@@ -242,6 +244,7 @@ describe('c15t Client Offline Fallback Tests', () => {
 		);
 
 		expect(consoleLogSpy).toHaveBeenCalledWith(
+			'[c15t]',
 			expect.stringContaining('Successfully resubmitted consent')
 		);
 
@@ -249,6 +252,7 @@ describe('c15t Client Offline Fallback Tests', () => {
 		expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
 			pendingSubmissionsKey
 		);
+		setDebugEnabled(false);
 	});
 
 	it('should handle multiple retries with mixed success/failure', async () => {
