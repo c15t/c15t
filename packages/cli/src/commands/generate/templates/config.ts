@@ -46,37 +46,35 @@ function generateC15tConfig(
 	const devToolsImport = enableDevTools
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';
-	const devToolsSetup = enableDevTools
-		? `\nif (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
-\tcreateDevTools({
-\t\tnamespace: 'c15tStore',
-\t});
-}
-`
-		: '';
+	const devToolsCall = enableDevTools ? 'createDevTools();\n' : '';
 
-	return `import {
-	type ConsentManagerOptions,
-	configureConsentManager,
-	createConsentManagerStore
-} from 'c15t';
+	return `import { getOrCreateConsentRuntime } from 'c15t';
 ${devToolsImport}
+const runtime = getOrCreateConsentRuntime(
+	{
+		mode: 'c15t',
+		backendURL: ${url},
+		consentCategories: ['necessary', 'measurement', 'marketing'],
+	},
+);
 
+export const store = runtime.consentStore;
+${devToolsCall}
 /**
- * c15t Cloud Mode Configuration
- *
- * Consent data is stored securely on consent.io
- */
-export const consentManager = configureConsentManager({
-	mode: 'c15t',
-	backendURL: ${url},
-});
+ * Usage Examples
+ **/
 
-export const store = createConsentManagerStore(consentManager, {
-	// Consent categories to show in the banner
-	initialGdprTypes: ['necessary', 'analytics', 'marketing'],
-});
-${devToolsSetup}
+// View all consents
+// store.getState().consents;
+
+// Update a single consent type: (does not save automically, allowing you to batch updates together before saving)
+// store.getState().setSelectedConsent('measurement', true);
+
+// Update a single consent type and automically saves it
+// store.getState().setConsent('marketing', true);
+
+// When a user rejects all consents:
+// store.getState().saveConsents("necessary")
 `;
 }
 
@@ -87,37 +85,34 @@ function generateOfflineConfig(enableDevTools = false): string {
 	const devToolsImport = enableDevTools
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';
-	const devToolsSetup = enableDevTools
-		? `\nif (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
-\tcreateDevTools({
-\t\tnamespace: 'c15tStore',
-\t});
-}
-`
-		: '';
+	const devToolsCall = enableDevTools ? 'createDevTools();\n' : '';
 
-	return `import {
-	type ConsentManagerOptions,
-	configureConsentManager,
-	createConsentManagerStore
-} from 'c15t';
+	return `import { getOrCreateConsentRuntime } from 'c15t';
 ${devToolsImport}
+const runtime = getOrCreateConsentRuntime(
+	{
+		mode: 'offline',
+		consentCategories: ['necessary', 'measurement', 'marketing'],
+	},
+);
 
+export const store = runtime.consentStore;
+${devToolsCall}
 /**
- * Browser-Only Mode Configuration
- *
- * Consent data is stored in browser cookies/localStorage
- * No server required - fully client-side
- */
-export const consentManager = configureConsentManager({
-	mode: 'offline',
-});
+ * Usage Examples
+ **/
 
-export const store = createConsentManagerStore(consentManager, {
-	// Consent categories to show in the banner
-	initialGdprTypes: ['necessary', 'analytics', 'marketing'],
-});
-${devToolsSetup}
+// View all consents
+// store.getState().consents;
+
+// Update a single consent type: (does not save automically, allowing you to batch updates together before saving)
+// store.getState().setSelectedConsent('measurement', true);
+
+// Update a single consent type and automically saves it
+// store.getState().setConsent('marketing', true);
+
+// When a user rejects all consents:
+// store.getState().saveConsents("necessary")
 `;
 }
 
@@ -135,37 +130,35 @@ function generateSelfHostedConfig(
 	const devToolsImport = enableDevTools
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';
-	const devToolsSetup = enableDevTools
-		? `\nif (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
-\tcreateDevTools({
-\t\tnamespace: 'c15tStore',
-\t});
-}
-`
-		: '';
+	const devToolsCall = enableDevTools ? 'createDevTools();\n' : '';
 
-	return `import {
-	type ConsentManagerOptions,
-	configureConsentManager,
-	createConsentManagerStore
-} from 'c15t';
+	return `import { getOrCreateConsentRuntime } from 'c15t';
 ${devToolsImport}
+const runtime = getOrCreateConsentRuntime(
+	{
+		mode: 'c15t',
+		backendURL: ${url},
+		consentCategories: ['necessary', 'measurement', 'marketing'],
+	},
+);
 
+export const store = runtime.consentStore;
+${devToolsCall}
 /**
- * Self-Hosted Mode Configuration
- *
- * Run your own c15t backend server
- */
-export const consentManager = configureConsentManager({
-	mode: 'c15t', // Uses the same API as c15t cloud
-	backendURL: ${url},
-});
+ * Usage Examples
+ **/
 
-export const store = createConsentManagerStore(consentManager, {
-	// Consent categories to show in the banner
-	initialGdprTypes: ['necessary', 'analytics', 'marketing'],
-});
-${devToolsSetup}
+// View all consents
+// store.getState().consents;
+
+// Update a single consent type: (does not save automically, allowing you to batch updates together before saving)
+// store.getState().setSelectedConsent('measurement', true);
+
+// Update a single consent type and automically saves it
+// store.getState().setConsent('marketing', true);
+
+// When a user rejects all consents:
+// store.getState().saveConsents("necessary")
 `;
 }
 
@@ -183,35 +176,16 @@ function generateCustomConfig(
 	const devToolsImport = enableDevTools
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';
-	const devToolsSetup = enableDevTools
-		? `\nif (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
-\tcreateDevTools({
-\t\tnamespace: 'c15tStore',
-\t});
-}
-`
-		: '';
+	const devToolsCall = enableDevTools ? 'createDevTools();\n' : '';
 
-	return `import {
-	type ConsentManagerOptions,
-	configureConsentManager,
-	createConsentManagerStore,
-	type EndpointHandlers
-} from 'c15t';
+	return `import { getOrCreateConsentRuntime, type EndpointHandlers } from 'c15t';
 ${devToolsImport}
-
-/**
- * Custom endpoint handlers
- * Implement these to connect to your existing consent API
- */
 function createCustomHandlers(): EndpointHandlers {
 	return {
-		// Get current consent state
 		async getConsent() {
 			const response = await fetch(${url});
 			return response.json();
 		},
-		// Save consent state
 		async setConsent(consent) {
 			const response = await fetch(${url}, {
 				method: 'POST',
@@ -223,20 +197,30 @@ function createCustomHandlers(): EndpointHandlers {
 	};
 }
 
-/**
- * Custom Backend Mode Configuration
- *
- * Connect to your existing consent management API
- */
-export const consentManager = configureConsentManager({
-	mode: 'custom',
-	endpointHandlers: createCustomHandlers(),
-});
+const runtime = getOrCreateConsentRuntime(
+	{
+		mode: 'custom',
+		endpointHandlers: createCustomHandlers(),
+		consentCategories: ['necessary', 'measurement', 'marketing'],
+	},
+);
 
-export const store = createConsentManagerStore(consentManager, {
-	// Consent categories to show in the banner
-	initialGdprTypes: ['necessary', 'analytics', 'marketing'],
-});
-${devToolsSetup}
+export const store = runtime.consentStore;
+${devToolsCall}
+/**
+ * Usage Examples
+ **/
+
+// View all consents
+// store.getState().consents;
+
+// Update a single consent type: (does not save automically, allowing you to batch updates together before saving)
+// store.getState().setSelectedConsent('measurement', true);
+
+// Update a single consent type and automically saves it
+// store.getState().setConsent('marketing', true);
+
+// When a user rejects all consents:
+// store.getState().saveConsents("necessary")
 `;
 }

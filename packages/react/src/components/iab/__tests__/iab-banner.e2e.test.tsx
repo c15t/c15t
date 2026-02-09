@@ -14,7 +14,7 @@ import { IABConsentBanner } from '~/components/iab-consent-banner';
 import { IABConsentDialog } from '~/components/iab-consent-dialog';
 import {
 	ConsentManagerProvider,
-	clearConsentManagerCache,
+	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
 import {
 	clearConsentState,
@@ -28,7 +28,7 @@ describe('IAB Banner E2E Tests', () => {
 	beforeEach(() => {
 		clearConsentState();
 		vi.clearAllMocks();
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 	});
 
 	describe('Banner Display Requirements (IAB Appendix B)', () => {

@@ -15,7 +15,7 @@ import { ConsentDialogTrigger } from '~/components/consent-dialog-trigger';
 import { ConsentWidget } from '~/components/consent-widget';
 import {
 	ConsentManagerProvider,
-	clearConsentManagerCache,
+	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/types/consent-manager';
 
@@ -56,7 +56,7 @@ describe('Consent Flow E2E Tests', () => {
 			}
 		}
 		vi.clearAllMocks();
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 	});
 
 	describe('First Visit Flow', () => {

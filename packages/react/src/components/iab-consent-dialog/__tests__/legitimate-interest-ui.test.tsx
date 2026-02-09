@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import {
 	ConsentManagerProvider,
-	clearConsentManagerCache,
+	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/types/consent-manager';
 import { IABConsentDialog } from '../iab-consent-dialog';
@@ -221,7 +221,7 @@ describe('Legitimate Interest UI - Purpose Level', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
@@ -305,7 +305,7 @@ describe('Legitimate Interest UI - Vendor Level', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
@@ -404,7 +404,7 @@ describe('Legitimate Interest UI - Objection Behavior', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
@@ -467,7 +467,7 @@ describe('Legitimate Interest UI - Display Requirements', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
@@ -543,7 +543,7 @@ describe('Legitimate Interest UI - Flexible Purposes', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 

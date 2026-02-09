@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import {
 	ConsentManagerProvider,
-	clearConsentManagerCache,
+	clearConsentRuntimeCache,
 } from '../consent-manager-provider';
 
 // Mock a simple provider component
@@ -20,7 +20,7 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 		vi.useFakeTimers();
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 	});
 
 	afterEach(() => {

@@ -10,7 +10,7 @@ import { render } from 'vitest-browser-react';
 import { IABConsentDialog } from '~/components/iab-consent-dialog';
 import {
 	ConsentManagerProvider,
-	clearConsentManagerCache,
+	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
 import {
 	clearConsentState,
@@ -24,7 +24,7 @@ describe('IAB Preference Center E2E Tests', () => {
 	beforeEach(() => {
 		clearConsentState();
 		vi.clearAllMocks();
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 	});
 
 	describe('Preference Center Layout', () => {
