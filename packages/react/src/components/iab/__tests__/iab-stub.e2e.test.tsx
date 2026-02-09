@@ -35,7 +35,7 @@ describe('IAB Stub E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			expect((window as { __tcfapi?: unknown }).__tcfapi).toBeDefined();
@@ -52,7 +52,7 @@ describe('IAB Stub E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
@@ -74,7 +74,7 @@ describe('IAB Stub E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
@@ -105,7 +105,7 @@ describe('IAB Stub E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const pingData = await new Promise<{ cmpLoaded: boolean }>((resolve) => {
@@ -129,7 +129,7 @@ describe('IAB Stub E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const pingData = await new Promise<{ cmpStatus: string }>((resolve) => {
@@ -155,7 +155,7 @@ describe('IAB Stub E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			// Make a call that requires CMP to be loaded
@@ -183,7 +183,7 @@ describe('IAB Stub E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const result = await new Promise<{ apiVersion: string }>((resolve) => {
@@ -207,7 +207,7 @@ describe('IAB Stub E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const result = await new Promise<{
@@ -235,7 +235,7 @@ describe('IAB Stub E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const result = await new Promise<{ listenerId: number }>((resolve) => {
@@ -260,7 +260,7 @@ describe('IAB Stub E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const result = await new Promise<{
@@ -286,7 +286,7 @@ describe('IAB Stub E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			const result = await new Promise<{

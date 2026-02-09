@@ -43,7 +43,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 
 			// 1. Display banner
 			const acceptButton = await waitForElement(
-				'[data-testid="iab-banner-accept-button"]'
+				'[data-testid="iab-consent-banner-accept-button"]'
 			);
 			await waitForCMP();
 
@@ -51,7 +51,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 			await userEvent.click(acceptButton);
 
 			// 3. Banner should close
-			await waitForElementRemoved('[data-testid="iab-banner-card"]');
+			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// 4. Verify storage (wait for it to be saved)
 			await vi.waitFor(
@@ -72,12 +72,12 @@ describe('IAB Consent Flow E2E Tests', () => {
 			);
 
 			const acceptButton = await waitForElement(
-				'[data-testid="iab-banner-accept-button"]'
+				'[data-testid="iab-consent-banner-accept-button"]'
 			);
 			await waitForCMP();
 
 			await userEvent.click(acceptButton);
-			await waitForElementRemoved('[data-testid="iab-banner-card"]');
+			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Check TC data
 			const tcData = await getCMPTCData();
@@ -97,12 +97,12 @@ describe('IAB Consent Flow E2E Tests', () => {
 			);
 
 			const rejectButton = await waitForElement(
-				'[data-testid="iab-banner-reject-button"]'
+				'[data-testid="iab-consent-banner-reject-button"]'
 			);
 			await waitForCMP();
 
 			await userEvent.click(rejectButton);
-			await waitForElementRemoved('[data-testid="iab-banner-card"]');
+			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			const consent = getStoredConsent();
 			expect(consent).toBeDefined();
@@ -120,14 +120,14 @@ describe('IAB Consent Flow E2E Tests', () => {
 			);
 
 			const customizeButton = await waitForElement(
-				'[data-testid="iab-banner-customize-button"]'
+				'[data-testid="iab-consent-banner-customize-button"]'
 			);
 			await waitForCMP();
 
 			await userEvent.click(customizeButton);
 
 			// Preference center should open
-			await waitForElement('[data-testid="iab-preference-center-root"]');
+			await waitForElement('[data-testid="iab-consent-dialog-root"]');
 		});
 
 		test('should save granular preferences', async () => {
@@ -139,18 +139,18 @@ describe('IAB Consent Flow E2E Tests', () => {
 			);
 
 			const customizeButton = await waitForElement(
-				'[data-testid="iab-banner-customize-button"]'
+				'[data-testid="iab-consent-banner-customize-button"]'
 			);
 			await waitForCMP();
 
 			await userEvent.click(customizeButton);
-			await waitForElement('[data-testid="iab-preference-center-root"]');
+			await waitForElement('[data-testid="iab-consent-dialog-root"]');
 
 			// Wait for content to load
 			await vi.waitFor(
 				() => {
 					const content = document.querySelector(
-						'[data-testid="iab-preference-center-root"]'
+						'[data-testid="iab-consent-dialog-root"]'
 					);
 					if (!content?.textContent?.includes('Store')) {
 						throw new Error('Content not loaded');
@@ -162,7 +162,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 			// Find and click save button
 			const buttons = Array.from(
 				document.querySelectorAll(
-					'[data-testid="iab-preference-center-root"] button'
+					'[data-testid="iab-consent-dialog-root"] button'
 				)
 			);
 
@@ -174,9 +174,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 
 			if (saveButton) {
 				await userEvent.click(saveButton);
-				await waitForElementRemoved(
-					'[data-testid="iab-preference-center-root"]'
-				);
+				await waitForElementRemoved('[data-testid="iab-consent-dialog-root"]');
 
 				const consent = getStoredConsent();
 				expect(consent).toBeDefined();
@@ -194,12 +192,12 @@ describe('IAB Consent Flow E2E Tests', () => {
 			);
 
 			const acceptButton = await waitForElement(
-				'[data-testid="iab-banner-accept-button"]'
+				'[data-testid="iab-consent-banner-accept-button"]'
 			);
 			await waitForCMP();
 
 			await userEvent.click(acceptButton);
-			await waitForElementRemoved('[data-testid="iab-banner-card"]');
+			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Verify localStorage has consent
 			const consent = getStoredConsent();
@@ -216,12 +214,12 @@ describe('IAB Consent Flow E2E Tests', () => {
 			);
 
 			const acceptButton = await waitForElement(
-				'[data-testid="iab-banner-accept-button"]'
+				'[data-testid="iab-consent-banner-accept-button"]'
 			);
 			await waitForCMP();
 
 			await userEvent.click(acceptButton);
-			await waitForElementRemoved('[data-testid="iab-banner-card"]');
+			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Verify TC string storage
 			const tcString = getStoredTCString();
@@ -241,7 +239,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 			);
 
 			// Banner should show on first visit
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 		});
 	});
 
@@ -254,7 +252,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-banner-card"]');
+			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
 			// Set up listener
@@ -271,7 +269,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 
 			// Click accept
 			const acceptButton = document.querySelector(
-				'[data-testid="iab-banner-accept-button"]'
+				'[data-testid="iab-consent-banner-accept-button"]'
 			);
 			if (acceptButton) {
 				await userEvent.click(acceptButton);

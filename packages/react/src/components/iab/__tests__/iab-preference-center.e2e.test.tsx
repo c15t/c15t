@@ -35,11 +35,11 @@ describe('IAB Preference Center E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-preference-center-root"]');
+			await waitForElement('[data-testid="iab-consent-dialog-root"]');
 
 			// Should have tab buttons
 			const tabButtons = document.querySelectorAll(
-				'[data-testid="iab-preference-center-root"] button[data-state]'
+				'[data-testid="iab-consent-dialog-root"] button[data-state]'
 			);
 			expect(tabButtons.length).toBeGreaterThan(0);
 		});
@@ -51,12 +51,12 @@ describe('IAB Preference Center E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-preference-center-root"]');
+			await waitForElement('[data-testid="iab-consent-dialog-root"]');
 
 			// Find tab buttons by their text content
 			const tabButtons = Array.from(
 				document.querySelectorAll(
-					'[data-testid="iab-preference-center-root"] button'
+					'[data-testid="iab-consent-dialog-root"] button'
 				)
 			);
 
@@ -97,7 +97,7 @@ describe('IAB Preference Center E2E Tests', () => {
 			);
 
 			// Should show preference center
-			await waitForElement('[data-testid="iab-preference-center-root"]');
+			await waitForElement('[data-testid="iab-consent-dialog-root"]');
 
 			globalThis.fetch = originalFetch;
 		});
@@ -111,11 +111,11 @@ describe('IAB Preference Center E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-preference-center-root"]');
+			await waitForElement('[data-testid="iab-consent-dialog-root"]');
 
 			// Component should render - content depends on GVL load
 			const content = document.querySelector(
-				'[data-testid="iab-preference-center-root"]'
+				'[data-testid="iab-consent-dialog-root"]'
 			);
 			expect(content).toBeInTheDocument();
 		});
@@ -127,11 +127,11 @@ describe('IAB Preference Center E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-preference-center-root"]');
+			await waitForElement('[data-testid="iab-consent-dialog-root"]');
 
 			// Component should render - content depends on GVL load
 			const content = document.querySelector(
-				'[data-testid="iab-preference-center-root"]'
+				'[data-testid="iab-consent-dialog-root"]'
 			);
 			expect(content).toBeInTheDocument();
 		});
@@ -145,13 +145,13 @@ describe('IAB Preference Center E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-preference-center-root"]');
+			await waitForElement('[data-testid="iab-consent-dialog-root"]');
 
 			// Wait for content
 			await vi.waitFor(
 				() => {
 					const content = document.querySelector(
-						'[data-testid="iab-preference-center-root"]'
+						'[data-testid="iab-consent-dialog-root"]'
 					);
 					if (!content?.textContent?.length) {
 						throw new Error('Content not loaded');
@@ -170,13 +170,13 @@ describe('IAB Preference Center E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-preference-center-root"]');
+			await waitForElement('[data-testid="iab-consent-dialog-root"]');
 
 			// Wait for content
 			await vi.waitFor(
 				() => {
 					const content = document.querySelector(
-						'[data-testid="iab-preference-center-root"]'
+						'[data-testid="iab-consent-dialog-root"]'
 					);
 					if (!content?.textContent?.length) {
 						throw new Error('Content not loaded');
@@ -195,12 +195,12 @@ describe('IAB Preference Center E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-preference-center-root"]');
+			await waitForElement('[data-testid="iab-consent-dialog-root"]');
 
 			// Verify vendors tab exists
 			const tabButtons = Array.from(
 				document.querySelectorAll(
-					'[data-testid="iab-preference-center-root"] button'
+					'[data-testid="iab-consent-dialog-root"] button'
 				)
 			);
 
@@ -221,12 +221,12 @@ describe('IAB Preference Center E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-preference-center-root"]');
+			await waitForElement('[data-testid="iab-consent-dialog-root"]');
 
 			// Verify save button exists
 			const buttons = Array.from(
 				document.querySelectorAll(
-					'[data-testid="iab-preference-center-root"] button'
+					'[data-testid="iab-consent-dialog-root"] button'
 				)
 			);
 
@@ -246,12 +246,12 @@ describe('IAB Preference Center E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-preference-center-root"]');
+			await waitForElement('[data-testid="iab-consent-dialog-root"]');
 
 			// Verify accept all button exists
 			const buttons = Array.from(
 				document.querySelectorAll(
-					'[data-testid="iab-preference-center-root"] button'
+					'[data-testid="iab-consent-dialog-root"] button'
 				)
 			);
 
@@ -269,12 +269,12 @@ describe('IAB Preference Center E2E Tests', () => {
 				</ConsentManagerProvider>
 			);
 
-			await waitForElement('[data-testid="iab-preference-center-root"]');
+			await waitForElement('[data-testid="iab-consent-dialog-root"]');
 
 			// Verify reject all button exists
 			const buttons = Array.from(
 				document.querySelectorAll(
-					'[data-testid="iab-preference-center-root"] button'
+					'[data-testid="iab-consent-dialog-root"] button'
 				)
 			);
 
@@ -295,7 +295,7 @@ describe('IAB Preference Center E2E Tests', () => {
 			);
 
 			const dialog = await waitForElement(
-				'[data-testid="iab-preference-center-card"]'
+				'[data-testid="iab-consent-dialog-card"]'
 			);
 
 			// Should have role dialog
