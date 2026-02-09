@@ -7,10 +7,10 @@ import type { Branding, InitOutput } from '@c15t/schema/types';
 import type { Model } from '~/libs/determine-model';
 import type { StorageConfig } from '../libs/cookie';
 import type { HasCondition } from '../libs/has';
+import type { IABConfig, IABManager } from '../libs/iab-tcf/types';
 import type { IframeBlockerConfig } from '../libs/iframe-blocker';
 import type { NetworkBlockerConfig } from '../libs/network-blocker';
 import type { Script } from '../libs/script-loader';
-import type { IABConfig, IABManager } from '../libs/tcf/types';
 import type {
 	AllConsentNames,
 	Callbacks,
@@ -28,7 +28,7 @@ import type {
 } from '../types';
 
 // Re-export IAB types for external consumers
-export type { IABActions, IABManager, IABState } from '../libs/tcf/types';
+export type { IABActions, IABManager, IABState } from '../libs/iab-tcf/types';
 
 /**
  * Initial data structure for SSR prefetching.

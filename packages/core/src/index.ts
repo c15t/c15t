@@ -64,6 +64,13 @@ export {
 	isValidSubjectId,
 } from './libs/generate-subject-id';
 export type { HasCondition } from './libs/has';
+// Export TCF utilities for testing
+export {
+	clearGVLCache,
+	fetchGVL,
+	getCachedGVL,
+	setMockGVL,
+} from './libs/iab-tcf';
 export {
 	createIframeBlocker,
 	type IframeBlocker,
@@ -79,8 +86,6 @@ export {
 	unloadScripts,
 	updateScripts,
 } from './libs/script-loader';
-// Export TCF utilities for testing
-export { clearGVLCache, fetchGVL, getCachedGVL, setMockGVL } from './libs/tcf';
 export {
 	type ConsentRuntimeOptions,
 	type ConsentRuntimePkgInfo,

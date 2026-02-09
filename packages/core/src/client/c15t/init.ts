@@ -1,5 +1,5 @@
 import { enTranslations } from '@c15t/translations';
-import { fetchGVL } from '../../libs/tcf/fetch-gvl';
+import { fetchGVL } from '../../libs/iab-tcf/fetch-gvl';
 import type { InitResponse } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
 import { API_ENDPOINTS } from '../types';

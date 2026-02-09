@@ -16,12 +16,12 @@ import {
 	type HasCondition,
 	has,
 } from '../libs/has';
+import { createIABManager } from '../libs/iab-tcf/store';
 import { createIframeManager } from '../libs/iframe-blocker/store';
 import { initConsentManager } from '../libs/init-consent-manager';
 import { createNetworkBlockerManager } from '../libs/network-blocker/store';
 import { saveConsents } from '../libs/save-consents';
 import { createScriptManager } from '../libs/script-loader';
-import { createIABManager } from '../libs/tcf/store';
 import type { TranslationConfig, User } from '../types';
 import type { Callbacks } from '../types/callbacks';
 import type { ConsentBannerResponse, ConsentState } from '../types/compliance';

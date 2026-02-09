@@ -4,10 +4,10 @@
  * @packageDocumentation
  */
 
-import { CMP_ID, CMP_VERSION } from '../../cmp-defaults';
 import type { GlobalVendorList } from '../../types/iab-tcf';
 import { getConsentFromStorage } from '../cookie';
-import type { IABConfig, IABState } from '../tcf/types';
+import { CMP_ID, CMP_VERSION } from '../iab-tcf/cmp-defaults';
+import type { IABConfig, IABState } from '../iab-tcf/types';
 import type { StoreAccess } from './types';
 
 /**
@@ -64,7 +64,7 @@ export async function initializeIABMode(
 	try {
 		// Dynamically import IAB modules (lazy loading)
 		const { initializeIABStub, fetchGVL, createCMPApi } = await import(
-			'../tcf'
+			'../iab-tcf'
 		);
 
 		// Initialize IAB stub immediately to start queuing __tcfapi calls
@@ -210,7 +210,7 @@ async function restoreConsentFromTCString(
 
 	try {
 		const { decodeTCString, iabPurposesToC15tConsents } = await import(
-			'../tcf'
+			'../iab-tcf'
 		);
 		const decoded = await decodeTCString(tcString);
 		const storedConsent = getConsentFromStorage<{
