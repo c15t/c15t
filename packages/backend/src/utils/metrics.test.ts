@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { C15TOptions } from '../types';
-import { C15TMetrics, getMetrics, resetMetrics } from './metrics';
+import { type C15TMetrics, getMetrics, resetMetrics } from './metrics';
 
 // Mock the telemetry options
 vi.mock('./create-telemetry-options', () => ({
@@ -47,7 +47,7 @@ describe('getMetrics', () => {
 
 		const metrics = getMetrics(options);
 
-		expect(metrics).toBeInstanceOf(C15TMetrics);
+		expect(metrics).toHaveProperty('recordHttpRequest');
 	});
 
 	it('returns same instance on subsequent calls', () => {
@@ -277,6 +277,28 @@ describe('C15TMetrics', () => {
 				region: 'CA',
 			});
 		});
+	});
+});
+
+describe('getMetrics cached singleton', () => {
+	it('returns cached instance without options after initialization', () => {
+		const options: C15TOptions = {
+			trustedOrigins: [],
+			adapter: {} as C15TOptions['adapter'],
+			advanced: {
+				telemetry: {
+					enabled: true,
+				},
+			},
+		};
+
+		// Initialize with options
+		const metrics1 = getMetrics(options);
+		expect(metrics1).not.toBeNull();
+
+		// Call without options — should return cached instance
+		const metrics2 = getMetrics();
+		expect(metrics2).toBe(metrics1);
 	});
 });
 

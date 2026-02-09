@@ -84,290 +84,300 @@ export interface GvlMetricAttributes {
 	[key: string]: string | number | boolean | undefined;
 }
 
-// Lazy-initialized metric instances
-let metricsInstance: C15TMetrics | null = null;
-
 /**
- * C15T Metrics container class
+ * C15T Metrics container
  * Holds all metric instruments for the c15t backend
  */
-export class C15TMetrics {
+export interface C15TMetrics {
 	// Business metrics
-	public readonly consentCreated: Counter;
-	public readonly consentAccepted: Counter;
-	public readonly consentRejected: Counter;
-	public readonly subjectCreated: Counter;
-	public readonly subjectLinked: Counter;
-	public readonly consentCheckCount: Counter;
-	public readonly initCount: Counter;
+	readonly consentCreated: Counter;
+	readonly consentAccepted: Counter;
+	readonly consentRejected: Counter;
+	readonly subjectCreated: Counter;
+	readonly subjectLinked: Counter;
+	readonly consentCheckCount: Counter;
+	readonly initCount: Counter;
 
 	// HTTP metrics
-	public readonly httpRequestDuration: Histogram;
-	public readonly httpRequestCount: Counter;
-	public readonly httpErrorCount: Counter;
+	readonly httpRequestDuration: Histogram;
+	readonly httpRequestCount: Counter;
+	readonly httpErrorCount: Counter;
 
 	// Database metrics
-	public readonly dbQueryDuration: Histogram;
-	public readonly dbQueryCount: Counter;
-	public readonly dbErrorCount: Counter;
+	readonly dbQueryDuration: Histogram;
+	readonly dbQueryCount: Counter;
+	readonly dbErrorCount: Counter;
 
 	// Cache metrics
-	public readonly cacheHit: Counter;
-	public readonly cacheMiss: Counter;
-	public readonly cacheLatency: Histogram;
+	readonly cacheHit: Counter;
+	readonly cacheMiss: Counter;
+	readonly cacheLatency: Histogram;
 
 	// GVL metrics
-	public readonly gvlFetchDuration: Histogram;
-	public readonly gvlFetchCount: Counter;
-	public readonly gvlFetchError: Counter;
+	readonly gvlFetchDuration: Histogram;
+	readonly gvlFetchCount: Counter;
+	readonly gvlFetchError: Counter;
 
-	constructor(meter: Meter) {
-		// Business metrics - High value for c15t
-		this.consentCreated = meter.createCounter('c15t.consent.created', {
-			description: 'Number of consent submissions',
-			unit: '1',
-		});
-
-		this.consentAccepted = meter.createCounter('c15t.consent.accepted', {
-			description: 'Number of consents accepted',
-			unit: '1',
-		});
-
-		this.consentRejected = meter.createCounter('c15t.consent.rejected', {
-			description: 'Number of consents rejected',
-			unit: '1',
-		});
-
-		this.subjectCreated = meter.createCounter('c15t.subject.created', {
-			description: 'Number of new subjects created',
-			unit: '1',
-		});
-
-		this.subjectLinked = meter.createCounter('c15t.subject.linked', {
-			description: 'Number of subjects linked to external ID',
-			unit: '1',
-		});
-
-		this.consentCheckCount = meter.createCounter('c15t.consent_check.count', {
-			description: 'Number of cross-device consent checks',
-			unit: '1',
-		});
-
-		this.initCount = meter.createCounter('c15t.init.count', {
-			description: 'Number of init endpoint calls',
-			unit: '1',
-		});
-
-		// HTTP metrics
-		this.httpRequestDuration = meter.createHistogram(
-			'c15t.http.request.duration',
-			{
-				description: 'HTTP request latency',
-				unit: 'ms',
-			}
-		);
-
-		this.httpRequestCount = meter.createCounter('c15t.http.request.count', {
-			description: 'Number of HTTP requests',
-			unit: '1',
-		});
-
-		this.httpErrorCount = meter.createCounter('c15t.http.error.count', {
-			description: 'Number of HTTP errors',
-			unit: '1',
-		});
-
-		// Database metrics
-		this.dbQueryDuration = meter.createHistogram('c15t.db.query.duration', {
-			description: 'Database query latency',
-			unit: 'ms',
-		});
-
-		this.dbQueryCount = meter.createCounter('c15t.db.query.count', {
-			description: 'Number of database queries',
-			unit: '1',
-		});
-
-		this.dbErrorCount = meter.createCounter('c15t.db.error.count', {
-			description: 'Number of database errors',
-			unit: '1',
-		});
-
-		// Cache metrics
-		this.cacheHit = meter.createCounter('c15t.cache.hit', {
-			description: 'Number of cache hits',
-			unit: '1',
-		});
-
-		this.cacheMiss = meter.createCounter('c15t.cache.miss', {
-			description: 'Number of cache misses',
-			unit: '1',
-		});
-
-		this.cacheLatency = meter.createHistogram('c15t.cache.latency', {
-			description: 'Cache operation latency',
-			unit: 'ms',
-		});
-
-		// GVL metrics
-		this.gvlFetchDuration = meter.createHistogram('c15t.gvl.fetch.duration', {
-			description: 'GVL fetch latency',
-			unit: 'ms',
-		});
-
-		this.gvlFetchCount = meter.createCounter('c15t.gvl.fetch.count', {
-			description: 'Number of GVL fetches',
-			unit: '1',
-		});
-
-		this.gvlFetchError = meter.createCounter('c15t.gvl.fetch.error', {
-			description: 'Number of GVL fetch errors',
-			unit: '1',
-		});
-	}
-
-	// Helper methods for recording metrics with proper attributes
-
-	/**
-	 * Record a consent creation event
-	 */
-	recordConsentCreated(attributes: ConsentMetricAttributes): void {
-		this.consentCreated.add(1, this.sanitizeAttributes(attributes));
-	}
-
-	/**
-	 * Record a consent accepted event
-	 */
+	// Helper methods
+	recordConsentCreated(attributes: ConsentMetricAttributes): void;
 	recordConsentAccepted(
 		attributes: Omit<ConsentMetricAttributes, 'status'>
-	): void {
-		this.consentAccepted.add(1, this.sanitizeAttributes(attributes));
-	}
-
-	/**
-	 * Record a consent rejected event
-	 */
+	): void;
 	recordConsentRejected(
 		attributes: Omit<ConsentMetricAttributes, 'status'>
-	): void {
-		this.consentRejected.add(1, this.sanitizeAttributes(attributes));
-	}
-
-	/**
-	 * Record a subject creation event
-	 */
-	recordSubjectCreated(attributes: GeoAttributes & { domain?: string }): void {
-		this.subjectCreated.add(1, this.sanitizeAttributes(attributes));
-	}
-
-	/**
-	 * Record a subject linking event
-	 */
-	recordSubjectLinked(identityProvider?: string): void {
-		this.subjectLinked.add(1, {
-			identityProvider: identityProvider || 'unknown',
-		});
-	}
-
-	/**
-	 * Record a consent check event
-	 */
-	recordConsentCheck(type: string, found: boolean): void {
-		this.consentCheckCount.add(1, { type, found: String(found) });
-	}
-
-	/**
-	 * Record an init endpoint call
-	 */
-	recordInit(attributes: GeoAttributes): void {
-		this.initCount.add(1, this.sanitizeAttributes(attributes));
-	}
-
-	/**
-	 * Record HTTP request metrics
-	 */
-	recordHttpRequest(
-		attributes: HttpMetricAttributes,
-		durationMs: number
-	): void {
-		const attrs = this.sanitizeAttributes(attributes);
-		this.httpRequestCount.add(1, attrs);
-		this.httpRequestDuration.record(durationMs, attrs);
-
-		if (attributes.status >= 400) {
-			this.httpErrorCount.add(1, attrs);
-		}
-	}
-
-	/**
-	 * Record database query metrics
-	 */
-	recordDbQuery(attributes: DbMetricAttributes, durationMs: number): void {
-		const attrs = this.sanitizeAttributes(attributes);
-		this.dbQueryCount.add(1, attrs);
-		this.dbQueryDuration.record(durationMs, attrs);
-	}
-
-	/**
-	 * Record database error
-	 */
-	recordDbError(attributes: DbMetricAttributes): void {
-		this.dbErrorCount.add(1, this.sanitizeAttributes(attributes));
-	}
-
-	/**
-	 * Record cache hit
-	 */
-	recordCacheHit(layer: CacheMetricAttributes['layer']): void {
-		this.cacheHit.add(1, { layer });
-	}
-
-	/**
-	 * Record cache miss
-	 */
-	recordCacheMiss(layer: CacheMetricAttributes['layer']): void {
-		this.cacheMiss.add(1, { layer });
-	}
-
-	/**
-	 * Record cache operation latency
-	 */
+	): void;
+	recordSubjectCreated(attributes: GeoAttributes & { domain?: string }): void;
+	recordSubjectLinked(identityProvider?: string): void;
+	recordConsentCheck(type: string, found: boolean): void;
+	recordInit(attributes: GeoAttributes): void;
+	recordHttpRequest(attributes: HttpMetricAttributes, durationMs: number): void;
+	recordDbQuery(attributes: DbMetricAttributes, durationMs: number): void;
+	recordDbError(attributes: DbMetricAttributes): void;
+	recordCacheHit(layer: CacheMetricAttributes['layer']): void;
+	recordCacheMiss(layer: CacheMetricAttributes['layer']): void;
 	recordCacheLatency(
 		attributes: CacheMetricAttributes,
 		durationMs: number
-	): void {
-		this.cacheLatency.record(durationMs, this.sanitizeAttributes(attributes));
-	}
-
-	/**
-	 * Record GVL fetch
-	 */
-	recordGvlFetch(attributes: GvlMetricAttributes, durationMs: number): void {
-		const attrs = this.sanitizeAttributes(attributes);
-		this.gvlFetchCount.add(1, attrs);
-		this.gvlFetchDuration.record(durationMs, attrs);
-	}
-
-	/**
-	 * Record GVL fetch error
-	 */
-	recordGvlError(attributes: GvlMetricAttributes): void {
-		this.gvlFetchError.add(1, this.sanitizeAttributes(attributes));
-	}
-
-	/**
-	 * Sanitize attributes - remove undefined values and convert to strings
-	 */
-	private sanitizeAttributes<
-		T extends Record<string, string | number | boolean | undefined>,
-	>(attrs: T): Record<string, string | number | boolean> {
-		return Object.fromEntries(
-			Object.entries(attrs).filter(
-				([_, v]) => v !== undefined && v !== null
-			) as [string, string | number | boolean][]
-		);
-	}
+	): void;
+	recordGvlFetch(attributes: GvlMetricAttributes, durationMs: number): void;
+	recordGvlError(attributes: GvlMetricAttributes): void;
 }
+
+/**
+ * Sanitize attributes - remove undefined values and convert to strings
+ */
+function sanitizeAttributes<
+	T extends Record<string, string | number | boolean | undefined>,
+>(attrs: T): Record<string, string | number | boolean> {
+	return Object.fromEntries(
+		Object.entries(attrs).filter(([_, v]) => v !== undefined && v !== null) as [
+			string,
+			string | number | boolean,
+		][]
+	);
+}
+
+/**
+ * Create a C15TMetrics instance from an OpenTelemetry Meter.
+ *
+ * @param meter - OpenTelemetry Meter to create instruments from
+ * @returns C15TMetrics object with all instruments and helper methods
+ */
+function createMetrics(meter: Meter): C15TMetrics {
+	// Business metrics - High value for c15t
+	const consentCreated = meter.createCounter('c15t.consent.created', {
+		description: 'Number of consent submissions',
+		unit: '1',
+	});
+
+	const consentAccepted = meter.createCounter('c15t.consent.accepted', {
+		description: 'Number of consents accepted',
+		unit: '1',
+	});
+
+	const consentRejected = meter.createCounter('c15t.consent.rejected', {
+		description: 'Number of consents rejected',
+		unit: '1',
+	});
+
+	const subjectCreated = meter.createCounter('c15t.subject.created', {
+		description: 'Number of new subjects created',
+		unit: '1',
+	});
+
+	const subjectLinked = meter.createCounter('c15t.subject.linked', {
+		description: 'Number of subjects linked to external ID',
+		unit: '1',
+	});
+
+	const consentCheckCount = meter.createCounter('c15t.consent_check.count', {
+		description: 'Number of cross-device consent checks',
+		unit: '1',
+	});
+
+	const initCount = meter.createCounter('c15t.init.count', {
+		description: 'Number of init endpoint calls',
+		unit: '1',
+	});
+
+	// HTTP metrics
+	const httpRequestDuration = meter.createHistogram(
+		'c15t.http.request.duration',
+		{
+			description: 'HTTP request latency',
+			unit: 'ms',
+		}
+	);
+
+	const httpRequestCount = meter.createCounter('c15t.http.request.count', {
+		description: 'Number of HTTP requests',
+		unit: '1',
+	});
+
+	const httpErrorCount = meter.createCounter('c15t.http.error.count', {
+		description: 'Number of HTTP errors',
+		unit: '1',
+	});
+
+	// Database metrics
+	const dbQueryDuration = meter.createHistogram('c15t.db.query.duration', {
+		description: 'Database query latency',
+		unit: 'ms',
+	});
+
+	const dbQueryCount = meter.createCounter('c15t.db.query.count', {
+		description: 'Number of database queries',
+		unit: '1',
+	});
+
+	const dbErrorCount = meter.createCounter('c15t.db.error.count', {
+		description: 'Number of database errors',
+		unit: '1',
+	});
+
+	// Cache metrics
+	const cacheHit = meter.createCounter('c15t.cache.hit', {
+		description: 'Number of cache hits',
+		unit: '1',
+	});
+
+	const cacheMiss = meter.createCounter('c15t.cache.miss', {
+		description: 'Number of cache misses',
+		unit: '1',
+	});
+
+	const cacheLatency = meter.createHistogram('c15t.cache.latency', {
+		description: 'Cache operation latency',
+		unit: 'ms',
+	});
+
+	// GVL metrics
+	const gvlFetchDuration = meter.createHistogram('c15t.gvl.fetch.duration', {
+		description: 'GVL fetch latency',
+		unit: 'ms',
+	});
+
+	const gvlFetchCount = meter.createCounter('c15t.gvl.fetch.count', {
+		description: 'Number of GVL fetches',
+		unit: '1',
+	});
+
+	const gvlFetchError = meter.createCounter('c15t.gvl.fetch.error', {
+		description: 'Number of GVL fetch errors',
+		unit: '1',
+	});
+
+	return {
+		// Instruments
+		consentCreated,
+		consentAccepted,
+		consentRejected,
+		subjectCreated,
+		subjectLinked,
+		consentCheckCount,
+		initCount,
+		httpRequestDuration,
+		httpRequestCount,
+		httpErrorCount,
+		dbQueryDuration,
+		dbQueryCount,
+		dbErrorCount,
+		cacheHit,
+		cacheMiss,
+		cacheLatency,
+		gvlFetchDuration,
+		gvlFetchCount,
+		gvlFetchError,
+
+		// Helper methods
+		recordConsentCreated(attributes: ConsentMetricAttributes): void {
+			consentCreated.add(1, sanitizeAttributes(attributes));
+		},
+
+		recordConsentAccepted(
+			attributes: Omit<ConsentMetricAttributes, 'status'>
+		): void {
+			consentAccepted.add(1, sanitizeAttributes(attributes));
+		},
+
+		recordConsentRejected(
+			attributes: Omit<ConsentMetricAttributes, 'status'>
+		): void {
+			consentRejected.add(1, sanitizeAttributes(attributes));
+		},
+
+		recordSubjectCreated(
+			attributes: GeoAttributes & { domain?: string }
+		): void {
+			subjectCreated.add(1, sanitizeAttributes(attributes));
+		},
+
+		recordSubjectLinked(identityProvider?: string): void {
+			subjectLinked.add(1, {
+				identityProvider: identityProvider || 'unknown',
+			});
+		},
+
+		recordConsentCheck(type: string, found: boolean): void {
+			consentCheckCount.add(1, { type, found: String(found) });
+		},
+
+		recordInit(attributes: GeoAttributes): void {
+			initCount.add(1, sanitizeAttributes(attributes));
+		},
+
+		recordHttpRequest(
+			attributes: HttpMetricAttributes,
+			durationMs: number
+		): void {
+			const attrs = sanitizeAttributes(attributes);
+			httpRequestCount.add(1, attrs);
+			httpRequestDuration.record(durationMs, attrs);
+
+			if (attributes.status >= 400) {
+				httpErrorCount.add(1, attrs);
+			}
+		},
+
+		recordDbQuery(attributes: DbMetricAttributes, durationMs: number): void {
+			const attrs = sanitizeAttributes(attributes);
+			dbQueryCount.add(1, attrs);
+			dbQueryDuration.record(durationMs, attrs);
+		},
+
+		recordDbError(attributes: DbMetricAttributes): void {
+			dbErrorCount.add(1, sanitizeAttributes(attributes));
+		},
+
+		recordCacheHit(layer: CacheMetricAttributes['layer']): void {
+			cacheHit.add(1, { layer });
+		},
+
+		recordCacheMiss(layer: CacheMetricAttributes['layer']): void {
+			cacheMiss.add(1, { layer });
+		},
+
+		recordCacheLatency(
+			attributes: CacheMetricAttributes,
+			durationMs: number
+		): void {
+			cacheLatency.record(durationMs, sanitizeAttributes(attributes));
+		},
+
+		recordGvlFetch(attributes: GvlMetricAttributes, durationMs: number): void {
+			const attrs = sanitizeAttributes(attributes);
+			gvlFetchCount.add(1, attrs);
+			gvlFetchDuration.record(durationMs, attrs);
+		},
+
+		recordGvlError(attributes: GvlMetricAttributes): void {
+			gvlFetchError.add(1, sanitizeAttributes(attributes));
+		},
+	};
+}
+
+// Lazy-initialized metric instances
+let metricsInstance: C15TMetrics | null = null;
 
 /**
  * Get or create the metrics instance for the c15t backend.
@@ -377,15 +387,10 @@ export class C15TMetrics {
  * @returns C15TMetrics instance or null if telemetry is disabled
  */
 export function getMetrics(options?: C15TOptions): C15TMetrics | null {
-	if (!isTelemetryEnabled(options)) {
-		return null;
-	}
+	if (metricsInstance) return metricsInstance;
+	if (!isTelemetryEnabled(options)) return null;
 
-	if (!metricsInstance) {
-		const meter = getMeter(options);
-		metricsInstance = new C15TMetrics(meter);
-	}
-
+	metricsInstance = createMetrics(getMeter(options));
 	return metricsInstance;
 }
 

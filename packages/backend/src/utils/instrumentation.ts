@@ -1,7 +1,10 @@
+import type { Span } from '@opentelemetry/api';
 import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import type { C15TOptions } from '../types';
 import {
+	getDefaultAttributes,
 	getTracer,
+	handleSpanError,
 	isTelemetryEnabled,
 	withSpanContext,
 } from './create-telemetry-options';
@@ -28,6 +31,39 @@ export interface ExternalSpanAttributes {
 	method: string;
 	/** Optional additional attributes */
 	[key: string]: string | number | boolean | undefined;
+}
+
+/**
+ * Execute an async operation within a span, handling status and error recording.
+ *
+ * Sets SpanStatusCode.OK on success, records error attributes and sets
+ * SpanStatusCode.ERROR on failure, and always ends the span.
+ */
+async function executeWithSpan<T>(
+	span: Span,
+	operation: () => Promise<T>
+): Promise<T> {
+	try {
+		const result = await withSpanContext(span, operation);
+		span.setStatus({ code: SpanStatusCode.OK });
+		return result;
+	} catch (error) {
+		handleSpanError(span, error);
+		throw error;
+	} finally {
+		span.end();
+	}
+}
+
+/**
+ * Resolves default attributes from explicit options or the cached config.
+ */
+function resolveDefaultAttributes(
+	options?: C15TOptions
+): Record<string, string | number | boolean> {
+	return (
+		options?.advanced?.telemetry?.defaultAttributes || getDefaultAttributes()
+	);
 }
 
 /**
@@ -65,7 +101,7 @@ export async function withDatabaseSpan<T>(
 			'db.system': 'c15t',
 			'db.operation': attributes.operation,
 			'db.entity': attributes.entity,
-			...(options?.advanced?.telemetry?.defaultAttributes || {}),
+			...resolveDefaultAttributes(options),
 			...Object.fromEntries(
 				Object.entries(attributes).filter(
 					([key]) => !['operation', 'entity'].includes(key)
@@ -74,26 +110,7 @@ export async function withDatabaseSpan<T>(
 		},
 	});
 
-	try {
-		const result = await withSpanContext(span, operation);
-		span.setStatus({ code: SpanStatusCode.OK });
-		return result;
-	} catch (error) {
-		span.setStatus({
-			code: SpanStatusCode.ERROR,
-			message: error instanceof Error ? error.message : String(error),
-		});
-		if (error instanceof Error) {
-			span.setAttribute('error.type', error.name);
-			span.setAttribute('error.message', error.message);
-			if (error.stack) {
-				span.setAttribute('error.stack', error.stack);
-			}
-		}
-		throw error;
-	} finally {
-		span.end();
-	}
+	return executeWithSpan(span, operation);
 }
 
 /**
@@ -124,16 +141,15 @@ export async function withExternalSpan<T>(
 
 	const tracer = getTracer(options);
 	const url = new URL(attributes.url);
-	const spanName = `HTTP ${attributes.method} ${url.hostname}${url.pathname}`;
+	const spanName = `HTTP ${attributes.method} ${url.hostname}`;
 
 	const span = tracer.startSpan(spanName, {
 		kind: SpanKind.CLIENT,
 		attributes: {
 			'http.method': attributes.method,
-			'http.url': attributes.url,
+			'http.url': `${url.origin}${url.pathname}`,
 			'http.host': url.hostname,
-			'http.path': url.pathname,
-			...(options?.advanced?.telemetry?.defaultAttributes || {}),
+			...resolveDefaultAttributes(options),
 			...Object.fromEntries(
 				Object.entries(attributes).filter(
 					([key]) => !['url', 'method'].includes(key)
@@ -142,26 +158,7 @@ export async function withExternalSpan<T>(
 		},
 	});
 
-	try {
-		const result = await withSpanContext(span, operation);
-		span.setStatus({ code: SpanStatusCode.OK });
-		return result;
-	} catch (error) {
-		span.setStatus({
-			code: SpanStatusCode.ERROR,
-			message: error instanceof Error ? error.message : String(error),
-		});
-		if (error instanceof Error) {
-			span.setAttribute('error.type', error.name);
-			span.setAttribute('error.message', error.message);
-			if (error.stack) {
-				span.setAttribute('error.stack', error.stack);
-			}
-		}
-		throw error;
-	} finally {
-		span.end();
-	}
+	return executeWithSpan(span, operation);
 }
 
 /**
@@ -191,21 +188,9 @@ export async function withCacheSpan<T>(
 		attributes: {
 			'cache.operation': operation,
 			'cache.layer': layer,
-			...(options?.advanced?.telemetry?.defaultAttributes || {}),
+			...resolveDefaultAttributes(options),
 		},
 	});
 
-	try {
-		const result = await withSpanContext(span, fn);
-		span.setStatus({ code: SpanStatusCode.OK });
-		return result;
-	} catch (error) {
-		span.setStatus({
-			code: SpanStatusCode.ERROR,
-			message: error instanceof Error ? error.message : String(error),
-		});
-		throw error;
-	} finally {
-		span.end();
-	}
+	return executeWithSpan(span, fn);
 }
