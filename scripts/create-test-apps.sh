@@ -39,6 +39,8 @@ print_error() {
 clean() {
     print_header "Cleaning up test apps"
     if [ -d "$TEST_DIR" ]; then
+        # Remove symlinks first (rm -rf can't follow symlinks to dirs outside the tree)
+        find "$TEST_DIR" -type l -delete 2>/dev/null
         rm -rf "$TEST_DIR"
         print_success "Removed $TEST_DIR"
     else

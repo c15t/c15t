@@ -97,7 +97,11 @@ function wrapReturnStatementWithConsentManager(
 		return false;
 	}
 
-	const originalJsx = expression.getText();
+	// Unwrap parenthesized expression if present: return (...) -> ...
+	let originalJsx = expression.getText();
+	if (originalJsx.startsWith('(') && originalJsx.endsWith(')')) {
+		originalJsx = originalJsx.slice(1, -1).trim();
+	}
 
 	// Wrap the JSX with ConsentManager
 	const newJsx = `(

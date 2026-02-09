@@ -65,6 +65,57 @@ async function fileExists(filePath: string): Promise<boolean> {
 }
 
 /**
+ * Try to format generated files using the project's formatter (prettier or biome).
+ * Silently skips if no formatter is found.
+ */
+async function formatGeneratedFiles(
+	projectRoot: string,
+	files: string[],
+	logger: { debug: (msg: string) => void }
+): Promise<void> {
+	const fs = await import('node:fs/promises');
+	const { execFile } = await import('node:child_process');
+	const { promisify } = await import('node:util');
+	const execFileAsync = promisify(execFile);
+
+	const codeFiles = files.filter(
+		(f) =>
+			f.endsWith('.ts') ||
+			f.endsWith('.tsx') ||
+			f.endsWith('.js') ||
+			f.endsWith('.jsx')
+	);
+	if (codeFiles.length === 0) return;
+
+	// Check for formatters in node_modules/.bin
+	const formatters = [
+		{
+			bin: path.join(projectRoot, 'node_modules', '.bin', 'prettier'),
+			args: ['--write'],
+		},
+		{
+			bin: path.join(projectRoot, 'node_modules', '.bin', 'biome'),
+			args: ['format', '--write'],
+		},
+	];
+
+	for (const { bin, args } of formatters) {
+		try {
+			await fs.access(bin);
+			await execFileAsync(bin, [...args, ...codeFiles], { cwd: projectRoot });
+			logger.debug(
+				`Formatted ${codeFiles.length} files with ${path.basename(bin)}`
+			);
+			return;
+		} catch {
+			// Formatter not found or failed, try next
+		}
+	}
+
+	logger.debug('No formatter found, skipping formatting');
+}
+
+/**
  * File generation actor
  *
  * Creates and modifies files for the c15t setup with backup support.
@@ -199,6 +250,15 @@ export const fileGenerationActor = fromPromise<
 
 		result.filesCreated = filesCreated;
 		result.filesModified = filesModified;
+
+		// Format generated files using the project's formatter
+		const allFiles = [
+			...filesCreated,
+			...filesModified.map((f) => f.path),
+			generateResult.layoutPath,
+		].filter((f): f is string => !!f);
+
+		await formatGeneratedFiles(projectRoot, allFiles, logger);
 
 		return result;
 	} catch (error) {
