@@ -1,12 +1,12 @@
 'use client';
 
 import { generateThemeCSS } from '@c15t/ui/theme';
+import { deepMerge } from '@c15t/ui/utils';
 import {
-	clearConsentManagerCache as baseClearCache,
-	deepMerge,
-	initConsentManager,
-} from '@c15t/ui/utils';
-import type { ConsentStoreState } from 'c15t';
+	clearConsentRuntimeCache as baseClearCache,
+	type ConsentStoreState,
+	getOrCreateConsentRuntime,
+} from 'c15t';
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import {
 	ConsentStateContext,
@@ -28,7 +28,7 @@ import { version } from '../version';
  *
  * @internal
  */
-export function clearConsentManagerCache(): void {
+export function clearConsentRuntimeCache(): void {
 	baseClearCache();
 }
 
@@ -63,9 +63,9 @@ export function ConsentManagerProvider({
 	children,
 	options,
 }: ConsentManagerProviderProps) {
-	// Initialize consent manager and store using shared logic from @c15t/ui
+	// Initialize consent manager and store using shared runtime logic from core
 	const { consentManager, consentStore } = useMemo(() => {
-		return initConsentManager(options, {
+		return getOrCreateConsentRuntime(options, {
 			pkg: '@c15t/react',
 			version,
 		});

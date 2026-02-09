@@ -7,40 +7,69 @@ import { useConsentManager } from '../use-consent-manager';
 // Mock the c15t package
 vi.mock('c15t', async () => {
 	const originalModule = await vi.importActual('c15t');
+	const { createConsentManagerStore } = originalModule as typeof import('c15t');
+
+	const createMockConsentManager = () => ({
+		getCallbacks: () => ({}),
+		setCallbacks: () => ({}),
+		showConsentBanner: async () => ({
+			ok: true,
+			data: {
+				showConsentBanner: true,
+				jurisdiction: {
+					code: 'GDPR',
+				},
+				translations: {
+					language: 'en',
+					translations: defaultTranslationConfig.translations.en,
+				},
+			},
+			error: null,
+			response: null,
+		}),
+		setConsent: async () => ({
+			ok: true,
+			data: { success: true },
+			error: null,
+			response: null,
+		}),
+		verifyConsent: async () => ({
+			ok: true,
+			data: { valid: true },
+			error: null,
+			response: null,
+		}),
+	});
 
 	return {
 		...(originalModule as object),
-		configureConsentManager: () => ({
-			getCallbacks: () => ({}),
-			setCallbacks: () => ({}),
-			showConsentBanner: async () => ({
-				ok: true,
-				data: {
-					showConsentBanner: true,
-					jurisdiction: {
-						code: 'GDPR',
-					},
-					translations: {
-						language: 'en',
-						translations: defaultTranslationConfig.translations.en,
-					},
+		configureConsentManager: createMockConsentManager,
+		getOrCreateConsentRuntime: (
+			options: {
+				mode?: string;
+				store?: Record<string, unknown>;
+				translations?: unknown;
+			},
+			pkgInfo: { pkg: string; version: string }
+		) => {
+			const consentManager = createMockConsentManager();
+			const consentStore = createConsentManagerStore(consentManager, {
+				config: {
+					pkg: pkgInfo.pkg,
+					version: pkgInfo.version,
+					mode: options.mode || 'Unknown',
 				},
-				error: null,
-				response: null,
-			}),
-			setConsent: async () => ({
-				ok: true,
-				data: { success: true },
-				error: null,
-				response: null,
-			}),
-			verifyConsent: async () => ({
-				ok: true,
-				data: { valid: true },
-				error: null,
-				response: null,
-			}),
-		}),
+				...options,
+				...options.store,
+				initialTranslationConfig: options.translations,
+			});
+
+			return {
+				consentManager,
+				consentStore,
+				cacheKey: `test:${options.mode || 'c15t'}`,
+			};
+		},
 	};
 });
 

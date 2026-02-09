@@ -128,4 +128,10 @@ export const initialState: StoreRuntimeState = {
 
 	/** Reload page when consent is revoked (recommended for privacy compliance) */
 	reloadOnConsentRevoked: true,
+
+	/** SSR data was not used initially */
+	ssrDataUsed: false,
+
+	/** No SSR skip reason initially (will be set during init) */
+	ssrSkippedReason: null,
 };

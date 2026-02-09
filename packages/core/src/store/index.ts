@@ -134,7 +134,7 @@ export const createConsentManagerStore = (
 		namespace = 'c15tStore',
 		// Extract options that shouldn't be spread directly into state
 		iab,
-		_initialData: _unusedInitialData,
+		ssrData: _unusedSsrData,
 		initialGdprTypes,
 		initialTranslationConfig: _unusedInitialTranslationConfig,
 		enabled: _unusedEnabled,
@@ -325,7 +325,7 @@ export const createConsentManagerStore = (
 		initConsentManager: (): Promise<ConsentBannerResponse | undefined> =>
 			initConsentManager({
 				manager,
-				initialData: options._initialData,
+				ssrData: options.ssrData,
 				initialTranslationConfig: options.initialTranslationConfig,
 				get,
 				set,

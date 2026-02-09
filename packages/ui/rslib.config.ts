@@ -26,7 +26,6 @@ export default defineConfig({
 	output: {
 		target: 'web',
 		cleanDistPath: true,
-		copy: [{ from: './src/styles', to: './styles' }],
 		cssModules: {
 			auto: true,
 			localIdentName: 'c15t-ui-[local]-[hash:base64:5]',

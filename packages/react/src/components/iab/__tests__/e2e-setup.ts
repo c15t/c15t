@@ -222,52 +222,6 @@ export const defaultIABOptions: ConsentManagerOptions = {
 };
 
 /**
- * Resets MSW handlers to default state
- * Call this in afterEach to ensure clean state between tests
- */
-export function resetMSWHandlers() {
-	worker.resetHandlers();
-}
-
-/**
- * Sets up MSW to return mock GVL
- * This is the default behavior - GVL requests are mocked by default
- */
-export function setupGVLFetchMock() {
-	// MSW is already set up with default handlers in test-setup.browser.ts
-	// This function resets to default handlers and returns a cleanup function
-	worker.resetHandlers(...handlers);
-
-	return {
-		mockFetch: null, // Not used with MSW
-		cleanup: () => {
-			worker.resetHandlers();
-		},
-	};
-}
-
-/**
- * Sets up MSW to simulate a non-IAB region (204 response)
- */
-export function setupNonIABRegion() {
-	worker.use(nonIABRegionHandler);
-}
-
-/**
- * Sets up MSW to simulate a GVL fetch error
- */
-export function setupGVLError() {
-	worker.use(errorHandler);
-}
-
-/**
- * Sets up MSW to return invalid GVL data
- */
-export function setupInvalidGVL() {
-	worker.use(invalidGVLHandler);
-}
-
-/**
  * Asserts that TC String contains LI objection for a vendor
  */
 export async function assertTCStringHasLIObjection(vendorId: number) {

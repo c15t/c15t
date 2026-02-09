@@ -62,11 +62,13 @@ availableIn:
   ### Why Page Reload?
 
   Third-party scripts often:
+
   - Set cookies and localStorage data that persist after script removal
   - Create global variables and event listeners
   - Send data before cleanup can occur
 
   A page reload ensures:
+
   - All JavaScript execution is refreshed
   - Scripts without consent are never loaded
   - No residual tracking state remains

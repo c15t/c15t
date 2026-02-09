@@ -81,6 +81,13 @@ export {
 } from './libs/script-loader';
 // Export TCF utilities for testing
 export { clearGVLCache, fetchGVL, getCachedGVL, setMockGVL } from './libs/tcf';
+export {
+	type ConsentRuntimeOptions,
+	type ConsentRuntimePkgInfo,
+	type ConsentRuntimeResult,
+	clearConsentRuntimeCache,
+	getOrCreateConsentRuntime,
+} from './runtime';
 // Export store
 export { createConsentManagerStore } from './store';
 export type {

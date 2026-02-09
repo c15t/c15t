@@ -13,8 +13,10 @@
 	/* Animation variables */
 	--consent-banner-animation-duration: var(--c15t-duration-normal);
 	--consent-banner-animation-timing: var(--c15t-easing);
-	--consent-banner-entry-animation: enter var(--c15t-duration-fast) var(--c15t-easing);
-	--consent-banner-exit-animation: exit var(--c15t-duration-fast) var(--c15t-easing);
+	--consent-banner-entry-animation: enter var(--c15t-duration-fast)
+		var(--c15t-easing);
+	--consent-banner-exit-animation: exit var(--c15t-duration-fast)
+		var(--c15t-easing);
 
 	/* Border */
 	--consent-banner-border-width: 1px;
@@ -68,7 +70,8 @@
 		opacity: 1;
 		transform: translateY(0);
 		transition:
-			opacity var(--consent-banner-animation-duration) var(--consent-banner-animation-timing),
+			opacity var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing),
 			transform var(--consent-banner-animation-duration)
 			cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
@@ -77,8 +80,10 @@
 		opacity: 0;
 		transform: translateY(50px);
 		transition:
-			opacity var(--consent-banner-animation-duration) var(--consent-banner-animation-timing),
-			transform var(--consent-banner-animation-duration) var(--consent-banner-animation-timing);
+			opacity var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing),
+			transform var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing);
 	}
 
 	@media (min-width: 640px) {

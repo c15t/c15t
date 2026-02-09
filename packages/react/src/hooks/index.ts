@@ -2,6 +2,7 @@ export * from './use-component-config';
 export * from './use-consent-manager';
 export * from './use-focus-trap';
 export * from './use-reduced-motion';
+export * from './use-ssr-status';
 export * from './use-text-direction';
 export * from './use-theme';
 export * from './use-translations';

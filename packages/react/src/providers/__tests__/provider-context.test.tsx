@@ -1,60 +1,15 @@
-import { type ConsentManagerOptions, defaultTranslationConfig } from 'c15t';
 // consent-manager-provider.context.test.tsx - Test context values
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { useConsentManager } from '../../hooks/use-consent-manager';
 import {
 	ConsentManagerProvider,
-	clearConsentManagerCache,
+	clearConsentRuntimeCache,
 } from '../consent-manager-provider';
 import { setupMocks } from './test-helpers';
 
 // Setup common mocks
-const { mockConfigureConsentManager } = setupMocks();
-
-// Mock c15t module directly in this test file
-vi.mock('c15t', async () => {
-	const originalModule = await vi.importActual('c15t');
-
-	return {
-		...(originalModule as object),
-		configureConsentManager: (options: ConsentManagerOptions) => {
-			// Track the call
-			mockConfigureConsentManager(options);
-
-			// Return a ready-to-use mock with showPopup set to true
-			return {
-				showConsentBanner: async () => ({
-					ok: true,
-					data: {
-						showConsentBanner: true,
-						jurisdiction: {
-							code: 'GDPR',
-						},
-						translations: {
-							language: 'en',
-							translations: defaultTranslationConfig.translations.en,
-						},
-					},
-					error: null,
-					response: null,
-				}),
-				setConsent: async () => ({
-					ok: true,
-					data: { success: true },
-					error: null,
-					response: null,
-				}),
-				verifyConsent: async () => ({
-					ok: true,
-					data: { valid: true },
-					error: null,
-					response: null,
-				}),
-			};
-		},
-	};
-});
+setupMocks();
 
 // Helper to manually modify the context value
 const modifyContextShowPopup = vi.fn();
@@ -87,7 +42,7 @@ describe('ConsentManagerProvider Context Values', () => {
 		vi.resetAllMocks();
 		vi.useFakeTimers();
 		// Clear consent manager caches to ensure clean state between tests
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 	});
 
 	afterEach(() => {

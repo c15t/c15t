@@ -23,7 +23,7 @@ export interface InitConsentManagerConfig {
 	manager: ConsentManagerInterface;
 
 	/** SSR-prefetched data (init + optional GVL) */
-	initialData?: Promise<SSRInitialData | undefined>;
+	ssrData?: Promise<SSRInitialData | undefined>;
 
 	/** Initial translation configuration to merge with server response */
 	initialTranslationConfig?: Partial<TranslationConfig>;

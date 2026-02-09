@@ -5,6 +5,7 @@ import color from 'picocolors';
 import type { AvailablePackages } from '~/context/framework-detection';
 import type { CliContext } from '~/context/types';
 import { formatLogMessage } from '~/utils/logger';
+import type { ExpandedTheme, UIStyle } from '../../prompts';
 import { generateClientConfigContent } from '../../templates/config';
 import { updateTailwindCss } from '../../templates/css';
 import {
@@ -18,10 +19,15 @@ import type { BaseOptions } from '../types';
 
 export interface GenerateFilesOptions extends BaseOptions {
 	context: CliContext;
-	mode: 'c15t' | 'offline' | 'custom';
+	mode: 'c15t' | 'self-hosted' | 'offline' | 'custom';
 	proxyNextjs?: boolean;
 	backendURL?: string;
 	useEnvFile?: boolean;
+	enableSSR?: boolean;
+	enableDevTools?: boolean;
+	uiStyle?: UIStyle;
+	expandedTheme?: ExpandedTheme;
+	selectedScripts?: string[];
 }
 
 export interface GenerateFilesResult {
@@ -43,6 +49,7 @@ interface LayoutUpdateResult {
 	componentFiles?: {
 		consentManager: string;
 		consentManagerClient?: string;
+		consentManagerDir?: string;
 	};
 }
 
@@ -53,11 +60,16 @@ interface LayoutUpdateResult {
  */
 async function handleReactLayout(options: {
 	projectRoot: string;
-	mode: 'c15t' | 'offline' | 'custom';
+	mode: 'c15t' | 'self-hosted' | 'offline' | 'custom';
 	backendURL?: string;
 	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
+	enableSSR?: boolean;
+	enableDevTools?: boolean;
+	uiStyle?: UIStyle;
+	expandedTheme?: ExpandedTheme;
+	selectedScripts?: string[];
 	spinner: ReturnType<typeof p.spinner>;
 	cwd: string;
 }): Promise<{ layoutUpdated: boolean; layoutPath: string | null }> {
@@ -67,6 +79,11 @@ async function handleReactLayout(options: {
 		backendURL,
 		useEnvFile,
 		proxyNextjs,
+		enableSSR,
+		enableDevTools,
+		uiStyle,
+		expandedTheme,
+		selectedScripts,
 		pkg,
 		spinner,
 		cwd,
@@ -78,6 +95,11 @@ async function handleReactLayout(options: {
 		backendURL,
 		useEnvFile,
 		proxyNextjs,
+		enableSSR,
+		enableDevTools,
+		uiStyle,
+		expandedTheme,
+		selectedScripts,
 		pkg,
 	});
 
@@ -99,7 +121,17 @@ async function handleReactLayout(options: {
 				);
 				const relativeLayout = path.relative(cwd, layoutResult.filePath || '');
 
-				// App Directory has 2 files, Pages Directory has 1 file
+				// Expanded mode has directory, App Directory has 2 files, Pages Directory has 1 file
+				if (typedResult.componentFiles.consentManagerDir) {
+					const relativeConsentManagerDir = path.relative(
+						cwd,
+						typedResult.componentFiles.consentManagerDir
+					);
+					return {
+						message: `Layout setup complete!\n  ${color.green('✓')} Created: ${color.cyan(relativeConsentManagerDir + '/')} (expanded components)\n  ${color.green('✓')} Created: ${color.cyan(relativeConsentManager)}\n  ${color.green('✓')} Updated: ${color.cyan(relativeLayout)}`,
+						type: 'info',
+					};
+				}
 				if (typedResult.componentFiles.consentManagerClient) {
 					const relativeConsentManagerClient = path.relative(
 						cwd,
@@ -276,6 +308,11 @@ export async function generateFiles({
 	useEnvFile,
 	proxyNextjs,
 	backendURL,
+	enableSSR,
+	enableDevTools,
+	uiStyle,
+	expandedTheme,
+	selectedScripts,
 }: GenerateFilesOptions): Promise<GenerateFilesResult> {
 	const result: GenerateFilesResult = {
 		layoutUpdated: false,
@@ -293,6 +330,11 @@ export async function generateFiles({
 			backendURL,
 			useEnvFile,
 			proxyNextjs,
+			enableSSR,
+			enableDevTools,
+			uiStyle,
+			expandedTheme,
+			selectedScripts,
 			pkg,
 			spinner,
 			cwd: context.cwd,
@@ -301,8 +343,12 @@ export async function generateFiles({
 		result.layoutPath = layoutResult.layoutPath;
 	}
 
-	// Update Next.js config for c15t Next.js projects only
-	if (pkg === '@c15t/nextjs' && proxyNextjs && mode === 'c15t') {
+	// Update Next.js config for c15t/self-hosted Next.js projects only
+	if (
+		pkg === '@c15t/nextjs' &&
+		proxyNextjs &&
+		(mode === 'c15t' || mode === 'self-hosted')
+	) {
 		const configResult = await handleNextConfig({
 			projectRoot,
 			backendURL,
@@ -319,7 +365,8 @@ export async function generateFiles({
 		result.configContent = generateClientConfigContent(
 			mode,
 			backendURL,
-			useEnvFile
+			useEnvFile,
+			enableDevTools
 		);
 		result.configPath = path.join(projectRoot, 'c15t.config.ts');
 		spinner.stop(

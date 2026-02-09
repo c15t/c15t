@@ -52,7 +52,7 @@ runs:
     - name: Run bundle analysis
       shell: bash
       working-directory: ${{ github.action_path }}
-      run: pnpm -w exec tsx "$GITHUB_ACTION_PATH/src/main.ts"
+      run: bunx tsx "$GITHUB_ACTION_PATH/src/main.ts"
       env:
         INPUT_BASE_DIR: ${{ inputs.base_dir }}
         INPUT_CURRENT_DIR: ${{ inputs.current_dir }}

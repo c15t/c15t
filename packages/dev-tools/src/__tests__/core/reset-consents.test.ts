@@ -1,4 +1,6 @@
+import type { ConsentStoreState } from 'c15t';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { StoreApi } from 'zustand/vanilla';
 import { resetAllConsents } from '../../core/reset-consents';
 import type { StateManager } from '../../core/state-manager';
 
@@ -11,7 +13,12 @@ function createMockStore() {
 
 	return {
 		getState: vi.fn(() => mockState),
+		getInitialState: vi.fn(() => mockState),
+		setState: vi.fn(),
+		subscribe: vi.fn(() => vi.fn()),
 		mockState,
+	} as unknown as StoreApi<ConsentStoreState> & {
+		mockState: typeof mockState;
 	};
 }
 
@@ -71,7 +78,6 @@ describe('resetAllConsents', () => {
 
 	it('should call resetConsents on the store', async () => {
 		const store = createMockStore();
-		// @ts-expect-error - mock store
 		await resetAllConsents(store);
 
 		expect(store.mockState.resetConsents).toHaveBeenCalled();
@@ -79,7 +85,6 @@ describe('resetAllConsents', () => {
 
 	it('should call initConsentManager to reset IAB state', async () => {
 		const store = createMockStore();
-		// @ts-expect-error - mock store
 		await resetAllConsents(store);
 
 		expect(store.mockState.initConsentManager).toHaveBeenCalled();
@@ -96,7 +101,6 @@ describe('resetAllConsents', () => {
 		});
 
 		const store = createMockStore();
-		// @ts-expect-error - mock store
 		await resetAllConsents(store);
 
 		// Both cookies should be cleared with expiration in the past
@@ -115,7 +119,6 @@ describe('resetAllConsents', () => {
 		mockLocalStorage['euconsent-v2'] = 'test';
 
 		const store = createMockStore();
-		// @ts-expect-error - mock store
 		await resetAllConsents(store);
 
 		expect(localStorage.removeItem).toHaveBeenCalledWith('c15t');
@@ -132,7 +135,6 @@ describe('resetAllConsents', () => {
 		const store = createMockStore();
 		const stateManager = createMockStateManager();
 
-		// @ts-expect-error - mock store
 		await resetAllConsents(store, stateManager);
 
 		expect(stateManager.addEvent).toHaveBeenCalledWith({
@@ -144,7 +146,6 @@ describe('resetAllConsents', () => {
 	it('should not log event when stateManager is not provided', async () => {
 		const store = createMockStore();
 
-		// @ts-expect-error - mock store
 		await resetAllConsents(store);
 
 		// No error should be thrown
@@ -161,7 +162,6 @@ describe('resetAllConsents', () => {
 		const store = createMockStore();
 
 		// Should not throw
-		// @ts-expect-error - mock store
 		await expect(resetAllConsents(store)).resolves.not.toThrow();
 	});
 });

@@ -226,15 +226,27 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	translationConfig?: TranslationConfig;
 
 	/**
-	 * If showConsentBanner is fetched prior to the store being created, you can pass the initial data here.
+	 * SSR-prefetched data for hydration.
 	 *
+	 * Pass the Promise from `fetchInitialData()` directly to this option.
 	 * This is useful for server-side rendering (SSR) such as in @c15t/nextjs.
 	 *
 	 * @remarks
 	 * The data includes init data with optional GVL when the server has IAB configured.
 	 * GVL is included in the init response, not fetched separately.
+	 *
+	 * @example
+	 * ```tsx
+	 * // In your layout.tsx (server component)
+	 * const ssrData = fetchInitialData({ backendURL: '/api/consent' });
+	 *
+	 * // Pass to provider (client component)
+	 * <ConsentManagerProvider options={{ ssrData }}>
+	 *   {children}
+	 * </ConsentManagerProvider>
+	 * ```
 	 */
-	_initialData?: Promise<SSRInitialData | undefined>;
+	ssrData?: Promise<SSRInitialData | undefined>;
 
 	/**
 	 * IAB TCF 2.3 configuration.
@@ -387,6 +399,25 @@ export interface StoreRuntimeState extends StoreConfig {
 	 * @see {@link StoreOptions.reloadOnConsentRevoked} for details
 	 */
 	reloadOnConsentRevoked: boolean;
+
+	/**
+	 * Whether SSR data was successfully used for initialization.
+	 *
+	 * @remarks
+	 * - `true` if SSR data was provided and successfully consumed
+	 * - `false` if SSR data was not provided or failed to load
+	 */
+	ssrDataUsed: boolean;
+
+	/**
+	 * Reason SSR data was skipped, if applicable.
+	 *
+	 * @remarks
+	 * - `null` if SSR data was used successfully
+	 * - `'no_data'` if no SSR data was provided
+	 * - `'fetch_failed'` if SSR data was provided but the fetch returned no data
+	 */
+	ssrSkippedReason: 'no_data' | 'fetch_failed' | null;
 }
 
 /**

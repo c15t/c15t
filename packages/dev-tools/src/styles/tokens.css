@@ -1,6 +1,6 @@
 /**
  * c15t DevTools Design Tokens
- * 
+ *
  * This file only defines DevTools-specific variables that don't exist in c15t/ui.
  * Shared tokens (colors, typography, spacing, etc.) are inherited from c15t/ui's
  * --c15t-* CSS variables.
