@@ -1,8 +1,6 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="overview">
-## What are Consent Models?
-
 Consent models define the default behavior for how consent is handled based on a user's legal jurisdiction. Different privacy laws around the world have fundamentally different philosophies about consent: some, like the EU's GDPR, require explicit opt-in before any non-essential tracking can occur; others, like California's CCPA, allow tracking by default but require a mechanism for users to opt out.
 
 When running in `c15t` mode, c15t detects the user's jurisdiction via geolocation and automatically applies the correct consent model. The model then controls whether consent categories default to `true` or `false`, whether a blocking consent banner must be shown before page interaction, and whether IAB TCF integration is activated.

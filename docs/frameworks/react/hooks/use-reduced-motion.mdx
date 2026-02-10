@@ -3,8 +3,6 @@ title: useReducedMotion
 description: Detect the user's prefers-reduced-motion OS setting and reactively disable animations.
 ---
 
-## Overview
-
 `useReducedMotion()` reads the `prefers-reduced-motion: reduce` media query and reactively updates when the user's preference changes. Use it to conditionally skip animations for users who have enabled reduced motion in their OS accessibility settings.
 
 The hook returns `false` during SSR to avoid hydration mismatches, then updates to the actual preference on the client.

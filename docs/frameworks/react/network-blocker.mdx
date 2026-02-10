@@ -3,8 +3,6 @@ title: Network Blocker
 description: Block outgoing network requests to third-party domains until the user grants consent for the appropriate category.
 ---
 
-## Overview
-
 The network blocker intercepts outgoing `fetch` and `XMLHttpRequest` calls and blocks them based on consent state and domain rules. This catches tracking requests that happen outside of script loading - for example, beacon calls, API requests to analytics endpoints, or pixel fires from already-loaded scripts.
 
 ## Configuration
