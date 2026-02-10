@@ -1,0 +1,89 @@
+---
+title: Location Info
+description: Access detected jurisdiction, country, and region. Override geolocation for testing.
+---
+
+## locationInfo
+
+The `locationInfo` state contains the user's detected geographic information:
+
+```tsx
+const { locationInfo } = useConsentManager();
+
+if (locationInfo) {
+  console.log(locationInfo.jurisdiction); // 'GDPR', 'CCPA', etc.
+  console.log(locationInfo.countryCode);  // 'DE', 'US', etc.
+  console.log(locationInfo.regionCode);   // 'BY', 'CA', etc.
+}
+```
+
+`locationInfo` is `null` until the backend responds with geolocation data (or in offline mode if no overrides are set).
+
+## Jurisdiction Codes
+
+| Code | Region | Consent Model |
+|------|--------|---------------|
+| `GDPR` | European Union | opt-in |
+| `UK_GDPR` | United Kingdom | opt-in |
+| `CH` | Switzerland | opt-in |
+| `BR` | Brazil (LGPD) | opt-in |
+| `APPI` | Japan | opt-in |
+| `PIPA` | South Korea | opt-in |
+| `PIPEDA` | Canada | opt-in |
+| `CCPA` | California, USA | opt-out |
+| `AU` | Australia | opt-out |
+| `NONE` | No jurisdiction | null model |
+
+## setOverrides()
+
+Override detected values for testing or manual configuration. This triggers a re-fetch of consent banner data with the new values:
+
+```tsx
+const { setOverrides } = useConsentManager();
+
+// Override jurisdiction
+await setOverrides({ jurisdiction: 'GDPR' });
+
+// Override language
+await setOverrides({ language: 'de' });
+
+// Override both
+await setOverrides({ jurisdiction: 'CCPA', language: 'es' });
+```
+
+## setLocationInfo()
+
+Directly set location info without triggering a re-fetch:
+
+```tsx
+const { setLocationInfo } = useConsentManager();
+
+setLocationInfo({
+  jurisdiction: 'GDPR',
+  countryCode: 'DE',
+  regionCode: 'BY',
+});
+```
+
+## Testing Different Jurisdictions
+
+A development-only component for testing consent behavior across jurisdictions:
+
+```tsx
+function JurisdictionTester() {
+  const { setOverrides, model, locationInfo } = useConsentManager();
+
+  const jurisdictions = ['GDPR', 'CCPA', 'PIPEDA', 'NONE'];
+
+  return (
+    <div>
+      <p>Current: {locationInfo?.jurisdiction ?? 'none'} → model: {model}</p>
+      {jurisdictions.map((j) => (
+        <button key={j} onClick={() => setOverrides({ jurisdiction: j })}>
+          Test as {j}
+        </button>
+      ))}
+    </div>
+  );
+}
+```

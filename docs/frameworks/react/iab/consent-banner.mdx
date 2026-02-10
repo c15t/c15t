@@ -1,0 +1,98 @@
+---
+title: IABConsentBanner
+description: An IAB TCF 2.3 compliant consent banner that displays partner count, purpose summaries, and legitimate interest notices.
+---
+
+<Callout type="error">
+c15t is **not yet IAB certified**. The IAB TCF components are under active development and should **not be used in production**. APIs and behavior may change before certification is achieved.
+</Callout>
+
+## Overview
+
+`IABConsentBanner` is a pre-built consent banner that follows the [IAB Transparency & Consent Framework (TCF) 2.3](https://iabeurope.eu/tcf-2-0/) specification. It renders when the consent model is set to `'iab'` and includes required disclosures like partner count, purpose summaries, and legitimate interest notices.
+
+Use this component instead of `ConsentBanner` when you need IAB TCF compliance for programmatic advertising in EU jurisdictions.
+
+## When to Use
+
+- Your site participates in the IAB TCF ecosystem (ad exchanges, SSPs, DSPs)
+- You need to disclose vendor partnerships and data processing purposes per IAB requirements
+- The detected jurisdiction requires IAB TCF compliance (typically EU/EEA)
+
+## Basic Usage
+
+```tsx
+import { type ReactNode } from 'react';
+import {
+  ConsentManagerProvider,
+  IABConsentBanner,
+  IABConsentDialog,
+} from '@c15t/react';
+
+export default function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: 'https://your-instance.c15t.dev',
+        iab: {
+          enabled: true,
+          cmpId: 123,
+          vendors: [1, 2, 10, 25],
+        },
+      }}
+    >
+      <IABConsentBanner />
+      <IABConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<Callout type="info">
+The banner only renders when IAB mode is enabled and the GVL (Global Vendor List) has been loaded. If `iab.enabled` is `false` or the server does not return GVL data, nothing is rendered.
+</Callout>
+
+## Banner Content
+
+The IAB banner automatically displays:
+
+- **Title** — Heading text from IAB translations
+- **Description** — Includes the partner count (e.g., "We and our \{partnerCount\} partners...")
+- **Partners link** — Clickable link that opens the vendor tab in the preference center
+- **Purpose/stack list** — Up to 5 purpose/stack names summarizing data usage, with an "and X more" overflow
+- **Legitimate interest notice** — Required IAB disclosure about legitimate interest processing
+- **Scope notice** — Service-specific scope disclosure
+
+## Buttons
+
+The banner includes three action buttons:
+
+| Button | Action |
+|--------|--------|
+| **Reject All** | Rejects all IAB purposes and closes the banner |
+| **Accept All** | Accepts all IAB purposes and closes the banner |
+| **Customize** | Opens the [IABConsentDialog](/docs/frameworks/react/iab/consent-dialog) purposes tab |
+
+### Primary Button
+
+Highlight a specific button as the primary action:
+
+```tsx
+<IABConsentBanner primaryButton="accept" />
+```
+
+Options: `'reject'`, `'accept'`, `'customize'` (default: `'customize'`)
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `noStyle` | `boolean` | `false` | Remove all default styling |
+| `disableAnimation` | `boolean` | `false` | Disable entrance/exit animations |
+| `scrollLock` | `boolean` | `true` | Lock page scroll when banner is visible |
+| `trapFocus` | `boolean` | `true` | Trap keyboard focus within the banner |
+| `primaryButton` | `'reject' \| 'accept' \| 'customize'` | `'customize'` | Which button to highlight as primary |
+
+<AutoTypeTable path="./packages/react/src/components/iab-consent-banner/iab-consent-banner.tsx" name="IABConsentBannerProps" />

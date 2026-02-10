@@ -1,0 +1,59 @@
+---
+title: useTranslations
+description: Access the current language's translations for building custom consent UI.
+---
+
+## Overview
+
+`useTranslations()` returns the `Translations` object for the currently active language. Use it when building custom consent UI that needs translated text.
+
+```tsx
+import { useTranslations } from '@c15t/react';
+
+function CustomBanner() {
+  const translations = useTranslations();
+
+  return (
+    <div>
+      <h2>{translations.cookieBanner.title}</h2>
+      <p>{translations.cookieBanner.description}</p>
+      <button>{translations.common.acceptAll}</button>
+      <button>{translations.common.rejectAll}</button>
+    </div>
+  );
+}
+```
+
+## Translation Sections
+
+The returned object has these sections:
+
+| Section | Keys |
+|---------|------|
+| `common` | `acceptAll`, `rejectAll`, `customize`, `save` |
+| `cookieBanner` | `title`, `description` |
+| `consentManagerDialog` | `title`, `description` |
+| `consentTypes` | Keyed by category name → `{ title, description }` |
+| `frame` | `title`, `actionButton` (supports `{category}` placeholder) |
+| `legalLinks` | `privacyPolicy`, `cookiePolicy`, `termsOfService` |
+
+## With setLanguage
+
+Translations update automatically when the language changes:
+
+```tsx
+import { useConsentManager, useTranslations } from '@c15t/react';
+
+function LocalizedConsent() {
+  const { setLanguage } = useConsentManager();
+  const translations = useTranslations();
+
+  return (
+    <div>
+      <p>{translations.cookieBanner.description}</p>
+      <button onClick={() => setLanguage('de')}>Deutsch</button>
+      <button onClick={() => setLanguage('fr')}>Français</button>
+    </div>
+  );
+}
+```

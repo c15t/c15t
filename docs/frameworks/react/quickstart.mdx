@@ -1,0 +1,180 @@
+---
+title: Quickstart
+description: Add consent management to your React app in under 5 minutes.
+lastModified: 2026-01-09
+availableIn:
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/quickstart'
+    title: 'JavaScript'
+  - framework: 'react'
+    url: '/docs/frameworks/react/quickstart'
+    title: 'React'
+  - framework: 'next'
+    url: '/docs/frameworks/next/quickstart'
+    title: 'Next.js'
+---
+
+## Quickstart via CLI
+
+<PackageCommandTabs command="@c15t/cli" />
+
+## Manual Installation
+<Steps>
+<Step> 
+
+### Install packages
+
+<PackageCommandTabs mode="install" command="@c15t/react" />
+
+Optionally you can install: 
+
+<PackageCommandTabs mode="install" command="@c15t/scripts @c15t/dev-tools" />
+
+Learn more about [dev-tools](#add-devtools-development-only) & [script loading](/docs/frameworks/react/script-loader).
+</Step>
+
+<Step>
+### Add the provider
+
+Create a component called `ConsentManager`, which contains the `ConsentManagerProvider`. This initializes the consent store and makes consent state available to all child components.
+
+```tsx title="components/consent-manager/index.tsx"
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider } from '@c15t/react';
+
+export default function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: 'https://your-instance.c15t.dev',
+        consentCategories: ['necessary', 'measurement', 'marketing'],
+      }}
+    >
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<Callout type="info">
+Don't have a backend yet? Use `mode: 'offline'` to get started with local-only consent storage. See [Client Modes](/docs/frameworks/react/concepts/client-modes) for details.
+</Callout>
+</Step>
+
+<Step>
+### Add the consent banner and dialog
+
+Place `ConsentBanner` and `ConsentDialog` inside the provider. The banner appears automatically when consent is needed, and the dialog opens when users click "Customize."
+
+```tsx title="components/consent-manager/index.tsx"
+import { type ReactNode } from 'react';
+import {
+  ConsentManagerProvider,
+  ConsentBanner,
+  ConsentDialog,
+} from '@c15t/react';
+
+export default function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: 'https://your-instance.c15t.dev',
+        consentCategories: ['necessary', 'measurement', 'marketing'],
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+</Step>
+
+<Step>
+
+### Add DevTools (development only)
+
+The dev-tools package to inspect consent state, location info, loaded scripts, and more:
+
+```tsx title="components/consent-manager/index.tsx"
+import { type ReactNode } from 'react';
+import {
+  ConsentManagerProvider,
+  ConsentBanner,
+  ConsentDialog,
+} from '@c15t/react';
+import { DevTools } from "@c15t/dev-tools"
+
+export default function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: 'https://your-instance.c15t.dev',
+        consentCategories: ['necessary', 'measurement', 'marketing'],
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      { process.env.NODE_ENV !== "production" && <DevTools /> }
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+</Step>
+
+<Step>
+### Verify it works
+
+Start your development server and you should see:
+
+1. A **consent banner** appears at the bottom of the page
+2. Clicking **"Customize"** opens a dialog with toggles for each consent category
+3. The **DevTools panel** (bottom-right corner) shows the current consent state, detected jurisdiction, and active model
+4. After accepting or rejecting, the banner dismisses and your choice persists across page reloads
+</Step>
+</Steps>
+
+## Package Entry Points
+
+`@c15t/react` provides several entry points for different use cases:
+
+| Import Path | Contents |
+|-------------|----------|
+| `@c15t/react` | Components, hooks, provider — the main entry point |
+| `@c15t/react/server` | Server-side utilities (`fetchSSRData`, `extractRelevantHeaders`, etc.) |
+| `@c15t/react/headless` | Minimal hook-only API — no pre-built components |
+| `@c15t/react/hooks` | All hooks exported individually |
+
+## Next steps
+
+<Cards className="not-prose grid gap-4 grid-cols-1 sm:grid-cols-2">
+  <Card
+    variant="interactive"
+    title="Script Loader"
+    description="Gate third-party scripts like Google Analytics and Meta Pixel behind consent."
+    href="/docs/frameworks/react/script-loader"
+  />
+  <Card
+    variant="interactive"
+    title="Styling"
+    description="Customize colors, typography, spacing, and individual component slots."
+    href="/docs/frameworks/react/styling/overview"
+  />
+  <Card
+    variant="interactive"
+    title="Consent Categories"
+    description="Understand the five consent categories and how to configure them."
+    href="/docs/frameworks/react/concepts/consent-categories"
+  />
+  <Card
+    variant="interactive"
+    title="Components"
+    description="Explore the full set of pre-built consent UI components."
+    href="/docs/frameworks/react/components/consent-banner"
+  />
+</Cards>

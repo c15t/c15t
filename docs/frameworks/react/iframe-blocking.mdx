@@ -1,0 +1,102 @@
+---
+title: Iframe Blocking
+description: Block embedded content (YouTube, social widgets, maps) until users grant consent for the appropriate category.
+---
+
+## Overview
+
+Embedded iframes from third parties (YouTube, Google Maps, social media widgets) can set cookies and track users without their consent. c15t provides two approaches to gate iframes behind consent:
+
+1. **`<Frame>` component** - A React component that conditionally renders children based on consent
+2. **HTML `data-category` attribute** - For raw `<iframe>` elements outside of React
+
+## Frame Component
+
+The `<Frame>` component wraps content that requires consent. Children are only mounted when the specified category has consent. When consent is not granted, a placeholder is shown instead.
+
+```tsx
+import { Frame } from '@c15t/react';
+
+function YouTubeEmbed() {
+  return (
+    <Frame category="marketing">
+      <iframe
+        src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+        width="560"
+        height="315"
+        allowFullScreen
+      />
+    </Frame>
+  );
+}
+```
+
+### Custom Placeholder
+
+Replace the default placeholder with your own UI:
+
+```tsx
+<Frame
+  category="marketing"
+  placeholder={
+    <div className="flex items-center justify-center h-64 bg-gray-100 rounded">
+      <p>Enable marketing cookies to watch this video.</p>
+    </div>
+  }
+>
+  <iframe src="https://www.youtube.com/embed/..." />
+</Frame>
+```
+
+### Compound Components
+
+Build custom placeholder layouts using compound components:
+
+```tsx
+<Frame.Root category="marketing">
+  <Frame.Title category="marketing" />
+  <Frame.Button category="marketing" />
+</Frame.Root>
+```
+
+## HTML Attribute Approach
+
+For iframes outside of React (e.g., CMS content, server-rendered HTML), add `data-category` and use `data-src` instead of `src`:
+
+```html
+<iframe
+  data-src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+  data-category="marketing"
+  width="560"
+  height="315"
+></iframe>
+```
+
+When consent for the specified category is granted, c15t automatically swaps `data-src` to `src`, loading the iframe. When consent is revoked, `src` is moved back to `data-src`.
+
+### Dynamic Iframes
+
+c15t uses a `MutationObserver` to watch for dynamically added iframes. Any iframe with `data-category` added to the DOM after initialization is automatically processed.
+
+## Initializing the Iframe Blocker
+
+The iframe blocker for HTML attributes needs to be initialized separately from the Frame component:
+
+```tsx
+import { useConsentManager } from '@c15t/react';
+import { useEffect } from 'react';
+
+function IframeBlockerInit() {
+  const { initializeIframeBlocker } = useConsentManager();
+
+  useEffect(() => {
+    initializeIframeBlocker();
+  }, [initializeIframeBlocker]);
+
+  return null;
+}
+```
+
+## API Reference
+
+<AutoTypeTable path="./packages/react/src/components/frame/types.ts" name="FrameProps" />

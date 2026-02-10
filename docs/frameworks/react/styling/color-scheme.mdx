@@ -1,0 +1,78 @@
+---
+title: Color Scheme
+description: Support light mode, dark mode, and system preference detection in consent components.
+---
+
+## Overview
+
+c15t supports light and dark mode through the theme's `colors` and `dark` token groups. The active color scheme is determined by one of three methods:
+
+1. **Explicit setting** via the `colorScheme` option
+2. **CSS class detection** - c15t checks for `.dark` on the document element
+3. **System preference** - matches `prefers-color-scheme` media query
+
+## Configuration
+
+Set the color scheme on the provider:
+
+```tsx
+<ConsentManagerProvider
+  options={{
+    mode: 'c15t',
+    backendURL: 'https://your-instance.c15t.dev',
+    colorScheme: 'system', // 'light' | 'dark' | 'system'
+    theme: {
+      colors: {
+        primary: '#6366f1',
+        surface: '#ffffff',
+        text: '#1f2937',
+      },
+      dark: {
+        primary: '#818cf8',
+        surface: '#1f2937',
+        text: '#f9fafb',
+      },
+    },
+  }}
+>
+  {children}
+</ConsentManagerProvider>
+```
+
+## useColorScheme Hook
+
+For programmatic control over the color scheme:
+
+```tsx
+import { useColorScheme } from '@c15t/react';
+
+function ThemeToggle() {
+  // Pass the desired scheme - 'light', 'dark', 'system', or null (disable)
+  useColorScheme('system');
+}
+```
+
+| Value | Behavior |
+|-------|----------|
+| `'light'` | Force light mode |
+| `'dark'` | Force dark mode |
+| `'system'` | Follow `prefers-color-scheme` media query |
+| `null` | Disable - c15t won't manage color scheme |
+
+## How Dark Mode Works
+
+When dark mode is active, c15t applies the `dark` token values as CSS variable overrides. Only tokens specified in `dark` are overridden - unset tokens fall back to the `colors` values.
+
+```tsx
+const theme = defineTheme({
+  colors: {
+    surface: '#ffffff',     // Light mode
+    text: '#1f2937',        // Light mode
+  },
+  dark: {
+    surface: '#1f2937',     // Dark mode override
+    text: '#f9fafb',        // Dark mode override
+    // primary is NOT set - inherits from colors.primary
+  },
+});
+```

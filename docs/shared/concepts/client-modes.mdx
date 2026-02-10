@@ -1,0 +1,74 @@
+<!-- This file is NOT rendered directly. Sections are imported by framework pages. -->
+
+<section id="overview">
+## Client Modes
+
+c15t supports three client modes that determine how consent data is stored and synchronized. Choose the mode that matches your infrastructure:
+
+- **c15t mode** - Full backend integration with geolocation, API sync, and analytics
+- **Offline mode** - Local-only storage with no network requests
+- **Custom mode** - Bring your own backend with custom endpoint handlers
+</section>
+
+<section id="c15t-mode">
+## c15t Mode (Recommended)
+
+The default mode. Connects to a c15t backendfor full consent lifecycle management. We recommend using [consent.io](https://consent.io) for a fully managed experience however you can [self-host](/docs/self-host) as well.
+
+**What happens:**
+1. On page load, the client calls `/init` to fetch geolocation, jurisdiction, localized translation strings
+2. When the user grants or changes consent, it is saved locally before being synced to the backend.
+3. If the backend is unreachable, it falls back to Offline mode and resync's with the backend when it's available
+
+**Configuration:**
+- `backendURL` (required) - API endpoint path
+
+**Best for:** Production apps that need geolocation-based jurisdiction detection, consent record storage, and compliance audit trails.
+</section>
+
+<section id="offline-mode">
+## Offline Mode
+
+No network requests. Consent is stored entirely in the browser using localStorage and cookies.
+
+**What happens:**
+1. Default jurisdiction is GDPR unless manually set via `overrides`
+2. Consent preferences persist locally only
+3. No server-side consent records or analytics
+
+**Trade-offs:**
+- No automatic geolocation or jurisdiction detection
+- No consent audit trail
+- No cross-device sync
+- Works without any backend infrastructure
+
+**Best for:** Static sites, development/testing, or as a starting point before setting up a backend.
+</section>
+
+<section id="custom-mode">
+## Custom Mode
+
+Bring your own backend. You provide handler functions for each consent endpoint, and c15t calls them instead of making HTTP requests.
+
+**What happens:**
+1. On page load, the client calls your endpoint handler to fetch geolocation, jurisdiction, localized translation strings
+2. When the user grants or changes consent, it is saved locally before being synced to the backend.
+3. If the backend is unreachable, it falls back to Offline mode and resync's with the backend when it's available
+
+This lets you integrate c15t with any existing API - your CRM, your own consent database, or a third-party compliance service.
+
+**Best for:** Teams with existing consent infrastructure that want c15t's frontend without its backend.
+</section>
+
+<section id="decision-guide">
+## Choosing a Mode
+
+| Feature | c15t | Offline | Custom |
+|---------|------|---------|--------|
+| Geolocation | Automatic | Manual via overrides | Your implementation |
+| Consent sync | API | Local only | Your implementation |
+| SSR data | Supported | Not available | Your implementation |
+| Analytics | Built-in | Not available | Your implementation |
+| Infrastructure | c15t backend | None | Your backend |
+| Setup effort | Minimal | Zero | Moderate |
+</section>

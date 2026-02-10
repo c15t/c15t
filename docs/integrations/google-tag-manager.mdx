@@ -78,7 +78,7 @@ This prevents GTM-managed scripts from loading without proper consent while givi
         import { googleTagManager } from '@c15t/scripts/google-tag-manager';
         import { ConsentManagerProvider } from '@c15t/react';
 
-        export function App({ children }: { children: React.ReactNode }) { 
+        export function ConsentManager({ children }: { children: React.ReactNode }) { 
           return (
             <ConsentManagerProvider
               options={{
@@ -123,7 +123,7 @@ This prevents GTM-managed scripts from loading without proper consent while givi
         import { googleTagManager } from '@c15t/scripts/google-tag-manager';
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
-        export function App() { 
+        export function ConsentManager() { 
           return (
             <ConsentManagerProvider
               options={{

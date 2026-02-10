@@ -1,0 +1,99 @@
+---
+title: Styling Overview
+description: Customize every aspect of c15t's consent components using design tokens, component slots, and CSS variables.
+---
+
+## How Styling Works
+
+c15t uses a token-based theming system. You define **design tokens** (colors, spacing, typography, etc.) which are converted into **CSS variables** at runtime. These variables control how every component looks.
+
+The flow: **Token** → **CSS Variable** → **Component Slot**
+
+## Defining a Theme
+
+Use `defineTheme()` for TypeScript autocomplete and validation:
+
+```tsx
+import { defineTheme, ConsentManagerProvider } from '@c15t/react';
+
+const theme = defineTheme({
+  colors: {
+    primary: '#6366f1',
+    primaryHover: '#4f46e5',
+    surface: '#ffffff',
+    text: '#1f2937',
+    textMuted: '#6b7280',
+  },
+  radius: {
+    md: '0.75rem',
+    lg: '1rem',
+  },
+  spacing: {
+    md: '1.25rem',
+  },
+});
+
+export function ConsentManager() {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: 'https://your-instance.c15t.dev',
+        theme,
+      }}
+    >
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+## Theme Structure
+
+A theme has seven token categories and a slot system:
+
+| Category | Purpose | Example |
+|----------|---------|---------|
+| `colors` | Light mode color palette | `primary`, `surface`, `text` |
+| `dark` | Dark mode color overrides | Same keys as `colors` |
+| `typography` | Font family, sizes, weights | `fontFamily`, `fontSize.base` |
+| `spacing` | Padding, margins, gaps | `xs` through `xl` |
+| `radius` | Border radius | `sm`, `md`, `lg`, `full` |
+| `shadows` | Box shadows | `sm`, `md`, `lg` |
+| `motion` | Animation timing | `duration.normal`, `easing` |
+| `slots` | Per-component style overrides | `consentBannerTitle`, `buttonPrimary` |
+
+## Styling Approaches
+
+c15t supports multiple styling approaches, from least to most custom:
+
+### 1. Theme tokens
+Set global design tokens that affect all components:
+```tsx
+theme={{ colors: { primary: '#6366f1' } }}
+```
+
+### 2. Component slots
+Target specific component parts via the `slots` object:
+```tsx
+theme={{ slots: { consentBannerTitle: 'text-2xl font-bold' } }}
+```
+
+### 3. CSS variables
+Override `--c15t-*` custom properties in your stylesheet.
+
+### 4. className prop
+Pass className directly to components:
+```tsx
+<ConsentBanner className="my-custom-banner" />
+```
+
+### 5. noStyle prop
+Strip all default styles and build from scratch:
+```tsx
+<ConsentBanner noStyle />
+```
+
+## API Reference
+
+<AutoTypeTable path="./packages/ui/src/theme/types.ts" name="Theme" />

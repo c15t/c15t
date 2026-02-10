@@ -1,0 +1,79 @@
+<!-- This file is NOT rendered directly. Sections are imported by framework pages. -->
+
+<section id="overview">
+## Understanding Cookie Management
+
+Cookie management is the most commonly misunderstood part of consent. A critical distinction: **c15t does not manage all cookies on your site.** It controls what scripts, iframes, and network requests are allowed to load - and those third-party resources are what set most cookies.
+
+Understanding this distinction is key to building a compliant consent flow: c15t gates the sources of cookies, not the cookies themselves.
+</section>
+
+<section id="what-sets-cookies">
+## What Actually Sets Cookies
+
+There are four sources of cookies on a typical website:
+
+**1. c15t itself**
+c15t stores the user's consent state in a `c15t` cookie (and mirrors it to localStorage). This cookie records which categories the user consented to, when they consented, and their subject ID. This is a strictly necessary cookie - it exists so the site remembers the user's consent choice.
+
+**2. Third-party scripts**
+When you load a tracking script (Google Analytics, Meta Pixel, etc.), that script sets its own cookies. Google Analytics creates `_ga` and `_gid` cookies. Meta creates `_fbp` and `_fbc`. These cookies are set by the script's code running in the browser - c15t prevents them by not loading the script until the user consents.
+
+**3. Embedded iframes**
+YouTube embeds, social media widgets, and other iframes can set cookies via their embedded content. c15t's iframe blocker replaces iframes with placeholders until consent is granted, preventing these cookies from being set.
+
+**4. Network requests**
+Server responses can include `Set-Cookie` headers. If your page makes requests to third-party APIs or CDNs, those responses may set cookies. c15t's network blocker can intercept `fetch` and `XMLHttpRequest` calls to prevent these requests from happening without consent.
+</section>
+
+<section id="why-reload">
+## Why Revoking Consent Requires a Page Reload
+
+When a user revokes consent for a category (e.g., turns off "measurement" after previously granting it), c15t reloads the page by default. This is not a limitation - it's the only reliable approach.
+
+**Why you can't just delete third-party cookies from JavaScript:**
+- **`httpOnly` cookies** - Many tracking cookies are set with the `httpOnly` flag, which prevents JavaScript from reading or deleting them. Only the server that set them can remove them.
+- **Domain restrictions** - Cookies set on `.google.com` or `.facebook.com` can only be deleted by those domains. Your JavaScript running on `yourdomain.com` has no access.
+- **Alternative storage** - Some scripts also write to `localStorage`, `sessionStorage`, `IndexedDB`, or even Web Workers. Cleaning up all possible storage locations is impractical.
+- **In-memory state** - A loaded script has already executed. Its event listeners, timers, and in-memory data persist until the page unloads. You can't "unrun" JavaScript.
+
+**The reliable solution: don't load the scripts in the first place.** A page reload creates a fresh execution context. On the fresh page, c15t reads the updated consent state and simply never loads the scripts that lost consent. No script means no cookies, no tracking, no in-memory state.
+
+**When reload does NOT happen:**
+- When a user is declining consent for the **first time** (no prior consent existed, so no scripts were loaded to clean up)
+- When `reloadOnConsentRevoked` is set to `false`
+- When the user is only **adding** consent (no revocations)
+</section>
+
+<section id="revocation-flow">
+## The Revocation Flow
+
+When a user revokes consent, the following sequence occurs:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant UI as Consent UI
+    participant Store as Consent Store
+    participant Storage as Cookie + localStorage
+    participant API as c15t Backend
+    participant Browser
+
+    User->>UI: Revokes "measurement" consent
+    UI->>Store: saveConsents({ type: 'custom' })
+    Store->>Store: shouldReloadOnConsentChange() → true
+    Store->>Storage: Save new consent state
+    Store->>Storage: Store PendingConsentSync in localStorage
+    Store->>Browser: onBeforeConsentRevocationReload callback
+    Store->>Browser: window.location.reload()
+    Browser->>Browser: Fresh page load
+    Browser->>Storage: Read consent state
+    Browser->>Store: Initialize with updated consents
+    Note over Store: Scripts without consent are never loaded
+    Store->>Storage: Read PendingConsentSync
+    Store->>API: Sync consent to backend
+    Store->>Storage: Clear PendingConsentSync
+```
+
+**Key detail:** The API sync happens *after* the reload, not before. This ensures the page reloads as fast as possible. The pending sync data is stored in localStorage under the key `c15t:pending-consent-sync` and is picked up by the fresh page's initialization.
+</section>

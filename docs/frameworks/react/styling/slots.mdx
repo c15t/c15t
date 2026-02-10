@@ -1,0 +1,94 @@
+---
+title: Component Slots
+description: Target individual component parts with styles using the slot system - className strings or inline style objects.
+---
+
+## What are Slots?
+
+Slots let you target specific parts of consent components with styles. Each component is built from named "slots" (e.g., `consentBannerTitle`, `consentDialogFooter`) that you can style individually.
+
+## Using Slots
+
+Pass slot styles in the theme's `slots` object:
+
+```tsx
+const theme = defineTheme({
+  slots: {
+    // String value = className
+    consentBannerTitle: 'text-xl font-bold text-gray-900',
+
+    // Object value = className + inline styles
+    consentBannerCard: {
+      className: 'rounded-xl shadow-lg',
+      style: { maxWidth: '600px' },
+    },
+  },
+});
+```
+
+## Slot Style Types
+
+Each slot accepts either a `string` (treated as className) or a `SlotStyle` object:
+
+```tsx
+// String: treated as className
+consentBannerTitle: 'my-custom-class'
+
+// Object: className + style + noStyle
+consentBannerTitle: {
+  className: 'my-custom-class',
+  style: { color: 'red', fontSize: '1.5rem' },
+  noStyle: false, // Set true to remove default styles for this slot
+}
+```
+
+## Available Slots
+
+### Consent Banner
+
+| Slot | Element |
+|------|---------|
+| `consentBanner` | Root wrapper |
+| `consentBannerCard` | Card container |
+| `consentBannerHeader` | Header section |
+| `consentBannerTitle` | Title text |
+| `consentBannerDescription` | Description text |
+| `consentBannerFooter` | Footer with buttons |
+| `consentBannerFooterSubGroup` | Button group within footer |
+| `consentBannerOverlay` | Background overlay |
+
+### Consent Dialog
+
+| Slot | Element |
+|------|---------|
+| `consentDialog` | Root wrapper |
+| `consentDialogCard` | Card container |
+| `consentDialogHeader` | Header section |
+| `consentDialogTitle` | Title text |
+| `consentDialogDescription` | Description text |
+| `consentDialogContent` | Content area with toggles |
+| `consentDialogFooter` | Footer with buttons |
+| `consentDialogOverlay` | Background overlay |
+
+### Consent Widget
+
+| Slot | Element |
+|------|---------|
+| `consentWidget` | Root wrapper |
+| `consentWidgetAccordion` | Category accordion |
+| `consentWidgetFooter` | Footer section |
+| `consentWidgetBranding` | Branding element |
+
+### Shared
+
+| Slot | Element |
+|------|---------|
+| `frame` | Frame component wrapper |
+| `buttonPrimary` | Primary action buttons |
+| `buttonSecondary` | Secondary action buttons |
+| `toggle` | Consent toggle switches |
+
+## API Reference
+
+<AutoTypeTable path="./packages/ui/src/theme/types.ts" name="ComponentSlots" />
+<AutoTypeTable path="./packages/ui/src/theme/types.ts" name="SlotStyle" />

@@ -1,0 +1,163 @@
+---
+title: useConsentManager
+description: The primary hook for accessing consent state and actions. Returns the full consent store including all state properties and action methods.
+---
+
+## Overview
+
+`useConsentManager()` is the primary hook for interacting with the consent system. It returns the complete consent store state and all action methods.
+
+```tsx
+import { useConsentManager } from '@c15t/react';
+
+function MyComponent() {
+  const {
+    consents,
+    model,
+    has,
+    saveConsents,
+    // ... all state and actions
+  } = useConsentManager();
+}
+```
+
+<Callout type="warn">
+Must be used within a `ConsentManagerProvider`. Throws an error if used outside the provider.
+</Callout>
+
+## State Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `consents` | `ConsentState` | Current consent values for all categories |
+| `selectedConsents` | `ConsentState` | Pending selections (unsaved - used by dialog toggles) |
+| `consentInfo` | `ConsentInfo \| null` | Metadata about when/how consent was given |
+| `showPopup` | `boolean` | Whether the consent banner should be visible |
+| `isPrivacyDialogOpen` | `boolean` | Whether the consent dialog is open |
+| `locationInfo` | `LocationInfo \| null` | Detected jurisdiction, country, region |
+| `model` | `Model` | Active consent model: `'opt-in'` \| `'opt-out'` \| `'iab'` \| `null` |
+| `consentCategories` | `AllConsentNames[]` | Active consent categories |
+| `consentTypes` | `ConsentType[]` | Configuration for each consent category |
+| `loadedScripts` | `Record<string, boolean>` | Map of script IDs to load status |
+| `reloadOnConsentRevoked` | `boolean` | Whether page reloads on consent revocation |
+| `ssrDataUsed` | `boolean` | Whether SSR data was used for initialization |
+| `ssrSkippedReason` | `string \| null` | Why SSR data was skipped |
+| `debug` | `boolean` | Whether debug logging is enabled |
+| `isLoadingConsentInfo` | `boolean` | Whether consent data is being fetched |
+
+## Action Methods
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `saveConsents` | `(type: 'all' \| 'custom' \| 'necessary') => Promise<void>` | Save consent preferences |
+| `setConsent` | `(name, value) => void` | Update and auto-save a single consent |
+| `setSelectedConsent` | `(name, value) => void` | Update selection only (for dialog toggles) |
+| `resetConsents` | `() => void` | Reset all consents to defaults |
+| `has` | `(condition) => boolean` | Check if consent condition is satisfied |
+| `hasConsented` | `() => boolean` | Check if user has given any consent |
+| `setShowPopup` | `(show, force?) => void` | Control banner visibility |
+| `setIsPrivacyDialogOpen` | `(isOpen) => void` | Control dialog visibility |
+| `setLanguage` | `(lang) => Promise` | Change active language |
+| `setOverrides` | `(overrides) => Promise` | Override jurisdiction/language |
+| `setConsentCategories` | `(types) => void` | Update active categories |
+| `setCallback` | `(name, fn) => void` | Register/update a callback |
+| `setScripts` | `(scripts) => void` | Add script configurations |
+| `removeScript` | `(id) => void` | Remove a script |
+| `isScriptLoaded` | `(id) => boolean` | Check if a script is loaded |
+| `getLoadedScriptIds` | `() => string[]` | Get all loaded script IDs |
+| `identifyUser` | `(user) => Promise<void>` | Link consent to an authenticated user |
+| `getDisplayedConsents` | `() => ConsentType[]` | Get consent types shown in UI |
+
+## identifyUser
+
+The `identifyUser()` method links anonymous consent records to an authenticated user. Call it after a user logs in to associate their consent preferences with their account.
+
+```tsx
+import { useConsentManager } from '@c15t/react';
+
+function LoginForm() {
+  const { identifyUser } = useConsentManager();
+
+  async function handleLogin(email: string) {
+    // ... your login logic
+    const user = await api.login(email);
+
+    // Link consent to the authenticated user
+    await identifyUser({
+      externalId: user.id,
+      email: user.email,
+    });
+  }
+
+  return (
+    <form onSubmit={(e) => {
+      e.preventDefault();
+      handleLogin(new FormData(e.currentTarget).get('email') as string);
+    }}>
+      <input name="email" type="email" placeholder="Email" />
+      <button type="submit">Log in</button>
+    </form>
+  );
+}
+```
+
+<Callout type="info">
+`identifyUser` sends the user data to the c15t backend. It only works in `'c15t'` mode — in `'offline'` mode the call is a no-op.
+</Callout>
+
+## Key Types
+
+<details>
+<summary>`ConsentState`</summary>
+
+A record mapping consent category names to their boolean values:
+
+```ts
+type ConsentState = Record<AllConsentNames, boolean>;
+// Example: { necessary: true, measurement: true, marketing: false }
+```
+</details>
+
+<details>
+<summary>`ConsentInfo`</summary>
+
+Metadata about when and how consent was recorded:
+
+```ts
+interface ConsentInfo {
+  timestamp: string;       // ISO 8601 timestamp
+  source: string;          // How consent was given: 'banner', 'dialog', 'api'
+  version: string;         // Consent record version
+  jurisdiction: string;    // Detected jurisdiction code
+}
+```
+</details>
+
+<details>
+<summary>`LocationInfo`</summary>
+
+Detected geographic location from the c15t backend:
+
+```ts
+interface LocationInfo {
+  countryCode: string;     // ISO 3166-1 alpha-2 (e.g. 'DE')
+  regionCode: string;      // Region/state code (e.g. 'BY')
+  jurisdiction: string;    // Applicable jurisdiction (e.g. 'GDPR', 'CCPA')
+}
+```
+</details>
+
+<details>
+<summary>`Model`</summary>
+
+The active consent model:
+
+```ts
+type Model = 'opt-in' | 'opt-out' | 'iab' | null;
+```
+
+- `'opt-in'` — Explicit consent required before tracking (GDPR)
+- `'opt-out'` — Tracking allowed by default, user can opt out (CCPA)
+- `'iab'` — IAB TCF 2.3 compliance mode
+- `null` — No jurisdiction detected yet
+</details>

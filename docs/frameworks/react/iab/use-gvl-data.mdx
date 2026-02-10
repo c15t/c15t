@@ -1,0 +1,116 @@
+---
+title: useGVLData
+description: Hook to access processed Global Vendor List (GVL) data for building custom IAB TCF UI components.
+---
+
+<Callout type="error">
+c15t is **not yet IAB certified**. The IAB TCF components are under active development and should **not be used in production**. APIs and behavior may change before certification is achieved.
+</Callout>
+
+## Overview
+
+`useGVLData()` processes the raw IAB Global Vendor List (GVL) into a UI-friendly format. It handles purpose grouping into stacks, vendor mapping, special purpose/feature extraction, and loading state.
+
+Use this hook when building a custom IAB TCF UI instead of the pre-built `IABConsentDialog`.
+
+```tsx
+import { useGVLData } from '@c15t/react/hooks';
+
+function CustomIABPreferences() {
+  const { purposes, stacks, standalonePurposes, totalVendors, isLoading } = useGVLData();
+
+  if (isLoading) return <p>Loading vendor data...</p>;
+
+  return (
+    <div>
+      <p>{totalVendors} partners</p>
+      {standalonePurposes.map((purpose) => (
+        <div key={purpose.id}>
+          <h3>{purpose.name}</h3>
+          <p>{purpose.description}</p>
+          <p>{purpose.vendors.length} vendors</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+<Callout type="warn">
+Must be used within a `ConsentManagerProvider` with IAB mode enabled. Returns empty data if IAB is not configured.
+</Callout>
+
+## Return Value
+
+The hook returns a `GVLData` object:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `purposes` | `ProcessedPurpose[]` | All purposes from the GVL that have associated vendors |
+| `specialPurposes` | `ProcessedPurpose[]` | Special purposes (always active, no user toggle) |
+| `specialFeatures` | `ProcessedSpecialFeature[]` | Special features requiring opt-in |
+| `features` | `ProcessedFeature[]` | Informational features (no consent toggle) |
+| `stacks` | `ProcessedStack[]` | Purpose groups determined by the GVL |
+| `standalonePurposes` | `ProcessedPurpose[]` | Purposes not covered by any stack (includes Purpose 1, which is always standalone per IAB spec) |
+| `totalVendors` | `number` | Total vendor count (GVL vendors + custom vendors) |
+| `isLoading` | `boolean` | `true` while GVL data is being fetched |
+
+## Types
+
+### ProcessedPurpose
+
+```ts
+interface ProcessedPurpose {
+  id: number;
+  name: string;
+  description: string;
+  descriptionLegal?: string;
+  illustrations: string[];
+  vendors: ProcessedVendor[];
+  isSpecialPurpose?: boolean;
+}
+```
+
+### ProcessedVendor
+
+```ts
+interface ProcessedVendor {
+  id: number | string;
+  name: string;
+  policyUrl: string;
+  usesNonCookieAccess: boolean;
+  usesCookies: boolean;
+  cookieMaxAgeSeconds: number | null;
+  purposes: number[];
+  legIntPurposes: number[];
+  specialPurposes: number[];
+  specialFeatures: number[];
+  features: number[];
+  usesLegitimateInterest?: boolean;
+  isCustom?: boolean;
+}
+```
+
+### ProcessedStack
+
+```ts
+interface ProcessedStack {
+  id: number;
+  name: string;
+  description: string;
+  purposes: ProcessedPurpose[];
+}
+```
+
+### ProcessedSpecialFeature
+
+```ts
+interface ProcessedSpecialFeature {
+  id: number;
+  name: string;
+  description: string;
+  descriptionLegal?: string;
+  illustrations: string[];
+  vendors: ProcessedVendor[];
+}
+```

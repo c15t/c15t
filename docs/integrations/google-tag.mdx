@@ -39,7 +39,7 @@ c15t initializes Google Tag with Consent Mode v2 defaults set to denied and auto
     import { gtag } from '@c15t/scripts/google-tag';
     import { ConsentManagerProvider } from '@c15t/react';
 
-    export function App({ children }: { children: React.ReactNode }) { 
+    export function ConsentManager({ children }: { children: React.ReactNode }) { 
       return (
         <ConsentManagerProvider
           options={{
@@ -84,7 +84,7 @@ c15t initializes Google Tag with Consent Mode v2 defaults set to denied and auto
     import { gtag } from '@c15t/scripts/google-tag';
     import { ConsentManagerProvider } from '@c15t/nextjs';
 
-    export function App() { 
+    export function ConsentManager() { 
       return (
         <ConsentManagerProvider
           options={{

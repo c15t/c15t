@@ -1,0 +1,121 @@
+---
+title: Tailwind CSS
+description: Use Tailwind CSS utility classes to style consent components via the slot system.
+---
+
+## Overview
+
+c15t works with Tailwind CSS out of the box. Use the `slots` theme option to apply Tailwind utility classes to any component part.
+
+## Setup
+
+### Tailwind v4
+
+No additional configuration needed. Tailwind v4 automatically scans your source files.
+
+### Tailwind v3
+
+Add c15t's component paths to your `content` array:
+
+```js title="tailwind.config.js"
+module.exports = {
+  content: [
+    './src/**/*.{js,ts,jsx,tsx}',
+    './node_modules/@c15t/react/**/*.{js,mjs}',
+  ],
+};
+```
+
+## Using Tailwind with Slots
+
+Apply Tailwind classes via the theme's `slots` object:
+
+```tsx
+import { defineTheme, ConsentManagerProvider } from '@c15t/react';
+
+const theme = defineTheme({
+  slots: {
+    consentBanner: 'fixed bottom-0 inset-x-0 z-50',
+    consentBannerCard: 'mx-auto max-w-2xl rounded-t-2xl bg-white p-6 shadow-2xl',
+    consentBannerTitle: 'text-lg font-semibold text-gray-900',
+    consentBannerDescription: 'mt-2 text-sm text-gray-600',
+    consentBannerFooter: 'mt-4 flex flex-wrap gap-3',
+    buttonPrimary: 'rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-700',
+    buttonSecondary: 'rounded-full border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50',
+    toggle: 'data-[state=checked]:bg-indigo-600',
+  },
+});
+
+export function ConsentManager() {
+  return (
+    <ConsentManagerProvider options={{ theme, mode: 'c15t', backendURL: 'https://your-instance.c15t.dev' }}>
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+## Dark Mode with Tailwind
+
+Combine Tailwind's dark mode with c15t's `dark` tokens:
+
+```tsx
+const theme = defineTheme({
+  colors: {
+    primary: '#6366f1',
+    surface: '#ffffff',
+    text: '#1f2937',
+  },
+  dark: {
+    primary: '#818cf8',
+    surface: '#1f2937',
+    text: '#f9fafb',
+  },
+  slots: {
+    consentBannerCard: 'bg-white dark:bg-gray-900 shadow-lg dark:shadow-gray-900/30',
+    consentBannerTitle: 'text-gray-900 dark:text-gray-100',
+  },
+});
+```
+
+## Full Example
+
+A complete Tailwind-styled consent banner:
+
+```tsx
+import { defineTheme, ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/react';
+
+const theme = defineTheme({
+  slots: {
+    consentBannerCard: 'mx-4 mb-4 max-w-lg rounded-2xl bg-white p-6 shadow-xl ring-1 ring-gray-100 dark:bg-gray-900 dark:ring-gray-800',
+    consentBannerHeader: 'space-y-2',
+    consentBannerTitle: 'text-base font-semibold text-gray-900 dark:text-gray-100',
+    consentBannerDescription: 'text-sm leading-relaxed text-gray-600 dark:text-gray-400',
+    consentBannerFooter: 'mt-4 flex items-center gap-2',
+    consentBannerFooterSubGroup: 'flex gap-2',
+    buttonPrimary: 'rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200',
+    buttonSecondary: 'rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800',
+  },
+});
+
+export function ConsentManager() {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: 'https://your-instance.c15t.dev',
+        theme,
+        noStyle: true, // Remove all default styles, use only Tailwind
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<Callout type="info">
+When using `noStyle: true` with Tailwind, you're responsible for all layout and visual styling. This gives you complete control but requires more Tailwind classes to achieve a polished result.
+</Callout>

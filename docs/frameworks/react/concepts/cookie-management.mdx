@@ -1,0 +1,42 @@
+---
+title: Cookie Management
+description: How c15t manages cookies through script, iframe, and network gating
+lastModified: 2026-02-09
+---
+
+<import src="../../../shared/concepts/cookie-management.mdx#overview" />
+
+<Callout type="info">
+c15t controls which scripts, iframes, and network requests can load. Third-party scripts set their own cookies - c15t prevents them by blocking the script from loading in the first place.
+</Callout>
+
+<import src="../../../shared/concepts/cookie-management.mdx#what-sets-cookies" />
+
+<import src="../../../shared/concepts/cookie-management.mdx#why-reload" />
+
+Configure reload behavior in the provider:
+
+```tsx
+<ConsentManagerProvider
+  options={{
+    mode: 'c15t',
+    backendURL: 'https://your-instance.c15t.dev',
+    reloadOnConsentRevoked: true, // default: true
+    callbacks: {
+      onBeforeConsentRevocationReload: ({ preferences }) => {
+        // Run cleanup before the page reloads
+        // e.g., flush pending analytics events
+        console.log('Reloading due to consent revocation:', preferences);
+      },
+    },
+  }}
+>
+  {children}
+</ConsentManagerProvider>
+```
+
+<Callout type="warn">
+Setting `reloadOnConsentRevoked: false` means previously-loaded scripts will continue running after consent is revoked. Only disable this if you have a specific strategy for handling script cleanup.
+</Callout>
+
+<import src="../../../shared/concepts/cookie-management.mdx#revocation-flow" />

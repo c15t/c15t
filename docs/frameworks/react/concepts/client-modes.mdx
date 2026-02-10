@@ -1,0 +1,90 @@
+---
+title: Client Modes
+description: Choose how c15t connects to its backend - full c15t integration, offline-only, or bring your own backend.
+---
+
+<import src="../../../shared/concepts/client-modes.mdx#overview" />
+
+<import src="../../../shared/concepts/client-modes.mdx#c15t-mode" />
+
+```tsx
+import { ConsentManagerProvider, ConsentBanner } from '@c15t/react';
+
+export function ConsentManager() {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: 'https://your-instance.c15t.dev',
+      }}
+    >
+      <ConsentBanner />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../../shared/concepts/client-modes.mdx#offline-mode" />
+
+```tsx
+import { ConsentManagerProvider, ConsentBanner } from '@c15t/react';
+
+export function ConsentManager() {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'offline',
+        overrides: {
+          jurisdiction: 'GDPR', // Manually set jurisdiction
+        },
+      }}
+    >
+      <ConsentBanner />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../../shared/concepts/client-modes.mdx#custom-mode" />
+
+```tsx
+import { ConsentManagerProvider, ConsentBanner } from '@c15t/react';
+
+export function ConsentManager() {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'custom',
+        endpointHandlers: {
+          async fetchConsent() {
+            const res = await fetch('/my-api/consent');
+            const data = await res.json();
+            return {
+              ok: true,
+              data: {
+                jurisdiction: data.jurisdiction,
+                consents: data.preferences,
+              },
+            };
+          },
+          async setConsent(body) {
+            await fetch('/my-api/consent', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            });
+            return { ok: true, data: null };
+          },
+        },
+      }}
+    >
+      <ConsentBanner />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../../shared/concepts/client-modes.mdx#decision-guide" />

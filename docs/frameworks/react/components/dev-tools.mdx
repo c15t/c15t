@@ -1,0 +1,62 @@
+---
+title: DevTools
+description: A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
+---
+
+## Overview
+
+`C15TDevTools` is a floating panel that shows the internal state of the consent manager. Use it during development to inspect consent values, geolocation results, loaded scripts, and debug consent flows.
+
+<Callout type="warn">
+DevTools should only be included in development builds. The component renders nothing to the React tree - it injects directly into `document.body`.
+</Callout>
+
+## Installation
+
+DevTools lives in a separate package to keep it out of production bundles:
+
+```bash
+bun add -D @c15t/dev-tools
+```
+
+## Usage
+
+```tsx
+import { ConsentManagerProvider } from '@c15t/react';
+import { C15TDevTools } from '@c15t/dev-tools/react';
+
+export function ConsentManager() {
+  return (
+    <ConsentManagerProvider options={{ mode: 'c15t', backendURL: 'https://your-instance.c15t.dev' }}>
+      {children}
+      {process.env.NODE_ENV === 'development' && <C15TDevTools />}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+## Configuration
+
+```tsx
+<C15TDevTools
+  position="bottom-right"  // 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  defaultOpen={false}       // Start with panel open
+  namespace="c15tStore"     // Store namespace to connect to
+  disabled={false}          // Disable without removing from tree
+/>
+```
+
+## Panels
+
+| Panel | What it shows |
+|-------|---------------|
+| **Consents** | Current consent state for all categories |
+| **Location** | Detected jurisdiction, country, region, and consent model |
+| **Scripts** | Configured scripts and their load status |
+| **IAB** | IAB TCF state (when enabled) - TC string, vendor consents, purposes |
+| **Events** | Timeline of consent events and state changes |
+| **Actions** | Buttons to trigger consent actions (accept all, reject all, reset) |
+
+## Props
+
+<AutoTypeTable path="./packages/dev-tools/src/react.ts" name="C15TDevToolsProps" />
