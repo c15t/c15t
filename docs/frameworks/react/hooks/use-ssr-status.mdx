@@ -23,18 +23,7 @@ function DebugSSR() {
 
 ## Return Value
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `ssrDataUsed` | `boolean` | `true` if SSR data was provided and consumed |
-| `ssrSkippedReason` | `'no_data' \| 'fetch_failed' \| null` | Why SSR data was not used |
-
-### Skip Reasons
-
-| Reason | Meaning |
-|--------|---------|
-| `null` | SSR data was used successfully |
-| `'no_data'` | No `ssrData` prop was provided to the provider |
-| `'fetch_failed'` | `ssrData` was provided but the Promise resolved with no data |
+<AutoTypeTable path="./packages/react/src/hooks/use-ssr-status.ts" name="SSRStatus" />
 
 <Callout type="info">
 Must be used within a `ConsentManagerProvider`. Throws if used outside the provider context.

@@ -1,7 +1,7 @@
 ---
 title: Google Tag Manager
 description: Deploy and manage marketing tags centrally with automatic consent state synchronization.
-lastModified: 2025-09-19
+lastModified: 2026-02-10
 
 icon: google-tag-manager
 ---
@@ -11,6 +11,10 @@ Google Tag Manager (GTM) is Google's tag management system that lets you deploy 
 c15t automatically injects the GTM script into your page and syncs consent state with GTM using Consent Mode v2. By default, c15t loads GTM regardless of consent because GTM manages its own internal consent state and only fires tags when appropriate consent is granted.
 
 This prevents GTM-managed scripts from loading without proper consent while giving you centralized control over your marketing stack.
+
+<Callout type="info">
+Use GTM if your team manages many tags centrally in the GTM UI. Use `gtag.js` if you only need GA4/Google Ads directly in code. Don't run both for the same destination unless intentional, or you may duplicate events.
+</Callout>
 
 ## Implementation
 
@@ -123,7 +127,7 @@ This prevents GTM-managed scripts from loading without proper consent while givi
         import { googleTagManager } from '@c15t/scripts/google-tag-manager';
         import { ConsentManagerProvider } from '@c15t/nextjs';
 
-        export function ConsentManager() { 
+        export function ConsentManager({ children }: { children: React.ReactNode }) { 
           return (
             <ConsentManagerProvider
               options={{
@@ -144,6 +148,14 @@ This prevents GTM-managed scripts from loading without proper consent while givi
     </Tabs>
   </Step>
 </Steps>
+
+## Post-setup verification checklist
+
+1. Open GTM Preview mode and confirm your container (`GTM-...`) loads on page load.
+2. Before giving consent, confirm non-essential tags do not fire in GTM Preview.
+3. Accept consent in the c15t banner/dialog and confirm a `consent-update` event appears in the GTM event timeline.
+4. Confirm measurement/marketing tags fire only after the matching consent is granted.
+5. Revoke consent and confirm a new `consent-update` event appears and affected tags stop firing.
 
 ## Types
 

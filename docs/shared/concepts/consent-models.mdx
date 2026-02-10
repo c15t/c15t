@@ -7,7 +7,7 @@ Consent models define the default behavior for how consent is handled based on a
 
 When running in `c15t` mode, c15t detects the user's jurisdiction via geolocation and automatically applies the correct consent model. The model then controls whether consent categories default to `true` or `false`, whether a blocking consent banner must be shown before page interaction, and whether IAB TCF integration is activated.
 
-This jurisdiction-aware approach ensures that a visitor from Germany sees a full opt-in consent banner before any tracking fires, while a visitor from California sees a non-blocking notice with the ability to opt out, and a visitor from an unregulated region still receives the strictest treatment by default. The logic lives in a single `determineModel()` function that maps jurisdiction codes to one of the supported models.
+This jurisdiction-aware approach ensures that a visitor from Germany sees a full opt-in consent banner before any tracking fires, while a visitor from California sees a non-blocking notice with the ability to opt out. Visitors in a `NONE` (no regulation detected) jurisdiction get a no-banner flow with auto-granted consents by default, while unknown jurisdiction codes fall back to the stricter opt-in model. The logic lives in a single `determineModel()` function that maps jurisdiction codes to one of the supported models.
 
 c15t supports four consent models: **opt-in**, **opt-out**, **iab**, and **null** (no jurisdiction detected).
 </section>
@@ -19,13 +19,15 @@ c15t supports four consent models: **opt-in**, **opt-out**, **iab**, and **null*
 
 The strictest consent model, used for GDPR and similar regulations that require explicit, affirmative consent before any non-essential data processing occurs. Under this model, all consent categories except `necessary` default to `false`. A consent banner must be shown before any tracking scripts load, and the user must actively grant consent for each category they wish to enable.
 
-This is the model applied to jurisdictions including the EU (GDPR), the UK (UK GDPR), Switzerland, Brazil (LGPD), Japan (APPI), South Korea (PIPA), and Canada (PIPEDA). It is also the fallback model if c15t does not know the vistors location - the library defaults to the strictest behavior to minimize compliance risk.
+This is the model applied to jurisdictions including the EU (GDPR), the UK (UK GDPR), Switzerland, Brazil (LGPD), Japan (APPI), South Korea (PIPA), and Canada (PIPEDA). It is also the fallback model for unknown jurisdiction codes to minimize compliance risk.
 
 ### Opt-out
 
 Used for CCPA-style regulations where data processing is permitted by default until the user exercises their right to opt out. Under this model, all consent categories default to `true`, meaning tracking scripts and cookies can activate immediately without waiting for explicit consent. However, you must provide a clear mechanism for users to opt out, such as a "Do Not Sell or Share My Personal Information" link as required by CCPA.
 
 A blocking consent banner is not required under this model. Instead, the typical pattern is a non-intrusive notice or a link in the footer that opens a consent preferences panel. This model applies to California (CCPA) and Australia (AU).
+
+If the browser sends a Global Privacy Control (GPC) signal (`Sec-GPC: 1`), `marketing` and `measurement` are denied while other categories remain granted. This honors the user's opt-out preference automatically, as required by CCPA.
 
 ### IAB
 
@@ -37,9 +39,9 @@ If `iab.enabled` is not set or is `false`, GDPR and UK GDPR jurisdictions fall b
 
 ### null
 
-Returned when no jurisdiction has been detected. This occurs in several situations: geolocation has not yet resolved (the API call is still in flight), the user's location could not be determined (network error, blocked request), or the jurisdiction was explicitly set to `null` or `NONE`.
+Returned when no jurisdiction has been detected. This occurs when the jurisdiction is explicitly `null` or `NONE`.
 
-In this state, no consent banner is displayed. Consent categories remain in their initial default state. Once the jurisdiction resolves, the model updates automatically and the appropriate banner behavior activates. This transient state ensures that the UI does not flash a consent banner before the library knows which model to apply.
+In this state, no consent banner is displayed. On first visit (no stored consent), c15t auto-grants all categories. If a Global Privacy Control (GPC) signal is present, `marketing` and `measurement` are denied while the other categories remain granted. If consent already exists, c15t preserves the existing saved consent state.
 </section>
 
 <section id="jurisdiction-mapping">

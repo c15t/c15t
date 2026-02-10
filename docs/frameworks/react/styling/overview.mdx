@@ -9,11 +9,23 @@ c15t uses a token-based theming system. You define **design tokens** (colors, sp
 
 The flow: **Token** → **CSS Variable** → **Component Slot**
 
+## Choose Your Styling Path
+
+| If you want to... | Start with |
+|-------------------|------------|
+| Apply brand colors/spacing/typography globally | [Design Tokens](./tokens) |
+| Target specific parts like title/footer/buttons | [Component Slots](./slots) |
+| Use utility classes or CSS modules | [Class Names](./classnames) |
+| Use Tailwind as the main styling layer | [Tailwind CSS](./tailwind) |
+| Override with plain CSS variables only | [CSS Variables](./css-variables) |
+| Build everything from scratch | [`noStyle` + Headless Mode](../headless) |
+
 ## Defining a Theme
 
 Use `defineTheme()` for TypeScript autocomplete and validation:
 
 ```tsx
+import { type ReactNode } from 'react';
 import { defineTheme, ConsentManagerProvider } from '@c15t/react';
 
 const theme = defineTheme({
@@ -33,7 +45,7 @@ const theme = defineTheme({
   },
 });
 
-export function ConsentManager() {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
     <ConsentManagerProvider
       options={{
@@ -50,7 +62,7 @@ export function ConsentManager() {
 
 ## Theme Structure
 
-A theme has seven token categories and a slot system:
+A theme has six base token categories, optional dark overrides, and a slot system:
 
 | Category | Purpose | Example |
 |----------|---------|---------|
@@ -89,10 +101,44 @@ Pass className directly to components:
 ```
 
 ### 5. noStyle prop
-Strip all default styles and build from scratch:
+Strip all default styles and build from scratch (best paired with [Headless Mode](../headless)):
 ```tsx
 <ConsentBanner noStyle />
 ```
+
+## Common Styling Tasks
+
+### Change brand color globally
+```tsx
+theme={{ colors: { primary: '#0ea5e9', primaryHover: '#0284c7' } }}
+```
+
+### Make the banner card more compact
+```tsx
+theme={{ spacing: { md: '0.75rem', lg: '1rem' } }}
+```
+
+### Round primary/secondary buttons
+```tsx
+theme={{ slots: { buttonPrimary: 'rounded-full', buttonSecondary: 'rounded-full' } }}
+```
+
+### Enable dark mode safely
+```tsx
+options={{
+  colorScheme: 'system',
+  theme: {
+    colors: { surface: '#ffffff', text: '#1f2937' },
+    dark: { surface: '#111827', text: '#f9fafb' },
+  },
+}}
+```
+
+<Callout type="warning">
+- `noStyle: true` removes layout and visual defaults. Use it only when you want full control.
+- Use either tokens/slots or raw CSS variable overrides intentionally to avoid conflicting style sources.
+- For dark mode, c15t supports `.dark` and `.c15t-dark`.
+</Callout>
 
 ## API Reference
 

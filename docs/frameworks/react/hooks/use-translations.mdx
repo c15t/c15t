@@ -26,16 +26,9 @@ function CustomBanner() {
 
 ## Translation Sections
 
-The returned object has these sections:
+The returned `Translations` object has these sections:
 
-| Section | Keys |
-|---------|------|
-| `common` | `acceptAll`, `rejectAll`, `customize`, `save` |
-| `cookieBanner` | `title`, `description` |
-| `consentManagerDialog` | `title`, `description` |
-| `consentTypes` | Keyed by category name → `{ title, description }` |
-| `frame` | `title`, `actionButton` (supports `{category}` placeholder) |
-| `legalLinks` | `privacyPolicy`, `cookiePolicy`, `termsOfService` |
+<AutoTypeTable path="./packages/translations/src/types.ts" name="Translations" />
 
 ## With setLanguage
 

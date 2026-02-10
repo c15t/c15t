@@ -8,9 +8,10 @@ description: Choose how c15t connects to its backend - full c15t integration, of
 <import src="../../../shared/concepts/client-modes.mdx#c15t-mode" />
 
 ```tsx
+import { type ReactNode } from 'react';
 import { ConsentManagerProvider, ConsentBanner } from '@c15t/react';
 
-export function ConsentManager() {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
     <ConsentManagerProvider
       options={{
@@ -28,15 +29,16 @@ export function ConsentManager() {
 <import src="../../../shared/concepts/client-modes.mdx#offline-mode" />
 
 ```tsx
+import { type ReactNode } from 'react';
 import { ConsentManagerProvider, ConsentBanner } from '@c15t/react';
 
-export function ConsentManager() {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
     <ConsentManagerProvider
       options={{
         mode: 'offline',
         overrides: {
-          jurisdiction: 'GDPR', // Manually set jurisdiction
+          country: 'DE', // Override country to trigger GDPR jurisdiction
         },
       }}
     >
@@ -50,32 +52,27 @@ export function ConsentManager() {
 <import src="../../../shared/concepts/client-modes.mdx#custom-mode" />
 
 ```tsx
+import { type ReactNode } from 'react';
 import { ConsentManagerProvider, ConsentBanner } from '@c15t/react';
 
-export function ConsentManager() {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
     <ConsentManagerProvider
       options={{
         mode: 'custom',
         endpointHandlers: {
-          async fetchConsent() {
-            const res = await fetch('/my-api/consent');
+          async init() {
+            const res = await fetch('/my-api/consent/init');
             const data = await res.json();
-            return {
-              ok: true,
-              data: {
-                jurisdiction: data.jurisdiction,
-                consents: data.preferences,
-              },
-            };
+            return { data, response: res, error: null };
           },
-          async setConsent(body) {
-            await fetch('/my-api/consent', {
+          async setConsent(options) {
+            const res = await fetch('/my-api/consent', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(body),
+              body: JSON.stringify(options?.body),
             });
-            return { ok: true, data: null };
+            return { data: await res.json(), response: res, error: null };
           },
         },
       }}

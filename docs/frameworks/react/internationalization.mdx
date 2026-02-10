@@ -7,7 +7,7 @@ description: Translate consent UI into 30+ languages with built-in translations,
 
 c15t ships with built-in translations for 30+ languages via the `@c15t/translations` package. Language detection happens automatically based on the browser's language preference, and you can override or extend translations for any language.
 
-There is two ways c15t can load translations: client-side or server-side.
+There are two ways c15t can load translations: client-side or server-side.
 
 | Server-side | Client-side |
 | --- | --- |
@@ -18,9 +18,10 @@ There is two ways c15t can load translations: client-side or server-side.
 Pass custom translations via the `translations` option:
 
 ```tsx
+import { type ReactNode } from 'react';
 import { ConsentManagerProvider } from '@c15t/react';
 
-export default function ConsentManager() {
+export default function ConsentManager({ children }: { children: ReactNode }) {
   return (
     <ConsentManagerProvider
       options={{

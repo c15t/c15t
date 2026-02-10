@@ -1,7 +1,7 @@
 ---
 title: GA4 + Google Ads (gtag.js)
 description: Send data to Google Analytics 4 and Google Ads with automatic Consent Mode v2 support.
-lastModified: 2025-09-24
+lastModified: 2026-02-10
 
 icon: google-analytics
 ---
@@ -9,6 +9,10 @@ icon: google-analytics
 Google Tag (`gtag.js`) is Google's unified tracking script for sending data to Google Analytics 4 (GA4), Google Ads, and Floodlight. It measures user behavior, tracks conversions, and powers Google's advertising ecosystem.
 
 c15t initializes Google Tag with Consent Mode v2 defaults set to denied and automatically updates the consent state when users make choices. You don't need to configure Google Consent Mode yourself.
+
+<Callout type="info">
+Use GTM if your team needs centralized tag management in the GTM UI. Use `gtag.js` if you only need GA4/Google Ads directly in code. Don't run both for the same destination unless intentional, or you may duplicate events.
+</Callout>
 
 **Choosing the right category:**
 
@@ -46,6 +50,7 @@ c15t initializes Google Tag with Consent Mode v2 defaults set to denied and auto
             scripts: [
               gtag({
                 id: 'G-XXXXXXXXXX',
+                category: 'measurement', // or 'marketing'
               }),
             ],
           }}
@@ -69,6 +74,7 @@ c15t initializes Google Tag with Consent Mode v2 defaults set to denied and auto
           scripts={[
             gtag({
               id: 'G-XXXXXXXXXX',
+              category: 'measurement', // or 'marketing'
             }),
           ]}
         >
@@ -84,7 +90,7 @@ c15t initializes Google Tag with Consent Mode v2 defaults set to denied and auto
     import { gtag } from '@c15t/scripts/google-tag';
     import { ConsentManagerProvider } from '@c15t/nextjs';
 
-    export function ConsentManager() { 
+    export function ConsentManager({ children }: { children: React.ReactNode }) { 
       return (
         <ConsentManagerProvider
           options={{

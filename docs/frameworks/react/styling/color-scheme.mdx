@@ -16,27 +16,34 @@ c15t supports light and dark mode through the theme's `colors` and `dark` token 
 Set the color scheme on the provider:
 
 ```tsx
-<ConsentManagerProvider
-  options={{
-    mode: 'c15t',
-    backendURL: 'https://your-instance.c15t.dev',
-    colorScheme: 'system', // 'light' | 'dark' | 'system'
-    theme: {
-      colors: {
-        primary: '#6366f1',
-        surface: '#ffffff',
-        text: '#1f2937',
-      },
-      dark: {
-        primary: '#818cf8',
-        surface: '#1f2937',
-        text: '#f9fafb',
-      },
-    },
-  }}
->
-  {children}
-</ConsentManagerProvider>
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider } from '@c15t/react';
+
+function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: 'https://your-instance.c15t.dev',
+        colorScheme: 'system', // 'light' | 'dark' | 'system'
+        theme: {
+          colors: {
+            primary: '#6366f1',
+            surface: '#ffffff',
+            text: '#1f2937',
+          },
+          dark: {
+            primary: '#818cf8',
+            surface: '#1f2937',
+            text: '#f9fafb',
+          },
+        },
+      }}
+    >
+      {children}
+    </ConsentManagerProvider>
+  );
+}
 ```
 
 ## useColorScheme Hook

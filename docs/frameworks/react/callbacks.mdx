@@ -10,9 +10,10 @@ Callbacks let you run custom code at key points in the consent lifecycle. Define
 ## Configuration
 
 ```tsx
+import { type ReactNode } from 'react';
 import { ConsentManagerProvider } from '@c15t/react';
 
-export function ConsentManager() {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
     <ConsentManagerProvider
       options={{
@@ -98,6 +99,7 @@ onBeforeConsentRevocationReload: ({ preferences }) => {
 Register or update callbacks at runtime using `setCallback()`:
 
 ```tsx
+import { useEffect } from 'react';
 import { useConsentManager } from '@c15t/react';
 
 function ConsentAnalytics() {

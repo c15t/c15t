@@ -12,9 +12,10 @@ The network blocker intercepts outgoing `fetch` and `XMLHttpRequest` calls and b
 Add `networkBlocker` to your provider options:
 
 ```tsx
+import { type ReactNode } from 'react';
 import { ConsentManagerProvider } from '@c15t/react';
 
-export function ConsentManager() {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
     <ConsentManagerProvider
       options={{

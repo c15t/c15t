@@ -34,28 +34,9 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
 
 ## Options Reference
 
-The `options` prop accepts a `ConsentManagerOptions` object. Below is a summary of all available properties. Complex options have dedicated pages linked in the "Details" column.
-
-| Option | Type | Default | Description | Details |
-|--------|------|---------|-------------|---------|
-| `mode` | `'c15t' \| 'offline'` | — | **Required.** How consent data is stored. `'c15t'` uses a backend; `'offline'` stores locally in cookies. | [Client Modes](/docs/frameworks/react/concepts/client-modes) |
-| `backendURL` | `string` | — | Backend URL for `'c15t'` mode. Absolute or relative path. | — |
-| `consentCategories` | `AllConsentNames[]` | `['necessary']` | Which consent categories to manage. | [Consent Categories](/docs/frameworks/react/concepts/consent-categories) |
-| `scripts` | `Script[]` | `[]` | Third-party scripts gated behind consent. | [Script Loader](/docs/frameworks/react/script-loader) |
-| `networkBlocker` | `NetworkBlockerOptions` | — | Block network requests to unconsented domains. | [Network Blocker](/docs/frameworks/react/network-blocker) |
-| `callbacks` | `ConsentCallbacks` | — | Lifecycle callbacks for consent events. | [Callbacks](/docs/frameworks/react/callbacks) |
-| `translations` | `TranslationConfig` | — | Custom translations and language settings. | [Internationalization](/docs/frameworks/react/internationalization) |
-| `theme` | `Theme` | Default theme | Design token overrides for colors, spacing, typography. | [Styling Tokens](/docs/frameworks/react/styling/tokens) |
-| `colorScheme` | `'light' \| 'dark' \| 'system'` | `'system'` | Color scheme preference. | [Color Scheme](/docs/frameworks/react/styling/color-scheme) |
-| `noStyle` | `boolean` | `false` | Strip all default styles from components. | [Headless](/docs/frameworks/react/headless) |
-| `disableAnimation` | `boolean` | `false` | Disable all entrance/exit animations. | — |
-| `trapFocus` | `boolean` | `true` | Trap keyboard focus inside dialogs and banners. | — |
-| `reloadOnConsentRevoked` | `boolean` | `true` | Reload the page when a user revokes previously granted consent. | — |
-| `legalLinks` | `LegalLinksConfig` | — | URLs for privacy policy, cookie policy, and terms of service. | — |
-| `ssrData` | `Promise<SSRInitialData>` | — | Server-side rendered consent data for hydration. | [Server-Side](/docs/frameworks/react/server-side) |
-| `debug` | `boolean` | `false` | Enable verbose logging in the browser console. | — |
-| `overrides` | `Overrides` | — | Override detected jurisdiction, country, region, or language. | — |
-| `iab` | `IABConfig` | — | IAB TCF 2.3 configuration for EU programmatic advertising compliance. | [IAB TCF](/docs/frameworks/react/iab/consent-banner) |
+<AutoTypeTable path="./packages/ui/src/theme/options.ts" name="CommonInlineStoreOptions" />
+<AutoTypeTable path="./packages/ui/src/theme/options.ts" name="ConsentManagerContentOptions" />
+<AutoTypeTable path="./packages/ui/src/theme/types.ts" name="UIOptions" />
 
 ## Mode: c15t vs offline
 

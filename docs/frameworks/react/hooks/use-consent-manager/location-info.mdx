@@ -41,14 +41,14 @@ Override detected values for testing or manual configuration. This triggers a re
 ```tsx
 const { setOverrides } = useConsentManager();
 
-// Override jurisdiction
-await setOverrides({ jurisdiction: 'GDPR' });
+// Override country (triggers jurisdiction detection)
+await setOverrides({ country: 'DE' });
 
 // Override language
 await setOverrides({ language: 'de' });
 
 // Override both
-await setOverrides({ jurisdiction: 'CCPA', language: 'es' });
+await setOverrides({ country: 'US', region: 'CA', language: 'es' });
 ```
 
 ## setLocationInfo()
@@ -73,14 +73,19 @@ A development-only component for testing consent behavior across jurisdictions:
 function JurisdictionTester() {
   const { setOverrides, model, locationInfo } = useConsentManager();
 
-  const jurisdictions = ['GDPR', 'CCPA', 'PIPEDA', 'NONE'];
+  const testCases = [
+    { label: 'GDPR', country: 'DE' },
+    { label: 'CCPA', country: 'US', region: 'CA' },
+    { label: 'PIPEDA', country: 'CA' },
+    { label: 'NONE', country: 'US', region: 'TX' },
+  ];
 
   return (
     <div>
       <p>Current: {locationInfo?.jurisdiction ?? 'none'} → model: {model}</p>
-      {jurisdictions.map((j) => (
-        <button key={j} onClick={() => setOverrides({ jurisdiction: j })}>
-          Test as {j}
+      {testCases.map((tc) => (
+        <button key={tc.label} onClick={() => setOverrides({ country: tc.country, region: tc.region })}>
+          Test as {tc.label}
         </button>
       ))}
     </div>

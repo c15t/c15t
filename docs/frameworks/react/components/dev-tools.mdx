@@ -22,10 +22,11 @@ bun add -D @c15t/dev-tools
 ## Usage
 
 ```tsx
+import { type ReactNode } from 'react';
 import { ConsentManagerProvider } from '@c15t/react';
 import { C15TDevTools } from '@c15t/dev-tools/react';
 
-export function ConsentManager() {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
     <ConsentManagerProvider options={{ mode: 'c15t', backendURL: 'https://your-instance.c15t.dev' }}>
       {children}

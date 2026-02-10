@@ -7,6 +7,10 @@ description: Fetch consent data on the server for SSR hydration — eliminate th
 
 The `@c15t/react/server` module provides utilities for fetching consent data on the server before rendering. This enables SSR hydration — consent state is available immediately on page load without a client-side fetch, eliminating the consent banner flash.
 
+<Callout type="info">
+SSR hydration is part of the [initialization flow](/docs/frameworks/react/concepts/initialization-flow#how-it-works). When SSR data is available, the client skips the API fetch entirely.
+</Callout>
+
 ```ts
 import {
   fetchSSRData,
@@ -37,12 +41,7 @@ const ssrData = await fetchSSRData({
 
 ### Options
 
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `backendURL` | `string` | Yes | Backend URL (absolute or relative path) |
-| `headers` | `Headers` | Yes | The incoming request's `Headers` object |
-| `overrides` | `Overrides` | No | Force specific country, region, or language |
-| `debug` | `boolean` | No | Log SSR fetch details to server console |
+<AutoTypeTable path="./packages/react/src/server/types.ts" name="FetchSSRDataOptions" />
 
 ### Return Value
 

@@ -62,7 +62,7 @@ const theme = defineTheme({
 
 ## noStyle Mode
 
-Strip all default styles from a component and build from scratch:
+Use `noStyle` when you want to remove defaults and style from scratch:
 
 ```tsx
 // Remove all styles from a specific component
@@ -71,8 +71,6 @@ Strip all default styles from a component and build from scratch:
 // Remove all styles globally
 <ConsentManagerProvider options={{ noStyle: true, ... }}>
 ```
-
-When `noStyle` is true, components render with zero styling - no colors, no spacing, no layout. They're just semantic HTML elements that you style entirely yourself.
 
 You can also set `noStyle` per-slot:
 
@@ -83,3 +81,5 @@ const theme = defineTheme({
   },
 });
 ```
+
+For full custom markup and behavior, continue to [Headless Mode](../headless).

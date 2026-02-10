@@ -20,10 +20,11 @@ c15t has a collection of premade scripts available on the @c15t/scripts package.
 Pass an array of `Script` objects to the provider:
 
 ```tsx
+import { type ReactNode } from 'react';
 import { ConsentManagerProvider } from '@c15t/react';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
 
-export function ConsentManager() {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
     <ConsentManagerProvider
       options={{

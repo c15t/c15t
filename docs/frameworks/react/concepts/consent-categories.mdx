@@ -8,9 +8,10 @@ description: How c15t organizes tracking technologies into five consent categori
 Configure which categories your app supports in the provider:
 
 ```tsx
+import { type ReactNode } from 'react';
 import { ConsentManagerProvider } from '@c15t/react';
 
-export function ConsentManager() {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
     <ConsentManagerProvider
       options={{

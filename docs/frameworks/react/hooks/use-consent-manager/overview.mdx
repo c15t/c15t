@@ -27,46 +27,11 @@ Must be used within a `ConsentManagerProvider`. Throws an error if used outside 
 
 ## State Properties
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `consents` | `ConsentState` | Current consent values for all categories |
-| `selectedConsents` | `ConsentState` | Pending selections (unsaved - used by dialog toggles) |
-| `consentInfo` | `ConsentInfo \| null` | Metadata about when/how consent was given |
-| `showPopup` | `boolean` | Whether the consent banner should be visible |
-| `isPrivacyDialogOpen` | `boolean` | Whether the consent dialog is open |
-| `locationInfo` | `LocationInfo \| null` | Detected jurisdiction, country, region |
-| `model` | `Model` | Active consent model: `'opt-in'` \| `'opt-out'` \| `'iab'` \| `null` |
-| `consentCategories` | `AllConsentNames[]` | Active consent categories |
-| `consentTypes` | `ConsentType[]` | Configuration for each consent category |
-| `loadedScripts` | `Record<string, boolean>` | Map of script IDs to load status |
-| `reloadOnConsentRevoked` | `boolean` | Whether page reloads on consent revocation |
-| `ssrDataUsed` | `boolean` | Whether SSR data was used for initialization |
-| `ssrSkippedReason` | `string \| null` | Why SSR data was skipped |
-| `debug` | `boolean` | Whether debug logging is enabled |
-| `isLoadingConsentInfo` | `boolean` | Whether consent data is being fetched |
+<AutoTypeTable path="./packages/core/src/store/type.ts" name="StoreRuntimeState" />
 
 ## Action Methods
 
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `saveConsents` | `(type: 'all' \| 'custom' \| 'necessary') => Promise<void>` | Save consent preferences |
-| `setConsent` | `(name, value) => void` | Update and auto-save a single consent |
-| `setSelectedConsent` | `(name, value) => void` | Update selection only (for dialog toggles) |
-| `resetConsents` | `() => void` | Reset all consents to defaults |
-| `has` | `(condition) => boolean` | Check if consent condition is satisfied |
-| `hasConsented` | `() => boolean` | Check if user has given any consent |
-| `setShowPopup` | `(show, force?) => void` | Control banner visibility |
-| `setIsPrivacyDialogOpen` | `(isOpen) => void` | Control dialog visibility |
-| `setLanguage` | `(lang) => Promise` | Change active language |
-| `setOverrides` | `(overrides) => Promise` | Override jurisdiction/language |
-| `setConsentCategories` | `(types) => void` | Update active categories |
-| `setCallback` | `(name, fn) => void` | Register/update a callback |
-| `setScripts` | `(scripts) => void` | Add script configurations |
-| `removeScript` | `(id) => void` | Remove a script |
-| `isScriptLoaded` | `(id) => boolean` | Check if a script is loaded |
-| `getLoadedScriptIds` | `() => string[]` | Get all loaded script IDs |
-| `identifyUser` | `(user) => Promise<void>` | Link consent to an authenticated user |
-| `getDisplayedConsents` | `() => ConsentType[]` | Get consent types shown in UI |
+<AutoTypeTable path="./packages/core/src/store/type.ts" name="StoreActions" />
 
 ## identifyUser
 
@@ -84,8 +49,8 @@ function LoginForm() {
 
     // Link consent to the authenticated user
     await identifyUser({
-      externalId: user.id,
-      email: user.email,
+      id: user.id,
+      identityProvider: 'your-auth-provider', // e.g. 'clerk', 'auth0'
     });
   }
 
@@ -125,10 +90,10 @@ Metadata about when and how consent was recorded:
 
 ```ts
 interface ConsentInfo {
-  timestamp: string;       // ISO 8601 timestamp
-  source: string;          // How consent was given: 'banner', 'dialog', 'api'
-  version: string;         // Consent record version
-  jurisdiction: string;    // Detected jurisdiction code
+  time: number;                    // Epoch timestamp when consent was recorded
+  subjectId?: string;              // Client-generated subject ID (sub_xxx format)
+  externalId?: string;             // External user ID linked via identifyUser()
+  identityProvider?: string;       // Identity provider (e.g. 'clerk', 'auth0')
 }
 ```
 </details>
