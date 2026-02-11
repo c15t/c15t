@@ -25,6 +25,66 @@ lastModified: 2025-10-02
   <Card variant="interactive" title="X Pixel" description="Measure ad performance and build audiences for advertising campaigns on X (Twitter)." icon={<Icon name="x" />} href="/docs/integrations/x-pixel" />
 </Cards>
 
+## General Pattern
+
+Every integration provides a script configuration function. Pass it to your framework's setup:
+
+<Tabs items={['JavaScript', 'React', 'Next.js']}>
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { yourScript } from '@c15t/scripts/your-script';
+
+    getOrCreateConsentRuntime({
+      mode: 'c15t',
+      scripts: [
+        yourScript({ /* options */ }),
+      ],
+    });
+    ```
+  </Tab>
+  <Tab value="React">
+    ```tsx
+    import { yourScript } from '@c15t/scripts/your-script';
+    import { ConsentManagerProvider } from '@c15t/react';
+
+    export function App({ children }: { children: React.ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            scripts: [
+              yourScript({ /* options */ }),
+            ],
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+  <Tab value="Next.js">
+    ```tsx
+    import { yourScript } from '@c15t/scripts/your-script';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+
+    export function App({ children }: { children: React.ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            scripts: [
+              yourScript({ /* options */ }),
+            ],
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
 ## Script Loader
 
 Many marketing and analytics tools are commonly loaded using a script tag, such as Google Tag Manager (GTM), Google Tag (gtag.js), Meta Pixel and TikTok Pixel.

@@ -14,115 +14,23 @@ The Databuddy script automatically respects consent preferences by toggling trac
   <Step>
     ### Adding the Databuddy script to c15t
 
-    <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
-      <Tab value="JavaScript">
-        ```ts
-        import { configureConsentManager } from 'c15t';
-        import { databuddy } from '@c15t/scripts/databuddy';
+    <Callout type="info">
+      See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+    </Callout>
 
-        configureConsentManager({
-          // ... 
-          scripts: [
-            databuddy({ 
-              clientId: 'your-client-id',
-              scriptUrl: 'https://cdn.databuddy.cc/databuddy.js',
-              apiUrl: 'https://basket.databuddy.cc',
-              options: {
-                trackScreenViews: true,
-                trackOutgoingLinks: true,
-              }
-            }),
-          ],
-        });
-        ```
-      </Tab>
+    ```ts
+    import { databuddy } from '@c15t/scripts/databuddy';
 
-      <Tab value="React">
-        ```tsx
-        import { databuddy } from '@c15t/scripts/databuddy';
-        import { ConsentManagerProvider } from '@c15t/react';
-
-        export function App({ children }: { children: React.ReactNode }) {
-          return (
-            <ConsentManagerProvider
-              options={{
-                scripts: [
-                  databuddy({ 
-                    clientId: 'your-client-id',
-                    scriptUrl: 'https://cdn.databuddy.cc/databuddy.js',
-                    apiUrl: 'https://basket.databuddy.cc',
-                    options: {
-                      trackScreenViews: true,
-                      trackOutgoingLinks: true,
-                    }
-                  }),
-                ],
-              }}
-            >
-              {children}
-            </ConsentManagerProvider>
-          );
-        }
-        ```
-      </Tab>
-
-      <Tab value="Next.js + App Router">
-        ```tsx
-        'use client';
-        import { databuddy } from '@c15t/scripts/databuddy';
-        import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
-
-        export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
-          return (
-            <ClientSideOptionsProvider
-              scripts={[
-                databuddy({ 
-                  clientId: 'your-client-id',
-                  scriptUrl: 'https://cdn.databuddy.cc/databuddy.js',
-                  apiUrl: 'https://basket.databuddy.cc',
-                  options: {
-                    trackScreenViews: true,
-                    trackOutgoingLinks: true,
-                  }
-                }),
-              ]}
-            >
-              {children}
-            </ClientSideOptionsProvider>
-          );
-        }
-        ```
-      </Tab>
-
-      <Tab value="Next.js + Pages Router">
-        ```tsx
-        import { databuddy } from '@c15t/scripts/databuddy';
-        import { ConsentManagerProvider } from '@c15t/nextjs';
-
-        export function App({ children }: { children: React.ReactNode }) {
-          return (
-            <ConsentManagerProvider
-              options={{
-                scripts: [
-                  databuddy({ 
-                    clientId: 'your-client-id',
-                    scriptUrl: 'https://cdn.databuddy.cc/databuddy.js',
-                    apiUrl: 'https://basket.databuddy.cc',
-                    options: {
-                      trackScreenViews: true,
-                      trackOutgoingLinks: true,
-                    }
-                  }),
-                ],
-              }}
-            >
-              {children}
-            </ConsentManagerProvider>
-          );
-        }
-        ```
-      </Tab>
-    </Tabs>
+    databuddy({
+      clientId: 'your-client-id',
+      scriptUrl: 'https://cdn.databuddy.cc/databuddy.js',
+      apiUrl: 'https://basket.databuddy.cc',
+      options: {
+        trackScreenViews: true,
+        trackOutgoingLinks: true,
+      }
+    })
+    ```
   </Step>
 
   <Step>
@@ -184,8 +92,8 @@ databuddy({
     trackErrors: false,            // Track JavaScript errors
     trackPerformance: true,        // Track performance metrics
     trackWebVitals: false,         // Track Core Web Vitals
-  
-    
+
+
     // Network options
     enableBatching: false,         // Batch events before sending
     batchSize: 10,                 // Events per batch

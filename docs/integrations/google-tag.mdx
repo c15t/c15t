@@ -19,96 +19,20 @@ Use GTM if your team needs centralized tag management in the GTM UI. Use `gtag.j
 - Use `category: 'measurement'` for analytics-only tracking (GA4 events)
 - Use `category: 'marketing'` for advertising and conversion tracking (Google Ads)
 
-### Adding GA4 + Google Ads to c15t
+## Adding GA4 + Google Ads to c15t
 
-<Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
-  <Tab value="JavaScript">
-    ```ts
-    import { configureConsentManager } from 'c15t';
-    import { gtag } from '@c15t/scripts/google-tag';
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+</Callout>
 
-    configureConsentManager({
-      scripts: [
-        gtag({
-          id: 'G-XXXXXXXXXX',
-          category: 'measurement', // or 'marketing'
-        }),
-      ],
-    });
-    ```
-  </Tab>
+```ts
+import { gtag } from '@c15t/scripts/google-tag';
 
-  <Tab value="React">
-    ```tsx
-    import { gtag } from '@c15t/scripts/google-tag';
-    import { ConsentManagerProvider } from '@c15t/react';
-
-    export function ConsentManager({ children }: { children: React.ReactNode }) { 
-      return (
-        <ConsentManagerProvider
-          options={{
-            scripts: [
-              gtag({
-                id: 'G-XXXXXXXXXX',
-                category: 'measurement', // or 'marketing'
-              }),
-            ],
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="Next.js + App Router">
-    ```tsx
-    'use client';
-    import { gtag } from '@c15t/scripts/google-tag';
-    import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
-
-    export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
-      return (
-        <ClientSideOptionsProvider
-          scripts={[
-            gtag({
-              id: 'G-XXXXXXXXXX',
-              category: 'measurement', // or 'marketing'
-            }),
-          ]}
-        >
-          {children}
-        </ClientSideOptionsProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="Next.js + Pages Router">
-    ```tsx
-    import { gtag } from '@c15t/scripts/google-tag';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-
-    export function ConsentManager({ children }: { children: React.ReactNode }) { 
-      return (
-        <ConsentManagerProvider
-          options={{
-            scripts: [
-              gtag({
-                id: 'G-XXXXXXXXXX',
-                category: 'measurement',
-              }),
-            ],
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-</Tabs>
+gtag({
+  id: 'G-XXXXXXXXXX',
+  category: 'measurement', // or 'marketing'
+})
+```
 
 ## Types
 
