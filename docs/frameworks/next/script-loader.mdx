@@ -1,110 +1,65 @@
 ---
 title: Script Loader
-description: Load scripts based on consent. Used to load scripts that require the user's consent, such as analytics scripts.
-lastModified: 2025-09-19
-
-availableIn:
-  - framework: 'javascript'
-    url: '/docs/frameworks/javascript/script-loader'
-    title: 'JavaScript'
-  - framework: 'next'
-    url: '/docs/frameworks/next/script-loader'
-    title: 'Next.js'
-  - framework: 'react'
-    url: '/docs/frameworks/react/script-loader'
-    title: 'React'
+description: Gate third-party scripts behind consent - load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
 ---
 
-<import>../javascript/shared/script-loader.mdx#overview</import>
+<import src="../../shared/react/guides/script-loader.mdx#intro" />
 
-<import>../javascript/shared/script-loader.mdx#tracking-blocker</import>
+## Basic Usage
 
-## Implementation
+Pass an array of `Script` objects to the provider:
 
-<Tabs items={['App Directory', 'Pages Directory']}>
-  <Tab value="App Directory">
-    Due to the nature of Next.js App Directory, we have to define callbacks to run in a client component.
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider } from '@c15t/nextjs';
+import { metaPixel } from '@c15t/scripts/meta-pixel';
 
-    ```ts title="app/consent-manager.client.tsx"
-    'use client';
-
-    import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
-    import { googleTagManager } from '@c15t/scripts/google-tag-manager';
-
-    export function ConsentManagerClient() {
-    	return (
-    		<ClientSideOptionsProvider
-    			scripts={[
-    				googleTagManager({
-    					id: 'GTM-XXXXXXX',
-    				}), // Prebuilt script or...
-    				{
-    					id: 'example',
-    					src: 'https://analytics.example.com/script.js',
-    					category: 'analytics',
-    				}
-    			]}
-    		/>
-    	);
-    }
-    ```
-
-    <Callout type="note">
-      Ensure you import this component in your `app/layout.tsx` file.
-    </Callout>
-
-    ```ts title="app/consent-manager.tsx"
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { ConsentManagerClient } from './consent-manager.client';
-    import type { ReactNode } from 'react';
-
-    export default function ConsentManager({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider options={{
-          // your options here
-        }}>
-          <ClientProvider />
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="Pages Directory">
-    ```ts title="pages/_app.tsx"
-    import { ConsentManagerProvider } from '@c15t/nextjs/pages';
-    import { googleTagManager } from '@c15t/scripts/google-tag-manager';
-    import type { AppProps } from 'next/app';
-
-    export default function App({ Component, pageProps }: AppProps) {
-    return (
-      <ConsentManagerProvider options={{
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: '/api/c15t',
         scripts: [
-          googleTagManager({
-            id: 'GTM-XXXXXXX',
-          }), // Prebuilt script or...
+          metaPixel({ pixelId: '123456' }),
           {
-            id: 'example',
-            src: 'https://analytics.example.com/script.js',
-            category: 'analytics',
-          }
-        ]
-      }}>
-        <Component {...pageProps} />
-      </ConsentManagerProvider>
-    );
-    }
-    ```
-  </Tab>
-</Tabs>
+            id: 'custom-analytics',
+            src: 'https://cdn.example.com/analytics.js',
+            category: 'measurement',
+          },
+        ],
+      }}
+    >
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
 
-<import>../javascript/shared/script-loader.mdx#prebuilt-scripts</import>
+<import src="../../shared/react/guides/script-loader.mdx#script-types-to-advanced" />
 
-<import>../javascript/shared/script-loader.mdx#scripts-table</import>
+## Dynamic Script Management
 
-<import>../javascript/shared/script-loader.mdx#always-load</import>
+Add, remove, or check scripts at runtime via `useConsentManager()`:
 
-## Types
+```tsx
+import { useConsentManager } from '@c15t/nextjs';
 
-<import>../javascript/shared/script-loader.mdx#script-type</import>
+function ScriptManager() {
+  const { setScripts, removeScript, isScriptLoaded, getLoadedScriptIds } = useConsentManager();
+
+  // Add scripts dynamically
+  setScripts([{ id: 'dynamic', src: '...', category: 'measurement' }]);
+
+  // Remove a script
+  removeScript('dynamic');
+
+  // Check if a script is loaded
+  const loaded = isScriptLoaded('google-analytics');
+
+  // Get all loaded script IDs
+  const allLoaded = getLoadedScriptIds();
+}
+```
+
+<import src="../../shared/react/guides/script-loader.mdx#api-reference" />

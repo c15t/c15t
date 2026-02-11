@@ -1,0 +1,123 @@
+---
+title: Checking Consent
+description: Read consent state from the store — check individual categories, logical conditions, and the full consent object.
+---
+
+## `has(condition)`
+
+Check if a consent condition is met. Accepts a simple category name or a logical expression.
+
+### Simple Category Check
+
+```ts
+const state = consentStore.getState();
+
+if (state.has('measurement')) {
+  // Measurement consent is granted
+  loadAnalytics();
+}
+```
+
+### Logical AND
+
+Require multiple categories to all be granted:
+
+```ts
+if (state.has({ and: ['measurement', 'marketing'] })) {
+  // Both measurement AND marketing are granted
+  loadCrossTrackingPixel();
+}
+```
+
+### Logical OR
+
+Require at least one category to be granted:
+
+```ts
+if (state.has({ or: ['measurement', 'marketing'] })) {
+  // At least one of measurement OR marketing is granted
+  loadBasicTracking();
+}
+```
+
+### Logical NOT
+
+Check that a category is NOT granted:
+
+```ts
+if (state.has({ not: 'marketing' })) {
+  // Marketing is NOT granted — show non-personalized content
+  showGenericAds();
+}
+```
+
+### Nested Conditions
+
+Combine conditions for complex logic:
+
+```ts
+if (state.has({ and: ['measurement', { not: 'marketing' }] })) {
+  // Has measurement but NOT marketing
+  loadPrivacyFriendlyAnalytics();
+}
+```
+
+## `hasConsented()`
+
+Check if the user has made any consent decision at all (accepted or declined). Returns `false` if the user hasn't interacted with the consent UI yet.
+
+```ts
+const state = consentStore.getState();
+
+if (state.hasConsented()) {
+  // User has made a consent decision
+  console.log('Consents:', state.consents);
+} else {
+  // No consent decision yet — show banner
+  console.log('Waiting for user consent...');
+}
+```
+
+## `getDisplayedConsents()`
+
+Get the list of consent categories that should be displayed in the UI. This returns the full `ConsentType` objects including `name`, `title`, and `description`.
+
+```ts
+const state = consentStore.getState();
+const displayed = state.getDisplayedConsents();
+
+displayed.forEach((type) => {
+  console.log(`${type.name}: ${state.consents[type.name]}`);
+});
+```
+
+## `consents`
+
+The raw consent state object — a `Record<string, boolean>` mapping category names to their consent status.
+
+```ts
+const { consents } = consentStore.getState();
+
+console.log(consents);
+// { necessary: true, measurement: false, marketing: false }
+```
+
+## Subscribing to Consent Changes
+
+React to consent changes in real time:
+
+```ts
+consentStore.subscribe((state, prevState) => {
+  // React when consents change
+  if (state.consents !== prevState.consents) {
+    if (state.consents.measurement) {
+      loadAnalytics();
+    }
+  }
+
+  // React when a specific check changes
+  if (state.has('measurement') !== prevState.has('measurement')) {
+    console.log('Measurement consent:', state.has('measurement'));
+  }
+});
+```

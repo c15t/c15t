@@ -1,0 +1,74 @@
+---
+title: ConsentManagerProvider
+description: The root provider component that initializes the consent system and makes consent state available to all child components.
+---
+
+<import src="../../../shared/react/components/consent-manager-provider.mdx#intro" />
+
+## Basic Usage
+
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/react';
+
+export default function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: 'https://your-instance.c15t.dev',
+        consentCategories: ['necessary', 'measurement', 'marketing'],
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../../shared/react/components/consent-manager-provider.mdx#options-reference" />
+
+## Mode: c15t vs offline
+
+```tsx
+// Connected mode — persists to c15t backend
+<ConsentManagerProvider
+  options={{
+    mode: 'c15t',
+    backendURL: 'https://your-instance.c15t.dev',
+  }}
+>
+
+// Offline mode — local cookie storage only
+<ConsentManagerProvider
+  options={{
+    mode: 'offline',
+  }}
+>
+```
+
+See [Client Modes](/docs/frameworks/react/concepts/client-modes) for a detailed comparison.
+
+<import src="../../../shared/react/components/consent-manager-provider.mdx#legal-links" />
+
+## Overrides
+
+Force a specific jurisdiction, country, or language regardless of detection:
+
+```tsx
+<ConsentManagerProvider
+  options={{
+    mode: 'c15t',
+    backendURL: 'https://your-instance.c15t.dev',
+    overrides: {
+      country: 'DE',
+      region: 'BY',
+      language: 'de',
+    },
+  }}
+>
+```
+
+<import src="../../../shared/react/components/consent-manager-provider.mdx#props" />

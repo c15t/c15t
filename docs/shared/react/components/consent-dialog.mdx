@@ -1,0 +1,77 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  `ConsentDialog` is a modal that shows toggles for each consent category. In **opt-in jurisdictions**, it typically opens when users click "Customize" on `ConsentBanner`. It can also be controlled programmatically for use on settings pages regardless of jurisdiction.
+</section>
+
+<section id="customization">
+  ## Floating Trigger
+
+  Add a floating button that lets users re-open the dialog after dismissing the banner:
+
+  ```tsx
+  {/* Default trigger */}
+  <ConsentDialog showTrigger />
+
+  {/* Custom trigger */}
+  <ConsentDialog
+    showTrigger={{
+      icon: 'settings',
+      defaultPosition: 'bottom-left',
+      showWhen: 'after-consent',
+      size: 'sm',
+    }}
+  />
+  ```
+
+  ## Branding
+
+  Hide the c15t branding in the dialog footer:
+
+  ```tsx
+  <ConsentDialog hideBranding />
+  ```
+
+  ## Compound Components
+
+  Build fully custom dialog layouts using sub-components:
+
+  ```tsx
+  <ConsentDialog.Root>
+    <ConsentDialog.Overlay />
+    <ConsentDialog.Card>
+      <ConsentDialog.Header>
+        <ConsentDialog.HeaderTitle />
+        <ConsentDialog.HeaderDescription />
+      </ConsentDialog.Header>
+      <ConsentDialog.Content>
+        <ConsentWidget />
+      </ConsentDialog.Content>
+      <ConsentDialog.Footer />
+    </ConsentDialog.Card>
+  </ConsentDialog.Root>
+  ```
+
+  - `ConsentDialog.Root` — Portal container with focus trap, scroll lock, and animation
+  - `ConsentDialog.Card` — Main dialog card
+  - `ConsentDialog.Header` — Contains title and description
+  - `ConsentDialog.HeaderTitle` — Dialog title
+  - `ConsentDialog.HeaderDescription` — Description with optional `legalLinks`
+  - `ConsentDialog.Content` — Main content area (typically contains `ConsentWidget`)
+  - `ConsentDialog.Footer` — Footer with optional branding (`hideBranding` prop)
+  - `ConsentDialog.Overlay` — Backdrop overlay
+
+  For a quick pre-composed layout, use the shorthand card:
+
+  ```tsx
+  <ConsentDialog.Root>
+    <ConsentDialog.ConsentCustomizationCard />
+  </ConsentDialog.Root>
+  ```
+</section>
+
+<section id="props">
+  ## Props
+
+  <AutoTypeTable path="./packages/react/src/components/consent-dialog/consent-dialog.tsx" name="ConsentDialogProps" />
+</section>

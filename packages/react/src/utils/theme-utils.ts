@@ -3,6 +3,7 @@
  * Handles token-to-CSS variable conversion and dark mode overrides.
  */
 
+import type { ThemeCSSVariables } from '@c15t/ui/theme';
 import {
 	defaultTheme as baseDefaultTheme,
 	generateThemeCSS as baseGenerateThemeCSS,
@@ -20,10 +21,7 @@ export const defaultTheme = baseDefaultTheme as Required<
 /**
  * Maps theme tokens to CSS variables.
  */
-export function themeToVars(
-	theme: Theme,
-	isDark = false
-): Record<string, string> {
+export function themeToVars(theme: Theme, isDark = false): ThemeCSSVariables {
 	return baseThemeToVars(theme as any, isDark);
 }
 

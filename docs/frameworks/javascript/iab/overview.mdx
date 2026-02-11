@@ -1,0 +1,65 @@
+---
+title: IAB TCF 2.3
+description: Implement IAB Transparency & Consent Framework 2.3 compliance for programmatic advertising in EU/EEA jurisdictions.
+---
+
+<import src="../../../shared/react/iab/overview.mdx#intro" />
+
+## Quick Setup
+
+Enable IAB TCF in the runtime options:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'c15t',
+  backendURL: 'https://your-instance.c15t.dev',
+  iab: {
+    enabled: true,
+    cmpId: 123,                // Your registered CMP ID
+    vendors: [1, 2, 10, 25],  // IAB vendor IDs you work with
+  },
+});
+```
+
+## Accessing IAB State
+
+The IAB manager is available on the store state when IAB is enabled:
+
+```ts
+const { iab } = consentStore.getState();
+
+if (iab) {
+  console.log('GVL:', iab.gvl);
+  console.log('Vendor consents:', iab.vendorConsents);
+  console.log('Purpose consents:', iab.purposeConsents);
+}
+
+// Subscribe to IAB state changes
+consentStore.subscribe((state, prevState) => {
+  if (state.iab !== prevState.iab && state.iab) {
+    console.log('IAB state updated:', state.iab);
+  }
+});
+```
+
+## `__tcfapi` Stub
+
+When IAB is enabled, c15t automatically registers the `__tcfapi` function on the window object. This is the standard CMP API that ad tech vendors use to check consent:
+
+```ts
+// Third-party scripts can use the standard TCF API
+window.__tcfapi('getTCData', 2, (tcData, success) => {
+  if (success) {
+    console.log('TC String:', tcData.tcString);
+    console.log('Purpose consents:', tcData.purpose.consents);
+  }
+});
+```
+
+<import src="../../../shared/react/iab/overview.mdx#config-and-concepts" />
+
+<Callout type="info">
+  The `c15t` core package handles all IAB logic (TC string generation, `__tcfapi` registration, GVL fetching) without any framework-specific components. Build your own IAB consent UI using the store state, or use [`@c15t/react`](/docs/frameworks/react/iab/overview) for pre-built IAB components.
+</Callout>

@@ -1,0 +1,86 @@
+---
+title: IAB TCF Support
+description: Enable IAB Transparency and Consent Framework (TCF) support in your self-hosted backend.
+---
+
+The c15t backend optionally supports [IAB TCF v2.2](https://iabeurope.eu/transparency-consent-framework/), including Global Vendor List (GVL) management and TC String generation.
+
+## Enable GVL
+
+```ts title="c15t.ts"
+import { c15tInstance } from '@c15t/backend';
+
+export const c15t = c15tInstance({
+  // ...
+  advanced: {
+    gvl: {
+      enabled: true,
+      vendorIds: [755, 52, 69], // only include vendors you use
+    },
+  },
+});
+```
+
+The backend fetches the GVL from `https://gvl.consent.io` by default and caches it. The `/init` endpoint returns the filtered GVL to the frontend.
+
+## Custom GVL Endpoint
+
+Point to your own GVL mirror:
+
+```ts
+advanced: {
+  gvl: {
+    enabled: true,
+    endpoint: 'https://your-gvl-mirror.com',
+    vendorIds: [755, 52, 69],
+  },
+}
+```
+
+## Bundle GVL by Language
+
+Pre-bundle the GVL to avoid runtime fetches:
+
+```ts
+import gvlEn from './gvl/en.json';
+import gvlDe from './gvl/de.json';
+
+advanced: {
+  gvl: {
+    enabled: true,
+    bundled: {
+      en: gvlEn,
+      de: gvlDe,
+    },
+  },
+}
+```
+
+<Callout type="warn">
+  Bundling all required GVL translations can significantly increase your deployment size. On serverless environments like Cloudflare Workers — which have strict bundle size limits — this may cause deployments to fail. Consider bundling only the languages you need, or use the GVL endpoint with a [cache adapter](/docs/self-host/guides/caching) instead.
+</Callout>
+
+## Custom Non-IAB Vendors
+
+Add your own vendors alongside IAB-registered ones:
+
+```ts
+advanced: {
+  gvl: {
+    enabled: true,
+    vendorIds: [755],
+    customVendors: [
+      {
+        id: 'internal-analytics',
+        name: 'Our Analytics Platform',
+        privacyPolicyUrl: 'https://example.com/privacy',
+        purposes: [1, 8],
+      },
+    ],
+  },
+}
+```
+
+## TC String
+
+When IAB TCF is enabled, consent records include a `tcString` field — the encoded TC String that can be passed to vendors. The frontend SDKs handle this automatically when using `mode: 'c15t'`.

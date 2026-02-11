@@ -1,0 +1,63 @@
+---
+title: IABConsentDialog
+description: An IAB TCF 2.3 compliant preference center with tabbed purpose and vendor management.
+---
+
+<import src="../../../shared/react/iab/consent-dialog.mdx#intro" />
+
+## Basic Usage
+
+Pair it with `IABConsentBanner` inside the provider:
+
+```tsx
+import { type ReactNode } from 'react';
+import {
+  ConsentManagerProvider,
+  IABConsentBanner,
+  IABConsentDialog,
+} from '@c15t/nextjs';
+
+export default function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: '/api/c15t',
+        iab: {
+          enabled: true,
+          cmpId: 123,
+          vendors: [1, 2, 10, 25],
+        },
+      }}
+    >
+      <IABConsentBanner />
+      <IABConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../../shared/react/iab/consent-dialog.mdx#tabs" />
+
+## Controlled State
+
+By default, the dialog follows `isPrivacyDialogOpen` from the consent store. Use `open` for manual control:
+
+```tsx
+import { useState } from 'react';
+import { IABConsentDialog } from '@c15t/nextjs';
+
+function SettingsPage() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)}>TCF Preferences</button>
+      <IABConsentDialog open={open} />
+    </>
+  );
+}
+```
+
+<import src="../../../shared/react/iab/consent-dialog.mdx#trigger-to-props" />

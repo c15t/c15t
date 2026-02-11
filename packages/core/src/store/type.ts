@@ -113,6 +113,9 @@ export interface StoreConfig {
 	 * The network blocker intercepts global `fetch` and `XMLHttpRequest`
 	 * calls and blocks requests based on the current consent state and
 	 * configured domain rules.
+	 *
+	 * @see https://c15t.com/docs/frameworks/react/network-blocker
+	 * @see {@link NetworkBlockerConfig} for available options
 	 */
 	networkBlocker?: NetworkBlockerConfig;
 
@@ -257,6 +260,9 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	 *   {children}
 	 * </ConsentManagerProvider>
 	 * ```
+	 *
+	 * @see https://c15t.com/docs/frameworks/react/server-side
+	 * @see {@link SSRInitialData} for the data structure
 	 */
 	ssrData?: Promise<SSRInitialData | undefined>;
 
@@ -279,13 +285,16 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	 *
 	 * This is an opt-in feature with zero bundle impact when not enabled.
 	 *
+	 * @see https://c15t.com/docs/frameworks/react/iab/overview
 	 * @see https://iabeurope.eu/transparency-consent-framework/
+	 * @see {@link IABConfig} for available options
 	 */
 	iab?: IABConfig;
 
 	/**
 	 * Callbacks for the consent manager.
 	 *
+	 * @see https://c15t.com/docs/frameworks/react/callbacks
 	 * @see {@link Callbacks} for available options
 	 */
 	callbacks?: Callbacks;
@@ -294,7 +303,7 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	 * Dynamically load scripts based on consent state.
 	 * For scripts such as Google Tag Manager, Meta Pixel, etc.
 	 *
-	 * @see https://c15t.com/docs/frameworks/javascript/script-loader
+	 * @see https://c15t.com/docs/frameworks/react/script-loader
 	 * @see {@link Script} for available options
 	 */
 	scripts?: Script[];

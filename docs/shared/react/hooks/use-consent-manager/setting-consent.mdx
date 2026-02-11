@@ -1,0 +1,92 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="content">
+  ## saveConsents(type)
+
+  The primary way to persist consent. Accepts one of three strategies:
+
+  ```tsx
+  const { saveConsents } = useConsentManager();
+
+  // Accept all - sets every active category to true
+  await saveConsents('all');
+
+  // Reject all - only necessary stays true, everything else false
+  await saveConsents('necessary');
+
+  // Save current selections - persists whatever the user toggled
+  await saveConsents('custom');
+  ```
+
+  **What happens when you call saveConsents:**
+
+  1. Consent state is updated in the store
+  2. UI closes (showPopup → false)
+  3. Consent is saved to localStorage and cookie
+  4. If consent was revoked and `reloadOnConsentRevoked` is true, the page reloads
+  5. Otherwise, scripts/iframes/network blocker are updated
+  6. Consent is synced to the backend API
+
+  ## setConsent(name, value)
+
+  Updates a single consent category AND automatically saves it. Use this for simple one-off consent changes:
+
+  ```tsx
+  const { setConsent } = useConsentManager();
+
+  // Grant measurement consent immediately
+  setConsent('measurement', true);
+
+  // Revoke marketing consent immediately
+  setConsent('marketing', false);
+  ```
+
+  ## setSelectedConsent(name, value)
+
+  Updates the selection state without saving. This is what dialog toggles use - the user can flip toggles without committing until they click "Save":
+
+  ```tsx
+  const { setSelectedConsent, saveConsents } = useConsentManager();
+
+  // User toggles measurement on
+  setSelectedConsent('measurement', true);
+
+  // User toggles marketing off
+  setSelectedConsent('marketing', false);
+
+  // User clicks "Save" - now it persists
+  await saveConsents('custom');
+  ```
+
+  ## resetConsents()
+
+  Resets all consent preferences to their default values and clears stored consent:
+
+  ```tsx
+  const { resetConsents } = useConsentManager();
+
+  resetConsents();
+  // All consents back to defaults, consent info cleared
+  ```
+
+  ## Accept All / Reject All Patterns
+
+  Common patterns for banner buttons:
+
+  ```tsx
+  function ConsentActions() {
+    const { saveConsents } = useConsentManager();
+
+    return (
+      <div>
+        <button onClick={() => saveConsents('necessary')}>
+          Reject All
+        </button>
+        <button onClick={() => saveConsents('all')}>
+          Accept All
+        </button>
+      </div>
+    );
+  }
+  ```
+</section>

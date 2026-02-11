@@ -1,0 +1,26 @@
+---
+title: ConsentWidget
+description: An inline consent management widget for embedding in settings or privacy pages. Shows category toggles with accordion layout.
+---
+
+<import src="../../../shared/react/components/consent-widget.mdx#intro" />
+
+## Basic Usage
+
+```tsx
+import { ConsentWidget } from '@c15t/react';
+
+export function PrivacySettingsPage() {
+  return (
+    <>
+      <h1>Privacy Settings</h1>
+      <p>Manage your cookie preferences below.</p>
+      <ConsentWidget />
+    </>
+  );
+}
+```
+
+<import src="../../../shared/react/components/consent-widget.mdx#customization" />
+
+<import src="../../../shared/react/components/consent-widget.mdx#props" />

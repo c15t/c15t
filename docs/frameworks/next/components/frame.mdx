@@ -1,15 +1,29 @@
 ---
 title: Frame
-description: Conditionally render children based on consent, with a placeholder for when consent is not given.
-lastModified: 2025-10-12
-
-availableIn:
-  - framework: 'next'
-    url: '/docs/frameworks/next/components/frame'
-    title: 'Next.js'
-  - framework: 'react'
-    url: '/docs/frameworks/react/components/frame'
-    title: 'React'
+description: A consent-gated content wrapper - children only mount when the required consent category is granted.
 ---
 
-<import>../../react/components/frame.mdx</import>
+<import src="../../../shared/react/components/frame.mdx#intro" />
+
+## Basic Usage
+
+```tsx
+import { Frame } from '@c15t/nextjs';
+
+function YouTubeEmbed() {
+  return (
+    <Frame category="marketing">
+      <iframe
+        src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+        width="560"
+        height="315"
+        allowFullScreen
+      />
+    </Frame>
+  );
+}
+```
+
+<import src="../../../shared/react/components/frame.mdx#customization" />
+
+<import src="../../../shared/react/components/frame.mdx#props" />

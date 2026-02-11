@@ -1,0 +1,215 @@
+---
+title: API Endpoints
+description: Full reference for every c15t consent backend endpoint.
+---
+
+All endpoints are relative to your configured `basePath` (e.g. `/api/c15t`).
+
+<Callout type="info">
+  The backend auto-generates interactive API docs at `{basePath}/docs` using your OpenAPI spec. Visit this URL in a browser to explore endpoints with a visual UI.
+</Callout>
+
+## GET /init
+
+Returns the initial consent state for a client. This is the first call made by the frontend SDKs.
+
+**Response:**
+
+```json
+{
+  "jurisdiction": "GDPR",
+  "location": {
+    "countryCode": "DE",
+    "regionCode": "BY"
+  },
+  "translations": {
+    "language": "de",
+    "translations": { "...": "..." }
+  },
+  "branding": "c15t",
+  "gvl": null
+}
+```
+
+| Field | Description |
+| --- | --- |
+| `jurisdiction` | Detected regulation (`GDPR`, `UK_GDPR`, `CCPA`, etc.) |
+| `location` | Geo-location from IP address |
+| `translations` | Server-side translations based on `Accept-Language` |
+| `branding` | Branding configuration |
+| `gvl` | Global Vendor List (if IAB TCF is enabled) |
+
+## GET /status
+
+Health check endpoint. Returns server version and client info.
+
+**Response:**
+
+```json
+{
+  "version": "1.8.0",
+  "timestamp": "2026-02-11T12:00:00.000Z",
+  "client": {
+    "ip": "192.168.1.0",
+    "acceptLanguage": "en-US",
+    "userAgent": "Mozilla/5.0 ...",
+    "region": { "countryCode": "US", "regionCode": "CA" }
+  }
+}
+```
+
+## POST /subjects
+
+Records a consent event. This is an append-only operation — every call creates a new consent record.
+
+**Request:**
+
+```json
+{
+  "type": "cookie_banner",
+  "subjectId": "sub_abc123",
+  "domain": "example.com",
+  "preferences": {
+    "necessary": true,
+    "measurement": true,
+    "marketing": false
+  },
+  "givenAt": 1707648000000,
+  "metadata": {}
+}
+```
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `type` | string | Yes | `cookie_banner`, `privacy_policy`, `dpa`, `terms_and_conditions`, `marketing_communications`, `age_verification`, `other` |
+| `subjectId` | string | Yes | Client-generated subject identifier |
+| `domain` | string | Yes | Domain where consent was given |
+| `preferences` | object | No | Consent category preferences (for `cookie_banner` type) |
+| `givenAt` | number | Yes | Epoch timestamp |
+| `policyId` | string | No | Associated policy ID |
+| `metadata` | object | No | Arbitrary metadata |
+| `externalSubjectId` | string | No | External user ID for cross-device linking |
+| `identityProvider` | string | No | Identity provider name |
+
+**Response:**
+
+```json
+{
+  "subject": { "id": "sub_abc123", "isIdentified": false, "...": "..." },
+  "consent": { "id": "con_xyz789", "type": "cookie_banner", "...": "..." }
+}
+```
+
+## GET /subjects/:id
+
+Retrieves consent status for a subject.
+
+**Query Parameters:**
+
+| Parameter | Description |
+| --- | --- |
+| `type` | Comma-separated consent types to filter (e.g. `cookie_banner,privacy_policy`) |
+
+**Response:**
+
+```json
+{
+  "subject": { "id": "sub_abc123", "isIdentified": false },
+  "consents": [
+    {
+      "id": "con_xyz789",
+      "type": "cookie_banner",
+      "givenAt": "2026-02-11T12:00:00.000Z",
+      "jurisdiction": "GDPR",
+      "preferences": { "necessary": true, "measurement": true }
+    }
+  ],
+  "isValid": true
+}
+```
+
+## PATCH /subjects/:id
+
+Links a subject to an external user ID for cross-device consent resolution.
+
+**Request:**
+
+```json
+{
+  "externalId": "user_12345",
+  "identityProvider": "auth0"
+}
+```
+
+**Response:**
+
+```json
+{
+  "subject": {
+    "id": "sub_abc123",
+    "isIdentified": true,
+    "externalId": "user_12345",
+    "identityProvider": "auth0"
+  }
+}
+```
+
+## GET /consents/check
+
+Check consent status by external ID — useful for cross-device consent resolution.
+
+**Query Parameters:**
+
+| Parameter | Description |
+| --- | --- |
+| `externalId` | The external user ID to look up |
+| `type` | Comma-separated consent types |
+
+**Response:**
+
+```json
+{
+  "found": true,
+  "consents": [
+    { "id": "con_xyz789", "type": "cookie_banner", "...": "..." }
+  ]
+}
+```
+
+## GET /subjects (Authenticated)
+
+List subjects by external ID. Requires an API key.
+
+**Headers:**
+
+```
+Authorization: Bearer sk_live_abc123
+```
+
+**Query Parameters:**
+
+| Parameter | Description |
+| --- | --- |
+| `externalId` | The external user ID to search |
+
+**Response:**
+
+```json
+{
+  "subjects": [
+    { "id": "sub_abc123", "externalId": "user_12345", "isIdentified": true }
+  ]
+}
+```
+
+<Callout type="warn">
+  This endpoint requires API key authentication. Configure API keys in the `advanced.apiKeys` option. The key is passed via the `Authorization: Bearer` header using timing-safe comparison.
+</Callout>
+
+## GET /spec.json
+
+Returns the OpenAPI 3.1 specification for the consent API.
+
+## GET /docs
+
+Serves the interactive API documentation UI (Scalar).

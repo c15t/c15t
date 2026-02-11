@@ -1,15 +1,38 @@
 ---
 title: Tailwind CSS
-description: Learn how to customize components using Tailwind CSS.
-lastModified: 2026-01-13
-canary: true
-availableIn:
-  - framework: 'next'
-    url: '/docs/frameworks/next/styling/classnames'
-    title: 'Next.js'
-  - framework: 'react'
-    url: '/docs/frameworks/react/styling/classnames'
-    title: 'React'
+description: Use Tailwind CSS utility classes to style consent components via the slot system.
 ---
 
-<import>../../react/styling/tailwind.mdx</import>
+<import src="../../../shared/react/styling/tailwind.mdx#intro-and-setup" />
+
+## Using Tailwind with Slots
+
+Apply Tailwind classes via the theme's `slots` object:
+
+```tsx
+import { type ReactNode } from 'react';
+import { defineTheme, ConsentManagerProvider } from '@c15t/nextjs';
+
+const theme = defineTheme({
+  slots: {
+    consentBanner: 'fixed bottom-0 inset-x-0 z-50',
+    consentBannerCard: 'mx-auto max-w-2xl rounded-t-2xl bg-white p-6 shadow-2xl',
+    consentBannerTitle: 'text-lg font-semibold text-gray-900',
+    consentBannerDescription: 'mt-2 text-sm text-gray-600',
+    consentBannerFooter: 'mt-4 flex flex-wrap gap-3',
+    buttonPrimary: 'rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-700',
+    buttonSecondary: 'rounded-full border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50',
+    toggle: 'data-[state=checked]:bg-indigo-600',
+  },
+});
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider options={{ theme, mode: 'c15t', backendURL: '/api/c15t' }}>
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../../shared/react/styling/tailwind.mdx#dark-mode-to-nostyle" />

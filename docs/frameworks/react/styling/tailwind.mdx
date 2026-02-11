@@ -1,34 +1,38 @@
 ---
 title: Tailwind CSS
-description: Learn how to customize components using Tailwind CSS.
-lastModified: 2026-01-13
-canary: true
-availableIn:
-  - framework: 'next'
-    url: '/docs/frameworks/next/styling/classnames'
-    title: 'Next.js'
-  - framework: 'react'
-    url: '/docs/frameworks/react/styling/classnames'
-    title: 'React'
+description: Use Tailwind CSS utility classes to style consent components via the slot system.
 ---
 
-Tailwind supports customizing components using Tailwind CSS. You can use Tailwind's utility classes to customize the appearance of c15t's components.
+<import src="../../../shared/react/styling/tailwind.mdx#intro-and-setup" />
 
-`bg-red-500`
+## Using Tailwind with Slots
 
-## Tailwind CSS v3
+Apply Tailwind classes via the theme's `slots` object:
 
-Tailwind CSS v3.x does not use CSS Layers for its core utilities. Since our components use the `@layer c15t` layer, Tailwind's unlayered utilities will always take precedence automatically causing our pre-defined styles to be overridden.
+```tsx
+import { type ReactNode } from 'react';
+import { defineTheme, ConsentManagerProvider } from '@c15t/react';
 
-To ensure our pre-defined styles are applied, you need to wrap your Tailwind configuration in a `@layer base, components;` layer.
+const theme = defineTheme({
+  slots: {
+    consentBanner: 'fixed bottom-0 inset-x-0 z-50',
+    consentBannerCard: 'mx-auto max-w-2xl rounded-t-2xl bg-white p-6 shadow-2xl',
+    consentBannerTitle: 'text-lg font-semibold text-gray-900',
+    consentBannerDescription: 'mt-2 text-sm text-gray-600',
+    consentBannerFooter: 'mt-4 flex flex-wrap gap-3',
+    buttonPrimary: 'rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-700',
+    buttonSecondary: 'rounded-full border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50',
+    toggle: 'data-[state=checked]:bg-indigo-600',
+  },
+});
 
-```css
-@layer base, components;
-
-@layer base {
-  @tailwind base;
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider options={{ theme, mode: 'c15t', backendURL: 'https://your-instance.c15t.dev' }}>
+      {children}
+    </ConsentManagerProvider>
+  );
 }
-
-@tailwind components;
-@tailwind utilities;
 ```
+
+<import src="../../../shared/react/styling/tailwind.mdx#dark-mode-to-nostyle" />

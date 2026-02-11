@@ -1,0 +1,44 @@
+---
+title: Consent Models
+description: How c15t determines consent behavior based on legal jurisdiction.
+---
+
+<import src="../../../shared/concepts/consent-models.mdx#overview" />
+
+Read the current consent model from the store:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'c15t',
+  backendURL: 'https://your-instance.c15t.dev',
+});
+
+// Check the current model
+const { model } = consentStore.getState();
+console.log('Current consent model:', model ?? 'detecting...');
+
+// React to model changes
+consentStore.subscribe((state, prevState) => {
+  if (state.model !== prevState.model) {
+    console.log('Model resolved:', state.model);
+  }
+});
+```
+
+<import src="../../../shared/concepts/consent-models.mdx#models-explained" />
+
+<import src="../../../shared/concepts/consent-models.mdx#jurisdiction-mapping" />
+
+Override the detected jurisdiction for testing or manual configuration:
+
+```ts
+const state = consentStore.getState();
+
+// Test as EU visitor
+await state.setOverrides({ country: 'DE' });
+
+// Test as California visitor
+await state.setOverrides({ country: 'US', region: 'CA' });
+```
