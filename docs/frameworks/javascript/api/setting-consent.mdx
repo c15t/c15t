@@ -22,7 +22,7 @@ await state.saveConsents('custom');
 
 | Type | Behavior |
 |------|----------|
-| `'all'` | Sets all categories to `true` and saves |
+| `'all'` | Sets all configured categories (those in `consentCategories`) to `true` and saves |
 | `'necessary'` | Sets only `necessary` to `true`, all others to `false`, and saves |
 | `'custom'` | Saves the current `selectedConsents` as the final `consents` |
 
@@ -65,14 +65,14 @@ The `selectedConsents` state lets you render toggle states in a preference dialo
 
 ## `resetConsents()`
 
-Reset all consent preferences to their defaults. This clears stored consent and returns the user to an unconserited state.
+Reset all consent preferences to their defaults. This clears stored consent and returns the user to an unconsented state.
 
 ```ts
 const state = consentStore.getState();
 state.resetConsents();
 
-// The banner will show again
-console.log(consentStore.getState().showPopup); // true
+// To show the banner again after resetting, call setShowPopup manually
+consentStore.getState().setShowPopup(true, true);
 ```
 
 ## Full Preference Dialog Flow

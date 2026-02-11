@@ -61,18 +61,15 @@ function createIframePlaceholder(category: string, iframeSrc: string) {
   });
 
   // Replace placeholder when consent is granted
-  consentStore.subscribe(
-    (state) => state.has(category),
-    (hasConsent) => {
-      if (hasConsent) {
-        const iframe = document.createElement('iframe');
-        iframe.src = iframeSrc;
-        iframe.width = '560';
-        iframe.height = '315';
-        container.replaceWith(iframe);
-      }
+  consentStore.subscribe((state) => {
+    if (state.has(category)) {
+      const iframe = document.createElement('iframe');
+      iframe.src = iframeSrc;
+      iframe.width = '560';
+      iframe.height = '315';
+      container.replaceWith(iframe);
     }
-  );
+  });
 
   return container;
 }

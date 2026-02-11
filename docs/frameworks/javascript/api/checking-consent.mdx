@@ -107,21 +107,17 @@ console.log(consents);
 React to consent changes in real time:
 
 ```ts
-// Fire whenever any consent changes
-consentStore.subscribe(
-  (state) => state.consents,
-  (consents) => {
-    if (consents.measurement) {
+consentStore.subscribe((state, prevState) => {
+  // React when consents change
+  if (state.consents !== prevState.consents) {
+    if (state.consents.measurement) {
       loadAnalytics();
     }
   }
-);
 
-// Fire when a specific check changes
-consentStore.subscribe(
-  (state) => state.has('measurement'),
-  (hasMeasurement) => {
-    console.log('Measurement consent:', hasMeasurement);
+  // React when a specific check changes
+  if (state.has('measurement') !== prevState.has('measurement')) {
+    console.log('Measurement consent:', state.has('measurement'));
   }
-);
+});
 ```

@@ -61,34 +61,27 @@ consentStore.subscribe((state) => {
 
 ## Reactive State Subscriptions
 
-The store supports fine-grained subscriptions with a selector — only re-fire when the selected value changes:
+The store fires on every state change. Compare with the previous state to react only to specific changes:
 
 ```ts
-// Only fires when showPopup changes
-consentStore.subscribe(
-  (state) => state.showPopup,
-  (showPopup) => {
+consentStore.subscribe((state, prevState) => {
+  // React to banner visibility changes
+  if (state.showPopup !== prevState.showPopup) {
     document.getElementById('consent-banner')!.style.display =
-      showPopup ? 'block' : 'none';
+      state.showPopup ? 'block' : 'none';
   }
-);
 
-// Only fires when consents change
-consentStore.subscribe(
-  (state) => state.consents,
-  (consents) => {
-    console.log('Consent state updated:', consents);
+  // React to consent changes
+  if (state.consents !== prevState.consents) {
+    console.log('Consent state updated:', state.consents);
   }
-);
 
-// Only fires when the privacy dialog opens/closes
-consentStore.subscribe(
-  (state) => state.isPrivacyDialogOpen,
-  (isOpen) => {
+  // React to dialog open/close
+  if (state.isPrivacyDialogOpen !== prevState.isPrivacyDialogOpen) {
     document.getElementById('consent-dialog')!.style.display =
-      isOpen ? 'block' : 'none';
+      state.isPrivacyDialogOpen ? 'block' : 'none';
   }
-);
+});
 ```
 
 ## Key Store Properties for UI
@@ -165,13 +158,21 @@ const className = cn(
 
 ### CSS Primitives
 
-Import base styles for consent UI elements:
+Import style primitives for consent UI elements:
 
 ```ts
-import '@c15t/ui/styles/primitives';
+import { buttonVariants, switchVariants, accordionVariants } from '@c15t/ui/styles/primitives';
+
+// Generate class names for styled buttons
+const btn = buttonVariants({ variant: 'primary', mode: 'filled', size: 'medium' });
+document.getElementById('accept-btn')!.className = btn.root();
+
+// Generate class names for styled switches
+const sw = switchVariants({ size: 'medium' });
+toggleEl.className = sw.root();
 ```
 
-This provides foundational CSS custom properties and reset styles that match the c15t design system.
+These functions return CSS module class name generators and auto-inject the associated styles into the document when imported.
 
 ## Building a Framework Library
 

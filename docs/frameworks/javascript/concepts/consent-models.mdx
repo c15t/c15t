@@ -20,10 +20,11 @@ const { model } = consentStore.getState();
 console.log('Current consent model:', model ?? 'detecting...');
 
 // React to model changes
-consentStore.subscribe(
-  (state) => state.model,
-  (model) => console.log('Model resolved:', model)
-);
+consentStore.subscribe((state, prevState) => {
+  if (state.model !== prevState.model) {
+    console.log('Model resolved:', state.model);
+  }
+});
 ```
 
 <import src="../../../shared/concepts/consent-models.mdx#models-explained" />

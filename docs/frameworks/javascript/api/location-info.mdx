@@ -19,14 +19,11 @@ if (locationInfo) {
 Subscribe to location changes:
 
 ```ts
-consentStore.subscribe(
-  (state) => state.locationInfo,
-  (location) => {
-    if (location) {
-      console.log('Location detected:', location.countryCode);
-    }
+consentStore.subscribe((state, prevState) => {
+  if (state.locationInfo !== prevState.locationInfo && state.locationInfo) {
+    console.log('Location detected:', state.locationInfo.countryCode);
   }
-);
+});
 ```
 
 ## `setOverrides(overrides)`

@@ -37,14 +37,11 @@ if (iab) {
 }
 
 // Subscribe to IAB state changes
-consentStore.subscribe(
-  (state) => state.iab,
-  (iab) => {
-    if (iab) {
-      console.log('IAB state updated:', iab);
-    }
+consentStore.subscribe((state, prevState) => {
+  if (state.iab !== prevState.iab && state.iab) {
+    console.log('IAB state updated:', state.iab);
   }
-);
+});
 ```
 
 ## `__tcfapi` Stub
