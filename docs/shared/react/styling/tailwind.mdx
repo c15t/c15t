@@ -1,0 +1,59 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro-and-setup">
+  c15t works with Tailwind CSS out of the box. Use the `slots` theme option to apply Tailwind utility classes to any component part.
+
+  ## Setup
+
+  ### Tailwind v4
+
+  No additional configuration needed. Tailwind v4 automatically scans your source files.
+
+  ### Tailwind v3
+
+  Add c15t's component paths to your `content` array:
+
+  ```js title="tailwind.config.js"
+  module.exports = {
+    content: [
+      './src/**/*.{js,ts,jsx,tsx}',
+      './node_modules/@c15t/react/**/*.{js,mjs}',
+    ],
+  };
+  ```
+</section>
+
+<section id="dark-mode-to-nostyle">
+  ## Dark Mode with Tailwind
+
+  Combine Tailwind's dark mode with c15t's `dark` tokens:
+
+  ```tsx
+  const theme = defineTheme({
+    colors: {
+      primary: '#6366f1',
+      surface: '#ffffff',
+      text: '#1f2937',
+    },
+    dark: {
+      primary: '#818cf8',
+      surface: '#1f2937',
+      text: '#f9fafb',
+    },
+    slots: {
+      consentBannerCard: 'bg-white dark:bg-gray-900 shadow-lg dark:shadow-gray-900/30',
+      consentBannerTitle: 'text-gray-900 dark:text-gray-100',
+    },
+  });
+  ```
+
+  ## Optional: noStyle Mode
+
+  If you want Tailwind to own all layout and visual styling, use `noStyle: true`.
+
+  <Callout type="info">
+    When using `noStyle: true` with Tailwind, you're responsible for all layout and visual styling. Start with slots first, then switch to `noStyle` only when you need full control.
+  </Callout>
+
+  For full custom markup (not just styles), see [Headless Mode](../headless).
+</section>

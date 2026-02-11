@@ -1,0 +1,41 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="overview">
+  c15t organizes tracking technologies into five consent categories that align with GDPR and ePrivacy Directive requirements. Rather than asking users to approve or deny individual cookies or scripts, each category groups related tracking purposes together so users can make meaningful, informed choices about how their data is used.
+</section>
+
+<section id="categories-table">
+  ## The Five Categories
+
+  | Category        | Default | Toggleable | Description                                                        |
+  | --------------- | ------- | ---------- | ------------------------------------------------------------------ |
+  | `necessary`     | `true`  | No         | Strictly necessary to operate or deliver the service               |
+  | `functionality` | `false` | Yes        | Basic interactions and functionalities                             |
+  | `experience`    | `false` | Yes        | Improve quality of user experience                                 |
+  | `measurement`   | `false` | Yes        | Measure traffic and analyze behavior                               |
+  | `marketing`     | `false` | Yes        | Deliver personalized ads or marketing content                      |
+
+  The `necessary` category has `disabled: true` set internally, which prevents the user from toggling it off in the consent UI. All other categories can be freely toggled by the user.
+
+  Note that all categories except `necessary` have `display: false` by default. A category appears in the consent UI only if you include it in `consentCategories`. Categories not listed are hidden from the UI, but they still exist in consent state and may be affected by model-level behavior (for example, auto-grant in `opt-out` or `null` model flows).
+</section>
+
+<section id="configuration">
+  ## Configuring Categories
+
+  The `consentCategories` array controls which consent categories are presented to the user in the consent UI. Only categories you list in this array will appear as toggleable options in the consent banner or modal.
+
+  The `necessary` category is always implicitly included even if you do not add it to the array. You never need to worry about accidentally omitting it -- c15t ensures it is always present and always enabled.
+
+  For example, if you set:
+
+  ```
+  consentCategories: ['necessary', 'measurement', 'marketing']
+  ```
+
+  then only those three categories will show toggles in the consent UI. The `functionality` and `experience` categories will not appear as user-configurable toggles.
+
+  In `opt-in`/`iab` flows, hidden categories usually remain `false` unless you explicitly set them. In `opt-out`/`null` flows, categories may be auto-granted even when hidden.
+
+  This gives you precise control over which consent choices to present to your users. A simple blog that only runs an analytics script might only need `measurement`. A media site with ad integrations would include `marketing`. A SaaS application with personalization features might add `experience` and `functionality` as well. You choose what is relevant to your site and c15t handles the rest - storing consent state, exposing it through hooks, and ensuring the right categories are active based on the user's choices.
+</section>

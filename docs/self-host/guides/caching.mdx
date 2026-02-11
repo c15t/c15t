@@ -1,0 +1,90 @@
+---
+title: Caching
+description: Add a caching layer to your self-hosted c15t backend for production performance.
+---
+
+The backend includes a caching layer for frequently accessed data like GVL (Global Vendor List) lookups and custom server-side translations. By default, an in-memory cache is used — suitable for single-instance deployments. For production with multiple instances, plug in Redis or Cloudflare KV so all instances share the same cache.
+
+## In-Memory (Default)
+
+No configuration needed. The default memory cache has a 5-minute TTL and is suitable for development and single-instance deployments.
+
+## Upstash Redis
+
+```ts title="c15t.ts"
+import { c15tInstance } from '@c15t/backend';
+import { createUpstashRedisAdapter } from '@c15t/backend/cache';
+
+export const c15t = c15tInstance({
+  // ...
+  advanced: {
+    cache: {
+      adapter: createUpstashRedisAdapter({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      }),
+    },
+  },
+});
+```
+
+If you already have an Upstash Redis client, pass it directly:
+
+```ts
+import { createUpstashRedisAdapterFromClient } from '@c15t/backend/cache';
+import { Redis } from '@upstash/redis';
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
+
+const adapter = createUpstashRedisAdapterFromClient(redis);
+```
+
+## Cloudflare KV
+
+For Cloudflare Workers deployments:
+
+```ts title="worker.ts"
+import { c15tInstance } from '@c15t/backend';
+import { createCloudflareKVAdapter } from '@c15t/backend/cache';
+
+export default {
+  async fetch(request: Request, env: Env) {
+    const c15t = c15tInstance({
+      // ...
+      advanced: {
+        cache: {
+          adapter: createCloudflareKVAdapter(env.GVL_CACHE),
+        },
+      },
+    });
+
+    return c15t.handler(request);
+  },
+};
+```
+
+## Custom Cache Adapter
+
+Implement the `CacheAdapter` interface to use any cache backend:
+
+```ts
+import type { CacheAdapter } from '@c15t/backend/cache';
+
+const customCache: CacheAdapter = {
+  async get<T>(key: string): Promise<T | null> {
+    // retrieve from your cache
+  },
+  async set<T>(key: string, value: T, ttlMs?: number): Promise<void> {
+    // store in your cache
+  },
+  async delete(key: string): Promise<void> {
+    // remove from cache
+  },
+  async has(key: string): Promise<boolean> {
+    // check existence
+  },
+};
+```

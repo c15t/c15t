@@ -1,32 +1,46 @@
 ---
 title: useTranslations
-description: The useTranslations hook provides access to the consent manager's translations.
-lastModified: 2025-08-20
-availableIn:
-  - framework: 'next'
-    url: '/docs/frameworks/next/hooks/use-translations'
-    title: 'Next.js'
-  - framework: 'react'
-    url: '/docs/frameworks/react/hooks/use-translations'
-    title: 'React'
+description: Access the current language's translations for building custom consent UI.
 ---
 
-The `useTranslations` hook provides access to the consent manager's translations found in the store and updates when the translations change.
-
-## Usage
+`useTranslations()` returns the `Translations` object for the currently active language. Use it when building custom consent UI that needs translated text.
 
 ```tsx
-function MyComponent() {
+import { useTranslations } from '@c15t/nextjs';
+
+function CustomBanner() {
   const translations = useTranslations();
-  
-  const title = translations.cookieBanner.title;
-  // Use the translations in your component
-  return <h1>{title}</h1>;
+
+  return (
+    <div>
+      <h2>{translations.cookieBanner.title}</h2>
+      <p>{translations.cookieBanner.description}</p>
+      <button>{translations.common.acceptAll}</button>
+      <button>{translations.common.rejectAll}</button>
+    </div>
+  );
 }
 ```
 
-## Returns
+<import src="../../../shared/react/hooks/use-translations.mdx#translation-sections" />
 
-The `useTranslations` hook returns the translations object.
+## With setLanguage
 
-<import>../../javascript/shared/translation-types.mdx</import>
+Translations update automatically when the language changes:
+
+```tsx
+import { useConsentManager, useTranslations } from '@c15t/nextjs';
+
+function LocalizedConsent() {
+  const { setLanguage } = useConsentManager();
+  const translations = useTranslations();
+
+  return (
+    <div>
+      <p>{translations.cookieBanner.description}</p>
+      <button onClick={() => setLanguage('de')}>Deutsch</button>
+      <button onClick={() => setLanguage('fr')}>Français</button>
+    </div>
+  );
+}
+```

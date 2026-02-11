@@ -1,0 +1,22 @@
+---
+title: useSSRStatus
+description: Check whether server-side rendered consent data was used during initialization.
+---
+
+`useSSRStatus()` returns information about whether SSR data was used for consent manager initialization. This is primarily useful for debugging SSR data flow in Next.js or other server-rendering frameworks.
+
+```tsx
+import { useSSRStatus } from '@c15t/react';
+
+function DebugSSR() {
+  const { ssrDataUsed, ssrSkippedReason } = useSSRStatus();
+
+  if (ssrDataUsed) {
+    return <span>Consent initialized from SSR data</span>;
+  }
+
+  return <span>SSR skipped: {ssrSkippedReason ?? 'unknown'}</span>;
+}
+```
+
+<import src="../../../shared/react/hooks/use-ssr-status.mdx#reference" />

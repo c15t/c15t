@@ -1,0 +1,27 @@
+---
+title: DevTools
+description: A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
+---
+
+<import src="../../../shared/react/components/dev-tools.mdx#intro" />
+
+## Usage
+
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider } from '@c15t/nextjs';
+import { C15TDevTools } from '@c15t/dev-tools/react';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider options={{ mode: 'c15t', backendURL: '/api/c15t' }}>
+      {children}
+      {process.env.NODE_ENV === 'development' && <C15TDevTools />}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../../shared/react/components/dev-tools.mdx#customization" />
+
+<import src="../../../shared/react/components/dev-tools.mdx#props" />

@@ -3,7 +3,7 @@
  * Handles token-to-CSS variable conversion and dark mode overrides.
  */
 
-import type { Theme } from './types';
+import type { ColorTokens, Theme, ThemeCSSVariables } from './types';
 
 /**
  * Default design tokens for the v2 theme system.
@@ -76,104 +76,84 @@ export const defaultTheme: Required<Omit<Theme, 'slots' | 'dark'>> = {
 	},
 };
 
+type ThemeCSSVariableResolver = (
+	theme: Theme,
+	colors?: ColorTokens
+) => string | undefined;
+
+const themeCSSVariableResolvers: Record<
+	keyof ThemeCSSVariables,
+	ThemeCSSVariableResolver
+> = {
+	'--c15t-primary': (_theme, colors) => colors?.primary,
+	'--c15t-primary-hover': (_theme, colors) => colors?.primaryHover,
+	'--c15t-surface': (_theme, colors) => colors?.surface,
+	'--c15t-surface-hover': (_theme, colors) => colors?.surfaceHover,
+	'--c15t-border': (_theme, colors) => colors?.border,
+	'--c15t-border-hover': (_theme, colors) => colors?.borderHover,
+	'--c15t-text': (_theme, colors) => colors?.text,
+	'--c15t-text-muted': (_theme, colors) => colors?.textMuted,
+	'--c15t-text-on-primary': (_theme, colors) => colors?.textOnPrimary,
+	'--c15t-overlay': (_theme, colors) => colors?.overlay,
+	'--c15t-switch-track': (_theme, colors) => colors?.switchTrack,
+	'--c15t-switch-track-active': (_theme, colors) => colors?.switchTrackActive,
+	'--c15t-switch-thumb': (_theme, colors) => colors?.switchThumb,
+	'--c15t-font-family': (theme) => theme.typography?.fontFamily,
+	'--c15t-font-size-sm': (theme) => theme.typography?.fontSize?.sm,
+	'--c15t-font-size-base': (theme) => theme.typography?.fontSize?.base,
+	'--c15t-font-size-lg': (theme) => theme.typography?.fontSize?.lg,
+	'--c15t-font-weight-normal': (theme) =>
+		theme.typography?.fontWeight?.normal
+			? String(theme.typography.fontWeight.normal)
+			: undefined,
+	'--c15t-font-weight-medium': (theme) =>
+		theme.typography?.fontWeight?.medium
+			? String(theme.typography.fontWeight.medium)
+			: undefined,
+	'--c15t-font-weight-semibold': (theme) =>
+		theme.typography?.fontWeight?.semibold
+			? String(theme.typography.fontWeight.semibold)
+			: undefined,
+	'--c15t-line-height-tight': (theme) => theme.typography?.lineHeight?.tight,
+	'--c15t-line-height-normal': (theme) => theme.typography?.lineHeight?.normal,
+	'--c15t-line-height-relaxed': (theme) =>
+		theme.typography?.lineHeight?.relaxed,
+	'--c15t-space-xs': (theme) => theme.spacing?.xs,
+	'--c15t-space-sm': (theme) => theme.spacing?.sm,
+	'--c15t-space-md': (theme) => theme.spacing?.md,
+	'--c15t-space-lg': (theme) => theme.spacing?.lg,
+	'--c15t-space-xl': (theme) => theme.spacing?.xl,
+	'--c15t-radius-sm': (theme) => theme.radius?.sm,
+	'--c15t-radius-md': (theme) => theme.radius?.md,
+	'--c15t-radius-lg': (theme) => theme.radius?.lg,
+	'--c15t-radius-full': (theme) => theme.radius?.full,
+	'--c15t-shadow-sm': (theme) => theme.shadows?.sm,
+	'--c15t-shadow-md': (theme) => theme.shadows?.md,
+	'--c15t-shadow-lg': (theme) => theme.shadows?.lg,
+	'--c15t-duration-fast': (theme) => theme.motion?.duration?.fast,
+	'--c15t-duration-normal': (theme) => theme.motion?.duration?.normal,
+	'--c15t-duration-slow': (theme) => theme.motion?.duration?.slow,
+	'--c15t-easing': (theme) => theme.motion?.easing,
+	'--c15t-easing-out': (theme) => theme.motion?.easingOut,
+	'--c15t-easing-in-out': (theme) => theme.motion?.easingInOut,
+	'--c15t-easing-spring': (theme) => theme.motion?.easingSpring,
+};
+
 /**
  * Maps theme tokens to CSS variables.
  */
-export function themeToVars(
-	theme: Theme,
-	isDark = false
-): Record<string, string> {
-	const vars: Record<string, string> = {};
+export function themeToVars(theme: Theme, isDark = false): ThemeCSSVariables {
+	const vars: ThemeCSSVariables = {};
 	const colors = isDark ? { ...theme.colors, ...theme.dark } : theme.colors;
 
-	// Colors
-	if (colors) {
-		if (colors.primary) vars['--c15t-primary'] = colors.primary;
-		if (colors.primaryHover) vars['--c15t-primary-hover'] = colors.primaryHover;
-		if (colors.surface) vars['--c15t-surface'] = colors.surface;
-		if (colors.surfaceHover) vars['--c15t-surface-hover'] = colors.surfaceHover;
-		if (colors.border) vars['--c15t-border'] = colors.border;
-		if (colors.borderHover) vars['--c15t-border-hover'] = colors.borderHover;
-		if (colors.text) vars['--c15t-text'] = colors.text;
-		if (colors.textMuted) vars['--c15t-text-muted'] = colors.textMuted;
-		if (colors.textOnPrimary)
-			vars['--c15t-text-on-primary'] = colors.textOnPrimary;
-		if (colors.overlay) vars['--c15t-overlay'] = colors.overlay;
-		if (colors.switchTrack) vars['--c15t-switch-track'] = colors.switchTrack;
-		if (colors.switchTrackActive)
-			vars['--c15t-switch-track-active'] = colors.switchTrackActive;
-		if (colors.switchThumb) vars['--c15t-switch-thumb'] = colors.switchThumb;
-	}
-
-	// Typography
-	if (theme.typography) {
-		if (theme.typography.fontFamily)
-			vars['--c15t-font-family'] = theme.typography.fontFamily;
-		if (theme.typography.fontSize?.sm)
-			vars['--c15t-font-size-sm'] = theme.typography.fontSize.sm;
-		if (theme.typography.fontSize?.base)
-			vars['--c15t-font-size-base'] = theme.typography.fontSize.base;
-		if (theme.typography.fontSize?.lg)
-			vars['--c15t-font-size-lg'] = theme.typography.fontSize.lg;
-		if (theme.typography.fontWeight?.normal)
-			vars['--c15t-font-weight-normal'] = String(
-				theme.typography.fontWeight.normal
-			);
-		if (theme.typography.fontWeight?.medium)
-			vars['--c15t-font-weight-medium'] = String(
-				theme.typography.fontWeight.medium
-			);
-		if (theme.typography.fontWeight?.semibold)
-			vars['--c15t-font-weight-semibold'] = String(
-				theme.typography.fontWeight.semibold
-			);
-		if (theme.typography.lineHeight?.tight)
-			vars['--c15t-line-height-tight'] = theme.typography.lineHeight.tight;
-		if (theme.typography.lineHeight?.normal)
-			vars['--c15t-line-height-normal'] = theme.typography.lineHeight.normal;
-		if (theme.typography.lineHeight?.relaxed)
-			vars['--c15t-line-height-relaxed'] = theme.typography.lineHeight.relaxed;
-	}
-
-	// Spacing
-	if (theme.spacing) {
-		if (theme.spacing.xs) vars['--c15t-space-xs'] = theme.spacing.xs;
-		if (theme.spacing.sm) vars['--c15t-space-sm'] = theme.spacing.sm;
-		if (theme.spacing.md) vars['--c15t-space-md'] = theme.spacing.md;
-		if (theme.spacing.lg) vars['--c15t-space-lg'] = theme.spacing.lg;
-		if (theme.spacing.xl) vars['--c15t-space-xl'] = theme.spacing.xl;
-	}
-
-	// Radius
-	if (theme.radius) {
-		if (theme.radius.sm) vars['--c15t-radius-sm'] = theme.radius.sm;
-		if (theme.radius.md) vars['--c15t-radius-md'] = theme.radius.md;
-		if (theme.radius.lg) vars['--c15t-radius-lg'] = theme.radius.lg;
-		if (theme.radius.full) vars['--c15t-radius-full'] = theme.radius.full;
-	}
-
-	// Shadows
-	if (theme.shadows) {
-		if (theme.shadows.sm) vars['--c15t-shadow-sm'] = theme.shadows.sm;
-		if (theme.shadows.md) vars['--c15t-shadow-md'] = theme.shadows.md;
-		if (theme.shadows.lg) vars['--c15t-shadow-lg'] = theme.shadows.lg;
-	}
-
-	// Motion
-	if (theme.motion) {
-		if (theme.motion.duration?.fast)
-			vars['--c15t-duration-fast'] = theme.motion.duration.fast;
-		if (theme.motion.duration?.normal)
-			vars['--c15t-duration-normal'] = theme.motion.duration.normal;
-		if (theme.motion.duration?.slow)
-			vars['--c15t-duration-slow'] = theme.motion.duration.slow;
-		if (theme.motion.easing) vars['--c15t-easing'] = theme.motion.easing;
-		if (theme.motion.easingOut)
-			vars['--c15t-easing-out'] = theme.motion.easingOut;
-		if (theme.motion.easingInOut)
-			vars['--c15t-easing-in-out'] = theme.motion.easingInOut;
-		if (theme.motion.easingSpring)
-			vars['--c15t-easing-spring'] = theme.motion.easingSpring;
+	for (const [key, resolve] of Object.entries(themeCSSVariableResolvers) as [
+		keyof ThemeCSSVariables,
+		ThemeCSSVariableResolver,
+	][]) {
+		const value = resolve(theme, colors);
+		if (value) {
+			vars[key] = value;
+		}
 	}
 
 	return vars;
@@ -187,10 +167,12 @@ export function generateThemeCSS(theme: Theme): string {
 	const darkVars = themeToVars(theme, true);
 
 	const lightCSS = Object.entries(lightVars)
+		.filter(([, value]) => value !== undefined)
 		.map(([key, value]) => `${key}: ${value};`)
 		.join('\n');
 
 	const darkCSS = Object.entries(darkVars)
+		.filter(([, value]) => value !== undefined)
 		.map(([key, value]) => `${key}: ${value};`)
 		.join('\n');
 

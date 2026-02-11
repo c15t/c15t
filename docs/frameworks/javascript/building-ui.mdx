@@ -1,0 +1,205 @@
+---
+title: Building UI
+description: Build your own consent UI on top of the headless c15t store — with vanilla DOM, any framework, or the @c15t/ui theme system.
+---
+
+## Headless by Design
+
+The `c15t` core package provides no pre-built UI components. It gives you a Zustand vanilla store with all the consent state and actions you need — you bring the rendering layer. This makes it the foundation for building consent UI in any framework: vanilla JS, Vue, Svelte, Solid, or anything else.
+
+## Vanilla DOM Example
+
+Here's a complete consent banner built with plain JavaScript and DOM APIs:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'c15t',
+  backendURL: 'https://your-instance.c15t.dev',
+  consentCategories: ['necessary', 'measurement', 'marketing'],
+});
+
+// Create banner element
+function createBanner() {
+  const banner = document.createElement('div');
+  banner.id = 'consent-banner';
+  banner.setAttribute('role', 'dialog');
+  banner.setAttribute('aria-label', 'Cookie consent');
+  banner.innerHTML = `
+    <p>We use cookies to improve your experience.</p>
+    <div>
+      <button id="consent-accept">Accept All</button>
+      <button id="consent-reject">Reject</button>
+      <button id="consent-customize">Customize</button>
+    </div>
+  `;
+  document.body.appendChild(banner);
+
+  banner.querySelector('#consent-accept')?.addEventListener('click', () => {
+    consentStore.getState().saveConsents('all');
+  });
+
+  banner.querySelector('#consent-reject')?.addEventListener('click', () => {
+    consentStore.getState().saveConsents('necessary');
+  });
+
+  banner.querySelector('#consent-customize')?.addEventListener('click', () => {
+    consentStore.getState().setIsPrivacyDialogOpen(true);
+  });
+
+  return banner;
+}
+
+// Mount and subscribe
+const banner = createBanner();
+
+consentStore.subscribe((state) => {
+  banner.style.display = state.showPopup ? 'block' : 'none';
+});
+```
+
+## Reactive State Subscriptions
+
+The store fires on every state change. Compare with the previous state to react only to specific changes:
+
+```ts
+consentStore.subscribe((state, prevState) => {
+  // React to banner visibility changes
+  if (state.showPopup !== prevState.showPopup) {
+    document.getElementById('consent-banner')!.style.display =
+      state.showPopup ? 'block' : 'none';
+  }
+
+  // React to consent changes
+  if (state.consents !== prevState.consents) {
+    console.log('Consent state updated:', state.consents);
+  }
+
+  // React to dialog open/close
+  if (state.isPrivacyDialogOpen !== prevState.isPrivacyDialogOpen) {
+    document.getElementById('consent-dialog')!.style.display =
+      state.isPrivacyDialogOpen ? 'block' : 'none';
+  }
+});
+```
+
+## Key Store Properties for UI
+
+| Property | Type | Use |
+|----------|------|-----|
+| `showPopup` | `boolean` | Whether to show the consent banner |
+| `isPrivacyDialogOpen` | `boolean` | Whether the preference dialog is open |
+| `consents` | `Record<string, boolean>` | Current consent state per category |
+| `selectedConsents` | `Record<string, boolean>` | Staged toggle state (unsaved) |
+| `consentTypes` | `ConsentType[]` | Categories to display with title/description |
+| `model` | `string \| null` | Current consent model (opt-in, opt-out, iab) |
+| `locationInfo` | `LocationInfo \| null` | Detected location (country, region) |
+
+## Key Store Actions for UI
+
+| Action | Signature | Use |
+|--------|-----------|-----|
+| `saveConsents` | `(type: 'all' \| 'custom' \| 'necessary') => Promise<void>` | Save consent choices |
+| `setSelectedConsent` | `(name, value) => void` | Toggle a category (staged, not saved) |
+| `setConsent` | `(name, value) => void` | Set + auto-save a single category |
+| `setShowPopup` | `(show, force?) => void` | Show/hide the banner |
+| `setIsPrivacyDialogOpen` | `(isOpen) => void` | Open/close the preference dialog |
+| `getDisplayedConsents` | `() => ConsentType[]` | Get visible consent categories |
+
+## Using `@c15t/ui` for Theming
+
+The `@c15t/ui` package provides a framework-agnostic theme and style system. It defines design tokens, slot-based styling, and CSS primitives that you can use in any rendering layer.
+
+<PackageCommandTabs mode="install" command="@c15t/ui" />
+
+### Theme Tokens
+
+Use the token types to build a consistent theme system:
+
+```ts
+import type {
+  ColorTokens,
+  TypographyTokens,
+  SpacingTokens,
+  BorderTokens,
+  ShadowTokens,
+} from '@c15t/ui/theme';
+
+// Define a theme matching the token structure
+const theme = {
+  colors: {
+    primary: '#2563eb',
+    background: '#ffffff',
+    text: '#1a1a1a',
+    border: '#e5e7eb',
+  } satisfies Partial<ColorTokens>,
+  typography: {
+    fontFamily: 'Inter, system-ui, sans-serif',
+    fontSize: '14px',
+  } satisfies Partial<TypographyTokens>,
+};
+```
+
+### Style Utilities
+
+`@c15t/ui` exports DOM utilities for working with class names and styles:
+
+```ts
+import { cn } from '@c15t/ui/utils';
+
+// Merge class names conditionally
+const className = cn(
+  'consent-banner',
+  isVisible && 'consent-banner--visible',
+  isDark && 'consent-banner--dark'
+);
+```
+
+### CSS Primitives
+
+Import style primitives for consent UI elements:
+
+```ts
+import { buttonVariants, switchVariants, accordionVariants } from '@c15t/ui/styles/primitives';
+
+// Generate class names for styled buttons
+const btn = buttonVariants({ variant: 'primary', mode: 'filled', size: 'medium' });
+document.getElementById('accept-btn')!.className = btn.root();
+
+// Generate class names for styled switches
+const sw = switchVariants({ size: 'medium' });
+toggleEl.className = sw.root();
+```
+
+These functions return CSS module class name generators and auto-inject the associated styles into the document when imported.
+
+## Building a Framework Library
+
+<Callout type="info">
+  **Building a Vue, Svelte, or other framework library?** Use `c15t` for the consent logic and `@c15t/ui` for the theme/style system. See the [`@c15t/react` source code](https://github.com/c15t/c15t/tree/main/packages/react) for a reference implementation of how to wrap the core store in a framework-specific API.
+</Callout>
+
+The pattern for building a framework wrapper:
+
+1. **Create a provider** — Initialize `getOrCreateConsentRuntime()` and expose the store via your framework's context system (Vue `provide`/`inject`, Svelte context, etc.)
+2. **Build reactive bindings** — Subscribe to store changes and bridge them to your framework's reactivity system
+3. **Wrap UI components** — Use `@c15t/ui` tokens and slots for consistent theming, render with your framework's component model
+4. **Export hooks/composables** — Expose store actions through framework-idiomatic APIs (Vue composables, Svelte stores, etc.)
+
+```ts
+// Pseudocode for a framework wrapper
+import { getOrCreateConsentRuntime } from 'c15t';
+import type { ConsentRuntimeOptions } from 'c15t';
+
+export function createConsentPlugin(options: ConsentRuntimeOptions) {
+  const { consentStore } = getOrCreateConsentRuntime(options);
+
+  return {
+    store: consentStore,
+    has: (condition) => consentStore.getState().has(condition),
+    saveConsents: (type) => consentStore.getState().saveConsents(type),
+    subscribe: (selector, callback) => consentStore.subscribe(selector, callback),
+  };
+}
+```

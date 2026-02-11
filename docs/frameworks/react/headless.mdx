@@ -1,18 +1,163 @@
 ---
-title: "Headless"
-description: "Reduce bundle size and improve performance by using the headless package."
-lastModified: 2025-09-19
-availableIn:
-  - framework: 'next'
-    url: '/docs/frameworks/next/headless'
-    title: 'Next.js'
-  - framework: 'react'
-    url: '/docs/frameworks/react/headless'
-    title: 'React'
+title: Headless Mode
+description: Build fully custom consent UI using only hooks - no pre-built components required.
 ---
 
-If you are using your own custom components for c15t, you can use the headless package to reduce bundle size and improve performance. This package still exports all the same hooks and functions as the standard package, but without the UI components.
+<import src="../../shared/react/guides/headless.mdx#intro" />
 
-```ts
-import { ConsentManagerProvider } from '@c15t/react/headless';
+## Full Example: Custom Consent Banner
+
+```tsx
+import { useConsentManager, useTranslations } from '@c15t/react';
+
+function CustomConsentBanner() {
+  const {
+    showPopup,
+    consents,
+    consentCategories,
+    consentTypes,
+    saveConsents,
+    setSelectedConsent,
+    selectedConsents,
+  } = useConsentManager();
+  const translations = useTranslations();
+
+  if (!showPopup) return null;
+
+  const displayedTypes = consentTypes.filter(
+    (t) => consentCategories.includes(t.name) && t.display
+  );
+
+  return (
+    <div className="fixed bottom-0 inset-x-0 bg-white border-t p-6 shadow-lg z-50">
+      <h2 className="text-lg font-semibold">
+        {translations.cookieBanner.title}
+      </h2>
+      <p className="text-sm text-gray-600 mt-1">
+        {translations.cookieBanner.description}
+      </p>
+
+      <div className="mt-4 space-y-3">
+        {displayedTypes.map((type) => (
+          <label key={type.name} className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={selectedConsents[type.name] ?? consents[type.name] ?? false}
+              disabled={type.disabled}
+              onChange={(e) => setSelectedConsent(type.name, e.target.checked)}
+            />
+            <div>
+              <span className="font-medium">
+                {translations.consentTypes[type.name]?.title ?? type.name}
+              </span>
+              <p className="text-xs text-gray-500">{type.description}</p>
+            </div>
+          </label>
+        ))}
+      </div>
+
+      <div className="mt-4 flex gap-3">
+        <button
+          onClick={() => saveConsents('necessary')}
+          className="px-4 py-2 border rounded"
+        >
+          {translations.common.rejectAll}
+        </button>
+        <button
+          onClick={() => saveConsents('custom')}
+          className="px-4 py-2 border rounded"
+        >
+          {translations.common.save}
+        </button>
+        <button
+          onClick={() => saveConsents('all')}
+          className="px-4 py-2 bg-blue-600 text-white rounded"
+        >
+          {translations.common.acceptAll}
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+## Usage with Provider
+
+The headless UI still needs a `ConsentManagerProvider`:
+
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider } from '@c15t/react';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: 'https://your-instance.c15t.dev',
+        consentCategories: ['necessary', 'measurement', 'marketing'],
+      }}
+    >
+      <CustomConsentBanner />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+## Custom Dialog
+
+Build a custom consent dialog for detailed category management:
+
+```tsx
+import { useConsentManager, useTranslations } from '@c15t/react';
+
+function CustomConsentDialog() {
+  const {
+    isPrivacyDialogOpen,
+    setIsPrivacyDialogOpen,
+    consentTypes,
+    consentCategories,
+    selectedConsents,
+    consents,
+    setSelectedConsent,
+    saveConsents,
+    has,
+  } = useConsentManager();
+  const translations = useTranslations();
+
+  if (!isPrivacyDialogOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={() => setIsPrivacyDialogOpen(false)} />
+      <div className="relative bg-white rounded-xl p-6 max-w-md w-full">
+        <h2 className="text-lg font-semibold">{translations.consentManagerDialog.title}</h2>
+
+        {consentTypes
+          .filter((t) => consentCategories.includes(t.name))
+          .map((type) => (
+            <div key={type.name} className="flex items-center justify-between py-3 border-b">
+              <div>
+                <p className="font-medium">{translations.consentTypes[type.name]?.title}</p>
+                <p className="text-sm text-gray-500">{type.description}</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={selectedConsents[type.name] ?? consents[type.name] ?? false}
+                disabled={type.disabled}
+                onChange={(e) => setSelectedConsent(type.name, e.target.checked)}
+              />
+            </div>
+          ))}
+
+        <div className="mt-4 flex justify-end gap-2">
+          <button onClick={() => saveConsents('necessary')}>Reject</button>
+          <button onClick={() => saveConsents('custom')}>Save</button>
+          <button onClick={() => saveConsents('all')}>Accept All</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 ```

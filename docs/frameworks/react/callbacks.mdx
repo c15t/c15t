@@ -1,57 +1,71 @@
 ---
-title: "Callbacks"
-description: "Learn how to use callbacks to respond to c15t events in your React application."
-lastModified: 2025-08-20
-availableIn:
-  - framework: 'next'
-    url: '/docs/frameworks/next/callbacks'
-    title: 'Next.js'
-  - framework: 'react'
-    url: '/docs/frameworks/react/callbacks'
-    title: 'React'
+title: Callbacks
+description: React to consent lifecycle events - initialization, consent changes, errors, and revocation reloads.
 ---
 
-## Implementing Callbacks
+<import src="../../shared/react/guides/callbacks.mdx#intro" />
 
-```tsx title="src/App.tsx"
-import { 
-  ConsentManagerDialog,
-  ConsentManagerProvider,
-  CookieBanner,
-  type ConsentManagerOptions
-} from '@c15t/react';
+## Configuration
 
-export default function App() {
-  const options: ConsentManagerOptions = {
-    mode: 'c15t', 
-    backendURL: process.env.REACT_APP_C15T_URL,
-    consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
-    overrides: {
-      country: 'GB', // Useful for development to always view the banner.
-    },
-    callbacks: {
-      onBannerFetched(response) {
-        console.log('Consent banner fetched', response);
-      },
-      onConsentSet(response) {
-        console.log('Consent has been saved', response);
-      },
-      onError(response) {
-        console.log('Error', response);
-      },
-    },
-  };
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider } from '@c15t/react';
 
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider options={options}>
-      <div className="App">
-        {/* Your application content */}
-      </div>
-      <CookieBanner />
-      <ConsentManagerDialog />
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: 'https://your-instance.c15t.dev',
+        callbacks: {
+          onBannerFetched: ({ jurisdiction, location, translations }) => {
+            console.log('Jurisdiction:', jurisdiction);
+            console.log('Country:', location.countryCode);
+            console.log('Language:', translations.language);
+          },
+          onConsentSet: ({ preferences }) => {
+            // Fire analytics event
+            analytics.track('consent_updated', { preferences });
+          },
+          onError: ({ error }) => {
+            errorReporter.captureMessage(error);
+          },
+          onBeforeConsentRevocationReload: ({ preferences }) => {
+            // Flush pending analytics before page reloads
+            analytics.flush();
+          },
+        },
+      }}
+    >
+      {children}
     </ConsentManagerProvider>
   );
 }
 ```
 
-<import>../javascript/shared/available-callbacks.mdx</import>
+<import src="../../shared/react/guides/callbacks.mdx#callback-reference" />
+
+## Dynamic Registration
+
+Register or update callbacks at runtime using `setCallback()`:
+
+```tsx
+import { useEffect } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+function ConsentAnalytics() {
+  const { setCallback } = useConsentManager();
+
+  useEffect(() => {
+    setCallback('onConsentSet', ({ preferences }) => {
+      analytics.track('consent_changed', preferences);
+    });
+
+    return () => {
+      setCallback('onConsentSet', undefined);
+    };
+  }, [setCallback]);
+
+  return null;
+}
+```

@@ -1,0 +1,57 @@
+---
+title: Configuration Reference
+description: Complete reference for all c15t backend configuration options.
+---
+
+All options are passed to `c15tInstance()`. Only `adapter` and `trustedOrigins` are required.
+
+## Options
+
+<AutoTypeTable path="./packages/backend/src/types/index.ts" name="C15TOptions" />
+
+<AutoTypeTable path="./packages/backend/src/types/index.ts" name="BaseOptions" />
+
+<AutoTypeTable path="./packages/backend/src/types/index.ts" name="DatabaseOptions" />
+
+## Advanced Options
+
+<AutoTypeTable path="./packages/backend/src/types/index.ts" name="AdvancedOptions" />
+
+## Return Value
+
+`c15tInstance()` returns:
+
+```ts
+interface C15TInstance {
+  /** Standard Fetch API handler */
+  handler: (request: Request) => Promise<Response>;
+
+  /** Resolved configuration */
+  options: C15TOptions;
+
+  /** Internal context (database, registry, logger) */
+  $context: C15TContext;
+
+  /** OpenAPI spec as JSON */
+  getOpenAPISpec: () => Promise<Record<string, unknown>>;
+
+  /** OpenAPI docs UI as HTML string */
+  getDocsUI: () => string;
+}
+```
+
+## defineConfig Helper
+
+For type-safe configuration in a separate file:
+
+```ts title="c15t.config.ts"
+import { defineConfig } from '@c15t/backend';
+
+export default defineConfig({
+  adapter: kyselyAdapter(db),
+  trustedOrigins: ['https://example.com'],
+  advanced: {
+    // full autocomplete here
+  },
+});
+```

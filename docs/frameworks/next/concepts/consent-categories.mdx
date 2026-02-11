@@ -1,0 +1,67 @@
+---
+title: Consent Categories
+description: How c15t organizes tracking technologies into five consent categories.
+---
+
+<import src="../../../shared/concepts/consent-categories.mdx#overview" />
+
+Configure which categories your app supports in the provider:
+
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider } from '@c15t/nextjs';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: '/api/c15t',
+        consentCategories: ['necessary', 'measurement', 'marketing'],
+      }}
+    >
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../../shared/concepts/consent-categories.mdx#categories-table" />
+
+Check if a specific category has consent using the `has()` method:
+
+```tsx
+import { useConsentManager } from '@c15t/nextjs';
+
+function AnalyticsLoader() {
+  const { has } = useConsentManager();
+
+  if (has('measurement')) {
+    // Safe to load analytics scripts
+  }
+
+  return null;
+}
+```
+
+<import src="../../../shared/concepts/consent-categories.mdx#configuration" />
+
+You can dynamically update which categories are active:
+
+```tsx
+import { useConsentManager } from '@c15t/nextjs';
+
+function CategoryManager() {
+  const { consentCategories, setConsentCategories } = useConsentManager();
+
+  const addExperienceCategory = () => {
+    setConsentCategories([...consentCategories, 'experience']);
+  };
+
+  return (
+    <button onClick={addExperienceCategory}>
+      Enable experience features
+    </button>
+  );
+}
+```

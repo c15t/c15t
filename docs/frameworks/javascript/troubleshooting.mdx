@@ -1,0 +1,43 @@
+---
+title: Troubleshooting
+description: Solutions for common issues with c15t in JavaScript — store access, missing banners, consent persistence, and more.
+---
+
+<import src="../../shared/troubleshooting.mdx#provider-not-found" />
+
+<import src="../../shared/troubleshooting.mdx#banner-doesnt-show" />
+
+<import src="../../shared/troubleshooting.mdx#consent-not-persisting" />
+
+<import src="../../shared/troubleshooting.mdx#scripts-not-loading" />
+
+## Store Not Accessible
+
+**Symptom:** `window.c15tStore` is `undefined`, or `consentStore.getState()` throws an error.
+
+**Fixes:**
+
+1. **Runtime not initialized** — Ensure `getOrCreateConsentRuntime()` has been called before accessing the store:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'c15t',
+  backendURL: 'https://your-instance.c15t.dev',
+});
+
+// Now the store is accessible
+console.log(consentStore.getState());
+console.log(window.c15tStore?.getState());
+```
+
+2. **Script load order** — If using `<script>` tags, make sure the script that initializes the runtime loads before any scripts that access `window.c15tStore`.
+
+3. **Custom namespace** — If you set a custom `namespace` in store options, the window property will use that name instead of `c15tStore`.
+
+## Still Stuck?
+
+- Enable `debug: true` in runtime options for verbose console logging
+- Inspect `window.c15tStore?.getState()` in the browser console
+- Check the [GitHub issues](https://github.com/c15t/c15t/issues) for known bugs

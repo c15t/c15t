@@ -1,0 +1,87 @@
+---
+title: Client Modes
+description: Choose how c15t connects to its backend - full c15t integration, offline-only, or bring your own backend.
+---
+
+<import src="../../../shared/concepts/client-modes.mdx#overview" />
+
+<import src="../../../shared/concepts/client-modes.mdx#c15t-mode" />
+
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider, ConsentBanner } from '@c15t/nextjs';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: '/api/c15t',
+      }}
+    >
+      <ConsentBanner />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../../shared/concepts/client-modes.mdx#offline-mode" />
+
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider, ConsentBanner } from '@c15t/nextjs';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'offline',
+        overrides: {
+          country: 'DE', // Override country to trigger GDPR jurisdiction
+        },
+      }}
+    >
+      <ConsentBanner />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../../shared/concepts/client-modes.mdx#custom-mode" />
+
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider, ConsentBanner } from '@c15t/nextjs';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'custom',
+        endpointHandlers: {
+          async init() {
+            const res = await fetch('/my-api/consent/init');
+            const data = await res.json();
+            return { data, response: res, error: null };
+          },
+          async setConsent(options) {
+            const res = await fetch('/my-api/consent', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(options?.body),
+            });
+            return { data: await res.json(), response: res, error: null };
+          },
+        },
+      }}
+    >
+      <ConsentBanner />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../../shared/concepts/client-modes.mdx#decision-guide" />

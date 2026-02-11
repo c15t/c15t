@@ -39,212 +39,218 @@ export interface DatabaseOptions {
 	tablePrefix?: string;
 }
 
-interface BaseOptions {
-	appName?: string;
-	basePath?: string;
-	trustedOrigins: string[];
-	advanced?: {
+export interface AdvancedOptions {
+	/**
+	 * Disables the use of Geo Location to determine the jurisdiction
+	 *
+	 * When enabled, the jurisdiction will be set to "GDPR" to show the strictest version of the banner as we don't know the jurisdiction in this case
+	 *
+	 * @default false
+	 */
+	disableGeoLocation?: boolean;
+	/**
+	 * Override base translations
+	 *
+	 * @example
+	 * ```ts
+	 * {
+	 *   en: enTranslations,
+	 *   de: deTranslations,
+	 * }
+	 * ```
+	 */
+	customTranslations?: Record<string, Partial<Translations>>;
+
+	/**
+	 * Select which branding to show in the consent banner.
+	 * Use "none" to hide branding.
+	 * @default "c15t"
+	 */
+	branding?: Branding;
+
+	openapi?: {
 		/**
-		 * Disables the use of Geo Location to determine the jurisdiction
-		 *
-		 * When enabled, the jurisdiction will be set to "GDPR" to show the strictest version of the banner as we don't know the jurisdiction in this case
-		 *
+		 * Enable/disable OpenAPI spec generation
+		 * @default true
+		 */
+		enabled?: boolean;
+
+		/**
+		 * Path to serve the OpenAPI JSON spec
+		 * @default "/spec.json"
+		 */
+		specPath?: string;
+
+		/**
+		 * Path to serve the API documentation UI
+		 * @default "/docs"
+		 */
+		docsPath?: string;
+
+		/**
+		 * OpenAPI specification options
+		 */
+		options?: {
+			info?: {
+				title?: string;
+				version?: string;
+				description?: string;
+			};
+			servers?: Array<{ url: string; description?: string }>;
+			security?: Array<Record<string, string[]>>;
+		};
+
+		/**
+		 * Custom template for rendering the API documentation UI
+		 * If provided, this will be used instead of the default Scalar UI
+		 */
+		customUiTemplate?: string;
+	};
+	/**
+	 * OpenTelemetry configuration for tracing and metrics.
+	 * Telemetry is opt-in and disabled by default.
+	 * Users must provide their own SDK setup (Node, Bun, edge, etc.).
+	 */
+	telemetry?: {
+		/**
+		 * Enable telemetry (tracing and metrics).
+		 * Must be explicitly set to true to activate.
 		 * @default false
 		 */
-		disableGeoLocation?: boolean;
+		enabled?: boolean;
 		/**
-		 * Override base translations
+		 * User-provided tracer instance.
+		 * Users should set up their own OpenTelemetry SDK and pass the tracer here.
+		 * @example trace.getTracer('my-app')
+		 */
+		tracer?: Tracer;
+		/**
+		 * User-provided meter instance for metrics.
+		 * Users should set up their own OpenTelemetry SDK and pass the meter here.
+		 * @example metrics.getMeter('my-app')
+		 */
+		meter?: Meter;
+		/**
+		 * Default attributes to include on all spans and metrics.
+		 */
+		defaultAttributes?: Record<string, string | number | boolean>;
+	};
+	ipAddress?: {
+		/**
+		 * Enable/disable IP address tracking.
+		 * When disabled, all IP addresses will be stored as null.
+		 * @default true
+		 */
+		tracking?: boolean;
+
+		/**
+		 * Enable/disable IP address masking to reduce PII collection.
+		 * - IPv4: Last octet is replaced with 0 (e.g., 192.168.1.100 -> 192.168.1.0)
+		 * - IPv6: Last 80 bits are masked (e.g., 2001:db8:85a3::1 -> 2001:db8:85a3::)
+		 * @default true
+		 */
+		masking?: boolean;
+
+		/**
+		 * Override the default IP address headers used to extract client IP.
+		 * Headers are checked in order, first match wins.
+		 */
+		ipAddressHeaders?: string[];
+	};
+
+	/**
+	 * Cache configuration for external persistent storage.
+	 * Used for caching GVL and other data.
+	 */
+	cache?: {
+		/**
+		 * External cache adapter (Redis, KV, etc.).
+		 * If not provided, only in-memory cache is used.
+		 */
+		adapter?: CacheAdapter;
+	};
+
+	/**
+	 * API keys for authenticated endpoints.
+	 * Used for server-side endpoints like GET /subjects.
+	 *
+	 * @example
+	 * ```ts
+	 * apiKeys: ['sk_live_abc123', 'sk_live_def456']
+	 * ```
+	 */
+	apiKeys?: string[];
+
+	/**
+	 * GVL (Global Vendor List) configuration for IAB TCF compliance.
+	 * Disabled by default - most users don't need IAB TCF.
+	 * Set enabled: true to activate GVL support.
+	 */
+	gvl?: {
+		/**
+		 * Enable GVL support.
+		 * When false or not provided, /init returns gvl: null.
+		 */
+		enabled: true;
+
+		/**
+		 * Bundled GVL translations by language code.
+		 * These are checked first before any cache or fetch.
 		 *
 		 * @example
 		 * ```ts
-		 * {
-		 *   en: enTranslations,
-		 *   de: deTranslations,
+		 * import enGVL from './gvl/en.json';
+		 * import deGVL from './gvl/de.json';
+		 *
+		 * gvl: {
+		 *   enabled: true,
+		 *   bundled: { en: enGVL, de: deGVL }
 		 * }
 		 * ```
 		 */
-		customTranslations?: Record<string, Partial<Translations>>;
+		bundled?: Record<string, GlobalVendorList>;
 
 		/**
-		 * Select which branding to show in the consent banner.
-		 * Use "none" to hide branding.
-		 * @default "c15t"
+		 * Vendor IDs to filter when fetching non-bundled languages.
+		 * Reduces payload size.
 		 */
-		branding?: Branding;
+		vendorIds?: number[];
 
-		openapi?: {
-			/**
-			 * Enable/disable OpenAPI spec generation
-			 * @default true
-			 */
-			enabled?: boolean;
-
-			/**
-			 * Path to serve the OpenAPI JSON spec
-			 * @default "/spec.json"
-			 */
-			specPath?: string;
-
-			/**
-			 * Path to serve the API documentation UI
-			 * @default "/docs"
-			 */
-			docsPath?: string;
-
-			/**
-			 * OpenAPI specification options
-			 */
-			options?: {
-				info?: {
-					title?: string;
-					version?: string;
-					description?: string;
-				};
-				servers?: Array<{ url: string; description?: string }>;
-				security?: Array<Record<string, string[]>>;
-			};
-
-			/**
-			 * Custom template for rendering the API documentation UI
-			 * If provided, this will be used instead of the default Scalar UI
-			 */
-			customUiTemplate?: string;
-		};
 		/**
-		 * OpenTelemetry configuration for tracing and metrics.
-		 * Telemetry is opt-in and disabled by default.
-		 * Users must provide their own SDK setup (Node, Bun, edge, etc.).
+		 * Override the default GVL endpoint.
+		 * @default 'https://gvl.consent.io'
 		 */
-		telemetry?: {
-			/**
-			 * Enable telemetry (tracing and metrics).
-			 * Must be explicitly set to true to activate.
-			 * @default false
-			 */
-			enabled?: boolean;
-			/**
-			 * User-provided tracer instance.
-			 * Users should set up their own OpenTelemetry SDK and pass the tracer here.
-			 * @example trace.getTracer('my-app')
-			 */
-			tracer?: Tracer;
-			/**
-			 * User-provided meter instance for metrics.
-			 * Users should set up their own OpenTelemetry SDK and pass the meter here.
-			 * @example metrics.getMeter('my-app')
-			 */
-			meter?: Meter;
-			/**
-			 * Default attributes to include on all spans and metrics.
-			 */
-			defaultAttributes?: Record<string, string | number | boolean>;
-		};
-		ipAddress?: {
-			/**
-			 * Enable/disable IP address tracking.
-			 * When disabled, all IP addresses will be stored as null.
-			 * @default true
-			 */
-			tracking?: boolean;
-
-			/**
-			 * Enable/disable IP address masking to reduce PII collection.
-			 * - IPv4: Last octet is replaced with 0 (e.g., 192.168.1.100 -> 192.168.1.0)
-			 * - IPv6: Last 80 bits are masked (e.g., 2001:db8:85a3::1 -> 2001:db8:85a3::)
-			 * @default true
-			 */
-			masking?: boolean;
-
-			/**
-			 * Override the default IP address headers used to extract client IP.
-			 * Headers are checked in order, first match wins.
-			 */
-			ipAddressHeaders?: string[];
-		};
+		endpoint?: string;
 
 		/**
-		 * Cache configuration for external persistent storage.
-		 * Used for caching GVL and other data.
-		 */
-		cache?: {
-			/**
-			 * External cache adapter (Redis, KV, etc.).
-			 * If not provided, only in-memory cache is used.
-			 */
-			adapter?: CacheAdapter;
-		};
-
-		/**
-		 * API keys for authenticated endpoints.
-		 * Used for server-side endpoints like GET /subjects.
+		 * Custom vendors not registered with IAB.
+		 * These are synced to the frontend via the /init endpoint.
 		 *
 		 * @example
 		 * ```ts
-		 * apiKeys: ['sk_live_abc123', 'sk_live_def456']
+		 * customVendors: [
+		 *   {
+		 *     id: 'internal-analytics',
+		 *     name: 'Our Analytics',
+		 *     privacyPolicyUrl: 'https://example.com/privacy',
+		 *     purposes: [1, 8],
+		 *   }
+		 * ]
 		 * ```
 		 */
-		apiKeys?: string[];
-
-		/**
-		 * GVL (Global Vendor List) configuration for IAB TCF compliance.
-		 * Disabled by default - most users don't need IAB TCF.
-		 * Set enabled: true to activate GVL support.
-		 */
-		gvl?: {
-			/**
-			 * Enable GVL support.
-			 * When false or not provided, /init returns gvl: null.
-			 */
-			enabled: true;
-
-			/**
-			 * Bundled GVL translations by language code.
-			 * These are checked first before any cache or fetch.
-			 *
-			 * @example
-			 * ```ts
-			 * import enGVL from './gvl/en.json';
-			 * import deGVL from './gvl/de.json';
-			 *
-			 * gvl: {
-			 *   enabled: true,
-			 *   bundled: { en: enGVL, de: deGVL }
-			 * }
-			 * ```
-			 */
-			bundled?: Record<string, GlobalVendorList>;
-
-			/**
-			 * Vendor IDs to filter when fetching non-bundled languages.
-			 * Reduces payload size.
-			 */
-			vendorIds?: number[];
-
-			/**
-			 * Override the default GVL endpoint.
-			 * @default 'https://gvl.consent.io'
-			 */
-			endpoint?: string;
-
-			/**
-			 * Custom vendors not registered with IAB.
-			 * These are synced to the frontend via the /init endpoint.
-			 *
-			 * @example
-			 * ```ts
-			 * customVendors: [
-			 *   {
-			 *     id: 'internal-analytics',
-			 *     name: 'Our Analytics',
-			 *     privacyPolicyUrl: 'https://example.com/privacy',
-			 *     purposes: [1, 8],
-			 *   }
-			 * ]
-			 * ```
-			 */
-			customVendors?: NonIABVendor[];
-		};
+		customVendors?: NonIABVendor[];
 	};
+}
+
+export interface BaseOptions {
+	/** Display name for your application, used in consent records. */
+	appName?: string;
+	/** Base path prefix for all API routes (e.g. `/api/consent`). */
+	basePath?: string;
+	/** Allowed origins for CORS. Required for browser-based consent collection. */
+	trustedOrigins: string[];
+	/** Advanced configuration options. */
+	advanced?: AdvancedOptions;
 }
 
 type FumaDBSchema = InferFumaDB<typeof DB>['schemas'];

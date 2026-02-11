@@ -1,50 +1,54 @@
 ---
 title: Script Loader
-description: Load scripts based on consent. Used to load scripts that are not necessary for the user's consent, such as analytics scripts.
-lastModified: 2025-09-19
-
-availableIn:
-  - framework: 'javascript'
-    url: '/docs/frameworks/javascript/script-loader'
-    title: 'JavaScript'
-  - framework: 'next'
-    url: '/docs/frameworks/next/script-loader'
-    title: 'Next.js'
-  - framework: 'react'
-    url: '/docs/frameworks/react/script-loader'
-    title: 'React'
+description: Gate third-party scripts behind consent — load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
 ---
 
-<import>./shared/script-loader.mdx#overview</import>
+<import src="../../shared/react/guides/script-loader.mdx#intro" />
 
-<import>./shared/script-loader.mdx#tracking-blocker</import>
+## Basic Usage
 
-## Implementation
+Pass an array of `Script` objects to the runtime options:
 
 ```ts
-import { configureConsentManager } from 'c15t';
-import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+import { getOrCreateConsentRuntime } from 'c15t';
+import { metaPixel } from '@c15t/scripts/meta-pixel';
 
-const c15t = configureConsentManager({
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'c15t',
+  backendURL: 'https://your-instance.c15t.dev',
   scripts: [
+    metaPixel({ pixelId: '123456' }),
     {
-      id: 'example',
-      src: 'https://analytics.example.com/script.js',
-      category: 'analytics',
+      id: 'custom-analytics',
+      src: 'https://cdn.example.com/analytics.js',
+      category: 'measurement',
     },
-    googleTagManager({
-      id: 'GTM-XXXXXXX',
-    }), // We can also use the prebuilt script
-  ]
+  ],
 });
 ```
 
-<import>./shared/script-loader.mdx#prebuilt-scripts</import>
+<import src="../../shared/react/guides/script-loader.mdx#script-types-to-advanced" />
 
-<import>./shared/script-loader.mdx#scripts-table</import>
+## Dynamic Script Management
 
-<import>./shared/script-loader.mdx#always-load</import>
+Add, remove, or check scripts at runtime via the store:
 
-## Types
+```ts
+const state = consentStore.getState();
 
-<import>./shared/script-loader.mdx#script-type</import>
+// Add scripts dynamically
+state.setScripts([
+  { id: 'dynamic', src: 'https://cdn.example.com/widget.js', category: 'measurement' },
+]);
+
+// Remove a script
+state.removeScript('dynamic');
+
+// Check if a script is loaded
+const loaded = state.isScriptLoaded('custom-analytics');
+
+// Get all loaded script IDs
+const allLoaded = state.getLoadedScriptIds();
+```
+
+<import src="../../shared/react/guides/script-loader.mdx#api-reference" />

@@ -1,0 +1,91 @@
+---
+title: Location & Identity
+description: Access detected location, override geolocation, change language, and link user identity.
+---
+
+## `locationInfo`
+
+The detected location data, available after initialization completes. Contains the user's country and region as resolved by the c15t backend (or overrides in offline mode).
+
+```ts
+const { locationInfo } = consentStore.getState();
+
+if (locationInfo) {
+  console.log('Country:', locationInfo.countryCode); // 'DE'
+  console.log('Region:', locationInfo.regionCode);   // 'BY'
+}
+```
+
+Subscribe to location changes:
+
+```ts
+consentStore.subscribe((state, prevState) => {
+  if (state.locationInfo !== prevState.locationInfo && state.locationInfo) {
+    console.log('Location detected:', state.locationInfo.countryCode);
+  }
+});
+```
+
+## `setOverrides(overrides)`
+
+Override the detected geolocation. This re-runs initialization with the new location, which may change the consent model (e.g., switching from opt-out to opt-in when changing from US to DE).
+
+```ts
+const state = consentStore.getState();
+
+// Override as EU visitor (triggers GDPR opt-in model)
+await state.setOverrides({ country: 'DE' });
+
+// Override as California visitor (triggers CCPA opt-out model)
+await state.setOverrides({ country: 'US', region: 'CA' });
+
+// Override country and language together
+await state.setOverrides({ country: 'FR', language: 'fr' });
+```
+
+<Callout type="info">
+  `setOverrides()` triggers a new `/init` request to the backend (in c15t mode), so the resolved jurisdiction, model, and translations will update accordingly.
+</Callout>
+
+## `setLanguage(language)`
+
+Change the active language at runtime. This re-fetches the consent banner to get server-resolved translations for the new language.
+
+```ts
+const state = consentStore.getState();
+
+// Switch to German
+await state.setLanguage('de');
+
+// Switch to French
+await state.setLanguage('fr');
+```
+
+Use this to build a language switcher:
+
+```ts
+document.getElementById('lang-select')?.addEventListener('change', async (e) => {
+  const lang = (e.target as HTMLSelectElement).value;
+  await consentStore.getState().setLanguage(lang);
+});
+```
+
+## `identifyUser(user)`
+
+Link an authenticated user identity to the consent record. This allows the c15t backend to associate consent across devices for the same user.
+
+```ts
+const state = consentStore.getState();
+
+// After user logs in
+await state.identifyUser({
+  id: 'user_123',
+  identityProvider: 'clerk',
+});
+```
+
+The `identityProvider` field indicates which auth system provided the ID (e.g., `'clerk'`, `'auth0'`, `'custom'`).
+
+<Callout type="warn">
+  `identifyUser()` sends the user ID to the c15t backend. Only call this after the user has authenticated and consented to being identified.
+</Callout>

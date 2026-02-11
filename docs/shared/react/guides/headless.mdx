@@ -1,0 +1,24 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  c15t's headless mode means using the hooks (`useConsentManager`, `useTranslations`, etc.) without any pre-built UI components. This gives you complete control over the consent experience.
+
+  There are three levels of customization:
+
+  1. **Props** - Use pre-built components with custom text and configuration
+  2. **noStyle** - Use pre-built components with their structure but strip all styles
+  3. **Headless** - Use only hooks and build the entire UI yourself
+
+  ## When to Go Headless
+
+  Go headless when:
+
+  - Your design system requires complete control over markup
+  - You need a consent flow that doesn't fit the banner/dialog pattern
+  - You want to embed consent choices inline rather than as overlays
+
+  Use `noStyle` instead when:
+
+  - The component structure works but the styling doesn't
+  - You want to apply your own CSS/Tailwind without fighting defaults
+</section>

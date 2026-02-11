@@ -7,6 +7,29 @@ import { useContext } from 'react';
 import { ConsentStateContext } from '../context/consent-manager-context';
 
 /**
+ * Return value of {@link useSSRStatus}.
+ *
+ * @public
+ */
+export interface SSRStatus {
+	/**
+	 * Whether SSR data was used for initialization.
+	 *
+	 * `true` if SSR data was provided and successfully consumed,
+	 * `false` otherwise.
+	 */
+	ssrDataUsed: boolean;
+
+	/**
+	 * Reason SSR data was skipped, or `null` if used successfully.
+	 *
+	 * - `'no_data'` — no `ssrData` prop was provided to the provider
+	 * - `'fetch_failed'` — `ssrData` was provided but the Promise resolved with no data
+	 */
+	ssrSkippedReason: 'no_data' | 'fetch_failed' | null;
+}
+
+/**
  * Returns information about SSR data usage.
  *
  * @remarks
@@ -36,7 +59,7 @@ import { ConsentStateContext } from '../context/consent-manager-context';
  *
  * @public
  */
-export function useSSRStatus() {
+export function useSSRStatus(): SSRStatus {
 	const context = useContext(ConsentStateContext);
 
 	if (context === undefined) {
@@ -46,9 +69,7 @@ export function useSSRStatus() {
 	}
 
 	return {
-		/** Whether SSR data was used for initialization */
 		ssrDataUsed: context.state.ssrDataUsed,
-		/** Reason SSR data was skipped, null if used successfully */
 		ssrSkippedReason: context.state.ssrSkippedReason,
 	};
 }

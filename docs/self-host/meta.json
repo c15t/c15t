@@ -1,3 +1,15 @@
 {
-	"pages": ["v1", "v2"]
+	"title": "Self-Hosting",
+	"pages": [
+		"quickstart",
+		"--- Guides ---",
+		"./guides/database-setup",
+		"./guides/framework-integration",
+		"./guides/caching",
+		"./guides/iab-tcf",
+		"./guides/observability",
+		"--- API Reference ---",
+		"./api/endpoints",
+		"./api/configuration"
+	]
 }
