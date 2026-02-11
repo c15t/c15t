@@ -1,0 +1,108 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+`ConsentBanner` is a ready-to-use consent banner that appears automatically in **opt-in jurisdictions** (like GDPR) where explicit consent is required before tracking. In opt-out jurisdictions (like CCPA), the banner won't appear — users get an opt-out mechanism instead. It includes reject, accept, and customize buttons with configurable layout.
+</section>
+
+<section id="customization">
+## Customizing Content
+
+Override the default title, description, and button labels:
+
+```tsx
+<ConsentBanner
+  title="We value your privacy"
+  description="We use cookies to enhance your browsing experience and analyze site traffic."
+  acceptButtonText="Accept all"
+  rejectButtonText="Reject all"
+  customizeButtonText="Manage preferences"
+/>
+```
+
+## Button Layout
+
+The `layout` prop controls button arrangement. Each item is either a button ID or an array of button IDs (which groups them together):
+
+```tsx
+{/* Default: reject and accept grouped, customize separate */}
+<ConsentBanner layout={[['reject', 'accept'], 'customize']} />
+
+{/* All buttons in one group */}
+<ConsentBanner layout={[['reject', 'customize', 'accept']]} />
+
+{/* Accept first, then reject and customize grouped */}
+<ConsentBanner layout={['accept', ['reject', 'customize']]} />
+```
+
+### Primary Button
+
+Highlight specific button(s) as the primary action:
+
+```tsx
+{/* Single primary */}
+<ConsentBanner primaryButton="accept" />
+
+{/* Multiple primaries */}
+<ConsentBanner primaryButton={['accept', 'customize']} />
+```
+
+## Legal Links
+
+Control which legal links appear in the banner description:
+
+```tsx
+{/* Show all configured links (default) */}
+<ConsentBanner legalLinks={undefined} />
+
+{/* Show no links */}
+<ConsentBanner legalLinks={null} />
+
+{/* Show specific links */}
+<ConsentBanner legalLinks={['privacyPolicy', 'cookiePolicy']} />
+```
+
+<Callout type="info">
+Legal link URLs are configured in the `ConsentManagerProvider` options via the `legalLinks` prop, not on the banner itself.
+</Callout>
+
+## Compound Components
+
+Build fully custom banner layouts using sub-components:
+
+```tsx
+<ConsentBanner.Root>
+  <ConsentBanner.Overlay />
+  <ConsentBanner.Card>
+    <ConsentBanner.Header>
+      <ConsentBanner.Title />
+      <ConsentBanner.Description />
+    </ConsentBanner.Header>
+    <ConsentBanner.Footer>
+      <ConsentBanner.FooterSubGroup>
+        <ConsentBanner.RejectButton />
+        <ConsentBanner.AcceptButton />
+      </ConsentBanner.FooterSubGroup>
+      <ConsentBanner.CustomizeButton />
+    </ConsentBanner.Footer>
+  </ConsentBanner.Card>
+</ConsentBanner.Root>
+```
+
+- `ConsentBanner.Root` — Outermost container, provides theme context
+- `ConsentBanner.Card` — Main content card with optional focus trapping
+- `ConsentBanner.Header` — Contains title and description
+- `ConsentBanner.Title` — Heading, defaults to translation `consentBanner.title`
+- `ConsentBanner.Description` — Description text, supports `legalLinks` prop
+- `ConsentBanner.Footer` — Action buttons container
+- `ConsentBanner.FooterSubGroup` — Groups related buttons together
+- `ConsentBanner.RejectButton` — Rejects all consent
+- `ConsentBanner.CustomizeButton` — Opens the consent dialog
+- `ConsentBanner.AcceptButton` — Accepts all consent
+- `ConsentBanner.Overlay` — Optional backdrop overlay
+</section>
+
+<section id="props">
+## Props
+
+<AutoTypeTable path="./packages/react/src/components/consent-banner/consent-banner.tsx" name="ConsentBannerProps" />
+</section>

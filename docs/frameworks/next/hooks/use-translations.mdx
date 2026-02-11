@@ -1,0 +1,46 @@
+---
+title: useTranslations
+description: Access the current language's translations for building custom consent UI.
+---
+
+`useTranslations()` returns the `Translations` object for the currently active language. Use it when building custom consent UI that needs translated text.
+
+```tsx
+import { useTranslations } from '@c15t/nextjs';
+
+function CustomBanner() {
+  const translations = useTranslations();
+
+  return (
+    <div>
+      <h2>{translations.cookieBanner.title}</h2>
+      <p>{translations.cookieBanner.description}</p>
+      <button>{translations.common.acceptAll}</button>
+      <button>{translations.common.rejectAll}</button>
+    </div>
+  );
+}
+```
+
+<import src="../../../shared/react/hooks/use-translations.mdx#translation-sections" />
+
+## With setLanguage
+
+Translations update automatically when the language changes:
+
+```tsx
+import { useConsentManager, useTranslations } from '@c15t/nextjs';
+
+function LocalizedConsent() {
+  const { setLanguage } = useConsentManager();
+  const translations = useTranslations();
+
+  return (
+    <div>
+      <p>{translations.cookieBanner.description}</p>
+      <button onClick={() => setLanguage('de')}>Deutsch</button>
+      <button onClick={() => setLanguage('fr')}>Français</button>
+    </div>
+  );
+}
+```

@@ -1,0 +1,56 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+Callbacks let you run custom code at key points in the consent lifecycle. Define them in the provider's `callbacks` option, or register them dynamically via `useConsentManager()`.
+</section>
+
+<section id="callback-reference">
+## Available Callbacks
+
+### `onBannerFetched`
+
+Called when the consent banner data is fetched from the backend (or loaded from SSR data). The payload includes jurisdiction info, location data, and resolved translations.
+
+```tsx
+onBannerFetched: ({ jurisdiction, location, translations }) => {
+  // jurisdiction: 'GDPR' | 'CCPA' | { code: 'GDPR', message: '...' } | ...
+  // location: { countryCode: 'DE', regionCode: 'BY' }
+  // translations: { language: 'de', translations: {...} }
+}
+```
+
+### `onConsentSet`
+
+Called whenever consent preferences are saved - whether by user action (`saveConsents()`), automatic defaults, or on initialization when no jurisdiction is detected.
+
+```tsx
+onConsentSet: ({ preferences }) => {
+  // preferences: { necessary: true, measurement: true, marketing: false, ... }
+  if (preferences.measurement) {
+    loadAnalytics();
+  }
+}
+```
+
+### `onError`
+
+Called when an error occurs during consent operations (e.g., API request failure). If no `onError` callback is provided, errors are logged to `console.error`.
+
+```tsx
+onError: ({ error }) => {
+  // error: string describing what went wrong
+  Sentry.captureMessage(`Consent error: ${error}`);
+}
+```
+
+### `onBeforeConsentRevocationReload`
+
+Called synchronously before the page reloads due to consent revocation. This is your last chance to run cleanup before the reload. Keep this callback fast - avoid async operations.
+
+```tsx
+onBeforeConsentRevocationReload: ({ preferences }) => {
+  // Flush any pending data
+  navigator.sendBeacon('/api/flush', JSON.stringify({ session: sessionId }));
+}
+```
+</section>

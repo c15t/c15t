@@ -3,34 +3,7 @@ title: useReducedMotion
 description: Detect the user's prefers-reduced-motion OS setting and reactively disable animations.
 ---
 
-`useReducedMotion()` reads the `prefers-reduced-motion: reduce` media query and reactively updates when the user's preference changes. Use it to conditionally skip animations for users who have enabled reduced motion in their OS accessibility settings.
-
-The hook returns `false` during SSR to avoid hydration mismatches, then updates to the actual preference on the client.
-
-```tsx
-import { useReducedMotion } from '@c15t/react/hooks';
-
-function AnimatedBanner() {
-  const prefersReducedMotion = useReducedMotion();
-
-  return (
-    <div
-      style={{
-        transition: prefersReducedMotion ? 'none' : 'opacity 300ms ease',
-        opacity: 1,
-      }}
-    >
-      Consent banner content
-    </div>
-  );
-}
-```
-
-## Return Value
-
-| Type | Description |
-|------|-------------|
-| `boolean` | `true` if the user prefers reduced motion, `false` otherwise |
+<import src="../../../shared/react/hooks/use-reduced-motion.mdx#content" />
 
 <Callout type="info">
 c15t's built-in components already respect `prefers-reduced-motion` internally. This hook is primarily useful when building custom UI with the [headless approach](/docs/frameworks/react/headless).

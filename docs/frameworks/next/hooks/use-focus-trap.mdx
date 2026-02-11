@@ -1,0 +1,28 @@
+---
+title: useFocusTrap
+description: Trap keyboard focus within a container for accessible modal dialogs.
+---
+
+`useFocusTrap()` keeps keyboard focus within a container element while active. This is essential for accessibility - when a modal dialog is open, Tab and Shift+Tab should cycle through focusable elements inside the dialog, not escape to the page behind it.
+
+```tsx
+import { useFocusTrap } from '@c15t/nextjs';
+import { useRef } from 'react';
+
+function AccessibleModal({ isOpen }: { isOpen: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(isOpen, containerRef);
+
+  if (!isOpen) return null;
+
+  return (
+    <div ref={containerRef} role="dialog" aria-modal="true">
+      <h2>Modal Title</h2>
+      <button>Action</button>
+      <button>Close</button>
+    </div>
+  );
+}
+```
+
+<import src="../../../shared/react/hooks/use-focus-trap.mdx#reference" />

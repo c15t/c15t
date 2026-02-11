@@ -1,0 +1,89 @@
+---
+title: Iframe Blocking
+description: Block embedded content (YouTube, social widgets, maps) until users grant consent for the appropriate category.
+---
+
+<import src="../../shared/react/guides/iframe-blocking.mdx#intro" />
+
+## HTML Attribute Approach
+
+For vanilla JavaScript, use `data-category` and `data-src` attributes on `<iframe>` elements:
+
+```html
+<iframe
+  data-src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+  data-category="marketing"
+  width="560"
+  height="315"
+></iframe>
+```
+
+When consent for the specified category is granted, c15t automatically swaps `data-src` to `src`, loading the iframe. When consent is revoked, `src` is moved back to `data-src`.
+
+### Dynamic Iframes
+
+c15t uses a `MutationObserver` to watch for dynamically added iframes. Any iframe with `data-category` added to the DOM after initialization is automatically processed.
+
+## Initializing the Iframe Blocker
+
+The iframe blocker for HTML attributes needs to be initialized after the runtime is created:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'c15t',
+  backendURL: 'https://your-instance.c15t.dev',
+});
+
+// Initialize the iframe blocker
+consentStore.getState().initializeIframeBlocker();
+```
+
+The blocker will scan the DOM for all `<iframe>` elements with `data-category` and manage their `src`/`data-src` based on consent state. It also sets up a `MutationObserver` to handle iframes added later.
+
+## Custom Placeholder
+
+Build a consent placeholder with vanilla DOM that's shown when consent is not granted:
+
+```ts
+function createIframePlaceholder(category: string, iframeSrc: string) {
+  const container = document.createElement('div');
+  container.className = 'iframe-placeholder';
+  container.innerHTML = `
+    <p>Enable ${category} cookies to view this content.</p>
+    <button class="consent-button">Grant Consent</button>
+  `;
+
+  const button = container.querySelector('.consent-button');
+  button?.addEventListener('click', () => {
+    consentStore.getState().setConsent(category, true);
+  });
+
+  // Replace placeholder when consent is granted
+  consentStore.subscribe(
+    (state) => state.has(category),
+    (hasConsent) => {
+      if (hasConsent) {
+        const iframe = document.createElement('iframe');
+        iframe.src = iframeSrc;
+        iframe.width = '560';
+        iframe.height = '315';
+        container.replaceWith(iframe);
+      }
+    }
+  );
+
+  return container;
+}
+```
+
+## Cleanup
+
+Destroy the iframe blocker when it's no longer needed (e.g., on page teardown in a SPA):
+
+```ts
+consentStore.getState().destroyIframeBlocker();
+```
+
+<import src="../../shared/react/guides/iframe-blocking.mdx#api-reference" />

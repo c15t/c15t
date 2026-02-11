@@ -1,0 +1,49 @@
+---
+title: Cookie Management
+description: How c15t manages cookies through script, iframe, and network gating
+lastModified: 2026-02-10
+---
+
+<import src="../../../shared/concepts/cookie-management.mdx#overview" />
+
+<import src="../../../shared/concepts/cookie-management.mdx#what-sets-cookies" />
+
+<import src="../../../shared/concepts/cookie-management.mdx#why-reload" />
+
+Configure reload behavior in the provider:
+
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider } from '@c15t/nextjs';
+
+function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: '/api/c15t',
+        reloadOnConsentRevoked: true, // default: true
+        callbacks: {
+          onBeforeConsentRevocationReload: ({ preferences }) => {
+            // Run cleanup before the page reloads
+            // e.g., flush pending analytics events
+            console.log('Reloading due to consent revocation:', preferences);
+          },
+        },
+      }}
+    >
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<Callout type="info">
+The reload and deferred sync are part of the broader initialization flow. See [Initialization Flow](/docs/frameworks/next/concepts/initialization-flow) for the full sequence.
+</Callout>
+
+<Callout type="warn">
+Setting `reloadOnConsentRevoked: false` means previously-loaded scripts will continue running after consent is revoked. Only disable this if you have a specific strategy for handling script cleanup.
+</Callout>
+
+<import src="../../../shared/concepts/cookie-management.mdx#revocation-flow" />

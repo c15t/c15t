@@ -1,0 +1,61 @@
+---
+title: Internationalization
+description: Translate consent UI into 30+ languages with built-in translations, custom overrides, and automatic browser language detection.
+---
+
+<import src="../../shared/react/guides/internationalization.mdx#intro" />
+
+## Basic Configuration
+
+Pass custom translations via the `translations` option:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'c15t',
+  backendURL: 'https://your-instance.c15t.dev',
+  translations: {
+    defaultLanguage: 'en',
+    translations: {
+      de: {
+        cookieBanner: {
+          title: 'Datenschutzeinstellungen',
+          description: 'Wir verwenden Cookies, um Ihnen das beste Erlebnis zu bieten.',
+        },
+        common: {
+          acceptAll: 'Alle akzeptieren',
+          rejectAll: 'Alle ablehnen',
+          customize: 'Anpassen',
+          save: 'Speichern',
+        },
+      },
+    },
+  },
+});
+```
+
+Custom translations are deep-merged with built-in defaults — you only need to override the keys you want to change.
+
+<import src="../../shared/react/guides/internationalization.mdx#translation-sections" />
+
+## Changing Language
+
+Switch the active language at runtime with `setLanguage()`:
+
+```ts
+const state = consentStore.getState();
+
+// Switch to German
+await state.setLanguage('de');
+
+// Build a language switcher
+document.getElementById('lang-select')?.addEventListener('change', async (e) => {
+  const lang = (e.target as HTMLSelectElement).value;
+  await consentStore.getState().setLanguage(lang);
+});
+```
+
+`setLanguage()` re-fetches the consent banner to get server-resolved translations for the new language.
+
+<import src="../../shared/react/guides/internationalization.mdx#auto-detection" />

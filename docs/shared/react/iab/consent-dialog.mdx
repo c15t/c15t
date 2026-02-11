@@ -1,0 +1,74 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+<Callout type="error">
+c15t is **not yet IAB certified**. The IAB TCF components are under active development and should **not be used in production**. APIs and behavior may change before certification is achieved.
+</Callout>
+
+`IABConsentDialog` is an IAB TCF 2.3 compliant consent dialog that provides a tabbed interface for managing purpose consent and vendor preferences. It includes purpose grouping via stacks, individual purpose/vendor toggles, special purpose and feature disclosures, and legitimate interest handling.
+</section>
+
+<section id="tabs">
+## Tabs
+
+The dialog has two tabs:
+
+### Purposes Tab
+
+Displays all IAB purposes grouped into:
+
+- **Standalone purposes** — Purpose 1 (Store and/or access information on a device) is always shown standalone per IAB TCF spec
+- **Stacks** — Groups of related purposes determined by the GVL. Each stack is expandable to show individual purpose toggles
+- **Special features** — Opt-in features like precise geolocation
+- **Essential functions** — Special purposes and features that are locked (no user toggle) because they're required for basic operation
+
+Each purpose shows:
+- Name and description
+- Number of vendors using this purpose
+- Consent toggle (or lock icon for essential functions)
+- Legitimate interest toggle where applicable
+- Expandable vendor list
+
+### Vendors Tab
+
+Displays all vendors from the GVL plus any custom vendors:
+
+- Search and filter vendors
+- Per-vendor consent and legitimate interest toggles
+- Vendor details: privacy policy link, cookie usage, data retention
+- Purpose and feature associations
+</section>
+
+<section id="trigger-to-props">
+## Floating Trigger
+
+Add a floating button so users can re-open the dialog after dismissing the banner. IAB TCF requires the preference center to be easily resurfaceable:
+
+```tsx
+<IABConsentDialog showTrigger />
+
+{/* Custom trigger options */}
+<IABConsentDialog
+  showTrigger={{
+    icon: 'settings',
+    defaultPosition: 'bottom-left',
+    showWhen: 'after-consent',
+    size: 'sm',
+  }}
+/>
+```
+
+## Footer Actions
+
+The dialog footer provides three buttons:
+
+| Button | Action |
+|--------|--------|
+| **Reject All** | Rejects all purposes and vendors, closes dialog and banner |
+| **Accept All** | Accepts all purposes and vendors, closes dialog and banner |
+| **Save Settings** | Saves current selections, closes dialog and banner |
+
+## Props
+
+<AutoTypeTable path="./packages/react/src/components/iab-consent-dialog/iab-consent-dialog.tsx" name="IABConsentDialogProps" />
+</section>

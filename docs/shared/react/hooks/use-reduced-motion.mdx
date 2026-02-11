@@ -1,0 +1,32 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="content">
+`useReducedMotion()` reads the `prefers-reduced-motion: reduce` media query and reactively updates when the user's preference changes. Use it to conditionally skip animations for users who have enabled reduced motion in their OS accessibility settings.
+
+The hook returns `false` during SSR to avoid hydration mismatches, then updates to the actual preference on the client.
+
+```tsx
+import { useReducedMotion } from '@c15t/react/hooks';
+
+function AnimatedBanner() {
+  const prefersReducedMotion = useReducedMotion();
+
+  return (
+    <div
+      style={{
+        transition: prefersReducedMotion ? 'none' : 'opacity 300ms ease',
+        opacity: 1,
+      }}
+    >
+      Consent banner content
+    </div>
+  );
+}
+```
+
+## Return Value
+
+| Type | Description |
+|------|-------------|
+| `boolean` | `true` if the user prefers reduced motion, `false` otherwise |
+</section>

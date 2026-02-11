@@ -1,0 +1,112 @@
+---
+title: Quickstart
+description: Get started with c15t in vanilla JavaScript — framework-agnostic consent management with no UI dependencies.
+---
+
+## Installation
+
+<PackageCommandTabs mode="install" command="c15t" />
+
+## Initialize the Runtime
+
+`getOrCreateConsentRuntime()` creates a consent client and a Zustand vanilla store in a single call. The store holds all consent state and exposes methods for checking, setting, and subscribing to consent changes.
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentManager, consentStore } = getOrCreateConsentRuntime({
+  mode: 'c15t',
+  backendURL: 'https://your-instance.c15t.dev',
+  consentCategories: ['necessary', 'measurement', 'marketing'],
+});
+```
+
+## Subscribe to State Changes
+
+The store is a [Zustand vanilla store](https://zustand.docs.pmnd.rs/guides/extracting-actions) — use `subscribe()` to react to consent changes and `getState()` to read the current state:
+
+```ts
+// React to every state change
+consentStore.subscribe((state) => {
+  console.log('Consent state:', state.consents);
+  console.log('Show banner?', state.showPopup);
+});
+
+// Read current state at any time
+const state = consentStore.getState();
+console.log('Has measurement consent:', state.has('measurement'));
+```
+
+## Check and Set Consent
+
+```ts
+const state = consentStore.getState();
+
+// Check if a category has consent
+if (state.has('measurement')) {
+  // Safe to load analytics
+}
+
+// Accept all categories
+await state.saveConsents('all');
+
+// Accept only necessary categories
+await state.saveConsents('necessary');
+
+// Set a specific category
+state.setConsent('marketing', true);
+```
+
+## Minimal Consent Prompt
+
+Here's a bare-bones example using the store to drive a consent prompt — no framework required:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'c15t',
+  backendURL: 'https://your-instance.c15t.dev',
+  consentCategories: ['necessary', 'measurement', 'marketing'],
+});
+
+// Subscribe to show/hide the banner
+consentStore.subscribe((state) => {
+  const banner = document.getElementById('consent-banner');
+  if (banner) {
+    banner.style.display = state.showPopup ? 'block' : 'none';
+  }
+});
+
+// Wire up buttons
+document.getElementById('accept-all')?.addEventListener('click', () => {
+  consentStore.getState().saveConsents('all');
+});
+
+document.getElementById('reject')?.addEventListener('click', () => {
+  consentStore.getState().saveConsents('necessary');
+});
+```
+
+## Verify It Works
+
+Open the browser console and inspect the store state:
+
+```ts
+// The store is also available on the window object
+const state = window.c15tStore?.getState();
+console.log('Consents:', state?.consents);
+console.log('Has consented:', state?.hasConsented());
+console.log('Location:', state?.locationInfo);
+```
+
+<Callout type="info">
+  **No UI included** — the `c15t` core package is fully headless. See [Building UI](/docs/frameworks/javascript/building-ui) for creating your own components, or use [`@c15t/react`](/docs/frameworks/react/quickstart) / [`@c15t/nextjs`](/docs/frameworks/next/quickstart) for pre-built UI.
+</Callout>
+
+## Next Steps
+
+- [Client Modes](/docs/frameworks/javascript/concepts/client-modes) — Choose between c15t, offline, or custom backend
+- [Store API](/docs/frameworks/javascript/api/overview) — Full reference for store state and actions
+- [Script Loader](/docs/frameworks/javascript/script-loader) — Gate third-party scripts behind consent
+- [Building UI](/docs/frameworks/javascript/building-ui) — Create your own consent components

@@ -1,0 +1,65 @@
+---
+title: Script Loader
+description: Gate third-party scripts behind consent - load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
+---
+
+<import src="../../shared/react/guides/script-loader.mdx#intro" />
+
+## Basic Usage
+
+Pass an array of `Script` objects to the provider:
+
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider } from '@c15t/nextjs';
+import { metaPixel } from '@c15t/scripts/meta-pixel';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: '/api/c15t',
+        scripts: [
+          metaPixel({ pixelId: '123456' }),
+          {
+            id: 'custom-analytics',
+            src: 'https://cdn.example.com/analytics.js',
+            category: 'measurement',
+          },
+        ],
+      }}
+    >
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../shared/react/guides/script-loader.mdx#script-types-to-advanced" />
+
+## Dynamic Script Management
+
+Add, remove, or check scripts at runtime via `useConsentManager()`:
+
+```tsx
+import { useConsentManager } from '@c15t/nextjs';
+
+function ScriptManager() {
+  const { setScripts, removeScript, isScriptLoaded, getLoadedScriptIds } = useConsentManager();
+
+  // Add scripts dynamically
+  setScripts([{ id: 'dynamic', src: '...', category: 'measurement' }]);
+
+  // Remove a script
+  removeScript('dynamic');
+
+  // Check if a script is loaded
+  const loaded = isScriptLoaded('google-analytics');
+
+  // Get all loaded script IDs
+  const allLoaded = getLoadedScriptIds();
+}
+```
+
+<import src="../../shared/react/guides/script-loader.mdx#api-reference" />

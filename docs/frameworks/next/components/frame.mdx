@@ -1,0 +1,28 @@
+---
+title: Frame
+description: A consent-gated content wrapper - children only mount when the required consent category is granted.
+---
+
+<import src="../../../shared/react/components/frame.mdx#intro" />
+
+## Basic Usage
+
+```tsx
+import { Frame } from '@c15t/nextjs';
+
+function YouTubeEmbed() {
+  return (
+    <Frame category="marketing">
+      <iframe
+        src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+        width="560"
+        height="315"
+        allowFullScreen
+      />
+    </Frame>
+  );
+}
+```
+
+<import src="../../../shared/react/components/frame.mdx#customization" />
+<import src="../../../shared/react/components/frame.mdx#props" />

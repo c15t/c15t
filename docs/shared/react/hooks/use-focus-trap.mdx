@@ -1,0 +1,20 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="reference">
+## Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `shouldTrap` | `boolean` | Whether focus should be trapped |
+| `containerRef` | `RefObject<HTMLElement \| null> \| null` | Ref to the container element |
+
+## Behavior
+
+- **Tab**: Moves focus to the next focusable element. Wraps to the first element when reaching the end.
+- **Shift+Tab**: Moves focus to the previous focusable element. Wraps to the last element when reaching the start.
+- Focus is restored to the previously focused element when the trap is deactivated.
+
+<Callout type="info">
+`ConsentBanner` and `ConsentDialog` use `useFocusTrap` internally when `trapFocus` is enabled (default: `true`). You only need this hook when building custom consent UI.
+</Callout>
+</section>

@@ -1,0 +1,77 @@
+---
+title: Network Blocker
+description: Block outgoing network requests to third-party domains until the user grants consent for the appropriate category.
+---
+
+<import src="../../shared/react/guides/network-blocker.mdx#intro" />
+
+## Configuration
+
+Add `networkBlocker` to your provider options:
+
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider } from '@c15t/nextjs';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: '/api/c15t',
+        networkBlocker: {
+          rules: [
+            {
+              id: 'google-analytics',
+              domain: 'google-analytics.com',
+              category: 'measurement',
+            },
+            {
+              id: 'facebook-pixel',
+              domain: 'facebook.com',
+              pathIncludes: '/tr',
+              category: 'marketing',
+            },
+            {
+              id: 'analytics-post',
+              domain: 'analytics.example.com',
+              methods: ['POST'],
+              category: 'measurement',
+            },
+          ],
+        },
+      }}
+    >
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../shared/react/guides/network-blocker.mdx#reference" />
+
+## Runtime Updates
+
+Update the network blocker configuration at runtime:
+
+```tsx
+import { useConsentManager } from '@c15t/nextjs';
+
+function NetworkBlockerManager() {
+  const { setNetworkBlocker } = useConsentManager();
+
+  const addRule = () => {
+    setNetworkBlocker({
+      rules: [
+        {
+          id: 'new-tracker',
+          domain: 'tracker.example.com',
+          category: 'marketing',
+        },
+      ],
+    });
+  };
+}
+```
+
+<import src="../../shared/react/guides/network-blocker.mdx#api-reference" />

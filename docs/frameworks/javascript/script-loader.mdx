@@ -1,0 +1,54 @@
+---
+title: Script Loader
+description: Gate third-party scripts behind consent — load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
+---
+
+<import src="../../shared/react/guides/script-loader.mdx#intro" />
+
+## Basic Usage
+
+Pass an array of `Script` objects to the runtime options:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+import { metaPixel } from '@c15t/scripts/meta-pixel';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'c15t',
+  backendURL: 'https://your-instance.c15t.dev',
+  scripts: [
+    metaPixel({ pixelId: '123456' }),
+    {
+      id: 'custom-analytics',
+      src: 'https://cdn.example.com/analytics.js',
+      category: 'measurement',
+    },
+  ],
+});
+```
+
+<import src="../../shared/react/guides/script-loader.mdx#script-types-to-advanced" />
+
+## Dynamic Script Management
+
+Add, remove, or check scripts at runtime via the store:
+
+```ts
+const state = consentStore.getState();
+
+// Add scripts dynamically
+state.setScripts([
+  { id: 'dynamic', src: 'https://cdn.example.com/widget.js', category: 'measurement' },
+]);
+
+// Remove a script
+state.removeScript('dynamic');
+
+// Check if a script is loaded
+const loaded = state.isScriptLoaded('custom-analytics');
+
+// Get all loaded script IDs
+const allLoaded = state.getLoadedScriptIds();
+```
+
+<import src="../../shared/react/guides/script-loader.mdx#api-reference" />

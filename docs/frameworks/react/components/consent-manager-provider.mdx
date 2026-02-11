@@ -3,9 +3,7 @@ title: ConsentManagerProvider
 description: The root provider component that initializes the consent system and makes consent state available to all child components.
 ---
 
-`ConsentManagerProvider` is the root component for the c15t consent system. It initializes the consent store, detects the user's jurisdiction, resolves translations, and provides consent state to all child components via React context.
-
-Every other c15t component and hook must be rendered inside this provider.
+<import src="../../../shared/react/components/consent-manager-provider.mdx#intro" />
 
 ## Basic Usage
 
@@ -30,11 +28,7 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
 }
 ```
 
-## Options Reference
-
-<AutoTypeTable path="./packages/ui/src/theme/options.ts" name="CommonInlineStoreOptions" />
-<AutoTypeTable path="./packages/ui/src/theme/options.ts" name="ConsentManagerContentOptions" />
-<AutoTypeTable path="./packages/ui/src/theme/types.ts" name="UIOptions" />
+<import src="../../../shared/react/components/consent-manager-provider.mdx#options-reference" />
 
 ## Mode: c15t vs offline
 
@@ -57,22 +51,7 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
 
 See [Client Modes](/docs/frameworks/react/concepts/client-modes) for a detailed comparison.
 
-## Legal Links
-
-Configure URLs that appear in the consent banner and dialog:
-
-```tsx
-<ConsentManagerProvider
-  options={{
-    mode: 'offline',
-    legalLinks: {
-      privacyPolicy: '/privacy',
-      cookiePolicy: '/cookies',
-      termsOfService: '/terms',
-    },
-  }}
->
-```
+<import src="../../../shared/react/components/consent-manager-provider.mdx#legal-links" />
 
 ## Overrides
 
@@ -92,6 +71,4 @@ Force a specific jurisdiction, country, or language regardless of detection:
 >
 ```
 
-## Props
-
-<AutoTypeTable path="./packages/react/src/types/consent-manager.ts" name="ConsentManagerProviderProps" />
+<import src="../../../shared/react/components/consent-manager-provider.mdx#props" />

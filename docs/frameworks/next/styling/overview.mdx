@@ -1,0 +1,45 @@
+---
+title: Styling Overview
+description: Five approaches for theming consent components — design tokens, component slots, CSS variables, className, and noStyle mode.
+---
+
+<import src="../../../shared/react/styling/overview.mdx#intro" />
+
+## Quick Start
+
+```tsx
+import { defineTheme, ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/nextjs';
+
+const theme = defineTheme({
+  colors: {
+    primary: '#6366f1',
+    primaryHover: '#4f46e5',
+  },
+  radius: {
+    md: '0.75rem',
+    lg: '1rem',
+  },
+  slots: {
+    consentBannerTitle: 'text-xl font-semibold',
+    buttonPrimary: 'rounded-full',
+  },
+});
+
+export function ConsentManager({ children }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: '/api/c15t',
+        theme,
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../../shared/react/styling/overview.mdx#styling-paths-to-api" />

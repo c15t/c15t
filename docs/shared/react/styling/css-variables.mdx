@@ -1,0 +1,47 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="content">
+Every theme token is converted to a `--c15t-*` CSS custom property at runtime. You can override these variables in your stylesheet without using the JavaScript theme API.
+
+## Variable Reference
+
+<AutoTypeTable path="./packages/ui/src/theme/types.ts" name="ThemeCSSVariables" />
+
+## Overriding Variables
+
+Override in your stylesheet:
+
+```css
+:root {
+  --c15t-primary: #8b5cf6;
+  --c15t-surface: #fafafa;
+  --c15t-radius-md: 1rem;
+}
+
+/* Dark mode overrides */
+.dark,
+.c15t-dark {
+  --c15t-primary: #a78bfa;
+  --c15t-surface: #18181b;
+  --c15t-text: #fafafa;
+}
+```
+
+## Scoped Overrides
+
+Target specific components by scoping variables:
+
+```tsx
+<div className="checkout-consent">
+  <ConsentBanner />
+</div>
+```
+
+```css
+/* Only affect c15t components inside .checkout-consent */
+.checkout-consent {
+  --c15t-surface: #f0f9ff;
+  --c15t-radius-lg: 1.5rem;
+}
+```
+</section>

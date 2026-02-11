@@ -1,0 +1,71 @@
+---
+title: Callbacks
+description: React to consent lifecycle events - initialization, consent changes, errors, and revocation reloads.
+---
+
+<import src="../../shared/react/guides/callbacks.mdx#intro" />
+
+## Configuration
+
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider } from '@c15t/nextjs';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: '/api/c15t',
+        callbacks: {
+          onBannerFetched: ({ jurisdiction, location, translations }) => {
+            console.log('Jurisdiction:', jurisdiction);
+            console.log('Country:', location.countryCode);
+            console.log('Language:', translations.language);
+          },
+          onConsentSet: ({ preferences }) => {
+            // Fire analytics event
+            analytics.track('consent_updated', { preferences });
+          },
+          onError: ({ error }) => {
+            errorReporter.captureMessage(error);
+          },
+          onBeforeConsentRevocationReload: ({ preferences }) => {
+            // Flush pending analytics before page reloads
+            analytics.flush();
+          },
+        },
+      }}
+    >
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../shared/react/guides/callbacks.mdx#callback-reference" />
+
+## Dynamic Registration
+
+Register or update callbacks at runtime using `setCallback()`:
+
+```tsx
+import { useEffect } from 'react';
+import { useConsentManager } from '@c15t/nextjs';
+
+function ConsentAnalytics() {
+  const { setCallback } = useConsentManager();
+
+  useEffect(() => {
+    setCallback('onConsentSet', ({ preferences }) => {
+      analytics.track('consent_changed', preferences);
+    });
+
+    return () => {
+      setCallback('onConsentSet', undefined);
+    };
+  }, [setCallback]);
+
+  return null;
+}
+```

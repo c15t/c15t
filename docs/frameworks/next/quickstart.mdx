@@ -1,0 +1,191 @@
+---
+title: Quickstart
+description: Add consent management to your Next.js app in under 5 minutes.
+lastModified: 2026-02-11
+availableIn:
+  - framework: 'javascript'
+    url: '/docs/frameworks/javascript/quickstart'
+    title: 'JavaScript'
+  - framework: 'react'
+    url: '/docs/frameworks/react/quickstart'
+    title: 'React'
+  - framework: 'next'
+    url: '/docs/frameworks/next/quickstart'
+    title: 'Next.js'
+---
+
+## Via CLI
+
+<PackageCommandTabs command="@c15t/cli" />
+
+## Manual Installation
+<Steps>
+<Step>
+
+### Install package
+
+<PackageCommandTabs mode="install" command="@c15t/nextjs" />
+</Step>
+
+<Step>
+### Optional: Configure Next.js rewrites
+
+Proxy API requests through your Next.js server. This can prevent ad blockers from blocking requests to your c15t backend.
+
+```ts title="next.config.ts"
+import type { NextConfig } from 'next';
+
+const config: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: '/api/c15t/:path*',
+        destination: `${process.env.NEXT_PUBLIC_C15T_URL}/:path*`,
+      },
+    ];
+  },
+};
+
+export default config;
+```
+
+<Callout type="info">
+Set `NEXT_PUBLIC_C15T_URL` in your `.env` file to point to your c15t backend (e.g., `https://your-instance.c15t.dev`).
+</Callout>
+</Step>
+
+<Step>
+### Create a client `ConsentManager` component
+
+Create a `'use client'` component that accepts an `ssrData` prop. This initializes the consent store and makes consent state available to all child components.
+
+```tsx title="components/consent-manager/index.tsx"
+// components/consent-manager/provider.tsx
+'use client';
+
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/nextjs';
+import type { InitialDataPromise } from '@c15t/nextjs';
+
+export default function Provider({
+  children,
+  ssrData,
+}: {
+  children: ReactNode;
+  ssrData?: InitialDataPromise; // Optional (App Directory Only)
+}) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: '/api/c15t',
+        ssrData,
+        consentCategories: ['necessary', 'measurement', 'marketing'],
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<Callout type="info">
+Don't have a backend yet? Use `mode: 'offline'` to get started with local-only consent storage. See [Client Modes](/docs/frameworks/next/concepts/client-modes) for details.
+</Callout>
+</Step>
+
+<Step>
+### Optional: SSR Initial Data (App Directory)
+
+In a server component wrapping the provider, call `fetchInitialData` to pre-fetch consent data. **Do not `await`** the call - pass the Promise directly to the client component so Next.js can stream the response while data loads.
+By prefetching the data on the server the banner can appear visually sooner, however this can increase TTFB if your app is fully client-side rendered.
+
+```tsx title="app/layout.tsx"
+// components/consent-manager/provider.tsx
+import { fetchInitialData } from '@c15t/nextjs';
+import Provider from './provider';
+
+export default function ConsentManager({ children }: { children: React.ReactNode }) {
+  const ssrData = fetchInitialData({
+    backendURL: '/api/c15t',
+  });
+
+  return (
+    <ConsentManager ssrData={ssrData}>
+      {children}
+    </ConsentManager>
+  );
+}
+```
+
+<Callout type="warn">
+Do **not** `await fetchInitialData()` in the Server Component. Passing the unresolved Promise lets Next.js stream the page while the consent data loads in parallel.
+</Callout>
+</Step>
+
+<Step>
+### Verify it works
+
+Start your development server and confirm:
+
+1. A **consent banner** appears at the bottom of the page
+2. Clicking **"Customize"** opens a dialog with toggles for each consent category
+3. After accepting or rejecting, the banner dismisses and your choice persists across page reloads
+</Step>
+</Steps>
+
+## Optional: Add DevTools
+
+Install DevTools only if you want a runtime inspector while building and debugging:
+
+<PackageCommandTabs mode="install" command="@c15t/dev-tools" />
+
+Then add it inside your existing provider:
+
+```tsx title="components/consent-manager/index.tsx"
+import { C15TDevTools } from '@c15t/dev-tools/react';
+
+// ...
+
+<ConsentManagerProvider options={...}>
+  <ConsentBanner />
+  <ConsentDialog />
+  {process.env.NODE_ENV !== 'production' && <C15TDevTools />}
+  {children}
+</ConsentManagerProvider>
+```
+
+<Callout type="info">
+Want to understand what's happening under the hood? See [Initialization Flow](/docs/frameworks/next/concepts/initialization-flow) for the lifecycle and [Cookie Management](/docs/frameworks/next/concepts/cookie-management) for script/cookie behavior and revocation handling.
+</Callout>
+
+## Next steps
+
+<Cards className="not-prose grid gap-4 grid-cols-1 sm:grid-cols-2">
+  <Card
+    variant="interactive"
+    title="Script Loader"
+    description="Gate third-party scripts like Google Analytics and Meta Pixel behind consent."
+    href="/docs/frameworks/next/script-loader"
+  />
+  <Card
+    variant="interactive"
+    title="Styling"
+    description="Customize colors, typography, spacing, and individual component slots."
+    href="/docs/frameworks/next/styling/overview"
+  />
+  <Card
+    variant="interactive"
+    title="Consent Categories"
+    description="Understand the five consent categories and how to configure them."
+    href="/docs/frameworks/next/concepts/consent-categories"
+  />
+  <Card
+    variant="interactive"
+    title="Components"
+    description="Explore the full set of pre-built consent UI components."
+    href="/docs/frameworks/next/components/consent-banner"
+  />
+</Cards>

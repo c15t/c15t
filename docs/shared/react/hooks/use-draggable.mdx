@@ -1,0 +1,29 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="reference">
+## Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `defaultPosition` | `CornerPosition` | `'bottom-right'` | Initial corner position |
+| `persistPosition` | `boolean` | `true` | Save position to localStorage |
+| `onPositionChange` | `(position: CornerPosition) => void` | -| Callback on position change |
+
+## Return Value
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `corner` | `CornerPosition` | Current corner: `'top-left'` \| `'top-right'` \| `'bottom-left'` \| `'bottom-right'` |
+| `isDragging` | `boolean` | Whether the element is being dragged |
+| `isSnapping` | `boolean` | Whether the element is animating to a new corner |
+| `wasDragged` | `() => boolean` | Whether the last interaction was a drag (vs click) |
+| `handlers` | `object` | Pointer event handlers to spread onto the element |
+| `dragStyle` | `CSSProperties` | Transform style for drag offset |
+
+## Behavior
+
+- Drag starts on pointer down (left click / single touch)
+- Movement threshold of 5px distinguishes drag from click
+- On pointer up, element snaps to the nearest corner based on drag direction and velocity
+- Position persists to localStorage by default
+</section>

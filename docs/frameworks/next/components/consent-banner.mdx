@@ -1,0 +1,23 @@
+---
+title: ConsentBanner
+description: A pre-built consent banner that appears when user consent is needed. Supports custom layout, button arrangement, and full compound component composition.
+---
+
+<import src="../../../shared/react/components/consent-banner.mdx#intro" />
+
+## Basic Usage
+
+```tsx
+import { ConsentManagerProvider, ConsentBanner } from '@c15t/nextjs';
+
+export function ConsentManager() {
+  return (
+    <ConsentManagerProvider options={{ mode: 'c15t', backendURL: '/api/c15t' }}>
+      <ConsentBanner />
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../../shared/react/components/consent-banner.mdx#customization" />
+<import src="../../../shared/react/components/consent-banner.mdx#props" />

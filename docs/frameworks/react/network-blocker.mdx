@@ -3,7 +3,7 @@ title: Network Blocker
 description: Block outgoing network requests to third-party domains until the user grants consent for the appropriate category.
 ---
 
-The network blocker intercepts outgoing `fetch` and `XMLHttpRequest` calls and blocks them based on consent state and domain rules. This catches tracking requests that happen outside of script loading - for example, beacon calls, API requests to analytics endpoints, or pixel fires from already-loaded scripts.
+<import src="../../shared/react/guides/network-blocker.mdx#intro" />
 
 ## Configuration
 
@@ -48,50 +48,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 }
 ```
 
-## Rule Matching
-
-Rules match requests using three criteria:
-
-### Domain matching
-The `domain` field matches the request hostname. Subdomains are automatically included - a rule for `google-analytics.com` also matches `www.google-analytics.com` and `stats.google-analytics.com`.
-
-### Path matching
-The optional `pathIncludes` field requires the request URL path to contain the specified substring. This lets you target specific endpoints without blocking the entire domain.
-
-### Method matching
-The optional `methods` array restricts the rule to specific HTTP methods. If omitted, the rule applies to all methods.
-
-## Consent Conditions
-
-Like the script loader, `category` accepts a `HasCondition`:
-
-```tsx
-// Simple
-{ category: 'measurement' }
-
-// Must have both
-{ category: { and: ['measurement', 'marketing'] } }
-
-// Must have either
-{ category: { or: ['measurement', 'marketing'] } }
-```
-
-## Monitoring Blocked Requests
-
-### Console logging
-Blocked requests are logged to the console by default. Disable with `logBlockedRequests: false`.
-
-### Callback
-Use `onRequestBlocked` to handle blocked requests programmatically:
-
-```tsx
-networkBlocker: {
-  rules: [...],
-  onRequestBlocked: ({ method, url, rule }) => {
-    console.log(`Blocked ${method} ${url} (rule: ${rule?.id})`);
-  },
-}
-```
+<import src="../../shared/react/guides/network-blocker.mdx#reference" />
 
 ## Runtime Updates
 
@@ -117,7 +74,4 @@ function NetworkBlockerManager() {
 }
 ```
 
-## API Reference
-
-<AutoTypeTable path="./packages/core/src/libs/network-blocker/types.ts" name="NetworkBlockerRule" />
-<AutoTypeTable path="./packages/core/src/libs/network-blocker/types.ts" name="NetworkBlockerConfig" />
+<import src="../../shared/react/guides/network-blocker.mdx#api-reference" />

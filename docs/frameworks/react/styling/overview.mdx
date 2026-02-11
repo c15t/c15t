@@ -3,24 +3,9 @@ title: Styling Overview
 description: Customize every aspect of c15t's consent components using design tokens, component slots, and CSS variables.
 ---
 
-## How Styling Works
+<import src="../../../shared/react/styling/overview.mdx#intro" />
 
-c15t uses a token-based theming system. You define **design tokens** (colors, spacing, typography, etc.) which are converted into **CSS variables** at runtime. These variables control how every component looks.
-
-The flow: **Token** → **CSS Variable** → **Component Slot**
-
-## Choose Your Styling Path
-
-| If you want to... | Start with |
-|-------------------|------------|
-| Apply brand colors/spacing/typography globally | [Design Tokens](./tokens) |
-| Target specific parts like title/footer/buttons | [Component Slots](./slots) |
-| Use utility classes or CSS modules | [Class Names](./classnames) |
-| Use Tailwind as the main styling layer | [Tailwind CSS](./tailwind) |
-| Override with plain CSS variables only | [CSS Variables](./css-variables) |
-| Build everything from scratch | [`noStyle` + Headless Mode](../headless) |
-
-## Defining a Theme
+## Quick Start
 
 Use `defineTheme()` for TypeScript autocomplete and validation:
 
@@ -60,86 +45,4 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 }
 ```
 
-## Theme Structure
-
-A theme has six base token categories, optional dark overrides, and a slot system:
-
-| Category | Purpose | Example |
-|----------|---------|---------|
-| `colors` | Light mode color palette | `primary`, `surface`, `text` |
-| `dark` | Dark mode color overrides | Same keys as `colors` |
-| `typography` | Font family, sizes, weights | `fontFamily`, `fontSize.base` |
-| `spacing` | Padding, margins, gaps | `xs` through `xl` |
-| `radius` | Border radius | `sm`, `md`, `lg`, `full` |
-| `shadows` | Box shadows | `sm`, `md`, `lg` |
-| `motion` | Animation timing | `duration.normal`, `easing` |
-| `slots` | Per-component style overrides | `consentBannerTitle`, `buttonPrimary` |
-
-## Styling Approaches
-
-c15t supports multiple styling approaches, from least to most custom:
-
-### 1. Theme tokens
-Set global design tokens that affect all components:
-```tsx
-theme={{ colors: { primary: '#6366f1' } }}
-```
-
-### 2. Component slots
-Target specific component parts via the `slots` object:
-```tsx
-theme={{ slots: { consentBannerTitle: 'text-2xl font-bold' } }}
-```
-
-### 3. CSS variables
-Override `--c15t-*` custom properties in your stylesheet.
-
-### 4. className prop
-Pass className directly to components:
-```tsx
-<ConsentBanner className="my-custom-banner" />
-```
-
-### 5. noStyle prop
-Strip all default styles and build from scratch (best paired with [Headless Mode](../headless)):
-```tsx
-<ConsentBanner noStyle />
-```
-
-## Common Styling Tasks
-
-### Change brand color globally
-```tsx
-theme={{ colors: { primary: '#0ea5e9', primaryHover: '#0284c7' } }}
-```
-
-### Make the banner card more compact
-```tsx
-theme={{ spacing: { md: '0.75rem', lg: '1rem' } }}
-```
-
-### Round primary/secondary buttons
-```tsx
-theme={{ slots: { buttonPrimary: 'rounded-full', buttonSecondary: 'rounded-full' } }}
-```
-
-### Enable dark mode safely
-```tsx
-options={{
-  colorScheme: 'system',
-  theme: {
-    colors: { surface: '#ffffff', text: '#1f2937' },
-    dark: { surface: '#111827', text: '#f9fafb' },
-  },
-}}
-```
-
-<Callout type="warning">
-- `noStyle: true` removes layout and visual defaults. Use it only when you want full control.
-- Use either tokens/slots or raw CSS variable overrides intentionally to avoid conflicting style sources.
-- For dark mode, c15t supports `.dark` and `.c15t-dark`.
-</Callout>
-
-## API Reference
-
-<AutoTypeTable path="./packages/ui/src/theme/types.ts" name="Theme" />
+<import src="../../../shared/react/styling/overview.mdx#styling-paths-to-api" />

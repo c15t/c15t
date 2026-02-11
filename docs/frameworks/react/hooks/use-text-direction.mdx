@@ -3,39 +3,9 @@ title: useTextDirection
 description: Manage RTL/LTR text direction based on the active language for consent UI.
 ---
 
-`useTextDirection()` determines the correct text direction (`'ltr'` or `'rtl'`) based on the provided language and sets it on the document. It wraps the `@c15t/ui` text direction utilities as a React hook.
+<import src="../../../shared/react/hooks/use-text-direction.mdx#intro-and-code" />
 
-This is used internally by IAB components but is available for custom UI that needs to handle bidirectional text.
-
-```tsx
-import { useTextDirection } from '@c15t/react/hooks';
-
-function CustomConsentUI({ language }: { language: string }) {
-  const direction = useTextDirection(language);
-
-  return (
-    <div dir={direction}>
-      {/* Content renders correctly for RTL languages like Arabic and Hebrew */}
-    </div>
-  );
-}
-```
-
-## Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `language` | `string \| undefined` | — | BCP 47 language tag (e.g. `'en'`, `'ar'`, `'he'`) |
-
-## Return Value
-
-| Type | Description |
-|------|-------------|
-| `'ltr' \| 'rtl'` | The text direction for the given language |
-
-## RTL Languages
-
-The hook recognizes standard RTL languages including Arabic (`ar`), Hebrew (`he`), Persian (`fa`), and Urdu (`ur`), among others.
+<import src="../../../shared/react/hooks/use-text-direction.mdx#reference" />
 
 ```tsx
 import { useConsentManager } from '@c15t/react';
