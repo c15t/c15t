@@ -1,87 +1,87 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="provider-not-found">
-## "Provider not found" Error
+  ## "Provider not found" Error
 
-**Symptom:** `useConsentManager must be used within a ConsentManagerProvider` error.
+  **Symptom:** `useConsentManager must be used within a ConsentManagerProvider` error.
 
-**Fix:** Ensure the component calling `useConsentManager()` (or any c15t hook) is rendered inside a `ConsentManagerProvider`:
+  **Fix:** Ensure the component calling `useConsentManager()` (or any c15t hook) is rendered inside a `ConsentManagerProvider`:
 
-```tsx
-// Wrong — hook is outside the provider
-function App() {
-  const { consents } = useConsentManager(); // throws
-  return <ConsentManagerProvider options={...}>...</ConsentManagerProvider>;
-}
+  ```tsx
+  // Wrong — hook is outside the provider
+  function App() {
+    const { consents } = useConsentManager(); // throws
+    return <ConsentManagerProvider options={...}>...</ConsentManagerProvider>;
+  }
 
-// Correct — hook is inside the provider
-function App() {
-  return (
-    <ConsentManagerProvider options={...}>
-      <MyComponent /> {/* useConsentManager works here */}
-    </ConsentManagerProvider>
-  );
-}
-```
+  // Correct — hook is inside the provider
+  function App() {
+    return (
+      <ConsentManagerProvider options={...}>
+        <MyComponent /> {/* useConsentManager works here */}
+      </ConsentManagerProvider>
+    );
+  }
+  ```
 </section>
 
 <section id="banner-doesnt-show">
-## Banner Doesn't Show
+  ## Banner Doesn't Show
 
-**Possible causes:**
+  **Possible causes:**
 
-1. **Opt-out jurisdiction** — In CCPA/opt-out regions, the banner is not shown because tracking is allowed by default. Check `model` from `useConsentManager()` — if it's `'opt-out'`, the banner is intentionally hidden.
+  1. **Opt-out jurisdiction** — In CCPA/opt-out regions, the banner is not shown because tracking is allowed by default. Check `model` from `useConsentManager()` — if it's `'opt-out'`, the banner is intentionally hidden.
 
-2. **Consent already given** — If the user has already made a consent choice, the banner won't reappear. Clear cookies or use `resetConsents()` to test again.
+  2. **Consent already given** — If the user has already made a consent choice, the banner won't reappear. Clear cookies or use `resetConsents()` to test again.
 
-3. **`showPopup` is false** — Something is explicitly setting `showPopup` to false. Check the DevTools panel for the current consent state.
+  3. **`showPopup` is false** — Something is explicitly setting `showPopup` to false. Check the DevTools panel for the current consent state.
 
-4. **Backend not responding** — In `'c15t'` mode, the banner waits for the backend `/init` response. Check the Network tab for failed requests to your `backendURL`.
+  4. **Backend not responding** — In `'c15t'` mode, the banner waits for the backend `/init` response. Check the Network tab for failed requests to your `backendURL`.
 
-```tsx
-// Debug: check what the consent manager sees
-const { showPopup, model, isLoadingConsentInfo } = useConsentManager();
-console.log({ showPopup, model, isLoadingConsentInfo });
-```
+  ```tsx
+  // Debug: check what the consent manager sees
+  const { showPopup, model, isLoadingConsentInfo } = useConsentManager();
+  console.log({ showPopup, model, isLoadingConsentInfo });
+  ```
 </section>
 
 <section id="consent-not-persisting">
-## Consent Not Persisting
+  ## Consent Not Persisting
 
-**Symptom:** Consent is lost after page reload.
+  **Symptom:** Consent is lost after page reload.
 
-**Possible causes:**
+  **Possible causes:**
 
-1. **Incognito/private mode** — Some browsers restrict cookie storage in private browsing.
+  1. **Incognito/private mode** — Some browsers restrict cookie storage in private browsing.
 
-2. **Cookie settings** — In `'offline'` mode, consent is stored in cookies. Ensure cookies are not being blocked by browser settings or extensions.
+  2. **Cookie settings** — In `'offline'` mode, consent is stored in cookies. Ensure cookies are not being blocked by browser settings or extensions.
 
-3. **Different domains** — Cookies are domain-scoped. If your dev server uses a different domain than production, consent won't carry over.
+  3. **Different domains** — Cookies are domain-scoped. If your dev server uses a different domain than production, consent won't carry over.
 
-4. **Backend errors** — In `'c15t'` mode, check that the backend is saving consent successfully. Enable `debug: true` in provider options to see detailed logs.
+  4. **Backend errors** — In `'c15t'` mode, check that the backend is saving consent successfully. Enable `debug: true` in provider options to see detailed logs.
 </section>
 
 <section id="scripts-not-loading">
-## Scripts Not Loading
+  ## Scripts Not Loading
 
-**Symptom:** Third-party scripts configured in the `scripts` option don't load after consent is granted.
+  **Symptom:** Third-party scripts configured in the `scripts` option don't load after consent is granted.
 
-**Checklist:**
+  **Checklist:**
 
-1. **Wrong category name** — The `category` on the script must match one of the `consentCategories` names. For example, `'measurement'` not `'analytics'`.
+  1. **Wrong category name** — The `category` on the script must match one of the `consentCategories` names. For example, `'measurement'` not `'analytics'`.
 
-2. **Consent condition not met** — Use `has('measurement')` to verify the category is actually consented.
+  2. **Consent condition not met** — Use `has('measurement')` to verify the category is actually consented.
 
-3. **Script error** — Check the browser DevTools Console for script loading errors. The `onError` callback can help debug:
+  3. **Script error** — Check the browser DevTools Console for script loading errors. The `onError` callback can help debug:
 
-```tsx
-{
-  id: 'analytics',
-  src: 'https://...',
-  category: 'measurement',
-  onError: ({ error }) => console.error('Script failed:', error),
-}
-```
+  ```tsx
+  {
+    id: 'analytics',
+    src: 'https://...',
+    category: 'measurement',
+    onError: ({ error }) => console.error('Script failed:', error),
+  }
+  ```
 
-4. **Ad blocker** — Browser extensions may block the script regardless of consent. The `anonymizeId` option (default: `true`) helps avoid pattern-based blocking.
+  4. **Ad blocker** — Browser extensions may block the script regardless of consent. The `anonymizeId` option (default: `true`) helps avoid pattern-based blocking.
 </section>

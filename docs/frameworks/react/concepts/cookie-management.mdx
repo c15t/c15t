@@ -39,11 +39,11 @@ function ConsentManager({ children }: { children: ReactNode }) {
 ```
 
 <Callout type="info">
-The reload and deferred sync are part of the broader initialization flow. See [Initialization Flow](/docs/frameworks/react/concepts/initialization-flow) for the full sequence.
+  The reload and deferred sync are part of the broader initialization flow. See [Initialization Flow](/docs/frameworks/react/concepts/initialization-flow) for the full sequence.
 </Callout>
 
 <Callout type="warn">
-Setting `reloadOnConsentRevoked: false` means previously-loaded scripts will continue running after consent is revoked. Only disable this if you have a specific strategy for handling script cleanup.
+  Setting `reloadOnConsentRevoked: false` means previously-loaded scripts will continue running after consent is revoked. Only disable this if you have a specific strategy for handling script cleanup.
 </Callout>
 
 <import src="../../../shared/concepts/cookie-management.mdx#revocation-flow" />

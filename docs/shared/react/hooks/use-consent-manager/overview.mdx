@@ -1,76 +1,76 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="callout">
-<Callout type="warn">
-Must be used within a `ConsentManagerProvider`. Throws an error if used outside the provider.
-</Callout>
+  <Callout type="warn">
+    Must be used within a `ConsentManagerProvider`. Throws an error if used outside the provider.
+  </Callout>
 </section>
 
 <section id="state-and-actions">
-## State Properties
+  ## State Properties
 
-<AutoTypeTable path="./packages/core/src/store/type.ts" name="StoreRuntimeState" />
+  <AutoTypeTable path="./packages/core/src/store/type.ts" name="StoreRuntimeState" />
 
-## Action Methods
+  ## Action Methods
 
-<AutoTypeTable path="./packages/core/src/store/type.ts" name="StoreActions" />
+  <AutoTypeTable path="./packages/core/src/store/type.ts" name="StoreActions" />
 </section>
 
 <section id="key-types">
-## Key Types
+  ## Key Types
 
-<details>
-<summary>`ConsentState`</summary>
+  <details>
+    <summary>`ConsentState`</summary>
 
-A record mapping consent category names to their boolean values:
+    A record mapping consent category names to their boolean values:
 
-```ts
-type ConsentState = Record<AllConsentNames, boolean>;
-// Example: { necessary: true, measurement: true, marketing: false }
-```
-</details>
+    ```ts
+    type ConsentState = Record<AllConsentNames, boolean>;
+    // Example: { necessary: true, measurement: true, marketing: false }
+    ```
+  </details>
 
-<details>
-<summary>`ConsentInfo`</summary>
+  <details>
+    <summary>`ConsentInfo`</summary>
 
-Metadata about when and how consent was recorded:
+    Metadata about when and how consent was recorded:
 
-```ts
-interface ConsentInfo {
-  time: number;                    // Epoch timestamp when consent was recorded
-  subjectId?: string;              // Client-generated subject ID (sub_xxx format)
-  externalId?: string;             // External user ID linked via identifyUser()
-  identityProvider?: string;       // Identity provider (e.g. 'clerk', 'auth0')
-}
-```
-</details>
+    ```ts
+    interface ConsentInfo {
+      time: number;                    // Epoch timestamp when consent was recorded
+      subjectId?: string;              // Client-generated subject ID (sub_xxx format)
+      externalId?: string;             // External user ID linked via identifyUser()
+      identityProvider?: string;       // Identity provider (e.g. 'clerk', 'auth0')
+    }
+    ```
+  </details>
 
-<details>
-<summary>`LocationInfo`</summary>
+  <details>
+    <summary>`LocationInfo`</summary>
 
-Detected geographic location from the c15t backend:
+    Detected geographic location from the c15t backend:
 
-```ts
-interface LocationInfo {
-  countryCode: string;     // ISO 3166-1 alpha-2 (e.g. 'DE')
-  regionCode: string;      // Region/state code (e.g. 'BY')
-  jurisdiction: string;    // Applicable jurisdiction (e.g. 'GDPR', 'CCPA')
-}
-```
-</details>
+    ```ts
+    interface LocationInfo {
+      countryCode: string;     // ISO 3166-1 alpha-2 (e.g. 'DE')
+      regionCode: string;      // Region/state code (e.g. 'BY')
+      jurisdiction: string;    // Applicable jurisdiction (e.g. 'GDPR', 'CCPA')
+    }
+    ```
+  </details>
 
-<details>
-<summary>`Model`</summary>
+  <details>
+    <summary>`Model`</summary>
 
-The active consent model:
+    The active consent model:
 
-```ts
-type Model = 'opt-in' | 'opt-out' | 'iab' | null;
-```
+    ```ts
+    type Model = 'opt-in' | 'opt-out' | 'iab' | null;
+    ```
 
-- `'opt-in'` — Explicit consent required before tracking (GDPR)
-- `'opt-out'` — Tracking allowed by default, user can opt out (CCPA)
-- `'iab'` — IAB TCF 2.3 compliance mode
-- `null` — No jurisdiction detected yet
-</details>
+    - `'opt-in'` — Explicit consent required before tracking (GDPR)
+    - `'opt-out'` — Tracking allowed by default, user can opt out (CCPA)
+    - `'iab'` — IAB TCF 2.3 compliance mode
+    - `null` — No jurisdiction detected yet
+  </details>
 </section>

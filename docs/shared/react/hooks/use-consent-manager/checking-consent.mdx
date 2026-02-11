@@ -1,94 +1,94 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="content">
-## has(condition)
+  ## has(condition)
 
-The `has()` method evaluates whether the current consent state satisfies a condition. It supports simple category checks and complex logical expressions.
+  The `has()` method evaluates whether the current consent state satisfies a condition. It supports simple category checks and complex logical expressions.
 
-### Simple Check
+  ### Simple Check
 
-```tsx
-const { has } = useConsentManager();
+  ```tsx
+  const { has } = useConsentManager();
 
-if (has('measurement')) {
-  // User has granted measurement consent
-}
-```
+  if (has('measurement')) {
+    // User has granted measurement consent
+  }
+  ```
 
-### AND Logic
+  ### AND Logic
 
-All conditions must be true:
+  All conditions must be true:
 
-```tsx
-has({ and: ['measurement', 'marketing'] })
-// true only if BOTH measurement AND marketing are granted
-```
+  ```tsx
+  has({ and: ['measurement', 'marketing'] })
+  // true only if BOTH measurement AND marketing are granted
+  ```
 
-### OR Logic
+  ### OR Logic
 
-At least one condition must be true:
+  At least one condition must be true:
 
-```tsx
-has({ or: ['measurement', 'marketing'] })
-// true if EITHER measurement OR marketing is granted
-```
+  ```tsx
+  has({ or: ['measurement', 'marketing'] })
+  // true if EITHER measurement OR marketing is granted
+  ```
 
-### NOT Logic
+  ### NOT Logic
 
-Negates a condition:
+  Negates a condition:
 
-```tsx
-has({ not: 'marketing' })
-// true if marketing consent is NOT granted
-```
+  ```tsx
+  has({ not: 'marketing' })
+  // true if marketing consent is NOT granted
+  ```
 
-### Nested Conditions
+  ### Nested Conditions
 
-Combine operators for complex logic:
+  Combine operators for complex logic:
 
-```tsx
-has({
-  and: [
-    'necessary',
-    { or: ['measurement', 'marketing'] },
-    { not: 'functionality' },
-  ],
-})
-// true if: necessary AND (measurement OR marketing) AND NOT functionality
-```
+  ```tsx
+  has({
+    and: [
+      'necessary',
+      { or: ['measurement', 'marketing'] },
+      { not: 'functionality' },
+    ],
+  })
+  // true if: necessary AND (measurement OR marketing) AND NOT functionality
+  ```
 
-### HasCondition Type
+  ### HasCondition Type
 
-```ts
-type HasCondition<CategoryType> =
-  | CategoryType                                    // "measurement"
-  | { and: HasCondition[] | HasCondition }          // { and: ["a", "b"] }
-  | { or: HasCondition[] | HasCondition }           // { or: ["a", "b"] }
-  | { not: HasCondition }                           // { not: "a" }
-```
+  ```ts
+  type HasCondition<CategoryType> =
+    | CategoryType                                    // "measurement"
+    | { and: HasCondition[] | HasCondition }          // { and: ["a", "b"] }
+    | { or: HasCondition[] | HasCondition }           // { or: ["a", "b"] }
+    | { not: HasCondition }                           // { not: "a" }
+  ```
 
-## hasConsented()
+  ## hasConsented()
 
-Returns `true` if the user has made any consent choice (accepted, rejected, or customized). Returns `false` if no consent has been recorded yet.
+  Returns `true` if the user has made any consent choice (accepted, rejected, or customized). Returns `false` if no consent has been recorded yet.
 
-```tsx
-const { hasConsented } = useConsentManager();
+  ```tsx
+  const { hasConsented } = useConsentManager();
 
-if (hasConsented()) {
-  // User has previously made a consent choice
-} else {
-  // First visit — no consent recorded
-}
-```
+  if (hasConsented()) {
+    // User has previously made a consent choice
+  } else {
+    // First visit — no consent recorded
+  }
+  ```
 
-## getDisplayedConsents()
+  ## getDisplayedConsents()
 
-Returns the consent types that should be displayed in the UI (based on active `consentCategories` and each type's `display` property):
+  Returns the consent types that should be displayed in the UI (based on active `consentCategories` and each type's `display` property):
 
-```tsx
-const { getDisplayedConsents } = useConsentManager();
+  ```tsx
+  const { getDisplayedConsents } = useConsentManager();
 
-const visibleCategories = getDisplayedConsents();
-// Returns ConsentType[] with name, description, defaultValue, etc.
-```
+  const visibleCategories = getDisplayedConsents();
+  // Returns ConsentType[] with name, description, defaultValue, etc.
+  ```
 </section>

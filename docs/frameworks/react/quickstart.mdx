@@ -19,72 +19,72 @@ availableIn:
 <PackageCommandTabs command="@c15t/cli" />
 
 ## Manual Installation
+
 <Steps>
-<Step>
+  <Step>
+    ### Install package
 
-### Install package
+    <PackageCommandTabs mode="install" command="@c15t/react" />
+  </Step>
 
-<PackageCommandTabs mode="install" command="@c15t/react" />
-</Step>
+  <Step>
+    ### Create a `ConsentManager` component
 
-<Step>
-### Create a `ConsentManager` component
+    Create a component called `ConsentManager` and place the provider and consent UI in it. This initializes the consent store and makes consent state available to all child components.
 
-Create a component called `ConsentManager` and place the provider and consent UI in it. This initializes the consent store and makes consent state available to all child components.
+    ```tsx title="components/consent-manager/index.tsx"
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/react';
 
-```tsx title="components/consent-manager/index.tsx"
-import { type ReactNode } from 'react';
-import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/react';
+    export default function ConsentManager({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'c15t',
+            backendURL: 'https://your-instance.c15t.dev',
+            consentCategories: ['necessary', 'measurement', 'marketing'],
+          }}
+        >
+          <ConsentBanner />
+          <ConsentDialog />
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
 
-export default function ConsentManager({ children }: { children: ReactNode }) {
-  return (
-    <ConsentManagerProvider
-      options={{
-        mode: 'c15t',
-        backendURL: 'https://your-instance.c15t.dev',
-        consentCategories: ['necessary', 'measurement', 'marketing'],
-      }}
-    >
-      <ConsentBanner />
-      <ConsentDialog />
-      {children}
-    </ConsentManagerProvider>
-  );
-}
-```
+    <Callout type="info">
+      Don't have a backend yet? Use `mode: 'offline'` to get started with local-only consent storage. See [Client Modes](/docs/frameworks/react/concepts/client-modes) for details.
+    </Callout>
+  </Step>
 
-<Callout type="info">
-Don't have a backend yet? Use `mode: 'offline'` to get started with local-only consent storage. See [Client Modes](/docs/frameworks/react/concepts/client-modes) for details.
-</Callout>
-</Step>
+  <Step>
+    ### Mount `ConsentManager` at the app root
 
-<Step>
-### Mount `ConsentManager` at the app root
+    Wrap your existing app tree with `ConsentManager` so all routes/components can access consent state.
 
-Wrap your existing app tree with `ConsentManager` so all routes/components can access consent state.
+    ```tsx title="src/App.tsx"
+    import ConsentManager from './components/consent-manager';
 
-```tsx title="src/App.tsx"
-import ConsentManager from './components/consent-manager';
+    export default function App() {
+      return (
+        <ConsentManager>
+          {/* your existing app */}
+        </ConsentManager>
+      );
+    }
+    ```
+  </Step>
 
-export default function App() {
-  return (
-    <ConsentManager>
-      {/* your existing app */}
-    </ConsentManager>
-  );
-}
-```
-</Step>
+  <Step>
+    ### Verify it works
 
-<Step>
-### Verify it works
+    Start your development server and confirm:
 
-Start your development server and confirm:
-
-1. A **consent banner** appears at the bottom of the page
-2. Clicking **"Customize"** opens a dialog with toggles for each consent category
-3. After accepting or rejecting, the banner dismisses and your choice persists across page reloads
-</Step>
+    1. A **consent banner** appears at the bottom of the page
+    2. Clicking **"Customize"** opens a dialog with toggles for each consent category
+    3. After accepting or rejecting, the banner dismisses and your choice persists across page reloads
+  </Step>
 </Steps>
 
 ## Optional: Add DevTools
@@ -109,34 +109,17 @@ import { C15TDevTools } from '@c15t/dev-tools/react';
 ```
 
 <Callout type="info">
-Want to understand what's happening under the hood? See [Initialization Flow](/docs/frameworks/react/concepts/initialization-flow) for the lifecycle and [Cookie Management](/docs/frameworks/react/concepts/cookie-management) for script/cookie behavior and revocation handling.
+  Want to understand what's happening under the hood? See [Initialization Flow](/docs/frameworks/react/concepts/initialization-flow) for the lifecycle and [Cookie Management](/docs/frameworks/react/concepts/cookie-management) for script/cookie behavior and revocation handling.
 </Callout>
 
 ## Next steps
 
 <Cards className="not-prose grid gap-4 grid-cols-1 sm:grid-cols-2">
-  <Card
-    variant="interactive"
-    title="Script Loader"
-    description="Gate third-party scripts like Google Analytics and Meta Pixel behind consent."
-    href="/docs/frameworks/react/script-loader"
-  />
-  <Card
-    variant="interactive"
-    title="Styling"
-    description="Customize colors, typography, spacing, and individual component slots."
-    href="/docs/frameworks/react/styling/overview"
-  />
-  <Card
-    variant="interactive"
-    title="Consent Categories"
-    description="Understand the five consent categories and how to configure them."
-    href="/docs/frameworks/react/concepts/consent-categories"
-  />
-  <Card
-    variant="interactive"
-    title="Components"
-    description="Explore the full set of pre-built consent UI components."
-    href="/docs/frameworks/react/components/consent-banner"
-  />
+  <Card variant="interactive" title="Script Loader" description="Gate third-party scripts like Google Analytics and Meta Pixel behind consent." href="/docs/frameworks/react/script-loader" />
+
+  <Card variant="interactive" title="Styling" description="Customize colors, typography, spacing, and individual component slots." href="/docs/frameworks/react/styling/overview" />
+
+  <Card variant="interactive" title="Consent Categories" description="Understand the five consent categories and how to configure them." href="/docs/frameworks/react/concepts/consent-categories" />
+
+  <Card variant="interactive" title="Components" description="Explore the full set of pre-built consent UI components." href="/docs/frameworks/react/components/consent-banner" />
 </Cards>

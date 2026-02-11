@@ -1,40 +1,42 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-`ConsentManagerProvider` is the root component for the c15t consent system. It initializes the consent store, detects the user's jurisdiction, resolves translations, and provides consent state to all child components via React context.
+  `ConsentManagerProvider` is the root component for the c15t consent system. It initializes the consent store, detects the user's jurisdiction, resolves translations, and provides consent state to all child components via React context.
 
-Every other c15t component and hook must be rendered inside this provider.
+  Every other c15t component and hook must be rendered inside this provider.
 </section>
 
 <section id="options-reference">
-## Options Reference
+  ## Options Reference
 
-<AutoTypeTable path="./packages/ui/src/theme/options.ts" name="CommonInlineStoreOptions" />
-<AutoTypeTable path="./packages/ui/src/theme/options.ts" name="ConsentManagerContentOptions" />
-<AutoTypeTable path="./packages/ui/src/theme/types.ts" name="UIOptions" />
+  <AutoTypeTable path="./packages/ui/src/theme/options.ts" name="CommonInlineStoreOptions" />
+
+  <AutoTypeTable path="./packages/ui/src/theme/options.ts" name="ConsentManagerContentOptions" />
+
+  <AutoTypeTable path="./packages/ui/src/theme/types.ts" name="UIOptions" />
 </section>
 
 <section id="legal-links">
-## Legal Links
+  ## Legal Links
 
-Configure URLs that appear in the consent banner and dialog:
+  Configure URLs that appear in the consent banner and dialog:
 
-```tsx
-<ConsentManagerProvider
-  options={{
-    mode: 'offline',
-    legalLinks: {
-      privacyPolicy: '/privacy',
-      cookiePolicy: '/cookies',
-      termsOfService: '/terms',
-    },
-  }}
->
-```
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      mode: 'offline',
+      legalLinks: {
+        privacyPolicy: '/privacy',
+        cookiePolicy: '/cookies',
+        termsOfService: '/terms',
+      },
+    }}
+  >
+  ```
 </section>
 
 <section id="props">
-## Props
+  ## Props
 
-<AutoTypeTable path="./packages/react/src/types/consent-manager.ts" name="ConsentManagerProviderProps" />
+  <AutoTypeTable path="./packages/react/src/types/consent-manager.ts" name="ConsentManagerProviderProps" />
 </section>

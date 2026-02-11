@@ -1,61 +1,61 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-`ConsentWidget` is a standalone, inline consent management widget. Unlike `ConsentDialog` (which is a modal), the widget embeds directly in your page layout - ideal for privacy settings pages, account preferences, or any page where users should be able to manage consent without a modal overlay.
+  `ConsentWidget` is a standalone, inline consent management widget. Unlike `ConsentDialog` (which is a modal), the widget embeds directly in your page layout - ideal for privacy settings pages, account preferences, or any page where users should be able to manage consent without a modal overlay.
 </section>
 
 <section id="customization">
-## Configuration
+  ## Configuration
 
-```tsx
-<ConsentWidget
-  hideBranding
-  legalLinks={['privacyPolicy', 'cookiePolicy']}
-  noStyle={false}
-  disableAnimation={false}
-/>
-```
+  ```tsx
+  <ConsentWidget
+    hideBranding
+    legalLinks={['privacyPolicy', 'cookiePolicy']}
+    noStyle={false}
+    disableAnimation={false}
+  />
+  ```
 
-## Accordion Behavior
+  ## Accordion Behavior
 
-Each consent category is rendered as an expandable accordion item. Clicking the category header expands it to show a description and any associated services. Users can toggle individual categories on or off using the switch control. The `necessary` category is always enabled and cannot be toggled.
+  Each consent category is rendered as an expandable accordion item. Clicking the category header expands it to show a description and any associated services. Users can toggle individual categories on or off using the switch control. The `necessary` category is always enabled and cannot be toggled.
 
-## Compound Components
+  ## Compound Components
 
-Build fully custom widget layouts using sub-components:
+  Build fully custom widget layouts using sub-components:
 
-```tsx
-<ConsentWidget.Root>
-  <ConsentWidget.Accordion type="multiple">
-    <ConsentWidget.AccordionItems />
-  </ConsentWidget.Accordion>
-  <ConsentWidget.Footer>
-    <ConsentWidget.FooterSubGroup>
-      <ConsentWidget.RejectButton />
-      <ConsentWidget.AcceptAllButton />
-    </ConsentWidget.FooterSubGroup>
-    <ConsentWidget.SaveButton />
-  </ConsentWidget.Footer>
-</ConsentWidget.Root>
-```
+  ```tsx
+  <ConsentWidget.Root>
+    <ConsentWidget.Accordion type="multiple">
+      <ConsentWidget.AccordionItems />
+    </ConsentWidget.Accordion>
+    <ConsentWidget.Footer>
+      <ConsentWidget.FooterSubGroup>
+        <ConsentWidget.RejectButton />
+        <ConsentWidget.AcceptAllButton />
+      </ConsentWidget.FooterSubGroup>
+      <ConsentWidget.SaveButton />
+    </ConsentWidget.Footer>
+  </ConsentWidget.Root>
+  ```
 
-- `ConsentWidget.Root` — Theme context provider
-- `ConsentWidget.Accordion` — Radix-based accordion root
-- `ConsentWidget.AccordionItems` — Auto-generates toggle items from consent config
-- `ConsentWidget.AccordionItem` — Individual category item
-- `ConsentWidget.AccordionTrigger` — Clickable header for each item
-- `ConsentWidget.AccordionContent` — Collapsible content area
-- `ConsentWidget.AccordionArrow` — Expand/collapse indicator
-- `ConsentWidget.Switch` — Category toggle switch
-- `ConsentWidget.Footer` — Footer container
-- `ConsentWidget.FooterSubGroup` — Groups related buttons
-- `ConsentWidget.AcceptAllButton` — Accepts all consent
-- `ConsentWidget.RejectButton` — Rejects all consent
-- `ConsentWidget.SaveButton` — Saves custom selections
+  - `ConsentWidget.Root` — Theme context provider
+  - `ConsentWidget.Accordion` — Radix-based accordion root
+  - `ConsentWidget.AccordionItems` — Auto-generates toggle items from consent config
+  - `ConsentWidget.AccordionItem` — Individual category item
+  - `ConsentWidget.AccordionTrigger` — Clickable header for each item
+  - `ConsentWidget.AccordionContent` — Collapsible content area
+  - `ConsentWidget.AccordionArrow` — Expand/collapse indicator
+  - `ConsentWidget.Switch` — Category toggle switch
+  - `ConsentWidget.Footer` — Footer container
+  - `ConsentWidget.FooterSubGroup` — Groups related buttons
+  - `ConsentWidget.AcceptAllButton` — Accepts all consent
+  - `ConsentWidget.RejectButton` — Rejects all consent
+  - `ConsentWidget.SaveButton` — Saves custom selections
 </section>
 
 <section id="props">
-## Props
+  ## Props
 
-<AutoTypeTable path="./packages/react/src/components/consent-widget/types.ts" name="ConsentWidgetProps" />
+  <AutoTypeTable path="./packages/react/src/components/consent-widget/types.ts" name="ConsentWidgetProps" />
 </section>

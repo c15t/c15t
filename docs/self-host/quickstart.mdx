@@ -16,150 +16,127 @@ If you want a fully managed experience we recommend using [consent.io](https://c
 ## Basic Setup
 
 <Steps>
-<Step>
+  <Step>
+    ### Create a c15t instance
 
-### Create a c15t instance
+    ```ts title="c15t.ts"
+    import { c15tInstance } from '@c15t/backend';
+    import { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
+    import { db } from './db'; // your Kysely instance
 
-```ts title="c15t.ts"
-import { c15tInstance } from '@c15t/backend';
-import { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
-import { db } from './db'; // your Kysely instance
+    export const c15t = c15tInstance({
+      appName: 'my-app',
+      basePath: '/api/c15t',
+      trustedOrigins: ['https://example.com'],
+      adapter: kyselyAdapter(db),
+    });
+    ```
 
-export const c15t = c15tInstance({
-  appName: 'my-app',
-  basePath: '/api/c15t',
-  trustedOrigins: ['https://example.com'],
-  adapter: kyselyAdapter(db),
-});
-```
+    The `trustedOrigins` array controls CORS — list every domain that will send requests to the API.
+  </Step>
 
-The `trustedOrigins` array controls CORS — list every domain that will send requests to the API.
+  <Step>
+    ### Mount the handler
 
-</Step>
-<Step>
+    The `c15t.handler` accepts a standard Fetch API `Request` and returns a `Response`. Mount it in your framework of choice:
 
-### Mount the handler
+    ```ts title="server.ts"
+    // Bun
+    import { c15t } from './c15t';
 
-The `c15t.handler` accepts a standard Fetch API `Request` and returns a `Response`. Mount it in your framework of choice:
+    Bun.serve({
+      port: 3001,
+      fetch: c15t.handler,
+    });
+    ```
 
-```ts title="server.ts"
-// Bun
-import { c15t } from './c15t';
+    ```ts title="src/app/api/c15t/[...path]/route.ts"
+    // Next.js App Router
+    import { c15t } from '@/lib/c15t';
 
-Bun.serve({
-  port: 3001,
-  fetch: c15t.handler,
-});
-```
+    const handler = c15t.handler;
 
-```ts title="src/app/api/c15t/[...path]/route.ts"
-// Next.js App Router
-import { c15t } from '@/lib/c15t';
+    export { handler as GET, handler as POST, handler as PUT, handler as PATCH, handler as DELETE };
+    ```
 
-const handler = c15t.handler;
+    ```ts title="worker.ts"
+    // Cloudflare Workers
+    import { c15t } from './c15t';
 
-export { handler as GET, handler as POST, handler as PUT, handler as PATCH, handler as DELETE };
-```
+    export default {
+      async fetch(request: Request) {
+        return c15t.handler(request);
+      },
+    };
+    ```
 
-```ts title="worker.ts"
-// Cloudflare Workers
-import { c15t } from './c15t';
+    See [Framework Integration](/docs/self-host/guides/framework-integration) for more examples.
+  </Step>
 
-export default {
-  async fetch(request: Request) {
-    return c15t.handler(request);
-  },
-};
-```
+  <Step>
+    ### Run database migrations
 
-See [Framework Integration](/docs/self-host/guides/framework-integration) for more examples.
+    Before the backend can store consent records, your database needs the required tables. The migration strategy depends on your adapter:
 
-</Step>
-<Step>
+    **Kysely or MongoDB** — migrations run automatically on first request. No manual step needed.
 
-### Run database migrations
+    **Drizzle, Prisma, or TypeORM** — generate the schema into your existing migration workflow:
 
-Before the backend can store consent records, your database needs the required tables. The migration strategy depends on your adapter:
+    The easiest way to migrate your database is via the c15t cli:
 
-**Kysely or MongoDB** — migrations run automatically on first request. No manual step needed.
+    <PackageCommandTabs mode="run" command="@c15t/cli" />
 
-**Drizzle, Prisma, or TypeORM** — generate the schema into your existing migration workflow:
+    See [Database Setup](/docs/self-host/guides/database-setup) for adapter-specific migration guides.
+  </Step>
 
-The easiest way to migrate your database is via the c15t cli:
+  <Step>
+    ### Point your frontend at the backend
 
-<PackageCommandTabs mode="run" command="@c15t/cli" />
+    Update your frontend consent manager to use your self-hosted URL:
 
-See [Database Setup](/docs/self-host/guides/database-setup) for adapter-specific migration guides.
+    ```tsx
+    <ConsentManagerProvider
+      options={{
+        mode: 'c15t',
+        backendURL: 'https://example.com/api/c15t',
+        consentCategories: ['necessary', 'measurement', 'marketing'],
+      }}
+    >
+    ```
+  </Step>
 
-</Step>
-<Step>
+  <Step>
+    ### Verify it works
 
-### Point your frontend at the backend
+    Open `https://example.com/api/c15t/status` in your browser. You should see a JSON response with the server version and your client info:
 
-Update your frontend consent manager to use your self-hosted URL:
-
-```tsx
-<ConsentManagerProvider
-  options={{
-    mode: 'c15t',
-    backendURL: 'https://example.com/api/c15t',
-    consentCategories: ['necessary', 'measurement', 'marketing'],
-  }}
->
-```
-
-</Step>
-<Step>
-
-### Verify it works
-
-Open `https://example.com/api/c15t/status` in your browser. You should see a JSON response with the server version and your client info:
-
-```json
-{
-  "version": "1.8.0",
-  "timestamp": "2026-02-11T12:00:00.000Z",
-  "client": {
-    "ip": "192.168.1.0",
-    "acceptLanguage": "en-US",
-    "userAgent": "Mozilla/5.0 ...",
-    "region": { "countryCode": "US", "regionCode": "CA" }
-  }
-}
-```
-
-</Step>
+    ```json
+    {
+      "version": "1.8.0",
+      "timestamp": "2026-02-11T12:00:00.000Z",
+      "client": {
+        "ip": "192.168.1.0",
+        "acceptLanguage": "en-US",
+        "userAgent": "Mozilla/5.0 ...",
+        "region": { "countryCode": "US", "regionCode": "CA" }
+      }
+    }
+    ```
+  </Step>
 </Steps>
 
 <Callout type="info">
-The backend includes auto-generated API documentation. Visit `{basePath}/docs` (e.g. `/api/c15t/docs`) to explore all endpoints interactively.
+  The backend includes auto-generated API documentation. Visit `{basePath}/docs` (e.g. `/api/c15t/docs`) to explore all endpoints interactively.
 </Callout>
 
 ## Next Steps
 
 <Cards className="not-prose grid gap-4 grid-cols-1 sm:grid-cols-2">
-  <Card
-    variant="interactive"
-    title="Database Setup"
-    description="Configure Prisma, Drizzle, Kysely, TypeORM, or MongoDB as your storage adapter."
-    href="/docs/self-host/guides/database-setup"
-  />
-  <Card
-    variant="interactive"
-    title="Framework Integration"
-    description="Mount the backend in Next.js, Bun, Express, Hono, Fastify, or Cloudflare Workers."
-    href="/docs/self-host/guides/framework-integration"
-  />
-  <Card
-    variant="interactive"
-    title="Caching"
-    description="Add Redis or Cloudflare KV caching for production performance."
-    href="/docs/self-host/guides/caching"
-  />
-  <Card
-    variant="interactive"
-    title="API Endpoints"
-    description="Full reference for every consent API endpoint."
-    href="/docs/self-host/api/endpoints"
-  />
+  <Card variant="interactive" title="Database Setup" description="Configure Prisma, Drizzle, Kysely, TypeORM, or MongoDB as your storage adapter." href="/docs/self-host/guides/database-setup" />
+
+  <Card variant="interactive" title="Framework Integration" description="Mount the backend in Next.js, Bun, Express, Hono, Fastify, or Cloudflare Workers." href="/docs/self-host/guides/framework-integration" />
+
+  <Card variant="interactive" title="Caching" description="Add Redis or Cloudflare KV caching for production performance." href="/docs/self-host/guides/caching" />
+
+  <Card variant="interactive" title="API Endpoints" description="Full reference for every consent API endpoint." href="/docs/self-host/api/endpoints" />
 </Cards>

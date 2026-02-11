@@ -1,78 +1,78 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-`ConsentDialogTrigger` is a floating button that opens the consent dialog when clicked. Users can drag it to any corner of the screen, and the position persists across sessions. Use it to give users a persistent way to manage their privacy settings.
+  `ConsentDialogTrigger` is a floating button that opens the consent dialog when clicked. Users can drag it to any corner of the screen, and the position persists across sessions. Use it to give users a persistent way to manage their privacy settings.
 </section>
 
 <section id="customization">
-## Icon Options
+  ## Icon Options
 
-```tsx
-{/* Built-in icons */}
-<ConsentDialogTrigger icon="branding" />    {/* c15t logo (default) */}
-<ConsentDialogTrigger icon="fingerprint" /> {/* Privacy icon */}
-<ConsentDialogTrigger icon="settings" />    {/* Gear icon */}
+  ```tsx
+  {/* Built-in icons */}
+  <ConsentDialogTrigger icon="branding" />    {/* c15t logo (default) */}
+  <ConsentDialogTrigger icon="fingerprint" /> {/* Privacy icon */}
+  <ConsentDialogTrigger icon="settings" />    {/* Gear icon */}
 
-{/* Custom icon */}
-<ConsentDialogTrigger icon={<MyCustomIcon />} />
-```
+  {/* Custom icon */}
+  <ConsentDialogTrigger icon={<MyCustomIcon />} />
+  ```
 
-## Visibility
+  ## Visibility
 
-Control when the trigger is visible:
+  Control when the trigger is visible:
 
-```tsx
-{/* Always visible (default) */}
-<ConsentDialogTrigger showWhen="always" />
+  ```tsx
+  {/* Always visible (default) */}
+  <ConsentDialogTrigger showWhen="always" />
 
-{/* Only after user has made a consent choice */}
-<ConsentDialogTrigger showWhen="after-consent" />
+  {/* Only after user has made a consent choice */}
+  <ConsentDialogTrigger showWhen="after-consent" />
 
-{/* Hidden (control visibility programmatically) */}
-<ConsentDialogTrigger showWhen="never" />
-```
+  {/* Hidden (control visibility programmatically) */}
+  <ConsentDialogTrigger showWhen="never" />
+  ```
 
-## Position
+  ## Position
 
-Set the default corner and control persistence:
+  Set the default corner and control persistence:
 
-```tsx
-<ConsentDialogTrigger
-  defaultPosition="bottom-left"
-  persistPosition={true} // Remembers user's drag position
-  onPositionChange={(position) => console.log('Moved to:', position)}
-/>
-```
+  ```tsx
+  <ConsentDialogTrigger
+    defaultPosition="bottom-left"
+    persistPosition={true} // Remembers user's drag position
+    onPositionChange={(position) => console.log('Moved to:', position)}
+  />
+  ```
 
-## Size
+  ## Size
 
-```tsx
-<ConsentDialogTrigger size="sm" /> {/* Small */}
-<ConsentDialogTrigger size="md" /> {/* Medium (default) */}
-<ConsentDialogTrigger size="lg" /> {/* Large */}
-```
+  ```tsx
+  <ConsentDialogTrigger size="sm" /> {/* Small */}
+  <ConsentDialogTrigger size="md" /> {/* Medium (default) */}
+  <ConsentDialogTrigger size="lg" /> {/* Large */}
+  ```
 
-## Compound Components
+  ## Compound Components
 
-Build fully custom trigger layouts using sub-components:
+  Build fully custom trigger layouts using sub-components:
 
-```tsx
-<ConsentDialogTrigger.Root defaultPosition="bottom-right">
-  <ConsentDialogTrigger.Button size="md">
-    <ConsentDialogTrigger.Icon icon="settings" />
-    <ConsentDialogTrigger.Text>Privacy</ConsentDialogTrigger.Text>
-  </ConsentDialogTrigger.Button>
-</ConsentDialogTrigger.Root>
-```
+  ```tsx
+  <ConsentDialogTrigger.Root defaultPosition="bottom-right">
+    <ConsentDialogTrigger.Button size="md">
+      <ConsentDialogTrigger.Icon icon="settings" />
+      <ConsentDialogTrigger.Text>Privacy</ConsentDialogTrigger.Text>
+    </ConsentDialogTrigger.Button>
+  </ConsentDialogTrigger.Root>
+  ```
 
-- `ConsentDialogTrigger.Root` — Portal wrapper with drag handling and position persistence
-- `ConsentDialogTrigger.Button` — Draggable button element with size variants
-- `ConsentDialogTrigger.Icon` — Icon display (branding, fingerprint, settings, or custom)
-- `ConsentDialogTrigger.Text` — Optional text label
+  - `ConsentDialogTrigger.Root` — Portal wrapper with drag handling and position persistence
+  - `ConsentDialogTrigger.Button` — Draggable button element with size variants
+  - `ConsentDialogTrigger.Icon` — Icon display (branding, fingerprint, settings, or custom)
+  - `ConsentDialogTrigger.Text` — Optional text label
 </section>
 
 <section id="props">
-## Props
+  ## Props
 
-<AutoTypeTable path="./packages/react/src/components/consent-dialog-trigger/types.ts" name="ConsentDialogTriggerProps" />
+  <AutoTypeTable path="./packages/react/src/components/consent-dialog-trigger/types.ts" name="ConsentDialogTriggerProps" />
 </section>

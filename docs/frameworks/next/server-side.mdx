@@ -6,7 +6,7 @@ description: Pre-fetch consent data in Server Components with fetchInitialData â
 The `@c15t/nextjs` package provides `fetchInitialData`, a server-side function that fetches consent data before rendering. This enables SSR hydration â€” consent state is available immediately on page load without a client-side fetch, eliminating the consent banner flash.
 
 <Callout type="info">
-SSR hydration is part of the [initialization flow](/docs/frameworks/next/concepts/initialization-flow#how-it-works). When SSR data is available, the client skips the API fetch entirely.
+  SSR hydration is part of the [initialization flow](/docs/frameworks/next/concepts/initialization-flow#how-it-works). When SSR data is available, the client skips the API fetch entirely.
 </Callout>
 
 ```ts
@@ -28,7 +28,7 @@ const ssrData = fetchInitialData({
 ```
 
 <Callout type="warn">
-**Do not `await`** `fetchInitialData()` in Server Components. Pass the Promise directly to your client component so Next.js can stream the page while the consent data loads in parallel.
+  **Do not `await`** `fetchInitialData()` in Server Components. Pass the Promise directly to your client component so Next.js can stream the page while the consent data loads in parallel.
 </Callout>
 
 ### Options

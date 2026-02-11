@@ -1,36 +1,36 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-c15t supports light and dark mode through the theme's `colors` and `dark` token groups. The active color scheme is determined by one of three methods:
+  c15t supports light and dark mode through the theme's `colors` and `dark` token groups. The active color scheme is determined by one of three methods:
 
-1. **Explicit setting** via the `colorScheme` option
-2. **CSS class detection** - c15t checks for `.dark` on the document element
-3. **System preference** - matches `prefers-color-scheme` media query
+  1. **Explicit setting** via the `colorScheme` option
+  2. **CSS class detection** - c15t checks for `.dark` on the document element
+  3. **System preference** - matches `prefers-color-scheme` media query
 </section>
 
 <section id="reference">
-| Value | Behavior |
-|-------|----------|
-| `'light'` | Force light mode |
-| `'dark'` | Force dark mode |
-| `'system'` | Follow `prefers-color-scheme` media query |
-| `null` | Disable - c15t won't manage color scheme |
+  | Value | Behavior |
+  |-------|----------|
+  | `'light'` | Force light mode |
+  | `'dark'` | Force dark mode |
+  | `'system'` | Follow `prefers-color-scheme` media query |
+  | `null` | Disable - c15t won't manage color scheme |
 
-## How Dark Mode Works
+  ## How Dark Mode Works
 
-When dark mode is active, c15t applies the `dark` token values as CSS variable overrides. Only tokens specified in `dark` are overridden - unset tokens fall back to the `colors` values.
+  When dark mode is active, c15t applies the `dark` token values as CSS variable overrides. Only tokens specified in `dark` are overridden - unset tokens fall back to the `colors` values.
 
-```tsx
-const theme = defineTheme({
-  colors: {
-    surface: '#ffffff',     // Light mode
-    text: '#1f2937',        // Light mode
-  },
-  dark: {
-    surface: '#1f2937',     // Dark mode override
-    text: '#f9fafb',        // Dark mode override
-    // primary is NOT set - inherits from colors.primary
-  },
-});
-```
+  ```tsx
+  const theme = defineTheme({
+    colors: {
+      surface: '#ffffff',     // Light mode
+      text: '#1f2937',        // Light mode
+    },
+    dark: {
+      surface: '#1f2937',     // Dark mode override
+      text: '#f9fafb',        // Dark mode override
+      // primary is NOT set - inherits from colors.primary
+    },
+  });
+  ```
 </section>

@@ -1,62 +1,62 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="content">
-<Callout type="error">
-c15t is **not yet IAB certified**. The IAB TCF components are under active development and should **not be used in production**. APIs and behavior may change before certification is achieved.
-</Callout>
+  <Callout type="error">
+    c15t is **not yet IAB certified**. The IAB TCF components are under active development and should **not be used in production**. APIs and behavior may change before certification is achieved.
+  </Callout>
 
-`useGVLData()` processes the raw IAB Global Vendor List (GVL) into a UI-friendly format. It handles purpose grouping into stacks, vendor mapping, special purpose/feature extraction, and loading state.
+  `useGVLData()` processes the raw IAB Global Vendor List (GVL) into a UI-friendly format. It handles purpose grouping into stacks, vendor mapping, special purpose/feature extraction, and loading state.
 
-Use this hook when building a custom IAB TCF UI instead of the pre-built `IABConsentDialog`.
+  Use this hook when building a custom IAB TCF UI instead of the pre-built `IABConsentDialog`.
 
-```tsx
-import { useGVLData } from '@c15t/react/hooks';
+  ```tsx
+  import { useGVLData } from '@c15t/react/hooks';
 
-function CustomIABPreferences() {
-  const { purposes, stacks, standalonePurposes, totalVendors, isLoading } = useGVLData();
+  function CustomIABPreferences() {
+    const { purposes, stacks, standalonePurposes, totalVendors, isLoading } = useGVLData();
 
-  if (isLoading) return <p>Loading vendor data...</p>;
+    if (isLoading) return <p>Loading vendor data...</p>;
 
-  return (
-    <div>
-      <p>{totalVendors} partners</p>
-      {standalonePurposes.map((purpose) => (
-        <div key={purpose.id}>
-          <h3>{purpose.name}</h3>
-          <p>{purpose.description}</p>
-          <p>{purpose.vendors.length} vendors</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-```
+    return (
+      <div>
+        <p>{totalVendors} partners</p>
+        {standalonePurposes.map((purpose) => (
+          <div key={purpose.id}>
+            <h3>{purpose.name}</h3>
+            <p>{purpose.description}</p>
+            <p>{purpose.vendors.length} vendors</p>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  ```
 
-<Callout type="warn">
-Must be used within a `ConsentManagerProvider` with IAB mode enabled. Returns empty data if IAB is not configured.
-</Callout>
+  <Callout type="warn">
+    Must be used within a `ConsentManagerProvider` with IAB mode enabled. Returns empty data if IAB is not configured.
+  </Callout>
 
-## Return Value
+  ## Return Value
 
-The hook returns a `GVLData` object:
+  The hook returns a `GVLData` object:
 
-<AutoTypeTable path="./packages/react/src/components/iab-consent-dialog/hooks/use-gvl-data.ts" name="GVLData" />
+  <AutoTypeTable path="./packages/react/src/components/iab-consent-dialog/hooks/use-gvl-data.ts" name="GVLData" />
 
-## Types
+  ## Types
 
-### ProcessedPurpose
+  ### ProcessedPurpose
 
-<AutoTypeTable path="./packages/react/src/components/iab-consent-dialog/types.ts" name="ProcessedPurpose" />
+  <AutoTypeTable path="./packages/react/src/components/iab-consent-dialog/types.ts" name="ProcessedPurpose" />
 
-### ProcessedVendor
+  ### ProcessedVendor
 
-<AutoTypeTable path="./packages/react/src/components/iab-consent-dialog/types.ts" name="ProcessedVendor" />
+  <AutoTypeTable path="./packages/react/src/components/iab-consent-dialog/types.ts" name="ProcessedVendor" />
 
-### ProcessedStack
+  ### ProcessedStack
 
-<AutoTypeTable path="./packages/react/src/components/iab-consent-dialog/types.ts" name="ProcessedStack" />
+  <AutoTypeTable path="./packages/react/src/components/iab-consent-dialog/types.ts" name="ProcessedStack" />
 
-### ProcessedSpecialFeature
+  ### ProcessedSpecialFeature
 
-<AutoTypeTable path="./packages/react/src/components/iab-consent-dialog/types.ts" name="ProcessedSpecialFeature" />
+  <AutoTypeTable path="./packages/react/src/components/iab-consent-dialog/types.ts" name="ProcessedSpecialFeature" />
 </section>

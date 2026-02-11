@@ -1,65 +1,65 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-Embedded iframes from third parties (YouTube, Google Maps, social media widgets) can set cookies and track users without their consent. c15t provides two approaches to gate iframes behind consent:
+  Embedded iframes from third parties (YouTube, Google Maps, social media widgets) can set cookies and track users without their consent. c15t provides two approaches to gate iframes behind consent:
 
-1. **`<Frame>` component** - A React component that conditionally renders children based on consent
-2. **HTML `data-category` attribute** - For raw `<iframe>` elements outside of React
+  1. **`<Frame>` component** - A React component that conditionally renders children based on consent
+  2. **HTML `data-category` attribute** - For raw `<iframe>` elements outside of React
 </section>
 
 <section id="custom-placeholder">
-### Custom Placeholder
+  ### Custom Placeholder
 
-Replace the default placeholder with your own UI:
+  Replace the default placeholder with your own UI:
 
-```tsx
-<Frame
-  category="marketing"
-  placeholder={
-    <div className="flex items-center justify-center h-64 bg-gray-100 rounded">
-      <p>Enable marketing cookies to watch this video.</p>
-    </div>
-  }
->
-  <iframe src="https://www.youtube.com/embed/..." />
-</Frame>
-```
+  ```tsx
+  <Frame
+    category="marketing"
+    placeholder={
+      <div className="flex items-center justify-center h-64 bg-gray-100 rounded">
+        <p>Enable marketing cookies to watch this video.</p>
+      </div>
+    }
+  >
+    <iframe src="https://www.youtube.com/embed/..." />
+  </Frame>
+  ```
 
-### Compound Components
+  ### Compound Components
 
-Build custom placeholder layouts using compound components:
+  Build custom placeholder layouts using compound components:
 
-```tsx
-<Frame.Root category="marketing">
-  <Frame.Title category="marketing" />
-  <Frame.Button category="marketing" />
-</Frame.Root>
-```
+  ```tsx
+  <Frame.Root category="marketing">
+    <Frame.Title category="marketing" />
+    <Frame.Button category="marketing" />
+  </Frame.Root>
+  ```
 </section>
 
 <section id="html-approach">
-## HTML Attribute Approach
+  ## HTML Attribute Approach
 
-For iframes outside of React (e.g., CMS content, server-rendered HTML), add `data-category` and use `data-src` instead of `src`:
+  For iframes outside of React (e.g., CMS content, server-rendered HTML), add `data-category` and use `data-src` instead of `src`:
 
-```html
-<iframe
-  data-src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-  data-category="marketing"
-  width="560"
-  height="315"
-></iframe>
-```
+  ```html
+  <iframe
+    data-src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+    data-category="marketing"
+    width="560"
+    height="315"
+  ></iframe>
+  ```
 
-When consent for the specified category is granted, c15t automatically swaps `data-src` to `src`, loading the iframe. When consent is revoked, `src` is moved back to `data-src`.
+  When consent for the specified category is granted, c15t automatically swaps `data-src` to `src`, loading the iframe. When consent is revoked, `src` is moved back to `data-src`.
 
-### Dynamic Iframes
+  ### Dynamic Iframes
 
-c15t uses a `MutationObserver` to watch for dynamically added iframes. Any iframe with `data-category` added to the DOM after initialization is automatically processed.
+  c15t uses a `MutationObserver` to watch for dynamically added iframes. Any iframe with `data-category` added to the DOM after initialization is automatically processed.
 </section>
 
 <section id="api-reference">
-## API Reference
+  ## API Reference
 
-<AutoTypeTable path="./packages/react/src/components/frame/types.ts" name="FrameProps" />
+  <AutoTypeTable path="./packages/react/src/components/frame/types.ts" name="FrameProps" />
 </section>

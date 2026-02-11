@@ -1,66 +1,66 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-c15t ships with built-in translations for 30+ languages via the `@c15t/translations` package. Language detection happens automatically based on the browser's language preference, and you can override or extend translations for any language.
+  c15t ships with built-in translations for 30+ languages via the `@c15t/translations` package. Language detection happens automatically based on the browser's language preference, and you can override or extend translations for any language.
 
-There are two ways c15t can load translations: client-side or server-side.
+  There are two ways c15t can load translations: client-side or server-side.
 
-| Server-side | Client-side |
-| --- | --- |
-| The best way to reduce bundle size and improve performance. We can detect the user's language based on the browser's language settings, allowing for the most accurate translations. By default, when using a [consent.io](https://consent.io) hosted instance, [these languages](https://github.com/c15t/c15t/tree/main/packages/translations/src/translations) are supported. | Bundled with the application allowing for multiple languages to be supported without the need for a backend. The more translations you have, the larger the bundle size will be, which may impact the performance of your application. |
+  | Server-side | Client-side |
+  | --- | --- |
+  | The best way to reduce bundle size and improve performance. We can detect the user's language based on the browser's language settings, allowing for the most accurate translations. By default, when using a [consent.io](https://consent.io) hosted instance, [these languages](https://github.com/c15t/c15t/tree/main/packages/translations/src/translations) are supported. | Bundled with the application allowing for multiple languages to be supported without the need for a backend. The more translations you have, the larger the bundle size will be, which may impact the performance of your application. |
 </section>
 
 <section id="translation-sections">
-## Translation Sections
+  ## Translation Sections
 
-The `Translations` object is organized into sections:
+  The `Translations` object is organized into sections:
 
-| Section | Controls |
-|---------|----------|
-| `common` | Shared button labels: acceptAll, rejectAll, customize, save |
-| `cookieBanner` | Banner title and description |
-| `consentManagerDialog` | Dialog title and description |
-| `consentTypes` | Per-category title and description (keyed by AllConsentNames) |
-| `frame` | Frame placeholder title and button text (supports `{category}` placeholder) |
-| `legalLinks` | Privacy policy, cookie policy, terms of service link text |
-| `iab` | IAB TCF banner, preference center, vendor list translations |
+  | Section | Controls |
+  |---------|----------|
+  | `common` | Shared button labels: acceptAll, rejectAll, customize, save |
+  | `cookieBanner` | Banner title and description |
+  | `consentManagerDialog` | Dialog title and description |
+  | `consentTypes` | Per-category title and description (keyed by AllConsentNames) |
+  | `frame` | Frame placeholder title and button text (supports `{category}` placeholder) |
+  | `legalLinks` | Privacy policy, cookie policy, terms of service link text |
+  | `iab` | IAB TCF banner, preference center, vendor list translations |
 </section>
 
 <section id="auto-detection">
-## Automatic Language Detection
+  ## Automatic Language Detection
 
-By default, c15t detects the browser's language (`navigator.language`) and selects the closest matching translation. If no match is found, it falls back to `defaultLanguage` (or `'en'`).
+  By default, c15t detects the browser's language (`navigator.language`) and selects the closest matching translation. If no match is found, it falls back to `defaultLanguage` (or `'en'`).
 
-Disable auto-detection to always use `defaultLanguage`:
+  Disable auto-detection to always use `defaultLanguage`:
 
-```tsx
-translations: {
-  defaultLanguage: 'de',
-  disableAutoLanguageSwitch: true,
-  translations: { ... },
-}
-```
-
-## Custom Consent Type Labels
-
-Override the title and description for individual consent categories:
-
-```tsx
-translations: {
+  ```tsx
   translations: {
-    en: {
-      consentTypes: {
-        measurement: {
-          title: 'Analytics & Performance',
-          description: 'Help us understand how visitors interact with our site.',
-        },
-        marketing: {
-          title: 'Advertising',
-          description: 'Used to deliver relevant ads and measure campaign effectiveness.',
+    defaultLanguage: 'de',
+    disableAutoLanguageSwitch: true,
+    translations: { ... },
+  }
+  ```
+
+  ## Custom Consent Type Labels
+
+  Override the title and description for individual consent categories:
+
+  ```tsx
+  translations: {
+    translations: {
+      en: {
+        consentTypes: {
+          measurement: {
+            title: 'Analytics & Performance',
+            description: 'Help us understand how visitors interact with our site.',
+          },
+          marketing: {
+            title: 'Advertising',
+            description: 'Used to deliver relevant ads and measure campaign effectiveness.',
+          },
         },
       },
     },
-  },
-}
-```
+  }
+  ```
 </section>

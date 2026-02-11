@@ -1,93 +1,93 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="content">
-## locationInfo
+  ## locationInfo
 
-The `locationInfo` state contains the user's detected geographic information:
+  The `locationInfo` state contains the user's detected geographic information:
 
-```tsx
-const { locationInfo } = useConsentManager();
+  ```tsx
+  const { locationInfo } = useConsentManager();
 
-if (locationInfo) {
-  console.log(locationInfo.jurisdiction); // 'GDPR', 'CCPA', etc.
-  console.log(locationInfo.countryCode);  // 'DE', 'US', etc.
-  console.log(locationInfo.regionCode);   // 'BY', 'CA', etc.
-}
-```
+  if (locationInfo) {
+    console.log(locationInfo.jurisdiction); // 'GDPR', 'CCPA', etc.
+    console.log(locationInfo.countryCode);  // 'DE', 'US', etc.
+    console.log(locationInfo.regionCode);   // 'BY', 'CA', etc.
+  }
+  ```
 
-`locationInfo` is `null` until the backend responds with geolocation data (or in offline mode if no overrides are set).
+  `locationInfo` is `null` until the backend responds with geolocation data (or in offline mode if no overrides are set).
 
-## Jurisdiction Codes
+  ## Jurisdiction Codes
 
-| Code | Region | Consent Model |
-|------|--------|---------------|
-| `GDPR` | European Union | opt-in |
-| `UK_GDPR` | United Kingdom | opt-in |
-| `CH` | Switzerland | opt-in |
-| `BR` | Brazil (LGPD) | opt-in |
-| `APPI` | Japan | opt-in |
-| `PIPA` | South Korea | opt-in |
-| `PIPEDA` | Canada | opt-in |
-| `CCPA` | California, USA | opt-out |
-| `AU` | Australia | opt-out |
-| `NONE` | No jurisdiction | null model |
+  | Code | Region | Consent Model |
+  |------|--------|---------------|
+  | `GDPR` | European Union | opt-in |
+  | `UK_GDPR` | United Kingdom | opt-in |
+  | `CH` | Switzerland | opt-in |
+  | `BR` | Brazil (LGPD) | opt-in |
+  | `APPI` | Japan | opt-in |
+  | `PIPA` | South Korea | opt-in |
+  | `PIPEDA` | Canada | opt-in |
+  | `CCPA` | California, USA | opt-out |
+  | `AU` | Australia | opt-out |
+  | `NONE` | No jurisdiction | null model |
 
-## setOverrides()
+  ## setOverrides()
 
-Override detected values for testing or manual configuration. This triggers a re-fetch of consent banner data with the new values:
+  Override detected values for testing or manual configuration. This triggers a re-fetch of consent banner data with the new values:
 
-```tsx
-const { setOverrides } = useConsentManager();
+  ```tsx
+  const { setOverrides } = useConsentManager();
 
-// Override country (triggers jurisdiction detection)
-await setOverrides({ country: 'DE' });
+  // Override country (triggers jurisdiction detection)
+  await setOverrides({ country: 'DE' });
 
-// Override language
-await setOverrides({ language: 'de' });
+  // Override language
+  await setOverrides({ language: 'de' });
 
-// Override both
-await setOverrides({ country: 'US', region: 'CA', language: 'es' });
-```
+  // Override both
+  await setOverrides({ country: 'US', region: 'CA', language: 'es' });
+  ```
 
-## setLocationInfo()
+  ## setLocationInfo()
 
-Directly set location info without triggering a re-fetch:
+  Directly set location info without triggering a re-fetch:
 
-```tsx
-const { setLocationInfo } = useConsentManager();
+  ```tsx
+  const { setLocationInfo } = useConsentManager();
 
-setLocationInfo({
-  jurisdiction: 'GDPR',
-  countryCode: 'DE',
-  regionCode: 'BY',
-});
-```
+  setLocationInfo({
+    jurisdiction: 'GDPR',
+    countryCode: 'DE',
+    regionCode: 'BY',
+  });
+  ```
 
-## Testing Different Jurisdictions
+  ## Testing Different Jurisdictions
 
-A development-only component for testing consent behavior across jurisdictions:
+  A development-only component for testing consent behavior across jurisdictions:
 
-```tsx
-function JurisdictionTester() {
-  const { setOverrides, model, locationInfo } = useConsentManager();
+  ```tsx
+  function JurisdictionTester() {
+    const { setOverrides, model, locationInfo } = useConsentManager();
 
-  const testCases = [
-    { label: 'GDPR', country: 'DE' },
-    { label: 'CCPA', country: 'US', region: 'CA' },
-    { label: 'PIPEDA', country: 'CA' },
-    { label: 'NONE', country: 'US', region: 'TX' },
-  ];
+    const testCases = [
+      { label: 'GDPR', country: 'DE' },
+      { label: 'CCPA', country: 'US', region: 'CA' },
+      { label: 'PIPEDA', country: 'CA' },
+      { label: 'NONE', country: 'US', region: 'TX' },
+    ];
 
-  return (
-    <div>
-      <p>Current: {locationInfo?.jurisdiction ?? 'none'} → model: {model}</p>
-      {testCases.map((tc) => (
-        <button key={tc.label} onClick={() => setOverrides({ country: tc.country, region: tc.region })}>
-          Test as {tc.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-```
+    return (
+      <div>
+        <p>Current: {locationInfo?.jurisdiction ?? 'none'} → model: {model}</p>
+        {testCases.map((tc) => (
+          <button key={tc.label} onClick={() => setOverrides({ country: tc.country, region: tc.region })}>
+            Test as {tc.label}
+          </button>
+        ))}
+      </div>
+    );
+  }
+  ```
 </section>

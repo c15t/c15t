@@ -1,50 +1,50 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-`Frame` conditionally renders its children based on consent state. When consent for the specified category is not granted, a placeholder is shown instead. Children are not mounted at all until consent is given, preventing any network requests or script execution.
+  `Frame` conditionally renders its children based on consent state. When consent for the specified category is not granted, a placeholder is shown instead. Children are not mounted at all until consent is given, preventing any network requests or script execution.
 </section>
 
 <section id="customization">
-## Custom Placeholder
+  ## Custom Placeholder
 
-Replace the default placeholder:
+  Replace the default placeholder:
 
-```tsx
-<Frame
-  category="experience"
-  placeholder={
-    <div className="rounded-lg border p-8 text-center">
-      <p>This content requires experience cookies.</p>
-      <p>Please enable them in your privacy settings.</p>
-    </div>
-  }
->
-  <InteractiveWidget />
-</Frame>
-```
+  ```tsx
+  <Frame
+    category="experience"
+    placeholder={
+      <div className="rounded-lg border p-8 text-center">
+        <p>This content requires experience cookies.</p>
+        <p>Please enable them in your privacy settings.</p>
+      </div>
+    }
+  >
+    <InteractiveWidget />
+  </Frame>
+  ```
 
-## Compound Components
+  ## Compound Components
 
-Build fully custom placeholder layouts:
+  Build fully custom placeholder layouts:
 
-```tsx
-<Frame.Root category="marketing">
-  <Frame.Title category="marketing" />
-  <Frame.Button category="marketing" />
-</Frame.Root>
-```
+  ```tsx
+  <Frame.Root category="marketing">
+    <Frame.Title category="marketing" />
+    <Frame.Button category="marketing" />
+  </Frame.Root>
+  ```
 
-- `Frame.Root` - Container with default placeholder styling
-- `Frame.Title` - Displays a consent-request message with the category name
-- `Frame.Button` - Button that opens the consent dialog for the specified category
+  - `Frame.Root` - Container with default placeholder styling
+  - `Frame.Title` - Displays a consent-request message with the category name
+  - `Frame.Button` - Button that opens the consent dialog for the specified category
 
-## Automatic Category Registration
+  ## Automatic Category Registration
 
-When `Frame` mounts, it automatically adds its `category` to the active `consentCategories` list. This means you don't need to explicitly list the category in your provider's `consentCategories` option - if a `Frame` component uses it, it will be registered.
+  When `Frame` mounts, it automatically adds its `category` to the active `consentCategories` list. This means you don't need to explicitly list the category in your provider's `consentCategories` option - if a `Frame` component uses it, it will be registered.
 </section>
 
 <section id="props">
-## Props
+  ## Props
 
-<AutoTypeTable path="./packages/react/src/components/frame/types.ts" name="FrameProps" />
+  <AutoTypeTable path="./packages/react/src/components/frame/types.ts" name="FrameProps" />
 </section>

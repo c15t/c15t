@@ -1,59 +1,65 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-The network blocker intercepts outgoing `fetch` and `XMLHttpRequest` calls and blocks them based on consent state and domain rules. This catches tracking requests that happen outside of script loading - for example, beacon calls, API requests to analytics endpoints, or pixel fires from already-loaded scripts.
+  The network blocker intercepts outgoing `fetch` and `XMLHttpRequest` calls and blocks them based on consent state and domain rules. This catches tracking requests that happen outside of script loading - for example, beacon calls, API requests to analytics endpoints, or pixel fires from already-loaded scripts.
 </section>
 
 <section id="reference">
-## Rule Matching
+  ## Rule Matching
 
-Rules match requests using three criteria:
+  Rules match requests using three criteria:
 
-### Domain matching
-The `domain` field matches the request hostname. Subdomains are automatically included - a rule for `google-analytics.com` also matches `www.google-analytics.com` and `stats.google-analytics.com`.
+  ### Domain matching
 
-### Path matching
-The optional `pathIncludes` field requires the request URL path to contain the specified substring. This lets you target specific endpoints without blocking the entire domain.
+  The `domain` field matches the request hostname. Subdomains are automatically included - a rule for `google-analytics.com` also matches `www.google-analytics.com` and `stats.google-analytics.com`.
 
-### Method matching
-The optional `methods` array restricts the rule to specific HTTP methods. If omitted, the rule applies to all methods.
+  ### Path matching
 
-## Consent Conditions
+  The optional `pathIncludes` field requires the request URL path to contain the specified substring. This lets you target specific endpoints without blocking the entire domain.
 
-Like the script loader, `category` accepts a `HasCondition`:
+  ### Method matching
 
-```tsx
-// Simple
-{ category: 'measurement' }
+  The optional `methods` array restricts the rule to specific HTTP methods. If omitted, the rule applies to all methods.
 
-// Must have both
-{ category: { and: ['measurement', 'marketing'] } }
+  ## Consent Conditions
 
-// Must have either
-{ category: { or: ['measurement', 'marketing'] } }
-```
+  Like the script loader, `category` accepts a `HasCondition`:
 
-## Monitoring Blocked Requests
+  ```tsx
+  // Simple
+  { category: 'measurement' }
 
-### Console logging
-Blocked requests are logged to the console by default. Disable with `logBlockedRequests: false`.
+  // Must have both
+  { category: { and: ['measurement', 'marketing'] } }
 
-### Callback
-Use `onRequestBlocked` to handle blocked requests programmatically:
+  // Must have either
+  { category: { or: ['measurement', 'marketing'] } }
+  ```
 
-```tsx
-networkBlocker: {
-  rules: [...],
-  onRequestBlocked: ({ method, url, rule }) => {
-    console.log(`Blocked ${method} ${url} (rule: ${rule?.id})`);
-  },
-}
-```
+  ## Monitoring Blocked Requests
+
+  ### Console logging
+
+  Blocked requests are logged to the console by default. Disable with `logBlockedRequests: false`.
+
+  ### Callback
+
+  Use `onRequestBlocked` to handle blocked requests programmatically:
+
+  ```tsx
+  networkBlocker: {
+    rules: [...],
+    onRequestBlocked: ({ method, url, rule }) => {
+      console.log(`Blocked ${method} ${url} (rule: ${rule?.id})`);
+    },
+  }
+  ```
 </section>
 
 <section id="api-reference">
-## API Reference
+  ## API Reference
 
-<AutoTypeTable path="./packages/core/src/libs/network-blocker/types.ts" name="NetworkBlockerRule" />
-<AutoTypeTable path="./packages/core/src/libs/network-blocker/types.ts" name="NetworkBlockerConfig" />
+  <AutoTypeTable path="./packages/core/src/libs/network-blocker/types.ts" name="NetworkBlockerRule" />
+
+  <AutoTypeTable path="./packages/core/src/libs/network-blocker/types.ts" name="NetworkBlockerConfig" />
 </section>
