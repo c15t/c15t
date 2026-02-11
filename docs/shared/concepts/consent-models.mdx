@@ -17,13 +17,13 @@
 
   The strictest consent model, used for GDPR and similar regulations that require explicit, affirmative consent before any non-essential data processing occurs. Under this model, all consent categories except `necessary` default to `false`. A consent banner must be shown before any tracking scripts load, and the user must actively grant consent for each category they wish to enable.
 
-  This is the model applied to jurisdictions including the EU (GDPR), the UK (UK GDPR), Switzerland, Brazil (LGPD), Japan (APPI), South Korea (PIPA), and Canada (PIPEDA). It is also the fallback model for unknown jurisdiction codes to minimize compliance risk.
+  This is the model applied to jurisdictions including the EU (GDPR), the UK (UK GDPR), Switzerland, Brazil (LGPD), Japan (APPI), South Korea (PIPA), and Quebec, Canada (Law 25). It is also the fallback model for unknown jurisdiction codes to minimize compliance risk.
 
   ### Opt-out
 
   Used for CCPA-style regulations where data processing is permitted by default until the user exercises their right to opt out. Under this model, all consent categories default to `true`, meaning tracking scripts and cookies can activate immediately without waiting for explicit consent. However, you must provide a clear mechanism for users to opt out, such as a "Do Not Sell or Share My Personal Information" link as required by CCPA.
 
-  A blocking consent banner is not required under this model. Instead, the typical pattern is a non-intrusive notice or a link in the footer that opens a consent preferences panel. This model applies to California (CCPA) and Australia (AU).
+  A blocking consent banner is not required under this model. Instead, the typical pattern is a non-intrusive notice or a link in the footer that opens a consent preferences panel. This model applies to California (CCPA), Canada (PIPEDA), and Australia (AU).
 
   If the browser sends a Global Privacy Control (GPC) signal (`Sec-GPC: 1`), `marketing` and `measurement` are denied while other categories remain granted. This honors the user's opt-out preference automatically, as required by CCPA.
 
@@ -55,11 +55,12 @@
   | `BR`              | Brazil (LGPD)       | opt-in        |
   | `APPI`            | Japan               | opt-in        |
   | `PIPA`            | South Korea         | opt-in        |
-  | `PIPEDA`          | Canada              | opt-in        |
+  | `PIPEDA`          | Canada (excl. Quebec) | opt-out     |
+  | `QC_LAW25`        | Quebec, Canada      | opt-in        |
   | `CCPA`            | California, USA     | opt-out       |
   | `AU`              | Australia           | opt-out       |
   | `NONE`            | No jurisdiction     | null          |
   | *(unknown)*       | Any other           | opt-in        |
 
-  **IAB override rule:** If `iab.enabled` is set to `true` in your configuration AND the detected jurisdiction is `GDPR` or `UK_GDPR`, the model becomes `'iab'` instead of `'opt-in'`. This override only applies to those two jurisdictions -- enabling IAB has no effect on any other jurisdiction. For example, a Canadian visitor (`PIPEDA`) will still see the standard opt-in model even if IAB is enabled.
+  **IAB override rule:** If `iab.enabled` is set to `true` in your configuration AND the detected jurisdiction is `GDPR` or `UK_GDPR`, the model becomes `'iab'` instead of `'opt-in'`. This override only applies to those two jurisdictions -- enabling IAB has no effect on any other jurisdiction. For example, a Canadian visitor (`PIPEDA`) will still see the standard opt-out model even if IAB is enabled.
 </section>

@@ -225,16 +225,16 @@ const ConsentBannerRootChildren = forwardRef<
 		},
 		ref
 	) => {
-		const { showPopup, translationConfig, model, iab } = useConsentManager();
+		const { showPopup, translationConfig, model } = useConsentManager();
 		const textDirection = useTextDirection(translationConfig.defaultLanguage);
 		const [isVisible, setIsVisible] = useState(false);
 		const [hasAnimated, setHasAnimated] = useState(false);
 		const [animationDurationMs, setAnimationDurationMs] = useState(200); // Default fallback for SSR
 
-		// ConsentBanner only shows when IAB is NOT enabled (use IABConsentBanner for IAB mode)
-		// Check both: IAB not configured (null) OR IAB configured but disabled by server
-		const isIABActive = iab?.config.enabled;
-		const shouldShowBanner = model === 'opt-in' && showPopup && !isIABActive;
+		// ConsentBanner shows for opt-in model (use IABConsentBanner when model is 'iab')
+		// IAB mode only activates for GDPR/UK_GDPR jurisdictions; other opt-in jurisdictions
+		// (like QC_LAW25) should use the standard ConsentBanner even if IAB is configured.
+		const shouldShowBanner = model === 'opt-in' && showPopup;
 
 		// Get animation duration from CSS custom property (client-side only)
 		useEffect(() => {

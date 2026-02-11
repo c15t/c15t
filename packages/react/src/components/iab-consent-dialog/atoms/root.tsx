@@ -41,13 +41,15 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		isPrivacyDialogOpen,
 		translationConfig,
 		iab: iabState,
+		model,
 	} = useConsentManager();
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
 	const [isMounted, setIsMounted] = useState(false);
 	const [isVisible, setIsVisible] = useState(false);
 
-	const isOpen = open ?? isPrivacyDialogOpen;
+	// IABConsentDialog only opens when the consent model is 'iab'
+	const isOpen = model === 'iab' && (open ?? isPrivacyDialogOpen);
 
 	const contextValue = {
 		disableAnimation,

@@ -141,8 +141,8 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 						identityProvider: 'custom',
 					},
 					overrides: {
-						country: 'GB',
-						region: 'CA',
+						country: 'CA',
+						region: 'QC',
 					},
 					translations: {
 						translations: {
@@ -167,6 +167,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 				<IABConsentDialog />
 				<ConsentDialogTrigger />
 				<ConsentDialog />
+				<C15TDevTools />
 				{children}
 			</ConsentManagerProvider>
 		</>

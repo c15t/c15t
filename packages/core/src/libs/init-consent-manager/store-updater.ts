@@ -112,7 +112,7 @@ function buildStoreUpdate(
 
 	// Show popup if no existing consent and regulation applies
 	if (consentInfo === null) {
-		update.showPopup = !!consentModel && hasLocalStorageAccess;
+		update.showPopup = !!consentModel;
 	}
 
 	// Auto-grant consents if applicable

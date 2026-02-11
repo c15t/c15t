@@ -9,7 +9,8 @@ import type { JurisdictionCode } from '@c15t/schema/types';
  * `jurisdiction !== 'NONE'`.
  */
 export function checkJurisdiction(
-	countryCode: string | null
+	countryCode: string | null,
+	regionCode?: string | null
 ): JurisdictionCode {
 	const jurisdictions = {
 		EU: new Set([
@@ -49,6 +50,7 @@ export function checkJurisdiction(
 		AU: new Set(['AU']),
 		JP: new Set(['JP']),
 		KR: new Set(['KR']),
+		CA_QC_REGIONS: new Set(['QC']),
 	};
 
 	// Default to no jurisdiction
@@ -58,6 +60,19 @@ export function checkJurisdiction(
 	if (countryCode) {
 		// Normalize country code to uppercase for case-insensitive comparison
 		const normalizedCountryCode = countryCode.toUpperCase();
+		const normalizedRegionCode =
+			regionCode && typeof regionCode === 'string'
+				? regionCode.toUpperCase()
+				: null;
+
+		// Quebec (Law 25): opt-in consent required
+		if (
+			normalizedCountryCode === 'CA' &&
+			normalizedRegionCode &&
+			jurisdictions.CA_QC_REGIONS.has(normalizedRegionCode)
+		) {
+			return 'QC_LAW25';
+		}
 
 		// Map jurisdiction sets to their respective codes
 		const jurisdictionMap: Array<{

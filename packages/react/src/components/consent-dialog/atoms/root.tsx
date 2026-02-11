@@ -108,14 +108,13 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	const trapFocus = localTrapFocus ?? globalTheme.trapFocus ?? true;
 
 	// Consent manager state
-	const { isPrivacyDialogOpen, translationConfig, iab } = useConsentManager();
+	const { isPrivacyDialogOpen, translationConfig, model } = useConsentManager();
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
 	// Final open state (controlled or managed by consent manager)
-	// ConsentDialog only shows when IAB is NOT enabled (use IABConsentDialog for IAB mode)
-	// Check both: IAB not configured (null) OR IAB configured but disabled by server
-	const isIABActive = iab?.config.enabled;
-	const isOpen = !isIABActive && (openProp ?? isPrivacyDialogOpen);
+	// ConsentDialog shows for non-IAB models (use IABConsentDialog when model is 'iab')
+	// This ensures opt-in jurisdictions like QC_LAW25 use the standard dialog even if IAB is configured.
+	const isOpen = model !== 'iab' && (openProp ?? isPrivacyDialogOpen);
 
 	// Animation visibility flag – mirrors logic in original component
 	const [isVisible, setIsVisible] = useState(false);
