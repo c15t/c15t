@@ -7,48 +7,61 @@ When the consent provider mounts, it creates a cached consent runtime, reads any
 <section id="flow-diagram">
 ## Lifecycle Sequence
 
-```mermaid
-sequenceDiagram
-    participant Provider as ConsentManagerProvider
-    participant Store as Consent Store
-    participant Storage as localStorage / Cookie
-    participant API as c15t Backend
-    participant UI as Banner / Dialog
-    participant Scripts as Script Loader
+<Tabs items={['Simplified', 'Sequence Diagram']}>
+  <Tab value="Simplified">
+    1. **Provider mounts** — creates (or retrieves from cache) a consent runtime and store
+    2. **Check stored consent** — reads existing consent from cookies / localStorage; if found, the banner stays hidden
+    3. **Fetch init data** — calls the backend `GET /init` (or uses SSR data) for jurisdiction, location, and translations
+    4. **Resolve consent model** — maps jurisdiction to `opt-in`, `opt-out`, `iab`, or `null`
+    5. **Decide banner visibility** — shows the banner only if no prior consent exists and a regulation applies
+    6. **Gating enforced** — scripts, iframes, and network requests tagged with a consent category are blocked until that category is granted
+    7. **User interacts** — choices are persisted to storage, synced to the backend, and blocked scripts/iframes load immediately after consent is granted
+  </Tab>
+  <Tab value="Sequence Diagram">
+    ```mermaid
+    sequenceDiagram
+        participant Provider as ConsentManagerProvider
+        participant Store as Consent Store
+        participant Storage as localStorage / Cookie
+        participant API as c15t Backend
+        participant UI as Banner / Dialog
+        participant Scripts as Script Loader
 
-    Provider->>Store: getOrCreateConsentRuntime()
-    Store->>Storage: getStoredConsent()
-    alt Stored consent exists
-        Storage-->>Store: consentInfo + consents
-        Store->>Store: showPopup = false
-    else No stored consent
-        Store->>Store: isLoadingConsentInfo = true
-    end
+        Provider->>Store: getOrCreateConsentRuntime()
+        Store->>Storage: getStoredConsent()
+        alt Stored consent exists
+            Storage-->>Store: consentInfo + consents
+            Store->>Store: showPopup = false
+        else No stored consent
+            Store->>Store: isLoadingConsentInfo = true
+        end
 
-    Store->>Store: initConsentManager()
-    Store->>Storage: Check pending consent sync
-    opt Pending sync from revocation reload
-        Store->>API: Deferred setConsent() (non-blocking)
-    end
+        Store->>Store: initConsentManager()
+        Store->>Storage: Check pending consent sync
+        opt Pending sync from revocation reload
+            Store->>API: Deferred setConsent() (non-blocking)
+        end
 
-    alt SSR data provided
-        Store->>Store: tryUseSSRData()
-    else No SSR data
-        Store->>API: GET /init
-        API-->>Store: jurisdiction, location, translations
-    end
+        alt SSR data provided
+            Store->>Store: tryUseSSRData()
+        else No SSR data
+            Store->>API: GET /init
+            API-->>Store: jurisdiction, location, translations
+        end
 
-    Store->>Store: determineModel(jurisdiction)
-    Store->>Store: Set showPopup, auto-grant if opt-out/null
+        Store->>Store: determineModel(jurisdiction)
+        Store->>Store: Set showPopup, auto-grant if opt-out/null
 
-    alt User has no prior consent
-        UI->>UI: Banner appears
-        UI->>Store: saveConsents({ type })
-        Store->>Storage: Persist consent + subjectId
-        Store->>Scripts: updateScripts(), updateIframes(), updateNetwork()
-        Store->>API: POST /subjects (non-blocking)
-    end
-```
+        alt User has no prior consent
+            UI->>UI: Banner appears
+            UI->>Store: saveConsents({ type })
+            Store->>Storage: Persist consent + subjectId
+            Store->>Scripts: updateScripts(), updateIframes(), updateNetwork()
+            Store->>API: POST /subjects (non-blocking)
+        end
+    ```
+  </Tab>
+</Tabs>
 </section>
 
 <section id="how-it-works">

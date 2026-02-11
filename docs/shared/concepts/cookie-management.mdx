@@ -48,30 +48,42 @@ When a user revokes consent for a category (e.g., turns off "measurement" after 
 
 When a user revokes consent, the following sequence occurs:
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant UI as Consent UI
-    participant Store as Consent Store
-    participant Storage as Cookie + localStorage
-    participant API as c15t Backend
-    participant Browser
+<Tabs items={['Simplified', 'Sequence Diagram']}>
+  <Tab value="Simplified">
+    1. **User revokes consent** — e.g. turns off "measurement" in the consent dialog
+    2. **New consent saved** — updated preferences are written to cookies and localStorage
+    3. **Pending sync stored** — the API update is deferred to localStorage (`c15t:pending-consent-sync`)
+    4. **Page reloads** — a fresh execution context ensures revoked scripts never load
+    5. **Fresh init** — c15t reads updated consent; scripts without consent are never loaded
+    6. **Deferred API sync** — the pending consent change is sent to the backend and cleared from localStorage
+  </Tab>
+  <Tab value="Sequence Diagram">
+    ```mermaid
+    sequenceDiagram
+        participant User
+        participant UI as Consent UI
+        participant Store as Consent Store
+        participant Storage as Cookie + localStorage
+        participant API as c15t Backend
+        participant Browser
 
-    User->>UI: Revokes "measurement" consent
-    UI->>Store: saveConsents({ type: 'custom' })
-    Store->>Store: shouldReloadOnConsentChange() → true
-    Store->>Storage: Save new consent state
-    Store->>Storage: Store PendingConsentSync in localStorage
-    Store->>Browser: onBeforeConsentRevocationReload callback
-    Store->>Browser: window.location.reload()
-    Browser->>Browser: Fresh page load
-    Browser->>Storage: Read consent state
-    Browser->>Store: Initialize with updated consents
-    Note over Store: Scripts without consent are never loaded
-    Store->>Storage: Read PendingConsentSync
-    Store->>API: Sync consent to backend
-    Store->>Storage: Clear PendingConsentSync
-```
+        User->>UI: Revokes "measurement" consent
+        UI->>Store: saveConsents({ type: 'custom' })
+        Store->>Store: shouldReloadOnConsentChange() → true
+        Store->>Storage: Save new consent state
+        Store->>Storage: Store PendingConsentSync in localStorage
+        Store->>Browser: onBeforeConsentRevocationReload callback
+        Store->>Browser: window.location.reload()
+        Browser->>Browser: Fresh page load
+        Browser->>Storage: Read consent state
+        Browser->>Store: Initialize with updated consents
+        Note over Store: Scripts without consent are never loaded
+        Store->>Storage: Read PendingConsentSync
+        Store->>API: Sync consent to backend
+        Store->>Storage: Clear PendingConsentSync
+    ```
+  </Tab>
+</Tabs>
 
 **Key detail:** The API sync happens *after* the reload, not before. This ensures the page reloads as fast as possible. The pending sync data is stored in localStorage under the key `c15t:pending-consent-sync` and is picked up by the fresh page's initialization.
 </section>
