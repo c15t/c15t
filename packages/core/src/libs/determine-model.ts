@@ -33,7 +33,7 @@ export function determineModel(
 	// Opt-in model jurisdictions: require explicit consent before
 	// non-essential cookies or tracking (stricter regimes).
 	if (
-		['UK_GDPR', 'GDPR', 'CH', 'BR', 'APPI', 'PIPA', 'PIPEDA'].includes(
+		['UK_GDPR', 'GDPR', 'CH', 'BR', 'APPI', 'PIPA', 'QC_LAW25'].includes(
 			jurisdiction
 		)
 	) {
@@ -42,7 +42,7 @@ export function determineModel(
 
 	// Opt-out model jurisdictions: allow processing until the user
 	// exercises a right to opt out (e.g. CCPA-style).
-	if (['CCPA', 'AU'].includes(jurisdiction)) {
+	if (['CCPA', 'AU', 'PIPEDA'].includes(jurisdiction)) {
 		return 'opt-out';
 	}
 

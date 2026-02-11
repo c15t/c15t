@@ -14,6 +14,7 @@ export const jurisdictionCodes = [
 	'CH',
 	'BR',
 	'PIPEDA',
+	'QC_LAW25',
 	'AU',
 	'APPI',
 	'PIPA',

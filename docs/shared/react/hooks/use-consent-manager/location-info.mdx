@@ -27,7 +27,8 @@
   | `BR` | Brazil (LGPD) | opt-in |
   | `APPI` | Japan | opt-in |
   | `PIPA` | South Korea | opt-in |
-  | `PIPEDA` | Canada | opt-in |
+  | `PIPEDA` | Canada (excl. Quebec) | opt-out |
+  | `QC_LAW25` | Quebec, Canada | opt-in |
   | `CCPA` | California, USA | opt-out |
   | `AU` | Australia | opt-out |
   | `NONE` | No jurisdiction | null model |
@@ -74,7 +75,8 @@
     const testCases = [
       { label: 'GDPR', country: 'DE' },
       { label: 'CCPA', country: 'US', region: 'CA' },
-      { label: 'PIPEDA', country: 'CA' },
+      { label: 'PIPEDA', country: 'CA', region: undefined },
+      { label: 'QC_LAW25', country: 'CA', region: 'QC' },
       { label: 'NONE', country: 'US', region: 'TX' },
     ];
 

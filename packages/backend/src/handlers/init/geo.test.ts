@@ -231,6 +231,28 @@ describe('checkJurisdiction', () => {
 		});
 	});
 
+	describe('Quebec Law 25 jurisdiction (CA regions)', () => {
+		it('should identify CA-QC as QC_LAW25 jurisdiction (case-insensitive)', () => {
+			const cases = ['QC', 'qc', 'Qc'];
+
+			for (const region of cases) {
+				const jurisdiction = checkJurisdiction('CA', region);
+
+				expect(jurisdiction).toBe('QC_LAW25');
+			}
+		});
+
+		it('should return PIPEDA for non-Quebec Canadian provinces', () => {
+			const nonQuebecRegions = ['ON', 'BC', 'AB', null];
+
+			for (const region of nonQuebecRegions) {
+				const jurisdiction = checkJurisdiction('CA', region as string | null);
+
+				expect(jurisdiction).toBe('PIPEDA');
+			}
+		});
+	});
+
 	describe('CCPA jurisdiction (US regions)', () => {
 		it('should identify US-CA as CCPA jurisdiction (case-insensitive)', () => {
 			const cases = ['CA', 'ca', 'Ca'];

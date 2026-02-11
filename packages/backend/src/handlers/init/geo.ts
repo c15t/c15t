@@ -87,6 +87,10 @@ export function checkJurisdiction(
 			// California (CCPA/CPRA)
 			'CA',
 		]),
+		CA_QC_REGIONS: new Set([
+			// Quebec (Law 25)
+			'QC',
+		]),
 	};
 
 	// Default to no jurisdiction
@@ -108,6 +112,15 @@ export function checkJurisdiction(
 			jurisdictions.US_CCPA_REGIONS.has(normalizedRegionCode)
 		) {
 			return 'CCPA';
+		}
+
+		// Quebec (Law 25): opt-in consent required
+		if (
+			normalizedCountryCode === 'CA' &&
+			normalizedRegionCode &&
+			jurisdictions.CA_QC_REGIONS.has(normalizedRegionCode)
+		) {
+			return 'QC_LAW25';
 		}
 
 		const jurisdictionMap = [
