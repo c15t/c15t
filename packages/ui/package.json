@@ -52,6 +52,10 @@
 		"typescript": "5.9.3",
 		"vitest": "4.0.15"
 	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t"
+	},
 	"publishConfig": {
 		"access": "public"
 	}
