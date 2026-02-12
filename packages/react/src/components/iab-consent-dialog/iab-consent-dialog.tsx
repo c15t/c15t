@@ -24,6 +24,7 @@ import {
 	type ConsentDialogTriggerProps,
 } from '~/components/consent-dialog-trigger';
 import * as Button from '~/components/shared/ui/button';
+import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
@@ -100,6 +101,12 @@ export interface IABConsentDialogProps {
 	 * @default ['iab']
 	 */
 	models?: import('c15t').Model[];
+
+	/**
+	 * Override the UI source identifier sent with consent API calls.
+	 * @default 'iab_dialog'
+	 */
+	uiSource?: string;
 }
 
 /**
@@ -124,6 +131,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	hideBranding,
 	showTrigger = false,
 	models = ['iab'],
+	uiSource: _uiSource,
 }) => {
 	const iabTranslations = useIABTranslations();
 	const {
@@ -628,7 +636,9 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const isLoading = iabState.isLoadingGVL || !iabState.gvl;
 
 	const dialogContent = (
-		<>
+		<ConsentTrackingContext.Provider
+			value={{ uiSource: _uiSource ?? 'iab_dialog' }}
+		>
 			<IABConsentDialogOverlay isOpen={isOpen} />
 			<div
 				className={`${styles.root} ${isVisible ? styles.dialogVisible : styles.dialogHidden}`}
@@ -987,7 +997,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 					)}
 				</div>
 			</div>
-		</>
+		</ConsentTrackingContext.Provider>
 	);
 
 	// Resolve trigger props

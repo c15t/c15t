@@ -11,6 +11,7 @@ import {
 	useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
@@ -71,6 +72,12 @@ interface ConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	 * @default ['opt-in', 'opt-out']
 	 */
 	models?: import('c15t').Model[];
+
+	/**
+	 * Override the UI source identifier sent with consent API calls.
+	 * @default 'banner'
+	 */
+	uiSource?: string;
 }
 
 /**
@@ -118,6 +125,7 @@ const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
 	scrollLock,
 	trapFocus = true,
 	models,
+	uiSource,
 	...props
 }) => {
 	/**
@@ -132,17 +140,19 @@ const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
 	};
 
 	return (
-		<LocalThemeContext.Provider value={contextValue}>
-			<ConsentBannerRootChildren
-				disableAnimation={disableAnimation}
-				className={className}
-				noStyle={noStyle}
-				models={models}
-				{...props}
-			>
-				{children}
-			</ConsentBannerRootChildren>
-		</LocalThemeContext.Provider>
+		<ConsentTrackingContext.Provider value={{ uiSource: uiSource ?? 'banner' }}>
+			<LocalThemeContext.Provider value={contextValue}>
+				<ConsentBannerRootChildren
+					disableAnimation={disableAnimation}
+					className={className}
+					noStyle={noStyle}
+					models={models}
+					{...props}
+				>
+					{children}
+				</ConsentBannerRootChildren>
+			</LocalThemeContext.Provider>
+		</ConsentTrackingContext.Provider>
 	);
 };
 

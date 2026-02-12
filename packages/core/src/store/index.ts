@@ -211,12 +211,13 @@ export const createConsentManagerStore = (
 			});
 		},
 
-		saveConsents: async (type) =>
+		saveConsents: async (type, options) =>
 			await saveConsents({
 				manager,
 				type,
 				get,
 				set,
+				options,
 			}),
 
 		setConsent: (name, value) => {

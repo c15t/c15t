@@ -56,6 +56,12 @@ export interface IABConsentBannerProps {
 	 * @default ['iab']
 	 */
 	models?: import('c15t').Model[];
+
+	/**
+	 * Override the UI source identifier sent with consent API calls.
+	 * @default 'iab_banner'
+	 */
+	uiSource?: string;
 }
 
 /**
@@ -86,6 +92,7 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	trapFocus: localTrapFocus = true,
 	primaryButton = 'customize',
 	models,
+	uiSource,
 }) => {
 	const iabT = useIABTranslations();
 	const { iab: iabState, setActiveUI } = useConsentManager();
@@ -275,7 +282,7 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	const scopeNotice = iabT.banner.scopeServiceSpecific;
 
 	return (
-		<IABConsentBannerRoot {...config} models={models}>
+		<IABConsentBannerRoot {...config} models={models} uiSource={uiSource}>
 			<Box
 				ref={cardRef}
 				baseClassName={styles.card}

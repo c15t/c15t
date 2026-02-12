@@ -23,6 +23,12 @@ export interface ConsentWidgetRootProps {
 	 * Traps keyboard focus within a dialog when true
 	 */
 	trapFocus?: boolean;
+
+	/**
+	 * Override the UI source identifier sent with consent API calls.
+	 * @default 'widget'
+	 */
+	uiSource?: string;
 }
 
 /**

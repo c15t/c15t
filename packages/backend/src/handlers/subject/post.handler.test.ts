@@ -159,6 +159,114 @@ describe('postSubjectHandler idempotency', () => {
 		expect(db.transaction).toHaveBeenCalledTimes(2);
 	});
 
+	it('should persist metadata and uiSource in consent record', async () => {
+		const inputWithMeta = {
+			...baseInput,
+			metadata: { customKey: 'customValue' },
+			uiSource: 'banner',
+		};
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue(inputWithMeta);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		// Get the tx.create call
+		const transactionFn = db.transaction.mock.calls[0][0];
+		const tx = {
+			create: vi
+				.fn()
+				.mockResolvedValue({ id: 'con_new', givenAt: GIVEN_AT_DATE }),
+		};
+		await transactionFn(tx);
+
+		expect(tx.create).toHaveBeenCalledWith(
+			'consent',
+			expect.objectContaining({
+				metadata: { json: { customKey: 'customValue' } },
+				uiSource: 'banner',
+			})
+		);
+	});
+
+	it('should include uiSource in response for new consent', async () => {
+		const inputWithSource = {
+			...baseInput,
+			uiSource: 'dialog',
+		};
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue(inputWithSource);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		const result = mockCtx.getJsonData() as {
+			uiSource: string;
+		};
+
+		expect(result.uiSource).toBe('dialog');
+	});
+
+	it('should include uiSource in response for duplicate consent', async () => {
+		const inputWithSource = {
+			...baseInput,
+			uiSource: 'widget',
+		};
+		const existingConsent = {
+			id: 'con_existing',
+			givenAt: GIVEN_AT_DATE,
+		};
+		const db = createMockDb(existingConsent);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue(inputWithSource);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		const result = mockCtx.getJsonData() as {
+			uiSource: string;
+		};
+
+		expect(result.uiSource).toBe('widget');
+	});
+
+	it('should omit metadata from consent record when not provided', async () => {
+		const inputNoMeta = {
+			type: 'cookie_consent',
+			subjectId: 'sub_user1',
+			domain: 'example.com',
+			givenAt: GIVEN_AT,
+		};
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue(inputNoMeta);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		// Get the tx.create call
+		const transactionFn = db.transaction.mock.calls[0][0];
+		const tx = {
+			create: vi
+				.fn()
+				.mockResolvedValue({ id: 'con_new', givenAt: GIVEN_AT_DATE }),
+		};
+		await transactionFn(tx);
+
+		expect(tx.create).toHaveBeenCalledWith(
+			'consent',
+			expect.objectContaining({
+				metadata: undefined,
+			})
+		);
+	});
+
 	it('should not record metrics for duplicate submissions', async () => {
 		const { getMetrics } = await import('~/utils/metrics');
 		const mockMetrics = {

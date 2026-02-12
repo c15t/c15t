@@ -17,6 +17,8 @@ export const consentSchema = v.object({
 	jurisdictionModel: v.nullish(v.string()),
 	/** IAB TCF TC String (only for IAB consents) */
 	tcString: v.nullish(v.string()),
+	/** Which UI component collected this consent (e.g., 'banner', 'dialog', 'widget') */
+	uiSource: v.nullish(v.string()),
 	tenantId: v.nullish(v.string()),
 });
 

@@ -520,12 +520,13 @@ describe('saveConsents', () => {
 	});
 
 	describe('API integration', () => {
-		it('should call manager.setConsent with correct parameters', async () => {
+		it('should call manager.setConsent with correct parameters including uiSource', async () => {
 			await saveConsents({
 				manager: mockManager,
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
+				options: { uiSource: 'banner' },
 			});
 
 			expect(mockManager.setConsent).toHaveBeenCalledWith({
@@ -539,10 +540,27 @@ describe('saveConsents', () => {
 						experience: true,
 						marketing: true,
 					},
-					metadata: expect.objectContaining({
-						source: 'consent_widget',
-						acceptanceMethod: 'all',
-					}),
+					uiSource: 'banner',
+				}),
+			});
+
+			// Should NOT contain hardcoded metadata
+			const callBody = (mockManager.setConsent as ReturnType<typeof vi.fn>).mock
+				.calls[0][0].body;
+			expect(callBody.metadata).toBeUndefined();
+		});
+
+		it('should default uiSource to "api" when no options provided', async () => {
+			await saveConsents({
+				manager: mockManager,
+				type: 'all',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(mockManager.setConsent).toHaveBeenCalledWith({
+				body: expect.objectContaining({
+					uiSource: 'api',
 				}),
 			});
 		});
@@ -1230,6 +1248,68 @@ describe('saveConsents', () => {
 
 			// Should reload
 			expect(mockReload).toHaveBeenCalled();
+		});
+
+		it('should store uiSource in pending sync data', async () => {
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {
+					onConsentSet: vi.fn(),
+					onBeforeConsentRevocationReload: vi.fn(),
+				},
+				consentCategories: ['necessary', 'marketing'],
+				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
+				consents: {
+					necessary: true,
+					marketing: true,
+				},
+				selectedConsents: {
+					necessary: true,
+					marketing: false,
+				},
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: 'Necessary',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						description: 'Marketing',
+						disabled: false,
+						display: true,
+						gdprType: 5,
+					},
+				],
+				consentInfo: { time: Date.now(), subjectId: 'existing-subject' },
+				reloadOnConsentRevoked: true,
+				locationInfo: { jurisdiction: 'GDPR' },
+				model: 'opt-in',
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+				options: { uiSource: 'dialog' },
+			});
+
+			// Verify uiSource is stored in pending sync
+			expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+				PENDING_CONSENT_SYNC_KEY,
+				expect.any(String)
+			);
+
+			const storedData = JSON.parse(
+				(mockLocalStorage.setItem as ReturnType<typeof vi.fn>).mock.calls[0][1]
+			);
+			expect(storedData.uiSource).toBe('dialog');
 		});
 
 		it('should NOT call API when reload is triggered', async () => {

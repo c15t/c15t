@@ -11,6 +11,7 @@ import {
 	useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
@@ -29,6 +30,11 @@ interface IABConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	 * @default ['iab']
 	 */
 	models?: import('c15t').Model[];
+	/**
+	 * Override the UI source identifier sent with consent API calls.
+	 * @default 'iab_banner'
+	 */
+	uiSource?: string;
 }
 
 const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
@@ -39,6 +45,7 @@ const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
 	scrollLock,
 	trapFocus = true,
 	models,
+	uiSource,
 	...props
 }) => {
 	const contextValue = {
@@ -49,17 +56,21 @@ const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
 	};
 
 	return (
-		<LocalThemeContext.Provider value={contextValue}>
-			<IABConsentBannerRootChildren
-				disableAnimation={disableAnimation}
-				className={className}
-				noStyle={noStyle}
-				models={models}
-				{...props}
-			>
-				{children}
-			</IABConsentBannerRootChildren>
-		</LocalThemeContext.Provider>
+		<ConsentTrackingContext.Provider
+			value={{ uiSource: uiSource ?? 'iab_banner' }}
+		>
+			<LocalThemeContext.Provider value={contextValue}>
+				<IABConsentBannerRootChildren
+					disableAnimation={disableAnimation}
+					className={className}
+					noStyle={noStyle}
+					models={models}
+					{...props}
+				>
+					{children}
+				</IABConsentBannerRootChildren>
+			</LocalThemeContext.Provider>
+		</ConsentTrackingContext.Provider>
 	);
 };
 
