@@ -1,5 +1,15 @@
 # @c15t/nextjs
 
+## 2.0.0-rc.1
+
+### Patch Changes
+
+- 0bc4f86: fixed workspace resolving
+- Updated dependencies [0bc4f86]
+  - @c15t/translations@2.0.0-rc.1
+  - @c15t/react@2.0.0-rc.1
+  - c15t@2.0.0-rc.1
+
 ## 2.0.0-rc.0
 
 ### Major Changes
