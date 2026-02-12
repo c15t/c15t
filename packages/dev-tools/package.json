@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/dev-tools",
-	"version": "1.8.3",
+	"version": "2.0.0-rc.0",
 	"description": "Developer tools for debugging and inspecting c15t consent management state.",
 	"homepage": "https://c15t.com",
 	"repository": {

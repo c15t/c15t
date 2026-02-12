@@ -21,5 +21,5 @@
 		"@c15t/translations": "1.8.0",
 		"@c15t/ui": "1.0.0"
 	},
-	"changesets": []
+	"changesets": ["shy-cycles-call"]
 }
