@@ -9,6 +9,7 @@ import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { generateUniqueId } from '~/db/registry/utils';
 import type { C15TContext } from '~/types';
+import { extractErrorMessage } from '~/utils/extract-error-message';
 import { getMetrics } from '~/utils/metrics';
 
 /**
@@ -207,7 +208,7 @@ export const postSubjectHandler = async (c: Context) => {
 		});
 	} catch (error) {
 		logger.error('Error in POST /subjects handler', {
-			error: error instanceof Error ? error.message : String(error),
+			error: extractErrorMessage(error),
 			errorType: error instanceof Error ? error.constructor.name : typeof error,
 		});
 
@@ -216,7 +217,7 @@ export const postSubjectHandler = async (c: Context) => {
 		}
 
 		throw new HTTPException(500, {
-			message: error instanceof Error ? error.message : String(error),
+			message: 'Internal server error',
 			cause: { code: 'INTERNAL_SERVER_ERROR' },
 		});
 	}

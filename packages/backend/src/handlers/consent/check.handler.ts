@@ -7,6 +7,7 @@
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { C15TContext } from '~/types';
+import { extractErrorMessage } from '~/utils/extract-error-message';
 import { getMetrics } from '~/utils/metrics';
 import { resolveConsentPolicies } from '../utils/consent-enrichment';
 
@@ -109,7 +110,7 @@ export const checkConsentHandler = async (c: Context) => {
 		return c.json({ results });
 	} catch (error) {
 		logger.error('Error in GET /consents/check handler', {
-			error: error instanceof Error ? error.message : String(error),
+			error: extractErrorMessage(error),
 			errorType: error instanceof Error ? error.constructor.name : typeof error,
 		});
 
@@ -118,7 +119,7 @@ export const checkConsentHandler = async (c: Context) => {
 		}
 
 		throw new HTTPException(500, {
-			message: error instanceof Error ? error.message : String(error),
+			message: 'Internal server error',
 			cause: { code: 'INTERNAL_SERVER_ERROR' },
 		});
 	}

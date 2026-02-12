@@ -43,12 +43,14 @@ const handler = c15tInstance({
 		openapi: {
 			enabled: true,
 		},
-		cache: {
-			adapter: createUpstashRedisAdapter({
-				url: process.env.REDIS_URL,
-				token: process.env.REDIS_TOKEN,
-			}),
-		},
+		cache: process.env.REDIS_URL
+			? {
+					adapter: createUpstashRedisAdapter({
+						url: process.env.REDIS_URL,
+						token: process.env.REDIS_TOKEN!,
+					}),
+				}
+			: undefined,
 		gvl: {
 			enabled: true,
 			bundled: { en: enGVL },

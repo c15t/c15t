@@ -8,6 +8,7 @@ import {
 } from '@opentelemetry/api';
 import type { C15TOptions } from '../types';
 import { version } from '../version';
+import { extractErrorMessage } from './extract-error-message';
 
 type TelemetryConfig = NonNullable<C15TOptions['advanced']>['telemetry'];
 
@@ -182,7 +183,7 @@ export const withRequestSpan = async <T>(
 export const handleSpanError = (span: Span, error: unknown) => {
 	span.setStatus({
 		code: SpanStatusCode.ERROR,
-		message: error instanceof Error ? error.message : String(error),
+		message: extractErrorMessage(error),
 	});
 
 	if (error instanceof Error) {
