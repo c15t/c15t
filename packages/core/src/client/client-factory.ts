@@ -85,7 +85,13 @@ function getClientCacheKey(options: ConsentManagerOptions): string {
 			? `:translations:${Object.keys(initialTranslations).sort().join(',')}`
 			: '';
 
-		return `offline${storageKey}${translationPart}`;
+		// Include IAB config in the cache key so that offline clients with
+		// different IAB settings (enabled/disabled, different GVL) don't share
+		// the same cached instance.
+		const iabConfig = options.store?.iab;
+		const iabPart = iabConfig?.enabled ? ':iab:enabled' : '';
+
+		return `offline${storageKey}${translationPart}${iabPart}`;
 	}
 
 	if (options.mode === 'custom') {
@@ -372,4 +378,14 @@ export function configureConsentManager(
 	clientRegistry.set(cacheKey, client);
 
 	return client;
+}
+
+/**
+ * Clears the internal client registry cache.
+ *
+ * This is primarily useful for testing scenarios where different
+ * configurations need fresh client instances between tests.
+ */
+export function clearClientRegistry(): void {
+	clientRegistry.clear();
 }
