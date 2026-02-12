@@ -1,9 +1,6 @@
 name: Sync Main to Canary via PR
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:

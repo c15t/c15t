@@ -34,13 +34,14 @@
 		"lint:fix": "turbo run lint -- --write",
 		"release": "bun run build && changeset publish",
 		"release:canary": "bun run build && changeset publish --tag canary",
+		"release:rc": "bun run build && changeset publish --tag rc",
 		"setup:docs": "tsx scripts/setup-docs.ts",
 		"test": "turbo run test",
 		"vercel-build": "tsx scripts/setup-docs.ts --vercel",
 		"version": "changeset version && bun install",
 		"version:canary": "changeset version --snapshot canary && bun install",
-		"version:prerelease": "changeset pre enter canary",
-		"version:prerelease:exit": "changeset pre exit",
+		"version:rc": "changeset pre enter rc",
+		"version:rc:exit": "changeset pre exit",
 		"view-report": "turbo run view-report"
 	},
 	"overrides": {
