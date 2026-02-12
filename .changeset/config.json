@@ -14,6 +14,7 @@
 			"@c15t/translations"
 		]
 	],
+	"ignore": ["pigeon-post"],
 	"access": "public",
 	"baseBranch": "2.0.0",
 	"updateInternalDependencies": "patch",
