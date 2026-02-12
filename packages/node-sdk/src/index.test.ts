@@ -113,7 +113,7 @@ describe('C15T Node SDK', () => {
 				res.end(
 					JSON.stringify({
 						error: 'Internal Server Error',
-						message: error instanceof Error ? error.message : String(error),
+						message: 'An unexpected error occurred',
 					})
 				);
 			}
