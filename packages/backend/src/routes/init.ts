@@ -79,10 +79,12 @@ Use for geo-targeted consent banners and regional compliance.`,
 			const customVendors = options.advanced?.gvl?.customVendors;
 
 			// Record init metric
+			const gpc = request.headers.get('sec-gpc') === '1';
 			getMetrics()?.recordInit({
 				jurisdiction,
 				country: location?.countryCode ?? undefined,
 				region: location?.regionCode ?? undefined,
+				gpc,
 			});
 
 			return c.json({
