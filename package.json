@@ -13,7 +13,7 @@
 		"configs/*",
 		"packages/**",
 		"internals/**",
-		"examples/**"
+		"examples/demo"
 	],
 	"scripts": {
 		"build": "turbo run build",
