@@ -139,6 +139,32 @@ export const postSubjectHandler = async (c: Context) => {
 			purposeIds = purposes;
 		}
 
+		// Check for duplicate consent (idempotency)
+		const existingConsent = await db.findFirst('consent', {
+			where: (b) =>
+				b.and(
+					b('subjectId', '=', subject.id),
+					b('domainId', '=', domainRecord.id),
+					b('policyId', '=', policyId),
+					b('givenAt', '=', givenAt)
+				),
+		});
+
+		if (existingConsent) {
+			logger.debug('Duplicate consent detected, returning existing record', {
+				consentId: existingConsent.id,
+			});
+			return c.json({
+				subjectId: subject.id,
+				consentId: existingConsent.id,
+				domainId: domainRecord.id,
+				domain: domainRecord.name,
+				type,
+				metadata,
+				givenAt: existingConsent.givenAt,
+			});
+		}
+
 		const result = await db.transaction(async (tx) => {
 			logger.debug('Creating consent record', {
 				subjectId: subject.id,
