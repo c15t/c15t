@@ -525,7 +525,10 @@ export interface StoreActions {
 	 * @returns A promise that resolves when the preferences have been stored
 	 * @throws {Error} When the underlying persistence layer fails
 	 */
-	saveConsents: (type: 'all' | 'custom' | 'necessary') => Promise<void>;
+	saveConsents: (
+		type: 'all' | 'custom' | 'necessary',
+		options?: { uiSource?: string }
+	) => Promise<void>;
 
 	/**
 	 * Updates the consent state for a specific consent type & automatically save the consent.

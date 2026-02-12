@@ -161,6 +161,12 @@ export interface ConsentBannerProps {
 	 * @default ['opt-in']
 	 */
 	models?: import('c15t').Model[];
+
+	/**
+	 * Override the UI source identifier sent with consent API calls.
+	 * @default 'banner'
+	 */
+	uiSource?: string;
 }
 
 export const ConsentBanner: FC<ConsentBannerProps> = ({
@@ -177,6 +183,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 	layout = DEFAULT_LAYOUT,
 	primaryButton = 'customize',
 	models,
+	uiSource,
 }) => {
 	const { cookieBanner: consentBanner } = useTranslations();
 
@@ -228,7 +235,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 		<ErrorBoundary
 			fallback={<div>Something went wrong with the Consent Banner.</div>}
 		>
-			<ConsentBannerRoot {...config} models={models}>
+			<ConsentBannerRoot {...config} models={models} uiSource={uiSource}>
 				<ConsentBannerCard aria-label={consentBanner.title}>
 					<ConsentBannerHeader>
 						<ConsentBannerTitle>{title}</ConsentBannerTitle>

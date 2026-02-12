@@ -203,11 +203,7 @@ function processPendingConsentSync(
 					jurisdiction: data.jurisdiction,
 					jurisdictionModel: data.jurisdictionModel ?? undefined,
 					givenAt: data.givenAt,
-					metadata: {
-						source: 'consent_widget',
-						acceptanceMethod: data.type,
-						syncedAfterReload: true,
-					},
+					uiSource: data.uiSource ?? 'api',
 				},
 			})
 			.then((result) => {

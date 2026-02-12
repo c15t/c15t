@@ -11,6 +11,7 @@ import styles from '@c15t/ui/styles/components/consent-dialog.module.css';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import {
 	LocalThemeContext,
 	type ThemeContextValue,
@@ -77,6 +78,12 @@ export interface ConsentDialogRootProps
 	 * @default undefined (builtin overlay)
 	 */
 	overlay?: ReactNode | false;
+
+	/**
+	 * Override the UI source identifier sent with consent API calls.
+	 * @default 'dialog'
+	 */
+	uiSource?: string;
 }
 
 /**
@@ -101,6 +108,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	scrollLock: localScrollLock = true,
 	trapFocus: localTrapFocus = true,
 	overlay,
+	uiSource,
 	className,
 	style,
 	...rest
@@ -184,42 +192,44 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	};
 
 	const dialogNode = (
-		<LocalThemeContext.Provider value={contextValue}>
-			{isOpen && (
-				<>
-					{/* Backdrop (customisable) */}
-					{overlay === false ? null : (overlay ?? <Overlay />)}
+		<ConsentTrackingContext.Provider value={{ uiSource: uiSource ?? 'dialog' }}>
+			<LocalThemeContext.Provider value={contextValue}>
+				{isOpen && (
+					<>
+						{/* Backdrop (customisable) */}
+						{overlay === false ? null : (overlay ?? <Overlay />)}
 
-					<dialog
-						ref={dialogRef}
-						{...rest}
-						{...themedStyle}
-						className={themedStyle.className}
-						aria-labelledby="privacy-settings-title"
-						tabIndex={-1}
-						dir={textDirection}
-						data-testid="consent-dialog-root"
-						open
-					>
-						<div
-							ref={contentRef}
-							className={
-								noStyle
-									? undefined
-									: cn(
-											styles.container,
-											!disableAnimation && isVisible
-												? styles.contentVisible
-												: styles.contentHidden
-										)
-							}
+						<dialog
+							ref={dialogRef}
+							{...rest}
+							{...themedStyle}
+							className={themedStyle.className}
+							aria-labelledby="privacy-settings-title"
+							tabIndex={-1}
+							dir={textDirection}
+							data-testid="consent-dialog-root"
+							open
 						>
-							{children}
-						</div>
-					</dialog>
-				</>
-			)}
-		</LocalThemeContext.Provider>
+							<div
+								ref={contentRef}
+								className={
+									noStyle
+										? undefined
+										: cn(
+												styles.container,
+												!disableAnimation && isVisible
+													? styles.contentVisible
+													: styles.contentHidden
+											)
+								}
+							>
+								{children}
+							</div>
+						</dialog>
+					</>
+				)}
+			</LocalThemeContext.Provider>
+		</ConsentTrackingContext.Provider>
 	);
 
 	if (!isMounted) {

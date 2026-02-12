@@ -40,6 +40,8 @@ const baseSubjectConsentSchema = v.object({
 	jurisdictionModel: v.optional(v.string()),
 	/** IAB TCF TC String (only for IAB consents) */
 	tcString: v.optional(v.string()),
+	/** Which UI component collected this consent (e.g., 'banner', 'dialog', 'widget') */
+	uiSource: v.optional(v.string()),
 });
 
 /**
@@ -91,6 +93,7 @@ export const postSubjectOutputSchema = v.object({
 	status: v.string(),
 	recordId: v.string(),
 	metadata: v.optional(v.record(v.string(), v.unknown())),
+	uiSource: v.optional(v.string()),
 	givenAt: v.date(),
 });
 

@@ -18,6 +18,8 @@ export const consentTable = table('consent', {
 	jurisdictionModel: column('jurisdictionModel', 'string').nullable(),
 	/** IAB TCF TC String (only for IAB consents) */
 	tcString: column('tcString', 'string').nullable(),
+	/** Which UI component collected this consent (e.g., 'banner', 'dialog', 'widget') */
+	uiSource: column('uiSource', 'string').nullable(),
 	tenantId: column('tenantId', 'string').nullable(),
 });
 

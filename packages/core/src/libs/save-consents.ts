@@ -23,6 +23,7 @@ export interface PendingConsentSync {
 	jurisdiction?: string;
 	jurisdictionModel?: string | null;
 	domain: string;
+	uiSource?: string;
 }
 
 interface SaveConsentsProps {
@@ -30,6 +31,7 @@ interface SaveConsentsProps {
 	type: 'necessary' | 'all' | 'custom';
 	get: StoreApi<ConsentStoreState>['getState'];
 	set: StoreApi<ConsentStoreState>['setState'];
+	options?: { uiSource?: string };
 }
 
 /**
@@ -86,6 +88,7 @@ export async function saveConsents({
 	type,
 	get,
 	set,
+	options,
 }: SaveConsentsProps) {
 	const {
 		callbacks,
@@ -172,6 +175,7 @@ export async function saveConsents({
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
 			jurisdictionModel: model,
 			domain: window.location.hostname,
+			uiSource: options?.uiSource ?? 'api',
 		};
 
 		try {
@@ -221,10 +225,7 @@ export async function saveConsents({
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
 			jurisdictionModel: model ?? undefined,
 			givenAt,
-			metadata: {
-				source: 'consent_widget',
-				acceptanceMethod: type,
-			},
+			uiSource: options?.uiSource ?? 'api',
 		},
 	});
 

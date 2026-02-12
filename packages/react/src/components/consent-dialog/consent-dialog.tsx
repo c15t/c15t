@@ -106,6 +106,12 @@ export interface ConsentDialogProps {
 	 * @default ['opt-in', 'opt-out']
 	 */
 	models?: import('c15t').Model[];
+
+	/**
+	 * Override the UI source identifier sent with consent API calls.
+	 * @default 'dialog'
+	 */
+	uiSource?: string;
 }
 
 export const ConsentDialog: FC<ConsentDialogProps> = ({
@@ -118,6 +124,7 @@ export const ConsentDialog: FC<ConsentDialogProps> = ({
 	legalLinks,
 	showTrigger = false,
 	models,
+	uiSource,
 }) => {
 	// Merge local props with global theme context
 	const config = useComponentConfig({
@@ -135,6 +142,7 @@ export const ConsentDialog: FC<ConsentDialogProps> = ({
 		open: open ?? activeUI === 'dialog',
 		...config,
 		models,
+		uiSource,
 	};
 
 	// Resolve trigger props

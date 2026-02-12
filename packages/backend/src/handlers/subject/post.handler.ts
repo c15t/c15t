@@ -161,6 +161,7 @@ export const postSubjectHandler = async (c: Context) => {
 				domain: domainRecord.name,
 				type,
 				metadata,
+				uiSource: input.uiSource,
 				givenAt: existingConsent.givenAt,
 			});
 		}
@@ -180,11 +181,13 @@ export const postSubjectHandler = async (c: Context) => {
 				domainId: domainRecord.id,
 				policyId,
 				purposeIds: { json: purposeIds },
+				metadata: metadata ? { json: metadata } : undefined,
 				ipAddress: ctx.ipAddress,
 				userAgent: ctx.userAgent,
 				jurisdiction: input.jurisdiction,
 				jurisdictionModel: input.jurisdictionModel,
 				tcString: input.tcString,
+				uiSource: input.uiSource,
 				givenAt,
 			});
 
@@ -230,6 +233,7 @@ export const postSubjectHandler = async (c: Context) => {
 			domain: domainRecord.name,
 			type,
 			metadata,
+			uiSource: input.uiSource,
 			givenAt: result.consent.givenAt,
 		});
 	} catch (error) {
