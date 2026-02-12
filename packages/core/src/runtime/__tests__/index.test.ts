@@ -8,6 +8,7 @@ const createConsentManagerStoreMock = vi.fn();
 vi.mock('../../client', () => ({
 	configureConsentManager: (options: unknown) =>
 		configureConsentManagerMock(options),
+	clearClientRegistry: vi.fn(),
 }));
 
 vi.mock('../../store', () => ({
