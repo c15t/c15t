@@ -60,9 +60,14 @@ export function checkJurisdiction(
 	if (countryCode) {
 		// Normalize country code to uppercase for case-insensitive comparison
 		const normalizedCountryCode = countryCode.toUpperCase();
+		// Normalize region code: handle dash-separated formats like "CA-QC" or "US-CA"
+		// by extracting the last segment as the subdivision code
 		const normalizedRegionCode =
 			regionCode && typeof regionCode === 'string'
-				? regionCode.toUpperCase()
+				? (regionCode.includes('-')
+						? regionCode.split('-').pop()!
+						: regionCode
+					).toUpperCase()
 				: null;
 
 		// Quebec (Law 25): opt-in consent required
