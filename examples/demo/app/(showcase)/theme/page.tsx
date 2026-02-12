@@ -1,11 +1,11 @@
 'use client';
 
 import {
+	ConsentBanner,
 	ConsentManagerProvider,
 	type Theme,
 	useConsentManager,
 } from '@c15t/react';
-import { CookieBanner } from '@c15t/react/cookie-banner';
 import { useCallback, useEffect, useState } from 'react';
 import {
 	darkTheme,
@@ -59,7 +59,7 @@ const showcaseThemes: ShowcaseTheme[] = [
 			},
 			radius: { sm: '0', md: '0', lg: '0', full: '0' },
 			slots: {
-				bannerTitle: {
+				consentBannerTitle: {
 					style: {
 						textTransform: 'uppercase',
 						letterSpacing: '0.05em',
@@ -91,13 +91,13 @@ const showcaseThemes: ShowcaseTheme[] = [
 			typography: { fontSize: { sm: '0.875rem', base: '1rem', lg: '1.25rem' } },
 			radius: { sm: '0.5rem', md: '0.75rem', lg: '1rem', full: '9999px' },
 			slots: {
-				bannerCard: {
+				consentBannerCard: {
 					style: {
 						boxShadow: '0 20px 40px -12px rgba(124, 58, 237, 0.25)',
 						border: 'none',
 					},
 				},
-				bannerTitle: { style: { fontSize: '1.25rem' } },
+				consentBannerTitle: { style: { fontSize: '1.25rem' } },
 			},
 		},
 		description: 'Floating + large title',
@@ -123,9 +123,9 @@ const showcaseThemes: ShowcaseTheme[] = [
 			radius: { sm: '0', md: '0', lg: '0', full: '0' },
 			typography: { fontWeight: { normal: 500, medium: 700, semibold: 900 } },
 			slots: {
-				banner: { style: { maxWidth: '520px' } },
-				bannerCard: { style: { border: '3px solid #000000' } },
-				bannerTitle: {
+				consentBanner: { style: { maxWidth: '520px' } },
+				consentBannerCard: { style: { border: '3px solid #000000' } },
+				consentBannerTitle: {
 					style: {
 						textTransform: 'uppercase',
 						letterSpacing: '0.1em',
@@ -178,8 +178,8 @@ const showcaseThemes: ShowcaseTheme[] = [
 			},
 			radius: { sm: '1rem', md: '1.25rem', lg: '1.5rem', full: '9999px' },
 			slots: {
-				bannerCard: { style: { borderRadius: '1.5rem' } },
-				bannerTitle: { style: { fontWeight: 500 } },
+				consentBannerCard: { style: { borderRadius: '1.5rem' } },
+				consentBannerTitle: { style: { fontWeight: 500 } },
 				buttonPrimary: { style: { borderRadius: '1rem' } },
 				buttonSecondary: { style: { borderRadius: '1rem' } },
 			},
@@ -210,8 +210,10 @@ const showcaseThemes: ShowcaseTheme[] = [
 				fontSize: { sm: '0.75rem', base: '0.8125rem', lg: '0.875rem' },
 			},
 			slots: {
-				bannerHeader: { style: { marginBottom: '0.5rem' } },
-				bannerFooter: { style: { paddingTop: '0.75rem', gap: '0.5rem' } },
+				consentBannerHeader: { style: { marginBottom: '0.5rem' } },
+				consentBannerFooter: {
+					style: { paddingTop: '0.75rem', gap: '0.5rem' },
+				},
 				buttonPrimary: {
 					style: { padding: '0.375rem 0.625rem', fontSize: '0.75rem' },
 				},
@@ -242,7 +244,7 @@ const showcaseThemes: ShowcaseTheme[] = [
 			},
 			radius: { sm: '0.375rem', md: '0.5rem', lg: '0.75rem', full: '9999px' },
 			slots: {
-				bannerCard: {
+				consentBannerCard: {
 					style: { boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.06)' },
 				},
 				buttonSecondary: {
@@ -272,10 +274,10 @@ const showcaseThemes: ShowcaseTheme[] = [
 			},
 			radius: { sm: '0.375rem', md: '0.5rem', lg: '0.75rem', full: '9999px' },
 			slots: {
-				bannerFooter: {
+				consentBannerFooter: {
 					style: { flexDirection: 'column', alignItems: 'stretch' },
 				},
-				bannerFooterSubGroup: {
+				consentBannerFooterSubGroup: {
 					style: { flexDirection: 'column', width: '100%' },
 				},
 				buttonPrimary: { style: { width: '100%', justifyContent: 'center' } },
@@ -416,7 +418,7 @@ const showcaseThemes: ShowcaseTheme[] = [
 			typography: { fontFamily: 'var(--font-dm-sans), system-ui, sans-serif' },
 			radius: { sm: '0.25rem', md: '0.375rem', lg: '0.5rem', full: '9999px' },
 			slots: {
-				bannerCard: { style: { border: '2px solid #b45309' } },
+				consentBannerCard: { style: { border: '2px solid #b45309' } },
 			},
 		},
 		description: 'Vintage style',
@@ -445,7 +447,7 @@ const showcaseThemes: ShowcaseTheme[] = [
 			},
 			radius: { sm: '0.5rem', md: '0.75rem', lg: '1rem', full: '9999px' },
 			slots: {
-				bannerCard: {
+				consentBannerCard: {
 					style: {
 						border: '3px solid #1f2937',
 						boxShadow: '6px 6px 0 #1f2937',
@@ -477,10 +479,12 @@ const showcaseThemes: ShowcaseTheme[] = [
 const centeredBannerTheme = (baseTheme: Theme): Theme => {
 	const baseSlots = baseTheme.slots || {};
 	const baseBanner =
-		typeof baseSlots.banner === 'object' ? baseSlots.banner : {};
+		typeof baseSlots.consentBanner === 'object' ? baseSlots.consentBanner : {};
 	const baseBannerStyle = 'style' in baseBanner ? baseBanner.style : {};
 	const baseBannerCard =
-		typeof baseSlots.bannerCard === 'object' ? baseSlots.bannerCard : {};
+		typeof baseSlots.consentBannerCard === 'object'
+			? baseSlots.consentBannerCard
+			: {};
 	const baseBannerCardStyle =
 		'style' in baseBannerCard ? baseBannerCard.style : {};
 
@@ -488,7 +492,7 @@ const centeredBannerTheme = (baseTheme: Theme): Theme => {
 		...baseTheme,
 		slots: {
 			...baseSlots,
-			banner: {
+			consentBanner: {
 				style: {
 					position: 'fixed',
 					top: '50%',
@@ -502,12 +506,12 @@ const centeredBannerTheme = (baseTheme: Theme): Theme => {
 					...baseBannerStyle,
 				},
 			},
-			bannerCard: {
+			consentBannerCard: {
 				style: {
 					...baseBannerCardStyle,
 				},
 			},
-			bannerOverlay: {
+			consentBannerOverlay: {
 				style: {
 					display: 'none',
 				},
@@ -696,7 +700,7 @@ function BannerDisplay({
 	primaryButton?: ButtonName[];
 }) {
 	return (
-		<CookieBanner
+		<ConsentBanner
 			layout={layout}
 			primaryButton={primaryButton}
 			legalLinks={['privacyPolicy', 'termsOfService']}
