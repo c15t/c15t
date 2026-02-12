@@ -61,13 +61,13 @@ export const minimalTheme: Theme = {
 		lg: '0 4px 16px rgba(0, 0, 0, 0.08)',
 	},
 	slots: {
-		bannerCard: {
+		consentBannerCard: {
 			style: {
 				border: '1px solid var(--c15t-border)',
 				boxShadow: 'var(--c15t-shadow-sm)',
 			},
 		},
-		dialogCard: {
+		consentDialogCard: {
 			style: {
 				border: '1px solid var(--c15t-border)',
 				boxShadow: 'var(--c15t-shadow-lg)',
@@ -141,14 +141,14 @@ export const darkTheme: Theme = {
 		lg: '0 8px 16px rgba(0, 0, 0, 0.5)',
 	},
 	slots: {
-		bannerCard: {
+		consentBannerCard: {
 			style: {
 				backgroundColor: '#000000',
 				border: '1px solid #333333',
 				boxShadow: 'none',
 			},
 		},
-		dialogCard: {
+		consentDialogCard: {
 			style: {
 				backgroundColor: '#000000',
 				border: '1px solid #333333',
@@ -231,7 +231,7 @@ export const fullTheme: Theme = {
 		lg: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
 	},
 	slots: {
-		banner: {
+		consentBanner: {
 			style: {
 				position: 'fixed',
 				bottom: '0',
@@ -244,7 +244,7 @@ export const fullTheme: Theme = {
 				transform: 'none',
 			},
 		},
-		bannerCard: {
+		consentBannerCard: {
 			style: {
 				width: '100%',
 				maxWidth: '100%',
@@ -263,7 +263,7 @@ export const fullTheme: Theme = {
 				gap: '2rem',
 			},
 		},
-		bannerHeader: {
+		consentBannerHeader: {
 			style: {
 				marginBottom: '0',
 				textAlign: 'left',
@@ -271,7 +271,7 @@ export const fullTheme: Theme = {
 				maxWidth: '600px',
 			},
 		},
-		bannerFooter: {
+		consentBannerFooter: {
 			style: {
 				width: 'auto',
 				margin: '0',
@@ -284,14 +284,14 @@ export const fullTheme: Theme = {
 				borderTop: 'none',
 			},
 		},
-		bannerFooterSubGroup: {
+		consentBannerFooterSubGroup: {
 			style: {
 				display: 'flex',
 				flexDirection: 'column', // Stack subgroup buttons too
 				gap: '0.75rem',
 			},
 		},
-		dialogCard: {
+		consentDialogCard: {
 			style: {
 				borderRadius: '0.5rem',
 				border: '1px solid var(--c15t-border)',
@@ -361,16 +361,16 @@ export const tailwindTheme: Theme = {
 		full: '9999px',
 	},
 	slots: {
-		bannerCard:
+		consentBannerCard:
 			'border border-slate-200 bg-white/95 backdrop-blur-sm shadow-md var',
-		dialogCard:
+		consentDialogCard:
 			'border border-slate-200 bg-white/95 backdrop-blur-md shadow-xl',
 		buttonPrimary:
 			'bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-colors',
 		buttonSecondary:
 			'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors',
-		bannerTitle: 'text-slate-900 font-semibold',
-		bannerDescription: 'text-slate-500',
+		consentBannerTitle: 'text-slate-900 font-semibold',
+		consentBannerDescription: 'text-slate-500',
 	},
 };
 

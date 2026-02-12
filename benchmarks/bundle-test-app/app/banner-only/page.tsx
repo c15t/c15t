@@ -1,7 +1,6 @@
 'use client';
 
-import { ConsentManagerProvider } from '@c15t/react';
-import { CookieBanner } from '@c15t/react/cookie-banner';
+import { ConsentBanner, ConsentManagerProvider } from '@c15t/react';
 
 export default function BannerOnlyPage() {
 	return (
@@ -11,7 +10,7 @@ export default function BannerOnlyPage() {
 				<p>This page only imports the CookieBanner component.</p>
 				<p>The banner should appear at the bottom of the page.</p>
 			</main>
-			<CookieBanner />
+			<ConsentBanner />
 		</ConsentManagerProvider>
 	);
 }
