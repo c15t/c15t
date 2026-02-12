@@ -411,7 +411,7 @@ export function createDevTools(
 					onShowBanner: () => {
 						const store = storeConnector.getStore();
 						if (store) {
-							store.getState().setShowPopup(true, true);
+							store.getState().setActiveUI('banner', { force: true });
 							stateManager.addEvent({
 								type: 'info',
 								message: 'Banner shown',
@@ -421,7 +421,7 @@ export function createDevTools(
 					onOpenPreferences: () => {
 						const store = storeConnector.getStore();
 						if (store) {
-							store.getState().setIsPrivacyDialogOpen(true);
+							store.getState().setActiveUI('dialog');
 							stateManager.addEvent({
 								type: 'info',
 								message: 'Preference center opened',
@@ -642,10 +642,13 @@ export function createDevToolsPanel(options: {
 						await storeConnector.getStore()?.getState().initConsentManager();
 					},
 					onShowBanner: () => {
-						storeConnector.getStore()?.getState().setShowPopup(true, true);
+						storeConnector
+							.getStore()
+							?.getState()
+							.setActiveUI('banner', { force: true });
 					},
 					onOpenPreferences: () => {
-						storeConnector.getStore()?.getState().setIsPrivacyDialogOpen(true);
+						storeConnector.getStore()?.getState().setActiveUI('dialog');
 					},
 					onCopyState: () => {
 						const state = storeConnector.getState();

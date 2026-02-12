@@ -29,7 +29,7 @@ The store is a [Zustand vanilla store](https://zustand.docs.pmnd.rs/guides/extra
 // React to every state change
 consentStore.subscribe((state) => {
   console.log('Consent state:', state.consents);
-  console.log('Show banner?', state.showPopup);
+  console.log('Show banner?', state.activeUI === 'banner');
 });
 
 // Read current state at any time
@@ -74,7 +74,7 @@ const { consentStore } = getOrCreateConsentRuntime({
 consentStore.subscribe((state) => {
   const banner = document.getElementById('consent-banner');
   if (banner) {
-    banner.style.display = state.showPopup ? 'block' : 'none';
+    banner.style.display = state.activeUI === 'banner' ? 'block' : 'none';
   }
 });
 

@@ -193,14 +193,14 @@ export function createPanelRenderer(
 					onShowBanner: () => {
 						const store = storeConnector.getStore();
 						if (store) {
-							store.getState().setShowPopup(true, true);
+							store.getState().setActiveUI('banner', { force: true });
 							logEvent('info', 'Banner shown');
 						}
 					},
 					onOpenPreferences: () => {
 						const store = storeConnector.getStore();
 						if (store) {
-							store.getState().setIsPrivacyDialogOpen(true);
+							store.getState().setActiveUI('dialog');
 							logEvent('info', 'Preferences dialog opened');
 						}
 					},

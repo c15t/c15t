@@ -171,49 +171,27 @@ export const createConsentManagerStore = (
 								identityProvider: storedConsent.consentInfo.identityProvider,
 							}
 						: undefined,
-					showPopup: false,
+					activeUI: 'none' as const,
 					isLoadingConsentInfo: false,
 				}
 			: {
-					showPopup: false,
+					activeUI: 'none' as const,
 					isLoadingConsentInfo: true,
 				}),
-		setShowPopup: (show, force = false) => {
-			// If we're hiding the popup, do it immediately without checks
-			if (!show) {
-				set({ showPopup: false });
+		setActiveUI: (ui, options = {}) => {
+			if (ui === 'none' || ui === 'dialog') {
+				set({ activeUI: ui });
 				return;
 			}
-
-			// Only do validation checks when showing the popup
-			const state = get();
-			const storedConsent = getStoredConsent();
-
-			// Only show popup if:
-			// 1. Force is true, or
-			// 2. All of these are true:
-			//    - No stored consent
-			//    - No current consent info
-			//    - Not currently loading consent info
-			if (
-				force ||
-				(!storedConsent && !state.consentInfo && !state.isLoadingConsentInfo)
-			) {
-				set({ showPopup: true });
+			// ui === 'banner' — validate before showing
+			if (options.force) {
+				set({ activeUI: 'banner' });
+				return;
 			}
-		},
-
-		setIsPrivacyDialogOpen: (isOpen) => {
-			// Use immediate state update for better UX responsiveness
-			// Especially important when closing dialog
-			set({ isPrivacyDialogOpen: isOpen });
-
-			// For closing actions, trigger a microtask to ensure the UI update
-			// happens immediately and is not blocked by any other operations
-			if (!isOpen) {
-				queueMicrotask(() => {
-					// This empty microtask ensures the UI update is prioritized
-				});
+			const state = get();
+			const stored = getStoredConsent();
+			if (!stored && !state.consentInfo && !state.isLoadingConsentInfo) {
+				set({ activeUI: 'banner' });
 			}
 		},
 

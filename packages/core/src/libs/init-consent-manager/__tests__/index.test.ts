@@ -88,7 +88,7 @@ describe('initConsentManager', () => {
 			expect(result).toBeUndefined();
 			expect(mockSet).toHaveBeenCalledWith({
 				isLoadingConsentInfo: false,
-				showPopup: false,
+				activeUI: 'none',
 			});
 
 			window.localStorage = originalLocalStorage;
@@ -290,7 +290,7 @@ describe('initConsentManager', () => {
 			expect(result).toBeUndefined();
 			expect(mockSet).toHaveBeenCalledWith({
 				isLoadingConsentInfo: false,
-				showPopup: false,
+				activeUI: 'none',
 			});
 			expect(mockState.callbacks.onError).toHaveBeenCalledWith({
 				error: `Failed to fetch consent banner info: ${errorMessage}`,
@@ -310,7 +310,7 @@ describe('initConsentManager', () => {
 			expect(result).toBeUndefined();
 			expect(mockSet).toHaveBeenCalledWith({
 				isLoadingConsentInfo: false,
-				showPopup: false,
+				activeUI: 'none',
 			});
 			expect(mockState.callbacks.onError).toHaveBeenCalledWith({
 				error: 'Network error',
@@ -449,7 +449,7 @@ describe('initConsentManager', () => {
 			);
 		});
 
-		it('should show popup when consent info is null and jurisdiction is regulated', async () => {
+		it('should show banner when consent info is null and jurisdiction is regulated', async () => {
 			const mockResponse = createMockConsentBannerResponse({
 				jurisdiction: 'GDPR',
 			});
@@ -468,12 +468,12 @@ describe('initConsentManager', () => {
 
 			expect(mockSet).toHaveBeenCalledWith(
 				expect.objectContaining({
-					showPopup: true,
+					activeUI: 'banner',
 				})
 			);
 		});
 
-		it('should not show popup when jurisdiction is NONE', async () => {
+		it('should not show banner when jurisdiction is NONE', async () => {
 			const mockResponse = createMockConsentBannerResponse({
 				jurisdiction: 'NONE',
 			});
@@ -492,7 +492,7 @@ describe('initConsentManager', () => {
 
 			expect(mockSet).toHaveBeenCalledWith(
 				expect.objectContaining({
-					showPopup: false,
+					activeUI: 'none',
 				})
 			);
 		});

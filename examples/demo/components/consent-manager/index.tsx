@@ -140,10 +140,6 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 						id: '123',
 						identityProvider: 'custom',
 					},
-					overrides: {
-						country: 'CA',
-						region: 'QC',
-					},
 					translations: {
 						translations: {
 							zh: {
@@ -159,6 +155,10 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 								...baseTranslations.de,
 							},
 						},
+					},
+					overrides: {
+						country: 'US',
+						region: 'CA',
 					},
 				}}
 			>

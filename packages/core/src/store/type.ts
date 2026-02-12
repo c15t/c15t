@@ -31,6 +31,18 @@ import type {
 export type { IABActions, IABManager, IABState } from '../libs/iab-tcf/types';
 
 /**
+ * Describes which consent UI component should currently be visible.
+ *
+ * @remarks
+ * - `'none'`   — No consent UI shown (loading, settled, or auto-granted)
+ * - `'banner'` — Banner should be shown
+ * - `'dialog'` — Dialog / preference center should be shown
+ *
+ * @public
+ */
+export type ActiveUI = 'none' | 'banner' | 'dialog';
+
+/**
  * Initial data structure for SSR prefetching.
  *
  * @remarks
@@ -352,8 +364,12 @@ export interface StoreRuntimeState extends StoreConfig {
 	/** Information about when and how consent was given */
 	consentInfo: ConsentInfo | null;
 
-	/** Whether to show the consent popup */
-	showPopup: boolean;
+	/**
+	 * Which consent UI component is currently visible.
+	 *
+	 * @see {@link ActiveUI} for possible values
+	 */
+	activeUI: ActiveUI;
 
 	/** Whether consent banner information is currently being loaded */
 	isLoadingConsentInfo: boolean;
@@ -369,9 +385,6 @@ export interface StoreRuntimeState extends StoreConfig {
 
 	/** Active consent categories */
 	consentCategories: AllConsentNames[];
-
-	/** Whether the privacy dialog is currently open */
-	isPrivacyDialogOpen: boolean;
 
 	/** Subject's location information */
 	locationInfo: LocationInfo | null;
@@ -526,20 +539,14 @@ export interface StoreActions {
 	resetConsents: () => void;
 
 	/**
-	 * Controls the visibility of the consent popup.
+	 * Sets the active consent UI component.
 	 *
-	 * @param show - Whether to show the popup
-	 * @param force - When true, forcefully updates the popup state regardless
-	 * of current consent customization
+	 * @param ui - Which UI to show (`'none'`, `'banner'`, or `'dialog'`)
+	 * @param options - Optional settings
+	 * @param options.force - When true, forces the banner to show even if
+	 *   consent already exists
 	 */
-	setShowPopup: (show: boolean, force?: boolean) => void;
-
-	/**
-	 * Controls the visibility of the privacy dialog.
-	 *
-	 * @param isOpen - Whether the dialog should be open
-	 */
-	setIsPrivacyDialogOpen: (isOpen: boolean) => void;
+	setActiveUI: (ui: ActiveUI, options?: { force?: boolean }) => void;
 
 	/**
 	 * Updates the active GDPR consent types.

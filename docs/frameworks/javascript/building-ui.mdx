@@ -45,7 +45,7 @@ function createBanner() {
   });
 
   banner.querySelector('#consent-customize')?.addEventListener('click', () => {
-    consentStore.getState().setIsPrivacyDialogOpen(true);
+    consentStore.getState().setActiveUI('dialog');
   });
 
   return banner;
@@ -55,7 +55,7 @@ function createBanner() {
 const banner = createBanner();
 
 consentStore.subscribe((state) => {
-  banner.style.display = state.showPopup ? 'block' : 'none';
+  banner.style.display = state.activeUI === 'banner' ? 'block' : 'none';
 });
 ```
 
@@ -65,21 +65,17 @@ The store fires on every state change. Compare with the previous state to react 
 
 ```ts
 consentStore.subscribe((state, prevState) => {
-  // React to banner visibility changes
-  if (state.showPopup !== prevState.showPopup) {
+  // React to activeUI changes (banner / dialog / none)
+  if (state.activeUI !== prevState.activeUI) {
     document.getElementById('consent-banner')!.style.display =
-      state.showPopup ? 'block' : 'none';
+      state.activeUI === 'banner' ? 'block' : 'none';
+    document.getElementById('consent-dialog')!.style.display =
+      state.activeUI === 'dialog' ? 'block' : 'none';
   }
 
   // React to consent changes
   if (state.consents !== prevState.consents) {
     console.log('Consent state updated:', state.consents);
-  }
-
-  // React to dialog open/close
-  if (state.isPrivacyDialogOpen !== prevState.isPrivacyDialogOpen) {
-    document.getElementById('consent-dialog')!.style.display =
-      state.isPrivacyDialogOpen ? 'block' : 'none';
   }
 });
 ```
@@ -88,8 +84,7 @@ consentStore.subscribe((state, prevState) => {
 
 | Property | Type | Use |
 |----------|------|-----|
-| `showPopup` | `boolean` | Whether to show the consent banner |
-| `isPrivacyDialogOpen` | `boolean` | Whether the preference dialog is open |
+| `activeUI` | `'none' \| 'banner' \| 'dialog'` | Which consent UI is currently visible |
 | `consents` | `Record<string, boolean>` | Current consent state per category |
 | `selectedConsents` | `Record<string, boolean>` | Staged toggle state (unsaved) |
 | `consentTypes` | `ConsentType[]` | Categories to display with title/description |
@@ -103,8 +98,7 @@ consentStore.subscribe((state, prevState) => {
 | `saveConsents` | `(type: 'all' \| 'custom' \| 'necessary') => Promise<void>` | Save consent choices |
 | `setSelectedConsent` | `(name, value) => void` | Toggle a category (staged, not saved) |
 | `setConsent` | `(name, value) => void` | Set + auto-save a single category |
-| `setShowPopup` | `(show, force?) => void` | Show/hide the banner |
-| `setIsPrivacyDialogOpen` | `(isOpen) => void` | Open/close the preference dialog |
+| `setActiveUI` | `(ui: 'none' \| 'banner' \| 'dialog', options?) => void` | Show/hide the banner or dialog |
 | `getDisplayedConsents` | `() => ConsentType[]` | Get visible consent categories |
 
 ## Using `@c15t/ui` for Theming

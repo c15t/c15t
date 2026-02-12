@@ -155,6 +155,12 @@ export interface ConsentBannerProps {
 	 * @defaultValue 'customize'
 	 */
 	primaryButton?: ConsentBannerButton | ConsentBannerButton[];
+
+	/**
+	 * Which consent models this banner responds to.
+	 * @default ['opt-in']
+	 */
+	models?: import('c15t').Model[];
 }
 
 export const ConsentBanner: FC<ConsentBannerProps> = ({
@@ -170,6 +176,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 	legalLinks,
 	layout = DEFAULT_LAYOUT,
 	primaryButton = 'customize',
+	models,
 }) => {
 	const { cookieBanner: consentBanner } = useTranslations();
 
@@ -221,7 +228,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 		<ErrorBoundary
 			fallback={<div>Something went wrong with the Consent Banner.</div>}
 		>
-			<ConsentBannerRoot {...config}>
+			<ConsentBannerRoot {...config} models={models}>
 				<ConsentBannerCard aria-label={consentBanner.title}>
 					<ConsentBannerHeader>
 						<ConsentBannerTitle>{title}</ConsentBannerTitle>

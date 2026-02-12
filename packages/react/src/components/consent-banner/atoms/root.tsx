@@ -65,6 +65,12 @@ interface ConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	 * @default true
 	 */
 	trapFocus?: boolean;
+
+	/**
+	 * Which consent models this banner responds to.
+	 * @default ['opt-in', 'opt-out']
+	 */
+	models?: import('c15t').Model[];
 }
 
 /**
@@ -111,6 +117,7 @@ const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
 	disableAnimation,
 	scrollLock,
 	trapFocus = true,
+	models,
 	...props
 }) => {
 	/**
@@ -130,6 +137,7 @@ const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
 				disableAnimation={disableAnimation}
 				className={className}
 				noStyle={noStyle}
+				models={models}
 				{...props}
 			>
 				{children}
@@ -166,6 +174,12 @@ interface ConsentBannerRootChildrenProps
 	asChild?: boolean;
 
 	disableAnimation?: boolean;
+
+	/**
+	 * Which consent models this banner responds to.
+	 * @default ['opt-in', 'opt-out']
+	 */
+	models?: import('c15t').Model[];
 }
 
 /**
@@ -218,6 +232,7 @@ const ConsentBannerRootChildren = forwardRef<
 			className: forwardedClassName,
 			disableAnimation,
 			noStyle,
+			models = ['opt-in'],
 			...props
 		}: ConsentBannerRootChildrenProps & {
 			style?: CSSProperties;
@@ -225,16 +240,14 @@ const ConsentBannerRootChildren = forwardRef<
 		},
 		ref
 	) => {
-		const { showPopup, translationConfig, model } = useConsentManager();
+		const { activeUI, translationConfig, model } = useConsentManager();
 		const textDirection = useTextDirection(translationConfig.defaultLanguage);
 		const [isVisible, setIsVisible] = useState(false);
 		const [hasAnimated, setHasAnimated] = useState(false);
 		const [animationDurationMs, setAnimationDurationMs] = useState(200); // Default fallback for SSR
 
-		// ConsentBanner shows for opt-in model (use IABConsentBanner when model is 'iab')
-		// IAB mode only activates for GDPR/UK_GDPR jurisdictions; other opt-in jurisdictions
-		// (like QC_LAW25) should use the standard ConsentBanner even if IAB is configured.
-		const shouldShowBanner = model === 'opt-in' && showPopup;
+		// ConsentBanner shows when activeUI is 'banner' and the current model matches
+		const shouldShowBanner = activeUI === 'banner' && models.includes(model);
 
 		// Get animation duration from CSS custom property (client-side only)
 		useEffect(() => {
@@ -250,7 +263,7 @@ const ConsentBannerRootChildren = forwardRef<
 		// Handle animation visibility state
 		useEffect(() => {
 			if (shouldShowBanner) {
-				// If showPopup is true but we haven't animated yet, trigger the animation
+				// If banner is showing but we haven't animated yet, trigger the animation
 				if (hasAnimated) {
 					setIsVisible(true);
 				} else {

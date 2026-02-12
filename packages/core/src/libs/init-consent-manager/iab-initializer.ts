@@ -243,7 +243,7 @@ async function restoreConsentFromTCString(
 		set({
 			consents: c15tConsents,
 			selectedConsents: c15tConsents,
-			showPopup: false, // User already has consent
+			activeUI: 'none' as const, // User already has consent
 		});
 	} catch {
 		// Invalid TC String, ignore

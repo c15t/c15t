@@ -42,11 +42,11 @@ const IABConsentDialogHeader = forwardRef<
 		{ children, headerTitle, description, showCloseButton = true, className },
 		ref
 	) => {
-		const { setIsPrivacyDialogOpen } = useConsentManager();
+		const { setActiveUI } = useConsentManager();
 		const iabTranslations = useIABTranslations();
 
 		const handleClose = () => {
-			setIsPrivacyDialogOpen(false);
+			setActiveUI('none');
 		};
 
 		const headerClassName = className

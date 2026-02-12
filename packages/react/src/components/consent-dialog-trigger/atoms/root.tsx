@@ -114,12 +114,7 @@ export function TriggerRoot({
 	onPositionChange,
 	onClick,
 }: TriggerRootProps): ReactNode {
-	const {
-		branding,
-		isPrivacyDialogOpen,
-		setIsPrivacyDialogOpen,
-		hasConsented,
-	} = useConsentManager();
+	const { branding, activeUI, setActiveUI, hasConsented } = useConsentManager();
 
 	const { corner, isDragging, isSnapping, wasDragged, handlers, dragStyle } =
 		useDraggable({
@@ -146,11 +141,11 @@ export function TriggerRoot({
 		return true;
 	})();
 
-	const isVisible = shouldShow && !isPrivacyDialogOpen;
+	const isVisible = shouldShow && activeUI === 'none';
 
 	const openDialog = () => {
 		onClick?.();
-		setIsPrivacyDialogOpen(true);
+		setActiveUI('dialog');
 	};
 
 	// Don't render on server or when not visible

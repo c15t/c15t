@@ -23,32 +23,25 @@ const IABConsentDialogFooter = forwardRef<
 	HTMLDivElement,
 	IABConsentDialogFooterProps
 >(({ children, className, ...props }, ref) => {
-	const {
-		iab: iabState,
-		setIsPrivacyDialogOpen,
-		setShowPopup,
-	} = useConsentManager();
+	const { iab: iabState, setActiveUI } = useConsentManager();
 	const iabTranslations = useIABTranslations();
 	const { isLoading } = useGVLData();
 
 	const handleAcceptAll = () => {
 		iabState?.acceptAll();
 		iabState?.save();
-		setIsPrivacyDialogOpen(false);
-		setShowPopup(false);
+		setActiveUI('none');
 	};
 
 	const handleRejectAll = () => {
 		iabState?.rejectAll();
 		iabState?.save();
-		setIsPrivacyDialogOpen(false);
-		setShowPopup(false);
+		setActiveUI('none');
 	};
 
 	const handleSave = () => {
 		iabState?.save();
-		setIsPrivacyDialogOpen(false);
-		setShowPopup(false);
+		setActiveUI('none');
 	};
 
 	const footerClassName = className

@@ -24,6 +24,11 @@ interface IABConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	disableAnimation?: boolean;
 	scrollLock?: boolean;
 	trapFocus?: boolean;
+	/**
+	 * Which consent models this banner responds to.
+	 * @default ['iab']
+	 */
+	models?: import('c15t').Model[];
 }
 
 const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
@@ -33,6 +38,7 @@ const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
 	disableAnimation,
 	scrollLock,
 	trapFocus = true,
+	models,
 	...props
 }) => {
 	const contextValue = {
@@ -48,6 +54,7 @@ const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
 				disableAnimation={disableAnimation}
 				className={className}
 				noStyle={noStyle}
+				models={models}
 				{...props}
 			>
 				{children}
@@ -61,6 +68,11 @@ interface IABConsentBannerRootChildrenProps
 	children: ReactNode;
 	noStyle?: boolean;
 	disableAnimation?: boolean;
+	/**
+	 * Which consent models this banner responds to.
+	 * @default ['iab']
+	 */
+	models?: import('c15t').Model[];
 }
 
 const IABConsentBannerRootChildren = forwardRef<
@@ -75,6 +87,7 @@ const IABConsentBannerRootChildren = forwardRef<
 			className: forwardedClassName,
 			disableAnimation,
 			noStyle,
+			models = ['iab'],
 			...props
 		}: IABConsentBannerRootChildrenProps & {
 			style?: CSSProperties;
@@ -82,19 +95,14 @@ const IABConsentBannerRootChildren = forwardRef<
 		},
 		ref
 	) => {
-		const { showPopup, translationConfig, model, iab, isPrivacyDialogOpen } =
-			useConsentManager();
+		const { activeUI, translationConfig, model } = useConsentManager();
 		const textDirection = useTextDirection(translationConfig.defaultLanguage);
 		const [isVisible, setIsVisible] = useState(false);
 		const [hasAnimated, setHasAnimated] = useState(false);
 		const [animationDurationMs, setAnimationDurationMs] = useState(200);
 
-		// IAB banner shows when IAB mode is enabled (model is 'iab' in GDPR jurisdictions with IAB enabled)
-		// Hide banner when preference center is open - it will reappear if closed without consent
-		// Check that IAB is configured AND enabled (server may have disabled it by returning null GVL)
-		const isIABActive = iab?.config.enabled;
-		const shouldShowBanner =
-			model === 'iab' && showPopup && isIABActive && !isPrivacyDialogOpen;
+		// IAB banner shows when activeUI is 'banner' and the current model matches
+		const shouldShowBanner = activeUI === 'banner' && models.includes(model);
 
 		useEffect(() => {
 			const duration = Number.parseInt(

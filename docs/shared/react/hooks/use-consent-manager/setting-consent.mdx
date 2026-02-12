@@ -21,7 +21,7 @@
   **What happens when you call saveConsents:**
 
   1. Consent state is updated in the store
-  2. UI closes (showPopup → false)
+  2. UI closes (activeUI → 'none')
   3. Consent is saved to localStorage and cookie
   4. If consent was revoked and `reloadOnConsentRevoked` is true, the page reloads
   5. Otherwise, scripts/iframes/network blocker are updated

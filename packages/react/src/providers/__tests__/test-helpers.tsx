@@ -207,7 +207,7 @@ export const TestConsumer = () => {
 	const consentManager = useConsentManager();
 	return (
 		<div data-testid="consumer">
-			{consentManager.showPopup ? 'Show' : 'Hide'}
+			{consentManager.activeUI === 'banner' ? 'Show' : 'Hide'}
 		</div>
 	);
 };
