@@ -28,21 +28,25 @@ availableIn:
   </Step>
 
   <Step>
-    ### Create a `ConsentManager` component
+    ### Create `ConsentManager` components
 
-    Create a component called `ConsentManager` and place the provider and consent UI in it. This initializes the consent store and makes consent state available to all child components.
+    Create a provider component with the consent UI and a wrapper that re-exports it. This initializes the consent store and makes consent state available to all child components.
 
-    ```tsx title="components/consent-manager/index.tsx"
+    ```tsx title="components/consent-manager/provider.tsx"
+    'use client';
+
     import { type ReactNode } from 'react';
     import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/react';
 
-    export default function ConsentManager({ children }: { children: ReactNode }) {
+    export default function ConsentManagerClient({ children }: { children: ReactNode }) {
       return (
         <ConsentManagerProvider
           options={{
             mode: 'c15t',
             backendURL: 'https://your-instance.c15t.dev',
             consentCategories: ['necessary', 'measurement', 'marketing'],
+            // Shows banner during development. Remove for production.
+            overrides: { country: 'DE' },
           }}
         >
           <ConsentBanner />
@@ -50,6 +54,15 @@ availableIn:
           {children}
         </ConsentManagerProvider>
       );
+    }
+    ```
+
+    ```tsx title="components/consent-manager/index.tsx"
+    import type { ReactNode } from 'react';
+    import ConsentManagerProvider from './provider';
+
+    export function ConsentManager({ children }: { children: ReactNode }) {
+      return <ConsentManagerProvider>{children}</ConsentManagerProvider>;
     }
     ```
 
@@ -64,7 +77,7 @@ availableIn:
     Wrap your existing app tree with `ConsentManager` so all routes/components can access consent state.
 
     ```tsx title="src/App.tsx"
-    import ConsentManager from './components/consent-manager';
+    import { ConsentManager } from './components/consent-manager';
 
     export default function App() {
       return (
@@ -95,7 +108,7 @@ Install DevTools only if you want a runtime inspector while building and debuggi
 
 Then add it inside your existing provider:
 
-```tsx title="components/consent-manager/index.tsx"
+```tsx title="components/consent-manager/provider.tsx"
 import { C15TDevTools } from '@c15t/dev-tools/react';
 
 // ...

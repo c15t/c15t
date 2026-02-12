@@ -21,7 +21,7 @@ import type {
 export type UIStyle = 'prebuilt' | 'expanded';
 
 /**
- * Theme preset for compound components
+ * Theme preset
  */
 export type ExpandedTheme = 'none' | 'minimal' | 'dark' | 'tailwind';
 
@@ -249,7 +249,7 @@ export function createInitialContext(
 		proxyNextjs: true,
 
 		// Frontend options
-		enableSSR: true,
+		enableSSR: false,
 		enableDevTools: false,
 		uiStyle: 'prebuilt',
 		expandedTheme: null,
