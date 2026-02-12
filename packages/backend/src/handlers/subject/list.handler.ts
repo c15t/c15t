@@ -7,6 +7,7 @@
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { C15TContext } from '~/types';
+import { extractErrorMessage } from '~/utils/extract-error-message';
 import { enrichConsents } from '../utils/consent-enrichment';
 
 /**
@@ -76,7 +77,7 @@ export const listSubjectsHandler = async (c: Context) => {
 		});
 	} catch (error) {
 		logger.error('Error in GET /subjects handler', {
-			error: error instanceof Error ? error.message : String(error),
+			error: extractErrorMessage(error),
 			errorType: error instanceof Error ? error.constructor.name : typeof error,
 		});
 
@@ -85,7 +86,7 @@ export const listSubjectsHandler = async (c: Context) => {
 		}
 
 		throw new HTTPException(500, {
-			message: error instanceof Error ? error.message : String(error),
+			message: 'Internal server error',
 			cause: { code: 'INTERNAL_SERVER_ERROR' },
 		});
 	}

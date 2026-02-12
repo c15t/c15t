@@ -21,6 +21,7 @@ import {
 	handleSpanError,
 	withSpanContext,
 } from './utils/create-telemetry-options';
+import { extractErrorMessage } from './utils/extract-error-message';
 import { getMetrics } from './utils/metrics';
 import { version } from './version';
 
@@ -250,7 +251,7 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 		const ctx = c.get('c15tContext');
 		const log = ctx?.logger || logger;
 
-		log.error('Request handling error:', err);
+		log.error('Request handling error:', extractErrorMessage(err));
 
 		if (err instanceof HTTPException) {
 			const cause = err.cause as
@@ -268,11 +269,10 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 			);
 		}
 
-		const message = err instanceof Error ? err.message : String(err);
 		return c.json(
 			{
 				code: 'INTERNAL_SERVER_ERROR',
-				message,
+				message: 'Internal server error',
 				status: 500,
 				defined: true,
 				data: {},
