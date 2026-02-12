@@ -11,6 +11,7 @@ export {
 export {
 	type ConsentManagerInterface,
 	type ConsentManagerOptions,
+	clearClientRegistry,
 	configureConsentManager,
 } from './client-factory';
 // Export client interface types

@@ -157,7 +157,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 						},
 					},
 					overrides: {
-						country: 'CA',
+						country: 'GB',
 						region: 'QC',
 					},
 				}}

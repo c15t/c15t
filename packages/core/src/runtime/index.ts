@@ -1,5 +1,9 @@
 import { version } from '~/version';
-import { type ConsentManagerOptions, configureConsentManager } from '../client';
+import {
+	type ConsentManagerOptions,
+	clearClientRegistry,
+	configureConsentManager,
+} from '../client';
 import { createConsentManagerStore } from '../store';
 import type { StoreOptions } from '../store/type';
 import type { AllConsentNames, TranslationConfig } from '../types';
@@ -131,4 +135,5 @@ export function getOrCreateConsentRuntime(
 export function clearConsentRuntimeCache(): void {
 	managerCache.clear();
 	storeCache.clear();
+	clearClientRegistry();
 }
