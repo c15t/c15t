@@ -1,5 +1,18 @@
 # c15t
 
+## 2.0.0-rc.0
+
+### Major Changes
+
+- 126a78b: https://v2.c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+
+### Patch Changes
+
+- Updated dependencies [126a78b]
+  - @c15t/backend@2.0.0-rc.0
+  - @c15t/schema@2.0.0-rc.0
+  - @c15t/translations@2.0.0-rc.0
+
 ## 2.0.0
 
 ### Major Changes
@@ -10,14 +23,14 @@
 
 ### Migration
 
-| Before (1.x) | After (2.0) |
-|---|---|
-| `state.showPopup` | `state.activeUI === 'banner'` |
-| `state.isPrivacyDialogOpen` | `state.activeUI === 'dialog'` |
-| `setShowPopup(true, true)` | `setActiveUI('banner', { force: true })` |
-| `setShowPopup(false)` | `setActiveUI('none')` |
-| `setIsPrivacyDialogOpen(true)` | `setActiveUI('dialog')` |
-| `setIsPrivacyDialogOpen(false)` | `setActiveUI('none')` |
+| Before (1.x)                    | After (2.0)                              |
+| ------------------------------- | ---------------------------------------- |
+| `state.showPopup`               | `state.activeUI === 'banner'`            |
+| `state.isPrivacyDialogOpen`     | `state.activeUI === 'dialog'`            |
+| `setShowPopup(true, true)`      | `setActiveUI('banner', { force: true })` |
+| `setShowPopup(false)`           | `setActiveUI('none')`                    |
+| `setIsPrivacyDialogOpen(true)`  | `setActiveUI('dialog')`                  |
+| `setIsPrivacyDialogOpen(false)` | `setActiveUI('none')`                    |
 
 ## 1.8.3
 
