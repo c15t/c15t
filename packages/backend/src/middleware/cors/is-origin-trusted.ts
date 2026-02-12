@@ -16,7 +16,8 @@ import type { Logger } from '@c15t/logger';
  *
  * @internal
  */
-export const STRIP_REGEX = /^(https?:\/\/)|(wss?:\/\/)|(\/+$)|:\d+/g;
+export const STRIP_REGEX =
+	/^(?:https?:\/\/)|^(?:wss?:\/\/)|(?:\/+$)|(?::\d+$)/g;
 
 /**
  * Checks if a domain matches a wildcard pattern

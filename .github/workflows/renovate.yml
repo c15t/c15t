@@ -8,10 +8,16 @@ on:
   # Allow manual triggering from the Actions tab
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   renovate:
     name: Run Renovate
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout (needed for Renovate action context)
         uses: actions/checkout@v4

@@ -68,11 +68,16 @@ jobs:
           # to the PR head repository via pull_request_target event permissions
 
       # Step 4: Build PR branch (untrusted code runs here, but in isolated context)
+      # SECURITY: Only run build commands, no arbitrary script execution from PR code.
+      # The bun install uses --frozen-lockfile to prevent lockfile manipulation.
       - name: 🏗️ Build current branch
         id: build-current
         timeout-minutes: 5
+        env:
+          # Prevent lifecycle scripts from PR dependencies running
+          BUN_CONFIG_IGNORE_SCRIPTS: "true"
         run: |
-          bun install --frozen-lockfile
+          bun install --frozen-lockfile --ignore-scripts
           WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*"
 
       - name: 📊 Analyze bundle differences

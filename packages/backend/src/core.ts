@@ -255,15 +255,15 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 
 		if (err instanceof HTTPException) {
 			const cause = err.cause as
-				| { code?: string; [key: string]: unknown }
+				| { code?: string; message?: string; [key: string]: unknown }
 				| undefined;
 			return c.json(
 				{
 					code: cause?.code || 'HTTP_ERROR',
 					message: err.message,
-					data: cause || {},
 					status: err.status,
 					defined: true,
+					data: {},
 				},
 				err.status
 			);
