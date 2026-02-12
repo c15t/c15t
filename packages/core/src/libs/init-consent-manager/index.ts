@@ -153,7 +153,7 @@ async function fetchFromAPI(
 	} catch (error) {
 		console.error('Error fetching consent banner information:', error);
 
-		set({ isLoadingConsentInfo: false, showPopup: false });
+		set({ isLoadingConsentInfo: false, activeUI: 'none' as const });
 
 		const errorMessage =
 			error instanceof Error

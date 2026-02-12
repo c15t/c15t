@@ -12,13 +12,18 @@ import { IABConsentDialogOverlay } from './overlay';
 interface IABConsentDialogRootProps {
 	children: ReactNode;
 	/**
-	 * Control the open state. If omitted, follows isPrivacyDialogOpen from context.
+	 * Control the open state. If omitted, follows activeUI === 'dialog' from context.
 	 */
 	open?: boolean;
 	noStyle?: boolean;
 	disableAnimation?: boolean;
 	scrollLock?: boolean;
 	trapFocus?: boolean;
+	/**
+	 * Which consent models this dialog responds to.
+	 * @default ['iab']
+	 */
+	models?: import('c15t').Model[];
 }
 
 /**
@@ -32,13 +37,14 @@ interface IABConsentDialogRootProps {
 const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	children,
 	open,
+	models = ['iab'],
 	noStyle,
 	disableAnimation,
 	scrollLock = true,
 	trapFocus = true,
 }) => {
 	const {
-		isPrivacyDialogOpen,
+		activeUI,
 		translationConfig,
 		iab: iabState,
 		model,
@@ -48,8 +54,8 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	const [isMounted, setIsMounted] = useState(false);
 	const [isVisible, setIsVisible] = useState(false);
 
-	// IABConsentDialog only opens when the consent model is 'iab'
-	const isOpen = model === 'iab' && (open ?? isPrivacyDialogOpen);
+	// IABConsentDialog only opens when the consent model matches
+	const isOpen = models.includes(model) && (open ?? activeUI === 'dialog');
 
 	const contextValue = {
 		disableAnimation,

@@ -110,9 +110,9 @@ function buildStoreUpdate(
 		},
 	};
 
-	// Show popup if no existing consent and regulation applies
+	// Show banner if no existing consent and regulation applies
 	if (consentInfo === null) {
-		update.showPopup = !!consentModel;
+		update.activeUI = consentModel ? 'banner' : 'none';
 	}
 
 	// Auto-grant consents if applicable

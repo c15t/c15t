@@ -55,18 +55,19 @@ export type OverlayProps = PropsWithChildren<{
 }>;
 
 const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
-	const { isPrivacyDialogOpen } = useConsentManager();
+	const { activeUI } = useConsentManager();
 	const {
 		disableAnimation,
 		noStyle: isThemeNoStyle,
 		scrollLock = true,
 	} = useTheme();
 
+	const showDialog = activeUI === 'dialog';
 	const [isVisible, setIsVisible] = useState(false);
 
 	// Handle animation visibility state
 	useEffect(() => {
-		if (isPrivacyDialogOpen) {
+		if (showDialog) {
 			setIsVisible(true);
 		} else if (disableAnimation) {
 			setIsVisible(false);
@@ -82,7 +83,7 @@ const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 			}, animationDurationMs); // Match CSS animation duration
 			return () => clearTimeout(timer);
 		}
-	}, [isPrivacyDialogOpen, disableAnimation]);
+	}, [showDialog, disableAnimation]);
 
 	// Get custom className from style prop
 	const customClassName = typeof style === 'string' ? style : style?.className;

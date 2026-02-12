@@ -69,8 +69,7 @@ export const ConsentButton = forwardRef<
 		},
 		ref
 	) => {
-		const { saveConsents, setShowPopup, setIsPrivacyDialogOpen, setConsent } =
-			useConsentManager();
+		const { saveConsents, setActiveUI, setConsent } = useConsentManager();
 		const { noStyle: contextNoStyle } = useTheme();
 
 		const defaultThemeKey =
@@ -102,19 +101,14 @@ export const ConsentButton = forwardRef<
 
 		const buttonClick = useCallback(
 			(e: MouseEvent<HTMLButtonElement>) => {
-				// Handle UI first - prioritize closing dialogs
-				if (closeConsentBanner) {
-					setShowPopup(false);
-				}
-
-				if (closeConsentDialog) {
-					setIsPrivacyDialogOpen(false);
+				// Handle UI first - prioritize closing dialogs/banners
+				if (closeConsentBanner || closeConsentDialog) {
+					setActiveUI('none');
 				}
 
 				// Open privacy dialog if needed
 				if (action === 'open-consent-dialog') {
-					setIsPrivacyDialogOpen(true);
-					setShowPopup(false, true);
+					setActiveUI('dialog');
 				}
 
 				// Call the user's onClick handler after UI updates
@@ -150,8 +144,7 @@ export const ConsentButton = forwardRef<
 				closeConsentDialog,
 				forwardedOnClick,
 				saveConsents,
-				setIsPrivacyDialogOpen,
-				setShowPopup,
+				setActiveUI,
 				action,
 				category,
 				setConsent,

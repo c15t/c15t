@@ -55,6 +55,7 @@ export {
 	saveConsentToStorage,
 	setCookie,
 } from './libs/cookie';
+export type { Model } from './libs/determine-model';
 export {
 	generateSubjectId,
 	isValidSubjectId,
@@ -93,6 +94,7 @@ export {
 // Export store
 export { createConsentManagerStore } from './store';
 export type {
+	ActiveUI,
 	ConsentStoreState,
 	SSRInitialData,
 	StoreOptions,

@@ -51,9 +51,9 @@ export function getPreferenceCenterOpener(): (() => void) | null {
 
 	if (store && typeof store.getState === 'function') {
 		const state = store.getState() as Record<string, unknown>;
-		if (typeof state.setIsPrivacyDialogOpen === 'function') {
+		if (typeof state.setActiveUI === 'function') {
 			return () => {
-				(state.setIsPrivacyDialogOpen as (value: boolean) => void)(true);
+				(state.setActiveUI as (ui: string) => void)('dialog');
 			};
 		}
 	}

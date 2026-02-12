@@ -265,7 +265,7 @@ export function createIABActions(
 			setState({
 				consents: c15tConsents,
 				selectedConsents: c15tConsents,
-				showPopup: false,
+				activeUI: 'none' as const,
 				consentInfo: {
 					time: givenAt,
 					subjectId,

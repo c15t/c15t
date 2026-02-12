@@ -150,7 +150,7 @@ export async function saveConsents({
 	set({
 		consents: newConsents,
 		selectedConsents: newConsents,
-		showPopup: false,
+		activeUI: 'none' as const,
 		consentInfo: {
 			time: givenAt,
 			subjectId,

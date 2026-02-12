@@ -34,14 +34,14 @@
 
   2. **Consent already given** — If the user has already made a consent choice, the banner won't reappear. Clear cookies or use `resetConsents()` to test again.
 
-  3. **`showPopup` is false** — Something is explicitly setting `showPopup` to false. Check the DevTools panel for the current consent state.
+  3. **`activeUI` is `'none'`** — Something is explicitly setting `activeUI` to `'none'`. Check the DevTools panel for the current consent state.
 
   4. **Backend not responding** — In `'c15t'` mode, the banner waits for the backend `/init` response. Check the Network tab for failed requests to your `backendURL`.
 
   ```tsx
   // Debug: check what the consent manager sees
-  const { showPopup, model, isLoadingConsentInfo } = useConsentManager();
-  console.log({ showPopup, model, isLoadingConsentInfo });
+  const { activeUI, model, isLoadingConsentInfo } = useConsentManager();
+  console.log({ activeUI, model, isLoadingConsentInfo });
   ```
 </section>
 

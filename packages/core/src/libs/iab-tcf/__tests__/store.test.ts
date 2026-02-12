@@ -198,7 +198,7 @@ describe('TCF Store', () => {
 				} as IABState,
 				consents: { necessary: true },
 				selectedConsents: { necessary: true },
-				showPopup: false,
+				activeUI: 'none',
 				isReady: true,
 			} as ConsentStoreState;
 

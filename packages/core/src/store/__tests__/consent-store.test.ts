@@ -64,7 +64,7 @@ describe('Consent Store', () => {
 			expect(state.consents.necessary).toBe(true);
 			expect(state.selectedConsents).toBeDefined();
 			expect(state.consentInfo).toBeNull();
-			expect(state.showPopup).toBe(false);
+			expect(state.activeUI).toBe('none');
 			expect(state.isLoadingConsentInfo).toBe(true);
 			expect(state.consentCategories).toContain('necessary');
 		});
@@ -127,7 +127,7 @@ describe('Consent Store', () => {
 			expect(state.consents.marketing).toBe(true);
 			expect(state.consentInfo).not.toBeNull();
 			expect(state.consentInfo?.subjectId).toBe('test-subject');
-			expect(state.showPopup).toBe(false);
+			expect(state.activeUI).toBe('none');
 			// When stored consent exists, isLoadingConsentInfo is set to false
 			// but the store still initializes with the loading state
 			// The store will update this after initConsentManager runs
@@ -214,18 +214,18 @@ describe('Consent Store', () => {
 		});
 	});
 
-	describe('Popup State', () => {
-		it('should control popup visibility with setShowPopup', () => {
+	describe('Active UI State', () => {
+		it('should control banner visibility with setActiveUI', () => {
 			const store = createConsentManagerStore(mockManager);
 
-			store.getState().setShowPopup(true, true);
-			expect(store.getState().showPopup).toBe(true);
+			store.getState().setActiveUI('banner', { force: true });
+			expect(store.getState().activeUI).toBe('banner');
 
-			store.getState().setShowPopup(false);
-			expect(store.getState().showPopup).toBe(false);
+			store.getState().setActiveUI('none');
+			expect(store.getState().activeUI).toBe('none');
 		});
 
-		it('should not show popup if consent already exists', () => {
+		it('should not show banner if consent already exists', () => {
 			const store = createConsentManagerStore(mockManager);
 
 			// Set existing consent info
@@ -238,12 +238,12 @@ describe('Consent Store', () => {
 				isLoadingConsentInfo: false,
 			});
 
-			// Try to show popup without force flag
-			store.getState().setShowPopup(true);
-			expect(store.getState().showPopup).toBe(false);
+			// Try to show banner without force flag
+			store.getState().setActiveUI('banner');
+			expect(store.getState().activeUI).toBe('none');
 		});
 
-		it('should show popup with force flag regardless of consent state', () => {
+		it('should show banner with force flag regardless of consent state', () => {
 			const store = createConsentManagerStore(mockManager);
 
 			// Set existing consent info
@@ -256,19 +256,141 @@ describe('Consent Store', () => {
 				isLoadingConsentInfo: false,
 			});
 
-			// Force show popup
-			store.getState().setShowPopup(true, true);
-			expect(store.getState().showPopup).toBe(true);
+			// Force show banner
+			store.getState().setActiveUI('banner', { force: true });
+			expect(store.getState().activeUI).toBe('banner');
 		});
 
-		it('should control privacy dialog visibility with setIsPrivacyDialogOpen', () => {
+		it('should control dialog visibility with setActiveUI', () => {
 			const store = createConsentManagerStore(mockManager);
 
-			store.getState().setIsPrivacyDialogOpen(true);
-			expect(store.getState().isPrivacyDialogOpen).toBe(true);
+			store.getState().setActiveUI('dialog');
+			expect(store.getState().activeUI).toBe('dialog');
 
-			store.getState().setIsPrivacyDialogOpen(false);
-			expect(store.getState().isPrivacyDialogOpen).toBe(false);
+			store.getState().setActiveUI('none');
+			expect(store.getState().activeUI).toBe('none');
+		});
+
+		it('should always allow setting dialog regardless of consent state', () => {
+			const store = createConsentManagerStore(mockManager);
+
+			// Set existing consent info
+			store.setState({
+				consentInfo: {
+					time: Date.now(),
+					type: 'all',
+					subjectId: 'test-subject',
+				},
+			});
+
+			store.getState().setActiveUI('dialog');
+			expect(store.getState().activeUI).toBe('dialog');
+		});
+
+		it('should show banner without force when no consent and not loading', () => {
+			const store = createConsentManagerStore(mockManager);
+
+			// Simulate finished loading with no consent
+			store.setState({
+				isLoadingConsentInfo: false,
+				consentInfo: null,
+			});
+			window.localStorage.clear();
+
+			store.getState().setActiveUI('banner');
+			expect(store.getState().activeUI).toBe('banner');
+		});
+
+		it('should not show banner without force during loading', () => {
+			const store = createConsentManagerStore(mockManager);
+
+			// Default state has isLoadingConsentInfo = true
+			expect(store.getState().isLoadingConsentInfo).toBe(true);
+
+			store.getState().setActiveUI('banner');
+			expect(store.getState().activeUI).toBe('none');
+		});
+
+		it('should not show banner without force when stored consent exists', () => {
+			// Pre-set localStorage with consent data
+			const storedData = {
+				consents: {
+					necessary: true,
+					marketing: true,
+					measurement: false,
+					functionality: false,
+					experience: false,
+				},
+				consentInfo: {
+					time: Date.now(),
+					type: 'all',
+					subjectId: 'test-subject',
+				},
+			};
+			window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(storedData));
+
+			const store = createConsentManagerStore(mockManager);
+
+			store.getState().setActiveUI('banner');
+			expect(store.getState().activeUI).toBe('none');
+		});
+
+		it('should support full transition cycle: banner → dialog → none', () => {
+			const store = createConsentManagerStore(mockManager);
+
+			// Force banner
+			store.getState().setActiveUI('banner', { force: true });
+			expect(store.getState().activeUI).toBe('banner');
+
+			// Transition to dialog
+			store.getState().setActiveUI('dialog');
+			expect(store.getState().activeUI).toBe('dialog');
+
+			// Transition to none
+			store.getState().setActiveUI('none');
+			expect(store.getState().activeUI).toBe('none');
+		});
+
+		it('should set activeUI to none after saveConsents', async () => {
+			const store = createConsentManagerStore(mockManager);
+
+			// Force banner first
+			store.getState().setActiveUI('banner', { force: true });
+			expect(store.getState().activeUI).toBe('banner');
+
+			// Save consents
+			await store.getState().saveConsents('all');
+
+			expect(store.getState().activeUI).toBe('none');
+		});
+
+		it('should allow banner again after resetConsents clears consentInfo', () => {
+			const store = createConsentManagerStore(mockManager);
+
+			// First, save consents to set consentInfo
+			store.setState({
+				consents: {
+					necessary: true,
+					marketing: true,
+					measurement: true,
+					functionality: true,
+					experience: true,
+				},
+				consentInfo: {
+					time: Date.now(),
+					type: 'all',
+					subjectId: 'test-subject',
+				},
+				isLoadingConsentInfo: false,
+			});
+
+			// Reset consents — this clears consentInfo
+			store.getState().resetConsents();
+			expect(store.getState().consentInfo).toBeNull();
+
+			// Now banner should be allowed without force
+			store.getState().setActiveUI('banner');
+			expect(store.getState().activeUI).toBe('banner');
 		});
 	});
 
@@ -764,8 +886,8 @@ describe('Consent Store', () => {
 		it('should expose setState for direct updates', () => {
 			const store = createConsentManagerStore(mockManager);
 
-			store.setState({ showPopup: true });
-			expect(store.getState().showPopup).toBe(true);
+			store.setState({ activeUI: 'banner' });
+			expect(store.getState().activeUI).toBe('banner');
 		});
 	});
 });

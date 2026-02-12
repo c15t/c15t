@@ -6,7 +6,7 @@
 import { defaultTranslationConfig } from '../translations';
 import { type ConsentState, consentTypes } from '../types';
 import { version } from '../version';
-import type { StoreRuntimeState } from './type';
+import type { ActiveUI, StoreRuntimeState } from './type';
 
 /**
  * Current storage key (v1.8+)
@@ -79,8 +79,8 @@ export const initialState: StoreRuntimeState = {
 	/** Show c15t branding by default */
 	branding: 'c15t',
 
-	/** Show consent popup by default */
-	showPopup: true,
+	/** No consent UI shown initially (set to 'banner' after init if needed) */
+	activeUI: 'none' as ActiveUI,
 
 	/** Initial loading state for consent banner information */
 	isLoadingConsentInfo: false,
@@ -90,8 +90,6 @@ export const initialState: StoreRuntimeState = {
 	lastBannerFetchData: null,
 
 	consentCategories: ['necessary'],
-
-	isPrivacyDialogOpen: false,
 
 	callbacks: {},
 

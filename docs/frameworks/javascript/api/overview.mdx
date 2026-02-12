@@ -79,8 +79,7 @@ state.hasConsented()     // false (no consent given yet)
 state.model              // 'opt-in' | 'opt-out' | 'iab' | null
 
 // UI state
-state.showPopup          // true (banner should be visible)
-state.isPrivacyDialogOpen // false
+state.activeUI           // 'banner' | 'dialog' | 'none'
 state.consentTypes       // [{ name: 'necessary', ... }, ...]
 
 // Location and info

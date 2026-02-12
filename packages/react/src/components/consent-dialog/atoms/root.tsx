@@ -40,9 +40,15 @@ export interface ConsentDialogRootProps
 
 	/**
 	 * Explicitly control the open state of the dialog. If omitted, the dialog
-	 * relies on the consent manager (`isPrivacyDialogOpen`) value.
+	 * relies on the consent manager (`activeUI === 'dialog'`) value.
 	 */
 	open?: boolean;
+
+	/**
+	 * Which consent models this dialog responds to.
+	 * @default ['opt-in', 'opt-out']
+	 */
+	models?: import('c15t').Model[];
 
 	/**
 	 * When true, the component will not apply any internal styles.
@@ -89,6 +95,7 @@ export interface ConsentDialogRootProps
 const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	children,
 	open: openProp,
+	models = ['opt-in', 'opt-out'],
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
 	scrollLock: localScrollLock = true,
@@ -108,13 +115,11 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	const trapFocus = localTrapFocus ?? globalTheme.trapFocus ?? true;
 
 	// Consent manager state
-	const { isPrivacyDialogOpen, translationConfig, model } = useConsentManager();
+	const { activeUI, translationConfig, model } = useConsentManager();
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
 	// Final open state (controlled or managed by consent manager)
-	// ConsentDialog shows for non-IAB models (use IABConsentDialog when model is 'iab')
-	// This ensures opt-in jurisdictions like QC_LAW25 use the standard dialog even if IAB is configured.
-	const isOpen = model !== 'iab' && (openProp ?? isPrivacyDialogOpen);
+	const isOpen = models.includes(model) && (openProp ?? activeUI === 'dialog');
 
 	// Animation visibility flag – mirrors logic in original component
 	const [isVisible, setIsVisible] = useState(false);

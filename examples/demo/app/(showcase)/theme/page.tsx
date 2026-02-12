@@ -675,12 +675,12 @@ export default function ThemeShowcasePage() {
  * Component that forces the banner to show on mount
  */
 function ForceBannerShow() {
-	const { setShowPopup } = useConsentManager();
+	const { setActiveUI } = useConsentManager();
 
 	useEffect(() => {
 		// Force the banner to show
-		setShowPopup(true, true);
-	}, [setShowPopup]);
+		setActiveUI('banner', { force: true });
+	}, [setActiveUI]);
 
 	return null;
 }

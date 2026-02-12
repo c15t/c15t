@@ -154,7 +154,7 @@ describe('saveConsents', () => {
 					experience: true,
 					marketing: true,
 				},
-				showPopup: false,
+				activeUI: 'none',
 				consentInfo: expect.objectContaining({
 					time: expect.any(Number),
 				}),
@@ -178,7 +178,7 @@ describe('saveConsents', () => {
 						experience: false,
 						marketing: false,
 					},
-					showPopup: false,
+					activeUI: 'none',
 					consentInfo: expect.objectContaining({
 						time: expect.any(Number),
 					}),
@@ -266,7 +266,7 @@ describe('saveConsents', () => {
 			expect(mockSet).toHaveBeenCalledWith({
 				consents: customConsents,
 				selectedConsents: customConsents,
-				showPopup: false,
+				activeUI: 'none',
 				consentInfo: expect.objectContaining({
 					time: expect.any(Number),
 				}),
@@ -293,7 +293,7 @@ describe('saveConsents', () => {
 						experience: true,
 						marketing: true,
 					}),
-					showPopup: false,
+					activeUI: 'none',
 					consentInfo: expect.objectContaining({
 						time: expect.any(Number),
 					}),
@@ -875,7 +875,7 @@ describe('saveConsents', () => {
 			expect(mockSet).toHaveBeenCalledWith(
 				expect.objectContaining({
 					consents: {},
-					showPopup: false,
+					activeUI: 'none',
 					consentInfo: expect.objectContaining({
 						time: expect.any(Number),
 					}),
@@ -941,7 +941,7 @@ describe('saveConsents', () => {
 						necessary: true,
 						functionality: true,
 					},
-					showPopup: false,
+					activeUI: 'none',
 					consentInfo: expect.objectContaining({
 						time: expect.any(Number),
 					}),

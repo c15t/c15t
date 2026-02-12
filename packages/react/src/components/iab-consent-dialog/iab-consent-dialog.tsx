@@ -49,7 +49,7 @@ import { useIABTranslations } from './use-iab-translations';
  */
 export interface IABConsentDialogProps {
 	/**
-	 * Control the open state. If omitted, follows isPrivacyDialogOpen from context.
+	 * Control the open state. If omitted, follows activeUI === 'dialog' from context.
 	 */
 	open?: boolean;
 
@@ -94,6 +94,12 @@ export interface IABConsentDialogProps {
 	 * @default false
 	 */
 	showTrigger?: boolean | ConsentDialogTriggerProps;
+
+	/**
+	 * Which consent models this dialog responds to.
+	 * @default ['iab']
+	 */
+	models?: import('c15t').Model[];
 }
 
 /**
@@ -117,14 +123,15 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	trapFocus: localTrapFocus = true,
 	hideBranding,
 	showTrigger = false,
+	models = ['iab'],
 }) => {
 	const iabTranslations = useIABTranslations();
 	const {
 		iab: iabState,
-		isPrivacyDialogOpen,
-		setIsPrivacyDialogOpen,
-		setShowPopup,
+		activeUI,
+		setActiveUI,
 		translationConfig,
+		model,
 	} = useConsentManager();
 
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
@@ -142,7 +149,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const [isMounted, setIsMounted] = useState(false);
 	const [isVisible, setIsVisible] = useState(false);
 
-	const isOpen = open ?? isPrivacyDialogOpen;
+	const isOpen = open ?? (activeUI === 'dialog' && models.includes(model));
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
@@ -466,25 +473,22 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const handleAcceptAll = () => {
 		iabState?.acceptAll();
 		iabState?.save();
-		setIsPrivacyDialogOpen(false);
-		setShowPopup(false);
+		setActiveUI('none');
 	};
 
 	const handleRejectAll = () => {
 		iabState?.rejectAll();
 		iabState?.save();
-		setIsPrivacyDialogOpen(false);
-		setShowPopup(false);
+		setActiveUI('none');
 	};
 
 	const handleSave = () => {
 		iabState?.save();
-		setIsPrivacyDialogOpen(false);
-		setShowPopup(false);
+		setActiveUI('none');
 	};
 
 	const handleClose = () => {
-		setIsPrivacyDialogOpen(false);
+		setActiveUI('none');
 	};
 
 	const handleVendorClick = (vendorId: VendorId) => {
