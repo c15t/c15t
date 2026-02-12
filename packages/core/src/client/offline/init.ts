@@ -76,7 +76,7 @@ export async function init(
 		] as Translations;
 	}
 
-	const jurisdictionCode = checkJurisdiction(country);
+	const jurisdictionCode = checkJurisdiction(country, region);
 
 	// Get GVL for IAB mode
 	// Priority: 1) Pre-loaded from config, 2) Fetch from external endpoint

@@ -9,6 +9,7 @@ import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { generateUniqueId } from '~/db/registry/utils';
 import type { C15TContext } from '~/types';
+import { extractErrorMessage } from '~/utils/extract-error-message';
 import { getMetrics } from '~/utils/metrics';
 
 /**
@@ -138,6 +139,33 @@ export const postSubjectHandler = async (c: Context) => {
 			purposeIds = purposes;
 		}
 
+		// Check for duplicate consent (idempotency)
+		const existingConsent = await db.findFirst('consent', {
+			where: (b) =>
+				b.and(
+					b('subjectId', '=', subject.id),
+					b('domainId', '=', domainRecord.id),
+					b('policyId', '=', policyId),
+					b('givenAt', '=', givenAt)
+				),
+		});
+
+		if (existingConsent) {
+			logger.debug('Duplicate consent detected, returning existing record', {
+				consentId: existingConsent.id,
+			});
+			return c.json({
+				subjectId: subject.id,
+				consentId: existingConsent.id,
+				domainId: domainRecord.id,
+				domain: domainRecord.name,
+				type,
+				metadata,
+				uiSource: input.uiSource,
+				givenAt: existingConsent.givenAt,
+			});
+		}
+
 		const result = await db.transaction(async (tx) => {
 			logger.debug('Creating consent record', {
 				subjectId: subject.id,
@@ -153,11 +181,13 @@ export const postSubjectHandler = async (c: Context) => {
 				domainId: domainRecord.id,
 				policyId,
 				purposeIds: { json: purposeIds },
+				metadata: metadata ? { json: metadata } : undefined,
 				ipAddress: ctx.ipAddress,
 				userAgent: ctx.userAgent,
 				jurisdiction: input.jurisdiction,
 				jurisdictionModel: input.jurisdictionModel,
 				tcString: input.tcString,
+				uiSource: input.uiSource,
 				givenAt,
 			});
 
@@ -203,11 +233,12 @@ export const postSubjectHandler = async (c: Context) => {
 			domain: domainRecord.name,
 			type,
 			metadata,
+			uiSource: input.uiSource,
 			givenAt: result.consent.givenAt,
 		});
 	} catch (error) {
 		logger.error('Error in POST /subjects handler', {
-			error: error instanceof Error ? error.message : String(error),
+			error: extractErrorMessage(error),
 			errorType: error instanceof Error ? error.constructor.name : typeof error,
 		});
 
@@ -216,7 +247,7 @@ export const postSubjectHandler = async (c: Context) => {
 		}
 
 		throw new HTTPException(500, {
-			message: error instanceof Error ? error.message : String(error),
+			message: 'Internal server error',
 			cause: { code: 'INTERNAL_SERVER_ERROR' },
 		});
 	}

@@ -31,17 +31,15 @@ const IABConsentDialogCard = forwardRef<
 	IABConsentDialogCardProps
 >(({ children, className, ...props }, ref) => {
 	const { trapFocus } = useTheme();
-	const { isPrivacyDialogOpen } = useConsentManager();
+	const { activeUI } = useConsentManager();
 	const iabTranslations = useIABTranslations();
 	const [isVisible, setIsVisible] = useState(false);
+	const showDialog = activeUI === 'dialog';
 
-	useFocusTrap(
-		Boolean(isPrivacyDialogOpen && trapFocus),
-		ref as RefObject<HTMLElement>
-	);
+	useFocusTrap(Boolean(showDialog && trapFocus), ref as RefObject<HTMLElement>);
 
 	useEffect(() => {
-		if (isPrivacyDialogOpen) {
+		if (showDialog) {
 			setIsVisible(true);
 		} else {
 			const timer = setTimeout(() => {
@@ -49,7 +47,7 @@ const IABConsentDialogCard = forwardRef<
 			}, 150);
 			return () => clearTimeout(timer);
 		}
-	}, [isPrivacyDialogOpen]);
+	}, [showDialog]);
 
 	const cardClassName = className
 		? `${styles.card} ${isVisible ? styles.contentVisible : styles.contentHidden} ${className}`

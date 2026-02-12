@@ -22,7 +22,7 @@ export function ConsentManager() {
 
 ## Controlled State
 
-By default, the dialog follows `isPrivacyDialogOpen` from the consent store. Use the `open` prop for manual control:
+By default, the dialog follows `activeUI === 'dialog'` from the consent store. Use the `open` prop for manual control:
 
 ```tsx
 import { useState } from 'react';
@@ -45,10 +45,10 @@ Or use the hook to open it programmatically:
 import { useConsentManager } from '@c15t/react';
 
 function PrivacyLink() {
-  const { setIsPrivacyDialogOpen } = useConsentManager();
+  const { setActiveUI } = useConsentManager();
 
   return (
-    <button onClick={() => setIsPrivacyDialogOpen(true)}>
+    <button onClick={() => setActiveUI('dialog')}>
       Manage cookies
     </button>
   );

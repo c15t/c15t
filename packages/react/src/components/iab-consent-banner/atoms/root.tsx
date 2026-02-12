@@ -11,6 +11,7 @@ import {
 	useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
@@ -24,6 +25,16 @@ interface IABConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	disableAnimation?: boolean;
 	scrollLock?: boolean;
 	trapFocus?: boolean;
+	/**
+	 * Which consent models this banner responds to.
+	 * @default ['iab']
+	 */
+	models?: import('c15t').Model[];
+	/**
+	 * Override the UI source identifier sent with consent API calls.
+	 * @default 'iab_banner'
+	 */
+	uiSource?: string;
 }
 
 const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
@@ -33,6 +44,8 @@ const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
 	disableAnimation,
 	scrollLock,
 	trapFocus = true,
+	models,
+	uiSource,
 	...props
 }) => {
 	const contextValue = {
@@ -43,16 +56,21 @@ const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
 	};
 
 	return (
-		<LocalThemeContext.Provider value={contextValue}>
-			<IABConsentBannerRootChildren
-				disableAnimation={disableAnimation}
-				className={className}
-				noStyle={noStyle}
-				{...props}
-			>
-				{children}
-			</IABConsentBannerRootChildren>
-		</LocalThemeContext.Provider>
+		<ConsentTrackingContext.Provider
+			value={{ uiSource: uiSource ?? 'iab_banner' }}
+		>
+			<LocalThemeContext.Provider value={contextValue}>
+				<IABConsentBannerRootChildren
+					disableAnimation={disableAnimation}
+					className={className}
+					noStyle={noStyle}
+					models={models}
+					{...props}
+				>
+					{children}
+				</IABConsentBannerRootChildren>
+			</LocalThemeContext.Provider>
+		</ConsentTrackingContext.Provider>
 	);
 };
 
@@ -61,6 +79,11 @@ interface IABConsentBannerRootChildrenProps
 	children: ReactNode;
 	noStyle?: boolean;
 	disableAnimation?: boolean;
+	/**
+	 * Which consent models this banner responds to.
+	 * @default ['iab']
+	 */
+	models?: import('c15t').Model[];
 }
 
 const IABConsentBannerRootChildren = forwardRef<
@@ -75,6 +98,7 @@ const IABConsentBannerRootChildren = forwardRef<
 			className: forwardedClassName,
 			disableAnimation,
 			noStyle,
+			models = ['iab'],
 			...props
 		}: IABConsentBannerRootChildrenProps & {
 			style?: CSSProperties;
@@ -82,19 +106,14 @@ const IABConsentBannerRootChildren = forwardRef<
 		},
 		ref
 	) => {
-		const { showPopup, translationConfig, model, iab, isPrivacyDialogOpen } =
-			useConsentManager();
+		const { activeUI, translationConfig, model } = useConsentManager();
 		const textDirection = useTextDirection(translationConfig.defaultLanguage);
 		const [isVisible, setIsVisible] = useState(false);
 		const [hasAnimated, setHasAnimated] = useState(false);
 		const [animationDurationMs, setAnimationDurationMs] = useState(200);
 
-		// IAB banner shows when IAB mode is enabled (model is 'iab' in GDPR jurisdictions with IAB enabled)
-		// Hide banner when preference center is open - it will reappear if closed without consent
-		// Check that IAB is configured AND enabled (server may have disabled it by returning null GVL)
-		const isIABActive = iab?.config.enabled;
-		const shouldShowBanner =
-			model === 'iab' && showPopup && isIABActive && !isPrivacyDialogOpen;
+		// IAB banner shows when activeUI is 'banner' and the current model matches
+		const shouldShowBanner = activeUI === 'banner' && models.includes(model);
 
 		useEffect(() => {
 			const duration = Number.parseInt(

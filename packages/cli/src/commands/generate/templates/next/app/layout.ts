@@ -12,7 +12,7 @@ import { generateConsentComponent } from '../../shared/components';
 import { getComponentsDirectory } from '../../shared/directory';
 import {
 	generateExpandedConsentBannerTemplate,
-	generateExpandedPreferenceCenterTemplate,
+	generateExpandedConsentDialogTemplate,
 	generateExpandedProviderTemplate,
 	generateExpandedThemeTemplate,
 } from '../../shared/expanded-components';
@@ -129,7 +129,7 @@ function wrapAppJsxContent(originalJsx: string): string {
  * - index.tsx - Main server component entry point
  * - provider.tsx - Client provider wrapper
  * - consent-banner.tsx - Compound component banner
- * - preference-center.tsx - Compound component dialog
+ * - consent-dialog.tsx - Compound component dialog
  * - theme.ts - Theme preset configuration
  */
 async function createExpandedConsentManagerComponents(
@@ -195,8 +195,8 @@ async function createExpandedConsentManagerComponents(
 	});
 	const consentBannerContent =
 		generateExpandedConsentBannerTemplate(NEXTJS_CONFIG);
-	const preferenceCenterContent =
-		generateExpandedPreferenceCenterTemplate(NEXTJS_CONFIG);
+	const consentDialogContent =
+		generateExpandedConsentDialogTemplate(NEXTJS_CONFIG);
 	const themeContent = generateExpandedThemeTemplate(
 		expandedTheme,
 		NEXTJS_CONFIG
@@ -209,9 +209,9 @@ async function createExpandedConsentManagerComponents(
 		consentManagerDirPath,
 		'consent-banner.tsx'
 	);
-	const preferenceCenterPath = path.join(
+	const consentDialogPath = path.join(
 		consentManagerDirPath,
-		'preference-center.tsx'
+		'consent-dialog.tsx'
 	);
 	const themePath = path.join(consentManagerDirPath, 'theme.ts');
 
@@ -221,7 +221,7 @@ async function createExpandedConsentManagerComponents(
 		fs.writeFile(indexPath, serverComponentContent, 'utf-8'),
 		fs.writeFile(providerPath, providerContent, 'utf-8'),
 		fs.writeFile(consentBannerPath, consentBannerContent, 'utf-8'),
-		fs.writeFile(preferenceCenterPath, preferenceCenterContent, 'utf-8'),
+		fs.writeFile(consentDialogPath, consentDialogContent, 'utf-8'),
 		fs.writeFile(themePath, themeContent, 'utf-8'),
 	]);
 
@@ -256,6 +256,7 @@ async function createPrebuiltConsentManagerComponents(
 		proxyNextjs?: boolean;
 		enableSSR: boolean;
 		enableDevTools?: boolean;
+		expandedTheme?: ExpandedTheme;
 		selectedScripts?: string[];
 	}
 ): Promise<
@@ -268,8 +269,11 @@ async function createPrebuiltConsentManagerComponents(
 		proxyNextjs,
 		enableSSR,
 		enableDevTools,
+		expandedTheme,
 		selectedScripts,
 	} = options;
+
+	const hasTheme = expandedTheme && expandedTheme !== 'none';
 
 	// Detect or create components directory
 	const componentsDir = await getComponentsDirectory(projectRoot, appDir);
@@ -310,8 +314,11 @@ async function createPrebuiltConsentManagerComponents(
 		useClientDirective: true,
 		defaultExport: true,
 		ssrDataOption: enableSSR,
-		callbacksPlaceholder: true,
+		includeOverrides: !enableSSR,
 		enableDevTools: Boolean(enableDevTools),
+		useFrameworkProps: enableSSR ? NEXTJS_CONFIG.importSource : undefined,
+		includeTheme: Boolean(hasTheme),
+		docsSlug: NEXTJS_CONFIG.docsSlug,
 	});
 
 	// Define file paths - everything in components/consent-manager/
@@ -320,10 +327,22 @@ async function createPrebuiltConsentManagerComponents(
 
 	// Create directory and write files
 	await fs.mkdir(consentManagerDirPath, { recursive: true });
-	await Promise.all([
+	const writePromises: Promise<void>[] = [
 		fs.writeFile(indexPath, consentManagerContent, 'utf-8'),
 		fs.writeFile(providerPath, consentManagerClientContent, 'utf-8'),
-	]);
+	];
+
+	// Generate theme file when a theme is selected
+	if (hasTheme) {
+		const themeContent = generateExpandedThemeTemplate(
+			expandedTheme,
+			NEXTJS_CONFIG
+		);
+		const themePath = path.join(consentManagerDirPath, 'theme.ts');
+		writePromises.push(fs.writeFile(themePath, themeContent, 'utf-8'));
+	}
+
+	await Promise.all(writePromises);
 
 	return {
 		consentManager: indexPath,
@@ -360,7 +379,7 @@ export async function updateAppLayout({
 	backendURL,
 	useEnvFile,
 	proxyNextjs,
-	enableSSR = true,
+	enableSSR = false,
 	enableDevTools = false,
 	uiStyle = 'prebuilt',
 	expandedTheme = 'tailwind',
@@ -395,6 +414,7 @@ export async function updateAppLayout({
 				proxyNextjs,
 				enableSSR,
 				enableDevTools,
+				expandedTheme,
 				selectedScripts,
 			});
 		},

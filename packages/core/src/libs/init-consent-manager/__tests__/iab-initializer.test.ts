@@ -457,7 +457,7 @@ describe('initializeIABMode', () => {
 				expect.objectContaining({
 					consents: c15tConsents,
 					selectedConsents: c15tConsents,
-					showPopup: false,
+					activeUI: 'none',
 				})
 			);
 		});

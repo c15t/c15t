@@ -32,7 +32,7 @@
           Store->>Storage: getStoredConsent()
           alt Stored consent exists
               Storage-->>Store: consentInfo + consents
-              Store->>Store: showPopup = false
+              Store->>Store: activeUI = 'none'
           else No stored consent
               Store->>Store: isLoadingConsentInfo = true
           end
@@ -51,7 +51,7 @@
           end
 
           Store->>Store: determineModel(jurisdiction)
-          Store->>Store: Set showPopup, auto-grant if opt-out/null
+          Store->>Store: Set activeUI, auto-grant if opt-out/null
 
           alt User has no prior consent
               UI->>UI: Banner appears
@@ -100,7 +100,7 @@
   |---|---|---|---|
   | Init / SSR hydration | Location | `onBannerFetched` | jurisdiction, countryCode, regionCode populated? |
   | Model resolution | Location | `onBannerFetched` | `model` value in store matches expected jurisdiction |
-  | Banner visibility | Consents | — | `showPopup` in store state; `consentInfo` null? |
+  | Banner visibility | Consents | — | `activeUI` in store state; `consentInfo` null? |
   | Consent save | Consents + Events | `onConsentSet` | `preferences` object in callback payload |
   | Script loading | Scripts | `onConsentSet` | Script IDs and their load/blocked status |
   | Reload on revocation | Events | `onBeforeConsentRevocationReload` | Fires before reload; check localStorage for `c15t:pending-consent-sync` |

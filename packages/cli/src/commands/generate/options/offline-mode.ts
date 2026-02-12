@@ -33,11 +33,12 @@ export async function setupOfflineMode({
 	handleCancel,
 }: OfflineModeOptions): Promise<OfflineModeResult> {
 	// Frontend UI options (SSR for Next.js, UI style + theme for React/Next.js)
-	const { enableSSR, enableDevTools, uiStyle, expandedTheme } =
-		await getFrontendUIOptions({
+	const { enableDevTools, uiStyle, expandedTheme } = await getFrontendUIOptions(
+		{
 			context,
 			handleCancel,
-		});
+		}
+	);
 
 	// Scripts prompt
 	const addScripts = await getScriptsToAdd({ context, handleCancel });
@@ -46,7 +47,7 @@ export async function setupOfflineMode({
 		context,
 		mode: 'offline',
 		spinner,
-		enableSSR,
+		enableSSR: false,
 		enableDevTools,
 		uiStyle,
 		expandedTheme,

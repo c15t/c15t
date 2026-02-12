@@ -231,9 +231,61 @@ describe('checkJurisdiction', () => {
 		});
 	});
 
+	describe('Quebec Law 25 jurisdiction (CA regions)', () => {
+		it('should identify CA-QC as QC_LAW25 jurisdiction (case-insensitive)', () => {
+			const cases = ['QC', 'qc', 'Qc'];
+
+			for (const region of cases) {
+				const jurisdiction = checkJurisdiction('CA', region);
+
+				expect(jurisdiction).toBe('QC_LAW25');
+			}
+		});
+
+		it('should handle dash-separated region codes for Quebec', () => {
+			const cases = ['CA-QC', 'ca-qc', 'Ca-Qc'];
+
+			for (const region of cases) {
+				const jurisdiction = checkJurisdiction('CA', region);
+
+				expect(jurisdiction).toBe('QC_LAW25');
+			}
+		});
+
+		it('should return PIPEDA for non-Quebec Canadian provinces', () => {
+			const nonQuebecRegions = ['ON', 'BC', 'AB', null];
+
+			for (const region of nonQuebecRegions) {
+				const jurisdiction = checkJurisdiction('CA', region as string | null);
+
+				expect(jurisdiction).toBe('PIPEDA');
+			}
+		});
+
+		it('should return PIPEDA for dash-separated non-Quebec Canadian provinces', () => {
+			const nonQuebecRegions = ['CA-ON', 'CA-BC', 'CA-AB'];
+
+			for (const region of nonQuebecRegions) {
+				const jurisdiction = checkJurisdiction('CA', region);
+
+				expect(jurisdiction).toBe('PIPEDA');
+			}
+		});
+	});
+
 	describe('CCPA jurisdiction (US regions)', () => {
 		it('should identify US-CA as CCPA jurisdiction (case-insensitive)', () => {
 			const cases = ['CA', 'ca', 'Ca'];
+
+			for (const region of cases) {
+				const jurisdiction = checkJurisdiction('US', region);
+
+				expect(jurisdiction).toBe('CCPA');
+			}
+		});
+
+		it('should handle dash-separated region codes for California', () => {
+			const cases = ['US-CA', 'us-ca', 'Us-Ca'];
 
 			for (const region of cases) {
 				const jurisdiction = checkJurisdiction('US', region);
@@ -247,6 +299,16 @@ describe('checkJurisdiction', () => {
 
 			for (const region of nonCcpaRegions) {
 				const jurisdiction = checkJurisdiction('US', region as string | null);
+
+				expect(jurisdiction).toBe('NONE');
+			}
+		});
+
+		it('should not apply CCPA for dash-separated non-CCPA US regions', () => {
+			const nonCcpaRegions = ['US-NY', 'US-TX', 'US-WA'];
+
+			for (const region of nonCcpaRegions) {
+				const jurisdiction = checkJurisdiction('US', region);
 
 				expect(jurisdiction).toBe('NONE');
 			}

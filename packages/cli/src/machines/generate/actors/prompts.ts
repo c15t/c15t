@@ -333,45 +333,39 @@ export const frontendOptionsActor = fromPromise<
 
 		uiStyle = styleResult as UIStyle;
 
-		// Theme prompt (only for expanded style)
-		if (uiStyle === 'expanded') {
-			cliContext.logger.info(
-				'Choose a theme preset for your expanded components.'
-			);
+		// Theme prompt (both prebuilt and expanded)
+		const themeResult = await p.select({
+			message: 'Theme preset:',
+			options: [
+				{
+					value: 'none',
+					label: 'None',
+					hint: 'No preset styling',
+				},
+				{
+					value: 'minimal',
+					label: 'Minimal',
+					hint: 'Clean light theme',
+				},
+				{
+					value: 'dark',
+					label: 'Dark',
+					hint: 'High contrast dark mode',
+				},
+				{
+					value: 'tailwind',
+					label: 'Tailwind',
+					hint: 'Uses Tailwind utility classes',
+				},
+			],
+			initialValue: 'none' as ExpandedTheme,
+		});
 
-			const themeResult = await p.select({
-				message: 'Theme preset:',
-				options: [
-					{
-						value: 'none',
-						label: 'None',
-						hint: 'No preset styling',
-					},
-					{
-						value: 'minimal',
-						label: 'Minimal',
-						hint: 'Clean light theme',
-					},
-					{
-						value: 'dark',
-						label: 'Dark',
-						hint: 'High contrast dark mode',
-					},
-					{
-						value: 'tailwind',
-						label: 'Tailwind',
-						hint: 'Uses Tailwind utility classes',
-					},
-				],
-				initialValue: 'none' as ExpandedTheme,
-			});
-
-			if (isCancel(themeResult)) {
-				throw new PromptCancelledError('expanded_theme');
-			}
-
-			expandedTheme = themeResult as ExpandedTheme;
+		if (isCancel(themeResult)) {
+			throw new PromptCancelledError('expanded_theme');
 		}
+
+		expandedTheme = themeResult as ExpandedTheme;
 	}
 
 	// React: UI style + theme (no SSR)
@@ -403,40 +397,39 @@ export const frontendOptionsActor = fromPromise<
 
 		uiStyle = styleResult as UIStyle;
 
-		if (uiStyle === 'expanded') {
-			const themeResult = await p.select({
-				message: 'Theme preset:',
-				options: [
-					{
-						value: 'none',
-						label: 'None',
-						hint: 'No preset styling',
-					},
-					{
-						value: 'minimal',
-						label: 'Minimal',
-						hint: 'Clean light theme',
-					},
-					{
-						value: 'dark',
-						label: 'Dark',
-						hint: 'High contrast dark mode',
-					},
-					{
-						value: 'tailwind',
-						label: 'Tailwind',
-						hint: 'Uses Tailwind utility classes',
-					},
-				],
-				initialValue: 'none' as ExpandedTheme,
-			});
+		// Theme prompt (both prebuilt and expanded)
+		const reactThemeResult = await p.select({
+			message: 'Theme preset:',
+			options: [
+				{
+					value: 'none',
+					label: 'None',
+					hint: 'No preset styling',
+				},
+				{
+					value: 'minimal',
+					label: 'Minimal',
+					hint: 'Clean light theme',
+				},
+				{
+					value: 'dark',
+					label: 'Dark',
+					hint: 'High contrast dark mode',
+				},
+				{
+					value: 'tailwind',
+					label: 'Tailwind',
+					hint: 'Uses Tailwind utility classes',
+				},
+			],
+			initialValue: 'none' as ExpandedTheme,
+		});
 
-			if (isCancel(themeResult)) {
-				throw new PromptCancelledError('expanded_theme');
-			}
-
-			expandedTheme = themeResult as ExpandedTheme;
+		if (isCancel(reactThemeResult)) {
+			throw new PromptCancelledError('expanded_theme');
 		}
+
+		expandedTheme = reactThemeResult as ExpandedTheme;
 	}
 
 	if (pkg === 'c15t' || pkg === '@c15t/react' || pkg === '@c15t/nextjs') {

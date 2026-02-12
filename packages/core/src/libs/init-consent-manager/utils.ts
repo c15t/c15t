@@ -21,7 +21,7 @@ export function checkLocalStorageAccess(set: StoreAccess['set']): boolean {
 		}
 	} catch (error) {
 		console.warn('localStorage not available, skipping consent banner:', error);
-		set({ isLoadingConsentInfo: false, showPopup: false });
+		set({ isLoadingConsentInfo: false, activeUI: 'none' as const });
 	}
 	return false;
 }

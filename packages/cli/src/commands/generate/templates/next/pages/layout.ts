@@ -104,6 +104,7 @@ async function createConsentManagerComponent(
 		selectedScripts,
 		initialDataProp: true,
 		enableDevTools,
+		includeOverrides: true,
 	});
 
 	// Define file path in components directory

@@ -18,11 +18,14 @@ import type { ExpandedTheme, UIStyle } from '../prompts';
 import { updateNextLayout } from './next';
 import { generateConsentComponent } from './shared/components';
 import { getComponentsDirectory, getSourceDirectory } from './shared/directory';
+import { generateExpandedThemeTemplate } from './shared/expanded-components';
+import { REACT_CONFIG } from './shared/framework-config';
 import {
 	addConsentManagerImport,
 	hasConsentManagerImport,
 } from './shared/module-specifier';
 import { generateOptionsText } from './shared/options';
+import { generateSimpleWrapperComponent } from './shared/server-components';
 
 interface UpdateReactLayoutOptions {
 	projectRoot: string;
@@ -122,13 +125,18 @@ function wrapReturnStatementWithConsentManager(
  * @param mode - Storage mode for consent management
  * @param backendURL - Backend URL for c15t/self-hosted modes
  * @param useEnvFile - Whether to use environment variables
- * @returns Object containing path to created file
+ * @param selectedScripts - Selected scripts to include
+ * @param enableDevTools - Whether to add DevTools component
+ * @param expandedTheme - Theme preset selection
+ * @returns Object containing path to created files
  *
- * @throws {Error} When file cannot be created
+ * @throws {Error} When files cannot be created
  *
  * @remarks
  * Creates in components/consent-manager/:
- * - index.tsx - Component with provider, UI, scripts, and callbacks
+ * - index.tsx - Simple wrapper that imports and renders provider
+ * - provider.tsx - Client provider with ConsentManagerProvider, Banner, Dialog
+ * - theme.ts - (optional) Generated when user selects a custom theme
  */
 async function createConsentManagerComponent(
 	projectRoot: string,
@@ -137,8 +145,11 @@ async function createConsentManagerComponent(
 	backendURL?: string,
 	useEnvFile?: boolean,
 	selectedScripts?: string[],
-	enableDevTools?: boolean
+	enableDevTools?: boolean,
+	expandedTheme?: ExpandedTheme
 ): Promise<ComponentFilePaths> {
+	const hasTheme = expandedTheme && expandedTheme !== 'none';
+
 	// Detect or create components directory
 	const componentsDir = await getComponentsDirectory(projectRoot, sourceDir);
 	const consentManagerDirPath = path.join(
@@ -155,19 +166,41 @@ async function createConsentManagerComponent(
 		undefined,
 		true
 	);
-	const consentManagerContent = generateConsentComponent({
+	const providerContent = generateConsentComponent({
 		importSource: '@c15t/react',
 		optionsText,
 		selectedScripts,
 		enableDevTools,
+		useClientDirective: true,
+		defaultExport: true,
+		includeTheme: Boolean(hasTheme),
+		includeOverrides: true,
+		docsSlug: 'react',
 	});
+	const indexContent = generateSimpleWrapperComponent('React', 'react');
 
-	// Define file path - main component is index.tsx
+	// Define file paths
 	const indexPath = path.join(consentManagerDirPath, 'index.tsx');
+	const providerPath = path.join(consentManagerDirPath, 'provider.tsx');
 
-	// Create directory and write file
+	// Create directory and write files
 	await fs.mkdir(consentManagerDirPath, { recursive: true });
-	await fs.writeFile(indexPath, consentManagerContent, 'utf-8');
+	const writePromises: Promise<void>[] = [
+		fs.writeFile(indexPath, indexContent, 'utf-8'),
+		fs.writeFile(providerPath, providerContent, 'utf-8'),
+	];
+
+	// Generate theme file when a theme is selected
+	if (hasTheme) {
+		const themeContent = generateExpandedThemeTemplate(
+			expandedTheme,
+			REACT_CONFIG
+		);
+		const themePath = path.join(consentManagerDirPath, 'theme.ts');
+		writePromises.push(fs.writeFile(themePath, themeContent, 'utf-8'));
+	}
+
+	await Promise.all(writePromises);
 
 	return {
 		consentManager: indexPath,
@@ -192,6 +225,7 @@ async function updateGenericReactLayout({
 	proxyNextjs,
 	selectedScripts,
 	enableDevTools,
+	expandedTheme,
 }: UpdateReactLayoutOptions): Promise<{
 	updated: boolean;
 	filePath: string | null;
@@ -258,7 +292,8 @@ async function updateGenericReactLayout({
 			backendURL,
 			useEnvFile,
 			selectedScripts,
-			enableDevTools
+			enableDevTools,
+			expandedTheme
 		);
 
 		// Add import for ConsentManager with correct relative path

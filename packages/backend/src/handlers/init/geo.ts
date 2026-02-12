@@ -87,6 +87,10 @@ export function checkJurisdiction(
 			// California (CCPA/CPRA)
 			'CA',
 		]),
+		CA_QC_REGIONS: new Set([
+			// Quebec (Law 25)
+			'QC',
+		]),
 	};
 
 	// Default to no jurisdiction
@@ -96,9 +100,14 @@ export function checkJurisdiction(
 	if (countryCode) {
 		// Normalize for case-insensitive comparison
 		const normalizedCountryCode = countryCode.toUpperCase();
+		// Normalize region code: handle dash-separated formats like "CA-QC" or "US-CA"
+		// by extracting the last segment as the subdivision code
 		const normalizedRegionCode =
 			regionCode && typeof regionCode === 'string'
-				? regionCode.toUpperCase()
+				? (regionCode.includes('-')
+						? regionCode.split('-').pop()!
+						: regionCode
+					).toUpperCase()
 				: null;
 
 		// CCPA-style rules: currently applied for certain US regions only
@@ -108,6 +117,15 @@ export function checkJurisdiction(
 			jurisdictions.US_CCPA_REGIONS.has(normalizedRegionCode)
 		) {
 			return 'CCPA';
+		}
+
+		// Quebec (Law 25): opt-in consent required
+		if (
+			normalizedCountryCode === 'CA' &&
+			normalizedRegionCode &&
+			jurisdictions.CA_QC_REGIONS.has(normalizedRegionCode)
+		) {
+			return 'QC_LAW25';
 		}
 
 		const jurisdictionMap = [

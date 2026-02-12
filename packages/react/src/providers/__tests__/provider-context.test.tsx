@@ -12,7 +12,7 @@ import { setupMocks } from './test-helpers';
 setupMocks();
 
 // Helper to manually modify the context value
-const modifyContextShowPopup = vi.fn();
+const modifyContextActiveUI = vi.fn();
 
 // Mock the useConsentManager hook
 vi.mock('../../hooks/use-consent-manager', async () => {
@@ -25,13 +25,13 @@ vi.mock('../../hooks/use-consent-manager', async () => {
 		useConsentManager: () => {
 			const result = (
 				originalModule as unknown as {
-					useConsentManager: () => { showPopup: boolean };
+					useConsentManager: () => { activeUI: string };
 				}
 			).useConsentManager();
-			// Force showPopup to true for tests
-			result.showPopup = true;
+			// Force activeUI to 'banner' for tests
+			result.activeUI = 'banner';
 			// Track that this was called
-			modifyContextShowPopup();
+			modifyContextActiveUI();
 			return result;
 		},
 	};
@@ -58,11 +58,11 @@ describe('ConsentManagerProvider Context Values', () => {
 					<div data-testid="has-manager">
 						{Boolean(context.manager).toString()}
 					</div>
-					<div data-testid="show-popup">
-						{context.showPopup ? 'true' : 'false'}
+					<div data-testid="active-ui">
+						{context.activeUI === 'banner' ? 'true' : 'false'}
 					</div>
 					<div data-testid="debug-state">
-						{JSON.stringify({ showPopup: context.showPopup })}
+						{JSON.stringify({ activeUI: context.activeUI })}
 					</div>
 				</div>
 			);
@@ -83,13 +83,13 @@ describe('ConsentManagerProvider Context Values', () => {
 		await vi.runAllTimersAsync();
 
 		// Verify our mock was called
-		expect(modifyContextShowPopup).toHaveBeenCalled();
+		expect(modifyContextActiveUI).toHaveBeenCalled();
 
 		// Wait for values to be available (with generous timeout)
 		await vi.waitFor(
 			() => {
 				expect(getByTestId('has-manager')).toHaveTextContent('true');
-				expect(getByTestId('show-popup')).toHaveTextContent('true');
+				expect(getByTestId('active-ui')).toHaveTextContent('true');
 			},
 			{ timeout: 3000 }
 		);

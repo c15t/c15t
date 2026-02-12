@@ -1,6 +1,7 @@
 import { Slot } from '@radix-ui/react-slot';
 import type { AllConsentNames } from 'c15t';
 import { forwardRef, type MouseEvent, useCallback } from 'react';
+import { useConsentTracking } from '~/context/consent-tracking-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
@@ -69,8 +70,8 @@ export const ConsentButton = forwardRef<
 		},
 		ref
 	) => {
-		const { saveConsents, setShowPopup, setIsPrivacyDialogOpen, setConsent } =
-			useConsentManager();
+		const { saveConsents, setActiveUI, setConsent } = useConsentManager();
+		const { uiSource } = useConsentTracking();
 		const { noStyle: contextNoStyle } = useTheme();
 
 		const defaultThemeKey =
@@ -102,19 +103,14 @@ export const ConsentButton = forwardRef<
 
 		const buttonClick = useCallback(
 			(e: MouseEvent<HTMLButtonElement>) => {
-				// Handle UI first - prioritize closing dialogs
-				if (closeConsentBanner) {
-					setShowPopup(false);
-				}
-
-				if (closeConsentDialog) {
-					setIsPrivacyDialogOpen(false);
+				// Handle UI first - prioritize closing dialogs/banners
+				if (closeConsentBanner || closeConsentDialog) {
+					setActiveUI('none');
 				}
 
 				// Open privacy dialog if needed
 				if (action === 'open-consent-dialog') {
-					setIsPrivacyDialogOpen(true);
-					setShowPopup(false, true);
+					setActiveUI('dialog');
 				}
 
 				// Call the user's onClick handler after UI updates
@@ -123,15 +119,16 @@ export const ConsentButton = forwardRef<
 				}
 
 				if (action !== 'open-consent-dialog') {
+					const consentOptions = uiSource ? { uiSource } : undefined;
 					switch (action) {
 						case 'accept-consent':
-							saveConsents('all');
+							saveConsents('all', consentOptions);
 							break;
 						case 'reject-consent':
-							saveConsents('necessary');
+							saveConsents('necessary', consentOptions);
 							break;
 						case 'custom-consent':
-							saveConsents('custom');
+							saveConsents('custom', consentOptions);
 							break;
 						case 'set-consent':
 							if (!category) {
@@ -150,11 +147,11 @@ export const ConsentButton = forwardRef<
 				closeConsentDialog,
 				forwardedOnClick,
 				saveConsents,
-				setIsPrivacyDialogOpen,
-				setShowPopup,
+				setActiveUI,
 				action,
 				category,
 				setConsent,
+				uiSource,
 			]
 		);
 

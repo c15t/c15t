@@ -11,6 +11,7 @@ import {
 	useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
@@ -65,6 +66,18 @@ interface ConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	 * @default true
 	 */
 	trapFocus?: boolean;
+
+	/**
+	 * Which consent models this banner responds to.
+	 * @default ['opt-in', 'opt-out']
+	 */
+	models?: import('c15t').Model[];
+
+	/**
+	 * Override the UI source identifier sent with consent API calls.
+	 * @default 'banner'
+	 */
+	uiSource?: string;
 }
 
 /**
@@ -111,6 +124,8 @@ const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
 	disableAnimation,
 	scrollLock,
 	trapFocus = true,
+	models,
+	uiSource,
 	...props
 }) => {
 	/**
@@ -125,16 +140,19 @@ const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
 	};
 
 	return (
-		<LocalThemeContext.Provider value={contextValue}>
-			<ConsentBannerRootChildren
-				disableAnimation={disableAnimation}
-				className={className}
-				noStyle={noStyle}
-				{...props}
-			>
-				{children}
-			</ConsentBannerRootChildren>
-		</LocalThemeContext.Provider>
+		<ConsentTrackingContext.Provider value={{ uiSource: uiSource ?? 'banner' }}>
+			<LocalThemeContext.Provider value={contextValue}>
+				<ConsentBannerRootChildren
+					disableAnimation={disableAnimation}
+					className={className}
+					noStyle={noStyle}
+					models={models}
+					{...props}
+				>
+					{children}
+				</ConsentBannerRootChildren>
+			</LocalThemeContext.Provider>
+		</ConsentTrackingContext.Provider>
 	);
 };
 
@@ -166,6 +184,12 @@ interface ConsentBannerRootChildrenProps
 	asChild?: boolean;
 
 	disableAnimation?: boolean;
+
+	/**
+	 * Which consent models this banner responds to.
+	 * @default ['opt-in', 'opt-out']
+	 */
+	models?: import('c15t').Model[];
 }
 
 /**
@@ -218,6 +242,7 @@ const ConsentBannerRootChildren = forwardRef<
 			className: forwardedClassName,
 			disableAnimation,
 			noStyle,
+			models = ['opt-in'],
 			...props
 		}: ConsentBannerRootChildrenProps & {
 			style?: CSSProperties;
@@ -225,16 +250,14 @@ const ConsentBannerRootChildren = forwardRef<
 		},
 		ref
 	) => {
-		const { showPopup, translationConfig, model, iab } = useConsentManager();
+		const { activeUI, translationConfig, model } = useConsentManager();
 		const textDirection = useTextDirection(translationConfig.defaultLanguage);
 		const [isVisible, setIsVisible] = useState(false);
 		const [hasAnimated, setHasAnimated] = useState(false);
 		const [animationDurationMs, setAnimationDurationMs] = useState(200); // Default fallback for SSR
 
-		// ConsentBanner only shows when IAB is NOT enabled (use IABConsentBanner for IAB mode)
-		// Check both: IAB not configured (null) OR IAB configured but disabled by server
-		const isIABActive = iab?.config.enabled;
-		const shouldShowBanner = model === 'opt-in' && showPopup && !isIABActive;
+		// ConsentBanner shows when activeUI is 'banner' and the current model matches
+		const shouldShowBanner = activeUI === 'banner' && models.includes(model);
 
 		// Get animation duration from CSS custom property (client-side only)
 		useEffect(() => {
@@ -250,7 +273,7 @@ const ConsentBannerRootChildren = forwardRef<
 		// Handle animation visibility state
 		useEffect(() => {
 			if (shouldShowBanner) {
-				// If showPopup is true but we haven't animated yet, trigger the animation
+				// If banner is showing but we haven't animated yet, trigger the animation
 				if (hasAnimated) {
 					setIsVisible(true);
 				} else {

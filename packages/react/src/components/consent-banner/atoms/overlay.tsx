@@ -44,25 +44,26 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
  * - Proper z-indexing for modal behavior
  * - Theme-based styling
  *
- * The overlay visibility is controlled by the `showPopup` state from ConsentBanner context,
+ * The overlay visibility is controlled by the `activeUI` state from ConsentBanner context,
  * and its animation behavior is controlled by the `disableAnimation` flag.
  *
  * @public
  */
 const ConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 	({ className, style, noStyle, asChild, ...props }, ref) => {
-		const { showPopup } = useConsentManager();
+		const { activeUI } = useConsentManager();
 		const {
 			disableAnimation,
 			noStyle: contextNoStyle,
 			scrollLock,
 		} = useTheme();
 
+		const showBanner = activeUI === 'banner';
 		const [isVisible, setIsVisible] = useState(false);
 
 		// Handle animation visibility state
 		useEffect(() => {
-			if (showPopup) {
+			if (showBanner) {
 				setIsVisible(true);
 			} else if (disableAnimation) {
 				setIsVisible(false);
@@ -78,7 +79,7 @@ const ConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 				}, animationDurationMs); // Match CSS animation duration
 				return () => clearTimeout(timer);
 			}
-		}, [showPopup, disableAnimation]);
+		}, [showBanner, disableAnimation]);
 
 		// Apply theme styles
 		const theme = useStyles('consentBannerOverlay', {
@@ -101,9 +102,9 @@ const ConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 		// Combine theme className with animation class if needed
 		const finalClassName = cn(theme.className, animationClass);
 
-		useScrollLock(!!(showPopup && scrollLock));
+		useScrollLock(!!(showBanner && scrollLock));
 
-		return showPopup && scrollLock ? (
+		return showBanner && scrollLock ? (
 			<div
 				ref={ref}
 				{...props}

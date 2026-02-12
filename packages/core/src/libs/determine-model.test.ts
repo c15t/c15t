@@ -42,8 +42,13 @@ describe('determineModel', () => {
 		expect(result).toBe('opt-in');
 	});
 
-	it('should return opt-in for PIPEDA jurisdiction', () => {
+	it('should return opt-out for PIPEDA jurisdiction', () => {
 		const result = determineModel('PIPEDA');
+		expect(result).toBe('opt-out');
+	});
+
+	it('should return opt-in for QC_LAW25 jurisdiction', () => {
+		const result = determineModel('QC_LAW25');
 		expect(result).toBe('opt-in');
 	});
 
@@ -72,8 +77,10 @@ describe('determineModel', () => {
 			// CCPA should still be opt-out even with IAB enabled
 			expect(determineModel('CCPA', true)).toBe('opt-out');
 
+			// PIPEDA should still be opt-out even with IAB enabled
+			expect(determineModel('PIPEDA', true)).toBe('opt-out');
+
 			// Other opt-in jurisdictions should stay opt-in (IAB only applies to GDPR)
-			expect(determineModel('PIPEDA', true)).toBe('opt-in');
 			expect(determineModel('APPI', true)).toBe('opt-in');
 			expect(determineModel('CH', true)).toBe('opt-in');
 			expect(determineModel('BR', true)).toBe('opt-in');

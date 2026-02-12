@@ -52,7 +52,7 @@ export interface ConsentDialogProps {
 
 	/**
 	 * Control the open state. If omitted the dialog follows
-	 * `useConsentManager().isPrivacyDialogOpen`.
+	 * `useConsentManager().activeUI === 'dialog'`.
 	 */
 	open?: boolean;
 
@@ -100,6 +100,18 @@ export interface ConsentDialogProps {
 	 * @default false
 	 */
 	showTrigger?: boolean | ConsentDialogTriggerProps;
+
+	/**
+	 * Which consent models this dialog responds to.
+	 * @default ['opt-in', 'opt-out']
+	 */
+	models?: import('c15t').Model[];
+
+	/**
+	 * Override the UI source identifier sent with consent API calls.
+	 * @default 'dialog'
+	 */
+	uiSource?: string;
 }
 
 export const ConsentDialog: FC<ConsentDialogProps> = ({
@@ -111,6 +123,8 @@ export const ConsentDialog: FC<ConsentDialogProps> = ({
 	hideBranding,
 	legalLinks,
 	showTrigger = false,
+	models,
+	uiSource,
 }) => {
 	// Merge local props with global theme context
 	const config = useComponentConfig({
@@ -121,12 +135,14 @@ export const ConsentDialog: FC<ConsentDialogProps> = ({
 	});
 
 	// Consent-manager state controls open/close when `open` prop is undefined
-	const { isPrivacyDialogOpen } = useConsentManager();
+	const { activeUI } = useConsentManager();
 
 	// Compose the props we want to forward to the Root primitive
 	const rootProps = {
-		open: open ?? isPrivacyDialogOpen,
+		open: open ?? activeUI === 'dialog',
 		...config,
+		models,
+		uiSource,
 	};
 
 	// Resolve trigger props

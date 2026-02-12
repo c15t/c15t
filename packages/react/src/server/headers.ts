@@ -17,6 +17,7 @@ const FORWARDED_HEADERS = [
 	'user-agent',
 	'x-forwarded-host',
 	'x-forwarded-for',
+	'sec-gpc',
 ] as const;
 
 type ForwardedHeader =

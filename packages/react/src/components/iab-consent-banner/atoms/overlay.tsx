@@ -14,7 +14,7 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
 
 const IABConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 	({ className, style, noStyle, ...props }, ref) => {
-		const { showPopup, iab } = useConsentManager();
+		const { activeUI } = useConsentManager();
 		const {
 			disableAnimation,
 			noStyle: contextNoStyle,
@@ -23,9 +23,8 @@ const IABConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 
 		const [isVisible, setIsVisible] = useState(false);
 
-		// Only show for IAB mode (check that IAB is configured AND enabled)
-		const isIABActive = iab?.config.enabled;
-		const shouldShow = showPopup && isIABActive;
+		// Show when banner is active (model filtering is handled by the root component)
+		const shouldShow = activeUI === 'banner';
 
 		useEffect(() => {
 			if (shouldShow) {

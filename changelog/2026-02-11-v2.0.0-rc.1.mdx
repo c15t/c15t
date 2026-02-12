@@ -69,6 +69,10 @@ Banner visibility is now driven by jurisdiction and model detection with built-i
 
 The legacy tracking blocker has been removed. The new [network blocker](/docs/frameworks/react/network-blocker) intercepts `fetch`/`XMLHttpRequest` and blocks requests based on consent and domain rules. The default list of blocked domains has been removed.
 
+### Replaced showPopup & isPrivacyDialogOpen with activeUI
+
+Replaced showPopup & isPrivacyDialogOpen with activeUI / setActiveUI for more deterministic component rendering: `none | 'banner' | 'dialog'`.
+
 ### Component Renames
 
 Components have been renamed for clarity:
@@ -199,6 +203,7 @@ All c15t components now respect the `prefers-reduced-motion` OS setting, automat
 
 ## Improvements
 
+- Canada jurisdiction now correctly distinguishes Quebec (Law 25, opt-in) from the rest of Canada (PIPEDA, opt-out), matching how CCPA is region-specific to California
 - c15t/backend's bundle size in a Cloudflare Worker is now 60% smaller (1.92mb), reducing start times in serverless enviroments.
 - Removed redundant columns and tables in c15t/backend
 - Complete [documentation overhaul](/docs) covering every component, hook, and API

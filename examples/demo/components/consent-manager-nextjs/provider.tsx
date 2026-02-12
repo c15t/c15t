@@ -1,13 +1,14 @@
 'use client';
+
 import {
+	ConsentDialog,
+	ConsentDialogTrigger,
 	ConsentManagerProps,
 	ConsentManagerProvider,
-	IABBanner,
-	IABPreferenceCenter,
-	PreferenceCenterTrigger,
+	IABConsentBanner,
+	IABConsentDialog,
 } from '@c15t/nextjs';
 import { baseTranslations } from '@c15t/translations';
-import type { ReactNode } from 'react';
 import CookieBanner from './cookie-banner';
 
 export default function ({ children, ssrData }: ConsentManagerProps) {
@@ -17,7 +18,6 @@ export default function ({ children, ssrData }: ConsentManagerProps) {
 				mode: 'c15t',
 				ssrData,
 				backendURL: '/api/self-host',
-				// backendURL: 'https://minecraft-europe-hypixel.c15t.xyz',
 				consentCategories: ['necessary', 'marketing', 'measurement'],
 				iab: {
 					enabled: true,
@@ -85,9 +85,10 @@ export default function ({ children, ssrData }: ConsentManagerProps) {
 			}}
 		>
 			<CookieBanner />
-			<IABBanner />
-			<IABPreferenceCenter />
-			<PreferenceCenterTrigger />
+			<ConsentDialog />
+			<IABConsentBanner />
+			<IABConsentDialog />
+			<ConsentDialogTrigger />
 			{children}
 		</ConsentManagerProvider>
 	);

@@ -50,6 +50,18 @@ export interface IABConsentBannerProps {
 	 * @default 'customize'
 	 */
 	primaryButton?: 'reject' | 'accept' | 'customize';
+
+	/**
+	 * Which consent models this banner responds to.
+	 * @default ['iab']
+	 */
+	models?: import('c15t').Model[];
+
+	/**
+	 * Override the UI source identifier sent with consent API calls.
+	 * @default 'iab_banner'
+	 */
+	uiSource?: string;
 }
 
 /**
@@ -79,13 +91,11 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	scrollLock: localScrollLock = true,
 	trapFocus: localTrapFocus = true,
 	primaryButton = 'customize',
+	models,
+	uiSource,
 }) => {
 	const iabT = useIABTranslations();
-	const {
-		iab: iabState,
-		setShowPopup,
-		setIsPrivacyDialogOpen,
-	} = useConsentManager();
+	const { iab: iabState, setActiveUI } = useConsentManager();
 
 	const cardRef = useRef<HTMLDivElement>(null);
 
@@ -227,23 +237,23 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	const handleAcceptAll = () => {
 		iabState?.acceptAll();
 		iabState?.save();
-		setShowPopup(false);
+		setActiveUI('none');
 	};
 
 	const handleRejectAll = () => {
 		iabState?.rejectAll();
 		iabState?.save();
-		setShowPopup(false);
+		setActiveUI('none');
 	};
 
 	const handleCustomize = () => {
 		iabState?.setPreferenceCenterTab('purposes');
-		setIsPrivacyDialogOpen(true);
+		setActiveUI('dialog');
 	};
 
 	const handleViewVendors = () => {
 		iabState?.setPreferenceCenterTab('vendors');
-		setIsPrivacyDialogOpen(true);
+		setActiveUI('dialog');
 	};
 
 	// Focus trap
@@ -272,7 +282,7 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	const scopeNotice = iabT.banner.scopeServiceSpecific;
 
 	return (
-		<IABConsentBannerRoot {...config}>
+		<IABConsentBannerRoot {...config} models={models} uiSource={uiSource}>
 			<Box
 				ref={cardRef}
 				baseClassName={styles.card}

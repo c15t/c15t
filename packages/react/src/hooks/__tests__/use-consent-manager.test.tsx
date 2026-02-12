@@ -89,7 +89,7 @@ describe('useConsentManager', () => {
 		});
 
 		expect(result.current).toBeDefined();
-		expect(typeof result.current.showPopup).toBe('boolean');
+		expect(typeof result.current.activeUI).toBe('string');
 	});
 
 	test('provides manager object when configured', async () => {

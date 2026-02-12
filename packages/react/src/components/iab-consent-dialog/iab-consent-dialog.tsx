@@ -24,6 +24,7 @@ import {
 	type ConsentDialogTriggerProps,
 } from '~/components/consent-dialog-trigger';
 import * as Button from '~/components/shared/ui/button';
+import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
@@ -49,7 +50,7 @@ import { useIABTranslations } from './use-iab-translations';
  */
 export interface IABConsentDialogProps {
 	/**
-	 * Control the open state. If omitted, follows isPrivacyDialogOpen from context.
+	 * Control the open state. If omitted, follows activeUI === 'dialog' from context.
 	 */
 	open?: boolean;
 
@@ -94,6 +95,18 @@ export interface IABConsentDialogProps {
 	 * @default false
 	 */
 	showTrigger?: boolean | ConsentDialogTriggerProps;
+
+	/**
+	 * Which consent models this dialog responds to.
+	 * @default ['iab']
+	 */
+	models?: import('c15t').Model[];
+
+	/**
+	 * Override the UI source identifier sent with consent API calls.
+	 * @default 'iab_dialog'
+	 */
+	uiSource?: string;
 }
 
 /**
@@ -117,14 +130,16 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	trapFocus: localTrapFocus = true,
 	hideBranding,
 	showTrigger = false,
+	models = ['iab'],
+	uiSource: _uiSource,
 }) => {
 	const iabTranslations = useIABTranslations();
 	const {
 		iab: iabState,
-		isPrivacyDialogOpen,
-		setIsPrivacyDialogOpen,
-		setShowPopup,
+		activeUI,
+		setActiveUI,
 		translationConfig,
+		model,
 	} = useConsentManager();
 
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
@@ -142,7 +157,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const [isMounted, setIsMounted] = useState(false);
 	const [isVisible, setIsVisible] = useState(false);
 
-	const isOpen = open ?? isPrivacyDialogOpen;
+	const isOpen = open ?? (activeUI === 'dialog' && models.includes(model));
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
@@ -466,25 +481,22 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const handleAcceptAll = () => {
 		iabState?.acceptAll();
 		iabState?.save();
-		setIsPrivacyDialogOpen(false);
-		setShowPopup(false);
+		setActiveUI('none');
 	};
 
 	const handleRejectAll = () => {
 		iabState?.rejectAll();
 		iabState?.save();
-		setIsPrivacyDialogOpen(false);
-		setShowPopup(false);
+		setActiveUI('none');
 	};
 
 	const handleSave = () => {
 		iabState?.save();
-		setIsPrivacyDialogOpen(false);
-		setShowPopup(false);
+		setActiveUI('none');
 	};
 
 	const handleClose = () => {
-		setIsPrivacyDialogOpen(false);
+		setActiveUI('none');
 	};
 
 	const handleVendorClick = (vendorId: VendorId) => {
@@ -624,7 +636,9 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const isLoading = iabState.isLoadingGVL || !iabState.gvl;
 
 	const dialogContent = (
-		<>
+		<ConsentTrackingContext.Provider
+			value={{ uiSource: _uiSource ?? 'iab_dialog' }}
+		>
 			<IABConsentDialogOverlay isOpen={isOpen} />
 			<div
 				className={`${styles.root} ${isVisible ? styles.dialogVisible : styles.dialogHidden}`}
@@ -983,7 +997,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 					)}
 				</div>
 			</div>
-		</>
+		</ConsentTrackingContext.Provider>
 	);
 
 	// Resolve trigger props

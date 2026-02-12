@@ -3,6 +3,7 @@
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.css';
 import { type FC, type ReactNode, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
@@ -12,13 +13,23 @@ import { IABConsentDialogOverlay } from './overlay';
 interface IABConsentDialogRootProps {
 	children: ReactNode;
 	/**
-	 * Control the open state. If omitted, follows isPrivacyDialogOpen from context.
+	 * Control the open state. If omitted, follows activeUI === 'dialog' from context.
 	 */
 	open?: boolean;
 	noStyle?: boolean;
 	disableAnimation?: boolean;
 	scrollLock?: boolean;
 	trapFocus?: boolean;
+	/**
+	 * Which consent models this dialog responds to.
+	 * @default ['iab']
+	 */
+	models?: import('c15t').Model[];
+	/**
+	 * Override the UI source identifier sent with consent API calls.
+	 * @default 'iab_dialog'
+	 */
+	uiSource?: string;
 }
 
 /**
@@ -32,22 +43,26 @@ interface IABConsentDialogRootProps {
 const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	children,
 	open,
+	models = ['iab'],
 	noStyle,
 	disableAnimation,
 	scrollLock = true,
 	trapFocus = true,
+	uiSource,
 }) => {
 	const {
-		isPrivacyDialogOpen,
+		activeUI,
 		translationConfig,
 		iab: iabState,
+		model,
 	} = useConsentManager();
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
 	const [isMounted, setIsMounted] = useState(false);
 	const [isVisible, setIsVisible] = useState(false);
 
-	const isOpen = open ?? isPrivacyDialogOpen;
+	// IABConsentDialog only opens when the consent model matches
+	const isOpen = models.includes(model) && (open ?? activeUI === 'dialog');
 
 	const contextValue = {
 		disableAnimation,
@@ -88,16 +103,20 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	}
 
 	const dialogContent = (
-		<LocalThemeContext.Provider value={contextValue}>
-			<IABConsentDialogOverlay isOpen={isOpen} />
-			<div
-				className={`${styles.root} ${isVisible ? styles.dialogVisible : styles.dialogHidden}`}
-				data-testid="iab-consent-dialog-root"
-				dir={textDirection}
-			>
-				{children}
-			</div>
-		</LocalThemeContext.Provider>
+		<ConsentTrackingContext.Provider
+			value={{ uiSource: uiSource ?? 'iab_dialog' }}
+		>
+			<LocalThemeContext.Provider value={contextValue}>
+				<IABConsentDialogOverlay isOpen={isOpen} />
+				<div
+					className={`${styles.root} ${isVisible ? styles.dialogVisible : styles.dialogHidden}`}
+					data-testid="iab-consent-dialog-root"
+					dir={textDirection}
+				>
+					{children}
+				</div>
+			</LocalThemeContext.Provider>
+		</ConsentTrackingContext.Provider>
 	);
 
 	return createPortal(dialogContent, document.body);

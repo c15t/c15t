@@ -2,8 +2,8 @@
  * Jurisdiction code type for privacy regulations
  */
 export type JurisdictionCode =
-	| 'UK_GDPR'
-	| 'GDPR'
+	| 'UK_GDPR' // United Kingdom's GDPR
+	| 'GDPR' // European Union's GDPR (includes EEA)
 	| 'CH'
 	| 'BR'
 	| 'PIPEDA'
@@ -11,6 +11,7 @@ export type JurisdictionCode =
 	| 'APPI'
 	| 'PIPA'
 	| 'CCPA'
+	| 'QC_LAW25' // Quebec's Bill 25
 	| 'NONE';
 
 /**

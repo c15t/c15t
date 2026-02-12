@@ -65,6 +65,29 @@ describe('extractRelevantHeaders', () => {
 		expect(result).toEqual({});
 	});
 
+	it('should extract sec-gpc header when present', () => {
+		const headers = new Headers();
+		headers.set('sec-gpc', '1');
+		headers.set('cf-ipcountry', 'CA');
+
+		const result = extractRelevantHeaders(headers);
+
+		expect(result).toEqual({
+			'sec-gpc': '1',
+			'cf-ipcountry': 'CA',
+			'x-c15t-country': 'CA',
+		});
+	});
+
+	it('should not include sec-gpc when not present', () => {
+		const headers = new Headers();
+		headers.set('cf-ipcountry', 'US');
+
+		const result = extractRelevantHeaders(headers);
+
+		expect(result).not.toHaveProperty('sec-gpc');
+	});
+
 	it('should add c15t headers when corresponding headers are present', () => {
 		const headers = new Headers();
 

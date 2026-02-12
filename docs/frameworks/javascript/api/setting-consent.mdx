@@ -71,8 +71,8 @@ Reset all consent preferences to their defaults. This clears stored consent and 
 const state = consentStore.getState();
 state.resetConsents();
 
-// To show the banner again after resetting, call setShowPopup manually
-consentStore.getState().setShowPopup(true, true);
+// To show the banner again after resetting, call setActiveUI manually
+consentStore.getState().setActiveUI('banner', { force: true });
 ```
 
 ## Full Preference Dialog Flow
@@ -89,7 +89,7 @@ const { consentStore } = getOrCreateConsentRuntime({
 });
 
 // 1. User opens the preference dialog
-consentStore.getState().setIsPrivacyDialogOpen(true);
+consentStore.getState().setActiveUI('dialog');
 
 // 2. Render toggles from displayed consents
 const displayed = consentStore.getState().getDisplayedConsents();
@@ -106,5 +106,5 @@ consentStore.getState().setSelectedConsent('marketing', false);
 await consentStore.getState().saveConsents('custom');
 
 // 5. Close the dialog
-consentStore.getState().setIsPrivacyDialogOpen(false);
+consentStore.getState().setActiveUI('none');
 ```

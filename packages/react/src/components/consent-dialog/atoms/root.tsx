@@ -11,6 +11,7 @@ import styles from '@c15t/ui/styles/components/consent-dialog.module.css';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import {
 	LocalThemeContext,
 	type ThemeContextValue,
@@ -40,9 +41,15 @@ export interface ConsentDialogRootProps
 
 	/**
 	 * Explicitly control the open state of the dialog. If omitted, the dialog
-	 * relies on the consent manager (`isPrivacyDialogOpen`) value.
+	 * relies on the consent manager (`activeUI === 'dialog'`) value.
 	 */
 	open?: boolean;
+
+	/**
+	 * Which consent models this dialog responds to.
+	 * @default ['opt-in', 'opt-out']
+	 */
+	models?: import('c15t').Model[];
 
 	/**
 	 * When true, the component will not apply any internal styles.
@@ -71,6 +78,12 @@ export interface ConsentDialogRootProps
 	 * @default undefined (builtin overlay)
 	 */
 	overlay?: ReactNode | false;
+
+	/**
+	 * Override the UI source identifier sent with consent API calls.
+	 * @default 'dialog'
+	 */
+	uiSource?: string;
 }
 
 /**
@@ -89,11 +102,13 @@ export interface ConsentDialogRootProps
 const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	children,
 	open: openProp,
+	models = ['opt-in', 'opt-out'],
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
 	scrollLock: localScrollLock = true,
 	trapFocus: localTrapFocus = true,
 	overlay,
+	uiSource,
 	className,
 	style,
 	...rest
@@ -108,14 +123,11 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	const trapFocus = localTrapFocus ?? globalTheme.trapFocus ?? true;
 
 	// Consent manager state
-	const { isPrivacyDialogOpen, translationConfig, iab } = useConsentManager();
+	const { activeUI, translationConfig, model } = useConsentManager();
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
 	// Final open state (controlled or managed by consent manager)
-	// ConsentDialog only shows when IAB is NOT enabled (use IABConsentDialog for IAB mode)
-	// Check both: IAB not configured (null) OR IAB configured but disabled by server
-	const isIABActive = iab?.config.enabled;
-	const isOpen = !isIABActive && (openProp ?? isPrivacyDialogOpen);
+	const isOpen = models.includes(model) && (openProp ?? activeUI === 'dialog');
 
 	// Animation visibility flag – mirrors logic in original component
 	const [isVisible, setIsVisible] = useState(false);
@@ -180,42 +192,44 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	};
 
 	const dialogNode = (
-		<LocalThemeContext.Provider value={contextValue}>
-			{isOpen && (
-				<>
-					{/* Backdrop (customisable) */}
-					{overlay === false ? null : (overlay ?? <Overlay />)}
+		<ConsentTrackingContext.Provider value={{ uiSource: uiSource ?? 'dialog' }}>
+			<LocalThemeContext.Provider value={contextValue}>
+				{isOpen && (
+					<>
+						{/* Backdrop (customisable) */}
+						{overlay === false ? null : (overlay ?? <Overlay />)}
 
-					<dialog
-						ref={dialogRef}
-						{...rest}
-						{...themedStyle}
-						className={themedStyle.className}
-						aria-labelledby="privacy-settings-title"
-						tabIndex={-1}
-						dir={textDirection}
-						data-testid="consent-dialog-root"
-						open
-					>
-						<div
-							ref={contentRef}
-							className={
-								noStyle
-									? undefined
-									: cn(
-											styles.container,
-											!disableAnimation && isVisible
-												? styles.contentVisible
-												: styles.contentHidden
-										)
-							}
+						<dialog
+							ref={dialogRef}
+							{...rest}
+							{...themedStyle}
+							className={themedStyle.className}
+							aria-labelledby="privacy-settings-title"
+							tabIndex={-1}
+							dir={textDirection}
+							data-testid="consent-dialog-root"
+							open
 						>
-							{children}
-						</div>
-					</dialog>
-				</>
-			)}
-		</LocalThemeContext.Provider>
+							<div
+								ref={contentRef}
+								className={
+									noStyle
+										? undefined
+										: cn(
+												styles.container,
+												!disableAnimation && isVisible
+													? styles.contentVisible
+													: styles.contentHidden
+											)
+								}
+							>
+								{children}
+							</div>
+						</dialog>
+					</>
+				)}
+			</LocalThemeContext.Provider>
+		</ConsentTrackingContext.Provider>
 	);
 
 	if (!isMounted) {

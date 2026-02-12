@@ -140,10 +140,6 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 						id: '123',
 						identityProvider: 'custom',
 					},
-					overrides: {
-						country: 'GB',
-						region: 'CA',
-					},
 					translations: {
 						translations: {
 							zh: {
@@ -160,6 +156,10 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 							},
 						},
 					},
+					overrides: {
+						country: 'CA',
+						region: 'QC',
+					},
 				}}
 			>
 				<ConsentBanner />
@@ -167,6 +167,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 				<IABConsentDialog />
 				<ConsentDialogTrigger />
 				<ConsentDialog />
+				<C15TDevTools />
 				{children}
 			</ConsentManagerProvider>
 		</>
