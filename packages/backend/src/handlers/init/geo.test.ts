@@ -242,11 +242,31 @@ describe('checkJurisdiction', () => {
 			}
 		});
 
+		it('should handle dash-separated region codes for Quebec', () => {
+			const cases = ['CA-QC', 'ca-qc', 'Ca-Qc'];
+
+			for (const region of cases) {
+				const jurisdiction = checkJurisdiction('CA', region);
+
+				expect(jurisdiction).toBe('QC_LAW25');
+			}
+		});
+
 		it('should return PIPEDA for non-Quebec Canadian provinces', () => {
 			const nonQuebecRegions = ['ON', 'BC', 'AB', null];
 
 			for (const region of nonQuebecRegions) {
 				const jurisdiction = checkJurisdiction('CA', region as string | null);
+
+				expect(jurisdiction).toBe('PIPEDA');
+			}
+		});
+
+		it('should return PIPEDA for dash-separated non-Quebec Canadian provinces', () => {
+			const nonQuebecRegions = ['CA-ON', 'CA-BC', 'CA-AB'];
+
+			for (const region of nonQuebecRegions) {
+				const jurisdiction = checkJurisdiction('CA', region);
 
 				expect(jurisdiction).toBe('PIPEDA');
 			}
@@ -264,11 +284,31 @@ describe('checkJurisdiction', () => {
 			}
 		});
 
+		it('should handle dash-separated region codes for California', () => {
+			const cases = ['US-CA', 'us-ca', 'Us-Ca'];
+
+			for (const region of cases) {
+				const jurisdiction = checkJurisdiction('US', region);
+
+				expect(jurisdiction).toBe('CCPA');
+			}
+		});
+
 		it('should not apply CCPA for non-CCPA US regions', () => {
 			const nonCcpaRegions = ['NY', 'TX', 'WA', 'FL', null];
 
 			for (const region of nonCcpaRegions) {
 				const jurisdiction = checkJurisdiction('US', region as string | null);
+
+				expect(jurisdiction).toBe('NONE');
+			}
+		});
+
+		it('should not apply CCPA for dash-separated non-CCPA US regions', () => {
+			const nonCcpaRegions = ['US-NY', 'US-TX', 'US-WA'];
+
+			for (const region of nonCcpaRegions) {
+				const jurisdiction = checkJurisdiction('US', region);
 
 				expect(jurisdiction).toBe('NONE');
 			}

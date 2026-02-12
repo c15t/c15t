@@ -166,11 +166,31 @@ describe('checkJurisdiction', () => {
 			}
 		});
 
+		it('should handle dash-separated region codes for Quebec', () => {
+			const cases = ['CA-QC', 'ca-qc', 'Ca-Qc'];
+
+			for (const region of cases) {
+				const result = checkJurisdiction('CA', region);
+
+				expect(result).toBe('QC_LAW25');
+			}
+		});
+
 		it('should return PIPEDA for non-Quebec Canadian provinces', () => {
 			const nonQuebecRegions = ['ON', 'BC', 'AB', null];
 
 			for (const region of nonQuebecRegions) {
 				const result = checkJurisdiction('CA', region as string | null);
+
+				expect(result).toBe('PIPEDA');
+			}
+		});
+
+		it('should return PIPEDA for dash-separated non-Quebec Canadian provinces', () => {
+			const nonQuebecRegions = ['CA-ON', 'CA-BC', 'CA-AB'];
+
+			for (const region of nonQuebecRegions) {
+				const result = checkJurisdiction('CA', region);
 
 				expect(result).toBe('PIPEDA');
 			}
