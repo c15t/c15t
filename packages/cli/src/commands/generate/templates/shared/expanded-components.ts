@@ -3,7 +3,7 @@
  * Generates separate files in consent-manager/ directory:
  * - provider.tsx (client provider wrapper)
  * - consent-banner.tsx (compound components)
- * - preference-center.tsx (compound component dialog)
+ * - consent-dialog.tsx (compound component dialog)
  * - theme.ts (theme preset)
  *
  * Parameterized by FrameworkConfig so it can be reused across
@@ -32,53 +32,50 @@ export function generateExpandedProviderTemplate({
 	optionsText,
 	framework,
 }: GenerateExpandedProviderOptions): string {
-	const propsInterface = enableSSR
-		? `interface Props {
+	const useConsentManagerProps = enableSSR && framework.hasSSRProps;
+
+	let propsInterface: string;
+	let propsDestructure: string;
+	let typeImports: string;
+
+	if (useConsentManagerProps) {
+		propsInterface = '';
+		propsDestructure = '{ children, ssrData }: ConsentManagerProps';
+		typeImports = `import type { ConsentManagerProps } from '${framework.importSource}';`;
+	} else if (enableSSR) {
+		propsInterface = `\ninterface Props {
 	children: ReactNode;
 	ssrData?: InitialDataPromise;
-}`
-		: `interface Props {
+}\n`;
+		propsDestructure = '{ children, ssrData }: Props';
+		typeImports = `import type { InitialDataPromise } from '${framework.importSource}';`;
+	} else {
+		propsInterface = `\ninterface Props {
 	children: ReactNode;
-}`;
-
-	const propsDestructure = enableSSR
-		? '{ children, ssrData }: Props'
-		: '{ children }: Props';
-
-	const typeImports = enableSSR
-		? `import type { InitialDataPromise } from '${framework.importSource}';`
-		: '';
+}\n`;
+		propsDestructure = '{ children }: Props';
+		typeImports = '';
+	}
 
 	const ssrDataOption = enableSSR ? '\n\t\t\t\tssrData,' : '';
 	const devToolsImport = enableDevTools
 		? "import { C15TDevTools } from '@c15t/dev-tools/react';\n"
 		: '';
+	const reactNodeImport = useConsentManagerProps
+		? ''
+		: "import type { ReactNode } from 'react';\n";
 
 	return `'use client';
 
-import type { ReactNode } from 'react';
-import { ConsentManagerProvider } from '${framework.importSource}';
+${reactNodeImport}import { ConsentManagerProvider } from '${framework.importSource}';
 ${typeImports}
 ${devToolsImport}import ConsentBanner from './consent-banner';
-import PreferenceCenter from './preference-center';
+import ConsentDialog from './consent-dialog';
 import { theme } from './theme';
-
 ${propsInterface}
-
 /**
- * Client-side consent manager provider with expanded components
- *
- * This component handles:
- * - Consent state management
- * - Cookie banner display (using compound components)
- * - Preference center dialog (using compound components)${enableSSR ? '\n * - SSR data hydration' : ''}
- *
- * Customize the appearance by editing:
- * - ./consent-banner.tsx - Banner layout and structure
- * - ./preference-center.tsx - Dialog layout and structure
- * - ./theme.ts - Colors, typography, and styling
- *
- * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/customization
+ * Client-side consent manager provider with compound components.
+ * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/quickstart
  */
 export default function ConsentManagerClient(${propsDestructure}) {
 	return (
@@ -89,15 +86,11 @@ export default function ConsentManagerClient(${propsDestructure}) {
 				// Add your scripts here:
 				// scripts: [
 				//   googleTagManager({ id: 'GTM-XXXXXX' }),
-				// ],
-				// Add your callbacks here:
-				// callbacks: {
-				//   onConsentSet: (response) => console.log('Consent updated:', response),
-				// },
+				// ],${!enableSSR ? "\n\t\t\t\t// Shows banner during development. Remove for production.\n\t\t\t\toverrides: { country: 'DE' }," : ''}
 			}}
 		>
 			<ConsentBanner />
-			<PreferenceCenter />
+			<ConsentDialog />
 			${enableDevTools ? "<C15TDevTools disabled={process.env.NODE_ENV === 'production'} />" : ''}
 			{children}
 		</ConsentManagerProvider>
@@ -107,12 +100,12 @@ export default function ConsentManagerClient(${propsDestructure}) {
 }
 
 /**
- * Generates the preference-center.tsx component using compound components
+ * Generates the consent-dialog.tsx component using compound components
  *
  * @param framework - Framework-specific configuration
- * @returns The complete preference center file content
+ * @returns The complete consent dialog file content
  */
-export function generateExpandedPreferenceCenterTemplate(
+export function generateExpandedConsentDialogTemplate(
 	framework: FrameworkConfig
 ): string {
 	return `'use client';
@@ -121,23 +114,8 @@ import { ConsentWidget } from '${framework.importSource}';
 import { ConsentDialog } from '${framework.consentDialogImport}';
 
 /**
- * Consent preference center using compound components
- *
- * This component uses compound components for full control over the dialog structure.
- * You can rearrange, remove, or add new elements as needed.
- *
- * Available components:
- * - ConsentDialog.Root - Container that handles visibility and animations
- * - ConsentDialog.Overlay - Background overlay
- * - ConsentDialog.Card - The dialog card styling wrapper
- * - ConsentDialog.Header - Container for title and description
- * - ConsentDialog.HeaderTitle - The dialog title text
- * - ConsentDialog.HeaderDescription - Description text
- * - ConsentDialog.Content - Main content area
- * - ConsentDialog.Footer - Container for action buttons
- * - ConsentWidget - The consent categories/purposes widget
- *
- * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/consent-dialog
+ * Consent dialog using compound components.
+ * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/components/consent-dialog
  */
 export default function () {
 	return (
@@ -172,24 +150,8 @@ export function generateExpandedConsentBannerTemplate(
 import { ConsentBanner } from '${framework.consentBannerImport}';
 
 /**
- * Cookie consent banner using compound components
- *
- * This component uses compound components for full control over the banner structure.
- * You can rearrange, remove, or add new elements as needed.
- *
- * Available components:
- * - ConsentBanner.Root - Container that handles visibility and animations
- * - ConsentBanner.Card - The banner card styling wrapper
- * - ConsentBanner.Header - Container for title and description
- * - ConsentBanner.Title - The banner title text
- * - ConsentBanner.Description - Description text with optional legal links
- * - ConsentBanner.Footer - Container for buttons
- * - ConsentBanner.FooterSubGroup - Groups buttons together
- * - ConsentBanner.AcceptButton - Accept all button
- * - ConsentBanner.RejectButton - Reject all button
- * - ConsentBanner.CustomizeButton - Opens preferences dialog
- *
- * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/consent-banner
+ * Consent banner using compound components.
+ * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/components/consent-banner
  */
 export default function () {
 	return (
@@ -276,16 +238,16 @@ export const theme: Theme = {
 		full: '9999px',
 	},
 	slots: {
-		bannerCard:
+		consentBannerCard:
 			'border border-slate-200 bg-white/95 backdrop-blur-sm shadow-md',
-		dialogCard:
+		consentDialogCard:
 			'border border-slate-200 bg-white/95 backdrop-blur-md shadow-xl',
 		buttonPrimary:
 			'bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-colors',
 		buttonSecondary:
 			'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors',
-		bannerTitle: 'text-slate-900 font-semibold',
-		bannerDescription: 'text-slate-500',
+		consentBannerTitle: 'text-slate-900 font-semibold',
+		consentBannerDescription: 'text-slate-500',
 	},
 };
 `;
@@ -360,13 +322,13 @@ export const theme: Theme = {
 		lg: '0 4px 16px rgba(0, 0, 0, 0.08)',
 	},
 	slots: {
-		bannerCard: {
+		consentBannerCard: {
 			style: {
 				border: '1px solid var(--c15t-border)',
 				boxShadow: 'var(--c15t-shadow-sm)',
 			},
 		},
-		dialogCard: {
+		consentDialogCard: {
 			style: {
 				border: '1px solid var(--c15t-border)',
 				boxShadow: 'var(--c15t-shadow-lg)',
@@ -400,7 +362,7 @@ function generateDarkTheme(framework: FrameworkConfig): string {
 /**
  * Dark Mode Theme
  *
- * High contrast black and white theme (Vercel-style).
+ * High contrast black and white theme.
  * Stays dark regardless of system preference.
  * Uses standard CSS (no Tailwind dependency).
  *
@@ -450,14 +412,14 @@ export const theme: Theme = {
 		lg: '0 8px 16px rgba(0, 0, 0, 0.5)',
 	},
 	slots: {
-		bannerCard: {
+		consentBannerCard: {
 			style: {
 				backgroundColor: '#000000',
 				border: '1px solid #333333',
 				boxShadow: 'none',
 			},
 		},
-		dialogCard: {
+		consentDialogCard: {
 			style: {
 				backgroundColor: '#000000',
 				border: '1px solid #333333',

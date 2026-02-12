@@ -24,10 +24,16 @@ interface GenerateConsentComponentOptions {
 	defaultExport?: boolean;
 	/** Whether to add ssrData prop passed inside options object (App Dir client with SSR) */
 	ssrDataOption?: boolean;
-	/** Whether to add callbacks comment placeholder in options (App Dir client) */
-	callbacksPlaceholder?: boolean;
+	/** Whether to add geo override for development (shows banner in non-EU countries) */
+	includeOverrides?: boolean;
 	/** Whether to add c15t DevTools component */
 	enableDevTools?: boolean;
+	/** When set, use ConsentManagerProps from this package for props typing (e.g. '@c15t/nextjs') */
+	useFrameworkProps?: string;
+	/** When true, add theme import from './theme' and include in options */
+	includeTheme?: boolean;
+	/** Docs slug for @see URL (e.g. 'react', 'nextjs') */
+	docsSlug?: string;
 }
 
 /**
@@ -62,7 +68,7 @@ interface GenerateConsentComponentOptions {
  *   useClientDirective: true,
  *   defaultExport: true,
  *   ssrDataOption: true,
- *   callbacksPlaceholder: true,
+ *   includeOverrides: true,
  * });
  * ```
  */
@@ -74,8 +80,11 @@ export function generateConsentComponent({
 	useClientDirective = false,
 	defaultExport = false,
 	ssrDataOption = false,
-	callbacksPlaceholder = false,
+	includeOverrides = false,
 	enableDevTools = false,
+	useFrameworkProps,
+	includeTheme = false,
+	docsSlug,
 }: GenerateConsentComponentOptions): string {
 	// Generate scripts import and config
 	const scriptsImport = generateScriptsImport(selectedScripts);
@@ -85,17 +94,22 @@ export function generateConsentComponent({
 
 	// Build the full options object
 	const ssrDataLine = ssrDataOption ? '\n\t\t\t\tssrData,' : '';
-	const callbacksComment = callbacksPlaceholder
-		? `\n\t\t\t\t// Add your callbacks here:\n\t\t\t\t// callbacks: {\n\t\t\t\t//   onConsentSet: (response) => console.log('Consent updated:', response),\n\t\t\t\t// },`
+	const themeLine = includeTheme ? '\n\t\t\t\ttheme,' : '';
+	const overridesLine = includeOverrides
+		? `\n\t\t\t\t// Shows banner during development. Remove for production.\n\t\t\t\toverrides: { country: 'DE' },`
 		: '';
 
 	const fullOptionsText = `{
-			${optionsText}${ssrDataLine}
-			${scriptsConfig}${callbacksComment}
+			${optionsText}${ssrDataLine}${themeLine}
+			${scriptsConfig}${overridesLine}
 		}`;
 
-	// Whether we need InitialDataPromise type
-	const needsDataType = initialDataProp || ssrDataOption;
+	// When useFrameworkProps is set with ssrDataOption, use ConsentManagerProps from that source
+	const useConsentManagerProps = useFrameworkProps && ssrDataOption;
+
+	// Whether we need InitialDataPromise type (only when NOT using ConsentManagerProps)
+	const needsDataType =
+		(initialDataProp || ssrDataOption) && !useConsentManagerProps;
 
 	const namedImports = needsDataType
 		? `ConsentDialog,
@@ -106,9 +120,16 @@ export function generateConsentComponent({
 	ConsentManagerProvider,
 	ConsentBanner,`;
 
+	// Build framework props type import
+	const frameworkPropsImport = useConsentManagerProps
+		? `import type { ConsentManagerProps } from '${useFrameworkProps}';\n`
+		: '';
+
 	// Build component props
 	let propsDestructure: string;
-	if (ssrDataOption) {
+	if (useConsentManagerProps) {
+		propsDestructure = `{ children, ssrData }: ConsentManagerProps`;
+	} else if (ssrDataOption) {
 		propsDestructure = `{
 	children,
 	ssrData,
@@ -138,6 +159,7 @@ export function generateConsentComponent({
 	const devToolsImport = enableDevTools
 		? "import { C15TDevTools } from '@c15t/dev-tools/react';\n"
 		: '';
+	const themeImport = includeTheme ? "import { theme } from './theme';\n" : '';
 
 	// Build export
 	const componentName = defaultExport
@@ -152,6 +174,7 @@ export function generateConsentComponent({
 		defaultExport,
 		initialDataProp,
 		ssrDataOption,
+		docsSlug,
 	});
 
 	// Build pre-doc extras (e.g. client-only comment for Pages)
@@ -166,7 +189,7 @@ export function generateConsentComponent({
 import {
 	${namedImports}
 } from '${importSource}';
-${devToolsImport}${scriptsImport ? `${scriptsImport}\n` : ''}${preDocComment}${docComment}
+${frameworkPropsImport}${devToolsImport}${themeImport}${scriptsImport ? `${scriptsImport}\n` : ''}${preDocComment}${docComment}
 ${exportPrefix} ${componentName}(${propsDestructure}) {
 	return (
 		<ConsentManagerProvider${providerProps}>
@@ -184,80 +207,31 @@ function buildDocComment({
 	defaultExport,
 	initialDataProp,
 	ssrDataOption,
+	docsSlug,
 }: {
 	defaultExport: boolean;
 	initialDataProp: boolean;
 	ssrDataOption: boolean;
+	docsSlug?: string;
 }): string {
 	if (defaultExport) {
-		const ssrLine = ssrDataOption ? '\n * - SSR data hydration' : '';
+		const slug = docsSlug || 'nextjs';
 		return `/**
- * Client-side consent manager provider
- *
- * This component handles:
- * - Consent state management
- * - Cookie banner and dialog display
- * - Script loading based on consent${ssrLine}
- *
- * @see https://c15t.com/docs/frameworks/nextjs
+ * Client-side consent manager provider.
+ * @see https://c15t.com/docs/frameworks/${slug}/quickstart
  */`;
 	}
 
 	if (initialDataProp) {
 		return `/**
- * Consent management wrapper for Next.js Pages Router
- *
- * This component wraps your app with consent management functionality,
- * including the cookie banner, consent dialog, and provider.
- *
- * @param props - Component properties
- * @param props.children - Child components to render within the consent manager context
- * @param props.initialData - Initial consent data from server-side props (optional)
- *
- * @returns The consent manager provider with banner and dialog
- *
- * @remarks
- * To get initial server-side data on other pages, use:
- * \`\`\`tsx
- * import { withInitialC15TData } from '@c15t/nextjs';
- *
- * export const getServerSideProps = withInitialC15TData('/api/c15t');
- * \`\`\`
- *
- * @example
- * \`\`\`tsx
- * // In your pages/_app.tsx
- * import { ConsentManager } from '../components/consent-manager';
- *
- * export default function MyApp({ Component, pageProps }) {
- *   return (
- *     <ConsentManager initialData={pageProps.initialC15TData}>
- *       <Component {...pageProps} />
- *     </ConsentManager>
- *   );
- * }
- * \`\`\`
+ * Consent management wrapper for Next.js Pages Router.
+ * @see https://c15t.com/docs/frameworks/nextjs/quickstart
  */`;
 	}
 
+	const slug = docsSlug || 'react';
 	return `/**
- * Consent management wrapper for React
- *
- * This component wraps your app with consent management functionality,
- * including the cookie banner, consent dialog, and provider.
- *
- * Usage:
- * \`\`\`tsx
- * // In your App.tsx
- * import { ConsentManager } from './components/consent-manager';
- *
- * export default function App() {
- *   return (
- *     <ConsentManager>
- *       <YourApp />
- *     </ConsentManager>
- *   );
- * }
- * \`\`\`
+ * Consent manager provider.
+ * @see https://c15t.com/docs/frameworks/${slug}/quickstart
  */`;
 }

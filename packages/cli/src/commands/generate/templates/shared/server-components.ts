@@ -39,18 +39,14 @@ import type { ReactNode } from 'react';
 import ConsentManagerProvider from './provider';
 
 /**
- * Server-side rendered consent management wrapper for ${framework.frameworkName}
- *
- * This component pre-fetches consent data on the server for faster hydration.
- * The fetchInitialData() function uses ${framework.ssrMechanism}, which means:
- * - The route will be dynamically rendered (not statically generated)
- * - Works in server components and dynamic routes
- *
- * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/ssr
+ * Server-side consent management wrapper with SSR data prefetching.
+ * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/quickstart
  */
 export function ConsentManager({ children }: { children: ReactNode }) {
 	const ssrData = fetchInitialData({
 		backendURL: ${backendURLValue},
+		// Shows banner during development. Remove for production.
+		overrides: { country: 'DE' },
 	});
 
 	return (
@@ -66,14 +62,8 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 import ConsentManagerProvider from './provider';
 
 /**
- * Consent management wrapper for ${framework.frameworkName} (client-side only)
- *
- * This component uses client-side data fetching. Use this pattern when:
- * - Your site uses static generation
- * - You want to avoid the ${framework.ssrMechanism}
- * - SSR data fetching causes issues in your setup
- *
- * @see https://c15t.com/docs/frameworks/${framework.docsSlug}
+ * Consent management wrapper.
+ * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/quickstart
  */
 export function ConsentManager({ children }: { children: ReactNode }) {
 	return (
@@ -81,6 +71,30 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 			{children}
 		</ConsentManagerProvider>
 	);
+}
+`;
+}
+
+/**
+ * Generates a simple non-RSC wrapper component for React (no SSR)
+ *
+ * @param frameworkName - Display name (e.g. 'React')
+ * @param docsSlug - Docs URL slug (e.g. 'react')
+ * @returns The complete wrapper file content
+ */
+export function generateSimpleWrapperComponent(
+	_frameworkName: string,
+	docsSlug: string
+): string {
+	return `import type { ReactNode } from 'react';
+import ConsentManagerProvider from './provider';
+
+/**
+ * Consent management wrapper.
+ * @see https://c15t.com/docs/frameworks/${docsSlug}/quickstart
+ */
+export function ConsentManager({ children }: { children: ReactNode }) {
+	return <ConsentManagerProvider>{children}</ConsentManagerProvider>;
 }
 `;
 }

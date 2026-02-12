@@ -55,25 +55,22 @@ availableIn:
   </Step>
 
   <Step>
-    ### Create a client `ConsentManager` component
+    ### Create a client provider component
 
     Create a `'use client'` component that accepts an `ssrData` prop. This initializes the consent store and makes consent state available to all child components.
 
-    ```tsx title="components/consent-manager/index.tsx"
-    // components/consent-manager/provider.tsx
+    ```tsx title="components/consent-manager/provider.tsx"
     'use client';
 
     import { type ReactNode } from 'react';
-    import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/nextjs';
-    import type { InitialDataPromise } from '@c15t/nextjs';
+    import {
+      ConsentManagerProvider,
+      ConsentBanner,
+      ConsentDialog,
+    } from '@c15t/nextjs';
+    import type { ConsentManagerProps } from '@c15t/nextjs';
 
-    export default function Provider({
-      children,
-      ssrData,
-    }: {
-      children: ReactNode;
-      ssrData?: InitialDataPromise; // Optional (App Directory Only)
-    }) {
+    export default function ConsentManagerClient({ children, ssrData }: ConsentManagerProps) {
       return (
         <ConsentManagerProvider
           options={{
@@ -81,6 +78,8 @@ availableIn:
             backendURL: '/api/c15t',
             ssrData,
             consentCategories: ['necessary', 'measurement', 'marketing'],
+            // Shows banner during development. Remove for production.
+            overrides: { country: 'DE' },
           }}
         >
           <ConsentBanner />
@@ -99,23 +98,43 @@ availableIn:
   <Step>
     ### Optional: SSR Initial Data (App Directory)
 
-    In a server component wrapping the provider, call `fetchInitialData` to pre-fetch consent data. **Do not `await`** the call - pass the Promise directly to the client component so Next.js can stream the response while data loads.
+    In a server component wrapping the provider, call `fetchInitialData` to pre-fetch consent data. **Do not `await`** the call — pass the Promise directly to the client component so Next.js can stream the response while data loads.
     By prefetching the data on the server the banner can appear visually sooner, however this can increase TTFB if your app is fully client-side rendered.
 
-    ```tsx title="app/layout.tsx"
-    // components/consent-manager/provider.tsx
+    ```tsx title="components/consent-manager/index.tsx"
     import { fetchInitialData } from '@c15t/nextjs';
-    import Provider from './provider';
+    import type { ReactNode } from 'react';
+    import ConsentManagerProvider from './provider';
 
-    export default function ConsentManager({ children }: { children: React.ReactNode }) {
+    export function ConsentManager({ children }: { children: ReactNode }) {
       const ssrData = fetchInitialData({
         backendURL: '/api/c15t',
+        // Shows banner during development. Remove for production.
+        overrides: { country: 'DE' },
       });
 
       return (
-        <ConsentManager ssrData={ssrData}>
+        <ConsentManagerProvider ssrData={ssrData}>
           {children}
-        </ConsentManager>
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+
+    Then use it in your layout:
+
+    ```tsx title="app/layout.tsx"
+    import { ConsentManager } from '@/components/consent-manager';
+
+    export default function RootLayout({ children }: { children: React.ReactNode }) {
+      return (
+        <html lang="en">
+          <body>
+            <ConsentManager>
+              {children}
+            </ConsentManager>
+          </body>
+        </html>
       );
     }
     ```
@@ -144,7 +163,7 @@ Install DevTools only if you want a runtime inspector while building and debuggi
 
 Then add it inside your existing provider:
 
-```tsx title="components/consent-manager/index.tsx"
+```tsx title="components/consent-manager/provider.tsx"
 import { C15TDevTools } from '@c15t/dev-tools/react';
 
 // ...
