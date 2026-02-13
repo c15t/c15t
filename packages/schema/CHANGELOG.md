@@ -1,5 +1,11 @@
 # @c15t/schema
 
+## 2.0.0-rc.1
+
+### Patch Changes
+
+- 0bc4f86: fixed workspace resolving
+
 ## 2.0.0-rc.0
 
 ### Major Changes
