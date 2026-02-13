@@ -182,16 +182,25 @@ export interface AdvancedOptions {
 	apiKeys?: string[];
 
 	/**
-	 * GVL (Global Vendor List) configuration for IAB TCF compliance.
+	 * IAB TCF configuration including GVL, CMP registration, and custom vendors.
 	 * Disabled by default - most users don't need IAB TCF.
-	 * Set enabled: true to activate GVL support.
+	 * Set enabled: true to activate IAB support.
 	 */
-	gvl?: {
+	iab?: {
 		/**
-		 * Enable GVL support.
+		 * Enable IAB TCF support.
 		 * When false or not provided, /init returns gvl: null.
 		 */
 		enabled: true;
+
+		/**
+		 * CMP ID registered with IAB Europe.
+		 * This is returned to clients via the /init endpoint so they
+		 * can use the correct CMP identity in TC Strings.
+		 *
+		 * @see https://iabeurope.eu/cmp-list/ - List of registered CMPs
+		 */
+		cmpId?: number;
 
 		/**
 		 * Bundled GVL translations by language code.
@@ -202,7 +211,7 @@ export interface AdvancedOptions {
 		 * import enGVL from './gvl/en.json';
 		 * import deGVL from './gvl/de.json';
 		 *
-		 * gvl: {
+		 * iab: {
 		 *   enabled: true,
 		 *   bundled: { en: enGVL, de: deGVL }
 		 * }

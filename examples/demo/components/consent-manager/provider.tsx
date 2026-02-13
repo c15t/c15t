@@ -93,7 +93,6 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 					consentCategories: ['necessary', 'marketing', 'measurement'],
 					iab: {
 						enabled: true,
-						cmpId: 2,
 						customVendors: [
 							{
 								id: 'internal-analytics',

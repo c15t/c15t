@@ -151,21 +151,15 @@ export async function initializeIABMode(
 		const effectiveCmpId = iab.cmpId ?? CMP_ID;
 		const effectiveCmpVersion = iab.cmpVersion ?? CMP_VERSION;
 
-		// Warn about CMP registration in development
-		if (
-			process.env.NODE_ENV === 'development' ||
-			process.env.NODE_ENV === 'test'
-		) {
-			// Common placeholder/test CMP IDs that indicate the CMP is not registered
-			const PLACEHOLDER_CMP_IDS = [0, 1, 28, 123, 999];
-			if (PLACEHOLDER_CMP_IDS.includes(effectiveCmpId)) {
-				console.warn(
-					`[c15t] IAB TCF Warning: Using CMP ID ${effectiveCmpId} which appears to be a placeholder.\n` +
-						'For production IAB TCF 2.3 compliance, you must register your CMP with IAB Europe.\n' +
-						'Registration: https://iabeurope.eu/tcf-for-cmps/\n' +
-						'CMP List: https://iabeurope.eu/cmp-list/'
-				);
-			}
+		// CMP ID 0 means neither the server nor the client provided a real CMP ID.
+		// IAB TCF compliance requires a registered CMP ID.
+		if (effectiveCmpId === 0) {
+			throw new Error(
+				'[c15t] IAB TCF Error: CMP ID is 0. A valid CMP ID registered with IAB Europe is required for IAB TCF compliance.\n' +
+					'Configure it on the backend via `advanced.iab.cmpId` or on the client via `iab.cmpId`.\n' +
+					'Registration: https://iabeurope.eu/tcf-for-cmps/\n' +
+					'CMP List: https://iabeurope.eu/cmp-list/'
+			);
 		}
 
 		// Initialize CMP API
