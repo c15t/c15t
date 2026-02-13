@@ -156,9 +156,9 @@ export async function initializeIABMode(
 		if (effectiveCmpId === 0) {
 			throw new Error(
 				'[c15t] IAB TCF Error: CMP ID is 0. A valid CMP ID registered with IAB Europe is required for IAB TCF compliance.\n' +
-					'Configure it on the backend via `advanced.iab.cmpId` or on the client via `iab.cmpId`.\n' +
-					'Registration: https://iabeurope.eu/tcf-for-cmps/\n' +
-					'CMP List: https://iabeurope.eu/cmp-list/'
+					'If using consent.io, the CMP ID should be provided automatically via /init.\n' +
+					'If self-hosting, configure it on the backend via `advanced.iab.cmpId` or on the client via `iab.cmpId`.\n' +
+					'To register your own CMP: https://iabeurope.eu/tcf-for-cmps/'
 			);
 		}
 

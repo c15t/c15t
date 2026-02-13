@@ -1,10 +1,6 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-  <Callout type="error">
-    c15t is **not yet IAB certified**. The IAB TCF components are under active development and should **not be used in production**. APIs and behavior may change before certification is achieved.
-  </Callout>
-
   ## What is IAB TCF?
 
   The [IAB Transparency & Consent Framework (TCF)](https://iabeurope.eu/tcf-2-0/) is a standardized protocol for communicating user consent choices to ad tech vendors in the programmatic advertising ecosystem. TCF 2.3 is the current version and is widely adopted across the EU/EEA.
@@ -15,6 +11,12 @@
   - Collect granular consent for each IAB-defined purpose
   - Generate a **TC String** — a standardized encoding of consent choices that ad tech vendors can read
   - Expose the `__tcfapi` CMP stub for vendor scripts to query consent status
+
+  ## CMP Registration
+
+  [consent.io](https://consent.io) is pending validation as an IAB Europe-registered CMP for c15t. Once approved, when you use consent.io as your backend, the correct CMP ID will be automatically provided to your client via the `/init` endpoint — no client-side configuration needed.
+
+  If you self-host the c15t backend and have your own CMP registration with IAB Europe, you can configure your CMP ID on the backend via `advanced.iab.cmpId` or on the client via the `iab.cmpId` option. A valid (non-zero) CMP ID is required for IAB TCF compliance.
 
   ## How c15t Implements TCF
 
@@ -35,7 +37,7 @@
   | Option | Type | Description |
   |--------|------|-------------|
   | `enabled` | `boolean` | Enable IAB TCF mode |
-  | `cmpId` | `number` | Your registered CMP ID from the IAB |
+  | `cmpId` | `number` | CMP ID registered with IAB Europe. Automatically provided by the backend when using consent.io. Only set this if you have your own CMP registration. |
   | `vendors` | `number[]` | IAB vendor IDs that your site works with |
   | `nonIABVendors` | `NonIABVendor[]` | Custom vendors not in the IAB registry |
 
