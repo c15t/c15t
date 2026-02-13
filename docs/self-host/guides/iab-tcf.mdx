@@ -15,6 +15,10 @@ If you self-host and have your own CMP registration with IAB Europe, configure y
   A valid (non-zero) CMP ID is required for IAB TCF compliance. If neither the backend nor the client provides a CMP ID, IAB initialization will fail with an error.
 </Callout>
 
+<Callout type="warn">
+  If you heavily customize or build your own IAB banner or dialog (rather than using the default `IABConsentBanner` and `IABConsentDialog` components provided by c15t), you cannot use consent.io's CMP ID. You must register your own CMP with [IAB Europe](https://iabeurope.eu/tcf-2-0/) and configure your CMP ID via `advanced.iab.cmpId`.
+</Callout>
+
 ## Enable IAB
 
 ```ts title="c15t.ts"
