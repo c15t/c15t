@@ -6,7 +6,7 @@
  * Implements an accessible, pre-built consent dialog following IAB requirements.
  */
 
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.css';
+import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import {
 	type FC,
 	type RefObject,

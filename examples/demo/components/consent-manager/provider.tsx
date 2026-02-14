@@ -88,6 +88,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 			<ConsentManagerProvider
 				options={{
 					mode: 'c15t',
+					// backendURL: 'https://instance-worker-test.consent-ef4.workers.dev/',
 					// backendURL: 'https://minecraft-europe-hypixel.c15t.xyz',
 					backendURL: '/api/self-host',
 					consentCategories: ['necessary', 'marketing', 'measurement'],
@@ -126,7 +127,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 					storageConfig: {
 						crossSubdomain: true,
 					},
-					theme: centeredIabTheme,
+					// theme: centeredIabTheme,
 					legalLinks: {
 						privacyPolicy: {
 							href: '/legal/privacy-policy',

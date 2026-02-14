@@ -1,4 +1,4 @@
-import styles from '@c15t/ui/styles/primitives/legal-links.module.css';
+import styles from '@c15t/ui/styles/primitives/legal-links.module.js';
 import type { LegalLinks as LegalLinksType } from 'c15t';
 import { forwardRef } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';

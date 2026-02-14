@@ -15,12 +15,12 @@ export default function ({ children, ssrData }: ConsentManagerProps) {
 	return (
 		<ConsentManagerProvider
 			options={{
-				mode: 'c15t',
-				ssrData,
-				backendURL: '/api/self-host',
+				mode: 'offline',
+				// ssrData,
+				// backendURL: '/api/self-host',
 				consentCategories: ['necessary', 'marketing', 'measurement'],
 				iab: {
-					enabled: true,
+					enabled: false,
 					cmpId: 2,
 					customVendors: [
 						{
@@ -37,6 +37,8 @@ export default function ({ children, ssrData }: ConsentManagerProps) {
 						},
 					],
 				},
+				overrides: { country: 'GB', region: 'CA' },
+
 				scripts: [
 					{
 						id: 'example-analytics-iab',

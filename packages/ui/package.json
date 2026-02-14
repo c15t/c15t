@@ -23,7 +23,17 @@
 			"import": "./dist/styles/primitives/index.js",
 			"require": "./dist/styles/primitives/index.cjs"
 		},
-		"./styles/*": "./src/styles/*",
+		"./styles/*.module.js": {
+			"types": "./src/styles/css-module.d.ts",
+			"import": "./dist/styles/*.module.js",
+			"require": "./dist/styles/*.module.cjs"
+		},
+		"./styles/*.module.css": {
+			"types": "./src/styles/css-module.d.ts",
+			"import": "./dist/styles/*.module.js",
+			"require": "./dist/styles/*.module.cjs"
+		},
+		"./styles/*": "./dist/styles/*",
 		".": {
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js",

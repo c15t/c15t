@@ -6,7 +6,7 @@
  * Implements an accessible, pre-built banner following IAB requirements.
  */
 
-import styles from '@c15t/ui/styles/components/iab-consent-banner.module.css';
+import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
 import { type FC, type RefObject, useMemo, useRef } from 'react';
 import { Box } from '~/components/shared/primitives/box';
 import * as Button from '~/components/shared/ui/button';
