@@ -76,15 +76,11 @@ If you want a fully managed experience we recommend using [consent.io](https://c
   <Step>
     ### Run database migrations
 
-    Before the backend can store consent records, your database needs the required tables. The migration strategy depends on your adapter:
-
-    **Kysely or MongoDB** — migrations run automatically on first request. No manual step needed.
-
-    **Drizzle, Prisma, or TypeORM** — generate the schema into your existing migration workflow:
+    Before the backend can store consent records, your database needs the required tables.
 
     The easiest way to migrate your database is via the c15t cli:
 
-    <PackageCommandTabs mode="run" command="@c15t/cli" />
+    <PackageCommandTabs mode="run" command="@c15t/cli@rc" />
 
     See [Database Setup](/docs/self-host/guides/database-setup) for adapter-specific migration guides.
   </Step>

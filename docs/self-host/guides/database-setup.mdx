@@ -27,8 +27,6 @@ export const c15t = c15tInstance({
 });
 ```
 
-Kysely migrations run automatically on first request — no manual migration step needed.
-
 ### Drizzle
 
 ```ts title="c15t.ts"
@@ -44,8 +42,6 @@ export const c15t = c15tInstance({
 });
 ```
 
-Generate the Drizzle schema and include it in your existing migration workflow.
-
 ### Prisma
 
 ```ts title="c15t.ts"
@@ -60,8 +56,6 @@ export const c15t = c15tInstance({
   trustedOrigins: ['https://example.com'],
 });
 ```
-
-Add the c15t models to your `schema.prisma` and run `prisma migrate dev`.
 
 ### TypeORM
 
@@ -96,7 +90,10 @@ export const c15t = c15tInstance({
 });
 ```
 
-MongoDB collections are created automatically on first request.
+## Migrations
+
+To create & update the database you can use the migrator which is included in the CLI:
+<PackageCommandTabs command="@c15t/cli@rc" />
 
 ## Table Prefix
 
@@ -124,7 +121,3 @@ The backend creates and manages these tables:
 | `consent_policy` | Versioned consent policies. |
 | `consent_purpose` | Maps consent purposes to categories. |
 | `audit_log` | Immutable log of all consent-related actions. |
-
-<Callout type="info">
-  All tables include an optional `tenantId` column for multi-tenant deployments. Set `tenantId` in your `c15tInstance()` config to automatically scope all queries to a single tenant.
-</Callout>
