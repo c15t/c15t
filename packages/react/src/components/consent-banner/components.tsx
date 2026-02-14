@@ -4,7 +4,7 @@
  * Implements accessible, customizable components following GDPR requirements.
  */
 
-import styles from '@c15t/ui/styles/components/consent-banner.module.css';
+import styles from '@c15t/ui/styles/components/consent-banner.module.js';
 import { forwardRef, type Ref, type RefObject, useRef } from 'react';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useTheme } from '~/hooks/use-theme';

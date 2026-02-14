@@ -4,7 +4,7 @@
  * Implements accessible modal behavior with animation support.
  */
 
-import styles from '@c15t/ui/styles/components/consent-dialog.module.css';
+import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
 import { type FC, type PropsWithChildren, useEffect, useState } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';

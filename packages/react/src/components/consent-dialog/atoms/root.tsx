@@ -7,7 +7,7 @@
  * focus trapping, scroll locking and portal rendering.
  */
 
-import styles from '@c15t/ui/styles/components/consent-dialog.module.css';
+import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';

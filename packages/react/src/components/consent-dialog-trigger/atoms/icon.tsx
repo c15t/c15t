@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 
-import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.css';
+import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
 import { isValidElement, type ReactNode } from 'react';
 import {
 	C15TIconOnly,
