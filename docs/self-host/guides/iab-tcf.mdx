@@ -3,9 +3,23 @@ title: IAB TCF Support
 description: Enable IAB Transparency and Consent Framework (TCF) support in your self-hosted backend.
 ---
 
-The c15t backend optionally supports [IAB TCF v2.2](https://iabeurope.eu/transparency-consent-framework/), including Global Vendor List (GVL) management and TC String generation.
+The c15t backend optionally supports [IAB TCF v2.3](https://iabeurope.eu/transparency-consent-framework/), including Global Vendor List (GVL) management and TC String generation.
 
-## Enable GVL
+## CMP Registration
+
+[consent.io](https://consent.io) is pending validation as an IAB Europe-registered CMP for c15t. Once approved, when using consent.io as your hosted backend, the CMP ID will be automatically provided to clients — no additional configuration needed.
+
+If you self-host and have your own CMP registration with IAB Europe, configure your CMP ID via `advanced.iab.cmpId`. This value is returned to clients in the `/init` response so they use the correct CMP identity in TC Strings.
+
+<Callout type="warn">
+  A valid (non-zero) CMP ID is required for IAB TCF compliance. If neither the backend nor the client provides a CMP ID, IAB initialization will fail with an error.
+</Callout>
+
+<Callout type="warn">
+  If you heavily customize or build your own IAB banner or dialog (rather than using the default `IABConsentBanner` and `IABConsentDialog` components provided by c15t), you cannot use consent.io's CMP ID. You must register your own CMP with [IAB Europe](https://iabeurope.eu/tcf-2-0/) and configure your CMP ID via `advanced.iab.cmpId`.
+</Callout>
+
+## Enable IAB
 
 ```ts title="c15t.ts"
 import { c15tInstance } from '@c15t/backend';
@@ -13,15 +27,16 @@ import { c15tInstance } from '@c15t/backend';
 export const c15t = c15tInstance({
   // ...
   advanced: {
-    gvl: {
+    iab: {
       enabled: true,
-      vendorIds: [755, 52, 69], // only include vendors you use
+      cmpId: 10,                  // your registered CMP ID (consent.io provides this automatically)
+      vendorIds: [755, 52, 69],   // only include vendors you use
     },
   },
 });
 ```
 
-The backend fetches the GVL from `https://gvl.consent.io` by default and caches it. The `/init` endpoint returns the filtered GVL to the frontend.
+The backend fetches the GVL from `https://gvl.consent.io` by default and caches it. The `/init` endpoint returns the filtered GVL and your CMP ID to the frontend.
 
 ## Custom GVL Endpoint
 
@@ -29,7 +44,7 @@ Point to your own GVL mirror:
 
 ```ts
 advanced: {
-  gvl: {
+  iab: {
     enabled: true,
     endpoint: 'https://your-gvl-mirror.com',
     vendorIds: [755, 52, 69],
@@ -46,7 +61,7 @@ import gvlEn from './gvl/en.json';
 import gvlDe from './gvl/de.json';
 
 advanced: {
-  gvl: {
+  iab: {
     enabled: true,
     bundled: {
       en: gvlEn,
@@ -66,7 +81,7 @@ Add your own vendors alongside IAB-registered ones:
 
 ```ts
 advanced: {
-  gvl: {
+  iab: {
     enabled: true,
     vendorIds: [755],
     customVendors: [

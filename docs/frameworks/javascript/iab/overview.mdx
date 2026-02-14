@@ -17,8 +17,10 @@ const { consentStore } = getOrCreateConsentRuntime({
   backendURL: 'https://your-instance.c15t.dev',
   iab: {
     enabled: true,
-    cmpId: 123,                // Your registered CMP ID
     vendors: [1, 2, 10, 25],  // IAB vendor IDs you work with
+    // cmpId is automatically provided by the backend (consent.io).
+    // Only set this if you have your own CMP registration with IAB Europe.
+    // cmpId: 123,
   },
 });
 ```

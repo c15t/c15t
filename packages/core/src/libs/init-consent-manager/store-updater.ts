@@ -237,6 +237,15 @@ export function updateStore(
 				enabled: false,
 			},
 		};
+	} else if (iab && data.cmpId != null) {
+		// Persist server-provided cmpId in store so subsequent save() calls use it
+		storeUpdate.iab = {
+			...iab,
+			config: {
+				...iab.config,
+				cmpId: data.cmpId,
+			},
+		};
 	}
 
 	set(storeUpdate);
@@ -261,9 +270,11 @@ export function updateStore(
 		];
 
 		// Create merged config with customVendors from both sources
+		// Server-provided cmpId takes precedence over client-configured cmpId
 		const mergedConfig = {
 			...iab.config,
 			customVendors: mergedCustomVendors,
+			...(data.cmpId != null && { cmpId: data.cmpId }),
 		};
 
 		// Non-blocking initialization - errors are handled within initializeIABMode

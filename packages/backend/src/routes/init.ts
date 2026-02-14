@@ -63,20 +63,20 @@ Use for geo-targeted consent banners and regional compliance.`,
 
 			// Get GVL if enabled
 			let gvl = null;
-			if (options.advanced?.gvl?.enabled) {
+			if (options.advanced?.iab?.enabled) {
 				const language = translationsResult.language.split('-')[0] || 'en';
 				const gvlResolver = createGVLResolver({
 					appName: options.appName || 'c15t',
-					bundled: options.advanced.gvl.bundled,
+					bundled: options.advanced.iab.bundled,
 					cacheAdapter: options.advanced.cache?.adapter,
-					vendorIds: options.advanced.gvl.vendorIds,
-					endpoint: options.advanced.gvl.endpoint,
+					vendorIds: options.advanced.iab.vendorIds,
+					endpoint: options.advanced.iab.endpoint,
 				});
 				gvl = await gvlResolver.get(language);
 			}
 
 			// Get custom vendors if configured
-			const customVendors = options.advanced?.gvl?.customVendors;
+			const customVendors = options.advanced?.iab?.customVendors;
 
 			// Record init metric
 			const gpc = request.headers.get('sec-gpc') === '1';
@@ -94,6 +94,9 @@ Use for geo-targeted consent banners and regional compliance.`,
 				branding: options.advanced?.branding || 'c15t',
 				gvl,
 				customVendors,
+				...(options.advanced?.iab?.cmpId != null && {
+					cmpId: options.advanced.iab.cmpId,
+				}),
 			});
 		}
 	);

@@ -166,7 +166,7 @@ export type IABManager = IABState & IABActions;
  * @internal
  */
 export interface CMPApiConfig {
-	/** CMP ID (default: 160 from ~/cmp-defaults; shared for all c15t users) */
+	/** CMP ID registered with IAB Europe. Provided by the backend (consent.io) or client config. */
 	cmpId?: number;
 
 	/** CMP version (default: package version from ~/cmp-defaults) */
@@ -244,11 +244,13 @@ export interface IABConfig {
 	enabled: boolean;
 
 	/**
-	 * CMP ID with IAB Europe.
+	 * CMP ID registered with IAB Europe.
 	 *
-	 * When omitted, defaults to 160 from `~/cmp-defaults` (the shared c15t CMP ID;
-	 * used by all c15t users, not dev-only). Override only if using a different
-	 * CMP registration.
+	 * When using consent.io as the backend, this is automatically provided
+	 * via the `/init` endpoint — no client-side configuration needed.
+	 *
+	 * Only set this if you self-host and have your own CMP registration.
+	 * A valid (non-zero) CMP ID is required for IAB TCF compliance.
 	 *
 	 * @see https://iabeurope.eu/cmp-list/ - List of registered CMPs
 	 * @see https://iabeurope.eu/tcf-for-cmps/ - CMP registration information
