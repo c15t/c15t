@@ -133,6 +133,11 @@ export const initOutputSchema = v.object({
 	 * These are configured on the backend and synced to the frontend.
 	 */
 	customVendors: v.optional(v.array(nonIABVendorSchema)),
+	/**
+	 * CMP ID registered with IAB Europe.
+	 * Provided by the backend when IAB is enabled and a CMP ID is configured.
+	 */
+	cmpId: v.optional(v.number()),
 });
 
 export type InitOutput = v.InferOutput<typeof initOutputSchema>;

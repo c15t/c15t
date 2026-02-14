@@ -6,7 +6,11 @@
 
 import { version } from '../../version';
 
-/** CMP ID (IAB Europe) used by all c15t users. Not restricted to dev; safe as default. */
+/**
+ * Default CMP ID fallback. Zero means no CMP is registered.
+ * consent.io provides its registered CMP ID via the `/init` endpoint.
+ * Self-hosted users can configure their own via `advanced.iab.cmpId`.
+ */
 export const CMP_ID = 0;
 
 /** CMP version, aligned with package version. */

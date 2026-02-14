@@ -151,10 +151,7 @@ const IABConsentBannerRootChildren = forwardRef<
 		}, [shouldShowBanner, disableAnimation, hasAnimated, animationDurationMs]);
 
 		const contentStyle = useStyles('iabConsentBanner', {
-			baseClassName: [
-				styles.root,
-				textDirection === 'ltr' ? styles.bottomLeft : styles.bottomRight,
-			],
+			baseClassName: [styles.root],
 			style: style as CSSPropertiesWithVars<Record<string, never>>,
 			className: className || forwardedClassName,
 			noStyle,

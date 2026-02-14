@@ -362,24 +362,29 @@ describe('initializeIABMode', () => {
 			});
 		});
 
-		it('should use default CMP ID and version when not configured', async () => {
-			const { createCMPApi } = await import('../../iab-tcf');
-
+		it('should throw when CMP ID resolves to 0 (no server or client CMP ID)', async () => {
 			const minimalConfig = {
 				enabled: true,
 				publisherCountryCode: 'GB',
 				isServiceSpecific: true,
 			};
 
+			const consoleSpy = vi
+				.spyOn(console, 'error')
+				.mockImplementation(() => {});
+
+			// Default CMP_ID is 0, which should now throw
 			await initializeIABMode(minimalConfig, storeAccess, sampleGVL);
 
-			// Default CMP ID is 0 and version comes from the package version
-			expect(createCMPApi).toHaveBeenCalledWith(
+			// The error is caught internally and logged
+			expect(consoleSpy).toHaveBeenCalledWith(
+				'Failed to initialize IAB mode:',
 				expect.objectContaining({
-					gvl: sampleGVL,
-					gdprApplies: true,
+					message: expect.stringContaining('CMP ID is 0'),
 				})
 			);
+
+			consoleSpy.mockRestore();
 		});
 
 		it('should store CMP API in state', async () => {
@@ -545,21 +550,64 @@ describe('initializeIABMode', () => {
 	});
 
 	describe('CMP ID validation', () => {
-		it('should warn about placeholder CMP IDs in development', async () => {
-			const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		it('should throw error when CMP ID is 0', async () => {
+			const consoleSpy = vi
+				.spyOn(console, 'error')
+				.mockImplementation(() => {});
 
-			const configWithPlaceholderId = {
+			const configWithZeroCmpId = {
 				...mockState.iab!.config,
-				cmpId: 1, // Placeholder ID
+				cmpId: 0,
 			};
 
-			await initializeIABMode(configWithPlaceholderId, storeAccess, sampleGVL);
+			await initializeIABMode(configWithZeroCmpId, storeAccess, sampleGVL);
 
+			// Error is caught by the try/catch and logged
 			expect(consoleSpy).toHaveBeenCalledWith(
-				expect.stringContaining('Using CMP ID 1')
+				'Failed to initialize IAB mode:',
+				expect.objectContaining({
+					message: expect.stringContaining('CMP ID is 0'),
+				})
 			);
 
 			consoleSpy.mockRestore();
+		});
+
+		it('should allow valid non-zero CMP IDs', async () => {
+			const { createCMPApi } = await import('../../iab-tcf');
+
+			const configWithValidCmpId = {
+				...mockState.iab!.config,
+				cmpId: 42,
+			};
+
+			await initializeIABMode(configWithValidCmpId, storeAccess, sampleGVL);
+
+			expect(createCMPApi).toHaveBeenCalledWith(
+				expect.objectContaining({
+					cmpId: 42,
+				})
+			);
+		});
+
+		it('should pass server-provided CMP ID to createCMPApi', async () => {
+			const { createCMPApi } = await import('../../iab-tcf');
+
+			// Simulate server-provided cmpId (merged into config by store-updater)
+			const configWithServerCmpId = {
+				...mockState.iab!.config,
+				cmpId: 99,
+			};
+
+			await initializeIABMode(configWithServerCmpId, storeAccess, sampleGVL);
+
+			expect(createCMPApi).toHaveBeenCalledWith(
+				expect.objectContaining({
+					cmpId: 99,
+					gvl: sampleGVL,
+					gdprApplies: true,
+				})
+			);
 		});
 	});
 });

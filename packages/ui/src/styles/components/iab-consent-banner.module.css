@@ -55,11 +55,12 @@
 @layer components {
 	.root {
 		padding: 1rem;
-		flex-direction: column;
-		width: 100%;
 		display: flex;
+		justify-content: center;
+		align-items: center;
 		z-index: 999999998;
 		position: fixed;
+		inset: 0;
 		font-family: var(--iab-consent-banner-font-family);
 		line-height: var(--iab-consent-banner-line-height);
 		-webkit-text-size-adjust: var(--iab-consent-banner-text-size-adjust);
@@ -70,7 +71,7 @@
 	/* Banner animation classes */
 	.bannerVisible {
 		opacity: 1;
-		transform: translateY(0);
+		transform: scale(1);
 		transition:
 			opacity var(--iab-consent-banner-animation-duration)
 			var(--iab-consent-banner-animation-timing),
@@ -80,7 +81,7 @@
 
 	.bannerHidden {
 		opacity: 0;
-		transform: translateY(50px);
+		transform: scale(0.95);
 		transition:
 			opacity var(--iab-consent-banner-animation-duration)
 			var(--iab-consent-banner-animation-timing),
@@ -91,34 +92,7 @@
 	@media (min-width: 640px) {
 		.root {
 			padding: 1.5rem;
-			width: auto;
 		}
-	}
-
-	.bottomLeft {
-		left: 0;
-		bottom: 0;
-	}
-
-	.bottomRight {
-		right: 0;
-		bottom: 0;
-	}
-
-	.topLeft {
-		left: 0;
-		top: 0;
-	}
-
-	.topRight {
-		right: 0;
-		top: 0;
-	}
-
-	.bottomCenter {
-		left: 50%;
-		bottom: 0;
-		transform: translateX(-50%);
 	}
 
 	/* Card styles */
