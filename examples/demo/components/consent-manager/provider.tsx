@@ -88,27 +88,28 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 			<ConsentManagerProvider
 				options={{
 					mode: 'c15t',
+					// backendURL: 'https://instance-worker-test.consent-ef4.workers.dev/',
 					// backendURL: 'https://minecraft-europe-hypixel.c15t.xyz',
 					backendURL: '/api/self-host',
 					consentCategories: ['necessary', 'marketing', 'measurement'],
-					iab: {
-						enabled: true,
-						cmpId: 2,
-						customVendors: [
-							{
-								id: 'internal-analytics',
-								name: 'Example Analytics',
-								privacyPolicyUrl: 'https://www.google.com',
-								purposes: [1, 8],
-								dataCategories: [1, 2, 6, 8],
-								usesCookies: true,
-								cookieMaxAgeSeconds: 31536000,
-								usesNonCookieAccess: true,
-								specialFeatures: [1, 2],
-								// legIntPurposes: [1, 8],
-							},
-						],
-					},
+					// iab: {
+					// 	enabled: false,
+					// 	cmpId: 2,
+					// 	customVendors: [
+					// 		{
+					// 			id: 'internal-analytics',
+					// 			name: 'Example Analytics',
+					// 			privacyPolicyUrl: 'https://www.google.com',
+					// 			purposes: [1, 8],
+					// 			dataCategories: [1, 2, 6, 8],
+					// 			usesCookies: true,
+					// 			cookieMaxAgeSeconds: 31536000,
+					// 			usesNonCookieAccess: true,
+					// 			specialFeatures: [1, 2],
+					// 			// legIntPurposes: [1, 8],
+					// 		},
+					// 	],
+					// },
 
 					scripts: [
 						{
@@ -127,7 +128,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 					storageConfig: {
 						crossSubdomain: true,
 					},
-					theme: centeredIabTheme,
+					// theme: centeredIabTheme,
 					legalLinks: {
 						privacyPolicy: {
 							href: '/legal/privacy-policy',

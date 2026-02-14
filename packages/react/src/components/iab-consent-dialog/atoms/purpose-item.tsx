@@ -1,6 +1,6 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.css';
+import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { type FC, useState } from 'react';
 import { AnimatedCollapse } from '~/components/shared/ui/animated-collapse';
 import * as Switch from '~/components/shared/ui/switch';

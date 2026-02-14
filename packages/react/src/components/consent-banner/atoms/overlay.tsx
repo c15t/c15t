@@ -3,7 +3,7 @@
  * Provides the overlay backdrop component for the ConsentBanner.
  */
 
-import styles from '@c15t/ui/styles/components/consent-banner.module.css';
+import styles from '@c15t/ui/styles/components/consent-banner.module.js';
 import { forwardRef, type HTMLAttributes, useEffect, useState } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';

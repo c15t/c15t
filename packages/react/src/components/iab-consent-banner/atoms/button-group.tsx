@@ -1,6 +1,6 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/iab-consent-banner.module.css';
+import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
 
 interface IABConsentBannerButtonGroupProps

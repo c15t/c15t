@@ -10,7 +10,10 @@ import enGVL from './gvlEn.json';
 export const postgresDb = kyselyAdapter({
 	db: new Kysely({
 		dialect: new PostgresDialect({
-			pool: new Pool({ connectionString: process.env.DATABASE_URL }),
+			pool: new Pool({
+				connectionString: process.env.DATABASE_URL,
+				ssl: { rejectUnauthorized: false },
+			}),
 		}),
 	}),
 	provider: 'postgresql',

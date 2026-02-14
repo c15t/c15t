@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 
-import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.css';
+import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
 import { forwardRef, type ReactNode } from 'react';
 import type { TriggerSize } from '../types';
 import { useTriggerContext } from './root';

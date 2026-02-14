@@ -1,4 +1,4 @@
-import styles from '@c15t/ui/styles/components/frame.module.css';
+import styles from '@c15t/ui/styles/components/frame.module.js';
 import type { AllConsentNames } from 'c15t';
 import { forwardRef, type Ref } from 'react';
 import { useTranslations } from '~/hooks/use-translations';

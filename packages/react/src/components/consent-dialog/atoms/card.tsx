@@ -6,7 +6,7 @@
  * Built with accessibility and customization in mind, following GDPR and other privacy regulation requirements.
  */
 
-import styles from '@c15t/ui/styles/components/consent-dialog.module.css';
+import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
 import { forwardRef, type ReactNode, type Ref } from 'react';
 import { ConsentWidget } from '~/components/consent-widget/consent-widget';
 import { Box, type BoxProps } from '~/components/shared/primitives/box';
