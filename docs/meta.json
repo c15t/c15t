@@ -1,5 +1,8 @@
 {
 	"pages": [
+		"frameworks",
+		"integrations",
+		"self-host",
 		"--- OSS ---",
 		"./ai-tools",
 		"./oss/contributing",
