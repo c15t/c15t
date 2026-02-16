@@ -1,5 +1,15 @@
 # @c15t/nextjs
 
+## 2.0.0-rc.2
+
+### Patch Changes
+
+- Updated dependencies [408df0e]
+- Updated dependencies [e6bc5db]
+- Updated dependencies [684bf2a]
+  - @c15t/react@2.0.0-rc.2
+  - c15t@2.0.0-rc.2
+
 ## 2.0.0-rc.1
 
 ### Patch Changes
