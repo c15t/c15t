@@ -9,7 +9,6 @@ BEGIN;
 -- MIGRATION
 CREATE TABLE IF NOT EXISTS "subject" (
   "id" varchar(255) NOT NULL PRIMARY KEY,
-  "isIdentified" boolean NOT NULL,
   "externalId" text,
   "identityProvider" text,
   "lastIpAddress" text,

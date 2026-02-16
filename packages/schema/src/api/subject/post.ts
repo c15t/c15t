@@ -42,6 +42,8 @@ const baseSubjectConsentSchema = v.object({
 	tcString: v.optional(v.string()),
 	/** Which UI component collected this consent (e.g., 'banner', 'dialog', 'widget') */
 	uiSource: v.optional(v.string()),
+	/** Consent action type (e.g., 'all', 'necessary', 'custom') */
+	consentAction: v.optional(v.string()),
 });
 
 /**

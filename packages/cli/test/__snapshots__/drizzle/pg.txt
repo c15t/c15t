@@ -2,7 +2,6 @@ import { pgTable, text, integer, timestamp, boolean, json } from "drizzle-orm/pg
 
 export const subject = pgTable("subject", {
   id: text("id").primaryKey(),
-  isIdentified: boolean('is_identified').notNull(),
   externalId: text('external_id'),
   identityProvider: text('identity_provider'),
   lastIpAddress: text('last_ip_address'),

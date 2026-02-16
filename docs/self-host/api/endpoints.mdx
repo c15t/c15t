@@ -95,7 +95,7 @@ Records a consent event. This is an append-only operation — every call creates
 
 ```json
 {
-  "subject": { "id": "sub_abc123", "isIdentified": false, "...": "..." },
+  "subject": { "id": "sub_abc123", "...": "..." },
   "consent": { "id": "con_xyz789", "type": "cookie_banner", "...": "..." }
 }
 ```
@@ -114,7 +114,7 @@ Retrieves consent status for a subject.
 
 ```json
 {
-  "subject": { "id": "sub_abc123", "isIdentified": false },
+  "subject": { "id": "sub_abc123" },
   "consents": [
     {
       "id": "con_xyz789",
@@ -147,7 +147,6 @@ Links a subject to an external user ID for cross-device consent resolution.
 {
   "subject": {
     "id": "sub_abc123",
-    "isIdentified": true,
     "externalId": "user_12345",
     "identityProvider": "auth0"
   }
@@ -197,7 +196,7 @@ Authorization: Bearer sk_live_abc123
 ```json
 {
   "subjects": [
-    { "id": "sub_abc123", "externalId": "user_12345", "isIdentified": true }
+    { "id": "sub_abc123", "externalId": "user_12345" }
   ]
 }
 ```

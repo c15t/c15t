@@ -40,6 +40,19 @@ export const postSubjectHandler = async (c: Context) => {
 	const preferences = 'preferences' in input ? input.preferences : undefined;
 	const givenAt = new Date(givenAtEpoch);
 
+	// Derive model-aware consent action from the raw frontend type
+	const rawConsentAction =
+		'consentAction' in input ? input.consentAction : undefined;
+	let derivedConsentAction: string | undefined;
+	if (rawConsentAction === 'all') {
+		derivedConsentAction = 'accept_all';
+	} else if (rawConsentAction === 'necessary') {
+		derivedConsentAction =
+			input.jurisdictionModel === 'opt-out' ? 'opt_out' : 'reject_all';
+	} else if (rawConsentAction === 'custom') {
+		derivedConsentAction = 'custom';
+	}
+
 	logger.debug('Request parameters', {
 		type,
 		subjectId,
@@ -188,6 +201,7 @@ export const postSubjectHandler = async (c: Context) => {
 				jurisdictionModel: input.jurisdictionModel,
 				tcString: input.tcString,
 				uiSource: input.uiSource,
+				consentAction: derivedConsentAction,
 				givenAt,
 			});
 

@@ -3,7 +3,6 @@ import { column, idColumn, table } from 'fumadb/schema';
 
 export const subjectTable = table('subject', {
 	id: idColumn('id', 'varchar(255)'),
-	isIdentified: column('isIdentified', 'bool').defaultTo$(() => false),
 	externalId: column('externalId', 'string').nullable(),
 	identityProvider: column('identityProvider', 'string').nullable(),
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
