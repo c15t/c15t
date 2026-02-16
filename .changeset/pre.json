@@ -21,5 +21,12 @@
 		"@c15t/translations": "1.8.0",
 		"@c15t/ui": "1.0.0"
 	},
-	"changesets": ["common-pots-tease", "shy-cycles-call"]
+	"changesets": [
+		"beige-memes-run",
+		"common-pots-tease",
+		"happy-impalas-move",
+		"legal-plums-hug",
+		"puny-loops-smile",
+		"shy-cycles-call"
+	]
 }

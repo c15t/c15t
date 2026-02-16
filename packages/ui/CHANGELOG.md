@@ -1,5 +1,17 @@
 # @c15t/ui
 
+## 2.0.0-rc.2
+
+### Patch Changes
+
+- 408df0e: feat: CMP ID now comes from backend, either consent.io when hosted or BYO CMP ID
+  feat: Center the IAB Banner for better policy compliance
+  feat: Improve doc comments around IAB
+- e6bc5db: fix: update import paths from .css to .js for component styles
+- 684bf2a: fix(ui): dialog width customization, disableAnimation preventing dialog from showing
+- Updated dependencies [408df0e]
+  - c15t@2.0.0-rc.2
+
 ## 2.0.0-rc.1
 
 ### Patch Changes

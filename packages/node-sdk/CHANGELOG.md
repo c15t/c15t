@@ -1,5 +1,12 @@
 # @c15t/node-sdk
 
+## 2.0.0-rc.2
+
+### Patch Changes
+
+- Updated dependencies [408df0e]
+  - @c15t/schema@2.0.0-rc.2
+
 ## 2.0.0-rc.1
 
 ### Patch Changes
