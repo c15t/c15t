@@ -10,13 +10,13 @@ description: A development tool for inspecting consent state, geolocation, loade
 ```tsx
 import { type ReactNode } from 'react';
 import { ConsentManagerProvider } from '@c15t/react';
-import { C15TDevTools } from '@c15t/dev-tools/react';
+import { DevTools } from '@c15t/dev-tools/react';
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
     <ConsentManagerProvider options={{ mode: 'c15t', backendURL: 'https://your-instance.c15t.dev' }}>
       {children}
-      {process.env.NODE_ENV === 'development' && <C15TDevTools />}
+      {process.env.NODE_ENV === 'development' && <DevTools />}
     </ConsentManagerProvider>
   );
 }

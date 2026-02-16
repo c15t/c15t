@@ -589,6 +589,77 @@ export const installConfirmActor = fromPromise<
 	return { confirmed: result as boolean };
 });
 
+// --- Skills Install Prompt ---
+
+export interface SkillsInstallInput {
+	cliContext: CliContext;
+}
+
+export interface SkillsInstallOutput {
+	installed: boolean;
+}
+
+export const skillsInstallActor = fromPromise<
+	SkillsInstallOutput,
+	SkillsInstallInput
+>(async ({ input }) => {
+	const { cliContext } = input;
+
+	const result = await p.confirm({
+		message:
+			'Install c15t agent skills for AI-assisted development? (Claude, Cursor, etc.)',
+		initialValue: true,
+	});
+
+	if (isCancel(result)) {
+		return { installed: false };
+	}
+
+	if (result) {
+		try {
+			const { spawn } = await import('node:child_process');
+
+			const pmName = cliContext.packageManager.name;
+			const execCommands: Record<string, string> = {
+				bun: 'bunx',
+				pnpm: 'pnpm dlx',
+				yarn: 'yarn dlx',
+				npm: 'npx',
+			};
+			const execCommand = execCommands[pmName] ?? 'npx';
+			const [cmd, ...baseArgs] = execCommand.split(' ');
+
+			cliContext.logger.info('Installing c15t agent skills...');
+
+			const child = spawn(cmd!, [...baseArgs, 'skills', 'add', 'c15t/skills'], {
+				cwd: cliContext.projectRoot,
+				stdio: 'inherit',
+			});
+
+			const exitCode = await new Promise<number | null>((resolve) => {
+				child.on('exit', (code) => resolve(code));
+			});
+
+			if (exitCode === 0) {
+				cliContext.logger.success('Agent skills installed successfully!');
+				return { installed: true };
+			}
+
+			cliContext.logger.warn(
+				'Skills installation failed. You can install later with: npx skills add c15t/skills'
+			);
+			return { installed: false };
+		} catch {
+			cliContext.logger.warn(
+				'Skills installation failed. You can install later with: npx skills add c15t/skills'
+			);
+			return { installed: false };
+		}
+	}
+
+	return { installed: false };
+});
+
 // --- GitHub Star Prompt ---
 
 export interface GitHubStarInput {

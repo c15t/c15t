@@ -26,13 +26,13 @@ bun add @c15t/dev-tools
 The easiest way to add DevTools to a React application:
 
 ```tsx
-import { C15TDevTools } from '@c15t/dev-tools/react';
+import { DevTools } from '@c15t/dev-tools/react';
 
 function App() {
   return (
     <>
       <YourApp />
-      <C15TDevTools position="bottom-right" />
+      <DevTools position="bottom-right" />
     </>
   );
 }
@@ -50,7 +50,7 @@ function App() {
 #### Production Usage
 
 ```tsx
-<C15TDevTools disabled={process.env.NODE_ENV === 'production'} />
+<DevTools disabled={process.env.NODE_ENV === 'production'} />
 ```
 
 ### Vanilla JavaScript

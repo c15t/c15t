@@ -28,7 +28,7 @@ export async function getDevToolsOption({
 				value: true,
 				label: 'Yes (Recommended)',
 				hint: isReactProject
-					? 'Adds <C15TDevTools /> to generated consent components'
+					? 'Adds <DevTools /> to generated consent components'
 					: 'Adds createDevTools() setup to c15t.config.ts',
 			},
 			{

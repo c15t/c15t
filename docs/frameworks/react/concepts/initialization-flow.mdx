@@ -18,7 +18,7 @@ Configure callbacks in the provider to log lifecycle events, and add DevTools fo
 ```tsx
 import { type ReactNode } from 'react';
 import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/react';
-import { C15TDevTools } from '@c15t/dev-tools/react';
+import { DevTools } from '@c15t/dev-tools/react';
 
 export default function ConsentManager({ children }: { children: ReactNode }) {
   return (
@@ -44,7 +44,7 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
     >
       <ConsentBanner />
       <ConsentDialog />
-      {process.env.NODE_ENV !== 'production' && <C15TDevTools />}
+      {process.env.NODE_ENV !== 'production' && <DevTools />}
       {children}
     </ConsentManagerProvider>
   );
