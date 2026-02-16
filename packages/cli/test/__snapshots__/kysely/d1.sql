@@ -9,7 +9,6 @@
 -- MIGRATION
 CREATE TABLE IF NOT EXISTS "subject" (
   "id" text NOT NULL PRIMARY KEY,
-  "isIdentified" integer NOT NULL,
   "externalId" text,
   "identityProvider" text,
   "lastIpAddress" text,

@@ -150,14 +150,13 @@ describe('withTenantScope', () => {
 				id: 'sub_1',
 				externalId: null,
 				identityProvider: 'anonymous',
-				isIdentified: false,
 			} as any);
 
 			expect(db.create).toHaveBeenCalledWith('subject', {
 				id: 'sub_1',
 				externalId: null,
 				identityProvider: 'anonymous',
-				isIdentified: false,
+
 				tenantId: 'tenant_abc',
 			});
 		});
@@ -169,13 +168,13 @@ describe('withTenantScope', () => {
 			const scoped = withTenantScope(db, tenantId);
 
 			await scoped.createMany('subject', [
-				{ id: 'sub_1', isIdentified: false } as any,
-				{ id: 'sub_2', isIdentified: true } as any,
+				{ id: 'sub_1', externalId: null } as any,
+				{ id: 'sub_2', externalId: 'ext_1' } as any,
 			]);
 
 			expect(db.createMany).toHaveBeenCalledWith('subject', [
-				{ id: 'sub_1', isIdentified: false, tenantId: 'tenant_abc' },
-				{ id: 'sub_2', isIdentified: true, tenantId: 'tenant_abc' },
+				{ id: 'sub_1', externalId: null, tenantId: 'tenant_abc' },
+				{ id: 'sub_2', externalId: 'ext_1', tenantId: 'tenant_abc' },
 			]);
 		});
 	});
@@ -284,7 +283,7 @@ describe('withTenantScope', () => {
 			const scoped = withTenantScope(db, tenantId);
 
 			await scoped.count('subject', {
-				where: (b: any) => b('isIdentified', '=', true),
+				where: (b: any) => b('externalId', '=', 'ext_1'),
 			});
 
 			const passedOpts = db.count.mock.calls[0][1];
@@ -295,9 +294,9 @@ describe('withTenantScope', () => {
 				conditions: [
 					{
 						_type: 'condition',
-						col: 'isIdentified',
+						col: 'externalId',
 						op: '=',
-						val: true,
+						val: 'ext_1',
 					},
 					{
 						_type: 'condition',
@@ -380,7 +379,6 @@ describe('withTenantScope', () => {
 				create: {
 					id: 'sub_1',
 					externalId: 'ext_1',
-					isIdentified: true,
 				} as any,
 				update: { identityProvider: 'google' },
 			});
@@ -391,7 +389,7 @@ describe('withTenantScope', () => {
 			expect(passedOpts.create).toEqual({
 				id: 'sub_1',
 				externalId: 'ext_1',
-				isIdentified: true,
+
 				tenantId: 'tenant_abc',
 			});
 
@@ -432,7 +430,6 @@ describe('withTenantScope', () => {
 			await scoped.transaction(async (tx) => {
 				await tx.create('subject', {
 					id: 'sub_1',
-					isIdentified: false,
 				} as any);
 				await tx.findFirst('subject', {
 					where: (b: any) => b('id', '=', 'sub_1'),
@@ -442,7 +439,7 @@ describe('withTenantScope', () => {
 			// The inner db should have tenantId injected
 			expect(innerDb.create).toHaveBeenCalledWith('subject', {
 				id: 'sub_1',
-				isIdentified: false,
+
 				tenantId: 'tenant_abc',
 			});
 
