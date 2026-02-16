@@ -104,6 +104,10 @@ export interface GenerateMachineContext extends BaseMachineContext {
 	/** Whether to run database migrations (self-hosted mode) */
 	runMigrations: boolean;
 
+	// --- Skills ---
+	/** Whether agent skills were installed */
+	skillsInstalled: boolean;
+
 	// --- Cancellation/Cleanup ---
 	/** Reason for cancellation if cancelled */
 	cancelReason: string | null;
@@ -212,6 +216,7 @@ export type GenerateMachineStateValue =
 	| 'fileGeneration'
 	| 'dependencyInstall'
 	| 'summary'
+	| 'skillsInstall'
 	| 'githubStar'
 	| 'complete'
 	| 'error'
@@ -270,6 +275,9 @@ export function createInitialContext(
 
 		// Self-hosted
 		runMigrations: false,
+
+		// Skills
+		skillsInstalled: false,
 
 		// Cancellation
 		cancelReason: null,
