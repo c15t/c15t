@@ -59,7 +59,6 @@ export const patchSubjectHandler = async (c: Context) => {
 				set: {
 					externalId,
 					identityProvider,
-					isIdentified: true,
 					updatedAt: new Date(),
 				},
 			});
@@ -79,7 +78,6 @@ export const patchSubjectHandler = async (c: Context) => {
 						from: subject.identityProvider,
 						to: identityProvider,
 					},
-					isIdentified: { from: subject.isIdentified, to: true },
 				},
 				metadata: {
 					externalId,
@@ -101,7 +99,6 @@ export const patchSubjectHandler = async (c: Context) => {
 			subject: {
 				id: subjectId,
 				externalId,
-				isIdentified: true,
 			},
 		});
 	} catch (error) {

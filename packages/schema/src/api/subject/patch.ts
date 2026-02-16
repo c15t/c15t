@@ -28,7 +28,6 @@ export const patchSubjectOutputSchema = v.object({
 	subject: v.object({
 		id: v.string(),
 		externalId: v.string(),
-		isIdentified: v.boolean(),
 	}),
 });
 

@@ -69,7 +69,6 @@ export const getSubjectHandler = async (c: Context) => {
 			subject: {
 				id: subject.id,
 				externalId: subject.externalId ?? undefined,
-				isIdentified: subject.isIdentified,
 				createdAt: subject.createdAt,
 			},
 			consents: filteredConsents,

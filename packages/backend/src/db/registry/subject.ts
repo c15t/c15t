@@ -68,7 +68,6 @@ export function subjectRegistry({ db, ctx }: Registry) {
 								identityProvider: externalSubjectId
 									? (identityProvider ?? 'external')
 									: 'anonymous',
-								isIdentified: !!externalSubjectId,
 							});
 
 							logger.debug('Created new subject', {
@@ -90,7 +89,6 @@ export function subjectRegistry({ db, ctx }: Registry) {
 								id: await generateUniqueId(db, 'subject', ctx),
 								externalId: externalSubjectId,
 								identityProvider: identityProvider ?? 'external',
-								isIdentified: true,
 							});
 
 							return subject;
@@ -102,7 +100,6 @@ export function subjectRegistry({ db, ctx }: Registry) {
 							id: await generateUniqueId(db, 'subject', ctx),
 							externalId: null,
 							identityProvider: 'anonymous',
-							isIdentified: false,
 						});
 
 						logger.debug('Created new anonymous subject', {

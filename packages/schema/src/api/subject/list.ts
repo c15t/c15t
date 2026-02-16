@@ -20,7 +20,6 @@ export const listSubjectsQuerySchema = v.object({
 export const subjectItemSchema = v.object({
 	id: v.string(),
 	externalId: v.string(),
-	isIdentified: v.boolean(),
 	createdAt: v.date(),
 	consents: v.array(consentItemSchema),
 });
