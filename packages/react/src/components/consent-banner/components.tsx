@@ -12,7 +12,7 @@ import { useTranslations } from '~/hooks/use-translations';
 import { Box, type BoxProps } from '../shared/primitives/box';
 import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
-import type { LegalLinksProps } from '../shared/primitives/legal-links';
+import type { InlineLegalLinksProps } from '../shared/primitives/legal-links';
 import { InlineLegalLinks } from '../shared/primitives/legal-links';
 
 const CONSENT_BANNER_TITLE_NAME = 'ConsentBannerTitle';
@@ -77,7 +77,7 @@ ConsentBannerTitle.displayName = CONSENT_BANNER_TITLE_NAME;
 const ConsentBannerDescription = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'> & {
-		legalLinks?: LegalLinksProps['links'];
+		legalLinks?: InlineLegalLinksProps['links'];
 	}
 >(({ children, legalLinks, asChild, ...props }, ref) => {
 	const { cookieBanner: consentBanner } = useTranslations();

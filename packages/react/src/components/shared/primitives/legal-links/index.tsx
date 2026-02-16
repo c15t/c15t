@@ -1,11 +1,9 @@
 import styles from '@c15t/ui/styles/primitives/legal-links.module.js';
 import type { LegalLinks as LegalLinksType } from 'c15t';
-import { forwardRef } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import { useTranslations } from '~/hooks/use-translations';
 import type { AllThemeKeys } from '~/types/theme/style-keys';
-import { Box, type BoxProps } from '../box';
 
 /**
  * Hook to filter legal links based on the provided links prop.
@@ -121,99 +119,3 @@ export function InlineLegalLinks({
  * Valid theme key prefixes for the LegalLinks component.
  */
 type LegalLinksThemeKey = AllThemeKeys;
-
-export interface LegalLinksProps extends Omit<BoxProps, 'themeKey'> {
-	/**
-	 * Controls which legal links to display.
-	 *
-	 * - `undefined` (default): Shows no legal links
-	 * - `null`: Shows no legal links
-	 * - Array of keys: Shows only the specified legal links
-	 *
-	 * @defaultValue undefined
-	 *
-	 * @example
-	 * ```tsx
-	 * // Show no links (default)
-	 * <LegalLinks themeKey="banner.header.legal-links" />
-	 *
-	 * // Show no links (explicit)
-	 * <LegalLinks links={null} themeKey="banner.header.legal-links" />
-	 *
-	 * // Show only privacy policy
-	 * <LegalLinks links={['privacyPolicy']} themeKey="banner.header.legal-links" />
-	 * ```
-	 *
-	 * @remarks
-	 * You must set the legal links in the ConsentManagerProvider options.
-	 */
-	links?: (keyof LegalLinksType)[] | null;
-
-	/** Theme key for styling the component. Must be one of the valid legal-links parent keys. */
-	themeKey: LegalLinksThemeKey;
-}
-
-/**
- * Renders a list of legal links (e.g., privacy policy, cookie policy).
- *
- * @example
- * ```tsx
- * <LegalLinks
- *   links={['privacyPolicy', 'cookiePolicy']}
- *   themeKey="banner.header.legal-links"
- * />
- * ```
- *
- * @deprecated use InlineLegalLinks instead as this component is no longer used
- */
-export const LegalLinks = forwardRef<HTMLDivElement, LegalLinksProps>(
-	({ links, themeKey, ...props }, ref) => {
-		const filteredLinks = useFilteredLegalLinks(links);
-		const { legalLinks: t } = useTranslations();
-
-		// TypeScript now knows that `${themeKey}.link` is valid because
-		// all three LegalLinksThemeKey values have corresponding `.link` child keys
-		const linkStyles = useStyles(themeKey as any, {
-			baseClassName: styles.legalLink,
-		});
-
-		// Don't render if filteredLinks is null or empty
-		if (!filteredLinks || Object.keys(filteredLinks).length === 0) {
-			return null;
-		}
-
-		return (
-			<Box
-				ref={ref}
-				themeKey={themeKey}
-				baseClassName={styles.legalLinks}
-				{...props}
-			>
-				{(
-					Object.entries(filteredLinks) as [
-						keyof LegalLinksType,
-						LegalLinksType[keyof LegalLinksType],
-					][]
-				).map(([type, link]) => {
-					if (!link) return null;
-					return (
-						<a
-							key={String(type)}
-							href={link.href}
-							target={link.target || '_blank'}
-							rel={
-								link.rel ||
-								(link.target === '_blank' ? 'noopener noreferrer' : undefined)
-							}
-							{...linkStyles}
-						>
-							{link.label ?? (t as Record<string, string>)?.[type as string]}
-						</a>
-					);
-				})}
-			</Box>
-		);
-	}
-);
-
-LegalLinks.displayName = 'LegalLinks';
