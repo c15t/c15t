@@ -10,7 +10,7 @@ import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
 import { forwardRef, type ReactNode, type Ref } from 'react';
 import { ConsentWidget } from '~/components/consent-widget/consent-widget';
 import { Box, type BoxProps } from '~/components/shared/primitives/box';
-import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
+import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { InlineLegalLinks } from '~/components/shared/primitives/legal-links';
 import { C15TIcon, ConsentIconOnly } from '~/components/shared/ui/logo';
 import { useConsentManager } from '~/hooks';
@@ -108,7 +108,7 @@ const ConsentDialogHeaderTitle = forwardRef<
 const ConsentDialogHeaderDescription = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'> & {
-		legalLinks?: LegalLinksProps['links'];
+		legalLinks?: InlineLegalLinksProps['links'];
 	}
 >(({ children, legalLinks, asChild, ...props }, ref) => {
 	const { consentManagerDialog: consentDialog } = useTranslations();
@@ -255,7 +255,7 @@ const ConsentCustomizationCard = ({
 	hideBranding,
 }: {
 	noStyle?: boolean;
-	legalLinks?: LegalLinksProps['links'];
+	legalLinks?: InlineLegalLinksProps['links'];
 	hideBranding?: boolean;
 }) => {
 	return (

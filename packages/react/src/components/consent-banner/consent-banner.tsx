@@ -7,7 +7,7 @@
  */
 
 import { type FC, Fragment, type ReactNode } from 'react';
-import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
+import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useTranslations } from '~/hooks/use-translations';
 import { ConsentBannerRoot } from './atoms/root';
@@ -139,7 +139,7 @@ export interface ConsentBannerProps {
 	 * @remarks
 	 * You must set the legal links in the ConsentManagerProvider options.
 	 */
-	legalLinks?: LegalLinksProps['links'];
+	legalLinks?: InlineLegalLinksProps['links'];
 
 	/**
 	 * Defines the layout of buttons in the footer.

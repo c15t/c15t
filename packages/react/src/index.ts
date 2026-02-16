@@ -64,11 +64,6 @@ export {
 } from './components/iab-consent-dialog';
 
 export { ConsentButton } from './components/shared/primitives/button';
-export {
-	InlineLegalLinks,
-	LegalLinks,
-	type LegalLinksProps,
-} from './components/shared/primitives/legal-links';
 
 // Hooks
 export { useColorScheme } from './hooks/use-color-scheme';

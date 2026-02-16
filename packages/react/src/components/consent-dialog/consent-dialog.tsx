@@ -14,7 +14,7 @@ import {
 	ConsentDialogTrigger,
 	type ConsentDialogTriggerProps,
 } from '~/components/consent-dialog-trigger';
-import type { LegalLinksProps } from '~/components/shared/primitives/legal-links';
+import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { ConsentCustomizationCard } from './atoms/card';
@@ -80,7 +80,7 @@ export interface ConsentDialogProps {
 	 * @remarks
 	 * You must set the legal links in the ConsentManagerProvider options.
 	 */
-	legalLinks?: LegalLinksProps['links'];
+	legalLinks?: InlineLegalLinksProps['links'];
 
 	/**
 	 * Controls whether to hide the branding in the dialog footer.
