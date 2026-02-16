@@ -17,6 +17,7 @@ import color from 'picocolors';
 import { showHelpMenu } from './actions/show-help-menu';
 import { generate, generateCommand } from './commands/generate';
 import { selfHost } from './commands/self-host';
+import { installSkills } from './commands/skills';
 import { displayIntro } from './components/intro';
 
 // Import from new v2 modules
@@ -44,6 +45,14 @@ const commands: CliCommand[] = [
 		hint: 'Host c15t backend on your own infra',
 		description: 'Commands for self-hosting c15t (generate, migrate).',
 		action: (context) => selfHost(context),
+	},
+	{
+		name: 'skills',
+		label: 'Skills',
+		hint: 'Add c15t agent skills for AI tools',
+		description:
+			'Install c15t skills for AI-assisted development (Claude, Cursor, etc.)',
+		action: (context) => installSkills(context),
 	},
 	{
 		name: 'github',

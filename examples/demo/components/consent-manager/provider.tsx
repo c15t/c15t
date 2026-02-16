@@ -1,6 +1,6 @@
 'use client';
 
-import { C15TDevTools } from '@c15t/dev-tools/react';
+import { DevTools } from '@c15t/dev-tools/react';
 import {
 	ConsentBanner,
 	ConsentDialog,
@@ -167,7 +167,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 				<IABConsentDialog />
 				<ConsentDialogTrigger />
 				<ConsentDialog />
-				<C15TDevTools />
+				<DevTools />
 				{children}
 			</ConsentManagerProvider>
 		</>

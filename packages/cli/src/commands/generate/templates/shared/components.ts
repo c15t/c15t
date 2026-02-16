@@ -157,7 +157,7 @@ export function generateConsentComponent({
 	// Build directive
 	const directive = useClientDirective ? "'use client';\n\n" : '';
 	const devToolsImport = enableDevTools
-		? "import { C15TDevTools } from '@c15t/dev-tools/react';\n"
+		? "import { DevTools } from '@c15t/dev-tools/react';\n"
 		: '';
 	const themeImport = includeTheme ? "import { theme } from './theme';\n" : '';
 
@@ -195,7 +195,7 @@ ${exportPrefix} ${componentName}(${propsDestructure}) {
 		<ConsentManagerProvider${providerProps}>
 			<ConsentBanner />
 			<ConsentDialog />
-			${enableDevTools ? "<C15TDevTools disabled={process.env.NODE_ENV === 'production'} />" : ''}
+			${enableDevTools ? "<DevTools disabled={process.env.NODE_ENV === 'production'} />" : ''}
 			{children}
 		</ConsentManagerProvider>
 	);

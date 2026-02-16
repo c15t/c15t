@@ -28,6 +28,7 @@ import {
 	modeSelectionActor,
 	PromptCancelledError,
 	scriptsOptionActor,
+	skillsInstallActor,
 } from './actors/prompts';
 import { guards } from './guards';
 import {
@@ -59,6 +60,7 @@ export const generateMachine = setup({
 		installConfirm: installConfirmActor,
 		dependencyInstall: dependencyInstallActor,
 		rollback: rollbackActor,
+		skillsInstall: skillsInstallActor,
 		githubStar: githubStarActor,
 	},
 }).createMachine({
@@ -546,7 +548,24 @@ export const generateMachine = setup({
 				}
 			},
 			after: {
-				100: 'githubStar',
+				100: 'skillsInstall',
+			},
+		},
+
+		/**
+		 * Skills install prompt
+		 */
+		skillsInstall: {
+			invoke: {
+				src: 'skillsInstall',
+				input: ({ context }) => ({ cliContext: context.cliContext! }),
+				onDone: {
+					target: 'githubStar',
+					actions: assign({
+						skillsInstalled: ({ event }) => event.output.installed,
+					}),
+				},
+				onError: 'githubStar',
 			},
 		},
 

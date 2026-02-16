@@ -59,7 +59,7 @@ export function generateExpandedProviderTemplate({
 
 	const ssrDataOption = enableSSR ? '\n\t\t\t\tssrData,' : '';
 	const devToolsImport = enableDevTools
-		? "import { C15TDevTools } from '@c15t/dev-tools/react';\n"
+		? "import { DevTools } from '@c15t/dev-tools/react';\n"
 		: '';
 	const reactNodeImport = useConsentManagerProps
 		? ''
@@ -91,7 +91,7 @@ export default function ConsentManagerClient(${propsDestructure}) {
 		>
 			<ConsentBanner />
 			<ConsentDialog />
-			${enableDevTools ? "<C15TDevTools disabled={process.env.NODE_ENV === 'production'} />" : ''}
+			${enableDevTools ? "<DevTools disabled={process.env.NODE_ENV === 'production'} />" : ''}
 			{children}
 		</ConsentManagerProvider>
 	);
