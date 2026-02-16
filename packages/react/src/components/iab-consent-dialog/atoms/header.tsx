@@ -3,6 +3,7 @@
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { forwardRef, type ReactNode } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useStyles } from '~/hooks/use-styles';
 import { useIABTranslations } from '../use-iab-translations';
 
 interface IABConsentDialogHeaderProps {
@@ -49,12 +50,13 @@ const IABConsentDialogHeader = forwardRef<
 			setActiveUI('none');
 		};
 
-		const headerClassName = className
-			? `${styles.header} ${className}`
-			: styles.header;
+		const themedStyle = useStyles('iabConsentDialogHeader', {
+			baseClassName: styles.header,
+			className,
+		});
 
 		return (
-			<div ref={ref} className={headerClassName}>
+			<div ref={ref} {...themedStyle}>
 				{children ? (
 					children
 				) : (

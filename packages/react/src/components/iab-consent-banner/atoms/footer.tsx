@@ -2,6 +2,7 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+import { useStyles } from '~/hooks/use-styles';
 
 interface IABConsentBannerFooterProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;
@@ -19,14 +20,15 @@ const IABConsentBannerFooter = forwardRef<
 	HTMLDivElement,
 	IABConsentBannerFooterProps
 >(({ children, className, ...props }, ref) => {
-	const footerClassName = className
-		? `${styles.footer} ${className}`
-		: styles.footer;
+	const themedStyle = useStyles('iabConsentBannerFooter', {
+		baseClassName: styles.footer,
+		className,
+	});
 
 	return (
 		<div
 			ref={ref}
-			className={footerClassName}
+			{...themedStyle}
 			data-testid="iab-consent-banner-footer"
 			{...props}
 		>

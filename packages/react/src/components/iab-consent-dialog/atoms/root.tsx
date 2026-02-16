@@ -7,7 +7,9 @@ import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
+import { useStyles } from '~/hooks/use-styles';
 import { useTextDirection } from '~/hooks/use-text-direction';
+import { cnExt as cn } from '~/utils/cn';
 import { IABConsentDialogOverlay } from './overlay';
 
 interface IABConsentDialogRootProps {
@@ -102,6 +104,17 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		return null;
 	}
 
+	const themedStyle = useStyles('iabConsentDialog', {
+		baseClassName: cn(
+			styles.root,
+			disableAnimation
+				? undefined
+				: isVisible
+					? styles.dialogVisible
+					: styles.dialogHidden
+		),
+	});
+
 	const dialogContent = (
 		<ConsentTrackingContext.Provider
 			value={{ uiSource: uiSource ?? 'iab_dialog' }}
@@ -109,7 +122,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 			<LocalThemeContext.Provider value={contextValue}>
 				<IABConsentDialogOverlay isOpen={isOpen} />
 				<div
-					className={`${styles.root} ${isVisible ? styles.dialogVisible : styles.dialogHidden}`}
+					{...themedStyle}
 					data-testid="iab-consent-dialog-root"
 					dir={textDirection}
 				>

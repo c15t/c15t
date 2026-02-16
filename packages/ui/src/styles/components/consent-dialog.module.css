@@ -141,8 +141,6 @@
 
 	.container {
 		width: 100%;
-		max-width: var(--consent-dialog-max-width);
-		margin: auto;
 	}
 
 	.branding {
@@ -233,6 +231,8 @@
 	}
 
 	.card {
+		width: min(100%, var(--consent-dialog-max-width));
+		margin: 0 auto;
 		border-radius: var(--consent-dialog-card-radius);
 		border: var(--consent-dialog-border-width)
 			var(--consent-dialog-border-style) var(--consent-dialog-border-color);

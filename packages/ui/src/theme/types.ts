@@ -387,6 +387,12 @@ export interface ComponentSlots {
 	// --- IAB CONSENT DIALOG SLOTS ---
 	/** Root wrapper for the IAB consent dialog. */
 	iabConsentDialog?: SlotStyle;
+	/** Main card container for IAB dialog content. */
+	iabConsentDialogCard?: SlotStyle;
+	/** Header region for IAB dialog title/description. */
+	iabConsentDialogHeader?: SlotStyle;
+	/** Footer container for IAB dialog actions. */
+	iabConsentDialogFooter?: SlotStyle;
 	/** Backdrop overlay rendered behind the IAB dialog. */
 	iabConsentDialogOverlay?: SlotStyle;
 
