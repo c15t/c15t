@@ -1,7 +1,7 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-  `C15TDevTools` is a floating panel that shows the internal state of the consent manager. Use it during development to inspect consent values, geolocation results, loaded scripts, and debug consent flows.
+  `DevTools` is a floating panel that shows the internal state of the consent manager. Use it during development to inspect consent values, geolocation results, loaded scripts, and debug consent flows. Also exported as `C15TDevTools` if you need to avoid naming conflicts with other devtools.
 
   <Callout type="warn">
     DevTools should only be included in development builds. The component renders nothing to the React tree - it injects directly into `document.body`.
@@ -20,7 +20,7 @@
   ## Configuration
 
   ```tsx
-  <C15TDevTools
+  <DevTools
     position="bottom-right"  // 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
     defaultOpen={false}       // Start with panel open
     namespace="c15tStore"     // Store namespace to connect to

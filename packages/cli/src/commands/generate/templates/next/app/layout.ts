@@ -38,6 +38,7 @@ interface UpdateAppLayoutOptions {
 	uiStyle?: UIStyle;
 	expandedTheme?: ExpandedTheme;
 	selectedScripts?: string[];
+	layoutFilePath?: string;
 }
 
 interface ComponentFilePaths {
@@ -384,6 +385,7 @@ export async function updateAppLayout({
 	uiStyle = 'prebuilt',
 	expandedTheme = 'tailwind',
 	selectedScripts,
+	layoutFilePath,
 }: UpdateAppLayoutOptions): Promise<{
 	updated: boolean;
 	filePath: string | null;
@@ -393,6 +395,7 @@ export async function updateAppLayout({
 	return runLayoutUpdatePipeline({
 		filePatterns: APP_LAYOUT_PATTERNS,
 		projectRoot,
+		knownFilePath: layoutFilePath,
 		frameworkDirName: 'app',
 		wrapJsx: wrapAppJsxContent,
 		createComponents: async (_layoutFilePath, appDir) => {

@@ -5,13 +5,13 @@
  *
  * @example
  * ```tsx
- * import { C15TDevTools } from '@c15t/dev-tools/react';
+ * import { DevTools } from '@c15t/dev-tools/react';
  *
  * function App() {
  *   return (
  *     <>
  *       <YourApp />
- *       <C15TDevTools position="bottom-right" />
+ *       <DevTools position="bottom-right" />
  *     </>
  *   );
  * }
@@ -50,13 +50,13 @@ export interface C15TDevToolsProps extends Partial<DevToolsOptions> {
  * @example
  * Basic usage:
  * ```tsx
- * import { C15TDevTools } from '@c15t/dev-tools/react';
+ * import { DevTools } from '@c15t/dev-tools/react';
  *
  * function App() {
  *   return (
  *     <>
  *       <YourApp />
- *       <C15TDevTools />
+ *       <DevTools />
  *     </>
  *   );
  * }
@@ -65,19 +65,19 @@ export interface C15TDevToolsProps extends Partial<DevToolsOptions> {
  * @example
  * With custom position:
  * ```tsx
- * <C15TDevTools position="top-left" />
+ * <DevTools position="top-left" />
  * ```
  *
  * @example
  * Disabled in production:
  * ```tsx
- * <C15TDevTools disabled={process.env.NODE_ENV === 'production'} />
+ * <DevTools disabled={process.env.NODE_ENV === 'production'} />
  * ```
  *
  * @example
  * Default open state:
  * ```tsx
- * <C15TDevTools defaultOpen />
+ * <DevTools defaultOpen />
  * ```
  */
 export function C15TDevTools({
@@ -116,6 +116,8 @@ export function C15TDevTools({
 	// Component renders nothing - devtools injects into document.body
 	return null;
 }
+
+export { C15TDevTools as DevTools };
 
 // Re-export types
 export type { DevToolsOptions, DevToolsInstance };

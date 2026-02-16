@@ -29,6 +29,7 @@ export interface LayoutPipelineConfig {
 	filePatterns: string[];
 	/** Root directory of the project */
 	projectRoot: string;
+	knownFilePath?: string;
 	/** Framework directory name for getFrameworkDirectory (e.g., 'app' or 'pages') */
 	frameworkDirName: string;
 	/** Creates the consent-manager component files. Receives the layout file path and framework directory. */
@@ -61,6 +62,7 @@ export async function runLayoutUpdatePipeline(
 	const {
 		filePatterns,
 		projectRoot,
+		knownFilePath,
 		frameworkDirName,
 		createComponents,
 		wrapJsx,
@@ -71,11 +73,20 @@ export async function runLayoutUpdatePipeline(
 	const project = new Project();
 	let layoutFile: SourceFile | undefined;
 
-	for (const pattern of filePatterns) {
-		const files = project.addSourceFilesAtPaths(`${projectRoot}/${pattern}`);
-		if (files.length > 0) {
-			layoutFile = files[0];
-			break;
+	if (knownFilePath) {
+		// Use exact path — avoids glob interpretation of brackets like [locale]
+		try {
+			layoutFile = project.addSourceFileAtPath(knownFilePath);
+		} catch {
+			// File doesn't exist or can't be read
+		}
+	} else {
+		for (const pattern of filePatterns) {
+			const files = project.addSourceFilesAtPaths(`${projectRoot}/${pattern}`);
+			if (files.length > 0) {
+				layoutFile = files[0];
+				break;
+			}
 		}
 	}
 

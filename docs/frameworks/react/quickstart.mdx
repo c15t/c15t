@@ -109,14 +109,14 @@ Install DevTools only if you want a runtime inspector while building and debuggi
 Then add it inside your existing provider:
 
 ```tsx title="components/consent-manager/provider.tsx"
-import { C15TDevTools } from '@c15t/dev-tools/react';
+import { DevTools } from '@c15t/dev-tools/react';
 
 // ...
 
 <ConsentManagerProvider options={...}>
   <ConsentBanner />
   <ConsentDialog />
-  {process.env.NODE_ENV !== 'production' && <C15TDevTools />}
+  {process.env.NODE_ENV !== 'production' && <DevTools />}
   {children}
 </ConsentManagerProvider>
 ```
@@ -124,6 +124,14 @@ import { C15TDevTools } from '@c15t/dev-tools/react';
 <Callout type="info">
   Want to understand what's happening under the hood? See [Initialization Flow](/docs/frameworks/react/concepts/initialization-flow) for the lifecycle and [Cookie Management](/docs/frameworks/react/concepts/cookie-management) for script/cookie behavior and revocation handling.
 </Callout>
+
+## Optional: Install Agent Skills
+
+Install c15t agent skills to let AI agents help with styling, i18n, scripts & other configuration.
+
+<PackageCommandTabs command="@c15t/cli@rc skills" />
+
+See [AI Tools](/docs/ai-tools-integrations) for details.
 
 ## Next steps
 
@@ -135,4 +143,6 @@ import { C15TDevTools } from '@c15t/dev-tools/react';
   <Card variant="interactive" title="Consent Categories" description="Understand the five consent categories and how to configure them." href="/docs/frameworks/react/concepts/consent-categories" />
 
   <Card variant="interactive" title="Components" description="Explore the full set of pre-built consent UI components." href="/docs/frameworks/react/components/consent-banner" />
+
+  <Card variant="interactive" title="AI Agent Skills" description="Let AI assistants help configure styling, i18n, and scripts." href="/docs/ai-tools-integrations" />
 </Cards>

@@ -21,6 +21,7 @@ interface UpdatePagesLayoutOptions {
 	proxyNextjs?: boolean;
 	enableDevTools?: boolean;
 	selectedScripts?: string[];
+	layoutFilePath?: string;
 }
 
 interface ComponentFilePaths {
@@ -228,6 +229,7 @@ export async function updatePagesLayout({
 	proxyNextjs,
 	enableDevTools = false,
 	selectedScripts,
+	layoutFilePath,
 }: UpdatePagesLayoutOptions): Promise<{
 	updated: boolean;
 	filePath: string | null;
@@ -245,6 +247,7 @@ export async function updatePagesLayout({
 	return runLayoutUpdatePipeline({
 		filePatterns: PAGES_APP_PATTERNS,
 		projectRoot,
+		knownFilePath: layoutFilePath,
 		frameworkDirName: 'pages',
 		wrapJsx: wrapPagesJsxContent,
 		createComponents: async (_layoutFilePath, pagesDir) => {
