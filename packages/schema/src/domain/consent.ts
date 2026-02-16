@@ -19,6 +19,8 @@ export const consentSchema = v.object({
 	tcString: v.nullish(v.string()),
 	/** Which UI component collected this consent (e.g., 'banner', 'dialog', 'widget') */
 	uiSource: v.nullish(v.string()),
+	/** Derived consent action (e.g., 'accept_all', 'reject_all', 'opt_out', 'custom') */
+	consentAction: v.nullish(v.string()),
 	tenantId: v.nullish(v.string()),
 });
 
