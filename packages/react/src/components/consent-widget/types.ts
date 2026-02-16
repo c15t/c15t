@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { LegalLinksProps } from '../shared/primitives/legal-links';
+import type { InlineLegalLinksProps } from '../shared/primitives/legal-links';
 
 export interface ConsentWidgetRootProps {
 	children: ReactNode;
@@ -68,5 +68,5 @@ export interface ConsentWidgetProps
 	 * <ConsentWidget legalLinks={['privacyPolicy', 'cookiePolicy']} />
 	 * ```
 	 */
-	legalLinks?: LegalLinksProps['links'];
+	legalLinks?: InlineLegalLinksProps['links'];
 }
