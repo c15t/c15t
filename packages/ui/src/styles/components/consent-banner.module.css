@@ -116,8 +116,7 @@
 	/* Card styles */
 	.card {
 		position: relative;
-		width: 100%;
-		max-width: var(--consent-banner-max-width);
+		width: min(100%, var(--consent-banner-max-width));
 		border-radius: var(--consent-banner-border-radius);
 		border-width: var(--consent-banner-border-width);
 		border-color: var(--consent-banner-border-color);

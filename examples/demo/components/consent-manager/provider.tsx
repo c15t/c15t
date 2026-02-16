@@ -127,7 +127,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 					storageConfig: {
 						crossSubdomain: true,
 					},
-					// theme: centeredIabTheme,
+					theme: centeredIabTheme,
 					legalLinks: {
 						privacyPolicy: {
 							href: '/legal/privacy-policy',
@@ -157,7 +157,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 						},
 					},
 					overrides: {
-						country: 'GB',
+						country: 'CA',
 						region: 'QC',
 					},
 				}}

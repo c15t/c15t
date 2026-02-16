@@ -217,9 +217,11 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 										? undefined
 										: cn(
 												styles.container,
-												!disableAnimation && isVisible
-													? styles.contentVisible
-													: styles.contentHidden
+												disableAnimation
+													? undefined
+													: isVisible
+														? styles.contentVisible
+														: styles.contentHidden
 											)
 								}
 							>

@@ -71,6 +71,7 @@ export const minimalTheme: Theme = {
 			style: {
 				border: '1px solid var(--c15t-border)',
 				boxShadow: 'var(--c15t-shadow-lg)',
+				width: 800,
 			},
 		},
 		buttonPrimary: {

@@ -8,6 +8,7 @@ import {
 	type RefObject,
 } from 'react';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
+import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
 
 interface IABConsentBannerCardProps extends HTMLAttributes<HTMLDivElement> {
@@ -30,12 +31,15 @@ const IABConsentBannerCard = forwardRef<
 
 	useFocusTrap(Boolean(trapFocus), ref as RefObject<HTMLElement>);
 
-	const cardClassName = className ? `${styles.card} ${className}` : styles.card;
+	const themedStyle = useStyles('iabConsentBannerCard', {
+		baseClassName: styles.card,
+		className,
+	});
 
 	return (
 		<div
 			ref={ref}
-			className={cardClassName}
+			{...themedStyle}
 			tabIndex={0}
 			role="dialog"
 			aria-modal={trapFocus ? 'true' : undefined}

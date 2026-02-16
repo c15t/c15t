@@ -98,8 +98,7 @@
 	/* Card styles */
 	.card {
 		position: relative;
-		width: 100%;
-		max-width: var(--iab-consent-banner-max-width);
+		width: min(100%, var(--iab-consent-banner-max-width));
 		border-radius: var(--iab-consent-banner-border-radius);
 		border-width: var(--iab-consent-banner-border-width);
 		border-style: solid;

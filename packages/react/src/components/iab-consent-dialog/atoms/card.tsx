@@ -11,7 +11,9 @@ import {
 } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
+import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
+import { cnExt as cn } from '~/utils/cn';
 import { useIABTranslations } from '../use-iab-translations';
 
 interface IABConsentDialogCardProps extends HTMLAttributes<HTMLDivElement> {
@@ -49,14 +51,18 @@ const IABConsentDialogCard = forwardRef<
 		}
 	}, [showDialog]);
 
-	const cardClassName = className
-		? `${styles.card} ${isVisible ? styles.contentVisible : styles.contentHidden} ${className}`
-		: `${styles.card} ${isVisible ? styles.contentVisible : styles.contentHidden}`;
+	const themedStyle = useStyles('iabConsentDialogCard', {
+		baseClassName: cn(
+			styles.card,
+			isVisible ? styles.contentVisible : styles.contentHidden
+		),
+		className,
+	});
 
 	return (
 		<div
 			ref={ref}
-			className={cardClassName}
+			{...themedStyle}
 			role="dialog"
 			aria-modal={trapFocus ? 'true' : undefined}
 			aria-label={iabTranslations.preferenceCenter.title}

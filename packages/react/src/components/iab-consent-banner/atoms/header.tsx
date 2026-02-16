@@ -2,6 +2,7 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+import { useStyles } from '~/hooks/use-styles';
 
 interface IABConsentBannerHeaderProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;
@@ -19,14 +20,15 @@ const IABConsentBannerHeader = forwardRef<
 	HTMLDivElement,
 	IABConsentBannerHeaderProps
 >(({ children, className, ...props }, ref) => {
-	const headerClassName = className
-		? `${styles.header} ${className}`
-		: styles.header;
+	const themedStyle = useStyles('iabConsentBannerHeader', {
+		baseClassName: styles.header,
+		className,
+	});
 
 	return (
 		<div
 			ref={ref}
-			className={headerClassName}
+			{...themedStyle}
 			data-testid="iab-consent-banner-header"
 			{...props}
 		>

@@ -83,8 +83,7 @@
 	/* Card styles */
 	.card {
 		position: relative;
-		width: 100%;
-		max-width: var(--consent-widget-max-width);
+		width: min(100%, var(--consent-widget-max-width));
 		border-radius: var(--consent-widget-radius);
 		border: var(--consent-widget-border-width) solid
 			var(--consent-widget-border-color);

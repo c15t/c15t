@@ -118,8 +118,7 @@
 
 	/* Card container */
 	.card {
-		width: 100%;
-		max-width: var(--iab-cd-max-width);
+		width: min(100%, var(--iab-cd-max-width));
 		max-height: var(--iab-cd-max-height);
 		border-radius: var(--iab-cd-border-radius);
 		border: 1px solid var(--iab-cd-border-color);
