@@ -1,5 +1,15 @@
 # @c15t/cli
 
+## 2.0.0-rc.2
+
+### Patch Changes
+
+- 732d44f: feat(dev-tools): add DevTools export
+  feat(cli): add support for file structures like [locale]
+  feat(cli): add c15t/skills
+- Updated dependencies [408df0e]
+  - @c15t/backend@2.0.0-rc.2
+
 ## 2.0.0-rc.1
 
 ### Patch Changes
