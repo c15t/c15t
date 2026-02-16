@@ -20,6 +20,8 @@ export const consentTable = table('consent', {
 	tcString: column('tcString', 'string').nullable(),
 	/** Which UI component collected this consent (e.g., 'banner', 'dialog', 'widget') */
 	uiSource: column('uiSource', 'string').nullable(),
+	/** Derived consent action (e.g., 'accept_all', 'reject_all', 'opt_out', 'custom') */
+	consentAction: column('consentAction', 'string').nullable(),
 	tenantId: column('tenantId', 'string').nullable(),
 });
 

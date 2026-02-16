@@ -226,6 +226,7 @@ export async function saveConsents({
 			jurisdictionModel: model ?? undefined,
 			givenAt,
 			uiSource: options?.uiSource ?? 'api',
+			consentAction: type,
 		},
 	});
 

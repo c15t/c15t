@@ -18,7 +18,7 @@ describe('subjectRegistry', () => {
 
 	const createMockSubject = (overrides: Partial<Subject> = {}): Subject => ({
 		id: 'sub_test_123',
-		isIdentified: false,
+
 		externalId: null,
 		identityProvider: 'anonymous',
 		createdAt: new Date('2024-01-01T00:00:00.000Z'),
@@ -36,7 +36,6 @@ describe('subjectRegistry', () => {
 				const mockSubject = createMockSubject({
 					id: 'sub_existing',
 					externalId: 'ext_123',
-					isIdentified: true,
 				});
 
 				const db = {
@@ -66,7 +65,6 @@ describe('subjectRegistry', () => {
 					id: 'sub_new',
 					externalId: null,
 					identityProvider: 'anonymous',
-					isIdentified: false,
 				});
 
 				const db = {
@@ -91,7 +89,6 @@ describe('subjectRegistry', () => {
 					id: 'sub_new',
 					externalId: null,
 					identityProvider: 'anonymous',
-					isIdentified: false,
 				});
 
 				expect(result).toEqual(createdSubject);
@@ -102,7 +99,6 @@ describe('subjectRegistry', () => {
 					id: 'sub_new',
 					externalId: 'ext_123',
 					identityProvider: 'external',
-					isIdentified: true,
 				});
 
 				const db = {
@@ -124,7 +120,6 @@ describe('subjectRegistry', () => {
 					id: 'sub_new',
 					externalId: 'ext_123',
 					identityProvider: 'external',
-					isIdentified: true,
 				});
 
 				expect(result).toEqual(createdSubject);
@@ -137,7 +132,6 @@ describe('subjectRegistry', () => {
 					id: 'sub_test_123',
 					externalId: 'ext_existing',
 					identityProvider: 'external',
-					isIdentified: true,
 				});
 
 				const db = {
@@ -158,7 +152,6 @@ describe('subjectRegistry', () => {
 					id: 'sub_test_123',
 					externalId: 'ext_existing',
 					identityProvider: 'external',
-					isIdentified: true,
 				});
 
 				expect(result).toEqual(mockSubject);
@@ -173,7 +166,6 @@ describe('subjectRegistry', () => {
 					id: 'sub_test_123',
 					externalId: 'ext_new',
 					identityProvider: 'google',
-					isIdentified: true,
 				});
 
 				const db = {
@@ -194,7 +186,6 @@ describe('subjectRegistry', () => {
 					id: 'sub_test_123',
 					externalId: 'ext_new',
 					identityProvider: 'google',
-					isIdentified: true,
 				});
 
 				expect(result).toEqual(mockSubject);
@@ -222,7 +213,6 @@ describe('subjectRegistry', () => {
 					id: 'sub_test_123',
 					externalId: 'ext_test',
 					identityProvider: 'external',
-					isIdentified: true,
 				});
 			});
 		});
@@ -231,7 +221,6 @@ describe('subjectRegistry', () => {
 			it('should create a new anonymous subject', async () => {
 				const mockSubject = createMockSubject({
 					externalId: null,
-					isIdentified: false,
 				});
 
 				const db = {
@@ -251,7 +240,6 @@ describe('subjectRegistry', () => {
 					id: 'sub_test_123',
 					externalId: null,
 					identityProvider: 'anonymous',
-					isIdentified: false,
 				});
 
 				expect(result).toEqual(mockSubject);
@@ -263,7 +251,6 @@ describe('subjectRegistry', () => {
 			it('should create anonymous subject when no arguments provided', async () => {
 				const mockSubject = createMockSubject({
 					externalId: null,
-					isIdentified: false,
 				});
 
 				const db = {
@@ -281,7 +268,6 @@ describe('subjectRegistry', () => {
 					id: 'sub_test_123',
 					externalId: null,
 					identityProvider: 'anonymous',
-					isIdentified: false,
 				});
 
 				expect(result).toEqual(mockSubject);
@@ -310,7 +296,6 @@ describe('subjectRegistry', () => {
 					id: 'sub_test_123',
 					externalId: null,
 					identityProvider: 'anonymous',
-					isIdentified: false,
 				});
 			});
 
@@ -335,7 +320,6 @@ describe('subjectRegistry', () => {
 					id: 'sub_test_123',
 					externalId: null,
 					identityProvider: 'anonymous',
-					isIdentified: false,
 				});
 			});
 		});
@@ -380,7 +364,6 @@ describe('subjectRegistry', () => {
 					id: 'sub_test_123',
 					externalId: 'ext_test',
 					identityProvider: 'external',
-					isIdentified: true,
 				});
 			});
 		});

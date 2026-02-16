@@ -60,7 +60,6 @@ export const listSubjectsHandler = async (c: Context) => {
 				return {
 					id: subject.id,
 					externalId: subject.externalId ?? externalId,
-					isIdentified: subject.isIdentified,
 					createdAt: subject.createdAt,
 					consents: consentItems,
 				};

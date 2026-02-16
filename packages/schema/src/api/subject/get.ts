@@ -52,7 +52,6 @@ export const getSubjectOutputSchema = v.object({
 	subject: v.object({
 		id: v.string(),
 		externalId: v.optional(v.string()),
-		isIdentified: v.boolean(),
 		createdAt: v.optional(v.date()),
 	}),
 	consents: v.array(consentItemSchema),
