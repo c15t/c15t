@@ -29,7 +29,7 @@
   Combine Tailwind's dark mode with c15t's `dark` tokens:
 
   ```tsx
-  const theme = defineTheme({
+  const theme = {
     colors: {
       primary: '#6366f1',
       surface: '#ffffff',
@@ -44,7 +44,7 @@
       consentBannerCard: 'bg-white dark:bg-gray-900 shadow-lg dark:shadow-gray-900/30',
       consentBannerTitle: 'text-gray-900 dark:text-gray-100',
     },
-  });
+  } satisfies Theme;
   ```
 
   ## Optional: noStyle Mode

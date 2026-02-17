@@ -8,9 +8,9 @@ description: Five approaches for theming consent components — design tokens, c
 ## Quick Start
 
 ```tsx
-import { defineTheme, ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/nextjs';
+import { type Theme, ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/nextjs';
 
-const theme = defineTheme({
+const theme = {
   colors: {
     primary: '#6366f1',
     primaryHover: '#4f46e5',
@@ -23,7 +23,7 @@ const theme = defineTheme({
     consentBannerTitle: 'text-xl font-semibold',
     buttonPrimary: 'rounded-full',
   },
-});
+} satisfies Theme;
 
 export function ConsentManager({ children }) {
   return (
