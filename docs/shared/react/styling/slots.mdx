@@ -10,7 +10,7 @@
   Pass slot styles in the theme's `slots` object:
 
   ```tsx
-  const theme = defineTheme({
+  const theme = {
     slots: {
       // String value = className
       consentBannerTitle: 'text-xl font-bold text-gray-900',
@@ -21,7 +21,7 @@
         style: { maxWidth: '600px' },
       },
     },
-  });
+  } satisfies Theme;
   ```
 
   ## Slot Style Types
