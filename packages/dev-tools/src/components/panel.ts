@@ -22,6 +22,7 @@ import {
 	getPreferenceCenterOpener,
 	setPreferenceTriggerVisibility,
 } from '../utils/preference-trigger';
+import { version } from '../version';
 import {
 	createDropdownMenu,
 	DEVTOOLS_ICON,
@@ -241,6 +242,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 	let panelElement: HTMLElement | null = null;
 	let backdropElement: HTMLElement | null = null;
 	let contentContainer: HTMLElement | null = null;
+	let footerElement: HTMLElement | null = null;
 
 	/**
 	 * Creates the panel structure
@@ -294,38 +296,65 @@ export function createPanel(options: PanelOptions): PanelInstance {
 		// Content
 		contentContainer = div({ className: panelStyles.content });
 
-		// Footer
-		const isConnected = storeConnector.isConnected();
-		const footer = div({
-			className: panelStyles.footer,
-			children: [
-				div({
-					className: panelStyles.footerStatus,
-					children: [
-						span({
-							className: `${panelStyles.statusDot} ${isConnected ? panelStyles.statusConnected : panelStyles.statusDisconnected}`,
-						}),
-						span({
-							text: isConnected ? 'Connected' : 'Disconnected',
-						}),
-					],
-				}),
-				span({ text: 'v1.8.3' }),
-			],
-		});
+		// Footer (reactive — updated via updateFooter)
+		footerElement = div({ className: panelStyles.footer });
+		updateFooter();
 
 		panel.appendChild(header);
 		panel.appendChild(contentContainer);
-		panel.appendChild(footer);
+		panel.appendChild(footerElement);
 
 		// Render content
-		if (isConnected) {
+		if (storeConnector.isConnected()) {
 			onRenderContent(contentContainer);
 		} else {
 			renderErrorState(contentContainer);
 		}
 
 		return panel;
+	}
+
+	/**
+	 * Updates the footer to reflect connection and loading state
+	 */
+	function updateFooter(): void {
+		if (!footerElement) {
+			return;
+		}
+		clearElement(footerElement);
+
+		const isConnected = storeConnector.isConnected();
+		const storeState = storeConnector.getState();
+		const isLoading = storeState?.isLoadingConsentInfo ?? false;
+
+		const statusChildren: HTMLElement[] = [
+			span({
+				className: `${panelStyles.statusDot} ${isConnected ? panelStyles.statusConnected : panelStyles.statusDisconnected}`,
+			}),
+			span({
+				text: isConnected ? 'Connected' : 'Disconnected',
+			}),
+		];
+
+		if (isLoading) {
+			statusChildren.push(
+				span({
+					style: {
+						marginLeft: '4px',
+						opacity: '0.7',
+					},
+					text: '\u00b7 Fetching /init\u2026',
+				})
+			);
+		}
+
+		footerElement.appendChild(
+			div({
+				className: panelStyles.footerStatus,
+				children: statusChildren,
+			})
+		);
+		footerElement.appendChild(span({ text: `v${version}` }));
 	}
 
 	/**
@@ -423,6 +452,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 					panelElement = null;
 				}
 				contentContainer = null;
+				footerElement = null;
 				isAnimatingOut = false;
 
 				// Show floating button
@@ -464,6 +494,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 
 	// Subscribe to store changes
 	const unsubscribeStore = storeConnector.subscribe(() => {
+		updateFooter();
 		if (contentContainer) {
 			if (storeConnector.isConnected()) {
 				onRenderContent(contentContainer);

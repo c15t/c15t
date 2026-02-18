@@ -23,6 +23,7 @@ export interface LocationPanelOptions {
 		language?: string;
 	}) => void;
 	onClearOverrides: () => void;
+	onSetGpcOverride: (value: boolean | undefined) => void;
 }
 
 /**
@@ -32,7 +33,8 @@ export function renderLocationPanel(
 	container: HTMLElement,
 	options: LocationPanelOptions
 ): void {
-	const { getState, onSetOverrides, onClearOverrides } = options;
+	const { getState, onSetOverrides, onClearOverrides, onSetGpcOverride } =
+		options;
 
 	clearElement(container);
 
@@ -67,6 +69,11 @@ export function renderLocationPanel(
 			translationConfig?.defaultLanguage || '—'
 		),
 	];
+
+	// Add GPC status — shows effective state (override takes precedence)
+	gridItems.push(
+		createCompactInfoCard('GPC', getEffectiveGpcLabel(overrides?.gpc))
+	);
 
 	// Add consent model if set
 	if (state.model) {
@@ -109,6 +116,34 @@ export function renderLocationPanel(
 				value: overrides?.language || '',
 				onChange: (value) => onSetOverrides({ language: value || undefined }),
 			}),
+			createOverrideSelect({
+				label: 'GPC',
+				selectOptions: GPC_OPTIONS,
+				value:
+					overrides?.gpc === true
+						? 'true'
+						: overrides?.gpc === false
+							? 'false'
+							: '',
+				onChange: (value) => {
+					if (value === 'true') {
+						onSetGpcOverride(true);
+					} else if (value === 'false') {
+						onSetGpcOverride(false);
+					} else {
+						onSetGpcOverride(undefined);
+					}
+				},
+			}),
+			div({
+				style: {
+					fontSize: 'var(--c15t-devtools-font-size-xs)',
+					color: 'var(--c15t-devtools-text-muted)',
+					fontStyle: 'italic',
+					paddingLeft: '68px',
+				},
+				text: 'GPC override only affects opt-out or unregulated jurisdictions',
+			}),
 		],
 	});
 
@@ -116,20 +151,25 @@ export function renderLocationPanel(
 
 	// Active overrides indicator
 	const hasOverrides =
-		overrides && (overrides.country || overrides.region || overrides.language);
+		overrides &&
+		(overrides.country ||
+			overrides.region ||
+			overrides.language ||
+			overrides.gpc !== undefined);
 
 	if (hasOverrides) {
-		const overrideBanner = div({
-			style: {
-				padding: '8px 16px',
-				backgroundColor: 'var(--c15t-devtools-badge-info-bg)',
-				color: 'var(--c15t-devtools-badge-info)',
-				fontSize: 'var(--c15t-devtools-font-size-xs)',
-				borderTop: '1px solid var(--c15t-devtools-border)',
-			},
-			text: 'Overrides are active. This may affect consent behavior.',
-		});
-		container.appendChild(overrideBanner);
+		container.appendChild(
+			div({
+				style: {
+					padding: '8px 16px',
+					backgroundColor: 'var(--c15t-devtools-badge-info-bg)',
+					color: 'var(--c15t-devtools-badge-info)',
+					fontSize: 'var(--c15t-devtools-font-size-xs)',
+					borderTop: '1px solid var(--c15t-devtools-border)',
+				},
+				text: 'Overrides are active. This may affect consent behavior.',
+			})
+		);
 	}
 }
 
@@ -274,8 +314,40 @@ const COUNTRY_OPTIONS: SelectOption[] = [
 ];
 
 /**
- * Gets description for consent model
+ * GPC override options for the select dropdown
  */
+const GPC_OPTIONS: SelectOption[] = [
+	{ value: '', label: '-- Browser Default --' },
+	{ value: 'true', label: 'Force On (Simulated)' },
+	{ value: 'false', label: 'Force Off (Simulated)' },
+];
+
+/**
+ * Returns a label showing the effective GPC state.
+ * Override takes precedence over the browser signal.
+ */
+function getEffectiveGpcLabel(gpcOverride: boolean | undefined): string {
+	if (gpcOverride === true) {
+		return 'On (Override)';
+	}
+	if (gpcOverride === false) {
+		return 'Off (Override)';
+	}
+	// No override — read real browser signal
+	if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+		return 'Unknown';
+	}
+	try {
+		const nav = navigator as Navigator & {
+			globalPrivacyControl?: boolean | string;
+		};
+		const value = nav.globalPrivacyControl;
+		return value === true || value === '1' ? 'Active' : 'Inactive';
+	} catch {
+		return 'Unknown';
+	}
+}
+
 /**
  * Gets a short label for the consent model
  */

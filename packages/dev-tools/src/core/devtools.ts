@@ -355,6 +355,22 @@ export function createDevTools(
 							});
 						}
 					},
+					onSetGpcOverride: async (value) => {
+						const store = storeConnector.getStore();
+						if (store) {
+							const currentOverrides = store.getState().overrides || {};
+							// setOverrides already calls initConsentManager internally
+							await store.getState().setOverrides({
+								...currentOverrides,
+								gpc: value,
+							});
+							stateManager.addEvent({
+								type: 'info',
+								message: `GPC override ${value === undefined ? 'cleared' : `set to ${value}`}`,
+								data: { gpc: value },
+							});
+						}
+					},
 				});
 				break;
 
@@ -598,6 +614,14 @@ export function createDevToolsPanel(options: {
 					},
 					onClearOverrides: async () => {
 						await storeConnector.getStore()?.getState().setOverrides(undefined);
+					},
+					onSetGpcOverride: async (value) => {
+						const store = storeConnector.getStore();
+						if (store) {
+							const current = store.getState().overrides || {};
+							// setOverrides already calls initConsentManager internally
+							await store.getState().setOverrides({ ...current, gpc: value });
+						}
 					},
 				});
 				break;
