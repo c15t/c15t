@@ -1,11 +1,15 @@
 import { defineConfig } from '@rslib/core';
-import { getRsdoctorPlugins } from '../shared/rslib-utils';
+import {
+	getRsdoctorPlugins,
+	standardExcludePatterns,
+} from '../shared/rslib-utils';
 
 export default defineConfig({
 	source: {
 		entry: {
 			index: ['./src/index.ts'],
 		},
+		exclude: standardExcludePatterns,
 	},
 	lib: [
 		{

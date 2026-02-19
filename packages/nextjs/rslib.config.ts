@@ -3,6 +3,7 @@ import { defineConfig } from '@rslib/core';
 import {
 	getRsdoctorPlugins,
 	standardExcludePatterns,
+	standardSourceEntries,
 } from '../shared/rslib-utils';
 
 const externals = ['next', 'next/headers', 'react', 'react-dom'];
@@ -10,7 +11,7 @@ const externals = ['next', 'next/headers', 'react', 'react-dom'];
 export default defineConfig({
 	source: {
 		entry: {
-			index: ['./src/**'],
+			index: standardSourceEntries,
 		},
 		exclude: standardExcludePatterns,
 	},

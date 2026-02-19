@@ -3,12 +3,13 @@ import { defineConfig } from '@rslib/core';
 import {
 	getRsdoctorPlugins,
 	standardExcludePatterns,
+	standardSourceEntries,
 } from '../shared/rslib-utils';
 
 export default defineConfig({
 	source: {
 		entry: {
-			index: ['./src/**'],
+			index: standardSourceEntries,
 		},
 		exclude: standardExcludePatterns,
 	},

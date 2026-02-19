@@ -45,7 +45,9 @@
 	"types": "./dist/index.d.ts",
 	"files": [
 		"dist",
-		"src/styles"
+		"src/styles",
+		"!src/styles/**/__tests__/**",
+		"!src/styles/**/*.test.ts"
 	],
 	"scripts": {
 		"build": "rslib build",

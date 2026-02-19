@@ -31,6 +31,28 @@ const ssrData = fetchInitialData({
   **Do not `await`** `fetchInitialData()` in Server Components. Pass the Promise directly to your client component so Next.js can stream the page while the consent data loads in parallel.
 </Callout>
 
+### How Streaming Works
+
+The diagram below shows how the prefetch avoids blocking the page render. The server fires the `/init` request and immediately starts streaming HTML — the resolved consent data is sent as a later chunk once the backend responds.
+
+```mermaid
+sequenceDiagram
+    participant SC as Server Component
+    participant NR as Next.js Runtime
+    participant BR as Browser
+    participant BE as c15t Backend
+
+    SC->>BE: fetchInitialData() → GET /init
+    Note right of SC: Returns a Promise<br/>(not awaited)
+    SC->>NR: Render page tree<br/>(Promise passed as prop)
+    NR->>BR: Stream initial HTML
+    BR->>BR: Hydrate — no consent data yet
+
+    BE-->>NR: /init response resolves
+    NR->>BR: Stream resolved data chunk
+    BR->>BR: Provider receives SSR data,<br/>skips client-side /init fetch
+```
+
 ### Options
 
 <AutoTypeTable path="./packages/nextjs/src/types.ts" name="FetchInitialDataOptions" />

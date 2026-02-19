@@ -22,6 +22,10 @@
 
   **4. Network requests**
   Server responses can include `Set-Cookie` headers. If your page makes requests to third-party APIs or CDNs, those responses may set cookies. c15t's network blocker can intercept `fetch` and `XMLHttpRequest` calls to prevent these requests from happening without consent.
+
+  <Callout type="warn">
+    **Don't list these cookies in your banner.** The cookie names above (`_ga`, `_gid`, `_fbp`, `_fbc`) are implementation details — they matter for developers understanding how tracking works, but they should **not** be exposed to end users in your consent UI. Users don't know what `_ga` means, and listing it doesn't help them make an informed choice. Instead, use [purpose-based consent categories](./consent-categories) like "measurement" or "marketing" that communicate *why* data is collected, not *how* it is stored.
+  </Callout>
 </section>
 
 <section id="why-reload">

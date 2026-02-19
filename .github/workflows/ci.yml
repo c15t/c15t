@@ -66,6 +66,9 @@ jobs:
       - name: 🏗️ Build
         run: bun turbo run build --filter="./packages/*"
 
+      - name: 🛡️ Guard Published Artifacts
+        run: bun run check:publish-artifacts
+
   test:
     name: 🧪 Run Tests & Coverage
     needs: build # Run only after build succeeds

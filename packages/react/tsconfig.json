@@ -9,5 +9,19 @@
 		}
 	},
 	"include": ["src"],
-	"exclude": ["node_modules", "src/**/__tests__/**"]
+	"exclude": [
+		"node_modules",
+		"src/**/__tests__/**",
+		"src/**/__snapshots__/**",
+		"src/**/__screenshots__/**",
+		"src/**/*.test.ts",
+		"src/**/*.test.tsx",
+		"src/**/*.spec.ts",
+		"src/**/*.spec.tsx",
+		"src/**/*.e2e.ts",
+		"src/**/*.e2e.test.ts",
+		"src/**/*.e2e.test.tsx",
+		"src/**/mockServiceWorker.js",
+		"src/**/test-setup.*"
+	]
 }
