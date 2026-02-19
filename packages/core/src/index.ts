@@ -61,6 +61,7 @@ export {
 	isValidSubjectId,
 } from './libs/generate-subject-id';
 export type { HasCondition } from './libs/has';
+export { has } from './libs/has';
 export type { IABConfig } from './libs/iab-tcf';
 // Export TCF utilities for testing
 export {

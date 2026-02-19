@@ -21,7 +21,7 @@
   When dark mode is active, c15t applies the `dark` token values as CSS variable overrides. Only tokens specified in `dark` are overridden - unset tokens fall back to the `colors` values.
 
   ```tsx
-  const theme = defineTheme({
+  const theme = {
     colors: {
       surface: '#ffffff',     // Light mode
       text: '#1f2937',        // Light mode
@@ -31,6 +31,6 @@
       text: '#f9fafb',        // Dark mode override
       // primary is NOT set - inherits from colors.primary
     },
-  });
+  } satisfies Theme;
   ```
 </section>

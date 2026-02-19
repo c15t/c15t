@@ -4,7 +4,8 @@
  */
 
 import type { ConsentManagerInterface, ConsentStoreState } from 'c15t';
-import { useContext } from 'react';
+import { has as evaluateHas } from 'c15t';
+import { useCallback, useContext } from 'react';
 import { ConsentStateContext } from '../context/consent-manager-context';
 
 /**
@@ -37,9 +38,38 @@ export function useConsentManager(): ConsentStoreState & {
 		);
 	}
 
-	// Return the reactive state from context, not a snapshot from store.getState()
+	const { consents, consentInfo, consentCategories, consentTypes } =
+		context.state;
+
+	// Override store methods that close over Zustand's `get()` with versions
+	// that capture reactive state values from context. Without this, React
+	// Compiler sees stable function references + stable arguments and caches
+	// the return value forever, producing stale results after consent changes.
+	// See: https://github.com/c15t/c15t/issues/604
+	const has: ConsentStoreState['has'] = useCallback(
+		(condition) => evaluateHas(condition, consents),
+		[consents]
+	);
+
+	const hasConsented: ConsentStoreState['hasConsented'] = useCallback(
+		() => consentInfo != null,
+		[consentInfo]
+	);
+
+	const getDisplayedConsents: ConsentStoreState['getDisplayedConsents'] =
+		useCallback(
+			() =>
+				consentTypes.filter((consent) =>
+					consentCategories.includes(consent.name)
+				),
+			[consentTypes, consentCategories]
+		);
+
 	return {
 		...context.state,
+		has,
+		hasConsented,
+		getDisplayedConsents,
 		manager: context.manager,
 	};
 }

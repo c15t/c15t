@@ -109,7 +109,11 @@ export async function saveConsents({
 	const previousConsents = { ...consents };
 	const previousConsentInfo = consentInfo;
 
-	const newConsents = selectedConsents ?? consents ?? {};
+	// Always create a fresh object so the reference changes for React state
+	// comparisons. Without this, selectedConsents and consents can be the same
+	// reference after the first save, causing in-place mutation that Zustand
+	// and React (including React Compiler) cannot detect.
+	const newConsents = { ...(selectedConsents ?? consents ?? {}) };
 	const givenAt = Date.now();
 
 	if (type === 'all') {

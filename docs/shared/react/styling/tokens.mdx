@@ -6,7 +6,7 @@
   Color tokens define the palette for all consent components. Set `colors` for light mode and `dark` for dark mode overrides.
 
   ```tsx
-  const theme = defineTheme({
+  const theme = {
     colors: {
       primary: '#6366f1',
       primaryHover: '#4f46e5',
@@ -29,7 +29,7 @@
       textMuted: '#9ca3af',
       border: '#374151',
     },
-  });
+  } satisfies Theme;
   ```
 
   <AutoTypeTable path="./packages/ui/src/theme/types.ts" name="ColorTokens" />
@@ -39,14 +39,14 @@
   Control font family, sizes, weights, and line heights.
 
   ```tsx
-  const theme = defineTheme({
+  const theme = {
     typography: {
       fontFamily: 'Inter, system-ui, sans-serif',
       fontSize: { sm: '0.875rem', base: '1rem', lg: '1.125rem' },
       fontWeight: { normal: 400, medium: 500, semibold: 600 },
       lineHeight: { tight: '1.25', normal: '1.5', relaxed: '1.75' },
     },
-  });
+  } satisfies Theme;
   ```
 
   <AutoTypeTable path="./packages/ui/src/theme/types.ts" name="TypographyTokens" />
@@ -56,7 +56,7 @@
   Five-step scale for internal padding, margins, and gaps.
 
   ```tsx
-  const theme = defineTheme({
+  const theme = {
     spacing: {
       xs: '0.25rem',  // 4px
       sm: '0.5rem',   // 8px
@@ -64,7 +64,7 @@
       lg: '1.5rem',   // 24px
       xl: '2rem',     // 32px
     },
-  });
+  } satisfies Theme;
   ```
 
   <AutoTypeTable path="./packages/ui/src/theme/types.ts" name="SpacingTokens" />
@@ -74,14 +74,14 @@
   Border radius scale for rounded corners.
 
   ```tsx
-  const theme = defineTheme({
+  const theme = {
     radius: {
       sm: '0.25rem',  // 4px
       md: '0.5rem',   // 8px
       lg: '0.75rem',  // 12px
       full: '9999px', // Pill shape
     },
-  });
+  } satisfies Theme;
   ```
 
   <AutoTypeTable path="./packages/ui/src/theme/types.ts" name="RadiusTokens" />
@@ -91,13 +91,13 @@
   Box shadow scale for depth and elevation.
 
   ```tsx
-  const theme = defineTheme({
+  const theme = {
     shadows: {
       sm: '0 1px 2px hsla(0, 0%, 0%, 0.05)',
       md: '0 4px 12px hsla(0, 0%, 0%, 0.08)',
       lg: '0 8px 24px hsla(0, 0%, 0%, 0.12)',
     },
-  });
+  } satisfies Theme;
   ```
 
   <AutoTypeTable path="./packages/ui/src/theme/types.ts" name="ShadowTokens" />
@@ -107,7 +107,7 @@
   Animation duration and easing presets.
 
   ```tsx
-  const theme = defineTheme({
+  const theme = {
     motion: {
       duration: { fast: '100ms', normal: '200ms', slow: '300ms' },
       easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
@@ -115,7 +115,7 @@
       easingInOut: 'cubic-bezier(0.645, 0.045, 0.355, 1)',
       easingSpring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
     },
-  });
+  } satisfies Theme;
   ```
 
   <AutoTypeTable path="./packages/ui/src/theme/types.ts" name="MotionTokens" />

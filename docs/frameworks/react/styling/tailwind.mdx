@@ -11,9 +11,9 @@ Apply Tailwind classes via the theme's `slots` object:
 
 ```tsx
 import { type ReactNode } from 'react';
-import { defineTheme, ConsentManagerProvider } from '@c15t/react';
+import { type Theme, ConsentManagerProvider } from '@c15t/react';
 
-const theme = defineTheme({
+const theme = {
   slots: {
     consentBanner: 'fixed bottom-0 inset-x-0 z-50',
     consentBannerCard: 'mx-auto max-w-2xl rounded-t-2xl bg-white p-6 shadow-2xl',
@@ -24,7 +24,7 @@ const theme = defineTheme({
     buttonSecondary: 'rounded-full border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50',
     toggle: 'data-[state=checked]:bg-indigo-600',
   },
-});
+} satisfies Theme;
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
