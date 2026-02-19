@@ -221,6 +221,19 @@ describe('generateThemeCSS', () => {
 		expect(css).toContain('.c15t-dark');
 	});
 
+	test('uses base colors in dark mode when dark overrides are not provided', () => {
+		const theme: Theme = {
+			colors: {
+				primary: '#123456',
+			},
+		};
+		const css = generateThemeCSS(theme);
+
+		expect(css).toContain('--c15t-primary: #123456');
+		expect(css).not.toContain('--c15t-surface: hsl(0, 0%, 7%)');
+		expect(css).not.toContain('--c15t-primary: hsl(228, 100%, 70%)');
+	});
+
 	test('generates valid CSS structure', () => {
 		const theme: Theme = {
 			colors: {
@@ -235,6 +248,28 @@ describe('generateThemeCSS', () => {
 		const closeBraces = css.match(/}/g)?.length ?? 0;
 		expect(openBraces).toBe(closeBraces);
 		expect(openBraces).toBeGreaterThanOrEqual(3);
+	});
+
+	test('uses compound selectors for dark mode on :root', () => {
+		const theme: Theme = {
+			colors: {
+				primary: '#ff0000',
+			},
+			dark: {
+				primary: '#cc0000',
+			},
+		};
+		const css = generateThemeCSS(theme);
+
+		// Should use compound selectors (:root.dark) not descendant selectors (.dark :root)
+		expect(css).toContain(':root.dark');
+		expect(css).toContain(':root.c15t-dark');
+		expect(css).not.toContain('.dark :root');
+		expect(css).not.toContain('.c15t-dark :root');
+
+		// Descendant selectors for .c15t-theme-root should still be used
+		expect(css).toContain('.dark .c15t-theme-root');
+		expect(css).toContain('.c15t-dark .c15t-theme-root');
 	});
 
 	test('includes no-transitions utility class', () => {
