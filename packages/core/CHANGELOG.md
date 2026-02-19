@@ -1,5 +1,14 @@
 # c15t
 
+## 2.0.0-rc.3
+
+### Patch Changes
+
+- 1c813bc: feat(dev-tools): add GPC to dev-tools with an override
+- 0f10f3e: fix(react): react compiler compatability
+- Updated dependencies [0a18fb6]
+  - @c15t/backend@2.0.0-rc.3
+
 ## 2.0.0-rc.2
 
 ### Patch Changes

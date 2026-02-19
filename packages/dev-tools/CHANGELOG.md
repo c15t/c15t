@@ -1,5 +1,17 @@
 # @c15t/dev-tools
 
+## 2.0.0-rc.3
+
+### Patch Changes
+
+- 1c813bc: feat(dev-tools): add GPC to dev-tools with an override
+- 829e507: feat(dev-tools): add persisted overrides and improve debugging with resilient reconnects, richer events, interactive IAB controls, and better script/network diagnostics
+- Updated dependencies [de6dd82]
+- Updated dependencies [1c813bc]
+- Updated dependencies [0f10f3e]
+  - @c15t/ui@2.0.0-rc.3
+  - c15t@2.0.0-rc.3
+
 ## 2.0.0-rc.2
 
 ### Patch Changes
