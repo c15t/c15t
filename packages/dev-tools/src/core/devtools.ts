@@ -46,7 +46,7 @@ function prefersReducedMotion(): boolean {
 function createPanelHeightAnimator(): PanelHeightAnimator {
 	let activePanel: HTMLElement | null = null;
 	let frameId: number | null = null;
-	let timeoutId: ReturnType<typeof window.setTimeout> | null = null;
+	let timeoutId: ReturnType<typeof setTimeout> | null = null;
 	let removeTransitionListener: (() => void) | null = null;
 
 	function clearAnimationState(): void {
@@ -56,7 +56,7 @@ function createPanelHeightAnimator(): PanelHeightAnimator {
 		}
 
 		if (timeoutId !== null) {
-			window.clearTimeout(timeoutId);
+			clearTimeout(timeoutId);
 			timeoutId = null;
 		}
 
@@ -120,7 +120,7 @@ function createPanelHeightAnimator(): PanelHeightAnimator {
 		});
 
 		// Fallback cleanup for interrupted transitions.
-		timeoutId = window.setTimeout(() => {
+		timeoutId = setTimeout(() => {
 			clearAnimationState();
 		}, PANEL_HEIGHT_TRANSITION_MS + PANEL_HEIGHT_TRANSITION_BUFFER_MS);
 	}
@@ -428,56 +428,39 @@ export function createDevTools(
 			case 'location':
 				renderLocationPanel(panelContent, {
 					getState: getStoreState,
-					onSetOverrides: async (overrides) => {
+					onApplyOverrides: async (overrides) => {
 						const store = storeConnector.getStore();
 						if (store) {
-							const currentOverrides = store.getState().overrides || {};
 							await store.getState().setOverrides({
-								...currentOverrides,
-								...overrides,
+								country: overrides.country,
+								region: overrides.region,
+								language: overrides.language,
+								gpc: overrides.gpc,
 							});
 							stateManager.addEvent({
 								type: 'info',
 								message: 'Overrides updated',
-								data: overrides,
-							});
-							// Re-initialize consent manager to apply new overrides
-							await store.getState().initConsentManager();
-							stateManager.addEvent({
-								type: 'info',
-								message: 'Consent manager re-initialized with new overrides',
+								data: {
+									country: overrides.country,
+									region: overrides.region,
+									language: overrides.language,
+									gpc: overrides.gpc,
+								},
 							});
 						}
 					},
 					onClearOverrides: async () => {
 						const store = storeConnector.getStore();
 						if (store) {
-							await store.getState().setOverrides(undefined);
+							await store.getState().setOverrides({
+								country: undefined,
+								region: undefined,
+								language: undefined,
+								gpc: undefined,
+							});
 							stateManager.addEvent({
 								type: 'info',
 								message: 'Overrides cleared',
-							});
-							// Re-initialize consent manager after clearing overrides
-							await store.getState().initConsentManager();
-							stateManager.addEvent({
-								type: 'info',
-								message: 'Consent manager re-initialized',
-							});
-						}
-					},
-					onSetGpcOverride: async (value) => {
-						const store = storeConnector.getStore();
-						if (store) {
-							const currentOverrides = store.getState().overrides || {};
-							// setOverrides already calls initConsentManager internally
-							await store.getState().setOverrides({
-								...currentOverrides,
-								gpc: value,
-							});
-							stateManager.addEvent({
-								type: 'info',
-								message: `GPC override ${value === undefined ? 'cleared' : `set to ${value}`}`,
-								data: { gpc: value },
 							});
 						}
 					},
@@ -720,23 +703,24 @@ export function createDevToolsPanel(options: {
 			case 'location':
 				renderLocationPanel(contentArea, {
 					getState: getStoreState,
-					onSetOverrides: async (overrides) => {
+					onApplyOverrides: async (overrides) => {
 						const store = storeConnector.getStore();
 						if (store) {
-							const current = store.getState().overrides || {};
-							await store.getState().setOverrides({ ...current, ...overrides });
+							await store.getState().setOverrides({
+								country: overrides.country,
+								region: overrides.region,
+								language: overrides.language,
+								gpc: overrides.gpc,
+							});
 						}
 					},
 					onClearOverrides: async () => {
-						await storeConnector.getStore()?.getState().setOverrides(undefined);
-					},
-					onSetGpcOverride: async (value) => {
-						const store = storeConnector.getStore();
-						if (store) {
-							const current = store.getState().overrides || {};
-							// setOverrides already calls initConsentManager internally
-							await store.getState().setOverrides({ ...current, gpc: value });
-						}
+						await storeConnector.getStore()?.getState().setOverrides({
+							country: undefined,
+							region: undefined,
+							language: undefined,
+							gpc: undefined,
+						});
 					},
 				});
 				break;

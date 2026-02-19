@@ -128,45 +128,33 @@ export function createPanelRenderer(
 			case 'location':
 				renderLocationPanel(container, {
 					getState: getStoreState,
-					onSetOverrides: async (overrides) => {
+					onApplyOverrides: async (overrides) => {
 						const store = storeConnector.getStore();
 						if (store) {
-							const currentOverrides = store.getState().overrides || {};
 							await store.getState().setOverrides({
-								...currentOverrides,
-								...overrides,
+								country: overrides.country,
+								region: overrides.region,
+								language: overrides.language,
+								gpc: overrides.gpc,
 							});
-							logEvent('info', 'Overrides updated', overrides);
-							await store.getState().initConsentManager();
-							logEvent(
-								'info',
-								'Consent manager re-initialized with new overrides'
-							);
+							logEvent('info', 'Overrides updated', {
+								country: overrides.country,
+								region: overrides.region,
+								language: overrides.language,
+								gpc: overrides.gpc,
+							});
 						}
 					},
 					onClearOverrides: async () => {
 						const store = storeConnector.getStore();
 						if (store) {
-							await store.getState().setOverrides(undefined);
-							logEvent('info', 'Overrides cleared');
-							await store.getState().initConsentManager();
-							logEvent('info', 'Consent manager re-initialized');
-						}
-					},
-					onSetGpcOverride: async (value) => {
-						const store = storeConnector.getStore();
-						if (store) {
-							const currentOverrides = store.getState().overrides || {};
-							// setOverrides already calls initConsentManager internally
 							await store.getState().setOverrides({
-								...currentOverrides,
-								gpc: value,
+								country: undefined,
+								region: undefined,
+								language: undefined,
+								gpc: undefined,
 							});
-							logEvent(
-								'info',
-								`GPC override ${value === undefined ? 'cleared' : `set to ${value}`}`,
-								{ gpc: value }
-							);
+							logEvent('info', 'Overrides cleared');
 						}
 					},
 				});

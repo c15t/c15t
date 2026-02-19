@@ -159,7 +159,7 @@
     },
     "packages/backend": {
       "name": "@c15t/backend",
-      "version": "1.8.0",
+      "version": "2.0.0-rc.2",
       "dependencies": {
         "@c15t/logger": "workspace:*",
         "@c15t/schema": "workspace:*",
@@ -192,7 +192,7 @@
     },
     "packages/cli": {
       "name": "@c15t/cli",
-      "version": "1.8.3",
+      "version": "2.0.0-rc.2",
       "bin": {
         "cli": "dist/index.mjs",
       },
@@ -224,7 +224,7 @@
     },
     "packages/core": {
       "name": "c15t",
-      "version": "1.8.3",
+      "version": "2.0.0-rc.2",
       "dependencies": {
         "@c15t/backend": "workspace:*",
         "@c15t/schema": "workspace:*",
@@ -241,7 +241,7 @@
     },
     "packages/dev-tools": {
       "name": "@c15t/dev-tools",
-      "version": "1.8.3",
+      "version": "2.0.0-rc.2",
       "dependencies": {
         "@c15t/ui": "workspace:*",
         "c15t": "workspace:*",
@@ -251,6 +251,7 @@
         "@c15t/typescript-config": "workspace:*",
         "@types/react": "19.2.10",
         "@types/react-dom": "19.2.3",
+        "genversion": "3.2.0",
         "jsdom": "27.2.0",
         "postcss": "8.5.6",
         "vitest": "4.0.15",
@@ -266,7 +267,7 @@
     },
     "packages/logger": {
       "name": "@c15t/logger",
-      "version": "1.0.1",
+      "version": "2.0.0-rc.1",
       "dependencies": {
         "chalk": "5.6.2",
         "picocolors": "1.1.1",
@@ -278,7 +279,7 @@
     },
     "packages/nextjs": {
       "name": "@c15t/nextjs",
-      "version": "1.8.3",
+      "version": "2.0.0-rc.2",
       "dependencies": {
         "@c15t/react": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -299,7 +300,7 @@
     },
     "packages/node-sdk": {
       "name": "@c15t/node-sdk",
-      "version": "1.8.0",
+      "version": "2.0.0-rc.2",
       "dependencies": {
         "@c15t/schema": "workspace:*",
       },
@@ -313,7 +314,7 @@
     },
     "packages/react": {
       "name": "@c15t/react",
-      "version": "1.8.3",
+      "version": "2.0.0-rc.2",
       "dependencies": {
         "@c15t/ui": "workspace:*",
         "@radix-ui/react-accordion": "1.2.12",
@@ -336,7 +337,7 @@
     },
     "packages/schema": {
       "name": "@c15t/schema",
-      "version": "1.8.0",
+      "version": "2.0.0-rc.2",
       "dependencies": {
         "valibot": "1.2.0",
       },
@@ -347,7 +348,7 @@
     },
     "packages/scripts": {
       "name": "@c15t/scripts",
-      "version": "1.0.1",
+      "version": "2.0.0-rc.1",
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
@@ -356,7 +357,7 @@
     },
     "packages/translations": {
       "name": "@c15t/translations",
-      "version": "1.8.0",
+      "version": "2.0.0-rc.1",
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
@@ -365,7 +366,7 @@
     },
     "packages/ui": {
       "name": "@c15t/ui",
-      "version": "1.0.0",
+      "version": "2.0.0-rc.2",
       "dependencies": {
         "@c15t/translations": "workspace:*",
         "c15t": "workspace:*",

@@ -7,13 +7,20 @@
 /* === Tab List === */
 .tabList {
 	display: flex;
+	align-items: center;
 	gap: var(--c15t-space-xs, 0.25rem);
-	padding: var(--c15t-space-sm, 0.5rem) var(--c15t-space-md, 1rem);
+	padding: var(--c15t-space-sm, 0.5rem) var(--c15t-space-sm, 0.5rem);
 	border-bottom: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
 	background-color: var(--c15t-surface, #fff);
 	overflow-x: auto;
+	scroll-padding-inline-end: var(--c15t-space-sm, 0.5rem);
 	scrollbar-width: none;
 	-ms-overflow-style: none;
+}
+
+.tabList::after {
+	content: "";
+	flex: 0 0 var(--c15t-space-sm, 0.5rem);
 }
 
 .tabList::-webkit-scrollbar {
@@ -25,13 +32,13 @@
 	display: flex;
 	align-items: center;
 	gap: var(--c15t-space-xs, 0.25rem);
-	padding: var(--c15t-space-xs, 0.25rem) var(--c15t-space-sm, 0.5rem);
+	padding: 3px 7px;
 	border: none;
 	border-radius: var(--c15t-radius-md, 0.5rem);
 	background-color: transparent;
 	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
 	font-family: inherit;
-	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	font-size: 11px;
 	font-weight: var(--c15t-font-weight-medium, 500);
 	cursor: pointer;
 	white-space: nowrap;
