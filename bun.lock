@@ -159,7 +159,7 @@
     },
     "packages/backend": {
       "name": "@c15t/backend",
-      "version": "2.0.0-rc.2",
+      "version": "2.0.0-rc.3",
       "dependencies": {
         "@c15t/logger": "workspace:*",
         "@c15t/schema": "workspace:*",
@@ -192,7 +192,7 @@
     },
     "packages/cli": {
       "name": "@c15t/cli",
-      "version": "2.0.0-rc.2",
+      "version": "2.0.0-rc.3",
       "bin": {
         "cli": "dist/index.mjs",
       },
@@ -224,9 +224,8 @@
     },
     "packages/core": {
       "name": "c15t",
-      "version": "2.0.0-rc.2",
+      "version": "2.0.0-rc.3",
       "dependencies": {
-        "@c15t/backend": "workspace:*",
         "@c15t/schema": "workspace:*",
         "@c15t/translations": "workspace:*",
         "@iabtechlabtcf/core": "^1.5.20",
@@ -241,7 +240,7 @@
     },
     "packages/dev-tools": {
       "name": "@c15t/dev-tools",
-      "version": "2.0.0-rc.2",
+      "version": "2.0.0-rc.3",
       "dependencies": {
         "@c15t/ui": "workspace:*",
         "c15t": "workspace:*",
@@ -279,7 +278,7 @@
     },
     "packages/nextjs": {
       "name": "@c15t/nextjs",
-      "version": "2.0.0-rc.2",
+      "version": "2.0.0-rc.3",
       "dependencies": {
         "@c15t/react": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -314,7 +313,7 @@
     },
     "packages/react": {
       "name": "@c15t/react",
-      "version": "2.0.0-rc.2",
+      "version": "2.0.0-rc.3",
       "dependencies": {
         "@c15t/ui": "workspace:*",
         "@radix-ui/react-accordion": "1.2.12",
@@ -366,7 +365,7 @@
     },
     "packages/ui": {
       "name": "@c15t/ui",
-      "version": "2.0.0-rc.2",
+      "version": "2.0.0-rc.3",
       "dependencies": {
         "@c15t/translations": "workspace:*",
         "c15t": "workspace:*",
