@@ -60,9 +60,19 @@ export const packagesDir =
  * Percentage threshold for significant bundle size increase
  */
 const thresholdInput = core.getInput('threshold', { required: false }) || '10';
-const parsedThreshold = parseFloat(thresholdInput);
+const parsedThreshold = Number.parseFloat(thresholdInput);
 export const threshold =
-	isNaN(parsedThreshold) || parsedThreshold < 0 ? 10 : parsedThreshold;
+	Number.isNaN(parsedThreshold) || parsedThreshold < 0 ? 10 : parsedThreshold;
+
+/**
+ * Root packages used to compute effective transitive impact.
+ */
+export const transitiveRoots = (
+	core.getInput('transitive_roots', { required: false }) || 'c15t,@c15t/react'
+)
+	.split(',')
+	.map((value) => value.trim())
+	.filter(Boolean);
 
 /**
  * Repository descriptor where the action will run

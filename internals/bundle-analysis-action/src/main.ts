@@ -7,6 +7,7 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import {
 	analyzeBundles,
+	analyzeTransitiveImpact,
 	calculateTotalDiffPercent,
 	writeReport,
 } from './analyze/bundle-analysis';
@@ -21,6 +22,7 @@ import {
 	repo,
 	skipComment,
 	threshold,
+	transitiveRoots,
 } from './config/inputs';
 import { ensureComment } from './github/pr-comment';
 
@@ -32,12 +34,22 @@ async function run(): Promise<void> {
 		const packages = await analyzeBundles(baseDir, currentDir, packagesDir);
 		core.info(`Analyzed ${packages.length} packages`);
 
+		// Analyze transitive impact for selected root packages
+		const transitive = analyzeTransitiveImpact(
+			packages,
+			currentDir,
+			packagesDir,
+			transitiveRoots,
+			baseDir
+		);
+		core.info(`Computed transitive impact for ${transitive.length} roots`);
+
 		// Calculate total diff
 		const totalDiffPercent = calculateTotalDiffPercent(packages);
 
 		// Generate report
 		const reportPath = 'bundle-diff.md';
-		writeReport(packages, reportPath);
+		writeReport(packages, reportPath, transitive);
 
 		// Set outputs
 		core.setOutput('report_path', reportPath);
@@ -61,10 +73,13 @@ async function run(): Promise<void> {
 		// Fail if significant increase detected
 		if (failOnIncrease) {
 			core.info(`Using threshold: ${threshold}%`);
-			const hasSignificantIncrease = packages.some(
+			const hasSignificantPackageIncrease = packages.some(
 				(p) => p.totalDiffPercent > threshold
 			);
-			if (hasSignificantIncrease) {
+			const hasSignificantTransitiveIncrease = transitive.some(
+				(entry) => entry.totalDiffPercent > threshold
+			);
+			if (hasSignificantPackageIncrease || hasSignificantTransitiveIncrease) {
 				core.setFailed(
 					`Bundle size increased significantly (>${threshold}%). Review the changes above.`
 				);
