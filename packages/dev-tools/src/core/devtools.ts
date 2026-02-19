@@ -12,6 +12,12 @@ import { renderEventsPanel } from '../panels/events';
 import { renderIabPanel } from '../panels/iab';
 import { renderLocationPanel } from '../panels/location';
 import { renderScriptsPanel } from '../panels/scripts';
+import {
+	clearPersistedOverrides,
+	loadPersistedOverrides,
+	type PersistedDevToolsOverrides,
+	persistOverrides,
+} from './override-storage';
 import { clearElement, div } from './renderer';
 import { resetAllConsents } from './reset-consents';
 import {
@@ -29,6 +35,29 @@ const PANEL_HEIGHT_TRANSITION =
 	'height var(--c15t-duration-normal, 200ms) var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1))';
 const PANEL_HEIGHT_TRANSITION_MS = 200;
 const PANEL_HEIGHT_TRANSITION_BUFFER_MS = 80;
+
+function normalizeOverridesForPersistence(
+	overrides: ConsentStoreState['overrides'] | undefined
+): PersistedDevToolsOverrides {
+	return {
+		country: overrides?.country?.trim() || undefined,
+		region: overrides?.region?.trim() || undefined,
+		language: overrides?.language?.trim() || undefined,
+		gpc: overrides?.gpc,
+	};
+}
+
+function persistedOverridesEqual(
+	a: PersistedDevToolsOverrides,
+	b: PersistedDevToolsOverrides
+): boolean {
+	return (
+		a.country === b.country &&
+		a.region === b.region &&
+		a.language === b.language &&
+		a.gpc === b.gpc
+	);
+}
 
 interface PanelHeightAnimator {
 	animate: (panel: HTMLElement, previousHeight: number) => void;
@@ -288,6 +317,42 @@ export function createDevTools(
 						}
 					}
 				);
+
+			const persistedOverrides = loadPersistedOverrides();
+			if (persistedOverrides) {
+				const currentOverrides = normalizeOverridesForPersistence(
+					store.getState().overrides
+				);
+
+				if (!persistedOverridesEqual(persistedOverrides, currentOverrides)) {
+					void store
+						.getState()
+						.setOverrides({
+							country: persistedOverrides.country,
+							region: persistedOverrides.region,
+							language: persistedOverrides.language,
+							gpc: persistedOverrides.gpc,
+						})
+						.then(() => {
+							stateManager.addEvent({
+								type: 'info',
+								message: 'Applied persisted devtools overrides',
+								data: {
+									country: persistedOverrides.country,
+									region: persistedOverrides.region,
+									language: persistedOverrides.language,
+									gpc: persistedOverrides.gpc,
+								},
+							});
+						})
+						.catch(() => {
+							stateManager.addEvent({
+								type: 'error',
+								message: 'Failed to apply persisted devtools overrides',
+							});
+						});
+				}
+			}
 		},
 		onDisconnect: () => {
 			stateManager.setConnected(false);
@@ -437,6 +502,12 @@ export function createDevTools(
 								language: overrides.language,
 								gpc: overrides.gpc,
 							});
+							persistOverrides({
+								country: overrides.country,
+								region: overrides.region,
+								language: overrides.language,
+								gpc: overrides.gpc,
+							});
 							stateManager.addEvent({
 								type: 'info',
 								message: 'Overrides updated',
@@ -458,6 +529,7 @@ export function createDevTools(
 								language: undefined,
 								gpc: undefined,
 							});
+							clearPersistedOverrides();
 							stateManager.addEvent({
 								type: 'info',
 								message: 'Overrides cleared',
@@ -637,7 +709,24 @@ export function createDevToolsPanel(options: {
 	// Create store connector
 	const storeConnector = createStoreConnector({
 		namespace,
-		onConnect: () => stateManager.setConnected(true),
+		onConnect: (state, store) => {
+			stateManager.setConnected(true);
+
+			const persistedOverrides = loadPersistedOverrides();
+			if (persistedOverrides) {
+				const currentOverrides = normalizeOverridesForPersistence(
+					state.overrides
+				);
+				if (!persistedOverridesEqual(persistedOverrides, currentOverrides)) {
+					void store.getState().setOverrides({
+						country: persistedOverrides.country,
+						region: persistedOverrides.region,
+						language: persistedOverrides.language,
+						gpc: persistedOverrides.gpc,
+					});
+				}
+			}
+		},
 		onDisconnect: () => stateManager.setConnected(false),
 	});
 
@@ -712,6 +801,12 @@ export function createDevToolsPanel(options: {
 								language: overrides.language,
 								gpc: overrides.gpc,
 							});
+							persistOverrides({
+								country: overrides.country,
+								region: overrides.region,
+								language: overrides.language,
+								gpc: overrides.gpc,
+							});
 						}
 					},
 					onClearOverrides: async () => {
@@ -721,6 +816,7 @@ export function createDevToolsPanel(options: {
 							language: undefined,
 							gpc: undefined,
 						});
+						clearPersistedOverrides();
 					},
 				});
 				break;
