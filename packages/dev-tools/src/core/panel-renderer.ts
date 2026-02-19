@@ -59,7 +59,14 @@ export function createPanelRenderer(
 		storeConnector.getState();
 
 	const logEvent = (
-		type: 'consent_set' | 'consent_save' | 'consent_reset' | 'error' | 'info',
+		type:
+			| 'consent_set'
+			| 'consent_save'
+			| 'consent_reset'
+			| 'error'
+			| 'info'
+			| 'network'
+			| 'iab',
 		message: string,
 		data?: Record<string, unknown>
 	): void => {
@@ -128,45 +135,33 @@ export function createPanelRenderer(
 			case 'location':
 				renderLocationPanel(container, {
 					getState: getStoreState,
-					onSetOverrides: async (overrides) => {
+					onApplyOverrides: async (overrides) => {
 						const store = storeConnector.getStore();
 						if (store) {
-							const currentOverrides = store.getState().overrides || {};
 							await store.getState().setOverrides({
-								...currentOverrides,
-								...overrides,
+								country: overrides.country,
+								region: overrides.region,
+								language: overrides.language,
+								gpc: overrides.gpc,
 							});
-							logEvent('info', 'Overrides updated', overrides);
-							await store.getState().initConsentManager();
-							logEvent(
-								'info',
-								'Consent manager re-initialized with new overrides'
-							);
+							logEvent('info', 'Overrides updated', {
+								country: overrides.country,
+								region: overrides.region,
+								language: overrides.language,
+								gpc: overrides.gpc,
+							});
 						}
 					},
 					onClearOverrides: async () => {
 						const store = storeConnector.getStore();
 						if (store) {
-							await store.getState().setOverrides(undefined);
-							logEvent('info', 'Overrides cleared');
-							await store.getState().initConsentManager();
-							logEvent('info', 'Consent manager re-initialized');
-						}
-					},
-					onSetGpcOverride: async (value) => {
-						const store = storeConnector.getStore();
-						if (store) {
-							const currentOverrides = store.getState().overrides || {};
-							// setOverrides already calls initConsentManager internally
 							await store.getState().setOverrides({
-								...currentOverrides,
-								gpc: value,
+								country: undefined,
+								region: undefined,
+								language: undefined,
+								gpc: undefined,
 							});
-							logEvent(
-								'info',
-								`GPC override ${value === undefined ? 'cleared' : `set to ${value}`}`,
-								{ gpc: value }
-							);
+							logEvent('info', 'Overrides cleared');
 						}
 					},
 				});
@@ -175,12 +170,68 @@ export function createPanelRenderer(
 			case 'scripts':
 				renderScriptsPanel(container, {
 					getState: getStoreState,
+					getEvents: () => stateManager.getState().eventLog,
 				});
 				break;
 
 			case 'iab':
 				renderIabPanel(container, {
 					getState: getStoreState,
+					onSetPurposeConsent: (purposeId, value) => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.setPurposeConsent(purposeId, value);
+						logEvent('iab', `IAB purpose ${purposeId} set to ${value}`);
+					},
+					onSetVendorConsent: (vendorId, value) => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.setVendorConsent(vendorId, value);
+						logEvent('iab', `IAB vendor ${vendorId} set to ${value}`);
+					},
+					onSetSpecialFeatureOptIn: (featureId, value) => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.setSpecialFeatureOptIn(featureId, value);
+						logEvent('iab', `IAB feature ${featureId} set to ${value}`);
+					},
+					onAcceptAll: () => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.acceptAll();
+						logEvent('iab', 'IAB accept all selected');
+					},
+					onRejectAll: () => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.rejectAll();
+						logEvent('iab', 'IAB reject all selected');
+					},
+					onSave: () => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						void iab
+							.save()
+							.then(() => logEvent('iab', 'IAB preferences saved'))
+							.catch((error: unknown) => {
+								logEvent(
+									'error',
+									`Failed to save IAB preferences: ${String(error)}`
+								);
+							});
+					},
 					onReset: resetConsents,
 				});
 				break;

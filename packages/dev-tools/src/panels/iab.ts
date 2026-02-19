@@ -4,11 +4,22 @@
  */
 
 import type { ConsentStoreState } from 'c15t';
-import { createBadge, createButton, createSection } from '../components/ui';
+import {
+	createBadge,
+	createButton,
+	createSection,
+	createToggle,
+} from '../components/ui';
 import { clearElement, div, span } from '../core/renderer';
 
 export interface IabPanelOptions {
 	getState: () => ConsentStoreState | null;
+	onSetPurposeConsent: (purposeId: number, value: boolean) => void;
+	onSetVendorConsent: (vendorId: number | string, value: boolean) => void;
+	onSetSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
+	onAcceptAll: () => void;
+	onRejectAll: () => void;
+	onSave: () => void;
 	onReset: () => void;
 }
 
@@ -19,7 +30,16 @@ export function renderIabPanel(
 	container: HTMLElement,
 	options: IabPanelOptions
 ): void {
-	const { getState, onReset } = options;
+	const {
+		getState,
+		onSetPurposeConsent,
+		onSetVendorConsent,
+		onSetSpecialFeatureOptIn,
+		onAcceptAll,
+		onRejectAll,
+		onSave,
+		onReset,
+	} = options;
 
 	clearElement(container);
 
@@ -130,7 +150,9 @@ export function renderIabPanel(
 			const purposeName = purposeInfo?.name || `Purpose ${purposeId}`;
 
 			purposeList.appendChild(
-				createPurposeRow(purposeId, purposeName, Boolean(consent))
+				createPurposeRow(purposeId, purposeName, Boolean(consent), (value) => {
+					onSetPurposeConsent(Number(purposeId), value);
+				})
 			);
 		}
 
@@ -163,7 +185,15 @@ export function renderIabPanel(
 			const featureName = featureInfo?.name || `Special Feature ${featureId}`;
 
 			specialFeatureList.appendChild(
-				createPurposeRow(featureId, featureName, Boolean(optIn))
+				createPurposeRow(
+					featureId,
+					featureName,
+					Boolean(optIn),
+					(value) => {
+						onSetSpecialFeatureOptIn(Number(featureId), value);
+					},
+					'feature'
+				)
 			);
 		}
 
@@ -210,7 +240,9 @@ export function renderIabPanel(
 
 		for (const [vendorId, consent, vendorName] of iabVendors) {
 			vendorList.appendChild(
-				createVendorRow(vendorId, vendorName, consent, 'iab')
+				createVendorRow(vendorId, vendorName, consent, 'iab', (value) => {
+					onSetVendorConsent(Number(vendorId), value);
+				})
 			);
 		}
 
@@ -236,7 +268,9 @@ export function renderIabPanel(
 
 		for (const [vendorId, consent, vendorName] of customVendors) {
 			customVendorList.appendChild(
-				createVendorRow(vendorId, vendorName, consent, 'custom')
+				createVendorRow(vendorId, vendorName, consent, 'custom', (value) => {
+					onSetVendorConsent(vendorId, value);
+				})
 			);
 		}
 
@@ -272,15 +306,40 @@ export function renderIabPanel(
 		style: {
 			display: 'flex',
 			alignItems: 'center',
-			justifyContent: 'flex-end',
+			justifyContent: 'space-between',
 			padding: '12px 16px',
 			marginTop: 'auto',
 			borderTop: '1px solid var(--c15t-border)',
 			backgroundColor: 'var(--c15t-surface)',
 		},
 		children: [
+			div({
+				style: {
+					display: 'flex',
+					gap: '6px',
+				},
+				children: [
+					createButton({
+						text: 'Accept All',
+						variant: 'primary',
+						small: true,
+						onClick: onAcceptAll,
+					}),
+					createButton({
+						text: 'Reject All',
+						small: true,
+						onClick: onRejectAll,
+					}),
+					createButton({
+						text: 'Save',
+						variant: 'primary',
+						small: true,
+						onClick: onSave,
+					}),
+				],
+			}),
 			createButton({
-				text: 'Reset All',
+				text: 'Reset',
 				variant: 'danger',
 				small: true,
 				onClick: onReset,
@@ -296,7 +355,9 @@ export function renderIabPanel(
 function createPurposeRow(
 	id: string,
 	name: string,
-	consent: boolean
+	consent: boolean,
+	onChange: (value: boolean) => void,
+	ariaKind: 'purpose' | 'feature' = 'purpose'
 ): HTMLElement {
 	return div({
 		style: {
@@ -320,9 +381,23 @@ function createPurposeRow(
 				text: `${id}. ${name}`,
 				title: name,
 			}),
-			createBadge({
-				text: consent ? '✓' : '✕',
-				variant: consent ? 'success' : 'error',
+			div({
+				style: {
+					display: 'flex',
+					alignItems: 'center',
+					gap: '6px',
+				},
+				children: [
+					createBadge({
+						text: consent ? '✓' : '✕',
+						variant: consent ? 'success' : 'error',
+					}),
+					createToggle({
+						checked: consent,
+						onChange,
+						ariaLabel: `Toggle ${ariaKind} ${id}`,
+					}),
+				],
 			}),
 		],
 	});
@@ -335,7 +410,8 @@ function createVendorRow(
 	id: string,
 	name: string,
 	consent: boolean,
-	type: 'iab' | 'custom'
+	type: 'iab' | 'custom',
+	onChange: (value: boolean) => void
 ): HTMLElement {
 	return div({
 		style: {
@@ -386,6 +462,11 @@ function createVendorRow(
 				text: consent ? '✓' : '✕',
 				variant: consent ? 'success' : 'error',
 			}),
+			createToggle({
+				checked: consent,
+				onChange,
+				ariaLabel: `Toggle vendor ${id}`,
+			}),
 		],
 	});
 }
@@ -397,5 +478,5 @@ function truncateText(text: string, maxLength: number): string {
 	if (text.length <= maxLength) {
 		return text;
 	}
-	return text.slice(0, maxLength - 3) + '...';
+	return `${text.slice(0, maxLength - 3)}...`;
 }

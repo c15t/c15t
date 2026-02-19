@@ -15,15 +15,31 @@ import {
 } from '../core/renderer';
 import componentStyles from '../styles/components.module.css';
 
+interface OverridePayload {
+	country?: string;
+	region?: string;
+	language?: string;
+	gpc?: boolean;
+}
+
+type GpcOverrideSelect = '' | 'true' | 'false';
+
+interface OverrideDraft {
+	country: string;
+	region: string;
+	language: string;
+	gpc: GpcOverrideSelect;
+}
+
+interface OverrideField<T extends HTMLInputElement | HTMLSelectElement> {
+	element: HTMLElement;
+	control: T;
+}
+
 export interface LocationPanelOptions {
 	getState: () => ConsentStoreState | null;
-	onSetOverrides: (overrides: {
-		country?: string;
-		region?: string;
-		language?: string;
-	}) => void;
-	onClearOverrides: () => void;
-	onSetGpcOverride: (value: boolean | undefined) => void;
+	onApplyOverrides: (overrides: OverridePayload) => void | Promise<void>;
+	onClearOverrides: () => void | Promise<void>;
 }
 
 /**
@@ -33,8 +49,7 @@ export function renderLocationPanel(
 	container: HTMLElement,
 	options: LocationPanelOptions
 ): void {
-	const { getState, onSetOverrides, onClearOverrides, onSetGpcOverride } =
-		options;
+	const { getState, onApplyOverrides, onClearOverrides } = options;
 
 	clearElement(container);
 
@@ -70,7 +85,7 @@ export function renderLocationPanel(
 		),
 	];
 
-	// Add GPC status — shows effective state (override takes precedence)
+	// Add GPC status - shows effective state (override takes precedence)
 	gridItems.push(
 		createCompactInfoCard('GPC', getEffectiveGpcLabel(overrides?.gpc))
 	);
@@ -81,95 +96,194 @@ export function renderLocationPanel(
 	}
 
 	const locationGrid = createGrid({
-		columns: 2,
+		columns: 3,
 		children: gridItems,
 	});
 
 	container.appendChild(locationGrid);
 
-	// Override section
+	const initialDraft = getDraftFromOverrides(overrides);
+	let appliedOverrides = normalizeOverrideDraft(initialDraft);
+	let isSubmitting = false;
+
+	const countryField = createOverrideSelect({
+		label: 'Country',
+		selectOptions: COUNTRY_OPTIONS,
+		value: initialDraft.country,
+	});
+
+	const regionField = createOverrideInput({
+		label: 'Region',
+		placeholder: 'e.g., CA, NY, BE',
+		value: initialDraft.region,
+	});
+
+	const languageField = createOverrideInput({
+		label: 'Language',
+		placeholder: 'e.g., de, fr, en-US',
+		value: initialDraft.language,
+	});
+
+	const gpcField = createOverrideSelect({
+		label: 'GPC',
+		selectOptions: GPC_OPTIONS,
+		value: initialDraft.gpc,
+	});
+
+	const formStatus = span({
+		className: componentStyles.overrideStatus,
+		text: 'In sync',
+	});
+
+	const applyButton = createButton({
+		text: 'Apply',
+		variant: 'primary',
+		small: true,
+		disabled: true,
+		onClick: () => {
+			void applyDraft();
+		},
+	});
+
+	const revertButton = createButton({
+		text: 'Revert',
+		small: true,
+		disabled: true,
+		onClick: () => {
+			setDraftValues(getDraftFromOverrides(appliedOverrides));
+			updateFormState();
+		},
+	});
+
+	const clearButton = createButton({
+		text: 'Clear',
+		small: true,
+		onClick: () => {
+			void clearDraftAndOverrides();
+		},
+	});
+
+	const overrideFieldsGrid = div({
+		style: {
+			display: 'grid',
+			gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+			gap: '8px 10px',
+		},
+		children: [
+			countryField.element,
+			regionField.element,
+			languageField.element,
+			gpcField.element,
+		],
+	});
+
 	const overrideSection = createSection({
 		title: 'Override Settings',
-		actions: [
-			createButton({
-				text: 'Clear',
-				small: true,
-				onClick: onClearOverrides,
-			}),
-		],
 		children: [
-			createOverrideSelect({
-				label: 'Country',
-				selectOptions: COUNTRY_OPTIONS,
-				value: overrides?.country || '',
-				onChange: (value) => onSetOverrides({ country: value || undefined }),
-			}),
-			createOverrideInput({
-				label: 'Region',
-				placeholder: 'e.g., CA, NY, BE',
-				value: overrides?.region || '',
-				onChange: (value) => onSetOverrides({ region: value || undefined }),
-			}),
-			createOverrideInput({
-				label: 'Language',
-				placeholder: 'e.g., de, fr, en',
-				value: overrides?.language || '',
-				onChange: (value) => onSetOverrides({ language: value || undefined }),
-			}),
-			createOverrideSelect({
-				label: 'GPC',
-				selectOptions: GPC_OPTIONS,
-				value:
-					overrides?.gpc === true
-						? 'true'
-						: overrides?.gpc === false
-							? 'false'
-							: '',
-				onChange: (value) => {
-					if (value === 'true') {
-						onSetGpcOverride(true);
-					} else if (value === 'false') {
-						onSetGpcOverride(false);
-					} else {
-						onSetGpcOverride(undefined);
-					}
-				},
+			overrideFieldsGrid,
+			span({
+				className: componentStyles.overrideHint,
+				text: 'GPC override only affects opt-out or unregulated jurisdictions.',
 			}),
 			div({
-				style: {
-					fontSize: 'var(--c15t-devtools-font-size-xs)',
-					color: 'var(--c15t-devtools-text-muted)',
-					fontStyle: 'italic',
-					paddingLeft: '68px',
-				},
-				text: 'GPC override only affects opt-out or unregulated jurisdictions',
+				className: componentStyles.overrideActions,
+				children: [
+					div({
+						className: componentStyles.overrideActionButtons,
+						children: [revertButton, applyButton, clearButton],
+					}),
+					formStatus,
+				],
 			}),
 		],
 	});
 
 	container.appendChild(overrideSection);
 
-	// Active overrides indicator
-	const hasOverrides =
-		overrides &&
-		(overrides.country ||
-			overrides.region ||
-			overrides.language ||
-			overrides.gpc !== undefined);
+	countryField.control.addEventListener('change', updateFormState);
+	regionField.control.addEventListener('input', updateFormState);
+	languageField.control.addEventListener('input', updateFormState);
+	gpcField.control.addEventListener('change', updateFormState);
 
-	if (hasOverrides) {
-		container.appendChild(
-			div({
-				style: {
-					padding: '8px 16px',
-					backgroundColor: 'var(--c15t-devtools-badge-info-bg)',
-					color: 'var(--c15t-devtools-badge-info)',
-					fontSize: 'var(--c15t-devtools-font-size-xs)',
-					borderTop: '1px solid var(--c15t-devtools-border)',
-				},
-				text: 'Overrides are active. This may affect consent behavior.',
-			})
-		);
+	updateFormState();
+
+	async function applyDraft(): Promise<void> {
+		if (isSubmitting) {
+			return;
+		}
+
+		const draftOverrides = getDraftOverrides();
+		if (overridesEqual(draftOverrides, appliedOverrides)) {
+			return;
+		}
+
+		isSubmitting = true;
+		updateFormState();
+
+		try {
+			await onApplyOverrides(draftOverrides);
+			appliedOverrides = draftOverrides;
+		} finally {
+			isSubmitting = false;
+			updateFormState();
+		}
+	}
+
+	async function clearDraftAndOverrides(): Promise<void> {
+		if (isSubmitting) {
+			return;
+		}
+
+		isSubmitting = true;
+		updateFormState();
+
+		try {
+			await onClearOverrides();
+			appliedOverrides = {};
+			setDraftValues(getDraftFromOverrides(undefined));
+		} finally {
+			isSubmitting = false;
+			updateFormState();
+		}
+	}
+
+	function getDraftOverrides(): OverridePayload {
+		return normalizeOverrideDraft({
+			country: countryField.control.value,
+			region: regionField.control.value,
+			language: languageField.control.value,
+			gpc: gpcField.control.value as GpcOverrideSelect,
+		});
+	}
+
+	function setDraftValues(draft: OverrideDraft): void {
+		countryField.control.value = draft.country;
+		regionField.control.value = draft.region;
+		languageField.control.value = draft.language;
+		gpcField.control.value = draft.gpc;
+	}
+
+	function updateFormState(): void {
+		const draftOverrides = getDraftOverrides();
+		const hasDraftChanges = !overridesEqual(draftOverrides, appliedOverrides);
+
+		applyButton.disabled = !hasDraftChanges || isSubmitting;
+		revertButton.disabled = !hasDraftChanges || isSubmitting;
+		clearButton.disabled = isSubmitting;
+
+		formStatus.textContent = isSubmitting
+			? 'Applying...'
+			: hasDraftChanges
+				? 'Unsaved changes'
+				: hasOverridesValue(appliedOverrides)
+					? 'Overrides active'
+					: 'No overrides';
+		if (componentStyles.overrideStatusDirty) {
+			formStatus.classList.toggle(
+				componentStyles.overrideStatusDirty,
+				!isSubmitting && hasDraftChanges
+			);
+		}
 	}
 }
 
@@ -180,54 +294,29 @@ function createOverrideInput(options: {
 	label: string;
 	placeholder: string;
 	value: string;
-	onChange: (value: string) => void;
-}): HTMLElement {
-	const { label, placeholder, value, onChange } = options;
-
-	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+}): OverrideField<HTMLInputElement> {
+	const { label, placeholder, value } = options;
 
 	const inputField = input({
 		className:
 			`${componentStyles.input ?? ''} ${componentStyles.inputSmall ?? ''}`.trim(),
 		placeholder,
 		value,
-		onInput: (e: Event) => {
-			const target = e.target as HTMLInputElement;
-
-			// Debounce the onChange callback
-			if (debounceTimer) {
-				clearTimeout(debounceTimer);
-			}
-
-			debounceTimer = setTimeout(() => {
-				onChange(target.value);
-			}, 500);
-		},
 	}) as HTMLInputElement;
 
-	return div({
-		style: {
-			display: 'flex',
-			alignItems: 'center',
-			justifyContent: 'space-between',
-			gap: '8px',
-			marginBottom: '8px',
-		},
-		children: [
-			div({
-				style: {
-					fontSize: 'var(--c15t-devtools-font-size-xs)',
-					color: 'var(--c15t-devtools-text-muted)',
-					minWidth: '60px',
-				},
-				text: label,
-			}),
-			div({
-				style: { flex: '1' },
-				children: [inputField],
-			}),
-		],
-	});
+	return {
+		element: div({
+			className: componentStyles.overrideField,
+			children: [
+				span({
+					className: componentStyles.overrideLabel,
+					text: label,
+				}),
+				inputField,
+			],
+		}),
+		control: inputField,
+	};
 }
 
 /**
@@ -237,44 +326,83 @@ function createOverrideSelect(options: {
 	label: string;
 	selectOptions: SelectOption[];
 	value: string;
-	onChange: (value: string) => void;
-}): HTMLElement {
-	const { label, selectOptions, value, onChange } = options;
+}): OverrideField<HTMLSelectElement> {
+	const { label, selectOptions, value } = options;
 
 	const selectField = select({
 		className:
 			`${componentStyles.input ?? ''} ${componentStyles.inputSmall ?? ''}`.trim(),
 		options: selectOptions,
 		selectedValue: value,
-		onChange: (e: Event) => {
-			const target = e.target as HTMLSelectElement;
-			onChange(target.value);
-		},
 	});
 
-	return div({
-		style: {
-			display: 'flex',
-			alignItems: 'center',
-			justifyContent: 'space-between',
-			gap: '8px',
-			marginBottom: '8px',
-		},
-		children: [
-			div({
-				style: {
-					fontSize: 'var(--c15t-devtools-font-size-xs)',
-					color: 'var(--c15t-devtools-text-muted)',
-					minWidth: '60px',
-				},
-				text: label,
-			}),
-			div({
-				style: { flex: '1' },
-				children: [selectField],
-			}),
-		],
-	});
+	return {
+		element: div({
+			className: componentStyles.overrideField,
+			children: [
+				span({
+					className: componentStyles.overrideLabel,
+					text: label,
+				}),
+				selectField,
+			],
+		}),
+		control: selectField,
+	};
+}
+
+function getDraftFromOverrides(
+	overrides: OverridePayload | undefined
+): OverrideDraft {
+	return {
+		country: overrides?.country ?? '',
+		region: overrides?.region ?? '',
+		language: overrides?.language ?? '',
+		gpc:
+			overrides?.gpc === true
+				? 'true'
+				: overrides?.gpc === false
+					? 'false'
+					: '',
+	};
+}
+
+function normalizeOverrideDraft(draft: OverrideDraft): OverridePayload {
+	return {
+		country: normalizeAlphaCode(draft.country),
+		region: normalizeAlphaCode(draft.region),
+		language: normalizeLanguageCode(draft.language),
+		gpc:
+			draft.gpc === 'true' ? true : draft.gpc === 'false' ? false : undefined,
+	};
+}
+
+function normalizeAlphaCode(value: string): string | undefined {
+	const normalized = value.trim().toUpperCase();
+	return normalized || undefined;
+}
+
+function normalizeLanguageCode(value: string): string | undefined {
+	const normalized = value.trim();
+	return normalized || undefined;
+}
+
+function overridesEqual(a: OverridePayload, b: OverridePayload): boolean {
+	return (
+		a.country === b.country &&
+		a.region === b.region &&
+		a.language === b.language &&
+		a.gpc === b.gpc
+	);
+}
+
+function hasOverridesValue(overrides: OverridePayload): boolean {
+	return Boolean(
+		overrides.country ||
+			overrides.region ||
+			overrides.language ||
+			overrides.gpc !== undefined
+	);
 }
 
 /**
@@ -333,7 +461,7 @@ function getEffectiveGpcLabel(gpcOverride: boolean | undefined): string {
 	if (gpcOverride === false) {
 		return 'Off (Override)';
 	}
-	// No override — read real browser signal
+	// No override - read real browser signal
 	if (typeof window === 'undefined' || typeof navigator === 'undefined') {
 		return 'Unknown';
 	}
@@ -371,9 +499,11 @@ function createCompactInfoCard(label: string, value: string): HTMLElement {
 	return div({
 		className: componentStyles.gridCard ?? '',
 		style: {
+			padding: '6px 8px',
+			minHeight: 'auto',
 			flexDirection: 'column',
 			alignItems: 'flex-start',
-			gap: '2px',
+			gap: '1px',
 		},
 		children: [
 			span({

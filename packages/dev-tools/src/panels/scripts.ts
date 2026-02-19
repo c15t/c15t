@@ -12,6 +12,7 @@ import {
 	createSection,
 } from '../components/ui';
 import { clearElement, div } from '../core/renderer';
+import type { EventLogEntry } from '../core/state-manager';
 import { createDomScannerSection } from './dom-scanner';
 
 // Icons
@@ -22,6 +23,7 @@ const CODE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" f
 
 export interface ScriptsPanelOptions {
 	getState: () => ConsentStoreState | null;
+	getEvents?: () => EventLogEntry[];
 }
 
 /**
@@ -31,7 +33,7 @@ export function renderScriptsPanel(
 	container: HTMLElement,
 	options: ScriptsPanelOptions
 ): void {
-	const { getState } = options;
+	const { getState, getEvents } = options;
 
 	clearElement(container);
 
@@ -55,6 +57,7 @@ export function renderScriptsPanel(
 	const scripts = state.scripts || [];
 	const loadedScripts = state.loadedScripts || {};
 	const networkBlocker = state.networkBlocker;
+	const events = getEvents?.() ?? [];
 
 	// Scripts section with heading
 	if (scripts.length === 0) {
@@ -154,6 +157,26 @@ export function renderScriptsPanel(
 
 	container.appendChild(networkSection);
 
+	const blockedRequestEvents = events.filter(
+		(event) => event.type === 'network'
+	);
+	const networkEventsSection = createSection({
+		title: `Blocked Requests (${blockedRequestEvents.length})`,
+		children:
+			blockedRequestEvents.length === 0
+				? [
+						div({
+							style: {
+								fontSize: 'var(--c15t-devtools-font-size-xs)',
+								color: 'var(--c15t-devtools-text-muted)',
+							},
+							text: 'No blocked network requests recorded in this session',
+						}),
+					]
+				: createBlockedRequestContent(blockedRequestEvents),
+	});
+	container.appendChild(networkEventsSection);
+
 	// Loaded scripts summary
 	const loadedCount = Object.values(loadedScripts).filter(Boolean).length;
 	const totalCount = scripts.length;
@@ -195,13 +218,98 @@ function checkScriptConsent(
 		return true;
 	}
 
-	// Simple string category
+	if (typeof state.has === 'function') {
+		try {
+			return state.has(category as Parameters<ConsentStoreState['has']>[0]);
+		} catch {
+			// Fall through to simple checks for malformed conditions.
+		}
+	}
+
+	// Simple string category fallback
 	if (typeof category === 'string') {
 		const consents = state.consents || {};
 		return (consents as Record<string, boolean>)[category] === true;
 	}
 
-	// Complex condition - use the store's has() method if available
-	// For now, just return false for complex conditions
 	return false;
+}
+
+function createBlockedRequestContent(events: EventLogEntry[]): HTMLElement[] {
+	const stats = new Map<string, number>();
+	for (const event of events) {
+		const ruleId = getEventRuleId(event) ?? 'unknown';
+		stats.set(ruleId, (stats.get(ruleId) ?? 0) + 1);
+	}
+
+	const statsList = div({
+		style: {
+			display: 'flex',
+			flexDirection: 'column',
+			gap: '4px',
+			marginBottom: '8px',
+		},
+		children: [...stats.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.map(([ruleId, count]) =>
+				createInfoRow({
+					label: ruleId === 'unknown' ? 'Unknown Rule' : `Rule: ${ruleId}`,
+					value: `${count}`,
+				})
+			),
+	});
+
+	const latestEvents = events.slice(0, 5);
+	const latestList = div({
+		style: {
+			display: 'flex',
+			flexDirection: 'column',
+			gap: '4px',
+		},
+		children: latestEvents.map((event) =>
+			createInfoRow({
+				label: `${formatEventTime(event.timestamp)} ${getEventMethod(event)}`,
+				value: truncateText(getEventUrl(event), 38),
+			})
+		),
+	});
+
+	return [statsList, latestList];
+}
+
+function getEventRuleId(event: EventLogEntry): string | undefined {
+	const data = event.data as Record<string, unknown> | undefined;
+	const rule = data?.rule as Record<string, unknown> | undefined;
+	const ruleId = rule?.id ?? data?.ruleId;
+	return typeof ruleId === 'string' || typeof ruleId === 'number'
+		? String(ruleId)
+		: undefined;
+}
+
+function getEventMethod(event: EventLogEntry): string {
+	const data = event.data as Record<string, unknown> | undefined;
+	const method = data?.method;
+	return typeof method === 'string' ? method.toUpperCase() : 'REQ';
+}
+
+function getEventUrl(event: EventLogEntry): string {
+	const data = event.data as Record<string, unknown> | undefined;
+	const url = data?.url;
+	return typeof url === 'string' ? url : event.message;
+}
+
+function formatEventTime(timestamp: number): string {
+	return new Date(timestamp).toLocaleTimeString('en-US', {
+		hour12: false,
+		hour: '2-digit',
+		minute: '2-digit',
+		second: '2-digit',
+	});
+}
+
+function truncateText(text: string, maxLength: number): string {
+	if (text.length <= maxLength) {
+		return text;
+	}
+	return `${text.slice(0, maxLength - 3)}...`;
 }
