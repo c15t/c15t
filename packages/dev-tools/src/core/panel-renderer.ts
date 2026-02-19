@@ -59,7 +59,14 @@ export function createPanelRenderer(
 		storeConnector.getState();
 
 	const logEvent = (
-		type: 'consent_set' | 'consent_save' | 'consent_reset' | 'error' | 'info',
+		type:
+			| 'consent_set'
+			| 'consent_save'
+			| 'consent_reset'
+			| 'error'
+			| 'info'
+			| 'network'
+			| 'iab',
 		message: string,
 		data?: Record<string, unknown>
 	): void => {
@@ -163,12 +170,68 @@ export function createPanelRenderer(
 			case 'scripts':
 				renderScriptsPanel(container, {
 					getState: getStoreState,
+					getEvents: () => stateManager.getState().eventLog,
 				});
 				break;
 
 			case 'iab':
 				renderIabPanel(container, {
 					getState: getStoreState,
+					onSetPurposeConsent: (purposeId, value) => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.setPurposeConsent(purposeId, value);
+						logEvent('iab', `IAB purpose ${purposeId} set to ${value}`);
+					},
+					onSetVendorConsent: (vendorId, value) => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.setVendorConsent(vendorId, value);
+						logEvent('iab', `IAB vendor ${vendorId} set to ${value}`);
+					},
+					onSetSpecialFeatureOptIn: (featureId, value) => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.setSpecialFeatureOptIn(featureId, value);
+						logEvent('iab', `IAB feature ${featureId} set to ${value}`);
+					},
+					onAcceptAll: () => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.acceptAll();
+						logEvent('iab', 'IAB accept all selected');
+					},
+					onRejectAll: () => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.rejectAll();
+						logEvent('iab', 'IAB reject all selected');
+					},
+					onSave: () => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						void iab
+							.save()
+							.then(() => logEvent('iab', 'IAB preferences saved'))
+							.catch((error: unknown) => {
+								logEvent(
+									'error',
+									`Failed to save IAB preferences: ${String(error)}`
+								);
+							});
+					},
 					onReset: resetConsents,
 				});
 				break;

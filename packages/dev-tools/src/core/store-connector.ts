@@ -63,6 +63,11 @@ export interface StoreConnector {
 	subscribe: (listener: (state: ConsentStoreState) => void) => () => void;
 
 	/**
+	 * Triggers an immediate reconnect attempt when disconnected.
+	 */
+	retryConnection: () => void;
+
+	/**
 	 * Disconnect from the store and cleanup
 	 */
 	destroy: () => void;
@@ -83,8 +88,33 @@ export function createStoreConnector(
 
 	let store: StoreApi<ConsentStoreState> | null = null;
 	let unsubscribe: (() => void) | null = null;
-	let pollInterval: ReturnType<typeof setInterval> | null = null;
+	let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+	let reconnectAttempts = 0;
+	let hasNotifiedDisconnect = false;
 	const listeners = new Set<(state: ConsentStoreState) => void>();
+	const INITIAL_RETRY_DELAY_MS = 100;
+	const MAX_RETRY_DELAY_MS = 2000;
+	const DISCONNECT_NOTIFY_ATTEMPTS = 5;
+
+	function clearReconnectTimer(): void {
+		if (reconnectTimeout) {
+			clearTimeout(reconnectTimeout);
+			reconnectTimeout = null;
+		}
+	}
+
+	function resetReconnectState(): void {
+		reconnectAttempts = 0;
+		hasNotifiedDisconnect = false;
+	}
+
+	function notifyDisconnectedOnce(): void {
+		if (hasNotifiedDisconnect) {
+			return;
+		}
+		hasNotifiedDisconnect = true;
+		onDisconnect?.();
+	}
 
 	/**
 	 * Try to connect to the store
@@ -99,6 +129,15 @@ export function createStoreConnector(
 		] as StoreApi<ConsentStoreState> | undefined;
 
 		if (storeInstance && typeof storeInstance.getState === 'function') {
+			if (store === storeInstance && unsubscribe) {
+				return true;
+			}
+
+			if (unsubscribe) {
+				unsubscribe();
+				unsubscribe = null;
+			}
+
 			store = storeInstance;
 
 			// Subscribe to store changes
@@ -113,11 +152,8 @@ export function createStoreConnector(
 			const currentState = store.getState();
 			onConnect?.(currentState, store);
 
-			// Stop polling
-			if (pollInterval) {
-				clearInterval(pollInterval);
-				pollInterval = null;
-			}
+			clearReconnectTimer();
+			resetReconnectState();
 
 			return true;
 		}
@@ -128,35 +164,37 @@ export function createStoreConnector(
 	/**
 	 * Start polling for store availability
 	 */
-	function startPolling(): void {
-		if (pollInterval) {
+	function scheduleReconnect(immediate = false): void {
+		if (store || reconnectTimeout) {
 			return;
 		}
 
-		// Try immediately
-		if (tryConnect()) {
-			return;
-		}
+		const delay = immediate
+			? 0
+			: Math.min(
+					INITIAL_RETRY_DELAY_MS * 2 ** Math.min(reconnectAttempts, 5),
+					MAX_RETRY_DELAY_MS
+				);
 
-		// Poll every 100ms for up to 5 seconds
-		let attempts = 0;
-		const maxAttempts = 50;
-
-		pollInterval = setInterval(() => {
-			attempts++;
-
+		reconnectTimeout = setTimeout(() => {
+			reconnectTimeout = null;
+			reconnectAttempts++;
 			if (tryConnect()) {
 				return;
 			}
 
-			if (attempts >= maxAttempts) {
-				if (pollInterval) {
-					clearInterval(pollInterval);
-					pollInterval = null;
-				}
-				onDisconnect?.();
+			if (reconnectAttempts >= DISCONNECT_NOTIFY_ATTEMPTS) {
+				notifyDisconnectedOnce();
 			}
-		}, 100);
+			scheduleReconnect();
+		}, delay);
+	}
+
+	function startPolling(): void {
+		if (tryConnect()) {
+			return;
+		}
+		scheduleReconnect(true);
 	}
 
 	// Start connecting
@@ -182,11 +220,16 @@ export function createStoreConnector(
 			};
 		},
 
-		destroy: () => {
-			if (pollInterval) {
-				clearInterval(pollInterval);
-				pollInterval = null;
+		retryConnection: () => {
+			if (store) {
+				return;
 			}
+			resetReconnectState();
+			scheduleReconnect(true);
+		},
+
+		destroy: () => {
+			clearReconnectTimer();
 
 			if (unsubscribe) {
 				unsubscribe();

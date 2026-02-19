@@ -13,6 +13,11 @@ export interface EventsPanelOptions {
 	onClear: () => void;
 }
 
+type EventFilter = 'all' | 'error' | 'consent' | 'network' | 'iab';
+
+let activeFilter: EventFilter = 'all';
+let selectedEventId: string | null = null;
+
 /**
  * Renders the events panel content
  */
@@ -24,15 +29,25 @@ export function renderEventsPanel(
 
 	clearElement(container);
 
-	const events = getEvents();
+	const allEvents = getEvents();
+	const events = allEvents.filter((event) =>
+		matchesFilter(event, activeFilter)
+	);
 
-	// Header with title and clear button
+	if (!events.some((event) => event.id === selectedEventId)) {
+		selectedEventId = events[0]?.id ?? null;
+	}
+
+	const selectedEvent =
+		events.find((event) => event.id === selectedEventId) ?? null;
+
 	const header = div({
 		style: {
 			display: 'flex',
 			alignItems: 'center',
 			justifyContent: 'space-between',
 			padding: '12px 16px 8px',
+			gap: '8px',
 		},
 		children: [
 			span({
@@ -43,55 +58,173 @@ export function renderEventsPanel(
 					textTransform: 'uppercase',
 					letterSpacing: '0.5px',
 				},
-				text: `Events (${events.length})`,
+				text: `Events (${events.length}/${allEvents.length})`,
 			}),
-			createButton({
-				text: 'Clear',
-				small: true,
-				onClick: onClear,
+			div({
+				style: {
+					display: 'flex',
+					gap: '6px',
+				},
+				children: [
+					createButton({
+						text: 'Export',
+						small: true,
+						onClick: () => exportEvents(allEvents),
+					}),
+					createButton({
+						text: 'Clear',
+						small: true,
+						onClick: () => {
+							onClear();
+							selectedEventId = null;
+							renderEventsPanel(container, options);
+						},
+					}),
+				],
 			}),
 		],
 	});
 
 	container.appendChild(header);
+	container.appendChild(
+		div({
+			style: {
+				display: 'flex',
+				flexWrap: 'wrap',
+				gap: '6px',
+				padding: '0 16px 8px',
+			},
+			children: EVENT_FILTERS.map((filter) =>
+				createFilterButton(filter, filter === activeFilter, () => {
+					activeFilter = filter;
+					selectedEventId = null;
+					renderEventsPanel(container, options);
+				})
+			),
+		})
+	);
 
-	// Event list container
 	const eventList = div({
 		style: {
 			display: 'flex',
 			flexDirection: 'column',
 			gap: '4px',
 			padding: '0 12px 12px',
-			maxHeight: '400px',
+			maxHeight: '300px',
 			overflowY: 'auto',
 		},
 	});
 
 	if (events.length === 0) {
-		const emptyState = div({
-			style: {
-				padding: '32px 16px',
-				textAlign: 'center',
-				color: 'var(--c15t-text-muted)',
-				fontSize: 'var(--c15t-devtools-font-size-sm)',
-			},
-			text: 'No events recorded yet',
-		});
-		eventList.appendChild(emptyState);
+		eventList.appendChild(
+			div({
+				style: {
+					padding: '20px 16px',
+					textAlign: 'center',
+					color: 'var(--c15t-text-muted)',
+					fontSize: 'var(--c15t-devtools-font-size-sm)',
+				},
+				text: 'No events match this filter',
+			})
+		);
 	} else {
 		for (const event of events) {
-			const eventItem = createEventItem(event);
-			eventList.appendChild(eventItem);
+			eventList.appendChild(
+				createEventItem(event, event.id === selectedEventId, () => {
+					selectedEventId = event.id;
+					renderEventsPanel(container, options);
+				})
+			);
 		}
 	}
 
 	container.appendChild(eventList);
+	container.appendChild(createPayloadSection(selectedEvent));
 }
 
-/**
- * Creates an event list item
- */
-function createEventItem(event: EventLogEntry): HTMLElement {
+const EVENT_FILTERS: EventFilter[] = [
+	'all',
+	'error',
+	'consent',
+	'network',
+	'iab',
+];
+
+function createFilterButton(
+	filter: EventFilter,
+	active: boolean,
+	onClick: () => void
+): HTMLElement {
+	return createButton({
+		text: filter.toUpperCase(),
+		small: true,
+		variant: active ? 'primary' : 'default',
+		onClick,
+	});
+}
+
+function matchesFilter(event: EventLogEntry, filter: EventFilter): boolean {
+	if (filter === 'all') {
+		return true;
+	}
+	if (filter === 'error') {
+		return event.type === 'error';
+	}
+	if (filter === 'consent') {
+		return (
+			event.type === 'consent_set' ||
+			event.type === 'consent_save' ||
+			event.type === 'consent_reset'
+		);
+	}
+	if (filter === 'network') {
+		return event.type === 'network';
+	}
+	return event.type === 'iab';
+}
+
+function createPayloadSection(event: EventLogEntry | null): HTMLElement {
+	const payload = event?.data ? JSON.stringify(event.data, null, 2) : null;
+	return div({
+		style: {
+			padding: '0 12px 12px',
+		},
+		children: [
+			div({
+				style: {
+					fontSize: 'var(--c15t-devtools-font-size-xs)',
+					fontWeight: '600',
+					color: 'var(--c15t-text-muted)',
+					textTransform: 'uppercase',
+					letterSpacing: '0.5px',
+					marginBottom: '6px',
+				},
+				text: 'Payload',
+			}),
+			div({
+				className: componentStyles.gridCard ?? '',
+				style: {
+					padding: '8px',
+					fontFamily:
+						'ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace',
+					fontSize: '11px',
+					color: 'var(--c15t-text-muted)',
+					maxHeight: '140px',
+					overflowY: 'auto',
+					whiteSpace: 'pre-wrap',
+					wordBreak: 'break-word',
+				},
+				text: payload || 'Select an event with payload data',
+			}),
+		],
+	});
+}
+
+function createEventItem(
+	event: EventLogEntry,
+	selected: boolean,
+	onSelect: () => void
+): HTMLElement {
 	const time = formatTime(event.timestamp);
 	const icon = getEventIcon(event.type);
 	const color = getEventColor(event.type);
@@ -104,9 +237,13 @@ function createEventItem(event: EventLogEntry): HTMLElement {
 			gap: '8px',
 			padding: '6px 10px',
 			fontSize: 'var(--c15t-devtools-font-size-xs)',
+			cursor: 'pointer',
+			borderColor: selected
+				? 'var(--c15t-devtools-badge-info, #3b82f6)'
+				: 'var(--c15t-border)',
 		},
+		onClick: onSelect,
 		children: [
-			// Icon indicator
 			span({
 				style: {
 					color,
@@ -115,7 +252,6 @@ function createEventItem(event: EventLogEntry): HTMLElement {
 				},
 				text: icon,
 			}),
-			// Time
 			span({
 				style: {
 					color: 'var(--c15t-text-muted)',
@@ -125,7 +261,6 @@ function createEventItem(event: EventLogEntry): HTMLElement {
 				},
 				text: time,
 			}),
-			// Message
 			span({
 				style: {
 					color: 'var(--c15t-text)',
@@ -137,9 +272,18 @@ function createEventItem(event: EventLogEntry): HTMLElement {
 	});
 }
 
-/**
- * Formats timestamp to HH:MM:SS
- */
+function exportEvents(events: EventLogEntry[]): void {
+	const json = JSON.stringify(events, null, 2);
+	const blob = new Blob([json], { type: 'application/json' });
+	const url = URL.createObjectURL(blob);
+	const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = `c15t-events-${timestamp}.json`;
+	a.click();
+	URL.revokeObjectURL(url);
+}
+
 function formatTime(timestamp: number): string {
 	const date = new Date(timestamp);
 	return date.toLocaleTimeString('en-US', {
@@ -150,9 +294,6 @@ function formatTime(timestamp: number): string {
 	});
 }
 
-/**
- * Gets icon for event type
- */
 function getEventIcon(type: EventLogEntry['type']): string {
 	switch (type) {
 		case 'consent_set':
@@ -162,15 +303,15 @@ function getEventIcon(type: EventLogEntry['type']): string {
 			return '○';
 		case 'error':
 			return '✕';
-		case 'info':
+		case 'network':
+			return '◉';
+		case 'iab':
+			return '◆';
 		default:
 			return '○';
 	}
 }
 
-/**
- * Gets color for event type
- */
 function getEventColor(type: EventLogEntry['type']): string {
 	switch (type) {
 		case 'consent_set':
@@ -180,7 +321,10 @@ function getEventColor(type: EventLogEntry['type']): string {
 			return 'var(--c15t-devtools-badge-warning, #f59e0b)';
 		case 'error':
 			return 'var(--c15t-devtools-badge-error, #ef4444)';
-		case 'info':
+		case 'network':
+			return 'var(--c15t-devtools-badge-warning, #f59e0b)';
+		case 'iab':
+			return 'var(--c15t-devtools-badge-info, #3b82f6)';
 		default:
 			return 'var(--c15t-text-muted)';
 	}

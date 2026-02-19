@@ -59,6 +59,14 @@ function persistedOverridesEqual(
 	);
 }
 
+function getBlockedRequestMessage(payload: unknown): string {
+	const data = payload as { method?: unknown; url?: unknown };
+	const method =
+		typeof data?.method === 'string' ? data.method.toUpperCase() : 'REQUEST';
+	const url = typeof data?.url === 'string' ? data.url : 'unknown-url';
+	return `Network blocked: ${method} ${url}`;
+}
+
 interface PanelHeightAnimator {
 	animate: (panel: HTMLElement, previousHeight: number) => void;
 	destroy: () => void;
@@ -228,6 +236,8 @@ export function createDevTools(
 		onError?: unknown;
 		onBeforeConsentRevocationReload?: unknown;
 	} = {};
+	let originalNetworkBlockedCallback: unknown;
+	let hasWrappedNetworkBlockerCallback = false;
 
 	// Create store connector
 	const storeConnector = createStoreConnector({
@@ -318,6 +328,29 @@ export function createDevTools(
 					}
 				);
 
+			const currentNetworkBlocker = store.getState().networkBlocker;
+			if (currentNetworkBlocker && !hasWrappedNetworkBlockerCallback) {
+				originalNetworkBlockedCallback = currentNetworkBlocker.onRequestBlocked;
+				hasWrappedNetworkBlockerCallback = true;
+
+				store.getState().setNetworkBlocker({
+					...currentNetworkBlocker,
+					onRequestBlocked: (payload: unknown) => {
+						stateManager.addEvent({
+							type: 'network',
+							message: getBlockedRequestMessage(payload),
+							data: payload as Record<string, unknown>,
+						});
+
+						if (typeof originalNetworkBlockedCallback === 'function') {
+							(originalNetworkBlockedCallback as (payload: unknown) => void)(
+								payload
+							);
+						}
+					},
+				});
+			}
+
 			const persistedOverrides = loadPersistedOverrides();
 			if (persistedOverrides) {
 				const currentOverrides = normalizeOverridesForPersistence(
@@ -374,6 +407,7 @@ export function createDevTools(
 	const panelInstance: PanelInstance = createPanel({
 		stateManager,
 		storeConnector,
+		namespace,
 		onRenderContent: (container) => {
 			renderContent(container, stateManager, storeConnector);
 		},
@@ -542,12 +576,91 @@ export function createDevTools(
 			case 'scripts':
 				renderScriptsPanel(panelContent, {
 					getState: getStoreState,
+					getEvents: () => stateManager.getState().eventLog,
 				});
 				break;
 
 			case 'iab':
 				renderIabPanel(panelContent, {
 					getState: getStoreState,
+					onSetPurposeConsent: (purposeId, value) => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.setPurposeConsent(purposeId, value);
+						stateManager.addEvent({
+							type: 'iab',
+							message: `IAB purpose ${purposeId} set to ${value}`,
+							data: { purposeId, value },
+						});
+					},
+					onSetVendorConsent: (vendorId, value) => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.setVendorConsent(vendorId, value);
+						stateManager.addEvent({
+							type: 'iab',
+							message: `IAB vendor ${vendorId} set to ${value}`,
+							data: { vendorId, value },
+						});
+					},
+					onSetSpecialFeatureOptIn: (featureId, value) => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.setSpecialFeatureOptIn(featureId, value);
+						stateManager.addEvent({
+							type: 'iab',
+							message: `IAB feature ${featureId} set to ${value}`,
+							data: { featureId, value },
+						});
+					},
+					onAcceptAll: () => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.acceptAll();
+						stateManager.addEvent({
+							type: 'iab',
+							message: 'IAB accept all selected',
+						});
+					},
+					onRejectAll: () => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.rejectAll();
+						stateManager.addEvent({
+							type: 'iab',
+							message: 'IAB reject all selected',
+						});
+					},
+					onSave: () => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						void iab
+							.save()
+							.then(() => {
+								stateManager.addEvent({
+									type: 'iab',
+									message: 'IAB preferences saved',
+								});
+							})
+							.catch((error: unknown) => {
+								stateManager.addEvent({
+									type: 'error',
+									message: `Failed to save IAB preferences: ${String(error)}`,
+								});
+							});
+					},
 					onReset: async () => {
 						const store = storeConnector.getStore();
 						if (store) {
@@ -668,6 +781,54 @@ export function createDevTools(
 			};
 		},
 		destroy: () => {
+			const store = storeConnector.getStore();
+			if (store) {
+				store
+					.getState()
+					.setCallback(
+						'onBannerFetched',
+						originalCallbacks.onBannerFetched as
+							| ConsentStoreState['callbacks']['onBannerFetched']
+							| undefined
+					);
+				store
+					.getState()
+					.setCallback(
+						'onConsentSet',
+						originalCallbacks.onConsentSet as
+							| ConsentStoreState['callbacks']['onConsentSet']
+							| undefined
+					);
+				store
+					.getState()
+					.setCallback(
+						'onError',
+						originalCallbacks.onError as
+							| ConsentStoreState['callbacks']['onError']
+							| undefined
+					);
+				store
+					.getState()
+					.setCallback(
+						'onBeforeConsentRevocationReload',
+						originalCallbacks.onBeforeConsentRevocationReload as
+							| ConsentStoreState['callbacks']['onBeforeConsentRevocationReload']
+							| undefined
+					);
+
+				if (hasWrappedNetworkBlockerCallback) {
+					const currentNetworkBlocker = store.getState().networkBlocker;
+					if (currentNetworkBlocker) {
+						store.getState().setNetworkBlocker({
+							...currentNetworkBlocker,
+							onRequestBlocked: originalNetworkBlockedCallback as
+								| ((payload: unknown) => void)
+								| undefined,
+						});
+					}
+				}
+			}
+
 			panelHeightAnimator.destroy();
 			tabsInstance?.destroy();
 			panelInstance.destroy();
@@ -700,6 +861,8 @@ export function createDevToolsPanel(options: {
 	destroy: () => void;
 } {
 	const { namespace = 'c15tStore' } = options;
+	let originalEmbeddedNetworkBlockedCallback: unknown;
+	let hasWrappedEmbeddedNetworkBlocker = false;
 
 	// Create state manager without floating button behavior
 	const stateManager = createStateManager({
@@ -711,6 +874,32 @@ export function createDevToolsPanel(options: {
 		namespace,
 		onConnect: (state, store) => {
 			stateManager.setConnected(true);
+
+			const currentNetworkBlocker = state.networkBlocker;
+			if (currentNetworkBlocker && !hasWrappedEmbeddedNetworkBlocker) {
+				originalEmbeddedNetworkBlockedCallback =
+					currentNetworkBlocker.onRequestBlocked;
+				hasWrappedEmbeddedNetworkBlocker = true;
+
+				store.getState().setNetworkBlocker({
+					...currentNetworkBlocker,
+					onRequestBlocked: (payload: unknown) => {
+						stateManager.addEvent({
+							type: 'network',
+							message: getBlockedRequestMessage(payload),
+							data: payload as Record<string, unknown>,
+						});
+
+						if (typeof originalEmbeddedNetworkBlockedCallback === 'function') {
+							(
+								originalEmbeddedNetworkBlockedCallback as (
+									payload: unknown
+								) => void
+							)(payload);
+						}
+					},
+				});
+			}
 
 			const persistedOverrides = loadPersistedOverrides();
 			if (persistedOverrides) {
@@ -824,12 +1013,40 @@ export function createDevToolsPanel(options: {
 			case 'scripts':
 				renderScriptsPanel(contentArea, {
 					getState: getStoreState,
+					getEvents: () => stateManager.getState().eventLog,
 				});
 				break;
 
 			case 'iab':
 				renderIabPanel(contentArea, {
 					getState: getStoreState,
+					onSetPurposeConsent: (purposeId, value) => {
+						storeConnector
+							.getStore()
+							?.getState()
+							.iab?.setPurposeConsent(purposeId, value);
+					},
+					onSetVendorConsent: (vendorId, value) => {
+						storeConnector
+							.getStore()
+							?.getState()
+							.iab?.setVendorConsent(vendorId, value);
+					},
+					onSetSpecialFeatureOptIn: (featureId, value) => {
+						storeConnector
+							.getStore()
+							?.getState()
+							.iab?.setSpecialFeatureOptIn(featureId, value);
+					},
+					onAcceptAll: () => {
+						storeConnector.getStore()?.getState().iab?.acceptAll();
+					},
+					onRejectAll: () => {
+						storeConnector.getStore()?.getState().iab?.rejectAll();
+					},
+					onSave: () => {
+						void storeConnector.getStore()?.getState().iab?.save();
+					},
 					onReset: async () => {
 						const store = storeConnector.getStore();
 						if (store) {
@@ -913,6 +1130,19 @@ export function createDevToolsPanel(options: {
 	return {
 		element: container,
 		destroy: () => {
+			const store = storeConnector.getStore();
+			if (store && hasWrappedEmbeddedNetworkBlocker) {
+				const currentNetworkBlocker = store.getState().networkBlocker;
+				if (currentNetworkBlocker) {
+					store.getState().setNetworkBlocker({
+						...currentNetworkBlocker,
+						onRequestBlocked: originalEmbeddedNetworkBlockedCallback as
+							| ((payload: unknown) => void)
+							| undefined,
+					});
+				}
+			}
+
 			unsubscribe();
 			tabsInstance.destroy();
 			storeConnector.destroy();
