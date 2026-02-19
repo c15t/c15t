@@ -7,13 +7,13 @@ description: Customize every aspect of c15t's consent components using design to
 
 ## Quick Start
 
-Use `defineTheme()` for TypeScript autocomplete and validation:
+Use the `Theme` type for TypeScript autocomplete and validation:
 
 ```tsx
 import { type ReactNode } from 'react';
-import { defineTheme, ConsentManagerProvider } from '@c15t/react';
+import { type Theme, ConsentManagerProvider } from '@c15t/react';
 
-const theme = defineTheme({
+const theme = {
   colors: {
     primary: '#6366f1',
     primaryHover: '#4f46e5',
@@ -28,7 +28,7 @@ const theme = defineTheme({
   spacing: {
     md: '1.25rem',
   },
-});
+} satisfies Theme;
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (

@@ -29,7 +29,7 @@
   Set global values for colors, typography, spacing, radius, shadows, and motion:
 
   ```tsx
-  theme={{ colors: { primary: '#6366f1' } }}
+  options={{ theme: { colors: { primary: '#6366f1' } } }}
   ```
 
   ### 2. Component slots
@@ -37,7 +37,7 @@
   Target specific component parts via the `slots` object:
 
   ```tsx
-  theme={{ slots: { consentBannerTitle: 'text-2xl font-bold' } }}
+  options={{ theme: { slots: { consentBannerTitle: 'text-2xl font-bold' } } }}
   ```
 
   ### 3. CSS variables
@@ -65,19 +65,19 @@
   ### Change brand color globally
 
   ```tsx
-  theme={{ colors: { primary: '#0ea5e9', primaryHover: '#0284c7' } }}
+  options={{ theme: { colors: { primary: '#0ea5e9', primaryHover: '#0284c7' } } }}
   ```
 
   ### Make the banner card more compact
 
   ```tsx
-  theme={{ spacing: { md: '0.75rem', lg: '1rem' } }}
+  options={{ theme: { spacing: { md: '0.75rem', lg: '1rem' } } }}
   ```
 
   ### Round primary/secondary buttons
 
   ```tsx
-  theme={{ slots: { buttonPrimary: 'rounded-full', buttonSecondary: 'rounded-full' } }}
+  options={{ theme: { slots: { buttonPrimary: 'rounded-full', buttonSecondary: 'rounded-full' } } }}
   ```
 
   ### Enable dark mode safely

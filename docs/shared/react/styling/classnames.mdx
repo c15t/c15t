@@ -16,14 +16,14 @@
   Target individual component parts via the theme's `slots` object. Each slot accepts a string (className) or an object with `className` and `style`:
 
   ```tsx
-  const theme = defineTheme({
+  const theme = {
     slots: {
       consentBannerTitle: 'text-xl font-semibold',
       consentBannerDescription: 'text-sm text-gray-600',
       consentBannerFooter: 'flex gap-3',
       buttonPrimary: 'rounded-full px-6',
     },
-  });
+  } satisfies Theme;
   ```
 
   ## Combining with CSS Modules
@@ -31,13 +31,13 @@
   ```tsx
   import styles from './consent.module.css';
 
-  const theme = defineTheme({
+  const theme = {
     slots: {
       consentBannerCard: styles.bannerCard,
       consentBannerTitle: styles.bannerTitle,
       buttonPrimary: styles.primaryButton,
     },
-  });
+  } satisfies Theme;
   ```
 
   ```css title="consent.module.css"
@@ -73,11 +73,11 @@
   You can also set `noStyle` per-slot:
 
   ```tsx
-  const theme = defineTheme({
+  const theme = {
     slots: {
       consentBannerCard: { noStyle: true, className: 'my-custom-card' },
     },
-  });
+  } satisfies Theme;
   ```
 
   For full custom markup and behavior, continue to [Headless Mode](../headless).
