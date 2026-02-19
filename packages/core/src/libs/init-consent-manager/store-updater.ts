@@ -46,15 +46,18 @@ function calculateAutoGrantedConsents(
  * @param jurisdiction - The jurisdiction code
  * @param iabEnabled - Whether IAB mode is enabled
  * @param consentInfo - Current consent info from store
+ * @param gpcOverride - Optional override for the GPC signal (true/false to force, undefined to use browser)
  * @returns Object containing consent model and auto-granted consents
  */
 function computeAutoGrantInfo(
 	jurisdiction: JurisdictionCode | null,
 	iabEnabled: boolean | undefined,
-	consentInfo: ConsentStoreState['consentInfo']
+	consentInfo: ConsentStoreState['consentInfo'],
+	gpcOverride?: boolean
 ) {
 	const consentModel = determineModel(jurisdiction, iabEnabled);
-	const hasGpcSignal = hasGlobalPrivacyControlSignal();
+	const hasGpcSignal =
+		gpcOverride !== undefined ? gpcOverride : hasGlobalPrivacyControlSignal();
 
 	// Auto-grant only when no regulation applies and no existing consent
 	const shouldAutoGrantConsents =
@@ -93,7 +96,8 @@ function buildStoreUpdate(
 	const { consentModel, autoGrantedConsents } = computeAutoGrantInfo(
 		(data.jurisdiction as JurisdictionCode) ?? null,
 		effectiveIABEnabled,
-		consentInfo
+		consentInfo,
+		config.get().overrides?.gpc
 	);
 
 	// Build base update
@@ -217,7 +221,8 @@ export function updateStore(
 	const { consentModel, autoGrantedConsents } = computeAutoGrantInfo(
 		(data.jurisdiction as JurisdictionCode) ?? null,
 		effectiveIABEnabled,
-		consentInfo
+		consentInfo,
+		get().overrides?.gpc
 	);
 
 	// Build and apply store update (pass effectiveIABEnabled so model is correctly set)
