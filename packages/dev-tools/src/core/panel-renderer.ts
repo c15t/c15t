@@ -153,6 +153,22 @@ export function createPanelRenderer(
 							logEvent('info', 'Consent manager re-initialized');
 						}
 					},
+					onSetGpcOverride: async (value) => {
+						const store = storeConnector.getStore();
+						if (store) {
+							const currentOverrides = store.getState().overrides || {};
+							// setOverrides already calls initConsentManager internally
+							await store.getState().setOverrides({
+								...currentOverrides,
+								gpc: value,
+							});
+							logEvent(
+								'info',
+								`GPC override ${value === undefined ? 'cleared' : `set to ${value}`}`,
+								{ gpc: value }
+							);
+						}
+					},
 				});
 				break;
 

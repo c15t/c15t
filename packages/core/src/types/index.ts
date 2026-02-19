@@ -92,4 +92,11 @@ export type Overrides = {
 	 * @example 'de-DE'
 	 */
 	language?: string;
+	/**
+	 * Override the Global Privacy Control (GPC) signal.
+	 * When `true`, simulates GPC being active (opt-out of marketing/measurement).
+	 * When `false`, suppresses the real browser GPC signal.
+	 * When `undefined`, falls back to the browser's `navigator.globalPrivacyControl`.
+	 */
+	gpc?: boolean;
 };
