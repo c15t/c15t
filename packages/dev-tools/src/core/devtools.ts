@@ -25,6 +25,112 @@ import { createStoreConnector, type StoreConnector } from './store-connector';
 // Import styles to ensure they're bundled
 import '../styles/tokens.css';
 
+const PANEL_HEIGHT_TRANSITION =
+	'height var(--c15t-duration-normal, 200ms) var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1))';
+const PANEL_HEIGHT_TRANSITION_MS = 200;
+const PANEL_HEIGHT_TRANSITION_BUFFER_MS = 80;
+
+interface PanelHeightAnimator {
+	animate: (panel: HTMLElement, previousHeight: number) => void;
+	destroy: () => void;
+}
+
+function prefersReducedMotion(): boolean {
+	return (
+		typeof window !== 'undefined' &&
+		typeof window.matchMedia === 'function' &&
+		window.matchMedia('(prefers-reduced-motion: reduce)').matches
+	);
+}
+
+function createPanelHeightAnimator(): PanelHeightAnimator {
+	let activePanel: HTMLElement | null = null;
+	let frameId: number | null = null;
+	let timeoutId: ReturnType<typeof window.setTimeout> | null = null;
+	let removeTransitionListener: (() => void) | null = null;
+
+	function clearAnimationState(): void {
+		if (frameId !== null) {
+			window.cancelAnimationFrame(frameId);
+			frameId = null;
+		}
+
+		if (timeoutId !== null) {
+			window.clearTimeout(timeoutId);
+			timeoutId = null;
+		}
+
+		if (removeTransitionListener) {
+			removeTransitionListener();
+			removeTransitionListener = null;
+		}
+
+		if (activePanel) {
+			activePanel.style.height = '';
+			activePanel.style.transition = '';
+			activePanel.style.willChange = '';
+			activePanel = null;
+		}
+	}
+
+	function animate(panel: HTMLElement, previousHeight: number): void {
+		if (!Number.isFinite(previousHeight) || prefersReducedMotion()) {
+			return;
+		}
+
+		const nextHeight = panel.getBoundingClientRect().height;
+
+		if (
+			!Number.isFinite(nextHeight) ||
+			Math.abs(nextHeight - previousHeight) < 1
+		) {
+			return;
+		}
+
+		clearAnimationState();
+		activePanel = panel;
+		panel.style.height = `${previousHeight}px`;
+		panel.style.willChange = 'height';
+
+		// Force layout before transitioning to the new panel height.
+		panel.getBoundingClientRect();
+
+		const handleTransitionEnd = (event: Event): void => {
+			const transitionEvent = event as TransitionEvent;
+			if (
+				typeof transitionEvent.propertyName === 'string' &&
+				transitionEvent.propertyName &&
+				transitionEvent.propertyName !== 'height'
+			) {
+				return;
+			}
+
+			clearAnimationState();
+		};
+
+		panel.addEventListener('transitionend', handleTransitionEnd);
+		removeTransitionListener = () => {
+			panel.removeEventListener('transitionend', handleTransitionEnd);
+		};
+
+		frameId = window.requestAnimationFrame(() => {
+			frameId = null;
+			panel.style.transition = PANEL_HEIGHT_TRANSITION;
+			panel.style.height = `${nextHeight}px`;
+		});
+
+		// Fallback cleanup for interrupted transitions.
+		timeoutId = window.setTimeout(() => {
+			clearAnimationState();
+		}, PANEL_HEIGHT_TRANSITION_MS + PANEL_HEIGHT_TRANSITION_BUFFER_MS);
+	}
+
+	return {
+		animate,
+		destroy: clearAnimationState,
+	};
+}
+
 /**
  * DevTools configuration options
  */
@@ -197,6 +303,7 @@ export function createDevTools(
 
 	// Create tabs instance
 	let tabsInstance: TabsInstance | null = null;
+	const panelHeightAnimator = createPanelHeightAnimator();
 
 	// Create panel
 	const panelInstance: PanelInstance = createPanel({
@@ -215,6 +322,9 @@ export function createDevTools(
 		stateManager: StateManager,
 		storeConnector: StoreConnector
 	): void {
+		const panel = container.parentElement;
+		const previousPanelHeight = panel?.getBoundingClientRect().height ?? 0;
+
 		clearElement(container);
 
 		// Determine disabled tabs based on store state
@@ -478,6 +588,10 @@ export function createDevTools(
 				});
 				break;
 		}
+
+		if (panel) {
+			panelHeightAnimator.animate(panel, previousPanelHeight);
+		}
 	}
 
 	// Subscribe to store changes to update panel
@@ -499,6 +613,7 @@ export function createDevTools(
 			};
 		},
 		destroy: () => {
+			panelHeightAnimator.destroy();
 			tabsInstance?.destroy();
 			panelInstance.destroy();
 			storeConnector.destroy();
