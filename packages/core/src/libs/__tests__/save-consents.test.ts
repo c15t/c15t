@@ -274,6 +274,184 @@ describe('saveConsents', () => {
 		});
 	});
 
+	describe('immutability (React Compiler compatibility)', () => {
+		/**
+		 * Regression test for https://github.com/c15t/c15t/issues/604
+		 *
+		 * saveConsents must always pass a NEW object reference for `consents`
+		 * to `set()`. If it mutates the existing object in place and sets
+		 * the same reference back, React (and React Compiler in particular)
+		 * cannot detect the state change.
+		 */
+		it('should pass a new consents reference to set(), not mutate in place', async () => {
+			const originalConsents = {
+				necessary: true,
+				functionality: false,
+				measurement: false,
+				experience: false,
+				marketing: false,
+			};
+
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {},
+				consentCategories: [
+					'necessary',
+					'functionality',
+					'measurement',
+					'experience',
+					'marketing',
+				],
+				updateScripts: updateScriptsMock,
+				updateIframeConsents: updateIframeConsentsMock,
+				updateNetworkBlockerConsents: updateNetworkBlockerConsentsMock,
+				consents: originalConsents,
+				selectedConsents: originalConsents, // same reference, as happens after first save
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						disabled: true,
+						display: true,
+						gdprType: 1,
+						description: '',
+					},
+					{
+						name: 'functionality',
+						defaultValue: false,
+						disabled: false,
+						display: true,
+						gdprType: 2,
+						description: '',
+					},
+					{
+						name: 'measurement',
+						defaultValue: false,
+						disabled: false,
+						display: true,
+						gdprType: 4,
+						description: '',
+					},
+					{
+						name: 'experience',
+						defaultValue: false,
+						disabled: false,
+						display: true,
+						gdprType: 3,
+						description: '',
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						disabled: false,
+						display: true,
+						gdprType: 5,
+						description: '',
+					},
+				],
+				consentInfo: null,
+				reloadOnConsentRevoked: false,
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'all',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			const setArg = (mockSet as ReturnType<typeof vi.fn>).mock.calls[0][0];
+			expect(setArg.consents).not.toBe(originalConsents);
+			expect(setArg.consents).toEqual({
+				necessary: true,
+				functionality: true,
+				measurement: true,
+				experience: true,
+				marketing: true,
+			});
+		});
+
+		it('should not mutate the original consents object', async () => {
+			const originalConsents = {
+				necessary: true,
+				functionality: true,
+				measurement: true,
+				experience: true,
+				marketing: true,
+			};
+			const snapshot = { ...originalConsents };
+
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {},
+				consentCategories: [
+					'necessary',
+					'functionality',
+					'measurement',
+					'experience',
+					'marketing',
+				],
+				updateScripts: updateScriptsMock,
+				updateIframeConsents: updateIframeConsentsMock,
+				updateNetworkBlockerConsents: updateNetworkBlockerConsentsMock,
+				consents: originalConsents,
+				selectedConsents: originalConsents,
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						disabled: true,
+						display: true,
+						gdprType: 1,
+						description: '',
+					},
+					{
+						name: 'functionality',
+						defaultValue: false,
+						disabled: false,
+						display: true,
+						gdprType: 2,
+						description: '',
+					},
+					{
+						name: 'measurement',
+						defaultValue: false,
+						disabled: false,
+						display: true,
+						gdprType: 4,
+						description: '',
+					},
+					{
+						name: 'experience',
+						defaultValue: false,
+						disabled: false,
+						display: true,
+						gdprType: 3,
+						description: '',
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						disabled: false,
+						display: true,
+						gdprType: 5,
+						description: '',
+					},
+				],
+				consentInfo: { time: Date.now(), subjectId: 'test' },
+				reloadOnConsentRevoked: false,
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'necessary',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			// The original object must not have been mutated
+			expect(originalConsents).toEqual(snapshot);
+		});
+	});
+
 	describe('state management', () => {
 		it('should update state immediately for responsive UI', async () => {
 			await saveConsents({
