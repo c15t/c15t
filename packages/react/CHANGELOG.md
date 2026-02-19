@@ -1,5 +1,17 @@
 # @c15t/react
 
+## 2.0.0-rc.3
+
+### Patch Changes
+
+- de6dd82: fix(ui): dark mode not being applied
+- 0f10f3e: fix(react): react compiler compatability
+- Updated dependencies [de6dd82]
+- Updated dependencies [1c813bc]
+- Updated dependencies [0f10f3e]
+  - @c15t/ui@2.0.0-rc.3
+  - c15t@2.0.0-rc.3
+
 ## 2.0.0-rc.2
 
 ### Patch Changes
