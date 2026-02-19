@@ -279,7 +279,7 @@ describe('bundle-analysis', () => {
 			);
 		});
 
-		it('should generate summary table', () => {
+		it('should generate compact overview and collapsed details', () => {
 			const packages: PackageBundleData[] = [
 				{
 					packageName: 'test-package',
@@ -298,7 +298,9 @@ describe('bundle-analysis', () => {
 			];
 
 			const result = generateMarkdownReport(packages);
-			expect(result).toContain('## Summary');
+			expect(result).toContain('## At a Glance');
+			expect(result).toContain('### Top Regressions');
+			expect(result).toContain('All Package Deltas');
 			expect(result).toContain('test-package');
 			expect(result).toContain('1.00 KB');
 			expect(result).toContain('10.00%');
@@ -416,6 +418,7 @@ describe('bundle-analysis', () => {
 
 			expect(result).toContain('## Effective Transitive Impact');
 			expect(result).toContain('`c15t`');
+			expect(result).toContain('Transitive Package Membership');
 			expect(result).toContain('`backend`, `core`, `translations`');
 			expect(result).toContain('33.33%');
 		});
@@ -454,13 +457,10 @@ describe('bundle-analysis', () => {
 
 			const result = generateMarkdownReport(packages);
 			expect(result).toContain('no-changes'); // Should appear in summary
-			// no-changes package should not have a details section since it has no diffs
-			// Check that there's no details section specifically for no-changes
-			const noChangesInDetails = result.match(
-				/<details>[\s\S]*?no-changes[\s\S]*?<\/details>/
-			);
-			expect(noChangesInDetails).toBeNull(); // Should not find no-changes inside details
-			// with-changes package should have a details section
+			// no-changes package should not have a bundle-level package details section
+			expect(result).not.toContain('`no-changes`:');
+			// with-changes package should have bundle-level details
+			expect(result).toContain('`with-changes`:');
 			expect(result).toContain('<details>'); // Should have details section for with-changes
 			expect(result).toContain('with-changes'); // Should appear in details
 		});
