@@ -245,6 +245,7 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 	app.route('/subjects', createSubjectRoutes());
 	app.route('/consents', createConsentRoutes());
 	app.route('/status', createStatusRoute());
+	app.route('/', createStatusRoute());
 
 	// Global error handler
 	app.onError((err, c) => {

@@ -20,7 +20,7 @@ Bun.serve({
 
 Create a catch-all API route that forwards requests to the handler:
 
-```ts title="src/app/api/c15t/[...path]/route.ts"
+```ts title="src/app/api/c15t/[[...path]]/route.ts"
 import { c15t } from '@/lib/c15t';
 
 const handler = c15t.handler;
