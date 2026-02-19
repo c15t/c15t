@@ -7,6 +7,7 @@
 import type { TranslationConfig } from '@c15t/translations';
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../../client/client-factory';
+import type { IABConfig } from '../../libs/iab-tcf/types';
 import type { ConsentStoreState, SSRInitialData } from '../../store/type';
 import type { ConsentBannerResponse } from '../../types/compliance';
 
@@ -25,6 +26,9 @@ export interface InitConsentManagerConfig {
 
 	/** Initial translation configuration to merge with server response */
 	initialTranslationConfig?: Partial<TranslationConfig>;
+
+	/** IAB TCF configuration (when provided, IAB manager is lazily created) */
+	iabConfig?: IABConfig;
 
 	/** Store state getter */
 	get: StoreApi<ConsentStoreState>['getState'];

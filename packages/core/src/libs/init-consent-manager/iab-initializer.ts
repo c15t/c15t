@@ -5,10 +5,16 @@
  */
 
 import type { GlobalVendorList } from '../../types/iab-tcf';
+import { version } from '../../version';
 import { getConsentFromStorage } from '../cookie';
-import { CMP_ID, CMP_VERSION } from '../iab-tcf/cmp-defaults';
 import type { IABConfig, IABState } from '../iab-tcf/types';
 import type { StoreAccess } from './types';
+
+/** Default CMP ID fallback (0 = no registered CMP). */
+const CMP_ID = 0;
+
+/** CMP version, aligned with package version. */
+const CMP_VERSION = version;
 
 /**
  * Helper to update nested IAB state.

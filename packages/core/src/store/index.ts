@@ -17,7 +17,7 @@ import {
 	type HasCondition,
 	has,
 } from '../libs/has';
-import { createIABManager } from '../libs/iab-tcf/store';
+import type { IABConfig } from '../libs/iab-tcf/types';
 import { createIframeManager } from '../libs/iframe-blocker/store';
 import { initConsentManager } from '../libs/init-consent-manager';
 import { createNetworkBlockerManager } from '../libs/network-blocker/store';
@@ -154,8 +154,8 @@ export const createConsentManagerStore = (
 		...initialState,
 		...storeConfigOptions,
 		namespace,
-		// Initialize IAB manager (state + actions) if iab config is provided
-		iab: iab ? createIABManager(iab, get, set, manager) : null,
+		// IAB manager is created lazily during initConsentManager when iab config is provided
+		iab: null,
 		// Apply initial consent categories if provided
 		...(initialConsentCategories && {
 			consentCategories: initialConsentCategories,
@@ -313,6 +313,7 @@ export const createConsentManagerStore = (
 				manager,
 				ssrData: options.ssrData,
 				initialTranslationConfig: options.initialTranslationConfig,
+				iabConfig: iab as IABConfig | undefined,
 				get,
 				set,
 			}),

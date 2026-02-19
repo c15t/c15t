@@ -1,5 +1,4 @@
 import { enTranslations } from '@c15t/translations';
-import { fetchGVL } from '../../libs/iab-tcf/fetch-gvl';
 import type { InitResponse } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
 import { API_ENDPOINTS } from '../types';
@@ -22,6 +21,7 @@ export async function offlineFallbackForConsentBanner(
 	let gvl = null;
 	if (iabConfig?.enabled) {
 		try {
+			const { fetchGVL } = await import('../../libs/iab-tcf/fetch-gvl');
 			gvl = await fetchGVL(iabConfig.vendorIds);
 		} catch (error) {
 			console.warn('Failed to fetch GVL in offline fallback:', error);

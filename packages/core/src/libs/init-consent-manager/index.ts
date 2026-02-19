@@ -96,7 +96,7 @@ async function tryUseSSRData(
 	const data = await ssrData;
 
 	if (data?.init) {
-		updateStore(data.init, config, true, data.gvl);
+		await updateStore(data.init, config, true, data.gvl);
 		set({ ssrDataUsed: true, ssrSkippedReason: null });
 		return data.init;
 	}
@@ -147,7 +147,12 @@ async function fetchFromAPI(
 
 		// Update store with GVL from response (if available)
 		// If GVL is missing from 200 response, store-updater will override IAB to disabled
-		updateStore(data, config, hasLocalStorageAccess, data.gvl ?? undefined);
+		await updateStore(
+			data,
+			config,
+			hasLocalStorageAccess,
+			data.gvl ?? undefined
+		);
 
 		return data as ConsentBannerResponse;
 	} catch (error) {

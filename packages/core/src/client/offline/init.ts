@@ -5,7 +5,6 @@ import {
 	type TranslationConfig,
 	type Translations,
 } from '@c15t/translations';
-import { fetchGVL } from '../../libs/iab-tcf/fetch-gvl';
 import { checkJurisdiction } from '../../libs/jurisdiction';
 import { defaultTranslationConfig } from '../../translations';
 import type { InitResponse } from '../client-interface';
@@ -87,6 +86,7 @@ export async function init(
 			gvl = iabConfig.gvl;
 		} else {
 			try {
+				const { fetchGVL } = await import('../../libs/iab-tcf/fetch-gvl');
 				gvl = await fetchGVL(iabConfig.vendorIds);
 			} catch (error) {
 				console.warn('Failed to fetch GVL in offline mode:', error);

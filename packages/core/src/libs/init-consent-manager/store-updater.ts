@@ -196,14 +196,22 @@ function triggerCallbacks(
  * @param hasLocalStorageAccess - Whether localStorage is accessible
  * @param prefetchedGVL - Optional prefetched GVL from SSR or init response
  */
-export function updateStore(
+export async function updateStore(
 	data: ConsentBannerResponse,
 	config: InitConsentManagerConfig,
 	hasLocalStorageAccess: boolean,
 	prefetchedGVL?: GlobalVendorList | null
-): void {
+): Promise<void> {
 	const { set, get } = config;
-	const { consentInfo, iab } = get();
+	const { consentInfo } = get();
+
+	// Lazily create the IAB manager when iabConfig is provided
+	let iab = get().iab;
+	if (config.iabConfig && !iab) {
+		const { createIABManager } = await import('../iab-tcf/store');
+		iab = createIABManager(config.iabConfig, get, set, config.manager);
+		set({ iab });
+	}
 
 	// Check if client has IAB enabled but server didn't provide GVL
 	// This means the server has disabled IAB/GVL, so we should override client settings
