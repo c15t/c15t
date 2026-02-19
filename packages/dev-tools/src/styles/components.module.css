@@ -100,25 +100,33 @@
 	align-items: center;
 	justify-content: center;
 	gap: var(--c15t-space-xs, 0.25rem);
-	padding: var(--c15t-space-xs, 0.25rem) var(--c15t-space-sm, 0.5rem);
+	min-height: 30px;
+	padding: 5px 10px;
 	border: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
 	border-radius: var(--c15t-radius-md, 0.5rem);
 	background-color: var(--c15t-surface, #fff);
 	color: var(--c15t-text, hsl(0, 0%, 9%));
 	font-family: inherit;
-	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	font-size: 12px;
 	font-weight: var(--c15t-font-weight-medium, 500);
+	line-height: 1;
+	box-shadow: 0 1px 1px hsla(0, 0%, 0%, 0.04);
 	cursor: pointer;
 	transition:
 		background-color var(--c15t-duration-fast, 100ms)
 		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		border-color var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+		box-shadow var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+		color var(--c15t-duration-fast, 100ms)
 		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .btn:hover {
 	background-color: var(--c15t-surface-hover, hsl(0, 0%, 97%));
 	border-color: var(--c15t-border-hover, hsl(0, 0%, 79%));
+	box-shadow: 0 2px 6px hsla(0, 0%, 0%, 0.08);
 }
 
 .btn:focus-visible {
@@ -126,9 +134,14 @@
 	outline-offset: 1px;
 }
 
+.btn:active {
+	box-shadow: 0 1px 2px hsla(0, 0%, 0%, 0.08);
+}
+
 .btn:disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
+	box-shadow: none;
 }
 
 .btnPrimary {
@@ -154,8 +167,10 @@
 }
 
 .btnSmall {
-	padding: 2px var(--c15t-space-xs, 0.25rem);
-	font-size: 10px;
+	min-height: 26px;
+	padding: 3px 8px;
+	font-size: 11px;
+	border-radius: var(--c15t-radius-sm, 0.375rem);
 }
 
 .btnIcon {
@@ -313,6 +328,51 @@
 	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
+}
+
+/* === Override Form === */
+.overrideField {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	margin-bottom: 0;
+}
+
+.overrideLabel {
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+}
+
+.overrideHint {
+	margin-top: 6px;
+	font-size: 11px;
+	color: var(--c15t-devtools-text-muted, hsl(0, 0%, 45%));
+}
+
+.overrideActions {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 8px;
+	padding-top: 8px;
+	border-top: 1px dashed var(--c15t-border, hsl(0, 0%, 89%));
+}
+
+.overrideActionButtons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.overrideStatus {
+	font-size: 11px;
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+}
+
+.overrideStatusDirty {
+	color: var(--c15t-devtools-badge-warning, hsl(38, 92%, 50%));
 }
 
 /* === Info Row === */

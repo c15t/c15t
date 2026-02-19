@@ -21,6 +21,12 @@ export interface ScannedResource {
 	managedBy?: string;
 }
 
+interface ManagedResourceMatcher {
+	scriptId: string;
+	domain: string;
+	pathPrefix: string;
+}
+
 // Track dismissed resources (persists across scans within session)
 const dismissedResources = new Set<string>();
 
@@ -34,15 +40,19 @@ export function scanDOM(state: ConsentStoreState): ScannedResource[] {
 
 	// Get all configured script sources from c15t
 	const configuredScripts = state.scripts || [];
-	const managedDomains = new Map<string, string>(); // domain -> script ID
+	const managedResources: ManagedResourceMatcher[] = [];
 
-	// Build a map of managed domains from c15t config
+	// Build matchers from configured script URLs for accurate domain + path checks.
 	for (const script of configuredScripts) {
 		if (script.src) {
 			try {
 				const url = new URL(script.src, window.location.origin);
 				if (url.hostname !== window.location.hostname) {
-					managedDomains.set(url.hostname, script.id);
+					managedResources.push({
+						scriptId: script.id,
+						domain: url.hostname,
+						pathPrefix: normalizePathname(url.pathname),
+					});
 				}
 			} catch {
 				/* inline script or invalid URL */
@@ -58,7 +68,7 @@ export function scanDOM(state: ConsentStoreState): ScannedResource[] {
 			continue;
 		}
 
-		const resource = checkResource(src, 'script', managedDomains);
+		const resource = checkResource(src, 'script', managedResources);
 		if (resource) {
 			results.push(resource);
 		}
@@ -72,7 +82,7 @@ export function scanDOM(state: ConsentStoreState): ScannedResource[] {
 			continue;
 		}
 
-		const resource = checkResource(src, 'iframe', managedDomains);
+		const resource = checkResource(src, 'iframe', managedResources);
 		if (resource) {
 			results.push(resource);
 		}
@@ -87,7 +97,7 @@ export function scanDOM(state: ConsentStoreState): ScannedResource[] {
 function checkResource(
 	src: string,
 	type: 'script' | 'iframe',
-	managedDomains: Map<string, string>
+	managedResources: ManagedResourceMatcher[]
 ): ScannedResource | null {
 	try {
 		const url = new URL(src, window.location.origin);
@@ -103,8 +113,7 @@ function checkResource(
 			return null;
 		}
 
-		// Check if this domain is managed by c15t
-		const managedBy = managedDomains.get(domain);
+		const managedBy = findManagedScriptId(url, managedResources);
 		const isManaged = Boolean(managedBy);
 
 		return {
@@ -119,6 +128,37 @@ function checkResource(
 	}
 
 	return null;
+}
+
+function findManagedScriptId(
+	url: URL,
+	managedResources: ManagedResourceMatcher[]
+): string | undefined {
+	const domain = url.hostname;
+	const path = normalizePathname(url.pathname);
+	let bestMatch: ManagedResourceMatcher | null = null;
+
+	for (const matcher of managedResources) {
+		if (matcher.domain !== domain) {
+			continue;
+		}
+
+		// "/" means "any path on this domain"
+		if (matcher.pathPrefix !== '/' && !path.startsWith(matcher.pathPrefix)) {
+			continue;
+		}
+
+		if (!bestMatch || matcher.pathPrefix.length > bestMatch.pathPrefix.length) {
+			bestMatch = matcher;
+		}
+	}
+
+	return bestMatch?.scriptId;
+}
+
+function normalizePathname(pathname: string): string {
+	const trimmed = pathname.trim();
+	return trimmed.length > 0 ? trimmed : '/';
 }
 
 // === UI Functions ===

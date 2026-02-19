@@ -43,9 +43,11 @@ export function setPreferenceTriggerVisibility(visible: boolean): void {
  * Gets the preference center opener function from the c15t store
  * Returns null if the store is not available or doesn't have the required method
  */
-export function getPreferenceCenterOpener(): (() => void) | null {
+export function getPreferenceCenterOpener(
+	namespace = 'c15tStore'
+): (() => void) | null {
 	const win = window as unknown as Record<string, unknown>;
-	const store = win.c15tStore as
+	const store = win[namespace] as
 		| Record<string, (...args: unknown[]) => unknown>
 		| undefined;
 
@@ -65,8 +67,8 @@ export function getPreferenceCenterOpener(): (() => void) | null {
  * Opens the preference center if available
  * @returns true if the preference center was opened, false otherwise
  */
-export function openPreferenceCenter(): boolean {
-	const opener = getPreferenceCenterOpener();
+export function openPreferenceCenter(namespace = 'c15tStore'): boolean {
+	const opener = getPreferenceCenterOpener(namespace);
 	if (opener) {
 		opener();
 		return true;

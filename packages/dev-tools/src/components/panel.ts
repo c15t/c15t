@@ -67,6 +67,7 @@ export interface PanelOptions {
 	stateManager: StateManager;
 	storeConnector: StoreConnector;
 	onRenderContent: (container: HTMLElement) => void;
+	namespace?: string;
 	/**
 	 * Enable unified mode with dropdown menu when PreferenceCenterTrigger is detected
 	 * @default true
@@ -89,6 +90,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 		stateManager,
 		storeConnector,
 		onRenderContent,
+		namespace = 'c15tStore',
 		enableUnifiedMode = true,
 	} = options;
 
@@ -136,7 +138,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 
 		// Detect if preference trigger exists
 		hasPreferenceTrigger = detectPreferenceTrigger();
-		const preferenceCenterOpener = getPreferenceCenterOpener();
+		const preferenceCenterOpener = getPreferenceCenterOpener(namespace);
 
 		// Use unified mode if we have both the preference trigger and can open the preference center
 		useUnifiedMode = hasPreferenceTrigger && preferenceCenterOpener !== null;
@@ -160,7 +162,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 						description: 'Open privacy settings',
 						icon: PREFERENCES_ICON,
 						onClick: () => {
-							const opener = getPreferenceCenterOpener();
+							const opener = getPreferenceCenterOpener(namespace);
 							if (opener) {
 								opener();
 							}
@@ -354,6 +356,19 @@ export function createPanel(options: PanelOptions): PanelInstance {
 				children: statusChildren,
 			})
 		);
+
+		if (!isConnected) {
+			footerElement.appendChild(
+				button({
+					className: panelStyles.closeButton,
+					text: 'Retry',
+					onClick: () => {
+						storeConnector.retryConnection();
+					},
+				})
+			);
+		}
+
 		footerElement.appendChild(span({ text: `v${version}` }));
 	}
 
@@ -380,6 +395,13 @@ export function createPanel(options: PanelOptions): PanelInstance {
 				div({
 					className: panelStyles.errorMessage,
 					text: 'c15t consent manager is not initialized. Make sure you have set up the ConsentManagerProvider in your app.',
+				}),
+				button({
+					className: panelStyles.closeButton,
+					text: 'Retry Connection',
+					onClick: () => {
+						storeConnector.retryConnection();
+					},
 				}),
 			],
 		});

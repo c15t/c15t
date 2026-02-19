@@ -62,7 +62,14 @@ export type DevToolsTab =
  */
 export interface EventLogEntry {
 	id: string;
-	type: 'consent_set' | 'consent_save' | 'consent_reset' | 'error' | 'info';
+	type:
+		| 'consent_set'
+		| 'consent_save'
+		| 'consent_reset'
+		| 'error'
+		| 'info'
+		| 'network'
+		| 'iab';
 	message: string;
 	timestamp: number;
 	data?: Record<string, unknown>;

@@ -12,6 +12,12 @@ import { renderEventsPanel } from '../panels/events';
 import { renderIabPanel } from '../panels/iab';
 import { renderLocationPanel } from '../panels/location';
 import { renderScriptsPanel } from '../panels/scripts';
+import {
+	clearPersistedOverrides,
+	loadPersistedOverrides,
+	type PersistedDevToolsOverrides,
+	persistOverrides,
+} from './override-storage';
 import { clearElement, div } from './renderer';
 import { resetAllConsents } from './reset-consents';
 import {
@@ -24,6 +30,143 @@ import { createStoreConnector, type StoreConnector } from './store-connector';
 
 // Import styles to ensure they're bundled
 import '../styles/tokens.css';
+
+const PANEL_HEIGHT_TRANSITION =
+	'height var(--c15t-duration-normal, 200ms) var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1))';
+const PANEL_HEIGHT_TRANSITION_MS = 200;
+const PANEL_HEIGHT_TRANSITION_BUFFER_MS = 80;
+
+function normalizeOverridesForPersistence(
+	overrides: ConsentStoreState['overrides'] | undefined
+): PersistedDevToolsOverrides {
+	return {
+		country: overrides?.country?.trim() || undefined,
+		region: overrides?.region?.trim() || undefined,
+		language: overrides?.language?.trim() || undefined,
+		gpc: overrides?.gpc,
+	};
+}
+
+function persistedOverridesEqual(
+	a: PersistedDevToolsOverrides,
+	b: PersistedDevToolsOverrides
+): boolean {
+	return (
+		a.country === b.country &&
+		a.region === b.region &&
+		a.language === b.language &&
+		a.gpc === b.gpc
+	);
+}
+
+function getBlockedRequestMessage(payload: unknown): string {
+	const data = payload as { method?: unknown; url?: unknown };
+	const method =
+		typeof data?.method === 'string' ? data.method.toUpperCase() : 'REQUEST';
+	const url = typeof data?.url === 'string' ? data.url : 'unknown-url';
+	return `Network blocked: ${method} ${url}`;
+}
+
+interface PanelHeightAnimator {
+	animate: (panel: HTMLElement, previousHeight: number) => void;
+	destroy: () => void;
+}
+
+function prefersReducedMotion(): boolean {
+	return (
+		typeof window !== 'undefined' &&
+		typeof window.matchMedia === 'function' &&
+		window.matchMedia('(prefers-reduced-motion: reduce)').matches
+	);
+}
+
+function createPanelHeightAnimator(): PanelHeightAnimator {
+	let activePanel: HTMLElement | null = null;
+	let frameId: number | null = null;
+	let timeoutId: ReturnType<typeof setTimeout> | null = null;
+	let removeTransitionListener: (() => void) | null = null;
+
+	function clearAnimationState(): void {
+		if (frameId !== null) {
+			window.cancelAnimationFrame(frameId);
+			frameId = null;
+		}
+
+		if (timeoutId !== null) {
+			clearTimeout(timeoutId);
+			timeoutId = null;
+		}
+
+		if (removeTransitionListener) {
+			removeTransitionListener();
+			removeTransitionListener = null;
+		}
+
+		if (activePanel) {
+			activePanel.style.height = '';
+			activePanel.style.transition = '';
+			activePanel.style.willChange = '';
+			activePanel = null;
+		}
+	}
+
+	function animate(panel: HTMLElement, previousHeight: number): void {
+		if (!Number.isFinite(previousHeight) || prefersReducedMotion()) {
+			return;
+		}
+
+		const nextHeight = panel.getBoundingClientRect().height;
+
+		if (
+			!Number.isFinite(nextHeight) ||
+			Math.abs(nextHeight - previousHeight) < 1
+		) {
+			return;
+		}
+
+		clearAnimationState();
+		activePanel = panel;
+		panel.style.height = `${previousHeight}px`;
+		panel.style.willChange = 'height';
+
+		// Force layout before transitioning to the new panel height.
+		panel.getBoundingClientRect();
+
+		const handleTransitionEnd = (event: Event): void => {
+			const transitionEvent = event as TransitionEvent;
+			if (
+				typeof transitionEvent.propertyName === 'string' &&
+				transitionEvent.propertyName &&
+				transitionEvent.propertyName !== 'height'
+			) {
+				return;
+			}
+
+			clearAnimationState();
+		};
+
+		panel.addEventListener('transitionend', handleTransitionEnd);
+		removeTransitionListener = () => {
+			panel.removeEventListener('transitionend', handleTransitionEnd);
+		};
+
+		frameId = window.requestAnimationFrame(() => {
+			frameId = null;
+			panel.style.transition = PANEL_HEIGHT_TRANSITION;
+			panel.style.height = `${nextHeight}px`;
+		});
+
+		// Fallback cleanup for interrupted transitions.
+		timeoutId = setTimeout(() => {
+			clearAnimationState();
+		}, PANEL_HEIGHT_TRANSITION_MS + PANEL_HEIGHT_TRANSITION_BUFFER_MS);
+	}
+
+	return {
+		animate,
+		destroy: clearAnimationState,
+	};
+}
 
 /**
  * DevTools configuration options
@@ -93,6 +236,8 @@ export function createDevTools(
 		onError?: unknown;
 		onBeforeConsentRevocationReload?: unknown;
 	} = {};
+	let originalNetworkBlockedCallback: unknown;
+	let hasWrappedNetworkBlockerCallback = false;
 
 	// Create store connector
 	const storeConnector = createStoreConnector({
@@ -182,6 +327,65 @@ export function createDevTools(
 						}
 					}
 				);
+
+			const currentNetworkBlocker = store.getState().networkBlocker;
+			if (currentNetworkBlocker && !hasWrappedNetworkBlockerCallback) {
+				originalNetworkBlockedCallback = currentNetworkBlocker.onRequestBlocked;
+				hasWrappedNetworkBlockerCallback = true;
+
+				store.getState().setNetworkBlocker({
+					...currentNetworkBlocker,
+					onRequestBlocked: (payload: unknown) => {
+						stateManager.addEvent({
+							type: 'network',
+							message: getBlockedRequestMessage(payload),
+							data: payload as Record<string, unknown>,
+						});
+
+						if (typeof originalNetworkBlockedCallback === 'function') {
+							(originalNetworkBlockedCallback as (payload: unknown) => void)(
+								payload
+							);
+						}
+					},
+				});
+			}
+
+			const persistedOverrides = loadPersistedOverrides();
+			if (persistedOverrides) {
+				const currentOverrides = normalizeOverridesForPersistence(
+					store.getState().overrides
+				);
+
+				if (!persistedOverridesEqual(persistedOverrides, currentOverrides)) {
+					void store
+						.getState()
+						.setOverrides({
+							country: persistedOverrides.country,
+							region: persistedOverrides.region,
+							language: persistedOverrides.language,
+							gpc: persistedOverrides.gpc,
+						})
+						.then(() => {
+							stateManager.addEvent({
+								type: 'info',
+								message: 'Applied persisted devtools overrides',
+								data: {
+									country: persistedOverrides.country,
+									region: persistedOverrides.region,
+									language: persistedOverrides.language,
+									gpc: persistedOverrides.gpc,
+								},
+							});
+						})
+						.catch(() => {
+							stateManager.addEvent({
+								type: 'error',
+								message: 'Failed to apply persisted devtools overrides',
+							});
+						});
+				}
+			}
 		},
 		onDisconnect: () => {
 			stateManager.setConnected(false);
@@ -197,11 +401,13 @@ export function createDevTools(
 
 	// Create tabs instance
 	let tabsInstance: TabsInstance | null = null;
+	const panelHeightAnimator = createPanelHeightAnimator();
 
 	// Create panel
 	const panelInstance: PanelInstance = createPanel({
 		stateManager,
 		storeConnector,
+		namespace,
 		onRenderContent: (container) => {
 			renderContent(container, stateManager, storeConnector);
 		},
@@ -215,6 +421,9 @@ export function createDevTools(
 		stateManager: StateManager,
 		storeConnector: StoreConnector
 	): void {
+		const panel = container.parentElement;
+		const previousPanelHeight = panel?.getBoundingClientRect().height ?? 0;
+
 		clearElement(container);
 
 		// Determine disabled tabs based on store state
@@ -318,56 +527,46 @@ export function createDevTools(
 			case 'location':
 				renderLocationPanel(panelContent, {
 					getState: getStoreState,
-					onSetOverrides: async (overrides) => {
+					onApplyOverrides: async (overrides) => {
 						const store = storeConnector.getStore();
 						if (store) {
-							const currentOverrides = store.getState().overrides || {};
 							await store.getState().setOverrides({
-								...currentOverrides,
-								...overrides,
+								country: overrides.country,
+								region: overrides.region,
+								language: overrides.language,
+								gpc: overrides.gpc,
+							});
+							persistOverrides({
+								country: overrides.country,
+								region: overrides.region,
+								language: overrides.language,
+								gpc: overrides.gpc,
 							});
 							stateManager.addEvent({
 								type: 'info',
 								message: 'Overrides updated',
-								data: overrides,
-							});
-							// Re-initialize consent manager to apply new overrides
-							await store.getState().initConsentManager();
-							stateManager.addEvent({
-								type: 'info',
-								message: 'Consent manager re-initialized with new overrides',
+								data: {
+									country: overrides.country,
+									region: overrides.region,
+									language: overrides.language,
+									gpc: overrides.gpc,
+								},
 							});
 						}
 					},
 					onClearOverrides: async () => {
 						const store = storeConnector.getStore();
 						if (store) {
-							await store.getState().setOverrides(undefined);
+							await store.getState().setOverrides({
+								country: undefined,
+								region: undefined,
+								language: undefined,
+								gpc: undefined,
+							});
+							clearPersistedOverrides();
 							stateManager.addEvent({
 								type: 'info',
 								message: 'Overrides cleared',
-							});
-							// Re-initialize consent manager after clearing overrides
-							await store.getState().initConsentManager();
-							stateManager.addEvent({
-								type: 'info',
-								message: 'Consent manager re-initialized',
-							});
-						}
-					},
-					onSetGpcOverride: async (value) => {
-						const store = storeConnector.getStore();
-						if (store) {
-							const currentOverrides = store.getState().overrides || {};
-							// setOverrides already calls initConsentManager internally
-							await store.getState().setOverrides({
-								...currentOverrides,
-								gpc: value,
-							});
-							stateManager.addEvent({
-								type: 'info',
-								message: `GPC override ${value === undefined ? 'cleared' : `set to ${value}`}`,
-								data: { gpc: value },
 							});
 						}
 					},
@@ -377,12 +576,91 @@ export function createDevTools(
 			case 'scripts':
 				renderScriptsPanel(panelContent, {
 					getState: getStoreState,
+					getEvents: () => stateManager.getState().eventLog,
 				});
 				break;
 
 			case 'iab':
 				renderIabPanel(panelContent, {
 					getState: getStoreState,
+					onSetPurposeConsent: (purposeId, value) => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.setPurposeConsent(purposeId, value);
+						stateManager.addEvent({
+							type: 'iab',
+							message: `IAB purpose ${purposeId} set to ${value}`,
+							data: { purposeId, value },
+						});
+					},
+					onSetVendorConsent: (vendorId, value) => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.setVendorConsent(vendorId, value);
+						stateManager.addEvent({
+							type: 'iab',
+							message: `IAB vendor ${vendorId} set to ${value}`,
+							data: { vendorId, value },
+						});
+					},
+					onSetSpecialFeatureOptIn: (featureId, value) => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.setSpecialFeatureOptIn(featureId, value);
+						stateManager.addEvent({
+							type: 'iab',
+							message: `IAB feature ${featureId} set to ${value}`,
+							data: { featureId, value },
+						});
+					},
+					onAcceptAll: () => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.acceptAll();
+						stateManager.addEvent({
+							type: 'iab',
+							message: 'IAB accept all selected',
+						});
+					},
+					onRejectAll: () => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.rejectAll();
+						stateManager.addEvent({
+							type: 'iab',
+							message: 'IAB reject all selected',
+						});
+					},
+					onSave: () => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						void iab
+							.save()
+							.then(() => {
+								stateManager.addEvent({
+									type: 'iab',
+									message: 'IAB preferences saved',
+								});
+							})
+							.catch((error: unknown) => {
+								stateManager.addEvent({
+									type: 'error',
+									message: `Failed to save IAB preferences: ${String(error)}`,
+								});
+							});
+					},
 					onReset: async () => {
 						const store = storeConnector.getStore();
 						if (store) {
@@ -478,6 +756,10 @@ export function createDevTools(
 				});
 				break;
 		}
+
+		if (panel) {
+			panelHeightAnimator.animate(panel, previousPanelHeight);
+		}
 	}
 
 	// Subscribe to store changes to update panel
@@ -499,6 +781,55 @@ export function createDevTools(
 			};
 		},
 		destroy: () => {
+			const store = storeConnector.getStore();
+			if (store) {
+				store
+					.getState()
+					.setCallback(
+						'onBannerFetched',
+						originalCallbacks.onBannerFetched as
+							| ConsentStoreState['callbacks']['onBannerFetched']
+							| undefined
+					);
+				store
+					.getState()
+					.setCallback(
+						'onConsentSet',
+						originalCallbacks.onConsentSet as
+							| ConsentStoreState['callbacks']['onConsentSet']
+							| undefined
+					);
+				store
+					.getState()
+					.setCallback(
+						'onError',
+						originalCallbacks.onError as
+							| ConsentStoreState['callbacks']['onError']
+							| undefined
+					);
+				store
+					.getState()
+					.setCallback(
+						'onBeforeConsentRevocationReload',
+						originalCallbacks.onBeforeConsentRevocationReload as
+							| ConsentStoreState['callbacks']['onBeforeConsentRevocationReload']
+							| undefined
+					);
+
+				if (hasWrappedNetworkBlockerCallback) {
+					const currentNetworkBlocker = store.getState().networkBlocker;
+					if (currentNetworkBlocker) {
+						store.getState().setNetworkBlocker({
+							...currentNetworkBlocker,
+							onRequestBlocked: originalNetworkBlockedCallback as
+								| ((payload: unknown) => void)
+								| undefined,
+						});
+					}
+				}
+			}
+
+			panelHeightAnimator.destroy();
 			tabsInstance?.destroy();
 			panelInstance.destroy();
 			storeConnector.destroy();
@@ -530,6 +861,8 @@ export function createDevToolsPanel(options: {
 	destroy: () => void;
 } {
 	const { namespace = 'c15tStore' } = options;
+	let originalEmbeddedNetworkBlockedCallback: unknown;
+	let hasWrappedEmbeddedNetworkBlocker = false;
 
 	// Create state manager without floating button behavior
 	const stateManager = createStateManager({
@@ -539,7 +872,50 @@ export function createDevToolsPanel(options: {
 	// Create store connector
 	const storeConnector = createStoreConnector({
 		namespace,
-		onConnect: () => stateManager.setConnected(true),
+		onConnect: (state, store) => {
+			stateManager.setConnected(true);
+
+			const currentNetworkBlocker = state.networkBlocker;
+			if (currentNetworkBlocker && !hasWrappedEmbeddedNetworkBlocker) {
+				originalEmbeddedNetworkBlockedCallback =
+					currentNetworkBlocker.onRequestBlocked;
+				hasWrappedEmbeddedNetworkBlocker = true;
+
+				store.getState().setNetworkBlocker({
+					...currentNetworkBlocker,
+					onRequestBlocked: (payload: unknown) => {
+						stateManager.addEvent({
+							type: 'network',
+							message: getBlockedRequestMessage(payload),
+							data: payload as Record<string, unknown>,
+						});
+
+						if (typeof originalEmbeddedNetworkBlockedCallback === 'function') {
+							(
+								originalEmbeddedNetworkBlockedCallback as (
+									payload: unknown
+								) => void
+							)(payload);
+						}
+					},
+				});
+			}
+
+			const persistedOverrides = loadPersistedOverrides();
+			if (persistedOverrides) {
+				const currentOverrides = normalizeOverridesForPersistence(
+					state.overrides
+				);
+				if (!persistedOverridesEqual(persistedOverrides, currentOverrides)) {
+					void store.getState().setOverrides({
+						country: persistedOverrides.country,
+						region: persistedOverrides.region,
+						language: persistedOverrides.language,
+						gpc: persistedOverrides.gpc,
+					});
+				}
+			}
+		},
 		onDisconnect: () => stateManager.setConnected(false),
 	});
 
@@ -605,23 +981,31 @@ export function createDevToolsPanel(options: {
 			case 'location':
 				renderLocationPanel(contentArea, {
 					getState: getStoreState,
-					onSetOverrides: async (overrides) => {
+					onApplyOverrides: async (overrides) => {
 						const store = storeConnector.getStore();
 						if (store) {
-							const current = store.getState().overrides || {};
-							await store.getState().setOverrides({ ...current, ...overrides });
+							await store.getState().setOverrides({
+								country: overrides.country,
+								region: overrides.region,
+								language: overrides.language,
+								gpc: overrides.gpc,
+							});
+							persistOverrides({
+								country: overrides.country,
+								region: overrides.region,
+								language: overrides.language,
+								gpc: overrides.gpc,
+							});
 						}
 					},
 					onClearOverrides: async () => {
-						await storeConnector.getStore()?.getState().setOverrides(undefined);
-					},
-					onSetGpcOverride: async (value) => {
-						const store = storeConnector.getStore();
-						if (store) {
-							const current = store.getState().overrides || {};
-							// setOverrides already calls initConsentManager internally
-							await store.getState().setOverrides({ ...current, gpc: value });
-						}
+						await storeConnector.getStore()?.getState().setOverrides({
+							country: undefined,
+							region: undefined,
+							language: undefined,
+							gpc: undefined,
+						});
+						clearPersistedOverrides();
 					},
 				});
 				break;
@@ -629,12 +1013,40 @@ export function createDevToolsPanel(options: {
 			case 'scripts':
 				renderScriptsPanel(contentArea, {
 					getState: getStoreState,
+					getEvents: () => stateManager.getState().eventLog,
 				});
 				break;
 
 			case 'iab':
 				renderIabPanel(contentArea, {
 					getState: getStoreState,
+					onSetPurposeConsent: (purposeId, value) => {
+						storeConnector
+							.getStore()
+							?.getState()
+							.iab?.setPurposeConsent(purposeId, value);
+					},
+					onSetVendorConsent: (vendorId, value) => {
+						storeConnector
+							.getStore()
+							?.getState()
+							.iab?.setVendorConsent(vendorId, value);
+					},
+					onSetSpecialFeatureOptIn: (featureId, value) => {
+						storeConnector
+							.getStore()
+							?.getState()
+							.iab?.setSpecialFeatureOptIn(featureId, value);
+					},
+					onAcceptAll: () => {
+						storeConnector.getStore()?.getState().iab?.acceptAll();
+					},
+					onRejectAll: () => {
+						storeConnector.getStore()?.getState().iab?.rejectAll();
+					},
+					onSave: () => {
+						void storeConnector.getStore()?.getState().iab?.save();
+					},
 					onReset: async () => {
 						const store = storeConnector.getStore();
 						if (store) {
@@ -718,6 +1130,19 @@ export function createDevToolsPanel(options: {
 	return {
 		element: container,
 		destroy: () => {
+			const store = storeConnector.getStore();
+			if (store && hasWrappedEmbeddedNetworkBlocker) {
+				const currentNetworkBlocker = store.getState().networkBlocker;
+				if (currentNetworkBlocker) {
+					store.getState().setNetworkBlocker({
+						...currentNetworkBlocker,
+						onRequestBlocked: originalEmbeddedNetworkBlockedCallback as
+							| ((payload: unknown) => void)
+							| undefined,
+					});
+				}
+			}
+
 			unsubscribe();
 			tabsInstance.destroy();
 			storeConnector.destroy();

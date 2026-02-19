@@ -210,13 +210,13 @@ export function renderConsentsPanel(
 				},
 				children: [
 					createButton({
-						text: 'All',
+						text: 'Accept',
 						variant: 'primary',
 						small: true,
 						onClick: onAcceptAll,
 					}),
 					createButton({
-						text: 'None',
+						text: 'Reject',
 						variant: 'default',
 						small: true,
 						onClick: onRejectAll,
