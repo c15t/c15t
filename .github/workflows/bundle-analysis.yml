@@ -38,21 +38,38 @@ jobs:
           ref: ${{ github.event.pull_request.base.ref || github.ref }}
           fetch-depth: 0 # Full history needed for base branch comparison
 
+      - name: 🅿️ Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
       - name: 🟢 Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
-          bun-version: latest
+          bun-version: 1.3.6
 
       # Step 2: Build base branch (using trusted code)
       - name: 🏗️ Build base branch
         id: build-base
         timeout-minutes: 5
         run: |
-          bun install --frozen-lockfile
-          WITH_RSDOCTOR=true bun turbo run build --filter="./packages/*" || true
+          if [ -f bun.lock ] || [ -f bun.lockb ]; then
+            bun install --frozen-lockfile || bun install
+            WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*" || true
+          elif [ -f pnpm-lock.yaml ]; then
+            pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+            WITH_RSDOCTOR=1 pnpm exec turbo run build --filter="./packages/*" || true
+          else
+            echo "No supported lockfile found for base branch"
+            exit 1
+          fi
           mkdir -p .bundle-base
           # Copy rsdoctor data files
-          find packages -name "rsdoctor-data.json" -exec cp --parents {} .bundle-base/ \;
+          find packages -name "rsdoctor-data.json" -exec cp --parents {} .bundle-base/ \; || true
 
       # Step 3: Checkout PR code (untrusted) - only for PR events
       # SECURITY: We checkout PR code after setting up environment from trusted base code
@@ -72,8 +89,16 @@ jobs:
         id: build-current
         timeout-minutes: 5
         run: |
-          bun install --frozen-lockfile
-          WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*"
+          if [ -f bun.lock ] || [ -f bun.lockb ]; then
+            bun install --frozen-lockfile || bun install
+            WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*"
+          elif [ -f pnpm-lock.yaml ]; then
+            pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+            WITH_RSDOCTOR=1 pnpm exec turbo run build --filter="./packages/*"
+          else
+            echo "No supported lockfile found for current branch"
+            exit 1
+          fi
 
       - name: 📊 Analyze bundle differences
         uses: ./internals/bundle-analysis-action
