@@ -1,7 +1,10 @@
 import { defaultTranslationConfig } from 'c15t';
-import { describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
-import { ConsentManagerProvider } from '~/providers/consent-manager-provider';
+import {
+	ConsentManagerProvider,
+	clearConsentRuntimeCache,
+} from '~/providers/consent-manager-provider';
 import { useConsentManager } from '../use-consent-manager';
 
 // Mock the c15t package
@@ -49,6 +52,7 @@ vi.mock('c15t', async () => {
 				mode?: string;
 				store?: Record<string, unknown>;
 				translations?: unknown;
+				consentCategories?: string[];
 			},
 			pkgInfo: { pkg: string; version: string }
 		) => {
@@ -61,19 +65,33 @@ vi.mock('c15t', async () => {
 				},
 				...options,
 				...options.store,
+				initialConsentCategories: options.consentCategories,
 				initialTranslationConfig: options.translations,
 			});
 
 			return {
 				consentManager,
 				consentStore,
-				cacheKey: `test:${options.mode || 'c15t'}`,
+				cacheKey: `test:${options.mode || 'c15t'}:${Date.now()}`,
 			};
 		},
 	};
 });
 
 describe('useConsentManager', () => {
+	beforeEach(() => {
+		clearConsentRuntimeCache();
+		// Clear cookies and localStorage
+		window.localStorage.clear();
+		const cookies = document.cookie.split(';');
+		for (const cookie of cookies) {
+			const name = cookie.split('=')[0]?.trim();
+			if (name) {
+				document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+			}
+		}
+	});
+
 	test('returns consent state and methods when used within provider', async () => {
 		const { result } = await renderHook(() => useConsentManager(), {
 			wrapper: ({ children }) => (
