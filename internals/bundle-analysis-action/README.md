@@ -31,6 +31,7 @@ A GitHub Action for analyzing bundle size differences using rsdoctor data.
 | `pr_number` | Pull request number (auto-detected) | - | No |
 | `skip_comment` | Skip posting comment | `false` | No |
 | `fail_on_increase` | Fail if bundle increases >10% | `false` | No |
+| `transitive_roots` | Comma-separated root package names for transitive impact totals | `c15t,@c15t/react` | No |
 
 ## Outputs
 
@@ -55,4 +56,3 @@ pnpm check-types
 # Lint
 pnpm lint
 ```
-
