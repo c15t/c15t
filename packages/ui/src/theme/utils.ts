@@ -8,7 +8,23 @@ import type { ColorTokens, Theme, ThemeCSSVariables } from './types';
 /**
  * Default design tokens for the v2 theme system.
  */
-export const defaultTheme: Required<Omit<Theme, 'slots' | 'dark'>> = {
+export const defaultDarkColors: Required<ColorTokens> = {
+	primary: 'hsl(228, 100%, 70%)',
+	primaryHover: 'hsl(228, 100%, 65%)',
+	surface: 'hsl(0, 0%, 7%)',
+	surfaceHover: 'hsl(0, 0%, 10%)',
+	border: 'hsl(0, 0%, 20%)',
+	borderHover: 'hsl(0, 0%, 25%)',
+	text: 'hsl(0, 0%, 93%)',
+	textMuted: 'hsl(0, 0%, 60%)',
+	textOnPrimary: 'hsl(0, 0%, 100%)',
+	overlay: 'hsla(0, 0%, 0%, 0.7)',
+	switchTrack: 'hsl(0, 0%, 25%)',
+	switchTrackActive: 'hsl(228, 100%, 70%)',
+	switchThumb: 'hsl(0, 0%, 93%)',
+};
+
+export const defaultTheme: Required<Omit<Theme, 'slots'>> = {
 	colors: {
 		primary: 'hsl(228, 100%, 60%)',
 		primaryHover: 'hsl(228, 100%, 55%)',
@@ -24,6 +40,7 @@ export const defaultTheme: Required<Omit<Theme, 'slots' | 'dark'>> = {
 		switchTrackActive: 'hsl(228, 100%, 60%)',
 		switchThumb: 'hsl(0, 0%, 100%)',
 	},
+	dark: defaultDarkColors,
 	typography: {
 		fontFamily: 'system-ui, -apple-system, sans-serif',
 		fontSize: {
@@ -181,7 +198,7 @@ export function generateThemeCSS(theme: Theme): string {
 ${lightCSS}
 }
 
-.dark :root, .dark .c15t-theme-root, .c15t-dark :root, .c15t-dark .c15t-theme-root {
+:root.dark, .dark .c15t-theme-root, :root.c15t-dark, .c15t-dark .c15t-theme-root {
 ${darkCSS}
 }
 

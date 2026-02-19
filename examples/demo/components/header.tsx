@@ -1,4 +1,5 @@
 import { Bird } from 'lucide-react';
+import { ThemeSwitcherButton } from './consent-manager/theme-switcher';
 import { I18nButton } from './i18n-button';
 import { Button } from './ui/button';
 
@@ -47,6 +48,7 @@ export function Header() {
 							<a href="#pricing">Get Started</a>
 						</Button>
 						<I18nButton />
+						<ThemeSwitcherButton />
 					</div>
 				</div>
 			</div>

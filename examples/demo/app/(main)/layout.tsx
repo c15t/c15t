@@ -1,5 +1,6 @@
 import { Analytics } from '@vercel/analytics/next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { ThemeProvider } from 'next-themes';
 import type React from 'react';
 import '../globals.css';
 import { ConsentManager } from '../../components/consent-manager/provider';
@@ -30,13 +31,15 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en">
+		<html lang="en" suppressHydrationWarning>
 			{/* <body className={`font-sans antialiased ${spaceGrotesk.variable} ${inter.variable} ${dmSans.variable}`}> */}
 			<body className={`font-sans antialiased`}>
-				<ConsentManager>
-					{children}
-					<Analytics />
-				</ConsentManager>
+				<ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+					<ConsentManager>
+						{children}
+						<Analytics />
+					</ConsentManager>
+				</ThemeProvider>
 			</body>
 		</html>
 	);
