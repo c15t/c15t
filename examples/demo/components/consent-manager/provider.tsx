@@ -11,8 +11,7 @@ import {
 } from '@c15t/react';
 import { baseTranslations } from '@c15t/translations';
 import type { ReactNode } from 'react';
-import { minimalTheme } from './theme-presets';
-import { ThemeSwitcher, useThemePreset } from './theme-switcher';
+import { useThemePreset } from './theme-switcher';
 
 /**
  * Props for the ConsentManager component
@@ -60,10 +59,10 @@ interface ConsentManagerProps {
  * ```
  */
 export function ConsentManager({ children }: ConsentManagerProps) {
-	const { preset, setThemePreset, theme, mounted } = useThemePreset();
+	const { theme, mounted } = useThemePreset();
 
 	// Use default theme during SSR/hydration to avoid mismatch, then switch to user preference
-	const activeTheme = mounted ? theme : minimalTheme;
+	const activeTheme = mounted ? theme : undefined;
 	const centeredIabTheme = activeTheme
 		? {
 				...activeTheme,
@@ -82,9 +81,6 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 
 	return (
 		<>
-			{mounted ? (
-				<ThemeSwitcher value={preset} onChange={setThemePreset} />
-			) : null}
 			<ConsentManagerProvider
 				options={{
 					mode: 'c15t',

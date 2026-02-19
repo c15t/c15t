@@ -14,9 +14,7 @@ import type { Theme } from '../types/theme/style-types';
 /**
  * Default design tokens for the v2 theme system.
  */
-export const defaultTheme = baseDefaultTheme as Required<
-	Omit<Theme, 'slots' | 'dark'>
->;
+export const defaultTheme = baseDefaultTheme as Required<Omit<Theme, 'slots'>>;
 
 /**
  * Maps theme tokens to CSS variables.

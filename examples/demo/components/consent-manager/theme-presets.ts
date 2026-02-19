@@ -254,7 +254,7 @@ export const fullTheme: Theme = {
 				borderBottom: 'none',
 				borderLeft: 'none',
 				borderRight: 'none',
-				backgroundColor: '#f9fafb', // Light gray background
+				backgroundColor: 'var(--c15t-surface-hover)',
 				boxShadow: '0 -2px 4px -1px rgba(0, 0, 0, 0.06)',
 				padding: '1.5rem 2rem',
 				display: 'flex',
@@ -320,7 +320,7 @@ export const fullTheme: Theme = {
 				padding: '0.625rem 1.25rem',
 				fontSize: '0.875rem',
 				fontWeight: 500,
-				backgroundColor: '#ffffff', // White background for secondary
+				backgroundColor: 'var(--c15t-surface)',
 				color: 'var(--c15t-text)',
 				border: '1px solid var(--c15t-border)',
 				cursor: 'pointer',
@@ -352,6 +352,20 @@ export const tailwindTheme: Theme = {
 		switchTrackActive: '#3b82f6',
 		switchThumb: '#ffffff',
 	},
+	dark: {
+		primary: '#60a5fa', // blue-400
+		primaryHover: '#3b82f6', // blue-500
+		surface: '#0f172a', // slate-900
+		surfaceHover: '#1e293b', // slate-800
+		border: '#334155', // slate-700
+		borderHover: '#475569', // slate-600
+		text: '#f8fafc', // slate-50
+		textMuted: '#94a3b8', // slate-400
+		textOnPrimary: '#0f172a', // slate-900
+		switchTrack: '#334155',
+		switchTrackActive: '#60a5fa',
+		switchThumb: '#f8fafc',
+	},
 	typography: {
 		fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif',
 	},
@@ -363,15 +377,15 @@ export const tailwindTheme: Theme = {
 	},
 	slots: {
 		consentBannerCard:
-			'border border-slate-200 bg-white/95 backdrop-blur-sm shadow-md var',
+			'border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-md',
 		consentDialogCard:
-			'border border-slate-200 bg-white/95 backdrop-blur-md shadow-xl',
+			'border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xl',
 		buttonPrimary:
-			'bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-colors',
+			'bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-400 shadow-sm transition-colors',
 		buttonSecondary:
-			'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors',
-		consentBannerTitle: 'text-slate-900 font-semibold',
-		consentBannerDescription: 'text-slate-500',
+			'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors',
+		consentBannerTitle: 'text-slate-900 dark:text-slate-50 font-semibold',
+		consentBannerDescription: 'text-slate-500 dark:text-slate-400',
 	},
 };
 
