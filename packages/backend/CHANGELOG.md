@@ -1,5 +1,11 @@
 # @c15t/backend
 
+## 2.0.0-rc.3
+
+### Patch Changes
+
+- 0a18fb6: feat(backend): add base '/' root endpoint for better DX
+
 ## 2.0.0-rc.2
 
 ### Patch Changes
