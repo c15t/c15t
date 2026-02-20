@@ -17,6 +17,11 @@
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
 		},
+		"./all": {
+			"types": "./dist/all.d.ts",
+			"import": "./dist/all.js",
+			"require": "./dist/all.cjs"
+		},
 		"./en": {
 			"types": "./dist/translations/en.d.ts",
 			"import": "./dist/translations/en.js",

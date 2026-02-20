@@ -40,7 +40,7 @@ import { translations as zh } from './zh';
  *
  * @example
  * ```typescript
- * import { baseTranslations } from '@c15t/translations';
+ * import { baseTranslations } from '@c15t/translations/all';
  * const english = baseTranslations.en;
  * const german = baseTranslations.de;
  * ```
@@ -89,7 +89,7 @@ const baseTranslations = {
  *
  * @example
  * ```ts
- * import type { BaseTranslations } from '@c15t/translations';
+ * import type { BaseTranslations } from '@c15t/translations/all';
  *
  * function processTranslations(translations: BaseTranslations) {
  *   // Type-safe access to translations

@@ -1,10 +1,10 @@
 import {
-	baseTranslations,
 	type CompleteTranslations,
 	deepMergeTranslations,
 	selectLanguage,
 	type Translations,
 } from '@c15t/translations';
+import { baseTranslations } from '@c15t/translations/all';
 
 type SupportedBaseLanguage = keyof typeof baseTranslations;
 

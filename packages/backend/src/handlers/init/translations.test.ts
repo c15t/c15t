@@ -1,4 +1,4 @@
-import { baseTranslations } from '@c15t/translations';
+import { baseTranslations } from '@c15t/translations/all';
 import { describe, expect, it } from 'vitest';
 import { getTranslationsData } from './translations';
 

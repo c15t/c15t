@@ -8,7 +8,7 @@ import {
 	IABConsentBanner,
 	IABConsentDialog,
 } from '@c15t/nextjs';
-import { baseTranslations } from '@c15t/translations';
+import { baseTranslations } from '@c15t/translations/all';
 import CookieBanner from './cookie-banner';
 
 export default function ({ children, ssrData }: ConsentManagerProps) {

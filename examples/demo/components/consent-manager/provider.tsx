@@ -9,7 +9,7 @@ import {
 	IABConsentBanner,
 	IABConsentDialog,
 } from '@c15t/react';
-import { baseTranslations } from '@c15t/translations';
+import { baseTranslations } from '@c15t/translations/all';
 import type { ReactNode } from 'react';
 import { useThemePreset } from './theme-switcher';
 
