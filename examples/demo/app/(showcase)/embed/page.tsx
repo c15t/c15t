@@ -105,8 +105,8 @@ export default function EmbedShowcasePage() {
 
 				<p className="text-sm text-slate-600">
 					This page loads <code>/api/self-host/embed.js</code> and mounts the
-					React-parity consent UI through <code>@c15t/embed</code> using a
-					single backend request.
+					React-parity consent UI through a Preact-backed{' '}
+					<code>@c15t/embed</code> runtime using a single backend request.
 				</p>
 
 				<div className="rounded-lg border border-slate-200 bg-white p-4 text-sm">

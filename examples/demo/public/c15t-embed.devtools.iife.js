@@ -1,30 +1,30 @@
 'use strict';
 var c15tEmbedDevToolsBundle = (() => {
-	var he = Object.defineProperty;
+	var ye = Object.defineProperty;
 	var rt = Object.getOwnPropertyDescriptor;
 	var at = Object.getOwnPropertyNames;
 	var st = Object.prototype.hasOwnProperty;
 	var it = (e, t) => {
-			for (var o in t) he(e, o, { get: t[o], enumerable: !0 });
+			for (var o in t) ye(e, o, { get: t[o], enumerable: !0 });
 		},
 		lt = (e, t, o, s) => {
 			if ((t && typeof t == 'object') || typeof t == 'function')
 				for (let n of at(t))
 					!st.call(e, n) &&
 						n !== o &&
-						he(e, n, {
+						ye(e, n, {
 							get: () => t[n],
 							enumerable: !(s = rt(t, n)) || s.enumerable,
 						});
 			return e;
 		};
-	var ct = (e) => lt(he({}, '__esModule', { value: !0 }), e);
+	var ct = (e) => lt(ye({}, '__esModule', { value: !0 }), e);
 	var sn = {};
 	it(sn, {
-		initializeEmbedDevTools: () => nt,
-		mountEmbedDevTools: () => ot,
-		unmountEmbedDevTools: () => Ae,
-		version: () => tt,
+		initializeEmbedDevTools: () => Ne,
+		mountEmbedDevTools: () => Oe,
+		unmountEmbedDevTools: () => xe,
+		version: () => he,
 	});
 	var dt = {
 			'../../node_modules/.bun/@rsbuild+core@1.6.12/node_modules/@rsbuild/core/compiled/css-loader/index.js??ruleSet[1].rules[1].use[1]!builtin:lightningcss-loader??ruleSet[1].rules[1].use[2]!./src/styles/animations.module.css'(
@@ -1656,11 +1656,11 @@ var c15tEmbedDevToolsBundle = (() => {
 				e.exports = t;
 			},
 		},
-		Be = {};
+		De = {};
 	function L(e) {
-		var t = Be[e];
+		var t = De[e];
 		if (t !== void 0) return t.exports;
-		var o = (Be[e] = { id: e, exports: {} });
+		var o = (De[e] = { id: e, exports: {} });
 		return dt[e](o, o.exports, L), o.exports;
 	}
 	L.n = (e) => {
@@ -1677,8 +1677,8 @@ var c15tEmbedDevToolsBundle = (() => {
 	L.nc = void 0;
 	var be = 'c15t-devtools-position',
 		ut = 30,
-		Ne = 0.15;
-	function xe() {
+		ze = 0.15;
+	function _e() {
 		return { isDragging: !1, startX: 0, startY: 0, currentX: 0, currentY: 0 };
 	}
 	function pt(e, t, o, s = {}) {
@@ -1687,8 +1687,8 @@ var c15tEmbedDevToolsBundle = (() => {
 			c = Math.abs(o),
 			l = Math.abs(r),
 			f = Math.abs(a),
-			b = l >= Ne,
-			m = f >= Ne,
+			b = l >= ze,
+			m = f >= ze,
 			_ = 10,
 			y = i >= n || (b && i >= _),
 			p = c >= n || (m && c >= _);
@@ -1755,7 +1755,7 @@ var c15tEmbedDevToolsBundle = (() => {
 			let g = mt(be);
 			g && (a = g);
 		}
-		let i = xe(),
+		let i = _e(),
 			c = !1,
 			l = 0,
 			f = null,
@@ -1800,18 +1800,18 @@ var c15tEmbedDevToolsBundle = (() => {
 					let d = g.clientX - i.startX,
 						C = g.clientY - i.startY,
 						A = Date.now() - l,
-						O = A > 0 ? d / A : 0,
+						N = A > 0 ? d / A : 0,
 						z = A > 0 ? C / A : 0,
-						N = pt(a, d, C, { velocityX: O, velocityY: z });
-					N !== a && p(N),
+						O = pt(a, d, C, { velocityX: N, velocityY: z });
+					O !== a && p(O),
 						f && (h(f), (f.style.transform = ''), (f.style.transition = ''));
 				}
-				(i = xe()), r?.(c);
+				(i = _e()), r?.(c);
 			}
 		}
 		function x(g) {
 			g.target.releasePointerCapture(g.pointerId),
-				(i = xe()),
+				(i = _e()),
 				f && ((f.style.transform = ''), (f.style.transition = '')),
 				r?.(!1);
 		}
@@ -2021,19 +2021,19 @@ var c15tEmbedDevToolsBundle = (() => {
 	J.insertStyleElement = se();
 	oe()(pe.A, J);
 	var I = pe.A && pe.A.locals ? pe.A.locals : void 0,
-		We =
+		Ke =
 			'[data-c15t-trigger], [aria-label*="privacy settings"], [aria-label*="preference"]';
 	function Et() {
-		return document.querySelectorAll(We).length > 0;
+		return document.querySelectorAll(Ke).length > 0;
 	}
 	function Tt() {
-		return document.querySelectorAll(We);
+		return document.querySelectorAll(Ke);
 	}
 	function At(e) {
 		let t = Tt();
 		for (let o of t) o.style.display = e ? '' : 'none';
 	}
-	function Oe(e = 'c15tStore') {
+	function Le(e = 'c15tStore') {
 		let o = window[e];
 		if (o && typeof o.getState == 'function') {
 			let s = o.getState();
@@ -2045,10 +2045,10 @@ var c15tEmbedDevToolsBundle = (() => {
 		return null;
 	}
 	var Bt = '2.0.0-rc.3',
-		Nt = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 446 445" aria-label="c15t">
+		Ot = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 446 445" aria-label="c15t">
   <path fill="currentColor" d="M223.178.313c39.064 0 70.732 31.668 70.732 70.732-.001 39.064-31.668 70.731-70.732 70.731-12.181 0-23.642-3.079-33.649-8.502l-55.689 55.689a70.267 70.267 0 0 1 5.574 13.441h167.531c8.695-29.217 35.762-50.523 67.804-50.523 39.064 0 70.731 31.668 70.731 70.732s-31.668 70.732-70.731 70.732c-32.042 0-59.108-21.306-67.803-50.523H139.413a70.417 70.417 0 0 1-7.888 17.396l54.046 54.046c10.893-6.851 23.786-10.815 37.605-10.815 39.064 0 70.732 31.669 70.732 70.733 0 39.064-31.668 70.731-70.732 70.731s-70.732-31.667-70.732-70.731c0-10.518 2.296-20.499 6.414-29.471l-57.78-57.78c-8.972 4.117-18.952 6.414-29.47 6.414-39.063 0-70.731-31.668-70.732-70.732 0-39.064 31.669-70.732 70.733-70.732 12.18 0 23.642 3.079 33.649 8.502l55.688-55.688c-5.423-10.007-8.502-21.469-8.502-33.65 0-39.064 31.668-70.733 70.732-70.733Zm0 343.555c-16.742 0-30.314 13.572-30.314 30.314 0 16.741 13.572 30.313 30.314 30.313s30.314-13.572 30.314-30.313c0-16.742-13.572-30.314-30.314-30.314ZM71.611 192.299c-16.742 0-30.315 13.572-30.315 30.314s13.573 30.314 30.315 30.314c16.741 0 30.313-13.572 30.313-30.314 0-16.741-13.572-30.314-30.313-30.314Zm303.138 0c-16.729 0-30.294 13.551-30.315 30.275l.001.039-.001.038c.021 16.725 13.586 30.276 30.315 30.276 16.741 0 30.313-13.572 30.313-30.314 0-16.741-13.572-30.314-30.313-30.314ZM223.178 40.73c-16.742 0-30.314 13.573-30.314 30.315s13.573 30.313 30.314 30.313c16.742 0 30.313-13.572 30.314-30.313 0-16.742-13.572-30.314-30.314-30.315Z"/>
 </svg>`,
-		Ot = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+		Nt = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
   <circle cx="12" cy="12" r="3"/>
 </svg>`,
@@ -2056,7 +2056,7 @@ var c15tEmbedDevToolsBundle = (() => {
   <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
   <circle cx="12" cy="12" r="3"/>
 </svg>`;
-	function De(e) {
+	function Re(e) {
 		switch (e) {
 			case 'bottom-left':
 				return I.dropdownMenuBottomLeft ?? '';
@@ -2074,7 +2074,7 @@ var c15tEmbedDevToolsBundle = (() => {
 			r = e.position,
 			a = e.referenceElement,
 			i = u({
-				className: `${I.dropdownMenu ?? ''} ${De(r)}`,
+				className: `${I.dropdownMenu ?? ''} ${Re(r)}`,
 				role: 'menu',
 				ariaLabel: 'c15t Options',
 			});
@@ -2172,7 +2172,7 @@ var c15tEmbedDevToolsBundle = (() => {
 				I.dropdownMenuTopLeft ?? '',
 				I.dropdownMenuTopRight ?? ''
 			),
-				i.classList.add(De(x)),
+				i.classList.add(Re(x)),
 				(r = x),
 				n && c();
 		}
@@ -2204,7 +2204,7 @@ var c15tEmbedDevToolsBundle = (() => {
 			destroy: T,
 		};
 	}
-	var ze = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 446 445" aria-label="c15t">
+	var Pe = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 446 445" aria-label="c15t">
   <path fill="currentColor" d="M223.178.313c39.064 0 70.732 31.668 70.732 70.732-.001 39.064-31.668 70.731-70.732 70.731-12.181 0-23.642-3.079-33.649-8.502l-55.689 55.689a70.267 70.267 0 0 1 5.574 13.441h167.531c8.695-29.217 35.762-50.523 67.804-50.523 39.064 0 70.731 31.668 70.731 70.732s-31.668 70.732-70.731 70.732c-32.042 0-59.108-21.306-67.803-50.523H139.413a70.417 70.417 0 0 1-7.888 17.396l54.046 54.046c10.893-6.851 23.786-10.815 37.605-10.815 39.064 0 70.732 31.669 70.732 70.733 0 39.064-31.668 70.731-70.732 70.731s-70.732-31.667-70.732-70.731c0-10.518 2.296-20.499 6.414-29.471l-57.78-57.78c-8.972 4.117-18.952 6.414-29.47 6.414-39.063 0-70.731-31.668-70.732-70.732 0-39.064 31.669-70.732 70.733-70.732 12.18 0 23.642 3.079 33.649 8.502l55.688-55.688c-5.423-10.007-8.502-21.469-8.502-33.65 0-39.064 31.668-70.733 70.732-70.733Zm0 343.555c-16.742 0-30.314 13.572-30.314 30.314 0 16.741 13.572 30.313 30.314 30.313s30.314-13.572 30.314-30.313c0-16.742-13.572-30.314-30.314-30.314ZM71.611 192.299c-16.742 0-30.315 13.572-30.315 30.314s13.573 30.314 30.315 30.314c16.741 0 30.313-13.572 30.313-30.314 0-16.741-13.572-30.314-30.313-30.314Zm303.138 0c-16.729 0-30.294 13.551-30.315 30.275l.001.039-.001.038c.021 16.725 13.586 30.276 30.315 30.276 16.741 0 30.313-13.572 30.313-30.314 0-16.741-13.572-30.314-30.313-30.314ZM223.178 40.73c-16.742 0-30.314 13.573-30.314 30.315s13.573 30.313 30.314 30.313c16.742 0 30.313-13.572 30.314-30.313 0-16.742-13.572-30.314-30.314-30.315Z"/>
 </svg>`,
 		Lt = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2257,7 +2257,7 @@ var c15tEmbedDevToolsBundle = (() => {
 				return;
 			}
 			f = Et();
-			let D = Oe(n);
+			let D = Le(n);
 			(b = f && D !== null),
 				b &&
 					!l &&
@@ -2267,7 +2267,7 @@ var c15tEmbedDevToolsBundle = (() => {
 								id: 'devtools',
 								label: 'DevTools',
 								description: 'View and manage consents',
-								icon: Nt,
+								icon: Ot,
 								onClick: () => {
 									t.setOpen(!0);
 								},
@@ -2276,9 +2276,9 @@ var c15tEmbedDevToolsBundle = (() => {
 								id: 'preferences',
 								label: 'Preferences',
 								description: 'Open privacy settings',
-								icon: Ot,
+								icon: Nt,
 								onClick: () => {
-									let M = Oe(n);
+									let M = Le(n);
 									M && M();
 								},
 							},
@@ -2318,7 +2318,7 @@ var c15tEmbedDevToolsBundle = (() => {
 			},
 		});
 		let T = u({ className: I.floatingButtonIcon }),
-			S = U(ze, { width: 24, height: 24 });
+			S = U(Pe, { width: 24, height: 24 });
 		T.appendChild(S), p.appendChild(T), c.attach(p), setTimeout(w, 100);
 		let x = null,
 			h = null,
@@ -2340,7 +2340,7 @@ var c15tEmbedDevToolsBundle = (() => {
 							children: [
 								(() => {
 									let ee = u({ className: I.headerLogo });
-									return ee.appendChild(U(ze, { width: 20, height: 20 })), ee;
+									return ee.appendChild(U(Pe, { width: 20, height: 20 })), ee;
 								})(),
 								B({ text: 'c15t DevTools' }),
 							],
@@ -2348,7 +2348,7 @@ var c15tEmbedDevToolsBundle = (() => {
 						Y({
 							className: I.closeButton,
 							ariaLabel: 'Close DevTools',
-							onClick: () => O(),
+							onClick: () => N(),
 							children: [
 								(() => {
 									let ee = u({ className: I.closeButtonIcon });
@@ -2431,13 +2431,13 @@ var c15tEmbedDevToolsBundle = (() => {
 				((p.style.display = 'none'),
 				(h = u({
 					className: `${I.backdrop} ${$.animateFadeIn}`,
-					onClick: () => O(),
+					onClick: () => N(),
 				})),
 				(x = g()),
 				y.appendChild(h),
 				y.appendChild(x));
 		}
-		function O() {
+		function N() {
 			!x ||
 				i ||
 				((i = !0),
@@ -2462,10 +2462,10 @@ var c15tEmbedDevToolsBundle = (() => {
 		}
 		function z() {
 			let D = t.getState();
-			!D.isOpen || x || i ? !D.isOpen && x && !i && O() : A(),
+			!D.isOpen || x || i ? !D.isOpen && x && !i && N() : A(),
 				v && o.isConnected() && s(v);
 		}
-		let N = t.subscribe(() => {
+		let O = t.subscribe(() => {
 				z();
 			}),
 			P = o.subscribe(() => {
@@ -2479,7 +2479,7 @@ var c15tEmbedDevToolsBundle = (() => {
 				floatingButton: p,
 				update: z,
 				destroy: () => {
-					N(),
+					O(),
 						P(),
 						l && (l.destroy(), (l = null)),
 						c && (c.destroy(), (c = null)),
@@ -2524,7 +2524,7 @@ var c15tEmbedDevToolsBundle = (() => {
   <path d="M12 20h9"></path>
   <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
 </svg>`,
-		Le = [
+		Me = [
 			{ id: 'location', label: 'Location', icon: Ft },
 			{ id: 'consents', label: 'Consents', icon: jt },
 			{ id: 'scripts', label: 'Scripts', icon: $t },
@@ -2541,7 +2541,7 @@ var c15tEmbedDevToolsBundle = (() => {
 				role: 'tablist',
 				ariaLabel: 'DevTools tabs',
 			});
-		for (let c of Le) {
+		for (let c of Me) {
 			let l = c.id === s,
 				f = o.includes(c.id),
 				b = Y({
@@ -2565,7 +2565,7 @@ var c15tEmbedDevToolsBundle = (() => {
 				r.appendChild(b);
 		}
 		function a(c, l) {
-			let b = Le.map((p) => p.id).filter((p) => !o.includes(p)),
+			let b = Me.map((p) => p.id).filter((p) => !o.includes(p)),
 				m = b.indexOf(l),
 				_ = m;
 			switch (c.key) {
@@ -2616,7 +2616,7 @@ var c15tEmbedDevToolsBundle = (() => {
 	q.insertStyleElement = se();
 	oe()(ge.A, q);
 	var k = ge.A && ge.A.locals ? ge.A.locals : void 0;
-	function Ce(e) {
+	function Ie(e) {
 		let { checked: t, onChange: o, ariaLabel: s, disabled: n = !1 } = e,
 			r = Y({
 				className: `${k.toggle} ${t ? k.toggleActive : ''}`,
@@ -2631,7 +2631,7 @@ var c15tEmbedDevToolsBundle = (() => {
 			a = u({ className: k.toggleThumb });
 		return r.appendChild(a), r;
 	}
-	function ke(e) {
+	function Ee(e) {
 		let { text: t, variant: o = 'neutral' } = e,
 			s = {
 				success: k.badgeSuccess,
@@ -2706,7 +2706,7 @@ var c15tEmbedDevToolsBundle = (() => {
 			u({ className: k.emptyState, children: s.filter(Boolean) })
 		);
 	}
-	function Ie(e) {
+	function Te(e) {
 		let { columns: t = 2, children: o } = e,
 			s = t === 3 ? k.gridCols3 : k.gridCols2;
 		return u({ className: `${k.grid} ${s}`, children: o });
@@ -2772,7 +2772,7 @@ var c15tEmbedDevToolsBundle = (() => {
 				ce({ icon: Zt, label: 'Re-fetch', onClick: n }),
 				ce({ icon: Kt, label: 'Copy State', onClick: i }),
 			],
-			f = Ie({ columns: 2, children: l });
+			f = Te({ columns: 2, children: l });
 		e.appendChild(f);
 		let b = u({
 			style: {
@@ -2803,7 +2803,7 @@ var c15tEmbedDevToolsBundle = (() => {
 						marginBottom: '8px',
 					},
 					children: [
-						Ze(eo, 14),
+						qe(eo, 14),
 						B({
 							style: {
 								fontSize: 'var(--c15t-devtools-font-size-xs)',
@@ -2852,7 +2852,7 @@ var c15tEmbedDevToolsBundle = (() => {
 						'background-color var(--c15t-duration-fast) var(--c15t-easing)',
 				},
 				children: [
-					Ze(t, 20),
+					qe(t, 20),
 					B({
 						style: {
 							fontSize: 'var(--c15t-devtools-font-size-xs)',
@@ -2875,7 +2875,7 @@ var c15tEmbedDevToolsBundle = (() => {
 			n
 		);
 	}
-	function Ze(e, t) {
+	function qe(e, t) {
 		let o = u({
 			style: {
 				display: 'flex',
@@ -2954,16 +2954,16 @@ var c15tEmbedDevToolsBundle = (() => {
 					g = h === 'necessary',
 					d = E?.name || h,
 					C = f[h] === v,
-					A = Ce({
+					A = Ie({
 						checked: !!v,
 						disabled: g || l,
 						ariaLabel: `Toggle ${d} consent`,
 						onChange: (z) => s(String(h), z),
 					}),
-					O = Wt({ title: ro(d) + (l || C ? '' : ' \u2022'), action: A });
-				S.push(O);
+					N = Wt({ title: ro(d) + (l || C ? '' : ' \u2022'), action: A });
+				S.push(N);
 			}
-			let x = Ie({ columns: 2, children: S });
+			let x = Te({ columns: 2, children: S });
 			e.appendChild(x);
 		}
 		if (l) {
@@ -3033,13 +3033,13 @@ var c15tEmbedDevToolsBundle = (() => {
 	function ro(e) {
 		return e.replace(/_/g, ' ').replace(/\b\w/g, (t) => t.toUpperCase());
 	}
-	var ye = 'all',
+	var Se = 'all',
 		X = null;
 	function me(e, t) {
 		let { getEvents: o, onClear: s } = t;
 		V(e);
 		let n = o(),
-			r = n.filter((l) => io(l, ye));
+			r = n.filter((l) => io(l, Se));
 		r.some((l) => l.id === X) || (X = r[0]?.id ?? null);
 		let a = r.find((l) => l.id === X) ?? null,
 			i = u({
@@ -3086,8 +3086,8 @@ var c15tEmbedDevToolsBundle = (() => {
 						padding: '0 16px 8px',
 					},
 					children: ao.map((l) =>
-						so(l, l === ye, () => {
-							(ye = l), (X = null), me(e, t);
+						so(l, l === Se, () => {
+							(Se = l), (X = null), me(e, t);
 						})
 					),
 				})
@@ -3352,7 +3352,7 @@ var c15tEmbedDevToolsBundle = (() => {
 			w = y?.purposes || {},
 			T = Object.entries(p);
 		if (T.length > 0) {
-			let O = u({
+			let N = u({
 				style: {
 					display: 'flex',
 					flexDirection: 'column',
@@ -3361,22 +3361,22 @@ var c15tEmbedDevToolsBundle = (() => {
 					overflowY: 'auto',
 				},
 			});
-			for (let [N, P] of T) {
-				let M = w[N]?.name || `Purpose ${N}`;
-				O.appendChild(
-					Re(N, M, !!P, (j) => {
-						s(Number(N), j);
+			for (let [O, P] of T) {
+				let M = w[O]?.name || `Purpose ${O}`;
+				N.appendChild(
+					je(O, M, !!P, (j) => {
+						s(Number(O), j);
 					})
 				);
 			}
-			let z = F({ title: `Purposes (${T.length})`, children: [O] });
+			let z = F({ title: `Purposes (${T.length})`, children: [N] });
 			e.appendChild(z);
 		}
 		let S = b.specialFeatureOptIns || {},
 			x = y?.specialFeatures || {},
 			h = Object.entries(S);
 		if (h.length > 0) {
-			let O = u({
+			let N = u({
 				style: {
 					display: 'flex',
 					flexDirection: 'column',
@@ -3385,21 +3385,21 @@ var c15tEmbedDevToolsBundle = (() => {
 					overflowY: 'auto',
 				},
 			});
-			for (let [N, P] of h) {
-				let M = x[N]?.name || `Special Feature ${N}`;
-				O.appendChild(
-					Re(
-						N,
+			for (let [O, P] of h) {
+				let M = x[O]?.name || `Special Feature ${O}`;
+				N.appendChild(
+					je(
+						O,
 						M,
 						!!P,
 						(j) => {
-							r(Number(N), j);
+							r(Number(O), j);
 						},
 						'feature'
 					)
 				);
 			}
-			let z = F({ title: `Special Features (${h.length})`, children: [O] });
+			let z = F({ title: `Special Features (${h.length})`, children: [N] });
 			e.appendChild(z);
 		}
 		let v = b.vendorConsents || {},
@@ -3407,13 +3407,13 @@ var c15tEmbedDevToolsBundle = (() => {
 			g = Object.entries(v),
 			d = [],
 			C = [];
-		for (let [O, z] of g) {
-			let N = E[O],
-				P = N?.name || `Vendor ${O}`;
-			N !== void 0 ? d.push([O, !!z, P]) : C.push([O, !!z, P]);
+		for (let [N, z] of g) {
+			let O = E[N],
+				P = O?.name || `Vendor ${N}`;
+			O !== void 0 ? d.push([N, !!z, P]) : C.push([N, !!z, P]);
 		}
 		if (d.length > 0) {
-			let O = u({
+			let N = u({
 				style: {
 					display: 'flex',
 					flexDirection: 'column',
@@ -3422,17 +3422,17 @@ var c15tEmbedDevToolsBundle = (() => {
 					overflowY: 'auto',
 				},
 			});
-			for (let [N, P, D] of d)
-				O.appendChild(
-					Pe(N, D, P, 'iab', (M) => {
-						n(Number(N), M);
+			for (let [O, P, D] of d)
+				N.appendChild(
+					Fe(O, D, P, 'iab', (M) => {
+						n(Number(O), M);
 					})
 				);
-			let z = F({ title: `IAB Vendors (${d.length})`, children: [O] });
+			let z = F({ title: `IAB Vendors (${d.length})`, children: [N] });
 			e.appendChild(z);
 		}
 		if (C.length > 0) {
-			let O = u({
+			let N = u({
 				style: {
 					display: 'flex',
 					flexDirection: 'column',
@@ -3441,13 +3441,13 @@ var c15tEmbedDevToolsBundle = (() => {
 					overflowY: 'auto',
 				},
 			});
-			for (let [N, P, D] of C)
-				O.appendChild(
-					Pe(N, D, P, 'custom', (M) => {
-						n(N, M);
+			for (let [O, P, D] of C)
+				N.appendChild(
+					Fe(O, D, P, 'custom', (M) => {
+						n(O, M);
 					})
 				);
-			let z = F({ title: `Custom Vendors (${C.length})`, children: [O] });
+			let z = F({ title: `Custom Vendors (${C.length})`, children: [N] });
 			e.appendChild(z);
 		}
 		T.length === 0 &&
@@ -3493,7 +3493,7 @@ var c15tEmbedDevToolsBundle = (() => {
 		});
 		e.appendChild(A);
 	}
-	function Re(e, t, o, s, n = 'purpose') {
+	function je(e, t, o, s, n = 'purpose') {
 		return u({
 			style: {
 				display: 'flex',
@@ -3519,17 +3519,17 @@ var c15tEmbedDevToolsBundle = (() => {
 				u({
 					style: { display: 'flex', alignItems: 'center', gap: '6px' },
 					children: [
-						ke({
+						Ee({
 							text: o ? '\u2713' : '\u2715',
 							variant: o ? 'success' : 'error',
 						}),
-						Ce({ checked: o, onChange: s, ariaLabel: `Toggle ${n} ${e}` }),
+						Ie({ checked: o, onChange: s, ariaLabel: `Toggle ${n} ${e}` }),
 					],
 				}),
 			],
 		});
 	}
-	function Pe(e, t, o, s, n) {
+	function Fe(e, t, o, s, n) {
 		return u({
 			style: {
 				display: 'flex',
@@ -3575,8 +3575,8 @@ var c15tEmbedDevToolsBundle = (() => {
 						}),
 					].filter(Boolean),
 				}),
-				ke({ text: o ? '\u2713' : '\u2715', variant: o ? 'success' : 'error' }),
-				Ce({ checked: o, onChange: n, ariaLabel: `Toggle vendor ${e}` }),
+				Ee({ text: o ? '\u2713' : '\u2715', variant: o ? 'success' : 'error' }),
+				Ie({ checked: o, onChange: n, ariaLabel: `Toggle vendor ${e}` }),
 			],
 		});
 	}
@@ -3609,23 +3609,23 @@ var c15tEmbedDevToolsBundle = (() => {
 				W('Language', c?.defaultLanguage || '\u2014'),
 			];
 		l.push(W('GPC', So(i?.gpc))), r.model && l.push(W('Model', wo(r.model)));
-		let f = Ie({ columns: 3, children: l });
+		let f = Te({ columns: 3, children: l });
 		e.appendChild(f);
-		let b = _e(i),
-			m = Fe(b),
+		let b = we(i),
+			m = Ve(b),
 			_ = !1,
-			y = je({ label: 'Country', selectOptions: yo, value: b.country }),
-			p = Me({
+			y = Ue({ label: 'Country', selectOptions: yo, value: b.country }),
+			p = $e({
 				label: 'Region',
 				placeholder: 'e.g., CA, NY, BE',
 				value: b.region,
 			}),
-			w = Me({
+			w = $e({
 				label: 'Language',
 				placeholder: 'e.g., de, fr, en-US',
 				value: b.language,
 			}),
-			T = je({ label: 'GPC', selectOptions: _o, value: b.gpc }),
+			T = Ue({ label: 'GPC', selectOptions: _o, value: b.gpc }),
 			S = B({ className: k.overrideStatus, text: 'In sync' }),
 			x = R({
 				text: 'Apply',
@@ -3641,7 +3641,7 @@ var c15tEmbedDevToolsBundle = (() => {
 				small: !0,
 				disabled: !0,
 				onClick: () => {
-					O(_e(m)), z();
+					N(we(m)), z();
 				},
 			}),
 			v = R({
@@ -3684,11 +3684,11 @@ var c15tEmbedDevToolsBundle = (() => {
 			z();
 		async function d() {
 			if (_) return;
-			let N = A();
-			if (!Ue(N, m)) {
+			let O = A();
+			if (!He(O, m)) {
 				(_ = !0), z();
 				try {
-					await s(N), (m = N);
+					await s(O), (m = O);
 				} finally {
 					(_ = !1), z();
 				}
@@ -3698,29 +3698,29 @@ var c15tEmbedDevToolsBundle = (() => {
 			if (!_) {
 				(_ = !0), z();
 				try {
-					await n(), (m = {}), O(_e(void 0));
+					await n(), (m = {}), N(we(void 0));
 				} finally {
 					(_ = !1), z();
 				}
 			}
 		}
 		function A() {
-			return Fe({
+			return Ve({
 				country: y.control.value,
 				region: p.control.value,
 				language: w.control.value,
 				gpc: T.control.value,
 			});
 		}
-		function O(N) {
-			(y.control.value = N.country),
-				(p.control.value = N.region),
-				(w.control.value = N.language),
-				(T.control.value = N.gpc);
+		function N(O) {
+			(y.control.value = O.country),
+				(p.control.value = O.region),
+				(w.control.value = O.language),
+				(T.control.value = O.gpc);
 		}
 		function z() {
-			let N = A(),
-				P = !Ue(N, m);
+			let O = A(),
+				P = !He(O, m);
 			(x.disabled = !P || _),
 				(h.disabled = !P || _),
 				(v.disabled = _),
@@ -3735,7 +3735,7 @@ var c15tEmbedDevToolsBundle = (() => {
 					S.classList.toggle(k.overrideStatusDirty, !_ && P);
 		}
 	}
-	function Me(e) {
+	function $e(e) {
 		let { label: t, placeholder: o, value: s } = e,
 			n = ht({
 				className: `${k.input ?? ''} ${k.inputSmall ?? ''}`.trim(),
@@ -3750,7 +3750,7 @@ var c15tEmbedDevToolsBundle = (() => {
 			control: n,
 		};
 	}
-	function je(e) {
+	function Ue(e) {
 		let { label: t, selectOptions: o, value: s } = e,
 			n = xt({
 				className: `${k.input ?? ''} ${k.inputSmall ?? ''}`.trim(),
@@ -3765,7 +3765,7 @@ var c15tEmbedDevToolsBundle = (() => {
 			control: n,
 		};
 	}
-	function _e(e) {
+	function we(e) {
 		return {
 			country: e?.country ?? '',
 			region: e?.region ?? '',
@@ -3773,21 +3773,21 @@ var c15tEmbedDevToolsBundle = (() => {
 			gpc: e?.gpc === !0 ? 'true' : e?.gpc === !1 ? 'false' : '',
 		};
 	}
-	function Fe(e) {
+	function Ve(e) {
 		return {
-			country: $e(e.country),
-			region: $e(e.region),
+			country: Ye(e.country),
+			region: Ye(e.region),
 			language: ho(e.language),
 			gpc: e.gpc === 'true' ? !0 : e.gpc === 'false' ? !1 : void 0,
 		};
 	}
-	function $e(e) {
+	function Ye(e) {
 		return e.trim().toUpperCase() || void 0;
 	}
 	function ho(e) {
 		return e.trim() || void 0;
 	}
-	function Ue(e, t) {
+	function He(e, t) {
 		return (
 			e.country === t.country &&
 			e.region === t.region &&
@@ -3887,7 +3887,7 @@ var c15tEmbedDevToolsBundle = (() => {
 			],
 		});
 	}
-	var Je = new Set();
+	var Qe = new Set();
 	function Co(e) {
 		let t = [],
 			o = e.scripts || [],
@@ -3900,26 +3900,26 @@ var c15tEmbedDevToolsBundle = (() => {
 						s.push({
 							scriptId: a.id,
 							domain: i.hostname,
-							pathPrefix: Ke(i.pathname),
+							pathPrefix: et(i.pathname),
 						});
 				} catch {}
 		let n = document.querySelectorAll('script[src]');
 		for (let a of n) {
 			let i = a.getAttribute('src');
 			if (!i) continue;
-			let c = Ve(i, 'script', s);
+			let c = Xe(i, 'script', s);
 			c && t.push(c);
 		}
 		let r = document.querySelectorAll('iframe[src]');
 		for (let a of r) {
 			let i = a.getAttribute('src');
 			if (!i) continue;
-			let c = Ve(i, 'iframe', s);
+			let c = Xe(i, 'iframe', s);
 			c && t.push(c);
 		}
 		return t;
 	}
-	function Ve(e, t, o) {
+	function Xe(e, t, o) {
 		try {
 			let s = new URL(e, window.location.origin),
 				n = s.hostname;
@@ -3942,7 +3942,7 @@ var c15tEmbedDevToolsBundle = (() => {
 	}
 	function ko(e, t) {
 		let o = e.hostname,
-			s = Ke(e.pathname),
+			s = et(e.pathname),
 			n = null;
 		for (let r of t)
 			r.domain === o &&
@@ -3951,7 +3951,7 @@ var c15tEmbedDevToolsBundle = (() => {
 				(n = r);
 		return n?.scriptId;
 	}
-	function Ke(e) {
+	function et(e) {
 		let t = e.trim();
 		return t.length > 0 ? t : '/';
 	}
@@ -3961,7 +3961,7 @@ var c15tEmbedDevToolsBundle = (() => {
 			s = () => {
 				t &&
 					Eo(t, o, (i) => {
-						Je.add(i), s();
+						Qe.add(i), s();
 					});
 			},
 			r = F({
@@ -3991,7 +3991,7 @@ var c15tEmbedDevToolsBundle = (() => {
 	}
 	function Eo(e, t, o) {
 		for (; e.firstChild; ) e.removeChild(e.firstChild);
-		let s = t.filter((l) => !Je.has(l.src));
+		let s = t.filter((l) => !Qe.has(l.src));
 		if (s.length === 0 && t.length === 0)
 			return void e.appendChild(
 				u({
@@ -4032,7 +4032,7 @@ var c15tEmbedDevToolsBundle = (() => {
 				text: i,
 			});
 		if ((e.appendChild(c), n.length > 0))
-			for (let l of n) e.appendChild(Ye(l, 'warning', o));
+			for (let l of n) e.appendChild(Ge(l, 'warning', o));
 		if (r.length > 0) {
 			let l = u({
 				style: {
@@ -4045,10 +4045,10 @@ var c15tEmbedDevToolsBundle = (() => {
 				text: 'MANAGED',
 			});
 			e.appendChild(l);
-			for (let f of r) e.appendChild(Ye(f, 'success', o));
+			for (let f of r) e.appendChild(Ge(f, 'success', o));
 		}
 	}
-	function Ye(e, t, o) {
+	function Ge(e, t, o) {
 		return u({
 			style: {
 				display: 'flex',
@@ -4163,7 +4163,7 @@ var c15tEmbedDevToolsBundle = (() => {
 					: Bo(n, v)
 						? ((g = 'pending'), (d = 'warning'))
 						: ((g = 'blocked'), (d = 'neutral'));
-				let C = ke({
+				let C = Ee({
 						text: g.charAt(0).toUpperCase() + g.slice(1),
 						variant: d,
 					}),
@@ -4208,7 +4208,7 @@ var c15tEmbedDevToolsBundle = (() => {
 									text: 'No blocked network requests recorded in this session',
 								}),
 							]
-						: No(f),
+						: Oo(f),
 			});
 		e.appendChild(b);
 		let m = Object.values(a).filter(Boolean).length,
@@ -4233,10 +4233,10 @@ var c15tEmbedDevToolsBundle = (() => {
 			} catch {}
 		return typeof t == 'string' ? (e.consents || {})[t] === !0 : !1;
 	}
-	function No(e) {
+	function Oo(e) {
 		let t = new Map();
 		for (let r of e) {
-			let a = Oo(r) ?? 'unknown';
+			let a = No(r) ?? 'unknown';
 			t.set(a, (t.get(a) ?? 0) + 1);
 		}
 		let o = u({
@@ -4264,7 +4264,7 @@ var c15tEmbedDevToolsBundle = (() => {
 			});
 		return [o, n];
 	}
-	function Oo(e) {
+	function No(e) {
 		let t = e.data,
 			s = t?.rule?.id ?? t?.ruleId;
 		return typeof s == 'string' || typeof s == 'number' ? String(s) : void 0;
@@ -4288,8 +4288,8 @@ var c15tEmbedDevToolsBundle = (() => {
 	function Ro(e, t) {
 		return e.length <= t ? e : `${e.slice(0, t - 3)}...`;
 	}
-	var Ee = 'c15t-devtools-overrides';
-	function Se(e) {
+	var Ae = 'c15t-devtools-overrides';
+	function Ce(e) {
 		if (typeof e != 'string') return;
 		let t = e.trim();
 		return t.length > 0 ? t : void 0;
@@ -4301,17 +4301,17 @@ var c15tEmbedDevToolsBundle = (() => {
 		if (!e || typeof e != 'object') return null;
 		let t = e,
 			o = {
-				country: Se(t.country),
-				region: Se(t.region),
-				language: Se(t.language),
+				country: Ce(t.country),
+				region: Ce(t.region),
+				language: Ce(t.language),
 				gpc: Po(t.gpc),
 			};
-		return qe(o) ? o : null;
+		return tt(o) ? o : null;
 	}
-	function qe(e) {
+	function tt(e) {
 		return !!(e.country || e.region || e.language || e.gpc !== void 0);
 	}
-	function jo(e = Ee) {
+	function jo(e = Ae) {
 		if (typeof window > 'u') return null;
 		try {
 			let t = localStorage.getItem(e);
@@ -4322,14 +4322,14 @@ var c15tEmbedDevToolsBundle = (() => {
 			return null;
 		}
 	}
-	function Fo(e, t = Ee) {
+	function Fo(e, t = Ae) {
 		if (!(typeof window > 'u'))
 			try {
-				if (!qe(e)) return void localStorage.removeItem(t);
+				if (!tt(e)) return void localStorage.removeItem(t);
 				localStorage.setItem(t, JSON.stringify(e));
 			} catch {}
 	}
-	function $o(e = Ee) {
+	function $o(e = Ae) {
 		if (!(typeof window > 'u'))
 			try {
 				localStorage.removeItem(e);
@@ -4341,12 +4341,12 @@ var c15tEmbedDevToolsBundle = (() => {
 			PENDING_SUBMISSIONS: 'c15t-pending-consent-submissions',
 			EUCONSENT: 'euconsent-v2',
 		},
-		He = { C15T: 'c15t', EUCONSENT: 'euconsent-v2' };
-	function Xe(e) {
+		We = { C15T: 'c15t', EUCONSENT: 'euconsent-v2' };
+	function Ze(e) {
 		document.cookie = `${e}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
 	}
 	function Uo() {
-		Xe(He.C15T), Xe(He.EUCONSENT);
+		Ze(We.C15T), Ze(We.EUCONSENT);
 	}
 	function Vo() {
 		try {
@@ -4356,7 +4356,7 @@ var c15tEmbedDevToolsBundle = (() => {
 				localStorage.removeItem(de.EUCONSENT);
 		} catch {}
 	}
-	async function we(e, t) {
+	async function ke(e, t) {
 		let o = e.getState();
 		o.resetConsents(),
 			Uo(),
@@ -4367,19 +4367,19 @@ var c15tEmbedDevToolsBundle = (() => {
 				message: 'All consents reset (storage cleared)',
 			});
 	}
-	var Qe = 'c15t-devtools-events';
+	var ot = 'c15t-devtools-events';
 	function Yo() {
 		if (typeof window > 'u') return [];
 		try {
-			let e = sessionStorage.getItem(Qe);
+			let e = sessionStorage.getItem(ot);
 			if (e) return JSON.parse(e);
 		} catch {}
 		return [];
 	}
-	function Ge(e) {
+	function Je(e) {
 		if (!(typeof window > 'u'))
 			try {
-				sessionStorage.setItem(Qe, JSON.stringify(e));
+				sessionStorage.setItem(ot, JSON.stringify(e));
 			} catch {}
 	}
 	function Ho(e = {}) {
@@ -4432,10 +4432,10 @@ var c15tEmbedDevToolsBundle = (() => {
 					},
 					...o.eventLog,
 				].slice(0, o.maxEventLogSize);
-				r({ eventLog: c }), Ge(c);
+				r({ eventLog: c }), Je(c);
 			},
 			clearEventLog: () => {
-				r({ eventLog: [] }), Ge([]);
+				r({ eventLog: [] }), Je([]);
 			},
 			destroy: () => {
 				s.clear();
@@ -4603,7 +4603,7 @@ var c15tEmbedDevToolsBundle = (() => {
 		}
 		return { animate: r, destroy: n };
 	}
-	function et(e = {}) {
+	function nt(e = {}) {
 		let {
 				namespace: t = 'c15tStore',
 				position: o = 'bottom-right',
@@ -4744,12 +4744,12 @@ var c15tEmbedDevToolsBundle = (() => {
 						onConsentChange: (d, C) => {
 							let A = w.getStore();
 							if (A) {
-								let O = String(d);
-								A.getState().setSelectedConsent(O, C),
+								let N = String(d);
+								A.getState().setSelectedConsent(N, C),
 									p.addEvent({
 										type: 'info',
-										message: `${O} toggled to ${C} (not saved)`,
-										data: { name: O, value: C },
+										message: `${N} toggled to ${C} (not saved)`,
+										data: { name: N, value: C },
 									});
 							}
 						},
@@ -4782,7 +4782,7 @@ var c15tEmbedDevToolsBundle = (() => {
 						},
 						onReset: async () => {
 							let d = w.getStore();
-							d && (await we(d, p));
+							d && (await ke(d, p));
 						},
 					});
 					break;
@@ -4905,7 +4905,7 @@ var c15tEmbedDevToolsBundle = (() => {
 						},
 						onReset: async () => {
 							let d = w.getStore();
-							d && (await we(d, p));
+							d && (await ke(d, p));
 						},
 					});
 					break;
@@ -4923,7 +4923,7 @@ var c15tEmbedDevToolsBundle = (() => {
 						getState: g,
 						onResetConsents: async () => {
 							let d = w.getStore();
-							d && (await we(d, p));
+							d && (await ke(d, p));
 						},
 						onRefetchBanner: async () => {
 							let d = w.getStore();
@@ -5022,9 +5022,9 @@ var c15tEmbedDevToolsBundle = (() => {
 		};
 		return typeof window < 'u' && (window.__c15tDevTools = _), _;
 	}
-	var tt = '2.0.0-rc.3',
-		tn = 'c15tStore',
-		Te = null;
+	var he = '2.0.0-rc.3';
+	var tn = 'c15tStore',
+		Be = null;
 	function on(e) {
 		return (
 			e === 'bottom-right' ||
@@ -5063,18 +5063,18 @@ var c15tEmbedDevToolsBundle = (() => {
 			defaultOpen: e.defaultOpen,
 		};
 	}
-	function Ae() {
-		Te?.destroy(), (Te = null);
+	function xe() {
+		Be?.destroy(), (Be = null);
 	}
-	function ot(e = {}) {
-		typeof window > 'u' || typeof document > 'u' || (Ae(), (Te = et(an(e))));
+	function Oe(e = {}) {
+		typeof window > 'u' || typeof document > 'u' || (xe(), (Be = nt(an(e))));
 	}
-	function nt(e) {
+	function Ne(e) {
 		if (typeof window > 'u' || typeof document > 'u') return null;
 		if (window.__c15tEmbedDevToolsInitialized && window.c15tEmbedDevTools)
 			return window.c15tEmbedDevTools;
 		let t = e ?? rn(nn()),
-			o = { version: tt, mount: ot, unmount: Ae };
+			o = { version: he, mount: Oe, unmount: xe };
 		return (
 			(window.c15tEmbedDevTools = o),
 			(window.__c15tEmbedDevToolsInitialized = !0),
@@ -5082,6 +5082,6 @@ var c15tEmbedDevToolsBundle = (() => {
 			o
 		);
 	}
-	nt();
+	Ne();
 	return ct(sn);
 })();

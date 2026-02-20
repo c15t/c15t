@@ -18,6 +18,10 @@
 	"scripts": {
 		"build": "turbo run build",
 		"build:libs": "turbo run build --filter=./packages/**",
+		"build:embed:iife": "bun scripts/build-embed-iife.ts",
+		"bench:embed:browser": "bun scripts/benchmark-embed-browser.ts",
+		"bench:embed-runtime": "bun scripts/compare-embed-runtime.ts",
+		"bench:embed:competitors": "bun scripts/benchmark-embed-competitors.ts",
 		"changeset": "changeset",
 		"check:publish-artifacts": "bun scripts/check-publish-artifacts.ts",
 		"check-types": "turbo run check-types",
@@ -71,6 +75,7 @@
 		"knip": "5.71.0",
 		"lefthook": "2.0.7",
 		"playwright": "1.57.0",
+		"preact": "10.27.2",
 		"react": "19.2.3",
 		"react-dom": "19.2.3",
 		"remark-cli": "12.0.1",

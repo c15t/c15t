@@ -4,12 +4,12 @@ import {
 	ConsentDialogTrigger,
 	type ConsentManagerOptions,
 	ConsentManagerProvider,
-	IABConsentBanner,
-	IABConsentDialog,
 } from '@c15t/react';
+import type { ComponentType } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type {
 	EmbedBootstrapPayload,
+	EmbedIABComponents,
 	EmbedMountOptions,
 	EmbedRuntime,
 	EmbedSSRData,
@@ -21,8 +21,25 @@ const DEFAULT_DEVTOOLS_OVERRIDES_STORAGE_KEY = 'c15t-devtools-overrides';
 export const EMBED_PAYLOAD_EVENT = 'c15t:embed:payload';
 
 let activeRoot: Root | null = null;
+let iabComponents: {
+	Banner?: ComponentType;
+	Dialog?: ComponentType;
+} = {};
 
-function getScriptElement(): HTMLScriptElement | null {
+function shouldRenderIABComponent(
+	payload: EmbedBootstrapPayload,
+	component: 'iabBanner' | 'iabDialog'
+): boolean {
+	const preload = payload.options?.componentHints?.preload;
+	if (!preload) {
+		// Backward compatibility: older payloads without hints render full UI.
+		return true;
+	}
+
+	return preload.includes(component);
+}
+
+function getEmbedScriptElement(): HTMLScriptElement | null {
 	if (typeof document === 'undefined') {
 		return null;
 	}
@@ -84,7 +101,16 @@ export function resolveBackendURL(explicitBackendURL?: string): string {
 		return '';
 	}
 
-	return resolveBackendURLFromScript(getScriptElement());
+	return resolveBackendURLFromScript(getEmbedScriptElement());
+}
+
+function consumePendingIABComponents(source: Window): void {
+	if (!source.__c15tEmbedPendingIABComponents) {
+		return;
+	}
+
+	registerEmbedIABComponents(source.__c15tEmbedPendingIABComponents);
+	delete source.__c15tEmbedPendingIABComponents;
 }
 
 function resolveMountTarget(
@@ -266,6 +292,26 @@ export function unmountEmbedRuntime(): void {
 	activeRoot = null;
 }
 
+export function registerEmbedIABComponents(
+	components: EmbedIABComponents
+): void {
+	if (
+		typeof components.Banner !== 'function' ||
+		typeof components.Dialog !== 'function'
+	) {
+		return;
+	}
+
+	iabComponents = {
+		Banner: components.Banner as ComponentType,
+		Dialog: components.Dialog as ComponentType,
+	};
+}
+
+export function resetEmbedIABComponents(): void {
+	iabComponents = {};
+}
+
 export function mountEmbedRuntime(
 	payload: EmbedBootstrapPayload,
 	runtimeOptions: EmbedMountOptions = {}
@@ -276,15 +322,26 @@ export function mountEmbedRuntime(
 	unmountEmbedRuntime();
 
 	const providerOptions = buildProviderOptions(payload, runtimeOptions);
+	const showIABBanner = shouldRenderIABComponent(payload, 'iabBanner');
+	const showIABDialog = shouldRenderIABComponent(payload, 'iabDialog');
+	const IABBannerComponent = iabComponents.Banner;
+	const IABDialogComponent = iabComponents.Dialog;
+	const components = [
+		<ConsentBanner key="banner" models={['opt-in', 'opt-out']} />,
+		...(showIABBanner && IABBannerComponent
+			? [<IABBannerComponent key="iab-banner" />]
+			: []),
+		...(showIABDialog && IABDialogComponent
+			? [<IABDialogComponent key="iab-dialog" />]
+			: []),
+		<ConsentDialogTrigger key="dialog-trigger" />,
+		<ConsentDialog key="dialog" />,
+	];
 
 	const root = createRoot(mountTarget);
 	root.render(
 		<ConsentManagerProvider options={providerOptions}>
-			<ConsentBanner models={['opt-in', 'opt-out']} />
-			<IABConsentBanner />
-			<IABConsentDialog />
-			<ConsentDialogTrigger />
-			<ConsentDialog />
+			{components}
 		</ConsentManagerProvider>
 	);
 
@@ -326,6 +383,7 @@ export function createEmbedRuntime(): EmbedRuntime {
 		bootstrap: (options) => bootstrapEmbedRuntime(options),
 		unmount: unmountEmbedRuntime,
 		getPayload: () => readEmbedPayload(),
+		registerIABComponents: registerEmbedIABComponents,
 	};
 }
 
@@ -341,6 +399,7 @@ export function initializeEmbedRuntime(): EmbedRuntime | null {
 	const runtime = createEmbedRuntime();
 	window.c15tEmbed = runtime;
 	window.__c15tEmbedRuntimeInitialized = true;
+	consumePendingIABComponents(window);
 
 	window.addEventListener(EMBED_PAYLOAD_EVENT, () => {
 		runtime.bootstrap();
@@ -355,6 +414,7 @@ declare global {
 	interface Window {
 		__c15tEmbedPayload?: EmbedBootstrapPayload;
 		__c15tEmbedRuntimeInitialized?: boolean;
+		__c15tEmbedPendingIABComponents?: EmbedIABComponents;
 		c15tEmbed?: EmbedRuntime;
 	}
 }

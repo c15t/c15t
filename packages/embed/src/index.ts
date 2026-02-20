@@ -5,6 +5,7 @@ import {
 	initializeEmbedRuntime,
 	mountEmbedRuntime,
 	readEmbedPayload,
+	registerEmbedIABComponents,
 	resolveBackendURL,
 	unmountEmbedRuntime,
 } from './runtime';
@@ -18,6 +19,7 @@ export {
 	initializeEmbedRuntime,
 	mountEmbedRuntime,
 	readEmbedPayload,
+	registerEmbedIABComponents,
 	resolveBackendURL,
 	unmountEmbedRuntime,
 };

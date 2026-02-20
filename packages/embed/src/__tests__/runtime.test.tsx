@@ -5,6 +5,8 @@ import {
 	initializeEmbedRuntime,
 	mountEmbedRuntime,
 	readEmbedPayload,
+	registerEmbedIABComponents,
+	resetEmbedIABComponents,
 	resolveBackendURL,
 	unmountEmbedRuntime,
 } from '../runtime';
@@ -18,8 +20,6 @@ const {
 	bannerMock,
 	dialogMock,
 	dialogTriggerMock,
-	iabBannerMock,
-	iabDialogMock,
 } = vi.hoisted(() => {
 	const render = vi.fn();
 	const unmount = vi.fn();
@@ -36,8 +36,6 @@ const {
 		bannerMock: vi.fn(() => null),
 		dialogMock: vi.fn(() => null),
 		dialogTriggerMock: vi.fn(() => null),
-		iabBannerMock: vi.fn(() => null),
-		iabDialogMock: vi.fn(() => null),
 	};
 });
 
@@ -50,8 +48,6 @@ vi.mock('@c15t/react', () => ({
 	ConsentBanner: bannerMock,
 	ConsentDialog: dialogMock,
 	ConsentDialogTrigger: dialogTriggerMock,
-	IABConsentBanner: iabBannerMock,
-	IABConsentDialog: iabDialogMock,
 }));
 
 function getTestPayload(): EmbedBootstrapPayload {
@@ -95,8 +91,6 @@ describe('embed runtime', () => {
 		bannerMock.mockClear();
 		dialogMock.mockClear();
 		dialogTriggerMock.mockClear();
-		iabBannerMock.mockClear();
-		iabDialogMock.mockClear();
 
 		document.body.innerHTML = '';
 		window.localStorage.clear();
@@ -104,8 +98,10 @@ describe('embed runtime', () => {
 		window.__c15tEmbedPayload = undefined;
 		window.c15tEmbed = undefined;
 		window.__c15tEmbedRuntimeInitialized = false;
+		window.__c15tEmbedPendingIABComponents = undefined;
 
 		unmountEmbedRuntime();
+		resetEmbedIABComponents();
 	});
 
 	it('reads payload from window global', () => {
@@ -167,10 +163,88 @@ describe('embed runtime', () => {
 		const children = tree.props.children as ReactElement[];
 		expect(children[0].type).toBe(bannerMock);
 		expect(children[0].props.models).toEqual(['opt-in', 'opt-out']);
-		expect(children[1].type).toBe(iabBannerMock);
-		expect(children[2].type).toBe(iabDialogMock);
-		expect(children[3].type).toBe(dialogTriggerMock);
-		expect(children[4].type).toBe(dialogMock);
+		expect(children.map((child) => child.type)).toEqual([
+			bannerMock,
+			dialogTriggerMock,
+			dialogMock,
+		]);
+	});
+
+	it('renders IAB components after addon registration', () => {
+		const iabBannerMock = vi.fn(() => null);
+		const iabDialogMock = vi.fn(() => null);
+		registerEmbedIABComponents({
+			Banner: iabBannerMock,
+			Dialog: iabDialogMock,
+		});
+
+		const payload = getTestPayload();
+		const mountEl = document.createElement('div');
+		mountEl.id = 'mount-with-iab';
+		document.body.appendChild(mountEl);
+
+		mountEmbedRuntime(payload, {
+			backendURL: '/api/c15t',
+			mountTarget: '#mount-with-iab',
+		});
+
+		const tree = renderMock.mock.calls[0][0] as ReactElement;
+		const children = tree.props.children as ReactElement[];
+		expect(children.map((child) => child.type)).toEqual([
+			bannerMock,
+			iabBannerMock,
+			iabDialogMock,
+			dialogTriggerMock,
+			dialogMock,
+		]);
+	});
+
+	it('does not remount when IAB components register after initial mount', () => {
+		const payload = getTestPayload();
+		const mountEl = document.createElement('div');
+		mountEl.id = 'mount-register-after-mount';
+		document.body.appendChild(mountEl);
+
+		mountEmbedRuntime(payload, {
+			backendURL: '/api/c15t',
+			mountTarget: '#mount-register-after-mount',
+		});
+
+		expect(renderMock).toHaveBeenCalledTimes(1);
+
+		registerEmbedIABComponents({
+			Banner: vi.fn(() => null),
+			Dialog: vi.fn(() => null),
+		});
+
+		expect(renderMock).toHaveBeenCalledTimes(1);
+	});
+
+	it('skips IAB components when preload hints exclude them', () => {
+		const payload = getTestPayload();
+		payload.options = {
+			...payload.options,
+			componentHints: {
+				preload: ['banner', 'dialog'],
+			},
+		};
+		const mountEl = document.createElement('div');
+		mountEl.id = 'mount-no-iab';
+		document.body.appendChild(mountEl);
+
+		mountEmbedRuntime(payload, {
+			backendURL: '/api/c15t',
+			mountTarget: '#mount-no-iab',
+		});
+
+		const tree = renderMock.mock.calls[0][0] as ReactElement;
+		const children = tree.props.children as ReactElement[];
+
+		expect(children.map((child) => child.type)).toEqual([
+			bannerMock,
+			dialogTriggerMock,
+			dialogMock,
+		]);
 	});
 
 	it('allows overriding namespace and storage key', () => {

@@ -8,6 +8,8 @@ export default defineConfig({
 			devtools: './src/devtools.ts',
 			index: './src/index.ts',
 			runtime: './src/runtime.tsx',
+			'runtime-full': './src/runtime-full.ts',
+			'runtime-iab': './src/runtime-iab.tsx',
 		},
 		exclude: [
 			'**/__tests__/**',

@@ -25,6 +25,16 @@
 			"types": "./dist/runtime.d.ts",
 			"import": "./dist/runtime.js",
 			"require": "./dist/runtime.cjs"
+		},
+		"./runtime-full": {
+			"types": "./dist/runtime-full.d.ts",
+			"import": "./dist/runtime-full.js",
+			"require": "./dist/runtime-full.cjs"
+		},
+		"./runtime-iab": {
+			"types": "./dist/runtime-iab.d.ts",
+			"import": "./dist/runtime-iab.js",
+			"require": "./dist/runtime-iab.cjs"
 		}
 	},
 	"main": "./dist/index.cjs",

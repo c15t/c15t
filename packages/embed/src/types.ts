@@ -38,12 +38,18 @@ export interface EmbedMountOptions {
 	devToolsOverridesStorageKey?: string;
 }
 
+export interface EmbedIABComponents {
+	Banner: unknown;
+	Dialog: unknown;
+}
+
 export interface EmbedRuntime {
 	version: string;
 	mount: (payload: EmbedBootstrapPayload, options?: EmbedMountOptions) => void;
 	bootstrap: (options?: EmbedMountOptions) => boolean;
 	unmount: () => void;
 	getPayload: () => EmbedBootstrapPayload | undefined;
+	registerIABComponents?: (components: EmbedIABComponents) => void;
 }
 
 export type EmbedDevToolsPosition =

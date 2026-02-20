@@ -18,14 +18,23 @@ export default function EmbedScriptTagsShowcasePage() {
 				</div>
 
 				<p className="text-sm text-slate-600">
-					This route loads a browser IIFE runtime and then requests{' '}
-					<code>/api/self-host/embed.js</code>. No React import or client bundle
-					is required in this page.
+					This route requests <code>/api/self-host/embed.js</code>. The backend
+					then chooses and lazy-loads the best runtime variant (base or full
+					IAB) from geolocation + config. No React import or client bundle is
+					required in this page.
 				</p>
 
 				<div className="rounded-lg border border-slate-200 bg-white p-4 text-xs text-slate-600">
 					<div>
-						Runtime script: <code>/c15t-embed.runtime.iife.js</code>
+						Base runtime (non-IAB): <code>/c15t-embed.runtime.iife.js</code>
+					</div>
+					<div>
+						Full runtime (IAB regions):{' '}
+						<code>/c15t-embed.runtime-full.iife.js</code>
+					</div>
+					<div>
+						IAB addon (fallback for manually loaded base runtime):{' '}
+						<code>/c15t-embed.runtime-iab.iife.js</code>
 					</div>
 					<div>
 						DevTools script: <code>/c15t-embed.devtools.iife.js</code>
@@ -45,7 +54,6 @@ export default function EmbedScriptTagsShowcasePage() {
 				/>
 			</section>
 
-			<Script src="/c15t-embed.runtime.iife.js" strategy="afterInteractive" />
 			<Script
 				src="/c15t-embed.devtools.iife.js"
 				strategy="afterInteractive"

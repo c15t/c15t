@@ -1,0 +1,128 @@
+name: Embed Competitor Benchmark
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'packages/embed/**'
+      - 'packages/core/**'
+      - 'packages/react/**'
+      - 'packages/ui/**'
+      - 'packages/iab/**'
+      - 'packages/shared/**'
+      - 'packages/backend/src/routes/embed.ts'
+      - 'packages/backend/src/routes/embed.test.ts'
+      - 'scripts/build-embed-iife.ts'
+      - 'scripts/benchmark-embed-competitors.ts'
+      - 'scripts/benchmark-embed-browser.ts'
+      - 'package.json'
+      - 'bun.lock'
+      - '.github/workflows/embed-competitor-benchmark.yml'
+  push:
+    branches: ['main', 'canary']
+    paths:
+      - 'packages/embed/**'
+      - 'packages/core/**'
+      - 'packages/react/**'
+      - 'packages/ui/**'
+      - 'packages/iab/**'
+      - 'packages/shared/**'
+      - 'packages/backend/src/routes/embed.ts'
+      - 'packages/backend/src/routes/embed.test.ts'
+      - 'scripts/build-embed-iife.ts'
+      - 'scripts/benchmark-embed-competitors.ts'
+      - 'scripts/benchmark-embed-browser.ts'
+      - 'package.json'
+      - 'bun.lock'
+      - '.github/workflows/embed-competitor-benchmark.yml'
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    name: 🚀 Embed Competitive Benchmark
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: ⬇️ Check out repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.3.6
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts || bun install --ignore-scripts
+
+      - name: 🎭 Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-browsers-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            playwright-browsers-${{ runner.os }}-
+
+      - name: 🎭 Install Playwright Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: bunx playwright install chromium
+
+      - name: 🧱 Build embed IIFE outputs
+        run: bun run build:embed:iife
+
+      - name: 📊 Run benchmark and enforce budgets
+        run: bun run bench:embed:competitors --enforce-budgets
+
+      - name: 🌐 Run browser benchmark and enforce budgets
+        run: bun run bench:embed:browser --enforce-budgets
+
+      - name: 📝 Add benchmarks to job summary
+        run: |
+          cat artifacts/embed-competitor-bench/report.md >> "$GITHUB_STEP_SUMMARY"
+          printf "\n\n---\n\n" >> "$GITHUB_STEP_SUMMARY"
+          cat artifacts/embed-browser-bench/report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 📤 Upload benchmark artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: embed-competitor-benchmark
+          path: |
+            artifacts/embed-competitor-bench/
+            artifacts/embed-browser-bench/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: 💬 Post or update PR benchmark comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs');
+
+            const marker = '<!-- embed-competitor-benchmark -->';
+            const networkReport = fs.readFileSync('artifacts/embed-competitor-bench/report.md', 'utf8').trim();
+            const browserReport = fs.readFileSync('artifacts/embed-browser-bench/report.md', 'utf8').trim();
+            const body = `${marker}\n${networkReport}\n\n---\n\n${browserReport}`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              ...context.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find((comment) => comment.body?.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                ...context.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
