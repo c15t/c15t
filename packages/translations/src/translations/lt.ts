@@ -3,7 +3,7 @@ export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Priimti visus',
 		rejectAll: 'Atmesti visus',
-		customize: 'Tinkinti',
+		customize: 'Rinktis',
 		save: 'Išsaugoti nustatymus',
 	},
 	cookieBanner: {
@@ -125,7 +125,7 @@ export const translations: CompleteTranslations = {
 		common: {
 			acceptAll: 'Priimti visus',
 			rejectAll: 'Atmesti visus',
-			customize: 'Tinkinti',
+			customize: 'Rinktis',
 			saveSettings: 'Išsaugoti nustatymus',
 			loading: 'Įkeliama...',
 			showingSelectedVendor: 'Rodomas pasirinktas tiekėjas',
