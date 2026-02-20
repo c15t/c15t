@@ -8,6 +8,7 @@ import {
 	getTranslationsData,
 	parseAcceptLanguage,
 } from './index';
+import { buildInitPayload } from './payload';
 
 describe('Init Handler Utilities', () => {
 	describe('getHeaders', () => {
@@ -200,6 +201,33 @@ describe('Init Handler Utilities', () => {
 			expect(
 				getJurisdiction({ countryCode: 'GB', regionCode: null }, options)
 			).toBe('UK_GDPR');
+		});
+	});
+
+	describe('buildInitPayload', () => {
+		it('builds init payload with shared route logic', async () => {
+			const request = new Request('http://localhost', {
+				headers: {
+					'accept-language': 'de-DE,de;q=0.9,en;q=0.8',
+				},
+			});
+
+			const options: C15TOptions = {
+				trustedOrigins: [],
+				adapter: {} as C15TOptions['adapter'],
+				advanced: {
+					disableGeoLocation: true,
+					branding: 'none',
+				},
+			};
+
+			const result = await buildInitPayload(request, options);
+
+			expect(result.jurisdiction).toBe('GDPR');
+			expect(result.location).toEqual({ countryCode: null, regionCode: null });
+			expect(result.branding).toBe('none');
+			expect(result.translations.language).toBe('de');
+			expect(result.gvl).toBeNull();
 		});
 	});
 });

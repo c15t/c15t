@@ -7,9 +7,7 @@
 import { initOutputSchema } from '@c15t/schema';
 import { Hono } from 'hono';
 import { describeRoute, resolver } from 'hono-openapi';
-import { createGVLResolver } from '~/cache/gvl-resolver';
-import { getJurisdiction, getLocation } from '~/handlers/init/geo';
-import { getTranslationsData } from '~/handlers/init/translations';
+import { buildInitPayload } from '~/handlers/init/payload';
 import type { C15TContext, C15TOptions } from '~/types';
 import { getMetrics } from '~/utils/metrics';
 
@@ -47,57 +45,18 @@ Use for geo-targeted consent banners and regional compliance.`,
 		}),
 		async (c) => {
 			const request = c.req.raw;
-
-			// Get accept-language header
-			const acceptLanguage = request.headers.get('accept-language') || 'en';
-
-			// Get location and jurisdiction
-			const location = await getLocation(request, options);
-			const jurisdiction = getJurisdiction(location, options);
-
-			// Get translations
-			const translationsResult = getTranslationsData(
-				acceptLanguage,
-				options.advanced?.customTranslations
-			);
-
-			// Get GVL if enabled
-			let gvl = null;
-			if (options.advanced?.iab?.enabled) {
-				const language = translationsResult.language.split('-')[0] || 'en';
-				const gvlResolver = createGVLResolver({
-					appName: options.appName || 'c15t',
-					bundled: options.advanced.iab.bundled,
-					cacheAdapter: options.advanced.cache?.adapter,
-					vendorIds: options.advanced.iab.vendorIds,
-					endpoint: options.advanced.iab.endpoint,
-				});
-				gvl = await gvlResolver.get(language);
-			}
-
-			// Get custom vendors if configured
-			const customVendors = options.advanced?.iab?.customVendors;
+			const payload = await buildInitPayload(request, options);
 
 			// Record init metric
 			const gpc = request.headers.get('sec-gpc') === '1';
 			getMetrics()?.recordInit({
-				jurisdiction,
-				country: location?.countryCode ?? undefined,
-				region: location?.regionCode ?? undefined,
+				jurisdiction: payload.jurisdiction,
+				country: payload.location?.countryCode ?? undefined,
+				region: payload.location?.regionCode ?? undefined,
 				gpc,
 			});
 
-			return c.json({
-				jurisdiction,
-				location,
-				translations: translationsResult,
-				branding: options.advanced?.branding || 'c15t',
-				gvl,
-				customVendors,
-				...(options.advanced?.iab?.cmpId != null && {
-					cmpId: options.advanced.iab.cmpId,
-				}),
-			});
+			return c.json(payload);
 		}
 	);
 

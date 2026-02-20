@@ -48,6 +48,7 @@
         "@c15t/backend": "workspace:*",
         "@c15t/cli": "workspace:*",
         "@c15t/dev-tools": "workspace:*",
+        "@c15t/embed": "workspace:*",
         "@c15t/nextjs": "workspace:*",
         "@c15t/node-sdk": "workspace:*",
         "@c15t/react": "workspace:*",
@@ -263,6 +264,25 @@
         "react",
         "react-dom",
       ],
+    },
+    "packages/embed": {
+      "name": "@c15t/embed",
+      "version": "2.0.0-rc.3",
+      "dependencies": {
+        "@c15t/dev-tools": "workspace:*",
+        "@c15t/react": "workspace:*",
+        "@c15t/ui": "workspace:*",
+        "c15t": "workspace:*",
+        "react": "19.2.3",
+        "react-dom": "19.2.3",
+      },
+      "devDependencies": {
+        "@c15t/typescript-config": "workspace:*",
+        "@c15t/vitest-config": "workspace:*",
+        "genversion": "3.2.0",
+        "typescript": "5.9.3",
+        "vitest": "4.0.15",
+      },
     },
     "packages/logger": {
       "name": "@c15t/logger",
@@ -516,6 +536,8 @@
     "@c15t/cli": ["@c15t/cli@workspace:packages/cli"],
 
     "@c15t/dev-tools": ["@c15t/dev-tools@workspace:packages/dev-tools"],
+
+    "@c15t/embed": ["@c15t/embed@workspace:packages/embed"],
 
     "@c15t/logger": ["@c15t/logger@workspace:packages/logger"],
 

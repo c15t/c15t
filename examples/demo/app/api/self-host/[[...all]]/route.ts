@@ -42,6 +42,64 @@ const handler = c15tInstance({
 				},
 			},
 		},
+		embed: {
+			enabled: true,
+			revision: 'demo-embed-v1',
+			options: {
+				store: {
+					namespace: 'c15tStore',
+					storageKey: 'c15t-embed-demo',
+				},
+				overrides: {
+					country: 'GB',
+					language: 'en-GB',
+				},
+				ui: {
+					scrollLock: true,
+					trapFocus: true,
+					colorScheme: 'system',
+				},
+				theme: {
+					colors: {
+						primary: '#FF0000',
+						primaryHover: '#115e59',
+						surface: '#f8fafc',
+						surfaceHover: '#f1f5f9',
+						border: '#cbd5e1',
+						borderHover: '#94a3b8',
+						text: '#0f172a',
+						textMuted: '#475569',
+						textOnPrimary: '#ffffff',
+						overlay: 'rgba(15, 23, 42, 0.55)',
+						switchTrack: '#94a3b8',
+						switchTrackActive: '#0f766e',
+						switchThumb: '#ffffff',
+					},
+					dark: {
+						primary: '#FF0000',
+						primaryHover: '#cc0000',
+					},
+					slots: {
+						consentBannerCard: {
+							style: {
+								maxWidth: '30rem',
+								borderRadius: '0.9rem',
+							},
+						},
+						buttonPrimary: {
+							style: {
+								borderRadius: '0.5rem',
+							},
+						},
+						buttonSecondary: {
+							style: {
+								borderRadius: '0.5rem',
+							},
+						},
+					},
+				},
+			},
+		},
 		openapi: {
 			enabled: true,
 		},

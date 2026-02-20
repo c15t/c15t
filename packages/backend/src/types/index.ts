@@ -3,6 +3,7 @@ import {
 	type Branding,
 	brandingValues,
 	type GlobalVendorList,
+	type InitOutput,
 	type NonIABVendor,
 } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
@@ -39,6 +40,143 @@ export interface DatabaseOptions {
 	tablePrefix?: string;
 }
 
+/**
+ * Style value used for slot-based customizations.
+ */
+export type EmbedSlotStyle =
+	| string
+	| {
+			className?: string;
+			style?: Record<string, string | number>;
+			noStyle?: boolean;
+	  };
+
+/**
+ * Embed theme options for script-tag integrations.
+ *
+ * This intentionally supports all token groups used by `@c15t/ui` and slot-level
+ * class/style overrides so script-tag output can match React UI behavior.
+ */
+export interface EmbedThemeOptions {
+	colors?: Record<string, string>;
+	dark?: Record<string, string>;
+	typography?: Record<string, string | number>;
+	spacing?: Record<string, string>;
+	radius?: Record<string, string>;
+	shadows?: Record<string, string>;
+	motion?: Record<string, string>;
+	slots?: Record<string, EmbedSlotStyle>;
+}
+
+/**
+ * Embed UI options for script-tag integrations.
+ */
+export interface EmbedUIOptions {
+	/**
+	 * Removes built-in styles when true.
+	 */
+	noStyle?: boolean;
+
+	/**
+	 * Disables UI animations when true.
+	 */
+	disableAnimation?: boolean;
+
+	/**
+	 * Locks scroll while dialogs are open when true.
+	 * @default false
+	 */
+	scrollLock?: boolean;
+
+	/**
+	 * Traps keyboard focus in dialogs when true.
+	 * @default true
+	 */
+	trapFocus?: boolean;
+
+	/**
+	 * Preferred color scheme.
+	 * @default 'system'
+	 */
+	colorScheme?: 'light' | 'dark' | 'system';
+}
+
+/**
+ * Optional component preload hints for embed runtime.
+ */
+export interface EmbedComponentHints {
+	/**
+	 * Components that should be preloaded by the embed runtime.
+	 */
+	preload?: Array<'banner' | 'dialog' | 'widget' | 'iabBanner' | 'iabDialog'>;
+}
+
+/**
+ * Store configuration for script-tag embed runtime.
+ */
+export interface EmbedStoreOptions {
+	/**
+	 * Global store namespace exposed on window.
+	 * @default "c15tStore"
+	 */
+	namespace?: string;
+
+	/**
+	 * Storage key used for consent persistence.
+	 * @default "c15t"
+	 */
+	storageKey?: string;
+}
+
+/**
+ * Override values for jurisdiction/language resolution.
+ */
+export interface EmbedOverrides {
+	country?: string;
+	region?: string;
+	language?: string;
+	gpc?: boolean;
+}
+
+/**
+ * Styling options for script-tag embed runtime.
+ */
+export interface EmbedOptions {
+	/**
+	 * Runtime UI behavior options.
+	 */
+	ui?: EmbedUIOptions;
+
+	/**
+	 * Theme object consumed by the embed runtime.
+	 */
+	theme?: EmbedThemeOptions;
+
+	/**
+	 * Optional component preload hints.
+	 */
+	componentHints?: EmbedComponentHints;
+
+	/**
+	 * Store runtime configuration.
+	 */
+	store?: EmbedStoreOptions;
+
+	/**
+	 * Optional runtime overrides for country/region/language/GPC.
+	 */
+	overrides?: EmbedOverrides;
+}
+
+/**
+ * Bootstrap payload embedded in `/embed.js`.
+ */
+export interface EmbedBootstrapPayload {
+	init: InitOutput;
+	options: EmbedOptions;
+	revision?: string;
+}
+
 export interface AdvancedOptions {
 	/**
 	 * Disables the use of Geo Location to determine the jurisdiction
@@ -60,6 +198,33 @@ export interface AdvancedOptions {
 	 * ```
 	 */
 	customTranslations?: Record<string, Partial<Translations>>;
+
+	/**
+	 * Script-tag embed configuration.
+	 *
+	 * When enabled, the backend serves `/embed.js` with an embedded bootstrap
+	 * payload that includes init data and these styling options.
+	 *
+	 * @default disabled
+	 */
+	embed?: {
+		/**
+		 * Enable script-tag embed endpoint.
+		 * @default false
+		 */
+		enabled?: boolean;
+
+		/**
+		 * Styling options returned inside `/embed.js` payload.
+		 */
+		options?: EmbedOptions;
+
+		/**
+		 * Optional config revision identifier.
+		 * Useful for cache invalidation and diagnostics.
+		 */
+		revision?: string;
+	};
 
 	/**
 	 * Select which branding to show in the consent banner.

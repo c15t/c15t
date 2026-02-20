@@ -9,6 +9,7 @@
 
 export {
 	createConsentRoutes,
+	createEmbedRoute,
 	createInitRoute,
 	createStatusRoute,
 	createSubjectRoutes,

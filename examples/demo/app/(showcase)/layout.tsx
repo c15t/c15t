@@ -33,7 +33,7 @@ export default function ShowcaseLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en">
+		<html lang="en" suppressHydrationWarning>
 			<body
 				className={`font-sans antialiased ${spaceGrotesk.variable} ${inter.variable} ${dmSans.variable}`}
 			>

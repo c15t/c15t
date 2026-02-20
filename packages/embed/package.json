@@ -1,0 +1,64 @@
+{
+	"name": "@c15t/embed",
+	"version": "2.0.0-rc.3",
+	"description": "Script-tag runtime for c15t that renders React-parity UI from backend-provided embed payloads",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/embed"
+	},
+	"license": "GPL-3.0-only",
+	"type": "module",
+	"sideEffects": true,
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		},
+		"./devtools": {
+			"types": "./dist/devtools.d.ts",
+			"import": "./dist/devtools.js",
+			"require": "./dist/devtools.cjs"
+		},
+		"./runtime": {
+			"types": "./dist/runtime.d.ts",
+			"import": "./dist/runtime.js",
+			"require": "./dist/runtime.cjs"
+		}
+	},
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"prebuild": "genversion --esm --semi src/version.ts",
+		"build": "bun prebuild && rslib build",
+		"check-types": "bun prebuild && tsc --noEmit",
+		"dev": "bun prebuild && rslib build",
+		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
+		"lint": "bun biome lint ./src",
+		"test": "bun prebuild && vitest run",
+		"test:watch": "bun prebuild && vitest"
+	},
+	"dependencies": {
+		"@c15t/dev-tools": "workspace:*",
+		"@c15t/react": "workspace:*",
+		"@c15t/ui": "workspace:*",
+		"c15t": "workspace:*",
+		"react": "19.2.3",
+		"react-dom": "19.2.3"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
+		"genversion": "3.2.0",
+		"typescript": "5.9.3",
+		"vitest": "4.0.15"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

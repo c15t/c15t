@@ -12,6 +12,7 @@ import { getIpAddress } from '~/middleware/process-ip';
 import type { C15TContext, C15TOptions } from '~/types';
 import { init } from './init';
 import { createConsentRoutes } from './routes/consent';
+import { createEmbedRoute } from './routes/embed';
 // Import route handlers
 import { createInitRoute } from './routes/init';
 import { createStatusRoute } from './routes/status';
@@ -241,6 +242,7 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 	}
 
 	// Mount routes - using plural nouns for REST conventions
+	app.route('/embed.js', createEmbedRoute(options));
 	app.route('/init', createInitRoute(options));
 	app.route('/subjects', createSubjectRoutes());
 	app.route('/consents', createConsentRoutes());

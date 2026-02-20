@@ -5,6 +5,7 @@
  */
 
 export { createConsentRoutes } from './consent';
+export { createEmbedRoute } from './embed';
 export { createInitRoute } from './init';
 export { createStatusRoute } from './status';
 export { createSubjectRoutes } from './subject';

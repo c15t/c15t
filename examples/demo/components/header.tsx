@@ -38,6 +38,18 @@ export function Header() {
 						>
 							Testimonials
 						</a>
+						<a
+							href="/embed"
+							className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+						>
+							Embed Demo
+						</a>
+						<a
+							href="/embed-script-tags"
+							className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+						>
+							Embed Script Tags
+						</a>
 					</nav>
 
 					<div className="flex items-center gap-4">
