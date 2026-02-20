@@ -6,7 +6,6 @@ export default defineConfig({
 	source: {
 		entry: {
 			index: ['./src/index.ts'],
-			iab: ['./src/iab.ts'],
 		},
 		exclude: [
 			'**/__tests__/**',

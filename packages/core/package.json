@@ -33,11 +33,6 @@
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
-		},
-		"./iab": {
-			"types": "./dist/iab.d.ts",
-			"import": "./dist/iab.js",
-			"require": "./dist/iab.cjs"
 		}
 	},
 	"main": "dist/index.cjs",

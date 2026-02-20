@@ -7,7 +7,6 @@
  * @packageDocumentation
  */
 
-import { clearGVLCache } from 'c15t/iab';
 import { vi } from 'vitest';
 import type { ConsentManagerOptions } from '~/types/consent-manager';
 import { mockGVL } from './fixtures/mock-consent-state';
@@ -60,8 +59,8 @@ export function clearConsentState() {
 		delete (window as { __tcfapiQueue?: unknown[] }).__tcfapiQueue;
 	}
 
-	// Clear GVL cache to ensure fresh state
-	clearGVLCache();
+	// Clear window-level mock GVL state between tests
+	delete (window as unknown as { __c15t_mock_gvl?: unknown }).__c15t_mock_gvl;
 }
 
 /**
