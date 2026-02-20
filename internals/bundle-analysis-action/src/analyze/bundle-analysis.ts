@@ -17,6 +17,8 @@ export interface BundleStats {
 	path: string;
 	size: number;
 	gzipSize?: number;
+	initial?: boolean;
+	entry?: boolean;
 }
 
 export interface PackageBundleData {
@@ -110,11 +112,20 @@ export function extractBundleSizes(jsonPath: string): BundleStats[] {
 					}
 				}
 
+				const chunkFlags: Pick<BundleStats, 'initial' | 'entry'> = {};
+				if (typeof chunk.initial === 'boolean') {
+					chunkFlags.initial = chunk.initial;
+				}
+				if (typeof chunk.entry === 'boolean') {
+					chunkFlags.entry = chunk.entry;
+				}
+
 				bundles.push({
 					name: chunkName,
 					path: jsonPath,
 					size: chunkSize,
 					gzipSize,
+					...chunkFlags,
 				});
 			}
 		}
@@ -163,6 +174,20 @@ export function extractBundleSizes(jsonPath: string): BundleStats[] {
 		console.error(`Error reading ${jsonPath}:`, error);
 		return [];
 	}
+}
+
+function selectBundlesForTotals(bundles: BundleStats[]): BundleStats[] {
+	// Prefer initial chunks when rsdoctor provides that metadata.
+	// This avoids counting lazy-loaded chunks in top-level package totals.
+	const hasInitialMetadata = bundles.some(
+		(bundle) => typeof bundle.initial === 'boolean'
+	);
+	if (!hasInitialMetadata) {
+		return bundles;
+	}
+
+	const initialBundles = bundles.filter((bundle) => bundle.initial === true);
+	return initialBundles.length > 0 ? initialBundles : bundles;
 }
 
 export function compareBundles(
@@ -244,8 +269,14 @@ async function analyzePackage(
 	}
 
 	const diffs = compareBundles(baseBundles, currentBundles);
-	const totalBaseSize = baseBundles.reduce((sum, b) => sum + b.size, 0);
-	const totalCurrentSize = currentBundles.reduce((sum, b) => sum + b.size, 0);
+	const totalBaseSize = selectBundlesForTotals(baseBundles).reduce(
+		(sum, b) => sum + b.size,
+		0
+	);
+	const totalCurrentSize = selectBundlesForTotals(currentBundles).reduce(
+		(sum, b) => sum + b.size,
+		0
+	);
 	const totalDiff = totalCurrentSize - totalBaseSize;
 	const totalDiffPercent =
 		totalBaseSize > 0 ? (totalDiff / totalBaseSize) * 100 : 0;
@@ -494,6 +525,8 @@ export function generateMarkdownReport(
 
 	markdown += '## At a Glance\n\n';
 	markdown += `- **Total Change:** ${formatSignedBytes(totalDiff)} (${totalDiffPercent >= 0 ? '+' : ''}${totalDiffPercent.toFixed(2)}%)\n`;
+	markdown +=
+		'- **Metric:** Initial chunks when available (falls back to all chunks)\n';
 	markdown += `- **Packages Analyzed:** ${packages.length}\n`;
 	markdown += `- **Regressions / Improvements / Unchanged:** ${regressions} / ${improvements} / ${unchanged}\n`;
 
