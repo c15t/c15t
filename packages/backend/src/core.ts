@@ -130,7 +130,7 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 		// Check API key authentication
 		const apiKeyAuthenticated = validateRequestAuth(
 			request.headers,
-			options.advanced?.apiKeys
+			options.apiKeys
 		);
 
 		const enrichedContext: C15TContext = {

@@ -9,13 +9,15 @@ All options are passed to `c15tInstance()`. Only `adapter` and `trustedOrigins` 
 
 <AutoTypeTable path="./packages/backend/src/types/index.ts" name="C15TOptions" />
 
-<AutoTypeTable path="./packages/backend/src/types/index.ts" name="BaseOptions" />
+<AutoTypeTable path="./packages/backend/src/types/index.ts" name="OpenAPIOptions" />
 
-<AutoTypeTable path="./packages/backend/src/types/index.ts" name="DatabaseOptions" />
+<AutoTypeTable path="./packages/backend/src/types/index.ts" name="TelemetryOptions" />
 
-## Advanced Options
+<AutoTypeTable path="./packages/backend/src/types/index.ts" name="IPAddressOptions" />
 
-<AutoTypeTable path="./packages/backend/src/types/index.ts" name="AdvancedOptions" />
+<AutoTypeTable path="./packages/backend/src/types/index.ts" name="CacheOptions" />
+
+<AutoTypeTable path="./packages/backend/src/types/index.ts" name="IABOptions" />
 
 ## Return Value
 
@@ -50,8 +52,6 @@ import { defineConfig } from '@c15t/backend';
 export default defineConfig({
   adapter: kyselyAdapter(db),
   trustedOrigins: ['https://example.com'],
-  advanced: {
-    // full autocomplete here
-  },
+  // full autocomplete on all options here
 });
 ```

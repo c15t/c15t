@@ -61,9 +61,7 @@ async function executeWithSpan<T>(
 function resolveDefaultAttributes(
 	options?: C15TOptions
 ): Record<string, string | number | boolean> {
-	return (
-		options?.advanced?.telemetry?.defaultAttributes || getDefaultAttributes()
-	);
+	return options?.telemetry?.defaultAttributes || getDefaultAttributes();
 }
 
 /**

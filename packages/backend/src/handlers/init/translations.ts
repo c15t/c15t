@@ -62,11 +62,8 @@ export function getTranslationsData(
 export async function getTranslations(
 	acceptLanguage: string,
 	options: {
-		advanced?: { customTranslations?: Record<string, Partial<Translations>> };
+		customTranslations?: Record<string, Partial<Translations>>;
 	}
 ) {
-	return getTranslationsData(
-		acceptLanguage,
-		options.advanced?.customTranslations
-	);
+	return getTranslationsData(acceptLanguage, options.customTranslations);
 }

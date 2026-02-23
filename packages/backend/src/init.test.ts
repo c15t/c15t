@@ -36,9 +36,7 @@ vi.mock('./utils/create-telemetry-options', () => ({
 			...config?.defaultAttributes,
 		},
 	})),
-	isTelemetryEnabled: vi.fn(
-		(options) => options?.advanced?.telemetry?.enabled === true
-	),
+	isTelemetryEnabled: vi.fn((options) => options?.telemetry?.enabled === true),
 }));
 
 vi.mock('./db/registry', () => ({
@@ -95,10 +93,8 @@ describe('init', () => {
 
 	it('logs telemetry enabled when explicitly enabled', () => {
 		const options = createOptions({
-			advanced: {
-				telemetry: {
-					enabled: true,
-				},
+			telemetry: {
+				enabled: true,
 			},
 		});
 		init(options);
