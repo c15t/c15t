@@ -4,7 +4,11 @@
  */
 
 import type { ConsentStoreState } from 'c15t';
-import { createButton, createGrid } from '../components/ui';
+import {
+	createButton,
+	createDisconnectedState,
+	createGrid,
+} from '../components/ui';
 import { clearElement, createSvgElement, div, span } from '../core/renderer';
 import componentStyles from '../styles/components.module.css';
 
@@ -49,6 +53,7 @@ export interface ActionsPanelOptions {
 	onShowBanner: () => void;
 	onOpenPreferences: () => void;
 	onCopyState: () => void;
+	onExportDebugBundle?: () => void;
 }
 
 /**
@@ -65,6 +70,7 @@ export function renderActionsPanel(
 		onShowBanner,
 		onOpenPreferences,
 		onCopyState,
+		onExportDebugBundle,
 	} = options;
 
 	clearElement(container);
@@ -72,17 +78,7 @@ export function renderActionsPanel(
 	const state = getState();
 
 	if (!state) {
-		container.appendChild(
-			div({
-				style: {
-					padding: '24px',
-					textAlign: 'center',
-					color: 'var(--c15t-text-muted)',
-					fontSize: 'var(--c15t-devtools-font-size-sm)',
-				},
-				text: 'Store not connected',
-			})
-		);
+		container.appendChild(createDisconnectedState());
 		return;
 	}
 
@@ -107,6 +103,12 @@ export function renderActionsPanel(
 			icon: COPY_ICON,
 			label: 'Copy State',
 			onClick: onCopyState,
+		}),
+		createActionCard({
+			icon: REFRESH_ICON,
+			label: 'Export Debug',
+			onClick: () => onExportDebugBundle?.(),
+			disabled: !onExportDebugBundle,
 		}),
 	];
 
@@ -192,8 +194,9 @@ function createActionCard(options: {
 	icon: string;
 	label: string;
 	onClick: () => void;
+	disabled?: boolean;
 }): HTMLElement {
-	const { icon, label, onClick } = options;
+	const { icon, label, onClick, disabled = false } = options;
 
 	const card = div({
 		className: componentStyles.gridCard ?? '',
@@ -207,6 +210,7 @@ function createActionCard(options: {
 			cursor: 'pointer',
 			transition:
 				'background-color var(--c15t-duration-fast) var(--c15t-easing)',
+			opacity: disabled ? '0.55' : '1',
 		},
 		children: [
 			createIconWrapper(icon, 20),
@@ -222,13 +226,15 @@ function createActionCard(options: {
 		],
 	});
 
-	card.addEventListener('click', onClick);
-	card.addEventListener('mouseenter', () => {
-		card.style.backgroundColor = 'var(--c15t-surface-hover)';
-	});
-	card.addEventListener('mouseleave', () => {
-		card.style.backgroundColor = '';
-	});
+	if (!disabled) {
+		card.addEventListener('click', onClick);
+		card.addEventListener('mouseenter', () => {
+			card.style.backgroundColor = 'var(--c15t-surface-hover)';
+		});
+		card.addEventListener('mouseleave', () => {
+			card.style.backgroundColor = '';
+		});
+	}
 
 	return card;
 }

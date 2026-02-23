@@ -12,19 +12,19 @@
 	"type": "module",
 	"exports": {
 		".": {
+			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js",
-			"require": "./dist/index.cjs",
-			"types": "./dist/index.d.ts"
+			"require": "./dist/index.cjs"
 		},
 		"./react": {
+			"types": "./dist/react.d.ts",
 			"import": "./dist/react.js",
-			"require": "./dist/react.cjs",
-			"types": "./dist/react.d.ts"
+			"require": "./dist/react.cjs"
 		},
 		"./tanstack": {
+			"types": "./dist/tanstack.d.ts",
 			"import": "./dist/tanstack.js",
-			"require": "./dist/tanstack.cjs",
-			"types": "./dist/tanstack.d.ts"
+			"require": "./dist/tanstack.cjs"
 		}
 	},
 	"main": "dist/index.cjs",

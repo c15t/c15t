@@ -6,9 +6,10 @@
 import type { ConsentStoreState } from 'c15t';
 import {
 	createBadge,
+	createDisconnectedState,
 	createEmptyState,
 	createInfoRow,
-	createListItem,
+	createInput,
 	createSection,
 } from '../components/ui';
 import { clearElement, div } from '../core/renderer';
@@ -26,6 +27,8 @@ export interface ScriptsPanelOptions {
 	getEvents?: () => EventLogEntry[];
 }
 
+const scriptsSearchByContainer = new WeakMap<HTMLElement, string>();
+
 /**
  * Renders the scripts panel content
  */
@@ -40,17 +43,7 @@ export function renderScriptsPanel(
 	const state = getState();
 
 	if (!state) {
-		container.appendChild(
-			div({
-				style: {
-					padding: '24px',
-					textAlign: 'center',
-					color: 'var(--c15t-text-muted)',
-					fontSize: 'var(--c15t-devtools-font-size-sm)',
-				},
-				text: 'Store not connected',
-			})
-		);
+		container.appendChild(createDisconnectedState());
 		return;
 	}
 
@@ -58,6 +51,40 @@ export function renderScriptsPanel(
 	const loadedScripts = state.loadedScripts || {};
 	const networkBlocker = state.networkBlocker;
 	const events = getEvents?.() ?? [];
+	const searchQuery = scriptsSearchByContainer.get(container) ?? '';
+	const filteredScripts = scripts.filter((script) => {
+		if (!searchQuery) {
+			return true;
+		}
+		const category =
+			typeof script.category === 'string'
+				? script.category
+				: JSON.stringify(script.category);
+		return `${script.id} ${category}`.toLowerCase().includes(searchQuery);
+	});
+
+	if (scripts.length > 4) {
+		container.appendChild(
+			createSection({
+				title: 'Filter',
+				children: [
+					createInput({
+						value: searchQuery,
+						placeholder: 'Filter scripts…',
+						ariaLabel: 'Filter scripts',
+						small: true,
+						onInput: (value) => {
+							scriptsSearchByContainer.set(
+								container,
+								value.trim().toLowerCase()
+							);
+							renderScriptsPanel(container, options);
+						},
+					}),
+				],
+			})
+		);
+	}
 
 	// Scripts section with heading
 	if (scripts.length === 0) {
@@ -76,11 +103,25 @@ export function renderScriptsPanel(
 			style: {
 				display: 'flex',
 				flexDirection: 'column',
-				gap: '4px',
+				borderTop: '1px solid var(--c15t-border)',
+				borderBottom: '1px solid var(--c15t-border)',
 			},
 		});
 
-		for (const script of scripts) {
+		if (filteredScripts.length === 0) {
+			scriptsList.appendChild(
+				div({
+					style: {
+						padding: '10px 0',
+						fontSize: 'var(--c15t-devtools-font-size-xs)',
+						color: 'var(--c15t-text-muted)',
+					},
+					text: 'No matching scripts',
+				})
+			);
+		}
+
+		for (const script of filteredScripts) {
 			const scriptId = script.id;
 			const isLoaded = loadedScripts[scriptId] === true;
 
@@ -113,17 +154,67 @@ export function renderScriptsPanel(
 				variant: statusVariant,
 			});
 
-			const item = createListItem({
-				title: scriptId,
-				description: `Category: ${categoryDisplay}`,
-				actions: [badge],
+			const row = div({
+				style: {
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'space-between',
+					gap: '8px',
+					padding: '8px 0',
+					borderBottom: '1px solid var(--c15t-border)',
+				},
+				children: [
+					div({
+						style: {
+							display: 'flex',
+							flexDirection: 'column',
+							gap: '2px',
+							minWidth: '0',
+							flex: '1',
+						},
+						children: [
+							div({
+								style: {
+									fontSize: 'var(--c15t-font-size-sm)',
+									fontWeight: '500',
+									color: 'var(--c15t-text)',
+									overflow: 'hidden',
+									textOverflow: 'ellipsis',
+									whiteSpace: 'nowrap',
+								},
+								text: scriptId,
+							}),
+							div({
+								style: {
+									fontSize: 'var(--c15t-devtools-font-size-xs)',
+									color: 'var(--c15t-text-muted)',
+									overflow: 'hidden',
+									textOverflow: 'ellipsis',
+									whiteSpace: 'nowrap',
+								},
+								text: `Category: ${categoryDisplay}`,
+							}),
+						],
+					}),
+					div({
+						style: {
+							flexShrink: '0',
+						},
+						children: [badge],
+					}),
+				],
 			});
 
-			scriptsList.appendChild(item);
+			scriptsList.appendChild(row);
+		}
+
+		const lastRow = scriptsList.lastElementChild as HTMLElement | null;
+		if (lastRow) {
+			lastRow.style.borderBottom = 'none';
 		}
 
 		const scriptsSection = createSection({
-			title: `Configured Scripts (${scripts.length})`,
+			title: `Configured Scripts (${filteredScripts.length}/${scripts.length})`,
 			children: [scriptsList],
 		});
 

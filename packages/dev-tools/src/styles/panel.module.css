@@ -27,10 +27,10 @@
 	width: var(--c15t-devtools-button-size, 40px);
 	height: var(--c15t-devtools-button-size, 40px);
 	padding: 0;
-	border: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
+	border: 1px solid var(--c15t-devtools-border-strong, hsl(0, 0%, 89%));
 	/* Match PreferenceCenterTrigger fully rounded style */
 	border-radius: var(--c15t-radius-full, 9999px);
-	background-color: var(--c15t-surface, #fff);
+	background-color: var(--c15t-devtools-surface-elevated, #fff);
 	/* Match PreferenceCenterTrigger shadow */
 	box-shadow: var(
 		--c15t-shadow-lg,
@@ -70,13 +70,15 @@
 }
 
 .floatingButton:focus-visible {
-	outline: 2px solid var(--c15t-primary, hsl(228, 100%, 60%));
-	outline-offset: 2px;
+	outline: none;
+	box-shadow:
+		var(--c15t-shadow-lg, 0 8px 24px hsla(0, 0%, 0%, 0.12)),
+		0 0 0 2px var(--c15t-devtools-focus-ring, hsl(228, 100%, 60%));
 }
 
 .floatingButton:active {
 	cursor: grabbing;
-	transform: scale(1.02);
+	transform: scale(0.98);
 }
 
 .floatingButtonIcon {
@@ -122,6 +124,7 @@
 	position: fixed;
 	inset: 0;
 	background-color: var(--c15t-overlay, hsla(0, 0%, 0%, 0.5));
+	backdrop-filter: blur(1px);
 	z-index: calc(var(--c15t-devtools-z-index, 99999) + 1);
 }
 
@@ -132,10 +135,10 @@
 	flex-direction: column;
 	width: var(--c15t-devtools-panel-width, 480px);
 	max-height: var(--c15t-devtools-panel-max-height, 560px);
-	background-color: var(--c15t-surface, #fff);
-	border: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
+	background-color: var(--c15t-devtools-surface-elevated, #fff);
+	border: 1px solid var(--c15t-devtools-border-strong, hsl(0, 0%, 89%));
 	border-radius: var(--c15t-radius-lg, 0.75rem);
-	box-shadow: var(--c15t-shadow-lg, 0 8px 24px hsla(0, 0%, 0%, 0.12));
+	box-shadow: var(--c15t-shadow-lg, 0 10px 28px hsla(0, 0%, 0%, 0.16));
 	/* overflow: hidden clips content but allows children with overflow-y: auto to scroll */
 	overflow: hidden;
 	z-index: calc(var(--c15t-devtools-z-index, 99999) + 2);
@@ -171,8 +174,8 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: var(--c15t-space-sm, 0.5rem) var(--c15t-space-md, 1rem);
-	border-bottom: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
+	padding: 0.6875rem 0.875rem;
+	border-bottom: 1px solid var(--c15t-devtools-border-strong, hsl(0, 0%, 89%));
 	background-color: var(--c15t-devtools-surface-muted, hsl(0, 0%, 96%));
 }
 
@@ -182,6 +185,7 @@
 	gap: var(--c15t-space-sm, 0.5rem);
 	font-size: var(--c15t-font-size-sm, 0.875rem);
 	font-weight: var(--c15t-font-weight-semibold, 600);
+	line-height: var(--c15t-line-height-tight, 1.25);
 	color: var(--c15t-text, hsl(0, 0%, 9%));
 }
 
@@ -195,11 +199,11 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 28px;
-	height: 28px;
+	width: 2rem;
+	height: 2rem;
 	padding: 0;
 	border: none;
-	border-radius: var(--c15t-radius-sm, 0.25rem);
+	border-radius: var(--c15t-radius-md, 0.5rem);
 	background-color: transparent;
 	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
 	cursor: pointer;
@@ -211,13 +215,13 @@
 }
 
 .closeButton:hover {
-	background-color: var(--c15t-surface-hover, hsl(0, 0%, 97%));
+	background-color: var(--c15t-devtools-surface-subtle, hsl(0, 0%, 97%));
 	color: var(--c15t-text, hsl(0, 0%, 9%));
 }
 
 .closeButton:focus-visible {
-	outline: 2px solid var(--c15t-primary, hsl(228, 100%, 60%));
-	outline-offset: 1px;
+	outline: none;
+	box-shadow: 0 0 0 2px var(--c15t-devtools-focus-ring, hsl(228, 100%, 60%));
 }
 
 .closeButtonIcon {
@@ -225,16 +229,50 @@
 	height: 16px;
 }
 
+.inlineActionButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 1.625rem;
+	padding: 0.25rem 0.5rem;
+	border: 1px solid var(--c15t-devtools-border-strong, hsl(0, 0%, 89%));
+	border-radius: var(--c15t-radius-sm, 0.375rem);
+	background-color: var(--c15t-devtools-surface-elevated, #fff);
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+	font-family: var(--c15t-font-family, system-ui, -apple-system, sans-serif);
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	font-weight: var(--c15t-font-weight-medium, 500);
+	line-height: var(--c15t-line-height-tight, 1.25);
+	cursor: pointer;
+	transition:
+		background-color var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+		border-color var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.inlineActionButton:hover {
+	background-color: var(--c15t-devtools-surface-subtle, hsl(0, 0%, 97%));
+	border-color: var(--c15t-border-hover, hsl(0, 0%, 79%));
+}
+
+.inlineActionButton:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px var(--c15t-devtools-focus-ring, hsl(228, 100%, 60%));
+}
+
 /* === Content === */
 .content {
 	flex: 1 1 auto;
 	/* min-height ensures content area is visible even when empty */
 	min-height: 200px;
-	overflow-y: auto;
+	overflow-y: scroll;
 	overflow-x: hidden;
+	scrollbar-gutter: stable;
 	overscroll-behavior: contain;
 	/* Enable smooth scrolling on touch devices */
 	-webkit-overflow-scrolling: touch;
+	background-color: var(--c15t-devtools-surface-elevated, #fff);
 }
 
 /* === Footer === */
@@ -242,8 +280,9 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: var(--c15t-space-xs, 0.25rem) var(--c15t-space-md, 1rem);
-	border-top: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
+	gap: 0.5rem;
+	padding: 0.5rem 0.75rem;
+	border-top: 1px solid var(--c15t-devtools-border-strong, hsl(0, 0%, 89%));
 	background-color: var(--c15t-devtools-surface-muted, hsl(0, 0%, 96%));
 	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
 	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
@@ -252,13 +291,20 @@
 .footerStatus {
 	display: flex;
 	align-items: center;
-	gap: var(--c15t-space-xs, 0.25rem);
+	gap: 0.375rem;
+	min-width: 0;
+}
+
+.footerMeta {
+	opacity: 0.75;
+	white-space: nowrap;
 }
 
 .statusDot {
 	width: 6px;
 	height: 6px;
 	border-radius: var(--c15t-radius-full, 9999px);
+	flex-shrink: 0;
 }
 
 .statusConnected {
@@ -296,6 +342,7 @@
 	font-size: var(--c15t-font-size-sm, 0.875rem);
 	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
 	max-width: 280px;
+	line-height: var(--c15t-line-height-normal, 1.5);
 }
 
 /* === Reduced Motion === */
@@ -318,10 +365,10 @@
 .dropdownMenu {
 	position: fixed;
 	min-width: 200px;
-	padding: var(--c15t-space-xs, 0.25rem);
-	border: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
+	padding: 0.375rem;
+	border: 1px solid var(--c15t-devtools-border-strong, hsl(0, 0%, 89%));
 	border-radius: var(--c15t-radius-lg, 0.75rem);
-	background-color: var(--c15t-surface, #fff);
+	background-color: var(--c15t-devtools-surface-elevated, #fff);
 	box-shadow: var(--c15t-shadow-lg, 0 8px 24px hsla(0, 0%, 0%, 0.12));
 	z-index: calc(var(--c15t-devtools-z-index, 99999) + 1);
 	opacity: 0;
@@ -361,15 +408,16 @@
 .menuItem {
 	display: flex;
 	align-items: center;
-	gap: var(--c15t-space-sm, 0.5rem);
+	gap: 0.625rem;
 	width: 100%;
-	padding: var(--c15t-space-sm, 0.5rem) var(--c15t-space-md, 0.75rem);
+	padding: 0.5rem 0.625rem;
 	border: none;
 	border-radius: var(--c15t-radius-md, 0.5rem);
 	background: transparent;
 	color: var(--c15t-text, hsl(0, 0%, 9%));
-	font-size: var(--c15t-font-size-sm, 0.875rem);
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
 	font-weight: var(--c15t-font-weight-medium, 500);
+	line-height: var(--c15t-line-height-tight, 1.25);
 	text-align: left;
 	cursor: pointer;
 	transition: background-color var(--c15t-duration-fast, 100ms)
@@ -377,17 +425,17 @@
 }
 
 .menuItem:hover {
-	background-color: var(--c15t-surface-hover, hsl(0, 0%, 95%));
+	background-color: var(--c15t-devtools-surface-subtle, hsl(0, 0%, 95%));
 }
 
 .menuItem:focus-visible {
-	outline: 2px solid var(--c15t-primary, hsl(228, 100%, 60%));
-	outline-offset: -2px;
+	outline: none;
+	box-shadow: 0 0 0 2px var(--c15t-devtools-focus-ring, hsl(228, 100%, 60%));
 }
 
 .menuItemIcon {
-	width: 20px;
-	height: 20px;
+	width: 1rem;
+	height: 1rem;
 	flex-shrink: 0;
 	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
 }
@@ -400,6 +448,7 @@
 	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
 	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
 	font-weight: var(--c15t-font-weight-normal, 400);
+	margin-top: 0.125rem;
 }
 
 .menuItemContent {
@@ -415,8 +464,8 @@
 
 .menuItemToggleTrack {
 	position: relative;
-	width: 36px;
-	height: 20px;
+	width: 2rem;
+	height: 1.25rem;
 	background-color: var(--c15t-switch-track, hsl(0, 0%, 85%));
 	border-radius: var(--c15t-radius-full, 9999px);
 	transition: background-color var(--c15t-duration-fast, 100ms)
@@ -425,23 +474,24 @@
 
 .menuItemToggleThumb {
 	position: absolute;
-	top: 2px;
+	top: 50%;
 	left: 2px;
-	width: 16px;
-	height: 16px;
+	width: 0.75rem;
+	height: 0.75rem;
 	background-color: var(--c15t-switch-thumb, hsl(0, 0%, 100%));
 	border-radius: var(--c15t-radius-full, 9999px);
-	box-shadow: var(--c15t-shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.1));
+	box-shadow: 0 0 0 1px var(--c15t-border, hsl(0, 0%, 89%));
+	transform: translateY(-50%);
 	transition: transform var(--c15t-duration-fast, 100ms)
 		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .menuItemToggleChecked .menuItemToggleTrack {
-	background-color: var(--c15t-switch-track-checked, hsl(228, 100%, 60%));
+	background-color: var(--c15t-switch-track-active, hsl(228, 100%, 60%));
 }
 
 .menuItemToggleChecked .menuItemToggleThumb {
-	transform: translateX(16px);
+	transform: translate(1rem, -50%);
 }
 
 .menuDivider {

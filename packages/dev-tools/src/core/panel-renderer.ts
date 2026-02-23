@@ -10,6 +10,7 @@ import { renderEventsPanel } from '../panels/events';
 import { renderIabPanel } from '../panels/iab';
 import { renderLocationPanel } from '../panels/location';
 import { renderScriptsPanel } from '../panels/scripts';
+import type { PersistedDevToolsOverrides } from './override-storage';
 import { resetAllConsents } from './reset-consents';
 import type { DevToolsTab, StateManager } from './state-manager';
 import type { StoreConnector } from './store-connector';
@@ -25,6 +26,10 @@ export interface PanelRendererConfig {
 	 * @default true
 	 */
 	enableEventLogging?: boolean;
+	onPersistOverrides?: (overrides: PersistedDevToolsOverrides) => void;
+	onClearPersistedOverrides?: () => void;
+	onCopyState?: (state: ConsentStoreState) => boolean | Promise<boolean>;
+	onExportDebugBundle?: () => void;
 }
 
 /**
@@ -53,7 +58,15 @@ export interface PanelRenderer {
 export function createPanelRenderer(
 	config: PanelRendererConfig
 ): PanelRenderer {
-	const { storeConnector, stateManager, enableEventLogging = true } = config;
+	const {
+		storeConnector,
+		stateManager,
+		enableEventLogging = true,
+		onPersistOverrides,
+		onClearPersistedOverrides,
+		onCopyState,
+		onExportDebugBundle,
+	} = config;
 
 	const getStoreState = (): ConsentStoreState | null =>
 		storeConnector.getState();
@@ -150,6 +163,12 @@ export function createPanelRenderer(
 								language: overrides.language,
 								gpc: overrides.gpc,
 							});
+							onPersistOverrides?.({
+								country: overrides.country,
+								region: overrides.region,
+								language: overrides.language,
+								gpc: overrides.gpc,
+							});
 						}
 					},
 					onClearOverrides: async () => {
@@ -162,6 +181,7 @@ export function createPanelRenderer(
 								gpc: undefined,
 							});
 							logEvent('info', 'Overrides cleared');
+							onClearPersistedOverrides?.();
 						}
 					},
 				});
@@ -274,10 +294,51 @@ export function createPanelRenderer(
 					onCopyState: () => {
 						const state = getStoreState();
 						if (state) {
-							navigator.clipboard.writeText(JSON.stringify(state, null, 2));
-							logEvent('info', 'State copied to clipboard');
+							if (onCopyState) {
+								const result = onCopyState(state);
+								if (result instanceof Promise) {
+									void result
+										.then((ok) => {
+											logEvent(
+												ok ? 'info' : 'error',
+												ok
+													? 'State copied to clipboard'
+													: 'Failed to copy state'
+											);
+										})
+										.catch(() => {
+											logEvent('error', 'Failed to copy state');
+										});
+								} else {
+									logEvent(
+										result ? 'info' : 'error',
+										result
+											? 'State copied to clipboard'
+											: 'Failed to copy state'
+									);
+								}
+							} else {
+								void navigator.clipboard
+									.writeText(JSON.stringify(state, null, 2))
+									.then(() => {
+										logEvent('info', 'State copied to clipboard');
+									})
+									.catch(() => {
+										logEvent('error', 'Failed to copy state');
+									});
+							}
 						}
 					},
+					onExportDebugBundle: onExportDebugBundle
+						? () => {
+								try {
+									onExportDebugBundle();
+									logEvent('info', 'Debug bundle exported');
+								} catch {
+									logEvent('error', 'Failed to export debug bundle');
+								}
+							}
+						: undefined,
 				});
 				break;
 		}

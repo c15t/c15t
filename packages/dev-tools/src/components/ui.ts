@@ -3,7 +3,7 @@
  * Common reusable components
  */
 
-import { button, createSvgElement, div, span } from '../core/renderer';
+import { button, createSvgElement, div, input, span } from '../core/renderer';
 import styles from '../styles/components.module.css';
 
 // === Toggle ===
@@ -109,6 +109,32 @@ export function createButton(options: ButtonOptions): HTMLButtonElement {
 	btn.appendChild(document.createTextNode(text));
 
 	return btn;
+}
+
+// === Input ===
+
+export interface InputOptions {
+	value?: string;
+	placeholder?: string;
+	ariaLabel?: string;
+	small?: boolean;
+	onInput?: (value: string) => void;
+}
+
+export function createInput(options: InputOptions): HTMLInputElement {
+	const { value, placeholder, ariaLabel, small = false, onInput } = options;
+	const sizeClass = small ? styles.inputSmall : '';
+	return input({
+		className: `${styles.input} ${sizeClass}`.trim(),
+		type: 'text',
+		value,
+		placeholder,
+		ariaLabel,
+		onInput: (event: Event) => {
+			const target = event.target as HTMLInputElement | null;
+			onInput?.(target?.value ?? '');
+		},
+	});
 }
 
 // === List Item ===
@@ -265,6 +291,7 @@ export function createDisconnectedState(
 	message = 'Store not connected'
 ): HTMLElement {
 	return div({
+		className: styles.disconnectedState,
 		style: {
 			padding: '24px',
 			textAlign: 'center',
