@@ -95,6 +95,7 @@ export const ConsentButton = forwardRef<
 				noStyle: contextNoStyle || noStyle,
 			}
 		);
+		const { noStyle: _resolvedNoStyle, ...buttonStyleProps } = buttonStyle;
 
 		// Need to know what category to set
 		if (!category && action === 'set-consent') {
@@ -166,7 +167,12 @@ export const ConsentButton = forwardRef<
 		);
 
 		return (
-			<Comp ref={ref} {...buttonStyle} onClick={buttonClick} {...domProps} />
+			<Comp
+				ref={ref}
+				{...buttonStyleProps}
+				onClick={buttonClick}
+				{...domProps}
+			/>
 		);
 	}
 );

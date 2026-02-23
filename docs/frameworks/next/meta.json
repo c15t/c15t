@@ -22,6 +22,7 @@
 		"./components/consent-dialog",
 		"./components/consent-widget",
 		"./components/consent-dialog-trigger",
+		"./components/consent-dialog-link",
 		"./components/frame",
 		"./components/dev-tools",
 		"--- Styling ---",
