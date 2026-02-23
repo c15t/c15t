@@ -45,7 +45,7 @@
 }
 
 .toggleActive .toggleThumb {
-	transform: translateX(0.75rem);
+	transform: translateX(1rem);
 }
 
 /* Disabled toggle state */

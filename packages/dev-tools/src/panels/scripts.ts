@@ -9,7 +9,6 @@ import {
 	createDisconnectedState,
 	createEmptyState,
 	createInfoRow,
-	createListItem,
 	createSection,
 } from '../components/ui';
 import { clearElement, div } from '../core/renderer';
@@ -67,7 +66,8 @@ export function renderScriptsPanel(
 			style: {
 				display: 'flex',
 				flexDirection: 'column',
-				gap: '4px',
+				borderTop: '1px solid var(--c15t-border)',
+				borderBottom: '1px solid var(--c15t-border)',
 			},
 		});
 
@@ -104,13 +104,63 @@ export function renderScriptsPanel(
 				variant: statusVariant,
 			});
 
-			const item = createListItem({
-				title: scriptId,
-				description: `Category: ${categoryDisplay}`,
-				actions: [badge],
+			const row = div({
+				style: {
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'space-between',
+					gap: '8px',
+					padding: '8px 0',
+					borderBottom: '1px solid var(--c15t-border)',
+				},
+				children: [
+					div({
+						style: {
+							display: 'flex',
+							flexDirection: 'column',
+							gap: '2px',
+							minWidth: '0',
+							flex: '1',
+						},
+						children: [
+							div({
+								style: {
+									fontSize: 'var(--c15t-font-size-sm)',
+									fontWeight: '500',
+									color: 'var(--c15t-text)',
+									overflow: 'hidden',
+									textOverflow: 'ellipsis',
+									whiteSpace: 'nowrap',
+								},
+								text: scriptId,
+							}),
+							div({
+								style: {
+									fontSize: 'var(--c15t-devtools-font-size-xs)',
+									color: 'var(--c15t-text-muted)',
+									overflow: 'hidden',
+									textOverflow: 'ellipsis',
+									whiteSpace: 'nowrap',
+								},
+								text: `Category: ${categoryDisplay}`,
+							}),
+						],
+					}),
+					div({
+						style: {
+							flexShrink: '0',
+						},
+						children: [badge],
+					}),
+				],
 			});
 
-			scriptsList.appendChild(item);
+			scriptsList.appendChild(row);
+		}
+
+		const lastRow = scriptsList.lastElementChild as HTMLElement | null;
+		if (lastRow) {
+			lastRow.style.borderBottom = 'none';
 		}
 
 		const scriptsSection = createSection({

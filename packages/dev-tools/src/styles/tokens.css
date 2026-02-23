@@ -43,6 +43,22 @@
 	--c15t-devtools-badge-neutral-bg: hsl(0, 0%, 94%);
 }
 
+/* === Explicit Light Mode via class === */
+:global(.c15t-light),
+:global(.light) {
+	--c15t-devtools-surface-muted: var(--c15t-surface-hover, hsl(0, 0%, 97%));
+	--c15t-devtools-surface-subtle: hsl(0, 0%, 98%);
+	--c15t-devtools-surface-elevated: var(--c15t-surface, #fff);
+	--c15t-devtools-border-strong: var(--c15t-border, hsl(0, 0%, 89%));
+	--c15t-devtools-code-surface: hsl(0, 0%, 97%);
+	--c15t-devtools-accent-soft: hsl(228, 100%, 96%);
+	--c15t-devtools-badge-success-bg: hsl(142, 76%, 94%);
+	--c15t-devtools-badge-error-bg: hsl(0, 86%, 95%);
+	--c15t-devtools-badge-warning-bg: hsl(48, 96%, 93%);
+	--c15t-devtools-badge-info-bg: hsl(214, 95%, 93%);
+	--c15t-devtools-badge-neutral-bg: hsl(0, 0%, 94%);
+}
+
 @supports (color: color-mix(in srgb, white, black)) {
 	:root {
 		--c15t-devtools-surface-muted: color-mix(
@@ -93,7 +109,7 @@
 
 /* === Dark Mode via system preference === */
 @media (prefers-color-scheme: dark) {
-	:root {
+	:global(:root:not(.light):not(.c15t-light)) {
 		--c15t-devtools-surface-muted: var(--c15t-surface-hover, hsl(0, 0%, 16%));
 		--c15t-devtools-surface-subtle: hsl(0, 0%, 14%);
 		--c15t-devtools-surface-elevated: var(--c15t-surface, hsl(0, 0%, 10%));

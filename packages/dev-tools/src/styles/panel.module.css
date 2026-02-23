@@ -266,8 +266,9 @@
 	flex: 1 1 auto;
 	/* min-height ensures content area is visible even when empty */
 	min-height: 200px;
-	overflow-y: auto;
+	overflow-y: scroll;
 	overflow-x: hidden;
+	scrollbar-gutter: stable;
 	overscroll-behavior: contain;
 	/* Enable smooth scrolling on touch devices */
 	-webkit-overflow-scrolling: touch;
@@ -473,13 +474,14 @@
 
 .menuItemToggleThumb {
 	position: absolute;
-	top: 2px;
+	top: 50%;
 	left: 2px;
 	width: 0.75rem;
 	height: 0.75rem;
 	background-color: var(--c15t-switch-thumb, hsl(0, 0%, 100%));
 	border-radius: var(--c15t-radius-full, 9999px);
 	box-shadow: 0 0 0 1px var(--c15t-border, hsl(0, 0%, 89%));
+	transform: translateY(-50%);
 	transition: transform var(--c15t-duration-fast, 100ms)
 		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
@@ -489,7 +491,7 @@
 }
 
 .menuItemToggleChecked .menuItemToggleThumb {
-	transform: translateX(0.75rem);
+	transform: translate(1rem, -50%);
 }
 
 .menuDivider {
