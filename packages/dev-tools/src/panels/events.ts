@@ -3,7 +3,7 @@
  * Displays chronological list of consent-related events
  */
 
-import { createButton } from '../components/ui';
+import { createButton, createInput } from '../components/ui';
 import { clearElement, div, span } from '../core/renderer';
 import type { EventLogEntry } from '../core/state-manager';
 import componentStyles from '../styles/components.module.css';
@@ -15,8 +15,27 @@ export interface EventsPanelOptions {
 
 type EventFilter = 'all' | 'error' | 'consent' | 'network' | 'iab';
 
-let activeFilter: EventFilter = 'all';
-let selectedEventId: string | null = null;
+interface EventsPanelState {
+	activeFilter: EventFilter;
+	selectedEventId: string | null;
+	searchQuery: string;
+}
+
+const panelStateByContainer = new WeakMap<HTMLElement, EventsPanelState>();
+
+function getPanelState(container: HTMLElement): EventsPanelState {
+	const existing = panelStateByContainer.get(container);
+	if (existing) {
+		return existing;
+	}
+	const initialState: EventsPanelState = {
+		activeFilter: 'all',
+		selectedEventId: null,
+		searchQuery: '',
+	};
+	panelStateByContainer.set(container, initialState);
+	return initialState;
+}
 
 /**
  * Renders the events panel content
@@ -26,20 +45,21 @@ export function renderEventsPanel(
 	options: EventsPanelOptions
 ): void {
 	const { getEvents, onClear } = options;
+	const panelState = getPanelState(container);
 
 	clearElement(container);
 
 	const allEvents = getEvents();
-	const events = allEvents.filter((event) =>
-		matchesFilter(event, activeFilter)
-	);
+	const events = allEvents
+		.filter((event) => matchesFilter(event, panelState.activeFilter))
+		.filter((event) => matchesSearch(event, panelState.searchQuery));
 
-	if (!events.some((event) => event.id === selectedEventId)) {
-		selectedEventId = events[0]?.id ?? null;
+	if (!events.some((event) => event.id === panelState.selectedEventId)) {
+		panelState.selectedEventId = events[0]?.id ?? null;
 	}
 
 	const selectedEvent =
-		events.find((event) => event.id === selectedEventId) ?? null;
+		events.find((event) => event.id === panelState.selectedEventId) ?? null;
 
 	const header = div({
 		style: {
@@ -76,7 +96,7 @@ export function renderEventsPanel(
 						small: true,
 						onClick: () => {
 							onClear();
-							selectedEventId = null;
+							panelState.selectedEventId = null;
 							renderEventsPanel(container, options);
 						},
 					}),
@@ -95,12 +115,32 @@ export function renderEventsPanel(
 				padding: '0 16px 8px',
 			},
 			children: EVENT_FILTERS.map((filter) =>
-				createFilterButton(filter, filter === activeFilter, () => {
-					activeFilter = filter;
-					selectedEventId = null;
+				createFilterButton(filter, filter === panelState.activeFilter, () => {
+					panelState.activeFilter = filter;
+					panelState.selectedEventId = null;
 					renderEventsPanel(container, options);
 				})
 			),
+		})
+	);
+	container.appendChild(
+		div({
+			style: {
+				padding: '0 16px 8px',
+			},
+			children: [
+				createInput({
+					value: panelState.searchQuery,
+					placeholder: 'Search events…',
+					ariaLabel: 'Search events',
+					small: true,
+					onInput: (value) => {
+						panelState.searchQuery = value.trim().toLowerCase();
+						panelState.selectedEventId = null;
+						renderEventsPanel(container, options);
+					},
+				}),
+			],
 		})
 	);
 
@@ -130,8 +170,8 @@ export function renderEventsPanel(
 	} else {
 		for (const event of events) {
 			eventList.appendChild(
-				createEventItem(event, event.id === selectedEventId, () => {
-					selectedEventId = event.id;
+				createEventItem(event, event.id === panelState.selectedEventId, () => {
+					panelState.selectedEventId = event.id;
 					renderEventsPanel(container, options);
 				})
 			);
@@ -181,6 +221,14 @@ function matchesFilter(event: EventLogEntry, filter: EventFilter): boolean {
 		return event.type === 'network';
 	}
 	return event.type === 'iab';
+}
+
+function matchesSearch(event: EventLogEntry, query: string): boolean {
+	if (!query) {
+		return true;
+	}
+	const haystack = `${event.type} ${event.message} ${JSON.stringify(event.data ?? {})}`;
+	return haystack.toLowerCase().includes(query);
 }
 
 function createPayloadSection(event: EventLogEntry | null): HTMLElement {

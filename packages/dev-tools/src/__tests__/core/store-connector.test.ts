@@ -60,4 +60,26 @@ describe('store-connector', () => {
 
 		connector.destroy();
 	});
+
+	it('exposes reconnect diagnostics for disconnected state', () => {
+		const connector = createStoreConnector({
+			namespace: 'testStore',
+		});
+		const snapshots: Array<ReturnType<typeof connector.getDiagnostics>> = [];
+		const unsubscribe = connector.subscribeDiagnostics((diagnostics) => {
+			snapshots.push(diagnostics);
+		});
+
+		vi.advanceTimersByTime(100);
+
+		const latest = connector.getDiagnostics();
+		expect(latest.namespace).toBe('testStore');
+		expect(latest.isPolling).toBe(true);
+		expect(latest.reconnectAttempts).toBeGreaterThanOrEqual(1);
+		expect(latest.lastError).toContain('testStore');
+		expect(snapshots.length).toBeGreaterThan(1);
+
+		unsubscribe();
+		connector.destroy();
+	});
 });

@@ -6,27 +6,26 @@
 import type { ConsentStoreState } from 'c15t';
 import { createPanel, type PanelInstance } from '../components/panel';
 import { createTabs, type TabsInstance } from '../components/tabs';
-import { renderActionsPanel } from '../panels/actions';
-import { renderConsentsPanel } from '../panels/consents';
-import { renderEventsPanel } from '../panels/events';
-import { renderIabPanel } from '../panels/iab';
-import { renderLocationPanel } from '../panels/location';
-import { renderScriptsPanel } from '../panels/scripts';
+import {
+	createDebugBundle,
+	downloadDebugBundle,
+	sanitizeStoreState,
+} from './debug-bundle';
 import {
 	clearPersistedOverrides,
 	loadPersistedOverrides,
 	type PersistedDevToolsOverrides,
 	persistOverrides,
 } from './override-storage';
+import { createPanelRenderer } from './panel-renderer';
 import { clearElement, div } from './renderer';
-import { resetAllConsents } from './reset-consents';
 import {
 	createStateManager,
 	type DevToolsPosition,
 	type DevToolsTab,
-	type StateManager,
 } from './state-manager';
-import { createStoreConnector, type StoreConnector } from './store-connector';
+import { createStoreConnector } from './store-connector';
+import { registerStoreInstrumentation } from './store-instrumentation';
 
 // Import styles to ensure they're bundled
 import '../styles/tokens.css';
@@ -57,14 +56,6 @@ function persistedOverridesEqual(
 		a.language === b.language &&
 		a.gpc === b.gpc
 	);
-}
-
-function getBlockedRequestMessage(payload: unknown): string {
-	const data = payload as { method?: unknown; url?: unknown };
-	const method =
-		typeof data?.method === 'string' ? data.method.toUpperCase() : 'REQUEST';
-	const url = typeof data?.url === 'string' ? data.url : 'unknown-url';
-	return `Network blocked: ${method} ${url}`;
 }
 
 interface PanelHeightAnimator {
@@ -168,6 +159,21 @@ function createPanelHeightAnimator(): PanelHeightAnimator {
 	};
 }
 
+function createStateCopy(state: ConsentStoreState): Record<string, unknown> {
+	return {
+		consents: state.consents,
+		selectedConsents: state.selectedConsents,
+		consentInfo: state.consentInfo,
+		locationInfo: state.locationInfo,
+		model: state.model,
+		overrides: state.overrides,
+		scripts: state.scripts?.map((script: { id: string }) => ({
+			id: script.id,
+		})),
+		loadedScripts: state.loadedScripts,
+	};
+}
+
 /**
  * DevTools configuration options
  */
@@ -228,128 +234,26 @@ export function createDevTools(
 		position,
 		isOpen: defaultOpen,
 	});
-
-	// Track original callbacks to wrap them
-	let originalCallbacks: {
-		onBannerFetched?: unknown;
-		onConsentSet?: unknown;
-		onError?: unknown;
-		onBeforeConsentRevocationReload?: unknown;
-	} = {};
-	let originalNetworkBlockedCallback: unknown;
-	let hasWrappedNetworkBlockerCallback = false;
+	let detachInstrumentation: (() => void) | null = null;
 
 	// Create store connector
 	const storeConnector = createStoreConnector({
 		namespace,
-		onConnect: (state, store) => {
+		onConnect: (_state, store) => {
+			detachInstrumentation?.();
+			detachInstrumentation = registerStoreInstrumentation({
+				namespace,
+				store,
+				onEvent: (event) => {
+					stateManager.addEvent(event);
+				},
+			});
+
 			stateManager.setConnected(true);
 			stateManager.addEvent({
 				type: 'info',
 				message: 'Connected to c15tStore',
 			});
-
-			// Hook into callbacks to log events
-			// Save original callbacks
-			originalCallbacks = { ...state.callbacks };
-
-			// Wrap onBannerFetched
-			store
-				.getState()
-				.setCallback(
-					'onBannerFetched',
-					(payload: { jurisdiction: unknown }) => {
-						stateManager.addEvent({
-							type: 'info',
-							message: `Banner fetched: ${String(payload.jurisdiction)}`,
-							data: payload,
-						});
-						// Call original if exists
-						if (typeof originalCallbacks.onBannerFetched === 'function') {
-							(originalCallbacks.onBannerFetched as (payload: unknown) => void)(
-								payload
-							);
-						}
-					}
-				);
-
-			// Wrap onConsentSet
-			store
-				.getState()
-				.setCallback('onConsentSet', (payload: { preferences: unknown }) => {
-					stateManager.addEvent({
-						type: 'consent_set',
-						message: 'Consent preferences updated',
-						data: payload,
-					});
-					// Call original if exists
-					if (typeof originalCallbacks.onConsentSet === 'function') {
-						(originalCallbacks.onConsentSet as (payload: unknown) => void)(
-							payload
-						);
-					}
-				});
-
-			// Wrap onError
-			store.getState().setCallback('onError', (payload: { error: string }) => {
-				stateManager.addEvent({
-					type: 'error',
-					message: `Error: ${payload.error}`,
-					data: payload,
-				});
-				// Call original if exists
-				if (typeof originalCallbacks.onError === 'function') {
-					(originalCallbacks.onError as (payload: unknown) => void)(payload);
-				}
-			});
-
-			// Wrap onBeforeConsentRevocationReload
-			store
-				.getState()
-				.setCallback(
-					'onBeforeConsentRevocationReload',
-					(payload: { preferences: unknown }) => {
-						stateManager.addEvent({
-							type: 'info',
-							message: 'Consent revocation - page will reload',
-							data: payload,
-						});
-						// Call original if exists
-						if (
-							typeof originalCallbacks.onBeforeConsentRevocationReload ===
-							'function'
-						) {
-							(
-								originalCallbacks.onBeforeConsentRevocationReload as (
-									payload: unknown
-								) => void
-							)(payload);
-						}
-					}
-				);
-
-			const currentNetworkBlocker = store.getState().networkBlocker;
-			if (currentNetworkBlocker && !hasWrappedNetworkBlockerCallback) {
-				originalNetworkBlockedCallback = currentNetworkBlocker.onRequestBlocked;
-				hasWrappedNetworkBlockerCallback = true;
-
-				store.getState().setNetworkBlocker({
-					...currentNetworkBlocker,
-					onRequestBlocked: (payload: unknown) => {
-						stateManager.addEvent({
-							type: 'network',
-							message: getBlockedRequestMessage(payload),
-							data: payload as Record<string, unknown>,
-						});
-
-						if (typeof originalNetworkBlockedCallback === 'function') {
-							(originalNetworkBlockedCallback as (payload: unknown) => void)(
-								payload
-							);
-						}
-					},
-				});
-			}
 
 			const persistedOverrides = loadPersistedOverrides();
 			if (persistedOverrides) {
@@ -389,6 +293,8 @@ export function createDevTools(
 		},
 		onDisconnect: () => {
 			stateManager.setConnected(false);
+			detachInstrumentation?.();
+			detachInstrumentation = null;
 			stateManager.addEvent({
 				type: 'error',
 				message: 'Disconnected from c15tStore',
@@ -396,6 +302,33 @@ export function createDevTools(
 		},
 		onStateChange: () => {
 			// Panel will re-render via subscription
+		},
+	});
+	const panelRenderer = createPanelRenderer({
+		storeConnector,
+		stateManager,
+		enableEventLogging: true,
+		onPersistOverrides: persistOverrides,
+		onClearPersistedOverrides: clearPersistedOverrides,
+		onCopyState: async (state) => {
+			try {
+				await navigator.clipboard.writeText(
+					JSON.stringify(createStateCopy(state), null, 2)
+				);
+				return true;
+			} catch {
+				return false;
+			}
+		},
+		onExportDebugBundle: () => {
+			const bundle = createDebugBundle({
+				namespace,
+				devToolsState: stateManager.getState(),
+				connection: storeConnector.getDiagnostics(),
+				recentEvents: stateManager.getState().eventLog.slice(0, 100),
+				storeState: sanitizeStoreState(storeConnector.getState()),
+			});
+			downloadDebugBundle(bundle);
 		},
 	});
 
@@ -409,18 +342,14 @@ export function createDevTools(
 		storeConnector,
 		namespace,
 		onRenderContent: (container) => {
-			renderContent(container, stateManager, storeConnector);
+			renderContent(container);
 		},
 	});
 
 	/**
 	 * Renders the content based on active tab
 	 */
-	function renderContent(
-		container: HTMLElement,
-		stateManager: StateManager,
-		storeConnector: StoreConnector
-	): void {
+	function renderContent(container: HTMLElement): void {
 		const panel = container.parentElement;
 		const previousPanelHeight = panel?.getBoundingClientRect().height ?? 0;
 
@@ -434,13 +363,18 @@ export function createDevTools(
 		if (!storeState || storeState.model !== 'iab') {
 			disabledTabs.push('iab');
 		}
+		let currentActiveTab = stateManager.getState().activeTab;
+		if (disabledTabs.includes(currentActiveTab)) {
+			stateManager.setActiveTab('consents');
+			currentActiveTab = 'consents';
+		}
 
 		// Always recreate tabs to update disabled state
 		if (tabsInstance) {
 			tabsInstance.destroy();
 		}
 		tabsInstance = createTabs({
-			activeTab: stateManager.getState().activeTab,
+			activeTab: currentActiveTab,
 			onTabChange: (tab) => {
 				stateManager.setActiveTab(tab);
 			},
@@ -462,310 +396,12 @@ export function createDevTools(
 		container.appendChild(panelContent);
 
 		// Render active tab
-		const state = stateManager.getState();
-		const getStoreState = () => storeConnector.getState();
-
-		switch (state.activeTab) {
-			case 'consents':
-				renderConsentsPanel(panelContent, {
-					getState: getStoreState,
-					onConsentChange: (name, value) => {
-						const store = storeConnector.getStore();
-						if (store) {
-							// Update selected (pending) state, not saved state
-							// Ensure name is always a string
-							const consentName = String(name) as Parameters<
-								ConsentStoreState['setSelectedConsent']
-							>[0];
-							store.getState().setSelectedConsent(consentName, value);
-							stateManager.addEvent({
-								type: 'info',
-								message: `${consentName} toggled to ${value} (not saved)`,
-								data: { name: consentName, value },
-							});
-						}
-					},
-					onSave: () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							store.getState().saveConsents('custom');
-							stateManager.addEvent({
-								type: 'consent_save',
-								message: 'Saved consent preferences',
-							});
-						}
-					},
-					onAcceptAll: () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							store.getState().saveConsents('all');
-							stateManager.addEvent({
-								type: 'consent_save',
-								message: 'Accepted all consents',
-							});
-						}
-					},
-					onRejectAll: () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							store.getState().saveConsents('necessary');
-							stateManager.addEvent({
-								type: 'consent_save',
-								message: 'Rejected all optional consents',
-							});
-						}
-					},
-					onReset: async () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							await resetAllConsents(store, stateManager);
-						}
-					},
-				});
-				break;
-
-			case 'location':
-				renderLocationPanel(panelContent, {
-					getState: getStoreState,
-					onApplyOverrides: async (overrides) => {
-						const store = storeConnector.getStore();
-						if (store) {
-							await store.getState().setOverrides({
-								country: overrides.country,
-								region: overrides.region,
-								language: overrides.language,
-								gpc: overrides.gpc,
-							});
-							persistOverrides({
-								country: overrides.country,
-								region: overrides.region,
-								language: overrides.language,
-								gpc: overrides.gpc,
-							});
-							stateManager.addEvent({
-								type: 'info',
-								message: 'Overrides updated',
-								data: {
-									country: overrides.country,
-									region: overrides.region,
-									language: overrides.language,
-									gpc: overrides.gpc,
-								},
-							});
-						}
-					},
-					onClearOverrides: async () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							await store.getState().setOverrides({
-								country: undefined,
-								region: undefined,
-								language: undefined,
-								gpc: undefined,
-							});
-							clearPersistedOverrides();
-							stateManager.addEvent({
-								type: 'info',
-								message: 'Overrides cleared',
-							});
-						}
-					},
-				});
-				break;
-
-			case 'scripts':
-				renderScriptsPanel(panelContent, {
-					getState: getStoreState,
-					getEvents: () => stateManager.getState().eventLog,
-				});
-				break;
-
-			case 'iab':
-				renderIabPanel(panelContent, {
-					getState: getStoreState,
-					onSetPurposeConsent: (purposeId, value) => {
-						const iab = storeConnector.getStore()?.getState().iab;
-						if (!iab) {
-							return;
-						}
-						iab.setPurposeConsent(purposeId, value);
-						stateManager.addEvent({
-							type: 'iab',
-							message: `IAB purpose ${purposeId} set to ${value}`,
-							data: { purposeId, value },
-						});
-					},
-					onSetVendorConsent: (vendorId, value) => {
-						const iab = storeConnector.getStore()?.getState().iab;
-						if (!iab) {
-							return;
-						}
-						iab.setVendorConsent(vendorId, value);
-						stateManager.addEvent({
-							type: 'iab',
-							message: `IAB vendor ${vendorId} set to ${value}`,
-							data: { vendorId, value },
-						});
-					},
-					onSetSpecialFeatureOptIn: (featureId, value) => {
-						const iab = storeConnector.getStore()?.getState().iab;
-						if (!iab) {
-							return;
-						}
-						iab.setSpecialFeatureOptIn(featureId, value);
-						stateManager.addEvent({
-							type: 'iab',
-							message: `IAB feature ${featureId} set to ${value}`,
-							data: { featureId, value },
-						});
-					},
-					onAcceptAll: () => {
-						const iab = storeConnector.getStore()?.getState().iab;
-						if (!iab) {
-							return;
-						}
-						iab.acceptAll();
-						stateManager.addEvent({
-							type: 'iab',
-							message: 'IAB accept all selected',
-						});
-					},
-					onRejectAll: () => {
-						const iab = storeConnector.getStore()?.getState().iab;
-						if (!iab) {
-							return;
-						}
-						iab.rejectAll();
-						stateManager.addEvent({
-							type: 'iab',
-							message: 'IAB reject all selected',
-						});
-					},
-					onSave: () => {
-						const iab = storeConnector.getStore()?.getState().iab;
-						if (!iab) {
-							return;
-						}
-						void iab
-							.save()
-							.then(() => {
-								stateManager.addEvent({
-									type: 'iab',
-									message: 'IAB preferences saved',
-								});
-							})
-							.catch((error: unknown) => {
-								stateManager.addEvent({
-									type: 'error',
-									message: `Failed to save IAB preferences: ${String(error)}`,
-								});
-							});
-					},
-					onReset: async () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							await resetAllConsents(store, stateManager);
-						}
-					},
-				});
-				break;
-
-			case 'events':
-				renderEventsPanel(panelContent, {
-					getEvents: () => stateManager.getState().eventLog,
-					onClear: () => {
-						stateManager.clearEventLog();
-						stateManager.addEvent({
-							type: 'info',
-							message: 'Event log cleared',
-						});
-					},
-				});
-				break;
-
-			case 'actions':
-				renderActionsPanel(panelContent, {
-					getState: getStoreState,
-					onResetConsents: async () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							await resetAllConsents(store, stateManager);
-						}
-					},
-					onRefetchBanner: async () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							await store.getState().initConsentManager();
-							stateManager.addEvent({
-								type: 'info',
-								message: 'Banner data refetched',
-							});
-						}
-					},
-					onShowBanner: () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							store.getState().setActiveUI('banner', { force: true });
-							stateManager.addEvent({
-								type: 'info',
-								message: 'Banner shown',
-							});
-						}
-					},
-					onOpenPreferences: () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							store.getState().setActiveUI('dialog');
-							stateManager.addEvent({
-								type: 'info',
-								message: 'Preference center opened',
-							});
-						}
-					},
-					onCopyState: () => {
-						const state = storeConnector.getState();
-						if (state) {
-							const stateCopy = {
-								consents: state.consents,
-								consentInfo: state.consentInfo,
-								locationInfo: state.locationInfo,
-								model: state.model,
-								overrides: state.overrides,
-								scripts: state.scripts?.map((s: { id: string }) => ({
-									id: s.id,
-								})),
-								loadedScripts: state.loadedScripts,
-							};
-
-							navigator.clipboard
-								.writeText(JSON.stringify(stateCopy, null, 2))
-								.then(() => {
-									stateManager.addEvent({
-										type: 'info',
-										message: 'State copied to clipboard',
-									});
-								})
-								.catch(() => {
-									stateManager.addEvent({
-										type: 'error',
-										message: 'Failed to copy state',
-									});
-								});
-						}
-					},
-				});
-				break;
-		}
+		panelRenderer.renderPanel(panelContent, currentActiveTab);
 
 		if (panel) {
 			panelHeightAnimator.animate(panel, previousPanelHeight);
 		}
 	}
-
-	// Subscribe to store changes to update panel
-	storeConnector.subscribe(() => {
-		panelInstance.update();
-	});
 
 	// Create the instance
 	const instance: DevToolsInstance = {
@@ -781,53 +417,8 @@ export function createDevTools(
 			};
 		},
 		destroy: () => {
-			const store = storeConnector.getStore();
-			if (store) {
-				store
-					.getState()
-					.setCallback(
-						'onBannerFetched',
-						originalCallbacks.onBannerFetched as
-							| ConsentStoreState['callbacks']['onBannerFetched']
-							| undefined
-					);
-				store
-					.getState()
-					.setCallback(
-						'onConsentSet',
-						originalCallbacks.onConsentSet as
-							| ConsentStoreState['callbacks']['onConsentSet']
-							| undefined
-					);
-				store
-					.getState()
-					.setCallback(
-						'onError',
-						originalCallbacks.onError as
-							| ConsentStoreState['callbacks']['onError']
-							| undefined
-					);
-				store
-					.getState()
-					.setCallback(
-						'onBeforeConsentRevocationReload',
-						originalCallbacks.onBeforeConsentRevocationReload as
-							| ConsentStoreState['callbacks']['onBeforeConsentRevocationReload']
-							| undefined
-					);
-
-				if (hasWrappedNetworkBlockerCallback) {
-					const currentNetworkBlocker = store.getState().networkBlocker;
-					if (currentNetworkBlocker) {
-						store.getState().setNetworkBlocker({
-							...currentNetworkBlocker,
-							onRequestBlocked: originalNetworkBlockedCallback as
-								| ((payload: unknown) => void)
-								| undefined,
-						});
-					}
-				}
-			}
+			detachInstrumentation?.();
+			detachInstrumentation = null;
 
 			panelHeightAnimator.destroy();
 			tabsInstance?.destroy();
@@ -861,8 +452,7 @@ export function createDevToolsPanel(options: {
 	destroy: () => void;
 } {
 	const { namespace = 'c15tStore' } = options;
-	let originalEmbeddedNetworkBlockedCallback: unknown;
-	let hasWrappedEmbeddedNetworkBlocker = false;
+	let detachInstrumentation: (() => void) | null = null;
 
 	// Create state manager without floating button behavior
 	const stateManager = createStateManager({
@@ -873,33 +463,13 @@ export function createDevToolsPanel(options: {
 	const storeConnector = createStoreConnector({
 		namespace,
 		onConnect: (state, store) => {
+			detachInstrumentation?.();
+			detachInstrumentation = registerStoreInstrumentation({
+				namespace,
+				store,
+				onEvent: (event) => stateManager.addEvent(event),
+			});
 			stateManager.setConnected(true);
-
-			const currentNetworkBlocker = state.networkBlocker;
-			if (currentNetworkBlocker && !hasWrappedEmbeddedNetworkBlocker) {
-				originalEmbeddedNetworkBlockedCallback =
-					currentNetworkBlocker.onRequestBlocked;
-				hasWrappedEmbeddedNetworkBlocker = true;
-
-				store.getState().setNetworkBlocker({
-					...currentNetworkBlocker,
-					onRequestBlocked: (payload: unknown) => {
-						stateManager.addEvent({
-							type: 'network',
-							message: getBlockedRequestMessage(payload),
-							data: payload as Record<string, unknown>,
-						});
-
-						if (typeof originalEmbeddedNetworkBlockedCallback === 'function') {
-							(
-								originalEmbeddedNetworkBlockedCallback as (
-									payload: unknown
-								) => void
-							)(payload);
-						}
-					},
-				});
-			}
 
 			const persistedOverrides = loadPersistedOverrides();
 			if (persistedOverrides) {
@@ -916,7 +486,38 @@ export function createDevToolsPanel(options: {
 				}
 			}
 		},
-		onDisconnect: () => stateManager.setConnected(false),
+		onDisconnect: () => {
+			stateManager.setConnected(false);
+			detachInstrumentation?.();
+			detachInstrumentation = null;
+		},
+	});
+	const panelRenderer = createPanelRenderer({
+		storeConnector,
+		stateManager,
+		enableEventLogging: false,
+		onPersistOverrides: persistOverrides,
+		onClearPersistedOverrides: clearPersistedOverrides,
+		onCopyState: async (state) => {
+			try {
+				await navigator.clipboard.writeText(
+					JSON.stringify(createStateCopy(state), null, 2)
+				);
+				return true;
+			} catch {
+				return false;
+			}
+		},
+		onExportDebugBundle: () => {
+			const bundle = createDebugBundle({
+				namespace,
+				devToolsState: stateManager.getState(),
+				connection: storeConnector.getDiagnostics(),
+				recentEvents: stateManager.getState().eventLog.slice(0, 100),
+				storeState: sanitizeStoreState(storeConnector.getState()),
+			});
+			downloadDebugBundle(bundle);
+		},
 	});
 
 	// Create container
@@ -943,180 +544,53 @@ export function createDevToolsPanel(options: {
 
 	// Render active panel
 	function renderActivePanel(): void {
-		const state = stateManager.getState();
-		const getStoreState = () => storeConnector.getState();
+		const activeTab = syncTabs();
+		panelRenderer.renderPanel(contentArea, activeTab);
+	}
 
-		switch (state.activeTab) {
-			case 'consents':
-				renderConsentsPanel(contentArea, {
-					getState: getStoreState,
-					onConsentChange: (name, value) => {
-						// Update selected (pending) state, not saved state
-						storeConnector
-							.getStore()
-							?.getState()
-							.setSelectedConsent(
-								name as Parameters<ConsentStoreState['setSelectedConsent']>[0],
-								value
-							);
-					},
-					onSave: () => {
-						storeConnector.getStore()?.getState().saveConsents('custom');
-					},
-					onAcceptAll: () => {
-						storeConnector.getStore()?.getState().saveConsents('all');
-					},
-					onRejectAll: () => {
-						storeConnector.getStore()?.getState().saveConsents('necessary');
-					},
-					onReset: async () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							await resetAllConsents(store);
-						}
-					},
-				});
-				break;
+	let tabsInstance: TabsInstance | null = null;
+	let iabDisabled = true;
 
-			case 'location':
-				renderLocationPanel(contentArea, {
-					getState: getStoreState,
-					onApplyOverrides: async (overrides) => {
-						const store = storeConnector.getStore();
-						if (store) {
-							await store.getState().setOverrides({
-								country: overrides.country,
-								region: overrides.region,
-								language: overrides.language,
-								gpc: overrides.gpc,
-							});
-							persistOverrides({
-								country: overrides.country,
-								region: overrides.region,
-								language: overrides.language,
-								gpc: overrides.gpc,
-							});
-						}
-					},
-					onClearOverrides: async () => {
-						await storeConnector.getStore()?.getState().setOverrides({
-							country: undefined,
-							region: undefined,
-							language: undefined,
-							gpc: undefined,
-						});
-						clearPersistedOverrides();
-					},
-				});
-				break;
-
-			case 'scripts':
-				renderScriptsPanel(contentArea, {
-					getState: getStoreState,
-					getEvents: () => stateManager.getState().eventLog,
-				});
-				break;
-
-			case 'iab':
-				renderIabPanel(contentArea, {
-					getState: getStoreState,
-					onSetPurposeConsent: (purposeId, value) => {
-						storeConnector
-							.getStore()
-							?.getState()
-							.iab?.setPurposeConsent(purposeId, value);
-					},
-					onSetVendorConsent: (vendorId, value) => {
-						storeConnector
-							.getStore()
-							?.getState()
-							.iab?.setVendorConsent(vendorId, value);
-					},
-					onSetSpecialFeatureOptIn: (featureId, value) => {
-						storeConnector
-							.getStore()
-							?.getState()
-							.iab?.setSpecialFeatureOptIn(featureId, value);
-					},
-					onAcceptAll: () => {
-						storeConnector.getStore()?.getState().iab?.acceptAll();
-					},
-					onRejectAll: () => {
-						storeConnector.getStore()?.getState().iab?.rejectAll();
-					},
-					onSave: () => {
-						void storeConnector.getStore()?.getState().iab?.save();
-					},
-					onReset: async () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							await resetAllConsents(store);
-						}
-					},
-				});
-				break;
-
-			case 'events':
-				renderEventsPanel(contentArea, {
-					getEvents: () => stateManager.getState().eventLog,
-					onClear: () => {
-						stateManager.clearEventLog();
-					},
-				});
-				break;
-
-			case 'actions':
-				renderActionsPanel(contentArea, {
-					getState: getStoreState,
-					onResetConsents: async () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							await resetAllConsents(store);
-						}
-					},
-					onRefetchBanner: async () => {
-						await storeConnector.getStore()?.getState().initConsentManager();
-					},
-					onShowBanner: () => {
-						storeConnector
-							.getStore()
-							?.getState()
-							.setActiveUI('banner', { force: true });
-					},
-					onOpenPreferences: () => {
-						storeConnector.getStore()?.getState().setActiveUI('dialog');
-					},
-					onCopyState: () => {
-						const state = storeConnector.getState();
-						if (state) {
-							navigator.clipboard.writeText(JSON.stringify(state, null, 2));
-						}
-					},
-				});
-				break;
+	function getDisabledTabs(): DevToolsTab[] {
+		const disabledTabs: DevToolsTab[] = [];
+		const storeState = storeConnector.getState();
+		if (!storeState || storeState.model !== 'iab') {
+			disabledTabs.push('iab');
 		}
+		return disabledTabs;
 	}
 
-	// Determine disabled tabs based on store state
-	const storeState = storeConnector.getState();
-	const disabledTabs: DevToolsTab[] = [];
+	function syncTabs(): DevToolsTab {
+		const disabledTabs = getDisabledTabs();
+		const nextIabDisabled = disabledTabs.includes('iab');
+		let activeTab = stateManager.getState().activeTab;
+		if (disabledTabs.includes(activeTab)) {
+			activeTab = 'consents';
+			stateManager.setActiveTab(activeTab);
+		}
 
-	// Disable IAB tab if model is not 'iab'
-	if (!storeState || storeState.model !== 'iab') {
-		disabledTabs.push('iab');
+		if (!tabsInstance || iabDisabled !== nextIabDisabled) {
+			tabsInstance?.destroy();
+			tabsInstance = createTabs({
+				activeTab,
+				onTabChange: (tab) => {
+					stateManager.setActiveTab(tab);
+					renderActivePanel();
+				},
+				disabledTabs,
+			});
+			iabDisabled = nextIabDisabled;
+			if (!tabsInstance.element.parentElement) {
+				container.appendChild(tabsInstance.element);
+			}
+		} else {
+			tabsInstance.setActiveTab(activeTab);
+		}
+
+		return activeTab;
 	}
 
-	// Create tabs
-	const tabsInstance = createTabs({
-		activeTab: stateManager.getState().activeTab,
-		onTabChange: (tab) => {
-			stateManager.setActiveTab(tab);
-			renderActivePanel();
-		},
-		disabledTabs,
-	});
-
-	container.appendChild(tabsInstance.element);
+	syncTabs();
 	container.appendChild(contentArea);
 
 	// Initial render
@@ -1130,21 +604,11 @@ export function createDevToolsPanel(options: {
 	return {
 		element: container,
 		destroy: () => {
-			const store = storeConnector.getStore();
-			if (store && hasWrappedEmbeddedNetworkBlocker) {
-				const currentNetworkBlocker = store.getState().networkBlocker;
-				if (currentNetworkBlocker) {
-					store.getState().setNetworkBlocker({
-						...currentNetworkBlocker,
-						onRequestBlocked: originalEmbeddedNetworkBlockedCallback as
-							| ((payload: unknown) => void)
-							| undefined,
-					});
-				}
-			}
+			detachInstrumentation?.();
+			detachInstrumentation = null;
 
 			unsubscribe();
-			tabsInstance.destroy();
+			tabsInstance?.destroy();
 			storeConnector.destroy();
 			stateManager.destroy();
 		},

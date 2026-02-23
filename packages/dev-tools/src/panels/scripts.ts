@@ -9,6 +9,7 @@ import {
 	createDisconnectedState,
 	createEmptyState,
 	createInfoRow,
+	createInput,
 	createSection,
 } from '../components/ui';
 import { clearElement, div } from '../core/renderer';
@@ -25,6 +26,8 @@ export interface ScriptsPanelOptions {
 	getState: () => ConsentStoreState | null;
 	getEvents?: () => EventLogEntry[];
 }
+
+const scriptsSearchByContainer = new WeakMap<HTMLElement, string>();
 
 /**
  * Renders the scripts panel content
@@ -48,6 +51,40 @@ export function renderScriptsPanel(
 	const loadedScripts = state.loadedScripts || {};
 	const networkBlocker = state.networkBlocker;
 	const events = getEvents?.() ?? [];
+	const searchQuery = scriptsSearchByContainer.get(container) ?? '';
+	const filteredScripts = scripts.filter((script) => {
+		if (!searchQuery) {
+			return true;
+		}
+		const category =
+			typeof script.category === 'string'
+				? script.category
+				: JSON.stringify(script.category);
+		return `${script.id} ${category}`.toLowerCase().includes(searchQuery);
+	});
+
+	if (scripts.length > 4) {
+		container.appendChild(
+			createSection({
+				title: 'Filter',
+				children: [
+					createInput({
+						value: searchQuery,
+						placeholder: 'Filter scripts…',
+						ariaLabel: 'Filter scripts',
+						small: true,
+						onInput: (value) => {
+							scriptsSearchByContainer.set(
+								container,
+								value.trim().toLowerCase()
+							);
+							renderScriptsPanel(container, options);
+						},
+					}),
+				],
+			})
+		);
+	}
 
 	// Scripts section with heading
 	if (scripts.length === 0) {
@@ -71,7 +108,20 @@ export function renderScriptsPanel(
 			},
 		});
 
-		for (const script of scripts) {
+		if (filteredScripts.length === 0) {
+			scriptsList.appendChild(
+				div({
+					style: {
+						padding: '10px 0',
+						fontSize: 'var(--c15t-devtools-font-size-xs)',
+						color: 'var(--c15t-text-muted)',
+					},
+					text: 'No matching scripts',
+				})
+			);
+		}
+
+		for (const script of filteredScripts) {
 			const scriptId = script.id;
 			const isLoaded = loadedScripts[scriptId] === true;
 
@@ -164,7 +214,7 @@ export function renderScriptsPanel(
 		}
 
 		const scriptsSection = createSection({
-			title: `Configured Scripts (${scripts.length})`,
+			title: `Configured Scripts (${filteredScripts.length}/${scripts.length})`,
 			children: [scriptsList],
 		});
 

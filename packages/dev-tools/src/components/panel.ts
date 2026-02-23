@@ -63,6 +63,16 @@ function getPositionClass(position: DevToolsPosition): string {
 	}
 }
 
+function formatRetryDelay(delayMs: number | null): string {
+	if (delayMs === null) {
+		return 'n/a';
+	}
+	if (delayMs < 1000) {
+		return `${delayMs}ms`;
+	}
+	return `${(delayMs / 1000).toFixed(1)}s`;
+}
+
 export interface PanelOptions {
 	stateManager: StateManager;
 	storeConnector: StoreConnector;
@@ -328,6 +338,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 		const isConnected = storeConnector.isConnected();
 		const storeState = storeConnector.getState();
 		const isLoading = storeState?.isLoadingConsentInfo ?? false;
+		const diagnostics = storeConnector.getDiagnostics();
 
 		const statusChildren: HTMLElement[] = [
 			span({
@@ -343,6 +354,13 @@ export function createPanel(options: PanelOptions): PanelInstance {
 				span({
 					className: panelStyles.footerMeta,
 					text: '\u00b7 Fetching /init\u2026',
+				})
+			);
+		} else if (!isConnected) {
+			statusChildren.push(
+				span({
+					className: panelStyles.footerMeta,
+					text: `· ${diagnostics.namespace} · retry ${diagnostics.reconnectAttempts} · next ${formatRetryDelay(diagnostics.nextRetryInMs)}`,
 				})
 			);
 		}
@@ -374,6 +392,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 	 */
 	function renderErrorState(container: HTMLElement): void {
 		clearElement(container);
+		const diagnostics = storeConnector.getDiagnostics();
 
 		const errorState = div({
 			className: panelStyles.errorState,
@@ -393,6 +412,25 @@ export function createPanel(options: PanelOptions): PanelInstance {
 					className: panelStyles.errorMessage,
 					text: 'c15t consent manager is not initialized. Make sure you have set up the ConsentManagerProvider in your app.',
 				}),
+				div({
+					className: panelStyles.errorMessage,
+					style: {
+						marginTop: '4px',
+						fontSize: 'var(--c15t-devtools-font-size-xs)',
+					},
+					text: `Namespace: ${diagnostics.namespace} · Retries: ${diagnostics.reconnectAttempts} · Next retry: ${formatRetryDelay(diagnostics.nextRetryInMs)}`,
+				}),
+				diagnostics.lastError
+					? div({
+							className: panelStyles.errorMessage,
+							style: {
+								marginTop: '4px',
+								fontSize: 'var(--c15t-devtools-font-size-xs)',
+								color: 'var(--c15t-text-muted)',
+							},
+							text: `Last error: ${diagnostics.lastError}`,
+						})
+					: null,
 				button({
 					className: panelStyles.inlineActionButton,
 					text: 'Retry Connection',
@@ -522,6 +560,12 @@ export function createPanel(options: PanelOptions): PanelInstance {
 			}
 		}
 	});
+	const unsubscribeDiagnostics = storeConnector.subscribeDiagnostics(() => {
+		updateFooter();
+		if (contentContainer && !storeConnector.isConnected()) {
+			renderErrorState(contentContainer);
+		}
+	});
 
 	// Add floating button to container
 	container.appendChild(floatingButton);
@@ -538,6 +582,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 		destroy: () => {
 			unsubscribeState();
 			unsubscribeStore();
+			unsubscribeDiagnostics();
 
 			if (dropdownMenu) {
 				dropdownMenu.destroy();

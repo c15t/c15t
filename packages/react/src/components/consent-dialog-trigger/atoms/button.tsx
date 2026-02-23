@@ -125,6 +125,7 @@ export const TriggerButton = forwardRef<HTMLButtonElement, TriggerButtonProps>(
 				ref={ref}
 				type="button"
 				className={buttonClasses}
+				data-c15t-trigger="true"
 				aria-label={ariaLabel}
 				onClick={handleClick}
 				onKeyDown={handleKeyDown}

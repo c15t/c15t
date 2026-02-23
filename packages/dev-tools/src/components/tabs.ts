@@ -218,20 +218,25 @@ export function createTabs(options: TabsOptions): TabsInstance {
 	function updateVisibleTabs(): void {
 		const allTabIds = TABS.map((t) => t.id);
 		const iabEnabled = !disabledTabs.includes('iab');
-		const layoutTabIds: DevToolsTab[] = iabEnabled
-			? ['location', 'iab', 'scripts', 'actions', 'events', 'consents']
-			: ['location', 'consents', 'scripts', 'actions', 'events', 'iab'];
+		const preferredSecondTab: DevToolsTab = iabEnabled ? 'iab' : 'consents';
+		const overflowSecondTab: DevToolsTab = iabEnabled ? 'consents' : 'iab';
+		const showOverflowSecondTabInStrip = activeTab === overflowSecondTab;
+		const stripSecondTab = showOverflowSecondTabInStrip
+			? overflowSecondTab
+			: preferredSecondTab;
+		const forcedOverflowTab = showOverflowSecondTabInStrip
+			? preferredSecondTab
+			: overflowSecondTab;
+		const layoutTabIds: DevToolsTab[] = [
+			'location',
+			stripSecondTab,
+			'scripts',
+			'actions',
+			'events',
+			forcedOverflowTab,
+		];
 		const forcedOverflowTabIds = new Set<DevToolsTab>();
-
-		// Keep disabled IAB in overflow so the next actionable tab (Actions)
-		// can use its slot in the main tab strip.
-		if (disabledTabs.includes('iab')) {
-			forcedOverflowTabIds.add('iab');
-		} else {
-			// In IAB mode, prioritize IAB-oriented tabs in the main strip and
-			// move generic Consents to overflow.
-			forcedOverflowTabIds.add('consents');
-		}
+		forcedOverflowTabIds.add(forcedOverflowTab);
 
 		// Keep visual order deterministic by mode so IAB/Consents share slot 2.
 		for (const [index, tabId] of layoutTabIds.entries()) {
@@ -337,7 +342,7 @@ export function createTabs(options: TabsOptions): TabsInstance {
 
 		if (
 			!visibleTabIds.includes(activeTab) &&
-			!forcedOverflowTabIds.has(activeTab)
+			!disabledTabs.includes(activeTab)
 		) {
 			if (visibleTabIds.length > 0) {
 				visibleTabIds[visibleTabIds.length - 1] = activeTab;
@@ -362,7 +367,8 @@ export function createTabs(options: TabsOptions): TabsInstance {
 
 		hiddenTabIds = layoutTabIds.filter(
 			(tabId) =>
-				!visibleTabIds.includes(tabId) || forcedOverflowTabIds.has(tabId)
+				!visibleTabIds.includes(tabId) ||
+				(forcedOverflowTabIds.has(tabId) && tabId !== activeTab)
 		);
 
 		for (const tabId of allTabIds) {
@@ -553,10 +559,10 @@ export function createTabs(options: TabsOptions): TabsInstance {
 		window.addEventListener('resize', handleWindowResize);
 	}
 
-	// Initial sync once tabs are mounted into the DOM.
-	setActiveTab(activeTab);
+	// Set initial active state before tab measurements are available.
+	applyActiveState(activeTab);
 	requestAnimationFrame(() => {
-		setActiveTab(activeTab);
+		updateVisibleTabs();
 	});
 
 	return {

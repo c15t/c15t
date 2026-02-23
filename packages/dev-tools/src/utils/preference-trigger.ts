@@ -8,9 +8,11 @@
  */
 const PREFERENCE_TRIGGER_SELECTORS = [
 	'[data-c15t-trigger]',
-	'[aria-label*="privacy settings"]',
-	'[aria-label*="preference"]',
+	'[aria-label*="privacy settings" i]',
+	'[aria-label*="preference" i]',
 ].join(', ');
+
+const PREVIOUS_DISPLAY_ATTR = 'data-c15t-devtools-prev-display';
 
 /**
  * Detects if a preference center trigger element exists in the DOM
@@ -35,7 +37,21 @@ export function getPreferenceTriggerElements(): NodeListOf<HTMLElement> {
 export function setPreferenceTriggerVisibility(visible: boolean): void {
 	const elements = getPreferenceTriggerElements();
 	for (const el of elements) {
-		el.style.display = visible ? '' : 'none';
+		if (visible) {
+			const previousDisplay = el.getAttribute(PREVIOUS_DISPLAY_ATTR);
+			if (previousDisplay === null) {
+				el.style.removeProperty('display');
+			} else {
+				el.style.display = previousDisplay;
+				el.removeAttribute(PREVIOUS_DISPLAY_ATTR);
+			}
+			continue;
+		}
+
+		if (!el.hasAttribute(PREVIOUS_DISPLAY_ATTR)) {
+			el.setAttribute(PREVIOUS_DISPLAY_ATTR, el.style.display);
+		}
+		el.style.display = 'none';
 	}
 }
 
