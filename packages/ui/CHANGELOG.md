@@ -1,5 +1,14 @@
 # @c15t/ui
 
+## 2.0.0-rc.4
+
+### Patch Changes
+
+- Updated dependencies [06ee724]
+- Updated dependencies [29819bc]
+  - @c15t/translations@2.0.0-rc.4
+  - c15t@2.0.0-rc.4
+
 ## 2.0.0-rc.3
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @c15t/cli
 
+## 2.0.0-rc.4
+
+### Patch Changes
+
+- Updated dependencies [4c8435c]
+  - @c15t/backend@2.0.0-rc.4
+
 ## 2.0.0-rc.3
 
 ### Patch Changes
