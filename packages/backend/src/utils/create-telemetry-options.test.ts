@@ -55,9 +55,7 @@ describe('createTelemetryOptions', () => {
 
 	it('preserves user-provided tracer', () => {
 		const mockTracer = { startSpan: vi.fn() };
-		type TelemetryConfig = NonNullable<
-			NonNullable<C15TOptions['advanced']>['telemetry']
-		>;
+		type TelemetryConfig = NonNullable<C15TOptions['telemetry']>;
 		const options = createTelemetryOptions('my-app', {
 			tracer: mockTracer as unknown as TelemetryConfig['tracer'],
 		});
@@ -84,9 +82,7 @@ describe('isTelemetryEnabled', () => {
 		const options: C15TOptions = {
 			trustedOrigins: [],
 			adapter: {} as C15TOptions['adapter'],
-			advanced: {
-				telemetry: {},
-			},
+			telemetry: {},
 		};
 
 		expect(isTelemetryEnabled(options)).toBe(false);
@@ -96,10 +92,8 @@ describe('isTelemetryEnabled', () => {
 		const options: C15TOptions = {
 			trustedOrigins: [],
 			adapter: {} as C15TOptions['adapter'],
-			advanced: {
-				telemetry: {
-					enabled: true,
-				},
+			telemetry: {
+				enabled: true,
 			},
 		};
 
@@ -117,17 +111,13 @@ describe('getTracer', () => {
 
 	it('uses user-provided tracer when available', () => {
 		const mockTracer = { startSpan: vi.fn() };
-		type TelemetryConfig = NonNullable<
-			NonNullable<C15TOptions['advanced']>['telemetry']
-		>;
+		type TelemetryConfig = NonNullable<C15TOptions['telemetry']>;
 		const options: C15TOptions = {
 			trustedOrigins: [],
 			adapter: {} as C15TOptions['adapter'],
-			advanced: {
-				telemetry: {
-					enabled: true,
-					tracer: mockTracer as unknown as TelemetryConfig['tracer'],
-				},
+			telemetry: {
+				enabled: true,
+				tracer: mockTracer as unknown as TelemetryConfig['tracer'],
 			},
 		};
 
@@ -148,10 +138,8 @@ describe('getMeter', () => {
 		const options: C15TOptions = {
 			trustedOrigins: [],
 			adapter: {} as C15TOptions['adapter'],
-			advanced: {
-				telemetry: {
-					enabled: true,
-				},
+			telemetry: {
+				enabled: true,
 			},
 		};
 
@@ -173,10 +161,8 @@ describe('createRequestSpan', () => {
 		const options: C15TOptions = {
 			trustedOrigins: [],
 			adapter: {} as C15TOptions['adapter'],
-			advanced: {
-				telemetry: {
-					enabled: true,
-				},
+			telemetry: {
+				enabled: true,
 			},
 		};
 
@@ -202,10 +188,8 @@ describe('withRequestSpan', () => {
 		const options: C15TOptions = {
 			trustedOrigins: [],
 			adapter: {} as C15TOptions['adapter'],
-			advanced: {
-				telemetry: {
-					enabled: true,
-				},
+			telemetry: {
+				enabled: true,
 			},
 		};
 		const operation = vi.fn().mockResolvedValue('result');

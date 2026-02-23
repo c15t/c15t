@@ -19,7 +19,7 @@ vi.mock('./create-telemetry-options', () => {
 
 	return {
 		isTelemetryEnabled: vi.fn(
-			(options) => options?.advanced?.telemetry?.enabled === true
+			(options) => options?.telemetry?.enabled === true
 		),
 		getTracer: vi.fn(() => ({
 			startSpan: vi.fn(() => mockSpan()),
@@ -48,10 +48,8 @@ afterEach(() => {
 const enabledOptions: C15TOptions = {
 	trustedOrigins: [],
 	adapter: {} as C15TOptions['adapter'],
-	advanced: {
-		telemetry: {
-			enabled: true,
-		},
+	telemetry: {
+		enabled: true,
 	},
 };
 

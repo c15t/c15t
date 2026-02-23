@@ -8,10 +8,10 @@ import { version } from '~/version';
  */
 export const createOpenAPIConfig = (options: C15TOptions) => {
 	return {
-		enabled: options.advanced?.openapi?.enabled !== false,
+		enabled: options.openapi?.enabled !== false,
 		specPath: '/spec.json',
 		docsPath: '/docs',
-		...(options.advanced?.openapi || {}),
+		...(options.openapi || {}),
 	};
 };
 
