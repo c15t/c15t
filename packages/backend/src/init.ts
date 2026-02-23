@@ -25,12 +25,10 @@ import { initLogger } from './utils/logger';
  *
  * // Then pass telemetry config
  * const instance = c15tInstance({
- *   advanced: {
- *     telemetry: {
- *       enabled: true,
- *       tracer: trace.getTracer('my-app'),
- *       meter: metrics.getMeter('my-app'),
- *     },
+ *   telemetry: {
+ *     enabled: true,
+ *     tracer: trace.getTracer('my-app'),
+ *     meter: metrics.getMeter('my-app'),
  *   },
  * });
  * ```
@@ -46,7 +44,7 @@ export const init = (options: C15TOptions): C15TContext => {
 	// Create telemetry options (validates and merges with defaults)
 	const telemetryOptions = createTelemetryOptions(
 		String(appName),
-		options.advanced?.telemetry,
+		options.telemetry,
 		options.tenantId
 	);
 
@@ -70,8 +68,11 @@ export const init = (options: C15TOptions): C15TContext => {
 		? withTenantScope(rawOrm, options.tenantId)
 		: rawOrm;
 
+	// Destructure ipAddress config to avoid type conflict with C15TContext.ipAddress (resolved string)
+	const { ipAddress: _ipAddressConfig, ...baseOptions } = options;
+
 	const context: C15TContext = {
-		...options,
+		...baseOptions,
 		appName,
 		logger,
 		db: orm,

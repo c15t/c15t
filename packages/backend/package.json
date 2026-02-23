@@ -85,8 +85,8 @@
 		},
 		"./types": {
 			"types": "./dist/types/index.d.ts",
-			"import": "./dist/types.js",
-			"require": "./dist/types.cjs"
+			"import": "./dist/types/index.js",
+			"require": "./dist/types/index.cjs"
 		},
 		"./cache": {
 			"types": "./dist/cache/index.d.ts",
@@ -94,9 +94,9 @@
 			"require": "./dist/cache.cjs"
 		}
 	},
-	"main": "./dist/server.cjs",
-	"module": "./dist/server.js",
-	"types": "./dist/server.d.ts",
+	"main": "./dist/core.cjs",
+	"module": "./dist/core.js",
+	"types": "./dist/core.d.ts",
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
 		"build": "bun prebuild && rslib build",

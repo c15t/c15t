@@ -58,25 +58,25 @@ Use for geo-targeted consent banners and regional compliance.`,
 			// Get translations
 			const translationsResult = getTranslationsData(
 				acceptLanguage,
-				options.advanced?.customTranslations
+				options.customTranslations
 			);
 
 			// Get GVL if enabled
 			let gvl = null;
-			if (options.advanced?.iab?.enabled) {
+			if (options.iab?.enabled) {
 				const language = translationsResult.language.split('-')[0] || 'en';
 				const gvlResolver = createGVLResolver({
 					appName: options.appName || 'c15t',
-					bundled: options.advanced.iab.bundled,
-					cacheAdapter: options.advanced.cache?.adapter,
-					vendorIds: options.advanced.iab.vendorIds,
-					endpoint: options.advanced.iab.endpoint,
+					bundled: options.iab.bundled,
+					cacheAdapter: options.cache?.adapter,
+					vendorIds: options.iab.vendorIds,
+					endpoint: options.iab.endpoint,
 				});
 				gvl = await gvlResolver.get(language);
 			}
 
 			// Get custom vendors if configured
-			const customVendors = options.advanced?.iab?.customVendors;
+			const customVendors = options.iab?.customVendors;
 
 			// Record init metric
 			const gpc = request.headers.get('sec-gpc') === '1';
@@ -91,11 +91,11 @@ Use for geo-targeted consent banners and regional compliance.`,
 				jurisdiction,
 				location,
 				translations: translationsResult,
-				branding: options.advanced?.branding || 'c15t',
+				branding: options.branding || 'c15t',
 				gvl,
 				customVendors,
-				...(options.advanced?.iab?.cmpId != null && {
-					cmpId: options.advanced.iab.cmpId,
+				...(options.iab?.cmpId != null && {
+					cmpId: options.iab.cmpId,
 				}),
 			});
 		}

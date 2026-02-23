@@ -172,7 +172,7 @@ export function getIpAddress(
 	req: Request | Headers,
 	options: C15TOptions
 ): string | null {
-	const ipAddressConfig = options.advanced?.ipAddress;
+	const ipAddressConfig = options.ipAddress;
 
 	if (ipAddressConfig?.tracking === false) {
 		return null;

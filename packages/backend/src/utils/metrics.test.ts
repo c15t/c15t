@@ -4,9 +4,7 @@ import { type C15TMetrics, getMetrics, resetMetrics } from './metrics';
 
 // Mock the telemetry options
 vi.mock('./create-telemetry-options', () => ({
-	isTelemetryEnabled: vi.fn(
-		(options) => options?.advanced?.telemetry?.enabled === true
-	),
+	isTelemetryEnabled: vi.fn((options) => options?.telemetry?.enabled === true),
 	getMeter: vi.fn(() => ({
 		createCounter: vi.fn(() => ({
 			add: vi.fn(),
@@ -38,10 +36,8 @@ describe('getMetrics', () => {
 		const options: C15TOptions = {
 			trustedOrigins: [],
 			adapter: {} as C15TOptions['adapter'],
-			advanced: {
-				telemetry: {
-					enabled: true,
-				},
+			telemetry: {
+				enabled: true,
 			},
 		};
 
@@ -54,10 +50,8 @@ describe('getMetrics', () => {
 		const options: C15TOptions = {
 			trustedOrigins: [],
 			adapter: {} as C15TOptions['adapter'],
-			advanced: {
-				telemetry: {
-					enabled: true,
-				},
+			telemetry: {
+				enabled: true,
 			},
 		};
 
@@ -73,10 +67,8 @@ describe('C15TMetrics', () => {
 		const options: C15TOptions = {
 			trustedOrigins: [],
 			adapter: {} as C15TOptions['adapter'],
-			advanced: {
-				telemetry: {
-					enabled: true,
-				},
+			telemetry: {
+				enabled: true,
 			},
 		};
 		return getMetrics(options) as C15TMetrics;
@@ -285,10 +277,8 @@ describe('getMetrics cached singleton', () => {
 		const options: C15TOptions = {
 			trustedOrigins: [],
 			adapter: {} as C15TOptions['adapter'],
-			advanced: {
-				telemetry: {
-					enabled: true,
-				},
+			telemetry: {
+				enabled: true,
 			},
 		};
 
@@ -307,10 +297,8 @@ describe('resetMetrics', () => {
 		const options: C15TOptions = {
 			trustedOrigins: [],
 			adapter: {} as C15TOptions['adapter'],
-			advanced: {
-				telemetry: {
-					enabled: true,
-				},
+			telemetry: {
+				enabled: true,
 			},
 		};
 
