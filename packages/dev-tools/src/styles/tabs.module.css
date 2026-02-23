@@ -9,18 +9,18 @@
 	display: flex;
 	align-items: center;
 	gap: var(--c15t-space-xs, 0.25rem);
-	padding: var(--c15t-space-sm, 0.5rem) var(--c15t-space-sm, 0.5rem);
-	border-bottom: 1px solid var(--c15t-border, hsl(0, 0%, 89%));
-	background-color: var(--c15t-surface, #fff);
+	padding: 0.75rem;
+	border-bottom: 1px solid var(--c15t-devtools-border-strong, hsl(0, 0%, 89%));
+	background-color: var(--c15t-devtools-surface-subtle, hsl(0, 0%, 98%));
 	overflow-x: auto;
-	scroll-padding-inline-end: var(--c15t-space-sm, 0.5rem);
+	scroll-padding-inline-end: var(--c15t-space-md, 1rem);
 	scrollbar-width: none;
 	-ms-overflow-style: none;
 }
 
 .tabList::after {
 	content: "";
-	flex: 0 0 var(--c15t-space-sm, 0.5rem);
+	flex: 0 0 0.5rem;
 }
 
 .tabList::-webkit-scrollbar {
@@ -31,42 +31,50 @@
 .tab {
 	display: flex;
 	align-items: center;
-	gap: var(--c15t-space-xs, 0.25rem);
-	padding: 3px 7px;
-	border: none;
+	gap: 0.375rem;
+	min-height: 1.875rem;
+	padding: 0.25rem 0.625rem;
+	border: 1px solid transparent;
 	border-radius: var(--c15t-radius-md, 0.5rem);
 	background-color: transparent;
 	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
-	font-family: inherit;
-	font-size: 11px;
+	font-family: var(--c15t-font-family, system-ui, -apple-system, sans-serif);
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
 	font-weight: var(--c15t-font-weight-medium, 500);
+	line-height: var(--c15t-line-height-tight, 1.25);
 	cursor: pointer;
 	white-space: nowrap;
 	transition:
 		background-color var(--c15t-duration-fast, 100ms)
 		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		color var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+		border-color var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+		box-shadow var(--c15t-duration-fast, 100ms)
 		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .tab:hover {
-	background-color: var(--c15t-surface-hover, hsl(0, 0%, 97%));
+	background-color: var(--c15t-devtools-surface-muted, hsl(0, 0%, 97%));
 	color: var(--c15t-text, hsl(0, 0%, 9%));
 }
 
 .tab:focus-visible {
-	outline: 2px solid var(--c15t-primary, hsl(228, 100%, 60%));
-	outline-offset: 1px;
+	outline: none;
+	box-shadow: 0 0 0 2px var(--c15t-devtools-focus-ring, hsl(228, 100%, 60%));
 }
 
 .tabActive {
-	background-color: var(--c15t-primary, hsl(228, 100%, 60%));
-	color: var(--c15t-text-on-primary, #fff);
+	background-color: var(--c15t-devtools-surface-elevated, #fff);
+	border-color: var(--c15t-devtools-border-strong, hsl(0, 0%, 89%));
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+	box-shadow: var(--c15t-shadow-sm, 0 1px 2px hsla(0, 0%, 0%, 0.05));
 }
 
 .tabActive:hover {
-	background-color: var(--c15t-primary-hover, hsl(228, 100%, 50%));
-	color: var(--c15t-text-on-primary, #fff);
+	background-color: var(--c15t-devtools-surface-elevated, #fff);
+	color: var(--c15t-text, hsl(0, 0%, 9%));
 }
 
 .tabIcon {

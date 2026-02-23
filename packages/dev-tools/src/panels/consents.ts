@@ -6,6 +6,7 @@
 import type { ConsentStoreState } from 'c15t';
 import {
 	createButton,
+	createDisconnectedState,
 	createGrid,
 	createGridCard,
 	createToggle,
@@ -42,17 +43,7 @@ export function renderConsentsPanel(
 	const state = getState();
 
 	if (!state) {
-		container.appendChild(
-			div({
-				style: {
-					padding: '24px',
-					textAlign: 'center',
-					color: 'var(--c15t-text-muted)',
-					fontSize: 'var(--c15t-devtools-font-size-sm)',
-				},
-				text: 'Store not connected',
-			})
-		);
+		container.appendChild(createDisconnectedState());
 		return;
 	}
 

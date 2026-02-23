@@ -7,6 +7,7 @@ import type { ConsentStoreState } from 'c15t';
 import {
 	createBadge,
 	createButton,
+	createDisconnectedState,
 	createSection,
 	createToggle,
 } from '../components/ui';
@@ -46,49 +47,21 @@ export function renderIabPanel(
 	const state = getState();
 
 	if (!state) {
-		container.appendChild(
-			div({
-				style: {
-					padding: '24px',
-					textAlign: 'center',
-					color: 'var(--c15t-text-muted)',
-					fontSize: 'var(--c15t-devtools-font-size-sm)',
-				},
-				text: 'Store not connected',
-			})
-		);
+		container.appendChild(createDisconnectedState());
 		return;
 	}
 
 	// Check if IAB mode is configured
 	if (state.model !== 'iab') {
 		container.appendChild(
-			div({
-				style: {
-					padding: '24px',
-					textAlign: 'center',
-					color: 'var(--c15t-text-muted)',
-					fontSize: 'var(--c15t-devtools-font-size-sm)',
-				},
-				text: 'IAB TCF mode is not configured',
-			})
+			createDisconnectedState('IAB TCF mode is not configured')
 		);
 		return;
 	}
 
 	const iabState = state.iab;
 	if (!iabState) {
-		container.appendChild(
-			div({
-				style: {
-					padding: '24px',
-					textAlign: 'center',
-					color: 'var(--c15t-text-muted)',
-					fontSize: 'var(--c15t-devtools-font-size-sm)',
-				},
-				text: 'IAB state not available',
-			})
-		);
+		container.appendChild(createDisconnectedState('IAB state not available'));
 		return;
 	}
 

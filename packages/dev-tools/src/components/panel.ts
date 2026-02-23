@@ -341,10 +341,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 		if (isLoading) {
 			statusChildren.push(
 				span({
-					style: {
-						marginLeft: '4px',
-						opacity: '0.7',
-					},
+					className: panelStyles.footerMeta,
 					text: '\u00b7 Fetching /init\u2026',
 				})
 			);
@@ -360,7 +357,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 		if (!isConnected) {
 			footerElement.appendChild(
 				button({
-					className: panelStyles.closeButton,
+					className: panelStyles.inlineActionButton,
 					text: 'Retry',
 					onClick: () => {
 						storeConnector.retryConnection();
@@ -397,7 +394,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 					text: 'c15t consent manager is not initialized. Make sure you have set up the ConsentManagerProvider in your app.',
 				}),
 				button({
-					className: panelStyles.closeButton,
+					className: panelStyles.inlineActionButton,
 					text: 'Retry Connection',
 					onClick: () => {
 						storeConnector.retryConnection();

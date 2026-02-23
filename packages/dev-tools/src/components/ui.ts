@@ -265,6 +265,7 @@ export function createDisconnectedState(
 	message = 'Store not connected'
 ): HTMLElement {
 	return div({
+		className: styles.disconnectedState,
 		style: {
 			padding: '24px',
 			textAlign: 'center',
