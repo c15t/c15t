@@ -58,7 +58,7 @@ export default defineConfig({
 			'db/adapters/mongo': ['./src/db/adapters/mongo.ts'],
 			'db/migrator': ['./src/db/migrator/index.ts'],
 			'define-config': ['./src/define-config.ts'],
-			types: ['./src/types/index.ts'],
+			'types/index': ['./src/types/index.ts'],
 			cache: ['./src/cache/index.ts'],
 		},
 	},

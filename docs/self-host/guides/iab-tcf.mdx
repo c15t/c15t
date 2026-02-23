@@ -9,14 +9,14 @@ The c15t backend optionally supports [IAB TCF v2.3](https://iabeurope.eu/transpa
 
 [consent.io](https://consent.io) is pending validation as an IAB Europe-registered CMP for c15t. Once approved, when using consent.io as your hosted backend, the CMP ID will be automatically provided to clients — no additional configuration needed.
 
-If you self-host and have your own CMP registration with IAB Europe, configure your CMP ID via `advanced.iab.cmpId`. This value is returned to clients in the `/init` response so they use the correct CMP identity in TC Strings.
+If you self-host and have your own CMP registration with IAB Europe, configure your CMP ID via `iab.cmpId`. This value is returned to clients in the `/init` response so they use the correct CMP identity in TC Strings.
 
 <Callout type="warn">
   A valid (non-zero) CMP ID is required for IAB TCF compliance. If neither the backend nor the client provides a CMP ID, IAB initialization will fail with an error.
 </Callout>
 
 <Callout type="warn">
-  If you heavily customize or build your own IAB banner or dialog (rather than using the default `IABConsentBanner` and `IABConsentDialog` components provided by c15t), you cannot use consent.io's CMP ID. You must register your own CMP with [IAB Europe](https://iabeurope.eu/tcf-2-0/) and configure your CMP ID via `advanced.iab.cmpId`.
+  If you heavily customize or build your own IAB banner or dialog (rather than using the default `IABConsentBanner` and `IABConsentDialog` components provided by c15t), you cannot use consent.io's CMP ID. You must register your own CMP with [IAB Europe](https://iabeurope.eu/tcf-2-0/) and configure your CMP ID via `iab.cmpId`.
 </Callout>
 
 ## Enable IAB
@@ -26,12 +26,10 @@ import { c15tInstance } from '@c15t/backend';
 
 export const c15t = c15tInstance({
   // ...
-  advanced: {
-    iab: {
-      enabled: true,
-      cmpId: 10,                  // your registered CMP ID (consent.io provides this automatically)
-      vendorIds: [755, 52, 69],   // only include vendors you use
-    },
+  iab: {
+    enabled: true,
+    cmpId: 10,                  // your registered CMP ID (consent.io provides this automatically)
+    vendorIds: [755, 52, 69],   // only include vendors you use
   },
 });
 ```
@@ -43,13 +41,11 @@ The backend fetches the GVL from `https://gvl.consent.io` by default and caches 
 Point to your own GVL mirror:
 
 ```ts
-advanced: {
-  iab: {
-    enabled: true,
-    endpoint: 'https://your-gvl-mirror.com',
-    vendorIds: [755, 52, 69],
-  },
-}
+iab: {
+  enabled: true,
+  endpoint: 'https://your-gvl-mirror.com',
+  vendorIds: [755, 52, 69],
+},
 ```
 
 ## Bundle GVL by Language
@@ -60,15 +56,13 @@ Pre-bundle the GVL to avoid runtime fetches:
 import gvlEn from './gvl/en.json';
 import gvlDe from './gvl/de.json';
 
-advanced: {
-  iab: {
-    enabled: true,
-    bundled: {
-      en: gvlEn,
-      de: gvlDe,
-    },
+iab: {
+  enabled: true,
+  bundled: {
+    en: gvlEn,
+    de: gvlDe,
   },
-}
+},
 ```
 
 <Callout type="warn">
@@ -80,20 +74,18 @@ advanced: {
 Add your own vendors alongside IAB-registered ones:
 
 ```ts
-advanced: {
-  iab: {
-    enabled: true,
-    vendorIds: [755],
-    customVendors: [
-      {
-        id: 'internal-analytics',
-        name: 'Our Analytics Platform',
-        privacyPolicyUrl: 'https://example.com/privacy',
-        purposes: [1, 8],
-      },
-    ],
-  },
-}
+iab: {
+  enabled: true,
+  vendorIds: [755],
+  customVendors: [
+    {
+      id: 'internal-analytics',
+      name: 'Our Analytics Platform',
+      privacyPolicyUrl: 'https://example.com/privacy',
+      purposes: [1, 8],
+    },
+  ],
+},
 ```
 
 ## TC String

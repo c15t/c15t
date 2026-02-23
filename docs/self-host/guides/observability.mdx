@@ -15,15 +15,13 @@ import { trace, metrics } from '@opentelemetry/api';
 
 export const c15t = c15tInstance({
   // ...
-  advanced: {
-    telemetry: {
-      enabled: true,
-      tracer: trace.getTracer('consent-api'),
-      meter: metrics.getMeter('consent-api'),
-      defaultAttributes: {
-        'service.name': 'consent-api',
-        environment: 'production',
-      },
+  telemetry: {
+    enabled: true,
+    tracer: trace.getTracer('consent-api'),
+    meter: metrics.getMeter('consent-api'),
+    defaultAttributes: {
+      'service.name': 'consent-api',
+      environment: 'production',
     },
   },
 });
