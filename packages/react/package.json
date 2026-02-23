@@ -54,6 +54,46 @@
 			"import": "./dist/components/cookie-banner/index.js",
 			"require": "./dist/components/cookie-banner/index.cjs"
 		},
+		"./components/consent-banner": {
+			"types": "./dist/components/consent-banner/index.d.ts",
+			"import": "./client/components/consent-banner.js",
+			"require": "./dist/components/consent-banner/index.cjs"
+		},
+		"./components/consent-dialog": {
+			"types": "./dist/components/consent-dialog/index.d.ts",
+			"import": "./client/components/consent-dialog.js",
+			"require": "./dist/components/consent-dialog/index.cjs"
+		},
+		"./components/consent-dialog-trigger": {
+			"types": "./dist/components/consent-dialog-trigger/index.d.ts",
+			"import": "./client/components/consent-dialog-trigger.js",
+			"require": "./dist/components/consent-dialog-trigger/index.cjs"
+		},
+		"./components/consent-dialog-link": {
+			"types": "./dist/components/consent-dialog-link/index.d.ts",
+			"import": "./client/components/consent-dialog-link.js",
+			"require": "./dist/components/consent-dialog-link/index.cjs"
+		},
+		"./components/consent-widget": {
+			"types": "./dist/components/consent-widget/index.d.ts",
+			"import": "./client/components/consent-widget.js",
+			"require": "./dist/components/consent-widget/index.cjs"
+		},
+		"./components/frame": {
+			"types": "./dist/components/frame/index.d.ts",
+			"import": "./client/components/frame.js",
+			"require": "./dist/components/frame/index.cjs"
+		},
+		"./components/iab-consent-banner": {
+			"types": "./dist/components/iab-consent-banner/index.d.ts",
+			"import": "./client/components/iab-consent-banner.js",
+			"require": "./dist/components/iab-consent-banner/index.cjs"
+		},
+		"./components/iab-consent-dialog": {
+			"types": "./dist/components/iab-consent-dialog/index.d.ts",
+			"import": "./client/components/iab-consent-dialog.js",
+			"require": "./dist/components/iab-consent-dialog/index.cjs"
+		},
 		"./hooks": {
 			"types": "./dist/hooks/index.d.ts",
 			"import": "./dist/hooks/index.js",
@@ -85,6 +125,7 @@
 	"types": "./dist/index.d.ts",
 	"files": [
 		"dist",
+		"client",
 		"!dist/mockServiceWorker.js"
 	],
 	"scripts": {

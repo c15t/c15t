@@ -25,6 +25,10 @@ export {
 	ConsentDialog,
 	type ConsentDialogProps,
 } from './components/consent-dialog';
+export {
+	ConsentDialogLink,
+	type ConsentDialogLinkProps,
+} from './components/consent-dialog-link';
 // Consent Dialog Trigger (floating button for resurfacing consent dialogs)
 export {
 	ConsentDialogTrigger,

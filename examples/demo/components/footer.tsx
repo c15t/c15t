@@ -1,3 +1,4 @@
+import { ConsentDialogLink } from '@c15t/react/components/consent-dialog-link';
 import { Bird } from 'lucide-react';
 
 export function Footer() {
@@ -94,6 +95,11 @@ export function Footer() {
 					<div className="space-y-4">
 						<h3 className="font-semibold">Legal</h3>
 						<ul className="space-y-2 text-sm text-muted-foreground">
+							<li>
+								<ConsentDialogLink className="transition-colors hover:text-foreground">
+									Your privacy settings
+								</ConsentDialogLink>
+							</li>
 							<li>
 								<a
 									href="#privacy"

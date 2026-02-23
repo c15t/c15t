@@ -1,0 +1,26 @@
+---
+title: ConsentDialogLink
+description: An inline trigger for opening the consent dialog from footers, legal pages, and account settings.
+---
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#intro" />
+
+## Basic Usage
+
+```tsx
+import { ConsentDialogLink } from '@c15t/react/components/consent-dialog-link';
+
+export function SiteFooter() {
+  return (
+    <footer>
+      <ConsentDialogLink>
+        Your privacy settings
+      </ConsentDialogLink>
+    </footer>
+  );
+}
+```
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#customization" />
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#props" />
