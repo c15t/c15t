@@ -27,7 +27,7 @@ This is the recommended approach if you're using the Posthog JS SDK, this is com
       cookieless_mode: 'on_reject'
     })
 
-    posthog.has_opted_out_capturing() // Avoids accidental tracking without consent till c15t has loaded
+    posthog.opt_out_capturing() // Avoids accidental tracking without consent till c15t has loaded
     ```
   </Step>
 
