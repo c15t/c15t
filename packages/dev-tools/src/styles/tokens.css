@@ -13,8 +13,19 @@
 	--c15t-devtools-button-size: 40px;
 	--c15t-devtools-z-index: 99999;
 
-	/* Surface muted - maps to surface-hover from ui */
+	/* Surface/elevation tokens */
 	--c15t-devtools-surface-muted: var(--c15t-surface-hover, hsl(0, 0%, 97%));
+	--c15t-devtools-surface-subtle: hsl(0, 0%, 98%);
+	--c15t-devtools-surface-elevated: var(--c15t-surface, #fff);
+	--c15t-devtools-border-strong: var(--c15t-border, hsl(0, 0%, 89%));
+	--c15t-devtools-code-surface: hsl(0, 0%, 97%);
+	--c15t-devtools-accent-soft: hsl(228, 100%, 96%);
+	--c15t-devtools-focus-ring: var(--c15t-primary, hsl(228, 100%, 60%));
+	--c15t-devtools-text-muted: var(--c15t-text-muted, hsl(0, 0%, 45%));
+	--c15t-devtools-font-size-sm: var(--c15t-font-size-sm, 0.875rem);
+
+	/* Backward-compatible aliases used by existing inline styles */
+	--c15t-surface-muted: var(--c15t-devtools-surface-muted, hsl(0, 0%, 97%));
 
 	/* Font size xs - not in c15t/ui */
 	--c15t-devtools-font-size-xs: 0.75rem;
@@ -32,10 +43,61 @@
 	--c15t-devtools-badge-neutral-bg: hsl(0, 0%, 94%);
 }
 
+/* === Explicit Light Mode via class === */
+:global(.c15t-light),
+:global(.light) {
+	--c15t-devtools-surface-muted: var(--c15t-surface-hover, hsl(0, 0%, 97%));
+	--c15t-devtools-surface-subtle: hsl(0, 0%, 98%);
+	--c15t-devtools-surface-elevated: var(--c15t-surface, #fff);
+	--c15t-devtools-border-strong: var(--c15t-border, hsl(0, 0%, 89%));
+	--c15t-devtools-code-surface: hsl(0, 0%, 97%);
+	--c15t-devtools-accent-soft: hsl(228, 100%, 96%);
+	--c15t-devtools-badge-success-bg: hsl(142, 76%, 94%);
+	--c15t-devtools-badge-error-bg: hsl(0, 86%, 95%);
+	--c15t-devtools-badge-warning-bg: hsl(48, 96%, 93%);
+	--c15t-devtools-badge-info-bg: hsl(214, 95%, 93%);
+	--c15t-devtools-badge-neutral-bg: hsl(0, 0%, 94%);
+}
+
+@supports (color: color-mix(in srgb, white, black)) {
+	:root {
+		--c15t-devtools-surface-muted: color-mix(
+			in srgb,
+			var(--c15t-surface-hover, hsl(0, 0%, 97%)) 85%,
+			var(--c15t-surface, #fff)
+		);
+		--c15t-devtools-surface-subtle: color-mix(
+			in srgb,
+			var(--c15t-surface-hover, hsl(0, 0%, 97%)) 55%,
+			var(--c15t-surface, #fff)
+		);
+		--c15t-devtools-border-strong: color-mix(
+			in srgb,
+			var(--c15t-border, hsl(0, 0%, 89%)) 80%,
+			var(--c15t-text-muted, hsl(0, 0%, 45%))
+		);
+		--c15t-devtools-code-surface: color-mix(
+			in srgb,
+			var(--c15t-surface-hover, hsl(0, 0%, 97%)) 70%,
+			var(--c15t-surface, #fff)
+		);
+		--c15t-devtools-accent-soft: color-mix(
+			in srgb,
+			var(--c15t-primary, hsl(228, 100%, 60%)) 12%,
+			transparent
+		);
+	}
+}
+
 /* === Dark Mode via class === */
 :global(.c15t-dark),
 :global(.dark) {
 	--c15t-devtools-surface-muted: var(--c15t-surface-hover, hsl(0, 0%, 16%));
+	--c15t-devtools-surface-subtle: hsl(0, 0%, 14%);
+	--c15t-devtools-surface-elevated: var(--c15t-surface, hsl(0, 0%, 10%));
+	--c15t-devtools-border-strong: var(--c15t-border, hsl(0, 0%, 24%));
+	--c15t-devtools-code-surface: hsl(0, 0%, 13%);
+	--c15t-devtools-accent-soft: hsla(228, 100%, 60%, 0.2);
 
 	/* Badge colors - darker backgrounds for dark mode */
 	--c15t-devtools-badge-success-bg: hsla(142, 71%, 45%, 0.2);
@@ -47,8 +109,13 @@
 
 /* === Dark Mode via system preference === */
 @media (prefers-color-scheme: dark) {
-	:root {
+	:global(:root:not(.light):not(.c15t-light)) {
 		--c15t-devtools-surface-muted: var(--c15t-surface-hover, hsl(0, 0%, 16%));
+		--c15t-devtools-surface-subtle: hsl(0, 0%, 14%);
+		--c15t-devtools-surface-elevated: var(--c15t-surface, hsl(0, 0%, 10%));
+		--c15t-devtools-border-strong: var(--c15t-border, hsl(0, 0%, 24%));
+		--c15t-devtools-code-surface: hsl(0, 0%, 13%);
+		--c15t-devtools-accent-soft: hsla(228, 100%, 60%, 0.2);
 
 		/* Badge colors - darker backgrounds for dark mode */
 		--c15t-devtools-badge-success-bg: hsla(142, 71%, 45%, 0.2);

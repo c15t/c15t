@@ -85,13 +85,11 @@ describe('getIpAddress', () => {
 	};
 
 	const createBaseOptions = (
-		ipAddressOverrides?: NonNullable<C15TOptions['advanced']>['ipAddress']
+		ipAddressOverrides?: C15TOptions['ipAddress']
 	): C15TOptions => ({
 		trustedOrigins: ['http://localhost'],
 		adapter: {} as C15TOptions['adapter'],
-		advanced: {
-			ipAddress: ipAddressOverrides,
-		},
+		ipAddress: ipAddressOverrides,
 	});
 
 	describe('IP extraction', () => {

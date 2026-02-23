@@ -4,6 +4,7 @@
  */
 
 const STORAGE_KEY = 'c15t-devtools-events';
+const ACTIVE_TAB_STORAGE_KEY = 'c15t-devtools-active-tab';
 
 /**
  * Load persisted events from sessionStorage
@@ -34,6 +35,43 @@ function persistEvents(events: EventLogEntry[]): void {
 		sessionStorage.setItem(STORAGE_KEY, JSON.stringify(events));
 	} catch {
 		// Ignore storage errors (quota exceeded, etc.)
+	}
+}
+
+function isDevToolsTab(value: unknown): value is DevToolsTab {
+	return (
+		value === 'consents' ||
+		value === 'location' ||
+		value === 'scripts' ||
+		value === 'iab' ||
+		value === 'events' ||
+		value === 'actions'
+	);
+}
+
+function loadPersistedActiveTab(): DevToolsTab | null {
+	if (typeof window === 'undefined') {
+		return null;
+	}
+	try {
+		const stored = localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
+		if (isDevToolsTab(stored)) {
+			return stored;
+		}
+	} catch {
+		// Ignore storage errors
+	}
+	return null;
+}
+
+function persistActiveTab(tab: DevToolsTab): void {
+	if (typeof window === 'undefined') {
+		return;
+	}
+	try {
+		localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, tab);
+	} catch {
+		// Ignore storage errors
 	}
 }
 
@@ -109,10 +147,11 @@ export function createStateManager(
 ): StateManager {
 	// Load persisted events from sessionStorage
 	const persistedEvents = loadPersistedEvents();
+	const persistedActiveTab = loadPersistedActiveTab();
 
 	let state: DevToolsState = {
 		isOpen: false,
-		activeTab: 'location',
+		activeTab: persistedActiveTab ?? 'location',
 		position: 'bottom-right',
 		isConnected: false,
 		eventLog: persistedEvents,
@@ -154,6 +193,7 @@ export function createStateManager(
 
 		setActiveTab: (tab) => {
 			setState({ activeTab: tab });
+			persistActiveTab(tab);
 		},
 
 		setPosition: (position) => {

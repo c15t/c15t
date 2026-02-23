@@ -161,7 +161,7 @@ describe('Init Handler Utilities', () => {
 			const options: C15TOptions = {
 				trustedOrigins: [],
 				adapter: {} as C15TOptions['adapter'],
-				advanced: { disableGeoLocation: true },
+				disableGeoLocation: true,
 			};
 
 			const result = await getLocation(request, options);
@@ -175,7 +175,7 @@ describe('Init Handler Utilities', () => {
 			const options: C15TOptions = {
 				trustedOrigins: [],
 				adapter: {} as C15TOptions['adapter'],
-				advanced: { disableGeoLocation: true },
+				disableGeoLocation: true,
 			};
 
 			const result = getJurisdiction(

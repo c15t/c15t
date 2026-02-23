@@ -10,7 +10,7 @@ import type { C15TOptions } from '../types';
 import { version } from '../version';
 import { extractErrorMessage } from './extract-error-message';
 
-type TelemetryConfig = NonNullable<C15TOptions['advanced']>['telemetry'];
+type TelemetryConfig = C15TOptions['telemetry'];
 
 // ── Cached config (set once during init) ──────────────────────────────
 let cachedConfig: TelemetryConfig | null = null;
@@ -67,7 +67,7 @@ export function createTelemetryOptions(
  */
 export function isTelemetryEnabled(options?: C15TOptions): boolean {
 	if (options) {
-		return options.advanced?.telemetry?.enabled === true;
+		return options.telemetry?.enabled === true;
 	}
 	return cachedConfig?.enabled === true;
 }
@@ -81,7 +81,7 @@ export const getTracer = (options?: C15TOptions) => {
 		// Return a no-op tracer when telemetry is disabled
 		return trace.getTracer('c15t-noop');
 	}
-	const tracer = options?.advanced?.telemetry?.tracer ?? cachedConfig?.tracer;
+	const tracer = options?.telemetry?.tracer ?? cachedConfig?.tracer;
 	if (tracer) {
 		return tracer;
 	}
@@ -97,7 +97,7 @@ export const getMeter = (options?: C15TOptions): Meter => {
 		// Return a no-op meter when telemetry is disabled
 		return metrics.getMeter('c15t-noop');
 	}
-	const meter = options?.advanced?.telemetry?.meter ?? cachedConfig?.meter;
+	const meter = options?.telemetry?.meter ?? cachedConfig?.meter;
 	if (meter) {
 		return meter;
 	}
@@ -137,7 +137,7 @@ export const createRequestSpan = (
 
 	const tracer = getTracer(options);
 	const defaultAttrs =
-		options?.advanced?.telemetry?.defaultAttributes || getDefaultAttributes();
+		options?.telemetry?.defaultAttributes || getDefaultAttributes();
 
 	const span = tracer.startSpan(`${method} ${path}`, {
 		attributes: {

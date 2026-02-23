@@ -63,11 +63,9 @@ function telemetryOptions(): C15TOptions {
 	return {
 		trustedOrigins: [],
 		adapter: {} as C15TOptions['adapter'],
-		advanced: {
-			telemetry: {
-				enabled: true,
-				tracer,
-			},
+		telemetry: {
+			enabled: true,
+			tracer,
 		},
 	};
 }

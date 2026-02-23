@@ -17,13 +17,11 @@ import { createUpstashRedisAdapter } from '@c15t/backend/cache';
 
 export const c15t = c15tInstance({
   // ...
-  advanced: {
-    cache: {
-      adapter: createUpstashRedisAdapter({
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN,
-      }),
-    },
+  cache: {
+    adapter: createUpstashRedisAdapter({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    }),
   },
 });
 ```
@@ -54,10 +52,8 @@ export default {
   async fetch(request: Request, env: Env) {
     const c15t = c15tInstance({
       // ...
-      advanced: {
-        cache: {
-          adapter: createCloudflareKVAdapter(env.GVL_CACHE),
-        },
+      cache: {
+        adapter: createCloudflareKVAdapter(env.GVL_CACHE),
       },
     });
 

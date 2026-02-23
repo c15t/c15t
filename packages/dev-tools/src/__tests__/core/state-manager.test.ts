@@ -7,10 +7,12 @@ import {
 describe('createStateManager', () => {
 	let stateManager: StateManager;
 	let mockSessionStorage: Record<string, string>;
+	let mockLocalStorage: Record<string, string>;
 
 	beforeEach(() => {
 		// Reset sessionStorage mock
 		mockSessionStorage = {};
+		mockLocalStorage = {};
 		vi.stubGlobal('sessionStorage', {
 			getItem: vi.fn((key: string) => mockSessionStorage[key] ?? null),
 			setItem: vi.fn((key: string, value: string) => {
@@ -18,6 +20,15 @@ describe('createStateManager', () => {
 			}),
 			removeItem: vi.fn((key: string) => {
 				delete mockSessionStorage[key];
+			}),
+		});
+		vi.stubGlobal('localStorage', {
+			getItem: vi.fn((key: string) => mockLocalStorage[key] ?? null),
+			setItem: vi.fn((key: string, value: string) => {
+				mockLocalStorage[key] = value;
+			}),
+			removeItem: vi.fn((key: string) => {
+				delete mockLocalStorage[key];
 			}),
 		});
 
@@ -47,6 +58,12 @@ describe('createStateManager', () => {
 			expect(state.isOpen).toBe(true);
 			expect(state.activeTab).toBe('consents');
 			expect(state.position).toBe('top-left');
+		});
+
+		it('should load persisted active tab from localStorage', () => {
+			mockLocalStorage['c15t-devtools-active-tab'] = 'events';
+			const managerWithPersistedTab = createStateManager();
+			expect(managerWithPersistedTab.getState().activeTab).toBe('events');
 		});
 
 		it('should load persisted events from sessionStorage', () => {
@@ -96,6 +113,14 @@ describe('createStateManager', () => {
 
 			stateManager.setActiveTab('iab');
 			expect(stateManager.getState().activeTab).toBe('iab');
+		});
+
+		it('should persist active tab to localStorage', () => {
+			stateManager.setActiveTab('actions');
+			expect(localStorage.setItem).toHaveBeenCalledWith(
+				'c15t-devtools-active-tab',
+				'actions'
+			);
 		});
 	});
 

@@ -35,6 +35,15 @@ export interface StoreConnectorOptions {
 	onDisconnect?: () => void;
 }
 
+export interface ConnectionDiagnostics {
+	namespace: string;
+	reconnectAttempts: number;
+	nextRetryInMs: number | null;
+	lastError: string | null;
+	isPolling: boolean;
+	disconnectNotified: boolean;
+}
+
 /**
  * Store connector instance interface
  */
@@ -61,6 +70,18 @@ export interface StoreConnector {
 	 * Returns unsubscribe function
 	 */
 	subscribe: (listener: (state: ConsentStoreState) => void) => () => void;
+
+	/**
+	 * Gets connection diagnostics for disconnected-state troubleshooting.
+	 */
+	getDiagnostics: () => ConnectionDiagnostics;
+
+	/**
+	 * Subscribe to diagnostics changes.
+	 */
+	subscribeDiagnostics: (
+		listener: (diagnostics: ConnectionDiagnostics) => void
+	) => () => void;
 
 	/**
 	 * Triggers an immediate reconnect attempt when disconnected.
@@ -92,20 +113,54 @@ export function createStoreConnector(
 	let reconnectAttempts = 0;
 	let hasNotifiedDisconnect = false;
 	const listeners = new Set<(state: ConsentStoreState) => void>();
+	const diagnosticsListeners = new Set<
+		(diagnostics: ConnectionDiagnostics) => void
+	>();
+	let diagnostics: ConnectionDiagnostics = {
+		namespace,
+		reconnectAttempts: 0,
+		nextRetryInMs: null,
+		lastError: null,
+		isPolling: false,
+		disconnectNotified: false,
+	};
 	const INITIAL_RETRY_DELAY_MS = 100;
 	const MAX_RETRY_DELAY_MS = 2000;
 	const DISCONNECT_NOTIFY_ATTEMPTS = 5;
+
+	function updateDiagnostics(
+		partial: Partial<ConnectionDiagnostics>,
+		notify = true
+	): void {
+		diagnostics = {
+			...diagnostics,
+			...partial,
+		};
+		if (!notify) {
+			return;
+		}
+		for (const listener of diagnosticsListeners) {
+			listener(diagnostics);
+		}
+	}
 
 	function clearReconnectTimer(): void {
 		if (reconnectTimeout) {
 			clearTimeout(reconnectTimeout);
 			reconnectTimeout = null;
+			updateDiagnostics({ isPolling: false, nextRetryInMs: null });
 		}
 	}
 
 	function resetReconnectState(): void {
 		reconnectAttempts = 0;
 		hasNotifiedDisconnect = false;
+		updateDiagnostics({
+			reconnectAttempts: 0,
+			nextRetryInMs: null,
+			lastError: null,
+			disconnectNotified: false,
+		});
 	}
 
 	function notifyDisconnectedOnce(): void {
@@ -113,6 +168,7 @@ export function createStoreConnector(
 			return;
 		}
 		hasNotifiedDisconnect = true;
+		updateDiagnostics({ disconnectNotified: true });
 		onDisconnect?.();
 	}
 
@@ -154,10 +210,16 @@ export function createStoreConnector(
 
 			clearReconnectTimer();
 			resetReconnectState();
+			updateDiagnostics({
+				lastError: null,
+			});
 
 			return true;
 		}
 
+		updateDiagnostics({
+			lastError: `Store "${namespace}" not found on window`,
+		});
 		return false;
 	}
 
@@ -175,10 +237,19 @@ export function createStoreConnector(
 					INITIAL_RETRY_DELAY_MS * 2 ** Math.min(reconnectAttempts, 5),
 					MAX_RETRY_DELAY_MS
 				);
+		updateDiagnostics({
+			isPolling: true,
+			nextRetryInMs: delay,
+			reconnectAttempts,
+		});
 
 		reconnectTimeout = setTimeout(() => {
 			reconnectTimeout = null;
 			reconnectAttempts++;
+			updateDiagnostics({
+				reconnectAttempts,
+				nextRetryInMs: null,
+			});
 			if (tryConnect()) {
 				return;
 			}
@@ -220,6 +291,16 @@ export function createStoreConnector(
 			};
 		},
 
+		getDiagnostics: () => diagnostics,
+
+		subscribeDiagnostics: (listener) => {
+			diagnosticsListeners.add(listener);
+			listener(diagnostics);
+			return () => {
+				diagnosticsListeners.delete(listener);
+			};
+		},
+
 		retryConnection: () => {
 			if (store) {
 				return;
@@ -238,6 +319,7 @@ export function createStoreConnector(
 
 			store = null;
 			listeners.clear();
+			diagnosticsListeners.clear();
 		},
 	};
 }

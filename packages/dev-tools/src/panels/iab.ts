@@ -7,6 +7,8 @@ import type { ConsentStoreState } from 'c15t';
 import {
 	createBadge,
 	createButton,
+	createDisconnectedState,
+	createInput,
 	createSection,
 	createToggle,
 } from '../components/ui';
@@ -22,6 +24,8 @@ export interface IabPanelOptions {
 	onSave: () => void;
 	onReset: () => void;
 }
+
+const iabSearchByContainer = new WeakMap<HTMLElement, string>();
 
 /**
  * Renders the IAB panel content
@@ -46,49 +50,21 @@ export function renderIabPanel(
 	const state = getState();
 
 	if (!state) {
-		container.appendChild(
-			div({
-				style: {
-					padding: '24px',
-					textAlign: 'center',
-					color: 'var(--c15t-text-muted)',
-					fontSize: 'var(--c15t-devtools-font-size-sm)',
-				},
-				text: 'Store not connected',
-			})
-		);
+		container.appendChild(createDisconnectedState());
 		return;
 	}
 
 	// Check if IAB mode is configured
 	if (state.model !== 'iab') {
 		container.appendChild(
-			div({
-				style: {
-					padding: '24px',
-					textAlign: 'center',
-					color: 'var(--c15t-text-muted)',
-					fontSize: 'var(--c15t-devtools-font-size-sm)',
-				},
-				text: 'IAB TCF mode is not configured',
-			})
+			createDisconnectedState('IAB TCF mode is not configured')
 		);
 		return;
 	}
 
 	const iabState = state.iab;
 	if (!iabState) {
-		container.appendChild(
-			div({
-				style: {
-					padding: '24px',
-					textAlign: 'center',
-					color: 'var(--c15t-text-muted)',
-					fontSize: 'var(--c15t-devtools-font-size-sm)',
-				},
-				text: 'IAB state not available',
-			})
-		);
+		container.appendChild(createDisconnectedState('IAB state not available'));
 		return;
 	}
 
@@ -128,11 +104,38 @@ export function renderIabPanel(
 	container.appendChild(tcStringSection);
 
 	const gvl = iabState.gvl;
+	const searchQuery = iabSearchByContainer.get(container) ?? '';
+	container.appendChild(
+		createSection({
+			title: 'Filter',
+			children: [
+				createInput({
+					value: searchQuery,
+					placeholder: 'Filter purposes or vendors…',
+					ariaLabel: 'Filter IAB purposes and vendors',
+					small: true,
+					onInput: (value) => {
+						iabSearchByContainer.set(container, value.trim().toLowerCase());
+						renderIabPanel(container, options);
+					},
+				}),
+			],
+		})
+	);
 
 	// Purposes section - single column, scrollable
 	const purposeConsents = iabState.purposeConsents || {};
 	const purposes = gvl?.purposes || {};
-	const purposeEntries = Object.entries(purposeConsents);
+	const purposeEntries = Object.entries(purposeConsents).filter(
+		([purposeId]) => {
+			if (!searchQuery) {
+				return true;
+			}
+			const purposeInfo = purposes[purposeId as unknown as number];
+			const purposeName = purposeInfo?.name || `Purpose ${purposeId}`;
+			return `${purposeId} ${purposeName}`.toLowerCase().includes(searchQuery);
+		}
+	);
 
 	if (purposeEntries.length > 0) {
 		const purposeList = div({
@@ -167,7 +170,16 @@ export function renderIabPanel(
 	// Special Features section (specialFeatureOptIns)
 	const specialFeatureOptIns = iabState.specialFeatureOptIns || {};
 	const specialFeatures = gvl?.specialFeatures || {};
-	const specialFeatureEntries = Object.entries(specialFeatureOptIns);
+	const specialFeatureEntries = Object.entries(specialFeatureOptIns).filter(
+		([featureId]) => {
+			if (!searchQuery) {
+				return true;
+			}
+			const featureInfo = specialFeatures[featureId as unknown as number];
+			const featureName = featureInfo?.name || `Special Feature ${featureId}`;
+			return `${featureId} ${featureName}`.toLowerCase().includes(searchQuery);
+		}
+	);
 
 	if (specialFeatureEntries.length > 0) {
 		const specialFeatureList = div({
@@ -208,7 +220,14 @@ export function renderIabPanel(
 	// Vendors section - differentiate IAB vs Custom
 	const vendorConsents = iabState.vendorConsents || {};
 	const vendors = gvl?.vendors || {};
-	const vendorEntries = Object.entries(vendorConsents);
+	const vendorEntries = Object.entries(vendorConsents).filter(([vendorId]) => {
+		if (!searchQuery) {
+			return true;
+		}
+		const vendorInfo = vendors[vendorId as unknown as number];
+		const vendorName = vendorInfo?.name || `Vendor ${vendorId}`;
+		return `${vendorId} ${vendorName}`.toLowerCase().includes(searchQuery);
+	});
 
 	// Separate IAB vendors (in GVL) from custom vendors
 	const iabVendors: Array<[string, boolean, string]> = [];
