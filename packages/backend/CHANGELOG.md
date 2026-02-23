@@ -1,5 +1,13 @@
 # @c15t/backend
 
+## 2.0.0-rc.4
+
+### Patch Changes
+
+- 4c8435c: refactor(backend): flatten backend API entrypoints and improve TypeScript DX
+- Updated dependencies [06ee724]
+  - @c15t/translations@2.0.0-rc.4
+
 ## 2.0.0-rc.3
 
 ### Patch Changes

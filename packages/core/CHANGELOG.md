@@ -1,5 +1,13 @@
 # c15t
 
+## 2.0.0-rc.4
+
+### Patch Changes
+
+- 29819bc: feat: add an IAB subpath export and lazy-load IAB internals
+- Updated dependencies [06ee724]
+  - @c15t/translations@2.0.0-rc.4
+
 ## 2.0.0-rc.3
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @c15t/react
 
+## 2.0.0-rc.4
+
+### Patch Changes
+
+- 0a42b31: feat(react): ConsentDialogLink component
+- Updated dependencies [29819bc]
+  - c15t@2.0.0-rc.4
+  - @c15t/ui@2.0.0-rc.4
+
 ## 2.0.0-rc.3
 
 ### Patch Changes
