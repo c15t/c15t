@@ -239,7 +239,7 @@ export interface IABConfig {
 	 * - Initialize __tcfapi CMP API
 	 * - Generate TC Strings for IAB compliance
 	 *
-	 * Note: Only works in 'c15t' client mode (requires backend)
+	 * Note: Only works in 'hosted' client mode (legacy alias: 'c15t') because it requires a backend.
 	 */
 	enabled: boolean;
 

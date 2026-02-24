@@ -15,7 +15,7 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
   return (
     <ConsentManagerProvider
       options={{
-        mode: 'c15t',
+        mode: 'hosted',
         backendURL: 'https://your-instance.c15t.dev',
         consentCategories: ['necessary', 'measurement', 'marketing'],
       }}
@@ -36,7 +36,7 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
 // Connected mode — persists to c15t backend
 <ConsentManagerProvider
   options={{
-    mode: 'c15t',
+    mode: 'hosted',
     backendURL: 'https://your-instance.c15t.dev',
   }}
 >
@@ -60,7 +60,7 @@ Force a specific jurisdiction, country, or language regardless of detection:
 ```tsx
 <ConsentManagerProvider
   options={{
-    mode: 'c15t',
+    mode: 'hosted',
     backendURL: 'https://your-instance.c15t.dev',
     overrides: {
       country: 'DE',

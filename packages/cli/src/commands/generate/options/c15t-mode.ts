@@ -11,7 +11,7 @@ import { installDependencies } from './utils/dependencies';
 import { generateFiles } from './utils/generate-files';
 
 /**
- * Result of c15t mode setup
+ * Result of hosted mode setup
  */
 export interface C15TModeResult extends BaseResult {
 	backendURL: string | undefined;
@@ -140,7 +140,7 @@ async function getBackendURL(
  * @param spinner - Spinner for loading indicators
  * @param initialBackendURL - Initial backend URL if available
  * @param handleCancel - Function to handle prompt cancellations
- * @returns Configuration data for the c15t mode
+ * @returns Configuration data for the hosted mode
  */
 export async function setupC15tMode({
 	context,
@@ -176,7 +176,7 @@ export async function setupC15tMode({
 
 	await generateFiles({
 		context,
-		mode: 'c15t',
+		mode: 'hosted',
 		backendURL,
 		spinner,
 		useEnvFile,

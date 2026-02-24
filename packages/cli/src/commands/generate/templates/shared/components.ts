@@ -57,14 +57,14 @@ interface GenerateConsentComponentOptions {
  * // Next.js Pages
  * generateConsentComponent({
  *   importSource: '@c15t/nextjs',
- *   optionsText: "mode: 'c15t',\n\t\t\t\tbackendURL: '/api/c15t',",
+ *   optionsText: "mode: 'hosted',\n\t\t\t\tbackendURL: '/api/c15t',",
  *   initialDataProp: true,
  * });
  *
  * // Next.js App Dir client
  * generateConsentComponent({
  *   importSource: '@c15t/nextjs',
- *   optionsText: "mode: 'c15t',\n\t\t\t\tbackendURL: '/api/c15t',",
+ *   optionsText: "mode: 'hosted',\n\t\t\t\tbackendURL: '/api/c15t',",
  *   useClientDirective: true,
  *   defaultExport: true,
  *   ssrDataOption: true,

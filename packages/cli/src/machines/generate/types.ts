@@ -60,8 +60,8 @@ export interface GenerateMachineContext extends BaseMachineContext {
 	/** Mode passed as CLI argument */
 	modeArg: StorageMode | null;
 
-	// --- Backend Options (c15t/self-hosted modes) ---
-	/** Backend URL for c15t/self-hosted modes */
+	// --- Backend Options (hosted/self-hosted modes) ---
+	/** Backend URL for hosted/self-hosted modes */
 	backendURL: string | null;
 	/** Whether to store backend URL in .env file */
 	useEnvFile: boolean;
@@ -152,7 +152,7 @@ export type GenerateMachineEvent =
 	| { type: 'SELECT_MODE'; mode: StorageMode }
 	| { type: 'MODE_SELECTED'; mode: StorageMode }
 
-	// c15t mode events
+	// Hosted mode events
 	| { type: 'ACCOUNT_CREATION_COMPLETE'; needsAccount: boolean }
 	| { type: 'BROWSER_OPENED' }
 	| { type: 'BACKEND_URL_ENTERED'; url: string }
@@ -206,7 +206,7 @@ export type GenerateMachineStateValue =
 	| 'preflight'
 	| 'preflightError'
 	| 'modeSelection'
-	| 'c15tMode'
+	| 'hostedMode'
 	| 'offlineMode'
 	| 'selfHostedMode'
 	| 'customMode'
@@ -293,7 +293,7 @@ export function createInitialContext(
  * Type guard for checking if a mode requires backend URL
  */
 export function modeRequiresBackend(mode: StorageMode): boolean {
-	return mode === 'c15t' || mode === 'self-hosted';
+	return mode === 'hosted' || mode === 'c15t' || mode === 'self-hosted';
 }
 
 /**

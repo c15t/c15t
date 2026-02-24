@@ -20,7 +20,7 @@ function ConsentManager({ children }: { children: ReactNode }) {
   return (
     <ConsentManagerProvider
       options={{
-        mode: 'c15t',
+        mode: 'hosted',
         backendURL: 'https://your-instance.c15t.dev',
         reloadOnConsentRevoked: true, // default: true
         callbacks: {

@@ -21,7 +21,7 @@ describe('c15t Client Offline Fallback Tests', () => {
 
 		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 0, // Prevent automatic retries
@@ -53,7 +53,7 @@ describe('c15t Client Offline Fallback Tests', () => {
 
 		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 0, // Prevent automatic retries
@@ -111,7 +111,7 @@ describe('c15t Client Offline Fallback Tests', () => {
 
 		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 0, // Prevent automatic retries

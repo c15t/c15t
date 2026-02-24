@@ -35,7 +35,7 @@ vi.mock('../src/commands/generate', () => ({
 // Mock config module
 vi.mock('../src/actions/get-config', () => ({
 	getConfig: vi.fn().mockResolvedValue({
-		mode: 'c15t',
+		mode: 'hosted',
 		backendURL: 'https://test.c15t.dev',
 	}),
 }));
@@ -48,7 +48,7 @@ vi.mock('../src/onboarding', () => ({
 // Mock setupGenerateEnvironment
 vi.mock('../src/commands/generate/setup', () => ({
 	setupGenerateEnvironment: vi.fn().mockResolvedValue({
-		config: { mode: 'c15t', backendURL: 'https://test.c15t.dev' },
+		config: { mode: 'hosted', backendURL: 'https://test.c15t.dev' },
 		adapter: null,
 	}),
 }));

@@ -49,6 +49,7 @@ describe('constants', () => {
 
 	describe('STORAGE_MODES', () => {
 		test('should have all storage modes', () => {
+			expect(STORAGE_MODES.HOSTED).toBe('hosted');
 			expect(STORAGE_MODES.C15T).toBe('c15t');
 			expect(STORAGE_MODES.OFFLINE).toBe('offline');
 			expect(STORAGE_MODES.SELF_HOSTED).toBe('self-hosted');

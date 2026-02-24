@@ -67,18 +67,18 @@ describe('runtime', () => {
 		expect(createConsentManagerStoreMock).toHaveBeenCalledTimes(2);
 	});
 
-	it('normalizes c15t mode defaults and store config metadata', () => {
+	it('normalizes hosted mode defaults and store config metadata', () => {
 		const options = {} as ConsentRuntimeOptions;
 		const pkgInfo = { pkg: '@c15t/react', version: '2.0.0' };
 
 		const result = getOrCreateConsentRuntime(options, pkgInfo);
 
 		expect(result.cacheKey).toBe(
-			'c15t:default:none:default:default:default:enabled'
+			'hosted:default:none:default:default:default:enabled'
 		);
 		expect(configureConsentManagerMock).toHaveBeenCalledWith(
 			expect.objectContaining({
-				mode: 'c15t',
+				mode: 'hosted',
 				backendURL: '/api/c15t',
 			})
 		);
@@ -88,7 +88,7 @@ describe('runtime', () => {
 				config: {
 					pkg: '@c15t/react',
 					version: '2.0.0',
-					mode: 'Unknown',
+					mode: 'hosted',
 				},
 			})
 		);
@@ -251,6 +251,32 @@ describe('runtime', () => {
 					translations: expect.objectContaining({
 						it: {},
 					}),
+				}),
+			})
+		);
+	});
+
+	it('treats legacy c15t mode as hosted for cache and store metadata', () => {
+		const options = {
+			mode: 'c15t',
+		} as ConsentRuntimeOptions;
+
+		const result = getOrCreateConsentRuntime(options, {
+			pkg: '@c15t/react',
+			version: '2.0.0',
+		});
+
+		expect(result.cacheKey).toBe('hosted:default:none:default:default:enabled');
+		expect(configureConsentManagerMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				mode: 'c15t',
+			})
+		);
+		expect(createConsentManagerStoreMock).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({
+				config: expect.objectContaining({
+					mode: 'hosted',
 				}),
 			})
 		);

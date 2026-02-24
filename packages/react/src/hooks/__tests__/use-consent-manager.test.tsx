@@ -72,7 +72,7 @@ vi.mock('c15t', async () => {
 			return {
 				consentManager,
 				consentStore,
-				cacheKey: `test:${options.mode || 'c15t'}:${Date.now()}`,
+				cacheKey: `test:${options.mode || 'hosted'}:${Date.now()}`,
 			};
 		},
 	};

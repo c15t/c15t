@@ -123,7 +123,7 @@ function wrapReturnStatementWithConsentManager(
  * @param projectRoot - Root directory of the project
  * @param sourceDir - Source directory path (either 'src' or '')
  * @param mode - Storage mode for consent management
- * @param backendURL - Backend URL for c15t/self-hosted modes
+ * @param backendURL - Backend URL for hosted/self-hosted modes
  * @param useEnvFile - Whether to use environment variables
  * @param selectedScripts - Selected scripts to include
  * @param enableDevTools - Whether to add DevTools component

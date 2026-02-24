@@ -12,7 +12,7 @@ import { ConsentManagerProvider, ConsentBanner } from '@c15t/nextjs';
 
 export function ConsentManager() {
   return (
-    <ConsentManagerProvider options={{ mode: 'c15t', backendURL: '/api/c15t' }}>
+    <ConsentManagerProvider options={{ mode: 'hosted', backendURL: '/api/c15t' }}>
       <ConsentBanner />
     </ConsentManagerProvider>
   );

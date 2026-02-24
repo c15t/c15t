@@ -28,7 +28,7 @@ const theme = {
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider options={{ theme, mode: 'c15t', backendURL: 'https://your-instance.c15t.dev' }}>
+    <ConsentManagerProvider options={{ theme, mode: 'hosted', backendURL: 'https://your-instance.c15t.dev' }}>
       {children}
     </ConsentManagerProvider>
   );

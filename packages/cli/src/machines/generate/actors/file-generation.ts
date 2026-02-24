@@ -193,7 +193,7 @@ export const fileGenerationActor = fromPromise<
 		// Generate files using existing utility
 		const generateResult = await generateFiles({
 			context: cliContext,
-			mode: mode as 'c15t' | 'self-hosted' | 'offline' | 'custom',
+			mode: mode as 'hosted' | 'c15t' | 'self-hosted' | 'offline' | 'custom',
 			spinner: spinnerMock as ReturnType<
 				typeof import('@clack/prompts').spinner
 			>,

@@ -11,6 +11,12 @@ import type {
 } from '../types';
 import type { GenerateMachineContext, GenerateMachineEvent } from './types';
 
+function normalizeMode(
+	mode: GenerateMachineContext['selectedMode']
+): GenerateMachineContext['selectedMode'] {
+	return mode === 'c15t' ? 'hosted' : mode;
+}
+
 /**
  * Action arguments passed to assign functions
  */
@@ -71,7 +77,7 @@ export function setSelectedMode({
 	const mode = event.type === 'SELECT_MODE' ? event.mode : event.mode;
 
 	return {
-		selectedMode: mode,
+		selectedMode: normalizeMode(mode),
 	};
 }
 
@@ -82,7 +88,7 @@ export function useModeArg({
 	context,
 }: ActionArgs): Partial<GenerateMachineContext> {
 	return {
-		selectedMode: context.modeArg,
+		selectedMode: normalizeMode(context.modeArg),
 	};
 }
 

@@ -45,10 +45,11 @@ export const modeSelectionActor = fromPromise<
 >(async ({ input }) => {
 	const result = await p.select<string | symbol | undefined>({
 		message: 'How would you like to store consent decisions?',
-		initialValue: input.initialMode ?? 'c15t',
+		initialValue:
+			input.initialMode === 'c15t' ? 'hosted' : (input.initialMode ?? 'hosted'),
 		options: [
 			{
-				value: 'c15t',
+				value: 'hosted',
 				label: 'Hosted c15t (consent.io)',
 				hint: 'Recommended: Fully managed service',
 			},
@@ -77,7 +78,7 @@ export const modeSelectionActor = fromPromise<
 	return { mode: result as StorageMode };
 });
 
-// --- Account Creation Prompt (c15t mode) ---
+// --- Account Creation Prompt (hosted mode) ---
 
 export interface AccountCreationInput {
 	cliContext: CliContext;
@@ -153,7 +154,7 @@ export const accountCreationActor = fromPromise<
 
 export interface BackendURLInput {
 	initialURL?: string;
-	isC15tMode: boolean;
+	isHostedMode: boolean;
 }
 
 export interface BackendURLOutput {
@@ -162,14 +163,14 @@ export interface BackendURLOutput {
 
 export const backendURLActor = fromPromise<BackendURLOutput, BackendURLInput>(
 	async ({ input }) => {
-		const { initialURL, isC15tMode } = input;
+		const { initialURL, isHostedMode } = input;
 
-		const placeholder = isC15tMode
+		const placeholder = isHostedMode
 			? 'https://your-instance.c15t.dev'
 			: 'https://your-backend.example.com/api/c15t';
 
 		const result = await p.text({
-			message: isC15tMode
+			message: isHostedMode
 				? 'Enter your consent.io instance URL:'
 				: 'Enter your self-hosted backend URL:',
 			placeholder,
@@ -180,7 +181,7 @@ export const backendURLActor = fromPromise<BackendURLOutput, BackendURLInput>(
 				}
 				try {
 					const url = new URL(value);
-					if (isC15tMode && !url.hostname.endsWith('.c15t.dev')) {
+					if (isHostedMode && !url.hostname.endsWith('.c15t.dev')) {
 						return 'Please enter a valid *.c15t.dev URL';
 					}
 				} catch {

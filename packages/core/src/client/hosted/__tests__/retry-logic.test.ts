@@ -52,7 +52,7 @@ describe('c15t Client Retry Logic Tests', () => {
 			);
 
 		const config: ConsentManagerOptions = {
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 2, // With maxRetries=2, attemptsMade runs 0, 1, 2 (3 total attempts)
@@ -89,7 +89,7 @@ describe('c15t Client Retry Logic Tests', () => {
 
 		const backoffFactor = 2;
 		const config: ConsentManagerOptions = {
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 3,
@@ -123,7 +123,7 @@ describe('c15t Client Retry Logic Tests', () => {
 		);
 
 		const config: ConsentManagerOptions = {
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 3,
@@ -151,7 +151,7 @@ describe('c15t Client Retry Logic Tests', () => {
 			);
 
 		const config: ConsentManagerOptions = {
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 2,
@@ -250,7 +250,7 @@ describe('c15t Client Retry Logic Tests', () => {
 			);
 
 		const config: ConsentManagerOptions = {
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 1,
@@ -282,7 +282,7 @@ describe('c15t Client Retry Logic Tests', () => {
 
 		// Configure client with retry config
 		const config: ConsentManagerOptions = {
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 			// retryConfig: {
 			// 	maxRetries: 3, // Set high enough to potentially retry multiple times
@@ -329,7 +329,7 @@ describe('c15t Client Retry Logic Tests', () => {
 
 		// Configure client with retry config
 		const config: ConsentManagerOptions = {
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 2,

@@ -204,7 +204,7 @@ export const generateMachine = setup({
 		 */
 		routeToMode: {
 			always: [
-				{ guard: 'isC15tMode', target: 'c15tMode' },
+				{ guard: 'isHostedMode', target: 'hostedMode' },
 				{ guard: 'isOfflineMode', target: 'offlineMode' },
 				{ guard: 'isSelfHostedMode', target: 'selfHostedMode' },
 				{ guard: 'isCustomMode', target: 'customMode' },
@@ -216,7 +216,7 @@ export const generateMachine = setup({
 		/**
 		 * c15t (hosted) mode setup
 		 */
-		c15tMode: {
+		hostedMode: {
 			initial: 'accountCreation',
 			states: {
 				accountCreation: {
@@ -235,7 +235,7 @@ export const generateMachine = setup({
 				backendURL: {
 					invoke: {
 						src: 'backendURL',
-						input: () => ({ isC15tMode: true }),
+						input: () => ({ isHostedMode: true }),
 						onDone: {
 							target: '#generate.backendOptions',
 							actions: assign({
@@ -266,7 +266,7 @@ export const generateMachine = setup({
 		selfHostedMode: {
 			invoke: {
 				src: 'backendURL',
-				input: () => ({ isC15tMode: false }),
+				input: () => ({ isHostedMode: false }),
 				onDone: {
 					target: 'backendOptions',
 					actions: assign({
@@ -324,6 +324,7 @@ export const generateMachine = setup({
 				input: ({ context }) => ({
 					cliContext: context.cliContext!,
 					hasBackend:
+						context.selectedMode === 'hosted' ||
 						context.selectedMode === 'c15t' ||
 						context.selectedMode === 'self-hosted',
 				}),

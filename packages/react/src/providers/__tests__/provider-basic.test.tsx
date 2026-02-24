@@ -44,7 +44,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		render(
 			<ConsentManagerProvider
 				options={{
-					mode: 'c15t',
+					mode: 'hosted',
 					backendURL: '/api/c15t',
 				}}
 			>
@@ -107,7 +107,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		const { rerender } = await render(
 			<ConsentManagerProvider
 				options={{
-					mode: 'c15t',
+					mode: 'hosted',
 					backendURL: '/api/c15t-1', // Use unique URLs to distinguish calls
 				}}
 			>
@@ -130,7 +130,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		rerender(
 			<ConsentManagerProvider
 				options={{
-					mode: 'c15t',
+					mode: 'hosted',
 					backendURL: '/api/c15t-2', // Different backend URL
 				}}
 			>

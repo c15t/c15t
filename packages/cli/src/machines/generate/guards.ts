@@ -40,14 +40,14 @@ export function hasModeArg({
 }
 
 /**
- * Check if selected mode is c15t
+ * Check if selected mode is hosted (including legacy c15t alias)
  */
-export function isC15tMode({
+export function isHostedMode({
 	context,
 }: {
 	context: GenerateMachineContext;
 }): boolean {
-	return context.selectedMode === 'c15t';
+	return context.selectedMode === 'hosted' || context.selectedMode === 'c15t';
 }
 
 /**
@@ -84,7 +84,7 @@ export function isCustomMode({
 }
 
 /**
- * Check if mode requires a backend URL (c15t or self-hosted)
+ * Check if mode requires a backend URL (hosted, legacy c15t, or self-hosted)
  */
 export function modeRequiresBackend({
 	context,
@@ -92,7 +92,9 @@ export function modeRequiresBackend({
 	context: GenerateMachineContext;
 }): boolean {
 	return (
-		context.selectedMode === 'c15t' || context.selectedMode === 'self-hosted'
+		context.selectedMode === 'hosted' ||
+		context.selectedMode === 'c15t' ||
+		context.selectedMode === 'self-hosted'
 	);
 }
 
@@ -265,7 +267,9 @@ export function shouldPromptSSR({
 }): boolean {
 	return (
 		context.framework?.pkg === '@c15t/nextjs' &&
-		(context.selectedMode === 'c15t' || context.selectedMode === 'self-hosted')
+		(context.selectedMode === 'hosted' ||
+			context.selectedMode === 'c15t' ||
+			context.selectedMode === 'self-hosted')
 	);
 }
 
@@ -290,7 +294,7 @@ export const guards = {
 	preflightPassed,
 	preflightFailed,
 	hasModeArg,
-	isC15tMode,
+	isHostedMode,
 	isOfflineMode,
 	isSelfHostedMode,
 	isCustomMode,

@@ -12,7 +12,7 @@ import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/reac
 
 export function ConsentManager() {
   return (
-    <ConsentManagerProvider options={{ mode: 'c15t', backendURL: 'https://your-instance.c15t.dev' }}>
+    <ConsentManagerProvider options={{ mode: 'hosted', backendURL: 'https://your-instance.c15t.dev' }}>
       <ConsentBanner />
       <ConsentDialog />
     </ConsentManagerProvider>

@@ -1,11 +1,11 @@
 ---
 title: Client Modes
-description: Choose how c15t connects to its backend - full c15t integration, offline-only, or bring your own backend.
+description: Choose how c15t connects to its backend - full hosted integration, offline-only, or bring your own backend.
 ---
 
 <import src="../../../shared/concepts/client-modes.mdx#overview" />
 
-<import src="../../../shared/concepts/client-modes.mdx#c15t-mode" />
+<import src="../../../shared/concepts/client-modes.mdx#hosted-mode" />
 
 ```tsx
 import { type ReactNode } from 'react';
@@ -15,7 +15,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
   return (
     <ConsentManagerProvider
       options={{
-        mode: 'c15t',
+        mode: 'hosted',
         backendURL: '/api/c15t',
       }}
     >

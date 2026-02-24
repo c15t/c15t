@@ -11,7 +11,7 @@ Configure which categories your app supports in the runtime options:
 import { getOrCreateConsentRuntime } from 'c15t';
 
 const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'c15t',
+  mode: 'hosted',
   backendURL: 'https://your-instance.c15t.dev',
   consentCategories: ['necessary', 'measurement', 'marketing'],
 });

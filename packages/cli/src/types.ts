@@ -225,7 +225,7 @@ export interface GenerateOptions {
 	mode: StorageMode;
 	/** Backend URL (for c15t or self-hosted mode) */
 	backendUrl?: string;
-	/** Instance ID (for c15t mode) */
+	/** Instance ID (for hosted mode) */
 	instanceId?: string;
 	/** Selected scripts to configure */
 	scripts?: string[];

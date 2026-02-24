@@ -28,7 +28,7 @@ interface UpdateNextConfigOptions {
  * ```ts
  * const result = await updateNextConfig({
  *   projectRoot: '/path/to/project',
- *   mode: 'c15t',
+ *   mode: 'hosted',
  *   backendURL: 'https://api.example.com',
  *   useEnvFile: true,
  *   pkg: '@c15t/nextjs'

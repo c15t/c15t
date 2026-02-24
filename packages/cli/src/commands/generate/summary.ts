@@ -199,6 +199,7 @@ function getNextSteps(
 
 	// Mode-specific steps
 	switch (mode) {
+		case STORAGE_MODES.HOSTED:
 		case STORAGE_MODES.C15T:
 			if (backendUrl?.includes('your-instance')) {
 				steps.push(

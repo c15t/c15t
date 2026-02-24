@@ -19,7 +19,7 @@ import type { BaseOptions } from '../types';
 
 export interface GenerateFilesOptions extends BaseOptions {
 	context: CliContext;
-	mode: 'c15t' | 'self-hosted' | 'offline' | 'custom';
+	mode: 'hosted' | 'c15t' | 'self-hosted' | 'offline' | 'custom';
 	proxyNextjs?: boolean;
 	backendURL?: string;
 	useEnvFile?: boolean;
@@ -60,7 +60,7 @@ interface LayoutUpdateResult {
  */
 async function handleReactLayout(options: {
 	projectRoot: string;
-	mode: 'c15t' | 'self-hosted' | 'offline' | 'custom';
+	mode: 'hosted' | 'c15t' | 'self-hosted' | 'offline' | 'custom';
 	backendURL?: string;
 	useEnvFile?: boolean;
 	pkg: AvailablePackages;
@@ -343,11 +343,11 @@ export async function generateFiles({
 		result.layoutPath = layoutResult.layoutPath;
 	}
 
-	// Update Next.js config for c15t/self-hosted Next.js projects only
+	// Update Next.js config for hosted/self-hosted Next.js projects only
 	if (
 		pkg === '@c15t/nextjs' &&
 		proxyNextjs &&
-		(mode === 'c15t' || mode === 'self-hosted')
+		(mode === 'hosted' || mode === 'c15t' || mode === 'self-hosted')
 	) {
 		const configResult = await handleNextConfig({
 			projectRoot,

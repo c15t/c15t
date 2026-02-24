@@ -15,7 +15,7 @@ description: Get started with c15t in vanilla JavaScript — framework-agnostic 
 import { getOrCreateConsentRuntime } from 'c15t';
 
 const { consentManager, consentStore } = getOrCreateConsentRuntime({
-  mode: 'c15t',
+  mode: 'hosted',
   backendURL: 'https://your-instance.c15t.dev',
   consentCategories: ['necessary', 'measurement', 'marketing'],
 });
@@ -65,7 +65,7 @@ Here's a bare-bones example using the store to drive a consent prompt — no fra
 import { getOrCreateConsentRuntime } from 'c15t';
 
 const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'c15t',
+  mode: 'hosted',
   backendURL: 'https://your-instance.c15t.dev',
   consentCategories: ['necessary', 'measurement', 'marketing'],
 });
@@ -114,7 +114,7 @@ See [AI Tools](/docs/ai-tools-integrations) for details.
 
 ## Next Steps
 
-- [Client Modes](/docs/frameworks/javascript/concepts/client-modes) — Choose between c15t, offline, or custom backend
+- [Client Modes](/docs/frameworks/javascript/concepts/client-modes) — Choose between hosted, offline, or custom backend
 - [Store API](/docs/frameworks/javascript/api/overview) — Full reference for store state and actions
 - [Script Loader](/docs/frameworks/javascript/script-loader) — Gate third-party scripts behind consent
 - [Building UI](/docs/frameworks/javascript/building-ui) — Create your own consent components

@@ -1,5 +1,5 @@
 /**
- * Instance selection prompts for c15t mode
+ * Instance selection prompts for hosted mode
  */
 
 import * as p from '@clack/prompts';
