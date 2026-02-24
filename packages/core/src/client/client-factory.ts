@@ -81,8 +81,13 @@ function getClientCacheKey(options: ConsentManagerOptions): string {
 		// the same instance.
 		const initialTranslations =
 			options.store?.initialTranslationConfig?.translations;
+		const initialDefaultLanguage =
+			options.store?.initialTranslationConfig?.defaultLanguage;
 		const translationPart = initialTranslations
 			? `:translations:${Object.keys(initialTranslations).sort().join(',')}`
+			: '';
+		const defaultLanguagePart = initialDefaultLanguage
+			? `:default-language:${initialDefaultLanguage}`
 			: '';
 
 		// Include IAB config in the cache key so that offline clients with
@@ -91,7 +96,7 @@ function getClientCacheKey(options: ConsentManagerOptions): string {
 		const iabConfig = options.store?.iab;
 		const iabPart = iabConfig?.enabled ? ':iab:enabled' : '';
 
-		return `offline${storageKey}${translationPart}${iabPart}`;
+		return `offline${storageKey}${translationPart}${defaultLanguagePart}${iabPart}`;
 	}
 
 	if (options.mode === 'custom') {

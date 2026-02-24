@@ -229,4 +229,78 @@ describe('useTranslations', () => {
 			'Custom English Necessary'
 		);
 	});
+
+	test('supports the new i18n config shape', async () => {
+		const { result } = await renderHook(() => useTranslations(), {
+			wrapper: ({ children }) => (
+				<ConsentManagerProvider
+					options={{
+						mode: 'offline',
+						noStyle: false,
+						i18n: {
+							locale: 'de',
+							detectBrowserLanguage: false,
+							messages: {
+								de: {
+									cookieBanner: {
+										title: 'Neuer Titel',
+									},
+									common: {
+										acceptAll: 'Alles',
+									},
+								},
+							},
+						},
+					}}
+				>
+					{children}
+				</ConsentManagerProvider>
+			),
+		});
+
+		await new Promise((resolve) => setTimeout(resolve, 10));
+
+		expect(result.current.cookieBanner.title).toBe('Neuer Titel');
+		expect(result.current.common.acceptAll).toBe('Alles');
+	});
+
+	test('prefers i18n over legacy translations when both are provided', async () => {
+		const { result } = await renderHook(() => useTranslations(), {
+			wrapper: ({ children }) => (
+				<ConsentManagerProvider
+					options={{
+						mode: 'offline',
+						noStyle: false,
+						translations: {
+							defaultLanguage: 'en',
+							translations: {
+								en: {
+									cookieBanner: {
+										title: 'Legacy Title',
+									},
+								},
+							},
+						},
+						i18n: {
+							locale: 'fr',
+							detectBrowserLanguage: false,
+							messages: {
+								fr: {
+									cookieBanner: {
+										title: 'Nouveau Titre',
+									},
+								},
+							},
+						},
+					}}
+				>
+					{children}
+				</ConsentManagerProvider>
+			),
+		});
+
+		await new Promise((resolve) => setTimeout(resolve, 10));
+
+		expect(result.current.cookieBanner.title).toBe('Nouveau Titre');
+	});
 });

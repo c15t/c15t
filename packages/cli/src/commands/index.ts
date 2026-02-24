@@ -4,6 +4,8 @@
 
 // Auth commands
 export { authCommands, loginCommand, logoutCommand } from './auth';
+// Codemods
+export { codemodsCommand, runCodemods } from './codemods';
 // Generate command
 export { generate, generateCommand } from './generate';
 // Instance management

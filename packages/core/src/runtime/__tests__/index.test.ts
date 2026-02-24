@@ -73,7 +73,9 @@ describe('runtime', () => {
 
 		const result = getOrCreateConsentRuntime(options, pkgInfo);
 
-		expect(result.cacheKey).toBe('c15t:default:none:default:default:enabled');
+		expect(result.cacheKey).toBe(
+			'c15t:default:none:default:default:default:enabled'
+		);
 		expect(configureConsentManagerMock).toHaveBeenCalledWith(
 			expect.objectContaining({
 				mode: 'c15t',
@@ -95,12 +97,14 @@ describe('runtime', () => {
 	it('passes custom mode endpoint handlers and normalized store options', () => {
 		const endpointHandlers = { init: vi.fn() };
 		const iab = { enabled: true };
+		const storageConfig = { storageKey: 'consent' };
 		const options = {
 			mode: 'custom',
 			endpointHandlers,
 			enabled: false,
 			translations: { defaultLanguage: 'de' },
 			iab,
+			storageConfig,
 		} as unknown as ConsentRuntimeOptions;
 
 		getOrCreateConsentRuntime(options, {
@@ -112,8 +116,12 @@ describe('runtime', () => {
 			expect.objectContaining({
 				mode: 'custom',
 				endpointHandlers,
+				storageConfig,
 				store: expect.objectContaining({
-					initialTranslationConfig: { defaultLanguage: 'de' },
+					initialTranslationConfig: {
+						translations: {},
+						defaultLanguage: 'de',
+					},
 					iab,
 				}),
 			})
@@ -121,7 +129,129 @@ describe('runtime', () => {
 		expect(createConsentManagerStoreMock).toHaveBeenCalledWith(
 			expect.anything(),
 			expect.objectContaining({
-				initialTranslationConfig: { defaultLanguage: 'de' },
+				iab,
+				storageConfig,
+				initialTranslationConfig: {
+					translations: {},
+					defaultLanguage: 'de',
+				},
+			})
+		);
+	});
+
+	it('prioritizes i18n over legacy translations config when both are provided', () => {
+		const options = {
+			mode: 'offline',
+			translations: {
+				defaultLanguage: 'en',
+				translations: {
+					en: {},
+				},
+			},
+			i18n: {
+				locale: 'fr',
+				messages: {
+					fr: {},
+				},
+			},
+		} as ConsentRuntimeOptions;
+
+		getOrCreateConsentRuntime(options, {
+			pkg: '@c15t/react',
+			version: '2.0.0',
+		});
+
+		expect(configureConsentManagerMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				store: expect.objectContaining({
+					initialTranslationConfig: expect.objectContaining({
+						defaultLanguage: 'fr',
+						translations: expect.objectContaining({
+							fr: {},
+						}),
+					}),
+				}),
+			})
+		);
+	});
+
+	it('normalizes store-level initialI18nConfig for client/store initialization', () => {
+		const options = {
+			mode: 'offline',
+			store: {
+				initialI18nConfig: {
+					locale: 'it',
+					messages: {
+						it: {},
+					},
+				},
+			},
+		} as ConsentRuntimeOptions;
+
+		getOrCreateConsentRuntime(options, {
+			pkg: '@c15t/react',
+			version: '2.0.0',
+		});
+
+		expect(configureConsentManagerMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				store: expect.objectContaining({
+					initialTranslationConfig: expect.objectContaining({
+						defaultLanguage: 'it',
+						translations: expect.objectContaining({
+							it: {},
+						}),
+					}),
+				}),
+			})
+		);
+	});
+
+	it('prefers store-level initialI18nConfig over top-level legacy translations', () => {
+		const options = {
+			mode: 'offline',
+			store: {
+				initialI18nConfig: {
+					locale: 'it',
+					messages: {
+						it: {},
+					},
+				},
+			},
+			translations: {
+				defaultLanguage: 'de',
+				translations: {
+					de: {},
+				},
+			},
+		} as ConsentRuntimeOptions;
+
+		getOrCreateConsentRuntime(options, {
+			pkg: '@c15t/react',
+			version: '2.0.0',
+		});
+
+		expect(configureConsentManagerMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				store: expect.objectContaining({
+					initialTranslationConfig: expect.objectContaining({
+						defaultLanguage: 'it',
+						translations: expect.objectContaining({
+							it: {},
+						}),
+					}),
+				}),
+			})
+		);
+		expect(createConsentManagerStoreMock).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({
+				initialTranslationConfig: expect.objectContaining({
+					defaultLanguage: 'it',
+					translations: expect.objectContaining({
+						it: {},
+					}),
+				}),
 			})
 		);
 	});

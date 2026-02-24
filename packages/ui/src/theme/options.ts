@@ -2,6 +2,7 @@ import type {
 	AllConsentNames,
 	Callbacks,
 	ConsentManagerOptions as CoreOptions,
+	I18nConfig,
 	IABConfig,
 	LegalLinks,
 	NetworkBlockerConfig,
@@ -118,7 +119,17 @@ export interface CommonInlineStoreOptions {
  */
 export interface ConsentManagerContentOptions {
 	/**
+	 * Preferred i18n configuration in c15t v2.
+	 *
+	 * @remarks
+	 * If both `i18n` and legacy `translations` are provided, `i18n` takes precedence.
+	 */
+	i18n?: Partial<I18nConfig>;
+
+	/**
 	 * Translation configuration to seed the store with.
+	 *
+	 * @deprecated Use `i18n` instead.
 	 *
 	 * @see https://c15t.com/docs/frameworks/react/internationalization
 	 * @see {@link TranslationConfig} for available options

@@ -68,8 +68,8 @@ export default function ({ children, ssrData }: ConsentManagerProps) {
 					id: '123',
 					identityProvider: 'custom',
 				},
-				translations: {
-					translations: {
+				i18n: {
+					messages: {
 						zh: {
 							...baseTranslations.zh,
 						},

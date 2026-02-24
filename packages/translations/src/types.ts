@@ -191,3 +191,25 @@ export interface TranslationConfig {
 	defaultLanguage?: string;
 	disableAutoLanguageSwitch?: boolean;
 }
+
+/**
+ * Preferred i18n configuration shape for c15t v2.
+ *
+ * @remarks
+ * This maps to the legacy {@link TranslationConfig} as follows:
+ * - `messages` -> `translations`
+ * - `locale` -> `defaultLanguage`
+ * - `detectBrowserLanguage` -> inverse of `disableAutoLanguageSwitch`
+ */
+export interface I18nConfig {
+	messages: Record<string, Partial<Translations>>;
+	locale?: string;
+	detectBrowserLanguage?: boolean;
+}
+
+/**
+ * Input shape that supports both legacy translation config and v2 i18n config.
+ */
+export type TranslationInputConfig = Partial<TranslationConfig> & {
+	i18n?: Partial<I18nConfig>;
+};

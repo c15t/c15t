@@ -20,6 +20,7 @@ import type {
 	ConsentType,
 	consentTypes,
 	GlobalVendorList,
+	I18nConfig,
 	LegalLinks,
 	LocationInfo,
 	Overrides,
@@ -239,7 +240,18 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	iframeBlockerConfig?: IframeBlockerConfig;
 
 	/**
+	 * Initial i18n config (preferred in c15t v2).
+	 *
+	 * @remarks
+	 * If both `initialI18nConfig` and `initialTranslationConfig` are provided,
+	 * `initialI18nConfig` takes precedence.
+	 */
+	initialI18nConfig?: Partial<I18nConfig>;
+
+	/**
 	 * Initial Translation Config
+	 *
+	 * @deprecated Use `initialI18nConfig` instead.
 	 *
 	 * @see {@link TranslationConfig} for available options
 	 */

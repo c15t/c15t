@@ -26,6 +26,7 @@ export type {
 	ConsentTypesTranslations,
 	ConsentTypeTranslations,
 	CookieBannerTranslations,
+	I18nConfig,
 	LegalLinksTranslations,
 	TranslationConfig,
 	Translations,

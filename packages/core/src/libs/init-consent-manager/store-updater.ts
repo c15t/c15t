@@ -84,7 +84,7 @@ function computeAutoGrantInfo(
 function buildStoreUpdate(
 	data: ConsentBannerResponse,
 	config: InitConsentManagerConfig,
-	hasLocalStorageAccess: boolean,
+	_hasLocalStorageAccess: boolean,
 	effectiveIABEnabled: boolean | undefined
 ): Partial<ConsentStoreState> {
 	const { get, initialTranslationConfig } = config;
@@ -127,6 +127,12 @@ function buildStoreUpdate(
 
 	// Prepare translation config
 	if (translations?.language && translations?.translations) {
+		const customMessages = initialTranslationConfig?.translations
+			? {
+					translations: initialTranslationConfig.translations,
+				}
+			: undefined;
+
 		update.translationConfig = prepareTranslationConfig(
 			{
 				translations: {
@@ -135,7 +141,7 @@ function buildStoreUpdate(
 				disableAutoLanguageSwitch: true,
 				defaultLanguage: translations.language,
 			},
-			initialTranslationConfig
+			customMessages
 		);
 	}
 

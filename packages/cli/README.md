@@ -64,8 +64,23 @@ The CLI will:
 
 - `generate`: Generate schema/code based on your c15t config
 - `migrate`: Run database migrations based on your c15t config
+- `codemods`: Run migration codemods (for example `translations -> i18n`)
 - `github`: Open the project's GitHub repository to star the project
 - `docs`: Open the c15t documentation in your browser
+
+### Codemods
+
+Run codemods interactively:
+
+```bash
+c15t codemods
+```
+
+Preview changes without writing files:
+
+```bash
+c15t codemods --dry-run
+```
 
 ## Global Flags
 

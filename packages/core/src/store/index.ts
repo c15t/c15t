@@ -4,6 +4,7 @@
  * This module provides the main store creation and management functionality.
  */
 
+import { normalizeI18nConfig, toTranslationConfig } from '@c15t/translations';
 import { createStore } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { StorageConfig } from '../libs/cookie';
@@ -137,12 +138,25 @@ export const createConsentManagerStore = (
 		iab,
 		ssrData: _unusedSsrData,
 		initialConsentCategories,
-		initialTranslationConfig: _unusedInitialTranslationConfig,
+		initialTranslationConfig: legacyInitialTranslationConfig,
+		initialI18nConfig,
 		enabled: _unusedEnabled,
 		debug: _unusedDebug,
 		// The rest are valid StoreConfig properties
 		...storeConfigOptions
 	} = options;
+
+	const hasInitialTranslationInput = Boolean(
+		legacyInitialTranslationConfig || initialI18nConfig
+	);
+	const normalizedInitialTranslationConfig = hasInitialTranslationInput
+		? toTranslationConfig(
+				normalizeI18nConfig({
+					...(legacyInitialTranslationConfig ?? {}),
+					...(initialI18nConfig ? { i18n: initialI18nConfig } : {}),
+				})
+			)
+		: undefined;
 
 	// Enable the global debug logger based on the debug option
 	setDebugEnabled(options.debug === true);
@@ -312,7 +326,7 @@ export const createConsentManagerStore = (
 			initConsentManager({
 				manager,
 				ssrData: options.ssrData,
-				initialTranslationConfig: options.initialTranslationConfig,
+				initialTranslationConfig: normalizedInitialTranslationConfig,
 				iabConfig: iab as IABConfig | undefined,
 				get,
 				set,
@@ -401,7 +415,7 @@ export const createConsentManagerStore = (
 
 			return await initConsentManager({
 				manager,
-				initialTranslationConfig: options.initialTranslationConfig,
+				initialTranslationConfig: normalizedInitialTranslationConfig,
 				get,
 				set,
 			});
