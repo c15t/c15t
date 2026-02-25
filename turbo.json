@@ -32,6 +32,14 @@
 				"coverage/html/**"
 			]
 		},
+		"@c15t/scripts#test": {
+			"dependsOn": ["build", "^build", "transit", "@c15t/vitest-config#build"],
+			"outputs": [
+				"coverage/coverage-summary.json",
+				"coverage/coverage-final.json",
+				"coverage/html/**"
+			]
+		},
 		"transit": {
 			"dependsOn": ["^transit"]
 		}

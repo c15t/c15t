@@ -12,7 +12,7 @@ import { STORAGE_MODES, type StorageMode } from '../../../constants';
  */
 export const MODE_OPTIONS = [
 	{
-		value: STORAGE_MODES.C15T,
+		value: STORAGE_MODES.HOSTED,
 		label: 'Cloud Hosted',
 		hint: 'Managed by consent.io (Recommended)',
 		description:

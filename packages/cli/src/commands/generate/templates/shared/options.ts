@@ -47,10 +47,10 @@ export function getBackendURLValue(
 /**
  * Generates the inner options text for ConsentManagerProvider based on mode and configuration
  *
- * @param mode - The storage mode ('c15t', 'self-hosted', 'offline', or 'custom')
- * @param backendURL - URL for the c15t backend/API (for 'c15t'/'self-hosted' modes)
+ * @param mode - The storage mode ('hosted', 'self-hosted', 'offline', or 'custom')
+ * @param backendURL - URL for the c15t backend/API (for 'hosted'/'self-hosted' modes)
  * @param useEnvFile - Whether to use environment variable for backendURL
- * @param proxyNextjs - Whether to use Next.js API proxy for c15t mode
+ * @param proxyNextjs - Whether to use Next.js API proxy for hosted mode
  * @param inlineCustomHandlers - When true, generates inline fetch-based endpoint handlers
  *   for 'custom' mode instead of referencing createCustomHandlers(). Used by React templates
  *   that don't generate a separate handlers file.
@@ -63,8 +63,8 @@ export function getBackendURLValue(
  *
  * @example
  * ```ts
- * const options = generateOptionsText('c15t', 'https://api.example.com', false, true);
- * // Returns: "mode: 'c15t',\n\t\t\t\tbackendURL: '/api/c15t', ..."
+ * const options = generateOptionsText('hosted', 'https://api.example.com', false, true);
+ * // Returns: "mode: 'hosted',\n\t\t\t\tbackendURL: '/api/c15t', ..."
  * ```
  */
 export function generateOptionsText(
@@ -76,6 +76,7 @@ export function generateOptionsText(
 	envVarPrefix = 'NEXT_PUBLIC'
 ): string {
 	switch (mode) {
+		case 'hosted':
 		case 'c15t':
 		case 'self-hosted': {
 			const backendURLValue = getBackendURLValue(
@@ -84,7 +85,7 @@ export function generateOptionsText(
 				proxyNextjs,
 				envVarPrefix
 			);
-			return `mode: 'c15t',
+			return `mode: 'hosted',
 				backendURL: ${backendURLValue},`;
 		}
 		case 'custom': {

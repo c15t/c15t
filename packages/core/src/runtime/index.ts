@@ -21,6 +21,18 @@ const DEFAULT_BACKEND_URL = '/api/c15t';
 const managerCache = new Map<string, ConsentManagerInstance>();
 const storeCache = new Map<string, ConsentStoreInstance>();
 
+type RuntimeMode = 'hosted' | 'c15t' | 'offline' | 'custom';
+
+function normalizeRuntimeMode(
+	mode?: RuntimeMode
+): 'hosted' | 'offline' | 'custom' {
+	if (mode === 'offline' || mode === 'custom') {
+		return mode;
+	}
+
+	return 'hosted';
+}
+
 export type ConsentRuntimeOptions = ConsentManagerOptions &
 	Partial<StoreOptions> & {
 		/**
@@ -56,9 +68,12 @@ function generateRuntimeCacheKey(options: {
 	enabled?: boolean;
 }): string {
 	const enabledKey = options.enabled === false ? 'disabled' : 'enabled';
+	const normalizedMode = normalizeRuntimeMode(
+		options.mode as RuntimeMode | undefined
+	);
 
 	const cacheParts = [
-		options.mode ?? 'c15t',
+		normalizedMode,
 		options.backendURL ?? 'default',
 		options.endpointHandlers ? 'custom' : 'none',
 		options.storageConfig?.storageKey ?? 'default',
@@ -167,7 +182,7 @@ export function getOrCreateConsentRuntime(
 			});
 		} else {
 			consentManager = configureConsentManager({
-				mode: 'c15t',
+				mode: mode === 'c15t' ? 'c15t' : 'hosted',
 				backendURL: backendURL || DEFAULT_BACKEND_URL,
 				store: normalizedStoreOptions,
 				storageConfig: resolvedStorageConfig,
@@ -180,11 +195,15 @@ export function getOrCreateConsentRuntime(
 	let consentStore = storeCache.get(cacheKey);
 
 	if (!consentStore) {
+		const normalizedMode = normalizeRuntimeMode(
+			mode as RuntimeMode | undefined
+		);
+
 		consentStore = createConsentManagerStore(consentManager, {
 			config: {
 				pkg: pkgInfo?.pkg || 'c15t',
 				version: pkgInfo?.version || version,
-				mode: mode || 'Unknown',
+				mode: normalizedMode,
 			},
 			...cleanStoreOptionOverrides,
 			...storeWithoutTranslationInputs,

@@ -1,6 +1,12 @@
 import * as p from '@clack/prompts';
 import type { CliCommand, CliContext } from '~/context/types';
+import { runC15tModeToHostedCodemod } from './mode-c15t-to-hosted';
 import { runTranslationsToI18nCodemod } from './translations-to-i18n';
+import {
+	type CodemodVersionMetadata,
+	detectInstalledC15tVersion,
+	isCodemodApplicableForVersion,
+} from './versioning';
 
 /**
  * Describes a runnable codemod exposed in the interactive codemods menu.
@@ -14,9 +20,60 @@ export interface CodemodDefinition {
 	hint: string;
 	/** Executes the codemod for the provided CLI context. */
 	run: (context: CliContext, dryRun: boolean) => Promise<void>;
+	/** Version metadata used to determine codemod applicability. */
+	versioning?: CodemodVersionMetadata;
 }
 
 const codemods: CodemodDefinition[] = [
+	{
+		id: 'mode-c15t-to-hosted',
+		label: "mode: 'c15t' -> 'hosted'",
+		hint: "Migrates legacy mode values from 'c15t' to 'hosted'.",
+		run: async (context, dryRun) => {
+			const { logger, projectRoot } = context;
+			const result = await runC15tModeToHostedCodemod({
+				projectRoot,
+				dryRun,
+			});
+
+			if (result.changedFiles.length === 0) {
+				logger.info(
+					`No files needed updates (scanned ${result.totalFiles} source files).`
+				);
+				for (const error of result.errors) {
+					logger.warn(`Skipped ${error.filePath}: ${error.error}`);
+				}
+				return;
+			}
+
+			let actionPrefix = 'Applied';
+			if (dryRun) {
+				actionPrefix = 'Dry run';
+			}
+
+			logger.success(
+				`${actionPrefix}: updated ${result.changedFiles.length} file(s) out of ${result.totalFiles} scanned.`
+			);
+
+			for (const file of result.changedFiles) {
+				let summary = '';
+				if (file.summaries.length > 0) {
+					summary = `: ${file.summaries.join(', ')}`;
+				}
+				logger.info(
+					`- ${file.filePath} (${file.operations} changes${summary})`
+				);
+			}
+
+			for (const error of result.errors) {
+				logger.warn(`Skipped ${error.filePath}: ${error.error}`);
+			}
+		},
+		versioning: {
+			fromRange: '<2.0.0',
+			toRange: '>=2.0.0',
+		},
+	},
 	{
 		id: 'translations-to-i18n',
 		label: 'translations -> i18n',
@@ -61,6 +118,10 @@ const codemods: CodemodDefinition[] = [
 				logger.warn(`Skipped ${error.filePath}: ${error.error}`);
 			}
 		},
+		versioning: {
+			fromRange: '<2.0.0',
+			toRange: '>=2.0.0',
+		},
 	},
 ];
 
@@ -71,12 +132,36 @@ const codemods: CodemodDefinition[] = [
  * @returns Promise that resolves when selected codemods complete.
  */
 export async function runCodemods(context: CliContext): Promise<void> {
-	const { logger, commandArgs } = context;
+	const { logger, commandArgs, projectRoot } = context;
 	const dryRun = commandArgs.includes('--dry-run');
+	const installedVersion = await detectInstalledC15tVersion(projectRoot);
+
+	if (installedVersion) {
+		logger.info(`Detected c15t version ${installedVersion}.`);
+	} else {
+		logger.warn(
+			'Could not detect c15t version from package.json. Showing all codemods.'
+		);
+	}
+
+	const availableCodemods = codemods.filter((codemod) =>
+		isCodemodApplicableForVersion(installedVersion, codemod.versioning ?? {})
+	);
+
+	if (availableCodemods.length === 0) {
+		if (installedVersion) {
+			logger.info(
+				`No codemods are applicable for detected c15t version ${installedVersion}.`
+			);
+		} else {
+			logger.info('No codemods available.');
+		}
+		return;
+	}
 
 	const selected = await p.multiselect({
 		message: 'Select codemods to run (space to toggle, enter to confirm):',
-		options: codemods.map((codemod) => ({
+		options: availableCodemods.map((codemod) => ({
 			value: codemod.id,
 			label: codemod.label,
 			hint: codemod.hint,
@@ -105,7 +190,7 @@ export async function runCodemods(context: CliContext): Promise<void> {
 	);
 
 	for (const codemodId of selectedCodemods) {
-		const codemod = codemods.find((item) => item.id === codemodId);
+		const codemod = availableCodemods.find((item) => item.id === codemodId);
 		if (!codemod) {
 			logger.warn(`Unknown codemod selected: ${codemodId}`);
 			continue;

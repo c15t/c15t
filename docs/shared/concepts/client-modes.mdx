@@ -3,15 +3,25 @@
 <section id="overview">
   c15t supports three client modes that determine how consent data is stored and synchronized. Choose the mode that matches your infrastructure:
 
-  - **c15t mode** - Full backend integration with geolocation, API sync, and analytics
+  - **Hosted mode** - Full backend integration with geolocation, API sync, and analytics
   - **Offline mode** - Local-only storage with no network requests
   - **Custom mode** - Bring your own backend with custom endpoint handlers
+
+  <Callout type="warn">
+    Offline mode is browser-only storage. If browser storage is blocked or cleared, consent cannot be remembered and prior choices cannot be verified.
+  </Callout>
 </section>
 
-<section id="c15t-mode">
-  ## c15t Mode (Recommended)
+<section id="hosted-mode">
+  <span id="c15t-mode" />
+
+  ## Hosted Mode (Recommended)
 
   The default mode. Connects to a c15t backend for full consent lifecycle management. We recommend using [consent.io](https://consent.io) for a fully managed experience, but you can [self-host](/docs/self-host) as well.
+
+  <Callout type="info">
+    `mode: 'hosted'` is the preferred value. The legacy alias `mode: 'c15t'` is still supported for backward compatibility.
+  </Callout>
 
   **What happens:**
 
@@ -36,6 +46,20 @@
   1. Default jurisdiction is GDPR unless manually set via `overrides`
   2. Consent preferences persist locally only
   3. No server-side consent records or analytics
+
+  <Callout type="info">
+    **Important:** Offline mode still stores consent locally (cookie + localStorage). It only skips backend storage and sync.
+  </Callout>
+
+  ### Consequences of Browser-Only Storage
+
+  If consent is not stored at all (for example, storage is blocked or frequently cleared):
+
+  - Users are treated as new visitors and must re-consent repeatedly
+  - Preferences are lost across browser resets, private sessions, and device changes
+  - You have no reliable audit evidence to prove prior consent choices
+  - Support and compliance teams have no centralized visibility into consent history by default
+  - Server-side systems cannot apply prior consent decisions before client initialization
 
   **Trade-offs:**
 
@@ -66,7 +90,7 @@
 <section id="decision-guide">
   ## Choosing a Mode
 
-  | Feature | c15t | Offline | Custom |
+  | Feature | Hosted | Offline | Custom |
   |---------|------|---------|--------|
   | Geolocation | Automatic | Manual via overrides | Your implementation |
   | Consent sync | API | Local only | Your implementation |

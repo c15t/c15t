@@ -14,7 +14,7 @@ import { getOrCreateConsentRuntime } from 'c15t';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
 
 const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'c15t',
+  mode: 'hosted',
   backendURL: 'https://your-instance.c15t.dev',
   scripts: [
     metaPixel({ pixelId: '123456' }),

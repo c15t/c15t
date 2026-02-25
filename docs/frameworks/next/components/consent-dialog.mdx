@@ -12,7 +12,7 @@ import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/next
 
 export function ConsentManager() {
   return (
-    <ConsentManagerProvider options={{ mode: 'c15t', backendURL: '/api/c15t' }}>
+    <ConsentManagerProvider options={{ mode: 'hosted', backendURL: '/api/c15t' }}>
       <ConsentBanner />
       <ConsentDialog />
     </ConsentManagerProvider>

@@ -74,7 +74,7 @@ availableIn:
       return (
         <ConsentManagerProvider
           options={{
-            mode: 'c15t',
+            mode: 'hosted',
             backendURL: '/api/c15t',
             ssrData,
             consentCategories: ['necessary', 'measurement', 'marketing'],
@@ -90,8 +90,8 @@ availableIn:
     }
     ```
 
-    <Callout type="info">
-      Don't have a backend yet? Use `mode: 'offline'` to get started with local-only consent storage. See [Client Modes](/docs/frameworks/next/concepts/client-modes) for details.
+    <Callout type="warn">
+      Don't have a backend yet? You can use `mode: 'offline'` for local-only consent storage, but review the [browser-only storage consequences](/docs/frameworks/next/concepts/client-modes#offline-mode) before choosing it for production.
     </Callout>
   </Step>
 

@@ -19,7 +19,7 @@ Configure callbacks in the runtime options to log lifecycle events:
 import { getOrCreateConsentRuntime } from 'c15t';
 
 const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'c15t',
+  mode: 'hosted',
   backendURL: 'https://your-instance.c15t.dev',
   callbacks: {
     onBannerFetched: ({ jurisdiction, location }) => {

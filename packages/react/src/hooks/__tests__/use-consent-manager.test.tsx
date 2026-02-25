@@ -61,7 +61,7 @@ vi.mock('c15t', async () => {
 				config: {
 					pkg: pkgInfo.pkg,
 					version: pkgInfo.version,
-					mode: options.mode || 'Unknown',
+					mode: options.mode || 'hosted',
 				},
 				...options,
 				...options.store,
@@ -72,7 +72,7 @@ vi.mock('c15t', async () => {
 			return {
 				consentManager,
 				consentStore,
-				cacheKey: `test:${options.mode || 'c15t'}:${Date.now()}`,
+				cacheKey: `test:${options.mode || 'hosted'}:${Date.now()}`,
 			};
 		},
 	};

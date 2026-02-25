@@ -1,4 +1,4 @@
-import type { IABFallbackConfig } from '../c15t/types';
+import type { IABFallbackConfig } from '../hosted/types';
 
 /**
  * Configuration options for the Offline client.

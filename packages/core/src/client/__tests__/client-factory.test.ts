@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchMock, mockLocalStorage } from '../../../vitest.setup';
-import { C15tClient } from '../c15t';
 import { configureConsentManager } from '../client-factory';
 import { CustomClient } from '../custom';
+import { C15tClient } from '../hosted';
 import { OfflineClient } from '../offline';
 
 describe('Client Factory Tests', () => {
@@ -12,7 +12,16 @@ describe('Client Factory Tests', () => {
 		mockLocalStorage.clear();
 	});
 
-	it('should create C15tClient when mode is c15t', () => {
+	it('should create C15tClient when mode is hosted', () => {
+		const client = configureConsentManager({
+			mode: 'hosted',
+			backendURL: '/api/c15t',
+		});
+
+		expect(client).toBeInstanceOf(C15tClient);
+	});
+
+	it('should create C15tClient when mode is legacy c15t', () => {
 		const client = configureConsentManager({
 			mode: 'c15t',
 			backendURL: '/api/c15t',
@@ -44,7 +53,7 @@ describe('Client Factory Tests', () => {
 		expect(client).toBeInstanceOf(CustomClient);
 	});
 
-	it('should default to C15tClient when no mode is specified', () => {
+	it('should default to C15tClient (hosted) when no mode is specified', () => {
 		const client = configureConsentManager({
 			backendURL: '/api/c15t',
 		});

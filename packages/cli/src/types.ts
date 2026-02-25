@@ -223,9 +223,9 @@ export interface CliContext {
 export interface GenerateOptions {
 	/** Storage mode */
 	mode: StorageMode;
-	/** Backend URL (for c15t or self-hosted mode) */
+	/** Backend URL (for hosted or self-hosted mode) */
 	backendUrl?: string;
-	/** Instance ID (for c15t mode) */
+	/** Instance ID (for hosted mode) */
 	instanceId?: string;
 	/** Selected scripts to configure */
 	scripts?: string[];

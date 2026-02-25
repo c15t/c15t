@@ -28,7 +28,7 @@ describe('c15t Client Tests', () => {
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 		});
 
@@ -66,7 +66,7 @@ describe('c15t Client Tests', () => {
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 		});
 
@@ -91,7 +91,7 @@ describe('c15t Client Tests', () => {
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 		});
 
@@ -137,7 +137,7 @@ describe('c15t Client Tests', () => {
 
 		// Configure the client with custom headers and force a new instance
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: 'https://test.example.com/api/c15t',
 			headers: {
 				'X-Custom-Header': 'test-value',
@@ -182,7 +182,7 @@ describe('c15t Client Tests', () => {
 
 		// Configure client with retry config
 		const config: ConsentManagerOptions = {
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 1,

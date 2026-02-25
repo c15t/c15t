@@ -5,7 +5,7 @@ import { STORAGE_KEY_V2 } from '../../../store/initial-state';
 import { configureConsentManager } from '../../client-factory';
 import { API_ENDPOINTS } from '../../types';
 
-describe('c15t Client identifyUser Tests', () => {
+describe('Hosted Client identifyUser Tests', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 		fetchMock.mockReset();
@@ -31,7 +31,7 @@ describe('c15t Client identifyUser Tests', () => {
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 		});
 
@@ -59,7 +59,7 @@ describe('c15t Client identifyUser Tests', () => {
 	it('should return error when subject ID is missing', async () => {
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 		});
 
@@ -84,7 +84,7 @@ describe('c15t Client identifyUser Tests', () => {
 
 		// Configure the client with retries disabled
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 0,
@@ -138,7 +138,7 @@ describe('c15t Client identifyUser Tests', () => {
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 		});
 
@@ -179,7 +179,7 @@ describe('c15t Client identifyUser Tests', () => {
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 		});
 
@@ -214,7 +214,7 @@ describe('c15t Client identifyUser Tests', () => {
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 		});
 

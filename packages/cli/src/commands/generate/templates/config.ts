@@ -2,7 +2,7 @@
  * Configuration file templates
  */
 
-import { STORAGE_MODES, type StorageMode } from '../../../constants';
+import { STORAGE_MODES } from '../../../constants';
 
 /**
  * Generate the consent manager configuration based on storage mode
@@ -19,8 +19,9 @@ export function generateClientConfigContent(
 	enableDevTools = false
 ): string {
 	switch (mode) {
+		case STORAGE_MODES.HOSTED:
 		case STORAGE_MODES.C15T:
-			return generateC15tConfig(backendURL, useEnvFile, enableDevTools);
+			return generateHostedConfig(backendURL, useEnvFile, enableDevTools);
 		case STORAGE_MODES.OFFLINE:
 			return generateOfflineConfig(enableDevTools);
 		case STORAGE_MODES.SELF_HOSTED:
@@ -33,9 +34,9 @@ export function generateClientConfigContent(
 }
 
 /**
- * c15t cloud mode config
+ * Hosted mode config (consent.io or self-hosted backend)
  */
-function generateC15tConfig(
+function generateHostedConfig(
 	backendURL?: string,
 	useEnvFile?: boolean,
 	enableDevTools = false
@@ -52,7 +53,7 @@ function generateC15tConfig(
 ${devToolsImport}
 const runtime = getOrCreateConsentRuntime(
 	{
-		mode: 'c15t',
+		mode: 'hosted',
 		backendURL: ${url},
 		consentCategories: ['necessary', 'measurement', 'marketing'],
 	},
@@ -136,7 +137,7 @@ function generateSelfHostedConfig(
 ${devToolsImport}
 const runtime = getOrCreateConsentRuntime(
 	{
-		mode: 'c15t',
+		mode: 'hosted',
 		backendURL: ${url},
 		consentCategories: ['necessary', 'measurement', 'marketing'],
 	},

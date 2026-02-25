@@ -45,7 +45,7 @@ This is the recommended approach if you're using the Posthog JS SDK, this is com
     import { posthog } from 'posthog-js';
 
     getOrCreateConsentRuntime({
-      mode: 'c15t',
+      mode: 'hosted',
       callbacks: {
         onConsentSet({ preferences }) {
           if (preferences.measurement) {

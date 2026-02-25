@@ -14,7 +14,7 @@ import { DevTools } from '@c15t/dev-tools/react';
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider options={{ mode: 'c15t', backendURL: '/api/c15t' }}>
+    <ConsentManagerProvider options={{ mode: 'hosted', backendURL: '/api/c15t' }}>
       {children}
       {process.env.NODE_ENV === 'development' && <DevTools />}
     </ConsentManagerProvider>

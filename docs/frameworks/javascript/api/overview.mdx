@@ -13,7 +13,7 @@ The recommended entry point. Creates both a consent client and a Zustand vanilla
 import { getOrCreateConsentRuntime } from 'c15t';
 
 const { consentManager, consentStore, cacheKey } = getOrCreateConsentRuntime({
-  mode: 'c15t',
+  mode: 'hosted',
   backendURL: 'https://your-instance.c15t.dev',
   consentCategories: ['necessary', 'measurement', 'marketing'],
   scripts: [
@@ -40,7 +40,7 @@ Lower-level API that creates only the client (no store). Use this when you need 
 import { configureConsentManager, createConsentManagerStore } from 'c15t';
 
 const manager = configureConsentManager({
-  mode: 'c15t',
+  mode: 'hosted',
   backendURL: 'https://your-instance.c15t.dev',
 });
 

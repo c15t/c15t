@@ -52,8 +52,8 @@ export function setupMocks(): {
 
 			const backendURL = options.backendURL || '';
 
-			// Only register fetch calls for c15t mode
-			if (options.mode === 'c15t') {
+			// Only register fetch calls for hosted backend mode
+			if (options.mode === 'hosted' || options.mode === 'c15t') {
 				// Create a client that will track fetch calls
 				return {
 					getCallbacks: () => options.callbacks,
@@ -166,7 +166,10 @@ export function setupMocks(): {
 				},
 				pkgInfo: { pkg: string; version: string }
 			) => {
-				const mode = options.mode || 'c15t';
+				let mode = options.mode ?? 'hosted';
+				if (options.mode === 'c15t') {
+					mode = 'hosted';
+				}
 				const backendURL =
 					'backendURL' in options ? options.backendURL : undefined;
 				const cacheKey = `${mode}:${backendURL ?? 'default'}`;
@@ -176,10 +179,17 @@ export function setupMocks(): {
 					return { ...cached, cacheKey };
 				}
 
+				let hostedBackendConfig: { backendURL?: string } = {};
+				if (mode === 'hosted') {
+					hostedBackendConfig = {
+						backendURL: backendURL || '/api/c15t',
+					};
+				}
+
 				const consentManager = createMockConsentManager({
 					...(options as ConsentManagerOptions),
 					mode,
-					...(mode === 'c15t' ? { backendURL: backendURL || '/api/c15t' } : {}),
+					...hostedBackendConfig,
 				});
 
 				const consentStore = createConsentManagerStore(consentManager, {

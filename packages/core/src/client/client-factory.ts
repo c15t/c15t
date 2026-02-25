@@ -4,9 +4,9 @@
  * client instances based on configuration options.
  */
 import type { StoreOptions } from '../store/type';
-import { C15tClient } from './c15t';
 import type { ConsentManagerInterface } from './client-interface';
 import { CustomClient, type EndpointHandlers } from './custom';
+import { C15tClient } from './hosted';
 import { OfflineClient } from './offline';
 import type { RetryConfig } from './types';
 
@@ -21,7 +21,56 @@ const DEFAULT_BACKEND_URL = '/api/c15t';
 /**
  * Default client mode
  */
-const DEFAULT_CLIENT_MODE = 'c15t';
+const DEFAULT_CLIENT_MODE = 'hosted';
+
+/**
+ * Legacy alias warning guard
+ */
+let hasWarnedAboutLegacyC15tMode = false;
+
+export type ClientMode = 'hosted' | 'c15t' | 'offline' | 'custom';
+type CanonicalClientMode = 'hosted' | 'offline' | 'custom';
+
+/**
+ * Normalizes {@link ClientMode} values into a canonical {@link CanonicalClientMode}.
+ *
+ * @param mode Optional client mode from user-provided options.
+ * @returns Canonical mode value used by the client factory.
+ *
+ * @remarks
+ * - Legacy `mode: 'c15t'` is mapped to {@link DEFAULT_CLIENT_MODE}.
+ * - A one-time deprecation warning is emitted in non-production via
+ *   {@link hasWarnedAboutLegacyC15tMode}.
+ * - Unknown/omitted values also fall back to {@link DEFAULT_CLIENT_MODE}.
+ * - This function does not throw.
+ */
+function normalizeClientMode(mode?: ClientMode): CanonicalClientMode {
+	if (mode === 'c15t') {
+		const nodeEnv =
+			typeof globalThis !== 'undefined' && 'process' in globalThis
+				? (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process
+						?.env?.NODE_ENV
+				: undefined;
+
+		if (!hasWarnedAboutLegacyC15tMode && nodeEnv !== 'production') {
+			hasWarnedAboutLegacyC15tMode = true;
+			console.warn(
+				"[c15t] `mode: 'c15t'` is deprecated and will be removed in a future major release. Use `mode: 'hosted'` instead."
+			);
+		}
+		return DEFAULT_CLIENT_MODE;
+	}
+
+	if (mode === 'offline' || mode === 'custom') {
+		return mode;
+	}
+
+	return DEFAULT_CLIENT_MODE;
+}
+
+function assertUnreachableMode(mode: never): never {
+	throw new Error(`Unsupported client mode: ${String(mode)}`);
+}
 
 // Add at the module level (before the configureConsentManager function)
 const clientRegistry = new Map<string, ConsentManagerInterface>();
@@ -71,11 +120,13 @@ function serializeStorageConfig(
  * @internal
  */
 function getClientCacheKey(options: ConsentManagerOptions): string {
+	const normalizedMode = normalizeClientMode(options.mode);
+
 	// Serialize storageConfig for all modes
 	const storageConfigPart = serializeStorageConfig(options.storageConfig);
 	const storageKey = storageConfigPart ? `:storage:${storageConfigPart}` : '';
 
-	if (options.mode === 'offline') {
+	if (normalizedMode === 'offline') {
 		// Include basic translation configuration in the cache key so that
 		// different offline clients with different language sets do not share
 		// the same instance.
@@ -111,15 +162,17 @@ function getClientCacheKey(options: ConsentManagerOptions): string {
 		return `offline${storageKey}${translationPart}${defaultLanguagePart}${iabPart}`;
 	}
 
-	if (options.mode === 'custom') {
+	if (normalizedMode === 'custom') {
 		// Include handler keys in the cache key to differentiate custom clients
-		const handlerKeys = Object.keys(options.endpointHandlers || {})
+		const handlers =
+			'endpointHandlers' in options ? options.endpointHandlers : undefined;
+		const handlerKeys = Object.keys(handlers || {})
 			.sort()
 			.join(',');
 		return `custom:${handlerKeys}${storageKey}`;
 	}
 
-	// For c15t clients, include headers in the cache key if present
+	// For hosted clients, include headers in the cache key if present
 	let headersPart = '';
 	if ('headers' in options && options.headers) {
 		// Sort header keys for a stable key
@@ -127,8 +180,8 @@ function getClientCacheKey(options: ConsentManagerOptions): string {
 		headersPart = `:headers:${headerKeys.map((k) => `${k}=${options.headers?.[k]}`).join(',')}`;
 	}
 
-	// For c15t clients, use the backendURL as the key
-	return `c15t:${options.backendURL || ''}${headersPart}${storageKey}`;
+	// For hosted clients, use the backendURL as the key
+	return `hosted:${options.backendURL || ''}${headersPart}${storageKey}`;
 }
 
 /**
@@ -158,11 +211,14 @@ export type CustomClientOptions = {
 	backendURL?: never;
 };
 
-export type C15TClientOptions = {
+export interface HostedClientOptions {
 	/**
-	 * c15t mode (default) - requires a backend URL
+	 * Hosted mode (default) - requires a backend URL
+	 *
+	 * @remarks
+	 * `'c15t'` is deprecated and will be removed in a future major release.
 	 */
-	mode?: 'c15t';
+	mode?: 'hosted' | 'c15t';
 
 	/**
 	 * Backend URL for API endpoints
@@ -183,7 +239,7 @@ export type C15TClientOptions = {
 	 * Retry configuration
 	 */
 	retryConfig?: RetryConfig;
-};
+}
 
 export type OfflineClientOptions = {
 	/**
@@ -222,8 +278,7 @@ export type ConsentManagerOptions = {
 	 * @example
 	 * ```typescript
 	 * const manager = configureConsentManager({
-	 *   client: 'c15t',
-	 *   projectId: 'your-project-id',
+	 *   mode: 'hosted',
 	 *   storageConfig: {
 	 *     crossSubdomain: true,
 	 *     storageKey: 'my-consent',
@@ -232,7 +287,12 @@ export type ConsentManagerOptions = {
 	 * ```
 	 */
 	storageConfig?: import('../libs/cookie').StorageConfig;
-} & (CustomClientOptions | C15TClientOptions | OfflineClientOptions);
+} & (CustomClientOptions | HostedClientOptions | OfflineClientOptions);
+
+/**
+ * @deprecated Use {@link HostedClientOptions} instead.
+ */
+export type C15TClientOptions = HostedClientOptions;
 
 /**
  * Creates a new consent management client.
@@ -240,7 +300,7 @@ export type ConsentManagerOptions = {
  * This factory function creates the appropriate client implementation based on
  * the provided options. It supports three main operating modes:
  *
- * 1. c15t mode - Makes actual HTTP requests to a consent management backend
+ * 1. Hosted mode - Makes actual HTTP requests to a consent management backend
  * 2. Custom mode - Uses provided handler functions instead of HTTP requests
  * 3. Offline mode - Disables all API requests and returns empty successful responses
  *
@@ -248,7 +308,7 @@ export type ConsentManagerOptions = {
  * @returns A client instance that implements the ConsentManagerInterface
  *
  * @example
- * Basic c15t client with backend URL:
+ * Basic hosted client with backend URL:
  * ```typescript
  * const client = configureConsentManager({
  *   backendURL: '/api/c15t'
@@ -256,9 +316,10 @@ export type ConsentManagerOptions = {
  * ```
  *
  * @example
- * c15t client with custom backend URL:
+ * Hosted client with custom backend URL:
  * ```typescript
  * const client = configureConsentManager({
+ *   mode: 'hosted',
  *   backendURL: 'https://api.example.com/consent'
  * });
  * ```
@@ -336,7 +397,7 @@ export function configureConsentManager(
 	}
 
 	// Create a new client
-	const mode = options.mode || DEFAULT_CLIENT_MODE;
+	const mode = normalizeClientMode(options.mode);
 	let client: ConsentManagerInterface;
 
 	// Create the appropriate client based on the mode
@@ -364,20 +425,15 @@ export function configureConsentManager(
 			);
 			break;
 		}
-		default: {
-			const c15tOptions = options as {
-				backendURL: string;
-				headers?: Record<string, string>;
-				customFetch?: typeof fetch;
-				retryConfig?: RetryConfig;
-			};
+		case 'hosted': {
+			const hostedOptions = options as HostedClientOptions;
 			// Extract IAB config for fallback mode
 			const iabConfig = options.store?.iab;
 			client = new C15tClient({
-				backendURL: c15tOptions.backendURL || DEFAULT_BACKEND_URL,
-				headers: c15tOptions.headers,
-				customFetch: c15tOptions.customFetch,
-				retryConfig: c15tOptions.retryConfig,
+				backendURL: hostedOptions.backendURL || DEFAULT_BACKEND_URL,
+				headers: hostedOptions.headers,
+				customFetch: hostedOptions.customFetch,
+				retryConfig: hostedOptions.retryConfig,
 				storageConfig: options.storageConfig,
 				iabConfig: iabConfig
 					? {
@@ -387,6 +443,10 @@ export function configureConsentManager(
 						}
 					: undefined,
 			});
+			break;
+		}
+		default: {
+			client = assertUnreachableMode(mode);
 			break;
 		}
 	}

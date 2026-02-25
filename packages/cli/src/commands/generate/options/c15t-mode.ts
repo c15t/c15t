@@ -11,15 +11,15 @@ import { installDependencies } from './utils/dependencies';
 import { generateFiles } from './utils/generate-files';
 
 /**
- * Result of c15t mode setup
+ * Result of hosted mode setup
  */
-export interface C15TModeResult extends BaseResult {
+export interface HostedModeResult extends BaseResult {
 	backendURL: string | undefined;
 	usingEnvFile: boolean;
 	proxyNextjs?: boolean;
 }
 
-interface C15TModeOptions extends BaseOptions {
+export interface HostedModeOptions extends BaseOptions {
 	context: CliContext;
 	initialBackendURL?: string;
 }
@@ -140,14 +140,14 @@ async function getBackendURL(
  * @param spinner - Spinner for loading indicators
  * @param initialBackendURL - Initial backend URL if available
  * @param handleCancel - Function to handle prompt cancellations
- * @returns Configuration data for the c15t mode
+ * @returns Configuration data for the hosted mode
  */
-export async function setupC15tMode({
+export async function setupHostedMode({
 	context,
 	spinner,
 	initialBackendURL,
 	handleCancel,
-}: C15TModeOptions): Promise<C15TModeResult> {
+}: HostedModeOptions): Promise<HostedModeResult> {
 	await handleAccountCreation(context, handleCancel);
 
 	const backendURL = await getBackendURL(
@@ -176,7 +176,7 @@ export async function setupC15tMode({
 
 	await generateFiles({
 		context,
-		mode: 'c15t',
+		mode: 'hosted',
 		backendURL,
 		spinner,
 		useEnvFile,
@@ -210,3 +210,18 @@ export async function setupC15tMode({
 		ranInstall,
 	};
 }
+
+/**
+ * @deprecated Use HostedModeResult instead.
+ */
+export type C15TModeResult = HostedModeResult;
+
+/**
+ * @deprecated Use HostedModeOptions instead.
+ */
+export type C15TModeOptions = HostedModeOptions;
+
+/**
+ * @deprecated Use setupHostedMode instead.
+ */
+export const setupC15tMode = setupHostedMode;

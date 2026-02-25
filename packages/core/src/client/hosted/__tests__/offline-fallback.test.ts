@@ -6,7 +6,7 @@ import { configureConsentManager } from '../../client-factory';
 import { API_ENDPOINTS } from '../../types';
 import { C15tClient } from '../index';
 
-describe('c15t Client Offline Fallback Tests', () => {
+describe('Hosted Client Offline Fallback Tests', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 		fetchMock.mockReset();
@@ -21,7 +21,7 @@ describe('c15t Client Offline Fallback Tests', () => {
 
 		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 0, // Prevent automatic retries
@@ -53,7 +53,7 @@ describe('c15t Client Offline Fallback Tests', () => {
 
 		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 0, // Prevent automatic retries
@@ -106,12 +106,11 @@ describe('c15t Client Offline Fallback Tests', () => {
 		fetchMock.mockRejectedValue(new Error('Network error'));
 
 		// Spy on localStorage methods
-		const getItemSpy = vi.spyOn(mockLocalStorage, 'getItem');
 		const setItemSpy = vi.spyOn(mockLocalStorage, 'setItem');
 
 		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 0, // Prevent automatic retries
@@ -169,13 +168,6 @@ describe('c15t Client Offline Fallback Tests', () => {
 			'c15t-pending-consent-submissions'
 		);
 		parsedSubmissions = JSON.parse(storedSubmissions || '[]');
-
-		// Log for debugging
-		console.log('Mock localStorage calls:', {
-			getItem: getItemSpy.mock.calls,
-			setItem: setItemSpy.mock.calls,
-		});
-		console.log('Final stored submissions:', storedSubmissions);
 
 		// Assertions
 		expect(parsedSubmissions).toHaveLength(2);

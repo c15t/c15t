@@ -89,6 +89,11 @@ export const ENV_VARS = {
 
 // --- Storage Mode Options ---
 export const STORAGE_MODES = {
+	HOSTED: 'hosted',
+	/**
+	 * @deprecated Use HOSTED instead; remove in v3.0.0.
+	 * @see HOSTED
+	 */
 	C15T: 'c15t',
 	OFFLINE: 'offline',
 	SELF_HOSTED: 'self-hosted',

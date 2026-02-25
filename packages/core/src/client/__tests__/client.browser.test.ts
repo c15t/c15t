@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { STORAGE_KEY_V2 } from '../../store/initial-state';
-import { C15tClient } from '../c15t';
 import { configureConsentManager } from '../client-factory';
 import { CustomClient } from '../custom';
+import { C15tClient } from '../hosted';
 import type { OfflineClient } from '../offline';
 
 // Note: For Vitest browser mode, we don't need to mock localStorage or fetch
@@ -57,7 +57,7 @@ describe('c15t Client Browser Tests', () => {
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 		}) as C15tClient;
 
@@ -135,7 +135,7 @@ describe('c15t Client Browser Tests', () => {
 
 		// Configure the client with retry disabled to avoid multiple calls
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 0, // Disable retries for this test

@@ -20,6 +20,14 @@ import type { CliCommand, CliContext } from '~/context/types';
 import { runGenerateMachine } from '~/machines/generate/runner';
 import type { StorageMode } from '../../constants';
 
+function normalizeModeArg(mode?: StorageMode): StorageMode | undefined {
+	if (mode === 'c15t') {
+		return 'hosted';
+	}
+
+	return mode;
+}
+
 /**
  * Generate command action using state machine
  */
@@ -27,7 +35,7 @@ async function generateAction(context: CliContext): Promise<void> {
 	const { logger, commandArgs, flags } = context;
 
 	// Check if mode was passed as argument
-	const modeArg = commandArgs[0] as StorageMode | undefined;
+	const modeArg = normalizeModeArg(commandArgs[0] as StorageMode | undefined);
 
 	// Check for resume flag
 	const resume = flags.resume === true;

@@ -38,7 +38,7 @@ describe('ConsentManagerProvider Error Handling', () => {
 		const { getByTestId } = await render(
 			<ConsentManagerProvider
 				options={{
-					mode: 'c15t',
+					mode: 'hosted',
 					backendURL: '/api/c15t',
 				}}
 			>
