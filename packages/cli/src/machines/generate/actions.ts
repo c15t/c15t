@@ -14,7 +14,11 @@ import type { GenerateMachineContext, GenerateMachineEvent } from './types';
 function normalizeMode(
 	mode: GenerateMachineContext['selectedMode']
 ): GenerateMachineContext['selectedMode'] {
-	return mode === 'c15t' ? 'hosted' : mode;
+	if (mode === 'c15t') {
+		return 'hosted';
+	}
+
+	return mode;
 }
 
 /**

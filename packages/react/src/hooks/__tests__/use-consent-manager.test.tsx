@@ -61,7 +61,7 @@ vi.mock('c15t', async () => {
 				config: {
 					pkg: pkgInfo.pkg,
 					version: pkgInfo.version,
-					mode: options.mode || 'Unknown',
+					mode: options.mode || 'hosted',
 				},
 				...options,
 				...options.store,

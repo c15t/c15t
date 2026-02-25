@@ -267,9 +267,7 @@ export function shouldPromptSSR({
 }): boolean {
 	return (
 		context.framework?.pkg === '@c15t/nextjs' &&
-		(context.selectedMode === 'hosted' ||
-			context.selectedMode === 'c15t' ||
-			context.selectedMode === 'self-hosted')
+		modeRequiresBackend({ context })
 	);
 }
 

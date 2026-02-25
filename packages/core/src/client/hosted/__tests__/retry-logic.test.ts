@@ -6,7 +6,7 @@ import {
 } from '../../client-factory';
 import { C15tClient } from '../index';
 
-describe('c15t Client Retry Logic Tests', () => {
+describe('Hosted Client Retry Logic Tests', () => {
 	// Track time between retries
 	let timestamps: number[] = [];
 	let originalSetTimeout: typeof setTimeout;

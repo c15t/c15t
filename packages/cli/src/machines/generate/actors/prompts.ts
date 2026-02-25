@@ -43,10 +43,17 @@ export const modeSelectionActor = fromPromise<
 	ModeSelectionOutput,
 	ModeSelectionInput
 >(async ({ input }) => {
+	let initialMode = input.initialMode;
+	if (initialMode === 'c15t') {
+		initialMode = 'hosted';
+	}
+	if (initialMode === undefined) {
+		initialMode = 'hosted';
+	}
+
 	const result = await p.select<string | symbol | undefined>({
 		message: 'How would you like to store consent decisions?',
-		initialValue:
-			input.initialMode === 'c15t' ? 'hosted' : (input.initialMode ?? 'hosted'),
+		initialValue: initialMode,
 		options: [
 			{
 				value: 'hosted',
@@ -165,14 +172,18 @@ export const backendURLActor = fromPromise<BackendURLOutput, BackendURLInput>(
 	async ({ input }) => {
 		const { initialURL, isHostedMode } = input;
 
-		const placeholder = isHostedMode
-			? 'https://your-instance.c15t.dev'
-			: 'https://your-backend.example.com/api/c15t';
+		let placeholder = 'https://your-backend.example.com/api/c15t';
+		if (isHostedMode) {
+			placeholder = 'https://your-instance.c15t.dev';
+		}
+
+		let message = 'Enter your self-hosted backend URL:';
+		if (isHostedMode) {
+			message = 'Enter your consent.io instance URL:';
+		}
 
 		const result = await p.text({
-			message: isHostedMode
-				? 'Enter your consent.io instance URL:'
-				: 'Enter your self-hosted backend URL:',
+			message,
 			placeholder,
 			initialValue: initialURL,
 			validate: (value) => {

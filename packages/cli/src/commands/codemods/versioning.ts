@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 type ParsedVersion = {
@@ -127,12 +126,12 @@ function comparePreRelease(a: string[], b: string[]): number {
 	return 0;
 }
 
-function compareVersions(a: string, b: string): number {
+function compareVersions(a: string, b: string): number | null {
 	const parsedA = parseVersion(a);
 	const parsedB = parseVersion(b);
 
 	if (!parsedA || !parsedB) {
-		return 0;
+		return null;
 	}
 
 	if (parsedA.major !== parsedB.major) {
@@ -164,6 +163,9 @@ function satisfiesComparator(version: string, comparator: string): boolean {
 
 	const operator = operatorRaw ?? '=';
 	const comparison = compareVersions(version, target);
+	if (comparison === null) {
+		return false;
+	}
 
 	switch (operator) {
 		case '<':
@@ -273,7 +275,8 @@ export function detectInstalledC15tVersionFromPackageJson(
 
 	let selected = firstVersion;
 	for (const current of versions.slice(1)) {
-		if (compareVersions(current, selected) < 0) {
+		const comparison = compareVersions(current, selected);
+		if (comparison !== null && comparison < 0) {
 			selected = current;
 		}
 	}
@@ -290,7 +293,19 @@ export async function detectInstalledC15tVersion(
 	const manifestPath = join(projectRoot, 'package.json');
 
 	try {
-		const content = await readFile(manifestPath, 'utf-8');
+		let content: string;
+		const bunRuntime = (
+			globalThis as {
+				Bun?: { file: (filePath: string) => { text: () => Promise<string> } };
+			}
+		).Bun;
+
+		if (bunRuntime) {
+			content = await bunRuntime.file(manifestPath).text();
+		} else {
+			const fs = await import('node:fs/promises');
+			content = await fs.readFile(manifestPath, 'utf-8');
+		}
 		const parsed = JSON.parse(content) as PackageJsonLike;
 		return detectInstalledC15tVersionFromPackageJson(parsed);
 	} catch {

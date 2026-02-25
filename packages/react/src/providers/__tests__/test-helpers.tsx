@@ -166,8 +166,10 @@ export function setupMocks(): {
 				},
 				pkgInfo: { pkg: string; version: string }
 			) => {
-				const mode =
-					options.mode === 'c15t' ? 'hosted' : (options.mode ?? 'hosted');
+				let mode = options.mode ?? 'hosted';
+				if (options.mode === 'c15t') {
+					mode = 'hosted';
+				}
 				const backendURL =
 					'backendURL' in options ? options.backendURL : undefined;
 				const cacheKey = `${mode}:${backendURL ?? 'default'}`;
@@ -177,12 +179,17 @@ export function setupMocks(): {
 					return { ...cached, cacheKey };
 				}
 
+				let hostedBackendConfig: { backendURL?: string } = {};
+				if (mode === 'hosted') {
+					hostedBackendConfig = {
+						backendURL: backendURL || '/api/c15t',
+					};
+				}
+
 				const consentManager = createMockConsentManager({
 					...(options as ConsentManagerOptions),
 					mode,
-					...(mode === 'hosted'
-						? { backendURL: backendURL || '/api/c15t' }
-						: {}),
+					...hostedBackendConfig,
 				});
 
 				const consentStore = createConsentManagerStore(consentManager, {

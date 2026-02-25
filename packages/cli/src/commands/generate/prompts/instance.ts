@@ -104,7 +104,7 @@ export interface InstanceSelectionResult {
 }
 
 /**
- * Prompt for c15t instance selection
+ * Prompt for hosted instance selection
  *
  * If logged in, shows instance picker.
  * If not logged in, offers: login / manual URL / signup
@@ -254,13 +254,21 @@ async function promptInstancePicker(
 			return promptManualUrl(context);
 		}
 
-		const selectedInstance = instances.find((i) => i.id === result)!;
+		const selectedInstance = instances.find(
+			(instance) => instance.id === result
+		);
+		if (!selectedInstance) {
+			logger.warn(
+				'Selected instance was not found. Falling back to manual entry.'
+			);
+			return promptManualUrl(context);
+		}
 
 		return {
 			instance: selectedInstance,
 			backendUrl: selectedInstance.url,
 		};
-	} catch (error) {
+	} catch (_error) {
 		spinner.stop();
 		logger.warn('Could not fetch instances. Falling back to manual entry.');
 		return promptManualUrl(context);
@@ -277,8 +285,8 @@ async function promptManualUrl(
 
 	logger.message('');
 	const url = await p.text({
-		message: 'Enter your c15t instance URL:',
-		placeholder: 'https://my-app.c15t.dev',
+		message: 'Enter your hosted instance URL:',
+		placeholder: 'https://my-instance.example.com',
 		validate: validateUrl,
 	});
 

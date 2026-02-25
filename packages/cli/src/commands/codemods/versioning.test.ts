@@ -24,6 +24,7 @@ describe('codemod versioning', () => {
 		expect(satisfiesSimpleRange('2.0.0-rc.4', '<2.0.0')).toBe(true);
 		expect(satisfiesSimpleRange('2.0.0-rc.4', '>=2.0.0')).toBe(false);
 		expect(satisfiesSimpleRange('1.8.2', '>=1.0.0 <2.0.0')).toBe(true);
+		expect(satisfiesSimpleRange('workspace:*', '>=2.0.0')).toBe(false);
 	});
 
 	it('detects most conservative c15t version from package.json deps', () => {

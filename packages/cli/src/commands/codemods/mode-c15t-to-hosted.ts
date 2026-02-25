@@ -53,11 +53,23 @@ export interface CodemodRunResult {
 	errors: Array<{ filePath: string; error: string }>;
 }
 
+/**
+ * Returns an unquoted property key for comparisons.
+ *
+ * @param property Property assignment to inspect.
+ * @returns Normalized property key without surrounding quotes.
+ */
 function getPropertyName(property: PropertyAssignment): string {
 	const rawName = property.getNameNode().getText().trim();
 	return rawName.replace(/^['"]|['"]$/g, '');
 }
 
+/**
+ * Rewrites legacy `mode: 'c15t'` string literals to `mode: 'hosted'`.
+ *
+ * @param sourceFile Source file being transformed.
+ * @returns Transformation summary for this source file.
+ */
 function transformSourceFile(
 	sourceFile: import('ts-morph').SourceFile
 ): C15tModeToHostedResult {
@@ -68,6 +80,10 @@ function transformSourceFile(
 		SyntaxKind.PropertyAssignment
 	);
 
+	// TODO(codemod-scope): This codemod intentionally rewrites all object
+	// properties shaped as `mode: 'c15t'` because projects often wrap c15t
+	// config in custom helpers/types. We prefer broad migration coverage over
+	// narrow AST heuristics that could miss valid config objects.
 	for (const property of propertyAssignments) {
 		if (getPropertyName(property) !== 'mode') {
 			continue;
@@ -101,6 +117,10 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 		const entries = await readdir(currentDir, { withFileTypes: true });
 
 		for (const entry of entries) {
+			if (entry.isSymbolicLink()) {
+				continue;
+			}
+
 			if (entry.isDirectory()) {
 				if (IGNORED_DIRS.has(entry.name)) {
 					continue;

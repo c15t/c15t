@@ -31,6 +31,19 @@ let hasWarnedAboutLegacyC15tMode = false;
 export type ClientMode = 'hosted' | 'c15t' | 'offline' | 'custom';
 type CanonicalClientMode = 'hosted' | 'offline' | 'custom';
 
+/**
+ * Normalizes {@link ClientMode} values into a canonical {@link CanonicalClientMode}.
+ *
+ * @param mode Optional client mode from user-provided options.
+ * @returns Canonical mode value used by the client factory.
+ *
+ * @remarks
+ * - Legacy `mode: 'c15t'` is mapped to {@link DEFAULT_CLIENT_MODE}.
+ * - A one-time deprecation warning is emitted in non-production via
+ *   {@link hasWarnedAboutLegacyC15tMode}.
+ * - Unknown/omitted values also fall back to {@link DEFAULT_CLIENT_MODE}.
+ * - This function does not throw.
+ */
 function normalizeClientMode(mode?: ClientMode): CanonicalClientMode {
 	if (mode === 'c15t') {
 		const nodeEnv =
@@ -53,6 +66,10 @@ function normalizeClientMode(mode?: ClientMode): CanonicalClientMode {
 	}
 
 	return DEFAULT_CLIENT_MODE;
+}
+
+function assertUnreachableMode(mode: never): never {
+	throw new Error(`Unsupported client mode: ${String(mode)}`);
 }
 
 // Add at the module level (before the configureConsentManager function)
@@ -194,7 +211,7 @@ export type CustomClientOptions = {
 	backendURL?: never;
 };
 
-export type HostedClientOptions = {
+export interface HostedClientOptions {
 	/**
 	 * Hosted mode (default) - requires a backend URL
 	 *
@@ -222,7 +239,7 @@ export type HostedClientOptions = {
 	 * Retry configuration
 	 */
 	retryConfig?: RetryConfig;
-};
+}
 
 export type OfflineClientOptions = {
 	/**
@@ -409,12 +426,7 @@ export function configureConsentManager(
 			break;
 		}
 		case 'hosted': {
-			const hostedOptions = options as {
-				backendURL: string;
-				headers?: Record<string, string>;
-				customFetch?: typeof fetch;
-				retryConfig?: RetryConfig;
-			};
+			const hostedOptions = options as HostedClientOptions;
 			// Extract IAB config for fallback mode
 			const iabConfig = options.store?.iab;
 			client = new C15tClient({
@@ -431,6 +443,10 @@ export function configureConsentManager(
 						}
 					: undefined,
 			});
+			break;
+		}
+		default: {
+			client = assertUnreachableMode(mode);
 			break;
 		}
 	}

@@ -39,6 +39,7 @@ const options = {
 		const updated = await readFile(filePath, 'utf-8');
 
 		expect(result.changedFiles).toHaveLength(1);
+		expect(result.errors).toHaveLength(0);
 		expect(updated).toContain("mode: 'hosted'");
 		expect(updated).toContain("backendURL: '/api/c15t'");
 	});
@@ -58,6 +59,7 @@ const options = {
 		const unchanged = await readFile(filePath, 'utf-8');
 
 		expect(result.changedFiles).toHaveLength(1);
+		expect(result.errors).toHaveLength(0);
 		expect(unchanged).toContain("mode: 'c15t'");
 		expect(unchanged).not.toContain("mode: 'hosted'");
 	});
@@ -75,6 +77,7 @@ const options = {
 		});
 
 		expect(result.changedFiles).toHaveLength(0);
+		expect(result.errors).toHaveLength(0);
 	});
 
 	it("does not rewrite unrelated 'c15t' strings", async () => {
@@ -92,6 +95,7 @@ const options = {
 		const updated = await readFile(filePath, 'utf-8');
 
 		expect(result.changedFiles).toHaveLength(0);
+		expect(result.errors).toHaveLength(0);
 		expect(updated).toContain("const label = 'c15t'");
 		expect(updated).toContain("backendURL: '/api/c15t'");
 	});

@@ -5,7 +5,7 @@ import { STORAGE_KEY_V2 } from '../../../store/initial-state';
 import { configureConsentManager } from '../../client-factory';
 import { API_ENDPOINTS } from '../../types';
 
-describe('c15t Client identifyUser Tests', () => {
+describe('Hosted Client identifyUser Tests', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 		fetchMock.mockReset();

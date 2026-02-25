@@ -266,7 +266,7 @@ export interface IABConfig {
 	/**
 	 * IAB-registered vendor IDs to include (optional).
 	 *
-	 * Used to scope the vendor list when fetching GVL or when c15t fallback
+	 * Used to scope the vendor list when fetching GVL or when hosted fallback
 	 * paths are used (e.g. if GVL fetch fails).
 	 *
 	 * @example

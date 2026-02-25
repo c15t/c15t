@@ -118,7 +118,7 @@ async function formatGeneratedFiles(
 /**
  * File generation actor
  *
- * Creates and modifies files for the c15t setup with backup support.
+ * Creates and modifies files for the hosted setup with backup support.
  */
 export const fileGenerationActor = fromPromise<
 	FileGenerationOutput,
@@ -148,8 +148,7 @@ export const fileGenerationActor = fromPromise<
 		envPath: null,
 	};
 
-	const { projectRoot, framework, cwd, logger } = cliContext;
-	const pkg = framework.pkg;
+	const { projectRoot, logger } = cliContext;
 
 	// Import the existing generate-files utility
 	// We delegate to the existing implementation but track files
@@ -193,7 +192,7 @@ export const fileGenerationActor = fromPromise<
 		// Generate files using existing utility
 		const generateResult = await generateFiles({
 			context: cliContext,
-			mode: mode as 'hosted' | 'c15t' | 'self-hosted' | 'offline' | 'custom',
+			mode,
 			spinner: spinnerMock as ReturnType<
 				typeof import('@clack/prompts').spinner
 			>,

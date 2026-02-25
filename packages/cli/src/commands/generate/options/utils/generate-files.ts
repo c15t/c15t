@@ -17,9 +17,16 @@ import { updateReactLayout } from '../../templates/layout';
 import { updateNextConfig } from '../../templates/next-config';
 import type { BaseOptions } from '../types';
 
+export type GenerateMode =
+	| 'hosted'
+	| 'c15t'
+	| 'self-hosted'
+	| 'offline'
+	| 'custom';
+
 export interface GenerateFilesOptions extends BaseOptions {
 	context: CliContext;
-	mode: 'hosted' | 'c15t' | 'self-hosted' | 'offline' | 'custom';
+	mode: GenerateMode;
 	proxyNextjs?: boolean;
 	backendURL?: string;
 	useEnvFile?: boolean;
@@ -60,7 +67,7 @@ interface LayoutUpdateResult {
  */
 async function handleReactLayout(options: {
 	projectRoot: string;
-	mode: 'hosted' | 'c15t' | 'self-hosted' | 'offline' | 'custom';
+	mode: GenerateMode;
 	backendURL?: string;
 	useEnvFile?: boolean;
 	pkg: AvailablePackages;
@@ -128,7 +135,7 @@ async function handleReactLayout(options: {
 						typedResult.componentFiles.consentManagerDir
 					);
 					return {
-						message: `Layout setup complete!\n  ${color.green('✓')} Created: ${color.cyan(relativeConsentManagerDir + '/')} (expanded components)\n  ${color.green('✓')} Created: ${color.cyan(relativeConsentManager)}\n  ${color.green('✓')} Updated: ${color.cyan(relativeLayout)}`,
+						message: `Layout setup complete!\n  ${color.green('✓')} Created: ${color.cyan(`${relativeConsentManagerDir}/`)} (expanded components)\n  ${color.green('✓')} Created: ${color.cyan(relativeConsentManager)}\n  ${color.green('✓')} Updated: ${color.cyan(relativeLayout)}`,
 						type: 'info',
 					};
 				}
