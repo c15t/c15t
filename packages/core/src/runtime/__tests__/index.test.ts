@@ -266,7 +266,9 @@ describe('runtime', () => {
 			version: '2.0.0',
 		});
 
-		expect(result.cacheKey).toBe('hosted:default:none:default:default:enabled');
+		expect(result.cacheKey).toBe(
+			'hosted:default:none:default:default:default:enabled'
+		);
 		expect(configureConsentManagerMock).toHaveBeenCalledWith(
 			expect.objectContaining({
 				mode: 'c15t',
