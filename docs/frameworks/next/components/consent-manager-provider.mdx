@@ -52,23 +52,6 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
 See [Client Modes](/docs/frameworks/next/concepts/client-modes) for a detailed comparison.
 
 <import src="../../../shared/react/components/consent-manager-provider.mdx#legal-links" />
-
-## Overrides
-
-Force a specific jurisdiction, country, or language regardless of detection:
-
-```tsx
-<ConsentManagerProvider
-  options={{
-    mode: 'hosted',
-    backendURL: '/api/c15t',
-    overrides: {
-      country: 'DE',
-      region: 'BY',
-      language: 'de',
-    },
-  }}
->
-```
+<import src="../../../shared/react/components/consent-manager-provider.mdx#overrides" />
 
 <import src="../../../shared/react/components/consent-manager-provider.mdx#props" />

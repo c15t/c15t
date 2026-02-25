@@ -19,20 +19,75 @@
 <section id="legal-links">
   ## Legal Links
 
-  Configure URLs that appear in the consent banner and dialog:
+  `legalLinks` defines the URLs shown in consent UI text (banner, dialog, and widget where applicable).
+  Configure only the links you want to expose.
 
   ```tsx
   <ConsentManagerProvider
     options={{
       mode: 'offline',
       legalLinks: {
-        privacyPolicy: '/privacy',
-        cookiePolicy: '/cookies',
-        termsOfService: '/terms',
+        privacyPolicy: {
+          href: '/privacy',
+          target: '_self',
+        },
+        cookiePolicy: {
+          href: '/cookies',
+          target: '_self',
+        },
+        termsOfService: {
+          href: 'https://example.com/terms',
+          target: '_blank',
+          rel: 'noopener noreferrer',
+          label: 'Terms of Service',
+        },
       },
     }}
   >
   ```
+
+  Notes:
+  - Omitting a key (for example `termsOfService`) hides that link.
+  - `label` overrides the translated text for that single link.
+  - Use `_self` for internal pages and `_blank` + `rel="noopener noreferrer"` for external pages.
+  - Control which of the configured links render in each component via the component's `legalLinks` prop.
+</section>
+
+<section id="overrides">
+  ## Overrides
+
+  `overrides` lets you force location/language signals instead of browser or network detection.
+  This is useful for QA, local development, and preview environments.
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      mode: 'offline',
+      overrides: {
+        country: 'DE',
+        region: 'BY',
+        language: 'de-DE',
+      },
+    }}
+  >
+  ```
+
+  You can also override Global Privacy Control (GPC) behavior during testing:
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      mode: 'offline',
+      overrides: {
+        gpc: true,
+      },
+    }}
+  >
+  ```
+
+  <Callout type="warning">
+    Treat overrides as an environment/testing tool. Avoid hard-coding production overrides unless that behavior is intentional for your deployment.
+  </Callout>
 </section>
 
 <section id="props">

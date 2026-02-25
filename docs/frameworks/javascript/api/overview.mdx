@@ -65,6 +65,70 @@ const store = createConsentManagerStore(manager, {
 });
 ```
 
+## Legal Links
+
+Configure legal policy URLs in store options via `legalLinks`:
+
+```ts
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'offline',
+  legalLinks: {
+    privacyPolicy: {
+      href: '/privacy',
+      target: '_self',
+    },
+    cookiePolicy: {
+      href: '/cookies',
+      target: '_self',
+    },
+    termsOfService: {
+      href: 'https://example.com/terms',
+      target: '_blank',
+      rel: 'noopener noreferrer',
+      label: 'Terms of Service',
+    },
+  },
+});
+```
+
+Notes:
+- Omitting a key (for example `termsOfService`) hides that link.
+- `label` overrides the translated text for that single link.
+- Use `_self` for internal pages and `_blank` + `rel="noopener noreferrer"` for external pages.
+- The `c15t` package is headless; these links are used by your UI layer (custom UI or `@c15t/ui`-based integrations).
+
+## Overrides
+
+Set initial `overrides` to force location/language signals during runtime initialization:
+
+```ts
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'offline',
+  overrides: {
+    country: 'DE',
+    region: 'BY',
+    language: 'de-DE',
+  },
+});
+```
+
+You can also force Global Privacy Control behavior for testing:
+
+```ts
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'offline',
+  overrides: {
+    gpc: true,
+  },
+});
+```
+
+For runtime updates after initialization, call [`setOverrides()`](/docs/frameworks/javascript/api/location-info#setoverridesoverrides).
+
+<Callout type="warning">
+  Treat overrides as an environment/testing tool. Avoid hard-coding production overrides unless that behavior is intentional for your deployment.
+</Callout>
+
 ## Store Patterns
 
 ### Reading State
