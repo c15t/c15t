@@ -1,8 +1,7 @@
 import {
 	type I18nConfig,
 	normalizeI18nConfig,
-	type TranslationInputConfig,
-	toTranslationConfig,
+	resolveTranslationInput,
 } from '@c15t/translations';
 import { version } from '~/version';
 import {
@@ -58,7 +57,17 @@ function generateRuntimeCacheKey(options: {
 }): string {
 	const enabledKey = options.enabled === false ? 'disabled' : 'enabled';
 
-	return `${options.mode ?? 'c15t'}:${options.backendURL ?? 'default'}:${options.endpointHandlers ? 'custom' : 'none'}:${options.storageConfig?.storageKey ?? 'default'}:${options.defaultLanguage ?? 'default'}:${options.languageSetKey ?? 'default'}:${enabledKey}`;
+	const cacheParts = [
+		options.mode ?? 'c15t',
+		options.backendURL ?? 'default',
+		options.endpointHandlers ? 'custom' : 'none',
+		options.storageConfig?.storageKey ?? 'default',
+		options.defaultLanguage ?? 'default',
+		options.languageSetKey ?? 'default',
+		enabledKey,
+	];
+
+	return cacheParts.join(':');
 }
 
 export function getOrCreateConsentRuntime(
@@ -91,6 +100,12 @@ export function getOrCreateConsentRuntime(
 	} = optionBag;
 
 	const {
+		initialI18nConfig: _unusedTopLevelInitialI18nConfig,
+		initialTranslationConfig: _unusedTopLevelInitialTranslationConfig,
+		...cleanStoreOptionOverrides
+	} = storeOptionOverrides as Partial<StoreOptions>;
+
+	const {
 		initialI18nConfig: _unusedStoreInitialI18nConfig,
 		initialTranslationConfig: _unusedStoreInitialTranslationConfig,
 		...storeWithoutTranslationInputs
@@ -100,23 +115,12 @@ export function getOrCreateConsentRuntime(
 		translations ?? store?.initialTranslationConfig;
 	const preferredI18nConfig = i18n ?? store?.initialI18nConfig;
 
-	const translationInput: TranslationInputConfig | undefined =
-		preferredLegacyTranslationConfig || preferredI18nConfig
-			? {
-					...(preferredLegacyTranslationConfig ?? {}),
-					...(preferredI18nConfig ? { i18n: preferredI18nConfig } : {}),
-				}
-			: undefined;
-
-	const normalizedI18nConfig = translationInput
-		? normalizeI18nConfig(translationInput)
-		: undefined;
-	const normalizedInitialTranslationConfig = normalizedI18nConfig
-		? toTranslationConfig({
-				messages: normalizedI18nConfig.messages,
-				locale: normalizedI18nConfig.locale,
-				detectBrowserLanguage: normalizedI18nConfig.detectBrowserLanguage,
-			})
+	const normalizedInitialTranslationConfig = resolveTranslationInput(
+		preferredLegacyTranslationConfig,
+		preferredI18nConfig
+	);
+	const normalizedI18nConfig = normalizedInitialTranslationConfig
+		? normalizeI18nConfig(normalizedInitialTranslationConfig)
 		: undefined;
 	const normalizedLanguageSet = normalizedI18nConfig
 		? Object.keys(normalizedI18nConfig.messages).sort()
@@ -182,7 +186,7 @@ export function getOrCreateConsentRuntime(
 				version: pkgInfo?.version || version,
 				mode: mode || 'Unknown',
 			},
-			...storeOptionOverrides,
+			...cleanStoreOptionOverrides,
 			...storeWithoutTranslationInputs,
 			iab: resolvedIab,
 			storageConfig: resolvedStorageConfig,

@@ -248,6 +248,10 @@ describe('updateStore - GPC override', () => {
 });
 
 describe('updateStore - translation precedence', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
 	it('keeps server/runtime language as default language when initial config has a different default', () => {
 		const data = createMockConsentBannerResponse({
 			translations: {
@@ -305,6 +309,13 @@ describe('updateStore - translation precedence', () => {
 			expect.objectContaining({
 				translationConfig: expect.objectContaining({
 					defaultLanguage: 'de',
+					translations: expect.objectContaining({
+						en: expect.objectContaining({
+							cookieBanner: expect.objectContaining({
+								title: 'English Title',
+							}),
+						}),
+					}),
 				}),
 			})
 		);

@@ -2,10 +2,17 @@ import * as p from '@clack/prompts';
 import type { CliCommand, CliContext } from '~/context/types';
 import { runTranslationsToI18nCodemod } from './translations-to-i18n';
 
-interface CodemodDefinition {
+/**
+ * Describes a runnable codemod exposed in the interactive codemods menu.
+ */
+export interface CodemodDefinition {
+	/** Stable codemod identifier used in prompt selection values. */
 	id: string;
+	/** Human-readable menu label. */
 	label: string;
+	/** Short description shown in the prompt hint column. */
 	hint: string;
+	/** Executes the codemod for the provided CLI context. */
 	run: (context: CliContext, dryRun: boolean) => Promise<void>;
 }
 
@@ -25,24 +32,44 @@ const codemods: CodemodDefinition[] = [
 				logger.info(
 					`No files needed updates (scanned ${result.totalFiles} source files).`
 				);
+				for (const error of result.errors) {
+					logger.warn(`Skipped ${error.filePath}: ${error.error}`);
+				}
 				return;
 			}
 
+			let actionPrefix = 'Applied';
+			if (dryRun) {
+				actionPrefix = 'Dry run';
+			}
+
 			logger.success(
-				`${dryRun ? 'Dry run' : 'Applied'}: updated ${result.changedFiles.length} file(s) out of ${result.totalFiles} scanned.`
+				`${actionPrefix}: updated ${result.changedFiles.length} file(s) out of ${result.totalFiles} scanned.`
 			);
 
 			for (const file of result.changedFiles) {
-				const summary =
-					file.summaries.length > 0 ? `: ${file.summaries.join(', ')}` : '';
+				let summary = '';
+				if (file.summaries.length > 0) {
+					summary = `: ${file.summaries.join(', ')}`;
+				}
 				logger.info(
 					`- ${file.filePath} (${file.operations} changes${summary})`
 				);
+			}
+
+			for (const error of result.errors) {
+				logger.warn(`Skipped ${error.filePath}: ${error.error}`);
 			}
 		},
 	},
 ];
 
+/**
+ * Runs one or more selected codemods for the current project.
+ *
+ * @param context CLI execution context.
+ * @returns Promise that resolves when selected codemods complete.
+ */
 export async function runCodemods(context: CliContext): Promise<void> {
 	const { logger, commandArgs } = context;
 	const dryRun = commandArgs.includes('--dry-run');
@@ -68,8 +95,13 @@ export async function runCodemods(context: CliContext): Promise<void> {
 		return;
 	}
 
+	let dryRunSuffix = '';
+	if (dryRun) {
+		dryRunSuffix = ' in dry-run mode';
+	}
+
 	logger.info(
-		`Running ${selectedCodemods.length} codemod(s)${dryRun ? ' in dry-run mode' : ''}...`
+		`Running ${selectedCodemods.length} codemod(s)${dryRunSuffix}...`
 	);
 
 	for (const codemodId of selectedCodemods) {
@@ -84,6 +116,9 @@ export async function runCodemods(context: CliContext): Promise<void> {
 	}
 }
 
+/**
+ * Top-level CLI command definition for project codemods.
+ */
 export const codemodsCommand: CliCommand = {
 	name: 'codemods',
 	label: 'Codemods',

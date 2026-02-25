@@ -4,7 +4,7 @@
  * This module provides the main store creation and management functionality.
  */
 
-import { normalizeI18nConfig, toTranslationConfig } from '@c15t/translations';
+import { resolveTranslationInput } from '@c15t/translations';
 import { createStore } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { StorageConfig } from '../libs/cookie';
@@ -150,12 +150,7 @@ export const createConsentManagerStore = (
 		legacyInitialTranslationConfig || initialI18nConfig
 	);
 	const normalizedInitialTranslationConfig = hasInitialTranslationInput
-		? toTranslationConfig(
-				normalizeI18nConfig({
-					...(legacyInitialTranslationConfig ?? {}),
-					...(initialI18nConfig ? { i18n: initialI18nConfig } : {}),
-				})
-			)
+		? resolveTranslationInput(legacyInitialTranslationConfig, initialI18nConfig)
 		: undefined;
 
 	// Enable the global debug logger based on the debug option

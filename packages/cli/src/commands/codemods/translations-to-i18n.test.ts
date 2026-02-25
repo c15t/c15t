@@ -16,13 +16,13 @@ async function createTempProject(
 	return { rootDir, filePath };
 }
 
-afterEach(async () => {
-	for (const dir of createdDirs.splice(0, createdDirs.length)) {
-		await rm(dir, { recursive: true, force: true });
-	}
-});
-
 describe('translations-to-i18n codemod', () => {
+	afterEach(async () => {
+		for (const dir of createdDirs.splice(0, createdDirs.length)) {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	it('transforms legacy translations config into i18n config', async () => {
 		const source = `
 const options = {
@@ -103,6 +103,8 @@ const options = {
 		const source = `
 const payload = {
 	translations: {
+		// Intentional non-legacy payload: sibling "language" + "translations"
+		// makes isLegacyTranslationConfigObject return false.
 		language: 'de',
 		translations: {
 			cookieBanner: { title: 'Titel' },

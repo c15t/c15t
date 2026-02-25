@@ -200,16 +200,76 @@ export interface TranslationConfig {
  * - `messages` -> `translations`
  * - `locale` -> `defaultLanguage`
  * - `detectBrowserLanguage` -> inverse of `disableAutoLanguageSwitch`
+ *
+ * Edge cases:
+ * - If `messages` is empty, English defaults are still injected by merge helpers.
+ * - If `locale` is undefined, language resolution falls back to browser detection,
+ *   then to `'en'`.
+ * - If `detectBrowserLanguage` is undefined, browser detection remains enabled.
+ *
+ * @example
+ * ```ts
+ * const i18n = {
+ *   locale: 'en',
+ *   detectBrowserLanguage: false,
+ *   messages: {
+ *     en: { common: { acceptAll: 'Accept all' } },
+ *     de: { common: { acceptAll: 'Alle akzeptieren' } },
+ *   },
+ * };
+ * ```
+ *
+ * @see {@link TranslationConfig}
+ * @see {@link Translations}
  */
 export interface I18nConfig {
+	/**
+	 * Translation message map keyed by language code (`en`, `de`, `fr`, ...).
+	 */
 	messages: Record<string, Partial<Translations>>;
+	/**
+	 * Preferred language code used as the initial fallback locale.
+	 */
 	locale?: string;
+	/**
+	 * Whether to auto-detect from browser language settings.
+	 *
+	 * @remarks
+	 * This is the inverse of legacy `disableAutoLanguageSwitch`.
+	 */
 	detectBrowserLanguage?: boolean;
 }
 
 /**
- * Input shape that supports both legacy translation config and v2 i18n config.
+ * Input shape accepted by translation helpers in both legacy and v2 formats.
+ *
+ * @remarks
+ * This interface accepts:
+ * - legacy `TranslationConfig` fields (`translations`, `defaultLanguage`,
+ *   `disableAutoLanguageSwitch`)
+ * - v2 `i18n` fields (`messages`, `locale`, `detectBrowserLanguage`)
+ *
+ * Prefer supplying `i18n` for new code and keep legacy fields only for
+ * compatibility during migration.
+ *
+ * @example
+ * ```ts
+ * const legacyInput = {
+ *   translations: { en: { common: { acceptAll: 'Accept all' } } },
+ *   defaultLanguage: 'en',
+ * };
+ *
+ * const v2Input = {
+ *   i18n: {
+ *     locale: 'de',
+ *     messages: { de: { common: { acceptAll: 'Alle akzeptieren' } } },
+ *   },
+ * };
+ * ```
+ *
+ * @see {@link TranslationConfig}
+ * @see {@link I18nConfig}
  */
-export type TranslationInputConfig = Partial<TranslationConfig> & {
+export interface TranslationInputConfig extends Partial<TranslationConfig> {
 	i18n?: Partial<I18nConfig>;
-};
+}

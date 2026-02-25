@@ -1,3 +1,5 @@
+import { readdir } from 'node:fs/promises';
+import { extname, join } from 'node:path';
 import {
 	Node,
 	type ObjectLiteralExpression,
@@ -25,17 +27,36 @@ type TranslationsToI18nResult = {
 };
 
 export interface CodemodRunOptions {
+	/**
+	 * Absolute or relative project root to scan for source files.
+	 */
 	projectRoot: string;
+	/**
+	 * Whether to skip saving transformed files.
+	 */
 	dryRun: boolean;
 }
 
+/**
+ * Result summary for a codemod run.
+ */
 export interface CodemodRunResult {
+	/**
+	 * Number of source files scanned.
+	 */
 	totalFiles: number;
+	/**
+	 * Per-file transformation summaries.
+	 */
 	changedFiles: Array<{
 		filePath: string;
 		operations: number;
 		summaries: string[];
 	}>;
+	/**
+	 * Non-fatal per-file transform errors.
+	 */
+	errors: Array<{ filePath: string; error: string }>;
 }
 
 function getPropertyName(property: PropertyAssignment): string {
@@ -74,6 +95,10 @@ function renameProperty(property: PropertyAssignment, nextName: string): void {
 function isLegacyTranslationConfigObject(
 	objectLiteral: ObjectLiteralExpression
 ): boolean {
+	// Heuristic: treat objects as legacy translation config when they include
+	// defaultLanguage/disableAutoLanguageSwitch, or a bare "translations" map
+	// without sibling "language", "i18n", "messages", or "locale" keys.
+	// Limitation: unrelated objects using these property names can be false positives.
 	const hasDefaultLanguage = hasProperty(objectLiteral, 'defaultLanguage');
 	const hasDisableAutoLanguageSwitch = hasProperty(
 		objectLiteral,
@@ -223,9 +248,6 @@ function transformSourceFile(
 }
 
 async function collectSourceFiles(rootDir: string): Promise<string[]> {
-	const { readdir } = await import('node:fs/promises');
-	const { extname, join } = await import('node:path');
-
 	const files: string[] = [];
 
 	async function walk(currentDir: string): Promise<void> {
@@ -258,6 +280,22 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 	return files;
 }
 
+/**
+ * Runs the legacy translations-to-i18n codemod across project source files.
+ *
+ * @param options Codemod execution options.
+ * @returns Summary with changed files and non-fatal per-file errors.
+ *
+ * @example
+ * ```ts
+ * const result = await runTranslationsToI18nCodemod({
+ *   projectRoot: process.cwd(),
+ *   dryRun: true,
+ * });
+ * ```
+ *
+ * @throws Propagates unexpected setup failures such as directory traversal errors.
+ */
 export async function runTranslationsToI18nCodemod(
 	options: CodemodRunOptions
 ): Promise<CodemodRunResult> {
@@ -274,31 +312,40 @@ export async function runTranslationsToI18nCodemod(
 		operations: number;
 		summaries: string[];
 	}> = [];
+	const errors: Array<{ filePath: string; error: string }> = [];
 
 	for (const filePath of filePaths) {
-		const sourceFile = project.addSourceFileAtPathIfExists(filePath);
-		if (!sourceFile) {
-			continue;
-		}
+		try {
+			const sourceFile = project.addSourceFileAtPathIfExists(filePath);
+			if (!sourceFile) {
+				continue;
+			}
 
-		const result = transformSourceFile(sourceFile);
-		if (!result.changed) {
-			continue;
-		}
+			const result = transformSourceFile(sourceFile);
+			if (!result.changed) {
+				continue;
+			}
 
-		changedFiles.push({
-			filePath,
-			operations: result.operations,
-			summaries: result.summaries,
-		});
+			changedFiles.push({
+				filePath,
+				operations: result.operations,
+				summaries: result.summaries,
+			});
 
-		if (!options.dryRun) {
-			await sourceFile.save();
+			if (!options.dryRun) {
+				await sourceFile.save();
+			}
+		} catch (error) {
+			errors.push({
+				filePath,
+				error: error instanceof Error ? error.message : String(error),
+			});
 		}
 	}
 
 	return {
 		totalFiles: filePaths.length,
 		changedFiles,
+		errors,
 	};
 }

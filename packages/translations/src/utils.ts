@@ -252,6 +252,28 @@ export function toTranslationConfig(config: I18nConfig): TranslationConfig {
 }
 
 /**
+ * Resolves legacy and v2 i18n inputs into a normalized legacy translation config.
+ *
+ * @param legacyConfig Legacy translation input.
+ * @param i18nConfig Preferred v2 i18n input.
+ */
+export function resolveTranslationInput(
+	legacyConfig?: Partial<TranslationConfig>,
+	i18nConfig?: Partial<I18nConfig>
+): TranslationConfig | undefined {
+	if (!legacyConfig && !i18nConfig) {
+		return undefined;
+	}
+
+	return toTranslationConfig(
+		normalizeI18nConfig({
+			...(legacyConfig ?? {}),
+			...(i18nConfig ? { i18n: i18nConfig } : {}),
+		})
+	);
+}
+
+/**
  * Merges custom translations with defaults
  */
 export function mergeTranslationConfigs(
@@ -260,7 +282,7 @@ export function mergeTranslationConfigs(
 ): TranslationConfig {
 	const normalizedDefault = normalizeI18nConfig(defaultConfig);
 	const normalizedCustom = customConfig
-		? normalizeI18nConfig(customConfig as TranslationInputConfig)
+		? normalizeI18nConfig(customConfig)
 		: undefined;
 
 	const translations: Record<string, Partial<Translations>> = {
@@ -328,18 +350,11 @@ export function prepareTranslationConfig(
 	customConfig?: TranslationInputConfig
 ): TranslationConfig {
 	const mergedConfig = mergeTranslationConfigs(defaultConfig, customConfig);
-	const normalized = normalizeI18nConfig(mergedConfig);
-	const detectBrowser =
-		normalized.detectBrowserLanguage === undefined
-			? true
-			: normalized.detectBrowserLanguage;
+	const detectBrowser = !mergedConfig.disableAutoLanguageSwitch;
 	const defaultLanguage = detectBrowserLanguage(
-		normalized.messages,
-		normalized.locale,
+		mergedConfig.translations,
+		mergedConfig.defaultLanguage,
 		!detectBrowser
 	);
-	return toTranslationConfig({
-		...normalized,
-		locale: defaultLanguage,
-	});
+	return { ...mergedConfig, defaultLanguage };
 }

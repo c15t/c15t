@@ -264,43 +264,46 @@ describe('useTranslations', () => {
 		expect(result.current.common.acceptAll).toBe('Alles');
 	});
 
-	test('prefers i18n over legacy translations when both are provided', async () => {
-		const { result } = await renderHook(() => useTranslations(), {
-			wrapper: ({ children }) => (
-				<ConsentManagerProvider
-					options={{
-						mode: 'offline',
-						noStyle: false,
-						translations: {
-							defaultLanguage: 'en',
+	test(
+		'prefers i18n over legacy translations ' + 'when both are provided',
+		async () => {
+			const { result } = await renderHook(() => useTranslations(), {
+				wrapper: ({ children }) => (
+					<ConsentManagerProvider
+						options={{
+							mode: 'offline',
+							noStyle: false,
 							translations: {
-								en: {
-									cookieBanner: {
-										title: 'Legacy Title',
+								defaultLanguage: 'en',
+								translations: {
+									en: {
+										cookieBanner: {
+											title: 'Legacy Title',
+										},
 									},
 								},
 							},
-						},
-						i18n: {
-							locale: 'fr',
-							detectBrowserLanguage: false,
-							messages: {
-								fr: {
-									cookieBanner: {
-										title: 'Nouveau Titre',
+							i18n: {
+								locale: 'fr',
+								detectBrowserLanguage: false,
+								messages: {
+									fr: {
+										cookieBanner: {
+											title: 'Nouveau Titre',
+										},
 									},
 								},
 							},
-						},
-					}}
-				>
-					{children}
-				</ConsentManagerProvider>
-			),
-		});
+						}}
+					>
+						{children}
+					</ConsentManagerProvider>
+				),
+			});
 
-		await new Promise((resolve) => setTimeout(resolve, 10));
+			await new Promise((resolve) => setTimeout(resolve, 10));
 
-		expect(result.current.cookieBanner.title).toBe('Nouveau Titre');
-	});
+			expect(result.current.cookieBanner.title).toBe('Nouveau Titre');
+		}
+	);
 });
