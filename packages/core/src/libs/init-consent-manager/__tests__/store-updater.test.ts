@@ -246,3 +246,78 @@ describe('updateStore - GPC override', () => {
 		expect(consentsUpdate).toBeUndefined();
 	});
 });
+
+describe('updateStore - translation precedence', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it('keeps server/runtime language as default language when initial config has a different default', () => {
+		const data = createMockConsentBannerResponse({
+			translations: {
+				language: 'de',
+				translations: {
+					cookieBanner: {
+						title: 'Deutscher Titel',
+						description: 'Deutsche Beschreibung',
+					},
+					consentManagerDialog: {
+						title: 'Datenschutz',
+						description: 'Einstellungen',
+					},
+					common: {
+						acceptAll: 'Alle akzeptieren',
+						rejectAll: 'Alle ablehnen',
+						customize: 'Anpassen',
+						save: 'Speichern',
+					},
+					consentTypes: {
+						necessary: { title: 'Notwendig', description: 'Notwendig' },
+						functionality: { title: 'Funktional', description: 'Funktional' },
+						experience: { title: 'Erlebnis', description: 'Erlebnis' },
+						marketing: { title: 'Marketing', description: 'Marketing' },
+						measurement: { title: 'Analyse', description: 'Analyse' },
+					},
+				},
+			},
+		});
+		const mockState = createMockStoreState({ iab: null });
+		const mockGet = vi.fn().mockReturnValue(mockState);
+		const mockSet = vi.fn();
+
+		updateStore(
+			data,
+			{
+				get: mockGet,
+				set: mockSet,
+				manager: {} as InitConsentManagerConfig['manager'],
+				initialTranslationConfig: {
+					defaultLanguage: 'en',
+					translations: {
+						en: {
+							cookieBanner: {
+								title: 'English Title',
+							},
+						},
+					},
+				},
+			},
+			true
+		);
+
+		expect(mockSet).toHaveBeenCalledWith(
+			expect.objectContaining({
+				translationConfig: expect.objectContaining({
+					defaultLanguage: 'de',
+					translations: expect.objectContaining({
+						en: expect.objectContaining({
+							cookieBanner: expect.objectContaining({
+								title: 'English Title',
+							}),
+						}),
+					}),
+				}),
+			})
+		);
+	});
+});

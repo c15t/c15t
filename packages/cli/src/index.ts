@@ -15,7 +15,8 @@ import 'dotenv/config';
 import open from 'open';
 import color from 'picocolors';
 import { showHelpMenu } from './actions/show-help-menu';
-import { generate, generateCommand } from './commands/generate';
+import { codemodsCommand } from './commands/codemods';
+import { generate } from './commands/generate';
 import { selfHost } from './commands/self-host';
 import { installSkills } from './commands/skills';
 import { displayIntro } from './components/intro';
@@ -54,6 +55,7 @@ const commands: CliCommand[] = [
 			'Install c15t skills for AI-assisted development (Claude, Cursor, etc.)',
 		action: (context) => installSkills(context),
 	},
+	codemodsCommand,
 	{
 		name: 'github',
 		label: 'GitHub',

@@ -1,3 +1,8 @@
+import {
+	type I18nConfig,
+	normalizeI18nConfig,
+	resolveTranslationInput,
+} from '@c15t/translations';
 import { version } from '~/version';
 import {
 	type ConsentManagerOptions,
@@ -18,6 +23,13 @@ const storeCache = new Map<string, ConsentStoreInstance>();
 
 export type ConsentRuntimeOptions = ConsentManagerOptions &
 	Partial<StoreOptions> & {
+		/**
+		 * Preferred i18n configuration in c15t v2.
+		 */
+		i18n?: Partial<I18nConfig>;
+		/**
+		 * @deprecated Use `i18n` instead.
+		 */
 		translations?: Partial<TranslationConfig>;
 		consentCategories?: AllConsentNames[];
 		debug?: boolean;
@@ -40,66 +52,125 @@ function generateRuntimeCacheKey(options: {
 	endpointHandlers?: unknown;
 	storageConfig?: ConsentRuntimeOptions['storageConfig'];
 	defaultLanguage?: string;
+	languageSetKey?: string;
 	enabled?: boolean;
 }): string {
 	const enabledKey = options.enabled === false ? 'disabled' : 'enabled';
 
-	return `${options.mode ?? 'c15t'}:${options.backendURL ?? 'default'}:${options.endpointHandlers ? 'custom' : 'none'}:${options.storageConfig?.storageKey ?? 'default'}:${options.defaultLanguage ?? 'default'}:${enabledKey}`;
+	const cacheParts = [
+		options.mode ?? 'c15t',
+		options.backendURL ?? 'default',
+		options.endpointHandlers ? 'custom' : 'none',
+		options.storageConfig?.storageKey ?? 'default',
+		options.defaultLanguage ?? 'default',
+		options.languageSetKey ?? 'default',
+		enabledKey,
+	];
+
+	return cacheParts.join(':');
 }
 
 export function getOrCreateConsentRuntime(
 	options: ConsentRuntimeOptions,
 	pkgInfo?: ConsentRuntimePkgInfo
 ): ConsentRuntimeResult {
+	const optionBag = options as ConsentRuntimeOptions & {
+		headers?: Record<string, string>;
+		customFetch?: typeof fetch;
+		retryConfig?: unknown;
+		endpointHandlers?: unknown;
+	};
+
 	const {
 		mode,
 		backendURL,
 		store,
+		i18n,
 		translations,
 		storageConfig,
 		enabled,
 		iab,
 		consentCategories,
 		debug,
-	} = options;
+		headers: _unusedHeaders,
+		customFetch: _unusedCustomFetch,
+		retryConfig: _unusedRetryConfig,
+		endpointHandlers: _unusedEndpointHandlers,
+		...storeOptionOverrides
+	} = optionBag;
+
+	const {
+		initialI18nConfig: _unusedTopLevelInitialI18nConfig,
+		initialTranslationConfig: _unusedTopLevelInitialTranslationConfig,
+		...cleanStoreOptionOverrides
+	} = storeOptionOverrides as Partial<StoreOptions>;
+
+	const {
+		initialI18nConfig: _unusedStoreInitialI18nConfig,
+		initialTranslationConfig: _unusedStoreInitialTranslationConfig,
+		...storeWithoutTranslationInputs
+	} = store ?? {};
+
+	const preferredLegacyTranslationConfig =
+		translations ?? store?.initialTranslationConfig;
+	const preferredI18nConfig = i18n ?? store?.initialI18nConfig;
+
+	const normalizedInitialTranslationConfig = resolveTranslationInput(
+		preferredLegacyTranslationConfig,
+		preferredI18nConfig
+	);
+	const normalizedI18nConfig = normalizedInitialTranslationConfig
+		? normalizeI18nConfig(normalizedInitialTranslationConfig)
+		: undefined;
+	const normalizedLanguageSet = normalizedI18nConfig
+		? Object.keys(normalizedI18nConfig.messages).sort()
+		: [];
+	const resolvedIab = iab ?? storeWithoutTranslationInputs.iab;
+	const resolvedStorageConfig =
+		storageConfig ?? storeWithoutTranslationInputs.storageConfig;
+	const resolvedEnabled = enabled ?? storeWithoutTranslationInputs.enabled;
 
 	const cacheKey = generateRuntimeCacheKey({
 		mode,
 		backendURL,
 		endpointHandlers:
 			'endpointHandlers' in options ? options.endpointHandlers : undefined,
-		storageConfig,
-		defaultLanguage: translations?.defaultLanguage,
-		enabled,
+		storageConfig: resolvedStorageConfig,
+		defaultLanguage: normalizedI18nConfig?.locale,
+		languageSetKey:
+			normalizedLanguageSet.length > 0
+				? normalizedLanguageSet.join(',')
+				: undefined,
+		enabled: resolvedEnabled,
 	});
 
 	let consentManager = managerCache.get(cacheKey);
 	if (!consentManager) {
 		const normalizedStoreOptions = {
-			...store,
-			initialTranslationConfig: translations,
-			iab,
+			...storeWithoutTranslationInputs,
+			initialTranslationConfig: normalizedInitialTranslationConfig,
+			iab: resolvedIab,
 		};
 
 		if (mode === 'offline') {
 			consentManager = configureConsentManager({
 				mode: 'offline',
 				store: normalizedStoreOptions,
-				storageConfig,
+				storageConfig: resolvedStorageConfig,
 			});
 		} else if (mode === 'custom' && 'endpointHandlers' in options) {
 			consentManager = configureConsentManager({
 				mode: 'custom',
 				endpointHandlers: options.endpointHandlers,
 				store: normalizedStoreOptions,
-				storageConfig,
+				storageConfig: resolvedStorageConfig,
 			});
 		} else {
 			consentManager = configureConsentManager({
 				mode: 'c15t',
 				backendURL: backendURL || DEFAULT_BACKEND_URL,
 				store: normalizedStoreOptions,
-				storageConfig,
+				storageConfig: resolvedStorageConfig,
 			});
 		}
 
@@ -115,9 +186,12 @@ export function getOrCreateConsentRuntime(
 				version: pkgInfo?.version || version,
 				mode: mode || 'Unknown',
 			},
-			...options,
-			...store,
-			initialTranslationConfig: translations,
+			...cleanStoreOptionOverrides,
+			...storeWithoutTranslationInputs,
+			iab: resolvedIab,
+			storageConfig: resolvedStorageConfig,
+			enabled: resolvedEnabled,
+			initialTranslationConfig: normalizedInitialTranslationConfig,
 			initialConsentCategories: consentCategories,
 			debug,
 		});

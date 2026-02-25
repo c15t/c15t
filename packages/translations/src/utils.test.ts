@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { TranslationConfig, Translations } from './types';
+import type { I18nConfig, TranslationConfig, Translations } from './types';
 import {
 	deepMergeTranslations,
 	detectBrowserLanguage,
 	mergeTranslationConfigs,
+	normalizeI18nConfig,
 	parseAcceptLanguage,
 	prepareTranslationConfig,
 	selectLanguage,
+	toTranslationConfig,
 } from './utils';
 
 describe('deepMergeTranslations', () => {
@@ -176,6 +178,39 @@ describe('mergeTranslationConfigs', () => {
 			'Accept {category} consent to view this content.'
 		);
 	});
+
+	it('should prioritize i18n over legacy fields when both are present', () => {
+		const result = mergeTranslationConfigs(
+			{
+				translations: defaultConfig.translations,
+				defaultLanguage: 'en',
+				i18n: {
+					messages: {
+						fr: {
+							cookieBanner: {
+								title: 'Titre',
+							},
+						},
+					},
+					locale: 'fr',
+					detectBrowserLanguage: false,
+				},
+			},
+			{
+				defaultLanguage: 'de',
+				translations: {
+					de: {
+						cookieBanner: {
+							title: 'Titel',
+						},
+					},
+				},
+			}
+		);
+
+		expect(result.defaultLanguage).toBe('de');
+		expect(result.translations.fr?.cookieBanner?.title).toBe('Titre');
+	});
 });
 
 describe('detectBrowserLanguage', () => {
@@ -236,6 +271,10 @@ describe('parseAcceptLanguage', () => {
 			'fr',
 		]);
 	});
+
+	it('should order by quality values', () => {
+		expect(parseAcceptLanguage('en;q=0.1,de;q=0.9')).toEqual(['de', 'en']);
+	});
 });
 
 describe('selectLanguage', () => {
@@ -276,6 +315,54 @@ describe('selectLanguage', () => {
 	it('should default fallback to "en" when not provided', () => {
 		const available = ['de'];
 		expect(selectLanguage(available, { header: 'xx-XX' })).toBe('en');
+	});
+});
+
+describe('i18n normalization', () => {
+	it('should map legacy translation config into i18n shape', () => {
+		const normalized = normalizeI18nConfig({
+			translations: { en: { common: { acceptAll: 'Accept' } } },
+			defaultLanguage: 'en',
+			disableAutoLanguageSwitch: true,
+		});
+
+		expect(normalized).toEqual({
+			messages: { en: { common: { acceptAll: 'Accept' } } },
+			locale: 'en',
+			detectBrowserLanguage: false,
+		});
+	});
+
+	it('should prefer i18n values when both i18n and legacy values are provided', () => {
+		const normalized = normalizeI18nConfig({
+			translations: { en: { common: { acceptAll: 'Legacy' } } },
+			defaultLanguage: 'en',
+			i18n: {
+				messages: { de: { common: { acceptAll: 'Neu' } } },
+				locale: 'de',
+				detectBrowserLanguage: true,
+			},
+		});
+
+		expect(normalized).toEqual({
+			messages: { de: { common: { acceptAll: 'Neu' } } },
+			locale: 'de',
+			detectBrowserLanguage: true,
+		});
+	});
+
+	it('should map canonical i18n shape back to legacy translation config', () => {
+		const config: I18nConfig = {
+			messages: { en: { common: { acceptAll: 'Accept' } } },
+			locale: 'en',
+			detectBrowserLanguage: true,
+		};
+
+		expect(toTranslationConfig(config)).toEqual({
+			translations: { en: { common: { acceptAll: 'Accept' } } },
+			defaultLanguage: 'en',
+			disableAutoLanguageSwitch: false,
+		});
 	});
 });
 

@@ -67,6 +67,7 @@ export type {
 	ConsentTypesTranslations,
 	ConsentTypeTranslations,
 	CookieBannerTranslations,
+	I18nConfig,
 	TranslationConfig,
 	Translations,
 } from '@c15t/translations';

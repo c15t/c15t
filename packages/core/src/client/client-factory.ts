@@ -81,17 +81,34 @@ function getClientCacheKey(options: ConsentManagerOptions): string {
 		// the same instance.
 		const initialTranslations =
 			options.store?.initialTranslationConfig?.translations;
-		const translationPart = initialTranslations
-			? `:translations:${Object.keys(initialTranslations).sort().join(',')}`
-			: '';
+		const initialDefaultLanguage =
+			options.store?.initialTranslationConfig?.defaultLanguage;
+		let translationPart = '';
+		if (initialTranslations) {
+			translationPart = `:translations:${Object.keys(initialTranslations).sort().join(',')}`;
+		} else {
+			translationPart = '';
+		}
+
+		let defaultLanguagePart = '';
+		if (initialDefaultLanguage) {
+			defaultLanguagePart = `:default-language:${initialDefaultLanguage}`;
+		} else {
+			defaultLanguagePart = '';
+		}
 
 		// Include IAB config in the cache key so that offline clients with
 		// different IAB settings (enabled/disabled, different GVL) don't share
 		// the same cached instance.
 		const iabConfig = options.store?.iab;
-		const iabPart = iabConfig?.enabled ? ':iab:enabled' : '';
+		let iabPart = '';
+		if (iabConfig?.enabled) {
+			iabPart = ':iab:enabled';
+		} else {
+			iabPart = '';
+		}
 
-		return `offline${storageKey}${translationPart}${iabPart}`;
+		return `offline${storageKey}${translationPart}${defaultLanguagePart}${iabPart}`;
 	}
 
 	if (options.mode === 'custom') {

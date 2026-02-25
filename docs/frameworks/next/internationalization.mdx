@@ -7,7 +7,7 @@ description: Translate consent UI into 30+ languages with built-in translations,
 
 ## Basic Configuration
 
-Pass custom translations via the `translations` option:
+Pass custom translations via the `i18n` option:
 
 ```tsx
 import { type ReactNode } from 'react';
@@ -19,9 +19,9 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
       options={{
         mode: 'c15t',
         backendURL: '/api/c15t',
-        translations: {
-          defaultLanguage: 'en',
-          translations: {
+        i18n: {
+          locale: 'en',
+          messages: {
             de: {
               cookieBanner: {
                 title: 'Datenschutzeinstellungen',
@@ -93,3 +93,5 @@ function LanguageSwitcher() {
 `setLanguage()` re-fetches the consent banner to get server-resolved translations for the new language.
 
 <import src="../../shared/react/guides/internationalization.mdx#auto-detection" />
+
+<import src="../../shared/react/guides/internationalization.mdx#legacy-compat" />

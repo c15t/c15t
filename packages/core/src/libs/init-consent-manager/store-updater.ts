@@ -5,7 +5,10 @@
  */
 
 import type { JurisdictionCode } from '@c15t/schema/types';
-import { prepareTranslationConfig } from '@c15t/translations';
+import {
+	prepareTranslationConfig,
+	type TranslationInputConfig,
+} from '@c15t/translations';
 import type { ConsentStoreState } from '../../store/type';
 import type { ConsentState } from '../../types/compliance';
 import type { GlobalVendorList } from '../../types/iab-tcf';
@@ -77,14 +80,12 @@ function computeAutoGrantInfo(
  *
  * @param data - Banner response data
  * @param config - Init configuration
- * @param hasLocalStorageAccess - Whether localStorage is accessible
  * @param effectiveIABEnabled - Whether IAB is effectively enabled (considering server override)
  * @returns Partial store state to merge
  */
 function buildStoreUpdate(
 	data: ConsentBannerResponse,
 	config: InitConsentManagerConfig,
-	hasLocalStorageAccess: boolean,
 	effectiveIABEnabled: boolean | undefined
 ): Partial<ConsentStoreState> {
 	const { get, initialTranslationConfig } = config;
@@ -127,6 +128,15 @@ function buildStoreUpdate(
 
 	// Prepare translation config
 	if (translations?.language && translations?.translations) {
+		let customMessages: TranslationInputConfig | undefined;
+		if (initialTranslationConfig?.translations) {
+			customMessages = {
+				translations: initialTranslationConfig.translations,
+			};
+		} else {
+			customMessages = undefined;
+		}
+
 		update.translationConfig = prepareTranslationConfig(
 			{
 				translations: {
@@ -135,7 +145,7 @@ function buildStoreUpdate(
 				disableAutoLanguageSwitch: true,
 				defaultLanguage: translations.language,
 			},
-			initialTranslationConfig
+			customMessages
 		);
 	}
 
@@ -193,13 +203,13 @@ function triggerCallbacks(
  *
  * @param data - Banner response data from the API
  * @param config - Init configuration
- * @param hasLocalStorageAccess - Whether localStorage is accessible
+ * @param _hasLocalStorageAccess - Whether localStorage is accessible
  * @param prefetchedGVL - Optional prefetched GVL from SSR or init response
  */
 export async function updateStore(
 	data: ConsentBannerResponse,
 	config: InitConsentManagerConfig,
-	hasLocalStorageAccess: boolean,
+	_hasLocalStorageAccess: boolean,
 	prefetchedGVL?: GlobalVendorList | null
 ): Promise<void> {
 	const { set, get } = config;
@@ -234,12 +244,7 @@ export async function updateStore(
 	);
 
 	// Build and apply store update (pass effectiveIABEnabled so model is correctly set)
-	const storeUpdate = buildStoreUpdate(
-		data,
-		config,
-		hasLocalStorageAccess,
-		effectiveIABEnabled
-	);
+	const storeUpdate = buildStoreUpdate(data, config, effectiveIABEnabled);
 
 	// If server disabled GVL, update the IAB config in the store
 	if (serverDisabledGVL && iab) {

@@ -80,92 +80,89 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 		: activeTheme;
 
 	return (
-		<>
-			<ConsentManagerProvider
-				options={{
-					mode: 'c15t',
-					// backendURL: 'https://instance-worker-test.consent-ef4.workers.dev/',
-					// backendURL: 'https://minecraft-europe-hypixel.c15t.xyz',
-					backendURL: '/api/self-host',
-					consentCategories: ['necessary', 'marketing', 'measurement'],
-					iab: {
-						enabled: true,
-						customVendors: [
-							{
-								id: 'internal-analytics',
-								name: 'Example Analytics',
-								privacyPolicyUrl: 'https://www.google.com',
-								purposes: [1, 8],
-								dataCategories: [1, 2, 6, 8],
-								usesCookies: true,
-								cookieMaxAgeSeconds: 31536000,
-								usesNonCookieAccess: true,
-								specialFeatures: [1, 2],
-								// legIntPurposes: [1, 8],
-							},
-						],
-					},
-
-					scripts: [
+		<ConsentManagerProvider
+			options={{
+				mode: 'c15t',
+				// backendURL: 'https://instance-worker-test.consent-ef4.workers.dev/',
+				// backendURL: 'https://minecraft-europe-hypixel.c15t.xyz',
+				backendURL: '/api/self-host',
+				consentCategories: ['necessary', 'marketing', 'measurement'],
+				iab: {
+					enabled: true,
+					customVendors: [
 						{
-							id: 'example-analytics-iab',
-							src: 'https://www.example.com/analytics.js',
-							category: 'measurement',
-							vendorId: 1,
-						},
-						{
-							id: 'example-analytics-custom',
-							src: 'https://www.example.com/custom-analytics.js',
-							category: 'measurement',
-							vendorId: 'internal-analytics',
+							id: 'internal-analytics',
+							name: 'Example Analytics',
+							privacyPolicyUrl: 'https://www.google.com',
+							purposes: [1, 8],
+							dataCategories: [1, 2, 6, 8],
+							usesCookies: true,
+							cookieMaxAgeSeconds: 31536000,
+							usesNonCookieAccess: true,
+							specialFeatures: [1, 2],
+							// legIntPurposes: [1, 8],
 						},
 					],
-					storageConfig: {
-						crossSubdomain: true,
+				},
+				scripts: [
+					{
+						id: 'example-analytics-iab',
+						src: 'https://www.example.com/analytics.js',
+						category: 'measurement',
+						vendorId: 1,
 					},
-					theme: centeredIabTheme,
-					legalLinks: {
-						privacyPolicy: {
-							href: '/legal/privacy-policy',
+					{
+						id: 'example-analytics-custom',
+						src: 'https://www.example.com/custom-analytics.js',
+						category: 'measurement',
+						vendorId: 'internal-analytics',
+					},
+				],
+				storageConfig: {
+					crossSubdomain: true,
+				},
+				theme: centeredIabTheme,
+				legalLinks: {
+					privacyPolicy: {
+						href: '/legal/privacy-policy',
+					},
+					termsOfService: {
+						href: '/legal/terms-of-service',
+					},
+				},
+				user: {
+					id: '123',
+					identityProvider: 'custom',
+				},
+				i18n: {
+					messages: {
+						zh: {
+							...baseTranslations.zh,
 						},
-						termsOfService: {
-							href: '/legal/terms-of-service',
+						en: {
+							...baseTranslations.en,
+						},
+						fr: {
+							...baseTranslations.fr,
+						},
+						de: {
+							...baseTranslations.de,
 						},
 					},
-					user: {
-						id: '123',
-						identityProvider: 'custom',
-					},
-					translations: {
-						translations: {
-							zh: {
-								...baseTranslations.zh,
-							},
-							en: {
-								...baseTranslations.en,
-							},
-							fr: {
-								...baseTranslations.fr,
-							},
-							de: {
-								...baseTranslations.de,
-							},
-						},
-					},
-					overrides: {
-						country: 'CA',
-						region: 'QC',
-					},
-				}}
-			>
-				<ConsentBanner />
-				<IABConsentBanner />
-				<IABConsentDialog />
-				<ConsentDialogTrigger />
-				<ConsentDialog />
-				<DevTools />
-				{children}
-			</ConsentManagerProvider>
-		</>
+				},
+				overrides: {
+					country: 'CA',
+					region: 'QC',
+				},
+			}}
+		>
+			<ConsentBanner />
+			<IABConsentBanner />
+			<IABConsentDialog />
+			<ConsentDialogTrigger />
+			<ConsentDialog />
+			<DevTools />
+			{children}
+		</ConsentManagerProvider>
 	);
 }

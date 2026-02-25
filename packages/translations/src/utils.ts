@@ -1,5 +1,10 @@
 import { translations as enTranslations } from './translations/en';
-import type { TranslationConfig, Translations } from './types';
+import type {
+	I18nConfig,
+	TranslationConfig,
+	TranslationInputConfig,
+	Translations,
+} from './types';
 
 type TranslationSection =
 	| 'common'
@@ -122,11 +127,57 @@ export function parseAcceptLanguage(
 		return [];
 	}
 
-	return header
+	const weightedCandidates = header
 		.split(',')
-		.map((part) => part.split(';')[0]?.trim().toLowerCase())
-		.filter((part): part is string => Boolean(part))
-		.map((code) => code.split('-')[0] ?? code);
+		.map((part, index) => {
+			const [rawCode, ...params] = part.split(';');
+			const normalizedCode = rawCode?.trim().toLowerCase();
+			if (!normalizedCode) {
+				return null;
+			}
+
+			let quality = 1;
+			for (const param of params) {
+				const trimmed = param.trim().toLowerCase();
+				if (!trimmed.startsWith('q=')) {
+					continue;
+				}
+
+				const parsed = Number.parseFloat(trimmed.slice(2));
+				if (Number.isFinite(parsed)) {
+					quality = parsed;
+				}
+				break;
+			}
+
+			return {
+				code: normalizedCode.split('-')[0] ?? normalizedCode,
+				quality,
+				index,
+			};
+		})
+		.filter((candidate): candidate is NonNullable<typeof candidate> =>
+			Boolean(candidate)
+		)
+		.sort((a, b) => {
+			if (b.quality !== a.quality) {
+				return b.quality - a.quality;
+			}
+			return a.index - b.index;
+		});
+
+	const seen = new Set<string>();
+	const normalized: string[] = [];
+
+	for (const candidate of weightedCandidates) {
+		if (seen.has(candidate.code)) {
+			continue;
+		}
+		seen.add(candidate.code);
+		normalized.push(candidate.code);
+	}
+
+	return normalized;
 }
 
 interface SelectLanguageOptions {
@@ -164,19 +215,83 @@ export function selectLanguage(
 }
 
 /**
+ * Normalizes legacy translation config and v2 i18n config into a canonical shape.
+ *
+ * Precedence:
+ * - `i18n.*` values take priority when present
+ * - Legacy translation config is used as fallback
+ */
+export function normalizeI18nConfig(
+	config?: TranslationInputConfig
+): I18nConfig {
+	const detectBrowserLanguageFromLegacy =
+		config?.disableAutoLanguageSwitch === undefined
+			? undefined
+			: !config.disableAutoLanguageSwitch;
+
+	return {
+		messages: config?.i18n?.messages ?? config?.translations ?? {},
+		locale: config?.i18n?.locale ?? config?.defaultLanguage,
+		detectBrowserLanguage:
+			config?.i18n?.detectBrowserLanguage ?? detectBrowserLanguageFromLegacy,
+	};
+}
+
+/**
+ * Maps canonical i18n config back to the legacy translation config shape.
+ */
+export function toTranslationConfig(config: I18nConfig): TranslationConfig {
+	return {
+		translations: config.messages,
+		defaultLanguage: config.locale,
+		disableAutoLanguageSwitch:
+			config.detectBrowserLanguage === undefined
+				? undefined
+				: !config.detectBrowserLanguage,
+	};
+}
+
+/**
+ * Resolves legacy and v2 i18n inputs into a normalized legacy translation config.
+ *
+ * @param legacyConfig Legacy translation input.
+ * @param i18nConfig Preferred v2 i18n input.
+ */
+export function resolveTranslationInput(
+	legacyConfig?: Partial<TranslationConfig>,
+	i18nConfig?: Partial<I18nConfig>
+): TranslationConfig | undefined {
+	if (!legacyConfig && !i18nConfig) {
+		return undefined;
+	}
+
+	return toTranslationConfig(
+		normalizeI18nConfig({
+			...(legacyConfig ?? {}),
+			...(i18nConfig ? { i18n: i18nConfig } : {}),
+		})
+	);
+}
+
+/**
  * Merges custom translations with defaults
  */
 export function mergeTranslationConfigs(
-	defaultConfig: TranslationConfig,
-	customConfig?: Partial<TranslationConfig>
+	defaultConfig: TranslationInputConfig,
+	customConfig?: TranslationInputConfig
 ): TranslationConfig {
+	const normalizedDefault = normalizeI18nConfig(defaultConfig);
+	const normalizedCustom = customConfig
+		? normalizeI18nConfig(customConfig)
+		: undefined;
+
 	const translations: Record<string, Partial<Translations>> = {
 		en: enTranslations,
 	};
 
 	const allTranslationSets = [
-		defaultConfig.translations,
-		customConfig?.translations,
+		normalizedDefault.messages,
+		normalizedCustom?.messages,
 	];
 
 	for (const translationSet of allTranslationSets) {
@@ -196,11 +311,13 @@ export function mergeTranslationConfigs(
 		}
 	}
 
-	return {
-		...defaultConfig,
-		...customConfig,
-		translations: translations as Record<string, Translations>,
-	};
+	return toTranslationConfig({
+		messages: translations as Record<string, Partial<Translations>>,
+		locale: normalizedCustom?.locale ?? normalizedDefault.locale,
+		detectBrowserLanguage:
+			normalizedCustom?.detectBrowserLanguage ??
+			normalizedDefault.detectBrowserLanguage,
+	});
 }
 
 /**
@@ -229,14 +346,15 @@ export function detectBrowserLanguage(
  * Prepares the translation configuration by merging defaults and detecting language
  */
 export function prepareTranslationConfig(
-	defaultConfig: TranslationConfig,
-	customConfig?: Partial<TranslationConfig>
+	defaultConfig: TranslationInputConfig,
+	customConfig?: TranslationInputConfig
 ): TranslationConfig {
 	const mergedConfig = mergeTranslationConfigs(defaultConfig, customConfig);
+	const detectBrowser = !mergedConfig.disableAutoLanguageSwitch;
 	const defaultLanguage = detectBrowserLanguage(
 		mergedConfig.translations,
 		mergedConfig.defaultLanguage,
-		mergedConfig.disableAutoLanguageSwitch
+		!detectBrowser
 	);
 	return { ...mergedConfig, defaultLanguage };
 }

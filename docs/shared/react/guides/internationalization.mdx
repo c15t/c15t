@@ -3,6 +3,8 @@
 <section id="intro">
   c15t ships with built-in translations for 30+ languages via the `@c15t/translations` package. Language detection happens automatically based on the browser's language preference, and you can override or extend translations for any language.
 
+  In c15t v2, the preferred config shape is `i18n` with `locale`, `detectBrowserLanguage`, and `messages`.
+
   There are two ways c15t can load translations: client-side or server-side.
 
   | Server-side | Client-side |
@@ -51,15 +53,15 @@
 <section id="auto-detection">
   ## Automatic Language Detection
 
-  By default, c15t detects the browser's language (`navigator.language`) and selects the closest matching translation. If no match is found, it falls back to `defaultLanguage` (or `'en'`).
+  By default, c15t detects the browser's language (`navigator.language`) and selects the closest matching translation. If no match is found, it falls back to `locale` (or `'en'`).
 
-  Disable auto-detection to always use `defaultLanguage`:
+  Disable auto-detection to always use `locale`:
 
   ```tsx
-  translations: {
-    defaultLanguage: 'de',
-    disableAutoLanguageSwitch: true,
-    translations: { ... },
+  i18n: {
+    locale: 'de',
+    detectBrowserLanguage: false,
+    messages: { ... },
   }
   ```
 
@@ -68,8 +70,8 @@
   Override the title and description for individual consent categories:
 
   ```tsx
-  translations: {
-    translations: {
+  i18n: {
+    messages: {
       en: {
         consentTypes: {
           measurement: {
@@ -85,4 +87,28 @@
     },
   }
   ```
+</section>
+
+<section id="legacy-compat">
+  ## Legacy `translations` Compatibility
+
+  The legacy syntax is still supported in 2.0 for RC compatibility:
+
+  ```tsx
+  // Legacy (still supported)
+  translations: {
+    defaultLanguage: 'en',
+    disableAutoLanguageSwitch: true,
+    translations: { ... },
+  }
+
+  // Preferred in v2
+  i18n: {
+    locale: 'en',
+    detectBrowserLanguage: false,
+    messages: { ... },
+  }
+  ```
+
+  If both are provided, `i18n` takes precedence.
 </section>
