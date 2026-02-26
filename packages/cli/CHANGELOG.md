@@ -80,7 +80,7 @@
   - fix(react): Frame component CSS overriding
   - fix(react): Legal links using the asChild slot causing multi-child error
 
-  https://c15t.com/changelog/2025-12-12-v1.8.2
+  https://v2.c15t.com/changelog/2025-12-12-v1.8.2
 
 - Updated dependencies [2ce4d5a]
   - @c15t/react@1.8.2
@@ -163,7 +163,7 @@
 
 ### Minor Changes
 
-- aa16d03: You can find the full changelog at https://c15t.com/changelog/2025-10-11-v1.7.0
+- aa16d03: You can find the full changelog at https://v2.c15t.com/changelog/2025-10-11-v1.7.0
 
 ### Patch Changes
 
@@ -205,7 +205,7 @@
 
 ### Minor Changes
 
-- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://c15t.com/changelog/2025-09-08-v1.6.0).
+- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://v2.c15t.com/changelog/2025-09-08-v1.6.0).
 
 ### Patch Changes
 

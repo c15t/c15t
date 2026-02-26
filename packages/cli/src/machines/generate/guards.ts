@@ -40,14 +40,18 @@ export function hasModeArg({
 }
 
 /**
- * Check if selected mode is hosted (including legacy c15t alias)
+ * Check if selected mode is hosted (including legacy aliases)
  */
 export function isHostedMode({
 	context,
 }: {
 	context: GenerateMachineContext;
 }): boolean {
-	return context.selectedMode === 'hosted' || context.selectedMode === 'c15t';
+	return (
+		context.selectedMode === 'hosted' ||
+		context.selectedMode === 'c15t' ||
+		context.selectedMode === 'self-hosted'
+	);
 }
 
 /**

@@ -272,12 +272,16 @@ export interface PreflightCheck {
 	hint?: string;
 }
 
-// --- Instance (from MCP) ---
+// --- Instance (from control plane) ---
 export interface Instance {
 	/** Instance ID */
 	id: string;
 	/** Instance name */
 	name: string;
+	/** Organization slug */
+	organizationSlug?: string;
+	/** Provisioning region */
+	region?: string;
 	/** Instance URL */
 	url: string;
 	/** Created timestamp */

@@ -2,6 +2,8 @@
  * Auth module exports
  */
 
+// Base URL
+export { getControlPlaneBaseUrl } from './base-url';
 // Config store
 export {
 	clearConfig,

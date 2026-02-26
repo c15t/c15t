@@ -4,18 +4,29 @@
 
 import * as p from '@clack/prompts';
 import {
+	getControlPlaneBaseUrl,
 	getSelectedInstanceId,
 	isLoggedIn,
 	setSelectedInstanceId,
 } from '../../auth';
-import { URLS } from '../../constants';
+import { createControlPlaneClientFromConfig } from '../../control-plane';
 import { CliError } from '../../core/errors';
 import { color } from '../../core/logger';
 import { TelemetryEventName } from '../../core/telemetry';
-import { createMCPClientFromConfig } from '../../mcp';
 import type { CliCommand, CliContext, Instance } from '../../types';
 import { createTaskSpinner } from '../../utils/spinner';
 import { validateInstanceName } from '../../utils/validation';
+
+function formatInstanceLabel(instance: Instance): string {
+	if (instance.organizationSlug) {
+		return `${instance.organizationSlug}/${instance.name}`;
+	}
+	return instance.name;
+}
+
+function formatInstanceRegion(instance: Instance): string {
+	return `(${instance.region ?? 'unknown'})`;
+}
 
 /**
  * Ensure user is logged in
@@ -33,6 +44,7 @@ async function requireAuth(context: CliContext): Promise<void> {
  */
 async function listAction(context: CliContext): Promise<void> {
 	const { logger, telemetry } = context;
+	const baseUrl = getControlPlaneBaseUrl();
 
 	await requireAuth(context);
 
@@ -40,7 +52,7 @@ async function listAction(context: CliContext): Promise<void> {
 	spinner.start();
 
 	try {
-		const client = await createMCPClientFromConfig(URLS.CONSENT_IO);
+		const client = await createControlPlaneClientFromConfig(baseUrl);
 		if (!client) {
 			spinner.stop();
 			throw new CliError('AUTH_NOT_LOGGED_IN');
@@ -75,11 +87,14 @@ async function listAction(context: CliContext): Promise<void> {
 			const isSelected = instance.id === selectedId;
 			const status = getStatusColor(instance.status);
 			const marker = isSelected ? color.green('▸ ') : '  ';
+			const label = formatInstanceLabel(instance);
 
 			logger.message(
-				`${marker}${color.bold(instance.name)} ${color.dim(`(${instance.id})`)}`
+				`${marker}${color.bold(label)} ${color.dim(`(${instance.id})`)}`
 			);
-			logger.message(`    URL: ${color.cyan(instance.url)}`);
+			logger.message(
+				`    Region: ${color.cyan(formatInstanceRegion(instance))}`
+			);
 			logger.message(`    Status: ${status}`);
 			logger.message('');
 		}
@@ -98,6 +113,7 @@ async function listAction(context: CliContext): Promise<void> {
  */
 async function selectAction(context: CliContext): Promise<void> {
 	const { logger, telemetry, commandArgs } = context;
+	const baseUrl = getControlPlaneBaseUrl();
 
 	await requireAuth(context);
 
@@ -105,7 +121,7 @@ async function selectAction(context: CliContext): Promise<void> {
 	spinner.start();
 
 	try {
-		const client = await createMCPClientFromConfig(URLS.CONSENT_IO);
+		const client = await createControlPlaneClientFromConfig(baseUrl);
 		if (!client) {
 			spinner.stop();
 			throw new CliError('AUTH_NOT_LOGGED_IN');
@@ -129,11 +145,14 @@ async function selectAction(context: CliContext): Promise<void> {
 		// Check if instance ID/name was provided as argument
 		if (commandArgs.length > 0) {
 			const query = commandArgs[0]!;
-			const found = instances.find((i) => i.id === query || i.name === query);
+			const found = instances.find(
+				(i) =>
+					i.id === query || i.name === query || formatInstanceLabel(i) === query
+			);
 
 			if (!found) {
 				throw new CliError('INSTANCE_NOT_FOUND', {
-					details: `No instance found with ID or name: ${query}`,
+					details: `No instance found with ID, name, or org/name: ${query}`,
 				});
 			}
 
@@ -146,9 +165,11 @@ async function selectAction(context: CliContext): Promise<void> {
 				message: 'Select an instance:',
 				options: instances.map((instance) => ({
 					value: instance.id,
-					label: instance.name,
+					label: formatInstanceLabel(instance),
 					hint:
-						instance.id === currentId ? '(currently selected)' : instance.url,
+						instance.id === currentId
+							? `(currently selected) • ${formatInstanceRegion(instance)}`
+							: formatInstanceRegion(instance),
 				})),
 			});
 
@@ -166,8 +187,10 @@ async function selectAction(context: CliContext): Promise<void> {
 			instanceId: selectedInstance.id,
 		});
 
-		logger.success(`Selected instance: ${color.cyan(selectedInstance.name)}`);
-		logger.message(`URL: ${selectedInstance.url}`);
+		logger.success(
+			`Selected instance: ${color.cyan(formatInstanceLabel(selectedInstance))}`
+		);
+		logger.message(`Region: ${formatInstanceRegion(selectedInstance)}`);
 	} catch (error) {
 		spinner.stop();
 		throw error;
@@ -179,48 +202,134 @@ async function selectAction(context: CliContext): Promise<void> {
  */
 async function createAction(context: CliContext): Promise<void> {
 	const { logger, telemetry, commandArgs } = context;
+	const baseUrl = getControlPlaneBaseUrl();
 
 	await requireAuth(context);
 
-	let name: string;
+	const client = await createControlPlaneClientFromConfig(baseUrl);
+	if (!client) {
+		throw new CliError('AUTH_NOT_LOGGED_IN');
+	}
 
-	// Check if name was provided as argument
-	if (commandArgs.length > 0) {
-		name = commandArgs[0]!;
-		const error = validateInstanceName(name);
-		if (error) {
-			throw new CliError('INSTANCE_NAME_INVALID', { details: error });
+	try {
+		const preloadSpinner = createTaskSpinner(
+			'Loading organizations and regions...'
+		);
+		preloadSpinner.start();
+		let organizations: Awaited<ReturnType<typeof client.listOrganizations>>;
+		let regions: Awaited<ReturnType<typeof client.listRegions>>;
+		try {
+			[organizations, regions] = await Promise.all([
+				client.listOrganizations(),
+				client.listRegions(),
+			]);
+		} finally {
+			preloadSpinner.stop();
 		}
-	} else {
-		// Interactive name input
-		const result = await p.text({
-			message: 'Instance name:',
-			placeholder: 'my-app',
-			validate: validateInstanceName,
+
+		if (organizations.length === 0) {
+			throw new CliError('API_ERROR', {
+				details: 'No organizations available for this account',
+			});
+		}
+
+		if (regions.length === 0) {
+			throw new CliError('API_ERROR', {
+				details: 'No provisioning regions available',
+			});
+		}
+
+		let name: string;
+		if (commandArgs.length > 0) {
+			const providedName = commandArgs[0];
+			if (!providedName) {
+				throw new CliError('INSTANCE_NAME_INVALID', {
+					details: 'Instance name is required',
+				});
+			}
+
+			const error = validateInstanceName(providedName);
+			if (error) {
+				throw new CliError('INSTANCE_NAME_INVALID', { details: error });
+			}
+
+			name = providedName;
+		} else {
+			const result = await p.text({
+				message: 'Instance slug:',
+				placeholder: 'my-app',
+				validate: (value) => validateInstanceName(value.trim()),
+			});
+
+			if (p.isCancel(result)) {
+				logger.info('Creation cancelled');
+				return;
+			}
+
+			name = result;
+		}
+
+		name = name.trim();
+		const nameValidationError = validateInstanceName(name);
+		if (nameValidationError) {
+			throw new CliError('INSTANCE_NAME_INVALID', {
+				details: nameValidationError,
+			});
+		}
+
+		const orgSelection = await p.select<string | symbol>({
+			message: 'Select organization:',
+			options: organizations.map((org) => ({
+				value: org.organizationSlug,
+				label: org.organizationName,
+				hint: `${org.organizationSlug} • ${org.role}`,
+			})),
+			initialValue: organizations[0]?.organizationSlug,
 		});
 
-		if (p.isCancel(result)) {
+		if (p.isCancel(orgSelection)) {
 			logger.info('Creation cancelled');
 			return;
 		}
 
-		name = result;
-	}
-
-	const spinner = createTaskSpinner(`Creating instance "${name}"...`);
-	spinner.start();
-
-	try {
-		const client = await createMCPClientFromConfig(URLS.CONSENT_IO);
-		if (!client) {
-			spinner.stop();
-			throw new CliError('AUTH_NOT_LOGGED_IN');
+		const v2Regions = regions.filter((region) => region.family === 'v2');
+		if (v2Regions.length === 0) {
+			throw new CliError('API_ERROR', {
+				details: 'No v2 provisioning regions available',
+			});
 		}
 
-		const instance = await client.createInstance({ name });
-		await client.close();
+		const regionSelection = await p.select<string | symbol>({
+			message: 'Select V2 region:',
+			options: v2Regions.map((region) => ({
+				value: region.id,
+				label: region.id,
+				hint: region.label,
+			})),
+			initialValue: v2Regions.find((region) => region.id === 'us-east-1')?.id,
+		});
 
-		spinner.success('Instance created');
+		if (p.isCancel(regionSelection)) {
+			logger.info('Creation cancelled');
+			return;
+		}
+
+		const spinner = createTaskSpinner(`Creating instance "${name}"...`);
+		spinner.start();
+		let instance: Instance;
+		try {
+			instance = await client.createInstance({
+				name,
+				config: {
+					organizationSlug: orgSelection,
+					region: regionSelection,
+				},
+			});
+			spinner.success('Instance created');
+		} catch (error) {
+			spinner.error('Failed to create instance');
+			throw error;
+		}
 
 		telemetry.trackEvent(TelemetryEventName.INSTANCE_CREATED, {
 			instanceId: instance.id,
@@ -231,6 +340,9 @@ async function createAction(context: CliContext): Promise<void> {
 		logger.message(`ID: ${color.dim(instance.id)}`);
 		logger.message(`URL: ${color.cyan(instance.url)}`);
 		logger.message('');
+		logger.info(
+			'Created as a v2 development instance. Enable production mode in the dashboard when you are ready.'
+		);
 
 		// Ask if user wants to select this instance
 		const shouldSelect = await p.confirm({
@@ -242,9 +354,8 @@ async function createAction(context: CliContext): Promise<void> {
 			await setSelectedInstanceId(instance.id);
 			logger.info('Instance selected');
 		}
-	} catch (error) {
-		spinner.stop();
-		throw error;
+	} finally {
+		await client.close();
 	}
 }
 

@@ -9,10 +9,6 @@ export {
 	promptForExpandedTheme,
 } from './expanded-theme';
 export {
-	type InstanceSelectionResult,
-	promptForInstance,
-} from './instance';
-export {
 	explainMode,
 	getModeInfo,
 	MODE_OPTIONS,
