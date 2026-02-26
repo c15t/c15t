@@ -218,20 +218,20 @@ function buildDocComment({
 		const slug = docsSlug || 'nextjs';
 		return `/**
  * Client-side consent manager provider.
- * @see https://c15t.com/docs/frameworks/${slug}/quickstart
+ * @see https://v2.c15t.com/docs/frameworks/${slug}/quickstart
  */`;
 	}
 
 	if (initialDataProp) {
 		return `/**
  * Consent management wrapper for Next.js Pages Router.
- * @see https://c15t.com/docs/frameworks/nextjs/quickstart
+ * @see https://v2.c15t.com/docs/frameworks/nextjs/quickstart
  */`;
 	}
 
 	const slug = docsSlug || 'react';
 	return `/**
  * Consent manager provider.
- * @see https://c15t.com/docs/frameworks/${slug}/quickstart
+ * @see https://v2.c15t.com/docs/frameworks/${slug}/quickstart
  */`;
 }

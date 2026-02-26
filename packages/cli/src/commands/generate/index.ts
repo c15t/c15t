@@ -21,10 +21,6 @@ import { runGenerateMachine } from '~/machines/generate/runner';
 import type { StorageMode } from '../../constants';
 
 function normalizeModeArg(mode?: StorageMode): StorageMode | undefined {
-	if (mode === 'c15t') {
-		return 'hosted';
-	}
-
 	return mode;
 }
 

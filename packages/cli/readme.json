@@ -63,8 +63,8 @@
 			"Set `C15T_TELEMETRY_DISABLED=1` in your environment"
 		]
 	},
-	"docsLink": "https://c15t.com/docs/cli/overview",
-	"quickStartLink": "https://c15t.com/docs/cli/quickstart",
+	"docsLink": "https://v2.c15t.com/docs/cli/overview",
+	"quickStartLink": "https://v2.c15t.com/docs/cli/quickstart",
 	"githubLink": "https://github.com/c15t/c15t",
 	"showCLIGeneration": true
 }

@@ -26,12 +26,6 @@ export const MODE_OPTIONS = [
 			'Store consent in browser cookies/localStorage (GDPR-compatible)',
 	},
 	{
-		value: STORAGE_MODES.SELF_HOSTED,
-		label: 'Self-Hosted',
-		hint: 'Your own server',
-		description: 'Run your own c15t backend for full control',
-	},
-	{
 		value: STORAGE_MODES.CUSTOM,
 		label: 'Custom Backend',
 		hint: 'Existing API',

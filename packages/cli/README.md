@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://c15t.com?utm_source=github&utm_medium=repopage_%40c15t%2Fcli" target="_blank" rel="noopener noreferrer">
+  <a href="https://v2.c15t.com?utm_source=github&utm_medium=repopage_%40c15t%2Fcli" target="_blank" rel="noopener noreferrer">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
       <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
@@ -103,7 +103,7 @@ Disable telemetry by:
 
 ## Documentation
 
-For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/cli/overview).
+For further information, guides, and examples visit the [reference documentation](https://v2.c15t.com/docs/cli/overview).
 
 ## Support
 
@@ -115,8 +115,8 @@ For further information, guides, and examples visit the [reference documentation
 ## Contributing
 
 - We're open to all community contributions!
-- Read our [Contribution Guidelines](https://c15t.com/docs/oss/contributing)
-- Review our [Code of Conduct](https://c15t.com/docs/oss/code-of-conduct)
+- Read our [Contribution Guidelines](https://v2.c15t.com/docs/oss/contributing)
+- Review our [Code of Conduct](https://v2.c15t.com/docs/oss/code-of-conduct)
 - Fork the repository
 - Create a new branch for your feature
 - Submit a pull request

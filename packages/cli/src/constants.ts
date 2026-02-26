@@ -10,15 +10,15 @@ export const URLS = {
 	/** Default c15t cloud platform URL */
 	CONSENT_IO: 'https://consent.io',
 	/** Documentation website */
-	DOCS: 'https://c15t.dev/docs',
+	DOCS: 'https://v2.c15t.com/docs',
 	/** GitHub repository */
 	GITHUB: 'https://github.com/c15t/c15t',
 	/** Discord community */
-	DISCORD: 'https://c15t.dev/discord',
+	DISCORD: 'https://v2.c15t.com/discord',
 	/** API documentation */
-	API_DOCS: 'https://c15t.dev/docs/api',
+	API_DOCS: 'https://v2.c15t.com/docs/api',
 	/** CLI documentation */
-	CLI_DOCS: 'https://c15t.dev/docs/cli',
+	CLI_DOCS: 'https://v2.c15t.com/docs/cli',
 } as const;
 
 // --- File Paths ---
@@ -57,8 +57,8 @@ export const CLI_INFO = {
 	NAME: 'c15t',
 	/** CLI binary name */
 	BIN: 'c15t',
-	/** MCP client name */
-	MCP_CLIENT_NAME: 'c15t-cli',
+	/** Control-plane client name */
+	CONTROL_PLANE_CLIENT_NAME: 'c15t-cli',
 	/** Current version (updated during build) */
 	VERSION: '2.0.0',
 } as const;
@@ -71,14 +71,18 @@ export const TIMEOUTS = {
 	DEVICE_FLOW_EXPIRY: 900, // 15 minutes
 	/** HTTP request timeout (ms) */
 	HTTP_REQUEST: 10000,
-	/** MCP connection timeout (ms) */
-	MCP_CONNECTION: 30000,
+	/** Control-plane connection timeout (ms) */
+	CONTROL_PLANE_CONNECTION: 30000,
 } as const;
 
 // --- Environment Variables ---
 export const ENV_VARS = {
+	/** Enable v2 feature-flagged behavior */
+	V2: 'V2',
 	/** Disable telemetry */
 	TELEMETRY_DISABLED: 'C15T_TELEMETRY_DISABLED',
+	/** Control-plane/dashboard base URL override */
+	CONSENT_URL: 'CONSENT_URL',
 	/** c15t backend URL */
 	BACKEND_URL: 'C15T_URL',
 	/** c15t API key */

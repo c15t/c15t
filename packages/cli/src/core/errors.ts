@@ -90,15 +90,10 @@ export const ERROR_CATALOG = {
 		message: 'Network request failed',
 		hint: 'Check your internet connection',
 	},
-	MCP_CONNECTION_FAILED: {
-		code: 'MCP_CONNECTION_FAILED',
+	CONTROL_PLANE_CONNECTION_FAILED: {
+		code: 'CONTROL_PLANE_CONNECTION_FAILED',
 		message: 'Could not connect to consent.io',
 		hint: `Check if ${URLS.CONSENT_IO} is accessible`,
-	},
-	MCP_REQUEST_FAILED: {
-		code: 'MCP_REQUEST_FAILED',
-		message: 'MCP request failed',
-		hint: 'Try again or check your network connection',
 	},
 	API_ERROR: {
 		code: 'API_ERROR',
