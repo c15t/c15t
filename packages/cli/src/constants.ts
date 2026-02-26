@@ -19,6 +19,8 @@ export const URLS = {
 	API_DOCS: 'https://v2.c15t.com/docs/api',
 	/** CLI documentation */
 	CLI_DOCS: 'https://v2.c15t.com/docs/cli',
+	/** Product changelog */
+	CHANGELOG: 'https://v2.c15t.com/changelog',
 } as const;
 
 // --- File Paths ---

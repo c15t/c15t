@@ -14,19 +14,31 @@
 		"npm, pnpm, or yarn package manager"
 	],
 	"usage": [
-		"Run `@c15t/cli generate` to create initial configuration",
+		"Run `@c15t/cli setup` to create initial configuration",
 		"Customize consent settings in generated files",
 		"Integrate with your web application",
-		"Use `@c15t/cli migrate` for database schema updates"
+		"Use `@c15t/cli self-host migrate` for self-hosted database schema updates"
 	],
 	"commands": [
 		{
-			"name": "generate",
-			"description": "Generate schema/code based on your c15t config"
+			"name": "setup",
+			"description": "Set up c15t in your project"
 		},
 		{
-			"name": "migrate",
-			"description": "Run database migrations based on your c15t config"
+			"name": "codemods",
+			"description": "Run migration codemods for c15t upgrades"
+		},
+		{
+			"name": "self-host",
+			"description": "Self-hosted workflow commands (currently database migrations)"
+		},
+		{
+			"name": "skills",
+			"description": "Install c15t agent skills for AI-assisted development"
+		},
+		{
+			"name": "changelog",
+			"description": "Open the c15t changelog in your browser"
 		},
 		{
 			"name": "github",
