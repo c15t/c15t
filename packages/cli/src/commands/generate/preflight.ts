@@ -87,24 +87,6 @@ export async function runPreflightChecks(
 		});
 	}
 
-	// Check 4: Git status (optional)
-	const gitCheck = await checkGitStatus(projectRoot);
-	checks.push(gitCheck);
-
-	// Check 5: Existing config
-	const configPath = path.join(projectRoot, 'c15t.config.ts');
-	const hasExistingConfig = await exists(configPath);
-	checks.push({
-		name: 'Existing config',
-		status: hasExistingConfig ? 'warn' : 'pass',
-		message: hasExistingConfig
-			? 'c15t.config.ts already exists'
-			: 'No existing configuration',
-		hint: hasExistingConfig
-			? 'Existing config will be overwritten (use --force to skip this warning)'
-			: undefined,
-	});
-
 	// Display results
 	for (const check of checks) {
 		const icon = getStatusIcon(check.status);
@@ -123,38 +105,6 @@ export async function runPreflightChecks(
 		passed: !hasFailures,
 		checks,
 	};
-}
-
-/**
- * Check git status
- */
-async function checkGitStatus(projectRoot: string): Promise<PreflightCheck> {
-	try {
-		const gitDir = path.join(projectRoot, '.git');
-		const isGitRepo = await exists(gitDir);
-
-		if (!isGitRepo) {
-			return {
-				name: 'Git',
-				status: 'warn',
-				message: 'Not a git repository',
-				hint: 'Consider initializing git to track changes',
-			};
-		}
-
-		// We could check for uncommitted changes here, but keep it simple
-		return {
-			name: 'Git',
-			status: 'pass',
-			message: 'Git repository detected',
-		};
-	} catch {
-		return {
-			name: 'Git',
-			status: 'warn',
-			message: 'Could not check git status',
-		};
-	}
 }
 
 /**

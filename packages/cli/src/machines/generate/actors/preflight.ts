@@ -42,39 +42,6 @@ async function fileExists(filePath: string): Promise<boolean> {
 }
 
 /**
- * Check git status
- */
-async function checkGitStatus(
-	projectRoot: string
-): Promise<PreflightCheckResult> {
-	try {
-		const gitDir = path.join(projectRoot, '.git');
-		const isGitRepo = await fileExists(gitDir);
-
-		if (!isGitRepo) {
-			return {
-				name: 'Git',
-				status: 'warn',
-				message: 'Not a git repository',
-				hint: 'Consider initializing git to track changes',
-			};
-		}
-
-		return {
-			name: 'Git',
-			status: 'pass',
-			message: 'Git repository detected',
-		};
-	} catch {
-		return {
-			name: 'Git',
-			status: 'warn',
-			message: 'Could not check git status',
-		};
-	}
-}
-
-/**
  * Run all preflight checks
  */
 async function runPreflightChecks(
@@ -127,22 +94,6 @@ async function runPreflightChecks(
 			? `Using ${packageManager.name}`
 			: 'No package manager detected',
 		hint: packageManager.name ? undefined : 'Will default to npm',
-	});
-
-	// Check 5: Git status
-	const gitCheck = await checkGitStatus(projectRoot);
-	checks.push(gitCheck);
-
-	// Check 6: Existing config
-	const configPath = path.join(projectRoot, 'c15t.config.ts');
-	const hasExistingConfig = await fileExists(configPath);
-	checks.push({
-		name: 'Existing config',
-		status: hasExistingConfig ? 'warn' : 'pass',
-		message: hasExistingConfig
-			? 'c15t.config.ts already exists'
-			: 'No existing configuration',
-		hint: hasExistingConfig ? 'Existing config will be overwritten' : undefined,
 	});
 
 	// Determine if we can proceed
