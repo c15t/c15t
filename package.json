@@ -13,7 +13,8 @@
 		"configs/*",
 		"packages/**",
 		"internals/**",
-		"examples/demo"
+		"examples/demo",
+		"examples/prefetch-stress"
 	],
 	"scripts": {
 		"build": "turbo run build",

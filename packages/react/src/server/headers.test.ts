@@ -14,6 +14,10 @@ describe('extractRelevantHeaders', () => {
 		headers.set('user-agent', 'Mozilla/5.0');
 		headers.set('x-forwarded-host', 'example.com');
 		headers.set('x-forwarded-for', '127.0.0.1');
+		headers.set('purpose', 'prefetch');
+		headers.set('sec-purpose', 'prefetch');
+		headers.set('next-router-prefetch', '1');
+		headers.set('x-middleware-prefetch', '1');
 
 		const result = extractRelevantHeaders(headers);
 
@@ -30,6 +34,10 @@ describe('extractRelevantHeaders', () => {
 			'x-c15t-region': 'CA-ON',
 			'x-forwarded-host': 'example.com',
 			'x-forwarded-for': '127.0.0.1',
+			purpose: 'prefetch',
+			'sec-purpose': 'prefetch',
+			'next-router-prefetch': '1',
+			'x-middleware-prefetch': '1',
 		});
 	});
 
@@ -86,6 +94,23 @@ describe('extractRelevantHeaders', () => {
 		const result = extractRelevantHeaders(headers);
 
 		expect(result).not.toHaveProperty('sec-gpc');
+	});
+
+	it('should extract prefetch headers when present', () => {
+		const headers = new Headers();
+		headers.set('purpose', 'prefetch');
+		headers.set('sec-purpose', 'prefetch');
+		headers.set('next-router-prefetch', '1');
+		headers.set('x-middleware-prefetch', '1');
+
+		const result = extractRelevantHeaders(headers);
+
+		expect(result).toEqual({
+			purpose: 'prefetch',
+			'sec-purpose': 'prefetch',
+			'next-router-prefetch': '1',
+			'x-middleware-prefetch': '1',
+		});
 	});
 
 	it('should add c15t headers when corresponding headers are present', () => {
