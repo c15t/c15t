@@ -1,5 +1,5 @@
 import {
-	extractRelevantHeaders,
+	createSSRInitCacheKey,
 	fetchSSRData,
 	normalizeBackendURL,
 } from '@c15t/react/server';
@@ -9,30 +9,6 @@ import { headers as nextHeaders } from 'next/headers';
 import type { FetchInitialDataOptions } from '~/types';
 
 const DEFAULT_REVALIDATE_SECONDS = 1;
-
-function createNextCacheKey(
-	normalizedURL: string,
-	headers: Headers,
-	options: FetchInitialDataOptions
-): string {
-	const relevantHeaders = extractRelevantHeaders(headers);
-
-	const effectiveCountry =
-		options.overrides?.country ?? relevantHeaders['x-c15t-country'] ?? '';
-	const effectiveRegion =
-		options.overrides?.region ?? relevantHeaders['x-c15t-region'] ?? '';
-	const effectiveLanguage =
-		options.overrides?.language ?? relevantHeaders['accept-language'] ?? '';
-	const gpc = relevantHeaders['sec-gpc'] ?? '';
-
-	return JSON.stringify({
-		normalizedURL,
-		country: effectiveCountry,
-		region: effectiveRegion,
-		language: effectiveLanguage,
-		gpc,
-	});
-}
 
 /**
  * Fetches initial consent data on the server for SSR hydration.
@@ -76,7 +52,11 @@ export async function fetchInitialData(
 		});
 	}
 
-	const cacheKey = createNextCacheKey(normalizedURL, headers, options);
+	const cacheKey = createSSRInitCacheKey({
+		normalizedURL,
+		headers,
+		overrides: options.overrides,
+	});
 	const cacheTTL = revalidateSeconds ?? DEFAULT_REVALIDATE_SECONDS;
 
 	const cachedFetch = unstable_cache(
