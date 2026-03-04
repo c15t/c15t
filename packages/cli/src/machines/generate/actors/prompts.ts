@@ -5,12 +5,32 @@
  */
 
 import * as p from '@clack/prompts';
-import { fromCallback, fromPromise } from 'xstate';
+import { fromPromise } from 'xstate';
+import {
+	formatUserCode,
+	getAuthState,
+	getControlPlaneBaseUrl,
+	getVerificationUrl,
+	initiateDeviceFlow,
+	pollForToken,
+	setSelectedInstanceId,
+	storeTokens,
+} from '~/auth';
 import { getDevToolsOption } from '~/commands/generate/options/shared/dev-tools';
 import { getSSROption } from '~/commands/generate/options/shared/ssr';
-import type { StorageMode } from '~/constants';
+import { ENV_VARS, type StorageMode } from '~/constants';
 import type { CliContext } from '~/context/types';
-import type { ExpandedTheme, GenerateMachineContext, UIStyle } from '../types';
+import {
+	type ControlPlaneOrganization,
+	type ControlPlaneRegion,
+	createControlPlaneClientFromConfig,
+} from '~/control-plane';
+import { CliError } from '~/core/errors';
+import { color } from '~/core/logger';
+import type { Instance } from '~/types';
+import { createTaskSpinner } from '~/utils/spinner';
+import { validateInstanceName } from '~/utils/validation';
+import type { ExpandedTheme, UIStyle } from '../types';
 
 /**
  * Check if a value is a cancel symbol
@@ -29,6 +49,21 @@ export class PromptCancelledError extends Error {
 	}
 }
 
+function formatInstanceLabel(instance: Instance): string {
+	if (instance.organizationSlug) {
+		return `${instance.organizationSlug}/${instance.name}`;
+	}
+	return instance.name;
+}
+
+function formatInstanceRegion(instance: Instance): string {
+	return `(${instance.region ?? 'unknown'})`;
+}
+
+function isV2ModeEnabled(): boolean {
+	return process.env[ENV_VARS.V2] === '1';
+}
+
 // --- Mode Selection Prompt ---
 
 export interface ModeSelectionInput {
@@ -44,7 +79,7 @@ export const modeSelectionActor = fromPromise<
 	ModeSelectionInput
 >(async ({ input }) => {
 	let initialMode = input.initialMode;
-	if (initialMode === 'c15t') {
+	if (initialMode === 'c15t' || initialMode === 'self-hosted') {
 		initialMode = 'hosted';
 	}
 	if (initialMode === undefined) {
@@ -57,22 +92,17 @@ export const modeSelectionActor = fromPromise<
 		options: [
 			{
 				value: 'hosted',
-				label: 'Hosted c15t (consent.io)',
-				hint: 'Recommended: Fully managed service',
+				label: 'Hosted',
+				hint: 'consent.io or self-hosted backend URL',
 			},
 			{
 				value: 'offline',
-				label: 'Offline Mode',
+				label: 'Offline',
 				hint: 'Store in browser, no backend needed',
 			},
 			{
-				value: 'self-hosted',
-				label: 'Self-Hosted',
-				hint: 'Run your own c15t backend',
-			},
-			{
 				value: 'custom',
-				label: 'Custom Implementation',
+				label: 'Custom',
 				hint: 'Full control over storage logic',
 			},
 		],
@@ -85,127 +115,411 @@ export const modeSelectionActor = fromPromise<
 	return { mode: result as StorageMode };
 });
 
-// --- Account Creation Prompt (hosted mode) ---
+// --- Hosted Mode Prompt ---
 
-export interface AccountCreationInput {
+type HostedProvider = 'consent.io' | 'self-hosted';
+type ConsentSetupMethod = 'sign-in' | 'manual-url';
+
+export interface HostedModeInput {
 	cliContext: CliContext;
-}
-
-export interface AccountCreationOutput {
-	needsAccount: boolean;
-	browserOpened: boolean;
-}
-
-export const accountCreationActor = fromPromise<
-	AccountCreationOutput,
-	AccountCreationInput
->(async ({ input }) => {
-	const { cliContext } = input;
-
-	const needsAccount = await p.confirm({
-		message: 'Do you need to create a consent.io account?',
-		initialValue: true,
-	});
-
-	if (isCancel(needsAccount)) {
-		throw new PromptCancelledError('account_creation');
-	}
-
-	if (!needsAccount) {
-		return { needsAccount: false, browserOpened: false };
-	}
-
-	p.note(
-		`We'll open your browser to create a consent.io account and set up your instance.\nFollow these steps:\n1. Sign up for a consent.io account\n2. Create a new instance in the dashboard\n3. Configure your trusted origins (domains that can connect)\n4. Copy the provided backendURL (e.g., https://your-instance.c15t.dev)`,
-		'consent.io Setup'
-	);
-
-	const shouldOpen = await p.confirm({
-		message: 'Open browser to sign up for consent.io?',
-		initialValue: true,
-	});
-
-	if (isCancel(shouldOpen)) {
-		throw new PromptCancelledError('browser_open');
-	}
-
-	let browserOpened = false;
-	if (shouldOpen) {
-		try {
-			const open = (await import('open')).default;
-			await open('https://consent.io/dashboard/register?ref=cli');
-			browserOpened = true;
-
-			const enterPressed = await p.text({
-				message:
-					'Press Enter once you have created your instance and have the backendURL',
-			});
-
-			if (isCancel(enterPressed)) {
-				throw new PromptCancelledError('url_input_wait');
-			}
-		} catch (error) {
-			if (error instanceof PromptCancelledError) {
-				throw error;
-			}
-			cliContext.logger.warn(
-				'Failed to open browser automatically. Please visit https://consent.io/dashboard/register manually.'
-			);
-		}
-	}
-
-	return { needsAccount: true, browserOpened };
-});
-
-// --- Backend URL Prompt ---
-
-export interface BackendURLInput {
 	initialURL?: string;
-	isHostedMode: boolean;
+	preselectedProvider?: HostedProvider | null;
 }
 
-export interface BackendURLOutput {
+export interface HostedModeOutput {
 	url: string;
+	provider: HostedProvider;
 }
 
-export const backendURLActor = fromPromise<BackendURLOutput, BackendURLInput>(
-	async ({ input }) => {
-		const { initialURL, isHostedMode } = input;
+async function promptBackendURL(input: {
+	message: string;
+	placeholder: string;
+	initialURL?: string;
+	stage: string;
+}): Promise<string> {
+	const result = await p.text({
+		message: input.message,
+		placeholder: input.placeholder,
+		initialValue: input.initialURL,
+		validate: (value) => {
+			if (!value || value.trim() === '') {
+				return 'URL is required';
+			}
 
-		let placeholder = 'https://your-backend.example.com/api/c15t';
-		if (isHostedMode) {
-			placeholder = 'https://your-instance.c15t.dev';
-		}
+			try {
+				new URL(value);
+			} catch {
+				return 'Please enter a valid URL';
+			}
 
-		let message = 'Enter your self-hosted backend URL:';
-		if (isHostedMode) {
-			message = 'Enter your consent.io instance URL:';
-		}
+			return undefined;
+		},
+	});
 
-		const result = await p.text({
-			message,
-			placeholder,
-			initialValue: initialURL,
-			validate: (value) => {
-				if (!value || value === '') {
-					return 'URL is required';
-				}
-				try {
-					const url = new URL(value);
-					if (isHostedMode && !url.hostname.endsWith('.c15t.dev')) {
-						return 'Please enter a valid *.c15t.dev URL';
-					}
-				} catch {
-					return 'Please enter a valid URL';
-				}
-			},
+	if (isCancel(result)) {
+		throw new PromptCancelledError(input.stage);
+	}
+
+	return result as string;
+}
+
+async function runConsentLogin(cliContext: CliContext): Promise<void> {
+	const baseUrl = getControlPlaneBaseUrl();
+	const authState = await getAuthState();
+	let useExistingSession = false;
+
+	if (authState.isLoggedIn && !authState.isExpired) {
+		const keepCurrentSession = await p.confirm({
+			message: 'You are already signed in. Use your existing session?',
+			initialValue: true,
 		});
 
-		if (isCancel(result)) {
-			throw new PromptCancelledError('backend_url');
+		if (isCancel(keepCurrentSession)) {
+			throw new PromptCancelledError('consent_existing_session');
 		}
 
-		return { url: result as string };
+		if (keepCurrentSession) {
+			useExistingSession = true;
+		}
+	}
+
+	if (useExistingSession) {
+		return;
+	}
+
+	const deviceSpinner = createTaskSpinner('Requesting device code...');
+	deviceSpinner.start();
+
+	try {
+		const deviceCode = await initiateDeviceFlow(baseUrl);
+		deviceSpinner.success('Device code received');
+
+		const userCode = formatUserCode(deviceCode.user_code);
+		const verificationUrl = getVerificationUrl(deviceCode);
+
+		cliContext.logger.message('');
+		cliContext.logger.note(
+			`Your code: ${color.bold(color.cyan(userCode))}\n\n` +
+				`This code will expire in ${Math.floor(deviceCode.expires_in / 60)} minutes.`,
+			'Verification Code'
+		);
+		cliContext.logger.message('');
+		cliContext.logger.message(
+			`Open this URL to continue: ${color.underline(verificationUrl)}`
+		);
+		cliContext.logger.message('');
+
+		const shouldOpen = await p.confirm({
+			message: 'Open the verification page in your browser?',
+			initialValue: true,
+		});
+
+		if (isCancel(shouldOpen)) {
+			throw new PromptCancelledError('consent_open_verification');
+		}
+
+		if (shouldOpen) {
+			try {
+				const open = (await import('open')).default;
+				await open(verificationUrl);
+			} catch {
+				cliContext.logger.warn(
+					`Could not open browser automatically. Visit ${verificationUrl} manually.`
+				);
+			}
+		}
+
+		const authSpinner = createTaskSpinner('Waiting for authorization...');
+		authSpinner.start();
+
+		try {
+			const token = await pollForToken(
+				baseUrl,
+				deviceCode.device_code,
+				deviceCode.interval,
+				deviceCode.expires_in
+			);
+			authSpinner.success('Authorization received');
+
+			await storeTokens(token.access_token, {
+				refreshToken: token.refresh_token,
+				expiresIn: token.expires_in,
+			});
+		} catch (error) {
+			authSpinner.error('Authorization failed');
+			throw error;
+		}
+	} catch (error) {
+		deviceSpinner.stop();
+		throw error;
+	}
+}
+
+async function createInstanceInteractively(
+	client: NonNullable<
+		Awaited<ReturnType<typeof createControlPlaneClientFromConfig>>
+	>,
+	cliContext: CliContext
+): Promise<Instance> {
+	const preloadSpinner = createTaskSpinner(
+		'Loading organizations and regions...'
+	);
+	preloadSpinner.start();
+
+	let organizations: ControlPlaneOrganization[];
+	let regions: ControlPlaneRegion[];
+	try {
+		[organizations, regions] = await Promise.all([
+			client.listOrganizations(),
+			client.listRegions(),
+		]);
+	} finally {
+		preloadSpinner.stop();
+	}
+
+	if (organizations.length === 0) {
+		throw new CliError('API_ERROR', {
+			details: 'No organizations available for this account',
+		});
+	}
+
+	if (regions.length === 0) {
+		throw new CliError('API_ERROR', {
+			details: 'No provisioning regions available',
+		});
+	}
+
+	const orgSelection = await p.select<string | symbol>({
+		message: 'Select organization:',
+		options: organizations.map((org: ControlPlaneOrganization) => ({
+			value: org.organizationSlug,
+			label: org.organizationName,
+			hint: `${org.organizationSlug} • ${org.role}`,
+		})),
+		initialValue: organizations[0]?.organizationSlug,
+	});
+
+	if (isCancel(orgSelection)) {
+		throw new PromptCancelledError('instance_create_org_slug');
+	}
+
+	const v2Regions = regions.filter(
+		(region: ControlPlaneRegion) => region.family === 'v2'
+	);
+	if (v2Regions.length === 0) {
+		throw new CliError('API_ERROR', {
+			details: 'No v2 provisioning regions available',
+		});
+	}
+
+	const regionSelection = await p.select<string | symbol>({
+		message: 'Select V2 region:',
+		options: v2Regions.map((region: ControlPlaneRegion) => ({
+			value: region.id,
+			label: region.id,
+			hint: region.label,
+		})),
+		initialValue: v2Regions.find((region) => region.id === 'us-east-1')?.id,
+	});
+
+	if (isCancel(regionSelection)) {
+		throw new PromptCancelledError('instance_create_region');
+	}
+
+	const slugInput = await p.text({
+		message: 'New instance slug:',
+		placeholder: 'my-app',
+		validate: (value) => validateInstanceName(value.trim()),
+	});
+
+	if (isCancel(slugInput)) {
+		throw new PromptCancelledError('instance_create_name');
+	}
+
+	const slug = slugInput.trim();
+	const createSpinner = createTaskSpinner(`Creating instance "${slug}"...`);
+	createSpinner.start();
+
+	try {
+		const instance = await client.createInstance({
+			name: slug,
+			config: {
+				organizationSlug: orgSelection,
+				region: regionSelection,
+			},
+		});
+		createSpinner.success('Instance created');
+		cliContext.logger.info(
+			'Created as a v2 development instance. Enable production mode in the dashboard when you are ready.'
+		);
+		return instance;
+	} catch (error) {
+		createSpinner.error('Failed to create instance');
+		throw error;
+	}
+}
+
+async function selectOrCreateInstance(
+	cliContext: CliContext
+): Promise<Instance> {
+	const baseUrl = getControlPlaneBaseUrl();
+	const listSpinner = createTaskSpinner(
+		'Fetching your consent.io instances...'
+	);
+	listSpinner.start();
+
+	const client = await createControlPlaneClientFromConfig(baseUrl);
+	if (!client) {
+		listSpinner.stop();
+		throw new CliError('AUTH_NOT_LOGGED_IN');
+	}
+
+	try {
+		const instances = await client.listInstances();
+		listSpinner.stop();
+
+		if (instances.length === 0) {
+			cliContext.logger.info(
+				'No instances found. Creating a new instance for this project.'
+			);
+			return await createInstanceInteractively(client, cliContext);
+		}
+
+		const selectedId = await p.select<string | symbol>({
+			message: 'Select an instance to use:',
+			options: [
+				...instances.map((instance) => ({
+					value: instance.id,
+					label: formatInstanceLabel(instance),
+					hint: formatInstanceRegion(instance),
+				})),
+				{
+					value: '__create__',
+					label: 'Create new instance',
+					hint: 'Provision a new consent.io instance now',
+				},
+			],
+		});
+
+		if (isCancel(selectedId)) {
+			throw new PromptCancelledError('instance_select');
+		}
+
+		if (selectedId === '__create__') {
+			return await createInstanceInteractively(client, cliContext);
+		}
+
+		const selected = instances.find((instance) => instance.id === selectedId);
+		if (!selected) {
+			throw new CliError('INSTANCE_NOT_FOUND');
+		}
+
+		return selected;
+	} catch (error) {
+		listSpinner.stop();
+		throw error;
+	} finally {
+		await client.close();
+	}
+}
+
+export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
+	async ({ input }) => {
+		const { cliContext, initialURL, preselectedProvider } = input;
+		let provider = preselectedProvider ?? null;
+
+		if (!provider) {
+			const providerSelection = await p.select<HostedProvider | symbol>({
+				message: 'Choose your hosted backend option:',
+				options: [
+					{
+						value: 'consent.io',
+						label: 'consent.io (Recommended)',
+						hint: 'Managed infrastucture',
+					},
+					{
+						value: 'self-hosted',
+						label: 'Self-hosted',
+						hint: 'Use your own deployed c15t backend',
+					},
+				],
+				initialValue: 'consent.io',
+			});
+
+			if (isCancel(providerSelection)) {
+				throw new PromptCancelledError('hosted_provider');
+			}
+
+			provider = providerSelection;
+		}
+
+		if (provider === 'self-hosted') {
+			const url = await promptBackendURL({
+				message: 'Enter your self-hosted backend URL:',
+				placeholder: 'https://your-backend.example.com/api/c15t',
+				initialURL,
+				stage: 'self_hosted_backend_url',
+			});
+
+			return { url, provider };
+		}
+
+		if (!isV2ModeEnabled()) {
+			cliContext.logger.info(
+				'consent.io sign-in is currently disabled. Set V2=1 to enable sign-in and instance selection.'
+			);
+			const url = await promptBackendURL({
+				message: 'Enter your consent.io instance URL:',
+				placeholder: 'https://your-instance.c15t.dev',
+				initialURL,
+				stage: 'consent_manual_url',
+			});
+			return { url, provider: 'consent.io' };
+		}
+
+		const setupMethod = await p.select<ConsentSetupMethod | symbol>({
+			message: 'How do you want to configure consent.io?',
+			options: [
+				{
+					value: 'sign-in',
+					label: 'Sign in and pick an instance',
+					hint: 'List existing instances or create a new one',
+				},
+				{
+					value: 'manual-url',
+					label: 'Enter instance URL manually',
+					hint: 'Use an existing backend URL',
+				},
+			],
+			initialValue: 'sign-in',
+		});
+
+		if (isCancel(setupMethod)) {
+			throw new PromptCancelledError('consent_setup_method');
+		}
+
+		if (setupMethod === 'manual-url') {
+			const url = await promptBackendURL({
+				message: 'Enter your consent.io instance URL:',
+				placeholder: 'https://your-instance.c15t.dev',
+				initialURL,
+				stage: 'consent_manual_url',
+			});
+			return { url, provider: 'consent.io' };
+		}
+
+		await runConsentLogin(cliContext);
+		const instance = await selectOrCreateInstance(cliContext);
+
+		await setSelectedInstanceId(instance.id);
+		cliContext.logger.info(
+			`Using instance ${color.cyan(instance.name)} (${color.dim(instance.id)})`
+		);
+
+		return {
+			url: instance.url,
+			provider: 'consent.io',
+		};
 	}
 );
 
@@ -319,7 +633,7 @@ export const frontendOptionsActor = fromPromise<
 			'Choose how you want your consent UI components generated.'
 		);
 		cliContext.logger.info(
-			'Learn more: https://c15t.com/docs/frameworks/nextjs/customization'
+			'Learn more: https://v2.c15t.com/docs/frameworks/nextjs/customization'
 		);
 
 		const styleResult = await p.select({

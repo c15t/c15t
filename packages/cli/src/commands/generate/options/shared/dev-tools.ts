@@ -19,7 +19,9 @@ export async function getDevToolsOption({
 	context.logger.info(
 		'c15t DevTools helps you inspect consent state, scripts, and location overrides during development.'
 	);
-	context.logger.info('Learn more: https://c15t.com/docs/dev-tools/overview');
+	context.logger.info(
+		'Learn more: https://v2.c15t.com/docs/dev-tools/overview'
+	);
 
 	const enableDevTools = await p.select({
 		message: 'Install and enable c15t DevTools?',

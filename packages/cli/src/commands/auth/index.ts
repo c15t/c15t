@@ -8,13 +8,13 @@ import {
 	clearConfig,
 	formatUserCode,
 	getAuthState,
+	getControlPlaneBaseUrl,
 	getVerificationUrl,
 	initiateDeviceFlow,
 	isLoggedIn,
 	pollForToken,
 	storeTokens,
 } from '../../auth';
-import { URLS } from '../../constants';
 import { color } from '../../core/logger';
 import { TelemetryEventName } from '../../core/telemetry';
 import type { CliCommand, CliContext } from '../../types';
@@ -25,6 +25,7 @@ import { createTaskSpinner } from '../../utils/spinner';
  */
 async function loginAction(context: CliContext): Promise<void> {
 	const { logger, telemetry } = context;
+	const baseUrl = getControlPlaneBaseUrl();
 
 	// Check if already logged in
 	const authState = await getAuthState();
@@ -54,7 +55,7 @@ async function loginAction(context: CliContext): Promise<void> {
 
 	try {
 		// Step 1: Get device code
-		const deviceCode = await initiateDeviceFlow(URLS.CONSENT_IO);
+		const deviceCode = await initiateDeviceFlow(baseUrl);
 		spinner.stop('Device code received');
 
 		const userCode = formatUserCode(deviceCode.user_code);
@@ -91,7 +92,7 @@ async function loginAction(context: CliContext): Promise<void> {
 		pollSpinner.start();
 
 		const token = await pollForToken(
-			URLS.CONSENT_IO,
+			baseUrl,
 			deviceCode.device_code,
 			deviceCode.interval,
 			deviceCode.expires_in

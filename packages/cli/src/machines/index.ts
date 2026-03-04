@@ -21,11 +21,10 @@ export {
 	preflightActor,
 } from './generate/actors/preflight';
 export {
-	accountCreationActor,
 	backendOptionsActor,
-	backendURLActor,
 	frontendOptionsActor,
 	githubStarActor,
+	hostedModeActor,
 	installConfirmActor,
 	modeSelectionActor,
 	PromptCancelledError,

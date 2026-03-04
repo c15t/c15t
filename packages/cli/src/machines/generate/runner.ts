@@ -63,7 +63,7 @@ export async function runGenerateMachine(
 	const machineId = 'generate';
 
 	// Check for persisted state if resuming
-	let snapshot: unknown = undefined;
+	let snapshot: unknown;
 	if (resume) {
 		const hasPersisted = await hasPersistedState(persistPath);
 		if (hasPersisted) {
@@ -142,9 +142,9 @@ export async function runGenerateMachine(
 				// Clear persisted state on completion
 				clearSnapshot(persistPath).catch(() => {});
 
-				// Track completion
-				const success =
-					finalState === 'complete' || finalSnapshot.status === 'done';
+				// Only the explicit "complete" state is a successful outcome.
+				// Other terminal states (for example "exited") represent cancel/error exits.
+				const success = finalState === 'complete';
 
 				telemetry.trackEvent(TelemetryEventName.ONBOARDING_COMPLETED, {
 					success,

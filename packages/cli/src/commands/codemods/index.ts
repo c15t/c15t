@@ -1,6 +1,12 @@
 import * as p from '@clack/prompts';
 import type { CliCommand, CliContext } from '~/context/types';
+import { runActiveUiApiCodemod } from './active-ui-api';
+import { runComponentRenamesCodemod } from './component-renames';
+import { runGdprTypesToConsentCategoriesCodemod } from './gdpr-types-to-consent-categories';
+import { runIgnoreGeoLocationToOverridesCodemod } from './ignore-geo-location-to-overrides';
 import { runC15tModeToHostedCodemod } from './mode-c15t-to-hosted';
+import { runReactOptionsToTopLevelCodemod } from './react-options-to-top-level';
+import { runTrackingBlockerToNetworkBlockerCodemod } from './tracking-blocker-to-network-blocker';
 import { runTranslationsToI18nCodemod } from './translations-to-i18n';
 import {
 	type CodemodVersionMetadata,
@@ -24,50 +30,168 @@ export interface CodemodDefinition {
 	versioning?: CodemodVersionMetadata;
 }
 
+type CodemodExecutionResult = {
+	totalFiles: number;
+	changedFiles: Array<{
+		filePath: string;
+		operations: number;
+		summaries: string[];
+	}>;
+	errors: Array<{ filePath: string; error: string }>;
+};
+
+function logCodemodResult(
+	context: CliContext,
+	result: CodemodExecutionResult,
+	dryRun: boolean
+): void {
+	const { logger } = context;
+	if (result.changedFiles.length === 0) {
+		logger.info(
+			`No files needed updates (scanned ${result.totalFiles} source files).`
+		);
+		for (const error of result.errors) {
+			logger.warn(`Skipped ${error.filePath}: ${error.error}`);
+		}
+		return;
+	}
+
+	let actionPrefix = 'Applied';
+	if (dryRun) {
+		actionPrefix = 'Dry run';
+	}
+
+	logger.success(
+		`${actionPrefix}: updated ${result.changedFiles.length} file(s) out of ${result.totalFiles} scanned.`
+	);
+
+	for (const file of result.changedFiles) {
+		let summary = '';
+		if (file.summaries.length > 0) {
+			summary = `: ${file.summaries.join(', ')}`;
+		}
+		logger.info(`- ${file.filePath} (${file.operations} changes${summary})`);
+	}
+
+	for (const error of result.errors) {
+		logger.warn(`Skipped ${error.filePath}: ${error.error}`);
+	}
+}
+
 const codemods: CodemodDefinition[] = [
+	{
+		id: 'active-ui-api',
+		label: 'showPopup API -> activeUI API',
+		hint: 'Migrates showPopup/isPrivacyDialogOpen and setter usage to activeUI.',
+		run: async (context, dryRun) => {
+			const { projectRoot } = context;
+			const result = await runActiveUiApiCodemod({
+				projectRoot,
+				dryRun,
+			});
+			logCodemodResult(context, result, dryRun);
+		},
+		versioning: {
+			fromRange: '<2.0.0',
+			toRange: '>=2.0.0',
+		},
+	},
+	{
+		id: 'component-renames',
+		label: 'legacy component names -> v2 names',
+		hint: 'Renames CookieBanner/ConsentManagerDialog/ConsentManagerWidget.',
+		run: async (context, dryRun) => {
+			const { projectRoot } = context;
+			const result = await runComponentRenamesCodemod({
+				projectRoot,
+				dryRun,
+			});
+			logCodemodResult(context, result, dryRun);
+		},
+		versioning: {
+			fromRange: '<2.0.0',
+			toRange: '>=2.0.0',
+		},
+	},
+	{
+		id: 'gdpr-types-to-consent-categories',
+		label: 'gdprTypes -> consentCategories',
+		hint: 'Migrates gdprTypes/initialGDPRTypes to consentCategories.',
+		run: async (context, dryRun) => {
+			const { projectRoot } = context;
+			const result = await runGdprTypesToConsentCategoriesCodemod({
+				projectRoot,
+				dryRun,
+			});
+			logCodemodResult(context, result, dryRun);
+		},
+		versioning: {
+			fromRange: '<2.0.0',
+			toRange: '>=2.0.0',
+		},
+	},
+	{
+		id: 'ignore-geo-location-to-overrides',
+		label: 'ignoreGeoLocation -> overrides',
+		hint: "Migrates ignoreGeoLocation to overrides (forces country='DE').",
+		run: async (context, dryRun) => {
+			const { projectRoot } = context;
+			const result = await runIgnoreGeoLocationToOverridesCodemod({
+				projectRoot,
+				dryRun,
+			});
+			logCodemodResult(context, result, dryRun);
+		},
+		versioning: {
+			fromRange: '<2.0.0',
+			toRange: '>=2.0.0',
+		},
+	},
 	{
 		id: 'mode-c15t-to-hosted',
 		label: "mode: 'c15t' -> 'hosted'",
 		hint: "Migrates legacy mode values from 'c15t' to 'hosted'.",
 		run: async (context, dryRun) => {
-			const { logger, projectRoot } = context;
+			const { projectRoot } = context;
 			const result = await runC15tModeToHostedCodemod({
 				projectRoot,
 				dryRun,
 			});
-
-			if (result.changedFiles.length === 0) {
-				logger.info(
-					`No files needed updates (scanned ${result.totalFiles} source files).`
-				);
-				for (const error of result.errors) {
-					logger.warn(`Skipped ${error.filePath}: ${error.error}`);
-				}
-				return;
-			}
-
-			let actionPrefix = 'Applied';
-			if (dryRun) {
-				actionPrefix = 'Dry run';
-			}
-
-			logger.success(
-				`${actionPrefix}: updated ${result.changedFiles.length} file(s) out of ${result.totalFiles} scanned.`
-			);
-
-			for (const file of result.changedFiles) {
-				let summary = '';
-				if (file.summaries.length > 0) {
-					summary = `: ${file.summaries.join(', ')}`;
-				}
-				logger.info(
-					`- ${file.filePath} (${file.operations} changes${summary})`
-				);
-			}
-
-			for (const error of result.errors) {
-				logger.warn(`Skipped ${error.filePath}: ${error.error}`);
-			}
+			logCodemodResult(context, result, dryRun);
+		},
+		versioning: {
+			fromRange: '<2.0.0',
+			toRange: '>=2.0.0',
+		},
+	},
+	{
+		id: 'react-options-to-top-level',
+		label: 'react options -> top-level options',
+		hint: 'Lifts react.theme/colorScheme/disableAnimation to top-level.',
+		run: async (context, dryRun) => {
+			const { projectRoot } = context;
+			const result = await runReactOptionsToTopLevelCodemod({
+				projectRoot,
+				dryRun,
+			});
+			logCodemodResult(context, result, dryRun);
+		},
+		versioning: {
+			fromRange: '<2.0.0',
+			toRange: '>=2.0.0',
+		},
+	},
+	{
+		id: 'tracking-blocker-to-network-blocker',
+		label: 'trackingBlockerConfig -> networkBlocker',
+		hint: 'Migrates tracking blocker config to network blocker rules.',
+		run: async (context, dryRun) => {
+			const { projectRoot } = context;
+			const result = await runTrackingBlockerToNetworkBlockerCodemod({
+				projectRoot,
+				dryRun,
+			});
+			logCodemodResult(context, result, dryRun);
 		},
 		versioning: {
 			fromRange: '<2.0.0',
@@ -79,44 +203,12 @@ const codemods: CodemodDefinition[] = [
 		label: 'translations -> i18n',
 		hint: 'Migrates legacy translation config keys to the v2 i18n shape.',
 		run: async (context, dryRun) => {
-			const { logger, projectRoot } = context;
+			const { projectRoot } = context;
 			const result = await runTranslationsToI18nCodemod({
 				projectRoot,
 				dryRun,
 			});
-
-			if (result.changedFiles.length === 0) {
-				logger.info(
-					`No files needed updates (scanned ${result.totalFiles} source files).`
-				);
-				for (const error of result.errors) {
-					logger.warn(`Skipped ${error.filePath}: ${error.error}`);
-				}
-				return;
-			}
-
-			let actionPrefix = 'Applied';
-			if (dryRun) {
-				actionPrefix = 'Dry run';
-			}
-
-			logger.success(
-				`${actionPrefix}: updated ${result.changedFiles.length} file(s) out of ${result.totalFiles} scanned.`
-			);
-
-			for (const file of result.changedFiles) {
-				let summary = '';
-				if (file.summaries.length > 0) {
-					summary = `: ${file.summaries.join(', ')}`;
-				}
-				logger.info(
-					`- ${file.filePath} (${file.operations} changes${summary})`
-				);
-			}
-
-			for (const error of result.errors) {
-				logger.warn(`Skipped ${error.filePath}: ${error.error}`);
-			}
+			logCodemodResult(context, result, dryRun);
 		},
 		versioning: {
 			fromRange: '<2.0.0',

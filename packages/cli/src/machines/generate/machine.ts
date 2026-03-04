@@ -4,9 +4,10 @@
  * Main state machine for the generate flow with all states, transitions, and actors.
  */
 
-import { assign, fromPromise, setup } from 'xstate';
+import { assign, setup } from 'xstate';
 import type { StorageMode } from '~/constants';
 import type { CliContext } from '~/context/types';
+import { CliError } from '~/core/errors';
 import {
 	checkDependenciesActor,
 	dependencyInstallActor,
@@ -19,11 +20,10 @@ import {
 	preflightActor,
 } from './actors/preflight';
 import {
-	accountCreationActor,
 	backendOptionsActor,
-	backendURLActor,
 	frontendOptionsActor,
 	githubStarActor,
+	hostedModeActor,
 	installConfirmActor,
 	modeSelectionActor,
 	PromptCancelledError,
@@ -36,6 +36,29 @@ import {
 	type GenerateMachineContext,
 	type GenerateMachineEvent,
 } from './types';
+
+function normalizeSelectedMode(
+	mode: StorageMode | null | undefined
+): GenerateMachineContext['selectedMode'] {
+	if (mode === 'c15t' || mode === 'self-hosted') {
+		return 'hosted';
+	}
+
+	return mode ?? null;
+}
+
+function getHostedProviderFromMode(
+	mode: StorageMode | null | undefined
+): GenerateMachineContext['hostedProvider'] {
+	if (mode === 'self-hosted') {
+		return 'self-hosted';
+	}
+	if (mode === 'c15t') {
+		return 'consent.io';
+	}
+
+	return null;
+}
 
 /**
  * The generate state machine definition
@@ -50,8 +73,7 @@ export const generateMachine = setup({
 	actors: {
 		preflight: preflightActor,
 		modeSelection: modeSelectionActor,
-		accountCreation: accountCreationActor,
-		backendURL: backendURLActor,
+		hostedMode: hostedModeActor,
 		backendOptions: backendOptionsActor,
 		frontendOptions: frontendOptionsActor,
 		scriptsOption: scriptsOptionActor,
@@ -177,7 +199,10 @@ export const generateMachine = setup({
 					guard: 'hasModeArg',
 					target: 'routeToMode',
 					actions: assign({
-						selectedMode: ({ context }) => context.modeArg,
+						selectedMode: ({ context }) =>
+							normalizeSelectedMode(context.modeArg),
+						hostedProvider: ({ context }) =>
+							getHostedProviderFromMode(context.modeArg),
 					}),
 				},
 			],
@@ -187,7 +212,9 @@ export const generateMachine = setup({
 				onDone: {
 					target: 'routeToMode',
 					actions: assign({
-						selectedMode: ({ event }) => event.output.mode,
+						selectedMode: ({ event }) =>
+							normalizeSelectedMode(event.output.mode),
+						hostedProvider: null,
 					}),
 				},
 				onError: {
@@ -206,7 +233,6 @@ export const generateMachine = setup({
 			always: [
 				{ guard: 'isHostedMode', target: 'hostedMode' },
 				{ guard: 'isOfflineMode', target: 'offlineMode' },
-				{ guard: 'isSelfHostedMode', target: 'selfHostedMode' },
 				{ guard: 'isCustomMode', target: 'customMode' },
 				// Default to custom mode if unknown
 				{ target: 'customMode' },
@@ -217,39 +243,42 @@ export const generateMachine = setup({
 		 * c15t (hosted) mode setup
 		 */
 		hostedMode: {
-			initial: 'accountCreation',
-			states: {
-				accountCreation: {
-					invoke: {
-						src: 'accountCreation',
-						input: ({ context }) => ({ cliContext: context.cliContext! }),
-						onDone: 'backendURL',
-						onError: {
-							target: '#generate.cancelling',
-							actions: assign({
-								cancelReason: 'Account creation cancelled',
-							}),
-						},
-					},
+			invoke: {
+				src: 'hostedMode',
+				input: ({ context }) => ({
+					cliContext: context.cliContext!,
+					initialURL: context.backendURL ?? undefined,
+					preselectedProvider: context.hostedProvider,
+				}),
+				onDone: {
+					target: 'backendOptions',
+					actions: assign({
+						backendURL: ({ event }) => event.output.url,
+						hostedProvider: ({ event }) => event.output.provider,
+					}),
 				},
-				backendURL: {
-					invoke: {
-						src: 'backendURL',
-						input: () => ({ isHostedMode: true }),
-						onDone: {
-							target: '#generate.backendOptions',
-							actions: assign({
-								backendURL: ({ event }) => event.output.url,
-							}),
-						},
-						onError: {
-							target: '#generate.cancelling',
-							actions: assign({
-								cancelReason: 'Backend URL entry cancelled',
-							}),
-						},
+				onError: [
+					{
+						guard: ({ event }) => event.error instanceof PromptCancelledError,
+						target: 'cancelling',
+						actions: assign({
+							cancelReason: 'Hosted setup cancelled',
+						}),
 					},
-				},
+					{
+						target: 'error',
+						actions: assign({
+							errors: ({ context, event }) => [
+								...context.errors,
+								{
+									state: 'hostedMode',
+									error: event.error as Error,
+									timestamp: Date.now(),
+								},
+							],
+						}),
+					},
+				],
 			},
 		},
 
@@ -258,28 +287,6 @@ export const generateMachine = setup({
 		 */
 		offlineMode: {
 			always: 'frontendOptions',
-		},
-
-		/**
-		 * Self-hosted mode setup
-		 */
-		selfHostedMode: {
-			invoke: {
-				src: 'backendURL',
-				input: () => ({ isHostedMode: false }),
-				onDone: {
-					target: 'backendOptions',
-					actions: assign({
-						backendURL: ({ event }) => event.output.url,
-					}),
-				},
-				onError: {
-					target: 'cancelling',
-					actions: assign({
-						cancelReason: 'Backend URL entry cancelled',
-					}),
-				},
-			},
 		},
 
 		/**
@@ -323,10 +330,7 @@ export const generateMachine = setup({
 				src: 'frontendOptions',
 				input: ({ context }) => ({
 					cliContext: context.cliContext!,
-					hasBackend:
-						context.selectedMode === 'hosted' ||
-						context.selectedMode === 'c15t' ||
-						context.selectedMode === 'self-hosted',
+					hasBackend: context.selectedMode === 'hosted',
 				}),
 				onDone: {
 					target: 'scriptsOptions',
@@ -523,9 +527,12 @@ export const generateMachine = setup({
 				const { logger, packageManager } = context.cliContext;
 
 				// Show mode-specific guidance
-				if (context.selectedMode === 'self-hosted') {
+				if (
+					context.selectedMode === 'hosted' &&
+					context.hostedProvider === 'self-hosted'
+				) {
 					logger.info('Setup your backend with the c15t docs:');
-					logger.info('https://c15t.com/docs/self-host/v2');
+					logger.info('https://v2.c15t.com/docs/self-host/v2');
 				} else if (context.selectedMode === 'custom') {
 					logger.info(
 						'Configuration Complete! Implement your custom endpoint handlers.'
@@ -598,8 +605,15 @@ export const generateMachine = setup({
 		error: {
 			entry: ({ context }) => {
 				const lastError = context.errors[context.errors.length - 1];
+				const error = lastError?.error;
+				const details =
+					error instanceof CliError &&
+					typeof error.context?.details === 'string'
+						? error.context.details
+						: undefined;
+
 				context.cliContext?.logger.error(
-					`Error: ${lastError?.error?.message ?? 'Unknown error'}`
+					`Error: ${error?.message ?? 'Unknown error'}${details ? `: ${details}` : ''}`
 				);
 			},
 			always: [

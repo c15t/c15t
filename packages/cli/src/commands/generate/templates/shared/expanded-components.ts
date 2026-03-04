@@ -75,7 +75,7 @@ import { theme } from './theme';
 ${propsInterface}
 /**
  * Client-side consent manager provider with compound components.
- * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/quickstart
+ * @see https://v2.c15t.com/docs/frameworks/${framework.docsSlug}/quickstart
  */
 export default function ConsentManagerClient(${propsDestructure}) {
 	return (
@@ -115,7 +115,7 @@ import { ConsentDialog } from '${framework.consentDialogImport}';
 
 /**
  * Consent dialog using compound components.
- * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/components/consent-dialog
+ * @see https://v2.c15t.com/docs/frameworks/${framework.docsSlug}/components/consent-dialog
  */
 export default function () {
 	return (
@@ -151,7 +151,7 @@ import { ConsentBanner } from '${framework.consentBannerImport}';
 
 /**
  * Consent banner using compound components.
- * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/components/consent-banner
+ * @see https://v2.c15t.com/docs/frameworks/${framework.docsSlug}/components/consent-banner
  */
 export default function () {
 	return (
@@ -211,7 +211,7 @@ function generateTailwindTheme(framework: FrameworkConfig): string {
  *
  * Customize the colors, typography, and slots below to match your design.
  *
- * @see https://c15t.com/docs/customization/theming
+ * @see https://v2.c15t.com/docs/customization/theming
  */
 export const theme: Theme = {
 	colors: {
@@ -264,7 +264,7 @@ function generateMinimalTheme(framework: FrameworkConfig): string {
  *
  * Customize the colors, typography, and slots below to match your design.
  *
- * @see https://c15t.com/docs/customization/theming
+ * @see https://v2.c15t.com/docs/customization/theming
  */
 export const theme: Theme = {
 	colors: {
@@ -368,7 +368,7 @@ function generateDarkTheme(framework: FrameworkConfig): string {
  *
  * Customize the colors, typography, and slots below to match your design.
  *
- * @see https://c15t.com/docs/customization/theming
+ * @see https://v2.c15t.com/docs/customization/theming
  */
 export const theme: Theme = {
 	colors: {
