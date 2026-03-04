@@ -39,9 +39,9 @@ function performInitFetch(
 		})
 		.catch((error) => {
 			if (debug) {
-				console.log(
-					`[c15t/server] SSR fetch error: ${error?.message || 'Unknown error'}`
-				);
+				const message =
+					error instanceof Error ? error.message : 'Unknown error';
+				console.log(`[c15t/server] SSR fetch error: ${message}`);
 			}
 			return undefined;
 		});

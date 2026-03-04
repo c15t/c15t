@@ -18,6 +18,10 @@ const FORWARDED_HEADERS = [
 	'x-forwarded-host',
 	'x-forwarded-for',
 	'sec-gpc',
+	'purpose',
+	'sec-purpose',
+	'next-router-prefetch',
+	'x-middleware-prefetch',
 ] as const;
 
 type ForwardedHeader =
@@ -39,6 +43,7 @@ type RelevantHeaders = Partial<Record<ForwardedHeader, string>>;
  * - Country headers (cf-ipcountry, x-vercel-ip-country, etc.)
  * - Region headers (x-vercel-ip-country-region, x-region-code)
  * - Standard headers (accept-language, user-agent, x-forwarded-*)
+ * - Prefetch headers (purpose, sec-purpose, next-router-prefetch, x-middleware-prefetch)
  *
  * @param headersList - The Headers object from the incoming request
  * @returns An object containing the relevant headers for consent management
