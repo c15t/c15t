@@ -1,3 +1,4 @@
+import type { OfflinePolicyConfig } from '../../store/type';
 import type { IABFallbackConfig } from '../hosted/types';
 
 /**
@@ -9,6 +10,14 @@ export interface OfflineClientOptions {
 	 * When IAB is enabled, the client will fetch GVL from gvl.consent.io.
 	 */
 	iabConfig?: IABFallbackConfig;
+
+	/**
+	 * Optional synthetic runtime policy payload for offline mode.
+	 *
+	 * @remarks
+	 * This allows policy-driven UI previews without a backend `/init` call.
+	 */
+	policyConfig?: OfflinePolicyConfig;
 }
 
 // Re-export for convenience

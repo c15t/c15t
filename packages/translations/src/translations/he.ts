@@ -43,6 +43,8 @@ export const translations: CompleteTranslations = {
 	frame: {
 		title: 'קבל {category} כדי להציג תוכן זה.',
 		actionButton: 'הפעל {category} רשות',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'מדיניות פרטיות',

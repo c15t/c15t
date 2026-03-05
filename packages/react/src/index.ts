@@ -71,8 +71,29 @@ export { ConsentButton } from './components/shared/primitives/button';
 
 // Hooks
 export { useColorScheme } from './hooks/use-color-scheme';
+export {
+	type ConsentDialogTriggerVisibility,
+	type UseConsentDialogTriggerOptions,
+	type UseConsentDialogTriggerResult,
+	useConsentDialogTrigger,
+} from './hooks/use-consent-dialog-trigger';
 export { useConsentManager } from './hooks/use-consent-manager';
 export { useFocusTrap } from './hooks/use-focus-trap';
+export {
+	type HeadlessConsentSurface,
+	type HeadlessConsentSurfaceState,
+	type UseHeadlessConsentUIResult,
+	useHeadlessConsentUI,
+} from './hooks/use-headless-consent-ui';
+export {
+	type HeadlessIABBannerAction,
+	type HeadlessIABBannerState,
+	type HeadlessIABDialogAction,
+	type HeadlessIABDialogState,
+	type HeadlessIABPreferenceTab,
+	type UseHeadlessIABConsentUIResult,
+	useHeadlessIABConsentUI,
+} from './hooks/use-headless-iab-consent-ui';
 export { useSSRStatus } from './hooks/use-ssr-status';
 export { useTranslations } from './hooks/use-translations';
 

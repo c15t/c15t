@@ -10,10 +10,14 @@ import {
 	type TranslationInputConfig,
 } from '@c15t/translations';
 import type { ConsentStoreState } from '../../store/type';
-import type { ConsentState } from '../../types/compliance';
+import { allConsentNames, type ConsentState } from '../../types';
 import type { GlobalVendorList } from '../../types/iab-tcf';
 import { determineModel } from '../determine-model';
 import { hasGlobalPrivacyControlSignal } from '../global-privacy-control';
+import {
+	applyPolicyPurposeAllowlist,
+	filterConsentCategoriesByPolicy,
+} from '../policy';
 import { initializeIABMode } from './iab-initializer';
 import type { ConsentBannerResponse, InitConsentManagerConfig } from './types';
 
@@ -56,9 +60,13 @@ function computeAutoGrantInfo(
 	jurisdiction: JurisdictionCode | null,
 	iabEnabled: boolean | undefined,
 	consentInfo: ConsentStoreState['consentInfo'],
+	policyModel?: 'opt-in' | 'opt-out' | 'none' | 'iab',
 	gpcOverride?: boolean
 ) {
-	const consentModel = determineModel(jurisdiction, iabEnabled);
+	const consentModel =
+		policyModel === 'none'
+			? null
+			: (policyModel ?? determineModel(jurisdiction, iabEnabled));
 	const hasGpcSignal =
 		gpcOverride !== undefined ? gpcOverride : hasGlobalPrivacyControlSignal();
 
@@ -98,6 +106,7 @@ function buildStoreUpdate(
 		(data.jurisdiction as JurisdictionCode) ?? null,
 		effectiveIABEnabled,
 		consentInfo,
+		data.policy?.model,
 		config.get().overrides?.gpc
 	);
 
@@ -113,17 +122,59 @@ function buildStoreUpdate(
 			regionCode: location?.regionCode ?? null,
 			jurisdiction: data.jurisdiction ?? null,
 		},
+		policyBannerAllowedActions: data.policy?.ui?.banner?.allowedActions ?? null,
+		policyBannerPrimaryAction: data.policy?.ui?.banner?.primaryAction ?? null,
+		policyBannerActionOrder: data.policy?.ui?.banner?.actionOrder ?? null,
+		policyBannerActionLayout: data.policy?.ui?.banner?.actionLayout ?? null,
+		policyBannerUiProfile: data.policy?.ui?.banner?.uiProfile ?? null,
+		policyDialogAllowedActions: data.policy?.ui?.dialog?.allowedActions ?? null,
+		policyDialogPrimaryAction: data.policy?.ui?.dialog?.primaryAction ?? null,
+		policyDialogActionOrder: data.policy?.ui?.dialog?.actionOrder ?? null,
+		policyDialogActionLayout: data.policy?.ui?.dialog?.actionLayout ?? null,
+		policyDialogUiProfile: data.policy?.ui?.dialog?.uiProfile ?? null,
+		policyPurposeIds: data.policy?.consent?.purposeIds ?? null,
+		policyScopeMode:
+			data.policy?.consent?.scopeMode ?? (data.policy ? 'unmanaged' : null),
 	};
 
 	// Show banner if no existing consent and regulation applies
 	if (consentInfo === null) {
-		update.activeUI = consentModel ? 'banner' : 'none';
+		if (data.policy?.ui?.mode) {
+			update.activeUI = data.policy.ui.mode;
+		} else {
+			update.activeUI = consentModel ? 'banner' : 'none';
+		}
 	}
 
 	// Auto-grant consents if applicable
 	if (autoGrantedConsents) {
 		update.consents = autoGrantedConsents;
 		update.selectedConsents = autoGrantedConsents;
+	}
+
+	// Apply policy-driven purpose/category restrictions for non-wildcard scope.
+	// Out-of-policy categories are treated as out-of-scope (hidden + forced false),
+	// not as granted consent.
+	const policyPurposeIds = data.policy?.consent?.purposeIds;
+	const hasPolicyPurposeAllowlist =
+		Array.isArray(policyPurposeIds) &&
+		policyPurposeIds.length > 0 &&
+		!policyPurposeIds.includes('*');
+	if (hasPolicyPurposeAllowlist) {
+		const uniqueAllowedCategories = filterConsentCategoriesByPolicy(
+			allConsentNames,
+			policyPurposeIds
+		);
+
+		update.consentCategories = uniqueAllowedCategories;
+		update.consents = applyPolicyPurposeAllowlist(
+			update.consents ?? get().consents,
+			uniqueAllowedCategories
+		);
+		update.selectedConsents = applyPolicyPurposeAllowlist(
+			update.selectedConsents ?? get().selectedConsents,
+			uniqueAllowedCategories
+		);
 	}
 
 	// Prepare translation config
@@ -240,6 +291,7 @@ export async function updateStore(
 		(data.jurisdiction as JurisdictionCode) ?? null,
 		effectiveIABEnabled,
 		consentInfo,
+		data.policy?.model,
 		get().overrides?.gpc
 	);
 

@@ -321,3 +321,203 @@ describe('updateStore - translation precedence', () => {
 		);
 	});
 });
+
+describe('updateStore - policy purpose/category restrictions', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it('treats out-of-policy categories as out-of-scope (hidden and false)', () => {
+		const data = createMockConsentBannerResponse({
+			jurisdiction: 'GDPR',
+			policy: {
+				id: 'policy_jp_restricted',
+				model: 'opt-in',
+				consent: {
+					purposeIds: ['necessary', 'measurement'],
+				},
+			},
+		});
+		const mockState = createMockStoreState({
+			iab: null,
+			consentCategories: [
+				'necessary',
+				'measurement',
+				'experience',
+				'marketing',
+				'functionality',
+			],
+			consents: {
+				necessary: true,
+				measurement: true,
+				experience: true,
+				marketing: true,
+				functionality: true,
+			},
+			selectedConsents: {
+				necessary: true,
+				measurement: true,
+				experience: true,
+				marketing: true,
+				functionality: true,
+			},
+		});
+		const mockGet = vi.fn().mockReturnValue(mockState);
+		const mockSet = vi.fn();
+
+		updateStore(
+			data,
+			{
+				get: mockGet,
+				set: mockSet,
+				manager: {} as InitConsentManagerConfig['manager'],
+				initialTranslationConfig: undefined,
+			},
+			true
+		);
+
+		expect(mockSet).toHaveBeenCalledWith(
+			expect.objectContaining({
+				consentCategories: ['necessary', 'measurement'],
+				consents: {
+					necessary: true,
+					functionality: false,
+					experience: false,
+					marketing: false,
+					measurement: true,
+				},
+				selectedConsents: {
+					necessary: true,
+					functionality: false,
+					experience: false,
+					marketing: false,
+					measurement: true,
+				},
+			})
+		);
+	});
+
+	it('does not restrict categories when policy purpose scope is wildcard', () => {
+		const data = createMockConsentBannerResponse({
+			jurisdiction: 'GDPR',
+			policy: {
+				id: 'policy_iab',
+				model: 'iab',
+				consent: {
+					purposeIds: ['*'],
+				},
+			},
+		});
+		const mockState = createMockStoreState({
+			iab: null,
+			consentCategories: ['necessary', 'measurement', 'marketing'],
+		});
+		const mockGet = vi.fn().mockReturnValue(mockState);
+		const mockSet = vi.fn();
+
+		updateStore(
+			data,
+			{
+				get: mockGet,
+				set: mockSet,
+				manager: {} as InitConsentManagerConfig['manager'],
+				initialTranslationConfig: undefined,
+			},
+			true
+		);
+
+		expect(mockSet).not.toHaveBeenCalledWith(
+			expect.objectContaining({
+				consentCategories: expect.any(Array),
+			})
+		);
+	});
+
+	it('stores policy UI action order/layout hints from init response', () => {
+		const data = createMockConsentBannerResponse({
+			jurisdiction: 'CCPA',
+			policy: {
+				id: 'policy_us_ca',
+				model: 'opt-in',
+				ui: {
+					banner: {
+						allowedActions: ['accept', 'reject'],
+						primaryAction: 'accept',
+						actionOrder: ['reject', 'accept'],
+						actionLayout: 'inline',
+						uiProfile: 'balanced',
+					},
+				},
+			},
+		});
+		const mockState = createMockStoreState({ iab: null });
+		const mockGet = vi.fn().mockReturnValue(mockState);
+		const mockSet = vi.fn();
+
+		updateStore(
+			data,
+			{
+				get: mockGet,
+				set: mockSet,
+				manager: {} as InitConsentManagerConfig['manager'],
+				initialTranslationConfig: undefined,
+			},
+			true
+		);
+
+		expect(mockSet).toHaveBeenCalledWith(
+			expect.objectContaining({
+				policyBannerAllowedActions: ['accept', 'reject'],
+				policyBannerPrimaryAction: 'accept',
+				policyBannerActionOrder: ['reject', 'accept'],
+				policyBannerActionLayout: 'inline',
+				policyBannerUiProfile: 'balanced',
+			})
+		);
+	});
+
+	it('stores dialog policy UI fields independently from banner fields', () => {
+		const data = createMockConsentBannerResponse({
+			jurisdiction: 'CCPA',
+			policy: {
+				id: 'policy_us_country',
+				model: 'opt-out',
+				ui: {
+					mode: 'dialog',
+					dialog: {
+						allowedActions: ['customize'],
+						primaryAction: 'customize',
+						actionOrder: ['customize'],
+						actionLayout: 'inline',
+						uiProfile: 'balanced',
+					},
+				},
+			},
+		});
+		const mockState = createMockStoreState({ iab: null });
+		const mockGet = vi.fn().mockReturnValue(mockState);
+		const mockSet = vi.fn();
+
+		updateStore(
+			data,
+			{
+				get: mockGet,
+				set: mockSet,
+				manager: {} as InitConsentManagerConfig['manager'],
+				initialTranslationConfig: undefined,
+			},
+			true
+		);
+
+		expect(mockSet).toHaveBeenCalledWith(
+			expect.objectContaining({
+				policyDialogAllowedActions: ['customize'],
+				policyDialogPrimaryAction: 'customize',
+				policyDialogActionOrder: ['customize'],
+				policyDialogActionLayout: 'inline',
+				policyDialogUiProfile: 'balanced',
+				policyBannerAllowedActions: null,
+			})
+		);
+	});
+});

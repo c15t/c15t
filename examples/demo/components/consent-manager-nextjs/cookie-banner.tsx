@@ -2,7 +2,7 @@ import { ConsentBanner } from '@c15t/react';
 
 export default function () {
 	return (
-		<ConsentBanner.Root models={['opt-in']}>
+		<ConsentBanner.Root>
 			<ConsentBanner.Card>
 				<ConsentBanner.Header>
 					<ConsentBanner.Title />

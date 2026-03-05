@@ -5,8 +5,14 @@ import type React from 'react';
 import '../globals.css';
 import { ConsentManager } from '../../components/consent-manager/provider';
 
-const _geist = Geist({ subsets: ['latin'] });
-const _geistMono = Geist_Mono({ subsets: ['latin'] });
+const geist = Geist({
+	subsets: ['latin'],
+	variable: '--font-geist-sans',
+});
+const geistMono = Geist_Mono({
+	subsets: ['latin'],
+	variable: '--font-geist-mono',
+});
 
 // Theme preset fonts
 // const spaceGrotesk = Space_Grotesk({
@@ -32,8 +38,9 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en" suppressHydrationWarning>
-			{/* <body className={`font-sans antialiased ${spaceGrotesk.variable} ${inter.variable} ${dmSans.variable}`}> */}
-			<body className={`font-sans antialiased`}>
+			<body
+				className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}
+			>
 				<ThemeProvider attribute="class" defaultTheme="light" enableSystem>
 					<ConsentManager>
 						{children}

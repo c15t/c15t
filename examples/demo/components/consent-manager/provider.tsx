@@ -9,8 +9,9 @@ import {
 	IABConsentBanner,
 	IABConsentDialog,
 } from '@c15t/react';
-import { baseTranslations } from '@c15t/translations/all';
+import { usePathname, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useThemePreset } from './theme-switcher';
 
 /**
@@ -18,6 +19,23 @@ import { useThemePreset } from './theme-switcher';
  */
 interface ConsentManagerProps {
 	children: ReactNode;
+}
+
+function resolveGeoOverrides(
+	search: string
+): { country?: string; region?: string } | undefined {
+	const searchParams = new URLSearchParams(search);
+	const queryCountry = searchParams.get('country');
+	const queryRegion = searchParams.get('region');
+
+	if (!queryCountry && !queryRegion) {
+		return undefined;
+	}
+
+	return {
+		...(queryCountry ? { country: queryCountry.toUpperCase() } : {}),
+		...(queryRegion ? { region: queryRegion.toUpperCase() } : {}),
+	};
 }
 
 /**
@@ -60,6 +78,44 @@ interface ConsentManagerProps {
  */
 export function ConsentManager({ children }: ConsentManagerProps) {
 	const { theme, mounted } = useThemePreset();
+	const pathname = usePathname();
+	const searchParams = useSearchParams();
+	const [geoOverrides, setGeoOverrides] = useState<
+		{ country?: string; region?: string } | undefined
+	>(() =>
+		typeof window === 'undefined'
+			? undefined
+			: resolveGeoOverrides(window.location.search)
+	);
+
+	useEffect(() => {
+		const syncOverrides = () => {
+			setGeoOverrides(resolveGeoOverrides(window.location.search));
+		};
+
+		syncOverrides();
+		window.addEventListener('popstate', syncOverrides);
+		return () => {
+			window.removeEventListener('popstate', syncOverrides);
+		};
+	}, []);
+
+	useEffect(() => {
+		if (typeof window === 'undefined') {
+			return;
+		}
+
+		const nextOverrides = resolveGeoOverrides(window.location.search);
+		setGeoOverrides((currentOverrides) => {
+			if (
+				currentOverrides?.country === nextOverrides?.country &&
+				currentOverrides?.region === nextOverrides?.region
+			) {
+				return currentOverrides;
+			}
+			return nextOverrides;
+		});
+	}, [searchParams]);
 
 	// Use default theme during SSR/hydration to avoid mismatch, then switch to user preference
 	const activeTheme = mounted ? theme : undefined;
@@ -78,6 +134,8 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 				},
 			}
 		: activeTheme;
+	const isHeadlessPolicyTab =
+		pathname === '/policy' && searchParams.get('tab') === 'headless';
 
 	return (
 		<ConsentManagerProvider
@@ -86,7 +144,13 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 				// backendURL: 'https://instance-worker-test.consent-ef4.workers.dev/',
 				// backendURL: 'https://minecraft-europe-hypixel.c15t.xyz',
 				backendURL: '/api/self-host',
-				consentCategories: ['necessary', 'marketing', 'measurement'],
+				consentCategories: [
+					'necessary',
+					'functionality',
+					'experience',
+					'marketing',
+					'measurement',
+				],
 				iab: {
 					enabled: true,
 					customVendors: [
@@ -134,33 +198,18 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 					id: '123',
 					identityProvider: 'custom',
 				},
-				i18n: {
-					messages: {
-						zh: {
-							...baseTranslations.zh,
-						},
-						en: {
-							...baseTranslations.en,
-						},
-						fr: {
-							...baseTranslations.fr,
-						},
-						de: {
-							...baseTranslations.de,
-						},
-					},
-				},
-				overrides: {
-					country: 'CA',
-					region: 'QC',
-				},
+				overrides: geoOverrides,
 			}}
 		>
-			<ConsentBanner />
-			<IABConsentBanner />
-			<IABConsentDialog />
-			<ConsentDialogTrigger />
-			<ConsentDialog />
+			{!isHeadlessPolicyTab ? (
+				<>
+					<ConsentBanner />
+					<IABConsentBanner />
+					<IABConsentDialog />
+					<ConsentDialogTrigger />
+					<ConsentDialog />
+				</>
+			) : null}
 			<DevTools />
 			{children}
 		</ConsentManagerProvider>

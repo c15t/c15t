@@ -38,8 +38,14 @@ export function useConsentManager(): ConsentStoreState & {
 		);
 	}
 
-	const { consents, consentInfo, consentCategories, consentTypes } =
-		context.state;
+	const {
+		consents,
+		consentInfo,
+		consentCategories,
+		consentTypes,
+		policyPurposeIds,
+		policyScopeMode,
+	} = context.state;
 
 	// Override store methods that close over Zustand's `get()` with versions
 	// that capture reactive state values from context. Without this, React
@@ -47,8 +53,12 @@ export function useConsentManager(): ConsentStoreState & {
 	// the return value forever, producing stale results after consent changes.
 	// See: https://github.com/c15t/c15t/issues/604
 	const has: ConsentStoreState['has'] = useCallback(
-		(condition) => evaluateHas(condition, consents),
-		[consents]
+		(condition) =>
+			evaluateHas(condition, consents, {
+				policyPurposeIds,
+				policyScopeMode,
+			}),
+		[consents, policyPurposeIds, policyScopeMode]
 	);
 
 	const hasConsented: ConsentStoreState['hasConsented'] = useCallback(

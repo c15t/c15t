@@ -166,7 +166,7 @@ export function checkJurisdiction(
  */
 export async function getLocation(
 	request: Request,
-	options: C15TOptions
+	options: Pick<C15TOptions, 'disableGeoLocation'>
 ): Promise<{ countryCode: string | null; regionCode: string | null }> {
 	if (options.disableGeoLocation) {
 		return { countryCode: null, regionCode: null };
@@ -185,7 +185,7 @@ export async function getLocation(
  */
 export function getJurisdiction(
 	location: { countryCode: string | null; regionCode: string | null },
-	options: C15TOptions
+	options: Pick<C15TOptions, 'disableGeoLocation'>
 ): JurisdictionCode {
 	if (options.disableGeoLocation) {
 		return 'GDPR';

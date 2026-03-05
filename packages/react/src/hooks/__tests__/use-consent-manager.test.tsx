@@ -1,6 +1,8 @@
+import type { ConsentStoreState } from 'c15t';
 import { defaultTranslationConfig } from 'c15t';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
+import { ConsentStateContext } from '~/context/consent-manager-context';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
@@ -125,5 +127,49 @@ describe('useConsentManager', () => {
 		});
 
 		expect(result.current.manager).toBeDefined();
+	});
+
+	test('applies policy scope mode in has()', async () => {
+		const state = {
+			consents: {
+				necessary: true,
+				functionality: false,
+				experience: false,
+				marketing: false,
+				measurement: false,
+			},
+			consentInfo: null,
+			consentCategories: ['necessary', 'measurement'],
+			consentTypes: [],
+			policyPurposeIds: ['necessary', 'measurement'],
+			policyScopeMode: 'unmanaged',
+			policyBannerActionOrder: null,
+			policyBannerActionLayout: null,
+			policyBannerUiProfile: null,
+			policyDialogActionOrder: null,
+			policyDialogActionLayout: null,
+			policyDialogUiProfile: null,
+		} as unknown as ConsentStoreState;
+
+		const { result } = await renderHook(() => useConsentManager(), {
+			wrapper: ({ children }) => (
+				<ConsentStateContext.Provider
+					value={{
+						state,
+						store: {
+							getState: () => state,
+							subscribe: () => () => undefined,
+							setState: () => undefined,
+						},
+						manager: null,
+					}}
+				>
+					{children}
+				</ConsentStateContext.Provider>
+			),
+		});
+
+		expect(result.current.has('experience')).toBe(true);
+		expect(result.current.has('measurement')).toBe(false);
 	});
 });

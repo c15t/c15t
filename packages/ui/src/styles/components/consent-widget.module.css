@@ -167,6 +167,19 @@
 		gap: 1rem;
 	}
 
+	.footerFill {
+		flex-direction: column;
+	}
+
+	.footerGroupFill {
+		width: 100%;
+	}
+
+	.actionButtonFill {
+		width: 100%;
+		flex: 1;
+	}
+
 	@media (max-width: 640px) {
 		.footerGroup {
 			width: 100%;

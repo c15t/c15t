@@ -68,6 +68,9 @@ export function renderLocationPanel(
 	const locationInfo = state.locationInfo;
 	const overrides = state.overrides;
 	const translationConfig = state.translationConfig;
+	const initData = state.lastBannerFetchData;
+	const activePolicy = initData?.policy;
+	const policyDecision = initData?.policyDecision;
 
 	// Current location as a compact grid
 	const gridItems = [
@@ -96,6 +99,14 @@ export function renderLocationPanel(
 	});
 
 	container.appendChild(locationGrid);
+
+	container.appendChild(
+		createActivePolicySummarySection({
+			policy: activePolicy,
+			policyDecision,
+			policySnapshotToken: initData?.policySnapshotToken,
+		})
+	);
 
 	const initialDraft = getDraftFromOverrides(overrides);
 	let appliedOverrides = normalizeOverrideDraft(initialDraft);
@@ -487,6 +498,73 @@ function getModelLabel(model: string | undefined): string {
 	}
 }
 
+function createActivePolicySummarySection(options: {
+	policy:
+		| {
+				id: string;
+		  }
+		| undefined;
+	policyDecision:
+		| {
+				policyId: string;
+				fingerprint: string;
+				matchedBy: 'region' | 'country' | 'jurisdiction' | 'default';
+				country: string | null;
+				region: string | null;
+				jurisdiction: string;
+		  }
+		| undefined;
+	policySnapshotToken: string | undefined;
+}): HTMLElement {
+	const { policy, policyDecision, policySnapshotToken } = options;
+
+	if (!policy && !policyDecision) {
+		return createSection({
+			title: 'Active Policy',
+			children: [
+				div({
+					style: {
+						padding: '10px 12px',
+						fontSize: 'var(--c15t-devtools-font-size-sm)',
+						color: 'var(--c15t-text-muted)',
+					},
+					text: 'No active policy matched.',
+				}),
+			],
+		});
+	}
+
+	const cards = [
+		createCompactInfoCard(
+			'Policy ID',
+			policy?.id ?? policyDecision?.policyId ?? '—'
+		),
+		createCompactInfoCard('Matched By', policyDecision?.matchedBy ?? '—'),
+		createCompactInfoCard(
+			'Snapshot Token',
+			policySnapshotToken ? 'present' : 'missing'
+		),
+	];
+
+	return createSection({
+		title: 'Active Policy',
+		children: [
+			div({
+				style: {
+					display: 'grid',
+					gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+					gap: 'var(--c15t-space-sm, 0.5rem)',
+				},
+				children: cards,
+			}),
+			span({
+				className: componentStyles.overrideHint,
+				text: 'Open the Policy tab for full policy-pack diagnostics.',
+			}),
+		],
+	});
+}
+
 /**
  * Creates a compact info card for grid layouts
  */
@@ -494,11 +572,11 @@ function createCompactInfoCard(label: string, value: string): HTMLElement {
 	return div({
 		className: componentStyles.gridCard ?? '',
 		style: {
-			padding: '6px 8px',
+			padding: '8px 10px',
 			minHeight: 'auto',
 			flexDirection: 'column',
 			alignItems: 'flex-start',
-			gap: '1px',
+			gap: '2px',
 		},
 		children: [
 			span({

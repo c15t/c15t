@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 
 export function I18nButton() {
 	const { translationConfig, setLanguage } = useConsentManager();
-	const languages = ['en', 'zh', 'fr', 'de'];
+	const languages = ['en', 'es', 'fr', 'de'];
 	return (
 		<Button size="sm" variant="outline" asChild>
 			<button

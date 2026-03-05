@@ -21,6 +21,8 @@ export type {
 export type {
 	InitOutput,
 	LocationResponse,
+	PolicyDecision,
+	ResolvedPolicy,
 	TranslationsResponse,
 } from './api/init';
 // API types - Meta
@@ -48,6 +50,7 @@ export type {
 	ConsentPurpose,
 	Domain,
 	PolicyType,
+	RuntimePolicyDecision,
 	Subject,
 } from './domain';
 

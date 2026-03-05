@@ -46,6 +46,8 @@ export const translations: CompleteTranslations = {
 	frame: {
 		title: 'Приемете съгласие за {category}, за да видите това съдържание.',
 		actionButton: 'Активирайте съгласие за {category}',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Политика за поверителност',

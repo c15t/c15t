@@ -419,6 +419,44 @@ describe('Consent Store', () => {
 				expect(updatedTypes).toContain(type);
 			});
 		});
+
+		it('should enforce policy scope when setting consent categories', () => {
+			const store = createConsentManagerStore(mockManager);
+
+			store.setState({
+				policyPurposeIds: ['necessary', 'measurement'],
+			});
+
+			store
+				.getState()
+				.setConsentCategories([
+					'necessary',
+					'measurement',
+					'experience',
+					'marketing',
+				]);
+
+			expect(store.getState().consentCategories).toEqual([
+				'necessary',
+				'measurement',
+			]);
+		});
+
+		it('should enforce policy scope when categories are discovered later', () => {
+			const store = createConsentManagerStore(mockManager);
+
+			store.setState({
+				consentCategories: ['necessary', 'measurement'],
+				policyPurposeIds: ['necessary', 'measurement'],
+			});
+
+			store.getState().updateConsentCategories(['experience', 'marketing']);
+
+			expect(store.getState().consentCategories).toEqual([
+				'necessary',
+				'measurement',
+			]);
+		});
 	});
 
 	describe('Callbacks', () => {
@@ -590,6 +628,46 @@ describe('Consent Store', () => {
 			};
 
 			expect(store.getState().has(condition)).toBe(true);
+		});
+
+		it('should treat out-of-policy categories as granted in has()', () => {
+			const store = createConsentManagerStore(mockManager);
+
+			store.setState({
+				policyPurposeIds: ['necessary', 'measurement'],
+				policyScopeMode: 'unmanaged',
+				consents: {
+					necessary: true,
+					marketing: false,
+					measurement: true,
+					functionality: false,
+					experience: false,
+				},
+			});
+
+			expect(store.getState().has('experience')).toBe(true);
+			expect(store.getState().has('marketing')).toBe(true);
+			expect(store.getState().has('measurement')).toBe(true);
+		});
+
+		it('should keep out-of-policy categories blocked in strict scope mode', () => {
+			const store = createConsentManagerStore(mockManager);
+
+			store.setState({
+				policyPurposeIds: ['necessary', 'measurement'],
+				policyScopeMode: 'strict',
+				consents: {
+					necessary: true,
+					marketing: false,
+					measurement: true,
+					functionality: false,
+					experience: false,
+				},
+			});
+
+			expect(store.getState().has('experience')).toBe(false);
+			expect(store.getState().has('marketing')).toBe(false);
+			expect(store.getState().has('measurement')).toBe(true);
 		});
 	});
 
@@ -840,6 +918,27 @@ describe('Consent Store', () => {
 
 			expect(store.getState().scripts).toHaveLength(1);
 			expect(store.getState().consentCategories).toContain('measurement');
+		});
+
+		it('should not add out-of-policy script categories to consentCategories', () => {
+			const store = createConsentManagerStore(mockManager);
+			store.setState({
+				policyPurposeIds: ['necessary', 'measurement'],
+				consentCategories: ['necessary', 'measurement'],
+			});
+
+			store.getState().setScripts([
+				{
+					id: 'marketing-pixel',
+					category: 'marketing',
+					src: 'https://example.com/marketing.js',
+				},
+			]);
+
+			expect(store.getState().consentCategories).toEqual([
+				'necessary',
+				'measurement',
+			]);
 		});
 
 		it('should apply storage config', () => {

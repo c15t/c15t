@@ -46,6 +46,8 @@ export const translations: CompleteTranslations = {
 	frame: {
 		title: 'Hyväksy {category}, jotta voit tarkastella tätä sisältöä.',
 		actionButton: 'Ota {category} käyttöön',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Tietosuojakäytäntö',

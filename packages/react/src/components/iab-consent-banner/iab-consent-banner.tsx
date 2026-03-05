@@ -7,12 +7,12 @@
  */
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
-import { type FC, type RefObject, useMemo, useRef } from 'react';
+import { type FC, type RefObject, useRef } from 'react';
 import { Box } from '~/components/shared/primitives/box';
 import * as Button from '~/components/shared/ui/button';
 import { useComponentConfig } from '~/hooks/use-component-config';
-import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
+import { useHeadlessIABConsentUI } from '~/hooks/use-headless-iab-consent-ui';
 import { useIABTranslations } from '../iab-consent-dialog/use-iab-translations';
 import { IABConsentBannerRoot } from './atoms/root';
 
@@ -95,7 +95,12 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	uiSource,
 }) => {
 	const iabT = useIABTranslations();
-	const { iab: iabState, setActiveUI } = useConsentManager();
+	const {
+		iab: iabState,
+		banner,
+		openVendorsDialog,
+		performBannerAction,
+	} = useHeadlessIABConsentUI();
 
 	const cardRef = useRef<HTMLDivElement>(null);
 
@@ -107,153 +112,21 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 		trapFocus: localTrapFocus,
 	});
 
-	// Get vendor count from GVL + custom vendors
-	const vendorCount = useMemo(() => {
-		if (!iabState?.gvl) {
-			return 0;
-		}
-		const gvlVendorCount = Object.keys(iabState.gvl.vendors).length;
-		const customVendorCount = iabState.nonIABVendors?.length ?? 0;
-		return gvlVendorCount + customVendorCount;
-	}, [iabState?.gvl, iabState?.nonIABVendors]);
-
-	// Get filtered stack names from GVL (same logic as preference center)
-	const MAX_DISPLAY_ITEMS = 5;
-	const displayItems = useMemo(() => {
-		if (!iabState?.gvl) {
-			return { displayed: [], remainingCount: 0, isReady: false };
-		}
-
-		const gvl = iabState.gvl;
-
-		// Get purposes that have vendors (all GVL vendors)
-		const purposesWithVendors = Object.entries(gvl.purposes)
-			.filter(([id]) => {
-				// Check if any vendor uses this purpose
-				return Object.values(gvl.vendors).some(
-					(vendor) =>
-						vendor.purposes?.includes(Number(id)) ||
-						vendor.legIntPurposes?.includes(Number(id))
-				);
-			})
-			.map(([id, purpose]) => ({ id: Number(id), name: purpose.name }));
-
-		// Purpose 1 is always standalone per IAB TCF spec
-		const STANDALONE_PURPOSE_ID = 1;
-		const standalonePurpose = purposesWithVendors.find(
-			(p) => p.id === STANDALONE_PURPOSE_ID
-		);
-		const otherPurposes = purposesWithVendors.filter(
-			(p) => p.id !== STANDALONE_PURPOSE_ID
-		);
-		const otherPurposeIds = new Set(otherPurposes.map((p) => p.id));
-
-		// Score stacks by coverage (same as preference center)
-		const gvlStacks = gvl.stacks || {};
-		const stackScores: Array<{
-			stackId: number;
-			name: string;
-			coveredPurposeIds: number[];
-			score: number;
-		}> = [];
-
-		for (const [stackIdStr, stack] of Object.entries(gvlStacks)) {
-			const coveredIds = stack.purposes.filter((pid) =>
-				otherPurposeIds.has(pid)
-			);
-			if (coveredIds.length >= 2) {
-				stackScores.push({
-					stackId: Number(stackIdStr),
-					name: stack.name,
-					coveredPurposeIds: coveredIds,
-					score: coveredIds.length,
-				});
-			}
-		}
-
-		// Sort by score descending
-		stackScores.sort((a, b) => b.score - a.score);
-
-		// Greedily select stacks (same logic as preference center)
-		const selectedStacks: string[] = [];
-		const assignedPurposeIds = new Set<number>();
-
-		for (const { name, coveredPurposeIds: covered } of stackScores) {
-			const unassignedInStack = covered.filter(
-				(pid) => !assignedPurposeIds.has(pid)
-			);
-			if (unassignedInStack.length >= 2) {
-				selectedStacks.push(name);
-				for (const pid of unassignedInStack) {
-					assignedPurposeIds.add(pid);
-				}
-			}
-		}
-
-		// Purposes not assigned to any stack become standalone
-		const uncoveredPurposes = otherPurposes.filter(
-			(p) => !assignedPurposeIds.has(p.id)
-		);
-
-		// Get special features that have vendors
-		const specialFeaturesWithVendors = Object.entries(gvl.specialFeatures || {})
-			.filter(([id]) => {
-				return Object.values(gvl.vendors).some((vendor) =>
-					vendor.specialFeatures?.includes(Number(id))
-				);
-			})
-			.map(([, feature]) => feature.name);
-
-		// Build final list: standalone purposes, stacks, then special features
-		const items: string[] = [];
-
-		// Add Purpose 1 (standalone) first if it exists
-		if (standalonePurpose) {
-			items.push(standalonePurpose.name);
-		}
-
-		// Add stack names
-		for (const stackName of selectedStacks) {
-			items.push(stackName);
-		}
-
-		// Add uncovered purposes (these appear as standalone in preference center)
-		for (const purpose of uncoveredPurposes) {
-			items.push(purpose.name);
-		}
-
-		// Add special features
-		for (const featureName of specialFeaturesWithVendors) {
-			items.push(featureName);
-		}
-
-		const displayed = items.slice(0, MAX_DISPLAY_ITEMS);
-		const remainingCount = Math.max(0, items.length - MAX_DISPLAY_ITEMS);
-
-		return { displayed, remainingCount, isReady: true };
-	}, [iabState?.gvl]);
-
 	// Handle button actions
 	const handleAcceptAll = () => {
-		iabState?.acceptAll();
-		iabState?.save();
-		setActiveUI('none');
+		void performBannerAction('accept');
 	};
 
 	const handleRejectAll = () => {
-		iabState?.rejectAll();
-		iabState?.save();
-		setActiveUI('none');
+		void performBannerAction('reject');
 	};
 
 	const handleCustomize = () => {
-		iabState?.setPreferenceCenterTab('purposes');
-		setActiveUI('dialog');
+		void performBannerAction('customize');
 	};
 
 	const handleViewVendors = () => {
-		iabState?.setPreferenceCenterTab('vendors');
-		setActiveUI('dialog');
+		openVendorsDialog();
 	};
 
 	// Focus trap
@@ -263,20 +136,20 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 		button === primaryButton;
 
 	// Don't render if IAB is disabled (e.g., server returned null GVL) or calculations not complete
-	if (!iabState?.config.enabled || !displayItems.isReady) {
+	if (!iabState?.config.enabled || !banner.isReady) {
 		return null;
 	}
 
 	// Replace {partnerCount} placeholder in description
 	const descriptionText = iabT.banner.description.replace(
 		'{partnerCount}',
-		String(vendorCount)
+		String(banner.vendorCount)
 	);
 
 	// Replace {count} placeholder in partners link
 	const partnersLinkText = iabT.banner.partnersLink.replace(
 		'{count}',
-		String(vendorCount)
+		String(banner.vendorCount)
 	);
 
 	const scopeNotice = iabT.banner.scopeServiceSpecific;
@@ -315,14 +188,14 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 						{descriptionText.split(partnersLinkText)[1]}
 					</p>
 					<ul className={styles.purposeList}>
-						{displayItems.displayed.map((name, index) => (
+						{banner.displayItems.map((name, index) => (
 							<li key={index}>{name}</li>
 						))}
-						{displayItems.remainingCount > 0 && (
+						{banner.remainingCount > 0 && (
 							<li className={styles.purposeMore}>
 								{iabT.banner.andMore.replace(
 									'{count}',
-									String(displayItems.remainingCount)
+									String(banner.remainingCount)
 								)}
 							</li>
 						)}

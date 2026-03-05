@@ -1,6 +1,10 @@
 import { baseTranslations } from '@c15t/translations/all';
 import { describe, expect, it } from 'vitest';
-import { getTranslationsData } from './translations';
+import {
+	getTranslationsData,
+	listProfiles,
+	validateMessages,
+} from './translations';
 
 describe('showBanner > getTranslationsData', () => {
 	it("should return 'en' translations when Accept-Language is null", () => {
@@ -116,6 +120,105 @@ describe('showBanner > getTranslationsData', () => {
 		expect(translations.cookieBanner.title).toBe('XX Title');
 		expect(translations.cookieBanner.description).toBe(
 			baseTranslations.en.cookieBanner.description
+		);
+	});
+
+	it('should resolve profile+language before fallback chain', () => {
+		const { language, translations } = getTranslationsData(null, undefined, {
+			i18n: {
+				messages: {
+					default: {
+						en: { cookieBanner: { title: 'Default EN Title' } },
+					},
+					us_ca: {
+						en: { cookieBanner: { title: 'CA EN Title' } },
+						de: { cookieBanner: { title: 'CA DE Title' } },
+					},
+				},
+			},
+			policyI18n: {
+				messageProfile: 'us_ca',
+				language: 'de',
+			},
+		});
+
+		expect(language).toBe('de');
+		expect(translations.cookieBanner.title).toBe('CA DE Title');
+	});
+
+	it('should fallback from profile+language to profile+en', () => {
+		const { language, translations } = getTranslationsData(null, undefined, {
+			i18n: {
+				messages: {
+					default: {
+						en: { cookieBanner: { title: 'Default EN Title' } },
+					},
+					us_fl: {
+						en: { cookieBanner: { title: 'FL EN Title' } },
+					},
+				},
+			},
+			policyI18n: {
+				messageProfile: 'us_fl',
+				language: 'fr',
+			},
+		});
+
+		expect(language).toBe('en');
+		expect(translations.cookieBanner.title).toBe('FL EN Title');
+	});
+
+	it('should fallback to default profile language when profile is missing', () => {
+		const { language, translations } = getTranslationsData(null, undefined, {
+			i18n: {
+				messages: {
+					default: {
+						de: { cookieBanner: { title: 'Default DE Title' } },
+						en: { cookieBanner: { title: 'Default EN Title' } },
+					},
+				},
+			},
+			policyI18n: {
+				messageProfile: 'missing',
+				language: 'de',
+			},
+		});
+
+		expect(language).toBe('de');
+		expect(translations.cookieBanner.title).toBe('Default DE Title');
+	});
+
+	it('should list configured profiles', () => {
+		const profiles = listProfiles({
+			i18n: {
+				messages: {
+					us_ca: { en: {} },
+					default: { en: {} },
+				},
+			},
+		});
+
+		expect(profiles).toEqual(['default', 'us_ca']);
+	});
+
+	it('should validate policy i18n profile references', () => {
+		const result = validateMessages({
+			i18n: {
+				messages: {
+					default: { en: {} },
+				},
+			},
+			policies: [
+				{
+					id: 'policy_missing_profile',
+					match: { isDefault: true },
+					i18n: { messageProfile: 'does_not_exist', language: 'en' },
+				},
+			],
+		});
+
+		expect(result.errors[0]).toContain(
+			"references missing i18n profile 'does_not_exist'"
 		);
 	});
 });

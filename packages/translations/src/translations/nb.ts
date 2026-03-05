@@ -46,6 +46,8 @@ export const translations: CompleteTranslations = {
 	frame: {
 		title: 'Godta {category}-samtykke for å se dette innholdet.',
 		actionButton: 'Aktiver {category}-samtykke',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Personvernerklæring',

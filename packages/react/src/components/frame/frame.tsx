@@ -3,6 +3,7 @@
 import type { AllConsentNames } from 'c15t';
 import { forwardRef, useEffect, useState } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useTranslations } from '~/hooks/use-translations';
 import { FrameButton, FrameRoot, FrameTitle } from './atoms';
 import type { FrameProps } from './types';
 
@@ -11,12 +12,26 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 		{ children, category, placeholder, noStyle, className, theme, ...props },
 		ref
 	) => {
-		const { has, updateConsentCategories, consentCategories } =
-			useConsentManager();
+		const {
+			has,
+			updateConsentCategories,
+			consentCategories,
+			policyPurposeIds,
+			policyScopeMode,
+		} = useConsentManager();
+		const { frame } = useTranslations();
 		const [isMounted, setIsMounted] = useState(false);
 		const [isReady, setIsReady] = useState(false);
 
 		const hasConsent = has(category);
+		const hasPolicyScope =
+			Array.isArray(policyPurposeIds) &&
+			policyPurposeIds.length > 0 &&
+			!policyPurposeIds.includes('*');
+		const isOutOfPolicyCategory =
+			hasPolicyScope && !policyPurposeIds.includes(category);
+		const isStrictPolicyBlocked =
+			policyScopeMode === 'strict' && isOutOfPolicyCategory;
 
 		// biome-ignore lint/correctness/useExhaustiveDependencies: we only want to update the consent categories when the component is mounted
 		useEffect(() => {
@@ -45,7 +60,15 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 			}
 
 			// Otherwise show placeholder
-			return placeholder || <DefaultPlaceholder category={category} />;
+			return (
+				placeholder || (
+					<DefaultPlaceholder
+						category={category}
+						policyBlocked={isStrictPolicyBlocked}
+						policyBlockedMessage={frame?.policyBlocked}
+					/>
+				)
+			);
 		};
 
 		return (
@@ -58,11 +81,24 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 
 FrameComponent.displayName = 'Frame';
 
-const DefaultPlaceholder = ({ category }: { category: AllConsentNames }) => {
+const DefaultPlaceholder = ({
+	category,
+	policyBlocked,
+	policyBlockedMessage,
+}: {
+	category: AllConsentNames;
+	policyBlocked: boolean;
+	policyBlockedMessage?: string;
+}) => {
 	return (
 		<FrameRoot>
-			<FrameTitle category={category} />
-			<FrameButton category={category} />
+			<FrameTitle category={category}>
+				{policyBlocked
+					? (policyBlockedMessage ??
+						"This content is unavailable under your region's consent policy.")
+					: undefined}
+			</FrameTitle>
+			{!policyBlocked ? <FrameButton category={category} /> : null}
 		</FrameRoot>
 	);
 };

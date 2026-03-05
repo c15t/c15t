@@ -46,6 +46,8 @@ export const translations: CompleteTranslations = {
 	frame: {
 		title: 'Selle sisu vaatamiseks nõustuge kategooria {category} nõusolekuga.',
 		actionButton: 'Luba kategooria {category} nõusolek',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Privaatsuspoliitika',

@@ -1,0 +1,77 @@
+import type { PolicyModel } from '~/types';
+import type { Registry } from './types';
+
+interface RuntimePolicyDecisionUiSurface {
+	allowedActions?: Array<'accept' | 'reject' | 'customize'>;
+	primaryAction?: 'accept' | 'reject' | 'customize';
+	actionOrder?: Array<'accept' | 'reject' | 'customize'>;
+	actionLayout?: 'split' | 'inline';
+	uiProfile?: 'balanced' | 'compact' | 'strict';
+}
+
+export interface RuntimePolicyDecisionInput {
+	tenantId?: string;
+	policyId: string;
+	fingerprint: string;
+	matchedBy: 'region' | 'country' | 'jurisdiction' | 'default';
+	countryCode: string | null;
+	regionCode: string | null;
+	jurisdiction: string;
+	language?: string;
+	model: PolicyModel;
+	uiMode?: 'none' | 'banner' | 'dialog';
+	bannerUi?: RuntimePolicyDecisionUiSurface;
+	dialogUi?: RuntimePolicyDecisionUiSurface;
+	purposeIds?: string[];
+	proofConfig?: {
+		storeIp?: boolean;
+		storeUserAgent?: boolean;
+		storeLanguage?: boolean;
+	};
+	dedupeKey: string;
+}
+
+export function runtimePolicyDecisionRegistry({ db, ctx }: Registry) {
+	const { logger } = ctx;
+
+	return {
+		findOrCreateRuntimePolicyDecision: async (
+			input: RuntimePolicyDecisionInput
+		) => {
+			const existing = await db.findFirst('runtimePolicyDecision', {
+				where: (b) => b('dedupeKey', '=', input.dedupeKey),
+			});
+
+			if (existing) {
+				return existing;
+			}
+
+			logger.debug('Creating runtime policy decision', {
+				policyId: input.policyId,
+				fingerprint: input.fingerprint,
+				matchedBy: input.matchedBy,
+			});
+
+			return db.create('runtimePolicyDecision', {
+				id: `rpd_${crypto.randomUUID().replaceAll('-', '')}`,
+				tenantId: input.tenantId,
+				policyId: input.policyId,
+				fingerprint: input.fingerprint,
+				matchedBy: input.matchedBy,
+				countryCode: input.countryCode,
+				regionCode: input.regionCode,
+				jurisdiction: input.jurisdiction,
+				language: input.language,
+				model: input.model,
+				uiMode: input.uiMode,
+				bannerUi: input.bannerUi ? { json: input.bannerUi } : undefined,
+				dialogUi: input.dialogUi ? { json: input.dialogUi } : undefined,
+				purposeIds: input.purposeIds ? { json: input.purposeIds } : undefined,
+				proofConfig: input.proofConfig
+					? { json: input.proofConfig }
+					: undefined,
+				dedupeKey: input.dedupeKey,
+			});
+		},
+	};
+}

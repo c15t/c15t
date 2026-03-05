@@ -329,6 +329,54 @@ describe('has - Consent Condition Evaluation', () => {
 		});
 	});
 
+	describe('Policy-Aware Options', () => {
+		it('should treat out-of-scope categories as granted in unmanaged mode', () => {
+			const consents: ConsentState = {
+				necessary: true,
+				measurement: false,
+				marketing: false,
+				functionality: false,
+				experience: false,
+			};
+
+			expect(
+				has('experience', consents, {
+					policyPurposeIds: ['necessary', 'measurement'],
+					policyScopeMode: 'unmanaged',
+				})
+			).toBe(true);
+			expect(
+				has('measurement', consents, {
+					policyPurposeIds: ['necessary', 'measurement'],
+					policyScopeMode: 'unmanaged',
+				})
+			).toBe(false);
+		});
+
+		it('should keep out-of-scope categories blocked in strict mode', () => {
+			const consents: ConsentState = {
+				necessary: true,
+				measurement: true,
+				marketing: false,
+				functionality: false,
+				experience: false,
+			};
+
+			expect(
+				has('experience', consents, {
+					policyPurposeIds: ['necessary', 'measurement'],
+					policyScopeMode: 'strict',
+				})
+			).toBe(false);
+			expect(
+				has('measurement', consents, {
+					policyPurposeIds: ['necessary', 'measurement'],
+					policyScopeMode: 'strict',
+				})
+			).toBe(true);
+		});
+	});
+
 	describe('Type Safety', () => {
 		it('should work with proper TypeScript types', () => {
 			// These should compile without TypeScript errors

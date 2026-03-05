@@ -47,6 +47,8 @@ export const translations: CompleteTranslations = {
 		title:
 			'Acceptă consimțământul pentru {category} pentru a vizualiza acest conținut.',
 		actionButton: 'Activează consimțământul pentru {category}',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Politica de confidențialitate',

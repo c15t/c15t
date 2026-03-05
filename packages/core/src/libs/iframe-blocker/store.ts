@@ -1,4 +1,5 @@
 import type { ConsentStoreState } from '../../store/type';
+import { applyPolicyScopeForRuntimeGating } from '../policy';
 import {
 	getIframeConsentCategories,
 	processAllIframes,
@@ -54,6 +55,11 @@ export function createIframeManager(
 			}
 
 			const state = get();
+			const runtimeConsents = applyPolicyScopeForRuntimeGating(
+				state.consents,
+				state.policyPurposeIds,
+				state.policyScopeMode
+			);
 
 			if (state.iframeBlockerConfig?.disableAutomaticBlocking) {
 				return;
@@ -82,12 +88,19 @@ export function createIframeManager(
 			setTimeout(discoverAndRegisterCategories, 100);
 
 			// Process all existing iframes (pure function call)
-			processAllIframes(state.consents);
+			processAllIframes(runtimeConsents);
 
 			// Set up observer for dynamically added iframes
 			// Pass callback to discover categories when new iframes are added
 			observer = setupIframeObserver(
-				() => get().consents,
+				() => {
+					const nextState = get();
+					return applyPolicyScopeForRuntimeGating(
+						nextState.consents,
+						nextState.policyPurposeIds,
+						nextState.policyScopeMode
+					);
+				},
 				(categories) => get().updateConsentCategories(categories)
 			);
 
@@ -123,7 +136,13 @@ export function createIframeManager(
 				return;
 			}
 
-			processAllIframes(consents);
+			processAllIframes(
+				applyPolicyScopeForRuntimeGating(
+					consents,
+					state.policyPurposeIds,
+					state.policyScopeMode
+				)
+			);
 		},
 
 		/**

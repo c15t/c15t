@@ -6,6 +6,7 @@ import {
 	type Translations,
 } from '@c15t/translations';
 import { checkJurisdiction } from '../../libs/jurisdiction';
+import type { OfflinePolicyConfig } from '../../store/type';
 import { defaultTranslationConfig } from '../../translations';
 import type { InitResponse } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
@@ -19,7 +20,8 @@ import { createResponseContext } from './utils';
 export async function init(
 	initialTranslationConfig?: Partial<TranslationConfig>,
 	options?: FetchOptions<InitResponse>,
-	iabConfig?: IABFallbackConfig
+	iabConfig?: IABFallbackConfig,
+	policyConfig?: OfflinePolicyConfig
 ): Promise<ResponseContext<InitResponse>> {
 	// Check localStorage and cookie to see if the banner has been shown
 	const country = options?.headers?.['x-c15t-country'] ?? 'GB';
@@ -77,10 +79,14 @@ export async function init(
 
 	const jurisdictionCode = checkJurisdiction(country, region);
 
-	// Get GVL for IAB mode
+	// Get GVL for IAB mode.
+	// If a synthetic offline policy is provided, only fetch GVL when policy model is iab.
 	// Priority: 1) Pre-loaded from config, 2) Fetch from external endpoint
 	let gvl = null;
-	if (iabConfig?.enabled) {
+	const shouldResolveIab =
+		iabConfig?.enabled &&
+		(!policyConfig?.policy || policyConfig.policy.model === 'iab');
+	if (shouldResolveIab) {
 		if (iabConfig.gvl) {
 			// Use pre-loaded GVL from config (testing/SSR)
 			gvl = iabConfig.gvl;
@@ -94,7 +100,7 @@ export async function init(
 		}
 	}
 
-	const response = createResponseContext<InitResponse>({
+	const responseData: InitResponse = {
 		jurisdiction: jurisdictionCode,
 		location: { countryCode: country, regionCode: region },
 		translations: {
@@ -103,7 +109,15 @@ export async function init(
 		},
 		branding: 'c15t',
 		gvl,
-	});
+		...(policyConfig?.policy ? { policy: policyConfig.policy } : {}),
+		...(policyConfig?.policyDecision
+			? { policyDecision: policyConfig.policyDecision }
+			: {}),
+		...(policyConfig?.policySnapshotToken
+			? { policySnapshotToken: policyConfig.policySnapshotToken }
+			: {}),
+	};
+	const response = createResponseContext<InitResponse>(responseData);
 
 	// Call success callback if provided
 	if (options?.onSuccess) {

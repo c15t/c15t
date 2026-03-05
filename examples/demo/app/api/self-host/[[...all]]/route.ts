@@ -5,6 +5,11 @@ import { LibsqlDialect } from '@libsql/kysely-libsql';
 import { Kysely, PostgresDialect } from 'kysely';
 import type { NextRequest } from 'next/server';
 import { Pool } from 'pg';
+import {
+	DEMO_POLICY_SNAPSHOT_KEY,
+	demoI18nMessages,
+	demoPolicies,
+} from '../../../../lib/policies';
 
 export const postgresDb = kyselyAdapter({
 	db: new Kysely({
@@ -34,24 +39,26 @@ const handler = c15tInstance({
 	trustedOrigins: ['localhost', 'vercel.app'],
 	tenantId: 'ins_1',
 	branding: 'c15t',
-	customTranslations: {
-		zh: {
-			common: {
-				rejectAll: 'S Reject',
-			},
-		},
+	i18n: {
+		messages: demoI18nMessages,
+	},
+	policies: demoPolicies,
+	policySnapshot: {
+		signingKey: DEMO_POLICY_SNAPSHOT_KEY,
+		ttlSeconds: 60 * 60,
 	},
 	openapi: {
 		enabled: true,
 	},
-	cache: process.env.REDIS_URL
-		? {
-				adapter: createUpstashRedisAdapter({
-					url: process.env.REDIS_URL,
-					token: process.env.REDIS_TOKEN!,
-				}),
-			}
-		: undefined,
+	cache:
+		process.env.REDIS_URL && process.env.REDIS_TOKEN
+			? {
+					adapter: createUpstashRedisAdapter({
+						url: process.env.REDIS_URL,
+						token: process.env.REDIS_TOKEN,
+					}),
+				}
+			: undefined,
 	iab: {
 		enabled: true,
 		cmpId: 10,

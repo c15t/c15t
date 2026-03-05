@@ -46,6 +46,8 @@ export const translations: CompleteTranslations = {
 	frame: {
 		title: 'Prihvatite {category} privolu za prikaz ovog sadržaja.',
 		actionButton: 'Omogući {category} privolu',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Pravila o privatnosti',

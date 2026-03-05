@@ -119,4 +119,21 @@ describe('init', () => {
 		expect(context).toHaveProperty('registry');
 		expect(context).toHaveProperty('trustedOrigins');
 	});
+
+	it('throws when policies use model=iab without top-level iab.enabled', () => {
+		const options = createOptions({
+			policies: [
+				{
+					id: 'policy_iab',
+					match: { jurisdictions: ['GDPR'] },
+					consent: { model: 'iab' },
+				},
+			],
+			iab: { enabled: false },
+		});
+
+		expect(() => init(options)).toThrow(
+			'Policies using consent.model="iab" require top-level iab.enabled=true'
+		);
+	});
 });
