@@ -46,6 +46,8 @@ export const translations: CompleteTranslations = {
 	frame: {
 		title: 'Pieņemiet {category} piekrišanu, lai skatītu šo saturu.',
 		actionButton: 'Iespējot {category} piekrišanu',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Privātuma politika',

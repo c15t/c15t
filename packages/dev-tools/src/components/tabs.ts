@@ -19,6 +19,12 @@ const LOCATION_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 2
   <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
 </svg>`;
 
+const POLICY_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+  <path d="M9 12h6"></path>
+  <path d="M12 9v6"></path>
+</svg>`;
+
 const SCRIPTS_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <polyline points="16 18 22 12 16 6"></polyline>
   <polyline points="8 6 2 12 8 18"></polyline>
@@ -53,6 +59,7 @@ interface TabConfig {
 
 const TABS: TabConfig[] = [
 	{ id: 'location', label: 'Location', icon: LOCATION_ICON },
+	{ id: 'policy', label: 'Policy', icon: POLICY_ICON },
 	{ id: 'consents', label: 'Consents', icon: CONSENTS_ICON },
 	{ id: 'scripts', label: 'Scripts', icon: SCRIPTS_ICON },
 	{ id: 'iab', label: 'IAB', icon: IAB_ICON },
@@ -229,6 +236,7 @@ export function createTabs(options: TabsOptions): TabsInstance {
 			: overflowSecondTab;
 		const layoutTabIds: DevToolsTab[] = [
 			'location',
+			'policy',
 			stripSecondTab,
 			'scripts',
 			'actions',

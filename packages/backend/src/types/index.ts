@@ -11,6 +11,7 @@ import type { FumaDB, InferFumaDB } from 'fumadb';
 import type { CacheAdapter } from '../cache/types';
 import type { createRegistry } from '../db/registry';
 import type { DB, LatestDB } from '../db/schema';
+import type { JurisdictionCode } from './api';
 
 export * from './api';
 
@@ -160,7 +161,9 @@ export interface CacheOptions {
 export interface IABOptions {
 	/**
 	 * Enable IAB TCF support.
-	 * When false or not provided, /init returns gvl: null.
+	 * When false or not provided, /init does not include IAB payload fields.
+	 * When true, /init includes IAB payload only when IAB is active for the
+	 * resolved request policy (or when no policies are configured).
 	 */
 	enabled: true;
 
@@ -222,6 +225,109 @@ export interface IABOptions {
 }
 
 type FumaDBSchema = InferFumaDB<typeof DB>['schemas'];
+
+export type I18nMessageProfiles = Record<
+	string,
+	Record<string, Partial<Translations>>
+>;
+
+export interface I18nOptions {
+	/**
+	 * Named translation catalogs grouped by profile.
+	 *
+	 * @example
+	 * ```ts
+	 * i18n: {
+	 *   messages: {
+	 *     default: { en: { cookieBanner: { title: '...' } } },
+	 *     us_ca: { en: { cookieBanner: { title: '...' } } },
+	 *   }
+	 * }
+	 * ```
+	 */
+	messages?: I18nMessageProfiles;
+
+	/**
+	 * Fallback profile used when a policy does not provide `messageProfile`.
+	 * @default "default"
+	 */
+	defaultProfile?: string;
+}
+
+export type PolicyModel = 'opt-in' | 'opt-out' | 'none' | 'iab';
+export type PolicyScopeMode = 'strict' | 'unmanaged';
+export type PolicyUiMode = 'none' | 'banner' | 'dialog';
+export type PolicyUiAction = 'accept' | 'reject' | 'customize';
+export type PolicyUiActionLayout = 'split' | 'inline';
+export type PolicyUiProfile = 'balanced' | 'compact' | 'strict';
+export interface PolicyUiSurfaceConfig {
+	allowedActions?: PolicyUiAction[];
+	primaryAction?: PolicyUiAction;
+	actionOrder?: PolicyUiAction[];
+	actionLayout?: PolicyUiActionLayout;
+	uiProfile?: PolicyUiProfile;
+}
+
+export interface PolicyConfig {
+	id: string;
+	name?: string;
+	match: {
+		regions?: Array<{ country: string; region: string }>;
+		countries?: string[];
+		jurisdictions?: JurisdictionCode[];
+		isDefault?: boolean;
+	};
+	i18n?: {
+		language?: string;
+		messageProfile?: string;
+	};
+	consent?: {
+		model?: PolicyModel;
+		expiryDays?: number;
+		/**
+		 * How to treat categories outside `purposeIds`.
+		 * - `unmanaged` (default): out-of-scope categories are not blocked by c15t runtime.
+		 * - `strict`: out-of-scope categories remain blocked and are enforced on writes.
+		 */
+		scopeMode?: PolicyScopeMode;
+		/**
+		 * Allowed consent category codes.
+		 * Use `["*"]` for wildcard scope (no category restriction).
+		 *
+		 * Note: `model: "iab"` is normalized to wildcard scope at runtime.
+		 */
+		purposeIds?: string[];
+	};
+	ui?: {
+		mode?: PolicyUiMode;
+		banner?: PolicyUiSurfaceConfig;
+		dialog?: PolicyUiSurfaceConfig;
+	};
+	proof?: {
+		storeIp?: boolean;
+		storeUserAgent?: boolean;
+		storeLanguage?: boolean;
+	};
+}
+
+export interface PolicySnapshotOptions {
+	/**
+	 * Secret used for signing and verifying policy snapshot tokens.
+	 */
+	signingKey: string;
+	/**
+	 * Snapshot token lifetime in seconds.
+	 * @default 1800 (30 minutes)
+	 */
+	ttlSeconds?: number;
+}
+
+export interface BackgroundOptions {
+	/**
+	 * Executes non-critical tasks after the response path has completed.
+	 */
+	run: (task: () => Promise<void>) => void;
+}
 
 export interface C15TOptions {
 	/**
@@ -288,6 +394,8 @@ export interface C15TOptions {
 	/**
 	 * Override base translations.
 	 *
+	 * @deprecated Use `i18n.messages` instead. This alias is kept for compatibility.
+	 *
 	 * @example
 	 * ```ts
 	 * {
@@ -297,6 +405,16 @@ export interface C15TOptions {
 	 * ```
 	 */
 	customTranslations?: Record<string, Partial<Translations>>;
+
+	/**
+	 * Internationalization message profiles used by runtime policies.
+	 */
+	i18n?: I18nOptions;
+
+	/**
+	 * Runtime regional policies resolved per request.
+	 */
+	policies?: PolicyConfig[];
 
 	/**
 	 * Select which branding to show in the consent banner.
@@ -355,12 +473,22 @@ export interface C15TOptions {
 	 * @see {@link https://v2.c15t.com/docs/self-host/guides/iab-tcf}
 	 */
 	iab?: IABOptions;
+
+	/**
+	 * Optional signed policy snapshots used to keep /init and /subjects consistent.
+	 */
+	policySnapshot?: PolicySnapshotOptions;
+
+	/**
+	 * Optional background task runner for non-critical side effects.
+	 */
+	background?: BackgroundOptions;
 }
 
 export interface C15TContext
 	extends Omit<
 		C15TOptions,
-		'ipAddress' | 'adapter' | 'logger' | 'tablePrefix' | 'tenantId'
+		'ipAddress' | 'adapter' | 'logger' | 'tablePrefix'
 	> {
 	appName: string;
 	logger: ReturnType<typeof createLogger>;

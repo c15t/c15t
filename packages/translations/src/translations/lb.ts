@@ -46,6 +46,8 @@ export const translations: CompleteTranslations = {
 	frame: {
 		title: 'Akzeptéiert {category} Zoustëmmung fir dësen Inhalt ze gesinn.',
 		actionButton: '{category} Zoustëmmung aktivéieren',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Dateschutzrichtlinn',

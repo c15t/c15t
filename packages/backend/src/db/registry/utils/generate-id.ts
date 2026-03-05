@@ -11,6 +11,7 @@ const prefixes: Record<keyof Tables, string> = {
 	consentPolicy: 'pol',
 	consentPurpose: 'pur',
 	domain: 'dom',
+	runtimePolicyDecision: 'rpd',
 	subject: 'sub',
 } as const;
 

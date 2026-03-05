@@ -46,6 +46,8 @@ export const translations: CompleteTranslations = {
 	frame: {
 		title: 'Acceptai il consentiment da {category} per vesair quest cuntegn.',
 		actionButton: 'Activar il consentiment da {category}',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Directivas da protecziun da datas',

@@ -67,6 +67,58 @@ describe('Offline Client Tests', () => {
 		expect(response.data?.location?.regionCode).toBe('BE');
 	});
 
+	it('should include configured offline policy payload in init response', async () => {
+		const client = configureConsentManager({
+			mode: 'offline',
+			store: {
+				offlinePolicy: {
+					policy: {
+						id: 'offline_preview_us_ca',
+						model: 'opt-in',
+						consent: {
+							expiryDays: 120,
+							scopeMode: 'strict',
+							purposeIds: ['necessary', 'measurement'],
+						},
+						ui: {
+							mode: 'banner',
+							banner: {
+								allowedActions: ['accept', 'reject'],
+								primaryAction: 'accept',
+								actionOrder: ['accept', 'reject'],
+								actionLayout: 'inline',
+								uiProfile: 'balanced',
+							},
+						},
+					},
+					policyDecision: {
+						policyId: 'offline_preview_us_ca',
+						fingerprint: 'offline-preview',
+						matchedBy: 'region',
+						country: 'US',
+						region: 'CA',
+						jurisdiction: 'NONE',
+					},
+					policySnapshotToken: 'offline-preview-token',
+				},
+			},
+		});
+
+		const response = await client.init({
+			headers: {
+				'x-c15t-country': 'US',
+				'x-c15t-region': 'CA',
+			},
+		});
+
+		expect(response.ok).toBe(true);
+		expect(response.data?.policy?.id).toBe('offline_preview_us_ca');
+		expect(response.data?.policy?.model).toBe('opt-in');
+		expect(response.data?.policy?.ui?.mode).toBe('banner');
+		expect(response.data?.policyDecision?.matchedBy).toBe('region');
+		expect(response.data?.policySnapshotToken).toBe('offline-preview-token');
+	});
+
 	it('should handle language header', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',

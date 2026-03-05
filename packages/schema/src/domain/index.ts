@@ -24,7 +24,10 @@ export {
 	type Domain,
 	domainSchema,
 } from './domain';
-
+export {
+	type RuntimePolicyDecision,
+	runtimePolicyDecisionSchema,
+} from './runtime-policy-decision';
 export {
 	type Subject,
 	subjectSchema,

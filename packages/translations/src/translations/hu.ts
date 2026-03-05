@@ -47,6 +47,8 @@ export const translations: CompleteTranslations = {
 		title:
 			'Fogadja el a(z) {category} hozzájárulást a tartalom megtekintéséhez.',
 		actionButton: 'A(z) {category} hozzájárulás engedélyezése',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Adatvédelmi szabályzat',

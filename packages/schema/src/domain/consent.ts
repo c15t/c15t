@@ -21,6 +21,12 @@ export const consentSchema = v.object({
 	uiSource: v.nullish(v.string()),
 	/** Derived consent action (e.g., 'accept_all', 'reject_all', 'opt_out', 'custom') */
 	consentAction: v.nullish(v.string()),
+	/** Runtime policy decision reference used for this consent record. */
+	runtimePolicyDecisionId: v.nullish(v.string()),
+	/** Source of runtime policy decision evidence. */
+	runtimePolicySource: v.nullish(
+		v.picklist(['snapshot_token', 'write_time_fallback'])
+	),
 	tenantId: v.nullish(v.string()),
 });
 

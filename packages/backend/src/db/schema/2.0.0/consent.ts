@@ -22,6 +22,13 @@ export const consentTable = table('consent', {
 	uiSource: column('uiSource', 'string').nullable(),
 	/** Derived consent action (e.g., 'accept_all', 'reject_all', 'opt_out', 'custom') */
 	consentAction: column('consentAction', 'string').nullable(),
+	/** Runtime policy decision reference used for this consent record. */
+	runtimePolicyDecisionId: column(
+		'runtimePolicyDecisionId',
+		'string'
+	).nullable(),
+	/** Source of runtime policy decision evidence. */
+	runtimePolicySource: column('runtimePolicySource', 'string').nullable(),
 	tenantId: column('tenantId', 'string').nullable(),
 });
 

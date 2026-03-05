@@ -1,23 +1,21 @@
 'use client';
 
+import type { ConsentManagerProps } from '@c15t/nextjs';
 import {
 	ConsentDialog,
 	ConsentDialogTrigger,
-	ConsentManagerProps,
 	ConsentManagerProvider,
 	IABConsentBanner,
 	IABConsentDialog,
 } from '@c15t/nextjs';
-import { baseTranslations } from '@c15t/translations/all';
 import CookieBanner from './cookie-banner';
 
-export default function ({ children, ssrData }: ConsentManagerProps) {
+export default function ({ children }: ConsentManagerProps) {
 	return (
 		<ConsentManagerProvider
 			options={{
-				mode: 'offline',
-				// ssrData,
-				// backendURL: '/api/self-host',
+				mode: 'c15t',
+				backendURL: '/api/self-host',
 				consentCategories: ['necessary', 'marketing', 'measurement'],
 				iab: {
 					enabled: false,
@@ -37,8 +35,6 @@ export default function ({ children, ssrData }: ConsentManagerProps) {
 						},
 					],
 				},
-				overrides: { country: 'GB', region: 'CA' },
-
 				scripts: [
 					{
 						id: 'example-analytics-iab',
@@ -67,22 +63,6 @@ export default function ({ children, ssrData }: ConsentManagerProps) {
 				user: {
 					id: '123',
 					identityProvider: 'custom',
-				},
-				i18n: {
-					messages: {
-						zh: {
-							...baseTranslations.zh,
-						},
-						en: {
-							...baseTranslations.en,
-						},
-						fr: {
-							...baseTranslations.fr,
-						},
-						de: {
-							...baseTranslations.de,
-						},
-					},
 				},
 			}}
 		>

@@ -9,6 +9,7 @@ import { renderConsentsPanel } from '../panels/consents';
 import { renderEventsPanel } from '../panels/events';
 import { renderIabPanel } from '../panels/iab';
 import { renderLocationPanel } from '../panels/location';
+import { renderPolicyPanel } from '../panels/policy';
 import { renderScriptsPanel } from '../panels/scripts';
 import type { PersistedDevToolsOverrides } from './override-storage';
 import { resetAllConsents } from './reset-consents';
@@ -184,6 +185,12 @@ export function createPanelRenderer(
 							onClearPersistedOverrides?.();
 						}
 					},
+				});
+				break;
+
+			case 'policy':
+				renderPolicyPanel(container, {
+					getState: getStoreState,
 				});
 				break;
 

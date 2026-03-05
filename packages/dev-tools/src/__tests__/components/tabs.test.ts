@@ -74,10 +74,10 @@ describe('tabs component', () => {
 
 		expect(consentsTab.getAttribute('aria-selected')).toBe('true');
 		expect(consentsTab.tabIndex).toBe(0);
-		expect(consentsTab.style.order).toBe('1');
+		expect(consentsTab.style.order).toBe('2');
 		expect(consentsTab.classList.contains(tabStyles.tabHidden)).toBe(false);
 
-		expect(iabTab.style.order).toBe('5');
+		expect(iabTab.style.order).toBe('6');
 		expect(iabTab.classList.contains(tabStyles.tabHidden)).toBe(true);
 		expect(
 			iabOverflowItem.classList.contains(tabStyles.overflowItemHidden)
@@ -101,10 +101,10 @@ describe('tabs component', () => {
 
 		expect(iabTab.getAttribute('aria-selected')).toBe('true');
 		expect(iabTab.tabIndex).toBe(0);
-		expect(iabTab.style.order).toBe('1');
+		expect(iabTab.style.order).toBe('2');
 		expect(iabTab.classList.contains(tabStyles.tabHidden)).toBe(false);
 
-		expect(consentsTab.style.order).toBe('5');
+		expect(consentsTab.style.order).toBe('6');
 		expect(consentsTab.classList.contains(tabStyles.tabHidden)).toBe(true);
 		expect(
 			consentsOverflowItem.classList.contains(tabStyles.overflowItemHidden)
@@ -128,8 +128,8 @@ describe('tabs component', () => {
 			new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })
 		);
 
-		expect(onTabChange).toHaveBeenCalledWith('consents');
-		expect(getTab(tabs.element, 'Consents').getAttribute('aria-selected')).toBe(
+		expect(onTabChange).toHaveBeenCalledWith('policy');
+		expect(getTab(tabs.element, 'Policy').getAttribute('aria-selected')).toBe(
 			'true'
 		);
 	});
@@ -163,6 +163,10 @@ describe('tabs component', () => {
 
 		expect(overflowButton.getAttribute('aria-expanded')).toBe('true');
 		expect(hiddenItems.length).toBeGreaterThan(0);
-		expect(document.activeElement).toBe(hiddenItems[0]);
+		expect(hiddenItems).toContain(document.activeElement as HTMLButtonElement);
+		const orderedHiddenItems = [...hiddenItems].sort(
+			(a, b) => Number(a.style.order) - Number(b.style.order)
+		);
+		expect(document.activeElement).toBe(orderedHiddenItems[0]);
 	});
 });

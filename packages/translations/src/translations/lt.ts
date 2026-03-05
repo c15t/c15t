@@ -47,6 +47,8 @@ export const translations: CompleteTranslations = {
 		title:
 			'Priimkite {category} sutikimą, kad galėtumėte peržiūrėti šį turinį.',
 		actionButton: 'Įgalinti {category} sutikimą',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Privatumo politika',

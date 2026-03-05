@@ -159,7 +159,13 @@ function getClientCacheKey(options: ConsentManagerOptions): string {
 			iabPart = '';
 		}
 
-		return `offline${storageKey}${translationPart}${defaultLanguagePart}${iabPart}`;
+		const offlinePolicyConfig = options.store?.offlinePolicy;
+		let offlinePolicyPart = '';
+		if (offlinePolicyConfig) {
+			offlinePolicyPart = `:policy:${JSON.stringify(offlinePolicyConfig)}`;
+		}
+
+		return `offline${storageKey}${translationPart}${defaultLanguagePart}${iabPart}${offlinePolicyPart}`;
 	}
 
 	if (normalizedMode === 'custom') {
@@ -412,6 +418,7 @@ export function configureConsentManager(
 		case 'offline': {
 			// Extract IAB config for offline mode
 			const iabConfig = options.store?.iab;
+			const policyConfig = options.store?.offlinePolicy;
 			client = new OfflineClient(
 				options.storageConfig,
 				options.store?.initialTranslationConfig,
@@ -421,7 +428,8 @@ export function configureConsentManager(
 							vendorIds: iabConfig.vendors,
 							gvl: iabConfig.gvl,
 						}
-					: undefined
+					: undefined,
+				policyConfig
 			);
 			break;
 		}

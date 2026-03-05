@@ -22,6 +22,7 @@ import type { IABConfig } from '../libs/iab-tcf/types';
 import { createIframeManager } from '../libs/iframe-blocker/store';
 import { initConsentManager } from '../libs/init-consent-manager';
 import { createNetworkBlockerManager } from '../libs/network-blocker/store';
+import { filterConsentCategoriesByPolicy } from '../libs/policy';
 import { saveConsents } from '../libs/save-consents';
 import { createScriptManager } from '../libs/script-loader';
 import type { TranslationConfig, User } from '../types';
@@ -264,7 +265,13 @@ export const createConsentManagerStore = (
 				return resetState;
 			});
 		},
-		setConsentCategories: (types) => set({ consentCategories: types }),
+		setConsentCategories: (types) =>
+			set({
+				consentCategories: filterConsentCategoriesByPolicy(
+					types,
+					get().policyPurposeIds
+				),
+			}),
 		setCallback: (name, callback) => {
 			const currentState = get();
 
@@ -342,8 +349,11 @@ export const createConsentManagerStore = (
 		has: <CategoryType extends AllConsentNames>(
 			condition: HasCondition<CategoryType>
 		) => {
-			const { consents } = get();
-			return has(condition, consents);
+			const { consents, policyPurposeIds, policyScopeMode } = get();
+			return has(condition, consents, {
+				policyPurposeIds,
+				policyScopeMode,
+			});
 		},
 
 		setTranslationConfig: (config: TranslationConfig) => {
@@ -355,7 +365,10 @@ export const createConsentManagerStore = (
 				...get().consentCategories,
 				...newCategories,
 			]);
-			const allCategories = Array.from(allCategoriesSet);
+			const allCategories = filterConsentCategoriesByPolicy(
+				Array.from(allCategoriesSet),
+				get().policyPurposeIds
+			);
 			set({ consentCategories: allCategories });
 		},
 

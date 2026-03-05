@@ -17,7 +17,7 @@ import type {
 import type { FetchOptions, ResponseContext } from '../types';
 import { init } from './init';
 import { setConsent } from './set-consent';
-import type { IABFallbackConfig } from './types';
+import type { IABFallbackConfig, OfflineClientOptions } from './types';
 import { handleOfflineResponse } from './utils';
 
 /**
@@ -31,15 +31,18 @@ export class OfflineClient implements ConsentManagerInterface {
 	private readonly storageConfig?: import('../../libs/cookie').StorageConfig;
 	private readonly initialTranslationConfig?: Partial<TranslationConfig>;
 	private readonly iabConfig?: IABFallbackConfig;
+	private readonly policyConfig?: OfflineClientOptions['policyConfig'];
 
 	constructor(
 		storageConfig?: import('../../libs/cookie').StorageConfig,
 		initialTranslationConfig?: Partial<TranslationConfig>,
-		iabConfig?: IABFallbackConfig
+		iabConfig?: IABFallbackConfig,
+		policyConfig?: OfflineClientOptions['policyConfig']
 	) {
 		this.storageConfig = storageConfig;
 		this.initialTranslationConfig = initialTranslationConfig;
 		this.iabConfig = iabConfig;
+		this.policyConfig = policyConfig;
 	}
 
 	/**
@@ -49,7 +52,12 @@ export class OfflineClient implements ConsentManagerInterface {
 	async init(
 		options?: FetchOptions<InitResponse>
 	): Promise<ResponseContext<InitResponse>> {
-		return init(this.initialTranslationConfig, options, this.iabConfig);
+		return init(
+			this.initialTranslationConfig,
+			options,
+			this.iabConfig,
+			this.policyConfig
+		);
 	}
 
 	/**

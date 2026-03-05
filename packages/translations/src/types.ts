@@ -42,6 +42,10 @@ export interface FrameTranslations {
 	 * You can use the {category} placeholder to dynamically insert the consent category name.
 	 */
 	actionButton: string;
+	/**
+	 * Message shown when the frame category is blocked by active policy scope.
+	 */
+	policyBlocked: string;
 }
 
 export interface IABBannerTranslations {

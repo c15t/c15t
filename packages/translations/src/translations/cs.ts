@@ -47,6 +47,8 @@ export const translations: CompleteTranslations = {
 		title:
 			'Pro zobrazení tohoto obsahu přijměte souhlas s kategorií {category}.',
 		actionButton: 'Povolit souhlas s kategorií {category}',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Zásady ochrany osobních údajů',

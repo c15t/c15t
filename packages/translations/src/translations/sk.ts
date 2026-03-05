@@ -47,6 +47,8 @@ export const translations: CompleteTranslations = {
 		title:
 			'Prijmite súhlas pre kategóriu {category} na zobrazenie tohto obsahu.',
 		actionButton: 'Povoliť súhlas pre {category}',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Zásady ochrany osobných údajov',

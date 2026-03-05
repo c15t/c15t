@@ -47,6 +47,8 @@ export const translations: CompleteTranslations = {
 		title:
 			'Αποδεχτείτε τη συγκατάθεση {category} για να δείτε αυτό το περιεχόμενο.',
 		actionButton: 'Ενεργοποίηση συγκατάθεσης {category}',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Πολιτική απορρήτου',

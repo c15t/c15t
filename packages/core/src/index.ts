@@ -61,7 +61,7 @@ export {
 	generateSubjectId,
 	isValidSubjectId,
 } from './libs/generate-subject-id';
-export type { HasCondition } from './libs/has';
+export type { HasCondition, HasOptions } from './libs/has';
 export { has } from './libs/has';
 export type { IABConfig } from './libs/iab-tcf/types';
 export {
@@ -70,6 +70,14 @@ export {
 	type IframeBlockerConfig,
 } from './libs/iframe-blocker';
 export type { NetworkBlockerConfig } from './libs/network-blocker';
+export {
+	applyPolicyScopeForRuntimeGating,
+	filterConsentCategoriesByPolicy,
+	getEffectivePolicy,
+	type PolicyUIState,
+	type PolicyValidationIssue,
+	validateUIAgainstPolicy,
+} from './libs/policy';
 // Export script loader
 export {
 	getLoadedScriptIds,
@@ -91,6 +99,8 @@ export { createConsentManagerStore } from './store';
 export type {
 	ActiveUI,
 	ConsentStoreState,
+	OfflinePolicyConfig,
+	PolicyActionLayout,
 	SSRInitialData,
 	StoreOptions,
 } from './store/type';

@@ -9,7 +9,6 @@ import {
 	createDisconnectedState,
 	createGrid,
 	createGridCard,
-	createInput,
 	createToggle,
 } from '../components/ui';
 import { clearElement, div, span } from '../core/renderer';
@@ -22,8 +21,6 @@ export interface ConsentsPanelOptions {
 	onRejectAll: () => void;
 	onReset: () => void;
 }
-
-const consentSearchByContainer = new WeakMap<HTMLElement, string>();
 
 /**
  * Renders the consents panel content
@@ -89,43 +86,9 @@ export function renderConsentsPanel(
 	);
 
 	// Consent grid - show displayConsents (merged state with pending changes)
-	const searchQuery = consentSearchByContainer.get(container) ?? '';
 	const consentEntries = Object.entries(displayConsents);
-	const filteredConsentEntries = consentEntries.filter(([name]) => {
-		if (!searchQuery) {
-			return true;
-		}
-		const consentType = consentTypeMap.get(name);
-		const displayName = consentType?.name || name;
-		return `${name} ${displayName}`.toLowerCase().includes(searchQuery);
-	});
-	const showSearchInput = consentEntries.length > 4;
-	if (showSearchInput) {
-		container.appendChild(
-			div({
-				style: {
-					padding: '8px 0 10px',
-				},
-				children: [
-					createInput({
-						value: searchQuery,
-						placeholder: 'Filter consents…',
-						ariaLabel: 'Filter consents',
-						small: true,
-						onInput: (value) => {
-							consentSearchByContainer.set(
-								container,
-								value.trim().toLowerCase()
-							);
-							renderConsentsPanel(container, options);
-						},
-					}),
-				],
-			})
-		);
-	}
 
-	if (filteredConsentEntries.length === 0) {
+	if (consentEntries.length === 0) {
 		container.appendChild(
 			div({
 				style: {
@@ -134,10 +97,7 @@ export function renderConsentsPanel(
 					color: 'var(--c15t-devtools-text-muted)',
 					fontSize: 'var(--c15t-devtools-font-size-sm)',
 				},
-				text:
-					consentEntries.length === 0
-						? 'No consents configured'
-						: 'No matching consents',
+				text: 'No consents configured',
 			})
 		);
 	} else {
@@ -160,7 +120,7 @@ export function renderConsentsPanel(
 		// Build grid cards for each consent
 		const gridCards: HTMLElement[] = [];
 
-		for (const [name, value] of filteredConsentEntries) {
+		for (const [name, value] of consentEntries) {
 			const consentType = consentTypeMap.get(name);
 			const isNecessary = name === 'necessary';
 			const displayName = consentType?.name || name;

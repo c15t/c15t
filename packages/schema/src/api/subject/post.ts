@@ -44,6 +44,8 @@ const baseSubjectConsentSchema = v.object({
 	uiSource: v.optional(v.string()),
 	/** Consent action type (e.g., 'all', 'necessary', 'custom') */
 	consentAction: v.optional(v.string()),
+	/** Signed policy snapshot token from /init for consistency/auditability */
+	policySnapshotToken: v.optional(v.string()),
 });
 
 /**

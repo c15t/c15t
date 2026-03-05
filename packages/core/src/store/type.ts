@@ -42,6 +42,29 @@ export type { IABActions, IABManager, IABState } from '../libs/iab-tcf/types';
  * @public
  */
 export type ActiveUI = 'none' | 'banner' | 'dialog';
+export type PolicyAction = 'accept' | 'reject' | 'customize';
+export type PolicyActionLayout = 'split' | 'inline';
+export type PolicyUiProfile = 'balanced' | 'compact' | 'strict';
+export type PolicyScopeMode = 'strict' | 'unmanaged';
+export type OfflinePolicyConfig = {
+	/**
+	 * Synthetic runtime policy returned by offline mode init.
+	 *
+	 * @remarks
+	 * Useful for local UI previews where no backend `/init` endpoint is available.
+	 */
+	policy?: InitOutput['policy'];
+
+	/**
+	 * Optional explainability metadata for the synthetic policy decision.
+	 */
+	policyDecision?: InitOutput['policyDecision'];
+
+	/**
+	 * Optional synthetic policy snapshot token.
+	 */
+	policySnapshotToken?: InitOutput['policySnapshotToken'];
+};
 
 /**
  * Initial data structure for SSR prefetching.
@@ -49,7 +72,8 @@ export type ActiveUI = 'none' | 'banner' | 'dialog';
  * @remarks
  * When using frameworks like Next.js, init data can be prefetched
  * on the server and passed to the client. GVL is included in the
- * init response when the server has it configured.
+ * init response when IAB is active for the resolved request policy
+ * (or for legacy setups without backend policies).
  *
  * @public
  */
@@ -61,7 +85,7 @@ export interface SSRInitialData {
 
 	/**
 	 * Global Vendor List data for IAB TCF mode.
-	 * - `undefined` means IAB is not enabled on server or GVL wasn't configured
+	 * - `undefined` means IAB is not active for the request or not enabled on server
 	 * - `null` means the user is in a non-IAB region (204 response from gvl.consent.io)
 	 * - `GlobalVendorList` contains the vendor list data from init response
 	 *
@@ -316,6 +340,17 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	iab?: IABConfig;
 
 	/**
+	 * Offline-mode policy payload override.
+	 *
+	 * @remarks
+	 * When `mode: 'offline'`, this payload is merged into the offline `init`
+	 * response so policy-driven banner/dialog behavior can be previewed locally.
+	 *
+	 * Ignored in hosted/custom modes.
+	 */
+	offlinePolicy?: OfflinePolicyConfig;
+
+	/**
 	 * Callbacks for the consent manager.
 	 *
 	 * @see https://c15t.com/docs/frameworks/react/callbacks
@@ -424,6 +459,51 @@ export interface StoreRuntimeState extends StoreConfig {
 	 * - 'iab' - IAB TCF 2.3 mode for programmatic advertising compliance. (GDPR jurisdictions only)
 	 */
 	model: Model;
+
+	/** Allowed actions for banner UI derived from backend runtime policy. */
+	policyBannerAllowedActions: PolicyAction[] | null;
+
+	/** Preferred banner primary action hint from backend runtime policy. */
+	policyBannerPrimaryAction: PolicyAction | null;
+
+	/** Explicit banner action order hint from backend runtime policy. */
+	policyBannerActionOrder: PolicyAction[] | null;
+
+	/** Banner action layout hint from backend runtime policy. */
+	policyBannerActionLayout: PolicyActionLayout | null;
+
+	/** Banner presentation profile hint from backend runtime policy. */
+	policyBannerUiProfile: PolicyUiProfile | null;
+
+	/** Allowed actions for dialog UI derived from backend runtime policy. */
+	policyDialogAllowedActions: PolicyAction[] | null;
+
+	/** Preferred dialog primary action hint from backend runtime policy. */
+	policyDialogPrimaryAction: PolicyAction | null;
+
+	/** Explicit dialog action order hint from backend runtime policy. */
+	policyDialogActionOrder: PolicyAction[] | null;
+
+	/** Dialog action layout hint from backend runtime policy. */
+	policyDialogActionLayout: PolicyActionLayout | null;
+
+	/** Dialog presentation profile hint from backend runtime policy. */
+	policyDialogUiProfile: PolicyUiProfile | null;
+
+	/**
+	 * Active runtime policy purpose scope from `/init`.
+	 *
+	 * @remarks
+	 * Used to keep client-side category discovery (scripts/iframes) aligned with
+	 * backend policy restrictions after initialization.
+	 */
+	policyPurposeIds: string[] | null;
+
+	/**
+	 * Runtime policy scope mode from `/init`.
+	 * Controls whether out-of-scope categories are treated as unmanaged at runtime.
+	 */
+	policyScopeMode: PolicyScopeMode | null;
 
 	/**
 	 * IAB TCF 2.3 state and actions (null when not configured or not in IAB mode).

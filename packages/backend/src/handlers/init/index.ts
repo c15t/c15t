@@ -111,4 +111,9 @@ export function buildResponse({
 
 export { checkJurisdiction, getJurisdiction, getLocation } from './geo';
 // Re-export translations functions
-export { getTranslations, getTranslationsData } from './translations';
+export {
+	getTranslations,
+	getTranslationsData,
+	listProfiles,
+	validateMessages,
+} from './translations';

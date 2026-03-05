@@ -5,7 +5,8 @@ Developer tools for debugging and inspecting c15t consent management state.
 ## Features
 
 - **Consents Panel**: View and toggle consent states in real-time
-- **Location Panel**: Inspect detected location and set overrides
+- **Location Panel**: Inspect location and apply geo/language overrides
+- **Policy Panel**: Inspect detailed runtime policy-pack decision data
 - **Scripts Panel**: Monitor script loading status
 - **Actions Panel**: Quick actions for testing consent flows
 - **Framework Agnostic**: Pure JavaScript core with React wrapper
@@ -119,9 +120,19 @@ window.__c15tDevTools.getState();
 ### Location
 
 - Detected country, region, and jurisdiction
+- Compact active policy summary (policy ID + matcher + snapshot status)
 - Set country, region, and language overrides
 - View active consent model with description
 - Clear all overrides
+
+### Policy
+
+- Runtime policy decision details from `/init`
+- Policy ID, match strategy, and fingerprint
+- Consent model, scope mode, purpose scope
+- UI constraints (mode, allowed actions, primary action)
+- i18n profile, expiry, and proof-capture summary
+- Snapshot token presence indicator
 
 ### Scripts
 

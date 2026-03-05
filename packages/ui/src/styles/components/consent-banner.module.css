@@ -255,6 +255,18 @@
 		flex-grow: 1;
 	}
 
+	.footerFill {
+		flex-direction: column;
+	}
+
+	.footerSubGroupFill {
+		width: 100%;
+	}
+
+	.actionButtonFill {
+		width: 100%;
+	}
+
 	.description {
 		font-size: 0.875rem;
 		line-height: 1.25rem;

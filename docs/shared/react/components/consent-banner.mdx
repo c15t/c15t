@@ -34,6 +34,14 @@
   <ConsentBanner layout={['accept', ['reject', 'customize']]} />
   ```
 
+  ## Policy-Driven UI Profile
+
+  When using backend runtime policies, `policy.ui.uiProfile` can control banner action presentation:
+
+  - `compact` — default desktop sizing
+  - `balanced` — auto-fills buttons for 1-action, 2-action, and 3-action split layouts
+  - `strict` — always fills action controls for explicit, high-clarity layouts
+
   ### Primary Button
 
   Highlight specific button(s) as the primary action:

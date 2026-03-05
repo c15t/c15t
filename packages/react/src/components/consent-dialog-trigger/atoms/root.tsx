@@ -15,6 +15,7 @@ import {
 	useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { useConsentDialogTrigger } from '~/hooks/use-consent-dialog-trigger';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import type { CornerPosition, TriggerVisibility } from '../types';
 import { type UseDraggableReturn, useDraggable } from '../use-draggable';
@@ -114,7 +115,11 @@ export function TriggerRoot({
 	onPositionChange,
 	onClick,
 }: TriggerRootProps): ReactNode {
-	const { branding, activeUI, setActiveUI, hasConsented } = useConsentManager();
+	const { branding } = useConsentManager();
+	const { isVisible, openDialog } = useConsentDialogTrigger({
+		showWhen,
+		onClick,
+	});
 
 	const { corner, isDragging, isSnapping, wasDragged, handlers, dragStyle } =
 		useDraggable({
@@ -129,24 +134,6 @@ export function TriggerRoot({
 		setMounted(true);
 		return () => setMounted(false);
 	}, []);
-
-	// Determine visibility
-	const shouldShow = (() => {
-		if (showWhen === 'never') {
-			return false;
-		}
-		if (showWhen === 'after-consent') {
-			return hasConsented();
-		}
-		return true;
-	})();
-
-	const isVisible = shouldShow && activeUI === 'none';
-
-	const openDialog = () => {
-		onClick?.();
-		setActiveUI('dialog');
-	};
 
 	// Don't render on server or when not visible
 	if (!mounted || !isVisible) {

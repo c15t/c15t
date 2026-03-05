@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { resolvePolicyDecision } from '~/handlers/init/policy';
+import { verifyPolicySnapshotToken } from '~/handlers/policy/snapshot';
 import { postSubjectHandler } from './post.handler';
 
 vi.mock('~/utils/metrics', () => ({
@@ -11,6 +13,14 @@ vi.mock('~/utils/metrics', () => ({
 
 vi.mock('~/db/registry/utils', () => ({
 	generateUniqueId: vi.fn().mockResolvedValue('con_new'),
+}));
+
+vi.mock('~/handlers/init/policy', () => ({
+	resolvePolicyDecision: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('~/handlers/policy/snapshot', () => ({
+	verifyPolicySnapshotToken: vi.fn().mockResolvedValue(null),
 }));
 
 const GIVEN_AT = 1700000000000;
@@ -43,9 +53,15 @@ function createMockDb(findFirstResult: unknown = null) {
 		findFirst: vi.fn().mockResolvedValue(findFirstResult),
 		transaction: vi.fn(async (fn: (tx: unknown) => unknown) => {
 			const tx = {
-				create: vi.fn().mockResolvedValue({
-					id: 'con_new',
-					givenAt: GIVEN_AT_DATE,
+				findFirst: vi.fn().mockResolvedValue(null),
+				create: vi.fn().mockImplementation(async (table: string) => {
+					if (table === 'runtimePolicyDecision') {
+						return { id: 'rpd_1' };
+					}
+					return {
+						id: 'con_new',
+						givenAt: GIVEN_AT_DATE,
+					};
 				}),
 			};
 			return fn(tx);
@@ -290,5 +306,165 @@ describe('postSubjectHandler idempotency', () => {
 		expect(mockMetrics.recordConsentCreated).not.toHaveBeenCalled();
 		expect(mockMetrics.recordConsentAccepted).not.toHaveBeenCalled();
 		expect(mockMetrics.recordConsentRejected).not.toHaveBeenCalled();
+	});
+});
+
+describe('postSubjectHandler policy purpose enforcement', () => {
+	afterEach(() => {
+		vi.clearAllMocks();
+		vi.restoreAllMocks();
+	});
+
+	it('rejects preferences that include disallowed purposes', async () => {
+		vi.mocked(resolvePolicyDecision).mockResolvedValue({
+			policy: {
+				id: 'policy_restrictive',
+				model: 'opt-in',
+				consent: { scopeMode: 'strict', purposeIds: ['measurement'] },
+			},
+			matchedBy: 'country',
+			fingerprint: 'a'.repeat(64),
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			preferences: {
+				measurement: true,
+				marketing: true,
+			},
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 400,
+			message: 'Preferences include purposes not allowed by policy',
+		});
+
+		expect(registry.findOrCreateConsentPurposeByCode).not.toHaveBeenCalled();
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('ignores out-of-scope purposes when scopeMode is unmanaged', async () => {
+		vi.mocked(resolvePolicyDecision).mockResolvedValue({
+			policy: {
+				id: 'policy_unmanaged',
+				model: 'opt-in',
+				consent: { scopeMode: 'unmanaged', purposeIds: ['measurement'] },
+			},
+			matchedBy: 'country',
+			fingerprint: 'u'.repeat(64),
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		registry.findOrCreateConsentPurposeByCode = vi
+			.fn()
+			.mockImplementation(async (code: string) => ({ id: `pur_${code}` }));
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			preferences: {
+				measurement: true,
+				marketing: true,
+			},
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledTimes(1);
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledWith(
+			'measurement'
+		);
+		expect(db.transaction).toHaveBeenCalled();
+	});
+
+	it('allows all purposes when policy uses wildcard scope', async () => {
+		vi.mocked(resolvePolicyDecision).mockResolvedValue({
+			policy: {
+				id: 'policy_iab',
+				model: 'iab',
+				consent: { purposeIds: ['*'] },
+			},
+			matchedBy: 'jurisdiction',
+			fingerprint: 'b'.repeat(64),
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		registry.findOrCreateConsentPurposeByCode = vi
+			.fn()
+			.mockImplementation(async (code: string) => ({ id: `pur_${code}` }));
+
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			preferences: {
+				measurement: true,
+				marketing: true,
+				functionality: false,
+			},
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledTimes(2);
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledWith(
+			'measurement'
+		);
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledWith(
+			'marketing'
+		);
+		expect(db.transaction).toHaveBeenCalled();
+	});
+
+	it('prioritizes valid snapshot wildcard scope over restrictive write-time policy', async () => {
+		vi.mocked(resolvePolicyDecision).mockResolvedValue({
+			policy: {
+				id: 'policy_restrictive',
+				model: 'opt-in',
+				consent: { purposeIds: ['measurement'] },
+			},
+			matchedBy: 'country',
+			fingerprint: 'c'.repeat(64),
+		});
+		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue({
+			policyId: 'policy_iab_snapshot',
+			fingerprint: 'd'.repeat(64),
+			matchedBy: 'country',
+			country: 'FR',
+			region: null,
+			jurisdiction: 'GDPR',
+			model: 'iab',
+			purposeIds: ['*'],
+			iat: 1,
+			exp: 9_999_999_999,
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		registry.findOrCreateConsentPurposeByCode = vi
+			.fn()
+			.mockImplementation(async (code: string) => ({ id: `pur_${code}` }));
+
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			preferences: {
+				measurement: true,
+				marketing: true,
+			},
+			policySnapshotToken: 'snapshot-token',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(db.transaction).toHaveBeenCalled();
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledTimes(2);
 	});
 });

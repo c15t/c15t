@@ -3,6 +3,7 @@ import type { ConsentStoreState } from '~/store/type';
 import type { ConsentManagerInterface } from '../client/client-interface';
 import type { ConsentInfo, ConsentState, ConsentType } from '../types';
 import { generateSubjectId } from './generate-subject-id';
+import { applyPolicyPurposeAllowlist, getEffectivePolicy } from './policy';
 
 /**
  * Storage key for pending consent sync after page reload.
@@ -103,6 +104,7 @@ export async function saveConsents({
 		model,
 		consentInfo,
 		reloadOnConsentRevoked,
+		lastBannerFetchData,
 	} = get();
 
 	// Store previous consents for revocation detection
@@ -130,6 +132,13 @@ export async function saveConsents({
 		}
 	}
 
+	const policyPurposeIds =
+		getEffectivePolicy(lastBannerFetchData)?.consent?.purposeIds;
+	const effectiveConsents = applyPolicyPurposeAllowlist(
+		newConsents,
+		policyPurposeIds
+	);
+
 	// Get or generate subjectId
 	// If we have a subjectId from previous consent, reuse it
 	let subjectId = consentInfo?.subjectId;
@@ -145,7 +154,7 @@ export async function saveConsents({
 	// Check if we need to reload the page due to consent revocation
 	const needsReload = shouldReloadOnConsentChange(
 		previousConsents,
-		newConsents,
+		effectiveConsents,
 		previousConsentInfo,
 		reloadOnConsentRevoked,
 		consentTypes
@@ -155,8 +164,8 @@ export async function saveConsents({
 	// This makes the interface feel more responsive
 	// This also persists the consent to localStorage/cookies
 	set({
-		consents: newConsents,
-		selectedConsents: newConsents,
+		consents: effectiveConsents,
+		selectedConsents: effectiveConsents,
 		activeUI: 'none' as const,
 		consentInfo: {
 			time: givenAt,
@@ -174,7 +183,7 @@ export async function saveConsents({
 			subjectId,
 			externalId,
 			identityProvider,
-			preferences: newConsents,
+			preferences: effectiveConsents,
 			givenAt,
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
 			jurisdictionModel: model,
@@ -194,10 +203,10 @@ export async function saveConsents({
 
 		// Trigger callback before reload
 		callbacks.onConsentSet?.({
-			preferences: newConsents,
+			preferences: effectiveConsents,
 		});
 		callbacks.onBeforeConsentRevocationReload?.({
-			preferences: newConsents,
+			preferences: effectiveConsents,
 		});
 
 		// Reload the page to ensure complete cleanup of third-party scripts
@@ -214,7 +223,7 @@ export async function saveConsents({
 	updateNetworkBlockerConsents();
 
 	callbacks.onConsentSet?.({
-		preferences: newConsents,
+		preferences: effectiveConsents,
 	});
 
 	// Send consent to API in the background - the UI is already updated
@@ -222,7 +231,7 @@ export async function saveConsents({
 		body: {
 			type: 'cookie_banner',
 			domain: window.location.hostname,
-			preferences: newConsents,
+			preferences: effectiveConsents,
 			subjectId,
 			externalSubjectId: String(externalId),
 			identityProvider,
@@ -231,6 +240,7 @@ export async function saveConsents({
 			givenAt,
 			uiSource: options?.uiSource ?? 'api',
 			consentAction: type,
+			policySnapshotToken: lastBannerFetchData?.policySnapshotToken,
 		},
 	});
 
