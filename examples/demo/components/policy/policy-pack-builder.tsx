@@ -190,12 +190,14 @@ type PolicyUiSurface = {
 
 type PolicyEntry = {
 	id: string;
+	isDefault?: boolean;
 	countries?: string[];
 	regions?: PolicyRegionScope[];
 	model: PolicyModel;
 	expiryDays?: number;
 	uiMode?: UiMode;
 	banner?: PolicyUiSurface;
+	dialog?: PolicyUiSurface;
 	categories?: string[];
 };
 
@@ -250,6 +252,15 @@ function normalizeActionOrder(
 	}
 
 	return ordered;
+}
+
+function resolvePrimaryAction(
+	primaryAction: UiAction,
+	allowedActions: UiAction[]
+): UiAction {
+	return allowedActions.includes(primaryAction)
+		? primaryAction
+		: (allowedActions[0] ?? 'accept');
 }
 
 function parseList(value: string): string[] {
@@ -349,6 +360,10 @@ function scopesFromEntry(entry: PolicyEntry): PolicyScope[] {
 function buildPolicyEntry(input: BuilderInput): PolicyEntry {
 	const allowedActions = normalizeActions(input.allowedActions);
 	const actionOrder = normalizeActionOrder(input.actionOrder, allowedActions);
+	const primaryAction = resolvePrimaryAction(
+		input.primaryAction,
+		allowedActions
+	);
 	const categories = parseList(input.categories);
 	const normalizedScopes = normalizeScopes(input.scopes);
 	const countries = normalizedScopes
@@ -397,24 +412,32 @@ function buildPolicyEntry(input: BuilderInput): PolicyEntry {
 		};
 	}
 
+	const surface: PolicyUiSurface = {
+		allowedActions,
+		primaryAction,
+		actionOrder,
+		actionLayout: input.actionLayout,
+		uiProfile: input.uiProfile,
+	};
+
 	return {
 		...baseEntry,
 		uiMode: input.uiMode,
-		banner: {
-			allowedActions,
-			primaryAction: input.primaryAction,
-			actionOrder,
-			actionLayout: input.actionLayout,
-			uiProfile: input.uiProfile,
-		},
+		...(input.uiMode === 'banner' ? { banner: surface } : { dialog: surface }),
 	};
 }
 
-function buildPolicyPackCode(input: BuilderInput): string {
+function buildPolicyPackCode(
+	input: BuilderInput,
+	includeDefaultFallback: boolean
+): string {
 	const entry = buildPolicyEntry(input);
+	const helper = includeDefaultFallback
+		? 'createPackWithDefault'
+		: 'createPack';
 	return `import { policyBuilder } from '@c15t/backend';
 
-export const policies = policyBuilder.createPack([
+export const policies = policyBuilder.${helper}([
   ${serializeEntry(entry as Record<string, unknown>)}
 ]);
 `;
@@ -450,7 +473,13 @@ function PolicySurfacePreview({
 	entry: PolicyEntry;
 	note?: string;
 }) {
-	const surface = entry.banner;
+	const surface =
+		entry.uiMode === 'dialog'
+			? entry.dialog
+			: entry.uiMode === 'banner'
+				? entry.banner
+				: undefined;
+	const activeSurface = entry.uiMode === 'dialog' ? 'dialog' : 'banner';
 	const orderedActions = surface
 		? normalizeActionOrder(
 				surface.actionOrder.join(','),
@@ -492,7 +521,9 @@ function PolicySurfacePreview({
 			{hasVisibleUi ? (
 				<div className="space-y-3 rounded-lg border bg-muted/30 p-3">
 					<div>
-						<p className="font-medium text-sm">Your privacy settings</p>
+						<p className="font-medium text-sm">
+							Your privacy settings ({activeSurface})
+						</p>
 						<p className="text-muted-foreground text-xs">
 							This updates in real time from your selected policy values.
 						</p>
@@ -567,6 +598,7 @@ export function PolicyPackBuilder() {
 	const [actionOrder, setActionOrder] = useState('accept, reject, customize');
 	const [actionLayout, setActionLayout] = useState<UiActionLayout>('split');
 	const [uiProfile, setUiProfile] = useState<UiProfile>('balanced');
+	const [includeDefaultFallback, setIncludeDefaultFallback] = useState(true);
 	const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>(
 		'idle'
 	);
@@ -606,8 +638,8 @@ export function PolicyPackBuilder() {
 		[builderInput]
 	);
 	const generatedCode = useMemo(
-		() => buildPolicyPackCode(builderInput),
-		[builderInput]
+		() => buildPolicyPackCode(builderInput, includeDefaultFallback),
+		[builderInput, includeDefaultFallback]
 	);
 
 	const setScopeCountry = (index: number, nextCountry: string) => {
@@ -1019,7 +1051,8 @@ export function PolicyPackBuilder() {
 								<div>
 									<CardTitle className="text-base">Generated pack</CardTitle>
 									<CardDescription>
-										One policy entry without automatic fallbacks.
+										Generate a policy pack snippet ready to paste into backend
+										config.
 									</CardDescription>
 								</div>
 								<Button
@@ -1044,6 +1077,19 @@ export function PolicyPackBuilder() {
 							</div>
 						</CardHeader>
 						<CardContent>
+							<div className="mb-3 flex items-center gap-2 rounded-md border px-3 py-2 text-xs">
+								<Checkbox
+									id="include-default-fallback"
+									checked={includeDefaultFallback}
+									onCheckedChange={(value) =>
+										setIncludeDefaultFallback(Boolean(value))
+									}
+								/>
+								<Label htmlFor="include-default-fallback" className="text-xs">
+									Add automatic world fallback (recommended, via{' '}
+									<code>policyBuilder.createPackWithDefault()</code>)
+								</Label>
+							</div>
 							<pre className="max-h-[380px] overflow-auto rounded-lg border bg-muted/40 p-3 text-xs">
 								<code>{generatedCode}</code>
 							</pre>
@@ -1089,7 +1135,7 @@ export function PolicyPackBuilder() {
 												</Badge>
 											</div>
 										</div>
-										<p className="text-muted-foreground text-[11px]">
+										<p className="text-[11px] text-muted-foreground">
 											Scope: {summarizeScopes(scopesFromEntry(previewEntry))}
 										</p>
 									</div>

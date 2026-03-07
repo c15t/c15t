@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
@@ -37,6 +38,14 @@ export function PolicyWorkspace({
 					<p className="mt-2 text-muted-foreground">
 						Build policy packs and validate behavior from one route.
 					</p>
+					<div className="mt-3">
+						<Link
+							href="/policy-offline"
+							className="text-muted-foreground text-sm transition-colors hover:text-foreground"
+						>
+							Open Offline Policy Lab
+						</Link>
+					</div>
 				</div>
 
 				<Tabs

@@ -50,6 +50,12 @@ export function Header() {
 						>
 							Policy
 						</a>
+						<a
+							href="/policy-offline"
+							className="text-muted-foreground text-sm transition-colors hover:text-foreground"
+						>
+							Offline Policy
+						</a>
 					</nav>
 
 					<div className="flex items-center gap-4">

@@ -1,6 +1,8 @@
 'use client';
 
 import {
+	type HeadlessConsentBannerAction,
+	type HeadlessConsentDialogAction,
 	useConsentManager,
 	useHeadlessConsentUI,
 	useTranslations,
@@ -19,7 +21,7 @@ import {
 } from '../ui/card';
 import { Switch } from '../ui/switch';
 
-type PolicyAction = 'accept' | 'reject' | 'customize';
+type PolicyAction = HeadlessConsentBannerAction | HeadlessConsentDialogAction;
 
 const SCENARIO_LINKS = [
 	{
