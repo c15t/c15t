@@ -76,6 +76,35 @@ export type {
 	NonIABVendor,
 	NonIABVendorConsent,
 } from './shared/non-iab-vendor';
+export {
+	type PolicyDefaults,
+	policyDefaults,
+} from './shared/policy-defaults';
+export type {
+	PolicyConfig,
+	PolicyMatch,
+	PolicyMatchedBy,
+	PolicyModel,
+	PolicyScopeMode,
+	PolicyUiAction,
+	PolicyUiActionLayout,
+	PolicyUiMode,
+	PolicyUiProfile,
+	PolicyUiSurfaceConfig,
+	PolicyValidationResult,
+	ResolvedPolicyDecision,
+} from './shared/policy-runtime';
+export {
+	EEA_COUNTRY_CODES,
+	EU_COUNTRY_CODES,
+	IAB_POLICY_JURISDICTIONS,
+	inspectPolicies,
+	POLICY_MATCH_DATASET_VERSION,
+	policyMatchers,
+	resolvePolicyDecision,
+	UK_COUNTRY_CODES,
+	validatePolicies,
+} from './shared/policy-runtime';
 
 // Re-export constants for runtime checks (no Zod involved)
 export { brandingValues, jurisdictionCodes };

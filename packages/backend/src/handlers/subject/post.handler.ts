@@ -9,11 +9,11 @@ import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { generateUniqueId } from '~/db/registry/utils';
 import { getJurisdiction, getLocation } from '~/handlers/init/geo';
-import { resolvePolicyDecision } from '~/handlers/init/policy';
 import { verifyPolicySnapshotToken } from '~/handlers/policy/snapshot';
 import type { C15TContext } from '~/types';
 import { extractErrorMessage } from '~/utils/extract-error-message';
 import { getMetrics } from '~/utils/metrics';
+import { resolvePolicyDecision } from '../init/policy';
 
 function buildRuntimeDecisionDedupeKey(input: {
 	tenantId?: string;

@@ -1,3 +1,4 @@
+import { resolvePolicyDecision as resolvePolicyPackDecision } from '@c15t/schema/types';
 import {
 	deepMergeTranslations,
 	enTranslations,
@@ -9,6 +10,10 @@ import { checkJurisdiction } from '../../libs/jurisdiction';
 import type { OfflinePolicyConfig } from '../../store/type';
 import { defaultTranslationConfig } from '../../translations';
 import type { InitResponse } from '../client-interface';
+import {
+	buildFallbackInitData,
+	resolveFallbackPolicy,
+} from '../shared/init-fallback';
 import type { FetchOptions, ResponseContext } from '../types';
 import type { IABFallbackConfig } from './types';
 import { createResponseContext } from './utils';
@@ -78,14 +83,53 @@ export async function init(
 	}
 
 	const jurisdictionCode = checkJurisdiction(country, region);
+	const configuredPolicyPack =
+		policyConfig?.policies ?? policyConfig?.policyPack;
+	const resolvedPolicyPackDecision =
+		configuredPolicyPack && configuredPolicyPack.length > 0
+			? await resolvePolicyPackDecision({
+					policies: configuredPolicyPack,
+					countryCode: country,
+					regionCode: region,
+					jurisdiction: jurisdictionCode,
+				})
+			: undefined;
+
+	const shouldUseSyntheticFallbackDefaults =
+		!policyConfig?.policy &&
+		!resolvedPolicyPackDecision &&
+		!configuredPolicyPack?.length;
+
+	const resolvedPolicyConfig: OfflinePolicyConfig = {
+		...policyConfig,
+		policy:
+			policyConfig?.policy ??
+			resolvedPolicyPackDecision?.policy ??
+			(shouldUseSyntheticFallbackDefaults
+				? resolveFallbackPolicy({
+						iabEnabled: iabConfig?.enabled === true,
+					})
+				: undefined),
+		policyDecision:
+			policyConfig?.policyDecision ??
+			(resolvedPolicyPackDecision
+				? {
+						policyId: resolvedPolicyPackDecision.policy.id,
+						fingerprint: resolvedPolicyPackDecision.fingerprint,
+						matchedBy: resolvedPolicyPackDecision.matchedBy,
+						country,
+						region,
+						jurisdiction: jurisdictionCode,
+					}
+				: undefined),
+	};
 
 	// Get GVL for IAB mode.
 	// If a synthetic offline policy is provided, only fetch GVL when policy model is iab.
 	// Priority: 1) Pre-loaded from config, 2) Fetch from external endpoint
 	let gvl = null;
 	const shouldResolveIab =
-		iabConfig?.enabled &&
-		(!policyConfig?.policy || policyConfig.policy.model === 'iab');
+		iabConfig?.enabled && resolvedPolicyConfig.policy?.model === 'iab';
 	if (shouldResolveIab) {
 		if (iabConfig.gvl) {
 			// Use pre-loaded GVL from config (testing/SSR)
@@ -100,23 +144,17 @@ export async function init(
 		}
 	}
 
-	const responseData: InitResponse = {
+	const responseData = buildFallbackInitData({
 		jurisdiction: jurisdictionCode,
-		location: { countryCode: country, regionCode: region },
-		translations: {
-			language,
-			translations: translationsForLanguage,
-		},
-		branding: 'c15t',
+		countryCode: country,
+		regionCode: region,
+		language,
+		translations: translationsForLanguage,
 		gvl,
-		...(policyConfig?.policy ? { policy: policyConfig.policy } : {}),
-		...(policyConfig?.policyDecision
-			? { policyDecision: policyConfig.policyDecision }
-			: {}),
-		...(policyConfig?.policySnapshotToken
-			? { policySnapshotToken: policyConfig.policySnapshotToken }
-			: {}),
-	};
+		policy: resolvedPolicyConfig.policy,
+		policyDecision: resolvedPolicyConfig.policyDecision,
+		policySnapshotToken: resolvedPolicyConfig.policySnapshotToken,
+	});
 	const response = createResponseContext<InitResponse>(responseData);
 
 	// Call success callback if provided

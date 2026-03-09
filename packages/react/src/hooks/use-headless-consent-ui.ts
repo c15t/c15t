@@ -13,12 +13,17 @@ import {
 import { useConsentManager } from './use-consent-manager';
 
 export type HeadlessConsentSurface = 'banner' | 'dialog';
+export type HeadlessConsentBannerAction = PolicyAction;
+export type HeadlessConsentDialogAction = PolicyAction;
+export type HeadlessConsentAction = PolicyAction;
 
-export interface HeadlessConsentSurfaceState {
-	allowedActions: PolicyAction[];
-	orderedActions: PolicyAction[];
-	actionGroups: PolicyAction[][];
-	primaryAction: PolicyAction | null;
+export interface HeadlessConsentSurfaceState<
+	TAction extends string = HeadlessConsentAction,
+> {
+	allowedActions: TAction[];
+	orderedActions: TAction[];
+	actionGroups: TAction[][];
+	primaryAction: TAction | null;
 	actionLayout: PolicyActionLayout | null;
 	uiProfile: PolicyUiProfile | null;
 	hasPolicyHints: boolean;
@@ -26,26 +31,31 @@ export interface HeadlessConsentSurfaceState {
 	isVisible: boolean;
 }
 
+export type HeadlessConsentBannerState =
+	HeadlessConsentSurfaceState<HeadlessConsentBannerAction>;
+export type HeadlessConsentDialogState =
+	HeadlessConsentSurfaceState<HeadlessConsentDialogAction>;
+
 export interface UseHeadlessConsentUIResult {
 	activeUI: ReturnType<typeof useConsentManager>['activeUI'];
-	banner: HeadlessConsentSurfaceState;
-	dialog: HeadlessConsentSurfaceState;
+	banner: HeadlessConsentBannerState;
+	dialog: HeadlessConsentDialogState;
 	openBanner: (options?: { force?: boolean }) => void;
 	openDialog: () => void;
 	closeUI: () => void;
 	performAction: (
-		action: PolicyAction,
+		action: HeadlessConsentAction,
 		options: {
 			surface: HeadlessConsentSurface;
 			uiSource?: string;
 		}
 	) => Promise<void>;
 	performBannerAction: (
-		action: PolicyAction,
+		action: HeadlessConsentBannerAction,
 		options?: { uiSource?: string }
 	) => Promise<void>;
 	performDialogAction: (
-		action: PolicyAction,
+		action: HeadlessConsentDialogAction,
 		options?: { uiSource?: string }
 	) => Promise<void>;
 }
@@ -72,7 +82,7 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 		setActiveUI,
 	} = useConsentManager();
 
-	const banner = useMemo<HeadlessConsentSurfaceState>(() => {
+	const banner = useMemo<HeadlessConsentBannerState>(() => {
 		const allowedActions = resolvePolicyActionOrder({
 			allowedActions: policyBannerAllowedActions,
 			actionOrder: null,
@@ -119,7 +129,7 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 		policyBannerUiProfile,
 	]);
 
-	const dialog = useMemo<HeadlessConsentSurfaceState>(() => {
+	const dialog = useMemo<HeadlessConsentDialogState>(() => {
 		const allowedActions = resolvePolicyActionOrder({
 			allowedActions: policyDialogAllowedActions,
 			actionOrder: null,

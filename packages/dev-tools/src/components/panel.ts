@@ -17,6 +17,7 @@ import type { DevToolsPosition, StateManager } from '../core/state-manager';
 import type { StoreConnector } from '../core/store-connector';
 import animationStyles from '../styles/animations.module.css';
 import panelStyles from '../styles/panel.module.css';
+import { formatInitSource } from '../utils/init-source';
 import {
 	detectPreferenceTrigger,
 	getPreferenceCenterOpener,
@@ -339,6 +340,10 @@ export function createPanel(options: PanelOptions): PanelInstance {
 		const storeState = storeConnector.getState();
 		const isLoading = storeState?.isLoadingConsentInfo ?? false;
 		const diagnostics = storeConnector.getDiagnostics();
+		const initSource = formatInitSource(
+			storeState?.initDataSource ?? null,
+			storeState?.initDataSourceDetail ?? null
+		);
 
 		const statusChildren: HTMLElement[] = [
 			span({
@@ -361,6 +366,14 @@ export function createPanel(options: PanelOptions): PanelInstance {
 				span({
 					className: panelStyles.footerMeta,
 					text: `· ${diagnostics.namespace} · retry ${diagnostics.reconnectAttempts} · next ${formatRetryDelay(diagnostics.nextRetryInMs)}`,
+				})
+			);
+		}
+		if (isConnected) {
+			statusChildren.push(
+				span({
+					className: panelStyles.footerMeta,
+					text: `· Init: ${initSource}`,
 				})
 			);
 		}

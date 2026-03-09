@@ -161,4 +161,20 @@ describe('useHeadlessConsentUI', () => {
 			uiSource: 'headless-custom-dialog',
 		});
 	});
+
+	test('supports customize action on dialog and maps it to custom consent', async () => {
+		const saveConsents = vi.fn().mockResolvedValue(undefined);
+		const state = createMockState({
+			activeUI: 'none',
+			saveConsents,
+		});
+
+		const { result } = await renderHook(() => useHeadlessConsentUI(), {
+			wrapper: createWrapper(state),
+		});
+
+		await result.current.performDialogAction('customize');
+
+		expect(saveConsents).toHaveBeenCalledWith('custom', { uiSource: 'dialog' });
+	});
 });

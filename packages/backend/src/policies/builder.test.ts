@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { buildPolicyConfig, buildPolicyPack, policyBuilder } from './builder';
+import {
+	buildPolicyConfig,
+	buildPolicyPack,
+	buildPolicyPackWithDefault,
+	policyBuilder,
+} from './builder';
 
 describe('buildPolicyConfig', () => {
 	it('builds a policy from country model and categories', () => {
@@ -85,10 +90,45 @@ describe('policyBuilder', () => {
 		expect(pack[1]?.match.isDefault).toBe(true);
 	});
 
+	it('appends a default fallback policy when none is provided', () => {
+		const pack = buildPolicyPackWithDefault([
+			{ id: 'policy_ca', regions: [{ country: 'US', region: 'CA' }] },
+		]);
+
+		expect(pack).toHaveLength(2);
+		expect(pack[1]?.match.isDefault).toBe(true);
+		expect(pack[1]?.consent?.model).toBe('none');
+		expect(pack[1]?.ui?.mode).toBe('none');
+	});
+
+	it('uses a custom default fallback policy input when provided', () => {
+		const pack = buildPolicyPackWithDefault(
+			[{ id: 'policy_fr', countries: ['FR'], model: 'opt-in' }],
+			{
+				id: 'policy_custom_default',
+				name: 'Custom Default',
+				countries: ['DE'],
+				model: 'opt-out',
+				uiMode: 'dialog',
+			}
+		);
+
+		expect(pack).toHaveLength(2);
+		expect(pack[1]?.id).toBe('policy_custom_default');
+		expect(pack[1]?.match.isDefault).toBe(true);
+		expect(pack[1]?.match.countries).toBeUndefined();
+		expect(pack[1]?.consent?.model).toBe('opt-out');
+		expect(pack[1]?.ui?.mode).toBe('dialog');
+	});
+
 	it('exposes object helpers', () => {
 		const single = policyBuilder.create({ id: 'one', countries: ['DE'] });
 		const many = policyBuilder.createPack([{ id: 'two', countries: ['FR'] }]);
+		const withDefault = policyBuilder.createPackWithDefault([
+			{ id: 'three', countries: ['US'] },
+		]);
 		expect(single.match.countries).toEqual(['DE']);
 		expect(many[0]?.id).toBe('two');
+		expect(withDefault.at(-1)?.match.isDefault).toBe(true);
 	});
 });

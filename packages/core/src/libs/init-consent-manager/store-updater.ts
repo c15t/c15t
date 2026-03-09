@@ -21,6 +21,11 @@ import {
 import { initializeIABMode } from './iab-initializer';
 import type { ConsentBannerResponse, InitConsentManagerConfig } from './types';
 
+interface InitSourceMetadata {
+	initDataSource: ConsentStoreState['initDataSource'];
+	initDataSourceDetail?: string | null;
+}
+
 /**
  * Calculates auto-granted consents based on consent model and GPC signal.
  *
@@ -94,7 +99,8 @@ function computeAutoGrantInfo(
 function buildStoreUpdate(
 	data: ConsentBannerResponse,
 	config: InitConsentManagerConfig,
-	effectiveIABEnabled: boolean | undefined
+	effectiveIABEnabled: boolean | undefined,
+	initSourceMetadata?: InitSourceMetadata
 ): Partial<ConsentStoreState> {
 	const { get, initialTranslationConfig } = config;
 	const { consentInfo } = get();
@@ -135,6 +141,8 @@ function buildStoreUpdate(
 		policyPurposeIds: data.policy?.consent?.purposeIds ?? null,
 		policyScopeMode:
 			data.policy?.consent?.scopeMode ?? (data.policy ? 'unmanaged' : null),
+		initDataSource: initSourceMetadata?.initDataSource ?? null,
+		initDataSourceDetail: initSourceMetadata?.initDataSourceDetail ?? null,
 	};
 
 	// Show banner if no existing consent and regulation applies
@@ -261,7 +269,8 @@ export async function updateStore(
 	data: ConsentBannerResponse,
 	config: InitConsentManagerConfig,
 	_hasLocalStorageAccess: boolean,
-	prefetchedGVL?: GlobalVendorList | null
+	prefetchedGVL?: GlobalVendorList | null,
+	initSourceMetadata?: InitSourceMetadata
 ): Promise<void> {
 	const { set, get } = config;
 	const { consentInfo } = get();
@@ -296,7 +305,12 @@ export async function updateStore(
 	);
 
 	// Build and apply store update (pass effectiveIABEnabled so model is correctly set)
-	const storeUpdate = buildStoreUpdate(data, config, effectiveIABEnabled);
+	const storeUpdate = buildStoreUpdate(
+		data,
+		config,
+		effectiveIABEnabled,
+		initSourceMetadata
+	);
 
 	// If server disabled GVL, update the IAB config in the store
 	if (serverDisabledGVL && iab) {

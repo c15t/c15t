@@ -1,5 +1,5 @@
 import type { ConsentStoreState } from 'c15t';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderPolicyPanel } from '../../panels/policy';
 
 function createBaseState(
@@ -19,6 +19,8 @@ function createBaseState(
 		policyDialogActionOrder: null,
 		policyDialogActionLayout: null,
 		policyDialogUiProfile: null,
+		initDataSource: null,
+		initDataSourceDetail: null,
 		...overrides,
 	} as unknown as ConsentStoreState;
 }
@@ -39,6 +41,8 @@ describe('policy panel', () => {
 			policyBannerActionOrder: ['reject', 'accept'],
 			policyBannerActionLayout: 'inline',
 			policyBannerUiProfile: 'balanced',
+			initDataSource: 'backend-cache-hit',
+			initDataSourceDetail: 'x-vercel-cache=HIT',
 			lastBannerFetchData: {
 				jurisdiction: 'CCPA',
 				location: {
@@ -93,6 +97,9 @@ describe('policy panel', () => {
 		renderPolicyPanel(container, { getState: () => state });
 
 		expect(container.textContent).toContain('Policy Pack');
+		expect(container.textContent).toContain('Policy Reason Trace');
+		expect(container.textContent).toContain('region(US-CA)');
+		expect(container.textContent).toContain('MATCH -> policy_us_ca');
 		expect(container.textContent).toContain('policy_us_ca');
 		expect(container.textContent).toContain('region');
 		expect(container.textContent).toContain('Unmanaged');
@@ -105,10 +112,15 @@ describe('policy panel', () => {
 		expect(container.textContent).toContain('365 days');
 		expect(container.textContent).toContain('IP:on UA:on Lang:off');
 		expect(container.textContent).toContain('present');
+		expect(container.textContent).toContain(
+			'Backend (Cache Hit) [x-vercel-cache=HIT]'
+		);
+		expect(container.textContent).toContain('Policy Simulation');
 	});
 
 	it('shows empty state when no policy is active', () => {
 		const state = createBaseState({
+			initDataSource: 'offline-fallback',
 			lastBannerFetchData: {
 				jurisdiction: 'NONE',
 				location: { countryCode: 'AU', regionCode: null },
@@ -123,5 +135,58 @@ describe('policy panel', () => {
 		expect(container.textContent).toContain(
 			'No active policy matched for this request.'
 		);
+		expect(container.textContent).toContain('Init Source: Offline Fallback');
+		expect(container.textContent).toContain('decision metadata');
+		expect(container.textContent).toContain('UNAVAILABLE');
+	});
+
+	it('runs policy simulation callback from panel controls', () => {
+		const state = createBaseState({
+			overrides: {
+				country: 'CA',
+				region: 'ON',
+				language: 'fr',
+			},
+			lastBannerFetchData: {
+				jurisdiction: 'CCPA',
+				location: { countryCode: 'CA', regionCode: 'ON' },
+				translations: { language: 'fr', translations: {} },
+				branding: 'c15t',
+				policyDecision: {
+					policyId: 'policy_ca',
+					fingerprint: 'fp',
+					matchedBy: 'country',
+					country: 'CA',
+					region: null,
+					jurisdiction: 'CCPA',
+				},
+				policy: {
+					id: 'policy_ca',
+					model: 'opt-in',
+				},
+			} as unknown as ConsentStoreState['lastBannerFetchData'],
+		});
+
+		const onRunSimulation = vi.fn().mockResolvedValue(undefined);
+
+		renderPolicyPanel(container, {
+			getState: () => state,
+			onRunSimulation,
+		});
+
+		const runButton = [...container.querySelectorAll('button')].find(
+			(button) => button.textContent?.includes('Run Simulation') ?? false
+		);
+		if (!runButton) {
+			throw new Error('Run Simulation button not found');
+		}
+
+		runButton.click();
+
+		expect(onRunSimulation).toHaveBeenCalledWith({
+			country: 'CA',
+			region: 'ON',
+			language: 'fr',
+		});
 	});
 });

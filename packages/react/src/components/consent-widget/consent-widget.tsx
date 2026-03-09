@@ -2,8 +2,10 @@
 
 import styles from '@c15t/ui/styles/components/consent-widget.module.js';
 import { useState } from 'react';
-import type { PolicyAction } from '~/components/shared/libs/policy-actions';
-import { useHeadlessConsentUI } from '~/hooks/use-headless-consent-ui';
+import {
+	type HeadlessConsentDialogAction,
+	useHeadlessConsentUI,
+} from '~/hooks/use-headless-consent-ui';
 import { useTheme } from '~/hooks/use-theme';
 import { cnExt as cn } from '~/utils/cn';
 import { ConsentDialogFooter } from '../consent-dialog/atoms/card';
@@ -47,7 +49,10 @@ export const ConsentWidget = ({
 	const actionGroups = dialog.actionGroups;
 	const shouldFillActions = dialog.shouldFillActions;
 
-	const renderAction = (action: PolicyAction, className?: string) => {
+	const renderAction = (
+		action: HeadlessConsentDialogAction,
+		className?: string
+	) => {
 		switch (action) {
 			case 'accept':
 				return (

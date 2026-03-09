@@ -134,6 +134,8 @@ export const initialState: StoreRuntimeState = {
 	policyDialogUiProfile: null,
 	policyPurposeIds: null,
 	policyScopeMode: null,
+	initDataSource: null,
+	initDataSourceDetail: null,
 
 	/** IAB TCF state (null when not configured) */
 	iab: null,

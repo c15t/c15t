@@ -191,6 +191,37 @@ export function createPanelRenderer(
 			case 'policy':
 				renderPolicyPanel(container, {
 					getState: getStoreState,
+					onRunSimulation: async (overrides) => {
+						const store = storeConnector.getStore();
+						if (!store) {
+							return;
+						}
+						await store.getState().setOverrides({
+							country: overrides.country,
+							region: overrides.region,
+							language: overrides.language,
+						});
+						await store.getState().initConsentManager();
+						logEvent('info', 'Policy simulation executed', {
+							country: overrides.country,
+							region: overrides.region,
+							language: overrides.language,
+						});
+					},
+					onResetSimulation: async () => {
+						const store = storeConnector.getStore();
+						if (!store) {
+							return;
+						}
+						await store.getState().setOverrides({
+							country: undefined,
+							region: undefined,
+							language: undefined,
+							gpc: undefined,
+						});
+						await store.getState().initConsentManager();
+						logEvent('info', 'Policy simulation reset');
+					},
 				});
 				break;
 

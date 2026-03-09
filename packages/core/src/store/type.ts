@@ -3,7 +3,7 @@
  * Defines the core types and interfaces for the consent management store.
  */
 
-import type { Branding, InitOutput } from '@c15t/schema/types';
+import type { Branding, InitOutput, PolicyConfig } from '@c15t/schema/types';
 import type { Model } from '~/libs/determine-model';
 import type { StorageConfig } from '../libs/cookie';
 import type { HasCondition } from '../libs/has';
@@ -46,7 +46,25 @@ export type PolicyAction = 'accept' | 'reject' | 'customize';
 export type PolicyActionLayout = 'split' | 'inline';
 export type PolicyUiProfile = 'balanced' | 'compact' | 'strict';
 export type PolicyScopeMode = 'strict' | 'unmanaged';
+export type InitDataSource =
+	| 'ssr'
+	| 'backend'
+	| 'backend-cache-hit'
+	| 'offline-fallback'
+	| 'offline-mode'
+	| 'custom';
 export type OfflinePolicyConfig = {
+	/**
+	 * Backend-compatible policy pack resolved in offline mode using
+	 * region > country > jurisdiction > default precedence.
+	 */
+	policies?: PolicyConfig[];
+
+	/**
+	 * Alias for `policies` for ergonomics with backend `policyBuilder.createPack*`.
+	 */
+	policyPack?: PolicyConfig[];
+
 	/**
 	 * Synthetic runtime policy returned by offline mode init.
 	 *
@@ -65,6 +83,33 @@ export type OfflinePolicyConfig = {
 	 */
 	policySnapshotToken?: InitOutput['policySnapshotToken'];
 };
+
+/**
+ * SSR transport metadata for the `/init` request that produced {@link SSRInitialData}.
+ *
+ * @public
+ */
+export interface SSRInitRequestMetadata {
+	/**
+	 * End-to-end request duration in milliseconds (server-side measurement).
+	 */
+	requestDurationMs?: number;
+
+	/**
+	 * Cache diagnostics extracted from response headers.
+	 */
+	cache?: {
+		/**
+		 * Whether the `/init` response appears to be served from cache.
+		 */
+		isHit: boolean;
+
+		/**
+		 * Human-readable cache detail (for example, `x-vercel-cache=HIT, age=12`).
+		 */
+		detail: string | null;
+	};
+}
 
 /**
  * Initial data structure for SSR prefetching.
@@ -92,6 +137,11 @@ export interface SSRInitialData {
 	 * Note: When init returns 200 without gvl, client IAB settings are overridden to disabled.
 	 */
 	gvl?: GlobalVendorList | null;
+
+	/**
+	 * Optional metadata for debugging SSR transport behavior.
+	 */
+	metadata?: SSRInitRequestMetadata;
 }
 
 /**
@@ -504,6 +554,20 @@ export interface StoreRuntimeState extends StoreConfig {
 	 * Controls whether out-of-scope categories are treated as unmanaged at runtime.
 	 */
 	policyScopeMode: PolicyScopeMode | null;
+
+	/**
+	 * Source that provided the most recent `/init` payload used to hydrate runtime state.
+	 *
+	 * @remarks
+	 * This is useful for diagnostics and for authoring policy conditions around backend
+	 * availability/cache behavior without relying on volatile dimensions.
+	 */
+	initDataSource: InitDataSource | null;
+
+	/**
+	 * Optional source detail for diagnostics (for example, cache header values).
+	 */
+	initDataSourceDetail: string | null;
 
 	/**
 	 * IAB TCF 2.3 state and actions (null when not configured or not in IAB mode).

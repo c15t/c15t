@@ -80,6 +80,11 @@ export {
 export { useConsentManager } from './hooks/use-consent-manager';
 export { useFocusTrap } from './hooks/use-focus-trap';
 export {
+	type HeadlessConsentAction,
+	type HeadlessConsentBannerAction,
+	type HeadlessConsentBannerState,
+	type HeadlessConsentDialogAction,
+	type HeadlessConsentDialogState,
 	type HeadlessConsentSurface,
 	type HeadlessConsentSurfaceState,
 	type UseHeadlessConsentUIResult,

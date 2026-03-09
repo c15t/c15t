@@ -1,9 +1,9 @@
-import { validatePolicies } from '~/handlers/init/policy';
 import { validateMessages } from '~/handlers/init/translations';
 import type { C15TContext, C15TOptions } from '~/types';
 import { createRegistry } from './db/registry';
 import { DB } from './db/schema';
 import { withTenantScope } from './db/tenant-scope';
+import { inspectPolicies, validatePolicies } from './handlers/init/policy';
 import {
 	createTelemetryOptions,
 	isTelemetryEnabled,
@@ -89,6 +89,14 @@ export const init = (options: C15TOptions): C15TContext => {
 				.map((error) => `- ${error}`)
 				.join('\n')}`
 		);
+	}
+
+	const policyValidation = inspectPolicies(options.policies ?? [], {
+		iabEnabled: options.iab?.enabled === true,
+	});
+
+	for (const warning of policyValidation.warnings) {
+		logger.warn(`policies: ${warning}`);
 	}
 
 	validatePolicies(options.policies ?? [], {

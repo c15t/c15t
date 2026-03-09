@@ -8,7 +8,7 @@ const STANDALONE_PURPOSE_ID = 1;
 
 export type HeadlessIABPreferenceTab = 'purposes' | 'vendors';
 export type HeadlessIABBannerAction = 'accept' | 'reject' | 'customize';
-export type HeadlessIABDialogAction = 'accept' | 'reject' | 'save';
+export type HeadlessIABDialogAction = 'accept' | 'reject' | 'customize';
 
 export interface HeadlessIABBannerState {
 	isVisible: boolean;
@@ -245,7 +245,7 @@ export function useHeadlessIABConsentUI(): UseHeadlessIABConsentUIResult {
 					return acceptAll();
 				case 'reject':
 					return rejectAll();
-				case 'save':
+				case 'customize':
 					return savePreferences();
 			}
 		},

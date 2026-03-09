@@ -30,6 +30,8 @@ function createBaseState(
 		policyDialogActionOrder: null,
 		policyDialogActionLayout: null,
 		policyDialogUiProfile: null,
+		initDataSource: null,
+		initDataSourceDetail: null,
 		...overrides,
 	} as unknown as ConsentStoreState;
 }
@@ -49,6 +51,8 @@ describe('location panel', () => {
 			policyBannerPrimaryAction: 'accept',
 			policyBannerActionOrder: ['reject', 'accept'],
 			policyBannerActionLayout: 'inline',
+			initDataSource: 'backend-cache-hit',
+			initDataSourceDetail: 'x-vercel-cache=HIT',
 			lastBannerFetchData: {
 				jurisdiction: 'CCPA',
 				location: {
@@ -110,12 +114,16 @@ describe('location panel', () => {
 		expect(container.textContent).toContain('region');
 		expect(container.textContent).toContain('present');
 		expect(container.textContent).toContain(
+			'Backend (Cache Hit) [x-vercel-cache=HIT]'
+		);
+		expect(container.textContent).toContain(
 			'Open the Policy tab for full policy-pack diagnostics.'
 		);
 	});
 
 	it('shows empty policy state when no policy is active', () => {
 		const state = createBaseState({
+			initDataSource: 'offline-fallback',
 			lastBannerFetchData: {
 				jurisdiction: 'NONE',
 				location: { countryCode: 'AU', regionCode: null },
@@ -132,5 +140,6 @@ describe('location panel', () => {
 
 		expect(container.textContent).toContain('Active Policy');
 		expect(container.textContent).toContain('No active policy matched.');
+		expect(container.textContent).toContain('Offline Fallback');
 	});
 });

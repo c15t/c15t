@@ -24,6 +24,11 @@ describe('Offline Client Tests', () => {
 		expect(response.ok).toBe(true);
 		expect(response.data?.jurisdiction).toBe('GDPR');
 		expect(response.data?.location?.countryCode).toBe('GB');
+		expect(response.data?.policy?.id).toBe(
+			'policy_default_offline_opt_in_banner'
+		);
+		expect(response.data?.policy?.model).toBe('opt-in');
+		expect(response.data?.policy?.ui?.mode).toBe('banner');
 	});
 
 	it('should respect country header for jurisdiction determination', async () => {
@@ -48,6 +53,8 @@ describe('Offline Client Tests', () => {
 		expect(response.ok).toBe(true);
 		expect(response.data?.jurisdiction).toBe('NONE');
 		expect(response.data?.location?.countryCode).toBe('US');
+		expect(response.data?.policy?.model).toBe('opt-in');
+		expect(response.data?.policy?.ui?.mode).toBe('banner');
 	});
 
 	it('should handle region header', async () => {
@@ -117,6 +124,93 @@ describe('Offline Client Tests', () => {
 		expect(response.data?.policy?.ui?.mode).toBe('banner');
 		expect(response.data?.policyDecision?.matchedBy).toBe('region');
 		expect(response.data?.policySnapshotToken).toBe('offline-preview-token');
+	});
+
+	it('should resolve configured offline policy pack using backend matcher precedence', async () => {
+		const client = configureConsentManager({
+			mode: 'offline',
+			store: {
+				offlinePolicy: {
+					policies: [
+						{
+							id: 'policy_default_none',
+							match: { isDefault: true },
+							consent: { model: 'none' },
+							ui: { mode: 'none' },
+						},
+						{
+							id: 'policy_country_us',
+							match: { countries: ['US'] },
+							consent: { model: 'opt-out' },
+							ui: { mode: 'banner' },
+						},
+						{
+							id: 'policy_region_us_ca',
+							match: { regions: [{ country: 'US', region: 'CA' }] },
+							consent: { model: 'opt-in' },
+							ui: { mode: 'dialog' },
+						},
+					],
+				},
+			},
+		});
+
+		const response = await client.init({
+			headers: {
+				'x-c15t-country': 'US',
+				'x-c15t-region': 'CA',
+			},
+		});
+
+		expect(response.ok).toBe(true);
+		expect(response.data?.policy?.id).toBe('policy_region_us_ca');
+		expect(response.data?.policyDecision?.matchedBy).toBe('region');
+		expect(response.data?.policyDecision?.jurisdiction).toBe('NONE');
+	});
+
+	it('should omit policy when offline policy pack has no match and no default', async () => {
+		const client = configureConsentManager({
+			mode: 'offline',
+			store: {
+				offlinePolicy: {
+					policies: [
+						{
+							id: 'policy_country_us',
+							match: { countries: ['US'] },
+							consent: { model: 'opt-out' },
+							ui: { mode: 'banner' },
+						},
+					],
+				},
+			},
+		});
+
+		const response = await client.init({
+			headers: { 'x-c15t-country': 'FR' },
+		});
+
+		expect(response.ok).toBe(true);
+		expect(response.data?.policy).toBeUndefined();
+		expect(response.data?.policyDecision).toBeUndefined();
+	});
+
+	it('should default to an iab policy when offline iab is enabled', async () => {
+		const client = configureConsentManager({
+			mode: 'offline',
+			store: {
+				iab: {
+					enabled: true,
+					gvl: {} as never,
+				},
+			},
+		});
+
+		const response = await client.init();
+
+		expect(response.ok).toBe(true);
+		expect(response.data?.policy?.id).toBe('policy_default_offline_iab');
+		expect(response.data?.policy?.model).toBe('iab');
+		expect(response.data?.policy?.ui).toBeUndefined();
 	});
 
 	it('should handle language header', async () => {

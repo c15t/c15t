@@ -41,8 +41,11 @@ describe('Hosted Client Offline Fallback Tests', () => {
 			'API request failed, falling back to offline mode for consent banner'
 		);
 		expect(response.ok).toBe(true);
-		// Offline fallback returns jurisdiction directly as a string, not an object with code
 		expect(response.data?.jurisdiction).toBeDefined();
+		expect(response.data?.policy?.id).toBe(
+			'policy_default_offline_opt_in_banner'
+		);
+		expect(response.data?.policy?.model).toBe('opt-in');
 	});
 
 	it('should use offline fallback for setConsent on API failure', async () => {

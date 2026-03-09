@@ -269,5 +269,17 @@ export const initOutputSchema = v.object({
 export type InitOutput = v.InferOutput<typeof initOutputSchema>;
 export type TranslationsResponse = v.InferOutput<typeof translationsSchema>;
 export type LocationResponse = v.InferOutput<typeof locationSchema>;
+/**
+ * Runtime policy payload returned by `/init`.
+ *
+ * This is the fully resolved policy after backend geo/jurisdiction matching.
+ * Frontend clients can persist this object and reuse it as an outage fallback.
+ */
 export type ResolvedPolicy = v.InferOutput<typeof resolvedPolicySchema>;
+/**
+ * Explainability metadata describing how the runtime policy was matched.
+ *
+ * Includes the match strategy (`matchedBy`), normalized location context,
+ * and a deterministic policy fingerprint for snapshot consistency checks.
+ */
 export type PolicyDecision = v.InferOutput<typeof policyDecisionSchema>;

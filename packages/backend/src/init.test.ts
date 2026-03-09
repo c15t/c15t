@@ -3,7 +3,7 @@ import { init } from './init';
 import type { C15TOptions } from './types';
 
 // Use vi.hoisted so these are available inside vi.mock factories (which are hoisted)
-const { mockLogger, mockClient, mockClientOrm } = vi.hoisted(() => {
+const { mockLogger, mockClient } = vi.hoisted(() => {
 	const mockLogger = {
 		debug: vi.fn(),
 		info: vi.fn(),
@@ -17,7 +17,7 @@ const { mockLogger, mockClient, mockClientOrm } = vi.hoisted(() => {
 		orm: mockClientOrm,
 	});
 
-	return { mockLogger, mockClient, mockClientOrm };
+	return { mockLogger, mockClient };
 });
 
 // Mock local modules
@@ -134,6 +134,23 @@ describe('init', () => {
 
 		expect(() => init(options)).toThrow(
 			'Policies using consent.model="iab" require top-level iab.enabled=true'
+		);
+	});
+
+	it('logs policy warnings for non-fatal pack risks', () => {
+		const options = createOptions({
+			policies: [
+				{
+					id: 'policy_country_only',
+					match: { countries: ['US'] },
+				},
+			],
+		});
+
+		init(options);
+
+		expect(mockLogger.warn).toHaveBeenCalledWith(
+			'policies: No default policy configured. Requests that do not match region/country/jurisdiction will have no active policy.'
 		);
 	});
 });

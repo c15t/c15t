@@ -19,6 +19,7 @@ import {
 	span,
 } from '../core/renderer';
 import componentStyles from '../styles/components.module.css';
+import { formatInitSource } from '../utils/init-source';
 
 interface OverridePayload {
 	country?: string;
@@ -71,6 +72,10 @@ export function renderLocationPanel(
 	const initData = state.lastBannerFetchData;
 	const activePolicy = initData?.policy;
 	const policyDecision = initData?.policyDecision;
+	const initSource = formatInitSource(
+		state.initDataSource,
+		state.initDataSourceDetail
+	);
 
 	// Current location as a compact grid
 	const gridItems = [
@@ -81,6 +86,7 @@ export function renderLocationPanel(
 			'Language',
 			translationConfig?.defaultLanguage || '—'
 		),
+		createCompactInfoCard('Init Source', initSource),
 	];
 
 	// Add GPC status - shows effective state (override takes precedence)

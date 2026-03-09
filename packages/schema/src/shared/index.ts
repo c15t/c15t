@@ -39,3 +39,30 @@ export {
 	nonIABVendorConsentSchema,
 	nonIABVendorSchema,
 } from './non-iab-vendor';
+export {
+	type PolicyDefaults,
+	policyDefaults,
+} from './policy-defaults';
+export {
+	EEA_COUNTRY_CODES,
+	EU_COUNTRY_CODES,
+	IAB_POLICY_JURISDICTIONS,
+	inspectPolicies,
+	POLICY_MATCH_DATASET_VERSION,
+	type PolicyConfig,
+	type PolicyMatch,
+	type PolicyMatchedBy,
+	type PolicyModel,
+	type PolicyScopeMode,
+	type PolicyUiAction,
+	type PolicyUiActionLayout,
+	type PolicyUiMode,
+	type PolicyUiProfile,
+	type PolicyUiSurfaceConfig,
+	type PolicyValidationResult,
+	policyMatchers,
+	type ResolvedPolicyDecision,
+	resolvePolicyDecision,
+	UK_COUNTRY_CODES,
+	validatePolicies,
+} from './policy-runtime';

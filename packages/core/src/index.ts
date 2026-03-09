@@ -99,9 +99,11 @@ export { createConsentManagerStore } from './store';
 export type {
 	ActiveUI,
 	ConsentStoreState,
+	InitDataSource,
 	OfflinePolicyConfig,
 	PolicyActionLayout,
 	SSRInitialData,
+	SSRInitRequestMetadata,
 	StoreOptions,
 } from './store/type';
 // Export default translation config

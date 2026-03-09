@@ -12,10 +12,12 @@ export interface OfflineClientOptions {
 	iabConfig?: IABFallbackConfig;
 
 	/**
-	 * Optional synthetic runtime policy payload for offline mode.
+	 * Optional policy configuration for offline mode.
 	 *
 	 * @remarks
-	 * This allows policy-driven UI previews without a backend `/init` call.
+	 * Supports either:
+	 * - A backend-compatible policy pack (`policies` / `policyPack`) resolved offline
+	 * - A fully synthetic resolved policy payload for UI previewing
 	 */
 	policyConfig?: OfflinePolicyConfig;
 }

@@ -365,10 +365,13 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 };
 
 export { defineConfig } from './define-config';
+export type { PolicyValidationResult } from './handlers/init/policy';
+export { inspectPolicies } from './handlers/init/policy';
 export type { PolicyBuilderInput } from './policies/builder';
 export {
 	buildPolicyConfig,
 	buildPolicyPack,
+	buildPolicyPackWithDefault,
 	policyBuilder,
 } from './policies/builder';
 export type { EuropePolicyMode } from './policies/defaults';

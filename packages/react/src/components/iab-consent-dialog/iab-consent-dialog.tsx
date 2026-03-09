@@ -489,7 +489,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	};
 
 	const handleSave = () => {
-		void performDialogAction('save');
+		void performDialogAction('customize');
 	};
 
 	const handleClose = () => {

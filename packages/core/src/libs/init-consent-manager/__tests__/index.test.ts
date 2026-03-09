@@ -335,6 +335,155 @@ describe('initConsentManager', () => {
 	});
 
 	describe('Store updates', () => {
+		it('stores init source as ssr when SSR prefetched data is used', async () => {
+			const mockResponse = createMockConsentBannerResponse();
+			const ssrData = Promise.resolve({
+				init: mockResponse,
+				gvl: undefined,
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+				ssrData,
+			});
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					initDataSource: 'ssr',
+					initDataSourceDetail: 'via=ssr',
+				})
+			);
+		});
+
+		it('maps SSR cache metadata to backend-cache-hit source', async () => {
+			const mockResponse = createMockConsentBannerResponse();
+			const ssrData = Promise.resolve({
+				init: mockResponse,
+				gvl: undefined,
+				metadata: {
+					requestDurationMs: 42,
+					cache: {
+						isHit: true,
+						detail: 'x-vercel-cache=HIT, age=12',
+					},
+				},
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+				ssrData,
+			});
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					initDataSource: 'backend-cache-hit',
+					initDataSourceDetail:
+						'via=ssr, x-vercel-cache=HIT, age=12, duration=42ms',
+				})
+			);
+		});
+
+		it('stores backend-cache-hit source from cache headers', async () => {
+			const mockResponse = createMockConsentBannerResponse();
+			mockManager.init = vi.fn().mockResolvedValue({
+				data: mockResponse,
+				error: null,
+				response: new Response(JSON.stringify(mockResponse), {
+					status: 200,
+					headers: {
+						'content-type': 'application/json',
+						'x-vercel-cache': 'HIT',
+					},
+				}),
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					initDataSource: 'backend-cache-hit',
+					initDataSourceDetail: 'x-vercel-cache=HIT',
+				})
+			);
+		});
+
+		it('stores offline-fallback source for hosted mode with null response', async () => {
+			const mockResponse = createMockConsentBannerResponse();
+			mockState.config.mode = 'hosted';
+			mockManager.init = vi.fn().mockResolvedValue({
+				data: mockResponse,
+				error: null,
+				response: null,
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					initDataSource: 'offline-fallback',
+					initDataSourceDetail: null,
+				})
+			);
+		});
+
+		it('stores offline-mode source for offline client mode', async () => {
+			const mockResponse = createMockConsentBannerResponse();
+			mockState.config.mode = 'offline';
+			mockManager.init = vi.fn().mockResolvedValue({
+				data: mockResponse,
+				error: null,
+				response: null,
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					initDataSource: 'offline-mode',
+					initDataSourceDetail: null,
+				})
+			);
+		});
+
+		it('stores custom source for custom client mode', async () => {
+			const mockResponse = createMockConsentBannerResponse();
+			mockState.config.mode = 'custom';
+			mockManager.init = vi.fn().mockResolvedValue({
+				data: mockResponse,
+				error: null,
+				response: null,
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					initDataSource: 'custom',
+					initDataSourceDetail: null,
+				})
+			);
+		});
+
 		it('should update store with consent banner data', async () => {
 			const mockResponse = createMockConsentBannerResponse();
 

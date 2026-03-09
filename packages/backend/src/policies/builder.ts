@@ -37,6 +37,14 @@ export interface PolicyBuilderInput {
 	};
 }
 
+const DEFAULT_FALLBACK_POLICY_INPUT: PolicyBuilderInput = {
+	id: 'policy_default_world_no_banner',
+	name: 'World No Banner',
+	isDefault: true,
+	model: 'none',
+	uiMode: 'none',
+};
+
 function dedupeStrings(values?: string[]): string[] | undefined {
 	if (!values || values.length === 0) {
 		return undefined;
@@ -116,7 +124,32 @@ export function buildPolicyPack(inputs: PolicyBuilderInput[]): PolicyConfig[] {
 	return inputs.map((input) => buildPolicyConfig(input));
 }
 
+export function buildPolicyPackWithDefault(
+	inputs: PolicyBuilderInput[],
+	defaultPolicy?: PolicyBuilderInput
+): PolicyConfig[] {
+	const pack = buildPolicyPack(inputs);
+	const hasDefault = pack.some((policy) => policy.match.isDefault);
+
+	if (hasDefault) {
+		return pack;
+	}
+
+	const fallbackInput = defaultPolicy
+		? {
+				...defaultPolicy,
+				isDefault: true,
+				countries: undefined,
+				regions: undefined,
+				jurisdictions: undefined,
+			}
+		: DEFAULT_FALLBACK_POLICY_INPUT;
+
+	return [...pack, buildPolicyConfig(fallbackInput)];
+}
+
 export const policyBuilder = {
 	create: buildPolicyConfig,
 	createPack: buildPolicyPack,
+	createPackWithDefault: buildPolicyPackWithDefault,
 };

@@ -37,7 +37,7 @@ const IABConsentDialogFooter = forwardRef<
 	};
 
 	const handleSave = () => {
-		void performDialogAction('save');
+		void performDialogAction('customize');
 	};
 
 	const themedStyle = useStyles('iabConsentDialogFooter', {

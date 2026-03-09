@@ -9,11 +9,11 @@ import { Hono } from 'hono';
 import { describeRoute, resolver } from 'hono-openapi';
 import { createGVLResolver } from '~/cache/gvl-resolver';
 import { getJurisdiction, getLocation } from '~/handlers/init/geo';
-import { resolvePolicyDecision } from '~/handlers/init/policy';
 import { getTranslationsData } from '~/handlers/init/translations';
 import { createPolicySnapshotToken } from '~/handlers/policy/snapshot';
 import type { C15TContext, C15TOptions } from '~/types';
 import { getMetrics } from '~/utils/metrics';
+import { resolvePolicyDecision } from '../handlers/init/policy';
 
 function stripIabTranslations(
 	translations: Record<string, unknown>

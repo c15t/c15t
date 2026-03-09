@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { resolvePolicyDecision, validatePolicies } from './policy';
+import {
+	inspectPolicies,
+	resolvePolicyDecision,
+	validatePolicies,
+} from './policy';
 
 describe('resolvePolicyDecision', () => {
 	it('matches with precedence region > country > jurisdiction > default', async () => {
@@ -285,6 +289,81 @@ describe('validatePolicies', () => {
 			)
 		).toThrow(
 			'Policy \'gdpr_iab\' uses consent.model="iab" and cannot define ui.* overrides. IAB banner/dialog controls are fixed by TCF mode.'
+		);
+	});
+
+	it('throws when policy IDs are duplicated', () => {
+		expect(() =>
+			validatePolicies([
+				{ id: 'dup', match: { countries: ['US'] } },
+				{ id: 'dup', match: { countries: ['GB'] } },
+			])
+		).toThrow(
+			"Policy IDs must be unique. Duplicate id 'dup' found at indexes 0 and 1."
+		);
+	});
+
+	it('throws when policy has no matcher and is not default', () => {
+		expect(() => validatePolicies([{ id: 'no_match', match: {} }])).toThrow(
+			"Policy 'no_match' has no matcher. Add countries, regions, jurisdictions, or set match.isDefault=true."
+		);
+	});
+});
+
+describe('inspectPolicies', () => {
+	it('warns when no default policy is configured', () => {
+		const result = inspectPolicies([
+			{
+				id: 'country_only',
+				match: { countries: ['US'] },
+			},
+		]);
+
+		expect(result.errors).toEqual([]);
+		expect(result.warnings).toContain(
+			'No default policy configured. Requests that do not match region/country/jurisdiction will have no active policy.'
+		);
+	});
+
+	it('warns about overlapping matchers and mixed default matchers', () => {
+		const result = inspectPolicies([
+			{
+				id: 'policy_a',
+				match: {
+					countries: ['US'],
+					regions: [{ country: 'US', region: 'CA' }],
+				},
+			},
+			{
+				id: 'policy_b',
+				match: {
+					countries: ['US'],
+					regions: [{ country: 'US', region: 'CA' }],
+					jurisdictions: ['CCPA'],
+				},
+			},
+			{
+				id: 'policy_default',
+				match: { isDefault: true, countries: ['DE'] },
+			},
+			{
+				id: 'policy_jurisdiction_overlap',
+				match: { jurisdictions: ['CCPA'] },
+			},
+		]);
+
+		expect(result.errors).toEqual([]);
+		expect(result.warnings).toContain(
+			"Country matcher 'US' appears in multiple policies ('policy_a' and 'policy_b'). First match wins by array order."
+		);
+		expect(result.warnings).toContain(
+			"Region matcher 'US-CA' appears in multiple policies ('policy_a' and 'policy_b'). First match wins by array order."
+		);
+		expect(result.warnings).toContain(
+			"Jurisdiction matcher 'CCPA' appears in multiple policies ('policy_b' and 'policy_jurisdiction_overlap'). First match wins by array order."
+		);
+		expect(result.warnings).toContain(
+			"Policy 'policy_default' is marked as default and also defines explicit matchers. Explicit matchers are ignored for default resolution."
 		);
 	});
 });
