@@ -5,6 +5,7 @@
  */
 
 import { initOutputSchema } from '@c15t/schema';
+import type { ResolvedPolicy } from '@c15t/schema/types';
 import { Hono } from 'hono';
 import { describeRoute, resolver } from 'hono-openapi';
 import { createGVLResolver } from '~/cache/gvl-resolver';
@@ -20,6 +21,16 @@ function stripIabTranslations(
 ): Record<string, unknown> {
 	const { iab: _iab, ...rest } = translations;
 	return rest;
+}
+
+function resolveNoPolicyFallback(): ResolvedPolicy {
+	return {
+		id: 'policy_default_no_banner',
+		model: 'none',
+		ui: {
+			mode: 'none',
+		},
+	};
 }
 
 /**
@@ -64,17 +75,25 @@ Use for geo-targeted consent banners and regional compliance.`,
 			// Get location and jurisdiction
 			const location = await getLocation(request, options);
 			const jurisdiction = getJurisdiction(location, options);
-			const policyDecision = await resolvePolicyDecision({
-				policies: options.policies,
-				countryCode: location.countryCode,
-				regionCode: location.regionCode,
-				jurisdiction,
-			});
+			const hasExplicitPolicyPack = options.policies !== undefined;
+			const isExplicitEmptyPolicyPack =
+				hasExplicitPolicyPack && (options.policies?.length ?? 0) === 0;
+			const policyDecision = isExplicitEmptyPolicyPack
+				? undefined
+				: await resolvePolicyDecision({
+						policies: options.policies,
+						countryCode: location.countryCode,
+						regionCode: location.regionCode,
+						jurisdiction,
+						iabEnabled: options.iab?.enabled === true,
+					});
+			const resolvedPolicy =
+				policyDecision?.policy ??
+				(isExplicitEmptyPolicyPack ? resolveNoPolicyFallback() : undefined);
 			const iabOptions = options.iab;
-			const hasPoliciesConfigured = (options.policies?.length ?? 0) > 0;
 			const shouldIncludeIabPayload =
 				iabOptions?.enabled === true &&
-				(!hasPoliciesConfigured || policyDecision?.policy.model === 'iab');
+				(!hasExplicitPolicyPack || resolvedPolicy?.model === 'iab');
 
 			// Get translations
 			const translationsResult = getTranslationsData(
@@ -82,7 +101,7 @@ Use for geo-targeted consent banners and regional compliance.`,
 				options.customTranslations,
 				{
 					i18n: options.i18n,
-					policyI18n: policyDecision?.policy.i18n,
+					policyI18n: resolvedPolicy?.i18n,
 					logger: ctx?.logger,
 				}
 			);
@@ -156,8 +175,10 @@ Use for geo-targeted consent banners and regional compliance.`,
 					gvl,
 					customVendors,
 				}),
+				...(resolvedPolicy && {
+					policy: resolvedPolicy,
+				}),
 				...(policyDecision && {
-					policy: policyDecision.policy,
 					policyDecision: {
 						policyId: policyDecision.policy.id,
 						fingerprint: policyDecision.fingerprint,

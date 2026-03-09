@@ -13,6 +13,7 @@ import type { InitResponse } from '../client-interface';
 import {
 	buildFallbackInitData,
 	resolveFallbackPolicy,
+	resolveNoPolicyFallback,
 } from '../shared/init-fallback';
 import type { FetchOptions, ResponseContext } from '../types';
 import type { IABFallbackConfig } from './types';
@@ -85,6 +86,11 @@ export async function init(
 	const jurisdictionCode = checkJurisdiction(country, region);
 	const configuredPolicyPack =
 		policyConfig?.policies ?? policyConfig?.policyPack;
+	const hasExplicitPolicyPack =
+		policyConfig?.policies !== undefined ||
+		policyConfig?.policyPack !== undefined;
+	const isExplicitEmptyPolicyPack =
+		hasExplicitPolicyPack && (configuredPolicyPack?.length ?? 0) === 0;
 	const usesIabPolicy =
 		configuredPolicyPack?.some((policy) => policy.consent?.model === 'iab') ??
 		false;
@@ -108,13 +114,14 @@ export async function init(
 	const shouldUseSyntheticFallbackDefaults =
 		!policyConfig?.policy &&
 		!resolvedPolicyPackDecision &&
-		!configuredPolicyPack?.length;
+		!hasExplicitPolicyPack;
 
 	const resolvedPolicyConfig: OfflinePolicyConfig = {
 		...policyConfig,
 		policy:
 			policyConfig?.policy ??
 			resolvedPolicyPackDecision?.policy ??
+			(isExplicitEmptyPolicyPack ? resolveNoPolicyFallback() : undefined) ??
 			(shouldUseSyntheticFallbackDefaults
 				? resolveFallbackPolicy({
 						iabEnabled: iabConfig?.enabled === true,

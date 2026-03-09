@@ -34,6 +34,7 @@ interface InitTestResponseBody {
 		model?: string;
 		consent?: { purposeIds?: string[] };
 		ui?: {
+			mode?: string;
 			banner?: {
 				actionOrder?: string[];
 				actionLayout?: string;
@@ -190,5 +191,31 @@ describe('createInitRoute IAB policy gating', () => {
 		expect(body.translations?.translations?.iab).toBeDefined();
 		expect(mockCreateGVLResolver).toHaveBeenCalledTimes(1);
 		expect(mockGVLGet).toHaveBeenCalledWith('en');
+	});
+
+	it('treats an explicit empty policy pack as no-banner mode', async () => {
+		const app = createInitRoute(
+			createOptions({
+				iab: { enabled: true, cmpId: 404 },
+				policies: [],
+			})
+		);
+
+		const response = await app.request('http://localhost/', {
+			headers: new Headers({
+				'x-c15t-country': 'DE',
+				'accept-language': 'en-US',
+			}),
+		});
+		const body = (await response.json()) as InitTestResponseBody;
+
+		expect(response.status).toBe(200);
+		expect(body.policy?.model).toBe('none');
+		expect(body.policy?.ui?.mode).toBe('none');
+		expect(body.gvl).toBeUndefined();
+		expect(body.cmpId).toBeUndefined();
+		expect(body.customVendors).toBeUndefined();
+		expect(body.translations?.translations?.iab).toBeUndefined();
+		expect(mockCreateGVLResolver).not.toHaveBeenCalled();
 	});
 });

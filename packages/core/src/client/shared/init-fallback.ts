@@ -4,6 +4,16 @@ import type { InitResponse } from '../client-interface';
 
 type InitFallbackPolicy = NonNullable<InitResponse['policy']>;
 
+export function resolveNoPolicyFallback(): InitFallbackPolicy {
+	return {
+		id: 'policy_default_no_banner',
+		model: 'none',
+		ui: {
+			mode: 'none',
+		},
+	};
+}
+
 interface ResolveFallbackPolicyOptions {
 	explicitPolicy?: InitResponse['policy'];
 	iabEnabled?: boolean;

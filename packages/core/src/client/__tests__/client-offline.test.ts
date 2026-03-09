@@ -219,6 +219,27 @@ describe('Offline Client Tests', () => {
 		expect(response.data?.policyDecision).toBeUndefined();
 	});
 
+	it('should treat an explicit empty offline policy pack as no-banner mode', async () => {
+		const client = configureConsentManager({
+			mode: 'offline',
+			store: {
+				offlinePolicy: {
+					policies: [],
+				},
+			},
+		});
+
+		const response = await client.init({
+			headers: { 'x-c15t-country': 'DE' },
+		});
+
+		expect(response.ok).toBe(true);
+		expect(response.data?.policy?.id).toBe('policy_default_no_banner');
+		expect(response.data?.policy?.model).toBe('none');
+		expect(response.data?.policy?.ui?.mode).toBe('none');
+		expect(response.data?.policyDecision).toBeUndefined();
+	});
+
 	it('should default to an iab policy when offline iab is enabled', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
