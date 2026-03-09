@@ -1,3 +1,9 @@
+import {
+	type JWTHeaderParameters,
+	type JWTPayload,
+	jwtVerify,
+	SignJWT,
+} from 'jose';
 import type {
 	JurisdictionCode,
 	PolicyModel,
@@ -17,7 +23,10 @@ export interface PolicySnapshotUiSurface {
 	scrollLock?: PolicyUiSurfaceConfig['scrollLock'];
 }
 
-export interface PolicySnapshotPayload {
+export interface PolicySnapshotPayload extends JWTPayload {
+	iss: string;
+	aud: string;
+	sub: string;
 	tenantId?: string;
 	policyId: string;
 	fingerprint: string;
@@ -27,12 +36,17 @@ export interface PolicySnapshotPayload {
 	jurisdiction: JurisdictionCode;
 	language?: string;
 	model: PolicyModel;
+	policyI18n?: {
+		language?: string;
+		messageProfile?: string;
+	};
 	expiryDays?: number;
 	scopeMode?: PolicyScopeMode;
 	uiMode?: PolicyUiMode;
 	bannerUi?: PolicySnapshotUiSurface;
 	dialogUi?: PolicySnapshotUiSurface;
 	categories?: string[];
+	preselectedCategories?: string[];
 	proofConfig?: {
 		storeIp?: boolean;
 		storeUserAgent?: boolean;
@@ -42,55 +56,55 @@ export interface PolicySnapshotPayload {
 	exp: number;
 }
 
-function toBase64Url(bytes: Uint8Array): string {
-	const bin = String.fromCharCode(...bytes);
-	return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+interface JwtHeader extends JWTHeaderParameters {
+	alg: 'HS256';
+	typ: 'JWT';
 }
 
-function fromBase64Url(input: string): Uint8Array {
-	const base64 = input.replace(/-/g, '+').replace(/_/g, '/');
-	const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
-	const bin = atob(padded);
-	const bytes = new Uint8Array(bin.length);
-	for (let i = 0; i < bin.length; i += 1) {
-		bytes[i] = bin.charCodeAt(i);
+const POLICY_SNAPSHOT_JWT_HEADER: JwtHeader = {
+	alg: 'HS256',
+	typ: 'JWT',
+};
+const DEFAULT_POLICY_SNAPSHOT_ISSUER = 'c15t';
+const DEFAULT_POLICY_SNAPSHOT_AUDIENCE = 'c15t-policy-snapshot';
+
+function resolveSnapshotIssuer(options?: PolicySnapshotOptions): string {
+	return options?.issuer?.trim() || DEFAULT_POLICY_SNAPSHOT_ISSUER;
+}
+
+function resolveSnapshotAudience(params: {
+	options?: PolicySnapshotOptions;
+	tenantId?: string;
+}): string {
+	const configuredAudience = params.options?.audience?.trim();
+	if (configuredAudience) {
+		return configuredAudience;
 	}
-	return bytes;
+
+	return params.tenantId
+		? `${DEFAULT_POLICY_SNAPSHOT_AUDIENCE}:${params.tenantId}`
+		: DEFAULT_POLICY_SNAPSHOT_AUDIENCE;
 }
 
-async function getSigningKey(secret: string): Promise<unknown> {
-	return crypto.subtle.importKey(
-		'raw',
-		new TextEncoder().encode(secret),
-		{ name: 'HMAC', hash: 'SHA-256' },
-		false,
-		['sign', 'verify']
-	);
+function getSigningKey(secret: string): Uint8Array {
+	return new TextEncoder().encode(secret);
 }
 
-async function sign(input: string, secret: string): Promise<string> {
-	const key = await getSigningKey(secret);
-	const signature = await crypto.subtle.sign(
-		'HMAC',
-		key as never,
-		new TextEncoder().encode(input)
+function isPolicySnapshotPayload(
+	payload: JWTPayload
+): payload is PolicySnapshotPayload {
+	return (
+		typeof payload.policyId === 'string' &&
+		typeof payload.fingerprint === 'string' &&
+		typeof payload.matchedBy === 'string' &&
+		typeof payload.jurisdiction === 'string' &&
+		typeof payload.model === 'string' &&
+		typeof payload.iss === 'string' &&
+		typeof payload.aud === 'string' &&
+		typeof payload.sub === 'string' &&
+		typeof payload.iat === 'number' &&
+		typeof payload.exp === 'number'
 	);
-	return toBase64Url(new Uint8Array(signature));
-}
-
-async function verify(
-	input: string,
-	signature: string,
-	secret: string
-): Promise<boolean> {
-	const key = await getSigningKey(secret);
-	const isValid = await crypto.subtle.verify(
-		'HMAC',
-		key as never,
-		fromBase64Url(signature),
-		new TextEncoder().encode(input)
-	);
-	return isValid;
 }
 
 export async function createPolicySnapshotToken(params: {
@@ -104,12 +118,17 @@ export async function createPolicySnapshotToken(params: {
 	jurisdiction: JurisdictionCode;
 	language?: string;
 	model: PolicyModel;
+	policyI18n?: {
+		language?: string;
+		messageProfile?: string;
+	};
 	expiryDays?: number;
 	scopeMode?: PolicyScopeMode;
 	uiMode?: PolicyUiMode;
 	bannerUi?: PolicySnapshotUiSurface;
 	dialogUi?: PolicySnapshotUiSurface;
 	categories?: string[];
+	preselectedCategories?: string[];
 	proofConfig?: {
 		storeIp?: boolean;
 		storeUserAgent?: boolean;
@@ -123,7 +142,16 @@ export async function createPolicySnapshotToken(params: {
 
 	const iat = Math.floor(Date.now() / 1000);
 	const ttlSeconds = options.ttlSeconds ?? 1800;
+	const exp = iat + ttlSeconds;
+	const iss = resolveSnapshotIssuer(options);
+	const aud = resolveSnapshotAudience({
+		options,
+		tenantId: params.tenantId,
+	});
 	const payload: PolicySnapshotPayload = {
+		iss,
+		aud,
+		sub: params.policyId,
 		tenantId: params.tenantId,
 		policyId: params.policyId,
 		fingerprint: params.fingerprint,
@@ -133,24 +161,27 @@ export async function createPolicySnapshotToken(params: {
 		jurisdiction: params.jurisdiction,
 		language: params.language,
 		model: params.model,
+		policyI18n: params.policyI18n,
 		expiryDays: params.expiryDays,
 		scopeMode: params.scopeMode,
 		uiMode: params.uiMode,
 		bannerUi: params.bannerUi,
 		dialogUi: params.dialogUi,
 		categories: params.categories,
+		preselectedCategories: params.preselectedCategories,
 		proofConfig: params.proofConfig,
 		iat,
-		exp: iat + ttlSeconds,
+		exp,
 	};
 
-	const encodedPayload = toBase64Url(
-		new TextEncoder().encode(JSON.stringify(payload))
-	);
-	const signature = await sign(encodedPayload, options.signingKey);
+	const token = await new SignJWT(payload)
+		.setProtectedHeader(POLICY_SNAPSHOT_JWT_HEADER)
+		.setIssuedAt(iat)
+		.setExpirationTime(exp)
+		.sign(getSigningKey(options.signingKey));
 
 	return {
-		token: `${encodedPayload}.${signature}`,
+		token,
 		payload,
 	};
 }
@@ -158,27 +189,37 @@ export async function createPolicySnapshotToken(params: {
 export async function verifyPolicySnapshotToken(params: {
 	token?: string;
 	options?: PolicySnapshotOptions;
+	tenantId?: string;
 }): Promise<PolicySnapshotPayload | null> {
-	const { token, options } = params;
+	const { token, options, tenantId } = params;
 	if (!token || !options?.signingKey) {
 		return null;
 	}
 
-	const [encodedPayload, signature] = token.split('.');
-	if (!encodedPayload || !signature) {
-		return null;
-	}
-
-	const isValid = await verify(encodedPayload, signature, options.signingKey);
-	if (!isValid) {
+	if (token.split('.').length !== 3) {
 		return null;
 	}
 
 	try {
-		const payloadJson = new TextDecoder().decode(fromBase64Url(encodedPayload));
-		const payload = JSON.parse(payloadJson) as PolicySnapshotPayload;
-		const now = Math.floor(Date.now() / 1000);
-		if (payload.exp < now) {
+		const { payload, protectedHeader } = await jwtVerify(
+			token,
+			getSigningKey(options.signingKey),
+			{
+				issuer: resolveSnapshotIssuer(options),
+				audience: resolveSnapshotAudience({ options, tenantId }),
+			}
+		);
+		const header = protectedHeader as Partial<JwtHeader>;
+		if (header.alg !== 'HS256' || header.typ !== 'JWT') {
+			return null;
+		}
+		if (!isPolicySnapshotPayload(payload)) {
+			return null;
+		}
+		if (payload.sub !== payload.policyId) {
+			return null;
+		}
+		if ((tenantId ?? undefined) !== (payload.tenantId ?? undefined)) {
 			return null;
 		}
 		return payload;

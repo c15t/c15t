@@ -6,7 +6,10 @@ export {
 	configureConsentManager,
 	defaultTranslationConfig,
 	detectBrowserLanguage,
+	type EuropePolicyMode,
 	mergeTranslationConfigs,
+	type PolicyPackDefaults,
+	policyPackDefaults,
 	// Translation utilities
 	prepareTranslationConfig,
 } from 'c15t';

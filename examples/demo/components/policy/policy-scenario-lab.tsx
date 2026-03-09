@@ -34,6 +34,7 @@ type InitResponse = {
 			expiryDays?: number;
 			scopeMode?: PolicyScopeMode;
 			categories?: string[];
+			preselectedCategories?: string[];
 		};
 		ui?: {
 			mode?: PolicyUiMode;

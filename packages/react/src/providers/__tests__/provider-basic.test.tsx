@@ -1,6 +1,7 @@
 import { defaultTranslationConfig } from 'c15t';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+import { useConsentManager } from '~/hooks/use-consent-manager';
 import { ConsentManagerProvider } from '~/index';
 
 // Mock fetch globally
@@ -186,5 +187,46 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		// Should still have no fetch calls
 		expect(mockFetch).not.toHaveBeenCalled();
+	});
+
+	it('should resolve top-level policyPacks in offline mode', async () => {
+		const PolicyProbe = () => {
+			const { model, activeUI } = useConsentManager();
+			return (
+				<div data-testid="policy-probe">
+					{JSON.stringify({ model, activeUI })}
+				</div>
+			);
+		};
+
+		const { getByTestId } = await render(
+			<ConsentManagerProvider
+				options={{
+					mode: 'offline',
+					policyPacks: [
+						{
+							id: 'policy_region_us_ca',
+							match: { regions: [{ country: 'US', region: 'CA' }] },
+							consent: { model: 'opt-out' },
+							ui: { mode: 'banner' },
+						},
+					],
+					overrides: {
+						country: 'US',
+						region: 'CA',
+					},
+				}}
+			>
+				<PolicyProbe />
+			</ConsentManagerProvider>
+		);
+
+		await vi.runAllTimersAsync();
+
+		expect(mockFetch).not.toHaveBeenCalled();
+		expect(getByTestId('policy-probe')).toHaveTextContent('"model":"opt-out"');
+		expect(getByTestId('policy-probe')).toHaveTextContent(
+			'"activeUI":"banner"'
+		);
 	});
 });

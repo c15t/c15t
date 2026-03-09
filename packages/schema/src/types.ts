@@ -80,7 +80,20 @@ export {
 	type PolicyDefaults,
 	policyDefaults,
 } from './shared/policy-defaults';
+export {
+	createDeterministicFingerprint,
+	createDeterministicFingerprintSync,
+	createPolicyFingerprint,
+	hashSha256Hex,
+	stableStringify,
+} from './shared/policy-fingerprint';
 export type {
+	EuropePolicyMode,
+	PolicyPackDefaults,
+} from './shared/policy-pack-defaults';
+export { policyPackDefaults } from './shared/policy-pack-defaults';
+export type {
+	FingerprintHashStrategy,
 	PolicyConfig,
 	PolicyMatch,
 	PolicyMatchedBy,

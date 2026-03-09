@@ -25,10 +25,12 @@ CREATE TABLE IF NOT EXISTS public."runtimePolicyDecision" (
 	"jurisdiction" text NOT NULL,
 	"language" text NULL,
 	"model" text NOT NULL,
+	"policyI18n" json NULL,
 	"uiMode" text NULL,
 	"bannerUi" json NULL,
 	"dialogUi" json NULL,
 	"categories" json NULL,
+	"preselectedCategories" json NULL,
 	"proofConfig" json NULL,
 	"dedupeKey" text NOT NULL,
 	"createdAt" timestamp without time zone NOT NULL DEFAULT now()
@@ -59,6 +61,18 @@ ADD COLUMN IF NOT EXISTS "bannerUi" json NULL;
 
 ALTER TABLE public."runtimePolicyDecision"
 ADD COLUMN IF NOT EXISTS "dialogUi" json NULL;
+
+ALTER TABLE public."runtimePolicyDecision"
+ADD COLUMN IF NOT EXISTS "categories" json NULL;
+
+ALTER TABLE public."runtimePolicyDecision"
+ADD COLUMN IF NOT EXISTS "preselectedCategories" json NULL;
+
+ALTER TABLE public."runtimePolicyDecision"
+ADD COLUMN IF NOT EXISTS "policyI18n" json NULL;
+
+ALTER TABLE public."runtimePolicyDecision"
+ADD COLUMN IF NOT EXISTS "proofConfig" json NULL;
 
 ALTER TABLE public."consent"
 ADD COLUMN IF NOT EXISTS "runtimePolicyDecisionId" text NULL;

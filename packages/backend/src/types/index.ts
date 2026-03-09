@@ -318,6 +318,16 @@ export interface PolicySnapshotOptions {
 	 */
 	signingKey: string;
 	/**
+	 * JWT issuer claim for snapshot tokens.
+	 * @default "c15t"
+	 */
+	issuer?: string;
+	/**
+	 * JWT audience claim for snapshot tokens.
+	 * When omitted, c15t derives a default snapshot audience and scopes it per tenant.
+	 */
+	audience?: string;
+	/**
 	 * Snapshot token lifetime in seconds.
 	 * @default 1800 (30 minutes)
 	 */

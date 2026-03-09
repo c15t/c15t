@@ -124,6 +124,7 @@
 		"fumadb": "0.2.1",
 		"hono": "4.11.7",
 		"hono-openapi": "1.2.0",
+		"jose": "6.2.1",
 		"valibot": "1.2.0"
 	},
 	"devDependencies": {

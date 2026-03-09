@@ -7,6 +7,7 @@ interface RuntimePolicyDecisionUiSurface {
 	actionOrder?: Array<'accept' | 'reject' | 'customize'>;
 	actionLayout?: 'split' | 'inline';
 	uiProfile?: 'balanced' | 'compact' | 'strict';
+	scrollLock?: boolean;
 }
 
 export interface RuntimePolicyDecisionInput {
@@ -19,10 +20,15 @@ export interface RuntimePolicyDecisionInput {
 	jurisdiction: string;
 	language?: string;
 	model: PolicyModel;
+	policyI18n?: {
+		language?: string;
+		messageProfile?: string;
+	};
 	uiMode?: 'none' | 'banner' | 'dialog';
 	bannerUi?: RuntimePolicyDecisionUiSurface;
 	dialogUi?: RuntimePolicyDecisionUiSurface;
 	categories?: string[];
+	preselectedCategories?: string[];
 	proofConfig?: {
 		storeIp?: boolean;
 		storeUserAgent?: boolean;
@@ -63,10 +69,14 @@ export function runtimePolicyDecisionRegistry({ db, ctx }: Registry) {
 				jurisdiction: input.jurisdiction,
 				language: input.language,
 				model: input.model,
+				policyI18n: input.policyI18n ? { json: input.policyI18n } : undefined,
 				uiMode: input.uiMode,
 				bannerUi: input.bannerUi ? { json: input.bannerUi } : undefined,
 				dialogUi: input.dialogUi ? { json: input.dialogUi } : undefined,
 				categories: input.categories ? { json: input.categories } : undefined,
+				preselectedCategories: input.preselectedCategories
+					? { json: input.preselectedCategories }
+					: undefined,
 				proofConfig: input.proofConfig
 					? { json: input.proofConfig }
 					: undefined,

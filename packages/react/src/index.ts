@@ -4,7 +4,9 @@ export type {
 	ConsentManagerInterface,
 	ConsentStoreState,
 	ConsentType,
+	EuropePolicyMode,
 	Overrides,
+	PolicyPackDefaults,
 	Translations,
 } from 'c15t';
 
@@ -13,6 +15,7 @@ export {
 	defaultTranslationConfig,
 	detectBrowserLanguage,
 	mergeTranslationConfigs,
+	policyPackDefaults,
 	prepareTranslationConfig,
 } from 'c15t';
 export {

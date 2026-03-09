@@ -22,6 +22,14 @@ describe('policyDefaults templates', () => {
 		expect(optOut.ui?.banner?.uiProfile).toBe('balanced');
 	});
 
+	it('returns quebec opt-in template', () => {
+		const policy = policyDefaults.quebecOptInBanner();
+
+		expect(policy.consent?.model).toBe('opt-in');
+		expect(policy.match.regions).toEqual([{ country: 'CA', region: 'QC' }]);
+		expect(policy.ui?.banner?.uiProfile).toBe('balanced');
+	});
+
 	it('returns world no-banner default template', () => {
 		const policy = policyDefaults.worldNoBanner();
 		expect(policy.consent?.model).toBe('none');
@@ -31,6 +39,14 @@ describe('policyDefaults templates', () => {
 });
 
 describe('policyDefaults packs', () => {
+	it('returns the default surfaced pack', () => {
+		const pack = policyDefaults.defaultPack();
+		expect(pack.map((policy) => policy.id)).toEqual([
+			'policy_default_europe_opt_in',
+			'policy_default_california_opt_out',
+		]);
+	});
+
 	it('returns legacy-compatible defaults', () => {
 		const pack = policyDefaults.legacyCompatiblePack();
 		expect(pack.map((policy) => policy.id)).toEqual([

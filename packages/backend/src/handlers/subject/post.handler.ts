@@ -15,13 +15,14 @@ import { extractErrorMessage } from '~/utils/extract-error-message';
 import { getMetrics } from '~/utils/metrics';
 import { resolvePolicyDecision } from '../init/policy';
 
-function buildRuntimeDecisionDedupeKey(input: {
+export function buildRuntimeDecisionDedupeKey(input: {
 	tenantId?: string;
 	fingerprint: string;
 	matchedBy: string;
 	countryCode: string | null;
 	regionCode: string | null;
 	jurisdiction: string;
+	language?: string;
 }): string {
 	return [
 		input.tenantId ?? 'default',
@@ -30,6 +31,7 @@ function buildRuntimeDecisionDedupeKey(input: {
 		input.countryCode ?? 'none',
 		input.regionCode ?? 'none',
 		input.jurisdiction,
+		input.language ?? 'none',
 	].join('|');
 }
 
@@ -99,29 +101,32 @@ export const postSubjectHandler = async (c: Context) => {
 		const requestLanguage = parseLanguageFromHeader(acceptLanguage);
 		const location = await getLocation(request, ctx);
 		const resolvedJurisdiction = getJurisdiction(location, ctx);
-		const resolvedPolicyDecision = await resolvePolicyDecision({
-			policies: ctx.policies,
-			countryCode: location.countryCode,
-			regionCode: location.regionCode,
-			jurisdiction: resolvedJurisdiction,
-		});
-
 		const snapshotPayload = await verifyPolicySnapshotToken({
 			token: input.policySnapshotToken,
 			options: ctx.policySnapshot,
+			tenantId: ctx.tenantId,
 		});
-		const hasValidSnapshot =
-			!!snapshotPayload &&
-			(!snapshotPayload.tenantId || snapshotPayload.tenantId === ctx.tenantId);
+		const hasValidSnapshot = !!snapshotPayload;
+		const resolvedPolicyDecision = hasValidSnapshot
+			? undefined
+			: await resolvePolicyDecision({
+					policies: ctx.policies,
+					countryCode: location.countryCode,
+					regionCode: location.regionCode,
+					jurisdiction: resolvedJurisdiction,
+					iabEnabled: ctx.iab?.enabled === true,
+				});
 		const effectivePolicy =
 			hasValidSnapshot && snapshotPayload
 				? {
 						id: snapshotPayload.policyId,
 						model: snapshotPayload.model,
+						i18n: snapshotPayload.policyI18n,
 						consent: {
 							expiryDays: snapshotPayload.expiryDays,
 							scopeMode: snapshotPayload.scopeMode,
 							categories: snapshotPayload.categories,
+							preselectedCategories: snapshotPayload.preselectedCategories,
 						},
 						ui: {
 							mode: snapshotPayload.uiMode,
@@ -177,6 +182,7 @@ export const postSubjectHandler = async (c: Context) => {
 
 		let policyId: string | undefined;
 		let purposeIds: string[] = [];
+		let appliedPreferences: Record<string, boolean> | undefined;
 
 		const inputPolicyId =
 			'policyId' in input ? (input.policyId as string | undefined) : undefined;
@@ -215,21 +221,19 @@ export const postSubjectHandler = async (c: Context) => {
 				effectivePolicy?.consent?.scopeMode ?? 'unmanaged';
 			const hasWildcardCategoryScope =
 				allowedCategories?.includes('*') === true;
-			const consentedPurposeCodes = Object.entries(preferences)
-				.filter(([_, isConsented]) => isConsented)
-				.map(([purposeCode]) => purposeCode);
-			let filteredConsentedPurposeCodes = consentedPurposeCodes;
+			const appliedPreferenceEntries = Object.entries(preferences);
+			let filteredAppliedPreferenceEntries = appliedPreferenceEntries;
 
 			if (
 				allowedCategories &&
 				allowedCategories.length > 0 &&
 				!hasWildcardCategoryScope
 			) {
-				const disallowed = consentedPurposeCodes.filter(
-					(purpose) => !allowedCategories.includes(purpose)
-				);
-				filteredConsentedPurposeCodes = consentedPurposeCodes.filter(
-					(purpose) => allowedCategories.includes(purpose)
+				const disallowed = appliedPreferenceEntries
+					.map(([purpose]) => purpose)
+					.filter((purpose) => !allowedCategories.includes(purpose));
+				filteredAppliedPreferenceEntries = appliedPreferenceEntries.filter(
+					([purpose]) => allowedCategories.includes(purpose)
 				);
 				if (disallowed.length > 0 && effectiveScopeMode === 'strict') {
 					throw new HTTPException(400, {
@@ -238,6 +242,11 @@ export const postSubjectHandler = async (c: Context) => {
 					});
 				}
 			}
+
+			appliedPreferences = Object.fromEntries(filteredAppliedPreferenceEntries);
+			const filteredConsentedPurposeCodes = filteredAppliedPreferenceEntries
+				.filter(([_, isConsented]) => isConsented)
+				.map(([purposeCode]) => purposeCode);
 
 			logger.debug('Consented purposes', {
 				consentedPurposes: filteredConsentedPurposeCodes,
@@ -304,10 +313,12 @@ export const postSubjectHandler = async (c: Context) => {
 						jurisdiction: snapshotPayload.jurisdiction,
 						language: snapshotPayload.language,
 						model: snapshotPayload.model,
+						policyI18n: snapshotPayload.policyI18n,
 						uiMode: snapshotPayload.uiMode,
 						bannerUi: snapshotPayload.bannerUi,
 						dialogUi: snapshotPayload.dialogUi,
 						categories: snapshotPayload.categories,
+						preselectedCategories: snapshotPayload.preselectedCategories,
 						proofConfig: snapshotPayload.proofConfig,
 						dedupeKey: buildRuntimeDecisionDedupeKey({
 							tenantId: ctx.tenantId,
@@ -316,6 +327,7 @@ export const postSubjectHandler = async (c: Context) => {
 							countryCode: snapshotPayload.country,
 							regionCode: snapshotPayload.region,
 							jurisdiction: snapshotPayload.jurisdiction,
+							language: snapshotPayload.language,
 						}),
 						source: 'snapshot_token' as const,
 					}
@@ -330,10 +342,13 @@ export const postSubjectHandler = async (c: Context) => {
 							jurisdiction: resolvedJurisdiction,
 							language: effectiveLanguage,
 							model: resolvedPolicyDecision.policy.model,
+							policyI18n: resolvedPolicyDecision.policy.i18n,
 							uiMode: resolvedPolicyDecision.policy.ui?.mode,
 							bannerUi: resolvedPolicyDecision.policy.ui?.banner,
 							dialogUi: resolvedPolicyDecision.policy.ui?.dialog,
 							categories: resolvedPolicyDecision.policy.consent?.categories,
+							preselectedCategories:
+								resolvedPolicyDecision.policy.consent?.preselectedCategories,
 							proofConfig,
 							dedupeKey: buildRuntimeDecisionDedupeKey({
 								tenantId: ctx.tenantId,
@@ -342,6 +357,7 @@ export const postSubjectHandler = async (c: Context) => {
 								countryCode: location.countryCode,
 								regionCode: location.regionCode,
 								jurisdiction: resolvedJurisdiction,
+								language: effectiveLanguage,
 							}),
 							source: 'write_time_fallback' as const,
 						}
@@ -369,6 +385,7 @@ export const postSubjectHandler = async (c: Context) => {
 				domain: domainRecord.name,
 				type,
 				metadata,
+				appliedPreferences,
 				uiSource: input.uiSource,
 				givenAt: existingConsent.givenAt,
 			});
@@ -397,6 +414,9 @@ export const postSubjectHandler = async (c: Context) => {
 						jurisdiction: decisionPayload.jurisdiction,
 						language: decisionPayload.language,
 						model: decisionPayload.model,
+						policyI18n: decisionPayload.policyI18n
+							? { json: decisionPayload.policyI18n }
+							: undefined,
 						uiMode: decisionPayload.uiMode,
 						bannerUi: decisionPayload.bannerUi
 							? { json: decisionPayload.bannerUi }
@@ -406,6 +426,9 @@ export const postSubjectHandler = async (c: Context) => {
 							: undefined,
 						categories: decisionPayload.categories
 							? { json: decisionPayload.categories }
+							: undefined,
+						preselectedCategories: decisionPayload.preselectedCategories
+							? { json: decisionPayload.preselectedCategories }
 							: undefined,
 						proofConfig: decisionPayload.proofConfig
 							? { json: decisionPayload.proofConfig }
@@ -480,6 +503,7 @@ export const postSubjectHandler = async (c: Context) => {
 			domain: domainRecord.name,
 			type,
 			metadata,
+			appliedPreferences,
 			uiSource: input.uiSource,
 			givenAt: result.consent.givenAt,
 		});

@@ -1,5 +1,11 @@
-import { policyMatchers } from '@c15t/backend';
-import type { I18nMessageProfiles, PolicyConfig } from '@c15t/backend/types';
+import { inspectPolicies, policyMatchers } from '@c15t/backend';
+import type { Translations } from '@c15t/translations';
+
+type I18nMessageProfiles = Record<
+	string,
+	Record<string, Partial<Translations>>
+>;
+type PolicyConfig = Parameters<typeof inspectPolicies>[0][number];
 
 export const DEMO_POLICY_SNAPSHOT_KEY =
 	process.env.C15T_POLICY_SNAPSHOT_KEY ?? 'demo-policy-snapshot-key';
@@ -216,13 +222,7 @@ export const demoPolicies: PolicyConfig[] = [
 		consent: {
 			model: 'opt-in',
 			expiryDays: 365,
-			categories: [
-				'necessary',
-				'functionality',
-				'experience',
-				'measurement',
-				'marketing',
-			],
+			categories: ['necessary', 'experience', 'measurement'],
 			preselectedCategories: ['functionality'],
 		},
 		ui: {
@@ -233,14 +233,14 @@ export const demoPolicies: PolicyConfig[] = [
 				actionOrder: ['accept', 'customize'],
 				actionLayout: 'inline',
 				uiProfile: 'balanced',
-				scrollLock: true,
+				scrollLock: false,
 			},
 			dialog: {
 				allowedActions: ['reject', 'accept', 'customize'],
 				primaryAction: 'customize',
 				actionOrder: ['customize', 'reject', 'accept'],
-				actionLayout: 'split',
-				uiProfile: 'balanced',
+				actionLayout: 'inline',
+				uiProfile: 'compact',
 				scrollLock: true,
 			},
 		},

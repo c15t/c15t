@@ -60,6 +60,30 @@ describe('resolvePolicyDecision', () => {
 		expect(result?.policy.consent?.scopeMode).toBe('unmanaged');
 	});
 
+	it('preserves first-match order for overlapping matcher keys', async () => {
+		const result = await resolvePolicyDecision({
+			policies: [
+				{
+					id: 'country_first',
+					match: { countries: ['US'] },
+					consent: { model: 'opt-in' },
+				},
+				{
+					id: 'country_second',
+					match: { countries: ['US'] },
+					consent: { model: 'opt-out' },
+				},
+			],
+			countryCode: 'US',
+			regionCode: null,
+			jurisdiction: 'CCPA',
+		});
+
+		expect(result?.policy.id).toBe('country_first');
+		expect(result?.matchedBy).toBe('country');
+		expect(result?.policy.model).toBe('opt-in');
+	});
+
 	it('resolves iab model when a matching policy defines it', async () => {
 		const result = await resolvePolicyDecision({
 			policies: [

@@ -3,6 +3,8 @@
  * This module provides the main factory function for creating
  * client instances based on configuration options.
  */
+import type { PolicyConfig } from '@c15t/schema/types';
+import { createDeterministicFingerprintSync } from '@c15t/schema/types';
 import type { StoreOptions } from '../store/type';
 import type { ConsentManagerInterface } from './client-interface';
 import { CustomClient, type EndpointHandlers } from './custom';
@@ -72,6 +74,27 @@ function assertUnreachableMode(mode: never): never {
 	throw new Error(`Unsupported client mode: ${String(mode)}`);
 }
 
+function resolveOfflinePolicyOption(options: {
+	store?: StoreOptions;
+	offlinePolicy?: StoreOptions['offlinePolicy'];
+	policyPacks?: PolicyConfig[];
+}): StoreOptions['offlinePolicy'] | undefined {
+	const nestedOfflinePolicy = options.store?.offlinePolicy;
+	if (options.offlinePolicy) {
+		return options.offlinePolicy;
+	}
+
+	if (options.policyPacks !== undefined) {
+		return {
+			...nestedOfflinePolicy,
+			policyPack: options.policyPacks,
+			policies: undefined,
+		};
+	}
+
+	return nestedOfflinePolicy;
+}
+
 // Add at the module level (before the configureConsentManager function)
 const clientRegistry = new Map<string, ConsentManagerInterface>();
 
@@ -121,6 +144,7 @@ function serializeStorageConfig(
  */
 function getClientCacheKey(options: ConsentManagerOptions): string {
 	const normalizedMode = normalizeClientMode(options.mode);
+	const resolvedOfflinePolicy = resolveOfflinePolicyOption(options);
 
 	// Serialize storageConfig for all modes
 	const storageConfigPart = serializeStorageConfig(options.storageConfig);
@@ -159,10 +183,11 @@ function getClientCacheKey(options: ConsentManagerOptions): string {
 			iabPart = '';
 		}
 
-		const offlinePolicyConfig = options.store?.offlinePolicy;
 		let offlinePolicyPart = '';
-		if (offlinePolicyConfig) {
-			offlinePolicyPart = `:policy:${JSON.stringify(offlinePolicyConfig)}`;
+		if (resolvedOfflinePolicy) {
+			offlinePolicyPart = `:policy:${createDeterministicFingerprintSync(
+				resolvedOfflinePolicy
+			)}`;
 		}
 
 		return `offline${storageKey}${translationPart}${defaultLanguagePart}${iabPart}${offlinePolicyPart}`;
@@ -274,6 +299,22 @@ export type OfflineClientOptions = {
  */
 export type ConsentManagerOptions = {
 	store?: StoreOptions;
+	/**
+	 * Top-level ergonomic alias for `store.offlinePolicy.policyPack`.
+	 *
+	 * @remarks
+	 * This is primarily intended for React/Next.js provider usage where
+	 * policy packs are passed directly to the provider options object.
+	 * Ignored unless `mode: 'offline'`.
+	 */
+	policyPacks?: PolicyConfig[];
+	/**
+	 * Top-level ergonomic alias for `store.offlinePolicy`.
+	 *
+	 * @remarks
+	 * When provided, this takes precedence over `store.offlinePolicy`.
+	 */
+	offlinePolicy?: StoreOptions['offlinePolicy'];
 	/**
 	 * Storage configuration for consent persistence
 	 *
@@ -418,7 +459,7 @@ export function configureConsentManager(
 		case 'offline': {
 			// Extract IAB config for offline mode
 			const iabConfig = options.store?.iab;
-			const policyConfig = options.store?.offlinePolicy;
+			const policyConfig = resolveOfflinePolicyOption(options);
 			client = new OfflineClient(
 				options.storageConfig,
 				options.store?.initialTranslationConfig,

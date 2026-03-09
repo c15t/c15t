@@ -1,5 +1,12 @@
 import type { PolicyDecision, ResolvedPolicy } from '~/api/init';
 import { jurisdictionCodes } from './constants';
+import { createPolicyFingerprint } from './policy-fingerprint';
+
+export {
+	createPolicyFingerprint,
+	type FingerprintHashStrategy,
+	hashSha256Hex,
+} from './policy-fingerprint';
 
 export type JurisdictionCode = (typeof jurisdictionCodes)[number];
 export type PolicyModel = 'opt-in' | 'opt-out' | 'none' | 'iab';
@@ -209,6 +216,21 @@ export const policyMatchers = {
 };
 
 type ResolvedPolicyUiSurface = NonNullable<ResolvedPolicy['ui']>['banner'];
+type IndexedPolicyMatch = {
+	policy: PolicyConfig;
+	matchedBy: PolicyMatchedBy;
+};
+type CompiledPolicyResolver = {
+	regions: Map<string, PolicyConfig>;
+	countries: Map<string, PolicyConfig>;
+	jurisdictions: Map<JurisdictionCode, PolicyConfig>;
+	defaultPolicy?: PolicyConfig;
+};
+
+const compiledPolicyResolverCache = new WeakMap<
+	PolicyConfig[],
+	CompiledPolicyResolver
+>();
 
 function normalizeCountryCode(countryCode: string | null): string | null {
 	if (!countryCode) {
@@ -228,6 +250,13 @@ function normalizeRegionCode(regionCode: string | null): string | null {
 			?.toUpperCase()
 			.trim() ?? null
 	);
+}
+
+function createRegionMatcherKey(
+	countryCode: string,
+	regionCode: string
+): string {
+	return `${countryCode}:${regionCode}`;
 }
 
 function normalizeModel(policy: PolicyConfig): PolicyModel {
@@ -560,71 +589,95 @@ function normalizeUiSurface(
 		: undefined;
 }
 
-function stableStringify(value: unknown): string {
-	if (value === null || typeof value !== 'object') {
-		return JSON.stringify(value);
+function compilePolicyResolver(
+	policies: PolicyConfig[]
+): CompiledPolicyResolver {
+	const compiled: CompiledPolicyResolver = {
+		regions: new Map<string, PolicyConfig>(),
+		countries: new Map<string, PolicyConfig>(),
+		jurisdictions: new Map<JurisdictionCode, PolicyConfig>(),
+	};
+
+	for (const policy of policies) {
+		for (const region of policy.match.regions ?? []) {
+			const normalizedRegion = normalizeRegion(region);
+			const key = createRegionMatcherKey(
+				normalizedRegion.country,
+				normalizedRegion.region
+			);
+			if (!compiled.regions.has(key)) {
+				compiled.regions.set(key, policy);
+			}
+		}
+
+		for (const country of policy.match.countries ?? []) {
+			const normalizedCountry = normalizeCountry(country);
+			if (!compiled.countries.has(normalizedCountry)) {
+				compiled.countries.set(normalizedCountry, policy);
+			}
+		}
+
+		for (const jurisdiction of policy.match.jurisdictions ?? []) {
+			if (!compiled.jurisdictions.has(jurisdiction)) {
+				compiled.jurisdictions.set(jurisdiction, policy);
+			}
+		}
+
+		if (!compiled.defaultPolicy && policy.match.isDefault === true) {
+			compiled.defaultPolicy = policy;
+		}
 	}
 
-	if (Array.isArray(value)) {
-		return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+	return compiled;
+}
+
+function getCompiledPolicyResolver(
+	policies: PolicyConfig[]
+): CompiledPolicyResolver {
+	const cached = compiledPolicyResolverCache.get(policies);
+	if (cached) {
+		return cached;
 	}
 
-	const entries = Object.entries(value as Record<string, unknown>)
-		.filter(([, v]) => v !== undefined)
-		.sort(([a], [b]) => a.localeCompare(b));
-
-	return `{${entries
-		.map(([key, v]) => `${JSON.stringify(key)}:${stableStringify(v)}`)
-		.join(',')}}`;
+	const compiled = compilePolicyResolver(policies);
+	compiledPolicyResolverCache.set(policies, compiled);
+	return compiled;
 }
 
-async function sha256Hex(input: string): Promise<string> {
-	const data = new TextEncoder().encode(input);
-	const hash = await crypto.subtle.digest('SHA-256', data);
-	const bytes = new Uint8Array(hash);
-	return Array.from(bytes)
-		.map((byte) => byte.toString(16).padStart(2, '0'))
-		.join('');
-}
+function resolveIndexedPolicyMatch(params: {
+	compiled: CompiledPolicyResolver;
+	countryCode: string | null;
+	regionCode: string | null;
+	jurisdiction: JurisdictionCode;
+}): IndexedPolicyMatch | undefined {
+	const { compiled, countryCode, regionCode, jurisdiction } = params;
 
-function matchesRegion(
-	policy: PolicyConfig,
-	countryCode: string | null,
-	regionCode: string | null
-): boolean {
-	if (!countryCode || !regionCode || !policy.match.regions?.length) {
-		return false;
+	if (countryCode && regionCode) {
+		const regionPolicy = compiled.regions.get(
+			createRegionMatcherKey(countryCode, regionCode)
+		);
+		if (regionPolicy) {
+			return { policy: regionPolicy, matchedBy: 'region' };
+		}
 	}
 
-	return policy.match.regions.some(
-		(region) =>
-			region.country.toUpperCase() === countryCode &&
-			region.region.toUpperCase() === regionCode
-	);
-}
-
-function matchesCountry(
-	policy: PolicyConfig,
-	countryCode: string | null
-): boolean {
-	if (!countryCode || !policy.match.countries?.length) {
-		return false;
+	if (countryCode) {
+		const countryPolicy = compiled.countries.get(countryCode);
+		if (countryPolicy) {
+			return { policy: countryPolicy, matchedBy: 'country' };
+		}
 	}
 
-	return policy.match.countries.some(
-		(country) => country.toUpperCase() === countryCode
-	);
-}
+	const jurisdictionPolicy = compiled.jurisdictions.get(jurisdiction);
+	if (jurisdictionPolicy) {
+		return { policy: jurisdictionPolicy, matchedBy: 'jurisdiction' };
+	}
 
-function matchesJurisdiction(
-	policy: PolicyConfig,
-	jurisdiction: JurisdictionCode
-): boolean {
-	return policy.match.jurisdictions?.includes(jurisdiction) ?? false;
-}
+	if (compiled.defaultPolicy) {
+		return { policy: compiled.defaultPolicy, matchedBy: 'default' };
+	}
 
-function matchesDefault(policy: PolicyConfig): boolean {
-	return policy.match.isDefault === true;
+	return undefined;
 }
 
 function mapPolicy(policy: PolicyConfig): ResolvedPolicy {
@@ -689,51 +742,23 @@ export async function resolvePolicyDecision(params: {
 	const countryCode = normalizeCountryCode(params.countryCode);
 	const regionCode = normalizeRegionCode(params.regionCode);
 
-	let matchedBy: PolicyMatchedBy | undefined;
-	let matchedPolicy: PolicyConfig | undefined;
-
-	matchedPolicy = policies.find((policy) =>
-		matchesRegion(policy, countryCode, regionCode)
-	);
-	if (matchedPolicy) {
-		matchedBy = 'region';
-	}
+	const matchedPolicy = resolveIndexedPolicyMatch({
+		compiled: getCompiledPolicyResolver(policies),
+		countryCode,
+		regionCode,
+		jurisdiction,
+	});
 
 	if (!matchedPolicy) {
-		matchedPolicy = policies.find((policy) =>
-			matchesCountry(policy, countryCode)
-		);
-		if (matchedPolicy) {
-			matchedBy = 'country';
-		}
-	}
-
-	if (!matchedPolicy) {
-		matchedPolicy = policies.find((policy) =>
-			matchesJurisdiction(policy, jurisdiction)
-		);
-		if (matchedPolicy) {
-			matchedBy = 'jurisdiction';
-		}
-	}
-
-	if (!matchedPolicy) {
-		matchedPolicy = policies.find(matchesDefault);
-		if (matchedPolicy) {
-			matchedBy = 'default';
-		}
-	}
-
-	if (!matchedPolicy || !matchedBy) {
 		return undefined;
 	}
 
-	const policy = mapPolicy(matchedPolicy);
-	const fingerprint = await sha256Hex(stableStringify(policy));
+	const policy = mapPolicy(matchedPolicy.policy);
+	const fingerprint = await createPolicyFingerprint(policy);
 
 	return {
 		policy,
-		matchedBy,
+		matchedBy: matchedPolicy.matchedBy,
 		fingerprint,
 	};
 }

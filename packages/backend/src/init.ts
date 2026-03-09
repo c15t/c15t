@@ -3,7 +3,7 @@ import type { C15TContext, C15TOptions } from '~/types';
 import { createRegistry } from './db/registry';
 import { DB } from './db/schema';
 import { withTenantScope } from './db/tenant-scope';
-import { inspectPolicies, validatePolicies } from './handlers/init/policy';
+import { inspectPolicies } from './handlers/init/policy';
 import {
 	createTelemetryOptions,
 	isTelemetryEnabled,
@@ -99,9 +99,9 @@ export const init = (options: C15TOptions): C15TContext => {
 		logger.warn(`policies: ${warning}`);
 	}
 
-	validatePolicies(options.policies ?? [], {
-		iabEnabled: options.iab?.enabled === true,
-	});
+	if (policyValidation.errors.length > 0) {
+		throw new Error(policyValidation.errors[0]);
+	}
 
 	const context: C15TContext = {
 		...baseOptions,

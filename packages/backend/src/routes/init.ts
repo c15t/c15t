@@ -87,9 +87,9 @@ Use for geo-targeted consent banners and regional compliance.`,
 						jurisdiction,
 						iabEnabled: options.iab?.enabled === true,
 					});
-			const resolvedPolicy =
-				policyDecision?.policy ??
-				(isExplicitEmptyPolicyPack ? resolveNoPolicyFallback() : undefined);
+			const resolvedPolicy = hasExplicitPolicyPack
+				? (policyDecision?.policy ?? resolveNoPolicyFallback())
+				: undefined;
 			const iabOptions = options.iab;
 			const shouldIncludeIabPayload =
 				iabOptions?.enabled === true &&
@@ -147,12 +147,15 @@ Use for geo-targeted consent banners and regional compliance.`,
 						jurisdiction,
 						language: translationsResult.language,
 						model: policyDecision.policy.model,
+						policyI18n: policyDecision.policy.i18n,
 						expiryDays: policyDecision.policy.consent?.expiryDays,
 						scopeMode: policyDecision.policy.consent?.scopeMode,
 						uiMode: policyDecision.policy.ui?.mode,
 						bannerUi: policyDecision.policy.ui?.banner,
 						dialogUi: policyDecision.policy.ui?.dialog,
 						categories: policyDecision.policy.consent?.categories,
+						preselectedCategories:
+							policyDecision.policy.consent?.preselectedCategories,
 						proofConfig: policyDecision.policy.proof,
 					})
 				: undefined;

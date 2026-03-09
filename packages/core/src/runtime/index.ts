@@ -1,3 +1,4 @@
+import type { PolicyConfig } from '@c15t/schema/types';
 import {
 	type I18nConfig,
 	normalizeI18nConfig,
@@ -44,6 +45,7 @@ export type ConsentRuntimeOptions = ConsentManagerOptions &
 		 */
 		translations?: Partial<TranslationConfig>;
 		consentCategories?: AllConsentNames[];
+		policyPacks?: PolicyConfig[];
 		debug?: boolean;
 	};
 
@@ -108,6 +110,7 @@ export function getOrCreateConsentRuntime(
 		enabled,
 		iab,
 		offlinePolicy,
+		policyPacks,
 		consentCategories,
 		debug,
 		headers: _unusedHeaders,
@@ -145,7 +148,14 @@ export function getOrCreateConsentRuntime(
 		: [];
 	const resolvedIab = iab ?? storeWithoutTranslationInputs.iab;
 	const resolvedOfflinePolicy =
-		offlinePolicy ?? storeWithoutTranslationInputs.offlinePolicy;
+		offlinePolicy ??
+		(policyPacks !== undefined
+			? {
+					...storeWithoutTranslationInputs.offlinePolicy,
+					policyPack: policyPacks,
+					policies: undefined,
+				}
+			: storeWithoutTranslationInputs.offlinePolicy);
 	const resolvedStorageConfig =
 		storageConfig ?? storeWithoutTranslationInputs.storageConfig;
 	const resolvedEnabled = enabled ?? storeWithoutTranslationInputs.enabled;

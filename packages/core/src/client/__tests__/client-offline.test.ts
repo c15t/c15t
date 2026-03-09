@@ -1,3 +1,4 @@
+import { resolvePolicyDecision as resolveSharedPolicyDecision } from '@c15t/schema/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchMock, mockLocalStorage } from '../../../vitest.setup';
 import { STORAGE_KEY_V2 } from '../../store/initial-state';
@@ -137,32 +138,39 @@ describe('Offline Client Tests', () => {
 	});
 
 	it('should resolve configured offline policy pack using backend matcher precedence', async () => {
+		const policies = [
+			{
+				id: 'policy_default_none',
+				match: { isDefault: true },
+				consent: { model: 'none' as const },
+				ui: { mode: 'none' as const },
+			},
+			{
+				id: 'policy_country_us',
+				match: { countries: ['US'] },
+				consent: { model: 'opt-out' as const },
+				ui: { mode: 'banner' as const },
+			},
+			{
+				id: 'policy_region_us_ca',
+				match: { regions: [{ country: 'US', region: 'CA' }] },
+				consent: { model: 'opt-in' as const },
+				ui: { mode: 'dialog' as const },
+			},
+		];
 		const client = configureConsentManager({
 			mode: 'offline',
 			store: {
 				offlinePolicy: {
-					policies: [
-						{
-							id: 'policy_default_none',
-							match: { isDefault: true },
-							consent: { model: 'none' },
-							ui: { mode: 'none' },
-						},
-						{
-							id: 'policy_country_us',
-							match: { countries: ['US'] },
-							consent: { model: 'opt-out' },
-							ui: { mode: 'banner' },
-						},
-						{
-							id: 'policy_region_us_ca',
-							match: { regions: [{ country: 'US', region: 'CA' }] },
-							consent: { model: 'opt-in' },
-							ui: { mode: 'dialog' },
-						},
-					],
+					policies,
 				},
 			},
+		});
+		const expectedDecision = await resolveSharedPolicyDecision({
+			policies,
+			countryCode: 'US',
+			regionCode: 'CA',
+			jurisdiction: 'NONE',
 		});
 
 		const response = await client.init({
@@ -176,6 +184,9 @@ describe('Offline Client Tests', () => {
 		expect(response.data?.policy?.id).toBe('policy_region_us_ca');
 		expect(response.data?.policyDecision?.matchedBy).toBe('region');
 		expect(response.data?.policyDecision?.jurisdiction).toBe('NONE');
+		expect(response.data?.policyDecision?.fingerprint).toBe(
+			expectedDecision?.fingerprint
+		);
 	});
 
 	it('should reject offline policy packs that use IAB without offline IAB config', async () => {
@@ -203,7 +214,7 @@ describe('Offline Client Tests', () => {
 		);
 	});
 
-	it('should omit policy when offline policy pack has no match and no default', async () => {
+	it('should treat unmatched offline policy packs as no-banner mode', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
 			store: {
@@ -225,7 +236,9 @@ describe('Offline Client Tests', () => {
 		});
 
 		expect(response.ok).toBe(true);
-		expect(response.data?.policy).toBeUndefined();
+		expect(response.data?.policy?.id).toBe('policy_default_no_banner');
+		expect(response.data?.policy?.model).toBe('none');
+		expect(response.data?.policy?.ui?.mode).toBe('none');
 		expect(response.data?.policyDecision).toBeUndefined();
 	});
 
@@ -250,7 +263,7 @@ describe('Offline Client Tests', () => {
 		expect(response.data?.policyDecision).toBeUndefined();
 	});
 
-	it('should default to an iab policy when offline iab is enabled', async () => {
+	it('should default to an opt-in banner when no offline pack is provided', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
 			store: {
@@ -264,9 +277,11 @@ describe('Offline Client Tests', () => {
 		const response = await client.init();
 
 		expect(response.ok).toBe(true);
-		expect(response.data?.policy?.id).toBe('policy_default_offline_iab');
-		expect(response.data?.policy?.model).toBe('iab');
-		expect(response.data?.policy?.ui).toBeUndefined();
+		expect(response.data?.policy?.id).toBe(
+			'policy_default_offline_opt_in_banner'
+		);
+		expect(response.data?.policy?.model).toBe('opt-in');
+		expect(response.data?.policy?.ui?.mode).toBe('banner');
 	});
 
 	it('should handle language header', async () => {

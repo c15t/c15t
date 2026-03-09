@@ -16,7 +16,6 @@ export function resolveNoPolicyFallback(): InitFallbackPolicy {
 
 interface ResolveFallbackPolicyOptions {
 	explicitPolicy?: InitResponse['policy'];
-	iabEnabled?: boolean;
 }
 
 interface BuildFallbackInitDataOptions {
@@ -38,9 +37,7 @@ export function resolveFallbackPolicy(
 		return options.explicitPolicy;
 	}
 
-	return options.iabEnabled
-		? policyDefaults.offlineIab()
-		: policyDefaults.offlineOptInBanner();
+	return policyDefaults.offlineOptInBanner();
 }
 
 export function buildFallbackInitData(

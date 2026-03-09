@@ -46,9 +46,7 @@ export async function offlineFallbackForConsentBanner(
 		countryCode: options?.headers?.['x-c15t-country'] ?? null,
 		regionCode: options?.headers?.['x-c15t-region'] ?? null,
 		gvl,
-		policy: resolveFallbackPolicy({
-			iabEnabled: iabConfig?.enabled === true,
-		}),
+		policy: resolveFallbackPolicy({}),
 	});
 
 	return createFallbackContext(options, fallbackData);

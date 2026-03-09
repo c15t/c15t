@@ -91,14 +91,6 @@ export async function init(
 		policyConfig?.policyPack !== undefined;
 	const isExplicitEmptyPolicyPack =
 		hasExplicitPolicyPack && (configuredPolicyPack?.length ?? 0) === 0;
-	const usesIabPolicy =
-		configuredPolicyPack?.some((policy) => policy.consent?.model === 'iab') ??
-		false;
-	if (usesIabPolicy && iabConfig?.enabled !== true) {
-		throw new Error(
-			'Policies using consent.model="iab" require top-level iab.enabled=true'
-		);
-	}
 
 	const resolvedPolicyPackDecision =
 		configuredPolicyPack && configuredPolicyPack.length > 0
@@ -121,11 +113,9 @@ export async function init(
 		policy:
 			policyConfig?.policy ??
 			resolvedPolicyPackDecision?.policy ??
-			(isExplicitEmptyPolicyPack ? resolveNoPolicyFallback() : undefined) ??
+			(hasExplicitPolicyPack ? resolveNoPolicyFallback() : undefined) ??
 			(shouldUseSyntheticFallbackDefaults
-				? resolveFallbackPolicy({
-						iabEnabled: iabConfig?.enabled === true,
-					})
+				? resolveFallbackPolicy({})
 				: undefined),
 		policyDecision:
 			policyConfig?.policyDecision ??

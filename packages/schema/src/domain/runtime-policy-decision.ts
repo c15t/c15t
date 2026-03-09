@@ -11,6 +11,12 @@ export const runtimePolicyDecisionSchema = v.object({
 	jurisdiction: v.string(),
 	language: v.nullish(v.string()),
 	model: v.picklist(['opt-in', 'opt-out', 'none', 'iab']),
+	policyI18n: v.nullish(
+		v.object({
+			language: v.nullish(v.string()),
+			messageProfile: v.nullish(v.string()),
+		})
+	),
 	uiMode: v.nullish(v.picklist(['none', 'banner', 'dialog'])),
 	bannerUi: v.nullish(
 		v.object({
@@ -23,6 +29,7 @@ export const runtimePolicyDecisionSchema = v.object({
 			),
 			actionLayout: v.nullish(v.picklist(['split', 'inline'])),
 			uiProfile: v.nullish(v.picklist(['balanced', 'compact', 'strict'])),
+			scrollLock: v.nullish(v.boolean()),
 		})
 	),
 	dialogUi: v.nullish(
@@ -36,9 +43,11 @@ export const runtimePolicyDecisionSchema = v.object({
 			),
 			actionLayout: v.nullish(v.picklist(['split', 'inline'])),
 			uiProfile: v.nullish(v.picklist(['balanced', 'compact', 'strict'])),
+			scrollLock: v.nullish(v.boolean()),
 		})
 	),
 	categories: v.nullish(v.array(v.string())),
+	preselectedCategories: v.nullish(v.array(v.string())),
 	proofConfig: v.nullish(v.record(v.string(), v.boolean())),
 	dedupeKey: v.string(),
 	createdAt: v.optional(v.date(), () => new Date()),

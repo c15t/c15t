@@ -97,6 +97,7 @@ export const postSubjectOutputSchema = v.object({
 	status: v.string(),
 	recordId: v.string(),
 	metadata: v.optional(v.record(v.string(), v.unknown())),
+	appliedPreferences: v.optional(v.record(v.string(), v.boolean())),
 	uiSource: v.optional(v.string()),
 	givenAt: v.date(),
 });

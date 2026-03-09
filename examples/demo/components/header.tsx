@@ -51,7 +51,7 @@ export function Header() {
 							Policy
 						</a>
 						<a
-							href="/policy-offline"
+							href="/offline"
 							className="text-muted-foreground text-sm transition-colors hover:text-foreground"
 						>
 							Offline Policy

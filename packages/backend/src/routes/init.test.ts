@@ -1,5 +1,9 @@
-import type { GlobalVendorList } from '@c15t/schema/types';
+import {
+	type GlobalVendorList,
+	resolvePolicyDecision as resolveSharedPolicyDecision,
+} from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { verifyPolicySnapshotToken } from '~/handlers/policy/snapshot';
 import type { C15TOptions } from '~/types';
 import { createInitRoute } from './init';
 
@@ -45,6 +49,12 @@ interface InitTestResponseBody {
 				scrollLock?: boolean;
 			};
 		};
+	};
+	policyDecision?: {
+		policyId?: string;
+		fingerprint?: string;
+		matchedBy?: string;
+		jurisdiction?: string;
 	};
 	gvl?: { vendorListVersion?: number } | null;
 	cmpId?: number;
@@ -223,5 +233,140 @@ describe('createInitRoute IAB policy gating', () => {
 		expect(body.customVendors).toBeUndefined();
 		expect(body.translations?.translations?.iab).toBeUndefined();
 		expect(mockCreateGVLResolver).not.toHaveBeenCalled();
+	});
+
+	it('treats an explicit policy pack with no match as no-banner mode', async () => {
+		const app = createInitRoute(
+			createOptions({
+				iab: { enabled: true, cmpId: 505 },
+				policies: [
+					{
+						id: 'policy_us_ca',
+						match: { regions: [{ country: 'US', region: 'CA' }] },
+						consent: { model: 'opt-out' },
+						ui: { mode: 'banner' },
+					},
+				],
+			})
+		);
+
+		const response = await app.request('http://localhost/', {
+			headers: new Headers({
+				'x-c15t-country': 'DE',
+				'accept-language': 'en-US',
+			}),
+		});
+		const body = (await response.json()) as InitTestResponseBody;
+
+		expect(response.status).toBe(200);
+		expect(body.policy?.model).toBe('none');
+		expect(body.policy?.ui?.mode).toBe('none');
+		expect(body.gvl).toBeUndefined();
+		expect(body.cmpId).toBeUndefined();
+		expect(body.customVendors).toBeUndefined();
+		expect(body.translations?.translations?.iab).toBeUndefined();
+		expect(mockCreateGVLResolver).not.toHaveBeenCalled();
+	});
+
+	it('returns the same fingerprint as the shared resolver for hosted init responses', async () => {
+		const policies = [
+			{
+				id: 'policy_de',
+				match: { countries: ['DE'] },
+				consent: {
+					model: 'opt-in' as const,
+					expiryDays: 365,
+					scopeMode: 'strict' as const,
+					categories: ['necessary', 'measurement'],
+				},
+				ui: {
+					mode: 'banner' as const,
+					banner: {
+						allowedActions: ['accept', 'reject'] as const,
+						primaryAction: 'accept' as const,
+						actionOrder: ['accept', 'reject'] as const,
+						actionLayout: 'inline' as const,
+						uiProfile: 'balanced' as const,
+						scrollLock: true,
+					},
+				},
+			},
+		];
+		const app = createInitRoute(
+			createOptions({
+				policies,
+			})
+		);
+		const expectedDecision = await resolveSharedPolicyDecision({
+			policies,
+			countryCode: 'DE',
+			regionCode: null,
+			jurisdiction: 'GDPR',
+		});
+
+		const response = await app.request('http://localhost/', {
+			headers: new Headers({
+				'x-c15t-country': 'DE',
+				'accept-language': 'en-US',
+			}),
+		});
+		const body = (await response.json()) as InitTestResponseBody;
+
+		expect(response.status).toBe(200);
+		expect(body.policyDecision?.policyId).toBe(expectedDecision?.policy.id);
+		expect(body.policyDecision?.matchedBy).toBe(expectedDecision?.matchedBy);
+		expect(body.policyDecision?.jurisdiction).toBe('GDPR');
+		expect(body.policyDecision?.fingerprint).toBe(
+			expectedDecision?.fingerprint
+		);
+	});
+
+	it('includes policy i18n and preselected categories in signed snapshots', async () => {
+		const app = createInitRoute(
+			createOptions({
+				policySnapshot: { signingKey: 'test-signing-key', ttlSeconds: 60 },
+				policies: [
+					{
+						id: 'policy_de',
+						match: { countries: ['DE'] },
+						i18n: {
+							language: 'de',
+							messageProfile: 'eu_gdpr',
+						},
+						consent: {
+							model: 'opt-in',
+							expiryDays: 365,
+							scopeMode: 'strict',
+							categories: ['necessary', 'measurement'],
+							preselectedCategories: ['measurement'],
+						},
+						ui: {
+							mode: 'banner',
+						},
+					},
+				],
+			})
+		);
+
+		const response = await app.request('http://localhost/', {
+			headers: new Headers({
+				'x-c15t-country': 'DE',
+				'accept-language': 'de-DE',
+			}),
+		});
+		const body = (await response.json()) as InitTestResponseBody & {
+			policySnapshotToken?: string;
+		};
+		const payload = await verifyPolicySnapshotToken({
+			token: body.policySnapshotToken,
+			options: { signingKey: 'test-signing-key' },
+		});
+
+		expect(response.status).toBe(200);
+		expect(payload?.policyI18n).toEqual({
+			language: 'de',
+			messageProfile: 'eu_gdpr',
+		});
+		expect(payload?.preselectedCategories).toEqual(['measurement']);
 	});
 });

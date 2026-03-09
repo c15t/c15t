@@ -40,7 +40,7 @@ export function PolicyWorkspace({
 					</p>
 					<div className="mt-3">
 						<Link
-							href="/policy-offline"
+							href="/offline"
 							className="text-muted-foreground text-sm transition-colors hover:text-foreground"
 						>
 							Open Offline Policy Lab

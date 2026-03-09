@@ -9,10 +9,12 @@ import {
 	IABConsentBanner,
 	IABConsentDialog,
 } from '@c15t/react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { useThemePreset } from './theme-switcher';
+
+const SEARCH_CHANGE_EVENT = 'c15t:search-change';
 
 /**
  * Props for the ConsentManager component
@@ -79,7 +81,9 @@ function resolveGeoOverrides(
 export function ConsentManager({ children }: ConsentManagerProps) {
 	const { theme, mounted } = useThemePreset();
 	const pathname = usePathname();
-	const searchParams = useSearchParams();
+	const [search, setSearch] = useState(() =>
+		typeof window === 'undefined' ? '' : window.location.search
+	);
 	const [geoOverrides, setGeoOverrides] = useState<
 		{ country?: string; region?: string } | undefined
 	>(() =>
@@ -89,23 +93,47 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 	);
 
 	useEffect(() => {
-		const syncOverrides = () => {
-			setGeoOverrides(resolveGeoOverrides(window.location.search));
-		};
-
-		syncOverrides();
-		window.addEventListener('popstate', syncOverrides);
-		return () => {
-			window.removeEventListener('popstate', syncOverrides);
-		};
-	}, []);
-
-	useEffect(() => {
 		if (typeof window === 'undefined') {
 			return;
 		}
 
-		const nextOverrides = resolveGeoOverrides(window.location.search);
+		const syncSearch = () => {
+			setSearch((currentSearch) => {
+				const nextSearch = window.location.search;
+				return currentSearch === nextSearch ? currentSearch : nextSearch;
+			});
+		};
+
+		const originalPushState = window.history.pushState;
+		const originalReplaceState = window.history.replaceState;
+		const notifySearchChange = () => {
+			window.dispatchEvent(new Event(SEARCH_CHANGE_EVENT));
+		};
+
+		window.history.pushState = function pushState(...args) {
+			originalPushState.apply(this, args);
+			notifySearchChange();
+		};
+
+		window.history.replaceState = function replaceState(...args) {
+			originalReplaceState.apply(this, args);
+			notifySearchChange();
+		};
+
+		syncSearch();
+		window.addEventListener('popstate', syncSearch);
+		window.addEventListener(SEARCH_CHANGE_EVENT, syncSearch);
+
+		return () => {
+			window.history.pushState = originalPushState;
+			window.history.replaceState = originalReplaceState;
+			window.removeEventListener('popstate', syncSearch);
+			window.removeEventListener(SEARCH_CHANGE_EVENT, syncSearch);
+		};
+	}, []);
+
+	useEffect(() => {
+		const nextOverrides = resolveGeoOverrides(search);
 		setGeoOverrides((currentOverrides) => {
 			if (
 				currentOverrides?.country === nextOverrides?.country &&
@@ -115,7 +143,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 			}
 			return nextOverrides;
 		});
-	}, [searchParams]);
+	}, [search]);
 
 	// Use default theme during SSR/hydration to avoid mismatch, then switch to user preference
 	const activeTheme = mounted ? theme : undefined;
@@ -135,7 +163,8 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 			}
 		: activeTheme;
 	const isHeadlessPolicyTab =
-		pathname === '/policy' && searchParams.get('tab') === 'headless';
+		pathname === '/policy' &&
+		new URLSearchParams(search).get('tab') === 'headless';
 
 	return (
 		<ConsentManagerProvider

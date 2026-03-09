@@ -7,6 +7,7 @@ import {
 	ConsentManagerProvider,
 	IABConsentBanner,
 	IABConsentDialog,
+	policyPackDefaults,
 	useConsentManager,
 } from '@c15t/react';
 import Link from 'next/link';
@@ -24,52 +25,13 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 
-type PolicyPreset = 'auto' | 'opt-in' | 'silent' | 'iab';
-
-const OFFLINE_OPT_IN_POLICY = {
-	id: 'policy_demo_offline_opt_in_banner',
-	model: 'opt-in' as const,
-	consent: {
-		expiryDays: 365,
-		scopeMode: 'unmanaged' as const,
-		categories: ['*'],
-	},
-	ui: {
-		mode: 'banner' as const,
-		banner: {
-			allowedActions: ['accept', 'reject', 'customize'] as const,
-			primaryAction: 'accept' as const,
-			actionOrder: ['accept', 'reject', 'customize'] as const,
-			actionLayout: 'split' as const,
-			uiProfile: 'balanced' as const,
-		},
-		dialog: {
-			allowedActions: ['accept', 'reject', 'customize'] as const,
-			primaryAction: 'accept' as const,
-			actionOrder: ['accept', 'reject', 'customize'] as const,
-			actionLayout: 'split' as const,
-			uiProfile: 'balanced' as const,
-		},
-	},
-};
-
-const OFFLINE_NO_BANNER_POLICY = {
-	id: 'policy_demo_offline_none',
-	model: 'none' as const,
-	ui: {
-		mode: 'none' as const,
-	},
-};
-
-const OFFLINE_IAB_POLICY = {
-	id: 'policy_demo_offline_iab',
-	model: 'iab' as const,
-	consent: {
-		expiryDays: 365,
-		scopeMode: 'unmanaged' as const,
-		categories: ['*'],
-	},
-};
+type PolicyPreset =
+	| 'auto'
+	| 'default-pack'
+	| 'california'
+	| 'quebec'
+	| 'iab-europe'
+	| 'empty';
 
 function RuntimeStatePanel() {
 	const {
@@ -171,25 +133,48 @@ function RuntimeStatePanel() {
 
 export function PolicyOfflineLab() {
 	const [iabEnabled, setIabEnabled] = useState(false);
-	const [policyPreset, setPolicyPreset] = useState<PolicyPreset>('auto');
+	const [policyPreset, setPolicyPreset] =
+		useState<PolicyPreset>('default-pack');
 	const [country, setCountry] = useState('GB');
 	const [region, setRegion] = useState('');
 	const [instanceNonce, setInstanceNonce] = useState(0);
 
 	const normalizedCountry = country.trim().toUpperCase();
 	const normalizedRegion = region.trim().toUpperCase();
-	const providerKey = `${instanceNonce}-${iabEnabled}-${policyPreset}-${normalizedCountry}-${normalizedRegion}`;
+	const effectiveIabEnabled = iabEnabled || policyPreset === 'iab-europe';
+	const providerKey = `${instanceNonce}-${effectiveIabEnabled}-${policyPreset}-${normalizedCountry}-${normalizedRegion}`;
 
-	const offlinePolicy = useMemo(() => {
+	const policyPacks = useMemo(() => {
 		switch (policyPreset) {
-			case 'opt-in':
-				return { policy: OFFLINE_OPT_IN_POLICY };
-			case 'silent':
-				return { policy: OFFLINE_NO_BANNER_POLICY };
-			case 'iab':
-				return { policy: OFFLINE_IAB_POLICY };
+			case 'default-pack':
+				return policyPackDefaults.defaultPack();
+			case 'california':
+				return [policyPackDefaults.californiaOptOutBanner()];
+			case 'quebec':
+				return [policyPackDefaults.quebecOptInBanner()];
+			case 'iab-europe':
+				return [policyPackDefaults.europeIabBanner()];
+			case 'empty':
+				return [];
 			default:
 				return undefined;
+		}
+	}, [policyPreset]);
+
+	const presetDescription = useMemo(() => {
+		switch (policyPreset) {
+			case 'default-pack':
+				return 'Uses the surfaced default pack: Europe opt-in + California opt-out.';
+			case 'california':
+				return 'Applies only the California opt-out policy pack.';
+			case 'quebec':
+				return 'Applies only the Quebec opt-in policy pack.';
+			case 'iab-europe':
+				return 'Applies the dedicated IAB TCF 2.3 pack for GDPR and UK GDPR regions.';
+			case 'empty':
+				return 'Explicit empty pack. Offline mode resolves to no banner.';
+			default:
+				return 'No explicit policy packs. Offline mode falls back to the default opt-in banner.';
 		}
 	}, [policyPreset]);
 
@@ -198,10 +183,11 @@ export function PolicyOfflineLab() {
 			<div className="container mx-auto max-w-6xl space-y-6 px-4">
 				<div className="space-y-2">
 					<h1 className="font-semibold text-3xl tracking-tight">
-						Offline Policy Lab
+						Offline Policy Packs
 					</h1>
 					<p className="text-muted-foreground">
-						Test offline runtime policy behavior without a backend policy pack.
+						Test the shared offline policy-pack behavior using the same presets
+						exported for hosted mode.
 					</p>
 					<div className="flex flex-wrap gap-2 text-sm">
 						<Link
@@ -217,8 +203,9 @@ export function PolicyOfflineLab() {
 					<CardHeader>
 						<CardTitle>Offline Controls</CardTitle>
 						<CardDescription>
-							`auto` uses fallback defaults: opt-in banner, or IAB when IAB is
-							enabled.
+							The provider now accepts top-level `policyPacks`. No pack uses the
+							offline opt-in fallback. Empty or unmatched packs resolve to no
+							banner.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-4">
@@ -226,38 +213,92 @@ export function PolicyOfflineLab() {
 							<div className="flex items-center gap-2">
 								<Switch
 									id="offline-iab-enabled"
-									checked={iabEnabled}
+									checked={effectiveIabEnabled}
 									onCheckedChange={(checked) => setIabEnabled(Boolean(checked))}
 								/>
-								<Label htmlFor="offline-iab-enabled">Enable IAB</Label>
+								<Label htmlFor="offline-iab-enabled">Enable IAB fallback</Label>
 							</div>
 							<Badge variant="secondary">current preset: {policyPreset}</Badge>
 						</div>
+						<p className="text-muted-foreground text-sm">{presetDescription}</p>
 
 						<div className="flex flex-wrap gap-2">
+							<Button
+								variant={
+									policyPreset === 'default-pack' ? 'default' : 'outline'
+								}
+								onClick={() => setPolicyPreset('default-pack')}
+							>
+								Default Pack
+							</Button>
+							<Button
+								variant={policyPreset === 'quebec' ? 'default' : 'outline'}
+								onClick={() => setPolicyPreset('quebec')}
+							>
+								Quebec Opt-In
+							</Button>
+							<Button
+								variant={policyPreset === 'california' ? 'default' : 'outline'}
+								onClick={() => setPolicyPreset('california')}
+							>
+								California Opt-Out
+							</Button>
+							<Button
+								variant={policyPreset === 'iab-europe' ? 'default' : 'outline'}
+								onClick={() => setPolicyPreset('iab-europe')}
+							>
+								Europe IAB
+							</Button>
+							<Button
+								variant={policyPreset === 'empty' ? 'default' : 'outline'}
+								onClick={() => setPolicyPreset('empty')}
+							>
+								Empty Pack
+							</Button>
 							<Button
 								variant={policyPreset === 'auto' ? 'default' : 'outline'}
 								onClick={() => setPolicyPreset('auto')}
 							>
 								Auto Fallback
 							</Button>
+						</div>
+
+						<div className="flex flex-wrap gap-2">
 							<Button
-								variant={policyPreset === 'opt-in' ? 'default' : 'outline'}
-								onClick={() => setPolicyPreset('opt-in')}
+								variant="secondary"
+								onClick={() => {
+									setCountry('GB');
+									setRegion('');
+								}}
 							>
-								Opt-In Banner
+								UK
 							</Button>
 							<Button
-								variant={policyPreset === 'silent' ? 'default' : 'outline'}
-								onClick={() => setPolicyPreset('silent')}
+								variant="secondary"
+								onClick={() => {
+									setCountry('CA');
+									setRegion('QC');
+								}}
 							>
-								No Banner
+								Quebec
 							</Button>
 							<Button
-								variant={policyPreset === 'iab' ? 'default' : 'outline'}
-								onClick={() => setPolicyPreset('iab')}
+								variant="secondary"
+								onClick={() => {
+									setCountry('US');
+									setRegion('CA');
+								}}
 							>
-								Force IAB Policy
+								California
+							</Button>
+							<Button
+								variant="secondary"
+								onClick={() => {
+									setCountry('JP');
+									setRegion('');
+								}}
+							>
+								No Match
 							</Button>
 						</div>
 
@@ -295,14 +336,12 @@ export function PolicyOfflineLab() {
 						mode: 'offline',
 						consentCategories: ['necessary', 'functionality', 'measurement'],
 						iab: {
-							enabled: iabEnabled,
+							enabled: effectiveIabEnabled,
 						},
+						policyPacks,
 						overrides: {
 							...(normalizedCountry ? { country: normalizedCountry } : {}),
 							...(normalizedRegion ? { region: normalizedRegion } : {}),
-						},
-						store: {
-							offlinePolicy,
 						},
 					}}
 				>

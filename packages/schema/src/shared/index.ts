@@ -44,8 +44,21 @@ export {
 	policyDefaults,
 } from './policy-defaults';
 export {
+	createDeterministicFingerprint,
+	createDeterministicFingerprintSync,
+	createPolicyFingerprint,
+	hashSha256Hex,
+	stableStringify,
+} from './policy-fingerprint';
+export {
+	type EuropePolicyMode,
+	type PolicyPackDefaults,
+	policyPackDefaults,
+} from './policy-pack-defaults';
+export {
 	EEA_COUNTRY_CODES,
 	EU_COUNTRY_CODES,
+	type FingerprintHashStrategy,
 	IAB_POLICY_JURISDICTIONS,
 	inspectPolicies,
 	POLICY_MATCH_DATASET_VERSION,

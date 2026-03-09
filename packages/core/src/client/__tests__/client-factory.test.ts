@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchMock, mockLocalStorage } from '../../../vitest.setup';
-import { configureConsentManager } from '../client-factory';
+import {
+	clearClientRegistry,
+	configureConsentManager,
+} from '../client-factory';
 import { CustomClient } from '../custom';
 import { C15tClient } from '../hosted';
 import { OfflineClient } from '../offline';
@@ -10,6 +13,7 @@ describe('Client Factory Tests', () => {
 		vi.resetAllMocks();
 		fetchMock.mockReset();
 		mockLocalStorage.clear();
+		clearClientRegistry();
 	});
 
 	it('should create C15tClient when mode is hosted', () => {
@@ -59,5 +63,42 @@ describe('Client Factory Tests', () => {
 		});
 
 		expect(client).toBeInstanceOf(C15tClient);
+	});
+
+	it('reuses the offline client for semantically equivalent policy packs', () => {
+		const first = configureConsentManager({
+			mode: 'offline',
+			store: {
+				offlinePolicy: {
+					policyPack: [
+						{
+							id: 'policy_us',
+							match: { countries: ['US'] },
+							consent: { model: 'opt-in', categories: ['necessary'] },
+						},
+					],
+				},
+			},
+		});
+		(first as OfflineClient & { __cacheProbe?: string }).__cacheProbe = 'hit';
+
+		const second = configureConsentManager({
+			mode: 'offline',
+			store: {
+				offlinePolicy: {
+					policyPack: [
+						{
+							consent: { categories: ['necessary'], model: 'opt-in' },
+							match: { countries: ['US'] },
+							id: 'policy_us',
+						},
+					],
+				},
+			},
+		});
+
+		expect(
+			(second as OfflineClient & { __cacheProbe?: string }).__cacheProbe
+		).toBe('hit');
 	});
 });

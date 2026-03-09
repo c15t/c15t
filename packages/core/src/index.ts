@@ -5,9 +5,11 @@
  * GDPR-compliant consent management.
  */
 
+export { policyPackDefaults } from '@c15t/schema';
 // Export schema types directly for new code
 export type {
 	Branding,
+	EuropePolicyMode,
 	GetSubjectInput,
 	GetSubjectOutput,
 	GlobalVendorList,
@@ -17,6 +19,7 @@ export type {
 	ListSubjectsQuery,
 	PatchSubjectFullInput,
 	PatchSubjectOutput,
+	PolicyPackDefaults,
 	PostSubjectInput,
 	PostSubjectOutput,
 } from '@c15t/schema/types';
