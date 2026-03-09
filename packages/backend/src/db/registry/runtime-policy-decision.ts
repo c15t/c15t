@@ -22,7 +22,7 @@ export interface RuntimePolicyDecisionInput {
 	uiMode?: 'none' | 'banner' | 'dialog';
 	bannerUi?: RuntimePolicyDecisionUiSurface;
 	dialogUi?: RuntimePolicyDecisionUiSurface;
-	purposeIds?: string[];
+	categories?: string[];
 	proofConfig?: {
 		storeIp?: boolean;
 		storeUserAgent?: boolean;
@@ -66,7 +66,7 @@ export function runtimePolicyDecisionRegistry({ db, ctx }: Registry) {
 				uiMode: input.uiMode,
 				bannerUi: input.bannerUi ? { json: input.bannerUi } : undefined,
 				dialogUi: input.dialogUi ? { json: input.dialogUi } : undefined,
-				purposeIds: input.purposeIds ? { json: input.purposeIds } : undefined,
+				categories: input.categories ? { json: input.categories } : undefined,
 				proofConfig: input.proofConfig
 					? { json: input.proofConfig }
 					: undefined,

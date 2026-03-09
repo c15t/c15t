@@ -43,7 +43,7 @@ export function useConsentManager(): ConsentStoreState & {
 		consentInfo,
 		consentCategories,
 		consentTypes,
-		policyPurposeIds,
+		policyCategories,
 		policyScopeMode,
 	} = context.state;
 
@@ -55,10 +55,10 @@ export function useConsentManager(): ConsentStoreState & {
 	const has: ConsentStoreState['has'] = useCallback(
 		(condition) =>
 			evaluateHas(condition, consents, {
-				policyPurposeIds,
+				policyCategories,
 				policyScopeMode,
 			}),
-		[consents, policyPurposeIds, policyScopeMode]
+		[consents, policyCategories, policyScopeMode]
 	);
 
 	const hasConsented: ConsentStoreState['hasConsented'] = useCallback(

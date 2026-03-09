@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS public."runtimePolicyDecision" (
 	"uiMode" text NULL,
 	"bannerUi" json NULL,
 	"dialogUi" json NULL,
-	"purposeIds" json NULL,
+	"categories" json NULL,
 	"proofConfig" json NULL,
 	"dedupeKey" text NOT NULL,
 	"createdAt" timestamp without time zone NOT NULL DEFAULT now()

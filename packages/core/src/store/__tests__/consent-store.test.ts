@@ -424,7 +424,7 @@ describe('Consent Store', () => {
 			const store = createConsentManagerStore(mockManager);
 
 			store.setState({
-				policyPurposeIds: ['necessary', 'measurement'],
+				policyCategories: ['necessary', 'measurement'],
 			});
 
 			store
@@ -447,7 +447,7 @@ describe('Consent Store', () => {
 
 			store.setState({
 				consentCategories: ['necessary', 'measurement'],
-				policyPurposeIds: ['necessary', 'measurement'],
+				policyCategories: ['necessary', 'measurement'],
 			});
 
 			store.getState().updateConsentCategories(['experience', 'marketing']);
@@ -634,7 +634,7 @@ describe('Consent Store', () => {
 			const store = createConsentManagerStore(mockManager);
 
 			store.setState({
-				policyPurposeIds: ['necessary', 'measurement'],
+				policyCategories: ['necessary', 'measurement'],
 				policyScopeMode: 'unmanaged',
 				consents: {
 					necessary: true,
@@ -654,7 +654,7 @@ describe('Consent Store', () => {
 			const store = createConsentManagerStore(mockManager);
 
 			store.setState({
-				policyPurposeIds: ['necessary', 'measurement'],
+				policyCategories: ['necessary', 'measurement'],
 				policyScopeMode: 'strict',
 				consents: {
 					necessary: true,
@@ -923,7 +923,7 @@ describe('Consent Store', () => {
 		it('should not add out-of-policy script categories to consentCategories', () => {
 			const store = createConsentManagerStore(mockManager);
 			store.setState({
-				policyPurposeIds: ['necessary', 'measurement'],
+				policyCategories: ['necessary', 'measurement'],
 				consentCategories: ['necessary', 'measurement'],
 			});
 

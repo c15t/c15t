@@ -38,7 +38,7 @@ export const runtimePolicyDecisionSchema = v.object({
 			uiProfile: v.nullish(v.picklist(['balanced', 'compact', 'strict'])),
 		})
 	),
-	purposeIds: v.nullish(v.array(v.string())),
+	categories: v.nullish(v.array(v.string())),
 	proofConfig: v.nullish(v.record(v.string(), v.boolean())),
 	dedupeKey: v.string(),
 	createdAt: v.optional(v.date(), () => new Date()),

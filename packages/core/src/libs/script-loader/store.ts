@@ -40,7 +40,7 @@ export function createScriptManager(
 			scriptIdMap,
 			model,
 			iab,
-			policyPurposeIds,
+			policyCategories,
 			policyScopeMode,
 		} = getState();
 		const iabConsent = iab?.config.enabled
@@ -55,7 +55,7 @@ export function createScriptManager(
 
 		const runtimeConsents = applyPolicyScopeForRuntimeGating(
 			consents,
-			policyPurposeIds,
+			policyCategories,
 			policyScopeMode
 		);
 

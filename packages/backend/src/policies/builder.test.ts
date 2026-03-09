@@ -35,7 +35,8 @@ describe('buildPolicyConfig', () => {
 				model: 'opt-out',
 				expiryDays: 180,
 				scopeMode: undefined,
-				purposeIds: ['necessary', 'marketing'],
+				categories: ['necessary', 'marketing'],
+				preselectedCategories: undefined,
 			},
 			ui: {
 				mode: 'banner',
@@ -67,14 +68,32 @@ describe('buildPolicyConfig', () => {
 		});
 	});
 
-	it('uses purposeIds over categories when both are provided', () => {
+	it('keeps preselected categories separate from scoped categories', () => {
 		const policy = buildPolicyConfig({
-			id: 'policy_categories',
-			categories: ['marketing'],
-			purposeIds: ['necessary'],
+			id: 'policy_uk',
+			categories: ['necessary', 'functionality', 'measurement'],
+			preselectedCategories: ['functionality', 'measurement'],
 		});
 
-		expect(policy.consent?.purposeIds).toEqual(['necessary']);
+		expect(policy.consent?.categories).toEqual([
+			'necessary',
+			'functionality',
+			'measurement',
+		]);
+		expect(policy.consent?.preselectedCategories).toEqual([
+			'functionality',
+			'measurement',
+		]);
+	});
+
+	it('omits empty categories and preselected categories', () => {
+		const policy = buildPolicyConfig({
+			id: 'policy_empty',
+			categories: [],
+			preselectedCategories: [],
+		});
+
+		expect(policy.consent).toBeUndefined();
 	});
 });
 

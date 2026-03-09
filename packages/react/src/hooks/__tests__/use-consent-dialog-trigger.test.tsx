@@ -19,7 +19,7 @@ function createMockState(
 		consentInfo: null,
 		consentCategories: ['necessary', 'measurement'],
 		consentTypes: [],
-		policyPurposeIds: null,
+		policyCategories: null,
 		policyScopeMode: null,
 		setActiveUI: vi.fn(),
 		...overrides,

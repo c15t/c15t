@@ -45,9 +45,9 @@ export type HasCondition<CategoryType> =
  */
 export interface HasOptions {
 	/**
-	 * Allowed purposes from the active policy.
+	 * Allowed categories from the active policy.
 	 */
-	policyPurposeIds?: string[] | null;
+	policyCategories?: string[] | null;
 	/**
 	 * Runtime scope handling for out-of-policy categories.
 	 */
@@ -253,7 +253,7 @@ export function has<CategoryType extends AllConsentNames>(
 	const runtimeConsents = options
 		? applyPolicyScopeForRuntimeGating(
 				consents,
-				options.policyPurposeIds,
+				options.policyCategories,
 				options.policyScopeMode
 			)
 		: consents;

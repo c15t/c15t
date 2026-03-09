@@ -103,7 +103,7 @@ function buildStoreUpdate(
 	initSourceMetadata?: InitSourceMetadata
 ): Partial<ConsentStoreState> {
 	const { get, initialTranslationConfig } = config;
-	const { consentInfo } = get();
+	const { consentInfo, consentTypes } = get();
 	const { translations, location } = data;
 
 	// Compute auto-grant info using effective IAB enabled state
@@ -138,7 +138,7 @@ function buildStoreUpdate(
 		policyDialogActionOrder: data.policy?.ui?.dialog?.actionOrder ?? null,
 		policyDialogActionLayout: data.policy?.ui?.dialog?.actionLayout ?? null,
 		policyDialogUiProfile: data.policy?.ui?.dialog?.uiProfile ?? null,
-		policyPurposeIds: data.policy?.consent?.purposeIds ?? null,
+		policyCategories: data.policy?.consent?.categories ?? null,
 		policyScopeMode:
 			data.policy?.consent?.scopeMode ?? (data.policy ? 'unmanaged' : null),
 		initDataSource: initSourceMetadata?.initDataSource ?? null,
@@ -163,15 +163,15 @@ function buildStoreUpdate(
 	// Apply policy-driven purpose/category restrictions for non-wildcard scope.
 	// Out-of-policy categories are treated as out-of-scope (hidden + forced false),
 	// not as granted consent.
-	const policyPurposeIds = data.policy?.consent?.purposeIds;
-	const hasPolicyPurposeAllowlist =
-		Array.isArray(policyPurposeIds) &&
-		policyPurposeIds.length > 0 &&
-		!policyPurposeIds.includes('*');
-	if (hasPolicyPurposeAllowlist) {
+	const policyCategories = data.policy?.consent?.categories;
+	const hasPolicyCategoryAllowlist =
+		Array.isArray(policyCategories) &&
+		policyCategories.length > 0 &&
+		!policyCategories.includes('*');
+	if (hasPolicyCategoryAllowlist) {
 		const uniqueAllowedCategories = filterConsentCategoriesByPolicy(
 			allConsentNames,
-			policyPurposeIds
+			policyCategories
 		);
 
 		update.consentCategories = uniqueAllowedCategories;
@@ -183,6 +183,42 @@ function buildStoreUpdate(
 			update.selectedConsents ?? get().selectedConsents,
 			uniqueAllowedCategories
 		);
+	}
+
+	const preselectedCategories = data.policy?.consent?.preselectedCategories;
+	const shouldApplyPreselectedCategories =
+		consentInfo === null &&
+		!autoGrantedConsents &&
+		Array.isArray(preselectedCategories) &&
+		preselectedCategories.length > 0;
+	if (shouldApplyPreselectedCategories) {
+		const preselectedScope = hasPolicyCategoryAllowlist
+			? filterConsentCategoriesByPolicy(allConsentNames, policyCategories)
+			: allConsentNames;
+		const allowedPreselectedCategories = filterConsentCategoriesByPolicy(
+			preselectedScope,
+			preselectedCategories
+		);
+		const preselectedSet = new Set(allowedPreselectedCategories);
+		const selectedConsentBaseline =
+			update.selectedConsents ?? get().selectedConsents;
+
+		update.selectedConsents =
+			consentTypes.length > 0
+				? consentTypes.reduce((acc, consent) => {
+						acc[consent.name] =
+							consent.disabled === true
+								? consent.defaultValue
+								: preselectedSet.has(consent.name);
+						return acc;
+					}, {} as ConsentState)
+				: (Object.fromEntries(
+						Object.keys(selectedConsentBaseline).map((category) => [
+							category,
+							category === 'necessary' ||
+								preselectedSet.has(category as keyof ConsentState),
+						])
+					) as ConsentState);
 	}
 
 	// Prepare translation config

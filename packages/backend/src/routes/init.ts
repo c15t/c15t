@@ -152,7 +152,7 @@ Use for geo-targeted consent banners and regional compliance.`,
 						uiMode: policyDecision.policy.ui?.mode,
 						bannerUi: policyDecision.policy.ui?.banner,
 						dialogUi: policyDecision.policy.ui?.dialog,
-						purposeIds: policyDecision.policy.consent?.purposeIds,
+						categories: policyDecision.policy.consent?.categories,
 						proofConfig: policyDecision.policy.proof,
 					})
 				: undefined;

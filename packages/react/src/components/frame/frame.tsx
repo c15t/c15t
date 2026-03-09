@@ -16,7 +16,7 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 			has,
 			updateConsentCategories,
 			consentCategories,
-			policyPurposeIds,
+			policyCategories,
 			policyScopeMode,
 		} = useConsentManager();
 		const { frame } = useTranslations();
@@ -25,11 +25,11 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 
 		const hasConsent = has(category);
 		const hasPolicyScope =
-			Array.isArray(policyPurposeIds) &&
-			policyPurposeIds.length > 0 &&
-			!policyPurposeIds.includes('*');
+			Array.isArray(policyCategories) &&
+			policyCategories.length > 0 &&
+			!policyCategories.includes('*');
 		const isOutOfPolicyCategory =
-			hasPolicyScope && !policyPurposeIds.includes(category);
+			hasPolicyScope && !policyCategories.includes(category);
 		const isStrictPolicyBlocked =
 			policyScopeMode === 'strict' && isOutOfPolicyCategory;
 

@@ -76,17 +76,17 @@ describe('resolvePolicyDecision', () => {
 
 		expect(result?.policy.id).toBe('gdpr_iab');
 		expect(result?.policy.model).toBe('iab');
-		expect(result?.policy.consent?.purposeIds).toEqual(['*']);
+		expect(result?.policy.consent?.categories).toEqual(['*']);
 		expect(result?.matchedBy).toBe('jurisdiction');
 	});
 
-	it('normalizes iab purposeIds to wildcard even when specific IDs are configured', async () => {
+	it('normalizes iab categories to wildcard even when specific IDs are configured', async () => {
 		const result = await resolvePolicyDecision({
 			policies: [
 				{
 					id: 'gdpr_iab',
 					match: { jurisdictions: ['GDPR'] },
-					consent: { model: 'iab', purposeIds: ['measurement'] },
+					consent: { model: 'iab', categories: ['measurement'] },
 				},
 			],
 			countryCode: 'DE',
@@ -94,7 +94,7 @@ describe('resolvePolicyDecision', () => {
 			jurisdiction: 'GDPR',
 		});
 
-		expect(result?.policy.consent?.purposeIds).toEqual(['*']);
+		expect(result?.policy.consent?.categories).toEqual(['*']);
 	});
 
 	it('preserves strict scope mode when configured', async () => {
@@ -106,7 +106,7 @@ describe('resolvePolicyDecision', () => {
 					consent: {
 						model: 'opt-in',
 						scopeMode: 'strict',
-						purposeIds: ['necessary', 'measurement'],
+						categories: ['necessary', 'measurement'],
 					},
 				},
 			],
@@ -116,6 +116,33 @@ describe('resolvePolicyDecision', () => {
 		});
 
 		expect(result?.policy.consent?.scopeMode).toBe('strict');
+	});
+
+	it('filters preselected categories to the configured policy scope', async () => {
+		const result = await resolvePolicyDecision({
+			policies: [
+				{
+					id: 'policy_uk',
+					match: { countries: ['GB'] },
+					consent: {
+						model: 'opt-in',
+						categories: ['necessary', 'functionality'],
+						preselectedCategories: ['functionality', 'marketing'],
+					},
+				},
+			],
+			countryCode: 'GB',
+			regionCode: null,
+			jurisdiction: 'UK_GDPR',
+		});
+
+		expect(result?.policy.consent?.categories).toEqual([
+			'necessary',
+			'functionality',
+		]);
+		expect(result?.policy.consent?.preselectedCategories).toEqual([
+			'functionality',
+		]);
 	});
 
 	it('normalizes UI action order and primary action against allowed actions', async () => {

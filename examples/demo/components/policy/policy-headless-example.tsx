@@ -73,7 +73,7 @@ export function PolicyHeadlessExample() {
 		selectedConsents,
 		consentTypes,
 		consentCategories,
-		policyPurposeIds,
+		policyCategories,
 		policyScopeMode,
 		setSelectedConsent,
 		resetConsents,
@@ -115,8 +115,8 @@ export function PolicyHeadlessExample() {
 							scopeMode: {policyScopeMode ?? 'strict'}
 						</Badge>
 						<Badge variant="secondary">
-							purposes:{' '}
-							{policyPurposeIds?.length ? policyPurposeIds.join(', ') : 'all'}
+							categories:{' '}
+							{policyCategories?.length ? policyCategories.join(', ') : 'all'}
 						</Badge>
 					</div>
 

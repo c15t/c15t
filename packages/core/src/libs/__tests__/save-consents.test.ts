@@ -775,7 +775,7 @@ describe('saveConsents', () => {
 				lastBannerFetchData: {
 					policy: {
 						consent: {
-							purposeIds: ['necessary', 'measurement', 'marketing'],
+							categories: ['necessary', 'measurement', 'marketing'],
 						},
 					},
 				},

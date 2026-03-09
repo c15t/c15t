@@ -541,13 +541,13 @@ export interface StoreRuntimeState extends StoreConfig {
 	policyDialogUiProfile: PolicyUiProfile | null;
 
 	/**
-	 * Active runtime policy purpose scope from `/init`.
+	 * Active runtime policy category scope from `/init`.
 	 *
 	 * @remarks
 	 * Used to keep client-side category discovery (scripts/iframes) aligned with
 	 * backend policy restrictions after initialization.
 	 */
-	policyPurposeIds: string[] | null;
+	policyCategories: string[] | null;
 
 	/**
 	 * Runtime policy scope mode from `/init`.

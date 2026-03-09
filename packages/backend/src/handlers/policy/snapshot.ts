@@ -31,7 +31,7 @@ export interface PolicySnapshotPayload {
 	uiMode?: PolicyUiMode;
 	bannerUi?: PolicySnapshotUiSurface;
 	dialogUi?: PolicySnapshotUiSurface;
-	purposeIds?: string[];
+	categories?: string[];
 	proofConfig?: {
 		storeIp?: boolean;
 		storeUserAgent?: boolean;
@@ -108,7 +108,7 @@ export async function createPolicySnapshotToken(params: {
 	uiMode?: PolicyUiMode;
 	bannerUi?: PolicySnapshotUiSurface;
 	dialogUi?: PolicySnapshotUiSurface;
-	purposeIds?: string[];
+	categories?: string[];
 	proofConfig?: {
 		storeIp?: boolean;
 		storeUserAgent?: boolean;
@@ -137,7 +137,7 @@ export async function createPolicySnapshotToken(params: {
 		uiMode: params.uiMode,
 		bannerUi: params.bannerUi,
 		dialogUi: params.dialogUi,
-		purposeIds: params.purposeIds,
+		categories: params.categories,
 		proofConfig: params.proofConfig,
 		iat,
 		exp: iat + ttlSeconds,

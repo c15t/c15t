@@ -132,7 +132,7 @@ export const initialState: StoreRuntimeState = {
 	policyDialogActionOrder: null,
 	policyDialogActionLayout: null,
 	policyDialogUiProfile: null,
-	policyPurposeIds: null,
+	policyCategories: null,
 	policyScopeMode: null,
 	initDataSource: null,
 	initDataSourceDetail: null,

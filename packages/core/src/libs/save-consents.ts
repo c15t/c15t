@@ -133,11 +133,11 @@ export async function saveConsents({
 		}
 	}
 
-	const policyPurposeIds =
-		getEffectivePolicy(lastBannerFetchData)?.consent?.purposeIds;
+	const policyCategories =
+		getEffectivePolicy(lastBannerFetchData)?.consent?.categories;
 	const effectiveConsents = applyPolicyPurposeAllowlist(
 		newConsents,
-		policyPurposeIds
+		policyCategories
 	);
 
 	// Get or generate subjectId

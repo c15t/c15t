@@ -69,7 +69,7 @@ export const demoI18nMessages: I18nMessageProfiles = {
 			cookieBanner: {
 				title: 'UK Privacy Choices',
 				description:
-					'Choose your privacy settings. This profile keeps reject hidden and emphasizes customize first.',
+					'Choose your privacy settings. Functionality is preselected on first visit, reject stays hidden, and customize is emphasized.',
 			},
 		},
 	},
@@ -129,7 +129,7 @@ export const demoPolicies: PolicyConfig[] = [
 			model: 'opt-out',
 			expiryDays: 180,
 			scopeMode: 'strict',
-			purposeIds: ['necessary', 'functionality', 'measurement', 'marketing'],
+			categories: ['necessary', 'functionality', 'measurement', 'marketing'],
 		},
 		ui: {
 			mode: 'dialog',
@@ -160,7 +160,7 @@ export const demoPolicies: PolicyConfig[] = [
 			model: 'opt-in',
 			expiryDays: 365,
 			scopeMode: 'strict',
-			purposeIds: ['necessary', 'measurement', 'marketing'],
+			categories: ['necessary', 'measurement', 'marketing'],
 		},
 		ui: {
 			mode: 'banner',
@@ -216,13 +216,14 @@ export const demoPolicies: PolicyConfig[] = [
 		consent: {
 			model: 'opt-in',
 			expiryDays: 365,
-			purposeIds: [
+			categories: [
 				'necessary',
 				'functionality',
 				'experience',
 				'measurement',
 				'marketing',
 			],
+			preselectedCategories: ['functionality'],
 		},
 		ui: {
 			mode: 'banner',
@@ -260,7 +261,7 @@ export const demoPolicies: PolicyConfig[] = [
 			model: 'opt-in',
 			expiryDays: 90,
 			scopeMode: 'unmanaged',
-			purposeIds: ['necessary', 'measurement'],
+			categories: ['necessary', 'measurement'],
 		},
 		ui: {
 			mode: 'banner',
@@ -298,7 +299,7 @@ export const demoPolicies: PolicyConfig[] = [
 			model: 'opt-out',
 			expiryDays: 120,
 			scopeMode: 'strict',
-			purposeIds: ['necessary', 'measurement'],
+			categories: ['necessary', 'measurement'],
 		},
 		ui: {
 			mode: 'dialog',
@@ -328,7 +329,7 @@ export const demoPolicies: PolicyConfig[] = [
 		consent: {
 			model: 'iab',
 			expiryDays: 180,
-			purposeIds: ['*'],
+			categories: ['*'],
 		},
 		proof: {
 			storeIp: true,
@@ -349,7 +350,7 @@ export const demoPolicies: PolicyConfig[] = [
 			model: 'opt-in',
 			expiryDays: 365,
 			scopeMode: 'strict',
-			purposeIds: ['necessary', 'functionality', 'experience', 'measurement'],
+			categories: ['necessary', 'functionality', 'experience', 'measurement'],
 		},
 		ui: {
 			mode: 'banner',
@@ -384,7 +385,7 @@ export const demoPolicies: PolicyConfig[] = [
 		consent: {
 			model: 'iab',
 			expiryDays: 365,
-			purposeIds: ['*'],
+			categories: ['*'],
 		},
 		proof: {
 			storeIp: true,

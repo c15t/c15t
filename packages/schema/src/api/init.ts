@@ -191,7 +191,8 @@ export const resolvedPolicySchema = v.object({
 		v.object({
 			expiryDays: v.optional(v.number()),
 			scopeMode: v.optional(policyScopeModeSchema),
-			purposeIds: v.optional(v.array(v.string())),
+			categories: v.optional(v.array(v.string())),
+			preselectedCategories: v.optional(v.array(v.string())),
 		})
 	),
 	ui: v.optional(

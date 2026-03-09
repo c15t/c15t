@@ -26,7 +26,7 @@ describe('policy snapshot token', () => {
 				actionLayout: 'inline',
 				uiProfile: 'strict',
 			},
-			purposeIds: ['analytics', 'marketing'],
+			categories: ['analytics', 'marketing'],
 			proofConfig: {
 				storeIp: true,
 				storeUserAgent: true,
@@ -45,6 +45,7 @@ describe('policy snapshot token', () => {
 		expect(payload?.country).toBe('US');
 		expect(payload?.region).toBe('CA');
 		expect(payload?.scopeMode).toBe('strict');
+		expect(payload?.categories).toEqual(['analytics', 'marketing']);
 		expect(payload?.bannerUi?.actionLayout).toBe('inline');
 		expect(payload?.bannerUi?.uiProfile).toBe('strict');
 		expect(payload?.bannerUi?.actionOrder).toEqual([

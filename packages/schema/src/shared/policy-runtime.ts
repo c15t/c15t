@@ -34,7 +34,8 @@ export interface PolicyConfig {
 		model?: PolicyModel;
 		expiryDays?: number;
 		scopeMode?: PolicyScopeMode;
-		purposeIds?: string[];
+		categories?: string[];
+		preselectedCategories?: string[];
 	};
 	ui?: {
 		mode?: PolicyUiMode;
@@ -232,13 +233,36 @@ function normalizeModel(policy: PolicyConfig): PolicyModel {
 	return policy.consent?.model ?? 'opt-in';
 }
 
-function normalizePurposeIds(policy: PolicyConfig): string[] | undefined {
+function normalizeCategories(policy: PolicyConfig): string[] | undefined {
 	const model = normalizeModel(policy);
 	if (model === 'iab') {
 		return [POLICY_PURPOSE_WILDCARD];
 	}
 
-	return policy.consent?.purposeIds;
+	return policy.consent?.categories;
+}
+
+function normalizePreselectedCategories(
+	policy: PolicyConfig
+): string[] | undefined {
+	const model = normalizeModel(policy);
+	if (model === 'iab') {
+		return undefined;
+	}
+
+	const preselectedCategories = policy.consent?.preselectedCategories;
+	if (!preselectedCategories || preselectedCategories.length === 0) {
+		return undefined;
+	}
+
+	const categories = normalizeCategories(policy);
+	if (!categories || categories.length === 0 || categories.includes('*')) {
+		return dedupeStrings(preselectedCategories);
+	}
+
+	return dedupeStrings(
+		preselectedCategories.filter((category) => categories.includes(category))
+	);
 }
 
 function normalizeScopeMode(policy: PolicyConfig): PolicyScopeMode {
@@ -309,6 +333,17 @@ function collectPolicyErrors(
 	if (iabWithUiCustomization) {
 		errors.push(
 			`Policy '${iabWithUiCustomization.id}' uses consent.model="iab" and cannot define ui.* overrides. IAB banner/dialog controls are fixed by TCF mode.`
+		);
+	}
+
+	const iabWithPreselectedCategories = policies.find(
+		(policy) =>
+			policy.consent?.model === 'iab' &&
+			(policy.consent?.preselectedCategories?.length ?? 0) > 0
+	);
+	if (iabWithPreselectedCategories) {
+		errors.push(
+			`Policy '${iabWithPreselectedCategories.id}' uses consent.model="iab" and cannot define consent.preselectedCategories.`
 		);
 	}
 
@@ -592,7 +627,8 @@ function mapPolicy(policy: PolicyConfig): ResolvedPolicy {
 		consent: {
 			expiryDays: policy.consent?.expiryDays,
 			scopeMode: normalizeScopeMode(policy),
-			purposeIds: normalizePurposeIds(policy),
+			categories: normalizeCategories(policy),
+			preselectedCategories: normalizePreselectedCategories(policy),
 		},
 		ui:
 			model === 'iab'

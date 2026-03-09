@@ -25,7 +25,7 @@ function createMockState(
 			'measurement',
 		],
 		consentTypes: [],
-		policyPurposeIds: null,
+		policyCategories: null,
 		policyScopeMode: null,
 		policyBannerAllowedActions: null,
 		policyBannerPrimaryAction: null,

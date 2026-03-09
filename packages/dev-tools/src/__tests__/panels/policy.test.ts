@@ -7,7 +7,7 @@ function createBaseState(
 ): ConsentStoreState {
 	return {
 		lastBannerFetchData: null,
-		policyPurposeIds: null,
+		policyCategories: null,
 		policyScopeMode: null,
 		policyBannerAllowedActions: null,
 		policyBannerPrimaryAction: null,
@@ -34,7 +34,7 @@ describe('policy panel', () => {
 
 	it('renders detailed policy diagnostics when policy exists', () => {
 		const state = createBaseState({
-			policyPurposeIds: ['necessary', 'measurement'],
+			policyCategories: ['necessary', 'measurement'],
 			policyScopeMode: 'unmanaged',
 			policyBannerAllowedActions: ['accept', 'reject'],
 			policyBannerPrimaryAction: 'accept',
@@ -63,7 +63,8 @@ describe('policy panel', () => {
 					consent: {
 						scopeMode: 'unmanaged',
 						expiryDays: 365,
-						purposeIds: ['necessary', 'measurement'],
+						categories: ['necessary', 'measurement'],
+						preselectedCategories: ['measurement'],
 					},
 					ui: {
 						mode: 'banner',
@@ -104,6 +105,7 @@ describe('policy panel', () => {
 		expect(container.textContent).toContain('region');
 		expect(container.textContent).toContain('Unmanaged');
 		expect(container.textContent).toContain('necessary, measurement');
+		expect(container.textContent).toContain('measurement');
 		expect(container.textContent).toContain('accept, reject');
 		expect(container.textContent).toContain('reject, accept');
 		expect(container.textContent).toContain('inline');

@@ -141,7 +141,7 @@ describe('useConsentManager', () => {
 			consentInfo: null,
 			consentCategories: ['necessary', 'measurement'],
 			consentTypes: [],
-			policyPurposeIds: ['necessary', 'measurement'],
+			policyCategories: ['necessary', 'measurement'],
 			policyScopeMode: 'unmanaged',
 			policyBannerActionOrder: null,
 			policyBannerActionLayout: null,

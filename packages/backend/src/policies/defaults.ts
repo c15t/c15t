@@ -48,7 +48,7 @@ function europePolicy(mode: EuropePolicyMode): PolicyConfig {
 		consent: {
 			model: mode,
 			expiryDays: 365,
-			...(isIab ? { purposeIds: ['*'] } : {}),
+			...(isIab ? { categories: ['*'] } : {}),
 		},
 		...(!isIab
 			? {

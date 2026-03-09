@@ -85,7 +85,8 @@ describe('Offline Client Tests', () => {
 						consent: {
 							expiryDays: 120,
 							scopeMode: 'strict',
-							purposeIds: ['necessary', 'measurement'],
+							categories: ['necessary', 'measurement'],
+							preselectedCategories: ['measurement'],
 						},
 						ui: {
 							mode: 'banner',
@@ -121,6 +122,13 @@ describe('Offline Client Tests', () => {
 		expect(response.ok).toBe(true);
 		expect(response.data?.policy?.id).toBe('offline_preview_us_ca');
 		expect(response.data?.policy?.model).toBe('opt-in');
+		expect(response.data?.policy?.consent?.categories).toEqual([
+			'necessary',
+			'measurement',
+		]);
+		expect(response.data?.policy?.consent?.preselectedCategories).toEqual([
+			'measurement',
+		]);
 		expect(response.data?.policy?.ui?.mode).toBe('banner');
 		expect(response.data?.policyDecision?.matchedBy).toBe('region');
 		expect(response.data?.policySnapshotToken).toBe('offline-preview-token');

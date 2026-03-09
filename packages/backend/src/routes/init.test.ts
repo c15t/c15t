@@ -32,7 +32,10 @@ const mockGVL: GlobalVendorList = {
 interface InitTestResponseBody {
 	policy?: {
 		model?: string;
-		consent?: { purposeIds?: string[] };
+		consent?: {
+			categories?: string[];
+			preselectedCategories?: string[];
+		};
 		ui?: {
 			mode?: string;
 			banner?: {
@@ -160,7 +163,7 @@ describe('createInitRoute IAB policy gating', () => {
 
 		expect(response.status).toBe(200);
 		expect(body.policy?.model).toBe('iab');
-		expect(body.policy?.consent?.purposeIds).toEqual(['*']);
+		expect(body.policy?.consent?.categories).toEqual(['*']);
 		expect(body.gvl?.vendorListVersion).toBe(123);
 		expect(body.cmpId).toBe(202);
 		expect(body.customVendors).toHaveLength(1);

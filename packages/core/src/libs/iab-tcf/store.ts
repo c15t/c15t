@@ -247,12 +247,12 @@ export function createIABActions(
 
 			// Map IAB consents to c15t consents
 			const c15tConsents = iabPurposesToC15tConsents(purposeConsents);
-			const policyPurposeIds = getEffectivePolicy(
+			const policyCategories = getEffectivePolicy(
 				getState().lastBannerFetchData
-			)?.consent?.purposeIds;
+			)?.consent?.categories;
 			const effectiveConsents = applyPolicyPurposeAllowlist(
 				c15tConsents,
-				policyPurposeIds
+				policyCategories
 			);
 
 			const givenAt = Date.now();

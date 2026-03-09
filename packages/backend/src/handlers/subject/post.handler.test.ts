@@ -315,12 +315,12 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 		vi.restoreAllMocks();
 	});
 
-	it('rejects preferences that include disallowed purposes', async () => {
+	it('rejects preferences that include disallowed categories', async () => {
 		vi.mocked(resolvePolicyDecision).mockResolvedValue({
 			policy: {
 				id: 'policy_restrictive',
 				model: 'opt-in',
-				consent: { scopeMode: 'strict', purposeIds: ['measurement'] },
+				consent: { scopeMode: 'strict', categories: ['measurement'] },
 			},
 			matchedBy: 'country',
 			fingerprint: 'a'.repeat(64),
@@ -340,19 +340,19 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 		// @ts-expect-error - simplified test context
 		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
 			status: 400,
-			message: 'Preferences include purposes not allowed by policy',
+			message: 'Preferences include categories not allowed by policy',
 		});
 
 		expect(registry.findOrCreateConsentPurposeByCode).not.toHaveBeenCalled();
 		expect(db.transaction).not.toHaveBeenCalled();
 	});
 
-	it('ignores out-of-scope purposes when scopeMode is unmanaged', async () => {
+	it('ignores out-of-scope categories when scopeMode is unmanaged', async () => {
 		vi.mocked(resolvePolicyDecision).mockResolvedValue({
 			policy: {
 				id: 'policy_unmanaged',
 				model: 'opt-in',
-				consent: { scopeMode: 'unmanaged', purposeIds: ['measurement'] },
+				consent: { scopeMode: 'unmanaged', categories: ['measurement'] },
 			},
 			matchedBy: 'country',
 			fingerprint: 'u'.repeat(64),
@@ -387,7 +387,7 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 			policy: {
 				id: 'policy_iab',
 				model: 'iab',
-				consent: { purposeIds: ['*'] },
+				consent: { categories: ['*'] },
 			},
 			matchedBy: 'jurisdiction',
 			fingerprint: 'b'.repeat(64),
@@ -427,7 +427,7 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 			policy: {
 				id: 'policy_restrictive',
 				model: 'opt-in',
-				consent: { purposeIds: ['measurement'] },
+				consent: { categories: ['measurement'] },
 			},
 			matchedBy: 'country',
 			fingerprint: 'c'.repeat(64),
@@ -440,7 +440,7 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 			region: null,
 			jurisdiction: 'GDPR',
 			model: 'iab',
-			purposeIds: ['*'],
+			categories: ['*'],
 			iat: 1,
 			exp: 9_999_999_999,
 		});

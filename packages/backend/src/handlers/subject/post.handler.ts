@@ -121,7 +121,7 @@ export const postSubjectHandler = async (c: Context) => {
 						consent: {
 							expiryDays: snapshotPayload.expiryDays,
 							scopeMode: snapshotPayload.scopeMode,
-							purposeIds: snapshotPayload.purposeIds,
+							categories: snapshotPayload.categories,
 						},
 						ui: {
 							mode: snapshotPayload.uiMode,
@@ -210,29 +210,30 @@ export const postSubjectHandler = async (c: Context) => {
 
 		// Handle purposes if they exist
 		if (preferences) {
-			const allowedPurposeIds = effectivePolicy?.consent?.purposeIds;
+			const allowedCategories = effectivePolicy?.consent?.categories;
 			const effectiveScopeMode =
 				effectivePolicy?.consent?.scopeMode ?? 'unmanaged';
-			const hasWildcardPurposeScope = allowedPurposeIds?.includes('*') === true;
+			const hasWildcardCategoryScope =
+				allowedCategories?.includes('*') === true;
 			const consentedPurposeCodes = Object.entries(preferences)
 				.filter(([_, isConsented]) => isConsented)
 				.map(([purposeCode]) => purposeCode);
 			let filteredConsentedPurposeCodes = consentedPurposeCodes;
 
 			if (
-				allowedPurposeIds &&
-				allowedPurposeIds.length > 0 &&
-				!hasWildcardPurposeScope
+				allowedCategories &&
+				allowedCategories.length > 0 &&
+				!hasWildcardCategoryScope
 			) {
 				const disallowed = consentedPurposeCodes.filter(
-					(purpose) => !allowedPurposeIds.includes(purpose)
+					(purpose) => !allowedCategories.includes(purpose)
 				);
 				filteredConsentedPurposeCodes = consentedPurposeCodes.filter(
-					(purpose) => allowedPurposeIds.includes(purpose)
+					(purpose) => allowedCategories.includes(purpose)
 				);
 				if (disallowed.length > 0 && effectiveScopeMode === 'strict') {
 					throw new HTTPException(400, {
-						message: 'Preferences include purposes not allowed by policy',
+						message: 'Preferences include categories not allowed by policy',
 						cause: { code: 'PURPOSE_NOT_ALLOWED', disallowed },
 					});
 				}
@@ -306,7 +307,7 @@ export const postSubjectHandler = async (c: Context) => {
 						uiMode: snapshotPayload.uiMode,
 						bannerUi: snapshotPayload.bannerUi,
 						dialogUi: snapshotPayload.dialogUi,
-						purposeIds: snapshotPayload.purposeIds,
+						categories: snapshotPayload.categories,
 						proofConfig: snapshotPayload.proofConfig,
 						dedupeKey: buildRuntimeDecisionDedupeKey({
 							tenantId: ctx.tenantId,
@@ -332,7 +333,7 @@ export const postSubjectHandler = async (c: Context) => {
 							uiMode: resolvedPolicyDecision.policy.ui?.mode,
 							bannerUi: resolvedPolicyDecision.policy.ui?.banner,
 							dialogUi: resolvedPolicyDecision.policy.ui?.dialog,
-							purposeIds: resolvedPolicyDecision.policy.consent?.purposeIds,
+							categories: resolvedPolicyDecision.policy.consent?.categories,
 							proofConfig,
 							dedupeKey: buildRuntimeDecisionDedupeKey({
 								tenantId: ctx.tenantId,
@@ -403,8 +404,8 @@ export const postSubjectHandler = async (c: Context) => {
 						dialogUi: decisionPayload.dialogUi
 							? { json: decisionPayload.dialogUi }
 							: undefined,
-						purposeIds: decisionPayload.purposeIds
-							? { json: decisionPayload.purposeIds }
+						categories: decisionPayload.categories
+							? { json: decisionPayload.categories }
 							: undefined,
 						proofConfig: decisionPayload.proofConfig
 							? { json: decisionPayload.proofConfig }

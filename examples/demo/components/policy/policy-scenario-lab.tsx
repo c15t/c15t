@@ -32,7 +32,7 @@ type InitResponse = {
 		consent?: {
 			expiryDays?: number;
 			scopeMode?: PolicyScopeMode;
-			purposeIds?: string[];
+			categories?: string[];
 		};
 		ui?: {
 			mode?: PolicyUiMode;
@@ -63,7 +63,8 @@ type ScenarioExpectations = {
 	actionLayout?: PolicyUiActionLayout;
 	disallowedActions?: PolicyUiAction[];
 	scopeMode?: PolicyScopeMode;
-	purposeIds?: string[];
+	categories?: string[];
+	preselectedCategories?: string[];
 	expiryDays?: number;
 	languagePrefix?: string;
 	iabPayload: boolean;
@@ -126,7 +127,7 @@ const scenarios: ScenarioDefinition[] = [
 			actionLayout: 'inline',
 			disallowedActions: ['customize'],
 			scopeMode: 'strict',
-			purposeIds: ['necessary', 'measurement', 'marketing'],
+			categories: ['necessary', 'measurement', 'marketing'],
 			expiryDays: 365,
 			languagePrefix: 'en',
 			iabPayload: false,
@@ -160,7 +161,7 @@ const scenarios: ScenarioDefinition[] = [
 			actionLayout: 'inline',
 			disallowedActions: ['customize'],
 			scopeMode: 'strict',
-			purposeIds: ['necessary', 'measurement', 'marketing'],
+			categories: ['necessary', 'measurement', 'marketing'],
 			expiryDays: 365,
 			languagePrefix: 'es',
 			iabPayload: false,
@@ -216,7 +217,7 @@ const scenarios: ScenarioDefinition[] = [
 			actionLayout: 'inline',
 			disallowedActions: ['accept', 'reject'],
 			scopeMode: 'strict',
-			purposeIds: ['necessary', 'functionality', 'measurement', 'marketing'],
+			categories: ['necessary', 'functionality', 'measurement', 'marketing'],
 			expiryDays: 180,
 			languagePrefix: 'en',
 			iabPayload: false,
@@ -248,7 +249,7 @@ const scenarios: ScenarioDefinition[] = [
 			actionOrder: ['reject', 'accept', 'customize'],
 			actionLayout: 'split',
 			scopeMode: 'strict',
-			purposeIds: ['necessary', 'functionality', 'experience', 'measurement'],
+			categories: ['necessary', 'functionality', 'experience', 'measurement'],
 			expiryDays: 365,
 			languagePrefix: 'de',
 			iabPayload: false,
@@ -265,7 +266,7 @@ const scenarios: ScenarioDefinition[] = [
 		},
 		bannerHref: '/?country=GB',
 		summary:
-			'Country policy with no reject action; inline ordering accept -> customize.',
+			'Country policy with functionality preselected on first visit; reject stays hidden with inline accept -> customize ordering.',
 		expected: {
 			policyId: 'policy_uk',
 			matchedBy: 'country',
@@ -276,13 +277,14 @@ const scenarios: ScenarioDefinition[] = [
 			actionLayout: 'inline',
 			disallowedActions: ['reject'],
 			scopeMode: 'unmanaged',
-			purposeIds: [
+			categories: [
 				'necessary',
 				'functionality',
 				'experience',
 				'measurement',
 				'marketing',
 			],
+			preselectedCategories: ['functionality'],
 			expiryDays: 365,
 			languagePrefix: 'en',
 			iabPayload: false,
@@ -309,7 +311,7 @@ const scenarios: ScenarioDefinition[] = [
 			actionOrder: ['customize', 'reject', 'accept'],
 			actionLayout: 'split',
 			scopeMode: 'unmanaged',
-			purposeIds: ['necessary', 'measurement'],
+			categories: ['necessary', 'measurement'],
 			expiryDays: 90,
 			languagePrefix: 'ja',
 			iabPayload: false,
@@ -336,7 +338,7 @@ const scenarios: ScenarioDefinition[] = [
 			actionOrder: ['reject', 'accept', 'customize'],
 			actionLayout: 'inline',
 			scopeMode: 'strict',
-			purposeIds: ['necessary', 'measurement'],
+			categories: ['necessary', 'measurement'],
 			expiryDays: 120,
 			languagePrefix: 'pt',
 			iabPayload: false,
@@ -364,7 +366,7 @@ const scenarios: ScenarioDefinition[] = [
 			matchedBy: 'country',
 			model: 'iab',
 			scopeMode: 'unmanaged',
-			purposeIds: ['*'],
+			categories: ['*'],
 			expiryDays: 180,
 			languagePrefix: 'fr',
 			iabPayload: true,
@@ -414,11 +416,11 @@ function normalizeActionOrder(actions?: PolicyUiAction[]): string {
 	return actions.join(',');
 }
 
-function normalizePurposeIds(purposeIds?: string[]): string {
-	if (!purposeIds || purposeIds.length === 0) {
+function normalizeCategories(categories?: string[]): string {
+	if (!categories || categories.length === 0) {
 		return 'none';
 	}
-	return [...purposeIds].sort().join(',');
+	return [...categories].sort().join(',');
 }
 
 function hasIabPayload(data: InitResponse): boolean {
@@ -541,14 +543,25 @@ function buildChecks(
 		});
 	}
 
-	if (expected.purposeIds) {
+	if (expected.categories) {
 		checks.push({
-			label: 'Purpose Scope',
+			label: 'Category Scope',
 			pass:
-				normalizePurposeIds(data.policy?.consent?.purposeIds) ===
-				normalizePurposeIds(expected.purposeIds),
-			expected: normalizePurposeIds(expected.purposeIds),
-			actual: normalizePurposeIds(data.policy?.consent?.purposeIds),
+				normalizeCategories(data.policy?.consent?.categories) ===
+				normalizeCategories(expected.categories),
+			expected: normalizeCategories(expected.categories),
+			actual: normalizeCategories(data.policy?.consent?.categories),
+		});
+	}
+
+	if (expected.preselectedCategories) {
+		checks.push({
+			label: 'Preselected Categories',
+			pass:
+				normalizeCategories(data.policy?.consent?.preselectedCategories) ===
+				normalizeCategories(expected.preselectedCategories),
+			expected: normalizeCategories(expected.preselectedCategories),
+			actual: normalizeCategories(data.policy?.consent?.preselectedCategories),
 		});
 	}
 
@@ -828,11 +841,20 @@ export function PolicyScenarioLab() {
 															{activeSurface?.actionLayout ?? 'none'}
 														</p>
 														<p className="mt-2 text-muted-foreground">
-															Purpose scope
+															Category scope
 														</p>
 														<p className="font-mono">
 															{(
-																result.data.policy?.consent?.purposeIds ?? []
+																result.data.policy?.consent?.categories ?? []
+															).join(', ') || 'none'}
+														</p>
+														<p className="mt-2 text-muted-foreground">
+															Preselected
+														</p>
+														<p className="font-mono">
+															{(
+																result.data.policy?.consent
+																	?.preselectedCategories ?? []
 															).join(', ') || 'none'}
 														</p>
 													</div>

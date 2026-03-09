@@ -88,10 +88,14 @@ export function renderPolicyPanel(
 				)
 			),
 			createCompactInfoCard(
-				'Purpose Scope',
-				formatPurposeScope(
-					state.policyPurposeIds ?? activePolicy?.consent?.purposeIds
+				'Category Scope',
+				formatCategoryScope(
+					state.policyCategories ?? activePolicy?.consent?.categories
 				)
+			),
+			createCompactInfoCard(
+				'Preselected',
+				formatCategoryScope(activePolicy?.consent?.preselectedCategories)
 			),
 			createCompactInfoCard('UI Mode', activePolicy?.ui?.mode ?? '—'),
 			createCompactInfoCard(
@@ -248,14 +252,14 @@ function formatPolicyActions(actions: string[] | null | undefined): string {
 	return actions.join(', ');
 }
 
-function formatPurposeScope(purposeIds: string[] | null | undefined): string {
-	if (!purposeIds || purposeIds.length === 0) {
+function formatCategoryScope(categories: string[] | null | undefined): string {
+	if (!categories || categories.length === 0) {
 		return '—';
 	}
-	if (purposeIds.includes('*')) {
+	if (categories.includes('*')) {
 		return '*';
 	}
-	return purposeIds.join(', ');
+	return categories.join(', ');
 }
 
 function formatProofSummary(

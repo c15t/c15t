@@ -92,7 +92,7 @@ export function createMockStoreState(
 		policyDialogActionOrder: null,
 		policyDialogActionLayout: null,
 		policyDialogUiProfile: null,
-		policyPurposeIds: null,
+		policyCategories: null,
 		policyScopeMode: null,
 		initDataSource: null,
 		initDataSourceDetail: null,

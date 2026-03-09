@@ -341,13 +341,13 @@ describe('has - Consent Condition Evaluation', () => {
 
 			expect(
 				has('experience', consents, {
-					policyPurposeIds: ['necessary', 'measurement'],
+					policyCategories: ['necessary', 'measurement'],
 					policyScopeMode: 'unmanaged',
 				})
 			).toBe(true);
 			expect(
 				has('measurement', consents, {
-					policyPurposeIds: ['necessary', 'measurement'],
+					policyCategories: ['necessary', 'measurement'],
 					policyScopeMode: 'unmanaged',
 				})
 			).toBe(false);
@@ -364,13 +364,13 @@ describe('has - Consent Condition Evaluation', () => {
 
 			expect(
 				has('experience', consents, {
-					policyPurposeIds: ['necessary', 'measurement'],
+					policyCategories: ['necessary', 'measurement'],
 					policyScopeMode: 'strict',
 				})
 			).toBe(false);
 			expect(
 				has('measurement', consents, {
-					policyPurposeIds: ['necessary', 'measurement'],
+					policyCategories: ['necessary', 'measurement'],
 					policyScopeMode: 'strict',
 				})
 			).toBe(true);

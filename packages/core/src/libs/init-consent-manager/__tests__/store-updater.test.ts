@@ -334,7 +334,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 				id: 'policy_jp_restricted',
 				model: 'opt-in',
 				consent: {
-					purposeIds: ['necessary', 'measurement'],
+					categories: ['necessary', 'measurement'],
 				},
 			},
 		});
@@ -404,7 +404,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 				id: 'policy_iab',
 				model: 'iab',
 				consent: {
-					purposeIds: ['*'],
+					categories: ['*'],
 				},
 			},
 		});
@@ -429,6 +429,70 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		expect(mockSet).not.toHaveBeenCalledWith(
 			expect.objectContaining({
 				consentCategories: expect.any(Array),
+			})
+		);
+	});
+
+	it('preselects configured categories on first visit without granting consent', () => {
+		const data = createMockConsentBannerResponse({
+			jurisdiction: 'UK_GDPR',
+			policy: {
+				id: 'policy_uk',
+				model: 'opt-in',
+				consent: {
+					categories: ['necessary', 'functionality', 'measurement'],
+					preselectedCategories: ['functionality', 'marketing'],
+				},
+			},
+		});
+		const mockState = createMockStoreState({
+			iab: null,
+			consentInfo: null,
+			consents: {
+				necessary: true,
+				functionality: false,
+				experience: false,
+				marketing: false,
+				measurement: false,
+			},
+			selectedConsents: {
+				necessary: true,
+				functionality: false,
+				experience: false,
+				marketing: false,
+				measurement: false,
+			},
+		});
+		const mockGet = vi.fn().mockReturnValue(mockState);
+		const mockSet = vi.fn();
+
+		updateStore(
+			data,
+			{
+				get: mockGet,
+				set: mockSet,
+				manager: {} as InitConsentManagerConfig['manager'],
+				initialTranslationConfig: undefined,
+			},
+			true
+		);
+
+		expect(mockSet).toHaveBeenCalledWith(
+			expect.objectContaining({
+				consents: {
+					necessary: true,
+					functionality: false,
+					experience: false,
+					marketing: false,
+					measurement: false,
+				},
+				selectedConsents: {
+					necessary: true,
+					functionality: true,
+					experience: false,
+					marketing: false,
+					measurement: false,
+				},
 			})
 		);
 	});

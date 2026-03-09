@@ -57,7 +57,7 @@ export function createIframeManager(
 			const state = get();
 			const runtimeConsents = applyPolicyScopeForRuntimeGating(
 				state.consents,
-				state.policyPurposeIds,
+				state.policyCategories,
 				state.policyScopeMode
 			);
 
@@ -97,7 +97,7 @@ export function createIframeManager(
 					const nextState = get();
 					return applyPolicyScopeForRuntimeGating(
 						nextState.consents,
-						nextState.policyPurposeIds,
+						nextState.policyCategories,
 						nextState.policyScopeMode
 					);
 				},
@@ -139,7 +139,7 @@ export function createIframeManager(
 			processAllIframes(
 				applyPolicyScopeForRuntimeGating(
 					consents,
-					state.policyPurposeIds,
+					state.policyCategories,
 					state.policyScopeMode
 				)
 			);

@@ -418,7 +418,7 @@ describe('TCF Store', () => {
 					onError: vi.fn(),
 				} as ConsentStoreState['callbacks'];
 				mockState.lastBannerFetchData = {
-					policy: { consent: { purposeIds: ['necessary', 'measurement'] } },
+					policy: { consent: { categories: ['necessary', 'measurement'] } },
 				} as ConsentStoreState['lastBannerFetchData'];
 				mockState.iab = {
 					...mockState.iab!,
@@ -479,7 +479,7 @@ describe('TCF Store', () => {
 					onError: vi.fn(),
 				} as ConsentStoreState['callbacks'];
 				mockState.lastBannerFetchData = {
-					policy: { consent: { purposeIds: ['*'] } },
+					policy: { consent: { categories: ['*'] } },
 				} as ConsentStoreState['lastBannerFetchData'];
 				mockState.iab = {
 					...mockState.iab!,

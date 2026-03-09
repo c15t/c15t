@@ -18,7 +18,7 @@ function createBaseState(
 		},
 		model: 'opt-in',
 		lastBannerFetchData: null,
-		policyPurposeIds: null,
+		policyCategories: null,
 		policyScopeMode: null,
 		policyBannerAllowedActions: null,
 		policyBannerPrimaryAction: null,
@@ -45,7 +45,7 @@ describe('location panel', () => {
 
 	it('renders compact active policy summary when runtime policy is present', () => {
 		const state = createBaseState({
-			policyPurposeIds: ['necessary', 'measurement'],
+			policyCategories: ['necessary', 'measurement'],
 			policyScopeMode: 'unmanaged',
 			policyBannerAllowedActions: ['accept', 'reject'],
 			policyBannerPrimaryAction: 'accept',
@@ -73,7 +73,7 @@ describe('location panel', () => {
 					consent: {
 						scopeMode: 'unmanaged',
 						expiryDays: 365,
-						purposeIds: ['necessary', 'measurement'],
+						categories: ['necessary', 'measurement'],
 					},
 					ui: {
 						mode: 'banner',

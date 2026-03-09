@@ -304,7 +304,7 @@ describe('Store Script Loader Integration', () => {
 			});
 
 			store.setState({
-				policyPurposeIds: ['necessary', 'measurement'],
+				policyCategories: ['necessary', 'measurement'],
 				policyScopeMode: 'unmanaged',
 			});
 

@@ -269,7 +269,7 @@ export const createConsentManagerStore = (
 			set({
 				consentCategories: filterConsentCategoriesByPolicy(
 					types,
-					get().policyPurposeIds
+					get().policyCategories
 				),
 			}),
 		setCallback: (name, callback) => {
@@ -349,9 +349,9 @@ export const createConsentManagerStore = (
 		has: <CategoryType extends AllConsentNames>(
 			condition: HasCondition<CategoryType>
 		) => {
-			const { consents, policyPurposeIds, policyScopeMode } = get();
+			const { consents, policyCategories, policyScopeMode } = get();
 			return has(condition, consents, {
-				policyPurposeIds,
+				policyCategories,
 				policyScopeMode,
 			});
 		},
@@ -367,7 +367,7 @@ export const createConsentManagerStore = (
 			]);
 			const allCategories = filterConsentCategoriesByPolicy(
 				Array.from(allCategoriesSet),
-				get().policyPurposeIds
+				get().policyCategories
 			);
 			set({ consentCategories: allCategories });
 		},

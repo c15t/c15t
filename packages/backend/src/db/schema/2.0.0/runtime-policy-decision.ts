@@ -18,7 +18,7 @@ export const runtimePolicyDecisionTable = table('runtimePolicyDecision', {
 	uiMode: column('uiMode', 'string').nullable(),
 	bannerUi: column('bannerUi', 'json').nullable(),
 	dialogUi: column('dialogUi', 'json').nullable(),
-	purposeIds: column('purposeIds', 'json').nullable(),
+	categories: column('categories', 'json').nullable(),
 	proofConfig: column('proofConfig', 'json').nullable(),
 	dedupeKey: column('dedupeKey', 'string').unique(),
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),

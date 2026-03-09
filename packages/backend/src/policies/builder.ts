@@ -19,10 +19,10 @@ export interface PolicyBuilderInput {
 	expiryDays?: number;
 	scopeMode?: PolicyScopeMode;
 	/**
-	 * Alias for consent purpose IDs.
+	 * Consent categories scoped by the policy.
 	 */
 	categories?: string[];
-	purposeIds?: string[];
+	preselectedCategories?: string[];
 	uiMode?: PolicyUiMode;
 	banner?: PolicyUiSurfaceConfig;
 	dialog?: PolicyUiSurfaceConfig;
@@ -94,7 +94,8 @@ function compactUiSurface(
 }
 
 export function buildPolicyConfig(input: PolicyBuilderInput): PolicyConfig {
-	const purposeIds = dedupeStrings(input.purposeIds ?? input.categories);
+	const categories = dedupeStrings(input.categories);
+	const preselectedCategories = dedupeStrings(input.preselectedCategories);
 
 	return {
 		id: input.id,
@@ -105,7 +106,8 @@ export function buildPolicyConfig(input: PolicyBuilderInput): PolicyConfig {
 			model: input.model,
 			expiryDays: input.expiryDays,
 			scopeMode: input.scopeMode,
-			purposeIds,
+			categories,
+			preselectedCategories,
 		}),
 		ui: compact({
 			mode: input.uiMode,

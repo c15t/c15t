@@ -285,7 +285,7 @@ export interface PolicyConfig {
 		model?: PolicyModel;
 		expiryDays?: number;
 		/**
-		 * How to treat categories outside `purposeIds`.
+		 * How to treat categories outside `categories`.
 		 * - `unmanaged` (default): out-of-scope categories are not blocked by c15t runtime.
 		 * - `strict`: out-of-scope categories remain blocked and are enforced on writes.
 		 */
@@ -296,7 +296,8 @@ export interface PolicyConfig {
 		 *
 		 * Note: `model: "iab"` is normalized to wildcard scope at runtime.
 		 */
-		purposeIds?: string[];
+		categories?: string[];
+		preselectedCategories?: string[];
 	};
 	ui?: {
 		mode?: PolicyUiMode;

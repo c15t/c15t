@@ -32,7 +32,7 @@ const OFFLINE_OPT_IN_POLICY = {
 	consent: {
 		expiryDays: 365,
 		scopeMode: 'unmanaged' as const,
-		purposeIds: ['*'],
+		categories: ['*'],
 	},
 	ui: {
 		mode: 'banner' as const,
@@ -67,7 +67,7 @@ const OFFLINE_IAB_POLICY = {
 	consent: {
 		expiryDays: 365,
 		scopeMode: 'unmanaged' as const,
-		purposeIds: ['*'],
+		categories: ['*'],
 	},
 };
 
@@ -80,7 +80,7 @@ function RuntimeStatePanel() {
 		lastBannerFetchData,
 		locationInfo,
 		model,
-		policyPurposeIds,
+		policyCategories,
 		policyScopeMode,
 		resetConsents,
 		setActiveUI,
@@ -133,8 +133,8 @@ function RuntimeStatePanel() {
 						{policyScopeMode ?? 'unmanaged'}
 					</div>
 					<div className="sm:col-span-2">
-						<span className="text-muted-foreground">purposeIds:</span>{' '}
-						{policyPurposeIds?.length ? policyPurposeIds.join(', ') : 'all'}
+						<span className="text-muted-foreground">categories:</span>{' '}
+						{policyCategories?.length ? policyCategories.join(', ') : 'all'}
 					</div>
 				</div>
 
