@@ -1,5 +1,6 @@
 import { webcrypto } from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
+import { createMaterialPolicyFingerprint } from './policy-fingerprint';
 import {
 	createPolicyFingerprint,
 	hashSha256Hex,
@@ -156,5 +157,94 @@ describe('resolvePolicyDecision', () => {
 		expect(nodeFingerprint).toBe(webcryptoFingerprint);
 		expect(nodeFingerprint).toBe(pureJsFingerprint);
 		expect(nodeFingerprint).toBe(goldenVectors[2].expected);
+	});
+
+	it('ignores presentation-only fields in the material policy fingerprint', async () => {
+		const basePolicy: Parameters<typeof createMaterialPolicyFingerprint>[0] = {
+			id: 'policy_runtime_us_ca',
+			model: 'opt-in',
+			i18n: {
+				language: 'en',
+				messageProfile: 'default',
+			},
+			consent: {
+				expiryDays: 365,
+				scopeMode: 'strict',
+				categories: ['necessary', 'measurement'],
+			},
+			ui: {
+				mode: 'banner',
+				banner: {
+					allowedActions: ['accept', 'reject'],
+					primaryAction: 'accept',
+					actionOrder: ['accept', 'reject'],
+					actionLayout: 'inline',
+					uiProfile: 'balanced',
+					scrollLock: true,
+				},
+			},
+		};
+
+		const presentationVariant: Parameters<
+			typeof createMaterialPolicyFingerprint
+		>[0] = {
+			...basePolicy,
+			id: 'policy_runtime_us_ca_v2',
+			i18n: {
+				language: 'de',
+				messageProfile: 'regional',
+			},
+			ui: {
+				mode: 'banner',
+				banner: {
+					allowedActions: ['accept', 'reject'],
+					primaryAction: 'accept',
+					actionOrder: ['accept', 'reject'],
+					actionLayout: 'split',
+					uiProfile: 'strict',
+					scrollLock: false,
+				},
+			},
+		};
+
+		await expect(createMaterialPolicyFingerprint(basePolicy)).resolves.toBe(
+			await createMaterialPolicyFingerprint(presentationVariant)
+		);
+	});
+
+	it('changes the material policy fingerprint when consent semantics change', async () => {
+		const basePolicy: Parameters<typeof createMaterialPolicyFingerprint>[0] = {
+			id: 'policy_runtime_us_ca',
+			model: 'opt-in',
+			consent: {
+				expiryDays: 365,
+				scopeMode: 'strict',
+				categories: ['necessary', 'measurement'],
+			},
+			ui: {
+				mode: 'banner',
+				banner: {
+					allowedActions: ['accept', 'reject'],
+					primaryAction: 'accept',
+					actionOrder: ['accept', 'reject'],
+				},
+			},
+			proof: {
+				storeIp: true,
+			},
+		};
+
+		const changedPolicy: Parameters<typeof createMaterialPolicyFingerprint>[0] =
+			{
+				...basePolicy,
+				consent: {
+					...basePolicy.consent,
+					categories: ['necessary', 'measurement', 'marketing'],
+				},
+			};
+
+		await expect(createMaterialPolicyFingerprint(basePolicy)).resolves.not.toBe(
+			await createMaterialPolicyFingerprint(changedPolicy)
+		);
 	});
 });

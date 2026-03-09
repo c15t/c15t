@@ -478,6 +478,47 @@ describe('saveConsents', () => {
 				})
 			);
 		});
+
+		it('should attach the active material policy fingerprint to saved consent info', async () => {
+			mockGet = vi.fn().mockReturnValue({
+				...mockGet(),
+				lastBannerFetchData: {
+					policy: {
+						id: 'policy_runtime_gdpr',
+						model: 'opt-in',
+						consent: {
+							expiryDays: 365,
+							scopeMode: 'strict',
+							categories: ['necessary', 'measurement'],
+						},
+						ui: {
+							mode: 'banner',
+							banner: {
+								allowedActions: ['accept', 'reject'],
+								primaryAction: 'accept',
+								actionOrder: ['accept', 'reject'],
+							},
+						},
+					},
+				},
+				reloadOnConsentRevoked: false,
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'all',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					consentInfo: expect.objectContaining({
+						materialPolicyFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+					}),
+				})
+			);
+		});
 	});
 
 	describe('network blocker integration', () => {
@@ -1541,9 +1582,10 @@ describe('saveConsents', () => {
 				expect.any(String)
 			);
 
-			const storedData = JSON.parse(
-				(mockLocalStorage.setItem as ReturnType<typeof vi.fn>).mock.calls[0][1]
-			);
+			const pendingSyncCall = (
+				mockLocalStorage.setItem as ReturnType<typeof vi.fn>
+			).mock.calls.find(([key]) => key === PENDING_CONSENT_SYNC_KEY);
+			const storedData = JSON.parse(String(pendingSyncCall?.[1]));
 			expect(storedData.policySnapshotToken).toBe('snapshot-token-123');
 
 			// Should call onBeforeConsentRevocationReload callback
@@ -1614,9 +1656,10 @@ describe('saveConsents', () => {
 				expect.any(String)
 			);
 
-			const storedData = JSON.parse(
-				(mockLocalStorage.setItem as ReturnType<typeof vi.fn>).mock.calls[0][1]
-			);
+			const pendingSyncCall = (
+				mockLocalStorage.setItem as ReturnType<typeof vi.fn>
+			).mock.calls.find(([key]) => key === PENDING_CONSENT_SYNC_KEY);
+			const storedData = JSON.parse(String(pendingSyncCall?.[1]));
 			expect(storedData.uiSource).toBe('dialog');
 		});
 

@@ -286,6 +286,15 @@ export type ConsentInfo = {
 	externalId?: string;
 
 	/**
+	 * Material fingerprint of the active policy when this consent was accepted.
+	 *
+	 * @remarks
+	 * Used client-side to detect when consent should be refreshed because the
+	 * active policy changed in a way that affects consent semantics.
+	 */
+	materialPolicyFingerprint?: string;
+
+	/**
 	 * The identity provider that provided the external ID
 	 *
 	 * @remarks

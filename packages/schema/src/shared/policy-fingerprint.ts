@@ -256,3 +256,53 @@ export async function createPolicyFingerprint(
 ): Promise<string> {
 	return createDeterministicFingerprint(policy, strategy);
 }
+
+function createMaterialPolicyFingerprintInput(policy: ResolvedPolicy) {
+	return {
+		model: policy.model,
+		consent: policy.consent
+			? {
+					expiryDays: policy.consent.expiryDays,
+					scopeMode: policy.consent.scopeMode,
+					categories: policy.consent.categories,
+					preselectedCategories: policy.consent.preselectedCategories,
+				}
+			: undefined,
+		ui: policy.ui
+			? {
+					mode: policy.ui.mode,
+					banner: policy.ui.banner
+						? {
+								allowedActions: policy.ui.banner.allowedActions,
+								primaryAction: policy.ui.banner.primaryAction,
+								actionOrder: policy.ui.banner.actionOrder,
+							}
+						: undefined,
+					dialog: policy.ui.dialog
+						? {
+								allowedActions: policy.ui.dialog.allowedActions,
+								primaryAction: policy.ui.dialog.primaryAction,
+								actionOrder: policy.ui.dialog.actionOrder,
+							}
+						: undefined,
+				}
+			: undefined,
+		proof: policy.proof
+			? {
+					storeIp: policy.proof.storeIp,
+					storeUserAgent: policy.proof.storeUserAgent,
+					storeLanguage: policy.proof.storeLanguage,
+				}
+			: undefined,
+	};
+}
+
+export async function createMaterialPolicyFingerprint(
+	policy: ResolvedPolicy,
+	strategy: FingerprintHashStrategy = 'auto'
+): Promise<string> {
+	return createDeterministicFingerprint(
+		createMaterialPolicyFingerprintInput(policy),
+		strategy
+	);
+}

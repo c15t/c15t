@@ -1,7 +1,9 @@
+import { createMaterialPolicyFingerprint } from '@c15t/schema';
 import type { StoreApi } from 'zustand';
 import type { ConsentStoreState } from '~/store/type';
 import type { ConsentManagerInterface } from '../client/client-interface';
 import type { ConsentInfo, ConsentState, ConsentType } from '../types';
+import { saveConsentToStorage } from './cookie';
 import { generateSubjectId } from './generate-subject-id';
 import { applyPolicyPurposeAllowlist, getEffectivePolicy } from './policy';
 
@@ -139,6 +141,9 @@ export async function saveConsents({
 		newConsents,
 		policyCategories
 	);
+	const materialPolicyFingerprint = lastBannerFetchData?.policy
+		? await createMaterialPolicyFingerprint(lastBannerFetchData.policy)
+		: undefined;
 
 	// Get or generate subjectId
 	// If we have a subjectId from previous consent, reuse it
@@ -173,8 +178,24 @@ export async function saveConsents({
 			subjectId,
 			externalId,
 			identityProvider,
+			materialPolicyFingerprint,
 		},
 	});
+
+	saveConsentToStorage(
+		{
+			consents: effectiveConsents,
+			consentInfo: {
+				time: givenAt,
+				subjectId,
+				externalId,
+				identityProvider,
+				materialPolicyFingerprint,
+			},
+		},
+		undefined,
+		get().storageConfig
+	);
 
 	// If consent was revoked and reload is enabled, store pending sync and reload
 	if (needsReload) {

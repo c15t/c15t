@@ -4,6 +4,7 @@
  * @packageDocumentation
  */
 
+import { createMaterialPolicyFingerprint } from '@c15t/schema';
 import type { JurisdictionCode } from '@c15t/schema/types';
 import {
 	prepareTranslationConfig,
@@ -12,6 +13,7 @@ import {
 import type { ConsentStoreState } from '../../store/type';
 import { allConsentNames, type ConsentState } from '../../types';
 import type { GlobalVendorList } from '../../types/iab-tcf';
+import { deleteConsentFromStorage, saveConsentToStorage } from '../cookie';
 import { determineModel } from '../determine-model';
 import { hasGlobalPrivacyControlSignal } from '../global-privacy-control';
 import {
@@ -285,6 +287,15 @@ function triggerCallbacks(
 	}
 }
 
+function getDefaultConsents(
+	consentTypes: ConsentStoreState['consentTypes']
+): ConsentState {
+	return consentTypes.reduce((acc, consent) => {
+		acc[consent.name] = consent.defaultValue;
+		return acc;
+	}, {} as ConsentState);
+}
+
 /**
  * Updates the store with consent banner data.
  *
@@ -311,6 +322,43 @@ export async function updateStore(
 	initSourceMetadata?: InitSourceMetadata
 ): Promise<void> {
 	const { set, get } = config;
+	const initialState = get();
+	const currentPolicyFingerprint = data.policy
+		? await createMaterialPolicyFingerprint(data.policy)
+		: undefined;
+
+	if (initialState.consentInfo && currentPolicyFingerprint) {
+		const storedPolicyFingerprint =
+			initialState.consentInfo.materialPolicyFingerprint;
+
+		if (
+			storedPolicyFingerprint &&
+			storedPolicyFingerprint !== currentPolicyFingerprint
+		) {
+			const resetConsents = getDefaultConsents(initialState.consentTypes);
+			deleteConsentFromStorage(undefined, initialState.storageConfig);
+			set({
+				consents: resetConsents,
+				selectedConsents: resetConsents,
+				consentInfo: null,
+			});
+		} else if (!storedPolicyFingerprint) {
+			const updatedConsentInfo = {
+				...initialState.consentInfo,
+				materialPolicyFingerprint: currentPolicyFingerprint,
+			};
+			saveConsentToStorage(
+				{
+					consents: initialState.consents,
+					consentInfo: updatedConsentInfo,
+				},
+				undefined,
+				initialState.storageConfig
+			);
+			set({ consentInfo: updatedConsentInfo });
+		}
+	}
+
 	const { consentInfo } = get();
 
 	// Lazily create the IAB manager when iabConfig is provided

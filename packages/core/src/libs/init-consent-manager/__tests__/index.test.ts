@@ -242,6 +242,146 @@ describe('initConsentManager', () => {
 			expect(mockManager.init).toHaveBeenCalled();
 		});
 
+		it('reopens consent UI when the active material policy fingerprint changes', async () => {
+			const mockResponse = createMockConsentBannerResponse({
+				policy: {
+					id: 'policy_runtime_gdpr',
+					model: 'opt-in',
+					consent: {
+						expiryDays: 365,
+						scopeMode: 'strict',
+						categories: ['necessary', 'measurement'],
+					},
+					ui: {
+						mode: 'banner',
+						banner: {
+							allowedActions: ['accept', 'reject'],
+							primaryAction: 'accept',
+							actionOrder: ['accept', 'reject'],
+						},
+					},
+				},
+			});
+			let state = createMockStoreState({
+				consents: {
+					necessary: true,
+					functionality: false,
+					experience: false,
+					marketing: false,
+					measurement: true,
+				},
+				selectedConsents: {
+					necessary: true,
+					functionality: false,
+					experience: false,
+					marketing: false,
+					measurement: true,
+				},
+				consentInfo: {
+					time: 1_700_000_000_000,
+					subjectId: 'sub_existing',
+					materialPolicyFingerprint: 'f'.repeat(64),
+				},
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: '',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'measurement',
+						defaultValue: false,
+						description: '',
+						disabled: false,
+						display: true,
+						gdprType: 4,
+					},
+				],
+			});
+			storeGet = (() => state) as StoreApi<ConsentStoreState>['getState'];
+			storeSet = ((update) => {
+				state = {
+					...state,
+					...(typeof update === 'function' ? update(state) : update),
+				};
+			}) as StoreApi<ConsentStoreState>['setState'];
+
+			mockManager = createMockConsentManager({
+				init: vi.fn().mockResolvedValue({
+					data: mockResponse,
+					error: null,
+				}),
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			expect(state.consentInfo).toBeNull();
+			expect(state.activeUI).toBe('banner');
+			expect(state.consents.necessary).toBe(true);
+			expect(state.consents.measurement).toBe(false);
+		});
+
+		it('seeds the current material policy fingerprint for existing consent without reopening UI', async () => {
+			const mockResponse = createMockConsentBannerResponse({
+				policy: {
+					id: 'policy_runtime_gdpr',
+					model: 'opt-in',
+					consent: {
+						expiryDays: 365,
+						scopeMode: 'strict',
+						categories: ['necessary', 'measurement'],
+					},
+					ui: {
+						mode: 'banner',
+						banner: {
+							allowedActions: ['accept', 'reject'],
+							primaryAction: 'accept',
+							actionOrder: ['accept', 'reject'],
+						},
+					},
+				},
+			});
+			let state = createMockStoreState({
+				consentInfo: {
+					time: 1_700_000_000_000,
+					subjectId: 'sub_existing',
+				},
+				activeUI: 'none',
+			});
+			storeGet = (() => state) as StoreApi<ConsentStoreState>['getState'];
+			storeSet = ((update) => {
+				state = {
+					...state,
+					...(typeof update === 'function' ? update(state) : update),
+				};
+			}) as StoreApi<ConsentStoreState>['setState'];
+
+			mockManager = createMockConsentManager({
+				init: vi.fn().mockResolvedValue({
+					data: mockResponse,
+					error: null,
+				}),
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			expect(state.consentInfo?.materialPolicyFingerprint).toMatch(
+				/^[a-f0-9]{64}$/
+			);
+			expect(state.activeUI).toBe('none');
+		});
+
 		it('should pass overrides as headers to init', async () => {
 			mockState.overrides = {
 				country: 'FR',
