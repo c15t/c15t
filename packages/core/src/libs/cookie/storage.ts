@@ -11,8 +11,37 @@ import type { ConsentState } from '../..';
 import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../store/initial-state';
 import { allConsentNames, type ConsentInfo } from '../../types/consent-types';
 import { getDebugLogger } from '../debug';
+import { sanitizeSubjectIdentifiers } from '../sanitize-subject-identifiers';
 import { deleteCookie, getCookie, setCookie } from './operations';
 import type { CookieOptions, StorageConfig } from './types';
+
+function sanitizeConsentInfo(
+	consentInfo: ConsentInfo | null | undefined
+): ConsentInfo | null | undefined {
+	if (!consentInfo) {
+		return consentInfo;
+	}
+
+	const sanitized = { ...consentInfo };
+	const { externalId, identityProvider } = sanitizeSubjectIdentifiers({
+		externalId: sanitized.externalId,
+		identityProvider: sanitized.identityProvider,
+	});
+
+	if (externalId) {
+		sanitized.externalId = externalId;
+	} else {
+		delete sanitized.externalId;
+	}
+
+	if (identityProvider) {
+		sanitized.identityProvider = identityProvider;
+	} else {
+		delete sanitized.identityProvider;
+	}
+
+	return sanitized;
+}
 
 /**
  * Checks if consent data is in the v1.x legacy format that uses `id` instead of `subjectId`.
@@ -137,6 +166,7 @@ export function saveConsentToStorage(
 	const mergedData = {
 		...existing,
 		...data,
+		consentInfo: sanitizeConsentInfo(data.consentInfo),
 		iabCustomVendorConsents:
 			data.iabCustomVendorConsents ?? existing?.iabCustomVendorConsents,
 		iabCustomVendorLegitimateInterests:
@@ -394,7 +424,25 @@ export function getConsentFromStorage<ReturnType = unknown>(
 
 	// Normalize consent data to ensure all values are explicit booleans
 	if (chosenData && typeof chosenData === 'object') {
-		return normalizeConsentData(chosenData as never) as ReturnType;
+		const normalizedData = normalizeConsentData(chosenData as never) as
+			| (ReturnType & { consentInfo?: ConsentInfo | null })
+			| ReturnType;
+
+		if (
+			typeof normalizedData === 'object' &&
+			normalizedData !== null &&
+			'consentInfo' in normalizedData
+		) {
+			const dataWithConsentInfo = normalizedData as ReturnType & {
+				consentInfo?: ConsentInfo | null;
+			};
+			dataWithConsentInfo.consentInfo = sanitizeConsentInfo(
+				dataWithConsentInfo.consentInfo
+			);
+			return dataWithConsentInfo;
+		}
+
+		return normalizedData;
 	}
 
 	return chosenData;
