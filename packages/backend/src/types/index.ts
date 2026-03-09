@@ -266,6 +266,7 @@ export interface PolicyUiSurfaceConfig {
 	actionOrder?: PolicyUiAction[];
 	actionLayout?: PolicyUiActionLayout;
 	uiProfile?: PolicyUiProfile;
+	scrollLock?: boolean;
 }
 
 export interface PolicyConfig {

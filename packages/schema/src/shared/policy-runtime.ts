@@ -15,6 +15,7 @@ export interface PolicyUiSurfaceConfig {
 	actionOrder?: PolicyUiAction[];
 	actionLayout?: PolicyUiActionLayout;
 	uiProfile?: PolicyUiProfile;
+	scrollLock?: boolean;
 }
 
 export interface PolicyConfig {
@@ -528,6 +529,14 @@ function normalizeUiProfile(
 		: undefined;
 }
 
+function normalizeScrollLock(
+	surface?: PolicyUiSurfaceConfig
+): boolean | undefined {
+	return typeof surface?.scrollLock === 'boolean'
+		? surface.scrollLock
+		: undefined;
+}
+
 function normalizeUiSurface(
 	surface?: PolicyUiSurfaceConfig
 ): ResolvedPolicyUiSurface {
@@ -543,6 +552,7 @@ function normalizeUiSurface(
 		actionOrder,
 		actionLayout: normalizeActionLayout(surface),
 		uiProfile: normalizeUiProfile(surface),
+		scrollLock: normalizeScrollLock(surface),
 	};
 
 	return Object.values(normalized).some((value) => value !== undefined)

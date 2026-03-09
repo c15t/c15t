@@ -90,6 +90,7 @@ function compactUiSurface(
 			| undefined,
 		actionLayout: value.actionLayout,
 		uiProfile: value.uiProfile,
+		scrollLock: value.scrollLock,
 	});
 }
 

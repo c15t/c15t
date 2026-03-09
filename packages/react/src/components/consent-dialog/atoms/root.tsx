@@ -105,7 +105,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	models = ['opt-in', 'opt-out'],
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
-	scrollLock: localScrollLock = true,
+	scrollLock: localScrollLock,
 	trapFocus: localTrapFocus = true,
 	overlay,
 	uiSource,
@@ -119,11 +119,12 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	const disableAnimation =
 		localDisableAnimation ?? globalTheme.disableAnimation ?? false;
 	const noStyle = localNoStyle ?? globalTheme.noStyle ?? false;
-	const scrollLock = localScrollLock ?? globalTheme.scrollLock ?? true;
-	const trapFocus = localTrapFocus ?? globalTheme.trapFocus ?? true;
 
 	// Consent manager state
-	const { activeUI, translationConfig, model } = useConsentManager();
+	const { activeUI, translationConfig, model, policyDialogScrollLock } =
+		useConsentManager();
+	const scrollLock = localScrollLock ?? policyDialogScrollLock ?? true;
+	const trapFocus = localTrapFocus ?? globalTheme.trapFocus ?? true;
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
 	// Final open state (controlled or managed by consent manager)

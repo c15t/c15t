@@ -146,9 +146,11 @@ describe('useConsentManager', () => {
 			policyBannerActionOrder: null,
 			policyBannerActionLayout: null,
 			policyBannerUiProfile: null,
+			policyBannerScrollLock: null,
 			policyDialogActionOrder: null,
 			policyDialogActionLayout: null,
 			policyDialogUiProfile: null,
+			policyDialogScrollLock: null,
 		} as unknown as ConsentStoreState;
 
 		const { result } = await renderHook(() => useConsentManager(), {

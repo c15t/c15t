@@ -11,6 +11,7 @@ import { type FC, type RefObject, useRef } from 'react';
 import { Box } from '~/components/shared/primitives/box';
 import * as Button from '~/components/shared/ui/button';
 import { useComponentConfig } from '~/hooks/use-component-config';
+import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useHeadlessIABConsentUI } from '~/hooks/use-headless-iab-consent-ui';
 import { useIABTranslations } from '../iab-consent-dialog/use-iab-translations';
@@ -88,7 +89,7 @@ export interface IABConsentBannerProps {
 export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
-	scrollLock: localScrollLock = true,
+	scrollLock: localScrollLock,
 	trapFocus: localTrapFocus = true,
 	primaryButton = 'customize',
 	models,
@@ -101,6 +102,8 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 		openVendorsDialog,
 		performBannerAction,
 	} = useHeadlessIABConsentUI();
+	const { policyBannerScrollLock } = useConsentManager();
+	const resolvedScrollLock = localScrollLock ?? policyBannerScrollLock ?? true;
 
 	const cardRef = useRef<HTMLDivElement>(null);
 
@@ -108,7 +111,7 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	const config = useComponentConfig({
 		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
-		scrollLock: localScrollLock,
+		scrollLock: resolvedScrollLock,
 		trapFocus: localTrapFocus,
 	});
 

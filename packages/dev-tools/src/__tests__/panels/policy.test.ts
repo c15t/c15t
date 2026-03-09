@@ -14,11 +14,13 @@ function createBaseState(
 		policyBannerActionOrder: null,
 		policyBannerActionLayout: null,
 		policyBannerUiProfile: null,
+		policyBannerScrollLock: null,
 		policyDialogAllowedActions: null,
 		policyDialogPrimaryAction: null,
 		policyDialogActionOrder: null,
 		policyDialogActionLayout: null,
 		policyDialogUiProfile: null,
+		policyDialogScrollLock: null,
 		initDataSource: null,
 		initDataSourceDetail: null,
 		...overrides,
@@ -41,6 +43,7 @@ describe('policy panel', () => {
 			policyBannerActionOrder: ['reject', 'accept'],
 			policyBannerActionLayout: 'inline',
 			policyBannerUiProfile: 'balanced',
+			policyBannerScrollLock: true,
 			initDataSource: 'backend-cache-hit',
 			initDataSourceDetail: 'x-vercel-cache=HIT',
 			lastBannerFetchData: {
@@ -74,6 +77,7 @@ describe('policy panel', () => {
 							actionOrder: ['reject', 'accept'],
 							actionLayout: 'inline',
 							uiProfile: 'balanced',
+							scrollLock: true,
 						},
 					},
 					proof: {
@@ -110,6 +114,7 @@ describe('policy panel', () => {
 		expect(container.textContent).toContain('reject, accept');
 		expect(container.textContent).toContain('inline');
 		expect(container.textContent).toContain('balanced');
+		expect(container.textContent).toContain('on');
 		expect(container.textContent).toContain('us_ca');
 		expect(container.textContent).toContain('365 days');
 		expect(container.textContent).toContain('IP:on UA:on Lang:off');

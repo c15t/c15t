@@ -26,6 +26,7 @@ export interface HeadlessConsentSurfaceState<
 	primaryAction: TAction | null;
 	actionLayout: PolicyActionLayout | null;
 	uiProfile: PolicyUiProfile | null;
+	scrollLock: boolean | null;
 	hasPolicyHints: boolean;
 	shouldFillActions: boolean;
 	isVisible: boolean;
@@ -73,11 +74,13 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 		policyBannerActionOrder,
 		policyBannerActionLayout,
 		policyBannerUiProfile,
+		policyBannerScrollLock,
 		policyDialogAllowedActions,
 		policyDialogPrimaryAction,
 		policyDialogActionOrder,
 		policyDialogActionLayout,
 		policyDialogUiProfile,
+		policyDialogScrollLock,
 		saveConsents,
 		setActiveUI,
 	} = useConsentManager();
@@ -107,12 +110,14 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 			}),
 			actionLayout: policyBannerActionLayout,
 			uiProfile: policyBannerUiProfile,
+			scrollLock: policyBannerScrollLock,
 			hasPolicyHints: Boolean(
 				policyBannerAllowedActions ||
 					policyBannerActionOrder ||
 					policyBannerActionLayout ||
 					policyBannerPrimaryAction ||
-					policyBannerUiProfile
+					policyBannerUiProfile ||
+					policyBannerScrollLock !== null
 			),
 			shouldFillActions: shouldFillPolicyActions({
 				uiProfile: policyBannerUiProfile,
@@ -127,6 +132,7 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 		policyBannerAllowedActions,
 		policyBannerPrimaryAction,
 		policyBannerUiProfile,
+		policyBannerScrollLock,
 	]);
 
 	const dialog = useMemo<HeadlessConsentDialogState>(() => {
@@ -154,12 +160,14 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 			}),
 			actionLayout: policyDialogActionLayout,
 			uiProfile: policyDialogUiProfile,
+			scrollLock: policyDialogScrollLock,
 			hasPolicyHints: Boolean(
 				policyDialogAllowedActions ||
 					policyDialogActionOrder ||
 					policyDialogActionLayout ||
 					policyDialogPrimaryAction ||
-					policyDialogUiProfile
+					policyDialogUiProfile ||
+					policyDialogScrollLock !== null
 			),
 			shouldFillActions: shouldFillPolicyActions({
 				uiProfile: policyDialogUiProfile,
@@ -174,6 +182,7 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 		policyDialogAllowedActions,
 		policyDialogPrimaryAction,
 		policyDialogUiProfile,
+		policyDialogScrollLock,
 	]);
 
 	const performAction = useCallback<

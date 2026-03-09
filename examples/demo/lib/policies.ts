@@ -69,7 +69,7 @@ export const demoI18nMessages: I18nMessageProfiles = {
 			cookieBanner: {
 				title: 'UK Privacy Choices',
 				description:
-					'Choose your privacy settings. Functionality is preselected on first visit, reject stays hidden, and customize is emphasized.',
+					'Choose your privacy settings. Functionality is preselected on first visit, the banner locks page scroll, reject stays hidden, and customize is emphasized.',
 			},
 		},
 	},
@@ -233,6 +233,7 @@ export const demoPolicies: PolicyConfig[] = [
 				actionOrder: ['accept', 'customize'],
 				actionLayout: 'inline',
 				uiProfile: 'balanced',
+				scrollLock: true,
 			},
 			dialog: {
 				allowedActions: ['reject', 'accept', 'customize'],
@@ -240,6 +241,7 @@ export const demoPolicies: PolicyConfig[] = [
 				actionOrder: ['customize', 'reject', 'accept'],
 				actionLayout: 'split',
 				uiProfile: 'balanced',
+				scrollLock: true,
 			},
 		},
 		proof: {

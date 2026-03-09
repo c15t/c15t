@@ -25,6 +25,7 @@ describe('policy snapshot token', () => {
 				actionOrder: ['accept', 'reject', 'customize'],
 				actionLayout: 'inline',
 				uiProfile: 'strict',
+				scrollLock: true,
 			},
 			categories: ['analytics', 'marketing'],
 			proofConfig: {
@@ -48,6 +49,7 @@ describe('policy snapshot token', () => {
 		expect(payload?.categories).toEqual(['analytics', 'marketing']);
 		expect(payload?.bannerUi?.actionLayout).toBe('inline');
 		expect(payload?.bannerUi?.uiProfile).toBe('strict');
+		expect(payload?.bannerUi?.scrollLock).toBe(true);
 		expect(payload?.bannerUi?.actionOrder).toEqual([
 			'accept',
 			'reject',

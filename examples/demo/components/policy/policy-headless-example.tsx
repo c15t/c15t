@@ -118,6 +118,20 @@ export function PolicyHeadlessExample() {
 							categories:{' '}
 							{policyCategories?.length ? policyCategories.join(', ') : 'all'}
 						</Badge>
+						<Badge variant="secondary">
+							scrollLock:{' '}
+							{activeUI === 'dialog'
+								? dialog.scrollLock === null
+									? 'default'
+									: dialog.scrollLock
+										? 'on'
+										: 'off'
+								: banner.scrollLock === null
+									? 'default'
+									: banner.scrollLock
+										? 'on'
+										: 'off'}
+						</Badge>
 					</div>
 
 					<div className="flex flex-wrap gap-2">

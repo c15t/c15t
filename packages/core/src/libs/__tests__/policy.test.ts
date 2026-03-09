@@ -81,6 +81,28 @@ describe('validateUIAgainstPolicy', () => {
 		expect(issues).toHaveLength(1);
 		expect(issues[0]?.code).toBe('ui_profile_mismatch');
 	});
+
+	it('returns violation when scroll lock does not match policy', () => {
+		const issues = validateUIAgainstPolicy({
+			policy: {
+				id: 'policy_4',
+				model: 'opt-in',
+				ui: {
+					banner: {
+						scrollLock: true,
+					},
+				},
+			},
+			state: {
+				mode: 'banner',
+				actions: ['accept', 'customize'],
+				scrollLock: false,
+			},
+		});
+
+		expect(issues).toHaveLength(1);
+		expect(issues[0]?.code).toBe('scroll_lock_mismatch');
+	});
 });
 
 describe('applyPolicyPurposeAllowlist', () => {

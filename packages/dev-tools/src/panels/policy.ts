@@ -132,6 +132,12 @@ export function renderPolicyPanel(
 					'—'
 			),
 			createCompactInfoCard(
+				'Banner Scroll Lock',
+				formatPolicyScrollLock(
+					activePolicy?.ui?.banner?.scrollLock ?? state.policyBannerScrollLock
+				)
+			),
+			createCompactInfoCard(
 				'Dialog Actions',
 				formatPolicyActions(
 					activePolicy?.ui?.dialog?.allowedActions ??
@@ -163,6 +169,12 @@ export function renderPolicyPanel(
 				activePolicy?.ui?.dialog?.uiProfile ??
 					state.policyDialogUiProfile ??
 					'—'
+			),
+			createCompactInfoCard(
+				'Dialog Scroll Lock',
+				formatPolicyScrollLock(
+					activePolicy?.ui?.dialog?.scrollLock ?? state.policyDialogScrollLock
+				)
 			),
 			createCompactInfoCard(
 				'I18n Profile',
@@ -260,6 +272,13 @@ function formatCategoryScope(categories: string[] | null | undefined): string {
 		return '*';
 	}
 	return categories.join(', ');
+}
+
+function formatPolicyScrollLock(value: boolean | null | undefined): string {
+	if (value == null) {
+		return '—';
+	}
+	return value ? 'on' : 'off';
 }
 
 function formatProofSummary(

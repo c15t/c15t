@@ -42,6 +42,7 @@ interface InitTestResponseBody {
 				actionOrder?: string[];
 				actionLayout?: string;
 				uiProfile?: string;
+				scrollLock?: boolean;
 			};
 		};
 	};
@@ -100,6 +101,7 @@ describe('createInitRoute IAB policy gating', () => {
 								actionOrder: ['reject', 'accept'],
 								actionLayout: 'inline',
 								uiProfile: 'balanced',
+								scrollLock: true,
 							},
 						},
 					},
@@ -121,6 +123,7 @@ describe('createInitRoute IAB policy gating', () => {
 		expect(body.policy?.ui?.banner?.actionOrder).toEqual(['reject', 'accept']);
 		expect(body.policy?.ui?.banner?.actionLayout).toBe('inline');
 		expect(body.policy?.ui?.banner?.uiProfile).toBe('balanced');
+		expect(body.policy?.ui?.banner?.scrollLock).toBe(true);
 		expect(body.gvl).toBeUndefined();
 		expect(body.cmpId).toBeUndefined();
 		expect(body.customVendors).toBeUndefined();

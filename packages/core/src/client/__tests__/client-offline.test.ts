@@ -96,6 +96,7 @@ describe('Offline Client Tests', () => {
 								actionOrder: ['accept', 'reject'],
 								actionLayout: 'inline',
 								uiProfile: 'balanced',
+								scrollLock: true,
 							},
 						},
 					},
@@ -130,6 +131,7 @@ describe('Offline Client Tests', () => {
 			'measurement',
 		]);
 		expect(response.data?.policy?.ui?.mode).toBe('banner');
+		expect(response.data?.policy?.ui?.banner?.scrollLock).toBe(true);
 		expect(response.data?.policyDecision?.matchedBy).toBe('region');
 		expect(response.data?.policySnapshotToken).toBe('offline-preview-token');
 	});

@@ -11,6 +11,7 @@ export interface PolicyUIState {
 	actions: PolicyUiAction[];
 	layout?: 'split' | 'inline';
 	uiProfile?: 'balanced' | 'compact' | 'strict';
+	scrollLock?: boolean;
 }
 
 export interface PolicyValidationIssue {
@@ -19,7 +20,8 @@ export interface PolicyValidationIssue {
 		| 'action_not_allowed'
 		| 'action_order_mismatch'
 		| 'layout_mismatch'
-		| 'ui_profile_mismatch';
+		| 'ui_profile_mismatch'
+		| 'scroll_lock_mismatch';
 	message: string;
 }
 
@@ -210,6 +212,17 @@ export function validateUIAgainstPolicy(params: {
 				message: `UI profile "${state.uiProfile}" does not match policy UI profile "${surfacePolicy.uiProfile}".`,
 			});
 		}
+	}
+
+	if (
+		typeof surfacePolicy?.scrollLock === 'boolean' &&
+		typeof state.scrollLock === 'boolean' &&
+		surfacePolicy.scrollLock !== state.scrollLock
+	) {
+		issues.push({
+			code: 'scroll_lock_mismatch',
+			message: `UI scroll lock "${state.scrollLock ? 'on' : 'off'}" does not match policy scroll lock "${surfacePolicy.scrollLock ? 'on' : 'off'}".`,
+		});
 	}
 
 	return issues;

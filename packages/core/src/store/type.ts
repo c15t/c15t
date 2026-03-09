@@ -525,6 +525,9 @@ export interface StoreRuntimeState extends StoreConfig {
 	/** Banner presentation profile hint from backend runtime policy. */
 	policyBannerUiProfile: PolicyUiProfile | null;
 
+	/** Banner scroll lock hint from backend runtime policy. */
+	policyBannerScrollLock: boolean | null;
+
 	/** Allowed actions for dialog UI derived from backend runtime policy. */
 	policyDialogAllowedActions: PolicyAction[] | null;
 
@@ -539,6 +542,9 @@ export interface StoreRuntimeState extends StoreConfig {
 
 	/** Dialog presentation profile hint from backend runtime policy. */
 	policyDialogUiProfile: PolicyUiProfile | null;
+
+	/** Dialog scroll lock hint from backend runtime policy. */
+	policyDialogScrollLock: boolean | null;
 
 	/**
 	 * Active runtime policy category scope from `/init`.

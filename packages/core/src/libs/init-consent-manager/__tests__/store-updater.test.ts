@@ -510,6 +510,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 						actionOrder: ['reject', 'accept'],
 						actionLayout: 'inline',
 						uiProfile: 'balanced',
+						scrollLock: true,
 					},
 				},
 			},
@@ -536,6 +537,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 				policyBannerActionOrder: ['reject', 'accept'],
 				policyBannerActionLayout: 'inline',
 				policyBannerUiProfile: 'balanced',
+				policyBannerScrollLock: true,
 			})
 		);
 	});
@@ -554,6 +556,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 						actionOrder: ['customize'],
 						actionLayout: 'inline',
 						uiProfile: 'balanced',
+						scrollLock: false,
 					},
 				},
 			},
@@ -580,6 +583,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 				policyDialogActionOrder: ['customize'],
 				policyDialogActionLayout: 'inline',
 				policyDialogUiProfile: 'balanced',
+				policyDialogScrollLock: false,
 				policyBannerAllowedActions: null,
 			})
 		);

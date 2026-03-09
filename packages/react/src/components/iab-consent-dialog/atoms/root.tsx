@@ -48,7 +48,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	models = ['iab'],
 	noStyle,
 	disableAnimation,
-	scrollLock = true,
+	scrollLock,
 	trapFocus = true,
 	uiSource,
 }) => {
@@ -56,6 +56,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		activeUI,
 		translationConfig,
 		iab: iabState,
+		policyDialogScrollLock,
 		model,
 	} = useConsentManager();
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
@@ -65,16 +66,17 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 
 	// IABConsentDialog only opens when the consent model matches
 	const isOpen = models.includes(model) && (open ?? activeUI === 'dialog');
+	const resolvedScrollLock = scrollLock ?? policyDialogScrollLock ?? true;
 
 	const contextValue = {
 		disableAnimation,
 		noStyle,
-		scrollLock,
+		scrollLock: resolvedScrollLock,
 		trapFocus,
 	};
 
 	// Scroll lock
-	useScrollLock(Boolean(isOpen && scrollLock));
+	useScrollLock(Boolean(isOpen && resolvedScrollLock));
 
 	// Mount state for portal
 	useEffect(() => {

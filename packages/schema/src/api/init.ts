@@ -168,6 +168,7 @@ export const policyUiSurfaceSchema = v.object({
 	actionOrder: v.optional(v.array(policyUiActionSchema)),
 	actionLayout: v.optional(policyUiActionLayoutSchema),
 	uiProfile: v.optional(policyUiProfileSchema),
+	scrollLock: v.optional(v.boolean()),
 });
 
 /**

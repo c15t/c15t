@@ -14,6 +14,7 @@ import {
 } from '~/components/shared/libs/policy-actions';
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { useComponentConfig } from '~/hooks/use-component-config';
+import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useHeadlessConsentUI } from '~/hooks/use-headless-consent-ui';
 import { useTranslations } from '~/hooks/use-translations';
 import { cnExt as cn } from '~/utils/cn';
@@ -194,12 +195,14 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 }) => {
 	const { cookieBanner: consentBanner } = useTranslations();
 	const { banner } = useHeadlessConsentUI();
+	const { policyBannerScrollLock } = useConsentManager();
+	const resolvedScrollLock = localScrollLock ?? policyBannerScrollLock ?? false;
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
 		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
-		scrollLock: localScrollLock,
+		scrollLock: resolvedScrollLock,
 		trapFocus: localTrapFocus,
 	});
 

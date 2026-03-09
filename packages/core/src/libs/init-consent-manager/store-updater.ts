@@ -133,11 +133,13 @@ function buildStoreUpdate(
 		policyBannerActionOrder: data.policy?.ui?.banner?.actionOrder ?? null,
 		policyBannerActionLayout: data.policy?.ui?.banner?.actionLayout ?? null,
 		policyBannerUiProfile: data.policy?.ui?.banner?.uiProfile ?? null,
+		policyBannerScrollLock: data.policy?.ui?.banner?.scrollLock ?? null,
 		policyDialogAllowedActions: data.policy?.ui?.dialog?.allowedActions ?? null,
 		policyDialogPrimaryAction: data.policy?.ui?.dialog?.primaryAction ?? null,
 		policyDialogActionOrder: data.policy?.ui?.dialog?.actionOrder ?? null,
 		policyDialogActionLayout: data.policy?.ui?.dialog?.actionLayout ?? null,
 		policyDialogUiProfile: data.policy?.ui?.dialog?.uiProfile ?? null,
+		policyDialogScrollLock: data.policy?.ui?.dialog?.scrollLock ?? null,
 		policyCategories: data.policy?.consent?.categories ?? null,
 		policyScopeMode:
 			data.policy?.consent?.scopeMode ?? (data.policy ? 'unmanaged' : null),

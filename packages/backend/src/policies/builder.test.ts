@@ -21,6 +21,7 @@ describe('buildPolicyConfig', () => {
 				actionOrder: ['reject', 'accept', 'reject'],
 				actionLayout: 'inline',
 				uiProfile: 'balanced',
+				scrollLock: true,
 			},
 		});
 
@@ -46,6 +47,7 @@ describe('buildPolicyConfig', () => {
 					actionOrder: ['reject', 'accept'],
 					actionLayout: 'inline',
 					uiProfile: 'balanced',
+					scrollLock: true,
 				},
 			},
 			proof: undefined,

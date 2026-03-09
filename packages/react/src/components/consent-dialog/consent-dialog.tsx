@@ -118,7 +118,7 @@ export const ConsentDialog: FC<ConsentDialogProps> = ({
 	open,
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
-	scrollLock: localScrollLock = true,
+	scrollLock: localScrollLock,
 	trapFocus: localTrapFocus = true,
 	hideBranding,
 	legalLinks,
@@ -126,16 +126,16 @@ export const ConsentDialog: FC<ConsentDialogProps> = ({
 	models,
 	uiSource,
 }) => {
+	const { activeUI, policyDialogScrollLock } = useConsentManager();
+	const resolvedScrollLock = localScrollLock ?? policyDialogScrollLock ?? true;
+
 	// Merge local props with global theme context
 	const config = useComponentConfig({
 		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
-		scrollLock: localScrollLock,
+		scrollLock: resolvedScrollLock,
 		trapFocus: localTrapFocus,
 	});
-
-	// Consent-manager state controls open/close when `open` prop is undefined
-	const { activeUI } = useConsentManager();
 
 	// Compose the props we want to forward to the Root primitive
 	const rootProps = {

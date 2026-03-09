@@ -14,6 +14,7 @@ export interface PolicySnapshotUiSurface {
 	actionOrder?: PolicyUiSurfaceConfig['actionOrder'];
 	actionLayout?: PolicyUiSurfaceConfig['actionLayout'];
 	uiProfile?: PolicyUiSurfaceConfig['uiProfile'];
+	scrollLock?: PolicyUiSurfaceConfig['scrollLock'];
 }
 
 export interface PolicySnapshotPayload {

@@ -160,6 +160,7 @@ describe('resolvePolicyDecision', () => {
 							actionOrder: ['customize', 'reject', 'accept', 'reject'],
 							actionLayout: 'inline',
 							uiProfile: 'balanced',
+							scrollLock: true,
 						},
 					},
 				},
@@ -180,6 +181,7 @@ describe('resolvePolicyDecision', () => {
 		expect(result?.policy.ui?.banner?.primaryAction).toBe('accept');
 		expect(result?.policy.ui?.banner?.actionLayout).toBe('inline');
 		expect(result?.policy.ui?.banner?.uiProfile).toBe('balanced');
+		expect(result?.policy.ui?.banner?.scrollLock).toBe(true);
 	});
 
 	it('keeps banner and dialog actions isolated without cross-surface fallback', async () => {

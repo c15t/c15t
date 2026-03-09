@@ -32,11 +32,13 @@ function createMockState(
 		policyBannerActionOrder: null,
 		policyBannerActionLayout: null,
 		policyBannerUiProfile: null,
+		policyBannerScrollLock: null,
 		policyDialogAllowedActions: null,
 		policyDialogPrimaryAction: null,
 		policyDialogActionOrder: null,
 		policyDialogActionLayout: null,
 		policyDialogUiProfile: null,
+		policyDialogScrollLock: null,
 		saveConsents: vi.fn().mockResolvedValue(undefined),
 		setActiveUI: vi.fn(),
 		...overrides,
@@ -70,11 +72,13 @@ describe('useHeadlessConsentUI', () => {
 			policyBannerActionOrder: ['reject', 'accept'],
 			policyBannerActionLayout: 'inline',
 			policyBannerUiProfile: 'balanced',
+			policyBannerScrollLock: true,
 			policyDialogAllowedActions: ['reject', 'accept', 'customize'],
 			policyDialogPrimaryAction: 'customize',
 			policyDialogActionOrder: ['customize', 'reject', 'accept'],
 			policyDialogActionLayout: 'split',
 			policyDialogUiProfile: 'strict',
+			policyDialogScrollLock: false,
 		});
 
 		const { result } = await renderHook(() => useHeadlessConsentUI(), {
@@ -85,6 +89,7 @@ describe('useHeadlessConsentUI', () => {
 		expect(result.current.banner.orderedActions).toEqual(['reject', 'accept']);
 		expect(result.current.banner.primaryAction).toBe('accept');
 		expect(result.current.banner.actionGroups).toEqual([['reject', 'accept']]);
+		expect(result.current.banner.scrollLock).toBe(true);
 		expect(result.current.banner.hasPolicyHints).toBe(true);
 		expect(result.current.banner.isVisible).toBe(true);
 
@@ -103,6 +108,7 @@ describe('useHeadlessConsentUI', () => {
 			['customize'],
 			['reject', 'accept'],
 		]);
+		expect(result.current.dialog.scrollLock).toBe(false);
 		expect(result.current.dialog.shouldFillActions).toBe(true);
 		expect(result.current.dialog.isVisible).toBe(false);
 	});

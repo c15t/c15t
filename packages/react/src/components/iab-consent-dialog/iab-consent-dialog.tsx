@@ -127,7 +127,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	open,
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
-	scrollLock: localScrollLock = true,
+	scrollLock: localScrollLock,
 	trapFocus: localTrapFocus = true,
 	hideBranding,
 	showTrigger = false,
@@ -138,11 +138,13 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const {
 		iab: iabState,
 		activeUI,
+		policyDialogScrollLock,
 		translationConfig,
 		model,
 	} = useConsentManager();
 	const { closeUI, openDialog, performDialogAction } =
 		useHeadlessIABConsentUI();
+	const resolvedScrollLock = localScrollLock ?? policyDialogScrollLock ?? true;
 
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 	const cardRef = useRef<HTMLDivElement>(null);
@@ -165,7 +167,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const config = useComponentConfig({
 		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
-		scrollLock: localScrollLock,
+		scrollLock: resolvedScrollLock,
 		trapFocus: localTrapFocus,
 	});
 

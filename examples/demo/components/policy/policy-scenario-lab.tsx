@@ -17,6 +17,7 @@ type PolicyUiSurface = {
 	actionOrder?: PolicyUiAction[];
 	actionLayout?: PolicyUiActionLayout;
 	uiProfile?: PolicyUiProfile;
+	scrollLock?: boolean;
 };
 
 type InitResponse = {
@@ -61,6 +62,7 @@ type ScenarioExpectations = {
 	allowedActions?: PolicyUiAction[];
 	actionOrder?: PolicyUiAction[];
 	actionLayout?: PolicyUiActionLayout;
+	scrollLock?: boolean;
 	disallowedActions?: PolicyUiAction[];
 	scopeMode?: PolicyScopeMode;
 	categories?: string[];
@@ -266,7 +268,7 @@ const scenarios: ScenarioDefinition[] = [
 		},
 		bannerHref: '/?country=GB',
 		summary:
-			'Country policy with functionality preselected on first visit; reject stays hidden with inline accept -> customize ordering.',
+			'Country policy with functionality preselected on first visit; reject stays hidden, the banner locks scroll, and inline accept -> customize ordering applies.',
 		expected: {
 			policyId: 'policy_uk',
 			matchedBy: 'country',
@@ -275,6 +277,7 @@ const scenarios: ScenarioDefinition[] = [
 			allowedActions: ['accept', 'customize'],
 			actionOrder: ['accept', 'customize'],
 			actionLayout: 'inline',
+			scrollLock: true,
 			disallowedActions: ['reject'],
 			scopeMode: 'unmanaged',
 			categories: [
@@ -521,6 +524,20 @@ function buildChecks(
 			pass: activeSurface?.actionLayout === expected.actionLayout,
 			expected: expected.actionLayout,
 			actual: activeSurface?.actionLayout ?? 'unset',
+		});
+	}
+
+	if (expected.scrollLock !== undefined) {
+		checks.push({
+			label: 'Scroll Lock',
+			pass: activeSurface?.scrollLock === expected.scrollLock,
+			expected: expected.scrollLock ? 'on' : 'off',
+			actual:
+				activeSurface?.scrollLock === undefined
+					? 'unset'
+					: activeSurface.scrollLock
+						? 'on'
+						: 'off',
 		});
 	}
 
@@ -839,6 +856,16 @@ export function PolicyScenarioLab() {
 														</p>
 														<p className="font-mono">
 															{activeSurface?.actionLayout ?? 'none'}
+														</p>
+														<p className="mt-2 text-muted-foreground">
+															Scroll lock
+														</p>
+														<p className="font-mono">
+															{activeSurface?.scrollLock === undefined
+																? 'unset'
+																: activeSurface.scrollLock
+																	? 'on'
+																	: 'off'}
 														</p>
 														<p className="mt-2 text-muted-foreground">
 															Category scope
