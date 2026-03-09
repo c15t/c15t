@@ -625,6 +625,7 @@ export async function resolvePolicyDecision(params: {
 	countryCode: string | null;
 	regionCode: string | null;
 	jurisdiction: JurisdictionCode;
+	iabEnabled?: boolean;
 }): Promise<ResolvedPolicyDecision | undefined> {
 	const { policies, jurisdiction } = params;
 
@@ -632,7 +633,12 @@ export async function resolvePolicyDecision(params: {
 		return undefined;
 	}
 
-	validatePolicies(policies);
+	validatePolicies(
+		policies,
+		params.iabEnabled === undefined
+			? undefined
+			: { iabEnabled: params.iabEnabled }
+	);
 
 	const countryCode = normalizeCountryCode(params.countryCode);
 	const regionCode = normalizeRegionCode(params.regionCode);

@@ -25,6 +25,7 @@ export interface PendingConsentSync {
 	jurisdictionModel?: string | null;
 	domain: string;
 	uiSource?: string;
+	policySnapshotToken?: string;
 }
 
 interface SaveConsentsProps {
@@ -189,6 +190,7 @@ export async function saveConsents({
 			jurisdictionModel: model,
 			domain: window.location.hostname,
 			uiSource: options?.uiSource ?? 'api',
+			policySnapshotToken: lastBannerFetchData?.policySnapshotToken,
 		};
 
 		try {

@@ -341,6 +341,7 @@ function processPendingConsentSync(
 					jurisdictionModel: data.jurisdictionModel ?? undefined,
 					givenAt: data.givenAt,
 					uiSource: data.uiSource ?? 'api',
+					policySnapshotToken: data.policySnapshotToken,
 				},
 			})
 			.then((result) => {

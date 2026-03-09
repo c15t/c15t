@@ -85,6 +85,15 @@ export async function init(
 	const jurisdictionCode = checkJurisdiction(country, region);
 	const configuredPolicyPack =
 		policyConfig?.policies ?? policyConfig?.policyPack;
+	const usesIabPolicy =
+		configuredPolicyPack?.some((policy) => policy.consent?.model === 'iab') ??
+		false;
+	if (usesIabPolicy && iabConfig?.enabled !== true) {
+		throw new Error(
+			'Policies using consent.model="iab" require top-level iab.enabled=true'
+		);
+	}
+
 	const resolvedPolicyPackDecision =
 		configuredPolicyPack && configuredPolicyPack.length > 0
 			? await resolvePolicyPackDecision({
@@ -92,6 +101,7 @@ export async function init(
 					countryCode: country,
 					regionCode: region,
 					jurisdiction: jurisdictionCode,
+					iabEnabled: iabConfig?.enabled === true,
 				})
 			: undefined;
 

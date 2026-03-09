@@ -31,6 +31,7 @@ describe('initConsentManager', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		window.localStorage.clear();
 
 		mockGet = vi.fn();
 		mockSet = vi.fn();
@@ -96,6 +97,57 @@ describe('initConsentManager', () => {
 	});
 
 	describe('Initial data handling', () => {
+		it('should replay pending consent sync with policy snapshot token', async () => {
+			window.localStorage.setItem(
+				'c15t:pending-consent-sync',
+				JSON.stringify({
+					type: 'custom',
+					subjectId: 'existing-subject',
+					preferences: {
+						necessary: true,
+						functionality: false,
+						experience: false,
+						marketing: false,
+						measurement: false,
+					},
+					givenAt: 1_746_000_000_000,
+					jurisdiction: 'GDPR',
+					jurisdictionModel: 'opt-in',
+					domain: 'example.com',
+					uiSource: 'dialog',
+					policySnapshotToken: 'snapshot-token-123',
+				})
+			);
+
+			mockManager = createMockConsentManager({
+				setConsent: vi.fn().mockResolvedValue({
+					ok: true,
+					data: undefined,
+					error: null,
+				}),
+				init: vi.fn().mockResolvedValue({
+					data: createMockConsentBannerResponse(),
+					error: null,
+				}),
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			expect(mockManager.setConsent).toHaveBeenCalledWith({
+				body: expect.objectContaining({
+					policySnapshotToken: 'snapshot-token-123',
+					uiSource: 'dialog',
+				}),
+			});
+			expect(
+				window.localStorage.getItem('c15t:pending-consent-sync')
+			).toBeNull();
+		});
+
 		it('should use initial data when provided and valid', async () => {
 			const mockResponse = createMockConsentBannerResponse();
 			const ssrData = Promise.resolve({

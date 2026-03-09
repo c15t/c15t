@@ -39,11 +39,13 @@ export async function resolvePolicyDecision(params: {
 	countryCode: string | null;
 	regionCode: string | null;
 	jurisdiction: BackendJurisdictionCode;
+	iabEnabled?: boolean;
 }): Promise<ResolvedPolicyDecision | undefined> {
 	return resolvePolicyDecisionShared({
 		policies: params.policies as SharedPolicyConfig[] | undefined,
 		countryCode: params.countryCode,
 		regionCode: params.regionCode,
 		jurisdiction: params.jurisdiction as SharedJurisdictionCode,
+		iabEnabled: params.iabEnabled,
 	}) as Promise<ResolvedPolicyDecision | undefined>;
 }

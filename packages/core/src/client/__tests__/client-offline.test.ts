@@ -168,6 +168,31 @@ describe('Offline Client Tests', () => {
 		expect(response.data?.policyDecision?.jurisdiction).toBe('NONE');
 	});
 
+	it('should reject offline policy packs that use IAB without offline IAB config', async () => {
+		const client = configureConsentManager({
+			mode: 'offline',
+			store: {
+				offlinePolicy: {
+					policies: [
+						{
+							id: 'policy_gdpr_iab',
+							match: { jurisdictions: ['GDPR'] },
+							consent: { model: 'iab' },
+						},
+					],
+				},
+			},
+		});
+
+		await expect(
+			client.init({
+				headers: { 'x-c15t-country': 'DE' },
+			})
+		).rejects.toThrow(
+			'Policies using consent.model="iab" require top-level iab.enabled=true'
+		);
+	});
+
 	it('should omit policy when offline policy pack has no match and no default', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',

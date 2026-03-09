@@ -1523,6 +1523,9 @@ describe('saveConsents', () => {
 				reloadOnConsentRevoked: true,
 				locationInfo: { jurisdiction: 'GDPR' },
 				model: 'opt-in',
+				lastBannerFetchData: {
+					policySnapshotToken: 'snapshot-token-123',
+				},
 			});
 
 			await saveConsents({
@@ -1537,6 +1540,11 @@ describe('saveConsents', () => {
 				PENDING_CONSENT_SYNC_KEY,
 				expect.any(String)
 			);
+
+			const storedData = JSON.parse(
+				(mockLocalStorage.setItem as ReturnType<typeof vi.fn>).mock.calls[0][1]
+			);
+			expect(storedData.policySnapshotToken).toBe('snapshot-token-123');
 
 			// Should call onBeforeConsentRevocationReload callback
 			expect(mockOnBeforeReload).toHaveBeenCalledWith({
