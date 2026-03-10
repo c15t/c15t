@@ -26,7 +26,6 @@ A lightweight, customizable logging utility for Node.js and TypeScript applicati
 - Configurable log levels (error, warn, info, debug, success)
 - Custom log handlers
 - Type-safe with TypeScript
-- Error logging for Result/ResultAsync types from neverthrow
 - Console redirection functionality
 - Lightweight with minimal dependencies
 
@@ -108,21 +107,6 @@ extendedLogger.http('GET /api/users');
 extendedLogger.database('Query executed in 10ms');
 ```
 
-### Error Logging with neverthrow
-
-```typescript
-import { logResult, logResultAsync } from '@c15t/logger';
-import { ok, err, okAsync } from 'neverthrow';
-
-const result = err(new Error('Something went wrong'));
-
-// Log if the result is an error
-logResult(result, logger, 'Operation failed');
-
-// For async results
-const asyncResult = okAsync({ data: 'success' });
-await logResultAsync(asyncResult, logger, 'Async operation');
-```
 ## API Reference
 
 ### Core Functions
@@ -133,8 +117,6 @@ await logResultAsync(asyncResult, logger, 'Async operation');
 
 ### Utility Functions
 
-- `logResult(result, logger, message)` - Logs neverthrow Result if it's an error
-- `logResultAsync(result, logger, message)` - Logs neverthrow ResultAsync if it's an error
 - `formatArgs(args)` - Formats arguments for display
 - `formatMessage(level, message, args, appName)` - Formats a log message with app name and styling
 

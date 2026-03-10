@@ -1,0 +1,39 @@
+---
+title: Cookie Management
+description: How c15t manages cookies through script, iframe, and network gating.
+---
+
+<import src="../../../shared/concepts/cookie-management.mdx#overview" />
+
+<import src="../../../shared/concepts/cookie-management.mdx#what-sets-cookies" />
+
+<import src="../../../shared/concepts/cookie-management.mdx#why-reload" />
+
+Configure reload behavior in the runtime options:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+  reloadOnConsentRevoked: true, // default: true
+  callbacks: {
+    onBeforeConsentRevocationReload: ({ preferences }) => {
+      // Run cleanup before the page reloads
+      // e.g., flush pending analytics events
+      console.log('Reloading due to consent revocation:', preferences);
+    },
+  },
+});
+```
+
+<Callout type="info">
+  The reload and deferred sync are part of the broader initialization flow. See [Initialization Flow](/docs/frameworks/javascript/concepts/initialization-flow) for the full sequence.
+</Callout>
+
+<Callout type="warn">
+  Setting `reloadOnConsentRevoked: false` means previously-loaded scripts will continue running after consent is revoked. Only disable this if you have a specific strategy for handling script cleanup.
+</Callout>
+
+<import src="../../../shared/concepts/cookie-management.mdx#revocation-flow" />

@@ -9,7 +9,7 @@ vi.mock('c12', () => ({
 	})),
 }));
 
-vi.mock('@c15t/backend/v2/db/schema', async (importOriginal) => {
+vi.mock('@c15t/backend/db/schema', async (importOriginal) => {
 	const actual = await (importOriginal() as Promise<Record<string, unknown>>);
 	return {
 		...actual,
@@ -19,7 +19,7 @@ vi.mock('@c15t/backend/v2/db/schema', async (importOriginal) => {
 	};
 });
 
-import { DB } from '@c15t/backend/v2/db/schema';
+import { DB } from '@c15t/backend/db/schema';
 import { loadConfig } from 'c12';
 import { readConfigAndGetDb } from './read-config';
 

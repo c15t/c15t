@@ -10,92 +10,17 @@ X Pixel (formerly Twitter Pixel) is X's conversion tracking and audience buildin
 
 ## Implementation
 
-<Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
-  <Tab value="JavaScript">
-    ```ts
-    import { configureConsentManager } from 'c15t';
-    import { xPixel } from '@c15t/scripts/x-pixel';
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+</Callout>
 
-    configureConsentManager({
-      // ... 
-      scripts: [
-        xPixel({
-          id: '123456789012345',
-        }),
-      ],
-    });
-    ```
-  </Tab>
+```ts
+import { xPixel } from '@c15t/scripts/x-pixel';
 
-  <Tab value="React">
-    ```tsx
-    import { xPixel } from '@c15t/scripts/x-pixel';
-    import { ConsentManagerProvider } from '@c15t/react';
-
-    export function App({ children }: { children: React.ReactNode }) { 
-      return (
-        <ConsentManagerProvider
-          options={{
-            scripts: [
-              xPixel({
-                id: '123456789012345',
-              }),
-            ],
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="Next.js + App Router">
-    ```tsx
-    'use client';
-    import { xPixel } from '@c15t/scripts/x-pixel';
-    import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
-
-    export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
-      return (
-        <ClientSideOptionsProvider
-          scripts={[
-            xPixel({
-              id: '123456789012345',
-            }),
-          ]}
-        >
-          {children}
-        </ClientSideOptionsProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="Next.js + Pages Router">
-    ```tsx
-    import { xPixel } from '@c15t/scripts/x-pixel';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-
-    export function App({ children }: { children: React.ReactNode }) { 
-      return (
-        <ConsentManagerProvider
-          options={{
-            // ... other options
-            scripts: [
-              xPixel({
-                id: '123456789012345',
-              }),
-            ],
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-</Tabs>
+xPixel({
+  id: '123456789012345',
+})
+```
 
 ## xPixelEvent
 

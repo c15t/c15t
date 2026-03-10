@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { TranslationConfig, Translations } from './types';
+import type { I18nConfig, TranslationConfig, Translations } from './types';
 import {
 	deepMergeTranslations,
 	detectBrowserLanguage,
 	mergeTranslationConfigs,
+	normalizeI18nConfig,
+	parseAcceptLanguage,
 	prepareTranslationConfig,
+	selectLanguage,
+	toTranslationConfig,
 } from './utils';
 
 describe('deepMergeTranslations', () => {
@@ -174,6 +178,39 @@ describe('mergeTranslationConfigs', () => {
 			'Accept {category} consent to view this content.'
 		);
 	});
+
+	it('should prioritize i18n over legacy fields when both are present', () => {
+		const result = mergeTranslationConfigs(
+			{
+				translations: defaultConfig.translations,
+				defaultLanguage: 'en',
+				i18n: {
+					messages: {
+						fr: {
+							cookieBanner: {
+								title: 'Titre',
+							},
+						},
+					},
+					locale: 'fr',
+					detectBrowserLanguage: false,
+				},
+			},
+			{
+				defaultLanguage: 'de',
+				translations: {
+					de: {
+						cookieBanner: {
+							title: 'Titel',
+						},
+					},
+				},
+			}
+		);
+
+		expect(result.defaultLanguage).toBe('de');
+		expect(result.translations.fr?.cookieBanner?.title).toBe('Titre');
+	});
 });
 
 describe('detectBrowserLanguage', () => {
@@ -208,6 +245,124 @@ describe('detectBrowserLanguage', () => {
 		mockNavigator.language = 'fr-FR';
 		const result = detectBrowserLanguage({ en: {}, de: {} }, 'en', false);
 		expect(result).toBe('en');
+	});
+});
+
+describe('parseAcceptLanguage', () => {
+	it('should return empty array when header is null or empty', () => {
+		expect(parseAcceptLanguage(null)).toEqual([]);
+		expect(parseAcceptLanguage(undefined)).toEqual([]);
+		expect(parseAcceptLanguage('')).toEqual([]);
+	});
+
+	it('should parse single language without region', () => {
+		expect(parseAcceptLanguage('de')).toEqual(['de']);
+	});
+
+	it('should normalize region codes and lowercase', () => {
+		expect(parseAcceptLanguage('DE-de')).toEqual(['de']);
+		expect(parseAcceptLanguage('en-US')).toEqual(['en']);
+	});
+
+	it('should parse multiple languages in order', () => {
+		expect(parseAcceptLanguage('de-DE,en;q=0.9,fr;q=0.8')).toEqual([
+			'de',
+			'en',
+			'fr',
+		]);
+	});
+
+	it('should order by quality values', () => {
+		expect(parseAcceptLanguage('en;q=0.1,de;q=0.9')).toEqual(['de', 'en']);
+	});
+});
+
+describe('selectLanguage', () => {
+	it('should return fallback when no available languages', () => {
+		expect(selectLanguage([], { header: 'de', fallback: 'en' })).toBe('en');
+	});
+
+	it('should return first matching language from header', () => {
+		const available = ['en', 'de'];
+		expect(
+			selectLanguage(available, {
+				header: 'de-DE,en;q=0.9',
+				fallback: 'en',
+			})
+		).toBe('de');
+	});
+
+	it('should fall back when header languages are unsupported', () => {
+		const available = ['en', 'de'];
+		expect(
+			selectLanguage(available, {
+				header: 'xx-XX,yy;q=0.9',
+				fallback: 'en',
+			})
+		).toBe('en');
+	});
+
+	it('should prefer second header language if first is unsupported but second is available', () => {
+		const available = ['en', 'de'];
+		expect(
+			selectLanguage(available, {
+				header: 'xx-XX,en;q=0.9,de;q=0.8',
+				fallback: 'de',
+			})
+		).toBe('en');
+	});
+
+	it('should default fallback to "en" when not provided', () => {
+		const available = ['de'];
+		expect(selectLanguage(available, { header: 'xx-XX' })).toBe('en');
+	});
+});
+
+describe('i18n normalization', () => {
+	it('should map legacy translation config into i18n shape', () => {
+		const normalized = normalizeI18nConfig({
+			translations: { en: { common: { acceptAll: 'Accept' } } },
+			defaultLanguage: 'en',
+			disableAutoLanguageSwitch: true,
+		});
+
+		expect(normalized).toEqual({
+			messages: { en: { common: { acceptAll: 'Accept' } } },
+			locale: 'en',
+			detectBrowserLanguage: false,
+		});
+	});
+
+	it('should prefer i18n values when both i18n and legacy values are provided', () => {
+		const normalized = normalizeI18nConfig({
+			translations: { en: { common: { acceptAll: 'Legacy' } } },
+			defaultLanguage: 'en',
+			i18n: {
+				messages: { de: { common: { acceptAll: 'Neu' } } },
+				locale: 'de',
+				detectBrowserLanguage: true,
+			},
+		});
+
+		expect(normalized).toEqual({
+			messages: { de: { common: { acceptAll: 'Neu' } } },
+			locale: 'de',
+			detectBrowserLanguage: true,
+		});
+	});
+
+	it('should map canonical i18n shape back to legacy translation config', () => {
+		const config: I18nConfig = {
+			messages: { en: { common: { acceptAll: 'Accept' } } },
+			locale: 'en',
+			detectBrowserLanguage: true,
+		};
+
+		expect(toTranslationConfig(config)).toEqual({
+			translations: { en: { common: { acceptAll: 'Accept' } } },
+			defaultLanguage: 'en',
+			disableAutoLanguageSwitch: false,
+		});
 	});
 });
 

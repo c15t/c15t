@@ -8,10 +8,70 @@
  */
 
 import type { ConsentState } from '../..';
-import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../store.initial-state';
-import { allConsentNames, type ConsentInfo } from '../../types/gdpr';
+import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../store/initial-state';
+import { allConsentNames, type ConsentInfo } from '../../types/consent-types';
+import { getDebugLogger } from '../debug';
+import { sanitizeSubjectIdentifiers } from '../sanitize-subject-identifiers';
 import { deleteCookie, getCookie, setCookie } from './operations';
 import type { CookieOptions, StorageConfig } from './types';
+
+function sanitizeConsentInfo(
+	consentInfo: ConsentInfo | null | undefined
+): ConsentInfo | null | undefined {
+	if (!consentInfo) {
+		return consentInfo;
+	}
+
+	const sanitized = { ...consentInfo };
+	const { externalId, identityProvider } = sanitizeSubjectIdentifiers({
+		externalId: sanitized.externalId,
+		identityProvider: sanitized.identityProvider,
+	});
+
+	if (externalId) {
+		sanitized.externalId = externalId;
+	} else {
+		delete sanitized.externalId;
+	}
+
+	if (identityProvider) {
+		sanitized.identityProvider = identityProvider;
+	} else {
+		delete sanitized.identityProvider;
+	}
+
+	return sanitized;
+}
+
+/**
+ * Checks if consent data is in the v1.x legacy format that uses `id` instead of `subjectId`.
+ *
+ * @param data - Consent data to check
+ * @returns true if the data is in legacy v1.x format (has id but no subjectId)
+ *
+ * @remarks
+ * v2.0 requires client-generated subjectId. Old consent data with only `id` (server-generated)
+ * should be treated as "no consent" to prompt re-consent with the new subject-centric model.
+ *
+ * @internal
+ */
+function isLegacyConsentFormat(data: unknown): boolean {
+	if (typeof data !== 'object' || data === null) {
+		return false;
+	}
+
+	const record = data as Record<string, unknown>;
+	const consentInfo = record.consentInfo as Record<string, unknown> | undefined;
+
+	if (!consentInfo || typeof consentInfo !== 'object') {
+		return false;
+	}
+
+	const hasLegacyId = typeof consentInfo.id === 'string';
+	const hasSubjectId = typeof consentInfo.subjectId === 'string';
+
+	return hasLegacyId && !hasSubjectId;
+}
 
 /**
  * Migrates consent data from legacy storage key to new storage key.
@@ -51,8 +111,8 @@ function migrateLegacyStorage(config?: StorageConfig): void {
 				window.localStorage.setItem(newKey, legacyData);
 				// Remove legacy key
 				window.localStorage.removeItem(legacyKey);
-				console.log(
-					`[c15t] Migrated consent data from "${legacyKey}" to "${newKey}"`
+				getDebugLogger().log(
+					`Migrated consent data from "${legacyKey}" to "${newKey}"`
 				);
 			}
 		}
@@ -87,6 +147,8 @@ export function saveConsentToStorage(
 	data: {
 		consents: Partial<ConsentState>;
 		consentInfo: ConsentInfo;
+		iabCustomVendorConsents?: Record<string, boolean>;
+		iabCustomVendorLegitimateInterests?: Record<string, boolean>;
 	},
 	options?: CookieOptions,
 	config?: StorageConfig
@@ -95,11 +157,40 @@ export function saveConsentToStorage(
 	let cookieSuccess = false;
 
 	const storageKey = config?.storageKey || STORAGE_KEY_V2;
+	const existing = getConsentFromStorage<{
+		consents: Partial<ConsentState>;
+		consentInfo: ConsentInfo;
+		iabCustomVendorConsents?: Record<string, boolean>;
+		iabCustomVendorLegitimateInterests?: Record<string, boolean>;
+	}>(config);
+	const mergedData = {
+		...existing,
+		...data,
+		consentInfo: sanitizeConsentInfo(data.consentInfo),
+		iabCustomVendorConsents:
+			data.iabCustomVendorConsents ?? existing?.iabCustomVendorConsents,
+		iabCustomVendorLegitimateInterests:
+			data.iabCustomVendorLegitimateInterests ??
+			existing?.iabCustomVendorLegitimateInterests,
+	};
+	const cleanedData = { ...mergedData };
+	if (
+		!cleanedData.iabCustomVendorConsents ||
+		Object.keys(cleanedData.iabCustomVendorConsents).length === 0
+	) {
+		delete cleanedData.iabCustomVendorConsents;
+	}
+	if (
+		!cleanedData.iabCustomVendorLegitimateInterests ||
+		Object.keys(cleanedData.iabCustomVendorLegitimateInterests).length === 0
+	) {
+		delete cleanedData.iabCustomVendorLegitimateInterests;
+	}
 
 	// Save to localStorage
 	try {
 		if (typeof window !== 'undefined' && window.localStorage) {
-			window.localStorage.setItem(storageKey, JSON.stringify(data));
+			window.localStorage.setItem(storageKey, JSON.stringify(cleanedData));
 			localStorageSuccess = true;
 		}
 	} catch (error) {
@@ -108,7 +199,7 @@ export function saveConsentToStorage(
 
 	// Save to cookie
 	try {
-		setCookie(storageKey, data, options, config);
+		setCookie(storageKey, cleanedData, options, config);
 		cookieSuccess = true;
 	} catch (error) {
 		console.warn('Failed to save consent to cookie:', error);
@@ -248,7 +339,7 @@ export function getConsentFromStorage<ReturnType = unknown>(
 			// Sync localStorage to cookie
 			try {
 				setCookie(storageKey, chosenData, undefined, config);
-				console.log('[c15t] Synced consent from localStorage to cookie');
+				getDebugLogger().log('Synced consent from localStorage to cookie');
 			} catch (error) {
 				console.warn('[c15t] Failed to sync consent to cookie:', error);
 			}
@@ -300,14 +391,16 @@ export function getConsentFromStorage<ReturnType = unknown>(
 					if (cookieJson !== localStorageJson) {
 						window.localStorage.setItem(storageKey, cookieJson);
 						if (!normalizedLocalStorageData) {
-							console.log('[c15t] Synced consent from cookie to localStorage');
+							getDebugLogger().log(
+								'Synced consent from cookie to localStorage'
+							);
 						} else if (isCrossSubdomain) {
-							console.log(
-								'[c15t] Updated localStorage with consent from cookie (cross-subdomain mode)'
+							getDebugLogger().log(
+								'Updated localStorage with consent from cookie (cross-subdomain mode)'
 							);
 						} else {
-							console.log(
-								'[c15t] Updated localStorage with consent from cookie'
+							getDebugLogger().log(
+								'Updated localStorage with consent from cookie'
 							);
 						}
 					}
@@ -318,9 +411,38 @@ export function getConsentFromStorage<ReturnType = unknown>(
 		}
 	}
 
+	// v2.0: Check for legacy consent format (has id but no subjectId)
+	// If detected, treat as "no consent" to prompt re-consent with new subject-centric model
+	if (chosenData && isLegacyConsentFormat(chosenData)) {
+		getDebugLogger().log(
+			'Detected legacy consent format (v1.x). Re-consent required for v2.0.'
+		);
+		// Clear the legacy data from storage
+		deleteConsentFromStorage(undefined, config);
+		return null;
+	}
+
 	// Normalize consent data to ensure all values are explicit booleans
 	if (chosenData && typeof chosenData === 'object') {
-		return normalizeConsentData(chosenData as never) as ReturnType;
+		const normalizedData = normalizeConsentData(chosenData as never) as
+			| (ReturnType & { consentInfo?: ConsentInfo | null })
+			| ReturnType;
+
+		if (
+			typeof normalizedData === 'object' &&
+			normalizedData !== null &&
+			'consentInfo' in normalizedData
+		) {
+			const dataWithConsentInfo = normalizedData as ReturnType & {
+				consentInfo?: ConsentInfo | null;
+			};
+			dataWithConsentInfo.consentInfo = sanitizeConsentInfo(
+				dataWithConsentInfo.consentInfo
+			);
+			return dataWithConsentInfo;
+		}
+
+		return normalizedData;
 	}
 
 	return chosenData;

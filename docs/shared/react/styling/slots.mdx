@@ -1,0 +1,52 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="content">
+  ## What are Slots?
+
+  Slots let you target specific parts of consent components with styles. Each component is built from named "slots" (e.g., `consentBannerTitle`, `consentDialogFooter`) that you can style individually.
+
+  ## Using Slots
+
+  Pass slot styles in the theme's `slots` object:
+
+  ```tsx
+  const theme = {
+    slots: {
+      // String value = className
+      consentBannerTitle: 'text-xl font-bold text-gray-900',
+
+      // Object value = className + inline styles
+      consentBannerCard: {
+        className: 'rounded-xl shadow-lg',
+        style: { maxWidth: '600px' },
+      },
+    },
+  } satisfies Theme;
+  ```
+
+  ## Slot Style Types
+
+  Each slot accepts either a `string` (treated as className) or a `SlotStyle` object:
+
+  ```tsx
+  // String: treated as className
+  consentBannerTitle: 'my-custom-class'
+
+  // Object: className + style + noStyle
+  consentBannerTitle: {
+    className: 'my-custom-class',
+    style: { color: 'red', fontSize: '1.5rem' },
+    noStyle: false, // Set true to remove default styles for this slot
+  }
+  ```
+
+  ## Available Slots
+
+  Use the typed API reference below for the full slot list and descriptions. It stays in sync with the actual component slot surface.
+
+  ## API Reference
+
+  <AutoTypeTable path="./packages/ui/src/theme/types.ts" name="ComponentSlots" />
+
+  <AutoTypeTable path="./packages/ui/src/theme/types.ts" name="SlotStyle" />
+</section>

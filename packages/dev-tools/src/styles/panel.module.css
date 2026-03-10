@@ -1,0 +1,513 @@
+/**
+ * Panel Styles
+ * Main DevTools panel with floating button, backdrop, and content area
+ * Uses c15t/ui design tokens with fallbacks for standalone usage
+ */
+
+/* === Container === */
+.container {
+	position: fixed;
+	z-index: var(--c15t-devtools-z-index, 99999);
+	font-family: var(--c15t-font-family, system-ui, -apple-system, sans-serif);
+	font-size: var(--c15t-font-size-sm, 0.875rem);
+	line-height: var(--c15t-line-height-normal, 1.5);
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* === Floating Button === */
+/* Matches PreferenceCenterTrigger sizing for visual consistency */
+.floatingButton {
+	position: fixed;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	/* Match PreferenceCenterTrigger md size (40px) */
+	width: var(--c15t-devtools-button-size, 40px);
+	height: var(--c15t-devtools-button-size, 40px);
+	padding: 0;
+	border: 1px solid var(--c15t-devtools-border-strong, hsl(0, 0%, 89%));
+	/* Match PreferenceCenterTrigger fully rounded style */
+	border-radius: var(--c15t-radius-full, 9999px);
+	background-color: var(--c15t-devtools-surface-elevated, #fff);
+	/* Match PreferenceCenterTrigger shadow */
+	box-shadow: var(
+		--c15t-shadow-lg,
+		0 10px 15px -3px rgb(0 0 0 / 0.1),
+		0 4px 6px -4px rgb(0 0 0 / 0.1)
+	);
+	cursor: grab;
+	z-index: var(--c15t-devtools-z-index, 99999);
+	transition:
+		transform var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+		box-shadow var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+		background-color var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+	transform-origin: center;
+	touch-action: none;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-tap-highlight-color: transparent;
+}
+
+/* Only apply hover effects on devices that support hover */
+@media (hover: hover) and (pointer: fine) {
+	.floatingButton:hover {
+		background-color: var(--c15t-surface-hover, hsl(0, 0%, 95%));
+		box-shadow: var(
+			--c15t-shadow-xl,
+			0 20px 25px -5px rgb(0 0 0 / 0.1),
+			0 8px 10px -6px rgb(0 0 0 / 0.1)
+		);
+	}
+}
+
+.floatingButton:focus {
+	outline: none;
+}
+
+.floatingButton:focus-visible {
+	outline: none;
+	box-shadow:
+		var(--c15t-shadow-lg, 0 8px 24px hsla(0, 0%, 0%, 0.12)),
+		0 0 0 2px var(--c15t-devtools-focus-ring, hsl(228, 100%, 60%));
+}
+
+.floatingButton:active {
+	cursor: grabbing;
+	transform: scale(0.98);
+}
+
+.floatingButtonIcon {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	/* 50% of button size, matching PreferenceCenterTrigger */
+	width: 50%;
+	height: 50%;
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+	pointer-events: none;
+}
+
+.floatingButtonIcon svg {
+	width: 100%;
+	height: 100%;
+}
+
+/* Position variants */
+.positionBottomRight {
+	bottom: 20px;
+	right: 20px;
+}
+
+.positionBottomLeft {
+	bottom: 20px;
+	left: 20px;
+}
+
+.positionTopRight {
+	top: 20px;
+	right: 20px;
+}
+
+.positionTopLeft {
+	top: 20px;
+	left: 20px;
+}
+
+/* === Backdrop === */
+.backdrop {
+	position: fixed;
+	inset: 0;
+	background-color: var(--c15t-overlay, hsla(0, 0%, 0%, 0.5));
+	backdrop-filter: blur(1px);
+	z-index: calc(var(--c15t-devtools-z-index, 99999) + 1);
+}
+
+/* === Panel === */
+.panel {
+	position: fixed;
+	display: flex;
+	flex-direction: column;
+	width: var(--c15t-devtools-panel-width, 480px);
+	max-height: var(--c15t-devtools-panel-max-height, 560px);
+	background-color: var(--c15t-devtools-surface-elevated, #fff);
+	border: 1px solid var(--c15t-devtools-border-strong, hsl(0, 0%, 89%));
+	border-radius: var(--c15t-radius-lg, 0.75rem);
+	box-shadow: var(--c15t-shadow-lg, 0 10px 28px hsla(0, 0%, 0%, 0.16));
+	/* overflow: hidden clips content but allows children with overflow-y: auto to scroll */
+	overflow: hidden;
+	z-index: calc(var(--c15t-devtools-z-index, 99999) + 2);
+}
+
+/* Panel position variants */
+.panel.positionBottomRight {
+	bottom: 80px;
+	right: 20px;
+	transform-origin: bottom right;
+}
+
+.panel.positionBottomLeft {
+	bottom: 80px;
+	left: 20px;
+	transform-origin: bottom left;
+}
+
+.panel.positionTopRight {
+	top: 80px;
+	right: 20px;
+	transform-origin: top right;
+}
+
+.panel.positionTopLeft {
+	top: 80px;
+	left: 20px;
+	transform-origin: top left;
+}
+
+/* === Header === */
+.header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.6875rem 0.875rem;
+	border-bottom: 1px solid var(--c15t-devtools-border-strong, hsl(0, 0%, 89%));
+	background-color: var(--c15t-devtools-surface-muted, hsl(0, 0%, 96%));
+}
+
+.headerTitle {
+	display: flex;
+	align-items: center;
+	gap: var(--c15t-space-sm, 0.5rem);
+	font-size: var(--c15t-font-size-sm, 0.875rem);
+	font-weight: var(--c15t-font-weight-semibold, 600);
+	line-height: var(--c15t-line-height-tight, 1.25);
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+}
+
+.headerLogo {
+	width: 20px;
+	height: 20px;
+	color: var(--c15t-primary, hsl(228, 100%, 60%));
+}
+
+.closeButton {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	padding: 0;
+	border: none;
+	border-radius: var(--c15t-radius-md, 0.5rem);
+	background-color: transparent;
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+	cursor: pointer;
+	transition:
+		background-color var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+		color var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.closeButton:hover {
+	background-color: var(--c15t-devtools-surface-subtle, hsl(0, 0%, 97%));
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+}
+
+.closeButton:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px var(--c15t-devtools-focus-ring, hsl(228, 100%, 60%));
+}
+
+.closeButtonIcon {
+	width: 16px;
+	height: 16px;
+}
+
+.inlineActionButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 1.625rem;
+	padding: 0.25rem 0.5rem;
+	border: 1px solid var(--c15t-devtools-border-strong, hsl(0, 0%, 89%));
+	border-radius: var(--c15t-radius-sm, 0.375rem);
+	background-color: var(--c15t-devtools-surface-elevated, #fff);
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+	font-family: var(--c15t-font-family, system-ui, -apple-system, sans-serif);
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	font-weight: var(--c15t-font-weight-medium, 500);
+	line-height: var(--c15t-line-height-tight, 1.25);
+	cursor: pointer;
+	transition:
+		background-color var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+		border-color var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.inlineActionButton:hover {
+	background-color: var(--c15t-devtools-surface-subtle, hsl(0, 0%, 97%));
+	border-color: var(--c15t-border-hover, hsl(0, 0%, 79%));
+}
+
+.inlineActionButton:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px var(--c15t-devtools-focus-ring, hsl(228, 100%, 60%));
+}
+
+/* === Content === */
+.content {
+	flex: 1 1 auto;
+	/* min-height ensures content area is visible even when empty */
+	min-height: 200px;
+	overflow-y: scroll;
+	overflow-x: hidden;
+	scrollbar-gutter: stable;
+	overscroll-behavior: contain;
+	/* Enable smooth scrolling on touch devices */
+	-webkit-overflow-scrolling: touch;
+	background-color: var(--c15t-devtools-surface-elevated, #fff);
+}
+
+/* === Footer === */
+.footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	padding: 0.5rem 0.75rem;
+	border-top: 1px solid var(--c15t-devtools-border-strong, hsl(0, 0%, 89%));
+	background-color: var(--c15t-devtools-surface-muted, hsl(0, 0%, 96%));
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+}
+
+.footerStatus {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	min-width: 0;
+}
+
+.footerMeta {
+	opacity: 0.75;
+	white-space: nowrap;
+}
+
+.statusDot {
+	width: 6px;
+	height: 6px;
+	border-radius: var(--c15t-radius-full, 9999px);
+	flex-shrink: 0;
+}
+
+.statusConnected {
+	background-color: var(--c15t-devtools-badge-success, hsl(142, 71%, 45%));
+}
+
+.statusDisconnected {
+	background-color: var(--c15t-devtools-badge-error, hsl(0, 84%, 60%));
+}
+
+/* === Error State === */
+.errorState {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--c15t-space-xl, 2rem);
+	text-align: center;
+	gap: var(--c15t-space-md, 1rem);
+}
+
+.errorIcon {
+	width: 48px;
+	height: 48px;
+	color: var(--c15t-devtools-badge-warning, hsl(38, 92%, 50%));
+}
+
+.errorTitle {
+	font-size: var(--c15t-font-size-base, 1rem);
+	font-weight: var(--c15t-font-weight-semibold, 600);
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+}
+
+.errorMessage {
+	font-size: var(--c15t-font-size-sm, 0.875rem);
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+	max-width: 280px;
+	line-height: var(--c15t-line-height-normal, 1.5);
+}
+
+/* === Reduced Motion === */
+@media (prefers-reduced-motion: reduce) {
+	.floatingButton,
+	.closeButton {
+		transition: none;
+	}
+}
+
+/* === Touch Device Handling === */
+@media (hover: none) {
+	.floatingButton:hover {
+		transform: none;
+		box-shadow: var(--c15t-shadow-md, 0 4px 12px hsla(0, 0%, 0%, 0.08));
+	}
+}
+
+/* === Dropdown Menu === */
+.dropdownMenu {
+	position: fixed;
+	min-width: 200px;
+	padding: 0.375rem;
+	border: 1px solid var(--c15t-devtools-border-strong, hsl(0, 0%, 89%));
+	border-radius: var(--c15t-radius-lg, 0.75rem);
+	background-color: var(--c15t-devtools-surface-elevated, #fff);
+	box-shadow: var(--c15t-shadow-lg, 0 8px 24px hsla(0, 0%, 0%, 0.12));
+	z-index: calc(var(--c15t-devtools-z-index, 99999) + 1);
+	opacity: 0;
+	transform: scale(0.95) translateY(8px);
+	transform-origin: bottom left;
+	pointer-events: none;
+	transition:
+		opacity var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+		transform var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
+.dropdownMenu[data-state="open"] {
+	opacity: 1;
+	transform: scale(1) translateY(0);
+	pointer-events: auto;
+}
+
+/* Position classes set transform-origin only - actual position is set via JS */
+.dropdownMenuBottomLeft {
+	transform-origin: bottom left;
+}
+
+.dropdownMenuBottomRight {
+	transform-origin: bottom right;
+}
+
+.dropdownMenuTopLeft {
+	transform-origin: top left;
+}
+
+.dropdownMenuTopRight {
+	transform-origin: top right;
+}
+
+.menuItem {
+	display: flex;
+	align-items: center;
+	gap: 0.625rem;
+	width: 100%;
+	padding: 0.5rem 0.625rem;
+	border: none;
+	border-radius: var(--c15t-radius-md, 0.5rem);
+	background: transparent;
+	color: var(--c15t-text, hsl(0, 0%, 9%));
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	font-weight: var(--c15t-font-weight-medium, 500);
+	line-height: var(--c15t-line-height-tight, 1.25);
+	text-align: left;
+	cursor: pointer;
+	transition: background-color var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.menuItem:hover {
+	background-color: var(--c15t-devtools-surface-subtle, hsl(0, 0%, 95%));
+}
+
+.menuItem:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px var(--c15t-devtools-focus-ring, hsl(228, 100%, 60%));
+}
+
+.menuItemIcon {
+	width: 1rem;
+	height: 1rem;
+	flex-shrink: 0;
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+}
+
+.menuItemLabel {
+	flex: 1;
+}
+
+.menuItemDescription {
+	font-size: var(--c15t-devtools-font-size-xs, 0.75rem);
+	color: var(--c15t-text-muted, hsl(0, 0%, 45%));
+	font-weight: var(--c15t-font-weight-normal, 400);
+	margin-top: 0.125rem;
+}
+
+.menuItemContent {
+	flex: 1;
+	min-width: 0;
+}
+
+/* Toggle switch for menu items */
+.menuItemToggle {
+	flex-shrink: 0;
+	margin-left: auto;
+}
+
+.menuItemToggleTrack {
+	position: relative;
+	width: 2rem;
+	height: 1.25rem;
+	background-color: var(--c15t-switch-track, hsl(0, 0%, 85%));
+	border-radius: var(--c15t-radius-full, 9999px);
+	transition: background-color var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.menuItemToggleThumb {
+	position: absolute;
+	top: 50%;
+	left: 2px;
+	width: 0.75rem;
+	height: 0.75rem;
+	background-color: var(--c15t-switch-thumb, hsl(0, 0%, 100%));
+	border-radius: var(--c15t-radius-full, 9999px);
+	box-shadow: 0 0 0 1px var(--c15t-border, hsl(0, 0%, 89%));
+	transform: translateY(-50%);
+	transition: transform var(--c15t-duration-fast, 100ms)
+		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.menuItemToggleChecked .menuItemToggleTrack {
+	background-color: var(--c15t-switch-track-active, hsl(228, 100%, 60%));
+}
+
+.menuItemToggleChecked .menuItemToggleThumb {
+	transform: translate(1rem, -50%);
+}
+
+.menuDivider {
+	height: 1px;
+	margin: var(--c15t-space-xs, 0.25rem) 0;
+	background-color: var(--c15t-border, hsl(0, 0%, 89%));
+}
+
+/* Unified button wrapper - inherits positioning from button */
+.unifiedButtonWrapper {
+	/* This is just a logical grouping container, not positioned */
+	display: contents;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.dropdownMenu {
+		transition: none;
+	}
+}

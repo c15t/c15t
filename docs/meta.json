@@ -1,12 +1,10 @@
 {
 	"pages": [
 		"frameworks",
-		"sdks",
+		"integrations",
 		"self-host",
-		"index",
-		"introduction",
-		"ai-tools-integrations",
 		"--- OSS ---",
+		"./ai-tools",
 		"./oss/contributing",
 		"./oss/license",
 		"./oss/why-open-source",

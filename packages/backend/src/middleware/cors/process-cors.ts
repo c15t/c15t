@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 
-import type { C15TContext } from '~/types/context';
+import type { C15TContext } from '~/types';
 import { isOriginTrusted } from './is-origin-trusted';
 
 /**

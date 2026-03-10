@@ -17,7 +17,7 @@
 		"**/__tests__/**",
 		"rslib.config.ts"
 	],
-	"ignoreDependencies": ["@c15t/typescript-config", "c15t", "zustand"],
+	"ignoreDependencies": ["@c15t/typescript-config", "c15t"],
 	"rules": {
 		"exports": "warn",
 		"types": "warn",

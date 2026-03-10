@@ -1,0 +1,98 @@
+---
+title: Observability
+description: Add logging, metrics, and tracing to your self-hosted c15t backend.
+---
+
+The c15t backend supports structured logging and opt-in OpenTelemetry integration for production observability.
+
+## OpenTelemetry
+
+Telemetry is disabled by default. To enable it, pass your own tracer and meter instances:
+
+```ts title="c15t.ts"
+import { c15tInstance } from '@c15t/backend';
+import { trace, metrics } from '@opentelemetry/api';
+
+export const c15t = c15tInstance({
+  // ...
+  telemetry: {
+    enabled: true,
+    tracer: trace.getTracer('consent-api'),
+    meter: metrics.getMeter('consent-api'),
+    defaultAttributes: {
+      'service.name': 'consent-api',
+      environment: 'production',
+    },
+  },
+});
+```
+
+<Callout type="info">
+  You need to set up your own OpenTelemetry SDK and exporter (e.g. Jaeger, Datadog, Grafana). The c15t backend creates spans and metrics using the instances you provide.
+</Callout>
+
+## Metrics
+
+When telemetry is enabled, the following metrics are recorded:
+
+### Business Metrics
+
+| Metric | Type | Description |
+| --- | --- | --- |
+| `consentCreated` | Counter | Consent record created (by type, jurisdiction) |
+| `consentAccepted` | Counter | Consent accepted (by type) |
+| `consentRejected` | Counter | Consent rejected (by type) |
+| `subjectCreated` | Counter | New subject created |
+| `subjectLinked` | Counter | Subject linked to external ID |
+| `initCount` | Counter | `/init` endpoint called |
+
+### HTTP Metrics
+
+| Metric | Type | Description |
+| --- | --- | --- |
+| `httpRequestDuration` | Histogram | Request duration (by method, route, status) |
+| `httpRequestCount` | Counter | Total requests |
+| `httpErrorCount` | Counter | Error responses |
+
+### Database Metrics
+
+| Metric | Type | Description |
+| --- | --- | --- |
+| `dbQueryDuration` | Histogram | Query duration (by operation, entity) |
+| `dbQueryCount` | Counter | Total queries |
+| `dbErrorCount` | Counter | Query errors |
+
+### Cache Metrics
+
+| Metric | Type | Description |
+| --- | --- | --- |
+| `cacheHit` | Counter | Cache hits (by layer) |
+| `cacheMiss` | Counter | Cache misses (by layer) |
+| `cacheLatency` | Histogram | Cache operation latency |
+
+## Tracing
+
+Every request creates a span with:
+
+- HTTP method and route
+- Response status code
+- Tenant ID (if multi-tenant)
+- API key authentication status
+- Geo-location resolution
+
+Child spans are created for database queries and cache operations.
+
+## Logging
+
+Configure the log level:
+
+```ts
+c15tInstance({
+  // ...
+  logger: {
+    level: 'info', // debug, info, warn, error
+  },
+});
+```
+
+Logs are structured (JSON-compatible) and include trace context when telemetry is enabled, making it easy to correlate logs with traces.

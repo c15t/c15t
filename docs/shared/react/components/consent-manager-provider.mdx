@@ -1,0 +1,98 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  `ConsentManagerProvider` is the root component for the c15t consent system. It initializes the consent store, detects the user's jurisdiction, resolves translations, and provides consent state to all child components via React context.
+
+  Every other c15t component and hook must be rendered inside this provider.
+</section>
+
+<section id="options-reference">
+  ## Options Reference
+
+  <AutoTypeTable path="./packages/ui/src/theme/options.ts" name="CommonInlineStoreOptions" />
+
+  <AutoTypeTable path="./packages/ui/src/theme/options.ts" name="ConsentManagerContentOptions" />
+
+  <AutoTypeTable path="./packages/ui/src/theme/types.ts" name="UIOptions" />
+</section>
+
+<section id="legal-links">
+  ## Legal Links
+
+  `legalLinks` defines the URLs shown in consent UI text (banner, dialog, and widget where applicable).
+  Configure only the links you want to expose.
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      mode: 'offline',
+      legalLinks: {
+        privacyPolicy: {
+          href: '/privacy',
+          target: '_self',
+        },
+        cookiePolicy: {
+          href: '/cookies',
+          target: '_self',
+        },
+        termsOfService: {
+          href: 'https://example.com/terms',
+          target: '_blank',
+          rel: 'noopener noreferrer',
+          label: 'Terms of Service',
+        },
+      },
+    }}
+  >
+  ```
+
+  Notes:
+
+  - Omitting a key (for example `termsOfService`) hides that link.
+  - `label` overrides the translated text for that single link.
+  - Use `_self` for internal pages and `_blank` + `rel="noopener noreferrer"` for external pages.
+  - Control which of the configured links render in each component via the component's `legalLinks` prop.
+</section>
+
+<section id="overrides">
+  ## Overrides
+
+  `overrides` lets you force location/language signals instead of browser or network detection.
+  This is useful for QA, local development, and preview environments.
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      mode: 'offline',
+      overrides: {
+        country: 'DE',
+        region: 'BY',
+        language: 'de-DE',
+      },
+    }}
+  >
+  ```
+
+  You can also override Global Privacy Control (GPC) behavior during testing:
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      mode: 'offline',
+      overrides: {
+        gpc: true,
+      },
+    }}
+  >
+  ```
+
+  <Callout type="warning">
+    Treat overrides as an environment/testing tool. Avoid hard-coding production overrides unless that behavior is intentional for your deployment.
+  </Callout>
+</section>
+
+<section id="props">
+  ## Props
+
+  <AutoTypeTable path="./packages/react/src/types/consent-manager.ts" name="ConsentManagerProviderProps" />
+</section>

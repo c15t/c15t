@@ -1,0 +1,68 @@
+---
+title: Troubleshooting
+description: Solutions for common issues with @c15t/react — provider errors, missing banners, consent persistence, and more.
+---
+
+<import src="../../shared/troubleshooting.mdx#provider-not-found" />
+
+<import src="../../shared/troubleshooting.mdx#banner-doesnt-show" />
+
+<import src="../../shared/troubleshooting.mdx#consent-not-persisting" />
+
+<import src="../../shared/troubleshooting.mdx#scripts-not-loading" />
+
+## SSR Hydration Mismatch
+
+**Symptom:** React hydration warnings, consent banner flashes briefly, or consent state differs between server and client.
+
+**Fixes:**
+
+1. **Missing `ssrData`** — Ensure you're passing the SSR data Promise to the provider:
+
+```tsx
+<ConsentManagerProvider
+  options={{
+    mode: 'hosted',
+    backendURL: '...',
+    ssrData: fetchSSRData({ backendURL: '...', headers }),
+  }}
+>
+```
+
+2. **Stale cache** — If using a CDN or caching layer, ensure the SSR data is fresh per-request and not shared across users.
+
+3. **Debug with `useSSRStatus`** — Check if SSR data was actually consumed:
+
+```tsx
+const { ssrDataUsed, ssrSkippedReason } = useSSRStatus();
+```
+
+See [Server-Side Utilities](/docs/frameworks/react/server-side) for full SSR setup.
+
+## TypeScript Errors
+
+**Common import issues:**
+
+```tsx
+// Components and hooks — main entry point
+import { ConsentManagerProvider, useConsentManager } from '@c15t/react';
+
+// Server utilities — separate entry point
+import { fetchSSRData } from '@c15t/react/server';
+
+// Headless (hooks only, no components)
+import { useConsentManager } from '@c15t/react/headless';
+```
+
+If you see type errors after updating, try:
+
+```sh
+rm -rf node_modules/.cache
+bun install
+```
+
+## Still Stuck?
+
+- Enable `debug: true` in provider options for verbose console logging
+- Use the [DevTools](/docs/frameworks/react/components/dev-tools) panel to inspect live consent state
+- Check the [GitHub issues](https://github.com/c15t/c15t/issues) for known bugs

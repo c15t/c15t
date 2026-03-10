@@ -1,0 +1,42 @@
+{
+	"mode": "pre",
+	"tag": "rc",
+	"initialVersions": {
+		"pigeon-post": "0.1.0",
+		"tailwind-3": "0.1.0",
+		"pigeon-post-v1": "0.1.0",
+		"@c15t/bundle-analysis-action": "0.1.0",
+		"@c15t/typescript-config": "0.0.1-beta.1",
+		"@c15t/vitest-config": "1.0.0",
+		"@c15t/backend": "1.8.0",
+		"@c15t/cli": "1.8.3",
+		"c15t": "1.8.3",
+		"@c15t/dev-tools": "1.8.3",
+		"@c15t/logger": "1.0.1",
+		"@c15t/nextjs": "1.8.3",
+		"@c15t/node-sdk": "1.8.0",
+		"@c15t/react": "1.8.3",
+		"@c15t/schema": "1.8.0",
+		"@c15t/scripts": "1.0.1",
+		"@c15t/translations": "1.8.0",
+		"@c15t/ui": "1.0.0"
+	},
+	"changesets": [
+		"beige-memes-run",
+		"big-memes-lead",
+		"bold-sites-hunt",
+		"common-pots-tease",
+		"fair-steaks-rush",
+		"fresh-bottles-bake",
+		"fresh-mirrors-drop",
+		"happy-impalas-move",
+		"late-pandas-turn",
+		"legal-plums-hug",
+		"pretty-cooks-write",
+		"puny-loops-smile",
+		"shy-cycles-call",
+		"silent-spies-work",
+		"slow-mugs-fold",
+		"thirty-oranges-teach"
+	]
+}

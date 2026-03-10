@@ -1,0 +1,46 @@
+---
+title: Consent Categories
+description: How c15t organizes tracking technologies into five consent categories.
+---
+
+<import src="../../../shared/concepts/consent-categories.mdx#overview" />
+
+Configure which categories your app supports in the runtime options:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+  consentCategories: ['necessary', 'measurement', 'marketing'],
+});
+```
+
+<import src="../../../shared/concepts/consent-categories.mdx#categories-table" />
+
+Check if a specific category has consent using the `has()` method:
+
+```ts
+const state = consentStore.getState();
+
+if (state.has('measurement')) {
+  // Safe to load analytics scripts
+}
+
+// Complex conditions
+if (state.has({ and: ['measurement', 'marketing'] })) {
+  // Both measurement and marketing are granted
+}
+```
+
+<import src="../../../shared/concepts/consent-categories.mdx#configuration" />
+
+You can dynamically update which categories are active:
+
+```ts
+const state = consentStore.getState();
+
+// Add a new category
+state.setConsentCategories([...state.consentCategories, 'experience']);
+```

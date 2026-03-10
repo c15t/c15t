@@ -1,0 +1,144 @@
+---
+title: Framework Integration
+description: Mount the c15t consent backend in any JavaScript framework or runtime.
+---
+
+The c15t backend exposes a single handler with the signature `(request: Request) => Promise<Response>`. This is the standard Fetch API, so it works with any runtime that supports it — Node.js, Bun, Deno, and Cloudflare Workers.
+
+## Bun
+
+```ts title="server.ts"
+import { c15t } from './c15t';
+
+Bun.serve({
+  port: 3001,
+  fetch: c15t.handler,
+});
+```
+
+## Next.js (App Router)
+
+Create a catch-all API route that forwards requests to the handler:
+
+```ts title="src/app/api/c15t/[[...path]]/route.ts"
+import { c15t } from '@/lib/c15t';
+
+const handler = c15t.handler;
+
+export { handler as GET, handler as POST, handler as PUT, handler as PATCH, handler as DELETE };
+```
+
+<Callout type="info">
+  Use Next.js [rewrites](https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites) to proxy frontend requests through the same domain and avoid ad-blocker issues. See the [Next.js Quickstart](/docs/frameworks/next/quickstart) for the rewrite configuration.
+</Callout>
+
+## Hono
+
+```ts title="server.ts"
+import { Hono } from 'hono';
+import { c15t } from './c15t';
+
+const app = new Hono();
+
+app.all('/api/c15t/*', (c) => c15t.handler(c.req.raw));
+
+export default app;
+```
+
+## Express
+
+```ts title="server.ts"
+import express from 'express';
+import { c15t } from './c15t';
+
+const app = express();
+
+app.all('/api/c15t/*', async (req, res) => {
+  const url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+  const headers = new Headers();
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (value) headers.set(key, Array.isArray(value) ? value.join(', ') : value);
+  }
+
+  const request = new Request(url, {
+    method: req.method,
+    headers,
+    body: ['GET', 'HEAD'].includes(req.method) ? undefined : req,
+  });
+
+  const response = await c15t.handler(request);
+
+  res.status(response.status);
+  response.headers.forEach((value, key) => res.setHeader(key, value));
+  res.send(await response.text());
+});
+
+app.listen(3001);
+```
+
+## Fastify
+
+```ts title="server.ts"
+import Fastify from 'fastify';
+import { c15t } from './c15t';
+
+const app = Fastify();
+
+app.all('/api/c15t/*', async (req, reply) => {
+  const url = `${req.protocol}://${req.hostname}${req.url}`;
+  const request = new Request(url, {
+    method: req.method,
+    headers: new Headers(req.headers as Record<string, string>),
+    body: ['GET', 'HEAD'].includes(req.method) ? undefined : JSON.stringify(req.body),
+  });
+
+  const response = await c15t.handler(request);
+
+  reply.status(response.status);
+  response.headers.forEach((value, key) => reply.header(key, value));
+  reply.send(await response.text());
+});
+
+app.listen({ port: 3001 });
+```
+
+## Cloudflare Workers
+
+```ts title="worker.ts"
+import { c15t } from './c15t';
+
+export default {
+  async fetch(request: Request, env: Env) {
+    return c15t.handler(request);
+  },
+};
+```
+
+## Deno
+
+```ts title="server.ts"
+import { c15t } from './c15t.ts';
+
+Deno.serve({ port: 3001 }, c15t.handler);
+```
+
+## CORS
+
+The backend automatically handles CORS based on the `trustedOrigins` you configure:
+
+```ts
+c15tInstance({
+  trustedOrigins: [
+    'https://example.com',
+    'https://*.example.com', // wildcard subdomains
+  ],
+  // ...
+});
+```
+
+Features:
+
+- `www` variants are automatically allowed
+- Wildcard subdomain matching with `*`
+- `localhost` is allowed in development
+- Preflight `OPTIONS` requests are handled automatically

@@ -3,7 +3,9 @@
  * Hook for accessing and managing consent state.
  */
 
-import { useContext } from 'react';
+import type { ConsentManagerInterface, ConsentStoreState } from 'c15t';
+import { has as evaluateHas } from 'c15t';
+import { useCallback, useContext } from 'react';
 import { ConsentStateContext } from '../context/consent-manager-context';
 
 /**
@@ -25,7 +27,9 @@ import { ConsentStateContext } from '../context/consent-manager-context';
  * @returns Combined state and methods for consent management
  * @public
  */
-export function useConsentManager() {
+export function useConsentManager(): ConsentStoreState & {
+	manager: ConsentManagerInterface | null;
+} {
 	const context = useContext(ConsentStateContext);
 
 	if (context === undefined) {
@@ -34,10 +38,38 @@ export function useConsentManager() {
 		);
 	}
 
-	// Return the reactive state from context, not a snapshot from store.getState()
+	const { consents, consentInfo, consentCategories, consentTypes } =
+		context.state;
+
+	// Override store methods that close over Zustand's `get()` with versions
+	// that capture reactive state values from context. Without this, React
+	// Compiler sees stable function references + stable arguments and caches
+	// the return value forever, producing stale results after consent changes.
+	// See: https://github.com/c15t/c15t/issues/604
+	const has: ConsentStoreState['has'] = useCallback(
+		(condition) => evaluateHas(condition, consents),
+		[consents]
+	);
+
+	const hasConsented: ConsentStoreState['hasConsented'] = useCallback(
+		() => consentInfo != null,
+		[consentInfo]
+	);
+
+	const getDisplayedConsents: ConsentStoreState['getDisplayedConsents'] =
+		useCallback(
+			() =>
+				consentTypes.filter((consent) =>
+					consentCategories.includes(consent.name)
+				),
+			[consentTypes, consentCategories]
+		);
+
 	return {
 		...context.state,
-		// Include manager in returned object if available
-		...(context.manager ? { manager: context.manager } : {}),
+		has,
+		hasConsented,
+		getDisplayedConsents,
+		manager: context.manager,
 	};
 }

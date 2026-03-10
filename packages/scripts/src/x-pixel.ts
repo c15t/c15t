@@ -134,13 +134,6 @@ export function xPixel({ pixelId, script }: XPixelOptions): Script {
 a=t.getElementsByTagName(n)[0],a.parentNode.insertBefore(u,a))}(window,document,'script');
 twq('config','${pixelId}');
 		`.trim(),
-		onDelete: (rest) => {
-			delete window.twq;
-
-			if (script?.onDelete) {
-				script.onDelete(rest);
-			}
-		},
 	};
 }
 

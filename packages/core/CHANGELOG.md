@@ -1,5 +1,75 @@
 # c15t
 
+## 2.0.0-rc.4
+
+### Patch Changes
+
+- 29819bc: feat: add an IAB subpath export and lazy-load IAB internals
+- Updated dependencies [06ee724]
+  - @c15t/translations@2.0.0-rc.4
+
+## 2.0.0-rc.3
+
+### Patch Changes
+
+- 1c813bc: feat(dev-tools): add GPC to dev-tools with an override
+- 0f10f3e: fix(react): react compiler compatability
+- Updated dependencies [0a18fb6]
+  - @c15t/backend@2.0.0-rc.3
+
+## 2.0.0-rc.2
+
+### Patch Changes
+
+- 408df0e: feat: CMP ID now comes from backend, either consent.io when hosted or BYO CMP ID
+  feat: Center the IAB Banner for better policy compliance
+  feat: Improve doc comments around IAB
+- Updated dependencies [408df0e]
+  - @c15t/backend@2.0.0-rc.2
+  - @c15t/schema@2.0.0-rc.2
+
+## 2.0.0-rc.1
+
+### Patch Changes
+
+- 0bc4f86: fixed workspace resolving
+- Updated dependencies [0bc4f86]
+  - @c15t/translations@2.0.0-rc.1
+  - @c15t/backend@2.0.0-rc.1
+  - @c15t/schema@2.0.0-rc.1
+
+## 2.0.0-rc.0
+
+### Major Changes
+
+- 126a78b: https://v2.c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+
+### Patch Changes
+
+- Updated dependencies [126a78b]
+  - @c15t/backend@2.0.0-rc.0
+  - @c15t/schema@2.0.0-rc.0
+  - @c15t/translations@2.0.0-rc.0
+
+## 2.0.0
+
+### Major Changes
+
+- **Breaking:** `showPopup` and `isPrivacyDialogOpen` replaced with single `activeUI` enum (`'none' | 'banner' | 'dialog'`)
+- **Breaking:** `setShowPopup()` and `setIsPrivacyDialogOpen()` replaced with `setActiveUI(ui, options?)`
+- feat: add Quebec Law 25 support
+
+### Migration
+
+| Before (1.x)                    | After (2.0)                              |
+| ------------------------------- | ---------------------------------------- |
+| `state.showPopup`               | `state.activeUI === 'banner'`            |
+| `state.isPrivacyDialogOpen`     | `state.activeUI === 'dialog'`            |
+| `setShowPopup(true, true)`      | `setActiveUI('banner', { force: true })` |
+| `setShowPopup(false)`           | `setActiveUI('none')`                    |
+| `setIsPrivacyDialogOpen(true)`  | `setActiveUI('dialog')`                  |
+| `setIsPrivacyDialogOpen(false)` | `setActiveUI('none')`                    |
+
 ## 1.8.3
 
 ### Patch Changes

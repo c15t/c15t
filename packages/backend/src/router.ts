@@ -1,8 +1,15 @@
-import { os } from './contracts';
-import { consentHandlers } from './handlers/consent';
-import { metaHandlers } from './handlers/meta';
+/**
+ * Router exports
+ *
+ * Note: The router is now integrated into the Hono app in core.ts.
+ * This file exports the route creators for direct usage.
+ *
+ * @packageDocumentation
+ */
 
-export const router = os.router({
-	consent: consentHandlers,
-	meta: metaHandlers,
-});
+export {
+	createConsentRoutes,
+	createInitRoute,
+	createStatusRoute,
+	createSubjectRoutes,
+} from './routes';

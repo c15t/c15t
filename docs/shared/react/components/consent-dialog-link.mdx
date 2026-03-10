@@ -1,0 +1,43 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  `ConsentDialogLink` is an inline trigger for opening the consent dialog from places like site footers, legal pages, or account settings. It is unstyled by default, so it inherits your app's typography and link/button styles.
+</section>
+
+<section id="customization">
+  ## Footer Link (unstyled by default)
+
+  ```tsx
+  <footer>
+    <ConsentDialogLink>
+      Your privacy settings
+    </ConsentDialogLink>
+  </footer>
+  ```
+
+  ## Render as an Anchor
+
+  Use `asChild` to keep semantic anchor markup while still opening the dialog:
+
+  ```tsx
+  <ConsentDialogLink asChild>
+    <a href="#privacy-settings">Manage Preferences</a>
+  </ConsentDialogLink>
+  ```
+
+  ## Optional Styling Control
+
+  The component defaults to `noStyle={true}`. Set it to `false` if you want c15t button styles:
+
+  ```tsx
+  <ConsentDialogLink noStyle={false}>
+    Privacy Settings
+  </ConsentDialogLink>
+  ```
+</section>
+
+<section id="props">
+  ## Props
+
+  <AutoTypeTable path="./packages/react/src/components/consent-preferences-link/consent-preferences-link.tsx" name="ConsentDialogLinkProps" />
+</section>

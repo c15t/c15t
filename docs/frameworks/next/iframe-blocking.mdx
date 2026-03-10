@@ -1,24 +1,52 @@
 ---
-title: "iframe blocking"
-description: "Learn how to block iframes based on consent."
-lastModified: 2025-09-19
-
-availableIn:
-  - framework: 'javascript'
-    url: '/docs/frameworks/javascript/iframe-blocking'
-    title: 'JavaScript'
-  - framework: 'react'
-    url: '/docs/frameworks/react/iframe-blocking'
-    title: 'React'
-  - framework: 'next'
-    url: '/docs/frameworks/next/iframe-blocking'
-    title: 'Next.js'
+title: Iframe Blocking
+description: Block embedded content (YouTube, social widgets, maps) until users grant consent for the appropriate category.
 ---
 
-<import>../javascript/shared/iframe-blocking.mdx#overview</import>
+<import src="../../shared/react/guides/iframe-blocking.mdx#intro" />
 
-<import>../react/iframe-blocking.mdx#react-overview</import>
+## Frame Component
 
-<import>../react/iframe-blocking.mdx#frame</import>
+The `<Frame>` component wraps content that requires consent. Children are only mounted when the specified category has consent. When consent is not granted, a placeholder is shown instead.
 
-<import>../javascript/shared/iframe-blocking.mdx#headless-usage</import>
+```tsx
+import { Frame } from '@c15t/nextjs';
+
+function YouTubeEmbed() {
+  return (
+    <Frame category="marketing">
+      <iframe
+        src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+        width="560"
+        height="315"
+        allowFullScreen
+      />
+    </Frame>
+  );
+}
+```
+
+<import src="../../shared/react/guides/iframe-blocking.mdx#custom-placeholder" />
+
+<import src="../../shared/react/guides/iframe-blocking.mdx#html-approach" />
+
+## Initializing the Iframe Blocker
+
+The iframe blocker for HTML attributes needs to be initialized separately from the Frame component:
+
+```tsx
+import { useConsentManager } from '@c15t/nextjs';
+import { useEffect } from 'react';
+
+function IframeBlockerInit() {
+  const { initializeIframeBlocker } = useConsentManager();
+
+  useEffect(() => {
+    initializeIframeBlocker();
+  }, [initializeIframeBlocker]);
+
+  return null;
+}
+```
+
+<import src="../../shared/react/guides/iframe-blocking.mdx#api-reference" />

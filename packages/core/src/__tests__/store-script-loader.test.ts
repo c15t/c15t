@@ -53,13 +53,14 @@ vi.mock('vitest-localstorage-mock', () => {
 // Mock the store's fetchConsentBannerInfo method
 vi.mock('../libs/fetch-consent-banner', () => ({
 	fetchConsentBannerInfo: vi.fn().mockResolvedValue({
-		showConsentBanner: true,
-		jurisdiction: { code: 'GDPR', message: 'GDPR applies' },
+		jurisdiction: 'GDPR',
 		location: {
 			countryCode: 'DE',
 			regionCode: null,
-			jurisdiction: 'GDPR',
-			jurisdictionMessage: 'GDPR applies',
+		},
+		translations: {
+			language: 'en',
+			translations: {},
 		},
 		branding: 'c15t',
 	}),

@@ -1,17 +1,32 @@
 #!/usr/bin/env node
 
+/**
+ * c15t CLI - Consent Management Made Easy
+ *
+ * Main entry point for the CLI. Handles:
+ * - Command routing
+ * - Context creation
+ * - Telemetry
+ * - Help/version display
+ */
+
 import * as p from '@clack/prompts';
 import 'dotenv/config';
 import open from 'open';
 import color from 'picocolors';
 import { showHelpMenu } from './actions/show-help-menu';
+import { codemodsCommand } from './commands/codemods';
 import { generate } from './commands/generate';
 import { selfHost } from './commands/self-host';
+import { installSkills } from './commands/skills';
 import { displayIntro } from './components/intro';
+
+// Import from new v2 modules
+import { URLS } from './constants';
 
 // Import context creator and types
 import { createCliContext } from './context/creator';
-import { globalFlags } from './context/parser'; // Import flags for help menu
+import { globalFlags } from './context/parser';
 import type { CliCommand } from './context/types';
 import { formatLogMessage } from './utils/logger';
 import { TelemetryEventName } from './utils/telemetry';
@@ -19,17 +34,48 @@ import { TelemetryEventName } from './utils/telemetry';
 // Define commands (using types from context)
 const commands: CliCommand[] = [
 	{
-		name: 'generate',
-		label: 'Generate (Recommended)',
-		hint: 'Add c15t to your project',
-		description: 'Setup your c15t project',
+		name: 'setup',
+		label: 'Setup (Recommended)',
+		hint: 'Set up c15t in your project',
+		description: 'Set up c15t in your project.',
 		action: (context) => generate(context),
+	},
+	codemodsCommand,
+	{
+		name: 'skills',
+		label: 'Skills',
+		hint: 'Install c15t agent skills for AI tooling',
+		description:
+			'Install c15t skills for AI-assisted development (Claude, Cursor, etc.)',
+		action: (context) => installSkills(context),
+	},
+	{
+		name: 'docs',
+		label: 'Docs',
+		hint: 'Open c15t documentation',
+		description: 'Open the c15t documentation in your browser.',
+		action: async (context) => {
+			const { logger } = context;
+			await open(`${URLS.DOCS}?ref=cli`);
+			logger.success('Documentation opened in your browser.');
+		},
+	},
+	{
+		name: 'changelog',
+		label: 'Changelog',
+		hint: 'Open the latest releases and changes',
+		description: 'Open the c15t changelog in your browser.',
+		action: async (context) => {
+			const { logger } = context;
+			await open(URLS.CHANGELOG);
+			logger.success('Changelog opened in your browser.');
+		},
 	},
 	{
 		name: 'self-host',
-		label: 'Self Host',
-		hint: 'Host c15t backend on your own infra',
-		description: 'Commands for self-hosting c15t (generate, migrate).',
+		label: 'Self-host',
+		hint: 'Self-hosted backend workflow tools',
+		description: 'Self-host workflow commands (migrations).',
 		action: (context) => selfHost(context),
 	},
 	{
@@ -43,22 +89,11 @@ const commands: CliCommand[] = [
 			// Show the same messaging as in onboarding.ts
 			logger.note(
 				`We're building c15t as an ${color.bold('open source')} project to make consent management more accessible.\nIf you find this useful, we'd really appreciate a GitHub star - it helps others discover the project!`,
-				'⭐ Star Us on GitHub'
+				'Star Us on GitHub'
 			);
 
-			await open('https://github.com/c15t/c15t');
+			await open(URLS.GITHUB);
 			logger.success('Thank you for your support!');
-		},
-	},
-	{
-		name: 'docs',
-		label: 'c15t docs',
-		hint: 'Open documentation',
-		description: 'Open the c15t documentation in your browser.',
-		action: async (context) => {
-			const { logger } = context;
-			await open('https://c15t.com/docs?ref=cli');
-			logger.success('Documentation opened in your browser.');
 		},
 	},
 ];
@@ -164,7 +199,7 @@ flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
 			}));
 			promptOptions.push({
 				value: 'exit',
-				label: 'exit',
+				label: 'Exit',
 				hint: 'Close the CLI',
 			});
 
@@ -176,38 +211,49 @@ flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
 				options: promptOptions,
 			});
 
-			if (p.isCancel(selectedCommandName) || selectedCommandName === 'exit') {
-				logger.debug('Interactive selection cancelled or exit chosen.');
+			if (p.isCancel(selectedCommandName)) {
+				logger.debug('Interactive selection cancelled.');
 				telemetry.trackEvent(TelemetryEventName.INTERACTIVE_MENU_EXITED, {
-					action: p.isCancel(selectedCommandName) ? 'cancelled' : 'exit',
+					action: 'cancelled',
 				});
 				context.error.handleCancel('Operation cancelled.', {
 					command: 'interactive_menu',
 					stage: 'exit',
 				});
+				return;
+			}
+
+			if (selectedCommandName === 'exit') {
+				logger.debug('Interactive selection exited.');
+				telemetry.trackEvent(TelemetryEventName.INTERACTIVE_MENU_EXITED, {
+					action: 'exit',
+				});
+				logger.outro('Exited c15t CLI.');
+				telemetry.flushSync();
+				return;
+			}
+
+			const selectedCommand = commands.find(
+				(cmd) => cmd.name === selectedCommandName
+			);
+			if (selectedCommand) {
+				logger.debug(`User selected command: ${selectedCommand.name}`);
+				telemetry.trackCommand(selectedCommand.name, [], flags);
+				await selectedCommand.action(context);
+				telemetry.trackEvent(TelemetryEventName.COMMAND_SUCCEEDED, {
+					command: selectedCommand.name,
+					executionTime: Date.now() - performance.now(),
+				});
+				telemetry.flushSync();
 			} else {
-				const selectedCommand = commands.find(
-					(cmd) => cmd.name === selectedCommandName
+				telemetry.trackEvent(TelemetryEventName.COMMAND_UNKNOWN, {
+					unknownCommand: String(selectedCommandName),
+				});
+				telemetry.flushSync();
+				error.handleError(
+					new Error(`Command '${selectedCommandName}' not found`),
+					'An internal error occurred'
 				);
-				if (selectedCommand) {
-					logger.debug(`User selected command: ${selectedCommand.name}`);
-					telemetry.trackCommand(selectedCommand.name, [], flags);
-					await selectedCommand.action(context);
-					telemetry.trackEvent(TelemetryEventName.COMMAND_SUCCEEDED, {
-						command: selectedCommand.name,
-						executionTime: Date.now() - performance.now(),
-					});
-					telemetry.flushSync();
-				} else {
-					telemetry.trackEvent(TelemetryEventName.COMMAND_UNKNOWN, {
-						unknownCommand: String(selectedCommandName),
-					});
-					telemetry.flushSync();
-					error.handleError(
-						new Error(`Command '${selectedCommandName}' not found`),
-						'An internal error occurred'
-					);
-				}
 			}
 		}
 		logger.debug('Command execution completed');

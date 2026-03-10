@@ -1,5 +1,50 @@
 # @c15t/cli
 
+## 2.0.0-rc.4
+
+### Patch Changes
+
+- Updated dependencies [4c8435c]
+  - @c15t/backend@2.0.0-rc.4
+
+## 2.0.0-rc.3
+
+### Patch Changes
+
+- Updated dependencies [0a18fb6]
+  - @c15t/backend@2.0.0-rc.3
+
+## 2.0.0-rc.2
+
+### Patch Changes
+
+- 732d44f: feat(dev-tools): add DevTools export
+  feat(cli): add support for file structures like [locale]
+  feat(cli): add c15t/skills
+- Updated dependencies [408df0e]
+  - @c15t/backend@2.0.0-rc.2
+
+## 2.0.0-rc.1
+
+### Patch Changes
+
+- 0bc4f86: fixed workspace resolving
+- Updated dependencies [0bc4f86]
+  - @c15t/backend@2.0.0-rc.1
+  - @c15t/logger@2.0.0-rc.1
+
+## 2.0.0-rc.0
+
+### Major Changes
+
+- 126a78b: https://v2.c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+
+### Patch Changes
+
+- Updated dependencies [126a78b]
+  - @c15t/backend@2.0.0-rc.0
+  - @c15t/logger@2.0.0-rc.0
+
 ## 1.8.3
 
 ### Patch Changes
@@ -35,7 +80,7 @@
   - fix(react): Frame component CSS overriding
   - fix(react): Legal links using the asChild slot causing multi-child error
 
-  https://c15t.com/changelog/2025-12-12-v1.8.2
+  https://v2.c15t.com/changelog/2025-12-12-v1.8.2
 
 - Updated dependencies [2ce4d5a]
   - @c15t/react@1.8.2
@@ -118,7 +163,7 @@
 
 ### Minor Changes
 
-- aa16d03: You can find the full changelog at https://c15t.com/changelog/2025-10-11-v1.7.0
+- aa16d03: You can find the full changelog at https://v2.c15t.com/changelog/2025-10-11-v1.7.0
 
 ### Patch Changes
 
@@ -160,7 +205,7 @@
 
 ### Minor Changes
 
-- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://c15t.com/changelog/2025-09-08-v1.6.0).
+- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://v2.c15t.com/changelog/2025-09-08-v1.6.0).
 
 ### Patch Changes
 

@@ -23,10 +23,16 @@ Translation utils for c15t, providing type-safe internationalization support.
 ## Key Features
 
 - Type-safe translation interfaces for consent management
-- Modular translation imports (e.g., English translations)
+- Modular translation entrypoints for better bundle control
 - Supports partial and complete translation configurations
 - Defines translation types for cookie banners, consent dialogs, and consent types
 - Flexible language configuration with optional auto-language switching
+
+## Entrypoints
+
+- `@c15t/translations`: types, utilities, and `enTranslations`
+- `@c15t/translations/en`: English-only translation object
+- `@c15t/translations/all`: full `baseTranslations` map (all supported locales)
 
 ## Documentation
 

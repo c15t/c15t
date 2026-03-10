@@ -4,8 +4,10 @@
  * and routes to the appropriate implementation
  */
 
-import { Project } from 'ts-morph';
+import path from 'node:path';
 import type { AvailablePackages } from '~/context/framework-detection';
+import { findLayoutFile } from '~/detection/layout';
+import type { ExpandedTheme, UIStyle } from '../../prompts';
 import { updateAppLayout } from './app/layout';
 import { updatePagesLayout } from './pages/layout';
 
@@ -16,45 +18,14 @@ interface UpdateNextLayoutOptions {
 	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
+	enableSSR?: boolean;
+	enableDevTools?: boolean;
+	uiStyle?: UIStyle;
+	expandedTheme?: ExpandedTheme;
+	selectedScripts?: string[];
 }
 
 type NextStructure = 'app' | 'pages' | null;
-
-function detectNextJsStructure(projectRoot: string): NextStructure | null {
-	const project = new Project();
-
-	// Check for App Directory structure
-	const appLayoutPatterns = [
-		'app/layout.tsx',
-		'src/app/layout.tsx',
-		'app/layout.ts',
-		'src/app/layout.ts',
-	];
-
-	for (const pattern of appLayoutPatterns) {
-		const files = project.addSourceFilesAtPaths(`${projectRoot}/${pattern}`);
-		if (files.length > 0) {
-			return 'app';
-		}
-	}
-
-	// Check for Pages Directory structure
-	const pagesAppPatterns = [
-		'pages/_app.tsx',
-		'pages/_app.ts',
-		'src/pages/_app.tsx',
-		'src/pages/_app.ts',
-	];
-
-	for (const pattern of pagesAppPatterns) {
-		const files = project.addSourceFilesAtPaths(`${projectRoot}/${pattern}`);
-		if (files.length > 0) {
-			return 'pages';
-		}
-	}
-
-	return null;
-}
 
 export async function updateNextLayout(
 	options: UpdateNextLayoutOptions
@@ -66,11 +37,12 @@ export async function updateNextLayout(
 	componentFiles?: {
 		consentManager: string;
 		consentManagerClient?: string;
+		consentManagerDir?: string;
 	};
 }> {
-	const structureType = detectNextJsStructure(options.projectRoot);
+	const layoutDetection = await findLayoutFile(options.projectRoot);
 
-	if (!structureType) {
+	if (!layoutDetection) {
 		return {
 			updated: false,
 			filePath: null,
@@ -79,6 +51,9 @@ export async function updateNextLayout(
 		};
 	}
 
+	const structureType: NextStructure = layoutDetection.type;
+	const layoutFilePath = path.join(options.projectRoot, layoutDetection.path);
+
 	let result: {
 		updated: boolean;
 		filePath: string | null;
@@ -86,13 +61,14 @@ export async function updateNextLayout(
 		componentFiles?: {
 			consentManager: string;
 			consentManagerClient?: string;
+			consentManagerDir?: string;
 		};
 	};
 
 	if (structureType === 'app') {
-		result = await updateAppLayout(options);
+		result = await updateAppLayout({ ...options, layoutFilePath });
 	} else {
-		result = await updatePagesLayout(options);
+		result = await updatePagesLayout({ ...options, layoutFilePath });
 	}
 
 	return {

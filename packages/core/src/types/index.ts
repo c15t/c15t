@@ -8,15 +8,10 @@
 export type { Callback, Callbacks } from './callbacks';
 
 export type {
-	ComplianceRegion,
-	ComplianceSettings,
 	ConsentBannerResponse,
 	ConsentState,
-	HasConsentedProps,
-	JurisdictionInfo,
 	LocationInfo,
 	NamespaceProps,
-	PrivacySettings,
 } from './compliance';
 /**
  * @module
@@ -49,7 +44,7 @@ export {
 	type ConsentInfo,
 	type ConsentType,
 	consentTypes,
-} from './gdpr';
+} from './consent-types';
 
 export type { User } from './user';
 
@@ -72,12 +67,15 @@ export type {
 	ConsentTypesTranslations,
 	ConsentTypeTranslations,
 	CookieBannerTranslations,
+	I18nConfig,
 	TranslationConfig,
 	Translations,
 } from '@c15t/translations';
 
 export * from './compliance';
+export * from './iab-tcf';
 export * from './legal-links';
+export * from './non-iab-vendor';
 
 export type Overrides = {
 	/**
@@ -95,4 +93,11 @@ export type Overrides = {
 	 * @example 'de-DE'
 	 */
 	language?: string;
+	/**
+	 * Override the Global Privacy Control (GPC) signal.
+	 * When `true`, simulates GPC being active (opt-out of marketing/measurement).
+	 * When `false`, suppresses the real browser GPC signal.
+	 * When `undefined`, falls back to the browser's `navigator.globalPrivacyControl`.
+	 */
+	gpc?: boolean;
 };

@@ -1,5 +1,59 @@
 # @c15t/nextjs
 
+## 2.0.0-rc.4
+
+### Patch Changes
+
+- Updated dependencies [06ee724]
+- Updated dependencies [0a42b31]
+- Updated dependencies [29819bc]
+  - @c15t/translations@2.0.0-rc.4
+  - @c15t/react@2.0.0-rc.4
+  - c15t@2.0.0-rc.4
+
+## 2.0.0-rc.3
+
+### Patch Changes
+
+- Updated dependencies [de6dd82]
+- Updated dependencies [1c813bc]
+- Updated dependencies [0f10f3e]
+  - @c15t/react@2.0.0-rc.3
+  - c15t@2.0.0-rc.3
+
+## 2.0.0-rc.2
+
+### Patch Changes
+
+- Updated dependencies [408df0e]
+- Updated dependencies [e6bc5db]
+- Updated dependencies [684bf2a]
+  - @c15t/react@2.0.0-rc.2
+  - c15t@2.0.0-rc.2
+
+## 2.0.0-rc.1
+
+### Patch Changes
+
+- 0bc4f86: fixed workspace resolving
+- Updated dependencies [0bc4f86]
+  - @c15t/translations@2.0.0-rc.1
+  - @c15t/react@2.0.0-rc.1
+  - c15t@2.0.0-rc.1
+
+## 2.0.0-rc.0
+
+### Major Changes
+
+- 126a78b: https://v2.c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+
+### Patch Changes
+
+- Updated dependencies [126a78b]
+  - c15t@2.0.0-rc.0
+  - @c15t/react@2.0.0-rc.0
+  - @c15t/translations@2.0.0-rc.0
+
 ## 1.8.3
 
 ### Patch Changes

@@ -10,7 +10,6 @@ datasource db {
 
 model Subject {
   id               String          @id
-  isIdentified     Boolean
   externalId       String?
   identityProvider String?
   lastIpAddress    String?

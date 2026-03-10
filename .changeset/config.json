@@ -14,8 +14,9 @@
 			"@c15t/translations"
 		]
 	],
+	"ignore": ["pigeon-post"],
 	"access": "public",
-	"baseBranch": "canary",
+	"baseBranch": "2.0.0",
 	"updateInternalDependencies": "patch",
 	"___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
 		"onlyUpdatePeerDependentsWhenOutOfRange": true

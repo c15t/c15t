@@ -1,0 +1,30 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="reference">
+  ## Parameters
+
+  | Value | Behavior |
+  |-------|----------|
+  | `'light'` | Force light mode |
+  | `'dark'` | Force dark mode |
+  | `'system'` | Follow `prefers-color-scheme` media query |
+  | `null` | Disable - c15t won't manage color scheme |
+  | `undefined` | No-op |
+
+  ## Provider-Level Configuration
+
+  You can also set the color scheme on the provider without using this hook:
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      colorScheme: 'system',
+      // ...
+    }}
+  >
+  ```
+
+  ## System Preference Detection
+
+  When set to `'system'`, the hook listens for changes to the `prefers-color-scheme` media query and updates automatically when the user changes their OS theme.
+</section>

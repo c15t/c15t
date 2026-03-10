@@ -1,88 +1,227 @@
-import type { CliLogger } from '~/utils/logger';
+/**
+ * Configuration file templates
+ */
+
+import { STORAGE_MODES } from '../../../constants';
 
 /**
- * Generates client configuration file content based on storage mode
+ * Generate the consent manager configuration based on storage mode
  *
- * @param mode - The storage mode ('c15t', 'offline', or 'custom')
- * @param backendURL - URL for the c15t backend/API (for 'c15t' mode)
+ * @param mode - The storage mode
+ * @param backendURL - URL for the c15t backend/API
  * @param useEnvFile - Whether to use environment variable for backendURL
- * @param logger - Optional logger instance
  * @returns The generated configuration file content
  */
 export function generateClientConfigContent(
 	mode: string,
 	backendURL?: string,
 	useEnvFile?: boolean,
-	logger?: CliLogger
+	enableDevTools = false
 ): string {
-	let configContent = '';
-
-	// Validate mode parameter
-	const validModes = ['c15t', 'offline', 'custom'];
-
 	switch (mode) {
-		case 'c15t': {
-			configContent = `
-import {
-  type ConsentManagerOptions,
-  configureConsentManager,
-  createConsentManagerStore
-} from "c15t";
-
-export const consentManager = configureConsentManager({ mode: "c15t", backendURL: ${useEnvFile ? 'process.env.NEXT_PUBLIC_C15T_URL' : `'${backendURL || 'https://your-instance.c15t.dev'}'`}, });
-export const store = createConsentManagerStore(consentManager, {
-  initialGdprTypes: ["necessary", "marketing"], // Optional: Specify which consent categories to show in the banner.
-  ignoreGeoLocation: true // Useful for development to always view the banner.
-});
-
-store.getState().setConsent("marketing", true); // set consent to marketing
-store.getState().showPopup; 
-`;
-			break;
-		}
-		case 'offline': {
-			configContent = `
-import {
-  type ConsentManagerOptions,
-  configureConsentManager,
-  createConsentManagerStore
-} from "c15t";
-
-export const consentManager = configureConsentManager({ mode: "offline" });
-export const store = createConsentManagerStore(consentManager, {
-  initialGdprTypes: ["necessary", "marketing"], // Optional: Specify which consent categories to show in the banner.
-});
-
-store.getState().setConsent("marketing", true); // set consent to marketing
-store.getState().showPopup; // should show popup?
-      
-`;
-			break;
-		}
-		case 'custom': {
-			configContent = `import {
-  type ConsentManagerOptions,
-  configureConsentManager,
-  createConsentManagerStore
-} from "c15t";
-
-export const consentManager = configureConsentManager({ mode: "custom", endpointHandlers: createCustomHandlers(), });
-export const store = createConsentManagerStore(consentManager, {
-  initialGdprTypes: ["necessary", "marketing"], // Optional: Specify which consent categories to show in the banner.
-  ignoreGeoLocation: true // Useful for development to always view the banner.
-});
-
-store.getState().setConsent("marketing", true); // set consent to marketing
-store.getState().showPopup; // should show popup?
-`;
-			break;
-		}
-		default: {
-			logger?.failed(
-				`Invalid mode: ${mode}. Valid modes are: ${validModes.join(', ')}`
-			);
-		}
+		case STORAGE_MODES.HOSTED:
+		case STORAGE_MODES.C15T:
+			return generateHostedConfig(backendURL, useEnvFile, enableDevTools);
+		case STORAGE_MODES.OFFLINE:
+			return generateOfflineConfig(enableDevTools);
+		case STORAGE_MODES.SELF_HOSTED:
+			return generateSelfHostedConfig(backendURL, useEnvFile, enableDevTools);
+		case STORAGE_MODES.CUSTOM:
+			return generateCustomConfig(backendURL, useEnvFile, enableDevTools);
+		default:
+			return generateOfflineConfig(enableDevTools);
 	}
+}
 
-	return configContent;
+/**
+ * Hosted mode config (consent.io or self-hosted backend)
+ */
+function generateHostedConfig(
+	backendURL?: string,
+	useEnvFile?: boolean,
+	enableDevTools = false
+): string {
+	const url = useEnvFile
+		? 'process.env.NEXT_PUBLIC_C15T_URL'
+		: `'${backendURL || 'https://your-instance.c15t.dev'}'`;
+	const devToolsImport = enableDevTools
+		? "import { createDevTools } from '@c15t/dev-tools';\n"
+		: '';
+	const devToolsCall = enableDevTools ? 'createDevTools();\n' : '';
+
+	return `import { getOrCreateConsentRuntime } from 'c15t';
+${devToolsImport}
+const runtime = getOrCreateConsentRuntime(
+	{
+		mode: 'hosted',
+		backendURL: ${url},
+		consentCategories: ['necessary', 'measurement', 'marketing'],
+	},
+);
+
+export const store = runtime.consentStore;
+${devToolsCall}
+/**
+ * Usage Examples
+ **/
+
+// View all consents
+// store.getState().consents;
+
+// Update a single consent type: (does not save automically, allowing you to batch updates together before saving)
+// store.getState().setSelectedConsent('measurement', true);
+
+// Update a single consent type and automically saves it
+// store.getState().setConsent('marketing', true);
+
+// When a user rejects all consents:
+// store.getState().saveConsents("necessary")
+`;
+}
+
+/**
+ * Offline/browser-only mode config
+ */
+function generateOfflineConfig(enableDevTools = false): string {
+	const devToolsImport = enableDevTools
+		? "import { createDevTools } from '@c15t/dev-tools';\n"
+		: '';
+	const devToolsCall = enableDevTools ? 'createDevTools();\n' : '';
+
+	return `import { getOrCreateConsentRuntime } from 'c15t';
+${devToolsImport}
+const runtime = getOrCreateConsentRuntime(
+	{
+		mode: 'offline',
+		consentCategories: ['necessary', 'measurement', 'marketing'],
+	},
+);
+
+export const store = runtime.consentStore;
+${devToolsCall}
+/**
+ * Usage Examples
+ **/
+
+// View all consents
+// store.getState().consents;
+
+// Update a single consent type: (does not save automically, allowing you to batch updates together before saving)
+// store.getState().setSelectedConsent('measurement', true);
+
+// Update a single consent type and automically saves it
+// store.getState().setConsent('marketing', true);
+
+// When a user rejects all consents:
+// store.getState().saveConsents("necessary")
+`;
+}
+
+/**
+ * Self-hosted mode config
+ */
+function generateSelfHostedConfig(
+	backendURL?: string,
+	useEnvFile?: boolean,
+	enableDevTools = false
+): string {
+	const url = useEnvFile
+		? 'process.env.NEXT_PUBLIC_C15T_URL'
+		: `'${backendURL || 'http://localhost:3001'}'`;
+	const devToolsImport = enableDevTools
+		? "import { createDevTools } from '@c15t/dev-tools';\n"
+		: '';
+	const devToolsCall = enableDevTools ? 'createDevTools();\n' : '';
+
+	return `import { getOrCreateConsentRuntime } from 'c15t';
+${devToolsImport}
+const runtime = getOrCreateConsentRuntime(
+	{
+		mode: 'hosted',
+		backendURL: ${url},
+		consentCategories: ['necessary', 'measurement', 'marketing'],
+	},
+);
+
+export const store = runtime.consentStore;
+${devToolsCall}
+/**
+ * Usage Examples
+ **/
+
+// View all consents
+// store.getState().consents;
+
+// Update a single consent type: (does not save automically, allowing you to batch updates together before saving)
+// store.getState().setSelectedConsent('measurement', true);
+
+// Update a single consent type and automically saves it
+// store.getState().setConsent('marketing', true);
+
+// When a user rejects all consents:
+// store.getState().saveConsents("necessary")
+`;
+}
+
+/**
+ * Custom backend mode config
+ */
+function generateCustomConfig(
+	backendURL?: string,
+	useEnvFile?: boolean,
+	enableDevTools = false
+): string {
+	const url = useEnvFile
+		? 'process.env.NEXT_PUBLIC_CONSENT_API_URL'
+		: `'${backendURL || '/api/consent'}'`;
+	const devToolsImport = enableDevTools
+		? "import { createDevTools } from '@c15t/dev-tools';\n"
+		: '';
+	const devToolsCall = enableDevTools ? 'createDevTools();\n' : '';
+
+	return `import { getOrCreateConsentRuntime, type EndpointHandlers } from 'c15t';
+${devToolsImport}
+function createCustomHandlers(): EndpointHandlers {
+	return {
+		async getConsent() {
+			const response = await fetch(${url});
+			return response.json();
+		},
+		async setConsent(consent) {
+			const response = await fetch(${url}, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(consent),
+			});
+			return response.json();
+		},
+	};
+}
+
+const runtime = getOrCreateConsentRuntime(
+	{
+		mode: 'custom',
+		endpointHandlers: createCustomHandlers(),
+		consentCategories: ['necessary', 'measurement', 'marketing'],
+	},
+);
+
+export const store = runtime.consentStore;
+${devToolsCall}
+/**
+ * Usage Examples
+ **/
+
+// View all consents
+// store.getState().consents;
+
+// Update a single consent type: (does not save automically, allowing you to batch updates together before saving)
+// store.getState().setSelectedConsent('measurement', true);
+
+// Update a single consent type and automically saves it
+// store.getState().setConsent('marketing', true);
+
+// When a user rejects all consents:
+// store.getState().saveConsents("necessary")
+`;
 }

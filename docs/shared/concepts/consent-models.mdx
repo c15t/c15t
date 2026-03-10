@@ -1,0 +1,66 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="overview">
+  Consent models define the default behavior for how consent is handled based on a user's legal jurisdiction. Different privacy laws around the world have fundamentally different philosophies about consent: some, like the EU's GDPR, require explicit opt-in before any non-essential tracking can occur; others, like California's CCPA, allow tracking by default but require a mechanism for users to opt out.
+
+  When running in `c15t` mode, c15t detects the user's jurisdiction via geolocation and automatically applies the correct consent model. The model then controls whether consent categories default to `true` or `false`, whether a blocking consent banner must be shown before page interaction, and whether IAB TCF integration is activated.
+
+  This jurisdiction-aware approach ensures that a visitor from Germany sees a full opt-in consent banner before any tracking fires, while a visitor from California sees a non-blocking notice with the ability to opt out. Visitors in a `NONE` (no regulation detected) jurisdiction get a no-banner flow with auto-granted consents by default, while unknown jurisdiction codes fall back to the stricter opt-in model. The logic lives in a single `determineModel()` function that maps jurisdiction codes to one of the supported models.
+
+  c15t supports four consent models: **opt-in**, **opt-out**, **iab**, and **null** (no jurisdiction detected).
+</section>
+
+<section id="models-explained">
+  ## The Four Models
+
+  ### Opt-in
+
+  The strictest consent model, used for GDPR and similar regulations that require explicit, affirmative consent before any non-essential data processing occurs. Under this model, all consent categories except `necessary` default to `false`. A consent banner must be shown before any tracking scripts load, and the user must actively grant consent for each category they wish to enable.
+
+  This is the model applied to jurisdictions including the EU (GDPR), the UK (UK GDPR), Switzerland, Brazil (LGPD), Japan (APPI), South Korea (PIPA), and Quebec, Canada (Law 25). It is also the fallback model for unknown jurisdiction codes to minimize compliance risk.
+
+  ### Opt-out
+
+  Used for CCPA-style regulations where data processing is permitted by default until the user exercises their right to opt out. Under this model, all consent categories default to `true`, meaning tracking scripts and cookies can activate immediately without waiting for explicit consent. However, you must provide a clear mechanism for users to opt out, such as a "Do Not Sell or Share My Personal Information" link as required by CCPA.
+
+  A blocking consent banner is not required under this model. Instead, the typical pattern is a non-intrusive notice or a link in the footer that opens a consent preferences panel. This model applies to California (CCPA), Canada (PIPEDA), and Australia (AU).
+
+  If the browser sends a Global Privacy Control (GPC) signal (`Sec-GPC: 1`), `marketing` and `measurement` are denied while other categories remain granted. This honors the user's opt-out preference automatically, as required by CCPA.
+
+  ### IAB
+
+  IAB Transparency and Consent Framework (TCF) 2.3 mode, designed for programmatic advertising compliance in GDPR jurisdictions. This model only activates when two conditions are met: the detected jurisdiction is `GDPR` or `UK_GDPR`, and `iab.enabled` is set to `true` in your c15t configuration.
+
+  When active, IAB mode uses the IAB TCF standard to manage consent. It generates TC (Transparency and Consent) strings, registers the `__tcfapi` CMP (Consent Management Platform) API on the page, and works with the Global Vendor List (GVL) to let ad-tech vendors programmatically check consent status. This is essential for publishers and advertisers who participate in the IAB ecosystem and need their consent signals to be machine-readable by demand-side platforms, supply-side platforms, and other programmatic partners.
+
+  If `iab.enabled` is not set or is `false`, GDPR and UK GDPR jurisdictions fall back to the standard opt-in model instead.
+
+  ### null
+
+  Returned when no jurisdiction has been detected. This occurs when the jurisdiction is explicitly `null` or `NONE`.
+
+  In this state, no consent banner is displayed. On first visit (no stored consent), c15t auto-grants all categories. If a Global Privacy Control (GPC) signal is present, `marketing` and `measurement` are denied while the other categories remain granted. If consent already exists, c15t preserves the existing saved consent state.
+</section>
+
+<section id="jurisdiction-mapping">
+  ## Jurisdiction Mapping
+
+  The following table shows how each recognized jurisdiction code maps to a consent model:
+
+  | Jurisdiction Code | Region              | Consent Model |
+  | ----------------- | ------------------- | ------------- |
+  | `GDPR`            | European Union      | opt-in        |
+  | `UK_GDPR`         | United Kingdom      | opt-in        |
+  | `CH`              | Switzerland         | opt-in        |
+  | `BR`              | Brazil (LGPD)       | opt-in        |
+  | `APPI`            | Japan               | opt-in        |
+  | `PIPA`            | South Korea         | opt-in        |
+  | `PIPEDA`          | Canada (excl. Quebec) | opt-out     |
+  | `QC_LAW25`        | Quebec, Canada      | opt-in        |
+  | `CCPA`            | California, USA     | opt-out       |
+  | `AU`              | Australia           | opt-out       |
+  | `NONE`            | No jurisdiction     | null          |
+  | *(unknown)*       | Any other           | opt-in        |
+
+  **IAB override rule:** If `iab.enabled` is set to `true` in your configuration AND the detected jurisdiction is `GDPR` or `UK_GDPR`, the model becomes `'iab'` instead of `'opt-in'`. This override only applies to those two jurisdictions -- enabling IAB has no effect on any other jurisdiction. For example, a Canadian visitor (`PIPEDA`) will still see the standard opt-out model even if IAB is enabled.
+</section>

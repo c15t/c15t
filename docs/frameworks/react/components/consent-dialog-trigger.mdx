@@ -1,0 +1,26 @@
+---
+title: ConsentDialogTrigger
+description: A floating, draggable button that lets users re-open the consent dialog at any time.
+---
+
+<import src="../../../shared/react/components/consent-dialog-trigger.mdx#intro" />
+
+## Basic Usage
+
+Use standalone or via the `showTrigger` prop on `ConsentDialog`:
+
+```tsx
+import { ConsentDialogTrigger } from '@c15t/react';
+
+// Standalone
+<ConsentDialogTrigger />
+
+// Via ConsentDialog
+<ConsentDialog showTrigger />
+```
+
+For inline footer links (instead of a floating button), use [`ConsentDialogLink`](/docs/frameworks/react/components/consent-dialog-link).
+
+<import src="../../../shared/react/components/consent-dialog-trigger.mdx#customization" />
+
+<import src="../../../shared/react/components/consent-dialog-trigger.mdx#props" />

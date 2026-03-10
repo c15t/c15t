@@ -1,0 +1,265 @@
+:root {
+	/* Layout variables */
+	--accordion-padding: var(--c15t-space-md);
+	--accordion-radius: var(--c15t-radius-md);
+	--accordion-duration: var(--c15t-duration-normal);
+	--accordion-ease: var(--c15t-easing);
+
+	/* Icon sizes */
+	--accordion-icon-size: 1.25rem;
+
+	/* Colors */
+	--accordion-background-color: var(--c15t-surface);
+	--accordion-background-color-dark: var(--c15t-surface);
+	--accordion-background-hover: var(--c15t-surface-hover);
+	--accordion-background-hover-dark: var(--c15t-surface-hover);
+	--accordion-border-color: var(--c15t-border);
+	--accordion-border-color-dark: var(--c15t-border);
+	--accordion-text-color: var(--c15t-text);
+	--accordion-text-color-dark: var(--c15t-text);
+	--accordion-icon-color: var(--c15t-text-muted);
+	--accordion-icon-color-dark: var(--c15t-text-muted);
+	--accordion-arrow-color: var(--c15t-text-muted);
+	--accordion-arrow-color-dark: var(--c15t-text-muted);
+	--accordion-content-color: var(--c15t-text-muted);
+	--accordion-content-color-dark: var(--c15t-text-muted);
+	--accordion-focus-ring: var(--c15t-primary);
+	--accordion-focus-ring-dark: var(--c15t-primary);
+	--accordion-focus-shadow: 0 0 0 2px var(--accordion-focus-ring);
+	--accordion-focus-shadow-dark: 0 0 0 2px var(--accordion-focus-ring-dark);
+}
+
+@layer components {
+	.root {
+		& > :not([hidden]) ~ :not([hidden]) {
+			--space-y-reverse: 0;
+			margin-top: calc(1rem * calc(1 - var(--space-y-reverse)));
+			margin-bottom: calc(1rem * var(--space-y-reverse));
+		}
+	}
+
+	.item {
+		position: relative;
+		padding: var(--accordion-padding);
+		background-color: var(--accordion-background-color);
+		box-shadow: inset 0 0 0 1px var(--accordion-border-color);
+		transition:
+			background-color var(--accordion-duration) var(--accordion-ease),
+			box-shadow var(--accordion-duration) var(--accordion-ease);
+		border-radius: var(--accordion-radius);
+		overflow: visible;
+	}
+
+	:global(.c15t-dark) .item {
+		background-color: var(--accordion-background-color-dark);
+		box-shadow: inset 0 0 0 1px var(--accordion-border-color-dark);
+	}
+
+	.item:is(:hover, [data-state="open"]) {
+		background-color: var(--accordion-background-hover);
+		box-shadow: inset 0 0 0 1px transparent;
+	}
+
+	:global(.c15t-dark) .item:is(:hover, [data-state="open"]) {
+		background-color: var(--accordion-background-hover-dark);
+		box-shadow: inset 0 0 0 1px transparent;
+	}
+
+	/* Focus styles for item */
+	.item:focus-within:not(:has(.triggerInner:focus-visible)) {
+		background-color: var(--accordion-background-hover);
+		box-shadow: inset 0 0 0 1px transparent;
+	}
+
+	:global(.c15t-dark)
+		.item:focus-within:not(:has(.triggerInner:focus-visible)) {
+		background-color: var(--accordion-background-hover-dark);
+		box-shadow: inset 0 0 0 1px transparent;
+	}
+
+	.item:has(.triggerInner:focus-visible) {
+		box-shadow: var(--accordion-focus-shadow);
+	}
+
+	:global(.c15t-dark) .item:has(.triggerInner:focus-visible) {
+		box-shadow: var(--accordion-focus-shadow-dark);
+	}
+
+	.trigger {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		position: relative;
+		width: 100%;
+		overflow: visible;
+	}
+
+	.triggerInner {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		align-items: center;
+		gap: 0.625rem;
+		width: 90%;
+		margin: calc(-1 * var(--accordion-padding));
+		padding: var(--accordion-padding);
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+		letter-spacing: -0.006em;
+		font-weight: 500;
+		text-align: left;
+		color: var(--accordion-text-color);
+		border: 0;
+		background: none;
+		cursor: pointer;
+		border-radius: var(--accordion-radius);
+		position: relative;
+		z-index: 1;
+		touch-action: manipulation;
+	}
+
+	:global(.c15t-dark) .triggerInner {
+		color: var(--accordion-text-color-dark);
+	}
+
+	.triggerInner:focus-visible {
+		outline: none;
+	}
+
+	.icon {
+		width: var(--accordion-icon-size);
+		height: var(--accordion-icon-size);
+		color: var(--accordion-icon-color);
+		flex-shrink: 0;
+	}
+
+	:global(.c15t-dark) .icon {
+		color: var(--accordion-icon-color-dark);
+	}
+
+	.arrowOpen,
+	.arrowClose {
+		width: var(--accordion-icon-size);
+		height: var(--accordion-icon-size);
+		transition: color var(--accordion-duration) var(--accordion-ease);
+		flex-shrink: 0;
+	}
+
+	.arrowOpen {
+		color: var(--accordion-arrow-color);
+	}
+
+	:global(.c15t-dark) .arrowOpen {
+		color: var(--accordion-arrow-color-dark);
+	}
+
+	.item:hover .arrowOpen {
+		color: var(--accordion-icon-color);
+	}
+
+	:global(.c15t-dark) .item:hover .arrowOpen {
+		color: var(--accordion-icon-color-dark);
+	}
+
+	.arrowClose {
+		color: var(--accordion-icon-color);
+		display: none;
+	}
+
+	:global(.c15t-dark) .arrowClose {
+		color: var(--accordion-icon-color-dark);
+	}
+
+	.item[data-state="open"] .arrowOpen {
+		display: none;
+	}
+
+	.item[data-state="open"] .arrowClose {
+		display: block;
+	}
+
+	.content {
+		overflow: hidden;
+	}
+
+	/*
+	 * Accordion height animation using Radix UI's CSS variable approach.
+	 *
+	 * Note: Animating `height` triggers layout recalculation, which is less
+	 * performant than transform/opacity-only animations. However, this is
+	 * the standard pattern for Radix Accordion and provides the best UX for
+	 * content that needs to smoothly expand/collapse.
+	 *
+	 * Alternatives considered:
+	 * - CSS Grid (grid-template-rows: 0fr -> 1fr): More performant but requires
+	 *   different HTML structure and doesn't work well with Radix's approach.
+	 * - max-height: Less precise timing and can feel sluggish.
+	 *
+	 * The prefers-reduced-motion query below disables these animations for
+	 * users who prefer reduced motion.
+	 */
+	@keyframes accordionDown {
+		from {
+			height: 0;
+			opacity: 0;
+		}
+		to {
+			height: var(--radix-accordion-content-height);
+			opacity: 1;
+		}
+	}
+
+	@keyframes accordionUp {
+		from {
+			height: var(--radix-accordion-content-height);
+			opacity: 1;
+		}
+		to {
+			height: 0;
+			opacity: 0;
+		}
+	}
+
+	.content[data-state="open"] {
+		animation: accordionDown var(--accordion-duration) var(--accordion-ease);
+	}
+
+	.content[data-state="closed"] {
+		animation: accordionUp var(--accordion-duration) var(--accordion-ease);
+	}
+
+	.contentInner {
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+		letter-spacing: -0.006em;
+		color: var(--accordion-content-color);
+	}
+
+	:global(.c15t-dark) .contentInner {
+		color: var(--accordion-content-color-dark);
+	}
+
+	/* Reduced motion preference */
+	@media (prefers-reduced-motion: reduce) {
+		.item,
+		.arrowOpen,
+		.arrowClose {
+			transition: none;
+		}
+
+		.content[data-state="open"],
+		.content[data-state="closed"] {
+			animation: none;
+		}
+	}
+
+	/* Touch device hover reset - prevents "sticky" hover on tap */
+	@media (hover: none) {
+		.item:hover {
+			background-color: var(--accordion-background-color);
+		}
+
+		.item:hover .arrowOpen {
+			color: var(--accordion-arrow-color);
+		}
+	}
+}

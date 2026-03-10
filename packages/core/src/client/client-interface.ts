@@ -3,24 +3,52 @@
  * This interface defines the methods that any consent client must implement.
  */
 
-import type { ContractsInputs, ContractsOutputs } from '@c15t/backend';
+import type {
+	CheckConsentOutput,
+	CheckConsentQuery,
+	GetSubjectInput,
+	GetSubjectOutput,
+	InitOutput,
+	ListSubjectsOutput,
+	ListSubjectsQuery,
+	PatchSubjectFullInput,
+	PatchSubjectOutput,
+	PostSubjectInput,
+	PostSubjectOutput,
+} from '@c15t/schema/types';
 import type { FetchOptions, ResponseContext } from './types';
 
-export type SetConsentRequestBody = ContractsInputs['consent']['post'];
-export type SetConsentResponse = ContractsOutputs['consent']['post'];
-export type ShowConsentBannerResponse =
-	ContractsOutputs['consent']['showBanner'];
-export type VerifyConsentRequestBody = ContractsInputs['consent']['verify'];
-export type VerifyConsentResponse = ContractsOutputs['consent']['verify'];
-export type IdentifyUserRequestBody = ContractsInputs['consent']['identify'];
-export type IdentifyUserResponse = ContractsOutputs['consent']['identify'];
+export type { PostSubjectInput, PostSubjectOutput };
+export type { GetSubjectInput, GetSubjectOutput };
+export type { PatchSubjectFullInput, PatchSubjectOutput };
+export type { ListSubjectsQuery, ListSubjectsOutput };
+export type { CheckConsentQuery, CheckConsentOutput };
+
+/**
+ * Request body for setConsent.
+ */
+export type SetConsentRequestBody = PostSubjectInput;
+
+/**
+ * Response from setConsent.
+ */
+export type SetConsentResponse = PostSubjectOutput;
+
+/**
+ * Request body for identifyUser (links external ID to subject).
+ * Requires subjectId in path, externalId and identityProvider in body.
+ */
+export type IdentifyUserRequestBody = PatchSubjectFullInput;
+
+/**
+ * Response from identifyUser.
+ */
+export type IdentifyUserResponse = PatchSubjectOutput;
+
+export type InitResponse = InitOutput;
 
 /**
  * Core interface that all consent management clients must implement
- *
- * @remarks
- * This interface defines the standard methods for interacting with
- * consent management functionality, regardless of implementation.
  */
 export interface ConsentManagerInterface {
 	/**
@@ -29,9 +57,9 @@ export interface ConsentManagerInterface {
 	 * @param options - Optional request configuration
 	 * @returns Response with information about whether to show the consent banner
 	 */
-	showConsentBanner(
-		options?: FetchOptions<ShowConsentBannerResponse>
-	): Promise<ResponseContext<ShowConsentBannerResponse>>;
+	init(
+		options?: FetchOptions<InitResponse>
+	): Promise<ResponseContext<InitResponse>>;
 
 	/**
 	 * Sets consent preferences for a subject.
@@ -44,23 +72,13 @@ export interface ConsentManagerInterface {
 	): Promise<ResponseContext<SetConsentResponse>>;
 
 	/**
-	 * Verifies if valid consent exists.
+	 * Links an external user ID to a subject (PATCH /subjects/:id).
 	 *
-	 * @param options - Optional request configuration with verification criteria
-	 * @returns Response with consent verification status
-	 */
-	verifyConsent(
-		options?: FetchOptions<VerifyConsentResponse, VerifyConsentRequestBody>
-	): Promise<ResponseContext<VerifyConsentResponse>>;
-
-	/**
-	 * Links a subject's external ID to a consent record by consent ID.
-	 *
-	 * @param options - Optional request configuration with consent ID and external ID
-	 * @returns Response confirming the user was identified
+	 * @param options - Request configuration with subjectId, externalId, and identityProvider
+	 * @returns Response confirming the subject was updated
 	 */
 	identifyUser(
-		options?: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
+		options: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
 	): Promise<ResponseContext<IdentifyUserResponse>>;
 
 	/**

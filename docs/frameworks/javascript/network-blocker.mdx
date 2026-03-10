@@ -1,0 +1,62 @@
+---
+title: Network Blocker
+description: Block outgoing network requests to third-party domains until the user grants consent for the appropriate category.
+---
+
+<import src="../../shared/react/guides/network-blocker.mdx#intro" />
+
+## Configuration
+
+Add `networkBlocker` to your runtime options:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+  networkBlocker: {
+    rules: [
+      {
+        id: 'google-analytics',
+        domain: 'google-analytics.com',
+        category: 'measurement',
+      },
+      {
+        id: 'facebook-pixel',
+        domain: 'facebook.com',
+        pathIncludes: '/tr',
+        category: 'marketing',
+      },
+      {
+        id: 'analytics-post',
+        domain: 'analytics.example.com',
+        methods: ['POST'],
+        category: 'measurement',
+      },
+    ],
+  },
+});
+```
+
+<import src="../../shared/react/guides/network-blocker.mdx#reference" />
+
+## Runtime Updates
+
+Update the network blocker configuration at runtime:
+
+```ts
+const state = consentStore.getState();
+
+state.setNetworkBlocker({
+  rules: [
+    {
+      id: 'new-tracker',
+      domain: 'tracker.example.com',
+      category: 'marketing',
+    },
+  ],
+});
+```
+
+<import src="../../shared/react/guides/network-blocker.mdx#api-reference" />

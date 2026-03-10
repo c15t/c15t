@@ -1,143 +1,121 @@
 ---
-title: JavaScript Quickstart
-description: Learn how to integrate c15t into your Javacript application with this step-by-step guide. We'll cover installation, configuration, and basic usage.
-lastModified: 2025-04-17
-tocStyle: steps
-availableIn:
-  - framework: 'react'
-    url: '/docs/frameworks/react/quickstart'
-    title: 'React'
-  - framework: 'next'
-    url: '/docs/frameworks/next/quickstart'
-    title: 'Next.js'
+title: Quickstart
+description: Get started with c15t in vanilla JavaScript — framework-agnostic consent management with no UI dependencies.
 ---
 
-## CLI Setup (Recommended)
+## Installation
 
-<Steps>
-  <Step>
-    ### Generate Schema + Code
+<PackageCommandTabs mode="install" command="c15t" />
 
-    <PackageCommandTabs command="@c15t/cli generate" />
-  </Step>
+## Initialize the Runtime
 
-  <Step>
-    ### Run Database Migrations (Optional)
+`getOrCreateConsentRuntime()` creates a consent client and a Zustand vanilla store in a single call. The store holds all consent state and exposes methods for checking, setting, and subscribing to consent changes.
 
-    <Callout type="note">
-      This is only required if you are self-hosting c15t.
-    </Callout>
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
 
-    <PackageCommandTabs command="@c15t/cli migrate" />
-  </Step>
-</Steps>
+const { consentManager, consentStore } = getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+  consentCategories: ['necessary', 'measurement', 'marketing'],
+});
+```
 
-## Manual Setup
+## Subscribe to State Changes
 
-<Steps>
-  <Step>
-    ### Install `c15t` Package
+The store is a [Zustand vanilla store](https://zustand.docs.pmnd.rs/guides/extracting-actions) — use `subscribe()` to react to consent changes and `getState()` to read the current state:
 
-    <PackageCommandTabs mode="install" command="c15t" />
-  </Step>
+```ts
+// React to every state change
+consentStore.subscribe((state) => {
+  console.log('Consent state:', state.consents);
+  console.log('Show banner?', state.activeUI === 'banner');
+});
 
-  <Step>
-    ### Add to Your JavaScript Application
+// Read current state at any time
+const state = consentStore.getState();
+console.log('Has measurement consent:', state.has('measurement'));
+```
 
-    ```tsx
-    import { configureConsentManager, createConsentManagerStore } from 'c15t';
+## Check and Set Consent
 
-    export const consentManager = configureConsentManager({ mode: "c15t", backendURL: "https://your-instance.c15t.dev" });
-    export const store = createConsentManagerStore(consentManager, {
-      initialGdprTypes: ["necessary", "marketing"], // Optional: Specify which consent categories to show in the banner.
-      ignoreGeoLocation: true // Useful for development to always view the banner.
-    });
-    ```
+```ts
+const state = consentStore.getState();
 
-    The consent manager is now ready to use. For example:
+// Check if a category has consent
+if (state.has('measurement')) {
+  // Safe to load analytics
+}
 
-    ```tsx
-    store.getState().setConsent('marketing', true); // set consent to marketing
-    store.getState().showPopup; // should show popup?
-    ```
+// Accept all categories
+await state.saveConsents('all');
 
-    <Callout type="tip">
-      You can create an instance at [consent.io](https://consent.io) (recommended) or use c15t offline by setting `mode: 'offline'`.
-    </Callout>
-  </Step>
-</Steps>
+// Accept only necessary categories
+await state.saveConsents('necessary');
 
-***
+// Set a specific category
+state.setConsent('marketing', true);
+```
 
-## Hosting Options
+## Minimal Consent Prompt
 
-### Creating a consent.io Instance (Recommended)
+Here's a bare-bones example using the store to drive a consent prompt — no framework required:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+  consentCategories: ['necessary', 'measurement', 'marketing'],
+});
+
+// Subscribe to show/hide the banner
+consentStore.subscribe((state) => {
+  const banner = document.getElementById('consent-banner');
+  if (banner) {
+    banner.style.display = state.activeUI === 'banner' ? 'block' : 'none';
+  }
+});
+
+// Wire up buttons
+document.getElementById('accept-all')?.addEventListener('click', () => {
+  consentStore.getState().saveConsents('all');
+});
+
+document.getElementById('reject')?.addEventListener('click', () => {
+  consentStore.getState().saveConsents('necessary');
+});
+```
+
+## Verify It Works
+
+Open the browser console and inspect the store state:
+
+```ts
+// The store is also available on the window object
+const state = window.c15tStore?.getState();
+console.log('Consents:', state?.consents);
+console.log('Has consented:', state?.hasConsented());
+console.log('Location:', state?.locationInfo);
+```
 
 <Callout type="info">
-  Using consent.io is the recommended method as it is the easiest way to get started and requires little maintenance.
+  **No UI included** — the `c15t` core package is fully headless. See [Building UI](/docs/frameworks/javascript/building-ui) for creating your own components, or use [`@c15t/react`](/docs/frameworks/react/quickstart) / [`@c15t/nextjs`](/docs/frameworks/next/quickstart) for pre-built UI.
 </Callout>
 
-[consent.io](https://consent.io) provides a fully managed consent management service. This is the recommended method as it is the easiest way to get started and requires little maintenance.
+## Optional: Install Agent Skills
 
-<Steps>
-  <Step>
-    Sign up for a [consent.io](https://consent.io) account.
-  </Step>
+Install c15t agent skills to let AI agents help with styling, i18n, scripts & other configuration.
 
-  <Step>
-    After signing up, create a new instance, located in the top-right corner.
+<PackageCommandTabs command="@c15t/cli@rc skills" />
 
-    <Callout type="info">
-      When creating an instance it is important to list all the trusted origins for your application such as "localhost", your production domain, etc.
-    </Callout>
-  </Step>
+See [AI Tools](/docs/ai-tools-integrations) for details.
 
-  <Step>
-    After the instance is created, you will be given a backendURL, which you can add to your `ConsentManagerOptions`.
+## Next Steps
 
-    A backend URL might look like this: `https://<my-instance>.c15t.dev/`.
-  </Step>
-</Steps>
-
-### Alternative Storage Options
-
-<Callout type="note">
-  For more advanced setup options, choose the approach that best suits your requirements.
-</Callout>
-
-For more advanced setup options, please refer to:
-
-- [Overview](/docs/storing-consent/overview) - Compare different approaches to storing consent decisions in your application
-- [Hosted c15t](/docs/storing-consent/hosted-c15t) - Complete guide to using consent.io
-- [Offline Mode](/docs/storing-consent/offline-mode) - Complete guide to using c15t without a backend
-- [Custom Client](/docs/storing-consent/custom-client) - Advanced implementation with custom handlers for full control
-
-## Decision Guide
-
-<Callout>
-  Use this flowchart to determine which c15t configuration is best for your needs.
-</Callout>
-
-<Mermaid
-  chart={`
-flowchart TD
-Start([Start here]) --> StoreConsent
-
-StoreConsent{Need to store\nconsent choices?}
-StoreConsent -->|Yes| ManagedService
-StoreConsent -->|No| OfflineMode
-
-ManagedService{Want a managed\nservice?}
-ManagedService -->|Yes| ConsentIO
-ManagedService -->|No| CustomClient
-
-OfflineMode([c15t Offline Mode]):::optionStyle
-OfflineMode -.-> OfflineNote[Client-side only\nStores in localStorage]:::noteStyle
-
-ConsentIO([consent.io]):::recommendStyle
-ConsentIO -.-> ConsentIONote[Fully managed\nSimplest setup]:::noteStyle
-
-CustomClient([Custom Client]):::optionStyle
-CustomClient -.-> CustomNote[Full control\nRequires implementation]:::noteStyle
-`}
-/>
+- [Client Modes](/docs/frameworks/javascript/concepts/client-modes) — Choose between hosted, offline, or custom backend
+- [Store API](/docs/frameworks/javascript/api/overview) — Full reference for store state and actions
+- [Script Loader](/docs/frameworks/javascript/script-loader) — Gate third-party scripts behind consent
+- [Building UI](/docs/frameworks/javascript/building-ui) — Create your own consent components
+- [AI Agent Skills](/docs/ai-tools-integrations) — Let AI assistants help configure c15t

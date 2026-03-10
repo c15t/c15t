@@ -1,56 +1,65 @@
 ---
 title: Script Loader
-description: Load scripts based on consent. Used to load scripts that are not necessary for the user's consent, such as analytics scripts.
-lastModified: 2025-09-19
-
-availableIn:
-  - framework: 'javascript'
-    url: '/docs/frameworks/javascript/script-loader'
-    title: 'JavaScript'
-  - framework: 'next'
-    url: '/docs/frameworks/next/script-loader'
-    title: 'Next.js'
-  - framework: 'react'
-    url: '/docs/frameworks/react/script-loader'
-    title: 'React'
+description: Gate third-party scripts behind consent - load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
 ---
 
-<import>../javascript/shared/script-loader.mdx#overview</import>
+<import src="../../shared/react/guides/script-loader.mdx#intro" />
 
-<import>../javascript/shared/script-loader.mdx#tracking-blocker</import>
+## Basic Usage
 
-## Implementation
+Pass an array of `Script` objects to the provider:
 
-```ts
+```tsx
+import { type ReactNode } from 'react';
 import { ConsentManagerProvider } from '@c15t/react';
-import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+import { metaPixel } from '@c15t/scripts/meta-pixel';
 
-export function App({ children }: { children: React.ReactNode }) {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider options={{
-      scripts: [
-        googleTagManager({
-          id: 'GTM-XXXXXXX',
-        }), // Prebuilt script or...
-        {
-          id: 'example',
-          src: 'https://analytics.example.com/script.js',
-          category: 'analytics',
-        }
-      ]
-    }}>
+    <ConsentManagerProvider
+      options={{
+        mode: 'hosted',
+        backendURL: 'https://your-instance.c15t.dev',
+        scripts: [
+          metaPixel({ pixelId: '123456' }),
+          {
+            id: 'custom-analytics',
+            src: 'https://cdn.example.com/analytics.js',
+            category: 'measurement',
+          },
+        ],
+      }}
+    >
       {children}
     </ConsentManagerProvider>
   );
 }
 ```
 
-<import>../javascript/shared/script-loader.mdx#prebuilt-scripts</import>
+<import src="../../shared/react/guides/script-loader.mdx#script-types-to-advanced" />
 
-<import>../javascript/shared/script-loader.mdx#scripts-table</import>
+## Dynamic Script Management
 
-<import>../javascript/shared/script-loader.mdx#always-load</import>
+Add, remove, or check scripts at runtime via `useConsentManager()`:
 
-## Types
+```tsx
+import { useConsentManager } from '@c15t/react';
 
-<import>../javascript/shared/script-loader.mdx#script-type</import>
+function ScriptManager() {
+  const { setScripts, removeScript, isScriptLoaded, getLoadedScriptIds } = useConsentManager();
+
+  // Add scripts dynamically
+  setScripts([{ id: 'dynamic', src: '...', category: 'measurement' }]);
+
+  // Remove a script
+  removeScript('dynamic');
+
+  // Check if a script is loaded
+  const loaded = isScriptLoaded('google-analytics');
+
+  // Get all loaded script IDs
+  const allLoaded = getLoadedScriptIds();
+}
+```
+
+<import src="../../shared/react/guides/script-loader.mdx#api-reference" />

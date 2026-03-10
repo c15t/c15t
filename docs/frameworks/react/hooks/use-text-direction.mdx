@@ -1,0 +1,20 @@
+---
+title: useTextDirection
+description: Manage RTL/LTR text direction based on the active language for consent UI.
+---
+
+<import src="../../../shared/react/hooks/use-text-direction.mdx#intro-and-code" />
+
+<import src="../../../shared/react/hooks/use-text-direction.mdx#reference" />
+
+```tsx
+import { useConsentManager } from '@c15t/react';
+import { useTextDirection } from '@c15t/react/hooks';
+
+function BiDirectionalBanner() {
+  const { translationConfig } = useConsentManager();
+  const dir = useTextDirection(translationConfig.defaultLanguage);
+
+  return <div dir={dir}>...</div>;
+}
+```

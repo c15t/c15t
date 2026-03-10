@@ -1,0 +1,104 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  c15t's theming system gives you multiple levels of control, from high-level design tokens to complete style removal.
+
+  The flow:
+
+  1. **Define** tokens (colors, spacing, radius, etc.) in JavaScript
+  2. Tokens are **injected** as CSS custom properties (`--c15t-*`) at runtime
+  3. Components **consume** these variables in their default styles
+  4. You **override** at any level: tokens, slots, CSS variables, or raw classNames
+
+  ## Styling Approaches
+
+  | Approach | Control | Use When |
+  |----------|---------|----------|
+  | **Tokens** | High | Changing global colors, typography, spacing, radius, shadows, or motion |
+  | **Slots** | Medium | Targeting specific component parts (e.g., the banner title, dialog footer) |
+  | **CSS Variables** | Medium | Overriding `--c15t-*` variables from external CSS |
+  | **className** | Medium | Passing class names to components or slots |
+  | **noStyle** | Full | Removing all default styles, building from scratch |
+</section>
+
+<section id="styling-paths-to-api">
+  ## Styling Paths
+
+  ### 1. Design tokens
+
+  Set global values for colors, typography, spacing, radius, shadows, and motion:
+
+  ```tsx
+  options={{ theme: { colors: { primary: '#6366f1' } } }}
+  ```
+
+  ### 2. Component slots
+
+  Target specific component parts via the `slots` object:
+
+  ```tsx
+  options={{ theme: { slots: { consentBannerTitle: 'text-2xl font-bold' } } }}
+  ```
+
+  ### 3. CSS variables
+
+  Override `--c15t-*` custom properties in your stylesheet.
+
+  ### 4. className prop
+
+  Pass className directly to components:
+
+  ```tsx
+  <ConsentBanner className="my-custom-banner" />
+  ```
+
+  ### 5. noStyle prop
+
+  Strip all default styles and build from scratch (best paired with [Headless Mode](../headless)):
+
+  ```tsx
+  <ConsentBanner noStyle />
+  ```
+
+  ## Common Styling Tasks
+
+  ### Change brand color globally
+
+  ```tsx
+  options={{ theme: { colors: { primary: '#0ea5e9', primaryHover: '#0284c7' } } }}
+  ```
+
+  ### Make the banner card more compact
+
+  ```tsx
+  options={{ theme: { spacing: { md: '0.75rem', lg: '1rem' } } }}
+  ```
+
+  ### Round primary/secondary buttons
+
+  ```tsx
+  options={{ theme: { slots: { buttonPrimary: 'rounded-full', buttonSecondary: 'rounded-full' } } }}
+  ```
+
+  ### Enable dark mode safely
+
+  ```tsx
+  options={{
+    colorScheme: 'system',
+    theme: {
+      colors: { surface: '#ffffff', text: '#1f2937' },
+      dark: { surface: '#111827', text: '#f9fafb' },
+    },
+  }}
+  ```
+
+  <Callout type="warning">
+    - `noStyle: true` removes layout and visual defaults. Use it only when you want full control.
+    - Use either tokens/slots or raw CSS variable overrides intentionally to avoid conflicting style sources.
+    - For dark mode, c15t supports `.dark` and `.c15t-dark`.
+  </Callout>
+
+  ## API Reference
+
+  <AutoTypeTable path="./packages/ui/src/theme/types.ts" name="Theme" />
+</section>

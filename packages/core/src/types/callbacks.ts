@@ -1,8 +1,6 @@
-import type {
-	JurisdictionInfo,
-	PrivacyConsentState,
-	Translations,
-} from '../index';
+import type { JurisdictionCode } from '@c15t/schema/types';
+import type { Translations } from '@c15t/translations';
+import type { ConsentStoreState } from '../store/type';
 
 /**
  * A generic type for callback functions that can accept an argument of type T.
@@ -15,8 +13,7 @@ export type Callback<T = void> = (arg: T) => void;
  * Payload types for the callbacks
  */
 export type OnBannerFetchedPayload = {
-	showConsentBanner: boolean;
-	jurisdiction: JurisdictionInfo;
+	jurisdiction: JurisdictionCode | { code: JurisdictionCode; message: string };
 	location: {
 		countryCode: string | null;
 		regionCode: string | null;
@@ -27,7 +24,7 @@ export type OnBannerFetchedPayload = {
 	};
 };
 export type OnConsentSetPayload = {
-	preferences: PrivacyConsentState['consents'];
+	preferences: ConsentStoreState['consents'];
 };
 export type OnErrorPayload = {
 	error: string;
@@ -43,6 +40,7 @@ export type OnErrorPayload = {
  * onBannerFetched: Consent banner fetched
  * onConsentSet: Consent set
  * onError: Error
+ * onBeforeConsentRevocationReload: Before page reload on consent revocation
  *
  * @public
  */
@@ -71,4 +69,20 @@ export interface Callbacks {
 	 * @param payload - The payload containing the error information
 	 */
 	onError?: Callback<OnErrorPayload>;
+
+	/**
+	 * Called before the page reloads when consent is revoked.
+	 *
+	 * @remarks
+	 * This callback is triggered when `reloadOnConsentRevoked` is enabled
+	 * and a user revokes consent that was previously granted. Use this
+	 * callback to show a loading state or perform any cleanup before
+	 * the page reloads.
+	 *
+	 * Note: This callback runs synchronously before the reload, so
+	 * avoid long-running operations.
+	 *
+	 * @param payload - The payload containing the new consent preferences
+	 */
+	onBeforeConsentRevocationReload?: Callback<OnConsentSetPayload>;
 }

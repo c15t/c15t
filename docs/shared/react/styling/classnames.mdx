@@ -1,0 +1,84 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="content">
+  ## Component className
+
+  All consent components accept a `className` prop:
+
+  ```tsx
+  <ConsentBanner className="my-banner" />
+  <ConsentDialog className="my-dialog" />
+  <ConsentWidget className="my-widget" />
+  ```
+
+  ## Per-Slot className
+
+  Target individual component parts via the theme's `slots` object. Each slot accepts a string (className) or an object with `className` and `style`:
+
+  ```tsx
+  const theme = {
+    slots: {
+      consentBannerTitle: 'text-xl font-semibold',
+      consentBannerDescription: 'text-sm text-gray-600',
+      consentBannerFooter: 'flex gap-3',
+      buttonPrimary: 'rounded-full px-6',
+    },
+  } satisfies Theme;
+  ```
+
+  ## Combining with CSS Modules
+
+  ```tsx
+  import styles from './consent.module.css';
+
+  const theme = {
+    slots: {
+      consentBannerCard: styles.bannerCard,
+      consentBannerTitle: styles.bannerTitle,
+      buttonPrimary: styles.primaryButton,
+    },
+  } satisfies Theme;
+  ```
+
+  ```css title="consent.module.css"
+  .bannerCard {
+    backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  .bannerTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+
+  .primaryButton {
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  ```
+
+  ## noStyle Mode
+
+  Use `noStyle` when you want to remove defaults and style from scratch:
+
+  ```tsx
+  {/* Remove all styles from a specific component */}
+  <ConsentBanner noStyle />
+
+  {/* Remove all styles globally */}
+  <ConsentManagerProvider options={{ noStyle: true, ... }}>
+  ```
+
+  You can also set `noStyle` per-slot:
+
+  ```tsx
+  const theme = {
+    slots: {
+      consentBannerCard: { noStyle: true, className: 'my-custom-card' },
+    },
+  } satisfies Theme;
+  ```
+
+  For full custom markup and behavior, continue to [Headless Mode](../headless).
+</section>

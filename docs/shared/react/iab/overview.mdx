@@ -1,0 +1,81 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  ## What is IAB TCF?
+
+  The [IAB Transparency & Consent Framework (TCF)](https://iabeurope.eu/tcf-2-0/) is a standardized protocol for communicating user consent choices to ad tech vendors in the programmatic advertising ecosystem. TCF 2.3 is the current version and is widely adopted across the EU/EEA.
+
+  When your site participates in the IAB ecosystem (ad exchanges, SSPs, DSPs, DMPs), you need to:
+
+  - Disclose which vendors process user data and for what purposes
+  - Collect granular consent for each IAB-defined purpose
+  - Generate a **TC String** — a standardized encoding of consent choices that ad tech vendors can read
+  - Expose the `__tcfapi` CMP stub for vendor scripts to query consent status
+
+  ## CMP Registration
+
+  [consent.io](https://consent.io) is pending validation as an IAB Europe-registered CMP for c15t. Once approved, when you use consent.io as your backend, the correct CMP ID will be automatically provided to your client via the `/init` endpoint — no client-side configuration needed.
+
+  If you self-host the c15t backend and have your own CMP registration with IAB Europe, you can configure your CMP ID on the backend via `advanced.iab.cmpId` or on the client via the `iab.cmpId` option. A valid (non-zero) CMP ID is required for IAB TCF compliance.
+
+  <Callout type="warn">
+    If you heavily customize or build your own IAB banner or dialog (rather than using the default `IABConsentBanner` and `IABConsentDialog` components), you cannot use consent.io's CMP ID. You must register your own CMP with [IAB Europe](https://iabeurope.eu/tcf-2-0/) and use your own CMP ID.
+  </Callout>
+
+  ## How c15t Implements TCF
+
+  c15t provides a complete IAB TCF 2.3 CMP (Consent Management Platform) implementation:
+
+  1. **Global Vendor List (GVL)** — Automatically fetched from the c15t backend. Contains the official IAB vendor registry with purposes, features, and stacks.
+  2. **IABConsentBanner** — A pre-built banner showing partner count, purpose summaries, and legitimate interest notices.
+  3. **IABConsentDialog** — A tabbed preference center for granular purpose and vendor consent management.
+  4. **TC String generation** — Consent choices are encoded into the standard TC String format.
+  5. **`__tcfapi` stub** — The standard CMP API is exposed on `window` so vendor scripts can query consent.
+</section>
+
+<section id="config-and-concepts">
+  ## IAB Configuration Options
+
+  The `iab` option on the provider accepts:
+
+  | Option | Type | Description |
+  |--------|------|-------------|
+  | `enabled` | `boolean` | Enable IAB TCF mode |
+  | `cmpId` | `number` | CMP ID registered with IAB Europe. Automatically provided by the backend when using consent.io. Only set this if you have your own CMP registration. |
+  | `vendors` | `number[]` | IAB vendor IDs that your site works with |
+  | `nonIABVendors` | `NonIABVendor[]` | Custom vendors not in the IAB registry |
+
+  ## Key Concepts
+
+  ### Purposes
+
+  IAB defines 11 standard purposes for data processing (e.g., "Store and/or access information on a device", "Select basic ads", "Measure ad performance"). Each purpose can be consented to individually.
+
+  ### Stacks
+
+  Purposes are grouped into **stacks** by the GVL for a simplified UI presentation. For example, "Advertising based on limited data" might group purposes 2, 7, and 10 together.
+
+  ### Special Features
+
+  Features like precise geolocation or device scanning that require explicit opt-in beyond standard consent.
+
+  ### Legitimate Interest
+
+  Some purposes can be processed under legitimate interest rather than consent. Users can object to legitimate interest processing per-vendor.
+
+  ### Vendors
+
+  Each vendor in the GVL declares which purposes it uses, whether via consent or legitimate interest. The preference center lets users toggle consent per-vendor.
+
+  ## Standard vs IAB Components
+
+  | Feature | ConsentBanner / ConsentDialog | IABConsentBanner / IABConsentDialog |
+  |---------|-------------------------------|-------------------------------------|
+  | Consent model | opt-in / opt-out | IAB TCF 2.3 |
+  | Granularity | Category-level (measurement, marketing, etc.) | Purpose-level + vendor-level |
+  | Vendor management | No | Yes (full GVL integration) |
+  | TC String | No | Yes |
+  | `__tcfapi` | No | Yes |
+  | Legitimate interest | No | Yes |
+  | Use when | General GDPR/CCPA compliance | Programmatic advertising in EU/EEA |
+</section>

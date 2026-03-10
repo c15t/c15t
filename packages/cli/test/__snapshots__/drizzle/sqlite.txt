@@ -2,7 +2,6 @@ import { sqliteTable, text, integer,  } from "drizzle-orm/sqlite-core";
 
 export const subject = sqliteTable("subject", {
   id: text("id").primaryKey(),
-  isIdentified: integer('is_identified', { mode: 'boolean' }).notNull(),
   externalId: text('external_id'),
   identityProvider: text('identity_provider'),
   lastIpAddress: text('last_ip_address'),

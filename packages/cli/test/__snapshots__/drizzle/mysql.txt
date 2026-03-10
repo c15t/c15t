@@ -2,7 +2,6 @@ import { mysqlTable, varchar, text, int, timestamp, boolean, json } from "drizzl
 
 export const subject = mysqlTable("subject", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  isIdentified: boolean('is_identified').notNull(),
   externalId: text('external_id'),
   identityProvider: text('identity_provider'),
   lastIpAddress: text('last_ip_address'),

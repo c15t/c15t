@@ -3,22 +3,31 @@
  * This file provides a centralized export point for all client-related functionality.
  */
 
-// Export HTTP client for advanced usage scenarios
-export {
-	C15tClient,
-	type C15tClientOptions,
-} from './c15t';
 export {
 	type ConsentManagerInterface,
 	type ConsentManagerOptions,
+	clearClientRegistry,
 	configureConsentManager,
 } from './client-factory';
+// Export client interface types
+export type {
+	IdentifyUserRequestBody,
+	IdentifyUserResponse,
+	InitResponse,
+	SetConsentRequestBody,
+	SetConsentResponse,
+} from './client-interface';
 // Export Custom client for advanced usage scenarios
 export {
 	CustomClient,
 	type CustomClientOptions,
 	type EndpointHandler,
 } from './custom';
+// Export HTTP client for advanced usage scenarios
+export {
+	C15tClient,
+	type C15tInternalClientOptions,
+} from './hosted';
 
 // Export Offline client for testing and development
 export {

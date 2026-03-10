@@ -1,0 +1,188 @@
+---
+title: Store API Overview
+description: Core API entry points for JavaScript consent management — runtime creation, store access, and subscription patterns.
+---
+
+## Entry Points
+
+### `getOrCreateConsentRuntime(options)`
+
+The recommended entry point. Creates both a consent client and a Zustand vanilla store in one call, with built-in caching — calling it again with the same options returns the same instance.
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentManager, consentStore, cacheKey } = getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+  consentCategories: ['necessary', 'measurement', 'marketing'],
+  scripts: [
+    { id: 'analytics', src: 'https://cdn.example.com/analytics.js', category: 'measurement' },
+  ],
+  callbacks: {
+    onConsentSet: ({ preferences }) => console.log('Consent:', preferences),
+  },
+  debug: true,
+});
+```
+
+**Returns:** `{ consentManager, consentStore, cacheKey }`
+
+- `consentManager` — The low-level client instance
+- `consentStore` — Zustand vanilla store with all state and actions
+- `cacheKey` — Cache key for this runtime instance
+
+### `configureConsentManager(options)`
+
+Lower-level API that creates only the client (no store). Use this when you need full control over store creation.
+
+```ts
+import { configureConsentManager, createConsentManagerStore } from 'c15t';
+
+const manager = configureConsentManager({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+});
+
+const store = createConsentManagerStore(manager, {
+  initialConsentCategories: ['necessary', 'measurement'],
+  scripts: [{ id: 'analytics', src: '...', category: 'measurement' }],
+  callbacks: { onConsentSet: ({ preferences }) => console.log(preferences) },
+});
+```
+
+### `createConsentManagerStore(manager, options)`
+
+Creates a Zustand vanilla store from a client instance. Accepts all store configuration options.
+
+```ts
+import { createConsentManagerStore } from 'c15t';
+
+const store = createConsentManagerStore(manager, {
+  initialConsentCategories: ['necessary', 'measurement', 'marketing'],
+  debug: true,
+  reloadOnConsentRevoked: true,
+});
+```
+
+## Legal Links
+
+Configure legal policy URLs in store options via `legalLinks`:
+
+```ts
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'offline',
+  legalLinks: {
+    privacyPolicy: {
+      href: '/privacy',
+      target: '_self',
+    },
+    cookiePolicy: {
+      href: '/cookies',
+      target: '_self',
+    },
+    termsOfService: {
+      href: 'https://example.com/terms',
+      target: '_blank',
+      rel: 'noopener noreferrer',
+      label: 'Terms of Service',
+    },
+  },
+});
+```
+
+Notes:
+
+- Omitting a key (for example `termsOfService`) hides that link.
+- `label` overrides the translated text for that single link.
+- Use `_self` for internal pages and `_blank` + `rel="noopener noreferrer"` for external pages.
+- The `c15t` package is headless; these links are used by your UI layer (custom UI or `@c15t/ui`-based integrations).
+
+## Overrides
+
+Set initial `overrides` to force location/language signals during runtime initialization:
+
+```ts
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'offline',
+  overrides: {
+    country: 'DE',
+    region: 'BY',
+    language: 'de-DE',
+  },
+});
+```
+
+You can also force Global Privacy Control behavior for testing:
+
+```ts
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'offline',
+  overrides: {
+    gpc: true,
+  },
+});
+```
+
+For runtime updates after initialization, call [`setOverrides()`](/docs/frameworks/javascript/api/location-info#setoverridesoverrides).
+
+<Callout type="warning">
+  Treat overrides as an environment/testing tool. Avoid hard-coding production overrides unless that behavior is intentional for your deployment.
+</Callout>
+
+## Store Patterns
+
+### Reading State
+
+```ts
+const state = consentStore.getState();
+
+// Consent state
+state.consents          // { necessary: true, measurement: false, ... }
+state.has('measurement') // false
+state.hasConsented()     // false (no consent given yet)
+state.model              // 'opt-in' | 'opt-out' | 'iab' | null
+
+// UI state
+state.activeUI           // 'banner' | 'dialog' | 'none'
+state.consentTypes       // [{ name: 'necessary', ... }, ...]
+
+// Location and info
+state.locationInfo       // { countryCode: 'DE', regionCode: 'BY' }
+state.hasFetchedBanner   // true (init complete)
+```
+
+### Subscribing to Changes
+
+```ts
+// Subscribe to all state changes
+const unsubscribe = consentStore.subscribe((state, prevState) => {
+  console.log('State changed:', state);
+});
+
+// React to specific changes by comparing with previous state
+consentStore.subscribe((state, prevState) => {
+  if (state.consents !== prevState.consents) {
+    console.log('Consents changed:', state.consents);
+  }
+});
+
+// Unsubscribe when done
+unsubscribe();
+```
+
+### Window Namespace
+
+The store is also exposed on the window object for debugging and direct access:
+
+```ts
+// Access from anywhere (e.g., browser console)
+const state = window.c15tStore?.getState();
+console.log(state?.consents);
+```
+
+The namespace defaults to `c15tStore` and can be configured via the `namespace` store option.
+
+## Options Reference
+
+<AutoTypeTable path="./packages/core/src/runtime/index.ts" name="ConsentRuntimeOptions" />

@@ -9,7 +9,6 @@ START TRANSACTION;
 -- MIGRATION
 CREATE TABLE IF NOT EXISTS "subject" (
   "id" VARCHAR(255) NOT NULL PRIMARY KEY,
-  "isIdentified" TINYINT(1) NOT NULL,
   "externalId" text,
   "identityProvider" text,
   "lastIpAddress" text,

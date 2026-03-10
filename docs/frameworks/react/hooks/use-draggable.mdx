@@ -1,0 +1,34 @@
+---
+title: useDraggable
+description: Make an element draggable between viewport corners with snapping, persistence, and animation support.
+---
+
+`useDraggable()` provides drag-to-corner functionality. Used internally by `ConsentDialogTrigger`, this hook lets you build custom draggable elements that snap to viewport corners.
+
+```tsx
+import { useDraggable } from '@c15t/react';
+
+function DraggableButton() {
+  const { corner, isDragging, handlers, dragStyle } = useDraggable({
+    defaultPosition: 'bottom-right',
+    persistPosition: true,
+  });
+
+  return (
+    <button
+      {...handlers}
+      style={{
+        ...dragStyle,
+        position: 'fixed',
+        // Position based on corner
+        ...(corner.includes('bottom') ? { bottom: 16 } : { top: 16 }),
+        ...(corner.includes('right') ? { right: 16 } : { left: 16 }),
+      }}
+    >
+      {isDragging ? 'Dragging...' : 'Drag me'}
+    </button>
+  );
+}
+```
+
+<import src="../../../shared/react/hooks/use-draggable.mdx#reference" />

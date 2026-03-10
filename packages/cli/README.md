@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://c15t.com?utm_source=github&utm_medium=repopage_%40c15t%2Fcli" target="_blank" rel="noopener noreferrer">
+  <a href="https://v2.c15t.com?utm_source=github&utm_medium=repopage_%40c15t%2Fcli" target="_blank" rel="noopener noreferrer">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
       <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
@@ -39,11 +39,11 @@ CLI for rapid c15t setup. Scaffold React and Next.js cookie banners and a prefer
 Easiest setup with @c15t/cli:
 
 ```bash
-# Generate schema and code
-pnpm dlx @c15t/cli generate
+# Set up c15t
+pnpm dlx @c15t/cli setup
 # Alternatives:
-# npx @c15t/cli generate
-# bunx --bun @c15t/cli generate
+# npx @c15t/cli setup
+# bunx --bun @c15t/cli setup
 ```
 
 The CLI will:
@@ -55,17 +55,34 @@ The CLI will:
 
 ## Usage
 
-1. Run `@c15t/cli generate` to create initial configuration
+1. Run `@c15t/cli setup` to create initial configuration
 2. Customize consent settings in generated files
 3. Integrate with your web application
-4. Use `@c15t/cli migrate` for database schema updates
+4. Use `@c15t/cli self-host migrate` for self-hosted database schema updates
 
 ## Available Commands
 
-- `generate`: Generate schema/code based on your c15t config
-- `migrate`: Run database migrations based on your c15t config
+- `setup`: Set up c15t in your project
+- `codemods`: Run migration codemods (for example `translations -> i18n`)
+- `self-host`: Self-hosted workflow commands (currently database migrations)
+- `skills`: Install c15t agent skills for AI-assisted development
+- `changelog`: Open the c15t changelog in your browser
 - `github`: Open the project's GitHub repository to star the project
 - `docs`: Open the c15t documentation in your browser
+
+### Codemods
+
+Run codemods interactively:
+
+```bash
+c15t codemods
+```
+
+Preview changes without writing files:
+
+```bash
+c15t codemods --dry-run
+```
 
 ## Global Flags
 
@@ -88,7 +105,7 @@ Disable telemetry by:
 
 ## Documentation
 
-For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/cli/overview).
+For further information, guides, and examples visit the [reference documentation](https://v2.c15t.com/docs/cli/overview).
 
 ## Support
 
@@ -100,8 +117,8 @@ For further information, guides, and examples visit the [reference documentation
 ## Contributing
 
 - We're open to all community contributions!
-- Read our [Contribution Guidelines](https://c15t.com/docs/oss/contributing)
-- Review our [Code of Conduct](https://c15t.com/docs/oss/code-of-conduct)
+- Read our [Contribution Guidelines](https://v2.c15t.com/docs/oss/contributing)
+- Review our [Code of Conduct](https://v2.c15t.com/docs/oss/code-of-conduct)
 - Fork the repository
 - Create a new branch for your feature
 - Submit a pull request

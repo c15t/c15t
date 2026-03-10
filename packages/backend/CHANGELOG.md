@@ -1,5 +1,52 @@
 # @c15t/backend
 
+## 2.0.0-rc.4
+
+### Patch Changes
+
+- 4c8435c: refactor(backend): flatten backend API entrypoints and improve TypeScript DX
+- Updated dependencies [06ee724]
+  - @c15t/translations@2.0.0-rc.4
+
+## 2.0.0-rc.3
+
+### Patch Changes
+
+- 0a18fb6: feat(backend): add base '/' root endpoint for better DX
+
+## 2.0.0-rc.2
+
+### Patch Changes
+
+- 408df0e: feat: CMP ID now comes from backend, either consent.io when hosted or BYO CMP ID
+  feat: Center the IAB Banner for better policy compliance
+  feat: Improve doc comments around IAB
+- Updated dependencies [408df0e]
+  - @c15t/schema@2.0.0-rc.2
+
+## 2.0.0-rc.1
+
+### Patch Changes
+
+- 0bc4f86: fixed workspace resolving
+- Updated dependencies [0bc4f86]
+  - @c15t/translations@2.0.0-rc.1
+  - @c15t/logger@2.0.0-rc.1
+  - @c15t/schema@2.0.0-rc.1
+
+## 2.0.0-rc.0
+
+### Major Changes
+
+- 126a78b: https://v2.c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+
+### Patch Changes
+
+- Updated dependencies [126a78b]
+  - @c15t/logger@2.0.0-rc.0
+  - @c15t/schema@2.0.0-rc.0
+  - @c15t/translations@2.0.0-rc.0
+
 ## 1.8.0
 
 ### Minor Changes

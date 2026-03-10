@@ -52,7 +52,11 @@ docs/public/r/*
 *.tsbuildinfo
 coverage.json
 
-
-examples/*
+.pnpm-store
 version.ts
 i18n.cache
+
+.test-apps/
+
+# CLI persisted generate state
+.c15t-state.json

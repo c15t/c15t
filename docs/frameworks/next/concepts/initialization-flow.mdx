@@ -1,0 +1,52 @@
+---
+title: Initialization Flow
+description: What happens from provider mount to first render — the full consent lifecycle.
+---
+
+<import src="../../../shared/concepts/initialization-flow.mdx#overview" />
+
+<import src="../../../shared/concepts/initialization-flow.mdx#flow-diagram" />
+
+<import src="../../../shared/concepts/initialization-flow.mdx#how-it-works" />
+
+<import src="../../../shared/concepts/initialization-flow.mdx#banner-visibility" />
+
+<import src="../../../shared/concepts/initialization-flow.mdx#debugging" />
+
+Configure callbacks in the provider to log lifecycle events, and add DevTools for a visual inspector:
+
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/nextjs';
+import { DevTools } from '@c15t/dev-tools/react';
+
+export default function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'hosted',
+        backendURL: '/api/c15t',
+        callbacks: {
+          onBannerFetched: ({ jurisdiction, location }) => {
+            console.log('Init complete:', { jurisdiction, location });
+          },
+          onConsentSet: ({ preferences }) => {
+            console.log('Consent saved:', preferences);
+          },
+          onBeforeConsentRevocationReload: ({ preferences }) => {
+            console.log('Reloading due to revocation:', preferences);
+          },
+          onError: ({ error }) => {
+            console.error('Consent error:', error);
+          },
+        },
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {process.env.NODE_ENV !== 'production' && <DevTools />}
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```

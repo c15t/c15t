@@ -1,0 +1,110 @@
+---
+title: Setting Consent
+description: Save, stage, and reset consent preferences using the store API.
+---
+
+## `saveConsents(type)`
+
+Batch-save consent preferences. This is the primary way users grant or deny consent.
+
+```ts
+const state = consentStore.getState();
+
+// Accept all categories
+await state.saveConsents('all');
+
+// Accept only necessary (reject everything else)
+await state.saveConsents('necessary');
+
+// Save the currently staged selections (from setSelectedConsent)
+await state.saveConsents('custom');
+```
+
+| Type | Behavior |
+|------|----------|
+| `'all'` | Sets all configured categories (those in `consentCategories`) to `true` and saves |
+| `'necessary'` | Sets only `necessary` to `true`, all others to `false`, and saves |
+| `'custom'` | Saves the current `selectedConsents` as the final `consents` |
+
+After saving, the store syncs with the backend (in c15t or custom mode), stores the consent in a cookie, and triggers the `onConsentSet` callback.
+
+## `setConsent(name, value)`
+
+Set a single category and immediately save. This is a shortcut for setting one category without staging.
+
+```ts
+const state = consentStore.getState();
+
+// Grant measurement consent (saves immediately)
+state.setConsent('measurement', true);
+
+// Revoke marketing consent (saves immediately)
+state.setConsent('marketing', false);
+```
+
+## `setSelectedConsent(name, value)`
+
+Stage a consent toggle without saving. This is useful for building a preference dialog where the user can toggle multiple categories before confirming.
+
+```ts
+const state = consentStore.getState();
+
+// User toggles in the dialog (not yet saved)
+state.setSelectedConsent('measurement', true);
+state.setSelectedConsent('marketing', false);
+
+// Read the staged state
+console.log(consentStore.getState().selectedConsents);
+// { necessary: true, measurement: true, marketing: false }
+
+// User clicks "Save" — persist the staged selections
+await consentStore.getState().saveConsents('custom');
+```
+
+The `selectedConsents` state lets you render toggle states in a preference dialog without modifying the actual consent until the user confirms.
+
+## `resetConsents()`
+
+Reset all consent preferences to their defaults. This clears stored consent and returns the user to an unconsented state.
+
+```ts
+const state = consentStore.getState();
+state.resetConsents();
+
+// To show the banner again after resetting, call setActiveUI manually
+consentStore.getState().setActiveUI('banner', { force: true });
+```
+
+## Full Preference Dialog Flow
+
+Here's a typical flow for a preference dialog:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+  consentCategories: ['necessary', 'measurement', 'marketing'],
+});
+
+// 1. User opens the preference dialog
+consentStore.getState().setActiveUI('dialog');
+
+// 2. Render toggles from displayed consents
+const displayed = consentStore.getState().getDisplayedConsents();
+displayed.forEach((type) => {
+  const isSelected = consentStore.getState().selectedConsents[type.name];
+  console.log(`${type.name}: ${isSelected}`);
+});
+
+// 3. User toggles categories
+consentStore.getState().setSelectedConsent('measurement', true);
+consentStore.getState().setSelectedConsent('marketing', false);
+
+// 4. User clicks "Save"
+await consentStore.getState().saveConsents('custom');
+
+// 5. Close the dialog
+consentStore.getState().setActiveUI('none');
+```

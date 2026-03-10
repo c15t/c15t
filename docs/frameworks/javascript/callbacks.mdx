@@ -1,41 +1,55 @@
 ---
-title: "Callbacks"
-description: "Learn how to use callbacks to respond to c15t events in your application."
-lastModified: 2025-08-20
-availableIn:
-  - framework: 'javascript'
-    url: '/docs/frameworks/javascript/callbacks'
-    title: 'JavaScript'
-  - framework: 'next'
-    url: '/docs/frameworks/next/callbacks'
-    title: 'Next.js'
-  - framework: 'react'
-    url: '/docs/frameworks/react/callbacks'
-    title: 'React'
+title: Callbacks
+description: React to consent lifecycle events — initialization, consent changes, errors, and revocation reloads.
 ---
 
-## Implementing Callbacks
+<import src="../../shared/react/guides/callbacks.mdx#intro" />
 
-```tsx
-import { configureConsentManager, type ConsentManagerOptions } from 'c15t';
+## Configuration
 
-export const c15tConfig: ConsentManagerOptions = {
-  mode: 'c15t',
-  backendURL: "https://your-instance.c15t.dev",
+Define callbacks in the runtime options:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
   callbacks: {
-    onBannerFetched(response) {
-      console.log('Consent banner fetched', response);
+    onBannerFetched: ({ jurisdiction, location, translations }) => {
+      console.log('Jurisdiction:', jurisdiction);
+      console.log('Country:', location.countryCode);
+      console.log('Language:', translations.language);
     },
-    onConsentSet(response) {
-      console.log('Consent has been saved', response);
+    onConsentSet: ({ preferences }) => {
+      // Fire analytics event
+      analytics.track('consent_updated', { preferences });
     },
-    onError(error) {
-      console.log('Error', error);
+    onError: ({ error }) => {
+      errorReporter.captureMessage(error);
     },
-  }
-};
-
-const c15t = configureConsentManager(c15tConfig);
+    onBeforeConsentRevocationReload: ({ preferences }) => {
+      // Flush pending analytics before page reloads
+      analytics.flush();
+    },
+  },
+});
 ```
 
-<import>./shared/available-callbacks.mdx</import>
+<import src="../../shared/react/guides/callbacks.mdx#callback-reference" />
+
+## Dynamic Registration
+
+Register or update callbacks at runtime using `setCallback()`:
+
+```ts
+const state = consentStore.getState();
+
+// Register a callback
+state.setCallback('onConsentSet', ({ preferences }) => {
+  analytics.track('consent_changed', preferences);
+});
+
+// Remove a callback
+state.setCallback('onConsentSet', undefined);
+```

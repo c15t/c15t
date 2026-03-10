@@ -1,0 +1,43 @@
+---
+title: Consent Models
+description: How c15t determines consent behavior based on legal jurisdiction.
+---
+
+<import src="../../../shared/concepts/consent-models.mdx#overview" />
+
+Read the current consent model from the hook:
+
+```tsx
+import { useConsentManager } from '@c15t/nextjs';
+
+function ConsentStatus() {
+  const { model } = useConsentManager();
+
+  return <p>Current consent model: {model ?? 'detecting...'}</p>;
+}
+```
+
+<import src="../../../shared/concepts/consent-models.mdx#models-explained" />
+
+<import src="../../../shared/concepts/consent-models.mdx#jurisdiction-mapping" />
+
+Override the detected jurisdiction for testing or manual configuration:
+
+```tsx
+import { useConsentManager } from '@c15t/nextjs';
+
+function JurisdictionTester() {
+  const { setOverrides } = useConsentManager();
+
+  return (
+    <div>
+      <button onClick={() => setOverrides({ country: 'DE' })}>
+        Test as EU visitor
+      </button>
+      <button onClick={() => setOverrides({ country: 'US', region: 'CA' })}>
+        Test as California visitor
+      </button>
+    </div>
+  );
+}
+```

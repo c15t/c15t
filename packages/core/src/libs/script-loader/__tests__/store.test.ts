@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PrivacyConsentState } from '../../../store.type';
-import type { AllConsentNames } from '../../../types/gdpr';
+import type { ConsentStoreState } from '../../../store/type';
+import type { AllConsentNames } from '../../../types/consent-types';
 import { clearAllScripts, loadScripts, updateScripts } from '../core';
 import { createScriptManager } from '../store';
 import type { Script } from '../types';
@@ -20,10 +20,10 @@ describe('Script Manager Store Integration', () => {
 		loadedScripts: {} as Record<string, boolean>,
 		scriptIdMap: {} as Record<string, string>,
 		consents: sampleConsents,
-	} as PrivacyConsentState;
+	} as ConsentStoreState;
 
-	const getState = vi.fn(() => mockState as PrivacyConsentState);
-	const setState = vi.fn((partial: Partial<PrivacyConsentState>) => {
+	const getState = vi.fn(() => mockState as ConsentStoreState);
+	const setState = vi.fn((partial: Partial<ConsentStoreState>) => {
 		Object.assign(mockState, partial);
 	});
 
@@ -45,7 +45,6 @@ describe('Script Manager Store Integration', () => {
 			callbackOnly: true,
 			onBeforeLoad: vi.fn(),
 			onLoad: vi.fn(),
-			onDelete: vi.fn(),
 		},
 	];
 
@@ -97,49 +96,6 @@ describe('Script Manager Store Integration', () => {
 			expect(setStateCall.scriptIdMap?.['necessary-script']).toBeUndefined();
 			expect(setStateCall.scriptIdMap?.['marketing-script']).toBe(
 				'random-id-2'
-			);
-		});
-
-		it('should call onDelete callback with consent state when removing a script', () => {
-			// Create a script with onDelete callback
-			const onDelete = vi.fn();
-			const scriptWithCallback = {
-				id: 'removable-script',
-				src: 'https://example.com/removable.js',
-				category: 'necessary' as AllConsentNames,
-				onDelete,
-			};
-
-			// Setup initial state with the script
-			mockState.scripts = [scriptWithCallback];
-
-			const scriptManager = createScriptManager(getState, setState);
-
-			// Load the script first
-			loadScripts([scriptWithCallback], mockState.consents);
-
-			// Remove the script
-			scriptManager.removeScript('removable-script');
-
-			// onDelete should have been called with consent state
-			expect(onDelete).toHaveBeenCalledTimes(1);
-			expect(onDelete).toHaveBeenCalledWith(
-				expect.objectContaining({
-					id: 'removable-script',
-					elementId: expect.any(String),
-					consents: mockState.consents,
-					element: expect.any(Object),
-				})
-			);
-
-			// Should have called setState to update scripts array
-			expect(setState).toHaveBeenCalledWith(
-				expect.objectContaining({
-					scripts: [],
-					loadedScripts: {
-						'removable-script': false,
-					},
-				})
 			);
 		});
 	});

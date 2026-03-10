@@ -1,14 +1,56 @@
 ---
-title: Color Scheme (Light/Dark Mode)
-description: Manage your components light, dark, and system color schemes.
-lastModified: 2025-08-22
-availableIn:
-  - framework: 'next'
-    url: '/docs/frameworks/next/styling/color-scheme'
-    title: 'Next.js'
-  - framework: 'react'
-    url: '/docs/frameworks/react/styling/color-scheme'
-    title: 'React'
+title: Color Scheme
+description: Support light mode, dark mode, and system preference detection in consent components.
 ---
 
-<import>../../react/styling/color-scheme.mdx</import>
+<import src="../../../shared/react/styling/color-scheme.mdx#intro" />
+
+## Configuration
+
+Set the color scheme on the provider:
+
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider } from '@c15t/nextjs';
+
+function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'hosted',
+        backendURL: '/api/c15t',
+        colorScheme: 'system', // 'light' | 'dark' | 'system'
+        theme: {
+          colors: {
+            primary: '#6366f1',
+            surface: '#ffffff',
+            text: '#1f2937',
+          },
+          dark: {
+            primary: '#818cf8',
+            surface: '#1f2937',
+            text: '#f9fafb',
+          },
+        },
+      }}
+    >
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+## useColorScheme Hook
+
+For programmatic control over the color scheme:
+
+```tsx
+import { useColorScheme } from '@c15t/nextjs';
+
+function ThemeToggle() {
+  // Pass the desired scheme - 'light', 'dark', 'system', or null (disable)
+  useColorScheme('system');
+}
+```
+
+<import src="../../../shared/react/styling/color-scheme.mdx#reference" />
