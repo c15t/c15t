@@ -1,10 +1,12 @@
-import type { InitOutput } from '@c15t/schema/types';
+import type {
+	InitOutput,
+	PolicyUiAction,
+	PolicyUiMode,
+} from '@c15t/schema/types';
 import type { ConsentState } from '../types/compliance';
 import { type AllConsentNames, allConsentNames } from '../types/consent-types';
 
 type ResolvedPolicy = InitOutput['policy'];
-type PolicyUiAction = 'accept' | 'reject' | 'customize';
-type PolicyUiMode = 'none' | 'banner' | 'dialog';
 
 export interface PolicyUIState {
 	mode: PolicyUiMode;
@@ -97,13 +99,13 @@ export function filterConsentCategoriesByPolicy(
 /**
  * Applies policy scope to runtime gating behavior.
  *
- * Out-of-policy categories are treated as unmanaged by c15t runtime and are
+ * Out-of-policy categories are treated as permissive by c15t runtime and are
  * therefore granted for gating decisions (scripts/iframes load normally).
  */
 export function applyPolicyScopeForRuntimeGating(
 	consents: ConsentState,
 	allowedPurposeIds?: string[] | null,
-	scopeMode: 'strict' | 'unmanaged' | null = 'unmanaged'
+	scopeMode: 'strict' | 'permissive' | null = 'permissive'
 ): ConsentState {
 	if (scopeMode === 'strict') {
 		return consents;

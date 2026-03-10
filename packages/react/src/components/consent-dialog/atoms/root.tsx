@@ -121,9 +121,9 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	const noStyle = localNoStyle ?? globalTheme.noStyle ?? false;
 
 	// Consent manager state
-	const { activeUI, translationConfig, model, policyDialogScrollLock } =
+	const { activeUI, translationConfig, model, policyDialog } =
 		useConsentManager();
-	const scrollLock = localScrollLock ?? policyDialogScrollLock ?? true;
+	const scrollLock = localScrollLock ?? policyDialog.scrollLock ?? true;
 	const trapFocus = localTrapFocus ?? globalTheme.trapFocus ?? true;
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 

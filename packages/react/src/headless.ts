@@ -24,13 +24,14 @@ export {
 export { useConsentManager } from './hooks/use-consent-manager';
 export { useFocusTrap } from './hooks/use-focus-trap';
 export {
-	type HeadlessConsentAction,
 	type HeadlessConsentBannerAction,
 	type HeadlessConsentBannerState,
 	type HeadlessConsentDialogAction,
 	type HeadlessConsentDialogState,
 	type HeadlessConsentSurface,
+	type HeadlessConsentSurfaceAction,
 	type HeadlessConsentSurfaceState,
+	type HeadlessConsentWriteAction,
 	type UseHeadlessConsentUIResult,
 	useHeadlessConsentUI,
 } from './hooks/use-headless-consent-ui';

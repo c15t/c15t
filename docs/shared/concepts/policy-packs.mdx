@@ -12,7 +12,7 @@
   - which proof fields are stored for the consent record
 
   <Callout type="info">
-    Backend policy packs use `policyPacks`. Frontend offline previews also use `policyPacks` as a convenience alias. Both accept the same `PolicyConfig` shape.
+    Backend policy packs use `policyPacks`. Frontend offline previews use `offlinePolicy.policies`. Both accept the same `PolicyConfig` shape.
   </Callout>
 </section>
 
@@ -288,7 +288,7 @@
   | Scope Mode | Behavior |
   |-----------|----------|
   | `'strict'` | Rejects consent submissions containing out-of-scope categories |
-  | `'unmanaged'` | Silently filters out-of-scope categories from submissions |
+  | `'permissive'` | Silently filters out-of-scope categories from submissions |
   | `'*'` (wildcard) | All categories allowed |
 
   `consent.preselectedCategories` stages defaults in the customize dialog — useful for opt-in flows where you want certain categories pre-checked.
@@ -330,8 +330,8 @@
   | `policyPacks` omitted (backend) | Legacy behavior, no runtime policy in `/init` response |
   | `policyPacks: []` (backend) | Explicit no-banner mode |
   | Non-empty pack, no match, no default (backend) | Explicit no-banner mode |
-  | `policyPacks` omitted (frontend offline) | Synthetic opt-in fallback so local dev still shows a banner |
-  | `policyPacks: []` (frontend offline) | Explicit no-banner mode |
+  | `offlinePolicy.policies` omitted (frontend offline) | Synthetic opt-in fallback so local dev still shows a banner |
+  | `offlinePolicy: { policies: [] }` (frontend offline) | Explicit no-banner mode |
 
   In production, always include a default policy so unmatched traffic resolves deterministically.
 </section>
@@ -377,6 +377,6 @@
   - **Think risk, not geography.** Geography is just a matcher — the real question is what consent behavior each region needs.
   - **Always include a default.** Unless "no banner for unmatched traffic" is intentional.
   - **Keep policy IDs stable.** They appear in debugging output, snapshots, and audit records.
-  - **Backend is source of truth.** Use frontend `policyPacks` only for previews, tests, and static deployments.
+  - **Backend is source of truth.** Use frontend `offlinePolicy.policies` only for previews, tests, and static deployments.
   - **Use `inspectPolicies()` before deploying.** It catches overlapping matchers, missing defaults, and IAB misconfigurations.
 </section>

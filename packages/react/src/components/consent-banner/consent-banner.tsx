@@ -9,7 +9,7 @@
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
 import { type FC, Fragment, type ReactNode } from 'react';
 import {
-	type PolicyAction,
+	type PolicyUiAction,
 	shouldFillPolicyActions,
 } from '~/components/shared/libs/policy-actions';
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
@@ -195,8 +195,9 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 }) => {
 	const { cookieBanner: consentBanner } = useTranslations();
 	const { banner } = useHeadlessConsentUI();
-	const { policyBannerScrollLock } = useConsentManager();
-	const resolvedScrollLock = localScrollLock ?? policyBannerScrollLock ?? false;
+	const { policyBanner } = useConsentManager();
+	const resolvedScrollLock =
+		localScrollLock ?? policyBanner.scrollLock ?? false;
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
@@ -214,7 +215,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 	const activeGroups = resolvedLayout
 		.map((item) =>
 			Array.isArray(item)
-				? item.filter((action): action is PolicyAction =>
+				? item.filter((action): action is PolicyUiAction =>
 						allowedActions.has(action)
 					)
 				: allowedActions.has(item)

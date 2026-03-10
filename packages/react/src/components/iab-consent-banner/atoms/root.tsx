@@ -48,11 +48,11 @@ const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
 	uiSource,
 	...props
 }) => {
-	const { policyBannerScrollLock } = useConsentManager();
+	const { policyBanner } = useConsentManager();
 	const contextValue = {
 		disableAnimation,
 		noStyle,
-		scrollLock: scrollLock ?? policyBannerScrollLock ?? undefined,
+		scrollLock: scrollLock ?? policyBanner.scrollLock ?? undefined,
 		trapFocus,
 	};
 

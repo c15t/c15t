@@ -67,6 +67,7 @@ export {
 	type PolicyMatch,
 	type PolicyMatchedBy,
 	type PolicyModel,
+	type PolicyPack,
 	type PolicyScopeMode,
 	type PolicyUiAction,
 	type PolicyUiActionLayout,
@@ -80,3 +81,20 @@ export {
 	UK_COUNTRY_CODES,
 	validatePolicies,
 } from './policy-runtime';
+export {
+	policyConfigArraySchema,
+	policyConfigSchema,
+	policyModelSchema,
+	policyScopeModeSchema,
+	policyUiActionLayoutSchema,
+	policyUiActionSchema,
+	policyUiModeSchema,
+	policyUiProfileSchema,
+	policyUiSurfaceConfigSchema,
+} from './policy-schema';
+export {
+	compactDefined,
+	dedupeDefinedValues,
+	dedupeTrimmedStrings,
+	hasRealPolicyUiHints,
+} from './policy-utils';

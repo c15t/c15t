@@ -442,12 +442,12 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 		expect(db.transaction).not.toHaveBeenCalled();
 	});
 
-	it('ignores out-of-scope categories when scopeMode is unmanaged', async () => {
+	it('ignores out-of-scope categories when scopeMode is permissive', async () => {
 		vi.mocked(resolvePolicyDecision).mockResolvedValue({
 			policy: {
 				id: 'policy_unmanaged',
 				model: 'opt-in',
-				consent: { scopeMode: 'unmanaged', categories: ['measurement'] },
+				consent: { scopeMode: 'permissive', categories: ['measurement'] },
 			},
 			matchedBy: 'country',
 			fingerprint: 'u'.repeat(64),

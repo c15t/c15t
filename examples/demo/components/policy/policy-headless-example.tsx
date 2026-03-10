@@ -21,7 +21,9 @@ import {
 } from '../ui/card';
 import { Switch } from '../ui/switch';
 
-type PolicyAction = HeadlessConsentBannerAction | HeadlessConsentDialogAction;
+type PolicyUiSurfaceAction =
+	| HeadlessConsentBannerAction
+	| HeadlessConsentDialogAction;
 
 const SCENARIO_LINKS = [
 	{
@@ -47,7 +49,7 @@ const SCENARIO_LINKS = [
 ];
 
 function actionLabel(
-	action: PolicyAction,
+	action: PolicyUiSurfaceAction,
 	source: 'banner' | 'dialog',
 	translations: ReturnType<typeof useTranslations>
 ) {
@@ -79,8 +81,15 @@ export function PolicyHeadlessExample() {
 		resetConsents,
 		initConsentManager,
 	} = useConsentManager();
-	const { banner, dialog, openBanner, openDialog, closeUI, performAction } =
-		useHeadlessConsentUI();
+	const {
+		banner,
+		dialog,
+		openBanner,
+		openDialog,
+		closeUI,
+		performAction,
+		saveCustomPreferences,
+	} = useHeadlessConsentUI();
 
 	const displayedTypes = useMemo(
 		() =>
@@ -112,7 +121,7 @@ export function PolicyHeadlessExample() {
 								: 'unknown'}
 						</Badge>
 						<Badge variant="secondary">
-							scopeMode: {policyScopeMode ?? 'strict'}
+							scopeMode: {policyScopeMode ?? 'permissive'}
 						</Badge>
 						<Badge variant="secondary">
 							categories:{' '}
@@ -121,12 +130,12 @@ export function PolicyHeadlessExample() {
 						<Badge variant="secondary">
 							scrollLock:{' '}
 							{activeUI === 'dialog'
-								? dialog.scrollLock === null
+								? dialog.scrollLock === undefined
 									? 'default'
 									: dialog.scrollLock
 										? 'on'
 										: 'off'
-								: banner.scrollLock === null
+								: banner.scrollLock === undefined
 									? 'default'
 									: banner.scrollLock
 										? 'on'
@@ -206,9 +215,13 @@ export function PolicyHeadlessExample() {
 													'min-w-[9rem]',
 													banner.shouldFillActions && 'flex-1'
 												)}
-												onClick={() =>
-													void performAction(action, { surface: 'banner' })
-												}
+												onClick={() => {
+													if (action === 'customize') {
+														openDialog();
+														return;
+													}
+													void performAction(action, { surface: 'banner' });
+												}}
 											>
 												{actionLabel(action, 'banner', translations)}
 											</Button>
@@ -288,9 +301,13 @@ export function PolicyHeadlessExample() {
 													'min-w-[9rem]',
 													dialog.shouldFillActions && 'flex-1'
 												)}
-												onClick={() =>
-													void performAction(action, { surface: 'dialog' })
-												}
+												onClick={() => {
+													if (action === 'customize') {
+														void saveCustomPreferences();
+														return;
+													}
+													void performAction(action, { surface: 'dialog' });
+												}}
 											>
 												{actionLabel(action, 'dialog', translations)}
 											</Button>

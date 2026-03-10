@@ -4,6 +4,8 @@ import {
 	brandingValues,
 	type GlobalVendorList,
 	type NonIABVendor,
+	type PolicyConfig,
+	type PolicyPack,
 } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
 import type { Meter, Tracer } from '@opentelemetry/api';
@@ -254,79 +256,18 @@ export interface I18nOptions {
 	defaultProfile?: string;
 }
 
-export type PolicyModel = 'opt-in' | 'opt-out' | 'none' | 'iab';
-export type PolicyScopeMode = 'strict' | 'unmanaged';
-export type PolicyUiMode = 'none' | 'banner' | 'dialog';
-export type PolicyUiAction = 'accept' | 'reject' | 'customize';
-export type PolicyUiActionLayout = 'split' | 'inline';
-export type PolicyUiProfile = 'balanced' | 'compact' | 'strict';
-
-/**
- * UI customizations for one policy surface.
- *
- * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
- */
-export interface PolicyUiSurfaceConfig {
-	allowedActions?: PolicyUiAction[];
-	primaryAction?: PolicyUiAction;
-	actionOrder?: PolicyUiAction[];
-	actionLayout?: PolicyUiActionLayout;
-	uiProfile?: PolicyUiProfile;
-	scrollLock?: boolean;
-}
-
-/**
- * Backend policy definition used by `C15TOptions.policyPacks`.
- *
- * @remarks
- * Policy packs are ordered arrays of `PolicyConfig` objects. c15t resolves
- * them using region > country > jurisdiction > default precedence, with
- * first-match-wins behavior inside the same matcher type.
- *
- * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
- */
-export interface PolicyConfig {
-	id: string;
-	name?: string;
-	match: {
-		regions?: Array<{ country: string; region: string }>;
-		countries?: string[];
-		jurisdictions?: JurisdictionCode[];
-		isDefault?: boolean;
-	};
-	i18n?: {
-		language?: string;
-		messageProfile?: string;
-	};
-	consent?: {
-		model?: PolicyModel;
-		expiryDays?: number;
-		/**
-		 * How to treat categories outside `categories`.
-		 * - `unmanaged` (default): out-of-scope categories are not blocked by c15t runtime.
-		 * - `strict`: out-of-scope categories remain blocked and are enforced on writes.
-		 */
-		scopeMode?: PolicyScopeMode;
-		/**
-		 * Allowed consent category codes.
-		 * Use `["*"]` for wildcard scope (no category restriction).
-		 *
-		 * Note: `model: "iab"` is normalized to wildcard scope at runtime.
-		 */
-		categories?: string[];
-		preselectedCategories?: string[];
-	};
-	ui?: {
-		mode?: PolicyUiMode;
-		banner?: PolicyUiSurfaceConfig;
-		dialog?: PolicyUiSurfaceConfig;
-	};
-	proof?: {
-		storeIp?: boolean;
-		storeUserAgent?: boolean;
-		storeLanguage?: boolean;
-	};
-}
+// Re-export canonical policy types from @c15t/schema
+export type {
+	PolicyConfig,
+	PolicyModel,
+	PolicyPack,
+	PolicyScopeMode,
+	PolicyUiAction,
+	PolicyUiActionLayout,
+	PolicyUiMode,
+	PolicyUiProfile,
+	PolicyUiSurfaceConfig,
+} from '@c15t/schema/types';
 
 export interface PolicySnapshotOptions {
 	/**
@@ -449,7 +390,7 @@ export interface C15TOptions {
 	 *
 	 * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
 	 */
-	policyPacks?: PolicyConfig[];
+	policyPacks?: PolicyPack;
 
 	/**
 	 * Select which branding to show in the consent banner.

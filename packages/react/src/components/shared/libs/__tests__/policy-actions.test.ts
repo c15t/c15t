@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	hasPolicyHints,
 	resolvePolicyActionGroups,
 	resolvePolicyActionOrder,
 	resolvePolicyPrimaryAction,
@@ -24,6 +25,14 @@ describe('resolvePolicyActionOrder', () => {
 });
 
 describe('resolvePolicyPrimaryAction', () => {
+	it('returns undefined when no policy primary action is set', () => {
+		const primary = resolvePolicyPrimaryAction({
+			orderedActions: ['accept', 'reject'],
+		});
+
+		expect(primary).toBeUndefined();
+	});
+
 	it('returns fallback when policy primary is not part of ordered actions', () => {
 		const primary = resolvePolicyPrimaryAction({
 			orderedActions: ['accept', 'reject'],
@@ -31,6 +40,25 @@ describe('resolvePolicyPrimaryAction', () => {
 		});
 
 		expect(primary).toBe('accept');
+	});
+});
+
+describe('hasPolicyHints', () => {
+	it('returns false for empty arrays and absent booleans', () => {
+		expect(
+			hasPolicyHints({
+				allowedActions: [],
+				actionOrder: [],
+			})
+		).toBe(false);
+	});
+
+	it('returns true for explicit boolean hints', () => {
+		expect(
+			hasPolicyHints({
+				scrollLock: false,
+			})
+		).toBe(true);
 	});
 });
 

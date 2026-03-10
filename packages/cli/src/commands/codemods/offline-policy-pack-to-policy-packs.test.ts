@@ -23,39 +23,13 @@ describe('offline-policy-pack-to-policy-packs codemod', () => {
 		}
 	});
 
-	it('lifts nested offline policy packs to top-level policyPacks', async () => {
+	it('moves top-level policyPacks into store.offlinePolicy.policies', async () => {
 		const source = `
 const options = {
 	mode: 'offline',
+	policyPacks: myPolicyPack,
 	store: {
 		offlinePolicy: {
-			policies: myPolicyPack,
-		},
-	},
-};
-`;
-		const { rootDir, filePath } = await createTempProject(source);
-
-		const result = await runOfflinePolicyPackToPolicyPacksCodemod({
-			projectRoot: rootDir,
-			dryRun: false,
-		});
-		const updated = await readFile(filePath, 'utf-8');
-
-		expect(result.changedFiles).toHaveLength(1);
-		expect(updated).toContain('policyPacks: myPolicyPack');
-		expect(updated).not.toContain('policies: myPolicyPack');
-		expect(updated).not.toContain('offlinePolicy: {');
-		expect(updated).not.toContain('store: {');
-	});
-
-	it('preserves non-pack offlinePolicy fields', async () => {
-		const source = `
-const options = {
-	mode: 'offline',
-	store: {
-		offlinePolicy: {
-			policyPack: myPolicyPack,
 			policyDecision: previewDecision,
 		},
 	},
@@ -70,20 +44,67 @@ const options = {
 		const updated = await readFile(filePath, 'utf-8');
 
 		expect(result.changedFiles).toHaveLength(1);
-		expect(updated).toContain('policyPacks: myPolicyPack');
+		expect(updated).toContain('policies: myPolicyPack');
 		expect(updated).toContain('policyDecision: previewDecision');
+		expect(updated).not.toContain('policyPacks: myPolicyPack');
+	});
+
+	it('creates offlinePolicy when store already exists', async () => {
+		const source = `
+const options = {
+	mode: 'offline',
+	policyPacks: myPolicyPack,
+	store: {
+		enabled: true,
+	},
+};
+`;
+		const { rootDir, filePath } = await createTempProject(source);
+
+		const result = await runOfflinePolicyPackToPolicyPacksCodemod({
+			projectRoot: rootDir,
+			dryRun: false,
+		});
+		const updated = await readFile(filePath, 'utf-8');
+
+		expect(result.changedFiles).toHaveLength(1);
 		expect(updated).toContain('offlinePolicy: {');
-		expect(updated).not.toContain('policyPack: myPolicyPack');
+		expect(updated).toContain('policies: myPolicyPack');
+		expect(updated).toContain('enabled: true');
+		expect(updated).not.toContain('policyPacks: myPolicyPack');
+	});
+
+	it('preserves existing nested policies and removes legacy aliases', async () => {
+		const source = `
+const options = {
+	mode: 'offline',
+	policyPacks: myPolicyPack,
+	store: {
+		offlinePolicy: {
+			policies: nestedPolicies,
+			policyPack: legacyPolicyPack,
+		},
+	},
+};
+`;
+		const { rootDir, filePath } = await createTempProject(source);
+
+		const result = await runOfflinePolicyPackToPolicyPacksCodemod({
+			projectRoot: rootDir,
+			dryRun: false,
+		});
+		const updated = await readFile(filePath, 'utf-8');
+
+		expect(result.changedFiles).toHaveLength(1);
+		expect(updated).toContain('policies: nestedPolicies');
+		expect(updated).not.toContain('policyPack: legacyPolicyPack');
+		expect(updated).not.toContain('policyPacks: myPolicyPack');
 	});
 
 	it('supports dry-run without modifying files', async () => {
 		const source = `
 const options = {
-	store: {
-		offlinePolicy: {
-			policies: myPolicyPack,
-		},
-	},
+	policyPacks: myPolicyPack,
 };
 `;
 		const { rootDir, filePath } = await createTempProject(source);
@@ -95,7 +116,7 @@ const options = {
 		const unchanged = await readFile(filePath, 'utf-8');
 
 		expect(result.changedFiles).toHaveLength(1);
-		expect(unchanged).toContain('offlinePolicy: {');
-		expect(unchanged).not.toContain('policyPacks: myPolicyPack');
+		expect(unchanged).toContain('policyPacks: myPolicyPack');
+		expect(unchanged).not.toContain('policies: myPolicyPack');
 	});
 });

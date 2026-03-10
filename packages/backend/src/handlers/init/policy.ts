@@ -21,28 +21,28 @@ export type ResolvedRuntimePolicy = SharedResolvedRuntimePolicy;
 export type ResolvedPolicyDecision = SharedResolvedPolicyDecision;
 
 export function inspectPolicies(
-	policies: BackendPolicyConfig[],
+	policies: unknown,
 	options?: { iabEnabled?: boolean }
 ): PolicyValidationResult {
-	return inspectPoliciesShared(policies as SharedPolicyConfig[], options);
+	return inspectPoliciesShared(policies, options);
 }
 
 export function validatePolicies(
-	policies: BackendPolicyConfig[],
+	policies: unknown,
 	options?: { iabEnabled?: boolean }
 ): void {
-	validatePoliciesShared(policies as SharedPolicyConfig[], options);
+	validatePoliciesShared(policies, options);
 }
 
 export async function resolvePolicyDecision(params: {
-	policies?: BackendPolicyConfig[];
+	policies?: unknown;
 	countryCode: string | null;
 	regionCode: string | null;
 	jurisdiction: BackendJurisdictionCode;
 	iabEnabled?: boolean;
 }): Promise<ResolvedPolicyDecision | undefined> {
 	return resolvePolicyDecisionShared({
-		policies: params.policies as SharedPolicyConfig[] | undefined,
+		policies: params.policies,
 		countryCode: params.countryCode,
 		regionCode: params.regionCode,
 		jurisdiction: params.jurisdiction as SharedJurisdictionCode,

@@ -635,7 +635,7 @@ describe('Consent Store', () => {
 
 			store.setState({
 				policyCategories: ['necessary', 'measurement'],
-				policyScopeMode: 'unmanaged',
+				policyScopeMode: 'permissive',
 				consents: {
 					necessary: true,
 					marketing: false,

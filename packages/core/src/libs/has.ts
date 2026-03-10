@@ -51,7 +51,7 @@ export interface HasOptions {
 	/**
 	 * Runtime scope handling for out-of-policy categories.
 	 */
-	policyScopeMode?: 'strict' | 'unmanaged' | null;
+	policyScopeMode?: 'strict' | 'permissive' | null;
 }
 
 /**

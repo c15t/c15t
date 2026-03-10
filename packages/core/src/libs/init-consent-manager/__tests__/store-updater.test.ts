@@ -64,7 +64,7 @@ describe('updateStore - cmpId merging', () => {
 		});
 	});
 
-	it('should override client cmpId with server-provided cmpId', () => {
+	it('should override client cmpId with server-provided cmpId', async () => {
 		const data = createMockConsentBannerResponse({
 			jurisdiction: 'GDPR',
 			gvl: {
@@ -90,7 +90,7 @@ describe('updateStore - cmpId merging', () => {
 			initialTranslationConfig: undefined,
 		};
 
-		updateStore(data, config, true, data.gvl);
+		await updateStore(data, config, true, data.gvl);
 
 		// The store should have the server-provided cmpId
 		expect(mockSet).toHaveBeenCalledWith(
@@ -104,7 +104,7 @@ describe('updateStore - cmpId merging', () => {
 		);
 	});
 
-	it('should keep client cmpId when server does not provide one', () => {
+	it('should keep client cmpId when server does not provide one', async () => {
 		const data = createMockConsentBannerResponse({
 			jurisdiction: 'GDPR',
 			gvl: {
@@ -129,7 +129,7 @@ describe('updateStore - cmpId merging', () => {
 			initialTranslationConfig: undefined,
 		};
 
-		updateStore(data, config, true, data.gvl);
+		await updateStore(data, config, true, data.gvl);
 
 		// The store should NOT have been updated with a new iab config
 		// (no cmpId from server means no override)
@@ -178,10 +178,10 @@ describe('updateStore - GPC override', () => {
 		return { data, config };
 	}
 
-	it('should deny marketing/measurement when GPC override is true in opt-out jurisdiction', () => {
+	it('should deny marketing/measurement when GPC override is true in opt-out jurisdiction', async () => {
 		const { data, config } = setup({ gpc: true }, 'CCPA');
 
-		updateStore(data, config, true);
+		await updateStore(data, config, true);
 
 		expect(mockSet).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -194,12 +194,12 @@ describe('updateStore - GPC override', () => {
 		);
 	});
 
-	it('should allow marketing/measurement when GPC override is false in opt-out jurisdiction', () => {
+	it('should allow marketing/measurement when GPC override is false in opt-out jurisdiction', async () => {
 		// Even if browser has GPC active, the override should suppress it
 		vi.mocked(hasGlobalPrivacyControlSignal).mockReturnValue(true);
 		const { data, config } = setup({ gpc: false }, 'CCPA');
 
-		updateStore(data, config, true);
+		await updateStore(data, config, true);
 
 		expect(mockSet).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -211,11 +211,11 @@ describe('updateStore - GPC override', () => {
 		);
 	});
 
-	it('should fall back to browser GPC signal when override is undefined', () => {
+	it('should fall back to browser GPC signal when override is undefined', async () => {
 		vi.mocked(hasGlobalPrivacyControlSignal).mockReturnValue(true);
 		const { data, config } = setup(undefined, 'CCPA');
 
-		updateStore(data, config, true);
+		await updateStore(data, config, true);
 
 		expect(hasGlobalPrivacyControlSignal).toHaveBeenCalled();
 		expect(mockSet).toHaveBeenCalledWith(
@@ -228,10 +228,10 @@ describe('updateStore - GPC override', () => {
 		);
 	});
 
-	it('should have no effect on opt-in (GDPR) jurisdictions regardless of GPC override', () => {
+	it('should have no effect on opt-in (GDPR) jurisdictions regardless of GPC override', async () => {
 		const { data, config } = setup({ gpc: true }, 'GDPR');
 
-		updateStore(data, config, true);
+		await updateStore(data, config, true);
 
 		// In GDPR jurisdiction, the model is 'opt-in' so consents are NOT auto-granted
 		// (user must explicitly consent). GPC override should not change this behavior.
@@ -252,7 +252,7 @@ describe('updateStore - translation precedence', () => {
 		vi.clearAllMocks();
 	});
 
-	it('keeps server/runtime language as default language when initial config has a different default', () => {
+	it('keeps server/runtime language as default language when initial config has a different default', async () => {
 		const data = createMockConsentBannerResponse({
 			translations: {
 				language: 'de',
@@ -285,7 +285,7 @@ describe('updateStore - translation precedence', () => {
 		const mockGet = vi.fn().mockReturnValue(mockState);
 		const mockSet = vi.fn();
 
-		updateStore(
+		await updateStore(
 			data,
 			{
 				get: mockGet,
@@ -327,7 +327,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		vi.clearAllMocks();
 	});
 
-	it('treats out-of-policy categories as out-of-scope (hidden and false)', () => {
+	it('treats out-of-policy categories as out-of-scope (hidden and false)', async () => {
 		const data = createMockConsentBannerResponse({
 			jurisdiction: 'GDPR',
 			policy: {
@@ -365,7 +365,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		const mockGet = vi.fn().mockReturnValue(mockState);
 		const mockSet = vi.fn();
 
-		updateStore(
+		await updateStore(
 			data,
 			{
 				get: mockGet,
@@ -397,7 +397,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		);
 	});
 
-	it('does not restrict categories when policy purpose scope is wildcard', () => {
+	it('does not restrict categories when policy purpose scope is wildcard', async () => {
 		const data = createMockConsentBannerResponse({
 			jurisdiction: 'GDPR',
 			policy: {
@@ -415,7 +415,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		const mockGet = vi.fn().mockReturnValue(mockState);
 		const mockSet = vi.fn();
 
-		updateStore(
+		await updateStore(
 			data,
 			{
 				get: mockGet,
@@ -433,7 +433,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		);
 	});
 
-	it('preselects configured categories on first visit without granting consent', () => {
+	it('preselects configured categories on first visit without granting consent', async () => {
 		const data = createMockConsentBannerResponse({
 			jurisdiction: 'UK_GDPR',
 			policy: {
@@ -466,7 +466,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		const mockGet = vi.fn().mockReturnValue(mockState);
 		const mockSet = vi.fn();
 
-		updateStore(
+		await updateStore(
 			data,
 			{
 				get: mockGet,
@@ -497,7 +497,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		);
 	});
 
-	it('stores policy UI action order/layout hints from init response', () => {
+	it('stores policy UI action order/layout hints from init response', async () => {
 		const data = createMockConsentBannerResponse({
 			jurisdiction: 'CCPA',
 			policy: {
@@ -519,7 +519,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		const mockGet = vi.fn().mockReturnValue(mockState);
 		const mockSet = vi.fn();
 
-		updateStore(
+		await updateStore(
 			data,
 			{
 				get: mockGet,
@@ -532,17 +532,19 @@ describe('updateStore - policy purpose/category restrictions', () => {
 
 		expect(mockSet).toHaveBeenCalledWith(
 			expect.objectContaining({
-				policyBannerAllowedActions: ['accept', 'reject'],
-				policyBannerPrimaryAction: 'accept',
-				policyBannerActionOrder: ['reject', 'accept'],
-				policyBannerActionLayout: 'inline',
-				policyBannerUiProfile: 'balanced',
-				policyBannerScrollLock: true,
+				policyBanner: {
+					allowedActions: ['accept', 'reject'],
+					primaryAction: 'accept',
+					actionOrder: ['reject', 'accept'],
+					actionLayout: 'inline',
+					uiProfile: 'balanced',
+					scrollLock: true,
+				},
 			})
 		);
 	});
 
-	it('stores dialog policy UI fields independently from banner fields', () => {
+	it('stores dialog policy UI fields independently from banner fields', async () => {
 		const data = createMockConsentBannerResponse({
 			jurisdiction: 'CCPA',
 			policy: {
@@ -565,7 +567,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		const mockGet = vi.fn().mockReturnValue(mockState);
 		const mockSet = vi.fn();
 
-		updateStore(
+		await updateStore(
 			data,
 			{
 				get: mockGet,
@@ -578,13 +580,15 @@ describe('updateStore - policy purpose/category restrictions', () => {
 
 		expect(mockSet).toHaveBeenCalledWith(
 			expect.objectContaining({
-				policyDialogAllowedActions: ['customize'],
-				policyDialogPrimaryAction: 'customize',
-				policyDialogActionOrder: ['customize'],
-				policyDialogActionLayout: 'inline',
-				policyDialogUiProfile: 'balanced',
-				policyDialogScrollLock: false,
-				policyBannerAllowedActions: null,
+				policyDialog: {
+					allowedActions: ['customize'],
+					primaryAction: 'customize',
+					actionOrder: ['customize'],
+					actionLayout: 'inline',
+					uiProfile: 'balanced',
+					scrollLock: false,
+				},
+				policyBanner: {},
 			})
 		);
 	});

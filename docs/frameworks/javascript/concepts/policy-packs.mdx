@@ -18,7 +18,9 @@ import { getOrCreateConsentRuntime } from 'c15t';
 
 const { consentStore } = getOrCreateConsentRuntime({
   mode: 'offline',
-  policyPacks: [...],
+  offlinePolicy: {
+    policies: [...],
+  },
   overrides: { country: 'DE' },
 });
 

@@ -126,8 +126,8 @@ export const ConsentDialog: FC<ConsentDialogProps> = ({
 	models,
 	uiSource,
 }) => {
-	const { activeUI, policyDialogScrollLock } = useConsentManager();
-	const resolvedScrollLock = localScrollLock ?? policyDialogScrollLock ?? true;
+	const { activeUI, policyDialog } = useConsentManager();
+	const resolvedScrollLock = localScrollLock ?? policyDialog.scrollLock ?? true;
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({

@@ -92,7 +92,7 @@ function RuntimeStatePanel() {
 					</div>
 					<div>
 						<span className="text-muted-foreground">scopeMode:</span>{' '}
-						{policyScopeMode ?? 'unmanaged'}
+						{policyScopeMode ?? 'permissive'}
 					</div>
 					<div className="sm:col-span-2">
 						<span className="text-muted-foreground">categories:</span>{' '}
@@ -144,7 +144,7 @@ export function PolicyOfflineLab() {
 	const effectiveIabEnabled = iabEnabled || policyPreset === 'iab-europe';
 	const providerKey = `${instanceNonce}-${effectiveIabEnabled}-${policyPreset}-${normalizedCountry}-${normalizedRegion}`;
 
-	const policyPacks = useMemo(() => {
+	const offlinePolicies = useMemo(() => {
 		switch (policyPreset) {
 			case 'default-pack':
 				return [
@@ -178,7 +178,7 @@ export function PolicyOfflineLab() {
 			case 'empty':
 				return 'Explicit empty pack. Offline mode resolves to no banner.';
 			default:
-				return 'No explicit policy packs. Offline mode falls back to the default opt-in banner.';
+				return 'No explicit offline policy config. Offline mode falls back to the default opt-in banner.';
 		}
 	}, [policyPreset]);
 
@@ -190,8 +190,8 @@ export function PolicyOfflineLab() {
 						Offline Policy Packs
 					</h1>
 					<p className="text-muted-foreground">
-						Test the shared offline policy-pack behavior using the same presets
-						exported for hosted mode.
+						Test offline policy resolution using the same presets exported for
+						hosted mode.
 					</p>
 					<div className="flex flex-wrap gap-2 text-sm">
 						<Link
@@ -207,9 +207,9 @@ export function PolicyOfflineLab() {
 					<CardHeader>
 						<CardTitle>Offline Controls</CardTitle>
 						<CardDescription>
-							The provider now accepts top-level `policyPacks`. No pack uses the
-							offline opt-in fallback. Empty or unmatched packs resolve to no
-							banner.
+							Configure offline previews with `offlinePolicy.policies`. No
+							policy config uses the offline opt-in fallback. Empty or unmatched
+							packs resolve to no banner.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-4">
@@ -342,7 +342,10 @@ export function PolicyOfflineLab() {
 						iab: {
 							enabled: effectiveIabEnabled,
 						},
-						policyPacks,
+						offlinePolicy:
+							offlinePolicies === undefined
+								? undefined
+								: { policies: offlinePolicies },
 						overrides: {
 							...(normalizedCountry ? { country: normalizedCountry } : {}),
 							...(normalizedRegion ? { region: normalizedRegion } : {}),

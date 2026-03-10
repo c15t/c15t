@@ -8,7 +8,7 @@ function offlineOptInBannerPolicy(): ResolvedPolicy {
 		model: 'opt-in',
 		consent: {
 			expiryDays: 365,
-			scopeMode: 'unmanaged',
+			scopeMode: 'permissive',
 			categories: ['*'],
 		},
 		ui: {
@@ -53,7 +53,7 @@ function offlineIabPolicy(): ResolvedPolicy {
 		model: 'iab',
 		consent: {
 			expiryDays: 365,
-			scopeMode: 'unmanaged',
+			scopeMode: 'permissive',
 			categories: ['*'],
 		},
 	};

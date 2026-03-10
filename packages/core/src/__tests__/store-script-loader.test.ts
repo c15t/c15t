@@ -294,7 +294,7 @@ describe('Store Script Loader Integration', () => {
 			expect(loadedIds).not.toContain('marketing-script');
 		});
 
-		it('should load out-of-policy category scripts as unmanaged', () => {
+		it('should load out-of-policy category scripts as permissive', () => {
 			const store = createTestStore({
 				necessary: true,
 				marketing: false,
@@ -305,7 +305,7 @@ describe('Store Script Loader Integration', () => {
 
 			store.setState({
 				policyCategories: ['necessary', 'measurement'],
-				policyScopeMode: 'unmanaged',
+				policyScopeMode: 'permissive',
 			});
 
 			store.getState().setScripts([scripts[1]]);

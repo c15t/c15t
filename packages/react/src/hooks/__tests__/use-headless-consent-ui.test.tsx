@@ -27,18 +27,8 @@ function createMockState(
 		consentTypes: [],
 		policyCategories: null,
 		policyScopeMode: null,
-		policyBannerAllowedActions: null,
-		policyBannerPrimaryAction: null,
-		policyBannerActionOrder: null,
-		policyBannerActionLayout: null,
-		policyBannerUiProfile: null,
-		policyBannerScrollLock: null,
-		policyDialogAllowedActions: null,
-		policyDialogPrimaryAction: null,
-		policyDialogActionOrder: null,
-		policyDialogActionLayout: null,
-		policyDialogUiProfile: null,
-		policyDialogScrollLock: null,
+		policyBanner: {},
+		policyDialog: {},
 		saveConsents: vi.fn().mockResolvedValue(undefined),
 		setActiveUI: vi.fn(),
 		...overrides,
@@ -67,18 +57,22 @@ describe('useHeadlessConsentUI', () => {
 	test('resolves policy-driven action state for banner and dialog', async () => {
 		const state = createMockState({
 			activeUI: 'banner',
-			policyBannerAllowedActions: ['accept', 'reject'],
-			policyBannerPrimaryAction: 'accept',
-			policyBannerActionOrder: ['reject', 'accept'],
-			policyBannerActionLayout: 'inline',
-			policyBannerUiProfile: 'balanced',
-			policyBannerScrollLock: true,
-			policyDialogAllowedActions: ['reject', 'accept', 'customize'],
-			policyDialogPrimaryAction: 'customize',
-			policyDialogActionOrder: ['customize', 'reject', 'accept'],
-			policyDialogActionLayout: 'split',
-			policyDialogUiProfile: 'strict',
-			policyDialogScrollLock: false,
+			policyBanner: {
+				allowedActions: ['accept', 'reject'],
+				primaryAction: 'accept',
+				actionOrder: ['reject', 'accept'],
+				actionLayout: 'inline',
+				uiProfile: 'balanced',
+				scrollLock: true,
+			},
+			policyDialog: {
+				allowedActions: ['reject', 'accept', 'customize'],
+				primaryAction: 'customize',
+				actionOrder: ['customize', 'reject', 'accept'],
+				actionLayout: 'split',
+				uiProfile: 'strict',
+				scrollLock: false,
+			},
 		});
 
 		const { result } = await renderHook(() => useHeadlessConsentUI(), {
@@ -113,7 +107,7 @@ describe('useHeadlessConsentUI', () => {
 		expect(result.current.dialog.isVisible).toBe(false);
 	});
 
-	test('opens dialog instead of saving when customize is performed from banner', async () => {
+	test('opens dialog when the caller uses the explicit navigation helper', async () => {
 		const setActiveUI = vi.fn();
 		const saveConsents = vi.fn().mockResolvedValue(undefined);
 		const state = createMockState({
@@ -126,7 +120,7 @@ describe('useHeadlessConsentUI', () => {
 			wrapper: createWrapper(state),
 		});
 
-		await result.current.performAction('customize', { surface: 'banner' });
+		result.current.openDialog();
 
 		expect(setActiveUI).toHaveBeenCalledWith('dialog');
 		expect(saveConsents).not.toHaveBeenCalled();
@@ -168,7 +162,7 @@ describe('useHeadlessConsentUI', () => {
 		});
 	});
 
-	test('supports customize action on dialog and maps it to custom consent', async () => {
+	test('saves custom preferences with the dialog ui source by default', async () => {
 		const saveConsents = vi.fn().mockResolvedValue(undefined);
 		const state = createMockState({
 			activeUI: 'none',
@@ -179,8 +173,27 @@ describe('useHeadlessConsentUI', () => {
 			wrapper: createWrapper(state),
 		});
 
-		await result.current.performDialogAction('customize');
+		await result.current.saveCustomPreferences();
 
 		expect(saveConsents).toHaveBeenCalledWith('custom', { uiSource: 'dialog' });
+	});
+
+	test('treats empty arrays as absent when calculating policy hints', async () => {
+		const state = createMockState({
+			policyBanner: {
+				allowedActions: [],
+				actionOrder: [],
+			},
+			policyDialog: {
+				scrollLock: false,
+			},
+		});
+
+		const { result } = await renderHook(() => useHeadlessConsentUI(), {
+			wrapper: createWrapper(state),
+		});
+
+		expect(result.current.banner.hasPolicyHints).toBe(false);
+		expect(result.current.dialog.hasPolicyHints).toBe(true);
 	});
 });

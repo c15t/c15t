@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 type PolicyModel = 'opt-in' | 'opt-out' | 'none' | 'iab';
 type PolicyMatchedBy = 'region' | 'country' | 'jurisdiction' | 'default';
-type PolicyScopeMode = 'strict' | 'unmanaged';
+type PolicyScopeMode = 'strict' | 'permissive';
 type PolicyUiMode = 'none' | 'banner' | 'dialog';
 type PolicyUiAction = 'accept' | 'reject' | 'customize';
 type PolicyUiActionLayout = 'split' | 'inline';
@@ -280,7 +280,7 @@ const scenarios: ScenarioDefinition[] = [
 			actionLayout: 'inline',
 			scrollLock: true,
 			disallowedActions: ['reject'],
-			scopeMode: 'unmanaged',
+			scopeMode: 'permissive',
 			categories: [
 				'necessary',
 				'functionality',
@@ -314,7 +314,7 @@ const scenarios: ScenarioDefinition[] = [
 			allowedActions: ['accept', 'reject', 'customize'],
 			actionOrder: ['customize', 'reject', 'accept'],
 			actionLayout: 'split',
-			scopeMode: 'unmanaged',
+			scopeMode: 'permissive',
 			categories: ['necessary', 'measurement'],
 			expiryDays: 90,
 			languagePrefix: 'ja',
@@ -369,7 +369,7 @@ const scenarios: ScenarioDefinition[] = [
 			policyId: 'policy_fr',
 			matchedBy: 'country',
 			model: 'iab',
-			scopeMode: 'unmanaged',
+			scopeMode: 'permissive',
 			categories: ['*'],
 			expiryDays: 180,
 			languagePrefix: 'fr',

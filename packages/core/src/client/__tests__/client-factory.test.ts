@@ -70,7 +70,7 @@ describe('Client Factory Tests', () => {
 			mode: 'offline',
 			store: {
 				offlinePolicy: {
-					policyPack: [
+					policies: [
 						{
 							id: 'policy_us',
 							match: { countries: ['US'] },
@@ -86,7 +86,7 @@ describe('Client Factory Tests', () => {
 			mode: 'offline',
 			store: {
 				offlinePolicy: {
-					policyPack: [
+					policies: [
 						{
 							consent: { categories: ['necessary'], model: 'opt-in' },
 							match: { countries: ['US'] },

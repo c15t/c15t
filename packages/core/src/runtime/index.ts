@@ -1,4 +1,3 @@
-import type { PolicyConfig } from '@c15t/schema/types';
 import {
 	type I18nConfig,
 	normalizeI18nConfig,
@@ -46,15 +45,8 @@ export type ConsentRuntimeOptions = ConsentManagerOptions &
 		translations?: Partial<TranslationConfig>;
 		consentCategories?: AllConsentNames[];
 		/**
-		 * Offline-only policy pack alias for `store.offlinePolicy.policyPack`.
-		 *
-		 * @remarks
-		 * This is the headless/runtime equivalent of the React provider
-		 * `policyPacks` option. It is ignored outside `mode: 'offline'`.
-		 *
-		 * @see {@link https://v2.c15t.com/docs/frameworks/javascript/policy-packs}
+		 * Enables verbose runtime diagnostics.
 		 */
-		policyPacks?: PolicyConfig[];
 		debug?: boolean;
 	};
 
@@ -119,7 +111,6 @@ export function getOrCreateConsentRuntime(
 		enabled,
 		iab,
 		offlinePolicy,
-		policyPacks,
 		consentCategories,
 		debug,
 		headers: _unusedHeaders,
@@ -157,14 +148,7 @@ export function getOrCreateConsentRuntime(
 		: [];
 	const resolvedIab = iab ?? storeWithoutTranslationInputs.iab;
 	const resolvedOfflinePolicy =
-		offlinePolicy ??
-		(policyPacks !== undefined
-			? {
-					...storeWithoutTranslationInputs.offlinePolicy,
-					policyPack: policyPacks,
-					policies: undefined,
-				}
-			: storeWithoutTranslationInputs.offlinePolicy);
+		offlinePolicy ?? storeWithoutTranslationInputs.offlinePolicy;
 	const resolvedStorageConfig =
 		storageConfig ?? storeWithoutTranslationInputs.storageConfig;
 	const resolvedEnabled = enabled ?? storeWithoutTranslationInputs.enabled;

@@ -14,7 +14,7 @@ export interface ReactUIOptions extends UIOptions {}
  * - Base framework-agnostic options from {@link BaseConsentManagerOptions}
  * - React-specific UI configuration
  *
- * In offline mode this also includes the top-level `policyPacks` alias for
+ * In offline mode this also includes `offlinePolicy` configuration for
  * local policy previews.
  *
  * @see {@link https://v2.c15t.com/docs/frameworks/react/policy-packs}

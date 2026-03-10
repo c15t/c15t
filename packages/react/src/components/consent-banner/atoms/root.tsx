@@ -128,7 +128,7 @@ const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
 	uiSource,
 	...props
 }) => {
-	const { policyBannerScrollLock } = useConsentManager();
+	const { policyBanner } = useConsentManager();
 
 	/**
 	 * Combine consent manager state with styling configuration
@@ -137,7 +137,7 @@ const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
 	const contextValue = {
 		disableAnimation,
 		noStyle,
-		scrollLock: scrollLock ?? policyBannerScrollLock ?? undefined,
+		scrollLock: scrollLock ?? policyBanner.scrollLock ?? undefined,
 		trapFocus,
 	};
 

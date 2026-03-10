@@ -330,7 +330,7 @@ describe('has - Consent Condition Evaluation', () => {
 	});
 
 	describe('Policy-Aware Options', () => {
-		it('should treat out-of-scope categories as granted in unmanaged mode', () => {
+		it('should treat out-of-scope categories as granted in permissive mode', () => {
 			const consents: ConsentState = {
 				necessary: true,
 				measurement: false,
@@ -342,13 +342,13 @@ describe('has - Consent Condition Evaluation', () => {
 			expect(
 				has('experience', consents, {
 					policyCategories: ['necessary', 'measurement'],
-					policyScopeMode: 'unmanaged',
+					policyScopeMode: 'permissive',
 				})
 			).toBe(true);
 			expect(
 				has('measurement', consents, {
 					policyCategories: ['necessary', 'measurement'],
-					policyScopeMode: 'unmanaged',
+					policyScopeMode: 'permissive',
 				})
 			).toBe(false);
 		});

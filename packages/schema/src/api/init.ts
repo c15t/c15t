@@ -3,6 +3,12 @@ import { brandingSchema } from '~/shared/branding';
 import { globalVendorListSchema } from '~/shared/gvl';
 import { jurisdictionCodeSchema } from '~/shared/jurisdiction';
 import { nonIABVendorSchema } from '~/shared/non-iab-vendor';
+import {
+	policyModelSchema,
+	policyScopeModeSchema,
+	policyUiModeSchema,
+	policyUiSurfaceConfigSchema,
+} from '~/shared/policy-schema';
 
 /**
  * Title and description schema for translations
@@ -112,16 +118,6 @@ export const locationSchema = v.object({
 });
 
 /**
- * Runtime consent model resolved by backend policy.
- */
-export const consentModelSchema = v.picklist([
-	'opt-in',
-	'opt-out',
-	'none',
-	'iab',
-]);
-
-/**
  * Matching strategy used to resolve the policy for the request.
  */
 export const policyMatchedBySchema = v.picklist([
@@ -132,56 +128,11 @@ export const policyMatchedBySchema = v.picklist([
 ]);
 
 /**
- * UI mode selected by policy.
- */
-export const policyUiModeSchema = v.picklist(['none', 'banner', 'dialog']);
-
-/**
- * Allowed UI actions selected by policy.
- */
-export const policyUiActionSchema = v.picklist([
-	'accept',
-	'reject',
-	'customize',
-]);
-
-/**
- * Layout style for policy-driven action rendering.
- */
-export const policyUiActionLayoutSchema = v.picklist(['split', 'inline']);
-
-/**
- * Presentation profile for policy-driven action styling.
- */
-export const policyUiProfileSchema = v.picklist([
-	'balanced',
-	'compact',
-	'strict',
-]);
-
-/**
- * Surface-level action configuration for policy-driven UI.
- */
-export const policyUiSurfaceSchema = v.object({
-	allowedActions: v.optional(v.array(policyUiActionSchema)),
-	primaryAction: v.optional(policyUiActionSchema),
-	actionOrder: v.optional(v.array(policyUiActionSchema)),
-	actionLayout: v.optional(policyUiActionLayoutSchema),
-	uiProfile: v.optional(policyUiProfileSchema),
-	scrollLock: v.optional(v.boolean()),
-});
-
-/**
- * Scope behavior for purposes outside policy allowlist.
- */
-export const policyScopeModeSchema = v.picklist(['strict', 'unmanaged']);
-
-/**
  * Resolved runtime policy returned by /init.
  */
 export const resolvedPolicySchema = v.object({
 	id: v.string(),
-	model: consentModelSchema,
+	model: policyModelSchema,
 	i18n: v.optional(
 		v.object({
 			language: v.optional(v.string()),
@@ -199,8 +150,8 @@ export const resolvedPolicySchema = v.object({
 	ui: v.optional(
 		v.object({
 			mode: v.optional(policyUiModeSchema),
-			banner: v.optional(policyUiSurfaceSchema),
-			dialog: v.optional(policyUiSurfaceSchema),
+			banner: v.optional(policyUiSurfaceConfigSchema),
+			dialog: v.optional(policyUiSurfaceConfigSchema),
 		})
 	),
 	proof: v.optional(

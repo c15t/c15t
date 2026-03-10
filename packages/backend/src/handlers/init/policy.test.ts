@@ -57,7 +57,7 @@ describe('resolvePolicyDecision', () => {
 
 		expect(result?.policy.id).toBe('default');
 		expect(result?.matchedBy).toBe('default');
-		expect(result?.policy.consent?.scopeMode).toBe('unmanaged');
+		expect(result?.policy.consent?.scopeMode).toBe('permissive');
 	});
 
 	it('preserves first-match order for overlapping matcher keys', async () => {

@@ -102,78 +102,78 @@ export function renderPolicyPanel(
 				'Banner Actions',
 				formatPolicyActions(
 					activePolicy?.ui?.banner?.allowedActions ??
-						state.policyBannerAllowedActions
+						state.policyBanner.allowedActions
 				)
 			),
 			createCompactInfoCard(
 				'Banner Primary',
 				activePolicy?.ui?.banner?.primaryAction ??
-					state.policyBannerPrimaryAction ??
+					state.policyBanner.primaryAction ??
 					'—'
 			),
 			createCompactInfoCard(
 				'Banner Order',
 				formatPolicyActions(
 					activePolicy?.ui?.banner?.actionOrder ??
-						state.policyBannerActionOrder ??
+						state.policyBanner.actionOrder ??
 						null
 				)
 			),
 			createCompactInfoCard(
 				'Banner Layout',
 				activePolicy?.ui?.banner?.actionLayout ??
-					state.policyBannerActionLayout ??
+					state.policyBanner.actionLayout ??
 					'—'
 			),
 			createCompactInfoCard(
 				'Banner Profile',
 				activePolicy?.ui?.banner?.uiProfile ??
-					state.policyBannerUiProfile ??
+					state.policyBanner.uiProfile ??
 					'—'
 			),
 			createCompactInfoCard(
 				'Banner Scroll Lock',
 				formatPolicyScrollLock(
-					activePolicy?.ui?.banner?.scrollLock ?? state.policyBannerScrollLock
+					activePolicy?.ui?.banner?.scrollLock ?? state.policyBanner.scrollLock
 				)
 			),
 			createCompactInfoCard(
 				'Dialog Actions',
 				formatPolicyActions(
 					activePolicy?.ui?.dialog?.allowedActions ??
-						state.policyDialogAllowedActions
+						state.policyDialog.allowedActions
 				)
 			),
 			createCompactInfoCard(
 				'Dialog Primary',
 				activePolicy?.ui?.dialog?.primaryAction ??
-					state.policyDialogPrimaryAction ??
+					state.policyDialog.primaryAction ??
 					'—'
 			),
 			createCompactInfoCard(
 				'Dialog Order',
 				formatPolicyActions(
 					activePolicy?.ui?.dialog?.actionOrder ??
-						state.policyDialogActionOrder ??
+						state.policyDialog.actionOrder ??
 						null
 				)
 			),
 			createCompactInfoCard(
 				'Dialog Layout',
 				activePolicy?.ui?.dialog?.actionLayout ??
-					state.policyDialogActionLayout ??
+					state.policyDialog.actionLayout ??
 					'—'
 			),
 			createCompactInfoCard(
 				'Dialog Profile',
 				activePolicy?.ui?.dialog?.uiProfile ??
-					state.policyDialogUiProfile ??
+					state.policyDialog.uiProfile ??
 					'—'
 			),
 			createCompactInfoCard(
 				'Dialog Scroll Lock',
 				formatPolicyScrollLock(
-					activePolicy?.ui?.dialog?.scrollLock ?? state.policyDialogScrollLock
+					activePolicy?.ui?.dialog?.scrollLock ?? state.policyDialog.scrollLock
 				)
 			),
 			createCompactInfoCard(
@@ -250,7 +250,7 @@ function getScopeModeLabel(mode: string | null | undefined): string {
 	switch (mode) {
 		case 'strict':
 			return 'Strict';
-		case 'unmanaged':
+		case 'permissive':
 			return 'Unmanaged';
 		default:
 			return '—';

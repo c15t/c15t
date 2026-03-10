@@ -3,7 +3,6 @@
  * This module provides the main factory function for creating
  * client instances based on configuration options.
  */
-import type { PolicyConfig } from '@c15t/schema/types';
 import { createDeterministicFingerprintSync } from '@c15t/schema/types';
 import type { StoreOptions } from '../store/type';
 import type { ConsentManagerInterface } from './client-interface';
@@ -77,22 +76,12 @@ function assertUnreachableMode(mode: never): never {
 function resolveOfflinePolicyOption(options: {
 	store?: StoreOptions;
 	offlinePolicy?: StoreOptions['offlinePolicy'];
-	policyPacks?: PolicyConfig[];
 }): StoreOptions['offlinePolicy'] | undefined {
-	const nestedOfflinePolicy = options.store?.offlinePolicy;
-	if (options.offlinePolicy) {
+	if (options.offlinePolicy !== undefined) {
 		return options.offlinePolicy;
 	}
 
-	if (options.policyPacks !== undefined) {
-		return {
-			...nestedOfflinePolicy,
-			policyPack: options.policyPacks,
-			policies: undefined,
-		};
-	}
-
-	return nestedOfflinePolicy;
+	return options.store?.offlinePolicy;
 }
 
 // Add at the module level (before the configureConsentManager function)
@@ -300,19 +289,7 @@ export type OfflineClientOptions = {
 export type ConsentManagerOptions = {
 	store?: StoreOptions;
 	/**
-	 * Top-level ergonomic alias for `store.offlinePolicy.policyPack`.
-	 *
-	 * @remarks
-	 * This is primarily intended for React/Next.js provider usage where
-	 * policy packs are passed directly to the provider options object.
-	 * Ignored unless `mode: 'offline'`.
-	 *
-	 * @see {@link https://v2.c15t.com/docs/frameworks/react/policy-packs}
-	 * @see {@link https://v2.c15t.com/docs/frameworks/next/policy-packs}
-	 */
-	policyPacks?: PolicyConfig[];
-	/**
-	 * Top-level ergonomic alias for `store.offlinePolicy`.
+	 * Top-level offline policy configuration.
 	 *
 	 * @remarks
 	 * When provided, this takes precedence over `store.offlinePolicy`.

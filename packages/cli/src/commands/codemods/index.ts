@@ -167,8 +167,8 @@ const codemods: CodemodDefinition[] = [
 	},
 	{
 		id: 'offline-policy-pack-to-policy-packs',
-		label: 'offline policy pack -> policyPacks',
-		hint: 'Lifts store.offlinePolicy.policies/policyPack to top-level policyPacks.',
+		label: 'policyPacks -> offlinePolicy.policies',
+		hint: 'Moves the removed top-level policyPacks shorthand into offlinePolicy.policies.',
 		run: async (context, dryRun) => {
 			const { projectRoot } = context;
 			const result = await runOfflinePolicyPackToPolicyPacksCodemod({

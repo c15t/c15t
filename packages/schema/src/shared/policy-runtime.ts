@@ -1,6 +1,14 @@
+import * as v from 'valibot';
 import type { PolicyDecision, ResolvedPolicy } from '~/api/init';
 import type { jurisdictionCodes } from './constants';
 import { createPolicyFingerprint } from './policy-fingerprint';
+import { policyConfigArraySchema } from './policy-schema';
+import {
+	compactDefined,
+	dedupeDefinedValues,
+	dedupeTrimmedStrings,
+	hasRealPolicyUiHints,
+} from './policy-utils';
 
 export {
 	createPolicyFingerprint,
@@ -10,7 +18,7 @@ export {
 
 export type JurisdictionCode = (typeof jurisdictionCodes)[number];
 export type PolicyModel = 'opt-in' | 'opt-out' | 'none' | 'iab';
-export type PolicyScopeMode = 'strict' | 'unmanaged';
+export type PolicyScopeMode = 'strict' | 'permissive';
 export type PolicyUiMode = 'none' | 'banner' | 'dialog';
 export type PolicyUiAction = 'accept' | 'reject' | 'customize';
 export type PolicyUiActionLayout = 'split' | 'inline';
@@ -40,7 +48,7 @@ export interface PolicyUiSurfaceConfig {
  * @remarks
  * Policy packs are ordered arrays of `PolicyConfig`. On the backend they are
  * configured via `c15tInstance({ policyPacks })`; on the frontend they can be
- * previewed in offline mode with `policyPacks`.
+ * previewed in offline mode with `offlinePolicy.policies`.
  *
  * c15t resolves packs with fixed precedence:
  *
@@ -70,6 +78,14 @@ export interface PolicyConfig {
 	consent?: {
 		model?: PolicyModel;
 		expiryDays?: number;
+		/**
+		 * Controls how categories outside the `categories` allowlist are treated.
+		 *
+		 * - `'permissive'` (default): out-of-scope categories are not blocked by
+		 *   c15t runtime — scripts and iframes for those categories load normally.
+		 * - `'strict'`: out-of-scope categories remain blocked and are enforced on
+		 *   consent writes (the backend rejects preferences for disallowed categories).
+		 */
 		scopeMode?: PolicyScopeMode;
 		categories?: string[];
 		preselectedCategories?: string[];
@@ -85,6 +101,15 @@ export interface PolicyConfig {
 		storeLanguage?: boolean;
 	};
 }
+
+/**
+ * Ordered collection of policies resolved with first-match-wins semantics.
+ *
+ * @remarks
+ * On the backend this is configured via `policyPacks`; in frontend offline
+ * mode it is provided via `offlinePolicy.policies`.
+ */
+export type PolicyPack = PolicyConfig[];
 
 /**
  * Matcher portion of a {@link PolicyConfig}.
@@ -122,7 +147,9 @@ export interface PolicyValidationResult {
 	warnings: string[];
 }
 
-export const POLICY_MATCH_DATASET_VERSION = '2026-03-02';
+// Manual matcher-data revision marker. Update this whenever the jurisdiction
+// or built-in matcher tables change.
+export const POLICY_MATCH_DATASET_VERSION = '2026-03-10';
 
 export const EU_COUNTRY_CODES = [
 	'AT',
@@ -177,12 +204,8 @@ function normalizeRegion(input: { country: string; region: string }): {
 	};
 }
 
-function dedupeStrings(values: string[]): string[] {
-	return [...new Set(values)];
-}
-
 function dedupeJurisdictions(values: JurisdictionCode[]): JurisdictionCode[] {
-	return [...new Set(values)];
+	return dedupeDefinedValues(values) ?? [];
 }
 
 /**
@@ -201,9 +224,10 @@ export const policyMatchers = {
 
 	countries(countries: string[]): PolicyMatch {
 		return {
-			countries: dedupeStrings(
-				countries.map((country) => normalizeCountry(country))
-			),
+			countries:
+				dedupeDefinedValues(
+					countries.map((country) => normalizeCountry(country))
+				) ?? [],
 		};
 	},
 
@@ -251,10 +275,11 @@ export const policyMatchers = {
 				merged.isDefault = true;
 			}
 			if (match.countries?.length) {
-				merged.countries = dedupeStrings([
-					...(merged.countries ?? []),
-					...match.countries.map((country) => normalizeCountry(country)),
-				]);
+				merged.countries =
+					dedupeDefinedValues([
+						...(merged.countries ?? []),
+						...match.countries.map((country) => normalizeCountry(country)),
+					]) ?? [];
 			}
 			if (match.regions?.length) {
 				merged.regions = [
@@ -328,7 +353,7 @@ function normalizeCategories(policy: PolicyConfig): string[] | undefined {
 		return [POLICY_PURPOSE_WILDCARD];
 	}
 
-	return policy.consent?.categories;
+	return dedupeTrimmedStrings(policy.consent?.categories);
 }
 
 function normalizePreselectedCategories(
@@ -346,16 +371,16 @@ function normalizePreselectedCategories(
 
 	const categories = normalizeCategories(policy);
 	if (!categories || categories.length === 0 || categories.includes('*')) {
-		return dedupeStrings(preselectedCategories);
+		return dedupeTrimmedStrings(preselectedCategories);
 	}
 
-	return dedupeStrings(
+	return dedupeTrimmedStrings(
 		preselectedCategories.filter((category) => categories.includes(category))
 	);
 }
 
 function normalizeScopeMode(policy: PolicyConfig): PolicyScopeMode {
-	return policy.consent?.scopeMode ?? 'unmanaged';
+	return policy.consent?.scopeMode ?? 'permissive';
 }
 
 function hasUiConfig(policy: PolicyConfig): boolean {
@@ -373,11 +398,7 @@ function hasUiConfig(policy: PolicyConfig): boolean {
 }
 
 function hasUiSurfaceConfig(surface?: PolicyUiSurfaceConfig): boolean {
-	if (!surface) {
-		return false;
-	}
-
-	return Object.values(surface).some((value) => value !== undefined);
+	return hasRealPolicyUiHints(surface);
 }
 
 function hasExplicitMatchers(policy: PolicyConfig): boolean {
@@ -532,30 +553,95 @@ function collectPolicyWarnings(policies: PolicyConfig[]): string[] {
 	return [...warnings];
 }
 
+function formatPolicyParseIssues(issues: unknown[]): string[] {
+	return issues.map((issue, index) => {
+		if (!issue || typeof issue !== 'object') {
+			return `Policy config is invalid at issue ${index + 1}.`;
+		}
+
+		const issueRecord = issue as {
+			message?: unknown;
+			path?: Array<{ key?: unknown }>;
+		};
+		const message =
+			typeof issueRecord.message === 'string'
+				? issueRecord.message
+				: 'Invalid policy config value.';
+		const path =
+			Array.isArray(issueRecord.path) && issueRecord.path.length > 0
+				? issueRecord.path
+						.map((segment) =>
+							typeof segment.key === 'string' || typeof segment.key === 'number'
+								? String(segment.key)
+								: null
+						)
+						.filter((segment): segment is string => segment !== null)
+						.join('.')
+				: '';
+
+		return path ? `${path}: ${message}` : message;
+	});
+}
+
+function parsePolicyConfigs(
+	policies: unknown
+): { ok: true; output: PolicyConfig[] } | { ok: false; errors: string[] } {
+	const result = v.safeParse(policyConfigArraySchema, policies);
+	if (result.success) {
+		return {
+			ok: true,
+			output: result.output as PolicyConfig[],
+		};
+	}
+
+	return {
+		ok: false,
+		errors: formatPolicyParseIssues(result.issues),
+	};
+}
+
+function parseOptionalPolicyConfigs(
+	policies?: unknown
+): PolicyConfig[] | undefined {
+	if (policies === undefined) {
+		return undefined;
+	}
+
+	const parsed = parsePolicyConfigs(policies);
+	if (!parsed.ok) {
+		throw new Error(parsed.errors[0]);
+	}
+
+	return parsed.output;
+}
+
 /**
  * Inspects a policy pack and returns both errors and warnings.
  *
  * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
  */
 export function inspectPolicies(
-	policies: PolicyConfig[],
+	policies: unknown,
 	options?: { iabEnabled?: boolean }
 ): PolicyValidationResult {
+	const parsedPolicies = parsePolicyConfigs(policies);
+	if (!parsedPolicies.ok) {
+		return {
+			errors: parsedPolicies.errors,
+			warnings: [],
+		};
+	}
+
 	return {
-		errors: collectPolicyErrors(policies, options),
-		warnings: collectPolicyWarnings(policies),
+		errors: collectPolicyErrors(parsedPolicies.output, options),
+		warnings: collectPolicyWarnings(parsedPolicies.output),
 	};
 }
 
 function normalizeAllowedActions(
 	surface?: PolicyUiSurfaceConfig
 ): PolicyUiAction[] | undefined {
-	const actions = surface?.allowedActions;
-	if (!actions || actions.length === 0) {
-		return undefined;
-	}
-
-	return [...new Set(actions)];
+	return dedupeDefinedValues(surface?.allowedActions);
 }
 
 function normalizeActionOrder(
@@ -563,11 +649,11 @@ function normalizeActionOrder(
 	allowedActions?: PolicyUiAction[]
 ): PolicyUiAction[] | undefined {
 	const order = surface?.actionOrder;
-	if (!order || order.length === 0) {
+	const normalized = dedupeDefinedValues(order);
+	if (!normalized) {
 		return undefined;
 	}
 
-	const normalized = [...new Set(order)];
 	if (!allowedActions || allowedActions.length === 0) {
 		return normalized;
 	}
@@ -648,9 +734,7 @@ function normalizeUiSurface(
 		scrollLock: normalizeScrollLock(surface),
 	};
 
-	return Object.values(normalized).some((value) => value !== undefined)
-		? normalized
-		: undefined;
+	return compactDefined(normalized);
 }
 
 function compilePolicyResolver(
@@ -779,7 +863,7 @@ function mapPolicy(policy: PolicyConfig): ResolvedPolicy {
  * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
  */
 export function validatePolicies(
-	policies: PolicyConfig[],
+	policies: unknown,
 	options?: { iabEnabled?: boolean }
 ): void {
 	const { errors } = inspectPolicies(policies, options);
@@ -799,20 +883,21 @@ export function validatePolicies(
  * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
  */
 export async function resolvePolicyDecision(params: {
-	policies?: PolicyConfig[];
+	policies?: unknown;
 	countryCode: string | null;
 	regionCode: string | null;
 	jurisdiction: JurisdictionCode;
 	iabEnabled?: boolean;
 }): Promise<ResolvedPolicyDecision | undefined> {
-	const { policies, jurisdiction } = params;
+	const { jurisdiction } = params;
+	const parsedPolicies = parseOptionalPolicyConfigs(params.policies);
 
-	if (!policies || policies.length === 0) {
+	if (!parsedPolicies || parsedPolicies.length === 0) {
 		return undefined;
 	}
 
 	validatePolicies(
-		policies,
+		parsedPolicies,
 		params.iabEnabled === undefined
 			? undefined
 			: { iabEnabled: params.iabEnabled }
@@ -822,7 +907,7 @@ export async function resolvePolicyDecision(params: {
 	const regionCode = normalizeRegionCode(params.regionCode);
 
 	const matchedPolicy = resolveIndexedPolicyMatch({
-		compiled: getCompiledPolicyResolver(policies),
+		compiled: getCompiledPolicyResolver(parsedPolicies),
 		countryCode,
 		regionCode,
 		jurisdiction,

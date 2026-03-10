@@ -216,7 +216,7 @@ describe('applyPolicyScopeForRuntimeGating', () => {
 			applyPolicyScopeForRuntimeGating(
 				consents,
 				['necessary', 'measurement'],
-				'unmanaged'
+				'permissive'
 			)
 		).toEqual({
 			necessary: true,
@@ -237,7 +237,7 @@ describe('applyPolicyScopeForRuntimeGating', () => {
 		};
 
 		expect(
-			applyPolicyScopeForRuntimeGating(consents, ['*'], 'unmanaged')
+			applyPolicyScopeForRuntimeGating(consents, ['*'], 'permissive')
 		).toEqual(consents);
 	});
 

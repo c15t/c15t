@@ -3,7 +3,16 @@
  * Defines the core types and interfaces for the consent management store.
  */
 
-import type { Branding, InitOutput, PolicyConfig } from '@c15t/schema/types';
+import type {
+	Branding,
+	InitOutput,
+	PolicyPack,
+	PolicyScopeMode,
+	PolicyUiAction,
+	PolicyUiActionLayout,
+	PolicyUiProfile,
+	PolicyUiSurfaceConfig,
+} from '@c15t/schema/types';
 import type { Model } from '~/libs/determine-model';
 import type { StorageConfig } from '../libs/cookie';
 import type { HasCondition } from '../libs/has';
@@ -42,10 +51,15 @@ export type { IABActions, IABManager, IABState } from '../libs/iab-tcf/types';
  * @public
  */
 export type ActiveUI = 'none' | 'banner' | 'dialog';
-export type PolicyAction = 'accept' | 'reject' | 'customize';
-export type PolicyActionLayout = 'split' | 'inline';
-export type PolicyUiProfile = 'balanced' | 'compact' | 'strict';
-export type PolicyScopeMode = 'strict' | 'unmanaged';
+
+// Re-export canonical policy types from @c15t/schema
+export type {
+	PolicyUiAction,
+	PolicyUiActionLayout,
+	PolicyUiProfile,
+	PolicyUiSurfaceConfig,
+	PolicyScopeMode,
+};
 export type InitDataSource =
 	| 'ssr'
 	| 'backend'
@@ -53,6 +67,30 @@ export type InitDataSource =
 	| 'offline-fallback'
 	| 'offline-mode'
 	| 'custom';
+
+/**
+ * Policy-driven UI hints for a single consent surface (banner or dialog).
+ *
+ * @remarks
+ * These values are populated from `/init` response policy data and drive
+ * the headless consent UI hooks.
+ *
+ * @public
+ */
+export interface PolicySurfaceState {
+	/** Allowed actions for this surface derived from backend runtime policy. */
+	allowedActions?: PolicyUiAction[];
+	/** Preferred primary action hint from backend runtime policy. */
+	primaryAction?: PolicyUiAction;
+	/** Explicit action order hint from backend runtime policy. */
+	actionOrder?: PolicyUiAction[];
+	/** Action layout hint from backend runtime policy. */
+	actionLayout?: PolicyUiActionLayout;
+	/** Presentation profile hint from backend runtime policy. */
+	uiProfile?: PolicyUiProfile;
+	/** Scroll lock hint from backend runtime policy. */
+	scrollLock?: boolean;
+}
 
 /**
  * Offline policy preview payload for the headless runtime.
@@ -63,8 +101,8 @@ export type InitDataSource =
  *
  * The runtime supports two levels of control:
  *
- * - `policies` / `policyPack`: provide a backend-compatible policy pack and
- *   let c15t resolve it locally
+ * - `policies`: provide a backend-compatible policy pack and let c15t
+ *   resolve it locally
  * - `policy` / `policyDecision`: inject a fully synthetic resolved result
  *
  * @see {@link https://v2.c15t.com/docs/frameworks/javascript/policy-packs}
@@ -74,13 +112,12 @@ export type OfflinePolicyConfig = {
 	/**
 	 * Backend-compatible policy pack resolved in offline mode using
 	 * region > country > jurisdiction > default precedence.
+	 *
+	 * @remarks
+	 * This replaces the former `policyPack` alias. Use this field
+	 * for policy packs from `policyBuilder.createPack*()`.
 	 */
-	policies?: PolicyConfig[];
-
-	/**
-	 * Alias for `policies` for ergonomics with backend `policyBuilder.createPack*`.
-	 */
-	policyPack?: PolicyConfig[];
+	policies?: PolicyPack;
 
 	/**
 	 * Synthetic runtime policy returned by offline mode init.
@@ -529,41 +566,11 @@ export interface StoreRuntimeState extends StoreConfig {
 	 */
 	model: Model;
 
-	/** Allowed actions for banner UI derived from backend runtime policy. */
-	policyBannerAllowedActions: PolicyAction[] | null;
+	/** Policy-driven UI hints for the consent banner surface. */
+	policyBanner: PolicySurfaceState;
 
-	/** Preferred banner primary action hint from backend runtime policy. */
-	policyBannerPrimaryAction: PolicyAction | null;
-
-	/** Explicit banner action order hint from backend runtime policy. */
-	policyBannerActionOrder: PolicyAction[] | null;
-
-	/** Banner action layout hint from backend runtime policy. */
-	policyBannerActionLayout: PolicyActionLayout | null;
-
-	/** Banner presentation profile hint from backend runtime policy. */
-	policyBannerUiProfile: PolicyUiProfile | null;
-
-	/** Banner scroll lock hint from backend runtime policy. */
-	policyBannerScrollLock: boolean | null;
-
-	/** Allowed actions for dialog UI derived from backend runtime policy. */
-	policyDialogAllowedActions: PolicyAction[] | null;
-
-	/** Preferred dialog primary action hint from backend runtime policy. */
-	policyDialogPrimaryAction: PolicyAction | null;
-
-	/** Explicit dialog action order hint from backend runtime policy. */
-	policyDialogActionOrder: PolicyAction[] | null;
-
-	/** Dialog action layout hint from backend runtime policy. */
-	policyDialogActionLayout: PolicyActionLayout | null;
-
-	/** Dialog presentation profile hint from backend runtime policy. */
-	policyDialogUiProfile: PolicyUiProfile | null;
-
-	/** Dialog scroll lock hint from backend runtime policy. */
-	policyDialogScrollLock: boolean | null;
+	/** Policy-driven UI hints for the consent dialog surface. */
+	policyDialog: PolicySurfaceState;
 
 	/**
 	 * Active runtime policy category scope from `/init`.
@@ -576,7 +583,7 @@ export interface StoreRuntimeState extends StoreConfig {
 
 	/**
 	 * Runtime policy scope mode from `/init`.
-	 * Controls whether out-of-scope categories are treated as unmanaged at runtime.
+	 * Controls whether out-of-scope categories are treated as permissive at runtime.
 	 */
 	policyScopeMode: PolicyScopeMode | null;
 

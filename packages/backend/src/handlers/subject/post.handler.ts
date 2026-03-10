@@ -35,6 +35,103 @@ export function buildRuntimeDecisionDedupeKey(input: {
 	].join('|');
 }
 
+/**
+ * Builds the runtime decision payload from either a verified snapshot token
+ * or a freshly resolved policy decision.
+ *
+ * @returns The decision payload for audit storage, or `undefined` when
+ *          no policy information is available.
+ */
+function buildDecisionPayload(params: {
+	tenantId?: string;
+	snapshot: {
+		valid: boolean;
+		payload: NonNullable<Awaited<ReturnType<typeof verifyPolicySnapshotToken>>>;
+	} | null;
+	decision: Awaited<ReturnType<typeof resolvePolicyDecision>> | undefined;
+	location: { countryCode: string | null; regionCode: string | null };
+	jurisdiction: string;
+	language: string | undefined;
+	proofConfig:
+		| { storeIp?: boolean; storeUserAgent?: boolean; storeLanguage?: boolean }
+		| undefined;
+}) {
+	const {
+		tenantId,
+		snapshot,
+		decision,
+		location,
+		jurisdiction,
+		language,
+		proofConfig,
+	} = params;
+
+	if (snapshot?.valid && snapshot.payload) {
+		const sp = snapshot.payload;
+		return {
+			tenantId,
+			policyId: sp.policyId,
+			fingerprint: sp.fingerprint,
+			matchedBy: sp.matchedBy,
+			countryCode: sp.country,
+			regionCode: sp.region,
+			jurisdiction: sp.jurisdiction,
+			language: sp.language,
+			model: sp.model,
+			policyI18n: sp.policyI18n,
+			uiMode: sp.uiMode,
+			bannerUi: sp.bannerUi,
+			dialogUi: sp.dialogUi,
+			categories: sp.categories,
+			preselectedCategories: sp.preselectedCategories,
+			proofConfig: sp.proofConfig,
+			dedupeKey: buildRuntimeDecisionDedupeKey({
+				tenantId,
+				fingerprint: sp.fingerprint,
+				matchedBy: sp.matchedBy,
+				countryCode: sp.country,
+				regionCode: sp.region,
+				jurisdiction: sp.jurisdiction,
+				language: sp.language,
+			}),
+			source: 'snapshot_token' as const,
+		};
+	}
+
+	if (decision) {
+		return {
+			tenantId,
+			policyId: decision.policy.id,
+			fingerprint: decision.fingerprint,
+			matchedBy: decision.matchedBy,
+			countryCode: location.countryCode,
+			regionCode: location.regionCode,
+			jurisdiction,
+			language,
+			model: decision.policy.model,
+			policyI18n: decision.policy.i18n,
+			uiMode: decision.policy.ui?.mode,
+			bannerUi: decision.policy.ui?.banner,
+			dialogUi: decision.policy.ui?.dialog,
+			categories: decision.policy.consent?.categories,
+			preselectedCategories: decision.policy.consent?.preselectedCategories,
+			proofConfig,
+			dedupeKey: buildRuntimeDecisionDedupeKey({
+				tenantId,
+				fingerprint: decision.fingerprint,
+				matchedBy: decision.matchedBy,
+				countryCode: location.countryCode,
+				regionCode: location.regionCode,
+				jurisdiction,
+				language,
+			}),
+			source: 'write_time_fallback' as const,
+		};
+	}
+
+	return undefined;
+}
+
 function parseLanguageFromHeader(header: string | null): string | undefined {
 	if (!header) {
 		return undefined;
@@ -218,7 +315,7 @@ export const postSubjectHandler = async (c: Context) => {
 		if (preferences) {
 			const allowedCategories = effectivePolicy?.consent?.categories;
 			const effectiveScopeMode =
-				effectivePolicy?.consent?.scopeMode ?? 'unmanaged';
+				effectivePolicy?.consent?.scopeMode ?? 'permissive';
 			const hasWildcardCategoryScope =
 				allowedCategories?.includes('*') === true;
 			const appliedPreferenceEntries = Object.entries(preferences);
@@ -301,67 +398,21 @@ export const postSubjectHandler = async (c: Context) => {
 				? snapshotPayload.jurisdiction
 				: resolvedJurisdiction;
 
-		const decisionPayload =
-			hasValidSnapshot && snapshotPayload
-				? {
-						tenantId: ctx.tenantId,
-						policyId: snapshotPayload.policyId,
-						fingerprint: snapshotPayload.fingerprint,
-						matchedBy: snapshotPayload.matchedBy,
-						countryCode: snapshotPayload.country,
-						regionCode: snapshotPayload.region,
-						jurisdiction: snapshotPayload.jurisdiction,
-						language: snapshotPayload.language,
-						model: snapshotPayload.model,
-						policyI18n: snapshotPayload.policyI18n,
-						uiMode: snapshotPayload.uiMode,
-						bannerUi: snapshotPayload.bannerUi,
-						dialogUi: snapshotPayload.dialogUi,
-						categories: snapshotPayload.categories,
-						preselectedCategories: snapshotPayload.preselectedCategories,
-						proofConfig: snapshotPayload.proofConfig,
-						dedupeKey: buildRuntimeDecisionDedupeKey({
-							tenantId: ctx.tenantId,
-							fingerprint: snapshotPayload.fingerprint,
-							matchedBy: snapshotPayload.matchedBy,
-							countryCode: snapshotPayload.country,
-							regionCode: snapshotPayload.region,
-							jurisdiction: snapshotPayload.jurisdiction,
-							language: snapshotPayload.language,
-						}),
-						source: 'snapshot_token' as const,
-					}
-				: resolvedPolicyDecision
-					? {
-							tenantId: ctx.tenantId,
-							policyId: resolvedPolicyDecision.policy.id,
-							fingerprint: resolvedPolicyDecision.fingerprint,
-							matchedBy: resolvedPolicyDecision.matchedBy,
-							countryCode: location.countryCode,
-							regionCode: location.regionCode,
-							jurisdiction: resolvedJurisdiction,
-							language: effectiveLanguage,
-							model: resolvedPolicyDecision.policy.model,
-							policyI18n: resolvedPolicyDecision.policy.i18n,
-							uiMode: resolvedPolicyDecision.policy.ui?.mode,
-							bannerUi: resolvedPolicyDecision.policy.ui?.banner,
-							dialogUi: resolvedPolicyDecision.policy.ui?.dialog,
-							categories: resolvedPolicyDecision.policy.consent?.categories,
-							preselectedCategories:
-								resolvedPolicyDecision.policy.consent?.preselectedCategories,
-							proofConfig,
-							dedupeKey: buildRuntimeDecisionDedupeKey({
-								tenantId: ctx.tenantId,
-								fingerprint: resolvedPolicyDecision.fingerprint,
-								matchedBy: resolvedPolicyDecision.matchedBy,
-								countryCode: location.countryCode,
-								regionCode: location.regionCode,
-								jurisdiction: resolvedJurisdiction,
-								language: effectiveLanguage,
-							}),
-							source: 'write_time_fallback' as const,
-						}
-					: undefined;
+		const decisionPayload = buildDecisionPayload({
+			tenantId: ctx.tenantId,
+			snapshot:
+				hasValidSnapshot && snapshotPayload
+					? { valid: true, payload: snapshotPayload }
+					: null,
+			decision: resolvedPolicyDecision,
+			location: {
+				countryCode: location.countryCode,
+				regionCode: location.regionCode,
+			},
+			jurisdiction: resolvedJurisdiction,
+			language: effectiveLanguage,
+			proofConfig,
+		});
 
 		// Check for duplicate consent (idempotency)
 		const existingConsent = await db.findFirst('consent', {

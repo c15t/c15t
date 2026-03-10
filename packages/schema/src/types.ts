@@ -98,6 +98,7 @@ export type {
 	PolicyMatch,
 	PolicyMatchedBy,
 	PolicyModel,
+	PolicyPack,
 	PolicyScopeMode,
 	PolicyUiAction,
 	PolicyUiActionLayout,

@@ -262,7 +262,7 @@ export const demoPolicies: PolicyConfig[] = [
 		consent: {
 			model: 'opt-in',
 			expiryDays: 90,
-			scopeMode: 'unmanaged',
+			scopeMode: 'permissive',
 			categories: ['necessary', 'measurement'],
 		},
 		ui: {

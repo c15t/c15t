@@ -102,8 +102,8 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 		openVendorsDialog,
 		performBannerAction,
 	} = useHeadlessIABConsentUI();
-	const { policyBannerScrollLock } = useConsentManager();
-	const resolvedScrollLock = localScrollLock ?? policyBannerScrollLock ?? true;
+	const { policyBanner } = useConsentManager();
+	const resolvedScrollLock = localScrollLock ?? policyBanner.scrollLock ?? true;
 
 	const cardRef = useRef<HTMLDivElement>(null);
 

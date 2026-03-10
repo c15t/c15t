@@ -30,6 +30,7 @@ interface TranslationCandidate {
 }
 
 const DEFAULT_PROFILE = 'default';
+// Module-scoped: warns once per process lifetime, intentionally not per-tenant.
 const warnedKeys = new Set<string>();
 
 function isSupportedBaseLanguage(lang: string): lang is SupportedBaseLanguage {
@@ -149,7 +150,7 @@ export function listProfiles(options: {
 export function validateMessages(options: {
 	customTranslations?: Record<string, Partial<Translations>>;
 	i18n?: C15TOptions['i18n'];
-	policies?: PolicyConfig[]; // internal param name — accepts policyPacks from options
+	policies?: PolicyConfig[]; // internal param name for backend runtime policies
 }): {
 	profiles: string[];
 	errors: string[];

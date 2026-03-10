@@ -142,15 +142,9 @@ describe('useConsentManager', () => {
 			consentCategories: ['necessary', 'measurement'],
 			consentTypes: [],
 			policyCategories: ['necessary', 'measurement'],
-			policyScopeMode: 'unmanaged',
-			policyBannerActionOrder: null,
-			policyBannerActionLayout: null,
-			policyBannerUiProfile: null,
-			policyBannerScrollLock: null,
-			policyDialogActionOrder: null,
-			policyDialogActionLayout: null,
-			policyDialogUiProfile: null,
-			policyDialogScrollLock: null,
+			policyScopeMode: 'permissive',
+			policyBanner: {},
+			policyDialog: {},
 		} as unknown as ConsentStoreState;
 
 		const { result } = await renderHook(() => useConsentManager(), {

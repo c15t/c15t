@@ -227,7 +227,7 @@ For most production deployments, include a default policy so unmatched traffic r
 If you also use offline previews on the frontend:
 
 - Keep the backend pack canonical — it resolves from real geo data
-- Mirror it in frontend `policyPacks` only for local development, tests, or static demos
+- Mirror it in frontend `offlinePolicy.policies` only for local development, tests, or static demos
 - Validate the frontend preview against a real `/init` response before shipping
 
 <Callout type="info">

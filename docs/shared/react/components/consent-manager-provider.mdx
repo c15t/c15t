@@ -94,26 +94,28 @@
 <section id="policy-packs">
   ## Policy Packs
 
-  In `offline` mode, `ConsentManagerProvider` accepts a top-level `policyPacks` option that maps to `store.offlinePolicy.policyPack`.
+  In `offline` mode, `ConsentManagerProvider` accepts `offlinePolicy.policies` for local policy resolution.
 
   ```tsx
   <ConsentManagerProvider
     options={{
       mode: 'offline',
-      policyPacks: [
-        {
-          id: 'policy_qc_opt_in',
-          match: { regions: [{ country: 'CA', region: 'QC' }] },
-          consent: { model: 'opt-in', expiryDays: 365 },
-          ui: { mode: 'banner' },
-        },
-        {
-          id: 'policy_default_world',
-          match: { isDefault: true },
-          consent: { model: 'none' },
-          ui: { mode: 'none' },
-        },
-      ],
+      offlinePolicy: {
+        policies: [
+          {
+            id: 'policy_qc_opt_in',
+            match: { regions: [{ country: 'CA', region: 'QC' }] },
+            consent: { model: 'opt-in', expiryDays: 365 },
+            ui: { mode: 'banner' },
+          },
+          {
+            id: 'policy_default_world',
+            match: { isDefault: true },
+            consent: { model: 'none' },
+            ui: { mode: 'none' },
+          },
+        ],
+      },
       overrides: {
         country: 'CA',
         region: 'QC',
@@ -124,9 +126,9 @@
 
   Notes:
 
-  - `policyPacks` is ignored outside `offline` mode.
-  - Omitting `policyPacks` uses the built-in synthetic opt-in fallback banner.
-  - `policyPacks: []` is explicit no-banner mode.
+  - `offlinePolicy` is only used in `offline` mode.
+  - Omitting `offlinePolicy.policies` uses the built-in synthetic opt-in fallback banner.
+  - `offlinePolicy: { policies: [] }` is explicit no-banner mode.
   - In hosted mode, backend `policies` remain the source of truth.
 
   Read the full guide at [Policy Packs](/docs/frameworks/react/policy-packs) and the conceptual model at [Policy Packs Concept](/docs/frameworks/react/concepts/policy-packs).

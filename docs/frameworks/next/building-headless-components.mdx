@@ -23,11 +23,13 @@ export function ConsentManager({ children }: { children: ReactNode }) {
     <ConsentManagerProvider
       options={{
         mode: 'offline',
-        policyPacks: [
-          policyPackPresets.californiaOptOut(),
-          policyPackPresets.europeOptIn(),
-          policyPackPresets.worldNoBanner(),
-        ],
+        offlinePolicy: {
+          policies: [
+            policyPackPresets.californiaOptOut(),
+            policyPackPresets.europeOptIn(),
+            policyPackPresets.worldNoBanner(),
+          ],
+        },
         overrides: {
           country: 'GB',
         },
@@ -47,7 +49,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 import { useHeadlessConsentUI, useTranslations } from '@c15t/nextjs/headless';
 
 export function CustomConsentBanner() {
-  const { banner, performAction } = useHeadlessConsentUI();
+  const { banner, openDialog, performAction } = useHeadlessConsentUI();
   const translations = useTranslations();
 
   if (!banner.isVisible) return null;
@@ -67,7 +69,13 @@ export function CustomConsentBanner() {
                 key={action}
                 type="button"
                 className={action === banner.primaryAction ? 'btn-primary' : 'btn-secondary'}
-                onClick={() => void performAction(action, { surface: 'banner' })}
+                onClick={() => {
+                  if (action === 'customize') {
+                    openDialog();
+                    return;
+                  }
+                  void performAction(action, { surface: 'banner' });
+                }}
               >
                 {action === 'accept'
                   ? translations.common.acceptAll
@@ -96,7 +104,7 @@ import {
 } from '@c15t/nextjs/headless';
 
 export function CustomConsentDialog() {
-  const { dialog, performDialogAction } = useHeadlessConsentUI();
+  const { dialog, performDialogAction, saveCustomPreferences } = useHeadlessConsentUI();
   const {
     consentTypes,
     consentCategories,
@@ -144,7 +152,13 @@ export function CustomConsentDialog() {
           <button
             key={action}
             type="button"
-            onClick={() => void performDialogAction(action)}
+            onClick={() => {
+              if (action === 'customize') {
+                void saveCustomPreferences();
+                return;
+              }
+              void performDialogAction(action);
+            }}
           >
             {action === 'accept'
               ? translations.common.acceptAll

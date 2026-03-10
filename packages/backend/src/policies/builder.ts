@@ -1,7 +1,9 @@
+import { compactDefined, dedupeTrimmedStrings } from '@c15t/schema';
 import type {
 	JurisdictionCode,
 	PolicyConfig,
 	PolicyModel,
+	PolicyPack,
 	PolicyScopeMode,
 	PolicyUiMode,
 	PolicyUiSurfaceConfig,
@@ -57,13 +59,6 @@ const DEFAULT_FALLBACK_POLICY_INPUT: PolicyBuilderInput = {
 	uiMode: 'none',
 };
 
-function dedupeStrings(values?: string[]): string[] | undefined {
-	if (!values || values.length === 0) {
-		return undefined;
-	}
-	return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
-}
-
 function mergeMatch(input: PolicyBuilderInput): PolicyConfig['match'] {
 	return policyMatchers.merge(
 		input.countries?.length ? policyMatchers.countries(input.countries) : {},
@@ -75,16 +70,6 @@ function mergeMatch(input: PolicyBuilderInput): PolicyConfig['match'] {
 	);
 }
 
-function compact<T extends Record<string, unknown>>(value: T): T | undefined {
-	const entries = Object.entries(value).filter(
-		([, field]) => field !== undefined
-	);
-	if (entries.length === 0) {
-		return undefined;
-	}
-	return Object.fromEntries(entries) as T;
-}
-
 function compactUiSurface(
 	value?: PolicyUiSurfaceConfig
 ): PolicyUiSurfaceConfig | undefined {
@@ -92,12 +77,12 @@ function compactUiSurface(
 		return undefined;
 	}
 
-	return compact({
-		allowedActions: dedupeStrings(value.allowedActions) as
+	return compactDefined({
+		allowedActions: dedupeTrimmedStrings(value.allowedActions) as
 			| PolicyUiSurfaceConfig['allowedActions']
 			| undefined,
 		primaryAction: value.primaryAction,
-		actionOrder: dedupeStrings(value.actionOrder) as
+		actionOrder: dedupeTrimmedStrings(value.actionOrder) as
 			| PolicyUiSurfaceConfig['actionOrder']
 			| undefined,
 		actionLayout: value.actionLayout,
@@ -117,27 +102,29 @@ function compactUiSurface(
  * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
  */
 export function buildPolicyConfig(input: PolicyBuilderInput): PolicyConfig {
-	const categories = dedupeStrings(input.categories);
-	const preselectedCategories = dedupeStrings(input.preselectedCategories);
+	const categories = dedupeTrimmedStrings(input.categories);
+	const preselectedCategories = dedupeTrimmedStrings(
+		input.preselectedCategories
+	);
 
 	return {
 		id: input.id,
 		name: input.name,
 		match: mergeMatch(input),
 		i18n: input.i18n,
-		consent: compact({
+		consent: compactDefined({
 			model: input.model,
 			expiryDays: input.expiryDays,
 			scopeMode: input.scopeMode,
 			categories,
 			preselectedCategories,
 		}),
-		ui: compact({
+		ui: compactDefined({
 			mode: input.uiMode,
 			banner: compactUiSurface(input.banner),
 			dialog: compactUiSurface(input.dialog),
 		}),
-		proof: compact({
+		proof: compactDefined({
 			storeIp: input.proof?.storeIp,
 			storeUserAgent: input.proof?.storeUserAgent,
 			storeLanguage: input.proof?.storeLanguage,
@@ -155,7 +142,7 @@ export function buildPolicyConfig(input: PolicyBuilderInput): PolicyConfig {
  *
  * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
  */
-export function buildPolicyPack(inputs: PolicyBuilderInput[]): PolicyConfig[] {
+export function buildPolicyPack(inputs: PolicyBuilderInput[]): PolicyPack {
 	return inputs.map((input) => buildPolicyConfig(input));
 }
 
@@ -169,12 +156,16 @@ export function buildPolicyPack(inputs: PolicyBuilderInput[]): PolicyConfig[] {
  * - the supplied `defaultPolicy`, coerced to `match.isDefault = true`
  * - or the built-in "World No Banner" fallback
  *
+ * When `defaultPolicy` is provided, its `countries`, `regions`, and
+ * `jurisdictions` fields are stripped and replaced with
+ * `match.isDefault = true`.
+ *
  * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
  */
 export function buildPolicyPackWithDefault(
 	inputs: PolicyBuilderInput[],
 	defaultPolicy?: PolicyBuilderInput
-): PolicyConfig[] {
+): PolicyPack {
 	const pack = buildPolicyPack(inputs);
 	const hasDefault = pack.some((policy) => policy.match.isDefault);
 

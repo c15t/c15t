@@ -294,7 +294,7 @@ describe('createInitRoute IAB policy gating', () => {
 		];
 		const app = createInitRoute(
 			createOptions({
-				policies,
+				policyPacks: policies,
 			})
 		);
 		const expectedDecision = await resolveSharedPolicyDecision({

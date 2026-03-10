@@ -1,4 +1,4 @@
-import { resolvePolicyDecision as resolvePolicyPackDecision } from '@c15t/schema/types';
+import { resolvePolicyDecision } from '@c15t/schema/types';
 import {
 	deepMergeTranslations,
 	enTranslations,
@@ -84,18 +84,13 @@ export async function init(
 	}
 
 	const jurisdictionCode = checkJurisdiction(country, region);
-	const configuredPolicyPack =
-		policyConfig?.policies ?? policyConfig?.policyPack;
-	const hasExplicitPolicyPack =
-		policyConfig?.policies !== undefined ||
-		policyConfig?.policyPack !== undefined;
-	const isExplicitEmptyPolicyPack =
-		hasExplicitPolicyPack && (configuredPolicyPack?.length ?? 0) === 0;
+	const configuredPolicies = policyConfig?.policies;
+	const hasExplicitPolicies = policyConfig?.policies !== undefined;
 
-	const resolvedPolicyPackDecision =
-		configuredPolicyPack && configuredPolicyPack.length > 0
-			? await resolvePolicyPackDecision({
-					policies: configuredPolicyPack,
+	const resolvedPolicyDecision =
+		configuredPolicies && configuredPolicies.length > 0
+			? await resolvePolicyDecision({
+					policies: configuredPolicies,
 					countryCode: country,
 					regionCode: region,
 					jurisdiction: jurisdictionCode,
@@ -104,26 +99,24 @@ export async function init(
 			: undefined;
 
 	const shouldUseSyntheticFallbackDefaults =
-		!policyConfig?.policy &&
-		!resolvedPolicyPackDecision &&
-		!hasExplicitPolicyPack;
+		!policyConfig?.policy && !resolvedPolicyDecision && !hasExplicitPolicies;
 
 	const resolvedPolicyConfig: OfflinePolicyConfig = {
 		...policyConfig,
 		policy:
 			policyConfig?.policy ??
-			resolvedPolicyPackDecision?.policy ??
-			(hasExplicitPolicyPack ? resolveNoPolicyFallback() : undefined) ??
+			resolvedPolicyDecision?.policy ??
+			(hasExplicitPolicies ? resolveNoPolicyFallback() : undefined) ??
 			(shouldUseSyntheticFallbackDefaults
 				? resolveFallbackPolicy({})
 				: undefined),
 		policyDecision:
 			policyConfig?.policyDecision ??
-			(resolvedPolicyPackDecision
+			(resolvedPolicyDecision
 				? {
-						policyId: resolvedPolicyPackDecision.policy.id,
-						fingerprint: resolvedPolicyPackDecision.fingerprint,
-						matchedBy: resolvedPolicyPackDecision.matchedBy,
+						policyId: resolvedPolicyDecision.policy.id,
+						fingerprint: resolvedPolicyDecision.fingerprint,
+						matchedBy: resolvedPolicyDecision.matchedBy,
 						country,
 						region,
 						jurisdiction: jurisdictionCode,

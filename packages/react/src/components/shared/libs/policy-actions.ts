@@ -1,14 +1,24 @@
-export type PolicyAction = 'accept' | 'reject' | 'customize';
-export type PolicyActionLayout = 'split' | 'inline';
-export type PolicyUiProfile = 'balanced' | 'compact' | 'strict';
+import type {
+	PolicyUiAction,
+	PolicyUiActionLayout,
+	PolicyUiProfile,
+	PolicyUiSurfaceConfig,
+} from 'c15t';
 
-const DEFAULT_POLICY_ACTIONS: PolicyAction[] = [
+export type {
+	PolicyUiAction,
+	PolicyUiActionLayout,
+	PolicyUiProfile,
+	PolicyUiSurfaceConfig,
+};
+
+const DEFAULT_POLICY_ACTIONS: PolicyUiAction[] = [
 	'reject',
 	'accept',
 	'customize',
 ];
 
-function dedupeActions(actions?: PolicyAction[] | null): PolicyAction[] {
+function dedupeActions(actions?: PolicyUiAction[]): PolicyUiAction[] {
 	if (!actions || actions.length === 0) {
 		return [];
 	}
@@ -17,9 +27,9 @@ function dedupeActions(actions?: PolicyAction[] | null): PolicyAction[] {
 }
 
 export function resolvePolicyActionOrder(params: {
-	allowedActions?: PolicyAction[] | null;
-	actionOrder?: PolicyAction[] | null;
-}): PolicyAction[] {
+	allowedActions?: PolicyUiAction[];
+	actionOrder?: PolicyUiAction[];
+}): PolicyUiAction[] {
 	const allowed = dedupeActions(params.allowedActions);
 	const normalizedAllowed =
 		allowed.length > 0 ? allowed : [...DEFAULT_POLICY_ACTIONS];
@@ -38,20 +48,20 @@ export function resolvePolicyActionOrder(params: {
 }
 
 export function resolvePolicyPrimaryAction(params: {
-	orderedActions: PolicyAction[];
-	primaryAction?: PolicyAction | null;
-}): PolicyAction | null {
+	orderedActions: PolicyUiAction[];
+	primaryAction?: PolicyUiAction;
+}): PolicyUiAction | undefined {
 	if (!params.primaryAction) {
-		return null;
+		return undefined;
 	}
 
 	return params.orderedActions.includes(params.primaryAction)
 		? params.primaryAction
-		: (params.orderedActions[0] ?? null);
+		: params.orderedActions[0];
 }
 
 export function resolvePolicyUiProfile(
-	profile?: PolicyUiProfile | null
+	profile?: PolicyUiProfile
 ): PolicyUiProfile {
 	if (profile === 'balanced' || profile === 'compact' || profile === 'strict') {
 		return profile;
@@ -61,8 +71,8 @@ export function resolvePolicyUiProfile(
 }
 
 export function shouldFillPolicyActions(params: {
-	uiProfile?: PolicyUiProfile | null;
-	actionGroups: PolicyAction[][];
+	uiProfile?: PolicyUiProfile;
+	actionGroups: PolicyUiAction[][];
 }): boolean {
 	const effectiveUiProfile = resolvePolicyUiProfile(params.uiProfile);
 	const actionCount = new Set(params.actionGroups.flat()).size;
@@ -75,10 +85,24 @@ export function shouldFillPolicyActions(params: {
 	);
 }
 
+export function hasPolicyHints(surface?: PolicyUiSurfaceConfig): boolean {
+	if (!surface) {
+		return false;
+	}
+
+	return Object.values(surface).some((value) => {
+		if (Array.isArray(value)) {
+			return value.length > 0;
+		}
+
+		return value !== undefined;
+	});
+}
+
 export function resolvePolicyActionGroups(params: {
-	orderedActions: PolicyAction[];
-	layout?: PolicyActionLayout | null;
-}): PolicyAction[][] {
+	orderedActions: PolicyUiAction[];
+	layout?: PolicyUiActionLayout;
+}): PolicyUiAction[][] {
 	const actions = params.orderedActions;
 	if (actions.length === 0) {
 		return [];

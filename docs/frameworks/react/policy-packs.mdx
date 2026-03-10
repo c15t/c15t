@@ -23,11 +23,13 @@ export function ConsentManager({ children }: { children: ReactNode }) {
     <ConsentManagerProvider
       options={{
         mode: 'offline',
-        policyPacks: [
-          policyPackPresets.europeOptIn(),
-          policyPackPresets.californiaOptOut(),
-          policyPackPresets.worldNoBanner(),
-        ],
+        offlinePolicy: {
+          policies: [
+            policyPackPresets.europeOptIn(),
+            policyPackPresets.californiaOptOut(),
+            policyPackPresets.worldNoBanner(),
+          ],
+        },
         overrides: {
           country: 'DE', // Preview as a German visitor
         },
@@ -41,9 +43,9 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 }
 ```
 
-When your app uses a live backend, move the canonical pack into backend `policyPacks` and keep frontend `policyPacks` only for local previews, stories, or tests.
+When your app uses a live backend, move the canonical pack into backend `policyPacks` and keep frontend `offlinePolicy.policies` only for local previews, stories, or tests.
 
-<import src="../../shared/react/guides/policy-packs.mdx#provider-alias" />
+<import src="../../shared/react/guides/policy-packs.mdx#provider-shape" />
 
 <import src="../../shared/react/guides/policy-packs.mdx#fallback-behavior" />
 

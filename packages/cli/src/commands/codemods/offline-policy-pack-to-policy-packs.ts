@@ -73,69 +73,80 @@ function transformSourceFile(
 		SyntaxKind.PropertyAssignment
 	);
 	for (const property of propertyAssignments) {
-		if (property.wasForgotten() || getPropertyName(property) !== 'store') {
+		if (
+			property.wasForgotten() ||
+			getPropertyName(property) !== 'policyPacks'
+		) {
 			continue;
 		}
 
 		const parentObject = property.getParentIfKind(
 			SyntaxKind.ObjectLiteralExpression
 		);
-		const storeObject = property.getInitializerIfKind(
+		const initializerText = property.getInitializer()?.getText();
+		if (!parentObject || !initializerText) {
+			continue;
+		}
+
+		let storeProperty = getProperty(parentObject, 'store');
+		let storeObject = storeProperty?.getInitializerIfKind(
 			SyntaxKind.ObjectLiteralExpression
 		);
-		if (!parentObject || !storeObject) {
-			continue;
-		}
-
-		const offlinePolicyProperty = getProperty(storeObject, 'offlinePolicy');
-		const offlinePolicyObject = offlinePolicyProperty?.getInitializerIfKind(
-			SyntaxKind.ObjectLiteralExpression
-		);
-		if (!offlinePolicyProperty || !offlinePolicyObject) {
-			continue;
-		}
-
-		const policyPackProperty =
-			getProperty(offlinePolicyObject, 'policyPack') ??
-			getProperty(offlinePolicyObject, 'policies');
-		if (!policyPackProperty) {
-			continue;
-		}
-
-		const initializerText = policyPackProperty.getInitializer()?.getText();
-		if (!initializerText) {
-			continue;
-		}
-
-		if (!getProperty(parentObject, 'policyPacks')) {
+		if (!storeObject) {
 			parentObject.addPropertyAssignment({
-				name: 'policyPacks',
+				name: 'store',
+				initializer: '{}',
+			});
+			storeProperty = getProperty(parentObject, 'store');
+			storeObject = storeProperty?.getInitializerIfKind(
+				SyntaxKind.ObjectLiteralExpression
+			);
+		}
+
+		if (!storeObject) {
+			continue;
+		}
+
+		let offlinePolicyProperty = getProperty(storeObject, 'offlinePolicy');
+		let offlinePolicyObject = offlinePolicyProperty?.getInitializerIfKind(
+			SyntaxKind.ObjectLiteralExpression
+		);
+		if (!offlinePolicyObject) {
+			storeObject.addPropertyAssignment({
+				name: 'offlinePolicy',
+				initializer: '{}',
+			});
+			offlinePolicyProperty = getProperty(storeObject, 'offlinePolicy');
+			offlinePolicyObject = offlinePolicyProperty?.getInitializerIfKind(
+				SyntaxKind.ObjectLiteralExpression
+			);
+		}
+
+		if (!offlinePolicyObject) {
+			continue;
+		}
+
+		if (!getProperty(offlinePolicyObject, 'policies')) {
+			offlinePolicyObject.addPropertyAssignment({
+				name: 'policies',
 				initializer: initializerText,
 			});
-			summaries.push('store.offlinePolicy.policyPack -> policyPacks');
+			summaries.push('policyPacks -> store.offlinePolicy.policies');
 		} else {
-			summaries.push('removed duplicate store.offlinePolicy policy pack');
+			summaries.push('removed duplicate top-level policyPacks');
 		}
 
-		const legacyPoliciesProperty = getProperty(offlinePolicyObject, 'policies');
 		const legacyPolicyPackProperty = getProperty(
 			offlinePolicyObject,
 			'policyPack'
 		);
-		legacyPoliciesProperty?.remove();
 		legacyPolicyPackProperty?.remove();
+		property.remove();
 		operations += 1;
 
-		if (offlinePolicyObject.getProperties().length === 0) {
-			offlinePolicyProperty.remove();
+		if (legacyPolicyPackProperty) {
 			operations += 1;
-			summaries.push('removed empty store.offlinePolicy');
-		}
-
-		if (storeObject.getProperties().length === 0) {
-			property.remove();
-			operations += 1;
-			summaries.push('removed empty store options object');
+			summaries.push('removed legacy store.offlinePolicy.policyPack');
 		}
 	}
 

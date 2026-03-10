@@ -2,9 +2,11 @@
 
 import { useCallback, useMemo } from 'react';
 import {
-	type PolicyAction,
-	type PolicyActionLayout,
+	hasPolicyHints,
+	type PolicyUiAction,
+	type PolicyUiActionLayout,
 	type PolicyUiProfile,
+	type PolicyUiSurfaceConfig,
 	resolvePolicyActionGroups,
 	resolvePolicyActionOrder,
 	resolvePolicyPrimaryAction,
@@ -13,20 +15,21 @@ import {
 import { useConsentManager } from './use-consent-manager';
 
 export type HeadlessConsentSurface = 'banner' | 'dialog';
-export type HeadlessConsentBannerAction = PolicyAction;
-export type HeadlessConsentDialogAction = PolicyAction;
-export type HeadlessConsentAction = PolicyAction;
+export type HeadlessConsentSurfaceAction = PolicyUiAction;
+export type HeadlessConsentWriteAction = 'accept' | 'reject';
+export type HeadlessConsentBannerAction = HeadlessConsentSurfaceAction;
+export type HeadlessConsentDialogAction = HeadlessConsentSurfaceAction;
 
 export interface HeadlessConsentSurfaceState<
-	TAction extends string = HeadlessConsentAction,
+	TAction extends string = HeadlessConsentSurfaceAction,
 > {
 	allowedActions: TAction[];
 	orderedActions: TAction[];
 	actionGroups: TAction[][];
-	primaryAction: TAction | null;
-	actionLayout: PolicyActionLayout | null;
-	uiProfile: PolicyUiProfile | null;
-	scrollLock: boolean | null;
+	primaryAction?: TAction;
+	actionLayout?: PolicyUiActionLayout;
+	uiProfile?: PolicyUiProfile;
+	scrollLock?: boolean;
 	hasPolicyHints: boolean;
 	shouldFillActions: boolean;
 	isVisible: boolean;
@@ -45,20 +48,21 @@ export interface UseHeadlessConsentUIResult {
 	openDialog: () => void;
 	closeUI: () => void;
 	performAction: (
-		action: HeadlessConsentAction,
+		action: HeadlessConsentWriteAction,
 		options: {
 			surface: HeadlessConsentSurface;
 			uiSource?: string;
 		}
 	) => Promise<void>;
 	performBannerAction: (
-		action: HeadlessConsentBannerAction,
+		action: HeadlessConsentWriteAction,
 		options?: { uiSource?: string }
 	) => Promise<void>;
 	performDialogAction: (
-		action: HeadlessConsentDialogAction,
+		action: HeadlessConsentWriteAction,
 		options?: { uiSource?: string }
 	) => Promise<void>;
+	saveCustomPreferences: (options?: { uiSource?: string }) => Promise<void>;
 }
 
 const DEFAULT_UI_SOURCE_BY_SURFACE: Record<HeadlessConsentSurface, string> = {
@@ -69,26 +73,67 @@ const DEFAULT_UI_SOURCE_BY_SURFACE: Record<HeadlessConsentSurface, string> = {
 export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 	const {
 		activeUI,
-		policyBannerAllowedActions,
-		policyBannerPrimaryAction,
-		policyBannerActionOrder,
-		policyBannerActionLayout,
-		policyBannerUiProfile,
-		policyBannerScrollLock,
-		policyDialogAllowedActions,
-		policyDialogPrimaryAction,
-		policyDialogActionOrder,
-		policyDialogActionLayout,
-		policyDialogUiProfile,
-		policyDialogScrollLock,
+		policyBanner: {
+			allowedActions: policyBannerAllowedActions,
+			primaryAction: policyBannerPrimaryAction,
+			actionOrder: policyBannerActionOrder,
+			actionLayout: policyBannerActionLayout,
+			uiProfile: policyBannerUiProfile,
+			scrollLock: policyBannerScrollLock,
+		},
+		policyDialog: {
+			allowedActions: policyDialogAllowedActions,
+			primaryAction: policyDialogPrimaryAction,
+			actionOrder: policyDialogActionOrder,
+			actionLayout: policyDialogActionLayout,
+			uiProfile: policyDialogUiProfile,
+			scrollLock: policyDialogScrollLock,
+		},
 		saveConsents,
 		setActiveUI,
 	} = useConsentManager();
 
+	const bannerPolicyHints = useMemo<PolicyUiSurfaceConfig>(
+		() => ({
+			allowedActions: policyBannerAllowedActions,
+			primaryAction: policyBannerPrimaryAction,
+			actionOrder: policyBannerActionOrder,
+			actionLayout: policyBannerActionLayout,
+			uiProfile: policyBannerUiProfile,
+			scrollLock: policyBannerScrollLock,
+		}),
+		[
+			policyBannerActionLayout,
+			policyBannerActionOrder,
+			policyBannerAllowedActions,
+			policyBannerPrimaryAction,
+			policyBannerUiProfile,
+			policyBannerScrollLock,
+		]
+	);
+
+	const dialogPolicyHints = useMemo<PolicyUiSurfaceConfig>(
+		() => ({
+			allowedActions: policyDialogAllowedActions,
+			primaryAction: policyDialogPrimaryAction,
+			actionOrder: policyDialogActionOrder,
+			actionLayout: policyDialogActionLayout,
+			uiProfile: policyDialogUiProfile,
+			scrollLock: policyDialogScrollLock,
+		}),
+		[
+			policyDialogActionLayout,
+			policyDialogActionOrder,
+			policyDialogAllowedActions,
+			policyDialogPrimaryAction,
+			policyDialogUiProfile,
+			policyDialogScrollLock,
+		]
+	);
+
 	const banner = useMemo<HeadlessConsentBannerState>(() => {
 		const allowedActions = resolvePolicyActionOrder({
 			allowedActions: policyBannerAllowedActions,
-			actionOrder: null,
 		});
 		const orderedActions = resolvePolicyActionOrder({
 			allowedActions,
@@ -111,14 +156,7 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 			actionLayout: policyBannerActionLayout,
 			uiProfile: policyBannerUiProfile,
 			scrollLock: policyBannerScrollLock,
-			hasPolicyHints: Boolean(
-				policyBannerAllowedActions ||
-					policyBannerActionOrder ||
-					policyBannerActionLayout ||
-					policyBannerPrimaryAction ||
-					policyBannerUiProfile ||
-					policyBannerScrollLock !== null
-			),
+			hasPolicyHints: hasPolicyHints(bannerPolicyHints),
 			shouldFillActions: shouldFillPolicyActions({
 				uiProfile: policyBannerUiProfile,
 				actionGroups,
@@ -133,12 +171,12 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 		policyBannerPrimaryAction,
 		policyBannerUiProfile,
 		policyBannerScrollLock,
+		bannerPolicyHints,
 	]);
 
 	const dialog = useMemo<HeadlessConsentDialogState>(() => {
 		const allowedActions = resolvePolicyActionOrder({
 			allowedActions: policyDialogAllowedActions,
-			actionOrder: null,
 		});
 		const orderedActions = resolvePolicyActionOrder({
 			allowedActions,
@@ -161,14 +199,7 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 			actionLayout: policyDialogActionLayout,
 			uiProfile: policyDialogUiProfile,
 			scrollLock: policyDialogScrollLock,
-			hasPolicyHints: Boolean(
-				policyDialogAllowedActions ||
-					policyDialogActionOrder ||
-					policyDialogActionLayout ||
-					policyDialogPrimaryAction ||
-					policyDialogUiProfile ||
-					policyDialogScrollLock !== null
-			),
+			hasPolicyHints: hasPolicyHints(dialogPolicyHints),
 			shouldFillActions: shouldFillPolicyActions({
 				uiProfile: policyDialogUiProfile,
 				actionGroups,
@@ -183,6 +214,7 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 		policyDialogPrimaryAction,
 		policyDialogUiProfile,
 		policyDialogScrollLock,
+		dialogPolicyHints,
 	]);
 
 	const performAction = useCallback<
@@ -199,16 +231,9 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 				case 'reject':
 					await saveConsents('necessary', { uiSource });
 					return;
-				case 'customize':
-					if (options.surface === 'banner') {
-						setActiveUI('dialog');
-						return;
-					}
-					await saveConsents('custom', { uiSource });
-					return;
 			}
 		},
-		[saveConsents, setActiveUI]
+		[saveConsents]
 	);
 
 	const performBannerAction = useCallback<
@@ -231,6 +256,17 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 				uiSource: options?.uiSource,
 			}),
 		[performAction]
+	);
+
+	const saveCustomPreferences = useCallback<
+		UseHeadlessConsentUIResult['saveCustomPreferences']
+	>(
+		async (options) => {
+			await saveConsents('custom', {
+				uiSource: options?.uiSource ?? DEFAULT_UI_SOURCE_BY_SURFACE.dialog,
+			});
+		},
+		[saveConsents]
 	);
 
 	const openBanner = useCallback<UseHeadlessConsentUIResult['openBanner']>(
@@ -258,5 +294,6 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 		performAction,
 		performBannerAction,
 		performDialogAction,
+		saveCustomPreferences,
 	};
 }

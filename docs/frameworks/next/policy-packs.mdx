@@ -25,11 +25,13 @@ export function ConsentManager({ children }: { children: ReactNode }) {
     <ConsentManagerProvider
       options={{
         mode: 'offline',
-        policyPacks: [
-          policyPackPresets.europeOptIn(),
-          policyPackPresets.californiaOptOut(),
-          policyPackPresets.worldNoBanner(),
-        ],
+        offlinePolicy: {
+          policies: [
+            policyPackPresets.europeOptIn(),
+            policyPackPresets.californiaOptOut(),
+            policyPackPresets.worldNoBanner(),
+          ],
+        },
         overrides: {
           country: 'DE', // Preview as a German visitor
         },
@@ -45,7 +47,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 
 For production Next.js apps, prefer a backend route backed by `policyPacks` and optionally hydrate the first `/init` response with the [server-side utilities](/docs/frameworks/next/server-side).
 
-<import src="../../shared/react/guides/policy-packs.mdx#provider-alias" />
+<import src="../../shared/react/guides/policy-packs.mdx#provider-shape" />
 
 <import src="../../shared/react/guides/policy-packs.mdx#fallback-behavior" />
 

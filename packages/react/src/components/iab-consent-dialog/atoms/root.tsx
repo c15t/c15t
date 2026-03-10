@@ -56,7 +56,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		activeUI,
 		translationConfig,
 		iab: iabState,
-		policyDialogScrollLock,
+		policyDialog,
 		model,
 	} = useConsentManager();
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
@@ -66,7 +66,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 
 	// IABConsentDialog only opens when the consent model matches
 	const isOpen = models.includes(model) && (open ?? activeUI === 'dialog');
-	const resolvedScrollLock = scrollLock ?? policyDialogScrollLock ?? true;
+	const resolvedScrollLock = scrollLock ?? policyDialog.scrollLock ?? true;
 
 	const contextValue = {
 		disableAnimation,

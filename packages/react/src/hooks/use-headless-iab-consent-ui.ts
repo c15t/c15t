@@ -16,14 +16,14 @@ export interface HeadlessIABBannerState {
 	vendorCount: number;
 	displayItems: string[];
 	remainingCount: number;
-	scrollLock: boolean | null;
+	scrollLock?: boolean;
 }
 
 export interface HeadlessIABDialogState {
 	isVisible: boolean;
 	isLoading: boolean;
 	activeTab: HeadlessIABPreferenceTab;
-	scrollLock: boolean | null;
+	scrollLock?: boolean;
 }
 
 export interface UseHeadlessIABConsentUIResult {
@@ -51,7 +51,7 @@ export interface UseHeadlessIABConsentUIResult {
 
 function resolveIABBannerSummary(
 	iab: ReturnType<typeof useConsentManager>['iab']
-): Omit<HeadlessIABBannerState, 'isVisible'> {
+): Omit<HeadlessIABBannerState, 'isVisible' | 'scrollLock'> {
 	if (!iab?.gvl) {
 		return {
 			isReady: false,
@@ -157,8 +157,8 @@ export function useHeadlessIABConsentUI(): UseHeadlessIABConsentUIResult {
 		activeUI,
 		model,
 		iab,
-		policyBannerScrollLock,
-		policyDialogScrollLock,
+		policyBanner: { scrollLock: policyBannerScrollLock },
+		policyDialog: { scrollLock: policyDialogScrollLock },
 		setActiveUI,
 	} = useConsentManager();
 	const isIABEnabled = Boolean(iab?.config.enabled);

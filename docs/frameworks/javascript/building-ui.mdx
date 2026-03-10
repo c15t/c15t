@@ -90,18 +90,20 @@ That matters when different visitors may resolve to different experiences, for e
 - different action sets such as accept/customize without reject
 - different category scopes depending on the active policy
 
-You can preview that locally with offline `policyPacks`:
+You can preview that locally with `offlinePolicy.policies`:
 
 ```ts
 import { getOrCreateConsentRuntime, policyPackPresets } from 'c15t';
 
 const { consentStore } = getOrCreateConsentRuntime({
   mode: 'offline',
-  policyPacks: [
-    policyPackPresets.californiaOptOut(),
-    policyPackPresets.europeOptIn(),
-    policyPackPresets.worldNoBanner(),
-  ],
+  offlinePolicy: {
+    policies: [
+      policyPackPresets.californiaOptOut(),
+      policyPackPresets.europeOptIn(),
+      policyPackPresets.worldNoBanner(),
+    ],
+  },
   overrides: {
     country: 'US',
     region: 'CA',
