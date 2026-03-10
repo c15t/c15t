@@ -1,5 +1,12 @@
 # @c15t/translations
 
+## 2.0.0-rc.5
+
+### Patch Changes
+
+- 58fb392: Rename translation-facing APIs from `translations` to `i18n` across runtime types and helpers.
+  Add CLI migration codemods to update existing projects to the new naming.
+
 ## 2.0.0-rc.4
 
 ### Patch Changes

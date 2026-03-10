@@ -1,5 +1,18 @@
 # @c15t/cli
 
+## 2.0.0-rc.5
+
+### Patch Changes
+
+- 57eef9f: feat(cli): consent.io integration
+  feat(cli): remove redundent preflight checks
+- 58fb392: Rename translation-facing APIs from `translations` to `i18n` across runtime types and helpers.
+  Add CLI migration codemods to update existing projects to the new naming.
+- 1c1b2d8: feat(cli): add more codemods for v1 -> v2
+- 58fb392: Rename `c15t` mode references to `hosted` in core runtime and CLI generate flows.
+  Add migration codemods and template updates for the hosted vs offline terminology.
+  - @c15t/backend@2.0.0-rc.5
+
 ## 2.0.0-rc.4
 
 ### Patch Changes

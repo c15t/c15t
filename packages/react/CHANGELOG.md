@@ -1,5 +1,15 @@
 # @c15t/react
 
+## 2.0.0-rc.5
+
+### Patch Changes
+
+- Updated dependencies [58fb392]
+- Updated dependencies [58fb392]
+- Updated dependencies [60a51f1]
+  - c15t@2.0.0-rc.5
+  - @c15t/ui@2.0.0-rc.5
+
 ## 2.0.0-rc.4
 
 ### Patch Changes
