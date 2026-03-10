@@ -7,6 +7,7 @@
  * @packageDocumentation
  */
 
+import { sanitizeSubjectIdentifiers } from '../sanitize-subject-identifiers';
 import {
 	PENDING_CONSENT_SYNC_KEY,
 	type PendingConsentSync,
@@ -194,6 +195,11 @@ function processPendingConsentSync(
 		localStorage.removeItem(PENDING_CONSENT_SYNC_KEY);
 
 		const data: PendingConsentSync = JSON.parse(pendingSync);
+		const { externalId: externalSubjectId, identityProvider } =
+			sanitizeSubjectIdentifiers({
+				externalId: data.externalId,
+				identityProvider: data.identityProvider,
+			});
 
 		// Fire API call (non-blocking)
 		manager
@@ -203,12 +209,12 @@ function processPendingConsentSync(
 					domain: data.domain,
 					preferences: data.preferences,
 					subjectId: data.subjectId,
-					externalSubjectId: data.externalId,
-					identityProvider: data.identityProvider,
 					jurisdiction: data.jurisdiction,
 					jurisdictionModel: data.jurisdictionModel ?? undefined,
 					givenAt: data.givenAt,
 					uiSource: data.uiSource ?? 'api',
+					...(externalSubjectId ? { externalSubjectId } : {}),
+					...(identityProvider ? { identityProvider } : {}),
 				},
 			})
 			.then((result) => {

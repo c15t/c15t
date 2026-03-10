@@ -364,6 +364,47 @@ describe('Consent Store', () => {
 			expect(store.getState().activeUI).toBe('none');
 		});
 
+		it('should omit invalid optional subject identifiers when saving from restored consent state', async () => {
+			const storedData = {
+				consents: {
+					necessary: true,
+					marketing: false,
+					measurement: true,
+					functionality: false,
+					experience: false,
+				},
+				consentInfo: {
+					time: Date.now(),
+					type: 'custom' as const,
+					subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+					externalId: 'undefined',
+					identityProvider: null,
+				},
+			};
+
+			window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(storedData));
+
+			const store = createConsentManagerStore(mockManager);
+
+			expect(store.getState().consentInfo).toEqual({
+				time: storedData.consentInfo.time,
+				type: 'custom',
+				subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+			});
+			expect(store.getState().user).toBeUndefined();
+
+			store.getState().setActiveUI('dialog');
+			await store.getState().saveConsents('custom', { uiSource: 'dialog' });
+
+			const callBody = (mockManager.setConsent as ReturnType<typeof vi.fn>).mock
+				.calls[0][0].body;
+
+			expect(callBody.externalSubjectId).toBeUndefined();
+			expect(callBody.identityProvider).toBeUndefined();
+			expect(callBody.uiSource).toBe('dialog');
+			expect(store.getState().activeUI).toBe('none');
+		});
+
 		it('should allow banner again after resetConsents clears consentInfo', () => {
 			const store = createConsentManagerStore(mockManager);
 

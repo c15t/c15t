@@ -3,6 +3,7 @@ import type { ConsentStoreState } from '~/store/type';
 import type { ConsentManagerInterface } from '../client/client-interface';
 import type { ConsentInfo, ConsentState, ConsentType } from '../types';
 import { generateSubjectId } from './generate-subject-id';
+import { sanitizeSubjectIdentifiers } from './sanitize-subject-identifiers';
 
 /**
  * Storage key for pending consent sync after page reload.
@@ -138,9 +139,23 @@ export async function saveConsents({
 	}
 
 	// Use pending externalId from store or from user prop
-	const externalId = get().consentInfo?.externalId || get().user?.id;
+	const storedIdentifiers = sanitizeSubjectIdentifiers({
+		externalId: get().consentInfo?.externalId,
+		identityProvider: get().consentInfo?.identityProvider,
+	});
+	const userIdentifiers = sanitizeSubjectIdentifiers({
+		externalId: get().user?.id,
+		identityProvider: get().user?.identityProvider,
+	});
+	const externalId = storedIdentifiers.externalId ?? userIdentifiers.externalId;
 	const identityProvider =
-		get().consentInfo?.identityProvider || get().user?.identityProvider;
+		storedIdentifiers.identityProvider ?? userIdentifiers.identityProvider;
+	const nextConsentInfo: ConsentInfo = {
+		time: givenAt,
+		subjectId,
+		...(externalId ? { externalId } : {}),
+		...(identityProvider ? { identityProvider } : {}),
+	};
 
 	// Check if we need to reload the page due to consent revocation
 	const needsReload = shouldReloadOnConsentChange(
@@ -158,12 +173,7 @@ export async function saveConsents({
 		consents: newConsents,
 		selectedConsents: newConsents,
 		activeUI: 'none' as const,
-		consentInfo: {
-			time: givenAt,
-			subjectId,
-			externalId,
-			identityProvider,
-		},
+		consentInfo: nextConsentInfo,
 	});
 
 	// If consent was revoked and reload is enabled, store pending sync and reload
@@ -172,14 +182,14 @@ export async function saveConsents({
 		const pendingSync: PendingConsentSync = {
 			type,
 			subjectId,
-			externalId,
-			identityProvider,
 			preferences: newConsents,
 			givenAt,
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
 			jurisdictionModel: model,
 			domain: window.location.hostname,
 			uiSource: options?.uiSource ?? 'api',
+			...(externalId ? { externalId } : {}),
+			...(identityProvider ? { identityProvider } : {}),
 		};
 
 		try {
@@ -224,13 +234,13 @@ export async function saveConsents({
 			domain: window.location.hostname,
 			preferences: newConsents,
 			subjectId,
-			externalSubjectId: String(externalId),
-			identityProvider,
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
 			jurisdictionModel: model ?? undefined,
 			givenAt,
 			uiSource: options?.uiSource ?? 'api',
 			consentAction: type,
+			...(externalId ? { externalSubjectId: externalId } : {}),
+			...(identityProvider ? { identityProvider } : {}),
 		},
 	});
 

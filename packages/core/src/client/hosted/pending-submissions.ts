@@ -5,6 +5,7 @@
  */
 
 import { getDebugLogger } from '../../libs/debug';
+import { sanitizeSubjectIdentifiers } from '../../libs/sanitize-subject-identifiers';
 import type {
 	IdentifyUserRequestBody,
 	IdentifyUserResponse,
@@ -89,7 +90,29 @@ export async function processPendingConsentSubmissions(
 
 		for (let j = 0; j < remainingSubmissions.length; j++) {
 			const submission = remainingSubmissions[j];
+			if (!submission) {
+				continue;
+			}
+
 			try {
+				const { externalId: externalSubjectId, identityProvider } =
+					sanitizeSubjectIdentifiers({
+						externalId: submission.externalSubjectId,
+						identityProvider: submission.identityProvider,
+					});
+				const sanitizedSubmission: SetConsentRequestBody = {
+					...submission,
+					...(externalSubjectId ? { externalSubjectId } : {}),
+					...(identityProvider ? { identityProvider } : {}),
+				};
+
+				if (!externalSubjectId) {
+					delete sanitizedSubmission.externalSubjectId;
+				}
+				if (!identityProvider) {
+					delete sanitizedSubmission.identityProvider;
+				}
+
 				getDebugLogger().log('Retrying consent submission:', submission);
 
 				const response = await fetcher<
@@ -97,7 +120,7 @@ export async function processPendingConsentSubmissions(
 					SetConsentRequestBody
 				>(context, API_ENDPOINTS.POST_SUBJECT, {
 					method: 'POST',
-					body: submission,
+					body: sanitizedSubmission,
 				});
 
 				if (response.ok) {
