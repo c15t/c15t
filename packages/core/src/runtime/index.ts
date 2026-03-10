@@ -45,6 +45,15 @@ export type ConsentRuntimeOptions = ConsentManagerOptions &
 		 */
 		translations?: Partial<TranslationConfig>;
 		consentCategories?: AllConsentNames[];
+		/**
+		 * Offline-only policy pack alias for `store.offlinePolicy.policyPack`.
+		 *
+		 * @remarks
+		 * This is the headless/runtime equivalent of the React provider
+		 * `policyPacks` option. It is ignored outside `mode: 'offline'`.
+		 *
+		 * @see {@link https://v2.c15t.com/docs/frameworks/javascript/policy-packs}
+		 */
 		policyPacks?: PolicyConfig[];
 		debug?: boolean;
 	};

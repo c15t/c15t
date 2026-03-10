@@ -1,0 +1,60 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  Building headless components is easier now because c15t exposes policy-aware primitives instead of forcing you to reconstruct banner rules by hand.
+
+  The headless stack is:
+
+  - `useHeadlessConsentUI()` for policy-aware banner/dialog actions, ordering, layout, and primary action hints
+  - `useConsentManager()` for runtime state, categories, selected consent state, and policy metadata
+  - `useTranslations()` for the resolved copy
+  - `policyPacks` for offline previews that behave like backend policy resolution
+
+  <Callout type="info">
+    This guide is about building your own components while still respecting resolved policy-pack behavior. For the general headless overview, see [Headless Mode](/docs/frameworks/react/headless).
+  </Callout>
+</section>
+
+<section id="what-you-get">
+  ## What the Headless Tooling Gives You
+
+  The main win is that your custom UI can stay aligned with policy packs without duplicating policy logic in your components.
+
+  `useHeadlessConsentUI()` already resolves:
+
+  - which actions are allowed
+  - the order those actions should render in
+  - grouped actions for split vs inline layouts
+  - the primary action
+  - UI profile and scroll-lock hints
+  - whether the banner or dialog should currently be visible
+
+  That means your component mostly focuses on markup and design-system concerns instead of re-implementing policy interpretation.
+</section>
+
+<section id="checklist">
+  ## What a Policy-Aware Headless Component Should Respect
+
+  When you build custom banner or dialog components, make sure they use:
+
+  - `activeUI` or `banner.isVisible` / `dialog.isVisible` for visibility
+  - `allowedActions`, `orderedActions`, or `actionGroups` instead of hard-coding buttons
+  - `primaryAction` for visual emphasis
+  - `consentCategories` when deciding which category toggles to render
+  - `policyDecision` when you want to debug why a specific UI state was chosen
+
+  If you ignore those values, your custom UI can drift away from the resolved policy pack even though the underlying consent engine is configured correctly.
+</section>
+
+<section id="validation">
+  ## Validation and Testing
+
+  If you are building a reusable headless component library, validate your rendered UI against the resolved runtime policy in tests.
+
+  The core package exposes:
+
+  - `getEffectivePolicy(initData)` to read the resolved policy from `/init`
+  - `validateUIAgainstPolicy({ policy, state })` to detect mismatches such as wrong actions, layout, or mode
+
+  This is useful when your design system renders custom button arrangements and you want tests to catch policy drift early.
+</section>

@@ -14,7 +14,7 @@ export default defineConfig({
 	i18n: {
 		messages: demoI18nMessages,
 	},
-	policies: demoPolicies,
+	policyPacks: demoPolicies,
 	policySnapshot: {
 		signingKey: DEMO_POLICY_SNAPSHOT_KEY,
 		ttlSeconds: 60 * 60,

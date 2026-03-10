@@ -306,6 +306,9 @@ export type ConsentManagerOptions = {
 	 * This is primarily intended for React/Next.js provider usage where
 	 * policy packs are passed directly to the provider options object.
 	 * Ignored unless `mode: 'offline'`.
+	 *
+	 * @see {@link https://v2.c15t.com/docs/frameworks/react/policy-packs}
+	 * @see {@link https://v2.c15t.com/docs/frameworks/next/policy-packs}
 	 */
 	policyPacks?: PolicyConfig[];
 	/**
@@ -313,6 +316,8 @@ export type ConsentManagerOptions = {
 	 *
 	 * @remarks
 	 * When provided, this takes precedence over `store.offlinePolicy`.
+	 *
+	 * @see {@link https://v2.c15t.com/docs/frameworks/javascript/policy-packs}
 	 */
 	offlinePolicy?: StoreOptions['offlinePolicy'];
 	/**

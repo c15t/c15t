@@ -1,0 +1,130 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  Policy packs let you preview region-specific consent behavior directly in the provider without a backend. Pass an array of `PolicyConfig` objects and c15t resolves the right policy locally based on geo overrides.
+
+  Use them for:
+
+  - testing regional banner behavior without a backend
+  - comparing opt-in vs opt-out experiences side by side
+  - building custom UI against real runtime policy payloads
+  - keeping Storybook, static previews, or demo apps aligned with production behavior
+
+  <Callout type="warn">
+    In hosted mode, the backend `policyPacks` option is the source of truth. Frontend `policyPacks` do not override a live backend decision.
+  </Callout>
+</section>
+
+<section id="defaults">
+  ## Start with the Built-in Defaults
+
+  The fastest way to get started — no custom config needed:
+
+  ```tsx
+  import { policyPackPresets } from '@c15t/react';
+
+  policyPacks: [
+    policyPackPresets.europeOptIn(),
+    policyPackPresets.californiaOptOut(),
+    policyPackPresets.worldNoBanner(),
+  ]
+  ```
+
+  Available presets:
+
+  | Preset | Model | Matches |
+  |--------|-------|---------|
+  | `europeOptIn()` | `opt-in` | EU/EEA jurisdictions |
+  | `europeIab()` | `iab` | EU/EEA (TCF 2.3) |
+  | `californiaOptOut()` | `opt-out` | US-CA region |
+  | `quebecOptIn()` | `opt-in` | CA-QC region |
+  | `worldNoBanner()` | `none` | default fallback |
+</section>
+
+<section id="provider-alias">
+  ## `policyPacks` Shorthand
+
+  The provider accepts a top-level `policyPacks` as shorthand for `store.offlinePolicy.policyPack`:
+
+  ```tsx
+  // Shorthand (recommended)
+  <ConsentManagerProvider
+    options={{
+      mode: 'offline',
+      policyPacks: [
+        {
+          id: 'policy_qc_opt_in',
+          match: { regions: [{ country: 'CA', region: 'QC' }] },
+          consent: { model: 'opt-in', expiryDays: 365 },
+          ui: { mode: 'banner' },
+        },
+        {
+          id: 'policy_default',
+          match: { isDefault: true },
+          consent: { model: 'none' },
+          ui: { mode: 'none' },
+        },
+      ],
+      overrides: { country: 'CA', region: 'QC' },
+    }}
+  >
+  ```
+
+  The explicit nested form is equivalent:
+
+  ```tsx
+  options={{
+    mode: 'offline',
+    store: {
+      offlinePolicy: {
+        policyPack: [...],
+      },
+    },
+  }}
+  ```
+
+  <Callout type="info">
+    Migrating from the nested form? Run `bunx @c15t/cli codemods` and select the offline policy pack migration.
+  </Callout>
+</section>
+
+<section id="fallback-behavior">
+  ## Fallback Behavior
+
+  | Configuration | Result |
+  |--------------|--------|
+  | `policyPacks` omitted | Synthetic opt-in fallback banner (so local dev works out of the box) |
+  | `policyPacks: []` | Explicit no-banner mode |
+  | Non-empty pack, no match, no default | Explicit no-banner mode |
+
+  Omitting the option gives you a usable local default. Providing it tells c15t you want policy-driven behavior exactly as configured.
+</section>
+
+<section id="qa-and-debugging">
+  ## QA and Debugging
+
+  Pair `policyPacks` with `overrides` to simulate different visitors:
+
+  ```tsx
+  options={{
+    mode: 'offline',
+    policyPacks: [
+      policyPackPresets.europeOptIn(),
+      policyPackPresets.californiaOptOut(),
+      policyPackPresets.worldNoBanner(),
+    ],
+    overrides: {
+      country: 'US',
+      region: 'CA',
+      language: 'en-US',
+      gpc: true, // Simulate Global Privacy Control
+    },
+  }}
+  ```
+
+  For deeper inspection:
+
+  - Read `policy` and `policyDecision` from `useConsentManager()` to see the resolved config
+  - Open the DevTools Policy panel to inspect matcher resolution and fingerprints
+  - Compare your frontend preview with the backend `/init` response before shipping
+</section>

@@ -149,7 +149,7 @@ export function listProfiles(options: {
 export function validateMessages(options: {
 	customTranslations?: Record<string, Partial<Translations>>;
 	i18n?: C15TOptions['i18n'];
-	policies?: PolicyConfig[];
+	policies?: PolicyConfig[]; // internal param name — accepts policyPacks from options
 }): {
 	profiles: string[];
 	errors: string[];

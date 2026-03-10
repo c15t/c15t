@@ -53,8 +53,8 @@ export {
 } from './policy-fingerprint';
 export {
 	type EuropePolicyMode,
-	type PolicyPackDefaults,
-	policyPackDefaults,
+	type PolicyPackPresets,
+	policyPackPresets,
 } from './policy-pack-defaults';
 export {
 	EEA_COUNTRY_CODES,

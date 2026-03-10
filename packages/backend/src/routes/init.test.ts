@@ -99,7 +99,7 @@ describe('createInitRoute IAB policy gating', () => {
 						},
 					],
 				},
-				policies: [
+				policyPacks: [
 					{
 						id: 'policy_us_ca',
 						match: { regions: [{ country: 'US', region: 'CA' }] },
@@ -156,7 +156,7 @@ describe('createInitRoute IAB policy gating', () => {
 						},
 					],
 				},
-				policies: [
+				policyPacks: [
 					{
 						id: 'policy_fr_iab',
 						match: { countries: ['FR'] },
@@ -213,7 +213,7 @@ describe('createInitRoute IAB policy gating', () => {
 		const app = createInitRoute(
 			createOptions({
 				iab: { enabled: true, cmpId: 404 },
-				policies: [],
+				policyPacks: [],
 			})
 		);
 
@@ -239,7 +239,7 @@ describe('createInitRoute IAB policy gating', () => {
 		const app = createInitRoute(
 			createOptions({
 				iab: { enabled: true, cmpId: 505 },
-				policies: [
+				policyPacks: [
 					{
 						id: 'policy_us_ca',
 						match: { regions: [{ country: 'US', region: 'CA' }] },
@@ -325,7 +325,7 @@ describe('createInitRoute IAB policy gating', () => {
 		const app = createInitRoute(
 			createOptions({
 				policySnapshot: { signingKey: 'test-signing-key', ttlSeconds: 60 },
-				policies: [
+				policyPacks: [
 					{
 						id: 'policy_de',
 						match: { countries: ['DE'] },

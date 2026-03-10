@@ -120,9 +120,9 @@ describe('init', () => {
 		expect(context).toHaveProperty('trustedOrigins');
 	});
 
-	it('throws when policies use model=iab without top-level iab.enabled', () => {
+	it('throws when policyPacks use model=iab without top-level iab.enabled', () => {
 		const options = createOptions({
-			policies: [
+			policyPacks: [
 				{
 					id: 'policy_iab',
 					match: { jurisdictions: ['GDPR'] },
@@ -139,7 +139,7 @@ describe('init', () => {
 
 	it('logs policy warnings for non-fatal pack risks', () => {
 		const options = createOptions({
-			policies: [
+			policyPacks: [
 				{
 					id: 'policy_country_only',
 					match: { countries: ['US'] },
@@ -150,7 +150,7 @@ describe('init', () => {
 		init(options);
 
 		expect(mockLogger.warn).toHaveBeenCalledWith(
-			'policies: No default policy configured. Requests that do not match region/country/jurisdiction will have no active policy.'
+			'policyPacks: No default policy configured. Requests that do not match region/country/jurisdiction will have no active policy.'
 		);
 	});
 });

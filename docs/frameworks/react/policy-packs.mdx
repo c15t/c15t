@@ -1,0 +1,54 @@
+---
+title: Policy Packs
+description: Configure offline policy packs in React and preview regional consent behavior locally.
+---
+
+<import src="../../shared/react/guides/policy-packs.mdx#intro" />
+
+<import src="../../shared/react/guides/policy-packs.mdx#defaults" />
+
+## React Example
+
+```tsx
+import type { ReactNode } from 'react';
+import {
+  ConsentBanner,
+  ConsentDialog,
+  ConsentManagerProvider,
+  policyPackPresets,
+} from '@c15t/react';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'offline',
+        policyPacks: [
+          policyPackPresets.europeOptIn(),
+          policyPackPresets.californiaOptOut(),
+          policyPackPresets.worldNoBanner(),
+        ],
+        overrides: {
+          country: 'DE', // Preview as a German visitor
+        },
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+When your app uses a live backend, move the canonical pack into backend `policyPacks` and keep frontend `policyPacks` only for local previews, stories, or tests.
+
+<import src="../../shared/react/guides/policy-packs.mdx#provider-alias" />
+
+<import src="../../shared/react/guides/policy-packs.mdx#fallback-behavior" />
+
+<import src="../../shared/react/guides/policy-packs.mdx#qa-and-debugging" />
+
+<Callout type="info">
+  For the full concept model (matchers, scope modes, re-prompting), see [Policy Packs concepts](/docs/frameworks/react/concepts/policy-packs). For backend setup, see the [self-host guide](/docs/self-host/guides/policy-packs).
+</Callout>

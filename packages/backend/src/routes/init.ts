@@ -75,13 +75,13 @@ Use for geo-targeted consent banners and regional compliance.`,
 			// Get location and jurisdiction
 			const location = await getLocation(request, options);
 			const jurisdiction = getJurisdiction(location, options);
-			const hasExplicitPolicyPack = options.policies !== undefined;
+			const hasExplicitPolicyPack = options.policyPacks !== undefined;
 			const isExplicitEmptyPolicyPack =
-				hasExplicitPolicyPack && (options.policies?.length ?? 0) === 0;
+				hasExplicitPolicyPack && (options.policyPacks?.length ?? 0) === 0;
 			const policyDecision = isExplicitEmptyPolicyPack
 				? undefined
 				: await resolvePolicyDecision({
-						policies: options.policies,
+						policies: options.policyPacks,
 						countryCode: location.countryCode,
 						regionCode: location.regionCode,
 						jurisdiction,

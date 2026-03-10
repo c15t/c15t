@@ -1,0 +1,53 @@
+---
+title: Policy Packs
+description: How c15t resolves regional consent policies and what a policy pack controls.
+---
+
+<import src="../../../shared/concepts/policy-packs.mdx#overview" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#quickstart" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#what-users-see" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#resolution-flow" />
+
+Inspect the resolved offline policy directly from the store:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'offline',
+  policyPacks: [...],
+  overrides: { country: 'DE' },
+});
+
+const state = consentStore.getState();
+console.log({
+  policyId: state.policy?.id,
+  matchedBy: state.policyDecision?.matchedBy,
+  fingerprint: state.policyDecision?.fingerprint,
+});
+```
+
+<import src="../../../shared/concepts/policy-packs.mdx#anatomy" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#matchers" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#common-patterns" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#categories-and-scope" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#ui-customization" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#fallbacks" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#re-prompting" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#snapshots-and-debugging" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#design-guidelines" />
+
+<Callout type="info">
+  For runtime setup, see the [JavaScript policy pack guide](/docs/frameworks/javascript/policy-packs). For backend configuration, see the [self-host guide](/docs/self-host/guides/policy-packs).
+</Callout>

@@ -1,6 +1,11 @@
 import type { PolicyConfig } from './policy-runtime';
 import { policyMatchers } from './policy-runtime';
 
+/**
+ * Preset Europe pack mode used by {@link policyPackPresets}.
+ *
+ * @see {@link https://v2.c15t.com/docs/frameworks/react/policy-packs}
+ */
 export type EuropePolicyMode = 'opt-in' | 'iab';
 
 function californiaPolicy(mode: 'opt-in' | 'opt-out'): PolicyConfig {
@@ -186,29 +191,76 @@ function legacyOptOutFallbackPolicy(): PolicyConfig {
 	};
 }
 
-export interface PolicyPackDefaults {
-	defaultPack: () => PolicyConfig[];
-	europeOptInBanner: () => PolicyConfig;
-	europeIabBanner: () => PolicyConfig;
+export interface PolicyPackPresets {
+	/**
+	 * Europe opt-in preset (GDPR jurisdictions).
+	 */
+	europeOptIn: () => PolicyConfig;
+	/**
+	 * Europe IAB TCF 2.3 preset.
+	 */
+	europeIab: () => PolicyConfig;
+	/**
+	 * World fallback with no banner — use as the default policy.
+	 */
 	worldNoBanner: () => PolicyConfig;
-	californiaOptInBanner: () => PolicyConfig;
-	californiaOptOutBanner: () => PolicyConfig;
-	quebecOptInBanner: () => PolicyConfig;
-	legacyJurisdictionOptInFallback: () => PolicyConfig;
-	legacyJurisdictionOptOutFallback: () => PolicyConfig;
+	/**
+	 * California opt-in preset (US-CA region).
+	 */
+	californiaOptIn: () => PolicyConfig;
+	/**
+	 * California opt-out preset (US-CA region).
+	 */
+	californiaOptOut: () => PolicyConfig;
+	/**
+	 * Quebec opt-in preset (CA-QC region).
+	 */
+	quebecOptIn: () => PolicyConfig;
+	/**
+	 * Legacy opt-in fallback preset for older jurisdiction-driven setups.
+	 */
+	legacyJurisdictionOptIn: () => PolicyConfig;
+	/**
+	 * Legacy opt-out fallback preset for older jurisdiction-driven setups.
+	 */
+	legacyJurisdictionOptOut: () => PolicyConfig;
+	/**
+	 * Backward-compatible pack covering all legacy jurisdictions.
+	 */
 	legacyCompatiblePack: () => PolicyConfig[];
 }
 
-export const policyPackDefaults: PolicyPackDefaults = {
-	defaultPack: () => [europePolicy('opt-in'), californiaPolicy('opt-out')],
-	europeOptInBanner: () => europePolicy('opt-in'),
-	europeIabBanner: () => europePolicy('iab'),
+/**
+ * Built-in policy pack presets for common regional starting points.
+ *
+ * @remarks
+ * These helpers are convenient for demos, tests, local previews, and initial
+ * backend bootstrapping. Treat them as starter presets rather than a complete
+ * legal policy strategy.
+ *
+ * @example
+ * ```ts
+ * import { policyPackPresets } from 'c15t';
+ *
+ * const packs = [
+ *   policyPackPresets.europeOptIn(),
+ *   policyPackPresets.californiaOptOut(),
+ *   policyPackPresets.worldNoBanner(),
+ * ];
+ * ```
+ *
+ * @see {@link https://v2.c15t.com/docs/frameworks/react/policy-packs}
+ * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ */
+export const policyPackPresets: PolicyPackPresets = {
+	europeOptIn: () => europePolicy('opt-in'),
+	europeIab: () => europePolicy('iab'),
 	worldNoBanner: () => worldNoBannerPolicy(),
-	californiaOptInBanner: () => californiaPolicy('opt-in'),
-	californiaOptOutBanner: () => californiaPolicy('opt-out'),
-	quebecOptInBanner: () => quebecPolicy(),
-	legacyJurisdictionOptInFallback: () => legacyOptInFallbackPolicy(),
-	legacyJurisdictionOptOutFallback: () => legacyOptOutFallbackPolicy(),
+	californiaOptIn: () => californiaPolicy('opt-in'),
+	californiaOptOut: () => californiaPolicy('opt-out'),
+	quebecOptIn: () => quebecPolicy(),
+	legacyJurisdictionOptIn: () => legacyOptInFallbackPolicy(),
+	legacyJurisdictionOptOut: () => legacyOptOutFallbackPolicy(),
 	legacyCompatiblePack: () => [
 		californiaPolicy('opt-out'),
 		europePolicy('opt-in'),

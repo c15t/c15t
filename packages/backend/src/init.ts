@@ -76,7 +76,7 @@ export const init = (options: C15TOptions): C15TContext => {
 	const i18nValidation = validateMessages({
 		i18n: options.i18n,
 		customTranslations: options.customTranslations,
-		policies: options.policies,
+		policies: options.policyPacks,
 	});
 
 	for (const warning of i18nValidation.warnings) {
@@ -91,12 +91,12 @@ export const init = (options: C15TOptions): C15TContext => {
 		);
 	}
 
-	const policyValidation = inspectPolicies(options.policies ?? [], {
+	const policyValidation = inspectPolicies(options.policyPacks ?? [], {
 		iabEnabled: options.iab?.enabled === true,
 	});
 
 	for (const warning of policyValidation.warnings) {
-		logger.warn(`policies: ${warning}`);
+		logger.warn(`policyPacks: ${warning}`);
 	}
 
 	if (policyValidation.errors.length > 0) {

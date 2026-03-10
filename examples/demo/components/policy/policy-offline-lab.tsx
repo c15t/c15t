@@ -7,7 +7,7 @@ import {
 	ConsentManagerProvider,
 	IABConsentBanner,
 	IABConsentDialog,
-	policyPackDefaults,
+	policyPackPresets,
 	useConsentManager,
 } from '@c15t/react';
 import Link from 'next/link';
@@ -147,13 +147,17 @@ export function PolicyOfflineLab() {
 	const policyPacks = useMemo(() => {
 		switch (policyPreset) {
 			case 'default-pack':
-				return policyPackDefaults.defaultPack();
+				return [
+					policyPackPresets.europeOptIn(),
+					policyPackPresets.californiaOptOut(),
+					policyPackPresets.worldNoBanner(),
+				];
 			case 'california':
-				return [policyPackDefaults.californiaOptOutBanner()];
+				return [policyPackPresets.californiaOptOut()];
 			case 'quebec':
-				return [policyPackDefaults.quebecOptInBanner()];
+				return [policyPackPresets.quebecOptIn()];
 			case 'iab-europe':
-				return [policyPackDefaults.europeIabBanner()];
+				return [policyPackPresets.europeIab()];
 			case 'empty':
 				return [];
 			default:

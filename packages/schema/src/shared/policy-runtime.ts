@@ -1,5 +1,5 @@
 import type { PolicyDecision, ResolvedPolicy } from '~/api/init';
-import { jurisdictionCodes } from './constants';
+import type { jurisdictionCodes } from './constants';
 import { createPolicyFingerprint } from './policy-fingerprint';
 
 export {
@@ -16,6 +16,15 @@ export type PolicyUiAction = 'accept' | 'reject' | 'customize';
 export type PolicyUiActionLayout = 'split' | 'inline';
 export type PolicyUiProfile = 'balanced' | 'compact' | 'strict';
 
+/**
+ * UI customizations for a single consent surface within a policy.
+ *
+ * @remarks
+ * This is used by `ui.banner` and `ui.dialog` on {@link PolicyConfig}. These
+ * overrides are ignored for IAB policies because TCF mode controls that UI.
+ *
+ * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs}
+ */
 export interface PolicyUiSurfaceConfig {
 	allowedActions?: PolicyUiAction[];
 	primaryAction?: PolicyUiAction;
@@ -25,6 +34,26 @@ export interface PolicyUiSurfaceConfig {
 	scrollLock?: boolean;
 }
 
+/**
+ * Canonical runtime policy definition shared across backend and frontend.
+ *
+ * @remarks
+ * Policy packs are ordered arrays of `PolicyConfig`. On the backend they are
+ * configured via `c15tInstance({ policyPacks })`; on the frontend they can be
+ * previewed in offline mode with `policyPacks`.
+ *
+ * c15t resolves packs with fixed precedence:
+ *
+ * 1. region
+ * 2. country
+ * 3. jurisdiction
+ * 4. default
+ *
+ * Within the same matcher type, first match wins by array order.
+ *
+ * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs}
+ * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ */
 export interface PolicyConfig {
 	id: string;
 	name?: string;
@@ -57,16 +86,37 @@ export interface PolicyConfig {
 	};
 }
 
+/**
+ * Matcher portion of a {@link PolicyConfig}.
+ *
+ * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs#matching-order}
+ */
 export type PolicyMatch = PolicyConfig['match'];
 export type PolicyMatchedBy = PolicyDecision['matchedBy'];
 const POLICY_PURPOSE_WILDCARD = '*';
 
+/**
+ * Result of resolving a policy pack for one request.
+ *
+ * @remarks
+ * This is the explainable runtime output behind `/init.policyDecision` and
+ * offline policy preview metadata.
+ *
+ * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs#snapshots-and-debugging}
+ */
 export interface ResolvedPolicyDecision {
 	policy: ResolvedPolicy;
 	matchedBy: PolicyMatchedBy;
 	fingerprint: string;
 }
 
+/**
+ * Validation report for a policy pack.
+ *
+ * @remarks
+ * Errors indicate invalid configuration. Warnings indicate ambiguous or risky
+ * configuration such as overlapping matchers without a clear default.
+ */
 export interface PolicyValidationResult {
 	errors: string[];
 	warnings: string[];
@@ -135,6 +185,15 @@ function dedupeJurisdictions(values: JurisdictionCode[]): JurisdictionCode[] {
 	return [...new Set(values)];
 }
 
+/**
+ * Matcher helpers for composing {@link PolicyConfig.match} objects.
+ *
+ * @remarks
+ * These helpers normalize country and region casing and make intent explicit in
+ * both backend config and tests.
+ *
+ * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs#matching-order}
+ */
 export const policyMatchers = {
 	default(): PolicyMatch {
 		return { isDefault: true };
@@ -473,6 +532,11 @@ function collectPolicyWarnings(policies: PolicyConfig[]): string[] {
 	return [...warnings];
 }
 
+/**
+ * Inspects a policy pack and returns both errors and warnings.
+ *
+ * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ */
 export function inspectPolicies(
 	policies: PolicyConfig[],
 	options?: { iabEnabled?: boolean }
@@ -709,6 +773,11 @@ function mapPolicy(policy: PolicyConfig): ResolvedPolicy {
 	};
 }
 
+/**
+ * Validates a policy pack and throws on the first error.
+ *
+ * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ */
 export function validatePolicies(
 	policies: PolicyConfig[],
 	options?: { iabEnabled?: boolean }
@@ -719,6 +788,16 @@ export function validatePolicies(
 	}
 }
 
+/**
+ * Resolves the active policy for a single request.
+ *
+ * @remarks
+ * Returns `undefined` when no pack is configured or no configured policy
+ * matches the request and no default is present.
+ *
+ * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs}
+ * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ */
 export async function resolvePolicyDecision(params: {
 	policies?: PolicyConfig[];
 	countryCode: string | null;

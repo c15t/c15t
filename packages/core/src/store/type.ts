@@ -53,6 +53,23 @@ export type InitDataSource =
 	| 'offline-fallback'
 	| 'offline-mode'
 	| 'custom';
+
+/**
+ * Offline policy preview payload for the headless runtime.
+ *
+ * @remarks
+ * Use this in `mode: 'offline'` to preview backend-like policy behavior
+ * without a live `/init` endpoint.
+ *
+ * The runtime supports two levels of control:
+ *
+ * - `policies` / `policyPack`: provide a backend-compatible policy pack and
+ *   let c15t resolve it locally
+ * - `policy` / `policyDecision`: inject a fully synthetic resolved result
+ *
+ * @see {@link https://v2.c15t.com/docs/frameworks/javascript/policy-packs}
+ * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs}
+ */
 export type OfflinePolicyConfig = {
 	/**
 	 * Backend-compatible policy pack resolved in offline mode using
@@ -397,6 +414,8 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	 * response so policy-driven banner/dialog behavior can be previewed locally.
 	 *
 	 * Ignored in hosted/custom modes.
+	 *
+	 * @see {@link https://v2.c15t.com/docs/frameworks/javascript/policy-packs}
 	 */
 	offlinePolicy?: OfflinePolicyConfig;
 

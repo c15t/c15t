@@ -374,8 +374,11 @@ export {
 	buildPolicyPackWithDefault,
 	policyBuilder,
 } from './policies/builder';
-export type { EuropePolicyMode, PolicyPackDefaults } from './policies/defaults';
-export { policyDefaults, policyPackDefaults } from './policies/defaults';
+export type {
+	EuropePolicyMode,
+	PolicyPackPresets,
+} from './policies/defaults';
+export { policyPackPresets } from './policies/defaults';
 export type { PolicyMatch } from './policies/matchers';
 export {
 	EEA_COUNTRY_CODES,

@@ -260,6 +260,12 @@ export type PolicyUiMode = 'none' | 'banner' | 'dialog';
 export type PolicyUiAction = 'accept' | 'reject' | 'customize';
 export type PolicyUiActionLayout = 'split' | 'inline';
 export type PolicyUiProfile = 'balanced' | 'compact' | 'strict';
+
+/**
+ * UI customizations for one policy surface.
+ *
+ * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ */
 export interface PolicyUiSurfaceConfig {
 	allowedActions?: PolicyUiAction[];
 	primaryAction?: PolicyUiAction;
@@ -269,6 +275,16 @@ export interface PolicyUiSurfaceConfig {
 	scrollLock?: boolean;
 }
 
+/**
+ * Backend policy definition used by `C15TOptions.policyPacks`.
+ *
+ * @remarks
+ * Policy packs are ordered arrays of `PolicyConfig` objects. c15t resolves
+ * them using region > country > jurisdiction > default precedence, with
+ * first-match-wins behavior inside the same matcher type.
+ *
+ * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ */
 export interface PolicyConfig {
 	id: string;
 	name?: string;
@@ -424,9 +440,16 @@ export interface C15TOptions {
 	i18n?: I18nOptions;
 
 	/**
-	 * Runtime regional policies resolved per request.
+	 * Runtime regional policy pack resolved per request.
+	 *
+	 * @remarks
+	 * Omit this field to keep legacy non-policy behavior. Pass `[]` to force
+	 * explicit no-banner mode. In production, prefer including a default policy
+	 * so unmatched traffic still resolves deterministically.
+	 *
+	 * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
 	 */
-	policies?: PolicyConfig[];
+	policyPacks?: PolicyConfig[];
 
 	/**
 	 * Select which branding to show in the consent banner.

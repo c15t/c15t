@@ -89,9 +89,9 @@ export {
 } from './shared/policy-fingerprint';
 export type {
 	EuropePolicyMode,
-	PolicyPackDefaults,
+	PolicyPackPresets,
 } from './shared/policy-pack-defaults';
-export { policyPackDefaults } from './shared/policy-pack-defaults';
+export { policyPackPresets } from './shared/policy-pack-defaults';
 export type {
 	FingerprintHashStrategy,
 	PolicyConfig,

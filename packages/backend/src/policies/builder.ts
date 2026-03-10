@@ -8,6 +8,18 @@ import type {
 } from '~/types';
 import { policyMatchers } from './matchers';
 
+/**
+ * High-level builder input for creating a backend policy config.
+ *
+ * @remarks
+ * This shape is intentionally flatter than {@link PolicyConfig} so backend
+ * configuration stays readable in `c15tInstance({ policyPacks })` setup files.
+ * Use the builder helpers to normalize this input into runtime-ready policy
+ * configs.
+ *
+ * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs}
+ */
 export interface PolicyBuilderInput {
 	id: string;
 	name?: string;
@@ -94,6 +106,16 @@ function compactUiSurface(
 	});
 }
 
+/**
+ * Converts a single {@link PolicyBuilderInput} into a normalized
+ * backend-compatible {@link PolicyConfig}.
+ *
+ * @remarks
+ * Empty optional fields are removed from the final output, matcher input is
+ * merged into `match`, and duplicate string arrays are deduplicated.
+ *
+ * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ */
 export function buildPolicyConfig(input: PolicyBuilderInput): PolicyConfig {
 	const categories = dedupeStrings(input.categories);
 	const preselectedCategories = dedupeStrings(input.preselectedCategories);
@@ -123,10 +145,32 @@ export function buildPolicyConfig(input: PolicyBuilderInput): PolicyConfig {
 	};
 }
 
+/**
+ * Converts an ordered list of builder inputs into a policy pack.
+ *
+ * @remarks
+ * The resulting array preserves input order. That order matters because
+ * duplicate region/country/jurisdiction matchers use first-match-wins
+ * semantics within the same matcher type.
+ *
+ * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ */
 export function buildPolicyPack(inputs: PolicyBuilderInput[]): PolicyConfig[] {
 	return inputs.map((input) => buildPolicyConfig(input));
 }
 
+/**
+ * Creates a policy pack and guarantees that it ends with a default policy.
+ *
+ * @remarks
+ * If the provided inputs already contain a default matcher, the pack is
+ * returned unchanged. Otherwise c15t appends either:
+ *
+ * - the supplied `defaultPolicy`, coerced to `match.isDefault = true`
+ * - or the built-in "World No Banner" fallback
+ *
+ * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ */
 export function buildPolicyPackWithDefault(
 	inputs: PolicyBuilderInput[],
 	defaultPolicy?: PolicyBuilderInput
@@ -151,6 +195,15 @@ export function buildPolicyPackWithDefault(
 	return [...pack, buildPolicyConfig(fallbackInput)];
 }
 
+/**
+ * Convenience namespace for the policy builder helpers.
+ *
+ * @remarks
+ * Useful when you prefer a grouped API such as `policyBuilder.createPack()`
+ * inside backend config files.
+ *
+ * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ */
 export const policyBuilder = {
 	create: buildPolicyConfig,
 	createPack: buildPolicyPack,

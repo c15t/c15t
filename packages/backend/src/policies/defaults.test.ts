@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { policyDefaults } from './defaults';
+import { policyPackPresets } from './defaults';
 
-describe('policyDefaults templates', () => {
+describe('policyPackPresets templates', () => {
 	it('returns europe opt-in and iab templates', () => {
-		const optIn = policyDefaults.europeOptInBanner();
-		const iab = policyDefaults.europeIabBanner();
+		const optIn = policyPackPresets.europeOptIn();
+		const iab = policyPackPresets.europeIab();
 
 		expect(optIn.consent?.model).toBe('opt-in');
 		expect(iab.consent?.model).toBe('iab');
@@ -12,43 +12,35 @@ describe('policyDefaults templates', () => {
 	});
 
 	it('returns california opt-in and opt-out templates', () => {
-		const optIn = policyDefaults.californiaOptInBanner();
-		const optOut = policyDefaults.californiaOptOutBanner();
+		const optIn = policyPackPresets.californiaOptIn();
+		const optOut = policyPackPresets.californiaOptOut();
 
 		expect(optIn.consent?.model).toBe('opt-in');
 		expect(optOut.consent?.model).toBe('opt-out');
 		expect(optIn.match.regions).toEqual([{ country: 'US', region: 'CA' }]);
-		expect(optIn.ui?.banner?.uiProfile).toBe('balanced');
-		expect(optOut.ui?.banner?.uiProfile).toBe('balanced');
+		expect(optIn.ui?.banner?.uiProfile).toBe('compact');
+		expect(optOut.ui?.banner?.uiProfile).toBe('compact');
 	});
 
 	it('returns quebec opt-in template', () => {
-		const policy = policyDefaults.quebecOptInBanner();
+		const policy = policyPackPresets.quebecOptIn();
 
 		expect(policy.consent?.model).toBe('opt-in');
 		expect(policy.match.regions).toEqual([{ country: 'CA', region: 'QC' }]);
-		expect(policy.ui?.banner?.uiProfile).toBe('balanced');
+		expect(policy.ui?.banner?.uiProfile).toBe('compact');
 	});
 
 	it('returns world no-banner default template', () => {
-		const policy = policyDefaults.worldNoBanner();
+		const policy = policyPackPresets.worldNoBanner();
 		expect(policy.consent?.model).toBe('none');
 		expect(policy.ui?.mode).toBe('none');
 		expect(policy.match.isDefault).toBe(true);
 	});
 });
 
-describe('policyDefaults packs', () => {
-	it('returns the default surfaced pack', () => {
-		const pack = policyDefaults.defaultPack();
-		expect(pack.map((policy) => policy.id)).toEqual([
-			'policy_default_europe_opt_in',
-			'policy_default_california_opt_out',
-		]);
-	});
-
+describe('policyPackPresets packs', () => {
 	it('returns legacy-compatible defaults', () => {
-		const pack = policyDefaults.legacyCompatiblePack();
+		const pack = policyPackPresets.legacyCompatiblePack();
 		expect(pack.map((policy) => policy.id)).toEqual([
 			'policy_default_california_opt_out',
 			'policy_default_europe_opt_in',
@@ -59,17 +51,17 @@ describe('policyDefaults packs', () => {
 	});
 
 	it('exposes legacy fallback templates', () => {
+		expect(policyPackPresets.legacyJurisdictionOptIn().consent?.model).toBe(
+			'opt-in'
+		);
 		expect(
-			policyDefaults.legacyJurisdictionOptInFallback().consent?.model
-		).toBe('opt-in');
-		expect(
-			policyDefaults.legacyJurisdictionOptInFallback().ui?.banner?.uiProfile
+			policyPackPresets.legacyJurisdictionOptIn().ui?.banner?.uiProfile
 		).toBe('balanced');
+		expect(policyPackPresets.legacyJurisdictionOptOut().consent?.model).toBe(
+			'opt-out'
+		);
 		expect(
-			policyDefaults.legacyJurisdictionOptOutFallback().consent?.model
-		).toBe('opt-out');
-		expect(
-			policyDefaults.legacyJurisdictionOptOutFallback().ui?.banner?.uiProfile
+			policyPackPresets.legacyJurisdictionOptOut().ui?.banner?.uiProfile
 		).toBe('strict');
 	});
 });

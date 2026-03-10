@@ -1,0 +1,235 @@
+---
+title: Policy Packs
+description: Configure regional policy packs on the backend and return deterministic runtime policy decisions from /init.
+---
+
+Policy packs are the backend source of truth for regional consent behavior. You pass them to `c15tInstance({ policyPacks })`, and c15t resolves a normalized runtime policy for each `/init` request based on the visitor's location.
+
+## Why Backend Packs
+
+- Resolve policies from real request geo and jurisdiction data — no client-side guessing
+- Centralize consent behavior for all clients (web, mobile, SDK)
+- Issue signed `policySnapshotToken` values so later consent writes stay aligned with the original decision
+- Return explainability metadata (`policyDecision`) for audit and debugging
+- Keep frontend packages thin by pushing legal/regional logic to one place
+
+## Quickstart
+
+```ts title="lib/c15t.ts"
+import { c15tInstance, policyPackPresets } from '@c15t/backend';
+
+export const c15t = c15tInstance({
+  adapter,
+  trustedOrigins: ['https://app.example.com'],
+  policyPacks: [
+    policyPackPresets.europeOptIn(),
+    policyPackPresets.californiaOptOut(),
+    policyPackPresets.worldNoBanner(),
+  ],
+});
+```
+
+That gives you Europe opt-in, California opt-out, and silent everywhere else — with zero custom config.
+
+## Custom Pack
+
+For full control, define your own policies:
+
+```ts title="lib/c15t.ts"
+import { c15tInstance, policyBuilder } from '@c15t/backend';
+
+export const c15t = c15tInstance({
+  adapter,
+  trustedOrigins: ['https://app.example.com'],
+  policyPacks: policyBuilder.createPackWithDefault(
+    [
+      {
+        id: 'policy_eu_opt_in',
+        jurisdictions: ['GDPR', 'UK_GDPR'],
+        model: 'opt-in',
+        expiryDays: 365,
+        scopeMode: 'strict',
+        categories: ['necessary', 'measurement', 'marketing'],
+        preselectedCategories: ['necessary'],
+        uiMode: 'banner',
+        banner: {
+          allowedActions: ['accept', 'reject', 'customize'],
+          primaryAction: 'customize',
+          uiProfile: 'compact',
+        },
+        dialog: {
+          allowedActions: ['accept', 'reject', 'customize'],
+        },
+        i18n: { messageProfile: 'eu' },
+        proof: { storeIp: true, storeUserAgent: true, storeLanguage: true },
+      },
+      {
+        id: 'policy_ca_opt_out',
+        regions: [{ country: 'US', region: 'CA' }],
+        model: 'opt-out',
+        expiryDays: 365,
+        uiMode: 'banner',
+      },
+    ],
+    {
+      id: 'policy_default_world',
+      name: 'World No Banner',
+      model: 'none',
+      uiMode: 'none',
+    }
+  ),
+});
+```
+
+## Builder Helpers
+
+The backend exports three helpers for assembling packs:
+
+| Helper | Purpose |
+|--------|---------|
+| `policyBuilder.create()` | Build a single `PolicyConfig` |
+| `policyBuilder.createPack()` | Build an ordered array of policies |
+| `policyBuilder.createPackWithDefault()` | Build a pack with a guaranteed default fallback |
+
+The builder normalizes matcher input into the `PolicyConfig` shape and strips empty fields from the final payload. You can also use the raw `PolicyConfig` objects directly — the builder is a convenience, not a requirement.
+
+## Resolution Flow
+
+<Tabs items={['Simplified', 'Sequence Diagram']}>
+  <Tab value="Simplified">
+    1. **`GET /init` arrives** — c15t reads geo from request headers (country, region, jurisdiction)
+    2. **Resolve policy** — walks the pack in priority order: region → country → jurisdiction → default
+    3. **Compute fingerprint** — generates a stable SHA-256 hash of the resolved policy
+    4. **Sign snapshot** — if `policySnapshot.signingKey` is configured, issues a JWT containing the decision
+    5. **Return response** — sends `policy`, `policyDecision`, and optional `policySnapshotToken` to the client
+    6. **Consent write** — when the user consents, `POST /subjects` validates the snapshot token and creates the consent record linked to the runtime policy decision
+  </Tab>
+
+  <Tab value="Sequence Diagram">
+    ```mermaid
+    sequenceDiagram
+        participant Client as Client
+        participant Init as GET /init
+        participant Resolver as Policy Resolver
+        participant DB as Database
+        participant Subjects as POST /subjects
+
+        Client->>Init: Request (geo headers)
+        Init->>Resolver: resolvePolicyDecision(pack, geo)
+        Resolver-->>Init: ResolvedPolicy + fingerprint
+
+        opt policySnapshot.signingKey configured
+            Init->>Init: Sign JWT (policySnapshotToken)
+        end
+
+        Init-->>Client: policy + policyDecision + token
+
+        Note over Client: User interacts with consent UI
+
+        Client->>Subjects: Consent + policySnapshotToken
+        Subjects->>Subjects: Verify JWT signature + expiry
+
+        alt Valid snapshot token
+            Subjects->>Subjects: Use token's policy decision
+        else Invalid or missing token
+            Subjects->>Resolver: Write-time resolvePolicyDecision()
+        end
+
+        Subjects->>DB: findOrCreate runtimePolicyDecision (deduped)
+        Subjects->>DB: Create consent record
+        Subjects-->>Client: Consent response
+    ```
+  </Tab>
+</Tabs>
+
+## Matching Rules
+
+Backend resolution order is fixed:
+
+1. **Region** — most specific (e.g., US-CA, CA-QC)
+2. **Country** — (e.g., US, DE, JP)
+3. **Jurisdiction** — (e.g., GDPR, CCPA, UK_GDPR)
+4. **Default** — fallback for unmatched traffic
+
+Within the same matcher type, first match wins by array order. c15t also enforces:
+
+- Unique policy IDs
+- At most one default policy
+- `iab.enabled: true` when any policy uses `model: 'iab'`
+- No custom `ui.*` overrides for IAB policies
+
+Use `inspectPolicies()` to surface overlapping matchers and other warnings before deployment.
+
+## Translation Profiles
+
+Policies integrate with backend i18n profiles through `i18n.messageProfile`:
+
+```ts
+const c15t = c15tInstance({
+  adapter,
+  trustedOrigins: ['https://app.example.com'],
+  i18n: {
+    defaultProfile: 'default',
+    messages: {
+      default: {
+        en: { cookieBanner: { title: 'We use cookies' } },
+      },
+      eu: {
+        en: { cookieBanner: { title: 'We use cookies for consented purposes only' } },
+        de: { cookieBanner: { title: 'Wir verwenden Cookies nur für genehmigte Zwecke' } },
+      },
+    },
+  },
+  policyPacks: [
+    {
+      id: 'policy_eu',
+      match: { jurisdictions: ['GDPR'] },
+      consent: { model: 'opt-in' },
+      i18n: { messageProfile: 'eu' },
+      ui: { mode: 'banner' },
+    },
+  ],
+});
+```
+
+`i18n.language` can also force a concrete language for a policy when needed.
+
+## Snapshot Tokens
+
+When `policySnapshot.signingKey` is configured, `/init` returns a signed JWT alongside the resolved policy. The token contains the full policy decision metadata (fingerprint, matched geo, consent model) and is validated on `POST /subjects` to ensure the consent write matches the original `/init` decision.
+
+```ts
+const c15t = c15tInstance({
+  adapter,
+  trustedOrigins: ['https://app.example.com'],
+  policySnapshot: {
+    signingKey: process.env.POLICY_SNAPSHOT_KEY,
+    ttlSeconds: 1800, // 30 minutes (default)
+  },
+  policyPacks: [...],
+});
+```
+
+This prevents race conditions where the policy pack changes between `/init` and the consent write.
+
+## Fallback Semantics
+
+| Configuration | Result |
+|--------------|--------|
+| `policyPacks` omitted | Legacy behavior, no runtime policy in `/init` response |
+| `policyPacks: []` | Explicit no-banner mode |
+| Non-empty pack, no match, no default | Explicit no-banner mode |
+
+For most production deployments, include a default policy so unmatched traffic resolves deterministically.
+
+## Frontend Alignment
+
+If you also use offline previews on the frontend:
+
+- Keep the backend pack canonical — it resolves from real geo data
+- Mirror it in frontend `policyPacks` only for local development, tests, or static demos
+- Validate the frontend preview against a real `/init` response before shipping
+
+<Callout type="info">
+  Frontend usage is documented in the [React guide](/docs/frameworks/react/policy-packs), [Next.js guide](/docs/frameworks/next/policy-packs), and [JavaScript guide](/docs/frameworks/javascript/policy-packs).
+</Callout>

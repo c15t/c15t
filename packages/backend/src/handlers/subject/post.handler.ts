@@ -92,7 +92,7 @@ export const postSubjectHandler = async (c: Context) => {
 	try {
 		if (type === 'cookie_banner') {
 			logger.warn(
-				'`cookie_banner` policy type is deprecated in 2.0 RC and will be removed in 2.0 GA. Use backend runtime `policies` for banner behavior.'
+				'`cookie_banner` policy type is deprecated in 2.0 RC and will be removed in 2.0 GA. Use backend runtime `policyPacks` for banner behavior.'
 			);
 		}
 
@@ -110,7 +110,7 @@ export const postSubjectHandler = async (c: Context) => {
 		const resolvedPolicyDecision = hasValidSnapshot
 			? undefined
 			: await resolvePolicyDecision({
-					policies: ctx.policies,
+					policies: ctx.policyPacks,
 					countryCode: location.countryCode,
 					regionCode: location.regionCode,
 					jurisdiction: resolvedJurisdiction,

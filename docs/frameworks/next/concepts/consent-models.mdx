@@ -8,12 +8,19 @@ description: How c15t determines consent behavior based on legal jurisdiction.
 Read the current consent model from the hook:
 
 ```tsx
+'use client';
+
 import { useConsentManager } from '@c15t/nextjs';
 
 function ConsentStatus() {
-  const { model } = useConsentManager();
+  const { model, policy } = useConsentManager();
 
-  return <p>Current consent model: {model ?? 'detecting...'}</p>;
+  return (
+    <p>
+      Current consent model: {model ?? 'detecting...'}
+      {policy && ` (from policy: ${policy.id})`}
+    </p>
+  );
 }
 ```
 
@@ -21,9 +28,11 @@ function ConsentStatus() {
 
 <import src="../../../shared/concepts/consent-models.mdx#jurisdiction-mapping" />
 
-Override the detected jurisdiction for testing or manual configuration:
+Override the detected jurisdiction for testing:
 
 ```tsx
+'use client';
+
 import { useConsentManager } from '@c15t/nextjs';
 
 function JurisdictionTester() {
@@ -41,3 +50,7 @@ function JurisdictionTester() {
   );
 }
 ```
+
+<Callout type="info">
+  For full control over which model applies where — plus UI customization, category scoping, and re-prompting — see [Policy Packs](/docs/frameworks/next/concepts/policy-packs).
+</Callout>
