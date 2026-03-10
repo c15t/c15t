@@ -20,7 +20,7 @@ const IGNORED_DIRS = new Set([
 	'out',
 ]);
 
-type PolicyPacksCodemodResult = {
+type CodemodResult = {
 	changed: boolean;
 	operations: number;
 	summaries: string[];
@@ -54,99 +54,114 @@ function getProperty(
 		if (!Node.isPropertyAssignment(property)) {
 			continue;
 		}
-
 		if (getPropertyName(property) === name) {
 			return property;
 		}
 	}
-
 	return undefined;
 }
 
+/**
+ * Finds offline-mode config objects that lack offlinePolicy.policies and
+ * injects `policyPackPresets.legacyCompatiblePack()` as the default.
+ */
 function transformSourceFile(
 	sourceFile: import('ts-morph').SourceFile
-): PolicyPacksCodemodResult {
+): CodemodResult {
 	let operations = 0;
 	const summaries: string[] = [];
+	let needsImport = false;
 
 	const propertyAssignments = sourceFile.getDescendantsOfKind(
 		SyntaxKind.PropertyAssignment
 	);
+
 	for (const property of propertyAssignments) {
-		if (
-			property.wasForgotten() ||
-			getPropertyName(property) !== 'policyPacks'
-		) {
+		if (property.wasForgotten() || getPropertyName(property) !== 'mode') {
 			continue;
 		}
 
-		const parentObject = property.getParentIfKind(
-			SyntaxKind.ObjectLiteralExpression
-		);
-		const initializerText = property.getInitializer()?.getText();
-		if (!parentObject || !initializerText) {
+		const initializer = property.getInitializerIfKind(SyntaxKind.StringLiteral);
+		if (!initializer || initializer.getLiteralValue() !== 'offline') {
 			continue;
 		}
 
-		let storeProperty = getProperty(parentObject, 'store');
-		let storeObject = storeProperty?.getInitializerIfKind(
+		const configObject = property.getParentIfKind(
 			SyntaxKind.ObjectLiteralExpression
 		);
-		if (!storeObject) {
-			parentObject.addPropertyAssignment({
-				name: 'store',
-				initializer: '{}',
-			});
-			storeProperty = getProperty(parentObject, 'store');
-			storeObject = storeProperty?.getInitializerIfKind(
+		if (!configObject) {
+			continue;
+		}
+
+		// Check if offlinePolicy already exists with policies
+		const offlinePolicyProperty = getProperty(configObject, 'offlinePolicy');
+		if (offlinePolicyProperty) {
+			const offlinePolicyObject = offlinePolicyProperty.getInitializerIfKind(
 				SyntaxKind.ObjectLiteralExpression
 			);
+			if (offlinePolicyObject && getProperty(offlinePolicyObject, 'policies')) {
+				continue;
+			}
 		}
 
-		if (!storeObject) {
-			continue;
-		}
-
-		let offlinePolicyProperty = getProperty(storeObject, 'offlinePolicy');
-		let offlinePolicyObject = offlinePolicyProperty?.getInitializerIfKind(
-			SyntaxKind.ObjectLiteralExpression
-		);
-		if (!offlinePolicyObject) {
-			storeObject.addPropertyAssignment({
+		// Add offlinePolicy with legacyCompatiblePack if missing entirely
+		if (!offlinePolicyProperty) {
+			configObject.addPropertyAssignment({
 				name: 'offlinePolicy',
-				initializer: '{}',
+				initializer: `{\n\t\tpolicies: policyPackPresets.legacyCompatiblePack(),\n\t}`,
 			});
-			offlinePolicyProperty = getProperty(storeObject, 'offlinePolicy');
-			offlinePolicyObject = offlinePolicyProperty?.getInitializerIfKind(
+			operations += 1;
+			needsImport = true;
+			summaries.push('added offlinePolicy.policies with legacyCompatiblePack');
+		} else {
+			// offlinePolicy exists but has no policies field — add it
+			const offlinePolicyObject = offlinePolicyProperty.getInitializerIfKind(
 				SyntaxKind.ObjectLiteralExpression
 			);
+			if (offlinePolicyObject) {
+				offlinePolicyObject.addPropertyAssignment({
+					name: 'policies',
+					initializer: 'policyPackPresets.legacyCompatiblePack()',
+				});
+				operations += 1;
+				needsImport = true;
+				summaries.push(
+					'added policies: policyPackPresets.legacyCompatiblePack()'
+				);
+			}
 		}
+	}
 
-		if (!offlinePolicyObject) {
-			continue;
-		}
+	// Add import for policyPackPresets if needed and not already imported
+	if (needsImport) {
+		const existingImports = sourceFile.getImportDeclarations();
+		const alreadyImported = existingImports.some((decl) => {
+			const namedImports = decl.getNamedImports();
+			return namedImports.some((ni) => ni.getName() === 'policyPackPresets');
+		});
 
-		if (!getProperty(offlinePolicyObject, 'policies')) {
-			offlinePolicyObject.addPropertyAssignment({
-				name: 'policies',
-				initializer: initializerText,
+		if (!alreadyImported) {
+			// Try to find an existing c15t import to add to
+			const c15tImport = existingImports.find((decl) => {
+				const moduleSpecifier = decl.getModuleSpecifierValue();
+				return (
+					moduleSpecifier === 'c15t' ||
+					moduleSpecifier === '@c15t/react' ||
+					moduleSpecifier === '@c15t/nextjs'
+				);
 			});
-			summaries.push('policyPacks -> store.offlinePolicy.policies');
-		} else {
-			summaries.push('removed duplicate top-level policyPacks');
-		}
 
-		const legacyPolicyPackProperty = getProperty(
-			offlinePolicyObject,
-			'policyPack'
-		);
-		legacyPolicyPackProperty?.remove();
-		property.remove();
-		operations += 1;
-
-		if (legacyPolicyPackProperty) {
+			if (c15tImport) {
+				c15tImport.addNamedImport('policyPackPresets');
+				summaries.push('added policyPackPresets to existing import');
+			} else {
+				sourceFile.addImportDeclaration({
+					namedImports: ['policyPackPresets'],
+					moduleSpecifier: 'c15t',
+				});
+				summaries.push("added import { policyPackPresets } from 'c15t'");
+			}
 			operations += 1;
-			summaries.push('removed legacy store.offlinePolicy.policyPack');
 		}
 	}
 
@@ -162,12 +177,10 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 
 	async function walk(currentDir: string): Promise<void> {
 		const entries = await readdir(currentDir, { withFileTypes: true });
-
 		for (const entry of entries) {
 			if (entry.isSymbolicLink()) {
 				continue;
 			}
-
 			if (entry.isDirectory()) {
 				if (IGNORED_DIRS.has(entry.name)) {
 					continue;
@@ -175,16 +188,13 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 				await walk(join(currentDir, entry.name));
 				continue;
 			}
-
 			if (!entry.isFile()) {
 				continue;
 			}
-
 			const extension = extname(entry.name).toLowerCase();
 			if (!SUPPORTED_EXTENSIONS.has(extension)) {
 				continue;
 			}
-
 			files.push(join(currentDir, entry.name));
 		}
 	}
@@ -193,7 +203,11 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 	return files;
 }
 
-export async function runOfflinePolicyPackToPolicyPacksCodemod(
+/**
+ * Adds `offlinePolicy.policies: policyPackPresets.legacyCompatiblePack()`
+ * to offline-mode configs that lack policy packs (v1 -> v2 migration).
+ */
+export async function runOfflineAddPolicyPacksCodemod(
 	options: CodemodRunOptions
 ): Promise<CodemodRunResult> {
 	const project = new Project({
