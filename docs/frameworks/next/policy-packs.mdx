@@ -1,13 +1,46 @@
 ---
 title: Policy Packs
-description: Configure offline policy packs in Next.js and preview regional consent behavior locally.
+description: Configure regional consent policies in Next.js — hosted mode, presets, and offline fallback.
 ---
 
 <import src="../../shared/react/guides/policy-packs.mdx#intro" />
 
 <import src="../../shared/react/guides/policy-packs.mdx#defaults" />
 
-## Next.js Example
+## Next.js Example (Hosted)
+
+Point the provider at your backend — policy resolution happens server-side:
+
+```tsx title="components/consent-manager/provider.tsx"
+'use client';
+
+import type { ReactNode } from 'react';
+import {
+  ConsentBanner,
+  ConsentDialog,
+  ConsentManagerProvider,
+} from '@c15t/nextjs';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        backendURL: 'https://your-instance.c15t.dev',
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+For production Next.js apps, you can optionally hydrate the first `/init` response with the [server-side utilities](/docs/frameworks/next/server-side).
+
+## Offline / Fallback
+
+For local development, static sites, or when the backend is unreachable, pass policies directly:
 
 ```tsx title="components/consent-manager/provider.tsx"
 'use client';
@@ -26,7 +59,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
       options={{
         mode: 'offline',
         offlinePolicy: {
-          policies: [
+          policyPacks: [
             policyPackPresets.europeOptIn(),
             policyPackPresets.californiaOptOut(),
             policyPackPresets.worldNoBanner(),
@@ -44,8 +77,6 @@ export function ConsentManager({ children }: { children: ReactNode }) {
   );
 }
 ```
-
-For production Next.js apps, prefer a backend route backed by `policyPacks` and optionally hydrate the first `/init` response with the [server-side utilities](/docs/frameworks/next/server-side).
 
 <import src="../../shared/react/guides/policy-packs.mdx#provider-shape" />
 

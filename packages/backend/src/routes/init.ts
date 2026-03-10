@@ -25,7 +25,7 @@ function stripIabTranslations(
 
 function resolveNoPolicyFallback(): ResolvedPolicy {
 	return {
-		id: 'policy_default_no_banner',
+		id: 'no_banner',
 		model: 'none',
 		ui: {
 			mode: 'none',

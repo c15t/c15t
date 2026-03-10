@@ -1,5 +1,5 @@
-import { PolicyOfflineLab } from '../../../components/policy/policy-offline-lab';
+import { redirect } from 'next/navigation';
 
 export default function OfflinePage() {
-	return <PolicyOfflineLab />;
+	redirect('/policy');
 }

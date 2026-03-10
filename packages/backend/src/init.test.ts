@@ -125,7 +125,7 @@ describe('init', () => {
 			policyPacks: [
 				{
 					id: 'policy_iab',
-					match: { jurisdictions: ['GDPR'] },
+					match: { countries: ['DE'] },
 					consent: { model: 'iab' },
 				},
 			],
@@ -150,7 +150,7 @@ describe('init', () => {
 		init(options);
 
 		expect(mockLogger.warn).toHaveBeenCalledWith(
-			'policyPacks: No default policy configured. Requests that do not match region/country/jurisdiction will have no active policy.'
+			'policyPacks: No default policy configured. Requests that do not match region/country will have no active policy.'
 		);
 	});
 });

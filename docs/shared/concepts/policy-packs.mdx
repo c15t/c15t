@@ -9,7 +9,7 @@
 
   1. **consent.io (recommended)** — use [consent.io](https://consent.io) as your hosted backend. Configure packs visually in the dashboard or via API — no code changes required. Works with any frontend, including static sites.
   2. **Self-hosted backend** — define packs in code via `policyPacks` and resolve them from real request geo data. Full control over policy logic and storage.
-  3. **Offline fallback** — pass the same policy shapes to the frontend via `offlinePolicy.policies`. Used as a resilience fallback when the backend is unreachable, or for quick local experimentation and demos.
+  3. **Offline fallback** — pass the same policy shapes to the frontend via `offlinePolicy.policyPacks`. Used as a resilience fallback when the backend is unreachable, or for quick local experimentation and demos.
 
   In both hosted and self-hosted modes, the **backend is always the source of truth**. Offline packs never override a live backend decision.
 </section>

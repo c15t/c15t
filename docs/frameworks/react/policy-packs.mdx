@@ -1,13 +1,42 @@
 ---
 title: Policy Packs
-description: Configure offline policy packs in React and preview regional consent behavior locally.
+description: Configure regional consent policies in React — hosted mode, presets, and offline fallback.
 ---
 
 <import src="../../shared/react/guides/policy-packs.mdx#intro" />
 
 <import src="../../shared/react/guides/policy-packs.mdx#defaults" />
 
-## React Example
+## React Example (Hosted)
+
+Point the provider at your backend — policy resolution happens server-side:
+
+```tsx
+import type { ReactNode } from 'react';
+import {
+  ConsentBanner,
+  ConsentDialog,
+  ConsentManagerProvider,
+} from '@c15t/react';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        backendURL: 'https://your-instance.c15t.dev',
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+## Offline / Fallback
+
+For local development, static sites, or when the backend is unreachable, pass policies directly:
 
 ```tsx
 import type { ReactNode } from 'react';
@@ -24,7 +53,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
       options={{
         mode: 'offline',
         offlinePolicy: {
-          policies: [
+          policyPacks: [
             policyPackPresets.europeOptIn(),
             policyPackPresets.californiaOptOut(),
             policyPackPresets.worldNoBanner(),
@@ -42,8 +71,6 @@ export function ConsentManager({ children }: { children: ReactNode }) {
   );
 }
 ```
-
-When your app uses a live backend, move the canonical pack into backend `policyPacks` and keep frontend `offlinePolicy.policies` only for local previews, stories, or tests.
 
 <import src="../../shared/react/guides/policy-packs.mdx#provider-shape" />
 

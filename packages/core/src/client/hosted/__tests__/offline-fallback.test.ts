@@ -42,9 +42,7 @@ describe('Hosted Client Offline Fallback Tests', () => {
 		);
 		expect(response.ok).toBe(true);
 		expect(response.data?.jurisdiction).toBeDefined();
-		expect(response.data?.policy?.id).toBe(
-			'policy_default_offline_opt_in_banner'
-		);
+		expect(response.data?.policy?.id).toBe('offline_opt_in_banner');
 		expect(response.data?.policy?.model).toBe('opt-in');
 	});
 

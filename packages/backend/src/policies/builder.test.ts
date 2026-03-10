@@ -3,6 +3,7 @@ import {
 	buildPolicyConfig,
 	buildPolicyPack,
 	buildPolicyPackWithDefault,
+	composePacks,
 	policyBuilder,
 } from './builder';
 
@@ -27,7 +28,6 @@ describe('buildPolicyConfig', () => {
 
 		expect(policy).toEqual({
 			id: 'policy_us',
-			name: undefined,
 			match: {
 				countries: ['US'],
 			},
@@ -54,11 +54,11 @@ describe('buildPolicyConfig', () => {
 		});
 	});
 
-	it('supports region and jurisdiction with default matcher', () => {
+	it('supports region and country with default matcher', () => {
 		const policy = buildPolicyConfig({
 			id: 'policy_mixed',
 			regions: [{ country: 'us', region: 'ca' }],
-			jurisdictions: ['GDPR'],
+			countries: ['de'],
 			isDefault: true,
 			model: 'opt-in',
 		});
@@ -66,7 +66,7 @@ describe('buildPolicyConfig', () => {
 		expect(policy.match).toEqual({
 			isDefault: true,
 			regions: [{ country: 'US', region: 'CA' }],
-			jurisdictions: ['GDPR'],
+			countries: ['DE'],
 		});
 	});
 
@@ -142,6 +142,10 @@ describe('policyBuilder', () => {
 		expect(pack[1]?.ui?.mode).toBe('dialog');
 	});
 
+	it('exposes composePacks on object helpers', () => {
+		expect(policyBuilder.composePacks).toBe(composePacks);
+	});
+
 	it('exposes object helpers', () => {
 		const single = policyBuilder.create({ id: 'one', countries: ['DE'] });
 		const many = policyBuilder.createPack([{ id: 'two', countries: ['FR'] }]);
@@ -151,5 +155,39 @@ describe('policyBuilder', () => {
 		expect(single.match.countries).toEqual(['DE']);
 		expect(many[0]?.id).toBe('two');
 		expect(withDefault.at(-1)?.match.isDefault).toBe(true);
+	});
+});
+
+describe('composePacks', () => {
+	it('merges multiple packs preserving order', () => {
+		const pack = composePacks(
+			[buildPolicyConfig({ id: 'eu', countries: ['DE'] })],
+			[
+				buildPolicyConfig({
+					id: 'ca',
+					regions: [{ country: 'US', region: 'CA' }],
+				}),
+			],
+			[
+				buildPolicyConfig({
+					id: 'default',
+					isDefault: true,
+					model: 'none',
+					uiMode: 'none',
+				}),
+			]
+		);
+
+		expect(pack.map((p) => p.id)).toEqual(['eu', 'ca', 'default']);
+	});
+
+	it('deduplicates by id keeping first occurrence', () => {
+		const pack = composePacks(
+			[buildPolicyConfig({ id: 'eu', countries: ['DE'], model: 'opt-in' })],
+			[buildPolicyConfig({ id: 'eu', countries: ['FR'], model: 'opt-out' })]
+		);
+
+		expect(pack).toHaveLength(1);
+		expect(pack[0]?.match.countries).toEqual(['DE']);
 	});
 });

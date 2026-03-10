@@ -378,7 +378,6 @@ export type { PolicyMatch } from './policies/matchers';
 export {
 	EEA_COUNTRY_CODES,
 	EU_COUNTRY_CODES,
-	IAB_POLICY_JURISDICTIONS,
 	POLICY_MATCH_DATASET_VERSION,
 	policyMatchers,
 	UK_COUNTRY_CODES,

@@ -14,7 +14,7 @@ export interface RuntimePolicyDecisionInput {
 	tenantId?: string;
 	policyId: string;
 	fingerprint: string;
-	matchedBy: 'region' | 'country' | 'jurisdiction' | 'default';
+	matchedBy: 'region' | 'country' | 'default';
 	countryCode: string | null;
 	regionCode: string | null;
 	jurisdiction: string;

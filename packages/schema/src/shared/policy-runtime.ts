@@ -48,7 +48,7 @@ export interface PolicyUiSurfaceConfig {
  * @remarks
  * Policy packs are ordered arrays of `PolicyConfig`. On the backend they are
  * configured via `c15tInstance({ policyPacks })`; on the frontend they can be
- * previewed in offline mode with `offlinePolicy.policies`.
+ * previewed in offline mode with `offlinePolicy.policyPacks`.
  *
  * c15t resolves packs with fixed precedence:
  *
@@ -63,7 +63,6 @@ export interface PolicyUiSurfaceConfig {
  */
 export interface PolicyConfig {
 	id: string;
-	name?: string;
 	match: {
 		regions?: Array<{ country: string; region: string }>;
 		countries?: string[];
@@ -117,7 +116,7 @@ export interface PolicyConfig {
  *
  * @remarks
  * On the backend this is configured via `policyPacks`; in frontend offline
- * mode it is provided via `offlinePolicy.policies`.
+ * mode it is provided via `offlinePolicy.policyPacks`.
  */
 export type PolicyPack = PolicyConfig[];
 

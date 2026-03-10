@@ -5,7 +5,7 @@ export const runtimePolicyDecisionSchema = v.object({
 	tenantId: v.nullish(v.string()),
 	policyId: v.string(),
 	fingerprint: v.string(),
-	matchedBy: v.picklist(['region', 'country', 'jurisdiction', 'default']),
+	matchedBy: v.picklist(['region', 'country', 'default']),
 	countryCode: v.nullish(v.string()),
 	regionCode: v.nullish(v.string()),
 	jurisdiction: v.string(),

@@ -11,17 +11,13 @@ description: How c15t resolves regional consent policies and what a policy pack 
 
 <import src="../../../shared/concepts/policy-packs.mdx#resolution-flow" />
 
-Inspect the resolved offline policy directly from the store:
+Inspect the resolved policy directly from the store:
 
 ```ts
 import { getOrCreateConsentRuntime } from 'c15t';
 
 const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'offline',
-  offlinePolicy: {
-    policies: [...],
-  },
-  overrides: { country: 'DE' },
+  backendURL: 'https://your-instance.c15t.dev',
 });
 
 const state = consentStore.getState();
@@ -32,21 +28,9 @@ console.log({
 });
 ```
 
-<import src="../../../shared/concepts/policy-packs.mdx#anatomy" />
-
-<import src="../../../shared/concepts/policy-packs.mdx#matchers" />
-
 <import src="../../../shared/concepts/policy-packs.mdx#common-patterns" />
 
-<import src="../../../shared/concepts/policy-packs.mdx#categories-and-scope" />
-
-<import src="../../../shared/concepts/policy-packs.mdx#ui-customization" />
-
-<import src="../../../shared/concepts/policy-packs.mdx#fallbacks" />
-
 <import src="../../../shared/concepts/policy-packs.mdx#re-prompting" />
-
-<import src="../../../shared/concepts/policy-packs.mdx#snapshots-and-debugging" />
 
 <import src="../../../shared/concepts/policy-packs.mdx#design-guidelines" />
 

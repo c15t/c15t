@@ -6,7 +6,7 @@ type InitFallbackPolicy = NonNullable<InitResponse['policy']>;
 
 export function resolveNoPolicyFallback(): InitFallbackPolicy {
 	return {
-		id: 'policy_default_no_banner',
+		id: 'no_banner',
 		model: 'none',
 		ui: {
 			mode: 'none',

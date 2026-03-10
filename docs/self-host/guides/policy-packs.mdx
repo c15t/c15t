@@ -7,7 +7,7 @@ Policy packs are the backend source of truth for regional consent behavior. You 
 
 ## Why Backend Packs
 
-- Resolve policies from real request geo and jurisdiction data — no client-side guessing
+- Resolve policies from real request geo data (country/region) — no client-side guessing
 - Centralize consent behavior for all clients (web, mobile, SDK)
 - Issue signed `policySnapshotToken` values so later consent writes stay aligned with the original decision
 - Return explainability metadata (`policyDecision`) for audit and debugging
@@ -36,7 +36,12 @@ That gives you Europe opt-in, California opt-out, and silent everywhere else —
 For full control, define your own policies:
 
 ```ts title="lib/c15t.ts"
-import { c15tInstance, policyBuilder } from '@c15t/backend';
+import {
+  c15tInstance,
+  EEA_COUNTRY_CODES,
+  policyBuilder,
+  UK_COUNTRY_CODES,
+} from '@c15t/backend';
 
 export const c15t = c15tInstance({
   adapter,
@@ -44,8 +49,8 @@ export const c15t = c15tInstance({
   policyPacks: policyBuilder.createPackWithDefault(
     [
       {
-        id: 'policy_eu_opt_in',
-        jurisdictions: ['GDPR', 'UK_GDPR'],
+        id: 'eu_opt_in',
+        countries: [...EEA_COUNTRY_CODES, ...UK_COUNTRY_CODES],
         model: 'opt-in',
         expiryDays: 365,
         scopeMode: 'strict',
@@ -64,16 +69,15 @@ export const c15t = c15tInstance({
         proof: { storeIp: true, storeUserAgent: true, storeLanguage: true },
       },
       {
-        id: 'policy_ca_opt_out',
+        id: 'ca_opt_out',
         regions: [{ country: 'US', region: 'CA' }],
         model: 'opt-out',
         expiryDays: 365,
-        uiMode: 'banner',
+        uiMode: 'none',
       },
     ],
     {
-      id: 'policy_default_world',
-      name: 'World No Banner',
+      id: 'default_world',
       model: 'none',
       uiMode: 'none',
     }
@@ -98,7 +102,7 @@ The builder normalizes matcher input into the `PolicyConfig` shape and strips em
 <Tabs items={['Simplified', 'Sequence Diagram']}>
   <Tab value="Simplified">
     1. **`GET /init` arrives** — c15t reads geo from request headers (country, region, jurisdiction)
-    2. **Resolve policy** — walks the pack in priority order: region → country → jurisdiction → default
+    2. **Resolve policy** — walks the pack in priority order: region → country → default
     3. **Compute fingerprint** — generates a stable SHA-256 hash of the resolved policy
     4. **Sign snapshot** — if `policySnapshot.signingKey` is configured, issues a JWT containing the decision
     5. **Return response** — sends `policy`, `policyDecision`, and optional `policySnapshotToken` to the client
@@ -148,8 +152,7 @@ Backend resolution order is fixed:
 
 1. **Region** — most specific (e.g., US-CA, CA-QC)
 2. **Country** — (e.g., US, DE, JP)
-3. **Jurisdiction** — (e.g., GDPR, CCPA, UK_GDPR)
-4. **Default** — fallback for unmatched traffic
+3. **Default** — fallback for unmatched traffic
 
 Within the same matcher type, first match wins by array order. c15t also enforces:
 
@@ -159,6 +162,44 @@ Within the same matcher type, first match wins by array order. c15t also enforce
 - No custom `ui.*` overrides for IAB policies
 
 Use `inspectPolicies()` to surface overlapping matchers and other warnings before deployment.
+
+## Validating Your Pack
+
+`inspectPolicies()` checks your policy pack for errors and warnings before deployment:
+
+```ts title="scripts/validate-policies.ts"
+import { inspectPolicies, policyPackPresets } from '@c15t/backend';
+
+const pack = [
+  policyPackPresets.europeOptIn(),
+  policyPackPresets.californiaOptOut(),
+  policyPackPresets.worldNoBanner(),
+];
+
+const result = inspectPolicies(pack, { iabEnabled: false });
+
+if (result.errors.length > 0) {
+  console.error('Policy errors:', result.errors);
+  process.exit(1);
+}
+
+if (result.warnings.length > 0) {
+  console.warn('Policy warnings:', result.warnings);
+}
+```
+
+Common errors caught:
+
+- Multiple default policies
+- IAB policies without `iab.enabled: true`
+- IAB policies with custom `ui.*` overrides or `preselectedCategories`
+- Duplicate or missing policy IDs
+- Policies with no matchers and not marked as default
+
+Common warnings:
+
+- No default policy configured
+- Overlapping country or region matchers across policies
 
 ## Translation Profiles
 
@@ -182,8 +223,8 @@ const c15t = c15tInstance({
   },
   policyPacks: [
     {
-      id: 'policy_eu',
-      match: { jurisdictions: ['GDPR'] },
+      id: 'eu',
+      match: { countries: ['DE', 'FR', 'IT'] },
       consent: { model: 'opt-in' },
       i18n: { messageProfile: 'eu' },
       ui: { mode: 'banner' },
@@ -216,9 +257,13 @@ This prevents race conditions where the policy pack changes between `/init` and 
 
 | Configuration | Result |
 |--------------|--------|
-| `policyPacks` omitted | Legacy behavior, no runtime policy in `/init` response |
+| `policyPacks` omitted | **Deprecated** — legacy mode with no runtime policy in `/init` response. Will require `policyPacks` in 2.0 GA. |
 | `policyPacks: []` | Explicit no-banner mode |
-| Non-empty pack, no match, no default | Explicit no-banner mode |
+| Non-empty pack, no match, no default | Implicit no-banner mode |
+
+<Callout type="warning">
+  Omitting `policyPacks` entirely is deprecated and will be removed in 2.0 GA. Set `policyPacks: []` explicitly if you want no-banner behavior.
+</Callout>
 
 For most production deployments, include a default policy so unmatched traffic resolves deterministically.
 
@@ -227,7 +272,7 @@ For most production deployments, include a default policy so unmatched traffic r
 If you also use offline previews on the frontend:
 
 - Keep the backend pack canonical — it resolves from real geo data
-- Mirror it in frontend `offlinePolicy.policies` only for local development, tests, or static demos
+- Mirror it in frontend `offlinePolicy.policyPacks` only for local development, tests, or static demos
 - Validate the frontend preview against a real `/init` response before shipping
 
 <Callout type="info">

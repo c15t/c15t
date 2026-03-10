@@ -5,7 +5,7 @@
 
   **For most apps, you just need a `ConsentManagerProvider` pointing at your backend with presets configured there.** The frontend receives the resolved policy via the `/init` response — no client-side policy config required.
 
-  When a backend isn't available — local development, static previews, Storybook, or as a resilience fallback — you can pass policies directly to the provider via `offlinePolicy.policies` and c15t resolves them locally.
+  When a backend isn't available — local development, static previews, Storybook, or as a resilience fallback — you can pass policies directly to the provider via `offlinePolicy.policyPacks` and c15t resolves them locally.
 
   <Callout type="info">
     For QA and testing, use the [c15t DevTools](/docs/frameworks/react/dev-tools) to simulate different regions and policy responses against your real backend, rather than switching to offline mode.
@@ -39,7 +39,7 @@
   import { policyPackPresets } from '@c15t/react';
 
   offlinePolicy: {
-    policies: [
+    policyPacks: [
       policyPackPresets.europeOptIn(),
       policyPackPresets.californiaOptOut(),
       policyPackPresets.worldNoBanner(),
@@ -61,14 +61,14 @@
 <section id="provider-shape">
   ## Provider Shape
 
-  Configure packs through `offlinePolicy.policies`:
+  Configure packs through `offlinePolicy.policyPacks`:
 
   ```tsx
   <ConsentManagerProvider
     options={{
       mode: 'offline',
       offlinePolicy: {
-        policies: [
+        policyPacks: [
           {
             id: 'qc_opt_in',
             match: { regions: [{ country: 'CA', region: 'QC' }] },
@@ -94,8 +94,8 @@
 
   | Configuration | Result |
   |--------------|--------|
-  | `offlinePolicy.policies` omitted | Synthetic opt-in fallback banner (so local dev works out of the box) |
-  | `offlinePolicy: { policies: [] }` | Explicit no-banner mode |
+  | `offlinePolicy.policyPacks` omitted | Synthetic opt-in fallback banner (so local dev works out of the box) |
+  | `offlinePolicy: { policyPacks: [] }` | Explicit no-banner mode |
   | Non-empty pack, no match, no default | Explicit no-banner mode |
 
   Omitting the option gives you a usable local default. Providing it tells c15t you want policy-driven behavior exactly as configured.
@@ -112,13 +112,13 @@
   - Open the DevTools Policy panel to inspect matcher resolution and fingerprints
   - Compare your frontend preview with the backend `/init` response before shipping
 
-  If you need fully deterministic resolution without a backend (e.g., in automated tests or Storybook), pair `offlinePolicy.policies` with `overrides`:
+  If you need fully deterministic resolution without a backend (e.g., in automated tests or Storybook), pair `offlinePolicy.policyPacks` with `overrides`:
 
   ```tsx
   options={{
     mode: 'offline',
     offlinePolicy: {
-      policies: [
+      policyPacks: [
         policyPackPresets.europeOptIn(),
         policyPackPresets.californiaOptOut(),
         policyPackPresets.worldNoBanner(),

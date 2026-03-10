@@ -493,7 +493,7 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 				model: 'iab',
 				consent: { categories: ['*'] },
 			},
-			matchedBy: 'jurisdiction',
+			matchedBy: 'country',
 			fingerprint: 'b'.repeat(64),
 		});
 

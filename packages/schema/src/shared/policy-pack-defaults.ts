@@ -13,7 +13,6 @@ function californiaPolicy(mode: 'opt-in' | 'opt-out'): PolicyConfig {
 
 	return {
 		id: isOptOut ? 'california_opt_out' : 'california_opt_in',
-		name: isOptOut ? 'California Opt-Out' : 'California Opt-In',
 		match: policyMatchers.regions([{ country: 'US', region: 'CA' }]),
 		consent: {
 			model: mode,
@@ -47,7 +46,6 @@ function europePolicy(mode: EuropePolicyMode): PolicyConfig {
 	const isIab = mode === 'iab';
 	return {
 		id: isIab ? 'europe_iab' : 'europe_opt_in',
-		name: isIab ? 'Europe IAB Banner' : 'Europe Opt-In Banner',
 		match: policyMatchers.iab(),
 		consent: {
 			model: mode,
@@ -82,7 +80,6 @@ function europePolicy(mode: EuropePolicyMode): PolicyConfig {
 function worldNoBannerPolicy(): PolicyConfig {
 	return {
 		id: 'world_no_banner',
-		name: 'World No Banner',
 		match: policyMatchers.default(),
 		consent: { model: 'none' },
 		ui: { mode: 'none' },
@@ -97,7 +94,6 @@ function worldNoBannerPolicy(): PolicyConfig {
 function quebecPolicy(): PolicyConfig {
 	return {
 		id: 'quebec_opt_in',
-		name: 'Quebec Opt-In Banner',
 		match: policyMatchers.regions([{ country: 'CA', region: 'QC' }]),
 		consent: {
 			model: 'opt-in',

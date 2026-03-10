@@ -25,9 +25,7 @@ describe('Offline Client Tests', () => {
 		expect(response.ok).toBe(true);
 		expect(response.data?.jurisdiction).toBe('GDPR');
 		expect(response.data?.location?.countryCode).toBe('GB');
-		expect(response.data?.policy?.id).toBe(
-			'policy_default_offline_opt_in_banner'
-		);
+		expect(response.data?.policy?.id).toBe('offline_opt_in_banner');
 		expect(response.data?.policy?.model).toBe('opt-in');
 		expect(response.data?.policy?.ui?.mode).toBe('banner');
 	});
@@ -162,7 +160,7 @@ describe('Offline Client Tests', () => {
 			mode: 'offline',
 			store: {
 				offlinePolicy: {
-					policies,
+					policyPacks: policies,
 				},
 			},
 		});
@@ -194,10 +192,10 @@ describe('Offline Client Tests', () => {
 			mode: 'offline',
 			store: {
 				offlinePolicy: {
-					policies: [
+					policyPacks: [
 						{
 							id: 'policy_gdpr_iab',
-							match: { jurisdictions: ['GDPR'] },
+							match: { countries: ['DE'] },
 							consent: { model: 'iab' },
 						},
 					],
@@ -219,7 +217,7 @@ describe('Offline Client Tests', () => {
 			mode: 'offline',
 			store: {
 				offlinePolicy: {
-					policies: [
+					policyPacks: [
 						{
 							id: 'policy_country_us',
 							match: { countries: ['US'] },
@@ -236,7 +234,7 @@ describe('Offline Client Tests', () => {
 		});
 
 		expect(response.ok).toBe(true);
-		expect(response.data?.policy?.id).toBe('policy_default_no_banner');
+		expect(response.data?.policy?.id).toBe('offline_no_banner');
 		expect(response.data?.policy?.model).toBe('none');
 		expect(response.data?.policy?.ui?.mode).toBe('none');
 		expect(response.data?.policyDecision).toBeUndefined();
@@ -247,7 +245,7 @@ describe('Offline Client Tests', () => {
 			mode: 'offline',
 			store: {
 				offlinePolicy: {
-					policies: [],
+					policyPacks: [],
 				},
 			},
 		});
@@ -257,7 +255,7 @@ describe('Offline Client Tests', () => {
 		});
 
 		expect(response.ok).toBe(true);
-		expect(response.data?.policy?.id).toBe('policy_default_no_banner');
+		expect(response.data?.policy?.id).toBe('offline_no_banner');
 		expect(response.data?.policy?.model).toBe('none');
 		expect(response.data?.policy?.ui?.mode).toBe('none');
 		expect(response.data?.policyDecision).toBeUndefined();
@@ -277,9 +275,7 @@ describe('Offline Client Tests', () => {
 		const response = await client.init();
 
 		expect(response.ok).toBe(true);
-		expect(response.data?.policy?.id).toBe(
-			'policy_default_offline_opt_in_banner'
-		);
+		expect(response.data?.policy?.id).toBe('offline_opt_in_banner');
 		expect(response.data?.policy?.model).toBe('opt-in');
 		expect(response.data?.policy?.ui?.mode).toBe('banner');
 	});

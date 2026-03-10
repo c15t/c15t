@@ -111,7 +111,6 @@ export type {
 export {
 	EEA_COUNTRY_CODES,
 	EU_COUNTRY_CODES,
-	IAB_POLICY_JURISDICTIONS,
 	inspectPolicies,
 	POLICY_MATCH_DATASET_VERSION,
 	policyMatchers,

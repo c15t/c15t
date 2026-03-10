@@ -36,7 +36,6 @@ export const policyUiSurfaceConfigSchema = v.object({
 
 export const policyConfigSchema = v.object({
 	id: v.string(),
-	name: v.optional(v.string()),
 	match: v.object({
 		regions: v.optional(
 			v.array(

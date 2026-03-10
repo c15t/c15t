@@ -60,7 +60,6 @@ export {
 	EEA_COUNTRY_CODES,
 	EU_COUNTRY_CODES,
 	type FingerprintHashStrategy,
-	IAB_POLICY_JURISDICTIONS,
 	inspectPolicies,
 	POLICY_MATCH_DATASET_VERSION,
 	type PolicyConfig,

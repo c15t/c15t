@@ -23,6 +23,10 @@ import { policyMatchers } from './matchers';
  */
 export interface PolicyBuilderInput {
 	id: string;
+	/**
+	 * @deprecated Metadata-only label. Not used at runtime, not sent to clients,
+	 * and not fingerprinted. Will be removed in a future version.
+	 */
 	name?: string;
 	countries?: string[];
 	regions?: Array<{ country: string; region: string }>;
@@ -55,7 +59,6 @@ export interface PolicyBuilderInput {
 
 const DEFAULT_FALLBACK_POLICY_INPUT: PolicyBuilderInput = {
 	id: 'world_no_banner',
-	name: 'World No Banner',
 	isDefault: true,
 	model: 'none',
 	uiMode: 'none',
@@ -108,7 +111,6 @@ export function buildPolicyConfig(input: PolicyBuilderInput): PolicyConfig {
 
 	return {
 		id: input.id,
-		name: input.name,
 		match: mergeMatch(input),
 		i18n: input.i18n,
 		consent: compactDefined({
@@ -185,6 +187,44 @@ export function buildPolicyPackWithDefault(
 }
 
 /**
+ * Merges multiple policy packs or individual policies into a single pack.
+ *
+ * @remarks
+ * Useful for combining preset packs with custom policies without manual
+ * spread and deduplication. Policies are deduplicated by `id` — the first
+ * occurrence wins.
+ *
+ * @example
+ * ```ts
+ * import { composePacks, policyPackPresets, policyBuilder } from '@c15t/backend';
+ *
+ * const pack = composePacks(
+ *   [policyPackPresets.europeOptIn()],
+ *   [policyPackPresets.californiaOptOut()],
+ *   [policyBuilder.create({ id: 'custom', countries: ['JP'], model: 'opt-in' })],
+ *   [policyPackPresets.worldNoBanner()],
+ * );
+ * ```
+ *
+ * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ */
+export function composePacks(...packs: PolicyPack[]): PolicyPack {
+	const seen = new Set<string>();
+	const result: PolicyConfig[] = [];
+
+	for (const pack of packs) {
+		for (const policy of pack) {
+			if (!seen.has(policy.id)) {
+				seen.add(policy.id);
+				result.push(policy);
+			}
+		}
+	}
+
+	return result;
+}
+
+/**
  * Convenience namespace for the policy builder helpers.
  *
  * @remarks
@@ -197,4 +237,5 @@ export const policyBuilder = {
 	create: buildPolicyConfig,
 	createPack: buildPolicyPack,
 	createPackWithDefault: buildPolicyPackWithDefault,
+	composePacks,
 };

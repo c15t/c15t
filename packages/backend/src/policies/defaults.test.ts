@@ -8,7 +8,39 @@ describe('policyPackPresets templates', () => {
 
 		expect(optIn.consent?.model).toBe('opt-in');
 		expect(iab.consent?.model).toBe('iab');
-		expect(iab.match.jurisdictions).toEqual(['GDPR', 'UK_GDPR']);
+		expect(iab.match.countries).toEqual([
+			'AT',
+			'BE',
+			'BG',
+			'HR',
+			'CY',
+			'CZ',
+			'DK',
+			'EE',
+			'FI',
+			'FR',
+			'DE',
+			'GR',
+			'HU',
+			'IE',
+			'IT',
+			'LV',
+			'LT',
+			'LU',
+			'MT',
+			'NL',
+			'PL',
+			'PT',
+			'RO',
+			'SK',
+			'SI',
+			'ES',
+			'SE',
+			'IS',
+			'LI',
+			'NO',
+			'GB',
+		]);
 	});
 
 	it('returns california opt-in and opt-out templates', () => {
@@ -19,7 +51,7 @@ describe('policyPackPresets templates', () => {
 		expect(optOut.consent?.model).toBe('opt-out');
 		expect(optIn.match.regions).toEqual([{ country: 'US', region: 'CA' }]);
 		expect(optIn.ui?.banner?.uiProfile).toBe('compact');
-		expect(optOut.ui?.banner?.uiProfile).toBe('compact');
+		expect(optOut.ui?.mode).toBe('none');
 	});
 
 	it('returns quebec opt-in template', () => {
@@ -39,29 +71,17 @@ describe('policyPackPresets templates', () => {
 });
 
 describe('policyPackPresets packs', () => {
-	it('returns legacy-compatible defaults', () => {
-		const pack = policyPackPresets.legacyCompatiblePack();
-		expect(pack.map((policy) => policy.id)).toEqual([
-			'policy_default_california_opt_out',
-			'policy_default_europe_opt_in',
-			'policy_default_regulated_opt_in',
-			'policy_default_regulated_opt_out',
-			'policy_default_world_no_banner',
-		]);
-	});
+	it('supports composing starter packs from the remaining presets', () => {
+		const pack = [
+			policyPackPresets.europeOptIn(),
+			policyPackPresets.californiaOptOut(),
+			policyPackPresets.worldNoBanner(),
+		];
 
-	it('exposes legacy fallback templates', () => {
-		expect(policyPackPresets.legacyJurisdictionOptIn().consent?.model).toBe(
-			'opt-in'
-		);
-		expect(
-			policyPackPresets.legacyJurisdictionOptIn().ui?.banner?.uiProfile
-		).toBe('balanced');
-		expect(policyPackPresets.legacyJurisdictionOptOut().consent?.model).toBe(
-			'opt-out'
-		);
-		expect(
-			policyPackPresets.legacyJurisdictionOptOut().ui?.banner?.uiProfile
-		).toBe('strict');
+		expect(pack.map((policy) => policy.id)).toEqual([
+			'europe_opt_in',
+			'california_opt_out',
+			'world_no_banner',
+		]);
 	});
 });

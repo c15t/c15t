@@ -48,13 +48,7 @@ export function Header() {
 							href="/policy"
 							className="text-muted-foreground text-sm transition-colors hover:text-foreground"
 						>
-							Policy
-						</a>
-						<a
-							href="/offline"
-							className="text-muted-foreground text-sm transition-colors hover:text-foreground"
-						>
-							Offline Policy
+							Policy Packs
 						</a>
 					</nav>
 

@@ -84,8 +84,8 @@ export async function init(
 	}
 
 	const jurisdictionCode = checkJurisdiction(country, region);
-	const configuredPolicies = policyConfig?.policies;
-	const hasExplicitPolicies = policyConfig?.policies !== undefined;
+	const configuredPolicies = policyConfig?.policyPacks;
+	const hasExplicitPolicies = policyConfig?.policyPacks !== undefined;
 
 	const resolvedPolicyDecision =
 		configuredPolicies && configuredPolicies.length > 0

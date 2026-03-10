@@ -189,7 +189,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		expect(mockFetch).not.toHaveBeenCalled();
 	});
 
-	it('should resolve offlinePolicy.policies in offline mode', async () => {
+	it('should resolve offlinePolicy.policyPacks in offline mode', async () => {
 		const PolicyProbe = () => {
 			const { model, activeUI } = useConsentManager();
 			return (
@@ -204,7 +204,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 				options={{
 					mode: 'offline',
 					offlinePolicy: {
-						policies: [
+						policyPacks: [
 							{
 								id: 'policy_region_us_ca',
 								match: { regions: [{ country: 'US', region: 'CA' }] },

@@ -23,7 +23,7 @@ describe('offline-add-policy-packs codemod', () => {
 		}
 	});
 
-	it('adds offlinePolicy.policies to bare offline config', async () => {
+	it('adds offlinePolicy.policyPacks to bare offline config', async () => {
 		const source = `
 const options = {
 	mode: 'offline',
@@ -40,12 +40,14 @@ const options = {
 
 		expect(result.changedFiles).toHaveLength(1);
 		expect(updated).toContain('offlinePolicy');
-		expect(updated).toContain('policyPackPresets.legacyCompatiblePack()');
+		expect(updated).toContain('policyPackPresets.europeOptIn()');
+		expect(updated).toContain('policyPackPresets.californiaOptOut()');
+		expect(updated).toContain('policyPackPresets.worldNoBanner()');
 		expect(updated).toContain('import { policyPackPresets }');
 		expect(updated).toContain('c15t');
 	});
 
-	it('adds policies to existing offlinePolicy without policies', async () => {
+	it('adds policyPacks to existing offlinePolicy without policyPacks', async () => {
 		const source = `
 const options = {
 	mode: 'offline',
@@ -63,18 +65,22 @@ const options = {
 		const updated = await readFile(filePath, 'utf-8');
 
 		expect(result.changedFiles).toHaveLength(1);
-		expect(updated).toContain('policyPackPresets.legacyCompatiblePack()');
+		expect(updated).toContain('policyPackPresets.europeOptIn()');
 		expect(updated).toContain('policyDecision: previewDecision');
 	});
 
-	it('skips configs that already have offlinePolicy.policies', async () => {
+	it('skips configs that already have offlinePolicy.policyPacks', async () => {
 		const source = `
 import { policyPackPresets } from 'c15t';
 
 const options = {
 	mode: 'offline',
 	offlinePolicy: {
-		policies: policyPackPresets.legacyCompatiblePack(),
+		policyPacks: [
+			policyPackPresets.europeOptIn(),
+			policyPackPresets.californiaOptOut(),
+			policyPackPresets.worldNoBanner(),
+		],
 	},
 };
 `;

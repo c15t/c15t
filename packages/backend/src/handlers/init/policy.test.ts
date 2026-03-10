@@ -6,18 +6,13 @@ import {
 } from './policy';
 
 describe('resolvePolicyDecision', () => {
-	it('matches with precedence region > country > jurisdiction > default', async () => {
+	it('matches with precedence region > country > default', async () => {
 		const result = await resolvePolicyDecision({
 			policies: [
 				{
 					id: 'default',
 					match: { isDefault: true },
 					consent: { model: 'opt-in' },
-				},
-				{
-					id: 'jurisdiction',
-					match: { jurisdictions: ['CCPA'] },
-					consent: { model: 'opt-out' },
 				},
 				{
 					id: 'country',
@@ -89,7 +84,7 @@ describe('resolvePolicyDecision', () => {
 			policies: [
 				{
 					id: 'gdpr_iab',
-					match: { jurisdictions: ['GDPR'] },
+					match: { countries: ['DE'] },
 					consent: { model: 'iab' },
 				},
 			],
@@ -101,7 +96,7 @@ describe('resolvePolicyDecision', () => {
 		expect(result?.policy.id).toBe('gdpr_iab');
 		expect(result?.policy.model).toBe('iab');
 		expect(result?.policy.consent?.categories).toEqual(['*']);
-		expect(result?.matchedBy).toBe('jurisdiction');
+		expect(result?.matchedBy).toBe('country');
 	});
 
 	it('normalizes iab categories to wildcard even when specific IDs are configured', async () => {
@@ -109,7 +104,7 @@ describe('resolvePolicyDecision', () => {
 			policies: [
 				{
 					id: 'gdpr_iab',
-					match: { jurisdictions: ['GDPR'] },
+					match: { countries: ['DE'] },
 					consent: { model: 'iab', categories: ['measurement'] },
 				},
 			],
@@ -296,7 +291,7 @@ describe('validatePolicies', () => {
 				[
 					{
 						id: 'gdpr_iab',
-						match: { jurisdictions: ['GDPR'] },
+						match: { countries: ['DE'] },
 						consent: { model: 'iab' },
 					},
 				],
@@ -313,7 +308,7 @@ describe('validatePolicies', () => {
 				[
 					{
 						id: 'gdpr_iab',
-						match: { jurisdictions: ['GDPR'] },
+						match: { countries: ['DE'] },
 						consent: { model: 'iab' },
 					},
 				],
@@ -328,7 +323,7 @@ describe('validatePolicies', () => {
 				[
 					{
 						id: 'gdpr_iab',
-						match: { jurisdictions: ['GDPR'] },
+						match: { countries: ['DE'] },
 						consent: { model: 'iab' },
 						ui: {
 							mode: 'banner',
@@ -358,7 +353,7 @@ describe('validatePolicies', () => {
 
 	it('throws when policy has no matcher and is not default', () => {
 		expect(() => validatePolicies([{ id: 'no_match', match: {} }])).toThrow(
-			"Policy 'no_match' has no matcher. Add countries, regions, jurisdictions, or set match.isDefault=true."
+			"Policy 'no_match' has no matcher. Add countries or regions, or set match.isDefault=true."
 		);
 	});
 });
@@ -374,7 +369,7 @@ describe('inspectPolicies', () => {
 
 		expect(result.errors).toEqual([]);
 		expect(result.warnings).toContain(
-			'No default policy configured. Requests that do not match region/country/jurisdiction will have no active policy.'
+			'No default policy configured. Requests that do not match region/country will have no active policy.'
 		);
 	});
 
@@ -392,7 +387,6 @@ describe('inspectPolicies', () => {
 				match: {
 					countries: ['US'],
 					regions: [{ country: 'US', region: 'CA' }],
-					jurisdictions: ['CCPA'],
 				},
 			},
 			{
@@ -400,8 +394,8 @@ describe('inspectPolicies', () => {
 				match: { isDefault: true, countries: ['DE'] },
 			},
 			{
-				id: 'policy_jurisdiction_overlap',
-				match: { jurisdictions: ['CCPA'] },
+				id: 'policy_region_overlap',
+				match: { regions: [{ country: 'US', region: 'CA' }] },
 			},
 		]);
 
@@ -413,7 +407,7 @@ describe('inspectPolicies', () => {
 			"Region matcher 'US-CA' appears in multiple policies ('policy_a' and 'policy_b'). First match wins by array order."
 		);
 		expect(result.warnings).toContain(
-			"Jurisdiction matcher 'CCPA' appears in multiple policies ('policy_b' and 'policy_jurisdiction_overlap'). First match wins by array order."
+			"Region matcher 'US-CA' appears in multiple policies ('policy_a' and 'policy_region_overlap'). First match wins by array order."
 		);
 		expect(result.warnings).toContain(
 			"Policy 'policy_default' is marked as default and also defines explicit matchers. Explicit matchers are ignored for default resolution."

@@ -101,7 +101,7 @@ export interface PolicySurfaceState {
  *
  * The runtime supports two levels of control:
  *
- * - `policies`: provide a backend-compatible policy pack and let c15t
+ * - `policyPacks`: provide a backend-compatible policy pack and let c15t
  *   resolve it locally
  * - `policy` / `policyDecision`: inject a fully synthetic resolved result
  *
@@ -114,10 +114,10 @@ export type OfflinePolicyConfig = {
 	 * region > country > jurisdiction > default precedence.
 	 *
 	 * @remarks
-	 * This replaces the former `policyPack` alias. Use this field
-	 * for policy packs from `policyBuilder.createPack*()`.
+	 * Mirrors the backend's `policyPacks` field. Use this for policy
+	 * packs from `policyBuilder.createPack*()` or preset helpers.
 	 */
-	policies?: PolicyPack;
+	policyPacks?: PolicyPack;
 
 	/**
 	 * Synthetic runtime policy returned by offline mode init.

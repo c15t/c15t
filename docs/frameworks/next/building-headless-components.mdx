@@ -24,7 +24,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
       options={{
         mode: 'offline',
         offlinePolicy: {
-          policies: [
+          policyPacks: [
             policyPackPresets.californiaOptOut(),
             policyPackPresets.europeOptIn(),
             policyPackPresets.worldNoBanner(),

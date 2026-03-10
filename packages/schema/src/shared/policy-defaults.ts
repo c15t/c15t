@@ -4,7 +4,7 @@ const DEFAULT_ACTIONS = ['accept', 'reject', 'customize'] as const;
 
 function offlineOptInBannerPolicy(): ResolvedPolicy {
 	return {
-		id: 'policy_default_offline_opt_in_banner',
+		id: 'offline_opt_in_banner',
 		model: 'opt-in',
 		consent: {
 			expiryDays: 365,
@@ -33,7 +33,7 @@ function offlineOptInBannerPolicy(): ResolvedPolicy {
 
 function offlineNoBannerPolicy(): ResolvedPolicy {
 	return {
-		id: 'policy_default_offline_no_banner',
+		id: 'offline_no_banner',
 		model: 'none',
 		ui: {
 			mode: 'none',
@@ -49,7 +49,7 @@ export interface PolicyDefaults {
 
 function offlineIabPolicy(): ResolvedPolicy {
 	return {
-		id: 'policy_default_offline_iab',
+		id: 'offline_iab',
 		model: 'iab',
 		consent: {
 			expiryDays: 365,

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
 	EEA_COUNTRY_CODES,
 	EU_COUNTRY_CODES,
-	IAB_POLICY_JURISDICTIONS,
 	policyMatchers,
 	UK_COUNTRY_CODES,
 } from './matchers';
@@ -28,7 +27,7 @@ describe('policyMatchers', () => {
 
 	it('returns IAB helper', () => {
 		expect(policyMatchers.iab()).toEqual({
-			jurisdictions: [...IAB_POLICY_JURISDICTIONS],
+			countries: [...EEA_COUNTRY_CODES, ...UK_COUNTRY_CODES],
 		});
 	});
 
@@ -36,13 +35,11 @@ describe('policyMatchers', () => {
 		expect(
 			policyMatchers.merge(
 				policyMatchers.eea(),
-				policyMatchers.regions([{ country: 'us', region: 'ca' }]),
-				policyMatchers.jurisdictions(['GDPR'])
+				policyMatchers.regions([{ country: 'us', region: 'ca' }])
 			)
 		).toEqual({
 			countries: [...EEA_COUNTRY_CODES],
 			regions: [{ country: 'US', region: 'CA' }],
-			jurisdictions: ['GDPR'],
 		});
 	});
 });

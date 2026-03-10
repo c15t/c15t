@@ -62,9 +62,12 @@ function getProperty(
 }
 
 /**
- * Finds offline-mode config objects that lack offlinePolicy.policies and
- * injects `policyPackPresets.legacyCompatiblePack()` as the default.
+ * Finds offline-mode config objects that lack offlinePolicy.policyPacks and
+ * injects a starter policy pack as the default.
  */
+const STARTER_POLICY_PACK =
+	'[\n\t\t\tpolicyPackPresets.europeOptIn(),\n\t\t\tpolicyPackPresets.californiaOptOut(),\n\t\t\tpolicyPackPresets.worldNoBanner(),\n\t\t]';
+
 function transformSourceFile(
 	sourceFile: import('ts-morph').SourceFile
 ): CodemodResult {
@@ -93,41 +96,42 @@ function transformSourceFile(
 			continue;
 		}
 
-		// Check if offlinePolicy already exists with policies
+		// Check if offlinePolicy already exists with policyPacks
 		const offlinePolicyProperty = getProperty(configObject, 'offlinePolicy');
 		if (offlinePolicyProperty) {
 			const offlinePolicyObject = offlinePolicyProperty.getInitializerIfKind(
 				SyntaxKind.ObjectLiteralExpression
 			);
-			if (offlinePolicyObject && getProperty(offlinePolicyObject, 'policies')) {
+			if (
+				offlinePolicyObject &&
+				getProperty(offlinePolicyObject, 'policyPacks')
+			) {
 				continue;
 			}
 		}
 
-		// Add offlinePolicy with legacyCompatiblePack if missing entirely
+		// Add offlinePolicy with a starter pack if missing entirely
 		if (!offlinePolicyProperty) {
 			configObject.addPropertyAssignment({
 				name: 'offlinePolicy',
-				initializer: `{\n\t\tpolicies: policyPackPresets.legacyCompatiblePack(),\n\t}`,
+				initializer: `{\n\t\tpolicyPacks: ${STARTER_POLICY_PACK},\n\t}`,
 			});
 			operations += 1;
 			needsImport = true;
-			summaries.push('added offlinePolicy.policies with legacyCompatiblePack');
+			summaries.push('added offlinePolicy.policyPacks with starter presets');
 		} else {
-			// offlinePolicy exists but has no policies field — add it
+			// offlinePolicy exists but has no policyPacks field — add it
 			const offlinePolicyObject = offlinePolicyProperty.getInitializerIfKind(
 				SyntaxKind.ObjectLiteralExpression
 			);
 			if (offlinePolicyObject) {
 				offlinePolicyObject.addPropertyAssignment({
-					name: 'policies',
-					initializer: 'policyPackPresets.legacyCompatiblePack()',
+					name: 'policyPacks',
+					initializer: STARTER_POLICY_PACK,
 				});
 				operations += 1;
 				needsImport = true;
-				summaries.push(
-					'added policies: policyPackPresets.legacyCompatiblePack()'
-				);
+				summaries.push('added policyPacks: starter presets');
 			}
 		}
 	}
@@ -204,7 +208,7 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 }
 
 /**
- * Adds `offlinePolicy.policies: policyPackPresets.legacyCompatiblePack()`
+ * Adds `offlinePolicy.policyPacks` starter presets
  * to offline-mode configs that lack policy packs (v1 -> v2 migration).
  */
 export async function runOfflineAddPolicyPacksCodemod(

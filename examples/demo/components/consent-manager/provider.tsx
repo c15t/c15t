@@ -98,9 +98,13 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 		}
 
 		const syncSearch = () => {
-			setSearch((currentSearch) => {
-				const nextSearch = window.location.search;
-				return currentSearch === nextSearch ? currentSearch : nextSearch;
+			// Defer the state update so it never runs inside useInsertionEffect
+			// (triggered when Next.js router calls history.pushState/replaceState).
+			queueMicrotask(() => {
+				setSearch((currentSearch) => {
+					const nextSearch = window.location.search;
+					return currentSearch === nextSearch ? currentSearch : nextSearch;
+				});
 			});
 		};
 

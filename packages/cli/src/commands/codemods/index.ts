@@ -168,7 +168,7 @@ const codemods: CodemodDefinition[] = [
 	{
 		id: 'offline-add-policy-packs',
 		label: 'offline mode -> add policy packs',
-		hint: 'Adds policyPackPresets.legacyCompatiblePack() to offline configs missing policies.',
+		hint: 'Adds starter policyPackPresets to offline configs missing policies.',
 		run: async (context, dryRun) => {
 			const { projectRoot } = context;
 			const result = await runOfflineAddPolicyPacksCodemod({
