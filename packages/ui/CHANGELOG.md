@@ -1,5 +1,17 @@
 # @c15t/ui
 
+## 2.0.0-rc.5
+
+### Patch Changes
+
+- 58fb392: Rename translation-facing APIs from `translations` to `i18n` across runtime types and helpers.
+  Add CLI migration codemods to update existing projects to the new naming.
+- Updated dependencies [58fb392]
+- Updated dependencies [58fb392]
+- Updated dependencies [60a51f1]
+  - c15t@2.0.0-rc.5
+  - @c15t/translations@2.0.0-rc.5
+
 ## 2.0.0-rc.4
 
 ### Patch Changes

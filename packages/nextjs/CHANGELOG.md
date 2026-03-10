@@ -1,5 +1,17 @@
 # @c15t/nextjs
 
+## 2.0.0-rc.5
+
+### Patch Changes
+
+- 45f1a34: fix(nextjs): cache initial data requests
+- Updated dependencies [58fb392]
+- Updated dependencies [58fb392]
+- Updated dependencies [60a51f1]
+  - c15t@2.0.0-rc.5
+  - @c15t/translations@2.0.0-rc.5
+  - @c15t/react@2.0.0-rc.5
+
 ## 2.0.0-rc.4
 
 ### Patch Changes

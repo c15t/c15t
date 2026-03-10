@@ -1,5 +1,17 @@
 # c15t
 
+## 2.0.0-rc.5
+
+### Patch Changes
+
+- 58fb392: Rename translation-facing APIs from `translations` to `i18n` across runtime types and helpers.
+  Add CLI migration codemods to update existing projects to the new naming.
+- 58fb392: Rename `c15t` mode references to `hosted` in core runtime and CLI generate flows.
+  Add migration codemods and template updates for the hosted vs offline terminology.
+- 60a51f1: fix: omit invalid optional subject identifiers when saving consent
+- Updated dependencies [58fb392]
+  - @c15t/translations@2.0.0-rc.5
+
 ## 2.0.0-rc.4
 
 ### Patch Changes
