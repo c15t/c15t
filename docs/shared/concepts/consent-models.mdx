@@ -36,7 +36,7 @@
 
   Applies to: California (CCPA), Canada (PIPEDA), Australia.
 
-  If the browser sends a Global Privacy Control (GPC) signal (`Sec-GPC: 1`), `marketing` and `measurement` are denied while other categories remain granted. This honors the user's opt-out preference automatically, as required by CCPA.
+  When the policy has `consent.gpc: true`, the browser's Global Privacy Control signal (`Sec-GPC: 1` or `navigator.globalPrivacyControl`) is respected — `marketing` and `measurement` are denied while other categories remain granted. The built-in California presets enable this by default. See [Policy Packs — GPC](/docs/frameworks/react/concepts/policy-packs#gpc) for details.
 
   ### IAB
 
@@ -46,7 +46,7 @@
 
   ### null
 
-  Returned when no jurisdiction is detected (`NONE` or `null`). No banner is displayed. On first visit, all categories are auto-granted. If a GPC signal is present, `marketing` and `measurement` are denied.
+  Returned when no jurisdiction is detected (`NONE` or `null`). No banner is displayed. On first visit, all categories are auto-granted.
 </section>
 
 <section id="jurisdiction-mapping">

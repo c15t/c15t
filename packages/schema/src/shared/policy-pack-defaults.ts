@@ -9,37 +9,36 @@ import { policyMatchers } from './policy-runtime';
 export type EuropePolicyMode = 'opt-in' | 'iab';
 
 function californiaPolicy(mode: 'opt-in' | 'opt-out'): PolicyConfig {
+	const isOptOut = mode === 'opt-out';
+
 	return {
-		id:
-			mode === 'opt-in'
-				? 'policy_default_california_opt_in'
-				: 'policy_default_california_opt_out',
-		name:
-			mode === 'opt-in'
-				? 'California Opt-In Banner'
-				: 'California Opt-Out Banner',
+		id: isOptOut ? 'california_opt_out' : 'california_opt_in',
+		name: isOptOut ? 'California Opt-Out' : 'California Opt-In',
 		match: policyMatchers.regions([{ country: 'US', region: 'CA' }]),
 		consent: {
 			model: mode,
 			expiryDays: 365,
+			gpc: true,
 		},
-		ui: {
-			mode: 'banner',
-			banner: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				primaryAction: mode === 'opt-in' ? 'customize' : 'reject',
-				uiProfile: 'compact',
-			},
-			dialog: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				primaryAction: mode === 'opt-in' ? 'customize' : 'reject',
-				uiProfile: 'compact',
-			},
-		},
+		ui: isOptOut
+			? { mode: 'none' }
+			: {
+					mode: 'banner',
+					banner: {
+						allowedActions: ['accept', 'reject', 'customize'],
+						primaryAction: 'customize',
+						uiProfile: 'compact',
+					},
+					dialog: {
+						allowedActions: ['accept', 'reject', 'customize'],
+						primaryAction: 'customize',
+						uiProfile: 'compact',
+					},
+				},
 		proof: {
 			storeIp: true,
 			storeUserAgent: true,
-			storeLanguage: false,
+			storeLanguage: true,
 		},
 	};
 }
@@ -47,7 +46,7 @@ function californiaPolicy(mode: 'opt-in' | 'opt-out'): PolicyConfig {
 function europePolicy(mode: EuropePolicyMode): PolicyConfig {
 	const isIab = mode === 'iab';
 	return {
-		id: isIab ? 'policy_default_europe_iab' : 'policy_default_europe_opt_in',
+		id: isIab ? 'europe_iab' : 'europe_opt_in',
 		name: isIab ? 'Europe IAB Banner' : 'Europe Opt-In Banner',
 		match: policyMatchers.iab(),
 		consent: {
@@ -82,7 +81,7 @@ function europePolicy(mode: EuropePolicyMode): PolicyConfig {
 
 function worldNoBannerPolicy(): PolicyConfig {
 	return {
-		id: 'policy_default_world_no_banner',
+		id: 'world_no_banner',
 		name: 'World No Banner',
 		match: policyMatchers.default(),
 		consent: { model: 'none' },
@@ -97,7 +96,7 @@ function worldNoBannerPolicy(): PolicyConfig {
 
 function quebecPolicy(): PolicyConfig {
 	return {
-		id: 'policy_default_quebec_opt_in',
+		id: 'quebec_opt_in',
 		name: 'Quebec Opt-In Banner',
 		match: policyMatchers.regions([{ country: 'CA', region: 'QC' }]),
 		consent: {
@@ -120,80 +119,14 @@ function quebecPolicy(): PolicyConfig {
 		proof: {
 			storeIp: true,
 			storeUserAgent: true,
-			storeLanguage: false,
-		},
-	};
-}
-
-function legacyOptInFallbackPolicy(): PolicyConfig {
-	return {
-		id: 'policy_default_regulated_opt_in',
-		name: 'Legacy Regulated Opt-In',
-		match: policyMatchers.jurisdictions([
-			'CH',
-			'BR',
-			'APPI',
-			'PIPA',
-			'QC_LAW25',
-		]),
-		consent: {
-			model: 'opt-in',
-			expiryDays: 365,
-		},
-		ui: {
-			mode: 'banner',
-			banner: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				primaryAction: 'accept',
-				uiProfile: 'balanced',
-			},
-			dialog: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				primaryAction: 'accept',
-				uiProfile: 'balanced',
-			},
-		},
-		proof: {
-			storeIp: true,
-			storeUserAgent: true,
-			storeLanguage: false,
-		},
-	};
-}
-
-function legacyOptOutFallbackPolicy(): PolicyConfig {
-	return {
-		id: 'policy_default_regulated_opt_out',
-		name: 'Legacy Regulated Opt-Out',
-		match: policyMatchers.jurisdictions(['CCPA', 'AU', 'PIPEDA']),
-		consent: {
-			model: 'opt-out',
-			expiryDays: 365,
-		},
-		ui: {
-			mode: 'banner',
-			banner: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				primaryAction: 'reject',
-				uiProfile: 'strict',
-			},
-			dialog: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				primaryAction: 'reject',
-				uiProfile: 'strict',
-			},
-		},
-		proof: {
-			storeIp: true,
-			storeUserAgent: true,
-			storeLanguage: false,
+			storeLanguage: true,
 		},
 	};
 }
 
 export interface PolicyPackPresets {
 	/**
-	 * Europe opt-in preset (GDPR jurisdictions).
+	 * Europe opt-in preset (EEA + UK countries).
 	 */
 	europeOptIn: () => PolicyConfig;
 	/**
@@ -216,18 +149,6 @@ export interface PolicyPackPresets {
 	 * Quebec opt-in preset (CA-QC region).
 	 */
 	quebecOptIn: () => PolicyConfig;
-	/**
-	 * Legacy opt-in fallback preset for older jurisdiction-driven setups.
-	 */
-	legacyJurisdictionOptIn: () => PolicyConfig;
-	/**
-	 * Legacy opt-out fallback preset for older jurisdiction-driven setups.
-	 */
-	legacyJurisdictionOptOut: () => PolicyConfig;
-	/**
-	 * Backward-compatible pack covering all legacy jurisdictions.
-	 */
-	legacyCompatiblePack: () => PolicyPack;
 }
 
 /**
@@ -259,13 +180,4 @@ export const policyPackPresets: PolicyPackPresets = {
 	californiaOptIn: () => californiaPolicy('opt-in'),
 	californiaOptOut: () => californiaPolicy('opt-out'),
 	quebecOptIn: () => quebecPolicy(),
-	legacyJurisdictionOptIn: () => legacyOptInFallbackPolicy(),
-	legacyJurisdictionOptOut: () => legacyOptOutFallbackPolicy(),
-	legacyCompatiblePack: () => [
-		californiaPolicy('opt-out'),
-		europePolicy('opt-in'),
-		legacyOptInFallbackPolicy(),
-		legacyOptOutFallbackPolicy(),
-		worldNoBannerPolicy(),
-	],
 };

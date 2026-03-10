@@ -123,7 +123,6 @@ export const locationSchema = v.object({
 export const policyMatchedBySchema = v.picklist([
 	'region',
 	'country',
-	'jurisdiction',
 	'default',
 ]);
 
@@ -145,6 +144,7 @@ export const resolvedPolicySchema = v.object({
 			scopeMode: v.optional(policyScopeModeSchema),
 			categories: v.optional(v.array(v.string())),
 			preselectedCategories: v.optional(v.array(v.string())),
+			gpc: v.optional(v.boolean()),
 		})
 	),
 	ui: v.optional(

@@ -1,6 +1,5 @@
 import { compactDefined, dedupeTrimmedStrings } from '@c15t/schema';
 import type {
-	JurisdictionCode,
 	PolicyConfig,
 	PolicyModel,
 	PolicyPack,
@@ -27,7 +26,6 @@ export interface PolicyBuilderInput {
 	name?: string;
 	countries?: string[];
 	regions?: Array<{ country: string; region: string }>;
-	jurisdictions?: JurisdictionCode[];
 	isDefault?: boolean;
 	model?: PolicyModel;
 	expiryDays?: number;
@@ -37,6 +35,10 @@ export interface PolicyBuilderInput {
 	 */
 	categories?: string[];
 	preselectedCategories?: string[];
+	/**
+	 * Whether the policy should respect the Global Privacy Control signal.
+	 */
+	gpc?: boolean;
 	uiMode?: PolicyUiMode;
 	banner?: PolicyUiSurfaceConfig;
 	dialog?: PolicyUiSurfaceConfig;
@@ -52,7 +54,7 @@ export interface PolicyBuilderInput {
 }
 
 const DEFAULT_FALLBACK_POLICY_INPUT: PolicyBuilderInput = {
-	id: 'policy_default_world_no_banner',
+	id: 'world_no_banner',
 	name: 'World No Banner',
 	isDefault: true,
 	model: 'none',
@@ -63,9 +65,6 @@ function mergeMatch(input: PolicyBuilderInput): PolicyConfig['match'] {
 	return policyMatchers.merge(
 		input.countries?.length ? policyMatchers.countries(input.countries) : {},
 		input.regions?.length ? policyMatchers.regions(input.regions) : {},
-		input.jurisdictions?.length
-			? policyMatchers.jurisdictions(input.jurisdictions)
-			: {},
 		input.isDefault ? policyMatchers.default() : {}
 	);
 }
@@ -118,6 +117,7 @@ export function buildPolicyConfig(input: PolicyBuilderInput): PolicyConfig {
 			scopeMode: input.scopeMode,
 			categories,
 			preselectedCategories,
+			gpc: input.gpc,
 		}),
 		ui: compactDefined({
 			mode: input.uiMode,
@@ -137,8 +137,8 @@ export function buildPolicyConfig(input: PolicyBuilderInput): PolicyConfig {
  *
  * @remarks
  * The resulting array preserves input order. That order matters because
- * duplicate region/country/jurisdiction matchers use first-match-wins
- * semantics within the same matcher type.
+ * duplicate region/country matchers use first-match-wins semantics within the
+ * same matcher type.
  *
  * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
  */
@@ -156,9 +156,8 @@ export function buildPolicyPack(inputs: PolicyBuilderInput[]): PolicyPack {
  * - the supplied `defaultPolicy`, coerced to `match.isDefault = true`
  * - or the built-in "World No Banner" fallback
  *
- * When `defaultPolicy` is provided, its `countries`, `regions`, and
- * `jurisdictions` fields are stripped and replaced with
- * `match.isDefault = true`.
+ * When `defaultPolicy` is provided, its `countries` and `regions` fields are
+ * stripped and replaced with `match.isDefault = true`.
  *
  * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
  */
@@ -179,7 +178,6 @@ export function buildPolicyPackWithDefault(
 				isDefault: true,
 				countries: undefined,
 				regions: undefined,
-				jurisdictions: undefined,
 			}
 		: DEFAULT_FALLBACK_POLICY_INPUT;
 

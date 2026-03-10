@@ -72,7 +72,7 @@
 
   **Init** — The store fetches jurisdiction, location, and translation data. In `c15t` mode this calls `GET /init` on your backend; in `offline` mode it uses hardcoded defaults. If SSR data was passed to the provider, the network fetch is skipped entirely. See [Server-Side Utilities](/docs/frameworks/react/server-side) for SSR setup.
 
-  **Model resolution** — The jurisdiction from the init response is mapped to a consent model: `opt-in` (GDPR and similar), `opt-out` (CCPA), `iab` (TCF 2.3), or `null` (no regulation). For `opt-out` and `null` models, all categories are auto-granted — unless a Global Privacy Control signal is detected. See [Consent Models](/docs/frameworks/react/concepts/consent-models) for the full jurisdiction-to-model mapping.
+  **Model resolution** — The jurisdiction from the init response is mapped to a consent model: `opt-in` (GDPR and similar), `opt-out` (CCPA), `iab` (TCF 2.3), or `null` (no regulation). For `opt-out` and `null` models, all categories are auto-granted — unless the resolved policy has `consent.gpc: true` and the browser sends a Global Privacy Control signal, in which case `marketing` and `measurement` are denied. See [Consent Models](/docs/frameworks/react/concepts/consent-models) for the full jurisdiction-to-model mapping.
 
   **Save** — When the user interacts with the banner or dialog, their choices are persisted to localStorage/cookies and synced to the backend. Script, iframe, and network gating rules update immediately based on the new consent state. See the [Script Loader](/docs/frameworks/react/script-loader), [Iframe Blocking](/docs/frameworks/react/iframe-blocking), and [Network Blocker](/docs/frameworks/react/network-blocker) guides for gating details.
 

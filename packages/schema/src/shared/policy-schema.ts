@@ -1,5 +1,4 @@
 import * as v from 'valibot';
-import { jurisdictionCodeSchema } from './jurisdiction';
 
 export const policyModelSchema = v.picklist([
 	'opt-in',
@@ -48,7 +47,6 @@ export const policyConfigSchema = v.object({
 			)
 		),
 		countries: v.optional(v.array(v.string())),
-		jurisdictions: v.optional(v.array(jurisdictionCodeSchema)),
 		isDefault: v.optional(v.boolean()),
 	}),
 	i18n: v.optional(
@@ -64,6 +62,7 @@ export const policyConfigSchema = v.object({
 			scopeMode: v.optional(policyScopeModeSchema),
 			categories: v.optional(v.array(v.string())),
 			preselectedCategories: v.optional(v.array(v.string())),
+			gpc: v.optional(v.boolean()),
 		})
 	),
 	ui: v.optional(

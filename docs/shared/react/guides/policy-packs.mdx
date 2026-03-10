@@ -1,24 +1,39 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-  Policy packs let you preview region-specific consent behavior directly in the provider without a backend. Pass an array of `PolicyConfig` objects through `offlinePolicy.policies` and c15t resolves the right policy locally based on geo overrides.
+  Policy packs configure how c15t handles regional consent — which model (opt-in, opt-out, none), which categories, and what UI to show. The backend resolves the right policy automatically based on the visitor's location.
 
-  Use them for:
+  **For most apps, you just need a `ConsentManagerProvider` pointing at your backend with presets configured there.** The frontend receives the resolved policy via the `/init` response — no client-side policy config required.
 
-  - testing regional banner behavior without a backend
-  - comparing opt-in vs opt-out experiences side by side
-  - building custom UI against real runtime policy payloads
-  - keeping Storybook, static previews, or demo apps aligned with production behavior
+  When a backend isn't available — local development, static previews, Storybook, or as a resilience fallback — you can pass policies directly to the provider via `offlinePolicy.policies` and c15t resolves them locally.
 
-  <Callout type="warn">
-    In hosted mode, backend `policyPacks` are the source of truth. Frontend `offlinePolicy.policies` do not override a live backend decision.
+  <Callout type="info">
+    For QA and testing, use the [c15t DevTools](/docs/frameworks/react/dev-tools) to simulate different regions and policy responses against your real backend, rather than switching to offline mode.
   </Callout>
 </section>
 
 <section id="defaults">
-  ## Start with the Built-in Defaults
+  ## Hosted Mode (Recommended)
 
-  The fastest way to get started — no custom config needed:
+  When using consent.io or a self-hosted backend, the provider connects automatically. No policy configuration is needed on the frontend:
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      backendURL: 'https://your-instance.c15t.dev',
+    }}
+  >
+    <ConsentBanner />
+    <ConsentDialog />
+    {children}
+  </ConsentManagerProvider>
+  ```
+
+  The backend resolves the correct policy based on the visitor's geo data and returns it in the `/init` response. Configure your presets on the backend side.
+
+  ## Offline Presets (Fallback)
+
+  When no backend is available, pass presets directly to the provider:
 
   ```tsx
   import { policyPackPresets } from '@c15t/react';
@@ -36,8 +51,8 @@
 
   | Preset | Model | Matches |
   |--------|-------|---------|
-  | `europeOptIn()` | `opt-in` | EU/EEA jurisdictions |
-  | `europeIab()` | `iab` | EU/EEA (TCF 2.3) |
+  | `europeOptIn()` | `opt-in` | EEA + UK countries |
+  | `europeIab()` | `iab` | EEA + UK countries (TCF 2.3) |
   | `californiaOptOut()` | `opt-out` | US-CA region |
   | `quebecOptIn()` | `opt-in` | CA-QC region |
   | `worldNoBanner()` | `none` | default fallback |
@@ -55,13 +70,13 @@
       offlinePolicy: {
         policies: [
           {
-            id: 'policy_qc_opt_in',
+            id: 'qc_opt_in',
             match: { regions: [{ country: 'CA', region: 'QC' }] },
             consent: { model: 'opt-in', expiryDays: 365 },
             ui: { mode: 'banner' },
           },
           {
-            id: 'policy_default',
+            id: 'default',
             match: { isDefault: true },
             consent: { model: 'none' },
             ui: { mode: 'none' },
@@ -89,7 +104,15 @@
 <section id="qa-and-debugging">
   ## QA and Debugging
 
-  Pair `offlinePolicy.policies` with `overrides` to simulate different visitors:
+  The best way to test regional consent behavior is with the [c15t DevTools](/docs/frameworks/react/dev-tools). The DevTools Policy panel lets you simulate different countries, regions, and GPC signals against your real backend — no code changes needed.
+
+  For deeper inspection:
+
+  - Read `policy` and `policyDecision` from `useConsentManager()` to see the resolved config
+  - Open the DevTools Policy panel to inspect matcher resolution and fingerprints
+  - Compare your frontend preview with the backend `/init` response before shipping
+
+  If you need fully deterministic resolution without a backend (e.g., in automated tests or Storybook), pair `offlinePolicy.policies` with `overrides`:
 
   ```tsx
   options={{
@@ -109,10 +132,4 @@
     },
   }}
   ```
-
-  For deeper inspection:
-
-  - Read `policy` and `policyDecision` from `useConsentManager()` to see the resolved config
-  - Open the DevTools Policy panel to inspect matcher resolution and fingerprints
-  - Compare your frontend preview with the backend `/init` response before shipping
 </section>

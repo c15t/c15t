@@ -68,14 +68,23 @@ function computeAutoGrantInfo(
 	iabEnabled: boolean | undefined,
 	consentInfo: ConsentStoreState['consentInfo'],
 	policyModel?: 'opt-in' | 'opt-out' | 'none' | 'iab',
-	gpcOverride?: boolean
+	gpcOverride?: boolean,
+	policyGpc?: boolean
 ) {
 	const consentModel =
 		policyModel === 'none'
 			? null
 			: (policyModel ?? determineModel(jurisdiction, iabEnabled));
-	const hasGpcSignal =
-		gpcOverride !== undefined ? gpcOverride : hasGlobalPrivacyControlSignal();
+
+	// When a policy is active, defer to its `respectGpc` flag.
+	// When no policy is configured (policyGpc is undefined),
+	// fall back to the legacy behaviour which always checks the signal.
+	const shouldCheckGpc = policyGpc !== undefined ? policyGpc : true;
+	const hasGpcSignal = shouldCheckGpc
+		? gpcOverride !== undefined
+			? gpcOverride
+			: hasGlobalPrivacyControlSignal()
+		: false;
 
 	// Auto-grant only when no regulation applies and no existing consent
 	const shouldAutoGrantConsents =
@@ -115,7 +124,8 @@ function buildStoreUpdate(
 		effectiveIABEnabled,
 		consentInfo,
 		data.policy?.model,
-		config.get().overrides?.gpc
+		config.get().overrides?.gpc,
+		data.policy?.consent?.gpc
 	);
 
 	// Build base update
@@ -391,7 +401,8 @@ export async function updateStore(
 		effectiveIABEnabled,
 		consentInfo,
 		data.policy?.model,
-		get().overrides?.gpc
+		get().overrides?.gpc,
+		data.policy?.consent?.gpc
 	);
 
 	// Build and apply store update (pass effectiveIABEnabled so model is correctly set)

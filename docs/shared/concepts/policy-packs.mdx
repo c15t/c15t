@@ -3,23 +3,21 @@
 <section id="overview">
   Different countries need different consent experiences. Policy packs let you define those rules once — c15t picks the right one automatically based on where the visitor is.
 
-  A policy pack is an ordered array of `PolicyConfig` objects. Each policy targets a region, country, or jurisdiction and controls:
+  A policy pack is an ordered array of policies. Each policy targets a region or country and controls the consent model, which categories are in scope, what UI is shown, and how consent is recorded.
 
-  - the consent model (`opt-in`, `opt-out`, `none`, or `iab`)
-  - which consent categories are in scope
-  - which banner and dialog actions are shown
-  - which translation profile is used
-  - which proof fields are stored for the consent record
+  There are three ways to configure policy packs:
 
-  <Callout type="info">
-    Backend policy packs use `policyPacks`. Frontend offline previews use `offlinePolicy.policies`. Both accept the same `PolicyConfig` shape.
-  </Callout>
+  1. **consent.io (recommended)** — use [consent.io](https://consent.io) as your hosted backend. Configure packs visually in the dashboard or via API — no code changes required. Works with any frontend, including static sites.
+  2. **Self-hosted backend** — define packs in code via `policyPacks` and resolve them from real request geo data. Full control over policy logic and storage.
+  3. **Offline fallback** — pass the same policy shapes to the frontend via `offlinePolicy.policies`. Used as a resilience fallback when the backend is unreachable, or for quick local experimentation and demos.
+
+  In both hosted and self-hosted modes, the **backend is always the source of truth**. Offline packs never override a live backend decision.
 </section>
 
 <section id="quickstart">
   ## Quickstart
 
-  The fastest way to get started is with the built-in defaults:
+  The fastest way to get started is with the built-in presets:
 
   ```ts
   import { policyPackPresets } from 'c15t';
@@ -33,13 +31,13 @@
 
   | Preset | Model | UI | Matches |
   |--------|-------|----|---------|
-  | `europeOptIn()` | `opt-in` | banner | EU/EEA jurisdictions |
-  | `europeIab()` | `iab` | banner | EU/EEA (TCF 2.3) |
-  | `californiaOptOut()` | `opt-out` | banner | US-CA region |
+  | `europeOptIn()` | `opt-in` | banner | EEA + UK countries |
+  | `europeIab()` | `iab` | banner | EEA + UK countries (TCF 2.3) |
+  | `californiaOptOut()` | `opt-out` | none | US-CA region |
   | `quebecOptIn()` | `opt-in` | banner | CA-QC region |
   | `worldNoBanner()` | `none` | none | default fallback |
 
-  These are starting points. Customize them or write your own `PolicyConfig` objects for production.
+  Most apps only need these presets — pick the ones that match your regions, pass them to your backend config or provider, and you're done. Customize individual fields or write fully custom policies when you need more control.
 </section>
 
 <section id="what-users-see">
@@ -50,7 +48,7 @@
   | Policy Config | User Experience |
   |--------------|-----------------|
   | `model: 'opt-in'`, `ui.mode: 'banner'` | Banner appears, nothing loads until the user consents |
-  | `model: 'opt-out'`, `ui.mode: 'banner'` | Banner appears, everything loads immediately — user can opt out |
+  | `model: 'opt-out'`, `ui.mode: 'none'` | No banner, everything loads immediately — user opts out via a "Do Not Sell" link |
   | `model: 'none'`, `ui.mode: 'none'` | No banner, all categories auto-granted silently |
   | `model: 'opt-in'`, `ui.mode: 'dialog'` | Full-screen dialog, nothing loads until the user consents |
   | `model: 'iab'`, `ui.mode: 'banner'` | IAB TCF 2.3 banner with vendor-level controls |
@@ -59,155 +57,18 @@
 <section id="resolution-flow">
   ## How Policy Resolution Works
 
-  <Tabs items={['Simplified', 'Sequence Diagram']}>
-    <Tab value="Simplified">
-      1. **Visitor arrives** — c15t reads the visitor's country, region, and jurisdiction from request headers or geo overrides
-      2. **Match by region** — checks for a policy targeting the specific region (e.g., US-CA, CA-QC)
-      3. **Match by country** — if no region match, checks for a country-level policy (e.g., US, DE)
-      4. **Match by jurisdiction** — if no country match, checks jurisdiction codes (e.g., GDPR, CCPA)
-      5. **Fall back to default** — if nothing matches, uses the policy marked `isDefault: true`
-      6. **No match, no default** — resolves to no-banner mode (silent, no consent UI)
-    </Tab>
+  When a visitor arrives, c15t walks the policy pack in priority order:
 
-    <Tab value="Sequence Diagram">
-      ```mermaid
-      sequenceDiagram
-          participant Visitor as Visitor
-          participant C15t as c15t Runtime
-          participant Pack as Policy Pack
-          participant UI as Consent UI
-
-          Visitor->>C15t: Request (country=US, region=CA)
-          C15t->>Pack: Check region matchers
-          alt Region match found
-              Pack-->>C15t: policy_ca_opt_out
-          else No region match
-              C15t->>Pack: Check country matchers
-              alt Country match found
-                  Pack-->>C15t: policy_us_banner
-              else No country match
-                  C15t->>Pack: Check jurisdiction matchers
-                  alt Jurisdiction match found
-                      Pack-->>C15t: policy_gdpr_opt_in
-                  else No jurisdiction match
-                      C15t->>Pack: Check default policy
-                      alt Default exists
-                          Pack-->>C15t: policy_default_world
-                      else No default
-                          Pack-->>C15t: No-banner mode
-                      end
-                  end
-              end
-          end
-
-          C15t->>C15t: Compute fingerprint
-          C15t->>UI: Render resolved policy
-      ```
-    </Tab>
-  </Tabs>
+  1. **Match by region** — checks for a policy targeting the specific region (e.g., US-CA, CA-QC)
+  2. **Match by country** — if no region match, checks for a country-level policy (e.g., US, DE)
+  3. **Fall back to default** — if nothing matches, uses the policy marked as the default
+  4. **No match, no default** — resolves to no-banner mode (silent, no consent UI)
 
   Within the same matcher type, the first policy in the array wins. Pack order matters when two policies target the same country or region.
 
-  <Callout type="warn">
+  <Callout type="warning">
     Only one default policy is allowed. Use `inspectPolicies()` to surface overlapping matchers and other warnings before deployment.
   </Callout>
-</section>
-
-<section id="anatomy">
-  ## Anatomy of a Policy
-
-  Each `PolicyConfig` has five parts:
-
-  ```ts
-  import type { PolicyConfig } from '@c15t/schema/types';
-
-  const euPolicy: PolicyConfig = {
-    // 1. match — where this policy applies
-    id: 'policy_eu_opt_in',
-    match: {
-      jurisdictions: ['GDPR'],
-    },
-
-    // 2. consent — what consent model and categories to enforce
-    consent: {
-      model: 'opt-in',
-      expiryDays: 365,
-      scopeMode: 'strict',
-      categories: ['necessary', 'measurement', 'marketing'],
-      preselectedCategories: ['necessary'],
-    },
-
-    // 3. ui — how the banner and dialog behave
-    ui: {
-      mode: 'banner',
-      banner: {
-        allowedActions: ['accept', 'reject', 'customize'],
-        primaryAction: 'customize',
-        uiProfile: 'compact',
-      },
-      dialog: {
-        allowedActions: ['accept', 'reject', 'customize'],
-      },
-    },
-
-    // 4. i18n — which language/profile to use for copy
-    i18n: {
-      messageProfile: 'eu',
-    },
-
-    // 5. proof — which signals to store alongside consent evidence
-    proof: {
-      storeIp: true,
-      storeUserAgent: true,
-      storeLanguage: true,
-    },
-  };
-  ```
-
-  All parts except `id` and `match` are optional. Omitted sections inherit sensible defaults.
-</section>
-
-<section id="matchers">
-  ## Matchers
-
-  Use the `match` object to target policies by geography or jurisdiction:
-
-  ```ts
-  import { policyMatchers } from 'c15t';
-
-  // Region-level (most specific)
-  match: policyMatchers.regions([{ country: 'US', region: 'CA' }])
-
-  // Country-level
-  match: policyMatchers.countries(['DE', 'FR', 'IT'])
-
-  // Jurisdiction-level
-  match: policyMatchers.jurisdictions(['GDPR', 'UK_GDPR'])
-
-  // Convenience helpers
-  match: policyMatchers.eu()      // All EU countries
-  match: policyMatchers.eea()     // EU + EEA
-  match: policyMatchers.uk()      // United Kingdom
-  match: policyMatchers.iab()     // IAB TCF jurisdictions
-
-  // Combine multiple matchers
-  match: policyMatchers.merge(
-    policyMatchers.eu(),
-    policyMatchers.uk()
-  )
-
-  // Default fallback
-  match: policyMatchers.default()
-  ```
-
-  Or use the raw object form:
-
-  ```ts
-  match: { regions: [{ country: 'US', region: 'CA' }] }
-  match: { countries: ['DE', 'FR'] }
-  match: { jurisdictions: ['GDPR'] }
-  match: { isDefault: true }
-  ```
 </section>
 
 <section id="common-patterns">
@@ -218,19 +79,19 @@
   ```ts
   const policies = [
     {
-      id: 'policy_eu',
-      match: { jurisdictions: ['GDPR'] },
+      id: 'eu',
+      match: { countries: ['DE', 'FR', 'IT'] },
       consent: { model: 'opt-in', categories: ['necessary', 'measurement', 'marketing'] },
       ui: { mode: 'banner' },
     },
     {
-      id: 'policy_ca',
+      id: 'ca',
       match: { regions: [{ country: 'US', region: 'CA' }] },
-      consent: { model: 'opt-out' },
-      ui: { mode: 'banner' },
+      consent: { model: 'opt-out', gpc: true },
+      ui: { mode: 'none' },
     },
     {
-      id: 'policy_default',
+      id: 'default',
       match: { isDefault: true },
       consent: { model: 'none' },
       ui: { mode: 'none' },
@@ -243,113 +104,21 @@
   ```ts
   const policies = [
     {
-      id: 'policy_us_ca',
+      id: 'us_ca',
       match: { regions: [{ country: 'US', region: 'CA' }] },
       consent: { model: 'opt-in', scopeMode: 'strict' },
       ui: { mode: 'banner' },
     },
     {
-      id: 'policy_us',
+      id: 'us',
       match: { countries: ['US'] },
       consent: { model: 'opt-out' },
       ui: { mode: 'banner' },
     },
   ];
-  // US-CA → policy_us_ca (region match wins)
-  // US-NY → policy_us (country match)
+  // US-CA → us_ca (region match wins)
+  // US-NY → us (country match)
   ```
-
-  **IAB in Europe, standard elsewhere:**
-
-  ```ts
-  const policies = [
-    {
-      id: 'policy_eu_iab',
-      match: { jurisdictions: ['GDPR'] },
-      consent: { model: 'iab' },
-      ui: { mode: 'banner' },
-    },
-    {
-      id: 'policy_default',
-      match: { isDefault: true },
-      consent: { model: 'none' },
-      ui: { mode: 'none' },
-    },
-  ];
-  // Requires iab.enabled: true in your configuration
-  ```
-</section>
-
-<section id="categories-and-scope">
-  ## Categories and Scope
-
-  `consent.categories` narrows which categories c15t manages for a policy. `consent.scopeMode` controls enforcement:
-
-  | Scope Mode | Behavior |
-  |-----------|----------|
-  | `'strict'` | Rejects consent submissions containing out-of-scope categories |
-  | `'permissive'` | Silently filters out-of-scope categories from submissions |
-  | `'*'` (wildcard) | All categories allowed |
-
-  `consent.preselectedCategories` stages defaults in the customize dialog — useful for opt-in flows where you want certain categories pre-checked.
-</section>
-
-<section id="ui-customization">
-  ## UI Customization
-
-  Each policy can customize banner and dialog behavior independently:
-
-  ```ts
-  ui: {
-    mode: 'banner',            // 'banner' | 'dialog' | 'none'
-    banner: {
-      allowedActions: ['accept', 'reject', 'customize'],
-      primaryAction: 'accept', // Emphasized button
-      actionOrder: ['reject', 'accept'], // Custom button order
-      actionLayout: 'split',   // 'split' | 'inline'
-      uiProfile: 'compact',   // 'balanced' | 'compact' | 'strict'
-      scrollLock: true,        // Lock page scroll while banner is visible
-    },
-    dialog: {
-      allowedActions: ['accept', 'reject', 'customize'],
-      primaryAction: 'customize',
-    },
-  }
-  ```
-
-  <Callout type="warn">
-    IAB policies (`model: 'iab'`) cannot define custom `ui.*` overrides — the IAB TCF framework controls the UI.
-  </Callout>
-</section>
-
-<section id="fallbacks">
-  ## Fallback Behavior
-
-  | Configuration | Result |
-  |--------------|--------|
-  | `policyPacks` omitted (backend) | Legacy behavior, no runtime policy in `/init` response |
-  | `policyPacks: []` (backend) | Explicit no-banner mode |
-  | Non-empty pack, no match, no default (backend) | Explicit no-banner mode |
-  | `offlinePolicy.policies` omitted (frontend offline) | Synthetic opt-in fallback so local dev still shows a banner |
-  | `offlinePolicy: { policies: [] }` (frontend offline) | Explicit no-banner mode |
-
-  In production, always include a default policy so unmatched traffic resolves deterministically.
-</section>
-
-<section id="snapshots-and-debugging">
-  ## Runtime Outputs and Debugging
-
-  When a backend policy pack resolves, `/init` returns:
-
-  - `policy` — the normalized runtime policy used by the client
-  - `policyDecision` — explainability metadata: `matchedBy`, stable `fingerprint`, matched geo
-  - `policySnapshotToken` — an optional signed JWT that keeps later consent writes aligned with the original `/init` decision
-
-  Useful tools while designing packs:
-
-  - `inspectPolicies()` — surfaces validation warnings before deployment
-  - `validatePolicies()` — fails fast on invalid packs (duplicate IDs, multiple defaults, IAB without `iab.enabled`)
-  - DevTools Policy panel — inspects the resolved runtime decision in the browser
 </section>
 
 <section id="re-prompting">
@@ -369,14 +138,43 @@
   | Change `scrollLock` | No |
 </section>
 
+<section id="gpc">
+  ## Global Privacy Control (GPC)
+
+  Each policy can opt in to respecting the [Global Privacy Control](https://globalprivacycontrol.org/) signal via `consent.gpc`:
+
+  ```ts
+  {
+    id: 'california',
+    match: { regions: [{ country: 'US', region: 'CA' }] },
+    consent: { model: 'opt-out', gpc: true },
+  }
+  ```
+
+  When `gpc: true` and the visitor's browser sends a GPC signal (`Sec-GPC: 1` header or `navigator.globalPrivacyControl`), `marketing` and `measurement` categories are automatically denied during auto-granting — honoring the user's opt-out preference.
+
+  When `gpc` is `false` or omitted, the GPC signal is ignored for that policy. This is the right default for GDPR/EEA policies where consent is already opt-in and GPC is redundant.
+
+  | Preset | `gpc` | Why |
+  |--------|-------|-----|
+  | `californiaOptIn()` | `true` | CCPA recognizes GPC as a legal opt-out |
+  | `californiaOptOut()` | `true` | CCPA recognizes GPC as a legal opt-out |
+  | `europeOptIn()` | — | GDPR already requires opt-in |
+  | `europeIab()` | — | TCF handles consent signals |
+  | `worldNoBanner()` | — | No regulation applies |
+
+  <Callout type="info">
+    The `overrides.gpc` option on the provider and the DevTools GPC toggle still work as a manual override for testing — they force the GPC signal on or off regardless of policy settings.
+  </Callout>
+</section>
+
 <section id="design-guidelines">
   ## Design Guidelines
 
-  - **Start from defaults.** Use `policyPackPresets` to get running, then customize for your needs.
+  - **Start from presets.** Use `policyPackPresets` to get running, then customize for your needs.
   - **Keep packs small.** A handful of regional policies is better than dozens of tiny fragments.
   - **Think risk, not geography.** Geography is just a matcher — the real question is what consent behavior each region needs.
   - **Always include a default.** Unless "no banner for unmatched traffic" is intentional.
   - **Keep policy IDs stable.** They appear in debugging output, snapshots, and audit records.
-  - **Backend is source of truth.** Use frontend `offlinePolicy.policies` only for previews, tests, and static deployments.
   - **Use `inspectPolicies()` before deploying.** It catches overlapping matchers, missing defaults, and IAB misconfigurations.
 </section>

@@ -54,8 +54,7 @@ export interface PolicyUiSurfaceConfig {
  *
  * 1. region
  * 2. country
- * 3. jurisdiction
- * 4. default
+ * 3. default
  *
  * Within the same matcher type, first match wins by array order.
  *
@@ -68,7 +67,6 @@ export interface PolicyConfig {
 	match: {
 		regions?: Array<{ country: string; region: string }>;
 		countries?: string[];
-		jurisdictions?: JurisdictionCode[];
 		isDefault?: boolean;
 	};
 	i18n?: {
@@ -89,6 +87,18 @@ export interface PolicyConfig {
 		scopeMode?: PolicyScopeMode;
 		categories?: string[];
 		preselectedCategories?: string[];
+		/**
+		 * Whether this policy should respect the Global Privacy Control (GPC) signal.
+		 *
+		 * When `true`, the presence of a GPC signal (`Sec-GPC: 1` header or
+		 * `navigator.globalPrivacyControl`) causes marketing and measurement
+		 * categories to be treated as opted-out for auto-granted consents.
+		 *
+		 * Defaults to `false`. Typically enabled for CCPA/California policies
+		 * where GPC is a legally recognized opt-out mechanism, and left disabled
+		 * for GDPR/EEA policies where consent is already opt-in.
+		 */
+		gpc?: boolean;
 	};
 	ui?: {
 		mode?: PolicyUiMode;
@@ -147,8 +157,8 @@ export interface PolicyValidationResult {
 	warnings: string[];
 }
 
-// Manual matcher-data revision marker. Update this whenever the jurisdiction
-// or built-in matcher tables change.
+// Manual matcher-data revision marker. Update this whenever the built-in
+// country or region matcher tables change.
 export const POLICY_MATCH_DATASET_VERSION = '2026-03-10';
 
 export const EU_COUNTRY_CODES = [
@@ -188,7 +198,6 @@ export const EEA_COUNTRY_CODES = [
 	'NO',
 ] as const;
 export const UK_COUNTRY_CODES = ['GB'] as const;
-export const IAB_POLICY_JURISDICTIONS = ['GDPR', 'UK_GDPR'] as const;
 
 function normalizeCountry(code: string): string {
 	return code.trim().toUpperCase();
@@ -204,8 +213,52 @@ function normalizeRegion(input: { country: string; region: string }): {
 	};
 }
 
-function dedupeJurisdictions(values: JurisdictionCode[]): JurisdictionCode[] {
-	return dedupeDefinedValues(values) ?? [];
+type PolicyRegionMatcher = NonNullable<PolicyMatch['regions']>[number];
+
+function mergeCountries(
+	existing: PolicyMatch['countries'],
+	countries: string[]
+): PolicyMatch['countries'] {
+	return (
+		dedupeDefinedValues([
+			...(existing ?? []),
+			...countries.map((country) => normalizeCountry(country)),
+		]) ?? []
+	);
+}
+
+function mergeRegions(
+	existing: PolicyMatch['regions'],
+	regions: PolicyRegionMatcher[]
+): PolicyMatch['regions'] {
+	const merged = [
+		...(existing ?? []),
+		...regions.map((region) => normalizeRegion(region)),
+	];
+	const seen = new Set<string>();
+	return merged.filter((region) => {
+		const key = createRegionMatcherKey(region.country, region.region);
+		if (seen.has(key)) {
+			return false;
+		}
+		seen.add(key);
+		return true;
+	});
+}
+
+function applyPolicyMatchFragment(
+	merged: PolicyMatch,
+	match: PolicyMatch
+): void {
+	if (match.isDefault) {
+		merged.isDefault = true;
+	}
+	if (match.countries?.length) {
+		merged.countries = mergeCountries(merged.countries, match.countries);
+	}
+	if (match.regions?.length) {
+		merged.regions = mergeRegions(merged.regions, match.regions);
+	}
 }
 
 /**
@@ -237,12 +290,6 @@ export const policyMatchers = {
 		};
 	},
 
-	jurisdictions(jurisdictions: JurisdictionCode[]): PolicyMatch {
-		return {
-			jurisdictions: dedupeJurisdictions(jurisdictions),
-		};
-	},
-
 	eu(): PolicyMatch {
 		return {
 			countries: [...EU_COUNTRY_CODES],
@@ -262,37 +309,14 @@ export const policyMatchers = {
 	},
 
 	iab(): PolicyMatch {
-		return {
-			jurisdictions: [...IAB_POLICY_JURISDICTIONS],
-		};
+		return policyMatchers.merge(policyMatchers.eea(), policyMatchers.uk());
 	},
 
 	merge(...matches: PolicyMatch[]): PolicyMatch {
 		const merged: PolicyMatch = {};
 
 		for (const match of matches) {
-			if (match.isDefault) {
-				merged.isDefault = true;
-			}
-			if (match.countries?.length) {
-				merged.countries =
-					dedupeDefinedValues([
-						...(merged.countries ?? []),
-						...match.countries.map((country) => normalizeCountry(country)),
-					]) ?? [];
-			}
-			if (match.regions?.length) {
-				merged.regions = [
-					...(merged.regions ?? []),
-					...match.regions.map((region) => normalizeRegion(region)),
-				];
-			}
-			if (match.jurisdictions?.length) {
-				merged.jurisdictions = dedupeJurisdictions([
-					...(merged.jurisdictions ?? []),
-					...match.jurisdictions,
-				]);
-			}
+			applyPolicyMatchFragment(merged, match);
 		}
 
 		return merged;
@@ -307,7 +331,6 @@ type IndexedPolicyMatch = {
 type CompiledPolicyResolver = {
 	regions: Map<string, PolicyConfig>;
 	countries: Map<string, PolicyConfig>;
-	jurisdictions: Map<JurisdictionCode, PolicyConfig>;
 	defaultPolicy?: PolicyConfig;
 };
 
@@ -404,8 +427,7 @@ function hasUiSurfaceConfig(surface?: PolicyUiSurfaceConfig): boolean {
 function hasExplicitMatchers(policy: PolicyConfig): boolean {
 	return (
 		(policy.match.countries?.length ?? 0) > 0 ||
-		(policy.match.regions?.length ?? 0) > 0 ||
-		(policy.match.jurisdictions?.length ?? 0) > 0
+		(policy.match.regions?.length ?? 0) > 0
 	);
 }
 
@@ -478,7 +500,7 @@ function collectPolicyErrors(
 
 		if (!policy.match.isDefault && !hasExplicitMatchers(policy)) {
 			errors.push(
-				`Policy '${id}' has no matcher. Add countries, regions, jurisdictions, or set match.isDefault=true.`
+				`Policy '${id}' has no matcher. Add countries or regions, or set match.isDefault=true.`
 			);
 		}
 	}
@@ -495,13 +517,12 @@ function collectPolicyWarnings(policies: PolicyConfig[]): string[] {
 	const defaults = policies.filter((policy) => policy.match.isDefault);
 	if (defaults.length === 0) {
 		warnings.add(
-			'No default policy configured. Requests that do not match region/country/jurisdiction will have no active policy.'
+			'No default policy configured. Requests that do not match region/country will have no active policy.'
 		);
 	}
 
 	const seenCountries = new Map<string, string>();
 	const seenRegions = new Map<string, string>();
-	const seenJurisdictions = new Map<string, string>();
 
 	for (const [index, policy] of policies.entries()) {
 		const id = policy.id?.trim() || `policy_index_${index}`;
@@ -534,18 +555,6 @@ function collectPolicyWarnings(policies: PolicyConfig[]): string[] {
 				);
 			} else {
 				seenRegions.set(key, `'${id}'`);
-			}
-		}
-
-		for (const jurisdiction of policy.match.jurisdictions ?? []) {
-			const key = jurisdiction.toUpperCase();
-			const existing = seenJurisdictions.get(key);
-			if (existing) {
-				warnings.add(
-					`Jurisdiction matcher '${key}' appears in multiple policies (${existing} and '${id}'). First match wins by array order.`
-				);
-			} else {
-				seenJurisdictions.set(key, `'${id}'`);
 			}
 		}
 	}
@@ -743,7 +752,6 @@ function compilePolicyResolver(
 	const compiled: CompiledPolicyResolver = {
 		regions: new Map<string, PolicyConfig>(),
 		countries: new Map<string, PolicyConfig>(),
-		jurisdictions: new Map<JurisdictionCode, PolicyConfig>(),
 	};
 
 	for (const policy of policies) {
@@ -762,12 +770,6 @@ function compilePolicyResolver(
 			const normalizedCountry = normalizeCountry(country);
 			if (!compiled.countries.has(normalizedCountry)) {
 				compiled.countries.set(normalizedCountry, policy);
-			}
-		}
-
-		for (const jurisdiction of policy.match.jurisdictions ?? []) {
-			if (!compiled.jurisdictions.has(jurisdiction)) {
-				compiled.jurisdictions.set(jurisdiction, policy);
 			}
 		}
 
@@ -796,9 +798,8 @@ function resolveIndexedPolicyMatch(params: {
 	compiled: CompiledPolicyResolver;
 	countryCode: string | null;
 	regionCode: string | null;
-	jurisdiction: JurisdictionCode;
 }): IndexedPolicyMatch | undefined {
-	const { compiled, countryCode, regionCode, jurisdiction } = params;
+	const { compiled, countryCode, regionCode } = params;
 
 	if (countryCode && regionCode) {
 		const regionPolicy = compiled.regions.get(
@@ -814,11 +815,6 @@ function resolveIndexedPolicyMatch(params: {
 		if (countryPolicy) {
 			return { policy: countryPolicy, matchedBy: 'country' };
 		}
-	}
-
-	const jurisdictionPolicy = compiled.jurisdictions.get(jurisdiction);
-	if (jurisdictionPolicy) {
-		return { policy: jurisdictionPolicy, matchedBy: 'jurisdiction' };
 	}
 
 	if (compiled.defaultPolicy) {
@@ -840,6 +836,7 @@ function mapPolicy(policy: PolicyConfig): ResolvedPolicy {
 			scopeMode: normalizeScopeMode(policy),
 			categories: normalizeCategories(policy),
 			preselectedCategories: normalizePreselectedCategories(policy),
+			gpc: policy.consent?.gpc,
 		},
 		ui:
 			model === 'iab'
@@ -889,7 +886,6 @@ export async function resolvePolicyDecision(params: {
 	jurisdiction: JurisdictionCode;
 	iabEnabled?: boolean;
 }): Promise<ResolvedPolicyDecision | undefined> {
-	const { jurisdiction } = params;
 	const parsedPolicies = parseOptionalPolicyConfigs(params.policies);
 
 	if (!parsedPolicies || parsedPolicies.length === 0) {
@@ -910,7 +906,6 @@ export async function resolvePolicyDecision(params: {
 		compiled: getCompiledPolicyResolver(parsedPolicies),
 		countryCode,
 		regionCode,
-		jurisdiction,
 	});
 
 	if (!matchedPolicy) {
