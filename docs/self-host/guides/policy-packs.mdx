@@ -257,7 +257,70 @@ const c15t = c15tInstance({
 
 This prevents race conditions where the policy pack changes between `/init` and the consent write.
 
-## Fallback Semantics
+## Global Privacy Control (GPC)
+
+Each policy can opt in to respecting the [Global Privacy Control](https://globalprivacycontrol.org/) signal via `consent.gpc`:
+
+```ts
+{
+  id: 'california',
+  match: { regions: [{ country: 'US', region: 'CA' }] },
+  consent: { model: 'opt-out', gpc: true },
+}
+```
+
+When `gpc: true` and the visitor's browser sends a GPC signal (`Sec-GPC: 1`), `marketing` and `measurement` categories are automatically denied during auto-granting — honoring the user's opt-out preference.
+
+When `gpc` is `false` or omitted, the GPC signal is ignored for that policy. This is the right default for GDPR policies where consent is already opt-in and GPC is redundant.
+
+The `californiaOptIn()` and `californiaOptOut()` presets set `gpc: true` by default. The Europe presets omit it.
+
+## Scope Mode
+
+Each policy can set `consent.scopeMode` to control how out-of-scope categories are handled:
+
+- **`strict`** — categories not listed in the policy's `consent.categories` are rejected. Use this for GDPR where only explicitly scoped categories should be collected.
+- **`permissive`** — categories not listed in the policy are allowed through. Use this for regions with lighter requirements where you don't want to block unrecognized categories.
+
+```ts
+{
+  id: 'eu',
+  match: { countries: ['DE'] },
+  consent: {
+    model: 'opt-in',
+    scopeMode: 'strict',
+    categories: ['necessary', 'measurement', 'marketing'],
+  },
+}
+```
+
+When omitted, scope mode defaults to `permissive`.
+
+## Fallback Matcher
+
+The `match.fallback` flag provides a safety net when geo-location fails — when CDN headers are missing and `countryCode` is `null`. This is distinct from `match.isDefault`:
+
+- **`isDefault`** — catch-all for **known** locations that don't match any specific policy ("rest of world")
+- **`fallback`** — safety net for **unknown** locations when geo fails ("assume strictest")
+
+```ts
+{
+  id: 'strict_fallback',
+  match: { fallback: true, countries: [...EEA_COUNTRY_CODES] },
+  consent: { model: 'opt-in' },
+  ui: { mode: 'banner' },
+}
+```
+
+The fallback is only checked when `countryCode` is `null`. When geo works normally, resolution skips fallback entirely and uses the standard region → country → default flow.
+
+The `europeOptIn()` and `europeIab()` presets include `fallback: true` by default, so EU-level consent applies automatically when geo headers are missing or when `disableGeoLocation` is enabled.
+
+<Callout type="info">
+  At most one fallback policy is allowed. Use `inspectPolicies()` to verify — it warns when no fallback is configured and errors when multiple are defined.
+</Callout>
+
+## Edge Cases
 
 | Configuration | Result |
 |--------------|--------|
@@ -269,7 +332,7 @@ This prevents race conditions where the policy pack changes between `/init` and 
   Omitting `policyPacks` entirely is deprecated and will be removed in 2.0 GA. Set `policyPacks: []` explicitly if you want no-banner behavior.
 </Callout>
 
-For most production deployments, include a default policy so unmatched traffic resolves deterministically.
+For most production deployments, include both a default and a fallback policy so all traffic resolves deterministically.
 
 ## Frontend Alignment
 
