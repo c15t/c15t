@@ -87,6 +87,12 @@ Use for geo-targeted consent banners and regional compliance.`,
 						jurisdiction,
 						iabEnabled: options.iab?.enabled === true,
 					});
+			if (hasExplicitPolicyPack && !policyDecision) {
+				ctx?.logger?.warn('Policy packs configured but no policy matched', {
+					country: location.countryCode,
+					region: location.regionCode,
+				});
+			}
 			const resolvedPolicy = hasExplicitPolicyPack
 				? (policyDecision?.policy ?? resolveNoPolicyFallback())
 				: undefined;
@@ -156,6 +162,7 @@ Use for geo-targeted consent banners and regional compliance.`,
 						categories: policyDecision.policy.consent?.categories,
 						preselectedCategories:
 							policyDecision.policy.consent?.preselectedCategories,
+						gpc: policyDecision.policy.consent?.gpc,
 						proofConfig: policyDecision.policy.proof,
 					})
 				: undefined;

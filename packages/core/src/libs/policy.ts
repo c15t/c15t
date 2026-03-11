@@ -141,7 +141,7 @@ export function applyPolicyScopeForRuntimeGating(
  */
 export function getEffectivePolicy(
 	initData?: InitOutput | null
-): ResolvedPolicy {
+): ResolvedPolicy | undefined {
 	return initData?.policy;
 }
 

@@ -157,8 +157,7 @@ function buildStoreUpdate(
 			scrollLock: data.policy?.ui?.dialog?.scrollLock,
 		},
 		policyCategories: data.policy?.consent?.categories ?? null,
-		policyScopeMode:
-			data.policy?.consent?.scopeMode ?? (data.policy ? 'permissive' : null),
+		policyScopeMode: data.policy?.consent?.scopeMode ?? null,
 		initDataSource: initSourceMetadata?.initDataSource ?? null,
 		initDataSourceDetail: initSourceMetadata?.initDataSourceDetail ?? null,
 	};

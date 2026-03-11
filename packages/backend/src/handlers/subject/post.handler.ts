@@ -224,6 +224,7 @@ export const postSubjectHandler = async (c: Context) => {
 							scopeMode: snapshotPayload.scopeMode,
 							categories: snapshotPayload.categories,
 							preselectedCategories: snapshotPayload.preselectedCategories,
+							gpc: snapshotPayload.gpc,
 						},
 						ui: {
 							mode: snapshotPayload.uiMode,
@@ -454,38 +455,45 @@ export const postSubjectHandler = async (c: Context) => {
 				? ((await tx.findFirst('runtimePolicyDecision', {
 						where: (b) => b('dedupeKey', '=', decisionPayload.dedupeKey),
 					})) ??
-					(await tx.create('runtimePolicyDecision', {
-						id: `rpd_${crypto.randomUUID().replaceAll('-', '')}`,
-						tenantId: decisionPayload.tenantId,
-						policyId: decisionPayload.policyId,
-						fingerprint: decisionPayload.fingerprint,
-						matchedBy: decisionPayload.matchedBy,
-						countryCode: decisionPayload.countryCode,
-						regionCode: decisionPayload.regionCode,
-						jurisdiction: decisionPayload.jurisdiction,
-						language: decisionPayload.language,
-						model: decisionPayload.model,
-						policyI18n: decisionPayload.policyI18n
-							? { json: decisionPayload.policyI18n }
-							: undefined,
-						uiMode: decisionPayload.uiMode,
-						bannerUi: decisionPayload.bannerUi
-							? { json: decisionPayload.bannerUi }
-							: undefined,
-						dialogUi: decisionPayload.dialogUi
-							? { json: decisionPayload.dialogUi }
-							: undefined,
-						categories: decisionPayload.categories
-							? { json: decisionPayload.categories }
-							: undefined,
-						preselectedCategories: decisionPayload.preselectedCategories
-							? { json: decisionPayload.preselectedCategories }
-							: undefined,
-						proofConfig: decisionPayload.proofConfig
-							? { json: decisionPayload.proofConfig }
-							: undefined,
-						dedupeKey: decisionPayload.dedupeKey,
-					})))
+					(await tx
+						.create('runtimePolicyDecision', {
+							id: `rpd_${crypto.randomUUID().replaceAll('-', '')}`,
+							tenantId: decisionPayload.tenantId,
+							policyId: decisionPayload.policyId,
+							fingerprint: decisionPayload.fingerprint,
+							matchedBy: decisionPayload.matchedBy,
+							countryCode: decisionPayload.countryCode,
+							regionCode: decisionPayload.regionCode,
+							jurisdiction: decisionPayload.jurisdiction,
+							language: decisionPayload.language,
+							model: decisionPayload.model,
+							policyI18n: decisionPayload.policyI18n
+								? { json: decisionPayload.policyI18n }
+								: undefined,
+							uiMode: decisionPayload.uiMode,
+							bannerUi: decisionPayload.bannerUi
+								? { json: decisionPayload.bannerUi }
+								: undefined,
+							dialogUi: decisionPayload.dialogUi
+								? { json: decisionPayload.dialogUi }
+								: undefined,
+							categories: decisionPayload.categories
+								? { json: decisionPayload.categories }
+								: undefined,
+							preselectedCategories: decisionPayload.preselectedCategories
+								? { json: decisionPayload.preselectedCategories }
+								: undefined,
+							proofConfig: decisionPayload.proofConfig
+								? { json: decisionPayload.proofConfig }
+								: undefined,
+							dedupeKey: decisionPayload.dedupeKey,
+						})
+						.catch(async () =>
+							// Race: another request may have inserted the same dedupeKey
+							tx.findFirst('runtimePolicyDecision', {
+								where: (b) => b('dedupeKey', '=', decisionPayload.dedupeKey),
+							})
+						)))
 				: undefined;
 
 			// Always create a new consent record (append-only)

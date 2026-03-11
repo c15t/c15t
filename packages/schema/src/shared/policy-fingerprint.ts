@@ -266,6 +266,7 @@ function createMaterialPolicyFingerprintInput(policy: ResolvedPolicy) {
 					scopeMode: policy.consent.scopeMode,
 					categories: policy.consent.categories,
 					preselectedCategories: policy.consent.preselectedCategories,
+					gpc: policy.consent.gpc,
 				}
 			: undefined,
 		ui: policy.ui

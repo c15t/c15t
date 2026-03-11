@@ -57,6 +57,7 @@ export interface PolicySnapshotPayload extends JWTPayload {
 	dialogUi?: PolicySnapshotUiSurface;
 	categories?: string[];
 	preselectedCategories?: string[];
+	gpc?: boolean;
 	proofConfig?: {
 		storeIp?: boolean;
 		storeUserAgent?: boolean;
@@ -139,6 +140,7 @@ export async function createPolicySnapshotToken(params: {
 	dialogUi?: PolicySnapshotUiSurface;
 	categories?: string[];
 	preselectedCategories?: string[];
+	gpc?: boolean;
 	proofConfig?: {
 		storeIp?: boolean;
 		storeUserAgent?: boolean;
@@ -179,6 +181,7 @@ export async function createPolicySnapshotToken(params: {
 		dialogUi: params.dialogUi,
 		categories: params.categories,
 		preselectedCategories: params.preselectedCategories,
+		gpc: params.gpc,
 		proofConfig: params.proofConfig,
 		iat,
 		exp,
