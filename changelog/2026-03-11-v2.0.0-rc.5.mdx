@@ -1,0 +1,162 @@
+---
+title: "v2.0.0-rc.5 — Policy Packs, GPC Per-Policy, Fallback Policies & CLI Improvements"
+version: "2.0.0-rc.5"
+date: 2026-03-11
+description: "Release candidate introducing policy packs for regional consent resolution, per-policy GPC support, geo-failure fallback policies, CLI consent.io integration, and improved developer experience across the board."
+tags:
+  - release
+  - rc
+  - backend
+  - schema
+  - react
+  - nextjs
+  - cli
+  - dev-tools
+type: release
+breaking: false
+authors: [KayleeWilliams]
+---
+
+This RC introduces **policy packs** — the biggest addition since the v2 rewrite. Policy packs let you define regional consent rules once and have c15t resolve the right policy automatically based on visitor location. This release also ships per-policy GPC support, a fallback safety net for geo-location failures, CLI improvements, and developer experience polish across every package.
+
+## Highlights
+
+- [Policy packs](#policy-packs) for declarative regional consent configuration
+- [Per-policy GPC support](#per-policy-gpc) via `consent.gpc`
+- [Fallback policies](#fallback-policies) as a safety net when geo-location fails
+- [Policy fingerprints & re-prompting](#policy-fingerprints--re-prompting) to automatically resurface consent when policies change
+- [Built-in presets](#built-in-presets) for Europe, California, Quebec, and more
+- [Policy validation](#policy-validation) with `inspectPolicies()` for catching misconfigurations
+- [CLI consent.io integration](#cli-improvements) and new v1→v2 codemods
+- [Dev-tools policy panel](#dev-tools-policy-panel) for inspecting match resolution in real time
+- [Naming & DX improvements](#naming--dx-improvements) across hosted/offline modes, i18n, and legal links
+
+## New Features
+
+### Policy Packs
+
+Policy packs are ordered arrays of policies that control the consent model, categories, UI, and proof settings for each region. The backend resolves the right policy for each `/init` request based on the visitor's geo-location.
+
+```ts
+import { c15tInstance, policyPackPresets } from '@c15t/backend';
+
+const c15t = c15tInstance({
+  adapter,
+  trustedOrigins: ['https://app.example.com'],
+  policyPacks: [
+    policyPackPresets.europeOptIn(),
+    policyPackPresets.californiaOptOut(),
+    policyPackPresets.worldNoBanner(),
+  ],
+});
+```
+
+Resolution follows a fixed priority: **region → country → fallback → default**. Within the same matcher type, first match wins by array order.
+
+Each policy controls:
+- **Consent model** — `opt-in`, `opt-out`, `none`, or `iab`
+- **Categories** — which consent categories are in scope
+- **Scope mode** — `strict` (block out-of-scope) or `permissive` (allow out-of-scope)
+- **UI** — banner, dialog, or none, with per-surface action customization
+- **Proof** — what to record (IP, user agent, language)
+- **I18n** — language and message profile overrides
+
+The `/init` response now includes `policy` (the resolved runtime config) and `policyDecision` (explainability metadata with `matchedBy`, fingerprint, and geo context).
+
+> [Policy Packs Concepts](/docs/frameworks/react/concepts/policy-packs) · [Self-Host Guide](/docs/self-host/guides/policy-packs)
+
+### Per-Policy GPC
+
+Each policy can now individually opt in to respecting the [Global Privacy Control](https://globalprivacycontrol.org/) signal via `consent.gpc`:
+
+```ts
+{
+  id: 'california',
+  match: { regions: [{ country: 'US', region: 'CA' }] },
+  consent: { model: 'opt-out', gpc: true },
+}
+```
+
+When `gpc: true` and the visitor's browser sends a GPC signal, `marketing` and `measurement` categories are automatically denied during auto-granting. This replaces the previous global GPC behavior with per-policy control — GDPR policies can leave it off (consent is already opt-in) while CCPA policies can enable it.
+
+### Fallback Policies
+
+A new `match.fallback` flag provides a safety net when geo-location fails (no Cloudflare, Vercel, or AWS geo-headers). This is semantically distinct from `isDefault`:
+
+- **`isDefault`** — catch-all for known locations that don't match specific policies ("rest of world")
+- **`fallback`** — safety net for unknown locations when geo fails ("assume strictest")
+
+```ts
+{
+  id: 'strict_fallback',
+  match: { fallback: true, countries: [...EEA_COUNTRY_CODES] },
+  consent: { model: 'opt-in' },
+  ui: { mode: 'banner' },
+}
+```
+
+The `europeOptIn()` and `europeIab()` presets include `fallback: true` by default, so the recommended setup protects EU users automatically — even when `disableGeoLocation` is enabled or CDN headers are missing.
+
+### Policy Fingerprints & Re-Prompting
+
+Each resolved policy now includes a **material policy fingerprint** — a SHA-256 hash of consent-affecting fields (model, categories, scope, allowed actions, proof settings). When you change a policy in a way that affects consent semantics, c15t automatically detects the fingerprint mismatch and re-prompts returning users.
+
+Presentation-only changes (copy, layout, scroll lock, i18n) do not trigger re-prompts.
+
+### Built-In Presets
+
+Six presets cover the most common regional configurations:
+
+| Preset | Model | Matches |
+|--------|-------|---------|
+| `europeOptIn()` | `opt-in` | EEA + UK + geo fallback |
+| `europeIab()` | `iab` | EEA + UK + geo fallback (TCF 2.3) |
+| `californiaOptIn()` | `opt-in` | US-CA region |
+| `californiaOptOut()` | `opt-out` | US-CA region |
+| `quebecOptIn()` | `opt-in` | CA-QC region |
+| `worldNoBanner()` | `none` | default catch-all |
+
+Matcher helpers (`policyMatchers.eu()`, `.eea()`, `.uk()`, `.iab()`, `.fallback()`, `.merge()`) make custom pack composition easy.
+
+### Policy Validation
+
+`inspectPolicies()` validates your policy pack before deployment, catching:
+
+- Multiple default or fallback policies
+- IAB policies without `iab.enabled: true` or with custom UI overrides
+- Duplicate or missing policy IDs
+- Policies with no matchers
+- Missing default or fallback policies (warnings)
+- Overlapping country/region matchers (warnings)
+
+### Dev-Tools Policy Panel
+
+The dev-tools panel now includes a full **match trace** showing the resolution path for every request: region → country → fallback → default, with MATCH/MISS indicators and the resolved policy ID. The location panel shows the active policy summary with `matchedBy` metadata.
+
+### Snapshot Tokens
+
+When `policySnapshot.signingKey` is configured, `/init` returns a signed JWT alongside the resolved policy. The token is validated on `POST /subjects` to ensure the consent write matches the original `/init` decision — preventing race conditions when policy packs change between requests.
+
+### CLI Improvements
+
+- **consent.io integration** — connect to hosted backends directly from the CLI
+- **New v1→v2 codemods** — automated migration for renamed APIs and imports
+- **Improved file structure support** — handles `[locale]` directory patterns
+- **Removed redundant preflight checks** for faster setup
+
+## Improvements
+
+- Renamed `c15t` mode to `hosted` and improved hosted vs offline documentation
+- Renamed translation-facing APIs from `translations` to `i18n` across runtime types
+- Improved legal links and overrides documentation
+- `@c15t/backend` API entrypoints flattened for better TypeScript DX
+- Backend now exposes a base `/` root endpoint for health checks
+- React compiler compatibility fixes
+- Dark mode fix for `@c15t/ui`
+- Dialog width customization and `disableAnimation` fixes
+- `ConsentDialogLink` component added to `@c15t/react`
+- Dev-tools UI improvements with persisted overrides and better diagnostics
+- Updated Lithuanian translations
+- CSS import path fixes (`.css` → `.js`)
+
+<ContributorBlock usernames={["KayleeWilliams"]} title="Thank you to our contributors" />
